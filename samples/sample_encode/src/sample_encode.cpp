@@ -59,10 +59,11 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Supported codecs, <msdk-codecid>:\n"));
     msdk_printf(MSDK_STRING("   <codecid>=h264|mpeg2|vc1|mvc|jpeg - built-in Media SDK codecs\n"));
-    msdk_printf(MSDK_STRING("   <codecid>=h265                - in-box Media SDK plugins (may require separate downloading and installation)\n"));
+    msdk_printf(MSDK_STRING("   <codecid>=h265|vp9                - in-box Media SDK plugins (may require separate downloading and installation)\n"));
     msdk_printf(MSDK_STRING("   If codecid is jpeg, -q option is mandatory.)\n"));
     msdk_printf(MSDK_STRING("Options: \n"));
-    msdk_printf(MSDK_STRING("   [-nv12|yuy2|p010|rgb4] - input color format (by default YUV420 is expected). YUY2 is for JPEG encode only.\n"));
+    msdk_printf(MSDK_STRING("   [-nv12|yuy2|ayuv|rgb4|p010|y210|y410|a2rgb10] - input color format (by default YUV420 is expected).\n"));
+    msdk_printf(MSDK_STRING("   [-msb10] - 10-bit color format is expected to have data in Most Significant Bits of words.\n                 (LSB data placement is expected by default).\n                 This option also disables data shifting during file reading.\n"));
     msdk_printf(MSDK_STRING("   [-ec::p010] - force usage of P010 surfaces for encoder (conversion will be made if necessary). Use for 10 bit HEVC encoding\n"));
     msdk_printf(MSDK_STRING("   [-tff|bff] - input stream is interlaced, top|bottom fielf first, if not specified progressive is expected\n"));
     msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
@@ -138,7 +139,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
     msdk_printf(MSDK_STRING("                              the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled\n"));
 #if (MFX_VERSION >= 1024)
-    msdk_printf(MSDK_STRING("   [-extbrc:<on,off,implicit>] - External BRC for AVC and HEVC encoders"));
+    msdk_printf(MSDK_STRING("   [-extbrc:<on,off,implicit>] - External BRC for AVC and HEVC encoders\n"));
 #endif
 #if (MFX_VERSION >= 1026)
     msdk_printf(MSDK_STRING("   [-ExtBrcAdaptiveLTR:<on,off>] - Set AdaptiveLTR for implicit extbrc"));
@@ -277,6 +278,33 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->FileInputFourCC = MFX_FOURCC_P010;
             pParams->EncodeFourCC = MFX_FOURCC_P010;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ayuv")))
+        {
+            pParams->FileInputFourCC = MFX_FOURCC_AYUV;
+            pParams->EncodeFourCC = MFX_FOURCC_AYUV;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-yuy2")))
+        {
+            pParams->FileInputFourCC = MFX_FOURCC_YUY2;
+            pParams->EncodeFourCC = MFX_FOURCC_YUY2;
+        }
+#if (MFX_VERSION >= 1027)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-y210")))
+        {
+            pParams->FileInputFourCC = MFX_FOURCC_Y210;
+            pParams->EncodeFourCC = MFX_FOURCC_Y210;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-y410")))
+        {
+            pParams->FileInputFourCC = MFX_FOURCC_Y410;
+            pParams->EncodeFourCC = MFX_FOURCC_Y410;
+        }
+#endif
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-a2rgb10")))
+        {
+            pParams->FileInputFourCC = MFX_FOURCC_A2RGB10;
+            pParams->EncodeFourCC = MFX_FOURCC_A2RGB10;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ec::p010")))
         {
             pParams->EncodeFourCC = MFX_FOURCC_P010;
@@ -304,6 +332,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("IdrInterval is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-msb10")))
+        {
+            pParams->IsSourceMSB = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-angle")))
         {
@@ -943,23 +975,24 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     if (MFX_CODEC_MPEG2 != pParams->CodecId &&
         MFX_CODEC_AVC != pParams->CodecId &&
         MFX_CODEC_JPEG != pParams->CodecId &&
-        MFX_CODEC_HEVC != pParams->CodecId)
+        MFX_CODEC_HEVC != pParams->CodecId && 
+        MFX_CODEC_VP9 != pParams->CodecId)
     {
         PrintHelp(strInput[0], MSDK_STRING("Unknown codec"));
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (MFX_CODEC_JPEG != pParams->CodecId &&
+    if (MFX_CODEC_JPEG != pParams->CodecId && MFX_CODEC_HEVC != pParams->CodecId &&
         pParams->FileInputFourCC == MFX_FOURCC_YUY2 &&
         !pParams->isV4L2InputEnabled)
     {
-        PrintHelp(strInput[0], MSDK_STRING("-yuy2 option is supported only for JPEG encoder"));
+        PrintHelp(strInput[0], MSDK_STRING("-yuy2 option is supported only for JPEG or HEVC encoder"));
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (MFX_CODEC_HEVC != pParams->CodecId && (pParams->EncodeFourCC == MFX_FOURCC_P010) )
+    if (MFX_CODEC_HEVC != pParams->CodecId && MFX_CODEC_VP9 != pParams->CodecId && (pParams->EncodeFourCC == MFX_FOURCC_P010) )
     {
-        PrintHelp(strInput[0], MSDK_STRING("P010 surfaces are supported only for HEVC encoder"));
+        PrintHelp(strInput[0], MSDK_STRING("P010 surfaces are supported only for HEVC and VP9 encoder"));
         return MFX_ERR_UNSUPPORTED;
     }
 

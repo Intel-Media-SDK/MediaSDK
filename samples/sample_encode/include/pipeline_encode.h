@@ -168,8 +168,9 @@ struct sInputParams
     mfxU16 IntRefCycleDist;
 
     bool bUncut;
-    bool shouldUseShiftedP010Enc;
-    bool shouldUseShiftedP010VPP;
+    bool shouldUseShifted10BitEnc;
+    bool shouldUseShifted10BitVPP;
+    bool IsSourceMSB;
 
     msdk_char *RoundingOffsetFile;
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];

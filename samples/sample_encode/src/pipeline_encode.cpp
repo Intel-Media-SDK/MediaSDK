@@ -447,7 +447,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.FourCC       = pInParams->EncodeFourCC;
     m_mfxEncParams.mfx.FrameInfo.ChromaFormat = FourCCToChroma(pInParams->EncodeFourCC);
     m_mfxEncParams.mfx.FrameInfo.PicStruct    = pInParams->nPicStruct;
-    m_mfxEncParams.mfx.FrameInfo.Shift = pInParams->shouldUseShiftedP010Enc;
+    m_mfxEncParams.mfx.FrameInfo.Shift = pInParams->shouldUseShifted10BitEnc;
 
     // width must be a multiple of 16
     // height must be a multiple of 16 in case of frame picture and a multiple of 32 in case of field picture
@@ -696,8 +696,8 @@ mfxStatus CEncodingPipeline::InitMfxVppParams(sInputParams *pInParams)
     m_mfxVppParams.vpp.Out.ChromaFormat = FourCCToChroma(m_mfxVppParams.vpp.Out.FourCC);
 
     // Fill Shift bit
-    m_mfxVppParams.vpp.In.Shift = pInParams->shouldUseShiftedP010VPP;
-    m_mfxVppParams.vpp.Out.Shift = pInParams->shouldUseShiftedP010Enc; // This output should correspond to Encoder settings
+    m_mfxVppParams.vpp.In.Shift = pInParams->shouldUseShifted10BitVPP;
+    m_mfxVppParams.vpp.Out.Shift = pInParams->shouldUseShifted10BitEnc; // This output should correspond to Encoder settings
 
     // input frame info
 #if defined (ENABLE_V4L2_SUPPORT)
@@ -1358,24 +1358,38 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     if (bVpp)
     {
+        msdk_printf(MSDK_STRING("Note: VPP is enabled.\n"));
         m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
         MSDK_CHECK_POINTER(m_pmfxVPP, MFX_ERR_MEMORY_ALLOC);
     }
     // Determine if we should shift P010 surfaces
-    pParams->shouldUseShiftedP010VPP = m_pmfxVPP && pParams->memType != SYSTEM_MEMORY &&
-        pParams->FileInputFourCC == MFX_FOURCC_P010;
+    bool readerShift = false;
+    if (pParams->FileInputFourCC == MFX_FOURCC_P010 || pParams->FileInputFourCC == MFX_FOURCC_P210 
+#if (MFX_VERSION >= 1027)
+        || pParams->FileInputFourCC == MFX_FOURCC_Y210
+#endif
+    )
+    {
+        if (pParams->IsSourceMSB)
+        {
+            pParams->shouldUseShifted10BitVPP = true;
+            pParams->shouldUseShifted10BitEnc = true;
+        }
+        else
+        {
+            pParams->shouldUseShifted10BitVPP = m_pmfxVPP && pParams->memType != SYSTEM_MEMORY;
 
-    pParams->shouldUseShiftedP010Enc = pParams->memType != SYSTEM_MEMORY &&
-        pParams->FileInputFourCC == MFX_FOURCC_P010 &&
-        AreGuidsEqual(pParams->pluginParams.pluginGuid, MFX_PLUGINID_HEVCE_HW);
-    bool readerShift = m_pmfxVPP ? pParams->shouldUseShiftedP010VPP  : pParams->shouldUseShiftedP010Enc;
+            pParams->shouldUseShifted10BitEnc = (pParams->memType != SYSTEM_MEMORY && AreGuidsEqual(pParams->pluginParams.pluginGuid, MFX_PLUGINID_HEVCE_HW)) || pParams->CodecId == MFX_CODEC_VP9;
+            readerShift = m_pmfxVPP ? pParams->shouldUseShifted10BitVPP : pParams->shouldUseShifted10BitEnc;
+        }
+    }
 
     if(readerShift)
     {
-        msdk_printf(MSDK_STRING("\nP010 frames data will be shifted to MSB area to be compatible with HEVC HW input format\n"));
+        msdk_printf(MSDK_STRING("\n10-bit frames data will be shifted to MSB area to be compatible with MSDK 10-bit input format\n"));
     }
 
-    if(m_pmfxVPP && pParams->shouldUseShiftedP010VPP && !pParams->shouldUseShiftedP010Enc && pParams->bUseHWLib)
+    if(m_pmfxVPP && pParams->shouldUseShifted10BitVPP && !pParams->shouldUseShifted10BitEnc && pParams->bUseHWLib)
     {
         msdk_printf(MSDK_STRING("ERROR: Encoder requires P010 LSB format. VPP currently supports only MSB encoding for P010 format.\nSample cannot combine both of them in one pipeline.\n"));
         return MFX_ERR_UNSUPPORTED;
