@@ -467,9 +467,9 @@ bool CDecodingPipeline::IsVppRequired(sInputParams *pParams)
     bool bVppIsUsed = false;
     /* Re-size */
     if ( (m_mfxVideoParams.mfx.FrameInfo.CropW != pParams->Width) ||
-        (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height) )
+        (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height))
     {
-        bVppIsUsed |= pParams->Width && pParams->Height;
+        bVppIsUsed = pParams->Width && pParams->Height;
 #if MFX_VERSION >= 1022
         if ((MODE_DECODER_POSTPROC_AUTO == pParams->nDecoderPostProcessing) ||
             (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing) )
@@ -479,6 +479,7 @@ bool CDecodingPipeline::IsVppRequired(sInputParams *pParams)
         }
 #endif //MFX_VERSION >= 1022
     }
+
     // JPEG and Capture decoders can provide output in nv12 and rgb4 formats
     if (pParams->videoType == MFX_CODEC_JPEG )
     {
@@ -615,6 +616,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         // parse bit stream and fill mfx params
         sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
 #endif
+
         if (!sts)
         {
             m_bVppIsUsed = IsVppRequired(pParams);
@@ -912,7 +914,11 @@ mfxStatus CDecodingPipeline::InitVppParams()
     }
 
     // P010 video surfaces should be shifted
-    if (m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_P010 && m_memType != SYSTEM_MEMORY)
+    if ((m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_P010 
+#if (MFX_VERSION >= 1027)
+        || m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_Y210
+#endif
+        )&& m_memType != SYSTEM_MEMORY)
     {
         m_mfxVppVideoParams.vpp.Out.Shift = 1;
     }
@@ -996,12 +1002,23 @@ mfxStatus CDecodingPipeline::AllocFrames()
     mfxU16 nVppSurfNum = 0; // number of surfaces for vpp
 
     MSDK_ZERO_MEMORY(Request);
+
     MSDK_ZERO_MEMORY(VppRequest[0]);
     MSDK_ZERO_MEMORY(VppRequest[1]);
 
     sts = m_pmfxDEC->Query(&m_mfxVideoParams, &m_mfxVideoParams);
     MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
+
+    // Workaround for VP9 codec
+    if ((m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 
+#if (MFX_VERSION >= 1027)
+        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+#endif
+        ) && m_mfxVideoParams.mfx.CodecId==MFX_CODEC_VP9)
+    {
+        m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
+    }
 
     // calculate number of surfaces required for decoder
     sts = m_pmfxDEC->QueryIOSurf(&m_mfxVideoParams, &Request);
