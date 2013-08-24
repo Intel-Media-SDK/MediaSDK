@@ -182,7 +182,7 @@ VAProfile g_AV1Profiles[] =
 };
 VAProfile g_AV110BitsPProfiles[] =
 {
-    VAProfileAV1Profile1
+    VAProfileAV1Profile0
 };
 #endif
 
