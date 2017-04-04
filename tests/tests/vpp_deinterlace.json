@@ -1,0 +1,10 @@
+{
+	"type": "vpp",
+	"stream": "test_stream_176x96.yuv",
+	"spic": [0, 2],
+	"dpic": 1,
+	"dw": 176,
+	"dh": 96,
+	"di_mode": [1, 2],
+	"vaapi": [true, false]
+}

@@ -1,0 +1,7 @@
+{
+  "type": "encode",
+  "stream": "test_stream_176x96.yuv",
+  "codec": "h265",
+  "qp": 35,
+  "vaapi": [true, false]
+}

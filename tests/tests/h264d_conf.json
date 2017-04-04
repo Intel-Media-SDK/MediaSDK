@@ -1,0 +1,7 @@
+{
+  "type": "decode",
+  "stream": "test_stream.264",
+  "async": [1, 4],
+  "vaapi": [true, false]
+}
+

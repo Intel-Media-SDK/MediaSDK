@@ -1,0 +1,57 @@
+{
+  "libmfx_folder": "$MFX_HOME/__cmake/intel64.make.release/__bin/release",
+  "samples_folder": "$MFX_HOME/__cmake/intel64.make.release/__bin/release",
+  "streams_folder": "$MFX_HOME/tests/content",
+
+  "streams": [
+    {
+      "path": "test_stream_176x96.yuv",
+      "codec": "i420",
+      "width": 176,
+      "height": "96",
+      "frames": 101,
+      "framerate": 60
+    },
+    {
+      "path": "test_stream.264",
+      "codec": "h264",
+      "width": 176,
+      "height": 96,
+      "frames": 101,
+      "framerate": 60
+    },
+    {
+      "path": "test_stream.265",
+      "codec": "h265",
+      "width": 176,
+      "height": 96,
+      "frames": 101,
+      "framerate": 60
+    },
+    {
+      "path": "test_stream.mpeg2",
+      "codec": "mpeg2",
+      "width": 176,
+      "height": 96,
+      "frames": 101,
+      "framerate": 60
+    },
+    {
+      "path": "test_stream_vp8.ivf",
+      "codec": "vp8",
+      "width": 176,
+      "height": 96,
+      "frames": 101,
+      "framerate": 60
+    },
+    {
+      "path": "test_stream.jpg",
+      "codec": "jpg",
+      "width": 176,
+      "height": 96,
+      "frames": 1,
+      "framerate": 1
+    }
+  ]
+}
+

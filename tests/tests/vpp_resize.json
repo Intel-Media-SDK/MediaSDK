@@ -1,0 +1,7 @@
+{
+	"type": "vpp",
+	"stream": "test_stream_176x96.yuv",
+	"dw": 352,
+	"dh": 192,
+	"vaapi": [true, false]
+}

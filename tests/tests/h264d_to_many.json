@@ -1,0 +1,4 @@
+{
+    "type": "transcode",
+    "parfile": "h264d_to_many.par"
+}

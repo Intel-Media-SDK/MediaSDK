@@ -1,0 +1,11 @@
+{
+  "type": "encode",
+  "stream": "test_stream_176x96.yuv",
+  "codec": "h264",
+  "la": true,
+  "lad": [20, 40, 60],
+  "target_usage": ["quality", "balanced", "speed"],
+  "bitrate": 1000,
+  "vaapi": [true, false]
+}
+

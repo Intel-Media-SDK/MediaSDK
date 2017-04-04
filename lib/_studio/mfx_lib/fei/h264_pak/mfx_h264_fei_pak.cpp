@@ -1,0 +1,818 @@
+// Copyright (c) 2017 Intel Corporation
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#include "mfx_common.h"
+
+#if defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_ENABLE_H264_VIDEO_FEI_PAK)
+
+#include "mfx_h264_fei_pak.h"
+
+#if defined(_DEBUG)
+#define mdprintf fprintf
+#else
+#define mdprintf(...)
+#endif
+
+using namespace MfxHwH264Encode;
+using namespace MfxH264FEIcommon;
+
+namespace MfxEncPAK
+{
+
+static bool IsVideoParamExtBufferIdSupported(mfxU32 id)
+{
+    return
+        id == MFX_EXTBUFF_FEI_PPS        ||
+        id == MFX_EXTBUFF_FEI_SPS        ||
+        id == MFX_EXTBUFF_CODING_OPTION  ||
+        id == MFX_EXTBUFF_CODING_OPTION2 ||
+        id == MFX_EXTBUFF_CODING_OPTION3 ||
+        id == MFX_EXTBUFF_FEI_PARAM;
+}
+
+static mfxStatus CheckExtBufferId(mfxVideoParam const & par)
+{
+    for (mfxU32 i = 0; i < par.NumExtParam; ++i)
+    {
+        MFX_CHECK(par.ExtParam[i], MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(MfxEncPAK::IsVideoParamExtBufferIdSupported(par.ExtParam[i]->BufferId), MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(!MfxHwH264Encode::GetExtBuffer(
+            par.ExtParam + i + 1,
+            par.NumExtParam - i - 1,
+            par.ExtParam[i]->BufferId), MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    return MFX_ERR_NONE;
+}
+
+} // namespace MfxEncPAK
+
+static const mfxU8 PAK_SUPPORTED_SEI[] = {
+        1, // 00 buffering_period
+        1, // 01 pic_timing
+        1, // 02 pan_scan_rect
+        1, // 03 filler_payload
+        1, // 04 user_data_registered_itu_t_t35
+        1, // 05 user_data_unregistered
+        1, // 06 recovery_point
+        1, // 07 dec_ref_pic_marking_repetition
+        0, // 08 spare_pic
+        1, // 09 scene_info
+        0, // 10 sub_seq_info
+        0, // 11 sub_seq_layer_characteristics
+        0, // 12 sub_seq_characteristics
+        1, // 13 full_frame_freeze
+        1, // 14 full_frame_freeze_release
+        1, // 15 full_frame_snapshot
+        1, // 16 progressive_refinement_segment_start
+        1, // 17 progressive_refinement_segment_end
+        0, // 18 motion_constrained_slice_group_set
+        1, // 19 film_grain_characteristics
+        1, // 20 deblocking_filter_display_preference
+        1, // 21 stereo_video_info
+        0, // 22 post_filter_hint
+        0, // 23 tone_mapping_info
+        0, // 24 scalability_info
+        0, // 25 sub_pic_scalable_layer
+        0, // 26 non_required_layer_rep
+        0, // 27 priority_layer_info
+        0, // 28 layers_not_present
+        0, // 29 layer_dependency_change
+        0, // 30 scalable_nesting
+        0, // 31 base_layer_temporal_hrd
+        0, // 32 quality_layer_integrity_check
+        0, // 33 redundant_pic_property
+        0, // 34 tl0_dep_rep_index
+        0, // 35 tl_switching_point
+        0, // 36 parallel_decoding_info
+        0, // 37 mvc_scalable_nesting
+        0, // 38 view_scalability_info
+        0, // 39 multiview_scene_info
+        0, // 40 multiview_acquisition_info
+        0, // 41 non_required_view_component
+        0, // 42 view_dependency_change
+        0, // 43 operation_points_not_present
+        0, // 44 base_view_temporal_hrd
+        1, // 45 frame_packing_arrangemen
+};
+
+#define PAK_SUPPORTED_MAX_PAYLOADS    (sizeof(PAK_SUPPORTED_SEI)/sizeof(PAK_SUPPORTED_SEI[0]))
+
+static const mfxU8 SEI_STARTCODE[5] = { 0, 0, 0, 1, 6 };
+
+#define SEI_STARTCODE_SIZE            (sizeof(SEI_STARTCODE))
+#define SEI_TRAILING_SIZE             1
+#define SEI_BUFFER_RESERVED_SIZE      (4 * 1024)
+#define SEI_MAX_SIZE                  (1 * 1024 * 1024)
+
+#define GET_SIZE_IN_BYTES(bits) (((bits) + 7) / 8)
+#define IS_BYTE_ALIGNED(bits) (((bits) & 0x07) == 0)
+
+bool bEnc_PAK(mfxVideoParam *par)
+{
+    MFX_CHECK(par, false);
+
+    mfxExtFeiParam *pControl = NULL;
+
+    for (mfxU16 i = 0; i < par->NumExtParam; ++i)
+    {
+        if (par->ExtParam[i] != 0 && par->ExtParam[i]->BufferId == MFX_EXTBUFF_FEI_PARAM){
+            pControl = reinterpret_cast<mfxExtFeiParam *>(par->ExtParam[i]);
+            break;
+        }
+    }
+
+    return pControl ? (pControl->Func == MFX_FEI_FUNCTION_PAK) : false;
+}
+
+
+static mfxStatus AsyncRoutine(void * state, void * param, mfxU32, mfxU32)
+{
+    MFX_CHECK_NULL_PTR1(state);
+
+    VideoPAK_PAK & impl = *(VideoPAK_PAK *)state;
+    return  impl.RunFramePAK(NULL, NULL);
+}
+
+mfxStatus VideoPAK_PAK::RunFramePAK(mfxPAKInput *in, mfxPAKOutput *out)
+{
+    mdprintf(stderr, "VideoPAK_PAK::RunFramePAK\n");
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoPAK_PAK::RunFramePAK");
+
+    mfxStatus sts = MFX_ERR_NONE;
+    DdiTask & task = m_incoming.front();
+
+    mfxU32 f_start = 0, fieldCount = task.m_fieldPicFlag;
+
+    if (MFX_CODINGOPTION_ON == m_singleFieldProcessingMode)
+    {
+        fieldCount = f_start = m_firstFieldDone; // 0 or 1
+    }
+
+    for (mfxU32 f = f_start; f <= fieldCount; ++f)
+    {
+        sts = m_ddi->Execute(task.m_handleRaw.first, task, task.m_fid[f], m_sei);
+        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+    }
+
+    if (MFX_CODINGOPTION_ON == m_singleFieldProcessingMode)
+    {
+        m_firstFieldDone = 1 - m_firstFieldDone;
+    }
+
+    if (0 == m_firstFieldDone)
+    {
+        m_prevTask = task;
+    }
+
+    return sts;
+}
+
+static mfxStatus AsyncQuery(void * state, void * param, mfxU32 /*threadNumber*/, mfxU32 /*callNumber*/)
+{
+    MFX_CHECK_NULL_PTR2(state, param);
+
+    VideoPAK_PAK & impl = *(VideoPAK_PAK *)state;
+    DdiTask      & task = *(DdiTask *)param;
+
+    return impl.QueryStatus(task);
+}
+
+mfxStatus VideoPAK_PAK::QueryStatus(DdiTask& task)
+{
+    mdprintf(stderr,"VideoPAK_PAK::QueryStatus\n");
+    mfxStatus sts = MFX_ERR_NONE;
+
+    mfxU32 f_start = 0, fieldCount = task.m_fieldPicFlag;
+
+    if (MFX_CODINGOPTION_ON == m_singleFieldProcessingMode)
+    {
+        f_start = fieldCount = 1 - m_firstFieldDone;
+    }
+
+    for (mfxU32 f = f_start; f <= fieldCount; f++)
+    {
+        sts = m_ddi->QueryStatus(task, task.m_fid[f]);
+        MFX_CHECK(sts != MFX_WRN_DEVICE_BUSY, MFX_TASK_BUSY);
+        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+    }
+
+    mfxPAKInput  *input  = reinterpret_cast<mfxPAKInput  *>(task.m_userData[0]);
+    mfxPAKOutput *output = reinterpret_cast<mfxPAKOutput *>(task.m_userData[1]);
+
+    m_core->DecreaseReference(&input->InSurface->Data);
+    m_core->DecreaseReference(&output->OutSurface->Data);
+
+    UMC::AutomaticUMCMutex guard(m_listMutex);
+    //move that task to free tasks from m_incoming
+    //m_incoming
+    std::list<DdiTask>::iterator it = std::find(m_incoming.begin(), m_incoming.end(), task);
+    MFX_CHECK(it != m_incoming.end(), MFX_ERR_NOT_FOUND);
+
+    m_free.splice(m_free.end(), m_incoming, it);
+
+    ReleaseResource(m_rec, task.m_midRec);
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoPAK_PAK::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
+{
+    mdprintf(stderr, "VideoPAK_PAK::Query\n");
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoPAK_PAK::Query");
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoPAK_PAK::QueryIOSurf(VideoCORE* , mfxVideoParam *par, mfxFrameAllocRequest *request)
+{
+    MFX_CHECK_NULL_PTR2(par,request);
+    return MFX_ERR_NONE;
+}
+
+VideoPAK_PAK::VideoPAK_PAK(VideoCORE *core,  mfxStatus * sts)
+    : m_bInit(false)
+    , m_core(core)
+    , m_caps()
+    , m_video()
+    , m_videoInit()
+    , m_prevTask()
+    , m_inputFrameType(0)
+    , m_currentPlatform(MFX_HW_UNKNOWN)
+    , m_currentVaType(MFX_HW_NO)
+    , m_singleFieldProcessingMode(0)
+    , m_firstFieldDone(0)
+{
+    *sts = MFX_ERR_NONE;
+}
+
+VideoPAK_PAK::~VideoPAK_PAK()
+{
+    Close();
+}
+
+mfxStatus VideoPAK_PAK::Init(mfxVideoParam *par)
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoPAK_PAK::Init");
+
+    MFX_CHECK_NULL_PTR1(par);
+
+    mfxStatus sts = MfxEncPAK::CheckExtBufferId(*par);
+    MFX_CHECK_STS(sts);
+
+    m_video = *par;
+    //add ext buffers from par to m_video
+
+    MfxVideoParam tmp(*par);
+
+    sts = ReadSpsPpsHeaders(tmp);
+    MFX_CHECK_STS(sts);
+
+    sts = CheckWidthAndHeight(tmp);
+    MFX_CHECK_STS(sts);
+
+    sts = CopySpsPpsToVideoParam(tmp);
+    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+    m_ddi.reset(new VAAPIFEIPAKEncoder);
+
+    sts = m_ddi->CreateAuxilliaryDevice(
+        m_core,
+        DXVA2_Intel_Encode_AVC,
+        GetFrameWidth(m_video),
+        GetFrameHeight(m_video));
+
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
+
+    sts = m_ddi->QueryEncodeCaps(m_caps);
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
+
+    m_currentPlatform = m_core->GetHWType();
+    m_currentVaType   = m_core->GetVAType();
+
+    mfxStatus spsppsSts = CopySpsPpsToVideoParam(m_video);
+
+    mfxStatus checkStatus = CheckVideoParam(m_video, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType);
+    MFX_CHECK(checkStatus != MFX_WRN_PARTIAL_ACCELERATION, MFX_WRN_PARTIAL_ACCELERATION);
+    MFX_CHECK(checkStatus >= MFX_ERR_NONE, checkStatus);
+
+    if (checkStatus == MFX_ERR_NONE)
+        checkStatus = spsppsSts;
+
+    const mfxExtFeiParam* params = GetExtBuffer(m_video);
+
+    if (MFX_CODINGOPTION_ON == params->SingleFieldProcessing)
+        m_singleFieldProcessingMode = MFX_CODINGOPTION_ON;
+
+    //raw surfaces should be created before accel service
+    mfxFrameAllocRequest request = { };
+    request.Info = m_video.mfx.FrameInfo;
+
+    /* The entire recon surface pool should be passed to vaContexCreat() finction on Init() stage.
+     * And only these surfaces should be passed to driver within Execute() call.
+     * The size of recon pool is limited to 127 surfaces. */
+    request.Type              = MFX_MEMTYPE_FROM_PAK | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME;
+    request.NumFrameMin       = m_video.mfx.GopRefDist * 2 + (m_video.AsyncDepth-1) + 1 + m_video.mfx.NumRefFrame + 1;
+    request.NumFrameSuggested = request.NumFrameMin;
+    request.AllocId           = par->AllocId;
+
+    //sts = m_core->AllocFrames(&request, &m_rec);
+    sts = m_rec.Alloc(m_core, request, false, true);
+    //sts = m_raw.Alloc(m_core, request);
+    MFX_CHECK_STS(sts);
+    sts = m_ddi->Register(m_rec, D3DDDIFMT_NV12);
+    MFX_CHECK_STS(sts);
+
+    m_recFrameOrder.resize(m_rec.NumFrameActual, 0xffffffff);
+
+    sts = CheckInitExtBuffers(m_video, *par);
+    MFX_CHECK_STS(sts);
+
+    sts = m_ddi->CreateAccelerationService(m_video);
+    MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
+
+    m_inputFrameType =
+        (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || m_video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
+            ? MFX_IOPATTERN_IN_SYSTEM_MEMORY
+            : MFX_IOPATTERN_IN_VIDEO_MEMORY;
+
+
+    m_free.resize(m_video.AsyncDepth);
+    m_incoming.clear();
+
+    m_videoInit = m_video;
+
+    m_bInit = true;
+    return checkStatus;
+}
+
+mfxStatus VideoPAK_PAK::Reset(mfxVideoParam *par)
+{
+    MFX_CHECK_NULL_PTR1(par);
+
+    mfxStatus sts = MfxEncPAK::CheckExtBufferId(*par);
+    MFX_CHECK_STS(sts);
+
+    MfxVideoParam newPar = *par;
+
+    bool isIdrRequired = false;
+    mfxStatus checkStatus = ProcessAndCheckNewParameters(newPar, isIdrRequired, par);
+    if (checkStatus < MFX_ERR_NONE)
+        return checkStatus;
+
+    m_ddi->Reset(newPar);
+
+    mfxExtEncoderResetOption const * extResetOpt = GetExtBuffer(newPar);
+
+    // perform reset of encoder and start new sequence with IDR in following cases:
+    // 1) change of encoding parameters require insertion of IDR
+    // 2) application explicitly asked about starting new sequence
+    if (isIdrRequired || IsOn(extResetOpt->StartNewSequence))
+    {
+        UMC::AutomaticUMCMutex guard(m_listMutex);
+        m_free.splice(m_free.end(), m_incoming);
+
+        for (DdiTaskIter i = m_free.begin(); i != m_free.end(); ++i)
+        {
+            if (i->m_yuv)
+                m_core->DecreaseReference(&i->m_yuv->Data);
+            *i = DdiTask();
+        }
+
+        m_rec.Unlock();
+    }
+
+    m_video = newPar;
+
+    return checkStatus;
+
+}
+
+mfxStatus VideoPAK_PAK::GetVideoParam(mfxVideoParam *par)
+{
+    MFX_CHECK_NULL_PTR1(par);
+
+    // For buffers which are field-based
+    std::map<mfxU32, mfxU32> buffers_offsets;
+
+    for (mfxU32 i = 0; i < par->NumExtParam; ++i)
+    {
+        if (buffers_offsets.find(par->ExtParam[i]->BufferId) == buffers_offsets.end())
+            buffers_offsets[par->ExtParam[i]->BufferId] = 0;
+        else
+            buffers_offsets[par->ExtParam[i]->BufferId]++;
+
+        if (mfxExtBuffer * buf = MfxHwH264Encode::GetExtBuffer(m_video.ExtParam, m_video.NumExtParam, par->ExtParam[i]->BufferId, buffers_offsets[par->ExtParam[i]->BufferId]))
+        {
+            MFX_INTERNAL_CPY(par->ExtParam[i], buf, par->ExtParam[i]->BufferSz);
+        }
+        else
+        {
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+
+    mfxExtBuffer ** ExtParam = par->ExtParam;
+    mfxU16       NumExtParam = par->NumExtParam;
+
+    MFX_INTERNAL_CPY(par, &(static_cast<mfxVideoParam &>(m_video)), sizeof(mfxVideoParam));
+
+    par->ExtParam    = ExtParam;
+    par->NumExtParam = NumExtParam;
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoPAK_PAK::CheckPAKPayloads(const mfxPayload * const * payload,mfxU16 numPayload)
+{
+    mfxU32 SEISize = 0;
+
+    //check payloads are supported in the FEI lib
+    for (mfxU16 i = 0; i< numPayload; ++i)
+    {
+        //check only present payloads
+        if (payload[i] && payload[i]->NumBit > 0)
+        {
+            //check if byte-aligned
+            MFX_CHECK(
+                IS_BYTE_ALIGNED(payload[i]->NumBit),
+                MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            //check Data pointer
+            MFX_CHECK(
+                payload[i]->Data,
+                MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            //check buffer size
+            MFX_CHECK(
+                GET_SIZE_IN_BYTES(payload[i]->NumBit) <= payload[i]->BufSize,
+                MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            //SEI messages type constraints
+            MFX_CHECK(
+                payload[i]->Type < PAK_SUPPORTED_MAX_PAYLOADS &&
+                PAK_SUPPORTED_SEI[payload[i]->Type] == 1,
+                MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            SEISize += GET_SIZE_IN_BYTES(payload[i]->NumBit);
+        }
+    }
+
+    //Check payload buffer size
+    MFX_CHECK(SEISize <= SEI_MAX_SIZE, MFX_ERR_UNDEFINED_BEHAVIOR);
+    return MFX_ERR_NONE;
+}
+
+mfxU32 VideoPAK_PAK::GetPAKPayloadSize(
+    MfxVideoParam const & video,
+    const mfxPayload* const* payload,
+    mfxU16 numPayload)
+{
+    mfxExtCodingOption const *   extOpt = GetExtBuffer(video);
+    mfxU32 BufferSz = 0;
+
+    for (mfxU16 i = 0; i < numPayload; i++)
+    {
+        BufferSz += GET_SIZE_IN_BYTES(payload[i]->NumBit);
+    }
+
+    if (IsOn(extOpt->SingleSeiNalUnit))
+    {
+        BufferSz += (SEI_STARTCODE_SIZE + SEI_TRAILING_SIZE);
+    }
+    else
+    {
+        BufferSz += (SEI_STARTCODE_SIZE + SEI_TRAILING_SIZE) * numPayload;
+    }
+
+    return BufferSz;
+}
+
+
+mfxU16 VideoPAK_PAK::GetBufferPeriodPayloadIdx(
+    const mfxPayload * const * payload,
+    mfxU16 numPayload,
+    mfxU32 start,
+    mfxU32 step)
+{
+    mfxU32 i = start;
+    for (; i < numPayload; i += step)
+    {
+        if (payload[i] && payload[i]->NumBit > 0 &&
+            payload[i]->Type == 0 /*Buffer Period SEI payload type*/)
+        {
+            break;
+        }
+    }
+
+    return i;
+}
+
+mfxStatus VideoPAK_PAK::ChangeBufferPeriodPayloadIndxIfNeed(
+    mfxPayload** payload,
+    mfxU16 numPayload)
+{
+    mfxU32 fieldMaxCount = m_video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE ? 1 : 2;
+    mfxStatus mfxSts = MFX_ERR_NONE;
+
+    for (mfxU32 i = 0; i < fieldMaxCount; i++)
+    {
+        mfxU32 start = i;
+        mfxU32 step  = fieldMaxCount;
+        mfxU16 index;
+
+        index = GetBufferPeriodPayloadIdx(payload, numPayload, start, step);
+        if (index != start && index < numPayload)
+        {
+            mfxPayload* tmp = payload[index];
+            for (mfxU32 j = index; j > start; j -= step)
+            {
+                MFX_CHECK_WITH_ASSERT((j-step) >= 0, MFX_ERR_INVALID_VIDEO_PARAM);
+                payload[j] = payload[j-step];
+            }
+            payload[start] = tmp;
+            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
+    }
+    return mfxSts;
+}
+
+mfxStatus VideoPAK_PAK::RunFramePAKCheck(
+                    mfxPAKInput  *input,
+                    mfxPAKOutput *output,
+                    MFX_ENTRY_POINT pEntryPoints[],
+                    mfxU32 &numEntryPoints)
+{
+    mdprintf(stderr, "VideoPAK_PAK::RunFramePAKCheck\n");
+
+    // Check that all appropriate parameters passed
+
+    MFX_CHECK(m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    MFX_CHECK_NULL_PTR2(input, output);
+    MFX_CHECK_NULL_PTR2(input->InSurface, output->OutSurface);
+
+    mfxStatus sts = CheckRuntimeExtBuffers(output, output, m_video);
+    MFX_CHECK_STS(sts);
+
+
+    // For frame type detection
+    PairU8 frame_type = PairU8(mfxU8(MFX_FRAMETYPE_UNKNOWN), mfxU8(MFX_FRAMETYPE_UNKNOWN));
+
+    mfxU32 fieldMaxCount = m_video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE ? 1 : 2;
+    for (mfxU32 field = 0; field < fieldMaxCount; ++field)
+    {
+        // Additionally check ENC specific requirements for extension buffers
+        mfxExtFeiEncMV     * mvout     = GetExtBufferFEI(input, field);
+        mfxExtFeiPakMBCtrl * mbcodeout = GetExtBufferFEI(input, field);
+        MFX_CHECK(mvout && mbcodeout, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        // Frame type detection
+        mfxExtFeiPPS* extFeiPPSinRuntime = GetExtBufferFEI(output, field);
+        mfxU8 type = extFeiPPSinRuntime->PictureType;
+
+        // MFX_FRAMETYPE_xI / P / B disallowed here
+        MFX_CHECK(!(type & 0xff00), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        switch (type & 0xf)
+        {
+        case MFX_FRAMETYPE_UNKNOWN:
+        case MFX_FRAMETYPE_I:
+        case MFX_FRAMETYPE_P:
+        case MFX_FRAMETYPE_B:
+            break;
+        default:
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            break;
+        }
+
+        frame_type[field] = type;
+    }
+    if (!frame_type[1]){ frame_type[1] = frame_type[0] & ~MFX_FRAMETYPE_IDR; }
+
+    UMC::AutomaticUMCMutex guard(m_listMutex);
+
+    m_free.front().m_yuv         = input->InSurface;
+    //m_free.front().m_ctrl      = 0;
+    m_free.front().m_type        = frame_type;
+
+    m_free.front().m_extFrameTag = input->InSurface->Data.FrameOrder;
+    m_free.front().m_frameOrder  = input->InSurface->Data.FrameOrder;
+    m_free.front().m_timeStamp   = input->InSurface->Data.TimeStamp;
+    m_free.front().m_userData.resize(2);
+    m_free.front().m_userData[0] = input;
+    m_free.front().m_userData[1] = output;
+
+    MFX_CHECK_NULL_PTR1(output->Bs);
+    m_free.front().m_bs = output->Bs;
+
+    m_incoming.splice(m_incoming.end(), m_free, m_free.begin());
+    DdiTask& task = m_incoming.front();
+
+    task.m_picStruct    = GetPicStruct(m_video, task);
+    task.m_fieldPicFlag = task.m_picStruct[ENC] != MFX_PICSTRUCT_PROGRESSIVE;
+    task.m_fid[0]       = task.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF;
+    task.m_fid[1]       = task.m_fieldPicFlag - task.m_fid[0];
+
+    if (task.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF)
+    {
+        std::swap(task.m_type.top, task.m_type.bot);
+    }
+
+    m_core->IncreaseReference(&input->InSurface->Data);
+    m_core->IncreaseReference(&output->OutSurface->Data);
+
+    // Configure current task
+    //if (m_firstFieldDone == 0)
+    {
+        sts = GetNativeHandleToRawSurface(*m_core, m_video, task, task.m_handleRaw);
+        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+
+        sts = CopyRawSurfaceToVideoMemory(*m_core, m_video, task);
+        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+
+        mfxHDL handle_src, handle_rec;
+        sts = m_core->GetExternalFrameHDL(output->OutSurface->Data.MemId, &handle_src);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_INVALID_HANDLE);
+
+        mfxMemId midRec;
+        mfxU32 *src_surf_id = (mfxU32 *)handle_src, *rec_surf_id, i;
+
+        for (i = 0; i < m_rec.NumFrameActual; ++i)
+        {
+            midRec = AcquireResource(m_rec, i);
+
+            sts = m_core->GetFrameHDL(m_rec.mids[i], &handle_rec);
+            MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_INVALID_HANDLE);
+
+            rec_surf_id = (mfxU32 *)handle_rec;
+            if ((*src_surf_id) == (*rec_surf_id))
+            {
+                task.m_idxRecon = i;
+                task.m_midRec   = midRec;
+                break;
+            }
+            else
+            {
+                ReleaseResource(m_rec, midRec);
+            }
+        }
+        MFX_CHECK(task.m_idxRecon != NO_INDEX && task.m_midRec != MID_INVALID && i != m_rec.NumFrameActual, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        ConfigureTaskFEI(task, m_prevTask, m_video, input, output, m_frameOrder_frameNum);
+
+        //!!! HACK !!!
+        m_recFrameOrder[task.m_idxRecon] = task.m_frameOrder;
+        TEMPORAL_HACK_WITH_DPB(task.m_dpb[0],          m_rec.mids, m_recFrameOrder);
+        TEMPORAL_HACK_WITH_DPB(task.m_dpb[1],          m_rec.mids, m_recFrameOrder);
+        TEMPORAL_HACK_WITH_DPB(task.m_dpbPostEncoding, m_rec.mids, m_recFrameOrder);
+    }
+
+    pEntryPoints[0].pState               = this;
+    pEntryPoints[0].pParam               = &m_incoming.front();
+    pEntryPoints[0].pCompleteProc        = 0;
+    pEntryPoints[0].pGetSubTaskProc      = 0;
+    pEntryPoints[0].pCompleteSubTaskProc = 0;
+    pEntryPoints[0].requiredNumThreads   = 1;
+    pEntryPoints[0].pRoutineName         = "AsyncRoutine";
+    pEntryPoints[0].pRoutine             = AsyncRoutine;
+    pEntryPoints[1] = pEntryPoints[0];
+    pEntryPoints[1].pRoutineName         = "Async Query";
+    pEntryPoints[1].pRoutine             = AsyncQuery;
+    pEntryPoints[1].pParam               = &m_incoming.front();
+
+    numEntryPoints = 2;
+
+    return sts;
+}
+
+static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &    core,
+                                        MfxVideoParam const & video,
+                                        mfxFrameSurface1 *  src_sys,
+                                        mfxMemId            dst_d3d,
+                                        mfxHDL&             handle)
+{
+    MFX_CHECK_NULL_PTR1(src_sys);
+
+    mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
+    MFX_CHECK(extOpaq, MFX_ERR_NOT_FOUND);
+
+    mfxFrameData d3dSurf = {0};
+
+    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
+        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+    {
+        mfxFrameData sysSurf = src_sys->Data;
+        d3dSurf.MemId = dst_d3d;
+
+        FrameLocker lock2(&core, sysSurf, true);
+
+        MFX_CHECK_NULL_PTR1(sysSurf.Y)
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Copy input (sys->d3d)");
+            MFX_CHECK_STS(CopyFrameDataBothFields(&core, d3dSurf, sysSurf, video.mfx.FrameInfo));
+        }
+
+        MFX_CHECK_STS(lock2.Unlock());
+    }
+    else
+    {
+        d3dSurf.MemId =  src_sys->Data.MemId;
+    }
+
+    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY)
+       MFX_CHECK_STS(core.GetExternalFrameHDL(d3dSurf.MemId, &handle))
+    else
+       MFX_CHECK_STS(core.GetFrameHDL(d3dSurf.MemId, &handle));
+
+    return MFX_ERR_NONE;
+}
+
+
+mfxStatus VideoPAK_PAK::Close(void)
+{
+    MFX_CHECK(m_bInit, MFX_ERR_NONE);
+    m_bInit = false;
+    m_ddi->Destroy();
+
+    m_core->FreeFrames(&m_rec);
+    //m_core->FreeFrames(&m_opaqHren);
+
+    return MFX_ERR_NONE;
+}
+
+
+mfxStatus VideoPAK_PAK::ProcessAndCheckNewParameters(
+    MfxVideoParam & newPar,
+    bool & isIdrRequired,
+    mfxVideoParam const * newParIn)
+{
+    MFX_CHECK_NULL_PTR1(newParIn);
+
+    InheritDefaultValues(m_video, newPar, newParIn);
+
+    mfxStatus checkStatus = CheckVideoParam(newPar, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType);
+    MFX_CHECK(checkStatus != MFX_WRN_PARTIAL_ACCELERATION, MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(checkStatus >= MFX_ERR_NONE, checkStatus);
+
+    mfxStatus sts = CheckInitExtBuffers(m_video, newPar);
+    MFX_CHECK_STS(sts);
+
+    mfxExtSpsHeader const * extSpsNew = GetExtBuffer(newPar);
+    mfxExtSpsHeader const * extSpsOld = GetExtBuffer(m_video);
+
+    // check if IDR required after change of encoding parameters
+    bool isSpsChanged = extSpsNew->vuiParametersPresentFlag == 0 ?
+        memcmp(extSpsNew, extSpsOld, sizeof(mfxExtSpsHeader) - sizeof(VuiParameters)) != 0 :
+    !Equal(*extSpsNew, *extSpsOld);
+
+    isIdrRequired = isSpsChanged
+        || newPar.mfx.GopPicSize != m_video.mfx.GopPicSize;
+
+    mfxExtEncoderResetOption * extResetOpt = GetExtBuffer(newPar);
+
+    // Reset can't change parameters w/o IDR. Report an error
+    MFX_CHECK(!(isIdrRequired && IsOff(extResetOpt->StartNewSequence)), MFX_ERR_INVALID_VIDEO_PARAM);
+
+    MFX_CHECK(
+        IsAvcProfile(newPar.mfx.CodecProfile)                                   &&
+        m_video.AsyncDepth                 == newPar.AsyncDepth                 &&
+        m_videoInit.mfx.GopRefDist         >= newPar.mfx.GopRefDist             &&
+        m_videoInit.mfx.NumSlice           >= newPar.mfx.NumSlice               &&
+        m_videoInit.mfx.NumRefFrame        >= newPar.mfx.NumRefFrame            &&
+        m_video.mfx.RateControlMethod      == newPar.mfx.RateControlMethod      &&
+        m_videoInit.mfx.FrameInfo.Width    >= newPar.mfx.FrameInfo.Width        &&
+        m_videoInit.mfx.FrameInfo.Height   >= newPar.mfx.FrameInfo.Height       &&
+        m_video.mfx.FrameInfo.ChromaFormat == newPar.mfx.FrameInfo.ChromaFormat,
+        MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
+    mfxExtCodingOption * extOptNew = GetExtBuffer(newPar);
+    mfxExtCodingOption * extOptOld = GetExtBuffer(m_video);
+
+    MFX_CHECK(
+        IsOn(extOptOld->FieldOutput) || extOptOld->FieldOutput == extOptNew->FieldOutput,
+        MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
+    return checkStatus;
+}
+
+#endif  // defined(MFX_VA) && defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_ENABLE_H264_VIDEO_FEI_PAK)

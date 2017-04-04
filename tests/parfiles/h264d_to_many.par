@@ -1,0 +1,4 @@
+-i::h264 {test_stream.264} -hw -o::sink
+-o::mpeg2 {out} -i::source -hw -u 1 -cqp -qpi 33 -qpb 33 -qpp 33
+-o::h264 {out} -i::source -hw -u 4 -cqp -qpi 33 -qpb 33 -qpp 33
+-o::h265 {out} -i::source -hw -u 7 -cqp -qpi 33 -qpb 33 -qpp 33

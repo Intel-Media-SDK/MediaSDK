@@ -1,0 +1,8 @@
+MFX_PLUGIN{
+  global:
+    mfxCreateDecoderPlugin;
+    mfxCreateEncoderPlugin;
+    mfxCreateGenericPlugin;
+  local:
+    *;
+};

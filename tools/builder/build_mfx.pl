@@ -1,0 +1,280 @@
+#!/usr/bin/perl
+
+# Copyright (c) 2017 Intel Corporation
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+use v5.16;
+use strict;
+use warnings;
+
+use Cwd;
+use Getopt::Long;
+use File::Path;
+use File::Basename;
+
+my $run_build        = 0;
+my $clean            = 0;
+my $no_warn_as_error = 0;
+my %build = (
+    'cc'         => '',
+    'cxx'        => '',
+    'ipp'        => '',
+    'trace'      => '',
+    'prefix'     => '',
+    'toolchain'  => '',
+    'target'     => 'BDW'
+);
+
+my @list_generator = qw(make eclipse);
+my @list_arch      = qw(intel64);
+my @list_config    = qw(release debug);
+my @list_trace     = qw(itt all);
+my @list_comp      = qw(gcc icc clang);
+my @list_target    = qw(UPSTREAM BDW BSW BXT BXTMIN);
+my @list_ipp       = qw(
+  px a6 w7 t7 v8 s8 p8 g9
+  mx m7 u8 n8 y8 e9
+  i7
+  sx s2
+);
+
+sub in_array {
+    my %items;
+    my ($arr, $search_for) = @_;
+    map { $items{$_} = 1 } @$arr;
+    return ($items{$search_for} eq 1) ? 1 : 0;
+}
+
+sub command {
+    my $cmd = shift;
+
+    local $| = 1;
+    print "[ cmd ]: $cmd\n";
+
+    open(my $ps, '-|', $cmd) || die "Failed: $!\n";
+    while (<$ps>) {
+        chomp;
+        s/\r//g;
+        say;
+    }
+    close($ps);
+
+    return $?;
+}
+
+sub nativepath {
+    my $path = shift;
+    $path =~ tr!/!\\! if $^O =~ /Win/;
+    return $path;
+}
+
+sub get_cmake_target {
+    my %config = @_;
+
+    # arch, generator and config are mandatory
+    my @cmake_target = ($config{'arch'}, $config{'generator'}, $config{'config'});
+
+    push @cmake_target, $config{'ipp'}  if $config{'ipp'};
+    push @cmake_target, $config{'comp'} if $config{'comp'} ne 'gcc';
+
+    if ($config{'trace'} eq 'itt') {
+        push @cmake_target, ".$config{'trace'}";
+    } elsif ($config{'trace'}) {
+        push @cmake_target, ".trace_$config{'trace'}";
+    }
+
+    return join('.', @cmake_target);
+}
+
+sub get_cmake_gen_cmd {
+    my $build_root = shift;
+    my %config = @_;
+
+    my @cmake_cmd_gen = ("--no-warn-unused-cli -Wno-dev");
+    # Some sort of trick:
+    # If you want to have Makefiles aligned with source code tree which is preferable for
+    # Eclipse, string "-D__GENERATOR:STRING=" should be "make". (Does not "eclipse"!!)
+    if ($config{'generator'} =~ /^make$/) {
+        push @cmake_cmd_gen, '-G "Unix Makefiles"';
+        push @cmake_cmd_gen, "-D__GENERATOR:STRING=$config{'generator'}";
+    } elsif ($config{'generator'} =~ /^eclipse$/) {
+        push @cmake_cmd_gen, '-G "Eclipse CDT4 - Unix Makefiles"';
+        push @cmake_cmd_gen, '-D__GENERATOR:STRING=make';
+    }
+    push @cmake_cmd_gen, '-DCMAKE_CONFIGURATION_TYPES:STRING="release;debug"';
+    push @cmake_cmd_gen, "-DCMAKE_BUILD_TYPE:STRING=$config{'config'}";
+    push @cmake_cmd_gen, "-D__ARCH:STRING=$config{'arch'}";
+    push @cmake_cmd_gen, "-D__CONFIG:STRING=$config{'config'}";
+    push @cmake_cmd_gen, "-D__IPP:STRING=" . ($config{'ipp'} || 'e9');
+    push @cmake_cmd_gen, "-D__TARGET_PLATFORM:STRING=$config{'target'}";
+
+    push @cmake_cmd_gen, "-D__TRACE:STRING=$config{'trace'}"           if $config{'trace'};
+    push @cmake_cmd_gen, "-DCMAKE_C_COMPILER:STRING=$config{'cc'}"     if $config{'cc'};
+    push @cmake_cmd_gen, "-DCMAKE_CXX_COMPILER:STRING=$config{'cxx'}"  if $config{'cxx'};
+    push @cmake_cmd_gen, "-DCMAKE_TOOLCHAIN_FILE=$config{'toolchain'}" if $config{'toolchain'};
+    push @cmake_cmd_gen, "-DCMAKE_INSTALL_PREFIX=$config{'prefix'} "   if $config{'prefix'};
+
+    push @cmake_cmd_gen, '-DWARNING_FLAGS="-Wall -Werror"' if not $no_warn_as_error;
+
+    # This is the main different between "make" and "eclipse"" generators.
+    # In case of "eclipse" main makefile will be generated into current $MFX_HOME,
+    # which is current this for this build_mfx.plcd
+    # All source directories in case of "eclipse" have good usable Makefile,
+    # in this case source tree and make files are matched
+    if ($config{'generator'} =~ /^eclipse$/) {
+        push @cmake_cmd_gen, ".";
+    } else {
+        push @cmake_cmd_gen, nativepath($build_root);
+    }
+
+    return join(' ', @cmake_cmd_gen);
+}
+
+sub usage {
+    print "\n";
+    print "Copyright (c) 2012-2016 Intel Corporation. All rights reserved.\n";
+    print "This script performs Intel(R) Media SDK projects creation and build.\n\n";
+    print "Usage: perl build.pl --cmake=ARCH.GENERATOR.CONFIG[.COMP] [--ipp=<cpu>] [--clean] [--build] [--trace=<module>] [--cross=toolchain.cmake]\n";
+    print "\n";
+    print "Possible variants:\n";
+    print "\tARCH = intel64\n";
+    print "\tGENERATOR = make | eclipse\n";
+    print "\tCONFIG = debug | release\n";
+    print "\tCOMP = gcc | icc | clang (gcc is the default)\n";
+    print "\n";
+    print "Environment variables:\n";
+    print "\tMFX_HOME=/path/to/mediasdk/package # required\n";
+    print "\tMFX_VERSION=\"0.0.000.0000\"         # optional\n";
+    print "\n";
+    print "Optional flags:\n";
+    print "\t--ipp    - build specificly with optimization for the specified CPU\n";
+    print "\t--clean  - clean build directory before projects generation / build\n";
+    print "\t--build  - try to build projects before generation\n";
+    print "\t--trace  - enable MFX tracing with specified modules (itt|all)\n";
+    print "\t--cross  - provide cross-compiler setings to CMake\n";
+    print "\t--target - select feature subset specific to target project. default is BDW (", @list_target, ")\n";
+    print "\t--no_warn_as_error  - disable Warning As Error\n";
+    print "\t--prefix - set install prefix\n";
+    print "\n";
+    print "Examples:\n";
+    print "\tperl build_mfx.pl --cmake=intel64.make.debug                 [ only generate projects    ]\n";
+    print "\tperl build_mfx.pl --cmake=intel64.make.debug --build         [ generate and then build   ]\n";
+    print "\tperl build_mfx.pl --cmake=intel64.make.debug --build --clean [ generate, clean and build ]\n";
+    print "\tperl build_mfx.pl --cmake=intel64.eclipse.debug              [ generate make files for the use in Eclipse ]\n";
+    print "\t                                                             [ all other options like --build --clean remain the same ]\n";
+    print "\n";
+
+    exit;
+}
+
+sub _opt_in_list {
+    my $opt_name  = shift;
+    my $opt_value = shift;
+    my $ok_values = shift;
+
+    if (not in_array($ok_values, $opt_value)) {
+        my @choises = ();
+        map { push @choises, $_ ? $_ : '<empty>' } @$ok_values;
+        my $err = "ERROR: Invalid value for --$opt_name = '$opt_value'.\n";
+        $err .= "Possible options: [" . join(', ', @choises) . "]";
+        die $err;
+    }
+
+    $build{$opt_name} = $opt_value;
+
+    return;
+}
+
+sub _opt_cmake_handler {
+    my $opt_name = shift;
+    my $cmake    = shift;
+
+    die "ERROR: --$opt_name is mandatory" if not $cmake;
+
+    ($build{'arch'}, $build{'generator'}, $build{'config'}, $build{'comp'}) = split /,|\./, $cmake;
+    if (not $build{'comp'}) {
+        $build{'comp'} = 'gcc';
+    } elsif ($build{'comp'} eq 'icc') {
+        $build{'cc'}  = 'icc';
+        $build{'cxx'} = 'icpc';
+    } elsif ($build{'comp'} eq 'clang') {
+        $build{'cc'}  = 'clang';
+        $build{'cxx'} = 'clang++';
+    }
+
+    _opt_in_list('cmake[0]', $build{'arch'}, \@list_arch);
+    _opt_in_list('cmake[1]', $build{'generator'}, \@list_generator);
+    _opt_in_list('cmake[2]', $build{'config'}, \@list_config);
+    _opt_in_list('cmake[3]', $build{'comp'}, \@list_comp);
+}
+
+usage() unless @ARGV;
+
+GetOptions(
+    '--no_warn_as_error' => \$no_warn_as_error,
+    '--build'            => \$run_build,
+    '--clean'            => \$clean,
+    '--prefix=s'         => \$build{'prefix'},
+    '--cross=s'          => \$build{'toolchain'},
+
+    '--cmake=s' => \&_opt_cmake_handler,
+
+    '--ipp=s'    => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_ipp]);    },
+    '--trace=s'  => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_trace]);  },
+    '--target=s' => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_target]); },
+) or usage();
+
+my $build_root = getcwd;
+my $target_path = "$build_root/__cmake/" . get_cmake_target(%build);
+
+# "make" and "eclipse"" generators output directory is different
+if ($build{'generator'} =~ /^eclipse$/) {
+    my $target_path_eclipse_case_bin_folder = $build_root . "/__bin";
+    my $target_path_eclipse_case_lib_folder = $build_root . "/__lib";
+
+    if ($clean) {
+        rmtree($target_path_eclipse_case_bin_folder) if -d $target_path_eclipse_case_bin_folder;
+        rmtree($target_path_eclipse_case_lib_folder) if -d $target_path_eclipse_case_lib_folder;
+    }
+} else {
+    rmtree($target_path) if -d $target_path  and $clean;
+    mkpath($target_path) if !-d $target_path and -d $build_root;
+    chdir($target_path) or die "can't chdir -> $target_path: $!";
+}
+
+my $exit_code = 0;
+my $cmake_gen_cmd = get_cmake_gen_cmd($build_root, %build);
+say "I am going to execute:\n  cmake $cmake_gen_cmd";
+$exit_code = command("cmake $cmake_gen_cmd");
+
+if ($run_build) {
+    if ($build{'generator'} =~ /^eclipse$/) {
+        $exit_code = command("make -j8");
+    } else {
+        $exit_code = command("cmake --build $target_path --use-stderr --config $build{'config'}");
+    }
+
+    my $status_target = "$build{'arch'}.$build{'generator'}.$build{'config'}";
+    my $status_state = (!$exit_code) ? "OK" : "FAIL";
+
+    printf "\n[ %-50s State: %-4s ] \n\n\n", $status_target, $status_state;
+}
+
+exit $exit_code;
