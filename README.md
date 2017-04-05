@@ -6,7 +6,7 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate
 
 # Important note
-The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). You need to download and install Intel Media Server Studio 2017 R2 _before_ you build Intel Media SDK.  
+The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel® Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). You need to download and install Intel Media Server Studio 2017 R2 _before_ you build Intel Media SDK.
 Intel Media SDK depends on a special version of [LibVA](https://www.freedesktop.org/wiki/Software/vaapi/) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads ).
 
 # FAQ
@@ -78,9 +78,9 @@ make -j8 -C __cmake/intel64.make.release
 ```
 
 ## Enabling Instrumentation and Tracing Technology
-To enable the Instrumentation and Tracing Technology API you need either Interl® Vtune Amplifier installed or to manually build an open source version. You can get ITT source files from [GitHub](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) and build it on your own.
+To enable the Instrumentation and Tracing Technology API you need either Intel® VTune™ Amplifier installed or to manually build an open source version. You can get ITT source files from [GitHub](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) and build it on your own.
 
-**Please note** that auto detection of the Intel Vtune Amplifier configuration is not supported. The next step is mandatory if you want to use this feature: set `$ITT_PATH` so `$ITT_PATH/include/ittnotify.h` and `$ITT_PATH/libittnotify64.a` will be valid paths. MSDK build system will automatically detect it.
+**Please note** that auto detection of the Intel VTune Amplifier configuration is not supported. The next step is mandatory if you want to use this feature: set `$ITT_PATH` so `$ITT_PATH/include/ittnotify.h` and `$ITT_PATH/libittnotify64.a` will be valid paths. MSDK build system will automatically detect it.
 
 # See also
 Intel Media Server Studio: https://software.intel.com/en-us/intel-media-server-studio
