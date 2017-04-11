@@ -1,6 +1,6 @@
 include_directories (
-  ${CMAKE_SOURCE_DIR}/sample_common/include
-  ${CMAKE_SOURCE_DIR}/sample_vpp/include
+  ${CMAKE_SOURCE_DIR}/samples/sample_common/include
+  ${CMAKE_SOURCE_DIR}/samples/sample_vpp/include
 )
 
 list( APPEND LIBS_VARIANT sample_common )
