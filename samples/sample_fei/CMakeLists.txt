@@ -5,8 +5,8 @@ if(FEI_INCLUDE MATCHES NOTFOUND)
 endif()
 
 include_directories (
-  ${CMAKE_SOURCE_DIR}/sample_common/include
-  ${CMAKE_SOURCE_DIR}/sample_fei/include
+  ${CMAKE_SOURCE_DIR}/samples/sample_common/include
+  ${CMAKE_SOURCE_DIR}/samples/sample_fei/include
 )
 
 list( APPEND LIBS_VARIANT sample_common )
