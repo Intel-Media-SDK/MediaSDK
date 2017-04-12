@@ -67,12 +67,12 @@ perl tools/builder/build_mfx.pl --cmake=intel64.make.release
 ```
 This will build MSDK binaries and MSDK samples.
 
-Please note build_mfx.pl optional flags, like one example of: --no-warn-as-error to disable default: treat Warning As Error.
-
 If you want to configure build with CLang compiler use the following command:
 ```sh
 perl tools/builder/build_mfx.pl --cmake=intel64.make.release.clang
 ```
+Please note build_mfx.pl optional flags, like one example of: --no_warn_as_$error to disable default: treat Warning As Error,
+might be needed for newer versions of the compiler.
 
 Run build:
 ```sh
