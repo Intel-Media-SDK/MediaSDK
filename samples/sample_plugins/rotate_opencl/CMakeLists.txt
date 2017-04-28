@@ -1,11 +1,11 @@
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 
-set( PLUGINS_COMMON_PATH    ${CMAKE_SOURCE_DIR}/sample_plugins/plugins_common_files )
+set( PLUGINS_COMMON_PATH    ${CMAKE_CURRENT_SOURCE_DIR}/../plugins_common_files )
 
 
 include_directories (
-  ${CMAKE_SOURCE_DIR}/sample_common/include
-  ${CMAKE_SOURCE_DIR}/sample_plugins/rotate_opencl/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../sample_common/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 set( LDFLAGS "${LDFLAGS} -Wl,--version-script=${PLUGINS_COMMON_PATH}/mfx_plugin.map" )
@@ -24,7 +24,7 @@ install( TARGETS ${target} LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} )
 if ( DEFINED OPENCL_FOUND )
     # copy .cl file into build directory
     execute_process( COMMAND ${CMAKE_COMMAND} -E copy
-    "${CMAKE_SOURCE_DIR}/sample_plugins/rotate_opencl/src/ocl_rotate.cl"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ocl_rotate.cl"
     "${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE}/ocl_rotate.cl" )
 
     install( FILES src/ocl_rotate.cl DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} )

@@ -1,8 +1,8 @@
-set( PLUGINS_COMMON_PATH ${CMAKE_SOURCE_DIR}/sample_plugins/plugins_common_files )
+set( PLUGINS_COMMON_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../plugins_common_files )
 
 include_directories (
-  ${CMAKE_SOURCE_DIR}/sample_common/include
-  ${CMAKE_SOURCE_DIR}/sample_plugins/rotate_cpu/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../sample_common/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 set(LDFLAGS "${LDFLAGS} -Wl,--version-script=${PLUGINS_COMMON_PATH}/mfx_plugin.map" )

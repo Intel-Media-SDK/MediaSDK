@@ -1,7 +1,7 @@
 include_directories (
-  ${CMAKE_SOURCE_DIR}/sample_common/include
-  ${CMAKE_SOURCE_DIR}/sample_encode/include
-  ${CMAKE_SOURCE_DIR}/sample_plugins/rotate_cpu/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../sample_common/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../sample_plugins/rotate_cpu/include
 )
 
 list( APPEND LIBS_VARIANT sample_common )

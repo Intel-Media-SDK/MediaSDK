@@ -102,12 +102,18 @@ function( get_folder folder )
   set (${ARGV0} ${folder} PARENT_SCOPE)
 endfunction()
 
+function( get_mfx_version mfx_version_major mfx_version_minor )
+  file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h major REGEX "#define MFX_VERSION_MAJOR")
+  file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h minor REGEX "#define MFX_VERSION_MINOR")
+  string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
+  string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
+  set(${mfx_version_major} ${major} PARENT_SCOPE)
+  set(${mfx_version_minor} ${minor} PARENT_SCOPE)
+endfunction()
+
 function( gen_plugins_cfg plugin_id guid plugin_name type codecID )
-  file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h MFX_VERSION_MAJOR REGEX "#define MFX_VERSION_MAJOR")
-  file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h MFX_VERSION_MINOR REGEX "#define MFX_VERSION_MINOR")
-  string(REPLACE "#define MFX_VERSION_MAJOR " "" MFX_VERSION_MAJOR ${MFX_VERSION_MAJOR})
-  string(REPLACE "#define MFX_VERSION_MINOR " "" MFX_VERSION_MINOR ${MFX_VERSION_MINOR})
-  math(EXPR api_version "${MFX_VERSION_MAJOR}*256 + ${MFX_VERSION_MINOR}")
+  get_mfx_version(mfx_version_major mfx_version_minor)
+  math(EXPR api_version "${mfx_version_major}*256 + ${mfx_version_minor}")
 
   if((NOT DEFINED ARGV5) OR (ARGV5 STREQUAL "eval"))
     get_property( PLUGINS_EVAL_CFG GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG )
@@ -346,7 +352,7 @@ endfunction()
 
 function( git_describe git_commit )
   execute_process(
-    COMMAND git describe --dirty
+    COMMAND git describe --all --dirty
     OUTPUT_VARIABLE git_commit
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
