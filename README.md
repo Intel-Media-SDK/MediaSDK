@@ -7,7 +7,7 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 
 # Important note
 The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel® Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). You need to download and install Intel Media Server Studio 2017 R2 _before_ you build Intel Media SDK.
-Intel Media SDK depends on a special version of [LibVA](https://www.freedesktop.org/wiki/Software/vaapi/) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads ).
+Intel Media SDK depends on a special version of [LibVA](https://www.freedesktop.org/wiki/Software/vaapi/) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads). Installed libav-devel,libdrm-devel/libX11-devel should be sufficient for build environment to compile.
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
@@ -71,6 +71,8 @@ If you want to configure build with CLang compiler use the following command:
 ```sh
 perl tools/builder/build_mfx.pl --cmake=intel64.make.release.clang
 ```
+Please note build_mfx.pl optional flags, like one example of: --no_warn_as_$error to disable default: treat Warning As Error,
+might be needed for newer versions of the compiler.
 
 Run build:
 ```sh
