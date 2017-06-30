@@ -23,7 +23,7 @@
 #include "mfx_win_reg_key.h"
 #include "mfx_dispatcher_log.h"
 
-#define TRACE_WINREG_ERROR(str, ...) DISPATCHER_LOG_ERROR((("[WINREG]: "str), __VA_ARGS__))
+#define TRACE_WINREG_ERROR(str, ...) DISPATCHER_LOG_ERROR((("[WINREG]: " str), __VA_ARGS__))
 
 namespace MFX
 {

@@ -22,8 +22,8 @@
 #include "mfx_load_dll.h"
 #include "mfx_dispatcher_log.h"
 
-#define TRACE_PLUGIN_ERROR(str, ...) DISPATCHER_LOG_ERROR((("[PLUGIN]: "str), __VA_ARGS__))
-#define TRACE_PLUGIN_INFO(str, ...) DISPATCHER_LOG_INFO((("[PLUGIN]: "str), __VA_ARGS__))
+#define TRACE_PLUGIN_ERROR(str, ...) DISPATCHER_LOG_ERROR((("[PLUGIN]: " str), __VA_ARGS__))
+#define TRACE_PLUGIN_INFO(str, ...) DISPATCHER_LOG_INFO((("[PLUGIN]: " str), __VA_ARGS__))
 
 #define CREATE_PLUGIN_FNC "CreatePlugin"
 
