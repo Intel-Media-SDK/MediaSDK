@@ -63,7 +63,7 @@ inline std::wstring getWideString(const char * string)
 
 #endif
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(_WIN32) && !defined(_WIN64)
 #define  sscanf_s  sscanf
 #define  swscanf_s swscanf
 #endif
