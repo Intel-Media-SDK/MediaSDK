@@ -32,6 +32,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <vector>
 #include <list>
 #include <ctime>
+#include <map>
 
 #include "sample_defs.h"
 #include "sample_utils.h"
@@ -51,9 +52,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "hw_device.h"
 #include "plugin_loader.h"
 
-#ifdef ENABLE_FF
-#include "brc_routines.h"
-#endif
 
 #include "vpp_ext_buffers_storage.h"
 
@@ -80,6 +78,12 @@ namespace TranscodingSample
         VppCompOnlyEncode  // means that pipeline makes vpp composition + encode and get data from shared buffer
     };
 
+    enum VppCompDumpMode
+    {
+        NULL_RENDER_VPP_COMP = 1,
+        DUMP_FILE_VPP_COMP = 2
+    };
+
     enum EFieldCopyMode
     {
         FC_NONE=0,
@@ -96,6 +100,7 @@ namespace TranscodingSample
         mfxU32 DstY;
         mfxU32 DstW;
         mfxU32 DstH;
+        mfxU16 TileId;
     };
 
     struct __sInputParams
@@ -107,12 +112,14 @@ namespace TranscodingSample
         mfxIMPL libType;  // Type of used mediaSDK library
         bool   bIsPerf;   // special performance mode. Use pre-allocated bitstreams, output
         mfxU16 nThreadsNum; // number of internal session threads number
+        bool   bRobust;   // Robust transcoding mode. Allows auto-recovery after hardware errors
 
         mfxU32 EncodeId; // type of output coded video
         mfxU32 DecodeId; // type of input coded video
 
         msdk_char  strSrcFile[MSDK_MAX_FILENAME_LEN]; // source bitstream file
         msdk_char  strDstFile[MSDK_MAX_FILENAME_LEN]; // destination bitstream file
+        msdk_char  strDumpVppCompFile[MSDK_MAX_FILENAME_LEN]; // VPP composition output dump file
 
         // specific encode parameters
         mfxU16 nTargetUsage;
@@ -139,6 +146,7 @@ namespace TranscodingSample
         mfxU32 FrameNumberPreference; // how many surfaces user wants
         mfxU32 MaxFrameNumber; // maximum frames for transcoding
         mfxU32 numSurf4Comp;
+        mfxU16 numTiles4Comp;
 
         mfxU16 nSlices; // number of slices for encoder initialization
         mfxU16 nMaxSliceSize; //maximum size of slice
@@ -150,12 +158,16 @@ namespace TranscodingSample
         mfxU16 GopRefDist;
         mfxU16 NumRefFrame;
         mfxU16 nBRefType;
+        mfxU16 RepartitionCheckMode;
 
         mfxU16 CodecLevel;
         mfxU16 CodecProfile;
         mfxU16 MaxKbps;
         mfxU16 InitialDelayInKB;
         mfxU16 GopOptFlag;
+
+        mfxU16 WeightedPred;
+        mfxU16 WeightedBiPred;
 
         // MVC Specific Options
         bool   bIsMVC; // true if Multi-View-Codec is in use
@@ -186,6 +198,7 @@ namespace TranscodingSample
         std::vector<mfxExtEncoderROI> m_ROIData;
 
         bool bDecoderPostProcessing;
+        bool bROIasQPMAP;
 #endif //_MSDK_API >= MSDK_API(1,22)
 
         bool bOpenCL;
@@ -197,6 +210,7 @@ namespace TranscodingSample
         mfxU16 nVppCompDstH;
         mfxU16 nVppCompSrcW;
         mfxU16 nVppCompSrcH;
+        mfxU16 nVppCompTileId;
 
         mfxU32 DecoderFourCC;
         mfxU32 EncoderFourCC;
@@ -245,7 +259,8 @@ namespace TranscodingSample
     struct ExtendedSurface
     {
         mfxFrameSurface1 *pSurface;
-        PreEncAuxBuffer  *pCtrl;
+        PreEncAuxBuffer  *pAuxCtrl;
+        mfxEncodeCtrl    *pEncCtrl;
         mfxSyncPoint      Syncp;
     };
 
@@ -276,6 +291,7 @@ namespace TranscodingSample
               , ofile(stdout)
             {
                 msdk_strncopy_s(bufDir, MAX_PREF_LEN, dir, MAX_PREF_LEN - 1);
+                bufDir[MAX_PREF_LEN - 1] = 0;
             }
 
             ~CIOStat()
@@ -292,6 +308,7 @@ namespace TranscodingSample
                 if (dir)
                 {
                     msdk_strncopy_s(bufDir, MAX_PREF_LEN, dir, MAX_PREF_LEN - 1);
+                    bufDir[MAX_PREF_LEN - 1] = 0;
                 }
             }
 
@@ -349,6 +366,14 @@ namespace TranscodingSample
             }
             return;
         }
+        void ReleaseAll()
+        {
+            for (mfxU32 i = 0; i < m_pExtBS.size(); i++)
+            {
+                m_pExtBS[i].IsFree = true;
+            }
+            return;
+        }
     protected:
         std::vector<ExtendedBS> m_pExtBS;
 
@@ -377,6 +402,7 @@ namespace TranscodingSample
         void              AddSurface(ExtendedSurface Surf);
         mfxStatus         GetSurface(ExtendedSurface &Surf);
         mfxStatus         ReleaseSurface(mfxFrameSurface1* pSurf);
+        mfxStatus         ReleaseSurfaceAll();
         void              CancelBuffering();
 
         SafetySurfaceBuffer               *m_pNext;
@@ -433,6 +459,7 @@ namespace TranscodingSample
         // frames allocation is suspended for heterogeneous pipeline
         virtual mfxStatus CompleteInit();
         virtual void      Close();
+        virtual mfxStatus Reset();
         virtual mfxStatus Join(MFXVideoSession *pChildSession);
         virtual mfxStatus Run();
         virtual mfxStatus FlushLastFrames(){return MFX_ERR_NONE;}
@@ -447,6 +474,7 @@ namespace TranscodingSample
         inline void SetPipelineID(mfxU32 id){m_nID = id;}
         void StopOverlay();
         bool IsOverlayUsed();
+        bool IsRobust();
     protected:
         virtual mfxStatus CheckRequiredAPIVersion(mfxVersion& version, sInputParams *pParams);
 
@@ -458,10 +486,6 @@ namespace TranscodingSample
         virtual mfxStatus VPPOneFrame(ExtendedSurface *pSurfaceIn, ExtendedSurface *pExtSurface);
         virtual mfxStatus EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstream *pBS);
         virtual mfxStatus PreEncOneFrame(ExtendedSurface *pInSurface, ExtendedSurface *pOutSurface);
-
-#if _MSDK_API >= MSDK_API(1,22)
-        mfxStatus AddExtRoiBufferToCtrl(mfxEncodeCtrl **ppCtrl);
-#endif // _MSDK_API >= MSDK_API(1,22)
 
         virtual mfxStatus DecodePreInit(sInputParams *pParams);
         virtual mfxStatus VPPPreInit(sInputParams *pParams);
@@ -491,7 +515,7 @@ namespace TranscodingSample
         mfxFrameSurface1* GetFreeSurface(bool isDec, mfxU64 timeout);
         mfxU32 GetFreeSurfacesCount(bool isDec);
         PreEncAuxBuffer*  GetFreePreEncAuxBuffer();
-        void SetSurfaceAuxIDR(ExtendedSurface& extSurface, PreEncAuxBuffer* encAuxCtrl, bool bInsertIDR);
+        void SetEncCtrlRT(ExtendedSurface& extSurface, mfxEncodeCtrl *pCtrl, bool bInsertIDR);
 
         // parameters configuration functions
         mfxStatus InitDecMfxParams(sInputParams *pInParams);
@@ -510,6 +534,7 @@ namespace TranscodingSample
         mfxStatus AllocateSufficientBuffer(mfxBitstream* pBS);
         mfxStatus PutBS();
 
+        mfxStatus DumpSurface2File(mfxFrameSurface1* pSurface);
         mfxStatus Surface2BS(ExtendedSurface* pSurf,mfxBitstream* pBS, mfxU32 fourCC);
         mfxStatus NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
         mfxStatus RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
@@ -523,6 +548,8 @@ namespace TranscodingSample
 
         mfxU32 GetNumFramesForReset();
         void   SetNumFramesForReset(mfxU32 nFrames);
+
+        mfxStatus   SetAllocatorAndHandleIfRequired();
 
         mfxBitstream        *m_pmfxBS;  // contains encoded input data
 
@@ -545,8 +572,12 @@ namespace TranscodingSample
 
         MFXFrameAllocator              *m_pMFXAllocator;
         void*                           m_hdl; // Diret3D device manager
+        bool                            m_bIsInterOrJoined;
 
         mfxU32                          m_numEncoders;
+
+        CSmplYUVWriter                  m_dumpVppCompFileWriter;
+        mfxU32                          m_vppCompDumpRenderMode;
 
         CHWDevice*                      m_hwdev4Rendering;
 
@@ -562,6 +593,9 @@ namespace TranscodingSample
         // transcoding pipeline specific
         typedef std::list<ExtendedBS*>       BSList;
         BSList  m_BSPool;
+
+        mfxInitParam                   m_initPar;
+        mfxExtThreadsParam             m_threadsPar;
 
         bool                           m_bStopOverlay;
 
@@ -598,9 +632,6 @@ namespace TranscodingSample
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
 
-#ifdef ENABLE_FF
-        mfxExtBRC                m_ExtBRC;
-#endif
 
         // for opaque memory
         mfxExtOpaqueSurfaceAlloc m_EncOpaqueAlloc;
@@ -640,6 +671,7 @@ namespace TranscodingSample
         mfxU32          m_NumFramesForReset;
         MSDKMutex       m_mReset;
         MSDKMutex       m_mStopOverlay;
+        bool            m_bIsRobust;
 
         bool isHEVCSW;
 
@@ -662,10 +694,24 @@ namespace TranscodingSample
         bool shouldUseGreedyFormula;
 
 #if _MSDK_API >= MSDK_API(1,22)
-        // roi data
+        // ROI data
         std::vector<mfxExtEncoderROI> m_ROIData;
-        mfxEncodeCtrl auxCtrl;
-        mfxExtBuffer *ext_params1[1];
+        mfxU32         m_nSubmittedFramesNum;
+
+        // ROI with MBQP map data
+        bool              m_bUseQPMap;
+
+        std::map<void*, mfxExtMBQP> m_bufExtMBQP;
+        std::map<void*, std::vector<mfxU8> > m_qpMapStorage;
+        std::map<void*, std::vector<mfxExtBuffer*> > m_extBuffPtrStorage;
+
+        mfxU32            m_QPmapWidth;
+        mfxU32            m_QPmapHeight;
+        mfxU32            m_GOPSize;
+        mfxU32            m_QPforI;
+        mfxU32            m_QPforP;
+
+        void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
 #endif //_MSDK_API >= MSDK_API(1,22)
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);
@@ -691,8 +737,6 @@ namespace TranscodingSample
         // Status of the finished session
         mfxStatus transcodingSts;
     };
-
-
 }
 
 #endif

@@ -36,6 +36,11 @@
 #include "safe_lib.h"
 #include <wchar.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 #define RSIZE_MAX_MEM      ( 256UL << 20 )     /* 256MB */
 #define RSIZE_MAX_MEM16    ( RSIZE_MAX_MEM/2 )
 #define RSIZE_MAX_MEM32    ( RSIZE_MAX_MEM/4 )
@@ -111,5 +116,8 @@ extern errno_t memzero16_s(uint16_t *dest, rsize_t dmax);
 /* uint32_t zero */
 extern errno_t memzero32_s(uint32_t *dest, rsize_t dmax);
 
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif  /* __SAFE_MEM_LIB_H__ */

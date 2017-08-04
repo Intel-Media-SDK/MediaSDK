@@ -360,7 +360,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -di key"));
                 return MFX_ERR_UNSUPPORTED;
             }
-            msdk_char diMode[4] = {};
+            msdk_char diMode[32] = {};
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], diMode))
             {
                 PrintHelp(strInput[0], MSDK_STRING("deinterlace value is not set"));
@@ -436,7 +436,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for \"-dec_postproc\", right is  \"--dec_postproc force//auto\""));
                 return MFX_ERR_UNSUPPORTED;
             }
-            msdk_char postProcMode[6] = {};
+            msdk_char postProcMode[32] = {};
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], postProcMode))
             {
                 PrintHelp(strInput[0], MSDK_STRING("dec_postproc value is not set"));

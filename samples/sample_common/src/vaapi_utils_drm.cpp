@@ -332,6 +332,11 @@ drmRenderer::drmRenderer(int fd, mfxI32 monitorType)
 drmRenderer::~drmRenderer()
 {
     m_drmlib.drmModeFreeCrtc(m_crtc);
+    if (m_bufmgr)
+    {
+        m_drmintellib.drm_intel_bufmgr_destroy(m_bufmgr);
+        m_bufmgr = NULL;
+    }
 }
 
 bool drmRenderer::getConnector(drmModeRes *resource, uint32_t connector_type)

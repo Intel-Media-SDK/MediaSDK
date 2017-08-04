@@ -38,13 +38,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 //#define _interlockedbittestandset64    fake_set64
 //#define _interlockedbittestandreset64  fake_reset64
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
 #include <va/va.h>
-#include <va/va_drm.h>
-#include <va/va_x11.h>
-#include <va/va_backend.h>
-
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS 1
 
 #undef CL_VERSION_1_2

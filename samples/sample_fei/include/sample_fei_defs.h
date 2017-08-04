@@ -34,6 +34,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <cstring>
 #include <list>
 #include <vector>
+#include <map>
 #include <ctime>
 #include "math.h"
 
@@ -88,6 +89,29 @@ inline mfxU16 FrameTypeToSliceType(mfxU8 frameType)
     }
 }
 
+inline mfxU16 PicStructToFrameType(mfxU16 picstruct)
+{
+    switch (picstruct & 0x0f)
+    {
+    case MFX_PICSTRUCT_PROGRESSIVE:
+        return MFX_PICTYPE_FRAME;
+        break;
+
+    case MFX_PICSTRUCT_FIELD_TFF:
+    case MFX_PICSTRUCT_FIELD_BFF:
+        return MFX_PICTYPE_TOPFIELD | MFX_PICTYPE_BOTTOMFIELD;
+        break;
+
+    default:
+        return MFX_PICTYPE_UNKNOWN;
+        break;
+    }
+}
+
+inline mfxU16 PicStructToFrameTypeFieldBased(mfxU16 picstruct, mfxU16 is_interlaced, mfxU16 parity)
+{
+    return mfxU16((!!(picstruct & MFX_PICSTRUCT_PROGRESSIVE) == is_interlaced) ? MFX_PICTYPE_UNKNOWN : (is_interlaced ? (parity ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD) : MFX_PICTYPE_FRAME));
+}
 
 enum
 {
@@ -251,7 +275,7 @@ struct AppConfig
     AppConfig()
         : DecodeId(0)            // Default (invalid) value
         , CodecId(MFX_CODEC_AVC) // Only AVC is supported
-        , ColorFormat(MFX_FOURCC_YV12)
+        , ColorFormat(MFX_FOURCC_I420)
         , nPicStruct(MFX_PICSTRUCT_PROGRESSIVE)
         , nWidth(0)
         , nHeight(0)
@@ -261,10 +285,6 @@ struct AppConfig
         , refDist(1)             // Only I frames
         , gopSize(1)             // Only I frames
         , QP(26)
-#ifdef ENABLE_FF
-        , RateControlMethod(MFX_RATECONTROL_CQP)
-        , TargetKbps(0)
-#endif
         , numSlices(1)
         , numRef(1)              // One ref by default
         , NumRefActiveP(0)
@@ -362,10 +382,6 @@ struct AppConfig
     mfxU16 refDist; //number of frames to next I,P
     mfxU16 gopSize; //number of frames to next I
     mfxU8  QP;
-#ifdef ENABLE_FF
-    mfxU16 RateControlMethod;
-    mfxU16 TargetKbps;
-#endif
     mfxU16 numSlices;
     mfxU16 numRef;           // number of reference frames (DPB size)
     mfxU16 NumRefActiveP;    // maximal number of references for P frames

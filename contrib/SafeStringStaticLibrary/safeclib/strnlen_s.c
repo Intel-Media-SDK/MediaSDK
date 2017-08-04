@@ -33,6 +33,10 @@
 #include "safe_str_constraint.h"
 #include "safe_str_lib.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
 /**
  * NAME
@@ -110,3 +114,7 @@ strnlen_s (const char *dest, rsize_t dmax)
     return RCNEGATE(count);
 }
 EXPORT_SYMBOL(strnlen_s);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

@@ -54,6 +54,10 @@
 
 #define CHK_FORMAT(X,Y)   (((X)==(Y))?1:0)
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
 unsigned int
 parse_format(const char *format, char pformatList[], unsigned int maxFormats)
@@ -359,3 +363,7 @@ int snprintf_s_ss(char *dest, rsize_t dmax, const char *format, const char *s1, 
 	return snprintf(dest, dmax, format, s1, s2);
 }
 EXPORT_SYMBOL(snprintf_s_ss);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

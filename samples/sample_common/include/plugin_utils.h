@@ -31,8 +31,8 @@ enum
 {
     MSDK_VDECODE = 0x0001,
     MSDK_VENCODE = 0x0002,
-    MSDK_VPP = 0x0004,
-    MSDK_VENC = 0x0008,
+    MSDK_VPP     = 0x0004,
+    MSDK_VENC    = 0x0008,
 };
 
 typedef enum {

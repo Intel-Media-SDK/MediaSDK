@@ -301,29 +301,32 @@ void DumpMB(const msdk_char* fname, struct iTask* task, int uMB)
 // pTaskList for CEncodingPipeline::m_inputTasks;
 mfxStatus ResetDirect(iTask * task, iTaskPool *pTaskList)
 {
-    if (!task || !pTaskList)
-        return MFX_ERR_NULL_PTR;
-    if (!task->ENC_in.InSurface)
-        return MFX_ERR_NULL_PTR;
+    MSDK_CHECK_POINTER(task,                   MFX_ERR_NULL_PTR);
+    MSDK_CHECK_POINTER(task->ENC_in.InSurface, MFX_ERR_NULL_PTR);
+    MSDK_CHECK_POINTER(pTaskList,              MFX_ERR_NULL_PTR);
+
     mfxFrameInfo* fi = &task->ENC_in.InSurface->Info;
 
     mfxI32 wmb = (fi->Width +15)>>4;
     mfxI32 hmb = (fi->Height+15)>>4;
 
-    const mfxExtFeiPPS         * pps         = (mfxExtFeiPPS*)        GetExtBuffer(task->PAK_in.ExtParam, task->PAK_in.NumExtParam, MFX_EXTBUFF_FEI_PPS);
-    const mfxExtFeiSliceHeader * sliceHeader = (mfxExtFeiSliceHeader*)GetExtBuffer(task->PAK_in.ExtParam, task->PAK_in.NumExtParam, MFX_EXTBUFF_FEI_SLICE);
+    const mfxExtFeiPPS         * pps         = reinterpret_cast<mfxExtFeiPPS        *>(task->bufs->PB_bufs.in.getBufById(MFX_EXTBUFF_FEI_PPS,       0));
+    const mfxExtFeiSliceHeader * sliceHeader = reinterpret_cast<mfxExtFeiSliceHeader*>(task->bufs->PB_bufs.in.getBufById(MFX_EXTBUFF_FEI_SLICE,     0));
 
-    const mfxExtFeiEncMV       * mvs         = (mfxExtFeiEncMV*)      GetExtBuffer(task->PAK_in.ExtParam, task->PAK_in.NumExtParam, MFX_EXTBUFF_FEI_ENC_MV);
-    const mfxExtFeiPakMBCtrl   * mbCode      = (mfxExtFeiPakMBCtrl*)  GetExtBuffer(task->PAK_in.ExtParam, task->PAK_in.NumExtParam, MFX_EXTBUFF_FEI_PAK_CTRL);
+    const mfxExtFeiEncMV       * mvs         = reinterpret_cast<mfxExtFeiEncMV      *>(task->bufs->PB_bufs.out.getBufById(MFX_EXTBUFF_FEI_ENC_MV,   0));
+    const mfxExtFeiPakMBCtrl   * mbCode      = reinterpret_cast<mfxExtFeiPakMBCtrl  *>(task->bufs->PB_bufs.out.getBufById(MFX_EXTBUFF_FEI_PAK_CTRL, 0));
 
-    if (sliceHeader && sliceHeader->NumSlice == 0)
+    MSDK_CHECK_POINTER(pps,         MFX_ERR_NULL_PTR);
+    MSDK_CHECK_POINTER(sliceHeader, MFX_ERR_NULL_PTR);
+    MSDK_CHECK_POINTER(mvs,         MFX_ERR_NULL_PTR);
+    MSDK_CHECK_POINTER(mbCode,      MFX_ERR_NULL_PTR);
+
+    if (sliceHeader->NumSlice == 0)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    const mfxExtFeiEncMV* refmvs = 0;
-    const mfxExtFeiPakMBCtrl* refmbCode = 0;
+    const mfxExtFeiEncMV     * refmvs    = NULL;
+    const mfxExtFeiPakMBCtrl * refmbCode = NULL;
 
-
-    if (mvs && mbCode && sliceHeader && pps)
     for (mfxI32 uMB = 0, uMBy = 0, slice = -1, nextSliceMB = 0; uMBy < hmb; uMBy++) for (mfxI32 uMBx = 0; uMBx < wmb; uMBx++, uMB++) {
         while (nextSliceMB <= uMB && slice+1 < sliceHeader->NumSlice) {
             slice++; // next or first slice
@@ -332,7 +335,7 @@ mfxStatus ResetDirect(iTask * task, iTaskPool *pTaskList)
             if (!B_SLICE(sliceHeader->Slice[slice].SliceType)) break;
 
             int ridx = sliceHeader->Slice[slice].RefL1[0].Index;
-            int fidx = pps->ReferenceFrames[ridx];
+            int fidx = pps->DpbBefore[ridx].Index;
             mfxFrameSurface1 *refSurface = task->PAK_in.L0Surface[fidx];
 
             // find iTask of L1[0]

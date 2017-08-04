@@ -268,7 +268,10 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
 
                 mfx_res = va_to_mfx_status(va_res);
 
-                m_libva->vaDestroyImage(m_dpy, vaapi_mids[i].m_image.buf);
+                if (MFX_ERR_NONE != mfx_res) {
+                    m_libva->vaDestroyImage(m_dpy, vaapi_mids[i].m_image.image_id);
+                    break;
+                }
             }
             if (m_exporter) {
                 vaapi_mids[i].m_custom = m_exporter->acquire(&vaapi_mids[i]);

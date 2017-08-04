@@ -367,10 +367,12 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         }
         else
         {
+            bool isDefaultPlugin = false;
             if (AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
                 mfxIMPL impl = pParams->bUseHWLib ? MFX_IMPL_HARDWARE : MFX_IMPL_SOFTWARE;
                 pParams->pluginParams.pluginGuid = msdkGetPluginUID(impl, MSDK_VDECODE, pParams->videoType);
+                isDefaultPlugin = true;
             }
             if (!AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
@@ -379,7 +381,9 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
             }
             if(sts==MFX_ERR_UNSUPPORTED)
             {
-                msdk_printf(MSDK_STRING("Default plugin cannot be loaded (possibly you have to define plugin explicitly)\n"));
+                msdk_printf(isDefaultPlugin ?
+                    MSDK_STRING("Default plugin cannot be loaded (possibly you have to define plugin explicitly)\n")
+                    : MSDK_STRING("Explicitly specified plugin cannot be loaded.\n"));
             }
         }
         MSDK_CHECK_STATUS(sts, "Plugin load failed");
@@ -478,11 +482,11 @@ bool CDecodingPipeline::IsVppRequired(sInputParams *pParams)
     if ((pParams->videoType == MFX_CODEC_JPEG) ||
         ((pParams->videoType == MFX_CODEC_CAPTURE)) )
     {
-        bVppIsUsed = m_fourcc && (m_fourcc != MFX_FOURCC_NV12) && (m_fourcc != MFX_FOURCC_RGB4);
+        bVppIsUsed |= m_fourcc && (m_fourcc != MFX_FOURCC_NV12) && (m_fourcc != MFX_FOURCC_RGB4);
     }
     else
     {
-        bVppIsUsed = m_fourcc && (m_fourcc != m_mfxVideoParams.mfx.FrameInfo.FourCC);
+        bVppIsUsed |= m_fourcc && (m_fourcc != m_mfxVideoParams.mfx.FrameInfo.FourCC);
     }
 
     if (pParams->eDeinterlace)
@@ -1033,9 +1037,12 @@ mfxStatus CDecodingPipeline::AllocFrames()
     MSDK_ZERO_MEMORY(VppRequest[0]);
     MSDK_ZERO_MEMORY(VppRequest[1]);
 
-    sts = m_pmfxDEC->Query(&m_mfxVideoParams, &m_mfxVideoParams);
-    MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-    MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
+    if (m_mfxVideoParams.mfx.FrameInfo.FourCC != MFX_FOURCC_P210) // TODO: workaround for P210, delete later
+    {
+        sts = m_pmfxDEC->Query(&m_mfxVideoParams, &m_mfxVideoParams);
+        MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
+    }
 
     // calculate number of surfaces required for decoder
     sts = m_pmfxDEC->QueryIOSurf(&m_mfxVideoParams, &Request);
@@ -1097,15 +1104,7 @@ mfxStatus CDecodingPipeline::AllocFrames()
         Request.NumFrameSuggested = Request.NumFrameMin = nSurfNum;
 
         // surfaces are shared between vpp input and decode output
-        Request.Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE;
-        if (m_mfxVideoParams.mfx.CodecId == MFX_CODEC_JPEG)
-        {
-            Request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET;
-        }
-        else
-        {
-            Request.Type |= MFX_MEMTYPE_FROM_VPPIN;
-        }
+        Request.Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE | MFX_MEMTYPE_FROM_VPPIN;
     }
 
     if ((Request.NumFrameSuggested < m_mfxVideoParams.AsyncDepth) &&
@@ -1264,12 +1263,18 @@ mfxStatus CDecodingPipeline::CreateAllocator()
         MSDK_CHECK_POINTER(p_vaapiAllocParams, MFX_ERR_MEMORY_ALLOC);
 
         p_vaapiAllocParams->m_dpy = va_dpy;
-        if (m_eWorkMode == MODE_RENDERING) {
-            if (m_libvaBackend == MFX_LIBVA_DRM_MODESET) {
+        if (m_eWorkMode == MODE_RENDERING)
+        {
+            if (m_libvaBackend == MFX_LIBVA_DRM_MODESET)
+            {
+#if defined(LIBVA_DRM_SUPPORT)
                 CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev);
                 p_vaapiAllocParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
                 p_vaapiAllocParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
-            } else if (m_libvaBackend == MFX_LIBVA_WAYLAND || m_libvaBackend == MFX_LIBVA_X11) {
+#endif
+            }
+            else if (m_libvaBackend == MFX_LIBVA_WAYLAND || m_libvaBackend == MFX_LIBVA_X11)
+            {
                 p_vaapiAllocParams->m_export_mode = vaapiAllocatorParams::PRIME;
             }
         }
@@ -1553,7 +1558,7 @@ mfxStatus CDecodingPipeline::DeliverLoop(void)
         ReturnSurfaceToBuffers(pCurrentDeliveredSurface);
 
         pCurrentDeliveredSurface = NULL;
-        ++m_output_count;
+        msdk_atomic_inc32(&m_output_count);
         m_pDeliveredEvent->Signal();
     }
     return res;
@@ -1624,10 +1629,11 @@ mfxStatus CDecodingPipeline::SyncOutputSurface(mfxU32 wait)
             m_output_count = m_synced_count;
             ReturnSurfaceToBuffers(m_pCurrentOutputSurface);
         } else if (m_eWorkMode == MODE_FILE_DUMP) {
-            m_output_count = m_synced_count;
             sts = DeliverOutput(&(m_pCurrentOutputSurface->surface->frame));
             if (MFX_ERR_NONE != sts) {
                 sts = MFX_ERR_UNKNOWN;
+            } else {
+                m_output_count = m_synced_count;
             }
             ReturnSurfaceToBuffers(m_pCurrentOutputSurface);
         } else if (m_eWorkMode == MODE_RENDERING) {
@@ -1902,6 +1908,15 @@ mfxStatus CDecodingPipeline::RunDecoding()
             }
         }
     } //while processing
+
+    if (m_nFrames == m_output_count)
+    {
+        if (!sts)
+            msdk_printf(MSDK_STRING("[WARNING] Decoder returned error %s that could be compensated during next iterations of decoding process.\
+                                    But requested amount of frames is already successfully decoded, so whole process is finished successfully."),
+                        StatusToString(sts).c_str());
+        sts = MFX_ERR_NONE;
+    }
 
     PrintPerFrameStat(true);
 

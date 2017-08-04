@@ -52,6 +52,8 @@ namespace TranscodingSample
     protected:
         virtual mfxStatus VerifyCrossSessionsOptions();
         virtual mfxStatus CreateSafetyBuffers();
+        virtual void      DoTranscoding();
+        virtual void      DoRobustTranscoding();
 
         virtual void Close();
 

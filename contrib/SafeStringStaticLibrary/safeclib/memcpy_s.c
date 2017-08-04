@@ -34,6 +34,10 @@
 #include "mem_primitives_lib.h"
 #include "safe_mem_lib.h"
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
 /**
  * NAME
@@ -155,3 +159,7 @@ memcpy_s (void *dest, rsize_t dmax, const void *src, rsize_t smax)
     return RCNEGATE(EOK);
 }
 EXPORT_SYMBOL(memcpy_s);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */

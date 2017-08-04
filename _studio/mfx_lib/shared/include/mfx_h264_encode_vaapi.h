@@ -1,0 +1,422 @@
+// Copyright (c) 2017 Intel Corporation
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#ifndef __MFX_H264_ENCODE_VAAPI__H
+#define __MFX_H264_ENCODE_VAAPI__H
+
+#include "mfx_common.h"
+
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined (MFX_VA_LINUX)
+
+#include "umc_mutex.h"
+
+#include <va/va.h>
+#include <va/va_enc_h264.h>
+#include "vaapi_ext_interface.h"
+
+#if defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
+//#include <va/vendor/va_intel_fei.h>
+//#include <va/vendor/va_intel_statistics.h>
+#endif
+
+#include "mfx_h264_encode_interface.h"
+#include "mfx_h264_encode_hw_utils.h"
+
+#define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
+do {                                               \
+    if ( vaBufferId != VA_INVALID_ID)              \
+    {                                              \
+        vaDestroyBuffer(vaDisplay, vaBufferId);    \
+        vaBufferId = VA_INVALID_ID;                \
+    }                                              \
+} while (0)
+
+#define VAConfigAttribInputTiling  -1  // Inform the app what kind of tiling format supported by driver
+
+
+mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
+
+VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type);
+
+mfxStatus SetHRD(
+    MfxHwH264Encode::MfxVideoParam const & par,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & hrdBuf_id);
+
+mfxStatus SetPrivateParams(
+    MfxHwH264Encode::MfxVideoParam const & par,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & privateParams_id,
+    mfxEncodeCtrl const * pCtrl = 0);
+
+mfxStatus SetQualityLevelParams(
+    MfxHwH264Encode::MfxVideoParam const & par,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & privateParams_id,
+    mfxEncodeCtrl const * pCtrl = 0);
+
+void FillConstPartOfPps(
+    MfxHwH264Encode::MfxVideoParam const & par,
+    VAEncPictureParameterBufferH264 & pps);
+
+mfxStatus SetFrameRate(
+    MfxHwH264Encode::MfxVideoParam const & par,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & frameRateBuf_id);
+
+
+namespace MfxHwH264Encode
+{
+    // map feedbackNumber <-> VASurface
+    typedef struct
+    {
+        VASurfaceID surface;
+        mfxU32 number;
+        mfxU32 idxBs;
+        mfxU32 size; // valid only if Surface ID == VA_INVALID_SURFACE (skipped frames)
+#if defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC) || defined(MFX_ENABLE_H264_VIDEO_FEI_ENCPAK)
+        VASurfaceID mv;
+        VASurfaceID mbstat;
+        VASurfaceID mbcode;
+#endif
+    } ExtVASurface;
+
+    void UpdatePPS(
+        DdiTask const & task,
+        mfxU32          fieldId,
+        VAEncPictureParameterBufferH264 & pps,
+        std::vector<ExtVASurface> const & reconQueue);
+
+    void UpdateSlice(
+        ENCODE_CAPS const &                         hwCaps,
+        DdiTask const &                             task,
+        mfxU32                                      fieldId,
+        VAEncSequenceParameterBufferH264 const     & sps,
+        VAEncPictureParameterBufferH264 const      & pps,
+        std::vector<VAEncSliceParameterBufferH264> & slice,
+        MfxVideoParam const                        & par,
+        std::vector<ExtVASurface> const & reconQueue);
+
+    class VAAPIEncoder : public DriverEncoder
+    {
+    public:
+        VAAPIEncoder();
+
+        virtual
+        ~VAAPIEncoder();
+
+        virtual
+        mfxStatus CreateAuxilliaryDevice(
+            VideoCORE* core,
+            GUID       guid,
+            mfxU32     width,
+            mfxU32     height,
+            bool       isTemporal = false);
+
+        virtual
+        mfxStatus CreateAccelerationService(
+            MfxVideoParam const & par);
+
+        virtual
+        mfxStatus Reset(
+            MfxVideoParam const & par);
+
+        // empty  for Lin
+        virtual
+        mfxStatus Register(
+            mfxMemId memId,
+            D3DDDIFORMAT type);
+
+        // 2 -> 1
+        virtual
+        mfxStatus Register(
+            mfxFrameAllocResponse& response,
+            D3DDDIFORMAT type);
+
+        // (mfxExecuteBuffers& data)
+        virtual
+        mfxStatus Execute(
+            mfxHDL          surface,
+            DdiTask const & task,
+            mfxU32          fieldId,
+            PreAllocatedVector const & sei);
+
+        // recomendation from HW
+        virtual
+        mfxStatus QueryCompBufferInfo(
+            D3DDDIFORMAT type,
+            mfxFrameAllocRequest& request);
+
+        virtual
+        mfxStatus QueryEncodeCaps(
+            ENCODE_CAPS& caps);
+
+        virtual
+        mfxStatus QueryMbPerSec(
+            mfxVideoParam const & par,
+            mfxU32              (&mbPerSec)[16]);
+
+        virtual
+        mfxStatus QueryInputTilingSupport(
+            mfxVideoParam const & par,
+            mfxU32               &inputTiling);
+
+        virtual
+        mfxStatus QueryStatus(
+            DdiTask & task,
+            mfxU32    fieldId);
+
+        virtual
+        mfxStatus QueryStatusFEI(
+            DdiTask const & task,
+            mfxU32  feiFieldId,
+            ExtVASurface const & curFeedback);
+
+        virtual
+        mfxStatus Destroy();
+
+        void ForceCodingFunction (mfxU16 /*codingFunction*/)
+        {
+            // no need in it on Linux
+        }
+
+        virtual
+        mfxStatus QueryHWGUID(
+            VideoCORE * core,
+            GUID        guid,
+            bool        isTemporal);
+
+    protected:
+        VAAPIEncoder(const VAAPIEncoder&); // no implementation
+        VAAPIEncoder& operator=(const VAAPIEncoder&); // no implementation
+
+        void FillSps( MfxVideoParam const & par, VAEncSequenceParameterBufferH264 & sps);
+
+        VideoCORE*    m_core;
+        MfxVideoParam m_videoParam;
+
+        // encoder specific. can be encapsulated by auxDevice class
+        VADisplay    m_vaDisplay;
+        VAContextID  m_vaContextEncode;
+        VAConfigID   m_vaConfig;
+
+        // encode params (extended structures)
+        VAEncSequenceParameterBufferH264 m_sps;
+        VAEncPictureParameterBufferH264  m_pps;
+        std::vector<VAEncSliceParameterBufferH264> m_slice;
+
+        // encode buffer to send vaRender()
+        VABufferID m_spsBufferId;
+        VABufferID m_hrdBufferId;
+        VABufferID m_rateParamBufferId; // VAEncMiscParameterRateControl
+        VABufferID m_frameRateId; // VAEncMiscParameterFrameRate
+        VABufferID m_qualityLevelId;  // VAEncMiscParameterBufferQualityLevel
+        VABufferID m_maxFrameSizeId; // VAEncMiscParameterFrameRate
+        VABufferID m_quantizationId;  // VAEncMiscParameterQuantization
+        VABufferID m_rirId;           // VAEncMiscParameterRIR
+        VABufferID m_privateParamsId; // VAEncMiscParameterPrivate
+        VABufferID m_miscParameterSkipBufferId; // VAEncMiscParameterSkipFrame
+        VABufferID m_roiBufferId;
+        VABufferID m_ppsBufferId;
+        VABufferID m_mbqpBufferId;
+        VABufferID m_mbNoSkipBufferId;
+        std::vector<VABufferID> m_sliceBufferId;
+
+        VABufferID m_packedAudHeaderBufferId;
+        VABufferID m_packedAudBufferId;
+        VABufferID m_packedSpsHeaderBufferId;
+        VABufferID m_packedSpsBufferId;
+        VABufferID m_packedPpsHeaderBufferId;
+        VABufferID m_packedPpsBufferId;
+        VABufferID m_packedSeiHeaderBufferId;
+        VABufferID m_packedSeiBufferId;
+        VABufferID m_packedSkippedSliceHeaderBufferId;
+        VABufferID m_packedSkippedSliceBufferId;
+        std::vector<VABufferID> m_packeSliceHeaderBufferId;
+        std::vector<VABufferID> m_packedSliceBufferId;
+        std::vector<VABufferID> m_packedSvcPrefixHeaderBufferId;
+        std::vector<VABufferID> m_packedSvcPrefixBufferId;
+        std::vector<VABufferID> m_vaFeiMBStatId;
+        std::vector<VABufferID> m_vaFeiMVOutId;
+        std::vector<VABufferID> m_vaFeiMCODEOutId;
+
+        // The following 3 members are used in pair with 3 above,
+        // to indicate the size of allocated buf.
+        std::vector<mfxU32> m_vaFeiMBStatBufSize;
+        std::vector<mfxU32> m_vaFeiMVOutBufSize;
+        std::vector<mfxU32> m_vaFeiMCODEOutBufSize;
+
+        std::vector<ExtVASurface> m_feedbackCache;
+        std::vector<ExtVASurface> m_bsQueue;
+        std::vector<ExtVASurface> m_reconQueue;
+
+        mfxU32 m_width;
+        mfxU32 m_height;
+        mfxU32 m_userMaxFrameSize;  // current MaxFrameSize from user.
+        mfxU32 m_mbbrc;
+        ENCODE_CAPS m_caps;
+/*
+ * Current RollingIntraRefresh state, as it came through the task state and passing to DDI in PPS
+ * for Windows we keep it here to send update by VAMapBuffer as happened.
+ */
+        IntraRefreshState m_RIRState;
+
+        mfxU32            m_curTrellisQuantization;   // mapping in accordance with libva
+        mfxU32            m_newTrellisQuantization;   // will be sent through config.
+
+        std::vector<VAEncROI> m_arrayVAEncROI;
+
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 27 + 5; //added FEI buffers
+
+        UMC::Mutex m_guard;
+        HeaderPacker m_headerPacker;
+
+        // SkipFlag
+        enum {
+            NO_SKIP,
+            NORMAL_MODE,
+        };
+
+        mfxU8  m_numSkipFrames;
+        mfxU32 m_sizeSkipFrames;
+        mfxU32 m_skipMode;
+        bool m_isENCPAK;
+
+        VAEncMiscParameterRateControl  m_vaBrcPar;
+        VAEncMiscParameterFrameRate    m_vaFrameRate;
+#ifndef MFX_VAAPI_UPSTREAM
+        std::vector<VAEncQpBufferH264> m_mbqp_buffer;
+#endif
+        std::vector<mfxU8>             m_mb_noskip_buffer;
+    };
+
+    //extend encoder to FEI interface
+#if defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
+    //typedef std::pair<VASurfaceID, VABufferID> SurfaceAndBufferPair;
+
+    class VAAPIFEIPREENCEncoder : public VAAPIEncoder
+    {
+    public:
+        VAAPIFEIPREENCEncoder();
+
+        virtual
+        ~VAAPIFEIPREENCEncoder();
+
+        virtual mfxStatus CreateAccelerationService(MfxVideoParam const & par);
+        virtual mfxStatus Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type);
+        virtual mfxStatus Execute(mfxHDL surface, DdiTask const & task,
+                mfxU32 fieldId, PreAllocatedVector const & sei);
+        virtual mfxStatus QueryStatus(DdiTask & task, mfxU32 fieldId);
+        virtual mfxStatus Destroy();
+
+    protected:
+        //helper functions
+        mfxStatus CreatePREENCAccelerationService(MfxVideoParam const & par);
+
+        mfxI32 m_codingFunction;
+
+        VABufferID m_statParamsId;
+        std::vector<VABufferID> m_statMVId;
+        std::vector<VABufferID> m_statOutId;
+
+        std::vector<ExtVASurface> m_statFeedbackCache;
+        std::vector<ExtVASurface> m_inputQueue;
+        //std::vector <SurfaceAndBufferPair> m_statPairs;
+    };
+#endif
+
+#if defined(MFX_ENABLE_H264_VIDEO_FEI_ENC)
+    class VAAPIFEIENCEncoder : public VAAPIEncoder
+    {
+    public:
+        VAAPIFEIENCEncoder();
+
+        virtual
+        ~VAAPIFEIENCEncoder();
+
+        virtual mfxStatus CreateAccelerationService(MfxVideoParam const & par);
+        virtual mfxStatus Reset(MfxVideoParam const & par);
+        virtual mfxStatus Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type);
+        virtual mfxStatus Execute(mfxHDL surface, DdiTask const & task,
+                mfxU32 fieldId, PreAllocatedVector const & sei);
+        virtual mfxStatus QueryStatus(DdiTask & task, mfxU32 fieldId);
+        virtual mfxStatus Destroy();
+
+    protected:
+        //helper functions
+        mfxStatus CreateENCAccelerationService(MfxVideoParam const & par);
+
+        mfxI32 m_codingFunction;
+
+        VABufferID m_statParamsId;
+        VABufferID m_statMVId;
+        VABufferID m_statOutId;
+
+        std::vector<ExtVASurface> m_statFeedbackCache;
+        std::vector<ExtVASurface> m_inputQueue;
+
+        VABufferID m_codedBufferId;
+    };
+#endif
+
+#if defined(MFX_ENABLE_H264_VIDEO_FEI_PAK) && defined(MFX_ENABLE_H264_VIDEO_FEI_ENC)
+    class VAAPIFEIPAKEncoder : public VAAPIEncoder
+    {
+    public:
+        VAAPIFEIPAKEncoder();
+
+        virtual
+        ~VAAPIFEIPAKEncoder();
+
+        virtual mfxStatus CreateAccelerationService(MfxVideoParam const & par);
+        virtual mfxStatus Reset(MfxVideoParam const & par);
+        virtual mfxStatus Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type);
+        virtual mfxStatus Execute(mfxHDL surface, DdiTask const & task,
+                mfxU32 fieldId, PreAllocatedVector const & sei);
+        virtual mfxStatus QueryStatus(DdiTask & task, mfxU32 fieldId);
+        virtual mfxStatus Destroy();
+
+    protected:
+        //helper functions
+        mfxStatus CreatePAKAccelerationService(MfxVideoParam const & par);
+
+        mfxI32 m_codingFunction;
+
+        VABufferID m_statParamsId;
+        VABufferID m_statMVId;
+        VABufferID m_statOutId;
+
+        std::vector<ExtVASurface> m_statFeedbackCache;
+        std::vector<ExtVASurface> m_inputQueue;
+
+        VABufferID m_codedBufferId[2];
+    };
+#endif
+
+
+}; // namespace
+
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE && (MFX_VA_LINUX)
+#endif // __MFX_H264_ENCODE_VAAPI__H
+/* EOF */

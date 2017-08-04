@@ -34,6 +34,8 @@ public:
     std::list<iTask*> task_pool;
     iTask* last_encoded_task;
     iTask* task_in_process;
+    bool   reorder_frames;
+    mfxU16 NInputLockers;
     mfxU16 GopRefDist;
     mfxU16 GopOptFlag;
     mfxU16 NumRefFrame;
@@ -43,6 +45,8 @@ public:
     explicit iTaskPool(mfxU16 GopRefDist = 1, mfxU16 GopOptFlag = 0, mfxU16 NumRefFrame = 0, mfxU16 limit = 1, mfxU16 log2frameNumMax = 8)
         : last_encoded_task(NULL)
         , task_in_process(NULL)
+        , reorder_frames(true)
+        , NInputLockers(0)
         , GopRefDist(GopRefDist)
         , GopOptFlag(GopOptFlag)
         , NumRefFrame(NumRefFrame)
@@ -53,8 +57,10 @@ public:
     ~iTaskPool() { Clear(); }
 
     /* Update those fields that could be adjusted by MSDK internal checks */
-    void Init(mfxU16 RefDist, mfxU16 OptFlag, mfxU16 NumRef, mfxU16 limit, mfxU16 lg2frameNumMax)
+    void Init(bool EncodedOrder, mfxU16 n_input_lockers, mfxU16 RefDist, mfxU16 OptFlag, mfxU16 NumRef, mfxU16 limit, mfxU16 lg2frameNumMax)
     {
+        reorder_frames  = EncodedOrder;
+        NInputLockers   = n_input_lockers;
         GopRefDist      = RefDist;
         GopOptFlag      = OptFlag;
         NumRefFrame     = NumRef;
@@ -83,16 +89,19 @@ public:
     /* Finish processing of current task and erase the oldest task in pool if refresh_limit is achieved */
     void UpdatePool()
     {
-        if (!task_in_process) return;
+        if (reorder_frames)
+        {
+            if (!task_in_process) return;
 
-        task_in_process->encoded = true;
+            task_in_process->encoded = true;
 
-        if (!last_encoded_task)
-            last_encoded_task = new iTask(iTaskParams());
+            if (!last_encoded_task)
+                last_encoded_task = new iTask(iTaskParams());
 
-        *last_encoded_task = *task_in_process;
+            *last_encoded_task = *task_in_process;
 
-        task_in_process = NULL;
+            task_in_process = NULL;
+        }
 
         if (task_pool.size() >= refresh_limit)
         {
@@ -103,8 +112,24 @@ public:
     /* Find and erase the oldest processed task in pool that is not in DPB of last_encoded_task */
     void RemoveProcessedTask()
     {
-        if (last_encoded_task)
+        if (!reorder_frames)
         {
+            for (std::list<iTask*>::iterator it = task_pool.begin(); it != task_pool.end(); ++it)
+            {
+                // If Encode in Display-Order mode, we can free the task when encoder releases input surface
+                (*it)->encoded = (*it)->ENC_in.InSurface && (*it)->ENC_in.InSurface->Data.Locked == NInputLockers;
+
+                if ((*it)->encoded)
+                {
+                    MSDK_SAFE_DELETE(*it);
+                    task_pool.erase(it);
+                    return;
+                }
+            }
+        }
+        else if (last_encoded_task)
+        {
+            // For all other cases, where manual reordering used
             ArrayDpbFrame & dpb = last_encoded_task->m_dpbPostEncoding;
             std::list<mfxU32> FramesInDPB;
 
@@ -181,6 +206,12 @@ public:
        If task is found this function also fills DPB of this task */
     iTask* GetTaskToEncode(bool buffered_frames_processing)
     {
+        if (!reorder_frames)
+        {
+            return !task_pool.empty() ? task_pool.back() : NULL;
+        }
+
+        // Reorder frame
         iTask* task = GetReorderedTask(buffered_frames_processing);
 
         if (!task) return NULL;
@@ -342,7 +373,8 @@ public:
 
     const char* getFrameType(mfxU8 type)
     {
-        switch (type & MFX_FRAMETYPE_IPB) {
+        switch (type & (MFX_FRAMETYPE_IPB | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_REF))
+        {
         case MFX_FRAMETYPE_I:
             if (type & MFX_FRAMETYPE_IDR) {
                 return "IDR";
@@ -392,5 +424,117 @@ public:
     }
 };
 
+
+struct RefInfo
+{
+    std::vector<mfxFrameSurface1*> reference_frames; // to fill mfxPAKInput::L0Surface array
+
+    // In this implementation DPB_after is not changed after encoding of second field
+    // so we don't need two structures to hold the state of DPB_after
+    std::vector<mfxExtFeiPPS::mfxExtFeiPpsDPB> DPB_before, DPB_after;
+
+    std::vector<mfxExtFeiSliceHeader::mfxSlice::mfxSliceRef> L0[2], L1[2];
+
+    void Clear()
+    {
+        reference_frames.clear();
+        DPB_before.clear();
+        DPB_after.clear();
+
+        L0[0].clear(); L0[1].clear();
+        L1[0].clear(); L1[1].clear();
+    }
+
+    mfxStatus FillRefList(iTask* eTask, iTaskPool* inputTasks, ArrayU8x33* task_list, std::vector<mfxExtFeiSliceHeader::mfxSlice::mfxSliceRef> * struct_list)
+    {
+        iTask* ref_task = NULL;
+        mfxFrameSurface1* ref_surface = NULL;
+        std::vector<mfxFrameSurface1*>::iterator rslt;
+        mfxU16 cur_PicType, fid;
+
+        for (mfxU32 fieldId = 0; fieldId < mfxU32(1 + eTask->m_fieldPicFlag); ++fieldId)
+        {
+            fid = eTask->m_fid[fieldId];
+
+            if (!(eTask->m_type[fid] & MFX_FRAMETYPE_I))
+            {
+                for (mfxU8 const * instance = task_list[fid].Begin(); instance != task_list[fid].End(); ++instance)
+                {
+                    ref_task = inputTasks->GetTaskByFrameOrder(eTask->m_dpb[fid][*instance & 127].m_frameOrder);
+                    MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
+
+                    ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
+                    MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
+
+                    cur_PicType = PicStructToFrameTypeFieldBased(ref_surface->Info.PicStruct & 0x0f, eTask->m_fieldPicFlag, (*instance) >> 7);
+                    MSDK_CHECK_ERROR(cur_PicType, MFX_PICTYPE_UNKNOWN, MFX_ERR_UNSUPPORTED);
+
+                    rslt = std::find(reference_frames.begin(), reference_frames.end(), ref_surface);
+                    MSDK_CHECK_ERROR(rslt, reference_frames.end(), MFX_ERR_UNSUPPORTED); // surface from reflist not in DPB (should never happen)
+
+                    mfxExtFeiSliceHeader::mfxSlice::mfxSliceRef newEntry = { cur_PicType, static_cast<mfxU16>(std::distance(reference_frames.begin(), rslt)) };
+                    struct_list[fieldId].push_back(newEntry);
+                }
+            }
+        }
+
+        return MFX_ERR_NONE;
+    }
+
+    mfxStatus Fill(iTask* eTask, iTaskPool* inputTasks)
+    {
+        MSDK_CHECK_POINTER(eTask,                     MFX_ERR_NULL_PTR);
+        MSDK_CHECK_POINTER(eTask->PAK_out.OutSurface, MFX_ERR_NULL_PTR);
+        MSDK_CHECK_POINTER(inputTasks,                MFX_ERR_NULL_PTR);
+
+        mfxStatus sts = MFX_ERR_NONE;
+
+        Clear();
+
+        iTask* ref_task = NULL;
+        mfxFrameSurface1* ref_surface = NULL;
+        std::vector<mfxFrameSurface1*>::iterator rslt;
+        mfxU16 cur_PicType;
+
+        // Fill shared list of reference surfaces and DPB states: before and after encoding
+        for (mfxU32 i = 0; i < 2; ++i)
+        {
+            ArrayDpbFrame & curr_task_DPB = i ? eTask->m_dpbPostEncoding : eTask->m_dpb[eTask->m_fid[0]];
+            std::vector<mfxExtFeiPPS::mfxExtFeiPpsDPB> & curr_struct_DPB = i ? DPB_after : DPB_before;
+
+            for (DpbFrame* instance = curr_task_DPB.Begin(); instance != curr_task_DPB.End(); ++instance)
+            {
+                ref_task = inputTasks->GetTaskByFrameOrder(instance->m_frameOrder);
+                MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
+
+                ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
+                MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
+
+                rslt = std::find(reference_frames.begin(), reference_frames.end(), ref_surface);
+
+                if (rslt == reference_frames.end())
+                {
+                    reference_frames.push_back(ref_surface);
+                    rslt = reference_frames.begin() + reference_frames.size() - 1;
+                }
+
+                cur_PicType = PicStructToFrameType(ref_surface->Info.PicStruct & 0x0f);
+                MSDK_CHECK_ERROR(cur_PicType, MFX_PICTYPE_UNKNOWN, MFX_ERR_UNSUPPORTED);
+
+                mfxExtFeiPPS::mfxExtFeiPpsDPB newFrame = { mfxU16(std::distance(reference_frames.begin(), rslt)), cur_PicType, instance->m_frameNumWrap, 0xffff };
+                curr_struct_DPB.push_back(newFrame);
+            }
+        }
+
+        // Fill reflists for SliceHeader
+        sts = FillRefList(eTask, inputTasks, eTask->m_list0, L0);
+        MSDK_CHECK_STATUS(sts, "FillRefList L0 failed");
+
+        sts = FillRefList(eTask, inputTasks, eTask->m_list1, L1);
+        MSDK_CHECK_STATUS(sts, "FillRefList L1 failed");
+
+        return sts;
+    }
+};
 
 #endif // __SAMPLE_FEI_ENC_TASK_POOL_H__

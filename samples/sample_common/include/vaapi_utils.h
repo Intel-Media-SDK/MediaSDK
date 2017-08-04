@@ -195,6 +195,7 @@ namespace MfxLoader
         typedef void (*drm_intel_bo_unreference_type)(drm_intel_bo *bo);
         typedef drm_intel_bufmgr* (*drm_intel_bufmgr_gem_init_type)(int fd, int batch_size);
         typedef int (*drm_intel_bo_gem_export_to_prime_type) (drm_intel_bo *, int *);
+        typedef void (*drm_intel_bufmgr_destroy_type)(drm_intel_bufmgr*);
 
         DrmIntel_Proxy();
         ~DrmIntel_Proxy();
@@ -203,6 +204,7 @@ namespace MfxLoader
         __DECLARE(drm_intel_bo_gem_create_from_prime);
         __DECLARE(drm_intel_bo_unreference);
         __DECLARE(drm_intel_bufmgr_gem_init);
+        __DECLARE(drm_intel_bufmgr_destroy);
 #if defined(X11_DRI3_SUPPORT)
         __DECLARE(drm_intel_bo_gem_export_to_prime);
 #endif

@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-//
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -84,26 +84,26 @@ mfxStatus MFX_DISP_HANDLE::Close(void)
 
 } // mfxStatus MFX_DISP_HANDLE::Close(void)
 
-mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const msdk_disp_char *pPath, eMfxImplType implType,
-                                           mfxIMPL impl, mfxIMPL implInterface, mfxInitParam &par)
+mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const msdk_disp_char *pPath, eMfxImplType reqImplType,
+                                           mfxIMPL reqImpl, mfxIMPL reqImplInterface, mfxInitParam &par)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     // check error(s)
-    if ((MFX_LIB_SOFTWARE != implType) &&
-        (MFX_LIB_HARDWARE != implType))
+    if ((MFX_LIB_SOFTWARE != reqImplType) &&
+        (MFX_LIB_HARDWARE != reqImplType))
     {
-        DISPATCHER_LOG_ERROR((("implType == %s, should be either MFX_LIB_SOFTWARE ot MFX_LIB_HARDWARE\n"), DispatcherLog_GetMFXImplString(implType).c_str()));
+        DISPATCHER_LOG_ERROR((("implType == %s, should be either MFX_LIB_SOFTWARE ot MFX_LIB_HARDWARE\n"), DispatcherLog_GetMFXImplString(reqImplType).c_str()));
         loadStatus = MFX_ERR_ABORTED;
         return loadStatus;
     }
     // only exact types of implementation is allowed
-    if (!(impl & MFX_IMPL_AUDIO) &&
-        (MFX_IMPL_SOFTWARE != impl) &&
-        (MFX_IMPL_HARDWARE != impl) &&
-        (MFX_IMPL_HARDWARE2 != impl) &&
-        (MFX_IMPL_HARDWARE3 != impl) &&
-        (MFX_IMPL_HARDWARE4 != impl))
+    if (!(reqImpl & MFX_IMPL_AUDIO) &&
+        (MFX_IMPL_SOFTWARE != reqImpl) &&
+        (MFX_IMPL_HARDWARE != reqImpl) &&
+        (MFX_IMPL_HARDWARE2 != reqImpl) &&
+        (MFX_IMPL_HARDWARE3 != reqImpl) &&
+        (MFX_IMPL_HARDWARE4 != reqImpl))
     {
         DISPATCHER_LOG_ERROR((("invalid implementation impl == %s\n"), DispatcherLog_GetMFXImplString(impl).c_str()));
         loadStatus = MFX_ERR_ABORTED;
@@ -129,9 +129,9 @@ mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const msdk_disp_char *pPath, eMfxImpl
     Close();
 
     // save the library's type
-    this->implType = implType;
-    this->impl = impl;
-    this->implInterface = implInterface;
+    this->implType = reqImplType;
+    this->impl = reqImpl;
+    this->implInterface = reqImplInterface;
 
     {
         DISPATCHER_LOG_BLOCK(("invoking LoadLibrary(%S)\n", MSDK2WIDE(pPath)));

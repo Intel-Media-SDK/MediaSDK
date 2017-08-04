@@ -52,10 +52,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-l numSlices] - number of slices \n"));
     msdk_printf(MSDK_STRING("   [-x (-NumRefFrame) numRefs] - number of reference frames \n"));
     msdk_printf(MSDK_STRING("   [-qp qp_value] - QP value for frames (default is 26)\n"));
-#ifdef ENABLE_FF
-    msdk_printf(MSDK_STRING("   [-vbr] - use VBR rate control, it is supported only for progressive content for PAK only pipeline\n"));
-    msdk_printf(MSDK_STRING("   [-TargetKbps value] - target bitrate for VBR rate control\n"));
-#endif
     msdk_printf(MSDK_STRING("   [-num_active_P numRefs] - number of maximum allowed references for P frames (up to 4(default)); for PAK only limit is 16\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL0 numRefs] - number of maximum allowed backward references for B frames (up to 4(default)); for PAK only limit is 16\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL1 numRefs] - number of maximum allowed forward references for B frames (up to 2(default) for interlaced, 1(default) for progressive); for PAK only limit is 16\n"));
@@ -76,7 +72,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-DecodedOrder] - output in decoded order (useful to dump streamout data in DecodedOrder). WARNING: all FEI interfaces expects frames to come in DisplayOrder.\n"));
     msdk_printf(MSDK_STRING("   [-mbctrl file] - use the input to set MB control for FEI (only ENC+PAK)\n"));
     msdk_printf(MSDK_STRING("   [-mbsize] - with this options size control fields will be used from MB control structure (only ENC+PAK)\n"));
-    msdk_printf(MSDK_STRING("   [-mvin file] - use this input to set MV predictor for FEI. PREENC and ENC (ENCODE) expect different structures\n"));
+    msdk_printf(MSDK_STRING("   [-mvin file] - use this input to set MV predictor for FEI. PREENC and ENC (ENCODE) expect different structures.\n"));
+    msdk_printf(MSDK_STRING("                  (by default ENCODE use display order input (unlike other interfaces), use EncodedOrder key to change input order)\n"));
     msdk_printf(MSDK_STRING("   [-repack_preenc_mv] - use this in pair with -mvin to import preenc MVout directly\n"));
     msdk_printf(MSDK_STRING("   [-mvout file] - use this to output MV predictors\n"));
     msdk_printf(MSDK_STRING("   [-mbcode file] - file to output per MB information (structure mfxExtFeiPakMBCtrl) for each frame\n"));
@@ -343,20 +340,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
             i++;
             pConfig->QP = (mfxU8)msdk_strtol(strInput[i], &stopCharacter, 10);
         }
-#ifdef ENABLE_FF
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vbr")))
-        {
-            pConfig->RateControlMethod = MFX_RATECONTROL_VBR;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-TargetKbps")))
-        {
-            if (!strInput[++i] || MFX_ERR_NONE != msdk_opt_read(strInput[i], pConfig->TargetKbps))
-            {
-                PrintHelp(strInput[0], MSDK_STRING("ERROR: TargetKbps is invalid"));
-                return MFX_ERR_UNSUPPORTED;
-            }
-        }
-#endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-num_active_P")))
         {
             i++;
@@ -820,7 +803,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
     // if nv12 option wasn't specified we expect input YUV file in YUV420 color format
     if (!pConfig->ColorFormat)
     {
-        pConfig->ColorFormat = MFX_FOURCC_YV12;
+        pConfig->ColorFormat = MFX_FOURCC_I420;
     }
 
     // Check references lists limits
@@ -1042,6 +1025,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         msdk_printf(MSDK_STRING("           could be non-bitexact with last frame in FEI ENCODE with Display Order!\n"));
     }
 
+    if (pConfig->bPREENC || pConfig->bENCPAK || pConfig->bOnlyENC || pConfig->bOnlyPAK)
+    {
+        pConfig->EncodedOrder = true;
+    }
+
     if (pConfig->bPerfMode && (pConfig->mvinFile || pConfig->mvoutFile || pConfig->mbctrinFile || pConfig->mbstatoutFile || pConfig->mbcodeoutFile || pConfig->mbQpFile || pConfig->repackctrlFile || pConfig->decodestreamoutFile || pConfig->weightsFile))
     {
         msdk_printf(MSDK_STRING("\nWARNING: All file operations would be ignored in performance mode!\n"));
@@ -1072,7 +1060,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
        If Transform8x8ModeFlag is set to true it has priority, else Profile settings have top priority.
     */
 
-    bool is_8x8part_present_profile = !(pConfig->CodecProfile == MFX_PROFILE_AVC_MAIN || (pConfig->CodecProfile & MFX_PROFILE_AVC_BASELINE) == MFX_PROFILE_AVC_BASELINE);
+    bool is_8x8part_present_profile = !((pConfig->CodecProfile & 0xff) == MFX_PROFILE_AVC_MAIN || (pConfig->CodecProfile & 0xff) == MFX_PROFILE_AVC_BASELINE);
     bool is_8x8part_present_custom  = !(pConfig->IntraPartMask & 0x06);
 
     if (is_8x8part_present_profile != is_8x8part_present_custom || is_8x8part_present_custom != pConfig->Transform8x8ModeFlag)
@@ -1145,9 +1133,8 @@ int main(int argc, char *argv[])
 
     msdk_printf(MSDK_STRING("Processing started\n"));
 
-    msdk_tick startTime;
     msdk_tick frequency = msdk_time_get_frequency();
-    startTime = msdk_time_get_tick();
+    msdk_tick startTime = msdk_time_get_tick();
 
     for (;;)
     {
@@ -1197,15 +1184,6 @@ mfxStatus CheckOptions(AppConfig* pConfig)
         sts = MFX_ERR_UNSUPPORTED;
     }
 
-#ifdef ENABLE_FF
-    if (!( (pConfig->RateControlMethod == MFX_RATECONTROL_CQP && pConfig->QP <= 51) ||
-           (pConfig->bOnlyPAK && pConfig->RateControlMethod == MFX_RATECONTROL_VBR &&
-            pConfig->TargetKbps>10 && pConfig->nPicStruct == MFX_PICSTRUCT_PROGRESSIVE)))
-    {
-        fprintf(stderr, "ERROR: Invalid BRC parameters\n");
-        sts = MFX_ERR_UNSUPPORTED;
-    }
-#endif
 
     return sts;
 }

@@ -1,17 +1,17 @@
 #!/usr/bin/perl
 
 # Copyright (c) 2017 Intel Corporation
-#
+# 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-#
+# 
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-#
+# 
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,7 +39,9 @@ my %build = (
     'trace'      => '',
     'prefix'     => '',
     'toolchain'  => '',
-    'target'     => 'BDW'
+    'target'     => 'BDW',
+    'samples-dir'=> '',
+    'api-dir'    => ''
 );
 
 my @list_generator = qw(make eclipse);
@@ -88,7 +90,7 @@ sub nativepath {
 sub get_cmake_target {
     my %config = @_;
 
-    # arch, generator and config are mandatory
+    # arch, generator, config are mandatory
     my @cmake_target = ($config{'arch'}, $config{'generator'}, $config{'config'});
 
     push @cmake_target, $config{'ipp'}  if $config{'ipp'};
@@ -99,7 +101,6 @@ sub get_cmake_target {
     } elsif ($config{'trace'}) {
         push @cmake_target, ".trace_$config{'trace'}";
     }
-
     return join('.', @cmake_target);
 }
 
@@ -118,6 +119,10 @@ sub get_cmake_gen_cmd {
         push @cmake_cmd_gen, '-G "Eclipse CDT4 - Unix Makefiles"';
         push @cmake_cmd_gen, '-D__GENERATOR:STRING=make';
     }
+
+    push @cmake_cmd_gen, "-DSAMPLES_DIR:STRING=$config{'samples-dir'}"  if $config{'samples-dir'};
+    push @cmake_cmd_gen, "-DAPI_DIR:STRING=$config{'api-dir'}"          if $config{'api-dir'};
+
     push @cmake_cmd_gen, '-DCMAKE_CONFIGURATION_TYPES:STRING="release;debug"';
     push @cmake_cmd_gen, "-DCMAKE_BUILD_TYPE:STRING=$config{'config'}";
     push @cmake_cmd_gen, "-D__ARCH:STRING=$config{'arch'}";
@@ -149,7 +154,7 @@ sub get_cmake_gen_cmd {
 
 sub usage {
     print "\n";
-    print "Copyright (c) 2012-2016 Intel Corporation. All rights reserved.\n";
+    print "Copyright (c) 2012-2017 Intel Corporation. All rights reserved.\n";
     print "This script performs Intel(R) Media SDK projects creation and build.\n\n";
     print "Usage: perl build.pl --cmake=ARCH.GENERATOR.CONFIG[.COMP] [--ipp=<cpu>] [--clean] [--build] [--trace=<module>] [--cross=toolchain.cmake]\n";
     print "\n";
@@ -170,8 +175,10 @@ sub usage {
     print "\t--trace  - enable MFX tracing with specified modules (itt|all)\n";
     print "\t--cross  - provide cross-compiler setings to CMake\n";
     print "\t--target - select feature subset specific to target project. default is BDW (", @list_target, ")\n";
-    print "\t--no_warn_as_error  - disable Warning As Error\n";
+    print "\t--no-warn-as-error  - disable Warning As Error\n";
     print "\t--prefix - set install prefix\n";
+    print "\t--samples-dir - select directory root for samples to build from\n";
+    print "\t--api-dir - select directory root for api build from\n";
     print "\n";
     print "Examples:\n";
     print "\tperl build_mfx.pl --cmake=intel64.make.debug                 [ only generate projects    ]\n";
@@ -228,11 +235,13 @@ sub _opt_cmake_handler {
 usage() unless @ARGV;
 
 GetOptions(
-    '--no_warn_as_error' => \$no_warn_as_error,
+    '--no-warn-as-error' => \$no_warn_as_error,
     '--build'            => \$run_build,
     '--clean'            => \$clean,
     '--prefix=s'         => \$build{'prefix'},
     '--cross=s'          => \$build{'toolchain'},
+    '--samples-dir=s'    => \$build{'samples-dir'},
+    '--api-dir=s'        => \$build{'api-dir'},
 
     '--cmake=s' => \&_opt_cmake_handler,
 

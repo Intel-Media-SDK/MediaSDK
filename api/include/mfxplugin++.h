@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-//
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -287,6 +287,12 @@ public:
         }
         return m_core.GetFrameHandle(m_core.pthis, fd, handle);
     }
+    mfxStatus QueryPlatform(mfxPlatform *platform) {
+        if (!IsCoreSet()) {
+            return MFX_ERR_NULL_PTR;
+        }
+        return m_core.QueryPlatform(m_core.pthis, platform);
+    }
 } ;
 
 /* Class adapter between "C" structure mfxPlugin and C++ interface MFXPlugin */
@@ -300,11 +306,13 @@ namespace detail
         mfxPlugin m_mfxAPI;
     public:
         MFXPluginAdapterBase( T *plugin, mfxVideoCodecPlugin *pCodec = NULL)
+            : m_mfxAPI()
         {
             SetupCallbacks(plugin, pCodec);
         }
 
         MFXPluginAdapterBase( T *plugin, mfxAudioCodecPlugin *pCodec)
+            : m_mfxAPI()
         {
             SetupCallbacks(plugin, pCodec);
         }

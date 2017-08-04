@@ -109,6 +109,8 @@ static
     pParams->rotate.clear(); pParams->rotate.push_back(0);
     pParams->bScaling     = false;
     pParams->scalingMode  = MFX_SCALING_MODE_DEFAULT;
+    pParams->bChromaSiting = false;
+    pParams->uChromaSiting = 0;
     pParams->numFrames    = 0;
 
     // Optional video processing features
@@ -133,7 +135,8 @@ static
     pParams->roiCheckParam.mode = ROI_FIX_TO_FIX; // ROI check is disabled
     pParams->roiCheckParam.srcSeed = 0;
     pParams->roiCheckParam.dstSeed = 0;
-    pParams->isOutYV12 = false;
+    pParams->forcedOutputFourcc = 0;
+    pParams->isInI420 = false;
 
     // plug-in GUID
     pParams->need_plugin = false;
@@ -390,14 +393,14 @@ int main(int argc, msdk_char *argv[])
         {
             ownToMfxFrameInfo( &(Params.inFrameInfo[i]), &(realFrameInfoIn[i]), true);
             // Set ptsMaker for the first stream only - it will store PTSes
-            sts = yuvReaders[i].Init(Params.compositionParam.streamInfo[i].streamName,i==0 ? ptsMaker.get() : NULL);
+            sts = yuvReaders[i].Init(Params.compositionParam.streamInfo[i].streamName, i==0 ? ptsMaker.get() : NULL, Params.isInI420);
             MSDK_CHECK_STATUS(sts, "yuvReaders[i].Init failed");
         }
     }
     else
     {
         ownToMfxFrameInfo( &(Params.frameInfoIn[0]),  &realFrameInfoIn[0]);
-        sts = yuvReaders[VPP_IN].Init(Params.strSrcFile,ptsMaker.get());
+        sts = yuvReaders[VPP_IN].Init(Params.strSrcFile,ptsMaker.get(),Params.isInI420);
         MSDK_CHECK_STATUS(sts, "yuvReaders[VPP_IN].Init failed");
     }
     ownToMfxFrameInfo( &(Params.frameInfoOut[0]), &realFrameInfoOut);
@@ -414,7 +417,7 @@ int main(int argc, msdk_char *argv[])
             istream,
             ptsMaker.get(),
             NULL,
-            Params.isOutYV12);
+            Params.forcedOutputFourcc);
         MSDK_CHECK_STATUS_SAFE(sts, "Resources.pDstFileWriters[i].Init failed", {WipeResources(&Resources); WipeParams(&Params);});
     }
 

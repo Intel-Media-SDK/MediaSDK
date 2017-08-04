@@ -471,18 +471,20 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption2);
     }
 
-#ifdef ENABLE_FF
-    if (pInParams->nExtBRC == MFX_CODINGOPTION_ON && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC))
-    {
-       HEVCExtBRC::Create(m_ExtBRC);
-       m_EncExtParams.push_back((mfxExtBuffer *)&m_ExtBRC);
-    }
-#endif
 
-    // configure GBP for HEVC
-    if ((pInParams->CodecId == MFX_CODEC_HEVC) && pInParams->nGPB)
+    // set up mfxCodingOption3
+    if (pInParams->nGPB || pInParams->LowDelayBRC ||
+        pInParams->WeightedPred || pInParams->WeightedBiPred)
     {
-        m_CodingOption3.GPB = pInParams->nGPB;
+        if (pInParams->CodecId == MFX_CODEC_HEVC)
+        {
+            m_CodingOption3.GPB = pInParams->nGPB;
+        }
+
+        m_CodingOption3.WeightedPred = pInParams->WeightedPred;
+        m_CodingOption3.WeightedBiPred = pInParams->WeightedBiPred;
+        m_CodingOption3.LowDelayBRC = pInParams->LowDelayBRC;
+
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
 
@@ -499,6 +501,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (pInParams->TransferMatrix)
     {
+        m_VideoSignalInfo.ColourDescriptionPresent = 1;
         m_VideoSignalInfo.MatrixCoefficients = pInParams->TransferMatrix;
         m_EncExtParams.push_back((mfxExtBuffer*)&m_VideoSignalInfo);
     }
@@ -521,6 +524,15 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.AsyncDepth = pInParams->nAsyncDepth;
 
     return MFX_ERR_NONE;
+}
+
+mfxU32 CEncodingPipeline::FileFourCC2EncFourCC(mfxU32 fcc)
+{
+    // File reader automatically converts I420 and YV12 to NV12
+    if (fcc == MFX_FOURCC_I420 || fcc == MFX_FOURCC_YV12)
+        return MFX_FOURCC_NV12;
+    else
+        return fcc;
 }
 
 mfxStatus CEncodingPipeline::InitMfxVppParams(sInputParams *pInParams)
@@ -553,7 +565,9 @@ mfxStatus CEncodingPipeline::InitMfxVppParams(sInputParams *pInParams)
 
     // fill output frame info
     MSDK_MEMCPY_VAR(m_mfxVppParams.vpp.Out,&m_mfxVppParams.vpp.In, sizeof(mfxFrameInfo));
-    m_mfxVppParams.vpp.In.FourCC    = m_InputFourCC;
+
+    m_mfxVppParams.vpp.In.FourCC    = FileFourCC2EncFourCC(m_InputFourCC);
+
     m_mfxVppParams.vpp.Out.FourCC    = pInParams->EncodeFourCC;
     m_mfxVppParams.vpp.In.ChromaFormat =  FourCCToChroma(m_mfxVppParams.vpp.In.FourCC);
     m_mfxVppParams.vpp.Out.ChromaFormat = FourCCToChroma(m_mfxVppParams.vpp.Out.FourCC);
@@ -974,11 +988,6 @@ CEncodingPipeline::CEncodingPipeline()
     m_VideoSignalInfo.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO;
     m_VideoSignalInfo.Header.BufferSz = sizeof(m_VideoSignalInfo);
 
-#ifdef ENABLE_FF
-    MSDK_ZERO_MEMORY(m_ExtBRC);
-    m_ExtBRC.Header.BufferId = MFX_EXTBUFF_BRC;
-    m_ExtBRC.Header.BufferSz = sizeof(m_ExtBRC);
-#endif
     m_hwdev = NULL;
 
     MSDK_ZERO_MEMORY(m_mfxEncParams);
@@ -996,9 +1005,6 @@ CEncodingPipeline::CEncodingPipeline()
     m_bTimeOutExceed = false;
     m_bInsertIDR = false;
 
-#ifdef ENABLE_FF
-    HEVCExtBRC::Destroy(m_ExtBRC);
-#endif
 }
 
 CEncodingPipeline::~CEncodingPipeline()
@@ -1094,7 +1100,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     m_MVCflags = pParams->MVC_flags;
 
     // FileReader can convert yv12->nv12 without vpp
-    m_InputFourCC = (pParams->FileInputFourCC == MFX_FOURCC_YV12) ? MFX_FOURCC_NV12 : pParams->FileInputFourCC;
+    m_InputFourCC = (pParams->FileInputFourCC == MFX_FOURCC_I420) ? MFX_FOURCC_NV12 : pParams->FileInputFourCC;
 
     m_nTimeout = pParams->nTimeout;
 
@@ -1171,10 +1177,12 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
         }
         else
         {
+            bool isDefaultPlugin = false;
             if (AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
                 mfxIMPL impl = pParams->bUseHWLib ? MFX_IMPL_HARDWARE : MFX_IMPL_SOFTWARE;
                 pParams->pluginParams.pluginGuid = msdkGetPluginUID(impl, MSDK_VENCODE, pParams->CodecId);
+                isDefaultPlugin = true;
             }
             if (!AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
@@ -1183,7 +1191,9 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
             }
             if(sts==MFX_ERR_UNSUPPORTED)
             {
-                msdk_printf(MSDK_STRING("Default plugin cannot be loaded (possibly you have to define plugin explicitly)\n"));
+                msdk_printf(isDefaultPlugin ?
+                    MSDK_STRING("Default plugin cannot be loaded (possibly you have to define plugin explicitly)\n")
+                    : MSDK_STRING("Explicitly specified plugin cannot be loaded.\n"));
             }
         }
         MSDK_CHECK_STATUS(sts, "LoadPlugin failed");
@@ -1194,10 +1204,10 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     MSDK_CHECK_POINTER(m_pmfxENC, MFX_ERR_MEMORY_ALLOC);
 
     // create preprocessor if resizing was requested from command line
-    // or if different FourCC is set in InitMfxVppParams
+    // or if different FourCC is set
     if (pParams->nWidth  != pParams->nDstWidth ||
         pParams->nHeight != pParams->nDstHeight ||
-        m_mfxVppParams.vpp.In.FourCC != m_mfxVppParams.vpp.Out.FourCC)
+        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC)
     {
         m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
         MSDK_CHECK_POINTER(m_pmfxVPP, MFX_ERR_MEMORY_ALLOC);
@@ -1360,6 +1370,8 @@ void CEncodingPipeline::Close()
 
     MSDK_SAFE_DELETE(m_pmfxENC);
     MSDK_SAFE_DELETE(m_pmfxVPP);
+
+
 
     FreeMVCSeqDesc();
     FreeVppDoNotUse();

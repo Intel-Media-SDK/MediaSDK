@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2016, Intel Corporation
+Copyright (c) 2005-2017, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -297,7 +297,7 @@ mfxStatus FEI_EncodeInterface::FillParameters()
 
     if (!m_InitExtParams.empty())
     {
-        m_videoParams.ExtParam    = &m_InitExtParams[0]; // vector is stored linearly in memory
+        m_videoParams.ExtParam    = m_InitExtParams.data();
         m_videoParams.NumExtParam = (mfxU16)m_InitExtParams.size();
     }
 
@@ -405,9 +405,13 @@ mfxStatus FEI_EncodeInterface::FillParameters()
     return sts;
 }
 
-mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, PairU8 frameType, iTask* eTask)
+mfxStatus FEI_EncodeInterface::InitFrameParams(iTask* eTask)
 {
+    MSDK_CHECK_POINTER(eTask, MFX_ERR_NULL_PTR);
+
     mfxStatus sts = MFX_ERR_NONE;
+
+    mfxFrameSurface1* encodeSurface = eTask->ENC_in.InSurface;
 
     /* Alloc temporal buffers */
     if (m_pAppConfig->bRepackPreencMV && !m_tmpForReading.size())
@@ -416,36 +420,30 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
         m_tmpForReading.resize(n_MB);
     }
 
-    bufSet * freeSet = m_pExtBuffers->GetFreeSet();
-    MSDK_CHECK_POINTER(freeSet, MFX_ERR_NULL_PTR);
+    // Store current set of Ext Buffers
+    eTask->bufs = m_pExtBuffers->GetFreeSet();
+    MSDK_CHECK_POINTER(eTask->bufs, MFX_ERR_NULL_PTR);
 
     /* Adjust number of MBs in extension buffers */
     if (m_pAppConfig->PipelineCfg.DRCresetPoint || m_pAppConfig->PipelineCfg.mixedPicstructs)
     {
-        mfxU32 n_MB = m_pAppConfig->PipelineCfg.DRCresetPoint ? m_pAppConfig->PipelineCfg.numMB_drc_curr :        // DRC
-            ((encodeSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) ? m_pAppConfig->PipelineCfg.numMB_frame  // Mixed Picstructs : progressive
-            : m_pAppConfig->PipelineCfg.numMB_refPic);                                                            // Mixed Picstructs : interlaced
+        mfxU32 n_MB = m_pAppConfig->PipelineCfg.DRCresetPoint ? m_pAppConfig->PipelineCfg.numMB_drc_curr : // DRC
+            (!eTask->m_fieldPicFlag ? m_pAppConfig->PipelineCfg.numMB_frame                              : // Mixed Picstructs : progressive
+            m_pAppConfig->PipelineCfg.numMB_refPic);                                                       // Mixed Picstructs : interlaced
 
-        freeSet->ResetMBnum(n_MB, m_pAppConfig->PipelineCfg.DRCresetPoint);
+        eTask->bufs->ResetMBnum(n_MB, m_pAppConfig->PipelineCfg.DRCresetPoint);
     }
 
-    /* In case of ENCODE in DisplayOrder mode, sTask perform ext buffers management, otherwise iTask does it */
-    if (eTask)
-        eTask->bufs = freeSet;
-    else
-        sync_list.Add(std::pair<bufSet*, mfxFrameSurface1*>(freeSet, encodeSurface));
-
-
-    mfxU8 ffid = !(encodeSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) && (encodeSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF);
-    if (eTask)
+    mfxU8 ffid = eTask->m_fieldPicFlag && (encodeSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF);
+    if (m_videoParams.mfx.EncodedOrder)
     {
         // We have to force frame type through control in case of ENCODE in EncodedOrder mode
         m_encodeControl.FrameType = eTask->m_fieldPicFlag ? createType(*eTask) : ExtractFrameType(*eTask);
     }
-    else if (frameType[ffid] & MFX_FRAMETYPE_IDR)
+    else if (eTask->m_type[ffid] & MFX_FRAMETYPE_IDR)
     {
         // As well as IDR frame in case of loop mode
-        m_encodeControl.FrameType = (encodeSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) ? frameType[ffid] : (((mfxU16(frameType[1 - ffid])) << 8) | frameType[ffid]);
+        m_encodeControl.FrameType = !eTask->m_fieldPicFlag ? eTask->m_type[ffid] : (((mfxU16(eTask->m_type[1 - ffid])) << 8) | eTask->m_type[ffid]);
     }
     else
     {
@@ -455,8 +453,8 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
 
     /* Load input Buffer for FEI ENCODE */
     mfxU32 feiEncCtrlId = ffid, pMvPredId = ffid, pWeightsId = ffid, encMBID = 0, mbQPID = 0, fieldId = 0;
-    for (std::vector<mfxExtBuffer*>::iterator it = freeSet->PB_bufs.in.buffers.begin();
-        it != freeSet->PB_bufs.in.buffers.end(); ++it)
+    for (std::vector<mfxExtBuffer*>::iterator it = eTask->bufs->PB_bufs.in.buffers.begin();
+        it != eTask->bufs->PB_bufs.in.buffers.end(); ++it)
     {
         switch ((*it)->BufferId)
         {
@@ -470,7 +468,7 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
 
                 mfxExtFeiEncMVPredictors* pMvPredBuf = reinterpret_cast<mfxExtFeiEncMVPredictors*>(*it);
 
-                if (!(frameType[pMvPredId] & MFX_FRAMETYPE_I))
+                if (!(eTask->m_type[pMvPredId] & MFX_FRAMETYPE_I))
                 {
                     if (m_pAppConfig->bRepackPreencMV)
                     {
@@ -504,7 +502,7 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
                 if (m_pAppConfig->PipelineCfg.mixedPicstructs && (encodeSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) && !!mbQPID)
                     continue;
                 mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(*it);
-                SAFE_FREAD(pMbQP->QP, sizeof(pMbQP->QP[0])*pMbQP->NumQPAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+                SAFE_FREAD(pMbQP->MB, sizeof(pMbQP->MB[0])*pMbQP->NumMBAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
                 mbQPID++;
             }
             break;
@@ -519,32 +517,25 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
             // adjust ref window size if search window is 0
             if (feiEncCtrl->SearchWindow == 0)
             {
-                bool adjust_window = (frameType[feiEncCtrlId] & MFX_FRAMETYPE_B) && m_pAppConfig->RefHeight * m_pAppConfig->RefWidth > 1024;
+                bool adjust_window = (eTask->m_type[feiEncCtrlId] & MFX_FRAMETYPE_B) && m_pAppConfig->RefHeight * m_pAppConfig->RefWidth > 1024;
 
                 feiEncCtrl->RefHeight = adjust_window ? 32 : m_pAppConfig->RefHeight;
                 feiEncCtrl->RefWidth  = adjust_window ? 32 : m_pAppConfig->RefWidth;
             }
 
-            feiEncCtrl->MVPredictor = (frameType[feiEncCtrlId] & MFX_FRAMETYPE_I) ? 0 : (m_pAppConfig->mvinFile != NULL || m_pAppConfig->bPREENC);
+            feiEncCtrl->MVPredictor = (eTask->m_type[feiEncCtrlId] & MFX_FRAMETYPE_I) ? 0 : (m_pAppConfig->mvinFile != NULL || m_pAppConfig->bPREENC);
 
             /* Set number to actual ref number for each field.
             Driver requires these fields to be zero in case of feiEncCtrl->MVPredictor == false
             but MSDK lib will adjust them to zero if application doesn't
             */
             feiEncCtrl->NumMVPredictors[0] = feiEncCtrl->NumMVPredictors[1] = 0;
+
             if (feiEncCtrl->MVPredictor)
             {
-                if (eTask)
-                {
-                    // feiEncCtrlId tracks id in term of field parity, GetNumMVP accepts fieldId
-                    feiEncCtrl->NumMVPredictors[0] = GetNumL0MVPs(*eTask, feiEncCtrlId != ffid);
-                    feiEncCtrl->NumMVPredictors[1] = GetNumL1MVPs(*eTask, feiEncCtrlId != ffid);
-                }
-                else // in case of Encode in display order, default configuration is used
-                {
-                    feiEncCtrl->NumMVPredictors[0] = (frameType[feiEncCtrlId] & MFX_FRAMETYPE_B) ? m_pAppConfig->PipelineCfg.NumMVPredictorsBL0 : m_pAppConfig->PipelineCfg.NumMVPredictorsP;
-                    feiEncCtrl->NumMVPredictors[1] = (frameType[feiEncCtrlId] & MFX_FRAMETYPE_B) ? m_pAppConfig->PipelineCfg.NumMVPredictorsBL1 : 0;
-                }
+                // feiEncCtrlId tracks id in term of field parity, GetNumMVP accepts fieldId
+                feiEncCtrl->NumMVPredictors[0] = GetNumL0MVPs(*eTask, feiEncCtrlId != ffid);
+                feiEncCtrl->NumMVPredictors[1] = GetNumL1MVPs(*eTask, feiEncCtrlId != ffid);
             }
 
             fieldId++;
@@ -573,7 +564,7 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
                     continue;
 
                 mfxExtPredWeightTable* feiWeightTable = reinterpret_cast<mfxExtPredWeightTable*>(*it);
-                if ((frameType[pWeightsId] & MFX_FRAMETYPE_P) || (frameType[pWeightsId] & MFX_FRAMETYPE_B))
+                if ((eTask->m_type[pWeightsId] & MFX_FRAMETYPE_P) || (eTask->m_type[pWeightsId] & MFX_FRAMETYPE_B))
                 {
                     SAFE_FREAD(&(feiWeightTable->LumaLog2WeightDenom),   sizeof(mfxU16),
                                1, m_pWeights_in, MFX_ERR_MORE_DATA);
@@ -594,18 +585,15 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(mfxFrameSurface1* encodeSurface, 
             }
             pWeightsId = 1 - pWeightsId; // set to sfid
             break;
-        } // switch (freeSet->PB_bufs.in.ExtParam[i]->BufferId)
-    } // for (int i = 0; i<freeSet->PB_bufs.in.NumExtParam; i++)
+        } // switch (eTask->bufs->PB_bufs.in.ExtParam[i]->BufferId)
+    } // for (int i = 0; i<eTask->bufs->PB_bufs.in.NumExtParam; i++)
 
     // Add input buffers
-    bool is_I_frame = (encodeSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) && (frameType[ffid] & MFX_FRAMETYPE_I);
+    bool is_I_frame = !eTask->m_fieldPicFlag && (eTask->m_type[ffid] & MFX_FRAMETYPE_I);
 
-    m_encodeControl.NumExtParam = is_I_frame ? freeSet->I_bufs.in.NumExtParam() : freeSet->PB_bufs.in.NumExtParam();
-    m_encodeControl.ExtParam    = is_I_frame ? freeSet->I_bufs.in.ExtParam()    : freeSet->PB_bufs.in.ExtParam();
-
-    // Add output buffers
-    m_mfxBS.NumExtParam = freeSet->PB_bufs.out.NumExtParam();
-    m_mfxBS.ExtParam    = freeSet->PB_bufs.out.ExtParam();
+    // Initialize controller for Extension buffers
+    sts = eTask->ExtBuffersController.InitializeController(eTask->bufs, bufSetController::ENCODE, is_I_frame, !eTask->m_fieldPicFlag);
+    MSDK_CHECK_STATUS(sts, "eTask->ExtBuffersController.InitializeController failed");
 
     return sts;
 }
@@ -626,18 +614,17 @@ mfxStatus FEI_EncodeInterface::AllocateSufficientBuffer()
     return sts;
 }
 
-mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask, mfxFrameSurface1* pSurf, PairU8 runtime_frameType)
+mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
 {
     MFX_ITT_TASK("EncodeOneFrame");
 
     mfxStatus sts = MFX_ERR_NONE;
 
     // ENC_in.InSurface always holds full-res surface
-    mfxFrameSurface1* encodeSurface = eTask ? eTask->ENC_in.InSurface : pSurf;
+    mfxFrameSurface1* encodeSurface = eTask ? eTask->ENC_in.InSurface : NULL;
     if (encodeSurface) // no need to do this for buffered frames
     {
-        PairU8 frameType = eTask ? eTask->m_type : runtime_frameType;
-        sts = InitFrameParams(encodeSurface, frameType, eTask);
+        sts = InitFrameParams(eTask);
         MSDK_CHECK_STATUS(sts, "FEI ENCODE: InitFrameParams failed");
     }
 
@@ -646,7 +633,29 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask, mfxFrameSurface1* pS
         for (;;) {
             // at this point surface for encoder contains either a frame from file or a frame processed by vpp
 
+            if (encodeSurface)
+            {
+                // Attach extension buffers for current field
+                // (in double-field mode both calls will return equal sets, holding buffers for both fields)
+
+                std::vector<mfxExtBuffer *> * in_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::ENCODE, i, true);
+                MSDK_CHECK_POINTER(in_buffers, MFX_ERR_NULL_PTR);
+
+                std::vector<mfxExtBuffer *> * out_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::ENCODE, i, false);
+                MSDK_CHECK_POINTER(out_buffers, MFX_ERR_NULL_PTR);
+
+                // Input buffers
+                m_encodeControl.NumExtParam = mfxU16(in_buffers->size());
+                m_encodeControl.ExtParam    = !in_buffers->empty() ? in_buffers->data() : NULL;
+
+                // Output buffers
+                m_mfxBS.NumExtParam = mfxU16(out_buffers->size());
+                m_mfxBS.ExtParam    = !out_buffers->empty() ? out_buffers->data() : NULL;
+            }
+
+            // Encoding goes below
             sts = m_pmfxENCODE->EncodeFrameAsync(&m_encodeControl, encodeSurface, &m_mfxBS, &m_SyncPoint);
+            MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
 
             if (MFX_ERR_NONE < sts && !m_SyncPoint) // repeat the call if warning and no output
             {
@@ -659,10 +668,6 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask, mfxFrameSurface1* pS
             {
                 // ignore warnings if output is available
                 sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                if (sts == MFX_ERR_GPU_HANG)
-                {
-                    return MFX_ERR_GPU_HANG;
-                }
                 MSDK_CHECK_STATUS(sts, "FEI ENCODE: SyncOperation failed");
                 break;
             }
@@ -676,24 +681,21 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask, mfxFrameSurface1* pS
                 if (m_SyncPoint)
                 {
                     sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                    if (sts == MFX_ERR_GPU_HANG)
-                    {
-                        return MFX_ERR_GPU_HANG;
-                    }
                     MSDK_CHECK_STATUS(sts, "FEI ENCODE: SyncOperation failed");
                 }
                 break;
             }
         } // for(;;)
+
+        MSDK_BREAK_ON_ERROR(sts);
+
     } // for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
 
-    if (sts == MFX_ERR_MORE_DATA)
+    if (sts == MFX_ERR_MORE_DATA && encodeSurface)
     {
-        if (encodeSurface)
-        {
-            sts = MFX_ERR_NONE; // MFX_ERR_MORE_DATA is correct status to finish encoding of buffered frames.
-        }                       // Otherwise, ignore it
-        return sts;
+        // MFX_ERR_MORE_DATA is correct status to finish encoding of buffered frames (for which encodeSurface == NULL).
+        // Otherwise, ignore it
+        return MFX_ERR_NONE;
     }
 
     MSDK_CHECK_STATUS(sts, "FEI ENCODE: EncodeFrameAsync failed");
@@ -701,27 +703,42 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask, mfxFrameSurface1* pS
     sts = m_FileWriter.WriteNextFrame(&m_mfxBS);
     MSDK_CHECK_STATUS(sts, "FEI ENCODE: WriteNextFrame failed");
 
-    sts = FlushOutput();
+    sts = FlushOutput(eTask);
     MSDK_CHECK_STATUS(sts, "FEI ENCODE: FlushOutput failed");
-
-    // release processed buffers
-    sync_list.Update();
 
     return sts;
 }
 
-mfxStatus FEI_EncodeInterface::FlushOutput()
+mfxStatus FEI_EncodeInterface::FlushOutput(iTask* eTask)
 {
+    mfxExtBuffer** output_buffers   = NULL;
+    mfxU32         n_output_buffers = 0;
+
+    if (eTask)
+    {
+        MSDK_CHECK_POINTER(eTask->bufs, MFX_ERR_NULL_PTR);
+        output_buffers   = eTask->bufs->PB_bufs.out.buffers.data();
+        n_output_buffers = eTask->bufs->PB_bufs.out.buffers.size();
+    }
+    else
+    {
+        // In case of draining frames from encoder in display-order mode
+        output_buffers   = m_mfxBS.ExtParam;
+        n_output_buffers = m_mfxBS.NumExtParam;
+    }
+
     mfxU32 mvBufCounter = 0;
 
-    for (int i = 0; i < m_mfxBS.NumExtParam; i++)
+    for (mfxU32 i = 0; i < n_output_buffers; ++i)
     {
-        switch (m_mfxBS.ExtParam[i]->BufferId)
+        MSDK_CHECK_POINTER(output_buffers[i], MFX_ERR_NULL_PTR);
+
+        switch (output_buffers[i]->BufferId)
         {
         case MFX_EXTBUFF_FEI_ENC_MV:
             if (m_pMV_out)
             {
-                mfxExtFeiEncMV* mvBuf = reinterpret_cast<mfxExtFeiEncMV*>(m_mfxBS.ExtParam[i]);
+                mfxExtFeiEncMV* mvBuf = reinterpret_cast<mfxExtFeiEncMV*>(output_buffers[i]);
                 if (!(extractType(m_mfxBS.FrameType, mvBufCounter) & MFX_FRAMETYPE_I)){
                     SAFE_FWRITE(mvBuf->MB, sizeof(mvBuf->MB[0])*mvBuf->NumMBAlloc, 1, m_pMV_out, MFX_ERR_MORE_DATA);
                 }
@@ -738,7 +755,7 @@ mfxStatus FEI_EncodeInterface::FlushOutput()
         case MFX_EXTBUFF_FEI_ENC_MB_STAT:
             if (m_pMBstat_out)
             {
-                mfxExtFeiEncMBStat* mbstatBuf = reinterpret_cast<mfxExtFeiEncMBStat*>(m_mfxBS.ExtParam[i]);
+                mfxExtFeiEncMBStat* mbstatBuf = reinterpret_cast<mfxExtFeiEncMBStat*>(output_buffers[i]);
                 SAFE_FWRITE(mbstatBuf->MB, sizeof(mbstatBuf->MB[0])*mbstatBuf->NumMBAlloc, 1, m_pMBstat_out, MFX_ERR_MORE_DATA);
             }
             break;
@@ -746,12 +763,12 @@ mfxStatus FEI_EncodeInterface::FlushOutput()
         case MFX_EXTBUFF_FEI_PAK_CTRL:
             if (m_pMBcode_out)
             {
-                mfxExtFeiPakMBCtrl* mbcodeBuf = reinterpret_cast<mfxExtFeiPakMBCtrl*>(m_mfxBS.ExtParam[i]);
+                mfxExtFeiPakMBCtrl* mbcodeBuf = reinterpret_cast<mfxExtFeiPakMBCtrl*>(output_buffers[i]);
                 SAFE_FWRITE(mbcodeBuf->MB, sizeof(mbcodeBuf->MB[0])*mbcodeBuf->NumMBAlloc, 1, m_pMBcode_out, MFX_ERR_MORE_DATA);
             }
             break;
-        } // switch (bs.ExtParam[i]->BufferId)
-    } // for (int i = 0; i < bs.NumExtParam; i++)
+        } // switch (output_buffers[i]->BufferId)
+    } // for (mfxU32 i = 0; i < n_output_buffers; ++i)
 
     return MFX_ERR_NONE;
 }

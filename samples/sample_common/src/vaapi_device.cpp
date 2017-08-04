@@ -520,9 +520,10 @@ CHWDevice* CreateVAAPIDevice(int type)
 
 #elif defined(LIBVA_ANDROID_SUPPORT)
 
-CHWDevice* CreateVAAPIDevice(int)
+static AndroidLibVA g_LibVA;
+CHWDevice* CreateVAAPIDevice(int type)
 {
-    return new CVAAPIDeviceAndroid();
+    return new CVAAPIDeviceAndroid(&g_LibVA);
 }
 
 #endif

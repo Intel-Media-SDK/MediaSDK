@@ -64,7 +64,7 @@ Wayland::Wayland()
     , m_x(0), m_y(0)
     , m_perf_mode(false)
 {
-//    memset(&m_poll, 0, sizeof(m_poll));
+    std::memset(&m_poll, 0, sizeof(m_poll));
 }
 
 bool Wayland::InitDisplay()

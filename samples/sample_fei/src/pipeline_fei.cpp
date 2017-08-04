@@ -42,9 +42,6 @@ CEncodingPipeline::CEncodingPipeline(AppConfig* pAppConfig)
     , m_maxQueueLength(0)
     , m_log2frameNumMax(8)
     , m_frameCount(0)
-#ifdef ENABLE_FF
-    , m_frameCountInEncodedOrder(0)
-#endif
     , m_frameOrderIdrInDisplayOrder(0)
     , m_frameType((mfxU8)MFX_FRAMETYPE_UNKNOWN, (mfxU8)MFX_FRAMETYPE_UNKNOWN)
 
@@ -181,29 +178,6 @@ mfxStatus CEncodingPipeline::Init()
         m_commonFrameInfo = m_pFEI_ENCPAK->GetCommonVideoParams()->mfx.FrameInfo;
     }
 
-#ifdef ENABLE_FF
-    //BRC for PAK only
-    if (m_appCfg.bOnlyPAK && m_appCfg.RateControlMethod == MFX_RATECONTROL_VBR)
-    {
-        //prepare mfxVideoParam for BRC
-        mfxVideoParam tmp = *m_appCfg.PipelineCfg.pPakVideoParam;
-        tmp.mfx.RateControlMethod = m_appCfg.RateControlMethod;
-        tmp.mfx.TargetKbps        = m_appCfg.TargetKbps;
-
-        mfxExtCodingOption CO;
-        MSDK_ZERO_MEMORY(CO);
-        CO.Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
-        CO.Header.BufferSz = sizeof(mfxExtCodingOption);
-        CO.NalHrdConformance = MFX_CODINGOPTION_OFF;
-
-        mfxExtBuffer *ext = &CO.Header;
-        tmp.ExtParam    = &ext; //ignore all other buffers
-        tmp.NumExtParam = 1;
-
-        sts = m_BRC.Init(&tmp);
-        MSDK_CHECK_STATUS(sts, "BRC initialization failed");
-    }
-#endif
 
     sts = ResetMFXComponents();
     MSDK_CHECK_STATUS(sts, "ResetMFXComponents failed");
@@ -375,19 +349,31 @@ mfxStatus CEncodingPipeline::AllocFrames()
         MSDK_CHECK_STATUS(sts, "m_pmfxENCODE->QueryIOSurf failed");
     }
 
-    m_maxQueueLength = m_refDist * 2 + m_nAsyncDepth;
-    /* temporary solution for a while for PREENC + ENC cases
-    * (It required to calculate accurate formula for all usage cases)
-    * this is not optimal from memory usage consumption */
-    m_maxQueueLength += m_appCfg.numRef + 1;
+    mfxFrameAllocRequest PakRequest[2];
+    if (m_pFEI_ENCPAK)
+    {
+        MSDK_ZERO_MEMORY(PakRequest[0]); // ENCPAK input request
+        MSDK_ZERO_MEMORY(PakRequest[1]); // ENCPAK reconstruct request
+
+        sts = m_pFEI_ENCPAK->QueryIOSurf(PakRequest);
+        MSDK_CHECK_STATUS(sts, "m_pFEI_ENCPAK->QueryIOSurf failed");
+    }
+
+    m_maxQueueLength = m_refDist * 2 + m_nAsyncDepth + m_numRefFrame + 1;
 
     // The number of surfaces shared by vpp output and encode input.
     // When surfaces are shared 1 surface at first component output contains output frame that goes to next component input
     if (m_appCfg.nInputSurf == 0)
     {
         nEncSurfNum = EncRequest.NumFrameSuggested + (m_nAsyncDepth - 1) + 2;
-        if ((m_appCfg.bPREENC) || (m_appCfg.bENCPAK) || (m_appCfg.bENCODE) ||
-            (m_appCfg.bOnlyENC) || (m_appCfg.bOnlyPAK))
+        if ((m_appCfg.bENCPAK) || (m_appCfg.bOnlyPAK) || (m_appCfg.bOnlyENC))
+        {
+            // Some additional surfaces required, because eTask holds frames till the destructor.
+            // More optimal approaches are possible
+            nEncSurfNum  = PakRequest[0].NumFrameSuggested + m_numRefFrame + m_refDist + 1;
+            nEncSurfNum += m_pVPP ? m_refDist + 1 : 0;
+        }
+        else if ((m_appCfg.bPREENC) || (m_appCfg.bENCODE))
         {
             nEncSurfNum  = m_maxQueueLength;
             nEncSurfNum += m_pVPP ? m_refDist + 1 : 0;
@@ -509,16 +495,27 @@ mfxStatus CEncodingPipeline::AllocFrames()
      * */
     if (m_pFEI_ENCPAK)
     {
-        mfxFrameAllocRequest ReconRequest;
-        MSDK_ZERO_MEMORY(ReconRequest);
+        PakRequest[1].AllocId = m_BaseAllocID;
+        MSDK_MEMCPY_VAR(PakRequest[1].Info, &m_commonFrameInfo, sizeof(mfxFrameInfo));
 
-        ReconRequest.AllocId = m_BaseAllocID;
-        MSDK_MEMCPY_VAR(ReconRequest.Info, &m_commonFrameInfo, sizeof(mfxFrameInfo));
-        ReconRequest.NumFrameMin       = m_appCfg.nReconSurf ? m_appCfg.nReconSurf : m_maxQueueLength;
-        ReconRequest.NumFrameSuggested = m_appCfg.nReconSurf ? m_appCfg.nReconSurf : m_maxQueueLength;
-        ReconRequest.Type = (EncRequest.Type & 0xfff0) | MFX_MEMTYPE_INTERNAL_FRAME;
+        if (m_appCfg.nReconSurf != 0)
+        {
+            if (m_appCfg.nReconSurf > PakRequest[1].NumFrameMin)
+            {
+                PakRequest[1].NumFrameMin = PakRequest[1].NumFrameSuggested = m_appCfg.nReconSurf;
+            }
+            else
+            {
+                msdk_printf(MSDK_STRING("\nWARNING: User input reconstruct surface num invalid!\n"));
+            }
+        }
 
-        sts = m_pMFXAllocator->Alloc(m_pMFXAllocator->pthis, &ReconRequest, &m_ReconResponse);
+        if (m_appCfg.bENCPAK || m_appCfg.bOnlyENC)
+        {
+            PakRequest[1].Type |= MFX_MEMTYPE_FROM_ENC;
+        }
+
+        sts = m_pMFXAllocator->Alloc(m_pMFXAllocator->pthis, &PakRequest[1], &m_ReconResponse);
         MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Alloc failed");
 
         m_ReconSurfaces.PoolSize = m_ReconResponse.NumFrameActual;
@@ -784,7 +781,9 @@ mfxStatus CEncodingPipeline::SetSequenceParameters()
     }
 
     /* Initialize task pool */
-    m_inputTasks.Init(m_refDist, m_gopOptFlag, m_numRefFrame, m_numRefFrame + 1, m_log2frameNumMax);
+    m_inputTasks.Init(m_appCfg.EncodedOrder,
+                    2 + !m_appCfg.preencDSstrength, // (ENC + PAK structs always present) + 1 (if DS not present)
+                    m_refDist, m_gopOptFlag, m_numRefFrame, m_numRefFrame + 1, m_log2frameNumMax);
 
     m_taskInitializationParams.PicStruct       = m_picStruct;
     m_taskInitializationParams.GopPicSize      = m_gopSize;
@@ -989,7 +988,7 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
         mfxExtFeiPreEncMBStat*       mbdata     = NULL;
 
         int num_buffers = m_maxQueueLength + (m_appCfg.bDECODE ? m_decodePoolSize : 0) + (m_pVPP ? 2 : 0) + 4;
-        num_buffers = (std::max)(num_buffers, m_maxQueueLength*m_appCfg.numRef);
+        num_buffers = (std::max)(num_buffers, m_maxQueueLength*m_numRefFrame);
 
         for (int k = 0; k < num_buffers; k++)
         {
@@ -1055,9 +1054,9 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
 
                     qps[fieldId].Header.BufferId = MFX_EXTBUFF_FEI_ENC_QP;
                     qps[fieldId].Header.BufferSz = sizeof(mfxExtFeiEncQP);
-                    qps[fieldId].NumQPAlloc = numMB;
-                    qps[fieldId].QP = new mfxU8[qps[fieldId].NumQPAlloc];
-                    MSDK_ZERO_ARRAY(qps[fieldId].QP, qps[fieldId].NumQPAlloc);
+                    qps[fieldId].NumMBAlloc = numMB;
+                    qps[fieldId].MB = new mfxU8[qps[fieldId].NumMBAlloc];
+                    MSDK_ZERO_ARRAY(qps[fieldId].MB, qps[fieldId].NumMBAlloc);
                 }
 
                 if (!preENCCtr[fieldId].DisableMVOutput)
@@ -1223,7 +1222,8 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
                     feiPPS[fieldId].SecondChromaQPIndexOffset = m_appCfg.SecondChromaQPIndexOffset;
                     feiPPS[fieldId].Transform8x8ModeFlag      = m_appCfg.Transform8x8ModeFlag;
 
-                    memset(feiPPS[fieldId].ReferenceFrames, 0xffff, 16 * sizeof(mfxU16));
+                    memset(feiPPS[fieldId].DpbBefore, 0xffff, sizeof(feiPPS[fieldId].DpbBefore));
+                    memset(feiPPS[fieldId].DpbAfter,  0xffff, sizeof(feiPPS[fieldId].DpbAfter));
                 }
 
                 /* Slice Header */
@@ -1314,9 +1314,9 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
 
                     feiEncMbQp[fieldId].Header.BufferId = MFX_EXTBUFF_FEI_ENC_QP;
                     feiEncMbQp[fieldId].Header.BufferSz = sizeof(mfxExtFeiEncQP);
-                    feiEncMbQp[fieldId].NumQPAlloc = numMB;
-                    feiEncMbQp[fieldId].QP = new mfxU8[feiEncMbQp[fieldId].NumQPAlloc];
-                    MSDK_ZERO_ARRAY(feiEncMbQp[fieldId].QP, feiEncMbQp[fieldId].NumQPAlloc);
+                    feiEncMbQp[fieldId].NumMBAlloc = numMB;
+                    feiEncMbQp[fieldId].MB = new mfxU8[feiEncMbQp[fieldId].NumMBAlloc];
+                    MSDK_ZERO_ARRAY(feiEncMbQp[fieldId].MB, feiEncMbQp[fieldId].NumMBAlloc);
                 }
 
                 if (Weights)
@@ -1461,10 +1461,6 @@ mfxStatus CEncodingPipeline::Run()
 
     mfxFrameSurface1* pSurf = NULL; // points to frame being processed
 
-    bool create_task = m_appCfg.bPREENC  || m_appCfg.bENCPAK  ||
-                       m_appCfg.bOnlyENC || m_appCfg.bOnlyPAK ||
-                       (m_appCfg.bENCODE && m_appCfg.EncodedOrder);
-
     bool swap_fields = false;
 
     iTask* eTask = NULL; // encoding task
@@ -1539,7 +1535,6 @@ mfxStatus CEncodingPipeline::Run()
         }
 
         /* Reorder income frame */
-        if (create_task)
         {
             /* PreENC on downsampled surface */
             if (m_appCfg.bPREENC && m_appCfg.preencDSstrength)
@@ -1553,6 +1548,7 @@ mfxStatus CEncodingPipeline::Run()
             m_taskInitializationParams.FrameType  = m_frameType;
             m_taskInitializationParams.FrameCount = m_frameCount - 1;
             m_taskInitializationParams.FrameOrderIdrInDisplayOrder = m_frameOrderIdrInDisplayOrder;
+            m_taskInitializationParams.SingleFieldMode = m_appCfg.bFieldProcessingMode;
 
             m_inputTasks.AddTask(new iTask(m_taskInitializationParams));
             eTask = m_inputTasks.GetTaskToEncode(false);
@@ -1585,22 +1581,6 @@ mfxStatus CEncodingPipeline::Run()
 
         if (m_appCfg.bENCPAK || m_appCfg.bOnlyPAK || m_appCfg.bOnlyENC)
         {
-#ifdef ENABLE_FF
-            mfxBRCFrameParam BRCPar;
-            mfxBRCFrameCtrl BRCCtrl;
-            MSDK_ZERO_MEMORY(BRCPar);
-            MSDK_ZERO_MEMORY(BRCCtrl);
-
-            if (m_appCfg.RateControlMethod == MFX_RATECONTROL_VBR){
-                //get QP
-                BRCPar.EncodedOrder = m_frameCountInEncodedOrder++;
-                BRCPar.DisplayOrder = eTask->m_frameOrder;
-                BRCPar.FrameType = eTask->m_type[eTask->m_fid[0]];       //progressive only for now
-                sts = m_BRC.GetFrameCtrl (&BRCPar, &BRCCtrl);
-                MSDK_BREAK_ON_ERROR(sts);
-                m_appCfg.QP = BRCCtrl.QpY;
-            }
-#endif
 
             sts = m_pFEI_ENCPAK->EncPakOneFrame(eTask);
             if (sts == MFX_ERR_GPU_HANG)
@@ -1611,24 +1591,11 @@ mfxStatus CEncodingPipeline::Run()
             }
             MSDK_BREAK_ON_ERROR(sts);
 
-#ifdef ENABLE_FF
-            if (m_appCfg.RateControlMethod == MFX_RATECONTROL_VBR){
-                //update QP
-                BRCPar.CodedFrameSize = eTask->EncodedFrameSize;
-                mfxBRCFrameStatus bsts;
-                sts = m_BRC.Update(&BRCPar, &BRCCtrl, &bsts);
-                MSDK_BREAK_ON_ERROR(sts);
-                if(bsts.BRCStatus != MFX_BRC_OK) { //reencode is not supported
-                    sts = MFX_ERR_UNDEFINED_BEHAVIOR;
-                    break;
-                }
-            }
-#endif
         }
 
         if (m_appCfg.bENCODE)
         {
-            sts = m_pFEI_ENCODE->EncodeOneFrame(eTask, pSurf, m_frameType);
+            sts = m_pFEI_ENCODE->EncodeOneFrame(eTask);
             if (sts == MFX_ERR_GPU_HANG)
             {
                 sts = doGPUHangRecovery();
@@ -1661,12 +1628,8 @@ mfxStatus CEncodingPipeline::ProcessBufferedFrames()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    bool create_task = m_appCfg.bPREENC  || m_appCfg.bENCPAK  ||
-                       m_appCfg.bOnlyENC || m_appCfg.bOnlyPAK ||
-                      (m_appCfg.bENCODE && m_appCfg.EncodedOrder);
-
     // loop to get buffered frames from encoder
-    if (create_task)
+    if (m_appCfg.EncodedOrder)
     {
         iTask* eTask = NULL;
         mfxU32 numUnencoded = m_inputTasks.CountUnencodedFrames();
@@ -1676,6 +1639,7 @@ mfxStatus CEncodingPipeline::ProcessBufferedFrames()
         while (numUnencoded != 0)
         {
             eTask = m_inputTasks.GetTaskToEncode(true);
+            MSDK_CHECK_POINTER(eTask, MFX_ERR_NULL_PTR);
 
             if (m_appCfg.bPREENC)
             {
@@ -1697,7 +1661,7 @@ mfxStatus CEncodingPipeline::ProcessBufferedFrames()
 
             if (m_appCfg.bENCODE)
             {
-                sts = m_pFEI_ENCODE->EncodeOneFrame(eTask, NULL, m_frameType);
+                sts = m_pFEI_ENCODE->EncodeOneFrame(eTask);
                 MSDK_BREAK_ON_ERROR(sts);
             }
 
@@ -1712,7 +1676,7 @@ mfxStatus CEncodingPipeline::ProcessBufferedFrames()
         {
             while (MFX_ERR_NONE <= sts)
             {
-                sts = m_pFEI_ENCODE->EncodeOneFrame(NULL, NULL, PairU8(NULL, NULL));
+                sts = m_pFEI_ENCODE->EncodeOneFrame(NULL);
             }
 
             // MFX_ERR_MORE_DATA is the correct status to exit buffering loop with

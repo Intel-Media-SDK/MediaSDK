@@ -93,7 +93,8 @@ enum
     MFX_FOURCC_YUV422H      = MFX_MAKEFOURCC('4','2','2','H'),
     MFX_FOURCC_YUV422V      = MFX_MAKEFOURCC('4','2','2','V'),
     MFX_FOURCC_YUV444       = MFX_MAKEFOURCC('4','4','4','P'),
-    MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P')
+    MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P'),
+    MFX_FOURCC_I420         = MFX_MAKEFOURCC('I','4','2','0')
 };
 
 bool IsDecodeCodecSupported(mfxU32 codecFormat);
@@ -538,6 +539,9 @@ template<>struct mfx_ext_buffer_id<mfxExtCodingOption>{
 template<>struct mfx_ext_buffer_id<mfxExtCodingOption2>{
     enum {id = MFX_EXTBUFF_CODING_OPTION2};
 };
+template<>struct mfx_ext_buffer_id<mfxExtCodingOption3>{
+    enum {id = MFX_EXTBUFF_CODING_OPTION3};
+};
 template<>struct mfx_ext_buffer_id<mfxExtAvcTemporalLayers>{
     enum {id = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS};
 };
@@ -575,7 +579,7 @@ bool skip(const Buf_t *&buf, Length_t &length, Length_t step)
 //do not link MediaSDK dispatched if class not used
 struct MSDKAdapter {
     // returns the number of adapter associated with MSDK session, 0 for SW session
-    static mfxU32 GetNumber(mfxSession session = 0) {
+    static mfxU32 GetNumber(mfxSession session, mfxIMPL implVia = 0) {
         mfxU32 adapterNum = 0; // default
         mfxIMPL impl = MFX_IMPL_SOFTWARE; // default in case no HW IMPL is found
 
@@ -591,7 +595,7 @@ struct MSDKAdapter {
             memset(&auxSession, 0, sizeof(auxSession));
 
             mfxVersion ver = { {1, 1 }}; // minimum API version which supports multiple devices
-            MFXInit(MFX_IMPL_HARDWARE_ANY, &ver, &auxSession);
+            MFXInit(MFX_IMPL_HARDWARE_ANY | implVia, &ver, &auxSession);
             MFXQueryIMPL(auxSession, &impl);
             MFXClose(auxSession);
         }
@@ -685,6 +689,7 @@ template<size_t S>
         value[0]=0;
         if (strlen(string) < S) {
             strncpy(value, string, S-1);
+            value[S - 1] = 0;
             return MFX_ERR_NONE;
         }
         return MFX_ERR_UNKNOWN;

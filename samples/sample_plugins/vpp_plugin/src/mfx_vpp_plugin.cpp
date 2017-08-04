@@ -443,8 +443,7 @@ mfxStatus MFXVideoVPPPlugin::Close(void)
         msdk_so_free(m_PluginModule);
         m_PluginModule = NULL;
     }
-    if (m_pPlugin)
-        m_pPlugin = 0;
+
     MSDK_SAFE_DELETE(m_pVPP1);
     MSDK_SAFE_DELETE(m_pVPP2);
 

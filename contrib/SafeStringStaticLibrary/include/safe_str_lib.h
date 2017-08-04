@@ -35,6 +35,11 @@
 #include "safe_lib.h"
 #include <ctype.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
 /*
  * The shortest string is a null string!!
  */
@@ -260,5 +265,8 @@ strtouppercase_s(char *str, rsize_t slen);
 extern errno_t
 strzero_s(char *dest, rsize_t dmax);
 
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif   /* __SAFE_STR_LIB_H__ */

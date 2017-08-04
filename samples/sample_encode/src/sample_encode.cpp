@@ -107,6 +107,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-BufferSizeInKB ]       - represents the maximum possible size of any compressed frames\n"));
     msdk_printf(MSDK_STRING("   [-MaxKbps ]              - for variable bitrate control, specifies the maximum bitrate at which \
                             the encoded data enters the Video Buffering Verifier buffer\n"));
+    msdk_printf(MSDK_STRING("   [-LowDelayBRC]           - strictly obey average frame size set by MaxKbps\n"));
     msdk_printf(MSDK_STRING("   [-signal:tm ]            - represents transfer matrix coefficients for mfxExtVideoSignalInfo. 0 - unknown, 1 - BT709, 2 - BT601\n"));
 
     msdk_printf(MSDK_STRING("   [-timeout]               - encoding in cycle not less than specific time in seconds\n"));
@@ -114,9 +115,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
 
-#ifdef ENABLE_FF
-    msdk_printf(MSDK_STRING("   [-extbrc:<on,off>]       - External BRC for HEVC encoder"));
-#endif
 
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
 #if D3D_SURFACES_SUPPORT
@@ -168,7 +166,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->bUseHWLib = true;
     pParams->isV4L2InputEnabled = false;
     pParams->nNumFrames = 0;
-    pParams->FileInputFourCC = MFX_FOURCC_YV12;
+    pParams->FileInputFourCC = MFX_FOURCC_I420;
     pParams->EncodeFourCC = MFX_FOURCC_NV12;
 #if defined (ENABLE_V4L2_SUPPORT)
     pParams->MipiPort = -1;
@@ -407,6 +405,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-LowDelayBRC")))
+        {
+            pParams->LowDelayBRC = MFX_CODINGOPTION_ON;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BufferSizeInKB")))
         {
             VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
@@ -443,6 +445,26 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMemBuf))
             {
                 PrintHelp(strInput[0], MSDK_STRING("membuf is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedPred")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->WeightedPred))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("WeightedPred is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedBiPred")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->WeightedBiPred))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("WeightedBiPred is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
@@ -506,16 +528,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->nGPB = MFX_CODINGOPTION_OFF;
         }
-#ifdef ENABLE_FF
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:on")))
-        {
-            pParams->nExtBRC= MFX_CODINGOPTION_ON;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:off")))
-        {
-            pParams->nExtBRC = MFX_CODINGOPTION_OFF;
-        }
-#endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qsv-ff")))
         {
             pParams->enableQSVFF=true;
@@ -914,11 +926,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if ((pParams->nRateControlMethod == MFX_RATECONTROL_LA) && (pParams->CodecId != MFX_CODEC_AVC))
-    {
-        PrintHelp(strInput[0], MSDK_STRING("Look ahead BRC is supported only with H.264 encoder!"));
-        return MFX_ERR_UNSUPPORTED;
-    }
+    //if ((pParams->nRateControlMethod == MFX_RATECONTROL_LA) && (pParams->CodecId != MFX_CODEC_AVC))
+    //{
+    //    PrintHelp(strInput[0], MSDK_STRING("Look ahead BRC is supported only with H.264 encoder!"));
+    //    return MFX_ERR_UNSUPPORTED;
+    //}
 
     if ((pParams->nMaxSliceSize) && (pParams->CodecId != MFX_CODEC_AVC))
     {
@@ -926,11 +938,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (pParams->nLADepth && (pParams->nLADepth < 10 || pParams->nLADepth > 100))
+    if (pParams->nLADepth && (pParams->nLADepth < 10))
     {
         if ((pParams->nLADepth != 1) || (!pParams->nMaxSliceSize))
         {
-            PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be in range [10, 100] or 1 in case of -mss option!"));
+            PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be >= 10, or 1 in case of -mss option!"));
             return MFX_ERR_UNSUPPORTED;
         }
     }

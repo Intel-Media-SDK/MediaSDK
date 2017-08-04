@@ -274,13 +274,8 @@ mfxStatus FEI_EncPakInterface::Reset(mfxU16 width, mfxU16 height, mfxU16 crop_w,
     mfxStatus sts = MFX_ERR_NOT_INITIALIZED;
     if (m_pmfxENC)
     {
-        //sts = m_pmfxENC->Reset(&m_videoParams_ENC);
-        //MSDK_CHECK_STATUS(sts, "FEI ENC: Reset failed");
-
-        sts = m_pmfxENC->Close();
-        MSDK_CHECK_STATUS(sts, "FEI ENC: Close failed");
-        sts = m_pmfxENC->Init(&m_videoParams_ENC);
-        MSDK_CHECK_STATUS(sts, "FEI ENC: Init failed");
+        sts = m_pmfxENC->Reset(&m_videoParams_ENC);
+        MSDK_CHECK_STATUS(sts, "FEI ENC: Reset failed");
     }
     if (m_pmfxPAK)
     {
@@ -291,19 +286,24 @@ mfxStatus FEI_EncPakInterface::Reset(mfxU16 width, mfxU16 height, mfxU16 crop_w,
     return sts;
 }
 
-mfxStatus FEI_EncPakInterface::QueryIOSurf(mfxFrameAllocRequest* enc_request, mfxFrameAllocRequest* pak_request)
+mfxStatus FEI_EncPakInterface::QueryIOSurf(mfxFrameAllocRequest* request)
 {
+    MSDK_CHECK_POINTER(request, MFX_ERR_NULL_PTR);
+
     mfxStatus sts = MFX_ERR_NOT_INITIALIZED;
-    if (m_pmfxENC && enc_request)
-    {
-        sts = m_pmfxENC->QueryIOSurf(&m_videoParams_ENC, enc_request);
-        MSDK_CHECK_STATUS(sts, "FEI ENC: Reset failed");
-    }
     if (m_pmfxPAK)
     {
-        sts = m_pmfxPAK->QueryIOSurf(&m_videoParams_PAK, pak_request);
-        MSDK_CHECK_STATUS(sts, "FEI PAK: Reset failed");
+        sts = m_pmfxPAK->QueryIOSurf(&m_videoParams_PAK, request);
+        MSDK_CHECK_STATUS(sts, "FEI PAK: QueryIOSurf failed");
     }
+    else
+    {
+        MFXVideoPAK      tmpPAK(*m_pmfxSession);
+
+        sts = tmpPAK.QueryIOSurf(&m_videoParams_PAK, request);
+        MSDK_CHECK_STATUS(sts, "FEI ENC (via PAK): QueryIOSurf failed");
+    }
+
     return sts;
 }
 
@@ -521,11 +521,13 @@ mfxStatus FEI_EncPakInterface::FillParameters()
         m_InitExtParams_ENC.push_back(reinterpret_cast<mfxExtBuffer *>(feiSPS));
         m_InitExtParams_ENC.push_back(reinterpret_cast<mfxExtBuffer *>(feiPPS));
 
-        m_videoParams_ENC.ExtParam    = &m_InitExtParams_ENC[0]; // vector is stored linearly in memory
+        m_videoParams_ENC.ExtParam    = m_InitExtParams_ENC.data();
         m_videoParams_ENC.NumExtParam = (mfxU16)m_InitExtParams_ENC.size();
     }
 
-    if (m_pmfxPAK)
+    // for ENCOnly case, here's workaround that also fill the parameters for m_videoParams_PAK
+    // in case to support ENC QueryIOSurf
+    if (m_pmfxPAK || m_pmfxENC)
     {
         MSDK_MEMCPY_VAR(m_videoParams_PAK, &m_videoParams_ENC, sizeof(mfxVideoParam));
 
@@ -542,7 +544,7 @@ mfxStatus FEI_EncPakInterface::FillParameters()
         m_InitExtParams_PAK.push_back(reinterpret_cast<mfxExtBuffer *>(feiSPS));
         m_InitExtParams_PAK.push_back(reinterpret_cast<mfxExtBuffer *>(feiPPS));
 
-        m_videoParams_PAK.ExtParam    = &m_InitExtParams_PAK[0]; // vector is stored linearly in memory
+        m_videoParams_PAK.ExtParam    = m_InitExtParams_PAK.data();
         m_videoParams_PAK.NumExtParam = (mfxU16)m_InitExtParams_PAK.size();
     }
 
@@ -644,103 +646,6 @@ mfxStatus FEI_EncPakInterface::FillParameters()
     return sts;
 }
 
-mfxStatus FEI_EncPakInterface::FillRefInfo(iTask* eTask)
-{
-    MSDK_CHECK_POINTER(eTask, MFX_ERR_NULL_PTR);
-    mfxStatus sts = MFX_ERR_NONE;
-
-    m_RefInfo.Clear();
-
-    iTask* ref_task = NULL;
-    mfxFrameSurface1* ref_surface = NULL;
-    std::vector<mfxFrameSurface1*>::iterator rslt;
-    mfxU32 k = 0, fid, n_l0, n_l1, numOfFields = eTask->m_fieldPicFlag ? 2 : 1;
-
-    for (mfxU32 fieldId = 0; fieldId < numOfFields; fieldId++)
-    {
-        fid = eTask->m_fid[fieldId];
-        for (DpbFrame* instance = eTask->m_dpb[fid].Begin(); instance != eTask->m_dpb[fid].End(); instance++)
-        {
-            ref_task = m_inputTasks->GetTaskByFrameOrder(instance->m_frameOrder);
-            MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
-
-            ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
-            MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
-
-            rslt = std::find(m_RefInfo.reference_frames.begin(), m_RefInfo.reference_frames.end(), ref_surface);
-
-            if (rslt == m_RefInfo.reference_frames.end()){
-                m_RefInfo.state[fieldId].dpb_idx.push_back((mfxU16)m_RefInfo.reference_frames.size());
-                m_RefInfo.reference_frames.push_back(ref_surface);
-            }
-            else{
-                m_RefInfo.state[fieldId].dpb_idx.push_back(static_cast<mfxU16>(std::distance(m_RefInfo.reference_frames.begin(), rslt)));
-            }
-        }
-
-        /* in some cases l0 and l1 lists are equal, if so same ref lists for l0 and l1 should be used*/
-        n_l0 = eTask->GetNBackward(fieldId);
-        n_l1 = eTask->GetNForward(fieldId);
-
-        if (!n_l0 && eTask->m_list0[fid].Size() && !(eTask->m_type[fid] & MFX_FRAMETYPE_I))
-        {
-            n_l0 = eTask->m_list0[fid].Size();
-        }
-
-        if (!n_l1 && eTask->m_list1[fid].Size() && (eTask->m_type[fid] & MFX_FRAMETYPE_B))
-        {
-            n_l1 = eTask->m_list1[fid].Size();
-        }
-
-        k = 0;
-        for (mfxU8 const * instance = eTask->m_list0[fid].Begin(); k < n_l0 && instance != eTask->m_list0[fid].End(); instance++)
-        {
-            ref_task = m_inputTasks->GetTaskByFrameOrder(eTask->m_dpb[fid][*instance & 127].m_frameOrder);
-            MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
-
-            ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
-            MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
-
-            rslt = std::find(m_RefInfo.reference_frames.begin(), m_RefInfo.reference_frames.end(), ref_surface);
-
-            if (rslt == m_RefInfo.reference_frames.end()){
-                return MFX_ERR_MORE_SURFACE; // surface from L0 list not in DPB (should never happen)
-            }
-            else{
-                m_RefInfo.state[fieldId].l0_idx.push_back(static_cast<mfxU16>(std::distance(m_RefInfo.reference_frames.begin(), rslt)));
-            }
-
-            //m_ref_info.state[fieldId].l0_idx.push_back(*instance & 127);
-            m_RefInfo.state[fieldId].l0_parity.push_back((*instance) >> 7);
-            k++;
-        }
-
-        k = 0;
-        for (mfxU8 const * instance = eTask->m_list1[fid].Begin(); k < n_l1 && instance != eTask->m_list1[fid].End(); instance++)
-        {
-            ref_task = m_inputTasks->GetTaskByFrameOrder(eTask->m_dpb[fid][*instance & 127].m_frameOrder);
-            MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
-
-            ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
-            MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
-
-            rslt = std::find(m_RefInfo.reference_frames.begin(), m_RefInfo.reference_frames.end(), ref_surface);
-
-            if (rslt == m_RefInfo.reference_frames.end()){
-                return MFX_ERR_MORE_SURFACE; // surface from L0 list not in DPB (should never happen)
-            }
-            else{
-                m_RefInfo.state[fieldId].l1_idx.push_back(static_cast<mfxU16>(std::distance(m_RefInfo.reference_frames.begin(), rslt)));
-            }
-
-            //m_ref_info.state[fieldId].l1_idx.push_back(*instance & 127);
-            m_RefInfo.state[fieldId].l1_parity.push_back((*instance) >> 7);
-            k++;
-        }
-    }
-
-    return sts;
-}
 
 mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
 {
@@ -757,9 +662,6 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
 
     eTask->PAK_out.Bs = &m_mfxBS;
 
-#ifdef ENABLE_FF
-    eTask->EncodedFrameSize = 0;
-#endif
 
     eTask->bufs = m_pExtBuffers->GetFreeSet();
     MSDK_CHECK_POINTER(eTask->bufs, MFX_ERR_NULL_PTR);
@@ -767,51 +669,55 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
     /* Adjust number of MBs in extension buffers */
     if (m_pAppConfig->PipelineCfg.DRCresetPoint || m_pAppConfig->PipelineCfg.mixedPicstructs)
     {
-        mfxU32 n_MB = m_pAppConfig->PipelineCfg.DRCresetPoint ? m_pAppConfig->PipelineCfg.numMB_drc_curr :                  // DRC
-            ((eTask->ENC_in.InSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) ? m_pAppConfig->PipelineCfg.numMB_frame  // Mixed Picstructs : progressive
-            : m_pAppConfig->PipelineCfg.numMB_refPic);                                                                      // Mixed Picstructs : interlaced
+        mfxU32 n_MB = m_pAppConfig->PipelineCfg.DRCresetPoint ? m_pAppConfig->PipelineCfg.numMB_drc_curr : // DRC
+            (!eTask->m_fieldPicFlag ? m_pAppConfig->PipelineCfg.numMB_frame                              : // Mixed Picstructs : progressive
+            m_pAppConfig->PipelineCfg.numMB_refPic);                                                       // Mixed Picstructs : interlaced
 
         eTask->bufs->ResetMBnum(n_MB, m_pAppConfig->PipelineCfg.DRCresetPoint);
         eTask->bufs->ResetSlices(m_videoParams_ENC.mfx.FrameInfo.Width >> 4, m_videoParams_ENC.mfx.FrameInfo.Height >> (eTask->m_fieldPicFlag ? 5 : 4));
     }
 
-    sts = FillRefInfo(eTask); // get info to fill reference structures
-    MSDK_CHECK_STATUS(sts, "FillRefInfo failed");
+    // Fill information about DPB states and reference lists
+    sts = m_RefInfo.Fill(eTask, m_inputTasks);
+    MSDK_CHECK_STATUS(sts, "RefInfo.Fill failed");
 
     bool is_I_frame = ExtractFrameType(*eTask, eTask->m_fieldPicFlag) & MFX_FRAMETYPE_I;
 
     if (m_pmfxENC)
     {
+        // Initialize controller for Extension buffers
+        sts = eTask->ExtBuffersController.InitializeController(eTask->bufs, bufSetController::ENC, is_I_frame, !eTask->m_fieldPicFlag);
+        MSDK_CHECK_STATUS(sts, "eTask->ExtBuffersController.InitializeController failed");
+
         eTask->ENC_in.NumFrameL0 = (mfxU16)m_RefInfo.reference_frames.size();
         eTask->ENC_in.NumFrameL1 = 0;
         eTask->ENC_in.L0Surface = eTask->ENC_in.NumFrameL0 ? &m_RefInfo.reference_frames[0] : NULL;
         eTask->ENC_in.L1Surface = NULL;
-        eTask->ENC_in.NumExtParam  = is_I_frame ? eTask->bufs->I_bufs.in.NumExtParam()  : eTask->bufs->PB_bufs.in.NumExtParam();
-        eTask->ENC_in.ExtParam     = is_I_frame ? eTask->bufs->I_bufs.in.ExtParam()     : eTask->bufs->PB_bufs.in.ExtParam();
-        eTask->ENC_out.NumExtParam = is_I_frame ? eTask->bufs->I_bufs.out.NumExtParam() : eTask->bufs->PB_bufs.out.NumExtParam();
-        eTask->ENC_out.ExtParam    = is_I_frame ? eTask->bufs->I_bufs.out.ExtParam()    : eTask->bufs->PB_bufs.out.ExtParam();
     }
 
     if (m_pmfxPAK)
     {
+        // Initialize controller for Extension buffers
+        sts = eTask->ExtBuffersController.InitializeController(eTask->bufs, bufSetController::PAK, is_I_frame, !eTask->m_fieldPicFlag);
+        MSDK_CHECK_STATUS(sts, "eTask->ExtBuffersController.InitializeController failed");
+
         eTask->PAK_in.NumFrameL0 = (mfxU16)m_RefInfo.reference_frames.size();
         eTask->PAK_in.NumFrameL1 = 0;
         eTask->PAK_in.L0Surface = eTask->PAK_in.NumFrameL0 ? &m_RefInfo.reference_frames[0] : NULL;
         eTask->PAK_in.L1Surface = NULL;
-
-        eTask->PAK_in.NumExtParam  = is_I_frame ? eTask->bufs->I_bufs.out.NumExtParam() : eTask->bufs->PB_bufs.out.NumExtParam();
-        eTask->PAK_in.ExtParam     = is_I_frame ? eTask->bufs->I_bufs.out.ExtParam()    : eTask->bufs->PB_bufs.out.ExtParam();
-        eTask->PAK_out.NumExtParam = is_I_frame ? eTask->bufs->I_bufs.in.NumExtParam()  : eTask->bufs->PB_bufs.in.NumExtParam();
-        eTask->PAK_out.ExtParam    = is_I_frame ? eTask->bufs->I_bufs.in.ExtParam()     : eTask->bufs->PB_bufs.in.ExtParam();
     }
 
-    /* SPS, PPS, SliceHeader processing */
+    // Update extension buffers
+
+    // check whole ENCPAK buffers set, to update buffers in PAK only case
+    std::vector<mfxExtBuffer*> active_encpak_buffers = eTask->bufs->PB_bufs.in.buffers;
+    active_encpak_buffers.insert(active_encpak_buffers.end(), eTask->bufs->PB_bufs.out.buffers.begin(), eTask->bufs->PB_bufs.out.buffers.end());
+
     mfxExtFeiPPS*         feiPPS         = NULL;
     mfxExtFeiSliceHeader* feiSliceHeader = NULL;
 
-    int pMvPredId = 0;
-    for (std::vector<mfxExtBuffer*>::iterator it = eTask->bufs->PB_bufs.in.buffers.begin();
-         it != eTask->bufs->PB_bufs.in.buffers.end(); ++it)
+    int pMvPredId = 0, encCtrlId = 0;
+    for (std::vector<mfxExtBuffer*>::iterator it = active_encpak_buffers.begin(); it != active_encpak_buffers.end(); ++it)
     {
         switch ((*it)->BufferId)
         {
@@ -846,80 +752,35 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
                 pMvPredId++;
             }
             break;
-        } // switch (eTask->bufs->PB_bufs.in.ExtParam[i]->BufferId)
-    } // for (int i = 0; i < eTask->bufs->PB_bufs.in.NumExtParam; i++)
 
-    // These buffers required for ENC & PAK
-    MSDK_CHECK_POINTER(feiPPS && feiSliceHeader, MFX_ERR_NULL_PTR);
-
-    for (mfxU32 fieldId = 0; fieldId < mfxU32(eTask->m_fieldPicFlag ? 2 : 1); fieldId++)
-    {
-        feiPPS[fieldId].PictureType = ExtractFrameType(*eTask, fieldId);
-
-        memset(feiPPS[fieldId].ReferenceFrames, 0xffff, 16 * sizeof(mfxU16));
-        memcpy(feiPPS[fieldId].ReferenceFrames, &m_RefInfo.state[fieldId].dpb_idx[0], sizeof(mfxU16)*m_RefInfo.state[fieldId].dpb_idx.size());
-
-
-        MSDK_CHECK_POINTER(feiSliceHeader[fieldId].Slice, MFX_ERR_NULL_PTR);
-
-        for (mfxU32 i = 0; i < feiSliceHeader[fieldId].NumSlice; i++)
-        {
-            MSDK_ZERO_ARRAY(feiSliceHeader[fieldId].Slice[i].RefL0, 32);
-            MSDK_ZERO_ARRAY(feiSliceHeader[fieldId].Slice[i].RefL1, 32);
-
-            feiSliceHeader[fieldId].Slice[i].SliceType         = FrameTypeToSliceType(ExtractFrameType(*eTask, fieldId));
-            feiSliceHeader[fieldId].Slice[i].NumRefIdxL0Active = (mfxU16)m_RefInfo.state[fieldId].l0_idx.size();
-            feiSliceHeader[fieldId].Slice[i].NumRefIdxL1Active = (mfxU16)m_RefInfo.state[fieldId].l1_idx.size();
-            feiSliceHeader[fieldId].Slice[i].IdrPicId          = eTask->m_frameIdrCounter;
-
-            for (mfxU32 k = 0; k < m_RefInfo.state[fieldId].l0_idx.size(); k++)
-            {
-                feiSliceHeader[fieldId].Slice[i].RefL0[k].Index       = m_RefInfo.state[fieldId].l0_idx[k];
-                feiSliceHeader[fieldId].Slice[i].RefL0[k].PictureType = (mfxU16)(!eTask->m_fieldPicFlag ? MFX_PICTYPE_FRAME :
-                    (m_RefInfo.state[fieldId].l0_parity[k] ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD));
-            }
-            for (mfxU32 k = 0; k < m_RefInfo.state[fieldId].l1_idx.size(); k++)
-            {
-                feiSliceHeader[fieldId].Slice[i].RefL1[k].Index       = m_RefInfo.state[fieldId].l1_idx[k];
-                feiSliceHeader[fieldId].Slice[i].RefL1[k].PictureType = (mfxU16)(!eTask->m_fieldPicFlag ? MFX_PICTYPE_FRAME :
-                    (m_RefInfo.state[fieldId].l1_parity[k] ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD));
-            }
-        }
-    }
-
-    /* the rest ext buffers */
-    int encCtrlId = 0;
-    for (int i = 0; i < eTask->ENC_in.NumExtParam; i++)
-    {
-        switch (eTask->ENC_in.ExtParam[i]->BufferId){
         case MFX_EXTBUFF_FEI_ENC_CTRL:
-        {
-            mfxExtFeiEncFrameCtrl* feiEncCtrl = reinterpret_cast<mfxExtFeiEncFrameCtrl*>(eTask->ENC_in.ExtParam[i]);
-            feiEncCtrl->MVPredictor = (ExtractFrameType(*eTask, encCtrlId) & MFX_FRAMETYPE_I) ? 0 : (m_pMvPred_in != NULL || m_pAppConfig->bPREENC);
-
-            // adjust ref window size if search window is 0
-            if (m_pAppConfig->SearchWindow == 0 && m_pmfxENC)
             {
-                // window size is limited to 1024 for bi-prediction
-                bool adjust_window_size = (ExtractFrameType(*eTask, encCtrlId) & MFX_FRAMETYPE_B) && m_pAppConfig->RefHeight * m_pAppConfig->RefWidth > 1024;
+                mfxExtFeiEncFrameCtrl* feiEncCtrl = reinterpret_cast<mfxExtFeiEncFrameCtrl*>(*it);
+                feiEncCtrl->MVPredictor = (ExtractFrameType(*eTask, encCtrlId) & MFX_FRAMETYPE_I) ? 0 : (m_pMvPred_in != NULL || m_pAppConfig->bPREENC);
 
-                feiEncCtrl->RefHeight = adjust_window_size ? 32 : m_pAppConfig->RefHeight;
-                feiEncCtrl->RefWidth  = adjust_window_size ? 32 : m_pAppConfig->RefWidth;
+                // adjust ref window size if search window is 0
+                if (m_pAppConfig->SearchWindow == 0 && m_pmfxENC)
+                {
+                    // window size is limited to 1024 for bi-prediction
+                    bool adjust_window_size = (ExtractFrameType(*eTask, encCtrlId) & MFX_FRAMETYPE_B) && m_pAppConfig->RefHeight * m_pAppConfig->RefWidth > 1024;
+
+                    feiEncCtrl->RefHeight = adjust_window_size ? 32 : m_pAppConfig->RefHeight;
+                    feiEncCtrl->RefWidth  = adjust_window_size ? 32 : m_pAppConfig->RefWidth;
+                }
+
+                /* Driver requires these fields to be zero in case of feiEncCtrl->MVPredictor == false
+                but MSDK lib will adjust them to zero if application doesn't */
+                feiEncCtrl->NumMVPredictors[0] = feiEncCtrl->MVPredictor * GetNumL0MVPs(*eTask, encCtrlId);
+                feiEncCtrl->NumMVPredictors[1] = feiEncCtrl->MVPredictor * GetNumL1MVPs(*eTask, encCtrlId);
+
+                encCtrlId++;
             }
-
-            /* Driver requires these fields to be zero in case of feiEncCtrl->MVPredictor == false
-            but MSDK lib will adjust them to zero if application doesn't */
-            feiEncCtrl->NumMVPredictors[0] = feiEncCtrl->MVPredictor * GetNumL0MVPs(*eTask, encCtrlId);
-            feiEncCtrl->NumMVPredictors[1] = feiEncCtrl->MVPredictor * GetNumL1MVPs(*eTask, encCtrlId);
-
-            encCtrlId++;
-        }
-        break;
+            break;
 
         case MFX_EXTBUFF_FEI_ENC_MB:
             if (m_pENC_MBCtrl_in)
             {
-                mfxExtFeiEncMBCtrl* pMbEncCtrl = reinterpret_cast<mfxExtFeiEncMBCtrl*>(eTask->ENC_in.ExtParam[i]);
+                mfxExtFeiEncMBCtrl* pMbEncCtrl = reinterpret_cast<mfxExtFeiEncMBCtrl*>(*it);
                 SAFE_FREAD(pMbEncCtrl->MB, sizeof(pMbEncCtrl->MB[0])*pMbEncCtrl->NumMBAlloc, 1, m_pENC_MBCtrl_in, MFX_ERR_MORE_DATA);
             }
             break;
@@ -927,37 +788,73 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
         case MFX_EXTBUFF_FEI_ENC_QP:
             if (m_pMbQP_in)
             {
-                mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(eTask->ENC_in.ExtParam[i]);
-                SAFE_FREAD(pMbQP->QP, sizeof(pMbQP->QP[0])*pMbQP->NumQPAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+                mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(*it);
+                SAFE_FREAD(pMbQP->MB, sizeof(pMbQP->MB[0])*pMbQP->NumMBAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
             }
             break;
-        } // switch (eTask->in.ExtParam[i]->BufferId)
-    } // for (int i = 0; i<eTask->in.NumExtParam; i++)
 
-    // Read external PAK input in case of PAK only pipeline
-    if (!m_pAppConfig->bDECODESTREAMOUT && m_pAppConfig->bOnlyPAK)
-    {
-        for (int i = 0; i < eTask->PAK_in.NumExtParam; i++)
-        {
-            switch (eTask->PAK_in.ExtParam[i]->BufferId)
+        case MFX_EXTBUFF_FEI_ENC_MV:
+            // In case of PAK only we have to read required buffers from disk
+            if (!m_pAppConfig->bDECODESTREAMOUT && m_pAppConfig->bOnlyPAK && m_pMV_out)
             {
-            case MFX_EXTBUFF_FEI_ENC_MV:
-                if (m_pMV_out)
-                {
-                    mfxExtFeiEncMV* mvBuf = reinterpret_cast<mfxExtFeiEncMV*>(eTask->PAK_in.ExtParam[i]);
-                    SAFE_FREAD(mvBuf->MB, sizeof(mvBuf->MB[0])*mvBuf->NumMBAlloc, 1, m_pMV_out, MFX_ERR_MORE_DATA);
-                }
-                break;
+                mfxExtFeiEncMV* mvBuf = reinterpret_cast<mfxExtFeiEncMV*>(*it);
+                SAFE_FREAD(mvBuf->MB, sizeof(mvBuf->MB[0])*mvBuf->NumMBAlloc, 1, m_pMV_out, MFX_ERR_MORE_DATA);
+            }
+            break;
 
-            case MFX_EXTBUFF_FEI_PAK_CTRL:
-                if (m_pMBcode_out)
-                {
-                    mfxExtFeiPakMBCtrl* mbcodeBuf = reinterpret_cast<mfxExtFeiPakMBCtrl*>(eTask->PAK_in.ExtParam[i]);
-                    SAFE_FREAD(mbcodeBuf->MB, sizeof(mbcodeBuf->MB[0])*mbcodeBuf->NumMBAlloc, 1, m_pMBcode_out, MFX_ERR_MORE_DATA);
-                }
-                break;
-            } // switch (eTask->PAK_in.ExtParam[i]->BufferId)
-        } // for (int i = 0; i < eTask->PAK_in.NumExtParam; i++)
+        case MFX_EXTBUFF_FEI_PAK_CTRL:
+            // In case of PAK only we have to read required buffers from disk
+            if (!m_pAppConfig->bDECODESTREAMOUT && m_pAppConfig->bOnlyPAK && m_pMBcode_out)
+            {
+                mfxExtFeiPakMBCtrl* mbcodeBuf = reinterpret_cast<mfxExtFeiPakMBCtrl*>(*it);
+                SAFE_FREAD(mbcodeBuf->MB, sizeof(mbcodeBuf->MB[0])*mbcodeBuf->NumMBAlloc, 1, m_pMBcode_out, MFX_ERR_MORE_DATA);
+            }
+            break;
+        } // switch ((*it)->BufferId)
+    } // for (iterator it = active_encpak_buffers.begin(); it != active_encpak_buffers.end(); ++it
+
+    // These buffers required for ENC & PAK
+    MSDK_CHECK_POINTER(feiPPS && feiSliceHeader, MFX_ERR_NULL_PTR);
+
+    /* PPS, SliceHeader processing */
+    for (mfxU32 fieldId = 0; fieldId < mfxU32(eTask->m_fieldPicFlag ? 2 : 1); fieldId++)
+    {
+        feiPPS[fieldId].FrameType   = ExtractFrameType(*eTask, fieldId);
+        feiPPS[fieldId].PictureType = mfxU16(!eTask->m_fieldPicFlag ? MFX_PICTYPE_FRAME :
+                    (eTask->m_fid[fieldId] ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD));
+
+        memset(feiPPS[fieldId].DpbBefore, 0xffff, sizeof(feiPPS[fieldId].DpbBefore));
+
+        std::vector<mfxExtFeiPPS::mfxExtFeiPpsDPB> & DPB_before_to_use = fieldId ? m_RefInfo.DPB_after : m_RefInfo.DPB_before;
+        if (!DPB_before_to_use.empty())
+        {
+            MSDK_MEMCPY_VAR(*feiPPS[fieldId].DpbBefore, &DPB_before_to_use[0], DPB_before_to_use.size() * sizeof(DPB_before_to_use[0]));
+        }
+
+        memset(feiPPS[fieldId].DpbAfter, 0xffff, sizeof(feiPPS[fieldId].DpbAfter));
+        if (!m_RefInfo.DPB_after.empty())
+        {
+            MSDK_MEMCPY_VAR(*feiPPS[fieldId].DpbAfter, &m_RefInfo.DPB_after[0], m_RefInfo.DPB_after.size() * sizeof(m_RefInfo.DPB_after[0]));
+        }
+
+        MSDK_CHECK_POINTER(feiSliceHeader[fieldId].Slice, MFX_ERR_NULL_PTR);
+
+        for (mfxU32 i = 0; i < feiSliceHeader[fieldId].NumSlice; ++i)
+        {
+            MSDK_ZERO_ARRAY(feiSliceHeader[fieldId].Slice[i].RefL0, 32);
+            MSDK_ZERO_ARRAY(feiSliceHeader[fieldId].Slice[i].RefL1, 32);
+
+            feiSliceHeader[fieldId].Slice[i].SliceType         = FrameTypeToSliceType(ExtractFrameType(*eTask, fieldId));
+            feiSliceHeader[fieldId].Slice[i].NumRefIdxL0Active = mfxU16(m_RefInfo.L0[fieldId].size());
+            feiSliceHeader[fieldId].Slice[i].NumRefIdxL1Active = mfxU16(m_RefInfo.L1[fieldId].size());
+            feiSliceHeader[fieldId].Slice[i].IdrPicId          = eTask->m_frameIdrCounter;
+
+            if (feiSliceHeader[fieldId].Slice[i].NumRefIdxL0Active)
+                MSDK_MEMCPY_VAR(*feiSliceHeader[fieldId].Slice[i].RefL0, &m_RefInfo.L0[fieldId][0], m_RefInfo.L0[fieldId].size() * sizeof(m_RefInfo.L0[fieldId][0]));
+
+            if (feiSliceHeader[fieldId].Slice[i].NumRefIdxL1Active)
+                MSDK_MEMCPY_VAR(*feiSliceHeader[fieldId].Slice[i].RefL1, &m_RefInfo.L1[fieldId][0], m_RefInfo.L1[fieldId].size() * sizeof(m_RefInfo.L1[fieldId][0]));
+        }
     }
 
     return sts;
@@ -988,84 +885,135 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
     mfxStatus sts = InitFrameParams(eTask);
     MSDK_CHECK_STATUS(sts, "FEI ENCPAK: InitFrameParams failed");
 
-    for (;;)
+    for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
     {
         mdprintf(stderr, "frame: %d  t:%d %d : submit ", eTask->m_frameOrder, eTask->m_type[eTask->m_fid[0]], eTask->m_type[eTask->m_fid[1]]);
 
-        for (int i = 0; i < 1 + m_pAppConfig->bFieldProcessingMode; ++i)
+        if (m_pmfxENC)
         {
-            if (m_pmfxENC)
+            // Attach extension buffers for current field
+            // (in double-field mode both calls will return equal sets, holding buffers for both fields)
+
+            std::vector<mfxExtBuffer *> * in_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::ENC, i, true);
+            MSDK_CHECK_POINTER(in_buffers, MFX_ERR_NULL_PTR);
+
+            std::vector<mfxExtBuffer *> * out_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::ENC, i, false);
+            MSDK_CHECK_POINTER(out_buffers, MFX_ERR_NULL_PTR);
+
+            // Input buffers
+            eTask->ENC_in.NumExtParam = mfxU16(in_buffers->size());
+            eTask->ENC_in.ExtParam    = in_buffers->data();
+
+            // Output buffers
+            eTask->ENC_out.NumExtParam = mfxU16(out_buffers->size());
+            eTask->ENC_out.ExtParam    = out_buffers->data();
+
+            // Encoding goes below
+            for (;;)
             {
                 sts = m_pmfxENC->ProcessFrameAsync(&eTask->ENC_in, &eTask->ENC_out, &m_SyncPoint);
-                if (sts == MFX_ERR_GPU_HANG)
+                MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
+
+                if (MFX_ERR_NONE < sts && !m_SyncPoint)
                 {
-                    return MFX_ERR_GPU_HANG;
-                }
-                MSDK_BREAK_ON_ERROR(sts);
+                    // Repeat the call if warning and no output
 
-                sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                if (sts == MFX_ERR_GPU_HANG)
+                    if (MFX_WRN_DEVICE_BUSY == sts){
+                        WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+                    }
+                }
+                else if (MFX_ERR_NONE < sts && m_SyncPoint)
                 {
-                    return MFX_ERR_GPU_HANG;
+                    // Ignore warnings if output is available
+                    sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                    mdprintf(stderr, "ENC synced : %d\n", sts);
+
+                    break;
                 }
-                MSDK_BREAK_ON_ERROR(sts);
-                mdprintf(stderr, "synced : %d\n", sts);
-            }
+                else
+                {
+                    // Break if error
+                    MSDK_BREAK_ON_ERROR(sts);
 
-            // Prepare PAK-object from streamout buffer if requested
-            if (i == 0 && m_pAppConfig->bDECODESTREAMOUT && m_pAppConfig->bOnlyPAK)
-            {
-                sts = PakOneStreamoutFrame(eTask, m_pAppConfig->QP, m_inputTasks);
-                MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
-            }
+                    if (m_SyncPoint)
+                    {
+                        sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                        mdprintf(stderr, "ENC synced : %d\n", sts);
+                    }
 
-            if (m_pmfxPAK)
+                    break;
+                }
+            } // for(;;)
+        } // if (m_pmfxENC)
+        MSDK_BREAK_ON_ERROR(sts);
+
+        // Prepare PAK-object from streamout buffer if requested
+        if (i == 0 && m_pAppConfig->bDECODESTREAMOUT && m_pAppConfig->bOnlyPAK)
+        {
+            sts = PakOneStreamoutFrame(eTask, m_pAppConfig->QP, m_inputTasks);
+            MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
+        }
+
+        if (m_pmfxPAK)
+        {
+            // Attach extension buffers for current field
+            std::vector<mfxExtBuffer *> * in_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::PAK, i, true);
+            MSDK_CHECK_POINTER(in_buffers, MFX_ERR_NULL_PTR);
+
+
+            eTask->PAK_in.NumExtParam = mfxU16(in_buffers->size());
+            eTask->PAK_in.ExtParam    = !in_buffers->empty() ? in_buffers->data() : NULL;
+
+
+            // Frame packing goes below
+            for (;;)
             {
                 sts = m_pmfxPAK->ProcessFrameAsync(&eTask->PAK_in, &eTask->PAK_out, &m_SyncPoint);
-                if (sts == MFX_ERR_GPU_HANG)
-                {
-                    return MFX_ERR_GPU_HANG;
-                }
-                MSDK_BREAK_ON_ERROR(sts);
+                MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
 
-                sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                if (sts == MFX_ERR_GPU_HANG)
+                if (MFX_ERR_NONE < sts && !m_SyncPoint)
                 {
-                    return MFX_ERR_GPU_HANG;
-                }
-                MSDK_BREAK_ON_ERROR(sts);
-                mdprintf(stderr, "synced : %d\n", sts);
-            }
-        }
+                    // Repeat the call if warning and no output
 
-        if (MFX_ERR_NONE < sts && !m_SyncPoint) // repeat the call if warning and no output
-        {
-            if (MFX_WRN_DEVICE_BUSY == sts){
-                WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-            }
-        }
-        else if (MFX_ERR_NONE < sts && m_SyncPoint)
-        {
-            sts = MFX_ERR_NONE; // ignore warnings if output is available
-            break;
-        }
-        else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
-        {
-            sts = AllocateSufficientBuffer();
-            MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
-        }
-        else
-        {
-            break;
-        }
-    }
+                    if (MFX_WRN_DEVICE_BUSY == sts){
+                        WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+                    }
+                }
+                else if (MFX_ERR_NONE < sts && m_SyncPoint)
+                {
+                    // Ignore warnings if output is available
+                    sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                    mdprintf(stderr, "PAK synced : %d\n", sts);
+
+                    break;
+                }
+                else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
+                {
+                    sts = AllocateSufficientBuffer();
+                    MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
+                }
+                else
+                {
+                    // Break if error
+                    MSDK_BREAK_ON_ERROR(sts);
+
+                    if (m_SyncPoint)
+                    {
+                        sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                        mdprintf(stderr, "PAK synced : %d\n", sts);
+                    }
+
+                    break;
+                }
+            } // for(;;)
+            MSDK_BREAK_ON_ERROR(sts);
+        } // if (m_pmfxPAK)
+
+    } // for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
     MSDK_CHECK_STATUS(sts, "FEI ENCPAK failed to encode frame");
 
     if (m_pmfxPAK)
     {
-#ifdef ENABLE_FF
-        eTask->EncodedFrameSize = eTask->PAK_out.Bs->DataLength; //save frame size for BRC
-#endif
         sts = m_FileWriter.WriteNextFrame(&m_mfxBS);
         MSDK_CHECK_STATUS(sts, "FEI ENCODE: WriteNextFrame failed");
     }
@@ -1084,14 +1032,15 @@ mfxStatus FEI_EncPakInterface::FlushOutput(iTask* eTask)
     MSDK_CHECK_POINTER(eTask, MFX_ERR_NULL_PTR);
 
     int mvBufId = 0;
-    for (int i = 0; i < eTask->ENC_out.NumExtParam; i++)
+    for (std::vector<mfxExtBuffer*>::iterator it = eTask->bufs->PB_bufs.out.buffers.begin();
+        it != eTask->bufs->PB_bufs.out.buffers.end(); ++it)
     {
-        switch (eTask->ENC_out.ExtParam[i]->BufferId)
+        switch ((*it)->BufferId)
         {
         case MFX_EXTBUFF_FEI_ENC_MV:
             if (m_pMV_out)
             {
-                mfxExtFeiEncMV* mvBuf = reinterpret_cast<mfxExtFeiEncMV*>(eTask->ENC_out.ExtParam[i]);
+                mfxExtFeiEncMV* mvBuf = reinterpret_cast<mfxExtFeiEncMV*>(*it);
 
                 if (!(ExtractFrameType(*eTask, mvBufId) & MFX_FRAMETYPE_I)){
                     SAFE_FWRITE(mvBuf->MB, sizeof(mvBuf->MB[0])*mvBuf->NumMBAlloc, 1, m_pMV_out, MFX_ERR_MORE_DATA);
@@ -1109,19 +1058,19 @@ mfxStatus FEI_EncPakInterface::FlushOutput(iTask* eTask)
 
         case MFX_EXTBUFF_FEI_ENC_MB_STAT:
             if (m_pMBstat_out){
-                mfxExtFeiEncMBStat* mbstatBuf = reinterpret_cast<mfxExtFeiEncMBStat*>(eTask->ENC_out.ExtParam[i]);
+                mfxExtFeiEncMBStat* mbstatBuf = reinterpret_cast<mfxExtFeiEncMBStat*>(*it);
                 SAFE_FWRITE(mbstatBuf->MB, sizeof(mbstatBuf->MB[0])*mbstatBuf->NumMBAlloc, 1, m_pMBstat_out, MFX_ERR_MORE_DATA);
             }
             break;
 
         case MFX_EXTBUFF_FEI_PAK_CTRL:
             if (m_pMBcode_out){
-                mfxExtFeiPakMBCtrl* mbcodeBuf = reinterpret_cast<mfxExtFeiPakMBCtrl*>(eTask->ENC_out.ExtParam[i]);
+                mfxExtFeiPakMBCtrl* mbcodeBuf = reinterpret_cast<mfxExtFeiPakMBCtrl*>(*it);
                 SAFE_FWRITE(mbcodeBuf->MB, sizeof(mbcodeBuf->MB[0])*mbcodeBuf->NumMBAlloc, 1, m_pMBcode_out, MFX_ERR_MORE_DATA);
             }
             break;
-        } // switch (eTask->out.ExtParam[i]->BufferId)
-    } // for(int i=0; i<eTask->out.NumExtParam; i++)
+        } // switch ((*it)->BufferId)
+    } // for(iterator it = PB_bufs.out.buffers.begin(); it != PB_bufs.out.buffers.end(); ++it)
 
     return MFX_ERR_NONE;
 }

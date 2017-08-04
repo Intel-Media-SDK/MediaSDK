@@ -115,7 +115,7 @@ enum LibVABackend
 #define MSDK_CHECK_STATUS_SAFE(X, FUNC, ADD)     {if ((X) < MFX_ERR_NONE) {ADD; MSDK_PRINT_RET_MSG(X, FUNC); return X;}}
 #define MSDK_IGNORE_MFX_STS(P, X)                {if ((X) == (P)) {P = MFX_ERR_NONE;}}
 #define MSDK_CHECK_POINTER(P, ...)               {if (!(P)) {msdk_stringstream tmpStr4;tmpStr4<<MSDK_STRING(#P)<<MSDK_STRING(" pointer is NULL");MSDK_PRINT_RET_MSG(MFX_ERR_NULL_PTR, tmpStr4.str().c_str());return __VA_ARGS__;}}
-#define MSDK_CHECK_POINTER_NO_RET(P)             {if (!(P)) {return;}}
+#define MSDK_CHECK_POINTER_NO_RET(P)             {if (!(P)) {msdk_stringstream tmpStr4;tmpStr4<<MSDK_STRING(#P)<<MSDK_STRING(" pointer is NULL");MSDK_PRINT_RET_MSG(MFX_ERR_NULL_PTR, tmpStr4.str().c_str());return;}}
 #define MSDK_CHECK_POINTER_SAFE(P, ERR, ADD)     {if (!(P)) {ADD; return ERR;}}
 #define MSDK_BREAK_ON_ERROR(P)                   {if (MFX_ERR_NONE != (P)) break;}
 #define MSDK_SAFE_DELETE_ARRAY(P)                {if (P) {delete[] P; P = NULL;}}

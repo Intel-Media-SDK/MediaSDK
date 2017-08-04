@@ -23,7 +23,7 @@ project( mediasdk )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set( BUILDER_ROOT "${CMAKE_HOME_DIRECTORY}/lib/builder" )
+set( BUILDER_ROOT "${CMAKE_HOME_DIRECTORY}/builder" )
 
 if( NOT DEFINED CMAKE_MFX_HOME )
   set( CMAKE_MFX_HOME "${CMAKE_HOME_DIRECTORY}/api" )
@@ -51,7 +51,7 @@ else()
   message( STATUS "There is no ConfTargets.cmake" )
 endif()
 
-foreach( dir api contrib lib/_studio samples )
+foreach( dir api contrib _studio samples )
   set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
   create_build()
 endforeach()

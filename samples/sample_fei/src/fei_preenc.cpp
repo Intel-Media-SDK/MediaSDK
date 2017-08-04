@@ -302,7 +302,7 @@ mfxStatus FEI_PreencInterface::FillDSVideoParams()
     m_VppDoNotUse->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP;        // turn off processing amplified (on by default)
     m_DSExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(m_VppDoNotUse));
 
-    m_DSParams.ExtParam    = &m_DSExtParams[0]; // vector is stored linearly in memory
+    m_DSParams.ExtParam    = m_DSExtParams.data();
     m_DSParams.NumExtParam = (mfxU16)m_DSExtParams.size();
 
     return sts;
@@ -515,64 +515,53 @@ mfxStatus FEI_PreencInterface::DownSampleInput(iTask* eTask)
     MSDK_CHECK_POINTER(eTask->PREENC_in.InSurface, MFX_ERR_NULL_PTR);
     MSDK_CHECK_POINTER(eTask->ENC_in.InSurface,    MFX_ERR_NULL_PTR);
 
-
     mfxStatus sts = MFX_ERR_NONE;
 
     // VPP will use this surface as output, so it should be unlocked
     mfxU16 locker = eTask->PREENC_in.InSurface->Data.Locked;
     eTask->PREENC_in.InSurface->Data.Locked = 0;
 
+    // VPP DS goes below
     for (;;)
     {
         sts = m_pmfxDS->RunFrameVPPAsync(eTask->ENC_in.InSurface, eTask->PREENC_in.InSurface, NULL, &m_SyncPoint);
-        if (sts == MFX_ERR_GPU_HANG)
-        {
-            return MFX_ERR_GPU_HANG;
-        }
+        MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
 
-        if (!m_SyncPoint)
+        if (MFX_ERR_NONE < sts && !m_SyncPoint)
         {
+            // Repeat the call if warning and no output
+
             if (MFX_WRN_DEVICE_BUSY == sts){
                 WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
             }
-            else
-                return sts;
         }
-        else if (MFX_ERR_NONE <= sts) {
-            sts = MFX_ERR_NONE; // ignore warnings if output is available
+        else if (MFX_ERR_NONE < sts && m_SyncPoint)
+        {
+            // Ignore warnings if output is available
+            sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+            mdprintf(stderr, "PreENC DS synced : %d\n", sts);
+
             break;
         }
         else
+        {
+            // Break if error
             MSDK_BREAK_ON_ERROR(sts);
-    }
-    MSDK_CHECK_STATUS(sts, "PreENC DownsampleInput failed");
 
-    for (;;)
-    {
-        sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-        if (sts == MFX_ERR_GPU_HANG)
-        {
-            return MFX_ERR_GPU_HANG;
-        }
-
-        if (!m_SyncPoint)
-        {
-            if (MFX_WRN_DEVICE_BUSY == sts){
-                WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+            if (m_SyncPoint)
+            {
+                sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                mdprintf(stderr, "PreENC DS synced : %d\n", sts);
             }
-            else
-                return sts;
-        }
-        else if (MFX_ERR_NONE <= sts) {
-            sts = MFX_ERR_NONE; // ignore warnings if output is available
+
             break;
         }
-        else
-            MSDK_BREAK_ON_ERROR(sts);
     }
 
     // restore locker
     eTask->PREENC_in.InSurface->Data.Locked = locker;
+
+    MSDK_CHECK_STATUS(sts, "PreENC DownsampleInput failed");
 
     return sts;
 }
@@ -602,31 +591,32 @@ mfxStatus FEI_PreencInterface::InitFrameParams(iTask* eTask, iTask* refTask[2][2
     {
         bool is_I_frame = ExtractFrameType(*eTask, fieldId) & MFX_FRAMETYPE_I;
 
+        // Input surfaces are used here even if reconstructed surfaces available.
+        // In this case downsampled surfaces for references are picked from PreENC's cache
         refSurf0[fieldId] = refTask[fieldId][0] ? refTask[fieldId][0]->PREENC_in.InSurface : NULL;
         refSurf1[fieldId] = refTask[fieldId][1] ? refTask[fieldId][1]->PREENC_in.InSurface : NULL;
 
         eTask->PREENC_in.NumFrameL0 = !!refSurf0[fieldId];
         eTask->PREENC_in.NumFrameL1 = !!refSurf1[fieldId];
 
-        //in data
-        eTask->PREENC_in.NumExtParam = is_I_frame ? eTask->preenc_bufs->I_bufs.in.NumExtParam() : eTask->preenc_bufs->PB_bufs.in.NumExtParam();
-        eTask->PREENC_in.ExtParam    = is_I_frame ? eTask->preenc_bufs->I_bufs.in.ExtParam()    : eTask->preenc_bufs->PB_bufs.in.ExtParam();
-        //out data
-        eTask->PREENC_out.NumExtParam = is_I_frame ? eTask->preenc_bufs->I_bufs.out.NumExtParam() : eTask->preenc_bufs->PB_bufs.out.NumExtParam();
-        eTask->PREENC_out.ExtParam    = is_I_frame ? eTask->preenc_bufs->I_bufs.out.ExtParam()    : eTask->preenc_bufs->PB_bufs.out.ExtParam();
+        // Initialize controller for Extension buffers
+        mfxStatus sts = eTask->ExtBuffersController.InitializeController(eTask->preenc_bufs, bufSetController::PREENC, is_I_frame, !eTask->m_fieldPicFlag);
+        MSDK_CHECK_STATUS(sts, "eTask->ExtBuffersController.InitializeController failed");
     }
 
+    // Update extension buffers
     mfxU32 preENCCtrId = 0, pMvPredId = 0;
     mfxU8 type = MFX_FRAMETYPE_UNKNOWN;
     bool ref0_isFrame = !eTask->m_fieldPicFlag, ref1_isFrame = !eTask->m_fieldPicFlag;
 
-    for (int i = 0; i < eTask->PREENC_in.NumExtParam; i++)
+    for (std::vector<mfxExtBuffer*>::iterator it = eTask->preenc_bufs->PB_bufs.in.buffers.begin();
+        it != eTask->preenc_bufs->PB_bufs.in.buffers.end(); ++it)
     {
-        switch (eTask->PREENC_in.ExtParam[i]->BufferId)
+        switch ((*it)->BufferId)
         {
         case MFX_EXTBUFF_FEI_PREENC_CTRL:
         {
-            mfxExtFeiPreEncCtrl* preENCCtr = reinterpret_cast<mfxExtFeiPreEncCtrl*>(eTask->PREENC_in.ExtParam[i]);
+            mfxExtFeiPreEncCtrl* preENCCtr = reinterpret_cast<mfxExtFeiPreEncCtrl*>(*it);
 
             /* Get type of current field */
             type = ExtractFrameType(*eTask, preENCCtrId);
@@ -701,7 +691,7 @@ mfxStatus FEI_PreencInterface::InitFrameParams(iTask* eTask, iTask* refTask[2][2
                 /* Skip MV predictor data for I-fields/frames */
                 if (!(ExtractFrameType(*eTask, pMvPredId) & MFX_FRAMETYPE_I))
                 {
-                    mfxExtFeiPreEncMVPredictors* pMvPredBuf = reinterpret_cast<mfxExtFeiPreEncMVPredictors*>(eTask->PREENC_in.ExtParam[i]);
+                    mfxExtFeiPreEncMVPredictors* pMvPredBuf = reinterpret_cast<mfxExtFeiPreEncMVPredictors*>(*it);
                     SAFE_FREAD(pMvPredBuf->MB, sizeof(pMvPredBuf->MB[0])*pMvPredBuf->NumMBAlloc, 1, m_pMvPred_in, MFX_ERR_MORE_DATA);
                 }
                 else{
@@ -714,8 +704,8 @@ mfxStatus FEI_PreencInterface::InitFrameParams(iTask* eTask, iTask* refTask[2][2
         case MFX_EXTBUFF_FEI_ENC_QP:
             if (m_pMbQP_in)
             {
-                mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(eTask->PREENC_in.ExtParam[i]);
-                SAFE_FREAD(pMbQP->QP, sizeof(pMbQP->QP[0])*pMbQP->NumQPAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+                mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(*it);
+                SAFE_FREAD(pMbQP->MB, sizeof(pMbQP->MB[0])*pMbQP->NumMBAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
             }
             break;
         }
@@ -800,44 +790,66 @@ mfxStatus FEI_PreencInterface::ProcessMultiPreenc(iTask* eTask)
         isDownsamplingNeeded = false;
 
         // Doing PreEnc
-        for (;;)
+        for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
         {
-            for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
+            // Attach extension buffers for current field
+            // (in double-field mode both calls will return equal sets, holding buffers for both fields)
+
+            std::vector<mfxExtBuffer *> * in_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::PREENC, i, true);
+            MSDK_CHECK_POINTER(in_buffers, MFX_ERR_NULL_PTR);
+
+            std::vector<mfxExtBuffer *> * out_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::PREENC, i, false);
+            MSDK_CHECK_POINTER(out_buffers, MFX_ERR_NULL_PTR);
+
+            // Input buffers
+            eTask->PREENC_in.NumExtParam  = mfxU16(in_buffers->size());
+            eTask->PREENC_in.ExtParam     = in_buffers->data();
+
+            // Output buffers
+            eTask->PREENC_out.NumExtParam = mfxU16(out_buffers->size());
+            eTask->PREENC_out.ExtParam    = out_buffers->data();
+
+            // Actual PreENC goes below
+            for (;;)
             {
                 sts = m_pmfxPREENC->ProcessFrameAsync(&eTask->PREENC_in, &eTask->PREENC_out, &m_SyncPoint);
-                if (sts == MFX_ERR_GPU_HANG)
-                {
-                    return MFX_ERR_GPU_HANG;
-                }
-                MSDK_BREAK_ON_ERROR(sts);
+                MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
 
-                /*PRE-ENC is running in separate session */
-                sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                if (sts == MFX_ERR_GPU_HANG)
+                if (MFX_ERR_NONE < sts && !m_SyncPoint)
                 {
-                    return MFX_ERR_GPU_HANG;
-                }
-                MSDK_BREAK_ON_ERROR(sts);
-                mdprintf(stderr, "preenc synced : %d\n", sts);
-            }
+                    // Repeat the call if warning and no output
 
-            if (MFX_ERR_NONE < sts && !m_SyncPoint) // repeat the call if warning and no output
-            {
-                if (MFX_WRN_DEVICE_BUSY == sts)
-                {
-                    WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+                    if (MFX_WRN_DEVICE_BUSY == sts)
+                    {
+                        WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+                    }
                 }
-            }
-            else if (MFX_ERR_NONE < sts && m_SyncPoint)
-            {
-                sts = MFX_ERR_NONE; // ignore warnings if output is available
-                break;
-            }
-            else
-            {
-                break;
-            }
-        }
+                else if (MFX_ERR_NONE < sts && m_SyncPoint)
+                {
+                    // Ignore warnings if output is available
+                    sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                    mdprintf(stderr, "PreENC synced : %d\n", sts);
+
+                    break;
+                }
+                else
+                {
+                    // Break if error
+                    MSDK_BREAK_ON_ERROR(sts);
+
+                    if (m_SyncPoint)
+                    {
+                        sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
+                        mdprintf(stderr, "PreENC synced : %d\n", sts);
+                    }
+
+                    break;
+                }
+            } // for(;;)
+
+            MSDK_BREAK_ON_ERROR(sts);
+
+        } // for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
         MSDK_CHECK_STATUS(sts, "FEI PreENC failed to process frame");
 
         // Store PreEnc output
@@ -1100,6 +1112,8 @@ mfxStatus FEI_PreencInterface::RepackPredictorsPerf(iTask* eTask)
         j = 0;
         for (std::list<PreEncOutput>::iterator it = eTask->preenc_output.begin(); j < nOfPredPairs; ++it, ++j)
         {
+            if (it == eTask->preenc_output.end()) { return MFX_ERR_UNDEFINED_BEHAVIOR; }
+
             mvs_v.push_back(reinterpret_cast<mfxExtFeiPreEncMV*>((*it).output_bufs->PB_bufs.out.getBufById(MFX_EXTBUFF_FEI_PREENC_MV, fieldId)));
             refIdx_v.push_back((*it).refIdx[fieldId]);
         }

@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-//
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -424,18 +424,19 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     if (allocatedHandle.size() == 0)
         return MFX_ERR_UNSUPPORTED;
 
-    bool NeedSort = false;
-    HandleVector::iterator first = allocatedHandle.begin(),
-                           it = allocatedHandle.begin(),
-                           et = allocatedHandle.end();
-    for (it++; it != et; ++it)
-        if (HandleSort(&(*first), &(*it)) != 0)
-            NeedSort = true;
+    { // sort candidate list
+        bool NeedSort = false;
+        HandleVector::iterator first = allocatedHandle.begin(),
+            it = allocatedHandle.begin(),
+            et = allocatedHandle.end();
+        for (it++; it != et; ++it)
+            if (HandleSort(&(*first), &(*it)) != 0)
+                NeedSort = true;
 
-    // select dll with version with lowest version number still greater or equal to requested
-    if (NeedSort)
-        qsort(&(*allocatedHandle.begin()), allocatedHandle.size(), sizeof(MFX_DISP_HANDLE*), &HandleSort);
-
+        // select dll with version with lowest version number still greater or equal to requested
+        if (NeedSort)
+            qsort(&(*allocatedHandle.begin()), allocatedHandle.size(), sizeof(MFX_DISP_HANDLE*), &HandleSort);
+    }
     HandleVector::iterator candidate = allocatedHandle.begin();
     // check the final result of loading
     try 

@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-//
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -546,6 +546,14 @@ enum {
     MFX_SKIPFRAME_BRC_ONLY        = 3,
 };
 
+/* Intra refresh types */
+enum {
+    MFX_REFRESH_NO             = 0,
+    MFX_REFRESH_VERTICAL       = 1,
+    MFX_REFRESH_HORIZONTAL     = 2,
+    MFX_REFRESH_SLICE          = 3
+};
+
 typedef struct {
     mfxExtBuffer Header;
 
@@ -667,7 +675,12 @@ typedef struct {
 
     mfxU16      BRCPanicMode;              /* tri-state option */
 
-    mfxU16      reserved[173];
+    mfxU16      LowDelayBRC;               /* tri-state option */
+    mfxU16      EnableMBForceIntra;        /* tri-state option */
+    mfxU16      AdaptiveMaxFrameSize;      /* tri-state option */
+    mfxU16      RepartitionCheckEnable;    /* tri-state option */
+
+    mfxU16      reserved[169];
 } mfxExtCodingOption3;
 
 /* IntraPredBlockSize/InterPredBlockSize */
@@ -728,10 +741,12 @@ enum {
     MFX_EXTBUFF_ENCODER_ROI                = MFX_MAKEFOURCC('E','R','O','I'),
     MFX_EXTBUFF_VPP_DEINTERLACING          = MFX_MAKEFOURCC('V','P','D','I'),
     MFX_EXTBUFF_AVC_REFLISTS               = MFX_MAKEFOURCC('R','L','T','S'),
+    MFX_EXTBUFF_DEC_VIDEO_PROCESSING       = MFX_MAKEFOURCC('D','E','C','V'),
     MFX_EXTBUFF_VPP_FIELD_PROCESSING       = MFX_MAKEFOURCC('F','P','R','O'),
     MFX_EXTBUFF_CODING_OPTION3             = MFX_MAKEFOURCC('C','D','O','3'),
     MFX_EXTBUFF_CHROMA_LOC_INFO            = MFX_MAKEFOURCC('C','L','I','N'),
     MFX_EXTBUFF_MBQP                       = MFX_MAKEFOURCC('M','B','Q','P'),
+    MFX_EXTBUFF_MB_FORCE_INTRA             = MFX_MAKEFOURCC('M','B','F','I'),
     MFX_EXTBUFF_HEVC_TILES                 = MFX_MAKEFOURCC('2','6','5','T'),
     MFX_EXTBUFF_MB_DISABLE_SKIP_MAP        = MFX_MAKEFOURCC('M','D','S','M'),
     MFX_EXTBUFF_HEVC_PARAM                 = MFX_MAKEFOURCC('2','6','5','P'),
@@ -1177,19 +1192,28 @@ typedef struct {
     };
 } mfxExtVPPVideoSignalInfo;
 
+/* ROI encoding mode */
+enum {
+    MFX_ROI_MODE_PRIORITY =  0,
+    MFX_ROI_MODE_QP_DELTA =  1
+};
+
 typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16  NumROI;
-    mfxU16  reserved1[11];
+    mfxU16  ROIMode;
+    mfxU16  reserved1[10];
 
     struct  {
         mfxU32  Left;
         mfxU32  Top;
         mfxU32  Right;
         mfxU32  Bottom;
-
-        mfxI16  Priority;
+        union {
+            mfxI16  Priority;
+            mfxI16  DeltaQP;
+        };
         mfxU16  reserved2[7];
     } ROI[256];
 } mfxExtEncoderROI;
@@ -1266,6 +1290,35 @@ typedef struct {
 } mfxExtVPPFieldProcessing;
 
 typedef struct {
+    mfxExtBuffer    Header;
+
+    struct mfxIn {
+        mfxU16  CropX;
+        mfxU16  CropY;
+        mfxU16  CropW;
+        mfxU16  CropH;
+        mfxU16  reserved[12];
+    } In;
+
+    struct mfxOut {
+        mfxU32  FourCC;
+        mfxU16  ChromaFormat;
+        mfxU16  reserved1;
+
+        mfxU16  Width;
+        mfxU16  Height;
+
+        mfxU16  CropX;
+        mfxU16  CropY;
+        mfxU16  CropW;
+        mfxU16  CropH;
+        mfxU16  reserved[22];
+    } Out;
+
+    mfxU16  reserved[13];
+} mfxExtDecVideoProcessing;
+
+typedef struct {
     mfxExtBuffer Header;
 
     mfxU16       ChromaLocInfoPresentFlag;
@@ -1284,6 +1337,17 @@ typedef struct {
         mfxU64 reserved2;
     };
 } mfxExtMBQP;
+
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU32 reserved[11];
+    mfxU32 MapSize;
+    union {
+        mfxU8  *Map;
+        mfxU64  reserved2;
+    };
+} mfxExtMBForceIntra;
 
 typedef struct {
     mfxExtBuffer Header;

@@ -47,9 +47,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "v4l2_util.h"
 #endif
 
-#ifdef ENABLE_FF
-#include "brc_routines.h"
-#endif
 
 msdk_tick time_get_tick(void);
 msdk_tick time_get_frequency(void);
@@ -118,6 +115,9 @@ struct sInputParams
     mfxU16 nGPB;
     mfxU16 nExtBRC;
 
+    mfxU16 WeightedPred;
+    mfxU16 WeightedBiPred;
+
     mfxU16 TransferMatrix;
 
     bool enableQSVFF;
@@ -137,6 +137,8 @@ struct sInputParams
     mfxU16 InitialDelayInKB;
     mfxU16 GopOptFlag;
     mfxU32 nMaxFrameSize;
+
+    mfxU16 LowDelayBRC;
 
     bool bUncut;
     bool shouldUseShiftedP010Enc;
@@ -267,9 +269,6 @@ protected:
     // Set up video signal information
     mfxExtVideoSignalInfo m_VideoSignalInfo;
 
-#ifdef ENABLE_FF
-    mfxExtBRC           m_ExtBRC;
-#endif
 
     // external parameters for each component are stored in a vector
     std::vector<mfxExtBuffer*> m_VppExtParams;
@@ -320,6 +319,8 @@ protected:
     virtual mfxStatus GetFreeTask(sTask **ppTask);
     virtual MFXVideoSession& GetFirstSession(){return m_mfxSession;}
     virtual MFXVideoENCODE* GetFirstEncoder(){return m_pmfxENC;}
+
+    virtual mfxU32 FileFourCC2EncFourCC(mfxU32 fcc);
 };
 
 #endif // __PIPELINE_ENCODE_H__

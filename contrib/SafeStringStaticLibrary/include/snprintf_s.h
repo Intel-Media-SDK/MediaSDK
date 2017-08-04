@@ -36,7 +36,10 @@
 
 #define SNPRFNEGATE(x) (-1*(x))
 
-
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
 
 extern int snprintf_s_i(char *dest, rsize_t dmax, const char *format, int a);
 extern int snprintf_s_si(char *dest, rsize_t dmax, const char *format, char *s, int a);
@@ -44,6 +47,8 @@ extern int snprintf_s_l(char *dest, rsize_t dmax, const char *format, long a);
 extern int snprintf_s_sl(char *dest, rsize_t dmax, const char *format, char *s, long a);
 extern int snprintf_s_ss(char *dest, rsize_t dmax, const char *format, const char *s1, const char *s2);
 
-
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* SPRINTF_S_H_ */

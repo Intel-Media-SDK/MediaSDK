@@ -196,7 +196,14 @@ private:
 class CVAAPIDeviceAndroid : public CHWDevice
 {
 public:
-    CVAAPIDeviceAndroid(void) {};
+    CVAAPIDeviceAndroid(AndroidLibVA *pAndroidLibVA):
+        m_pAndroidLibVA(pAndroidLibVA)
+        {
+            if (!m_pAndroidLibVA)
+            {
+                throw std::bad_alloc();
+            }
+        };
     virtual ~CVAAPIDeviceAndroid(void)  { Close();}
 
     virtual mfxStatus Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapterNum) { return MFX_ERR_NONE;}
@@ -208,8 +215,7 @@ public:
     {
         if ((MFX_HANDLE_VA_DISPLAY == type) && (NULL != pHdl))
         {
-            *pHdl = m_AndroidLibVA.GetVADisplay();
-
+            if(m_pAndroidLibVA)*pHdl = m_pAndroidLibVA->GetVADisplay();
             return MFX_ERR_NONE;
         }
 
@@ -218,9 +224,10 @@ public:
 
     virtual mfxStatus RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllocator * pmfxAlloc) { return MFX_ERR_NONE; }
     virtual void      UpdateTitle(double fps) { }
+    virtual void      SetMondelloInput(bool isMondelloInputEnabled) { }
 
 protected:
-    AndroidLibVA m_AndroidLibVA;
+    AndroidLibVA* m_pAndroidLibVA;
 };
 #endif
 #endif //#if defined(LIBVA_DRM_SUPPORT) || defined(LIBVA_X11_SUPPORT) || defined(LIBVA_ANDROID_SUPPORT)
