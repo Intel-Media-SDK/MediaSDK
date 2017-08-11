@@ -2472,6 +2472,331 @@ void MfxHwH264Encode::AnalyzeVmeData(DdiTaskIter begin, DdiTaskIter end, mfxU32 
         begin->m_vmeData->propCost += begin->m_vmeData->mb[i].propCost;
 }
 
+namespace FadeDetectionHistLSE
+{
+    mfxU16 GetSegments(
+        mfxU32 const * Hist,
+        mfxU16 SDiv,
+        mfxU16 const * SMult,
+        mfxU16 * Segment,
+        mfxU16 NumSegments,
+        mfxU16 range,
+        mfxU32 * SumPixels = 0)
+    {
+        mfxU16 i, j, PeakPos = 0;
+        mfxU32 N = 0, curr = 0, prev = 0, target;
+
+        for (i = 0; i < range; i++)
+        {
+            N += Hist[i];
+
+            if (Hist[i] > Hist[PeakPos])
+                PeakPos = i;
+        }
+
+        for (i = 0; i < range; i++)
+        {
+            curr += Hist[i];
+
+            for (j = 0; j < NumSegments; j++)
+            {
+                target = N * SMult[j] / SDiv;
+
+                if (prev < target && curr >= target)
+                    Segment[j] = i;
+            }
+            prev = curr;
+        }
+
+        if (SumPixels)
+            *SumPixels = N;
+
+        return PeakPos;
+    }
+
+    void TransformHist(
+        mfxU32 const * refHist,
+        mfxU32 * transHist,
+        mfxI16 weight,
+        mfxI16 offset,
+        mfxU16 logWDc,
+        mfxU16 range)
+    {
+        mfxI32 fract, add0, add1;
+        mfxI16 i, map0, map1;
+
+        for (i = 0; i < range; i++)
+        {
+            fract = (i * weight) & ((1 << logWDc) - 1);
+            add1 = (refHist[i] * fract) >> logWDc;
+            add0 = refHist[i] - add1;
+            map0 = ((i * weight) >> logWDc) + offset;
+            map1 = map0 + 1;
+
+            if (map0 >= 0 && map0 < range)
+                transHist[map0] += add0;
+
+            if (map1 >= 0 && map1 < range)
+                transHist[map1] += add1;
+        }
+    }
+
+    mfxF64 HistDiffThrCoeff(mfxF64 CheckRange)
+    {
+        if (CheckRange <  20) return 10;
+        if (CheckRange <  30) return 8.5;
+        if (CheckRange <  40) return 8;
+        if (CheckRange <  50) return 7.5;
+        if (CheckRange <  60) return 7;
+        if (CheckRange <  70) return 6.5;
+        if (CheckRange <  80) return 6;
+        if (CheckRange <  90) return 5.5;
+        if (CheckRange < 100) return 5;
+        return 4.5;
+    }
+
+    void CalcWeight(
+        mfxU32 const * curHist,
+        mfxU32 const * refHist,
+        mfxU32 list,
+        mfxU32 idx,
+        mfxExtPredWeightTable & pwt)
+    {
+        const mfxU16 range = 256;
+        const mfxU16 cmpHistOffset = 10;
+        const mfxU16 cmpHistRange = range - cmpHistOffset - 16;
+        const mfxU16 numSegments = 8;
+        const mfxU16 SegmentMultiplier[numSegments] = { 2, 4, 6, 7, 8, 10, 12, 14 };
+        const mfxU16 SegmentDivider = 16;
+        const mfxU16 logWDc = 6;
+        const mfxU16 rounding = (1 << (logWDc - 1));
+        const mfxI16 maxWO = 127;
+
+        if (idx > 31)
+            return;
+
+        list = !!list;
+
+        pwt.LumaLog2WeightDenom = logWDc;
+        pwt.ChromaLog2WeightDenom = 0;
+
+        pwt.Weights[list][idx][0][0] = (1 << logWDc);
+        pwt.Weights[list][idx][0][1] = 0;
+        pwt.Weights[list][idx][1][0] = 0;
+        pwt.Weights[list][idx][1][1] = 0;
+        pwt.Weights[list][idx][2][0] = 0;
+        pwt.Weights[list][idx][2][1] = 0;
+
+        if (!curHist || !refHist)
+            return;
+
+        mfxU16 x[numSegments] = {};
+        mfxU16 y[numSegments] = {};
+        mfxI16 CurPeakPos = 0, RefPeakPos = 0, TransformedPeakPos = 0;
+        mfxI32 sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+        mfxU32 CheckRange = 0, VarSampleDiff = 0;
+        mfxI32 AveSampleDiff = 0;
+        mfxU32 HistBuff[range] = {};
+        mfxU32(&ScaledHist)[range] = HistBuff;
+        mfxI16 Weight = 0, Offset = 0;
+        mfxU32 HistDiffThr = 0;
+        mfxU32 NumSamples = 0, NumSamplesRef = 0;
+        mfxU32 sumClosedPixelsDiff = 0, numClosedPixels = 0;
+        bool   stopCountClosedPixels = false;
+        mfxU32 sumPixelHistDiff0 = 0, sumPixelHistDiff1 = 0, sumPixelHistDiff2 = 0;
+        mfxI32 maxPixelHistDiff0 = 0, maxPixelHistDiff1 = 0, maxPixelHistDiff2 = 0;
+        mfxU32 AveDiff = 0;
+        mfxU32 const * cmpHist;
+
+        RefPeakPos = GetSegments(refHist, SegmentDivider, SegmentMultiplier, x, numSegments, range, &NumSamplesRef);
+        CurPeakPos = GetSegments(curHist, SegmentDivider, SegmentMultiplier, y, numSegments, range, &NumSamples);
+
+        if (NumSamples == 0 || NumSamples != NumSamplesRef)
+            return; // invalid or incomparable histograms
+
+        for (mfxU16 i = 0; i < numSegments; i++)
+        {
+            sx += x[i];
+            sy += y[i];
+            sxx += x[i] * x[i];
+            syy += y[i] * y[i];
+            sxy += x[i] * y[i];
+
+            mfxI32 diff = y[i] - x[i];
+
+            AveSampleDiff += diff;
+            VarSampleDiff += diff * diff;
+
+            if (!stopCountClosedPixels)
+            {
+                if (abs(diff) <= 1)
+                {
+                    sumClosedPixelsDiff += abs(diff);
+                    numClosedPixels++;
+                }
+                else
+                    stopCountClosedPixels = true;
+            }
+        }
+
+        VarSampleDiff = (VarSampleDiff * numSegments - AveSampleDiff * AveSampleDiff) / (numSegments * numSegments);
+        AveSampleDiff = AveSampleDiff > 0 ? ((AveSampleDiff + numSegments / 2) / numSegments) : -((abs(AveSampleDiff) + numSegments / 2) / numSegments);
+        CheckRange = y[numSegments - 1] - y[0];
+
+        Weight = mfxI16(((sxy - ((sx * sy + numSegments / 2) / numSegments)) << logWDc) / MFX_MAX(1, (sxx - ((sx * sx + numSegments / 2) / numSegments))));
+        Offset = mfxI16(sy - ((Weight * sx + rounding) >> logWDc));
+        Offset = (Offset + (Offset > 0 ? numSegments / 2 : -numSegments / 2)) / numSegments;
+
+        if (abs(Weight) < 4)
+            return;
+
+        if (abs(Weight) <= (1 << logWDc))
+        {
+            TransformHist(refHist, ScaledHist, Weight, Offset, logWDc, range);
+            cmpHist = curHist;
+        }
+        else
+        {
+            mfxI16 Weight1 = mfxI16(((sxy - ((sx * sy + numSegments / 2) / numSegments)) << logWDc) / MFX_MAX(1, (syy - ((sy * sy + numSegments / 2) / numSegments))));
+            mfxI16 Offset1 = mfxI16(sx - ((Weight1 * sy + rounding) >> logWDc));
+            Offset1 = (Offset1 + (Offset1 > 0 ? numSegments / 2 : -numSegments / 2)) / numSegments;
+
+            if (abs(Weight1) < 4)
+                return;
+
+            TransformHist(curHist, ScaledHist, Weight1, Offset1, logWDc, range);
+            cmpHist = refHist;
+        }
+
+        for (mfxI32 i = cmpHistOffset, j, diff; i < (cmpHistOffset + cmpHistRange); i++)
+        {
+            j = i + AveSampleDiff;
+            if (j > 0 && j < range)
+            {
+                diff = (mfxI32)curHist[j] - (mfxI32)refHist[i];
+                sumPixelHistDiff0 += abs(diff);
+                if (abs(diff) > maxPixelHistDiff0)
+                    maxPixelHistDiff0 = abs(diff);
+            }
+
+            diff = (mfxI32)cmpHist[i] - (mfxI32)ScaledHist[i];
+            sumPixelHistDiff1 += abs(diff);
+            if (abs(diff) > maxPixelHistDiff1)
+                maxPixelHistDiff1 = abs(diff);
+
+            diff = (mfxI32)curHist[i] - (mfxI32)refHist[i];
+            sumPixelHistDiff2 += abs(diff);
+            if (abs(diff) > maxPixelHistDiff2)
+                maxPixelHistDiff2 = abs(diff);
+        }
+
+        if (sumPixelHistDiff0 <= sumPixelHistDiff1 || abs(Weight) > maxWO || abs(Offset) > maxWO)
+        {
+            sumPixelHistDiff1 = sumPixelHistDiff0;
+            maxPixelHistDiff1 = maxPixelHistDiff0;
+            Weight = (1 << logWDc);
+            Offset = mfxI16(AveSampleDiff);
+        }
+
+        if (sumPixelHistDiff2 < sumPixelHistDiff1)
+        {
+            sumPixelHistDiff1 = sumPixelHistDiff2;
+            maxPixelHistDiff1 = maxPixelHistDiff2;
+            Weight = (1 << logWDc);
+            Offset = 0;
+        }
+
+        mfxI32 maxdiff = 0, orgmaxdiff = 0, transformedClosedPixelsDiff = 0, transformMaxDiff = 0;
+        mfxI32 sumdiff = 0;
+
+        for (mfxU16 i = 0; i < numSegments; i++)
+        {
+            mfxI16 transformedClosedPixel = (((x[i] * Weight + rounding) >> logWDc) + Offset);
+
+            transformedClosedPixel = MFX_MAX(0, MFX_MIN(range - 1, transformedClosedPixel));
+
+            if (i < numClosedPixels)
+            {
+                transformedClosedPixelsDiff += abs(y[i] - transformedClosedPixel);
+
+                if (transformMaxDiff < abs(y[i] - transformedClosedPixel))
+                    transformMaxDiff = abs(y[i] - transformedClosedPixel);
+            }
+
+            if (maxdiff < abs(y[i] - transformedClosedPixel))
+                maxdiff = abs(y[i] - transformedClosedPixel);
+
+            sumdiff += abs(y[i] - transformedClosedPixel);
+        }
+
+        pwt.LumaWeightFlag[list][idx] = 1;
+
+        HistDiffThr = mfxU32(HistDiffThrCoeff(CheckRange) * NumSamples / 16);
+        TransformedPeakPos = ((RefPeakPos * Weight + rounding) >> logWDc) + Offset;
+        AveDiff = (sumdiff) / numSegments;
+
+        if (    sumPixelHistDiff1 > HistDiffThr
+            || (Weight == (1 << logWDc) && Offset == 0)
+            || (abs(Weight) > maxWO || abs(Offset) > maxWO)
+            || ((CheckRange > 35) && abs(AveSampleDiff) <= 1 && VarSampleDiff <= 1)
+            || ((CheckRange > 35) && Weight != (1 << logWDc) && abs(AveSampleDiff) <= 1 && VarSampleDiff == 0)
+            || ((CheckRange > 25) && abs(RefPeakPos - CurPeakPos) <= 1 && abs(TransformedPeakPos - CurPeakPos) > abs(RefPeakPos - CurPeakPos) + 2)
+            || (numClosedPixels >= (numSegments / 2) && (CheckRange > 35) && (transformedClosedPixelsDiff - sumClosedPixelsDiff > 2 || transformMaxDiff >= 2))
+            || (Weight == (1 << logWDc) && ((abs(AveSampleDiff) <= 2 && AveDiff > 1) || (AveDiff * AveDiff) > MFX_MAX(1, VarSampleDiff / 2)))
+            || (Weight != (1 << logWDc) && (maxdiff > 3 * abs(AveSampleDiff) || sumdiff >= 8 * abs(AveSampleDiff))))
+        {
+            pwt.LumaWeightFlag[list][idx] = 0;
+        }
+
+
+        if (pwt.LumaWeightFlag[list][idx])
+        {
+            bool fwFadeDetected = true, bwFadeDetected = true;
+
+            for (mfxI16 i = 0; i < numSegments; i++)
+            {
+                mfxI16 curdiff = y[i] - x[i];
+
+                if (i != 0)
+                {
+                    if (   (orgmaxdiff * curdiff < 0)
+                        || (abs(orgmaxdiff) - abs(curdiff) > (abs(AveSampleDiff) > 15 ? 4 : 1)))
+                    {
+                        fwFadeDetected = false;
+                    }
+                }
+                if (abs(orgmaxdiff) < abs(curdiff))
+                    orgmaxdiff = curdiff;
+            }
+
+            orgmaxdiff = 0;
+
+            for (mfxI16 i = numSegments - 1; i >= 0; i--)
+            {
+                mfxI16 curdiff = y[i] - x[i];
+
+                if (i != numSegments - 1)
+                {
+                    if (   (orgmaxdiff * curdiff < 0)
+                        || (abs(orgmaxdiff) - abs(curdiff) > (abs(AveSampleDiff) > 15 ? 4 : 1)))
+                    {
+                        bwFadeDetected = false;
+                    }
+                }
+                if (abs(orgmaxdiff) < abs(curdiff))
+                    orgmaxdiff = curdiff;
+            }
+
+            pwt.LumaWeightFlag[list][idx] = mfxU16(fwFadeDetected | bwFadeDetected);
+        }
+
+        if (pwt.LumaWeightFlag[list][idx])
+        {
+            pwt.Weights[list][idx][0][0] = Weight;
+            pwt.Weights[list][idx][0][1] = Offset;
+        }
+    }
+};
 
 
 void MfxHwH264Encode::CalcPredWeightTable(
@@ -2480,6 +2805,8 @@ void MfxHwH264Encode::CalcPredWeightTable(
     mfxU32 MaxNum_WeightedPredL1)
 {
     //MaxNum_WeightedPredL0 = MaxNum_WeightedPredL1 = 1;
+    mfxU32* curHist = (mfxU32*)task.m_cmHistSys;
+    mfxU32* refHist = 0;
     mfxU32 MaxWPLX[2] = { MaxNum_WeightedPredL0, MaxNum_WeightedPredL1 };
 
     //if (curHist)
@@ -2501,6 +2828,33 @@ void MfxHwH264Encode::CalcPredWeightTable(
 
         //fprintf(stderr, "FO: %04d POC %04d:\n", task.m_frameOrder, task.GetPoc()[fid]); fflush(stderr);
 
+        for (mfxU32 l = 0; l < 2; l++)
+        {
+            Pair<ArrayU8x33> const & ListX = l ? task.m_list1 : task.m_list0;
+
+            for (mfxU32 i = 0; i < ListX[fid].Size() && i < MaxWPLX[l] && fade; i++)
+            {
+                mfxU8 refIdx = (ListX[fid][i] & 0x7F);
+                mfxU8 refField = (ListX[fid][i] >> 7);
+
+                refHist = (mfxU32*)task.m_dpb[fid][refIdx].m_cmHistSys;
+
+                FadeDetectionHistLSE::CalcWeight(
+                    curHist ? curHist + 256 * fid : 0,
+                    refHist ? refHist + 256 * refField : 0,
+                    l,
+                    i,
+                    task.m_pwt[fid]);
+
+               //fprintf(stderr, "%04d[%d] vs. %04d[%d] ", task.m_frameOrder, fid, task.m_dpb[fid][refIdx].m_frameOrder, (mfxU32)refField); fflush(stderr);
+               //fprintf(stderr, "LWF: %d W: %4d O: %4d\n",
+               //    task.m_pwt[fid].LumaWeightFlag[l][i],
+               //    task.m_pwt[fid].Weights[l][i][0][0],
+               //    task.m_pwt[fid].Weights[l][i][0][1]); fflush(stderr);
+
+                fade &= !!task.m_pwt[fid].LumaWeightFlag[l][i];
+            }
+        }
 
         if (!fade)
         {

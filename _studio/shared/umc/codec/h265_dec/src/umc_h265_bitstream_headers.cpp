@@ -1030,11 +1030,11 @@ void H265HeadersBitstream::GetPictureParamSetPart1(H265PicParamSet *pcPPS)
 
     pcPPS->pps_pic_parameter_set_id = GetVLCElementU();
     if (pcPPS->pps_pic_parameter_set_id > 63)
-        throw h265_exception(UMC::UMC_ERR_NULL_PTR);
+        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
     pcPPS->pps_seq_parameter_set_id = GetVLCElementU();
     if (pcPPS->pps_seq_parameter_set_id > 15)
-        throw h265_exception(UMC::UMC_ERR_NULL_PTR);
+        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 }
 
 UMC::Status H265HeadersBitstream::GetPictureParamSetFull(H265PicParamSet  *pcPPS, H265SeqParamSet const* pcSPS)

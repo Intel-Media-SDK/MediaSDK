@@ -246,6 +246,11 @@ mfxStatus SetSkipFrame(
         mfxU32 m_height;
         ENCODE_CAPS_HEVC m_caps;
 
+        std::vector<mfxI8>                m_cuqp_buffer;
+        mfxU32                            m_cuqp_width;
+        mfxU32                            m_cuqp_height;
+        mfxU32                            m_cuqp_pitch;
+        mfxU32                            m_cuqp_h_aligned;
         std::vector<VAEncROI> m_arrayVAEncROI;
 
         static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 26 + 5;
