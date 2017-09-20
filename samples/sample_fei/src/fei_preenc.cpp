@@ -525,7 +525,7 @@ mfxStatus FEI_PreencInterface::DownSampleInput(iTask* eTask)
     for (;;)
     {
         sts = m_pmfxDS->RunFrameVPPAsync(eTask->ENC_in.InSurface, eTask->PREENC_in.InSurface, NULL, &m_SyncPoint);
-        MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
+        MSDK_CHECK_WRN(sts, "WRN during RunFrameVPPAsync");
 
         if (MFX_ERR_NONE < sts && !m_SyncPoint)
         {
@@ -813,7 +813,7 @@ mfxStatus FEI_PreencInterface::ProcessMultiPreenc(iTask* eTask)
             for (;;)
             {
                 sts = m_pmfxPREENC->ProcessFrameAsync(&eTask->PREENC_in, &eTask->PREENC_out, &m_SyncPoint);
-                MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
+                MSDK_CHECK_WRN(sts, "WRN during ProcessFrameAsync");
 
                 if (MFX_ERR_NONE < sts && !m_SyncPoint)
                 {

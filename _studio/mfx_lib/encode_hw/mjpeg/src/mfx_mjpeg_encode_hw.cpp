@@ -706,7 +706,6 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
     request.Info.Height = MFX_MAX(request.Info.Height, m_vParam.mfx.FrameInfo.Height * doubleBytesPerPx / 2);
 
     sts = m_bitstream.Alloc(m_pCore, request);
-
     MFX_CHECK(
         sts == MFX_ERR_NONE &&
         m_bitstream.NumFrameActual >= request.NumFrameMin,
@@ -836,7 +835,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Close(void)
 {
     mfxStatus sts = m_TaskManager.Close();
     MFX_CHECK_STS(sts);
-    
+
     m_bitstream.Free();
 
     if (m_raw.NumFrameActual != 0)

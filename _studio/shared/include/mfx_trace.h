@@ -21,7 +21,6 @@
 #ifndef __MFX_TRACE_H__
 #define __MFX_TRACE_H__
 
-
 #ifndef MFX_TRACE_DISABLE
 // Uncomment one or several lines below to enable tracing
 
@@ -54,7 +53,6 @@
 
 typedef unsigned int mfxTraceU32;
 typedef __UINT64 mfxTraceU64;
-
 
 /*------------------------------------------------------------------------------*/
 // C section
@@ -385,6 +383,7 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 // C++ section
 
 #ifdef __cplusplus
+
 
 #ifdef MFX_TRACE_ENABLE
 // C++ class for BeginTask/EndTask

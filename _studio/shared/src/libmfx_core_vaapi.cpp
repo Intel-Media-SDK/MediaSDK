@@ -219,6 +219,33 @@ typedef struct {
     { 0x5A84, MFX_HW_APL},
     { 0x5A85, MFX_HW_APL},
 
+    /* KBL */
+    { 0x5902, MFX_HW_KBL}, // DT GT1
+    { 0x5906, MFX_HW_KBL}, // ULT GT1
+    { 0x5908, MFX_HW_KBL}, // HALO GT1F
+    { 0x590A, MFX_HW_KBL}, // SERV GT1
+    { 0x590B, MFX_HW_KBL}, // HALO GT1
+    { 0x590E, MFX_HW_KBL}, // ULX GT1
+    { 0x5912, MFX_HW_KBL}, // DT GT2
+    { 0x5913, MFX_HW_KBL}, // ULT GT1 5
+    { 0x5915, MFX_HW_KBL}, // ULX GT1 5
+    { 0x5916, MFX_HW_KBL}, // ULT GT2
+    { 0x5917, MFX_HW_KBL}, // ULT GT2 R
+    { 0x591A, MFX_HW_KBL}, // SERV GT2
+    { 0x591B, MFX_HW_KBL}, // HALO GT2
+    { 0x591D, MFX_HW_KBL}, // WRK GT2
+    { 0x591E, MFX_HW_KBL}, // ULX GT2
+    { 0x5921, MFX_HW_KBL}, // ULT GT2F
+    { 0x5923, MFX_HW_KBL}, // ULT GT3
+    { 0x5926, MFX_HW_KBL}, // ULT GT3 15W
+    { 0x5927, MFX_HW_KBL}, // ULT GT3 28W
+    { 0x592A, MFX_HW_KBL}, // SERV GT3
+    { 0x592B, MFX_HW_KBL}, // HALO GT3
+    { 0x5932, MFX_HW_KBL}, // DT GT4
+    { 0x593A, MFX_HW_KBL}, // SERV GT4
+    { 0x593B, MFX_HW_KBL}, // HALO GT4
+    { 0x593D, MFX_HW_KBL}, // WRK GT4
+
 };
 
 /* END: IOCTLs definitions */

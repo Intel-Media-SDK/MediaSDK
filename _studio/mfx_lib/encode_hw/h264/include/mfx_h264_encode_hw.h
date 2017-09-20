@@ -52,7 +52,7 @@ public:
 
     virtual mfxTaskThreadingPolicy GetThreadingPolicy()
     {
-        return MFX_TASK_THREADING_DEDICATED;
+        return MFX_TASK_THREADING_INTRA;
     }
 
     virtual mfxStatus Reset(mfxVideoParam *par)
@@ -133,7 +133,7 @@ public:
 
 protected:
     VideoCORE*                 m_core;
-    std::auto_ptr<VideoENCODE> m_impl;
+    std::unique_ptr<VideoENCODE> m_impl;
 };
 
 

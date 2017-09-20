@@ -27,8 +27,8 @@
 
 #include "mfx_enc_ext.h"
 #include "mfxla.h"
-#include "cmrt_cross_platform.h"
 #include "mfx_h264_encode_hw_utils.h"
+#include "cmrt_cross_platform.h"
 
 #include <memory>
 #include <list>
@@ -226,7 +226,7 @@ public:
     virtual
     mfxStatus Close(void);
     virtual
-    mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED_WAIT;}
+    mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED;}
 
     static 
     mfxStatus Query(VideoCORE*, mfxVideoParam *in, mfxVideoParam *out);

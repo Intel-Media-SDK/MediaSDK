@@ -52,7 +52,7 @@ namespace MfxHwH265Encode
 class VABuffersHandler
 {
 public:
-    typedef enum VA_BUFFER_STORAGE_ID
+    enum VA_BUFFER_STORAGE_ID
     {
           VABID_SPS = 0
         , VABID_PPS
@@ -82,7 +82,9 @@ public:
         , VABID_PACKED_SkipBuffer
 
         , VABID_ROI
-    } IdType;
+
+        , VABID_END_OF_LIST // Remain this item last in the list
+    };
 
     VABuffersHandler()
     {
@@ -95,11 +97,11 @@ public:
         VABuffersDestroy();
     }
 
-    VABufferID& VABuffersNew(IdType id, mfxU32 pool, mfxU32 num);
+    VABufferID& VABuffersNew(mfxU32 id, mfxU32 pool, mfxU32 num);
     void VABuffersDestroy();
     void VABuffersDestroyPool(mfxU32 pool);
 
-    inline VABufferID& VABufferNew(IdType id, mfxU32 pool) { return  VABuffersNew(id, pool, 1); }
+    inline VABufferID& VABufferNew(mfxU32 id, mfxU32 pool) { return  VABuffersNew(id, pool, 1); }
     inline VABufferID* VABuffersBegin(mfxU32 pool) { return &(*_PoolBegin(pool)); }
     inline VABufferID* VABuffersEnd  (mfxU32 pool) { return &(*_PoolEnd  (pool)); }
 
@@ -111,7 +113,7 @@ private:
     std::vector<size_t>         m_pool;
     std::map<mfxU32, mfxU32>    m_poolMap;
     std::vector<VABufferID>     m_buf;
-    std::vector<IdType>         m_id;
+    std::vector<mfxU32>         m_id;
 
     void _CheckPool(mfxU32 pool);
     inline std::vector<VABufferID>::iterator _PoolBegin(mfxU32 pool) { _CheckPool(pool); return m_buf.begin() + m_pool[m_poolMap[pool]]; };
@@ -160,7 +162,7 @@ mfxStatus SetSkipFrame(
         mfxU32 size;
     } ExtVASurface;
 
-    class VAAPIEncoder : public DriverEncoder, DDIHeaderPacker, VABuffersHandler
+    class VAAPIEncoder : public DriverEncoder, DDIHeaderPacker, protected VABuffersHandler
     {
     public:
         VAAPIEncoder();
@@ -220,7 +222,25 @@ mfxStatus SetSkipFrame(
             return DDIHeaderPacker::PackHeader(task, nut);
         }
 
+        virtual
+        VAEntrypoint GetVAEntryPoint()
+        {
+            return VAEntrypointEncSlice;
+        }
+
     protected:
+        virtual
+        mfxStatus ConfigureExtraVAattribs(std::vector<VAConfigAttrib> & attrib)
+        {
+            return MFX_ERR_NONE;
+        }
+
+        virtual
+        mfxStatus CheckExtraVAattribs(std::vector<VAConfigAttrib> & attrib)
+        {
+            return MFX_ERR_NONE;
+        }
+
         VAAPIEncoder(const VAAPIEncoder&);
         VAAPIEncoder& operator=(const VAAPIEncoder&);
 

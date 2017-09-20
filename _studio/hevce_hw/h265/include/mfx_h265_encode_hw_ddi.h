@@ -32,7 +32,6 @@
 #include <vector>
 
 //#define HEADER_PACKING_TEST
-//#define DDI_TRACE
 
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #define D3DDDIFMT_YU12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('Y', 'U', '1', '2'))
@@ -121,8 +120,9 @@ public:
 
     // Functions below are used in HEVC FEI encoder
 
-    virtual mfxStatus PreSubmitExtraStage()
+    virtual mfxStatus PreSubmitExtraStage(Task const & task)
     {
+        task;
         return MFX_ERR_NONE;
     }
 

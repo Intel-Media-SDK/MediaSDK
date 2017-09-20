@@ -47,7 +47,7 @@ public:
     virtual mfxStatus Init(mfxVideoParam *par);
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close(void);
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED_WAIT;}
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED;}
 
     mfxStatus Submit(mfxEncodeInternalParams * iParams);
 

@@ -212,7 +212,7 @@ struct ViewItem_H265
     void SetDPBSize(H265SeqParamSet *pSps, uint32_t & level_idc);
 
     // Pointer to the view's DPB
-    mutable std::auto_ptr<H265DBPList> pDPB;
+    mutable std::unique_ptr<H265DBPList> pDPB;
 
     // Size of DPB capacity in frames
     uint32_t dpbSize;

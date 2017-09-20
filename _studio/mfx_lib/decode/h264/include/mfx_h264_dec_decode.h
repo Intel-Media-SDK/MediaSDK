@@ -104,10 +104,10 @@ protected:
 
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
 
-    std::auto_ptr<UMC::MFXTaskSupplier>  m_pH264VideoDecoder;
+    std::unique_ptr<UMC::MFXTaskSupplier>  m_pH264VideoDecoder;
     mfx_UMC_MemAllocator            m_MemoryAllocator;
 
-    std::auto_ptr<mfx_UMC_FrameAllocator>    m_FrameAllocator;
+    std::unique_ptr<mfx_UMC_FrameAllocator>    m_FrameAllocator;
 
     mfxVideoParamWrapper m_vInitPar;
     mfxVideoParamWrapper m_vFirstPar;

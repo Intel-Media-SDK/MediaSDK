@@ -1691,6 +1691,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
             if (MFX_ERR_MORE_DATA == sts) {
                 sts = MFX_ERR_NONE;
                 // Timeout has expired or videowall mode
+                m_timer_overall.Sync();
                 if ( ((CTimer::ConvertToSeconds(m_tick_overall) < m_nTimeout) && m_nTimeout ) || m_bIsVideoWall)
                 {
                     m_FileReader->Reset();

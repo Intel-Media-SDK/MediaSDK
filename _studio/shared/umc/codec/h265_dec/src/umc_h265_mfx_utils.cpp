@@ -923,7 +923,8 @@ bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
     if (in->mfx.CodecProfile != MFX_PROFILE_HEVC_MAIN &&
         in->mfx.CodecProfile != MFX_PROFILE_HEVC_MAIN10 &&
         in->mfx.CodecProfile != MFX_PROFILE_HEVC_MAINSP &&
-        in->mfx.CodecProfile != MFX_PROFILE_HEVC_REXT)
+        in->mfx.CodecProfile != MFX_PROFILE_HEVC_REXT
+        )
         return false;
 
     //BitDepthLuma & BitDepthChroma is also checked here

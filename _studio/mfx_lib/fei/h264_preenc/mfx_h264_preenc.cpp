@@ -682,7 +682,7 @@ mfxStatus VideoENC_PREENC::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoPar
 
     MfxVideoParam tmp = *in; // deep copy, to create all ext buffers
 
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
     ddi.reset( new VAAPIFEIPREENCEncoder );
 
     sts = ddi->CreateAuxilliaryDevice(

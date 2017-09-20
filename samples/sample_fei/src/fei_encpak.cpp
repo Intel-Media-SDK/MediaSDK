@@ -662,6 +662,7 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
 
     eTask->PAK_out.Bs = &m_mfxBS;
 
+    eTask->EncodedFrameSize = 0;
 
     eTask->bufs = m_pExtBuffers->GetFreeSet();
     MSDK_CHECK_POINTER(eTask->bufs, MFX_ERR_NULL_PTR);
@@ -912,7 +913,7 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
             for (;;)
             {
                 sts = m_pmfxENC->ProcessFrameAsync(&eTask->ENC_in, &eTask->ENC_out, &m_SyncPoint);
-                MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
+                MSDK_CHECK_WRN(sts, "WRN during ProcessFrameAsync");
 
                 if (MFX_ERR_NONE < sts && !m_SyncPoint)
                 {
@@ -969,7 +970,7 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
             for (;;)
             {
                 sts = m_pmfxPAK->ProcessFrameAsync(&eTask->PAK_in, &eTask->PAK_out, &m_SyncPoint);
-                MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
+                MSDK_CHECK_WRN(sts, "WRN during ProcessFrameAsync");
 
                 if (MFX_ERR_NONE < sts && !m_SyncPoint)
                 {
@@ -1014,6 +1015,7 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
 
     if (m_pmfxPAK)
     {
+        eTask->EncodedFrameSize = eTask->PAK_out.Bs->DataLength; //save frame size for BRC
         sts = m_FileWriter.WriteNextFrame(&m_mfxBS);
         MSDK_CHECK_STATUS(sts, "FEI ENCODE: WriteNextFrame failed");
     }

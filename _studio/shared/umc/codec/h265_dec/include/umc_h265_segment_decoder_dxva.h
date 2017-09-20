@@ -81,7 +81,7 @@ public:
 
 protected:
 
-    std::auto_ptr<Packer>  m_Packer;
+    std::unique_ptr<Packer>  m_Packer;
 
 private:
     H265_DXVA_SegmentDecoder & operator = (H265_DXVA_SegmentDecoder &)

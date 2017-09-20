@@ -300,7 +300,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
         else
             for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++)
             {
-                memset((mfxU8 *)&lock.Y[i * lock.Pitch], (mfxU8)task.m_qpY, (size_t)CUQPFrameInfo.Width);
+                memset((uint8_t *)&lock.Y[i * lock.Pitch],(mfxU8)task.m_qpY, (size_t)CUQPFrameInfo.Width);
             }
     }
     return mfxSts;

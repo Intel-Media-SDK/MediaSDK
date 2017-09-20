@@ -703,8 +703,8 @@ struct iTaskParams
 struct iTask
 {
     explicit iTask(const iTaskParams & task_params)
-        :
-          encoded(false)
+        : EncodedFrameSize(0)
+        , encoded(false)
         , bufs(NULL)
         , preenc_bufs(NULL)
         , ExtBuffersController(task_params.SingleFieldMode)
@@ -968,6 +968,8 @@ struct iTask
 
     mfxPAKInput  PAK_in;
     mfxPAKOutput PAK_out;
+
+    mfxU32 EncodedFrameSize; //for BRC
 
     BiFrameLocation m_loc;
     bool encoded;

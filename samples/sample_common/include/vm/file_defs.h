@@ -26,7 +26,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <unistd.h>
 
-#define MSDK_FOPEN(file, name, mode) file = fopen(name, mode)
+#define MSDK_FOPEN(file, name, mode) !(file = fopen(name, mode))
 
 #define msdk_fgets  fgets
 

@@ -100,6 +100,10 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                Output statistic every N transcoding cycles\n"));
     msdk_printf(MSDK_STRING("  -stat-log <name>\n"));
     msdk_printf(MSDK_STRING("                Output statistic to the specified file (opened in append mode)\n"));
+    msdk_printf(MSDK_STRING("  -stat-per-frame <name>\n"));
+    msdk_printf(MSDK_STRING("                Output per-frame latency values to a file (opened in append mode). The file name will be for an input sesssion: <name>_input_ID_<N>.log\n"));
+    msdk_printf(MSDK_STRING("                or, for output session: <name>_output_ID_<N>.log; <N> - a number of a session.\n"));
+
     msdk_printf(MSDK_STRING("Options:\n"));
     //                     ("  ............xx
     msdk_printf(MSDK_STRING("  -?            Print this help and exit\n"));
@@ -140,6 +144,8 @@ void TranscodingSample::PrintHelp()
     MOD_SMT_PRINT_HELP;
     msdk_printf(MSDK_STRING("  -b <Kbits per second>\n"));
     msdk_printf(MSDK_STRING("                Encoded bit rate, valid for H.264, MPEG2 and MVC encoders\n"));
+    msdk_printf(MSDK_STRING("  -bm           Bitrate multiplier. Use it when required bitrate isn't fit into 16-bit\n"));
+    msdk_printf(MSDK_STRING("                Affects following parameters: InitialDelayInKB, BufferSizeInKB, TargetKbps, MaxKbps\n"));
     msdk_printf(MSDK_STRING("  -f <frames per second>\n"));
     msdk_printf(MSDK_STRING("                Video frame rate for the FRC and deinterlace options\n"));
     msdk_printf(MSDK_STRING("  -fe <frames per second>\n"));
@@ -149,7 +155,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -override_encoder_framerate <framerate> \n"));
     msdk_printf(MSDK_STRING("                Overwrites framerate of stream going into encoder input with provided value (this option does not enable FRC, it just ovewrites framerate value)\n"));
 
-    msdk_printf(MSDK_STRING("  -u 1|4|7      Target usage: quality (1), balanced (4) or speed (7); valid for H.264, MPEG2 and MVC encoders. Default is balanced\n"));
+    msdk_printf(MSDK_STRING("  -u <usage>    Target usage. Valid for H.265, H.264, MPEG2 and MVC encoders. Expected values:\n"));
+    msdk_printf(MSDK_STRING("                veryslow(quality), slower, slow, medium(balanced), fast, faster, veryfast(speed)\n"));
     msdk_printf(MSDK_STRING("  -q <quality>  Quality parameter for JPEG encoder; in range [1,100], 100 is the best quality\n"));
     msdk_printf(MSDK_STRING("  -l numSlices  Number of slices for encoder; default value 0 \n"));
     msdk_printf(MSDK_STRING("  -mss maxSliceSize \n"));
@@ -212,6 +219,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -WeightedPred 0/1/2/3\n"));
     msdk_printf(MSDK_STRING("  -WeightedBiPred 0/1/2/3 - 0 - unknown, 1 - default, 2 - explicit, 3 - implicit\n"));
 
+    msdk_printf(MSDK_STRING("  -extbrc::<on,off>           Enables external BRC for HEVC encoder"));
     msdk_printf(MSDK_STRING("  -vpp_comp <sourcesNum>      Enables composition from several decoding sessions. Result is written to the file\n"));
     msdk_printf(MSDK_STRING("  -vpp_comp_only <sourcesNum> Enables composition from several decoding sessions. Result is shown on screen\n"));
     msdk_printf(MSDK_STRING("  -vpp_comp_num_tiles <Num>   Quantity of tiles for composition. if equal to 0 tiles processing ignored\n"));
@@ -284,6 +292,7 @@ CmdProcessor::CmdProcessor()
     m_nTimeout = 0;
     statisticsWindowSize = 0;
     statisticsLogFile = NULL;
+    DumpLogFileName.clear();
     shouldUseGreedyFormula=false;
     m_bRobust = false;
 
@@ -422,6 +431,20 @@ mfxStatus CmdProcessor::ParseCmdLine(int argc, msdk_char *argv[])
                 msdk_printf(MSDK_STRING("error: statistics file \"%s\" not found"), argv[0]);
                 return MFX_ERR_UNSUPPORTED;
             }
+        }
+        else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-stat-per-frame")))
+        {
+            if (!DumpLogFileName.empty()){
+                msdk_printf(MSDK_STRING("error: only one dump file is supported"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            --argc;
+            ++argv;
+            if (!argv[0])
+            {
+                msdk_printf(MSDK_STRING("error: no argument given for 'stat-dump' option\n"));
+            }
+            DumpLogFileName = argv[0];
         }
         else
         {
@@ -689,6 +712,9 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     InputParams.statisticsWindowSize = statisticsWindowSize;
     InputParams.statisticsLogFile = statisticsLogFile;
 
+    //bind to a dump-log-file name
+    InputParams.DumpLogFileName = DumpLogFileName;
+
     if (0 == msdk_strcmp(argv[0], MSDK_STRING("set")))
     {
         if (argc != 3) {
@@ -872,6 +898,16 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-bm")))
+        {
+            VAL_CHECK(i + 1 == argc, i, argv[i]);
+            i++;
+            if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.nBitRateMultiplier))
+            {
+                PrintError(MSDK_STRING("Bitrate multiplier \"%s\" is invalid"), argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
         else if(0 == msdk_strcmp(argv[i], MSDK_STRING("-wb")))
         {
             VAL_CHECK(i+1 == argc, i, argv[i]);
@@ -988,10 +1024,11 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         {
             VAL_CHECK(i+1 == argc, i, argv[i]);
             i++;
-            if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.nTargetUsage))
+            InputParams.nTargetUsage = StrToTargetUsage(argv[i]);
+            if (!InputParams.nTargetUsage)
             {
-                PrintError(MSDK_STRING(" \"%s\" target usage is invalid"), argv[i]);
-                return MFX_ERR_UNSUPPORTED;
+                PrintError(MSDK_STRING(" \"%s\" target usage is invalid. Balanced will be used."), argv[i]);
+                InputParams.nTargetUsage = MFX_TARGETUSAGE_BALANCED;
             }
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-WeightedPred")))
@@ -1471,6 +1508,14 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-qsv-ff")))
         {
             InputParams.enableQSVFF=true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-extbrc::on")))
+        {
+            InputParams.nExtBRC= MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-extbrc::off")))
+        {
+            InputParams.nExtBRC = MFX_CODINGOPTION_OFF;
         }
         MOD_SMT_PARSE_INPUT
         else if((stsExtBuf = CVPPExtBuffersStorage::ParseCmdLine(argv,argc,i,&InputParams,skipped))

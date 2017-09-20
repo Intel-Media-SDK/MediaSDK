@@ -31,10 +31,7 @@ enum
     // Task can be managed by thread 0 only
     MFX_TASK_DEDICATED = 4,
     // Task share executing threads with other tasks
-    MFX_TASK_SHARED = 8,
-    // Task is waiting for result of another task.
-    // it doesn't have its own return value.
-    MFX_TASK_WAIT = 16
+    MFX_TASK_SHARED = 8
 
 };
 
@@ -55,12 +52,6 @@ enum mfxTaskThreadingPolicy
     // As inter, but the plugin has limited processing resources.
     // The total number of threads is limited.
     MFX_TASK_THREADING_SHARED = MFX_TASK_SHARED,
-
-    // Tasks of this type are 'waiting' tasks
-    MFX_TASK_THREADING_DEDICATED_WAIT = MFX_TASK_WAIT | MFX_TASK_DEDICATED | MFX_TASK_INTRA,
-
-    // Tasks of this type can't be executed by thread #0.
-    MFX_TASK_THREADING_WAIT = MFX_TASK_WAIT | MFX_TASK_INTRA,
 
     MFX_TASK_THREADING_DEFAULT = MFX_TASK_THREADING_DEDICATED
 

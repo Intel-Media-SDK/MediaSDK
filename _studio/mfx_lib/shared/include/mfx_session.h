@@ -48,14 +48,13 @@ public:
     explicit mfx_core_ptr(T* ptr = 0)
         : m_bIsNew(false)
         , m_ptr(ptr)
-                                      
     {
     };
     void reset (T* ptr = 0, bool isNew = true)
     {
         if (m_bIsNew)
             delete m_ptr;
-        
+
         m_ptr = ptr;
         m_bIsNew = isNew;
     };
@@ -104,20 +103,20 @@ struct _mfxSession
 
     // Declare session's components
     mfx_core_ptr<VideoCORE> m_pCORE;
-    std::auto_ptr<AudioCORE> m_pAudioCORE;
-    std::auto_ptr<VideoENCODE> m_pENCODE;
-    std::auto_ptr<VideoDECODE> m_pDECODE;
-    std::auto_ptr<AudioENCODE> m_pAudioENCODE;
-    std::auto_ptr<AudioDECODE> m_pAudioDECODE;
-    std::auto_ptr<VideoVPP> m_pVPP;
-    std::auto_ptr<VideoENC> m_pENC;
-    std::auto_ptr<VideoPAK> m_pPAK;
-    std::auto_ptr<void *>   m_reserved;
+    std::unique_ptr<AudioCORE> m_pAudioCORE;
+    std::unique_ptr<VideoENCODE> m_pENCODE;
+    std::unique_ptr<VideoDECODE> m_pDECODE;
+    std::unique_ptr<AudioENCODE> m_pAudioENCODE;
+    std::unique_ptr<AudioDECODE> m_pAudioDECODE;
+    std::unique_ptr<VideoVPP> m_pVPP;
+    std::unique_ptr<VideoENC> m_pENC;
+    std::unique_ptr<VideoPAK> m_pPAK;
+    std::unique_ptr<void *>   m_reserved;
     
-    std::auto_ptr<VideoCodecUSER> m_plgDec;
-    std::auto_ptr<VideoCodecUSER> m_plgEnc;
-    std::auto_ptr<VideoCodecUSER> m_plgVPP;
-    std::auto_ptr<VideoCodecUSER> m_plgGen;
+    std::unique_ptr<VideoCodecUSER> m_plgDec;
+    std::unique_ptr<VideoCodecUSER> m_plgEnc;
+    std::unique_ptr<VideoCodecUSER> m_plgVPP;
+    std::unique_ptr<VideoCodecUSER> m_plgGen;
 
     // Wrapper of interface for core object
     mfxCoreInterface m_coreInt;
@@ -203,7 +202,7 @@ public:
     // Finish initialization. Should be called before Init().
     virtual void SetAdapterNum(const mfxU32 adapterNum) = 0;
 
-    virtual std::auto_ptr<VideoCodecUSER> & GetPreEncPlugin() = 0;
+    virtual std::unique_ptr<VideoCodecUSER> & GetPreEncPlugin() = 0;
 };
 
 MFXIPtr<MFXISession_1_10> TryGetSession_1_10(mfxSession session);
@@ -221,7 +220,7 @@ public:
     //
 
     void SetAdapterNum(const mfxU32 adapterNum);
-    std::auto_ptr<VideoCodecUSER> &  GetPreEncPlugin();
+    std::unique_ptr<VideoCodecUSER> &  GetPreEncPlugin();
 
     //
     // MFXIUnknown interface
@@ -249,7 +248,7 @@ public:
 
 public:
     // Declare additional session's components
-    std::auto_ptr<VideoCodecUSER> m_plgPreEnc;
+    std::unique_ptr<VideoCodecUSER> m_plgPreEnc;
 
 protected:
     // Reference counters

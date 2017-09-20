@@ -93,6 +93,8 @@ private:
             return MSDK_STRING("Intel (R) Media SDK plugin for LA ENC");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_ITELECINE_HW))
             return MSDK_STRING("Intel (R) Media SDK PTIR plugin (HW)");
+        else if (AreGuidsEqual(guid, MFX_PLUGINID_HEVCE_GACC))
+            return MSDK_STRING("Intel (R) Media SDK GPU-Accelerated plugin for HEVC ENCODE");
         else
             return MSDK_STRING("Unknown plugin");
     }

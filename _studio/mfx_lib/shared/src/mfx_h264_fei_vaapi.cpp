@@ -2523,6 +2523,14 @@ mfxStatus VAAPIFEIPAKEncoder::QueryStatus(
             FastCopyBufferVid2Sys(task.m_bs->Data + task.m_bs->DataLength, codedBufferSegment->buf, codedBufferSegment->size);
 
             task.m_bs->DataLength += codedBufferSegment->size;
+            //Update other fields in mfxBitstream
+            task.m_bs->TimeStamp = task.m_timeStamp;
+            task.m_bs->DecodeTimeStamp = CalcDTSFromPTS(m_videoParam.mfx.FrameInfo, mfxU16(task.m_dpbOutputDelay), task.m_timeStamp);
+            task.m_bs->PicStruct = task.GetPicStructForDisplay();
+            task.m_bs->FrameType = task.m_type[task.GetFirstField()] & ~MFX_FRAMETYPE_KEYPIC;
+            if (task.m_fieldPicFlag)
+                task.m_bs->FrameType = mfxU16(task.m_bs->FrameType | ((task.m_type[!task.GetFirstField()]& ~MFX_FRAMETYPE_KEYPIC) << 8));
+
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
                 vaUnmapBuffer( m_vaDisplay, m_codedBufferId[feiFieldId] );

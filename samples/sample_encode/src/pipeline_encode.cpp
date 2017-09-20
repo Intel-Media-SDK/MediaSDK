@@ -471,6 +471,11 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption2);
     }
 
+    if (pInParams->nExtBRC == MFX_CODINGOPTION_ON && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC))
+    {
+       HEVCExtBRC::Create(m_ExtBRC);
+       m_EncExtParams.push_back((mfxExtBuffer *)&m_ExtBRC);
+    }
 
     // set up mfxCodingOption3
     if (pInParams->nGPB || pInParams->LowDelayBRC ||
@@ -988,6 +993,10 @@ CEncodingPipeline::CEncodingPipeline()
     m_VideoSignalInfo.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO;
     m_VideoSignalInfo.Header.BufferSz = sizeof(m_VideoSignalInfo);
 
+    MSDK_ZERO_MEMORY(m_ExtBRC);
+    m_ExtBRC.Header.BufferId = MFX_EXTBUFF_BRC;
+    m_ExtBRC.Header.BufferSz = sizeof(m_ExtBRC);
+
     m_hwdev = NULL;
 
     MSDK_ZERO_MEMORY(m_mfxEncParams);
@@ -1371,7 +1380,7 @@ void CEncodingPipeline::Close()
     MSDK_SAFE_DELETE(m_pmfxENC);
     MSDK_SAFE_DELETE(m_pmfxVPP);
 
-
+    HEVCExtBRC::Destroy(m_ExtBRC);
 
     FreeMVCSeqDesc();
     FreeVppDoNotUse();

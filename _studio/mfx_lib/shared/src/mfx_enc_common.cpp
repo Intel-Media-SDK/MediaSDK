@@ -499,18 +499,32 @@ bool CorrectProfileLevelMpeg2(mfxU16 &profile, mfxU16 & level, mfxU32 w, mfxU32 
     {
         profile = MFX_PROFILE_MPEG2_MAIN;
     }
-    
-    if (w > 1440 || h > 1152 || frame_rate*w*h > 47001600.0 || bitrate > 60000000)
+
+    if (MFX_PROFILE_MPEG2_HIGH == profile)
     {
-        level = MFX_LEVEL_MPEG2_HIGH;
+        if (w > 1440 || h > 1152 || frame_rate*w*h > 62668800.0 || bitrate > 80000000)
+        {
+            level = MFX_LEVEL_MPEG2_HIGH;
+        }
+        else if ((w > 720 || h > 576 || frame_rate > 30 || frame_rate*w*h > 14745600.0 || bitrate > 20000000) && (level != MFX_LEVEL_MPEG2_HIGH))
+        {
+            level = MFX_LEVEL_MPEG2_HIGH1440;
+        }
     }
-    else if ((w > 720 || h > 576 || frame_rate > 30 || frame_rate*w*h > 10368000.0 || bitrate > 15000000) && (level != MFX_LEVEL_MPEG2_HIGH))
+    else
     {
-        level = MFX_LEVEL_MPEG2_HIGH1440;
-    }
-    else if ((w > 352 || h > 288 || frame_rate*w*h > 3041280.0 || bitrate > 4000000) && (level != MFX_LEVEL_MPEG2_HIGH && level != MFX_LEVEL_MPEG2_HIGH1440))
-    {
-        level = MFX_LEVEL_MPEG2_MAIN;
+        if (w > 1440 || h > 1152 || frame_rate*w*h > 47001600.0 || bitrate > 60000000)
+        {
+            level = MFX_LEVEL_MPEG2_HIGH;
+        }
+        else if ((w > 720 || h > 576 || frame_rate > 30 || frame_rate*w*h > 10368000.0 || bitrate > 15000000) && (level != MFX_LEVEL_MPEG2_HIGH))
+        {
+            level = MFX_LEVEL_MPEG2_HIGH1440;
+        }
+        else if ((w > 352 || h > 288 || frame_rate*w*h > 3041280.0 || bitrate > 4000000) && (level != MFX_LEVEL_MPEG2_HIGH && level != MFX_LEVEL_MPEG2_HIGH1440))
+        {
+            level = MFX_LEVEL_MPEG2_MAIN;
+        }
     }
 
     if (MFX_PROFILE_MPEG2_SIMPLE == profile && ((MFX_LEVEL_MPEG2_MAIN != level && MFX_LEVEL_MPEG2_LOW != level) || (GopRefDist >1)))

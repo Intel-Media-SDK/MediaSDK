@@ -32,6 +32,7 @@
 #include "vm_file.h"
 #include "mfx_ext_buffers.h"
 #include "mfxfei.h"
+#include "mfxbrc.h"
 
 #include "mfx_h264_encode_struct_vaapi.h"
 
@@ -203,6 +204,8 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncCtrl,        MFX_EXTBUFF_FEI_PREENC_CTRL          );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncMVPredictors,MFX_EXTBUFF_FEI_PREENC_MV_PRED       );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiRepackCtrl,        MFX_EXTBUFF_FEI_REPACK_CTRL          );
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtBRC,        MFX_EXTBUFF_BRC          );
+
 
 #undef BIND_EXTBUF_TYPE_TO_ID
 
@@ -530,7 +533,7 @@ namespace MfxHwH264Encode
         void ConstructMvcSeqDesc(mfxExtMVCSeqDesc const & desc);
 
     private:
-        mfxExtBuffer *              m_extParam[30];
+        mfxExtBuffer *              m_extParam[32];
         // external, documented
         mfxExtCodingOption          m_extOpt;
         mfxExtCodingOption2         m_extOpt2;
@@ -557,6 +560,8 @@ namespace MfxHwH264Encode
         mfxExtFeiSliceHeader        m_extFeiSlice[2];
         mfxExtFeiSPS                m_extFeiSPS;
         mfxExtFeiPPS                m_extFeiPPS;
+
+        mfxExtBRC                   m_extBRC;
 
         std::vector<mfxMVCViewDependency> m_storageView;
         std::vector<mfxMVCOperationPoint> m_storageOp;
@@ -637,6 +642,10 @@ namespace MfxHwH264Encode
         eMFXHWType            platform);
 
     mfxU8 DetermineQueryMode(mfxVideoParam * in);
+
+    mfxStatus SetLowPowerDefault(
+        MfxVideoParam& par,
+        const eMFXHWType& platfrom);
 
     mfxStatus QueryHwCaps(
         VideoCORE *     core,
@@ -721,7 +730,8 @@ namespace MfxHwH264Encode
         ENCODE_CAPS const & hwCaps,
         bool                setExtAlloc,
         eMFXHWType          platform = MFX_HW_UNKNOWN,
-        eMFXVAType          vaType = MFX_HW_NO);
+        eMFXVAType          vaType = MFX_HW_NO,
+        bool                bInit = false);
 
     mfxStatus CheckVideoParamFEI(
         MfxVideoParam &     par);

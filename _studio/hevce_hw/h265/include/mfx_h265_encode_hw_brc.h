@@ -28,6 +28,7 @@
 #include <memory>
 #include <mfx_brc_common.h>
 
+#include "mfxbrc.h"
 
 namespace MfxHwH265Encode
 {
@@ -162,6 +163,7 @@ public:
     mfxStatus Init( MfxVideoParam &video, mfxI32 enableRecode = 1);
     mfxStatus Reset(MfxVideoParam &video, mfxI32 enableRecode = 1) 
     { 
+        Close();
         return  Init( video, enableRecode);
     }
 
@@ -222,72 +224,105 @@ protected:
 
 };
 
-enum eMfxBRCRecode
-{
-    MFX_BRC_RECODE_NONE           = 0,
-    MFX_BRC_RECODE_QP             = 1,
-    MFX_BRC_RECODE_PANIC          = 2,
-    MFX_BRC_RECODE_EXT_QP         = 3,
-    MFX_BRC_RECODE_EXT_PANIC      = 4,
-    MFX_BRC_EXT_FRAMESKIP         = 16
-};
 
-struct HRDState
-{
-    mfxF64 bufFullness;
-    mfxF64 prevBufFullness;
-    mfxI32 frameNum;
-    mfxI32 minFrameSize;
-    mfxI32 maxFrameSize;
-    mfxI32 underflowQuant;
-    mfxI32 overflowQuant;
-};
-struct BRCParams
-{
-    mfxU16 rateControlMethod;
-    mfxU32 bufferSizeInBytes;
-    mfxU32 initialDelayInBytes;
-    mfxU32 targetbps;
-    mfxU32 maxbps;
-    mfxF64 frameRate;
-    mfxU16 width;
-    mfxU16 height;
-    mfxU16 chromaFormat;
-    mfxU16 bitDepthLuma;
-    mfxF64 inputBitsPerFrame;
-    mfxU16 gopPicSize;
-    mfxU16 gopRefDist;
 
-};
-
-class H265BRC : public BrcIface
+}
+namespace MfxHwH265Encode
+{
+class H265BRCNew : public BrcIface
 {
 
 public:
-
-    H265BRC()
+    H265BRCNew():
+        m_minSize(0),
+        m_pBRC(0)
     {
-        m_IsInit = false;
-        memset(&m_par, 0, sizeof(m_par));
-        memset(&m_hrdState, 0, sizeof(m_hrdState));
-        ResetParams();
-    }
-    virtual ~H265BRC()
+        memset(&m_BRCLocal,0, sizeof(m_BRCLocal));
+    }    
+    virtual ~H265BRCNew()
     {
         Close();
     }
+    virtual mfxStatus   Init(MfxVideoParam &video, mfxI32 )
+    {
+        mfxStatus sts = MFX_ERR_NONE;
+        if (video.m_ext.extBRC.pthis)
+        {
+            m_pBRC = &video.m_ext.extBRC;
+            MFX_CHECK_NULL_PTR3(m_pBRC->Init, m_pBRC->Close, m_pBRC->Reset);
+            MFX_CHECK_NULL_PTR2(m_pBRC->GetFrameCtrl, m_pBRC->Update);        
+        }
+        else
+        {
+            sts = HEVCExtBRC::Create(m_BRCLocal);
+            MFX_CHECK_STS(sts);
+            m_pBRC = &m_BRCLocal;
+        }
+        return m_pBRC->Init(m_pBRC->pthis, &video);
+    }
+    virtual mfxStatus   Close()
+    {
+        mfxStatus sts = MFX_ERR_NONE;
+        sts =  m_pBRC->Close(m_pBRC->pthis);
+        MFX_CHECK_STS(sts);
+        HEVCExtBRC::Destroy(m_BRCLocal);
+        return sts;
+    }
+    virtual mfxStatus   Reset(MfxVideoParam &video, mfxI32 )
+    {
+        return m_pBRC->Reset(m_pBRC->pthis,&video);    
+    }
+    virtual mfxBRCStatus PostPackFrame(MfxVideoParam &, Task &task, mfxI32 bitsEncodedFrame, mfxI32 , mfxI32 )
+    {
+        mfxBRCFrameParam frame_par={};
+        mfxBRCFrameCtrl  frame_ctrl={};
+        mfxBRCFrameStatus frame_sts = {};
+        
+
+        frame_ctrl.QpY = task.m_qpY;
+        InitFramePar(task,frame_par);
+        frame_par.CodedFrameSize = bitsEncodedFrame/8;  // Size of frame in bytes after encoding
 
 
+        mfxStatus sts = m_pBRC->Update(m_pBRC->pthis,&frame_par, &frame_ctrl, &frame_sts);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_BRC_ERROR);
 
+        m_minSize = frame_sts.MinFrameSize;
 
-    virtual mfxStatus   Init(MfxVideoParam &video, mfxI32 enableRecode = 1);
-    virtual mfxStatus   Close();
-    virtual mfxStatus   Reset(MfxVideoParam &video, mfxI32 enableRecode = 1);
-    virtual mfxBRCStatus PostPackFrame(MfxVideoParam &video, Task &task, mfxI32 bitsEncodedFrame, mfxI32 overheadBits, mfxI32 recode = 0);
-    virtual mfxI32      GetQP(MfxVideoParam &video, Task &task);
-    virtual mfxStatus   SetQP(mfxI32 qp, uint16_t frameType, bool bLowDelay);
+        switch (frame_sts.BRCStatus)
+        {
+        case ::MFX_BRC_OK:
+            return MFX_BRC_OK;
+        case ::MFX_BRC_BIG_FRAME: 
+            return MFX_BRC_ERR_BIG_FRAME;
+        case ::MFX_BRC_SMALL_FRAME: 
+            return MFX_BRC_ERR_SMALL_FRAME;
+        case ::MFX_BRC_PANIC_BIG_FRAME: 
+            return MFX_BRC_ERR_BIG_FRAME | MFX_BRC_NOT_ENOUGH_BUFFER;
+        case ::MFX_BRC_PANIC_SMALL_FRAME:  
+            return MFX_BRC_ERR_SMALL_FRAME| MFX_BRC_NOT_ENOUGH_BUFFER;
+        }
+        return MFX_BRC_OK;    
+    }
+    virtual mfxI32      GetQP(MfxVideoParam &, Task &task)
+    {
+        mfxBRCFrameParam frame_par={};
+        mfxBRCFrameCtrl  frame_ctrl={};
+
+        InitFramePar(task,frame_par);
+        m_pBRC->GetFrameCtrl(m_pBRC->pthis,&frame_par, &frame_ctrl);
+        return frame_ctrl.QpY;    
+    }
+    virtual mfxStatus   SetQP(mfxI32 , uint16_t , bool )
+    {
+        return MFX_ERR_NONE;    
+    }
     //virtual mfxStatus   GetInitialCPBRemovalDelay(mfxU32 *initial_cpb_removal_delay, mfxI32 recode = 0);
-    virtual void        GetMinMaxFrameSize(mfxI32 *minFrameSizeInBits, mfxI32 *maxFrameSizeInBits);
+    virtual void        GetMinMaxFrameSize(mfxI32 *minFrameSizeInBits, mfxI32 *)
+    {
+        *minFrameSizeInBits = m_minSize;
+    
+    }
 
 
     virtual void        PreEnc(mfxU32 /* frameType */, std::vector<VmeData *> const & /* vmeData */, mfxU32 /* encOrder */) {}
@@ -297,51 +332,21 @@ public:
     }
     virtual bool IsVMEBRC()  {return false;}
 
+private:
+    mfxU32      m_minSize;
+    mfxExtBRC * m_pBRC;
+    mfxExtBRC   m_BRCLocal;
+
 protected:
+    void InitFramePar(Task &task, mfxBRCFrameParam & frame_par)
+    {
+        frame_par.EncodedOrder = task.m_eo;    // Frame number in a sequence of reordered frames starting from encoder Init()
+        frame_par.DisplayOrder = task.m_poc;    // Frame number in a sequence of frames in display order starting from last IDR
+        frame_par.FrameType = task.m_frameType;       // See FrameType enumerator
+        frame_par.PyramidLayer = (mfxU16)task.m_level;    // B-pyramid or P-pyramid layer, frame belongs to
+        frame_par.NumRecode = (mfxU16)task.m_recode;       // Number of recodings performed for this frame    
+    }
 
-    bool   m_IsInit;
-
-    BRCParams m_par;
-    HRDState  m_hrdState;
-
-    mfxI32  mQuantI, mQuantP, mQuantB, mQuantMax, mQuantMin, mQuantPrev, mQuantOffset, mQPprev;
-    mfxI32  mMinQp;
-    mfxI32  mMaxQp;
-
-    //mfxI64  mBF, mBFsaved; // buffer fullness
-    mfxI32  mBitsDesiredFrame; //average frame size
-    uint16_t  mQuantUpdated;
-    mfxU32  mRecodedFrame_encOrder;
-    bool    m_bRecodeFrame;
-    mfxU32  mPicType;
-
-    mfxI32 mRecode;
-    mfxI64  mBitsEncodedTotal, mBitsDesiredTotal;
-    mfxI32  mQp;
-    mfxI32  mRCfap, mRCqap, mRCbap, mRCq;
-    mfxF64  mRCqa, mRCfa, mRCqa0;
-    mfxF64  mRCfa_short;
-    mfxI32  mQuantRecoded;
-    mfxI32  mQuantIprev, mQuantPprev, mQuantBprev;
-    mfxI32  mBitsEncoded;
-    mfxI32  mSceneChange;
-    mfxI32  mBitsEncodedP, mBitsEncodedPrev;
-    mfxI32  mPoc, mSChPoc;
-    mfxU32  mEOLastIntra;
-
-    void   ResetParams();
-    mfxU32 GetInitQP();
-    mfxBRCStatus UpdateAndCheckHRD(mfxI32 frameBits, mfxF64 inputBitsPerFrame, mfxI32 recode);
-    void  SetParamsForRecoding (mfxI32 encOrder);
-
-    mfxBRCStatus UpdateQuant(mfxI32 bEncoded, mfxI32 totalPicBits, mfxI32 layer = 0, mfxI32 recode = 0);
-    mfxBRCStatus UpdateQuantHRD(mfxI32 bEncoded, mfxBRCStatus sts, mfxI32 overheadBits = 0, mfxI32 layer = 0, mfxI32 recode = 0);
-    mfxStatus   SetParams(MfxVideoParam &video);
-
-    bool        isFrameBeforeIntra (mfxU32 order);
-
-
-    mfxStatus InitHRD();
  
 };
 }

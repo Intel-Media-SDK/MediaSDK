@@ -163,6 +163,7 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->A = ptr->V + 3;
         ptr->Pitch = 4 * Width2;
         break;
+
     default:
         return MFX_ERR_UNSUPPORTED;
     }
@@ -258,6 +259,8 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
         nbytes = Width2*Height2 + (Width2>>1)*(Height2) + (Width2>>1)*(Height2);
         nbytes *= 2; // 16bits
         break;
+
+
     default:
         return MFX_ERR_UNSUPPORTED;
     }

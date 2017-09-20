@@ -153,7 +153,7 @@ mfxStatus MfxHwMJpegEncode::FastCopyFrameBufferSys2Vid(
     mfxFrameData vidSurf = { 0 };
     mfxStatus sts = MFX_ERR_NONE;
     vidSurf.MemId = vidMemId;
-    
+
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Copy input (sys->vid)");
         mfxFrameSurface1 surfSrc = { {0,}, frmInfo, sysSurf };
@@ -236,7 +236,7 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         m_app0_data.yDensity    = 0x0100;//1
         m_app0_data.xThumbnails = 0;
         m_app0_data.yThumbnails = 0;
-        
+
         mfxU32 payloadSize = 18;
         if (m_payload_base.length + payloadSize > m_payload_base.maxLength)
         {
@@ -297,9 +297,9 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
     m_pps.picture_width       = (mfxU32)par->mfx.FrameInfo.CropW;
     m_pps.picture_height      = (mfxU32)par->mfx.FrameInfo.CropH;
     m_pps.sample_bit_depth = 8;
-    m_pps.component_id[0] = 0;
-    m_pps.component_id[1] = 1;
-    m_pps.component_id[2] = 2;
+    m_pps.component_id[0] = 1;
+    m_pps.component_id[1] = 2;
+    m_pps.component_id[2] = 3;
 
     if (!jpegQT && !jpegQTInitial)
         m_pps.quality = (par->mfx.Quality > 100) ? 100 : par->mfx.Quality;
@@ -321,9 +321,9 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
     memset(&m_scan_list[0], 0, sizeof(m_scan_list[0]));
     m_scan_list[0].restart_interval = par->mfx.RestartInterval;
     m_scan_list[0].num_components = m_pps.num_components;
-    m_scan_list[0].components[0].component_selector = 0;
-    m_scan_list[0].components[1].component_selector = 1;
-    m_scan_list[0].components[2].component_selector = 2;
+    m_scan_list[0].components[0].component_selector = 1;
+    m_scan_list[0].components[1].component_selector = 2;
+    m_scan_list[0].components[2].component_selector = 3;
 
     // Quanlization tables
     if (jpegQT || jpegQTInitial)

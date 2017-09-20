@@ -503,6 +503,8 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
 
     mfxU16 minAsyncDepth = 0;
     bool bUseExternalAllocator = false;
+
+
     for (mfxU32 i = 0; i < m_InputParamsArray.size(); i++)
     {
         if (!m_InputParamsArray[i].bUseOpaqueMemory &&

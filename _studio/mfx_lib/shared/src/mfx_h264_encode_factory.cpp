@@ -25,9 +25,8 @@
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
 
 #include "mfx_h264_encode_interface.h"
-
 #if defined (MFX_VA_LINUX)
-    #include "mfx_h264_encode_vaapi.h"    
+    #include "mfx_h264_encode_vaapi.h"
 
 #endif
 
@@ -49,6 +48,8 @@ DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 #endif
 
 } // DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
+
+
 
 #endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
 /* EOF */

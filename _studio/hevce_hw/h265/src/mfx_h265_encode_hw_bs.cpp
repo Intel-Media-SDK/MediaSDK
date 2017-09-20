@@ -2123,6 +2123,7 @@ void HeaderPacker::PackSEIPayload(
     bs.PutTrailingBits(true);
 }
 
+
 void HeaderPacker::PackSEIPayload(
     BitstreamWriter& bs,
     VUI const & vui,
@@ -2207,6 +2208,7 @@ mfxStatus HeaderPacker::Reset(MfxVideoParam const & par)
 
     return sts;
 }
+
 
 void PackBPPayload(BitstreamWriter& rbsp, MfxVideoParam const & par, Task const & task)
 {
@@ -2323,6 +2325,7 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
     mfxU32 prevNALUBytes = 0;
     mfxPayload BPSEI = {}, PTSEI = {};
     bool insertBP = false, insertPT = false;
+
 
     for (mfxU16 i = 0; i < task.m_ctrl.NumPayload; i++)
     {
@@ -2448,7 +2451,6 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
         prefixPL.remove_if(PLTypeEq(0));
         prefixPL.remove_if(PLTypeEq(1));
         prefixPL.remove_if(PLTypeEq(130));
-        
         rbsp.PutTrailingBits();
 
         if (MFX_ERR_NONE != PackRBSP(buf, rbspStart, sizeInBytes, CeilDiv(rbsp.GetOffset(), 8) - rbspOffset))
@@ -2479,6 +2481,7 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
     }
 
     rbsp.PutTrailingBits();
+
 
     if (MFX_ERR_NONE != PackRBSP(buf, m_rbsp, sizeInBytes, CeilDiv(rbsp.GetOffset(), 8)))
     {

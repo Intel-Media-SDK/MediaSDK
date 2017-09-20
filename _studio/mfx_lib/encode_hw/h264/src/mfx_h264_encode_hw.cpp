@@ -187,7 +187,7 @@ mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
     }
 
 
-    std::auto_ptr<VideoENCODE> impl(
+    std::unique_ptr<VideoENCODE> impl(
                 (VideoENCODE *) new ImplementationAvc(m_core));
 
     mfxStatus sts = impl->Init(par);
@@ -195,7 +195,7 @@ mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
         sts >= MFX_ERR_NONE &&
         sts != MFX_WRN_PARTIAL_ACCELERATION, sts);
 
-    m_impl = impl;
+    m_impl = std::move(impl);
     return sts;
 }
 
@@ -263,6 +263,7 @@ mfxStatus ImplementationAvc::Query(
     //}
     if (queryMode == 0)
         return MFX_ERR_UNDEFINED_BEHAVIOR; // input parameters are contradictory and don't allow to choose Query mode
+
 
     if (queryMode == 1) // see MSDK spec for details related to Query mode 1
     {
@@ -350,33 +351,38 @@ mfxStatus ImplementationAvc::Query(
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+
+
     }
     else if (queryMode == 2)  // see MSDK spec for details related to Query mode 2
     {
         ENCODE_CAPS hwCaps = { };
+        MfxVideoParam tmp = *in; // deep copy, create all supported extended buffers
 
+        eMFXHWType platfrom = core->GetHWType();
+        mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
         // let use dedault values if input resolution is 0x0
         mfxU32 Width  = in->mfx.FrameInfo.Width == 0 ? 1920: in->mfx.FrameInfo.Width;
         mfxU32 Height =  in->mfx.FrameInfo.Height == 0 ? 1088: in->mfx.FrameInfo.Height;
         if (Width > 4096 || Height > 4096)
             sts = MFX_ERR_UNSUPPORTED;
         else
-            sts = QueryHwCaps(core, hwCaps, in);
+            sts = QueryHwCaps(core, hwCaps, &tmp);
 
         if (sts != MFX_ERR_NONE)
             return IsOn(in->mfx.LowPower)? MFX_ERR_UNSUPPORTED: MFX_WRN_PARTIAL_ACCELERATION;
 
-        MfxVideoParam tmp = *in; // deep copy, create all supported extended buffers
-
         sts = ReadSpsPpsHeaders(tmp);
         MFX_CHECK_STS(sts);
 
-        mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, core->GetHWType(), core->GetVAType());
+        mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platfrom, core->GetVAType());
 
         if (checkSts == MFX_WRN_PARTIAL_ACCELERATION)
             return MFX_WRN_PARTIAL_ACCELERATION;
         else if (checkSts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
             checkSts = MFX_ERR_UNSUPPORTED;
+        else if (checkSts == MFX_ERR_NONE && lpSts != MFX_ERR_NONE) // transfer MFX_WRN_INCOMPATIBLE_VIDEO_PARAM to upper level
+            checkSts = lpSts;
 
         /* FEI ENCODE additional check for input parameters */
         mfxExtFeiParam* feiParam = GetExtBuffer(*in);
@@ -387,6 +393,17 @@ mfxStatus ImplementationAvc::Query(
         out->Protected  = tmp.Protected;
         out->AsyncDepth = tmp.AsyncDepth;
         out->mfx = tmp.mfx;
+
+        // SetLowPowerDefault may change LowPower to default value
+        // if LowPower was invalid set it to Zero to mimic Query behaviour
+        if (lpSts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+        {
+            out->mfx.LowPower = 0;
+        }
+        else // otherwise 'hide' default vbalue;
+        {
+            out->mfx.LowPower = in->mfx.LowPower;
+        }
 
         // should have same number of buffers
         if (in->NumExtParam != out->NumExtParam || !in->ExtParam != !out->ExtParam)
@@ -475,10 +492,11 @@ mfxStatus ImplementationAvc::Query(
 
         MfxVideoParam newPar = *in;
         bool isIdrRequired = false;
+        bool isBRCReset = false;
 
         ImplementationAvc * AVCEncoder = (ImplementationAvc*)state;
 
-        checkSts = AVCEncoder->ProcessAndCheckNewParameters(newPar, isIdrRequired);
+        checkSts = AVCEncoder->ProcessAndCheckNewParameters(newPar, isBRCReset, isIdrRequired);
         if (checkSts < MFX_ERR_NONE)
             return checkSts;
 
@@ -506,8 +524,12 @@ mfxStatus ImplementationAvc::Query(
         if (extCaps == 0)
             return MFX_ERR_UNDEFINED_BEHAVIOR; // can't return MB processing rate since mfxExtEncoderCapability isn't attached to "out"
 
+        MfxVideoParam tmp = *in;
+        eMFXHWType platfrom = core->GetHWType();
+        (void)SetLowPowerDefault(tmp, platfrom);
+
         // query MB processing rate from driver
-        sts = QueryMbProcRate(core, *out, mbPerSec, in);
+        sts = QueryMbProcRate(core, *out, mbPerSec, &tmp);
         if (IsOn(in->mfx.LowPower) && sts != MFX_ERR_NONE)
             return MFX_ERR_UNSUPPORTED;
 
@@ -552,13 +574,15 @@ mfxStatus ImplementationAvc::QueryIOSurf(
         MFX_ERR_INVALID_VIDEO_PARAM);
 
     ENCODE_CAPS hwCaps = {};
-    mfxStatus sts = QueryHwCaps(core, hwCaps, par);
+    MfxVideoParam tmp(*par);
+    eMFXHWType platfrom = core->GetHWType();
+    mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
+
+    mfxStatus sts = QueryHwCaps(core, hwCaps, &tmp);
     if (IsOn(par->mfx.LowPower) && sts != MFX_ERR_NONE)
     {
         return MFX_ERR_UNSUPPORTED;
     }
-
-    MfxVideoParam tmp(*par);
 
     sts = ReadSpsPpsHeaders(tmp);
     MFX_CHECK_STS(sts);
@@ -570,9 +594,11 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     if (sts < MFX_ERR_NONE)
         return sts;
 
-    mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, core->GetHWType(), core->GetVAType());
+    mfxStatus checkSts = CheckVideoParamQueryLike(tmp, hwCaps, platfrom, core->GetVAType());
     if (checkSts == MFX_WRN_PARTIAL_ACCELERATION)
         return MFX_WRN_PARTIAL_ACCELERATION; // return immediately
+    else if (checkSts == MFX_ERR_NONE && lpSts != MFX_ERR_NONE)
+        checkSts = lpSts;
 
     SetDefaults(tmp, hwCaps, true, core->GetHWType(), core->GetVAType());
     mfxExtCodingOption3 const &   extOpt3 = GetExtBufferRef(tmp);
@@ -681,6 +707,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
 
     m_video = *par;
+    eMFXHWType platform = m_core->GetHWType();
+    mfxStatus lpSts = SetLowPowerDefault(m_video, platform);
 
     sts = ReadSpsPpsHeaders(m_video);
     MFX_CHECK_STS(sts);
@@ -706,12 +734,12 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (sts != MFX_ERR_NONE)
         return MFX_WRN_PARTIAL_ACCELERATION;
 
-    m_currentPlatform = m_core->GetHWType();
+    m_currentPlatform = platform;
     m_currentVaType   = m_core->GetVAType();
 
     mfxStatus spsppsSts = CopySpsPpsToVideoParam(m_video);
 
-    mfxStatus checkStatus = CheckVideoParam(m_video, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType);
+    mfxStatus checkStatus = CheckVideoParam(m_video, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType, true);
     if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
         return MFX_WRN_PARTIAL_ACCELERATION;
     else if (checkStatus < MFX_ERR_NONE)
@@ -719,9 +747,12 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     else if (checkStatus == MFX_ERR_NONE)
         checkStatus = spsppsSts;
 
+    if (checkStatus == MFX_ERR_NONE && lpSts != MFX_ERR_NONE) // transfer MFX_WRN_INCOMPATIBLE_VIDEO_PARAM to upper level
+        checkStatus = lpSts;
+
     // CQP enabled
     mfxExtCodingOption2 * extOpt2 = GetExtBuffer(m_video);
-    m_enabledSwBrc = bRateControlLA(m_video.mfx.RateControlMethod);
+    m_enabledSwBrc = bRateControlLA(m_video.mfx.RateControlMethod) || (IsOn(extOpt2->ExtBRC) && (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
 
     // need it for both ENCODE and ENC
@@ -1065,6 +1096,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
 mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
     MfxVideoParam & newPar,
+    bool & brcReset,
     bool & isIdrRequired,
     mfxVideoParam const * newParIn)
 {
@@ -1156,7 +1188,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
     mfxExtCodingOption * extOptNew = GetExtBuffer(newPar);
     mfxExtCodingOption * extOptOld = GetExtBuffer(m_video);
 
-    bool brcReset =
+    brcReset =
         m_video.calcParam.targetKbps != newPar.calcParam.targetKbps ||
         m_video.calcParam.maxKbps    != newPar.calcParam.maxKbps;
 
@@ -1173,7 +1205,8 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         m_video.mfx.RateControlMethod      == newPar.mfx.RateControlMethod      &&
         m_videoInit.mfx.FrameInfo.Width    >= newPar.mfx.FrameInfo.Width        &&
         m_videoInit.mfx.FrameInfo.Height   >= newPar.mfx.FrameInfo.Height       &&
-        m_video.mfx.FrameInfo.ChromaFormat == newPar.mfx.FrameInfo.ChromaFormat,
+        m_video.mfx.FrameInfo.ChromaFormat == newPar.mfx.FrameInfo.ChromaFormat &&
+        extOpt2Old->ExtBRC                 == extOpt2New->ExtBRC,
         MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     if (m_video.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
@@ -1208,6 +1241,22 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
                   MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
+
+    if (IsOn(extOpt2Old->ExtBRC))
+    {
+        mfxExtBRC*   extBRCInit       = GetExtBuffer(m_video);
+        mfxExtBRC*   extBRCReset      = GetExtBuffer(newPar);
+
+        MFX_CHECK(
+        extBRCInit->pthis == extBRCReset->pthis &&
+        extBRCInit->Init == extBRCReset->Init &&
+        extBRCInit->Reset == extBRCReset->Reset &&
+        extBRCInit->Close == extBRCReset->Close &&
+        extBRCInit->GetFrameCtrl == extBRCReset->GetFrameCtrl &&
+        extBRCInit->Update == extBRCReset->Update, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    }
+
+
     return checkStatus;
 } // ProcessAndCheckNewParameters
 
@@ -1225,8 +1274,9 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     mfxExtCodingOption2 * extOpt2Old = GetExtBuffer(m_video);
 
     bool isIdrRequired = false;
+    bool isBRCReset = false;
 
-    mfxStatus checkStatus = ProcessAndCheckNewParameters(newPar, isIdrRequired, par);
+    mfxStatus checkStatus = ProcessAndCheckNewParameters(newPar, isBRCReset, isIdrRequired, par);
     if (checkStatus < MFX_ERR_NONE)
         return checkStatus;
 
@@ -1359,8 +1409,18 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
             MFX_CHECK_STS(sts);
         }
     }
-
     m_video = newPar;
+
+    if (IsOn(extOpt2New->ExtBRC))
+    {
+        mfxExtEncoderResetOption * resetOption = GetExtBuffer(newPar);
+        if (isIdrRequired)
+        {
+            resetOption->StartNewSequence = true;
+        }
+        sts = m_brc.Reset(newPar);
+        MFX_CHECK_STS(sts);
+    }
     return checkStatus;
 }
 

@@ -1110,29 +1110,30 @@ typedef struct {
     mfxU16          reserved[2];
 
     struct {
-            mfxU32      FrameOrder;
-            mfxU16      PicStruct;
-            mfxU16      LongTermIdx;
-            mfxU16      reserved[4];
+        mfxU32      FrameOrder;
+        mfxU16      PicStruct;
+        mfxU16      LongTermIdx;
+        mfxU16      reserved[4];
     } UsedRefListL0[32], UsedRefListL1[32];
 } mfxExtAVCEncodedFrameInfo;
 
 typedef struct mfxVPPCompInputStream {
-        mfxU32  DstX;
-        mfxU32  DstY;
-        mfxU32  DstW;
-        mfxU32  DstH;
+    mfxU32  DstX;
+    mfxU32  DstY;
+    mfxU32  DstW;
+    mfxU32  DstH;
 
-        mfxU16  LumaKeyEnable;
-        mfxU16  LumaKeyMin;
-        mfxU16  LumaKeyMax;
+    mfxU16  LumaKeyEnable;
+    mfxU16  LumaKeyMin;
+    mfxU16  LumaKeyMax;
 
-        mfxU16  GlobalAlphaEnable;
-        mfxU16  GlobalAlpha;
+    mfxU16  GlobalAlphaEnable;
+    mfxU16  GlobalAlpha;
+    mfxU16  PixelAlphaEnable;
 
-        mfxU16 PixelAlphaEnable;
+    mfxU16  TileId;
 
-        mfxU16  reserved2[18];
+    mfxU16  reserved2[17];
 } mfxVPPCompInputStream;
 
 typedef struct {
@@ -1151,10 +1152,10 @@ typedef struct {
         mfxU16   V;
         mfxU16   B;
     };
+    mfxU16       NumTiles;
+    mfxU16       reserved1[23];
 
-    mfxU16      reserved1[24];
-
-    mfxU16      NumInputStream;
+    mfxU16       NumInputStream;
     mfxVPPCompInputStream *InputStream;
 } mfxExtVPPComposite;
 

@@ -96,6 +96,9 @@ void MfxH264FEIcommon::ConfigureTaskFEI(
         task.m_picNum[1] = task.m_picNum[0] = task.m_frameNum * (task.m_fieldPicFlag + 1) + task.m_fieldPicFlag;
 
         task.m_idrPicId = prevTask.m_idrPicId + idrPicFlag;
+
+        mfxU32 numReorderFrames = GetNumReorderFrames(video);
+        task.m_dpbOutputDelay = 2 * (task.m_frameOrder + numReorderFrames - task.m_encOrder);
     }
     else
     {
@@ -109,6 +112,8 @@ void MfxH264FEIcommon::ConfigureTaskFEI(
         task.m_frameNum = prevTask.m_frameNum;
 
         task.m_idrPicId = prevTask.m_idrPicId;
+
+        task.m_dpbOutputDelay = prevTask.m_dpbOutputDelay;
     }
 
     mfxU32 ffid = task.m_fid[0];

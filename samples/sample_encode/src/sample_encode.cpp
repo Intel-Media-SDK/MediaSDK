@@ -67,7 +67,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
     msdk_printf(MSDK_STRING("   [-n number] - number of frames to process\n"));
     msdk_printf(MSDK_STRING("   [-b bitRate] - encoded bit rate (Kbits per second), valid for H.264, H.265, MPEG2 and MVC encoders \n"));
-    msdk_printf(MSDK_STRING("   [-u speed|quality|balanced] - target usage, valid for H.264, H.265, MPEG2 and MVC encoders\n"));
+    msdk_printf(MSDK_STRING("   [-u usage] - target usage, valid for H.265, H.264, H.265, MPEG2 and MVC encoders. Expected values:\n"));
+    msdk_printf(MSDK_STRING("                veryslow(quality), slower, slow, medium(balanced), fast, faster, veryfast(speed)\n"));
     msdk_printf(MSDK_STRING("   [-q quality] - mandatory quality parameter for JPEG encoder. In range [1,100]. 100 is the best quality. \n"));
     msdk_printf(MSDK_STRING("   [-r distance] - Distance between I- or P- key frames (1 means no B-frames) \n"));
     msdk_printf(MSDK_STRING("   [-g size] - GOP size (default 256)\n"));
@@ -115,6 +116,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
 
+    msdk_printf(MSDK_STRING("   [-extbrc:<on,off>]       - External BRC for HEVC encoder"));
 
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
 #if D3D_SURFACES_SUPPORT
@@ -528,6 +530,14 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->nGPB = MFX_CODINGOPTION_OFF;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:on")))
+        {
+            pParams->nExtBRC= MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:off")))
+        {
+            pParams->nExtBRC = MFX_CODINGOPTION_OFF;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qsv-ff")))
         {
             pParams->enableQSVFF=true;
@@ -606,6 +616,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             case MSDK_CHAR('u'):
                 if (++i < nArgNum) {
                     pParams->nTargetUsage = StrToTargetUsage(strInput[i]);
+                    if (!pParams->nTargetUsage)
+                    {
+                        msdk_printf(MSDK_STRING("error: wrong '-u' parameter. Balanced will be used.\n"));
+                        pParams->nTargetUsage = MFX_TARGETUSAGE_BALANCED;
+                    }
                 }
                 else {
                     msdk_printf(MSDK_STRING("error: option '-u' expects an argument\n"));

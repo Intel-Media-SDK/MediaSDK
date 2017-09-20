@@ -195,7 +195,6 @@ struct sInputParams
 
     msdk_char  strPerfFile[MSDK_MAX_FILENAME_LEN];
     mfxU32  forcedOutputFourcc;
-    bool  isInI420;
 
     /* Use extended API (RunFrameVPPAsyncEx) */
     bool  use_extapi;
@@ -209,6 +208,7 @@ struct sInputParams
 
     sCompositionParam   compositionParam;
 
+    mfxU32  fccSource;
     sInputParams()
     {
         IOPattern=0;
@@ -227,7 +227,6 @@ struct sInputParams
         ptsAdvanced=false;
         ptsFR=0;
         forcedOutputFourcc=0;
-        isInI420 = false;
         numStreams=0;
 
         MSDK_ZERO_MEMORY(strPlgGuid);
@@ -246,6 +245,9 @@ struct sInputParams
         MSDK_ZERO_MEMORY(strSrcFile);
         MSDK_ZERO_MEMORY(strPerfFile);
         strDstFiles.clear();
+        uChromaSiting = 0;
+        bChromaSiting = false;
+        fccSource = 0;
     }
 };
 
@@ -303,7 +305,8 @@ public :
     mfxStatus  Init(
         const msdk_char *strFileName,
         PTSMaker *pPTSMaker,
-        bool inI420 = false);
+        mfxU32 fcc,
+        bool bInPlaceConvertion = false);
 
     mfxStatus  PreAllocateFrameChunk(
         mfxVideoParam* pVideoParam,
@@ -330,7 +333,9 @@ private:
     mfxU16                                m_Repeat;
 
     PTSMaker                             *m_pPTSMaker;
+    mfxU32                                m_initFcc;
     bool m_inI420;
+    bool m_bCanConvert;
 };
 
 class CRawVideoWriter

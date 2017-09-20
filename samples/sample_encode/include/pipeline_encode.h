@@ -47,6 +47,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "v4l2_util.h"
 #endif
 
+#include "brc_routines.h"
 
 msdk_tick time_get_tick(void);
 msdk_tick time_get_frequency(void);
@@ -269,6 +270,7 @@ protected:
     // Set up video signal information
     mfxExtVideoSignalInfo m_VideoSignalInfo;
 
+    mfxExtBRC           m_ExtBRC;
 
     // external parameters for each component are stored in a vector
     std::vector<mfxExtBuffer*> m_VppExtParams;

@@ -63,7 +63,7 @@ protected:
 
 protected:
 
-    std::auto_ptr<NALUnitSplitter_H265> m_pNALSplitter;
+    std::unique_ptr<NALUnitSplitter_H265> m_pNALSplitter;
 };
 
 } // namespace UMC_HEVC_DECODER

@@ -127,7 +127,7 @@ private:
     }
 
     VideoCORE* m_core;
-    std::auto_ptr<VideoVPP> m_impl;
+    std::unique_ptr<VideoVPP> m_impl;
 
     // opaque processing
     bool  m_bOpaqMode[2];

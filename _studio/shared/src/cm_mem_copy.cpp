@@ -45,6 +45,7 @@ typedef const mfxU8 mfxUC8;
         }
 
 CmCopyWrapper::CmCopyWrapper()
+    : m_guard()
 {
     m_HWType = MFX_HW_UNKNOWN;
     m_pCmProgram = NULL;
@@ -77,6 +78,8 @@ CmCopyWrapper::CmCopyWrapper()
     m_tableCmIndex2.clear();
     m_tableSysIndex2.clear();
 
+    m_surfacesInCreationOrder.clear();
+    m_buffersInCreationOrder.clear();
 } // CmCopyWrapper::CmCopyWrapper(void)
 CmCopyWrapper::~CmCopyWrapper(void)
 {
@@ -112,6 +115,7 @@ SurfaceIndex * CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize,
 
     if (tableSysRelations.end() == it)
     {
+        UMC::AutomaticUMCMutex guard(m_guard);
         cmSts = m_pCmDevice->CreateBufferUP(memSize, pDst, pCmUserBuffer);
         CHECK_CM_STATUS_RET_NULL(cmSts, MFX_ERR_DEVICE_FAILED);
 
@@ -121,6 +125,8 @@ SurfaceIndex * CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize,
         CHECK_CM_STATUS_RET_NULL(cmSts, MFX_ERR_DEVICE_FAILED);
 
         tableSysIndex.insert(std::pair<CmBufferUP *, SurfaceIndex *>(pCmUserBuffer, pCmDstIndex));
+
+        m_buffersInCreationOrder.push_back(pCmUserBuffer);
     }
     else
     {
@@ -2105,54 +2111,21 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
 
 mfxStatus CmCopyWrapper::ReleaseCmSurfaces(void)
 {
-    if (!m_tableCmRelations2.empty())
-    {
-        std::map<void *, CmSurface2D *>::iterator itSrc;
-        std::map<void *, CmSurface2D *>::iterator firstSrc;
-        CmSurface2D *temp = NULL;
-        CmSurface2D *first_surf = NULL;
-        SurfaceIndex* index = NULL;
-        cmStatus cmSts = 0;
-        mfxU32 min_index;
+    UMC::AutomaticUMCMutex guard(m_guard);
 
-        cmSts = (m_tableCmRelations2.begin()->second)->GetIndex(index);
-        if(CM_SUCCESS != cmSts)
-            return MFX_ERR_DEVICE_FAILED;
-        min_index = index->get_data();
-        firstSrc = m_tableCmRelations2.begin();
-
-        for (itSrc = m_tableCmRelations2.begin(), itSrc++; itSrc != m_tableCmRelations2.end(); itSrc++)
-        {
-            cmSts = (itSrc->second)->GetIndex(index);
-            if(CM_SUCCESS != cmSts)
-                return MFX_ERR_DEVICE_FAILED;
-
-            if ((index) && (index->get_data() < min_index))
-            {
-                firstSrc = itSrc;
-                min_index = index->get_data();
-            }
+    if (m_pCmDevice) {
+        for (std::vector<CmBufferUP*>::reverse_iterator item = m_buffersInCreationOrder.rbegin(); item != m_buffersInCreationOrder.rend(); ++item) {
+            m_pCmDevice->DestroyBufferUP(*item);
         }
-        first_surf = firstSrc->second;
-        m_tableCmRelations2.erase(firstSrc);
-
-        for (itSrc = m_tableCmRelations2.begin(); itSrc != m_tableCmRelations2.end(); itSrc++)
-        {
-            temp = itSrc->second;
-            m_pCmDevice->DestroySurface(temp);
+        for (std::vector<CmSurface2D*>::reverse_iterator item = m_surfacesInCreationOrder.rbegin(); item != m_surfacesInCreationOrder.rend(); ++item) {
+            m_pCmDevice->DestroySurface(*item);
         }
-
-        if (first_surf)
-            m_pCmDevice->DestroySurface(first_surf);
-
-        m_tableCmRelations2.clear();
     }
-    std::map<mfxU8 *, CmBufferUP *>::iterator itSysSrc;
-    for (itSysSrc = m_tableSysRelations2.begin() ; itSysSrc != m_tableSysRelations2.end(); itSysSrc++)
-    {
-        CmBufferUP *temp = itSysSrc->second;
-        m_pCmDevice->DestroyBufferUP(temp);
-    }
+
+    m_buffersInCreationOrder.clear();
+    m_surfacesInCreationOrder.clear();
+
+    m_tableCmRelations2.clear();
     m_tableSysRelations2.clear();
 
     m_tableCmIndex2.clear();
@@ -2219,6 +2192,7 @@ CmSurface2D * CmCopyWrapper::CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 
 
     if (tableCmRelations.end() == it)
     {
+        UMC::AutomaticUMCMutex guard(m_guard);
         if (true == isSecondMode)
         {
 
@@ -2237,6 +2211,8 @@ CmSurface2D * CmCopyWrapper::CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 
         CHECK_CM_STATUS_RET_NULL(cmSts, MFX_ERR_DEVICE_FAILED);
 
         tableCmIndex.insert(std::pair<CmSurface2D *, SurfaceIndex *>(pCmSurface2D, pCmSrcIndex));
+
+        m_surfacesInCreationOrder.push_back(pCmSurface2D);
     }
     else
     {

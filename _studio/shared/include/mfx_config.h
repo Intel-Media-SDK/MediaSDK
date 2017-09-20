@@ -35,6 +35,9 @@
 
 
 
+#if defined(LINUX64) && !defined(AS_H264LA_PLUGIN)
+#endif
+
     #if defined(LINUX32) || defined(LINUX64)
         #undef  MFX_VA_LINUX
         #define MFX_VA_LINUX

@@ -76,7 +76,7 @@ Status PackVA::InitBuffers(int size_bs, int size_sl)
         if (NULL == (vpPictureParam = (VAPictureParameterBufferMPEG2*)m_va->GetCompBuffer(VAPictureParameterBufferType, &CompBuf, sizeof (VAPictureParameterBufferMPEG2))))
             return UMC_ERR_ALLOC;
 
-        if (va_mode == VA_VLD_L && size_bs && size_sl)
+        if (va_mode == VA_VLD_L)
         {
             if (NULL == (pQmatrixData = (VAIQMatrixBufferMPEG2*)m_va->GetCompBuffer(VAIQMatrixBufferType, &CompBuf, sizeof (VAIQMatrixBufferMPEG2))))
                 return UMC_ERR_ALLOC;

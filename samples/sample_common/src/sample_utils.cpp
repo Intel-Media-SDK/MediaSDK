@@ -23,6 +23,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <map>
 
 #include "vm/strings_defs.h"
 #include "time_statistics.h"
@@ -1386,20 +1387,31 @@ mfxU16 CalculateDefaultBitrate(mfxU32 nCodecId, mfxU32 nTargetUsage, mfxU32 nWid
     return (mfxU16)bitrate;
 }
 
-mfxU16 StrToTargetUsage(msdk_char* strInput)
+mfxU16 StrToTargetUsage(msdk_string strInput)
 {
-    mfxU16 tu = MFX_TARGETUSAGE_BALANCED;
+    std::map<msdk_string, mfxU16> tu;
+    tu[MSDK_STRING("quality")] =  (mfxU16)MFX_TARGETUSAGE_1;
+    tu[MSDK_STRING("veryslow")] = (mfxU16)MFX_TARGETUSAGE_1;
+    tu[MSDK_STRING("slower")] =   (mfxU16)MFX_TARGETUSAGE_2;
+    tu[MSDK_STRING("slow")] =     (mfxU16)MFX_TARGETUSAGE_3;
+    tu[MSDK_STRING("medium")] =   (mfxU16)MFX_TARGETUSAGE_4;
+    tu[MSDK_STRING("balanced")] = (mfxU16)MFX_TARGETUSAGE_4;
+    tu[MSDK_STRING("fast")] =     (mfxU16)MFX_TARGETUSAGE_5;
+    tu[MSDK_STRING("faster")] =   (mfxU16)MFX_TARGETUSAGE_6;
+    tu[MSDK_STRING("veryfast")] = (mfxU16)MFX_TARGETUSAGE_7;
+    tu[MSDK_STRING("speed")] =    (mfxU16)MFX_TARGETUSAGE_7;
+    tu[MSDK_STRING("1")] =        (mfxU16)MFX_TARGETUSAGE_1;
+    tu[MSDK_STRING("2")] =        (mfxU16)MFX_TARGETUSAGE_2;
+    tu[MSDK_STRING("3")] =        (mfxU16)MFX_TARGETUSAGE_3;
+    tu[MSDK_STRING("4")] =        (mfxU16)MFX_TARGETUSAGE_4;
+    tu[MSDK_STRING("5")] =        (mfxU16)MFX_TARGETUSAGE_5;
+    tu[MSDK_STRING("6")] =        (mfxU16)MFX_TARGETUSAGE_6;
+    tu[MSDK_STRING("7")] =        (mfxU16)MFX_TARGETUSAGE_7;
 
-    if (0 == msdk_strcmp(strInput, MSDK_STRING("quality")))
-    {
-        tu = MFX_TARGETUSAGE_BEST_QUALITY;
-    }
-    else if (0 == msdk_strcmp(strInput, MSDK_STRING("speed")))
-    {
-        tu = MFX_TARGETUSAGE_BEST_SPEED;
-    }
-
-    return tu;
+    if (tu.find(strInput) == tu.end())
+        return 0;
+    else
+        return tu[strInput];
 }
 
 const msdk_char* TargetUsageToStr(mfxU16 tu)

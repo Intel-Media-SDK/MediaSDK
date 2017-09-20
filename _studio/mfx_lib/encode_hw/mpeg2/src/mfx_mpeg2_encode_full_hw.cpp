@@ -478,8 +478,10 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 
 
         pExtTask->m_nInternalTask = nIntTask;
-        pIntTask->m_taskStatus = ENC_STARTED; 
-        
+        {
+            UMC::AutomaticUMCMutex lock(m_guard);
+            pIntTask->m_taskStatus = ENC_STARTED;
+        }
     }
 
     return MFX_ERR_NONE;
@@ -512,6 +514,7 @@ mfxStatus FullEncode::QueryFrame(sExtTask2 *pExtTask)
 
     if (sts != MFX_WRN_DEVICE_BUSY)
     {
+        UMC::AutomaticUMCMutex lock(m_guard);
         pIntTask->m_taskStatus = NOT_STARTED;
         pIntTask->m_Frames.ReleaseFrames(m_pCore);
         m_pController->FinishFrame(bs->DataLength - dataLen);

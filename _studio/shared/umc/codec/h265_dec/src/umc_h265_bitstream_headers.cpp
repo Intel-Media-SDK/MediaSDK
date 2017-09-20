@@ -827,75 +827,79 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
         GetBits(2); //skip sps_extension_2bits
         pcSPS->sps_scc_extension_flag = Get1Bit();
         uint32_t sps_extension_4bits = GetBits(4);
+        bool skip_extension_bits = !!sps_extension_4bits;
 
-        if (pcSPS->sps_range_extension_flag &&
-            pcSPS->getPTL()->GetGeneralPTL()->profile_idc == H265_PROFILE_FREXT)
+        if (pcSPS->sps_range_extension_flag)
         {
             pcSPS->transform_skip_rotation_enabled_flag = Get1Bit();
-            pcSPS->transform_skip_context_enabled_flag = Get1Bit();
-            pcSPS->implicit_residual_dpcm_enabled_flag = Get1Bit();
-            pcSPS->explicit_residual_dpcm_enabled_flag = Get1Bit();
-            pcSPS->extended_precision_processing_flag = Get1Bit();
-            pcSPS->intra_smoothing_disabled_flag = Get1Bit();
-            pcSPS->high_precision_offsets_enabled_flag = Get1Bit();
-            pcSPS->fast_rice_adaptation_enabled_flag = Get1Bit();
-            pcSPS->cabac_bypass_alignment_enabled_flag = Get1Bit();
+            pcSPS->transform_skip_context_enabled_flag  = Get1Bit();
+            pcSPS->implicit_residual_dpcm_enabled_flag  = Get1Bit();
+            pcSPS->explicit_residual_dpcm_enabled_flag  = Get1Bit();
+            pcSPS->extended_precision_processing_flag   = Get1Bit();
+            pcSPS->intra_smoothing_disabled_flag        = Get1Bit();
+            pcSPS->high_precision_offsets_enabled_flag  = Get1Bit();
+            pcSPS->fast_rice_adaptation_enabled_flag    = Get1Bit();
+            pcSPS->cabac_bypass_alignment_enabled_flag  = Get1Bit();
         }
 
-        if (pcSPS->sps_scc_extension_flag &&
-            pcSPS->getPTL()->GetGeneralPTL()->profile_idc == H265_PROFILE_SCC)
+        if (pcSPS->sps_scc_extension_flag)
         {
-            pcSPS->sps_curr_pic_ref_enabled_flag = Get1Bit();
-            pcSPS->palette_mode_enabled_flag = Get1Bit();
-            if (pcSPS->palette_mode_enabled_flag)
+            if (pcSPS->getPTL()->GetGeneralPTL()->profile_idc != H265_PROFILE_SCC)
+                skip_extension_bits = true;
+            else
             {
-                pcSPS->palette_max_size = GetVLCElementU();
-                if (pcSPS->palette_max_size > 64)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                pcSPS->delta_palette_max_predictor_size = GetVLCElementU();
-                if (!pcSPS->palette_max_size && pcSPS->delta_palette_max_predictor_size)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                if (pcSPS->delta_palette_max_predictor_size > 128 - pcSPS->palette_max_size)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                pcSPS->sps_palette_predictor_initializer_present_flag = Get1Bit();
-                if (!pcSPS->palette_max_size && pcSPS->sps_palette_predictor_initializer_present_flag)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                if (pcSPS->sps_palette_predictor_initializer_present_flag)
+                pcSPS->sps_curr_pic_ref_enabled_flag = Get1Bit();
+                pcSPS->palette_mode_enabled_flag = Get1Bit();
+                if (pcSPS->palette_mode_enabled_flag)
                 {
-                    uint32_t const PaletteMaxPredictorSize = pcSPS->palette_max_size + pcSPS->delta_palette_max_predictor_size;
-                    VM_ASSERT(PaletteMaxPredictorSize > 0);
-
-                    uint32_t const sps_num_palette_predictor_initializer_minus1 = GetVLCElementU();
-                    if (sps_num_palette_predictor_initializer_minus1 > PaletteMaxPredictorSize - 1)
+                    pcSPS->palette_max_size = GetVLCElementU();
+                    if (pcSPS->palette_max_size > 64)
                         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-                    pcSPS->sps_num_palette_predictor_initializer = sps_num_palette_predictor_initializer_minus1 + 1;
 
-                    uint8_t const numComps = pcSPS->chroma_format_idc ? 3 : 1;
-                    pcSPS->m_paletteInitializers.resize(pcSPS->sps_num_palette_predictor_initializer * numComps);
+                    pcSPS->delta_palette_max_predictor_size = GetVLCElementU();
+                    if (!pcSPS->palette_max_size && pcSPS->delta_palette_max_predictor_size)
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-                    for (uint8_t i = 0; i < numComps; ++i)
-                        for (uint32_t j = 0; j < pcSPS->sps_num_palette_predictor_initializer; ++j)
-                        {
-                            uint32_t const num_bits =
-                                i == 0 ? pcSPS->bit_depth_luma : pcSPS->bit_depth_chroma;
-                            pcSPS->m_paletteInitializers[i * pcSPS->sps_num_palette_predictor_initializer + j] = GetBits(num_bits);
-                        }
+                    if (pcSPS->delta_palette_max_predictor_size > 128 - pcSPS->palette_max_size)
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+                    pcSPS->sps_palette_predictor_initializer_present_flag = Get1Bit();
+                    if (!pcSPS->palette_max_size && pcSPS->sps_palette_predictor_initializer_present_flag)
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+                    if (pcSPS->sps_palette_predictor_initializer_present_flag)
+                    {
+                        uint32_t const PaletteMaxPredictorSize = pcSPS->palette_max_size + pcSPS->delta_palette_max_predictor_size;
+                        VM_ASSERT(PaletteMaxPredictorSize > 0);
+
+                        uint32_t const sps_num_palette_predictor_initializer_minus1 = GetVLCElementU();
+                        if (sps_num_palette_predictor_initializer_minus1 > PaletteMaxPredictorSize - 1)
+                            throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+                        pcSPS->sps_num_palette_predictor_initializer = sps_num_palette_predictor_initializer_minus1 + 1;
+
+                        uint8_t const numComps = pcSPS->chroma_format_idc ? 3 : 1;
+                        pcSPS->m_paletteInitializers.resize(pcSPS->sps_num_palette_predictor_initializer * numComps);
+
+                        for (uint8_t i = 0; i < numComps; ++i)
+                            for (uint32_t j = 0; j < pcSPS->sps_num_palette_predictor_initializer; ++j)
+                            {
+                                uint32_t const num_bits =
+                                    i == 0 ? pcSPS->bit_depth_luma : pcSPS->bit_depth_chroma;
+                                pcSPS->m_paletteInitializers[i * pcSPS->sps_num_palette_predictor_initializer + j] = GetBits(num_bits);
+                            }
+                    }
+
+                    pcSPS->motion_vector_resolution_control_idc = GetBits(2);
+                    if (pcSPS->motion_vector_resolution_control_idc == 3)
+                        //value of 3 for motion_vector_resolution_control_idc is reserved for future use by spec.
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+                    pcSPS->intra_boundary_filtering_disabled_flag = Get1Bit();
                 }
-
-                pcSPS->motion_vector_resolution_control_idc = GetBits(2);
-                if (pcSPS->motion_vector_resolution_control_idc == 3)
-                    //value of 3 for motion_vector_resolution_control_idc is reserved for future use by spec.
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                pcSPS->intra_boundary_filtering_disabled_flag = Get1Bit();
             }
         }
 
-        if (sps_extension_4bits)
+        if (skip_extension_bits)
         {
             while (MoreRbspData())
             {
@@ -1167,9 +1171,9 @@ UMC::Status H265HeadersBitstream::GetPictureParamSetFull(H265PicParamSet  *pcPPS
         GetBits(2); //skip pps_extension_2bits
         pcPPS->pps_scc_extension_flag = Get1Bit();
         uint32_t pps_extension_4bits = GetBits(4);
+        bool skip_extension_bits = !!pps_extension_4bits;
 
-        if (pcPPS->pps_range_extensions_flag &&
-            pcSPS->getPTL()->GetGeneralPTL()->profile_idc == H265_PROFILE_FREXT)
+        if (pcPPS->pps_range_extensions_flag)
         {
             if (pcPPS->transform_skip_enabled_flag)
             {
@@ -1202,77 +1206,81 @@ UMC::Status H265HeadersBitstream::GetPictureParamSetFull(H265PicParamSet  *pcPPS
             pcPPS->log2_sao_offset_scale_chroma = GetVLCElementU();
         }
 
-        if (pcPPS->pps_scc_extension_flag &&
-            pcSPS->getPTL()->GetGeneralPTL()->profile_idc == H265_PROFILE_SCC)
+        if (pcPPS->pps_scc_extension_flag)
         {
-            pcPPS->pps_curr_pic_ref_enabled_flag = Get1Bit();
-            pcPPS->residual_adaptive_colour_transform_enabled_flag = Get1Bit();
-            if (pcPPS->residual_adaptive_colour_transform_enabled_flag)
+            if (pcSPS->getPTL()->GetGeneralPTL()->profile_idc != H265_PROFILE_SCC)
+                skip_extension_bits = true;
+            else
             {
-                pcPPS->pps_slice_act_qp_offsets_present_flag = Get1Bit();
-                int32_t const pps_act_y_qp_offset_plus5 = GetVLCElementS();
-                if (pps_act_y_qp_offset_plus5 < -7 || pps_act_y_qp_offset_plus5 > 17)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-                pcPPS->pps_act_y_qp_offset  = pps_act_y_qp_offset_plus5 - 5;
-
-                int32_t const pps_act_cb_qp_offset_plus5 = GetVLCElementS();
-                if (pps_act_cb_qp_offset_plus5 < -7 || pps_act_cb_qp_offset_plus5 > 17)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-                pcPPS->pps_act_cb_qp_offset = pps_act_cb_qp_offset_plus5 - 5;
-
-                int32_t const pps_act_cr_qp_offset_plus3 = GetVLCElementS();
-                if (pps_act_cr_qp_offset_plus3 < -9 || pps_act_cr_qp_offset_plus3 > 15)
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-                pcPPS->pps_act_cr_qp_offset = pps_act_cr_qp_offset_plus3 - 3;
-            }
-
-            pcPPS->pps_palette_predictor_initializer_present_flag = Get1Bit();
-            if (pcPPS->pps_palette_predictor_initializer_present_flag)
-            {
-                if (pcSPS->palette_max_size == 0 || !pcSPS->palette_mode_enabled_flag)
-                    //pps_palette_predictor_initializer_present_flag shall be equal to 0 when either palette_max_size is equal to 0 or palette_mode_enabled_flag is equal to 0
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                pcPPS->pps_num_palette_predictor_initializer = GetVLCElementU();
-                if (pcPPS->pps_num_palette_predictor_initializer > 128)
-                    //accord. to spec. pps_num_palette_predictor_initializer can't exceed PaletteMaxPredictorSize
-                    //that's checked at [supplayer :: xDecodePPS]
-                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                if (pcPPS->pps_num_palette_predictor_initializer)
+                pcPPS->pps_curr_pic_ref_enabled_flag = Get1Bit();
+                pcPPS->residual_adaptive_colour_transform_enabled_flag = Get1Bit();
+                if (pcPPS->residual_adaptive_colour_transform_enabled_flag)
                 {
-                    pcPPS->monochrome_palette_flag = Get1Bit();
+                    pcPPS->pps_slice_act_qp_offsets_present_flag = Get1Bit();
+                    int32_t const pps_act_y_qp_offset_plus5 = GetVLCElementS();
+                    if (pps_act_y_qp_offset_plus5 < -7 || pps_act_y_qp_offset_plus5 > 17)
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+                    pcPPS->pps_act_y_qp_offset  = pps_act_y_qp_offset_plus5 - 5;
 
-                    uint32_t const luma_bit_depth_entry_minus8 = GetVLCElementU();
-                    if (luma_bit_depth_entry_minus8 > 6)
+                    int32_t const pps_act_cb_qp_offset_plus5 = GetVLCElementS();
+                    if (pps_act_cb_qp_offset_plus5 < -7 || pps_act_cb_qp_offset_plus5 > 17)
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+                    pcPPS->pps_act_cb_qp_offset = pps_act_cb_qp_offset_plus5 - 5;
+
+                    int32_t const pps_act_cr_qp_offset_plus3 = GetVLCElementS();
+                    if (pps_act_cr_qp_offset_plus3 < -9 || pps_act_cr_qp_offset_plus3 > 15)
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+                    pcPPS->pps_act_cr_qp_offset = pps_act_cr_qp_offset_plus3 - 3;
+                }
+
+                pcPPS->pps_palette_predictor_initializer_present_flag = Get1Bit();
+                if (pcPPS->pps_palette_predictor_initializer_present_flag)
+                {
+                    if (pcSPS->palette_max_size == 0 || !pcSPS->palette_mode_enabled_flag)
+                        //pps_palette_predictor_initializer_present_flag shall be equal to 0 when either palette_max_size is equal to 0 or palette_mode_enabled_flag is equal to 0
                         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-                    pcPPS->luma_bit_depth_entry = luma_bit_depth_entry_minus8 + 8;
+                    pcPPS->pps_num_palette_predictor_initializer = GetVLCElementU();
+                    if (pcPPS->pps_num_palette_predictor_initializer > 128)
+                        //accord. to spec. pps_num_palette_predictor_initializer can't exceed PaletteMaxPredictorSize
+                        //that's checked at [supplayer :: xDecodePPS]
+                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-                    if (!pcPPS->monochrome_palette_flag)
+                    if (pcPPS->pps_num_palette_predictor_initializer)
                     {
-                        uint32_t const chroma_bit_depth_entry_minus8 = GetVLCElementU();
-                        if (chroma_bit_depth_entry_minus8 > 6)
+                        pcPPS->monochrome_palette_flag = Get1Bit();
+
+                        uint32_t const luma_bit_depth_entry_minus8 = GetVLCElementU();
+                        if (luma_bit_depth_entry_minus8 > 6)
                             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
-                        pcPPS->chroma_bit_depth_entry = chroma_bit_depth_entry_minus8 + 8;
-                    }
+                        pcPPS->luma_bit_depth_entry = luma_bit_depth_entry_minus8 + 8;
 
-                    uint8_t const numComps = pcPPS->monochrome_palette_flag ? 1 : 3;
-                    pcPPS->m_paletteInitializers.resize(pcPPS->pps_num_palette_predictor_initializer * numComps);
-
-                    for (uint8_t i = 0; i < numComps; ++i)
-                        for (uint32_t j = 0; j < pcPPS->pps_num_palette_predictor_initializer; ++j)
+                        if (!pcPPS->monochrome_palette_flag)
                         {
-                            uint32_t const num_bits =
-                                i == 0 ? pcPPS->luma_bit_depth_entry : pcPPS->chroma_bit_depth_entry;
-                            pcPPS->m_paletteInitializers[i * pcPPS->pps_num_palette_predictor_initializer + j] = GetBits(num_bits);
+                            uint32_t const chroma_bit_depth_entry_minus8 = GetVLCElementU();
+                            if (chroma_bit_depth_entry_minus8 > 6)
+                                throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+                            pcPPS->chroma_bit_depth_entry = chroma_bit_depth_entry_minus8 + 8;
                         }
+
+                        uint8_t const numComps = pcPPS->monochrome_palette_flag ? 1 : 3;
+                        pcPPS->m_paletteInitializers.resize(pcPPS->pps_num_palette_predictor_initializer * numComps);
+
+                        for (uint8_t i = 0; i < numComps; ++i)
+                            for (uint32_t j = 0; j < pcPPS->pps_num_palette_predictor_initializer; ++j)
+                            {
+                                uint32_t const num_bits =
+                                    i == 0 ? pcPPS->luma_bit_depth_entry : pcPPS->chroma_bit_depth_entry;
+                                pcPPS->m_paletteInitializers[i * pcPPS->pps_num_palette_predictor_initializer + j] = GetBits(num_bits);
+                            }
+                    }
                 }
             }
         }
 
-        if (pps_extension_4bits)
+        if (skip_extension_bits)
         {
             while (MoreRbspData())
             {

@@ -35,6 +35,9 @@
 #endif
 #define MFX_ENABLE_MVC_VIDEO_ENCODE
 
+#if defined(AS_HEVC_FEI_ENCODE_PLUGIN)
+    #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
+#endif
 
 
 
@@ -70,6 +73,10 @@
 
 // H265 FEI plugin
 
+// undefine unsupported features DirtyRect and MoveRect on Linux
+
+//H265 feature
+
 // user plugin for decoder, encoder, and vpp
 #define MFX_ENABLE_USER_DECODE
 #define MFX_ENABLE_USER_ENCODE
@@ -96,7 +103,7 @@
     #undef MFX_ENABLE_VPP
 #endif
 
-#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(AS_VP8D_PLUGIN)
+#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(AS_VP8D_PLUGIN) || defined(AS_HEVC_FEI_ENCODE_PLUGIN)
     #undef MFX_ENABLE_H265_VIDEO_DECODE
     #undef MFX_ENABLE_H265_VIDEO_ENCODE
     #undef MFX_ENABLE_H264_VIDEO_DECODE
@@ -125,6 +132,9 @@
 #if defined(AS_HEVCE_PLUGIN)
     #define MFX_ENABLE_H265_VIDEO_ENCODE
         #define MFX_ENABLE_CM
+#endif
+#if defined(AS_HEVC_FEI_ENCODE_PLUGIN)
+    #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
 #endif
 #if defined(AS_VP8DHW_PLUGIN)
     #define MFX_ENABLE_VP8_VIDEO_DECODE_HW

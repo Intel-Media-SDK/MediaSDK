@@ -122,7 +122,16 @@ protected:
     virtual DriverEncoder* CreateHWh265Encoder(MFXCoreInterface* core, ENCODER_TYPE type = ENCODER_DEFAULT)
     {
         return CreatePlatformH265Encoder(core, type);
-    };
+    }
+
+    virtual mfxStatus ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
+    {
+        ctrl;
+        surface;
+        bs;
+
+        return MFX_ERR_NONE;
+    }
 
     bool m_createdByDispatcher;
     MFXPluginAdapter<MFXEncoderPlugin> m_adapter;

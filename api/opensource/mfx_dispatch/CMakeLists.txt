@@ -21,6 +21,18 @@
 cmake_minimum_required( VERSION 2.6.2 FATAL_ERROR )
 project( mfx )
 
+set( MFX_API_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../include )
+
+# While equal to get_mfx_version in samples/builder, this function should remain separate to make this file self-sufficient 
+function( get_api_version mfx_version_major mfx_version_minor )
+  file(STRINGS ${MFX_API_FOLDER}/mfxvideo.h major REGEX "#define MFX_VERSION_MAJOR")
+  file(STRINGS ${MFX_API_FOLDER}/mfxvideo.h minor REGEX "#define MFX_VERSION_MINOR")
+  string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
+  string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
+  set(${mfx_version_major} ${major} PARENT_SCOPE)
+  set(${mfx_version_minor} ${minor} PARENT_SCOPE)
+endfunction()
+
 set( CMAKE_VERBOSE_MAKEFILE             TRUE )
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
@@ -62,7 +74,7 @@ else( )
 endif( )
 
 include_directories (
-  ${CMAKE_CURRENT_SOURCE_DIR}/../../include
+  ${MFX_API_FOLDER}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
@@ -125,7 +137,7 @@ list(APPEND sources.plus
 set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG ${WARNING_FLAGS}" )
 make_static_library( dispatch_trace )
 
-get_mfx_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
+get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
 set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME}.pc")
 
 set( INSTALL_LIB_PATH "lib/lin_x86" )
@@ -140,4 +152,4 @@ install( TARGETS dispatch_shared ARCHIVE DESTINATION ${INSTALL_LIB_PATH} )
 install( TARGETS dispatch_trace ARCHIVE DESTINATION ${INSTALL_LIB_PATH} )
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION "${INSTALL_LIB_PATH}/pkgconfig" )
 
-install( DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../include/ DESTINATION include FILES_MATCHING PATTERN *.h )
+install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION include FILES_MATCHING PATTERN *.h )

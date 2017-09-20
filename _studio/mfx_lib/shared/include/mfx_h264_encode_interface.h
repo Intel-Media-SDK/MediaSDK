@@ -37,6 +37,7 @@
     #include "mfx_h264_encode_struct_vaapi.h"
 #endif
 
+
 namespace MfxHwH264Encode
 {
     class PreAllocatedVector
@@ -168,10 +169,10 @@ namespace MfxHwH264Encode
         virtual
         mfxStatus SetEncCtrlCaps(
             ENCODE_ENC_CTRL_CAPS const & caps) { caps; return MFX_ERR_UNSUPPORTED; };
-            
     };
 
     DriverEncoder* CreatePlatformH264Encoder( VideoCORE* core ); 
+
 
 }; // namespace
 

@@ -49,6 +49,8 @@ else()
     endif()
 endif()
 
+append("-std=c++11" CMAKE_CXX_FLAGS)
+
 # SW HEVC decoder & encoder require SSE4.2
   if (CMAKE_C_COMPILER MATCHES icc)
     append("-xSSE4.2 -static-intel" CMAKE_C_FLAGS)

@@ -214,7 +214,6 @@ public:
 
     static void PackSEIPayload(BitstreamWriter& bs, VUI const & vui, BufferingPeriodSEI const & bp);
     static void PackSEIPayload(BitstreamWriter& bs, VUI const & vui, PicTimingSEI const & pt);
-
     static mfxStatus PackRBSP(mfxU8* dst, mfxU8* src, mfxU32& dst_size, mfxU32 src_size);
 
 

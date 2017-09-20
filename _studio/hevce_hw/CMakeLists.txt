@@ -58,6 +58,7 @@ file( GLOB_RECURSE srcs "${dir}/*.c" "${dir}/*.cpp" )
 list( APPEND sources ${srcs} )
 
 list( APPEND LIBS
+  mfx_common_hw
   umc_va_hw
   umc
   vm

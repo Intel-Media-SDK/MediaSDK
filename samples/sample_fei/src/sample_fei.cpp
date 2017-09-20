@@ -52,6 +52,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-l numSlices] - number of slices \n"));
     msdk_printf(MSDK_STRING("   [-x (-NumRefFrame) numRefs] - number of reference frames \n"));
     msdk_printf(MSDK_STRING("   [-qp qp_value] - QP value for frames (default is 26)\n"));
+    msdk_printf(MSDK_STRING("   [-vbr] - use VBR rate control, it is supported only for progressive content for PAK only pipeline\n"));
+    msdk_printf(MSDK_STRING("   [-TargetKbps value] - target bitrate for VBR rate control\n"));
     msdk_printf(MSDK_STRING("   [-num_active_P numRefs] - number of maximum allowed references for P frames (up to 4(default)); for PAK only limit is 16\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL0 numRefs] - number of maximum allowed backward references for B frames (up to 4(default)); for PAK only limit is 16\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL1 numRefs] - number of maximum allowed forward references for B frames (up to 2(default) for interlaced, 1(default) for progressive); for PAK only limit is 16\n"));
@@ -339,6 +341,18 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         {
             i++;
             pConfig->QP = (mfxU8)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vbr")))
+        {
+            pConfig->RateControlMethod = MFX_RATECONTROL_VBR;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-TargetKbps")))
+        {
+            if (!strInput[++i] || MFX_ERR_NONE != msdk_opt_read(strInput[i], pConfig->TargetKbps))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("ERROR: TargetKbps is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-num_active_P")))
         {
@@ -1184,6 +1198,13 @@ mfxStatus CheckOptions(AppConfig* pConfig)
         sts = MFX_ERR_UNSUPPORTED;
     }
 
+    if (!( (pConfig->RateControlMethod == MFX_RATECONTROL_CQP && pConfig->QP <= 51) ||
+           (pConfig->bOnlyPAK && pConfig->RateControlMethod == MFX_RATECONTROL_VBR &&
+            pConfig->TargetKbps>10 && pConfig->nPicStruct == MFX_PICSTRUCT_PROGRESSIVE)))
+    {
+        fprintf(stderr, "ERROR: Invalid BRC parameters\n");
+        sts = MFX_ERR_UNSUPPORTED;
+    }
 
     return sts;
 }

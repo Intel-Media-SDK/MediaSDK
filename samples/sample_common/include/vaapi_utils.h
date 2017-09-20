@@ -85,36 +85,60 @@ namespace MfxLoader
         typedef VAStatus (*vaGetLibFunc_type)(VADisplay, const char *func);
         typedef VAStatus (*vaAcquireBufferHandle_type)(VADisplay, VABufferID, VABufferInfo *);
         typedef VAStatus (*vaReleaseBufferHandle_type)(VADisplay, VABufferID);
+        typedef VAStatus (*vaMaxNumEntrypoints_type)(VADisplay dpy);
+        typedef VAStatus (*vaQueryConfigEntrypoints_type)(VADisplay dpy,
+                                                          VAProfile profile,
+                                                          VAEntrypoint *entrypoint_list,
+                                                          int *num_entrypoints);
+        typedef VAStatus (*vaGetConfigAttributes_type)(VADisplay dpy,
+                                                       VAProfile profile,
+                                                       VAEntrypoint entrypoint,
+                                                       VAConfigAttrib *attrib_list,
+                                                       int num_attribs);
+        typedef VAStatus (*vaCreateConfig_type)(VADisplay dpy,
+                                                VAProfile profile,
+                                                VAEntrypoint entrypoint,
+                                                VAConfigAttrib *attrib_list,
+                                                int num_attribs,
+                                                VAConfigID *config_id);
 
-        typedef VAStatus (*vaCreateContext_type) (VADisplay, VAConfigID, int, int, int,
-                                                  VASurfaceID *, int, VAContextID *);
-        typedef VAStatus (*vaGetConfigAttributes_type) (VADisplay, VAProfile, VAEntrypoint,
-                                                        VAConfigAttrib *, int);
-        typedef VAStatus (*vaCreateConfig_type) (VADisplay, VAProfile, VAEntrypoint,
-                                                 VAConfigAttrib *, int, VAConfigID *);
-        typedef VAStatus (*vaDestroyContext_type) (VADisplay, VAContextID);
+        typedef VAStatus (*vaCreateContext_type)(VADisplay dpy,
+                                                 VAConfigID config_id,
+                                                 int picture_width,
+                                                 int picture_height,
+                                                 int flag,
+                                                 VASurfaceID *render_targets,
+                                                 int num_render_targets,
+                                                 VAContextID *context);
+        typedef VAStatus (*vaDestroyConfig_type) (VADisplay dpy,
+                                                  VAConfigID config_id);
+        typedef VAStatus (*vaDestroyContext_type) (VADisplay dpy,
+                                                   VAContextID context);
 
         VA_Proxy();
         ~VA_Proxy();
 
-        const vaInitialize_type      vaInitialize;
-        const vaTerminate_type       vaTerminate;
-        const vaCreateSurfaces_type  vaCreateSurfaces;
-        const vaDestroySurfaces_type vaDestroySurfaces;
-        const vaCreateBuffer_type    vaCreateBuffer;
-        const vaDestroyBuffer_type   vaDestroyBuffer;
-        const vaMapBuffer_type       vaMapBuffer;
-        const vaUnmapBuffer_type     vaUnmapBuffer;
-        const vaSyncSurface_type     vaSyncSurface;
-        const vaDeriveImage_type     vaDeriveImage;
-        const vaDestroyImage_type    vaDestroyImage;
-        const vaGetLibFunc_type      vaGetLibFunc;
-        const vaAcquireBufferHandle_type vaAcquireBufferHandle;
-        const vaReleaseBufferHandle_type vaReleaseBufferHandle;
-        const vaCreateContext_type       vaCreateContext;
-        const vaGetConfigAttributes_type vaGetConfigAttributes;
-        const vaCreateConfig_type        vaCreateConfig;
-        const vaDestroyContext_type      vaDestroyContext;
+        const vaInitialize_type             vaInitialize;
+        const vaTerminate_type              vaTerminate;
+        const vaCreateSurfaces_type         vaCreateSurfaces;
+        const vaDestroySurfaces_type        vaDestroySurfaces;
+        const vaCreateBuffer_type           vaCreateBuffer;
+        const vaDestroyBuffer_type          vaDestroyBuffer;
+        const vaMapBuffer_type              vaMapBuffer;
+        const vaUnmapBuffer_type            vaUnmapBuffer;
+        const vaSyncSurface_type            vaSyncSurface;
+        const vaDeriveImage_type            vaDeriveImage;
+        const vaDestroyImage_type           vaDestroyImage;
+        const vaGetLibFunc_type             vaGetLibFunc;
+        const vaAcquireBufferHandle_type    vaAcquireBufferHandle;
+        const vaReleaseBufferHandle_type    vaReleaseBufferHandle;
+        const vaMaxNumEntrypoints_type      vaMaxNumEntrypoints;
+        const vaQueryConfigEntrypoints_type vaQueryConfigEntrypoints;
+        const vaGetConfigAttributes_type    vaGetConfigAttributes;
+        const vaCreateConfig_type           vaCreateConfig;
+        const vaCreateContext_type          vaCreateContext;
+        const vaDestroyConfig_type          vaDestroyConfig;
+        const vaDestroyContext_type         vaDestroyContext;
     };
 #endif
 

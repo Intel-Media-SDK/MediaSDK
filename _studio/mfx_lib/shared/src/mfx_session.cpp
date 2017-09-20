@@ -804,7 +804,7 @@ void _mfxSession_1_10::SetAdapterNum(const mfxU32 adapterNum)
     m_adapterNum = adapterNum;
 }
 
-std::auto_ptr<VideoCodecUSER> &  _mfxSession_1_10::GetPreEncPlugin()
+std::unique_ptr<VideoCodecUSER> &  _mfxSession_1_10::GetPreEncPlugin()
 {
     return m_plgPreEnc;
 }

@@ -41,8 +41,9 @@ public:
     mfxU16 NumRefFrame;
     mfxU16 log2frameNumMax;
     mfxU16 refresh_limit;
+    bool BPyramid;
 
-    explicit iTaskPool(mfxU16 GopRefDist = 1, mfxU16 GopOptFlag = 0, mfxU16 NumRefFrame = 0, mfxU16 limit = 1, mfxU16 log2frameNumMax = 8)
+    explicit iTaskPool(mfxU16 GopRefDist = 1, mfxU16 GopOptFlag = 0, mfxU16 NumRefFrame = 0, bool pyramid = false, mfxU16 limit = 1, mfxU16 log2frameNumMax = 8)
         : last_encoded_task(NULL)
         , task_in_process(NULL)
         , reorder_frames(true)
@@ -52,12 +53,13 @@ public:
         , NumRefFrame(NumRefFrame)
         , log2frameNumMax(log2frameNumMax)
         , refresh_limit(limit)
+        , BPyramid(pyramid)
     {}
 
     ~iTaskPool() { Clear(); }
 
     /* Update those fields that could be adjusted by MSDK internal checks */
-    void Init(bool EncodedOrder, mfxU16 n_input_lockers, mfxU16 RefDist, mfxU16 OptFlag, mfxU16 NumRef, mfxU16 limit, mfxU16 lg2frameNumMax)
+    void Init(bool EncodedOrder, mfxU16 n_input_lockers, mfxU16 RefDist, mfxU16 OptFlag, mfxU16 NumRef, bool pyramid, mfxU16 limit, mfxU16 lg2frameNumMax)
     {
         reorder_frames  = EncodedOrder;
         NInputLockers   = n_input_lockers;
@@ -66,6 +68,7 @@ public:
         NumRefFrame     = NumRef;
         log2frameNumMax = lg2frameNumMax;
         refresh_limit   = limit;
+        BPyramid        = pyramid;
     }
 
     /* Release all pipeline resources */
@@ -132,13 +135,26 @@ public:
             // For all other cases, where manual reordering used
             ArrayDpbFrame & dpb = last_encoded_task->m_dpbPostEncoding;
             std::list<mfxU32> FramesInDPB;
+            mfxU32 minUnencodedB = 0xffffffff;
 
             for (mfxU32 i = 0; i < dpb.Size(); i++)
                 FramesInDPB.push_back(dpb[i].m_frameOrder);
 
+            if (BPyramid)
+            {
+                for (std::list<iTask*>::iterator it = task_pool.begin(); it != task_pool.end(); ++it)
+                {
+                    if (!(*it)->encoded && ((*it)->m_type[(*it)->m_fid[0]] & MFX_FRAMETYPE_B))
+                    {
+                        minUnencodedB = (std::min)(minUnencodedB, (*it)->m_frameOrder);
+                    }
+                }
+            }
+
             for (std::list<iTask*>::iterator it = task_pool.begin(); it != task_pool.end(); ++it)
             {
-                if (std::find(FramesInDPB.begin(), FramesInDPB.end(), (*it)->m_frameOrder) == FramesInDPB.end() && (*it)->encoded) // delete task
+                bool protectRefInPyramid = BPyramid && ((*it)->m_type[(*it)->m_fid[0]] & MFX_FRAMETYPE_REF) && (minUnencodedB < (*it)->m_frameOrder);
+                if (std::find(FramesInDPB.begin(), FramesInDPB.end(), (*it)->m_frameOrder) == FramesInDPB.end() && (*it)->encoded && !protectRefInPyramid) // delete task
                 {
                     MSDK_SAFE_DELETE(*it);
                     task_pool.erase(it);

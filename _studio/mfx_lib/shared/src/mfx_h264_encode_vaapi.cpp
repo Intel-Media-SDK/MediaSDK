@@ -737,7 +737,7 @@ void FillPWT(
 {
     mfxU32 iNumRefL0 = 0;
     mfxU32 iNumRefL1 = 0;
-    const mfxU32 iWeight = 0, iOffset = 1, iY = 0, iCb = 1, iCr = 2;
+    const mfxU32 iWeight = 0, iOffset = 1, iY = 0, iCb = 1, iCr = 2, iCbVa = 0, iCrVa = 1;
     mfxU32 ref = 0;
 
     // check parameter
@@ -818,17 +818,17 @@ void FillPWT(
                 if (pwt.ChromaWeightFlag[0][ref])
                 {
                     slice.chroma_weight_l0_flag |= 1 << ref;
-                    Copy(slice.chroma_weight_l0[ref][iCb], pwt.Weights[0][ref][iCb][iWeight]);
-                    Copy(slice.chroma_weight_l0[ref][iCr], pwt.Weights[0][ref][iCr][iWeight]);
-                    Copy(slice.chroma_offset_l0[ref][iCb], pwt.Weights[0][ref][iCb][iOffset]);
-                    Copy(slice.chroma_offset_l0[ref][iCr], pwt.Weights[0][ref][iCr][iOffset]);
+                    Copy(slice.chroma_weight_l0[ref][iCbVa], pwt.Weights[0][ref][iCb][iWeight]);
+                    Copy(slice.chroma_weight_l0[ref][iCrVa], pwt.Weights[0][ref][iCr][iWeight]);
+                    Copy(slice.chroma_offset_l0[ref][iCbVa], pwt.Weights[0][ref][iCb][iOffset]);
+                    Copy(slice.chroma_offset_l0[ref][iCrVa], pwt.Weights[0][ref][iCr][iOffset]);
                 }
                 else
                 {
-                    slice.chroma_weight_l0[ref][iCb] = (1 << slice.chroma_log2_weight_denom);
-                    slice.chroma_weight_l0[ref][iCr] = (1 << slice.chroma_log2_weight_denom);
-                    slice.chroma_offset_l0[ref][iCb] = 0;
-                    slice.chroma_offset_l0[ref][iCr] = 0;
+                    slice.chroma_weight_l0[ref][iCbVa] = (1 << slice.chroma_log2_weight_denom);
+                    slice.chroma_weight_l0[ref][iCrVa] = (1 << slice.chroma_log2_weight_denom);
+                    slice.chroma_offset_l0[ref][iCbVa] = 0;
+                    slice.chroma_offset_l0[ref][iCrVa] = 0;
                 }
             }
         }
@@ -841,17 +841,17 @@ void FillPWT(
                 if (pwt.ChromaWeightFlag[1][ref])
                 {
                     slice.chroma_weight_l1_flag |= 1 << ref;
-                    Copy(slice.chroma_weight_l1[ref][iCb], pwt.Weights[1][ref][iCb][iWeight]);
-                    Copy(slice.chroma_weight_l1[ref][iCr], pwt.Weights[1][ref][iCr][iWeight]);
-                    Copy(slice.chroma_offset_l1[ref][iCb], pwt.Weights[1][ref][iCb][iOffset]);
-                    Copy(slice.chroma_offset_l1[ref][iCr], pwt.Weights[1][ref][iCr][iOffset]);
+                    Copy(slice.chroma_weight_l1[ref][iCbVa], pwt.Weights[1][ref][iCb][iWeight]);
+                    Copy(slice.chroma_weight_l1[ref][iCrVa], pwt.Weights[1][ref][iCr][iWeight]);
+                    Copy(slice.chroma_offset_l1[ref][iCbVa], pwt.Weights[1][ref][iCb][iOffset]);
+                    Copy(slice.chroma_offset_l1[ref][iCrVa], pwt.Weights[1][ref][iCr][iOffset]);
                 }
                 else
                 {
-                    slice.chroma_weight_l1[ref][iCb] = (1 << slice.chroma_log2_weight_denom);
-                    slice.chroma_weight_l1[ref][iCr] = (1 << slice.chroma_log2_weight_denom);
-                    slice.chroma_offset_l1[ref][iCb] = 0;
-                    slice.chroma_offset_l1[ref][iCr] = 0;
+                    slice.chroma_weight_l1[ref][iCbVa] = (1 << slice.chroma_log2_weight_denom);
+                    slice.chroma_weight_l1[ref][iCrVa] = (1 << slice.chroma_log2_weight_denom);
+                    slice.chroma_offset_l1[ref][iCbVa] = 0;
+                    slice.chroma_offset_l1[ref][iCrVa] = 0;
                 }
             }
         }
@@ -1136,6 +1136,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_mb_noskip_buffer()
 {
     m_videoParam.mfx.CodecProfile = MFX_PROFILE_AVC_HIGH; // QueryHwCaps will use this value
+
 } // VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
 
 
@@ -1544,6 +1545,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
             &m_vaContextEncode);
     }
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
 
     mfxU16 maxNumSlices = GetMaxNumSlices(par);
 

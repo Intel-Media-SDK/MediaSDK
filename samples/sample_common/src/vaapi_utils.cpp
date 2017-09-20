@@ -81,9 +81,12 @@ VA_Proxy::VA_Proxy()
     , SIMPLE_LOADER_FUNCTION(vaGetLibFunc)
     , SIMPLE_LOADER_FUNCTION(vaAcquireBufferHandle)
     , SIMPLE_LOADER_FUNCTION(vaReleaseBufferHandle)
-    , SIMPLE_LOADER_FUNCTION(vaCreateContext)
+    , SIMPLE_LOADER_FUNCTION(vaMaxNumEntrypoints)
+    , SIMPLE_LOADER_FUNCTION(vaQueryConfigEntrypoints)
     , SIMPLE_LOADER_FUNCTION(vaGetConfigAttributes)
     , SIMPLE_LOADER_FUNCTION(vaCreateConfig)
+    , SIMPLE_LOADER_FUNCTION(vaCreateContext)
+    , SIMPLE_LOADER_FUNCTION(vaDestroyConfig)
     , SIMPLE_LOADER_FUNCTION(vaDestroyContext)
 {
 }

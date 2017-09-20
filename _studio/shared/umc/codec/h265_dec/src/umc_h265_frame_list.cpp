@@ -368,7 +368,7 @@ H265DecoderFrame *H265DBPList::findShortRefPic(int32_t picPOC)
 }
 
 // Searches DPB for a long term reference frame with specified POC
-H265DecoderFrame *H265DBPList::findLongTermRefPic(const H265DecoderFrame *excludeFrame, int32_t picPOC, uint32_t bitsForPOC, bool isUseMask)
+H265DecoderFrame *H265DBPList::findLongTermRefPic(const H265DecoderFrame *excludeFrame, int32_t picPOC, uint32_t bitsForPOC, bool isUseMask) const
 {
     H265DecoderFrame *pCurr = m_pHead;
     H265DecoderFrame *pStPic = pCurr;

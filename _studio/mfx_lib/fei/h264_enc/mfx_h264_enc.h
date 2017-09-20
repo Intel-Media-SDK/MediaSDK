@@ -40,7 +40,7 @@ public:
     virtual mfxStatus Init(mfxVideoParam *par) ;
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close(void);
-    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED_WAIT;}
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED;}
 
     mfxStatus Submit(mfxEncodeInternalParams * iParams);
 
@@ -68,7 +68,7 @@ private:
     bool                                          m_bInit;
     VideoCORE*                                    m_core;
 
-    std::auto_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
+    std::unique_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
     std::vector<mfxU32>                           m_recFrameOrder; // !!! HACK !!!
     ENCODE_CAPS                                   m_caps;
 

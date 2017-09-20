@@ -272,7 +272,7 @@ mfxStatus MFXVideoPAK_ProcessFrameAsync(mfxSession session , mfxPAKInput *in, mf
                  task.pOwner = pPak;
                  task.entryPoint = entryPoints[0];
                  task.priority = session->m_priority;
-                 task.threadingPolicy = MFX_TASK_THREADING_DEDICATED;
+                 task.threadingPolicy = pPak->GetThreadingPolicy();
                  // fill dependencies
                  task.pSrc[0] = pPak->GetSrcForSync(entryPoints[0]);
                  task.pDst[0] = entryPoints[0].pParam;
@@ -284,7 +284,7 @@ mfxStatus MFXVideoPAK_ProcessFrameAsync(mfxSession session , mfxPAKInput *in, mf
                  task.pOwner = pPak;
                  task.entryPoint = entryPoints[1];
                  task.priority = session->m_priority;
-                 task.threadingPolicy = MFX_TASK_THREADING_DEDICATED_WAIT;
+                 task.threadingPolicy = pPak->GetThreadingPolicy();
                  // fill dependencies
                  task.pSrc[0] = entryPoints[0].pParam;
                  task.pDst[0] = pPak->GetDstForSync(entryPoints[1]);

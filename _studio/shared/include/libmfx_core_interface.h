@@ -86,7 +86,6 @@ static const
 MFX_GUID MFXICMEnabledCore_GUID =
 { 0x2aafdae8, 0xf7ba, 0x46ed, { 0xb2, 0x77, 0xb8, 0x7e, 0x94, 0xf2, 0xd3, 0x84 } };
 
-
 // Try to obtain required interface
 // Declare a template to query an interface
 template <class T> inline

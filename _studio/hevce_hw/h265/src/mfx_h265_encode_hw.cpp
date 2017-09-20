@@ -31,6 +31,7 @@ namespace MfxHwH265Encode
 mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
 void      SetDefaults    (MfxVideoParam & par, ENCODE_CAPS_HEVC const & hwCaps);
 void      InheritDefaultValues(MfxVideoParam const & parInit, MfxVideoParam &  parReset);
+bool      CheckTriStateOption(mfxU16 & opt);
 
 Plugin::Plugin(bool CreateByDispatcher)
     : m_createdByDispatcher(CreateByDispatcher)
@@ -141,6 +142,24 @@ mfxU16 MaxTask(MfxVideoParam const & par)
 }
 
 
+/*
+    Setting default value for LowPower option.
+    By default LowPower is OFF (using DualPipe)
+
+    Return value:
+    MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
+    MFX_ERR_NONE - if no errors
+*/
+mfxStatus SetLowpowerDefault(MfxVideoParam& par)
+{
+    mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+
+    if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+        par.mfx.LowPower = MFX_CODINGOPTION_OFF;
+
+    return sts;
+}
+
 mfxStatus LoadSPSPPS(MfxVideoParam& par, mfxExtCodingOptionSPSPPS* pSPSPPS)
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -188,6 +207,7 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
     sts = m_core.QueryPlatform(&m_vpar.m_platform);
     MFX_CHECK_STS(sts);
 
+    mfxStatus lpsts = SetLowpowerDefault(m_vpar);
 
     m_ddi.reset( CreateHWh265Encoder(&m_core, ddiType) );
     MFX_CHECK(m_ddi.get(), MFX_ERR_UNSUPPORTED);
@@ -222,6 +242,9 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
 
     qsts = CheckVideoParam(m_vpar, m_caps, true);
     MFX_CHECK(qsts >= MFX_ERR_NONE, qsts);
+
+    if (qsts == MFX_ERR_NONE && lpsts != MFX_ERR_NONE)
+        qsts = lpsts;
 
     SetDefaults(m_vpar, m_caps);
 
@@ -283,6 +306,8 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
         request.Info.FourCC = (m_vpar.mfx.FrameInfo.BitDepthLuma == 10) ? MFX_FOURCC_P010 : MFX_FOURCC_NV12;
         request.Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
     }
+    //For MMCD encoder bind flag is required.
+    request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
     sts = m_rec.Alloc(&m_core, request, false);
     MFX_CHECK_STS(sts);
 
@@ -374,6 +399,8 @@ mfxStatus Plugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request,
 
     m_core.QueryPlatform(&tmp.m_platform);
 
+    (void)SetLowpowerDefault(tmp);
+
     sts = QueryHwCaps(&m_core, GetGUID(tmp), caps);
     MFX_CHECK_STS(sts);
 
@@ -455,6 +482,8 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
             sts = MFX_ERR_UNSUPPORTED;
         MFX_CHECK_STS(sts);
 
+        mfxStatus lpsts = SetLowpowerDefault(tmp);
+
         if (m_ddi.get())
         {
             sts = m_ddi->QueryEncodeCaps(caps);
@@ -495,8 +524,21 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM)
             sts = MFX_ERR_UNSUPPORTED;
 
+        if (sts == MFX_ERR_NONE && lpsts != MFX_ERR_NONE)
+            sts = lpsts;
 
         tmp.FillPar(*out, true);
+
+        // SetLowPowerDefault may change LowPower to default value
+        // if LowPower was invalid set it to Zero to mimic Query behaviour
+        if (lpsts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+        {
+            out->mfx.LowPower = 0;
+        }
+        else // otherwise 'hide' default vbalue;
+        {
+            out->mfx.LowPower = in->mfx.LowPower;
+        }
     }
 
     return sts;
@@ -628,6 +670,21 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
         && m_vpar.IOPattern                  == parNew.IOPattern
         ,  MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
+    MFX_CHECK(m_vpar.m_ext.CO2.ExtBRC == parNew.m_ext.CO2.ExtBRC, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    if (IsOn(m_vpar.m_ext.CO2.ExtBRC))
+    {
+        mfxExtBRC*   extBRCInit = &m_vpar.m_ext.extBRC;
+        mfxExtBRC*   extBRCReset = &parNew.m_ext.extBRC;
+
+        MFX_CHECK(
+            extBRCInit->pthis == extBRCReset->pthis &&
+            extBRCInit->Init == extBRCReset->Init &&
+            extBRCInit->Reset == extBRCReset->Reset &&
+            extBRCInit->Close == extBRCReset->Close &&
+            extBRCInit->GetFrameCtrl == extBRCReset->GetFrameCtrl &&
+            extBRCInit->Update == extBRCReset->Update, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    }
+
     if (m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
         m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_VBR || 
         m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_VCM)
@@ -721,20 +778,14 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
 
     m_hrd.Reset(m_vpar.m_sps);
 
-    if (m_brc && brcReset )
+    if (m_brc )
     {
         if (isIdrRequired)
         {
-            m_brc->Close();
-            sts = m_brc->Init(m_vpar, m_vpar.InsertHRDInfo);
-            MFX_CHECK_STS(sts);
-            m_hrd.Init(m_vpar.m_sps, m_vpar.InitialDelayInKB);
+            parNew.m_ext.ResetOpt.StartNewSequence = MFX_CODINGOPTION_ON;
         }
-        else
-        {
-            sts = m_brc->Reset(m_vpar);
-            MFX_CHECK_STS(sts);
-        }
+        sts = m_brc->Reset(parNew);
+        MFX_CHECK_STS(sts);
         brcReset = false;
     }
 
@@ -777,6 +828,9 @@ mfxStatus Plugin::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surfa
         MFX_CHECK(bs->DataOffset + bs->DataLength + m_vpar.BufferSizeInKB * 1000u <= bs->MaxLength, MFX_ERR_NOT_ENOUGH_BUFFER);
         MFX_CHECK_NULL_PTR1(bs->Data);
     }
+
+    sts = ExtraParametersCheck(ctrl, surface, bs);
+    MFX_CHECK_STS(sts);
 
     if (surface)
     {
@@ -951,7 +1005,8 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
             }
             if (m_brc)
             {
-               if (m_vpar.m_platform.CodeName == MFX_PLATFORM_KABYLAKE || IsOn(m_vpar.mfx.LowPower))
+               if (IsOn(m_vpar.mfx.LowPower) || m_vpar.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
+                   )
                    taskForExecute->m_qpY = (mfxI8)Clip3( 0, 51, m_brc->GetQP(m_vpar, *taskForExecute));  //driver limitation
                else
                    taskForExecute->m_qpY = (mfxI8)Clip3( -6 * m_vpar.m_sps.bit_depth_luma_minus8, 51, m_brc->GetQP(m_vpar, *taskForExecute));
@@ -1018,7 +1073,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
                 MFX_CHECK(brcStatus != MFX_BRC_ERROR,  MFX_ERR_NOT_ENOUGH_BUFFER);
                 MFX_CHECK(!taskForQuery->m_bSkipped, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-                if (((brcStatus & MFX_BRC_NOT_ENOUGH_BUFFER) || (taskForQuery->m_recode > 2)) && (brcStatus & MFX_BRC_ERR_SMALL_FRAME))
+                if ((brcStatus & MFX_BRC_NOT_ENOUGH_BUFFER) && (brcStatus & MFX_BRC_ERR_SMALL_FRAME))
                 {
                     mfxI32 minSize = 0, maxSize = 0;
                     //padding is needed

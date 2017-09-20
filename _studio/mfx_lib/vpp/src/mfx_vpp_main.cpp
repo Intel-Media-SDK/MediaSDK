@@ -81,7 +81,7 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    std::auto_ptr<VideoVPP> impl(
+    std::unique_ptr<VideoVPP> impl(
               (VideoVPP*) new ImplementationMvc(m_core));
 
     mfxStatus mfxSts = impl->Init(par);
@@ -146,7 +146,7 @@ mfxStatus VideoVPPMain::Init(mfxVideoParam *par)
         }
     }
     
-    m_impl = impl;
+    m_impl = std::move(impl);
 
     return (MFX_ERR_NONE == mfxSts) ? internalSts : mfxSts;
 

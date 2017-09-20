@@ -957,7 +957,7 @@ namespace
     }
 };
 
-void UmcBrc::Init(MfxVideoParam  & video)
+mfxStatus UmcBrc::Init(MfxVideoParam  & video)
 {
     assert(
         video.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
@@ -981,6 +981,8 @@ void UmcBrc::Init(MfxVideoParam  & video)
 
     UMC::Status umcSts = m_impl.Init(&umcBrcParams);
     assert(umcSts == UMC::UMC_OK); umcSts;
+
+    return MFX_ERR_NONE;
 }
 
 void UmcBrc::Close()
@@ -1143,7 +1145,7 @@ namespace MfxHwH264EncodeHW
 }
 using namespace MfxHwH264EncodeHW;
 
-void LookAheadBrc2::Init(MfxVideoParam  & video)
+mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 {
     mfxExtCodingOptionDDI const * extDdi  = GetExtBuffer(video);
     mfxExtCodingOption2 const *   extOpt2 = GetExtBuffer(video);
@@ -1184,6 +1186,8 @@ void LookAheadBrc2::Init(MfxVideoParam  & video)
     m_AsyncDepth = video.AsyncDepth > 1 ? 1 : 0;
     m_first = 0;
 
+    return MFX_ERR_NONE;
+
 }
 void LookAheadBrc2::Close()
 {
@@ -1196,7 +1200,7 @@ void LookAheadBrc2::Close()
 }
 
 
-void VMEBrc::Init(MfxVideoParam  & video)
+mfxStatus VMEBrc::Init(MfxVideoParam  & video)
 {
     mfxExtCodingOptionDDI const * extDdi    = GetExtBuffer(video);
     mfxExtCodingOption2  const * extOpt2    = GetExtBuffer(video);
@@ -1230,6 +1234,7 @@ void VMEBrc::Init(MfxVideoParam  & video)
     {
         m_AvgBitrate = new AVGBitrate(extOpt3->WinBRCSize, (mfxU32)(1000.0 * video.calcParam.WinBRCMaxAvgKbps/m_fr));
     }
+    return MFX_ERR_NONE;
 }
 void VMEBrc::Close()
 {
@@ -1842,7 +1847,7 @@ mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
     return qp;
 }
 
-void LookAheadCrfBrc::Init(MfxVideoParam  & video)
+mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
 {
     mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(video);
 
@@ -1853,6 +1858,8 @@ void LookAheadCrfBrc::Init(MfxVideoParam  & video)
     m_intraCost = 0;
     m_interCost = 0;
     m_propCost  = 0;
+
+    return MFX_ERR_NONE;
 }
 
 mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& /*par*/)
@@ -4161,6 +4168,9 @@ BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video)
     case MFX_RATECONTROL_LA_ICQ: return new LookAheadCrfBrc;
     case MFX_RATECONTROL_LA_EXT: return new VMEBrc;
 
+    case MFX_RATECONTROL_CBR:
+    case MFX_RATECONTROL_VBR:
+        return new H264SWBRC;
     default: return new UmcBrc;
     }
 }

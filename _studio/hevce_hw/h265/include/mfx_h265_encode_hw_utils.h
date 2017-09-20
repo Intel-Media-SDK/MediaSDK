@@ -30,6 +30,8 @@
 #include "umc_mutex.h"
 #include "mfxla.h"
 
+#include "mfxbrc.h"
+
 #include <typeinfo>
 #include <vector>
 #include <list>
@@ -204,14 +206,15 @@ enum
 
 enum
 {
-    INSERT_AUD      = 0x01,
-    INSERT_VPS      = 0x02,
-    INSERT_SPS      = 0x04,
-    INSERT_PPS      = 0x08,
-    INSERT_BPSEI    = 0x10,
-    INSERT_PTSEI    = 0x20,
-
-    INSERT_SEI = (INSERT_BPSEI | INSERT_PTSEI)
+    INSERT_AUD = 0x01,
+    INSERT_VPS = 0x02,
+    INSERT_SPS = 0x04,
+    INSERT_PPS = 0x08,
+    INSERT_BPSEI = 0x10,
+    INSERT_PTSEI = 0x20,
+    INSERT_DCVSEI = 0x40,
+    INSERT_LLISEI = 0x80,
+    INSERT_SEI = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI)
 };
 
 inline bool IsOn(mfxU32 opt)
@@ -411,10 +414,11 @@ namespace ExtBuffer
          MFX_EXTBUFF_CODING_OPTION_VPS,
          MFX_EXTBUFF_VIDEO_SIGNAL_INFO,
          MFX_EXTBUFF_LOOKAHEAD_STAT,
+         MFX_EXTBUFF_BRC,
          MFX_EXTBUFF_ENCODED_SLICES_INFO,
          MFX_EXTBUFF_MBQP,
          MFX_EXTBUFF_ENCODER_ROI,
-         MFX_EXTBUFF_DIRTY_RECTANGLES
+         MFX_EXTBUFF_DIRTY_RECTANGLES,
     };
 
     template<class T> struct ExtBufferMap {};
@@ -439,8 +443,8 @@ namespace ExtBuffer
         EXTBUF(mfxExtEncodedSlicesInfo,     MFX_EXTBUFF_ENCODED_SLICES_INFO);
         EXTBUF(mfxExtEncoderROI,            MFX_EXTBUFF_ENCODER_ROI);
         EXTBUF(mfxExtDirtyRect,             MFX_EXTBUFF_DIRTY_RECTANGLES);
+        EXTBUF(mfxExtBRC,                   MFX_EXTBUFF_BRC);
         EXTBUF(mfxExtMBQP,                  MFX_EXTBUFF_MBQP);
-
     #undef EXTBUF
 
     #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
@@ -523,6 +527,7 @@ namespace ExtBuffer
     {
         _CopyPar1(MBPerSec);
     }
+
     #undef _CopyPar
     #undef _CopyPar1
     #undef _CopyStruct1
@@ -745,9 +750,11 @@ public:
         mfxExtCodingOptionDDI       DDI;
         mfxExtAvcTemporalLayers     AVCTL;
         mfxExtVideoSignalInfo       VSI;
+        mfxExtBRC                   extBRC;
         mfxExtEncodedSlicesInfo     SliceInfo;
         mfxExtEncoderROI            ROI;
         mfxExtDirtyRect             DirtyRect;
+        mfxExtEncoderResetOption   ResetOpt;
         mfxExtBuffer *              m_extParam[SIZE_OF_ARRAY(ExtBuffer::allowed_buffers)];
     } m_ext;
 

@@ -122,15 +122,15 @@ void VABuffersHandler::_CheckPool(mfxU32 pool)
     }
 }
 
-VABufferID& VABuffersHandler::VABuffersNew(IdType id, mfxU32 pool, mfxU32 num)
+VABufferID& VABuffersHandler::VABuffersNew(mfxU32 id, mfxU32 pool, mfxU32 num)
 {
     std::vector<VABufferID>::iterator begin = _PoolBegin(pool);
     std::vector<VABufferID>::iterator end   = _PoolEnd(pool);
     std::vector<VABufferID>::iterator it    = begin;
 
-    std::vector<IdType>::iterator idBegin = m_id.begin() + std::distance(m_buf.begin(), begin);
-    std::vector<IdType>::iterator idEnd   = idBegin + std::distance(begin, end);
-    std::vector<IdType>::iterator idIt    = idBegin;
+    std::vector<mfxU32>::iterator idBegin = m_id.begin() + std::distance(m_buf.begin(), begin);
+    std::vector<mfxU32>::iterator idEnd   = idBegin + std::distance(begin, end);
+    std::vector<mfxU32>::iterator idIt    = idBegin;
 
     for (;it != end && *idIt != id; it++, idIt++);
 
@@ -187,7 +187,7 @@ void VABuffersHandler::VABuffersDestroyPool(mfxU32 pool)
         , it;
     size_t poolSize = std::distance(begin, end);
 
-    std::vector<IdType>::iterator idBegin = m_id.begin() + std::distance(m_buf.begin(), begin);
+    std::vector<mfxU32>::iterator idBegin = m_id.begin() + std::distance(m_buf.begin(), begin);
 
     for (it = begin; it != end; it++)
         MFX_DESTROY_VABUFFER(*it, m_vaDisplay);
@@ -928,11 +928,11 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 
-    VAEntrypoint entryPoint = VAEntrypointEncSlice;
+    VAEntrypoint entryPoint = GetVAEntryPoint();
     bool bEncodeEnable = false;
     for( entrypointsIndx = 0; entrypointsIndx < numEntrypoints; entrypointsIndx++ )
     {
-        if( VAEntrypointEncSlice == pEntrypoints[entrypointsIndx] )
+        if (entryPoint == pEntrypoints[entrypointsIndx])
         {
             bEncodeEnable = true;
             break;
@@ -944,18 +944,20 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     }
 
     // Configuration
-    VAConfigAttrib attrib[2];
-    mfxI32 numAttrib = 0;
+    std::vector<VAConfigAttrib> attrib(2);
+
     mfxU32 flag = VA_PROGRESSIVE;
 
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
-    numAttrib = 2;
 
-   vaSts = vaGetConfigAttributes(m_vaDisplay,
+    mfxStatus sts = ConfigureExtraVAattribs(attrib);
+    MFX_CHECK_STS(sts);
+
+    vaSts = vaGetConfigAttributes(m_vaDisplay,
                           ConvertProfileTypeMFX2VAAPI(par.mfx.CodecProfile),
                           entryPoint,
-                          &attrib[0], numAttrib);
+                          attrib.data(), (mfxI32)attrib.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
@@ -969,12 +971,15 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     attrib[0].value = VA_RT_FORMAT_YUV420;
     attrib[1].value = vaRCType;
 
+    sts = CheckExtraVAattribs(attrib);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateConfig(
         m_vaDisplay,
         ConvertProfileTypeMFX2VAAPI(par.mfx.CodecProfile),
         entryPoint,
-        attrib,
-        numAttrib,
+        attrib.data(),
+        (mfxI32)attrib.size(),
         &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -1533,7 +1538,7 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDL surface)
     }
 
     // In case of HEVC FEI encoding, configure some additional buffers
-    MFX_CHECK_WITH_ASSERT(PreSubmitExtraStage() == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK_WITH_ASSERT(PreSubmitExtraStage(task) == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
     mfxU32 storedSize = 0;
 

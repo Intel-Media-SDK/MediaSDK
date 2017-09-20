@@ -866,6 +866,21 @@ void InheritDefaultValues(
     // InheritOption(parInit.mfx.FrameInfo.PicStruct,      parReset.mfx.FrameInfo.PicStruct);
     // InheritOption(parInit.IOPattern,                    parReset.IOPattern);
     // InheritOption(parInit.mfx.FrameInfo.ChromaFormat,   parReset.mfx.FrameInfo.ChromaFormat);
+
+    mfxExtBRC const *   extBRCInit = &parInit.m_ext.extBRC;
+    mfxExtBRC*   extBRCReset = &parReset.m_ext.extBRC;
+
+    if (!extBRCReset->pthis &&
+        !extBRCReset->Init &&
+        !extBRCReset->Reset &&
+        !extBRCReset->Close &&
+        !extBRCReset->GetFrameCtrl &&
+        !extBRCReset->Update)
+    {
+        *extBRCReset= *extBRCInit;
+    }
+
+
 }
 
 inline bool isInVideoMem(MfxVideoParam const & par)
@@ -1040,6 +1055,36 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     else
         changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, 0);
 
+ 
+    if (IsOn(par.m_ext.CO2.ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)
+    {
+        par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
+        changed ++;
+    }
+
+    if ((!IsOn(par.m_ext.CO2.ExtBRC)) && 
+        (par.m_ext.extBRC.pthis || par.m_ext.extBRC.Init || par.m_ext.extBRC.Close || par.m_ext.extBRC.GetFrameCtrl || par.m_ext.extBRC.Update || par.m_ext.extBRC.Reset))
+    {
+        par.m_ext.extBRC.pthis = 0;
+        par.m_ext.extBRC.Init = 0;
+        par.m_ext.extBRC.Close = 0;
+        par.m_ext.extBRC.GetFrameCtrl = 0;
+        par.m_ext.extBRC.Update = 0;
+        par.m_ext.extBRC.Reset = 0;
+        changed++;
+    }
+    if ((par.m_ext.extBRC.pthis || par.m_ext.extBRC.Init || par.m_ext.extBRC.Close || par.m_ext.extBRC.GetFrameCtrl || par.m_ext.extBRC.Update || par.m_ext.extBRC.Reset) &&
+        (!par.m_ext.extBRC.pthis || !par.m_ext.extBRC.Init || !par.m_ext.extBRC.Close || !par.m_ext.extBRC.GetFrameCtrl || !par.m_ext.extBRC.Update || !par.m_ext.extBRC.Reset))
+    {
+        par.m_ext.extBRC.pthis = 0;
+        par.m_ext.extBRC.Init = 0;
+        par.m_ext.extBRC.Close = 0;
+        par.m_ext.extBRC.GetFrameCtrl = 0;
+        par.m_ext.extBRC.Update = 0;
+        par.m_ext.extBRC.Reset = 0;
+        par.m_ext.CO2.ExtBRC = 0;
+        bInit ? invalid ++ : changed++;
+    }
 
     changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, 0);
 
@@ -1068,8 +1113,10 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         }
     }
 
-    if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 && isInVideoMem(par))
+    if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+        ) && isInVideoMem(par))
         changed += CheckMin(par.mfx.FrameInfo.Shift, 1);
+
 
     if (par.mfx.FrameInfo.FrameRateExtN && par.mfx.FrameInfo.FrameRateExtD) // FR <= 300
     {
@@ -1170,6 +1217,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
     changed += CheckOption(par.mfx.NumSlice, MakeSlices(par, caps.SliceStructure), 0);
 
+
     if (   par.m_ext.CO2.BRefType == MFX_B_REF_PYRAMID
            && par.mfx.GopRefDist > 0
            && ( par.mfx.GopRefDist < 2
@@ -1215,6 +1263,9 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         if (par.isTL())
             changed += CheckOption(par.mfx.GopRefDist, 1, 0);
     }
+
+    changed += CheckRangeDflt(par.m_ext.CO2.IntRefQPDelta, -51, 51, 0);
+    invalid += CheckMax(par.m_ext.CO2.IntRefType, 2);
 
     if (caps.RollingIntraRefresh == 0)
     {
@@ -1382,6 +1433,11 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     return sts;
 }
 
+/*
+    Setting up default values for video parameters, based on hwCaps.
+
+    Default value for LowPower is setting up in function SetLowpowerDefault
+*/
 void SetDefaults(
     MfxVideoParam &          par,
     ENCODE_CAPS_HEVC const & hwCaps)
@@ -1396,9 +1452,6 @@ void SetDefaults(
 
     mfxExtCodingOption2& CO2 = par.m_ext.CO2;
     mfxExtCodingOption3& CO3 = par.m_ext.CO3;
-
-    if (!par.mfx.LowPower)
-        par.mfx.LowPower = MFX_CODINGOPTION_OFF;
 
     if (!par.LCUSize)
         par.LCUSize = GetDefaultLCUSize(par, hwCaps);
@@ -1475,7 +1528,8 @@ void SetDefaults(
         rawBits = rawBits / 8 * par.mfx.FrameInfo.BitDepthLuma;
         maxQP += 6 * (par.mfx.FrameInfo.BitDepthLuma - 8);
 
-        if (IsOn(par.mfx.LowPower) || par.m_platform.CodeName == MFX_PLATFORM_KABYLAKE)
+        if (IsOn(par.mfx.LowPower) || par.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
+            )
             minQP += 6 * (par.mfx.FrameInfo.BitDepthLuma - 8);
     }
 
@@ -1585,6 +1639,9 @@ void SetDefaults(
         else
             par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
     }
+
+    if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
+        par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
 
     if (par.m_ext.CO3.PRefType == MFX_P_REF_DEFAULT)
     {

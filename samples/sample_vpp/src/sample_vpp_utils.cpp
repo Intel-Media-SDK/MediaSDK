@@ -796,9 +796,10 @@ CRawVideoReader::CRawVideoReader()
     m_Repeat = 0;
     m_pPTSMaker = 0;
     m_inI420=false;
+    m_bCanConvert = false;
 }
 
-mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMaker, bool inI420)
+mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMaker, mfxU32 fcc, bool bInPlaceConversion)
 {
     Close();
 
@@ -808,8 +809,9 @@ mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMake
     MSDK_CHECK_POINTER(m_fSrc, MFX_ERR_ABORTED);
 
     m_pPTSMaker = pPTSMaker;
-    m_inI420=inI420;
-
+    m_inI420 = fcc == MFX_FOURCC_I420 || fcc == MFX_FOURCC_YV12 ? true : false;
+    m_initFcc = fcc;
+    m_bCanConvert = bInPlaceConversion;
     return MFX_ERR_NONE;
 }
 
@@ -833,6 +835,13 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
 {
     MSDK_CHECK_POINTER(pData, MFX_ERR_NOT_INITIALIZED);
     MSDK_CHECK_POINTER(pInfo, MFX_ERR_NOT_INITIALIZED);
+
+    // Only (I420|YV12) -> NV12 in-place conversion supported
+    if (pInfo->FourCC != m_initFcc)
+    {
+        if (!m_bCanConvert || !m_inI420 || pInfo->FourCC != MFX_FOURCC_NV12)
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
 
     mfxU32 w, h, i, pitch;
     mfxU32 nBytesRead;
@@ -1001,24 +1010,84 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w, MFX_ERR_MORE_DATA);
         }
     }
-    else if( pInfo->FourCC == MFX_FOURCC_NV12 )
+    else if (pInfo->FourCC == MFX_FOURCC_NV12)
     {
         ptr = pData->Y + pInfo->CropX + pInfo->CropY * pitch;
 
         // read luminance plane
-        for(i = 0; i < h; i++)
+        for (i = 0; i < h; i++)
         {
             nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, w, m_fSrc);
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w, MFX_ERR_MORE_DATA);
         }
 
-        // load UV
-        h     >>= 1;
-        ptr = pData->UV + pInfo->CropX + (pInfo->CropY >> 1) * pitch;
-        for (i = 0; i < h; i++)
+        switch (m_initFcc)
         {
-            nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, w, m_fSrc);
-            IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w, MFX_ERR_MORE_DATA);
+            case MFX_FOURCC_NV12:
+            {
+                // load UV
+                h >>= 1;
+                ptr = pData->UV + pInfo->CropX + (pInfo->CropY >> 1) * pitch;
+                for (i = 0; i < h; i++)
+                {
+                    nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, w, m_fSrc);
+                    IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w, MFX_ERR_MORE_DATA);
+                }
+                break;
+            }
+            case MFX_FOURCC_I420:
+            case MFX_FOURCC_YV12:
+            {
+                mfxU8 buf[2048]; // maximum supported chroma width for nv12
+                mfxU32 j, dstOffset[2];
+                w /= 2;
+                h /= 2;
+                ptr = pData->UV + pInfo->CropX + (pInfo->CropY / 2) * pitch;
+                if (w > 2048)
+                {
+                    return MFX_ERR_UNSUPPORTED;
+                }
+
+                if (m_initFcc == MFX_FOURCC_I420) {
+                    dstOffset[0] = 0;
+                    dstOffset[1] = 1;
+                }
+                else {
+                    dstOffset[0] = 1;
+                    dstOffset[1] = 0;
+                }
+
+                // load first chroma plane: U (input == I420) or V (input == YV12)
+                for (i = 0; i < h; i++)
+                {
+                    nBytesRead = (mfxU32)fread(buf, 1, w, m_fSrc);
+                    if (w != nBytesRead)
+                    {
+                        return MFX_ERR_MORE_DATA;
+                    }
+                    for (j = 0; j < w; j++)
+                    {
+                        ptr[i * pitch + j * 2 + dstOffset[0]] = buf[j];
+                    }
+                }
+
+                // load second chroma plane: V (input == I420) or U (input == YV12)
+                for (i = 0; i < h; i++)
+                {
+
+                    nBytesRead = (mfxU32)fread(buf, 1, w, m_fSrc);
+
+                    if (w != nBytesRead)
+                    {
+                        return MFX_ERR_MORE_DATA;
+                    }
+                    for (j = 0; j < w; j++)
+                    {
+                        ptr[i * pitch + j * 2 + dstOffset[1]] = buf[j];
+                    }
+                }
+                break;
+            }
         }
     }
     else if( pInfo->FourCC == MFX_FOURCC_NV16 )

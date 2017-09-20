@@ -655,7 +655,7 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
 
             // Encoding goes below
             sts = m_pmfxENCODE->EncodeFrameAsync(&m_encodeControl, encodeSurface, &m_mfxBS, &m_SyncPoint);
-            MSDK_BREAK_ON_ERROR(sts); // Remove to allow warnings here
+            MSDK_CHECK_WRN(sts, "WRN during EncodeFrameAsync");
 
             if (MFX_ERR_NONE < sts && !m_SyncPoint) // repeat the call if warning and no output
             {
@@ -691,11 +691,11 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
 
     } // for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
 
-    if (sts == MFX_ERR_MORE_DATA && encodeSurface)
+    if (sts == MFX_ERR_MORE_DATA)
     {
         // MFX_ERR_MORE_DATA is correct status to finish encoding of buffered frames (for which encodeSurface == NULL).
         // Otherwise, ignore it
-        return MFX_ERR_NONE;
+        return encodeSurface ? MFX_ERR_NONE : MFX_ERR_MORE_DATA;
     }
 
     MSDK_CHECK_STATUS(sts, "FEI ENCODE: EncodeFrameAsync failed");

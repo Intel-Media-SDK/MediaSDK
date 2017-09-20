@@ -449,7 +449,8 @@ mfxStatus CopyRawSurfaceToVideoMemory(
         mfxFrameSurface1 surfSrc = { {}, video.mfx.FrameInfo, sysSurf };
         mfxFrameSurface1 surfDst = { {}, video.mfx.FrameInfo, d3dSurf };
 
-        if (surfDst.Info.FourCC == MFX_FOURCC_P010)
+        if (surfDst.Info.FourCC == MFX_FOURCC_P010
+            )
             surfDst.Info.Shift = 1; // convert to native shift in core.CopyFrame() if required
 
         if (!sysSurf.Y)
@@ -634,7 +635,11 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
     ExtBuffer::Construct(par, m_ext.CO3, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.DDI, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.AVCTL, m_ext.m_extParam, base.NumExtParam);
+
+    ExtBuffer::Construct(par, m_ext.ResetOpt, m_ext.m_extParam, base.NumExtParam);
+
     ExtBuffer::Construct(par, m_ext.VSI, m_ext.m_extParam, base.NumExtParam);
+    ExtBuffer::Construct(par, m_ext.extBRC, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.SliceInfo, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.ROI, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.DirtyRect, m_ext.m_extParam, base.NumExtParam);
@@ -663,11 +668,14 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
     ExtBuffer::Set(par, m_ext.CO);
     ExtBuffer::Set(par, m_ext.CO2);
     ExtBuffer::Set(par, m_ext.CO3);
+
+    ExtBuffer::Set(par, m_ext.ResetOpt);
+
     ExtBuffer::Set(par, m_ext.DDI);
     ExtBuffer::Set(par, m_ext.AVCTL);
     ExtBuffer::Set(par, m_ext.ROI);
     ExtBuffer::Set(par, m_ext.VSI);
-
+    ExtBuffer::Set(par, m_ext.extBRC);
     mfxExtCodingOptionSPSPPS * pSPSPPS = ExtBuffer::Get(par);
     if (pSPSPPS && !query)
     {
@@ -727,10 +735,13 @@ bool MfxVideoParam::CheckExtBufferParam()
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.CO, true);
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.CO2, true);
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.CO3, true);
+
+    bUnsupported += ExtBuffer::CheckBufferParams(m_ext.ResetOpt, true);
+
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.DDI, true);
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.AVCTL, true);
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.VSI, true);
-
+    bUnsupported += ExtBuffer::CheckBufferParams(m_ext.extBRC, true);
     return !!bUnsupported;
 }
 
@@ -2865,7 +2876,6 @@ void ConfigureTask(
     }
     caps;
 
-
     if (task.m_tid == 0 && IntRefType)
     {
        if (isI)
@@ -2920,8 +2930,8 @@ void ConfigureTask(
 
         task.m_qpY -= 6 * par.m_sps.bit_depth_luma_minus8;
 
-        if (task.m_qpY < 0 && (par.m_platform.CodeName == MFX_PLATFORM_KABYLAKE || 
-            IsOn(par.mfx.LowPower)))
+        if (task.m_qpY < 0 && (IsOn(par.mfx.LowPower) || par.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
+            ))
             task.m_qpY = 0;
     }
     else if (par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT)

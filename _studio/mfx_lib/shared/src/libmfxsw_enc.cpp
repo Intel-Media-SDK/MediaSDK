@@ -394,7 +394,7 @@ mfxStatus  MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mf
                 task.pOwner = pEnc;
                 task.entryPoint = entryPoints[0];
                 task.priority = session->m_priority;
-                task.threadingPolicy = MFX_TASK_THREADING_DEDICATED;
+                task.threadingPolicy = pEnc->GetThreadingPolicy();
                 // fill dependencies
                 
                 task.pSrc[0] = in->InSurface;
@@ -407,7 +407,7 @@ mfxStatus  MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mf
                 task.pOwner = pEnc;
                 task.entryPoint = entryPoints[1];
                 task.priority = session->m_priority;
-                task.threadingPolicy = MFX_TASK_THREADING_DEDICATED_WAIT;
+                task.threadingPolicy = pEnc->GetThreadingPolicy();
                 // fill dependencies
                 task.pSrc[0] = entryPoints[0].pParam;
                 task.pDst[0] = (MFX_ERR_NONE == mfxRes) ? out:0; // sync point for LA plugin

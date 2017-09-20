@@ -1571,6 +1571,7 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufComp);
             MFX_CHECK_NULL_PTR1(bufComp->InputStream);
             bufComp->NumInputStream = static_cast<mfxU16>(m_executeParams.dstRects.size());
+            bufComp->NumTiles = static_cast<mfxU16>(m_executeParams.iTilesNum4Comp);
             for (size_t k = 0; k < m_executeParams.dstRects.size(); k++)
             {
                 MFX_CHECK_NULL_PTR1(bufComp->InputStream);
@@ -1578,6 +1579,7 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
                 bufComp->InputStream[k].DstY = m_executeParams.dstRects[k].DstY;
                 bufComp->InputStream[k].DstW = m_executeParams.dstRects[k].DstW;
                 bufComp->InputStream[k].DstH = m_executeParams.dstRects[k].DstH;
+                bufComp->InputStream[k].TileId = (mfxU16)m_executeParams.dstRects[k].TileId;
                 bufComp->InputStream[k].GlobalAlpha       = m_executeParams.dstRects[k].GlobalAlpha;
                 bufComp->InputStream[k].GlobalAlphaEnable = m_executeParams.dstRects[k].GlobalAlphaEnable;
                 bufComp->InputStream[k].LumaKeyEnable = m_executeParams.dstRects[k].LumaKeyEnable;
@@ -3965,6 +3967,7 @@ mfxStatus ConfigureExecuteParams(
                             executeParams.dstRects.clear();
                             executeParams.dstRects.resize(StreamCount);
                         }
+                        executeParams.iTilesNum4Comp = extComp->NumTiles;
 
                         for (mfxU32 cnt = 0; cnt < StreamCount; ++cnt)
                         {
@@ -3973,6 +3976,7 @@ mfxStatus ConfigureExecuteParams(
                             rec.DstY = extComp->InputStream[cnt].DstY;
                             rec.DstW = extComp->InputStream[cnt].DstW;
                             rec.DstH = extComp->InputStream[cnt].DstH;
+                            rec.TileId = extComp->InputStream[cnt].TileId;
                             if ((videoParam.vpp.Out.Width < (rec.DstX + rec.DstW)) || (videoParam.vpp.Out.Height < (rec.DstY + rec.DstH)))
                                 return MFX_ERR_INVALID_VIDEO_PARAM; // sub-stream is out of range
                             if (extComp->InputStream[cnt].GlobalAlphaEnable != 0)

@@ -357,6 +357,8 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
         ptr->Y = ptr->V + 2;
         ptr->A = ptr->V + 3;
         break;
+
+
     default:
         return MFX_ERR_UNSUPPORTED;
     }

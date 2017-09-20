@@ -49,6 +49,8 @@ const mfxU32 MAX_BITRATE_RATIO = mfxU32(1.5 * 1000); //  MaxBps = MAX_BITRATE_RA
 
 const mfxU32 MIN_LOOKAHEAD_DEPTH = 10;
 
+const mfxU32 DEFAULT_ASYNC_DEPTH_TO_WA_D3D9_128_SURFACE_LIMIT = 10; //  Use this value in case of d3d9 and when par.AsyncDepth parameter is set to a very big value
+
 namespace
 {
     static const mfxU8 EXTENDED_SAR = 0xff;
@@ -815,7 +817,6 @@ namespace
         mfxU16 const DEFAULT_BY_TU[] = { 0, 3, 3, 3, 2, 1, 1, 1 };
         return DEFAULT_BY_TU[targetUsage];
     }
-
     mfxU16 GetDefaultMaxNumRefActivePL0(mfxU32 targetUsage,
                                         eMFXHWType platform,
                                         bool isLowPower,
@@ -1211,6 +1212,37 @@ mfxU8 MfxHwH264Encode::DetermineQueryMode(mfxVideoParam * in)
     }
 }
 
+/*
+Setting default value for LowPower option.
+By default LowPower is OFF (using DualPipe)
+
+Return value:
+MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
+MFX_ERR_NONE - if no errors
+*/
+mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platfrom)
+{
+    mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
+    (void)platfrom; // fix wrn for non Gen11 build
+
+    if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+        par.mfx.LowPower = MFX_CODINGOPTION_OFF;
+
+    return sts;
+}
+
+/*
+Return cached caps if they are.
+Select GUID depends on LowPower option.
+creates AuxilliaryDevice
+request and cache EncodercCaps
+
+Return value:
+MFX_ERR_UNDEFINED_BEHAVIOR -  failed to get EncodeHWCaps iterface from Core
+MFX_ERR_DEVICE_FAILED  failed to create DDIEncoder/AuxilliaryDevice of
+    requestcaps call fails
+MFX_ERR_NONE - if no errors
+*/
 mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, ENCODE_CAPS & hwCaps, mfxVideoParam * par)
 {
     GUID guid = MSDK_Private_Guid_Encode_AVC_Query;
@@ -1231,7 +1263,7 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, ENCODE_CAPS & hwCaps, mf
         if (pEncodeCaps->GetHWCaps<ENCODE_CAPS>(guid, &hwCaps) == MFX_ERR_NONE)
             return MFX_ERR_NONE;
     }
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
@@ -1266,7 +1298,7 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
             return MFX_ERR_NONE;
     }
 
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
@@ -1288,7 +1320,7 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
 mfxStatus MfxHwH264Encode::QueryInputTilingSupport(VideoCORE* core, mfxVideoParam const & par, mfxU32 &inputTiling, GUID guid, mfxU32 width,  mfxU32 height)
 {
 
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
@@ -1305,7 +1337,7 @@ mfxStatus MfxHwH264Encode::QueryInputTilingSupport(VideoCORE* core, mfxVideoPara
 
 mfxStatus MfxHwH264Encode::QueryGuid(VideoCORE* core, GUID guid)
 {
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
 
     ddi.reset(CreatePlatformH264Encoder(core));
     if (ddi.get() == 0)
@@ -1528,6 +1560,7 @@ bool MfxHwH264Encode::IsVideoParamExtBufferIdSupported(mfxU32 id)
     return
            (id == MFX_EXTBUFF_CODING_OPTION
         || id == MFX_EXTBUFF_CODING_OPTION_SPSPPS
+        || id == MFX_EXTBUFF_BRC
 
         || id == MFX_EXTBUFF_MVC_SEQ_DESC
         || id == MFX_EXTBUFF_VIDEO_SIGNAL_INFO
@@ -1550,6 +1583,7 @@ bool MfxHwH264Encode::IsVideoParamExtBufferIdSupported(mfxU32 id)
         || id == MFX_EXTBUFF_FEI_SPS
         || id == MFX_EXTBUFF_FEI_PPS
 #endif
+
         );
 }
 
@@ -1683,7 +1717,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     ENCODE_CAPS const & hwCaps,
     bool                setExtAlloc,
     eMFXHWType          platform,
-    eMFXVAType          vaType)
+    eMFXVAType          vaType,
+    bool                bInit)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MfxHwH264Encode::CheckVideoParam");
     mfxStatus checkSts = MFX_ERR_NONE;
@@ -1705,6 +1740,25 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     MFX_CHECK(par.mfx.TargetUsage            <= 7, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(par.mfx.FrameInfo.ChromaFormat != 0, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(par.IOPattern                  != 0, MFX_ERR_INVALID_VIDEO_PARAM);
+  
+ 
+    if (bInit)
+    { 
+    mfxExtBRC*                 extBRC = GetExtBuffer(par);
+    mfxExtCodingOption2 *      extOpt2 = GetExtBuffer(par);
+    if ((extBRC->pthis || extBRC->Init || extBRC->Close || extBRC->GetFrameCtrl || extBRC->Update || extBRC->Reset) &&
+        (!extBRC->pthis || !extBRC->Init || !extBRC->Close || !extBRC->GetFrameCtrl || !extBRC->Update || !extBRC->Reset))
+    {
+        extOpt2->ExtBRC = 0;
+        extBRC->pthis = 0;
+        extBRC->Init = 0;
+        extBRC->Close = 0;
+        extBRC->GetFrameCtrl = 0;
+        extBRC->Update = 0;
+        extBRC->Reset = 0;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
+    }
 
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -2068,6 +2122,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     mfxExtMoveRect *           extMoveRect  = GetExtBuffer(par);
     mfxExtPredWeightTable *    extPwt       = GetExtBuffer(par);
     mfxExtFeiParam *           feiParam     = GetExtBuffer(par);
+
+    mfxExtBRC*                 extBRC       = GetExtBuffer(par);
+
     bool isENCPAK = (feiParam->Func == MFX_FEI_FUNCTION_ENCODE) ||
                     (feiParam->Func == MFX_FEI_FUNCTION_ENC)    ||
                     (feiParam->Func == MFX_FEI_FUNCTION_PAK);
@@ -2165,19 +2222,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
-    //disable SW brc
-    /*if (IsOn(extOpt2->ExtBRC) && par.mfx.RateControlMethod == MFX_RATECONTROL_LA && IsLookAheadSupported(par, platform))
-    {
-        // turn on ExtBRC if LA will be used
-        changed = true;
-        extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
-    }*/
-
-    /*if (par.AsyncDepth > 1 && IsOn(extOpt2->ExtBRC))
-    {
-        changed = true;
-        par.AsyncDepth = 1;
-    }*/
 
     if (par.mfx.TargetUsage > 7)
     {
@@ -2406,6 +2450,20 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
             unsupported = true;
             par.mfx.FrameInfo.CropH = par.mfx.FrameInfo.Height - par.mfx.FrameInfo.CropY;
+        }
+    }
+
+    // WA for MVCe with d3d9. AsyncDepth parameter is checked here
+    if (vaType == MFX_HW_D3D9 && par.AsyncDepth > 0 && IsMvcProfile(par.mfx.CodecProfile))
+    {
+        mfxU32 numEncs = (extOpt->ViewOutput == MFX_CODINGOPTION_ON) ? 2 : 1;
+        mfxU32 numView = (extMvc->NumView == 0) ? 1 : extMvc->NumView;
+        mfxU32 numSurfBitstream = mfxU32(CalcNumSurfBitstream(par) * (numEncs > 1 ? 1 : numView));
+        mfxU32 numSurfRecon = mfxU32(CalcNumSurfRecon(par) * (numEncs > 1 ? 1 : numView));
+        if (numSurfBitstream > 128 || numSurfRecon > 128)
+        {
+            changed = true;
+            par.AsyncDepth = DEFAULT_ASYNC_DEPTH_TO_WA_D3D9_128_SURFACE_LIMIT;
         }
     }
 
@@ -3509,6 +3567,36 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         unsupported = true;
     }
 
+    if (IsOn(extOpt2->ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod !=MFX_RATECONTROL_CBR && par.mfx.RateControlMethod !=MFX_RATECONTROL_VBR)
+    {
+        extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
+        changed = true;    
+    }
+    
+    if ((!IsOn(extOpt2->ExtBRC)) && (extBRC->pthis || extBRC->Init || extBRC->Close || extBRC->GetFrameCtrl || extBRC->Update || extBRC->Reset) )
+    {
+        extBRC->pthis = 0;
+        extBRC->Init = 0;
+        extBRC->Close = 0;
+        extBRC->GetFrameCtrl = 0;
+        extBRC->Update = 0;
+        extBRC->Reset = 0; 
+        changed = true;
+    }
+    if ((extBRC->pthis  || extBRC->Init || extBRC->Close   || extBRC->GetFrameCtrl  || extBRC->Update  || extBRC->Reset) && 
+        (!extBRC->pthis || !extBRC->Init || !extBRC->Close || !extBRC->GetFrameCtrl || !extBRC->Update || !extBRC->Reset))
+    {
+        extOpt2->ExtBRC = 0;
+        extBRC->pthis = 0;
+        extBRC->Init = 0;
+        extBRC->Close = 0;
+        extBRC->GetFrameCtrl = 0;
+        extBRC->Update = 0;
+        extBRC->Reset = 0; 
+        changed = true;
+    }
+   
+
     if (par.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
     {
         if (par.mfx.CodecLevel != 0 && par.mfx.CodecLevel < MFX_LEVEL_AVC_21)
@@ -4018,6 +4106,12 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             changed = true;
     }
 
+    if (extMoveRect->NumRect > MFX_MAX_MOVE_RECT_COUNT)
+    {
+        changed = true;
+        extMoveRect->NumRect = MFX_MAX_MOVE_RECT_COUNT;
+    }
+
     if (extMoveRect->NumRect && hwCaps.MoveRectSupport == 0)
     {
         unsupported = true;
@@ -4307,6 +4401,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extOpt3->FadeDetection = MFX_CODINGOPTION_OFF;
         unsupported = true;
     }
+
 
     return unsupported
         ? MFX_ERR_UNSUPPORTED
@@ -4680,6 +4775,7 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(parInit.mfx.BufferSizeInKB,     parReset.mfx.BufferSizeInKB);
     InheritOption(parInit.mfx.NumSlice,           parReset.mfx.NumSlice);
     InheritOption(parInit.mfx.NumRefFrame,        parReset.mfx.NumRefFrame);
+    InheritOption(parInit.mfx.LowPower,           parReset.mfx.LowPower);
 
     if (parInit.mfx.RateControlMethod == MFX_RATECONTROL_CBR && parReset.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
     {
@@ -4771,6 +4867,8 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(extOpt2Init->DisableVUI,      extOpt2Reset->DisableVUI);
     InheritOption(extOpt2Init->SkipFrame,       extOpt2Reset->SkipFrame);
 
+     InheritOption(extOpt2Init->ExtBRC,  extOpt2Reset->ExtBRC);
+
     mfxExtCodingOption3 const * extOpt3Init  = GetExtBuffer(parInit);
     mfxExtCodingOption3 *       extOpt3Reset = GetExtBuffer(parReset);
 
@@ -4788,6 +4886,21 @@ void MfxHwH264Encode::InheritDefaultValues(
         InheritOption(parInit.mfx.TargetKbps,       parReset.mfx.TargetKbps);
         InheritOption(parInit.mfx.MaxKbps,          parReset.mfx.MaxKbps);
         InheritOption(extOpt3Init->QVBRQuality,     extOpt3Reset->QVBRQuality);
+    }
+
+
+
+    mfxExtBRC*   extBRCInit       = GetExtBuffer(parInit);
+    mfxExtBRC*   extBRCReset      = GetExtBuffer(parReset);
+
+    if (!extBRCReset->pthis &&
+        !extBRCReset->Init &&
+        !extBRCReset->Reset &&
+        !extBRCReset->Close &&
+        !extBRCReset->GetFrameCtrl &&
+        !extBRCReset->Update)
+    {
+        *extBRCReset = *extBRCInit;
     }
 
 
@@ -4888,7 +5001,6 @@ void MfxHwH264Encode::SetDefaults(
                 par.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
         }
     }
-
 
     mfxU8 fieldCodingPossible = IsFieldCodingPossible(par);
 
@@ -5196,8 +5308,8 @@ void MfxHwH264Encode::SetDefaults(
     if (extDdi->Hme == MFX_CODINGOPTION_UNKNOWN)
         extDdi->Hme = MFX_CODINGOPTION_ON;
 
-    //if (extOpt2->ExtBRC == MFX_CODINGOPTION_UNKNOWN)
-    //    extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
+    if (extOpt2->ExtBRC == MFX_CODINGOPTION_UNKNOWN)
+        extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
 
     if (extOpt2->LookAheadDepth == 0)
     {
@@ -5529,11 +5641,11 @@ void MfxHwH264Encode::SetDefaults(
         extSps->picHeightInMapUnitsMinus1       = (fi.Height / 16 / (2 - extSps->frameMbsOnlyFlag)) - 1;
         extSps->direct8x8InferenceFlag          = 1;
 
-        mfxU16 cropUnitX = CROP_UNIT_X[fi.ChromaFormat];
         //Fix cropping for ARGB and YUY2 formats, need to redesign in case real 444 or 422 support in AVC.
         mfxU16 croma_format = fi.ChromaFormat;
         if(croma_format == MFX_CHROMAFORMAT_YUV444 || croma_format == MFX_CHROMAFORMAT_YUV422)
             croma_format = MFX_CHROMAFORMAT_YUV420;
+        mfxU16 cropUnitX = CROP_UNIT_X[croma_format];
         mfxU16 cropUnitY = CROP_UNIT_Y[croma_format] * (2 - extSps->frameMbsOnlyFlag);
 
         extSps->frameCropLeftOffset   = (fi.CropX / cropUnitX);
@@ -5975,45 +6087,18 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
 
     if (extDirtyRect)
     {
-        mfxU16 actualNumRect = extDirtyRect->NumRect;
-
-        if (actualNumRect == 0)
-        {
-            checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        }
-
-        if (actualNumRect > MFX_MAX_DIRTY_RECT_COUNT)
-        {
-            actualNumRect = MFX_MAX_DIRTY_RECT_COUNT;
-            checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        }
-
-        for (mfxU16 i = 0; i < actualNumRect; i++)
-        {
-            mfxStatus sts = CheckAndFixRectQueryLike(video, (mfxRectDesc*)(&(extDirtyRect->Rect[i])));
-            if (sts != MFX_ERR_NONE)
-                checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        }
+        checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
+
 
     mfxExtMoveRect const * extMoveRect = GetExtBuffer(*ctrl);
 
     if (extMoveRect)
     {
-        mfxU16 actualNumRect = extMoveRect->NumRect;
-
-        if (actualNumRect == 0)
-        {
-            checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        }
-
-        for (mfxU16 i = 0; i < actualNumRect; i++)
-        {
-            mfxStatus sts = CheckAndFixMovingRectQueryLike(video, (mfxMovingRectDesc*)(&(extMoveRect->Rect[i])));
-            if (sts != MFX_ERR_NONE)
-                checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        }
+        checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
+
+
 
     return checkSts;
 }
@@ -6860,6 +6945,7 @@ MfxVideoParam::MfxVideoParam()
     , m_extFeiOpt()
     , m_extFeiSPS()
     , m_extFeiPPS()
+    , m_extBRC()
     , calcParam()
 {
     memset(m_extParam, 0, sizeof(m_extParam));
@@ -7089,6 +7175,9 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
     CONSTRUCT_EXT_BUFFER_EX(mfxExtFeiSliceHeader,    m_extFeiSlice, 1);
     CONSTRUCT_EXT_BUFFER(mfxExtFeiSPS,               m_extFeiSPS);
     CONSTRUCT_EXT_BUFFER(mfxExtFeiPPS,               m_extFeiPPS);
+
+    CONSTRUCT_EXT_BUFFER(mfxExtBRC,                  m_extBRC);
+
 
 
 #undef CONSTRUCT_EXT_BUFFER

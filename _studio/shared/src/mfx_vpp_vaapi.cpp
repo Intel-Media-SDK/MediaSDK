@@ -552,6 +552,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                     deint.flags = VA_DEINTERLACING_BOTTOM_FIELD;
                 else /* For BFF, second field is Top */
                     deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST;
+
             }
 
             /* For 30i->60p case we have to indicate
@@ -1457,9 +1458,8 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
             (pParams->dstRects[i].PixelAlphaEnable == 0) )
         {
             blend_state[i].flags |= VA_BLEND_LUMA_KEY;
-            blend_state[i].min_luma = pParams->dstRects[i].LumaKeyMin;
-            blend_state[i].max_luma = pParams->dstRects[i].LumaKeyMax;
-
+            blend_state[i].min_luma = ((float)pParams->dstRects[i].LumaKeyMin/255);
+            blend_state[i].max_luma = ((float)pParams->dstRects[i].LumaKeyMax/255);
         }
         if ((pParams->dstRects[i].LumaKeyEnable    == 0 ) &&
             (pParams->dstRects[i].PixelAlphaEnable != 0 ) )
@@ -1988,8 +1988,8 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             (pParams->dstRects[refIdx-1].PixelAlphaEnable == 0) )
         {
             blend_state[refIdx].flags |= VA_BLEND_LUMA_KEY;
-            blend_state[refIdx].min_luma = pParams->dstRects[refIdx - 1].LumaKeyMin;
-            blend_state[refIdx].max_luma = pParams->dstRects[refIdx - 1].LumaKeyMax;
+            blend_state[refIdx].min_luma = ((float)pParams->dstRects[refIdx-1].LumaKeyMin/255);
+            blend_state[refIdx].max_luma = ((float)pParams->dstRects[refIdx-1].LumaKeyMax/255);
         }
         if ((pParams->dstRects[refIdx-1].LumaKeyEnable == 0 ) &&
             (pParams->dstRects[refIdx-1].PixelAlphaEnable != 0 ) )

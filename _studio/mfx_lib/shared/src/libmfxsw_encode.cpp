@@ -578,7 +578,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                 task.pOwner = session->m_pENCODE.get();
                 task.entryPoint = entryPoints[0];
                 task.priority = session->m_priority;
-                task.threadingPolicy = MFX_TASK_THREADING_DEDICATED;
+                task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
                 // fill dependencies
                 task.pSrc[0] = surface;
                 task.pSrc[1] = ctrl ? ctrl->ExtParam : 0;
@@ -595,7 +595,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                 task.pOwner = session->m_pENCODE.get();
                 task.entryPoint = entryPoints[1];
                 task.priority = session->m_priority;
-                task.threadingPolicy = MFX_TASK_THREADING_DEDICATED_WAIT;
+                task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
                 // fill dependencies
                 task.pSrc[0] = entryPoints[0].pParam;
                 task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0: bs;

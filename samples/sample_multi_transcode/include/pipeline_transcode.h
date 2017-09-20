@@ -51,7 +51,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "hw_device.h"
 #include "plugin_loader.h"
+#include "sample_defs.h"
 
+#include "brc_routines.h"
 
 #include "vpp_ext_buffers_storage.h"
 
@@ -126,7 +128,8 @@ namespace TranscodingSample
         mfxF64 dDecoderFrameRateOverride;
         mfxF64 dEncoderFrameRateOverride;
         mfxF64 dVPPOutFramerate;
-        mfxU32 nBitRate;
+        mfxU16 nBitRate;
+        mfxU16 nBitRateMultiplier;
         mfxU16 nQuality; // quality parameter for JPEG encoder
         mfxU16 nDstWidth;  // destination picture width, specified if resizing required
         mfxU16 nDstHeight; // destination picture height, specified if resizing required
@@ -193,14 +196,7 @@ namespace TranscodingSample
         mfxU16 nQPI;
         mfxU16 nQPP;
         mfxU16 nQPB;
-
-#if _MSDK_API >= MSDK_API(1,22)
-        std::vector<mfxExtEncoderROI> m_ROIData;
-
-        bool bDecoderPostProcessing;
-        bool bROIasQPMAP;
-#endif //_MSDK_API >= MSDK_API(1,22)
-
+        
         bool bOpenCL;
         mfxU16 reserved[4];
 
@@ -229,6 +225,10 @@ namespace TranscodingSample
 
         mfxU16 nExtBRC;
 
+        mfxU16 numMFEFrames;
+        mfxU16 MFMode;
+        mfxU32 mfeTimeout;
+
 #if defined(LIBVA_WAYLAND_SUPPORT)
         mfxU16 nRenderWinX;
         mfxU16 nRenderWinY;
@@ -244,6 +244,13 @@ namespace TranscodingSample
 
     struct sInputParams: public __sInputParams
     {
+        msdk_string DumpLogFileName;    
+#if _MSDK_API >= MSDK_API(1,22)
+        std::vector<mfxExtEncoderROI> m_ROIData;
+
+        bool bDecoderPostProcessing;
+        bool bROIasQPMAP;
+#endif //_MSDK_API >= MSDK_API(1,22)        
         sInputParams();
         void Reset();
     };
@@ -284,6 +291,7 @@ namespace TranscodingSample
               , ofile(stdout)
             {
                 MSDK_ZERO_MEMORY(bufDir);
+                DumpLogFileName.clear();
             }
 
             CIOStat(const msdk_char *dir)
@@ -303,6 +311,19 @@ namespace TranscodingSample
                 ofile = file;
             }
 
+            inline void SetDumpName(const msdk_char* name)
+            {
+                DumpLogFileName = *name;
+                if (!DumpLogFileName.empty())
+                {
+                    TurnOnDumping();
+                }
+                else
+                {
+                    TurnOffDumping();
+                }
+            }
+
             inline void SetDirection(const msdk_char *dir)
             {
                 if (dir)
@@ -314,15 +335,44 @@ namespace TranscodingSample
 
             inline void PrintStatistics(mfxU32 numPipelineid, mfxF64 target_framerate = -1 /*default stands for infinite*/)
             {
-                msdk_fprintf(ofile, MSDK_STRING("stat[%d.%llu]: %s=%d;Framerate=%.3f;Total=%.3lf;Samples=%lld;StdDev=%.3lf;Min=%.3lf;Max=%.3lf;Avg=%.3lf\n"),
-                    msdk_get_current_pid(), rdtsc(),
-                    bufDir, numPipelineid,
-                    target_framerate,
-                    totalTime*1000, numMeasurements,
-                    GetTimeStdDev()*1000, minTime*1000, maxTime*1000, GetAvgTime()*1000);
+                // print timings in ms
+                msdk_fprintf(   ofile, MSDK_STRING("stat[%d.%llu]: %s=%d;Framerate=%.3f;Total=%.3lf;Samples=%lld;StdDev=%.3lf;Min=%.3lf;Max=%.3lf;Avg=%.3lf\n"),
+                                msdk_get_current_pid(), rdtsc(),
+                                bufDir, numPipelineid,
+                                target_framerate,
+                                GetTotalTime(false), GetNumMeasurements(),
+                                GetTimeStdDev(false), GetMinTime(false), GetMaxTime(false), GetAvgTime(false));
                 fflush(ofile);
+
+                if(!DumpLogFileName.empty())
+                {
+                    msdk_char buf[MSDK_MAX_FILENAME_LEN];
+                    msdk_sprintf(buf, MSDK_STRING("%s_ID_%d.log"), DumpLogFileName.c_str(), numPipelineid);
+                    DumpDeltas(buf);
+                }
+            }
+
+            inline void DumpDeltas(msdk_char* file_name)
+            {
+                if (m_time_deltas.empty())
+                    return;
+
+                FILE* dump_file = NULL;
+                if (!MSDK_FOPEN(dump_file, file_name, MSDK_STRING("a")))
+                {
+                    for (std::vector<mfxF64>::const_iterator it = m_time_deltas.begin(); it != m_time_deltas.end(); ++it)
+                    {
+                        fprintf(dump_file, "%.3f, ", (*it));
+                    }
+                    fclose(dump_file);
+                }
+                else
+                {
+                    perror("DumpDeltas: file cannot be open");
+                }
             }
         protected:
+            msdk_tstring DumpLogFileName;
             FILE*     ofile;
             msdk_char bufDir[MAX_PREF_LEN];
     };
@@ -515,7 +565,7 @@ namespace TranscodingSample
         mfxFrameSurface1* GetFreeSurface(bool isDec, mfxU64 timeout);
         mfxU32 GetFreeSurfacesCount(bool isDec);
         PreEncAuxBuffer*  GetFreePreEncAuxBuffer();
-        void SetEncCtrlRT(ExtendedSurface& extSurface, mfxEncodeCtrl *pCtrl, bool bInsertIDR);
+        void SetEncCtrlRT(ExtendedSurface& extSurface, bool bInsertIDR);
 
         // parameters configuration functions
         mfxStatus InitDecMfxParams(sInputParams *pInParams);
@@ -550,6 +600,7 @@ namespace TranscodingSample
         void   SetNumFramesForReset(mfxU32 nFrames);
 
         mfxStatus   SetAllocatorAndHandleIfRequired();
+        mfxStatus   LoadGenericPlugin();
 
         mfxBitstream        *m_pmfxBS;  // contains encoded input data
 
@@ -599,6 +650,9 @@ namespace TranscodingSample
 
         bool                           m_bStopOverlay;
 
+        sPluginParams                  m_decoderPluginParams;
+        sPluginParams                  m_encoderPluginParams;
+
         mfxVideoParam                  m_mfxDecParams;
         mfxVideoParam                  m_mfxEncParams;
         mfxVideoParam                  m_mfxVppParams;
@@ -631,6 +685,8 @@ namespace TranscodingSample
 
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
+
+        mfxExtBRC                m_ExtBRC;
 
 
         // for opaque memory
@@ -685,7 +741,7 @@ namespace TranscodingSample
 
         msdk_tick m_nReqFrameTime; // time required to transcode one frame
 
-        int       statisticsWindowSize; // Sliding window size for Statistics
+        mfxU32    statisticsWindowSize; // Sliding window size for Statistics
         mfxU32    m_nOutputFramesNum;
 
         CIOStat inputStatistics;
@@ -704,12 +760,16 @@ namespace TranscodingSample
         std::map<void*, mfxExtMBQP> m_bufExtMBQP;
         std::map<void*, std::vector<mfxU8> > m_qpMapStorage;
         std::map<void*, std::vector<mfxExtBuffer*> > m_extBuffPtrStorage;
+        std::map<void*, mfxEncodeCtrl > encControlStorage;
 
         mfxU32            m_QPmapWidth;
         mfxU32            m_QPmapHeight;
         mfxU32            m_GOPSize;
         mfxU32            m_QPforI;
         mfxU32            m_QPforP;
+
+        msdk_string       m_sGenericPluginPath;
+        mfxU16            m_nRotationAngle;
 
         void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
 #endif //_MSDK_API >= MSDK_API(1,22)
