@@ -187,7 +187,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
         if (info->FourCC != MFX_FOURCC_NV12 &&
             info->FourCC != MFX_FOURCC_YUY2 &&
             info->FourCC != MFX_FOURCC_P010 &&
-            info->FourCC != MFX_FOURCC_NV16
+            info->FourCC != MFX_FOURCC_NV16 &&
+            info->FourCC != MFX_FOURCC_P210
             )
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
@@ -436,6 +437,7 @@ mfxStatus CheckFrameData(const mfxFrameSurface1 *surface)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             break;
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
         case MFX_FOURCC_AYUV:
             if (!surface->Data.A || !surface->Data.R || !surface->Data.G || !surface->Data.B)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -453,7 +455,7 @@ mfxStatus CheckFrameData(const mfxFrameSurface1 *surface)
     return MFX_ERR_NONE;
 }
 
-mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam* par)
+mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 {
     static const mfxU32 g_commonSupportedExtBuffers[]       = {
                                                                MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
@@ -775,4 +777,28 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
 
     NumExtParam = (mfxU16)m_buffers.GetCount();
     ExtParam = NumExtParam ? m_buffers.GetBuffers() : 0;
+}
+
+mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
+{
+    switch (fourcc)
+    {
+        case MFX_FOURCC_RGB3:
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+        case MFX_FOURCC_ARGB16:
+        case MFX_FOURCC_ABGR16:  return MFX_MIN(MFX_MIN(data.R, data.G), data.B);
+
+        case MFX_FOURCC_R16:     return reinterpret_cast<mfxU8*>(data.Y16);
+
+        case MFX_FOURCC_AYUV:    return data.V;
+
+        case MFX_FOURCC_UYVY:    return data.U;
+
+
+
+
+        default:
+            return data.Y;
+    }
 }

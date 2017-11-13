@@ -24,7 +24,7 @@
 #include <mfxdefs.h>
 
 #include <vm_thread.h>
-#include <umc_event.h>
+#include <vm_cond.h>
 
 // forward declaration of the owning class
 class mfxSchedulerCore;
@@ -39,15 +39,16 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
       , sleepTime(0)
     {
         vm_thread_set_invalid(&threadHandle);
+        vm_cond_set_invalid(&taskAdded);
     }
 
-    mfxSchedulerCore *pSchedulerCore;                           // (mfxSchedulerCore *) pointer to the owning core
-    mfxU32 threadNum;                                           // (mfxU32) number of the thread
-    vm_thread threadHandle;                                     // (vm_thread) handle to the thread
-    UMC::Event taskAdded;                                       // Objects for waiting on in case of nothing to do
+    mfxSchedulerCore *pSchedulerCore; // pointer to the owning core
+    mfxU32 threadNum;                 // thread number assigned by the core
+    vm_thread threadHandle;           // thread handle
+    vm_cond taskAdded;                // cond. variable to signal new tasks
 
-    mfxU64 workTime;                                            // (mfxU64) integral working time
-    mfxU64 sleepTime;                                           // (mfxU64) integral sleeping time
+    mfxU64 workTime;                  // integral working time
+    mfxU64 sleepTime;                 // integral sleeping time
 };
 
 #endif // #ifndef __MFX_SCHEDULER_CORE_THREAD_H

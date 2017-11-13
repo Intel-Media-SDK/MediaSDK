@@ -61,12 +61,10 @@ enum eWorkMode {
   MODE_FILE_DUMP
 };
 
-#if _MSDK_API >= MSDK_API(1,22)
 enum eDecoderPostProc {
   MODE_DECODER_POSTPROC_AUTO  = 0x1,
   MODE_DECODER_POSTPROC_FORCE = 0x2
 };
-#endif //_MSDK_API >= MSDK_API(1,22)
 
 struct sInputParams
 {
@@ -84,9 +82,7 @@ struct sInputParams
     mfxU32  nWallH; //number of windows located in each column
     mfxU32  nWallMonitor; //monitor id, 0,1,.. etc
     bool    bWallNoTitle; //whether to show title for each window with fps value
-#if _MSDK_API >= MSDK_API(1,22)
     mfxU16  nDecoderPostProcessing;
-#endif //_MSDK_API >= MSDK_API(1,22)
 
     mfxU32  numViews; // number of views for Multi-View Codec
     mfxU32  nRotation; // rotation for Motion JPEG Codec
@@ -96,9 +92,6 @@ struct sInputParams
     mfxU16  nThreadsNum;
     mfxI32  SchedulingType;
     mfxI32  Priority;
-
-    mfxU16  scrWidth;
-    mfxU16  scrHeight;
 
     mfxU16  Width;
     mfxU16  Height;
@@ -180,8 +173,9 @@ public:
     void SetExtBuffersFlag()       { m_bIsExtBuffers = true; }
     virtual void PrintInfo();
 
+
 protected: // functions
-    virtual mfxStatus CreateRenderingWindow(sInputParams *pParams, bool try_s3d);
+    virtual mfxStatus CreateRenderingWindow(sInputParams *pParams);
     virtual mfxStatus InitMfxParams(sInputParams *pParams);
 
     // function for allocating a specific external buffer
@@ -233,9 +227,9 @@ protected: // variables
     std::auto_ptr<MFXVideoUSER>  m_pUserModule;
     std::auto_ptr<MFXPlugin> m_pPlugin;
     std::vector<mfxExtBuffer *> m_ExtBuffers;
-#if _MSDK_API >= MSDK_API(1,22)
+    std::vector<mfxExtBuffer *> m_ExtBuffersMfxBS;
     mfxExtDecVideoProcessing m_DecoderPostProcessing;
-#endif //_MSDK_API >= MSDK_API(1,22)
+
 
     GeneralAllocator*       m_pGeneralAllocator;
     mfxAllocatorParams*     m_pmfxAllocatorParams;
@@ -288,8 +282,6 @@ protected: // variables
 
     CHWDevice               *m_hwdev;
 #if D3D_SURFACES_SUPPORT
-    IGFXS3DControl          *m_pS3DControl;
-
     CDecodeD3DRender         m_d3dRender;
 #endif
 

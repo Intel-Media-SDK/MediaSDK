@@ -602,7 +602,14 @@ mfxStatus ResMngr::DoAdvGfx(
 
 } // mfxStatus ResMngr::DoAdvGfx(...)
 
-
+/// This function requests for new decoded frame if needed in
+/// 30i->60p mode
+/*
+  \param[in] input input surface
+  \param[in] output output surface
+  \param [out] intSts :MFX_ERR_NONE will request for decoded frame,
+                       MFX_ERR_MORE_SURFACE will call VPP on previously decoded surface
+ */
 mfxStatus ResMngr::DoMode30i60p(
     mfxFrameSurface1 *input,
     mfxFrameSurface1 *output,
@@ -633,21 +640,21 @@ mfxStatus ResMngr::DoMode30i60p(
             {
                 *intSts = MFX_ERR_NONE;
                 m_outputIndexCountPerCycle = 3; //was 3
-                m_bkwdRefCount = 0;
+                m_bkwdRefCount = 0; // First frame does not have reference
             }
             else
             {
                 m_bOutputReady = true;
                 *intSts = MFX_ERR_MORE_SURFACE;
                 m_outputIndexCountPerCycle = 2;
-                if(true == m_bRefFrameEnable)
+
+                if (true == m_bRefFrameEnable) // ADI
                 {
                     // need one backward reference to enable motion adaptive ADI
                     m_bkwdRefCount = 1;
                 }
                 else
                 {
-                    // no reference frame, use ADI with spatial info
                     m_bkwdRefCount = 0;
                 }
             }
@@ -1769,6 +1776,10 @@ mfxStatus  VideoVPPHW::Init(
     caps = m_ddi->GetCaps();
 
     sts = ValidateParams(&m_params, &caps, m_pCore);
+    if( MFX_ERR_UNSUPPORTED == sts )
+    {
+        sts = MFX_ERR_INVALID_VIDEO_PARAM;
+    }
     if( MFX_WRN_FILTER_SKIPPED == sts )
     {
         bIsFilterSkipped = true;
@@ -2825,6 +2836,8 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     std::vector<ExtSurface> surfQueue(numSamples);
 
     mfxU32 indx = 0;
+    mfxU32 deinterlaceAlgorithm = 0;
+
     // bkwdFrames
     for(i = 0; i < pTask->bkwdRefCount; i++)
     {
@@ -3039,11 +3052,66 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
 
     m_executeParams.iTargetInterlacingMode = DEINTERLACE_ENABLE;
 
-    if( !(m_executeParams.targetSurface.frameInfo.PicStruct & (MFX_PICSTRUCT_PROGRESSIVE)) )
+    if( !(m_executeParams.targetSurface.frameInfo.PicStruct & (MFX_PICSTRUCT_PROGRESSIVE)))
     {
         m_executeParams.iTargetInterlacingMode = DEINTERLACE_DISABLE;
         m_executeParams.iDeinterlacingAlgorithm = 0;
     }
+
+    // Check for progressive frames in interlace streams
+    deinterlaceAlgorithm = m_executeParams.iDeinterlacingAlgorithm;
+
+    static mfxU32 num_progressive = 0;
+    mfxU32 currFramePicStruct = m_executeSurf[pTask->bkwdRefCount].frameInfo.PicStruct;
+    mfxU32 refFramePicStruct = m_executeSurf[0].frameInfo.PicStruct;
+    bool isFirstField = true;
+    bool isCurrentProgressive = false;
+    bool isPreviousProgressive = false;
+
+
+    // check for progressive frames marked as progressive or pict_struct=5,6,7,8 in H.264
+    if ((currFramePicStruct == MFX_PICSTRUCT_PROGRESSIVE) ||
+        (currFramePicStruct & MFX_PICSTRUCT_FIELD_REPEATED) ||
+        (currFramePicStruct & MFX_PICSTRUCT_FRAME_DOUBLING) ||
+        (currFramePicStruct & MFX_PICSTRUCT_FRAME_TRIPLING))
+    {
+        isCurrentProgressive = true;
+    }
+
+    if ((refFramePicStruct == MFX_PICSTRUCT_PROGRESSIVE) ||
+        (refFramePicStruct & MFX_PICSTRUCT_FIELD_REPEATED) ||
+        (refFramePicStruct & MFX_PICSTRUCT_FRAME_DOUBLING) ||
+        (refFramePicStruct & MFX_PICSTRUCT_FRAME_TRIPLING))
+    {
+        isPreviousProgressive = true;
+    }
+
+    // Process progressive frame
+    if (isCurrentProgressive)
+    {
+        m_executeParams.iDeinterlacingAlgorithm = 0;
+    }
+
+    // Need special handling for progressive frame in 30i->60p ADI mode
+    if ((pTask->bkwdRefCount == 1) && m_executeParams.bDeinterlace30i60p) {
+        if ((m_frame_num % 2) == 0)
+            isFirstField = false; // 30i->60p ADI second field correspond to even output frame except for first and last
+
+        // Process progressive current frame
+        if (isCurrentProgressive)
+        {
+            // First field comes from interlace reference
+            if ((!isPreviousProgressive) && isFirstField)
+                m_executeParams.iDeinterlacingAlgorithm = deinterlaceAlgorithm;
+            else
+                m_executeParams.iDeinterlacingAlgorithm = 0; // Disable DI for current frame
+        }
+
+        // Disable DI when previous frame is progressive and current frame is interlace
+        if (isPreviousProgressive && (!isCurrentProgressive) && isFirstField)
+            m_executeParams.iDeinterlacingAlgorithm = 0; // Disable DI for first output frame
+    }
+
 
     MfxHwVideoProcessing::mfxExecuteParams  execParams = m_executeParams;
     sts = MergeRuntimeParams(pTask, &execParams);
@@ -3071,6 +3139,9 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     sts = PostWorkInputSurface(numSamples);
     MFX_CHECK_STS(sts);
 
+    // restore value for m_executeParams.iDeinterlacingAlgorithm
+    m_executeParams.iDeinterlacingAlgorithm = deinterlaceAlgorithm;
+    m_frame_num++; // used to derive first or second field
     return MFX_ERR_NONE;
 
 } // mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
@@ -3315,7 +3386,8 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         sts = GetWorstSts(sts, MFX_WRN_PARTIAL_ACCELERATION);
 
     /* 6. BitDepthLuma and BitDepthChroma should be configured for p010 format */
-    if (MFX_FOURCC_P010 == par->vpp.In.FourCC)
+    if (MFX_FOURCC_P010 == par->vpp.In.FourCC
+        )
     {
         if (0 == par->vpp.In.BitDepthLuma)
         {
@@ -3329,7 +3401,8 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         }
     }
 
-    if (MFX_FOURCC_P010 == par->vpp.Out.FourCC)
+    if (MFX_FOURCC_P010 == par->vpp.Out.FourCC
+        )
     {
         if (0 == par->vpp.Out.BitDepthLuma)
         {
@@ -3342,6 +3415,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             sts = GetWorstSts(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         }
     }
+
 
     /* 8. Check unsupported filters on RGB */
     if( par->vpp.In.FourCC == MFX_FOURCC_RGB4)
@@ -3515,6 +3589,35 @@ template <class T> T get_total_area(std::vector< cRect<T> > &rects) {
     return area;
 }
 
+inline
+mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
+{
+    VM_ASSERT(bit_depth);
+
+    mfxU64 const shift = bit_depth - 8;
+    return
+        ((mfxU64)                                ((255 << shift) - 1) << 48) |
+        ((mfxU64)VPP_RANGE_CLIP(Y, (16 << shift), (235 << shift))     << 32) |
+        ((mfxU64)VPP_RANGE_CLIP(U, (16 << shift), (240 << shift))     << 16) |
+        ((mfxU64)VPP_RANGE_CLIP(V, (16 << shift), (240 << shift))     <<  0)
+        ;
+};
+
+inline
+mfxU64 make_def_back_color_yuv(mfxU16 bit_depth)
+{
+    assert(bit_depth);
+
+    mfxU64 const shift = bit_depth - 8;
+    mfxU64 const min_val = 16 << shift, max_val = 256 << shift;
+    return
+        ((max_val - 1ULL) << 48) |
+        ( min_val      << 32) |
+        ( max_val / 2  << 16) |
+        ( max_val / 2  <<  0)
+        ;
+};
+
 //---------------------------------------------------------
 // Do internal configuration
 //---------------------------------------------------------
@@ -3541,26 +3644,22 @@ mfxStatus ConfigureExecuteParams(
     config.m_surfCount[VPP_IN]  = 1;
     config.m_surfCount[VPP_OUT] = 1;
 
+    mfxU64 def_back_color = 0xffff000000000000;
     if (videoParam.vpp.Out.FourCC == MFX_FOURCC_NV12 ||
         videoParam.vpp.Out.FourCC == MFX_FOURCC_YV12 ||
         videoParam.vpp.Out.FourCC == MFX_FOURCC_NV16 ||
         videoParam.vpp.Out.FourCC == MFX_FOURCC_YUY2 ||
         videoParam.vpp.Out.FourCC == MFX_FOURCC_AYUV )
     {
-        executeParams.iBackgroundColor = 0x00ff001000800080; // black in 8-bit YUV interpretation
+        def_back_color = make_def_back_color_yuv(8);
     }
     else if(videoParam.vpp.Out.FourCC == MFX_FOURCC_P010 ||
             videoParam.vpp.Out.FourCC == MFX_FOURCC_P210)
     {
-        // black in 10-bit YUV interpretation
-        // 0x(2^10-1)(64)(512)(512)
-        // 0x03FF004002000200
-        executeParams.iBackgroundColor = 0x03FF004002000200;
+        def_back_color = make_def_back_color_yuv(10);
     }
-    else
-    {
-        executeParams.iBackgroundColor = 0xffff000000000000; // black in RGB interpretation
-    }
+
+    executeParams.iBackgroundColor = def_back_color;
 
     //-----------------------------------------------------
     for (mfxU32 j = 0; j < pipelineList.size(); j += 1)
@@ -4004,18 +4103,12 @@ mfxStatus ConfigureExecuteParams(
                             targetFourCC == MFX_FOURCC_YUY2 ||
                             targetFourCC == MFX_FOURCC_AYUV)
                         {
-                            executeParams.iBackgroundColor  = ((mfxU64)0xff << 48)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->Y, 16, 235) << 32)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->U, 16, 240) << 16)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->V, 16, 240) <<  0);
+                            executeParams.iBackgroundColor = make_back_color_yuv(8, extComp->Y, extComp->U, extComp->V);
                         }
                         if (targetFourCC == MFX_FOURCC_P010 ||
                             targetFourCC == MFX_FOURCC_P210)
                         {
-                            executeParams.iBackgroundColor  =         ((mfxU64)0x03ff << 48)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->Y, 64 , 940 ) << 32)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->U, 64 , 960 ) << 16)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->V, 64 , 960 ) <<  0);
+                            executeParams.iBackgroundColor = make_back_color_yuv(10, extComp->Y, extComp->U, extComp->V);
                         }
                         if (targetFourCC == MFX_FOURCC_RGB4 ||
                             targetFourCC == MFX_FOURCC_BGR4)
@@ -4283,26 +4376,7 @@ mfxStatus ConfigureExecuteParams(
                     executeParams.bComposite = false;
                     executeParams.dstRects.clear();
 
-                    if (videoParam.vpp.Out.FourCC == MFX_FOURCC_NV12 ||
-                        videoParam.vpp.Out.FourCC == MFX_FOURCC_YV12 ||
-                        videoParam.vpp.Out.FourCC == MFX_FOURCC_NV16 ||
-                        videoParam.vpp.Out.FourCC == MFX_FOURCC_YUY2 ||
-                        videoParam.vpp.Out.FourCC == MFX_FOURCC_AYUV )
-                    {
-                        executeParams.iBackgroundColor = 0x00ff001000800080; // black in 8-bit YUV interpretation 0x(2^8-1)(16)(128)(128)
-                    }
-                    else if (videoParam.vpp.Out.FourCC == MFX_FOURCC_P010 ||
-                             videoParam.vpp.Out.FourCC == MFX_FOURCC_P210)
-                    {
-                        // black in 10-bit YUV interpretation
-                        // 0x(2^10-1)(64)(512)(512)
-                        // 0x03FF004002000200
-                        executeParams.iBackgroundColor = 0x03FF004002000200;
-                    }
-                    else
-                    {
-                        executeParams.iBackgroundColor = 0xffff000000000000; // black in RGB interpretation
-                    }
+                    executeParams.iBackgroundColor = def_back_color;
                 }
                 else if (MFX_EXTBUFF_VPP_FIELD_PROCESSING == bufferId)
                 {

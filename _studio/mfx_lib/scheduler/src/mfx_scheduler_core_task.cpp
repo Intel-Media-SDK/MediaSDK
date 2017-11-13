@@ -81,28 +81,32 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
         // release the current task resources
         ReleaseResources();
 
-        // be aware of external call
-        try
-        {
-            MFX_ENTRY_POINT &entryPoint = param.task.entryPoint;
-
-            if (entryPoint.pCompleteProc)
-            {
-                // release the component's resources
-                entryPoint.pCompleteProc(entryPoint.pState,
-                                         entryPoint.pParam,
-                                         MFX_ERR_ABORTED);
-            }
-        }
-        catch(...)
-        {
-        }
+        CompleteTask(MFX_ERR_ABORTED);
     }
 
     // call the parent's method
     mfxDependencyItem<MFX_TASK_NUM_DEPENDENCIES>::OnDependencyResolved(result);
 
-} // void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
+}
+
+mfxStatus MFX_SCHEDULER_TASK::CompleteTask(mfxStatus res)
+{
+    mfxStatus sts;
+    MFX_ENTRY_POINT &entryPoint = param.task.entryPoint;
+
+    if (!entryPoint.pCompleteProc) return MFX_ERR_NONE;
+
+    try {
+        // release the component's resources
+        sts = entryPoint.pCompleteProc(
+            entryPoint.pState,
+            entryPoint.pParam,
+            res);
+    } catch(...) {
+        sts = MFX_ERR_UNKNOWN;
+    }
+    return sts;
+}
 
 void MFX_SCHEDULER_TASK::ReleaseResources(void)
 {

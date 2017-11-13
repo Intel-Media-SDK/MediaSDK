@@ -64,6 +64,8 @@ uint32_t mfxSchedulerCore::scheduler_thread_proc(void *pParam)
 
 void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 {
+    UMC::AutomaticMutex guard(m_guard);
+
     mfxTaskHandle previousTaskHandle = {};
     const uint32_t threadNum = pContext->threadNum;
 
@@ -76,52 +78,16 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
         mfxRes = GetTask(call, previousTaskHandle, threadNum);
         if (MFX_ERR_NONE == mfxRes)
         {
-            mfxU64 start, stop;
-
-            // perform asynchronous operation
-            try
+            vm_mutex_unlock(&m_guard);
             {
-                const char *pRoutineName = call.pTask->entryPoint.pRoutineName;
-                if (!pRoutineName) pRoutineName = "MFX Async Task";
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, pRoutineName);
-                MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Child^of", "%d", call.pTask->nParentId);
-
-                // mark beginning of working period
-                start = GetHighPerformanceCounter();
-
-                // NOTE: it is legacy task call,
-                // it should be eliminated soon
-                if (call.pTask->bObsoleteTask)
-                {
-                    call.res = call.pTask->entryPoint.pRoutine(call.pTask->entryPoint.pState,
-                                                               (void *) &call.pTask->obsolete_params,
-                                                               call.threadNum,
-                                                               call.callNum);
-                }
-                // the only legal task calling process.
-                // Should survive only this one :-).
-                else
-                {
-                    call.res = call.pTask->entryPoint.pRoutine(call.pTask->entryPoint.pState,
-                                                               call.pTask->entryPoint.pParam,
-                                                               call.threadNum,
-                                                               call.callNum);
-                }
-
-                // mark end of working period
-                stop = GetHighPerformanceCounter();
-
-                // update thread statistic
-                call.timeSpend = (stop - start);
-                pContext->workTime += call.timeSpend;
-                // save the previous task's handle
-                previousTaskHandle = call.taskHandle;
-                MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "mfxRes = ", "%d", call.res);
+                // perform asynchronous operation
+                call_pRoutine(call);
             }
-            catch(...)
-            {
-                call.res = MFX_ERR_UNKNOWN;
-            }
+            vm_mutex_lock(&m_guard);
+
+            pContext->workTime += call.timeSpend;
+            // save the previous task's handle
+            previousTaskHandle = call.taskHandle;
 
             // mark the task completed,
             // set the sync point into the high state if any.

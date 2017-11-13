@@ -42,6 +42,7 @@
 namespace UMC
 {
 
+
 /****************************************************************************************************/
 // DPBOutput class routine
 /****************************************************************************************************/
@@ -3158,6 +3159,8 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit)
     case NAL_UT_SUBSET_SPS:
     case NAL_UT_PREFIX:
         umcRes = DecodeHeaders(nalUnit);
+
+
         break;
 
     case NAL_UT_SEI:
@@ -3207,6 +3210,7 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
 
     do
     {
+
         NalUnit *nalUnit = m_pNALSplitter->GetNalUnits(pSource);
 
         if (!nalUnit && pSource)
@@ -3270,6 +3274,8 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
                     int32_t size = (int32_t)nalUnit->GetDataSize();
                     pSource->MoveDataPointer(- size - 3);
                 }
+
+
                 return umsRes;
             }
 

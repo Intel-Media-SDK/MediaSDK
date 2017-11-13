@@ -117,11 +117,10 @@ CDecodingPipeline::CDecodingPipeline()
     m_VppVideoSignalInfo.Header.BufferId = MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO;
     m_VppVideoSignalInfo.Header.BufferSz = sizeof(m_VppVideoSignalInfo);
 
-#if _MSDK_API >= MSDK_API(1,22)
     MSDK_ZERO_MEMORY(m_DecoderPostProcessing);
     m_DecoderPostProcessing.Header.BufferId = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
     m_DecoderPostProcessing.Header.BufferSz = sizeof(mfxExtDecVideoProcessing);
-#endif //_MSDK_API >= MSDK_API(1,22)
+
 
     m_hwdev = NULL;
 
@@ -131,10 +130,6 @@ CDecodingPipeline::CDecodingPipeline()
     m_export_mode = vaapiAllocatorParams::DONOT_EXPORT;
     m_libvaBackend = 0;
     m_bPerfMode = false;
-#endif
-
-#if D3D_SURFACES_SUPPORT
-    m_pS3DControl = NULL;
 #endif
 
     m_monitorType = 0;
@@ -216,11 +211,9 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     m_nTimeout = pParams->nTimeout;
 
-    if (MFX_CODEC_CAPTURE != pParams->videoType)
-    {
-        sts = m_FileReader->Init(pParams->strSrcFile);
-        MSDK_CHECK_STATUS(sts, "m_FileReader->Init failed");
-    }
+    // Initializing file reader
+    sts = m_FileReader->Init(pParams->strSrcFile);
+    MSDK_CHECK_STATUS(sts, "m_FileReader->Init failed");
 
     mfxInitParam initPar;
     mfxExtThreadsParam threadsPar;
@@ -341,11 +334,8 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     m_mfxVideoParams.mfx.CodecId = pParams->videoType;
 
     // prepare bit stream
-    if (MFX_CODEC_CAPTURE != pParams->videoType)
-    {
-        sts = InitMfxBitstream(&m_mfxBS, 8 * 1024 * 1024);
-        MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
-    }
+    sts = InitMfxBitstream(&m_mfxBS, 8 * 1024 * 1024);
+    MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
 
     if (CheckVersion(&version, MSDK_FEATURE_PLUGIN_API)) {
         /* Here we actually define the following codec initialization scheme:
@@ -359,7 +349,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         {
             m_pUserModule.reset(new MFXVideoUSER(m_mfxSession));
             if (pParams->videoType == MFX_CODEC_HEVC || pParams->videoType == MFX_CODEC_VP8 ||
-                pParams->videoType == MFX_CODEC_VP9 || pParams->videoType == MFX_CODEC_CAPTURE)
+                pParams->videoType == MFX_CODEC_VP9)
             {
                 m_pPlugin.reset(LoadPlugin(MFX_PLUGINTYPE_VIDEO_DECODE, m_mfxSession, pParams->pluginParams.pluginGuid, 1, pParams->pluginParams.strPluginPath, (mfxU32)msdk_strnlen(pParams->pluginParams.strPluginPath,sizeof(pParams->pluginParams.strPluginPath))));
             }
@@ -454,7 +444,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     if (m_eWorkMode == MODE_RENDERING)
     {
-        sts = CreateRenderingWindow(pParams, m_bIsMVC && (m_memType == D3D9_MEMORY));
+        sts = CreateRenderingWindow(pParams);
         MSDK_CHECK_STATUS(sts, "CreateRenderingWindow failed");
     }
 
@@ -469,18 +459,15 @@ bool CDecodingPipeline::IsVppRequired(sInputParams *pParams)
         (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height) )
     {
         bVppIsUsed |= pParams->Width && pParams->Height;
-#if _MSDK_API >= MSDK_API(1,22)
         if ((MODE_DECODER_POSTPROC_AUTO == pParams->nDecoderPostProcessing) ||
             (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing) )
         {
             /* Decoder will make decision about internal post-processing usage slightly later */
             bVppIsUsed = false;
         }
-#endif //_MSDK_API >= MSDK_API(1,22)
     }
     // JPEG and Capture decoders can provide output in nv12 and rgb4 formats
-    if ((pParams->videoType == MFX_CODEC_JPEG) ||
-        ((pParams->videoType == MFX_CODEC_CAPTURE)) )
+    if (pParams->videoType == MFX_CODEC_JPEG )
     {
         bVppIsUsed |= m_fourcc && (m_fourcc != MFX_FOURCC_NV12) && (m_fourcc != MFX_FOURCC_RGB4);
     }
@@ -500,12 +487,6 @@ void CDecodingPipeline::Close()
 {
 #if D3D_SURFACES_SUPPORT
     m_d3dRender.Close();
-
-    if (NULL != m_pS3DControl)
-    {
-        m_pS3DControl->SwitchTo2D(NULL);
-        MSDK_SAFE_DELETE(m_pS3DControl);
-    }
 #endif
     WipeMfxBitstream(&m_mfxBS);
     MSDK_SAFE_DELETE(m_pmfxDEC);
@@ -518,6 +499,8 @@ void CDecodingPipeline::Close()
         DeallocateExtMVCBuffers();
         DeleteExtBuffers();
     }
+
+    m_ExtBuffersMfxBS.clear();
 
     m_pPlugin.reset();
     m_mfxSession.Close();
@@ -533,55 +516,11 @@ void CDecodingPipeline::Close()
     return;
 }
 
-#if D3D_SURFACES_SUPPORT
-bool operator < (const IGFX_DISPLAY_MODE &l, const IGFX_DISPLAY_MODE& r)
-{
-    if (r.ulResWidth >= 0xFFFF || r.ulResHeight >= 0xFFFF || r.ulRefreshRate >= 0xFFFF)
-        return false;
-
-         if (l.ulResWidth < r.ulResWidth) return true;
-    else if (l.ulResHeight < r.ulResHeight) return true;
-    else if (l.ulRefreshRate < r.ulRefreshRate) return true;
-
-    return false;
-}
-#endif
-
-mfxStatus CDecodingPipeline::CreateRenderingWindow(sInputParams *pParams, bool try_s3d)
+mfxStatus CDecodingPipeline::CreateRenderingWindow(sInputParams *pParams)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-#if D3D_SURFACES_SUPPORT
-    if (try_s3d) {
-
-        m_pS3DControl = CreateIGFXS3DControl();
-        MSDK_CHECK_POINTER(m_pS3DControl, MFX_ERR_DEVICE_FAILED);
-
-        // check if s3d supported and get a list of supported display modes
-        IGFX_S3DCAPS caps;
-        MSDK_ZERO_MEMORY(caps);
-        HRESULT hr = m_pS3DControl->GetS3DCaps(&caps);
-        if (FAILED(hr) || 0 >= caps.ulNumEntries) {
-            MSDK_SAFE_DELETE(m_pS3DControl);
-            return MFX_ERR_DEVICE_FAILED;
-        }
-
-        // switch to 3D mode
-        ULONG max = 0;
-        MSDK_CHECK_POINTER(caps.S3DSupportedModes, MFX_ERR_NOT_INITIALIZED);
-        for (ULONG i = 0; i < caps.ulNumEntries; i++) {
-            if (caps.S3DSupportedModes[max] < caps.S3DSupportedModes[i])
-                max = i;
-        }
-
-        if (0 == pParams->nWallCell) {
-            hr = m_pS3DControl->SwitchTo3D(&caps.S3DSupportedModes[max]);
-            if (FAILED(hr)) {
-                MSDK_SAFE_DELETE(m_pS3DControl);
-                return MFX_ERR_DEVICE_FAILED;
-            }
-        }
-    }
+#if D3D_SURFACES_SUPPORT    
     sWindowParams windowParams;
 
     windowParams.lpWindowName = pParams->bWallNoTitle ? NULL : MSDK_STRING("sample_decode");
@@ -625,29 +564,10 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     mfxStatus sts = MFX_ERR_NONE;
     mfxU32 &numViews = pParams->numViews;
 
+
     // try to find a sequence header in the stream
     // if header is not found this function exits with error (e.g. if device was lost and there's no header in the remaining stream)
-    if (MFX_CODEC_CAPTURE == pParams->videoType)
-    {
-        m_mfxVideoParams.mfx.CodecId = MFX_CODEC_CAPTURE;
-        m_mfxVideoParams.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-        m_mfxVideoParams.mfx.FrameInfo.Width = MSDK_ALIGN32(pParams->scrWidth);
-        m_mfxVideoParams.mfx.FrameInfo.Height = MSDK_ALIGN32(pParams->scrHeight);
-        m_mfxVideoParams.mfx.FrameInfo.CropW = pParams->scrWidth;
-        m_mfxVideoParams.mfx.FrameInfo.CropH = pParams->scrHeight;
-        m_mfxVideoParams.mfx.FrameInfo.FourCC = (m_fourcc == MFX_FOURCC_RGB4) ? MFX_FOURCC_RGB4 : MFX_FOURCC_NV12;
-
-        if (!m_mfxVideoParams.mfx.FrameInfo.ChromaFormat)
-        {
-            if (MFX_FOURCC_NV12 == m_mfxVideoParams.mfx.FrameInfo.FourCC)
-                m_mfxVideoParams.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
-            else if (MFX_FOURCC_RGB4 == m_mfxVideoParams.mfx.FrameInfo.FourCC)
-                m_mfxVideoParams.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
-        }
-        m_bVppIsUsed = IsVppRequired(pParams);
-    }
-
-    for (; MFX_CODEC_CAPTURE != pParams->videoType;)
+    for (;;)
     {
         // trying to find PicStruct information in AVI headers
         if ( m_mfxVideoParams.mfx.CodecId == MFX_CODEC_JPEG )
@@ -781,7 +701,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         }
     }
 
-#if _MSDK_API >= MSDK_API(1,22)
     /* Lets make final decision how to use VPP...*/
     if (!m_bVppIsUsed)
     {
@@ -831,7 +750,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
                 msdk_printf(MSDK_STRING("Decoder post-processing is unsupported for this stream, VPP is used for resizing\n") );
         }
     }
-#endif //_MSDK_API >= MSDK_API(1,22)
 
     // If MVC mode we need to detect number of views in stream
     if (m_bIsMVC)
@@ -976,10 +894,6 @@ mfxStatus CDecodingPipeline::CreateHWDevice()
     if (NULL == m_hwdev)
         return MFX_ERR_MEMORY_ALLOC;
 
-    if (render && m_bIsMVC && m_memType == D3D9_MEMORY) {
-        sts = m_hwdev->SetHandle((mfxHandleType)MFX_HANDLE_GFXS3DCONTROL, m_pS3DControl);
-        MSDK_CHECK_STATUS(sts, "m_hwdev->SetHandle failed");
-    }
     sts = m_hwdev->Init(
         window,
         render ? (m_bIsMVC ? 2 : 1) : 0,
@@ -1037,12 +951,9 @@ mfxStatus CDecodingPipeline::AllocFrames()
     MSDK_ZERO_MEMORY(VppRequest[0]);
     MSDK_ZERO_MEMORY(VppRequest[1]);
 
-    if (m_mfxVideoParams.mfx.FrameInfo.FourCC != MFX_FOURCC_P210) // TODO: workaround for P210, delete later
-    {
-        sts = m_pmfxDEC->Query(&m_mfxVideoParams, &m_mfxVideoParams);
-        MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
-        MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
-    }
+    sts = m_pmfxDEC->Query(&m_mfxVideoParams, &m_mfxVideoParams);
+    MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+    MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
 
     // calculate number of surfaces required for decoder
     sts = m_pmfxDEC->QueryIOSurf(&m_mfxVideoParams, &Request);
@@ -1644,10 +1555,6 @@ mfxStatus CDecodingPipeline::SyncOutputSurface(mfxU32 wait)
         m_pCurrentOutputSurface = NULL;
     }
 
-    if (MFX_ERR_NONE != sts) {
-        sts = MFX_ERR_UNKNOWN;
-    }
-
     return sts;
 }
 
@@ -1661,6 +1568,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
     time_t start_time = time(0);
     MSDKThread * pDeliverThread = NULL;
 
+
     if (m_eWorkMode == MODE_RENDERING) {
         m_pDeliverOutputSemaphore = new MSDKSemaphore(sts);
         m_pDeliveredEvent = new MSDKEvent(sts, false, false);
@@ -1673,12 +1581,8 @@ mfxStatus CDecodingPipeline::RunDecoding()
         }
     }
 
-    if (MFX_CODEC_CAPTURE == this->m_mfxVideoParams.mfx.CodecId)
+    while (((sts == MFX_ERR_NONE) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) && (m_nFrames > m_output_count))
     {
-        pBitstream = 0;
-    }
-
-    while (((sts == MFX_ERR_NONE) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) && (m_nFrames > m_output_count)){
         if (MFX_ERR_NONE != m_error) {
             msdk_printf(MSDK_STRING("DeliverOutput return error = %d\n"),m_error);
             break;
@@ -1703,6 +1607,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
                 pBitstream = NULL;
             }
         }
+
         if ((MFX_ERR_NONE == sts) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) {
             // here we check whether output is ready, though we do not wait...
 #ifndef __SYNC_WA
@@ -1715,6 +1620,11 @@ mfxStatus CDecodingPipeline::RunDecoding()
             }
 #endif
         }
+        else
+        {
+            MSDK_CHECK_STATUS_NO_RET(sts, "ReadNextFrame failed");
+        }
+
         if ((MFX_ERR_NONE == sts) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) {
             SyncFrameSurfaces();
             SyncVppFrameSurfaces();
@@ -1750,10 +1660,12 @@ mfxStatus CDecodingPipeline::RunDecoding()
                 continue;
             }
 
-            if (!m_pCurrentFreeOutputSurface) {
+            if (!m_pCurrentFreeOutputSurface) 
+            {
                 m_pCurrentFreeOutputSurface = GetFreeOutputSurface();
             }
-            if (!m_pCurrentFreeOutputSurface) {
+            if (!m_pCurrentFreeOutputSurface) 
+            {
                 sts = MFX_ERR_NOT_FOUND;
                 break;
             }
@@ -1766,12 +1678,15 @@ mfxStatus CDecodingPipeline::RunDecoding()
         }
 
         if ((MFX_ERR_NONE == sts) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) {
-            if (m_bIsCompleteFrame) {
+            if (m_bIsCompleteFrame) 
+            {
                 m_pCurrentFreeSurface->submit = m_timer_overall.Sync();
             }
             pOutSurface = NULL;
             do {
                 sts = m_pmfxDEC->DecodeFrameAsync(pBitstream, &(m_pCurrentFreeSurface->frame), &pOutSurface, &(m_pCurrentFreeOutputSurface->syncp));
+
+
                 if (pBitstream && MFX_ERR_MORE_DATA == sts && pBitstream->MaxLength == pBitstream->DataLength)
                 {
                     mfxStatus stsExt = ExtendMfxBitstream(pBitstream, pBitstream->MaxLength * 2);
@@ -1821,12 +1736,11 @@ mfxStatus CDecodingPipeline::RunDecoding()
                     sts = SyncOutputSurface(MSDK_DEC_WAIT_INTERVAL);
                 } while (MFX_ERR_NONE == sts);
 
+                MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_DATA);
+                if (sts) MSDK_PRINT_WRN_MSG(sts, "SyncOutputSurface failed")
+
                 while (m_synced_count != m_output_count) {
                     m_pDeliveredEvent->Wait();
-                }
-
-                if (MFX_ERR_MORE_DATA == sts) {
-                    sts = MFX_ERR_NONE;
                 }
                 break;
             } else if (MFX_ERR_INCOMPATIBLE_VIDEO_PARAM == sts) {
@@ -1845,6 +1759,11 @@ mfxStatus CDecodingPipeline::RunDecoding()
                 m_pCurrentFreeSurface = NULL;
             }
         }
+        else
+        {
+            MSDK_CHECK_STATUS_NO_RET(sts, "DecodeFrameAsync returned error status");
+        }
+
         if (MFX_ERR_NONE == sts)
         {
             if (m_bVppIsUsed)
@@ -1874,16 +1793,20 @@ mfxStatus CDecodingPipeline::RunDecoding()
                         m_pCurrentFreeVppSurface->frame.Info.FrameId.ViewId = pOutSurface->Info.FrameId.ViewId;
                         sts = m_pmfxVPP->RunFrameVPPAsync(pOutSurface, &(m_pCurrentFreeVppSurface->frame), NULL, &(m_pCurrentFreeOutputSurface->syncp));
 
-                        if (MFX_WRN_DEVICE_BUSY == sts) {
+                        if (MFX_WRN_DEVICE_BUSY == sts)
+                        {
                             MSDK_SLEEP(1); // just wait and then repeat the same call to RunFrameVPPAsync
                         }
                     } while (MFX_WRN_DEVICE_BUSY == sts);
 
                     // process errors
-                    if (MFX_ERR_MORE_DATA == sts) { // will never happen actually
+                    if (MFX_ERR_MORE_DATA == sts) 
+                    { // will never happen actually
                         continue;
                     }
-                    else if (MFX_ERR_NONE != sts) {
+                    else if (MFX_ERR_NONE != sts) 
+                    {
+                        MSDK_PRINT_RET_MSG(sts, "RunFrameVPPAsync failed");
                         break;
                     }
 

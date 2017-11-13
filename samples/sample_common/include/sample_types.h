@@ -34,4 +34,16 @@ typedef std::basic_ostream<msdk_char, std::char_traits<msdk_char> > msdk_ostream
 typedef std::basic_istream<msdk_char, std::char_traits<msdk_char> > msdk_istream;
 typedef std::basic_fstream<msdk_char, std::char_traits<msdk_char> > msdk_fstream;
 
+#if defined(_UNICODE)
+#define MSDK_MAKE_BYTE_STRING(src,dest) \
+    {\
+        std::wstring wstr(src);\
+        std::string str(wstr.begin(), wstr.end());\
+        strcpy_s(dest, str.c_str());\
+    }
+#else
+#define MSDK_MAKE_BYTE_STRING(src,dest) msdk_strcopy(dest, src);
+#endif
+
+
 #endif //__SAMPLE_TYPES_H__

@@ -408,9 +408,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             va_attributes[nattr].value = VA_DEC_SLICE_MODE_NORMAL;
             nattr++;
 
-#ifndef MFX_VAAPI_UPSTREAM
             va_attributes[nattr++].type = (VAConfigAttribType)VAConfigAttribDecProcessing;
-#endif
 
             va_attributes[nattr++].type = VAConfigAttribEncryption;
 
@@ -431,14 +429,10 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
         if (UMC_OK == umcRes && pParams->m_needVideoProcessingVA)
         {
-#ifndef MFX_VAAPI_UPSTREAM
             if (va_attributes[2].value == VA_DEC_PROCESSING_NONE)
                 umcRes = UMC_ERR_FAILED;
             else
                 attribsNumber++;
-#else
-            umcRes = UMC_ERR_FAILED;
-#endif
         }
 
 
@@ -654,10 +648,8 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
             case UMC::VA_H264:
                 if (m_bH264ShortSlice)
                 {
-#ifndef MFX_VAAPI_UPSTREAM
-                    va_size         = sizeof(VASliceParameterBufferH264Base);
-                    va_num_elements = size/sizeof(VASliceParameterBufferH264Base);
-#endif
+                    va_size         = sizeof(VASliceParameterBufferBase);
+                    va_num_elements = size/sizeof(VASliceParameterBufferBase);
                 }
                 else
                 {

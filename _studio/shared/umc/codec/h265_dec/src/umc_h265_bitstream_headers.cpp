@@ -694,7 +694,11 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
         }
     }
 
-    pcSPS->log2_min_luma_coding_block_size = GetVLCElementU() + 3;
+    uint32_t const log2_min_luma_coding_block_size_minus3 = GetVLCElementU();
+    if (log2_min_luma_coding_block_size_minus3 > 3)
+        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+    pcSPS->log2_min_luma_coding_block_size = log2_min_luma_coding_block_size_minus3 + 3;
 
     uint32_t MinCbLog2SizeY = pcSPS->log2_min_luma_coding_block_size;
     uint32_t MinCbSizeY = 1 << pcSPS->log2_min_luma_coding_block_size;
@@ -707,6 +711,11 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
     pcSPS->log2_max_luma_coding_block_size = log2_diff_max_min_coding_block_size + pcSPS->log2_min_luma_coding_block_size;
+    //CtbLog2SizeY = (log2_min_luma_coding_block_size_minus3 + 3) + log2_diff_max_min_luma_coding_block_size //7.3.2.2 eq. 7-10, 7-11
+    //CtbLog2SizeY derived according to active SPSs for the base layer shall be in the range of 4 to 6, inclusive. (A.2, main, main10, mainsp, rext profiles)
+    if (pcSPS->log2_max_luma_coding_block_size < 4 || pcSPS->log2_max_luma_coding_block_size > 6)
+        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
     pcSPS->MaxCUSize =  1 << pcSPS->log2_max_luma_coding_block_size;
 
     pcSPS->log2_min_transform_block_size = GetVLCElementU() + 2;
@@ -1177,7 +1186,7 @@ UMC::Status H265HeadersBitstream::GetPictureParamSetFull(H265PicParamSet  *pcPPS
         {
             if (pcPPS->transform_skip_enabled_flag)
             {
-                pcPPS->log2_max_transform_skip_block_size = GetVLCElementU() + 2;
+                pcPPS->log2_max_transform_skip_block_size_minus2 = GetVLCElementU();
             }
 
             pcPPS->cross_component_prediction_enabled_flag = Get1Bit();
@@ -1759,6 +1768,47 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         else
         {
             refPicListModification->ref_pic_list_modification_flag_l1 = 0;
+        }
+
+        //RPL sanity check
+        {
+            uint32_t i = 0;
+            ReferencePictureSet* rps = pSlice->getRPS();
+
+            uint32_t NumPocStCurr0 = 0;
+            for(i = 0; i < rps->getNumberOfNegativePictures(); i++)
+            {
+                if(rps->getUsed(i))
+                    NumPocStCurr0++;
+            }
+
+            uint32_t NumPocStCurr1 = 0;
+            for(; i < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures(); i++)
+            {
+                if(rps->getUsed(i))
+                    NumPocStCurr1++;
+            }
+
+            uint32_t NumPocLtCurr = 0;
+            for (i = rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures();
+                 i < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures() + rps->getNumberOfLongtermPictures(); i++)
+            {
+                if (rps->getUsed(i))
+                    NumPocLtCurr++;
+            }
+
+            //7.4.7.2 value of list_entry_l0/list_entry_l1[ i ] shall be in the range of 0 to NumPicTotalCurr - 1, inclusive
+            uint32_t const numPocTotalCurr = NumPocStCurr0 + NumPocStCurr1 + NumPocLtCurr;
+            for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_0); idx++)
+            {
+                if (refPicListModification->list_entry_l0[idx] >= numPocTotalCurr)
+                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+            }
+            for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_1); idx++)
+            {
+                if (refPicListModification->list_entry_l1[idx] >= numPocTotalCurr)
+                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+            }
         }
 
         if (sliceHdr->slice_type == B_SLICE)

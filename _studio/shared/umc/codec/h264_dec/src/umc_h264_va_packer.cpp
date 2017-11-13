@@ -269,8 +269,8 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
     pPicParams_H264->seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4 = (unsigned char)(pSeqParamSet->log2_max_pic_order_cnt_lsb - 4);
     pPicParams_H264->seq_fields.bits.delta_pic_order_always_zero_flag = pSeqParamSet->delta_pic_order_always_zero_flag;
 
-    pPicParams_H264->num_slice_groups_minus1 = (unsigned char)(pPicParamSet->num_slice_groups - 1);
-    pPicParams_H264->slice_group_map_type = (unsigned char)pPicParamSet->SliceGroupInfo.slice_group_map_type;
+    //pPicParams_H264->num_slice_groups_minus1 = (unsigned char)(pPicParamSet->num_slice_groups - 1);
+    //pPicParams_H264->slice_group_map_type = (unsigned char)pPicParamSet->SliceGroupInfo.slice_group_map_type;
     pPicParams_H264->pic_init_qp_minus26 = (unsigned char)(pPicParamSet->pic_init_qp - 26);
     pPicParams_H264->pic_init_qs_minus26 = (unsigned char)(pPicParamSet->pic_init_qs - 26);
     pPicParams_H264->chroma_qp_index_offset = (unsigned char)pPicParamSet->chroma_qp_index_offset[0];
@@ -289,10 +289,8 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
 
     pPicParams_H264->frame_num = (unsigned short)pSliceHeader->frame_num;
 
-#ifndef MFX_VAAPI_UPSTREAM
-    pPicParams_H264->num_ref_idx_l0_default_active_minus1 = (unsigned char)(pPicParamSet->num_ref_idx_l0_active-1);
-    pPicParams_H264->num_ref_idx_l1_default_active_minus1 = (unsigned char)(pPicParamSet->num_ref_idx_l1_active-1);
-#endif
+//    pPicParams_H264->num_ref_idx_l0_default_active_minus1 = (unsigned char)(pPicParamSet->num_ref_idx_l0_active-1);
+//    pPicParams_H264->num_ref_idx_l1_default_active_minus1 = (unsigned char)(pPicParamSet->num_ref_idx_l1_active-1);
 
     //create reference picture list
     for (int32_t i = 0; i < 16; i++)
@@ -405,11 +403,7 @@ void PackerVA::CreateSliceParamBuffer(H264DecoderFrameInfo * pSliceInfo)
 
     if (!m_va->IsLongSliceControl())
     {
-#ifndef MFX_VAAPI_UPSTREAM
-        sizeOfStruct = sizeof(VASliceParameterBufferH264Base);
-#else
-        throw h264_exception(UMC_ERR_FAILED);
-#endif
+        sizeOfStruct = sizeof(VASliceParameterBufferBase);
     }
     m_va->GetCompBuffer(VASliceParameterBufferType, &pSliceParamBuf, sizeOfStruct*(count));
     if (!pSliceParamBuf)
@@ -467,12 +461,8 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     }
     else
     {
-#ifndef MFX_VAAPI_UPSTREAM
-        pSlice_H264 = (VASliceParameterBufferH264*)((VASliceParameterBufferH264Base*)pSlice_H264 + sliceNum);
-        memset(pSlice_H264, 0, sizeof(VASliceParameterBufferH264Base));
-#else
-        throw h264_exception(UMC_ERR_FAILED);
-#endif
+        pSlice_H264 = (VASliceParameterBufferH264*)((VASliceParameterBufferBase*)pSlice_H264 + sliceNum);
+        memset(pSlice_H264, 0, sizeof(VASliceParameterBufferBase));
     }
 
     uint32_t NalUnitSize, SliceDataOffset;
@@ -695,9 +685,7 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
     MFX_INTERNAL_CPY(pipelineBuf, &vpVA->m_pipelineParams, sizeof(VAProcPipelineParameterBuffer));
 
     pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
-#ifndef MFX_VAAPI_UPSTREAM
     pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
-#endif
 }
 
 void PackerVA::PackQmatrix(const H264ScalingPicParams * scaling)
@@ -868,7 +856,7 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     char* dst = reinterpret_cast<char*>(so->MB);
     if (!dst)
         return UMC_ERR_FAILED;
-    
+
     void const* src = buffer->GetPtr();
     VM_ASSERT(src);
 

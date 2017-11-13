@@ -67,6 +67,34 @@ if( NOT MFX_LIBRARY MATCHES NOTFOUND )
   link_directories( ${MFX_LIBRARY_PATH} )
 endif()
 
+# Potential source of confusion here. Environment $MFX_VERSION translates to product name (strings libmfxhw64.so | grep mediasdk),
+# but macro definition MFX_VERSION should contain API version i.e. 1025 for API 1.25
+if( NOT DEFINED API OR $API STREQUAL "master")
+  set(API_FLAGS "")  
+else( )
+  set( VERSION_REGEX "[0-9]+\\.[0-9]+" )
+
+  # Breaks up a string in the form maj.min into two parts and stores
+  # them in major, minor.  version should be a value, not a
+  # variable, while major and minor should be variables.
+  macro( split_api_version version major minor )
+    if(${version} MATCHES ${VERSION_REGEX})
+      string(REGEX REPLACE "^([0-9]+)\\.[0-9]+" "\\1" ${major} "${version}")
+      string(REGEX REPLACE "^[0-9]+\\.([0-9]+)" "\\1" ${minor} "${version}")
+    else(${version} MATCHES ${VERSION_REGEX})
+      message("macro( split_api_version ${version} ${major} ${minor} ")
+      message(FATAL_ERROR "Problem parsing API version string.")
+    endif(${version} MATCHES ${VERSION_REGEX})
+  endmacro( split_api_version )
+
+  split_api_version(${API} major_vers minor_vers)
+    # Compute a version number
+  math(EXPR version_number "${major_vers} * 1000 + ${minor_vers}" )
+  set(API_FLAGS -DMFX_VERSION=${version_number})
+endif()
+
+message(STATUS "Enabling API ${major_vers}.${minor_vers} feature set with flags ${API_FLAGS}")
+
 if( Linux )
   set( MFX_LDFLAGS "-Wl,--default-symver" )
 endif()

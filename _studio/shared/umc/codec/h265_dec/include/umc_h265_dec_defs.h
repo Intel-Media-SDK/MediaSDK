@@ -1063,7 +1063,7 @@ struct H265PicParamSetBase
     uint8_t  pps_scc_extension_flag;
 
     // pps range extension
-    uint32_t log2_max_transform_skip_block_size;
+    uint32_t log2_max_transform_skip_block_size_minus2;
 
     uint8_t cross_component_prediction_enabled_flag;
     uint8_t chroma_qp_offset_list_enabled_flag;

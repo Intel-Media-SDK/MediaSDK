@@ -57,6 +57,9 @@ public:
     virtual mfxStatus  UnlockBuffer(mfxMemId mid);
     virtual mfxStatus  FreeBuffer(mfxMemId mid);
 
+    // DEPRECATED
+    virtual mfxStatus  CheckHandle();
+
     virtual mfxStatus  GetFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true);
 
     virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request, 
@@ -110,9 +113,13 @@ public:
     virtual mfxU32 GetNumWorkingThreads(void) {return m_numThreadsAvailable;}
     virtual void INeedMoreThreadsInside(const void *pComponent);
 
+    virtual mfxStatus DoFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
     virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
-    mfxStatus DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int copyFlag);
+
     virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType);
+
+    // DEPRECATED
+    virtual bool IsFastCopyEnabled(void);
 
     virtual bool IsExternalFrameAllocator() const;
     virtual eMFXHWType   GetHWType() { return MFX_HW_UNKNOWN; }
@@ -305,5 +312,7 @@ private:
     // Forbid the assignment operator
     CommonCORE & operator = (const CommonCORE &);
 };
+
+mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int copyFlag);
 
 #endif

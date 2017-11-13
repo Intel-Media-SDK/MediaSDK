@@ -62,8 +62,8 @@ namespace TranscodingSample
         // sessions to process playlist
         std::vector<ThreadTranscodeContext*> m_pSessionArray;
         // handles
-        typedef std::list<MSDKThread*>::iterator MSDKThreadsIterator;
-        std::list<MSDKThread*>             m_HDLArray;
+        typedef std::vector<MSDKThread*>::iterator MSDKThreadsIterator;
+        std::vector<MSDKThread*>             m_HDLArray;
         // allocator for each session
         std::vector<GeneralAllocator*>       m_pAllocArray;
         // input parameters for each session

@@ -280,7 +280,9 @@ protected:
 
     // Get a number of non-dedicated tasks which don't have unresolved dependencies
     mfxU32 GetNumResolvedSwTasks(void) const;
-    
+
+    inline void call_pRoutine(MFX_CALL_INFO& call);
+
     //
     // End of thread-unsafe functions declarations.
     //
@@ -440,5 +442,44 @@ mfxU64 mfxSchedulerCore::GetHWEventCounter(void) const
     return m_hwEventCounter;
 
 } // mfxU64 mfxSchedulerCore::GetHWEventCounter(void) const
+
+inline
+void mfxSchedulerCore::call_pRoutine(MFX_CALL_INFO& call)
+{
+    const char *pRoutineName = (call.pTask->entryPoint.pRoutineName)?
+        call.pTask->entryPoint.pRoutineName:
+        "MFX Async Task";
+    mfxU64 start;
+
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, pRoutineName);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Child^of", "%d", call.pTask->nParentId);
+
+    // mark beginning of working period
+    start = GetHighPerformanceCounter();
+    try {
+        if (call.pTask->bObsoleteTask) {
+            // NOTE: it is legacy task call, it should be eliminated soon
+            call.res = call.pTask->entryPoint.pRoutine(
+                call.pTask->entryPoint.pState,
+                (void *) &call.pTask->obsolete_params,
+                call.threadNum,
+                call.callNum);
+        } else {
+            // NOTE: this is the only legal task calling process.
+            // Should survive only this one.
+            call.res = call.pTask->entryPoint.pRoutine(
+                call.pTask->entryPoint.pState,
+                call.pTask->entryPoint.pParam,
+                call.threadNum,
+                call.callNum);
+        }
+    } catch(...) {
+        call.res = MFX_ERR_UNKNOWN;
+    }
+
+    call.timeSpend = (GetHighPerformanceCounter() - start);
+
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "mfxRes = ", "%d", call.res);
+}
 
 #endif // !defined(__MFX_SCHEDULER_CORE_H)

@@ -83,6 +83,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-mbqp file] - file to input per MB QPs the same for each frame\n"));
     msdk_printf(MSDK_STRING("   [-repackctrl file] - file to input max encoded frame size,number of pass and delta qp for each frame(ENCODE only)\n"));
     msdk_printf(MSDK_STRING("   [-weights file] - file to input weights for explicit weighted prediction (ENCODE only).\n"));
+    msdk_printf(MSDK_STRING("   [-ImplicitWPB] - enable implicit weighted prediction B frames (ENCODE only).\n"));
     msdk_printf(MSDK_STRING("   [-streamout file] - dump decode streamout structures\n"));
     msdk_printf(MSDK_STRING("   [-sys] - use system memory for surfaces (ENCODE only)\n"));
     msdk_printf(MSDK_STRING("   [-8x8stat] - set 8x8 block for statistic report, default is 16x16 (PREENC only)\n"));
@@ -285,6 +286,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         {
             pConfig->weightsFile = strInput[i+1];
             i++;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ImplicitWPB")))
+        {
+            pConfig->bImplicitWPB = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mbsize")))
         {
