@@ -35,7 +35,7 @@ typedef struct {
 class Processor
 {
 public:
-    Processor();
+    Processor(mfxU32 uid);
     virtual ~Processor();
     virtual mfxStatus SetAllocator(mfxFrameAllocator *pAlloc);
     virtual mfxStatus Init(mfxFrameSurface1 *frame_in, mfxFrameSurface1 *frame_out);
@@ -53,12 +53,14 @@ protected:
     std::vector<mfxU8> m_YIn, m_UVIn;
     std::vector<mfxU8> m_YOut, m_UVOut;
 
+    mfxU32             m_uid;
+
 };
 
 class Rotator180 : public Processor
 {
 public:
-    Rotator180();
+    Rotator180(mfxU32 uid);
     virtual ~Rotator180();
 
     virtual mfxStatus Process(DataChunk *chunk);

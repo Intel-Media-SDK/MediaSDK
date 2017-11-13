@@ -51,7 +51,14 @@ FEI_PreencInterface::FEI_PreencInterface(MFXVideoSession* session, iTaskPool* ta
     }
 
     /* Default values for I-frames */
-    memset(&m_tmpMVMB, 0x8000, sizeof(mfxExtFeiEncMV::mfxExtFeiEncMVMB));
+    for (size_t i = 0; i < 16; i++)
+    {
+        for (size_t j = 0; j < 2; j++)
+        {
+            m_tmpMVMB.MV[i][j].x = (mfxI16)0x8000;
+            m_tmpMVMB.MV[i][j].y = (mfxI16)0x8000;
+        }
+    }
 }
 
 FEI_PreencInterface::~FEI_PreencInterface()

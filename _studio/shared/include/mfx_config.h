@@ -21,22 +21,16 @@
 #ifndef _MFX_CONFIG_H_
 #define _MFX_CONFIG_H_
 
-#ifdef LINUX_TARGET_PLATFORM_UPSTREAM
-    #define MFX_VAAPI_UPSTREAM
-#endif
-
-#ifndef MFX_VAAPI_UPSTREAM
-    #define MFX_ENABLE_VPP_COMPOSITION
-    //#define MFX_ENABLE_VPP_FRC
-    #define MFX_ENABLE_VPP_ROTATION
-    #define MFX_ENABLE_VPP_VIDEO_SIGNAL
-#endif
+#define CMAPIUPDATE
+#define MFX_ENABLE_VPP_COMPOSITION
+//#define MFX_ENABLE_VPP_FRC
+#define MFX_ENABLE_VPP_ROTATION
+#define MFX_ENABLE_VPP_VIDEO_SIGNAL
 
 
 
+#define MFX_HAS_CPP11
 
-#if defined(LINUX64) && !defined(AS_H264LA_PLUGIN)
-#endif
 
     #if defined(LINUX32) || defined(LINUX64)
         #undef  MFX_VA_LINUX
@@ -59,10 +53,7 @@
     #endif
 #endif
 
-    #if defined(LINUX_TARGET_PLATFORM_UPSTREAM)
-        // mfx_common_linux_upstream.h was derived from mfx_common_linux_bdw.h
-        #include "mfx_common_linux_upstream.h"
-    #elif defined(LINUX_TARGET_PLATFORM_BDW) // PRE_SI_GEN == 9
+    #if defined(LINUX_TARGET_PLATFORM_BDW)    // PRE_SI_GEN == 9
         #include "mfx_common_linux_bdw.h"
     #else
         #error "Target platform should be specified!"

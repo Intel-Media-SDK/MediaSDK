@@ -453,7 +453,9 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
         MFX_CHECK(sts >=0, sts);
     }
 
-    m_cmDevice.Reset(MfxHwH264Encode::CreateCmDevicePtr(m_core));
+    m_cmDevice.Reset(MfxHwH264Encode::TryCreateCmDevicePtr(m_core));
+    if (m_cmDevice == NULL)
+        return MFX_ERR_UNSUPPORTED;
     m_cmCtx.reset(new CmContextLA(m_video, m_cmDevice, m_core));
     
  
@@ -775,7 +777,7 @@ static mfxStatus QueryFrameLARoutine(void *pState, void *pParam, mfxU32 threadNu
     callNumber = callNumber;
     
     //printf("Start Run FrameVPP %d %d\n", out && out->reordered_surface?  out->reordered_surface->Data.FrameOrder: 0, out && out->output_surface?  out->output_surface->Data.FrameOrder: 0);
-    tskRes = pLa->QueryFrameLA(out->stat);
+    tskRes = pLa->QueryFrameLA(out->reordered_surface,out->stat);
     //printf("Run FrameVPP %d %d %d\n", out && out->reordered_surface?  out->reordered_surface->Data.FrameOrder: 0, out && out->output_surface?  out->output_surface->Data.FrameOrder: 0, tskRes);
 
     return tskRes;
@@ -783,19 +785,25 @@ static mfxStatus QueryFrameLARoutine(void *pState, void *pParam, mfxU32 threadNu
 } // mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
 static mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
 {
-    mfxStatus tskRes;
+    mfxStatus sts = MFX_ERR_NONE;
 
     VideoENC_LA *pLa = (VideoENC_LA *)pState;
-    mfxENCOutput *out = (mfxENCOutput *)pParam;
-  
+    sAsyncParams *out = (sAsyncParams *)pParam;
+
     threadNumber = threadNumber;
     callNumber = callNumber;
-    
-    //printf("Start Run FrameVPP %x %x %x\n", pAsyncParams->surf_in, pAsyncParams->surf_out, pAsyncParams->aux);
-    tskRes = pLa->RunFrameVmeENC(0,out);
-    //printf("Run FrameVPP %x %x %x %d\n", pAsyncParams->surf_in, pAsyncParams->surf_out, pAsyncParams->aux, tskRes);
 
-    return tskRes;
+    //printf("Start Run FrameVPP %x %x %x\n", pAsyncParams->surf_in, pAsyncParams->surf_out, pAsyncParams->aux);
+
+    if (!out->bFrameLASubmitted)
+    {
+        sts = pLa->SubmitFrameLA(out->reordered_surface);
+        if (sts != MFX_TASK_BUSY)
+            out->bFrameLASubmitted = true;
+        MFX_CHECK(sts == MFX_ERR_NONE || sts == MFX_TASK_BUSY, sts);
+    }
+
+    return pLa->QueryFrameLA(out->reordered_surface, out->stat);
 
 } // mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
 mfxStatus VideoENC_LA::ResetTaskCounters()
@@ -842,6 +850,9 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
     mfxFrameSurface1 *in = input ? input->InSurface:0;
     mfxExtLAFrameStatistics *aux = (mfxExtLAFrameStatistics *) GetExtBuffer(output->ExtParam, output->NumExtParam, MFX_EXTBUFF_LOOKAHEAD_STAT);
     MFX_CHECK_NULL_PTR1(aux);
+
+    aux->OutSurface = 0;
+
     if (in)
     {
         sLAInputTask  newTask = {};
@@ -921,15 +932,18 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
 
         if (MFX_ERR_NONE == sts)
         {
-            MFX_CHECK_STS(GetOpaqSurface(*m_core, m_video, m_SurfacesForOutput.front(),&pAsyncParams->output_surface));
-            m_SurfacesForOutput.pop_front();
+            if (m_SurfacesForOutput.size() > 0)
+            {
+                MFX_CHECK_STS(GetOpaqSurface(*m_core, m_video, m_SurfacesForOutput.front(), &pAsyncParams->output_surface));
+                m_SurfacesForOutput.pop_front();
+                aux->OutSurface = pAsyncParams->output_surface;
+            }
             pAsyncParams->stat = output;
-            aux ->OutSurface = pAsyncParams->output_surface;
             //printf("Check reordered1\t %x, %d\n",aux, pAsyncParams->output_surface->Data.FrameOrder );
         }
      
 
-        pEntryPoints[0].pRoutine = &SubmitFrameLARoutine;
+        /*pEntryPoints[0].pRoutine = &SubmitFrameLARoutine;
         pEntryPoints[0].pCompleteProc =0;
         pEntryPoints[0].pState = this;
         pEntryPoints[0].requiredNumThreads = 1;
@@ -941,18 +955,17 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
         pEntryPoints[1].requiredNumThreads = 1;
         pEntryPoints[1].pParam = pAsyncParams;
 
-        numEntryPoints = 2;
+        numEntryPoints = 2;*/
 
 
-        //pAsyncParams.release(); // memory will be freed in CompleteFrameLARoutine()
 
-         /* pEntryPoints[0].pRoutine = &RunFrameVPPRoutine;
-        pEntryPoints[0].pCompleteProc = &CompleteFrameVPPRoutine;
+        pEntryPoints[0].pRoutine = &RunFrameVPPRoutine;
+        pEntryPoints[0].pCompleteProc = &CompleteFrameLARoutine;
         pEntryPoints[0].pState = this;
         pEntryPoints[0].requiredNumThreads = 1;
         pEntryPoints[0].pParam = pAsyncParams;
 
-        numEntryPoints = 1;*/
+        numEntryPoints = 1;
     }
     return sts;
 } 
@@ -1177,12 +1190,10 @@ mfxStatus CopyRawSurfaceToVideoMemory(  VideoCORE &  core,
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoENC_LA::RunFrameVmeENC(mfxENCInput * in, mfxENCOutput *out)
+mfxStatus VideoENC_LA::RunFrameVmeENC(mfxENCInput * , mfxENCOutput *)
 {
     mfxStatus sts = MFX_ERR_NONE;
-    sts = SubmitFrameLA(in ? in->InSurface: 0);
-    MFX_CHECK(sts == MFX_ERR_NONE || sts == MFX_TASK_BUSY, sts);
-    return  QueryFrameLA(out);
+    return sts;
 }
 mfxStatus VideoENC_LA::InitVMEData( sVMEFrameInfo *   pVME, 
                                     mfxU32            EncOrder, 
@@ -1236,105 +1247,98 @@ mfxStatus VideoENC_LA::FreeUnusedVMEData(sVMEFrameInfo *pVME)
 }
 mfxStatus VideoENC_LA::SubmitFrameLA(mfxFrameSurface1 *pInSurface)
 {
-    bool                    bInputFrames = false;
     mfxFrameSurface1*       inputSurface = 0;
+    sLAInputTask            currTask = { 0 };
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::SubmitFrame");
+
+    if (pInSurface)
+    {
+        MFX_CHECK_STS(GetNativeSurface(*m_core, m_video,pInSurface, &inputSurface));
+    }
+
     {
         UMC::AutomaticUMCMutex guard(m_listMutex);
-        bInputFrames =  bInputFrameReady();
+        MFX_CHECK(m_syncTasks.size() > 0, MFX_ERR_UNDEFINED_BEHAVIOR);
+        currTask = m_syncTasks.front();
+        MFX_CHECK(inputSurface == currTask.InputFrame.pFrame, MFX_ERR_UNDEFINED_BEHAVIOR);
     }
-    if (bInputFrames)
+    //printf("VideoENC_LA::SubmitFrameLA %d, %d, %x,%x\n",pInSurface->Data.FrameOrder, currTask.InputFrame.pFrame->Data.FrameOrder, inputSurface,  currTask.InputFrame.pFrame);
+
+
+    //submit LA DDI task
+    if (inputSurface)
     {
-        sLAInputTask            currTask  = {0};
+        sLADdiTask              currDDILATask = { 0 };
+        sLADdiTask*             task = &currDDILATask;
 
-        if (pInSurface) 
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::Submit DDI");
+
+        task->m_TaskInfo = currTask;
+        mfxHDLPair cmMb = MfxHwH264Encode::AcquireResourceUp(m_mb);
+
+        MFX_CHECK_STS(InitVMEData(&task->m_Curr, currTask.InputFrame.encFrameOrder, currTask.InputFrame.dispFrameOrder, currTask.InputFrame.pFrame, (CmBufferUP *)cmMb.first));
+
+        task->m_cmMbSys = (void *)cmMb.second;
+        task->m_cmCurbe = (CmBuffer *)MfxHwH264Encode::AcquireResource(m_curbe);
+
+        MFX_CHECK(task->m_cmCurbe && task->m_cmMbSys, MFX_ERR_NULL_PTR);
+
+        if (currTask.InputFrame.frameType & MFX_FRAMETYPE_REF)
         {
-            MFX_CHECK_STS(GetNativeSurface(*m_core, m_video,pInSurface, &inputSurface));
+            sVMEFrameInfo* p = m_VMERefList.GetFree();
+            if (!p)
+            {
+                p = m_VMERefList.GetOldest();
+                MFX_CHECK_NULL_PTR1(p);
+                FreeUnusedVMEData(p);
+            }
+            MFX_CHECK_NULL_PTR1(p);
+            *p = task->m_Curr;
+            p->bUsed = true;
         }
-         MFX_CHECK(m_VMETasks.size() < m_video.AsyncDepth, MFX_TASK_BUSY);
-         {
-            UMC::AutomaticUMCMutex guard(m_listMutex);
-            currTask = m_syncTasks.front(); 
-         }
-         //printf("VideoENC_LA::SubmitFrameLA %d, %d, %x,%x\n",pInSurface->Data.FrameOrder, currTask.InputFrame.pFrame->Data.FrameOrder, inputSurface,  currTask.InputFrame.pFrame);
-         MFX_CHECK(inputSurface == currTask.InputFrame.pFrame, MFX_ERR_UNDEFINED_BEHAVIOR);         
- 
-        //submit LA DDI task
+        int fwd = !(currTask.InputFrame.frameType & MFX_FRAMETYPE_I);
+        int bwd = (currTask.InputFrame.frameType & MFX_FRAMETYPE_B);
+
+        if (fwd)
         {
-            sLADdiTask              currDDILATask = {0}; 
-            sLADdiTask*             task  = &currDDILATask;
-            
+            sVMEFrameInfo *p = m_VMERefList.GetByEncOrder(task->m_TaskInfo.RefFrame[REF_FORW].encFrameOrder);
+            MFX_CHECK_NULL_PTR1(p);
+            task->m_Ref[REF_FORW] = *p;
+        }
+        if (bwd)
+        {
+            sVMEFrameInfo *p = m_VMERefList.GetByEncOrder(task->m_TaskInfo.RefFrame[REF_BACKW].encFrameOrder);
+            MFX_CHECK_NULL_PTR1(p);
+            task->m_Ref[REF_BACKW] = *p;
+        }
 
 
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::Submit DDI");          
+        task->m_cmRefs = CreateVmeSurfaceG75(m_cmDevice, task->m_Curr.CmRaw,
+            fwd ? &task->m_Ref[REF_FORW].CmRaw : 0,
+            bwd ? &task->m_Ref[REF_BACKW].CmRaw : 0, !!fwd, !!bwd);
 
-            task->m_TaskInfo = currTask;
-            mfxHDLPair cmMb = MfxHwH264Encode::AcquireResourceUp(m_mb);
-
-            MFX_CHECK_STS(InitVMEData(&task->m_Curr,currTask.InputFrame.encFrameOrder,currTask.InputFrame.dispFrameOrder, currTask.InputFrame.pFrame,(CmBufferUP *)cmMb.first));
-            
-            task->m_cmMbSys = (void *)cmMb.second;            
-            task->m_cmCurbe = (CmBuffer *)MfxHwH264Encode::AcquireResource(m_curbe);            
-
-            MFX_CHECK(task->m_cmCurbe && task->m_cmMbSys, MFX_ERR_NULL_PTR);
-
-            if (currTask.InputFrame.frameType & MFX_FRAMETYPE_REF)
-            {
-                sVMEFrameInfo* p = m_VMERefList.GetFree();
-                if (!p)
-                {
-                    p = m_VMERefList.GetOldest();
-                    MFX_CHECK_NULL_PTR1(p);
-                    FreeUnusedVMEData(p);                     
-                }
-                MFX_CHECK_NULL_PTR1(p);
-                *p = task->m_Curr;
-                p->bUsed = true;                
-            }
-            int fwd = !(currTask.InputFrame.frameType & MFX_FRAMETYPE_I);
-            int bwd =  (currTask.InputFrame.frameType & MFX_FRAMETYPE_B);
-
-            if (fwd)
-            {
-                sVMEFrameInfo *p = m_VMERefList.GetByEncOrder(task->m_TaskInfo.RefFrame[REF_FORW].encFrameOrder);
-                MFX_CHECK_NULL_PTR1(p);
-                task->m_Ref[REF_FORW]   =  *p;
-            }
-            if (bwd)
-            {
-                sVMEFrameInfo *p = m_VMERefList.GetByEncOrder(task->m_TaskInfo.RefFrame[REF_BACKW].encFrameOrder);
-                MFX_CHECK_NULL_PTR1(p);
-                task->m_Ref[REF_BACKW]  = *p;
-            }
-        
-
-            task->m_cmRefs = CreateVmeSurfaceG75(m_cmDevice, task->m_Curr.CmRaw,
-                fwd?  &task->m_Ref[REF_FORW].CmRaw : 0, 
-                bwd ? &task->m_Ref[REF_BACKW].CmRaw: 0, !!fwd, !!bwd);
-
-            if (m_LaControl.DownScaleFactor > 1)
-                task->m_cmRefsLa = CreateVmeSurfaceG75(m_cmDevice, task->m_Curr.CmRawLA,
+        if (m_LaControl.DownScaleFactor > 1)
+            task->m_cmRefsLa = CreateVmeSurfaceG75(m_cmDevice, task->m_Curr.CmRawLA,
                 fwd ? &task->m_Ref[REF_FORW].CmRawLA : 0, bwd ? &task->m_Ref[REF_BACKW].CmRawLA : 0, !!fwd, !!bwd);
-            if (!bwd)
-            {
-                task->m_Ref[REF_BACKW].CmMb = 0;            
-            }
-                      
-            task->m_Curr.VmeData->poc      = currTask.InputFrame.poc;
-            task->m_Curr.VmeData->encOrder = currTask.InputFrame.encFrameOrder;
-            task->m_Curr.VmeData->pocL0    = fwd ? currTask.RefFrame[REF_FORW].poc :  0xffffffff;
-            task->m_Curr.VmeData->pocL1    = bwd ? currTask.RefFrame[REF_BACKW].poc : 0xffffffff;
-            task->m_Curr.VmeData->used     = true;
-            
+        if (!bwd)
+        {
+            task->m_Ref[REF_BACKW].CmMb = 0;
+        }
 
-            task->m_event = m_cmCtx->RunVme(*task, 26);
-            m_LAAsyncContext.numInputFrames++;
-            {
-                UMC::AutomaticUMCMutex guard(m_listMutex);                
-                m_syncTasks.pop_front();
-            }
-            m_VMETasks.push_back(*task);            
+        task->m_Curr.VmeData->poc = currTask.InputFrame.poc;
+        task->m_Curr.VmeData->encOrder = currTask.InputFrame.encFrameOrder;
+        task->m_Curr.VmeData->pocL0 = fwd ? currTask.RefFrame[REF_FORW].poc : 0xffffffff;
+        task->m_Curr.VmeData->pocL1 = bwd ? currTask.RefFrame[REF_BACKW].poc : 0xffffffff;
+        task->m_Curr.VmeData->used = true;
+
+
+        task->m_event = m_cmCtx->RunVme(*task, 26);
+        m_LAAsyncContext.numInputFrames++;
+        {
+            UMC::AutomaticUMCMutex guard(m_listMutex);
+            m_syncTasks.pop_front();
+            m_VMETasks.push_back(*task);
         }
     }
     return MFX_ERR_NONE;
@@ -1343,7 +1347,7 @@ mfxStatus VideoENC_LA::SubmitFrameLA(mfxFrameSurface1 *pInSurface)
 
 
 
-mfxStatus VideoENC_LA::QueryFrameLA(mfxENCOutput *output)
+mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *output)
 {
     mfxExtLAFrameStatistics *aux = output ? (mfxExtLAFrameStatistics *) GetExtBuffer(output->ExtParam, output->NumExtParam, MFX_EXTBUFF_LOOKAHEAD_STAT) : 0;
     mfxFrameSurface1 *out_t = aux ? aux->OutSurface: 0;
@@ -1360,16 +1364,12 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxENCOutput *output)
     //   printf("VideoENC_LA::QueryFrameLA %d\n",out->Data.FrameOrder);
    
     
-    bool     bNoInput = false; 
+    bool     bNoInput = (pInSurface == 0);
     bool     bSubmittedFrames = false;
     bool     bRistrict = false; 
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::Query");
-    {
-        UMC::AutomaticUMCMutex guard(m_listMutex);
-        bNoInput        = (m_syncTasks.size() >0 && m_syncTasks.front().InputFrame.pFrame ==0);
-    }
-
+ 
     bSubmittedFrames    = m_VMETasks.size() > 0;    
 
     if (bSubmittedFrames)
@@ -1377,14 +1377,19 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxENCOutput *output)
         sLADdiTask              currDDILATask = {0}; 
         sLADdiTask*             task  = &currDDILATask;
         
-        currDDILATask = m_VMETasks.front();       
-        
+        {
+            UMC::AutomaticUMCMutex guard(m_listMutex);
+            currDDILATask = m_VMETasks.front();
+        }
 
         mfxStatus sts = m_cmCtx->QueryVme(*task, task->m_event);
         if(sts != MFX_ERR_NONE)
             return sts;
-        m_VMETasks.pop_front();
-     
+
+        {
+            UMC::AutomaticUMCMutex guard(m_listMutex);
+            m_VMETasks.pop_front();
+        }
 
         //printf("m_cmCtx->QueryVme %d,  %d,%d,%d,  %d, ref %d %d\n", task->m_vmeData->encOrder,task->m_vmeData->poc,task->m_vmeData->pocL0, task->m_vmeData->pocL1,task->m_vmeData->interCost, task->m_vmeDataRef[REF_FORW]==0 ? 0: task->m_vmeDataRef[REF_FORW]->encOrder, task->m_vmeDataRef[REF_BACKW]==0 ? 0: task->m_vmeDataRef[REF_BACKW]->encOrder);
         
@@ -1533,7 +1538,6 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxENCOutput *output)
 
         aux->NumFrame   = frameNum;
         aux->NumStream  = m_LaControl.NumOutStream;
-        aux->OutSurface = frameForOutput.frameInfo.pFrame;
         aux->OutSurface->Info.PicStruct = frameForOutput.frameInfo.pFrame->Info.PicStruct;
 
         for (int j = 0; j < m_LaControl.NumOutStream; j ++)

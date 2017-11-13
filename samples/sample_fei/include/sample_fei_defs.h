@@ -356,6 +356,7 @@ struct AppConfig
         , bFieldProcessingMode(false)
         , bPerfMode(false)
         , bRawRef(false)
+        , bImplicitWPB(false)
         , mvinFile(NULL)
         , mbctrinFile(NULL)
         , mvoutFile(NULL)
@@ -468,6 +469,7 @@ struct AppConfig
     bool bFieldProcessingMode;
     bool bPerfMode;
     bool bRawRef;
+    bool bImplicitWPB;
     msdk_char* mvinFile;
     msdk_char* mbctrinFile;
     msdk_char* mvoutFile;

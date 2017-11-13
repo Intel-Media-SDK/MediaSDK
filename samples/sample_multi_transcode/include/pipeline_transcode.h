@@ -68,7 +68,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 namespace TranscodingSample
 {
-    extern mfxU32 MFX_STDCALL ThranscodeRoutine(void   *pObj);
+    extern mfxU32 MFX_STDCALL TranscodeRoutine(void   *pObj);
 
     enum PipelineMode
     {
@@ -196,7 +196,7 @@ namespace TranscodingSample
         mfxU16 nQPI;
         mfxU16 nQPP;
         mfxU16 nQPB;
-        
+
         bool bOpenCL;
         mfxU16 reserved[4];
 
@@ -244,13 +244,11 @@ namespace TranscodingSample
 
     struct sInputParams: public __sInputParams
     {
-        msdk_string DumpLogFileName;    
-#if _MSDK_API >= MSDK_API(1,22)
+        msdk_string DumpLogFileName;
         std::vector<mfxExtEncoderROI> m_ROIData;
 
         bool bDecoderPostProcessing;
         bool bROIasQPMAP;
-#endif //_MSDK_API >= MSDK_API(1,22)        
         sInputParams();
         void Reset();
     };
@@ -522,7 +520,7 @@ namespace TranscodingSample
         { MSDK_CHECK_POINTER(m_pmfxSession.get(), MFX_ERR_NULL_PTR); return m_pmfxSession->QueryVersion(version); };
         inline mfxU32 GetPipelineID(){return m_nID;}
         inline void SetPipelineID(mfxU32 id){m_nID = id;}
-        void StopOverlay();
+        void StopSession();
         bool IsOverlayUsed();
         bool IsRobust();
     protected:
@@ -648,7 +646,7 @@ namespace TranscodingSample
         mfxInitParam                   m_initPar;
         mfxExtThreadsParam             m_threadsPar;
 
-        bool                           m_bStopOverlay;
+        volatile bool                  m_bForceStop;
 
         sPluginParams                  m_decoderPluginParams;
         sPluginParams                  m_encoderPluginParams;
@@ -673,9 +671,7 @@ namespace TranscodingSample
         bool m_bOwnMVCSeqDescMemory; // true if the pipeline owns memory allocated for MVCSeqDesc structure fields
 
         mfxExtVPPComposite       m_VppCompParams;
-#if _MSDK_API >= MSDK_API(1,22)
         mfxExtDecVideoProcessing m_decPostProcessing;
-#endif //_MSDK_API >= MSDK_API(1,22)
 
         mfxExtLAControl          m_ExtLAControl;
         // for setting MaxSliceSize
@@ -726,7 +722,7 @@ namespace TranscodingSample
 
         mfxU32          m_NumFramesForReset;
         MSDKMutex       m_mReset;
-        MSDKMutex       m_mStopOverlay;
+        MSDKMutex       m_mStopSession;
         bool            m_bIsRobust;
 
         bool isHEVCSW;
@@ -749,7 +745,6 @@ namespace TranscodingSample
 
         bool shouldUseGreedyFormula;
 
-#if _MSDK_API >= MSDK_API(1,22)
         // ROI data
         std::vector<mfxExtEncoderROI> m_ROIData;
         mfxU32         m_nSubmittedFramesNum;
@@ -772,7 +767,6 @@ namespace TranscodingSample
         mfxU16            m_nRotationAngle;
 
         void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
-#endif //_MSDK_API >= MSDK_API(1,22)
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);
 
@@ -796,6 +790,16 @@ namespace TranscodingSample
         mfxU32 numTransFrames;
         // Status of the finished session
         mfxStatus transcodingSts;
+
+        ThreadTranscodeContext()
+        {
+            pBSProcessor = NULL;
+            implType = MFX_IMPL_AUTO;
+            startStatus = MFX_ERR_NONE;
+            working_time = 0;
+            numTransFrames = 0;
+            transcodingSts = MFX_ERR_NONE;
+        }
     };
 }
 

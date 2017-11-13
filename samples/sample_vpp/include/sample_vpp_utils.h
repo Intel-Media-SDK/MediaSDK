@@ -305,8 +305,7 @@ public :
     mfxStatus  Init(
         const msdk_char *strFileName,
         PTSMaker *pPTSMaker,
-        mfxU32 fcc,
-        bool bInPlaceConvertion = false);
+        mfxU32 fcc);
 
     mfxStatus  PreAllocateFrameChunk(
         mfxVideoParam* pVideoParam,
@@ -335,7 +334,6 @@ private:
     PTSMaker                             *m_pPTSMaker;
     mfxU32                                m_initFcc;
     bool m_inI420;
-    bool m_bCanConvert;
 };
 
 class CRawVideoWriter

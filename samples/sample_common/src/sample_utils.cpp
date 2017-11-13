@@ -1755,6 +1755,49 @@ void ConfigureAspectRatioConversion(mfxInfoVPP* pVppInfo)
     }
 }
 
+void SEICalcSizeType(std::vector<mfxU8>& data, mfxU16 type, mfxU32 size)
+{
+    mfxU32 B = type;
+
+    while (B > 255)
+    {
+        data.push_back(255);
+        B -= 255;
+    }
+    data.push_back(mfxU8(B));
+
+    B = size;
+
+    while (B > 255)
+    {
+        data.push_back(255);
+        B -= 255;
+    }
+    data.push_back(mfxU8(B));
+}
+
+mfxU8 Char2Hex(msdk_char ch)
+{
+    msdk_char value = ch;
+    if(value >= MSDK_CHAR('0') && value <= MSDK_CHAR('9'))
+    {
+        value -= MSDK_CHAR('0');
+    }
+    else if (value >= MSDK_CHAR('a') && value <= MSDK_CHAR('f'))
+    {
+        value = value - MSDK_CHAR('a') + 10;
+    }
+    else if (value >= MSDK_CHAR('A') && value <= MSDK_CHAR('F'))
+    {
+        value = value - MSDK_CHAR('A') + 10;
+    }
+    else
+    {
+        value = 0;
+    }
+    return (mfxU8)value;
+}
+
 namespace {
     int g_trace_level = MSDK_TRACE_LEVEL_INFO;
 }
@@ -1897,7 +1940,6 @@ bool IsDecodeCodecSupported(mfxU32 codecFormat)
         case MFX_CODEC_JPEG:
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
-        case MFX_CODEC_CAPTURE:
         break;
     default:
         return false;
@@ -1932,7 +1974,6 @@ bool IsPluginCodecSupported(mfxU32 codecFormat)
         case MFX_CODEC_VC1:
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
-        case MFX_CODEC_CAPTURE:
         break;
     default:
         return false;
@@ -1981,10 +2022,6 @@ mfxStatus StrFormatToCodecFormatFourCC(msdk_char* strInput, mfxU32 &codecFormat)
         else if (0 == msdk_strcmp(strInput, MSDK_STRING("vp9")))
         {
             codecFormat = MFX_CODEC_VP9;
-        }
-        else if (0 == msdk_strcmp(strInput, MSDK_STRING("capture")))
-        {
-            codecFormat = MFX_CODEC_CAPTURE;
         }
         else if ((0 == msdk_strcmp(strInput, MSDK_STRING("raw"))))
         {
@@ -2309,4 +2346,3 @@ mfxU16 FourCCToChroma(mfxU32 fourCC)
 
     return MFX_CHROMAFORMAT_YUV420;
 }
-

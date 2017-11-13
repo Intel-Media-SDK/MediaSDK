@@ -1214,20 +1214,13 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
             {
                 VAL_CHECK(1 + i == nArgNum);
                 i++;
-                pParams->fccSource = Str2FourCC(strInput[i]);
-                // I420 and YV12 inputs are automatically converted into NV12 in file reader
-                if (pParams->fccSource == MFX_FOURCC_I420 || pParams->fccSource == MFX_FOURCC_YV12)
-                {
-                    pParams->frameInfoIn[0].FourCC = MFX_FOURCC_NV12;
-                }
-                else
-                {
-                    pParams->frameInfoIn[0].FourCC = Str2FourCC(strInput[i]);
-                }
-                if (MFX_FOURCC_I420 == pParams->frameInfoIn[0].FourCC)
-                {
-                    pParams->frameInfoIn[0].FourCC = MFX_FOURCC_YV12; // I420 input is implemented using YV12 internally
-                }
+                pParams->fccSource = pParams->frameInfoIn[0].FourCC
+                    = Str2FourCC(strInput[i]);
+
+                //if (MFX_FOURCC_I420 == pParams->frameInfoIn[0].FourCC)
+                //{
+                //    pParams->frameInfoIn[0].FourCC = MFX_FOURCC_YV12; // I420 input is implemented using YV12 internally
+                //}
 
             }
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dcc")))

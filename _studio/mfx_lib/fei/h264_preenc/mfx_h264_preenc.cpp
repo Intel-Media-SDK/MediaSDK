@@ -20,7 +20,7 @@
 
 #include "mfx_common.h"
 #include "mfx_h264_preenc.h"
-
+#include "fei_common.h"
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
 
 #include <algorithm>
@@ -698,7 +698,7 @@ mfxStatus VideoENC_PREENC::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoPar
 
     mfxStatus checkSts = MfxEncPREENC::CheckVideoParamQueryLikePreEnc(tmp, hwCaps, core->GetHWType(), core->GetVAType());
     MFX_CHECK(checkSts != MFX_WRN_PARTIAL_ACCELERATION, MFX_WRN_PARTIAL_ACCELERATION);
-    
+
     if (checkSts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
         checkSts = MFX_ERR_UNSUPPORTED;
 
@@ -762,6 +762,9 @@ mfxStatus VideoENC_PREENC::Init(mfxVideoParam *par)
     sts = m_ddi->QueryEncodeCaps(m_caps);
     MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
 
+    m_currentPlatform = m_core->GetHWType();
+    m_currentVaType   = m_core->GetVAType();
+
     mfxStatus checkStatus = MfxEncPREENC::CheckVideoParamPreEncInit(m_video, m_caps, m_currentPlatform, m_currentVaType);
     switch (checkStatus)
     {
@@ -778,11 +781,11 @@ mfxStatus VideoENC_PREENC::Init(mfxVideoParam *par)
     mfxExtFeiParam * feiParam = GetExtBuffer(m_video);
     m_bSingleFieldMode = IsOn(feiParam->SingleFieldProcessing);
 
-    m_currentPlatform = m_core->GetHWType();
-    m_currentVaType   = m_core->GetVAType();
-
     sts = m_ddi->CreateAccelerationService(m_video);
     MFX_CHECK(sts == MFX_ERR_NONE, MFX_WRN_PARTIAL_ACCELERATION);
+
+    sts = MfxH264FEIcommon::CheckInitExtBuffers(m_video, *par);
+    MFX_CHECK_STS(sts);
 
     m_inputFrameType =
         (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY || m_video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
@@ -846,72 +849,24 @@ mfxStatus VideoENC_PREENC::RunFrameVmeENCCheck(
     MFX_CHECK(m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     MFX_CHECK_NULL_PTR2(input, output);
+    MFX_CHECK_NULL_PTR1(input->InSurface);
 
-    // For frame type detection
-    PairU8 frame_type = PairU8(mfxU8(MFX_FRAMETYPE_UNKNOWN), mfxU8(MFX_FRAMETYPE_UNKNOWN));
-
-    /* This value have to be initialized here
-     * as we use MfxHwH264Encode::GetPicStruct
-     * (Legacy encoder do initialization  by itself)
-     * */
-    mfxExtCodingOption * extOpt = GetExtBuffer(m_video);
-    extOpt->FieldOutput = MFX_CODINGOPTION_OFF;
-
-    PairU16 picStruct = GetPicStruct(m_video, input->InSurface->Info.PicStruct);
-
-    mfxU32 fieldCount = (picStruct[ENC] & MFX_PICSTRUCT_PROGRESSIVE) ? 1 : 2;
-
-    mfxU32 SizeInMB = input->InSurface->Info.Width * input->InSurface->Info.Height / 256;
-    mfxU32 NumMB = (MFX_PICSTRUCT_PROGRESSIVE & picStruct[ENC]) ? SizeInMB : SizeInMB / 2;
-
-    for (mfxU32 field = 0; field < fieldCount; ++field)
+    for (mfxU32 i = 0; i < input->NumExtParam; ++i)
     {
-        mfxExtFeiPreEncCtrl* feiCtrl = GetExtBufferFEI(input, field);
-        MFX_CHECK_NULL_PTR1(feiCtrl); // this is fatal error
-
-        if      (!feiCtrl->RefFrame[0] && !feiCtrl->RefFrame[1]) frame_type[field] = MFX_FRAMETYPE_I;
-        else if ( feiCtrl->RefFrame[0] && !feiCtrl->RefFrame[1]) frame_type[field] = MFX_FRAMETYPE_P;
-        else                                                     frame_type[field] = MFX_FRAMETYPE_B;
-
-        MFX_CHECK((feiCtrl->PictureType == MFX_PICTYPE_TOPFIELD    && picStruct[ENC] == (!field ? MFX_PICSTRUCT_FIELD_TFF : MFX_PICSTRUCT_FIELD_BFF)) ||
-                  (feiCtrl->PictureType == MFX_PICTYPE_BOTTOMFIELD && picStruct[ENC] == (!field ? MFX_PICSTRUCT_FIELD_BFF : MFX_PICSTRUCT_FIELD_TFF)) ||
-                  (feiCtrl->PictureType == MFX_PICTYPE_FRAME       && picStruct[ENC] == MFX_PICSTRUCT_PROGRESSIVE),
-                  MFX_ERR_INVALID_VIDEO_PARAM);
-
-        for (mfxU32 ref = 0; ref < 2; ++ref)
-        {
-            if (feiCtrl->RefFrame[ref])
-            {
-                MFX_CHECK(feiCtrl->RefPictureType[ref] == MFX_PICTYPE_TOPFIELD    ||
-                          feiCtrl->RefPictureType[ref] == MFX_PICTYPE_BOTTOMFIELD ||
-                          feiCtrl->RefPictureType[ref] == MFX_PICTYPE_FRAME, MFX_ERR_INVALID_VIDEO_PARAM);
-            }
-        }
-
-        if (!feiCtrl->DisableMVOutput)
-        {
-            mfxExtFeiPreEncMV* feiPreEncMV = GetExtBufferFEI(output, field);
-            MFX_CHECK(feiPreEncMV,                      MFX_ERR_UNDEFINED_BEHAVIOR);
-            MFX_CHECK(feiPreEncMV->NumMBAlloc == NumMB, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        }
-
-        if (!feiCtrl->DisableStatisticsOutput)
-        {
-            mfxExtFeiPreEncMBStat* feiPreEncMBStat = GetExtBufferFEI(output, field);
-            MFX_CHECK(feiPreEncMBStat,                      MFX_ERR_UNDEFINED_BEHAVIOR);
-            MFX_CHECK(feiPreEncMBStat->NumMBAlloc == NumMB, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        }
+        MFX_CHECK_NULL_PTR1(input->ExtParam[i]);
+        MFX_CHECK(MfxH264FEIcommon::IsRunTimeInputExtBufferIdSupported(m_video, input->ExtParam[i]->BufferId), MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
+    for (mfxU32 i = 0; i < output->NumExtParam; ++i)
+    {
+        MFX_CHECK_NULL_PTR1(output->ExtParam[i]);
+        MFX_CHECK(MfxH264FEIcommon::IsRunTimeOutputExtBufferIdSupported(m_video, output->ExtParam[i]->BufferId), MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    //configure new task
     UMC::AutomaticUMCMutex guard(m_listMutex);
 
     m_free.front().m_yuv          = input->InSurface;
-    //m_free.front().m_ctrl = 0;
-    m_free.front().m_type         = frame_type;
-    m_free.front().m_picStruct    = picStruct;
-    m_free.front().m_fieldPicFlag = m_free.front().m_picStruct[ENC] != MFX_PICSTRUCT_PROGRESSIVE;
-    m_free.front().m_fid[0]       = m_free.front().m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF;
-    m_free.front().m_fid[1]       = m_free.front().m_fieldPicFlag - m_free.front().m_fid[0];
     m_free.front().m_extFrameTag  = input->InSurface->Data.FrameOrder;
     m_free.front().m_frameOrder   = input->InSurface->Data.FrameOrder;
     m_free.front().m_timeStamp    = input->InSurface->Data.TimeStamp;
@@ -922,15 +877,138 @@ mfxStatus VideoENC_PREENC::RunFrameVmeENCCheck(
     m_incoming.splice(m_incoming.end(), m_free, m_free.begin());
     DdiTask& task = m_incoming.front();
 
+    /* This value have to be initialized here
+     * as we use MfxHwH264Encode::GetPicStruct
+     * (Legacy encoder do initialization  by itself)
+     * */
+    mfxExtCodingOption * extOpt = GetExtBuffer(m_video);
+    extOpt->FieldOutput = MFX_CODINGOPTION_OFF;
+
+    task.m_singleFieldMode = m_bSingleFieldMode;
+    task.m_picStruct       = GetPicStruct(m_video, task);
+    task.m_fieldPicFlag    = task.m_picStruct[ENC] != MFX_PICSTRUCT_PROGRESSIVE;
+    task.m_fid[0]          = task.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF;
+    task.m_fid[1]          = task.m_fieldPicFlag - task.m_fid[0];
+
+    // For frame type detection
+    PairU8 frame_type = PairU8(mfxU8(MFX_FRAMETYPE_UNKNOWN), mfxU8(MFX_FRAMETYPE_UNKNOWN));
+
+    PairU16 picStruct = GetPicStruct(m_video, input->InSurface->Info.PicStruct);
+
+    mfxU32 f_start = 0, fieldCount = (picStruct[ENC] & MFX_PICSTRUCT_PROGRESSIVE) ? 0 : 1;
+
+    mfxU32 SizeInMB = input->InSurface->Info.Width * input->InSurface->Info.Height / 256;
+    mfxU32 NumMB = (MFX_PICSTRUCT_PROGRESSIVE & picStruct[ENC]) ? SizeInMB : SizeInMB / 2;
+
+    if (m_bSingleFieldMode)
+    {
+        fieldCount = f_start = m_firstFieldDone = MfxH264FEIcommon::FirstFieldProcessingDone(input, task); // 0 or 1
+    }
+
+    for (mfxU32 field = f_start; field <= fieldCount; ++field)
+    {
+        // In case of single-field processing, only one buffer is attached
+        mfxU32 idxToPickBuffer = m_bSingleFieldMode ? 0 : field;
+        mfxU32 fieldParity     = task.m_fid[field];
+
+        mfxExtFeiPreEncCtrl* feiCtrl = GetExtBufferFEI(input, idxToPickBuffer);
+        MFX_CHECK_NULL_PTR1(feiCtrl); // this is fatal error
+
+        if      (!feiCtrl->RefFrame[0] && !feiCtrl->RefFrame[1]) frame_type[fieldParity] = MFX_FRAMETYPE_I;
+        else if ( feiCtrl->RefFrame[0] && !feiCtrl->RefFrame[1]) frame_type[fieldParity] = MFX_FRAMETYPE_P;
+        else                                                     frame_type[fieldParity] = MFX_FRAMETYPE_B;
+
+        MFX_CHECK((feiCtrl->PictureType == MFX_PICTYPE_TOPFIELD    && picStruct[ENC] == (!field ? MFX_PICSTRUCT_FIELD_TFF : MFX_PICSTRUCT_FIELD_BFF)) ||
+                  (feiCtrl->PictureType == MFX_PICTYPE_BOTTOMFIELD && picStruct[ENC] == (!field ? MFX_PICSTRUCT_FIELD_BFF : MFX_PICSTRUCT_FIELD_TFF)) ||
+                  (feiCtrl->PictureType == MFX_PICTYPE_FRAME       && picStruct[ENC] == MFX_PICSTRUCT_PROGRESSIVE),
+                  MFX_ERR_INVALID_VIDEO_PARAM);
+
+        //check DownsampleInput
+        MFX_CHECK(feiCtrl->DownsampleInput == MFX_CODINGOPTION_ON  ||
+                  feiCtrl->DownsampleInput == MFX_CODINGOPTION_OFF ||
+                  feiCtrl->DownsampleInput == MFX_CODINGOPTION_UNKNOWN, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        for (mfxU32 ref = 0; ref < 2; ++ref)
+        {
+            if (feiCtrl->RefFrame[ref])
+            {
+                MFX_CHECK(feiCtrl->RefPictureType[ref] == MFX_PICTYPE_TOPFIELD    ||
+                          feiCtrl->RefPictureType[ref] == MFX_PICTYPE_BOTTOMFIELD ||
+                          feiCtrl->RefPictureType[ref] == MFX_PICTYPE_FRAME, MFX_ERR_INVALID_VIDEO_PARAM);
+
+                //check DownsampleReference
+                MFX_CHECK(feiCtrl->DownsampleReference[ref] == MFX_CODINGOPTION_ON  ||
+                          feiCtrl->DownsampleReference[ref] == MFX_CODINGOPTION_OFF ||
+                          feiCtrl->DownsampleReference[ref] == MFX_CODINGOPTION_UNKNOWN, MFX_ERR_INVALID_VIDEO_PARAM);
+            }
+        }
+
+        if (!feiCtrl->DisableMVOutput)
+        {
+            mfxExtFeiPreEncMV* feiPreEncMV = GetExtBufferFEI(output, idxToPickBuffer);
+            MFX_CHECK(feiPreEncMV,                      MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(feiPreEncMV->NumMBAlloc >= NumMB, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_CHECK(feiPreEncMV->MB != NULL,          MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+
+        if (!feiCtrl->DisableStatisticsOutput)
+        {
+            mfxExtFeiPreEncMBStat* feiPreEncMBStat = GetExtBufferFEI(output, idxToPickBuffer);
+            MFX_CHECK(feiPreEncMBStat,                      MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(feiPreEncMBStat->NumMBAlloc >= NumMB, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_CHECK(feiPreEncMBStat->MB != NULL,          MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+
+        if (feiCtrl->FTEnable)
+        {
+            if(feiCtrl->MBQp)
+            {
+            //check mfxExtFeiEncQP
+                mfxExtFeiEncQP* feiEncQP = GetExtBufferFEI(input, idxToPickBuffer);
+                MFX_CHECK(feiEncQP,                      MFX_ERR_UNDEFINED_BEHAVIOR);
+                MFX_CHECK(feiEncQP->NumMBAlloc >= NumMB, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+                MFX_CHECK(feiEncQP->MB != NULL,          MFX_ERR_UNDEFINED_BEHAVIOR);
+            }
+
+            else
+            {
+                MFX_CHECK(feiCtrl->Qp > 0 && feiCtrl->Qp <= 51, MFX_ERR_INVALID_VIDEO_PARAM);
+            }
+        }
+
+        MFX_CHECK(feiCtrl->SubMBPartMask < 0x7f, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        MFX_CHECK(feiCtrl->SubPelMode == 0x00 || feiCtrl->SubPelMode == 0x01 || feiCtrl->SubPelMode == 0x03, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        MFX_CHECK(feiCtrl->InterSAD == 0x00 || feiCtrl->InterSAD == 0x02, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        MFX_CHECK(feiCtrl->IntraSAD == 0x00 || feiCtrl->IntraSAD == 0x02, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        MFX_CHECK(feiCtrl->IntraPartMask < 0x07, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        MFX_CHECK(feiCtrl->SearchWindow > 0 && feiCtrl->SearchWindow < 9, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        MFX_CHECK(feiCtrl->MVPredictor <= 0x03, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        //check mfxExtFeiPreEncMVPredictors
+        if (feiCtrl->MVPredictor > 0x00)
+        {
+            mfxExtFeiPreEncMVPredictors* feiPreEncMVPredictors = GetExtBufferFEI(input, idxToPickBuffer);
+            MFX_CHECK(feiPreEncMVPredictors,                       MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(feiPreEncMVPredictors->NumMBAlloc >= NumMB,  MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            MFX_CHECK(feiPreEncMVPredictors->MB != NULL,           MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+
+    }
+
+    task.m_type = frame_type;
+
     /* We need to match picture types...
      * (1): If Init() was for "MFX_PICSTRUCT_UNKNOWN", all Picture types is allowed
      * (2): Else allowed only picture type which was on Init() stage
      *  */
     mfxU16 picStructTask = task.GetPicStructForEncode(), picStructInit = m_video.mfx.FrameInfo.PicStruct;
     MFX_CHECK(MFX_PICSTRUCT_UNKNOWN == picStructInit || picStructInit == picStructTask, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
-
-    if (task.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF)
-        std::swap(task.m_type.top, task.m_type.bot);
 
     m_core->IncreaseReference(&input->InSurface->Data);
 
@@ -954,7 +1032,7 @@ mfxStatus VideoENC_PREENC::RunFrameVmeENCCheck(
 
 static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &  core,
                                         MfxVideoParam const & video,
-                                        mfxFrameSurface1 *  src_sys, 
+                                        mfxFrameSurface1 *  src_sys,
                                         mfxMemId            dst_d3d,
                                         mfxHDL&             handle)
 {
@@ -983,11 +1061,11 @@ static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &  core,
         d3dSurf.MemId =  src_sys->Data.MemId;
     }
 
-    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY) 
+    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY)
        MFX_CHECK_STS(core.GetExternalFrameHDL(d3dSurf.MemId, &handle))
     else
        MFX_CHECK_STS(core.GetFrameHDL(d3dSurf.MemId, &handle));
-    
+
     return MFX_ERR_NONE;
 }
 
@@ -1001,7 +1079,7 @@ mfxStatus VideoENC_PREENC::Close(void)
     m_core->FreeFrames(&m_raw);
 
     return MFX_ERR_NONE;
-} 
+}
 
 
 #endif  // defined(MFX_VA) && defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)

@@ -17,7 +17,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#include "mfx_config.h"
+
+#include "mfx_common.h"
+
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #pragma once
@@ -25,7 +27,6 @@
 #include "hevce_ddi_main.h"
 #include "mfx_h265_encode_hw_set.h"
 #include "mfx_ext_buffers.h"
-#include "mfx_common.h"
 #include "mfxplugin++.h"
 #include "umc_mutex.h"
 #include "mfxla.h"
@@ -168,7 +169,7 @@ enum
 
     HW_SURF_ALIGN_W         = 16,
     HW_SURF_ALIGN_H         = 16,
-    
+
     HW_SURF_ALIGN_LOWPOWER_W  = 32,
     HW_SURF_ALIGN_LOWPOWER_H  = HW_SURF_ALIGN_H,
 
@@ -282,6 +283,8 @@ typedef struct _DpbFrame
     mfxU8    m_tid;
     bool     m_ltr; // is "long-term"
     bool     m_ldb; // is "low-delay B"
+    bool     m_secondField;
+    bool     m_bottomField;
     mfxU8    m_codingType;
     mfxU8    m_idxRaw;
     mfxU8    m_idxRec;
@@ -332,6 +335,7 @@ typedef struct _Task : DpbFrame
 
     mfxU32 m_idxBs;
     mfxU8  m_idxCUQp;
+    bool   m_bCUQPMap;
 
     mfxU8 m_refPicList[2][MAX_DPB_SIZE];
     mfxU8 m_numRefActive[2];
@@ -341,6 +345,7 @@ typedef struct _Task : DpbFrame
     mfxU8  m_shNUT;
     mfxI8  m_qpY;
     mfxI32 m_lastIPoc;
+    mfxI32 m_lastRAP;
 
     mfxU32 m_statusReportNumber;
     mfxU32 m_bsDataLength;
@@ -366,6 +371,7 @@ typedef struct _Task : DpbFrame
     RoiData       m_roi[MAX_NUM_ROI];
     mfxU16        m_roiMode;    // BRC only
     mfxU16        m_numRoi;
+    bool          m_bPriorityToDQPpar;
 
 
     mfxU16        m_SkipMode;
@@ -394,6 +400,7 @@ struct remove_const<const T>
 };
 
 class MfxVideoParam;
+
 
 namespace ExtBuffer
 {
@@ -471,7 +478,7 @@ namespace ExtBuffer
 
     inline void CopySupportedParams (mfxExtCodingOption& buf_dst, mfxExtCodingOption& buf_src)
     {
-        //_CopyPar1(PicTimingSEI);
+        _CopyPar1(PicTimingSEI);
         _CopyPar1(VuiNalHrdParameters);
         _CopyPar1(NalHrdConformance);
         _CopyPar1(AUDelimiter);
@@ -515,6 +522,7 @@ namespace ExtBuffer
         _CopyPar1(EnableMBQP);
         _CopyPar1(WinBRCMaxAvgKbps);
         _CopyPar1(WinBRCSize);
+
     }
 
     inline void  CopySupportedParams(mfxExtCodingOptionDDI& buf_dst, mfxExtCodingOptionDDI& buf_src)
@@ -765,8 +773,11 @@ public:
     mfxU16 NumRefLX[2]; // max num active refs
     mfxU32 LTRInterval;
     mfxU32 LCUSize;
-    bool   InsertHRDInfo;
+    bool   HRDConformance;
     bool   RawRef;
+    bool   bROIViaMBQP;
+    bool   bMBQPInput;
+    bool   RAPIntra;
 
 
     MfxVideoParam();
@@ -792,6 +803,8 @@ public:
     bool isLowDelay() const { return ((m_ext.CO3.PRefType == MFX_P_REF_PYRAMID) && !isTL()); }
     bool isTL()       const { return NumTL() > 1; }
     bool isSWBRC()    const {return  (IsOn(m_ext.CO2.ExtBRC) && (mfx.RateControlMethod == MFX_RATECONTROL_CBR || mfx.RateControlMethod == MFX_RATECONTROL_VBR))|| mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT ;}
+    bool isField()    const { return  !!(mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE); }
+    bool isBFF()      const { return  ((mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_BOTTOM) == MFX_PICSTRUCT_FIELD_BOTTOM); }
 
 private:
     void Construct(mfxVideoParam const & par);
@@ -852,12 +865,57 @@ protected:
     mfxF64 m_prevBpAuNominalRemovalTime;
     mfxU32 m_prevBpEncOrder;
 };
+class LastReordFieldInfo
+{
+public:
+    mfxI32     m_poc;
+    bool       m_bReference;
+    mfxU32     m_level;
+    bool       m_bFirstField;
+
+    LastReordFieldInfo() :
+        m_poc(-1),
+        m_bReference(false),
+        m_level(0),
+        m_bFirstField(false){}
+
+    void Reset()
+    {
+        m_poc = -1;
+        m_bReference = false;
+        m_level = 0;
+        m_bFirstField = false;
+    }
+    void SaveInfo(Task const* task)
+    {
+        m_poc = task->m_poc;
+        m_bReference = ((task->m_frameType & MFX_FRAMETYPE_REF) != 0);
+        m_level = task->m_level;
+        m_bFirstField = !task->m_secondField;
+    }
+    void CorrectTaskInfo(Task* task)
+    {
+        if (!isCorrespondSecondField(task))
+            return;
+        // copy params in second field
+        if (m_bReference)
+            task->m_frameType |= MFX_FRAMETYPE_REF;
+        task->m_level = m_level;
+    }
+    bool isCorrespondSecondField(Task const* task) 
+    { 
+        if (m_poc + 1 != task->m_poc || !task->m_secondField || !m_bFirstField)
+            return false;
+        return true;
+    }
+    bool bFirstField() { return m_bFirstField; }
+};
 
 class TaskManager
 {
 public:
     TaskManager();
-    void  Reset     (mfxU32 numTask = 0, mfxU16 resetHeaders = 0);
+    void  Reset     (bool bFieldMode , mfxU32 numTask = 0, mfxU16 resetHeaders = 0);
     Task* New       ();
     Task* Reorder   (MfxVideoParam const & par, DpbArray const & dpb, bool flush);
     void  Submit    (Task* task);
@@ -869,14 +927,21 @@ public:
     void  SkipTask  (Task* task);
     Task* GetNewTask();
     mfxStatus PutTasksForRecode(Task* pTask);
+    void SaveFieldInfo(Task* task) 
+    {
+        if (m_bFieldMode)   this->m_lastFieldInfo.SaveInfo(task);
+    };
 
 private:
+    bool       m_bFieldMode;
     TaskList   m_free;
     TaskList   m_reordering;
     TaskList   m_encoding;
     TaskList   m_querying;
     UMC::Mutex m_listMutex;
     mfxU16     m_resetHeaders;
+    LastReordFieldInfo  m_lastFieldInfo;
+
 };
 
 class FrameLocker : public mfxFrameData
@@ -920,6 +985,8 @@ void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
+    bool  bSecondField,
+    bool  bBottomField,
     mfxU8 (&RPL)[2][MAX_DPB_SIZE],
     mfxU8 (&numRefActive)[2],
     mfxExtAVCRefLists * pExtLists,
@@ -931,10 +998,12 @@ inline void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
+    bool  bSecondField,
+    bool  bBottomField,
     mfxU8(&RPL)[2][MAX_DPB_SIZE],
     mfxU8(&numRefActive)[2])
 {
-    ConstructRPL(par, DPB, isB, poc, tid, RPL, numRefActive, 0, 0);
+    ConstructRPL(par, DPB, isB, poc, tid, bSecondField, bBottomField, RPL, numRefActive, 0, 0);
 }
 
 void UpdateDPB(
@@ -990,7 +1059,8 @@ IntraRefreshState GetIntraRefreshState(
 
 mfxU8 GetNumReorderFrames(
     mfxU32 BFrameRate,
-    bool BPyramid);
+    bool BPyramid,
+    bool bField);
 
 
 
@@ -1009,11 +1079,16 @@ mfxStatus CodeAsSkipFrame(
 mfxStatus CheckAndFixRoi(
     MfxVideoParam const & par,
     ENCODE_CAPS_HEVC const & caps,
-    mfxExtEncoderROI * ROI);
+    mfxExtEncoderROI * ROI,
+    bool &bROIViaMBQP);
 
 mfxStatus CheckAndFixDirtyRect(
     ENCODE_CAPS_HEVC const & caps,
+    MfxVideoParam const & par,
     mfxExtDirtyRect * DirtyRect);
+mfxStatus GetCUQPMapBlockSize(mfxU16 frameWidth, mfxU16 frameHeight,
+    mfxU16 CUQPWidth, mfxU16 CUHeight,
+    mfxU16 &blkWidth, mfxU16 &blkHeight);
 
 
 
@@ -1030,9 +1105,9 @@ enum
 class HevcSkipMode
 {
 public:
-    HevcSkipMode(): m_mode(0) 
+    HevcSkipMode(): m_mode(0)
     {};
-    HevcSkipMode(mfxU16 mode): m_mode(mode) 
+    HevcSkipMode(mfxU16 mode): m_mode(mode)
     {};
 private:
     mfxU16 m_mode;
@@ -1052,12 +1127,12 @@ public:
             break;
         default:
             m_mode = HEVC_SKIPFRAME_NO;
-            break;        
-        }  
+            break;
+        }
     }
     void SetPseudoSkip ()
     {
-        m_mode = HEVC_SKIPFRAME_EXT_PSEUDO;    
+        m_mode = HEVC_SKIPFRAME_EXT_PSEUDO;
     }
     mfxU16 GetMode() {return m_mode;}
 

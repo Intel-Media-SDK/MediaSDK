@@ -21,10 +21,12 @@
 #ifndef __MFXUTILS_H__
 #define __MFXUTILS_H__
 
+#include "mfx_config.h"
+
 #include "umc_structures.h"
 #include "mfx_trace.h"
 #include "mfx_timing.h"
-#include "mfx_config.h"
+
 
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts

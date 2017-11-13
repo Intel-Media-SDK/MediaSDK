@@ -249,7 +249,7 @@ mfxStatus mfxCOREGetOpaqueSurface(mfxHDL pthis, mfxFrameSurface1 *surf, mfxFrame
     
     try
     {
-        *op_surf = session->m_pCORE->GetOpaqSurface(surf);
+        *op_surf = session->m_pCORE->GetOpaqSurface(surf->Data.MemId);
         if (!*op_surf)
             return MFX_ERR_INVALID_HANDLE;
 

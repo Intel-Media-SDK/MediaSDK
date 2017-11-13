@@ -112,6 +112,7 @@ static
     pParams->bChromaSiting = false;
     pParams->uChromaSiting = 0;
     pParams->numFrames    = 0;
+    pParams->fccSource = MFX_FOURCC_NV12;
 
     // Optional video processing features
     pParams->mirroringParam.clear();        pParams->mirroringParam.push_back(      *pDefaultFiltersParam->pMirroringParam      );
@@ -383,35 +384,48 @@ int main(int argc, msdk_char *argv[])
         ptsMaker.reset(new PTSMaker);
     }
 
-    // D3D11 does not support I420 and YV12 surfaces. So file reader will convert them into nv12.
-    // It may be slower than using vpp
-    bool bInPlaceConversion = (Params.ImpLib & MFX_IMPL_VIA_D3D11) &&
-        (Params.fccSource == MFX_FOURCC_I420 || Params.fccSource == MFX_FOURCC_YV12);
-    if (bInPlaceConversion)
-    {
-        for (int i = 0; i < Resources.numSrcFiles; i++)
-        {
-            Params.inFrameInfo[i].FourCC = MFX_FOURCC_NV12;
-        }
-    }
-    //prepare file reader (YUV/RGB file)
+       //prepare file reader (YUV/RGB file)
     Resources.numSrcFiles = 1;
     if (Params.compositionParam.mode == VPP_FILTER_ENABLED_CONFIGURED)
     {
         Resources.numSrcFiles = Params.numStreams > MAX_INPUT_STREAMS ? MAX_INPUT_STREAMS : Params.numStreams;
         for (int i = 0; i < Resources.numSrcFiles; i++)
         {
-            ownToMfxFrameInfo( &(Params.inFrameInfo[i]), &(realFrameInfoIn[i]), true);
+            ownToMfxFrameInfo(&(Params.inFrameInfo[i]), &(realFrameInfoIn[i]), true);
             // Set ptsMaker for the first stream only - it will store PTSes
-            sts = yuvReaders[i].Init(Params.compositionParam.streamInfo[i].streamName, i==0 ? ptsMaker.get() : NULL, Params.fccSource,
-                bInPlaceConversion);
+            sts = yuvReaders[i].Init(Params.compositionParam.streamInfo[i].streamName, i == 0 ? ptsMaker.get() : NULL, realFrameInfoIn[i].FourCC);
+
+            // In-place conversion check - I420 and YV12+D3D11 should be converted in reader and processed as NV12
+            bool shouldConvert = false;
+            if (realFrameInfoIn[i].FourCC == MFX_FOURCC_I420 ||
+                ((Params.ImpLib & 0x0f00) == MFX_IMPL_VIA_D3D11 && realFrameInfoIn[i].FourCC == MFX_FOURCC_YV12))
+            {
+                realFrameInfoIn[i].FourCC = MFX_FOURCC_YV12;
+                shouldConvert = true;
+            }
+            if (shouldConvert)
+            {
+                msdk_printf(MSDK_STRING("[WARNING] D3D11 does not support YV12 and I420 surfaces. Input will be converted to NV12 by file reader.\n"));
+            }
+
+
             MSDK_CHECK_STATUS(sts, "yuvReaders[i].Init failed");
         }
     }
     else
     {
+        // D3D11 does not support I420 and YV12 surfaces. So file reader will convert them into nv12.
+        // It may be slower than using vpp
+        if (Params.fccSource == MFX_FOURCC_I420 ||
+            ((Params.ImpLib & 0x0f00) == MFX_IMPL_VIA_D3D11 && Params.fccSource == MFX_FOURCC_YV12))
+        {
+            msdk_printf(MSDK_STRING("[WARNING] D3D11 does not support YV12 and I420 surfaces. Input will be converted to NV12 by file reader.\n"));
+            Params.inFrameInfo[0].FourCC = MFX_FOURCC_NV12;
+            Params.frameInfoIn[0].FourCC = MFX_FOURCC_NV12;
+        }
+
         ownToMfxFrameInfo( &(Params.frameInfoIn[0]),  &realFrameInfoIn[0]);
-        sts = yuvReaders[VPP_IN].Init(Params.strSrcFile,ptsMaker.get(), Params.fccSource, bInPlaceConversion);
+        sts = yuvReaders[VPP_IN].Init(Params.strSrcFile,ptsMaker.get(), Params.fccSource);
         MSDK_CHECK_STATUS(sts, "yuvReaders[VPP_IN].Init failed");
     }
     ownToMfxFrameInfo( &(Params.frameInfoOut[0]), &realFrameInfoOut);

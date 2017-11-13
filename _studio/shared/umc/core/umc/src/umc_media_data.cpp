@@ -22,6 +22,8 @@
 #include "umc_media_data.h"
 #include "umc_defs.h"
 
+#include <algorithm>
+
 namespace UMC
 {
 
@@ -49,6 +51,7 @@ MediaData::MediaData(size_t length)
 } // MediaData::MediaData(size_t length) :
 
 MediaData::MediaData(const MediaData &another)
+    : m_AuxInfo(another.m_AuxInfo)
 {
     m_pBufferPointer   = NULL;
     m_pDataPointer     = NULL;
@@ -103,6 +106,7 @@ Status MediaData::Close(void)
 
     m_bMemoryAllocated = 0;
 
+    m_AuxInfo.clear();
     return UMC_OK;
 
 } // Status MediaData::Close(void)
@@ -138,6 +142,36 @@ Status MediaData::SetBufferPointer(uint8_t *ptr, size_t size)
     return UMC_OK;
 
 } // Status MediaData::SetBufferPointer(uint8_t *ptr, size_t size)
+
+void MediaData::SetAuxInfo(void* ptr, size_t size, int type)
+{
+     AuxInfo* aux = GetAuxInfo(type);
+     if (!aux)
+     {
+         m_AuxInfo.push_back(AuxInfo());
+         aux = &m_AuxInfo.back();
+     }
+
+     aux->ptr = ptr;
+     aux->size = size;
+     aux->type = type;
+} // void MediaData::SetAuxInfo(void* ptr, size_t size, int type)
+
+void MediaData::ClearAuxInfo(int type)
+{
+    AuxInfo aux = { 0, 0, type };
+    m_AuxInfo.remove(aux);
+} // void MediaData::ClearAuxInfo(int type)
+
+MediaData::AuxInfo const* MediaData::GetAuxInfo(int type) const
+{
+    AuxInfo aux = { 0, 0, type };
+    std::list<AuxInfo>::const_iterator
+        i = std::find(m_AuxInfo.begin(), m_AuxInfo.end(), aux);
+
+    return
+        i != m_AuxInfo.end() ? &(*i) : 0;
+} // MediaData::AuxInfo const* MediaData::GetAuxInfo(int type) const
 
 Status MediaData::SetTime(double start, double end)
 {

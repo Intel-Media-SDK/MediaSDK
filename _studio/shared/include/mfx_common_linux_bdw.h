@@ -41,6 +41,8 @@
 
 
 
+
+
 //#define MFX_ENABLE_H264_VIDEO_PAK
 //#define MFX_ENABLE_H264_VIDEO_ENC
 #if defined(LINUX64)

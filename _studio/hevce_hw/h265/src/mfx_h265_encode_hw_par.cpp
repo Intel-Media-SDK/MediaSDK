@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_config.h"
+#include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "mfx_h265_encode_hw_utils.h"
 #include "mfx_h265_encode_hw_ddi.h"
@@ -164,7 +164,7 @@ mfxStatus CheckProfile(mfxVideoParam& par, mfxU16 platform)
 
     return sts;
 }
-mfxU16 minRefForPyramid(mfxU16 GopRefDist)
+mfxU16 minRefForPyramid(mfxU16 GopRefDist, bool bField)
 {
     assert(GopRefDist > 0);
     mfxU16 refB  = (GopRefDist - 1) / 2;
@@ -175,7 +175,7 @@ mfxU16 minRefForPyramid(mfxU16 GopRefDist)
         refB -= x;
     }
 
-    return 2 + refB;
+    return (bField ? 2:1)*(2 + refB);
 }
 
 mfxU32 GetMaxDpbSizeByLevel(MfxVideoParam const & par)
@@ -249,7 +249,7 @@ mfxStatus CorrectLevel(MfxVideoParam& par, bool bCheckOnly)
             || par.m_ext.HEVCTiles.NumTileColumns > MaxTileCols
             || par.m_ext.HEVCTiles.NumTileRows > MaxTileRows
             || (mfxU32)par.mfx.NumSlice > MaxSSPP
-            || (par.isBPyramid() && MaxDpbSize < minRefForPyramid(par.mfx.GopRefDist)))
+            || (par.isBPyramid() && MaxDpbSize < minRefForPyramid(par.mfx.GopRefDist,par.isField())))
         {
             lidx ++;
             continue;
@@ -339,41 +339,54 @@ mfxU16 AddTileSlices(
     }
 
     par.m_slice.resize(nSlicePrev + nSlice);
-
-    mfxU32 f = (nSlice < 2 || (nLCU % nSlice == 0) || par.m_ext.CO2.NumMbPerSlice) ? 0 : (nLCU % nSlice);
-    bool   s = false;
-
-    if (f == 0)
-    {
-        f;
+    if (SliceStructure == 2) {
+        mfxU32 i = nSlicePrev;
+        for (; i < par.m_slice.size(); i++)
+        {
+            par.m_slice[i].NumLCU = nLcuPerSlice;
+            par.m_slice[i].SegmentAddress = (i > 0) ? (par.m_slice[i - 1].SegmentAddress + par.m_slice[i - 1].NumLCU) : 0;
+        }
+        if (par.m_slice.size() > 1)
+        {
+            par.m_slice[i - 1].NumLCU = par.m_slice[nSlicePrev].SegmentAddress + nLCU - par.m_slice[i - 1].SegmentAddress;
+        }
     }
-    else if (f > nSlice / 2)
-    {
-        s = false;
-        nLcuPerSlice += 1;
-        f = (nSlice / (nSlice - f));
+    else {
+        mfxU32 f = (nSlice < 2 || (nLCU % nSlice == 0) || par.m_ext.CO2.NumMbPerSlice) ? 0 : (nLCU % nSlice);
+        bool   s = false;
 
-        while ((nLcuPerSlice * nSlice - (nLCU / f) > nLCU) && f)
-            f --;
-    }
-    else
-    {
-        s = true;
-        f = (nSlice % f == 0) ? nSlice / f : nSlice / f + 1;
-    }
+        if (f == 0)
+        {
+            f;
+        }
+        else if (f > nSlice / 2)
+        {
+            s = false;
+            nLcuPerSlice += 1;
+            f = (nSlice / (nSlice - f));
 
-    mfxU32 i = nSlicePrev;
-    for ( ; i < par.m_slice.size(); i ++)
-    {
-        par.m_slice[i].NumLCU = (i == nSlicePrev + nSlice-1) ? nLCU : nLcuPerSlice + s * (f && i % f == 0) - !s * (f && i % f == 0);
-        par.m_slice[i].SegmentAddress = (i > 0) ? (par.m_slice[i-1].SegmentAddress + par.m_slice[i-1].NumLCU) : 0;
+            while ((nLcuPerSlice * nSlice - (nLCU / f) > nLCU) && f)
+                f--;
+        }
+        else
+        {
+            s = true;
+            f = (nSlice % f == 0) ? nSlice / f : nSlice / f + 1;
+        }
 
-        if (i != 0)
-            par.m_slice[i - 1].NumLCU = par.m_slice[i].SegmentAddress - par.m_slice[i - 1].SegmentAddress;
-    }
-    if ((i > 0) && ((i - 1) < par.m_slice.size()))
-    {
-        par.m_slice[i - 1].NumLCU = par.m_slice[nSlicePrev].SegmentAddress + nLCU - par.m_slice[i - 1].SegmentAddress ;
+        mfxU32 i = nSlicePrev;
+        for (; i < par.m_slice.size(); i++)
+        {
+            par.m_slice[i].NumLCU = (i == nSlicePrev + nSlice - 1) ? nLCU : nLcuPerSlice + s * (f && i % f == 0) - !s * (f && i % f == 0);
+            par.m_slice[i].SegmentAddress = (i > 0) ? (par.m_slice[i - 1].SegmentAddress + par.m_slice[i - 1].NumLCU) : 0;
+
+            if (i != 0)
+                par.m_slice[i - 1].NumLCU = par.m_slice[i].SegmentAddress - par.m_slice[i - 1].SegmentAddress;
+        }
+        if ((i > 0) && ((i - 1) < par.m_slice.size()))
+        {
+            par.m_slice[i - 1].NumLCU = par.m_slice[nSlicePrev].SegmentAddress + nLCU - par.m_slice[i - 1].SegmentAddress;
+        }
     }
     return (mfxU16)nSlice;
 }
@@ -862,6 +875,9 @@ void InheritDefaultValues(
     InheritOption(extOptVSIInit->VideoFullRange,extOptVSIReset->VideoFullRange );
     InheritOption(extOptVSIInit->ColourDescriptionPresent,extOptVSIReset->ColourDescriptionPresent );
 
+    mfxExtCodingOptionDDI const* extOptDDIInit = &parInit.m_ext.DDI;
+    mfxExtCodingOptionDDI      * extOptDDIReset = &parReset.m_ext.DDI;
+    InheritOption(extOptDDIInit->LCUSize, extOptDDIReset->LCUSize);
     // not inherited:
     // InheritOption(parInit.mfx.FrameInfo.PicStruct,      parReset.mfx.FrameInfo.PicStruct);
     // InheritOption(parInit.IOPattern,                    parReset.IOPattern);
@@ -1086,8 +1102,16 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         bInit ? invalid ++ : changed++;
     }
 
-    changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, 0);
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || 
+        (IsOn(par.m_ext.CO2.ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)))
+    {
+        changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, MFX_PICSTRUCT_FIELD_TOP, MFX_PICSTRUCT_FIELD_BOTTOM, MFX_PICSTRUCT_FIELD_SINGLE, MFX_PICSTRUCT_FIELD_TFF, MFX_PICSTRUCT_FIELD_BFF,0);
+    }
+    else
+    {
+        changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, 0);
+    }
     if (par.m_ext.HEVCParam.PicWidthInLumaSamples > 0)
     {
         changed += CheckRange(par.mfx.FrameInfo.CropX, 0, par.m_ext.HEVCParam.PicWidthInLumaSamples);
@@ -1113,8 +1137,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         }
     }
 
-    if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-        ) && isInVideoMem(par))
+    if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010) && isInVideoMem(par))
         changed += CheckMin(par.mfx.FrameInfo.Shift, 1);
 
 
@@ -1193,16 +1216,18 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckTriStateOption(par.m_ext.CO.VuiNalHrdParameters);
     changed += CheckTriStateOption(par.m_ext.CO.NalHrdConformance);
 
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && 
+        par.mfx.RateControlMethod != MFX_RATECONTROL_VBR && 
+        par.mfx.RateControlMethod != MFX_RATECONTROL_VCM)
     {
        changed += CheckOption(par.m_ext.CO.VuiNalHrdParameters, (mfxU32)MFX_CODINGOPTION_OFF, 0);
        changed += CheckOption(par.m_ext.CO.NalHrdConformance,  (mfxU32)MFX_CODINGOPTION_OFF, 0);
-       par.InsertHRDInfo = false;
+       par.HRDConformance = false;
     }
     if (IsOff(par.m_ext.CO.NalHrdConformance))
     {
        changed += CheckOption(par.m_ext.CO.VuiNalHrdParameters, (mfxU32)MFX_CODINGOPTION_OFF, 0);
-       par.InsertHRDInfo = false;
+       par.HRDConformance = false;
     }
 
     changed += CheckTriStateOption(par.m_ext.CO.PicTimingSEI);
@@ -1221,8 +1246,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (   par.m_ext.CO2.BRefType == MFX_B_REF_PYRAMID
            && par.mfx.GopRefDist > 0
            && ( par.mfx.GopRefDist < 2
-            || minRefForPyramid(par.mfx.GopRefDist) > 16
-            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist) > par.mfx.NumRefFrame)))
+            || minRefForPyramid(par.mfx.GopRefDist, par.isField()) > 16
+            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
     {
         par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
         changed ++;
@@ -1370,14 +1395,14 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
 
 
-    if (CO3.EnableMBQP !=0)
+    if (CO3.EnableMBQP !=0 || par.bROIViaMBQP)
     {
         if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && !par.isSWBRC())
-            changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON);
-        if (par.isSWBRC())
+            changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON); 
+        else if (caps.MbQpDataSupport == 0)
+        {
             changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_OFF);
-        if (caps.MbQpDataSupport == 0 && par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
-            changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_OFF);
+        }
 
 
     }
@@ -1412,6 +1437,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         changed += CheckRangeDflt(CO2.MinQPB, 0, 0, 0);
         changed += CheckRangeDflt(CO2.MaxQPB, 0, 0, 0);
     }
+
 
 
 
@@ -1511,8 +1537,8 @@ void SetDefaults(
     if (!par.mfx.FrameInfo.AspectRatioH)
         par.mfx.FrameInfo.AspectRatioH = 1;
 
-    if (!par.mfx.FrameInfo.PicStruct)
-        par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+    //if (!par.mfx.FrameInfo.PicStruct)
+    //    par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
 
     if (!par.mfx.FrameInfo.ChromaFormat)
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
@@ -1634,7 +1660,7 @@ void SetDefaults(
 
     if (par.m_ext.CO2.BRefType == MFX_B_REF_UNKNOWN)
     {
-        if (par.mfx.GopRefDist > 3 && ((minRefForPyramid(par.mfx.GopRefDist) <= par.mfx.NumRefFrame) || par.mfx.NumRefFrame ==0))
+        if (par.mfx.GopRefDist > 3 && ((minRefForPyramid(par.mfx.GopRefDist, par.isField()) <= par.mfx.NumRefFrame) || par.mfx.NumRefFrame ==0))
             par.m_ext.CO2.BRefType = MFX_B_REF_PYRAMID;
         else
             par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
@@ -1653,7 +1679,7 @@ void SetDefaults(
 
     if (!par.mfx.NumRefFrame)
     {
-        par.mfx.NumRefFrame = par.isBPyramid() ? mfxU16(minRefForPyramid(par.mfx.GopRefDist)) : (par.NumRefLX[0] + (par.mfx.GopRefDist > 1) * par.NumRefLX[1]);
+        par.mfx.NumRefFrame = par.isBPyramid() ? mfxU16(minRefForPyramid(par.mfx.GopRefDist,par.isField())) : (((par.NumRefLX[0] + (par.mfx.GopRefDist > 1) * (par.NumRefLX[1]))*(par.isField()?2:1)));
         par.mfx.NumRefFrame = Max(mfxU16(par.NumTL() - 1), par.mfx.NumRefFrame);
         par.mfx.NumRefFrame = Min(maxDPB, par.mfx.NumRefFrame);
     }
@@ -1697,10 +1723,14 @@ void SetDefaults(
         par.m_ext.CO2.IntRefCycleSize =
             (mfxU16)((par.mfx.FrameInfo.FrameRateExtN + par.mfx.FrameInfo.FrameRateExtD - 1) / par.mfx.FrameInfo.FrameRateExtD);
     }
-    if (IsOff(par.m_ext.CO.NalHrdConformance))
-    {
-       par.m_ext.CO.VuiNalHrdParameters = MFX_CODINGOPTION_OFF;
-    }
+    if (!par.m_ext.CO.NalHrdConformance)
+        par.m_ext.CO.NalHrdConformance =(mfxU16) (par.HRDConformance ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
+
+    if (!par.m_ext.CO.VuiNalHrdParameters)
+        par.m_ext.CO.VuiNalHrdParameters = (mfxU16) (par.HRDConformance ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
+
+     if (!par.m_ext.CO.PicTimingSEI)
+        par.m_ext.CO.PicTimingSEI = (mfxU16)(par.HRDConformance || par.isField() ? MFX_CODINGOPTION_ON: MFX_CODINGOPTION_OFF);
 
     if (!par.m_ext.CO.AUDelimiter)
         par.m_ext.CO.AUDelimiter = MFX_CODINGOPTION_OFF;
@@ -1757,6 +1787,7 @@ void SetDefaults(
         if (!CO3.WinBRCMaxAvgKbps)
             CO3.WinBRCMaxAvgKbps = (mfxU16)(par.MaxKbps/par.mfx.BRCParamMultiplier);
     }
+
 
 
 

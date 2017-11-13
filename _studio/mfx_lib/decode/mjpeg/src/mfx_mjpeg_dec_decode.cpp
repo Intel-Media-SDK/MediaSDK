@@ -1036,7 +1036,8 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
     if (par->mfx.InterleavedDec == MFX_SCANTYPE_NONINTERLEAVED)
         return true;
 
-    if (core->GetHWType() == MFX_HW_APL)
+    if (core->GetHWType() == MFX_HW_APL
+       )
     {
         if (par->mfx.FrameInfo.Width > 4096 || par->mfx.FrameInfo.Height > 4096)
         {
@@ -1065,7 +1066,8 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
 */
                 case MFX_FOURCC_RGB4:
                     if ((par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB && par->mfx.JPEGChromaFormat != MFX_CHROMAFORMAT_YUV444) ||
-                        (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr && par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V) )
+                        (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr && par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V) ||
+                        (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr && par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV411))
                         return true;
                     else
                         return false;

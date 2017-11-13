@@ -354,12 +354,12 @@ void Launcher::DoTranscoding()
     mfxStatus sts = MFX_ERR_NONE;
 
     // get parallel sessions parameters
-    mfxU32 totalSessions = (mfxU32)m_pSessionArray.size();;
+    mfxU32 totalSessions = (mfxU32)m_pSessionArray.size();
     MSDKThread* pthread = 0;
 
     for (mfxU32 i = 0; i < totalSessions; i++)
     {
-        pthread = new MSDKThread(sts, ThranscodeRoutine, (void *)m_pSessionArray[i]);
+        pthread = new MSDKThread(sts, TranscodeRoutine, (void *)m_pSessionArray[i]);
         m_HDLArray.push_back(pthread);
     }
 
@@ -372,32 +372,63 @@ void Launcher::DoTranscoding()
     }
 
     // Transcoding threads waiting cycle
-    while (m_HDLArray.size())
+    size_t aliveSessionsCount = totalSessions;
+    while (aliveSessionsCount)
     {
-        for (MSDKThreadsIterator it = m_HDLArray.begin(); it != m_HDLArray.end(); it++)
+        aliveSessionsCount = 0;
+        for (mfxU32 i = 0; i < totalSessions; i++)
         {
-            sts = (*it)->TimedWait(1);
-            if (sts <= 0)
+            if (m_HDLArray[i])
             {
-                MSDK_SAFE_DELETE(*it);
-                m_HDLArray.remove(*it);
-                break;
+                aliveSessionsCount++;
+
+                sts = m_HDLArray[i]->TimedWait(1);
+                if (sts <= 0)
+                {
+                    // Session is completed, let's check for its status
+                    if (m_pSessionArray[i]->transcodingSts < 0)
+                    {
+                        // Stop all the sessions if an error happened in one
+                        // But do not stop in robust mode when gpu hang's happened
+                        if (m_pSessionArray[i]->transcodingSts != MFX_ERR_GPU_HANG ||
+                            !m_pSessionArray[i]->pPipeline->IsRobust())
+                        {
+                            for (size_t j = 0; j < m_pSessionArray.size(); j++)
+                            {
+                                m_pSessionArray[j]->pPipeline->StopSession();
+                            }
+                        }
+                    }
+
+                    // Now clear its handle and thread info
+                    MSDK_SAFE_DELETE(m_HDLArray[i]);
+                    m_HDLArray[i] = NULL;
+                }
             }
         }
 
-        // Overlay threads stop last (in N:1 case we have an encoding thread + overlay threads
-        if (m_HDLArray.size() <= nOverlayThreads + 1)
+        // If all sessions are already stopped (no matter with error or not) - we need to forcibly stop all overlay sessions
+        if (aliveSessionsCount <= nOverlayThreads + 1)
         {
-            for (size_t i = 0; i < m_pSessionArray.size(); i++)
+            // Sending stop message
+            for (size_t i = 0; i < totalSessions; i++)
             {
-                m_pSessionArray[i]->pPipeline->StopOverlay();
+                if (m_HDLArray[i] && m_pSessionArray[i]->pPipeline->IsOverlayUsed())
+                {
+                    m_pSessionArray[i]->pPipeline->StopSession();
+                }
             }
-            for (MSDKThreadsIterator it = m_HDLArray.begin(); it != m_HDLArray.end(); it++)
+
+            // Waiting for them to be stopped
+            for (size_t i = 0; i < totalSessions; i++)
             {
-                (*it)->Wait();
-                MSDK_SAFE_DELETE(*it);
+                if (m_HDLArray[i])
+                {
+                    m_HDLArray[i]->Wait();
+                    MSDK_SAFE_DELETE(m_HDLArray[i]);
+                    m_HDLArray[i]=NULL;
+                }
             }
-            m_HDLArray.clear();
         }
     }
 }
@@ -737,6 +768,12 @@ int main(int argc, char *argv[])
 {
     mfxStatus sts;
     Launcher transcode;
+    if (argc < 2)
+    {
+        msdk_printf(MSDK_STRING("[ERROR] Command line is empty. Use -? for getting help on available options.\n"));
+        return 0;
+    }
+
     sts = transcode.Init(argc, argv);
     if(sts == MFX_WRN_OUT_OF_RANGE)
     {

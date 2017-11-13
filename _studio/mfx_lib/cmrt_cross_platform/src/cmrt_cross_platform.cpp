@@ -125,10 +125,12 @@ public:
     IMPL_FOR_ALL(INT, CreateTask, (CmTask *& pTask), (pTask));
     IMPL_FOR_ALL(INT, DestroyTask, (CmTask *& pTask), (pTask));
     IMPL_FOR_ALL(INT, GetCaps, (CM_DEVICE_CAP_NAME capName, size_t & capValueSize, void * pCapValue), (capName, capValueSize, pCapValue));
+#ifndef CMAPIUPDATE
     IMPL_FOR_ALL(INT, CreateVmeStateG6, (const VME_STATE_G6 & vmeState, CmVmeState *& pVmeState), (vmeState, pVmeState));
     IMPL_FOR_ALL(INT, DestroyVmeStateG6, (CmVmeState *& pVmeState), (pVmeState));
     IMPL_FOR_ALL(INT, CreateVmeSurfaceG6, (CmSurface2D * pCurSurface, CmSurface2D * pForwardSurface, CmSurface2D * pBackwardSurface, SurfaceIndex *& pVmeIndex), (pCurSurface, pForwardSurface, pBackwardSurface, pVmeIndex));
     IMPL_FOR_ALL(INT, DestroyVmeSurfaceG6, (SurfaceIndex *& pVmeIndex), (pVmeIndex));
+#endif
     IMPL_FOR_ALL(INT, CreateThreadSpace, (UINT width, UINT height, CmThreadSpace *& pTS), (width, height, pTS));
     IMPL_FOR_ALL(INT, CreateBufferUP, (UINT size, void * pSystMem, CmBufferUP *& pSurface), (size, pSystMem, pSurface));
     IMPL_FOR_ALL(INT, DestroyBufferUP, (CmBufferUP *& pSurface), (pSurface));
@@ -143,16 +145,24 @@ public:
     IMPL_FOR_ALL(INT, DestroySampler8x8Surface, (SurfaceIndex* & pDIIndex), (pDIIndex));
     IMPL_FOR_ALL(INT, CreateThreadGroupSpace, (UINT thrdSpaceWidth, UINT thrdSpaceHeight, UINT grpSpaceWidth, UINT grpSpaceHeight, CmThreadGroupSpace *& pTGS), (thrdSpaceWidth, thrdSpaceHeight, grpSpaceWidth, grpSpaceHeight, pTGS));
     IMPL_FOR_ALL(INT, DestroyThreadGroupSpace, (CmThreadGroupSpace *& pTGS), (pTGS));
+#ifdef CMAPIUPDATE
+    IMPL_FOR_ALL(INT, SetL3Config, (const L3_CONFIG_REGISTER_VALUES * l3_c), (l3_c));
+#else
     IMPL_FOR_ALL(INT, SetL3Config, (L3_CONFIG_REGISTER_VALUES * l3_c), (l3_c));
+#endif
     IMPL_FOR_ALL(INT, SetSuggestedL3Config, (L3_SUGGEST_CONFIG l3_s_c), (l3_s_c));
     IMPL_FOR_ALL(INT, SetCaps, (CM_DEVICE_CAP_NAME capName, size_t capValueSize, void * pCapValue), (capName, capValueSize, pCapValue));
+#ifndef CMAPIUPDATE
     IMPL_FOR_ALL(INT, CreateGroupedVAPlusSurface, (CmSurface2D * p2DSurface1, CmSurface2D * p2DSurface2, SurfaceIndex *& pDIIndex, CM_SURFACE_ADDRESS_CONTROL_MODE mode), (p2DSurface1, p2DSurface2, pDIIndex, mode));
     IMPL_FOR_ALL(INT, DestroyGroupedVAPlusSurface, (SurfaceIndex *& pDIIndex), (pDIIndex));
+#endif
     IMPL_FOR_ALL(INT, CreateSamplerSurface2D, (CmSurface2D * p2DSurface, SurfaceIndex *& pSamplerSurfaceIndex), (p2DSurface, pSamplerSurfaceIndex));
     IMPL_FOR_ALL(INT, CreateSamplerSurface3D, (CmSurface3D * p3DSurface, SurfaceIndex *& pSamplerSurfaceIndex), (p3DSurface, pSamplerSurfaceIndex));
     IMPL_FOR_ALL(INT, DestroySamplerSurface, (SurfaceIndex *& pSamplerSurfaceIndex), (pSamplerSurfaceIndex));
+#ifndef CMAPIUPDATE
     IMPL_FOR_ALL(INT, GetRTDllVersion, (CM_DLL_FILE_VERSION * pFileVersion), (pFileVersion));
     IMPL_FOR_ALL(INT, GetJITDllVersion, (CM_DLL_FILE_VERSION * pFileVersion), (pFileVersion));
+#endif
     IMPL_FOR_ALL(INT, InitPrintBuffer, (size_t printbufsize), (printbufsize));
     IMPL_FOR_ALL(INT, FlushPrintBuffer, (), ());
 };

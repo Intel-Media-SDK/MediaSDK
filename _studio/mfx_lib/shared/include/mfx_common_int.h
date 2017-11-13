@@ -44,7 +44,7 @@ mfxStatus CheckAudioFrame(const mfxAudioFrame *aFrame);
 mfxStatus CheckEncryptedBitstream(const mfxBitstream *bs);
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface);
 
-mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam* par);
+mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par);
 
 mfxExtBuffer* GetExtendedBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id);
 mfxExtBuffer* GetExtendedBufferInternal(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id);
@@ -139,5 +139,7 @@ private:
     // Deny copy constructor
     mfxVideoParamWrapper(const mfxVideoParamWrapper &);
 };
+
+mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const&);
 
 #endif

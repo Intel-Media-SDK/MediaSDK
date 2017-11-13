@@ -49,7 +49,7 @@ using namespace MfxHwMpeg2Encode;
 
 mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps)
 {
-    EncodeHWCaps* pEncodeCaps = QueryCoreInterface<EncodeHWCaps>(pCore); 
+    EncodeHWCaps* pEncodeCaps = QueryCoreInterface<EncodeHWCaps>(pCore);
     if (!pEncodeCaps)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     else
@@ -89,11 +89,14 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     m_bUseRawFrames = par->bRawFrames;
     m_fFrameRate = (double) par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN/(double)par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD;
 
+    m_FrameRateExtN = par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN;
+    m_FrameRateExtD = par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD;
+
     m_idxMb = (DWORD(-1));
     m_idxBs = (DWORD(-1));
 
     if (m_pSlice == 0)
-    { 
+    {
         m_nSlices = nSlices;
         m_pSlice  = new ENCODE_SET_SLICE_HEADER_MPEG2 [m_nSlices];
         memset (m_pSlice,0,sizeof(ENCODE_SET_SLICE_HEADER_MPEG2)*m_nSlices);
@@ -107,7 +110,7 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     }
 
     if (m_nMBs == 0)
-    { 
+    {
         m_nMBs  = nMBs;
         m_pMBs  = new ENCODE_ENC_MB_DATA_MPEG2 [m_nMBs];
         memset (m_pMBs,0,sizeof(ENCODE_ENC_MB_DATA_MPEG2)*m_nMBs);
@@ -173,8 +176,8 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
 
         m_sps.AspectRatio = ar_code;
 
-        if (!ConvertFrameRateMPEG2( par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD, 
-                                    par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN, 
+        if (!ConvertFrameRateMPEG2( par->mfxVideoParams.mfx.FrameInfo.FrameRateExtD,
+                                    par->mfxVideoParams.mfx.FrameInfo.FrameRateExtN,
                                     fr_code, fr_codeN, fr_codeD))
         {
           return MFX_ERR_UNSUPPORTED;
@@ -184,7 +187,7 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
         m_sps.FrameRateExtD = (USHORT) fr_codeD;
         m_sps.FrameRateExtN = (USHORT) fr_codeN;
 
-        mfxU32 multiplier = MFX_MAX(par->mfxVideoParams.mfx.BRCParamMultiplier, 1); 
+        mfxU32 multiplier = MFX_MAX(par->mfxVideoParams.mfx.BRCParamMultiplier, 1);
 
         m_sps.bit_rate = (par->mfxVideoParams.mfx.RateControlMethod != MFX_RATECONTROL_CQP) ?
                                                             par->mfxVideoParams.mfx.TargetKbps * multiplier : 0;
@@ -194,7 +197,7 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
         m_sps.progressive_sequence = par->mfxVideoParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE? 1:0;
         m_sps.Profile = (UCHAR)par->mfxVideoParams.mfx.CodecProfile;
         m_sps.Level = (UCHAR)par->mfxVideoParams.mfx.CodecLevel;
-        m_sps.TargetUsage = (UCHAR)par->mfxVideoParams.mfx.TargetUsage;        
+        m_sps.TargetUsage = (UCHAR)par->mfxVideoParams.mfx.TargetUsage;
 
         m_sps.RateControlMethod = bAllowBRC ? (UCHAR)par->mfxVideoParams.mfx.RateControlMethod: 0;
         m_sps.MaxBitRate        = (UINT)par->mfxVideoParams.mfx.MaxKbps * multiplier;
@@ -218,16 +221,16 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
 
     m_caps.IntraPredBlockSize = (par->bAllowFieldDCT) ?
         ENC_INTER_BLOCK_SIZE_16x16|ENC_INTER_BLOCK_SIZE_16x8:ENC_INTRA_BLOCK_16x16;
-    m_caps.IntraPredCostType  = ENC_COST_TYPE_SAD; 
-    m_caps.InterPredBlockSize = (par->bAllowFieldDCT) ? 
+    m_caps.IntraPredCostType  = ENC_COST_TYPE_SAD;
+    m_caps.InterPredBlockSize = (par->bAllowFieldDCT) ?
         ENC_INTER_BLOCK_SIZE_16x16|ENC_INTER_BLOCK_SIZE_16x8:
         ENC_INTER_BLOCK_SIZE_16x16;
-  
-    m_caps.MVPrecision           = ENC_MV_PRECISION_INTEGER|ENC_MV_PRECISION_HALFPEL;    
-    m_caps.MECostType            = ENC_COST_TYPE_PROPRIETARY; 
-    m_caps.MESearchType          = ENC_INTER_SEARCH_TYPE_PROPRIETARY; 
+
+    m_caps.MVPrecision           = ENC_MV_PRECISION_INTEGER|ENC_MV_PRECISION_HALFPEL;
+    m_caps.MECostType            = ENC_COST_TYPE_PROPRIETARY;
+    m_caps.MESearchType          = ENC_INTER_SEARCH_TYPE_PROPRIETARY;
     m_caps.MVSearchWindowX       = par->MVRangeP[0];
-    m_caps.MVSearchWindowY       = par->MVRangeP[1]; 
+    m_caps.MVSearchWindowY       = par->MVRangeP[1];
     m_caps.MEInterpolationMethod = ENC_INTERPOLATION_TYPE_BILINEAR;
     //m_caps.MEFractionalSearchType= ENC_COST_TYPE_SAD;
     m_caps.MaxMVs                = 4;
@@ -240,11 +243,11 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
     m_caps.ChromaInME            = 0;
     m_caps.WeightedPrediction    = 0;
     m_caps.RateDistortionOpt     = 0;
-    m_caps.MVPrediction          = 1;  
+    m_caps.MVPrediction          = 1;
     m_caps.DirectVME             = 0;
-    
+
     InitFramesSet(0, 0, 0, 0, 0);
-    
+
 
 
     m_encrypt.Init(par, funcId);
@@ -266,7 +269,7 @@ mfxStatus ExecuteBuffers::Close()
     memset(&m_caps, 0, sizeof(m_caps));
     memset(&m_sps,  0, sizeof(m_sps));
     memset(&m_pps,  0, sizeof(m_pps));
-    
+
     m_idxMb = (DWORD(-1));
     delete [] m_pMBs;
     delete [] m_mbqp_data;
@@ -285,7 +288,7 @@ mfxStatus ExecuteBuffers::Close()
         //printf ("\n\n --------- ERROR: incorrect MB type ---------\n\n");
         m_bOutOfRangeMV = false;
     }
-    
+
     return MFX_ERR_NONE;
 
 } // mfxStatus ExecuteBuffers::Close()
@@ -339,10 +342,10 @@ mfxStatus ExecuteBuffers::InitPictureParameters(mfxFrameParamMPEG2*  pParams, mf
         m_pps.FieldFrameCodingFlag    = 1;
         m_pps.InterleavedFieldBFF     = (pParams->TopFieldFirst)? 0:1;
     }
-    
+
     m_pps.NumSlice                   =  UCHAR(pParams->FrameHinMbMinus1 + 1);
     m_pps.bPicBackwardPrediction     =  pParams->BackwardPredFlag;
-    m_pps.bBidirectionalAveragingMode= (pParams->BackwardPredFlag && pParams->ForwardPredFlag); 
+    m_pps.bBidirectionalAveragingMode= (pParams->BackwardPredFlag && pParams->ForwardPredFlag);
     m_pps.bUseRawPicForRef           =  m_bUseRawFrames;
     m_pps.StatusReportFeedbackNumber =  frameNum + 1;
 
@@ -361,8 +364,8 @@ mfxStatus ExecuteBuffers::InitPictureParameters(mfxFrameParamMPEG2*  pParams, mf
     m_pps.f_code10                   = (pParams->BitStreamFcodes >> 4 ) & 0x0f;
     m_pps.f_code11                   = (pParams->BitStreamFcodes >> 0 ) & 0x0f;
 
-    
-    m_pps.bLastPicInStream           = (pParams->ExtraFlags & MFX_IFLAG_ADD_EOS)!=0 ? 1:0; 
+
+    m_pps.bLastPicInStream           = (pParams->ExtraFlags & MFX_IFLAG_ADD_EOS)!=0 ? 1:0;
     m_pps.bNewGop                    = m_pps.picture_coding_type == CODING_TYPE_I && (!pParams->FieldPicFlag || pParams->SecondFieldFlag)? 1:0;
     m_pps.GopPicSize                 = m_GOPPictureSize;
     m_pps.GopRefDist                 = m_GOPRefDist;
@@ -370,7 +373,7 @@ mfxStatus ExecuteBuffers::InitPictureParameters(mfxFrameParamMPEG2*  pParams, mf
     {
         mfxI32 num = 0;
         mfxI32 fps = 0, pict = 0, sec = 0, minute = 0, hour = 0;
-        num = frameNum;        
+        num = frameNum;
         fps = (int32_t)(m_fFrameRate + 0.5);
         pict = num % fps;
         num = (num - pict) / fps;
@@ -398,7 +401,7 @@ mfxStatus ExecuteBuffers::InitPictureParameters(mfxFrameParamMPEG2*  pParams, mf
     m_pps.bPic4MVallowed = 1;
 
     return MFX_ERR_NONE;
-} 
+}
 void ExecuteBuffers::InitFramesSet(mfxMemId curr, bool bExternal, mfxMemId rec, mfxMemId ref_0,mfxMemId ref_1)
 {
 
@@ -424,7 +427,7 @@ static int32_t QuantToScaleCode(int32_t quant_value, int32_t q_scale_type)
             return 8 + (quant_value - 8)/2;
         else if (quant_value <= 56)
             return 16 + (quant_value - 24)/4;
-        else 
+        else
             return 24 + (quant_value - 56)/8;
     }
 }
@@ -433,7 +436,7 @@ mfxStatus ExecuteBuffers::InitSliceParameters(mfxU8 qp, mfxU16 scale_type, mfxU8
 {
     if (m_pps.NumSlice > m_nSlices)
         return MFX_ERR_UNSUPPORTED;
-    
+
     mfxU8  intra = (m_pps.picture_coding_type == CODING_TYPE_I)? 1:0;
     mfxU16 numMBSlice = (mfxU16)((m_sps.FrameWidth +15)>>4);
 
@@ -446,14 +449,14 @@ mfxStatus ExecuteBuffers::InitSliceParameters(mfxU8 qp, mfxU16 scale_type, mfxU8
             m_mbqp_data[i] = (uint8_t)QuantToScaleCode(mbqp[i], scale_type);
         }
     }
-   
+
     for (int i=0; i<(int)m_pps.NumSlice; i++)
     {
         ENCODE_SET_SLICE_HEADER_MPEG2*  pDDISlice = &m_pSlice[i];
         pDDISlice->FirstMbX                       = 0;
         pDDISlice->FirstMbY                       = (mfxU16)i;
         pDDISlice->NumMbsForSlice                 = numMBSlice;
-        pDDISlice->IntraSlice                     = intra; 
+        pDDISlice->IntraSlice                     = intra;
         pDDISlice->quantiser_scale_code           = isMBQP ? mbqp[i*numMBSlice] : qp;
         //pDDISlice->quantiser_scale_code           = qp;
     }
@@ -471,7 +474,7 @@ namespace MfxHwMpeg2Encode
         static const mfxF64 ratetab[8]=
         {24000.0/1001.0,24.0,25.0,30000.0/1001.0,30.0,50.0,60000.0/1001.0,60.0};
 
-        const mfxI32 sorted_ratio[][2] = 
+        const mfxI32 sorted_ratio[][2] =
         {
             {1,32},{1,31},{1,30},{1,29},{1,28},{1,27},{1,26},{1,25},{1,24},{1,23},{1,22},{1,21},{1,20},{1,19},{1,18},{1,17},
             {1,16},{2,31},{1,15},{2,29},{1,14},{2,27},{1,13},{2,25},{1,12},{2,23},{1,11},{3,32},{2,21},{3,31},{1,10},{3,29},
@@ -487,21 +490,21 @@ namespace MfxHwMpeg2Encode
         if (!FrameRateExtD || !FrameRateExtN)
         {
             return false;
-        } 
+        }
 
         mfxF64    new_fr = (mfxF64)FrameRateExtN/(mfxF64)FrameRateExtD;
         mfxI32    i=0, j=0, besti=0, bestj=0;
         mfxF64    ratio=0.0, bestratio = 1.5;
         mfxI32    fr1001 = (int32_t)(new_fr*1001+.5);
 
-        frame_rate_code = 5;       
+        frame_rate_code = 5;
         frame_rate_extension_n = 0;
         frame_rate_extension_d = 0;
 
-        for(j=0;j<rtsize;j++) 
+        for(j=0;j<rtsize;j++)
         {
             int32_t try1001 = (int32_t)(ratetab[j]*1001+.5);
-            if(fr1001 == try1001) 
+            if(fr1001 == try1001)
             {
                 frame_rate_code = j+1;
                 return true;
@@ -510,34 +513,34 @@ namespace MfxHwMpeg2Encode
         if(new_fr < ratetab[0]/sorted_ratio[0][1]*0.7)
             return false;
 
-        for(j=0;j<rtsize;j++) 
+        for(j=0;j<rtsize;j++)
         {
             ratio = ratetab[j] - new_fr; // just difference here
-            if(ratio < 0.0001 && ratio > -0.0001) 
+            if(ratio < 0.0001 && ratio > -0.0001)
             { // was checked above with bigger range
                 frame_rate_code = j+1;
                 frame_rate_extension_n = frame_rate_extension_d = 0;
                 return true;
             }
-            
-            for(i=0;i<srsize+1;i++) 
+
+            for(i=0;i<srsize+1;i++)
             { // +1 because we want to analyze last point as well
-                if((i<srsize)? (ratetab[j]*sorted_ratio[i][0] > new_fr*sorted_ratio[i][1]) : true) 
+                if((i<srsize)? (ratetab[j]*sorted_ratio[i][0] > new_fr*sorted_ratio[i][1]) : true)
                 {
-                    if(i>0) 
+                    if(i>0)
                     {
                         ratio = ratetab[j]*sorted_ratio[i-1][0] / (new_fr*sorted_ratio[i-1][1]); // up to 1
-                        if(1/ratio < bestratio) 
+                        if(1/ratio < bestratio)
                         {
                             besti = i-1;
                             bestj = j;
                             bestratio = 1/ratio;
                         }
                     }
-                    if(i<srsize) 
+                    if(i<srsize)
                     {
                         ratio = ratetab[j]*sorted_ratio[i][0] / (new_fr*sorted_ratio[i][1]); // down to 1
-                        if(ratio < bestratio) 
+                        if(ratio < bestratio)
                         {
                             besti = i;
                             bestj = j;

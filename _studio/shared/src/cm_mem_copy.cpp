@@ -22,6 +22,8 @@
 
 #include "cm_mem_copy.h"
 
+#include "mfx_common_int.h"
+
 typedef const mfxU8 mfxUC8;
 
 #define ALIGN128(X) (((mfxU32)((X)+127)) & (~ (mfxU32)127))
@@ -80,6 +82,7 @@ CmCopyWrapper::CmCopyWrapper()
 
     m_surfacesInCreationOrder.clear();
     m_buffersInCreationOrder.clear();
+    m_timeout = 0;
 } // CmCopyWrapper::CmCopyWrapper(void)
 CmCopyWrapper::~CmCopyWrapper(void)
 {
@@ -142,9 +145,9 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -170,14 +173,14 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -196,7 +199,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -212,17 +215,16 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows;
 
     pLinearAddress  = (size_t)pSysMem;
-    
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -239,7 +241,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         CHECK_CM_HR(hr);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceCopy_readswap_32x32), m_pCmKernel);
@@ -304,14 +306,14 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            hr = pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -321,9 +323,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -483,14 +485,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            hr = pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -665,15 +667,14 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            hr = pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
-
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -849,15 +850,16 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            hr = pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
+
     return MFX_ERR_NONE;
 }
 
@@ -930,7 +932,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoGPU(   CmSurface2D* pSurfaceIn,
     CHECK_CM_HR(hr);
     hr = m_pCmDevice->DestroyKernel(m_pCmKernel);
     CHECK_CM_HR(hr);
-    hr = pInternalEvent->WaitForTaskFinished();
+    hr = pInternalEvent->WaitForTaskFinished(m_timeout);
     
     if(hr == CM_EXCEED_MAX_TIMEOUT)
         return MFX_ERR_GPU_HANG;
@@ -1012,7 +1014,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorGPUtoGPU(   CmSurface2D* pSurfaceIn,
     CHECK_CM_HR(hr);
     hr = m_pCmDevice->DestroyKernel(m_pCmKernel);
     CHECK_CM_HR(hr);
-    hr = pInternalEvent->WaitForTaskFinished();
+    hr = pInternalEvent->WaitForTaskFinished(m_timeout);
 
     if(hr == CM_EXCEED_MAX_TIMEOUT)
         return MFX_ERR_GPU_HANG;
@@ -1189,14 +1191,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -1369,13 +1371,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            hr = pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
-            CHECK_CM_HR(hr);
+            else
+                CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -1537,14 +1540,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -1713,14 +1716,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -1888,12 +1891,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
         }
         else //Last one event
         {
-            pInternalEvent->WaitForTaskFinished();
-
-            CHECK_CM_HR(hr);
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
+            if(hr == CM_EXCEED_MAX_TIMEOUT)
+                return MFX_ERR_GPU_HANG;
+            else
+                CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
 
     return MFX_ERR_NONE;
@@ -2056,15 +2061,16 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
         }
         else //Last one event, need keep or destroy it
         {
-            hr = pInternalEvent->WaitForTaskFinished();
+            hr = pInternalEvent->WaitForTaskFinished(m_timeout);
             if(hr == CM_EXCEED_MAX_TIMEOUT)
                 return MFX_ERR_GPU_HANG;
             else
                 CHECK_CM_HR(hr);
             hr = m_pCmQueue->DestroyEvent(pInternalEvent);
-            CHECK_CM_HR(hr);
         }
+        CHECK_CM_HR(hr);
     }
+
     return MFX_ERR_NONE;
 }
 mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
@@ -2076,13 +2082,12 @@ mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
         return MFX_ERR_DEVICE_FAILED;
 
     m_HWType = hwtype;
-
 #if defined (MFX_VA_LINUX)
     if (m_HWType == MFX_HW_UNKNOWN)  // sometimes linux don't know platform
         m_HWType = MFX_HW_IVB;
 #endif
 
-
+    m_timeout = CM_MAX_TIMEOUT_MS;
     if(hwtype >= MFX_HW_SCL)
         InitializeSwapKernels(hwtype);
     cmSts = m_pCmDevice->CreateQueue(m_pCmQueue);
@@ -2102,6 +2107,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
 
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
+
 
 
 
@@ -2250,7 +2256,7 @@ mfxStatus CmCopyWrapper::CopySystemToVideoMemoryAPI(void *pDst, mfxU32 dstPitch,
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopySystemToVideoMemoryAPI");
     cmStatus cmSts = 0;
 
-    CmEvent* e = (CmEvent*)(-1);//NULL;
+    CmEvent* e = NULL;
     //CM_STATUS sts;
     mfxStatus status = MFX_ERR_NONE;
 
@@ -2259,26 +2265,26 @@ mfxStatus CmCopyWrapper::CopySystemToVideoMemoryAPI(void *pDst, mfxU32 dstPitch,
 
      // create or find already associated cm surface 2d
     CmSurface2D *pCmSurface2D;
-    //m_pCmDevice->CreateSurface2D((AbstractSurfaceHandle*)pDst,pCmSurface2D);
+
     pCmSurface2D = CreateCmSurface2D(pDst, width, height, false, m_tableCmRelations2, m_tableCmIndex2);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
 
     cmSts = m_pCmQueue->EnqueueCopyCPUToGPUFullStride(pCmSurface2D, pSrc, srcPitch, srcUVOffset, 1, e);
 
-    if (CM_SUCCESS == cmSts )
+    if (CM_SUCCESS == cmSts)
     {
-        return status;
-    }
-    else if(cmSts == CM_EXCEED_MAX_TIMEOUT)
-    {
-        status = MFX_ERR_GPU_HANG;
+        cmSts = e->WaitForTaskFinished(m_timeout);
+        if(cmSts == CM_EXCEED_MAX_TIMEOUT)
+        {
+            status = MFX_ERR_GPU_HANG;
+        }
     }
     else
     {
         status = MFX_ERR_DEVICE_FAILED;
     }
-    //if(e) m_pCmQueue->DestroyEvent(e);
-    //m_pCmDevice->DestroySurface(pCmSurface2D);
+    m_pCmQueue->DestroyEvent(e);
+
     return status;
 }
 mfxStatus CmCopyWrapper::CopySystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
@@ -2383,7 +2389,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopyVideoToSystemMemoryAPI");
     cmStatus cmSts = 0;
-    CmEvent* e = (CmEvent*)-1;//NULL;
+    CmEvent* e = NULL;
     mfxStatus status = MFX_ERR_NONE;
     mfxU32 width  = roi.width;
     mfxU32 height = roi.height;
@@ -2392,18 +2398,21 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch
     pCmSurface2D = CreateCmSurface2D(pSrc, width, height, false, m_tableCmRelations2, m_tableCmIndex2);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
     
-    cmSts = m_pCmQueue->EnqueueCopyGPUToCPUFullStride(pCmSurface2D, pDst, dstPitch, dstUVOffset, 1, e);
+    cmSts = m_pCmQueue->EnqueueCopyGPUToCPUFullStride(pCmSurface2D, pDst, dstPitch, dstUVOffset, 0, e);
     
     if (CM_SUCCESS == cmSts)
     {
-        return status;
+        cmSts = e->WaitForTaskFinished(m_timeout);
+        if (cmSts == CM_EXCEED_MAX_TIMEOUT)
+        {
+            status = MFX_ERR_GPU_HANG;
+        }
     }
-    else if(cmSts == CM_EXCEED_MAX_TIMEOUT)
+    else
     {
-        status = MFX_ERR_GPU_HANG;
-    }else{
         status = MFX_ERR_DEVICE_FAILED;
     }
+    m_pCmQueue->DestroyEvent(e);
 
     return status;
 }
@@ -2505,7 +2514,7 @@ mfxStatus CmCopyWrapper::CopyVideoToVideoMemoryAPI(void *pDst, void *pSrc, mfxSi
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopyVideoToVideoMemoryAPI");
     cmStatus cmSts = 0;
 
-    CmEvent* e = (CmEvent*)-1;//NULL;
+    CmEvent* e = NULL;
     mfxStatus status = MFX_ERR_NONE;
 
     mfxU32 width  = roi.width;
@@ -2520,21 +2529,25 @@ mfxStatus CmCopyWrapper::CopyVideoToVideoMemoryAPI(void *pDst, void *pSrc, mfxSi
     pSrcCmSurface2D = CreateCmSurface2D(pSrc, width, height, false, m_tableCmRelations2, m_tableCmIndex2);
     CHECK_CM_NULL_PTR(pSrcCmSurface2D, MFX_ERR_DEVICE_FAILED);
 
+#ifdef CMAPIUPDATE
+    cmSts = m_pCmQueue->EnqueueCopyGPUToGPU(pDstCmSurface2D, pSrcCmSurface2D, 0, e);
+#else
     cmSts = m_pCmQueue->EnqueueCopyGPUToGPU(pDstCmSurface2D, pSrcCmSurface2D, e);
+#endif
 
     if (CM_SUCCESS == cmSts)
     {
-        return status;
-    }
-    else if(cmSts == CM_EXCEED_MAX_TIMEOUT)
-    {
-        status = MFX_ERR_GPU_HANG;
+        cmSts = e->WaitForTaskFinished(m_timeout);
+        if (cmSts == CM_EXCEED_MAX_TIMEOUT)
+        {
+            status = MFX_ERR_GPU_HANG;
+        }
     }
     else
     {
         status = MFX_ERR_DEVICE_FAILED;
     }
-
+    m_pCmQueue->DestroyEvent(e);
     return status;
 }
 mfxStatus CmCopyWrapper::CopySwapVideoToVideoMemory(void *pDst, void *pSrc, mfxSize roi, mfxU32 format)
@@ -2584,6 +2597,9 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
     mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
 
+    mfxU8* srcPtr = GetFramePointer(pSrc->Info.FourCC, pSrc->Data);
+    mfxU8* dstPtr = GetFramePointer(pDst->Info.FourCC, pDst->Data);
+
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
         if (pDst->Info.FourCC != MFX_FOURCC_YV12 && CM_SUPPORTED_COPY_SIZE(roi))
@@ -2591,7 +2607,7 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
             return true;
         }
     }
-    else if (NULL != pSrc->Data.MemId && NULL != pDst->Data.Y)
+    else if (NULL != pSrc->Data.MemId && NULL != dstPtr)
     {
         if (!CM_ALIGNED(pDst->Data.Pitch))
             return false;
@@ -2606,23 +2622,23 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
         {
             return true;
         }
-        else if((pDst->Info.FourCC == MFX_FOURCC_RGB4 || pDst->Info.FourCC == MFX_FOURCC_BGR4 || pDst->Info.FourCC == MFX_FOURCC_AYUV) && CM_ALIGNED(MFX_MIN(MFX_MIN(pDst->Data.R,pDst->Data.G),pDst->Data.B)) && CM_RGB_SUPPORTED_COPY_SIZE(roi)){
+        else if((pDst->Info.FourCC == MFX_FOURCC_RGB4 || pDst->Info.FourCC == MFX_FOURCC_BGR4) && CM_ALIGNED(MFX_MIN(MFX_MIN(pDst->Data.R,pDst->Data.G),pDst->Data.B)) && CM_RGB_SUPPORTED_COPY_SIZE(roi)){
             return true;
         }
         else if((pDst->Info.FourCC == MFX_FOURCC_ARGB16 || pDst->Info.FourCC == MFX_FOURCC_ABGR16) && CM_ALIGNED(MFX_MIN(MFX_MIN(pDst->Data.R,pDst->Data.G),pDst->Data.B)) && roi.height <= 10240 && roi.width <= 10240){
             return true;
         }
-        else if(pDst->Info.FourCC != MFX_FOURCC_YV12 && pDst->Info.FourCC != MFX_FOURCC_NV12 && pDst->Info.FourCC != MFX_FOURCC_P010 && pDst->Info.FourCC != MFX_FOURCC_A2RGB10 && pDst->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(pDst->Data.Y) && CM_SUPPORTED_COPY_SIZE(roi)){
+        else if(pDst->Info.FourCC != MFX_FOURCC_YV12 && pDst->Info.FourCC != MFX_FOURCC_NV12 && pDst->Info.FourCC != MFX_FOURCC_P010 && pDst->Info.FourCC != MFX_FOURCC_A2RGB10 && pDst->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(dstPtr) && CM_SUPPORTED_COPY_SIZE(roi)){
             return true;
         }
         else
             return false;
     }
-    else if (NULL != pSrc->Data.Y && NULL != pDst->Data.Y)
+    else if (NULL != srcPtr && NULL != dstPtr)
     {
         return false;
     }
-    else if (NULL != pSrc->Data.Y && NULL != pDst->Data.MemId)
+    else if (NULL != srcPtr && NULL != pDst->Data.MemId)
     {
         if (!CM_ALIGNED(pSrc->Data.Pitch))
             return false;
@@ -2645,7 +2661,7 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
         {
             return true;
         }
-        else if(pSrc->Info.FourCC != MFX_FOURCC_YV12 && pSrc->Info.FourCC != MFX_FOURCC_NV12 && pSrc->Info.FourCC != MFX_FOURCC_P010 && pSrc->Info.FourCC != MFX_FOURCC_A2RGB10 && pSrc->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(pSrc->Data.Y) && CM_SUPPORTED_COPY_SIZE(roi)){
+        else if(pSrc->Info.FourCC != MFX_FOURCC_YV12 && pSrc->Info.FourCC != MFX_FOURCC_NV12 && pSrc->Info.FourCC != MFX_FOURCC_P010 && pSrc->Info.FourCC != MFX_FOURCC_A2RGB10 && pSrc->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(srcPtr) && CM_SUPPORTED_COPY_SIZE(roi)){
             return true;
         }
     }
@@ -2689,7 +2705,9 @@ mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1
 
     mfxU32 dstPitch = pDst->Data.PitchLow + ((mfxU32)pDst->Data.PitchHigh << 16);
 
-    if (NULL != pSrc->Data.MemId && NULL != pDst->Data.Y)
+    mfxU8* dstPtr = GetFramePointer(pDst->Info.FourCC, pDst->Data);
+
+    if (NULL != pSrc->Data.MemId && NULL != dstPtr)
     {
         if (!CM_ALIGNED(pDst->Data.Pitch) )
             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -2739,9 +2757,9 @@ mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1
             sts = CopyVideoToSystemMemoryAPI(MFX_MIN(MFX_MIN(pDst->Data.R,pDst->Data.G),pDst->Data.B), pDst->Data.Pitch, (mfxU32)pSrc->Info.Height,pSrc->Data.MemId, 0, roi);
             return sts;
         }
-        else if (pDst->Info.FourCC != MFX_FOURCC_NV12 && pDst->Info.FourCC != MFX_FOURCC_YV12 && pDst->Info.FourCC != MFX_FOURCC_P010 && pDst->Info.FourCC != MFX_FOURCC_A2RGB10 && pDst->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(pDst->Data.Y) && CM_SUPPORTED_COPY_SIZE(roi))
+        else if (pDst->Info.FourCC != MFX_FOURCC_NV12 && pDst->Info.FourCC != MFX_FOURCC_YV12 && pDst->Info.FourCC != MFX_FOURCC_P010 && pDst->Info.FourCC != MFX_FOURCC_A2RGB10 && pDst->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(dstPtr) && CM_SUPPORTED_COPY_SIZE(roi))
         {
-            sts = CopyVideoToSystemMemoryAPI(pDst->Data.Y, pDst->Data.Pitch,(mfxU32)pDst->Info.Height, pSrc->Data.MemId, 0, roi);
+            sts = CopyVideoToSystemMemoryAPI(dstPtr, pDst->Data.Pitch,(mfxU32)pDst->Info.Height, pSrc->Data.MemId, 0, roi);
             return sts;
         }
     }
@@ -2754,13 +2772,15 @@ mfxStatus CmCopyWrapper::CopySysToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1
     mfxStatus sts = MFX_ERR_NONE;
     mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
 
+    mfxU8* srcPtr = GetFramePointer(pSrc->Info.FourCC, pSrc->Data);
+
     // check that region of interest is valid
     if (0 == roi.width || 0 == roi.height || m_HWType == MFX_HW_UNKNOWN)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    if (NULL != pSrc->Data.Y && NULL != pDst->Data.MemId)
+    if (NULL != srcPtr && NULL != pDst->Data.MemId)
     {
         if (!CM_ALIGNED(pSrc->Data.Pitch) )
             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -2807,11 +2827,11 @@ mfxStatus CmCopyWrapper::CopySysToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1
             sts = CopySystemToVideoMemoryAPI(pDst->Data.MemId, 0, MFX_MIN(MFX_MIN(pSrc->Data.R,pSrc->Data.G),pSrc->Data.B), pSrc->Data.Pitch, (mfxU32)pSrc->Info.Height, roi);
             return sts;
         }
-        else if(pSrc->Info.FourCC != MFX_FOURCC_YV12 && pSrc->Info.FourCC != MFX_FOURCC_NV12 && pSrc->Info.FourCC != MFX_FOURCC_P010  && pSrc->Info.FourCC != MFX_FOURCC_A2RGB10 && pSrc->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(pSrc->Data.Y) && CM_SUPPORTED_COPY_SIZE(roi)){
+        else if(pSrc->Info.FourCC != MFX_FOURCC_YV12 && pSrc->Info.FourCC != MFX_FOURCC_NV12 && pSrc->Info.FourCC != MFX_FOURCC_P010  && pSrc->Info.FourCC != MFX_FOURCC_A2RGB10 && pSrc->Info.FourCC != MFX_FOURCC_UYVY && CM_ALIGNED(srcPtr) && CM_SUPPORTED_COPY_SIZE(roi)){
             if(pSrc->Info.FourCC == MFX_FOURCC_R16 && m_HWType >= MFX_HW_SCL)
-                sts = CopySystemToVideoMemory(pDst->Data.MemId, 0, pSrc->Data.Y, pSrc->Data.Pitch, (mfxU32)pSrc->Info.Height, roi, MFX_FOURCC_R16);
+                sts = CopySystemToVideoMemory(pDst->Data.MemId, 0, srcPtr, pSrc->Data.Pitch, (mfxU32)pSrc->Info.Height, roi, MFX_FOURCC_R16);
             else
-                sts = CopySystemToVideoMemoryAPI(pDst->Data.MemId, 0, pSrc->Data.Y, pSrc->Data.Pitch, (mfxU32)pDst->Info.Height, roi);
+                sts = CopySystemToVideoMemoryAPI(pDst->Data.MemId, 0, srcPtr, pSrc->Data.Pitch, (mfxU32)pDst->Info.Height, roi);
             return sts;
         }
     }

@@ -103,8 +103,14 @@ function( get_folder folder )
 endfunction()
 
 function( get_mfx_version mfx_version_major mfx_version_minor )
-  file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h major REGEX "#define MFX_VERSION_MAJOR")
-  file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h minor REGEX "#define MFX_VERSION_MINOR")
+  file(STRINGS $ENV{MFX_HOME}/api/include/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR")
+  if(major STREQUAL "") # old style version
+     file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h major REGEX "#define MFX_VERSION_MAJOR")
+  endif()
+  file(STRINGS $ENV{MFX_HOME}/api/include/mfxdefs.h minor REGEX "#define MFX_VERSION_MINOR")
+  if(minor STREQUAL "") # old style version
+     file(STRINGS $ENV{MFX_HOME}/api/include/mfxvideo.h minor REGEX "#define MFX_VERSION_MINOR")
+  endif()
   string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
   string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
   set(${mfx_version_major} ${major} PARENT_SCOPE)

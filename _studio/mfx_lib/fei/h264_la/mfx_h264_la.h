@@ -120,6 +120,7 @@ typedef struct
 typedef struct
 {
     mfxFrameSurface1* reordered_surface;
+    bool              bFrameLASubmitted;
     mfxFrameSurface1* output_surface;
     mfxENCOutput*     stat;
 }sAsyncParams;
@@ -226,7 +227,7 @@ public:
     virtual
     mfxStatus Close(void);
     virtual
-    mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEDICATED;}
+    mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_INTRA;}
 
     static 
     mfxStatus Query(VideoCORE*, mfxVideoParam *in, mfxVideoParam *out);
@@ -255,7 +256,7 @@ public:
     mfxStatus ResetTaskCounters();
     
     mfxStatus SubmitFrameLA(mfxFrameSurface1 *pInSurface);
-    mfxStatus QueryFrameLA (mfxENCOutput *out);
+    mfxStatus QueryFrameLA (mfxFrameSurface1 *pInSurface, mfxENCOutput *out);
 
 
 protected:

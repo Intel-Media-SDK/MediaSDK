@@ -198,6 +198,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         }
         else
             return MFX_ERR_UNSUPPORTED;
+    case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
         nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
         break;
@@ -336,6 +337,14 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
         ptr->A = ptr->B + 3;
         ptr->PitchHigh = (mfxU16)((4*ALIGN32(fs->info.Width)) / (1 << 16));
         ptr->PitchLow  = (mfxU16)((4*ALIGN32(fs->info.Width)) % (1 << 16));
+        break;
+    case MFX_FOURCC_BGR4:
+        ptr->R = sptr;
+        ptr->G = ptr->R + 1;
+        ptr->B = ptr->R + 2;
+        ptr->A = ptr->R + 3;
+        ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
+        ptr->PitchLow = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
         break;
     case MFX_FOURCC_A2RGB10:
         ptr->R = ptr->G = ptr->B = ptr->A = sptr;

@@ -664,6 +664,10 @@ bool CheckVersion(mfxVersion* version, msdkAPIFeature feature);
 
 void ConfigureAspectRatioConversion(mfxInfoVPP* pVppInfo);
 
+void SEICalcSizeType(std::vector<mfxU8>& data, mfxU16 type, mfxU32 size);
+
+mfxU8 Char2Hex(msdk_char ch);
+
 enum MsdkTraceLevel {
     MSDK_TRACE_LEVEL_SILENT = -1,
     MSDK_TRACE_LEVEL_CRITICAL = 0,

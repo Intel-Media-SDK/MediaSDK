@@ -272,7 +272,7 @@ namespace MfxHwH264Encode
     PairU8 ExtendFrameType(
         mfxU32 type);
 
-    mfxU32 CalcTemporalLayerIndex(
+    mfxU8 CalcTemporalLayerIndex(
         MfxVideoParam const & video,
         mfxI32                frameOrder);
 
@@ -380,13 +380,15 @@ namespace MfxHwH264Encode
         MfxFrameAllocResponse & pool,
         mfxMemId                mid);
 
+    // add hwType param
     mfxStatus CheckEncodeFrameParam(
         MfxVideoParam const & video,
         mfxEncodeCtrl *       ctrl,
         mfxFrameSurface1 *    surface,
         mfxBitstream *        bs,
         bool                  isExternalFrameAllocator,
-        ENCODE_CAPS const &   caps);
+        ENCODE_CAPS const &   caps,
+        eMFXHWType            hwType = MFX_HW_UNKNOWN);
 
     template<typename T> void Clear(std::vector<T> & v)
     {
@@ -684,7 +686,7 @@ namespace MfxHwH264Encode
         PairU16 m_picStruct;
         mfxU32  m_extFrameTag;
         mfxU32  m_tid;              // temporal_id
-        mfxU32  m_tidx;             // temporal layer index (in acsending order of temporal_id)
+        mfxU8  m_tidx;             // temporal layer index (in acsending order of temporal_id)
         mfxU8   m_panicMode;
     };
 
@@ -731,6 +733,8 @@ namespace MfxHwH264Encode
         mfxU8   m_longTermIdxPlus1;
         mfxU8   m_longterm; // at least one field is a long term reference
         mfxU8   m_refBase;
+
+        mfxU8   m_PIFieldFlag; // for P/I field pair
 
         mfxMemId        m_midRec;
         CmSurface2D *   m_cmRaw;
@@ -922,6 +926,7 @@ namespace MfxHwH264Encode
             , m_cmHistSys(0)
             , m_isENCPAK(false)
             , m_startTime(0)
+            , m_hwType(MFX_HW_UNKNOWN)
         {
             Zero(m_ctrl);
             Zero(m_internalListCtrl);
@@ -1112,6 +1117,7 @@ namespace MfxHwH264Encode
         std::vector<SliceStructInfo> m_SliceInfo;
 
         mfxU32 m_startTime;
+        eMFXHWType m_hwType;  // keep HW type information
     };
 
     typedef std::list<DdiTask>::iterator DdiTaskIter;
@@ -1283,86 +1289,7 @@ namespace MfxHwH264Encode
         mfxU32 m_lookAhead;
     };
 
-    class AVGBitrate
-    {
-    public:
-        AVGBitrate(mfxU32 windowSize, mfxU32 maxBitLimitPerFrame):
-            m_maxBitLimit(maxBitLimitPerFrame*windowSize),
-            m_currPosInWindow(0),
-            m_MaxBitReal(0),
-            m_MaxBitLimit_strong(0),
-            m_lastFrameOrder(0)
-        {
-            mfxU32 minFrameSize = maxBitLimitPerFrame / 10;
-            m_slidingWindow.resize(windowSize);
-            for (mfxU32 i = 0; i < windowSize; i++)
-            {
-                m_slidingWindow[i] = minFrameSize;
-            }
-            m_MaxBitLimit_strong = m_maxBitLimit - minFrameSize;
-        }
-        virtual ~AVGBitrate()
-        {
-            //printf("------------ AVG Bitrate: %d ( %d), NumberOfErrors %d\n", m_MaxBitReal, m_MaxBitReal_temp, m_NumberOfErrors);
-        }
-        void UpdateSlidingWindow(mfxU32  sizeInBits, mfxU32  FrameOrder)
-        {
-            if (FrameOrder != m_lastFrameOrder)
-            {
-                m_lastFrameOrder = FrameOrder;
-                m_currPosInWindow = (m_currPosInWindow + 1) % m_slidingWindow.size();
-            }
-            m_slidingWindow[m_currPosInWindow] = sizeInBits;
-        }
-        mfxI32 GetBudget(mfxU32 numFrames)
-        {
-            //printf("GetBudget: num %d sum %d (in %d frames), buget in bits %d\n",numFrames, GetLastFrameBits(m_slidingWindow.size() - numFrames), m_slidingWindow.size() - numFrames, m_maxBitLimit - GetLastFrameBits(m_slidingWindow.size() - numFrames));
-            return ((mfxI32)m_maxBitLimit - (mfxI32)GetLastFrameBits((mfxU32)m_slidingWindow.size() - numFrames));
-        }
-        bool CheckBitrate(bool bStrong)
-        {
-            mfxU32 numBits = GetLastFrameBits((mfxU32)m_slidingWindow.size());
-            //printf("AvgBitrate, num bits in window %d\n", numBits);
-            if ( numBits < (bStrong ? m_MaxBitLimit_strong : m_maxBitLimit))
-            {
-                m_MaxBitReal = m_MaxBitReal <  numBits ? numBits : m_MaxBitReal;
-                return true;
-            }
-            else
-            {
-                 return false;
-            }
-        }
-        mfxU32 GetWindowSize()
-        {
-            return (mfxU32)m_slidingWindow.size();
-        }
 
-
-
-
-    protected:
-
-        mfxU32                      m_maxBitLimit;
-        mfxU32                      m_currPosInWindow;
-        mfxU32                      m_MaxBitReal;
-        mfxU32                      m_MaxBitLimit_strong;
-        mfxU32                      m_lastFrameOrder;
-        std::vector<mfxU32>         m_slidingWindow;
-
-
-        mfxU32 GetLastFrameBits(mfxU32 numFrames)
-        {
-            mfxU32 size = 0;
-            numFrames = numFrames < m_slidingWindow.size() ? numFrames : (mfxU32)m_slidingWindow.size() ;
-            for(mfxU32 i = 0; i < numFrames; i ++)
-            {
-                size += m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ];
-                //printf("GetLastFrames: %d) %d sum %d\n",i,m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ], size);
-            }
-            return size;
-        }
-    };
 
     class LookAheadBrc2 : public BrcIface
     {

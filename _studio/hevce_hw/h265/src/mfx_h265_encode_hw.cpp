@@ -17,7 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#include "mfx_config.h"
+#include "mfx_common.h"
+
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "mfx_h265_encode_hw.h"
 #include <assert.h>
@@ -100,7 +101,7 @@ mfxU16 MaxRec(MfxVideoParam const & par)
 
 mfxU16 MaxRaw(MfxVideoParam const & par)
 {
-    return par.AsyncDepth + par.mfx.GopRefDist -1  + par.RawRef * par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
+    return par.AsyncDepth + (par.mfx.GopRefDist -1)*(par.isField() ? 2 : 1)  + par.RawRef * par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
 }
 
 mfxU16 MaxBs(MfxVideoParam const & par)
@@ -138,7 +139,7 @@ mfxU32 GetMinBsSize(MfxVideoParam const & par)
 }
 mfxU16 MaxTask(MfxVideoParam const & par)
 {
-    return par.AsyncDepth + par.mfx.GopRefDist - 1 + ((par.AsyncDepth > 1)? 1: 0);
+    return par.AsyncDepth + (par.mfx.GopRefDist - 1)*(par.isField() ? 2 : 1) + ((par.AsyncDepth > 1)? 1: 0);
 }
 
 
@@ -248,6 +249,10 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
 
     SetDefaults(m_vpar, m_caps);
 
+    m_vpar.bMBQPInput = IsOn(m_vpar.m_ext.CO3.EnableMBQP) &&
+        (m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CQP);
+
+
     m_vpar.SyncCalculableToVideoParam();
 
     if (!pSPSPPS || !pSPSPPS->SPSBuffer)
@@ -332,7 +337,7 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
     sts = m_ddi->Register(m_bs, D3DDDIFMT_INTELENCODE_BITSTREAMDATA);
     MFX_CHECK_STS(sts);
 
-    m_task.Reset(MaxTask(m_vpar));
+    m_task.Reset(m_vpar.isField(), MaxTask(m_vpar));
 
     Fill(m_lastTask, IDX_INVALID);
 
@@ -343,7 +348,7 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
     m_brc = CreateBrc(m_vpar);
     if (m_brc)
     {
-        sts = m_brc->Init(m_vpar, m_vpar.InsertHRDInfo);
+        sts = m_brc->Init(m_vpar, m_vpar.HRDConformance);
         MFX_CHECK_STS(sts);
     }
 
@@ -458,7 +463,7 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
         out->mfx.FrameInfo.AspectRatioW  = 1;
         out->mfx.FrameInfo.AspectRatioH  = 1;
         out->mfx.FrameInfo.ChromaFormat  = 1;
-        //out->mfx.FrameInfo.PicStruct     = 1;
+        out->mfx.FrameInfo.PicStruct     = 1;
     }
     else
     {
@@ -606,7 +611,7 @@ mfxStatus   Plugin::WaitingForAsyncTasks(bool bResetTasks)
     }
 
 
-    m_task.Reset();
+    m_task.Reset(m_vpar.isField());
 
     m_raw.Unlock();
     m_rawSkip.Unlock();
@@ -772,7 +777,7 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     }
 
     if (!Equal(m_vpar.m_pps, parNew.m_pps))
-        m_task.Reset(0, (mfxU16)INSERT_PPS);
+        m_task.Reset(parNew.isField(), 0, (mfxU16)INSERT_PPS);
 
     m_vpar = parNew;
 
@@ -879,7 +884,7 @@ mfxStatus Plugin::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surfa
 
     if (surface!=0)
     {
-        mfxI32 numBuff = (!m_vpar.mfx.EncodedOrder) ? m_vpar.mfx.GopRefDist- 1 : 0;
+        mfxI32 numBuff = (!m_vpar.mfx.EncodedOrder) ? (m_vpar.mfx.GopRefDist- 1)*(m_vpar.isField()?2:1): 0;
         mfxI32 asyncDepth = (m_vpar.AsyncDepth > 1) ? 1 : 0;
         if ((mfxI32)m_numBuffered < numBuff + asyncDepth)
         {
@@ -904,6 +909,9 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
         {
             task->m_frameType = task->m_ctrl.FrameType;
             m_frameOrder = task->m_surf->Data.FrameOrder;
+            MFX_CHECK((mfxI32)(m_frameOrder - (m_lastTask.m_eo + 1)) <= (m_vpar.mfx.GopRefDist - 1)* (m_vpar.isField() ? 2 : 1), MFX_ERR_UNDEFINED_BEHAVIOR);
+            if (!isValid(m_lastTask.m_dpb[1][0]))
+                MFX_CHECK(task->m_frameType & MFX_FRAMETYPE_IDR, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             if (m_brc && m_brc->IsVMEBRC())
             {
@@ -925,7 +933,7 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
         }
         else
         {
-            task->m_frameType = GetFrameType(m_vpar, m_frameOrder - m_lastIDR);
+            task->m_frameType = GetFrameType(m_vpar, (m_vpar.isField() ?  (m_lastIDR %2) : 0) + m_frameOrder - m_lastIDR);
             if (task->m_ctrl.FrameType & MFX_FRAMETYPE_IDR)
                 task->m_frameType = MFX_FRAMETYPE_I|MFX_FRAMETYPE_REF|MFX_FRAMETYPE_IDR;
         }
@@ -936,6 +944,14 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
         task->m_poc = m_frameOrder - m_lastIDR;
         task->m_fo =  m_frameOrder;
         task->m_bpo = (mfxU32)MFX_FRAMEORDER_UNKNOWN;
+        task->m_secondField = m_vpar.isField() ? (!!(task->m_fo & 1)) : false;
+        task->m_bottomField = false;
+
+        if (m_vpar.isField())
+            task->m_bottomField = (task->m_surf->Info.PicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) == 0 ?
+                (m_vpar.isBFF() != task->m_secondField) :
+                (task->m_surf->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF) != 0;
+
 
         m_frameOrder ++;
         task->m_stage = FRAME_ACCEPTED;
@@ -965,6 +981,8 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
         MFX_CHECK(task->m_midRec && task->m_midBs, MFX_ERR_UNDEFINED_BEHAVIOR);  
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
+
+        m_task.SaveFieldInfo(task);
         m_lastTask = *task;
         m_task.Submit(task);
     }
@@ -1112,7 +1130,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
             mfxFrameData codedFrame = {};
             mfxU32 bytesAvailable = bs->MaxLength - bs->DataOffset - bs->DataLength;
             mfxU32 bytes2copy     = taskForQuery->m_bsDataLength;
-            mfxI32 dpbOutputDelay = taskForQuery->m_fo +  GetNumReorderFrames(m_vpar.mfx.GopRefDist-1,m_vpar.isBPyramid()) - taskForQuery->m_eo;
+            mfxI32 dpbOutputDelay = taskForQuery->m_fo +  GetNumReorderFrames(m_vpar.mfx.GopRefDist-1,m_vpar.isBPyramid(), m_vpar.isField()) - taskForQuery->m_eo;
             mfxU8* bsData         = bs->Data + bs->DataOffset + bs->DataLength;
             mfxU32* pDataLength   = &bs->DataLength;
 
@@ -1156,7 +1174,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
 
             bs->TimeStamp       = taskForQuery->m_surf->Data.TimeStamp;
             bs->DecodeTimeStamp = CalcDTSFromPTS(this->m_vpar.mfx.FrameInfo, (mfxU16)dpbOutputDelay, bs->TimeStamp);
-            bs->PicStruct       = MFX_PICSTRUCT_PROGRESSIVE;
+            bs->PicStruct       = taskForQuery->m_surf->Info.PicStruct;
             bs->FrameType       = taskForQuery->m_frameType;
 
             if (taskForQuery->m_ldb)

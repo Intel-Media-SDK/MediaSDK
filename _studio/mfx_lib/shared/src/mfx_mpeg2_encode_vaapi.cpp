@@ -357,16 +357,17 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
     , m_codedbufISize(0)
     , m_codedbufPBSize(0)
     , m_pMiscParamsFps(0)
-    , m_pMiscParamsPrivate(0)
+    , m_pMiscParamsQuality(0)
     , m_pMiscParamsSeqInfo(0)
     , m_pMiscParamsSkipFrame(0)
     , m_miscParamFpsId(VA_INVALID_ID)
-    , m_miscParamPrivateId(VA_INVALID_ID)
+    , m_miscParamQualityId(VA_INVALID_ID)
     , m_miscParamSeqInfoId(VA_INVALID_ID)
     , m_miscParamSkipFrameId(VA_INVALID_ID)
     , m_packedUserDataParamsId(VA_INVALID_ID)
     , m_packedUserDataId(VA_INVALID_ID)
     , m_mbqpBufferId(VA_INVALID_ID)
+    , m_miscQualityParamId(VA_INVALID_ID)
     , m_vbvBufSize(0)
     , m_initFrameWidth(0)
     , m_initFrameHeight(0)
@@ -401,42 +402,19 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
 
     memset(&caps, 0, sizeof(caps));
 
-    caps.EncodeFunc       = 1;
-    caps.BRCReset         = 1; // no bitrate resolution control
-    caps.VCMBitrateControl = 0; //Video conference mode
-    caps.HeaderInsertion  = 0; // we will privide headers (SPS, PPS) in binary format to the driver
-    caps.MbQpDataSupport = 1;
-    caps.SkipFrame = 1;
+    caps.EncodeFunc        = 1;
+    caps.BRCReset          = 1; // No bitrate resolution control
+    caps.VCMBitrateControl = 0; // Video conference mode
+    caps.HeaderInsertion   = 0; // We will provide headers (SPS, PPS) in binary format to the driver
+    caps.MbQpDataSupport   = 1;
+    caps.SkipFrame         = 1;
 
-    VAStatus vaSts;
-    vaExtQueryEncCapabilities pfnVaExtQueryCaps = NULL;
-    pfnVaExtQueryCaps = (vaExtQueryEncCapabilities)vaGetLibFunc(m_vaDisplay,VPG_EXT_QUERY_ENC_CAPS);
-    if (pfnVaExtQueryCaps)
-    {
-        VAEncQueryCapabilities VaEncCaps;
-        memset(&VaEncCaps, 0, sizeof(VaEncCaps));
-        VaEncCaps.size = sizeof(VAEncQueryCapabilities);
-        vaSts = pfnVaExtQueryCaps(m_vaDisplay, VAProfileMPEG2Main, &VaEncCaps);
-        if (vaSts == VA_STATUS_ERROR_UNSUPPORTED_PROFILE)
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-        caps.MaxPicWidth  = VaEncCaps.MaxPicWidth;
-        caps.MaxPicHeight = VaEncCaps.MaxPicHeight;
-        caps.SliceStructure = VaEncCaps.EncLimits.bits.SliceStructure;
-        caps.NoInterlacedField = VaEncCaps.EncLimits.bits.NoInterlacedField;
-        caps.MaxNum_Reference = VaEncCaps.MaxNum_ReferenceL0;
-        caps.MaxNum_Reference1 = VaEncCaps.MaxNum_ReferenceL1;
-    }
-    else
-    {
-        caps.SliceIPBOnly     = 1;
-        caps.MaxNum_Reference = 1;
-        caps.MaxPicWidth      = 1920;
-        caps.MaxPicHeight     = 1088;
-        caps.NoInterlacedField = 0; // enable interlaced encoding
-        caps.SliceStructure   = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
-    }
+    caps.SliceIPBOnly      = 1;
+    caps.MaxNum_Reference  = 1;
+    caps.MaxPicWidth       = 1920;
+    caps.MaxPicHeight      = 1088;
+    caps.NoInterlacedField = 0; // Enable interlaced encoding
+    caps.SliceStructure    = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
 
 
     return MFX_ERR_NONE;
@@ -459,9 +437,9 @@ mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrame
     Zero((VAEncMiscParameterFrameRate &)m_pMiscParamsFps->data);
     m_pMiscParamsFps->type = VAEncMiscParameterTypeFrameRate;
 
-    m_pMiscParamsPrivate = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterPrivate) + sizeof(VAEncMiscParameterBuffer)];
-    Zero((VAEncMiscParameterPrivate &)m_pMiscParamsPrivate->data);
-    m_pMiscParamsPrivate->type = (VAEncMiscParameterType)VAEncMiscParameterTypePrivate;
+    m_pMiscParamsQuality = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterEncQuality) + sizeof(VAEncMiscParameterBuffer)];
+    Zero((VAEncMiscParameterEncQuality &)m_pMiscParamsQuality->data);
+    m_pMiscParamsQuality->type = (VAEncMiscParameterType)VAEncMiscParameterTypeEncQuality;
 
     m_pMiscParamsSeqInfo = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterExtensionDataSeqDisplayMPEG2) + sizeof(VAEncMiscParameterBuffer)];
     Zero((VAEncMiscParameterExtensionDataSeqDisplayMPEG2 &)m_pMiscParamsSeqInfo->data);
@@ -955,19 +933,14 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
 
 mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
 {
-    VAEncMiscParameterFrameRate & miscFps      = (VAEncMiscParameterFrameRate &)m_pMiscParamsFps->data;
-    VAEncMiscParameterPrivate   & miscPrivate  = (VAEncMiscParameterPrivate &)m_pMiscParamsPrivate->data;
+    VAEncMiscParameterFrameRate  & miscFps      = (VAEncMiscParameterFrameRate  &)m_pMiscParamsFps->data;
+    VAEncMiscParameterEncQuality & miscQuality  = (VAEncMiscParameterEncQuality &)m_pMiscParamsQuality->data;
 
     VAStatus                      vaSts;
 
-    miscFps.framerate            = m_vaSpsBuf.frame_rate * 100; // TODO: fixme
-    unsigned int tu = pExecuteBuffers->m_sps.TargetUsage;
-    if (tu == 0)
-        tu = 3;
+    miscFps.framerate            = (pExecuteBuffers->m_FrameRateExtD << 16 )| pExecuteBuffers->m_FrameRateExtN;
 
-    miscPrivate.target_usage     = tu;
-
-    miscPrivate.PanicModeDisable = pExecuteBuffers->m_bDisablePanicMode ? 1 : 0;
+    miscQuality.PanicModeDisable = pExecuteBuffers->m_bDisablePanicMode ? 1 : 0;
 
     MFX_DESTROY_VABUFFER(m_miscParamFpsId, m_vaDisplay);
     vaSts = vaCreateBuffer(m_vaDisplay,
@@ -979,18 +952,53 @@ mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
         &m_miscParamFpsId);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    MFX_DESTROY_VABUFFER(m_miscParamPrivateId, m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_miscParamQualityId, m_vaDisplay);
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncMiscParameterBufferType,
-        sizeof(VAEncMiscParameterPrivate) + sizeof(VAEncMiscParameterBuffer),
+        sizeof(VAEncMiscParameterEncQuality) + sizeof(VAEncMiscParameterBuffer),
         1,
-        m_pMiscParamsPrivate,
-        &m_miscParamPrivateId);
+        m_pMiscParamsQuality,
+        &m_miscParamQualityId);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
-}
+} // mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
+
+mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
+{
+    VAStatus vaSts;
+    VAEncMiscParameterBuffer *misc_param;
+    VAEncMiscParameterBufferQualityLevel *quality_param;
+
+    MFX_DESTROY_VABUFFER(m_miscQualityParamId, m_vaDisplay);
+    vaSts = vaCreateBuffer(m_vaDisplay,
+                   m_vaContextEncode,
+                   VAEncMiscParameterBufferType,
+                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterBufferQualityLevel),
+                   1,
+                   NULL,
+                   &m_miscQualityParamId);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    vaSts = vaMapBuffer(m_vaDisplay,
+                 m_miscQualityParamId,
+                (void **)&misc_param);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    misc_param->type = (VAEncMiscParameterType)VAEncMiscParameterTypeQualityLevel;
+    quality_param = (VAEncMiscParameterBufferQualityLevel *)misc_param->data;
+
+    unsigned int tu = pExecuteBuffers->m_sps.TargetUsage;
+    if (tu == 0)
+        tu = 3;
+
+    quality_param->quality_level = tu;
+
+    vaUnmapBuffer(m_vaDisplay, m_miscQualityParamId);
+
+    return MFX_ERR_NONE;
+} // mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
 
 mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
 {
@@ -1020,7 +1028,7 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
-} // mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
+} // mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
 
 
 mfxStatus VAAPIEncoder::FillVideoSignalInfoBuffer(ExecuteBuffers* pExecuteBuffers)
@@ -1104,7 +1112,7 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
 
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
-        (VABufferType)VAEncQpBufferType,
+        (VABufferType)VAEncQPBufferType,
         bufW,
         bufH,//m_mbqpDataBuffer.size(),
         &m_mbqpDataBuffer[0],
@@ -1222,6 +1230,9 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     mfxSts = FillMiscParameterBuffer(pExecuteBuffers);
     MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
+    mfxSts = FillQualityLevelBuffer(pExecuteBuffers);
+    MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+
     if (pExecuteBuffers->m_SkipFrame && (pExecuteBuffers->m_pps.picture_coding_type == CODING_TYPE_B))
     {
         mfxSts = FillSkipFrameBuffer(pExecuteBuffers->m_SkipFrame);
@@ -1255,8 +1266,11 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     if (m_miscParamFpsId != VA_INVALID_ID)
         configBuffers[buffersCount++] = m_miscParamFpsId;
 
-    if (m_miscParamPrivateId != VA_INVALID_ID)
-        configBuffers[buffersCount++] = m_miscParamPrivateId;
+    if (m_miscParamQualityId != VA_INVALID_ID)
+        configBuffers[buffersCount++] = m_miscParamQualityId;
+
+    if (m_miscQualityParamId != VA_INVALID_ID)
+        configBuffers[buffersCount++] = m_miscQualityParamId;
 
     if (m_miscParamSkipFrameId != VA_INVALID_ID)
         configBuffers[buffersCount++] = m_miscParamSkipFrameId;
@@ -1444,28 +1458,29 @@ mfxStatus VAAPIEncoder::Close()
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Close");
     delete [] (mfxU8 *)m_pMiscParamsFps;
     m_pMiscParamsFps = 0;
-    delete [] (mfxU8 *)m_pMiscParamsPrivate;
-    m_pMiscParamsPrivate = 0;
+    delete [] (mfxU8 *)m_pMiscParamsQuality;
+    m_pMiscParamsQuality = 0;
     delete [] m_pMiscParamsSeqInfo;
     m_pMiscParamsSeqInfo = 0;
     delete [] m_pMiscParamsSkipFrame;
     m_pMiscParamsSkipFrame = 0;
 
     MFX_DESTROY_VABUFFER(m_spsBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_qmBufferId, m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_qmBufferId,  m_vaDisplay);
     MFX_DESTROY_VABUFFER(m_ppsBufferId, m_vaDisplay);
     for (mfxU32 i = 0; i < MAX_SLICES; i++)
     {
         MFX_DESTROY_VABUFFER(m_sliceParamBufferId[i], m_vaDisplay);
     }
 
-    MFX_DESTROY_VABUFFER(m_miscParamFpsId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_miscParamPrivateId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_miscParamSeqInfoId, m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_miscParamFpsId,       m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_miscParamQualityId,   m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_miscQualityParamId,   m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_miscParamSeqInfoId,   m_vaDisplay);
     MFX_DESTROY_VABUFFER(m_miscParamSkipFrameId, m_vaDisplay);
 
     MFX_DESTROY_VABUFFER(m_packedUserDataParamsId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedUserDataId, m_vaDisplay);
+    MFX_DESTROY_VABUFFER(m_packedUserDataId,       m_vaDisplay);
 
     MFX_DESTROY_VABUFFER(m_mbqpBufferId, m_vaDisplay);
 

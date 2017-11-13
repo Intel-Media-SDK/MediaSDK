@@ -58,6 +58,8 @@ if( Linux OR Darwin )
     endif()
   endif()
 
+  # Potential source of confusion here. Environment $MFX_VERSION translates to product name (strings libmfxhw64.so | grep mediasdk),
+  # but macro definition MFX_VERSION should contain API version i.e. 1025 for API 1.25
   if( NOT DEFINED ENV{MFX_VERSION} )
     set( version 0.0.000.0000 )
   else()
@@ -82,7 +84,12 @@ if( Linux OR Darwin )
     add_definitions( -DMSDK_BUILD=\"$ENV{BUILD_NUMBER}\")
   endif()
 
-  set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
+  if (CMAKE_C_COMPILER MATCHES icc)
+    set(no_warnings "-Wno-deprecated -Wno-unknown-pragmas -Wno-unused")
+  else()
+    set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
+  endif()
+
   set(CMAKE_C_FLAGS "-pipe -fPIC")
   set(CMAKE_CXX_FLAGS "-pipe -fPIC")
   append("-fPIE -pie" CMAKE_EXEC_LINKER_FLAGS)

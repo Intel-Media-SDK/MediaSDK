@@ -295,7 +295,7 @@ void PackerVA::CreateSliceParamBuffer(H265DecoderFrameInfo * sliceInfo)
     int32_t count = sliceInfo->GetSliceCount();
 
     UMCVACompBuffer *pSliceParamBuf;
-    size_t sizeOfStruct = m_va->IsLongSliceControl() ? sizeof(VASliceParameterBufferHEVC) : sizeof(VASliceParameterBufferBaseHEVC);
+    size_t sizeOfStruct = m_va->IsLongSliceControl() ? sizeof(VASliceParameterBufferHEVC) : sizeof(VASliceParameterBufferBase);
     m_va->GetCompBuffer(VASliceParameterBufferType, &pSliceParamBuf, sizeOfStruct*(count));
     if (!pSliceParamBuf)
         throw h265_exception(UMC_ERR_FAILED);
@@ -358,8 +358,8 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
     }
     else
     {
-        sliceParams = (VASliceParameterBufferHEVC*)((VASliceParameterBufferBaseHEVC*)sliceParams + sliceNum);
-        memset(sliceParams, 0, sizeof(VASliceParameterBufferBaseHEVC));
+        sliceParams = (VASliceParameterBufferHEVC*)((VASliceParameterBufferBase*)sliceParams + sliceNum);
+        memset(sliceParams, 0, sizeof(VASliceParameterBufferBase));
     }
 
     uint32_t  rawDataSize = 0;

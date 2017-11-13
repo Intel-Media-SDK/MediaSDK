@@ -392,9 +392,6 @@ H265DecoderFrame *H265DBPList::findLongTermRefPic(const H265DecoderFrame *exclud
         pCurr = pCurr->future();
     }
 
-    if (!correctPic)
-        correctPic = pStPic;
-
     return correctPic;
 } // findLongTermRefPic
 

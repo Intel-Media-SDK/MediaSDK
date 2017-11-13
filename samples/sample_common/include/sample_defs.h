@@ -90,6 +90,7 @@ enum LibVABackend
 #define MSDK_INVALID_SURF_IDX 0xFFFF
 
 #define MSDK_MAX_FILENAME_LEN 1024
+#define MSDK_MAX_USER_DATA_UNREG_SEI_LEN 80
 
 #define MSDK_PRINT_RET_MSG(ERR,MSG) {msdk_stringstream tmpStr1;tmpStr1<<std::endl<<"[ERROR], sts=" \
     <<StatusToString(ERR)<<"("<<ERR<<")"<<", "<<__FUNCTION__<<", "<<MSG<<" at "<<__FILE__<<":"<<__LINE__<<std::endl;msdk_err<<tmpStr1.str();}
@@ -113,6 +114,7 @@ enum LibVABackend
     MSDK_PRINT_RET_MSG(ERR, tmpStr3.str().c_str()); return ERR;}}
 
 #define MSDK_CHECK_STATUS(X, MSG)                {if ((X) < MFX_ERR_NONE) {MSDK_PRINT_RET_MSG(X, MSG); return X;}}
+#define MSDK_CHECK_STATUS_NO_RET(X, MSG)         {if ((X) < MFX_ERR_NONE) {MSDK_PRINT_RET_MSG(X, MSG);}}
 #define MSDK_CHECK_WRN(X, MSG)                   {if ((X) > MFX_ERR_NONE) {MSDK_PRINT_WRN_MSG(X, MSG);          }}
 #define MSDK_CHECK_PARSE_RESULT(P, X, ERR)       {if ((X) > (P)) {return ERR;}}
 

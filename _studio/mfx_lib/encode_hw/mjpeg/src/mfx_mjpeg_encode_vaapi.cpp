@@ -203,59 +203,37 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(JpegEncCaps & caps)
     }
 
     memset(&caps, 0, sizeof(caps));
-    caps.Baseline = 1;
-    caps.Sequential = 1;
-    caps.Huffman = 1;
+    caps.Baseline         = 1;
+    caps.Sequential       = 1;
+    caps.Huffman          = 1;
 
-    caps.NonInterleaved = 0;
-    caps.Interleaved = 1;
+    caps.NonInterleaved   = 0;
+    caps.Interleaved      = 1;
 
-    caps.SampleBitDepth = 8;
-    caps.MaxNumComponent = 3;
-    caps.MaxNumScan = 1;
-    caps.MaxNumHuffTable = 2;
+    caps.SampleBitDepth   = 8;
+    caps.MaxNumComponent  = 3;
+    caps.MaxNumScan       = 1;
+    caps.MaxNumHuffTable  = 2;
     caps.MaxNumQuantTable = 2;
 
     VAStatus vaSts;
-    vaExtQueryEncCapabilities pfnVaExtQueryCaps = NULL;
-    pfnVaExtQueryCaps = (vaExtQueryEncCapabilities)vaGetLibFunc(m_vaDisplay,VPG_EXT_QUERY_ENC_CAPS);
-    if (pfnVaExtQueryCaps)
-    {
-        VAEncQueryCapabilities VaEncCaps;
-        memset(&VaEncCaps, 0, sizeof(VaEncCaps));
-        VaEncCaps.size = sizeof(VAEncQueryCapabilities);
-        vaSts = pfnVaExtQueryCaps(m_vaDisplay, VAProfileJPEGBaseline, &VaEncCaps);
-        if (vaSts == VA_STATUS_ERROR_UNSUPPORTED_PROFILE)
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        caps.MaxPicWidth  = VaEncCaps.MaxPicWidth;
-        caps.MaxPicHeight = VaEncCaps.MaxPicHeight;
-    }
-    else
-    {
-#ifndef MFX_VAAPI_UPSTREAM
-        // Configuration
-        VAConfigAttrib attrib;
+    // Configuration
+    VAConfigAttrib attrib;
 
-        attrib.type = VAConfigAttribMaxPictureWidth;
-        vaSts = vaGetConfigAttributes(m_vaDisplay,
-                              VAProfileJPEGBaseline,
-                              VAEntrypointEncPicture,
-                              &attrib, 1);
-        caps.MaxPicWidth      = attrib.value;
+    attrib.type = VAConfigAttribMaxPictureWidth;
+    vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          VAProfileJPEGBaseline,
+                          VAEntrypointEncPicture,
+                          &attrib, 1);
+    caps.MaxPicWidth      = attrib.value;
 
-        attrib.type = VAConfigAttribMaxPictureHeight;
-        vaSts = vaGetConfigAttributes(m_vaDisplay,
-                              VAProfileJPEGBaseline,
-                              VAEntrypointEncPicture,
-                              &attrib, 1);
-        caps.MaxPicHeight     = attrib.value;
-#else
-        caps.MaxPicWidth  = 4096;
-        caps.MaxPicHeight = 4096;
-#endif
-    }
+    attrib.type = VAConfigAttribMaxPictureHeight;
+    vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          VAProfileJPEGBaseline,
+                          VAEntrypointEncPicture,
+                          &attrib, 1);
+    caps.MaxPicHeight     = attrib.value;
 
     return MFX_ERR_NONE;
 }

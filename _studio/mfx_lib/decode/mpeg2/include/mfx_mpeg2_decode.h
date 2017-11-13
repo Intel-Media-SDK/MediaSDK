@@ -313,6 +313,7 @@ public:
     mfxStatus Init(mfxVideoParam *par);
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close();
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) { return MFX_TASK_THREADING_INTRA; }
 
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);
 
