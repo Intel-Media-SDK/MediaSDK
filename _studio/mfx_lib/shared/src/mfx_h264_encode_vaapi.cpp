@@ -199,6 +199,12 @@ mfxStatus SetRateControl(
     if(par.calcParam.maxKbps)
         rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
 
+#if defined(LINUX_TARGET_PLATFORM_BXT)
+    // Activate frame tolerance sliding window mode
+    if (extOpt3->WinBRCSize) {
+        rate_param->rc_flags.bits.frame_tolerance_mode = 1;
+    }
+#endif  // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
 
 /*
  * MBBRC control
