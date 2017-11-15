@@ -53,7 +53,9 @@
     #endif
 #endif
 
-    #if defined(LINUX_TARGET_PLATFORM_BDW)    // PRE_SI_GEN == 9
+    #if defined(LINUX_TARGET_PLATFORM_BXT)    // PRE_SI_GEN == 9
+        #include "mfx_common_linux_bxt.h"
+    #elif defined(LINUX_TARGET_PLATFORM_BDW)    // PRE_SI_GEN == 9
         #include "mfx_common_linux_bdw.h"
     #else
         #error "Target platform should be specified!"

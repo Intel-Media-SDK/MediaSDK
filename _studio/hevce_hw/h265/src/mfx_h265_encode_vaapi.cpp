@@ -95,6 +95,12 @@ static mfxStatus SetROI(
         roi_Param->max_delta_qp = 51;
         roi_Param->min_delta_qp = -51;
 
+#if defined(LINUX_TARGET_PLATFORM_BXT)
+        roi_Param->roi_flags.bits.roi_value_is_qp_delta = 0;
+        if (task.m_roiMode == MFX_ROI_MODE_QP_DELTA) {
+            roi_Param->roi_flags.bits.roi_value_is_qp_delta = 1;
+        }
+#endif // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
     }
     vaUnmapBuffer(vaDisplay, roiParam_id);
 
