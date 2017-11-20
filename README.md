@@ -6,8 +6,8 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate
 
 # Important note
-The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel® Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). You need to download and install Intel Media Server Studio 2017 R3 _before_ you build Intel Media SDK.
-Intel Media SDK depends on a special version of [LibVA](https://www.freedesktop.org/wiki/Software/vaapi/) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads ).
+The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel® Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). Unfortunately no publicly avaliable driver compatible with this version Intel Media SDK.
+Intel Media SDK depends on a special version of [LibVA v2.0-branch-next](https://github.com/xhaihao/libva/tree/v2.0-branch-next) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads ).
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
