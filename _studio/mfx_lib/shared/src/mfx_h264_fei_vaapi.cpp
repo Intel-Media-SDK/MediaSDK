@@ -328,7 +328,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
 
     mfxStatus mfxSts = MFX_ERR_NONE;
     VAStatus  vaSts;
-    VAPictureFEI past_ref, future_ref;
+    VAPictureStats past_ref, future_ref;
     VASurfaceID *inputSurface = (VASurfaceID*) surface;
 
     std::vector<VABufferID> configBuffers(MAX_CONFIG_BUFFERS_COUNT + m_slice.size() * 2);
@@ -433,24 +433,24 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         mfxSts = m_core->GetExternalFrameHDL(feiCtrl->RefFrame[0]->Data.MemId, &handle);
         MFX_CHECK_STS(mfxSts);
 
-        VAPictureFEI* l0surfs = &past_ref;
+        VAPictureStats* l0surfs = &past_ref;
         l0surfs->picture_id = *(VASurfaceID*)handle;
 
         switch (feiCtrl->RefPictureType[0])
         {
         case MFX_PICTYPE_TOPFIELD:
-            l0surfs->flags = VA_PICTURE_FEI_TOP_FIELD;
+            l0surfs->flags = VA_PICTURE_STATS_TOP_FIELD;
             break;
         case MFX_PICTYPE_BOTTOMFIELD:
-            l0surfs->flags = VA_PICTURE_FEI_BOTTOM_FIELD;
+            l0surfs->flags = VA_PICTURE_STATS_BOTTOM_FIELD;
             break;
         case MFX_PICTYPE_FRAME:
-            l0surfs->flags = VA_PICTURE_FEI_PROGRESSIVE;
+            l0surfs->flags = VA_PICTURE_STATS_PROGRESSIVE;
             break;
         }
 
         if (IsOn(feiCtrl->DownsampleReference[0]))
-            l0surfs->flags |= VA_PICTURE_FEI_CONTENT_UPDATED;
+            l0surfs->flags |= VA_PICTURE_STATS_CONTENT_UPDATED;
 
         statParams.stats_params.past_references = l0surfs;
         // statParams.stats_params.past_ref_stat_buf = IsOn(feiCtrl->DownsampleReference[0]) ? &m_statOutId[surfPastIndexInList] : NULL;
@@ -468,24 +468,24 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         mfxSts = m_core->GetExternalFrameHDL(feiCtrl->RefFrame[1]->Data.MemId, &handle);
         MFX_CHECK_STS(mfxSts);
 
-        VAPictureFEI* l1surfs = &future_ref;
+        VAPictureStats* l1surfs = &future_ref;
         l1surfs->picture_id = *(VASurfaceID*)handle;
 
         switch (feiCtrl->RefPictureType[1])
         {
         case MFX_PICTYPE_TOPFIELD:
-            l1surfs->flags = VA_PICTURE_FEI_TOP_FIELD;
+            l1surfs->flags = VA_PICTURE_STATS_TOP_FIELD;
             break;
         case MFX_PICTYPE_BOTTOMFIELD:
-            l1surfs->flags = VA_PICTURE_FEI_BOTTOM_FIELD;
+            l1surfs->flags = VA_PICTURE_STATS_BOTTOM_FIELD;
             break;
         case MFX_PICTYPE_FRAME:
-            l1surfs->flags = VA_PICTURE_FEI_PROGRESSIVE;
+            l1surfs->flags = VA_PICTURE_STATS_PROGRESSIVE;
             break;
         }
 
         if (IsOn(feiCtrl->DownsampleReference[1]))
-            l1surfs->flags |= VA_PICTURE_FEI_CONTENT_UPDATED;
+            l1surfs->flags |= VA_PICTURE_STATS_CONTENT_UPDATED;
 
         statParams.stats_params.future_references = l1surfs;
         // statParams.stats_params.future_ref_stat_buf = IsOn(feiCtrl->DownsampleReference[1]) ? &m_statOutId[surfFutureIndexInList] : NULL;
@@ -535,20 +535,20 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     switch (feiCtrl->PictureType)
     {
     case MFX_PICTYPE_TOPFIELD:
-        statParams.stats_params.input.flags = VA_PICTURE_FEI_TOP_FIELD;
+        statParams.stats_params.input.flags = VA_PICTURE_STATS_TOP_FIELD;
         break;
 
     case MFX_PICTYPE_BOTTOMFIELD:
-        statParams.stats_params.input.flags = VA_PICTURE_FEI_BOTTOM_FIELD;
+        statParams.stats_params.input.flags = VA_PICTURE_STATS_BOTTOM_FIELD;
         break;
 
     case MFX_PICTYPE_FRAME:
-        statParams.stats_params.input.flags = VA_PICTURE_FEI_PROGRESSIVE;
+        statParams.stats_params.input.flags = VA_PICTURE_STATS_PROGRESSIVE;
         break;
     }
 
     if (!IsOff(feiCtrl->DownsampleInput) && (0 == feiFieldId))
-        statParams.stats_params.input.flags |= VA_PICTURE_FEI_CONTENT_UPDATED;
+        statParams.stats_params.input.flags |= VA_PICTURE_STATS_CONTENT_UPDATED;
 
     /* Link output VA buffers */
     statParams.stats_params.outputs = &outBuffers[0]; //bufIDs for outputs
