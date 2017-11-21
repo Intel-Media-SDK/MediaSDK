@@ -1016,18 +1016,17 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 #define ENABLE_VPP_VIDEO_SIGNAL(X)
 #endif
 
-
     mfxU32  refFourcc = pRefSurf->frameInfo.FourCC;
     switch (refFourcc)
     {
     case MFX_FOURCC_RGB4:
         m_pipelineParam[0].surface_color_standard = VAProcColorStandardNone;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_surface_flag     = VA_SOURCE_RANGE_FULL);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_color_properties.color_range = VA_SOURCE_RANGE_FULL);
         break;
     case MFX_FOURCC_NV12:
     default:
         m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT601;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_surface_flag     = VA_SOURCE_RANGE_REDUCED);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_color_properties.color_range = VA_SOURCE_RANGE_REDUCED);
         break;
     }
 
@@ -1036,14 +1035,17 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     {
     case MFX_FOURCC_RGB4:
         m_pipelineParam[0].output_color_standard = VAProcColorStandardNone;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_surface_flag   = VA_SOURCE_RANGE_FULL);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_FULL);
         break;
     case MFX_FOURCC_NV12:
     default:
         m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_surface_flag   = VA_SOURCE_RANGE_REDUCED);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_REDUCED);
         break;
     }
+
+    m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
+    m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
     /* It needs interlaced flag passed only for
         * deinterlacing and scaling. All other filters must
@@ -1098,7 +1100,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
         if(pParams->VideoSignalInfo[index].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
         {
-            m_pipelineParam[0].input_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[index].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+            m_pipelineParam[0].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[index].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
         }
     }
 
@@ -1111,12 +1113,15 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
         if(pParams->VideoSignalInfoOut.NominalRange != MFX_NOMINALRANGE_UNKNOWN)
         {
-            m_pipelineParam[0].output_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+            m_pipelineParam[0].output_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
         }
 #else
         return MFX_ERR_UNSUPPORTED;
 #endif // #ifdef MFX_ENABLE_VPP_VIDEO_SIGNAL
     }
+
+    m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
+    m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
     /* Scaling params */
     switch (pParams->scalingMode)
@@ -1835,7 +1840,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfo[refIdx-1].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].input_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
 
@@ -1848,9 +1853,11 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfoOut.NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].output_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].output_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
+    m_pipelineParam[refIdx].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
+    m_pipelineParam[refIdx].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
         switch (pRefSurf->frameInfo.PicStruct)
         {
@@ -1996,7 +2003,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfo[refIdx-1].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].input_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
 
@@ -2009,9 +2016,11 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfoOut.NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].output_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].output_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
+        m_pipelineParam[refIdx].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
+        m_pipelineParam[refIdx].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
         /* to process input parameters of sub stream:
          * crop info and original size*/
