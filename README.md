@@ -6,8 +6,8 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate
 
 # Important note
-The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel® Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). Unfortunately no publicly avaliable driver compatible with this version Intel Media SDK.
-Intel Media SDK depends on a special version of [LibVA v2.0-branch-next](https://github.com/xhaihao/libva/tree/v2.0-branch-next) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads ).
+The current version of Intel Media SDK compatible with the open source [Linux* Graphics Driver](https://github.com/intel/media-driver) [commit f7662547ab9cec5b98d144b0943067e2251825e8](https://github.com/intel/media-driver/commit/f7662547ab9cec5b98d144b0943067e2251825e8).
+Intel Media SDK depends on a special version of [LibVA commit df544cd5a31e54d4cbd33a391795a8747ddaf789](https://github.com/01org/libva/commit/df544cd5a31e54d4cbd33a391795a8747ddaf789).
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
@@ -30,7 +30,7 @@ Intel Media SDK is licensed under MIT license. See [LICENSE](./LICENSE) for deta
 See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
 # System requirements
-**Operating System:** CentOS 7.3 is the recommended and the only tested platform.  
+**Operating System:** CentOS 7.3, Ubuntu 16.04.  
 **Hardware:**
 Intel platforms with integrated graphics:
  - Intel® Xeon® E3-1200 v4 family with C226 chipset
@@ -46,7 +46,7 @@ Please find documentation under the `doc/` folder or navigate to [Intel Media Se
  - Perl* v5.16+
  - Cmake* v2.8+
  - GCC* v4.8+
- - Intel Media Server Studio 2017 R3
+ - Intel [Media Driver for VAAPI](https://github.com/intel/media-driver)
 
 ## Build steps
 
