@@ -29,6 +29,10 @@ if( NOT DEFINED CMAKE_MFX_HOME )
   set( CMAKE_MFX_HOME "${CMAKE_HOME_DIRECTORY}/api" )
 endif()
 
+if( "$ENV{MFX_HOME}" STREQUAL "" )
+  set( ENV{MFX_HOME} ${CMAKE_HOME_DIRECTORY} )
+endif()
+
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
   option( ENABLE_DRM "Build DRM versions of the targets?" ON )
