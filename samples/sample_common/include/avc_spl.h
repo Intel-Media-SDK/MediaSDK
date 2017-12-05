@@ -94,7 +94,7 @@ public:
     void ResetCurrentState();
 
 protected:
-    std::auto_ptr<NALUnitSplitter> m_pNALSplitter;
+    std::unique_ptr<NALUnitSplitter> m_pNALSplitter;
 
     mfxStatus Init();
 
@@ -118,7 +118,7 @@ protected:
     bool                m_WaitForIDR;
 
     AVCHeaders     m_headers;
-    std::auto_ptr<AVCFrameInfo> m_AUInfo;
+    std::unique_ptr<AVCFrameInfo> m_AUInfo;
     AVCFrameInfo * m_currentInfo;
     AVCSlice * m_pLastSlice;
 

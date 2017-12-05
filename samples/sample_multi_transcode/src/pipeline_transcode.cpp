@@ -3862,7 +3862,7 @@ mfxStatus CTranscodingPipeline::LoadGenericPlugin()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    std::auto_ptr<MFXVideoVPPPlugin> pVPPPlugin(new MFXVideoVPPPlugin(*m_pmfxSession.get()));
+    std::unique_ptr<MFXVideoVPPPlugin> pVPPPlugin(new MFXVideoVPPPlugin(*m_pmfxSession.get()));
     MSDK_CHECK_POINTER(pVPPPlugin.get(), MFX_ERR_NULL_PTR);
 
     sts = pVPPPlugin->LoadDLL((msdk_char*)m_sGenericPluginPath.c_str());
@@ -4368,25 +4368,25 @@ FileBitstreamProcessor::~FileBitstreamProcessor()
     WipeMfxBitstream(&m_Bitstream);
 } // FileBitstreamProcessor::~FileBitstreamProcessor()
 
-mfxStatus FileBitstreamProcessor::SetReader(std::auto_ptr<CSmplYUVReader>& reader)
+mfxStatus FileBitstreamProcessor::SetReader(std::unique_ptr<CSmplYUVReader>& reader)
 {
-    m_pYUVFileReader = reader;
+    m_pYUVFileReader = std::move(reader);
 
     return MFX_ERR_NONE;
 }
 
-mfxStatus FileBitstreamProcessor::SetReader(std::auto_ptr<CSmplBitstreamReader>& reader)
+mfxStatus FileBitstreamProcessor::SetReader(std::unique_ptr<CSmplBitstreamReader>& reader)
 {
-    m_pFileReader = reader;
+    m_pFileReader = std::move(reader);
     mfxStatus sts = InitMfxBitstream(&m_Bitstream, 1024 * 1024);
     MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
 
     return MFX_ERR_NONE;
 }
 
-mfxStatus FileBitstreamProcessor::SetWriter(std::auto_ptr<CSmplBitstreamWriter>& writer)
+mfxStatus FileBitstreamProcessor::SetWriter(std::unique_ptr<CSmplBitstreamWriter>& writer)
 {
-    m_pFileWriter = writer;
+    m_pFileWriter = std::move(writer);
 
     return MFX_ERR_NONE;
 }

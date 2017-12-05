@@ -324,7 +324,7 @@ private:
     cHRD       m_hrd;
     bool       m_bInit;
     BRC_Ctx    m_ctx;
-    std::auto_ptr<AVGBitrate> m_avg;
+    std::unique_ptr<AVGBitrate> m_avg;
 
 public:
     ExtBRC():

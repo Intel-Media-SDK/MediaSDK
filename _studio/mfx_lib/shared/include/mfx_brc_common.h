@@ -360,7 +360,7 @@ private:
     bool       m_bInit;
     bool       m_bDynamicInit;
     BRC_Ctx    m_ctx;
-    std::auto_ptr<AVGBitrate> m_avg;
+    std::unique_ptr<AVGBitrate> m_avg;
     mfxU32     m_SkipCount;
     mfxU32     m_ReEncodeCount;
 

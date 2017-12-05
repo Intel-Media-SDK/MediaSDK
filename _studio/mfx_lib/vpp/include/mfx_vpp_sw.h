@@ -119,7 +119,7 @@ protected:
   //
   // HW VPP Support
   //
-  std::auto_ptr<MfxHwVideoProcessing::VideoVPPHW>     m_pHWVPP;
+  std::unique_ptr<MfxHwVideoProcessing::VideoVPPHW>     m_pHWVPP;
 };
 
 class VideoVPP_HW : public VideoVPPBase

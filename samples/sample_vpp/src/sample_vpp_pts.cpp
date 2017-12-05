@@ -27,7 +27,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 mfxF64 MaxTimeDifference = 0.015; // 15 ms is an edge
 
-PTSMaker::PTSMaker():m_pFRCChecker(0),
+PTSMaker::PTSMaker():m_pFRCChecker(nullptr),
 m_FRateExtN_In(0),
 m_FRateExtD_In(1),
 m_FRateExtN_Out(0),

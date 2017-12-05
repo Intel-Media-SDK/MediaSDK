@@ -138,7 +138,7 @@ private:
     //if obj != NULL then it store obj
     inline static T * store_or_load(T * obj = NULL)
     {
-        static std::auto_ptr<T> instance;
+        static std::unique_ptr<T> instance;
         if (NULL != obj)
         {
             instance.reset(obj);

@@ -1315,7 +1315,7 @@ void CDecodingPipeline::SetMultiView()
 template <typename Buffer>
 mfxStatus CDecodingPipeline::AllocateExtBuffer()
 {
-    std::auto_ptr<Buffer> pExtBuffer (new Buffer());
+    std::unique_ptr<Buffer> pExtBuffer (new Buffer());
     if (!pExtBuffer.get())
         return MFX_ERR_MEMORY_ALLOC;
 

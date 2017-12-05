@@ -484,9 +484,9 @@ namespace TranscodingSample
     public:
         FileBitstreamProcessor();
         virtual ~FileBitstreamProcessor();
-        virtual mfxStatus SetReader(std::auto_ptr<CSmplBitstreamReader>& reader);
-        virtual mfxStatus SetReader(std::auto_ptr<CSmplYUVReader>& reader);
-        virtual mfxStatus SetWriter(std::auto_ptr<CSmplBitstreamWriter>& writer);
+        virtual mfxStatus SetReader(std::unique_ptr<CSmplBitstreamReader>& reader);
+        virtual mfxStatus SetReader(std::unique_ptr<CSmplYUVReader>& reader);
+        virtual mfxStatus SetWriter(std::unique_ptr<CSmplBitstreamWriter>& writer);
         virtual mfxStatus GetInputBitstream(mfxBitstream **pBitstream);
         virtual mfxStatus GetInputFrame(mfxFrameSurface1 *pSurface);
         virtual mfxStatus ProcessOutputBitstream(mfxBitstream* pBitstream);
@@ -494,10 +494,10 @@ namespace TranscodingSample
         virtual mfxStatus ResetOutput();
 
     protected:
-        std::auto_ptr<CSmplBitstreamReader> m_pFileReader;
-        std::auto_ptr<CSmplYUVReader> m_pYUVFileReader;
+        std::unique_ptr<CSmplBitstreamReader> m_pFileReader;
+        std::unique_ptr<CSmplYUVReader> m_pYUVFileReader;
         // for performance options can be zero
-        std::auto_ptr<CSmplBitstreamWriter> m_pFileWriter;
+        std::unique_ptr<CSmplBitstreamWriter> m_pFileWriter;
         mfxBitstream m_Bitstream;
     private:
         DISALLOW_COPY_AND_ASSIGN(FileBitstreamProcessor);
@@ -618,17 +618,17 @@ namespace TranscodingSample
 
         mfxVersion m_Version; // real API version with which library is initialized
 
-        std::auto_ptr<MFXVideoSession>  m_pmfxSession;
-        std::auto_ptr<MFXVideoDECODE>   m_pmfxDEC;
-        std::auto_ptr<MFXVideoENCODE>   m_pmfxENC;
-        std::auto_ptr<MFXVideoMultiVPP> m_pmfxVPP; // either VPP or VPPPlugin which wraps [VPP]-Plugin-[VPP] pipeline
-        std::auto_ptr<MFXVideoENC>      m_pmfxPreENC;
-        std::auto_ptr<MFXVideoUSER>     m_pUserDecoderModule;
-        std::auto_ptr<MFXVideoUSER>     m_pUserEncoderModule;
-        std::auto_ptr<MFXVideoUSER>     m_pUserEncModule;
-        std::auto_ptr<MFXPlugin>        m_pUserDecoderPlugin;
-        std::auto_ptr<MFXPlugin>        m_pUserEncoderPlugin;
-        std::auto_ptr<MFXPlugin>        m_pUserEncPlugin;
+        std::unique_ptr<MFXVideoSession>  m_pmfxSession;
+        std::unique_ptr<MFXVideoDECODE>   m_pmfxDEC;
+        std::unique_ptr<MFXVideoENCODE>   m_pmfxENC;
+        std::unique_ptr<MFXVideoMultiVPP> m_pmfxVPP; // either VPP or VPPPlugin which wraps [VPP]-Plugin-[VPP] pipeline
+        std::unique_ptr<MFXVideoENC>      m_pmfxPreENC;
+        std::unique_ptr<MFXVideoUSER>     m_pUserDecoderModule;
+        std::unique_ptr<MFXVideoUSER>     m_pUserEncoderModule;
+        std::unique_ptr<MFXVideoUSER>     m_pUserEncModule;
+        std::unique_ptr<MFXPlugin>        m_pUserDecoderPlugin;
+        std::unique_ptr<MFXPlugin>        m_pUserEncoderPlugin;
+        std::unique_ptr<MFXPlugin>        m_pUserEncPlugin;
 
         mfxFrameAllocResponse           m_mfxDecResponse;  // memory allocation response for decoder
         mfxFrameAllocResponse           m_mfxEncResponse;  // memory allocation response for encoder
@@ -752,7 +752,7 @@ namespace TranscodingSample
 
         bool isHEVCSW;
 
-        std::auto_ptr<ExtendedBSStore>        m_pBSStore;
+        std::unique_ptr<ExtendedBSStore>        m_pBSStore;
 
         mfxU32                                m_FrameNumberPreference;
         mfxU32                                m_MaxFramesForTranscode;
@@ -802,7 +802,7 @@ namespace TranscodingSample
     struct ThreadTranscodeContext
     {
         // Pointer to the session's pipeline
-        std::auto_ptr<CTranscodingPipeline> pPipeline;
+        std::unique_ptr<CTranscodingPipeline> pPipeline;
         // Pointer to bitstream handling object
         FileBitstreamProcessor *pBSProcessor;
         // Session implementation type

@@ -198,8 +198,8 @@ protected: // variables
     bool m_bIsInOpaque;
     bool m_bIsOutOpaque;
 
-    std::auto_ptr<OpenCLFilterVA> m_OpenCLFilter;
-    std::auto_ptr<OpenCLRotator180Context> m_pOpenCLRotator180Context;
+    std::unique_ptr<OpenCLFilterVA> m_OpenCLFilter;
+    std::unique_ptr<OpenCLRotator180Context> m_pOpenCLRotator180Context;
     mfxHDL m_device;
 
     mfxCoreInterface *m_pmfxCore;

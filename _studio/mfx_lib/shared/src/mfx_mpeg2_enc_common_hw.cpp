@@ -58,7 +58,7 @@ mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps)
             return MFX_ERR_NONE;
     }
 
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
 
     ddi.reset( CreatePlatformMpeg2Encoder(pCore) );
     if(ddi.get() == NULL)

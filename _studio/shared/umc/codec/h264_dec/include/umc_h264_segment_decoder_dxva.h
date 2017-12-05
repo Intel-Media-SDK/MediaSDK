@@ -78,7 +78,7 @@ public:
 
 protected:
 
-    std::auto_ptr<Packer>  m_Packer;
+    std::unique_ptr<Packer>  m_Packer;
 
 private:
     H264_DXVA_SegmentDecoder & operator = (H264_DXVA_SegmentDecoder &)

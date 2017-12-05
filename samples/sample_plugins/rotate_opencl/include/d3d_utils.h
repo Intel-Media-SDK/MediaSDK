@@ -28,7 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #define D3DFMT_NV12 (D3DFORMAT)MAKEFOURCC('N','V','1','2')
 
-// auto_ptr-like behavior
+// unique_ptr-like behavior
 class LockedD3DDevice
 {
 private:

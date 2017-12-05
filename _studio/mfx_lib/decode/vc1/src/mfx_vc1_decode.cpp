@@ -79,7 +79,7 @@ void MFXVideoDECODEVC1::FillVideoSignalInfo(mfxExtVideoSignalInfo *pVideoSignal)
 MFXVideoDECODEVC1::MFXVideoDECODEVC1(VideoCORE *core, mfxStatus* mfxSts):VideoDECODE(),
 m_VideoParams(NULL),
 m_pInternMediaDataIn(NULL),
-m_pVC1VideoDecoder(NULL),
+m_pVC1VideoDecoder(nullptr),
 m_frame_constructor(NULL),
 m_RBufID((UMC::MemID)-1),
 m_BufSize(1024*1024),

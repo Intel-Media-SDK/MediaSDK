@@ -268,6 +268,9 @@ struct ViewItem
     // Copy constructor
     ViewItem(const ViewItem &src);
 
+    // Copy assignment
+    ViewItem &operator =(const ViewItem &src);
+
     ~ViewItem();
 
     // Initialize th view, allocate resources
@@ -296,10 +299,10 @@ struct ViewItem
     int32_t viewId;
 
     // Pointer to the view's DPB
-    mutable std::auto_ptr<H264DBPList> pDPB[MAX_NUM_LAYERS];
+    mutable std::unique_ptr<H264DBPList> pDPB[MAX_NUM_LAYERS];
 
     // Pointer to the POC processing object
-    mutable std::auto_ptr<POCDecoder> pPOCDec[MAX_NUM_LAYERS];
+    mutable std::unique_ptr<POCDecoder> pPOCDec[MAX_NUM_LAYERS];
 
     bool m_isDisplayable;
 

@@ -140,7 +140,7 @@ protected:
     mfxSession          m_session;
     mfxPluginParam      m_PluginParam;
     bool                m_createdByDispatcher;
-    std::auto_ptr<MFXPluginAdapter<MFXDecoderPlugin> > m_adapter;
+    std::unique_ptr<MFXPluginAdapter<MFXDecoderPlugin> > m_adapter;
 };
 #endif //#if defined( AS_VP8D_PLUGIN )
 

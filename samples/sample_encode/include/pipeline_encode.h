@@ -258,8 +258,8 @@ protected:
 
     mfxU32 m_InputFourCC;
 
-    std::auto_ptr<MFXVideoUSER> m_pUserModule;
-    std::auto_ptr<MFXPlugin> m_pPlugin;
+    std::unique_ptr<MFXVideoUSER> m_pUserModule;
+    std::unique_ptr<MFXPlugin> m_pPlugin;
 
     MFXFrameAllocator* m_pMFXAllocator;
     mfxAllocatorParams* m_pmfxAllocatorParams;

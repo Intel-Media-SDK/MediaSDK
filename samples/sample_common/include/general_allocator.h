@@ -51,8 +51,8 @@ protected:
     bool    isD3DMid(mfxHDL mid);
 
     std::map<mfxHDL, bool>                  m_Mids;
-    std::auto_ptr<BaseFrameAllocator>       m_D3DAllocator;
-    std::auto_ptr<SysMemFrameAllocator>     m_SYSAllocator;
+    std::unique_ptr<BaseFrameAllocator>       m_D3DAllocator;
+    std::unique_ptr<SysMemFrameAllocator>     m_SYSAllocator;
 private:
     DISALLOW_COPY_AND_ASSIGN(GeneralAllocator);
 
