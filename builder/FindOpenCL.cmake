@@ -25,16 +25,18 @@ set( OCL_LIBS "" )
 
 if ( NOT OPENCL_INCLUDE MATCHES NOTFOUND )
     if ( NOT OPENCL_LIBRARY MATCHES NOTFOUND )
-        set ( OPENCL_FOUND TRUE )
+        if ( EXISTS /etc/OpenCL/vendors/intel.icd )
+            set ( OPENCL_FOUND TRUE )
 
-        get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
+            get_filename_component( OPENCL_LIBRARY_PATH ${OPENCL_LIBRARY} PATH )
 
-        list( APPEND OPENCL_LIBS OpenCL )
+            list( APPEND OPENCL_LIBS OpenCL )
+        endif()
     endif()
 endif()
 
 if ( NOT DEFINED OPENCL_FOUND )
-    message( STATUS "OpenCL was not found (optional). The following will not be built: rotate_opencl plugin.")
+  message( STATUS "Intel OpenCL SDK was not found (optional). The following will not be built: rotate_opencl plugin.")
 else ()
-    message( STATUS "OpenCL was found here: ${OPENCL_LIBRARY_PATH} and ${OPENCL_INCLUDE}" )
+  message( STATUS "Intel OpenCL SDK was found here: ${OPENCL_LIBRARY_PATH} and ${OPENCL_INCLUDE}" )
 endif()
