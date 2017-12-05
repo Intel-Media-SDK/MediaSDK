@@ -28,7 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 //#include "mfx_plugin_module.h"
 #include <iostream>
 #include <iomanip> // for std::setfill, std::setw
-#include <memory> // for std::auto_ptr
+#include <memory> // for std::unique_ptr
 
 class MsdkSoModule
 {
@@ -240,12 +240,12 @@ public:
 };
 
 inline MFXPlugin * LoadPluginByType(mfxPluginType type, mfxSession session, const mfxPluginUID & uid, mfxU32 version, const mfxChar *pluginName, mfxU32 len) {
-    std::auto_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version, pluginName, len));
+    std::unique_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version, pluginName, len));
     return plg->IsOk() ? plg.release() : NULL;
 }
 
 inline MFXPlugin * LoadPluginByGUID(mfxPluginType type, mfxSession session, const mfxPluginUID & uid, mfxU32 version) {
-    std::auto_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version));
+    std::unique_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version));
     return plg->IsOk() ? plg.release() : NULL;
 }
 

@@ -182,7 +182,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
         m_pAllocArray.push_back(pAllocator);
 
-        std::auto_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
+        std::unique_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
         // extend BS processing init
         m_pExtBSProcArray.push_back(new FileBitstreamProcessor);
 
@@ -190,8 +190,8 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
 
         pThreadPipeline->pBSProcessor = m_pExtBSProcArray.back();
 
-        std::auto_ptr<CSmplBitstreamReader> reader;
-        std::auto_ptr<CSmplYUVReader> yuvreader;
+        std::unique_ptr<CSmplBitstreamReader> reader;
+        std::unique_ptr<CSmplYUVReader> yuvreader;
         if (m_InputParamsArray[i].DecodeId == MFX_CODEC_VP9)
         {
             reader.reset(new CIVFFrameReader());
@@ -223,7 +223,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetReader failed");
         }
 
-        std::auto_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
+        std::unique_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
         sts = writer->Init(m_InputParamsArray[i].strDstFile);
 
         sts = m_pExtBSProcArray.back()->SetWriter(writer);

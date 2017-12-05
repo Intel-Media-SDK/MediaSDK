@@ -267,7 +267,7 @@ private:
     mfxDecodeStat           m_stat;
     mfxFrameAllocRequest    m_request;
 
-    std::auto_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
+    std::unique_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
     UMC::VideoAccelerator *m_p_video_accelerator;
 
 };

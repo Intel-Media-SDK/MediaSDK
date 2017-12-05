@@ -291,7 +291,7 @@ int main(int argc, msdk_char *argv[])
 
     SurfaceVPPStore     surfStore;
 
-    auto_ptr<PTSMaker> ptsMaker;
+    unique_ptr<PTSMaker> ptsMaker;
 
     /* generators for ROI testing */
     ROIGenerator       inROIGenerator;

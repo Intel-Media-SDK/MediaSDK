@@ -72,7 +72,7 @@ private:
 
     std::list <mfxFrameSurface1*>                 m_SurfacesForOutput;
 
-    std::auto_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
+    std::unique_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
     ENCODE_CAPS                                   m_caps;
 
     MfxHwH264Encode::MfxVideoParam                m_video;

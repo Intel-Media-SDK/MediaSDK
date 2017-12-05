@@ -196,14 +196,14 @@ public:
 private:
     mfxBitstream *m_processedBS;
     // input bit stream
-    std::auto_ptr<mfxBitstream>  m_originalBS;
+    std::unique_ptr<mfxBitstream>  m_originalBS;
 
     mfxStatus PrepareNextFrame(mfxBitstream *in, mfxBitstream **out);
 
     // is stream ended
     bool m_isEndOfStream;
 
-    std::auto_ptr<AbstractSplitter> m_pNALSplitter;
+    std::unique_ptr<AbstractSplitter> m_pNALSplitter;
     FrameSplitterInfo *m_frame;
     mfxU8 *m_plainBuffer;
     mfxU32 m_plainBufferSize;

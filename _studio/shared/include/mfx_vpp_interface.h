@@ -398,7 +398,7 @@ namespace MfxHwVideoProcessing
 class VPPHWResMng
 {
 public:
-    VPPHWResMng(): m_ddi(0), m_caps() {};
+    VPPHWResMng(): m_ddi(nullptr), m_caps() {};
 
     ~VPPHWResMng() { Close(); };
 
@@ -438,7 +438,7 @@ private:
     VPPHWResMng(const VPPHWResMng &);
     VPPHWResMng &operator=(const VPPHWResMng &);
 
-    std::auto_ptr<MfxHwVideoProcessing::DriverVideoProcessing> m_ddi;
+    std::unique_ptr<MfxHwVideoProcessing::DriverVideoProcessing> m_ddi;
     MfxHwVideoProcessing::mfxVppCaps                           m_caps;
 };
 

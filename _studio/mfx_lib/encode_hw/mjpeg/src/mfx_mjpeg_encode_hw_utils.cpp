@@ -43,7 +43,7 @@ mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
     if (core && core->GetVAType() == MFX_HW_VAAPI && core->GetHWType() < MFX_HW_CHT)
         return MFX_ERR_UNSUPPORTED;
 
-    std::auto_ptr<DriverEncoder> ddi;
+    std::unique_ptr<DriverEncoder> ddi;
     ddi.reset( CreatePlatformMJpegEncoder(core) );
     if (ddi.get() == 0)
         return MFX_ERR_NULL_PTR;

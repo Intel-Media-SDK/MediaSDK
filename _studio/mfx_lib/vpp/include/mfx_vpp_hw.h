@@ -848,7 +848,7 @@ namespace MfxHwVideoProcessing
         mfxU32        m_frame_num;
         mfxStatus     m_critical_error;
 
-        // Not an auto_ptr anymore since core owns create/delete semantic now.
+        // Not an unique_ptr anymore since core owns create/delete semantic now.
         VPPHWResMng * m_ddi;
         bool          m_bMultiView;
 

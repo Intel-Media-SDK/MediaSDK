@@ -236,7 +236,7 @@ protected: // functions
 
 protected: // variables
     CSmplYUVWriter          m_FileWriter;
-    std::auto_ptr<CSmplBitstreamReader>  m_FileReader;
+    std::unique_ptr<CSmplBitstreamReader>  m_FileReader;
     mfxBitstream            m_mfxBS; // contains encoded data
     mfxU64 totalBytesProcessed;
 
@@ -246,8 +246,8 @@ protected: // variables
     MFXVideoVPP*            m_pmfxVPP;
     mfxVideoParam           m_mfxVideoParams;
     mfxVideoParam           m_mfxVppVideoParams;
-    std::auto_ptr<MFXVideoUSER>  m_pUserModule;
-    std::auto_ptr<MFXPlugin> m_pPlugin;
+    std::unique_ptr<MFXVideoUSER>  m_pUserModule;
+    std::unique_ptr<MFXPlugin> m_pPlugin;
     std::vector<mfxExtBuffer *> m_ExtBuffers;
     std::vector<mfxExtBuffer *> m_ExtBuffersMfxBS;
 #if MFX_VERSION >= 1022

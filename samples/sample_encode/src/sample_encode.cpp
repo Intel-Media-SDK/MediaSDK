@@ -1153,7 +1153,7 @@ CEncodingPipeline* CreatePipeline(const sInputParams& params)
 int main(int argc, char *argv[])
 {
     sInputParams Params = {};   // input parameters from command line
-    std::auto_ptr<CEncodingPipeline>  pPipeline;
+    std::unique_ptr<CEncodingPipeline>  pPipeline;
 
     mfxStatus sts = MFX_ERR_NONE; // return value check
 

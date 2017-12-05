@@ -105,7 +105,7 @@ protected:
     int                     m_frameSampling;
 
     // JPEG decoders allocated
-    std::auto_ptr<CJPEGDecoderBase> m_decoder;
+    std::unique_ptr<CJPEGDecoderBase> m_decoder;
     CJPEGDecoderBase * m_decBase;
 
     FrameAllocator *        m_frameAllocator;

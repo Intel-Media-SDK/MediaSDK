@@ -1813,6 +1813,20 @@ ViewItem::ViewItem(const ViewItem &src)
 
 } // ViewItem::ViewItem(const ViewItem &src)
 
+ViewItem &ViewItem::operator =(const ViewItem &src)
+{
+    Reset();
+
+    viewId = src.viewId;
+    for (uint32_t i = 0; i < MAX_NUM_LAYERS; i++) {
+        pDPB[i].reset(src.pDPB[i].release());
+        pPOCDec[i].reset(src.pPOCDec[i].release());
+        MaxLongTermFrameIdx[i] = src.MaxLongTermFrameIdx[i];
+    }
+    maxDecFrameBuffering = src.maxDecFrameBuffering;
+    return *this;
+}
+
 ViewItem::~ViewItem()
 {
     Close();
