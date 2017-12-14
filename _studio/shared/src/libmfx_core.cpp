@@ -118,6 +118,11 @@ mfxStatus CommonCORE::FreeBuffer(mfxHDL mid)
     UMC::AutomaticUMCMutex guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Free)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
+// DEPRECATED
+mfxStatus  CommonCORE::CheckHandle()
+{
+   return MFX_ERR_NONE;
+} // mfxStatus  CommonCORE::CheckHandle()
 
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response,
@@ -1013,6 +1018,9 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
     srcMemId = pSrc->Data.MemId;
     dstMemId = pDst->Data.MemId;
 
+    mfxU8* srcPtr = GetFramePointer(pSrc->Info.FourCC, pSrc->Data);
+    mfxU8* dstPtr = GetFramePointer(pDst->Info.FourCC, pDst->Data);
+
     srcTempSurface.Info = pSrc->Info;
     dstTempSurface.Info = pDst->Info;
 
@@ -1026,7 +1034,7 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
     {
         //if (srcMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pSrc->Data.Y)
+            if (NULL == srcPtr)
             {
                 // only if pointers are absence
                 sts = LockExternalFrame(srcMemId, &srcTempSurface.Data);
@@ -1046,7 +1054,7 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
     {
         //if (srcMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pSrc->Data.Y)
+            if (NULL == srcPtr)
             {
                 sts = LockFrame(srcMemId, &srcTempSurface.Data);
                 MFX_CHECK_STS(sts);
@@ -1066,7 +1074,7 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
     {
         //if (dstMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pDst->Data.Y)
+            if (NULL == dstPtr)
             {
                 // only if pointers are absence
                 sts = LockExternalFrame(dstMemId, &dstTempSurface.Data);
@@ -1086,7 +1094,7 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
     {
         if (dstMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pDst->Data.Y)
+            if (NULL == dstPtr)
             {
                 // only if pointers are absence
                 sts = LockFrame(dstMemId, &dstTempSurface.Data);
@@ -1143,7 +1151,117 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
     return MFX_ERR_NONE;
 }
 
-mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int copyFlag)
+mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
+{
+    UMC::AutomaticUMCMutex guard(m_guard);
+    mfxStatus sts;
+    if (!dst || !src)
+        return MFX_ERR_NULL_PTR;
+    mfxSize roi = { MFX_MIN(src->Info.Width, dst->Info.Width), MFX_MIN(src->Info.Height, dst->Info.Height) };
+    if (!roi.width || !roi.height)
+    {
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
+
+    mfxU8 *pDst;
+    mfxU8 *pSrc;
+
+    uint32_t srcPitch;
+    uint32_t dstPitch;
+
+    FastCopy *pFastCopy = m_pFastCopy.get();
+    if(!pFastCopy){
+        m_pFastCopy.reset(new FastCopy());
+        pFastCopy = m_pFastCopy.get();
+    }
+
+    pDst = dst->Data.Y;
+    pSrc = src->Data.Y;
+
+    if (NULL == pDst || NULL == pSrc)
+    {
+        return MFX_ERR_NULL_PTR;
+    }
+
+    srcPitch = src->Data.PitchLow + ((mfxU32)src->Data.PitchHigh << 16);
+    dstPitch = dst->Data.PitchLow + ((mfxU32)dst->Data.PitchHigh << 16);
+
+    switch (dst->Info.FourCC)
+    {
+    case MFX_FOURCC_NV12:
+
+        sts = pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        roi.height >>= 1;
+
+        pSrc = src->Data.UV;
+        pDst = dst->Data.UV;
+
+        if (NULL == pDst || NULL == pSrc)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
+
+        sts = pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        break;
+
+    case MFX_FOURCC_YV12:
+
+        sts = pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        roi.height >>= 1;
+
+        pSrc = src->Data.U;
+        pDst = dst->Data.U;
+
+        if (NULL == pDst || NULL == pSrc)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
+
+        roi.width >>= 1;
+
+        srcPitch >>= 1;
+        dstPitch >>= 1;
+
+        sts = pFastCopy->Copy((mfxU8 *)pDst, dstPitch, (mfxU8 *)pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        pSrc = src->Data.V;
+        pDst = dst->Data.V;
+
+        if (NULL == pDst || NULL == pSrc)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
+
+        sts = pFastCopy->Copy((mfxU8 *)pDst, dstPitch, (mfxU8 *)pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        break;
+
+    case MFX_FOURCC_YUY2:
+
+        roi.width *= 2;
+
+        sts = pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        break;
+
+    case MFX_FOURCC_P8:
+
+        sts = pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+
+        break;
+
+    default:
+
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int copyFlag)
 {
     mfxStatus sts;
 
@@ -1158,24 +1276,18 @@ mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSr
     uint32_t srcPitch = pSrc->Data.PitchLow + ((mfxU32)pSrc->Data.PitchHigh << 16);
     uint32_t dstPitch = pDst->Data.PitchLow + ((mfxU32)pDst->Data.PitchHigh << 16);
 
-    FastCopy *pFastCopy = m_pFastCopy.get();
-    if(!pFastCopy){
-        m_pFastCopy.reset(new FastCopy());
-        pFastCopy = m_pFastCopy.get();
-    }
-
     switch (pDst->Info.FourCC)
     {
     case MFX_FOURCC_P010:
         {
             roi.width <<= 1;
 
-            sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+            sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
             MFX_CHECK_STS(sts);
 
             roi.height >>= 1;
 
-            sts = pFastCopy->Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
+            sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
             MFX_CHECK_STS(sts);
         }
 
@@ -1184,32 +1296,32 @@ mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSr
     case MFX_FOURCC_P210:
         roi.width <<= 1;
 
-        sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
 
-        sts = pFastCopy->Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         break;
 
     case MFX_FOURCC_NV12:
-        sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
 
         roi.height >>= 1;
-        sts = pFastCopy->Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         break;
 
     case MFX_FOURCC_NV16:
-        sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
-        sts = pFastCopy->Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         break;
 
     case MFX_FOURCC_YV12:
 
-        sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         roi.width >>= 1;
         roi.height >>= 1;
@@ -1217,22 +1329,22 @@ mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSr
         srcPitch >>= 1;
         dstPitch >>= 1;
 
-        sts = pFastCopy->Copy(pDst->Data.U, dstPitch, pSrc->Data.U, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.U, dstPitch, pSrc->Data.U, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
-        sts = pFastCopy->Copy(pDst->Data.V, dstPitch, pSrc->Data.V, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.V, dstPitch, pSrc->Data.V, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         break;
 
     case MFX_FOURCC_UYVY:
         roi.width *= 2;
-        sts = pFastCopy->Copy(pDst->Data.U, dstPitch, pSrc->Data.U, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.U, dstPitch, pSrc->Data.U, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         break;
 
     case MFX_FOURCC_YUY2:
         roi.width *= 2;
 
-        sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
 
         break;
@@ -1245,13 +1357,14 @@ mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSr
 
             roi.width *= 3;
 
-            sts = pFastCopy->Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
             MFX_CHECK_STS(sts);
             break;
         }
 
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
     case MFX_FOURCC_A2RGB10:
         {
             mfxU8* ptrSrc = MFX_MIN(MFX_MIN(pSrc->Data.R, pSrc->Data.G), pSrc->Data.B);
@@ -1259,7 +1372,7 @@ mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSr
 
             roi.width *= 4;
 
-            sts = pFastCopy->Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
             MFX_CHECK_STS(sts);
             break;
         }
@@ -1271,12 +1384,12 @@ mfxStatus CommonCORE::DoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSr
 
             roi.width *= 8;
 
-            sts = pFastCopy->Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
             MFX_CHECK_STS(sts);
             break;
         }
     case MFX_FOURCC_P8:
-        sts = pFastCopy->Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
         break;
     default:
@@ -1335,7 +1448,7 @@ mfxStatus CommonCORE::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface
 
     // system memories were passed
     // use common way to copy frames
-    sts = DoSWFastCopy(pDst, pSrc, copyFlag);
+    sts = CoreDoSWFastCopy(pDst, pSrc, copyFlag);
 
     if (isDstLocked)
     {
@@ -1423,6 +1536,12 @@ mfxStatus CommonCORE::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
+}
+
+// Deprecated
+bool CommonCORE::IsFastCopyEnabled()
+{
+    return (true);
 }
 
 

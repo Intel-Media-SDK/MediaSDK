@@ -835,6 +835,29 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 }
             }
 
+            // P and B pic's ref list need to modify if P/I flag in the DPB is true which means the sence change.
+            // as the I treated as CRA, so the P and B field don't ref on the P field of the P/I in list0.
+            // and the B don't ref on the I field of the P/I in list1.
+            if ((ps != MFX_PICSTRUCT_PROGRESSIVE) && (task.m_type[fieldId] & MFX_FRAMETYPE_PB))
+            {
+                mfxU8 index = 0;
+
+                for (index = 0; index < dpb.Size(); index++)
+                {
+                     if (dpb[index].m_PIFieldFlag)
+                     {
+                         if (task.GetPoc(fieldId) > dpb[index].m_poc[0])
+                             list0.Erase(
+                             std::remove_if(list0.Begin(), list0.End(), RefPocIsLessThan(dpb, dpb[index].m_poc[!ffid])),
+                             list0.End());
+                         else if (task.GetPoc(fieldId) < dpb[index].m_poc[0])
+                             list1.Erase(
+                             std::remove_if(list1.Begin(), list1.End(), RefPocIsGreaterThan(dpb, dpb[index].m_poc[ffid])),
+                             list1.End());
+                     }
+                }
+            }
+
             if (video.calcParam.numTemporalLayer > 0)
             {
                 list0.Erase(
@@ -870,7 +893,11 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 }
             }
 
-            if (isField && isIPFieldPair == false)
+            // as driver have fixed arbitrary reference field polarity limitation on PV4 on BDW and SCL, so no need
+            // to WA to adjust the reflist order
+            bool isHwSupportArbiRef = ((task.m_hwType == MFX_HW_SCL) || (task.m_hwType == MFX_HW_BDW));
+
+            if (isField && (isIPFieldPair == false) && (isHwSupportArbiRef == false))
             {
                 // after modification of ref list L0 it could happen that 1st entry of the list has opposite parity to current field
                 // driver doesn't support this, and MSDK performs WA and places field of same parity to 1st place
@@ -937,7 +964,7 @@ namespace
             if (((ft[0] | ft[1]) & MFX_FRAMETYPE_REF) &&    // one of fields is ref pic
                 numLayers > 1 &&                            // more than one temporal layer
                 lastLayerScale == 2 &&                      // highest layer is dyadic
-                task.m_tidx + 1 == numLayers)               // this is the highest layer
+                (task.m_tidx + 1U) == numLayers)               // this is the highest layer
             {
                 ft[0] &= ~MFX_FRAMETYPE_REF;
                 ft[1] &= ~MFX_FRAMETYPE_REF;
@@ -978,7 +1005,7 @@ namespace
     }
 
 
-    void UpdateMaxLongTermFrameIdxPlus1(ArrayU8x8 & arr, mfxU32 curTidx, mfxU32 val)
+    void UpdateMaxLongTermFrameIdxPlus1(ArrayU8x8 & arr, mfxU8 curTidx, mfxU8 val)
     {
         std::fill(arr.Begin() + curTidx, arr.End(), val);
     }
@@ -1328,6 +1355,19 @@ namespace
                                 currDpb.End(),
                                 FindInDpbByLtrIdx(longTermIdx));
 
+                            if (toRemove == currDpb.End() && currDpb.Size() == video.mfx.NumRefFrame)
+                            {
+                                toRemove = std::min_element(currDpb.Begin(), currDpb.End(), OrderByFrameNumWrap);
+
+                                if (toRemove != currDpb.End())
+                                {
+                                    if (toRemove->m_longterm)
+                                        toRemove = currDpb.End();
+                                    else
+                                        marking.PushBack(MMCO_ST_TO_UNUSED, task.m_picNum[fid] - toRemove->m_picNum[0] - 1);
+                                }
+                            }
+
                             if (toRemove != currDpb.End())
                                 currDpb.Erase(toRemove);
 
@@ -1423,7 +1463,7 @@ namespace
 
         if (refPicFlag &&                                   // only ref frames occupy slot in dpb
             video.calcParam.tempScalabilityMode == 0 &&     // no long term refs in temporal scalability
-            numLayers > 1 && task.m_tidx + 1 != numLayers)  // no dpb commands for last-not-based temporal laeyr
+            numLayers > 1 && (task.m_tidx + 1U) != numLayers)  // no dpb commands for last-not-based temporal laeyr
         {
             // find oldest ref frame from the same temporal layer
             DpbFrame const * toRemove = FindOldestRef(task.m_dpb[0], task.m_tid);
@@ -1880,12 +1920,19 @@ void MfxHwH264Encode::ConfigureTask(
 
     mfxU32 const FRAME_NUM_MAX = 1 << (extSps.log2MaxFrameNumMinus4 + 4);
 
+    mfxU32 ffid = task.m_fid[0];
+    mfxU32 sfid = !ffid;
+
+    // in order not to affect original GetFrameType, add P/I field flag
+    bool isPIFieldPair      = (task.m_type[ffid] & MFX_FRAMETYPE_P) && (task.m_type[!ffid] & MFX_FRAMETYPE_I);
+    bool isPrevPIFieldPair  = (prevTask.m_type[ffid] & MFX_FRAMETYPE_P) && (prevTask.m_type[!ffid] & MFX_FRAMETYPE_I);
+
     mfxU32 numReorderFrames = GetNumReorderFrames(video);
     mfxU32 prevsfid         = prevTask.m_fid[1];
     mfxU8  idrPicFlag       = !!(task.GetFrameType() & MFX_FRAMETYPE_IDR);
-    mfxU8  intraPicFlag     = !!(task.GetFrameType() & MFX_FRAMETYPE_I);
+    mfxU8  intraPicFlag     = !!(task.GetFrameType() & MFX_FRAMETYPE_I) ? 1 : (isPIFieldPair ? 1 : 0);
     mfxU8  prevIdrFrameFlag = !!(prevTask.GetFrameType() & MFX_FRAMETYPE_IDR);
-    mfxU8  prevIFrameFlag   = !!(prevTask.GetFrameType() & MFX_FRAMETYPE_I);
+    mfxU8  prevIFrameFlag   = !!(prevTask.GetFrameType() & MFX_FRAMETYPE_I) ? 1 : (isPrevPIFieldPair ? 1 : 0);
     mfxU8  prevRefPicFlag   = !!(prevTask.GetFrameType() & MFX_FRAMETYPE_REF);
     mfxU8  prevIdrPicFlag   = !!(prevTask.m_type[prevsfid] & MFX_FRAMETYPE_IDR);
 
@@ -1912,9 +1959,6 @@ void MfxHwH264Encode::ConfigureTask(
 
     task.m_idrPicId = prevTask.m_idrPicId + idrPicFlag;
 
-    mfxU32 ffid = task.m_fid[0];
-    mfxU32 sfid = !ffid;
-
     mfxU32 prevBPSeiFrameEncOrder = (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME) ? task.m_encOrderI : task.m_encOrderIdr;
     mfxU32 insertBPSei = (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME && intraPicFlag) || (idrPicFlag);
     task.m_dpbOutputDelay   = 2 * (task.m_frameOrder + numReorderFrames - task.m_encOrder);
@@ -1929,7 +1973,7 @@ void MfxHwH264Encode::ConfigureTask(
     task.m_pid  = task.m_tidx + extTemp.BaseLayerPID;
 
     DecideOnRefPicFlag(video, task); // for temporal layers
-    
+
     if (task.m_ctrl.SkipFrame != 0 && SkipMode != MFX_SKIPFRAME_BRC_ONLY)
     {
         task.m_ctrl.SkipFrame = (extOpt2.SkipFrame) ? 1 : 0;
@@ -2126,8 +2170,14 @@ void MfxHwH264Encode::ConfigureTask(
         task.m_dpbPostEncoding = task.m_dpb[sfid];
         if (task.m_reference[sfid])
             task.m_dpbPostEncoding.Back().m_refPicFlag[sfid] = 1;
-    }
 
+        // mark the P/I field pair flag
+        if ((task.m_type[ffid] & MFX_FRAMETYPE_P)    &&
+            (task.m_type[ffid] & MFX_FRAMETYPE_REF)  &&
+            (task.m_type[sfid] & MFX_FRAMETYPE_I)    &&
+            (task.m_type[sfid] & MFX_FRAMETYPE_REF))
+            task.m_dpbPostEncoding.Back().m_PIFieldFlag = 1;
+    }
 
     const mfxExtCodingOption2* extOpt2Cur = (extOpt2Runtime ? extOpt2Runtime : &extOpt2);
 

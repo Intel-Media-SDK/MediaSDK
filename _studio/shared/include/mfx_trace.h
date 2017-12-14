@@ -295,6 +295,9 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 #define MFX_LTRACE_2(_level, _message, _format, _arg1, _arg2) \
     MFX_LTRACE((MFX_TRACE_PARAMS, _level, _message, _format, _arg1, _arg2))
 
+#define MFX_LTRACE_3(_level, _message, _format, _arg1, _arg2, _arg3) \
+    MFX_LTRACE((MFX_TRACE_PARAMS, _level, _message, _format, _arg1, _arg2, _arg3))
+
 #define MFX_LTRACE_MSG(_level, _message) \
     MFX_LTRACE_1(_level, _message, NULL, 0)
 
@@ -345,6 +348,9 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 
 #define MFX_TRACE_2(_message, _format, _arg1, _arg2) \
     MFX_LTRACE_2(MFX_TRACE_LEVEL, _message, _format, _arg1, _arg2)
+
+#define MFX_TRACE_3(_message, _format, _arg1, _arg2, _arg3) \
+    MFX_LTRACE_3(MFX_TRACE_LEVEL, _message, _format, _arg1, _arg2, _arg3)
 
 #define MFX_TRACE_S(_arg1) \
     MFX_LTRACE_S(MFX_TRACE_LEVEL, _arg1)

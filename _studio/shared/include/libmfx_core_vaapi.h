@@ -172,15 +172,6 @@ class PointerProxy
         void* mp;
 };
 
-inline bool IsSupported__VAEncMiscParameterPrivate(void)
-{
-#if !defined(MFX_VAAPI_UPSTREAM)
-    return true;
-#else
-    return false;
-#endif
-}
-
 
 #endif // __LIBMFX_CORE__VAAPI_H__
 #endif // MFX_VA_LINUX

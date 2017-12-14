@@ -1213,6 +1213,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         MFXMediaDataAdapter src(bs);
 
+
         for (;;)
         {
                     umcRes = m_pH264VideoDecoder->AddSource(bs ? &src : 0);

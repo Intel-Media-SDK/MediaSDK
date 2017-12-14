@@ -251,6 +251,8 @@ mfxStatus FEI_EncodeInterface::FillParameters()
     pCodingOption3->NumRefActiveBL1[0] = m_pAppConfig->NumRefActiveBL1;
     // weight table file is provided, so explicit weight prediction is enabled.
     pCodingOption3->WeightedPred       = m_pAppConfig->weightsFile ? MFX_WEIGHTED_PRED_EXPLICIT : MFX_WEIGHTED_PRED_UNKNOWN;
+    pCodingOption3->WeightedBiPred     = m_pAppConfig->weightsFile ? MFX_WEIGHTED_PRED_EXPLICIT : MFX_WEIGHTED_PRED_UNKNOWN;
+    pCodingOption3->WeightedBiPred     = m_pAppConfig->bImplicitWPB ? MFX_WEIGHTED_PRED_IMPLICIT : pCodingOption3->WeightedBiPred;
 
     /* values stored in m_CodingOption3 required to fill encoding task for PREENC/ENC/PAK*/
     m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pCodingOption3));
@@ -564,7 +566,8 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(iTask* eTask)
                     continue;
 
                 mfxExtPredWeightTable* feiWeightTable = reinterpret_cast<mfxExtPredWeightTable*>(*it);
-                if ((eTask->m_type[pWeightsId] & MFX_FRAMETYPE_P) || (eTask->m_type[pWeightsId] & MFX_FRAMETYPE_B))
+                if ((eTask->m_type[pWeightsId] & MFX_FRAMETYPE_P) ||
+                    ((eTask->m_type[pWeightsId] & MFX_FRAMETYPE_B) && !m_pAppConfig->bImplicitWPB))
                 {
                     SAFE_FREAD(&(feiWeightTable->LumaLog2WeightDenom),   sizeof(mfxU16),
                                1, m_pWeights_in, MFX_ERR_MORE_DATA);

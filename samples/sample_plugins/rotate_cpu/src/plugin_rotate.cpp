@@ -20,11 +20,20 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfx_samples_config.h"
 
 #include <stdio.h>
+#include "vm/thread_defs.h"
+#include <map>
+#include <tuple>
 #include "plugin_rotate.h"
 
 // disable "unreferenced formal parameter" warning -
 // not all formal parameters of interface functions will be used by sample plugin
 #pragma warning(disable : 4100)
+
+// map<tuple<memid, session id>, lock count>
+typedef  std::tuple<mfxMemId, mfxU32> UniqueMid;
+std::map<UniqueMid, int> mappingResourceManager;
+
+MSDKMutex mapping_mutex;
 
 #define SWAP_BYTES(a, b) {mfxU8 tmp; tmp = a; a = b; b = tmp;}
 
@@ -132,10 +141,14 @@ mfxStatus Rotate::Submit(const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfx
     m_pTasks[ind].Out = real_surface_out;
     m_pTasks[ind].bBusy = true;
 
+    // Use thread id as a session identifier
+    // As session can't be obtained from plugin
+    mfxU32 tid = pthread_self();
+
     switch (m_Param.Angle)
     {
     case 180:
-        m_pTasks[ind].pProcessor = new Rotator180;
+        m_pTasks[ind].pProcessor = new Rotator180(tid);
         MSDK_CHECK_POINTER(m_pTasks[ind].pProcessor, MFX_ERR_MEMORY_ALLOC);
         break;
     default:
@@ -372,11 +385,12 @@ mfxStatus Rotate::CheckInOutFrameInfo(mfxFrameInfo *pIn, mfxFrameInfo *pOut)
 }
 
 /* Processor class implementation */
-Processor::Processor()
+Processor::Processor(mfxU32 uid)
     : m_pIn(NULL)
     , m_pOut(NULL)
     , m_pAlloc(NULL)
 {
+    m_uid = uid;
 }
 
 Processor::~Processor()
@@ -402,33 +416,72 @@ mfxStatus Processor::Init(mfxFrameSurface1 *frame_in, mfxFrameSurface1 *frame_ou
 
 mfxStatus Processor::LockFrame(mfxFrameSurface1 *frame)
 {
+    MSDK_CHECK_POINTER(m_pAlloc, MFX_ERR_NULL_PTR);
     MSDK_CHECK_POINTER(frame, MFX_ERR_NULL_PTR);
+    mfxStatus sts = MFX_ERR_NONE;
 
-    //no allocator used, no need to do lock
+    // MemId=0, that is surface was created without allocator
+    // No neeed in lock/unlock
     if (frame->Data.Y != 0 && !frame->Data.MemId)
         return MFX_ERR_NONE;
-    //lock required
-    MSDK_CHECK_POINTER(m_pAlloc, MFX_ERR_NULL_PTR);
-    return m_pAlloc->Lock(m_pAlloc->pthis, frame->Data.MemId, &frame->Data);
+
+    /* mutex locker */
+    AutomaticMutex locker(mapping_mutex);
+
+    auto currentSurface = mappingResourceManager.find(UniqueMid(frame->Data.MemId, m_uid));
+    if(currentSurface == mappingResourceManager.end())
+    {
+        sts = m_pAlloc->Lock(m_pAlloc->pthis, frame->Data.MemId, &frame->Data);
+        mappingResourceManager[UniqueMid(frame->Data.MemId, m_uid)] = 1;
+    }
+    else /* Surface was mapped before */
+        currentSurface->second++;
+
+    return sts;
 }
 
 mfxStatus Processor::UnlockFrame(mfxFrameSurface1 *frame)
 {
+    MSDK_CHECK_POINTER(m_pAlloc, MFX_ERR_NULL_PTR);
     MSDK_CHECK_POINTER(frame, MFX_ERR_NULL_PTR);
-    //unlock not possible, no allocator used
-    if (frame->Data.Y != 0 && frame->Data.MemId ==0)
+    mfxStatus sts = MFX_ERR_NONE;
+
+    // MemId=0, that is surface was created without allocator
+    // No neeed in lock/unlock
+    if (frame->Data.Y != 0 && frame->Data.MemId == 0)
         return MFX_ERR_NONE;
-    //already unlocked
+    // Already unlocked
     if (frame->Data.Y == 0)
         return MFX_ERR_NONE;
-    //unlock required
-    MSDK_CHECK_POINTER(m_pAlloc, MFX_ERR_NULL_PTR);
-    return m_pAlloc->Unlock(m_pAlloc->pthis, frame->Data.MemId, &frame->Data);
+
+    /* mutex locker */
+    AutomaticMutex locker(mapping_mutex);
+
+    auto currentSurface = mappingResourceManager.find(UniqueMid(frame->Data.MemId, m_uid));
+
+    /* Surface did not find in mapping map, this is fatal error */
+    if(currentSurface == mappingResourceManager.end())
+        sts = MFX_ERR_LOCK_MEMORY;
+    else /* Surface found, do processing */
+    {
+        currentSurface->second--;
+        if (0 == currentSurface->second)
+        {
+            /* need to delete this element from map
+             * This may help in case resetting of pipeline
+             * */
+            mappingResourceManager.erase(currentSurface);
+            sts = m_pAlloc->Unlock(m_pAlloc->pthis, frame->Data.MemId, &frame->Data);
+            MSDK_CHECK_STATUS(sts, "UnlockFrame() in plugin failed");
+        }
+    }
+
+    return sts;
 }
 
 
 /* 180 degrees rotator class implementation */
-Rotator180::Rotator180() : Processor()
+Rotator180::Rotator180(mfxU32 uid) : Processor(uid)
 {
 }
 
@@ -460,11 +513,6 @@ mfxStatus Rotator180::Process(DataChunk *chunk)
 
     m_YOut.resize(m_pOut->Info.Height * out_pitch);
     m_UVOut.resize(m_pOut->Info.Height * out_pitch / 2);
-
-    sts = UnlockFrame(m_pIn);
-    MSDK_CHECK_STATUS(sts, "UnlockFrame(m_pIn) failed");
-    sts = UnlockFrame(m_pOut);
-    MSDK_CHECK_STATUS(sts, "UnlockFrame(m_pOut) failed");
 
     mfxU8 *in_luma = &m_YIn.front() + m_pIn->Info.CropY * in_pitch + m_pIn->Info.CropX;
     mfxU8 *out_luma = &m_YOut.front() + m_pOut->Info.CropY * out_pitch + m_pOut->Info.CropX;
@@ -510,11 +558,14 @@ mfxStatus Rotator180::Process(DataChunk *chunk)
     }
 
     // copy data from temporary buffer to output surface
-    sts = LockFrame(m_pOut);
-   MSDK_CHECK_STATUS(sts, "LockFrame(m_pOut) failed");
     MSDK_MEMCPY_BUF(m_pOut->Data.Y, chunk->StartLine * out_pitch, m_YOut.size(), &m_YOut.front(), m_YOut.size());
     MSDK_MEMCPY_BUF(m_pOut->Data.UV, chunk->StartLine * out_pitch, m_UVOut.size(), &m_UVOut.front(), m_UVOut.size());
+
+    sts = UnlockFrame(m_pIn);
+    MSDK_CHECK_STATUS(sts, "UnlockFrame(m_pIn) failed");
     sts = UnlockFrame(m_pOut);
+    MSDK_CHECK_STATUS(sts, "UnlockFrame(m_pOut) failed");
+
 
     return sts;
 }

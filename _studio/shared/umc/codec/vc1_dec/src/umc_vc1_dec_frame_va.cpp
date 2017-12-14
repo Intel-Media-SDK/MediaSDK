@@ -367,19 +367,16 @@ namespace UMC
                     ptr->luma_scale = pContext->m_picLayerHeader->LUMSCALE;
                     ptr->luma_shift = pContext->m_picLayerHeader->LUMSHIFT;
 
-#ifndef MFX_VAAPI_UPSTREAM
                     //bottom field
                     ptr->luma_scale2 = pContext->m_picLayerHeader->LUMSCALE1;
                     ptr->luma_shift2 = pContext->m_picLayerHeader->LUMSHIFT1;
-#endif
                 }
                 else if (VC1_INTCOMP_BOTTOM_FIELD == pContext->m_picLayerHeader->INTCOMFIELD)
                 {
-#ifndef MFX_VAAPI_UPSTREAM
                     // bottom field
                     ptr->luma_scale2 = pContext->m_picLayerHeader->LUMSCALE1;
                     ptr->luma_shift2 = pContext->m_picLayerHeader->LUMSHIFT1;
-#endif
+
                     // top field not compensated
                     ptr->luma_scale = 32;
                 }
@@ -388,19 +385,16 @@ namespace UMC
                     // top field
                     ptr->luma_scale = pContext->m_picLayerHeader->LUMSCALE;
                     ptr->luma_shift = pContext->m_picLayerHeader->LUMSHIFT;
-#ifndef MFX_VAAPI_UPSTREAM
+
                     // bottom field not compensated
                     ptr->luma_scale2 = 32;
-#endif
                 }
             }
         }
         else
         {
-            ptr->luma_scale = 32;
-#ifndef MFX_VAAPI_UPSTREAM
+            ptr->luma_scale  = 32;
             ptr->luma_scale2 = 32;
-#endif
         }
 
         /*picture_fields.bits.picture_type*/

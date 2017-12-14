@@ -190,7 +190,7 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
                 if (m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_LP || m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_RADL ||
                     m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_N_LP)
                 { // For BLA picture types, POCmsb is set to 0.
-  
+
                     PicOrderCntMsb = 0;
                 }
 
@@ -402,6 +402,13 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList)
                 pFrm->SetisLongTermRef(false);
             RefPicSetStCurr0[NumPocStCurr0] = pFrm;
             NumPocStCurr0++;
+            if (!pFrm)
+            {
+                /* Reporting about missed reference */
+                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_REFERENCE_FRAME);
+                /* And because frame can not be decoded properly set flag "ERROR_FRAME_MAJOR" too*/
+                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
+            }
             // pcRefPic->setCheckLTMSBPresent(false);
         }
     }
@@ -419,6 +426,13 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList)
                 pFrm->SetisLongTermRef(false);
             RefPicSetStCurr1[NumPocStCurr1] = pFrm;
             NumPocStCurr1++;
+            if (!pFrm)
+            {
+                /* Reporting about missed reference */
+                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_REFERENCE_FRAME);
+                /* And because frame can not be decoded properly set flag "ERROR_FRAME_MAJOR" too*/
+                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
+            }
             // pcRefPic->setCheckLTMSBPresent(false);
         }
     }
@@ -431,24 +445,34 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList)
             int32_t poc = getRPS()->getPOC(i);
 
             H265DecoderFrame *pFrm = pDecoderFrameList->findLongTermRefPic(m_pCurrentFrame, poc, GetSeqParam()->log2_max_pic_order_cnt_lsb, !getRPS()->getCheckLTMSBPresent(i));
+
+            if (!pFrm)
+                continue;
+
             m_pCurrentFrame->AddReferenceFrame(pFrm);
 
-            if (pFrm)
-                pFrm->SetisLongTermRef(true);
+            pFrm->SetisLongTermRef(true);
             RefPicSetLtCurr[NumPocLtCurr] = pFrm;
             NumPocLtCurr++;
+            if (!pFrm)
+            {
+                /* Reporting about missed reference */
+                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_REFERENCE_FRAME);
+                /* And because frame can not be decoded properly set flag "ERROR_FRAME_MAJOR" too*/
+                m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_MAJOR);
+            }
         }
         // pFrm->setCheckLTMSBPresent(getRPS()->getCheckLTMSBPresent(i));
     }
 
     // ref_pic_list_init
-    H265DecoderFrame *refPicListTemp0[MAX_NUM_REF_PICS + 1];
-    H265DecoderFrame *refPicListTemp1[MAX_NUM_REF_PICS + 1];
-    int32_t numPocTotalCurr = NumPocStCurr0 + NumPocStCurr1 + NumPocLtCurr;
+    H265DecoderFrame *refPicListTemp0[MAX_NUM_REF_PICS + 1] = {};
+    H265DecoderFrame *refPicListTemp1[MAX_NUM_REF_PICS + 1] = {};
+    uint32_t const numPocTotalCurr = NumPocStCurr0 + NumPocStCurr1 + NumPocLtCurr;
 
     if (!numPocTotalCurr) // this is error
     {
-        m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_DPB);
+        m_pCurrentFrame->SetErrorFlagged(UMC::ERROR_FRAME_REFERENCE_FRAME);
         return UMC::UMC_OK;
     }
 
@@ -530,7 +554,7 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList)
 
         H265DecoderFrame *missedReference = 0;
 
-        for (int32_t k = 0; !missedReference && k < numPocTotalCurr; k++)
+        for (uint32_t k = 0; !missedReference && k < numPocTotalCurr; k++)
         {
             missedReference = refPicListTemp0[k];
         }

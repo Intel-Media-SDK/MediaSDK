@@ -184,6 +184,7 @@ void H265DecYUVBufferPadded::createPredictionBuffer(const H265SeqParamSet * sps)
     m_lumaSize.width = sps->MaxCUSize;
     m_lumaSize.height = sps->MaxCUSize;
 
+    m_chroma_format = sps->ChromaArrayType;
     m_chromaSize.width = sps->MaxCUSize / sps->SubWidthC();
     m_chromaSize.height = sps->MaxCUSize / sps->SubHeightC();
 

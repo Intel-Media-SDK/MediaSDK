@@ -563,7 +563,7 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         picParams->picture_width  = (uint16_t)m_decBase->m_jpeg_width;
         picParams->picture_height = (uint16_t)m_decBase->m_jpeg_height;
         picParams->num_components = (uint8_t) m_decBase->m_jpeg_ncomp;
-#ifndef MFX_VAAPI_UPSTREAM
+
         if(m_decBase->m_jpeg_color == JC_RGB || m_decBase->m_jpeg_color == JC_RGBA) {
             picParams->color_space    = 1;
         } else if(m_decBase->m_jpeg_color == JC_BGR || m_decBase->m_jpeg_color == JC_BGRA) {
@@ -586,7 +586,7 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
             picParams->rotation = VA_ROTATION_270;
             break;
         }
-#endif
+
         for (int32_t i = 0; i < m_decBase->m_jpeg_ncomp; i++)
         {
             picParams->components[i].component_id             = (uint8_t)m_decBase->m_ccomp[i].m_id;

@@ -98,7 +98,7 @@ mfxExtBuffer* Hevc_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 
     return 0;
 }
 
-mfxStatus cBRCParams::Init(mfxVideoParam* par)
+mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bFielMode)
 {
     MFX_CHECK_NULL_PTR1(par);
     MFX_CHECK(par->mfx.RateControlMethod == MFX_RATECONTROL_CBR || 
@@ -142,8 +142,8 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par)
 
     inputBitsPerFrame    = targetbps / frameRate;
     maxInputBitsPerFrame = maxbps / frameRate;
-    gopPicSize = par->mfx.GopPicSize;
-    gopRefDist = par->mfx.GopRefDist;
+    gopPicSize = par->mfx.GopPicSize*(bFielMode ? 2 : 1);
+    gopRefDist = par->mfx.GopRefDist*(bFielMode ? 2 : 1);
 
     mfxExtCodingOption2 * pExtCO2 = (mfxExtCodingOption2*)Hevc_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
     bPyr = (pExtCO2 && pExtCO2->BRefType == MFX_B_REF_PYRAMID);
@@ -919,7 +919,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
 
         if (m_avg.get())
         {
-            m_avg->UpdateSlidingWindow(bitsEncoded, m_ctx.encOrder, m_ctx.bPanic, bSHStart || picType == MFX_FRAMETYPE_I,frame_par->NumRecode);
+            m_avg->UpdateSlidingWindow(bitsEncoded, m_ctx.encOrder, m_ctx.bPanic, bSHStart || picType == MFX_FRAMETYPE_I,frame_par->NumRecode, qpY);
         }
         
         m_ctx.totalDiviation += (bitsEncoded - (mfxI32)m_par.inputBitsPerFrame);

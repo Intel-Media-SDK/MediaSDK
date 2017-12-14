@@ -81,6 +81,7 @@ struct sInputParams
     mfxU16 nGopRefDist;
     mfxU16 nNumRefFrame;
     mfxU16 nBRefType;
+    mfxU16 nPRefType;
     mfxU16 nIdrInterval;
     mfxU16 reserved[4];
 
@@ -146,6 +147,7 @@ struct sInputParams
     bool shouldUseShiftedP010VPP;
 
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
+    msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
 
 #if defined (ENABLE_V4L2_SUPPORT)
     msdk_char DeviceName[MSDK_MAX_FILENAME_LEN];
@@ -247,6 +249,7 @@ protected:
     MemType m_memType;
     mfxU16 m_nMemBuffer;
     bool m_bExternalAlloc; // use memory allocator as external for Media SDK
+    bool m_bIsFieldWeaving;
 
     mfxFrameSurface1* m_pEncSurfaces; // frames array for encoder input (vpp output)
     mfxFrameSurface1* m_pVppSurfaces; // frames array for vpp input
@@ -275,6 +278,8 @@ protected:
     // external parameters for each component are stored in a vector
     std::vector<mfxExtBuffer*> m_VppExtParams;
     std::vector<mfxExtBuffer*> m_EncExtParams;
+
+    std::vector<mfxPayload*> m_UserDataUnregSEI;
 
     CHWDevice *m_hwdev;
 

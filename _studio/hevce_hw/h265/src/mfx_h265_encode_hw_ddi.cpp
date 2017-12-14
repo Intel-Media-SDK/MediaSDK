@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#include "mfx_config.h"
+#include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "mfx_common.h"
@@ -63,15 +63,14 @@ DriverEncoder* CreatePlatformH265Encoder(MFXCoreInterface* core, ENCODER_TYPE ty
     return 0;
 }
 
-
 // this function is aimed to workaround all CAPS reporting problems in mainline driver
-mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* core, GUID guid)
+mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* core)
 {
     mfxStatus sts = MFX_ERR_NONE;
     if (!caps.LCUSizeSupported)
         caps.LCUSizeSupported = 2;
+    caps.BlockSize = 2; // 32x32
     (void)core;
-    (void)guid;
     return sts;
 }
 
@@ -239,7 +238,7 @@ ENCODE_PACKEDHEADER_DATA* DDIHeaderPacker::PackSkippedSlice(Task const & task, m
 
     return &*m_cur;
 }
-mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core, mfxFrameInfo &CUQPFrameInfo )
+mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core, mfxFrameInfo &CUQPFrameInfo)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
     mfxCoreParam coreParams = {};
@@ -247,62 +246,37 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
     if (core.GetCoreParam(&coreParams))
        return  MFX_ERR_UNSUPPORTED;
 
-    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP || !IsOn(par.m_ext.CO3.EnableMBQP) || ((coreParams.Impl & 0xF00) == MFX_HW_VAAPI))
+    if (!task.m_bCUQPMap || ((coreParams.Impl & 0xF00) == MFX_HW_VAAPI))
         return MFX_ERR_NONE;
 
-    mfxU32 minWidthQPData = (par.m_ext.HEVCParam.PicWidthInLumaSamples   + par.LCUSize  - 1) / par.LCUSize;
-    mfxU32 minHeightQPData = (par.m_ext.HEVCParam.PicHeightInLumaSamples  + par.LCUSize  - 1) / par.LCUSize;
-    mfxU32 minQPSize = minWidthQPData*minHeightQPData;
-    mfxU32 driverQPsize = CUQPFrameInfo.Width * CUQPFrameInfo.Height;
-
-    if (!(driverQPsize >= minQPSize && minQPSize > 0))
-        mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    mfxU32 k_dr_w   =  1;
-    mfxU32 k_dr_h   =  1;
-    mfxU32 k_input = 1;
-    
-    if (driverQPsize > minQPSize)
-    {
-        k_dr_w = CUQPFrameInfo.Width/minWidthQPData;
-        k_dr_h = minHeightQPData/minHeightQPData;
-        if (!(minWidthQPData*k_dr_w == CUQPFrameInfo.Width && minHeightQPData*k_dr_h == CUQPFrameInfo.Height))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (!(k_dr_w == 1 ||k_dr_w == 2 || k_dr_w == 4 || k_dr_w == 8))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (!(k_dr_h == 1 ||k_dr_h == 2 || k_dr_h == 4 || k_dr_h == 8))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }
-
     mfxExtMBQP *mbqp = ExtBuffer::Get(task.m_ctrl);
-    mfxU32 BlockSize = 16;
-    mfxU32 pitch_MBQP = (par.mfx.FrameInfo.Width  + BlockSize - 1)/BlockSize;
-    mfxU32 height_MBQP = (par.mfx.FrameInfo.Height  + BlockSize - 1)/BlockSize;
-    if (mbqp)
+
+    MFX_CHECK(CUQPFrameInfo.Width && CUQPFrameInfo.Height, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(CUQPFrameInfo.AspectRatioW && CUQPFrameInfo.AspectRatioH, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    mfxU32 drBlkW  = CUQPFrameInfo.AspectRatioW;  // block size of driver
+    mfxU32 drBlkH  = CUQPFrameInfo.AspectRatioH;  // block size of driver       
+    mfxU16 inBlkSize = 16;                            //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+
+    mfxU32 pitch_MBQP = (par.mfx.FrameInfo.Width  + inBlkSize - 1)/ inBlkSize;
+
+    if (mbqp && mbqp->NumQPAlloc)
     {
-        mfxU16 blockSize = 16; //mbqp->BlockSize ? mbqp->BlockSize : 16;
-        k_input = par.LCUSize/blockSize;
-        if (!(par.LCUSize == blockSize*k_input))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (mbqp->NumQPAlloc < ((height_MBQP*pitch_MBQP)) )
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (!(k_input == 1 ||k_input == 2 || k_input == 4 || k_input == 8))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }
-    
-    {
+        if ((mbqp->NumQPAlloc *  inBlkSize *  inBlkSize) < 
+            (drBlkW  *  drBlkH  *  CUQPFrameInfo.Width  *  CUQPFrameInfo.Height))
+        {
+            task.m_bCUQPMap = false;
+            return  MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        }
+
         FrameLocker lock(&core, task.m_midCUQp);
         MFX_CHECK(lock.Y, MFX_ERR_LOCK_MEMORY);
 
-        if ((mbqp) && (MFX_ERR_NONE == mfxSts))
-             for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++)
-                 for (mfxU32 j = 0; j < CUQPFrameInfo.Width; j++)
-                    lock.Y[i * lock.Pitch +j] = mbqp->QP[i*k_input/k_dr_h* pitch_MBQP + j*k_input/k_dr_w];
-        else
-            for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++)
-            {
-                memset((uint8_t *)&lock.Y[i * lock.Pitch],(mfxU8)task.m_qpY, (size_t)CUQPFrameInfo.Width);
-            }
-    }
+        for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++)
+            for (mfxU32 j = 0; j < CUQPFrameInfo.Width; j++)
+                    lock.Y[i * lock.Pitch + j] = mbqp->QP[i*drBlkH/inBlkSize * pitch_MBQP + j*drBlkW/inBlkSize];
+
+    } 
     return mfxSts;
     
 }

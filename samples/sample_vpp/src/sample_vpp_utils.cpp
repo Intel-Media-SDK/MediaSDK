@@ -796,10 +796,9 @@ CRawVideoReader::CRawVideoReader()
     m_Repeat = 0;
     m_pPTSMaker = 0;
     m_inI420=false;
-    m_bCanConvert = false;
 }
 
-mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMaker, mfxU32 fcc, bool bInPlaceConversion)
+mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMaker, mfxU32 fcc)
 {
     Close();
 
@@ -811,7 +810,6 @@ mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMake
     m_pPTSMaker = pPTSMaker;
     m_inI420 = fcc == MFX_FOURCC_I420 || fcc == MFX_FOURCC_YV12 ? true : false;
     m_initFcc = fcc;
-    m_bCanConvert = bInPlaceConversion;
     return MFX_ERR_NONE;
 }
 
@@ -837,10 +835,11 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
     MSDK_CHECK_POINTER(pInfo, MFX_ERR_NOT_INITIALIZED);
 
     // Only (I420|YV12) -> NV12 in-place conversion supported
-    if (pInfo->FourCC != m_initFcc)
+    if (pInfo->FourCC != m_initFcc &&
+        (pInfo->FourCC != MFX_FOURCC_NV12 ||
+        (m_initFcc != MFX_FOURCC_I420 && m_initFcc != MFX_FOURCC_YV12) ) )
     {
-        if (!m_bCanConvert || !m_inI420 || pInfo->FourCC != MFX_FOURCC_NV12)
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
     mfxU32 w, h, i, pitch;

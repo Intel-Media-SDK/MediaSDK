@@ -1740,10 +1740,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     MFX_CHECK(par.mfx.TargetUsage            <= 7, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(par.mfx.FrameInfo.ChromaFormat != 0, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(par.IOPattern                  != 0, MFX_ERR_INVALID_VIDEO_PARAM);
-  
- 
+
+
     if (bInit)
-    { 
+    {
     mfxExtBRC*                 extBRC = GetExtBuffer(par);
     mfxExtCodingOption2 *      extOpt2 = GetExtBuffer(par);
     if ((extBRC->pthis || extBRC->Init || extBRC->Close || extBRC->GetFrameCtrl || extBRC->Update || extBRC->Reset) &&
@@ -1968,34 +1968,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixRectQueryLike(
     if (rect->Left == 0 && rect->Right == 0 && rect->Top == 0 && rect->Bottom == 0)
         return checkSts;
 
-    // check that rectangle is aligned to MB, correct it if not
-    if (!CheckMbAlignment(rect->Left))   checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    if (!CheckMbAlignment(rect->Right))  checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    if (!CheckMbAlignment(rect->Top))    checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    if (!CheckMbAlignment(rect->Bottom)) checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-
-    // check that rectangle dimensions don't conflict with each other and don't exceed frame size
-    if (par.mfx.FrameInfo.Width)
-    {
-        if(!CheckRangeDflt(rect->Left, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width -16), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
-        if(!CheckRangeDflt(rect->Right, mfxU32(rect->Left + 16), mfxU32(par.mfx.FrameInfo.Width), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
-    }
-    else if(rect->Right && rect->Right < (rect->Left + 16))
-        {
-            checkSts = MFX_ERR_UNSUPPORTED;
-            rect->Right = 0;
-        }
-
-    if (par.mfx.FrameInfo.Height)
-    {
-        if(!CheckRangeDflt(rect->Top, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height -16), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
-        if(!CheckRangeDflt(rect->Bottom, mfxU32(rect->Top + 16), mfxU32(par.mfx.FrameInfo.Height), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
-    }
-    else if(rect->Bottom && rect->Bottom < (rect->Top + 16))
-        {
-            checkSts = MFX_ERR_UNSUPPORTED;
-            rect->Bottom = 0;
-        }
+    checkSts = CheckAndFixOpenRectQueryLike(par, rect);
 
     return checkSts;
 }
@@ -2021,10 +1994,10 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
     mfxStatus checkSts = MFX_ERR_NONE;
 
     // check that rectangle is aligned to MB, correct it if not
-    if (!CheckMbAlignment(rect->Left))   checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    if (!CheckMbAlignmentAndUp(rect->Right))  checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    if (!CheckMbAlignment(rect->Top))    checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    if (!CheckMbAlignmentAndUp(rect->Bottom)) checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    if (!CheckMbAlignment(rect->Left))          checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    if (!CheckMbAlignment(rect->Top))           checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    if (!CheckMbAlignmentAndUp(rect->Right))    checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    if (!CheckMbAlignmentAndUp(rect->Bottom))   checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 
     // check that rectangle dimensions don't conflict with each other and don't exceed frame size
     if (par.mfx.FrameInfo.Width)
@@ -2033,7 +2006,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
         if (!CheckRangeDflt(rect->Right, mfxU32(rect->Left + 16), mfxU32(par.mfx.FrameInfo.Width), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
     }
 
-    if (rect->Right && rect->Right < rect->Left )
+    if (rect->Right && rect->Right < rect->Left)
     {
         checkSts = MFX_ERR_UNSUPPORTED;
         rect->Right = 0;
@@ -2045,7 +2018,7 @@ mfxStatus MfxHwH264Encode::CheckAndFixOpenRectQueryLike(
         if (!CheckRangeDflt(rect->Bottom, mfxU32(rect->Top + 16), mfxU32(par.mfx.FrameInfo.Height), mfxU32(0))) checkSts = MFX_ERR_UNSUPPORTED;
     }
 
-    if (rect->Bottom && rect->Bottom <= rect->Top )
+    if (rect->Bottom && rect->Bottom <= rect->Top)
     {
         checkSts = MFX_ERR_UNSUPPORTED;
         rect->Bottom = 0;
@@ -2657,6 +2630,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (par.mfx.FrameInfo.FourCC != 0 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_NV12 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4 &&
+        par.mfx.FrameInfo.FourCC != MFX_FOURCC_BGR4 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2)
     {
         unsupported = true;
@@ -2684,7 +2658,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
     }
 
-    if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4 &&
+    if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_BGR4) &&
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
     {
         if (extBits->SPSBuffer)
@@ -3167,7 +3141,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             extOpt3->LowDelayHrd = MFX_CODINGOPTION_OFF;
     }
 
-    if (extDdi->WeightedBiPredIdc == 1 || extDdi->WeightedBiPredIdc > 2)
+    if (extDdi->WeightedBiPredIdc > 2)
     {
         changed = true;
         extDdi->WeightedBiPredIdc = 0;
@@ -3570,9 +3544,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (IsOn(extOpt2->ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod !=MFX_RATECONTROL_CBR && par.mfx.RateControlMethod !=MFX_RATECONTROL_VBR)
     {
         extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
-        changed = true;    
+        changed = true;
     }
-    
+
     if ((!IsOn(extOpt2->ExtBRC)) && (extBRC->pthis || extBRC->Init || extBRC->Close || extBRC->GetFrameCtrl || extBRC->Update || extBRC->Reset) )
     {
         extBRC->pthis = 0;
@@ -3580,10 +3554,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extBRC->Close = 0;
         extBRC->GetFrameCtrl = 0;
         extBRC->Update = 0;
-        extBRC->Reset = 0; 
+        extBRC->Reset = 0;
         changed = true;
     }
-    if ((extBRC->pthis  || extBRC->Init || extBRC->Close   || extBRC->GetFrameCtrl  || extBRC->Update  || extBRC->Reset) && 
+    if ((extBRC->pthis  || extBRC->Init || extBRC->Close   || extBRC->GetFrameCtrl  || extBRC->Update  || extBRC->Reset) &&
         (!extBRC->pthis || !extBRC->Init || !extBRC->Close || !extBRC->GetFrameCtrl || !extBRC->Update || !extBRC->Reset))
     {
         extOpt2->ExtBRC = 0;
@@ -3592,10 +3566,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extBRC->Close = 0;
         extBRC->GetFrameCtrl = 0;
         extBRC->Update = 0;
-        extBRC->Reset = 0; 
+        extBRC->Reset = 0;
         changed = true;
     }
-   
+
 
     if (par.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
     {
@@ -3783,8 +3757,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                 extPps->numSliceGroupsMinus1 > 0                       ||
                 extPps->numRefIdxL0DefaultActiveMinus1 > 31            ||
                 extPps->numRefIdxL1DefaultActiveMinus1 > 31            ||
-                extPps->weightedPredFlag != 0                          ||
-                extPps->weightedBipredIdc == 1                         ||
+                //Check of weightedPredFlag is actually not needed, as it was read from 1 bit in extBits->PPSBuffer
+                extPps->weightedPredFlag > 1                           ||
+                extPps->weightedBipredIdc > 2                          ||
                 extPps->picInitQpMinus26 < -26                         ||
                 extPps->picInitQpMinus26 > 25                          ||
                 extPps->picInitQsMinus26 != 0                          ||
@@ -4287,8 +4262,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
     if (!CheckTriStateOption(extOpt3->BRCPanicMode)) changed = true;
-    if (IsOff(extOpt3->BRCPanicMode) 
-     && ((par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) || (vaType != MFX_HW_VAAPI))) // neither CQP nor Windows support BRC panic mode disabling
+    if (IsOff(extOpt3->BRCPanicMode)
+     && (bRateControlLA(par.mfx.RateControlMethod)
+     || (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+     || (vaType != MFX_HW_VAAPI))) // neither CQP nor LA BRC modes nor Windows support BRC panic mode disabling
     {
         extOpt3->BRCPanicMode = MFX_CODINGOPTION_UNKNOWN;
         unsupported = true;
@@ -4385,15 +4362,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 #endif
-
-    // Remove this check when WP B is also supported.
-    if (isENCPAK
-        && (extOpt3->WeightedBiPred == MFX_WEIGHTED_PRED_EXPLICIT ||
-            extOpt3->WeightedBiPred == MFX_WEIGHTED_PRED_IMPLICIT))
-    {
-        extOpt3->WeightedBiPred = MFX_WEIGHTED_PRED_DEFAULT;
-        changed = true;
-    }
 
     if ((isENCPAK) && (extOpt3->FadeDetection  == MFX_CODINGOPTION_ON))
     {
@@ -4986,7 +4954,7 @@ void MfxHwH264Encode::SetDefaults(
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
         if (par.AsyncDepth == 0)
             par.AsyncDepth = 1;
-        if(par.mfx.LowPower != MFX_CODINGOPTION_ON)
+        if (par.mfx.LowPower != MFX_CODINGOPTION_ON)
         {
             if (par.mfx.RateControlMethod == 0)
                 par.mfx.RateControlMethod = MFX_RATECONTROL_LA;
@@ -5001,6 +4969,7 @@ void MfxHwH264Encode::SetDefaults(
                 par.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
         }
     }
+
 
     mfxU8 fieldCodingPossible = IsFieldCodingPossible(par);
 
@@ -6099,7 +6068,6 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
     }
 
 
-
     return checkSts;
 }
 
@@ -6216,7 +6184,7 @@ mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
         case MFX_EXTBUFF_PRED_WEIGHT_TABLE:
         {
             mfxExtPredWeightTable* feiWeightTable = reinterpret_cast<mfxExtPredWeightTable*>(ctrl->ExtParam[i]);
-            const mfxU32 iWeight = 0, iOffset = 1, iY = 0, iCb = 1, iCr = 2, iL0 = 0;
+            const mfxU32 iWeight = 0, iOffset = 1, iY = 0, iCb = 1, iCr = 2;
 
             if (feiWeightTable->LumaLog2WeightDenom > 7)
             {
@@ -6227,48 +6195,73 @@ mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
 
             if (feiWeightTable->ChromaLog2WeightDenom > 7)
             {
-                // for FEI Encode, chrome weight pred is not supported
+                // for FEI Encode, chroma weight pred is not supported, so set default value 0
                 feiWeightTable->ChromaLog2WeightDenom = 0;
                 return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
             }
 
-            // Validate weights & offset. Currently for P frame only.
-            for (mfxU32 n = 0; n < 32; n++) // [ref list entry]
+            for (mfxU32 m = 0; m < 2; m++) // l0, l1
             {
-                if (feiWeightTable->LumaWeightFlag[iL0][n])
+                for (mfxU32 n = 0; n < 32; n++) // [ref list entry]
                 {
-                    // check luma weights
-                    if (feiWeightTable->Weights[iL0][n][iY][iWeight] > 127 ||
-                        feiWeightTable->Weights[iL0][n][iY][iWeight] < -128)
+                    if (feiWeightTable->LumaWeightFlag[m][n])
                     {
-                        // out_of_scope, use default value pow(2, Denom)
-                        feiWeightTable->Weights[iL0][n][iY][iWeight] = (1 << feiWeightTable->LumaLog2WeightDenom);
-                        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-                    }
-
-                    // check luma offset
-                    if (feiWeightTable->Weights[iL0][n][iY][iOffset] > 127 ||
-                        feiWeightTable->Weights[iL0][n][iY][iOffset] < -128)
-                    {
-                        // out_of_scope, use default value 0
-                        feiWeightTable->Weights[iL0][n][iY][iOffset] = 0;
-                        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-                    }
-                }
-
-                if (feiWeightTable->ChromaWeightFlag[iL0][n])
-                {
-                    for (mfxU32 x = iCb; x <= iCr; x++) // [Cb, Cr]
-                    {
-                        for (mfxU32 y = iWeight; y <= iOffset; y++) // [weight, offset]
+                        // check luma weights
+                        if (feiWeightTable->Weights[m][n][iY][iWeight] > 127 ||
+                            feiWeightTable->Weights[m][n][iY][iWeight] < -128)
                         {
-                            if (feiWeightTable->Weights[iL0][n][x][y] > 127 ||
-                                feiWeightTable->Weights[iL0][n][x][y] < -128)
+                            // out_of_scope, use default value pow(2, Denom)
+                            feiWeightTable->Weights[m][n][iY][iWeight] = (1 << feiWeightTable->LumaLog2WeightDenom);
+                            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                        }
+
+                        // check luma offset
+                        if (feiWeightTable->Weights[m][n][iY][iOffset] > 127 ||
+                            feiWeightTable->Weights[m][n][iY][iOffset] < -128)
+                        {
+                            // out_of_scope, use default value 0
+                            feiWeightTable->Weights[m][n][iY][iOffset] = 0;
+                            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                        }
+                    }
+
+                    if (feiWeightTable->ChromaWeightFlag[m][n])
+                    {
+                        for (mfxU32 x = iCb; x <= iCr; x++) // [Cb, Cr]
+                        {
+                            for (mfxU32 y = iWeight; y <= iOffset; y++) // [weight, offset]
                             {
-                                feiWeightTable->Weights[iL0][n][x][y] = 0;
-                                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                                if (feiWeightTable->Weights[m][n][x][y] > 127 ||
+                                    feiWeightTable->Weights[m][n][x][y] < -128)
+                                {
+                                    feiWeightTable->Weights[m][n][x][y] = 0;
+                                    return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                                }
                             }
                         }
+                    }
+                }
+            }
+
+            // checking for (8-298) in H.264-201704 spec:
+            // −128 <= w0C + w1C <= ( ( logWDC == 7 ) ? 127 : 128 )
+            for (mfxU32 m = 0; m < 32; m++) // L0 index
+            {
+                for (mfxU32 n = 0; n < 32; n++) // L1 index
+                {
+                    if (feiWeightTable->LumaWeightFlag[0][m] && feiWeightTable->LumaWeightFlag[1][n])
+                    {
+                        if ((feiWeightTable->Weights[0][m][0][0] + feiWeightTable->Weights[1][n][0][0] < -128) ||
+                            (feiWeightTable->Weights[0][m][0][0] + feiWeightTable->Weights[1][n][0][0] > ((feiWeightTable->LumaLog2WeightDenom == 7) ? 127 : 128)))
+                            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                    }
+                    if (feiWeightTable->ChromaWeightFlag[0][m] && feiWeightTable->ChromaWeightFlag[1][n])
+                    {
+                        if (((feiWeightTable->Weights[0][m][1][0] + feiWeightTable->Weights[1][n][1][0] < -128) ||
+                             (feiWeightTable->Weights[0][m][1][0] + feiWeightTable->Weights[1][n][1][0] > ((feiWeightTable->ChromaLog2WeightDenom == 7) ? 127 : 128))) ||
+                            ((feiWeightTable->Weights[0][m][2][0] + feiWeightTable->Weights[1][n][2][0] < -128) ||
+                             (feiWeightTable->Weights[0][m][2][0] + feiWeightTable->Weights[1][n][2][0] > ((feiWeightTable->ChromaLog2WeightDenom == 7) ? 127 : 128))))
+                            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
                     }
                 }
             }
@@ -6311,6 +6304,7 @@ mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
                 MFX_CHECK(feiPakMBCtrl->MB         != NULL,  MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
             }
             break;
+
 
             default:
                 //unsupported output extbuffer is attached.
@@ -8344,7 +8338,7 @@ void HeaderPacker::Init(
 
     Zero(m_sps);
     Zero(m_pps);
-    
+
     Zero(m_packedAud);
     Zero(m_packedSps);
     Zero(m_packedPps);
@@ -8580,8 +8574,7 @@ mfxU32 HeaderPacker::WriteSlice(
     mfxU8 * pStartCode = startcode;
     if (!m_longStartCodes)
     {
-        //to avoid slice header corruption due to LowPower limitation - we need to pass packed slice without zero byte and patch after encoding
-        if (task.m_AUStartsFromSlice[fieldId] == false || m_hwCaps.SliceLevelRateCtrl || sliceId > 0)
+        if (task.m_AUStartsFromSlice[fieldId] == false || sliceId > 0)
             pStartCode++;
     }
     obs.PutRawBytes(pStartCode, startcode + sizeof startcode);

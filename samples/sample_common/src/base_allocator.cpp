@@ -20,6 +20,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <assert.h>
 #include <algorithm>
 #include "base_allocator.h"
+#include "vm/thread_defs.h"
 
 MFXFrameAllocator::MFXFrameAllocator()
 {
@@ -87,6 +88,7 @@ mfxStatus MFXFrameAllocator::GetHDL_(mfxHDL pthis, mfxMemId mid, mfxHDL *handle)
 
 BaseFrameAllocator::BaseFrameAllocator()
 {
+    mtx.reset(new MSDKMutex());
 }
 
 BaseFrameAllocator::~BaseFrameAllocator()
@@ -179,6 +181,8 @@ mfxStatus BaseFrameAllocator::AllocFrames(mfxFrameAllocRequest *request, mfxFram
 
 mfxStatus BaseFrameAllocator::FreeFrames(mfxFrameAllocResponse *response)
 {
+    AutomaticMutex lock(*mtx);
+
     if (response == 0)
         return MFX_ERR_INVALID_HANDLE;
 
@@ -215,6 +219,7 @@ mfxStatus BaseFrameAllocator::FreeFrames(mfxFrameAllocResponse *response)
 
 mfxStatus BaseFrameAllocator::Close()
 {
+    AutomaticMutex lock(*mtx);
     std::list<UniqueResponse> ::iterator i;
     for (i = m_ExtResponses.begin(); i!= m_ExtResponses.end(); i++)
     {

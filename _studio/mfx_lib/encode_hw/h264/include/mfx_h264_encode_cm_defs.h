@@ -28,8 +28,7 @@
 #pragma warning(disable: 4100)
 #pragma warning(disable: 4201)
 
-#include "cm_def.h"
-#include "cm_vm.h"
+#include "cmvm.h"
 
 namespace MfxHwH264Encode
 {

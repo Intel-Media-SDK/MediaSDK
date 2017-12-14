@@ -89,18 +89,20 @@ namespace MfxHwMpeg2Encode
             , m_GOPOptFlag()
             , m_encrypt()
             , m_fFrameRate()
+            , m_FrameRateExtN()
+            , m_FrameRateExtD()
         {
         }
 
         mfxStatus Init (const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, bool bAllowBRC = false);
         mfxStatus Close();
-        
-        mfxStatus InitPictureParameters(mfxFrameParamMPEG2* pParams, mfxU32 frameNum);        
+
+        mfxStatus InitPictureParameters(mfxFrameParamMPEG2* pParams, mfxU32 frameNum);
         void      InitFramesSet(mfxMemId curr, bool bExternal, mfxMemId rec, mfxMemId ref_0,mfxMemId ref_1);
         mfxStatus InitSliceParameters(mfxU8 qp, mfxU16 scale_type, mfxU8 * mbqp, mfxU32 numMB);
 
- 
-        ENCODE_ENC_CTRL_CAPS                    m_caps;  
+
+        ENCODE_ENC_CTRL_CAPS                    m_caps;
 
         ENCODE_SET_SEQUENCE_PARAMETERS_MPEG2    m_sps;
         ENCODE_SET_PICTURE_PARAMETERS_MPEG2     m_pps;
@@ -137,6 +139,9 @@ namespace MfxHwMpeg2Encode
         Encryption                              m_encrypt;
         double                                  m_fFrameRate;
 
+        mfxU32                                  m_FrameRateExtN;
+        mfxU32                                  m_FrameRateExtD;
+
     };
 
 
@@ -146,10 +151,10 @@ namespace MfxHwMpeg2Encode
         virtual ~DriverEncoder(){}
 
         virtual mfxStatus QueryEncodeCaps(ENCODE_CAPS & caps) = 0;
-        virtual mfxStatus Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId) = 0;        
+        virtual mfxStatus Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId) = 0;
         virtual mfxStatus CreateContext(ExecuteBuffers* /*pExecuteBuffers*/, mfxU32 /*numRefFrames*/, mfxU32 /*funcId*/) { return MFX_ERR_NONE; }
-        
-        virtual mfxStatus Execute(ExecuteBuffers* pExecuteBuffers, mfxU8* pUserData = 0, mfxU32 userDataLen = 0) = 0;                
+
+        virtual mfxStatus Execute(ExecuteBuffers* pExecuteBuffers, mfxU8* pUserData = 0, mfxU32 userDataLen = 0) = 0;
 
         virtual bool      IsFullEncode() const = 0;
 
@@ -164,8 +169,8 @@ namespace MfxHwMpeg2Encode
         virtual mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) = 0;
     };
 
-    DriverEncoder* CreatePlatformMpeg2Encoder( VideoCORE* core );    
-    
+    DriverEncoder* CreatePlatformMpeg2Encoder( VideoCORE* core );
+
 }; // namespace
 
 

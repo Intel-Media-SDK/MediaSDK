@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "mfx_config.h"
+#include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include <memory>

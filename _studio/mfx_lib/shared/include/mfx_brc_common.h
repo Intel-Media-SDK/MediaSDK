@@ -35,6 +35,120 @@
 mfxStatus ConvertVideoParam_Brc(const mfxVideoParam *parMFX, UMC::VideoBrcParams *parUMC);
 #endif
 
+class AVGBitrate
+{
+public:
+    AVGBitrate(mfxU32 windowSize, mfxU32 maxBitPerFrame, mfxU32 avgBitPerFrame, bool bLA = false):
+        m_maxWinBits(maxBitPerFrame*windowSize),
+        m_maxWinBitsLim(0),
+        m_avgBitPerFrame(MFX_MIN(avgBitPerFrame, maxBitPerFrame)),
+        m_currPosInWindow(0),
+        m_lastFrameOrder(0),
+        m_bLA(bLA)
+
+    {
+        windowSize = windowSize > 0 ? windowSize : 1; // kw
+        m_slidingWindow.resize(windowSize);
+        for (mfxU32 i = 0; i < windowSize; i++)
+        {
+            m_slidingWindow[i] = maxBitPerFrame / 3; //initial value to prevent big first frames
+        }
+        m_maxWinBitsLim = GetMaxWinBitsLim();
+    }
+    virtual ~AVGBitrate()
+    {
+        //printf("------------ AVG Bitrate: %d ( %d), NumberOfErrors %d\n", m_MaxBitReal, m_MaxBitReal_temp, m_NumberOfErrors);
+    }
+    void UpdateSlidingWindow(mfxU32  sizeInBits, mfxU32  FrameOrder, bool bPanic, bool bSH, mfxU32 recode, mfxU32 /* qp */)
+    {
+        mfxU32 windowSize = (mfxU32)m_slidingWindow.size();
+        bool   bNextFrame = FrameOrder != m_lastFrameOrder;
+
+        if (bNextFrame)
+        {
+            m_lastFrameOrder = FrameOrder;
+            m_currPosInWindow = (m_currPosInWindow + 1) % windowSize;
+        }
+        m_slidingWindow[m_currPosInWindow] = sizeInBits;
+
+        if (bNextFrame)
+        {
+            if (bPanic || bSH)
+            {
+                m_maxWinBitsLim = MFX_MAX(MFX_MIN((GetLastFrameBits(windowSize) + m_maxWinBits) / 2, m_maxWinBits), GetMaxWinBitsLim());
+            }
+            else
+            {
+                if (recode)
+                    m_maxWinBitsLim = MFX_MIN(MFX_MAX(GetLastFrameBits(windowSize) + GetStep() / 2, m_maxWinBitsLim), m_maxWinBits);
+                else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
+                    (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1) + sizeInBits)))
+                    m_maxWinBitsLim -= GetStep();
+            }
+
+        }
+    }
+    mfxU32 GetMaxFrameSize(bool bPanic, bool bSH, mfxU32 recode)
+    {
+        mfxU32 winBits = GetLastFrameBits(GetWindowSize() - 1);
+        mfxU32 maxWinBitsLim = m_maxWinBitsLim;
+        if (bSH)
+            maxWinBitsLim = (m_maxWinBits + m_maxWinBitsLim) / 2;
+        if (bPanic)
+            maxWinBitsLim = m_maxWinBits;
+        maxWinBitsLim = MFX_MIN(maxWinBitsLim + recode*GetStep() / 2, m_maxWinBits);
+
+        mfxU32 maxFrameSize = winBits >= m_maxWinBitsLim ?
+            m_maxWinBits - winBits :
+            maxWinBitsLim - winBits;
+
+        return maxFrameSize;
+    }
+    mfxU32 GetWindowSize()
+    {
+        return (mfxU32)m_slidingWindow.size();
+    }
+    mfxI32 GetBudget(mfxU32 numFrames)
+    {
+        numFrames = MFX_MIN((mfxU32)m_slidingWindow.size(), numFrames);
+        return ((mfxI32)m_maxWinBitsLim - (mfxI32)GetLastFrameBits((mfxU32)m_slidingWindow.size() - numFrames));
+    }
+
+
+protected:
+
+    mfxU32                      m_maxWinBits;
+    mfxU32                      m_maxWinBitsLim;
+    mfxU32                      m_avgBitPerFrame;
+
+    mfxU32                      m_currPosInWindow;
+    mfxU32                      m_lastFrameOrder;
+    bool                        m_bLA;
+    std::vector<mfxU32>         m_slidingWindow;
+
+
+
+    mfxU32 GetLastFrameBits(mfxU32 numFrames)
+    {
+        mfxU32 size = 0;
+        numFrames = numFrames < m_slidingWindow.size() ? numFrames : (mfxU32)m_slidingWindow.size();
+        for (mfxU32 i = 0; i < numFrames; i++)
+        {
+            size += m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
+            //printf("GetLastFrames: %d) %d sum %d\n",i,m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ], size);
+        }
+        return size;
+    }
+    mfxU32 GetStep()
+    {
+        return  (m_maxWinBits / GetWindowSize() - m_avgBitPerFrame) / (m_bLA ? 4 : 2);
+    }
+
+    mfxU32 GetMaxWinBitsLim()
+    {
+        return m_maxWinBits - GetStep() * GetWindowSize();
+    }
+};
  
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE) || defined (MFX_ENABLE_H265_VIDEO_ENCODE)
 
@@ -127,7 +241,7 @@ public:
         quantMinB(0)
     {}
 
-    mfxStatus Init(mfxVideoParam* par);
+    mfxStatus Init(mfxVideoParam* par, bool bFieldMode = false);
     mfxStatus GetBRCResetType(mfxVideoParam* par, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset );
 };
 class cHRD
@@ -202,117 +316,7 @@ struct BRC_Ctx
     mfxF64 eRate;               // eRate of last encoded frame, this parameter is used for scene change calculation
     mfxF64 eRateSH;             // eRate of last encoded scene change frame, this parameter is used for scene change calculation
 };
-class AVGBitrate
-{
-public:
-    AVGBitrate(mfxU32 windowSize, mfxU32 maxBitPerFrame, mfxU32 avgBitPerFrame) :
-        m_maxWinBits(maxBitPerFrame*windowSize),
-        m_maxWinBitsLim(0),
-        m_avgBitPerFrame(MFX_MIN(avgBitPerFrame, maxBitPerFrame)),
-        m_currPosInWindow(0),
-        m_lastFrameOrder(0)
 
-    {
-        windowSize = windowSize > 0 ? windowSize : 1; // kw
-        m_slidingWindow.resize(windowSize);
-        for (mfxU32 i = 0; i < windowSize; i++)
-        {
-            m_slidingWindow[i] = maxBitPerFrame / 3; //initial value to prevent big first frames
-        }
-        m_maxWinBitsLim = GetMaxWinBitsLim();
-    }
-    virtual ~AVGBitrate()
-    {
-        //printf("------------ AVG Bitrate: %d ( %d), NumberOfErrors %d\n", m_MaxBitReal, m_MaxBitReal_temp, m_NumberOfErrors);        
-    }
-    void UpdateSlidingWindow(mfxU32  sizeInBits, mfxU32  FrameOrder, bool bPanic, bool bSH, mfxU32 recode)
-    {
-        mfxU32 windowSize = (mfxU32)m_slidingWindow.size();
-        bool   bNextFrame = FrameOrder != m_lastFrameOrder;
-
-        if (bNextFrame)
-        {
-            m_lastFrameOrder = FrameOrder;
-            m_currPosInWindow = (m_currPosInWindow + 1) % windowSize;
-        }
-        m_slidingWindow[m_currPosInWindow] = sizeInBits;
-
-        if (bNextFrame)
-        {
-            if (bPanic || bSH)
-            {
-                m_maxWinBitsLim = MFX_MAX(MFX_MIN( (GetLastFrameBits(windowSize) + m_maxWinBits)/2, m_maxWinBits), GetMaxWinBitsLim());
-            }
-            else
-            {
-                if (recode)
-                    m_maxWinBitsLim = MFX_MIN(MFX_MAX(GetLastFrameBits(windowSize) + GetStep()/2, m_maxWinBitsLim), m_maxWinBits);
-                else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
-                    (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1) + sizeInBits)))
-                   m_maxWinBitsLim -= GetStep();
-            }
-
-        }
-
-    }
-    mfxU32 GetMaxFrameSize(bool bPanic, bool bSH, mfxU32 recode)
-    {
-        mfxU32 winBits = GetLastFrameBits(GetWindowSize() - 1);
-        mfxU32 maxWinBitsLim = m_maxWinBitsLim;
-        if (bSH)
-            maxWinBitsLim =  (m_maxWinBits + m_maxWinBitsLim)/2;
-        if (bPanic)
-            maxWinBitsLim = m_maxWinBits;
-        maxWinBitsLim = MFX_MIN(maxWinBitsLim + recode*GetStep()/2, m_maxWinBits);
-
-        mfxU32 maxFrameSize = winBits >= m_maxWinBitsLim ?
-            m_maxWinBits  - winBits:
-            maxWinBitsLim - winBits;
-
-        //printf("GetMaxFrameSize:   m_maxWinBits %d maxWinBits %d maxFrameSize %d, winBits %d\n", m_maxWinBits, maxWinBitsLim, maxFrameSize, winBits);
-
-        return maxFrameSize;
-    }
-    mfxU32 GetWindowSize()
-    {
-        return (mfxU32)m_slidingWindow.size();
-    }
-
-protected:
-
-    mfxU32                      m_maxWinBits;
-    mfxU32                      m_maxWinBitsLim;
-    mfxU32                      m_avgBitPerFrame;
-
-    mfxU32                      m_currPosInWindow;
-    mfxU32                      m_lastFrameOrder;
-    std::vector<mfxU32>         m_slidingWindow;
-
-
-
-    mfxU32 GetLastFrameBits(mfxU32 numFrames)
-    {
-        mfxU32 size = 0;
-        numFrames = numFrames < m_slidingWindow.size() ? numFrames : (mfxU32)m_slidingWindow.size();
-        for (mfxU32 i = 0; i < numFrames; i++)
-        {
-            size += m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
-            //printf("GetLastFrames: %d) %d sum %d\n",i,m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ], size);
-        }
-        return size;
-    }
-    mfxU32 GetStep()
-    {
-        return  (m_maxWinBits / GetWindowSize() - m_avgBitPerFrame) / 2;    
-    }
-    
-    mfxU32 GetMaxWinBitsLim()
-    {
-        return m_maxWinBits - GetStep() * GetWindowSize();
-    }
-
-
-};
 class ExtBRC
 {
 private:

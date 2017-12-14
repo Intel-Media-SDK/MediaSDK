@@ -517,7 +517,6 @@ mfxStatus ImplementationAvc::Query(
     else if (4 == queryMode)// Query mode 4: Query should do a single thing - report MB processing rate
     {
         mfxU32 mbPerSec[16] = {0, };
-        mfxU32 inputTiling = 0;
         // let use dedault values if input resolution is 0x0, 1920x1088 - should cover almost all cases
         out->mfx.TargetUsage = in->mfx.TargetUsage == 0 ? 4: in->mfx.TargetUsage;
         mfxExtEncoderCapability * extCaps = GetExtBuffer(*out);
@@ -549,6 +548,7 @@ mfxStatus ImplementationAvc::Query(
             // driver returned status OK and MAX_MB_PER_SEC = 0. Treat this as driver doesn't support reporting of MAX_MB_PER_SEC for requested encoding configuration
             return MFX_ERR_UNSUPPORTED;
         }
+
         return MFX_ERR_NONE;
     }
     else if (5 == queryMode)
@@ -958,7 +958,9 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (   IsOn(extOpt3.FadeDetection)
         || bIntRateControlLA(m_video.mfx.RateControlMethod))
     {
-        m_cmDevice.Reset(CreateCmDevicePtr(m_core));
+        m_cmDevice.Reset(TryCreateCmDevicePtr(m_core));
+        if (m_cmDevice == NULL)
+            return MFX_ERR_UNSUPPORTED;
         m_cmCtx.reset(new CmContext(m_video, m_cmDevice, m_core));
     }
 
@@ -1712,7 +1714,6 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     m_stat.NumBit += numBits;
     m_stat.NumCachedFrame--;
     m_stat.NumFrame++;
-
     m_free.splice(m_free.end(), m_encoding, task);
 }
 
@@ -1953,6 +1954,9 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         task->m_isENCPAK = m_isENCPAK;
         if (m_isENCPAK && (NULL != bs))
             task->m_bs = bs;
+
+        // keep the hwtype info in case of no VideoCore interface
+        task->m_hwType = m_currentPlatform;
 
         ConfigureTask(*task, m_lastTask, m_video, m_caps);
 
@@ -2536,6 +2540,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 m_listOfPairsForFieldOutputMode.pop_front();
             }
         }
+
     }
 
     /* FEI Field processing mode: second (last) field processing */
@@ -2673,7 +2678,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
 
     mfxStatus checkSts = CheckEncodeFrameParam(
         m_video, ctrl, surface, bs,
-        m_core->IsExternalFrameAllocator(), m_caps);
+        m_core->IsExternalFrameAllocator(), m_caps, m_currentPlatform);
     if (checkSts < MFX_ERR_NONE)
         return checkSts;
 
@@ -2698,7 +2703,6 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
 
         // Copy ctrl with all settings and Extension buffers
         m_encoding.front().m_ctrl = *ctrl;
-
         return status;
     }
 
@@ -2818,12 +2822,12 @@ mfxStatus ImplementationAvc::UpdateBitstream(
         m_video.calcParam.numTemporalLayer > 0 ||
         (IsSlicePatchNeeded(task, fid) || (m_video.mfx.NumRefFrame & 1));
 
-    bool doPatch = (IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0 || task.m_AUStartsFromSlice[fid])) ||
+    bool doPatch = (IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0)) ||
         needIntermediateBitstreamBuffer ||
         IsInplacePatchNeeded(m_video, task, fid);
 
 
-    if ((!((IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0 || task.m_AUStartsFromSlice[fid]))) &&
+    if ((!((IsOn(m_video.mfx.LowPower) && (m_video.calcParam.numTemporalLayer > 0))) &&
         m_caps.HeaderInsertion == 0 &&
         (m_currentPlatform != MFX_HW_IVB || m_core->GetVAType() != MFX_HW_VAAPI))
         || m_video.Protected != 0)
@@ -2906,12 +2910,6 @@ mfxStatus ImplementationAvc::UpdateBitstream(
         {
             dbegin = task.m_bs->Data + task.m_bs->DataOffset + task.m_bs->DataLength;
             dend   = task.m_bs->Data + task.m_bs->MaxLength;
-        }
-        //for LowPower mode slice header size need to add zero byte to first slice when it is first AU in picture.
-        if(IsOn(m_video.mfx.LowPower) && task.m_AUStartsFromSlice[fid])
-        {
-            *dbegin = 0;
-            dbegin++;
         }
 
         mfxU8 * endOfPatchedBitstream =

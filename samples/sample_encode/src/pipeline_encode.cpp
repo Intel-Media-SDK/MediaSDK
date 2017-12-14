@@ -134,6 +134,7 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
     if (NULL != m_pTasks[m_nTaskBufferStart].EncSyncP)
     {
         sts = m_pmfxSession->SyncOperation(m_pTasks[m_nTaskBufferStart].EncSyncP, MSDK_WAIT_INTERVAL);
+        MSDK_CHECK_STATUS_NO_RET(sts, "SyncOperation failed");
 
         if (MFX_ERR_NONE == sts)
         {
@@ -442,6 +443,71 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.CropW = pInParams->nDstWidth;
     m_mfxEncParams.mfx.FrameInfo.CropH = pInParams->nDstHeight;
 
+    bool bCodingOption = false;
+    if(*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC ||
+                pInParams->CodecId == MFX_CODEC_HEVC))
+    {
+        mfxPayload* pl = new mfxPayload;
+        mfxU16 size = 0;
+        std::vector<mfxU8> data;
+        std::vector<mfxU8> uuid;
+        std::string msg;
+        mfxU16 type = 5; //user data unregister
+        pl->CtrlFlags = 0;
+
+        mfxU16 index = 0;
+        for(; index < 16; index++)
+        {
+            mfxU8 bt = Char2Hex(pInParams->uSEI[index * 2]) * 16 +
+                Char2Hex(pInParams->uSEI[index * 2 + 1]);
+            uuid.push_back(bt);
+        }
+        index = 32; //32 charactors for uuid
+
+        if(msdk_strlen(pInParams->uSEI) > index)
+        {
+            index++; //skip the delimiter
+            if(pInParams->CodecId == MFX_CODEC_HEVC)
+            {
+                pl->CtrlFlags = pInParams->uSEI[index++] == '0' ? 0 : MFX_PAYLOAD_CTRL_SUFFIX;
+            }
+            else
+            {
+                pl->CtrlFlags = pInParams->uSEI[index++] == '0';
+            }
+        }
+        if(msdk_strlen(pInParams->uSEI) > index)
+        {
+            index++;
+
+            // Converting to byte-string if necessary
+            msdk_tstring tstr(pInParams->uSEI+index);
+            msg = std::string(tstr.begin(), tstr.end());
+        }
+        size = (mfxU16)uuid.size();
+        size += (mfxU16)msg.length();
+        SEICalcSizeType(data, type, size);
+        mfxU16 calc_size = (mfxU16)data.size();
+        size += calc_size;
+        pl->BufSize = size;
+        pl->Data    = new mfxU8[pl->BufSize];
+        pl->NumBit  = pl->BufSize * 8;
+        pl->Type    = type;
+
+        mfxU8* p = pl->Data;
+        memcpy(p, &data[0], calc_size);
+        p += calc_size;
+        memcpy(p, &uuid[0], uuid.size());
+        p += uuid.size();
+        memcpy(p, msg.c_str(), msg.length());
+
+        m_UserDataUnregSEI.push_back(pl);
+
+        m_encCtrl.Payload = m_UserDataUnregSEI.data();
+        m_encCtrl.NumPayload = (mfxU16)m_UserDataUnregSEI.size();
+        bCodingOption = true;
+    }
+
     // we don't specify profile and level and let the encoder choose those basing on parameters
     // we must specify profile only for MVC codec
     if (MVC_ENABLED & m_MVCflags)
@@ -457,6 +523,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     {
         // ViewOuput option requested
         m_CodingOption.ViewOutput = MFX_CODINGOPTION_ON;
+        bCodingOption = true;
+    }
+    if (bCodingOption)
+    {
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
     }
 
@@ -479,16 +549,18 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     // set up mfxCodingOption3
     if (pInParams->nGPB || pInParams->LowDelayBRC ||
-        pInParams->WeightedPred || pInParams->WeightedBiPred)
+        pInParams->WeightedPred || pInParams->WeightedBiPred
+        || pInParams->nPRefType)
     {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
             m_CodingOption3.GPB = pInParams->nGPB;
         }
 
-        m_CodingOption3.WeightedPred = pInParams->WeightedPred;
+        m_CodingOption3.WeightedPred   = pInParams->WeightedPred;
         m_CodingOption3.WeightedBiPred = pInParams->WeightedBiPred;
-        m_CodingOption3.LowDelayBRC = pInParams->LowDelayBRC;
+        m_CodingOption3.LowDelayBRC    = pInParams->LowDelayBRC;
+        m_CodingOption3.PRefType       = pInParams->nPRefType;
 
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
@@ -554,7 +626,15 @@ mfxStatus CEncodingPipeline::InitMfxVppParams(sInputParams *pInParams)
         m_mfxVppParams.IOPattern = MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
     }
 
+    if (m_bIsFieldWeaving)
+    {
+        m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_UNKNOWN;
+        m_mfxVppParams.vpp.Out.Height = m_mfxVppParams.vpp.In.Height << 1;
+        m_mfxVppParams.vpp.Out.CropH = m_mfxVppParams.vpp.In.CropH << 1;
+    }
+
     m_mfxVppParams.vpp.In.PicStruct = pInParams->nPicStruct;
+
     ConvertFrameRate(pInParams->dFrameRate, &m_mfxVppParams.vpp.In.FrameRateExtN, &m_mfxVppParams.vpp.In.FrameRateExtD);
 
     // width must be a multiple of 16
@@ -1013,6 +1093,7 @@ CEncodingPipeline::CEncodingPipeline()
     m_bCutOutput = false;
     m_bTimeOutExceed = false;
     m_bInsertIDR = false;
+    m_bIsFieldWeaving = false;
 
 }
 
@@ -1216,10 +1297,20 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // or if different FourCC is set
     if (pParams->nWidth  != pParams->nDstWidth ||
         pParams->nHeight != pParams->nDstHeight ||
-        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC)
+        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC )
     {
         m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
         MSDK_CHECK_POINTER(m_pmfxVPP, MFX_ERR_MEMORY_ALLOC);
+    }
+
+    if (pParams->nPicStruct != MFX_PICSTRUCT_PROGRESSIVE && pParams->CodecId == MFX_CODEC_HEVC)
+    {
+        m_bIsFieldWeaving = true;
+        if (!m_pmfxVPP)
+        {
+            m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
+            MSDK_CHECK_POINTER(m_pmfxVPP, MFX_ERR_MEMORY_ALLOC);
+        }
     }
 
     // Determine if we should shift P010 surfaces
@@ -1233,12 +1324,12 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     if(readerShift)
     {
-        msdk_printf(MSDK_STRING("P010 frames data will be shifted to MSB area to be compatible with HEVC HW input format\n"));
+        msdk_printf(MSDK_STRING("\nP010 frames data will be shifted to MSB area to be compatible with HEVC HW input format\n"));
     }
 
-    if(m_pmfxVPP && pParams->shouldUseShiftedP010Enc && !pParams->shouldUseShiftedP010Enc && pParams->bUseHWLib)
+    if(m_pmfxVPP && pParams->shouldUseShiftedP010VPP && !pParams->shouldUseShiftedP010Enc && pParams->bUseHWLib)
     {
-        msdk_printf(MSDK_STRING("ERROR: Encoder requires P010 LSB format. VPP currently supports only MSB encoding for P010 format. Sample cannot combine both of them in one pipeline.\n"));
+        msdk_printf(MSDK_STRING("ERROR: Encoder requires P010 LSB format. VPP currently supports only MSB encoding for P010 format.\nSample cannot combine both of them in one pipeline.\n"));
         return MFX_ERR_UNSUPPORTED;
     }
 
@@ -1375,6 +1466,19 @@ void CEncodingPipeline::Close()
         mfxF64 ProcDeltaTime = m_statOverall.GetDeltaTime() - m_statFile.GetDeltaTime() - m_TaskPool.GetFileStatistics().GetDeltaTime();
         msdk_printf(MSDK_STRING("Encoding fps: %.0f\n"), m_FileWriters.first->m_nProcessedFramesNum / ProcDeltaTime);
 #endif
+    }
+
+    if (m_UserDataUnregSEI.size() > 0)
+    {
+        for (std::vector<mfxPayload*>::iterator it = m_UserDataUnregSEI.begin();it!= m_UserDataUnregSEI.end();it++)
+        {
+            if (*it)
+            {
+                delete[](*it)->Data;
+            }
+            delete (*it);
+        }
+        m_UserDataUnregSEI.clear();
     }
 
     MSDK_SAFE_DELETE(m_pmfxENC);
@@ -1576,7 +1680,6 @@ mfxStatus CEncodingPipeline::Run()
         msdk_printf(MSDK_STRING("Press Ctrl+C to terminate this application\n"));
     }
 #endif
-
     // main loop, preprocessing and encoding
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
@@ -1647,6 +1750,21 @@ mfxStatus CEncodingPipeline::Run()
             m_statFile.StopTimeMeasurement();
             if (MVC_ENABLED & m_MVCflags) currViewNum ^= 1; // Flip between 0 and 1 for ViewId
 
+        }
+
+        if (m_bIsFieldWeaving)
+        {
+            if (!(nFramesProcessed % 2))
+            {
+                if ((m_pVppSurfaces[nVppSurfIdx].Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF))
+                {
+                    m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_TFF;
+                }
+                if (m_pVppSurfaces[nVppSurfIdx].Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)
+                {
+                    m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_BFF;
+                }
+            }
         }
 
         // perform preprocessing if required

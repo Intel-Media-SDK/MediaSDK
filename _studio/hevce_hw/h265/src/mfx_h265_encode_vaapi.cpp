@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_config.h"
+#include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "mfx_common.h"
@@ -45,6 +45,7 @@ static mfxStatus SetROI(
 {
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
+
     VAEncMiscParameterBufferROI *roi_Param;
     unsigned int roi_buffer_size = sizeof(VAEncMiscParameterBufferROI);
 
@@ -89,7 +90,7 @@ static mfxStatus SetROI(
             roi_Param->roi[i].roi_rectangle.y = task.m_roi[i].Top;
             roi_Param->roi[i].roi_rectangle.width = task.m_roi[i].Right - task.m_roi[i].Left;
             roi_Param->roi[i].roi_rectangle.height = task.m_roi[i].Bottom - task.m_roi[i].Top;
-            roi_Param->roi[i].roi_value = task.m_roi[i].Priority;
+            roi_Param->roi[i].roi_value = (mfxI8)(task.m_bPriorityToDQPpar ? (-1)*task.m_roi[i].Priority: task.m_roi[i].Priority);
         }
         roi_Param->max_delta_qp = 51;
         roi_Param->min_delta_qp = -51;
@@ -207,14 +208,12 @@ mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl, bool bSWBRC)
 
     switch (rateControl)
     {
-        case MFX_RATECONTROL_CQP:  return VA_RC_CQP;
+        case MFX_RATECONTROL_CQP:    return VA_RC_CQP;
         case MFX_RATECONTROL_LA_EXT: return VA_RC_CQP;
-        case MFX_RATECONTROL_CBR:  return VA_RC_CBR | VA_RC_MB;
-        case MFX_RATECONTROL_VBR:  return VA_RC_VBR | VA_RC_MB;
-#ifndef MFX_VAAPI_UPSTREAM
-        case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ | VA_RC_MB;
-#endif
-        case MFX_RATECONTROL_VCM:  return VA_RC_VCM | VA_RC_MB;
+        case MFX_RATECONTROL_CBR:    return VA_RC_CBR | VA_RC_MB;
+        case MFX_RATECONTROL_VBR:    return VA_RC_VBR | VA_RC_MB;
+        case MFX_RATECONTROL_ICQ:    return VA_RC_ICQ | VA_RC_MB;
+        case MFX_RATECONTROL_VCM:    return VA_RC_VCM | VA_RC_MB;
         default: assert(!"Unsupported RateControl"); return 0;
     }
 }
@@ -320,17 +319,11 @@ mfxStatus SetRateControl(
         rate_param->window_size     = par.mfx.Convergence * 100;
         rate_param->rc_flags.bits.reset = isBrcResetRequired;
 
-        //printf("isBrcResetRequired %d\n", isBrcResetRequired);
-
-#ifndef MFX_VAAPI_UPSTREAM
         rate_param->rc_flags.bits.enable_parallel_brc = 0;
-#endif
     }
 
-#ifndef MFX_VAAPI_UPSTREAM
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
         rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
-#endif
 
     rate_param->initial_qp = par.m_pps.init_qp_minus26 + 26;
 
@@ -371,11 +364,7 @@ mfxStatus SetFrameRate(
     misc_param->type = VAEncMiscParameterTypeFrameRate;
     frameRate_param = (VAEncMiscParameterFrameRate *)misc_param->data;
 
-#ifndef MFX_VAAPI_UPSTREAM
-    frameRate_param->framerate = (unsigned int)(100.0 * (mfxF64)par.mfx.FrameInfo.FrameRateExtN / (mfxF64)par.mfx.FrameInfo.FrameRateExtD);
-#else
-    frameRate_param->framerate = (par.mfx.FrameInfo.FrameRateExtD << 16 ) | par.mfx.FrameInfo.FrameRateExtN;
-#endif
+    frameRate_param->framerate = (par.mfx.FrameInfo.FrameRateExtD << 16 )| par.mfx.FrameInfo.FrameRateExtN;
 
     vaUnmapBuffer(vaDisplay, frameRateBuf_id);
 
@@ -421,6 +410,7 @@ mfxStatus SetQualityLevelParams(
 
     return MFX_ERR_NONE;
 }
+
 static mfxStatus SetMaxFrameSize(
     const UINT   userMaxFrameSize,
     VADisplay    vaDisplay,
@@ -662,10 +652,7 @@ VAAPIEncoder::VAAPIEncoder()
 , m_width(0)
 , m_height(0)
 , m_caps()
-, m_cuqp_width(0)
-, m_cuqp_height(0)
-, m_cuqp_pitch(0)
-, m_cuqp_h_aligned(0)
+
 {
 }
 
@@ -773,13 +760,11 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VAConfigAttribType attr_types[] = {
         VAConfigAttribRTFormat,
         VAConfigAttribRateControl,
-#ifndef MFX_VAAPI_UPSTREAM
         VAConfigAttribEncQuantization,
         VAConfigAttribEncIntraRefresh,
         VAConfigAttribMaxPictureHeight,
         VAConfigAttribMaxPictureWidth,
         VAConfigAttribEncParallelRateControl,
-#endif
         VAConfigAttribEncMaxRefFrames,
         VAConfigAttribEncSliceStructure,
         VAConfigAttribEncROI
@@ -793,7 +778,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           ConvertProfileTypeMFX2VAAPI(m_videoParam.mfx.CodecProfile),
-                          VAEntrypointEncSlice,
+                          GetVAEntryPoint(),
                           Begin(attrs), attrs.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -805,8 +790,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
         if (p.CodeName >= MFX_PLATFORM_SKYLAKE)
         {
-            m_caps.Color420Only = 1;
-            m_caps.BitDepth8Only = 1;
+            m_caps.Color420Only       = 1;
+            m_caps.BitDepth8Only      = 1;
             m_caps.MaxEncodedBitDepth = 0;
             m_caps.YUV422ReconSupport = 0;
             m_caps.YUV444ReconSupport = 0;
@@ -820,77 +805,51 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.VCMBitRateControl =
         attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_VCM ? 1 : 0; //Video conference mode
-    m_caps.RollingIntraRefresh = 0; /* (attrs[3].value & (~VA_ATTRIB_NOT_SUPPORTED))  ? 1 : 0*/
+    m_caps.RollingIntraRefresh     = 0; /* (attrs[3].value & (~VA_ATTRIB_NOT_SUPPORTED))  ? 1 : 0*/
     m_caps.UserMaxFrameSizeSupport = 1;
-    m_caps.MBBRCSupport = 1;
-    m_caps.MbQpDataSupport = 1;
-    m_caps.Color420Only = 1;// fixme in case VAAPI direct YUY2/RGB support added
-    m_caps.TUSupport = 73;
+    m_caps.MBBRCSupport            = 1;
+    m_caps.MbQpDataSupport         = 1;
+    m_caps.Color420Only            = 1; // FIXME in case VAAPI direct YUY2/RGB support added
+    m_caps.TUSupport               = 73;
 
-    vaExtQueryEncCapabilities pfnVaExtQueryCaps = NULL;
-    pfnVaExtQueryCaps = (vaExtQueryEncCapabilities)vaGetLibFunc(m_vaDisplay,VPG_EXT_QUERY_ENC_CAPS);
 
-    if (pfnVaExtQueryCaps)
+    if ((attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != 0))
+        m_caps.MaxPicWidth = attrs[idx_map[VAConfigAttribMaxPictureWidth] ].value;
+    else
+        m_caps.MaxPicWidth = 1920;
+
+    if ((attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != 0))
+        m_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
+    else
+        m_caps.MaxPicHeight = 1088;
+
+    m_caps.SliceStructure = 4;
+
+    if (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value != VA_ATTRIB_NOT_SUPPORTED)
     {
-        VAEncQueryCapabilities VaEncCaps;
-        memset(&VaEncCaps, 0, sizeof(VaEncCaps));
-        VaEncCaps.size = sizeof(VAEncQueryCapabilities);
-        vaSts = pfnVaExtQueryCaps(m_vaDisplay, VAProfileH264Baseline, &VaEncCaps);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-        //printf("pfnVaExtQueryCaps: MaxPicWidth %d, MaxPicHeight %d, SliceStructure %d\n", VaEncCaps.MaxPicWidth, VaEncCaps.MaxPicHeight, VaEncCaps.EncLimits.bits.SliceStructure);
-
-        m_caps.MaxPicWidth  = VaEncCaps.MaxPicWidth;
-        m_caps.MaxPicHeight = VaEncCaps.MaxPicHeight;
-        m_caps.SliceStructure = VaEncCaps.EncLimits.bits.SliceStructure;
-        m_caps.MaxNum_Reference0 = VaEncCaps.MaxNum_ReferenceL0;
-        m_caps.MaxNum_Reference1 = VaEncCaps.MaxNum_ReferenceL1;
+        m_caps.MaxNum_Reference0 =
+            attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value & 0xffff;
+        m_caps.MaxNum_Reference1 =
+            (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value >>16) & 0xffff;
     }
     else
     {
-#ifndef MFX_VAAPI_UPSTREAM
-        if ((attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
-            (attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != 0))
-            m_caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth] ].value;
-        else
-            m_caps.MaxPicWidth = 1920;
-
-        if ((attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
-            (attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != 0))
-            m_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
-        else
-            m_caps.MaxPicHeight = 1088;
-#else
-            m_caps.MaxPicWidth  = 1920;
-            m_caps.MaxPicHeight = 1088;
-#endif
-
-        //if (attrs[8].value != VA_ATTRIB_NOT_SUPPORTED)
-        //    m_caps.SliceStructure = attrs[8].value ;
-        //else
-            m_caps.SliceStructure = 4;
-
-
-        if (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value != VA_ATTRIB_NOT_SUPPORTED)
-        {
-            m_caps.MaxNum_Reference0 =
-                attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value & 0xffff;
-            m_caps.MaxNum_Reference1 =
-                (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value >>16) & 0xffff;
-        }
-        else
-        {
-            m_caps.MaxNum_Reference0 = 3;
-            m_caps.MaxNum_Reference1 = 1;
-        }
-        m_caps.LCUSizeSupported = 2;
-
-    //printf("LibVA legacy: MaxPicWidth %d (%d), MaxPicHeight %d (%d), SliceStructure %d (%d), NumRef %d  %d (%x)\n", m_caps.MaxPicWidth, attrs[5].value,  m_caps.MaxPicHeight,attrs[4].value, m_caps.SliceStructure, attrs[8].value, m_caps.MaxNum_Reference0, m_caps.MaxNum_Reference1, attrs[7].value);
+        m_caps.MaxNum_Reference0 = 3;
+        m_caps.MaxNum_Reference1 = 1;
     }
+    m_caps.LCUSizeSupported = 2;
+    m_caps.BlockSize = 2;
 
     if (attrs[ idx_map[VAConfigAttribEncROI] ].value != VA_ATTRIB_NOT_SUPPORTED) // VAConfigAttribEncROI
     {
-        m_caps.MaxNumOfROI = 0;
+        VAConfigAttribValEncROI *VaEncROIValPtr = reinterpret_cast<VAConfigAttribValEncROI *>(&attrs[ idx_map[VAConfigAttribEncROI] ].value);
+
+        assert(VaEncROIValPtr->bits.num_roi_regions < 32);
+        m_caps.MaxNumOfROI                = VaEncROIValPtr->bits.num_roi_regions;
+        m_caps.ROIBRCPriorityLevelSupport = VaEncROIValPtr->bits.roi_rc_priority_support;
+        m_caps.ROIDeltaQPSupport          = VaEncROIValPtr->bits.roi_rc_qp_delta_support;
     }
     else
     {
@@ -1000,6 +959,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
             reconSurf.size(),
             &m_vaContextEncode);
     }
+    MFX_CHECK(VA_STATUS_ERROR_RESOLUTION_NOT_SUPPORTED != vaSts, MFX_ERR_UNSUPPORTED);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     mfxU16 maxNumSlices = par.m_slice.size();
@@ -1023,16 +983,10 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     DDIHeaderPacker::Reset(par);
 
-   if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP && IsOn(par.m_ext.CO3.EnableMBQP))
-   {
-        //16x32 only: driver limitation
-        m_cuqp_width  = (par.m_ext.HEVCParam.PicWidthInLumaSamples   + par.LCUSize  - 1) / par.LCUSize*2;
-        m_cuqp_height = (par.m_ext.HEVCParam.PicHeightInLumaSamples  + par.LCUSize  - 1) / par.LCUSize; 
-        m_cuqp_pitch  =    (((((((par.m_ext.HEVCParam.PicWidthInLumaSamples/4 + 15)/16)*4*16) + 31)/32)*2 + 63)/64)*64;
-        m_cuqp_h_aligned = (((((((par.m_ext.HEVCParam.PicHeightInLumaSamples/4 + 15)/16)*4*16) + 31)/32) + 3)/4)*4;
-        m_cuqp_buffer.resize(m_cuqp_pitch * m_cuqp_h_aligned);
-   }
-
+    if (par.bMBQPInput || par.bROIViaMBQP)
+    {
+        m_cuqpMap.Init (par.m_ext.HEVCParam.PicWidthInLumaSamples, par.m_ext.HEVCParam.PicHeightInLumaSamples);
+    }
 
     return MFX_ERR_NONE;
 }
@@ -1134,68 +1088,71 @@ bool operator!=(const ENCODE_ENC_CTRL_CAPS& l, const ENCODE_ENC_CTRL_CAPS& r)
 {
     return !(l == r);
 }
-mfxStatus FillCUQPDataVA(Task const & task, MfxVideoParam &par, std::vector<mfxI8>  &m_cuqp_buffer, mfxU32  Width, mfxU32  Height, mfxU32 Pitch)
+
+
+void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
+{
+
+    //16x32 only: driver limitation
+    m_width        = (picWidthInLumaSamples   + 31) / 32*2;
+    m_height       = (picHeightInLumaSamples  + 31) / 32;
+    m_pitch        = (((((((picWidthInLumaSamples/4 + 15)/16)*4*16) + 31)/32)*2 + 63)/64)*64;
+    m_h_aligned    = (((((((picHeightInLumaSamples/4 + 15)/16)*4*16) + 31)/32) + 3)/4)*4;
+    m_block_width  = 16;
+    m_block_height = 32;
+    m_buffer.resize(m_pitch * m_h_aligned);
+    Zero(m_buffer);
+
+}
+
+bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
-    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP || !IsOn(par.m_ext.CO3.EnableMBQP) )
-        return MFX_ERR_NONE;
+    mfxCoreParam coreParams = {};
 
-    Zero(m_cuqp_buffer);
 
-    mfxU32 minWidthQPData = (par.m_ext.HEVCParam.PicWidthInLumaSamples   + par.LCUSize  - 1) / par.LCUSize;
-    mfxU32 minHeightQPData = (par.m_ext.HEVCParam.PicHeightInLumaSamples  + par.LCUSize  - 1) / par.LCUSize;
-    mfxU32 minQPSize = minWidthQPData*minHeightQPData;
-    mfxU32 driverQPsize = Width * Height;
+    if (!task.m_bCUQPMap)
+        return false;
 
-    if (!(driverQPsize >= minQPSize && minQPSize > 0))
-        mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    mfxU32 k_dr_w  = 1;
-    mfxU32 k_dr_h  = 1;
-    mfxU32 k_input = 1;
-
-    if (driverQPsize > minQPSize)
-    {
-        k_dr_w = Width/minWidthQPData;
-        k_dr_h = Height/minHeightQPData;
-
-        if (!(minWidthQPData*k_dr_w == Width && minHeightQPData*k_dr_h == Height))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (!(k_dr_w == 1 || k_dr_w == 2 || k_dr_w == 4 || k_dr_w == 8))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (!(k_dr_h == 1 || k_dr_h == 2 || k_dr_h == 4 || k_dr_h == 8))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }
 
     mfxExtMBQP *mbqp = ExtBuffer::Get(task.m_ctrl);
-    mfxU32 BlockSize = 16;
-    mfxU32 pitch_MBQP = (par.mfx.FrameInfo.Width  + BlockSize - 1)/BlockSize;
-    mfxU32 height_MBQP = (par.mfx.FrameInfo.Height  + BlockSize - 1)/BlockSize;
-    if (mbqp)
-    {
-        mfxU16 blockSize = 16;//mbqp->BlockSize ? mbqp->BlockSize : 16;
-        k_input = par.LCUSize/blockSize;
-        if (!(par.LCUSize == blockSize*k_input))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (mbqp->NumQPAlloc < ((height_MBQP*pitch_MBQP)) )
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        if (!(k_input == 1 ||k_input == 2 || k_input == 4 || k_input == 8))
-            mfxSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-    }
-    
-    if ((mbqp) && (MFX_ERR_NONE == mfxSts))
-         for (mfxU32 i = 0; i < Height; i++)
-             for (mfxU32 j = 0; j < Width; j++)
-             {
-                //m_cuqp_buffer[i * Pitch +j] = mbqp->QP[i*k_input/k_dr_h * Width + j*k_input/k_dr_w];
-                m_cuqp_buffer[i * Pitch +j] = mbqp->QP[i*k_input/k_dr_h * pitch_MBQP + j*k_input/k_dr_w];
-             }
-    else
-        for (mfxU32 i = 0; i < Height; i++)
-            for (mfxU32 j = 0; j < Width; j++)
-                m_cuqp_buffer[i * Pitch +j] = (mfxU8)task.m_qpY;
 
-    return mfxSts;
+    if (cuqpMap.m_width == 0 ||  cuqpMap.m_height == 0 ||
+        cuqpMap.m_block_width == 0 ||  cuqpMap.m_block_height == 0)
+    return false;
+
+    mfxU32 drBlkW  = cuqpMap.m_block_width;  // block size of driver
+    mfxU32 drBlkH  = cuqpMap.m_block_height;  // block size of driver
+    mfxU16 inBlkSize = 16;                    //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+
+    mfxU32 inputW = (par.m_ext.HEVCParam.PicWidthInLumaSamples   + inBlkSize - 1)/ inBlkSize;
+    mfxU32  inputH = (par.m_ext.HEVCParam.PicHeightInLumaSamples  + inBlkSize - 1)/ inBlkSize;
+
+    if (mbqp && mbqp->NumQPAlloc)
+    {
+        if (mbqp->NumQPAlloc < inputW * inputH)
+        {
+            return  false;
+        }
+        for (mfxU32 i = 0; i < cuqpMap.m_height; i++)
+        {
+            for (mfxU32 j = 0; j < cuqpMap.m_width; j++)
+            {
+                mfxU32 y = i* drBlkH/inBlkSize;
+                mfxU32 x = j* drBlkW/inBlkSize;
+
+                y = (y < inputH)? y:inputH;
+                x = (x < inputW)? x:inputW;
+
+                cuqpMap.m_buffer[i * cuqpMap.m_pitch + j] = mbqp->QP[y * inputW + x];
+            }
+       }
+
+    }
+
+    return true;
 }
+
 
 mfxStatus SetSkipFrame(
     VADisplay    vaDisplay,
@@ -1255,7 +1212,12 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDL surface)
     UpdatePPS(task, m_pps, m_reconQueue);
     UpdateSlice(task, m_sps, m_pps, m_slice);
 
-    FillCUQPDataVA(task, m_videoParam, m_cuqp_buffer, m_cuqp_width, m_cuqp_height, m_cuqp_pitch);
+
+    bool  bCUQPMap = false;
+    if (task.m_bCUQPMap)
+    {
+        bCUQPMap = FillCUQPDataVA(task, m_videoParam, m_cuqpMap);
+    }
     mfxU8 skipFlag = ((task.m_ctrl.SkipFrame == 0) || (task.m_frameType & MFX_FRAMETYPE_I)) ? 0 : task.m_ctrl.SkipFrame;
     HevcSkipMode skipMode(task.m_SkipMode);
     //------------------------------------------------------------------
@@ -1314,14 +1276,16 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDL surface)
     }
 
 
-    if (m_cuqp_buffer.size() > 0)
+    if (bCUQPMap)
     {
+
         vaSts = vaCreateBuffer(m_vaDisplay,
             m_vaContextEncode,
-            (VABufferType)VAEncQpBufferType,
-            m_cuqp_pitch ,
-            m_cuqp_h_aligned,
-            &m_cuqp_buffer[0],
+
+            (VABufferType)VAEncQPBufferType,
+            m_cuqpMap.m_pitch ,
+            m_cuqpMap.m_h_aligned,
+            &m_cuqpMap.m_buffer[0],
             &VABufferNew(VABID_QpBuffer, 0));
 
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
