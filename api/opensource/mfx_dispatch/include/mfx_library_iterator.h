@@ -69,7 +69,7 @@ enum
 enum
 {
     MFX_UNKNOWN_KEY     = -1,
-    MFX_STORAGE_ID_OPT  = 0, // storage is: /opt/intel
+    MFX_STORAGE_ID_OPT  = 0, // storage is: MFX_MODULES_DIR
     MFX_APP_FOLDER      = 1,
 
     MFX_STORAGE_ID_FIRST   =  MFX_STORAGE_ID_OPT,
