@@ -146,6 +146,8 @@ endif()
 message( STATUS "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" )
 set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_PREFIX}/plugins )
 
+add_definitions( -DMFX_PLUGINS_DIR=\"${MFX_PLUGINS_DIR}\" )
+
 # Some font definitions: colors, bold text, etc.
 if(NOT Windows)
   string(ASCII 27 Esc)

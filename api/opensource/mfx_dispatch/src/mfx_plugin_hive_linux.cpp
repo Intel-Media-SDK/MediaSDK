@@ -38,9 +38,15 @@
 #define TRACE_HIVE_INFO(str, ...) DISPATCHER_LOG_INFO((("[HIVE]: "str), __VA_ARGS__))
 #define TRACE_HIVE_WRN(str, ...) DISPATCHER_LOG_WRN((("[HIVE]: "str), __VA_ARGS__))
 
+#ifndef MFX_PLUGINS_DIR
+#define MFX_PLUGINS_DIR "/opt/intel/mediasdk/plugins"
+#endif
+
 namespace 
 {
-    const char rootPluginPath[] = "/opt/intel/mediasdk/plugins/plugins.cfg";
+    const char *rootPluginPath[2] = { getenv("MFX_PLUGINS_PATH" ),
+                                      MFX_PLUGINS_DIR"/plugins.cfg"
+                                    };
     //const wchar_t rootDispatchPath[] = L"Software\\Intel\\MediaSDK\\Dispatch";
     const char pluginSubkey[] = "Plugin";
     const char TypeKeyName[] = "Type";
@@ -141,65 +147,74 @@ static bool CheckPluginRecord(PluginDescriptionRecord & descriptionRecord, mfxU3
 MFXPluginsInHive::MFXPluginsInHive(int, const msdk_disp_char* msdkLibSubKey, mfxVersion currentAPIVersion)
     : MFXPluginStorageBase(currentAPIVersion)
 {
-    PluginConfigParser parser(rootPluginPath);
-    int numPlugins = parser.GetPluginCount();
+    #define SIZE_OF_ARRAY(ARR) (sizeof(ARR) / sizeof(ARR[0]))
 
-    if (numPlugins < 0)
+    for (unsigned int i = 0; i < SIZE_OF_ARRAY(rootPluginPath); i++)
     {
-        TRACE_HIVE_ERROR("no plugin records found in %s\n", rootPluginPath);
-        return;
-    }
-    
-    try 
-    {
-        resize(numPlugins);
-    }
-    catch (...) {
-        TRACE_HIVE_ERROR("new PluginDescriptionRecord[%d] threw an exception: \n", numPlugins);
-        return;
-    }
+        if (!rootPluginPath[i])
+            continue;
 
-    for (int index = 0; index < numPlugins; index++, parser.AdvanceToNextPlugin())
-    {
-        PluginDescriptionRecord descriptionRecord;
+        PluginConfigParser parser(rootPluginPath[i]);
+        int numPlugins = parser.GetPluginCount();
+
+        if (numPlugins < 0)
+            continue;
+
         try 
         {
-            char pluginName[MAX_PLUGIN_NAME];
-            bool nameRes = parser.GetCurrentPluginName(pluginName);
-
-            mfxU32 foundFields = 0;
-
-            bool infoRes = parser.ParsePluginParams(descriptionRecord, foundFields);
-            if (!nameRes || !infoRes)
-            {
-                TRACE_HIVE_WRN("unable to parse section # %d in %s\n", index, rootPluginPath);
-                continue;
-            }
-            TRACE_HIVE_INFO("Found Plugin: %s\n", pluginName);
-
-            mfxU32 reqs =  PluginConfigParser::PARSED_VERSION
-                         | PluginConfigParser::PARSED_API_VERSION
-                         | PluginConfigParser::PARSED_PATH
-                         | PluginConfigParser::PARSED_UID;
-//                       | PluginConfigParser::PARSED_NAME
-//                       | PluginConfigParser::PARSED_TYPE
-//                       | PluginConfigParser::PARSED_CODEC_ID
-//                       | PluginConfigParser::PARSED_DEFAULT;
-
-            if (CheckPluginRecord(descriptionRecord, foundFields, reqs))
-            {
-                (*this)[index] = descriptionRecord;
-            }
-            else
-            {
-                TRACE_HIVE_WRN("Registration of plugin %s found, but missed some fields (mask 0x%x)\n", pluginName, reqs ^ foundFields);
-            }
+            resize(numPlugins);
         }
-        catch (...)
+        catch (...) {
+            TRACE_HIVE_ERROR("new PluginDescriptionRecord[%d] threw an exception: \n", numPlugins);
+            return;
+        }
+
+        for (int index = 0; index < numPlugins; index++, parser.AdvanceToNextPlugin())
         {
-            TRACE_HIVE_ERROR("operator[](%d) = descriptionRecord; - threw exception \n", index);
+            PluginDescriptionRecord descriptionRecord;
+            try
+            {
+                char pluginName[MAX_PLUGIN_NAME];
+                bool nameRes = parser.GetCurrentPluginName(pluginName);
+
+                mfxU32 foundFields = 0;
+
+                bool infoRes = parser.ParsePluginParams(descriptionRecord, foundFields);
+                if (!nameRes || !infoRes)
+                {
+                    TRACE_HIVE_WRN("unable to parse section # %d in %s\n", index, rootPluginPath);
+                    continue;
+                }
+                TRACE_HIVE_INFO("Found Plugin: %s\n", pluginName);
+
+                mfxU32 reqs =  PluginConfigParser::PARSED_VERSION
+                    | PluginConfigParser::PARSED_API_VERSION
+                    | PluginConfigParser::PARSED_PATH
+                    | PluginConfigParser::PARSED_UID;
+                //                       | PluginConfigParser::PARSED_NAME
+                //                       | PluginConfigParser::PARSED_TYPE
+                //                       | PluginConfigParser::PARSED_CODEC_ID
+                //                       | PluginConfigParser::PARSED_DEFAULT;
+
+                if (CheckPluginRecord(descriptionRecord, foundFields, reqs))
+                {
+                    (*this)[index] = descriptionRecord;
+                }
+                else
+                {
+                    TRACE_HIVE_WRN("Registration of plugin %s found, but missed some fields (mask 0x%x)\n", pluginName, reqs ^ foundFields);
+                }
+            }
+            catch (...)
+            {
+                TRACE_HIVE_ERROR("operator[](%d) = descriptionRecord; - threw exception \n", index);
+            }
         }
+
+        return;
     }
+
+    TRACE_HIVE_ERROR("no plugin records found in %s\n", rootPluginPath);
 }
 
 
