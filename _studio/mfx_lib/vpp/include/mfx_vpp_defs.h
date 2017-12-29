@@ -40,6 +40,8 @@
 
 // Max samples number for composition filter
     #define MAX_NUM_OF_VPP_COMPOSITE_STREAMS (72)
+    #define MAX_STREAMS_PER_TILE (8)
+
 
 // (DO_NOT_USE, DO_USE) + (MAX_NUM_OF_VPP_CONFIG_FILTERS)
 #define MAX_NUM_OF_VPP_EXT_PARAM      (2 + MAX_NUM_OF_VPP_CONFIG_FILTERS)

@@ -22,13 +22,6 @@
 
 #include "mfx_dispatcher_log.h"
 #include "mfxstructures.h"
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#if defined(DISPATCHER_LOG_REGISTER_EVENT_PROVIDER)
-#include <evntprov.h>
-#include <winmeta.h>
-#endif
-#endif // #if defined(_WIN32) || defined(_WIN64)
 #include <stdarg.h>
 #include <algorithm>
 #include <string>
@@ -220,11 +213,7 @@ void   DispatchLog::Write(int level, int opcode, const char * msg, va_list argpt
 
                 if (NULL != msg && level != DL_LOADED_LIBRARY)
                 {
-#if _MSC_VER >= 1400
-                    vsprintf_s(msg_formated, sizeof(msg_formated)/sizeof(msg_formated[0]), msg, argptr);
-#else
                     vsnprintf(msg_formated, sizeof(msg_formated)/sizeof(msg_formated[0]), msg, argptr);
-#endif
                     //TODO: improve this , add opcode handling
                     printf("%s %s", CODE_TO_STRING(level, LevelStrings), msg_formated);
                 }
@@ -302,11 +291,7 @@ public:
         {
             if (NULL != msg)
             {
-#if _MSC_VER >= 1400
-                vsprintf_s(msg_formated, sizeof (msg_formated) / sizeof (msg_formated[0]), msg, argptr);
-#else
                 vsnprintf(msg_formated, sizeof (msg_formated) / sizeof (msg_formated[0]), msg, argptr);
-#endif
                 EventDataDescCreate(&data_descriptor, msg_formated, (ULONG)(strlen(msg_formated) + 1));
             }else
             {

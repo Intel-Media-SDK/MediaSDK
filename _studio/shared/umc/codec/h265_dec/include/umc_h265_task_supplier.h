@@ -408,7 +408,8 @@ protected:
     void DPBUpdate(const H265Slice * slice);
 
     // Not implemented
-    virtual void AddFakeReferenceFrame(H265Slice * pSlice);
+    virtual void AddFakeReferenceFrame(H265Slice*);
+    virtual H265DecoderFrame* AddSelfReferenceFrame(H265Slice*);
 
     // Find NAL units in new bitstream buffer and process them
     virtual UMC::Status AddOneFrame(UMC::MediaData * pSource);
@@ -488,7 +489,7 @@ private:
 };
 
 // Calculate maximum DPB size based on level and resolution
-extern int32_t __CDECL CalculateDPBSize(uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames);
+extern int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames);
 
 } // namespace UMC_HEVC_DECODER
 

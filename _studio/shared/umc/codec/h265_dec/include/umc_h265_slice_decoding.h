@@ -128,7 +128,7 @@ public:
     void SetMaxMB(int32_t x) {m_iMaxMB = x;}
 
     // Build reference lists from slice reference pic set. HEVC spec 8.3.2
-    virtual UMC::Status UpdateReferenceList(H265DBPList *dpb);
+    virtual UMC::Status UpdateReferenceList(H265DBPList *dpb, H265DecoderFrame* curr_ref);
 
     bool IsError() const {return m_bError;}
 
@@ -187,7 +187,7 @@ public:
     int32_t m_tileCount;
     uint32_t *m_tileByteLocation;
 
-    int32_t getTileLocationCount() const   { return m_tileCount; }
+    uint32_t getTileLocationCount() const   { return m_tileCount; }
     void allocateTileLocation(int32_t val)
     {
         if (m_tileCount < val)

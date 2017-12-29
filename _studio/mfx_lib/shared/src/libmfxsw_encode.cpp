@@ -24,15 +24,15 @@
 #include <mfx_tools.h>
 #include <mfx_common.h>
 
+#include "mfx_reflect.h"
+
 // sheduling and threading stuff
 #include <mfx_task.h>
 
 #include "mfxvideo++int.h"
+
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE)
 #include "mfx_h264_encode_hw.h"
-#if defined (MFX_ENABLE_MVC_VIDEO_ENCODE)
-
-#endif
 #if defined(MFX_ENABLE_H264_FEI_ENCPAK)
 #include "mfxfei.h"
 #endif
@@ -49,6 +49,7 @@
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "mfx_h265_encode_api.h"
 #endif
+
 
 // declare static file section
 namespace
@@ -76,10 +77,17 @@ VideoENCODE *CreateENCODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
     {
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
     case MFX_CODEC_AVC:
+#if defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW)
         if (session->m_bIsHWENCSupport)
         {
             pENCODE = CreateMFXHWVideoENCODEH264(core, &mfxRes);
         }
+
+#else //MFX_VA
+
+            pENCODE = new MFXVideoENCODEH264(core, &mfxRes);
+#endif //MFX_VA
+
         break;
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE
 
@@ -98,6 +106,7 @@ VideoENCODE *CreateENCODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
         {
             pENCODE = new MFXVideoENCODEMJPEG_HW(core, &mfxRes);
         }
+        break;
         break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
@@ -121,14 +130,17 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
+#if !defined(ANDROID)
     if ((0 != in) && (MFX_HW_VAAPI == session->m_pCORE->GetVAType()))
     {
+        // protected content not supported on Linux
         if(0 != in->Protected)
         {
             out->Protected = 0;
             return MFX_ERR_UNSUPPORTED;
         }
     }
+#endif
 
     mfxStatus mfxRes;
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
@@ -146,7 +158,6 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             if (mfxRes >= MFX_ERR_NONE &&
               mfxRes != MFX_WRN_PARTIAL_ACCELERATION)
               bIsHWENCSupport = true;
-
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;
@@ -159,6 +170,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         {
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
         case MFX_CODEC_AVC:
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
             if (!session->m_pENCODE.get())
                 mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out);
             else
@@ -171,6 +183,9 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             {
                 bIsHWENCSupport = true;
             }
+#else //MFX_VA
+                mfxRes = MFXVideoENCODEH264::Query(in, out);
+#endif //MFX_VA
             break;
 #endif
 
@@ -200,6 +215,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
                 bIsHWENCSupport = true;
             }
             break;
+            break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
         default:
@@ -218,6 +234,30 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     {
         mfxRes = MFX_ERR_UNSUPPORTED;
     }
+
+#if (MFX_VERSION >= 1025)
+    if (mfxRes == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM || mfxRes == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
+    {
+        try
+        {
+            mfx_reflect::AccessibleTypesCollection g_Reflection = GetReflection();
+            if (g_Reflection.m_bIsInitialized)
+            {
+                std::string result = mfx_reflect::CompareStructsToString(g_Reflection.Access(in), g_Reflection.Access(out));
+                MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, result.c_str())
+            }  
+        }
+        catch (const std::exception& e)
+        {
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, e.what());
+        }
+        catch (...) 
+        { 
+            MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, "Unknown exception was caught while comparing In and Out VideoParams.");
+        }
+    }
+#endif
+
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, out);
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
@@ -257,6 +297,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         {
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
         case MFX_CODEC_AVC:
+#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
             mfxRes = MFXHWVideoENCODEH264::QueryIOSurf(session->m_pCORE.get(), par, request);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
@@ -266,8 +307,12 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             {
                 bIsHWENCSupport = true;
             }
+#else //MFX_VA
+                mfxRes = MFXVideoENCODEH264::QueryIOSurf(par, request);
+#endif //MFX_VA
             break;
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE
+
 
 #ifdef MFX_ENABLE_MPEG2_VIDEO_ENCODE
         case MFX_CODEC_MPEG2:
@@ -281,7 +326,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
                 bIsHWENCSupport = true;
             }
             break;
-#endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
+#endif // MFX_ENABLE_MPEG2_VIDEO_ENC
 
 #if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
         case MFX_CODEC_JPEG:
@@ -294,6 +339,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             {
                 bIsHWENCSupport = true;
             }
+            break;
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
@@ -332,6 +378,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 
     try
     {
+
         // check existence of component
         if (!session->m_pENCODE.get())
         {
@@ -479,7 +526,6 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
         mfxEncodeInternalParams internal_params;
         MFX_ENTRY_POINT entryPoints[MFX_NUM_ENTRY_POINTS];
         mfxU32 numEntryPoints = MFX_NUM_ENTRY_POINTS;
-        mfxExtVppAuxData *aux;
 
         memset(&entryPoints, 0, sizeof(entryPoints));
         mfxRes = session->m_pENCODE->EncodeFrameCheck(ctrl,
@@ -488,8 +534,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                                                       &reordered_surface,
                                                       &internal_params,
                                                       entryPoints,
-                                                      numEntryPoints,
-                                                      aux);
+                                                      numEntryPoints);
         // source data is OK, go forward
         if ((MFX_ERR_NONE == mfxRes) ||
             (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes) ||

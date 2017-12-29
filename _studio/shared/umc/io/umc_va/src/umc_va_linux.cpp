@@ -232,7 +232,11 @@ LinuxVideoAccelerator::LinuxVideoAccelerator(void)
 
     vm_mutex_set_invalid(&m_SyncMutex);
 
+#if defined(ANDROID)
+    m_isUseStatuReport  = false;
+#else
     m_isUseStatuReport  = true;
+#endif
 
     m_bH264MVCSupport   = false;
     memset(&m_guidDecoder, 0 , sizeof(GUID));
@@ -306,9 +310,11 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_H265)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VP8)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VP9)
+#ifndef ANDROID
                                   && ((m_Profile & VA_CODEC) != UMC::VA_MPEG2)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_JPEG)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VC1)
+#endif
                                     );
 
     SetTraceStrings(m_Profile & VA_CODEC);
@@ -805,6 +811,7 @@ uint16_t LinuxVideoAccelerator::GetDecodingError()
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "GetDecodingError");
     uint16_t error = 0;
 
+#ifndef ANDROID
     // NOTE: at the moment there is no such support for Android, so no need to execute...
     VAStatus va_sts;
 
@@ -835,6 +842,7 @@ uint16_t LinuxVideoAccelerator::GetDecodingError()
             }
         }
     }
+#endif
     return error;
 }
 

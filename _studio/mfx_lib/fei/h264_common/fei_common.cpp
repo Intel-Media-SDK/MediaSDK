@@ -29,6 +29,7 @@
 
 using namespace MfxHwH264Encode;
 
+#if MFX_VERSION >= 1023
 
 template void MfxH264FEIcommon::ConfigureTaskFEI<>(
     DdiTask             & task,
@@ -42,7 +43,27 @@ template void MfxH264FEIcommon::ConfigureTaskFEI<>(
     MfxVideoParam       & video,
     mfxPAKInput * inParams);
 
+#else
 
+template void MfxH264FEIcommon::ConfigureTaskFEI<>(
+    DdiTask             & task,
+    DdiTask       const & prevTask,
+    MfxVideoParam       & video,
+    mfxENCInput * inParams,
+    mfxENCInput * outParams,
+    std::map<mfxU32, mfxU32> &      frameOrder_frameNum);
+
+template void MfxH264FEIcommon::ConfigureTaskFEI<>(
+    DdiTask             & task,
+    DdiTask       const & prevTask,
+    MfxVideoParam       & video,
+    mfxPAKInput * inParams,
+    mfxPAKOutput* outParams,
+    std::map<mfxU32, mfxU32> &      frameOrder_frameNum);
+
+#endif // MFX_VERSION >= 1023
+
+#if MFX_VERSION >= 1023
 
 template <typename T>
 void MfxH264FEIcommon::ConfigureTaskFEI(
@@ -51,6 +72,18 @@ void MfxH264FEIcommon::ConfigureTaskFEI(
     MfxVideoParam       & video,
     T                   * inParams)
 
+#else
+
+template <typename T, typename U>
+void MfxH264FEIcommon::ConfigureTaskFEI(
+    DdiTask             & task,
+    DdiTask       const & prevTask,
+    MfxVideoParam       & video,
+    T                   * inParams,
+    U                   * outParams,
+    std::map<mfxU32, mfxU32> &      frameOrder_frameNum)
+
+#endif // MFX_VERSION >= 1023
 
 {
     bool FrameOrSecondFieldRepacking;
@@ -142,6 +175,7 @@ void MfxH264FEIcommon::ConfigureTaskFEI(
     task.m_cqpValue[0] = GetQpValue(video, task.m_ctrl, task.m_type[0]);
     task.m_cqpValue[1] = GetQpValue(video, task.m_ctrl, task.m_type[1]);
 
+#if MFX_VERSION >= 1023
 
     mfxU16 field_type_mask[2] = { MFX_PICTYPE_FRAME | MFX_PICTYPE_TOPFIELD, MFX_PICTYPE_FRAME | MFX_PICTYPE_BOTTOMFIELD },
         last_frame_ref = 0;
@@ -441,6 +475,132 @@ void MfxH264FEIcommon::ConfigureTaskFEI(
             }
         }
     } // for (mfxU32 field = f_start; field <= fieldCount; ++field)
+#else
+    frameOrder_frameNum[task.m_frameOrder] = task.m_frameNum;
+
+    mfxU32 f_start = 0, fieldCount = task.m_fieldPicFlag;
+
+    if (task.m_singleFieldMode)
+    {
+        // Set a field to process
+        fieldCount = f_start = FirstFieldProcessingDone(inParams, task); // 0 or 1
+    }
+
+    if (!task.m_singleFieldMode || !f_start)
+    {
+        for (mfxU32 field = 0; field < 2; ++field)
+        {
+            task.m_disableDeblockingIdc[field].clear();
+            task.m_sliceAlphaC0OffsetDiv2[field].clear();
+            task.m_sliceBetaOffsetDiv2[field].clear();
+        }
+    }
+
+    for (mfxU32 field = f_start; field <= fieldCount; ++field)
+    {
+        // In case of single-field processing, only one buffer is attached
+        mfxU32 idxToPickBuffer = task.m_singleFieldMode ? 0 : field;
+
+        mfxU32 fieldParity = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_BFF)? (1 - field) : field;
+
+        mfxExtFeiSliceHeader * extFeiSlice = GetExtBufferFEI(outParams, idxToPickBuffer);
+
+        // Fill Deblocking parameters
+        for (size_t i = 0; i < extFeiSlice->NumSlice; ++i)
+        {
+            // Store per-slice values in task
+            task.m_disableDeblockingIdc[fieldParity].push_back(extFeiSlice->Slice[i].DisableDeblockingFilterIdc);
+            task.m_sliceAlphaC0OffsetDiv2[fieldParity].push_back(extFeiSlice->Slice[i].SliceAlphaC0OffsetDiv2);
+            task.m_sliceBetaOffsetDiv2[fieldParity].push_back(extFeiSlice->Slice[i].SliceBetaOffsetDiv2);
+        } // for (size_t i = 0; i < extFeiSlice->NumSlice; ++i)
+
+        // Fill DPB
+        mfxExtFeiPPS * pDataPPS = GetExtBufferFEI(outParams, idxToPickBuffer);
+
+        std::vector<mfxFrameSurface1*> dpb_frames;
+
+        mfxU16 indexFromPPSHeader;
+        mfxU8  list_item;
+        mfxU8  refParity; // 0 - top field / progressive frame; 1 - bottom field
+        mfxFrameSurface1* pMfxFrame;
+        mfxI32 poc_base;
+
+        task.m_dpb[fieldParity].Resize(0);
+        for (mfxU32 dpb_idx = 0; dpb_idx < 16; ++dpb_idx)
+        {
+            indexFromPPSHeader = pDataPPS->ReferenceFrames[dpb_idx];
+
+            if (indexFromPPSHeader == 0xffff) break;
+
+            pMfxFrame = inParams->L0Surface[indexFromPPSHeader];
+            dpb_frames.push_back(pMfxFrame);
+
+            DpbFrame frame;
+            poc_base = 2 * ((pMfxFrame->Data.FrameOrder - task.m_frameOrderIdr) & 0x7fffffff);
+            frame.m_poc          = PairI32(poc_base + (TFIELD != task.m_fid[0]), poc_base + (BFIELD != task.m_fid[0]));
+            frame.m_frameOrder   = pMfxFrame->Data.FrameOrder;
+            frame.m_frameNum     = frameOrder_frameNum[frame.m_frameOrder];
+            frame.m_frameNumWrap = (frame.m_frameNum > task.m_frameNum) ? frame.m_frameNum - FRAME_NUM_MAX : frame.m_frameNum;
+
+            frame.m_picNum[0] = task.m_fieldPicFlag ? 2 * frame.m_frameNumWrap + ( !fieldParity) : frame.m_frameNumWrap; // in original here field = ffid / sfid
+            frame.m_picNum[1] = task.m_fieldPicFlag ? 2 * frame.m_frameNumWrap + (!!fieldParity) : frame.m_frameNumWrap;
+
+            frame.m_refPicFlag[task.m_fid[0]] = 1;
+            frame.m_refPicFlag[task.m_fid[1]] = task.m_fieldPicFlag ? (frame.m_frameOrder != task.m_frameOrder) : 1;
+
+            frame.m_longterm  = 0;
+
+            task.m_dpb[fieldParity].PushBack(frame);
+        }
+
+        // Get default reflists
+        MfxHwH264Encode::InitRefPicList(task, fieldParity);
+        ArrayU8x33 initList0 = task.m_list0[fieldParity];
+        ArrayU8x33 initList1 = task.m_list1[fieldParity];
+
+        // Fill reflists
+        mfxExtFeiSliceHeader * pDataSliceHeader = extFeiSlice;
+        /* Number of reference handling */
+        mfxU32 maxNumRefL0 = pDataSliceHeader->Slice[0].NumRefIdxL0Active;
+        mfxU32 maxNumRefL1 = pDataSliceHeader->Slice[0].NumRefIdxL1Active;
+
+        mfxU16 indexFromSliceHeader;
+
+        task.m_list0[fieldParity].Resize(0);
+        for (mfxU32 list0_idx = 0; list0_idx < maxNumRefL0; ++list0_idx)
+        {
+            indexFromSliceHeader = pDataSliceHeader->Slice[0].RefL0[list0_idx].Index;
+            refParity            = pDataSliceHeader->Slice[0].RefL0[list0_idx].PictureType == MFX_PICTYPE_BOTTOMFIELD;
+
+            pMfxFrame = inParams->L0Surface[indexFromSliceHeader];
+
+            list_item = static_cast<mfxU8>(std::distance(dpb_frames.begin(), std::find(dpb_frames.begin(), dpb_frames.end(), pMfxFrame)));
+
+            task.m_list0[fieldParity].PushBack((refParity << 7) | list_item);
+        }
+
+        task.m_list1[fieldParity].Resize(0);
+        for (mfxU32 list1_idx = 0; list1_idx < maxNumRefL1; ++list1_idx)
+        {
+            indexFromSliceHeader = pDataSliceHeader->Slice[0].RefL1[list1_idx].Index;
+            refParity            = pDataSliceHeader->Slice[0].RefL1[list1_idx].PictureType == MFX_PICTYPE_BOTTOMFIELD;
+
+            pMfxFrame = inParams->L0Surface[indexFromSliceHeader];
+
+            list_item = static_cast<mfxU8>(std::distance(dpb_frames.begin(), std::find(dpb_frames.begin(), dpb_frames.end(), pMfxFrame)));
+
+            task.m_list1[fieldParity].PushBack((refParity << 7) | list_item);
+        }
+
+        initList0.Resize(task.m_list0[fieldParity].Size());
+        initList1.Resize(task.m_list1[fieldParity].Size());
+
+        // Fill reflists modificators
+        task.m_refPicList0Mod[fieldParity] = MfxHwH264Encode::CreateRefListMod(task.m_dpb[fieldParity], initList0, task.m_list0[fieldParity], task.m_viewIdx, task.m_picNum[fieldParity], true);
+        task.m_refPicList1Mod[fieldParity] = MfxHwH264Encode::CreateRefListMod(task.m_dpb[fieldParity], initList1, task.m_list1[fieldParity], task.m_viewIdx, task.m_picNum[fieldParity], true);
+
+    } // for (mfxU32 field = f_start; field <= fieldCount; ++field)
+#endif // MFX_VERSION >= 1023
 } // void MfxH264FEIcommon::ConfigureTaskFEI
 
 
@@ -450,20 +610,17 @@ template bool MfxH264FEIcommon::FirstFieldProcessingDone<>(mfxPAKInput* inParams
 template <typename T>
 bool MfxH264FEIcommon::FirstFieldProcessingDone(T* inParams, const DdiTask & task)
 {
+#if MFX_VERSION >= 1023
     mfxExtFeiPPS * pDataPPS = GetExtBufferFEI(inParams, 0);
-    mfxExtFeiPreEncCtrl * pDataPreEncCtrl = GetExtBufferFEI(inParams, 0);
 
-    if (!!pDataPPS == !!pDataPreEncCtrl)
+    if (!pDataPPS)
     {
-        // In this case absence of PPS and PreENC will be discovered at parameters check stage
+        // In this case absence of PPS will be discovered at parameters check stage
         return 0;
     }
 
-    mfxU16  PictureType = pDataPPS ? pDataPPS->PictureType : pDataPreEncCtrl->PictureType;
-
-    switch (PictureType)
+    switch (pDataPPS->PictureType)
     {
-        //For PAK or PREENC, Picturetype will be obtained from only one on them
     case MFX_PICTYPE_TOPFIELD:
         return task.m_fid[1] == 0; // i.e. Bottom Field was already coded and current picstruct is BFF
         break;
@@ -477,6 +634,11 @@ bool MfxH264FEIcommon::FirstFieldProcessingDone(T* inParams, const DdiTask & tas
         return 0;
         break;
     }
+#else
+    // If some values in deblocking parameters present only for one field, current field to process is the second field,
+    // other ways - the first field
+    return task.m_disableDeblockingIdc[0].empty() != task.m_disableDeblockingIdc[1].empty();
+#endif
 } // bool MfxH264FEIcommon::FirstFieldProcessingDone(T* inParams, DdiTask & task)
 
 mfxStatus MfxH264FEIcommon::CheckInitExtBuffers(const MfxVideoParam & owned_video, const mfxVideoParam & passed_video)
@@ -592,14 +754,26 @@ bool MfxH264FEIcommon::IsRunTimeOutputExtBufferIdSupported(MfxVideoParam const &
                    || id == MFX_EXTBUFF_FEI_PREENC_MB
                    );
         case MFX_FEI_FUNCTION_PAK:
+#if MFX_VERSION >= 1023
             return false;
+#else
+            return (  id == MFX_EXTBUFF_FEI_PPS
+                   || id == MFX_EXTBUFF_FEI_SLICE
+                   || id == MFX_EXTBUFF_FEI_PAK_CTRL
+                   || id == MFX_EXTBUFF_FEI_ENC_MV
+                   );
+#endif
         default:
             return true;
      }
 }
 
 template mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers<>(mfxENCInput* input, mfxENCOutput* output, const MfxVideoParam & owned_video, const DdiTask & task);
+#if MFX_VERSION >= 1023
 template mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers<>(mfxPAKInput* input, mfxPAKOutput* output, const MfxVideoParam & owned_video, const DdiTask & task);
+#else
+template mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers<>(mfxPAKOutput* input, mfxPAKOutput* output, const MfxVideoParam & owned_video, const DdiTask & task);
+#endif // MFX_VERSION >= 1023
 
 template <typename T, typename U>
 mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const MfxVideoParam & owned_video, const DdiTask & task)
@@ -738,11 +912,28 @@ mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const Mf
             MFX_CHECK(extFeiSliceInRintime->Slice[i].SliceBetaOffsetDiv2        >=  -6, MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
+#if MFX_VERSION >= 1023
         // Check DPB correctness
         mfxStatus sts = CheckDPBpairCorrectness(input, output, extFeiPPSinRuntime, owned_video);
         MFX_CHECK_STS(sts);
+#endif // MFX_VERSION >= 1023
     }
     return MFX_ERR_NONE;
+}
+
+bool MfxH264FEIcommon::IsRunTimeExtBufferPairRequired(const MfxVideoParam & owned_video, mfxU32 id)
+{
+    mfxExtFeiParam const & feiParam = GetExtBufferRef(owned_video);
+    bool isFeiPREENC = feiParam.Func == MFX_FEI_FUNCTION_PREENC;
+
+    // only support PreENC now, ToDo ENC and PAK
+    return (isFeiPREENC &&
+            (  id == MFX_EXTBUFF_FEI_PREENC_CTRL
+            || id == MFX_EXTBUFF_FEI_PREENC_MV_PRED
+            || id == MFX_EXTBUFF_FEI_ENC_QP
+            || id == MFX_EXTBUFF_FEI_PREENC_MV
+            || id == MFX_EXTBUFF_FEI_PREENC_MB
+            ));
 }
 
 bool MfxH264FEIcommon::CheckSliceHeaderReferenceList(mfxExtFeiSliceHeader::mfxSlice::mfxSliceRef * ref, mfxU16 num_idx_active)
@@ -769,6 +960,7 @@ bool MfxH264FEIcommon::CheckSliceHeaderReferenceList(mfxExtFeiSliceHeader::mfxSl
     return true;
 }
 
+#if MFX_VERSION >= 1023
 
 template <typename T, typename U>
 mfxStatus MfxH264FEIcommon::CheckDPBpairCorrectness(T * input, U* output, mfxExtFeiPPS* extFeiPPSinRuntime, const MfxVideoParam & owned_video)
@@ -895,5 +1087,6 @@ mfxStatus MfxH264FEIcommon::CheckOneDPBCorrectness(mfxExtFeiPPS::mfxExtFeiPpsDPB
     return MFX_ERR_NONE;
 }
 
+#endif // MFX_VERSION >= 1023
 
 #endif // defined(MFX_VA) && defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_ENABLE_H264_VIDEO_FEI_ENC)

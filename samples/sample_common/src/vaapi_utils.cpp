@@ -72,7 +72,11 @@ SimpleLoader::~SimpleLoader()
 
 #if defined(LIBVA_SUPPORT)
 VA_Proxy::VA_Proxy()
+#ifdef ANDROID
+    : lib("libva-android.so")
+#else
     : lib("libva.so.2")
+#endif
     , SIMPLE_LOADER_FUNCTION(vaInitialize)
     , SIMPLE_LOADER_FUNCTION(vaTerminate)
     , SIMPLE_LOADER_FUNCTION(vaCreateSurfaces)

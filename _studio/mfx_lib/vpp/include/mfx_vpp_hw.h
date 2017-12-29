@@ -34,6 +34,9 @@
 #include "mfx_vpp_defs.h"
 
  #include "cmrt_cross_platform.h" // Gpucopy stuff
+ #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+  #include "mfx_scd.h"        // Scene change detection
+ #endif
  #include "cm_mem_copy.h"         // Needed for mirroring kernels
 #include "genx_fcopy_cmcode_isa.cpp" // Field copy kernel
 
@@ -93,7 +96,6 @@ namespace MfxHwVideoProcessing
         bool m_free;
     };
 
-    static const mfxU32 NO_INDEX    = 0xffffffff;
 
     // Helper which checks number of allocated frames and auto-free
     class MfxFrameAllocResponse : public mfxFrameAllocResponse
@@ -211,6 +213,7 @@ namespace MfxHwVideoProcessing
     {
         mfxU32 refCount;
         std::vector<ExtSurface> surfaceListForRelease;
+        std::vector<mfxU32> subTasks;
     };
 
     struct DdiTask : public State
@@ -266,12 +269,12 @@ namespace MfxHwVideoProcessing
         bool   m_bWeave;
         bool   m_bPassThroughEnable;
         bool   m_bRefFrameEnable;
+        bool   m_multiBlt;// this flag defines mode of composition for D3D11: 1 - run few hw calls per frame (Blt), 0 - run one hw call (Blt)
 
         ExtendedConfig m_extConfig;
         mfxU16 m_IOPattern;
         mfxU16 m_surfCount[2];
     };
-
 
     class ResMngr
     {
@@ -299,6 +302,8 @@ namespace MfxHwVideoProcessing
 
             m_fwdRefCountRequired  = 0;
             m_bkwdRefCountRequired = 0;
+
+            m_multiBlt = 0;
 
             m_core = NULL;
         }
@@ -333,6 +338,10 @@ namespace MfxHwVideoProcessing
 
         mfxStatus CompleteTask(DdiTask *pTask);
         std::vector<State> m_surf[2];
+
+        mfxU32 GetSubTask(DdiTask *pTask);
+        mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
+        bool IsMultiBlt();
 
     private:
 
@@ -390,6 +399,8 @@ namespace MfxHwVideoProcessing
 
         mfxU32 m_fwdRefCountRequired;
         mfxU32 m_bkwdRefCountRequired;
+
+        bool m_multiBlt;// this flag defines mode of composition for D3D11: 1 - run few hw calls per frame (Blt), 0 - run one hw call (Blt)
 
         VideoCORE* m_core;
     };
@@ -642,6 +653,9 @@ namespace MfxHwVideoProcessing
 
         mfxStatus CompleteTask(DdiTask* pTask);
 
+        mfxU32 GetSubTask(DdiTask *pTask);
+        mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
+
     private:
 
         mfxStatus DoCpuFRC_AndUpdatePTS(
@@ -840,6 +854,9 @@ namespace MfxHwVideoProcessing
 
         CmCopyWrapper *m_pCmCopy;
 
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+        SceneChangeDetector m_SCD;
+#endif
 
         CmDevice  *m_pCmDevice;
         CmProgram *m_pCmProgram;

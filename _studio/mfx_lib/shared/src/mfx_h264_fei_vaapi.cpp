@@ -403,6 +403,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     }
     statParams.stats_params.mv_predictor = mvPredid;
 
+#if MFX_VERSION >= 1023
     if ((statParams.mb_qp) && (feiQP != NULL) && (feiQP->MB != NULL))
     {
         vaSts = vaCreateBuffer(m_vaDisplay,
@@ -417,6 +418,22 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         mdprintf(stderr, "Qp bufId=%d\n", qpid);
     }
     statParams.stats_params.qp = qpid;
+#else
+    if ((statParams.mb_qp) && (feiQP != NULL) && (feiQP->QP != NULL))
+    {
+        vaSts = vaCreateBuffer(m_vaDisplay,
+                                m_vaContextEncode,
+                                (VABufferType)VAEncQPBufferType,
+                                sizeof (VAEncQPBufferH264)*feiQP->NumQPAlloc,
+                                1, //limitation from driver, num elements should be 1
+                                feiQP->QP,
+                                &qpid);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        mdprintf(stderr, "Qp bufId=%d\n", qpid);
+    }
+    statParams.stats_params.qp = qpid;
+#endif
 
     /* PreEnc support only 1 forward and 1 backward reference */
 
@@ -727,8 +744,9 @@ mfxStatus VAAPIFEIPREENCEncoder::QueryStatus(
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaUnmapBuffer(m_vaDisplay, statMVid);
+                    vaSts = vaUnmapBuffer(m_vaDisplay, statMVid);
                 }
+                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
             }
 
             if (!feiCtrl->DisableStatisticsOutput && mbstatOut && VA_INVALID_ID != statOUTid)
@@ -758,8 +776,9 @@ mfxStatus VAAPIFEIPREENCEncoder::QueryStatus(
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaUnmapBuffer(m_vaDisplay, statOUTid);
+                    vaSts = vaUnmapBuffer(m_vaDisplay, statOUTid);
                 }
+                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
             }
 
             // remove task
@@ -1162,6 +1181,7 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     if (frameCtrl != NULL && frameCtrl->PerMBQp && mbqp != NULL)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MBqp)");
+#if MFX_VERSION >= 1023
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 (VABufferType)VAEncQPBufferType,
@@ -1169,6 +1189,15 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
                                 1, //limitation from driver, num elements should be 1
                                 mbqp->MB,
                                 &vaFeiMBQPId);
+#else
+        vaSts = vaCreateBuffer(m_vaDisplay,
+                                m_vaContextEncode,
+                                (VABufferType)VAEncQPBufferType,
+                                sizeof (VAEncQPBufferH264)*mbqp->NumQPAlloc,
+                                1, //limitation from driver, num elements should be 1
+                                mbqp->QP,
+                                &vaFeiMBQPId);
+#endif
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         configBuffers[buffersCount++] = vaFeiMBQPId;
         mdprintf(stderr, "vaFeiMBQPId=%d\n", vaFeiMBQPId);
@@ -1234,10 +1263,11 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-            vaMapBuffer(m_vaDisplay,
+            vaSts = vaMapBuffer(m_vaDisplay,
                 vaFeiFrameControlId,
                 (void **)&miscParam);
         }
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED)
 
         miscParam->type = (VAEncMiscParameterType)VAEncMiscParameterTypeFEIFrameControl;
         VAEncMiscParameterFEIFrameControlH264* vaFeiFrameControl = (VAEncMiscParameterFEIFrameControlH264*)miscParam->data;
@@ -1276,8 +1306,9 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-            vaUnmapBuffer(m_vaDisplay, vaFeiFrameControlId);  //check for deletions
+            vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiFrameControlId);  //check for deletions
         }
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         configBuffers[buffersCount++] = vaFeiFrameControlId;
         mdprintf(stderr, "vaFeiFrameControlId=%d\n", vaFeiFrameControlId);
@@ -1647,7 +1678,7 @@ mfxStatus VAAPIFEIENCEncoder::QueryStatus(
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                     vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMBStatId);
+                    vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMBStatId);
                     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
                 }
                 mdprintf(stderr, "Destroy - Distortion bufId=%d\n", m_vaFeiMBStatId[feiFieldId]);
@@ -1986,7 +2017,11 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     mfxU32 idxToPickBuffer = task.m_singleFieldMode ? 0 : feiFieldId;
 
     // Extension buffers
+#if MFX_VERSION >= 1023
     mfxExtFeiSliceHeader  * pDataSliceHeader = GetExtBufferFEI(in, idxToPickBuffer);
+#else
+    mfxExtFeiSliceHeader  * pDataSliceHeader = GetExtBufferFEI(out, idxToPickBuffer);
+#endif // MFX_VERSION >= 1023
     mfxExtFeiEncMV        * mvout            = GetExtBufferFEI(in, idxToPickBuffer);
     mfxExtFeiPakMBCtrl    * mbcodeout        = GetExtBufferFEI(in, idxToPickBuffer);
 
@@ -2137,10 +2172,11 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-            vaMapBuffer(m_vaDisplay,
+            vaSts = vaMapBuffer(m_vaDisplay,
                 vaFeiFrameControlId,
                 (void **)&miscParam);
         }
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED)
 
         miscParam->type = (VAEncMiscParameterType)VAEncMiscParameterTypeFEIFrameControl;
         VAEncMiscParameterFEIFrameControlH264* vaFeiFrameControl = (VAEncMiscParameterFEIFrameControlH264*)miscParam->data;
@@ -2158,8 +2194,9 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-            vaUnmapBuffer(m_vaDisplay, vaFeiFrameControlId);  //check for deletions
+            vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiFrameControlId);  //check for deletions
         }
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED)
 
         configBuffers[buffersCount++] = vaFeiFrameControlId;
     }
@@ -2199,7 +2236,11 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     {
         int width32  = ((m_videoParam.mfx.FrameInfo.Width  + 31) >> 5) << 5;
         int height32 = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
-        int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16)); //from libva spec
+        int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16));
+
+        // To workaround an issue with VA coded bufer overflow due to IPCM violation.
+        // TODO: consider removing it once IPCM issue is fixed.
+        codedbuf_size = 2 * codedbuf_size;
 
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
@@ -2209,7 +2250,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 NULL,
                                 &m_codedBufferId[feiFieldId]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-        //configBuffers[buffersCount++] = m_codedBufferId;
         mdprintf(stderr, "m_codedBufferId=%d\n", m_codedBufferId[feiFieldId]);
     }
     m_pps.coded_buf = m_codedBufferId[feiFieldId];
@@ -2568,7 +2608,9 @@ mfxStatus VAAPIFEIPAKEncoder::QueryStatus(
 
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                vaUnmapBuffer( m_vaDisplay, m_codedBufferId[feiFieldId] );
+                vaSts = vaUnmapBuffer( m_vaDisplay, m_codedBufferId[feiFieldId] );
+                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
                 // ??? may affect for performance
                 MFX_DESTROY_VABUFFER(m_codedBufferId[feiFieldId], m_vaDisplay);
             }

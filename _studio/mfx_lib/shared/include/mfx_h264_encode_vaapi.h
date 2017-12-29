@@ -310,6 +310,9 @@ namespace MfxHwH264Encode
         std::vector<VAEncQPBufferH264> m_mbqp_buffer;
 
         std::vector<mfxU8>             m_mb_noskip_buffer;
+#ifdef MFX_ENABLE_MFE
+        MFEVAAPIEncoder*               m_mfe;
+#endif
     };
 
     //extend encoder to FEI interface

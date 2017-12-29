@@ -21,8 +21,11 @@
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
 #include "mfxfei.h"
+#include "mfx_utils.h"
+
 #include <stdexcept>
 #include <string>
+#include <climits>
 
 
 mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type);
@@ -192,6 +195,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             )
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
+
     default:
         if (info->FourCC != MFX_FOURCC_NV12)
             return MFX_ERR_INVALID_VIDEO_PARAM;
@@ -397,62 +401,55 @@ mfxStatus CheckBitstream(const mfxBitstream *bs)
 }
 
 
+
+/* Check if pointers required for given FOURCC is NOT null */
+inline
+mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
+{
+    switch (info.FourCC)
+    {
+        case MFX_FOURCC_A2RGB10:     MFX_CHECK(data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
+
+        case MFX_FOURCC_P8:
+        case MFX_FOURCC_P8_TEXTURE:
+        case MFX_FOURCC_R16:         MFX_CHECK(data.Y, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_NV16:
+        case MFX_FOURCC_P010:
+        case MFX_FOURCC_P210:        MFX_CHECK(data.Y && data.UV, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
+
+        case MFX_FOURCC_RGB3:        MFX_CHECK(data.R && data.G && data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
+        case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_AYUV_RGB4:
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+        case MFX_FOURCC_ARGB16:
+        case MFX_FOURCC_ABGR16:      MFX_CHECK(data.R && data.G && data.B && data.A, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+
+        case MFX_FOURCC_YV12:
+        case MFX_FOURCC_YUY2:
+        default:                     MFX_CHECK(data.Y && data.U && data.V, MFX_ERR_UNDEFINED_BEHAVIOR); break;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+
 mfxStatus CheckFrameData(const mfxFrameSurface1 *surface)
 {
     if (!surface)
         return MFX_ERR_NULL_PTR;
 
-    if (!surface->Data.MemId)
-    {
-        mfxU32 pitch = surface->Data.PitchLow + ((mfxU32)surface->Data.PitchHigh << 16);
+    if (surface->Data.MemId)
+        return MFX_ERR_NONE;
 
-        switch (surface->Info.FourCC)
-        {
-        case MFX_FOURCC_NV12:
-        case MFX_FOURCC_P010:
-        case MFX_FOURCC_P210:
-        case MFX_FOURCC_NV16:
-            if (!surface->Data.Y || !surface->Data.UV)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            if (pitch > 0xFFFF)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        case MFX_FOURCC_YV12:
-            if (!surface->Data.Y || !surface->Data.U || !surface->Data.V)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            if (pitch > 0xFFFF)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        case MFX_FOURCC_YUY2:
-            if (!surface->Data.Y || !surface->Data.U || !surface->Data.V)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            if (pitch > 0x1FFFF)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        case MFX_FOURCC_RGB3:
-        case MFX_FOURCC_A2RGB10:
-            if (!surface->Data.R || !surface->Data.G || !surface->Data.B)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            if (pitch > 0x2FFFF)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        case MFX_FOURCC_RGB4:
-        case MFX_FOURCC_BGR4:
-        case MFX_FOURCC_AYUV:
-            if (!surface->Data.A || !surface->Data.R || !surface->Data.G || !surface->Data.B)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            if (pitch > 0x3FFFF)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        case MFX_FOURCC_P8:
-            if (!surface->Data.Y)
-                return MFX_ERR_UNDEFINED_BEHAVIOR;
-            break;
-        default:
-            break;
-        }
-    }
-    return MFX_ERR_NONE;
+    mfxStatus sts;
+    return
+        sts = CheckFramePointers(surface->Info, surface->Data);
 }
 
 mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
@@ -547,6 +544,56 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 
     return MFX_ERR_NONE;
 }
+
+// converts u32 nom and denom to packed u16+u16, used in va
+mfxStatus PackMfxFrameRate(mfxU32 nom, mfxU32 den, mfxU32& packed)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    if (!nom)
+    {
+        packed = 0;
+        return sts;
+    }
+
+    if (!den) // denominator assumed 1 if is 0
+        den = 1;
+
+    if ((nom | den) >> 16) // don't fit to u16
+    {
+        mfxU32 gcd = nom; // will be greatest common divisor
+        mfxU32 rem = den;
+        while (rem > 0)
+        {
+            mfxU32 oldrem = rem;
+            rem = gcd % rem;
+            gcd = oldrem;
+        }
+        if (gcd > 1)
+        {
+            nom /= gcd;
+            den /= gcd;
+        }
+        if ((nom | den) >> 16) // still don't fit to u16 - lose precision
+        {
+            if (nom > den) // make nom 0xffff for max precision
+            {
+                den = (mfxU32)((mfxF64)den * 0xffff / nom + .5);
+                if (!den)
+                    den = 1;
+                nom = 0xffff;
+            }
+            else
+            {
+                nom = (mfxU32)((mfxF64)nom * 0xffff / den + .5);
+                den = 0xffff;
+            }
+            sts = MFX_WRN_VIDEO_PARAM_CHANGED;
+        }
+    }
+    packed = (den << 16) | nom;
+    return sts;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Extended Buffer class
@@ -779,6 +826,42 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
     ExtParam = NumExtParam ? m_buffers.GetBuffers() : 0;
 }
 
+inline
+mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
+{
+    switch (fourcc)
+    {
+        case MFX_FOURCC_P8:
+        case MFX_FOURCC_P8_TEXTURE:
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YV12:
+        case MFX_FOURCC_NV16:        return width * 1;
+
+        case MFX_FOURCC_R16:         return width * 2;
+
+        case MFX_FOURCC_RGB3:        return width * 3;
+
+        case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_AYUV_RGB4:
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+        case MFX_FOURCC_A2RGB10:     return width * 4;
+
+        case MFX_FOURCC_ARGB16:
+        case MFX_FOURCC_ABGR16:      return width * 8;
+
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_UYVY:        return width * 2;
+
+        case MFX_FOURCC_P010:
+        case MFX_FOURCC_P210:        return width * 2;
+
+
+    }
+
+    return 0;
+}
+
 mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
 {
     switch (fourcc)
@@ -787,18 +870,36 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
         case MFX_FOURCC_ARGB16:
-        case MFX_FOURCC_ABGR16:  return MFX_MIN(MFX_MIN(data.R, data.G), data.B);
+        case MFX_FOURCC_ABGR16:      return MFX_MIN(MFX_MIN(data.R, data.G), data.B); break;
 
-        case MFX_FOURCC_R16:     return reinterpret_cast<mfxU8*>(data.Y16);
+        case MFX_FOURCC_R16:         return reinterpret_cast<mfxU8*>(data.Y16); break;
 
-        case MFX_FOURCC_AYUV:    return data.V;
+        case MFX_FOURCC_AYUV:        return data.V; break;
 
-        case MFX_FOURCC_UYVY:    return data.U;
+        case MFX_FOURCC_UYVY:        return data.U; break;
+
+        case MFX_FOURCC_A2RGB10:     return data.B; break;
 
 
 
-
-        default:
-            return data.Y;
+        default:                     return data.Y;
     }
+}
+
+mfxStatus GetFramePointerChecked(mfxFrameInfo const& info, mfxFrameData const& data, mfxU8** ptr)
+{
+    MFX_CHECK(ptr, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    *ptr = GetFramePointer(info.FourCC, data);
+    if (!*ptr)
+        return MFX_ERR_NONE;
+
+    mfxStatus sts = CheckFramePointers(info, data);
+    MFX_CHECK_STS(sts);
+
+    mfxU32 const pitch = (data.PitchHigh << 16) | data.PitchLow;
+    mfxU32 const min_pitch = GetMinPitch(info.FourCC, info.Width);
+
+    return
+        !min_pitch || pitch < min_pitch ? MFX_ERR_UNDEFINED_BEHAVIOR : MFX_ERR_NONE;
 }

@@ -117,10 +117,16 @@ CDecodingPipeline::CDecodingPipeline()
     m_VppVideoSignalInfo.Header.BufferId = MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO;
     m_VppVideoSignalInfo.Header.BufferSz = sizeof(m_VppVideoSignalInfo);
 
+#if MFX_VERSION >= 1022
     MSDK_ZERO_MEMORY(m_DecoderPostProcessing);
     m_DecoderPostProcessing.Header.BufferId = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
     m_DecoderPostProcessing.Header.BufferSz = sizeof(mfxExtDecVideoProcessing);
+#endif //MFX_VERSION >= 1022
 
+#if (MFX_VERSION >= 1025)
+    MSDK_ZERO_MEMORY(m_DecodeErrorReport);
+    m_DecodeErrorReport.Header.BufferId = MFX_EXTBUFF_DECODE_ERROR_REPORT;
+#endif
 
     m_hwdev = NULL;
 
@@ -133,6 +139,7 @@ CDecodingPipeline::CDecodingPipeline()
 #endif
 
     m_monitorType = 0;
+    totalBytesProcessed = 0;
     m_vLatency.reserve(1000); // reserve some space to reduce dynamic reallocation impact on pipeline execution
 }
 
@@ -212,6 +219,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     m_nTimeout = pParams->nTimeout;
 
     // Initializing file reader
+    totalBytesProcessed = 0;
     sts = m_FileReader->Init(pParams->strSrcFile);
     MSDK_CHECK_STATUS(sts, "m_FileReader->Init failed");
 
@@ -459,12 +467,14 @@ bool CDecodingPipeline::IsVppRequired(sInputParams *pParams)
         (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height) )
     {
         bVppIsUsed |= pParams->Width && pParams->Height;
+#if MFX_VERSION >= 1022
         if ((MODE_DECODER_POSTPROC_AUTO == pParams->nDecoderPostProcessing) ||
             (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing) )
         {
             /* Decoder will make decision about internal post-processing usage slightly later */
             bVppIsUsed = false;
         }
+#endif //MFX_VERSION >= 1022
     }
     // JPEG and Capture decoders can provide output in nv12 and rgb4 formats
     if (pParams->videoType == MFX_CODEC_JPEG )
@@ -564,6 +574,14 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     mfxStatus sts = MFX_ERR_NONE;
     mfxU32 &numViews = pParams->numViews;
 
+#if (MFX_VERSION >= 1025)
+    if (pParams->bErrorReport)
+    {
+        m_ExtBuffersMfxBS.push_back((mfxExtBuffer *)&m_DecodeErrorReport);
+        m_mfxBS.ExtParam = reinterpret_cast<mfxExtBuffer **>(&m_ExtBuffersMfxBS[0]);
+        m_mfxBS.NumExtParam = static_cast<mfxU16>(m_ExtBuffersMfxBS.size());
+    }
+#endif
 
     // try to find a sequence header in the stream
     // if header is not found this function exits with error (e.g. if device was lost and there's no header in the remaining stream)
@@ -573,8 +591,28 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         if ( m_mfxVideoParams.mfx.CodecId == MFX_CODEC_JPEG )
             MJPEG_AVI_ParsePicStruct(&m_mfxBS);
 
+#if (MFX_VERSION >= 1025)
+        if (pParams->bErrorReport)
+        {
+            mfxExtDecodeErrorReport *pDecodeErrorReport = (mfxExtDecodeErrorReport *)GetExtBuffer(m_mfxBS.ExtParam, m_mfxBS.NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT);
+
+            if (pDecodeErrorReport)
+                pDecodeErrorReport->ErrorTypes = 0;
+
+            // parse bit stream and fill mfx params
+            sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
+
+            PrintDecodeErrorReport(pDecodeErrorReport);
+        }
+        else
+        {
         // parse bit stream and fill mfx params
         sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
+        }
+#else
+        // parse bit stream and fill mfx params
+        sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
+#endif
         if (!sts)
         {
             m_bVppIsUsed = IsVppRequired(pParams);
@@ -602,6 +640,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
                 MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
             }
             // read a portion of data
+            totalBytesProcessed += m_mfxBS.DataOffset;
             sts = m_FileReader->ReadNextFrame(&m_mfxBS);
             if (MFX_ERR_MORE_DATA == sts &&
                 !(m_mfxBS.DataFlag & MFX_BITSTREAM_EOS))
@@ -701,6 +740,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         }
     }
 
+#if MFX_VERSION >= 1022
     /* Lets make final decision how to use VPP...*/
     if (!m_bVppIsUsed)
     {
@@ -750,6 +790,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
                 msdk_printf(MSDK_STRING("Decoder post-processing is unsupported for this stream, VPP is used for resizing\n") );
         }
     }
+#endif //MFX_VERSION >= 1022
 
     // If MVC mode we need to detect number of views in stream
     if (m_bIsMVC)
@@ -1568,6 +1609,9 @@ mfxStatus CDecodingPipeline::RunDecoding()
     time_t start_time = time(0);
     MSDKThread * pDeliverThread = NULL;
 
+#if (MFX_VERSION >= 1025)
+    mfxExtDecodeErrorReport *pDecodeErrorReport = NULL;
+#endif
 
     if (m_eWorkMode == MODE_RENDERING) {
         m_pDeliverOutputSemaphore = new MSDKSemaphore(sts);
@@ -1684,8 +1728,16 @@ mfxStatus CDecodingPipeline::RunDecoding()
             }
             pOutSurface = NULL;
             do {
+#if (MFX_VERSION >= 1025)
+                if (pBitstream) {
+                    pDecodeErrorReport = (mfxExtDecodeErrorReport *)GetExtBuffer(pBitstream->ExtParam, pBitstream->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT);
+                }
+#endif
                 sts = m_pmfxDEC->DecodeFrameAsync(pBitstream, &(m_pCurrentFreeSurface->frame), &pOutSurface, &(m_pCurrentFreeOutputSurface->syncp));
 
+#if (MFX_VERSION >= 1025)
+                PrintDecodeErrorReport(pDecodeErrorReport);
+#endif
 
                 if (pBitstream && MFX_ERR_MORE_DATA == sts && pBitstream->MaxLength == pBitstream->DataLength)
                 {

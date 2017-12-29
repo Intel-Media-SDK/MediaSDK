@@ -25,7 +25,6 @@
 #include "umc_va_linux.h"
 
 #define VA_DECODE_STREAM_OUT_ENABLE       2
-#define VADecodeStreamOutDataBufferType  -8
 
 #include <list>
 

@@ -21,6 +21,8 @@
 #ifndef _MFX_CONFIG_H_
 #define _MFX_CONFIG_H_
 
+#include "mfxdefs.h"
+
 #define CMAPIUPDATE
 #define MFX_ENABLE_VPP_COMPOSITION
 //#define MFX_ENABLE_VPP_FRC
@@ -29,18 +31,11 @@
 
 
 
-#define MFX_HAS_CPP11
-
 
     #if defined(LINUX32) || defined(LINUX64)
         #undef  MFX_VA_LINUX
         #define MFX_VA_LINUX
 
-
-        /* Android and Linux uses one video acceleration library: LibVA, but
-         * it is possible that their versions are different (especially during
-         * development). To simplify code development MFX_VA_ANDROID macro is introduced.
-         */
 
     #endif // #if defined(LINUX32) || defined(LINUX64)
 
@@ -53,7 +48,11 @@
     #endif
 #endif
 
-    #if defined(LINUX_TARGET_PLATFORM_BXT)    // PRE_SI_GEN == 9
+    #if defined(LINUX_TARGET_PLATFORM_CFL)      // PRE_SI_GEN == 9
+        #include "mfx_common_linux_cfl.h"
+    #elif defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
+        #include "mfx_common_linux_bxtmin.h"
+    #elif defined(LINUX_TARGET_PLATFORM_BXT)    // PRE_SI_GEN == 9
         #include "mfx_common_linux_bxt.h"
     #elif defined(LINUX_TARGET_PLATFORM_BDW)    // PRE_SI_GEN == 9
         #include "mfx_common_linux_bdw.h"
@@ -63,6 +62,10 @@
 
 
 
+
+
+
+#define MFX_ENABLE_HEVCE_INTERLACE
 
 
 #endif // _MFX_CONFIG_H_

@@ -130,6 +130,7 @@ VideoDECODEH265::VideoDECODEH265(VideoCORE *core, mfxStatus * sts)
     , m_core(core)
     , m_isInit(false)
     , m_isOpaq(false)
+    , m_globalTask(false)
     , m_frameOrder((mfxU16)MFX_FRAMEORDER_UNKNOWN)
     , m_response()
     , m_response_alien()
@@ -161,6 +162,8 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 
     if (m_isInit)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+    m_globalTask = false;
 
     MFX_CHECK_NULL_PTR1(par);
 
@@ -364,6 +367,8 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
+
+    m_globalTask = false;
 
     MFX_CHECK_NULL_PTR1(par);
 
@@ -727,9 +732,9 @@ mfxStatus VideoDECODEH265::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType
 
     uint32_t level_idc = par->mfx.CodecLevel;
     if (hevcParam)
-        dpbSize = CalculateDPBSize(level_idc, hevcParam->PicWidthInLumaSamples, hevcParam->PicHeightInLumaSamples, 0);
+        dpbSize = CalculateDPBSize(par->mfx.CodecProfile, level_idc, hevcParam->PicWidthInLumaSamples, hevcParam->PicHeightInLumaSamples, 0);
     else
-        dpbSize = CalculateDPBSize(level_idc, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, 0) + 1; //1 extra for avoid aligned size issue
+        dpbSize = CalculateDPBSize(par->mfx.CodecProfile, level_idc, par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height, 0) + 1; //1 extra for avoid aligned size issue
 
     if (par->mfx.MaxDecFrameBuffering && par->mfx.MaxDecFrameBuffering < dpbSize)
         dpbSize = par->mfx.MaxDecFrameBuffering;
@@ -802,6 +807,27 @@ mfxStatus VideoDECODEH265::RunThread(void * params, mfxU32 threadNumber)
 
     mfxStatus sts = MFX_TASK_WORKING;
 
+    if (!info->surface_work)
+    {
+        return MFX_TASK_DONE;
+    }
+
+    if (!info->surface_out)
+    {
+        for (int32_t i = 0; i < 2 && sts == MFX_TASK_WORKING; i++)
+        {
+            sts = m_pH265VideoDecoder->RunThread(threadNumber);
+        }
+
+        UMC::AutomaticUMCMutex guard(m_mGuardRunThread);
+
+        if (sts == MFX_TASK_BUSY && !m_pH265VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true))
+            m_globalTask = false;
+
+        return
+            m_globalTask ? sts : MFX_TASK_DONE;
+    }
+
     bool isDecoded;
     {
         UMC::AutomaticUMCMutex guard(m_mGuardRunThread);
@@ -866,6 +892,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
         else
         {
             UMC::AutomaticUMCMutex mGuard(m_mGuardRunThread);
+
             H265DecoderFrame *pFrame = m_pH265VideoDecoder->GetDPBList()->head();
             for (; pFrame; pFrame = pFrame->future())
             {
@@ -876,7 +903,11 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
                 }
             }
 
-            if (!frame)
+            if (!frame && m_pH265VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true) && !m_globalTask)
+            {
+                m_globalTask = true;
+            }
+            else
             {
                 return MFX_WRN_DEVICE_BUSY;
             }

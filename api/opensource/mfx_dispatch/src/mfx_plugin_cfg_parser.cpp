@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "mfx_plugin_cfg_parser.h"
 #include "mfx_dispatcher_log.h"
@@ -373,4 +372,3 @@ bool PluginConfigParser::ParsePluginParams(PluginDescriptionRecord & dst, mfxU32
 
 } // namespace MFX
 
-#endif // !defined(_WIN32) && !defined(_WIN64)

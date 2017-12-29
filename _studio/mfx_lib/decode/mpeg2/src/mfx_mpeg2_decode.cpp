@@ -1339,13 +1339,6 @@ mfxStatus AppendBitstream(mfxBitstream& bs, const mfxU8* ptr, mfxU32 bytes)
     return MFX_ERR_NONE;
 }
 
-void MoveBitstreamData(mfxBitstream& bs, mfxU32 offset)
-{
-    VM_ASSERT(offset <= bs.DataLength);
-    bs.DataOffset += offset;
-    bs.DataLength -= offset;
-}
-
 mfxStatus CutUserData(mfxBitstream *in, mfxBitstream *out, const mfxU8 *tail)
 {
     const mfxU8* head = in->Data + in->DataOffset;

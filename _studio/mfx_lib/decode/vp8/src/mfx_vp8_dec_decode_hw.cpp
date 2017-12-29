@@ -26,6 +26,7 @@
 #include "mfx_common_decode_int.h"
 #include "mfx_vp8_dec_decode_hw.h"
 #include "mfx_enc_common.h"
+#include "mfx_vpx_dec_common.h"
 
 #include "umc_va_base.h"
 
@@ -130,7 +131,7 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
 
     m_p_frame_allocator.reset(new mfx_UMC_FrameAllocator_D3D());
 
-    if (MFX_VP8_Utility::CheckVideoParam(p_video_param, type) == false)
+    if (MFX_VPX_Utility::CheckVideoParam(p_video_param, MFX_CODEC_VP8) == false)
     {
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
@@ -154,7 +155,7 @@ mfxStatus VideoDECODEVP8_HW::Init(mfxVideoParam *p_video_param)
     memset(&request, 0, sizeof(request));
     memset(&m_response, 0, sizeof(m_response));
 
-    sts = QueryIOSurfInternal(&m_video_params, &request);
+    sts = MFX_VPX_Utility::QueryIOSurfInternal(&m_video_params, &request);
     MFX_CHECK_STS(sts);
 
     if (m_video_params.IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
@@ -251,7 +252,7 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
     if (MFX_ERR_NONE > CheckVideoParamDecoders(p_video_param, m_p_core->IsExternalFrameAllocator(), type))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    if (MFX_VP8_Utility::CheckVideoParam(p_video_param, type) == false)
+    if (MFX_VPX_Utility::CheckVideoParam(p_video_param, MFX_CODEC_VP8) == false)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if (!IsSameVideoParam(p_video_param, &m_on_init_video_params))
@@ -365,35 +366,6 @@ mfxStatus VideoDECODEVP8_HW::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVi
 
 } // mfxStatus VideoDECODEVP8_HW::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVideoParam *p_out)
 
-mfxStatus VideoDECODEVP8_HW::QueryIOSurfInternal(mfxVideoParam *p_params, mfxFrameAllocRequest *p_request)
-{
-    p_request->NumFrameMin = mfxU16 (4);
-
-    p_request->NumFrameMin += p_params->AsyncDepth ? p_params->AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE;
-    p_request->NumFrameSuggested = p_request->NumFrameMin;
-    p_request->Info = p_params->mfx.FrameInfo;
-
-
-    if(p_params->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
-    {
-        p_request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE;
-    }
-    else if(p_params->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
-    {
-        p_request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE;
-    }
-    else if (p_params->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY)
-    {
-        p_request->Type = MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_OPAQUE_FRAME | MFX_MEMTYPE_FROM_DECODE;
-    }
-    else
-    {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-    }
-
-    return MFX_ERR_NONE;
-} // mfxStatus VideoDECODEVP8_HW::QueryIOSurfInternal(mfxVideoParam *p_params, mfxFrameAllocRequest *p_request)
-
 mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_video_param, mfxFrameAllocRequest *p_request)
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -436,7 +408,7 @@ mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
     }
     else
     {
-        sts = QueryIOSurfInternal(p_video_param, p_request);
+        sts = MFX_VPX_Utility::QueryIOSurfInternal(p_video_param, p_request);
     }
 
     if (!CheckHardwareSupport(p_core, p_video_param))
@@ -563,7 +535,7 @@ mfxStatus VideoDECODEVP8_HW::ConstructFrame(mfxBitstream *p_in, mfxBitstream *p_
 
     frame.frame_size = p_in->DataLength;
 
-    VP8DecodeCommon::MoveBitstreamData(*p_in, p_in->DataLength);
+    MoveBitstreamData(*p_in, p_in->DataLength);
 
     return MFX_ERR_NONE;
 
@@ -719,7 +691,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
 
     if (m_firstFrame && frame_type != I_PICTURE)
     {
-        VP8DecodeCommon::MoveBitstreamData(*p_bs, p_bs->DataLength);
+        MoveBitstreamData(*p_bs, p_bs->DataLength);
         return MFX_ERR_MORE_DATA;
     }
 

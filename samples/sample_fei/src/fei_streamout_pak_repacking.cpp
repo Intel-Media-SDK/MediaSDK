@@ -335,7 +335,11 @@ mfxStatus ResetDirect(iTask * task, iTaskPool *pTaskList)
             if (!B_SLICE(sliceHeader->Slice[slice].SliceType)) break;
 
             int ridx = sliceHeader->Slice[slice].RefL1[0].Index;
+#if MFX_VERSION >= 1023
             int fidx = pps->DpbBefore[ridx].Index;
+#else
+            int fidx = pps->ReferenceFrames[ridx];
+#endif // MFX_VERSION >= 1023
             mfxFrameSurface1 *refSurface = task->PAK_in.L0Surface[fidx];
 
             // find iTask of L1[0]

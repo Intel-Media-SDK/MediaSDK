@@ -227,6 +227,7 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/mfx_h264_encode_hw_utils.cpp
     ${prefix}/mfx_h264_encode_hw_utils_new.cpp
     ${prefix}/mfx_h264_encode_hw.cpp
+    ${prefix}/mfx_h264_scd.cpp
   )
 
   set( prefix ${MSDK_LIB_ROOT}/genx/h264_encode/src )
@@ -237,6 +238,9 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/genx_hsw_simple_me_proto.cpp
     ${prefix}/genx_hsw_histogram_isa.cpp
     ${prefix}/genx_skl_histogram_isa.cpp
+    ${prefix}/genx_hsw_h264_scd_isa.cpp
+    ${prefix}/genx_bdw_h264_scd_isa.cpp
+    ${prefix}/genx_skl_h264_scd_isa.cpp
   )
   list( APPEND sources
     ${MSDK_STUDIO_ROOT}/shared/umc/codec/brc/src/umc_video_brc.cpp
@@ -311,6 +315,7 @@ if( DEFINED VP8_DECODER_HW_GUID )
 
   list( APPEND sources ${plugin_common_sources} )
   list( APPEND sources ${MSDK_LIB_ROOT}/shared/src/libmfxsw_decode.cpp )
+  list( APPEND sources ${MSDK_LIB_ROOT}/shared/src/mfx_vpx_dec_common.cpp )
 
   set( prefix ${MSDK_LIB_ROOT}/plugin/src )
   list( APPEND sources.plus

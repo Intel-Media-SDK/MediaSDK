@@ -445,7 +445,7 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
 
     sliceParams->LongSliceFlags.fields.LastSliceOfPic = isLastSlice ? 1 : 0;
     // the first slice can't be a dependent slice
-    sliceParams->LongSliceFlags.fields.dependent_slice_segment_flag = sliceNum ? sliceHeader->dependent_slice_segment_flag : 0;
+    sliceParams->LongSliceFlags.fields.dependent_slice_segment_flag = sliceHeader->dependent_slice_segment_flag;
     sliceParams->LongSliceFlags.fields.slice_type = sliceHeader->slice_type;
     sliceParams->LongSliceFlags.fields.color_plane_id = sliceHeader->colour_plane_id;
     sliceParams->LongSliceFlags.fields.slice_sao_luma_flag = sliceHeader->slice_sao_luma_flag;

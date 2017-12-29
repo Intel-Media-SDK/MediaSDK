@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "mfx_plugin_hive.h"
 #include "mfx_library_iterator.h"
@@ -34,13 +33,23 @@
 #include <dlfcn.h>
 #include <sys/stat.h>
 
-#define TRACE_HIVE_ERROR(str, ...) DISPATCHER_LOG_ERROR((("[HIVE]: "str), __VA_ARGS__))
-#define TRACE_HIVE_INFO(str, ...) DISPATCHER_LOG_INFO((("[HIVE]: "str), __VA_ARGS__))
-#define TRACE_HIVE_WRN(str, ...) DISPATCHER_LOG_WRN((("[HIVE]: "str), __VA_ARGS__))
+#define TRACE_HIVE_ERROR(str, ...) DISPATCHER_LOG_ERROR((("[HIVE]: " str), __VA_ARGS__))
+#define TRACE_HIVE_INFO(str, ...) DISPATCHER_LOG_INFO((("[HIVE]: " str), __VA_ARGS__))
+#define TRACE_HIVE_WRN(str, ...) DISPATCHER_LOG_WRN((("[HIVE]: " str), __VA_ARGS__))
 
-namespace 
+namespace
 {
-    const char rootPluginPath[] = "/opt/intel/mediasdk/plugins/plugins.cfg";
+#ifdef ANDROID
+
+#if (MFX_ANDROID_VERSION >= MFX_O)
+    const char rootPluginPath[] = "/vendor/etc/mediasdk_plugins.cfg";
+#else
+    const char rootPluginPath[] = "/etc/mediasdk_plugins.cfg";
+#endif
+
+#else
+    const char rootPluginPath[] = MFX_PLUGINS_DIR"/plugins.cfg";
+#endif
     //const wchar_t rootDispatchPath[] = L"Software\\Intel\\MediaSDK\\Dispatch";
     const char pluginSubkey[] = "Plugin";
     const char TypeKeyName[] = "Type";
@@ -52,7 +61,7 @@ namespace
     const char APIVerKeyName[] = "APIVersion";
 }
 
-namespace 
+namespace
 {
 #ifdef LINXU64
     const char pluginFileName[] = "FileName64";
@@ -68,7 +77,7 @@ namespace
     const mfxU32 defaultPluginNameLen = 25;
     const mfxU32 charsPermfxU8 = 2;
     const mfxU32 slashLen = 1;
-    enum 
+    enum
     {
         MAX_PLUGIN_FILE_LINE = 4096
     };
@@ -90,45 +99,45 @@ static bool CheckPluginRecord(PluginDescriptionRecord & descriptionRecord, mfxU3
     if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_TYPE))
     {
         return false;
-    }        
+    }
     TRACE_HIVE_INFO(alignStr()" : %d\n", TypeKeyName, descriptionRecord.Type);
 
-    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_CODEC_ID)) 
+    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_CODEC_ID))
     {
-        TRACE_HIVE_INFO(alignStr()" : "MFXFOURCCTYPE()" \n", CodecIDKeyName, MFXU32TOFOURCC(descriptionRecord.CodecId));
+        TRACE_HIVE_INFO(alignStr()" : " MFXFOURCCTYPE()" \n", CodecIDKeyName, MFXU32TOFOURCC(descriptionRecord.CodecId));
     }
     else
     {
         TRACE_HIVE_INFO(alignStr()" : \n", CodecIDKeyName, "NOT REGISTERED");
     }
 
-    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_UID)) 
+    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_UID))
     {
         return false;
     }
-    TRACE_HIVE_INFO(alignStr()" : "MFXGUIDTYPE()"\n", GUIDKeyName, MFXGUIDTOHEX(&descriptionRecord.PluginUID));
+    TRACE_HIVE_INFO(alignStr()" : " MFXGUIDTYPE()"\n", GUIDKeyName, MFXGUIDTOHEX(&descriptionRecord.PluginUID));
 
-    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_PATH)) 
+    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_PATH))
     {
         TRACE_HIVE_WRN("no value for : %s\n", PathKeyName);
         return false;
     }
     TRACE_HIVE_INFO(alignStr()" : %s\n", PathKeyName, descriptionRecord.sPath);
 
-    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_DEFAULT)) 
+    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_DEFAULT))
     {
         return false;
     }
     TRACE_HIVE_INFO(alignStr()" : %s\n", DefaultKeyName, descriptionRecord.Default ? "true" : "false");
 
-    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_VERSION)) 
+    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_VERSION))
     {
         TRACE_HIVE_ERROR(alignStr()" : %d, which is invalid\n", PlgVerKeyName, descriptionRecord.PluginVersion);
         return false;
-    } 
+    }
     TRACE_HIVE_INFO(alignStr()" : %d\n", PlgVerKeyName, descriptionRecord.PluginVersion);
 
-    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_API_VERSION)) 
+    if (isFieldMissed(foundFields, requiredFields, PluginConfigParser::PARSED_API_VERSION))
     {
         TRACE_HIVE_ERROR(alignStr()" : %d.%d, which is invalid\n", APIVerKeyName, descriptionRecord.APIVersion.Major, descriptionRecord.APIVersion.Minor);
         return false;
@@ -149,8 +158,8 @@ MFXPluginsInHive::MFXPluginsInHive(int, const msdk_disp_char* msdkLibSubKey, mfx
         TRACE_HIVE_ERROR("no plugin records found in %s\n", rootPluginPath);
         return;
     }
-    
-    try 
+
+    try
     {
         resize(numPlugins);
     }
@@ -162,7 +171,7 @@ MFXPluginsInHive::MFXPluginsInHive(int, const msdk_disp_char* msdkLibSubKey, mfx
     for (int index = 0; index < numPlugins; index++, parser.AdvanceToNextPlugin())
     {
         PluginDescriptionRecord descriptionRecord;
-        try 
+        try
         {
             char pluginName[MAX_PLUGIN_NAME];
             bool nameRes = parser.GetCurrentPluginName(pluginName);
@@ -212,7 +221,7 @@ static int plugin_name_filter(const struct dirent * name)
         if (!isxdigit(name->d_name[i]))
             return 0;
     }
-    
+
     return 1;
 }
 
@@ -236,7 +245,7 @@ MFXPluginsInFS::MFXPluginsInFS(mfxVersion currentAPIVersion)
         lastSlashPos = selfName;
     }
     mfxU32 executableDirLen = (mfxU32)(lastSlashPos - selfName) + slashLen;
-    if (executableDirLen + pluginDirNameLen + pluginCfgFileNameLen >= MAX_PLUGIN_PATH) 
+    if (executableDirLen + pluginDirNameLen + pluginCfgFileNameLen >= MAX_PLUGIN_PATH)
     {
         TRACE_HIVE_ERROR("MAX_PLUGIN_PATH which is %d, not enough to locate plugin path\n", MAX_PLUGIN_PATH);
         return;
@@ -251,7 +260,7 @@ MFXPluginsInFS::MFXPluginsInFS(mfxVersion currentAPIVersion)
     {
         TRACE_HIVE_ERROR("Error %d scanning application directory %s\n", errno, selfName);
     }
-    else 
+    else
     {
         for (int i = 0; i < n; i++)
         {
@@ -275,7 +284,7 @@ MFXPluginsInFS::MFXPluginsInFS(mfxVersion currentAPIVersion)
                 continue;
             }
             free(namelist[i]);
-                      
+
             PluginConfigParser parser(cfgName);
             int numPlugins = parser.GetPluginCount();
 
@@ -291,7 +300,7 @@ MFXPluginsInFS::MFXPluginsInFS(mfxVersion currentAPIVersion)
             }
 
 
-            try 
+            try
             {
                 char pluginName[MAX_PLUGIN_NAME];
                 bool nameRes = parser.GetCurrentPluginName(pluginName);
@@ -332,7 +341,7 @@ MFXPluginsInFS::MFXPluginsInFS(mfxVersion currentAPIVersion)
 
 MFXDefaultPlugins::MFXDefaultPlugins(mfxVersion currentAPIVersion, MFX_DISP_HANDLE * hdl, int implType)
     : MFXPluginStorageBase(currentAPIVersion)
-{    
+{
     msdk_disp_char libModuleName[MAX_PLUGIN_PATH];
 
     Dl_info  DlInfo;
@@ -350,7 +359,7 @@ MFXDefaultPlugins::MFXDefaultPlugins(mfxVersion currentAPIVersion, MFX_DISP_HAND
         lastSlashPos = libModuleName;
     }
     mfxU32 executableDirLen = (mfxU32)(lastSlashPos - libModuleName) + slashLen;
-    if (executableDirLen + defaultPluginNameLen >= MAX_PLUGIN_PATH) 
+    if (executableDirLen + defaultPluginNameLen >= MAX_PLUGIN_PATH)
     {
         TRACE_HIVE_ERROR("MAX_PLUGIN_PATH which is %d, not enough to locate plugin path\n", MAX_PLUGIN_PATH);
         return;
@@ -380,4 +389,3 @@ MFXDefaultPlugins::MFXDefaultPlugins(mfxVersion currentAPIVersion, MFX_DISP_HAND
 } // namespace MFX
 
 
-#endif

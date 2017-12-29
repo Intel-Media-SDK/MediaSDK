@@ -59,6 +59,7 @@
 #endif
 
 
+
 #ifdef MFX_ENABLE_USER_DECODE
 #include "mfx_user_plugin.h"
 #endif
@@ -118,6 +119,7 @@ VideoDECODE *CreateDECODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
 #endif
 
 
+
     default:
         break;
     }
@@ -138,6 +140,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
+#ifndef ANDROID
     if ((0 != in) && (MFX_HW_VAAPI == session->m_pCORE->GetVAType()))
     {
         // protected content not supported on Linux
@@ -147,6 +150,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             return MFX_ERR_UNSUPPORTED;
         }
     }
+#endif
 
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, in);
@@ -205,6 +209,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 #endif // MFX_VA && MFX_ENABLE_VP8_VIDEO_DECODE_HW
             break;
 #endif
+
 
 
         default:
@@ -286,6 +291,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 #endif
 
 
+
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
@@ -362,6 +368,7 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
             mfxRes = VP8DecodeCommon::DecodeHeader(session->m_pCORE.get(), bs, par);
             break;
 #endif
+
 
 
         default:

@@ -182,7 +182,9 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefLists,          MFX_EXTBUFF_AVC_REFLISTS             );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption3,        MFX_EXTBUFF_CODING_OPTION3           );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBQP,                 MFX_EXTBUFF_MBQP                     );
+#if MFX_VERSION >= 1023
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBForceIntra,         MFX_EXTBUFF_MB_FORCE_INTRA           );
+#endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtChromaLocInfo,        MFX_EXTBUFF_CHROMA_LOC_INFO          );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMBDisableSkipMap,     MFX_EXTBUFF_MB_DISABLE_SKIP_MAP      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtPredWeightTable,      MFX_EXTBUFF_PRED_WEIGHT_TABLE        );
@@ -204,8 +206,17 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncCtrl,        MFX_EXTBUFF_FEI_PREENC_CTRL          );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiPreEncMVPredictors,MFX_EXTBUFF_FEI_PREENC_MV_PRED       );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiRepackCtrl,        MFX_EXTBUFF_FEI_REPACK_CTRL          );
+#if (MFX_VERSION >= 1025)
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtFeiRepackStat,        MFX_EXTBUFF_FEI_REPACK_STAT          );
+#endif
+#if defined (__MFXBRC_H__)
     BIND_EXTBUF_TYPE_TO_ID (mfxExtBRC,        MFX_EXTBUFF_BRC          );
+#endif
 
+#ifdef MFX_ENABLE_MFE
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtMultiFrameControl,     MFX_EXTBUFF_MULTI_FRAME_CONTROL     );
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtMultiFrameParam,       MFX_EXTBUFF_MULTI_FRAME_PARAM       );
+#endif
 
 #undef BIND_EXTBUF_TYPE_TO_ID
 
@@ -561,8 +572,14 @@ namespace MfxHwH264Encode
         mfxExtFeiSPS                m_extFeiSPS;
         mfxExtFeiPPS                m_extFeiPPS;
 
+#if defined(__MFXBRC_H__)
         mfxExtBRC                   m_extBRC;
+#endif
 
+#if defined (MFX_ENABLE_MFE)
+        mfxExtMultiFrameParam    m_MfeParam;
+        mfxExtMultiFrameControl  m_MfeControl;
+#endif
         std::vector<mfxMVCViewDependency> m_storageView;
         std::vector<mfxMVCOperationPoint> m_storageOp;
         std::vector<mfxU16>               m_storageViewId;
@@ -683,6 +700,9 @@ namespace MfxHwH264Encode
         mfxU32 id);
 
     bool IsRunTimeExtBufferIdSupported(
+        MfxVideoParam const & video, mfxU32 id);
+
+    bool IsRuntimeOutputExtBufferIdSupported(
         MfxVideoParam const & video, mfxU32 id);
 
     bool IsRunTimeExtBufferPairAllowed(
@@ -1403,6 +1423,7 @@ namespace MfxHwH264Encode
         bool isSvcPrefixUsed() const { return m_needPrefixNalUnit; }
 
         void ResizeSlices(mfxU32 num);
+
 
     private:
 

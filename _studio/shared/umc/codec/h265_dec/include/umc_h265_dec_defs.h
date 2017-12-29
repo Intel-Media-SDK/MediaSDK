@@ -709,6 +709,8 @@ struct ReferencePictureSet
     int getPOC(int index) const             { return m_POC[index]; }
 
     uint8_t getCheckLTMSBPresent(int32_t bufferNum) const { return delta_poc_msb_present_flag[bufferNum]; }
+
+    uint32_t getNumberOfUsedPictures() const;
 };
 
 // Reference picture list data structure

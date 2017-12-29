@@ -287,6 +287,18 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
          = (VASliceParameterBufferVP8*)m_p_video_accelerator->
              GetCompBuffer(VASliceParameterBufferType, &compBufSlice, sizeof(VASliceParameterBufferVP8));
 
+#ifdef ANDROID
+
+     // number of bytes in the slice data buffer for the partitions
+     sliceParams->slice_data_size = (int32_t)size - offset;
+
+     //offset to the first byte of partition data
+     sliceParams->slice_data_offset = 0;
+
+     //see VA_SLICE_DATA_FLAG_XXX definitions
+     sliceParams->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
+
+#endif
 
      //offset to the first bit of MB from the first byte of partition data
      sliceParams->macroblock_offset = m_frame_info.entropyDecSize;

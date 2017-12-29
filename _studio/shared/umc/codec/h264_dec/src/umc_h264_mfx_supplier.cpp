@@ -720,6 +720,9 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
 UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
 {
 
+#if (MFX_VERSION >= 1025)
+    mfxExtDecodeErrorReport * pDecodeErrorReport = (mfxExtDecodeErrorReport*)GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT);
+#endif
 
     try
     {
@@ -834,7 +837,11 @@ UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
         {
             try
             {
+#if (MFX_VERSION >= 1025)
+                UMC::Status umcRes = m_supplier->ProcessNalUnit(nalUnit, pDecodeErrorReport);
+#else
                 UMC::Status umcRes = m_supplier->ProcessNalUnit(nalUnit);
+#endif
                 if (umcRes < UMC::UMC_OK)
                 {
                     return UMC::UMC_OK;

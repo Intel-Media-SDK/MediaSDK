@@ -32,7 +32,11 @@
 
 uint32_t vm_sys_info_get_cpu_num(void)
 {
+#if defined(ANDROID)
+    return sysconf(_SC_NPROCESSORS_ONLN); /* on Android *_CONF will return number of _real_ processors */
+#else
     return sysconf(_SC_NPROCESSORS_CONF); /* on Linux *_CONF will return number of _logical_ processors */
+#endif
 } /* uint32_t vm_sys_info_get_cpu_num(void) */
 
 void vm_sys_info_get_cpu_name(vm_char *cpu_name)

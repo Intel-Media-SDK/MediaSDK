@@ -557,7 +557,7 @@ mfxStatus MFX_DecodeInterface::ResetState()
 mfxStatus YUVreader::GetOneFrame(mfxFrameSurface1* & pSurf)
 {
     MFX_ITT_TASK("GetOneFrame");
-    mfxStatus sts = MFX_ERR_NONE;
+    mfxStatus res = MFX_ERR_NONE;
 
     // point pSurf to encoder surface
     pSurf = m_pSurfPool->GetFreeSurface_FEI();
@@ -568,24 +568,25 @@ mfxStatus YUVreader::GetOneFrame(mfxFrameSurface1* & pSurf)
     if (m_bExternalAlloc)
     {
         // get YUV pointers
-        sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis, pSurf->Data.MemId, &(pSurf->Data));
+        mfxStatus sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis, pSurf->Data.MemId, &(pSurf->Data));
         MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
     }
 
-    sts = m_FileReader.LoadNextFrame(pSurf);
-    if (sts == MFX_ERR_MORE_DATA && m_pAppConfig->nTimeout)
-    {
-        // infinite loop mode, need to proceed from the beginning
-        return MFX_ERR_MORE_DATA;
-    }
-    MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, sts);
+    res = m_FileReader.LoadNextFrame(pSurf);
 
     // ... after we're done call Unlock
     if (m_bExternalAlloc)
     {
-        sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis, pSurf->Data.MemId, &(pSurf->Data));
+        mfxStatus sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis, pSurf->Data.MemId, &(pSurf->Data));
         MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
     }
 
-    return sts;
+    if (res == MFX_ERR_MORE_DATA && m_pAppConfig->nTimeout)
+    {
+        // infinite loop mode, need to proceed from the beginning
+        return MFX_ERR_MORE_DATA;
+    }
+    MSDK_CHECK_PARSE_RESULT(res, MFX_ERR_NONE, res);
+
+    return res;
 }

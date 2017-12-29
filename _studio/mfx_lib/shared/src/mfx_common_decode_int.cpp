@@ -19,7 +19,10 @@
 // SOFTWARE.
 
 #include "mfx_common_decode_int.h"
+#include "mfx_enc_common.h"
+
 #include "umc_va_base.h"
+#include "umc_defs.h"
 
 MFXMediaDataAdapter::MFXMediaDataAdapter(mfxBitstream *pBitstream)
 {
@@ -239,7 +242,6 @@ mfxU32 ConvertUMCStreamTypeToCodec(UMC::VideoStreamType type)
         case UMC::H264_VIDEO:  return MFX_CODEC_AVC;
         case UMC::HEVC_VIDEO:  return MFX_CODEC_HEVC;
         case UMC::VP9_VIDEO:   return MFX_CODEC_VP9;
-
         default:
             VM_ASSERT(!"Unknown stream type");
             return 0;
@@ -254,6 +256,8 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
 
     par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(si->clip_info.height, 16);
     par->mfx.FrameInfo.Width  = UMC::align_value<mfxU16>(si->clip_info.width,  16);
+
+    par->mfx.FrameInfo.CropX  = par->mfx.FrameInfo.CropY = 0;
     par->mfx.FrameInfo.CropH  = mfxU16(si->disp_clip_info.height);
     par->mfx.FrameInfo.CropW  = mfxU16(si->disp_clip_info.width);
 
@@ -301,4 +305,20 @@ void ConvertUMCParamsToMFX(UMC::VideoDecoderParams const* vp, mfxVideoParam* par
 bool IsNeedChangeVideoParam(mfxVideoParam *)
 {
     return false;
+}
+
+void RefCounter::IncrementReference() const
+{
+    m_refCounter++;
+}
+
+void RefCounter::DecrementReference()
+{
+    m_refCounter--;
+
+    VM_ASSERT(m_refCounter >= 0);
+    if (!m_refCounter)
+    {
+        Free();
+    }
 }

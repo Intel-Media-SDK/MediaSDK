@@ -73,6 +73,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-r distance] - Distance between I- or P- key frames (1 means no B-frames) \n"));
     msdk_printf(MSDK_STRING("   [-g size] - GOP size (default 256)\n"));
     msdk_printf(MSDK_STRING("   [-x numRefs]   - number of reference frames\n"));
+    msdk_printf(MSDK_STRING("   [-num_active_P numRefs]   - number of maximum allowed references for P frames (for HEVC only)\n"));
+    msdk_printf(MSDK_STRING("   [-num_active_BL0 numRefs] - number of maximum allowed references for B frames in L0 (for HEVC only)\n"));
+    msdk_printf(MSDK_STRING("   [-num_active_BL1 numRefs] - number of maximum allowed references for B frames in L1 (for HEVC only)\n"));
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
     msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100].\n"));
@@ -93,6 +96,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-qpp]                   - constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
     msdk_printf(MSDK_STRING("   [-qpb]                   - constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
     msdk_printf(MSDK_STRING("   [-qsv-ff]       Enable QSV-FF mode\n"));
+    msdk_printf(MSDK_STRING("   [-ir_type]               - Intra refresh type. 0 - no refresh, 1 - vertical refresh, 2 - horisontal refresh, 3 - slice refresh\n"));
+    msdk_printf(MSDK_STRING("   [-ir_cycle_size]         - Number of pictures within refresh cycle starting from 2\n"));
+    msdk_printf(MSDK_STRING("   [-ir_qp_delta]           - QP difference for inserted intra MBs. This is signed value in [-51, 51] range\n"));
+    msdk_printf(MSDK_STRING("   [-ir_cycle_dist]         - Distance between the beginnings of the intra-refresh cycles in frames\n"));
     msdk_printf(MSDK_STRING("   [-gpb:<on,off>]          - Turn this option OFF to make HEVC encoder use regular P-frames instead of GPB\n"));
     msdk_printf(MSDK_STRING("   [-ppyr:<on,off>]         - Turn this option ON to enable P-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("   [-num_slice]             - number of slices in each video frame. 0 by default.\n"));
@@ -109,10 +116,12 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-BufferSizeInKB ]       - represents the maximum possible size of any compressed frames\n"));
     msdk_printf(MSDK_STRING("   [-MaxKbps ]              - for variable bitrate control, specifies the maximum bitrate at which \
                             the encoded data enters the Video Buffering Verifier buffer\n"));
+    msdk_printf(MSDK_STRING("   [-amfs:<on,off>]         - adaptive max frame size. If set on, P or B frame size can exceed MaxFrameSize when the scene change is detected.\
+                            It can benefit the video quality \n"));
     msdk_printf(MSDK_STRING("   [-LowDelayBRC]           - strictly obey average frame size set by MaxKbps\n"));
     msdk_printf(MSDK_STRING("   [-signal:tm ]            - represents transfer matrix coefficients for mfxExtVideoSignalInfo. 0 - unknown, 1 - BT709, 2 - BT601\n"));
-    msdk_printf(MSDK_STRING("   [-WeightedPred: 1/2/3]\n"));
-    msdk_printf(MSDK_STRING("   [-WeightedBiPred: 1/2/3>] - 1 - default, 2 - explicit, 3 - implicit\n"));
+    msdk_printf(MSDK_STRING("   [-WeightedPred:default|implicit ]   - enables weighted prediction mode\n"));
+    msdk_printf(MSDK_STRING("   [-WeightedBiPred:default|implicit ] - enables weighted bi-prediction mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]               - encoding in cycle not less than specific time in seconds\n"));
     msdk_printf(MSDK_STRING("   [-membuf]                - size of memory buffer in frames\n"));
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
@@ -120,7 +129,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
     msdk_printf(MSDK_STRING("                              the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled\n"));
 
-    msdk_printf(MSDK_STRING("   [-extbrc:<on,off>]       - External BRC for AVC and HEVC encoders"));
+    msdk_printf(MSDK_STRING("   [-extbrc:<on,off,implicit>]       - External BRC for AVC and HEVC encoders"));
 
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
 #if D3D_SURFACES_SUPPORT
@@ -445,6 +454,46 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ir_type")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->IntRefType))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Intra refresh type is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ir_cycle_size")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->IntRefCycleSize))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("IR refresh cycle size param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ir_qp_delta")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->IntRefQPDelta))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("IR QP delta param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ir_cycle_dist")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->IntRefCycleDist))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("IR cycle distance param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-membuf")))
         {
             VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
@@ -455,25 +504,21 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedPred")))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedPred:default")))
         {
-            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-
-            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->WeightedPred))
-            {
-                PrintHelp(strInput[0], MSDK_STRING("WeightedPred is invalid"));
-                return MFX_ERR_UNSUPPORTED;
-            }
+            pParams->WeightedPred = MFX_WEIGHTED_PRED_DEFAULT;
         }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedBiPred")))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedPred:implicit")))
         {
-            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-
-            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->WeightedBiPred))
-            {
-                PrintHelp(strInput[0], MSDK_STRING("WeightedBiPred is invalid"));
-                return MFX_ERR_UNSUPPORTED;
-            }
+            pParams->WeightedPred = MFX_WEIGHTED_PRED_IMPLICIT;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedBiPred:default")))
+        {
+            pParams->WeightedBiPred = MFX_WEIGHTED_PRED_DEFAULT;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-WeightedBiPred:implicit")))
+        {
+            pParams->WeightedBiPred = MFX_WEIGHTED_PRED_IMPLICIT;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-uncut")))
         {
@@ -562,14 +607,56 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->nPRefType = MFX_P_REF_SIMPLE;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-num_active_P")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nNumRefActiveP))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Number of active reference for P frames is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-num_active_BL0")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nNumRefActiveBL0))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Number of active reference for B frames (L0) is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-num_active_BL1")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nNumRefActiveBL1))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Number of active reference for B frames (L1) is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+#if (MFX_VERSION >= 1024)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:on")))
         {
-            pParams->nExtBRC= MFX_CODINGOPTION_ON;
+            pParams->nExtBRC= EXTBRC_ON;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:off")))
         {
-            pParams->nExtBRC = MFX_CODINGOPTION_OFF;
+            pParams->nExtBRC = EXTBRC_OFF;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extbrc:implicit")))
+        {
+            pParams->nExtBRC = EXTBRC_IMPLICIT;
+        }
+#endif
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-amfs:on")))
+        {
+            pParams->nAdaptiveMaxFrameSize = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-amfs:off")))
+        {
+            pParams->nAdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
+        }
+
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qsv-ff")))
         {
             pParams->enableQSVFF=true;
@@ -993,6 +1080,15 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         if ((pParams->nLADepth != 1) || (!pParams->nMaxSliceSize))
         {
             PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be >= 10, or 1 in case of -mss option!"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+
+    if (pParams->nNumRefActiveP || pParams->nNumRefActiveBL0 || pParams->nNumRefActiveBL1)
+    {
+        if (pParams->CodecId != MFX_CODEC_HEVC)
+        {
+            PrintHelp(strInput[0], MSDK_STRING("NumRefActiveP/BL0/BL1 are supported only with HEVC encoder"));
             return MFX_ERR_UNSUPPORTED;
         }
     }

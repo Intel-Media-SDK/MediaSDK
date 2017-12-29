@@ -61,6 +61,8 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_P208;
     case MFX_FOURCC_UYVY:
         return VA_FOURCC_UYVY;
+    case MFX_FOURCC_P010:
+        return VA_FOURCC_P010;
 
     default:
         VM_ASSERT(!"unsupported fourcc");
@@ -99,7 +101,8 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
                        (VA_FOURCC_ARGB != va_fourcc) &&
                        (VA_FOURCC_ABGR != va_fourcc) &&
                        (VA_FOURCC_UYVY != va_fourcc) &&
-                       (VA_FOURCC_P208 != va_fourcc)))
+                       (VA_FOURCC_P208 != va_fourcc) &&
+                       (VA_FOURCC_P010 != va_fourcc)))
     {
         return MFX_ERR_MEMORY_ALLOC;
     }

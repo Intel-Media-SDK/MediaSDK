@@ -257,11 +257,15 @@ namespace MfxHwVideoProcessing
                ,bBackgroundRequired(true)
                ,iBackgroundColor(0)
                ,iTilesNum4Comp(0)
+               ,execIdx(NO_INDEX)
                ,statusReportID(0)
                ,bFieldWeaving(false)
                ,iFieldProcessingMode(0)
                ,rotation(0)
                ,scalingMode(MFX_SCALING_MODE_DEFAULT)
+#if (MFX_VERSION >= 1025)
+               ,chromaSiting(MFX_CHROMA_SITING_UNKNOWN)
+#endif
                ,bEOS(false)
                ,mirroring(0)
                ,mirroringPosition(0)
@@ -327,6 +331,7 @@ namespace MfxHwVideoProcessing
         bool           bBackgroundRequired;
         mfxU64         iBackgroundColor;
         mfxU32         iTilesNum4Comp;
+        mfxU32         execIdx; //index call of execute for current frame, actual for composition
 
         mfxU32         statusReportID;
 

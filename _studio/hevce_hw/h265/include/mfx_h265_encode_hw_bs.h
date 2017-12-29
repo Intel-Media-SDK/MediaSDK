@@ -171,9 +171,10 @@ public:
     ~HeaderPacker();
 
     mfxStatus Reset(MfxVideoParam const & par);
+    mfxStatus ResetPPS(MfxVideoParam const & par);
 
-    inline void GetAUD(mfxU8*& buf, mfxU32& len, mfxU8 pic_type){assert(pic_type < 3); buf = m_bs_aud[pic_type%3]; len = 7;} 
-    inline void GetVPS(mfxU8*& buf, mfxU32& len){buf = m_bs_vps; len = m_sz_vps;}  
+    inline void GetAUD(mfxU8*& buf, mfxU32& len, mfxU8 pic_type){assert(pic_type < 3); buf = m_bs_aud[pic_type%3]; len = 7;}
+    inline void GetVPS(mfxU8*& buf, mfxU32& len){buf = m_bs_vps; len = m_sz_vps;}
     inline void GetSPS(mfxU8*& buf, mfxU32& len){buf = m_bs_sps; len = m_sz_sps;}
     inline void GetPPS(mfxU8*& buf, mfxU32& len){buf = m_bs_pps; len = m_sz_pps;}
     void GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& len);
@@ -196,8 +197,8 @@ public:
     static void PackVPS  (BitstreamWriter& bs, VPS   const &  vps);
     static void PackSPS  (BitstreamWriter& bs, SPS   const &  sps);
     static void PackPPS  (BitstreamWriter& bs, PPS   const &  pps);
-    static void PackSSH  (BitstreamWriter& bs, 
-                          NALU  const &     nalu, 
+    static void PackSSH  (BitstreamWriter& bs,
+                          NALU  const &     nalu,
                           SPS   const &     sps,
                           PPS   const &     pps,
                           Slice const &     slice,

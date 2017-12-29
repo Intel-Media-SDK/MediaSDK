@@ -16,9 +16,9 @@ This sample was distributed or derived from the Intel's Media Samples package.
 The original version of this sample may be obtained from https://software.intel.com/en-us/intel-media-server-studio
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
-
-
 #include "sample_defs.h"
+
+#if (MFX_VERSION >= 1024)
 #include "mfxbrc.h"
 
 #ifndef __PIPELINE_ENCODE_BRC_H__
@@ -125,7 +125,7 @@ public:
         quantMinB(0)
     {}
 
-    mfxStatus Init(mfxVideoParam* par);
+    mfxStatus Init(mfxVideoParam* par, bool bFieldMode = false);
     mfxStatus GetBRCResetType(mfxVideoParam* par, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset );
 };
 class cHRD
@@ -399,3 +399,4 @@ namespace HEVCExtBRC
 }
 #endif
 
+#endif

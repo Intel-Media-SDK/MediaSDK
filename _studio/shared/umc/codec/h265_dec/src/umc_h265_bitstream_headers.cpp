@@ -1772,41 +1772,22 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
 
         //RPL sanity check
         {
-            uint32_t i = 0;
-            ReferencePictureSet* rps = pSlice->getRPS();
+            ReferencePictureSet const* rps = pSlice->getRPS();
+            VM_ASSERT(rps);
 
-            uint32_t NumPocStCurr0 = 0;
-            for(i = 0; i < rps->getNumberOfNegativePictures(); i++)
-            {
-                if(rps->getUsed(i))
-                    NumPocStCurr0++;
-            }
-
-            uint32_t NumPocStCurr1 = 0;
-            for(; i < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures(); i++)
-            {
-                if(rps->getUsed(i))
-                    NumPocStCurr1++;
-            }
-
-            uint32_t NumPocLtCurr = 0;
-            for (i = rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures();
-                 i < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures() + rps->getNumberOfLongtermPictures(); i++)
-            {
-                if (rps->getUsed(i))
-                    NumPocLtCurr++;
-            }
+            uint32_t numPicTotalCurr = rps->getNumberOfUsedPictures();
+            if (pps->pps_curr_pic_ref_enabled_flag)
+                numPicTotalCurr++;
 
             //7.4.7.2 value of list_entry_l0/list_entry_l1[ i ] shall be in the range of 0 to NumPicTotalCurr - 1, inclusive
-            uint32_t const numPocTotalCurr = NumPocStCurr0 + NumPocStCurr1 + NumPocLtCurr;
             for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_0); idx++)
             {
-                if (refPicListModification->list_entry_l0[idx] >= numPocTotalCurr)
+                if (refPicListModification->list_entry_l0[idx] >= numPicTotalCurr)
                     throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
             }
             for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_1); idx++)
             {
-                if (refPicListModification->list_entry_l1[idx] >= numPocTotalCurr)
+                if (refPicListModification->list_entry_l1[idx] >= numPicTotalCurr)
                     throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
             }
         }
@@ -1970,12 +1951,6 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         }
     }
 
-    if (!pps->tiles_enabled_flag)
-    {
-        pSlice->allocateTileLocation(1);
-        pSlice->m_tileByteLocation[0] = 0;
-    }
-
     if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag)
     {
         sliceHdr->num_entry_point_offsets = GetVLCElementU();
@@ -1999,34 +1974,28 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
                 throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
         }
 
-        uint32_t* entryPointOffset = new uint32_t[sliceHdr->num_entry_point_offsets];
+        std::vector<uint32_t> entryPointOffsets(sliceHdr->num_entry_point_offsets);
         for (uint32_t idx = 0; idx < sliceHdr->num_entry_point_offsets; idx++)
         {
-            entryPointOffset[idx] = GetBits(offsetLenMinus1 + 1) + 1;
+            entryPointOffsets[idx] = GetBits(offsetLenMinus1 + 1) + 1;
         }
 
-        if (pps->tiles_enabled_flag)
+        pSlice->allocateTileLocation(sliceHdr->num_entry_point_offsets + 1);
+
+        unsigned prevPos = 0;
+        pSlice->m_tileByteLocation[0] = 0;
+        for (uint32_t idx = 1; idx < pSlice->getTileLocationCount(); idx++)
         {
-            pSlice->allocateTileLocation(sliceHdr->num_entry_point_offsets + 1);
-
-            unsigned prevPos = 0;
-            pSlice->m_tileByteLocation[0] = 0;
-            for (int idx = 1; idx < pSlice->getTileLocationCount(); idx++)
-            {
-                pSlice->m_tileByteLocation[idx] = prevPos + entryPointOffset[idx - 1];
-                prevPos += entryPointOffset[idx - 1];
-            }
+            pSlice->m_tileByteLocation[idx] = prevPos + entryPointOffsets[idx - 1];
+            prevPos += entryPointOffsets[idx - 1];
         }
-        else if (pps->entropy_coding_sync_enabled_flag)
-        {
-            // we don't use wpp offsets
-        }
-
-        delete[] entryPointOffset;
     }
     else
     {
         sliceHdr->num_entry_point_offsets = 0;
+
+        pSlice->allocateTileLocation(1);
+        pSlice->m_tileByteLocation[0] = 0;
     }
 
     if(pps->slice_segment_header_extension_present_flag)

@@ -119,8 +119,6 @@ void mfxSchedulerCore::Close(void)
             // wait for particular thread
             vm_thread_wait(&(m_pThreadCtx[i].threadHandle));
             vm_thread_close(&(m_pThreadCtx[i].threadHandle));
-
-            vm_cond_destroy(&(m_pThreadCtx[i].taskAdded));
         }
 
         delete[] m_pThreadCtx;
@@ -240,7 +238,7 @@ void mfxSchedulerCore::WakeUpThreads(const mfxU32 curThreadNum,
         // wake up the dedicated thread
         if ((curThreadNum) && (m_numHwTasks | m_numSwTasks))
         {
-            if (NULL != (thctx = GetThreadCtx(0))) vm_cond_signal(&thctx->taskAdded);
+            if (NULL != (thctx = GetThreadCtx(0))) thctx->taskAdded.Set();
         }
 
         // wake up other threads
@@ -249,7 +247,7 @@ void mfxSchedulerCore::WakeUpThreads(const mfxU32 curThreadNum,
             for (i = 1; i < m_param.numberOfThreads; i += 1)
             {
                 if ((i != curThreadNum) && (NULL != (thctx = GetThreadCtx(i)))) {
-                    vm_cond_signal(&thctx->taskAdded);
+                    thctx->taskAdded.Set();
                 }
             }
         }
@@ -261,7 +259,7 @@ void mfxSchedulerCore::WakeUpThreads(const mfxU32 curThreadNum,
 
         for (i = 0; i < m_param.numberOfThreads; i += 1)
         {
-            if (NULL != (thctx = GetThreadCtx(i))) vm_cond_signal(&thctx->taskAdded);
+            if (NULL != (thctx = GetThreadCtx(i))) thctx->taskAdded.Set();
         }
     }
 }
@@ -281,7 +279,7 @@ void mfxSchedulerCore::Wait(const mfxU32 curThreadNum)
         mfxU32 timeout = (curThreadNum)? MFX_THREAD_TIME_TO_WAIT: 1;
 
 
-        vm_cond_timedwait(&thctx->taskAdded, &m_guard, timeout);
+        thctx->taskAdded.Wait(timeout);
     }
 }
 

@@ -325,25 +325,6 @@ public:
         // call the overweighted version
         mfxRes = EncodeFrameCheck(ctrl, surface, bs, reordered_surface, pInternalParams, pEntryPoints);
         numEntryPoints = 1;
-
-        return mfxRes;
-    }
-    virtual
-    mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
-                               mfxFrameSurface1 *surface,
-                               mfxBitstream *bs,
-                               mfxFrameSurface1 **reordered_surface,
-                               mfxEncodeInternalParams *pInternalParams,
-                               MFX_ENTRY_POINT pEntryPoints[],
-                               mfxU32 &numEntryPoints,
-                               mfxExtVppAuxData * (&aux))
-    {
-        mfxStatus mfxRes;
-
-        // call the overweighted version
-        mfxRes = EncodeFrameCheck(ctrl, surface, bs, reordered_surface, pInternalParams, pEntryPoints, numEntryPoints);
-        aux = 0;
-
         return mfxRes;
     }
     virtual

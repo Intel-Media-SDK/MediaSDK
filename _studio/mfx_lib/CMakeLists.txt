@@ -131,6 +131,7 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/libmfx_core_vaapi.cpp
     ${prefix}/mfx_umc_alloc_wrapper.cpp
     ${prefix}/mfx_static_assert_structs.cpp
+    ${prefix}/mfx_mfe_adapter.cpp
   )
 endforeach()
 

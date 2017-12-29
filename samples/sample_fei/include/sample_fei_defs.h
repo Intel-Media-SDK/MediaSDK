@@ -89,6 +89,7 @@ inline mfxU16 FrameTypeToSliceType(mfxU8 frameType)
     }
 }
 
+#if MFX_VERSION >= 1023
 inline mfxU16 PicStructToFrameType(mfxU16 picstruct)
 {
     switch (picstruct & 0x0f)
@@ -112,6 +113,7 @@ inline mfxU16 PicStructToFrameTypeFieldBased(mfxU16 picstruct, mfxU16 is_interla
 {
     return mfxU16((!!(picstruct & MFX_PICSTRUCT_PROGRESSIVE) == is_interlaced) ? MFX_PICTYPE_UNKNOWN : (is_interlaced ? (parity ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD) : MFX_PICTYPE_FRAME));
 }
+#endif // MFX_VERSION >= 1023
 
 enum
 {
@@ -364,6 +366,9 @@ struct AppConfig
         , mbstatoutFile(NULL)
         , mbQpFile(NULL)
         , repackctrlFile(NULL)
+#if (MFX_VERSION >= 1025)
+        , repackstatFile(NULL)
+#endif
         , decodestreamoutFile(NULL)
         , weightsFile(NULL)
     {
@@ -385,9 +390,10 @@ struct AppConfig
     mfxU16 refDist; //number of frames to next I,P
     mfxU16 gopSize; //number of frames to next I
     mfxU8  QP;
+#if (MFX_VERSION >= 1024)
     mfxU16 RateControlMethod;
     mfxU16 TargetKbps;
-
+#endif
     mfxU16 numSlices;
     mfxU16 numRef;           // number of reference frames (DPB size)
     mfxU16 NumRefActiveP;    // maximal number of references for P frames
@@ -477,6 +483,9 @@ struct AppConfig
     msdk_char* mbstatoutFile;
     msdk_char* mbQpFile;
     msdk_char* repackctrlFile;
+#if (MFX_VERSION >= 1025)
+    msdk_char* repackstatFile;
+#endif
     msdk_char* decodestreamoutFile;
     msdk_char* weightsFile;
 

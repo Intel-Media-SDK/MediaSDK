@@ -47,7 +47,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "v4l2_util.h"
 #endif
 
+#if (MFX_VERSION >= 1024)
 #include "brc_routines.h"
+#endif
 
 msdk_tick time_get_tick(void);
 msdk_tick time_get_frequency(void);
@@ -62,6 +64,13 @@ enum MemType {
     SYSTEM_MEMORY = 0x00,
     D3D9_MEMORY   = 0x01,
     D3D11_MEMORY  = 0x02,
+};
+
+enum ExtBRCType {
+    EXTBRC_DEFAULT,
+    EXTBRC_OFF,
+    EXTBRC_ON,
+    EXTBRC_IMPLICIT
 };
 
 struct sInputParams
@@ -83,6 +92,9 @@ struct sInputParams
     mfxU16 nBRefType;
     mfxU16 nPRefType;
     mfxU16 nIdrInterval;
+    mfxU16 nNumRefActiveP;
+    mfxU16 nNumRefActiveBL0;
+    mfxU16 nNumRefActiveBL1;
     mfxU16 reserved[4];
 
     mfxU16 nQuality; // quality parameter for JPEG encoder
@@ -115,7 +127,8 @@ struct sInputParams
     mfxU16 nQPB;
 
     mfxU16 nGPB;
-    mfxU16 nExtBRC;
+    ExtBRCType nExtBRC;
+    mfxU16 nAdaptiveMaxFrameSize;
 
     mfxU16 WeightedPred;
     mfxU16 WeightedBiPred;
@@ -141,6 +154,11 @@ struct sInputParams
     mfxU32 nMaxFrameSize;
 
     mfxU16 LowDelayBRC;
+
+    mfxU16 IntRefType;
+    mfxU16 IntRefCycleSize;
+    mfxU16 IntRefQPDelta;
+    mfxU16 IntRefCycleDist;
 
     bool bUncut;
     bool shouldUseShiftedP010Enc;
@@ -249,7 +267,6 @@ protected:
     MemType m_memType;
     mfxU16 m_nMemBuffer;
     bool m_bExternalAlloc; // use memory allocator as external for Media SDK
-    bool m_bIsFieldWeaving;
 
     mfxFrameSurface1* m_pEncSurfaces; // frames array for encoder input (vpp output)
     mfxFrameSurface1* m_pVppSurfaces; // frames array for vpp input
@@ -273,7 +290,9 @@ protected:
     // Set up video signal information
     mfxExtVideoSignalInfo m_VideoSignalInfo;
 
+#if (MFX_VERSION >= 1024)
     mfxExtBRC           m_ExtBRC;
+#endif
 
     // external parameters for each component are stored in a vector
     std::vector<mfxExtBuffer*> m_VppExtParams;
@@ -292,6 +311,8 @@ protected:
     bool   m_bCutOutput;
     bool   m_bInsertIDR;
     bool   m_bTimeOutExceed;
+
+    bool   m_bIsFieldSplitting;
 
     mfxEncodeCtrl m_encCtrl;
 

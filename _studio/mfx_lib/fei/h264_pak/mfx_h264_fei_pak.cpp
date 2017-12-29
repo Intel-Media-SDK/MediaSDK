@@ -170,7 +170,9 @@ mfxStatus VideoPAK_PAK::RunFramePAK(mfxPAKInput *in, mfxPAKOutput *out)
 
     for (mfxU32 f = f_start; f <= fieldCount; ++f)
     {
+#if MFX_VERSION >= 1023
         PrepareSeiMessageBuffer(m_video, task, task.m_fid[f]);
+#endif // MFX_VERSION >= 1023
         sts = m_ddi->Execute(task.m_handleRaw.first, task, task.m_fid[f], m_sei);
         MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
     }
@@ -540,6 +542,7 @@ mfxU32 VideoPAK_PAK::GetPAKPayloadSize(
     return BufferSz;
 }
 
+#if MFX_VERSION >= 1023
 void VideoPAK_PAK::PrepareSeiMessageBuffer(
     MfxVideoParam const & video,
     DdiTask const & task,
@@ -615,6 +618,7 @@ void VideoPAK_PAK::PrepareSeiMessageBuffer(
 
     m_sei.SetSize(GET_SIZE_IN_BYTES(writer.GetNumBits()));
 }
+#endif //MFX_VERSION >= 1023
 
 mfxU16 VideoPAK_PAK::GetBufferPeriodPayloadIdx(
     const mfxPayload * const * payload,
@@ -713,12 +717,17 @@ mfxStatus VideoPAK_PAK::RunFramePAKCheck(
     //To record returned status that may contain warning status
     mfxStatus mfxSts = MFX_ERR_NONE;
 
+#if MFX_VERSION >= 1023
     // For now PAK doesn't have output extension buffers
     MFX_CHECK(!output->NumExtParam, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxStatus sts = CheckRuntimeExtBuffers(input, output, m_video, task);
+#else
+    mfxStatus sts = CheckRuntimeExtBuffers(output, output, m_video, task);
+#endif // MFX_VERSION >= 1023
     MFX_CHECK_STS(sts);
 
+#if MFX_VERSION >= 1023
     //Check whether input payload is supported or not
     MFX_CHECK(!CheckPAKPayloads(input->Payload, input->NumPayload), MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -728,6 +737,7 @@ mfxStatus VideoPAK_PAK::RunFramePAKCheck(
     //message payload of the first SEI NAL unit in the access unit
     mfxSts = ChangeBufferPeriodPayloadIndxIfNeed(input->Payload, input->NumPayload);
     MFX_CHECK(mfxSts >= MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
+#endif // MFX_VERSION >= 1023
 
     // For frame type detection
     PairU8 frame_type = PairU8(mfxU8(MFX_FRAMETYPE_UNKNOWN), mfxU8(MFX_FRAMETYPE_UNKNOWN));
@@ -752,8 +762,13 @@ mfxStatus VideoPAK_PAK::RunFramePAKCheck(
         MFX_CHECK(mvout && mbcodeout, MFX_ERR_INVALID_VIDEO_PARAM);
 
         // Frame type detection
+#if MFX_VERSION >= 1023
         mfxExtFeiPPS* extFeiPPSinRuntime = GetExtBufferFEI(input, idxToPickBuffer);
         mfxU8 type = extFeiPPSinRuntime->FrameType;
+#else
+        mfxExtFeiPPS* extFeiPPSinRuntime = GetExtBufferFEI(output, idxToPickBuffer);
+        mfxU8 type = extFeiPPSinRuntime->PictureType;
+#endif // MFX_VERSION >= 1023
 
         // MFX_FRAMETYPE_xI / P / B disallowed here
         MFX_CHECK(!(type & 0xff00), MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -820,16 +835,21 @@ mfxStatus VideoPAK_PAK::RunFramePAKCheck(
         }
         MFX_CHECK(task.m_idxRecon != NO_INDEX && task.m_midRec != MID_INVALID && i != m_rec.NumFrameActual, MFX_ERR_UNDEFINED_BEHAVIOR);
 
+#if MFX_VERSION >= 1023
         ConfigureTaskFEI(task, m_prevTask, m_video, input);
+#else
+        ConfigureTaskFEI(task, m_prevTask, m_video, input, output, m_frameOrder_frameNum);
+#endif // MFX_VERSION >= 1023
 
         // Change DPB
         m_recFrameOrder[task.m_idxRecon] = task.m_frameOrder;
 
-        sts = Change_DPB(task.m_dpb[0],          m_rec.mids, m_recFrameOrder);
-        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
-
-        sts = Change_DPB(task.m_dpb[1],          m_rec.mids, m_recFrameOrder);
-        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+        for (mfxU32 field = f_start; field <= fieldCount; ++field)
+        {
+            const mfxU32 & fieldParity = task.m_fid[field];
+            sts = Change_DPB(task.m_dpb[fieldParity], m_rec.mids, m_recFrameOrder);
+            MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+        }
 
         sts = Change_DPB(task.m_dpbPostEncoding, m_rec.mids, m_recFrameOrder);
         MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));

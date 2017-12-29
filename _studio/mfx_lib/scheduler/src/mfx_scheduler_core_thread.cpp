@@ -64,8 +64,6 @@ uint32_t mfxSchedulerCore::scheduler_thread_proc(void *pParam)
 
 void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 {
-    UMC::AutomaticMutex guard(m_guard);
-
     mfxTaskHandle previousTaskHandle = {};
     const uint32_t threadNum = pContext->threadNum;
 
@@ -78,12 +76,8 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
         mfxRes = GetTask(call, previousTaskHandle, threadNum);
         if (MFX_ERR_NONE == mfxRes)
         {
-            vm_mutex_unlock(&m_guard);
-            {
-                // perform asynchronous operation
-                call_pRoutine(call);
-            }
-            vm_mutex_lock(&m_guard);
+            // perform asynchronous operation
+            call_pRoutine(call);
 
             pContext->workTime += call.timeSpend;
             // save the previous task's handle

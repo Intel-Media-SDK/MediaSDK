@@ -440,6 +440,7 @@ public:
     }
 };
 
+#if MFX_VERSION >= 1023
 
 struct RefInfo
 {
@@ -552,5 +553,6 @@ struct RefInfo
         return sts;
     }
 };
+#endif // MFX_VERSION >= 1023
 
 #endif // __SAMPLE_FEI_ENC_TASK_POOL_H__

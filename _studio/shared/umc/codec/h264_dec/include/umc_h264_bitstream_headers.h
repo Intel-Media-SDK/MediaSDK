@@ -172,7 +172,7 @@ public:
 
     // Decoding picture's parameter set functions
     Status GetPictureParamSetPart1(H264PicParamSet *pps);
-    Status GetPictureParamSetPart2(H264PicParamSet *pps);
+    Status GetPictureParamSetPart2(H264PicParamSet *pps, H264SeqParamSet const*);
 
     // Decode NAL unit prefix
     Status GetNalUnitPrefix(H264NalExtension *pExt, uint32_t NALRef_idc);

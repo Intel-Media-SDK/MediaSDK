@@ -90,6 +90,9 @@ private:
     bool                                          m_bSingleFieldMode;
     mfxU32                                        m_firstFieldDone;
 
+#if MFX_VERSION < 1023
+    std::map<mfxU32, mfxU32>                      m_frameOrder_frameNum;
+#endif // MSDK_API < 1023
 };
 
 #endif

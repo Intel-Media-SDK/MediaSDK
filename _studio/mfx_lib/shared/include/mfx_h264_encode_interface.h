@@ -37,6 +37,9 @@
     #include "mfx_h264_encode_struct_vaapi.h"
 #endif
 
+#ifdef MFX_ENABLE_MFE
+#include "mfx_mfe_adapter.h"
+#endif
 
 namespace MfxHwH264Encode
 {
@@ -173,6 +176,9 @@ namespace MfxHwH264Encode
 
     DriverEncoder* CreatePlatformH264Encoder( VideoCORE* core ); 
 
+#if defined(MFX_ENABLE_MFE)
+    MFEVAAPIEncoder* CreatePlatformMFEEncoder( VideoCORE* core );
+#endif
 
 }; // namespace
 

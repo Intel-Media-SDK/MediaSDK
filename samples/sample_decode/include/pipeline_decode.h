@@ -61,10 +61,12 @@ enum eWorkMode {
   MODE_FILE_DUMP
 };
 
+#if MFX_VERSION >= 1022
 enum eDecoderPostProc {
   MODE_DECODER_POSTPROC_AUTO  = 0x1,
   MODE_DECODER_POSTPROC_FORCE = 0x2
 };
+#endif //MFX_VERSION >= 1022
 
 struct sInputParams
 {
@@ -82,7 +84,9 @@ struct sInputParams
     mfxU32  nWallH; //number of windows located in each column
     mfxU32  nWallMonitor; //monitor id, 0,1,.. etc
     bool    bWallNoTitle; //whether to show title for each window with fps value
+#if MFX_VERSION >= 1022
     mfxU16  nDecoderPostProcessing;
+#endif //MFX_VERSION >= 1022
 
     mfxU32  numViews; // number of views for Multi-View Codec
     mfxU32  nRotation; // rotation for Motion JPEG Codec
@@ -106,6 +110,9 @@ struct sInputParams
     bool    bRenderWin;
     mfxU32  nRenderWinX;
     mfxU32  nRenderWinY;
+#if (MFX_VERSION >= 1025)
+    bool    bErrorReport;
+#endif
 
     mfxI32  monitorType;
 #if defined(LIBVA_SUPPORT)
@@ -172,7 +179,21 @@ public:
     void SetMultiView();
     void SetExtBuffersFlag()       { m_bIsExtBuffers = true; }
     virtual void PrintInfo();
+    mfxU64 GetTotalBytesProcessed() { return totalBytesProcessed + m_mfxBS.DataOffset; }
 
+#if (MFX_VERSION >= 1025)
+    inline void PrintDecodeErrorReport(mfxExtDecodeErrorReport *pDecodeErrorReport)
+    {
+        if (pDecodeErrorReport)
+        {
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_SPS)
+                msdk_printf(MSDK_STRING("[Error] SPS Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_PPS)
+                msdk_printf(MSDK_STRING("[Error] PPS Error detected!\n"));
+        }
+    }
+#endif
 
 protected: // functions
     virtual mfxStatus CreateRenderingWindow(sInputParams *pParams);
@@ -217,6 +238,7 @@ protected: // variables
     CSmplYUVWriter          m_FileWriter;
     std::auto_ptr<CSmplBitstreamReader>  m_FileReader;
     mfxBitstream            m_mfxBS; // contains encoded data
+    mfxU64 totalBytesProcessed;
 
     MFXVideoSession         m_mfxSession;
     mfxIMPL                 m_impl;
@@ -228,8 +250,13 @@ protected: // variables
     std::auto_ptr<MFXPlugin> m_pPlugin;
     std::vector<mfxExtBuffer *> m_ExtBuffers;
     std::vector<mfxExtBuffer *> m_ExtBuffersMfxBS;
+#if MFX_VERSION >= 1022
     mfxExtDecVideoProcessing m_DecoderPostProcessing;
+#endif //MFX_VERSION >= 1022
 
+#if (MFX_VERSION >= 1025)
+    mfxExtDecodeErrorReport m_DecodeErrorReport;
+#endif
 
     GeneralAllocator*       m_pGeneralAllocator;
     mfxAllocatorParams*     m_pmfxAllocatorParams;

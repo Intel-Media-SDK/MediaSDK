@@ -41,6 +41,11 @@
 #include "va/va.h"
 #include <va/va_backend.h>
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+
+#else
+#endif
+
 #define MFX_CHECK_HDL(hdl) {if (!hdl) MFX_RETURN(MFX_ERR_INVALID_HANDLE);}
 
 typedef struct drm_i915_getparam {
@@ -310,8 +315,13 @@ VAAPIVideoCORE::VAAPIVideoCORE(
           , m_adapterNum(adapterNum)
           , m_bUseExtAllocForHWFrames(false)
           , m_HWType(MFX_HW_IVB)
+#if !defined(ANDROID)
           , m_bCmCopy(false)
           , m_bCmCopyAllowed(true)
+#else
+          , m_bCmCopy(false)
+          , m_bCmCopyAllowed(false)
+#endif
 {
 } // VAAPIVideoCORE::VAAPIVideoCORE(...)
 
@@ -605,9 +615,13 @@ VAAPIVideoCORE::CreateVA(
     }
 
     bool init_render_targets =
+#if defined(ANDROID)
+        true
+#else
         param->mfx.CodecId != MFX_CODEC_MPEG2 &&
         param->mfx.CodecId != MFX_CODEC_AVC   &&
         param->mfx.CodecId != MFX_CODEC_HEVC
+#endif
         ;
 
     VASurfaceID* RenderTargets = NULL;
@@ -659,6 +673,10 @@ VAAPIVideoCORE::ProcessRenderTargets(
     mfxFrameAllocResponse* response,
     mfxBaseWideFrameAllocator* pAlloc)
 {
+#if defined(ANDROID)
+    if (response->NumFrameActual > 128)
+        return MFX_ERR_UNSUPPORTED;
+#endif
 
     RegisterMids(response, request->Type, !m_bUseExtAllocForHWFrames, pAlloc);
     m_pcHWAlloc.pop();
@@ -1230,6 +1248,22 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
     {
         return (void*) &m_encode_caps;
     }
+#ifdef MFX_ENABLE_MFE
+    else if (MFXMFEDDIENCODER_SEARCH_GUID == guid)
+    {
+        if (!m_mfe.get())
+        {
+            m_mfe = (MFEVAAPIEncoder*)m_session->m_pOperatorCore->QueryGUID<ComPtrCore<MFEVAAPIEncoder> >(&VideoCORE::QueryCoreInterface, MFXMFEDDIENCODER_GUID);
+            if (m_mfe.get())
+                m_mfe.get()->AddRef();
+        }
+        return (void*)&m_mfe;
+    }
+    else if (MFXMFEDDIENCODER_GUID == guid)
+    {
+        return (void*)&m_mfe;
+    }
+#endif
     else if (MFXICORECM_GUID == guid)
     {
         CmDevice* pCmDevice = NULL;

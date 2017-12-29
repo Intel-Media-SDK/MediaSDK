@@ -41,6 +41,7 @@ my %build = (
     'toolchain'  => '',
     'target'     => 'BDW',
     'samples-dir'=> '',
+    'api'        => '',
     'api-dir'    => ''
 );
 
@@ -49,7 +50,7 @@ my @list_arch      = qw(intel64);
 my @list_config    = qw(release debug);
 my @list_trace     = qw(itt all);
 my @list_comp      = qw(gcc icc clang);
-my @list_target    = qw(UPSTREAM BDW BSW BXT BXTMIN);
+my @list_target    = qw(UPSTREAM BDW BSW BXT BXTMIN CFL);
 my @list_ipp       = qw(
   px a6 w7 t7 v8 s8 p8 g9
   mx m7 u8 n8 y8 e9
@@ -121,6 +122,7 @@ sub get_cmake_gen_cmd {
     }
 
     push @cmake_cmd_gen, "-DSAMPLES_DIR:STRING=$config{'samples-dir'}"  if $config{'samples-dir'};
+    push @cmake_cmd_gen, "-DAPI:STRING=$config{'api'}"                  if $config{'api'};
     push @cmake_cmd_gen, "-DAPI_DIR:STRING=$config{'api-dir'}"          if $config{'api-dir'};
 
     push @cmake_cmd_gen, '-DCMAKE_CONFIGURATION_TYPES:STRING="release;debug"';
@@ -178,6 +180,7 @@ sub usage {
     print "\t--no-warn-as-error  - disable Warning As Error\n";
     print "\t--prefix - set install prefix\n";
     print "\t--samples-dir - select directory root for samples to build from\n";
+    print "\t--api - specify target API version. Use <maj>.<minor> or master\n";
     print "\t--api-dir - select directory root for api build from\n";
     print "\n";
     print "Examples:\n";
@@ -241,6 +244,7 @@ GetOptions(
     '--prefix=s'         => \$build{'prefix'},
     '--cross=s'          => \$build{'toolchain'},
     '--samples-dir=s'    => \$build{'samples-dir'},
+    '--api=s'            => \$build{'api'},
     '--api-dir=s'        => \$build{'api-dir'},
 
     '--cmake=s' => \&_opt_cmake_handler,

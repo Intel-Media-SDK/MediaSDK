@@ -22,20 +22,17 @@
 #include "mfx_dispatcher_log.h"
 #include "mfx_load_dll.h"
 
+#include <assert.h>
+
 #include <string.h>
-#if defined(_WIN32) || defined(_WIN64)
-    #include <windows.h>
-    #pragma warning(disable:4355)
-#else
+    #include <dlfcn.h>
+    #include <iostream>
 
-#include <dlfcn.h>
-#include <iostream>
-
-#endif // defined(_WIN32) || defined(_WIN64)
 
 MFX_DISP_HANDLE::MFX_DISP_HANDLE(const mfxVersion requiredVersion) :
-    apiVersion(requiredVersion),
-    pluginFactory((mfxSession)this)
+    _mfxSession()
+    ,apiVersion(requiredVersion)
+    ,pluginFactory((mfxSession)this)
 {
     actualApiVersion.Version = 0;
     implType = MFX_LIB_SOFTWARE;
@@ -43,12 +40,10 @@ MFX_DISP_HANDLE::MFX_DISP_HANDLE(const mfxVersion requiredVersion) :
     loadStatus = MFX_ERR_NOT_FOUND;
     dispVersion.Major = MFX_DISPATCHER_VERSION_MAJOR;
     dispVersion.Minor = MFX_DISPATCHER_VERSION_MINOR;
-    session = (mfxSession) 0;
+    storageID = 0;
+    implInterface = MFX_IMPL_HARDWARE_ANY;
 
     hModule = (mfxModuleHandle) 0;
-
-    memset(callTable, 0, sizeof(callTable));
-    memset(callAudioTable, 0, sizeof(callAudioTable));
 
 } // MFX_DISP_HANDLE::MFX_DISP_HANDLE(const mfxVersion requiredVersion)
 
@@ -72,12 +67,8 @@ mfxStatus MFX_DISP_HANDLE::Close(void)
         loadStatus = MFX_ERR_NOT_FOUND;
         dispVersion.Major = MFX_DISPATCHER_VERSION_MAJOR;
         dispVersion.Minor = MFX_DISPATCHER_VERSION_MINOR;
-        session = (mfxSession) 0;
-
+        *static_cast<_mfxSession*>(this) = _mfxSession();
         hModule = (mfxModuleHandle) 0;
-
-        memset(callTable, 0, sizeof(callTable));
-        memset(callAudioTable, 0, sizeof(callAudioTable));
     }
 
     return mfxRes;
@@ -134,10 +125,12 @@ mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const msdk_disp_char *pPath, eMfxImpl
     this->implInterface = reqImplInterface;
 
     {
+        assert(hModule == (mfxModuleHandle)0);
         DISPATCHER_LOG_BLOCK(("invoking LoadLibrary(%S)\n", MSDK2WIDE(pPath)));
+
         // load the DLL into the memory
         hModule = MFX::mfx_dll_load(pPath);
-        
+
         if (hModule)
         {
             int i;
@@ -211,11 +204,7 @@ mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const msdk_disp_char *pPath, eMfxImpl
         }
         else
         {
-#if defined(_WIN32) || defined(_WIN64)
-            DISPATCHER_LOG_WRN((("can't find DLL: GetLastErr()=0x%x\n"), GetLastError()))
-#else
             DISPATCHER_LOG_WRN((("can't find DLL: dlerror() = \"%s\"\n"), dlerror()));
-#endif
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
     }
@@ -269,7 +258,7 @@ mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const msdk_disp_char *pPath, eMfxImpl
         else
         {
             mfxRes = MFXQueryVersion((mfxSession) this, &actualApiVersion);
-            
+
             if (MFX_ERR_NONE != mfxRes)
             {
                 DISPATCHER_LOG_ERROR((("MFXQueryVersion returned: %d, skiped this library\n"), mfxRes))
@@ -300,12 +289,12 @@ mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
     if (session)
     {
         /* check whether it is audio session or video */
-        int tableIndex = eMFXClose; 
+        int tableIndex = eMFXClose;
         mfxFunctionPointer pFunc;
-        if (impl & MFX_IMPL_AUDIO) 
-        { 
+        if (impl & MFX_IMPL_AUDIO)
+        {
             pFunc = callAudioTable[tableIndex];
-        } 
+        }
         else
         {
             pFunc = callTable[tableIndex];

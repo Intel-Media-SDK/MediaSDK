@@ -47,7 +47,8 @@
 //-----------------------------------------------------------------------------
 
 // all check must be done before call
-mfxStatus GetExternalFramesCount(mfxVideoParam* pParam,
+mfxStatus GetExternalFramesCount(VideoCORE* core,
+                                 mfxVideoParam* pParam,
                                  mfxU32* pListID,
                                  mfxU32 len,
                                  mfxU16 framesCountMin[2],
@@ -98,6 +99,12 @@ mfxStatus GetExternalFramesCount(mfxVideoParam* pParam,
                 break;
             }
 
+#if (MFX_VERSION >= 1025)
+            case (mfxU32)MFX_EXTBUFF_VPP_COLOR_CONVERSION:
+            {
+                break;
+            }
+#endif
 
             case (mfxU32)MFX_EXTBUFF_VPP_MIRRORING:
             {
@@ -207,6 +214,8 @@ mfxStatus GetExternalFramesCount(mfxVideoParam* pParam,
                         }
                         else
                         {
+                            if ((core->GetVAType() == MFX_HW_D3D9) && (extComp->NumInputStream > MAX_STREAMS_PER_TILE))
+                                return MFX_ERR_INVALID_VIDEO_PARAM;
                             inputFramesCount[filterIndex] = extComp->NumInputStream;
                         }
 

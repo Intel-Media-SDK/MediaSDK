@@ -22,11 +22,6 @@
 #include "mfxsession.h"
 #include "mfxvstructures.h"
 
-#define MFX_VERSION_MAJOR 1
-#define MFX_VERSION_MINOR 24
-
-#define MFX_VERSION (MFX_VERSION_MAJOR * 1000 + MFX_VERSION_MINOR)
-
 #ifdef __cplusplus
 extern "C"
 {

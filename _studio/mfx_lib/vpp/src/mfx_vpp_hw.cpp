@@ -491,6 +491,8 @@ mfxStatus ResMngr::Init(
 
     m_fieldWeaving = config.m_bWeave;
 
+    m_multiBlt = config.m_multiBlt;
+
     m_core                 = core;
 
     return MFX_ERR_NONE;
@@ -745,6 +747,8 @@ mfxStatus ResMngr::ReleaseSubResource(bool bAll)
                 mfxStatus sts = m_core->DecreaseReference( &(extSrf.pSurf->Data) );
                 MFX_CHECK_STS(sts);
             }
+            m_subTaskQueue[i]->subTasks.shrink_to_fit();
+            m_subTaskQueue[i]->subTasks.clear();
             taskToRemove.push_back( m_subTaskQueue[i] );
         }
     }
@@ -784,6 +788,7 @@ ReleaseResource* ResMngr::CreateSubResource(void)
     ReleaseResource* subRes = new ReleaseResource;
     subRes->refCount = 0;
     subRes->surfaceListForRelease.clear();
+    subRes->subTasks.clear();
 
     subRes->refCount = m_outputIndexCountPerCycle;
 
@@ -808,6 +813,7 @@ ReleaseResource* ResMngr::CreateSubResourceForMode30i60p(void)
     ReleaseResource* subRes = new ReleaseResource;
     subRes->refCount = 0;
     subRes->surfaceListForRelease.clear();
+    subRes->subTasks.clear();
 
 
     subRes->refCount = m_outputIndexCountPerCycle;
@@ -937,7 +943,6 @@ mfxStatus ResMngr::FillTask(
     mfxFrameSurface1 *pOutSurface)
 {
     pInSurface;
-
     mfxU32 refIndx = 0;
 
     // bkwd
@@ -1008,6 +1013,10 @@ mfxStatus ResMngr::FillTask(
             }
         }
         pTask->m_refList.push_back(fwdSurf);
+        if (m_pSubResource && refIndx && m_multiBlt)
+        {
+            m_pSubResource->subTasks.push_back(pTask->taskIndex + refIndx);
+        }
         actualNumber++;
     }
 
@@ -1050,6 +1059,32 @@ mfxStatus ResMngr::CompleteTask(DdiTask *pTask)
 
 } // mfxStatus ResMngr::CompleteTask(DdiTask *pTask)
 
+mfxU32 ResMngr::GetSubTask(DdiTask *pTask)
+{
+    if (pTask && pTask->pSubResource && pTask->pSubResource->subTasks.size())
+        return pTask->pSubResource->subTasks[0];
+    else
+        return NO_INDEX;
+}
+
+mfxStatus ResMngr::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx)
+{
+    if (pTask && pTask->pSubResource)
+    {
+        std::vector<mfxU32>::iterator sub_it = find(pTask->pSubResource->subTasks.begin(), pTask->pSubResource->subTasks.end(), subtaskIdx);
+        if (sub_it != pTask->pSubResource->subTasks.end())
+        {
+            pTask->pSubResource->subTasks.erase(sub_it);
+            return MFX_ERR_NONE;
+        }
+    }
+    return MFX_ERR_NOT_FOUND;
+}
+
+bool ResMngr::IsMultiBlt()
+{
+    return m_multiBlt;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////
 // TaskManager
@@ -1317,6 +1352,8 @@ mfxStatus TaskManager::FillTask(
     }
 
     pTask->taskIndex    = m_taskIndex++;
+    if ((m_taskIndex + pTask->fwdRefCount) >= NO_INDEX)
+        m_taskIndex = 1;
 
     pTask->input.timeStamp     = CURRENT_TIME_STAMP + m_actualNumber * FRAME_INTERVAL;
     pTask->input.endTimeStamp  = CURRENT_TIME_STAMP + (m_actualNumber + 1) * FRAME_INTERVAL;
@@ -1340,6 +1377,9 @@ mfxStatus TaskManager::FillTask(
             pTask,
             pInSurface,
             pOutSurface);
+        if ((COMPOSITE & m_extMode) && m_resMngr.IsMultiBlt())
+            m_taskIndex += pTask->fwdRefCount;
+
     }
     else // simple mode
     {
@@ -1416,6 +1456,8 @@ void TaskManager::UpdatePTS_Mode30i60p(
 
 } // void TaskManager::UpdatePTS_Mode30i60p(...)
 
+mfxU32 TaskManager::GetSubTask(DdiTask *pTask) { return m_resMngr.GetSubTask(pTask); }
+mfxStatus TaskManager::DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx) { return m_resMngr.DeleteSubTask(pTask, subtaskIdx); }
 
 void TaskManager::UpdatePTS_SimpleMode(
     mfxFrameSurface1 *input,
@@ -1494,6 +1536,9 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
 ,m_bMultiView(false)
 // cm devices
 ,m_pCmCopy(NULL)
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+,m_SCD()
+#endif
 ,m_pCmDevice(NULL)
 ,m_pCmProgram(NULL)
 ,m_pCmKernel(NULL)
@@ -1507,6 +1552,7 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
     m_config.m_surfCount[VPP_IN]   = 1;
     m_config.m_surfCount[VPP_OUT]  = 1;
     m_config.m_IOPattern = 0;
+    m_config.m_multiBlt = false;
 
     MemSetZero4mfxExecuteParams(&m_executeParams);
     memset(&m_params, 0, sizeof(mfxVideoParam));
@@ -1578,7 +1624,9 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufComp);
             MFX_CHECK_NULL_PTR1(bufComp->InputStream);
             bufComp->NumInputStream = static_cast<mfxU16>(m_executeParams.dstRects.size());
+#if MFX_VERSION > 1023
             bufComp->NumTiles = static_cast<mfxU16>(m_executeParams.iTilesNum4Comp);
+#endif
             for (size_t k = 0; k < m_executeParams.dstRects.size(); k++)
             {
                 MFX_CHECK_NULL_PTR1(bufComp->InputStream);
@@ -1586,7 +1634,9 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
                 bufComp->InputStream[k].DstY = m_executeParams.dstRects[k].DstY;
                 bufComp->InputStream[k].DstW = m_executeParams.dstRects[k].DstW;
                 bufComp->InputStream[k].DstH = m_executeParams.dstRects[k].DstH;
+#if MFX_VERSION > 1023
                 bufComp->InputStream[k].TileId = (mfxU16)m_executeParams.dstRects[k].TileId;
+#endif
                 bufComp->InputStream[k].GlobalAlpha       = m_executeParams.dstRects[k].GlobalAlpha;
                 bufComp->InputStream[k].GlobalAlphaEnable = m_executeParams.dstRects[k].GlobalAlphaEnable;
                 bufComp->InputStream[k].LumaKeyEnable = m_executeParams.dstRects[k].LumaKeyEnable;
@@ -1645,6 +1695,14 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufSc);
             bufSc->ScalingMode = m_executeParams.scalingMode;
         }
+#if (MFX_VERSION >= 1025)
+        else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
+        {
+            mfxExtColorConversion *bufSc = reinterpret_cast<mfxExtColorConversion *>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufSc);
+            bufSc->ChromaSiting = m_executeParams.chromaSiting;
+        }
+#endif
         else if (MFX_EXTBUFF_VPP_MIRRORING == bufferId)
         {
             mfxExtVPPMirroring *bufMir = reinterpret_cast<mfxExtVPPMirroring *>(par->ExtParam[i]);
@@ -1890,6 +1948,17 @@ mfxStatus  VideoVPPHW::Init(
         }
     }
 
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+    if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)
+    {
+        CmDevice* pCmDevice = QueryCoreInterface<CmDevice>(m_pCore, MFXICORECM_GUID);
+
+        sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice);
+        MFX_CHECK_STS(sts);
+
+        m_SCD.SetGoPSize(Immediate_GoP);
+    }
+#endif
 
     if (m_executeParams.mirroring && !m_pCmCopy)
     {
@@ -2172,6 +2241,9 @@ mfxStatus VideoVPPHW::Close()
     m_workloadMode = VPP_SYNC_WORKLOAD;
 
 
+#if defined (MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+    m_SCD.Close();
+#endif
 
     // CM device
     if(m_pCmDevice) {
@@ -3041,6 +3113,156 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     sts = PreWorkInputSurface(surfQueue);
     MFX_CHECK_STS(sts);
 
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+    /* In MFX_DEINTERLACING_ADVANCED_SCD (also called ADI_SCD) the current field
+     * uses information from previous field and next field (if it is
+     * present in current frame) in ADI mode.
+     * BOB is used when previous or next field can not be used
+     *   1. To deinterlace first frame
+     *   2. When scene change occur
+     *   3. To deinterlace last frame for 30i->60p mode
+     */
+    if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)
+    {
+        BOOL analysisReady = false;
+
+        /* Feed scene change detector with input rame */
+        mfxFrameSurface1 * inFrame = surfQueue[pTask->bkwdRefCount].pSurf;
+
+        MFX_CHECK_NULL_PTR1(inFrame);
+
+        mfxU32 scene_change = 0;
+        mfxU32 sc_in_first_field = 0;
+        mfxU32 sc_in_second_field = 0;
+        mfxU32  sc_detected = 0;
+        BOOL is30i60pConversion = 0;
+        mfxU32 LastSceneInframe = 0;
+        mfxU32 sc_shot_in_second_field = 0;
+
+        {
+            mfxHDL frameHandle;
+            mfxFrameSurface1 frameSurface;
+            memset(&frameSurface, 0, sizeof(mfxFrameSurface1));
+            frameSurface.Info = inFrame->Info;
+
+            if (m_executeParams.bDeinterlace30i60p)
+            {
+                is30i60pConversion = 1;
+            }
+
+            if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode)
+            {
+                sts = m_pCore->GetFrameHDL(m_internalVidSurf[VPP_IN].mids[surfQueue[pTask->bkwdRefCount].resIdx], &frameHandle);
+                MFX_CHECK_STS(sts);
+            }
+            else
+            {
+                if(m_IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY)
+                {
+                    MFX_SAFE_CALL(m_pCore->GetFrameHDL(surfQueue[pTask->bkwdRefCount].pSurf->Data.MemId, (mfxHDL *)&frameHandle));
+                }
+                else
+                {
+                    MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surfQueue[pTask->bkwdRefCount].pSurf->Data.MemId, (mfxHDL *)&frameHandle));
+                }
+            }
+            frameSurface.Data.MemId = frameHandle;
+
+            sts = m_SCD.MapFrame(&frameSurface);
+            MFX_CHECK_STS(sts);
+
+            // Set input frame parity in SCD
+            if(frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF)
+            {
+                m_SCD.SetParityTFF();
+            }
+            else if (frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)
+            {
+                m_SCD.SetParityBFF();
+            }
+
+            // Check for scene change
+            // Do it only when new input frame are fed to deinterlacer.
+            // For 30i->60p, this happens every odd frames as:
+            // m_frame_num = 0: input0 -> BOB -> ouput0 but we need to feed SCD engine with first reference frame
+            // m_frame_num = 1: input1 + reference input 0 -> ADI -> output1
+            // m_frame_num = 2: input1 + referemce input 0 -> ADI -> output2 (no need to check as same input is used)
+            // m_frame_num = 3: input2 + reference input 1 -> ADI -> output3
+
+            if (is30i60pConversion == 0 || (m_frame_num % 2) == 1 || m_frame_num == 0)
+            {
+                // SCD detects scene change for first field to be display.
+                // for 30i->60p, check happend on odd output frame 2N +1
+                // input fiels to SCD detection engine are field 2N + 2 and 2N + 3
+
+                // Decision on first field is done for field 2N + 1
+                analysisReady = m_SCD.ProcessField();
+                sc_in_first_field = m_SCD.Get_frame_shot_Decision() + m_SCD.Get_frame_last_in_scene(); //takes care of bad parity info
+                LastSceneInframe += m_SCD.Get_frame_last_in_scene();
+
+                // Decision on second field is done for field 2N + 2
+                analysisReady = m_SCD.ProcessField();
+                sc_in_second_field = m_SCD.Get_frame_shot_Decision() + m_SCD.Get_frame_last_in_scene(); //Dima
+                LastSceneInframe += m_SCD.Get_frame_last_in_scene();
+                sc_shot_in_second_field = m_SCD.Get_frame_shot_Decision(); // 30i->60p will display new field in 2 frames
+
+                sc_detected = sc_in_first_field + sc_in_second_field;
+                scene_change += sc_detected;
+
+                /* Check next state depending on value of previous
+                 * m_scene_change and detected scene change.
+                 * Typically, use BOB for last field before scene change and
+                 * first field of a new scene.
+                 * For 30i->30p: use BOB + first field of input frame to compute
+                 * output. For 30i->60p: use BOB + field location when scene
+                 * change occurs for the first time. Use BOB and first field
+                 * only for reference when more scene change are detected to
+                 * avoid out of frame order.
+                 */
+                switch (m_scene_change) // previous status
+                {
+                    case NO_SCENE_CHANGE:
+                        if (scene_change)
+                            m_scene_change = SCENE_CHANGE;
+                        break;
+                    case SCENE_CHANGE:
+                        if (scene_change)
+                            m_scene_change = MORE_SCENE_CHANGE_DETECTED;
+                        else
+                            m_scene_change = NO_SCENE_CHANGE;
+                        break;
+                    case MORE_SCENE_CHANGE_DETECTED:
+                        if (scene_change)
+                            m_scene_change = MORE_SCENE_CHANGE_DETECTED;
+                        else
+                            m_scene_change = NO_SCENE_CHANGE;
+                        break;
+                    default:
+                        break;
+                } //end switch
+
+            } // end (is30i60pConversion == 0 || m_frame_num % 2 == 1)
+
+        }
+
+        // set up m_executeParams.scene for vaapi interface;
+        switch (m_scene_change)
+        {
+            case NO_SCENE_CHANGE:
+                m_executeParams.scene = VPP_NO_SCENE_CHANGE;
+                break;
+            case SCENE_CHANGE:
+                m_executeParams.scene = VPP_SCENE_NEW;
+                break;
+            case MORE_SCENE_CHANGE_DETECTED:
+                m_executeParams.scene = VPP_MORE_SCENE_CHANGE_DETECTED;
+                break;
+            default:
+                break;
+        } //end switch
+    }  // if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)
+
+#endif
 
     m_executeParams.refCount     = numSamples;
     m_executeParams.bkwdRefCount = pTask->bkwdRefCount;
@@ -3116,8 +3338,20 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     MfxHwVideoProcessing::mfxExecuteParams  execParams = m_executeParams;
     sts = MergeRuntimeParams(pTask, &execParams);
     MFX_CHECK_STS(sts);
-
-    sts = (*m_ddi)->Execute(&execParams);
+    if (execParams.bComposite &&
+        (MFX_HW_D3D11 == m_pCore->GetVAType() && execParams.refCount > MAX_STREAMS_PER_TILE))
+    {
+        mfxU32 NumExecute = execParams.refCount;
+        for (mfxU32 execIdx = 0; execIdx < NumExecute; execIdx++)
+        {
+            execParams.execIdx = execIdx;
+            sts = (*m_ddi)->Execute(&execParams);
+            if (sts != MFX_ERR_NONE)
+                break;
+        }
+    }
+    else
+        sts = (*m_ddi)->Execute(&execParams);
     if (sts != MFX_ERR_NONE)
     {
         pTask->SetFree(true);
@@ -3178,8 +3412,21 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
 
     mfxU32 currentTaskIdx = pTask->taskIndex;
 
-    if (! pTask->skipQueryStatus && ! pHwVpp->m_executeParams.mirroring) {
-        sts = (*pHwVpp->m_ddi)->QueryTaskStatus(currentTaskIdx);
+    if (!pTask->skipQueryStatus && !pHwVpp->m_executeParams.mirroring) {
+        mfxU32 currSubTaskIdx = pHwVpp->m_taskMngr.GetSubTask(pTask);
+        while (currSubTaskIdx != NO_INDEX)
+        {
+            sts = (*pHwVpp->m_ddi)->QueryTaskStatus(currSubTaskIdx);
+            if (sts == MFX_TASK_DONE || sts == MFX_ERR_NONE)
+            {
+                pHwVpp->m_taskMngr.DeleteSubTask(pTask, currSubTaskIdx);
+                currSubTaskIdx = pHwVpp->m_taskMngr.GetSubTask(pTask);
+            }
+            else
+                currSubTaskIdx = NO_INDEX;
+        }
+        if (sts == MFX_TASK_DONE || sts == MFX_ERR_NONE)
+            sts = (*pHwVpp->m_ddi)->QueryTaskStatus(currentTaskIdx);
         if (sts == MFX_ERR_DEVICE_FAILED ||
             sts == MFX_ERR_GPU_HANG)
         {
@@ -3272,6 +3519,9 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             mfxExtVPPDeinterlacing* extDI = (mfxExtVPPDeinterlacing*) data;
 
             if (extDI->Mode != MFX_DEINTERLACING_ADVANCED &&
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+                extDI->Mode != MFX_DEINTERLACING_ADVANCED_SCD &&
+#endif
                 extDI->Mode != MFX_DEINTERLACING_ADVANCED_NOREF &&
                 extDI->Mode != MFX_DEINTERLACING_BOB &&
                 extDI->Mode != MFX_DEINTERLACING_FIELD_WEAVING)
@@ -3322,9 +3572,15 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         {
             mfxExtVPPComposite* extComp = (mfxExtVPPComposite*)data;
             MFX_CHECK_NULL_PTR1(extComp);
-            if (MFX_HW_D3D9 == core->GetVAType() && extComp->NumInputStream) // AlphaBlending & LumaKey filters are not supported at first sub-stream on DX9
+            if (extComp->NumInputStream > MAX_NUM_OF_VPP_COMPOSITE_STREAMS)
+                sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+            if (MFX_HW_D3D9 == core->GetVAType() && extComp->NumInputStream)
             {
-                if (extComp->InputStream[0].GlobalAlphaEnable || extComp->InputStream[0].LumaKeyEnable || extComp->InputStream[0].PixelAlphaEnable)
+                // AlphaBlending & LumaKey filters are not supported at first sub-stream on DX9, DX9 can't process more than 8 channels
+                if (extComp->InputStream[0].GlobalAlphaEnable ||
+                    extComp->InputStream[0].LumaKeyEnable ||
+                    extComp->InputStream[0].PixelAlphaEnable ||
+                    (extComp->NumInputStream > MAX_STREAMS_PER_TILE))
                 {
                     sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
                 }
@@ -3367,6 +3623,12 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
         mfxU32  len   = (mfxU32)pipelineList.size();
         mfxU32* pList = (len > 0) ? (mfxU32*)&pipelineList[0] : NULL;
+
+        // Input has to be interlace
+        if (!(par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_TFF) && !(par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_BFF))
+        {
+            sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+        }
 
         if (!IsFilterFound(pList, len, MFX_EXTBUFF_VPP_FIELD_SPLITTING) || // FIELD_SPLITTING filter must be there
             (IsFilterFound(pList, len, MFX_EXTBUFF_VPP_RESIZE)                &&
@@ -3461,6 +3723,9 @@ mfxI32 GetDeinterlaceMode( const mfxVideoParam& videoParam, const mfxVppCaps& ca
         {
             mfxExtVPPDeinterlacing* extDI = (mfxExtVPPDeinterlacing*) videoParam.ExtParam[i];
             if (extDI->Mode != MFX_DEINTERLACING_ADVANCED &&
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+                extDI->Mode != MFX_DEINTERLACING_ADVANCED_SCD &&
+#endif
                 extDI->Mode != MFX_DEINTERLACING_ADVANCED_NOREF &&
                 extDI->Mode != MFX_DEINTERLACING_BOB &&
                 extDI->Mode != MFX_DEINTERLACING_FIELD_WEAVING)
@@ -3470,6 +3735,10 @@ mfxI32 GetDeinterlaceMode( const mfxVideoParam& videoParam, const mfxVppCaps& ca
             /* To check if driver support desired DI mode*/
             if ((MFX_DEINTERLACING_ADVANCED == extDI->Mode) && (caps.uAdvancedDI) )
                 deinterlacingMode = extDI->Mode;
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+            if ((MFX_DEINTERLACING_ADVANCED_SCD == extDI->Mode) && (caps.uAdvancedDI) )
+                deinterlacingMode = extDI->Mode;
+#endif
             if ((MFX_DEINTERLACING_ADVANCED_NOREF == extDI->Mode) && (caps.uAdvancedDI) )
                 deinterlacingMode = extDI->Mode;
 
@@ -3558,16 +3827,19 @@ template <class T> void add_unique_fragments(const cRect<T> &r, std::vector< cRe
 
     while(!stack.empty()) {
         cRect<T> &cr = stack.back();
-        const cRect<T> &cf = fragments[cr.m_frag_lvl];
 
         if(cr.m_frag_lvl == frag_cnt) {
             stack.pop_back();
             fragments.push_back(cr);
-        } else if(cf.overlap(cr)) {
-            stack.pop_back();
-            fragment(cr, cf, stack);
         } else {
-            cr.m_frag_lvl++;
+            const cRect<T> &cf = fragments[cr.m_frag_lvl];
+            if (cf.overlap(cr)) {
+                stack.pop_back();
+                fragment(cr, cf, stack);
+            }
+            else {
+                cr.m_frag_lvl++;
+            }
         }
     }
 }
@@ -3680,6 +3952,9 @@ mfxStatus ConfigureExecuteParams(
                     return MFX_ERR_UNKNOWN;
                 }
                 if(MFX_DEINTERLACING_ADVANCED     == executeParams.iDeinterlacingAlgorithm
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+                || MFX_DEINTERLACING_ADVANCED_SCD == executeParams.iDeinterlacingAlgorithm
+#endif
                 )
                 {
                     // use motion adaptive ADI with reference frame (quality)
@@ -3760,6 +4035,9 @@ mfxStatus ConfigureExecuteParams(
 
                 config.m_bMode30i60pEnable = true;
                 if(MFX_DEINTERLACING_ADVANCED     == executeParams.iDeinterlacingAlgorithm
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+                || MFX_DEINTERLACING_ADVANCED_SCD == executeParams.iDeinterlacingAlgorithm
+#endif
                 )
                 {
                     // use motion adaptive ADI with reference frame (quality)
@@ -3874,6 +4152,45 @@ mfxStatus ConfigureExecuteParams(
 
                 break;
             }
+#if (MFX_VERSION >= 1025)
+            case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
+            {
+                if (caps.uChromaSiting )
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_COLOR_CONVERSION)
+                        {
+                            mfxExtColorConversion *extCC = (mfxExtColorConversion*)videoParam.ExtParam[i];
+
+                            switch (extCC->ChromaSiting)
+                            {
+                            case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_TOP:
+                            case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_CENTER:
+                            case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_BOTTOM:
+                            case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_CENTER:
+                            case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_TOP:
+                            case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_BOTTOM:
+                            case MFX_CHROMA_SITING_UNKNOWN:
+                                // valid values
+                                break;
+                            default:
+                                //bad combination of flags
+                                return MFX_ERR_INVALID_VIDEO_PARAM;
+                            }
+
+                            executeParams.chromaSiting = extCC->ChromaSiting;
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+
+                break;
+            }
+#endif // #ifndef MFX_FUTURE_FEATURE_DISABLE
             case MFX_EXTBUFF_VPP_MIRRORING:
             {
                 if (caps.uMirroring)
@@ -4066,7 +4383,9 @@ mfxStatus ConfigureExecuteParams(
                             executeParams.dstRects.clear();
                             executeParams.dstRects.resize(StreamCount);
                         }
+#if MFX_VERSION > 1023
                         executeParams.iTilesNum4Comp = extComp->NumTiles;
+#endif
 
                         for (mfxU32 cnt = 0; cnt < StreamCount; ++cnt)
                         {
@@ -4075,7 +4394,9 @@ mfxStatus ConfigureExecuteParams(
                             rec.DstY = extComp->InputStream[cnt].DstY;
                             rec.DstW = extComp->InputStream[cnt].DstW;
                             rec.DstH = extComp->InputStream[cnt].DstH;
+#if MFX_VERSION > 1023
                             rec.TileId = extComp->InputStream[cnt].TileId;
+#endif
                             if ((videoParam.vpp.Out.Width < (rec.DstX + rec.DstW)) || (videoParam.vpp.Out.Height < (rec.DstY + rec.DstH)))
                                 return MFX_ERR_INVALID_VIDEO_PARAM; // sub-stream is out of range
                             if (extComp->InputStream[cnt].GlobalAlphaEnable != 0)
@@ -4129,6 +4450,8 @@ mfxStatus ConfigureExecuteParams(
                 config.m_extConfig.customRateData.fwdRefCount  = StreamCount-1; // count only secondary streams
                 config.m_extConfig.customRateData.inputFramesOrFieldPerCycle= StreamCount;
                 config.m_extConfig.customRateData.outputIndexCountPerCycle  = 1;
+
+                config.m_multiBlt = false; // not applicable for Linux
 
                 executeParams.bComposite = true;
                 executeParams.bBackgroundRequired = true; /* by default background required */

@@ -185,7 +185,8 @@ public:
     // reorder slices and set maxCUAddr
     void EliminateASO();
 
-    void CheckSlices();
+    // Remove corrupted slices
+    void EliminateErrors();
 
     H265DecoderFrameInfo * GetNextAU() const {return m_nextAU;}
     H265DecoderFrameInfo * GetPrevAU() const {return m_prevAU;}

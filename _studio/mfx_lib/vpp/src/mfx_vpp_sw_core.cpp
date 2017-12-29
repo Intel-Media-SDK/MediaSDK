@@ -184,10 +184,10 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     if (par->Protected)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    sts = CheckFrameInfo( &(par->vpp.In), VPP_IN );
+    sts = CheckFrameInfo( &(par->vpp.In), VPP_IN, m_core->GetHWType());
     MFX_CHECK_STS( sts );
 
-    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT );
+    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT, m_core->GetHWType());
     MFX_CHECK_STS(sts);
 
     PicStructMode picStructMode = GetPicStructMode(par->vpp.In.PicStruct, par->vpp.Out.PicStruct);
@@ -345,14 +345,13 @@ mfxStatus VideoVPPBase::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *ou
 mfxStatus VideoVPPBase::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
     mfxStatus mfxSts;
-    core;
 
     MFX_CHECK_NULL_PTR2(par, request);
 
-    mfxSts = CheckFrameInfo( &(par->vpp.In), VPP_IN);
+    mfxSts = CheckFrameInfo( &(par->vpp.In), VPP_IN, core->GetHWType());
     MFX_CHECK_STS( mfxSts );
 
-    mfxSts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT);
+    mfxSts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT, core->GetHWType());
     MFX_CHECK_STS( mfxSts );
 
     // make sense?
@@ -387,7 +386,7 @@ mfxStatus VideoVPPBase::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFram
 
     mfxU16 framesCountMin[2];
     mfxU16 framesCountSuggested[2];
-    mfxSts = GetExternalFramesCount(par, &pipelineList[0], (mfxU32)pipelineList.size(), framesCountMin, framesCountSuggested);
+    mfxSts = GetExternalFramesCount(core, par, &pipelineList[0], (mfxU32)pipelineList.size(), framesCountMin, framesCountSuggested);
     MFX_CHECK_STS( mfxSts );
 
     request[VPP_IN].NumFrameMin  = framesCountMin[VPP_IN];
@@ -496,6 +495,9 @@ mfxStatus VideoVPPBase::GetVideoParam(mfxVideoParam *par)
                     case MFX_EXTBUFF_VPP_DI_30i60p:
                     case MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
                     case MFX_EXTBUFF_VPP_MIRRORING:
+#if (MFX_VERSION >= 1025)
+                    case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
+#endif
                     {
                         if(numUsedFilters + 1 > pVPPHint->NumAlg)
                             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -1098,10 +1100,10 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
 
     VPP_CHECK_NOT_INITIALIZED;
 
-    sts = CheckFrameInfo( &(par->vpp.In),  VPP_IN );
+    sts = CheckFrameInfo( &(par->vpp.In),  VPP_IN, m_core->GetHWType());
     MFX_CHECK_STS( sts );
 
-    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT );
+    sts = CheckFrameInfo( &(par->vpp.Out), VPP_OUT, m_core->GetHWType());
     MFX_CHECK_STS(sts);
 
     //-----------------------------------------------------
@@ -1332,6 +1334,8 @@ mfxStatus VideoVPP_HW::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *out
     mfxStatus internalSts = m_pHWVPP.get()->VppFrameCheck( in, out, aux, pEntryPoints, numEntryPoints);
 
     bool isInverseTelecinedEnabled = false;
+    const DdiTask* pTask = (DdiTask*)pEntryPoints[0].pParam ;
+
     isInverseTelecinedEnabled = IsFilterFound(&m_pipelineList[0], (mfxU32)m_pipelineList.size(), MFX_EXTBUFF_VPP_ITC);
 
     if (MFX_ERR_MORE_DATA == internalSts && true == isInverseTelecinedEnabled)
@@ -1341,14 +1345,14 @@ mfxStatus VideoVPP_HW::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *out
 
     if( out && (MFX_ERR_NONE == internalSts || MFX_ERR_MORE_SURFACE == internalSts) )
     {
-        sts = PassThrough( NULL != in ? &(in->Info) : NULL, &(out->Info));
+        sts = PassThrough(NULL != in ? &(in->Info) : NULL, &(out->Info), pTask->taskIndex);
         //MFX_CHECK_STS( sts );
     }
 
     return (MFX_ERR_NONE == internalSts) ? sts : internalSts;
 }
 
-mfxStatus VideoVPP_HW::PassThrough(mfxFrameInfo* In, mfxFrameInfo* Out)
+mfxStatus VideoVPP_HW::PassThrough(mfxFrameInfo* In, mfxFrameInfo* Out, mfxU32 taskIndex)
 {
     if( In ) // no delay
     {
@@ -1356,7 +1360,7 @@ mfxStatus VideoVPP_HW::PassThrough(mfxFrameInfo* In, mfxFrameInfo* Out)
 
         Out->AspectRatioH = In->AspectRatioH;
         Out->AspectRatioW = In->AspectRatioW;
-        Out->PicStruct    = UpdatePicStruct( In->PicStruct, Out->PicStruct, m_bDynamicDeinterlace, sts );
+        Out->PicStruct    = UpdatePicStruct( In->PicStruct, Out->PicStruct, m_bDynamicDeinterlace, sts, taskIndex );
 
         m_errPrtctState.Deffered.AspectRatioH = Out->AspectRatioH;
         m_errPrtctState.Deffered.AspectRatioW = Out->AspectRatioW;

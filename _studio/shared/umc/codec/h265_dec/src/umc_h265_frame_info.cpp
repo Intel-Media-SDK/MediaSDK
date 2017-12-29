@@ -97,23 +97,81 @@ void H265DecoderFrameInfo::RemoveSlice(int32_t num)
     m_pSliceQueue[m_SliceCount] = pCurSlice;
 }
 
-void H265DecoderFrameInfo::CheckSlices()
+// Function works with a list of slices sorted by slice_segment_address
+void H265DecoderFrameInfo::EliminateErrors()
 {
     if (!GetSlice(0))
         return;
 
-    const H265SliceHeader *firstSliceHeader = GetSlice(0)->GetSliceHeader();
-
-    for (uint32_t sliceId = 1; sliceId < GetSliceCount(); sliceId++)
+    // Remove dependent slices without a corresponding independent slice
+    for (uint32_t sliceId = 0; sliceId < GetSliceCount(); sliceId++)
     {
-        H265SliceHeader *sliceHeader = GetSlice(sliceId)->GetSliceHeader();
+        H265Slice * slice = GetSlice(sliceId);
 
-        // HEVC 7.4.7.1 General slice segment header semantics
-        if (sliceHeader->slice_temporal_mvp_enabled_flag != firstSliceHeader->slice_temporal_mvp_enabled_flag)
+        if (slice->GetSliceHeader()->dependent_slice_segment_flag)
         {
             RemoveSlice(sliceId);
+            sliceId = uint32_t(-1);
+            continue;
+        }
+        else
+            break;
+    }
 
-            sliceId--;
+    {
+        // HEVC 7.4.7.1 General slice segment header semantics
+        H265Slice *baseSlice = GetSlice(0); // after the for() loop above ,the first slice is treated as 'base' slice
+
+        bool bIndepSliceMissing = false;
+        for (uint32_t sliceId = 1; sliceId < GetSliceCount(); sliceId++)
+        {
+            H265SliceHeader *sliceHeader = GetSlice(sliceId)->GetSliceHeader();
+
+            if (!sliceHeader->dependent_slice_segment_flag)
+                bIndepSliceMissing = false;
+
+            bool bSpecViolation = sliceHeader->slice_temporal_mvp_enabled_flag !=
+                  baseSlice->GetSliceHeader()->slice_temporal_mvp_enabled_flag;
+
+            bool bRemoveDependent = bIndepSliceMissing && sliceHeader->dependent_slice_segment_flag;
+
+            if (bSpecViolation || bRemoveDependent)
+            {
+                RemoveSlice(sliceId);
+                sliceId--;
+                if (false == bIndepSliceMissing)
+                    bIndepSliceMissing = !sliceHeader->dependent_slice_segment_flag;
+            }
+        }
+    }
+
+    // Remove slices with duplicated slice_segment_address syntax
+    for (uint32_t sliceId = 0; sliceId < GetSliceCount(); sliceId++)
+    {
+        H265Slice * slice = GetSlice(sliceId);
+        H265Slice * nextSlice = GetSlice(sliceId + 1);
+
+        if (!nextSlice)
+            break;
+
+        if (slice->GetFirstMB() == slice->GetMaxMB())
+        {
+            uint32_t sliceIdToRemove;
+
+            // Heuristic logic:
+            if (slice->GetSliceHeader()->dependent_slice_segment_flag && !nextSlice->GetSliceHeader()->dependent_slice_segment_flag)
+            {
+                // dependent slices are prone to errors
+                sliceIdToRemove = sliceId;
+            }
+            else
+            {
+                // among two independent or dependent slices, prefer to keep the first slice
+                sliceIdToRemove = sliceId + 1;
+            }
+            RemoveSlice(sliceIdToRemove);
+            sliceId = uint32_t(-1);
+            continue;
         }
     }
 }
@@ -159,13 +217,6 @@ void H265DecoderFrameInfo::EliminateASO()
             break;
 
         slice->SetMaxMB(nextSlice->GetFirstMB());
-
-        if (slice->GetFirstMB() == slice->GetMaxMB())
-        {
-            RemoveSlice(sliceId);
-            sliceId = uint32_t(-1);
-            continue;
-        }
     }
 }
 

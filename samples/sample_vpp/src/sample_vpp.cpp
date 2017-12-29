@@ -301,7 +301,7 @@ int main(int argc, msdk_char *argv[])
     //mfxU16              argbSurfaceIndex = 0xffff;
 
     /* default parameters */
-    sOwnFrameInfo             defaultOwnFrameInfo         = { 0, 0, 0, 352, 288, 0, 0, 352, 288, MFX_FOURCC_NV12, MFX_PICSTRUCT_PROGRESSIVE, 30.0 };
+    sOwnFrameInfo             defaultOwnFrameInfo         = { 0, 0, 0, 0, 0, 0, 0, 0, 0, MFX_FOURCC_NV12, MFX_PICSTRUCT_PROGRESSIVE, 30.0 };
     sDIParam                  defaultDIParam              = { 0, 0, 0, VPP_FILTER_DISABLED };
     sProcAmpParam             defaultProcAmpParam         = { 0.0, 1.0, 1.0, 0.0, VPP_FILTER_DISABLED };
     sDetailParam              defaultDetailParam          = { 1,  VPP_FILTER_DISABLED };
@@ -760,6 +760,7 @@ int main(int argc, msdk_char *argv[])
                 }
             }
 
+            MSDK_CHECK_STATUS_NO_RET(sts, "RunFrameVPPAsync(Ex) failed")
             MSDK_BREAK_ON_ERROR(sts);
             surfStore.m_SyncPoints.push_back(SurfaceVPPStore::SyncPair(syncPoint,pOutSurf));
             IncreaseReference(&pOutSurf->Data);

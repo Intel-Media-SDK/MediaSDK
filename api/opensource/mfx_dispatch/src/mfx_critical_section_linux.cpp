@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "mfx_critical_section.h"
 #include <sched.h>
@@ -78,4 +77,3 @@ void mfxLeaveCriticalSection(mfxCriticalSection *pCSection)
 
 } // namespace MFX
 
-#endif // #if !defined(_WIN32) && !defined(_WIN64)

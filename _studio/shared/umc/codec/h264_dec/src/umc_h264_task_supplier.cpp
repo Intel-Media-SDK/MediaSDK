@@ -42,6 +42,17 @@
 namespace UMC
 {
 
+#if (MFX_VERSION >= 1025)
+inline void SetDecodeErrorTypes(NAL_Unit_Type nalUnit, mfxExtDecodeErrorReport *pDecodeErrorReport)
+{
+    switch (nalUnit)
+    {
+        case NAL_UT_SPS: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_SPS; break;
+        case NAL_UT_PPS: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_PPS; break;
+        default: break;
+    };
+}
+#endif
 
 /****************************************************************************************************/
 // DPBOutput class routine
@@ -2515,7 +2526,7 @@ Status TaskSupplier::DecodeHeaders(NalUnit *nalUnit)
                 }
 
                 // Get rest of pic param set
-                umcRes = bitStream.GetPictureParamSetPart2(&pps);
+                umcRes = bitStream.GetPictureParamSetPart2(&pps, refSps);
                 if (UMC_OK != umcRes)
                 {
                     H264PicParamSet * old_pps = m_Headers.m_PicParams.GetHeader(pps.pic_parameter_set_id);
@@ -3134,7 +3145,11 @@ Status TaskSupplier::AddSource(MediaData * pSource)
     return umcRes;
 }
 
+#if (MFX_VERSION >= 1025)
+Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport * pDecodeErrorReport)
+#else
 Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit)
+#endif
 {
     Status umcRes = UMC_OK;
 
@@ -3160,6 +3175,10 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit)
     case NAL_UT_PREFIX:
         umcRes = DecodeHeaders(nalUnit);
 
+#if (MFX_VERSION >= 1025)
+        if (pDecodeErrorReport && umcRes == UMC_ERR_INVALID_STREAM)
+           SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
+#endif
 
         break;
 
@@ -3210,6 +3229,10 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
 
     do
     {
+#if (MFX_VERSION >= 1025)
+        MediaData::AuxInfo* aux = (pSource) ? pSource->GetAuxInfo(MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+        mfxExtDecodeErrorReport* pDecodeErrorReport = (aux) ? reinterpret_cast<mfxExtDecodeErrorReport*>(aux->ptr) : NULL;
+#endif
 
         NalUnit *nalUnit = m_pNALSplitter->GetNalUnits(pSource);
 
@@ -3269,12 +3292,16 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
             umsRes = DecodeHeaders(nalUnit);
             if (umsRes != UMC_OK)
             {
-                if (umsRes == UMC_NTF_NEW_RESOLUTION)
+                if (umsRes == UMC_NTF_NEW_RESOLUTION && pSource)
                 {
                     int32_t size = (int32_t)nalUnit->GetDataSize();
                     pSource->MoveDataPointer(- size - 3);
                 }
 
+#if (MFX_VERSION >= 1025)
+                if (pDecodeErrorReport && umsRes == UMC_ERR_INVALID_STREAM)
+                    SetDecodeErrorTypes(nalUnit->GetNalUnitType(), pDecodeErrorReport);
+#endif
 
                 return umsRes;
             }

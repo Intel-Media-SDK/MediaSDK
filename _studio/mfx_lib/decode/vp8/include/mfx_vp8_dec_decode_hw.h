@@ -201,7 +201,6 @@ private:
 
     mfxStatus ConstructFrame(mfxBitstream *, mfxBitstream *, VP8DecodeCommon::IVF_FRAME&);
     mfxStatus PreDecodeFrame(mfxBitstream *, mfxFrameSurface1 *);
-    static mfxStatus QueryIOSurfInternal(mfxVideoParam *, mfxFrameAllocRequest *);
 
     mfxStatus DecodeFrameHeader(mfxBitstream *p_bistream);
     void UpdateSegmentation(MFX_VP8_BoolDecoder &);

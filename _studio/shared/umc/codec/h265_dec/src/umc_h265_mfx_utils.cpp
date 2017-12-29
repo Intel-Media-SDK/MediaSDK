@@ -90,6 +90,9 @@ bool CheckGUID(VideoCORE * core, eMFXHWType type, mfxVideoParam const* param)
     {
         case MFX_PROFILE_HEVC_MAIN:
         case MFX_PROFILE_HEVC_MAINSP:
+#if defined(ANDROID)
+        case MFX_PROFILE_HEVC_MAIN10:
+#endif
             return true;
     }
 
@@ -251,8 +254,11 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
         "Unsupported bit depth, should be validated before"
     );
 
-    return
-        map[frameInfo->ChromaFormat][(bit_depth - 8) / 2];
+    mfxU16 const bit_depth_idx     = (bit_depth - 8) / 2;
+    mfxU16 const max_bit_depth_idx = sizeof(map) / sizeof(map[0]);
+
+    return bit_depth_idx < max_bit_depth_idx ?
+        map[frameInfo->ChromaFormat][bit_depth_idx] : 0;
 }
 
 inline

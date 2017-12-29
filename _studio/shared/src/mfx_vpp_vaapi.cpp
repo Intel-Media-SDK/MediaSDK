@@ -429,7 +429,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #endif
 
     /* NB! The code below should to be replaced with querying caps from driver*/
-#if defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
     caps.uMaxWidth  = 8192;
     caps.uMaxHeight = 8192;
 #else
@@ -564,7 +564,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                 else /* For BFF, second field is Top */
                     deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST;
 
-                #if defined(LINUX_TARGET_PLATFORM_BXT)
+                #if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
                 if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
                     deint.flags = VA_DEINTERLACING_ONE_FIELD;
                 else /* For BFF case required to set all bits  */
@@ -1155,7 +1155,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     case MFX_SCALING_MODE_DEFAULT:
     default:
-#if defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
         /* Use SFC by default on BXT platforms due to power consumption considerations */
         m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
 #else
@@ -1182,7 +1182,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     if((pParams->bEOS) && (pParams->bDeinterlace30i60p == true))
         m_deintFrameCount = 0;
 
-#if defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
 // It looks like only BXT supports this at the moment
 #define VPP_NO_COLORFILL
 #endif
@@ -1311,7 +1311,6 @@ mfxStatus VAAPIVideoProcessing::RemoveBufferFromPipe(VABufferID id)
 
 
 
-#define MAX_STREAMS_PER_TILE 8
 
 BOOL    VAAPIVideoProcessing::isVideoWall(mfxExecuteParams *pParams)
 {
@@ -1590,7 +1589,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
 
-#if defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
         m_pipelineParam[i].filter_flags   |= VA_FILTER_SCALING_HQ;
 #else
@@ -1934,7 +1933,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         if (pParams->bComposite)
         {
             m_pipelineParam[refIdx].num_filters  = 0;
-#if defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
             m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
             m_pipelineParam[refIdx].filter_flags   |= VA_FILTER_SCALING_HQ;
 #else
@@ -2241,6 +2240,7 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
         m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
     }
 
+#if !defined(ANDROID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
@@ -2249,6 +2249,7 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
         else
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
+#endif
 
     return MFX_TASK_DONE;
 } // mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)

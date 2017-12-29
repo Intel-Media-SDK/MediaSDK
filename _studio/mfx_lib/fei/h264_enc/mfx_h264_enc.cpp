@@ -539,7 +539,11 @@ mfxStatus VideoENC_ENC::RunFrameVmeENCCheck(
         // Frame type detection
         mfxExtFeiPPS* extFeiPPSinRuntime = GetExtBufferFEI(input, idxToPickBuffer);
 
+#if MFX_VERSION >= 1023
         mfxU8 type = extFeiPPSinRuntime->FrameType;
+#else
+        mfxU8 type = extFeiPPSinRuntime->PictureType;
+#endif // MFX_VERSION >= 1023
 
         // MFX_FRAMETYPE_xI / P / B disallowed here
         MFX_CHECK(!(type & 0xff00), MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -603,16 +607,21 @@ mfxStatus VideoENC_ENC::RunFrameVmeENCCheck(
         }
         MFX_CHECK(task.m_idxRecon != NO_INDEX && task.m_midRec != MID_INVALID && i != m_rec.NumFrameActual, MFX_ERR_UNDEFINED_BEHAVIOR);
 
+#if MFX_VERSION >= 1023
         ConfigureTaskFEI(task, m_prevTask, m_video, input);
+#else
+        ConfigureTaskFEI(task, m_prevTask, m_video, input, input, m_frameOrder_frameNum);
+#endif // MFX_VERSION >= 1023
 
         // Change DPB
         m_recFrameOrder[task.m_idxRecon] = task.m_frameOrder;
 
-        sts = Change_DPB(task.m_dpb[0],          m_rec.mids, m_recFrameOrder);
-        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
-
-        sts = Change_DPB(task.m_dpb[1],          m_rec.mids, m_recFrameOrder);
-        MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+        for (mfxU32 field = f_start; field <= fieldCount; ++field)
+        {
+            const mfxU32 & fieldParity = task.m_fid[field];
+            sts = Change_DPB(task.m_dpb[fieldParity], m_rec.mids, m_recFrameOrder);
+            MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
+        }
 
         sts = Change_DPB(task.m_dpbPostEncoding, m_rec.mids, m_recFrameOrder);
         MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));

@@ -28,7 +28,6 @@
 namespace MfxHwH265Encode
 {
 
-
 mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
 void      SetDefaults    (MfxVideoParam & par, ENCODE_CAPS_HEVC const & hwCaps);
 void      InheritDefaultValues(MfxVideoParam const & parInit, MfxVideoParam &  parReset);
@@ -92,6 +91,18 @@ mfxStatus Plugin::GetPluginParam(mfxPluginParam *par)
     par->CodecId            = MFX_CODEC_HEVC;
 
     return MFX_ERR_NONE;
+}
+
+inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+{
+    if (sts1 > sts2)
+    {
+        return sts2 == MFX_ERR_NONE ? sts1 : sts2;
+    }
+    else
+    {
+        return sts1;
+    }
 }
 
 mfxU16 MaxRec(MfxVideoParam const & par)
@@ -227,19 +238,6 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
     mfxExtCodingOptionSPSPPS* pSPSPPS = ExtBuffer::Get(*par);
     sts = LoadSPSPPS(m_vpar, pSPSPPS);
     MFX_CHECK_STS(sts);
-    
-    if (m_vpar.m_ext.SliceInfo.SliceSize)
-    {
-        if (!m_caps.SliceLevelReportSupport)
-        {
-            return MFX_ERR_INVALID_VIDEO_PARAM;        
-        }
-
-        if (!m_vpar.m_ext.CO2.MaxSliceSize)
-        {
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;        
-        }
-    }
 
     qsts = CheckVideoParam(m_vpar, m_caps, true);
     MFX_CHECK(qsts >= MFX_ERR_NONE, qsts);
@@ -251,7 +249,6 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
 
     m_vpar.bMBQPInput = IsOn(m_vpar.m_ext.CO3.EnableMBQP) &&
         (m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CQP);
-
 
     m_vpar.SyncCalculableToVideoParam();
 
@@ -381,7 +378,6 @@ mfxStatus Plugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request,
 
     MFX_CHECK(par->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
 
-
     MfxVideoParam tmp = *par;
     ENCODE_CAPS_HEVC caps = {};
 
@@ -509,22 +505,6 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
             MFX_CHECK_STS(sts);
         }
 
-        mfxExtEncodedSlicesInfo* pSliceInfo = ExtBuffer::Get(*in);
-        if (pSliceInfo && pSliceInfo->SliceSize)
-        {
-            if (!caps.SliceLevelReportSupport)
-            {
-                return MFX_ERR_UNSUPPORTED;        
-            }
-
-            // MaxSliceSize must be set for SliceSizeReport
-            mfxExtCodingOption2* pCO2 = ExtBuffer::Get(*in);
-            if (!pCO2 || !pCO2->MaxSliceSize)
-            {
-                return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;        
-            }
-        }
-
         sts = CheckVideoParam(tmp, caps);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM)
             sts = MFX_ERR_UNSUPPORTED;
@@ -535,12 +515,12 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
         tmp.FillPar(*out, true);
 
         // SetLowPowerDefault may change LowPower to default value
-        // if LowPower was invalid set it to Zero to mimic Query behaviour
+        // if LowPower was invalid set it to Zero to mimic Query behavior
         if (lpsts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             out->mfx.LowPower = 0;
         }
-        else // otherwise 'hide' default vbalue;
+        else // otherwise 'hide' default value
         {
             out->mfx.LowPower = in->mfx.LowPower;
         }
@@ -554,7 +534,7 @@ mfxStatus   Plugin::WaitingForAsyncTasks(bool bResetTasks)
 
     if (m_runtimeErr == 0)
     {
-       // sheduler must wait untial all async tasks will be ready.
+       // scheduler must wait until all async tasks will be ready.
 
         if (!bResetTasks)
            return sts;
@@ -610,7 +590,6 @@ mfxStatus   Plugin::WaitingForAsyncTasks(bool bResetTasks)
         m_task.Ready(task);
     }
 
-
     m_task.Reset(m_vpar.isField());
 
     m_raw.Unlock();
@@ -623,8 +602,15 @@ mfxStatus   Plugin::WaitingForAsyncTasks(bool bResetTasks)
     ZeroParams();
 
     return sts;
+}
 
 
+mfxStatus Plugin::CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit /*= false*/)
+{
+    mfxStatus sts = ExtraCheckVideoParam(par, caps, bInit);
+    MFX_CHECK(sts >= MFX_ERR_NONE, sts);
+
+    return GetWorstSts(MfxHwH265Encode::CheckVideoParam(par, caps, bInit), sts);
 }
 
 mfxStatus  Plugin::Reset(mfxVideoParam *par)
@@ -691,7 +677,7 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     }
 
     if (m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
-        m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_VBR || 
+        m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
         m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_VCM)
     {
         MFX_CHECK(
@@ -708,7 +694,7 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     if (m_vpar.isTL() && parNew.isTL())
     {
         // calculate temporal layer for next frame
-        tempLayerIdx     = m_vpar.GetTId(m_frameOrder);
+        tempLayerIdx      = m_vpar.GetTId(m_frameOrder);
         changeTScalLayers = m_vpar.NumTL() != parNew.NumTL();
     }
 
@@ -743,7 +729,6 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
         return MFX_ERR_INVALID_VIDEO_PARAM; // Reset can't change parameters w/o IDR. Report an error
 
     isIdrRequired = isIdrRequired || (pResetOpt && IsOn(pResetOpt->StartNewSequence));
-
 
     bool brcReset = false;
 
@@ -794,7 +779,8 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
         brcReset = false;
     }
 
-    m_ddi->Reset(m_vpar, brcReset);
+    sts = m_ddi->Reset(m_vpar, brcReset);
+    MFX_CHECK_STS(sts);
 
     return qsts;
 }
@@ -824,8 +810,8 @@ mfxStatus Plugin::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surfa
     {
         MFX_CHECK((surface->Data.Y == 0) == (surface->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(surface->Data.Pitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
-        //MFX_CHECK(surface->Info.Width  >=  m_vpar.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
-        //MFX_CHECK(surface->Info.Height >=  m_vpar.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(surface->Info.Width  >=  m_vpar.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(surface->Info.Height >=  m_vpar.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     {
@@ -909,9 +895,6 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
         {
             task->m_frameType = task->m_ctrl.FrameType;
             m_frameOrder = task->m_surf->Data.FrameOrder;
-            MFX_CHECK((mfxI32)(m_frameOrder - (m_lastTask.m_eo + 1)) <= (m_vpar.mfx.GopRefDist - 1)* (m_vpar.isField() ? 2 : 1), MFX_ERR_UNDEFINED_BEHAVIOR);
-            if (!isValid(m_lastTask.m_dpb[1][0]))
-                MFX_CHECK(task->m_frameType & MFX_FRAMETYPE_IDR, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             if (m_brc && m_brc->IsVMEBRC())
             {
@@ -928,8 +911,9 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
             }
             MFX_CHECK(m_frameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN), MFX_ERR_UNDEFINED_BEHAVIOR);
             MFX_CHECK(task->m_frameType != MFX_FRAMETYPE_UNKNOWN, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-
+            MFX_CHECK((mfxI32)(m_frameOrder - (m_lastTask.m_eo + 1)) <= (m_vpar.mfx.GopRefDist - 1)* (m_vpar.isField() ? 2 : 1), MFX_ERR_UNDEFINED_BEHAVIOR);
+            if (!isValid(m_lastTask.m_dpb[1][0]))
+                MFX_CHECK(task->m_frameType & MFX_FRAMETYPE_IDR, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         else
         {
@@ -951,7 +935,6 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
             task->m_bottomField = (task->m_surf->Info.PicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) == 0 ?
                 (m_vpar.isBFF() != task->m_secondField) :
                 (task->m_surf->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF) != 0;
-
 
         m_frameOrder ++;
         task->m_stage = FRAME_ACCEPTED;
@@ -978,7 +961,7 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
         task->m_midRec = AcquireResource(m_rec, task->m_idxRec);
         task->m_midBs  = AcquireResource(m_bs,  task->m_idxBs);
         task->m_midCUQp  = AcquireResource(m_bs,  task->m_idxCUQp);
-        MFX_CHECK(task->m_midRec && task->m_midBs, MFX_ERR_UNDEFINED_BEHAVIOR);  
+        MFX_CHECK(task->m_midRec && task->m_midBs, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
 
@@ -1028,7 +1011,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
                    taskForExecute->m_qpY = (mfxI8)Clip3( 0, 51, m_brc->GetQP(m_vpar, *taskForExecute));  //driver limitation
                else
                    taskForExecute->m_qpY = (mfxI8)Clip3( -6 * m_vpar.m_sps.bit_depth_luma_minus8, 51, m_brc->GetQP(m_vpar, *taskForExecute));
- 
+
                taskForExecute->m_sh.slice_qp_delta = mfxI8(taskForExecute->m_qpY - (m_vpar.m_pps.init_qp_minus26 + 26));
                if (taskForExecute->m_recode && m_vpar.AsyncDepth > 1)
                {
@@ -1049,6 +1032,8 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
                 sts = CopyRawSurfaceToVideoMemory(m_core, m_vpar, *taskForExecute);
                 MFX_CHECK_STS(sts);
             }
+            ExtraTaskPreparation(*taskForExecute);
+
             sts = m_ddi->Execute(*taskForExecute, surfaceHDL.first);
             MFX_CHECK_STS(sts);
 
@@ -1063,6 +1048,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
         Task* taskForQuery = m_task.GetTaskForQuery();
         MFX_CHECK (taskForQuery, MFX_ERR_UNDEFINED_BEHAVIOR);
 
+        taskForQuery->m_bs = bs;    // bs->ExtParam can be used in QueryStatus
         sts = m_ddi->QueryStatus(*taskForQuery);
         if (sts == MFX_WRN_DEVICE_BUSY)
             return MFX_TASK_BUSY;
@@ -1083,7 +1069,6 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
 
         if (m_brc)
         {
-
             brcStatus = m_brc->PostPackFrame(m_vpar,*taskForQuery, (taskForQuery->m_bsDataLength + SEI_len)*8,0,taskForQuery->m_recode);
             //printf("m_brc->PostPackFrame poc %d, qp %d, len %d, type %d, status %d\n", taskForQuery->m_poc,taskForQuery->m_qpY, taskForQuery->m_bsDataLength,taskForQuery->m_codingType, brcStatus);
             if (brcStatus != MFX_BRC_OK)
@@ -1183,7 +1168,6 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
                 bs->FrameType |=  MFX_FRAMETYPE_P;
             }
 
-
         }
 
 
@@ -1207,7 +1191,6 @@ mfxStatus Plugin::FreeResources(mfxThreadTask /*thread_task*/, mfxStatus /*sts*/
 }
 mfxStatus Plugin::FreeTask(Task &task)
 {
-
     if (task.m_midBs)
     {
         ReleaseResource(m_bs,  task.m_midBs);
@@ -1254,7 +1237,6 @@ mfxStatus Plugin::FreeTask(Task &task)
                 ReleaseResource(m_rawSkip, task.m_midRaw);
                 task.m_midRaw = 0;
             }
-
         }
     }
     for (mfxU16 i = 0, j = 0; !isDpbEnd(task.m_dpb[TASK_DPB_BEFORE], i); i ++)

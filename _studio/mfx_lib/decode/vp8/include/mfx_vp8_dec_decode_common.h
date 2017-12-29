@@ -27,7 +27,6 @@ namespace VP8DecodeCommon
 {
 
     mfxStatus DecodeHeader(VideoCORE *p_core, mfxBitstream *p_bs, mfxVideoParam *p_params);
-    void MoveBitstreamData(mfxBitstream& bs, mfxU32 offset);
 
     typedef struct _IVF_FRAME
     {
@@ -45,7 +44,6 @@ public:
 
     static eMFXPlatform GetPlatform(VideoCORE *pCore, mfxVideoParam *pPar);
     static mfxStatus Query(VideoCORE *pCore, mfxVideoParam *pIn, mfxVideoParam *pOut, eMFXHWType type);
-    static bool CheckVideoParam(mfxVideoParam *pIn, eMFXHWType type);
 
 private:
 

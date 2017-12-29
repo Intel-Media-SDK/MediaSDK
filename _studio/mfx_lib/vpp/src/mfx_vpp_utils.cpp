@@ -37,6 +37,9 @@ const mfxU32 g_TABLE_DO_NOT_USE [] =
     MFX_EXTBUFF_VPP_COMPOSITE,
     MFX_EXTBUFF_VPP_ROTATION,
     MFX_EXTBUFF_VPP_SCALING,
+#if (MFX_VERSION >= 1025)
+    MFX_EXTBUFF_VPP_COLOR_CONVERSION,
+#endif
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_MIRRORING
@@ -54,6 +57,9 @@ const mfxU32 g_TABLE_DO_USE [] =
     MFX_EXTBUFF_VPP_COMPOSITE,
     MFX_EXTBUFF_VPP_ROTATION,
     MFX_EXTBUFF_VPP_SCALING,
+#if (MFX_VERSION >= 1025)
+    MFX_EXTBUFF_VPP_COLOR_CONVERSION,
+#endif
     MFX_EXTBUFF_VPP_DEINTERLACING,
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
@@ -76,6 +82,9 @@ const mfxU32 g_TABLE_CONFIG [] =
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_SCALING,
+#if (MFX_VERSION >= 1025)
+    MFX_EXTBUFF_VPP_COLOR_CONVERSION,
+#endif
     MFX_EXTBUFF_VPP_MIRRORING
 };
 
@@ -101,6 +110,9 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
     MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO,
     MFX_EXTBUFF_VPP_FIELD_PROCESSING,
     MFX_EXTBUFF_VPP_SCALING,
+#if (MFX_VERSION >= 1025)
+    MFX_EXTBUFF_VPP_COLOR_CONVERSION,
+#endif
     MFX_EXTBUFF_VPP_MIRRORING
 };
 
@@ -186,7 +198,7 @@ mfxStatus CheckInputPicStruct( mfxU16 inPicStruct )
 
 
 // rules for this algorithm see in spec
-mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDeinterlace, mfxStatus& sts )
+mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDeinterlace, mfxStatus& sts, mfxU32 outputFrameCounter )
 {
     mfxU16 resultPicStruct;
 
@@ -239,6 +251,28 @@ mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDe
         return resultPicStruct;
     }
 
+    // INTERLACE->FIELDS
+    if( (inPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) && (outPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) )
+    {
+        if (inPicStruct & MFX_PICSTRUCT_FIELD_TFF)
+        {
+            resultPicStruct = (mfxU16)((outputFrameCounter & 1) ? MFX_PICSTRUCT_FIELD_BOTTOM : MFX_PICSTRUCT_FIELD_TOP);
+        }
+        else if(inPicStruct & MFX_PICSTRUCT_FIELD_BFF)
+        {
+            resultPicStruct = (mfxU16)((outputFrameCounter & 1) ? MFX_PICSTRUCT_FIELD_TOP : MFX_PICSTRUCT_FIELD_BOTTOM);
+        }
+        else // return error on progressive input
+        {
+            sts = MFX_ERR_INVALID_VIDEO_PARAM;
+            resultPicStruct = outPicStruct;
+            return resultPicStruct;
+        }
+
+        sts = MFX_ERR_NONE;
+        return resultPicStruct;
+    }
+
     // INTERLACE->INTERLACE
     inPicStructCore  = inPicStruct  & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF);
     outPicStructCore = outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF);
@@ -264,14 +298,6 @@ mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDe
 
     // FIELDS->INTERLACE
     if( (inPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && (outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) )
-    {
-        resultPicStruct = outPicStruct;
-        sts = MFX_ERR_NONE;
-        return resultPicStruct;
-    }
-
-    // INTERLACE->FIELDS
-    if( (inPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) && (outPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) )
     {
         resultPicStruct = outPicStruct;
         sts = MFX_ERR_NONE;
@@ -794,6 +820,13 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         index++;
     }
 
+#if (MFX_VERSION >= 1025)
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_COLOR_CONVERSION))
+    {
+        newList[index] = MFX_EXTBUFF_VPP_COLOR_CONVERSION;
+        index++;
+    }
+#endif
 
     if( IsFilterFound( &pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_MIRRORING ) )
     {
@@ -1001,6 +1034,9 @@ mfxStatus GetPipelineList(
              * If DI mode in Ext Buffer is not related BOB or ADVANCED Ext buffer ignored
              * */
             if (extDI->Mode == MFX_DEINTERLACING_ADVANCED ||
+#if defined (MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+                extDI->Mode == MFX_DEINTERLACING_ADVANCED_SCD ||
+#endif
                 extDI->Mode == MFX_DEINTERLACING_BOB ||
                 extDI->Mode == MFX_DEINTERLACING_ADVANCED_NOREF ||
                 extDI->Mode == MFX_DEINTERLACING_FIELD_WEAVING)
@@ -1145,6 +1181,15 @@ mfxStatus GetPipelineList(
         }
     }
 
+#if (MFX_VERSION >= 1025)
+    if (IsFilterFound(&configList[0], configCount, MFX_EXTBUFF_VPP_COLOR_CONVERSION) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_COLOR_CONVERSION))
+    {
+        if (!IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_COLOR_CONVERSION))
+        {
+            pipelineList.push_back(MFX_EXTBUFF_VPP_COLOR_CONVERSION);
+        }
+    }
+#endif
 
     if( IsFilterFound( &configList[0], configCount, MFX_EXTBUFF_VPP_MIRRORING ) && !IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_MIRRORING) )
     {
@@ -1234,7 +1279,7 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 
 
 /* check each field of FrameInfo excluding PicStruct */
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request)
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
 
@@ -2138,6 +2183,12 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_SCALING);
     }
 
+#if (MFX_VERSION >= 1025)
+    if (caps.uChromaSiting)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_COLOR_CONVERSION);
+    }
+#endif
 
     /* FIELD Copy is always present*/
     list.push_back(MFX_EXTBUFF_VPP_FIELD_PROCESSING);

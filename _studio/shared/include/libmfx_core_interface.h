@@ -86,6 +86,22 @@ static const
 MFX_GUID MFXICMEnabledCore_GUID =
 { 0x2aafdae8, 0xf7ba, 0x46ed, { 0xb2, 0x77, 0xb8, 0x7e, 0x94, 0xf2, 0xd3, 0x84 } };
 
+#ifdef MFX_ENABLE_MFE
+
+//to keep core interface unchanged we need to define 2 guids:
+// MFXMFEDDIENCODER_GUID - for returing MFE adapter by request - need for core to query other cores
+// MFXMFEDDIENCODER_SEARCH_GUID - called by encoder to search through joined sessions
+// cores by MFXMFEDDIENCODER_GUID, to verify adapter availability and return when exist.
+// {E4E4823F-90D2-4945-823E-00B5F3F3184C}
+static const
+MFX_GUID MFXMFEDDIENCODER_GUID =
+{ 0xe4e4823f, 0x90d2, 0x4945, { 0x82, 0x3e, 0x0, 0xb5, 0xf3, 0xf3, 0x18, 0x4c } };
+
+// {AAA16189-4E5A-4DA9-BB97-4CD1B0BAAC73}
+static const MFX_GUID MFXMFEDDIENCODER_SEARCH_GUID =
+{ 0xaaa16189, 0x4e5a, 0x4da9, { 0xbb, 0x97, 0x4c, 0xd1, 0xb0, 0xba, 0xac, 0x73 } };
+
+#endif
 // Try to obtain required interface
 // Declare a template to query an interface
 template <class T> inline
@@ -178,7 +194,11 @@ public:
     static const MFX_GUID getGuid()
     {
 
+#if !defined(MFX_ENABLE_MFE)
         return MFXID3D11DECODER_GUID;
+#else
+        return MFXMFEDDIENCODER_GUID;
+#endif
     }
     ComPtrCore():m_pComPtr(NULL)
     {

@@ -18,6 +18,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
 #include "brc_routines.h"
+#if (MFX_VERSION >= 1024)
 #include "math.h"
 #include <algorithm>
 
@@ -43,7 +44,7 @@ mfxExtBuffer* Hevc_GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 
     return 0;
 }
 
-mfxStatus cBRCParams::Init(mfxVideoParam* par)
+mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bFielMode)
 {
     printf("Sample BRC is used\n");
     MFX_CHECK_NULL_PTR1(par);
@@ -86,8 +87,8 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par)
 
     inputBitsPerFrame    = targetbps / frameRate;
     maxInputBitsPerFrame = maxbps / frameRate;
-    gopPicSize = par->mfx.GopPicSize;
-    gopRefDist = par->mfx.GopRefDist;
+    gopPicSize = par->mfx.GopPicSize*(bFielMode ? 2 : 1);
+    gopRefDist = par->mfx.GopRefDist*(bFielMode ? 2 : 1);
 
     mfxExtCodingOption2 * pExtCO2 = (mfxExtCodingOption2*)Hevc_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
     bPyr = (pExtCO2 && pExtCO2->BRefType == MFX_B_REF_PYRAMID);
@@ -420,6 +421,7 @@ mfxStatus ExtBRC::Init (mfxVideoParam* par)
 
     m_ctx.fAbLong  = m_par.inputBitsPerFrame;
     m_ctx.fAbShort = m_par.inputBitsPerFrame;
+    m_ctx.encOrder = mfxU32(-1);
 
     mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height ,m_par.chromaFormat, m_par.bitDepthLuma);
     mfxI32 qp = GetNewQP(rawSize, m_par.inputBitsPerFrame, m_par.quantMinI, m_par.quantMaxI, 1 , m_par.quantOffset, 0.5, false, false);
@@ -643,7 +645,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         // Frame must be recoded, but encoder calls BR for another frame
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-    if (frame_par->NumRecode == 0)
+    if (frame_par->NumRecode == 0 || m_ctx.encOrder != frame_par->EncodedOrder)
     {
         // Set context for new frame
         if (picType == MFX_FRAMETYPE_I)
@@ -687,10 +689,13 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         if (picType != MFX_FRAMETYPE_B)
         {
             bSHStart = true;
-            m_ctx.dQuantAb  = 1./m_ctx.Quant;
             m_ctx.SceneChange |= 16;
-            m_ctx.SChPoc = frame_par->DisplayOrder;
             m_ctx.eRateSH = eRate;
+            if ((frame_par->DisplayOrder - m_ctx.SChPoc) >= IPP_MIN((mfxU32)(m_par.frameRate), m_par.gopRefDist))
+            {
+                m_ctx.dQuantAb  = 1./m_ctx.Quant;
+            }
+            m_ctx.SChPoc = frame_par->DisplayOrder;
             //printf("!!!!!!!!!!!!!!!!!!!!! %d m_ctx.SceneChange %d, order %d\n", frame_par->EncodedOrder, m_ctx.SceneChange, frame_par->DisplayOrder);
         }
 
@@ -703,6 +708,8 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         MFX_CHECK(brcSts ==  MFX_BRC_OK || (!m_ctx.bPanic), MFX_ERR_NOT_ENOUGH_BUFFER);
         if (brcSts == MFX_BRC_BIG_FRAME || brcSts == MFX_BRC_SMALL_FRAME)
             m_hrd.UpdateMinMaxQPForRec(brcSts, qpY);
+        else
+            bNeedUpdateQP = true;
         status->MinFrameSize = m_hrd.GetMinFrameSize() + 7;
         //printf("%d: poc %d, size %d QP %d (%d %d), HRD sts %d, maxFrameSize %d, type %d \n",frame_par->EncodedOrder, frame_par->DisplayOrder, bitsEncoded, m_ctx.Quant, m_ctx.QuantMin, m_ctx.QuantMax, brcSts,  m_hrd.GetMaxFrameSize(), frame_par->FrameType);
     }
@@ -986,3 +993,5 @@ mfxStatus ExtBRC::Reset(mfxVideoParam *par )
     }
     return sts;
 }
+
+#endif

@@ -81,18 +81,6 @@ enum
 //is a vital if mediasdk wont use
 #define DISPATCHER_LOG_HEAP_SINGLETONES
 
-#if defined(_WIN32) || defined(_WIN64)
-// guid for all dispatcher events
-#define DISPATCHER_LOG_EVENT_GUID L"{EB0538CC-4FEE-484d-ACEE-1182E9F37A57}"
-
-//puts a sink into listeners list
-//#define DISPATCHER_LOG_REGISTER_EVENT_PROVIDER
-
-//puts a sink into listeners list
-//#define DISPATCHER_LOG_REGISTER_FILE_WRITER
-#define DISPACTHER_LOG_FW_PATH "c:\\dispatcher.log"
-
-#endif // #if defined(_WIN32) || defined(_WIN64)
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -105,30 +93,8 @@ public:
     virtual void Write(int level, int opcode, const char * msg, va_list argptr) = 0;
 };
 
-#if defined(_WIN32) || defined(_WIN64)
-#if  DISPATCHER_LOG_USE_FORMATING
-
-    #define DISPATCHER_LOG(lvl, opcode, str)\
-    {\
-        DispatcherLogBracketsHelper wrt(lvl,opcode);\
-        wrt.Write str;\
-    }
-#else
-    #define DISPATCHER_LOG_VA_ARGS(...) wrt.Write(__VA_ARGS__, NULL)
-    //WARNING: don't use types that occupy more that 4 bytes in memory 
-    //WARNING: don't use %s in format specifier
-    #define DISPATCHER_LOG(lvl, opcode, str) \
-    {\
-        DispatcherLogBracketsHelper wrt(lvl, opcode);\
-        DISPATCHER_LOG_VA_ARGS str;\
-    }
-#endif//DISPATCHER_LOG_USE_FORMATING
-
-#define DISPATCHER_LOG_OPERATION(operation) operation
-#else
 #define DISPATCHER_LOG(lvl, opcode, str)
 #define DISPATCHER_LOG_OPERATION(operation)
-#endif
 
 #define __name_from_line( name, line ) name ## line
 #define _name_from_line( name , line) __name_from_line( name, line ) 
@@ -227,24 +193,6 @@ struct DispatchLogBlockHelper
 };
 
 //----utility sinks-----
-#if defined(_WIN32) || defined(_WIN64)
-#if defined(DISPATCHER_LOG_REGISTER_EVENT_PROVIDER)
-class ETWHandlerFactory
-    : public DSSingleTone<ETWHandlerFactory>
-{
-    friend class DSSingleTone<ETWHandlerFactory>;
-    typedef std::map<std::wstring, IMsgHandler*> _storage_type;
-    _storage_type m_storage;
-
-public:
-    ~ETWHandlerFactory();
-    IMsgHandler *GetSink(const wchar_t* sguid = DISPATCHER_LOG_EVENT_GUID);
-
-protected:
-    ETWHandlerFactory(){}
-};
-#endif
-#endif // #if defined(_WIN32) || defined(_WIN64)
 
 #if defined(DISPATCHER_LOG_REGISTER_FILE_WRITER)
 class FileSink 
@@ -263,11 +211,7 @@ private:
     FILE * m_hdl;
     FileSink(const std::string & log_file)
     {
-#if defined(_WIN32) || defined(_WIN64)
-        fopen_s(&m_hdl, log_file.c_str(), "a");
-#else
         m_hdl = fopen(log_file.c_str(), "a");
-#endif
     }
     
 };

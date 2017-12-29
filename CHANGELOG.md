@@ -1,6 +1,14 @@
+# Intel® Media SDK open source release v1.3!
+**Whats new**
+ - Add SCD support
+ - Add MFE support
+ - API 1.25
+ - 1:N performance improvements
+ - Support open source [Intel® Media Driver for VAAPI](https://github.com/intel/media-driver)
+
 # Intel® Media SDK open source release v1.2!
 **Whats new**
- - Added Software Bitrate Control support
+ - Added User-defined Bitrate Control support
  - Added C++ 11 support
  
 **Known limitations**:

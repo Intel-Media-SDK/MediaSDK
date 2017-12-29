@@ -131,6 +131,11 @@ public:
     {
     public:
         PackVA pack_w;
+        bool m_executed;
+
+        MPEG2VideoDecoderHW()
+            : m_executed(false)
+        {}
 
         virtual Status Init(BaseCodecParams *init);
 

@@ -68,9 +68,11 @@ private:
 
     mfxStatus CheckPAKPayloads(const mfxPayload* const* payload, mfxU16 numPayload);
 
+#if MFX_VERSION >= 1023
     void      PrepareSeiMessageBuffer(MfxHwH264Encode::MfxVideoParam const & video,
                                    MfxHwH264Encode::DdiTask const & task,
                                    mfxU32 fieldId);
+#endif // MFX_VERSION >= 1023
 
     mfxU16    GetBufferPeriodPayloadIdx(const mfxPayload* const* payload,
                                            mfxU16 numPayload,
@@ -112,6 +114,9 @@ private:
     bool                                          m_bSingleFieldMode;
     mfxU32                                        m_firstFieldDone;
 
+#if MFX_VERSION < 1023
+    std::map<mfxU32, mfxU32>                  m_frameOrder_frameNum;
+#endif // MFX_VERSION < 1023
 };
 
 #endif

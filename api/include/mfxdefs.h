@@ -20,27 +20,26 @@
 #ifndef __MFXDEFS_H__
 #define __MFXDEFS_H__
 
+#define MFX_VERSION_MAJOR 1
+#define MFX_VERSION_MINOR 25
+
+#define MFX_VERSION_NEXT 1026
+
+#ifndef MFX_VERSION
+#define MFX_VERSION (MFX_VERSION_MAJOR * 1000 + MFX_VERSION_MINOR)
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
 
-#if (defined( _WIN32 ) || defined ( _WIN64 )) && !defined (__GNUC__)
-  #define __INT64   __int64
-  #define __UINT64  unsigned __int64
-#else
   #define __INT64   long long
   #define __UINT64  unsigned long long
-#endif
 
-#ifdef _WIN32
-    #define MFX_CDECL __cdecl
-    #define MFX_STDCALL __stdcall
-#else
     #define MFX_CDECL
     #define MFX_STDCALL
-#endif /* _WIN32 */
 
 #define MFX_INFINITE 0xFFFFFFFF
 
@@ -50,13 +49,8 @@ typedef short               mfxI16;
 typedef unsigned short      mfxU16;
 typedef unsigned int        mfxU32;
 typedef int                 mfxI32;
-#if defined( _WIN32 ) || defined ( _WIN64 )
-typedef unsigned long       mfxUL32;
-typedef long                mfxL32;
-#else
 typedef unsigned int        mfxUL32;
 typedef int                 mfxL32;
-#endif
 typedef float               mfxF32;
 typedef double              mfxF64;
 typedef __UINT64            mfxU64;

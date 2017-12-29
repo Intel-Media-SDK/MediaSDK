@@ -306,6 +306,12 @@ mfxU16 AddTileSlices(
         nSlice = 1;
         nLcuPerSlice = nLCU;
     }
+    else if (SliceStructure == 2 && par.m_ext.CO2.NumMbPerSlice != 0)
+    {
+        //in case of NumMbPerSlice != 0 need to check alignment
+        //if it's value is not aligned, warning will be generated in CheckVideoParam() after MakeSlices() call
+        nLcuPerSlice = CeilDiv(par.m_ext.CO2.NumMbPerSlice, nCol) * nCol;
+    }
     else if (SliceStructure < 4)
     {
         nSlice = Min(nSlice, nRow);
@@ -679,6 +685,39 @@ bool CheckOption(T & opt, U0 deflt, U1 s0, U2 s1, U3 s2, U4 s3, U5 s4, U6 s5, U7
     }
     return false;
 }
+template <class T, class U0, class U1, class U2, class U3, class U4, class U5, class U6, class U7, class U8, class U9>
+bool CheckOption(T & opt, U0 deflt, U1 s0, U2 s1, U3 s2, U4 s3, U5 s4, U6 s5, U7 s6, U8 s7, U9 s8)
+{
+    if (opt == T(deflt)) return false;
+    if (CheckOption(opt, (T)s0, (T)s1, (T)s2, (T)s3, (T)s4, (T)s5, (T)s6, (T)s7, (T)s8))
+    {
+        opt = T(deflt);
+        return true;
+    }
+    return false;
+}
+template <class T, class U0, class U1, class U2, class U3, class U4, class U5, class U6, class U7, class U8, class U9, class U10>
+bool CheckOption(T & opt, U0 deflt, U1 s0, U2 s1, U3 s2, U4 s3, U5 s4, U6 s5, U7 s6, U8 s7, U9 s8, U10 s9)
+{
+    if (opt == T(deflt)) return false;
+    if (CheckOption(opt, (T)s0, (T)s1, (T)s2, (T)s3, (T)s4, (T)s5, (T)s6, (T)s7, (T)s8, (T)s9))
+    {
+        opt = T(deflt);
+        return true;
+    }
+    return false;
+}
+template <class T, class U0, class U1, class U2, class U3, class U4, class U5, class U6, class U7, class U8, class U9, class U10, class U11>
+bool CheckOption(T & opt, U0 deflt, U1 s0, U2 s1, U3 s2, U4 s3, U5 s4, U6 s5, U7 s6, U8 s7, U9 s8, U10 s9, U11 s10)
+{
+    if (opt == T(deflt)) return false;
+    if (CheckOption(opt, (T)s0, (T)s1, (T)s2, (T)s3, (T)s4, (T)s5, (T)s6, (T)s7, (T)s8, (T)s9, (T)s10))
+    {
+        opt = T(deflt);
+        return true;
+    }
+    return false;
+}
 
 bool CheckTU(mfxU8 support, mfxU16& tu)
 {
@@ -716,7 +755,152 @@ mfxU32 GetDefaultLCUSize(MfxVideoParam const & par,
 }
 
 
+#ifdef MFX_ENABLE_HEVCE_ROI
+mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & caps, mfxExtEncoderROI *ROI, bool &bROIViaMBQP)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    mfxU32 changed = 0, invalid = 0;
 
+    bROIViaMBQP = false;
+
+    if (!(par.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
+        par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
+        par.mfx.RateControlMethod == MFX_RATECONTROL_CQP))
+    {
+        invalid++;
+    }
+    if (caps.MaxNumOfROI == 0)
+    {
+        if (par.isSWBRC())
+            bROIViaMBQP = true;
+        else
+            invalid++;
+    }
+
+    //// TODO: remove below macro conditional statement when ROI related caps will be correctly set up by the driver
+#if !defined(LINUX_TARGET_PLATFORM_BXTMIN) && !defined(LINUX_TARGET_PLATFORM_BXT) && !defined(LINUX_TARGET_PLATFORM_CFL)
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
+        invalid += (caps.ROIDeltaQPSupport == 0);
+    }
+    else if (par.isSWBRC())
+    {
+        if (caps.ROIDeltaQPSupport == 0)
+            bROIViaMBQP = true;
+
+    }
+    else
+    {
+#if MFX_VERSION > 1021
+        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
+            invalid += (caps.ROIDeltaQPSupport == 0);
+        else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
+            invalid += (caps.ROIBRCPriorityLevelSupport == 0);
+        else
+            invalid++;
+#endif // MFX_VERSION > 1021
+    }
+#endif  // LINUX_TARGET_PLATFORM_BXTMIN
+
+    mfxU16 maxNumOfRoi = (caps.MaxNumOfROI <= MAX_NUM_ROI  && (!bROIViaMBQP)) ? caps.MaxNumOfROI : MAX_NUM_ROI;
+
+    changed += CheckMax(ROI->NumROI, maxNumOfRoi);
+
+    for (mfxU16 i = 0; i < ROI->NumROI; i++)
+    {
+        // check that rectangle dimensions don't conflict with each other and don't exceed frame size
+        RoiData *roi = (RoiData *)&(ROI->ROI[i]);
+
+        // Elimination of invalid rects
+        // It's because of the impossibility to "explain" such no-action areas to the driver
+        if (roi->Left >= roi->Right || roi->Top >= roi->Bottom) {
+            ROI->NumROI--;
+            for (mfxU16 j = i; j < ROI->NumROI; j++)
+                ROI->ROI[j] = ROI->ROI[j + 1];
+            i--;
+            continue;
+        }
+
+        changed += CheckRange(roi->Left, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
+        changed += CheckRange(roi->Right, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
+        changed += CheckRange(roi->Top, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
+        changed += CheckRange(roi->Bottom, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
+
+        // align to BlockSize size
+        mfxU32 blkSize = 1 << (caps.BlockSize + 3);
+
+        changed += AlignDown(roi->Left, blkSize);
+        changed += AlignDown(roi->Top, blkSize);
+        changed += AlignUp(roi->Right, blkSize);
+        changed += AlignUp(roi->Bottom, blkSize);
+
+        if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
+            invalid += CheckRange(roi->Priority, -51, 51);
+        } else if (par.mfx.RateControlMethod) {
+#if MFX_VERSION > 1021
+            if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
+                invalid += CheckRange(roi->Priority, -51, 51);
+            else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
+                invalid += CheckRange(roi->Priority, -3, 3);
+#else
+        invalid += CheckRange(roi->Priority, -3, 3);
+#endif // MFX_VERSION > 1021
+        }
+    }
+
+    if (changed)
+        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    if (invalid)
+        sts = MFX_ERR_INVALID_VIDEO_PARAM;
+
+    return sts;
+}
+
+#endif // MFX_ENABLE_HEVCE_ROI
+
+#ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
+mfxStatus CheckAndFixDirtyRect(ENCODE_CAPS_HEVC const & caps, MfxVideoParam const & par, mfxExtDirtyRect *DirtyRect)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    mfxU32 changed = 0, invalid = 0;
+
+    if (caps.DirtyRectSupport == 0)
+    {
+        invalid++;
+        DirtyRect->NumRect = 0;
+    }
+
+    changed += CheckMax(DirtyRect->NumRect, MAX_NUM_DIRTY_RECT);
+
+    for (mfxU16 i = 0; i < DirtyRect->NumRect; i++)
+    {
+        RectData *rect = (RectData *)&(DirtyRect->Rect[i]);
+
+        // Elimination of invalid rects
+        // It's because of the impossibility to "explain" such no-action areas to the driver
+        if (rect->Left >= rect->Right || rect->Top >= rect->Bottom) {
+            DirtyRect->NumRect--;
+            for (mfxU16 j = i; j < DirtyRect->NumRect; j++)
+                DirtyRect->Rect[j] = DirtyRect->Rect[j + 1];
+            i--;
+            continue;
+        }
+
+        changed += CheckRange(rect->Left, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
+        changed += CheckRange(rect->Right, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
+        changed += CheckRange(rect->Top, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
+        changed += CheckRange(rect->Bottom, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
+
+    }
+
+    if (changed)
+        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+    if (invalid)
+        sts = MFX_ERR_INVALID_VIDEO_PARAM;
+
+    return sts;
+}
+
+#endif // MFX_ENABLE_HEVCE_DIRTY_RECT
 
 const mfxU16 AVBR_ACCURACY_MIN = 1;
 const mfxU16 AVBR_ACCURACY_MAX = 65535;
@@ -925,6 +1109,12 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
     mfxExtCodingOption2& CO2 = par.m_ext.CO2;
     mfxExtCodingOption3& CO3 = par.m_ext.CO3;
+#ifdef MFX_ENABLE_HEVCE_ROI
+    mfxExtEncoderROI* ROI = &par.m_ext.ROI;
+#endif // MFX_ENABLE_HEVCE_ROI
+#ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
+    mfxExtDirtyRect* DirtyRect = &par.m_ext.DirtyRect;
+#endif // MFX_ENABLE_HEVCE_DIRTY_RECT
 
     changed += CheckTriStateOption(par.mfx.LowPower);
 
@@ -943,13 +1133,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         minQP += 6 * (BitDepthLuma - 8);
     }
 
-    if (IsOn(par.mfx.LowPower))
-    {
-        surfAlignW = HW_SURF_ALIGN_LOWPOWER_W;
-        surfAlignH = HW_SURF_ALIGN_LOWPOWER_H;
-    }
-
-    changed +=  par.CheckExtBufferParam();  // todo: check ROI?? check SliceInfo??
+    changed +=  par.CheckExtBufferParam();
 
     if (par.mfx.CodecLevel !=0 && par.mfx.CodecLevel != MFX_LEVEL_HEVC_1 && LevelIdx(par.mfx.CodecLevel) == 0)
         invalid += CheckOption(par.mfx.CodecLevel, 0); // invalid level
@@ -1102,6 +1286,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         bInit ? invalid ++ : changed++;
     }
 
+#ifdef MFX_ENABLE_HEVCE_INTERLACE
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || 
         (IsOn(par.m_ext.CO2.ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)))
@@ -1109,6 +1294,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, MFX_PICSTRUCT_FIELD_TOP, MFX_PICSTRUCT_FIELD_BOTTOM, MFX_PICSTRUCT_FIELD_SINGLE, MFX_PICSTRUCT_FIELD_TFF, MFX_PICSTRUCT_FIELD_BFF,0);
     }
     else
+#endif
     {
         changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, 0);
     }
@@ -1374,6 +1560,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (caps.SliceByteSizeCtrl == 0)
         invalid += CheckOption(CO2.MaxSliceSize, 0);
 
+
     if (IsOn(CO3.EnableQPOffset))
     {
         mfxI16 QPX = (par.mfx.GopRefDist == 1) ? par.mfx.QPP : par.mfx.QPB;
@@ -1393,7 +1580,35 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     }
 
 
+#ifdef MFX_ENABLE_HEVCE_ROI
+    if (ROI->NumROI) {   // !!! if ENCODE_BLOCKQPDATA is provided NumROI is assumed to be 0
+        mfxU16 NumROI = ROI->NumROI;
+        sts = CheckAndFixRoi(par, caps, ROI, par.bROIViaMBQP);
+        if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM) {
+            changed++;
+        } else if (sts != MFX_ERR_NONE || ROI->NumROI != NumROI) {
+            ROI->NumROI = 0;
+            invalid++;
+        }
+    }
+#endif // MFX_ENABLE_HEVCE_ROI
 
+#ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
+    if (DirtyRect->NumRect) {
+        mfxU16 NumRect = DirtyRect->NumRect;
+        sts = CheckAndFixDirtyRect(caps, par, DirtyRect);
+        if (sts == MFX_ERR_INVALID_VIDEO_PARAM || DirtyRect->NumRect != NumRect) {
+            invalid++;
+        }
+        else if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM) {
+            changed++;
+        }
+        else if (sts != MFX_ERR_NONE) {
+            if (bInit) invalid++;
+            else changed++;
+        }
+    }
+#endif // MFX_ENABLE_HEVCE_DIRTY_RECT
 
     if (CO3.EnableMBQP !=0 || par.bROIViaMBQP)
     {
@@ -1401,6 +1616,14 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
             changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON); 
         else if (caps.MbQpDataSupport == 0)
         {
+#ifdef MFX_ENABLE_HEVCE_ROI
+            if (par.bROIViaMBQP)
+            {
+                ROI->NumROI = 0;
+                invalid++;
+                par.bROIViaMBQP = false;
+            }
+#endif
             changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_OFF);
         }
 
@@ -1439,8 +1662,38 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     }
 
 
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+    changed += CheckOption(CO3.WeightedPred
+        , (mfxU16)MFX_WEIGHTED_PRED_UNKNOWN
+        , (mfxU16)MFX_WEIGHTED_PRED_DEFAULT
+        , caps.NoWeightedPred ? 0 : MFX_WEIGHTED_PRED_EXPLICIT);
+
+    changed += CheckOption(CO3.WeightedBiPred
+        , (mfxU16)MFX_WEIGHTED_PRED_UNKNOWN
+        , (mfxU16)MFX_WEIGHTED_PRED_DEFAULT
+        , caps.NoWeightedPred ? 0 : MFX_WEIGHTED_PRED_EXPLICIT);
+
+#if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+    if (caps.NoWeightedPred || par.m_platform.CodeName < MFX_PLATFORM_ICELAKE)
+    {
+        changed += CheckOption(CO3.FadeDetection
+            , (mfxU16)MFX_CODINGOPTION_UNKNOWN
+            , (mfxU16)MFX_CODINGOPTION_OFF);
+    }
+    else
+    {
+        changed += CheckTriStateOption(CO3.FadeDetection);
+    }
+#endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 
 
+#if (MFX_VERSION >= 1025)
+    if (par.mfx.EncodedOrder)
+        changed += CheckOption(CO3.EnableNalUnitType, MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF, MFX_CODINGOPTION_UNKNOWN);
+    else
+        changed += CheckOption(CO3.EnableNalUnitType, MFX_CODINGOPTION_OFF, MFX_CODINGOPTION_UNKNOWN);
+#endif
 
     sts = CheckProfile(par, par.m_platform.CodeName);
 
@@ -1449,6 +1702,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM) changed +=1;
         sts = CorrectLevel(par, false);
     }
+
 
     if (sts == MFX_ERR_NONE && changed)
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
@@ -1789,6 +2043,38 @@ void SetDefaults(
     }
 
 
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+
+#if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+    if (!CO3.FadeDetection)
+        CO3.FadeDetection = MFX_CODINGOPTION_OFF;
+#endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+
+    if (!CO3.WeightedPred)
+    {
+        CO3.WeightedPred =
+#if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+            IsOn(CO3.FadeDetection) ? (mfxU16)MFX_WEIGHTED_PRED_EXPLICIT :
+#endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+                (mfxU16)MFX_WEIGHTED_PRED_DEFAULT;
+    }
+
+    if (!CO3.WeightedBiPred)
+    {
+        CO3.WeightedBiPred =
+#if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+            IsOn(CO3.FadeDetection) ? (mfxU16)MFX_WEIGHTED_PRED_EXPLICIT :
+#endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+                (mfxU16)MFX_WEIGHTED_PRED_DEFAULT;
+    }
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+
+#if (MFX_VERSION >= 1025)
+    if (par.mfx.EncodedOrder)
+        CO3.EnableNalUnitType = MFX_CODINGOPTION_ON;
+    else
+        CO3.EnableNalUnitType = MFX_CODINGOPTION_OFF;
+#endif
 
 
 }

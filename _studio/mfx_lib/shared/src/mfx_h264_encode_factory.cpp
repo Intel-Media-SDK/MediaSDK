@@ -25,6 +25,9 @@
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
 
 #include "mfx_h264_encode_interface.h"
+#ifdef MFX_ENABLE_MFE
+#include "libmfx_core_interface.h"
+#endif
 #if defined (MFX_VA_LINUX)
     #include "mfx_h264_encode_vaapi.h"
 
@@ -49,6 +52,21 @@ DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 
 } // DriverEncoder* MfxHwH264Encode::CreatePlatformH264Encoder( VideoCORE* core )
 
+#if defined(MFX_ENABLE_MFE) && !defined(AS_H264LA_PLUGIN)
+MFEVAAPIEncoder* MfxHwH264Encode::CreatePlatformMFEEncoder(VideoCORE* core)
+{
+    assert( core );
+
+    // needs to search, thus use special GUID
+    ComPtrCore<MFEVAAPIEncoder> *pVideoEncoder = QueryCoreInterface<ComPtrCore<MFEVAAPIEncoder> >(core, MFXMFEDDIENCODER_SEARCH_GUID);
+    if (!pVideoEncoder) return NULL;
+    if (!pVideoEncoder->get())
+        *pVideoEncoder = new MFEVAAPIEncoder;
+
+    return pVideoEncoder->get();
+
+} // MFEVAAPIEncoder* MfxHwH264Encode::CreatePlatformMFEEncoder( VideoCORE* core )
+#endif
 
 
 #endif // #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)

@@ -204,7 +204,6 @@ struct sInputParams
 
     sOwnFrameInfo inFrameInfo[MAX_INPUT_STREAMS];
     mfxU16        numStreams;
-    sOwnFrameInfo outFrameInfo;
 
     sCompositionParam   compositionParam;
 
@@ -233,7 +232,6 @@ struct sInputParams
         MSDK_ZERO_MEMORY(strSrcFile);
         MSDK_ZERO_MEMORY(strPerfFile);
         MSDK_ZERO_MEMORY(inFrameInfo);
-        MSDK_ZERO_MEMORY(outFrameInfo);
         MSDK_ZERO_MEMORY(compositionParam);
         MSDK_ZERO_MEMORY(roiCheckParam);
 
@@ -333,7 +331,6 @@ private:
 
     PTSMaker                             *m_pPTSMaker;
     mfxU32                                m_initFcc;
-    bool m_inI420;
 };
 
 class CRawVideoWriter

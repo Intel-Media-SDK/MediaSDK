@@ -25,8 +25,8 @@ set( MFX_API_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../include )
 
 # While equal to get_mfx_version in samples/builder, this function should remain separate to make this file self-sufficient 
 function( get_api_version mfx_version_major mfx_version_minor )
-  file(STRINGS ${MFX_API_FOLDER}/mfxvideo.h major REGEX "#define MFX_VERSION_MAJOR")
-  file(STRINGS ${MFX_API_FOLDER}/mfxvideo.h minor REGEX "#define MFX_VERSION_MINOR")
+  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR")
+  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h minor REGEX "#define MFX_VERSION_MINOR")
   string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
   string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
   set(${mfx_version_major} ${major} PARENT_SCOPE)
@@ -36,13 +36,37 @@ endfunction()
 set( CMAKE_VERBOSE_MAKEFILE             TRUE )
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
-if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
+if( CMAKE_SYSTEM_NAME MATCHES Windows )
   add_definitions(-DMINGW_HAS_SECURE_API -DWIN32)
 
   if(__ARCH MATCHES intel64)
     add_definitions(-DWIN64)
   endif( )
 else( )
+
+  # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
+  # to /opt/intel/mediasdk instead of cmake's default
+  if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+    set( CMAKE_INSTALL_PREFIX /opt/intel/mediasdk CACHE PATH "Install Path Prefix" FORCE )
+  endif( )
+  message( STATUS "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" )
+
+  if( NOT DEFINED MFX_PLUGINS_DIR )
+    set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_PREFIX}/plugins )
+  endif( )
+  add_definitions( -DMFX_PLUGINS_DIR="${MFX_PLUGINS_DIR}" )
+  message( STATUS "MFX_PLUGINS_DIR=${MFX_PLUGINS_DIR}" )
+
+  if( NOT DEFINED MFX_MODULES_DIR )
+    if(__ARCH MATCHES intel64)
+        set( MFX_MODULES_DIR ${CMAKE_INSTALL_PREFIX}/lib64 )
+    else( )
+        set( MFX_MODULES_DIR ${CMAKE_INSTALL_PREFIX}/lib )
+    endif( )
+  endif( )
+  add_definitions( -DMFX_MODULES_DIR="${MFX_MODULES_DIR}" )
+  message( STATUS "MFX_MODULES_DIR=${MFX_MODULES_DIR}" )
+
   add_definitions(-DUNIX)
 
   if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
@@ -65,8 +89,8 @@ else( )
   set(no_warnings "-Wno-unknown-pragmas -Wno-unused")
 
   set(CMAKE_CXX_FLAGS "-pipe -fPIC")
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -Wall ${no_warnings} -g -D_DEBUG" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings} -DNDEBUG"    CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -Wall ${no_warnings} -Wformat -Wformat-security -g -D_DEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings} -Wformat -Wformat-security  -DNDEBUG")
 
   if (DEFINED CMAKE_FIND_ROOT_PATH)
     append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
@@ -127,6 +151,14 @@ endfunction( )
 set( defs "${WARNING_FLAGS}" )
 make_static_library( mfx )
 
+if(__ARCH MATCHES intel64)
+  install( TARGETS mfx ARCHIVE DESTINATION lib64 )
+else( )
+  install( TARGETS mfx ARCHIVE DESTINATION lib )
+endif( )
+
+install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION include FILES_MATCHING PATTERN *.h )
+
 set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX ${WARNING_FLAGS}" )
 make_static_library( dispatch_shared )
 
@@ -139,17 +171,13 @@ make_static_library( dispatch_trace )
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
 set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME}.pc")
-
-set( INSTALL_LIB_PATH "lib/lin_x86" )
-if(__ARCH MATCHES intel64)
-  set( INSTALL_LIB_PATH "lib/lin_x64" )
-endif( )
-
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
 
-install( TARGETS mfx ARCHIVE DESTINATION ${INSTALL_LIB_PATH} )
-install( TARGETS dispatch_shared ARCHIVE DESTINATION ${INSTALL_LIB_PATH} )
-install( TARGETS dispatch_trace ARCHIVE DESTINATION ${INSTALL_LIB_PATH} )
-install( FILES ${PKG_CONFIG_FNAME} DESTINATION "${INSTALL_LIB_PATH}/pkgconfig" )
-
+if(__ARCH MATCHES intel64)
+  install( TARGETS mfx ARCHIVE DESTINATION lib/lin_x64 )
+  install( FILES ${PKG_CONFIG_FNAME} DESTINATION lib/lin_x64/pkgconfig )
+else( )
+  install( TARGETS mfx ARCHIVE DESTINATION lib/lin_x86 )
+  install( FILES ${PKG_CONFIG_FNAME} DESTINATION lib/lin_x86/pkgconfig )
+endif( )
 install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION include FILES_MATCHING PATTERN *.h )

@@ -1053,7 +1053,7 @@ UMC::Status TaskSupplier_H265::xDecodeSPS(H265HeadersBitstream *bs)
     sps.NumPartitionsInCU = 1 << (sps.MaxCUDepth << 1);
     sps.NumPartitionsInFrameWidth = sps.WidthInCU * sps.NumPartitionsInCUSize;
 
-    uint8_t newDPBsize = (uint8_t)CalculateDPBSize(sps.getPTL()->GetGeneralPTL()->level_idc,
+    uint8_t newDPBsize = (uint8_t)CalculateDPBSize(sps.getPTL()->GetGeneralPTL()->profile_idc, sps.getPTL()->GetGeneralPTL()->level_idc,
                                 sps.pic_width_in_luma_samples,
                                 sps.pic_height_in_luma_samples,
                                 sps.sps_max_dec_pic_buffering[HighestTid]);
@@ -1072,7 +1072,7 @@ UMC::Status TaskSupplier_H265::xDecodeSPS(H265HeadersBitstream *bs)
         for (size_t i = 0; i < sizeof(levelIndexArray)/sizeof(levelIndexArray[0]); i++)
         {
             level_idc = levelIndexArray[i];
-            newDPBsize = (uint8_t)CalculateDPBSize(level_idc,
+            newDPBsize = (uint8_t)CalculateDPBSize(sps.getPTL()->GetGeneralPTL()->profile_idc, level_idc,
                                     sps.pic_width_in_luma_samples,
                                     sps.pic_height_in_luma_samples,
                                     sps.sps_max_dec_pic_buffering[HighestTid]);
@@ -1460,9 +1460,9 @@ H265DecoderFrame *TaskSupplier_H265::GetFrameToDisplayInternal(bool force)
     {
     // show oldest frame
 
-    uint32_t countDisplayable;
-    int32_t maxUID;
-    uint32_t countDPBFullness;
+    uint32_t countDisplayable = 0;
+    int32_t maxUID = 0;
+    uint32_t countDPBFullness = 0;
 
     view.pDPB->calculateInfoForDisplay(countDisplayable, countDPBFullness, maxUID);
     DEBUG_PRINT1((VM_STRING("GetAnyFrameToDisplay DPB displayable %d, maximum %d, force = %d\n"), countDisplayable, view.maxDecFrameBuffering, force));
@@ -1895,12 +1895,13 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
     }
 
     pSlice->SetPicParam(m_Headers.m_PicParams.GetHeader(pps_pid));
-    if (!pSlice->GetPicParam())
+    H265PicParamSet const* pps = pSlice->GetPicParam();
+    if (!pps)
     {
         return 0;
     }
 
-    int32_t seq_parameter_set_id = pSlice->GetPicParam()->pps_seq_parameter_set_id;
+    int32_t seq_parameter_set_id = pps->pps_seq_parameter_set_id;
 
     pSlice->SetSeqParam(m_Headers.m_SeqParams.GetHeader(seq_parameter_set_id));
     if (!pSlice->GetSeqParam())
@@ -1911,8 +1912,8 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
     // do not need vps
     //H265VideoParamSet * vps = m_Headers.m_VideoParams.GetHeader(pSlice->GetSeqParam()->sps_video_parameter_set_id);
 
-    m_Headers.m_SeqParams.SetCurrentID(pSlice->GetPicParam()->pps_seq_parameter_set_id);
-    m_Headers.m_PicParams.SetCurrentID(pSlice->GetPicParam()->pps_pic_parameter_set_id);
+    m_Headers.m_SeqParams.SetCurrentID(pps->pps_seq_parameter_set_id);
+    m_Headers.m_PicParams.SetCurrentID(pps->pps_pic_parameter_set_id);
 
     pSlice->m_pCurrentFrame = NULL;
 
@@ -1923,17 +1924,28 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
         return 0;
     }
 
+    H265SliceHeader * sliceHdr = pSlice->GetSliceHeader();
+    VM_ASSERT(sliceHdr);
+
     if (m_WaitForIDR)
     {
-        if (pSlice->GetSliceHeader()->slice_type != I_SLICE)
+        if (pps->pps_curr_pic_ref_enabled_flag)
+        {
+            ReferencePictureSet const* rps = pSlice->getRPS();
+            VM_ASSERT(rps);
+
+            uint32_t const numPicTotalCurr = rps->getNumberOfUsedPictures();
+            if (numPicTotalCurr)
+                return 0;
+        }
+        else if (sliceHdr->slice_type != I_SLICE)
         {
             return 0;
         }
     }
 
-    ActivateHeaders(const_cast<H265SeqParamSet *>(pSlice->GetSeqParam()), const_cast<H265PicParamSet *>(pSlice->GetPicParam()));
+    ActivateHeaders(const_cast<H265SeqParamSet *>(pSlice->GetSeqParam()), const_cast<H265PicParamSet *>(pps));
 
-    H265SliceHeader * sliceHdr = pSlice->GetSliceHeader();
     uint32_t currOffset = sliceHdr->m_HeaderBitstreamOffset;
     uint32_t currOffsetWithEmul = currOffset;
 
@@ -1948,13 +1960,14 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
 
     // Update entry points
     size_t offsets = removed_offsets.size();
-    if (pSlice->GetPicParam()->tiles_enabled_flag && pSlice->getTileLocationCount() > 0 && offsets > 0)
+    if ((pSlice->GetPicParam()->tiles_enabled_flag || pSlice->GetPicParam()->entropy_coding_sync_enabled_flag) &&
+        pSlice->getTileLocationCount() > 0 && offsets > 0)
     {
         uint32_t removed_bytes = 0;
         std::vector<uint32_t>::iterator it = removed_offsets.begin();
         uint32_t emul_offset = *it;
 
-        for (int32_t tile = 0; tile < (int32_t)pSlice->getTileLocationCount(); tile++)
+        for (uint32_t tile = 0; tile < pSlice->getTileLocationCount(); tile++)
         {
             while ((pSlice->m_tileByteLocation[tile] + currOffsetWithEmul >= emul_offset) && removed_bytes < offsets)
             {
@@ -1980,7 +1993,7 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
         }
     }
 
-    for (int32_t tile = 0; tile < pSlice->getTileLocationCount(); tile++)
+    for (uint32_t tile = 0; tile < pSlice->getTileLocationCount(); tile++)
     {
         pSlice->m_tileByteLocation[tile] = pSlice->m_tileByteLocation[tile] + currOffset;
     }
@@ -2186,15 +2199,21 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
 
     if (pSlice->m_SliceHeader.slice_type != I_SLICE)
     {
-        uint32_t NumShortTermRefs, NumLongTermRefs;
+        uint32_t NumShortTermRefs = 0, NumLongTermRefs = 0;
         view.pDPB->countActiveRefs(NumShortTermRefs, NumLongTermRefs);
 
         if (NumShortTermRefs + NumLongTermRefs == 0)
             AddFakeReferenceFrame(pSlice);
     }
 
+    H265PicParamSet const* pps = pSlice->GetPicParam();
+    VM_ASSERT(pps);
+
+    H265DecoderFrame* curr_ref = pps->pps_curr_pic_ref_enabled_flag ?
+        AddSelfReferenceFrame(pSlice) : nullptr;
+
     // Set reference list
-    pSlice->UpdateReferenceList(GetView()->pDPB.get());
+    pSlice->UpdateReferenceList(GetView()->pDPB.get(), curr_ref);
 
     return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 }
@@ -2203,6 +2222,14 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
 void TaskSupplier_H265::AddFakeReferenceFrame(H265Slice *)
 {
 // need to add absent ref frame logic
+}
+
+H265DecoderFrame* TaskSupplier_H265::AddSelfReferenceFrame(H265Slice* slice)
+{
+    VM_ASSERT(slice);
+
+    return
+        slice->GetCurrentFrame();
 }
 
 
@@ -2255,9 +2282,9 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
         return;
     }
 
-    slicesInfo->CheckSlices();
-
     slicesInfo->EliminateASO();
+
+    slicesInfo->EliminateErrors();
 
 
     slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_FILLED);
@@ -2543,7 +2570,7 @@ uint32_t GetLevelIDCIndex(uint32_t level_idc)
 }
 
 // Calculate maximum DPB size based on level and resolution
-int32_t __CDECL CalculateDPBSize(uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
+int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
 {
     // can increase level_idc to hold num_ref_frames
     uint32_t lumaPsArray[] = { 36864, 122880, 245760, 552960, 983040, 2228224, 2228224, 8912896, 8912896, 8912896, 35651584, 35651584, 35651584 };
@@ -2554,7 +2581,9 @@ int32_t __CDECL CalculateDPBSize(uint32_t &level_idc, int32_t width, int32_t hei
         uint32_t index = GetLevelIDCIndex(level_idc);
 
         uint32_t MaxLumaPs = lumaPsArray[index];
-        uint32_t maxDpbPicBuf = 6;
+        uint32_t const maxDpbPicBuf =
+            6;//HW handles second version of current reference (twoVersionsOfCurrDecPicFlag) itself
+        profile_idc;
 
         uint32_t PicSizeInSamplesY = width * height;
 

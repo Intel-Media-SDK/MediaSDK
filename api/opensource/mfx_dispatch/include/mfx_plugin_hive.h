@@ -32,16 +32,6 @@ struct MFX_DISP_HANDLE;
 
 namespace MFX {
 
-    enum 
-    {
-        MAX_PLUGIN_PATH = 4096
-    };
-    
-    enum
-    {
-        MAX_PLUGIN_NAME = 4096
-    };
-
     inline bool operator == (const mfxPluginUID &lhs, const mfxPluginUID & rhs) 
     {
         return !memcmp(lhs.Data, rhs.Data, sizeof(mfxPluginUID));
@@ -51,10 +41,6 @@ namespace MFX {
     {
         return !(lhs == rhs);
     }
-#ifdef _WIN32
-    //warning C4351: new behavior: elements of array 'MFX::PluginDescriptionRecord::sName' will be default initialized
-    #pragma warning (disable: 4351)
-#endif
     class PluginDescriptionRecord :  public mfxPluginParam 
     {
     public:
@@ -98,6 +84,7 @@ namespace MFX {
         MFXPluginsInHive(int mfxStorageID, const msdk_disp_char *msdkLibSubKey, mfxVersion currentAPIVersion);
     };
 
+#if !defined(MEDIASDK_UWP_LOADER) && !defined(MEDIASDK_UWP_PROCTABLE)
     //plugins are loaded from FS close to executable
     class MFXPluginsInFS : public MFXPluginStorageBase
     {
@@ -109,7 +96,7 @@ namespace MFX {
         bool ParseFile(FILE * f, PluginDescriptionRecord & des);
         bool ParseKVPair( msdk_disp_char *key, msdk_disp_char * value, PluginDescriptionRecord & des);
     };
-
+#endif // !defined(MEDIASDK_UWP_LOADER) && !defined(MEDIASDK_UWP_PROCTABLE)
 
     //plugins are loaded from FS close to Runtime library
     class MFXDefaultPlugins : public MFXPluginStorageBase

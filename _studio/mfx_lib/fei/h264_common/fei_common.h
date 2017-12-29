@@ -54,6 +54,7 @@
 
 namespace MfxH264FEIcommon
 {
+#if MFX_VERSION >= 1023
 
     template <typename T>
     void ConfigureTaskFEI(
@@ -61,6 +62,16 @@ namespace MfxH264FEIcommon
         MfxHwH264Encode::DdiTask       const & prevTask,
         MfxHwH264Encode::MfxVideoParam       & video,
         T * inParams);
+#else
+    template <typename T, typename U>
+    void ConfigureTaskFEI(
+        MfxHwH264Encode::DdiTask             & task,
+        MfxHwH264Encode::DdiTask       const & prevTask,
+        MfxHwH264Encode::MfxVideoParam       & video,
+        T * inParams,
+        U * outParams,
+        std::map<mfxU32, mfxU32> &      frameOrder_frameNum);
+#endif //MFX_VERSION >= 1023
 
     template <typename T>
     bool FirstFieldProcessingDone(T* inParams, const MfxHwH264Encode::DdiTask & task);
@@ -92,12 +103,16 @@ namespace MfxH264FEIcommon
     bool IsRunTimeInputExtBufferIdSupported(const MfxHwH264Encode::MfxVideoParam & owned_video, mfxU32 id);
     bool IsRunTimeOutputExtBufferIdSupported(const MfxHwH264Encode::MfxVideoParam & owned_video, mfxU32 id);
 
+    bool IsRunTimeExtBufferPairRequired(const MfxHwH264Encode::MfxVideoParam & owned_video, mfxU32 id);
+
     bool CheckSliceHeaderReferenceList(mfxExtFeiSliceHeader::mfxSlice::mfxSliceRef * ref, mfxU16 num_idx_active);
 
+#if MFX_VERSION >= 1023
     template <typename T, typename U>
     mfxStatus CheckDPBpairCorrectness(T* input, U* output, mfxExtFeiPPS* extFeiPPSinRuntime, const MfxHwH264Encode::MfxVideoParam & owned_video);
 
     mfxStatus CheckOneDPBCorrectness(mfxExtFeiPPS::mfxExtFeiPpsDPB* DPB, const MfxHwH264Encode::MfxVideoParam & owned_video, bool is_IDR_field = false);
+#endif // MFX_VERSION >= 1023
 };
 
 #endif

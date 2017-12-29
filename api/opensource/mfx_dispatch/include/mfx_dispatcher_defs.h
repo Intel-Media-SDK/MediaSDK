@@ -27,17 +27,9 @@
 #include <string.h>
 #endif
 
-#if defined(_WIN32) || defined(_WIN64)
-typedef wchar_t  msdk_disp_char;
-#define MSDK2WIDE(x) x
+#define MAX_PLUGIN_PATH 4096
+#define MAX_PLUGIN_NAME 4096
 
-#if _MSC_VER >= 1400
-    #define msdk_disp_char_cpy_s(to, to_size, from) wcscpy_s(to,to_size, from)
-#else
-    #define msdk_disp_char_cpy_s(to, to_size, from) wcscpy(to, from)
-#endif
-
-#else
 typedef char msdk_disp_char;
 //#define msdk_disp_char_cpy_s(to, to_size, from) strcpy(to, from)
 
@@ -61,9 +53,8 @@ inline std::wstring getWideString(const char * string)
     #define MSDK2WIDE(x) x  
 #endif
 
-#endif
 
-#if defined(__GNUC__) && !defined(_WIN32) && !defined(_WIN64)
+#if defined(__GNUC__)
 #define  sscanf_s  sscanf
 #define  swscanf_s swscanf
 #endif

@@ -170,13 +170,10 @@ enum
     HW_SURF_ALIGN_W         = 16,
     HW_SURF_ALIGN_H         = 16,
 
-    HW_SURF_ALIGN_LOWPOWER_W  = 32,
-    HW_SURF_ALIGN_LOWPOWER_H  = HW_SURF_ALIGN_H,
-
     CODED_PIC_ALIGN_W       = 16,
     CODED_PIC_ALIGN_H       = 16,
-//    DEFAULT_LCU_SIZE        = 32,
-    MAX_SLICES              = 200,
+
+    MAX_SLICES              = 600,
     DEFAULT_LTR_INTERVAL    = 16,
 
     MAX_NUM_ROI             = 8,
@@ -373,6 +370,10 @@ typedef struct _Task : DpbFrame
     mfxU16        m_numRoi;
     bool          m_bPriorityToDQPpar;
 
+#ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
+    RectData      m_dirtyRect[MAX_NUM_DIRTY_RECT];
+    mfxU16        m_numDirtyRect;
+#endif  // MFX_ENABLE_HEVCE_DIRTY_RECT
 
     mfxU16        m_SkipMode;
 
@@ -422,7 +423,6 @@ namespace ExtBuffer
          MFX_EXTBUFF_VIDEO_SIGNAL_INFO,
          MFX_EXTBUFF_LOOKAHEAD_STAT,
          MFX_EXTBUFF_BRC,
-         MFX_EXTBUFF_ENCODED_SLICES_INFO,
          MFX_EXTBUFF_MBQP,
          MFX_EXTBUFF_ENCODER_ROI,
          MFX_EXTBUFF_DIRTY_RECTANGLES,
@@ -447,11 +447,13 @@ namespace ExtBuffer
         EXTBUF(mfxExtVideoSignalInfo,       MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
         EXTBUF(mfxExtEncoderCapability,     MFX_EXTBUFF_ENCODER_CAPABILITY);
         EXTBUF(mfxExtLAFrameStatistics,     MFX_EXTBUFF_LOOKAHEAD_STAT);
-        EXTBUF(mfxExtEncodedSlicesInfo,     MFX_EXTBUFF_ENCODED_SLICES_INFO);
         EXTBUF(mfxExtEncoderROI,            MFX_EXTBUFF_ENCODER_ROI);
         EXTBUF(mfxExtDirtyRect,             MFX_EXTBUFF_DIRTY_RECTANGLES);
         EXTBUF(mfxExtBRC,                   MFX_EXTBUFF_BRC);
         EXTBUF(mfxExtMBQP,                  MFX_EXTBUFF_MBQP);
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+        EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
     #undef EXTBUF
 
     #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
@@ -522,7 +524,16 @@ namespace ExtBuffer
         _CopyPar1(EnableMBQP);
         _CopyPar1(WinBRCMaxAvgKbps);
         _CopyPar1(WinBRCSize);
-
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+        _CopyPar1(WeightedPred);
+        _CopyPar1(WeightedBiPred);
+#if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+        _CopyPar1(FadeDetection);
+#endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#if (MFX_VERSION >= 1025)
+        _CopyPar1(EnableNalUnitType);
+#endif
     }
 
     inline void  CopySupportedParams(mfxExtCodingOptionDDI& buf_dst, mfxExtCodingOptionDDI& buf_src)
@@ -530,6 +541,7 @@ namespace ExtBuffer
         _CopyPar1(NumActiveRefBL0);
         _CopyPar1(NumActiveRefBL1);
         _CopyPar1(LCUSize);
+        _CopyPar1(QpAdjust);
     }
     inline void  CopySupportedParams(mfxExtEncoderCapability& buf_dst, mfxExtEncoderCapability& buf_src)
     {
@@ -746,6 +758,9 @@ public:
         mfxU32 NumLCU;
     };
     std::vector<SliceInfo> m_slice;
+#ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
+    ENCODE_RECT m_dirtyRects[MAX_NUM_DIRTY_RECT];
+#endif
 
     struct
     {
@@ -759,7 +774,6 @@ public:
         mfxExtAvcTemporalLayers     AVCTL;
         mfxExtVideoSignalInfo       VSI;
         mfxExtBRC                   extBRC;
-        mfxExtEncodedSlicesInfo     SliceInfo;
         mfxExtEncoderROI            ROI;
         mfxExtDirtyRect             DirtyRect;
         mfxExtEncoderResetOption   ResetOpt;
@@ -1157,6 +1171,10 @@ public:
          return m_mode == HEVC_SKIPFRAME_BRC_ONLY;
     }
 };
+inline mfxI32 GetFrameNum(bool bField, mfxI32 Poc, bool bSecondField)
+{
+    return bField ? (Poc + (!bSecondField)) / 2 : Poc;
+}
 
 }; //namespace MfxHwH265Encode
 #endif

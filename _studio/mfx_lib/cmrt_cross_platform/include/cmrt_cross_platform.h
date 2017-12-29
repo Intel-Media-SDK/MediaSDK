@@ -1025,6 +1025,12 @@ typedef struct _CM_MISC_STATE_MSG {
     }DW7;
 } CM_MISC_STATE_MSG;
 
+typedef enum _CM_FASTCOPY_OPTION
+{
+    CM_FASTCOPY_OPTION_NONBLOCKING  = 0x00,
+    CM_FASTCOPY_OPTION_BLOCKING     = 0x01
+} CM_FASTCOPY_OPTION;
+
 /* End of Applicable for old and new CMAPI */
 
 

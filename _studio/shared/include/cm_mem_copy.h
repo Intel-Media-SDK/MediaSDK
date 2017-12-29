@@ -104,7 +104,7 @@ public:
         return m_pCmDevice;
     };
 
-#if defined(MFX_VA_LINUX) || defined(MFX_VA_ANDROID)
+#if defined(MFX_VA_LINUX)
     CmDevice* GetCmDevice(VADisplay dpy)
     {
         cmStatus cmSts = CM_SUCCESS;

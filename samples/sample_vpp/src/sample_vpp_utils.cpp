@@ -274,15 +274,18 @@ mfxStatus ParseGUID(msdk_char strPlgGuid[MSDK_MAX_FILENAME_LEN], mfxU8 DataGUID[
 
     return MFX_ERR_NONE;
 }
+
 mfxStatus InitParamsVPP(mfxVideoParam* pParams, sInputParams* pInParams, mfxU32 paramID)
 {
     MSDK_CHECK_POINTER(pParams,    MFX_ERR_NULL_PTR);
     MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
 
-    if (pInParams->frameInfoIn[paramID].nWidth == 0 || pInParams->frameInfoIn[paramID].nHeight == 0 ){
+    if (pInParams->compositionParam.mode != VPP_FILTER_ENABLED_CONFIGURED && (pInParams->frameInfoIn[paramID].nWidth == 0 || pInParams->frameInfoIn[paramID].nHeight == 0)){
+        vppPrintHelp(MSDK_STRING("sample_vpp"), MSDK_STRING("ERROR: Source width is not defined.\n"));
         return MFX_ERR_UNSUPPORTED;
     }
     if (pInParams->frameInfoOut[paramID].nWidth == 0 || pInParams->frameInfoOut[paramID].nHeight == 0 ){
+        vppPrintHelp(MSDK_STRING("sample_vpp"), MSDK_STRING("ERROR: Source height is not defined.\n"));
         return MFX_ERR_UNSUPPORTED;
     }
 
@@ -795,7 +798,7 @@ CRawVideoReader::CRawVideoReader()
     m_isPerfMode = false;
     m_Repeat = 0;
     m_pPTSMaker = 0;
-    m_inI420=false;
+    m_initFcc = 0;
 }
 
 mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMaker, mfxU32 fcc)
@@ -808,7 +811,6 @@ mfxStatus CRawVideoReader::Init(const msdk_char *strFileName, PTSMaker *pPTSMake
     MSDK_CHECK_POINTER(m_fSrc, MFX_ERR_ABORTED);
 
     m_pPTSMaker = pPTSMaker;
-    m_inI420 = fcc == MFX_FOURCC_I420 || fcc == MFX_FOURCC_YV12 ? true : false;
     m_initFcc = fcc;
     return MFX_ERR_NONE;
 }
@@ -874,14 +876,14 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
         h     >>= 1;
         pitch >>= 1;
         // load U/V
-        ptr = (pInfo->FourCC == MFX_FOURCC_I420 || m_inI420 ? pData->U : pData->V) + (pInfo->CropX >> 1) + (pInfo->CropY >> 1) * pitch;
+        ptr = (pInfo->FourCC == MFX_FOURCC_I420 ? pData->U : pData->V) + (pInfo->CropX >> 1) + (pInfo->CropY >> 1) * pitch;
         for(i = 0; i < h; i++)
         {
             nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, w, m_fSrc);
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w, MFX_ERR_MORE_DATA);
         }
         // load V/U
-        ptr  = (pInfo->FourCC == MFX_FOURCC_I420 || m_inI420 ? pData->V : pData->U) + (pInfo->CropX >> 1) + (pInfo->CropY >> 1) * pitch;
+        ptr  = (pInfo->FourCC == MFX_FOURCC_I420 ? pData->V : pData->U) + (pInfo->CropX >> 1) + (pInfo->CropY >> 1) * pitch;
         for(i = 0; i < h; i++)
         {
             nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, w, m_fSrc);

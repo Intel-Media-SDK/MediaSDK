@@ -25,9 +25,11 @@
 #include "mfx_config.h"
 #include "vm_strings.h"
 
+#if (MFX_VERSION < 1025)
 enum {
     MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET = MFX_MEMTYPE_RESERVED2
 };
+#endif
 
 
 
@@ -87,13 +89,12 @@ typedef struct {
     mfxU16 RegressionWindow;        //
     mfxU16 LookAheadDependency;     // LookAheadDependency < LookAhead
     mfxU16 Hme;                     // tri-state
-
     mfxU16 LCUSize;                 // 32 or 64 - overrides default value of Largest Coding Unit
-
     mfxU16 WriteIVFHeaders;         // tri-state
     mfxU16 RefreshFrameContext;
     mfxU16 ChangeFrameContextIdxForTS;
     mfxU16 SuperFrameForTS;
+    mfxU16 QpAdjust;                // on/off - forces sps.QpAdjustment
 
 } mfxExtCodingOptionDDI;
 

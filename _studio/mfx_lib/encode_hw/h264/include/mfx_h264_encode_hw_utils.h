@@ -36,6 +36,9 @@
 #include "mfx_h264_encode_interface.h"
 #include "mfx_h264_encode_cm.h"
 #include "vm_time.h"
+//#include "asc.h"
+// Copy of SCD, using MfxHwH264Encode namespace, remove when SCD avaiable in MSDK
+#include "mfx_h264_scd.h"
 
 #ifndef _MFX_H264_ENCODE_HW_UTILS_H_
 #define _MFX_H264_ENCODE_HW_UTILS_H_
@@ -93,9 +96,20 @@ namespace MfxHwH264Encode
         DISP = 1
     };
 
-    static const mfxU32 NO_INDEX      = 0xffffffff;
-    static const mfxU8  NO_INDEX_U8   = 0xff;
-    static const mfxU16  NO_INDEX_U16 = 0xffff;
+    /*
+        NAL unit types for internal usage
+    */
+    enum {
+        NALU_NON_IDR = 1,
+        NALU_IDR = 5,
+        NALU_SEI = 6,
+        NALU_SPS = 7,
+        NALU_PPS = 8,
+        NALU_AUD = 9,
+        NALU_PREFIX = 14,
+        NALU_CODED_SLICE_EXT = 20,
+    };
+
 
     class DdiTask;
 
@@ -837,8 +851,11 @@ namespace MfxHwH264Encode
             : Reconstruct()
             , m_pushed(0)
             , m_type(0, 0)
+            , m_frcmplx(0)
             , m_dpb()
             , m_internalListCtrlPresent(false)
+            , m_internalListCtrlHasPriority(true)
+            , m_internalListCtrlRefModLTR(false)
             , m_initCpbRemoval(0)
             , m_initCpbRemovalOffset(0)
             , m_cpbRemoval(0, 0)
@@ -872,7 +889,9 @@ namespace MfxHwH264Encode
             , m_numMbPerSlice(0)
             , m_numSlice(0, 0)
             , m_numRoi(0)
+#if MFX_VERSION > 1021
             , m_roiMode(MFX_ROI_MODE_PRIORITY)
+#endif // #if MFX_VERSION > 1021
             , m_numDirtyRect(0)
             , m_numMovingRect(0)
             , m_did(0)
@@ -888,6 +907,7 @@ namespace MfxHwH264Encode
             , m_notProtected(false)
             , m_nextLayerTask(0)
             , m_repack(0)
+            , m_repackForBsDataLength(0)
             , m_fractionalQP(0)
             , m_midRaw(MID_INVALID)
             , m_midRec(MID_INVALID)
@@ -926,7 +946,22 @@ namespace MfxHwH264Encode
             , m_cmHistSys(0)
             , m_isENCPAK(false)
             , m_startTime(0)
+#ifdef MFX_ENABLE_MFE
+            , m_beginTime(0)
+            , m_endTime(0)
+            , m_flushMfe(0)
+            , m_mfeTimeToWait(0)
+            , m_userTimeout(false)
+#endif
             , m_hwType(MFX_HW_UNKNOWN)
+            , m_SceneChange(0)
+            , m_enabledSwBrcLtr(false)
+            , m_frameLtrOff(1)
+            , m_frameLtrRe(0)
+            , m_LtrOrder(-1)
+            , m_LtrQp(0)
+            , m_RefOrder(-1)
+            , m_RefQp(0)
         {
             Zero(m_ctrl);
             Zero(m_internalListCtrl);
@@ -977,6 +1012,7 @@ namespace MfxHwH264Encode
         mfxEncodeCtrl   m_ctrl;
         DdiTask *       m_pushed;         // task which was pushed to queue when this task was chosen for encoding
         Pair<mfxU8>     m_type;           // encoding type (one for each field)
+        mfxU16          m_frcmplx;        // Frame complexity
 
         // all info about references
         // everything is in pair because task is a per-frame object
@@ -992,6 +1028,8 @@ namespace MfxHwH264Encode
         // currently used for dpb control when svc temporal layers enabled
         mfxExtAVCRefListCtrl  m_internalListCtrl;
         bool                  m_internalListCtrlPresent;
+        bool                  m_internalListCtrlHasPriority;
+        bool                  m_internalListCtrlRefModLTR;
 
         mfxU32  m_initCpbRemoval;       // initial_cpb_removal_delay
         mfxU32  m_initCpbRemovalOffset; // initial_cpb_removal_delay_offset
@@ -1033,7 +1071,9 @@ namespace MfxHwH264Encode
 
         ArrayRoi        m_roi;
         mfxU16          m_numRoi;
+#if MFX_VERSION > 1021
         mfxU16          m_roiMode;
+#endif // MFX_VERSION > 1021
         ArrayRect       m_dirtyRect;
         mfxU16          m_numDirtyRect;
         ArrayMovingRect m_movingRect;
@@ -1057,6 +1097,7 @@ namespace MfxHwH264Encode
         bool m_notProtected;             // Driver returns not protected data
         DdiTask const * m_nextLayerTask; // set to 0 if no nextLayerResolutionChange
         mfxU32  m_repack;
+        mfxU16  m_repackForBsDataLength;
         mfxI32  m_fractionalQP; //if m_fractionalQP > 0 set it value in QM matrices
 
         mfxMemId        m_midRaw;       // self-allocated input surface (when app gives input frames in system memory)
@@ -1117,7 +1158,22 @@ namespace MfxHwH264Encode
         std::vector<SliceStructInfo> m_SliceInfo;
 
         mfxU32 m_startTime;
+#ifdef MFX_ENABLE_MFE
+        vm_tick m_beginTime;//where we start counting
+        vm_tick m_endTime;//where we get bitstream
+        mfxU16  m_flushMfe;//flush MFE frame buffer
+        mfxU32  m_mfeTimeToWait;//set by user or used equal to frame rate latency by default
+        bool m_userTimeout;
+#endif
         eMFXHWType m_hwType;  // keep HW type information
+        mfxU32 m_SceneChange;
+        bool   m_enabledSwBrcLtr;
+        mfxU32 m_frameLtrOff;
+        mfxU32 m_frameLtrRe;
+        mfxI32 m_LtrOrder;
+        mfxI32 m_LtrQp;
+        mfxI32 m_RefOrder;
+        mfxI32 m_RefQp;
     };
 
     typedef std::list<DdiTask>::iterator DdiTaskIter;
@@ -1832,6 +1888,12 @@ namespace MfxHwH264Encode
 
     protected:
 
+        ASC       amtScd;
+        mfxStatus SCD_Put_Frame(DdiTask & newTask);
+        void      SCD_Get_FrameType(DdiTask & newTask);
+        mfxStatus CalculateRaCa(DdiTask const & task, mfxU16 &raca);
+        void      Prd_LTR_Operation(DdiTask & newTask);
+
         mfxStatus UpdateBitstream(
             DdiTask & task,
             mfxU32    fid); // 0 - top/progressive, 1 - bottom
@@ -1926,6 +1988,7 @@ namespace MfxHwH264Encode
         mfxU32      m_frameOrder;
         mfxU32      m_baseLayerOrder;
         mfxU32      m_frameOrderIdrInDisplayOrder;    // frame order of last IDR frame (in display order)
+        mfxU32      m_frameOrderIfrInDisplayOrder;    // frame order of last I frame (in display order)
         mfxU32      m_frameOrderStartTScalStructure; // starting point of temporal scalability structure
 
         // parameters for Intra refresh
@@ -1981,6 +2044,11 @@ namespace MfxHwH264Encode
         std::vector<VmeData *>      m_tmpVmeData;
 
 
+        bool        m_enabledSwBrcLtr;
+        mfxI32      m_LtrQp;
+        mfxI32      m_LtrOrder;
+        mfxI32      m_RefQp;
+        mfxI32      m_RefOrder;
     };
 
 
@@ -2486,6 +2554,7 @@ namespace MfxHwH264Encode
         mfxU32 MaxNum_WeightedPredL0,
         mfxU32 MaxNum_WeightedPredL1);
 
+
     struct FindByFrameOrder
     {
         FindByFrameOrder(mfxU32 frameOrder) : m_frameOrder(frameOrder) {}
@@ -2535,7 +2604,6 @@ namespace MfxHwH264Encode
 
         return p;
     }
-
 }; // namespace MfxHwH264Encode
 
 #endif // _MFX_H264_ENCODE_HW_UTILS_H_

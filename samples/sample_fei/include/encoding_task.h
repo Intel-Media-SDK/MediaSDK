@@ -73,7 +73,11 @@ struct setElem
                 case MFX_EXTBUFF_FEI_ENC_QP:
                 {
                     mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(buffers[i]);
+#if MFX_VERSION >= 1023
                     pMbQP->NumMBAlloc = new_numMB;
+#else
+                    pMbQP->NumQPAlloc = new_numMB;
+#endif
                 }
                 break;
 
@@ -166,6 +170,17 @@ struct setElem
                 }
                 break;
 
+#if (MFX_VERSION >= 1025)
+                case MFX_EXTBUFF_FEI_REPACK_STAT:
+                {
+                    mfxExtFeiRepackStat* feiRepackStat = reinterpret_cast<mfxExtFeiRepackStat*>
+                                                         (buffers[i]);
+                    MSDK_SAFE_DELETE_ARRAY(feiRepackStat);
+                    i += num_of_fields;
+                }
+                break;
+#endif
+
                 case MFX_EXTBUFF_FEI_PREENC_MV_PRED:
                 {
                     mfxExtFeiPreEncMVPredictors* mvPreds = reinterpret_cast<mfxExtFeiPreEncMVPredictors*>(buffers[i]);
@@ -181,7 +196,11 @@ struct setElem
                 {
                     mfxExtFeiEncQP* qps = reinterpret_cast<mfxExtFeiEncQP*>(buffers[i]);
                     for (mfxU32 fieldId = 0; fieldId < num_of_fields; fieldId++){
+#if MFX_VERSION >= 1023
                         MSDK_SAFE_DELETE_ARRAY(qps[fieldId].MB);
+#else
+                        MSDK_SAFE_DELETE_ARRAY(qps[fieldId].QP);
+#endif
                     }
                     MSDK_SAFE_DELETE_ARRAY(qps);
                     i += num_of_fields;
@@ -475,7 +494,9 @@ public:
         mfxStatus sts = MFX_ERR_NONE;
 
         std::vector<mfxExtBuffer*> * workSet_in = NULL, *workSet_out = NULL, *buffers_in = NULL, *buffers_out = NULL;
+#if MFX_VERSION >= 1023
         std::vector<mfxExtBuffer*> PAK_buffers; // PAK input consists of subset of ENC input and output buffers
+#endif // MFX_VERSION >= 1023
 
         switch (interf)
         {
@@ -495,9 +516,16 @@ public:
             break;
 
         case PAK:
+#if MFX_VERSION >= 1023
             workSet_in = pak_in;
             PAK_buffers = GetPAKBuffers(is_I_frame ? bufset->I_bufs : bufset->PB_bufs);
             buffers_in = &PAK_buffers;
+#else
+            workSet_in  = pak_in;
+            workSet_out = pak_out;
+            buffers_in  = is_I_frame ? &bufset->I_bufs.out.buffers : &bufset->PB_bufs.out.buffers;
+            buffers_out = is_I_frame ? &bufset->I_bufs.in.buffers  : &bufset->PB_bufs.in.buffers;
+#endif // MFX_VERSION >= 1023
             break;
 
         default:
@@ -553,7 +581,11 @@ public:
             break;
 
         case PAK:
+#if MFX_VERSION >= 1023
             return input ? &pak_in[field] : NULL;
+#else
+            return input ? &pak_in[field] : &pak_out[field];
+#endif // MFX_VERSION >= 1023
             break;
 
         default:
@@ -632,6 +664,9 @@ private:
     std::vector<mfxExtBuffer*> enc_in[2]; // for ENC and ENCODE (sample_fei doesn't support pipelines with ENC and ENCODE simultaneously)
     std::vector<mfxExtBuffer*> enc_out[2];
     std::vector<mfxExtBuffer*> pak_in[2];
+#if MFX_VERSION < 1023
+    std::vector<mfxExtBuffer*> pak_out[2];
+#endif
 
     bool single_field_mode;
 };
@@ -703,8 +738,11 @@ struct iTaskParams
 struct iTask
 {
     explicit iTask(const iTaskParams & task_params)
-        : EncodedFrameSize(0)
-        , encoded(false)
+        :
+#if (MFX_VERSION >= 1024)
+        EncodedFrameSize(0),
+#endif
+          encoded(false)
         , bufs(NULL)
         , preenc_bufs(NULL)
         , ExtBuffersController(task_params.SingleFieldMode)
@@ -969,8 +1007,9 @@ struct iTask
     mfxPAKInput  PAK_in;
     mfxPAKOutput PAK_out;
 
+#if (MFX_VERSION >= 1024)
     mfxU32 EncodedFrameSize; //for BRC
-
+#endif
     BiFrameLocation m_loc;
     bool encoded;
     bufSet* bufs;
@@ -1035,6 +1074,34 @@ struct iTask
     iTask* prevTask;
 };
 
+#if MFX_VERSION < 1023
+/* This structure represents state of DPB and reference lists of the task being processed */
+struct RefInfo
+{
+    std::vector<mfxFrameSurface1*> reference_frames;
+    struct{
+        std::vector<mfxU16> dpb_idx;
+        std::vector<mfxU16> l0_idx;
+        std::vector<mfxU16> l1_idx;
+        std::vector<mfxU16> l0_parity;
+        std::vector<mfxU16> l1_parity;
+    } state[2];
+
+    void Clear()
+    {
+        reference_frames.clear();
+
+        for (mfxU32 fieldId = 0; fieldId < 2; ++fieldId)
+        {
+            state[fieldId].dpb_idx.clear();
+            state[fieldId].l0_idx.clear();
+            state[fieldId].l1_idx.clear();
+            state[fieldId].l0_parity.clear();
+            state[fieldId].l1_parity.clear();
+        }
+    }
+};
+#endif // MFX_VERSION < 1023
 
 /* Group of functions below implements some useful operations for current frame / field of the task:
    Frame type extraction, field parity, POC */

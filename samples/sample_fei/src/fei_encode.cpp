@@ -35,6 +35,9 @@ FEI_EncodeInterface::FEI_EncodeInterface(MFXVideoSession* session, mfxU32 allocI
     , m_pMBstat_out(NULL)
     , m_pMV_out(NULL)
     , m_pMBcode_out(NULL)
+#if (MFX_VERSION >= 1025)
+    , m_pRepackStat_out(NULL)
+#endif
 {
     MSDK_ZERO_MEMORY(m_mfxBS);
     MSDK_ZERO_MEMORY(m_videoParams);
@@ -101,6 +104,9 @@ FEI_EncodeInterface::~FEI_EncodeInterface()
     SAFE_FCLOSE(m_pMBstat_out);
     SAFE_FCLOSE(m_pMV_out);
     SAFE_FCLOSE(m_pMBcode_out);
+#if (MFX_VERSION >= 1025)
+    SAFE_FCLOSE(m_pRepackStat_out);
+#endif
 
     m_pAppConfig->PipelineCfg.pEncodeVideoParam = NULL;
 }
@@ -338,6 +344,18 @@ mfxStatus FEI_EncodeInterface::FillParameters()
         }
     }
 
+#if (MFX_VERSION >= 1025)
+    if (m_pRepackStat_out == NULL && m_pAppConfig->repackstatFile != NULL)
+    {
+        printf("Using Repack status output file: %s\n", m_pAppConfig->repackstatFile);
+        MSDK_FOPEN(m_pRepackStat_out, m_pAppConfig->repackstatFile, MSDK_CHAR("w"));
+        if (m_pRepackStat_out == NULL) {
+            mdprintf(stderr, "Can't open file %s\n", m_pAppConfig->repackstatFile);
+            exit(-1);
+        }
+    }
+#endif
+
     if (m_pENC_MBCtrl_in == NULL && m_pAppConfig->mbctrinFile != NULL)
     {
         printf("Using MB control input file: %s\n", m_pAppConfig->mbctrinFile);
@@ -504,7 +522,11 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(iTask* eTask)
                 if (m_pAppConfig->PipelineCfg.mixedPicstructs && (encodeSurface->Info.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) && !!mbQPID)
                     continue;
                 mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(*it);
+#if MFX_VERSION >= 1023
                 SAFE_FREAD(pMbQP->MB, sizeof(pMbQP->MB[0])*pMbQP->NumMBAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+#else
+                SAFE_FREAD(pMbQP->QP, sizeof(pMbQP->QP[0])*pMbQP->NumQPAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+#endif
                 mbQPID++;
             }
             break;
@@ -770,6 +792,24 @@ mfxStatus FEI_EncodeInterface::FlushOutput(iTask* eTask)
                 SAFE_FWRITE(mbcodeBuf->MB, sizeof(mbcodeBuf->MB[0])*mbcodeBuf->NumMBAlloc, 1, m_pMBcode_out, MFX_ERR_MORE_DATA);
             }
             break;
+
+#if (MFX_VERSION >= 1025)
+        case MFX_EXTBUFF_FEI_REPACK_STAT:
+            if (m_pRepackStat_out)
+            {
+                mfxExtFeiRepackStat* repackStat = reinterpret_cast<mfxExtFeiRepackStat*>
+                                                  (output_buffers[i]);
+                mfxI8 repackStatChar[64];
+                snprintf(repackStatChar, sizeof(repackStatChar),
+                         "FrameOrder %d: %d NumPasses\n",
+                         eTask?eTask->m_frameOrder:0, repackStat->NumPasses);
+                SAFE_FWRITE(repackStatChar, strlen(repackStatChar), 1,
+                            m_pRepackStat_out, MFX_ERR_MORE_DATA);
+                repackStat->NumPasses = 0;
+            }
+            break;
+#endif
+
         } // switch (output_buffers[i]->BufferId)
     } // for (mfxU32 i = 0; i < n_output_buffers; ++i)
 
@@ -803,6 +843,9 @@ mfxStatus FEI_EncodeInterface::ResetState()
     SAFE_FSEEK(m_pMBstat_out,    0, SEEK_SET, MFX_ERR_MORE_DATA);
     SAFE_FSEEK(m_pMV_out,        0, SEEK_SET, MFX_ERR_MORE_DATA);
     SAFE_FSEEK(m_pMBcode_out,    0, SEEK_SET, MFX_ERR_MORE_DATA);
+#if (MFX_VERSION >= 1025)
+    SAFE_FSEEK(m_pRepackStat_out,0, SEEK_SET, MFX_ERR_MORE_DATA);
+#endif
 
     return sts;
 }

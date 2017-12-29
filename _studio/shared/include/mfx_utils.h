@@ -27,12 +27,11 @@
 #include "mfx_trace.h"
 #include "mfx_timing.h"
 
-
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
 #else
 template <typename T>
-static inline T mfx_print_err(T sts, char *file, int line, char *func)
+static inline T mfx_print_err(T sts, const char *file, int line, const char *func)
 {
     if (sts)
     {
@@ -62,7 +61,9 @@ static inline T mfx_print_err(T sts, char *file, int line, char *func)
 
 static const mfxU32 MFX_TIME_STAMP_FREQUENCY = 90000; // will go to mfxdefs.h
 static const mfxU64 MFX_TIME_STAMP_INVALID = (mfxU64)-1; // will go to mfxdefs.h
-
+static const mfxU32 NO_INDEX = 0xffffffff;
+static const mfxU8  NO_INDEX_U8 = 0xff;
+static const mfxU16 NO_INDEX_U16 = 0xffff;
 #define MFX_CHECK_UMC_STS(err) if (err != static_cast<int>(UMC::UMC_OK)) {return ConvertStatusUmc2Mfx(err);}
 
 inline

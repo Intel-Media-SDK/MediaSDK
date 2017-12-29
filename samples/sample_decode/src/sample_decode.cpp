@@ -56,6 +56,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-w]                      - output width\n"));
     msdk_printf(MSDK_STRING("   [-h]                      - output height\n"));
     msdk_printf(MSDK_STRING("   [-di bob/adi]             - enable deinterlacing BOB/ADI\n"));
+#if (MFX_VERSION >= 1025)
+    msdk_printf(MSDK_STRING("   [-d]                      - enable decode error report\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("JPEG Chroma Type:\n"));
     msdk_printf(MSDK_STRING("   [-jpeg_rgb] - RGB Chroma Type\n"));
@@ -100,12 +103,14 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-async]                  - depth of asynchronous pipeline. default value is 4. must be between 1 and 20\n"));
     msdk_printf(MSDK_STRING("   [-gpucopy::<on,off>] Enable or disable GPU copy mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]                - timeout in seconds\n"));
+#if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("   [-dec_postproc force/auto] - resize after decoder using direct pipe\n"));
     msdk_printf(MSDK_STRING("                  force: instruct to use decoder-based post processing\n"));
     msdk_printf(MSDK_STRING("                         or fail if the decoded stream is unsupported\n"));
     msdk_printf(MSDK_STRING("                  auto: instruct to use decoder-based post processing for supported streams \n"));
     msdk_printf(MSDK_STRING("                        or perform VPP operation through separate pipeline component for unsupported streams\n"));
 
+#endif //MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("   [-threads_num]            - number of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_schedtype]      - scheduling type of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_priority]       - priority of mediasdk task threads\n"));
@@ -390,6 +395,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->gpuCopy = MFX_GPUCOPY_OFF;
         }
+#if (MFX_VERSION >= 1025)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d")))
+        {
+            pParams->bErrorReport = true;
+        }
+#endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-threads_num")))
         {
             if(i + 1 >= nArgNum)
@@ -429,6 +440,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+#if MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dec_postproc")))
         {
             if(i + 1 >= nArgNum)
@@ -456,6 +468,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+#endif //MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-f")))
         {
             if(i + 1 >= nArgNum)
@@ -665,12 +678,21 @@ int main(int argc, char *argv[])
 
     msdk_printf(MSDK_STRING("Decoding started\n"));
 
+    mfxU64 prevResetBytesCount = 0xFFFFFFFFFFFFFFFF;
     for (;;)
     {
         sts = Pipeline.RunDecoding();
 
         if (MFX_ERR_INCOMPATIBLE_VIDEO_PARAM == sts || MFX_ERR_DEVICE_LOST == sts || MFX_ERR_DEVICE_FAILED == sts)
         {
+            if (prevResetBytesCount == Pipeline.GetTotalBytesProcessed())
+            {
+                msdk_printf(MSDK_STRING("\nERROR: No input data was consumed since last reset. Quitting to avoid looping forever.\n"));
+                break;
+            }
+            prevResetBytesCount = Pipeline.GetTotalBytesProcessed();
+
+
             if (MFX_ERR_INCOMPATIBLE_VIDEO_PARAM == sts)
             {
                 msdk_printf(MSDK_STRING("\nERROR: Incompatible video parameters detected. Recovering...\n"));

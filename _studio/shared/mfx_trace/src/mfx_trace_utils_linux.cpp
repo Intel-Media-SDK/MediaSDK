@@ -26,6 +26,9 @@
 #ifdef MFX_TRACE_ENABLE
 #include "vm_sys_info.h"
 
+#if defined(ANDROID)
+#include "snprintf_s.h"
+#endif
 
 extern "C"
 {
@@ -39,7 +42,11 @@ FILE* mfx_trace_open_conf_file(const char* name)
     FILE* file = NULL;
     char file_name[MAX_PATH] = {0};
 
+#if defined(ANDROID)
+    const char* home = "/data/data/com.intel.vtune/mediasdk";
+#else
     const char* home = getenv("HOME");
+#endif
 
     if (home)
     {

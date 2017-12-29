@@ -278,7 +278,8 @@ namespace UMC
         AVS_VIDEO               = 0x00060000,
         VP8_VIDEO               = 0x00070000,
         VP9_VIDEO               = 0x00080000,
-        HEVC_VIDEO              = 0x00100000
+        HEVC_VIDEO              = 0x00100000,
+        AV1_VIDEO               = 0x00200000
     };
 
     enum VideoRenderType

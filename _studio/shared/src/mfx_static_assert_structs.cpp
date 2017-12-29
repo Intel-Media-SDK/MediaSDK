@@ -123,8 +123,13 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiCodingOption      ,128)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiFunction             ,4  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiParam             ,128)
+#if (MFX_VERSION >= 1023)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKInput                ,136)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKOutput               ,96)
+#else
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKInput                ,184)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKOutput               ,32)
+#endif
     #elif defined(LINUX32)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiPreEncCtrl        ,120)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiPreEncMVPredictors,68 )
@@ -147,8 +152,13 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiCodingOption      ,128)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiFunction             ,4  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiParam             ,128)
+#if (MFX_VERSION >= 1023)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKInput                ,100)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKOutput               ,80 )
+#else
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKInput                ,156)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxPAKOutput               ,16 )
+#endif
     #endif
 #endif //defined (__MFXFEI_H__)
 

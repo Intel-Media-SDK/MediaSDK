@@ -511,7 +511,11 @@ public:
     virtual Status AddSource(MediaData * pSource);
 
 
+#if (MFX_VERSION >= 1025)
+    Status ProcessNalUnit(NalUnit *nalUnit, mfxExtDecodeErrorReport *pDecodeErrorReport);
+#else
     Status ProcessNalUnit(NalUnit *nalUnit);
+#endif
 
     void SetMemoryAllocator(MemoryAllocator *pMemoryAllocator)
     {

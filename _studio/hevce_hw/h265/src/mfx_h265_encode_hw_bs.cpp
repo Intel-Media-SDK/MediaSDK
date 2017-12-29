@@ -315,7 +315,7 @@ mfxU32 AddEmulationPreventionAndCopy(
 
     if (!bEmulationByteInsertion)
     {
-        memcpy(bsDataStart, sbegin, len);
+        memcpy_s(bsDataStart, len, sbegin, len);
         return len;
     }
 
@@ -1949,10 +1949,84 @@ void HeaderPacker::PackSSH(
                     bs.PutUE(slice.collocated_ref_idx);
             }
 
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+            if (pwt_offset)
+                *pwt_offset = bs.GetOffset();
+
+            if (   (pps.weighted_pred_flag && slice.type == P)
+                || (pps.weighted_bipred_flag && slice.type == B))
+            {
+                const mfxU16 Y = 0, Cb = 1, Cr = 2, W = 0, O = 1;
+                mfxI16
+                      WpOffsetHalfRangeC = (1 << 7)
+                    , wY = (1 << slice.luma_log2_weight_denom)
+                    , wC = (1 << slice.chroma_log2_weight_denom)
+                    , l2WDc = slice.chroma_log2_weight_denom;
+
+                bs.PutUE(slice.luma_log2_weight_denom);
+
+                if (sps.chroma_format_idc != 0)
+                    bs.PutSE(mfxI32(slice.chroma_log2_weight_denom) - slice.luma_log2_weight_denom);
+
+                for (mfxU32 l = 0; l < mfxU32(1 + (slice.type == B)); l++)
+                {
+                    mfxU32 sz = l ? slice.num_ref_idx_l1_active_minus1 + 1 : slice.num_ref_idx_l0_active_minus1 + 1;
+
+                    mfxU16 lumaw = 0;
+                    mfxU16 chromaw = 0;
+
+                    for (mfxU32 i = 0; i < sz; i++)
+                    {
+                        lumaw   <<= 1;
+                        lumaw   |= !(slice.pwt[l][i][Y][O] == 0 && slice.pwt[l][i][Y][W] == wY);
+                        chromaw <<= 1;
+                        chromaw |= !(slice.pwt[l][i][Cb][O] == 0 && slice.pwt[l][i][Cb][W] == wC);
+                        chromaw |= !(slice.pwt[l][i][Cr][O] == 0 && slice.pwt[l][i][Cr][W] == wC);
+                    }
+
+                    bs.PutBits(sz, lumaw);
+
+                    if (sps.chroma_format_idc != 0)
+                        bs.PutBits(sz, chromaw);
+                    else
+                        chromaw = 0;
+
+                    for (mfxU32 i = 0; i < sz; i++)
+                    {
+                        if (lumaw & (1 << (sz - i - 1)))
+                        {
+                            bs.PutSE(slice.pwt[l][i][Y][W] - wY);
+                            bs.PutSE(slice.pwt[l][i][Y][O]);
+                        }
+
+                        if (chromaw & (1 << (sz - i - 1)))
+                        {
+                            bs.PutSE(slice.pwt[l][i][Cb][W] - wC);
+                            bs.PutSE(
+                                Clip3(
+                                    -4 * WpOffsetHalfRangeC,
+                                    4 * WpOffsetHalfRangeC - 1,
+                                    ((WpOffsetHalfRangeC * slice.pwt[l][i][Cb][W]) >> l2WDc) + slice.pwt[l][i][Cb][O] - WpOffsetHalfRangeC));
+
+                            bs.PutSE(slice.pwt[l][i][Cr][W] - wC);
+                            bs.PutSE(
+                                Clip3(
+                                    -4 * WpOffsetHalfRangeC,
+                                    4 * WpOffsetHalfRangeC - 1,
+                                    ((WpOffsetHalfRangeC * slice.pwt[l][i][Cr][W]) >> l2WDc) + slice.pwt[l][i][Cr][O] - WpOffsetHalfRangeC));
+                        }
+                    }
+                }
+            }
+
+            if (pwt_length && pwt_offset)
+                *pwt_length = bs.GetOffset() - *pwt_offset;
+#else
             pwt_offset;
             pwt_length;
             assert(0 == pps.weighted_pred_flag);
             assert(0 == pps.weighted_bipred_flag);
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 
 
             bs.PutUE(slice.five_minus_max_num_merge_cand);
@@ -2202,6 +2276,21 @@ mfxStatus HeaderPacker::Reset(MfxVideoParam const & par)
 
     PackPPS(rbsp, par.m_pps);
     sts = PackRBSP(m_bs_pps, m_rbsp, m_sz_pps, CeilDiv(rbsp.GetOffset(), 8));
+    assert(!sts);
+
+    m_par = &par;
+
+    return sts;
+}
+
+mfxStatus HeaderPacker::ResetPPS(MfxVideoParam const & par)
+{
+    BitstreamWriter rbsp(m_rbsp, sizeof(m_rbsp));
+
+    m_sz_pps = sizeof(m_bs_pps);
+
+    PackPPS(rbsp, par.m_pps);
+    mfxStatus sts = PackRBSP(m_bs_pps, m_rbsp, m_sz_pps, CeilDiv(rbsp.GetOffset(), 8));
     assert(!sts);
 
     m_par = &par;

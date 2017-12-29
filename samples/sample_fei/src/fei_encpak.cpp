@@ -646,6 +646,105 @@ mfxStatus FEI_EncPakInterface::FillParameters()
     return sts;
 }
 
+#if MFX_VERSION < 1023
+mfxStatus FEI_EncPakInterface::FillRefInfo(iTask* eTask)
+{
+    MSDK_CHECK_POINTER(eTask, MFX_ERR_NULL_PTR);
+    mfxStatus sts = MFX_ERR_NONE;
+
+    m_RefInfo.Clear();
+
+    iTask* ref_task = NULL;
+    mfxFrameSurface1* ref_surface = NULL;
+    std::vector<mfxFrameSurface1*>::iterator rslt;
+    mfxU32 k = 0, fid, n_l0, n_l1, numOfFields = eTask->m_fieldPicFlag ? 2 : 1;
+
+    for (mfxU32 fieldId = 0; fieldId < numOfFields; fieldId++)
+    {
+        fid = eTask->m_fid[fieldId];
+        for (DpbFrame* instance = eTask->m_dpb[fid].Begin(); instance != eTask->m_dpb[fid].End(); instance++)
+        {
+            ref_task = m_inputTasks->GetTaskByFrameOrder(instance->m_frameOrder);
+            MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
+
+            ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
+            MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
+
+            rslt = std::find(m_RefInfo.reference_frames.begin(), m_RefInfo.reference_frames.end(), ref_surface);
+
+            if (rslt == m_RefInfo.reference_frames.end()){
+                m_RefInfo.state[fieldId].dpb_idx.push_back((mfxU16)m_RefInfo.reference_frames.size());
+                m_RefInfo.reference_frames.push_back(ref_surface);
+            }
+            else{
+                m_RefInfo.state[fieldId].dpb_idx.push_back(static_cast<mfxU16>(std::distance(m_RefInfo.reference_frames.begin(), rslt)));
+            }
+        }
+
+        /* in some cases l0 and l1 lists are equal, if so same ref lists for l0 and l1 should be used*/
+        n_l0 = eTask->GetNBackward(fieldId);
+        n_l1 = eTask->GetNForward(fieldId);
+
+        if (!n_l0 && eTask->m_list0[fid].Size() && !(eTask->m_type[fid] & MFX_FRAMETYPE_I))
+        {
+            n_l0 = eTask->m_list0[fid].Size();
+        }
+
+        if (!n_l1 && eTask->m_list1[fid].Size() && (eTask->m_type[fid] & MFX_FRAMETYPE_B))
+        {
+            n_l1 = eTask->m_list1[fid].Size();
+        }
+
+        k = 0;
+        for (mfxU8 const * instance = eTask->m_list0[fid].Begin(); k < n_l0 && instance != eTask->m_list0[fid].End(); instance++)
+        {
+            ref_task = m_inputTasks->GetTaskByFrameOrder(eTask->m_dpb[fid][*instance & 127].m_frameOrder);
+            MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
+
+            ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
+            MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
+
+            rslt = std::find(m_RefInfo.reference_frames.begin(), m_RefInfo.reference_frames.end(), ref_surface);
+
+            if (rslt == m_RefInfo.reference_frames.end()){
+                return MFX_ERR_MORE_SURFACE; // surface from L0 list not in DPB (should never happen)
+            }
+            else{
+                m_RefInfo.state[fieldId].l0_idx.push_back(static_cast<mfxU16>(std::distance(m_RefInfo.reference_frames.begin(), rslt)));
+            }
+
+            //m_ref_info.state[fieldId].l0_idx.push_back(*instance & 127);
+            m_RefInfo.state[fieldId].l0_parity.push_back((*instance) >> 7);
+            k++;
+        }
+
+        k = 0;
+        for (mfxU8 const * instance = eTask->m_list1[fid].Begin(); k < n_l1 && instance != eTask->m_list1[fid].End(); instance++)
+        {
+            ref_task = m_inputTasks->GetTaskByFrameOrder(eTask->m_dpb[fid][*instance & 127].m_frameOrder);
+            MSDK_CHECK_POINTER(ref_task, MFX_ERR_NULL_PTR);
+
+            ref_surface = ref_task->PAK_out.OutSurface; // this is shared output surface for ENC reference / PAK reconstruct
+            MSDK_CHECK_POINTER(ref_surface, MFX_ERR_NULL_PTR);
+
+            rslt = std::find(m_RefInfo.reference_frames.begin(), m_RefInfo.reference_frames.end(), ref_surface);
+
+            if (rslt == m_RefInfo.reference_frames.end()){
+                return MFX_ERR_MORE_SURFACE; // surface from L0 list not in DPB (should never happen)
+            }
+            else{
+                m_RefInfo.state[fieldId].l1_idx.push_back(static_cast<mfxU16>(std::distance(m_RefInfo.reference_frames.begin(), rslt)));
+            }
+
+            //m_ref_info.state[fieldId].l1_idx.push_back(*instance & 127);
+            m_RefInfo.state[fieldId].l1_parity.push_back((*instance) >> 7);
+            k++;
+        }
+    }
+
+    return sts;
+}
+#endif // MFX_VERSION < 1023
 
 mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
 {
@@ -662,7 +761,9 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
 
     eTask->PAK_out.Bs = &m_mfxBS;
 
+#if (MFX_VERSION >= 1024)
     eTask->EncodedFrameSize = 0;
+#endif
 
     eTask->bufs = m_pExtBuffers->GetFreeSet();
     MSDK_CHECK_POINTER(eTask->bufs, MFX_ERR_NULL_PTR);
@@ -678,9 +779,14 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
         eTask->bufs->ResetSlices(m_videoParams_ENC.mfx.FrameInfo.Width >> 4, m_videoParams_ENC.mfx.FrameInfo.Height >> (eTask->m_fieldPicFlag ? 5 : 4));
     }
 
+#if MFX_VERSION >= 1023
     // Fill information about DPB states and reference lists
     sts = m_RefInfo.Fill(eTask, m_inputTasks);
     MSDK_CHECK_STATUS(sts, "RefInfo.Fill failed");
+#else
+    sts = FillRefInfo(eTask); // get info to fill reference structures
+    MSDK_CHECK_STATUS(sts, "FillRefInfo failed");
+#endif // MFX_VERSION >= 1023
 
     bool is_I_frame = ExtractFrameType(*eTask, eTask->m_fieldPicFlag) & MFX_FRAMETYPE_I;
 
@@ -790,7 +896,11 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
             if (m_pMbQP_in)
             {
                 mfxExtFeiEncQP* pMbQP = reinterpret_cast<mfxExtFeiEncQP*>(*it);
+#if MFX_VERSION >= 1023
                 SAFE_FREAD(pMbQP->MB, sizeof(pMbQP->MB[0])*pMbQP->NumMBAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+#else
+                SAFE_FREAD(pMbQP->QP, sizeof(pMbQP->QP[0])*pMbQP->NumQPAlloc, 1, m_pMbQP_in, MFX_ERR_MORE_DATA);
+#endif
             }
             break;
 
@@ -818,6 +928,7 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
     MSDK_CHECK_POINTER(feiPPS && feiSliceHeader, MFX_ERR_NULL_PTR);
 
     /* PPS, SliceHeader processing */
+#if MFX_VERSION >= 1023
     for (mfxU32 fieldId = 0; fieldId < mfxU32(eTask->m_fieldPicFlag ? 2 : 1); fieldId++)
     {
         feiPPS[fieldId].FrameType   = ExtractFrameType(*eTask, fieldId);
@@ -857,6 +968,42 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
                 MSDK_MEMCPY_VAR(*feiSliceHeader[fieldId].Slice[i].RefL1, &m_RefInfo.L1[fieldId][0], m_RefInfo.L1[fieldId].size() * sizeof(m_RefInfo.L1[fieldId][0]));
         }
     }
+#else
+    for (mfxU32 fieldId = 0; fieldId < mfxU32(eTask->m_fieldPicFlag ? 2 : 1); fieldId++)
+    {
+        feiPPS[fieldId].PictureType = ExtractFrameType(*eTask, fieldId);
+
+        memset(feiPPS[fieldId].ReferenceFrames, 0xffff, 16 * sizeof(mfxU16));
+        memcpy(feiPPS[fieldId].ReferenceFrames, &m_RefInfo.state[fieldId].dpb_idx[0], sizeof(mfxU16)*m_RefInfo.state[fieldId].dpb_idx.size());
+
+
+        MSDK_CHECK_POINTER(feiSliceHeader[fieldId].Slice, MFX_ERR_NULL_PTR);
+
+        for (mfxU32 i = 0; i < feiSliceHeader[fieldId].NumSlice; i++)
+        {
+            MSDK_ZERO_ARRAY(feiSliceHeader[fieldId].Slice[i].RefL0, 32);
+            MSDK_ZERO_ARRAY(feiSliceHeader[fieldId].Slice[i].RefL1, 32);
+
+            feiSliceHeader[fieldId].Slice[i].SliceType         = FrameTypeToSliceType(ExtractFrameType(*eTask, fieldId));
+            feiSliceHeader[fieldId].Slice[i].NumRefIdxL0Active = (mfxU16)m_RefInfo.state[fieldId].l0_idx.size();
+            feiSliceHeader[fieldId].Slice[i].NumRefIdxL1Active = (mfxU16)m_RefInfo.state[fieldId].l1_idx.size();
+            feiSliceHeader[fieldId].Slice[i].IdrPicId          = eTask->m_frameIdrCounter;
+
+            for (mfxU32 k = 0; k < m_RefInfo.state[fieldId].l0_idx.size(); k++)
+            {
+                feiSliceHeader[fieldId].Slice[i].RefL0[k].Index       = m_RefInfo.state[fieldId].l0_idx[k];
+                feiSliceHeader[fieldId].Slice[i].RefL0[k].PictureType = (mfxU16)(!eTask->m_fieldPicFlag ? MFX_PICTYPE_FRAME :
+                    (m_RefInfo.state[fieldId].l0_parity[k] ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD));
+            }
+            for (mfxU32 k = 0; k < m_RefInfo.state[fieldId].l1_idx.size(); k++)
+            {
+                feiSliceHeader[fieldId].Slice[i].RefL1[k].Index       = m_RefInfo.state[fieldId].l1_idx[k];
+                feiSliceHeader[fieldId].Slice[i].RefL1[k].PictureType = (mfxU16)(!eTask->m_fieldPicFlag ? MFX_PICTYPE_FRAME :
+                    (m_RefInfo.state[fieldId].l1_parity[k] ? MFX_PICTYPE_BOTTOMFIELD : MFX_PICTYPE_TOPFIELD));
+            }
+        }
+    }
+#endif // MSDK_API >= 1023
 
     return sts;
 }
@@ -961,10 +1108,18 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
             std::vector<mfxExtBuffer *> * in_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::PAK, i, true);
             MSDK_CHECK_POINTER(in_buffers, MFX_ERR_NULL_PTR);
 
+#if MFX_VERSION < 1023
+            std::vector<mfxExtBuffer *> * out_buffers = eTask->ExtBuffersController.GetBuffers(bufSetController::PAK, i, false);
+            MSDK_CHECK_POINTER(out_buffers, MFX_ERR_NULL_PTR);
+#endif // MFX_VERSION < 1023
 
             eTask->PAK_in.NumExtParam = mfxU16(in_buffers->size());
             eTask->PAK_in.ExtParam    = !in_buffers->empty() ? in_buffers->data() : NULL;
 
+#if MFX_VERSION < 1023
+            eTask->PAK_out.NumExtParam = mfxU16(out_buffers->size());
+            eTask->PAK_out.ExtParam    = !out_buffers->empty() ? out_buffers->data() : NULL;;
+#endif // MFX_VERSION < 1023
 
             // Frame packing goes below
             for (;;)
@@ -1015,7 +1170,9 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
 
     if (m_pmfxPAK)
     {
+#if (MFX_VERSION >= 1024)
         eTask->EncodedFrameSize = eTask->PAK_out.Bs->DataLength; //save frame size for BRC
+#endif
         sts = m_FileWriter.WriteNextFrame(&m_mfxBS);
         MSDK_CHECK_STATUS(sts, "FEI ENCODE: WriteNextFrame failed");
     }

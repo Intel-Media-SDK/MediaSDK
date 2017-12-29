@@ -124,14 +124,6 @@ namespace VP8DecodeCommon
         return MFX_ERR_NONE;
 
     }
-
-    void MoveBitstreamData(mfxBitstream& bs, mfxU32 offset)
-    {
-        VM_ASSERT(offset <= bs.DataLength);
-        bs.DataOffset += offset;
-        bs.DataLength -= offset;
-    }
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,59 +321,3 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
     return sts;
 
 } // mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVideoParam *p_out, eMFXHWType type)
-
-bool MFX_VP8_Utility::CheckVideoParam(mfxVideoParam *p_in, eMFXHWType )
-{
-    if (!p_in)
-        return false;
-
-    if (p_in->Protected)
-       return false;
-
-    if (MFX_CODEC_VP8 != p_in->mfx.CodecId)
-        return false;
-
-    if (p_in->mfx.FrameInfo.Width > 4096 || (p_in->mfx.FrameInfo.Width % 16))
-        return false;
-
-    if (p_in->mfx.FrameInfo.Height > 4096 || (p_in->mfx.FrameInfo.Height % 16))
-        return false;
-
-
-    if (MFX_FOURCC_NV12 != p_in->mfx.FrameInfo.FourCC)
-        return false;
-
-    // both zero or not zero
-    if ((p_in->mfx.FrameInfo.AspectRatioW || p_in->mfx.FrameInfo.AspectRatioH) && !(p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioH))
-        return false;
-
-    switch (p_in->mfx.FrameInfo.PicStruct)
-    {
-        case MFX_PICSTRUCT_UNKNOWN:
-        case MFX_PICSTRUCT_PROGRESSIVE:
-            break;
-
-        default:
-            return false;
-    }
-
-    if (MFX_CHROMAFORMAT_YUV420 != p_in->mfx.FrameInfo.ChromaFormat)
-    {
-        return false;
-    }
-
-    if (!(p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(p_in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
-        return false;
-
-    if ((p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && (p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && (p_in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
-        return false;
-
-    if (p_in->mfx.CodecProfile > MFX_PROFILE_VP8_3)
-        return false;
-
-    if (p_in->mfx.CodecLevel != MFX_LEVEL_UNKNOWN)
-        return false;
-
-    return true;
-
-} // bool MFX_VP8_Utility::CheckVideoParam(mfxVideoParam *p_in, eMFXHWType)

@@ -56,11 +56,6 @@ git clone https://github.com/Intel-Media-SDK/MediaSDK msdk
 cd msdk
 ```
 
-Set up environment variables:
-```sh
-export MFX_HOME=`pwd`
-```
-
 Configure build with GCC (default) compiler:
 ```sh
 perl tools/builder/build_mfx.pl --cmake=intel64.make.release

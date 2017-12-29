@@ -76,11 +76,18 @@ void sInputParams::Reset()
     DenoiseLevel=-1;
     DetailLevel=-1;
 
+#if (MFX_VERSION >= 1025)
+    MFMode = MFX_MF_DEFAULT;
+    numMFEFrames = 0;
+    mfeTimeout = 0;
+#endif
 
     DumpLogFileName.clear();
+#if MFX_VERSION >= 1022
     m_ROIData.clear();
     bDecoderPostProcessing = false;
     bROIasQPMAP = false;
+#endif //MFX_VERSION >= 1022
 }
 
 CTranscodingPipeline::CTranscodingPipeline():
@@ -143,9 +150,11 @@ CTranscodingPipeline::CTranscodingPipeline():
     MSDK_ZERO_MEMORY(m_CodingOption2);
     MSDK_ZERO_MEMORY(m_CodingOption3);
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
+#if MFX_VERSION >= 1022
     MSDK_ZERO_MEMORY(m_decPostProcessing);
     m_decPostProcessing.Header.BufferId = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
     m_decPostProcessing.Header.BufferSz = sizeof(mfxExtDecVideoProcessing);
+#endif //MFX_VERSION >= 1022
 
     m_MVCSeqDesc.Header.BufferId = MFX_EXTBUFF_MVC_SEQ_DESC;
     m_MVCSeqDesc.Header.BufferSz = sizeof(mfxExtMVCSeqDesc);
@@ -156,12 +165,26 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
     m_ExtHEVCParam.Header.BufferSz = sizeof(mfxExtHEVCParam);
 
-
+#if (MFX_VERSION >= 1024)
     MSDK_ZERO_MEMORY(m_ExtBRC);
     m_ExtBRC.Header.BufferId = MFX_EXTBUFF_BRC;
     m_ExtBRC.Header.BufferSz = sizeof(m_ExtBRC);
+#endif
 
+#if (MFX_VERSION >= 1025)
 
+    MSDK_ZERO_MEMORY(m_ExtMFEParam);
+    MSDK_ZERO_MEMORY(m_ExtMFEControl);
+
+    m_ExtMFEControl.Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_CONTROL;
+    m_ExtMFEControl.Header.BufferSz = sizeof(mfxExtMultiFrameControl);
+
+    m_ExtMFEParam.Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_PARAM;
+    m_ExtMFEParam.Header.BufferSz = sizeof(mfxExtMultiFrameParam);
+
+#endif
+
+#if MFX_VERSION >= 1022
     m_bUseQPMap = 0;
     m_QPmapWidth = 0;
     m_QPmapHeight = 0;
@@ -169,6 +192,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_QPforI = 0;
     m_QPforP = 0;
     m_nSubmittedFramesNum = 0;
+#endif //MFX_VERSION >= 1022
 
     m_EncOpaqueAlloc.Header.BufferId = m_VppOpaqueAlloc.Header.BufferId =
         m_DecOpaqueAlloc.Header.BufferId = m_PluginOpaqueAlloc.Header.BufferId =
@@ -181,7 +205,9 @@ CTranscodingPipeline::CTranscodingPipeline():
 
     m_VppCompParams.InputStream = NULL;
     m_VppCompParams.NumInputStream = 0;
+#if MFX_VERSION >= 1023
     m_VppCompParams.NumTiles = 0;
+#endif
     m_CodingOption2.Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
     m_CodingOption2.Header.BufferSz = sizeof(m_CodingOption2);
 
@@ -339,12 +365,15 @@ mfxStatus CTranscodingPipeline::VPPPreInit(sInputParams *pParams)
 
     if (m_bEncodeEnable || m_bDecodeEnable)
     {
-        if (m_mfxDecParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_SINGLE && pParams->EncodeId != MFX_CODEC_HEVC)
+        if (m_mfxDecParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_SINGLE &&
+            pParams->EncodeId != MFX_CODEC_HEVC && !pParams->bEnableDeinterlacing)
         {
             m_bIsFieldWeaving = true;
             m_bIsVpp = true;
         }
-        if (m_mfxDecParams.mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE && pParams->EncodeId == MFX_CODEC_HEVC && pParams->DecodeId != MFX_CODEC_HEVC)
+
+        if ((m_mfxDecParams.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF || m_mfxDecParams.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_BFF || m_mfxDecParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_UNKNOWN)
+                    && pParams->EncodeId == MFX_CODEC_HEVC && pParams->DecodeId != MFX_CODEC_HEVC && !pParams->bEnableDeinterlacing)
         {
             m_bIsFieldSplitting = true;
             m_bIsVpp = true;
@@ -675,6 +704,12 @@ mfxStatus CTranscodingPipeline::EncodeOneFrame(ExtendedSurface *pExtSurface, mfx
 {
     mfxStatus sts = MFX_ERR_NONE;
 
+    if (!pBS->Data)
+    {
+        sts = AllocateSufficientBuffer(pBS);
+        MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
+    }
+
     for (;;)
     {
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp
@@ -887,17 +922,19 @@ mfxStatus CTranscodingPipeline::Decode()
         {
             if (m_bIsFieldWeaving)
             {
+                // We might have 2 cases: decoder gives us pairs (TF BF)... or (BF)(TF). In first case we should set TFF for output, in second - BFF.
+                // So, if even input surface is BF, we set TFF for output and vise versa. For odd input surface - no matter what we set.
                 if (!(m_nProcessedFramesNum % 2))
                 {
                     if (DecExtSurface.pSurface)
                     {
                         if ((DecExtSurface.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF))
                         {
-                            m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_TFF;
+                            m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_BFF;
                         }
                         if (DecExtSurface.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)
                         {
-                            m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_BFF;
+                            m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_TFF;
                         }
                     }
                 }
@@ -1251,7 +1288,7 @@ mfxStatus CTranscodingPipeline::Encode()
             }
             else
             {
-                sts = Surface2BS(&VppExtSurface, &m_BSPool.back()->Bitstream,m_mfxVppParams.vpp.Out.FourCC);
+                sts = Surface2BS(&VppExtSurface, &m_BSPool.back()->Bitstream, m_encoderFourCC);
             }
         }
 
@@ -1419,6 +1456,7 @@ mfxStatus CTranscodingPipeline::Encode()
 
 } // mfxStatus CTranscodingPipeline::Encode()
 
+#if MFX_VERSION >= 1022
 // Fill MBQP buffer with ROI data
 void CTranscodingPipeline::FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct)
 {
@@ -1501,6 +1539,7 @@ void CTranscodingPipeline::FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct)
         std::memset(qpMap.QP, fQP, qpMap.NumQPAlloc);
     }
 }
+#endif //MFX_VERSION >= 1022
 
 void CTranscodingPipeline::SetEncCtrlRT(ExtendedSurface& extSurface, bool bInsertIDR)
 {
@@ -1509,6 +1548,7 @@ void CTranscodingPipeline::SetEncCtrlRT(ExtendedSurface& extSurface, bool bInser
         extSurface.pEncCtrl = &extSurface.pAuxCtrl->encCtrl;
     }
 
+#if MFX_VERSION >= 1022
 
     if (extSurface.pSurface) {
         void* keyId = (void*)extSurface.pSurface;
@@ -1524,7 +1564,7 @@ void CTranscodingPipeline::SetEncCtrlRT(ExtendedSurface& extSurface, bool bInser
             m_bufExtMBQP[keyId].Header.BufferId = MFX_EXTBUFF_MBQP;
             m_bufExtMBQP[keyId].Header.BufferSz = sizeof(mfxExtMBQP);
             m_bufExtMBQP[keyId].NumQPAlloc = m_QPmapWidth*m_QPmapHeight;
-            m_bufExtMBQP[keyId].QP = &(m_qpMapStorage[keyId][0]);
+            m_bufExtMBQP[keyId].QP = m_QPmapWidth*m_QPmapHeight ? &(m_qpMapStorage[keyId][0]) : NULL;
         }
 
         // Initialize *pCtrl optionally copying content of the pExtSurface.pAuxCtrl.encCtrl
@@ -1561,6 +1601,7 @@ void CTranscodingPipeline::SetEncCtrlRT(ExtendedSurface& extSurface, bool bInser
         extSurface.pEncCtrl = &ctrl;
         m_nSubmittedFramesNum++;
     }
+#endif //MFX_VERSION >= 1022
 
     if (bInsertIDR && extSurface.pSurface)
     {
@@ -1659,18 +1700,19 @@ mfxStatus CTranscodingPipeline::Transcode()
         {
             if (m_bIsFieldWeaving)
             {
-                if (!(m_nProcessedFramesNum % 2))
+                // In case of field weaving output surface's parameters for ODD calls to VPPOneFrame will be ignored (because VPP will return ERR_MORE_DATA).
+                // So, we need to set output surface picstruct properly for EVEN calls (no matter what will be set for ODD calls).
+                // We might have 2 cases: decoder gives us pairs (TF BF)... or (BF)(TF). In first case we should set TFF for output, in second - BFF.
+                // So, if even input surface is BF, we set TFF for output and vise versa. For odd input surface - no matter what we set.
+                if (DecExtSurface.pSurface)
                 {
-                    if (DecExtSurface.pSurface)
+                    if ((DecExtSurface.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF))  // Incoming Top Field in a single surface
                     {
-                        if ((DecExtSurface.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF))
-                        {
-                            m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_TFF;
-                        }
-                        if (DecExtSurface.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)
-                        {
-                            m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_BFF;
-                        }
+                        m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_BFF;
+                    }
+                    if (DecExtSurface.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)    // Incoming Bottom Field in a single surface
+                    {
+                        m_mfxVppParams.vpp.Out.PicStruct = MFX_PICSTRUCT_FIELD_TFF;
                     }
                 }
                 sts = VPPOneFrame(&DecExtSurface, &VppExtSurface);
@@ -1758,7 +1800,7 @@ mfxStatus CTranscodingPipeline::Transcode()
             }
             else
             {
-                sts = Surface2BS(&VppExtSurface, &m_BSPool.back()->Bitstream,m_mfxVppParams.vpp.Out.FourCC);
+                sts = Surface2BS(&VppExtSurface, &m_BSPool.back()->Bitstream, m_encoderFourCC);
             }
         }
         else
@@ -1902,7 +1944,10 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstream* 
 
         switch(fourCC)
         {
-        case 0: // Default value is NV12
+        case 0: // Default value is MFX_FOURCC_I420
+        case MFX_FOURCC_I420:
+            sts = NV12asI420toBS(pSurf->pSurface, pBS);
+            break;
         case MFX_FOURCC_NV12:
             sts=NV12toBS(pSurf->pSurface,pBS);
             break;
@@ -1922,6 +1967,40 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstream* 
     return sts;
 }
 
+mfxStatus CTranscodingPipeline::NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstream* pBS)
+{
+    mfxFrameInfo& info = pSurface->Info;
+    mfxFrameData& data = pSurface->Data;
+    if ((int)pBS->MaxLength - (int)pBS->DataLength < (int)(info.CropH*info.CropW * 3 / 2))
+    {
+        mfxStatus sts = ExtendMfxBitstream(pBS, pBS->DataLength + (int)(info.CropH*info.CropW * 3 / 2));
+        MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+    }
+
+    for (mfxU16 i = 0; i < info.CropH; i++)
+    {
+        MSDK_MEMCPY(pBS->Data + pBS->DataLength, data.Y + (info.CropY * data.Pitch + info.CropX) + i * data.Pitch, info.CropW);
+        pBS->DataLength += info.CropW;
+    }
+
+    mfxU16 h = info.CropH / 2;
+    mfxU16 w = info.CropW;
+
+    for (mfxU16 offset = 0; offset<2; offset++)
+    {
+        for (mfxU16 i = 0; i < h; i++)
+        {
+            for (mfxU16 j = offset; j < w; j += 2)
+            {
+                pBS->Data[pBS->DataLength] = *(data.UV + (info.CropY * data.Pitch / 2 + info.CropX) + i * data.Pitch + j);
+                pBS->DataLength++;
+            }
+        }
+    }
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus CTranscodingPipeline::NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS)
 {
     mfxFrameInfo& info = pSurface->Info;
@@ -1938,19 +2017,10 @@ mfxStatus CTranscodingPipeline::NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream
         pBS->DataLength += info.CropW;
     }
 
-    mfxU16 h = info.CropH / 2;
-    mfxU16 w = info.CropW;
-
-    for(mfxU16 offset = 0; offset<2;offset++)
+    for(mfxU16 i = 0; i < info.CropH / 2;i++)
     {
-        for (mfxU16 i = 0; i < h; i++)
-        {
-            for (mfxU16 j = offset; j < w; j += 2)
-            {
-                pBS->Data[pBS->DataLength]=*(data.UV + (info.CropY * data.Pitch / 2 + info.CropX) + i * data.Pitch + j);
-                pBS->DataLength++;
-            }
-        }
+        MSDK_MEMCPY(pBS->Data + pBS->DataLength, data.UV + (info.CropY * data.Pitch + info.CropX) + i * data.Pitch, info.CropW);
+        pBS->DataLength += info.CropW;
     }
 
     return MFX_ERR_NONE;
@@ -2170,6 +2240,7 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
         m_mfxDecParams.mfx.FrameInfo.FourCC=pInParams->DecoderFourCC;
         m_mfxDecParams.mfx.FrameInfo.ChromaFormat=FourCCToChroma(pInParams->DecoderFourCC);
     }
+#if MFX_VERSION >= 1022
     /* SFC usage if enabled */
     if ((pInParams->bDecoderPostProcessing) &&
         (MFX_CODEC_AVC == m_mfxDecParams.mfx.CodecId) && /* Only for AVC */
@@ -2193,6 +2264,7 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
         m_mfxDecParams.ExtParam = &m_DecExtParams[0]; // vector is stored linearly in memory
         m_mfxDecParams.NumExtParam = (mfxU16)m_DecExtParams.size();
     }
+#endif //MFX_VERSION >= 1022
     return MFX_ERR_NONE;
 }// mfxStatus CTranscodingPipeline::InitDecMfxParams()
 
@@ -2202,6 +2274,21 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.CodecId                 = pInParams->EncodeId;
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.AsyncDepth                  = m_AsyncDepth;
+#if (MFX_VERSION >= 1025)
+    if(pInParams->numMFEFrames || pInParams->MFMode)
+    {
+        m_ExtMFEParam.MaxNumFrames = pInParams->numMFEFrames;
+        m_ExtMFEParam.MFMode = pInParams->MFMode;
+
+        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtMFEParam);
+    }
+
+    if(pInParams->mfeTimeout)
+    {
+        m_ExtMFEControl.Timeout = pInParams->mfeTimeout;
+        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtMFEControl);
+    }
+#endif
     if (m_pParentPipeline && m_pParentPipeline->m_pmfxPreENC.get())
     {
         m_mfxEncParams.mfx.RateControlMethod       = MFX_RATECONTROL_LA_EXT;
@@ -2279,12 +2366,15 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
         m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCParam);
     }
 
-    if (pInParams->nExtBRC == MFX_CODINGOPTION_ON &&
+#if (MFX_VERSION >= 1024)
+    // This is for explicit extbrc only. In case of implicit (built-into-library) version - we don't need this extended buffer
+    if (pInParams->nExtBRC == EXTBRC_ON &&
         (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC))
     {
         HEVCExtBRC::Create(m_ExtBRC);
         m_EncExtParams.push_back((mfxExtBuffer *)&m_ExtBRC);
     }
+#endif
 
     m_mfxEncParams.mfx.FrameInfo.CropX = 0;
     m_mfxEncParams.mfx.FrameInfo.CropY = 0;
@@ -2321,7 +2411,16 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_CodingOption2.LookAheadDepth = pInParams->nLADepth;
         m_CodingOption2.MaxSliceSize = pInParams->nMaxSliceSize;
         m_CodingOption2.BRefType = pInParams->nBRefType;
-        m_CodingOption2.ExtBRC = (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC) ? pInParams->nExtBRC : 0;
+
+        if (pInParams->nExtBRC != EXTBRC_DEFAULT && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC))
+        {
+            m_CodingOption2.ExtBRC =(mfxU16)(pInParams->nExtBRC == EXTBRC_OFF ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
+        }
+        else
+        {
+            m_CodingOption2.ExtBRC = 0;
+        }
+
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption2);
     }
 
@@ -2333,6 +2432,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_CodingOption3.WinBRCSize = pInParams->WinBRCSize;
         addCodingOpt3 = true;
     }
+#if MFX_VERSION >= 1022
     if (pInParams->bROIasQPMAP)
     {
         switch(m_mfxEncParams.mfx.CodecId)
@@ -2351,6 +2451,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
             break;
         }
     }
+#endif
 
     if (pInParams->WeightedPred || pInParams->WeightedBiPred)
     {
@@ -2359,11 +2460,13 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         addCodingOpt3 = true;
     }
 
+#if MFX_VERSION >= 1023
     if (pInParams->RepartitionCheckMode)
     {
         m_CodingOption3.RepartitionCheckEnable = pInParams->RepartitionCheckMode;
         addCodingOpt3 = true;
     }
+#endif
 
     if (addCodingOpt3)
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
@@ -2731,7 +2834,9 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
             break;
         }
 
+#if MFX_VERSION >= 1023
         m_VppCompParams.NumTiles = pInParams->numTiles4Comp;
+#endif
 
         MSDK_CHECK_POINTER(pInParams->pVppCompDstRects,MFX_ERR_NULL_PTR);
         for (mfxU32 i = 0; i < pInParams->numSurf4Comp; i++)
@@ -2740,7 +2845,9 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
             m_VppCompParams.InputStream[i].DstY = pInParams->pVppCompDstRects[i].DstY;
             m_VppCompParams.InputStream[i].DstW = pInParams->pVppCompDstRects[i].DstW;
             m_VppCompParams.InputStream[i].DstH = pInParams->pVppCompDstRects[i].DstH;
+#if MFX_VERSION >= 1023
             m_VppCompParams.InputStream[i].TileId = pInParams->pVppCompDstRects[i].TileId;
+#endif
             m_VppCompParams.InputStream[i].GlobalAlpha = 0;
             m_VppCompParams.InputStream[i].GlobalAlphaEnable = 0;
             m_VppCompParams.InputStream[i].PixelAlphaEnable = 0;
@@ -3261,7 +3368,11 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     m_decoderPluginParams = pParams->decoderPluginParams;
     m_encoderPluginParams = pParams->encoderPluginParams;
 
+    m_encoderFourCC = pParams->EncoderFourCC;
+
+#if MFX_VERSION >= 1022
     m_ROIData = pParams->m_ROIData;
+#endif //MFX_VERSION >= 1022
 
     statisticsWindowSize = pParams->statisticsWindowSize;
     if (statisticsWindowSize > m_MaxFramesForTranscode)
@@ -3507,6 +3618,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
         sts = m_pmfxENC->Init(&m_mfxEncParams);
         MSDK_CHECK_STATUS(sts, "m_pmfxENC->Init failed");
 
+#if MFX_VERSION >= 1022
         if(pParams->bROIasQPMAP)
         {
             mfxVideoParam enc_par;
@@ -3532,6 +3644,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
                 m_bUseQPMap = true;
             }
         }
+#endif //MFX_VERSION >= 1022
     }
     m_bIsInit = true;
 

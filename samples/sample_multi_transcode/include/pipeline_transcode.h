@@ -53,7 +53,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "plugin_loader.h"
 #include "sample_defs.h"
 
+#if (MFX_VERSION >= 1024)
 #include "brc_routines.h"
+#endif
 
 #include "vpp_ext_buffers_storage.h"
 
@@ -103,6 +105,13 @@ namespace TranscodingSample
         mfxU32 DstW;
         mfxU32 DstH;
         mfxU16 TileId;
+    };
+
+    enum ExtBRCType {
+        EXTBRC_DEFAULT,
+        EXTBRC_OFF,
+        EXTBRC_ON,
+        EXTBRC_IMPLICIT
     };
 
     struct __sInputParams
@@ -223,11 +232,13 @@ namespace TranscodingSample
         bool shouldUseGreedyFormula;
         bool enableQSVFF;
 
-        mfxU16 nExtBRC;
+        ExtBRCType nExtBRC;
 
+#if (MFX_VERSION >= 1025)
         mfxU16 numMFEFrames;
         mfxU16 MFMode;
         mfxU32 mfeTimeout;
+#endif
 
 #if defined(LIBVA_WAYLAND_SUPPORT)
         mfxU16 nRenderWinX;
@@ -245,10 +256,12 @@ namespace TranscodingSample
     struct sInputParams: public __sInputParams
     {
         msdk_string DumpLogFileName;
+#if MFX_VERSION >= 1022
         std::vector<mfxExtEncoderROI> m_ROIData;
 
         bool bDecoderPostProcessing;
         bool bROIasQPMAP;
+#endif //MFX_VERSION >= 1022
         sInputParams();
         void Reset();
     };
@@ -311,7 +324,7 @@ namespace TranscodingSample
 
             inline void SetDumpName(const msdk_char* name)
             {
-                DumpLogFileName = *name;
+                DumpLogFileName = name;
                 if (!DumpLogFileName.empty())
                 {
                     TurnOnDumping();
@@ -585,6 +598,7 @@ namespace TranscodingSample
         mfxStatus DumpSurface2File(mfxFrameSurface1* pSurface);
         mfxStatus Surface2BS(ExtendedSurface* pSurf,mfxBitstream* pBS, mfxU32 fourCC);
         mfxStatus NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
+        mfxStatus NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstream* pBS);
         mfxStatus RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
         mfxStatus YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
 
@@ -624,6 +638,7 @@ namespace TranscodingSample
         bool                            m_bIsInterOrJoined;
 
         mfxU32                          m_numEncoders;
+        mfxU32                          m_encoderFourCC;
 
         CSmplYUVWriter                  m_dumpVppCompFileWriter;
         mfxU32                          m_vppCompDumpRenderMode;
@@ -671,7 +686,9 @@ namespace TranscodingSample
         bool m_bOwnMVCSeqDescMemory; // true if the pipeline owns memory allocated for MVCSeqDesc structure fields
 
         mfxExtVPPComposite       m_VppCompParams;
+#if MFX_VERSION >= 1022
         mfxExtDecVideoProcessing m_decPostProcessing;
+#endif //MFX_VERSION >= 1022
 
         mfxExtLAControl          m_ExtLAControl;
         // for setting MaxSliceSize
@@ -682,8 +699,16 @@ namespace TranscodingSample
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
 
+#if (MFX_VERSION >= 1024)
         mfxExtBRC                m_ExtBRC;
+#endif
 
+#if (MFX_VERSION >= 1025)
+        // MFE mode and number of frames
+        mfxExtMultiFrameParam    m_ExtMFEParam;
+        // here we pass general timeout per session.
+        mfxExtMultiFrameControl  m_ExtMFEControl;
+#endif
 
         // for opaque memory
         mfxExtOpaqueSurfaceAlloc m_EncOpaqueAlloc;
@@ -745,6 +770,7 @@ namespace TranscodingSample
 
         bool shouldUseGreedyFormula;
 
+#if MFX_VERSION >= 1022
         // ROI data
         std::vector<mfxExtEncoderROI> m_ROIData;
         mfxU32         m_nSubmittedFramesNum;
@@ -767,6 +793,7 @@ namespace TranscodingSample
         mfxU16            m_nRotationAngle;
 
         void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
+#endif //MFX_VERSION >= 1022
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);
 

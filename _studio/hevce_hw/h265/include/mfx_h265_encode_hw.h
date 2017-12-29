@@ -124,6 +124,17 @@ protected:
         return CreatePlatformH265Encoder(core, type);
     }
 
+    mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
+
+    virtual mfxStatus ExtraCheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false)
+    {
+        par;
+        caps;
+        bInit;
+
+        return MFX_ERR_NONE;
+    }
+
     virtual mfxStatus ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
     {
         ctrl;
@@ -131,6 +142,13 @@ protected:
         bs;
 
         return MFX_ERR_NONE;
+    }
+
+    virtual void ExtraTaskPreparation(Task& task)
+    {
+        task;
+
+        return;
     }
 
     bool m_createdByDispatcher;

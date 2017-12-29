@@ -19,7 +19,6 @@
 // SOFTWARE.
 
 
-#if !defined(_WIN32) && !defined(_WIN64)
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,30 +36,14 @@
 #define MFX_PCI_DIR "/sys/bus/pci/devices"
 #define MFX_PCI_DISPLAY_CONTROLLER_CLASS 0x03
 
-static const char mfx_storage_opt[] = "/opt/intel";
-
-#ifndef __APPLE__
 #if defined(LINUX64)
-    static const char mfx_folder[] = "mediasdk/lib64";
     static const char mfx_so_hw_base_name[] = "libmfxhw64-p.so";
     static const char mfx_so_sw_base_name[] = "libmfxsw64-p.so";
 #else
-    static const char mfx_folder[] = "mediasdk/lib32";
     static const char mfx_so_hw_base_name[] = "libmfxhw32-p.so";
     static const char mfx_so_sw_base_name[] = "libmfxsw32-p.so";
 #endif
 
-#else
-#if defined(X86_64)
-static const char mfx_folder[] = "mediasdk/lib64";
-static const char mfx_so_hw_base_name[] = "libmfxhw64.dylib";
-static const char mfx_so_sw_base_name[] = "libmfxsw64.dylib";
-#else
-static const char mfx_folder[] = "mediasdk/lib32";
-static const char mfx_so_hw_base_name[] = "libmfxhw32.dylib";
-static const char mfx_so_sw_base_name[] = "libmfxsw32.dylib";
-#endif
-#endif  //ifndef __APPLE__
 
 static int mfx_dir_filter(const struct dirent* dir_ent)
 {
@@ -326,7 +309,7 @@ mfxStatus MFXLibraryIterator::Init(eMfxImplType implType, mfxIMPL impl, const mf
     m_implType = implType;
 
     snprintf(m_path, sizeof(m_path)/sizeof(m_path[0]),
-             "%s/%s", mfx_storage_opt, mfx_folder);
+             "%s", MFX_MODULES_DIR);
 
     m_libs_num = mfx_list_libraries(m_path, (MFX_LIB_HARDWARE == implType), &m_libs);
     
@@ -388,4 +371,3 @@ bool MFXLibraryIterator::GetSubKeyName(msdk_disp_char *subKeyName, size_t length
 
 } // namespace MFX
 
-#endif // #if !defined(_WIN32) && !defined(_WIN64)

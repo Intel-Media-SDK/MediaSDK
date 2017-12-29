@@ -64,7 +64,7 @@ typedef struct
 
     mfxU32  IntraCost;
     mfxU32  InterCost;
-    mfxU32  DependencyCost;
+    mfxU32  DependencyCost; //aggregated cost, how this frame influences subsequent frames
     mfxU16  Layer;
     mfxU16  reserved[23];
 
@@ -76,12 +76,12 @@ typedef struct  {
 
     mfxU16  reserved[20];
 
-    mfxU16  NumAlloc;
-    mfxU16  NumStream;
-    mfxU16  NumFrame;
-    mfxLAFrameInfo   *FrameStat; 
+    mfxU16  NumAlloc; //number of allocated mfxLAFrameInfo structures
+    mfxU16  NumStream; //number of resolutions
+    mfxU16  NumFrame; //number of frames for each resolution
+    mfxLAFrameInfo   *FrameStat; //frame statistics 
 
-    mfxFrameSurface1 *OutSurface;
+    mfxFrameSurface1 *OutSurface; //reordered surface
 
 } mfxExtLAFrameStatistics;
 

@@ -57,12 +57,13 @@ bool IsFrameRatesCorrespondWeaving(
 // PicStruct processing
 PicStructMode GetPicStructMode(mfxU16 inPicStruct, mfxU16 outPicStruct);
 mfxStatus CheckInputPicStruct( mfxU16 inPicStruct );
-mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDeinterlace, mfxStatus& sts );
+mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDeinterlace, mfxStatus& sts, mfxU32 outputFrameCounter );
 
 bool IsRoiDifferent(mfxFrameSurface1 *input, mfxFrameSurface1 *output);
 
 // utility calculates frames count (in/out) to correct processing in sync/async mode by external application
-mfxStatus GetExternalFramesCount(mfxVideoParam* pParam,
+mfxStatus GetExternalFramesCount(VideoCORE* core,
+                                 mfxVideoParam* pParam,
                                  mfxU32* pListID,
                                  mfxU32 len,
                                  mfxU16 framesCountMin[2],
@@ -90,7 +91,7 @@ mfxStatus GetPipelineList(
     //mfxU32* pLen,
     bool    bExtended = false);
 
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request);
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform);
 
 mfxStatus CheckCropParam( mfxFrameInfo* info );
 

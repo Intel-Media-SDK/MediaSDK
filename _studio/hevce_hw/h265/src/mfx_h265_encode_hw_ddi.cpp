@@ -34,6 +34,7 @@ namespace MfxHwH265Encode
 GUID GetGUID(MfxVideoParam const & par)
 {
     GUID guid = DXVA2_Intel_Encode_HEVC_Main;
+    mfxU16 bdId = 0, cfId = 0;
 
     return guid;
 }
@@ -153,6 +154,13 @@ void DDIHeaderPacker::Reset(MfxVideoParam const & par)
     m_packer.Reset(par);
 }
 
+void DDIHeaderPacker::ResetPPS(MfxVideoParam const & par)
+{
+    assert(!m_buf.empty());
+
+    m_packer.ResetPPS(par);
+}
+
 void DDIHeaderPacker::NewHeader()
 {
     assert(m_buf.size());
@@ -250,6 +258,9 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
         return MFX_ERR_NONE;
 
     mfxExtMBQP *mbqp = ExtBuffer::Get(task.m_ctrl);
+#ifdef MFX_ENABLE_HEVCE_ROI
+    mfxExtEncoderROI* roi = ExtBuffer::Get(task.m_ctrl);
+#endif
 
     MFX_CHECK(CUQPFrameInfo.Width && CUQPFrameInfo.Height, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(CUQPFrameInfo.AspectRatioW && CUQPFrameInfo.AspectRatioH, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -277,6 +288,33 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
                     lock.Y[i * lock.Pitch + j] = mbqp->QP[i*drBlkH/inBlkSize * pitch_MBQP + j*drBlkW/inBlkSize];
 
     } 
+#ifdef MFX_ENABLE_HEVCE_ROI
+    else if (roi)
+    {
+        FrameLocker lock(&core, task.m_midCUQp);
+        MFX_CHECK(lock.Y, MFX_ERR_LOCK_MEMORY);
+        for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++)
+        {
+            for (mfxU32 j = 0; j < CUQPFrameInfo.Width; j++)
+            {
+                mfxU8 qp = (mfxU8)task.m_qpY;
+                mfxI32 diff = 0;
+                for (mfxU32 n = 0; n < roi->NumROI; n++)
+                {
+                    mfxU32 x = i*drBlkW;
+                    mfxU32 y = i*drBlkH;
+                    if (x >= roi->ROI[n].Left  &&  x < roi->ROI[n].Right  && y >= roi->ROI[n].Top && y < roi->ROI[n].Bottom)
+                    {
+                        diff = (task.m_bPriorityToDQPpar? (-1) : 1) * roi->ROI[n].Priority;
+                        break;
+                    }
+
+                }
+                lock.Y[i * lock.Pitch + j] = (mfxU8)(qp + diff);
+            }
+        }
+    }
+#endif
     return mfxSts;
     
 }

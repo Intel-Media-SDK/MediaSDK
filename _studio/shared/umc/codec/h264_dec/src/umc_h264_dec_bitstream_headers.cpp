@@ -1211,8 +1211,11 @@ static const uint8_t SGIdBits[7] = {1,2,2,3,3,3,3};
 // ---------------------------------------------------------------------------
 //    Read picture parameter set data from bitstream.
 // ---------------------------------------------------------------------------
-Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps)
+Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps, H264SeqParamSet const* sps)
 {
+    if (!sps)
+        return UMC_ERR_NULL_PTR;
+
     pps->entropy_coding_mode = Get1Bit();
 
     pps->bottom_field_pic_order_in_frame_present_flag = Get1Bit();
@@ -1232,6 +1235,7 @@ Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps)
         if (slice_group_map_type > 6)
             return UMC_ERR_INVALID_STREAM;
 
+        uint32_t const PicSizeInMapUnits = sps->frame_width_in_mbs * sps->frame_height_in_mbs;
         // Get additional, map type dependent slice group data
         switch (pps->SliceGroupInfo.slice_group_map_type)
         {
@@ -1240,16 +1244,25 @@ Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps)
             {
                 // run length, bitstream has value - 1
                 pps->SliceGroupInfo.run_length[slice_group] = GetVLCElement(false) + 1;
+                if (pps->SliceGroupInfo.run_length[slice_group] > PicSizeInMapUnits)
+                    return UMC_ERR_INVALID_STREAM;
             }
             break;
+
         case 1:
             // no additional info
             break;
+
         case 2:
             for (uint32_t slice_group = 0; slice_group < (uint32_t)(pps->num_slice_groups-1); slice_group++)
             {
                 pps->SliceGroupInfo.t1.top_left[slice_group] = GetVLCElement(false);
+                if (pps->SliceGroupInfo.t1.top_left[slice_group] >= PicSizeInMapUnits)
+                    return UMC_ERR_INVALID_STREAM;
+
                 pps->SliceGroupInfo.t1.bottom_right[slice_group] = GetVLCElement(false);
+                if (pps->SliceGroupInfo.t1.bottom_right[slice_group] >= PicSizeInMapUnits)
+                    return UMC_ERR_INVALID_STREAM;
 
                 // check for legal values
                 if (pps->SliceGroupInfo.t1.top_left[slice_group] >
@@ -1259,6 +1272,7 @@ Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps)
                 }
             }
             break;
+
         case 3:
         case 4:
         case 5:
@@ -1269,29 +1283,37 @@ Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps)
             }
             pps->SliceGroupInfo.t2.slice_group_change_direction_flag = Get1Bit();
             pps->SliceGroupInfo.t2.slice_group_change_rate = GetVLCElement(false) + 1;
+            if (pps->SliceGroupInfo.t2.slice_group_change_rate > PicSizeInMapUnits)
+                return UMC_ERR_INVALID_STREAM;
             break;
+
         case 6:
             // mapping of slice group to map unit (macroblock if not fields) is
             // per map unit, read from bitstream
             {
                 // number of map units, bitstream has value - 1
                 pps->SliceGroupInfo.t3.pic_size_in_map_units = GetVLCElement(false) + 1;
+                if (pps->SliceGroupInfo.t3.pic_size_in_map_units != PicSizeInMapUnits)
+                    return UMC_ERR_INVALID_STREAM;
 
-                int32_t len = MFX_MAX(1, pps->SliceGroupInfo.t3.pic_size_in_map_units);
+                uint32_t const len = MFX_MAX(1, pps->SliceGroupInfo.t3.pic_size_in_map_units);
 
                 pps->SliceGroupInfo.pSliceGroupIDMap.resize(len);
 
                 // num_bits is Ceil(log2(num_groups)) - number of bits used to code each slice group id
-                uint32_t num_bits = SGIdBits[pps->num_slice_groups - 2];
+                uint32_t const num_bits = SGIdBits[pps->num_slice_groups - 2];
 
-                for (uint32_t map_unit = 0;
-                     map_unit < pps->SliceGroupInfo.t3.pic_size_in_map_units;
-                     map_unit++)
+                for (uint32_t map_unit = 0; map_unit < pps->SliceGroupInfo.t3.pic_size_in_map_units; map_unit++)
                 {
-                    pps->SliceGroupInfo.pSliceGroupIDMap[map_unit] = (uint8_t)GetBits(num_bits);
+                    uint8_t const slice_group_id = (uint8_t)GetBits(num_bits);
+                    if (slice_group_id >  pps->num_slice_groups - 1)
+                        return UMC_ERR_INVALID_STREAM;
+
+                    pps->SliceGroupInfo.pSliceGroupIDMap[map_unit] = slice_group_id;
                 }
             }
             break;
+
         default:
             return UMC_ERR_INVALID_STREAM;
 
