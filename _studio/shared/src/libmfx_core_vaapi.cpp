@@ -251,6 +251,25 @@ typedef struct {
     { 0x593B, MFX_HW_KBL}, // HALO GT4
     { 0x593D, MFX_HW_KBL}, // WRK GT4
 
+    /* CFL */
+    { 0x3E90, MFX_HW_CFL},
+    { 0x3E91, MFX_HW_CFL},
+    { 0x3E92, MFX_HW_CFL},
+    { 0x3E93, MFX_HW_CFL},
+    { 0x3E94, MFX_HW_CFL},
+    { 0x3E96, MFX_HW_CFL},
+    { 0x3E9B, MFX_HW_CFL},
+
+    /* CNL */
+    { 0x5A51, MFX_HW_CNL }, 
+    { 0x5A52, MFX_HW_CNL }, 
+    { 0x5A5A, MFX_HW_CNL }, 
+    { 0x5A42, MFX_HW_CNL }, 
+    { 0x5A4A, MFX_HW_CNL }, 
+    { 0x5A59, MFX_HW_CNL }, 
+    { 0x5A41, MFX_HW_CNL }, 
+    { 0x5A49, MFX_HW_CNL },
+
 };
 
 /* END: IOCTLs definitions */
