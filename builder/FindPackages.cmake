@@ -82,7 +82,7 @@ function( configure_build_variant_linux target variant )
   if( NOT Linux )
     return() # should not occur; just in case
   endif()
-  set( link_flags_list "-Wl,--no-undefined,-z,relro,-z,now,-z,noexecstack")
+  set( link_flags_list "-Wl,--no-undefined,-z,relro,-z,now,-z,noexecstack -Wl,--no-as-needed -ldl")
   append_property( ${ARGV0} LINK_FLAGS "${link_flags_list} ${MFX_LDFLAGS} -fstack-protector" )
 #  message( STATUS "Libva located at: ${PKG_LIBVA_LIBRARY_DIRS}" )
 
