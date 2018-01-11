@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required( VERSION 2.6.2 )
+cmake_minimum_required( VERSION 2.8.5 )
 project( mediasdk )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
