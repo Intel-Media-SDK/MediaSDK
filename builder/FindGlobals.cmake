@@ -36,6 +36,8 @@ if( Linux OR Darwin )
     set( CMAKE_INSTALL_PREFIX /opt/intel/mediasdk CACHE PATH "Install Path Prefix" FORCE )
   endif()
 
+  include( GNUInstallDirs )
+
   add_definitions(-DUNIX)
 
   if( Linux )
@@ -133,18 +135,18 @@ elseif( Windows )
   endif()
 endif( )
 
-if(__ARCH MATCHES ia32)
-  set( MFX_MODULES_DIR ${CMAKE_INSTALL_PREFIX}/lib )
-  set( MFX_SAMPLES_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/samples )
-  set( MFX_SAMPLES_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/samples )
-else()
-  set( MFX_MODULES_DIR ${CMAKE_INSTALL_PREFIX}/lib64 )
-  set( MFX_SAMPLES_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/samples )
-  set( MFX_SAMPLES_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/samples )
-endif()
+set( MFX_SAMPLES_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/samples )
+set( MFX_SAMPLES_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/samples )
+
+if( NOT DEFINED MFX_PLUGINS_DIR )
+  set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_PREFIX}/plugins )
+endif( )
+
+if( NOT DEFINED MFX_MODULES_DIR )
+  set( MFX_MODULES_DIR ${CMAKE_INSTALL_FULL_LIBDIR} )
+endif( )
 
 message( STATUS "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" )
-set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_PREFIX}/plugins )
 
 # Some font definitions: colors, bold text, etc.
 if(NOT Windows)
