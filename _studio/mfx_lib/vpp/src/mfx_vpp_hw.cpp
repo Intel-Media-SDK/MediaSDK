@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -4719,7 +4719,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     executeParams.scalingMode = MFX_SCALING_MODE_DEFAULT;
                 }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1025)
                 else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
                 {
                     executeParams.chromaSiting = MFX_CHROMA_SITING_UNKNOWN;
