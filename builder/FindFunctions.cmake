@@ -1,15 +1,15 @@
 # Copyright (c) 2017 Intel Corporation
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -245,7 +245,7 @@ function( make_library name variant type )
   set_target_properties( ${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER ${folder} )
 
   if( Linux )
-    target_link_libraries( ${target} "-Xlinker --end-group" )
+    target_link_libraries( ${target} "-Xlinker --end-group -lgcc" )
   endif()
 
   set( target ${target} PARENT_SCOPE )
@@ -334,7 +334,7 @@ function( make_executable name variant )
   endif()
 
   if( Linux )
-    target_link_libraries( ${target} "-Xlinker --end-group" )
+    target_link_libraries( ${target} "-Xlinker --end-group -lgcc" )
   endif()
 
   set( target ${target} PARENT_SCOPE )
