@@ -71,6 +71,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-EncodedOrder] - use app-level reordering to encoded order (default is display; ENCODE only)\n"));
     msdk_printf(MSDK_STRING("   [-n number] - number of frames to process\n"));
     msdk_printf(MSDK_STRING("   [-qp qp_value] - QP value for frames (default is 26)\n"));
+    msdk_printf(MSDK_STRING("   [-DisableQPOffset] - disable QP offset per pyramid layer\n"));
     msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
     msdk_printf(MSDK_STRING("   [-idr_interval size] - if IdrInterval = 0, then only first I-frame is an IDR-frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 1, then every I - frame is an IDR - frame\n"));
@@ -419,6 +420,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.encodeCtrl.SearchPath), "SearchPath", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-DisableQPOffset")))
+        {
+            params.bDisableQPOffset = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("?")))
         {

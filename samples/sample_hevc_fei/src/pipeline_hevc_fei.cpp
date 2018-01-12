@@ -465,6 +465,9 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
 
     pCO3->GPB = user_pars.GPB;
 
+    // qp offset per pyramid layer, default is library behavior
+    pCO3->EnableQPOffset = user_pars.bDisableQPOffset ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN;
+
     return pars;
 }
 
