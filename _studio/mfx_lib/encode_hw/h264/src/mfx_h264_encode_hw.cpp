@@ -806,7 +806,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         if (sts != MFX_ERR_NONE)
             return MFX_WRN_PARTIAL_ACCELERATION;
         m_video.mfx.RateControlMethod = storedRateControlMethod;
-
     }
     else
     {
@@ -2455,6 +2454,15 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
             BRCFrameParams par;
             task->m_frcmplx = 0;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            if ((m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+                && (m_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE)
+                && (task->GetFrameType() & MFX_FRAMETYPE_I) && (task->m_encOrder==0 || m_video.mfx.GopPicSize != 1)) {
+                mfxStatus sts = CalculateRaCa(*task, task->m_frcmplx);
+                 if (sts != MFX_ERR_NONE)
+                     return Error(sts);
+            }
+#endif
             InitFrameParams(par, &(*task));
 
             task->m_cqpValue[0] = task->m_cqpValue[1] = m_brc.GetQp(par);

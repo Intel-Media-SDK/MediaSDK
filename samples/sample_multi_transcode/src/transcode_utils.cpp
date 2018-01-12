@@ -156,6 +156,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                This setting overrides plugin settings defined by SET clause.\n"));
     msdk_printf(MSDK_STRING("  -pd           Set decoding plugin for this particular session.\n"));
     msdk_printf(MSDK_STRING("                This setting overrides plugin settings defined by SET clause.\n"));
+    msdk_printf(MSDK_STRING("                Supported values: hevcd_sw, hevcd_hw, hevce_sw, hevce_gacc, hevce_hw, vp8d_hw, vp8e_hw, vp9d_hw, vp9e_hw, camera_hw, capture_hw, h264_la_hw, ptir_hw, hevce_fei_hw\n"));
+    msdk_printf(MSDK_STRING("                Direct GUID number can be used as well\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (encoding options):\n"));
     MOD_SMT_PRINT_HELP;
@@ -1496,13 +1498,23 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-pe")))
         {
             VAL_CHECK(i + 1 == argc, i, argv[i]);
-            InputParams.encoderPluginParams = ParsePluginParameter(argv[i + 1]);
+            InputParams.encoderPluginParams = ParsePluginGuid(argv[i + 1]);
+            if (AreGuidsEqual(InputParams.encoderPluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
+            {
+                PrintError(MSDK_STRING("Invalid encoder guid"), argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
             i++;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-pd")))
         {
             VAL_CHECK(i + 1 == argc, i, argv[i]);
-            InputParams.decoderPluginParams = ParsePluginParameter(argv[i + 1]);
+            InputParams.decoderPluginParams = ParsePluginGuid(argv[i + 1]);
+            if (AreGuidsEqual(InputParams.encoderPluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
+            {
+                PrintError(MSDK_STRING("Invalid decoder guid"), argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
             i++;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-override_decoder_framerate")))
@@ -1618,7 +1630,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
 
 } //mfxStatus CmdProcessor::ParseParamsForOneSession(msdk_char *pLine, mfxU32 length)
 
-mfxStatus CmdProcessor::ParseOption__set(msdk_char* strCodecType, msdk_char* strPluginPath)
+mfxStatus CmdProcessor::ParseOption__set(msdk_char* strCodecType, msdk_char* strPluginGuid)
 {
     mfxU32 codecid = 0;
     mfxU32 type = 0;
@@ -1651,7 +1663,12 @@ mfxStatus CmdProcessor::ParseOption__set(msdk_char* strCodecType, msdk_char* str
         return MFX_ERR_UNSUPPORTED;
     }
 
-    pluginParams = ParsePluginParameter(strPluginPath);
+    pluginParams = ParsePluginGuid(strPluginGuid);
+    if (AreGuidsEqual(pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
+    {
+        msdk_printf(MSDK_STRING("error: invalid codec guid\n"));
+        return MFX_ERR_UNSUPPORTED;
+    }
 
     if (type == MSDK_VDECODE)
         m_decoderPlugins.insert(std::pair<mfxU32, sPluginParams>(codecid, pluginParams));
@@ -1660,26 +1677,6 @@ mfxStatus CmdProcessor::ParseOption__set(msdk_char* strCodecType, msdk_char* str
 
     return MFX_ERR_NONE;
 };
-
-sPluginParams CmdProcessor::ParsePluginParameter(msdk_char* strPluginPath)
-{
-    sPluginParams pluginParams;
-    if (MFX_ERR_NONE == ConvertStringToGuid(strPluginPath, pluginParams.pluginGuid))
-    {
-        pluginParams.type = MFX_PLUGINLOAD_TYPE_GUID;
-    }
-    else
-    {
-        msdk_char tmpVal[MSDK_MAX_FILENAME_LEN];
-        msdk_opt_read(strPluginPath, tmpVal);
-
-        MSDK_MAKE_BYTE_STRING(tmpVal, pluginParams.strPluginPath);
-        pluginParams.type = MFX_PLUGINLOAD_TYPE_FILE;
-    }
-
-    return pluginParams;
-}
-
 
 mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputParams &InputParams)
 {

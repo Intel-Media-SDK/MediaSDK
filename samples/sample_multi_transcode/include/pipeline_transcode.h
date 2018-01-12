@@ -36,7 +36,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "sample_defs.h"
 #include "sample_utils.h"
-#include "sample_params.h"
 #include "base_allocator.h"
 #include "sysmem_allocator.h"
 #include "rotate_plugin_api.h"
@@ -52,6 +51,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "hw_device.h"
 #include "plugin_loader.h"
 #include "sample_defs.h"
+#include "plugin_utils.h"
 
 #if (MFX_VERSION >= 1024)
 #include "brc_routines.h"

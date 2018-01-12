@@ -173,7 +173,7 @@ enum
     CODED_PIC_ALIGN_W       = 16,
     CODED_PIC_ALIGN_H       = 16,
 
-    MAX_SLICES              = 600,
+    MAX_SLICES              = 200,// WA for driver issue regerding CNL and older platforms
     DEFAULT_LTR_INTERVAL    = 16,
 
     MAX_NUM_ROI             = 8,
@@ -803,6 +803,7 @@ public:
 
     void SyncVideoToCalculableParam();
     void SyncCalculableToVideoParam();
+    void AlignCalcWithBRCParamMultiplier();
     void SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt = 0);
     void SyncHeadersToMfxParam();
 

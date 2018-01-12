@@ -251,6 +251,7 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
         (m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CQP);
 
     m_vpar.SyncCalculableToVideoParam();
+    m_vpar.AlignCalcWithBRCParamMultiplier();
 
     if (!pSPSPPS || !pSPSPPS->SPSBuffer)
         m_vpar.SyncMfxToHeadersParam();
@@ -641,6 +642,7 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     SetDefaults(parNew, m_caps);
 
     parNew.SyncCalculableToVideoParam();
+    parNew.AlignCalcWithBRCParamMultiplier();
 
     if (!pSPSPPS || !pSPSPPS->SPSBuffer)
         parNew.SyncMfxToHeadersParam(m_NumberOfSlicesForOpt);

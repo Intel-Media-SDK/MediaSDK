@@ -33,6 +33,10 @@
 #include "mfxfei.h"
 #include "mfxla.h"
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#include "mfxfeihevc.h"
+#endif
+
 
 #if (MFX_VERSION >= 1025)
 #include "ts_typedef.h"

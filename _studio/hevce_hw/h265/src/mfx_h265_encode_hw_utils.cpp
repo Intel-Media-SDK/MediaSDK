@@ -662,6 +662,7 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
 mfxStatus MfxVideoParam::FillPar(mfxVideoParam& par, bool query)
 {
         SyncCalculableToVideoParam();
+        AlignCalcWithBRCParamMultiplier();
 
         par.AllocId    = AllocId;
         par.mfx        = mfx;
@@ -825,6 +826,21 @@ void MfxVideoParam::SyncCalculableToVideoParam()
         }
     }
     mfx.NumSlice = (mfxU16)m_slice.size();
+}
+
+void MfxVideoParam::AlignCalcWithBRCParamMultiplier()
+{
+    if (!mfx.BRCParamMultiplier)
+        return;
+
+    BufferSizeInKB = mfx.BufferSizeInKB   * mfx.BRCParamMultiplier;
+
+    if (mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+    {
+        InitialDelayInKB = mfx.InitialDelayInKB * mfx.BRCParamMultiplier;
+        TargetKbps       = mfx.TargetKbps       * mfx.BRCParamMultiplier;
+        MaxKbps          = mfx.MaxKbps          * mfx.BRCParamMultiplier;
+    }
 }
 
 mfxU8 GetAspectRatioIdc(mfxU16 w, mfxU16 h)

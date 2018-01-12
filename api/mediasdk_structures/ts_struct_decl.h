@@ -413,7 +413,6 @@ STRUCT(mfxExtAvcTemporalLayers,
     FIELD_S(mfxExtAvcTemporalLayers_Layer, Layer)
 )
 
-
 STRUCT(mfxExtEncoderCapability,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU32, MBPerSec)
@@ -688,6 +687,49 @@ STRUCT(mfxExtFeiDecStreamOut,
     FIELD_T(mfxU16,  PicStruct)
     FIELD_T(mfxFeiDecStreamOutMBCtrl*, MB)
 )
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+STRUCT(mfxExtFeiHevcEncFrameCtrl,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16,       SearchPath)
+    FIELD_T(mfxU16,       LenSP)
+    FIELD_T(mfxU16,       RefWidth)
+    FIELD_T(mfxU16,       RefHeight)
+    FIELD_T(mfxU16,       SearchWindow)
+    FIELD_T(mfxU16,       NumMvPredictors)
+    FIELD_T(mfxU16,       MultiPred)
+    FIELD_T(mfxU16,       SubPelMode)
+    FIELD_T(mfxU16,       AdaptiveSearch)
+    FIELD_T(mfxU16,       MVPredictor)
+    FIELD_T(mfxU16,       PerCuQp)
+    FIELD_T(mfxU16,       PerCtuInput)
+    FIELD_T(mfxU16,       ForceCtuSplit)
+    FIELD_T(mfxU16,       NumFramePartitions)
+)
+
+STRUCT(mfxExtFeiHevcEncMVPredictors,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU32,       VaBufferID)
+    FIELD_T(mfxU32,       Pitch)
+    FIELD_T(mfxU32,       Height)
+)
+
+STRUCT(mfxExtFeiHevcEncCtuCtrl,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU32,       VaBufferID)
+    FIELD_T(mfxU32,       Pitch)
+    FIELD_T(mfxU32,       Height)
+)
+
+STRUCT(mfxExtFeiHevcEncQP,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU32,       VaBufferID)
+    FIELD_T(mfxU32,       Pitch)
+    FIELD_T(mfxU32,       Height)
+    FIELD_T(mfxU8*,       Data)
+)
+#endif
+
 
 STRUCT(mfxExtAVCRefLists_mfxRefPic,
     FIELD_T(mfxU32, FrameOrder)

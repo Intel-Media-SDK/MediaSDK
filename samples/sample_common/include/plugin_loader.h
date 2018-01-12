@@ -24,6 +24,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "vm/so_defs.h"
 #include "sample_utils.h"
+#include "plugin_utils.h"
 //#include "mfx_plugin_module.h"
 #include <iostream>
 #include <iomanip> // for std::setfill, std::setw
@@ -96,6 +97,11 @@ private:
         else if (AreGuidsEqual(guid, MFX_PLUGINID_HEVCE_GACC))
             return MSDK_STRING("Intel (R) Media SDK GPU-Accelerated plugin for HEVC ENCODE");
         else
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        if (AreGuidsEqual(guid, MFX_PLUGINID_HEVC_FEI_ENCODE))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for HEVC FEI ENCODE");
+        else
+#endif
             return MSDK_STRING("Unknown plugin");
     }
 
