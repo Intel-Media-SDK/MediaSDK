@@ -87,6 +87,7 @@ struct sInputParams
     mfxU16 NumRefActiveBL1;    // maximal number of forward references for B frames
     mfxU16 preencDSfactor;     // downsample input before passing to preenc (2/4/8x are supported)
     mfxU16 PicTimingSEI;       // picture timing SEI
+    bool   bDisableQPOffset;   // disable qp offset per pyramid layer
 
     mfxExtFeiPreEncCtrl         preencCtrl;
     mfxExtFeiHevcEncFrameCtrl   encodeCtrl;
@@ -115,6 +116,7 @@ struct sInputParams
         , NumRefActiveBL1(1)
         , preencDSfactor(1)            // no downsampling
         , PicTimingSEI(MFX_CODINGOPTION_OFF)
+        , bDisableQPOffset(false)
     {
         MSDK_ZERO_MEMORY(strDstFile);
         MSDK_ZERO_MEMORY(mbstatoutFile);
