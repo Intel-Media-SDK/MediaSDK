@@ -28,7 +28,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 #include "sample_utils.h"
-#include "sample_params.h"
 #include "base_allocator.h"
 #include "time_statistics.h"
 

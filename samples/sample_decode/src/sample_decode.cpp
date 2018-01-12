@@ -49,7 +49,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-?]                      - print help\n"));
     msdk_printf(MSDK_STRING("   [-hw]                     - use platform specific SDK implementation (default)\n"));
     msdk_printf(MSDK_STRING("   [-sw]                     - use software implementation, if not specified platform specific SDK implementation is used\n"));
-    msdk_printf(MSDK_STRING("   [-p guid]                 - 32-character hexadecimal guid string\n"));
+    msdk_printf(MSDK_STRING("   [-p plugin]               - decoder plugin. Supported values: hevcd_sw, hevcd_hw, vp8d_hw, vp9d_hw, camera_hw, capture_hw\n"));
     msdk_printf(MSDK_STRING("   [-path path]              - path to plugin (valid only in pair with -p option)\n"));
     msdk_printf(MSDK_STRING("                               (optional for Media SDK in-box plugins, required for user-decoder ones)\n"));
     msdk_printf(MSDK_STRING("   [-f]                      - rendering framerate\n"));
@@ -557,11 +557,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-path")))
         {
             i++;
-            msdk_char tmpVal[MSDK_MAX_FILENAME_LEN];
-            msdk_opt_read(strInput[i], tmpVal);
-            MSDK_MAKE_BYTE_STRING(tmpVal, pParams->pluginParams.strPluginPath);
-
-            pParams->pluginParams.type = MFX_PLUGINLOAD_TYPE_FILE;
+            pParams->pluginParams = ParsePluginPath(strInput[i]);
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-i:null")))
         {
@@ -573,21 +569,13 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             {
             case MSDK_CHAR('p'):
                 if (++i < nArgNum) {
-                   if (MFX_ERR_NONE == ConvertStringToGuid(strInput[i], pParams->pluginParams.pluginGuid))
+                    pParams->pluginParams = ParsePluginGuid(strInput[i]);
+                    if (AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
                     {
-                        if(pParams->pluginParams.type != MFX_PLUGINLOAD_TYPE_FILE)
-                        {
-                            pParams->pluginParams.type = MFX_PLUGINLOAD_TYPE_GUID;
-                        }
-                    }
-                    else
-                    {
-                        PrintHelp(strInput[0], MSDK_STRING("Unknown options"));
+                        msdk_printf(MSDK_STRING("error: invalid decoder plugin\n"));
+                        return MFX_ERR_UNSUPPORTED;
                     }
                  }
-                else {
-                    msdk_printf(MSDK_STRING("error: option '-p' expects an argument\n"));
-                }
                 break;
             case MSDK_CHAR('i'):
                 if (++i < nArgNum) {

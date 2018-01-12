@@ -20,6 +20,9 @@
 
 #include "mfxdefs.h"
 #include "mfx_trace.h"
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#include "mfxfeihevc.h"
+#endif
 
 #if (MFX_VERSION >= 1025)
 static mfx_reflect::AccessibleTypesCollection g_Reflection;

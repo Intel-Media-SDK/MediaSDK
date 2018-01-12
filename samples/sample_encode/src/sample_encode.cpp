@@ -84,7 +84,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-dsth height] - destination picture height, invokes VPP resizing\n"));
     msdk_printf(MSDK_STRING("   [-hw] - use platform specific SDK implementation (default)\n"));
     msdk_printf(MSDK_STRING("   [-sw] - use software implementation, if not specified platform specific SDK implementation is used\n"));
-    msdk_printf(MSDK_STRING("   [-p guid] - 32-character hexadecimal guid string\n"));
+    msdk_printf(MSDK_STRING("   [-p plugin] - encoder plugin. Supported values: hevce_sw, hevce_gacc, hevce_hw, vp8e_hw, vp9e_hw, hevce_fei_hw\n"));
     msdk_printf(MSDK_STRING("                              (optional for Media SDK in-box plugins, required for user-encoder ones)\n"));
     msdk_printf(MSDK_STRING("   [-path path] - path to plugin (valid only in pair with -p option)\n"));
     msdk_printf(MSDK_STRING("   [-async]                 - depth of asynchronous pipeline. default value is 4. must be between 1 and 20.\n"));
@@ -672,11 +672,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         } else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-path")))
         {
             i++;
-            msdk_char tmpVal[MSDK_MAX_FILENAME_LEN];
-            msdk_opt_read(strInput[i], tmpVal);
-
-            MSDK_MAKE_BYTE_STRING(tmpVal, pParams->pluginParams.strPluginPath);
-            pParams->pluginParams.type = MFX_PLUGINLOAD_TYPE_FILE;
+            pParams->pluginParams = ParsePluginPath(strInput[i]);
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-re")))
         {
@@ -874,20 +870,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 break;
             case MSDK_CHAR('p'):
                 if (++i < nArgNum) {
-                    if (MFX_ERR_NONE == ConvertStringToGuid(strInput[i], pParams->pluginParams.pluginGuid))
+                    pParams->pluginParams = ParsePluginGuid(strInput[i]);
+                    if (AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
                     {
-                        if(pParams->pluginParams.type != MFX_PLUGINLOAD_TYPE_FILE)
-                        {
-                            pParams->pluginParams.type = MFX_PLUGINLOAD_TYPE_GUID;
-                        }
+                        msdk_printf(MSDK_STRING("error:  invalid encoder guid\n"));
+                        return MFX_ERR_UNSUPPORTED;
                     }
-                    else
-                    {
-                        PrintHelp(strInput[0], MSDK_STRING("Unknown options"));
-                    }
-                }
-                else {
-                    msdk_printf(MSDK_STRING("error: option '-p' expects an argument\n"));
                 }
                 break;
             case MSDK_CHAR('?'):

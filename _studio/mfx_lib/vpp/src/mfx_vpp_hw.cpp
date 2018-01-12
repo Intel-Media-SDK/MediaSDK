@@ -4713,6 +4713,12 @@ mfxStatus ConfigureExecuteParams(
                 {
                     executeParams.scalingMode = MFX_SCALING_MODE_DEFAULT;
                 }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+                else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
+                {
+                    executeParams.chromaSiting = MFX_CHROMA_SITING_UNKNOWN;
+                }
+#endif
                 else if (MFX_EXTBUFF_VPP_MIRRORING == bufferId)
                 {
                     executeParams.mirroring = MFX_MIRRORING_DISABLED;
