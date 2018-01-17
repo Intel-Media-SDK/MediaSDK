@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -69,6 +69,7 @@ struct sInputParams
     bool bEncodedOrder;        // use EncodeOrderControl for external reordering
     bool bFormattedMVout;      // use internal format for dumping MVP
     bool bFormattedMVPin;      // use internal format for reading MVP
+    bool bQualityRepack;       // use quality mode in MV repack
     mfxU8  QP;
     mfxU16 dstWidth;           // destination picture width
     mfxU16 dstHeight;          // destination picture height
@@ -98,6 +99,7 @@ struct sInputParams
         , bEncodedOrder(false)
         , bFormattedMVout(false)
         , bFormattedMVPin(false)
+        , bQualityRepack(false)
         , QP(26)
         , dstWidth(0)
         , dstHeight(0)

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -103,6 +103,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-mvpin::format <file-name>] - use this to input MVs for ENCODE before repacking in internal format\n"));
     msdk_printf(MSDK_STRING("                                   (Encoded Order will be enabled automatically).\n"));
 
+    msdk_printf(MSDK_STRING("   [-qrep] - quality predictor MV repacking before encode\n"));
     msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,8] (5 is default).\n"));
     msdk_printf(MSDK_STRING("                           If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
     msdk_printf(MSDK_STRING("   [-RefWidth width] - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
@@ -274,6 +275,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.mbstatoutFile), "MB stat out File", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qrep")))
+        {
+            params.bQualityRepack = true;                  // to enable quality mode in repack
+            params.preencCtrl.DisableStatisticsOutput = 0; // to gather statistics in preenc, needed for quality repack
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ppyr:on")))
         {

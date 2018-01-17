@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -353,7 +353,7 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfx
                 }
             }
 
-            // sort predcitors by ascending distortion
+            // sort predictors by ascending distortion
             if (numPredPairs < 2) // nothing to sort
             {
                 mvp.Data[permutEncIdx].MV[0][0] = mv[0][0];
@@ -363,12 +363,12 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfx
                 continue;
             }
 
-            // smaller idx to be first argument to be preffered if equal
+            // smaller idx to be first argument to be preferred if equal
             #define CMP_DIST(k,l) {                               \
                 mfxU8 res0 = distortion[k][0] > distortion[l][0]; \
                 mfxU8 res1 = distortion[k][1] > distortion[l][1]; \
-                worse[k][0] += res0; worse[k][0] += res0 ^ 1;     \
-                worse[k][1] += res1; worse[k][1] += res1 ^ 1;     \
+                worse[k][0] += res0; worse[l][0] += res0 ^ 1;     \
+                worse[k][1] += res1; worse[l][1] += res1 ^ 1;     \
             }
 
             // fill unused
@@ -395,11 +395,8 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfx
         }
     }
 
-    if (nMvPredictors[0] == 0 || nMvPredictors[1] == 0)
-    {
-        MSDK_TRACE_ERROR("Not implemented! The repacker didn't set number of MPVs");
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
+    nMvPredictors[0] = numFinalL0Predictors;
+    nMvPredictors[1] = numFinalL1Predictors;
 
     return MFX_ERR_NONE;
 }

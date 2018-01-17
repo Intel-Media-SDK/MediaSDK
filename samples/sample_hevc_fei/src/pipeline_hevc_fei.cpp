@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -565,7 +565,7 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
         sts = pRepacker->Init(pars, m_inParams.preencDSfactor, m_inParams.encodeCtrl.NumMvPredictors);
         CHECK_STS_AND_RETURN(sts, "CreateEncode::pRepacker->Init failed", NULL);
 
-        pRepacker->SetPerfomanceRepackingMode();
+        m_inParams.bQualityRepack ? pRepacker->SetQualityRepackingMode() : pRepacker->SetPerfomanceRepackingMode();
     }
 
     mfxHDL hdl = NULL;
