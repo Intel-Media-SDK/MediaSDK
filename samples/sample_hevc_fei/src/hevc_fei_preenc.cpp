@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -112,6 +112,7 @@ FEI_Preenc::FEI_Preenc(MFXVideoSession* session, MfxVideoParamsWrapper& preenc_p
     if (0 != msdk_strlen(mbstatoutFile))
     {
         m_pFile_MBstat_out.reset(new FileHandler(mbstatoutFile, MSDK_STRING("wb")));
+        m_defFrameCtrl.DisableStatisticsOutput = 0;
     }
 
     /* Default value for I-frames */
@@ -353,8 +354,7 @@ mfxStatus FEI_Preenc::PreEncOneFrame(HevcTask & task, const RefIdxPair& dpbRefId
 
     // disable MV output for I frames / if no reference frames provided
     ctrl->DisableMVOutput = (task.m_frameType & MFX_FRAMETYPE_I) || (IDX_INVALID == dpbRefIdxPair.RefL0 && IDX_INVALID == dpbRefIdxPair.RefL1);
-    // enable only if mbstat dump is required
-    ctrl->DisableStatisticsOutput = m_pFile_MBstat_out.get() ? 0 : 1;
+    // Note: ctrl->DisableStatisticsOutput is set on init and shouldn't change
 
     mfxENCOutputWrap & out = m_syncp.second.second;
 
