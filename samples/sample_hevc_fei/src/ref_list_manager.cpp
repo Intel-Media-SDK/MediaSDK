@@ -420,7 +420,7 @@ namespace HevcRplUtils
                 if (isField(par) && (GetFrameNum(true, dpb[1].m_poc, dpb[1].m_secondField) != GetFrameNum(true, dpb[0].m_poc, dpb[0].m_secondField)))
                     st0 = 0;
                 else
-                    for (st0 = 1; ((GetFrameNum(isField(par), dpb[st0].m_poc, dpb[st0].m_secondField) - (GetFrameNum(isField(par), dpb[0].m_poc, dpb[0].m_secondField))) % maxNumRefL0 ) == 0 && st0 < end; st0++);
+                    for (st0 = 1; st0 < end && ((GetFrameNum(isField(par), dpb[st0].m_poc, dpb[st0].m_secondField) - (GetFrameNum(isField(par), dpb[0].m_poc, dpb[0].m_secondField))) % maxNumRefL0 ) == 0; st0++);
             }
             else
             {

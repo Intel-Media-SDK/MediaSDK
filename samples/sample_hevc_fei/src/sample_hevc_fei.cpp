@@ -20,7 +20,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "version.h"
 #include "pipeline_hevc_fei.h"
 
-mfxStatus CheckOptions(const sInputParams params, const msdk_char* appName);
+mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName);
 void AdjustOptions(sInputParams& params);
 
 // if last option requires value, check that it passed to app
@@ -459,7 +459,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
     return MFX_ERR_NONE;
 }
 
-mfxStatus CheckOptions(const sInputParams params, const msdk_char* appName)
+mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
 {
     if (0 == msdk_strlen(params.input.strSrcFile))
     {
