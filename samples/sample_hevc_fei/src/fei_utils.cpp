@@ -519,15 +519,9 @@ mfxStatus FieldSplitter::GetFrame(mfxFrameSurface1* & pOutSrf)
     {
         m_pInSurface = pInSrf; // Keep a VPP input surface in a cache to process a next (odd) field
         sts = MFX_ERR_NONE;
-
-        pOutSrf->Info.PicStruct = pInSrf->Info.PicStruct | MFX_PICSTRUCT_FIELD_SINGLE;
     }
     else if (MFX_ERR_NONE == sts) // odd field
     {
-        pOutSrf->Info.PicStruct  = MFX_PICSTRUCT_FIELD_SINGLE;
-        pOutSrf->Info.PicStruct |= (pInSrf->Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF ?
-                                        MFX_PICSTRUCT_FIELD_BFF :
-                                        MFX_PICSTRUCT_FIELD_TFF);
         m_pInSurface = NULL;
     }
 
