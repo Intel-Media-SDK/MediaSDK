@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -695,12 +695,26 @@ typedef struct {
     mfxU16      AdaptiveMaxFrameSize;      /* tri-state option */
 
     mfxU16      RepartitionCheckEnable;    /* tri-state option */
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxU16      QuantScaleType;            /* For MPEG2 specifies mapping between quantiser_scale_code and quantiser_scale (see QuantScaleType enum) */
+    mfxU16      IntraVLCFormat;            /* For MPEG2 specifies which table shall be used for coding of DCT coefficients of intra macroblocks (see IntraVLCFormat enum) */
+    mfxU16      ScanType;                  /* For MPEG2 specifies transform coefficients scan pattern (see ScanType enum) */
+    mfxU16      EncodedUnitsInfo;          /* tri-state option */
+    mfxU16      EnableNalUnitType;         /* tri-state option */
+    mfxU16      ExtBrcAdaptiveLTR;         /* tri-state option for ExtBRC */
+
+    mfxU16      reserved[163];
+#elif (MFX_VERSION >= 1025)
     mfxU16      reserved5[3];
 
     mfxU16      EncodedUnitsInfo;          /* tri-state option */
     mfxU16      EnableNalUnitType;         /* tri-state option */
 
     mfxU16      reserved[164];
+#else
+
+    mfxU16      reserved[169];
+#endif
 } mfxExtCodingOption3;
 
 /* IntraPredBlockSize/InterPredBlockSize */

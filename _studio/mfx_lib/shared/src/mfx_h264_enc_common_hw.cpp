@@ -84,6 +84,20 @@ namespace
         return true;
     }
 
+    bool CheckTriStateOptionWithAdaptive(mfxU16 & opt)
+    {
+        if (opt != MFX_CODINGOPTION_UNKNOWN &&
+            opt != MFX_CODINGOPTION_ON &&
+            opt != MFX_CODINGOPTION_OFF &&
+            opt != MFX_CODINGOPTION_ADAPTIVE)
+        {
+            opt = MFX_CODINGOPTION_UNKNOWN;
+            return false;
+        }
+
+        return true;
+    }
+
     bool CheckTriStateOptionForOff(mfxU16 & opt)
     {
         if (opt !=  MFX_CODINGOPTION_OFF)
@@ -3886,6 +3900,10 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 #endif
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if (!CheckTriStateOption(extOpt3->ExtBrcAdaptiveLTR)) changed = true;
+#endif
+
     if (hwCaps.UserMaxFrameSizeSupport == 0 && ((extOpt2->MaxFrameSize) || (extOpt3->MaxFrameSizeI) || (extOpt3->MaxFrameSizeP)))
     {
         extOpt2->MaxFrameSize = 0;
@@ -5769,6 +5787,26 @@ void MfxHwH264Encode::SetDefaults(
 #if MFX_VERSION >= 1023
     if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->AdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
+#endif
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_UNKNOWN) {
+        extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+        if (IsOn(extOpt2->ExtBRC) 
+            && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+            && (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE)) {
+            mfxExtBRC * extBRC = GetExtBuffer(par);
+            if (!extBRC->pthis) {
+                extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_ON;
+            }
+        }
+    }
+    if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_ON) {
+        if (extOpt2->AdaptiveB == MFX_CODINGOPTION_UNKNOWN)
+            extOpt2->AdaptiveB = MFX_CODINGOPTION_ON;
+        if (extOpt2->AdaptiveI == MFX_CODINGOPTION_UNKNOWN)
+            extOpt2->AdaptiveI = MFX_CODINGOPTION_ON;
+    }
 #endif
 
     par.ApplyDefaultsToMvcSeqDesc();

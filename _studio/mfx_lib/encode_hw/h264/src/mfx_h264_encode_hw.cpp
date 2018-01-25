@@ -806,6 +806,28 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         if (sts != MFX_ERR_NONE)
             return MFX_WRN_PARTIAL_ACCELERATION;
         m_video.mfx.RateControlMethod = storedRateControlMethod;
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        mfxExtCodingOption3 * extOpt3 = GetExtBuffer(m_video);
+        if (IsOn(extOpt3->ExtBrcAdaptiveLTR) &&
+            (m_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) &&
+            (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)) {
+            mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
+            mfxU32 numActiveRefL0P = extDdi->NumActiveRefP;
+            mfxU16 nrfMin = (m_video.mfx.GopRefDist > 1 ? 2 : 1);
+            bool bPyr = (extOpt2->BRefType == MFX_B_REF_PYRAMID);
+            if (bPyr) {
+                mfxU16 refB = m_video.mfx.GopRefDist ? (m_video.mfx.GopRefDist - 1) / 2 : 0;
+                for (mfxU16 x = refB; x > 2;) {
+                    x = (x - 1) / 2;
+                    refB -= x;
+                }
+                nrfMin += refB;
+            }
+            if (m_video.mfx.NumRefFrame > nrfMin && numActiveRefL0P > 1)
+                m_enabledSwBrcLtr = true;
+        }
+#endif
     }
     else
     {

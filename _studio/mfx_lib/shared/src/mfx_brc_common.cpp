@@ -884,8 +884,13 @@ mfxI32 ExtBRC::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
 
 mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctrl, mfxBRCFrameStatus* status)
 {
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxU16 ParSceneChange = frame_par->SceneChange;
+    mfxU32 ParFrameCmplx = frame_par->FrameCmplx;
+#else
     mfxU16 ParSceneChange = 0;
     mfxU32 ParFrameCmplx = 0;
+#endif
     mfxStatus sts       = MFX_ERR_NONE;
 
     MFX_CHECK_NULL_PTR3(frame_par, frame_ctrl, status);
@@ -1332,9 +1337,15 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
 {
     MFX_CHECK_NULL_PTR2(par, ctrl);
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxU16 ParSceneChange = par->SceneChange;
+    mfxU16 ParLongTerm = par->LongTerm;
+    mfxU32 ParFrameCmplx = par->FrameCmplx;
+#else
     mfxU16 ParSceneChange = 0;
     mfxU16 ParLongTerm = 0;
     mfxU32 ParFrameCmplx = 0;
+#endif
     mfxI32 qp = 0;
     mfxI32 qpMin = 1;
     mfxU16 type = GetFrameType(par->FrameType, par->PyramidLayer, m_par.gopRefDist);
