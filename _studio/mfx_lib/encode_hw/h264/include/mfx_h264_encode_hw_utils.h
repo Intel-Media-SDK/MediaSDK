@@ -1166,6 +1166,8 @@ namespace MfxHwH264Encode
         bool m_userTimeout;
 #endif
         eMFXHWType m_hwType;  // keep HW type information
+
+
         mfxU32 m_SceneChange;
         bool   m_enabledSwBrcLtr;
         mfxU32 m_frameLtrOff;
@@ -1230,6 +1232,11 @@ namespace MfxHwH264Encode
         memset(&par,0,sizeof(par));
         par.FrameType = task->m_type[task->m_fid[0]];
         par.picStruct = 0;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        par.FrameCmplx   = task->m_frcmplx;
+        par.LongTerm     = (task->m_longTermFrameIdx != NO_INDEX_U8) ? 1 : 0;
+        par.SceneChange  = (mfxU16) task->m_SceneChange;
+#endif
         par.DisplayOrder = task->m_frameOrder;
         par.EncodedOrder = task->m_encOrder;
         par.PyramidLayer = (mfxU16)task->m_loc.level;
