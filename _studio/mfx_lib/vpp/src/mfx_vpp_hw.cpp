@@ -3613,6 +3613,12 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         {
             sts = (MFX_ERR_INVALID_VIDEO_PARAM < sts) ? MFX_ERR_INVALID_VIDEO_PARAM : sts;
         }
+
+        // VPP SyncTaskSubmission returns MFX_ERR_INVALID_VIDEO_PARAM when output picstructure has no parity
+        if (!(par->vpp.Out.PicStruct & (MFX_PICSTRUCT_FIELD_BFF | MFX_PICSTRUCT_FIELD_TFF)) && !(par->vpp.Out.PicStruct == MFX_PICSTRUCT_UNKNOWN))
+        {
+            sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+        }
     }
 
     if( !(par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && (par->vpp.Out.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) )
