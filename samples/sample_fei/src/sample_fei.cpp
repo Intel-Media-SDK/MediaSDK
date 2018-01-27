@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -19,6 +19,12 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "pipeline_fei.h"
 #include "version.h"
+#include <thread>
+#include <vector>
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 mfxStatus CheckOptions(AppConfig* pConfig);
 mfxStatus CheckDRCParams(AppConfig* pConfig);
@@ -86,6 +92,14 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-repackctrl file] - file to input max encoded frame size,number of pass and delta qp for each frame(ENCODE only)\n"));
 #if (MFX_VERSION >= 1025)
     msdk_printf(MSDK_STRING("   [-repackstat file] - file to output each frame's number of passes (ENCODE only)\n"));
+    msdk_printf(MSDK_STRING("   [-mfe_frames MaxNumFrames] - set upper limit for number of frames to be used for submission\n"));
+    msdk_printf(MSDK_STRING("   [-mfe_mode Mode] - set multi-frame operation mode\n"));
+    msdk_printf(MSDK_STRING("   [-mfe_timeout timeout] - set timeout in microsecond\n"));
+    msdk_printf(MSDK_STRING("   [-par_file filename] - enable parfile mode, each line in parfile corresponds to the same argument\n"));
+    msdk_printf(MSDK_STRING("                          list as usual commandline, each line will correspond to one parallel session\n"));
+    msdk_printf(MSDK_STRING("                          filename should contain not more than %d cheracters\n"), MSDK_MAX_FILENAME_LEN);
+    msdk_printf(MSDK_STRING("                          this version of sample supports only N:N mode\n"));
+    msdk_printf(MSDK_STRING("                          with parfile mfe_* parameters enable multi frame encode operation for FEI ENCODE\n"));
 #endif
     msdk_printf(MSDK_STRING("   [-weights file] - file to input weights for explicit weighted prediction (ENCODE only).\n"));
     msdk_printf(MSDK_STRING("   [-ImplicitWPB] - enable implicit weighted prediction B frames (ENCODE only).\n"));
@@ -164,16 +178,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
 
     bool bRefWSizeSpecified = false, bAlrShownHelp = false, bParseDRC = false;
 
-    if (1 == nArgNum)
-    {
-        PrintHelp(strInput[0], MSDK_STRING("ERROR: Not enough input parameters"));
-        return MFX_ERR_UNSUPPORTED;
-    }
-
     MSDK_CHECK_POINTER(pConfig, MFX_ERR_NULL_PTR);
 
     // parse command line parameters
-    for (mfxU8 i = 1; i < nArgNum; i++)
+    for (mfxU8 i = 0; i < nArgNum; i++)
     {
         MSDK_CHECK_POINTER(strInput[i], MFX_ERR_NULL_PTR);
 
@@ -291,6 +299,21 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-repackstat")))
         {
             pConfig->repackstatFile = strInput[i+1];
+            i++;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mfe_frames")))
+        {
+            pConfig->numMfeFrames = (int)msdk_strtol(strInput[i+1], &stopCharacter, 10);
+            i++;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mfe_mode")))
+        {
+            pConfig->mfeMode = (mfxU16)msdk_strtol(strInput[i+1], &stopCharacter, 10);
+            i++;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mfe_timeout")))
+        {
+            pConfig->mfeTimeout = (mfxU32)msdk_strtol(strInput[i+1], &stopCharacter, 10);
             i++;
         }
 #endif
@@ -1163,34 +1186,84 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
     return MFX_ERR_NONE;
 }
 
-int main(int argc, char *argv[])
+mfxStatus ParseParFile(FILE *parFile, std::vector<AppConfig*> &config, msdk_char *parBuf, mfxU32 fileSize)
 {
-    AppConfig Config;   // input parameters from command line
-    std::auto_ptr<CEncodingPipeline>  pPipeline;
+    mfxStatus sts = MFX_ERR_UNSUPPORTED;
+    if (!parFile)
+        return MFX_ERR_UNSUPPORTED;
 
-    mfxStatus sts = MFX_ERR_NONE; // return value check
+    mfxU32 filePos = 0;
+    mfxU32 currPos = 0;
+    mfxU32 configCount = 0;
 
-    sts = ParseInputString(argv, (mfxU8)argc, &Config);
-    MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
+    const mfxU8 maxArgNum = 255;
 
-    sts = CheckOptions(&Config);
-    MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
+    msdk_char *pCur;
+    msdk_printf(MSDK_STRING("Parsing parfile\n"));
+    while(filePos < fileSize)
+    {
+        pCur = NULL;
+        pCur = msdk_fgets(parBuf+filePos, fileSize, parFile);
+        if (pCur == NULL)
+            return MFX_ERR_NONE;
 
-    sts = CheckDRCParams(&Config);
-    MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
+        msdk_printf(MSDK_STRING("Session %d "), configCount);
+        currPos = 0;
+        while(pCur[currPos] != '\n' && pCur[currPos] != 0)
+        {
+            currPos++;
+            if  (pCur + currPos >= parBuf + fileSize)
+            {
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        // zero string
+        if (!currPos)
+            continue;
+        msdk_char *argv[maxArgNum];
+        mfxU32 argc = 0;
+        msdk_printf(MSDK_STRING("arguments: "));
 
-    pPipeline.reset(new CEncodingPipeline(&Config));
+        // parse into command line params
+        for (mfxU32 i = 0; i < currPos; i++)
+        {
+            if (pCur[0] == ' ' || pCur[0] == '\r' || pCur[0] == '\n' || pCur[0] == 0)
+            {
+                *pCur = 0;
+            }
+            else if (i == 0 || ((pCur[-1] == ' ' || pCur[-1] == 0) && (pCur[0] != ' ' || pCur[0] != 0)))
+            {
+                argv[argc++] = pCur;
+                if (argc > maxArgNum)
+                {
+                    msdk_printf(MSDK_STRING("\nToo many parameters (reached maximum of %d)"), maxArgNum);
+                    return MFX_ERR_UNSUPPORTED;
+                }
+            }
+            pCur++;
+        }
+        if(!argc)
+            continue;
+        for(int i = 0; i < argc; i++)
+        {
+            msdk_printf(MSDK_STRING("%s "), argv[i]);
+        }
+        config.push_back(new AppConfig);
+        sts = ParseInputString(argv, (mfxU8)argc, config[configCount]);
+        MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
+        configCount++;
+        filePos += currPos;
+    }
 
-    sts = pPipeline->Init();
-    MSDK_CHECK_STATUS(sts, "pPipeline->Init failed");
+    return MFX_ERR_NONE;
 
-    pPipeline->PrintInfo();
+} //mfxStatus CmdProcessor::ParseParFile(FILE *parFile)
 
-    msdk_printf(MSDK_STRING("Processing started\n"));
-
+mfxStatus RunPipeline(CEncodingPipeline * pPipeline, int session_id)
+{
+    mfxStatus sts = MFX_ERR_NONE;
     msdk_tick frequency = msdk_time_get_frequency();
-    msdk_tick startTime = msdk_time_get_tick();
-
+    msdk_tick sessionStartTime = msdk_time_get_tick();
     for (;;)
     {
         sts = pPipeline->Run();
@@ -1212,10 +1285,146 @@ int main(int argc, char *argv[])
             break;
         }
     }
+    msdk_printf(MSDK_STRING("\nSession %d Processing finished after %.2f sec \n"), session_id, MSDK_GET_TIME(msdk_time_get_tick(), sessionStartTime, frequency));
 
-    pPipeline->Close();
+    return sts;
+}
+
+#if defined(_WIN32) || defined(_WIN64)
+int _tmain(int argc, msdk_char *argv[])
+#else
+int main(int argc, char *argv[])
+#endif
+{
+    mfxStatus sts = MFX_ERR_NONE; // return value check
+    msdk_char parFileName[MSDK_MAX_FILENAME_LEN];
+    msdk_char *parBuf = NULL;
+    FILE *parFile = NULL;
+    if (1 == argc)
+    {
+        PrintHelp(argv[0], MSDK_STRING("ERROR: Not enough input parameters"));
+        return MFX_ERR_UNSUPPORTED;
+    }
+    std::vector<AppConfig*> Configs;   // input parameters from command line
+    if (0 == msdk_strncmp(MSDK_STRING("-par_file"), argv[1], msdk_strlen(MSDK_STRING("-par_file"))))
+    {
+        if(argc < 3)
+        {
+            PrintHelp(argv[0], MSDK_STRING("ERROR: Parfile is missed"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+        else
+        {
+            if (msdk_strlen(argv[2]) < MSDK_MAX_FILENAME_LEN)
+            {
+                msdk_opt_read(argv[2], parFileName);
+            }
+            else
+            {
+                PrintHelp(argv[0], MSDK_STRING("ERROR: Too long input filename (limit is 1023 characters)!"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        parFile = fopen(parFileName, MSDK_STRING("r"));
+        if (NULL == parFile)
+        {
+            msdk_printf(MSDK_STRING("ERROR: ParFile \"%s\" not found\n"), parFileName);
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        // calculate file size
+        fseek(parFile, 0, SEEK_END);
+        mfxU32 fileSize = ftell(parFile) + 1;
+        fseek(parFile, 0, SEEK_SET);
+
+        // allocate buffer for parsing
+        parBuf = new msdk_char[fileSize];
+        sts = ParseParFile(parFile, Configs, parBuf, fileSize);
+        if(sts != MFX_ERR_NONE)
+        {
+            msdk_printf(MSDK_STRING("ERROR: ParFile reading failed\n"), parFileName);
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else
+    {
+        Configs.push_back(new AppConfig);
+        sts = ParseInputString(&argv[1], (mfxU8)--argc, Configs[0]);
+        MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
+    }
+    //now multisession supported only as N:N parallel workloads with joined sessions only
+    //mainly to test multi-frame FEI encode path.
+    std::vector<CEncodingPipeline*> pipelines;
+    mfxSession parentSession = NULL;
+    int i = 0;
+    for(std::vector<AppConfig*>::iterator config = Configs.begin(); config != Configs.end(); config++)
+    {
+        msdk_printf(MSDK_STRING("Initializing pipeline %d\n"), i++);
+        sts = CheckOptions(*config);
+        MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
+
+        sts = CheckDRCParams(*config);
+        MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
+
+        CEncodingPipeline* pPipeline = new CEncodingPipeline(*config);
+        if(parentSession != NULL)
+        {
+            sts = pPipeline->Init(parentSession);
+            MSDK_CHECK_STATUS(sts, "pPipeline->Init failed");
+        }
+        else
+        {
+            sts = pPipeline->Init();
+            MSDK_CHECK_STATUS(sts, "pPipeline->Init failed");
+            sts = pPipeline->GetEncodeSession(parentSession);
+            MSDK_CHECK_STATUS(sts, "pPipeline->GetEncodeSession failed");
+        }
+
+        pPipeline->PrintInfo();
+        pipelines.push_back(pPipeline);
+    }
+    msdk_printf(MSDK_STRING("Processing started\n"));
+    std::vector<std::thread> pipe_threads;
+    msdk_tick frequency = msdk_time_get_frequency();
+    msdk_tick startTime = msdk_time_get_tick();
+
+    if(pipelines.size() > 1)
+    {
+        for(size_t pipe = 0 ; pipe < pipelines.size(); pipe++)
+        {
+            msdk_printf(MSDK_STRING("Start session %d\n"), pipe);
+            CEncodingPipeline* pPipeline = pipelines[pipe];
+            pipe_threads.push_back(std::thread(std::bind(&RunPipeline, pPipeline, (int)pipe)));
+        }
+    }
+    else
+    {
+        RunPipeline(pipelines[0],0);
+    }
+
+    i=0;
+    for(std::vector<std::thread>::iterator t = pipe_threads.begin(); t != pipe_threads.end(); t++)
+    {
+        t->join();
+    }
     msdk_printf(MSDK_STRING("\nProcessing finished after %.2f sec \n"), MSDK_GET_TIME(msdk_time_get_tick(), startTime, frequency));
-
+    pipe_threads.clear();
+    for(std::vector<CEncodingPipeline*>::iterator pPipeline = pipelines.begin(); pPipeline != pipelines.end(); pPipeline++)
+    {
+        (*pPipeline)->Close();
+        delete *pPipeline;
+    }
+    pipelines.clear();
+    for(std::vector<AppConfig*>::iterator config = Configs.begin(); config != Configs.end(); config++)
+    {
+        delete *config;
+    }
+    if(parFile)
+    {
+        fclose(parFile);
+        delete [] parBuf;
+    }
+    Configs.clear();
     return 0;
 }
 
@@ -1248,6 +1457,12 @@ mfxStatus CheckOptions(AppConfig* pConfig)
         sts = MFX_ERR_UNSUPPORTED;
     }
 #endif
+
+    if ((pConfig->numMfeFrames || pConfig->mfeTimeout || pConfig->mfeMode) && !pConfig->bENCODE)
+    {
+        fprintf(stderr, "ERROR: Multi-Frame is supported for ENCODE mode only now\n");
+        sts = MFX_ERR_UNSUPPORTED;
+    }
 
     return sts;
 }

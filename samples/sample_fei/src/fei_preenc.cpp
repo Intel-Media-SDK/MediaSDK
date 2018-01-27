@@ -19,6 +19,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "fei_preenc.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 FEI_PreencInterface::FEI_PreencInterface(MFXVideoSession* session, iTaskPool* task_pool, mfxU32 allocId, bufList* ext_bufs, bufList* enc_ext_bufs, AppConfig* config)
     : m_pmfxSession(session)
     , m_pmfxPREENC(new MFXVideoENC(*session))

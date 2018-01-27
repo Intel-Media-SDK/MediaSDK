@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -18,6 +18,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 #include "fei_encode.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 FEI_EncodeInterface::FEI_EncodeInterface(MFXVideoSession* session, mfxU32 allocId, bufList* ext_bufs, AppConfig* config)
     : m_pmfxSession(session)
@@ -89,6 +92,21 @@ FEI_EncodeInterface::~FEI_EncodeInterface()
             if (!pSlices) { pSlices = ptr; }
         }
         break;
+#if (MFX_VERSION >= 1025)
+        case MFX_EXTBUFF_MULTI_FRAME_PARAM:
+        {
+            mfxExtMultiFrameParam* ptr = reinterpret_cast<mfxExtMultiFrameParam*>(m_InitExtParams[i]);
+            MSDK_SAFE_DELETE(ptr);
+        }
+        break;
+
+        case MFX_EXTBUFF_MULTI_FRAME_CONTROL:
+        {
+            mfxExtMultiFrameControl* ptr = reinterpret_cast<mfxExtMultiFrameControl*>(m_InitExtParams[i]);
+            MSDK_SAFE_DELETE(ptr);
+        }
+        break;
+#endif
         }
     }
     MSDK_SAFE_DELETE_ARRAY(pSlices);
@@ -302,7 +320,35 @@ mfxStatus FEI_EncodeInterface::FillParameters()
             m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(&pSliceHeader[fieldId]));
         }
     }
-
+#if (MFX_VERSION >= 1025)
+    if (m_pAppConfig->mfeMode != 0 || m_pAppConfig->numMfeFrames != 0)
+    {
+        // configure multiframe mode and number of frames
+        // either of mfeMode and numMfeFrames must be set
+        // if one of them not set - zero is passed to Media SDK and used internal default value
+        mfxExtMultiFrameParam* pMfeParam = new mfxExtMultiFrameParam;
+        MSDK_ZERO_MEMORY(*pMfeParam);
+        pMfeParam->Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_PARAM;
+        pMfeParam->Header.BufferSz = sizeof(mfxExtMultiFrameParam);
+        pMfeParam->MFMode = m_pAppConfig->mfeMode;
+        pMfeParam->MaxNumFrames  = m_pAppConfig->numMfeFrames;
+        m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pMfeParam));
+        if(m_pAppConfig->mfeTimeout != 0)
+        {
+            //set default timeout per session if passed from commandline
+            mfxExtMultiFrameControl* pMfeControl = new mfxExtMultiFrameControl;
+            MSDK_ZERO_MEMORY(*pMfeControl);
+            pMfeControl->Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_CONTROL;
+            pMfeControl->Header.BufferSz = sizeof(mfxExtMultiFrameControl);
+            pMfeControl->Timeout = m_pAppConfig->mfeTimeout;
+            m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pMfeControl));
+        }
+    }
+    else if (m_pAppConfig->mfeTimeout != 0 && m_pAppConfig->mfeMode == 0 && m_pAppConfig->numMfeFrames == 0)
+    {
+        printf("WARNING: MFE not enabled, to enable MFE specify mfe_mode and/or mfe_frames\n");
+    }
+#endif
     if (!m_InitExtParams.empty())
     {
         m_videoParams.ExtParam    = m_InitExtParams.data();

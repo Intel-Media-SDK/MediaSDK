@@ -19,6 +19,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "refListsManagement_fei.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 mfxU8 GetNumReorderFrames(mfxU16 GopRefDist, mfxU16 BRefType)
 {
     mfxU8 numReorderFrames = GopRefDist > 1 ? 1 : 0;

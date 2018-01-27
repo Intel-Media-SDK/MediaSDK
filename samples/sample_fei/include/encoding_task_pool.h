@@ -23,6 +23,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <mfxfei.h>
 #include "refListsManagement_fei.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 /* This class implements pool of iTasks and manage reordering and reference lists construction for income frame */
 class iTaskPool
 {

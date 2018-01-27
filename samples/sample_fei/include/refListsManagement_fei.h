@@ -22,6 +22,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "encoding_task.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 void UpdateDpbFrames(iTask& task, mfxU32 field, mfxU32 frameNumMax);
 void InitRefPicList(iTask& task, mfxU32 field);
 void ModifyRefPicLists(mfxU16 GopOptFlag, iTask& task, mfxU32 field);
