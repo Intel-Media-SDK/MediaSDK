@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -19,6 +19,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "pipeline_fei.h"
 #include "version.h"
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 CEncodingPipeline::CEncodingPipeline(AppConfig* pAppConfig)
     : m_appCfg(*pAppConfig)
@@ -121,7 +125,19 @@ void CEncodingPipeline::Close()
     DeleteAllocator();
 }
 
-mfxStatus CEncodingPipeline::Init()
+
+mfxStatus CEncodingPipeline::GetEncodeSession(mfxSession &session)
+{
+    if(m_mfxSession)
+    {
+        session = m_mfxSession;
+        return MFX_ERR_NONE;
+    }
+    else
+        return MFX_ERR_NOT_INITIALIZED;
+}
+
+mfxStatus CEncodingPipeline::Init(mfxSession parentSession)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -129,8 +145,14 @@ mfxStatus CEncodingPipeline::Init()
 
     sts = InitSessions();
     MSDK_CHECK_STATUS(sts, "InitSessions failed");
-
     mfxSession akaSession = m_mfxSession.operator mfxSession();
+    if(parentSession != NULL)
+    {
+        sts = MFXJoinSession(parentSession, akaSession);
+        if(sts != MFX_ERR_NONE)
+            msdk_printf(MSDK_STRING("WARINING! Joining Sessions failed\n"));
+        m_mfxSessionParent = parentSession;
+    }
     m_BaseAllocID = (mfxU64)&akaSession & 0xffffffff;
 
     // create and init frame allocator
@@ -582,23 +604,33 @@ mfxStatus CEncodingPipeline::CreateAllocator()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    if (m_bUseHWmemory)
+    mfxHDL hdl = NULL;
+    if(m_mfxSessionParent != NULL)
     {
+        //get handle from parent session if exist
+        sts = MFXVideoCORE_GetHandle(m_mfxSessionParent, MFX_HANDLE_VA_DISPLAY, &hdl);
+
+        MSDK_CHECK_STATUS(sts, "m_mfxSession.GetHandle failed");
+    }
+    else
+    {
+        //if no parent session(single session, or sessions not joined) - create new handle
         sts = CreateHWDevice();
         MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
-        /* It's possible to skip failed result here and switch to SW implementation,
-        but we don't process this way */
-
-        mfxHDL hdl = NULL;
         sts = m_hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
-        // provide device manager to MediaSDK
-        sts = m_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, hdl);
-        MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
-        if (m_bSeparatePreENCSession){
-            sts = m_preenc_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, hdl);
-            MSDK_CHECK_STATUS(sts, "m_preenc_mfxSession.SetHandle failed");
-        }
+    }
+    // provide device manager to MediaSDK
 
+    sts = m_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, hdl);
+    MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
+
+    if (m_bSeparatePreENCSession){
+        sts = m_preenc_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, hdl);
+        MSDK_CHECK_STATUS(sts, "m_preenc_mfxSession.SetHandle failed");
+    }
+
+    if (m_bUseHWmemory)
+    {
         // create VAAPI allocator
         m_pMFXAllocator = new vaapiFrameAllocator;
 
@@ -624,23 +656,6 @@ mfxStatus CEncodingPipeline::CreateAllocator()
         //in case of system memory allocator we also have to pass MFX_HANDLE_VA_DISPLAY to HW library
         mfxIMPL impl;
         m_mfxSession.QueryIMPL(&impl);
-
-        if(MFX_IMPL_HARDWARE == MFX_IMPL_BASETYPE(impl))
-        {
-            sts = CreateHWDevice();
-            MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
-
-            mfxHDL hdl = NULL;
-            sts = m_hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
-            // provide device manager to MediaSDK
-            sts = m_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, hdl);
-            MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
-
-            if (m_bSeparatePreENCSession){
-                sts = m_preenc_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, hdl);
-                MSDK_CHECK_STATUS(sts, "m_preenc_mfxSession.SetHandle failed");
-            }
-        }
 
         // create system memory allocator
         m_pMFXAllocator = new SysMemFrameAllocator;

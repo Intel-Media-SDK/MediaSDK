@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -65,6 +65,10 @@ const mfxU16 MaxFeiEncMVPNum = 4;
 #define MaxNumActiveRefBL1    1
 #define MaxNumActiveRefBL1_i  2
 #define MaxNumActiveRefPAK    16 // PAK supports up to 16 L0 / L1 references
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 enum
 {
@@ -368,6 +372,9 @@ struct AppConfig
         , repackctrlFile(NULL)
 #if (MFX_VERSION >= 1025)
         , repackstatFile(NULL)
+        , numMfeFrames(0)
+        , mfeMode(0)
+        , mfeTimeout(0)
 #endif
         , decodestreamoutFile(NULL)
         , weightsFile(NULL)
@@ -485,6 +492,9 @@ struct AppConfig
     msdk_char* repackctrlFile;
 #if (MFX_VERSION >= 1025)
     msdk_char* repackstatFile;
+    mfxI32     numMfeFrames;
+    mfxU16     mfeMode;
+    mfxU32     mfeTimeout;
 #endif
     msdk_char* decodestreamoutFile;
     msdk_char* weightsFile;

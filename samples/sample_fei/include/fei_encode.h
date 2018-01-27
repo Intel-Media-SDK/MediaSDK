@@ -23,6 +23,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "encoding_task.h"
 #include "predictors_repacking.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 class FEI_EncodeInterface
 {
 private:

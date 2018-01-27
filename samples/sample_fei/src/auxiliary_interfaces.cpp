@@ -19,6 +19,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "auxiliary_interfaces.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 MFX_VppInterface::MFX_VppInterface(MFXVideoSession* session, mfxU32 allocId, AppConfig* config)
     : m_pmfxSession(session)
     , m_pmfxVPP(new MFXVideoVPP(*session))

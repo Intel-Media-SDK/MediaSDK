@@ -22,6 +22,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "encoding_task.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 class MFX_VppInterface
 {
 private:

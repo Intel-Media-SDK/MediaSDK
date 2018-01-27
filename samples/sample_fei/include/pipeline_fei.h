@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -38,6 +38,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "brc_routines.h"
 #endif
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 /* This class implements a FEI pipeline */
 class CEncodingPipeline
 {
@@ -45,7 +49,7 @@ public:
     CEncodingPipeline(AppConfig* pAppConfig);
     virtual ~CEncodingPipeline();
 
-    virtual mfxStatus Init();
+    virtual mfxStatus Init(mfxSession parentSession = NULL);
     virtual mfxStatus Run();
     virtual mfxStatus ProcessBufferedFrames();
     virtual void Close();
@@ -53,6 +57,7 @@ public:
     virtual mfxStatus InitSessions();
     virtual mfxStatus ResetSessions();
     virtual mfxStatus ResetDevice();
+    virtual mfxStatus GetEncodeSession(mfxSession &session);
 
     virtual void  PrintInfo();
 
@@ -108,6 +113,7 @@ protected:
     bool m_bSeparatePreENCSession;
 
     MFXVideoSession  m_mfxSession;
+    mfxSession  m_mfxSessionParent;
     MFXVideoSession  m_preenc_mfxSession;
     MFXVideoSession* m_pPreencSession;
 

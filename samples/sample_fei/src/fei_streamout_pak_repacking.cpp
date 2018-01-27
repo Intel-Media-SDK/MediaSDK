@@ -19,6 +19,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "fei_encpak.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 static mfxU32 mv_data_length_offset = 0;
 // Intra types remapped to cases with set cbp. H.264 Table 7-11.
 static const int mb_type_remap[26] = {0, 21, 22, 23, 24, 21, 22, 23, 24, 21, 22, 23, 24, 21, 22, 23, 24, 21, 22, 23, 24, 21, 22, 23, 24, 25};
