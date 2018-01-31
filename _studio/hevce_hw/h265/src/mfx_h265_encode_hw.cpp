@@ -95,14 +95,12 @@ mfxStatus Plugin::GetPluginParam(mfxPluginParam *par)
 
 inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
-    if (sts1 > sts2)
-    {
-        return sts2 == MFX_ERR_NONE ? sts1 : sts2;
-    }
-    else
-    {
-        return sts1;
-    }
+    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
+
+    mfxStatus sts_max = (std::max)(sts1, sts2),
+              sts_min = (std::min)(sts1, sts2);
+
+    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
 }
 
 mfxU16 MaxRec(MfxVideoParam const & par)
