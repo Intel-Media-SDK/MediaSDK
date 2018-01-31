@@ -271,7 +271,7 @@ if ($build{'generator'} =~ /^eclipse$/) {
     rmtree($target_path) if -d $target_path  and $clean;
     mkpath($target_path) if !-d $target_path and -d $build_root;
     #chdir($target_path) or die "can't chdir -> $target_path: $!";
-    # Should be used ($mfx_ho!me_path)!
+    # Should be used ($mfx_home_path)!
     chdir($mfx_home_path) or die "can't chdir -> $target_path: $!";
     $cmake_gen_cmd = get_cmake_gen_cmd($target_path, %build);
 } else {
