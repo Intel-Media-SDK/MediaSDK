@@ -459,7 +459,7 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
 
     pCO3->PRefType             = user_pars.PRefType;
 
-    std::fill(pCO3->NumRefActiveP,   pCO3->NumRefActiveP + 8,   user_pars.NumRefActiveP);
+    std::fill(pCO3->NumRefActiveP,   pCO3->NumRefActiveP   + 8, user_pars.NumRefActiveP);
     std::fill(pCO3->NumRefActiveBL0, pCO3->NumRefActiveBL0 + 8, user_pars.NumRefActiveBL0);
     std::fill(pCO3->NumRefActiveBL1, pCO3->NumRefActiveBL1 + 8, user_pars.NumRefActiveBL1);
 
