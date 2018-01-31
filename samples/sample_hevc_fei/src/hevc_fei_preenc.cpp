@@ -412,7 +412,7 @@ mfxStatus FEI_Preenc::PreEncMultiFrames(HevcTask* pTask)
     bool bDownsampleInput = true;
     for (size_t idxL0 = 0, idxL1 = 0;
          idxL0 < task.m_numRefActive[0] || idxL1 < task.m_numRefActive[1] // Iterate thru L0/L1 frames
-         || idxL0 < !!(task.m_frameType & MFX_FRAMETYPE_I); // tricky: use idxL0 for 1 iteration for I-frame
+         || idxL0 < !!(task.m_frameType & MFX_FRAMETYPE_I); // trick: use idxL0 for 1 iteration for I-frame
          ++idxL0, ++idxL1)
     {
         RefIdxPair dpbRefIdxPair    = {IDX_INVALID, IDX_INVALID};
@@ -655,7 +655,7 @@ mfxStatus Preenc_Reader::PreEncFrame(HevcTask * task)
 
     for (size_t idxL0 = 0, idxL1 = 0;
         idxL0 < task->m_numRefActive[0] || idxL1 < task->m_numRefActive[1] // Iterate through L0/L1 frames
-        || idxL0 < !!(task->m_frameType & MFX_FRAMETYPE_I); // tricky: use idxL0 for 1 iteration for I-frame
+        || idxL0 < !!(task->m_frameType & MFX_FRAMETYPE_I); // trick: use idxL0 for 1 iteration for I-frame
         ++idxL0, ++idxL1)
     {
         actualRefIdxPair = { IDX_INVALID, IDX_INVALID };
