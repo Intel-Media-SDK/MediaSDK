@@ -271,6 +271,7 @@ if ($build{'generator'} =~ /^eclipse$/) {
     rmtree($target_path) if -d $target_path  and $clean;
     mkpath($target_path) if !-d $target_path and -d $build_root;
     #chdir($target_path) or die "can't chdir -> $target_path: $!";
+    # Should be used ($mfx_ho!me_path)!
     chdir($mfx_home_path) or die "can't chdir -> $target_path: $!";
     $cmake_gen_cmd = get_cmake_gen_cmd($target_path, %build);
 } else {
@@ -281,7 +282,6 @@ if ($build{'generator'} =~ /^eclipse$/) {
 }
 
 my $exit_code = 0;
-#my $cmake_gen_cmd = get_cmake_gen_cmd($build_root, %build);
 say "I am going to execute:\n  cmake $cmake_gen_cmd";
 $exit_code = command("cmake $cmake_gen_cmd");
 
