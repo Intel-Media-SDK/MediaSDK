@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -58,6 +58,12 @@
 #endif
 #endif
 
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#include "mfx_vp9_dec_decode.h"
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#include "mfx_vp9_dec_decode_hw.h"
+#endif
+#endif
 
 
 #ifdef MFX_ENABLE_USER_DECODE
@@ -118,6 +124,17 @@ VideoDECODE *CreateDECODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
         break;
 #endif
 
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+     case MFX_CODEC_VP9:
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+        pDECODE = new VideoDECODEVP9_HW(core, &mfxRes);
+#else // MFX_VA
+        pDECODE = new VideoDECODEVP9(core, &mfxRes);
+
+#endif // MFX_VA && MFX_ENABLE_VP9_VIDEO_DECODE_HW
+
+        break;
+#endif
 
 
     default:
@@ -210,6 +227,15 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif
 
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+        case MFX_CODEC_VP9:
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+            mfxRes = VideoDECODEVP9_HW::Query(session->m_pCORE.get(), in, out);
+#else
+            mfxRes = VideoDECODEVP9::Query(session->m_pCORE.get(), in, out);
+#endif // MFX_VA && MFX_ENABLE_VP9_VIDEO_DECODE_HW
+            break;
+#endif
 
 
         default:
@@ -290,6 +316,15 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif
 
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+        case MFX_CODEC_VP9:
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+            mfxRes = VideoDECODEVP9_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
+#else
+            mfxRes = VideoDECODEVP9::QueryIOSurf(session->m_pCORE.get(), par, request);
+#endif // MFX_VA && MFX_ENABLE_VP9_VIDEO_DECODE_HW
+            break;
+#endif
 
 
         default:
@@ -369,6 +404,11 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
             break;
 #endif
 
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+        case MFX_CODEC_VP9:
+            mfxRes = MFX_VP9_Utility::DecodeHeader(session->m_pCORE.get(), bs, par);
+            break;
+#endif
 
 
         default:

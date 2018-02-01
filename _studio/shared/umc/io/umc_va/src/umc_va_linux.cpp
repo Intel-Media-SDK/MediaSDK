@@ -143,6 +143,11 @@ VAProfile g_VP9Profiles[] =
     VAProfileVP9Profile0
 };
 
+VAProfile g_VP910BitsProfiles[] =
+{
+    VAProfileVP9Profile2
+};
+
 VAProfile g_JPEGProfiles[] =
 {
     VAProfileJPEGBaseline
@@ -174,6 +179,9 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         break;
     case UMC::VA_VP9:
         if (profile < UMC_ARRAY_SIZE(g_VP9Profiles)) va_profile = g_VP9Profiles[profile];
+        break;
+    case UMC::VA_VP9 | UMC::VA_PROFILE_10:
+        if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
         break;
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
