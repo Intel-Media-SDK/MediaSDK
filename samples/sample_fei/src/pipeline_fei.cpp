@@ -988,7 +988,7 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
     if (m_appCfg.bDECODESTREAMOUT)
     {
         m_StreamoutBufs.reserve(m_DecResponse.NumFrameActual);
-        for (int i = 0; i < m_DecResponse.NumFrameActual; i++) // alloc a streamout buffer per decoder surface
+        for (mfxU32 i = 0; i < m_DecResponse.NumFrameActual; i++) // alloc a streamout buffer per decoder surface
         {
             m_pExtBufDecodeStreamout = new mfxExtFeiDecStreamOut;
             MSDK_ZERO_MEMORY(*m_pExtBufDecodeStreamout);
@@ -1028,10 +1028,12 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
         mfxExtFeiPreEncMV*           mvs        = NULL;
         mfxExtFeiPreEncMBStat*       mbdata     = NULL;
 
-        int num_buffers = m_maxQueueLength + (m_appCfg.bDECODE ? m_decodePoolSize : 0) + (m_pVPP ? 2 : 0) + 4;
-        num_buffers = (std::max)(num_buffers, m_maxQueueLength*m_numRefFrame);
+        mfxU32 num_buffers = m_maxQueueLength + (m_appCfg.bDECODE ? m_decodePoolSize : 0) + (m_pVPP ? 2 : 0) + 4;
+        num_buffers = (std::max)(num_buffers, mfxU32(m_maxQueueLength*m_numRefFrame));
 
-        for (int k = 0; k < num_buffers; k++)
+        m_preencBufs.Clear();
+
+        for (mfxU32 k = 0; k < num_buffers; k++)
         {
             tmpForInit = new bufSet(m_numOfFields);
 
@@ -1202,9 +1204,11 @@ mfxStatus CEncodingPipeline::AllocExtBuffers()
         bool Weights      = m_appCfg.weightsFile    != NULL;
 
 
-        int num_buffers = m_maxQueueLength + (m_appCfg.bDECODE ? m_decodePoolSize : 0) + (m_pVPP ? 2 : 0);
+        mfxU32 num_buffers = m_maxQueueLength + (m_appCfg.bDECODE ? m_decodePoolSize : 0) + (m_pVPP ? 2 : 0);
 
-        for (int k = 0; k < num_buffers; k++)
+        m_encodeBufs.Clear();
+
+        for (mfxU32 k = 0; k < num_buffers; k++)
         {
             tmpForInit = new bufSet(m_numOfFields);
 
