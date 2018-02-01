@@ -22,7 +22,7 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 mfx_include_dirs()
 
-list( APPEND Decoders h264 h265 mpeg2  vp8 mjpeg vc1 )
+list( APPEND Decoders h264 h265 mpeg2 vp8 vp9 mjpeg vc1 )
 foreach( dir ${Decoders} )
   include_directories( ${MSDK_LIB_ROOT}/decode/${dir}/include )
   include_directories( ${MSDK_UMC_ROOT}/codec/${dir}_dec/include )

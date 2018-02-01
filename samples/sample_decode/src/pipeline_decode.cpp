@@ -742,6 +742,11 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         }
     }
 
+    // Only shifted P010 is supported now
+    if (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010) {
+        m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
+    }
+
 #if MFX_VERSION >= 1022
     /* Lets make final decision how to use VPP...*/
     if (!m_bVppIsUsed)
