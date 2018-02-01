@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -132,7 +132,7 @@
     #undef MFX_ENABLE_VPP
 #endif
 
-#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(AS_VP8D_PLUGIN)
+#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(AS_VP8D_PLUGIN) || defined(AS_VP9D_PLUGIN)
     #undef MFX_ENABLE_H265_VIDEO_DECODE
     #undef MFX_ENABLE_H265_VIDEO_ENCODE
     #undef MFX_ENABLE_H264_VIDEO_DECODE
@@ -172,5 +172,9 @@
 //#define MFX_ENABLE_VP8_VIDEO_DECODE_HW
 #endif
 
+#if defined(AS_VP9D_PLUGIN)
+//#define MFX_ENABLE_VP9_VIDEO_DECODE
+//#define MFX_ENABLE_VP9_VIDEO_DECODE_HW
+#endif
 
 #endif //_MFX_COMMON_LINUX_BSW_H_
