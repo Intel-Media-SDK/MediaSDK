@@ -64,8 +64,8 @@ void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncMVPredictors& buf
        but the buffer size itself - doesn't.
     */
     const mfxU32 element_size = 16; // Buffers granularity is always 16x16 blocks
-    buffer.Pitch = align<CTU_SIZE32>(request.Width) / element_size;
-    buffer.Height = align<CTU_SIZE32>(request.Height) / element_size;
+    buffer.Pitch = align(request.Width, CTU_SIZE32) / element_size;
+    buffer.Height = align(request.Height, CTU_SIZE32) / element_size;
 
     // buffer has 1D representation in driver, so vaCreateBuffer expects
     // va_height is 1 and va_pitch is total size of buffer->Data array
@@ -82,17 +82,37 @@ void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncQP& buffer,
     // driver requirement for per block QP buffer: width of picture in CTB unit * 1 byte should be
     // multiple of 64 bytes, height of picture in CTB unit * 1 byte - multiple of 4 bytes
 
-    mfxU32 w_num_elem = align<CTU_SIZE32>(request.Width) / CTU_SIZE32;
+    mfxU32 w_num_elem = align(request.Width, CTU_SIZE32) / CTU_SIZE32;
     const mfxU32 num_w_blocks_alignment = 64;
-    buffer.Pitch = align<num_w_blocks_alignment>(w_num_elem);
+    buffer.Pitch = align(w_num_elem, num_w_blocks_alignment);
 
-    mfxU32 h_num_elem = align<CTU_SIZE32>(request.Height) / CTU_SIZE32;
+    mfxU32 h_num_elem = align(request.Height, CTU_SIZE32) / CTU_SIZE32;
     const mfxU32 num_h_blocks_alignment = 4;
-    buffer.Height = align<num_h_blocks_alignment>(h_num_elem);
+    buffer.Height = align(h_num_elem, num_h_blocks_alignment);
 
     // buffer has 2D representation in driver
     va_pitch = buffer.Pitch;
     va_height = buffer.Height;
+}
+
+
+template<>
+void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncCtuCtrl& buffer,
+        const BufferAllocRequest& request,
+        mfxU32& va_pitch,
+        mfxU32& va_height)
+{
+
+    // The driver expects a 1D buffer with the number of elements equal
+    // to the total number of CTUs in the frame
+
+    buffer.Pitch = align(request.Width, request.CTUSize) / request.CTUSize;
+    buffer.Height = align(request.Height, request.CTUSize) / request.CTUSize;
+
+    // buffer has 1D representation in driver, so vaCreateBuffer expects
+    // va_height is 1 and va_pitch is total size of buffer->Data array
+    va_pitch = sizeof(buffer.Data[0]) * buffer.Pitch * buffer.Height;
+    va_height = 1;
 }
 
 #endif // #if defined(LIBVA_SUPPORT)
