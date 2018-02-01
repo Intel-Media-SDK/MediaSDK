@@ -31,6 +31,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 struct BufferAllocRequest {
     mfxU32 Width;  // coded frame width
     mfxU32 Height; // coded frame height
+    mfxU32 CTUSize; // size of CTU to be used in calculations
 };
 
 const mfxU32 CTU_SIZE32 = 32;
@@ -119,6 +120,8 @@ private:
             return VAEncQPBufferType;
         case MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED:
             return VAEncFEIMVPredictorBufferType;
+        case MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL:
+            return VAEncFEIMBControlBufferType;
 #endif
         default:
             throw mfxError(MFX_ERR_UNSUPPORTED, "Unsupported buffer type");
@@ -144,8 +147,8 @@ private:
             mfxU32& va_pitch,
             mfxU32& va_height)
     {
-        buffer.Pitch = align<CTU_SIZE32>(request.Width) / CTU_SIZE32;
-        buffer.Height = align<CTU_SIZE32>(request.Height) / CTU_SIZE32;
+        buffer.Pitch = align(request.Width, CTU_SIZE32) / CTU_SIZE32;
+        buffer.Height = align(request.Height, CTU_SIZE32) / CTU_SIZE32;
 
         // since most buffers have 1D representation in driver, so vaCreateBuffer expects
         // va_height is 1 and va_pitch is total size of buffer->Data array
