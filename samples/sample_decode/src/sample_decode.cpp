@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -103,6 +103,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-async]                  - depth of asynchronous pipeline. default value is 4. must be between 1 and 20\n"));
     msdk_printf(MSDK_STRING("   [-gpucopy::<on,off>] Enable or disable GPU copy mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]                - timeout in seconds\n"));
+    msdk_printf(MSDK_STRING("   [-DecodedOrder]           - disable frame reordering in decoder\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("   [-dec_postproc force/auto] - resize after decoder using direct pipe\n"));
     msdk_printf(MSDK_STRING("                  force: instruct to use decoder-based post processing\n"));
@@ -357,6 +358,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("timeout is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-DecodedOrder")))
+        {
+            pParams->DecodedOrder = true;
         }
 
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-di")))

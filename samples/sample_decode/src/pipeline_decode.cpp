@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -824,6 +824,9 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         m_mfxVideoParams.IOPattern = (mfxU16)(pParams->bUseHWLib ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     m_mfxVideoParams.AsyncDepth = pParams->nAsyncDepth;
+
+    if (pParams->DecodedOrder)
+        m_mfxVideoParams.mfx.DecodedOrder = mfxU16(pParams->DecodedOrder);
 
     return MFX_ERR_NONE;
 }
