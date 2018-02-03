@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,21 +24,10 @@
 
 #include "umc_vc1_dec_seq.h"
 #include "umc_vc1_huffman.h"
+#include "umc_vc1_common_tables.h"
 
 static const uint32_t bc_lut_2[] = {0,1,2,3};
 static const uint32_t bc_lut_1[] = {4,0,1,3};
-
-
-static const int32_t VC1_VA_Bfraction_tbl[7][7] =
-{
-    0, 1, 3, 5,  114, 116, 122,
-    0, 2, 0, 6,    0, 117,   0,
-    0, 0, 4, 112,  0, 118, 123,
-    0, 0, 0, 113,  0, 119,   0,
-    0, 0, 0, 0,  115, 120, 124,
-    0, 0, 0, 0,    0, 121,   0,
-    0, 0, 0, 0,    0,   0, 125
-};
 
 VC1Status DecodePictHeaderParams_ProgressiveBpicture_Adv (VC1Context* pContext)
 {
@@ -132,7 +121,8 @@ VC1Status DecodePictHeaderParams_InterlaceBpicture_Adv(VC1Context* pContext)
         }
         picLayerHeader->BFRACTION = (z1*2>=z2)?1:0;
         picLayerHeader->ScaleFactor = ((256+z2/2)/z2)*z1;
-        picLayerHeader->BFRACTION_orig = VC1_VA_Bfraction_tbl[z1-1][z2-2];
+        if (z1 < 8 && z2 < 9)
+            picLayerHeader->BFRACTION_index = VC1_BFraction_indexes[z1][z2];
     }
 
 
@@ -252,7 +242,7 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldBpicture_Adv (VC1Context* pConte
 
 
     VC1_GET_BITS(5,picLayerHeader->PQINDEX);
-    
+
     if(picLayerHeader->PQINDEX<=8)
     {
         VC1_GET_BITS(1,picLayerHeader->HALFQP);
@@ -265,7 +255,7 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldBpicture_Adv (VC1Context* pConte
     {
         VC1_GET_BITS(1,picLayerHeader->PQUANTIZER);    //PQUANTIZER
     }
-        
+
     CalculatePQuant(pContext);
 
     if(seqLayerHeader->POSTPROCFLAG)
