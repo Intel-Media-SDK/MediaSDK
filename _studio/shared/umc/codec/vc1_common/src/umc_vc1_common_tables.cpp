@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -302,6 +302,20 @@ const extern int32_t VC1_BFraction_tbl[]=
     0x7F, VC1_BRACTION_BI, VC1_BRACTION_BI,
 
     -1
+};
+const extern int32_t VC1_BFraction_indexes[8][9] =
+{
+/* 21 is an invalid index */
+/*          0   1   2   3   4   5   6   7 */
+/* 0 */    21, 21, 21, 21, 21, 21, 21, 21,
+/* 1 */    21, 21, 21, 21, 21, 21, 21, 21,
+/* 2 */    21,  0, 21, 21, 21, 21, 21, 21,
+/* 3 */    21,  1,  2, 21, 21, 21, 21, 21,
+/* 4 */    21,  3, 21,  4, 21, 21, 21, 21,
+/* 5 */    21,  5,  6,  7,  8, 21, 21, 21,
+/* 6 */    21,  9, 21, 21, 21, 10, 21, 21,
+/* 7 */    21, 11, 12, 13, 14, 15, 16, 21,
+/* 8 */    21, 17, 21, 18, 21, 19, 21, 20,
 };
 //////////////////////////////////////////
 ///////////////////////////////////////////
