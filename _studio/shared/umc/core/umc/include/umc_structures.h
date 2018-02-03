@@ -681,7 +681,7 @@ namespace UMC
         ERROR_FRAME_RECOVERY                = 0x00000010,  // major artifacts at recovery point
         ERROR_FRAME_TOP_FIELD_ABSENT        = 0x00000020,
         ERROR_FRAME_BOTTOM_FIELD_ABSENT     = 0x00000040,
-        ERROR_FRAME_DEVICE_FAILURE          = 0x80000000   //if this bit is set, this means the error is [UMC::Status] code 
+        ERROR_FRAME_DEVICE_FAILURE          = 0x80000000   //if this bit is set, this means the error is [UMC::Status] code
     };
 
     // template to align a pointer
@@ -716,10 +716,11 @@ namespace UMC
         return ((value > (value_t) another) ? (value) : (another));
     }
 
-#define DISALLOW_COPY_AND_ASSIGN(className) \
-className(const className&);                 \
-void operator=(const className&)
-
+#ifndef DISALLOW_COPY_AND_ASSIGN
+  #define DISALLOW_COPY_AND_ASSIGN(className) \
+  className(const className&);                 \
+  void operator=(const className&)
+#endif
 } // namespace UMC
 
 #endif /* __cplusplus */
