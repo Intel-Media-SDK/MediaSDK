@@ -51,7 +51,7 @@ namespace HevcRplUtils
                 (std::abs(m_dpb[l].m_poc - m_poc)) <
                 (std::abs(m_dpb[r].m_poc - m_poc));
         }
-        mfxU32 m_poc;
+        mfxI32 m_poc;
     };
 
     struct PocDistanceIsGreater : public BasePredicateForRefPicure
@@ -68,7 +68,7 @@ namespace HevcRplUtils
                 (std::abs(m_dpb[l].m_poc - m_poc)) >
                 (std::abs(m_dpb[r].m_poc - m_poc));
         }
-        mfxU32 m_poc;
+        mfxI32 m_poc;
     };
 
     struct InterlacePocDistanceIsLess : public BasePredicateForRefPicure
@@ -89,7 +89,7 @@ namespace HevcRplUtils
                 (std::abs(GetFrameNum(true, m_dpb[r].m_poc, m_dpb[r].m_secondField) - currFrameNum) * 2 + ((m_dpb[r].m_bottomField == m_IsBottomField) ? 0 : 1));
         }
 
-        mfxU32 m_poc;
+        mfxI32 m_poc;
         bool   m_IsSecondField;
         bool   m_IsBottomField;
     };
@@ -112,7 +112,7 @@ namespace HevcRplUtils
                 (std::abs(GetFrameNum(true, m_dpb[r].m_poc, m_dpb[r].m_secondField) - currFrameNum) * 2 + ((m_dpb[r].m_bottomField == m_IsBottomField) ? 0 : 1));
         }
 
-        mfxU32 m_poc;
+        mfxI32 m_poc;
         bool   m_IsSecondField;
         bool   m_IsBottomField;
     };
