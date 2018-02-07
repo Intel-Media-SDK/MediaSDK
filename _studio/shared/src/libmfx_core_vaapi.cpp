@@ -1307,15 +1307,20 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
         if (!m_pCmCopy.get())
         {
             m_pCmCopy.reset(new CmCopyWrapper);
-            if (!m_pCmCopy.get()->GetCmDevice(m_Display)){
+            if (!m_pCmCopy.get()->GetCmDevice(m_Display))
+            {
                 m_bCmCopy = false;
                 m_bCmCopyAllowed = false;
                 m_pCmCopy.get()->Release();
                 m_pCmCopy.reset();
                 return NULL;
-            }else{
-                if(!m_pCmCopy.get()->Initialize(GetHWType()))
+            }
+            else
+            {
+                if (MFX_ERR_NONE != m_pCmCopy.get()->Initialize(GetHWType()))
                     return NULL;
+                else
+                    m_bCmCopy = true;
             }
         }
         return (void*)m_pCmCopy.get();

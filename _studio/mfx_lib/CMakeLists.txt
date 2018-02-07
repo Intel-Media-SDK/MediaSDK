@@ -74,7 +74,10 @@ set( defs "" )
 ### libmfxhw
 list( APPEND mdirs
   scheduler vpp decode/vc1
-  decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
+  decode/mjpeg decode/h264 decode/mpeg2
+  cmrt_cross_platform encode_hw/h264
+  encode_hw/mpeg2 encode_hw/mjpeg
+  genx/copy_kernels
   )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
@@ -164,6 +167,7 @@ list( APPEND LIBS
   encode_hw
   h264_la
   genx_h264_encode_embeded
+  genx_copy_kernels
   mfx_common
   mfx_common_hw
   vpp_hw

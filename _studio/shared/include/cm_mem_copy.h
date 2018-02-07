@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,10 @@
 
 #include "mfxdefs.h"
 #include "mfxstructures.h"
+#include "skl_copy_kernel_genx_isa.h"
+#if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
+#include "cht_copy_kernel_genx_isa.h"
+#endif
 
 #pragma warning(disable: 4505)
 #pragma warning(disable: 4100)
@@ -76,7 +80,7 @@ struct IDirect3DDeviceManager9;
 class CmCopyWrapper
 {
 public:
-    
+
     // constructor
     CmCopyWrapper();
 
@@ -147,7 +151,7 @@ public:
     mfxStatus CopySystemToVideoMemoryAPI(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi);
     mfxStatus CopySystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
     mfxStatus CopyVideoToVideoMemoryAPI(void *pDst, void *pSrc, mfxSize roi);
-    
+
     mfxStatus CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format);
     mfxStatus CopySwapSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
     mfxStatus CopyShiftSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 bitshift);
@@ -156,33 +160,33 @@ public:
     mfxStatus CopyMirrorSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
     mfxStatus CopySwapVideoToVideoMemory(void *pDst, void *pSrc, mfxSize roi, mfxU32 format);
     mfxStatus CopyMirrorVideoToVideoMemory(void *pDst, void *pSrc, mfxSize roi, mfxU32 format);
-    
+
     mfxStatus ReleaseCmSurfaces(void);
     mfxStatus EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
                                 unsigned char* pSysMem,
                                 int width,
                                 int height,
-                                const UINT widthStride, 
+                                const UINT widthStride,
                                 const UINT heightStride,
-                                mfxU32 format, 
+                                mfxU32 format,
                                 const UINT option,
                                 CmEvent* & pEvent );
 
@@ -190,59 +194,59 @@ public:
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
                                 unsigned char* pSysMem,
                                 int width,
                                 int height,
-                                const UINT widthStride, 
+                                const UINT widthStride,
                                 const UINT heightStride,
-                                mfxU32 format, 
+                                mfxU32 format,
                                 const UINT option,
                                 CmEvent* & pEvent );
     mfxStatus EnqueueCopySwapRBGPUtoGPU(   CmSurface2D* pSurfaceIn,
                                     CmSurface2D* pSurfaceOut,
                                     int width,
                                     int height,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopyMirrorGPUtoGPU(   CmSurface2D* pSurfaceIn,
                                     CmSurface2D* pSurfaceOut,
                                     int width,
                                     int height,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopyMirrorNV12CPUtoGPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
     mfxStatus EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     int bitshift,
                                     CmEvent* & pEvent );
@@ -250,9 +254,9 @@ public:
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     int bitshift,
                                     CmEvent* & pEvent );
@@ -260,9 +264,9 @@ public:
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent );
 protected:
@@ -303,11 +307,11 @@ protected:
     std::vector<CmBufferUP*>  m_buffersInCreationOrder;
     UMC::Mutex m_guard;
 
-    CmSurface2D * CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 height, bool isSecondMode, 
+    CmSurface2D * CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 height, bool isSecondMode,
                                     std::map<void *, CmSurface2D *> & tableCmRelations,
                                     std::map<CmSurface2D *, SurfaceIndex *> & tableCmIndex);
 
-    SurfaceIndex  * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize, 
+    SurfaceIndex  * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize,
                                  std::map<mfxU8 *, CmBufferUP *> & tableSysRelations,
                                  std::map<CmBufferUP *,  SurfaceIndex *> & tableSysIndex);
 

@@ -24,6 +24,7 @@ mfx_include_dirs()
 
 include_directories( ${MSDK_LIB_ROOT}/vpp/include )
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/src )
 include_directories( ${MSDK_LIB_ROOT}/genx/scd )
 
@@ -33,5 +34,14 @@ set( sources.plus "" )
 file( GLOB_RECURSE srcs "src/*.c" "src/*.cpp" )
 list( APPEND sources ${srcs})
 list( APPEND sources ${MSDK_STUDIO_ROOT}/shared/src/mfx_scd.cpp )
-
 make_library( vpp hw static )
+set( defs "" )
+
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
+set( SRC_DIR "${MSDK_LIB_ROOT}/genx/copy_kernels/src" )
+set( defs "${WARNING_FLAGS}" )
+set( sources "" )
+file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
+list( APPEND sources ${srcs})
+make_library( genx_copy_kernels none static )
+set( defs "" )
