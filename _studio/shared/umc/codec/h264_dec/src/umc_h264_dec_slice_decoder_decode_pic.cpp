@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -211,18 +211,18 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
             }
         }
 
-        pRefPicList0[m_SliceHeader.num_ref_idx_l0_active] = 0;
-
 
         if (pReorderInfo_L0->num_entries > 0)
             ReOrderRefPicList(pRefPicList0, pFields0, pReorderInfo_L0, uMaxPicNum, views, dIdIndex, 0);
 
+        pRefPicList0[m_SliceHeader.num_ref_idx_l0_active] = 0;
+
         if (BPREDSLICE == m_SliceHeader.slice_type)
         {
-            pRefPicList1[m_SliceHeader.num_ref_idx_l1_active] = 0;
-
             if (pReorderInfo_L1->num_entries > 0)
                 ReOrderRefPicList(pRefPicList1, pFields1, pReorderInfo_L1, uMaxPicNum, views, dIdIndex, 1);
+
+            pRefPicList1[m_SliceHeader.num_ref_idx_l1_active] = 0;
         }
 
 
