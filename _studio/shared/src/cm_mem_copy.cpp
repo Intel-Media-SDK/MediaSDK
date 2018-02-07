@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -351,14 +351,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -377,7 +377,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -393,17 +393,17 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows;
 
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -420,7 +420,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         CHECK_CM_HR(hr);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceCopy_read_32x32), m_pCmKernel);
@@ -502,9 +502,9 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -516,7 +516,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
     UINT            AddedShiftLeftOffset    = 0;
     size_t          pLinearAddress          = (size_t)pSysMem;
     size_t          pLinearAddressAligned   = 0;
-    
+
     CmKernel        *m_pCmKernel            = 0;
     CmBufferUP      *pCMBufferUP          = 0;
     SurfaceIndex    *pBufferIndexCM     = NULL;
@@ -538,7 +538,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -557,7 +557,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -573,17 +573,17 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows;
 
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -600,7 +600,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         CHECK_CM_HR(hr);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceCopy_writeswap_32x32), m_pCmKernel);
@@ -623,7 +623,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
         m_pCmKernel->SetKernelArg( 1, sizeof( SurfaceIndex ), pSurf2DIndexCM);
         CHECK_CM_HR(hr);
 
-            
+
         width_dword = (UINT)ceil((double)width_byte / 4);
         stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
@@ -684,9 +684,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -698,7 +698,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
     UINT            AddedShiftLeftOffset    = 0;
     size_t          pLinearAddress          = (size_t)pSysMem;
     size_t          pLinearAddressAligned   = 0;
-    
+
     CmKernel        *m_pCmKernel            = 0;
     CmBufferUP      *pCMBufferUP          = 0;
     SurfaceIndex    *pBufferIndexCM     = NULL;
@@ -720,7 +720,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -739,7 +739,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -755,17 +755,17 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows;
 
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -782,7 +782,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         CHECK_CM_HR(hr);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceCopy_write_32x32), m_pCmKernel);
@@ -805,7 +805,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
         m_pCmKernel->SetKernelArg( 1, sizeof( SurfaceIndex ), pSurf2DIndexCM);
         CHECK_CM_HR(hr);
 
-            
+
         width_dword = (UINT)ceil((double)width_byte / 4);
         stride_in_dwords = (UINT)ceil((double)stride_in_bytes / 4);
 
@@ -867,35 +867,35 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoGPU(   CmSurface2D* pSurfaceIn,
                                     CmSurface2D* pSurfaceOut,
                                     int width,
                                     int height,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
     INT             hr                      = CM_SUCCESS;
     UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
-    
+
     SurfaceIndex    *pSurf2DIndexCM_In  = NULL;
     SurfaceIndex    *pSurf2DIndexCM_Out = NULL;
     CmThreadSpace   *pTS                = NULL;
     CmTask          *pGPUCopyTask       = NULL;
     CmEvent         *pInternalEvent     = NULL;
-    
+
     CmKernel        *m_pCmKernel            = 0;
     CmBufferUP      *pCMBufferUP            = 0;
     UINT            threadWidth             = 0;
     UINT            threadHeight            = 0;
     UINT            threadNum               = 0;
 
-    
+
 
     if ( !pSurfaceIn || !pSurfaceOut )
     {
         return MFX_ERR_NULL_PTR;
     }
-    
+
     hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(SurfaceCopySwap_2DTo2D_32x32), m_pCmKernel);
     CHECK_CM_HR(hr);
-    
+
     MFX_CHECK(m_pCmKernel, MFX_ERR_DEVICE_FAILED);
 
     hr = pSurfaceOut->GetIndex( pSurf2DIndexCM_Out );
@@ -913,7 +913,7 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoGPU(   CmSurface2D* pSurfaceIn,
 
     m_pCmKernel->SetKernelArg( 0, sizeof( SurfaceIndex ), pSurf2DIndexCM_In);
     m_pCmKernel->SetKernelArg( 1, sizeof( SurfaceIndex ), pSurf2DIndexCM_Out);
-    
+
     hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &threadHeight );
     CHECK_CM_HR(hr);
     hr = m_pCmKernel->SetKernelArg( 3, sizeof( UINT ), &sizePerPixel );
@@ -933,14 +933,14 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoGPU(   CmSurface2D* pSurfaceIn,
     hr = m_pCmDevice->DestroyKernel(m_pCmKernel);
     CHECK_CM_HR(hr);
     hr = pInternalEvent->WaitForTaskFinished(m_timeout);
-    
+
     if(hr == CM_EXCEED_MAX_TIMEOUT)
         return MFX_ERR_GPU_HANG;
     else
         CHECK_CM_HR(hr);
     hr = m_pCmQueue->DestroyEvent(pInternalEvent);
     CHECK_CM_HR(hr);
-    
+
     return MFX_ERR_NONE;
 }
 
@@ -949,35 +949,35 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorGPUtoGPU(   CmSurface2D* pSurfaceIn,
                                     CmSurface2D* pSurfaceOut,
                                     int width,
                                     int height,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
     INT             hr                      = CM_SUCCESS;
 //    UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
-    
+
     SurfaceIndex    *pSurf2DIndexCM_In  = NULL;
     SurfaceIndex    *pSurf2DIndexCM_Out = NULL;
     CmThreadSpace   *pTS                = NULL;
     CmTask          *pGPUCopyTask       = NULL;
     CmEvent         *pInternalEvent     = NULL;
-    
+
     CmKernel        *m_pCmKernel            = 0;
     CmBufferUP      *pCMBufferUP            = 0;
     UINT            threadWidth             = 0;
     UINT            threadHeight            = 0;
     UINT            threadNum               = 0;
 
-    
+
 
     if ( !pSurfaceIn || !pSurfaceOut )
     {
         return MFX_ERR_NULL_PTR;
     }
-    
+
     hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(SurfaceMirror_2DTo2D_NV12), m_pCmKernel);
     CHECK_CM_HR(hr);
-    
+
     MFX_CHECK(m_pCmKernel, MFX_ERR_DEVICE_FAILED);
 
     hr = pSurfaceOut->GetIndex( pSurf2DIndexCM_Out );
@@ -995,7 +995,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorGPUtoGPU(   CmSurface2D* pSurfaceIn,
 
     m_pCmKernel->SetKernelArg( 0, sizeof( SurfaceIndex ), pSurf2DIndexCM_In);
     m_pCmKernel->SetKernelArg( 1, sizeof( SurfaceIndex ), pSurf2DIndexCM_Out);
-    
+
     hr = m_pCmKernel->SetKernelArg( 2, sizeof( UINT ), &width );
     CHECK_CM_HR(hr);
     hr = m_pCmKernel->SetKernelArg( 3, sizeof( UINT ), &height );
@@ -1022,7 +1022,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorGPUtoGPU(   CmSurface2D* pSurfaceIn,
         CHECK_CM_HR(hr);
     hr = m_pCmQueue->DestroyEvent(pInternalEvent);
     CHECK_CM_HR(hr);
-    
+
     return MFX_ERR_NONE;
 }
 
@@ -1030,9 +1030,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -1057,14 +1057,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -1083,7 +1083,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -1099,17 +1099,17 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows + stride_in_bytes * height/2;
 
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -1208,9 +1208,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -1236,14 +1236,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -1262,7 +1262,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -1278,20 +1278,20 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows + stride_in_bytes * height/2;
     if (totalBufferUPSize > CM_MAX_1D_SURF_WIDTH || height>4088)//not supported by kernel now, to be fixed in case of customer requirements
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -1388,9 +1388,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -1415,14 +1415,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -1441,7 +1441,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -1457,7 +1457,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows + stride_in_bytes * height/2;
 
     pLinearAddress  = (size_t)pSysMem;
@@ -1466,7 +1466,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -1484,7 +1484,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         CHECK_CM_HR(hr);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceMirror_write_NV12), m_pCmKernel);
@@ -1557,9 +1557,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
@@ -1585,7 +1585,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
@@ -1597,19 +1597,19 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
         return MFX_ERR_NULL_PTR;
     }
     width_byte                      = width*bit_per_pixel;
-    
+
     //Align the width regarding stride
     if(stride_in_bytes == 0)
     {
          stride_in_bytes = width_byte;
     }
-    
+
     if(height_stride_in_rows == 0)
     {
          height_stride_in_rows = height;
     }
-    
-    // the actual copy region 
+
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -1625,20 +1625,20 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows + stride_in_bytes * height/2;
     if (totalBufferUPSize > CM_MAX_1D_SURF_WIDTH || height > 4088)//not supported by kernel now, to be fixed in case of customer requirements
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -1733,9 +1733,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     int bitshift,
                                     CmEvent* & pEvent )
@@ -1761,14 +1761,14 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
     UINT            width_dword             = 0;
     UINT            width_byte              = 0;
     UINT            copy_width_byte         = 0;
-    UINT            copy_height_row         = 0; 
+    UINT            copy_height_row         = 0;
     UINT            slice_copy_height_row   = 0;
     UINT            sliceCopyBufferUPSize   = 0;
     INT             totalBufferUPSize       = 0;
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -1787,7 +1787,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -1803,17 +1803,17 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows + stride_in_bytes * height/2;
 
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -1831,7 +1831,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         CHECK_CM_HR(hr);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceCopy_read_P010_shift), m_pCmKernel);
@@ -1907,9 +1907,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
                                     int height,
-                                    const UINT widthStride, 
+                                    const UINT widthStride,
                                     const UINT heightStride,
-                                    mfxU32 format, 
+                                    mfxU32 format,
                                     const UINT option,
                                     int bitshift,
                                     CmEvent* & pEvent )
@@ -1921,7 +1921,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
     UINT            AddedShiftLeftOffset    = 0;
     size_t          pLinearAddress          = (size_t)pSysMem;
     size_t          pLinearAddressAligned   = 0;
-    
+
     CmKernel        *m_pCmKernel        = NULL;
     CmBufferUP      *pCMBufferUP        = NULL;
     SurfaceIndex    *pBufferIndexCM     = NULL;
@@ -1943,7 +1943,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
     UINT            start_x                 = 0;
     UINT            start_y                 = 0;
 
-    
+
 
     if ( !pSurface )
     {
@@ -1962,7 +1962,7 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
         height_stride_in_rows = height;
    }
 
-    // the actual copy region 
+    // the actual copy region
     copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
     copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
 
@@ -1978,17 +1978,17 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
     }
 
     //Calculate actual total size of system memory
-    
+
     totalBufferUPSize = stride_in_bytes * height_stride_in_rows + stride_in_bytes * height/2;
 
     pLinearAddress  = (size_t)pSysMem;
-    
+
 
     while (totalBufferUPSize > 0)
     {
 #if defined(LINUX64)//64-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X64;
-#else  //32-bit 
+#else  //32-bit
             pLinearAddressAligned        = pLinearAddress & ADDRESS_PAGE_ALIGNMENT_MASK_X86;
 #endif
 
@@ -2005,11 +2005,11 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
             slice_copy_height_row = copy_height_row;
             sliceCopyBufferUPSize = totalBufferUPSize;
         }
-        
+
         pBufferIndexCM = CreateUpBuffer((mfxU8*)pLinearAddressAligned,sliceCopyBufferUPSize,m_tableSysRelations2,m_tableSysIndex2);
         hr = m_pCmDevice->CreateKernel(m_pCmProgram, CM_KERNEL_FUNCTION(surfaceCopy_write_P010_shift), m_pCmKernel);
         CHECK_CM_HR(hr);
-        
+
         MFX_CHECK(m_pCmKernel, MFX_ERR_DEVICE_FAILED);
 
         hr = pSurface->GetIndex( pSurf2DIndexCM );
@@ -2077,15 +2077,12 @@ mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
 {
     cmStatus cmSts = CM_SUCCESS;
 
-
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
 
     m_HWType = hwtype;
-#if defined (MFX_VA_LINUX)
-    if (m_HWType == MFX_HW_UNKNOWN)  // sometimes linux don't know platform
-        m_HWType = MFX_HW_IVB;
-#endif
+    if (m_HWType == MFX_HW_UNKNOWN)
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
 
     m_timeout = CM_MAX_TIMEOUT_MS;
     if(hwtype >= MFX_HW_SCL)
@@ -2104,12 +2101,27 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
 {
     cmStatus cmSts = CM_SUCCESS;
 
-
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
 
-
-
+        switch (hwtype)
+        {
+#if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
+        case MFX_HW_BDW:
+        case MFX_HW_CHT:
+            cmSts = m_pCmDevice->LoadProgram((void*)cht_copy_kernel_genx,sizeof(cht_copy_kernel_genx),m_pCmProgram,"nojitter");
+            break;
+#endif
+        case MFX_HW_SCL:
+        case MFX_HW_APL:
+        case MFX_HW_KBL:
+            cmSts = m_pCmDevice->LoadProgram((void*)skl_copy_kernel_genx,sizeof(skl_copy_kernel_genx),m_pCmProgram,"nojitter");
+            break;
+        default:
+            cmSts = CM_FAILURE;
+            break;
+        }
+        CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 
@@ -2394,12 +2406,12 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch
     mfxU32 width  = roi.width;
     mfxU32 height = roi.height;
     CmSurface2D *pCmSurface2D;
-    
+
     pCmSurface2D = CreateCmSurface2D(pSrc, width, height, false, m_tableCmRelations2, m_tableCmIndex2);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
-    
+
     cmSts = m_pCmQueue->EnqueueCopyGPUToCPUFullStride(pCmSurface2D, pDst, dstPitch, dstUVOffset, CM_FASTCOPY_OPTION_NONBLOCKING, e);
-    
+
     if (CM_SUCCESS == cmSts)
     {
         cmSts = e->WaitForTaskFinished(m_timeout);
@@ -2425,7 +2437,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, m
     mfxU32 width  = roi.width;
     mfxU32 height = roi.height;
     CmSurface2D *pCmSurface2D;
-    
+
     pCmSurface2D = CreateCmSurface2D(pSrc, width, height, false, m_tableCmRelations2, m_tableCmIndex2);
     CHECK_CM_NULL_PTR(pCmSurface2D, MFX_ERR_DEVICE_FAILED);
     switch(format)
@@ -2448,7 +2460,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, m
     else
     {
         cmSts = m_pCmQueue->EnqueueCopyGPUToCPUFullStride(pCmSurface2D, pDst, dstPitch, dstUVOffset, CM_FASTCOPY_OPTION_BLOCKING, e);
-    
+
         if (CM_SUCCESS == cmSts)
         {
             status = MFX_ERR_NONE;
@@ -2716,7 +2728,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1
         verticalPitch = (verticalPitch % dstPitch)? 0 : verticalPitch / dstPitch;
         if ((pDst->Info.FourCC == MFX_FOURCC_NV12 || (pDst->Info.FourCC == MFX_FOURCC_P010 && pDst->Info.Shift == pSrc->Info.Shift)) && CM_ALIGNED(pDst->Data.Y) && CM_ALIGNED(pDst->Data.UV) && CM_SUPPORTED_COPY_SIZE(roi) && verticalPitch >= pDst->Info.Height && verticalPitch <= 16384)
         {
-            if(m_HWType >= MFX_HW_SCL) 
+            if(m_HWType >= MFX_HW_SCL)
                 sts = CopyVideoToSystemMemory(pDst->Data.Y, pDst->Data.Pitch,(mfxU32)verticalPitch, pSrc->Data.MemId, 0, roi,pDst->Info.FourCC);
             else
                 sts = CopyVideoToSystemMemoryAPI(pDst->Data.Y, pDst->Data.Pitch,(mfxU32)verticalPitch, pSrc->Data.MemId, 0, roi);

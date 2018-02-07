@@ -51,7 +51,7 @@ foreach( enc ${vencs} )
   list( APPEND vdirs_hw encode_hw/${enc} )
 endforeach()
 
-list( APPEND vdirs_impl vpp cmrt_cross_platform genx/h264_encode)
+list( APPEND vdirs_impl vpp cmrt_cross_platform genx/h264_encode genx/copy_kernels)
 foreach( dir  ${vdirs} ${vdirs_impl} ${vdirs_hw} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
@@ -94,6 +94,12 @@ list( APPEND plugin_common_sources
   ${prefix}/mfx_scheduler_core_task.cpp
   ${prefix}/mfx_scheduler_core_task_management.cpp
   ${prefix}/mfx_scheduler_core_thread.cpp
+)
+
+set( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
+list( APPEND plugin_common_sources
+  ${prefix}/genx_cht_copy_isa.cpp
+  ${prefix}/genx_skl_copy_isa.cpp
 )
 
 ###############################################################################
