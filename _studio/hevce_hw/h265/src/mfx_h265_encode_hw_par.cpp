@@ -2005,6 +2005,10 @@ void SetDefaults(
                 }
 
             }
+            else if (par.isLowDelay())
+            {
+                par.mfx.NumRefFrame = Max<mfxU16>((mfxU16)par.PPyrInterval, RefActiveP);
+            }
             else
             {
                 par.mfx.NumRefFrame = (Max(RefActiveP, RefActiveBL0) + (par.mfx.GopRefDist > 1) * RefActiveBL0)*k;

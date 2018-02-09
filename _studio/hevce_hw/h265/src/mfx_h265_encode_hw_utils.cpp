@@ -90,17 +90,32 @@ mfxU32 GetBiFrameLocation(mfxU32 i, mfxU32 num, bool &ref, mfxU32 &level)
     return GetEncodingOrder(i, 0, num, level, 0 ,ref);
 }
 
+mfxU8 GetPFrameLevel(mfxU32 i, mfxU32 num)
+{
+    if (i == 0 || i >= num) return 0;
+    mfxU32 level = 1;
+    mfxU32 begin = 0;
+    mfxU32 end = num;
+    mfxU32 t = (begin + end + 1) / 2;
+
+    while (t != i)
+    {
+        level++;
+        if (i > t)
+            begin = t;
+        else
+            end = t;
+        t = (begin + end + 1) / 2;
+    }
+    return (mfxU8)level;
+}
 mfxU8 PLayer(
     mfxU32                order, // (task.m_poc - prevTask.m_lastIPoc)
     MfxVideoParam const & par)
 {
-    const mfxU8 PPyrLayer[4] = {0,2,1,2};
-
     if (par.isLowDelay())
     {
-        mfxU32 RSPIndex = order/ (par.isField() ? 2:1) % par.m_ext.CO3.NumRefActiveP[0];
-        RSPIndex = RSPIndex % (sizeof(PPyrLayer)/sizeof(PPyrLayer[0]));
-        return Min<mfxU8>(7, PPyrLayer[RSPIndex]);
+        return Min<mfxU8>(7, GetPFrameLevel((order / (par.isField() ? 2 : 1)) % par.PPyrInterval, par.PPyrInterval));
     }
 
     return 0;
@@ -542,6 +557,7 @@ MfxVideoParam::MfxVideoParam()
     , TargetKbps      (0)
     , MaxKbps         (0)
     , LTRInterval     (0)
+    , PPyrInterval    (0)
     , LCUSize         (0)
     , HRDConformance  (false)
     , RawRef          (false)
@@ -571,6 +587,7 @@ MfxVideoParam::MfxVideoParam(mfxVideoParam const & par)
     , TargetKbps      (0)
     , MaxKbps         (0)
     , LTRInterval     (0)
+    , PPyrInterval    (0)
     , LCUSize         (0)
     , HRDConformance  (false)
     , RawRef          (false)
@@ -591,6 +608,7 @@ void MfxVideoParam::CopyCalcParams(MfxVideoParam const & par)
     TargetKbps       = par.TargetKbps;
     MaxKbps          = par.MaxKbps;
     LTRInterval      = par.LTRInterval;
+    PPyrInterval     = par.PPyrInterval;
     LCUSize          = par.LCUSize;
     HRDConformance   = par.HRDConformance;
     RawRef           = par.RawRef;
@@ -767,6 +785,7 @@ void MfxVideoParam::SyncVideoToCalculableParam()
 
     BufferSizeInKB = mfx.BufferSizeInKB * multiplier;
     LTRInterval    = 0;
+    PPyrInterval = (mfx.NumRefFrame >0) ? Min<mfxU32> (DEFAULT_PPYR_INTERVAL, mfx.NumRefFrame) : DEFAULT_PPYR_INTERVAL;
 
     if (mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
@@ -2581,7 +2600,7 @@ void UpdateDPB(
         if (par.isLowDelay() && st0 == 0)  //P pyramid if no LTR. Pyramid is possible if NumRefFrame > 1
         {
             if (!par.isField() || GetFrameNum(true, dpb[1].m_poc, dpb[1].m_secondField) == GetFrameNum(true, dpb[0].m_poc, dpb[0].m_secondField))
-                for (st0 = 1; ((GetFrameNum(par.isField(), dpb[st0].m_poc, dpb[st0].m_secondField) - (GetFrameNum(par.isField(), dpb[0].m_poc, dpb[0].m_secondField))) % par.m_ext.CO3.NumRefActiveP[0] ) == 0 && st0 < end; st0++);
+                for (st0 = 1; ((GetFrameNum(par.isField(), dpb[st0].m_poc, dpb[st0].m_secondField) - (GetFrameNum(par.isField(), dpb[0].m_poc, dpb[0].m_secondField))) % par.PPyrInterval) == 0 && st0 < end; st0++);
         }
         else
         {
@@ -2784,7 +2803,7 @@ void ConstructRPL(
                     {
                         mfxI32 i;
                         // !!! par.NumRefLX[0] used here as distance between "strong" STR, not NumRefActive for current frame
-                        for (i = 0; (i < l0) && (((GetFrameNum(par.isField(),DPB[RPL[0][0]].m_poc, DPB[RPL[0][0]].m_secondField) - GetFrameNum(par.isField(),DPB[RPL[0][i]].m_poc, DPB[RPL[0][i]].m_secondField)) % par.m_ext.CO3.NumRefActiveP[0]) == 0); i++);
+                        for (i = 0; (i < l0) && (((GetFrameNum(par.isField(), DPB[RPL[0][i]].m_poc, DPB[RPL[0][i]].m_secondField) - GetFrameNum(par.isField(), DPB[RPL[0][0]].m_poc, DPB[RPL[0][0]].m_secondField)) % par.PPyrInterval) == 0); i++);
                         Remove(RPL[0], (i >= (par.isField() ? l0 - 2 : l0 - 1) ? 0 : i));
                         l0--;
                     }

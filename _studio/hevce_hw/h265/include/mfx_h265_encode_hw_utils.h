@@ -175,6 +175,7 @@ enum
 
     MAX_SLICES              = 200,// WA for driver issue regerding CNL and older platforms
     DEFAULT_LTR_INTERVAL    = 16,
+    DEFAULT_PPYR_INTERVAL   = 3,
 
     MAX_NUM_ROI             = 8,
     MAX_NUM_DIRTY_RECT      = 64
@@ -786,6 +787,7 @@ public:
     mfxU32 TargetKbps;
     mfxU32 MaxKbps;
     mfxU32 LTRInterval;
+    mfxU32 PPyrInterval;
     mfxU32 LCUSize;
     bool   HRDConformance;
     bool   RawRef;
