@@ -39,7 +39,7 @@ namespace HevcRplUtils
 
     struct PocDistanceIsLess : public BasePredicateForRefPicure
     {
-        PocDistanceIsLess(Dpb const & dpb, mfxU32 poc)
+        PocDistanceIsLess(Dpb const & dpb, mfxI32 poc)
         : BasePredicateForRefPicure(dpb)
         , m_poc(poc)
         {
@@ -56,7 +56,7 @@ namespace HevcRplUtils
 
     struct PocDistanceIsGreater : public BasePredicateForRefPicure
     {
-        PocDistanceIsGreater(Dpb const & dpb, mfxU32 poc)
+        PocDistanceIsGreater(Dpb const & dpb, mfxI32 poc)
         : BasePredicateForRefPicure(dpb)
         , m_poc(poc)
         {

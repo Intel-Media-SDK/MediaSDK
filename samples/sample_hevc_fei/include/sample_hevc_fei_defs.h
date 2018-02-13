@@ -182,7 +182,7 @@ template<class T> inline void Zero(std::vector<T> & vec)  { memset(vec.data(), 0
 template<class T> inline void Zero(T * first, size_t cnt) { memset(first, 0, sizeof(T) * cnt); }
 template<class T> inline void Fill(T & obj, int val) { memset(&obj, val, sizeof(obj)); }
 template<class T> inline void Zero(T & obj) { Fill(obj, 0); }
-template<class T> inline T Clip3(T min, T max, T x) { return std::min(std::max(min, x), max); }
+template<class T> inline T Clip3(T min, T max, T x) { return std::min<T>(std::max<T>(min, x), max); }
 
 /**********************************************************************************/
 
@@ -518,9 +518,9 @@ inline bool operator ==(HevcTask const & l, HevcTask const & r)
 
 /**********************************************************************************/
 
-inline mfxU32 align(const mfxU32 val, const mfxU32 alignment)
+template<mfxU32 alignment> inline mfxU32 align(mfxU32 val)
 {
-    STATIC_ASSERT(!(val == 0) && !(val & (val - 1)), is_power_of_2);
+    STATIC_ASSERT((alignment != 0) && !(alignment & (alignment - 1)), is_power_of_2);
     return (val + alignment - 1) & ~(alignment - 1);
 }
 

@@ -364,7 +364,7 @@ mfxStatus FieldSplitter::PreInit()
         MSDK_CHECK_STATUS(sts, "m_pTarget->GetActualFrameInfo failed");
 
         // If frame rate is not specified and input stream header doesn't contain valid values, then use default (30.0)
-        if (0 == (m_par.vpp.In.FrameRateExtN * m_par.vpp.In.FrameRateExtD))
+        if (0 == (m_par.vpp.In.FrameRateExtN | m_par.vpp.In.FrameRateExtD))
         {
             m_par.vpp.In.FrameRateExtN = 30;
             m_par.vpp.In.FrameRateExtD = 1;

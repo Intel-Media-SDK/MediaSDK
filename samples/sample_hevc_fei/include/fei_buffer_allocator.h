@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2016-2017, Intel Corporation
+Copyright (c) 2016-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -144,8 +144,8 @@ private:
             mfxU32& va_pitch,
             mfxU32& va_height)
     {
-        buffer.Pitch = align(request.Width, CTU_SIZE32) / CTU_SIZE32;
-        buffer.Height = align(request.Height, CTU_SIZE32) / CTU_SIZE32;
+        buffer.Pitch = align<CTU_SIZE32>(request.Width) / CTU_SIZE32;
+        buffer.Height = align<CTU_SIZE32>(request.Height) / CTU_SIZE32;
 
         // since most buffers have 1D representation in driver, so vaCreateBuffer expects
         // va_height is 1 and va_pitch is total size of buffer->Data array

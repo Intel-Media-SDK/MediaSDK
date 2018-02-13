@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2016-2017, Intel Corporation
+Copyright (c) 2016-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -64,8 +64,8 @@ void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncMVPredictors& buf
        but the buffer size itself - doesn't.
     */
     const mfxU32 element_size = 16; // Buffers granularity is always 16x16 blocks
-    buffer.Pitch = align(request.Width, CTU_SIZE32) / element_size;
-    buffer.Height = align(request.Height, CTU_SIZE32) / element_size;
+    buffer.Pitch = align<CTU_SIZE32>(request.Width) / element_size;
+    buffer.Height = align<CTU_SIZE32>(request.Height) / element_size;
 
     // buffer has 1D representation in driver, so vaCreateBuffer expects
     // va_height is 1 and va_pitch is total size of buffer->Data array
@@ -82,13 +82,13 @@ void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncQP& buffer,
     // driver requirement for per block QP buffer: width of picture in CTB unit * 1 byte should be
     // multiple of 64 bytes, height of picture in CTB unit * 1 byte - multiple of 4 bytes
 
-    mfxU32 w_num_elem = align(request.Width, CTU_SIZE32) / CTU_SIZE32;
+    mfxU32 w_num_elem = align<CTU_SIZE32>(request.Width) / CTU_SIZE32;
     const mfxU32 num_w_blocks_alignment = 64;
-    buffer.Pitch = align(w_num_elem, num_w_blocks_alignment);
+    buffer.Pitch = align<num_w_blocks_alignment>(w_num_elem);
 
-    mfxU32 h_num_elem = align(request.Height, CTU_SIZE32) / CTU_SIZE32;
+    mfxU32 h_num_elem = align<CTU_SIZE32>(request.Height) / CTU_SIZE32;
     const mfxU32 num_h_blocks_alignment = 4;
-    buffer.Height = align(h_num_elem, num_h_blocks_alignment);
+    buffer.Height = align<num_h_blocks_alignment>(h_num_elem);
 
     // buffer has 2D representation in driver
     va_pitch = buffer.Pitch;
