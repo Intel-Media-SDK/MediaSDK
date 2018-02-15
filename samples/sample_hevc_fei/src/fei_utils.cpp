@@ -218,6 +218,14 @@ mfxStatus Decoder::PreInit()
     sts = InitDecParams(m_par);
     MSDK_CHECK_STATUS(sts, "Can't initialize decoder params");
 
+    // if framerate is not specified in bitstream, use framerate from SourceFrameInfo structure
+    // that always contain valid one (user-defined or default - 30fps)
+    if (0 == (m_par.mfx.FrameInfo.FrameRateExtN | m_par.mfx.FrameInfo.FrameRateExtD))
+    {
+        sts = ConvertFrameRate(m_inPars.dFrameRate, &m_par.mfx.FrameInfo.FrameRateExtN, &m_par.mfx.FrameInfo.FrameRateExtD);
+        MSDK_CHECK_STATUS(sts, "ConvertFrameRate failed");
+    }
+
     return sts;
 }
 
