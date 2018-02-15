@@ -2178,6 +2178,11 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
         list.push_back(MFX_EXTBUFF_VPP_ROTATION);
     }
 
+    if(caps.uMirroring)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_MIRRORING);
+    }
+
     if(caps.uScaling)
     {
         list.push_back(MFX_EXTBUFF_VPP_SCALING);

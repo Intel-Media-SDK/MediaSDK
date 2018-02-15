@@ -1968,6 +1968,10 @@ mfxStatus  VideoVPPHW::Init(
             sts = m_pCmCopy->Initialize(m_pCore->GetHWType());
             MFX_CHECK_STS(sts);
         }
+        else
+        {
+            return MFX_ERR_DEVICE_FAILED;
+        }
     }
 
 
