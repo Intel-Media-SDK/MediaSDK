@@ -159,7 +159,12 @@ msdk_printf(MSDK_STRING("   [-deinterlace (type)] - enable deinterlace algorithm
 msdk_printf(MSDK_STRING("                         type is tff (default) or bff \n"));
 
 msdk_printf(MSDK_STRING("   [-rotate (angle)]   - enable rotation. Supported angles: 0, 90, 180, 270.\n"));
-msdk_printf(MSDK_STRING("   [-scaling_mode (mode)] - specify type of scaling to be used for resize.\n"));
+
+msdk_printf(MSDK_STRING("   [-scaling_mode (mode)] - specify type of scaling to be used for resize\n"));
+msdk_printf(MSDK_STRING("                            0 - default\n"));
+msdk_printf(MSDK_STRING("                            1 - low power mode\n"));
+msdk_printf(MSDK_STRING("                            2 - quality mode\n\n"));
+
 msdk_printf(MSDK_STRING("   [-denoise (level)]  - enable denoise algorithm. Level is optional \n"));
 msdk_printf(MSDK_STRING("                         range of  noise level is [0, 100]\n"));
 msdk_printf(MSDK_STRING("   [-detail  (level)]  - enable detail enhancement algorithm. Level is optional \n"));

@@ -313,19 +313,19 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
         (m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) : (m_vPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
-    /* There are following conditions for SFC post processing:
+    /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
-     * (3): Tested on APL platform only
+     * (3): Supported on APL platform and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if (videoProcessing)
     {
         if ((MFX_PICSTRUCT_PROGRESSIVE == m_vPar.mfx.FrameInfo.PicStruct) &&
-            (MFX_HW_APL == m_core->GetHWType()) &&
+            (MFX_HW_APL <= m_core->GetHWType()) &&
             (m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
             useInternal = 1;
-        else /* SFC can't be used */
+        else /* fixed function engine is not available */
             return MFX_ERR_UNSUPPORTED;
     }
 
