@@ -192,6 +192,13 @@ mfxStatus YUVReader::GetFrame(mfxFrameSurface1* & pSurf)
     return sts;
 }
 
+mfxStatus YUVReader::ResetIOState()
+{
+    m_FileReader.Reset();
+
+    return MFX_ERR_NONE;
+}
+
 /**********************************************************************************/
 
 mfxStatus Decoder::QueryIOSurf(mfxFrameAllocRequest* request)
@@ -336,6 +343,13 @@ mfxStatus Decoder::InitDecParams(MfxVideoParamsWrapper & par)
     }
 
     return sts;
+}
+
+mfxStatus Decoder::ResetIOState()
+{
+    m_FileReader.Reset();
+
+    return MFX_ERR_NONE;
 }
 
 /**********************************************************************************/
@@ -539,6 +553,11 @@ mfxStatus FieldSplitter::GetFrame(mfxFrameSurface1* & pOutSrf)
 void FieldSplitter::Close()
 {
     return m_pTarget->Close();
+}
+
+mfxStatus FieldSplitter::ResetIOState()
+{
+    return m_pTarget->ResetIOState();
 }
 
 /**********************************************************************************/

@@ -30,6 +30,7 @@ FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl, MfxVideoParamsWrapp
     , m_syncPoint(0)
     , m_dstFileName(dst_output)
     , m_defFrameCtrl(def_ctrl)
+    , m_processedFrames(0)
 {
     if (0 != msdk_strlen(mvpInFile))
     {
@@ -44,6 +45,7 @@ FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl, MfxVideoParamsWrapp
 
 FEI_Encode::~FEI_Encode()
 {
+    msdk_printf(MSDK_STRING("\nEncode processed %u frames\n"), m_processedFrames);
     m_mfxENCODE.Close();
     m_pmfxSession = NULL;
     WipeMfxBitstream(&m_bitstream);
@@ -99,8 +101,6 @@ mfxStatus FEI_Encode::PreInit()
         pMVP->VaBufferID = VA_INVALID_ID;
     }
 
-    // TODO: add condition when buffer is required
-
     sts = ResetExtBuffers(m_videoParams);
     MSDK_CHECK_STATUS(sts, "FEI Encode ResetExtBuffers failed");
 
@@ -155,8 +155,12 @@ mfxStatus FEI_Encode::Query()
 
 mfxStatus FEI_Encode::Init()
 {
-    mfxStatus sts = m_FileWriter.Init(m_dstFileName.c_str());
-    MSDK_CHECK_STATUS(sts, "FileWriter Init failed");
+    mfxStatus sts = MFX_ERR_NONE;
+    if (m_dstFileName.length())
+    {
+        sts = m_FileWriter.Init(m_dstFileName.c_str());
+        MSDK_CHECK_STATUS(sts, "FileWriter Init failed");
+    }
 
     sts = m_mfxENCODE.Init(&m_videoParams);
     MSDK_CHECK_STATUS(sts, "FEI Encode Init failed");
@@ -330,8 +334,6 @@ mfxStatus FEI_Encode::SetCtrlParams(const HevcTask& task)
         }
     }
 
-    // TODO: add condition when buffer is required
-
     return MFX_ERR_NONE;
 }
 
@@ -342,8 +344,15 @@ mfxStatus FEI_Encode::SyncOperation()
     sts = m_pmfxSession->SyncOperation(m_syncPoint, MSDK_WAIT_INTERVAL);
     MSDK_CHECK_STATUS(sts, "FEI Encode: SyncOperation failed");
 
-    sts = m_FileWriter.WriteNextFrame(&m_bitstream);
-    MSDK_CHECK_STATUS(sts, "FEI Encode: WriteNextFrame failed");
+    m_processedFrames++;
+
+    if (m_dstFileName.length())
+    {
+        sts = m_FileWriter.WriteNextFrame(&m_bitstream);
+        MSDK_CHECK_STATUS(sts, "FEI Encode: WriteNextFrame failed");
+    }
+    // mark that there's no need bit stream data any more
+    m_bitstream.DataLength = 0;
 
     return sts;
 }
@@ -358,6 +367,29 @@ mfxStatus FEI_Encode::AllocateSufficientBuffer()
     // reallocate bigger buffer for output
     sts = ExtendMfxBitstream(&m_bitstream, m_videoParams.mfx.BufferSizeInKB * 1000);
     MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(&m_bitstream));
+
+    return sts;
+}
+
+mfxStatus FEI_Encode::ResetIOState()
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    m_bitstream.DataOffset = 0;
+    m_bitstream.DataLength = 0;
+    m_syncPoint = 0;
+
+    if (m_dstFileName.length())
+    {
+        sts = m_FileWriter.Reset();
+        MSDK_CHECK_STATUS(sts, "FEI Encode: file writer reset failed");
+    }
+
+    if (m_pFile_MVP_in.get())
+    {
+        sts = m_pFile_MVP_in->Seek(0, SEEK_SET);
+        MSDK_CHECK_STATUS(sts, "FEI Encode: failed to rewind file with MVP");
+    }
 
     return sts;
 }

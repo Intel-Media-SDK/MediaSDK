@@ -103,6 +103,7 @@ FEI_Preenc::FEI_Preenc(MFXVideoSession* session, MfxVideoParamsWrapper& preenc_p
     , m_pmfxSession(session)
     , m_mfxPREENC(*m_pmfxSession)
     , m_isMVoutFormatted(isMVoutFormatted)
+    , m_processedFrames(0)
 {
     if (0 != msdk_strlen(mvoutFile))
     {
@@ -128,6 +129,7 @@ FEI_Preenc::FEI_Preenc(MFXVideoSession* session, MfxVideoParamsWrapper& preenc_p
 
 FEI_Preenc::~FEI_Preenc()
 {
+    msdk_printf(MSDK_STRING("\nPreENC processed %u frames\n"), m_processedFrames);
     m_mfxPREENC.Close();
 
     m_pmfxSession = NULL;
@@ -308,6 +310,7 @@ mfxStatus FEI_Preenc::PreEncFrame(HevcTask * task)
 
     sts =  PreEncMultiFrames(task);
     MSDK_CHECK_STATUS(sts, "PreENC: PreEncMultiFrames failed");
+    m_processedFrames++; // calc number of processed surfaces for which PreENC multi-call was executed
 
     //drop output data to output file
     sts = DumpResult(task);
@@ -436,6 +439,26 @@ mfxStatus FEI_Preenc::PreEncMultiFrames(HevcTask* pTask)
         // If input surface is not changed between PreENC calls
         // an application can avoid redundant downsampling on driver side.
         bDownsampleInput = false;
+    }
+
+    return sts;
+}
+
+mfxStatus FEI_Preenc::ResetIOState()
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    m_syncp.first = 0;
+
+    if (m_pFile_MV_out.get())
+    {
+        sts = m_pFile_MV_out->Seek(0, SEEK_SET);
+        MSDK_CHECK_STATUS(sts, "FEI PreENC: failed to rewind output file for MV");
+    }
+    if (m_pFile_MBstat_out.get())
+    {
+        sts = m_pFile_MBstat_out->Seek(0, SEEK_SET);
+        MSDK_CHECK_STATUS(sts, "FEI PreENC: failed to rewind output file for MB statistics");
     }
 
     return sts;
@@ -611,6 +634,13 @@ MfxVideoParamsWrapper PreencDownsampler::CreateVppDSParams(mfxFrameInfo in_fi)
     return pars;
 }
 
+mfxStatus PreencDownsampler::ResetIOState()
+{
+    return m_preenc->ResetIOState();
+}
+
+/**************************************************************************************************/
+
 Preenc_Reader::Preenc_Reader(const MfxVideoParamsWrapper& preenc_pars, const mfxExtFeiPreEncCtrl& def_ctrl, const msdk_char* mvinFile)
     : IPreENC(preenc_pars, def_ctrl)
     , m_pFile_MV_in(mvinFile, MSDK_STRING("rb"))
@@ -720,4 +750,12 @@ mfxStatus Preenc_Reader::PreEncFrame(HevcTask * task)
         MSDK_CHECK_STATUS(MFX_ERR_NOT_INITIALIZED, "File contains not the same amount of data per frame as expected.");
 
     return sts;
+}
+
+mfxStatus Preenc_Reader::ResetIOState()
+{
+    mfxStatus sts = m_pFile_MV_in.Seek(sizeof(m_sizeOfDataPerFrame), SEEK_SET);
+    MSDK_CHECK_STATUS(sts, "FEI PreENC Reader: failed to rewind file with MV");
+
+    return MFX_ERR_NONE;
 }
