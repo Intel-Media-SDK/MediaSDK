@@ -113,6 +113,8 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full).\n"));
     msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
 
+    msdk_printf(MSDK_STRING("   [-timeout seconds] - set time to run processing in seconds\n"));
+
     msdk_printf(MSDK_STRING("\n"));
 }
 
@@ -430,6 +432,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-DisableQPOffset")))
         {
             params.bDisableQPOffset = true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-timeout")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.nTimeout), "timeout", isParseInvalid);
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("?")))
         {

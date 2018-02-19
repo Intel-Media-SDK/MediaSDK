@@ -24,13 +24,11 @@ CEncodingPipeline::CEncodingPipeline(sInputParams& userInput)
     : m_inParams(userInput)
     , m_impl(MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_VAAPI)
     , m_EncSurfPool()
-    , m_processedFrames(0)
 {
 }
 
 CEncodingPipeline::~CEncodingPipeline()
 {
-    Close();
 }
 
 mfxStatus CEncodingPipeline::Init()
@@ -112,11 +110,6 @@ mfxStatus CEncodingPipeline::Init()
     }
 
     return sts;
-}
-
-void CEncodingPipeline::Close()
-{
-    msdk_printf(MSDK_STRING("\nFrames processed: %u\n"), m_processedFrames);
 }
 
 void CEncodingPipeline::PrintInfo()
@@ -320,14 +313,38 @@ mfxStatus CEncodingPipeline::Execute()
     mfxFrameSurface1* pSurf = NULL; // points to frame being processed
 
     mfxU32 numSubmitted = 0;
+    time_t start = time(0);
 
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
-        if (m_inParams.nNumFrames <= numSubmitted) // frame encoding limit
+        if (m_inParams.nNumFrames <= numSubmitted                               // frame encoding limit
+            || (m_inParams.nTimeout && time(0) - start >= m_inParams.nTimeout)) // encoding time limit
             break;
 
         sts = m_pYUVSource->GetFrame(pSurf);
-        MSDK_BREAK_ON_ERROR(sts);
+        if (MFX_ERR_MORE_DATA == sts && m_inParams.nTimeout && time(0) - start < m_inParams.nTimeout)
+        {
+            // reached end of input file, reset file pointers and start from the beginning
+            MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_DATA);
+            MSDK_BREAK_ON_ERROR(sts);
+
+            sts = m_pYUVSource->ResetIOState();
+            MSDK_BREAK_ON_ERROR(sts);
+
+            // execution timeout can be too big for available disk space, so reset output file pointers
+            // despite the fact that stream can be undecodable
+            if (m_pFEI_PreENC.get())
+            {
+                sts = m_pFEI_PreENC->ResetIOState();
+                MSDK_BREAK_ON_ERROR(sts);
+            }
+            if (m_pFEI_Encode.get())
+            {
+                sts = m_pFEI_Encode->ResetIOState();
+                MSDK_BREAK_ON_ERROR(sts);
+            }
+            continue;
+        }
 
         numSubmitted++;
 
@@ -337,7 +354,6 @@ mfxStatus CEncodingPipeline::Execute()
             task = m_pOrderCtrl->GetTask(pSurf);
             if (!task)
                 continue; // frame is buffered here
-            pSurf = task->m_surf;
         }
 
         if (m_pFEI_PreENC.get())
@@ -354,7 +370,6 @@ mfxStatus CEncodingPipeline::Execute()
 
         if (m_pOrderCtrl.get())
             m_pOrderCtrl->FreeTask(task);
-        m_processedFrames++;
     } // while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
 
     MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_DATA); // reached end of input file
@@ -391,7 +406,6 @@ mfxStatus CEncodingPipeline::DrainBufferedFrames()
 
             }
             m_pOrderCtrl->FreeTask(task);
-            m_processedFrames++;
         }
         return sts;
     }
