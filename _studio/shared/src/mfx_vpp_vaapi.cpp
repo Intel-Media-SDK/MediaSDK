@@ -458,6 +458,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     }
 
     caps.uMirroring = 1;
+    caps.uScaling = 1;
 
     return MFX_ERR_NONE;
 
@@ -484,6 +485,9 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     bool bIsFirstField = true;
     bool bUseReference = false;
     VAStatus vaSts = VA_STATUS_SUCCESS;
+
+    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    eMFXHWType hwType = hwCore->GetHWType();
 
     // NOTE the following variables should be visible till vaRenderPicture/vaEndPicture,
     // not till vaCreateBuffer as the data they hold are passed to the driver via a pointer
@@ -1142,8 +1146,8 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     {
     case MFX_SCALING_MODE_LOWPOWER:
         /* VA_FILTER_SCALING_DEFAULT means the following:
-            *  First priority is SFC. If SFC can't work, revert to AVS
-            *  If scaling ratio between 1/8...8 -> SFC
+            *  First priority is HW fixed function scaling engine. If it can't work, revert to AVS
+            *  If scaling ratio between 1/8...8 -> HW fixed function
             *  If scaling ratio between 1/16...1/8 or larger than 8 -> AVS
             *  If scaling ratio is less than 1/16 -> bilinear
             */
@@ -1158,13 +1162,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     case MFX_SCALING_MODE_DEFAULT:
     default:
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-        /* Use SFC by default on BXT platforms due to power consumption considerations */
-        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
-#else
-        /* Force AVS by default for all platforms except BXT */
-        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
-#endif
+        if(MFX_HW_APL == hwType)
+        {
+            /* Use HW fixed function scaling engine by default on APL due to power consumption considerations */
+            m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
+        }
+        else
+        {
+            /* Force AVS by default for all platforms except BXT */
+            m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
+        }
         break;
     }
 
