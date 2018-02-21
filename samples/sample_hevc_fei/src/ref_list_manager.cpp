@@ -517,6 +517,7 @@ namespace HevcRplUtils
 
         l0 = l1 = 0;
 
+        // prepare candidates for reference picture lists
         for (mfxU8 i = 0; !isDpbEnd(DPB, i); i++)
         {
             if (DPB[i].m_tid > tid)
@@ -537,13 +538,14 @@ namespace HevcRplUtils
 
         if (l0 > NumStRefL0)
         {
+            // sort candidates from furthest frame to nearest
             if (isField(par))
             {
-                std::sort(&RPL[0][0], &RPL[0][numRefActive[0]], InterlacePocDistanceIsLess(DPB, poc, bSecondField, bBottomField));
+                std::sort(&RPL[0][0], &RPL[0][numRefActive[0]], InterlacePocDistanceIsGreater(DPB, poc, bSecondField, bBottomField));
             }
             else
             {
-                std::sort(&RPL[0][0], &RPL[0][numRefActive[0]], PocDistanceIsLess(DPB, poc));
+                std::sort(&RPL[0][0], &RPL[0][numRefActive[0]], PocDistanceIsGreater(DPB, poc));
             }
             if (isPPyramid(par))
             {
@@ -561,12 +563,16 @@ namespace HevcRplUtils
             }
             else
             {
+                // leave only the last NumStRefL0 references (i.e. the nearest frames)
+                // but in case  LTRInterval is enabled and current frame is not LTR,
+                // then RPL[0][0] is reserved for previous LTR and should be kept in RPL
                 Remove(RPL[0], (LTRInterval && !nLTR && l0 > 1), l0 - NumStRefL0);
                 l0 = NumStRefL0;
             }
         }
         if (l1 > NumRefLX[1])
         {
+            // sort candidates from nearest frame to furthest
             if (isField(par))
             {
                 std::sort(&RPL[1][0], &RPL[1][numRefActive[1]], InterlacePocDistanceIsLess(DPB, poc, bSecondField, bBottomField));
@@ -575,6 +581,7 @@ namespace HevcRplUtils
             {
                 std::sort(&RPL[1][0], &RPL[1][numRefActive[1]], PocDistanceIsLess(DPB, poc));
             }
+            // and leave only first NumRefLX[1] frames as references
             Remove(RPL[1], NumRefLX[1], l1 - NumRefLX[1]);
             l1 = (mfxU8)NumRefLX[1];
         }
