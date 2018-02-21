@@ -2892,7 +2892,7 @@ mfxStatus VAAPIEncoder::Execute(
                 timeout = 0;
             }
         }*/
-        mfxStatus sts = m_mfe->Submit(m_vaContextEncode, (task.m_flushMfe? 0 : timeout));
+        mfxStatus sts = m_mfe->Submit(m_vaContextEncode, (task.m_flushMfe? 0 : timeout), skipFlag == NORMAL_MODE);
         if (sts != MFX_ERR_NONE)
             return sts;
     }

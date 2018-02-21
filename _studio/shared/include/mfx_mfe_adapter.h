@@ -86,7 +86,7 @@ public:
     mfxStatus Join(VAContextID ctx, bool doubleField);
     mfxStatus Disjoin(VAContextID ctx);
     mfxStatus Destroy();
-    mfxStatus Submit(VAContextID context, vm_tick timeToWait);//time passed in vm_tick, so milliseconds to be multiplied by vm_frequency/1000
+    mfxStatus Submit(VAContextID context, vm_tick timeToWait, bool skipFrame);//time passed in vm_tick, so milliseconds to be multiplied by vm_frequency/1000
 
     virtual void AddRef();
     virtual void Release();
