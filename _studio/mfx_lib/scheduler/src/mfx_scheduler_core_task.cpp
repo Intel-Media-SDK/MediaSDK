@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +82,11 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
         ReleaseResources();
 
         CompleteTask(MFX_ERR_ABORTED);
+    } else {
+        // Notify the scheduler that task got resolved dependencies.
+        // Scheduler will reevaluate whether it needs to wake up threads to
+        // handle this task.
+        m_pSchedulerCore->OnDependencyResolved(this);
     }
 
     // call the parent's method

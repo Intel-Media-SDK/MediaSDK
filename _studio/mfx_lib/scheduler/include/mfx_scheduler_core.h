@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -210,6 +210,10 @@ public:
 
     //MFX_SCHEDULER_TASK is only one consumer
     void ResolveDependencyTable(MFX_SCHEDULER_TASK *pTask);
+
+    // Notification to the scheduler that task got resolved dependencies
+    void OnDependencyResolved(MFX_SCHEDULER_TASK *pTask);
+
 protected:
     // Destructor is protected to avoid deletion the object by occasion.
     virtual
@@ -222,13 +226,11 @@ protected:
     void SetThreadsAffinityMask(void);
     // Assign socket affinity for every thread
     void SetThreadsAffinityToSockets(void);
-    // Wake up all internal threads, except the pointed one
-    void WakeUpThreads(const mfxU32 curThreadNum = (mfxU32) MFX_INVALID_THREAD_ID,
-                       const eWakeUpReason reason = MFX_SCHEDULER_NEW_TASK);
 
-    // Wake up the dedicated thread plus a number of non-dedicated threads, except the pointed one
-    void WakeUpNumThreads(mfxU32 numThreadsToWakeUp,
-                          const mfxU32 curThreadNum = (mfxU32) MFX_INVALID_THREAD_ID);
+    // Wake up requested number of dedicated and regular threads (default: wake up all)
+    void WakeUpThreads(
+        mfxU32 num_dedicated_threads = (mfxU32)-1,
+        mfxU32 num_regular_threads = (mfxU32)-1);
 
     // Wait until the scheduler got more work
     void Wait(const mfxU32 curThreadNum);
@@ -272,14 +274,15 @@ protected:
     mfxStatus CanContinuePreviousTask(MFX_CALL_INFO &callInfo,
                                       mfxTaskHandle previousTask,
                                       const mfxU32 threadNum);
+
+    // Check whether task is ready to run
+    bool IsReadyToRun(MFX_SCHEDULER_TASK *pTask);
+
     // Wrap up the task into thread-friendly object,
     // check all dependencies and conditions.
     mfxStatus WrapUpTask(MFX_CALL_INFO &callInfo,
                          MFX_SCHEDULER_TASK *pTask,
                          const mfxU32 threadNum);
-
-    // Get a number of non-dedicated tasks which don't have unresolved dependencies
-    mfxU32 GetNumResolvedSwTasks(void) const;
 
     inline void call_pRoutine(MFX_CALL_INFO& call);
 
@@ -381,9 +384,9 @@ protected:
     // Queue of failed tasks
     MFX_SCHEDULER_TASK *m_pFailedTasks;
     // Number of tasks for the dedicated thread
-    mfxU32 m_numHwTasks;
+    mfxU32 m_DedicatedThreadsToWakeUp;
     // Number of tasks for non-dedicated threads
-    mfxU32 m_numSwTasks;
+    mfxU32 m_RegularThreadsToWakeUp;
 
     // these members are used only from the main thread,
     // so synchronization is not necessary to access them.
