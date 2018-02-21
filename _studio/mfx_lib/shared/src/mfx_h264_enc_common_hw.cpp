@@ -836,50 +836,33 @@ namespace
         eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed)
     {
         targetUsage;//no specific check for TU now, can be added later
-        if (
-            platform <= MFX_HW_BDW)//no MFE support prior to SKL.
+        if (platform <= MFX_HW_BDW)//no MFE support prior to SKL.
             return 1;
         else if (platform == MFX_HW_SCL)
         {
+            //at GT2 SKUs this can require adjustment, also only 3840x2160 verified, between 1088 and 2160 there can be difference and 2 frames can be run normally
+            if ((info.CropH > 1088 && info.CropW > 1920) || slices > 1)
+            {
+                return 1;
+            }
+            else if ( extSurfUsed || func == MFX_FEI_FUNCTION_ENCODE)
+            {
+                return 2;
+            }
             //other functions either already rejected(PAK, ENC/PreEnc absense of support) or can run bigger amount of frames(for PreEnc).
             //extSurfUsed - mean we are using  running into kernel limitation for max number of surfaces used in kernel
-            if ( extSurfUsed)
-            {
-                return 2;
-            }
-            else if (func == MFX_FEI_FUNCTION_ENCODE)
-            {
-                return 2;
-            }
             else if (func)
             {
                 return 1;
             }
-            //TODO: this need to be verified which resolution should decrease number of MFE frames and how this depend on TU and SKU
-            //also ABR workload can have better performance with >1080p Max resolution and some additional resolutions added.
-            //This 100% will work good way for GT3/GT4 SKUs, for GT2 - different rule can be required.
-            else if (info.CropH > 1088 && info.CropH > 1920)
-            {
-                return 2;
-            }
-            else if (slices > 1)
-            {
-                /*1 for now, on SKL MFE can only support slice map(not enabled yet)
-                  way which performance is worse than standard multi-slice
-                  for low number of slices MFE can be useful, so need to ajust check after
-                  after performance data can be gathered.
-                  for MSS or NumMbPerSlice just set -1 in slices*/
-                return 1;
-            }
             else
             {
-                return 3;//for legacy now - need to look for potential decrease due to added controls like MBQP, etc.
+                return 3;//for legacy now
             }
         }
         else
-            return 1;//to be adjusted based on final performance measurements after SKL
+            return 1;//to be adjusted based on performance measurements on other platforms
     }
-
     mfxU32 calculateMfeTimeout(const mfxFrameInfo& info)
     {
         //Just calculate based on latency expectation from framerate in microsecond now, can be changed in future
