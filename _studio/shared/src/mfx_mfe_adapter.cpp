@@ -205,7 +205,7 @@ mfxStatus MFEVAAPIEncoder::Destroy()
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait)
+mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool skipFrame)
 {
     vm_mutex_lock(&m_mfe_guard);
     //stream in pool corresponding to particular context;
@@ -253,6 +253,14 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait)
         //take it back from submitted pull
         m_toSubmit.splice(m_toSubmit.end(), m_submitted_pool, cur_stream);
         cur_stream->reset();//cleanup stream state
+    }
+    if (skipFrame)
+    {
+        //if frame is skipped - threat it as submitted without real submission
+        //to not lock other streams waiting for it
+        m_submitted_pool.splice(m_submitted_pool.end(), m_toSubmit, cur_stream);
+        vm_mutex_unlock(&m_mfe_guard);
+        return MFX_ERR_NONE;
     }
     ++m_framesCollected;
     if (m_streams_pool.empty())
