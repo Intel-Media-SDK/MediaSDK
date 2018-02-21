@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 #include <mfxdefs.h>
 
 #include <vm_thread.h>
-#include <umc_event.h>
+#include <vm_cond.h>
 
 // forward declaration of the owning class
 class mfxSchedulerCore;
@@ -32,22 +32,30 @@ class mfxSchedulerCore;
 struct MFX_SCHEDULER_THREAD_CONTEXT
 {
     MFX_SCHEDULER_THREAD_CONTEXT()
-      : pSchedulerCore(NULL)
+      : state(State::Waiting)
+      , pSchedulerCore(NULL)
       , threadNum(0)
       , threadHandle()
       , workTime(0)
       , sleepTime(0)
     {
         vm_thread_set_invalid(&threadHandle);
+        vm_cond_set_invalid(&taskAdded);
     }
 
-    mfxSchedulerCore *pSchedulerCore;                           // (mfxSchedulerCore *) pointer to the owning core
-    mfxU32 threadNum;                                           // (mfxU32) number of the thread
-    vm_thread threadHandle;                                     // (vm_thread) handle to the thread
-    UMC::Event taskAdded;                                       // Objects for waiting on in case of nothing to do
+    enum State {
+        Waiting, // thread is waiting for incoming tasks
+        Running  // thread is executing a task
+    };
 
-    mfxU64 workTime;                                            // (mfxU64) integral working time
-    mfxU64 sleepTime;                                           // (mfxU64) integral sleeping time
+    State state;                      // thread state, waiting or running
+    mfxSchedulerCore *pSchedulerCore; // pointer to the owning core
+    mfxU32 threadNum;                 // thread number assigned by the core
+    vm_thread threadHandle;           // thread handle
+    vm_cond taskAdded;                // cond. variable to signal new tasks
+
+    mfxU64 workTime;                  // integral working time
+    mfxU64 sleepTime;                 // integral sleeping time
 };
 
 #endif // #ifndef __MFX_SCHEDULER_CORE_THREAD_H

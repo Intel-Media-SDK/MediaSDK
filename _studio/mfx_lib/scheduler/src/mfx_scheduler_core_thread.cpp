@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -64,20 +64,31 @@ uint32_t mfxSchedulerCore::scheduler_thread_proc(void *pParam)
 
 void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 {
+    UMC::AutomaticMutex guard(m_guard);
+
     mfxTaskHandle previousTaskHandle = {};
     const uint32_t threadNum = pContext->threadNum;
 
     // main working cycle for threads
     while (false == m_bQuit)
     {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "thread_proc");
+
         MFX_CALL_INFO call = {};
         mfxStatus mfxRes;
+
+        pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Waiting;
 
         mfxRes = GetTask(call, previousTaskHandle, threadNum);
         if (MFX_ERR_NONE == mfxRes)
         {
-            // perform asynchronous operation
-            call_pRoutine(call);
+            pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
+            vm_mutex_unlock(&m_guard);
+            {
+                // perform asynchronous operation
+                call_pRoutine(call);
+            }
+            vm_mutex_lock(&m_guard);
 
             pContext->workTime += call.timeSpend;
             // save the previous task's handle
@@ -140,7 +151,7 @@ void mfxSchedulerCore::WakeupThreadProc()
 
             //MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "HW Event");
             IncrementHWEventCounter();
-            WakeUpThreads((mfxU32) MFX_INVALID_THREAD_ID, MFX_SCHEDULER_HW_BUFFER_COMPLETED);
+            WakeUpThreads(1,1);
         }
     }
 }
