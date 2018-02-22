@@ -79,7 +79,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-g size] - GOP size (1(default) means I-frames only)\n"));
     msdk_printf(MSDK_STRING("   [-gop_opt closed|strict] - GOP optimization flags (can be used together)\n"));
     msdk_printf(MSDK_STRING("   [-r (-GopRefDist) distance] - Distance between I- or P- key frames (1 means no B-frames) (0 - by default(I frames))\n"));
-    msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of reference frames\n"));
+    msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of available reference frames (DPB size)\n"));
     msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P frames (valid range is [1, 3])\n"));
     msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs] - number of maximum allowed backward references for B frames (valid range is [1, 3])\n"));
     msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs] - number of maximum allowed forward references for B frames (only 1 is supported)\n"));
@@ -593,6 +593,11 @@ void AdjustOptions(sInputParams& params)
     params.input.dFrameRate = tune(params.input.dFrameRate, 0.0, 30.0);
     params.nNumSlices       = tune(params.nNumSlices, 0, 1);
     params.nIdrInterval     = tune(params.nIdrInterval, 0, 0xffff);
+
+    if (params.nRefDist < 2)
+    {
+        params.NumRefActiveBL0 = params.NumRefActiveBL1 = 0;
+    }
     mfxU16 nMinRefFrame     = std::max(params.NumRefActiveP, (mfxU16)(params.NumRefActiveBL0 + params.NumRefActiveBL1));
     if (nMinRefFrame > params.nNumRef)
         params.nNumRef      = nMinRefFrame;
