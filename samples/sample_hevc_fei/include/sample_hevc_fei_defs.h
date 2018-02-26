@@ -150,8 +150,7 @@ struct sInputParams
         encodeCtrl.Header.BufferSz = sizeof(mfxExtFeiHevcEncFrameCtrl);
         encodeCtrl.SubPelMode         = 3; // quarter-pixel motion estimation
         encodeCtrl.SearchWindow       = 5; // 48 SUs 48x40 window full search
-        // TODO: return default of NumFramePartitions to 4
-        encodeCtrl.NumFramePartitions = 1; // number of partitions in frame that encoder processes concurrently
+        encodeCtrl.NumFramePartitions = 4; // number of partitions in frame that encoder processes concurrently
         // enable internal L0/L1 predictors: 1 - spatial predictors
         encodeCtrl.MultiPred[0] = encodeCtrl.MultiPred[1] = 1;
         encodeCtrl.MVPredictor = 0; // disabled MV predictors
