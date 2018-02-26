@@ -2007,7 +2007,7 @@ void SetDefaults(
             }
             else if (par.isLowDelay())
             {
-                par.mfx.NumRefFrame = Max<mfxU16>((mfxU16)par.PPyrInterval, RefActiveP);
+                par.mfx.NumRefFrame = Max<mfxU16>((mfxU16)par.PPyrInterval*k, RefActiveP);
             }
             else
             {
