@@ -38,7 +38,7 @@
   #include "mfx_scd.h"        // Scene change detection
  #endif
  #include "cm_mem_copy.h"         // Needed for mirroring kernels
-#include "genx_fcopy_cmcode_isa.cpp" // Field copy kernel
+#include "genx_fcopy_cmcode_isa.h" // Field copy kernel
 
 class CmDevice;
 
