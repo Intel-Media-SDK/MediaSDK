@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -135,6 +135,11 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/mfx_umc_alloc_wrapper.cpp
     ${prefix}/mfx_static_assert_structs.cpp
     ${prefix}/mfx_mfe_adapter.cpp
+  )
+endforeach()
+foreach( prefix ${MSDK_LIB_ROOT}/genx/field_copy/src )
+  list( APPEND sources
+    ${prefix}/genx_fcopy_cmcode_isa.cpp
   )
 endforeach()
 
