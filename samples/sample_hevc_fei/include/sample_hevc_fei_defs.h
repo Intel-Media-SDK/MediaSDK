@@ -104,7 +104,7 @@ struct sInputParams
         , QP(26)
         , dstWidth(0)
         , dstHeight(0)
-        , nNumFrames(0xffff)
+        , nNumFrames(0)
         , nNumSlices(1)
         , nRefDist(0)
         , nGopSize(0)
