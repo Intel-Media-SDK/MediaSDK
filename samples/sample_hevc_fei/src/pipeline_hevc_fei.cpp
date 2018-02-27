@@ -317,12 +317,12 @@ mfxStatus CEncodingPipeline::Execute()
 
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
-        if (m_inParams.nNumFrames <= numSubmitted                               // frame encoding limit
+        if ((m_inParams.nNumFrames && m_inParams.nNumFrames <= numSubmitted)    // frame encoding limit
             || (m_inParams.nTimeout && time(0) - start >= m_inParams.nTimeout)) // encoding time limit
             break;
 
         sts = m_pYUVSource->GetFrame(pSurf);
-        if (MFX_ERR_MORE_DATA == sts && m_inParams.nTimeout && time(0) - start < m_inParams.nTimeout)
+        if (MFX_ERR_MORE_DATA == sts && (m_inParams.nTimeout || m_inParams.nNumFrames))
         {
             // reached end of input file, reset file pointers and start from the beginning
             MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_DATA);
@@ -331,18 +331,22 @@ mfxStatus CEncodingPipeline::Execute()
             sts = m_pYUVSource->ResetIOState();
             MSDK_BREAK_ON_ERROR(sts);
 
-            // execution timeout can be too big for available disk space, so reset output file pointers
-            // despite the fact that stream can be undecodable
-            if (m_pFEI_PreENC.get())
+            if (time(0) - start < m_inParams.nTimeout)
             {
-                sts = m_pFEI_PreENC->ResetIOState();
-                MSDK_BREAK_ON_ERROR(sts);
+                // execution timeout can be too big for available disk space, so reset output file pointers
+                // despite the fact that stream can be undecodable
+                if (m_pFEI_PreENC.get())
+                {
+                    sts = m_pFEI_PreENC->ResetIOState();
+                    MSDK_BREAK_ON_ERROR(sts);
+                }
+                if (m_pFEI_Encode.get())
+                {
+                    sts = m_pFEI_Encode->ResetIOState();
+                    MSDK_BREAK_ON_ERROR(sts);
+                }
             }
-            if (m_pFEI_Encode.get())
-            {
-                sts = m_pFEI_Encode->ResetIOState();
-                MSDK_BREAK_ON_ERROR(sts);
-            }
+
             continue;
         }
         MSDK_BREAK_ON_ERROR(sts);
