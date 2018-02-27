@@ -345,6 +345,7 @@ mfxStatus CEncodingPipeline::Execute()
             }
             continue;
         }
+        MSDK_BREAK_ON_ERROR(sts);
 
         numSubmitted++;
 

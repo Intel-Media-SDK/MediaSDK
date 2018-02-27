@@ -178,16 +178,18 @@ mfxStatus YUVReader::GetFrame(mfxFrameSurface1* & pSurf)
     MSDK_CHECK_POINTER(pSurf, MFX_ERR_MEMORY_ALLOC);
 
     // need to call Lock to access surface data and...
-    sts = m_pOutSurfPool->LockSurface(pSurf);
-    MSDK_CHECK_STATUS(sts, "LockSurface failed");
+    mfxStatus lock_sts = m_pOutSurfPool->LockSurface(pSurf);
+    MSDK_CHECK_STATUS(lock_sts, "LockSurface failed");
 
     // load frame from file to surface data
     sts = m_FileReader.LoadNextFrame(pSurf);
-    MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, sts);
 
     // ... after we're done call Unlock
-    sts = m_pOutSurfPool->UnlockSurface(pSurf);
-    MSDK_CHECK_STATUS(sts, "UnlockSurface failed");
+    lock_sts = m_pOutSurfPool->UnlockSurface(pSurf);
+    MSDK_CHECK_STATUS(lock_sts, "UnlockSurface failed");
+
+    if (MFX_ERR_MORE_DATA == sts) // reach the end of input file
+        pSurf = NULL;
 
     return sts;
 }
