@@ -42,6 +42,8 @@
 #define VASurfaceAttribUsageHint 8
 #define VAEncMacroblockMapBufferType 29
 
+// TODO: remove this internal definition once it appears in VAAPI
+#define VA_FOURCC_R5G6B5 MFX_MAKEFOURCC('R','G','1','6')
 
 unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 {
@@ -53,6 +55,10 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_YUY2;
     case MFX_FOURCC_YV12:
         return VA_FOURCC_YV12;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        return VA_FOURCC_R5G6B5;
+#endif
     case MFX_FOURCC_RGB4:
         return VA_FOURCC_ARGB;
     case MFX_FOURCC_BGR4:
@@ -95,14 +101,15 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
 
     mfxU32 mfx_fourcc = fourcc;
     va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
-    if (!va_fourcc || ((VA_FOURCC_NV12 != va_fourcc) &&
-                       (VA_FOURCC_YV12 != va_fourcc) &&
-                       (VA_FOURCC_YUY2 != va_fourcc) &&
-                       (VA_FOURCC_ARGB != va_fourcc) &&
-                       (VA_FOURCC_ABGR != va_fourcc) &&
-                       (VA_FOURCC_UYVY != va_fourcc) &&
-                       (VA_FOURCC_P208 != va_fourcc) &&
-                       (VA_FOURCC_P010 != va_fourcc)))
+    if (!va_fourcc || ((VA_FOURCC_NV12   != va_fourcc) &&
+                       (VA_FOURCC_YV12   != va_fourcc) &&
+                       (VA_FOURCC_YUY2   != va_fourcc) &&
+                       (VA_FOURCC_ARGB   != va_fourcc) &&
+                       (VA_FOURCC_ABGR   != va_fourcc) &&
+                       (VA_FOURCC_UYVY   != va_fourcc) &&
+                       (VA_FOURCC_P208   != va_fourcc) &&
+                       (VA_FOURCC_P010   != va_fourcc) &&
+                       (VA_FOURCC_R5G6B5 != va_fourcc)))
     {
         return MFX_ERR_MEMORY_ALLOC;
     }
@@ -356,6 +363,19 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         else mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case VA_FOURCC_R5G6B5:
+        if (mfx_fourcc == MFX_FOURCC_RGB565)
+        {
+            ptr->PitchHigh = (mfxU16)(va_image.pitches[0] >> 16);
+            ptr->PitchLow  = (mfxU16)(va_image.pitches[0] & 0xffff);
+            ptr->B = pBuffer + va_image.offsets[0];
+            ptr->G = ptr->B;
+            ptr->R = ptr->B;
+        }
+        else mfx_res = MFX_ERR_LOCK_MEMORY;
+        break;
+#endif
     case VA_FOURCC_ARGB:
         if (mfx_fourcc == MFX_FOURCC_RGB4)
         {

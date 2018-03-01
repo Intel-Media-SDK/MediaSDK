@@ -1354,6 +1354,19 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
 
         break;
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        {
+            mfxU8* ptrSrc = pSrc->Data.B;
+            mfxU8* ptrDst = pDst->Data.B;
+
+            roi.width *= 2;
+
+            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+            MFX_CHECK_STS(sts);
+            break;
+        }
+#endif
 
     case MFX_FOURCC_RGB3:
         {

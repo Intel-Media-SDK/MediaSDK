@@ -70,6 +70,10 @@ static
         return MSDK_STRING("YV12");
     case MFX_FOURCC_YUY2:
         return MSDK_STRING("YUY2");
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        return MSDK_STRING("RGB565");
+#endif
     case MFX_FOURCC_RGB3:
         return MSDK_STRING("RGB3");
     case MFX_FOURCC_RGB4:
@@ -1149,6 +1153,23 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w*2, MFX_ERR_MORE_DATA);
         }
     }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    else if (pInfo->FourCC == MFX_FOURCC_RGB565)
+    {
+        MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->G, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->B, MFX_ERR_NOT_INITIALIZED);
+
+        ptr = pData->B;
+        ptr = ptr + pInfo->CropX + pInfo->CropY * pitch;
+
+        for(i = 0; i < h; i++)
+        {
+            nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, 2*w, m_fSrc);
+            IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, 2*w, MFX_ERR_MORE_DATA);
+        }
+    }
+#endif
     else if (pInfo->FourCC == MFX_FOURCC_RGB3)
     {
         MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
