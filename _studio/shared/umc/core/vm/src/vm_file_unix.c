@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +25,7 @@
 /* codecws compilation fence */
 #if defined(LINUX32)
 
-#if defined(LINUX32) && !defined(LINUX64)
+#if defined(LINUX32) && !defined(__ANDROID__) && !defined(LINUX64)
 /* These defines are needed to get access to 'struct stat64'. stat64 function is seen without them, but
  * causes segmentation faults working with 'struct stat'.
  */
@@ -37,7 +37,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
+#if defined(__ANDROID__)
+#include <sys/statfs.h>
+#else
 #include <sys/statvfs.h>
+#endif /* #if !defined(__ANDROID__) */
 #include <dirent.h>
 #include "vm_file.h"
 
@@ -45,7 +49,7 @@
 /* obtain file info. return 0 if file is not accessible,
    file_size or file_attr can be NULL if either is not interested */
 int32_t vm_file_getinfo(const vm_char *filename, unsigned long long *file_size, uint32_t *file_attr) {
-#if defined(LINUX64)
+#if defined(__ANDROID__) || defined(LINUX64)
    struct stat buf;
    if (stat(filename,&buf) != 0) return 0;
 #else
@@ -65,7 +69,7 @@ int32_t vm_file_getinfo(const vm_char *filename, unsigned long long *file_size, 
 
 
 unsigned long long vm_file_fseek(vm_file *fd, long long position, VM_FILE_SEEK_MODE mode) {
-#if defined(LINUX64)
+#if defined(__ANDROID__) || defined(LINUX64)
   return fseeko(fd, (off_t)position, mode);
 #else
   return fseeko64(fd, (__off64_t)position, mode);
@@ -73,7 +77,7 @@ unsigned long long vm_file_fseek(vm_file *fd, long long position, VM_FILE_SEEK_M
   }
 
 unsigned long long vm_file_ftell(vm_file *fd) {
-#if defined(LINUX64)
+#if defined(__ANDROID__) || defined(LINUX64)
   return (unsigned long long) ftello(fd);
 #else
   return (unsigned long long)ftello64(fd);
@@ -167,10 +171,17 @@ int32_t vm_string_findclose(vm_findptr handle) {
 
 unsigned long long vm_dir_get_free_disk_space( void ) {
   unsigned long long rtv = 0;
+#if defined(__ANDROID__)
+  struct statfs fst;
+  if (statfs(".", &fst) >= 0) {
+    rtv = fst.f_bsize*fst.f_bavail;
+    }
+#else
   struct statvfs fst;
   if (statvfs(".", &fst) >= 0) {
     rtv = fst.f_bsize*fst.f_bavail;
     }
+#endif
   return rtv;
   }
 
