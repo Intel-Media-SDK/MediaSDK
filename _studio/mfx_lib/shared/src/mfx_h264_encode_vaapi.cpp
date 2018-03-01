@@ -1400,7 +1400,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.MaxNum_Reference1 = 1;
     }
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT) || defined (LINUX_TARGET_PLATFORM_CFL)
+#if defined(LINUX_TARGET_PLATFORM_BXT)
     // Officially only APL and CFL supports ROI.
 
     if (attrs[idx_map[VAConfigAttribEncROI]].value != VA_ATTRIB_NOT_SUPPORTED)
@@ -2102,7 +2102,6 @@ mfxStatus VAAPIEncoder::Execute(
         if (frameCtrl->PerMBQp && mbqp != NULL)
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MBqp)");
-#if MFX_VERSION >= 1023
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
                     (VABufferType)VAEncQPBufferType,
@@ -2110,15 +2109,6 @@ mfxStatus VAAPIEncoder::Execute(
                     1, //limitation from driver, num elements should be 1
                     mbqp->MB,
                     &vaFeiMBQPId);
-#else
-            vaSts = vaCreateBuffer(m_vaDisplay,
-                    m_vaContextEncode,
-                    (VABufferType)VAEncQPBufferType,
-                    sizeof (VAEncQPBufferH264)*mbqp->NumQPAlloc,
-                    1, //limitation from driver, num elements should be 1
-                    mbqp->QP,
-                    &vaFeiMBQPId);
-#endif
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
 
@@ -2357,7 +2347,7 @@ mfxStatus VAAPIEncoder::Execute(
         // SEI
         if (sei.Size() > 0)
         {
-            packed_header_param_buffer.type = VAEncPackedHeaderRawData;
+            packed_header_param_buffer.type = VAEncPackedHeaderH264_SEI;
             packed_header_param_buffer.has_emulation_bytes = 1;
             packed_header_param_buffer.bit_length = sei.Size()*8;
 
@@ -2488,7 +2478,7 @@ mfxStatus VAAPIEncoder::Execute(
         // SEI
         if (sei.Size() > 0)
         {
-            packed_header_param_buffer.type = VAEncPackedHeaderRawData;
+            packed_header_param_buffer.type = VAEncPackedHeaderH264_SEI;
             packed_header_param_buffer.has_emulation_bytes = 1;
             packed_header_param_buffer.bit_length = sei.Size()*8;
 
@@ -2635,7 +2625,7 @@ mfxStatus VAAPIEncoder::Execute(
                                                           m_vaContextEncode, m_maxFrameSizeId), MFX_ERR_DEVICE_FAILED);
     configBuffers[buffersCount++] = m_maxFrameSizeId;
 
-#if !defined(ANDROID)
+#if !defined(MFX_VA_ANDROID)
 /*
  *  By default (0) - driver will decide.
  *  1 - disable trellis quantization

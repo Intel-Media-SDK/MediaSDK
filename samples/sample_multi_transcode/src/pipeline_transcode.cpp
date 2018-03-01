@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -2197,6 +2197,12 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
             m_mfxDecParams.mfx.FrameInfo.Height = MSDK_ALIGN16(m_mfxDecParams.mfx.FrameInfo.CropH);
             m_mfxDecParams.mfx.FrameInfo.PicStruct = m_pmfxBS->PicStruct;
         }
+        // OpenCL demands aligned to 32 surfaces
+        if (pInParams->bOpenCL)
+        {
+            m_mfxDecParams.mfx.FrameInfo.Width = MSDK_ALIGN32(m_mfxDecParams.mfx.FrameInfo.CropW);
+            m_mfxDecParams.mfx.FrameInfo.Height = MSDK_ALIGN32(m_mfxDecParams.mfx.FrameInfo.CropH);
+        }
     }
     else
     {
@@ -2540,6 +2546,13 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_mfxEncParams.mfx.InitialDelayInKB = pInParams->InitialDelayInKB;
     }
 
+    // OpenCL demands aligned to 32 surfaces
+    if (pInParams->bOpenCL)
+    {
+        m_mfxEncParams.mfx.FrameInfo.Width = MSDK_ALIGN32(m_mfxEncParams.mfx.FrameInfo.CropW);
+        m_mfxEncParams.mfx.FrameInfo.Height = MSDK_ALIGN32(m_mfxEncParams.mfx.FrameInfo.CropH);
+    }
+
     return MFX_ERR_NONE;
 }// mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
 
@@ -2859,6 +2872,15 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
 
         m_VppExtParamsStorage.ExtBuffers.push_back((mfxExtBuffer *)&m_VppCompParams);
     } // if ( ((pInParams->eModeExt == VppComp) || (pInParams->eModeExt == VppCompOnly)) &&
+
+    // OpenCL demands align to 32 bit surfaces
+    if (pInParams->bOpenCL)
+    {
+        m_mfxVppParams.vpp.Out.CropW = m_mfxVppParams.vpp.Out.Width;
+        m_mfxVppParams.vpp.Out.CropH = m_mfxVppParams.vpp.Out.Height;
+        m_mfxVppParams.vpp.Out.Width = MSDK_ALIGN32(m_mfxVppParams.vpp.Out.CropW);
+        m_mfxVppParams.vpp.Out.Height = MSDK_ALIGN32(m_mfxVppParams.vpp.Out.CropH);
+    }
 
     if (m_bUseOpaqueMemory)
         m_VppExtParamsStorage.ExtBuffers.push_back((mfxExtBuffer *)&m_VppOpaqueAlloc);
@@ -4011,6 +4033,7 @@ mfxStatus CTranscodingPipeline::Reset()
     // Release output bitstram pools
     m_BSPool.clear();
     m_pBSStore->ReleaseAll();
+    m_pBSStore->FlushAll();
 
     // Load external decoder plugin
     if (isDecoderPlugin)
@@ -4169,6 +4192,7 @@ mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstream* pBS)
     MSDK_CHECK_STATUS(sts, "m_pmfxENC->GetVideoParam failed");
 
     mfxU32 new_size = 0;
+
     // if encoder provided us information about buffer size
     if (0 != par.mfx.BufferSizeInKB)
     {

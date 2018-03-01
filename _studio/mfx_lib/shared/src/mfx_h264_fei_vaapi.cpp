@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -328,7 +328,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
 
     mfxStatus mfxSts = MFX_ERR_NONE;
     VAStatus  vaSts;
-    VAPictureStats past_ref, future_ref;
+    VAPictureFEI past_ref, future_ref;
     VASurfaceID *inputSurface = (VASurfaceID*) surface;
 
     std::vector<VABufferID> configBuffers(MAX_CONFIG_BUFFERS_COUNT + m_slice.size() * 2);
@@ -403,7 +403,6 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     }
     statParams.stats_params.mv_predictor = mvPredid;
 
-#if MFX_VERSION >= 1023
     if ((statParams.mb_qp) && (feiQP != NULL) && (feiQP->MB != NULL))
     {
         vaSts = vaCreateBuffer(m_vaDisplay,
@@ -418,22 +417,6 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         mdprintf(stderr, "Qp bufId=%d\n", qpid);
     }
     statParams.stats_params.qp = qpid;
-#else
-    if ((statParams.mb_qp) && (feiQP != NULL) && (feiQP->QP != NULL))
-    {
-        vaSts = vaCreateBuffer(m_vaDisplay,
-                                m_vaContextEncode,
-                                (VABufferType)VAEncQPBufferType,
-                                sizeof (VAEncQPBufferH264)*feiQP->NumQPAlloc,
-                                1, //limitation from driver, num elements should be 1
-                                feiQP->QP,
-                                &qpid);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-        mdprintf(stderr, "Qp bufId=%d\n", qpid);
-    }
-    statParams.stats_params.qp = qpid;
-#endif
 
     /* PreEnc support only 1 forward and 1 backward reference */
 
@@ -450,24 +433,24 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         mfxSts = m_core->GetExternalFrameHDL(feiCtrl->RefFrame[0]->Data.MemId, &handle);
         MFX_CHECK_STS(mfxSts);
 
-        VAPictureStats* l0surfs = &past_ref;
+        VAPictureFEI* l0surfs = &past_ref;
         l0surfs->picture_id = *(VASurfaceID*)handle;
 
         switch (feiCtrl->RefPictureType[0])
         {
         case MFX_PICTYPE_TOPFIELD:
-            l0surfs->flags = VA_PICTURE_STATS_TOP_FIELD;
+            l0surfs->flags = VA_PICTURE_FEI_TOP_FIELD;
             break;
         case MFX_PICTYPE_BOTTOMFIELD:
-            l0surfs->flags = VA_PICTURE_STATS_BOTTOM_FIELD;
+            l0surfs->flags = VA_PICTURE_FEI_BOTTOM_FIELD;
             break;
         case MFX_PICTYPE_FRAME:
-            l0surfs->flags = VA_PICTURE_STATS_PROGRESSIVE;
+            l0surfs->flags = VA_PICTURE_FEI_PROGRESSIVE;
             break;
         }
 
         if (IsOn(feiCtrl->DownsampleReference[0]))
-            l0surfs->flags |= VA_PICTURE_STATS_CONTENT_UPDATED;
+            l0surfs->flags |= VA_PICTURE_FEI_CONTENT_UPDATED;
 
         statParams.stats_params.past_references = l0surfs;
         // statParams.stats_params.past_ref_stat_buf = IsOn(feiCtrl->DownsampleReference[0]) ? &m_statOutId[surfPastIndexInList] : NULL;
@@ -485,24 +468,24 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         mfxSts = m_core->GetExternalFrameHDL(feiCtrl->RefFrame[1]->Data.MemId, &handle);
         MFX_CHECK_STS(mfxSts);
 
-        VAPictureStats* l1surfs = &future_ref;
+        VAPictureFEI* l1surfs = &future_ref;
         l1surfs->picture_id = *(VASurfaceID*)handle;
 
         switch (feiCtrl->RefPictureType[1])
         {
         case MFX_PICTYPE_TOPFIELD:
-            l1surfs->flags = VA_PICTURE_STATS_TOP_FIELD;
+            l1surfs->flags = VA_PICTURE_FEI_TOP_FIELD;
             break;
         case MFX_PICTYPE_BOTTOMFIELD:
-            l1surfs->flags = VA_PICTURE_STATS_BOTTOM_FIELD;
+            l1surfs->flags = VA_PICTURE_FEI_BOTTOM_FIELD;
             break;
         case MFX_PICTYPE_FRAME:
-            l1surfs->flags = VA_PICTURE_STATS_PROGRESSIVE;
+            l1surfs->flags = VA_PICTURE_FEI_PROGRESSIVE;
             break;
         }
 
         if (IsOn(feiCtrl->DownsampleReference[1]))
-            l1surfs->flags |= VA_PICTURE_STATS_CONTENT_UPDATED;
+            l1surfs->flags |= VA_PICTURE_FEI_CONTENT_UPDATED;
 
         statParams.stats_params.future_references = l1surfs;
         // statParams.stats_params.future_ref_stat_buf = IsOn(feiCtrl->DownsampleReference[1]) ? &m_statOutId[surfFutureIndexInList] : NULL;
@@ -552,20 +535,20 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     switch (feiCtrl->PictureType)
     {
     case MFX_PICTYPE_TOPFIELD:
-        statParams.stats_params.input.flags = VA_PICTURE_STATS_TOP_FIELD;
+        statParams.stats_params.input.flags = VA_PICTURE_FEI_TOP_FIELD;
         break;
 
     case MFX_PICTYPE_BOTTOMFIELD:
-        statParams.stats_params.input.flags = VA_PICTURE_STATS_BOTTOM_FIELD;
+        statParams.stats_params.input.flags = VA_PICTURE_FEI_BOTTOM_FIELD;
         break;
 
     case MFX_PICTYPE_FRAME:
-        statParams.stats_params.input.flags = VA_PICTURE_STATS_PROGRESSIVE;
+        statParams.stats_params.input.flags = VA_PICTURE_FEI_PROGRESSIVE;
         break;
     }
 
     if (!IsOff(feiCtrl->DownsampleInput) && (0 == feiFieldId))
-        statParams.stats_params.input.flags |= VA_PICTURE_STATS_CONTENT_UPDATED;
+        statParams.stats_params.input.flags |= VA_PICTURE_FEI_CONTENT_UPDATED;
 
     /* Link output VA buffers */
     statParams.stats_params.outputs = &outBuffers[0]; //bufIDs for outputs
@@ -1181,7 +1164,6 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     if (frameCtrl != NULL && frameCtrl->PerMBQp && mbqp != NULL)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MBqp)");
-#if MFX_VERSION >= 1023
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 (VABufferType)VAEncQPBufferType,
@@ -1189,15 +1171,6 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
                                 1, //limitation from driver, num elements should be 1
                                 mbqp->MB,
                                 &vaFeiMBQPId);
-#else
-        vaSts = vaCreateBuffer(m_vaDisplay,
-                                m_vaContextEncode,
-                                (VABufferType)VAEncQPBufferType,
-                                sizeof (VAEncQPBufferH264)*mbqp->NumQPAlloc,
-                                1, //limitation from driver, num elements should be 1
-                                mbqp->QP,
-                                &vaFeiMBQPId);
-#endif
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         configBuffers[buffersCount++] = vaFeiMBQPId;
         mdprintf(stderr, "vaFeiMBQPId=%d\n", vaFeiMBQPId);
@@ -2017,11 +1990,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     mfxU32 idxToPickBuffer = task.m_singleFieldMode ? 0 : feiFieldId;
 
     // Extension buffers
-#if MFX_VERSION >= 1023
     mfxExtFeiSliceHeader  * pDataSliceHeader = GetExtBufferFEI(in, idxToPickBuffer);
-#else
-    mfxExtFeiSliceHeader  * pDataSliceHeader = GetExtBufferFEI(out, idxToPickBuffer);
-#endif // MFX_VERSION >= 1023
     mfxExtFeiEncMV        * mvout            = GetExtBufferFEI(in, idxToPickBuffer);
     mfxExtFeiPakMBCtrl    * mbcodeout        = GetExtBufferFEI(in, idxToPickBuffer);
 
@@ -2238,10 +2207,8 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         int height32 = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
         int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16));
 
-        // To workaround an issue with VA coded bufer overflow due to IPCM violation.
-        // TODO: consider removing it once IPCM issue is fixed.
+        // to workaround an issue with VA coded bufer overflow due to IPCM violation
         codedbuf_size = 2 * codedbuf_size;
-
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncCodedBufferType,
@@ -2304,7 +2271,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
      //SEI
     if (sei.Size() > 0)
     {
-        packed_header_param_buffer.type                = VAEncPackedHeaderRawData;
+        packed_header_param_buffer.type                = VAEncPackedHeaderH264_SEI;
         packed_header_param_buffer.has_emulation_bytes = 1;
         packed_header_param_buffer.bit_length          = sei.Size() * 8;
 

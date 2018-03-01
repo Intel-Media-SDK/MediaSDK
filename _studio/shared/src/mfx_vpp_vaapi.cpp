@@ -429,7 +429,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #endif
 
     /* NB! The code below should to be replaced with querying caps from driver*/
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXT)
     caps.uMaxWidth  = 8192;
     caps.uMaxHeight = 8192;
 #else
@@ -460,9 +460,6 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
             caps.mFormatSupport[g_TABLE_SUPPORTED_FOURCC[indx]] |= MFX_FORMAT_SUPPORT_OUTPUT;
     }
 
-    caps.uMirroring = 1;
-    caps.uScaling = 1;
-
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
@@ -488,9 +485,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     bool bIsFirstField = true;
     bool bUseReference = false;
     VAStatus vaSts = VA_STATUS_SUCCESS;
-
-    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
-    eMFXHWType hwType = hwCore->GetHWType();
 
     // NOTE the following variables should be visible till vaRenderPicture/vaEndPicture,
     // not till vaCreateBuffer as the data they hold are passed to the driver via a pointer
@@ -574,7 +568,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                 else /* For BFF, second field is Top */
                     deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST;
 
-                #if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
+                #if defined(LINUX_TARGET_PLATFORM_BXT)
                 if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
                     deint.flags = VA_DEINTERLACING_ONE_FIELD;
                 else /* For BFF case required to set all bits  */
@@ -1037,17 +1031,18 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 #define ENABLE_VPP_VIDEO_SIGNAL(X)
 #endif
 
+
     mfxU32  refFourcc = pRefSurf->frameInfo.FourCC;
     switch (refFourcc)
     {
     case MFX_FOURCC_RGB4:
         m_pipelineParam[0].surface_color_standard = VAProcColorStandardNone;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_color_properties.color_range = VA_SOURCE_RANGE_FULL);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_surface_flag     = VA_SOURCE_RANGE_FULL);
         break;
     case MFX_FOURCC_NV12:
     default:
         m_pipelineParam[0].surface_color_standard = VAProcColorStandardBT601;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_color_properties.color_range = VA_SOURCE_RANGE_REDUCED);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_surface_flag     = VA_SOURCE_RANGE_REDUCED);
         break;
     }
 
@@ -1056,17 +1051,14 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     {
     case MFX_FOURCC_RGB4:
         m_pipelineParam[0].output_color_standard = VAProcColorStandardNone;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_FULL);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_surface_flag   = VA_SOURCE_RANGE_FULL);
         break;
     case MFX_FOURCC_NV12:
     default:
         m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
-        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_REDUCED);
+        ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_surface_flag   = VA_SOURCE_RANGE_REDUCED);
         break;
     }
-
-    m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
-    m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
     /* It needs interlaced flag passed only for
         * deinterlacing and scaling. All other filters must
@@ -1121,7 +1113,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
         if(pParams->VideoSignalInfo[index].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
         {
-            m_pipelineParam[0].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[index].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+            m_pipelineParam[0].input_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[index].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
         }
     }
 
@@ -1134,23 +1126,20 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 
         if(pParams->VideoSignalInfoOut.NominalRange != MFX_NOMINALRANGE_UNKNOWN)
         {
-            m_pipelineParam[0].output_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+            m_pipelineParam[0].output_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
         }
 #else
         return MFX_ERR_UNSUPPORTED;
 #endif // #ifdef MFX_ENABLE_VPP_VIDEO_SIGNAL
     }
 
-    m_pipelineParam[0].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
-    m_pipelineParam[0].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
-
     /* Scaling params */
     switch (pParams->scalingMode)
     {
     case MFX_SCALING_MODE_LOWPOWER:
         /* VA_FILTER_SCALING_DEFAULT means the following:
-            *  First priority is HW fixed function scaling engine. If it can't work, revert to AVS
-            *  If scaling ratio between 1/8...8 -> HW fixed function
+            *  First priority is SFC. If SFC can't work, revert to AVS
+            *  If scaling ratio between 1/8...8 -> SFC
             *  If scaling ratio between 1/16...1/8 or larger than 8 -> AVS
             *  If scaling ratio is less than 1/16 -> bilinear
             */
@@ -1165,16 +1154,13 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     case MFX_SCALING_MODE_DEFAULT:
     default:
-        if(MFX_HW_APL == hwType)
-        {
-            /* Use HW fixed function scaling engine by default on APL due to power consumption considerations */
-            m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
-        }
-        else
-        {
-            /* Force AVS by default for all platforms except BXT */
-            m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
-        }
+#if defined(LINUX_TARGET_PLATFORM_BXT)
+        /* Use SFC by default on BXT platforms due to power consumption considerations */
+        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_DEFAULT;
+#else
+        /* Force AVS by default for all platforms except BXT */
+        m_pipelineParam[0].filter_flags |= VA_FILTER_SCALING_HQ;
+#endif
         break;
     }
 
@@ -1195,7 +1181,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     if((pParams->bEOS) && (pParams->bDeinterlace30i60p == true))
         m_deintFrameCount = 0;
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
+#if defined(LINUX_TARGET_PLATFORM_BXT)
 // It looks like only BXT supports this at the moment
 #define VPP_NO_COLORFILL
 #endif
@@ -1602,7 +1588,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
 
-#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
+#if defined(LINUX_TARGET_PLATFORM_BXT)
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
         m_pipelineParam[i].filter_flags   |= VA_FILTER_SCALING_HQ;
 #else
@@ -1911,7 +1897,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfo[refIdx-1].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].input_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
 
@@ -1924,11 +1910,9 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfoOut.NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].output_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].output_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
-    m_pipelineParam[refIdx].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
-    m_pipelineParam[refIdx].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
         switch (pRefSurf->frameInfo.PicStruct)
         {
@@ -1946,7 +1930,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         if (pParams->bComposite)
         {
             m_pipelineParam[refIdx].num_filters  = 0;
-#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
+#if defined(LINUX_TARGET_PLATFORM_BXT)
             m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
             m_pipelineParam[refIdx].filter_flags   |= VA_FILTER_SCALING_HQ;
 #else
@@ -2079,7 +2063,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfo[refIdx-1].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].input_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[refIdx-1].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
 
@@ -2092,11 +2076,9 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
 
             if(pParams->VideoSignalInfoOut.NominalRange != MFX_NOMINALRANGE_UNKNOWN)
             {
-                m_pipelineParam[refIdx].output_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+                m_pipelineParam[refIdx].output_surface_flag = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfoOut.NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
             }
         }
-        m_pipelineParam[refIdx].input_color_properties.chroma_sample_location  = VA_CHROMA_SITING_UNKNOWN;
-        m_pipelineParam[refIdx].output_color_properties.chroma_sample_location = VA_CHROMA_SITING_UNKNOWN;
 
         /* to process input parameters of sub stream:
          * crop info and original size*/
@@ -2253,7 +2235,6 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
         m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
     }
 
-#if !defined(ANDROID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
@@ -2262,7 +2243,6 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
         else
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
-#endif
 
     return MFX_TASK_DONE;
 } // mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
