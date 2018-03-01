@@ -443,12 +443,15 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     // should be changed by libva support
     for (mfxU32 indx = 0; indx < sizeof(g_TABLE_SUPPORTED_FOURCC)/sizeof(mfxU32); indx++)
     {
-        if (MFX_FOURCC_NV12 == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_YV12 == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_YUY2 == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_UYVY == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_RGB4 == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_P010 == g_TABLE_SUPPORTED_FOURCC[indx])
+        if (MFX_FOURCC_NV12   == g_TABLE_SUPPORTED_FOURCC[indx] ||
+            MFX_FOURCC_YV12   == g_TABLE_SUPPORTED_FOURCC[indx] ||
+            MFX_FOURCC_YUY2   == g_TABLE_SUPPORTED_FOURCC[indx] ||
+            MFX_FOURCC_UYVY   == g_TABLE_SUPPORTED_FOURCC[indx] ||
+            MFX_FOURCC_RGB4   == g_TABLE_SUPPORTED_FOURCC[indx] ||
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            MFX_FOURCC_RGB565 == g_TABLE_SUPPORTED_FOURCC[indx] ||
+#endif
+            MFX_FOURCC_P010   == g_TABLE_SUPPORTED_FOURCC[indx])
             caps.mFormatSupport[g_TABLE_SUPPORTED_FOURCC[indx]] |= MFX_FORMAT_SUPPORT_INPUT;
 
         if (MFX_FOURCC_NV12 == g_TABLE_SUPPORTED_FOURCC[indx] ||
