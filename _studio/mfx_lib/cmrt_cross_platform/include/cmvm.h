@@ -26,6 +26,14 @@
 #include <limits>
 #include <limits.h>
 
+#if defined(__clang__)
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
+#elif defined(__GNUC__)
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
+#endif
+
 typedef unsigned int   uint;
 typedef unsigned short ushort;
 typedef unsigned char  uchar;
@@ -1273,5 +1281,11 @@ vector<T, WD> matrix<T, R, C>::iselect(const vector_ref<T2, WD>& index_x, const 
     return ret;
 }
 // end of iselect for 2D matrix
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+  #pragma GCC diagnostic pop
+#endif
 
 #endif
