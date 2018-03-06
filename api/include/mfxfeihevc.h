@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -154,7 +154,7 @@ typedef struct  {
     mfxU32    IpcmEnable           : 1;
     mfxU32    IntraChromaMode      : 3;
     mfxU32    ZeroOutCoeffs        : 1;
-    mfxU32    reserved00           : 5;
+    mfxU32    reserved00           : 4;
     mfxU32    Qp                   : 7;
     mfxU32    QpSign               : 1;
     mfxU32    InterpredIdc         : 8;
