@@ -331,7 +331,7 @@ mfxStatus CEncodingPipeline::Execute()
             sts = m_pYUVSource->ResetIOState();
             MSDK_BREAK_ON_ERROR(sts);
 
-            if (time(0) - start < m_inParams.nTimeout)
+            if (m_inParams.nTimeout && !m_inParams.nNumFrames)
             {
                 // execution timeout can be too big for available disk space, so reset output file pointers
                 // despite the fact that stream can be undecodable
