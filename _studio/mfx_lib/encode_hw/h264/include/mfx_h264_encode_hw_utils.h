@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -969,6 +969,11 @@ namespace MfxHwH264Encode
             Zero(m_fid);
             Zero(m_pwt);
             m_FrameName[0] = 0;
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+            m_collectUnitsInfo = false;
+            m_headersCache[0].reserve(10);
+            m_headersCache[1].reserve(10);
+#endif
         }
 
         bool operator == (const DdiTask& task)
@@ -1166,7 +1171,10 @@ namespace MfxHwH264Encode
         bool m_userTimeout;
 #endif
         eMFXHWType m_hwType;  // keep HW type information
-
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        bool m_collectUnitsInfo;
+        mutable std::vector<mfxEncodedUnitInfo> m_headersCache[2]; //Headers for every field
+#endif
 
         mfxU32 m_SceneChange;
         bool   m_enabledSwBrcLtr;
@@ -1905,6 +1913,14 @@ namespace MfxHwH264Encode
             DdiTask & task,
             mfxU32    fid); // 0 - top/progressive, 1 - bottom
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        void FillEncodingUnitsInfo(
+            DdiTask &task,
+            mfxU8 *sbegin,
+            mfxU8 *send,
+            mfxExtEncodedUnitsInfo *encUnitsInfo,
+            mfxU32 fid);
+#endif
 
         mfxStatus AsyncRoutine(
             mfxBitstream * bs);

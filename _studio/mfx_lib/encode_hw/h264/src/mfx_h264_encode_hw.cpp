@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2549,6 +2549,17 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             mfxStatus sts = m_ddi->Execute(task->m_handleRaw.first, *task, fieldId, m_sei);
             MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+            if (task->m_collectUnitsInfo && m_sei.Size() > 0)
+            {
+                mfxU32 offset = task->m_headersCache[fieldId].size() > 0 ? task->m_headersCache[fieldId].back().Offset + task->m_headersCache[fieldId].back().Size : 0;
+
+                task->m_headersCache[fieldId].emplace_back();
+                task->m_headersCache[fieldId].back().Type = NALU_SEI;
+                task->m_headersCache[fieldId].back().Size = m_sei.Size();
+                task->m_headersCache[fieldId].back().Offset = offset;
+            }
+#endif
 
             /* FEI Field processing mode: store first field */
             if (task->m_singleFieldMode && (0 == m_fieldCounter))
@@ -3226,6 +3237,14 @@ mfxStatus ImplementationAvc::UpdateBitstream(
         MFX_CHECK_STS(sts);
     }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    mfxExtEncodedUnitsInfo * encUnitsInfo = NULL;
+    if (task.m_collectUnitsInfo
+        )
+    {
+        encUnitsInfo = (mfxExtEncodedUnitsInfo*)GetExtBuffer(task.m_bs->ExtParam, task.m_bs->NumExtParam, MFX_EXTBUFF_ENCODED_UNITS_INFO);
+    }
+#endif
 
     if (doPatch)
     {
@@ -3326,6 +3345,21 @@ mfxStatus ImplementationAvc::UpdateBitstream(
             }
         }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        if (task.m_collectUnitsInfo)
+        {
+            FillEncodingUnitsInfo(
+                task,
+                task.m_bs->Data + task.m_bs->DataOffset,
+                task.m_bs->Data + task.m_bs->DataOffset + task.m_bs->DataLength,
+                encUnitsInfo,
+                fid
+            );
+
+        }
+        if (task.m_headersCache[fid].size() > 0) //if we have previously collected data about headers/slices
+            task.m_headersCache[fid].clear();
+#endif
     } //if (task.m_bs->NumExtParam > 0)
 
 
@@ -3345,6 +3379,95 @@ mfxStatus ImplementationAvc::UpdateBitstream(
     return MFX_ERR_NONE;
 }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+/*
+Method for filling mfxExtEncodedUnitsInfo ext-buffer
+
+task         - in  - DDITask
+sbegin       - in  - pointer to the start of bitstream, might be NULL if encUnitsList->size()>0
+send         - in  - pointer to the end of bitstream, might be NULL if encUnitsList->size()>0
+encUnitsInfo - out - destination ext-buffer
+fid          - in  - field id
+*/
+void ImplementationAvc::FillEncodingUnitsInfo(
+    DdiTask &task,
+    mfxU8 *sbegin,
+    mfxU8 *send,
+    mfxExtEncodedUnitsInfo *encUnitsInfo,
+    mfxU32 fid
+    )
+{
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "NALU Reporting");
+    if (!encUnitsInfo)
+        return;
+
+    if (sbegin != NULL && send != NULL)
+    {
+        mfxU32 offset = 0;
+
+        if (fid == 0)
+        {
+            encUnitsInfo->NumUnitsEncoded = 0;
+        }
+        else //calculate starting offset in bitstream for second field
+        {
+            offset = task.m_bsDataLength[0];
+        }
+
+        if (offset)
+        {
+            for (size_t i = 0; i < task.m_headersCache[fid].size(); ++i)
+            {
+                task.m_headersCache[fid][i].Offset += offset; //actualize offsets
+            }
+        }
+
+        if (encUnitsInfo->NumUnitsAlloc > encUnitsInfo->NumUnitsEncoded)
+        {
+            memcpy_s(
+                encUnitsInfo->UnitInfo + encUnitsInfo->NumUnitsEncoded,
+                sizeof(mfxEncodedUnitInfo) * (encUnitsInfo->NumUnitsAlloc - encUnitsInfo->NumUnitsEncoded),
+                &task.m_headersCache[fid].front(),
+                sizeof(mfxEncodedUnitInfo) * std::min(size_t(encUnitsInfo->NumUnitsAlloc) - encUnitsInfo->NumUnitsEncoded, task.m_headersCache[fid].size())
+            );
+        }
+
+        if (task.m_headersCache[fid].size() > 0)
+        {
+            offset = task.m_headersCache[fid].back().Offset + task.m_headersCache[fid].back().Size; //in case we have hidden units
+        }
+
+        encUnitsInfo->NumUnitsEncoded += mfxU16(std::min(size_t(encUnitsInfo->NumUnitsAlloc) - encUnitsInfo->NumUnitsEncoded, task.m_headersCache[fid].size()));
+
+        if (task.m_SliceInfo.size() <= 1 &&
+            task.m_numSlice.top <= 1 && task.m_numSlice.bot <= 1
+            && task.m_fieldPicFlag == false) //if we have only one slice in bitstream
+        {
+            if (encUnitsInfo->NumUnitsEncoded < encUnitsInfo->NumUnitsAlloc) {
+                encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Type = sbegin[offset+3] & 0x1F;
+                encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Size = (mfxU32)((ptrdiff_t)send - (ptrdiff_t)sbegin - offset);
+                encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Offset = offset;
+            }
+            ++encUnitsInfo->NumUnitsEncoded;
+        }
+        else
+        {
+            for (NaluIterator nalu(sbegin + offset, send); nalu != NaluIterator(); ++nalu)
+            {
+                if (nalu->type != NALU_IDR && nalu->type != NALU_NON_IDR) break; //End of field
+                if (encUnitsInfo->NumUnitsEncoded < encUnitsInfo->NumUnitsAlloc)
+                {
+                    encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Type = nalu->type;
+                    encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Size = mfxU32(nalu->end - nalu->begin);
+                    encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Offset = offset;
+                    offset += encUnitsInfo->UnitInfo[encUnitsInfo->NumUnitsEncoded].Size;
+                }
+                ++encUnitsInfo->NumUnitsEncoded;
+            }
+        }
+    }
+} //ImplementationAvc::FillEncodingUnitsInfo
+#endif
 
 
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -268,6 +268,10 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPVideoSignalInfo     ,48  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncoderROI             ,8224)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPDeinterlacing       ,32  )
+      #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxEncodedUnitInfo           ,32  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncodedUnitsInfo       ,64  )
+      #endif
     #elif defined(LINUX32)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxVideoParam                ,196 )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameId                   ,8   )
@@ -306,6 +310,10 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPVideoSignalInfo     ,48  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncoderROI             ,8224)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPDeinterlacing       ,32  )
+      #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxEncodedUnitInfo           ,32  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncodedUnitsInfo       ,64  )
+      #endif
     #endif
 #endif //defined (__MFXSTRUCTURES_H__)
 

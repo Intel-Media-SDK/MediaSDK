@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1424,6 +1424,9 @@ namespace MfxHwH264Encode
 
         void ResizeSlices(mfxU32 num);
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        void GetHeadersInfo(std::vector<mfxEncodedUnitInfo> &HeadersMap, DdiTask const& task, mfxU32 fid);
+#endif
 
     private:
 
