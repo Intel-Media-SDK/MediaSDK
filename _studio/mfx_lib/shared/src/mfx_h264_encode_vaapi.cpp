@@ -2746,6 +2746,12 @@ mfxStatus VAAPIEncoder::Execute(
 
     mfxU32 storedSize = 0;
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    if (task.m_collectUnitsInfo)
+    {
+        m_headerPacker.GetHeadersInfo(task.m_headersCache[fieldId], task, fieldId);
+    }
+#endif
 
     if (skipFlag != NORMAL_MODE)
     {
@@ -3021,7 +3027,6 @@ mfxStatus VAAPIEncoder::QueryStatus(
         sts = MFX_ERR_GPU_HANG;
     else if (!codedBufferSegment->size || !codedBufferSegment->buf)
         sts = MFX_ERR_DEVICE_FAILED;
-
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");

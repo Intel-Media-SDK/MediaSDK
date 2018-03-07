@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1514,6 +1514,9 @@ bool MfxHwH264Encode::IsRunTimeOnlyExtBuffer(mfxU32 id)
         || id == MFX_EXTBUFF_MB_FORCE_INTRA
 #endif
         || id == MFX_EXTBUFF_MB_DISABLE_SKIP_MAP
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+        || id == MFX_EXTBUFF_ENCODED_UNITS_INFO
+#endif
         ;
 }
 
@@ -1573,6 +1576,9 @@ bool MfxHwH264Encode::IsRuntimeOutputExtBufferIdSupported(MfxVideoParam const & 
 
     return
             id == MFX_EXTBUFF_ENCODED_FRAME_INFO
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+            || id == MFX_EXTBUFF_ENCODED_UNITS_INFO
+#endif
 #if defined (MFX_ENABLE_H264_VIDEO_FEI_ENCPAK)
             || (isFeiENCPAK && (
                id == MFX_EXTBUFF_FEI_ENC_MV
@@ -4065,6 +4071,14 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    if (!CheckTriStateOption(extOpt3->EncodedUnitsInfo))  changed = true;
+    if ((par.calcParam.numTemporalLayer > 1 || IsMvcProfile(par.mfx.CodecProfile)) && IsOn(extOpt3->EncodedUnitsInfo))
+    {
+        extOpt3->EncodedUnitsInfo = MFX_CODINGOPTION_OFF;
+        unsupported = true;
+    }
+#endif
 
     /*if (extOpt2->Trellis && hwCaps.EnhancedEncInput == 0)
     {
@@ -5987,6 +6001,9 @@ void MfxHwH264Encode::SetDefaults(
         extPps->secondChromaQpIndexOffset             = 0;
     }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    SetDefaultOff(extOpt3->EncodedUnitsInfo);
+#endif
 
     par.SyncCalculableToVideoParam();
     par.AlignCalcWithBRCParamMultiplier();
@@ -6305,7 +6322,6 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
     {
         checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
-
 
 #if defined(MFX_ENABLE_MFE)
 
@@ -8675,6 +8691,46 @@ void HeaderPacker::ResizeSlices(mfxU32 num)
     Zero(m_packedSlices);
 }
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+/*
+    Filling information about headers in HeadersInfo.
+*/
+void HeaderPacker::GetHeadersInfo(std::vector<mfxEncodedUnitInfo> &HeadersInfo, DdiTask const& task, mfxU32 fid)
+{
+    std::vector<ENCODE_PACKEDHEADER_DATA>::iterator it;
+    mfxU32 offset = 0;
+    if (task.m_insertAud[fid])
+    {
+        HeadersInfo.emplace_back();
+        HeadersInfo.back().Type = NALU_AUD;
+        HeadersInfo.back().Size = m_packedAud.DataLength;
+        HeadersInfo.back().Offset = offset;
+        offset += HeadersInfo.back().Size;
+    }
+    if (task.m_insertSps[fid])
+    {
+        for (it = m_packedSps.begin(); it < m_packedSps.end(); ++it)
+        {
+            HeadersInfo.emplace_back();
+            HeadersInfo.back().Type = NALU_SPS;
+            HeadersInfo.back().Size = it->DataLength;
+            HeadersInfo.back().Offset = offset;
+            offset += HeadersInfo.back().Size;
+        }
+    }
+    if (task.m_insertPps[fid])
+    {
+        for (it = m_packedPps.begin(); it < m_packedPps.end(); ++it)
+        {
+            HeadersInfo.emplace_back();
+            HeadersInfo.back().Type = NALU_PPS;
+            HeadersInfo.back().Size = it->DataLength;
+            HeadersInfo.back().Offset = offset;
+            offset += HeadersInfo.back().Size;
+        }
+    }
+}
+#endif
 
 ENCODE_PACKEDHEADER_DATA const & HeaderPacker::PackAud(
     DdiTask const & task,

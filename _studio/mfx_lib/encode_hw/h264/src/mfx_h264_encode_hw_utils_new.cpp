@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2373,6 +2373,9 @@ void MfxHwH264Encode::ConfigureTask(
         } // for (mfxU32 i = 0; i < task.m_numSlice[field]; i++)
     } // for (mfxU32 field = 0; field < fieldMaxCount; field++)
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    task.m_collectUnitsInfo = IsOn(extOpt3->EncodedUnitsInfo);
+#endif
 }
 
 
