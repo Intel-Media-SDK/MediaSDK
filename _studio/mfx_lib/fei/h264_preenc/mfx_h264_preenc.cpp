@@ -702,13 +702,6 @@ mfxStatus VideoENC_PREENC::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoPar
     return checkSts;
 } // mfxStatus VideoENC_PREENC::Query(VideoCORE*, mfxVideoParam *in, mfxVideoParam *out)
 
-mfxStatus VideoENC_PREENC::QueryIOSurf(VideoCORE* , mfxVideoParam *par, mfxFrameAllocRequest *request)
-{
-    MFX_CHECK_NULL_PTR2(par,request);
-    return MFX_ERR_NONE;
-} // mfxStatus VideoENC_PREENC::QueryIOSurf(VideoCORE* , mfxVideoParam *par, mfxFrameAllocRequest *request)
-
-
 VideoENC_PREENC::VideoENC_PREENC(VideoCORE *core,  mfxStatus * sts)
     : m_bInit( false )
     , m_core( core )

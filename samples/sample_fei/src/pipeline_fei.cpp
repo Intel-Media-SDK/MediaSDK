@@ -450,7 +450,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
         MSDK_ZERO_MEMORY(DSRequest[0]);
         MSDK_ZERO_MEMORY(DSRequest[1]);
 
-        sts = m_pFEI_PreENC->QueryIOSurf(NULL, DSRequest);
+        sts = m_pFEI_PreENC->QueryIOSurf(DSRequest);
         MSDK_CHECK_STATUS(sts, "m_pmfxDS->QueryIOSurf failed");
 
         // these surfaces are input surfaces for PREENC
