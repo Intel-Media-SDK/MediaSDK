@@ -72,7 +72,7 @@ public:
     mfxStatus Init();
     mfxStatus Close();
     mfxStatus Reset(mfxU16 width = 0, mfxU16 height = 0, mfxU16 crop_w = 0, mfxU16 crop_h = 0);
-    mfxStatus QueryIOSurf(mfxFrameAllocRequest* preenc_request, mfxFrameAllocRequest ds_request[2] = NULL);
+    mfxStatus QueryIOSurf(mfxFrameAllocRequest ds_request[2]);
     mfxVideoParam* GetCommonVideoParams();
     mfxStatus UpdateVideoParam();
 

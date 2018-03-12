@@ -155,27 +155,12 @@ mfxStatus FEI_PreencInterface::Reset(mfxU16 width, mfxU16 height, mfxU16 crop_w,
     return m_pmfxPREENC->Reset(&m_videoParams);
 }
 
-mfxStatus FEI_PreencInterface::QueryIOSurf(mfxFrameAllocRequest* preenc_request, mfxFrameAllocRequest ds_request[2])
+mfxStatus FEI_PreencInterface::QueryIOSurf(mfxFrameAllocRequest ds_request[2])
 {
-    mfxStatus sts = MFX_ERR_NULL_PTR;
+    MSDK_CHECK_POINTER(ds_request, MFX_ERR_NULL_PTR);
+    MSDK_CHECK_POINTER(m_pmfxDS,   MFX_ERR_NOT_INITIALIZED);
 
-    if (ds_request)
-    {
-        if (m_pmfxDS)
-        {
-            sts = m_pmfxDS->QueryIOSurf(&m_DSParams, ds_request);
-            MSDK_CHECK_STATUS(sts, "FEI PreENC DS: QueryIOSurf failed");
-        }
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-
-    if (preenc_request)
-    {
-        m_pmfxPREENC->QueryIOSurf(&m_videoParams, preenc_request);
-    }
-
-    return sts;
+    return m_pmfxDS->QueryIOSurf(&m_DSParams, ds_request);
 }
 
 /* This function return video params that applicable to the subsequent interfaces.

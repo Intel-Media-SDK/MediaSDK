@@ -54,7 +54,6 @@ public:
     mfxStatus QueryStatus(MfxHwH264Encode::DdiTask& task);
 
     static mfxStatus Query(VideoCORE*, mfxVideoParam *in, mfxVideoParam *out);
-    static mfxStatus QueryIOSurf(VideoCORE*, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);
 
