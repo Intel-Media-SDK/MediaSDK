@@ -56,6 +56,8 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_P208;
     case MFX_FOURCC_P010:
         return VA_FOURCC_P010;
+    case MFX_FOURCC_A2RGB10:
+        return VA_FOURCC_ARGB;  // rt format will be VA_RT_FORMAT_RGB32_10BPP
 
     default:
         assert(!"unsupported fourcc");
@@ -211,6 +213,10 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
             else if ((va_fourcc == VA_FOURCC_UYVY) || (va_fourcc == VA_FOURCC_YUY2))
             {
                 format = VA_RT_FORMAT_YUV422;
+            }
+            else if (fourcc == MFX_FOURCC_A2RGB10)
+            {
+                format = VA_RT_FORMAT_RGB32_10BPP;
             }
 
             va_res = m_libva->vaCreateSurfaces(m_dpy,
@@ -479,6 +485,14 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                     ptr->G = ptr->B + 1;
                     ptr->R = ptr->B + 2;
                     ptr->A = ptr->B + 3;
+                }
+                else if (mfx_fourcc == MFX_FOURCC_A2RGB10)
+                {
+                    ptr->Pitch = (mfxU16)vaapi_mid->m_image.pitches[0];
+                    ptr->B = pBuffer + vaapi_mid->m_image.offsets[0];
+                    ptr->G = ptr->B;
+                    ptr->R = ptr->B;
+                    ptr->A = ptr->B;
                 }
                 else mfx_res = MFX_ERR_LOCK_MEMORY;
                 break;

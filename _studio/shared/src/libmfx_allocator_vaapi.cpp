@@ -386,6 +386,15 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
             ptr->R = ptr->B + 2;
             ptr->A = ptr->B + 3;
         }
+        else if (mfx_fourcc == MFX_FOURCC_A2RGB10)
+        {
+            ptr->PitchHigh = (mfxU16)(va_image.pitches[0] >> 16);
+            ptr->PitchLow  = (mfxU16)(va_image.pitches[0] & 0xffff);
+            ptr->B = pBuffer + va_image.offsets[0];
+            ptr->G = ptr->B;
+            ptr->R = ptr->B;
+            ptr->A = ptr->B;
+        }
         else mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
     case VA_FOURCC_ABGR:
