@@ -105,7 +105,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                                   (Encoded Order will be enabled automatically).\n"));
 
     msdk_printf(MSDK_STRING("   [-qrep] - quality predictor MV repacking before encode\n"));
-    msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,8] (5 is default).\n"));
+    msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,5] (5 is default).\n"));
     msdk_printf(MSDK_STRING("                           If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
     msdk_printf(MSDK_STRING("   [-RefWidth width] - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
     msdk_printf(MSDK_STRING("                       one direction and 32x32 for bidirectional search\n"));
@@ -561,7 +561,7 @@ mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (params.encodeCtrl.SearchWindow > 8)
+    if (params.encodeCtrl.SearchWindow > 5)
     {
         PrintHelp(appName, "Invalid SearchWindow value");
         return MFX_ERR_UNSUPPORTED;
