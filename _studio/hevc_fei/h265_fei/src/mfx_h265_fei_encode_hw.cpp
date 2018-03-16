@@ -124,7 +124,7 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
                && EncFrameCtrl->RefWidth       == 0
                && EncFrameCtrl->RefHeight      == 0, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        MFX_CHECK(EncFrameCtrl->SearchWindow <= 6,   MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(EncFrameCtrl->SearchWindow <= 5,   MFX_ERR_UNDEFINED_BEHAVIOR);
     }
     else
     {
