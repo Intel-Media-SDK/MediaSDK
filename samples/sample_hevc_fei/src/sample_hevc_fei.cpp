@@ -634,9 +634,9 @@ void AdjustOptions(sInputParams& params)
 
     if (params.encodeCtrl.MVPredictor == 0 && (params.bPREENC || 0 != msdk_strlen(params.mvpInFile)))
     {
-        msdk_printf(MSDK_STRING("WARNING: MV predictor block size is invalid. Adjust to 2 for PreENC (7 for -mvpin)\n"));
+        msdk_printf(MSDK_STRING("WARNING: MV predictor block size is invalid or unspecified. Adjust to 1 for PreENC (7 for -mvpin)\n"));
         if (params.bPREENC)
-            params.encodeCtrl.MVPredictor = 2;
+            params.encodeCtrl.MVPredictor = 1;
         if (0 != msdk_strlen(params.mvpInFile))
             params.encodeCtrl.MVPredictor = 7;
     }
