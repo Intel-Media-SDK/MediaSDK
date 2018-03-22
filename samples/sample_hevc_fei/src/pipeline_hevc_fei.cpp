@@ -66,6 +66,12 @@ mfxStatus CEncodingPipeline::Init()
             MSDK_CHECK_STATUS(sts, "m_pYUVSource GetActualFrameInfo failed");
         }
 
+        if (0 != msdk_strlen(m_inParams.refctrlInFile)) // it is to disable RAPintra
+        {
+            frameInfo.PicStruct &= ~MFX_PICSTRUCT_PROGRESSIVE;
+            frameInfo.PicStruct |= MFX_PICSTRUCT_FIELD_SINGLE;
+        }
+
         m_pFEI_PreENC.reset(CreatePreENC(frameInfo));
         if (m_pFEI_PreENC.get())
         {
@@ -80,7 +86,11 @@ mfxStatus CEncodingPipeline::Init()
             sts = m_pParamChecker->Query(param);
             MSDK_CHECK_STATUS(sts, "m_pParamChecker->Query failed");
 
-            m_pOrderCtrl.reset(new EncodeOrderControl(param, !!(m_pFEI_PreENC.get())));
+            if (0 != msdk_strlen(m_inParams.refctrlInFile)) {
+                m_pOrderCtrl.reset(new EncodeOrderExtControl(param, !!(m_pFEI_PreENC.get()), m_inParams.refctrlInFile));
+                MSDK_CHECK_STATUS(dynamic_cast<EncodeOrderExtControl*>(m_pOrderCtrl.get())->State(), "RefList ctrl file open failed");
+            } else
+                m_pOrderCtrl.reset(new EncodeOrderControl(param, !!(m_pFEI_PreENC.get())));
         }
 
         m_pFEI_Encode.reset(CreateEncode(frameInfo));
