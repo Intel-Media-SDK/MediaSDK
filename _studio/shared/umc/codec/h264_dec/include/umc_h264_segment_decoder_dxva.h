@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -124,7 +124,7 @@ public:
         if (!m_va)
             return;
 
-        Status sts = m_va->BeginFrame(pFrame->GetFrameData()->GetFrameMID());
+        Status sts = m_va->BeginFrame(pFrame->GetFrameData()->GetFrameMID(), field);
         if (sts != UMC_OK)
             throw h264_exception(sts);
 
@@ -199,6 +199,14 @@ protected:
             return (item.m_index != m_index) || (item.m_field != m_field);
         }
     };
+
+    // Check cached feedback if found
+    // frame removed from cache and marked as completed
+    bool CheckCachedFeedbackAndComplete(H264DecoderFrameInfo * au);
+
+    // Mark frame as Completed and update Error stasus
+    // according to uiStatus reported by driver
+    void SetCompletedAndErrorStatus(uint8_t uiStatus, H264DecoderFrameInfo * au);
 
     typedef std::vector<ReportItem> Report;
     Report m_reports;

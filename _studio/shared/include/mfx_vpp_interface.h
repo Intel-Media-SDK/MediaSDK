@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 #include "mfxdefs.h"
 #include "libmfx_core.h"
 #include "mfx_platform_headers.h"
+
 
 #if defined(MFX_VA_LINUX)
     typedef unsigned int   UINT;
@@ -140,6 +141,9 @@ namespace MfxHwVideoProcessing
         mfxU32 uSimpleDI;
         mfxU32 uInverseTC;
         mfxU32 uDenoiseFilter;
+#ifdef MFX_ENABLE_MCTF
+        mfxU32 uMCTF;
+#endif
         mfxU32 uDetailFilter;
         mfxU32 uProcampFilter;
         mfxU32 uSceneChangeDetection;
@@ -175,6 +179,9 @@ namespace MfxHwVideoProcessing
             , uSimpleDI(0)
             , uInverseTC(0)
             , uDenoiseFilter(0)
+#ifdef MFX_ENABLE_MCTF
+            , uMCTF(0)
+#endif
             , uDetailFilter(0)
             , uProcampFilter(0)
             , uSceneChangeDetection(0)
@@ -274,6 +281,17 @@ namespace MfxHwVideoProcessing
                ,mirroringPosition(0)
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
+#ifdef MFX_ENABLE_MCTF
+               , bEnableMctf(false)
+               , MctfFilterStrength(0)
+#ifdef MFX_ENABLE_MCTF_EXT
+               , MctfOverlap(MFX_CODINGOPTION_OFF)
+               , MctfBitsPerPixelx100k(12*100000)
+               , MctfDeblocking (MFX_CODINGOPTION_OFF)
+               , MctfTemporalMode(MFX_MCTF_TEMPORAL_MODE_2REF)
+               , MctfMVPrecision(MFX_MVPRECISION_INTEGER)
+#endif
+#endif
             {
                    memset(&targetSurface, 0, sizeof(mfxDrvSurface));
                    dstRects.clear();
@@ -287,6 +305,45 @@ namespace MfxHwVideoProcessing
 
                    VideoSignalInfo.clear();
                    VideoSignalInfo.assign(1, VideoSignalInfoIn);
+            };
+
+            bool IsDoNothing()
+            {
+                CustomRateData refCustomRateData;
+                memset(&refCustomRateData, 0, sizeof(CustomRateData));
+                if (memcmp(&refCustomRateData, &customRateData, sizeof(CustomRateData)))
+                    return false;
+                if (iDeinterlacingAlgorithm != 0 ||
+                    bFMDEnable != 0 ||
+                    bDenoiseAutoAdjust != 0 ||
+                    bDetailAutoAdjust != 0 ||
+                    denoiseFactor != 0 ||
+                    detailFactor != 0 ||
+                    iTargetInterlacingMode != 0 ||
+                    bEnableProcAmp != false ||
+                    bSceneDetectionEnable != false ||
+                    bVarianceEnable != false ||
+                    bImgStabilizationEnable != false ||
+                    bFRCEnable != false ||
+                    bComposite != false ||
+                    bFieldWeaving != false ||
+                    iFieldProcessingMode != 0 ||
+                    rotation != 0 ||
+                    scalingMode != MFX_SCALING_MODE_DEFAULT ||
+                    mirroring != 0 ||
+                    scene != VPP_NO_SCENE_CHANGE ||
+                    bDeinterlace30i60p != false
+#if (MFX_VERSION >= 1025)
+                    || chromaSiting != MFX_CHROMA_SITING_UNKNOWN
+#endif
+#ifdef MFX_ENABLE_MCTF
+                    || bEnableMctf != false
+#endif
+                )
+                    return false;
+                if (memcmp(&VideoSignalInfoIn, &VideoSignalInfoOut, sizeof(SignalInfo)))
+                    return false;
+                return true;
             };
 
         //surfaces
@@ -361,6 +418,18 @@ namespace MfxHwVideoProcessing
         vppScene    scene;     // Keep information about scene change
         bool        bDeinterlace30i60p;
 
+
+#ifdef MFX_ENABLE_MCTF
+        bool         bEnableMctf;
+        mfxU16       MctfFilterStrength;
+#ifdef MFX_ENABLE_MCTF_EXT
+        mfxU16       MctfOverlap;
+        mfxU32       MctfBitsPerPixelx100k;
+        mfxU16       MctfDeblocking;
+        mfxU16       MctfTemporalMode;
+        mfxU16       MctfMVPrecision;
+#endif
+#endif
     };
 
     class DriverVideoProcessing

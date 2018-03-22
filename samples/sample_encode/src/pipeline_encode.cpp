@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -44,6 +44,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 #include "version.h"
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 /* obtain the clock tick of an uninterrupted master clock */
 msdk_tick time_get_tick(void)
@@ -567,7 +571,8 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     // set up mfxCodingOption3
     if (pInParams->nGPB || pInParams->LowDelayBRC || pInParams->WeightedPred || pInParams->WeightedBiPred
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
-        || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1)
+        || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
+        || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality)
     {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
@@ -579,10 +584,16 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
         m_CodingOption3.WeightedPred   = pInParams->WeightedPred;
         m_CodingOption3.WeightedBiPred = pInParams->WeightedBiPred;
+#if (MFX_VERSION >= 1023)
         m_CodingOption3.LowDelayBRC    = pInParams->LowDelayBRC;
+#endif
         m_CodingOption3.PRefType       = pInParams->nPRefType;
         m_CodingOption3.IntRefCycleDist= pInParams->IntRefCycleDist;
         m_CodingOption3.AdaptiveMaxFrameSize = pInParams->nAdaptiveMaxFrameSize;
+        m_CodingOption3.QVBRQuality    = pInParams->QVBRQuality;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        m_CodingOption3.ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
+#endif
 
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
@@ -2080,7 +2091,8 @@ mfxStatus CEncodingPipeline::LoadNextFrame(mfxFrameSurface1* pSurf)
             return sts;
         }
     }
-
+    // frameorder required for reflist, dbp, and decrefpicmarking operations
+    if (pSurf) pSurf->Data.FrameOrder = m_nFramesRead;
     m_nFramesRead++;
 
     return sts;

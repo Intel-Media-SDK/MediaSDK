@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -35,6 +35,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxvp8.h"
 #include "mfxmvc.h"
 #include "mfxla.h"
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 #define START_PROC_ARRAY(arrName) for(unsigned int arrIdx=0;arrIdx<(sizeof(info.arrName)/sizeof(info.arrName[0]));arrIdx++){
 #define START_PROC_ARRAY_SIZE(arrName,numElems) for(unsigned int arrIdx=0;arrIdx<info.numElems;arrIdx++){
@@ -350,7 +354,12 @@ void CParametersDumper::SerializeExtensionBuffer(msdk_ostream& sstr,msdk_string 
             SERIALIZE_INFO(GPB);
             SERIALIZE_INFO(MaxFrameSizeI);
             SERIALIZE_INFO(MaxFrameSizeP);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            SERIALIZE_INFO(Log2MaxMvLengthHorizontal);
+            SERIALIZE_INFO(Log2MaxMvLengthVertical);
+#else
             SERIALIZE_INFO_ARRAY(reserved1);
+#endif
             SERIALIZE_INFO(EnableQPOffset);
             SERIALIZE_INFO_ARRAY(QPOffset);
             SERIALIZE_INFO_ARRAY(NumRefActiveP);

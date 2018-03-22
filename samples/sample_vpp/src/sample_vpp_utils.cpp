@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -46,6 +46,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define MFX_CHECK_STS(sts) {if (MFX_ERR_NONE != sts) return sts;}
 
 #undef min
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 /* ******************************************************************* */
 
@@ -173,6 +177,9 @@ void PrintInfo(sInputParams* pParams, mfxVideoParam* pMfxParams, MFXVideoSession
     msdk_printf(MSDK_STRING("Signal info\t%s\n"),   (VPP_FILTER_DISABLED != pParams->videoSignalInfoParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("Scaling\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->bScaling) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("Denoise\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->denoiseParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
+#ifdef ENABLE_MCTF
+    msdk_printf(MSDK_STRING("MCTF\t\t%s\n"), (VPP_FILTER_DISABLED != pParams->mctfParam[0].mode) ? MSDK_STRING("ON") : MSDK_STRING("OFF"));
+#endif
 
     msdk_printf(MSDK_STRING("ProcAmp\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->procampParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("DetailEnh\t%s\n"),      (VPP_FILTER_DISABLED != pParams->detailParam[0].mode)  ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
@@ -476,13 +483,26 @@ mfxStatus InitSurfaces(
     nFrames = response.NumFrameActual;
     pSurfaces = new mfxFrameSurface1 [nFrames];
 
+#ifdef ENABLE_MCTF
+    if (isInput)
+    {
+        pAllocator->pExtBuffersStorageSurfaceIn[streamIndex].resize(nFrames * MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE);
+    }
+#endif
+
     for (i = 0; i < nFrames; i++)
     {
         memset(&(pSurfaces[i]), 0, sizeof(mfxFrameSurface1));
         pSurfaces[i].Info = pRequest->Info;
 
         pSurfaces[i].Data.MemId = response.mids[i];
-
+#ifdef ENABLE_MCTF
+        if (isInput)
+        {
+            pSurfaces[i].Data.ExtParam = &(pAllocator->pExtBuffersStorageSurfaceIn[streamIndex].at(i * MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE));
+            pSurfaces[i].Data.NumExtParam = 0;
+        }
+#endif
     }
 
     return sts;

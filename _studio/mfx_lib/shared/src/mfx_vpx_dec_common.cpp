@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,40 @@
 #include "umc_defs.h"
 
 namespace MFX_VPX_Utility
+
 {
+    inline mfxU32 GetMaxWidth(mfxU32 codecId)
+    {
+        switch (codecId)
+        {
+        case MFX_CODEC_VP8:
+        case MFX_CODEC_VP9:
+            return 4096;
+        default: return 0;
+        }
+    }
+
+    inline mfxU32 GetMaxHeight(mfxU32 codecId)
+    {
+        switch (codecId)
+        {
+        case MFX_CODEC_VP8:
+        case MFX_CODEC_VP9:
+            return 2304;
+        default: return 0;
+        }
+    }
+
+    inline bool CheckProfile(mfxU32 codecId, mfxU16 profile)
+    {
+        switch (codecId)
+        {
+        case MFX_CODEC_VP8: return profile <= MFX_PROFILE_VP8_3;
+        case MFX_CODEC_VP9: return profile <= MFX_PROFILE_VP9_3;
+        default: return false;
+        }
+    }
+
     mfxStatus Query(VideoCORE *core, mfxVideoParam const*p_in, mfxVideoParam *p_out, mfxU32 codecId, eMFXHWType type)
     {
         MFX_CHECK_NULL_PTR1(p_out);
@@ -45,6 +78,9 @@ namespace MFX_VPX_Utility
         {
             if (p_in->mfx.CodecId == codecId)
                 p_out->mfx.CodecId = p_in->mfx.CodecId;
+
+            if (CheckProfile(codecId, p_in->mfx.CodecProfile))
+                p_out->mfx.CodecProfile = p_in->mfx.CodecProfile;
 
             switch (p_in->mfx.CodecLevel)
             {
@@ -118,7 +154,8 @@ namespace MFX_VPX_Utility
             }
             if ((  p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
                 ) &&
-                (p_in->mfx.FrameInfo.BitDepthLuma != 10 || p_in->mfx.FrameInfo.BitDepthChroma != 10))
+                ((p_in->mfx.FrameInfo.BitDepthLuma != 0 && p_in->mfx.FrameInfo.BitDepthLuma != 10) ||
+                 (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 10)))
             {
                 p_out->mfx.FrameInfo.BitDepthLuma = 0;
                 p_out->mfx.FrameInfo.BitDepthChroma = 0;
@@ -129,12 +166,12 @@ namespace MFX_VPX_Utility
             if (!p_in->mfx.FrameInfo.ChromaFormat && !(!p_in->mfx.FrameInfo.FourCC && !p_in->mfx.FrameInfo.ChromaFormat))
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= 4096)
+            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= GetMaxWidth(codecId))
                 p_out->mfx.FrameInfo.Width = p_in->mfx.FrameInfo.Width;
             else
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= 2304)
+            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= GetMaxHeight(codecId))
                 p_out->mfx.FrameInfo.Height = p_in->mfx.FrameInfo.Height;
             else
                 sts = MFX_ERR_UNSUPPORTED;
@@ -168,9 +205,33 @@ namespace MFX_VPX_Utility
             }
             else
             {
-                p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
-                p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
+                if ((p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioW != 1) ||
+                    (p_in->mfx.FrameInfo.AspectRatioH && p_in->mfx.FrameInfo.AspectRatioH != 1))
+                {
+                    sts = MFX_ERR_UNSUPPORTED;
+                }
+                else
+                {
+                    p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
+                    p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
+                }
             }
+
+            switch (p_in->mfx.FrameInfo.PicStruct)
+            {
+            case MFX_PICSTRUCT_UNKNOWN:
+            case MFX_PICSTRUCT_PROGRESSIVE:
+                p_out->mfx.FrameInfo.PicStruct = p_in->mfx.FrameInfo.PicStruct;
+                break;
+            default:
+                sts = MFX_ERR_UNSUPPORTED;
+            }
+
+            if (p_in->mfx.ExtendedPicStruct)
+                sts = MFX_ERR_UNSUPPORTED;
+
+            if (p_in->mfx.DecodedOrder)
+                sts = MFX_ERR_UNSUPPORTED;
 
             mfxStatus stsExt = CheckDecodersExtendedBuffers(p_in);
             if (stsExt < MFX_ERR_NONE)
@@ -220,9 +281,6 @@ namespace MFX_VPX_Utility
             p_out->mfx.FrameInfo.FrameRateExtN = 1;
             p_out->mfx.FrameInfo.FrameRateExtD = 1;
 
-            p_out->mfx.FrameInfo.AspectRatioW = 1;
-            p_out->mfx.FrameInfo.AspectRatioH = 1;
-
             p_out->mfx.FrameInfo.BitDepthLuma = 8;
             p_out->mfx.FrameInfo.BitDepthChroma = 8;
             p_out->mfx.FrameInfo.Shift = 0;
@@ -267,6 +325,10 @@ namespace MFX_VPX_Utility
 
         // both zero or not zero
         if ((p_in->mfx.FrameInfo.AspectRatioW || p_in->mfx.FrameInfo.AspectRatioH) && !(p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioH))
+            return false;
+        
+        if ((p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioW != 1) ||
+            (p_in->mfx.FrameInfo.AspectRatioH && p_in->mfx.FrameInfo.AspectRatioH != 1))
             return false;
 
         switch (p_in->mfx.FrameInfo.PicStruct)

@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,10 @@ set(VP8_DECODER_HW_GUID    "f622394d8d87452f878c51f2fc9b4131")
 
 mfx_include_dirs()
 
+include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_LIB_ROOT}/plugin/include )
 include_directories( ${MSDK_LIB_ROOT}/scheduler/include )
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 
 list( APPEND umc_dirs
   brc
@@ -51,7 +53,7 @@ foreach( enc ${vencs} )
   list( APPEND vdirs_hw encode_hw/${enc} )
 endforeach()
 
-list( APPEND vdirs_impl vpp cmrt_cross_platform genx/h264_encode genx/copy_kernels)
+list( APPEND vdirs_impl vpp cmrt_cross_platform genx/h264_encode)
 foreach( dir  ${vdirs} ${vdirs_impl} ${vdirs_hw} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
@@ -233,7 +235,6 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/mfx_h264_encode_hw_utils.cpp
     ${prefix}/mfx_h264_encode_hw_utils_new.cpp
     ${prefix}/mfx_h264_encode_hw.cpp
-    ${prefix}/mfx_h264_scd.cpp
   )
 
   set( prefix ${MSDK_LIB_ROOT}/genx/h264_encode/src )
@@ -244,9 +245,6 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/genx_hsw_simple_me_proto.cpp
     ${prefix}/genx_hsw_histogram_isa.cpp
     ${prefix}/genx_skl_histogram_isa.cpp
-    ${prefix}/genx_hsw_h264_scd_isa.cpp
-    ${prefix}/genx_bdw_h264_scd_isa.cpp
-    ${prefix}/genx_skl_h264_scd_isa.cpp
   )
   list( APPEND sources
     ${MSDK_STUDIO_ROOT}/shared/umc/codec/brc/src/umc_video_brc.cpp
@@ -268,6 +266,7 @@ if( DEFINED H264LA_ENCODER_GUID )
     umc
     vm
     vm_plus
+    asc
     ${ITT_LIBS}
     pthread
     dl

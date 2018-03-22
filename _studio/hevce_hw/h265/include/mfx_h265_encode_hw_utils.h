@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -378,6 +378,7 @@ typedef struct _Task : DpbFrame
 
     mfxU16        m_SkipMode;
 
+
 }Task;
 
 enum
@@ -455,6 +456,7 @@ namespace ExtBuffer
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
         EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+
     #undef EXTBUF
 
     #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
@@ -471,6 +473,9 @@ namespace ExtBuffer
     {
         _CopyPar1(PicWidthInLumaSamples);
         _CopyPar1(PicHeightInLumaSamples);
+#if (MFX_VERSION >= 1026)
+        _CopyPar1(LCUSize);
+#endif
     }
 
     inline void  CopySupportedParams(mfxExtHEVCTiles& buf_dst, mfxExtHEVCTiles& buf_src)
@@ -1062,7 +1067,7 @@ mfxStatus GetNativeHandleToRawSurface(
     MFXCoreInterface &    core,
     MfxVideoParam const & video,
     Task const &          task,
-    mfxHDL &              handle);
+    mfxHDLPair &          handle);
 
 mfxStatus CopyRawSurfaceToVideoMemory(
     MFXCoreInterface &    core,

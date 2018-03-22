@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,9 +49,9 @@
 #include "mfx_mjpeg_dec_decode.h"
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
 #include "mfx_vp8_dec_decode_common.h"
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
 #include "mfx_vp8_dec_decode_hw.h"
 #else
 #include "mfx_vp8_dec_decode.h"
@@ -107,7 +107,7 @@ VideoDECODE *CreateDECODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
 #endif
 
 #if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
-     case MFX_CODEC_VP8:
+    case MFX_CODEC_VP8:
 #if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
         pDECODE = new VideoDECODEVP8_HW(core, &mfxRes);
 #else // MFX_VA

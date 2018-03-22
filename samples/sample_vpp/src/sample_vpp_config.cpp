@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -19,6 +19,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "sample_vpp_utils.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* pResources, mfxU32 paramID )
 {
     mfxVideoParam*   pVppParam = pResources->pVppParams;
@@ -27,28 +31,34 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
     // [0] common tuning params
     pVppParam->NumExtParam = 0;
     // to simplify logic
-    pVppParam->ExtParam    = (mfxExtBuffer**)pResources->pExtBuf;
+    pVppParam->ExtParam = (mfxExtBuffer**)pResources->pExtBuf;
 
     pResources->extDoUse.Header.BufferId = MFX_EXTBUFF_VPP_DOUSE;
     pResources->extDoUse.Header.BufferSz = sizeof(mfxExtVPPDoUse);
-    pResources->extDoUse.NumAlg  = 0;
+    pResources->extDoUse.NumAlg = 0;
     pResources->extDoUse.AlgList = NULL;
 
     // [1] video enhancement algorithms can be enabled with default parameters
-    if( VPP_FILTER_DISABLED != pParams->denoiseParam[paramID].mode )
+    if (VPP_FILTER_DISABLED != pParams->denoiseParam[paramID].mode)
     {
         pResources->tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_DENOISE;
     }
-    if( VPP_FILTER_DISABLED != pParams->procampParam[paramID].mode )
+#ifdef ENABLE_MCTF
+    if (VPP_FILTER_ENABLED_DEFAULT == pParams->mctfParam[paramID].mode)
+    {
+        pResources->tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_MCTF;
+    }
+#endif
+    if (VPP_FILTER_DISABLED != pParams->procampParam[paramID].mode)
     {
         pResources->tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_PROCAMP;
     }
-    if( VPP_FILTER_DISABLED != pParams->detailParam[paramID].mode )
+    if (VPP_FILTER_DISABLED != pParams->detailParam[paramID].mode)
     {
         pResources->tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_DETAIL;
     }
     // MSDK API 2013
-    if( VPP_FILTER_ENABLED_DEFAULT == pParams->istabParam[paramID].mode)
+    if (VPP_FILTER_ENABLED_DEFAULT == pParams->istabParam[paramID].mode)
     {
         pResources->tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION;
     }
@@ -65,23 +75,40 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
         pResources->tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_COLOR_SATURATION_LEVEL;
     }*/
 
-    if( enhFilterCount > 0 )
+    if (enhFilterCount > 0)
     {
-        pResources->extDoUse.NumAlg  = enhFilterCount;
+        pResources->extDoUse.NumAlg = enhFilterCount;
         pResources->extDoUse.AlgList = pResources->tabDoUseAlg;
         pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->extDoUse);
     }
 
     // [2] video enhancement algorithms can be configured
-    if( VPP_FILTER_ENABLED_CONFIGURED == pParams->denoiseParam[paramID].mode )
+    if (VPP_FILTER_ENABLED_CONFIGURED == pParams->denoiseParam[paramID].mode)
     {
         pResources->denoiseConfig.Header.BufferId = MFX_EXTBUFF_VPP_DENOISE;
         pResources->denoiseConfig.Header.BufferSz = sizeof(mfxExtVPPDenoise);
 
-        pResources->denoiseConfig.DenoiseFactor   = pParams->denoiseParam[paramID].factor;
+        pResources->denoiseConfig.DenoiseFactor = pParams->denoiseParam[paramID].factor;
 
         pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->denoiseConfig);
     }
+#ifdef ENABLE_MCTF
+    if (VPP_FILTER_ENABLED_CONFIGURED == pParams->mctfParam[paramID].mode)
+    {
+        pResources->mctfConfig.Header.BufferId = MFX_EXTBUFF_VPP_MCTF;
+        pResources->mctfConfig.Header.BufferSz = sizeof(mfxExtVppMctf);
+        pResources->mctfConfig.FilterStrength = pParams->mctfParam[paramID].params.FilterStrength;
+#if defined (ENABLE_MCTF_EXT)
+        pResources->mctfConfig.Overlap = pParams->mctfParam[paramID].params.Overlap;
+        pResources->mctfConfig.TemporalMode = pParams->mctfParam[paramID].params.TemporalMode;
+        pResources->mctfConfig.MVPrecision = pParams->mctfParam[paramID].params.MVPrecision;
+        pResources->mctfConfig.BitsPerPixelx100k = pParams->mctfParam[paramID].params.BitsPerPixelx100k;
+        pResources->mctfConfig.Deblocking = pParams->mctfParam[paramID].params.Deblocking;
+#endif
+        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->mctfConfig);
+        //enable the filter
+    }
+#endif
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->frcParam[paramID].mode )
     {
         pResources->frcConfig.Header.BufferId = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION;

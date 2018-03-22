@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -35,6 +35,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/file_defs.h"
 #include "vm/time_defs.h"
 #include "vm/atomic_defs.h"
+#include "vm/thread_defs.h"
+#include <map>
 
 #include "sample_types.h"
 
@@ -43,6 +45,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "avc_spl.h"
 #include "avc_headers.h"
 #include "avc_nal_spl.h"
+
+#ifdef ENABLE_MCTF
+#include  <stdexcept>
+#endif
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
@@ -741,5 +747,106 @@ private:
     mfxStatus m_Status;
     std::string m_msg;
 };
+
+#ifdef ENABLE_MCTF
+// this function implements a simple management of MCTF control-buffers that can be attached to pmfxSurface
+// internally it tracks all created buffers, if s buffer with MFX_EXTBUFF_MCTF_CONTROL header already exists
+// and attached to the pmfxSurface, it is cleared (set to zero) and returned to a caller;
+// if nothing with MFX_EXTBUFF_MCTF_CONTROL is attached yet, a new buffer is created and stored in internal
+// list, then cleaned and a pointer is returned to a caller;
+// finally, if DeallocateAll is true, internal pool is traverserd and for each entry delete is called;
+// Alternative is to implement own allocator which for internal list which will clean everything; 
+// not implemented yet for simpicity reasons.
+template<class ParamT, mfxU32 ParamName>
+//mfxExtMctfControl* GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = false)
+ParamT * GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = false)
+{
+    // map <pointer, busy-status>
+    static std::map<ParamT*, bool> mfxFrameParamPool;
+    static MSDKMutex ExclusiveAccess;
+    typedef typename std::map<ParamT*, bool>::iterator map_iter;
+
+
+    AutomaticMutex guard(ExclusiveAccess);
+    if (!pmfxSurface && !DeallocateAll)
+        return NULL;
+    if (DeallocateAll)
+    {
+        for (map_iter it = mfxFrameParamPool.begin(); it != mfxFrameParamPool.end(); ++it)
+        {
+            if (it->first)
+                delete (it->first);
+        };
+        mfxFrameParamPool.clear();
+        return NULL;
+    };
+    if (!pmfxSurface->Data.ExtParam)
+    {
+        msdk_printf(MSDK_STRING("GetMctfParamBuffer: pmfxSurface->Data.ExtParam is null!\n"));
+        return NULL;
+    }
+
+    mfxExtBuffer* pBuf = GetExtBuffer(pmfxSurface->Data.ExtParam, pmfxSurface->Data.NumExtParam, ParamName);
+    // try to find; if exist, set not-busy; otherwise, insert as a new
+    if (pBuf)
+    {
+        map_iter it = mfxFrameParamPool.find(reinterpret_cast<ParamT*>(pBuf));
+        if (it != mfxFrameParamPool.end())
+            it->second = false;
+        else
+            mfxFrameParamPool.insert(std::make_pair(reinterpret_cast<ParamT*>(pBuf), false));
+    }
+    else
+    {
+        ParamT* pBuf1(NULL);
+        try
+        {
+            pBuf1 = new ParamT;
+            mfxFrameParamPool.insert(std::make_pair(pBuf1, false));
+        }
+        catch (const std::exception& )
+        {
+            msdk_printf(MSDK_STRING("GetMctfParamBuffer: error (exception) when creating a new ext. buffer & inserting.\n"));
+            if (pBuf1)
+                delete pBuf1;
+            return NULL;
+        }
+    }
+
+    // now try to find non-busy buffer:
+    ParamT* pControl = NULL;
+    for (map_iter it = mfxFrameParamPool.begin(); it != mfxFrameParamPool.end(); ++it)
+    {
+        if (!it->second)
+        {
+            it->second = true;
+            pControl = it->first;
+            break;
+        }
+    }
+
+    if (!pControl)
+    {
+        msdk_printf(MSDK_STRING("GetMctfParamBuffer: cannot find an empty buffer & cannot create!\n"));
+        return NULL;
+    }
+    else
+    {
+        memset(pControl, 0, sizeof(ParamT));
+        pControl->Header.BufferId = ParamName;
+        pControl->Header.BufferSz = sizeof(ParamT);
+        return pControl;
+    };
+};
+inline static void WipeOutExtParams(mfxFrameSurface1* pmfxSurface, bool isInput, mfxU32 size)
+{
+    if (isInput && pmfxSurface->Data.ExtParam)
+    {
+        for (mfxU32 i = 0; i < size; ++i)
+            pmfxSurface->Data.ExtParam[i] = NULL;
+        pmfxSurface->Data.NumExtParam = 0;
+    }
+};
+#endif
 
 #endif //__SAMPLE_UTILS_H__

@@ -48,6 +48,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "plugin_loader.h"
 #include "general_allocator.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 enum MemType {
     SYSTEM_MEMORY = 0x00,
     D3D9_MEMORY   = 0x01,
@@ -95,7 +99,6 @@ struct sInputParams
     mfxU16  nThreadsNum;
     mfxI32  SchedulingType;
     mfxI32  Priority;
-    bool    DecodedOrder;
 
     mfxU16  Width;
     mfxU16  Height;
@@ -191,6 +194,13 @@ public:
 
             if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_PPS)
                 msdk_printf(MSDK_STRING("[Error] PPS Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_SLICEHEADER)
+                msdk_printf(MSDK_STRING("[Error] SliceHeader Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_FRAME_GAP)
+                msdk_printf(MSDK_STRING("[Error] Frame Gap Error detected!\n"));
+
         }
     }
 #endif

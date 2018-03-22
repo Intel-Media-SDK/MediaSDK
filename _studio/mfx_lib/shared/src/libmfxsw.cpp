@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -64,14 +64,14 @@ const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PRODUCT_VERSI
 #endif // mfxhwXX_EXPORTS
 #if defined(mfxaudiosw64_EXPORTS) || defined(mfxaudiosw32_EXPORTS)
 #if defined(LINUX_TARGET_PLATFORM_BDW)
-const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media Server Studio 2017 - Audio for Linux*";
+const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media Server Studio 2018 - Audio for Linux*";
 #elif defined(LINUX_TARGET_PLATFORM_BXT) || defined (LINUX_TARGET_PLATFORM_BXTMIN)
 const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK 2017 for Embedded Linux";
 #else
 const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media Server Studio - Audio for Linux*";
 #endif
 
-const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2014-2017 Intel Corporation";
+const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2014-2018 Intel Corporation";
 const char* g_MfxFileVersion = "mediasdk_file_version: " MFX_FILE_VERSION;
 const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PRODUCT_VERSION;
 

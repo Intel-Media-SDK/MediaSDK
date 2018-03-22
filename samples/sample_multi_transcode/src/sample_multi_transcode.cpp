@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,6 +23,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #if defined(LIBVA_WAYLAND_SUPPORT)
 #include "class_wayland.h"
+#endif
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
 #endif
 
 using namespace std;
@@ -431,6 +435,7 @@ void Launcher::DoTranscoding()
             }
         }
     }
+    m_HDLArray.clear();
 }
 
 void Launcher::DoRobustTranscoding()
@@ -539,6 +544,7 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
     bool allMFEModesEqual=true;
     bool allMFEFramesEqual=true;
     bool allMFESessionsJoined = true;
+
     mfxU16 usedMFEMaxFrames = 0;
     mfxU16 usedMFEMode = 0;
 

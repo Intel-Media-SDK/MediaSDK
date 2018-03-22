@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -68,6 +68,16 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #define MAX_PREF_LEN    256
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
+#ifdef ENABLE_MCTF
+const mfxU16  MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE = 2;
+const mfxU16  MCTF_MID_FILTER_STRENGTH = 10;
+const mfxF64  MCTF_LOSSLESS_BPP = 12.0;
+#endif
+
 namespace TranscodingSample
 {
     extern mfxU32 MFX_STDCALL TranscodeRoutine(void   *pObj);
@@ -107,6 +117,49 @@ namespace TranscodingSample
         mfxU16 TileId;
     };
 
+#ifdef ENABLE_MCTF
+    typedef enum
+    {
+        VPP_FILTER_DISABLED = 0,
+        VPP_FILTER_ENABLED_DEFAULT = 1,
+        VPP_FILTER_ENABLED_CONFIGURED = 7
+
+    } VPPFilterMode;
+
+    // this is a structure with mctf-parameteres
+    // that can be changed in run-time;
+    struct sMctfRunTimeParam
+    {
+#ifdef ENABLE_MCTF_EXT
+#endif
+        mfxU16 FilterStrength;
+    };
+
+    struct sMctfRunTimeParams
+    {
+        mfxU32 CurIdx;
+        std::vector<sMctfRunTimeParam> RunTimeParams;
+        // returns rt-param corresponding to CurIdx or NULL if
+        // CurIdx is behind available info
+        const sMctfRunTimeParam* GetCurParam();
+        // move CurIdx forward
+        void MoveForward();
+        // set CurIdx to the begining; restart indexing;
+        void Restart();
+        // reset vector & index
+        void Reset();
+        // test for emptiness
+        bool Empty() { return RunTimeParams.empty(); };
+    };
+
+    struct sMCTFParam
+    {
+        sMctfRunTimeParams   rtParams;
+        mfxExtVppMctf        params;
+        VPPFilterMode        mode;
+    };
+#endif
+
     enum ExtBRCType {
         EXTBRC_DEFAULT,
         EXTBRC_OFF,
@@ -131,6 +184,7 @@ namespace TranscodingSample
         msdk_char  strSrcFile[MSDK_MAX_FILENAME_LEN]; // source bitstream file
         msdk_char  strDstFile[MSDK_MAX_FILENAME_LEN]; // destination bitstream file
         msdk_char  strDumpVppCompFile[MSDK_MAX_FILENAME_LEN]; // VPP composition output dump file
+        msdk_char  strMfxParamsDumpFile[MSDK_MAX_FILENAME_LEN];
 
         // specific encode parameters
         mfxU16 nTargetUsage;
@@ -180,6 +234,7 @@ namespace TranscodingSample
 
         mfxU16 WeightedPred;
         mfxU16 WeightedBiPred;
+        mfxU16 ExtBrcAdaptiveLTR;
 
         // MVC Specific Options
         bool   bIsMVC; // true if Multi-View-Codec is in use
@@ -263,6 +318,9 @@ namespace TranscodingSample
         bool bROIasQPMAP;
 #endif //MFX_VERSION >= 1022
         sInputParams();
+#ifdef ENABLE_MCTF
+        sMCTFParam mctfParam;
+#endif
         void Reset();
     };
 
@@ -432,6 +490,15 @@ namespace TranscodingSample
             for (mfxU32 i = 0; i < m_pExtBS.size(); i++)
             {
                 m_pExtBS[i].IsFree = true;
+            }
+            return;
+        }
+        void FlushAll()
+        {
+            for (mfxU32 i = 0; i < m_pExtBS.size(); i++)
+            {
+                m_pExtBS[i].Bitstream.DataLength = 0;
+                m_pExtBS[i].Bitstream.DataOffset = 0;
             }
             return;
         }
@@ -792,8 +859,14 @@ namespace TranscodingSample
         msdk_string       m_sGenericPluginPath;
         mfxU16            m_nRotationAngle;
 
+        msdk_string       m_strMfxParamsDumpFile;
+
         void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
 #endif //MFX_VERSION >= 1022
+
+#ifdef  ENABLE_MCTF
+        sMctfRunTimeParams   m_MctfRTParams;
+#endif
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);
 

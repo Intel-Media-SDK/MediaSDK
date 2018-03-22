@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,6 @@
 
 #include "mfx_h265_encode_hw_utils.h"
 #include "mfx_h265_encode_hw_bs.h"
-
 #include <memory>
 #include <vector>
 
@@ -46,14 +45,13 @@ static const GUID DXVA2_Intel_Encode_HEVC_Main =
 
 GUID GetGUID(MfxVideoParam const & par);
 
-
 mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* pCore);
 
 class DriverEncoder;
 
 typedef enum tagENCODER_TYPE
 {
-    ENCODER_DEFAULT = 0,
+    ENCODER_DEFAULT = 0
 } ENCODER_TYPE;
 
 DriverEncoder* CreatePlatformH265Encoder(MFXCoreInterface* core, ENCODER_TYPE type = ENCODER_DEFAULT);
@@ -96,7 +94,7 @@ public:
     virtual
     mfxStatus Execute(
         Task const &task,
-        mfxHDL surface) = 0;
+        mfxHDLPair pair) = 0;
 
     virtual
     mfxStatus QueryCompBufferInfo(

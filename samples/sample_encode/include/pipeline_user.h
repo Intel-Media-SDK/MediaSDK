@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -25,6 +25,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfx_plugin_base.h"
 #include "mfx_plugin_module.h"
 #include "rotate_plugin_api.h"
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 /* This class implements the following pipeline: user plugin (frame rotation) -> mfxENCODE */
 class CUserPipeline : public CEncodingPipeline

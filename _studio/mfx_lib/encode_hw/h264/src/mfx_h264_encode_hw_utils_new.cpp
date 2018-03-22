@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1521,7 +1521,7 @@ namespace
             task.m_internalListCtrl.LongTermRefList[0].PicStruct  = MFX_PICSTRUCT_PROGRESSIVE;
             task.m_internalListCtrlPresent = true;
         }
-        else if (refPicFlag && task.m_enabledSwBrcLtr)
+        else if (refPicFlag && IsAdaptiveLtrOn(video))
         {
             mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(video);
             mfxU32 numActiveRefL0 = (task.m_type[0] & MFX_FRAMETYPE_P)
@@ -1535,7 +1535,7 @@ namespace
                 task.m_internalListCtrlHasPriority = false;
                 task.m_LtrOrder = task.m_frameOrder;
             }
-            else if ((task.m_type[0] & MFX_FRAMETYPE_REF) && task.m_frameLtrOff == 0 && task.m_frameLtrRe != 1 && numActiveRefL0 > 1 
+            else if ((task.m_type[0] & MFX_FRAMETYPE_REF) && task.m_frameLtrOff == 0 && task.m_frameLtrReassign != 1 && numActiveRefL0 > 1
                 && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2)) 
             {
                 DpbFrame const * ltr = 0;
@@ -1569,7 +1569,7 @@ namespace
                     task.m_LtrQp    = 0;
                 }
             }
-            else if ((task.m_type[0] & MFX_FRAMETYPE_P) && task.m_frameLtrRe == 1 && task.m_frameLtrOff == 0)
+            else if ((task.m_type[0] & MFX_FRAMETYPE_P) && task.m_frameLtrReassign == 1 && task.m_frameLtrOff == 0)
             {
                 DpbFrame const * ref = 0;
                 DpbFrame const * i = task.m_dpb[0].Begin();
@@ -1607,7 +1607,7 @@ namespace
                 }
             }
         }
-}
+    }
 };
 
 
@@ -1648,15 +1648,16 @@ DdiTaskIter MfxHwH264Encode::ReorderFrame(
     DdiTaskIter           begin,
     DdiTaskIter           end,
     bool                  gopStrict,
-    bool                  flush)
+    bool                  flush,
+    bool                  closeGopForSceneChange)
 {
     DdiTaskIter top = ReorderFrame(dpb, begin, end);
     DdiTaskIter prev = top;
     if(prev != end && prev != begin){            //special case for custom IDR frame
         --prev;                                  //we just change previous B-frame to P-frame
         if((top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR 
-            || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_I) && top->m_SceneChange) // Also Do it for scene change I frame
-            || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_P) && top->m_SceneChange)) // Also Do it for scene change B-> P frame
+            || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_I) && closeGopForSceneChange && top->m_SceneChange)  // Also Do it for scene change I frame
+            || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_P) && closeGopForSceneChange && top->m_SceneChange)) // Also Do it for scene change B-> P frame
             && prev->GetFrameType() & MFX_FRAMETYPE_B && !gopStrict)
         {
           prev->m_type[0] = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
@@ -2376,6 +2377,7 @@ void MfxHwH264Encode::ConfigureTask(
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
     task.m_collectUnitsInfo = IsOn(extOpt3->EncodedUnitsInfo);
 #endif
+
 }
 
 
@@ -3084,6 +3086,8 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
     {
     case MFX_RATECONTROL_CQP:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
+        m_stageGreediness[STG_START_SCD] = 1;
+        m_stageGreediness[STG_WAIT_SCD] = 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1;
         m_stageGreediness[STG_START_HIST  ] = 1;
@@ -3100,6 +3104,8 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
     case MFX_RATECONTROL_LA_ICQ:
     case MFX_RATECONTROL_LA_HRD:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
+        m_stageGreediness[STG_START_SCD] = 1;
+        m_stageGreediness[STG_WAIT_SCD] = 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1 + !!(video.AsyncDepth > 1);
         m_stageGreediness[STG_START_HIST  ] = 1;
@@ -3109,6 +3115,8 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
         break;
     default:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
+        m_stageGreediness[STG_START_SCD] = 1;
+        m_stageGreediness[STG_WAIT_SCD] = IsExtBrcSceneChangeSupported(video) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1;
         m_stageGreediness[STG_START_HIST  ] = 1;

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -31,11 +31,17 @@ or https://software.intel.com/en-us/media-client-solutions-support.
     } \
 }
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 using namespace TranscodingSample;
 
 CVPPExtBuffersStorage::CVPPExtBuffersStorage(void)
 {
+#ifdef ENABLE_MCTF
+    MSDK_ZERO_MEMORY(mctfFilter);
+#endif
     MSDK_ZERO_MEMORY(denoiseFilter);
     MSDK_ZERO_MEMORY(detailFilter);
     MSDK_ZERO_MEMORY(frcFilter);
@@ -50,6 +56,37 @@ CVPPExtBuffersStorage::~CVPPExtBuffersStorage(void)
 
 mfxStatus CVPPExtBuffersStorage::Init(TranscodingSample::sInputParams* params)
 {
+    // lets enable do-use list
+    extDoUse.Header.BufferId = MFX_EXTBUFF_VPP_DOUSE;
+    extDoUse.Header.BufferSz = sizeof(mfxExtVPPDoUse);
+    extDoUse.NumAlg = 0;
+    extDoUse.AlgList = NULL;
+    mfxU32  enhFilterCount = 0;
+#ifdef ENABLE_MCTF
+    if (VPP_FILTER_ENABLED_CONFIGURED == params->mctfParam.mode)
+    {
+        mctfFilter.Header.BufferId = MFX_EXTBUFF_VPP_MCTF;
+        mctfFilter.Header.BufferSz = sizeof(mfxExtVppMctf);
+        mctfFilter.FilterStrength = params->mctfParam.params.FilterStrength;
+        //.if an external file is given & at least 1 value is given, use it.
+        if (!params->mctfParam.rtParams.Empty())
+            mctfFilter.FilterStrength = params->mctfParam.rtParams.GetCurParam()->FilterStrength;
+#if defined ENABLE_MCTF_EXT
+        mctfFilter.Overlap = params->mctfParam.params.Overlap;
+        mctfFilter.TemporalMode = params->mctfParam.params.TemporalMode;
+        mctfFilter.MVPrecision = params->mctfParam.params.MVPrecision;
+        mctfFilter.BitsPerPixelx100k = params->mctfParam.params.BitsPerPixelx100k;
+        mctfFilter.Deblocking = params->mctfParam.params.Deblocking;
+#endif
+        ExtBuffers.push_back((mfxExtBuffer*)&mctfFilter);
+    }
+    else if (VPP_FILTER_ENABLED_DEFAULT == params->mctfParam.mode)
+    {
+        // MCTF enabling through do-use list:
+        tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_MCTF;
+    }
+#endif //ENABLE_MCTF
+
     if(params->DenoiseLevel!=-1)
     {
         denoiseFilter.Header.BufferId=MFX_EXTBUFF_VPP_DENOISE;
@@ -110,6 +147,12 @@ mfxStatus CVPPExtBuffersStorage::Init(TranscodingSample::sInputParams* params)
         ExtBuffers.push_back((mfxExtBuffer *)&vppFieldProcessingFilter);
     }
 
+    if (enhFilterCount > 0)
+    {
+        extDoUse.NumAlg = enhFilterCount;
+        extDoUse.AlgList = tabDoUseAlg;
+        ExtBuffers.push_back((mfxExtBuffer *)&(extDoUse));
+    }
 
     return MFX_ERR_NONE;
 }

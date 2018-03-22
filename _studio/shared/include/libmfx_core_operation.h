@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -193,6 +193,12 @@ public:
     {
         return m_refCounter;
     };
+    // Check if we have joined sessions
+    bool HaveJoinedSessions()
+    {
+        return m_Cores.size() > 1;
+    }
+
 private:
 
     virtual ~OperatorCORE()

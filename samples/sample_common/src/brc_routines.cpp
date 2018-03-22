@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -17,11 +17,17 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+
 #include "brc_routines.h"
-#if (MFX_VERSION >= 1024)
 #include "math.h"
+#include "mfxdefs.h"
 #include <algorithm>
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
+#if (MFX_VERSION >= 1024)
 #define Saturate(min_val, max_val, val) IPP_MAX((min_val), IPP_MIN((max_val), (val)))
 #define BRC_SCENE_CHANGE_RATIO1 20.0
 #define BRC_SCENE_CHANGE_RATIO2 5.0

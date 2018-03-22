@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -134,6 +134,14 @@ struct ID3D11Device;
 #include <iostream>
 
 typedef int BOOL;
+
+#ifndef FALSE
+#define FALSE     0
+#endif
+#ifndef TRUE
+#define TRUE      1
+#endif
+
 typedef char byte;
 typedef unsigned char BYTE;
 typedef unsigned int UINT32;

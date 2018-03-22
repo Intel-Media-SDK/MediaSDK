@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@ enum {
 };
 
 typedef struct {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     mfxU32 reserved[23];
     mfxU16 SceneChange;     // Frame is Scene Chg frame
     mfxU16 LongTerm;        // Frame is long term refrence

@@ -25,8 +25,8 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 set(HEVC_FEI_Encoder_HW_GUID "5418a70666f94d5cb4f7b1caee86339b")
 
 # Plugin version info
-set (HEVC_FEI_HW_PRODUCT_NAME "Intel(R) Media Server Studio 2017 - HEVC FEI Encode")
-set (HEVC_FEI_HW_DESCRIPTION "Intel(R) Media Server Studio 2017 - HEVC FEI Hardware Encode Plug-in")
+set (HEVC_FEI_HW_PRODUCT_NAME "Intel(R) Media Server Studio 2018 - HEVC FEI Encode")
+set (HEVC_FEI_HW_DESCRIPTION "Intel(R) Media Server Studio 2018 - HEVC FEI Hardware Encode Plug-in")
 
 
 if( NOT DEFINED ENV{MFX_HEVC_VERSION} )

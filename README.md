@@ -6,7 +6,7 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate
 
 # Important note
-The current version of Intel Media SDK compatible with the open source [Linux* Graphics Driver](https://github.com/intel/media-driver) [commit f7662547ab9cec5b98d144b0943067e2251825e8](https://github.com/intel/media-driver/commit/f7662547ab9cec5b98d144b0943067e2251825e8).
+The current version of Intel Media SDK compatible with the open source [Linux* Graphics Driver](https://github.com/intel/media-driver).
 Intel Media SDK depends on a special version of [LibVA commit df544cd5a31e54d4cbd33a391795a8747ddaf789](https://github.com/01org/libva/commit/df544cd5a31e54d4cbd33a391795a8747ddaf789).
 
 # FAQ
@@ -30,7 +30,7 @@ Intel Media SDK is licensed under MIT license. See [LICENSE](./LICENSE) for deta
 See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
 # System requirements
-**Operating System:** CentOS 7.3, Ubuntu 16.04.  
+**Operating System:** CentOS 7.4, Ubuntu 16.04.  
 **Hardware:**
 Intel platforms with integrated graphics:
  - Intel® Xeon® E3-1200 v4 family with C226 chipset

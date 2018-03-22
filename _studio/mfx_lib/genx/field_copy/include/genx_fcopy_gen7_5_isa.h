@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef __genx_skl_h264_scd__
-#define __genx_skl_h264_scd__
-extern const unsigned char genx_skl_h264_scd[18582];
+#ifndef __genx_fcopy_gen7_5__
+#define __genx_fcopy_gen7_5__
+extern const unsigned char genx_fcopy_gen7_5[13289];
 #endif

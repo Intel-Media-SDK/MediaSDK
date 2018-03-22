@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -717,10 +717,11 @@ namespace UMC
     }
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
-  #define DISALLOW_COPY_AND_ASSIGN(className) \
-  className(const className&);                 \
-  void operator=(const className&)
+    #define DISALLOW_COPY_AND_ASSIGN(className) \
+    className(const className&);                \
+    void operator=(const className&)
 #endif
+
 } // namespace UMC
 
 #endif /* __cplusplus */

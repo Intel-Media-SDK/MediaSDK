@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -126,11 +126,13 @@ public:
         {
             return MFX_ERR_NULL_PTR;
         }
-         /* The purpose of mutex here is to make the Copy() atomic.
-         * Without it CPU utilization grows dramatically due to large number of cache request.
+
+        /* The purpose of mutex here is to make the Copy() atomic.
+         * Without it CPU utilization grows dramatically due to cache trashing.
          */
         static UMC::Mutex mutex; // This is thread-safe since C++11
         UMC::AutomaticUMCMutex guard(mutex);
+
         mfxCopyRect<mfxU8>(pSrc, srcPitch, pDst, dstPitch, roi, flag);
 
         return MFX_ERR_NONE;

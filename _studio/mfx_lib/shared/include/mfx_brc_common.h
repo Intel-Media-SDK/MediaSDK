@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -296,6 +296,7 @@ public:
     mfxI32    GetMinQuant() { return m_underflowQuant + 1;}
     mfxF64    GetBufferDiviation(mfxU32 targetBitrate);
     mfxF64    GetBufferDiviation();
+    mfxF64    GetBufferDiviationFactor();
  
 
 
@@ -333,7 +334,8 @@ struct BRC_Ctx
     mfxI32 SceneChange;     // scene change parameter of last encoded frame
     mfxU32 SChPoc;          // poc of frame with scene change
     mfxU32 LastIEncOrder;   // encoded order of last intra frame
-    mfxU32 LastIDREncOrder;   // encoded order of last intra frame
+    mfxU32 LastIDREncOrder;   // encoded order of last idr frame
+    mfxU32 LastIDRSceneChange; // last idr was scene change
     mfxU32 LastIQpAct;      // Qp of last intra frame
     mfxU32 LastIFrameSize; // encoded frame size of last non B frame (is used for sceneChange)
     mfxF64 LastICmplx;      // Qp of last intra frame
@@ -391,6 +393,7 @@ protected:
     mfxI32 GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef);
     mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef);
     mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef);
+    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong);
 };
 }
 namespace HEVCExtBRC

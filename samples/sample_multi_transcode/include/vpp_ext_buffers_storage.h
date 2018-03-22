@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -26,8 +26,17 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "sample_defs.h"
 #include <vector>
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 namespace TranscodingSample
 {
+
+// to enable to-do list
+// number of video enhancement filters (denoise, procamp, detail, video_analysis, multi_view, ste, istab, tcc, ace, svc)
+#define ENH_FILTERS_COUNT                (20)
+
     struct sInputParams;
 
     class CVPPExtBuffersStorage
@@ -39,10 +48,19 @@ namespace TranscodingSample
         void Clear();
 
         std::vector<mfxExtBuffer*> ExtBuffers;
+        /* VPP extension */
+        mfxExtVppAuxData*   pExtVPPAuxData;
+        mfxExtVPPDoUse      extDoUse;
+        mfxU32              tabDoUseAlg[ENH_FILTERS_COUNT];
+        mfxExtBuffer*       pExtBuf[1 + ENH_FILTERS_COUNT];
+
 
         static mfxStatus ParseCmdLine(msdk_char *argv[],mfxU32 argc,mfxU32& index,TranscodingSample::sInputParams* params,mfxU32& skipped);
 
     protected:
+#ifdef ENABLE_MCTF
+        mfxExtVppMctf mctfFilter;
+#endif
         mfxExtVPPDenoise denoiseFilter;
         mfxExtVPPDetail detailFilter;
         mfxExtVPPFrameRateConversion frcFilter;

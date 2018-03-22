@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,7 +17,17 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef __genx_hsw_h264_scd__
-#define __genx_hsw_h264_scd__
-extern const unsigned char genx_hsw_h264_scd[18070];
-#endif
+
+#pragma once
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif /* __cplusplus */
+
+HRESULT APIENTRY InitialiseMediaSession(_Out_ HANDLE* handle, _In_ LPVOID lpParam, _Reserved_ LPVOID lpReserved);
+HRESULT APIENTRY DisposeMediaSession(_In_ const HANDLE handle);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
