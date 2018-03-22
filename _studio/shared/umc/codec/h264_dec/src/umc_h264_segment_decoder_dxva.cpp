@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -175,6 +175,44 @@ enum
 {
     NUMBER_OF_STATUS = 512,
 };
+
+
+void TaskBrokerSingleThreadDXVA::SetCompletedAndErrorStatus(uint8_t uiStatus, H264DecoderFrameInfo * au)
+{
+    switch (uiStatus)
+    {
+    case 1:
+        au->m_pFrame->SetErrorFlagged(ERROR_FRAME_MINOR);
+        break;
+    case 2:
+        au->m_pFrame->SetErrorFlagged(ERROR_FRAME_MAJOR);
+        break;
+    case 3:
+        au->m_pFrame->SetErrorFlagged(ERROR_FRAME_MAJOR);
+        break;
+    case 4:
+        au->m_pFrame->SetErrorFlagged(ERROR_FRAME_MAJOR);
+        break;
+    }
+
+    au->SetStatus(H264DecoderFrameInfo::STATUS_COMPLETED);
+    CompleteFrame(au->m_pFrame);
+}
+
+
+bool TaskBrokerSingleThreadDXVA::CheckCachedFeedbackAndComplete(H264DecoderFrameInfo * au)
+{
+    for (uint32_t i = 0; i < m_reports.size(); i++)
+    {
+        if ((m_reports[i].m_index == (uint32_t)au->m_pFrame->m_index) && (au->IsBottom() == (m_reports[i].m_field != 0)))
+        {
+            SetCompletedAndErrorStatus(m_reports[i].m_status, au);
+            m_reports.erase(m_reports.begin() + i);
+            return true;
+        }
+    }
+    return false;
+}
 
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 {

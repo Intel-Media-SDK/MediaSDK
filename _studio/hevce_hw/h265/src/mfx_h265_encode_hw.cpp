@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -221,10 +221,11 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
 
     m_ddi.reset( CreateHWh265Encoder(&m_core, ddiType) );
     MFX_CHECK(m_ddi.get(), MFX_ERR_UNSUPPORTED);
+    GUID encoder_guid = GetGUID(m_vpar);
 
     sts = m_ddi->CreateAuxilliaryDevice(
         &m_core,
-        GetGUID(m_vpar),
+        encoder_guid,
         m_vpar.m_ext.HEVCParam.PicWidthInLumaSamples,
         m_vpar.m_ext.HEVCParam.PicHeightInLumaSamples);
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
@@ -648,6 +649,8 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     sts = CheckHeaders(parNew, m_caps);
     MFX_CHECK_STS(sts);
 
+    MFX_CHECK(m_vpar.LCUSize ==  parNew.LCUSize, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM); // LCU Size Can't be changed
+
     MFX_CHECK(
            parNew.mfx.CodecId                == MFX_CODEC_HEVC
         && m_vpar.AsyncDepth                 == parNew.AsyncDepth
@@ -750,7 +753,8 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     }
 
     if (brcReset &&
-        m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
+        m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
+        (parNew.HRDConformance || !isIdrRequired))
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
     // waiting for submitted in driver tasks
@@ -1024,7 +1028,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
                 sts = CodeAsSkipFrame(m_core,m_vpar,*taskForExecute,m_rawSkip, m_rec);
                 MFX_CHECK_STS(sts);
             }
-            sts = GetNativeHandleToRawSurface(m_core, m_vpar, *taskForExecute, surfaceHDL.first);
+            sts = GetNativeHandleToRawSurface(m_core, m_vpar, *taskForExecute, surfaceHDL);
             MFX_CHECK_STS(sts);
 
             if (!IsFrameToSkip(*taskForExecute,  m_rec, m_vpar.isSWBRC()))
@@ -1034,7 +1038,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
             }
             ExtraTaskPreparation(*taskForExecute);
 
-            sts = m_ddi->Execute(*taskForExecute, surfaceHDL.first);
+            sts = m_ddi->Execute(*taskForExecute, surfaceHDL);
             MFX_CHECK_STS(sts);
 
             m_task.SubmitForQuery(taskForExecute);

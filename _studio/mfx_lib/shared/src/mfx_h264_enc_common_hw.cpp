@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -863,6 +863,7 @@ namespace
         else
             return 1;//to be adjusted based on performance measurements on other platforms
     }
+
     mfxU32 calculateMfeTimeout(const mfxFrameInfo& info)
     {
         //Just calculate based on latency expectation from framerate in microsecond now, can be changed in future
@@ -1234,6 +1235,44 @@ bool MfxHwH264Encode::IsLookAheadSupported(
     return ((platform >= MFX_HW_HSW) && (platform != MFX_HW_VLV));
 }
 
+bool MfxHwH264Encode::IsExtBrcSceneChangeSupported(
+    MfxVideoParam const & video)
+{
+    bool extbrcsc = false;
+#if (MFX_VERSION >= 1026)
+    // extbrc API change dependency
+    mfxExtCodingOption2 const *   extOpt2 = GetExtBuffer(video);
+    extbrcsc = (IsOn(extOpt2->ExtBRC) &&
+        (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
+        && (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) && !video.mfx.EncodedOrder);
+#endif
+    return extbrcsc;
+}
+
+bool MfxHwH264Encode::IsCmNeededForSCD(
+    MfxVideoParam const & video)
+{
+    bool useCm = false;
+#if (MFX_VERSION >= 1026)
+    // If frame in Sys memory then Cm is not needed
+    mfxExtOpaqueSurfaceAlloc * extOpaq = GetExtBuffer(video);
+    useCm = !(video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
+        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)));
+#endif
+    return useCm;
+}
+
+bool MfxHwH264Encode::IsAdaptiveLtrOn(
+    MfxVideoParam const & video)
+{
+    bool altr = false;
+#if (MFX_VERSION >= 1026)
+    mfxExtCodingOption3 const *   extOpt3 = GetExtBuffer(video);
+    altr = IsOn(extOpt3->ExtBrcAdaptiveLTR);
+#endif
+    return altr;
+}
+
 // determine and return mode of Query operation (valid modes are 1, 2, 3, 4 - see MSDK spec for details)
 mfxU8 MfxHwH264Encode::DetermineQueryMode(mfxVideoParam * in)
 {
@@ -1267,6 +1306,7 @@ mfxU8 MfxHwH264Encode::DetermineQueryMode(mfxVideoParam * in)
 /*
 Setting default value for LowPower option.
 By default LowPower is OFF (using DualPipe)
+For LKF: use LowPower by default i.e. if LowPower is Unknown then LowPower is ON
 
 Return value:
 MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
@@ -1298,8 +1338,7 @@ MFX_ERR_NONE - if no errors
 mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, ENCODE_CAPS & hwCaps, mfxVideoParam * par)
 {
     GUID guid = MSDK_Private_Guid_Encode_AVC_Query;
-
-    if (IsOn(par->mfx.LowPower))
+    if(IsOn(par->mfx.LowPower))
     {
         guid = MSDK_Private_Guid_Encode_AVC_LowPower_Query;
     }
@@ -3889,9 +3928,49 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     if (!CheckTriStateOption(extOpt3->ExtBrcAdaptiveLTR)) changed = true;
-#endif
+
+    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && IsOff(extOpt2->ExtBRC)) 
+    {
+        extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+        changed = true;
+    }
+
+    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)
+    {
+        extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+        changed = true;
+    }
+
+    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0)
+    {
+        extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+        changed = true;
+    }
+
+    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && par.mfx.NumRefFrame != 0)
+    {
+        mfxU16 nrfMin = (par.mfx.GopRefDist > 1 ? 2 : 1);
+        bool bPyr = (extOpt2->BRefType == MFX_B_REF_PYRAMID);
+        if (bPyr) nrfMin = GetMinNumRefFrameForPyramid(par);
+
+        if (par.mfx.NumRefFrame <= nrfMin)
+        {
+            extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+            changed = true;
+        }
+    }
+
+    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && extDdi->NumActiveRefP != 0)
+    {
+        if (extDdi->NumActiveRefP <= 1)
+        {
+            extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+            changed = true;
+        }
+    }
+#endif // (MFX_VERSION >= 1026)
 
     if (hwCaps.UserMaxFrameSizeSupport == 0 && ((extOpt2->MaxFrameSize) || (extOpt3->MaxFrameSizeI) || (extOpt3->MaxFrameSizeP)))
     {
@@ -4071,14 +4150,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
-#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
-    if (!CheckTriStateOption(extOpt3->EncodedUnitsInfo))  changed = true;
-    if ((par.calcParam.numTemporalLayer > 1 || IsMvcProfile(par.mfx.CodecProfile)) && IsOn(extOpt3->EncodedUnitsInfo))
-    {
-        extOpt3->EncodedUnitsInfo = MFX_CODINGOPTION_OFF;
-        unsupported = true;
-    }
-#endif
 
     /*if (extOpt2->Trellis && hwCaps.EnhancedEncInput == 0)
     {
@@ -4448,14 +4519,25 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckRangeDflt(extOpt2->DisableDeblockingIdc, 0, 2, 0)) changed = true;
     if (!CheckTriStateOption(extOpt2->EnableMAD)) changed = true;
-    if(!((extOpt2->AdaptiveI == 0)&&(extOpt2->AdaptiveB == 0)))
+    
+    if (!CheckTriStateOption(extOpt2->AdaptiveI)) changed = true;
+    if (IsOn(extOpt2->AdaptiveI) && (!IsExtBrcSceneChangeSupported(par) || (par.mfx.GopOptFlag & MFX_GOP_STRICT)))
     {
-        if(!((extOpt2->AdaptiveI == MFX_CODINGOPTION_OFF)&&(extOpt2->AdaptiveB == MFX_CODINGOPTION_OFF)))
-        {
-               extOpt2->AdaptiveI = 0;
-               extOpt2->AdaptiveB = 0;
-               unsupported = true;
-        }
+        extOpt2->AdaptiveI = MFX_CODINGOPTION_OFF;
+        changed = true;
+    }
+
+    if (!CheckTriStateOption(extOpt2->AdaptiveB)) changed = true;
+    if (IsOn(extOpt2->AdaptiveB) && (!IsExtBrcSceneChangeSupported(par) || (par.mfx.GopOptFlag & MFX_GOP_STRICT)))
+    {
+        extOpt2->AdaptiveB = MFX_CODINGOPTION_OFF;
+        changed = true;
+    }
+
+    if (extOpt3->PRefType == MFX_P_REF_PYRAMID &&  par.mfx.GopRefDist > 1)
+    {
+        extOpt3->PRefType = MFX_P_REF_DEFAULT;
+        changed = true;
     }
 
     if (!CheckRangeDflt(extOpt3->WeightedPred,
@@ -4557,6 +4639,18 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
 #endif
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    if (!CheckTriStateOption(extOpt3->EncodedUnitsInfo))  changed = true;
+    if ((par.calcParam.numTemporalLayer > 1 || IsMvcProfile(par.mfx.CodecProfile)) && IsOn(extOpt3->EncodedUnitsInfo))
+    {
+        extOpt3->EncodedUnitsInfo = MFX_CODINGOPTION_OFF;
+        unsupported = true;
+    }
+#endif
+
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+    if (!CheckTriStateOptionWithAdaptive(extOpt3->RepartitionCheckEnable)) changed = true;
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
     return unsupported
         ? MFX_ERR_UNSUPPORTED
@@ -5613,6 +5707,50 @@ void MfxHwH264Encode::SetDefaults(
     SetDefaultOff(extOpt3->GlobalMotionBiasAdjustment);
     SetDefaultOff(extOpt3->LowDelayBRC);
 
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
+
+#if (MFX_VERSION >= 1026)
+    if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_UNKNOWN)
+    {
+        extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
+        mfxExtBRC const * extBRC = GetExtBuffer(par);
+        // remove check when sample extbrc is same as implicit extbrc
+        // currently added for no behaviour change in sample extbrc
+        if (IsExtBrcSceneChangeSupported(par) && !extBRC->pthis)
+        {
+            extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_ON;
+            // make sure to call CheckVideoParamQueryLike 
+            // or add additional conditions above (num ref & num active)
+        }
+    }
+
+    mfxExtBRC const * extBRC = GetExtBuffer(par);
+    if (extOpt2->AdaptiveI == MFX_CODINGOPTION_UNKNOWN)
+    {
+        if (IsExtBrcSceneChangeSupported(par) && !extBRC->pthis)
+            extOpt2->AdaptiveI = MFX_CODINGOPTION_ON;
+        else
+            extOpt2->AdaptiveI = MFX_CODINGOPTION_OFF;
+    }
+
+    if (extOpt2->AdaptiveB == MFX_CODINGOPTION_UNKNOWN)
+    {
+        if (IsExtBrcSceneChangeSupported(par) && !extBRC->pthis)
+            extOpt2->AdaptiveB = MFX_CODINGOPTION_ON;
+        else
+            extOpt2->AdaptiveB = MFX_CODINGOPTION_OFF;
+    }
+
+    if (extOpt3->PRefType == MFX_P_REF_DEFAULT)
+    {
+        if (par.mfx.GopRefDist == 1 && IsExtBrcSceneChangeSupported(par) && !extBRC->pthis)
+            extOpt3->PRefType = MFX_P_REF_PYRAMID;
+        else if (par.mfx.GopRefDist == 1)
+            extOpt3->PRefType = MFX_P_REF_SIMPLE;
+    }
+#endif //(MFX_VERSION >= 1026)
+
     CheckVideoParamQueryLike(par, hwCaps, platform, vaType);
 
     if (extOpt3->NumSliceI == 0 && extOpt3->NumSliceP == 0 && extOpt3->NumSliceB == 0)
@@ -5784,26 +5922,6 @@ void MfxHwH264Encode::SetDefaults(
 #if MFX_VERSION >= 1023
     if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->AdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
-#endif
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_UNKNOWN) {
-        extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
-        if (IsOn(extOpt2->ExtBRC) 
-            && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)
-            && (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE)) {
-            mfxExtBRC * extBRC = GetExtBuffer(par);
-            if (!extBRC->pthis) {
-                extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_ON;
-            }
-        }
-    }
-    if (extOpt3->ExtBrcAdaptiveLTR == MFX_CODINGOPTION_ON) {
-        if (extOpt2->AdaptiveB == MFX_CODINGOPTION_UNKNOWN)
-            extOpt2->AdaptiveB = MFX_CODINGOPTION_ON;
-        if (extOpt2->AdaptiveI == MFX_CODINGOPTION_UNKNOWN)
-            extOpt2->AdaptiveI = MFX_CODINGOPTION_ON;
-    }
 #endif
 
     par.ApplyDefaultsToMvcSeqDesc();
@@ -6322,6 +6440,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
     {
         checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
+
 
 #if defined(MFX_ENABLE_MFE)
 

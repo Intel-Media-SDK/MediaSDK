@@ -9,6 +9,10 @@ if(VA_HEVC_FEI MATCHES NOTFOUND)
   set(skipping _force_skipping)
 endif()
 
+if(NOT API_USE_LATEST)
+  set(skipping _force_skipping)
+endif()
+
 include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}/../sample_common/include
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -17,7 +21,7 @@ include_directories (
 list( APPEND LIBS_VARIANT sample_common )
 
 set(DEPENDENCIES ${skipping} itt libmfx dl pthread)
-set( defs "${WARNING_FLAGS}" )
+set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
 make_executable( shortname universal "nosafestring" )
 
 install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )

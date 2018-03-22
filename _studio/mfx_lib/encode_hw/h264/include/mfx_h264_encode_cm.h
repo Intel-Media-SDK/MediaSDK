@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -183,7 +183,12 @@ CmSurface2D * CreateSurface2DSubresource(CmDevice * device, ID3D11Texture2D * d3
 
 CmSurface2D * CreateSurface(CmDevice * device, mfxHDL nativeSurface, eMFXVAType vatype);
 
+CmSurface2D * CreateSurface(CmDevice * device, mfxHDLPair nativeSurfaceIndexPair, eMFXVAType vatype);
+
 CmSurface2D * CreateSurface(CmDevice * device, mfxU32 width, mfxU32 height, mfxU32 fourcc);
+
+CmSurface2DUP * CreateSurface(CmDevice * device, void *mem, mfxU32 width, mfxU32 height, mfxU32 fourcc);
+
 
 SurfaceIndex * CreateVmeSurfaceG75(
     CmDevice *      device,

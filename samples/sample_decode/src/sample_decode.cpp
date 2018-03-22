@@ -23,6 +23,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <sstream>
 #include "version.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
 {
     msdk_printf(MSDK_STRING("Decoding Sample Version %s\n\n"), GetMSDKSampleVersion().c_str());
@@ -103,7 +107,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-async]                  - depth of asynchronous pipeline. default value is 4. must be between 1 and 20\n"));
     msdk_printf(MSDK_STRING("   [-gpucopy::<on,off>] Enable or disable GPU copy mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]                - timeout in seconds\n"));
-    msdk_printf(MSDK_STRING("   [-decoded_order]          - disable frame reordering in decoder\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("   [-dec_postproc force/auto] - resize after decoder using direct pipe\n"));
     msdk_printf(MSDK_STRING("                  force: instruct to use decoder-based post processing\n"));
@@ -358,10 +361,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("timeout is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-decoded_order")))
-        {
-            pParams->DecodedOrder = true;
         }
 
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-di")))

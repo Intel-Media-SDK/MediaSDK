@@ -332,6 +332,10 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     }
 }
 
+mfxStatus mfxSchedulerCore::GetTimeout(mfxU32& maxTimeToRun)
+{
+    return MFX_ERR_UNSUPPORTED;
+}
 
 mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 {

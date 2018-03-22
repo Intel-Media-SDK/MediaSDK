@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -22,11 +22,13 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 // An interface for a pipeline consisting of multiple (maximum 3) VPP-like components. Base implementation - for single VPP.
 // The application should use this interface to be able to seamlessly switch from MFXVideoVPP to MFXVideoVPPPlugin in the pipeline.
-class MFXVideoMultiVPP
+
+class MFXVideoMultiVPP : public MFXVideoVPP
 {
 public:
 
-    MFXVideoMultiVPP(mfxSession session) { m_session = session; }
+    MFXVideoMultiVPP(mfxSession session) : MFXVideoVPP(m_session)
+    { m_session = session; }
     virtual ~MFXVideoMultiVPP(void) { Close(); }
 
     // topology methods
@@ -56,10 +58,6 @@ public:
 
     virtual mfxStatus GetVPPStat(mfxVPPStat *stat, mfxU8 component_idx = 0)
     { component_idx; return MFXVideoVPP_GetVPPStat(m_session, stat); }
-
-protected:
-
-    mfxSession m_session;                                       // (mfxSession) handle to the owning session
 };
 
 #endif//__MFX_MULTI_VPP_H

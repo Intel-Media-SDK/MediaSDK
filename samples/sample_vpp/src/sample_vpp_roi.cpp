@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -30,6 +30,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define VPP_ALIGN2(SZ)  (((SZ + 1) >> 1) << 1) // round up to a multiple of 2
 #define VPP_MSDK_ALIGN16(SZ)  (((SZ + 15) >> 4) << 4) // round up to a multiple of 16
 #define VPP_MSDK_ALIGN32(SZ)  (((SZ + 31) >> 5) << 5) // round up to a multiple of 32
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 int ownRandomGenerator_32s( int lowest, int highest )
 {

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,10 @@
 #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
     #define MFX_ENABLE_H265_VIDEO_DECODE
 #endif
+
+    #define MFX_ENABLE_H265_VIDEO_DECODE
+    #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
+    //#define MFX_ENABLE_VP9_VIDEO_DECODE_HW
 
 #define MFX_ENABLE_H264_VIDEO_ENCODE
 #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
@@ -164,6 +168,7 @@
     #undef MFX_ENABLE_MP3_AUDIO_DECODE
     #undef MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
     #undef MFX_ENABLE_H264_VIDEO_FEI_PREENC
+    #undef MFX_ENABLE_VP8_VIDEO_DECODE_HW
 #endif // #if defined(AS_HEVCD_PLUGIN)
 #if defined(AS_HEVCD_PLUGIN)
     #define MFX_ENABLE_H265_VIDEO_DECODE

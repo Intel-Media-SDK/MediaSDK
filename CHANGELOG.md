@@ -1,3 +1,8 @@
+# Intel® Media SDK open source
+**Whats new**
+ - Add MCTF support
+ - API 1.26
+
 # Intel® Media SDK open source release v1.3!
 **Whats new**
  - Add SCD support

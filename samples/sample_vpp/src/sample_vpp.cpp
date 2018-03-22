@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -26,6 +26,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "time_statistics.h"
 
 #define MFX_CHECK(sts) {if (sts != MFX_ERR_NONE) return sts;}
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 using namespace std;
 
@@ -119,6 +123,9 @@ static
     pParams->videoSignalInfoParam.clear();  pParams->videoSignalInfoParam.push_back(*pDefaultFiltersParam->pVideoSignalInfo     );
     pParams->deinterlaceParam.clear();      pParams->deinterlaceParam.push_back(    *pDefaultFiltersParam->pDIParam             );
     pParams->denoiseParam.clear();          pParams->denoiseParam.push_back(        *pDefaultFiltersParam->pDenoiseParam        );
+#ifdef ENABLE_MCTF
+    pParams->mctfParam.clear();             pParams->mctfParam.push_back(           *pDefaultFiltersParam->pMctfParam           );
+#endif
     pParams->detailParam.clear();           pParams->detailParam.push_back(         *pDefaultFiltersParam->pDetailParam         );
     pParams->procampParam.clear();          pParams->procampParam.push_back(        *pDefaultFiltersParam->pProcAmpParam        );
     // analytics
@@ -220,7 +227,6 @@ mfxStatus OutputProcessFrame(
             if (!(nFrames % 100))
                 msdk_printf(MSDK_STRING("."));
         }
-
     }
     return MFX_ERR_NONE;
 
@@ -257,7 +263,6 @@ void ownToMfxFrameInfo( sOwnFrameInfo* in, mfxFrameInfo* out, bool copyCropParam
     return;
 
 }
-
 
 int main(int argc, msdk_char *argv[])
 {
@@ -306,6 +311,18 @@ int main(int argc, msdk_char *argv[])
     sProcAmpParam             defaultProcAmpParam         = { 0.0, 1.0, 1.0, 0.0, VPP_FILTER_DISABLED };
     sDetailParam              defaultDetailParam          = { 1,  VPP_FILTER_DISABLED };
     sDenoiseParam             defaultDenoiseParam         = { 1,  VPP_FILTER_DISABLED };
+#ifdef ENABLE_MCTF
+        sMCTFParam                defaultMctfParam;
+    defaultMctfParam.mode = VPP_FILTER_DISABLED;
+    defaultMctfParam.params.FilterStrength = 0;
+#ifdef ENABLE_MCTF_EXT
+    defaultMctfParam.params.BitsPerPixelx100k = 0;
+    defaultMctfParam.params.Deblocking = MFX_CODINGOPTION_OFF;
+    defaultMctfParam.params.Overlap = MFX_CODINGOPTION_OFF;
+    defaultMctfParam.params.TemporalMode = MFX_MCTF_TEMPORAL_MODE_2REF;
+    defaultMctfParam.params.MVPrecision = MFX_MVPRECISION_INTEGER;
+#endif
+#endif
     sVideoAnalysisParam       defaultVAParam              = { VPP_FILTER_DISABLED };
     sIDetectParam             defaultIDetectParam         = { VPP_FILTER_DISABLED };
     sFrameRateConversionParam defaultFRCParam             = { MFX_FRCALGM_PRESERVE_TIMESTAMP, VPP_FILTER_DISABLED };
@@ -327,6 +344,9 @@ int main(int argc, msdk_char *argv[])
     &defaultProcAmpParam,
     &defaultDetailParam,
     &defaultDenoiseParam,
+#ifdef ENABLE_MCTF
+    &defaultMctfParam,
+#endif
     &defaultVAParam,
     &defaultIDetectParam,
     &defaultFRCParam,
@@ -604,6 +624,10 @@ int main(int argc, msdk_char *argv[])
 
         while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts || bDoNotUpdateIn )
         {
+#ifdef ENABLE_MCTF
+            bool bAttachMctfBuffer = false;
+            mfxExtVppMctf* MctfRTParams=NULL;
+#endif
             mfxU16 viewID = 0;
             mfxU16 viewIndx = 0;
 
@@ -666,6 +690,20 @@ int main(int argc, msdk_char *argv[])
                 (Params.use_extapi ? &pWorkSurf : &pOutSurf));
             MSDK_BREAK_ON_ERROR(sts);
 
+#ifdef ENABLE_MCTF
+            if (bAttachMctfBuffer)
+            {
+                // get a new (or existing) Mctf control buffer.
+                MctfRTParams = GetMctfParamBuffer<mfxExtVppMctf, MFX_EXTBUFF_VPP_MCTF>(pInSurf[nInStreamInd]);
+                WipeOutExtParams(pInSurf[nInStreamInd], true, MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE);
+            }
+            else
+            {
+                if (pInSurf[nInStreamInd])
+                    pInSurf[nInStreamInd]->Data.NumExtParam = 0;
+            }
+#endif
+
             if( bROITest[VPP_IN] )
             {
                 inROIGenerator.SetROI(  &(pInSurf[nInStreamInd]->Info) );
@@ -700,6 +738,37 @@ int main(int argc, msdk_char *argv[])
             }
             else
             {
+#ifdef ENABLE_MCTF
+                if (bAttachMctfBuffer && MctfRTParams)
+                {
+                    // attach control MCTF buffer to pInSurf[nInStreamInd]
+                    // need to update this info somehow. 
+                    // suppose bitrate & deblock control is going to be passed:
+                    MctfRTParams->FilterStrength = MCTF_MID_FILTER_STRENGTH;
+#if defined (ENABLE_MCTF_EXT)
+                    MctfRTParams->BitsPerPixelx100k = mfxU32(MCTF_LOSSLESS_BPP * MCTF_BITRATE_MULTIPLIER);
+                    MctfRTParams->Deblocking = MFX_CODINGOPTION_OFF;
+#endif
+
+                    if (pInSurf[nInStreamInd]->Data.NumExtParam >= MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE) {
+                        msdk_printf(MSDK_STRING("the extended buffer is not created; nothing can be attached; exit.\n"));
+                        sts = MFX_ERR_UNDEFINED_BEHAVIOR;
+                        MSDK_BREAK_ON_ERROR(sts);
+                    }
+                    else
+                        pInSurf[nInStreamInd]->Data.ExtParam[pInSurf[nInStreamInd]->Data.NumExtParam++] = reinterpret_cast<mfxExtBuffer*>(MctfRTParams);
+                }
+                else
+                {
+                    if (!MctfRTParams && bAttachMctfBuffer)
+                    {
+                        msdk_printf(MSDK_STRING("the extended buffer is not created; nothing will be attached\n"));
+                        sts = MFX_ERR_UNDEFINED_BEHAVIOR;
+                        MSDK_BREAK_ON_ERROR(sts);
+                    }
+
+                }
+#endif
                 sts = frameProcessor.pmfxVPP->RunFrameVPPAsync(
                     pInSurf[nInStreamInd],
                     pOutSurf,
@@ -768,7 +837,6 @@ int main(int argc, msdk_char *argv[])
             {
                 continue;
             }
-
             sts = OutputProcessFrame(Resources, &realFrameInfoOut, nFrames, paramID);
             MSDK_BREAK_ON_ERROR(sts);
 
@@ -874,6 +942,10 @@ int main(int argc, msdk_char *argv[])
     WipeResources(&Resources);
     WipeParams(&Params);
 
+#ifdef ENABLE_MCTF
+    //deallocate the internal pool
+    GetMctfParamBuffer<mfxExtVppMctf, MFX_EXTBUFF_VPP_MCTF>((mfxFrameSurface1*)NULL, true);
+#endif
     return 0; /* OK */
 
 } // int _tmain(int argc, msdk_char *argv[])

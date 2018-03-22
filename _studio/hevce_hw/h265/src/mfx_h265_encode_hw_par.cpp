@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -766,7 +766,6 @@ mfxU32 GetDefaultLCUSize(MfxVideoParam const & par,
     return LCUSize;
 }
 
-
 #ifdef MFX_ENABLE_HEVCE_ROI
 mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & caps, mfxExtEncoderROI *ROI, bool &bROIViaMBQP)
 {
@@ -1140,7 +1139,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckTriStateOption(par.mfx.LowPower);
 
     if (!par.LCUSize)
-        par.LCUSize = GetDefaultLCUSize(par, caps);
+        par.LCUSize = GetDefaultLCUSize(par, caps); //  that a local copy of actual value;
 
     if (caps.BitDepth8Only == 0) // 10-bit supported
     {
@@ -1219,7 +1218,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (par.mfx.TargetUsage && caps.TUSupport)
         changed += CheckTU(caps.TUSupport, par.mfx.TargetUsage);
 
-    changed += CheckMax(par.mfx.GopRefDist, (caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? par.mfx.GopPicSize - 1 : 0xFFFF));
+    changed += CheckMax(par.mfx.GopRefDist, (caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? Max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
     invalid += CheckOption(par.Protected
         , 0);
@@ -1274,7 +1273,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (caps.MBBRCSupport == 0 || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP ||par.isSWBRC())
         changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_OFF, 0);
     else
-        changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, 0);
+        changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, (mfxU32)MFX_CODINGOPTION_OFF, 0);
 
  
     if (IsOn(par.m_ext.CO2.ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)
@@ -1442,7 +1441,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         mfxU32 nLCU  = CeilDiv(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.LCUSize) * CeilDiv(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.LCUSize);
         mfxU32 nTile = Max<mfxU32>(par.m_ext.HEVCTiles.NumTileColumns, 1) * Max<mfxU32>(par.m_ext.HEVCTiles.NumTileRows, 1);
 
-        changed += CheckRange(par.m_ext.CO2.NumMbPerSlice, 0, nLCU / nTile);
+        mfxU32 minNumMbPerSlice = CeilDiv(nLCU, MAX_SLICES) / nTile;
+        changed += CheckRange(par.m_ext.CO2.NumMbPerSlice, minNumMbPerSlice, nLCU / nTile);
     }
 
     changed += CheckOption(par.mfx.NumSlice, MakeSlices(par, caps.SliceStructure), 0);
@@ -1591,10 +1591,12 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         }
     }
 
+    //check Active Reference
 
     {
         mfxU16 maxForward  = Min<mfxU16>(caps.MaxNum_Reference0, maxDPB);
         mfxU16 maxBackward = Min<mfxU16>(caps.MaxNum_Reference1, maxDPB);
+
 
         changed += CheckMax(par.m_ext.DDI.NumActiveRefP,   maxForward);
         changed += CheckMax(par.m_ext.DDI.NumActiveRefBL0, maxForward);
@@ -1766,8 +1768,7 @@ void SetDefaults(
     mfxExtCodingOption2& CO2 = par.m_ext.CO2;
     mfxExtCodingOption3& CO3 = par.m_ext.CO3;
 
-    if (!par.LCUSize)
-        par.LCUSize = GetDefaultLCUSize(par, hwCaps);
+
 
     if (par.mfx.CodecLevel)
     {
@@ -1917,7 +1918,6 @@ void SetDefaults(
 
 
 
-
     if (!par.mfx.GopRefDist)
     {
         if (par.isTL() || hwCaps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
@@ -1933,9 +1933,6 @@ void SetDefaults(
         else
             par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
     }
-
-    if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
-        par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
 
     {
         // calculate ActiveReference
@@ -1965,8 +1962,9 @@ void SetDefaults(
         if (!RefActiveBL1)
             RefActiveBL1 = (par.mfx.TargetUsage == 7) ? 1 :
                 par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.MaxNum_Reference1, par.mfx.NumRefFrame) : hwCaps.MaxNum_Reference1;
-       
-	   //set ActiveReference
+
+
+        //set ActiveReference
 
         if (!par.m_ext.DDI.NumActiveRefP)
             par.m_ext.DDI.NumActiveRefP = RefActiveP;
@@ -2017,6 +2015,9 @@ void SetDefaults(
             par.mfx.NumRefFrame = Min(maxDPB, par.mfx.NumRefFrame);
         }
      }
+    if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
+        par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
+
     if (par.m_ext.CO3.PRefType == MFX_P_REF_DEFAULT)
     {
         if (par.mfx.GopRefDist == 1 && (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()))
@@ -2078,7 +2079,7 @@ void SetDefaults(
     if (IsOff(CO3.EnableQPOffset))
         Zero(CO3.QPOffset);
 
- 
+
 
 
     if (CO3.EnableMBQP == 0)

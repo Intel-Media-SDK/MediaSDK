@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -109,6 +109,7 @@ mfxU8 GetPFrameLevel(mfxU32 i, mfxU32 num)
     }
     return (mfxU8)level;
 }
+
 mfxU8 PLayer(
     mfxU32                order, // (task.m_poc - prevTask.m_lastIPoc)
     MfxVideoParam const & par)
@@ -420,25 +421,26 @@ mfxStatus GetNativeHandleToRawSurface(
     MFXCoreInterface &    core,
     MfxVideoParam const & video,
     Task const &          task,
-    mfxHDL &              nativeHandle)
+    mfxHDLPair &          handle)
 {
     mfxStatus sts = MFX_ERR_NONE;
     mfxFrameAllocator & fa = core.FrameAllocator();
     mfxExtOpaqueSurfaceAlloc const & opaq = video.m_ext.Opaque;
     mfxFrameSurface1 * surface = task.m_surf_real;
 
-    nativeHandle = 0;
+    Zero(handle);
+    mfxHDL * nativeHandle = &handle.first;
 
     if (   video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY
         || (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
-        sts = fa.GetHDL(fa.pthis, task.m_midRaw, &nativeHandle);
+        sts = fa.GetHDL(fa.pthis, task.m_midRaw, nativeHandle);
     else if (   video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY
              || video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
     {
         if (task.m_midRaw == NULL)
-            sts = core.GetFrameHandle(&surface->Data, &nativeHandle);
+            sts = core.GetFrameHandle(&surface->Data, nativeHandle);
         else
-            sts = fa.GetHDL(fa.pthis, task.m_midRaw, &nativeHandle);
+            sts = fa.GetHDL(fa.pthis, task.m_midRaw, nativeHandle);
     }
     else
         return (MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -697,7 +699,6 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
     ExtBuffer::Set(par, m_ext.CO);
     ExtBuffer::Set(par, m_ext.CO2);
     ExtBuffer::Set(par, m_ext.CO3);
-
     ExtBuffer::Set(par, m_ext.ResetOpt);
 
     if (ExtBuffer::Set(par, m_ext.DDI))
@@ -1619,6 +1620,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     }
 
 
+
     Zero(m_pps);
     m_pps.seq_parameter_set_id = m_sps.seq_parameter_set_id;
 
@@ -1707,6 +1709,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_pps.lists_modification_present_flag             = 1;
     m_pps.log2_parallel_merge_level_minus2            = 0;
     m_pps.slice_segment_header_extension_present_flag = 0;
+
 
 }
 
@@ -2113,7 +2116,7 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
         }
      }
 
-    s.loop_filter_across_slices_enabled_flag = 0;
+    s.loop_filter_across_slices_enabled_flag = m_pps.loop_filter_across_slices_enabled_flag;
 
     if (m_pps.tiles_enabled_flag || m_pps.entropy_coding_sync_enabled_flag)
     {

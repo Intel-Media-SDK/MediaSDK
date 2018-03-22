@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,8 +38,14 @@
   #include "mfx_scd.h"        // Scene change detection
  #endif
  #include "cm_mem_copy.h"         // Needed for mirroring kernels
-#include "genx_fcopy_cmcode_isa.h" // Field copy kernel
+ #include "genx_fcopy_gen8_isa.h" // Field copy kernels
+ #include "genx_fcopy_gen9_isa.h"
 
+#ifdef MFX_ENABLE_MCTF
+#include "mctf_common.h"
+#include "cpu_detect.h"
+#include <list>
+#endif
 class CmDevice;
 
 namespace MfxHwVideoProcessing
@@ -137,6 +143,7 @@ namespace MfxHwVideoProcessing
             , endTimeStamp(0)
             , resIdx(0)
             , bUpdate(false)
+            , bForcedInternalAlloc(false)
         {
         }
         mfxFrameSurface1 *pSurf;
@@ -145,6 +152,15 @@ namespace MfxHwVideoProcessing
         mfxU64 endTimeStamp; // endTimeStamp in DX9. need to ask driver team. probably can be removed
         mfxU32 resIdx;        // index corresponds _real_ video resource
         bool   bUpdate;       // should be updated in case of vid<->sys?
+
+        // this flag being set says that a surface is allocated by calling allocator
+        // via Core interface; which means even though IOMode is set to D3D (so,
+        // surfaces are allocated in video memory but by external allocator),
+        // to extract handle GetFrameHLD must be used;
+        // this is needed for such filters as MCTF that allocate internal surfaces in video memory
+        // to operate on this, in particular, in the begining it substitutes such a surface instead of
+        // real surface;
+        bool bForcedInternalAlloc;
     };
     // auto-lock for frames
     struct FrameLocker
@@ -223,25 +239,49 @@ namespace MfxHwVideoProcessing
             , fwdRefCount(0)
             , input()
             , output()
+#ifdef MFX_ENABLE_MCTF
+            , outputForApp()
+#endif
             , bAdvGfxEnable(false)
             , bVariance(false)
             , bEOS(false)
+#ifdef MFX_ENABLE_MCTF
+            , bMCTF(false)
+            , MctfControlActive(false)
+            , pOuptutSurface(nullptr)
+#endif
             , taskIndex(0)
             , frameNumber(0)
             , skipQueryStatus(false)
             , pAuxData(NULL)
             , pSubResource(NULL)
-        {}
+        {
+#ifdef MFX_ENABLE_MCTF
+            memset(&MctfData, 0, sizeof(IntMctfParams));
+#endif
+        }
 
         mfxU32 bkwdRefCount;
         mfxU32 fwdRefCount;
 
         ExtSurface input;
         ExtSurface output;
+#ifdef MFX_ENABLE_MCTF
+        // this is a ext-surface that delivers result to an application
+        ExtSurface outputForApp;
+#endif
 
         bool bAdvGfxEnable;     // VarianceReport, FRC_interpolation
         bool bVariance;
         bool bEOS;
+#ifdef MFX_ENABLE_MCTF
+        bool bMCTF;
+        // per-frame control
+        IntMctfParams MctfData;
+        bool MctfControlActive;
+        mfxFrameSurface1* pOuptutSurface;
+#endif
+
 
         mfxU32 taskIndex;
         mfxU32 frameNumber;
@@ -329,12 +369,20 @@ namespace MfxHwVideoProcessing
         mfxStatus FillTask(
             DdiTask* pTask,
             mfxFrameSurface1 *pInSurface,
-            mfxFrameSurface1 *pOutSurface);
+            mfxFrameSurface1 *pOutSurface
+#ifdef MFX_ENABLE_MCTF
+            , mfxFrameSurface1 * pOutSurfaceForApp
+#endif
+                          );
 
         mfxStatus FillTaskForMode30i60p(
             DdiTask* pTask,
             mfxFrameSurface1 *pInSurface,
-            mfxFrameSurface1 *pOutSurface);
+            mfxFrameSurface1 *pOutSurface
+#ifdef MFX_ENABLE_MCTF
+            , mfxFrameSurface1 * pOutSurfaceForApp
+#endif
+                                       );
 
         mfxStatus CompleteTask(DdiTask *pTask);
         std::vector<State> m_surf[2];
@@ -647,17 +695,27 @@ namespace MfxHwVideoProcessing
         mfxStatus AssignTask(
             mfxFrameSurface1 *input,
             mfxFrameSurface1 *output,
+#ifdef MFX_ENABLE_MCTF
+            mfxFrameSurface1 *outputForApp,
+#endif
             mfxExtVppAuxData *aux,
             DdiTask*& pTask,
             mfxStatus & intSts);
 
         mfxStatus CompleteTask(DdiTask* pTask);
 
+#ifdef MFX_ENABLE_MCTF
+        mfxU32 GetMCTFSurfacesInQueue() { return m_MCTFSurfacesInQueue; };
+        void DecMCTFSurfacesInQueue() { if (m_MCTFSurfacesInQueue) --m_MCTFSurfacesInQueue; };
+        void SetMctf(std::shared_ptr<CMC>& mctf) { pMCTF = mctf; }
+#endif
         mfxU32 GetSubTask(DdiTask *pTask);
         mfxStatus DeleteSubTask(DdiTask *pTask, mfxU32 subtaskIdx);
 
     private:
-
+#ifdef MFX_ENABLE_MCTF
+        std::weak_ptr<CMC> pMCTF;
+#endif
         mfxStatus DoCpuFRC_AndUpdatePTS(
             mfxFrameSurface1 *input,
             mfxFrameSurface1 *output,
@@ -681,17 +739,42 @@ namespace MfxHwVideoProcessing
             DdiTask* pTask,
             mfxFrameSurface1 *pInSurface,
             mfxFrameSurface1 *pOutSurface,
-            mfxExtVppAuxData *aux);
+#ifdef MFX_ENABLE_MCTF
+            mfxFrameSurface1 *pOutSurfaceForApp,
+#endif
+            mfxExtVppAuxData *aux
+        );
+
+#ifdef MFX_ENABLE_MCTF
+        // fill task param; its only for cases
+        // when there is no input surfaces
+        // but we still need to process output
+        // example: MCTF
+        mfxStatus FillLastTasks(
+            DdiTask* pTask,
+            mfxFrameSurface1 *pOutSurface,
+            mfxFrameSurface1 *pOutSurfaceForApp,
+            mfxExtVppAuxData *aux
+        );
+#endif
 
         void FillTask_Mode30i60p(
             DdiTask* pTask,
             mfxFrameSurface1 *pInSurface,
-            mfxFrameSurface1 *pOutSurface);
+            mfxFrameSurface1 *pOutSurface
+#ifdef MFX_ENABLE_MCTF
+            ,mfxFrameSurface1 *pOutSurfaceForApp
+#endif
+        );
 
         void FillTask_AdvGfxMode(
             DdiTask* pTask,
             mfxFrameSurface1 *pInSurface,
-            mfxFrameSurface1 *pOutSurface);
+            mfxFrameSurface1 *pOutSurface
+#ifdef MFX_ENABLE_MCTF
+            ,mfxFrameSurface1 *pOutSurfaceForApp
+#endif
+        );
 
         void UpdatePTS_Mode30i60p(
             mfxFrameSurface1 *input,
@@ -737,8 +820,10 @@ namespace MfxHwVideoProcessing
 
         UMC::Mutex m_mutex;
 
+#ifdef MFX_ENABLE_MCTF
+        mfxU32  m_MCTFSurfacesInQueue;
+#endif
     }; // class TaskManager
-
 
     class VideoVPPHW
     {
@@ -782,7 +867,6 @@ namespace MfxHwVideoProcessing
 
         static
         mfxStatus QueryTaskRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
-
         static
         mfxStatus AsyncTaskSubmission(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber);
 
@@ -820,10 +904,33 @@ namespace MfxHwVideoProcessing
         mfxStatus PreWorkOutSurface(ExtSurface & output);
         mfxStatus PreWorkInputSurface(std::vector<ExtSurface> & surfQueue);
 
+        mfxStatus PostWorkOutSurfaceCopy(ExtSurface & output);
         mfxStatus PostWorkOutSurface(ExtSurface & output);
         mfxStatus PostWorkInputSurface(mfxU32 numSamples);
 
         mfxStatus ProcessFieldCopy(mfxHDL in, mfxHDL out, mfxU32 fieldMask);
+
+#ifdef MFX_ENABLE_MCTF
+
+        mfxStatus InitMCTF(const mfxFrameInfo&, const IntMctfParams&);
+
+        // help-function to get a handle based on MemId
+        mfxStatus GetFrameHandle(mfxFrameSurface1* InFrame, mfxHDLPair& handle, bool bInternalAlloc);
+        // help-function to get a handle based on MemId
+        mfxStatus GetFrameHandle(mfxMemId MemId, mfxHDLPair& handle, bool bInternalAlloc);
+
+        // creates or extracts CmSurface2D from Hanlde
+        mfxStatus CreateCmSurface2D(void *pSrcHDL, CmSurface2D* & pCmSurface2D, SurfaceIndex* &pCmSrcIndex);
+
+        // clear(destroy) all surfaces (if any) stored inside m_tableCmRelations2
+        mfxStatus ClearCmSurfaces2D();
+
+        // this function is to take a surface into MCTF for further processing
+        static mfxStatus SubmitToMctf(void *pState, void *pParam, bool* bMctfReadyToReturn);
+
+        // this is to return a surface out of MCTF
+        static mfxStatus QueryFromMctf(void *pState, void *pParam, bool bMctfReadyToReturn, bool bEoF = false);
+#endif
 
         mfxU16 m_asyncDepth;
 
@@ -834,7 +941,6 @@ namespace MfxHwVideoProcessing
 
         VideoCORE *m_pCore;
         UMC::Mutex m_guard;
-
         WorkloadMode m_workloadMode;
 
         mfxU16 m_IOPattern;
@@ -848,9 +954,35 @@ namespace MfxHwVideoProcessing
         mfxU32        m_frame_num;
         mfxStatus     m_critical_error;
 
-        // Not an unique_ptr anymore since core owns create/delete semantic now.
+        // Not an auto_ptr anymore since core owns create/delete semantic now.
         VPPHWResMng * m_ddi;
         bool          m_bMultiView;
+
+#ifdef MFX_ENABLE_MCTF
+        bool m_MctfIsFlushing;
+
+        // responce for MCTF internal surfaces
+        mfxFrameAllocResponse m_MctfMfxAlocResponse;
+        // boolean flag to track if surfaces are allocated
+        bool m_bMctfAllocatedMemory;
+        // storage for mids in responce object
+        std::vector<mfxMemId> m_MctfMids;
+        // MCTF object
+        std::shared_ptr<CMC>    m_pMCTFilter;
+        // to separate it from m_pCmDevice
+        CmDevice  *m_pMctfCmDevice;
+        // list that tracks surfaces needed fort unlock
+        std::list<mfxFrameSurface1*> m_Surfaces2Unlock;
+        // pool of surfaces & pointers for MCTF
+        std::vector<mfxFrameSurface1> m_MCTFSurfacePool;
+        std::vector<mfxFrameSurface1*> m_pMCTFSurfacePool;
+
+        // these maps are used to track cm-surfaces for MCTF
+        // CmCopyWrapper also has similar maps, but it implements
+        // additional functionallity which is not required for MCTF
+        std::map<void *, CmSurface2D *> m_MCTFtableCmRelations2;
+        std::map<CmSurface2D *, SurfaceIndex *> m_MCTFtableCmIndex2;
+#endif
 
         CmCopyWrapper *m_pCmCopy;
 
@@ -870,5 +1002,4 @@ namespace MfxHwVideoProcessing
 
 
 #endif // __MFX_VPP_HW_H
-//#endif // MFX_VA
 #endif // MFX_ENABLE_VPP

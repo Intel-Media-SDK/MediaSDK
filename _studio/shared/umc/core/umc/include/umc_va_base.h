@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -196,6 +196,15 @@ public:
     virtual Status Reset(void);
 
     virtual Status BeginFrame   (int32_t  index) = 0; // Begin decoding for specified index
+
+    // Begin decoding for specified index, keep in mind fieldId to sync correctly on task in next SyncTask call.
+    // By default just calls BeginFrame(index). must be overridden by child class
+    virtual Status BeginFrame(int32_t  index, uint32_t fieldId )
+    {
+        // by default just calls BeginFrame(index)
+        (void)fieldId;
+        return BeginFrame(index);
+    }
     virtual void*  GetCompBuffer(int32_t            buffer_type,
                                  UMCVACompBuffer** buf   = NULL,
                                  int32_t            size  = -1,

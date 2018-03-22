@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -173,7 +173,7 @@ mfxStatus VideoPAK_PAK::RunFramePAK(mfxPAKInput *in, mfxPAKOutput *out)
 #if MFX_VERSION >= 1023
         PrepareSeiMessageBuffer(m_video, task, task.m_fid[f]);
 #endif // MFX_VERSION >= 1023
-        sts = m_ddi->Execute(task.m_handleRaw.first, task, task.m_fid[f], m_sei);
+        sts = m_ddi->Execute(task.m_handleRaw, task, task.m_fid[f], m_sei);
         MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
     }
 

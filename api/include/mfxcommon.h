@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -152,9 +152,11 @@ enum {
     MFX_PLATFORM_SKYLAKE        = 7,
     MFX_PLATFORM_APOLLOLAKE     = 8,
     MFX_PLATFORM_KABYLAKE       = 9,
+#if (MFX_VERSION >= 1025)
     MFX_PLATFORM_GEMINILAKE     = 10,
     MFX_PLATFORM_COFFEELAKE     = 11,
     MFX_PLATFORM_CANNONLAKE     = 20,
+#endif 
 };
 
 typedef struct {

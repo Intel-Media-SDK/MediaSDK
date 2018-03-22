@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -21,6 +21,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/strings_defs.h"
 #include "sample_vpp_frc_adv.h"
 #include <algorithm>
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 static const mfxU32 MFX_TIME_STAMP_FREQUENCY = 90000; // will go to mfxdefs.h
 

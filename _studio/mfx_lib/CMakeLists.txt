@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,7 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_enc_common.cpp
     ${prefix}/mfx_mpeg2_dec_common.cpp
     ${prefix}/mfx_critical_error_handler.cpp
+    ${prefix}/mfx_vpx_dec_common.cpp
   )
 endforeach()
 
@@ -74,10 +75,8 @@ set( defs "" )
 ### libmfxhw
 list( APPEND mdirs
   scheduler vpp decode/vc1
-  decode/mjpeg decode/h264 decode/mpeg2
-  cmrt_cross_platform encode_hw/h264
-  encode_hw/mpeg2 encode_hw/mjpeg
-  genx/copy_kernels
+  decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
+  decode/h265 decode/vp8 decode/vp9 mctf_package/mctf
   )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
@@ -86,6 +85,9 @@ include_directories( ${MSDK_LIB_ROOT}/fei/h264_enc )
 foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
+
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
+include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
 list( APPEND cdirs
   brc h264_enc mpeg2_dec  vc1_dec vc1_common
@@ -137,9 +139,17 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/mfx_mfe_adapter.cpp
   )
 endforeach()
+foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
+  list( APPEND sources
+    ${prefix}/genx_cht_copy_isa.cpp
+    ${prefix}/genx_skl_copy_isa.cpp
+  )
+endforeach()
+
 foreach( prefix ${MSDK_LIB_ROOT}/genx/field_copy/src )
   list( APPEND sources
-    ${prefix}/genx_fcopy_cmcode_isa.cpp
+    ${prefix}/genx_fcopy_gen8_isa.cpp
+    ${prefix}/genx_fcopy_gen9_isa.cpp
   )
 endforeach()
 
@@ -172,9 +182,10 @@ list( APPEND LIBS
   encode_hw
   h264_la
   genx_h264_encode_embeded
-  genx_copy_kernels
   mfx_common
   mfx_common_hw
+  asc
+  mctf_hw
   vpp_hw
   h264_common
   h264_preenc
@@ -182,6 +193,7 @@ list( APPEND LIBS
   h264_pak
   vc1_common
   vc1_dec_hw
+  umc_h265_hw
   ${ITT_LIBS}
   pthread
   dl

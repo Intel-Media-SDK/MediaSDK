@@ -214,6 +214,9 @@ public:
     // Notification to the scheduler that task got resolved dependencies
     void OnDependencyResolved(MFX_SCHEDULER_TASK *pTask);
 
+    // WA for SINGLE THREAD MODE
+    virtual
+    mfxStatus GetTimeout(mfxU32 & maxTimeToRun);
 protected:
     // Destructor is protected to avoid deletion the object by occasion.
     virtual
