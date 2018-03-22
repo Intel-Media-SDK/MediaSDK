@@ -63,6 +63,7 @@ struct sInputParams
     msdk_char  mbstatoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvpInFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  refctrlInFile[MSDK_MAX_FILENAME_LEN];
 
     bool bENCODE;
     bool bPREENC;
@@ -126,6 +127,7 @@ struct sInputParams
         MSDK_ZERO_MEMORY(mbstatoutFile);
         MSDK_ZERO_MEMORY(mvoutFile);
         MSDK_ZERO_MEMORY(mvpInFile);
+        MSDK_ZERO_MEMORY(refctrlInFile);
 
         MSDK_ZERO_MEMORY(preencCtrl);
         preencCtrl.Header.BufferId = MFX_EXTBUFF_FEI_PREENC_CTRL;
@@ -490,7 +492,7 @@ typedef HevcDpbFrame HevcDpbArray[MAX_DPB_SIZE];
 struct HevcTask : HevcDpbFrame
 {
     mfxU16       m_frameType;
-    mfxU8        m_refPicList[2][MAX_DPB_SIZE];
+    mfxU8        m_refPicList[2][MAX_DPB_SIZE]; // index in dpb
     mfxU8        m_numRefActive[2]; // L0 and L1 lists
     mfxU8        m_shNUT;           // NALU type
     mfxI32       m_lastIPoc;

@@ -21,6 +21,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <assert.h>
 #include <algorithm>
+#include <fstream>
 #include "mfxstructures.h"
 #include "sample_hevc_fei_defs.h"
 
@@ -106,7 +107,7 @@ public:
         Fill(m_lastTask.m_dpb[TASK_DPB_BEFORE], IDX_INVALID);
     }
 
-    ~EncodeOrderControl()
+    virtual ~EncodeOrderControl()
     {
     }
 
@@ -127,7 +128,7 @@ public:
         std::fill(m_ds_pSurf.begin(), m_ds_pSurf.end(), (mfxFrameSurface1*)NULL);
     }
 
-    HevcTask* GetTask(mfxFrameSurface1 * surface)
+    virtual HevcTask* GetTask(mfxFrameSurface1 * surface)
     {
         HevcTask* task = ReorderFrame(surface);
         if (task)
@@ -137,7 +138,7 @@ public:
         return task;
     }
 
-    inline mfxU16 GetNumReorderFrames()
+    mfxU16 GetNumReorderFrames()
     {
         return MaxTask(m_par);
     }
@@ -157,11 +158,13 @@ public:
         }
     }
 
+    friend class EncodeOrderExtControl;
+
 private:
     HevcTask* ReorderFrame(mfxFrameSurface1* in);
     void ConstructRPL(HevcTask & task);
 
-    inline mfxU16 MaxTask(MfxVideoParamsWrapper const & par)
+    mfxU16 MaxTask(MfxVideoParamsWrapper const & par)
     {
         return std::max<mfxI32>(1, (par.AsyncDepth + par.mfx.GopRefDist - 1 + ((par.AsyncDepth > 1)? 1: 0)) );
     }
@@ -186,4 +189,73 @@ private:
 
 private:
     DISALLOW_COPY_AND_ASSIGN(EncodeOrderControl);
+};
+
+class EncodeOrderExtControl : public EncodeOrderControl
+{
+public:
+    EncodeOrderExtControl(const MfxVideoParamsWrapper & par, bool bIsPreENC, const char* filename) :
+        EncodeOrderControl(par, bIsPreENC)
+    {
+        m_pRefLIn.open(filename, std::ifstream::in);
+    }
+
+    ~EncodeOrderExtControl() override
+    {
+        if (m_pRefLIn.is_open())
+            m_pRefLIn.close();
+    }
+
+    mfxStatus State() const
+    {
+        return m_pRefLIn.is_open() ? MFX_ERR_NONE : MFX_ERR_NOT_FOUND;
+    }
+
+    virtual HevcTask* GetTask(mfxFrameSurface1 * surface) override
+    {
+        if (Load() != MFX_ERR_NONE)
+            return nullptr;
+        HevcTask* task = ReorderFrame(surface);
+        if (task)
+        {
+            ConstructRPL(*task);
+        }
+        return task;
+    }
+
+    HevcTask* ReorderFrame(mfxFrameSurface1* in);
+    void ConstructRPL(HevcTask & task);
+
+private:
+    struct Frame
+    {
+        Frame()
+            : order(MFX_FRAMEORDER_UNKNOWN)
+            , cOrder(~0)
+            , type(MFX_FRAMETYPE_UNKNOWN)
+            , picStruct(MFX_PICSTRUCT_UNKNOWN)
+            , refLists ( { { MFX_EXTBUFF_HEVC_REFLISTS, sizeof(mfxExtHEVCRefLists) }, } )
+        {
+        }
+
+        mfxI32 order; // display order
+        mfxU32 cOrder; // coding order, == position in m_FrameInfo
+        mfxU16 type;
+        mfxU16 picStruct;
+        mfxExtHEVCRefLists refLists;
+
+        bool isField() const { return (picStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)); }
+    };
+
+    bool bReady = false;
+    std::vector<Frame> m_FrameInfo;
+    std::ifstream m_pRefLIn;
+
+    std::vector<Frame>::const_iterator FrameByDisplayOrder(mfxI32 dispOrder) const
+    {
+        return std::find_if(m_FrameInfo.cbegin(), m_FrameInfo.cend(), [dispOrder](const Frame& fr) {return fr.order == dispOrder; });
+    }
+
+    mfxStatus Load();
+
 };

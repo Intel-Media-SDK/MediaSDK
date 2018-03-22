@@ -18,6 +18,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
 #include <cstdlib>
+#include <algorithm>
 
 #include "sample_defs.h"
 #include "ref_list_manager.h"
@@ -673,7 +674,7 @@ HevcTask* EncodeOrderControl::ReorderFrame(mfxFrameSurface1 * surface)
         }
         else
         {
-            assert(!"No free task in pool");
+            throw mfxError(MFX_ERR_UNKNOWN, "No free task in pool.");
         }
     }
 
@@ -884,4 +885,170 @@ void EncodeOrderControl::ReleaseResources(HevcTask & task)
 
     std::for_each(task.m_preEncOutput.begin(), task.m_preEncOutput.end(), Release);
     task.m_preEncOutput.clear();
+}
+
+// EncodeOrderExtControl : public EncodeOrderControl
+HevcTask* EncodeOrderExtControl::ReorderFrame(mfxFrameSurface1 * surface)
+{
+    HevcTask* free_task = nullptr;
+
+    if (surface)
+    {
+        if (!m_free.empty())
+        {
+            free_task = &m_free.front();
+            m_reordering.splice(m_reordering.end(), m_free, m_free.begin());
+
+            msdk_atomic_inc16((volatile mfxU16*)&surface->Data.Locked);
+        }
+        else
+        {
+            throw mfxError(MFX_ERR_UNKNOWN, "No free task in pool.");
+        }
+    }
+
+    if (free_task)
+    {
+        free_task->Reset();
+
+        free_task->m_surf = surface;
+        std::vector<Frame>::const_iterator fi = FrameByDisplayOrder(m_frameOrder);
+        if (fi == m_FrameInfo.cend())
+            throw mfxError(MFX_ERR_UNKNOWN, "No file entry for given frame order.");
+        free_task->m_frameType = (*fi).type;
+
+        if (free_task->m_frameType & MFX_FRAMETYPE_IDR)
+            m_lastIDR = m_frameOrder;
+
+        free_task->m_poc = m_frameOrder - m_lastIDR;
+        free_task->m_fo =  m_frameOrder;
+        free_task->m_eo =  (*fi).cOrder;
+        free_task->m_bpo = (mfxU32)MFX_FRAMEORDER_UNKNOWN;
+        free_task->m_secondField = false; // don't pair fields
+        free_task->m_idxRec = m_frameOrder & 0x7f; // Workaround to get unique idx and != IDX_INVALID (0xff)
+        free_task->m_bottomField = ((*fi).picStruct == MFX_PICSTRUCT_FIELD_BOTTOM);
+
+        m_frameOrder ++;
+    }
+
+    mfxU32 eo = (m_lastTask.m_idxRec == IDX_INVALID) ? 0 : m_lastTask.m_eo + 1;
+    TaskList::iterator iTask = std::find_if(m_reordering.begin(), m_reordering.end(), [eo](const HevcTask& ht) {return ht.m_eo == eo; });
+    HevcTask* task_to_encode = (iTask == m_reordering.end()) ? nullptr : &*iTask;
+
+    if (task_to_encode)
+    {
+        m_encoding.splice(m_encoding.end(), m_reordering, iTask);
+
+        task_to_encode->m_surf->Data.FrameOrder = task_to_encode->m_fo;
+
+        // get a free pointer for a downscaled surface which will be filled in PreENC class
+        std::vector<mfxFrameSurface1*>::iterator it = std::find(m_ds_pSurf.begin(), m_ds_pSurf.end(), nullptr);
+        task_to_encode->m_ds_surf = it != m_ds_pSurf.end() ? &(*it) : nullptr;
+
+        HevcTask & task = *task_to_encode;
+        task.m_lastIPoc = m_lastTask.m_lastIPoc;
+        task.m_lastRAP  = m_lastTask.m_lastRAP;
+
+        InitDPB(task, m_lastTask);
+
+        // update dpb
+        {
+            if (task.m_frameType & MFX_FRAMETYPE_IDR)
+                Fill(task.m_dpb[TASK_DPB_AFTER], IDX_INVALID);
+            else
+                Copy(task.m_dpb[TASK_DPB_AFTER], task.m_dpb[TASK_DPB_ACTIVE]);
+
+            if (task.m_frameType & MFX_FRAMETYPE_REF)
+            {
+                if (task.m_frameType & MFX_FRAMETYPE_I)
+                    task.m_lastIPoc = task.m_poc;
+
+                UpdateDPB(m_par, task, task.m_dpb[TASK_DPB_AFTER]);
+            }
+        }
+
+        task.m_shNUT = GetSHNUT(task, !isField(m_par));
+        if (task.m_shNUT == CRA_NUT || task.m_shNUT == IDR_W_RADL)
+            task.m_lastRAP = task.m_poc;
+
+        m_lastTask = task;
+    }
+
+    return task_to_encode;
+}
+
+void EncodeOrderExtControl::ConstructRPL(HevcTask & task)
+{
+    Fill(task.m_refPicList, IDX_INVALID);
+
+    const Frame& fi = m_FrameInfo[task.m_eo];
+    task.m_numRefActive[0] = static_cast<mfxU8>(fi.refLists.NumRefIdxL0Active);
+    task.m_numRefActive[1] = static_cast<mfxU8>(fi.refLists.NumRefIdxL1Active);
+
+    const mfxExtHEVCRefLists::mfxRefPic *prpl[2] = { fi.refLists.RefPicList0, fi.refLists.RefPicList1};
+    const HevcDpbFrame *beg = task.m_dpb[TASK_DPB_ACTIVE], *end = beg + MAX_DPB_SIZE;
+    for (mfxU32 dir=0; dir<2; dir++)
+    {
+        for (mfxU32 ind = 0; ind < task.m_numRefActive[dir]; ind++)
+        {
+            mfxU32 fo = prpl[dir][ind].FrameOrder;
+            const HevcDpbFrame *res = std::find_if(beg, end, [fo](const HevcDpbFrame& fr) {return fr.m_fo == fo;});
+            if (res != end)
+                task.m_refPicList[dir][ind] = static_cast<mfxU8>(res - beg); // position of give fo in dpb
+            else
+                throw mfxError(MFX_ERR_UNKNOWN, "Extern reference frame is not in DPB.");
+        }
+    }
+}
+
+
+mfxStatus EncodeOrderExtControl::Load()
+{
+    MSDK_CHECK_STATUS(State(), "RefList ctrl file error");
+    if (bReady)     return MFX_ERR_NONE;
+    const char separator_char = '|';
+    m_FrameInfo.reserve(32);
+    while (!m_pRefLIn.eof())
+    {
+        m_FrameInfo.emplace_back();
+        Frame& fi = m_FrameInfo.back();
+        m_pRefLIn >> fi.order >> std::hex >> fi.type >> fi.picStruct >> std::dec;
+        for (mfxU32 direction = 0; direction < 2; ++direction)
+        {
+            char separator;
+            m_pRefLIn >> separator;
+            if (separator != separator_char)
+                m_pRefLIn.setstate(std::ifstream::failbit); // current fi will be deleted
+
+            mfxU16 size = 0;
+            for (mfxI32 poc, i = 0; i < 8 && !(m_pRefLIn >> poc).fail(); i++)
+            {
+                mfxExtAVCRefLists::mfxRefPic & ref = direction ? fi.refLists.RefPicList1[size] : fi.refLists.RefPicList0[size];
+                if (poc >= 0)
+                {
+                    ref.FrameOrder = poc;
+                    //auto iref = FrameByDisplayOrder(poc);
+                    //if (iref != m_FrameInfo.cend())
+                    //    ref.PicStruct = (*iref).picStruct;
+                    size++;
+                }
+            }
+
+            if (direction == 0)
+                fi.refLists.NumRefIdxL0Active = size;
+            else
+                fi.refLists.NumRefIdxL1Active = size;
+            fi.cOrder = m_FrameInfo.size() - 1;
+        }
+        m_pRefLIn.ignore(16 * 8, '\n'); // ignore DPB
+        if (m_pRefLIn.fail())
+        {
+            m_FrameInfo.resize(m_FrameInfo.size() - 1); // if not eof(), last elem is invalid
+            break;
+        }
+    }
+
+    bReady = true;
+
+    return MFX_ERR_NONE;
 }

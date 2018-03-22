@@ -103,6 +103,8 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-mvpin <file-name>]         - use this to input MV predictors for ENCODE (Encoded Order will be enabled automatically).\n"));
     msdk_printf(MSDK_STRING("   [-mvpin::format <file-name>] - use this to input MVs for ENCODE before repacking in internal format\n"));
     msdk_printf(MSDK_STRING("                                   (Encoded Order will be enabled automatically).\n"));
+    msdk_printf(MSDK_STRING("   [-active_ref_lists_par <file-name>] - par - file for reference lists + reordering. Each line :\n"));
+    msdk_printf(MSDK_STRING("                                         <POC> <FrameType> <PicStruct> | 8 <reference POC> in L0 list | then L1 | 16 DPB\n"));
 
     msdk_printf(MSDK_STRING("   [-qrep] - quality predictor MV repacking before encode\n"));
     msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,5] (5 is default).\n"));
@@ -278,6 +280,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.mbstatoutFile), "MB stat out File", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-active_ref_lists_par")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.refctrlInFile), "RefList ctrl File", isParseInvalid);
+            params.bEncodedOrder = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qrep")))
         {
