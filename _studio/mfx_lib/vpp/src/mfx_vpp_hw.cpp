@@ -2619,7 +2619,7 @@ mfxStatus VideoVPPHW::QueryIOSurf(
     caps = vpp_ddi->GetCaps();
 
     sts = ValidateParams(par, &caps, core);
-    if( MFX_WRN_FILTER_SKIPPED == sts || MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+    if( MFX_WRN_FILTER_SKIPPED == sts || MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == sts)
     {
         sts = MFX_ERR_NONE;
     }
