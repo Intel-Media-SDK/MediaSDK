@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,8 @@ function( mfx_include_dirs )
     ${CMAKE_HOME_DIRECTORY}/contrib/cm/include
   )
 
-  set ( MSDK_STUDIO_ROOT ${CMAKE_HOME_DIRECTORY}/_studio PARENT_SCOPE )
-  set ( MSDK_LIB_ROOT    ${CMAKE_HOME_DIRECTORY}/_studio/mfx_lib PARENT_SCOPE )
-  set ( MSDK_UMC_ROOT    ${CMAKE_HOME_DIRECTORY}/_studio/shared/umc PARENT_SCOPE )
+  set ( MSDK_STUDIO_ROOT  ${CMAKE_HOME_DIRECTORY}/_studio PARENT_SCOPE )
+  set ( MSDK_LIB_ROOT     ${CMAKE_HOME_DIRECTORY}/_studio/mfx_lib PARENT_SCOPE )
+  set ( MSDK_UMC_ROOT     ${CMAKE_HOME_DIRECTORY}/_studio/shared/umc PARENT_SCOPE )
+  set ( MSDK_SAMPLES_ROOT ${CMAKE_HOME_DIRECTORY}/samples PARENT_SCOPE )
 endfunction()
