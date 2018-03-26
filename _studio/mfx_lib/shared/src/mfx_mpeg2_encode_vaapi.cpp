@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -906,12 +906,12 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
     MFX_CHECK_WITH_ASSERT(height_in_mbs == pExecuteBuffers->m_pps.NumSlice, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     m_numSliceGroups = 1;
 
-    for (i = 0; i < height_in_mbs; i++) {
+    for (i = 0; i < height_in_mbs; i++)
+    {
         ENCODE_SET_SLICE_HEADER_MPEG2&  ddiSlice = pExecuteBuffers->m_pSlice[i];
         assert(ddiSlice.NumMbsForSlice == width_in_mbs);
         sliceParam = &m_sliceParam[i];
-        //sliceParam->macroblock_address = i * width_in_mbs;
-        sliceParam->macroblock_address = i;
+        sliceParam->macroblock_address = i * width_in_mbs;
         sliceParam->num_macroblocks      = ddiSlice.NumMbsForSlice;
         sliceParam->is_intra_slice       = ddiSlice.IntraSlice;
         // prevent GPU hang due to different scale_code in different slices
