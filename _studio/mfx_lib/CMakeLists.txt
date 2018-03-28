@@ -203,6 +203,20 @@ set( defs "${defs} ${WARNING_FLAGS}" )
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 
-install( TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR} )
+get_mfx_version(mfx_version_major mfx_version_minor)
+set (mfxlib_filename "lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor}")
+
+#set_target_properties( ${mfxlibname} PROPERTIES
+#    LIBRARY_OUTPUT_NAME ${mfxlib_filename}
+#    SUFFIX "" )
+
+get_target_property(bindir ${mfxlibname} RUNTIME_OUTPUT_DIRECTORY) 
+
+install( FILES ${bindir}/lib${mfxlibname}.so DESTINATION ${MFX_MODULES_DIR} RENAME ${mfxlib_filename} )
+install( CODE "execute_process(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+  ${MFX_MODULES_DIR}/${mfxlib_filename}
+  ${MFX_MODULES_DIR}/lib${mfxlibname}.so )"
+)
 
 set( defs "" )
