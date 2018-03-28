@@ -147,7 +147,7 @@ if( DEFINED HEVC_DECODER_HW_GUID )
     set( plugin_name mfx_hevcd_hw32 )
   endif()
 
-  if( __CONFIG MATCHES debug )
+  if( CMAKE_BUILD_TYPE MATCHES Debug )
     set( plugin_name ${plugin_name}_d )
   endif()
 
@@ -210,7 +210,7 @@ if( DEFINED H264LA_ENCODER_GUID )
     set( plugin_name mfx_h264la_hw32 )
   endif()
 
-  if( __CONFIG MATCHES debug )
+  if( CMAKE_BUILD_TYPE MATCHES Debug )
     set( plugin_name ${plugin_name}_d )
   endif()
 
@@ -309,7 +309,7 @@ if( DEFINED VP8_DECODER_HW_GUID )
   else()
     set( plugin_name mfx_vp8d_hw32 )
   endif()
-  if( __CONFIG MATCHES debug )
+  if( CMAKE_BUILD_TYPE MATCHES Debug )
     set( plugin_name ${plugin_name}_d )
   endif()
 
