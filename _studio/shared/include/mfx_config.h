@@ -52,10 +52,13 @@
     #if !defined(ANDROID)
         // h264d
         #define MFX_ENABLE_H264_VIDEO_DECODE
+        #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
+        //#define MFX_ENABLE_VP9_VIDEO_DECODE_HW
 
         // h265d
-        #define MFX_ENABLE_H265_VIDEO_DECODE
-        #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
+        #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
+            #define MFX_ENABLE_H265_VIDEO_DECODE
+        #endif
 
         //h264e
         #define MFX_ENABLE_H264_VIDEO_ENCODE
@@ -64,6 +67,20 @@
         #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
             #define MFX_ENABLE_H265_VIDEO_ENCODE
         #endif
+        //hevc FEI ENCODE
+        #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= 1024
+            #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
+        #endif
+        #if MFX_VERSION >= 1023
+            #define MFX_ENABLE_H264_REPARTITION_CHECK
+        #endif
+
+        #if (MFX_VERSION >= 1025)
+            #if !defined(AS_H264LA_PLUGIN)
+                #define MFX_ENABLE_MFE
+            #endif
+        #endif
+
         //#define MFX_ENABLE_H264_VIDEO_PAK
         //#define MFX_ENABLE_H264_VIDEO_ENC
         #if defined(LINUX64)
@@ -71,11 +88,6 @@
             #define MFX_ENABLE_H264_VIDEO_FEI_PREENC
             #define MFX_ENABLE_H264_VIDEO_FEI_ENC
             #define MFX_ENABLE_H264_VIDEO_FEI_PAK
-
-            //hevc FEI ENCODE
-            #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= 1024
-                #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-            #endif
         #endif
         // mpeg2
         #define MFX_ENABLE_MPEG2_VIDEO_DECODE
@@ -91,6 +103,7 @@
         // vpp
         #define MFX_ENABLE_DENOISE_VIDEO_VPP
         #define MFX_ENABLE_VPP
+        #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
 
         #define MFX_ENABLE_H264_VIDEO_ENCODE_HW
         #define MFX_ENABLE_MPEG2_VIDEO_ENCODE_HW
@@ -117,12 +130,7 @@
 
     #else // #if !defined(ANDROID)
         #include "mfx_android_defs.h"
-
-
     #endif // #if !defined(ANDROID)
-
-    #if defined (MFX_VA_LINUX)
-    #endif
 
     #if defined(AS_H264LA_PLUGIN)
         #undef MFX_ENABLE_MJPEG_VIDEO_DECODE
@@ -131,6 +139,7 @@
         #undef MFX_ENABLE_H264_VIDEO_FEI_PREENC
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENC
         #undef MFX_ENABLE_H264_VIDEO_FEI_PAK
+        #undef MFX_ENABLE_VPP
     #endif
 
     #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(AS_VP8D_PLUGIN) || (defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= 1024)
@@ -145,6 +154,7 @@
         #undef MFX_ENABLE_MJPEG_VIDEO_ENCODE
         #undef MFX_ENABLE_DENOISE_VIDEO_VPP
         #undef MFX_ENABLE_VPP
+        #undef MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
         #undef MFX_ENABLE_H264_VIDEO_ENCODE_HW
         #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE_HW
         #undef MFX_ENABLE_USER_DECODE
@@ -154,6 +164,7 @@
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
         #undef MFX_ENABLE_H264_VIDEO_FEI_PREENC
         #undef MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
+        #undef MFX_ENABLE_VP8_VIDEO_DECODE_HW
     #endif // #if defined(AS_HEVCD_PLUGIN)
     #if defined(AS_HEVCD_PLUGIN)
         #define MFX_ENABLE_H265_VIDEO_DECODE
@@ -168,7 +179,6 @@
     #if defined(AS_VP8DHW_PLUGIN)
         #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
     #endif
-
     #if defined(AS_VP8D_PLUGIN)
             #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
     #endif
