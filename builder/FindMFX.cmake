@@ -26,10 +26,10 @@ elseif( Windows )
   set( os_arch "win" )
 endif()
 
-if( __ARCH MATCHES ia32)
-  set( os_arch "${os_arch}_ia32" )
-else()
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set( os_arch "${os_arch}_x64" )
+else()
+  set( os_arch "${os_arch}_ia32" )
 endif()
 
 if( CMAKE_MFX_HOME )

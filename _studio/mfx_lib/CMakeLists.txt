@@ -156,7 +156,7 @@ endforeach()
 set( USE_STRICT_NAME TRUE )
 set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/libmfx.map" )
 
-if( __ARCH MATCHES intel64 )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set( mfxlibname mfxhw64 )
 else()
   set( mfxlibname mfxhw32 )

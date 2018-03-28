@@ -20,7 +20,7 @@
 
 if(__ITT)
   if( Linux )
-    if( __ARCH MATCHES intel64 )
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       set( arch "64" )
     elseif()
       set( arch "32" )
