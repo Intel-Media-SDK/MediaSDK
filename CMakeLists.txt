@@ -23,6 +23,12 @@ project( mediasdk )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Default to Release build if nothing was specified
+if(NOT CMAKE_BUILD_TYPE)
+  message(STATUS "No build type selected, default to Release")
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 set( BUILDER_ROOT "${CMAKE_HOME_DIRECTORY}/builder" )
 
 if( NOT DEFINED CMAKE_MFX_HOME )
