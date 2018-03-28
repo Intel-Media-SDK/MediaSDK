@@ -558,7 +558,7 @@ mfxStatus MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 
 {
     mfxStatus sts = MFX_ERR_NONE;
     bool ErrFlag = false;
-    if (session) {
+    if (!session) {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_Load: session=NULL\n")));
         return MFX_ERR_NULL_PTR;
     }
