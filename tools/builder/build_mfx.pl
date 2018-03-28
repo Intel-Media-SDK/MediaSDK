@@ -128,7 +128,6 @@ sub get_cmake_gen_cmd {
     push @cmake_cmd_gen, '-DCMAKE_CONFIGURATION_TYPES:STRING="release;debug"';
     push @cmake_cmd_gen, "-DCMAKE_BUILD_TYPE:STRING=$config{'config'}";
     push @cmake_cmd_gen, "-D__ARCH:STRING=$config{'arch'}";
-    push @cmake_cmd_gen, "-D__CONFIG:STRING=$config{'config'}";
     push @cmake_cmd_gen, "-D__IPP:STRING=" . ($config{'ipp'} || 'e9');
     push @cmake_cmd_gen, "-D__TARGET_PLATFORM:STRING=$config{'target'}";
 

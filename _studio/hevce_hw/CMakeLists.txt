@@ -40,7 +40,7 @@ else()
   set( plugin_name mfx_hevce_hw32 )
 endif()
 
-if( __CONFIG MATCHES debug )
+if( CMAKE_BUILD_TYPE MATCHES Debug )
   set( plugin_name ${plugin_name}_d )
 endif()
 
