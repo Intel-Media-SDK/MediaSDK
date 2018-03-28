@@ -23,16 +23,6 @@ set( CMAKE_BIN_DIR ${CMAKE_BINARY_DIR}/__bin )
 set_property( GLOBAL PROPERTY PROP_PLUGINS_CFG "" )
 set_property( GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG "" )
 
-function( collect_arch )
-  if(__ARCH MATCHES ia32)
-    set( ia32 true PARENT_SCOPE )
-    set( CMAKE_OSX_ARCHITECTURES i386 PARENT_SCOPE )
-  else ()
-    set( intel64 true PARENT_SCOPE )
-    set( CMAKE_OSX_ARCHITECTURES x86_64 PARENT_SCOPE )
-  endif()
-endfunction()
-
 # .....................................................
 function( collect_oses )
   if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
