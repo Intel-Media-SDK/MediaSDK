@@ -26,14 +26,6 @@
 #include <limits>
 #include <limits.h>
 
-#if defined(__clang__)
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
-#elif defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#endif
-
 typedef unsigned int   uint;
 typedef unsigned short ushort;
 typedef unsigned char  uchar;

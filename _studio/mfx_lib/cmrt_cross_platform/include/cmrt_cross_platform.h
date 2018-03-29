@@ -49,14 +49,6 @@
 #endif
 #endif
 
-#if defined(__clang__)
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
-#elif defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#endif
-
 class SurfaceIndex
 {
 public:

@@ -53,14 +53,6 @@ const vm_char * DLL_NAME_LINUX = VM_STRING("igfxcmrt32.so");
 
 #define CONVERT_FORMAT(FORMAT) (FORMAT)
 
-#if defined(__clang__)
-  #pragma clang diagnostic push
-  #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
-#elif defined(__GNUC__)
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
-#endif
-
 enum { DX9=1, DX11=2, VAAPI=3 };
 
 typedef INT (* CreateCmDeviceLinuxFuncTypeEx)(CmLinux::CmDevice *&, UINT &, VADisplay, UINT);
