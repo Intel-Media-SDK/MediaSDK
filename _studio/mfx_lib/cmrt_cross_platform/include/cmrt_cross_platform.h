@@ -1534,6 +1534,8 @@ namespace CmLinux
 
         CM_RT_API virtual int32_t GetVISAVersion(uint32_t& majorVersion, uint32_t& minorVersion) = 0;
         //adding new functions in the bottom is a must
+protected: // do not allow  base deletion for derivates
+        ~CmDevice() {};
     };
 }
 #endif
@@ -1590,6 +1592,8 @@ public:
     CM_RT_API virtual INT FlushPrintBuffer() = 0;
     CM_RT_API virtual INT CreateSurface2DSubresource(AbstractSurfaceHandle pD3D11Texture2D, UINT subresourceCount, CmSurface2D** ppSurfaces, UINT& createdSurfaceCount, UINT option = 0) = 0;
     CM_RT_API virtual INT CreateSurface2DbySubresourceIndex(AbstractSurfaceHandle pD3D11Texture2D, UINT FirstArraySlice, UINT FirstMipSlice, CmSurface2D* &pSurface) = 0;
+protected: // do not allow  base deletion for derivates
+    ~CmDevice() {};
 };
 
 INT CreateCmDevice(CmDevice* &pD, UINT& version, VADisplay va_dpy = NULL, UINT mode = CM_DEVICE_CREATE_OPTION_DEFAULT);
