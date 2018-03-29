@@ -90,10 +90,11 @@ if( Linux OR Darwin )
     set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
   endif()
 
-  set(warnings "-Wall -Wformat -Wformat-security -Wnon-virtual-dtor")
+  set(c_warnings "-Wall -Wformat -Wformat-security")
+  set(cxx_warnings "${c_warnings} -Wnon-virtual-dtor")
 
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${warnings} ${no_warnings}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${warnings} ${no_warnings}")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${c_warnings} ${no_warnings}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${cxx_warnings} ${no_warnings}")
   append("-fPIE -pie" CMAKE_EXEC_LINKER_FLAGS)
 
   # CACHE + FORCE should be used only here to make sure that this parameters applied globally
