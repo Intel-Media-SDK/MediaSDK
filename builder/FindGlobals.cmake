@@ -93,15 +93,17 @@ if( Linux OR Darwin )
 
   set(warnings "-Wall -Wformat -Wformat-security -Wnon-virtual-dtor")
 
-  set(CMAKE_C_FLAGS   "-pipe -fPIC ${warnings} ${no_warnings}")
-  set(CMAKE_CXX_FLAGS "-pipe -fPIC ${warnings} ${no_warnings}")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${warnings} ${no_warnings}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${warnings} ${no_warnings}")
   append("-fPIE -pie" CMAKE_EXEC_LINKER_FLAGS)
 
   # CACHE + FORCE should be used only here to make sure that this parameters applied globally
-  set(CMAKE_C_FLAGS_DEBUG     "-O0 -g -D_DEBUG" CACHE STRING "" FORCE)
-  set(CMAKE_C_FLAGS_RELEASE   "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -DNDEBUG"    CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g -D_DEBUG" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -DNDEBUG"    CACHE STRING "" FORCE)
+  # End user is responsible to adjust configuration parameters further if needed. Here
+  # we se only minimal parameters which are really required for the proper configuration build.
+  set(CMAKE_C_FLAGS_DEBUG     "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG"   CACHE STRING "" FORCE)
+  set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}"          CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}"        CACHE STRING "" FORCE)
 
   if ( Darwin )
     if (CMAKE_C_COMPILER MATCHES clang)

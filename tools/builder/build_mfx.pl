@@ -139,6 +139,16 @@ sub get_cmake_gen_cmd {
 
     push @cmake_cmd_gen, '-DWARNING_FLAGS="-Wall -Werror"' if not $no_warn_as_error;
 
+    if (lc($config{'config'}) eq "release") {
+        my $compile_flags = "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector";
+        push @cmake_cmd_gen, "-DCMAKE_C_FLAGS_RELEASE=\"$compile_flags\"";
+        push @cmake_cmd_gen, "-DCMAKE_CXX_FLAGS_RELEASE=\"$compile_flags\"";
+    } else {
+        my $compile_flags = "-O0 -g";
+        push @cmake_cmd_gen, "-DCMAKE_C_FLAGS_DEBUG=\"$compile_flags\"";
+        push @cmake_cmd_gen, "-DCMAKE_CXX_FLAGS_DEBUG=\"$compile_flags\"";
+    }
+
     # This is the main different between "make" and "eclipse"" generators.
     # In case of "Eclipse" out-of-source build you have to point cmake
     # (1): on the current $MFX_HOME (source folder with main CMakeLists.txt)
