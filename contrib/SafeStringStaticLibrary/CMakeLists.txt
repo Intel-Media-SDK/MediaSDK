@@ -31,10 +31,10 @@ else( )
   endif( )
 
   set(no_warnings "-Wno-unknown-pragmas -Wno-unused")
+  set(warnings "-Wall -Wformat -Wformat-security")
   
-  set(CMAKE_CXX_FLAGS "-pipe -fPIC -std=c++11")
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -Wall ${no_warnings} -Wformat -Wformat-security -g -D_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings} -Wformat -Wformat-security -DNDEBUG")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC -std=c++11 ${warnings} ${no_warnings}")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
   if (DEFINED CMAKE_FIND_ROOT_PATH)
     append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
