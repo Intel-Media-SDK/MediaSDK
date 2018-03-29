@@ -33,7 +33,6 @@ function( get_api_version mfx_version_major mfx_version_minor )
   set(${mfx_version_minor} ${minor} PARENT_SCOPE)
 endfunction()
 
-set( CMAKE_VERBOSE_MAKEFILE             TRUE )
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
 if( CMAKE_SYSTEM_NAME MATCHES Windows )
