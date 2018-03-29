@@ -187,7 +187,7 @@ mfxU16 minRefForPyramid(mfxU16 GopRefDist, bool bField)
         refB -= x;
     }
 
-    return (bField ? 2:1)*(2 + refB);
+    return bField ? ((2 + refB)*2 +1) : (2 + refB);
 }
 
 mfxU32 GetMaxDpbSizeByLevel(MfxVideoParam const & par)
