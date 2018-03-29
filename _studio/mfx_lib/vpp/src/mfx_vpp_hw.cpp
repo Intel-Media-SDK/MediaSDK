@@ -2308,7 +2308,7 @@ mfxStatus  VideoVPPHW::Init(
         sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice);
         MFX_CHECK_STS(sts);
 
-        m_SCD.SetGoPSize(Immediate_GoP);
+        m_SCD.SetGoPSize(ns_asc::Immediate_GoP);
     }
 #endif
 
@@ -3997,8 +3997,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
      */
     if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)
     {
-        BOOL analysisReady = false;
-
         /* Feed scene change detector with input rame */
         mfxFrameSurface1 * inFrame = surfQueue[pTask->bkwdRefCount].pSurf;
 
@@ -4041,9 +4039,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
             }
             frameSurface.Data.MemId = frameHandle;
 
-            sts = m_SCD.MapFrame(&frameSurface);
-            MFX_CHECK_STS(sts);
-
             // Set input frame parity in SCD
             if(frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF)
             {
@@ -4053,6 +4048,9 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
             {
                 m_SCD.SetParityBFF();
             }
+
+            sts = m_SCD.PutFrameInterlaced(frameHandle);
+            MFX_CHECK_STS(sts);
 
             // Check for scene change
             // Do it only when new input frame are fed to deinterlacer.
@@ -4069,12 +4067,10 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
                 // input fiels to SCD detection engine are field 2N + 2 and 2N + 3
 
                 // Decision on first field is done for field 2N + 1
-                analysisReady = m_SCD.ProcessField();
                 sc_in_first_field = m_SCD.Get_frame_shot_Decision() + m_SCD.Get_frame_last_in_scene(); //takes care of bad parity info
                 LastSceneInframe += m_SCD.Get_frame_last_in_scene();
 
                 // Decision on second field is done for field 2N + 2
-                analysisReady = m_SCD.ProcessField();
                 sc_in_second_field = m_SCD.Get_frame_shot_Decision() + m_SCD.Get_frame_last_in_scene(); //Dima
                 LastSceneInframe += m_SCD.Get_frame_last_in_scene();
                 sc_shot_in_second_field = m_SCD.Get_frame_shot_Decision(); // 30i->60p will display new field in 2 frames
