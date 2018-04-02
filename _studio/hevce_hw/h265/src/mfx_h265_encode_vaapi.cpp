@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -673,9 +673,10 @@ void VAAPIEncoder::FillSps(
     sps.general_profile_idc = par.m_sps.general.profile_idc;
     sps.general_level_idc   = par.m_sps.general.level_idc;
     sps.general_tier_flag   = par.m_sps.general.tier_flag;
-    sps.intra_period        = par.mfx.GopPicSize;
-    sps.intra_idr_period    = par.mfx.GopPicSize*par.mfx.IdrInterval;
-    sps.ip_period           = mfxU8(par.mfx.GopRefDist);
+    mfxU8 nPicturesPerFrame = par.isField() ? 2 : 1;
+    sps.intra_period        = par.mfx.GopPicSize * nPicturesPerFrame;
+    sps.intra_idr_period    = par.mfx.GopPicSize * par.mfx.IdrInterval * nPicturesPerFrame;
+    sps.ip_period           = mfxU8(par.mfx.GopRefDist * nPicturesPerFrame);
 
     if (   par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ
