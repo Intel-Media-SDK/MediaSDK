@@ -1645,9 +1645,10 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     }
 
     m_sps.vui.field_seq_flag = isField();
-    if (IsOn(m_ext.CO.PicTimingSEI))
+    if (IsOn(m_ext.CO.PicTimingSEI) || m_sps.vui.field_seq_flag
+        || (m_vps.general.progressive_source_flag && m_vps.general.interlaced_source_flag))
     {
-        m_sps.vui.frame_field_info_present_flag = 1;
+        m_sps.vui.frame_field_info_present_flag = 1; // spec requirement for interlace
     }
 
     if (IsOn(m_ext.CO.VuiNalHrdParameters))
