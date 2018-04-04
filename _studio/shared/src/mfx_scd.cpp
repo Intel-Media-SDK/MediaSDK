@@ -11815,13 +11815,13 @@ mfxStatus SceneChangeDetector::SubSampleImage(mfxU32 srcWidth, mfxU32 srcHeight,
     // Load kernels
     if (NULL == m_pCmProgram)
     {
-        if(m_platform == PLATFORM_INTEL_HSW)
-         res = m_pCmDevice->LoadProgram((void *)asc_genx_hsw, sizeof(asc_genx_hsw), m_pCmProgram);
-        else if (m_platform == PLATFORM_INTEL_SKL)
-         res = m_pCmDevice->LoadProgram((void *)asc_genx_skl, sizeof(asc_genx_skl), m_pCmProgram);
-     else
-         res = m_pCmDevice->LoadProgram((void *)asc_genx_bdw, sizeof(asc_genx_bdw), m_pCmProgram);
-     if(res != 0 ) return MFX_ERR_DEVICE_FAILED;
+        if (m_platform == PLATFORM_INTEL_HSW)
+            res = m_pCmDevice->LoadProgram((void *)asc_genx_hsw, sizeof(asc_genx_hsw), m_pCmProgram);
+        else if (m_platform == PLATFORM_INTEL_SKL || m_platform == PLATFORM_INTEL_CFL)
+            res = m_pCmDevice->LoadProgram((void *)asc_genx_skl, sizeof(asc_genx_skl), m_pCmProgram);
+        else
+            res = m_pCmDevice->LoadProgram((void *)asc_genx_bdw, sizeof(asc_genx_bdw), m_pCmProgram);
+        if (res != 0) return MFX_ERR_DEVICE_FAILED;
     }
 
     if (NULL == m_pCmKernelTopField || NULL == m_pCmKernelBotField || NULL == m_pCmKernelFrame)
