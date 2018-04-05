@@ -12,7 +12,13 @@
 MFX_CFLAGS := -DANDROID
 
 # Android version preference:
-MFX_ANDROID_VERSION:= MFX_O
+ifneq ($(filter 8.% O ,$(PLATFORM_VERSION)),)
+  ifneq ($(filter 8.0.%,$(PLATFORM_VERSION)),)
+    MFX_ANDROID_VERSION:= MFX_O
+  else
+    MFX_ANDROID_VERSION:= MFX_O_MR1
+  endif
+endif
 
 # Passing Android-dependency information to the code
 MFX_CFLAGS += \
