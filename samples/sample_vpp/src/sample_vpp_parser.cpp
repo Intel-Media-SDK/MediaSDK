@@ -199,6 +199,12 @@ msdk_printf(MSDK_STRING("   [-pa_hue  hue]        - procamp hue property.       
 msdk_printf(MSDK_STRING("   [-pa_sat  saturation] - procamp satursation property. range [   0.0,  10.0] (def: 1.0)\n"));
 msdk_printf(MSDK_STRING("   [-pa_con  contrast]   - procamp contrast property.    range [   0.0,  10.0] (def: 1.0)\n"));
 msdk_printf(MSDK_STRING("   [-pa_bri  brightness] - procamp brightness property.  range [-100.0, 100.0] (def: 0.0)\n\n"));
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+msdk_printf(MSDK_STRING("   [-rt_hue  interval hue1 hue2]               - procamp hue property.         range [-180.0, 180.0] (def: 0.0)\n"));
+msdk_printf(MSDK_STRING("   [-rt_sat  interval saturation1 saturation2] - procamp satursation property. range [   0.0,  10.0] (def: 1.0)\n"));
+msdk_printf(MSDK_STRING("   [-rt_con  interval contrast1 constrast2]    - procamp contrast property.    range [   0.0,  10.0] (def: 1.0)\n"));
+msdk_printf(MSDK_STRING("   [-rt_bri  interval brightness1 brightness2] - procamp brightness property.  range [-100.0, 100.0] (def: 0.0)\n\n"));
+#endif
 msdk_printf(MSDK_STRING("   [-gamut:compression]  - enable gamut compression algorithm (xvYCC->sRGB) \n"));
 msdk_printf(MSDK_STRING("   [-gamut:bt709]        - enable BT.709 matrix transform (RGB->YUV conversion)(def: BT.601)\n\n"));
 msdk_printf(MSDK_STRING("   [-frc:advanced]       - enable advanced FRC algorithm (based on PTS) \n"));
@@ -806,7 +812,60 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->procampParam[paramID].saturation);
             }
-
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_hue")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtHue.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value2);
+                pParams->rtHue.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_bri")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtBrightness.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value2);
+                pParams->rtBrightness.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_con")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtContrast.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value2);
+                pParams->rtContrast.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_sat")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtSaturation.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value2);
+                pParams->rtSaturation.isEnabled = true;
+            }
+#endif
             //MSDK 3.0
             else if(0 == msdk_strcmp(strInput[i], MSDK_STRING("-gamut:compression")))
             {
@@ -1265,6 +1324,60 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->procampParam[0].saturation);
             }
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_hue")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtHue.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value2);
+                pParams->rtHue.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_bri")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtBrightness.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value2);
+                pParams->rtBrightness.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_con")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtContrast.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value2);
+                pParams->rtContrast.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_sat")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtSaturation.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value2);
+                pParams->rtSaturation.isEnabled = true;
+            }
+#endif
 
             //MSDK 3.0
             else if(0 == msdk_strcmp(strInput[i], MSDK_STRING("-gamut:compression")))
