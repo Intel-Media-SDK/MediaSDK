@@ -151,11 +151,7 @@ function(configure_libmfx_target target)
 
   set(SCOPE_CFLAGS ${SCOPE_CFLAGS} PARENT_SCOPE)
   set(SCOPE_LINKFLAGS "${SCOPE_LINKFLAGS} -Wl,--default-symver" PARENT_SCOPE)
-  if (CMAKE_BUILD_TYPE STREQUAL debug)
-    set(SCOPE_LIBS ${SCOPE_LIBS} mfx PARENT_SCOPE)
-  else()
-    set(SCOPE_LIBS ${SCOPE_LIBS} mfx PARENT_SCOPE)
-  endif()
+  set(SCOPE_LIBS ${SCOPE_LIBS} mfx PARENT_SCOPE)
 endfunction()
 
 function(configure_itt_target target)

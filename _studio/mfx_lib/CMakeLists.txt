@@ -161,9 +161,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 else()
   set( mfxlibname mfxhw32 )
 endif()
-if( CMAKE_BUILD_TYPE MATCHES Debug )
-  set( mfxlibname ${mfxlibname}_d )
-endif()
 
 set( LIBS "" )
 list( APPEND LIBS

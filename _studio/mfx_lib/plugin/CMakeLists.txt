@@ -148,10 +148,6 @@ if( DEFINED HEVC_DECODER_HW_GUID )
     set( plugin_name mfx_hevcd_hw32 )
   endif()
 
-  if( CMAKE_BUILD_TYPE MATCHES Debug )
-    set( plugin_name ${plugin_name}_d )
-  endif()
-
   set_file_and_product_version( ${hevc_version} version_defs )
 
   list( APPEND sources ${plugin_common_sources} )
@@ -209,10 +205,6 @@ if( DEFINED H264LA_ENCODER_GUID )
     set( plugin_name mfx_h264la_hw64 )
   else()
     set( plugin_name mfx_h264la_hw32 )
-  endif()
-
-  if( CMAKE_BUILD_TYPE MATCHES Debug )
-    set( plugin_name ${plugin_name}_d )
   endif()
 
   set_file_and_product_version( ${h264la_version} version_defs )
@@ -310,9 +302,6 @@ if( DEFINED VP8_DECODER_HW_GUID )
   else()
     set( plugin_name mfx_vp8d_hw32 )
   endif()
-  if( CMAKE_BUILD_TYPE MATCHES Debug )
-    set( plugin_name ${plugin_name}_d )
-  endif()
 
   set_file_and_product_version( ${vp8_version} version_defs )
 
@@ -388,9 +377,6 @@ if( DEFINED VP9_DECODER_HW_GUID )
     set( plugin_name mfx_vp9d_hw64 )
   else()
     set( plugin_name mfx_vp9d_hw32 )
-  endif()
-  if( CMAKE_BUILD_TYPE MATCHES Debug )
-    set( plugin_name ${plugin_name}_d )
   endif()
 
   set_file_and_product_version( ${vp9_version} version_defs )

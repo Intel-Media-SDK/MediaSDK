@@ -40,10 +40,6 @@ else()
   set( plugin_name mfx_hevce_hw32 )
 endif()
 
-if( CMAKE_BUILD_TYPE MATCHES Debug )
-  set( plugin_name ${plugin_name}_d )
-endif()
-
 set_file_and_product_version( ${hevc_version} version_defs )
 
 set( sources "" )
