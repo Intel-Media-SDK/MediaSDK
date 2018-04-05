@@ -12,7 +12,8 @@ MFX_LOCAL_DIRS_IMPL = \
     h265_dec \
     h264_dec \
     vc1_dec \
-    jpeg_dec
+    jpeg_dec \
+    vp9_dec
 
 MFX_LOCAL_SRC_FILES = \
   $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/$(dir)/src/*.cpp)))

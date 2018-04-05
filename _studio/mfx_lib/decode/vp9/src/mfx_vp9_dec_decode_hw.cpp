@@ -34,8 +34,6 @@
 #include "mfx_vpx_dec_common.h"
 
 
-//#define VP9_STATUS_REPORTING_ENABLED //need to implement different code for Intel/MSFT guids, disable for now
-
 using namespace UMC_VP9_DECODER;
 
 static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar);
