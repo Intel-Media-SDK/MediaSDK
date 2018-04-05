@@ -23,8 +23,6 @@
 #include <dlfcn.h>
 #include <string.h>
 
-#if !defined(_DEBUG)
-
 #if defined(LINUX64)
 const msdk_disp_char * defaultDLLName[2] = {"libmfxhw64.so",
                                             "libmfxsw64.so"};
@@ -43,29 +41,7 @@ const msdk_disp_char * defaultAudioDLLName[2] = {"libmfxaudiosw32.so",
 
 const msdk_disp_char * defaultPluginDLLName[2] = {"libmfxplugin32_hw.so",
                                                   "libmfxplugin32_sw.so"};
-#endif // (defined(WIN64))
-
-#else // defined(_DEBUG)
-
-#if defined(LINUX64)
-const msdk_disp_char * defaultDLLName[2] = {"libmfxhw64_d.so",
-                                            "libmfxsw64_d.so"};
-const msdk_disp_char * defaultAudioDLLName[2] = {"libmfxaudiosw64_d.so",
-                                            "libmfxaudiosw64_d.so"};
-
-const msdk_disp_char * defaultPluginDLLName[2] = {"libmfxplugin64_hw_d.so",
-                                                  "libmfxplugin64_sw_d.so"};
-#else // for Linux32 and Android
-const msdk_disp_char * defaultDLLName[2] = {"libmfxhw32_d.so",
-                                            "libmfxsw32_d.so"};
-const msdk_disp_char * defaultAudioDLLName[2] = {"libmfxaudiosw32_d.so",
-                                            "libmfxaudiosw32_d.so"};
-
-const msdk_disp_char * defaultPluginDLLName[2] = {"libmfxplugin32_hw_d.so",
-                                                  "libmfxplugin32_sw_d.so"};
-#endif // (defined(WIN64))
-
-#endif // !defined(_DEBUG)
+#endif
 
 namespace MFX
 {
