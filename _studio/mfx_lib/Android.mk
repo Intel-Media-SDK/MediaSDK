@@ -2,7 +2,7 @@ LOCAL_PATH:= $(MFX_HOME)/_studio
 
 # =============================================================================
 
-MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8
+MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8 vp9
 MFX_LOCAL_ENCODERS := h264 mjpeg
 
 # Setting subdirectories to march thru
@@ -64,7 +64,7 @@ UMC_DIRS := \
     brc
 
 UMC_DIRS_IMPL := \
-    h265_dec h264_dec mpeg2_dec vc1_dec jpeg_dec \
+    h265_dec h264_dec mpeg2_dec vc1_dec jpeg_dec vp9_dec \
     vc1_common jpeg_common
 
 UMC_LOCAL_C_INCLUDES := \
