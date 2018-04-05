@@ -1046,6 +1046,7 @@ void InheritDefaultValues(
 
     InheritOption(extOpt3Init->IntRefCycleDist, extOpt3Reset->IntRefCycleDist);
     InheritOption(extOpt3Init->PRefType, extOpt3Reset->PRefType);
+    InheritOption(extOpt3Init->GPB, extOpt3Reset->GPB);
 
     InheritOption(extOpt3Init->WinBRCMaxAvgKbps, extOpt3Reset->WinBRCMaxAvgKbps);
     InheritOption(extOpt3Init->WinBRCSize, extOpt3Reset->WinBRCSize);
