@@ -3689,6 +3689,22 @@ mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcess
             execParams->VideoSignalInfoOut.TransferMatrix = vsi->TransferMatrix;
      }
 
+#ifdef MFX_ENABLE_VPP_RUNTIME_HSBC
+    // Update ProcAmp parameters for output
+    mfxExtVPPProcAmp *procamp = reinterpret_cast<mfxExtVPPProcAmp *>(GetExtendedBuffer(outputSurf->Data.ExtParam,
+                                                                     outputSurf->Data.NumExtParam,
+                                                                     MFX_EXTBUFF_VPP_PROCAMP));
+
+    if (procamp)
+    {
+        execParams->Brightness     = procamp->Brightness;
+        execParams->Saturation     = procamp->Saturation;
+        execParams->Hue            = procamp->Hue;
+        execParams->Contrast       = procamp->Contrast;
+        execParams->bEnableProcAmp = true;
+    }
+#endif
+
     return sts;
 }
 
