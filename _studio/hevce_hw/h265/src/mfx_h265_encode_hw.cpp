@@ -107,10 +107,18 @@ mfxU16 MaxRec(MfxVideoParam const & par)
 {
     return par.AsyncDepth + par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
 }
+mfxU16 NumFramesForReord(MfxVideoParam const & par)
+{
+    if (par.isField())
+    {
+        return (par.mfx.GopRefDist - 1) * 2 + (par.bFieldReord ? 1 : 0);
+    }
+    return par.mfx.GopRefDist - 1;
+}
 
 mfxU16 MaxRaw(MfxVideoParam const & par)
 {
-    return par.AsyncDepth + (par.mfx.GopRefDist -1)*(par.isField() ? 2 : 1)  + par.RawRef * par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
+    return par.AsyncDepth + NumFramesForReord(par) + par.RawRef * par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
 }
 
 mfxU16 MaxBs(MfxVideoParam const & par)
@@ -148,7 +156,7 @@ mfxU32 GetMinBsSize(MfxVideoParam const & par)
 }
 mfxU16 MaxTask(MfxVideoParam const & par)
 {
-    return par.AsyncDepth + (par.mfx.GopRefDist - 1)*(par.isField() ? 2 : 1) + ((par.AsyncDepth > 1)? 1: 0);
+    return par.AsyncDepth + NumFramesForReord(par) + ((par.AsyncDepth > 1)? 1: 0);
 }
 
 
@@ -969,7 +977,6 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
 
-        m_task.SaveFieldInfo(task);
         m_lastTask = *task;
         m_task.Submit(task);
     }
