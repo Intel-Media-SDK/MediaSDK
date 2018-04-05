@@ -208,4 +208,10 @@
 #endif
 #endif
 
+// The line below HAS to be changed to MFX_VERSION >= 1027
+// after THE API is switched to 1.27
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    #define MFX_ENABLE_VPP_RUNTIME_HSBC
+#endif
+
 #endif // _MFX_CONFIG_H_
