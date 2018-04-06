@@ -79,9 +79,6 @@
 #define MFX_ENABLE_LA_H264_VIDEO_HW
 #endif
 
-// H265 features
-#define MFX_ENABLE_HEVCE_ROI
-
 // H265 FEI plugin
 
 // user plugin for decoder, encoder, and vpp
