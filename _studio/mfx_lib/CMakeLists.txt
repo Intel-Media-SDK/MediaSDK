@@ -162,6 +162,12 @@ else()
   set( mfxlibname mfxhw32 )
 endif()
 
+if( API_VERSION VERSION_GREATER 1.25 )
+  set(MCTF_LIB "mctf_hw")
+else()
+  set(MCTF_LIB "")
+endif()
+
 set( LIBS "" )
 list( APPEND LIBS
   mfx_trace_hw
@@ -182,7 +188,7 @@ list( APPEND LIBS
   mfx_common
   mfx_common_hw
   asc
-  mctf_hw
+  ${MCTF_LIB}
   vpp_hw
   h264_common
   h264_preenc
