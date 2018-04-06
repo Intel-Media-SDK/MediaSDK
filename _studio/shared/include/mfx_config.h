@@ -209,14 +209,10 @@
 
 #define MFX_ENABLE_HEVCE_INTERLACE
 
-
-
-// NB: the line below HAS to be changed to MFX_VERSION >= 1026
-// after THE API is switched to 1.26
-#if MFX_VERSION >= MFX_VERSION_NEXT
-#define MFX_ENABLE_MCTF
+#if MFX_VERSION >= 1026
+    #define MFX_ENABLE_MCTF
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
-#define MFX_ENABLE_MCTF_EXT // extended MCTF interface
+    #define MFX_ENABLE_MCTF_EXT // extended MCTF interface
 #endif
 #endif
 

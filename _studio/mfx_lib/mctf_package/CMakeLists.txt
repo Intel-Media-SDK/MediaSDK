@@ -18,29 +18,31 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
+if( API_VERSION VERSION_GREATER 1.25 )
+    set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
-mfx_include_dirs( )
+    mfx_include_dirs( )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/mctf/include )
-include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
+    include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/include )
+    include_directories( ${MSDK_LIB_ROOT}/genx/mctf/include )
+    include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
-include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
-include_directories( ${MSDK_STUDIO_ROOT}/shared/include )
+    include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
+    include_directories( ${MSDK_STUDIO_ROOT}/shared/include )
 
-set( sources "" )
-set( sources.plus "" )
+    set( sources "" )
+    set( sources.plus "" )
 
-file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/mctf/src/*.cpp"
-                        "${MSDK_LIB_ROOT}/genx/mctf/src/*.cpp"
- )
-list( APPEND sources ${srcs})
-list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_mc.cpp")
-list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_me.cpp")
-list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_sd.cpp")
+    file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/mctf/src/*.cpp"
+                            "${MSDK_LIB_ROOT}/genx/mctf/src/*.cpp"
+    )
+    list( APPEND sources ${srcs})
+    list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_mc.cpp")
+    list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_me.cpp")
+    list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_sd.cpp")
 
-set( defs "${defs} ${WARNING_FLAGS}")
+    set( defs "${defs} ${WARNING_FLAGS}")
 
-make_library( mctf hw static )
-set( defs "" )
+    make_library( mctf hw static )
+    set( defs "" )
+endif()
