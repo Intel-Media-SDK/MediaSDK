@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -255,7 +255,7 @@ mfxStatus MFXInternalPseudoJoinSession(mfxSession session, mfxSession child_sess
 
     try
     {
- 
+
 
         //  release  the child scheduler
         mfxRes = child_session->ReleaseScheduler();
@@ -307,6 +307,9 @@ mfxStatus MFXInternalPseudoDisjoinSession(mfxSession session)
         session->m_pScheduler->WaitForTaskCompletion(session->m_pPAK.get());
         session->m_pScheduler->WaitForTaskCompletion(session->m_plgGen.get());
 
+        // create new self core operator
+        // restore original operator core.
+        session->m_pOperatorCore = new OperatorCORE(session->m_pCORE.get());
 
         // just zeroing pointer to external scheduler (it will be released in external session close)
         session->m_pScheduler = NULL;
@@ -316,8 +319,8 @@ mfxStatus MFXInternalPseudoDisjoinSession(mfxSession session)
         {
             return mfxRes;
         }
-          
-        // core will released automatically 
+
+        // core will released automatically
 
 
     }
