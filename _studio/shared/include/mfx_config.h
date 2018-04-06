@@ -48,10 +48,11 @@
     #endif
 #endif
 
-#if !defined(LINUX_TARGET_PLATFORM)
+#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW)
     #if !defined(ANDROID)
         // h264d
         #define MFX_ENABLE_H264_VIDEO_DECODE
+        #define MFX_ENABLE_H265_VIDEO_DECODE
         #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
         //#define MFX_ENABLE_VP9_VIDEO_DECODE_HW
 
@@ -192,8 +193,6 @@
         #include "mfx_common_linux_bxtmin.h"
     #elif defined(LINUX_TARGET_PLATFORM_BXT)    // PRE_SI_GEN == 9
         #include "mfx_common_linux_bxt.h"
-    #elif defined(LINUX_TARGET_PLATFORM_BDW)    // PRE_SI_GEN == 9
-        #include "mfx_common_linux_bdw.h"
     #else
         #error "Target platform should be specified!"
     #endif
