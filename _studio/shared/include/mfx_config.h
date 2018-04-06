@@ -48,7 +48,7 @@
     #endif
 #endif
 
-#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW)
+#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL)
     #if !defined(ANDROID)
         // h264d
         #define MFX_ENABLE_H264_VIDEO_DECODE
@@ -187,9 +187,7 @@
     #endif
 
 #else // LINUX_TARGET_PLATFORM
-    #if defined(LINUX_TARGET_PLATFORM_CFL)      // PRE_SI_GEN == 9
-        #include "mfx_common_linux_cfl.h"
-    #elif defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
+    #if defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
         #include "mfx_common_linux_bxtmin.h"
     #elif defined(LINUX_TARGET_PLATFORM_BXT)    // PRE_SI_GEN == 9
         #include "mfx_common_linux_bxt.h"
@@ -198,12 +196,10 @@
     #endif
 #endif // LINUX_TARGET_PLATFORM
 
-
-
-
-
-
 #define MFX_ENABLE_HEVCE_INTERLACE
+#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_CFL)
+    #define MFX_ENABLE_HEVCE_ROI
+#endif
 
 #if MFX_VERSION >= 1026
     #define MFX_ENABLE_MCTF
