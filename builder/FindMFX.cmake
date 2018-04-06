@@ -102,6 +102,8 @@ else( )
   endif()  
 endif()
 
+set( API_VERSION "${major_vers}.${minor_vers}")
+
 message(STATUS "Enabling API ${major_vers}.${minor_vers} feature set with flags ${API_FLAGS}")
 
 if( Linux )
