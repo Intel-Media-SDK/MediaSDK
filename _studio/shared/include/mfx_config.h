@@ -48,7 +48,7 @@
     #endif
 #endif
 
-#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL)
+#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL) || defined(LINUX_TARGET_PLATFORM_BXT)
     #if !defined(ANDROID)
         // h264d
         #define MFX_ENABLE_H264_VIDEO_DECODE
@@ -69,11 +69,11 @@
             #define MFX_ENABLE_H265_VIDEO_ENCODE
         #endif
         //hevc FEI ENCODE
-        #if MFX_VERSION >= 1023
+        #if MFX_VERSION >= 1023 && !defined(LINUX_TARGET_PLATFORM_BXT)
             #define MFX_ENABLE_H264_REPARTITION_CHECK
         #endif
 
-        #if (MFX_VERSION >= 1025)
+        #if (MFX_VERSION >= 1025) && !defined(LINUX_TARGET_PLATFORM_BXT)
             #if !defined(AS_H264LA_PLUGIN)
                 #define MFX_ENABLE_MFE
             #endif
@@ -101,7 +101,9 @@
         // vpp
         #define MFX_ENABLE_DENOISE_VIDEO_VPP
         #define MFX_ENABLE_VPP
-        #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
+        #if !defined(LINUX_TARGET_PLATFORM_BXT)
+            #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
+        #endif
 
         #define MFX_ENABLE_H264_VIDEO_ENCODE_HW
         #define MFX_ENABLE_MPEG2_VIDEO_ENCODE_HW
@@ -171,7 +173,7 @@
         #define MFX_ENABLE_H265_VIDEO_ENCODE
             #define MFX_ENABLE_CM
     #endif
-    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= MFX_VERSION_NEXT
+    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= MFX_VERSION_NEXT && !defined(LINUX_TARGET_PLATFORM_BXT)
         #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
     #endif
     #if defined(AS_VP8DHW_PLUGIN)
@@ -189,8 +191,6 @@
 #else // LINUX_TARGET_PLATFORM
     #if defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
         #include "mfx_common_linux_bxtmin.h"
-    #elif defined(LINUX_TARGET_PLATFORM_BXT)    // PRE_SI_GEN == 9
-        #include "mfx_common_linux_bxt.h"
     #else
         #error "Target platform should be specified!"
     #endif
