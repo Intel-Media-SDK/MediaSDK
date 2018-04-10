@@ -115,6 +115,7 @@ namespace MfxHwH265FeiEncode
             vaFeiFrameControl->per_ctb_input                      = EncFrameCtrl->PerCtuInput;
             vaFeiFrameControl->force_lcu_split                    = EncFrameCtrl->ForceCtuSplit;
             vaFeiFrameControl->num_concurrent_enc_frame_partition = EncFrameCtrl->NumFramePartitions;
+            vaFeiFrameControl->fast_intra_mode                    = EncFrameCtrl->FastIntraMode;
 
             // Input buffers
             mfxExtFeiHevcEncMVPredictors* mvp = reinterpret_cast<mfxExtFeiHevcEncMVPredictors*>(GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED));

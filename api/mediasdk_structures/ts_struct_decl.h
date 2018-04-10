@@ -722,6 +722,7 @@ STRUCT(mfxExtFeiHevcEncFrameCtrl,
     FIELD_T(mfxU16,       PerCtuInput)
     FIELD_T(mfxU16,       ForceCtuSplit)
     FIELD_T(mfxU16,       NumFramePartitions)
+    FIELD_T(mfxU16,       FastIntraMode)
 )
 
 STRUCT(mfxExtFeiHevcEncMVPredictors,
