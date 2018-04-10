@@ -6,8 +6,10 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate
 
 # Important note
-The current version of Intel Media SDK compatible with the open source [Linux* Graphics Driver](https://github.com/intel/media-driver) [commit f7662547ab9cec5b98d144b0943067e2251825e8](https://github.com/intel/media-driver/commit/f7662547ab9cec5b98d144b0943067e2251825e8).
-Intel Media SDK depends on a special version of [LibVA commit df544cd5a31e54d4cbd33a391795a8747ddaf789](https://github.com/01org/libva/commit/df544cd5a31e54d4cbd33a391795a8747ddaf789).
+
+The current version of Intel Media SDK is only compatible with the Linux* Graphics Driver from [Intel® Media Server Studio for Linux*](https://software.intel.com/en-us/intel-media-server-studio). You need to download and install Intel Media Server Studio 2018 R1 _before_ you build Intel Media SDK.
+Intel Media SDK depends on a special version of [LibVA](https://www.freedesktop.org/wiki/Software/vaapi/) which comes with Intel Media Server Studio installation and is not in upstream, so this version is not compatible with the LibVA/driver available at [01org](https://01.org/linuxgraphics/downloads ).
+
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
@@ -30,7 +32,7 @@ Intel Media SDK is licensed under MIT license. See [LICENSE](./LICENSE) for deta
 See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
 # System requirements
-**Operating System:** CentOS 7.3, Ubuntu 16.04.  
+**Operating System:** CentOS 7.4, Ubuntu 16.04.  
 **Hardware:**
 Intel platforms with integrated graphics:
  - Intel® Xeon® E3-1200 v4 family with C226 chipset
@@ -44,9 +46,9 @@ Please find documentation under the `doc/` folder or navigate to [Intel Media Se
 ## Requirements
  - Git* (with [LFS](https://git-lfs.github.com/) support)
  - Perl* v5.16+
- - Cmake* v2.8+
+ - CMake* v2.8.5+
  - GCC* v4.8+
- - Intel [Media Driver for VAAPI](https://github.com/intel/media-driver)
+ - Intel Media Server Studio 2018 R1
 
 ## Build steps
 
