@@ -928,6 +928,12 @@ HevcTask* EncodeOrderExtControl::ReorderFrame(mfxFrameSurface1 * surface)
         free_task->m_idxRec = m_frameOrder & 0x7f; // Workaround to get unique idx and != IDX_INVALID (0xff)
         free_task->m_bottomField = ((*fi).picStruct == MFX_PICSTRUCT_FIELD_BOTTOM);
 
+        if (surface)
+        {
+            surface->Info.PicStruct = (*fi).picStruct;
+            surface->Data.FrameOrder = m_frameOrder;
+        }
+
         m_frameOrder ++;
     }
 
