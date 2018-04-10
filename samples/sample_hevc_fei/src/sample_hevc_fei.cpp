@@ -91,6 +91,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-MVPBlockSize size] - external MV predictor block size (0 - no MVP, 1 - MVP per 16x16, 2 - MVP per 32x32, 7 - use with -mvpin)\n"));
     msdk_printf(MSDK_STRING("   [-ForceCtuSplit] - force splitting CTU into CU at least once\n"));
     msdk_printf(MSDK_STRING("   [-NumFramePartitions num] - number of partitions in frame that encoder processes concurrently (1, 2, 4, 8 or 16)\n"));
+    msdk_printf(MSDK_STRING("   [-FastIntraMode] - force encoder to skip HEVC-specific intra modes (use AVC modes only)\n"));
     msdk_printf(MSDK_STRING("   [-gpb:<on,off>] - make HEVC encoder use regular P-frames (off) or GPB (on) (on - by default)\n"));
     msdk_printf(MSDK_STRING("   [-ppyr:<on,off>] - enables P-pyramid\n"));
     msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
@@ -367,6 +368,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.encodeCtrl.NumFramePartitions), "NumFramePartitions", isParseInvalid)
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-FastIntraMode")))
+        {
+            params.encodeCtrl.FastIntraMode = 1;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-tff")))
         {
