@@ -103,6 +103,7 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
           ||  EncFrameCtrl->MVPredictor == 7,        MFX_ERR_UNDEFINED_BEHAVIOR);
 
     MFX_CHECK(EncFrameCtrl->ForceCtuSplit <= (isSKL ? 1: 0), MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(EncFrameCtrl->FastIntraMode <= (isSKL ? 1: 0), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     switch (EncFrameCtrl->NumFramePartitions)
     {
