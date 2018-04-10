@@ -17,6 +17,7 @@ MFX_LOCAL_DIRS_IMPL := \
 MFX_LOCAL_DIRS_HW := \
     $(addprefix encode_hw/, $(MFX_LOCAL_ENCODERS)) \
     genx/h264_encode \
+    mctf_package/mctf \
     cmrt_cross_platform
 
 MFX_LOCAL_SRC_FILES := \
@@ -41,6 +42,7 @@ MFX_LOCAL_C_INCLUDES_HW := \
     $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include)) \
     $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
+    $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
     $(MFX_HOME)/_studio/shared/asc/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
@@ -103,6 +105,14 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/src/, \
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/src/, \
     genx_fcopy_gen8_isa.cpp \
     genx_fcopy_gen9_isa.cpp)
+
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/src/, \
+    genx_me_skl_isa.cpp \
+    genx_me_bdw_isa.cpp \
+    genx_mc_skl_isa.cpp \
+    genx_mc_bdw_isa.cpp \
+    genx_sd_skl_isa.cpp \
+    genx_sd_bdw_isa.cpp)
 
 MFX_LIB_SHARED_FILES_1 := $(addprefix mfx_lib/shared/src/, \
     libmfxsw.cpp \
