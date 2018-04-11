@@ -948,6 +948,7 @@ mfxI32 ASC::ShotDetect(ASCimageData& Data, ASCimageData& DataRef, ASCImDetails& 
     current->diffTSC       = current->TSC - reference->TSC;
     current->diffRsCsDiff  = current->RsCsDiff - reference->RsCsDiff;
     current->diffMVdiffVal = current->MVdiffVal - reference->MVdiffVal;
+
     mfxI32
         SChange = SCDetectRF(
             current->diffMVdiffVal, current->RsCsDiff,   current->MVdiffVal,
@@ -1366,8 +1367,8 @@ mfxStatus ASC::RunFrame(SurfaceIndex *idxFrom, mfxU32 parity) {
     res = m_queue->DestroyEvent(e);
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
-    AscFrameAnalysis();
 
+    AscFrameAnalysis();
     return MFX_ERR_NONE;
 }
 
