@@ -7,7 +7,7 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 
 # Important note
 The current version of Intel Media SDK compatible with the open source [Linux* Graphics Driver](https://github.com/intel/media-driver).
-Intel Media SDK depends on a special version of [LibVA commit df544cd5a31e54d4cbd33a391795a8747ddaf789](https://github.com/01org/libva/commit/df544cd5a31e54d4cbd33a391795a8747ddaf789).
+Intel Media SDK depends on [LibVA](https://github.com/01org/libva/). 
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
