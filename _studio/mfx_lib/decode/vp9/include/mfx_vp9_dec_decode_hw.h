@@ -96,9 +96,9 @@ private:
 
     bool                    m_adaptiveMode;
     mfxU32                  m_index;
-    std::auto_ptr<mfx_UMC_FrameAllocator> m_FrameAllocator;
+    std::unique_ptr<mfx_UMC_FrameAllocator> m_FrameAllocator;
 
-    std::auto_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
+    std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
 
     mfxFrameAllocRequest     m_request;
     mfxFrameAllocResponse    m_response;
