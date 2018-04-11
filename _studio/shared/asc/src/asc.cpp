@@ -948,6 +948,10 @@ mfxI32 ASC::ShotDetect(ASCimageData& Data, ASCimageData& DataRef, ASCImDetails& 
     current->diffTSC       = current->TSC - reference->TSC;
     current->diffRsCsDiff  = current->RsCsDiff - reference->RsCsDiff;
     current->diffMVdiffVal = current->MVdiffVal - reference->MVdiffVal;
+
+     
+ 
+
     mfxI32
         SChange = SCDetectRF(
             current->diffMVdiffVal, current->RsCsDiff,   current->MVdiffVal,
@@ -959,6 +963,22 @@ mfxI32 ASC::ShotDetect(ASCimageData& Data, ASCimageData& DataRef, ASCImDetails& 
             current->refDCval,      current->RsDiff,     controlLevel);
 
     current->ltr_flag = Hint_LTR_op_on(current->SC, current->TSC);
+
+       {
+        FILE *dataFile = NULL;
+        dataFile = fopen("/home/snow/stats_shotdetect.txt", "a+");
+        
+        fprintf(dataFile, "%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\t%i\n",
+            current->frameNum,
+            current->Rs,             current->Cs,         current->SC,
+            current->AFD,            current->TSC,        current->RsDiff,
+            current->CsDiff,         current->RsCsDiff,   current->MVdiffVal,
+            current->avgVal,         current->ssDCval,    current->refDCval,
+            current->gchDC,          current->posBalance, current->negBalance,
+            current->diffAFD,        current->diffTSC,    current->diffRsCsDiff,
+            current->diffMVdiffVal,  current->SCindex,    current->TSCindex, SChange);
+        fclose(dataFile);
+    }
     return SChange;
 }
 
@@ -1366,6 +1386,18 @@ mfxStatus ASC::RunFrame(SurfaceIndex *idxFrom, mfxU32 parity) {
     res = m_queue->DestroyEvent(e);
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
+     #if 1
+
+        //printf("\n SCD: input frame %d ",(int)m_videoData[ASCCurrent_Frame]->frame_number);
+        FILE *fp = NULL;
+        fp = fopen("/home/snow/Yonly_128x64.yuv","ab");
+        for (int i=0;i<64;i++)
+            //fwrite(m_videoData[ASCReference_Frame]->layer.Image.Y + (i*128),1, 128, fp);
+            fwrite(m_videoData[ASCCurrent_Frame]->layer.Image.Y + (i*128),1, 128, fp);
+        fflush(fp);
+        fclose(fp);
+    #endif
+
     AscFrameAnalysis();
 
     return MFX_ERR_NONE;
@@ -1443,6 +1475,15 @@ mfxStatus ASC::RunFrame(mfxU8 *frame, mfxU32 parity) {
         return MFX_ERR_NOT_INITIALIZED;
     m_videoData[ASCCurrent_Frame]->frame_number = m_videoData[ASCReference_Frame]->frame_number + 1;
     (this->*(resizeFunc))(frame, m_width, m_height, m_pitch, (ASCLayers)0, parity);
+    #if 1
+        FILE *fp = NULL;
+        fp = fopen("/home/snow/Yonly_128x64.yuv","ab");
+        for (int i=0;i<64;i++)
+            fwrite(m_videoData[ASCReference_Frame]->layer.Image.Y + (i*128),1, 128, fp);
+        fflush(fp);
+        fclose(fp);
+        //printf("\n SCD: input frame %d \n",(int)m_videoData[ASCReference_Frame]->frame_number);
+    #endif
     RsCsCalc();
     DetectShotChangeFrame();
     Put_LTR_Hint();
