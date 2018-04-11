@@ -54,6 +54,7 @@ include( ${BUILDER_ROOT}/FindMFX.cmake )
 include( ${BUILDER_ROOT}/FindPackages.cmake )
 include( ${BUILDER_ROOT}/FindInternals.cmake )
 include( ${BUILDER_ROOT}/FindTrace.cmake )
+include( ${BUILDER_ROOT}/FindGTest.cmake )
 
 if( EXISTS "${BUILDER_ROOT}/ConfTargets.cmake" )
   include( ${BUILDER_ROOT}/ConfTargets.cmake )
