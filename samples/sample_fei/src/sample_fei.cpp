@@ -1186,7 +1186,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
     return MFX_ERR_NONE;
 }
 
-mfxStatus ParseParFile(FILE *parFile, std::vector<AppConfig*> &config, msdk_char *parBuf, mfxU32 fileSize)
+mfxStatus ParseParFile(FILE *parFile, std::vector<std::unique_ptr<AppConfig> > &config, msdk_char *parBuf, mfxU32 fileSize)
 {
     mfxStatus sts = MFX_ERR_UNSUPPORTED;
     if (!parFile)
@@ -1202,7 +1202,6 @@ mfxStatus ParseParFile(FILE *parFile, std::vector<AppConfig*> &config, msdk_char
     msdk_printf(MSDK_STRING("Parsing parfile\n"));
     while(filePos < fileSize)
     {
-        pCur = NULL;
         pCur = msdk_fgets(parBuf+filePos, fileSize, parFile);
         if (pCur == NULL)
             return MFX_ERR_NONE;
@@ -1244,13 +1243,18 @@ mfxStatus ParseParFile(FILE *parFile, std::vector<AppConfig*> &config, msdk_char
         }
         if(!argc)
             continue;
-        for(int i = 0; i < argc; i++)
+
+        for(mfxU32 i = 0; i < argc; i++)
         {
             msdk_printf(MSDK_STRING("%s "), argv[i]);
         }
-        config.push_back(new AppConfig);
-        sts = ParseInputString(argv, (mfxU8)argc, config[configCount]);
+
+        std::unique_ptr<AppConfig> tmp(new AppConfig);
+        config.emplace_back(std::move(tmp));
+
+        sts = ParseInputString(argv, (mfxU8)argc, config[configCount].get());
         MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
+
         configCount++;
         filePos += currPos;
     }
@@ -1259,7 +1263,7 @@ mfxStatus ParseParFile(FILE *parFile, std::vector<AppConfig*> &config, msdk_char
 
 } //mfxStatus CmdProcessor::ParseParFile(FILE *parFile)
 
-mfxStatus RunPipeline(CEncodingPipeline * pPipeline, int session_id)
+mfxStatus RunPipeline(CEncodingPipeline * pPipeline, mfxU32 session_id)
 {
     mfxStatus sts = MFX_ERR_NONE;
     msdk_tick frequency = msdk_time_get_frequency();
@@ -1285,7 +1289,7 @@ mfxStatus RunPipeline(CEncodingPipeline * pPipeline, int session_id)
             break;
         }
     }
-    msdk_printf(MSDK_STRING("\nSession %d Processing finished after %.2f sec \n"), session_id, MSDK_GET_TIME(msdk_time_get_tick(), sessionStartTime, frequency));
+    msdk_printf(MSDK_STRING("\nSession %u Processing finished after %.2f sec \n"), session_id, MSDK_GET_TIME(msdk_time_get_tick(), sessionStartTime, frequency));
 
     return sts;
 }
@@ -1298,14 +1302,14 @@ int main(int argc, char *argv[])
 {
     mfxStatus sts = MFX_ERR_NONE; // return value check
     msdk_char parFileName[MSDK_MAX_FILENAME_LEN];
-    msdk_char *parBuf = NULL;
+    std::unique_ptr<msdk_char[]> parBuf;
     FILE *parFile = NULL;
     if (1 == argc)
     {
         PrintHelp(argv[0], MSDK_STRING("ERROR: Not enough input parameters"));
         return MFX_ERR_UNSUPPORTED;
     }
-    std::vector<AppConfig*> Configs;   // input parameters from command line
+    std::vector<std::unique_ptr<AppConfig> > Configs;   // input parameters from command line
     if (0 == msdk_strncmp(MSDK_STRING("-par_file"), argv[1], msdk_strlen(MSDK_STRING("-par_file"))))
     {
         if(argc < 3)
@@ -1338,35 +1342,39 @@ int main(int argc, char *argv[])
         fseek(parFile, 0, SEEK_SET);
 
         // allocate buffer for parsing
-        parBuf = new msdk_char[fileSize];
-        sts = ParseParFile(parFile, Configs, parBuf, fileSize);
+        parBuf.reset(new msdk_char[fileSize]);
+        sts = ParseParFile(parFile, Configs, parBuf.get(), fileSize);
         if(sts != MFX_ERR_NONE)
         {
-            msdk_printf(MSDK_STRING("ERROR: ParFile reading failed\n"), parFileName);
+            msdk_printf(MSDK_STRING("ERROR: ParFile \"%s\" reading failed\n"), parFileName);
             return MFX_ERR_UNSUPPORTED;
         }
     }
     else
     {
-        Configs.push_back(new AppConfig);
-        sts = ParseInputString(&argv[1], (mfxU8)--argc, Configs[0]);
+        std::unique_ptr<AppConfig> tmp(new AppConfig);
+        Configs.emplace_back(std::move(tmp));
+
+        sts = ParseInputString(&argv[1], (mfxU8)--argc, Configs[0].get());
         MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
     }
     //now multisession supported only as N:N parallel workloads with joined sessions only
     //mainly to test multi-frame FEI encode path.
-    std::vector<CEncodingPipeline*> pipelines;
+    std::vector<std::unique_ptr<CEncodingPipeline> > pipelines;
+    pipelines.reserve(Configs.size());
+
     mfxSession parentSession = NULL;
-    int i = 0;
-    for(std::vector<AppConfig*>::iterator config = Configs.begin(); config != Configs.end(); config++)
+    mfxU32 i = 0;
+    for (auto & config : Configs)
     {
-        msdk_printf(MSDK_STRING("Initializing pipeline %d\n"), i++);
-        sts = CheckOptions(*config);
+        msdk_printf(MSDK_STRING("Initializing pipeline %u\n"), i++);
+        sts = CheckOptions(config.get());
         MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
 
-        sts = CheckDRCParams(*config);
+        sts = CheckDRCParams(config.get());
         MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
 
-        CEncodingPipeline* pPipeline = new CEncodingPipeline(*config);
+        std::unique_ptr<CEncodingPipeline> pPipeline(new CEncodingPipeline(config.get()));
         if(parentSession != NULL)
         {
             sts = pPipeline->Init(parentSession);
@@ -1376,53 +1384,50 @@ int main(int argc, char *argv[])
         {
             sts = pPipeline->Init();
             MSDK_CHECK_STATUS(sts, "pPipeline->Init failed");
+
             sts = pPipeline->GetEncodeSession(parentSession);
             MSDK_CHECK_STATUS(sts, "pPipeline->GetEncodeSession failed");
         }
 
         pPipeline->PrintInfo();
-        pipelines.push_back(pPipeline);
+        pipelines.emplace_back(std::move(pPipeline));
     }
+
     msdk_printf(MSDK_STRING("Processing started\n"));
     std::vector<std::thread> pipe_threads;
     msdk_tick frequency = msdk_time_get_frequency();
     msdk_tick startTime = msdk_time_get_tick();
 
-    if(pipelines.size() > 1)
+    if(!pipelines.empty())
     {
-        for(size_t pipe = 0 ; pipe < pipelines.size(); pipe++)
+        for(mfxU32 pipe = 0 ; pipe < pipelines.size(); ++pipe)
         {
             msdk_printf(MSDK_STRING("Start session %d\n"), pipe);
-            CEncodingPipeline* pPipeline = pipelines[pipe];
-            pipe_threads.push_back(std::thread(std::bind(&RunPipeline, pPipeline, (int)pipe)));
+            CEncodingPipeline* pPipeline = pipelines[pipe].get();
+            pipe_threads.emplace_back(std::thread(std::bind(&RunPipeline, pPipeline, pipe)));
         }
     }
     else
     {
-        RunPipeline(pipelines[0],0);
+        RunPipeline(pipelines[0].get(), 0);
     }
 
-    i=0;
     for(std::vector<std::thread>::iterator t = pipe_threads.begin(); t != pipe_threads.end(); t++)
     {
         t->join();
     }
     msdk_printf(MSDK_STRING("\nProcessing finished after %.2f sec \n"), MSDK_GET_TIME(msdk_time_get_tick(), startTime, frequency));
     pipe_threads.clear();
-    for(std::vector<CEncodingPipeline*>::iterator pPipeline = pipelines.begin(); pPipeline != pipelines.end(); pPipeline++)
+
+    for (auto & pipeline : pipelines)
     {
-        (*pPipeline)->Close();
-        delete *pPipeline;
+        pipeline->Close();
     }
     pipelines.clear();
-    for(std::vector<AppConfig*>::iterator config = Configs.begin(); config != Configs.end(); config++)
-    {
-        delete *config;
-    }
+
     if(parFile)
     {
         fclose(parFile);
-        delete [] parBuf;
     }
     Configs.clear();
     return 0;
