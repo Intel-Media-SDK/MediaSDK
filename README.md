@@ -46,7 +46,7 @@ Please find documentation under the `doc/` folder or navigate to [Intel Media Se
  - Perl* v5.16+
  - Cmake* v2.8+
  - GCC* v4.8+
- - Intel [Media Driver for VAAPI](https://github.com/intel/media-driver)
+ - [LibVA](https://github.com/intel/libva)
 
 ## Build steps
 
