@@ -160,10 +160,14 @@ make_static_library( dispatch_trace )
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
 set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}.pc")
+set( PKG_CONFIG_FNAME_SHARED "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}-shared.pc")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config-shared.pc.cmake" ${PKG_CONFIG_FNAME_SHARED} @ONLY)
 
 install( TARGETS mfx ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+install( TARGETS dispatch_shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
+install( FILES ${PKG_CONFIG_FNAME_SHARED} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN *.h )
 
 # For backwards compatibility, create a relative symbolic link without the "lib"
