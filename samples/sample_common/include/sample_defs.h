@@ -37,17 +37,13 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define ENABLE_VPP_RUNTIME_HSBC
 #endif
 
-//---MCTF, extended interface
-// the condition below must be changed to MFX_VERSION >= 1026 after API is promoted to 1.26
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
 #define ENABLE_MCTF
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
 #define ENABLE_MCTF_EXT
 enum {MCTF_BITRATE_MULTIPLIER = 100000};
 #endif
 #endif
-
-
 
 enum
 {
