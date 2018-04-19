@@ -139,7 +139,7 @@ sub get_cmake_gen_cmd {
     push @cmake_cmd_gen, '-DWARNING_FLAGS="-Wall -Werror"' if not $no_warn_as_error;
 
     if (lc($config{'config'}) eq "release") {
-        my $compile_flags = "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector";
+        my $compile_flags = "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -DNDEBUG";
         push @cmake_cmd_gen, "-DCMAKE_C_FLAGS_RELEASE=\"$compile_flags\"";
         push @cmake_cmd_gen, "-DCMAKE_CXX_FLAGS_RELEASE=\"$compile_flags\"";
     } else {
