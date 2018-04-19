@@ -73,7 +73,7 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
 {
     if (!surface) return MFX_ERR_NONE; // In case of frames draining in display order
 
-    MFX_CHECK(ctrl, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(ctrl, MFX_ERR_INVALID_VIDEO_PARAM);
 
     mfxPlatform p = {};
 
@@ -84,26 +84,26 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
 
     // mfxExtFeiHevcEncFrameCtrl is a mandatory buffer
     mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl = reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
-    MFX_CHECK(EncFrameCtrl, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(EncFrameCtrl, MFX_ERR_INVALID_VIDEO_PARAM);
 
     // Check HW limitations for mfxExtFeiHevcEncFrameCtrl parameters
-    MFX_CHECK(EncFrameCtrl->NumMvPredictors[0] <= 4, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MFX_CHECK(EncFrameCtrl->NumMvPredictors[1] <= 4, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(EncFrameCtrl->NumMvPredictors[0] <= 4, MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(EncFrameCtrl->NumMvPredictors[1] <= 4, MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_CHECK(EncFrameCtrl->MultiPred[0]       <= 1,
-                                                     MFX_ERR_UNDEFINED_BEHAVIOR);
+                                                     MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(EncFrameCtrl->MultiPred[1]       <= 1,
-                                                     MFX_ERR_UNDEFINED_BEHAVIOR);
+                                                     MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(EncFrameCtrl->SubPelMode         <= 3 &&
-              EncFrameCtrl->SubPelMode         != 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+              EncFrameCtrl->SubPelMode         != 2, MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_CHECK(EncFrameCtrl->MVPredictor == 0
           ||  EncFrameCtrl->MVPredictor == 1
           ||  EncFrameCtrl->MVPredictor == 2
-          ||  EncFrameCtrl->MVPredictor == 7,        MFX_ERR_UNDEFINED_BEHAVIOR);
+          ||  EncFrameCtrl->MVPredictor == 7,        MFX_ERR_INVALID_VIDEO_PARAM);
 
-    MFX_CHECK(EncFrameCtrl->ForceCtuSplit <= (isSKL ? 1: 0), MFX_ERR_UNDEFINED_BEHAVIOR);
-    MFX_CHECK(EncFrameCtrl->FastIntraMode <= (isSKL ? 1: 0), MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(EncFrameCtrl->ForceCtuSplit <= (isSKL ? 1: 0), MFX_ERR_INVALID_VIDEO_PARAM);
+    MFX_CHECK(EncFrameCtrl->FastIntraMode <= (isSKL ? 1: 0), MFX_ERR_INVALID_VIDEO_PARAM);
 
     switch (EncFrameCtrl->NumFramePartitions)
     {
@@ -114,7 +114,7 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
     case 16:
         break;
     default:
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
     if (EncFrameCtrl->SearchWindow)
@@ -123,20 +123,20 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
                && EncFrameCtrl->LenSP          == 0
                && EncFrameCtrl->SearchPath     == 0
                && EncFrameCtrl->RefWidth       == 0
-               && EncFrameCtrl->RefHeight      == 0, MFX_ERR_UNDEFINED_BEHAVIOR);
+               && EncFrameCtrl->RefHeight      == 0, MFX_ERR_INVALID_VIDEO_PARAM);
 
-        MFX_CHECK(EncFrameCtrl->SearchWindow <= 5,   MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(EncFrameCtrl->SearchWindow <= 5,   MFX_ERR_INVALID_VIDEO_PARAM);
     }
     else
     {
-        MFX_CHECK(EncFrameCtrl->AdaptiveSearch <= 1,  MFX_ERR_UNDEFINED_BEHAVIOR);
-        MFX_CHECK(EncFrameCtrl->SearchPath     <= 2,  MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(EncFrameCtrl->AdaptiveSearch <= 1,  MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(EncFrameCtrl->SearchPath     <= 2,  MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(EncFrameCtrl->LenSP          >= 1 &&
-                  EncFrameCtrl->LenSP          <= 63, MFX_ERR_UNDEFINED_BEHAVIOR);
+                  EncFrameCtrl->LenSP          <= 63, MFX_ERR_INVALID_VIDEO_PARAM);
 
         if (EncFrameCtrl->AdaptiveSearch)
         {
-            MFX_CHECK(EncFrameCtrl->LenSP      >= 2,  MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(EncFrameCtrl->LenSP      >= 2,  MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
         if (isSKL)
@@ -150,13 +150,13 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
                    && EncFrameCtrl->RefWidth * EncFrameCtrl->RefHeight <= 2048,
                       // For B frames actual limit is RefWidth*RefHeight <= 1024.
                       // Is is already guranteed by limit of 32 pxls for RefWidth and RefHeight in case of B frame
-                   MFX_ERR_UNDEFINED_BEHAVIOR);
+                   MFX_ERR_INVALID_VIDEO_PARAM);
         }
         else
         {
             MFX_CHECK(  (EncFrameCtrl->RefWidth == 64 && EncFrameCtrl->RefHeight == 64)
                      || (EncFrameCtrl->RefWidth == 48 && EncFrameCtrl->RefHeight == 40),
-                     MFX_ERR_UNDEFINED_BEHAVIOR);
+                     MFX_ERR_INVALID_VIDEO_PARAM);
         }
     }
 
@@ -164,17 +164,17 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
 
     if (EncFrameCtrl->MVPredictor)
     {
-        MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED), MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED), MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     if (EncFrameCtrl->PerCuQp)
     {
-        MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_QP), MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_QP), MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     if (EncFrameCtrl->PerCtuInput)
     {
-        MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL), MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL), MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;
