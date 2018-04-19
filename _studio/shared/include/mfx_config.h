@@ -73,7 +73,7 @@
             #define MFX_ENABLE_H264_REPARTITION_CHECK
         #endif
 
-        #if (MFX_VERSION >= 1025) && !defined(LINUX_TARGET_PLATFORM_BXT)
+        #if MFX_VERSION >= 1025
             #if !defined(AS_H264LA_PLUGIN)
                 #define MFX_ENABLE_MFE
             #endif
