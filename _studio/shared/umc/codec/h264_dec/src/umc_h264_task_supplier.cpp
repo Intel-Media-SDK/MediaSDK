@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -3659,6 +3659,14 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
             ViewItem &view = GetView(m_currentView);
             view.pCurFrame = setOfSlices->m_frame;
 
+            if (lastSlice->GetSeqParam()->gaps_in_frame_num_value_allowed_flag != 1)
+            {
+                // Check if DPB has ST frames with frame_num duplicating frame_num of new slice_type
+                // If so, unmark such frames as ST
+                H264DecoderFrame * pHead = view.GetDPBList(0)->head();
+                DPBSanitize(pHead, view.pCurFrame);
+            }
+
             const H264SliceHeader *sliceHeader = lastSlice->GetSliceHeader();
             uint32_t field_index = setOfSlices->m_frame->GetNumberByParity(sliceHeader->bottom_field_flag);
             if (!setOfSlices->m_frame->GetAU(field_index)->GetSliceCount())
@@ -4012,6 +4020,19 @@ void TaskSupplier::AddSliceToFrame(H264DecoderFrame *pFrame, H264Slice *pSlice)
     pSlice->SetSliceNumber(iSliceNumber);
     pSlice->m_pCurrentFrame = pFrame;
     au_info->AddSlice(pSlice);
+}
+
+void TaskSupplier::DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame)
+{
+    for (H264DecoderFrame *pFrm = pDPBHead; pFrm; pFrm = pFrm->future())
+    {
+        if ((pFrm != pFrame) &&
+            (pFrm->FrameNum() == pFrame->FrameNum()) &&
+             pFrm->isShortTermRef())
+        {
+            AddItemAndRun(pFrm, pFrm, UNSET_REFERENCE | FULL_FRAME | SHORT_TERM);
+        }
+    }
 }
 
 void TaskSupplier::DBPUpdate(H264DecoderFrame * pFrame, int32_t field)
