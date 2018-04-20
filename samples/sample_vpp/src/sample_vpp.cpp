@@ -785,7 +785,6 @@ int main(int argc, msdk_char *argv[])
 #endif
 
 #ifdef ENABLE_VPP_RUNTIME_HSBC
-                nOutFrames++;
                 mfxExtVPPProcAmp procAmp;
                 // set default values for ProcAmp filters
                 procAmp.Header.BufferId = MFX_EXTBUFF_VPP_PROCAMP;
@@ -853,6 +852,7 @@ int main(int argc, msdk_char *argv[])
                     pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
                     pOutSurf->Data.NumExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
+                nOutFrames++;
 #endif
 
                 sts = frameProcessor.pmfxVPP->RunFrameVPPAsync(
@@ -972,7 +972,6 @@ int main(int argc, msdk_char *argv[])
             else
             {
 #ifdef ENABLE_VPP_RUNTIME_HSBC
-                nOutFrames++;
                 mfxExtVPPProcAmp procAmp;
                 // set default values for ProcAmp filters
                 procAmp.Header.BufferId = MFX_EXTBUFF_VPP_PROCAMP;
@@ -1040,6 +1039,7 @@ int main(int argc, msdk_char *argv[])
                     pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
                     pOutSurf->Data.NumExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
+                nOutFrames++;
 #endif
 
                 sts = frameProcessor.pmfxVPP->RunFrameVPPAsync(
