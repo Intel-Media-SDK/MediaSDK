@@ -346,15 +346,15 @@ function( set_file_and_product_version input_version version_defs )
     set( git_commit "" )
     git_describe( git_commit )
 
-    set( version_defs " -DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}${git_commit}\"\\\""
-                  " -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${input_version}\"\\\""
-                  PARENT_SCOPE )
+    set( version_defs " -DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}${git_commit}\"\\\"" )
+    set( version_defs "${version_defs} -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${input_version}\"\\\"" PARENT_SCOPE )
+    
   endif()
 endfunction()
 
 function( git_describe git_commit )
   execute_process(
-    COMMAND git describe --all --dirty
+    COMMAND git rev-parse --short HEAD
     OUTPUT_VARIABLE git_commit
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
