@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@
 
 
 const char* g_MfxProductName = "mediasdk_product_name: " MFX_PLUGIN_PRODUCT_NAME;
-const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2007-2017 Intel Corporation";
+const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2007-2018 Intel Corporation";
 
 #if defined(HEVCD_EVALUATION) || defined(HEVCE_EVALUATION)
 const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PLUGIN_PRODUCT_VERSION " Evaluation version";
