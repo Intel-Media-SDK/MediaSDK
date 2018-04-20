@@ -200,10 +200,26 @@ msdk_printf(MSDK_STRING("   [-pa_sat  saturation] - procamp satursation property
 msdk_printf(MSDK_STRING("   [-pa_con  contrast]   - procamp contrast property.    range [   0.0,  10.0] (def: 1.0)\n"));
 msdk_printf(MSDK_STRING("   [-pa_bri  brightness] - procamp brightness property.  range [-100.0, 100.0] (def: 0.0)\n\n"));
 #ifdef ENABLE_VPP_RUNTIME_HSBC
-msdk_printf(MSDK_STRING("   [-rt_hue  interval hue1 hue2]               - procamp hue property.         range [-180.0, 180.0] (def: 0.0)\n"));
-msdk_printf(MSDK_STRING("   [-rt_sat  interval saturation1 saturation2] - procamp satursation property. range [   0.0,  10.0] (def: 1.0)\n"));
-msdk_printf(MSDK_STRING("   [-rt_con  interval contrast1 constrast2]    - procamp contrast property.    range [   0.0,  10.0] (def: 1.0)\n"));
-msdk_printf(MSDK_STRING("   [-rt_bri  interval brightness1 brightness2] - procamp brightness property.  range [-100.0, 100.0] (def: 0.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_hue  num_frames hue1 hue2] - enable per-frame hue adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which hue is changed either from hue1 to hue2 or from hue2 to hue1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to hue1.\n"));
+msdk_printf(MSDK_STRING("             hue1 - the first hue value in range [-180.0, 180.0] (def: 0.0)\n"));
+msdk_printf(MSDK_STRING("             hue2 - the second hue value in range [-180.0, 180.0] (def: 0.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_sat  num_frames sat1 sat2] - enable per-frame saturation adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which saturation is changed either from sat1 to sat2 or from sat2 to sat1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to sat1.\n"));
+msdk_printf(MSDK_STRING("             sat1 - the first saturation value in range [0.0, 10.0] (def: 1.0)\n"));
+msdk_printf(MSDK_STRING("             sat2 - the second saturation value in range [0.0, 10.0] (def: 1.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_con  num_frames con1 con2] - enable per-frame contrast adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which contrast is changed either from con1 to con2 or from con2 to con1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to con1.\n"));
+msdk_printf(MSDK_STRING("             con1 - the first contrast value in range [0.0, 10.0] (def: 1.0)\n"));
+msdk_printf(MSDK_STRING("             con2 - the second contrast value in range [0.0, 10.0] (def: 1.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_bri  num_frames bri1 bri2] - enable per-frame brightness adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which brightness is changed either from bri1 to bri2 or from bri2 to bri1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to bri1.\n"));
+msdk_printf(MSDK_STRING("             bri1 - the first brightness value in range [-100.0, 100.0] (def: 0.0)\n"));
+msdk_printf(MSDK_STRING("             bri2 - the second brightness value in range [-100.0, 100.0] (def: 0.0)\n\n"));
 #endif
 msdk_printf(MSDK_STRING("   [-gamut:compression]  - enable gamut compression algorithm (xvYCC->sRGB) \n"));
 msdk_printf(MSDK_STRING("   [-gamut:bt709]        - enable BT.709 matrix transform (RGB->YUV conversion)(def: BT.601)\n\n"));
