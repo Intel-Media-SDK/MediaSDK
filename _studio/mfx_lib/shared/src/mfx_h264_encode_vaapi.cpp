@@ -1400,9 +1400,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.MaxNum_Reference1 = 1;
     }
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT) || defined (LINUX_TARGET_PLATFORM_CFL)
-    // Officially only APL and CFL supports ROI.
-
     if (attrs[idx_map[VAConfigAttribEncROI]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
         VAConfigAttribValEncROI *VaEncROIValPtr = reinterpret_cast<VAConfigAttribValEncROI *>(&attrs[idx_map[VAConfigAttribEncROI]].value);
@@ -1413,7 +1410,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.ROIBRCDeltaQPLevelSupport  = VaEncROIValPtr->bits.roi_rc_qp_delta_support;
     }
     else
-#endif
     {
         m_caps.MaxNumOfROI = 0;
     }
