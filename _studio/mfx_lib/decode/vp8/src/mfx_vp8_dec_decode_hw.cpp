@@ -1374,12 +1374,10 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
         while (++i < 2);
     }
 
-    m_frame_info.entropyDecSize = m_boolDecoder[VP8_FIRST_PARTITION].pos() * 8 - 16 - m_boolDecoder[VP8_FIRST_PARTITION].bitcount();
+    m_frame_info.entropyDecSize = m_boolDecoder[VP8_FIRST_PARTITION].pos() * 8 - 3*8 - m_boolDecoder[VP8_FIRST_PARTITION].bitcount();
 
-
-    int fix = (m_boolDecoder[VP8_FIRST_PARTITION].bitcount() & 0x7) ? 1 : 0;
-    m_frame_info.firstPartitionSize = m_frame_info.firstPartitionSize - (m_boolDecoder[VP8_FIRST_PARTITION].pos() - 3 + fix);
-
+    mfxU32 remaining_bits = m_boolDecoder[VP8_FIRST_PARTITION].bitcount() & 0x7;
+    m_frame_info.firstPartitionSize = first_partition_size - (m_boolDecoder[VP8_FIRST_PARTITION].pos() - 3 + (remaining_bits ? 1 : 0) );
 
     return MFX_ERR_NONE;
 }
