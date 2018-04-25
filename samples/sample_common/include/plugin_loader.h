@@ -90,6 +90,14 @@ private:
             return MSDK_STRING("Intel (R) Media SDK plugin for HEVC ENCODE");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_HEVCE_HW))
             return MSDK_STRING("Intel (R) Media SDK HW plugin for HEVC ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP8E_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP8 ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP8D_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP8 DECODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP9E_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP9 ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP9D_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP9 DECODE");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_H264LA_HW))
             return MSDK_STRING("Intel (R) Media SDK plugin for LA ENC");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_ITELECINE_HW))

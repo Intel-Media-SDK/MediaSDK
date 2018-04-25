@@ -55,6 +55,8 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_YUY2;
     case MFX_FOURCC_YV12:
         return VA_FOURCC_YV12;
+    case MFX_FOURCC_AYUV:
+        return VA_FOURCC_AYUV;
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     case MFX_FOURCC_RGB565:
         return VA_FOURCC_R5G6B5;
@@ -109,6 +111,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
                        (VA_FOURCC_UYVY   != va_fourcc) &&
                        (VA_FOURCC_P208   != va_fourcc) &&
                        (VA_FOURCC_P010   != va_fourcc) &&
+                       (VA_FOURCC_AYUV   != va_fourcc) &&
                        (VA_FOURCC_R5G6B5 != va_fourcc)))
     {
         return MFX_ERR_MEMORY_ALLOC;

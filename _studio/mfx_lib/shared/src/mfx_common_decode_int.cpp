@@ -214,6 +214,7 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
     switch (format)
     {
         case UMC::NV12:    return MFX_FOURCC_NV12;
+        case UMC::AYUV:    return MFX_FOURCC_AYUV;
         case UMC::RGB32:   return MFX_FOURCC_RGB4;
         case UMC::RGB24:   return MFX_FOURCC_RGB3;
         case UMC::YUY2:    return MFX_FOURCC_YUY2;
