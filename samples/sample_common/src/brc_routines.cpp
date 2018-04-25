@@ -697,7 +697,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             bSHStart = true;
             m_ctx.SceneChange |= 16;
             m_ctx.eRateSH = eRate;
-            if ((frame_par->DisplayOrder - m_ctx.SChPoc) >= IPP_MIN((mfxU32)(m_par.frameRate), m_par.gopRefDist))
+            //if ((frame_par->DisplayOrder - m_ctx.SChPoc) >= IPP_MIN((mfxU32)(m_par.frameRate), m_par.gopRefDist))
             {
                 m_ctx.dQuantAb  = 1./m_ctx.Quant;
             }
