@@ -20,6 +20,8 @@
 
 #include "mfx_common.h"
 
+#include <algorithm>
+
 #if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
 
 #include "mfx_session.h"
@@ -314,6 +316,7 @@ mfxStatus VideoDECODEVP8_HW::Reset(mfxVideoParam *p_video_param)
 
     m_firstFrame = true;
     m_frames.clear();
+    m_memIdReadyToFree.clear();
 
 
     return MFX_ERR_NONE;
@@ -555,15 +558,18 @@ UMC::FrameMemID VideoDECODEVP8_HW::GetMemIdToUnlock()
     sFrameInfo info = {};
 
     std::vector<sFrameInfo>::iterator i;
+    std::vector<UMC::FrameMemID>::iterator freeMemIdPos;
 
     for(i = m_frames.begin();i != m_frames.end() && (i + 1) != m_frames.end();i++)
     {
+        freeMemIdPos = std::find(m_memIdReadyToFree.begin(), m_memIdReadyToFree.end(), i->memId);
 
-        if(i->currIndex != gold_indx && i->currIndex != altref_indx)
+        if(i->currIndex != gold_indx && i->currIndex != altref_indx && freeMemIdPos != m_memIdReadyToFree.end())
         {
             info = *i;
             memId = info.memId;
             m_frames.erase(i);
+            m_memIdReadyToFree.erase(freeMemIdPos);
             break;
         }
     }
@@ -581,22 +587,31 @@ static mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void *pp_param, mfxU3
     VideoDECODEVP8_HW::VP8DECODERoutineData& data = *(VideoDECODEVP8_HW::VP8DECODERoutineData*)p_state;
     VideoDECODEVP8_HW& decoder = *data.decoder;
 
-    if (data.memIdToUnlock != -1)
-    {
 #ifdef MFX_VA_LINUX
-        UMC::Status status = decoder.m_p_video_accelerator->SyncTask(data.memIdToUnlock);
-        if (status != UMC::UMC_OK)
-        {
-            mfxStatus CriticalErrorStatus = (status == UMC::UMC_ERR_GPU_HANG) ? MFX_ERR_GPU_HANG : MFX_ERR_DEVICE_FAILED;
-            decoder.SetCriticalErrorOccured(CriticalErrorStatus);
-            return CriticalErrorStatus;
-        }
-#endif
-        decoder.m_p_frame_allocator.get()->DecreaseReference(data.memIdToUnlock);
+    UMC::Status status = decoder.m_p_video_accelerator->SyncTask(data.memId);
+    if (status != UMC::UMC_OK)
+    {
+        mfxStatus CriticalErrorStatus = (status == UMC::UMC_ERR_GPU_HANG) ? MFX_ERR_GPU_HANG : MFX_ERR_DEVICE_FAILED;
+        decoder.SetCriticalErrorOccured(CriticalErrorStatus);
+        return CriticalErrorStatus;
     }
+#endif
 
     if (decoder.m_video_params.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
+    {
         sts = decoder.m_p_frame_allocator->PrepareToOutput(data.surface_work, data.memId, &decoder.m_on_init_video_params, false);
+    }
+
+
+    UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+
+    decoder.m_memIdReadyToFree.push_back(data.memId);
+
+    UMC::FrameMemID memIdToUnlock = -1;
+    while ((memIdToUnlock = decoder.GetMemIdToUnlock()) != -1)
+    {
+        decoder.m_p_frame_allocator.get()->DecreaseReference(memIdToUnlock);
+    }
 
     delete &data;
 
@@ -611,6 +626,8 @@ static mfxStatus VP8CompleteProc(void *, void *pp_param, mfxStatus)
 
 mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurface1 *p_surface_work, mfxFrameSurface1 **pp_surface_out, MFX_ENTRY_POINT * p_entry_point)
 {
+    UMC::AutomaticUMCMutex guard(m_mGuard);
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEVP8_HW::DecodeFrameCheck");
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -785,8 +802,6 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
     sts = GetOutputSurface(pp_surface_out, p_surface_work, memId);
     MFX_CHECK_STS(sts);
 
-    FrameMemID memIdToUnlock = GetMemIdToUnlock();
-
     (*pp_surface_out)->Data.Corrupted = 0;
     (*pp_surface_out)->Data.FrameOrder = m_frameOrder;
     //(*pp_surface_out)->Data.FrameOrder = p_surface_work->Data.FrameOrder;
@@ -805,7 +820,6 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
     VP8DECODERoutineData* routineData = new VP8DECODERoutineData;
     routineData->decoder = this;
     routineData->memId = memId;
-    routineData->memIdToUnlock = memIdToUnlock;
     routineData->surface_work = p_surface_work;
 
     p_entry_point->pState = routineData;
