@@ -140,7 +140,8 @@ VAProfile g_VP8Profiles[] =
 
 VAProfile g_VP9Profiles[] =
 {
-    VAProfileVP9Profile0
+    VAProfileVP9Profile1, // chroma subsampling: 4:2:0, 4:2:2, 4:4:4
+    VAProfileVP9Profile0  // chroma subsampling: 4:2:0
 };
 
 VAProfile g_VP910BitsProfiles[] =
