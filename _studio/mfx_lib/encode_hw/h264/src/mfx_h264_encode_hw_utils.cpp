@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1424,7 +1424,7 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
     brcprintf("\r%4d: do=%4d type=%c Rt=%7.3f-%7.3f curc=%4d numc=%2d ", m_laData[0].encOrder, m_laData[0].poc/2,
         GetFrameTypeLetter(par.FrameType), m_targetRateMin, m_targetRateMax, m_laData[0].interCost / m_totNumMb, mfxU32(m_laData.size()));
 
-    
+
     mfxF64 totalEstRate[52] = { 0.0 };
 
     for (mfxU32 qp = 0; qp < 52; qp++)
@@ -1598,7 +1598,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
 
     if (m_AvgBitrate)
         m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.EncodedOrder, m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
- 
+
     m_framesBehind++;
     m_bitsBehind += realRatePerMb;
     mfxF64 framesBeyond = (mfxF64)(MFX_MAX(2, m_laData.size()) - 1 - m_first);
@@ -3085,7 +3085,7 @@ void MfxHwH264Encode::FastCopyBufferSys2Vid(void * dstVid, void const * srcSys, 
     assert(sts == MFX_ERR_NONE); sts;
 
 
-    
+
 }
 
 void CyclicTaskPool::Init(mfxU32 size)
@@ -3957,7 +3957,7 @@ mfxStatus  MfxHwH264Encode::CopyBitstream(VideoCORE           & core,
                                           mfxU8 *             bsData,
                                           mfxU32              bsSizeAvail)
 {
-    mfxFrameData bitstream = { 0 };
+    mfxFrameData bitstream = {};
 
     FrameLocker lock(&core, bitstream, task.m_midBit[fieldId]);
     MFX_CHECK(video.Protected == 0 || task.m_notProtected, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -4327,7 +4327,7 @@ mfxStatus MfxHwH264Encode::CorrectSliceInfo(DdiTask &  task, mfxU32  MaxSliceWei
 {
     if (task.m_SliceInfo.size() == 0)  return MFX_ERR_NONE;
 
-    SliceStructInfo new_info[256] = {0};
+    SliceStructInfo new_info[256] = {};
     mfxU32  new_slice = 0;
     mfxU32  curMB = 0;
     mfxU32  old_slice = 0;
@@ -4387,9 +4387,9 @@ mfxStatus MfxHwH264Encode::CorrectSliceInfoForsed(DdiTask & task, mfxU32 widthLa
     if (!freeSlisesMax)
         return MFX_ERR_NONE;
 
-    mfxU32 bigSlices[256] ={0};
+    mfxU32 bigSlices[256] = {};
     mfxU32 numBigSlices = 0;
-    SliceStructInfo new_info[256] = {0};
+    SliceStructInfo new_info[256] = {};
 
     mfxU32  widthMB   =  task.m_yuv->Info.Width/16;
     mfxU32  heightMB  =  task.m_yuv->Info.Height/16;
