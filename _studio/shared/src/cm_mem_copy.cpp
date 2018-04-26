@@ -2085,8 +2085,11 @@ mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
     m_timeout = CM_MAX_TIMEOUT_MS;
-    if(hwtype >= MFX_HW_SCL)
-        InitializeSwapKernels(hwtype);
+    if(hwtype >= MFX_HW_BDW)
+    {
+        mfxStatus mfxSts = InitializeSwapKernels(hwtype);
+        MFX_CHECK_STS(mfxSts);
+    }
     cmSts = m_pCmDevice->CreateQueue(m_pCmQueue);
     CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
     m_tableCmRelations2.clear();
