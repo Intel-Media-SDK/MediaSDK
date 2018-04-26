@@ -1859,7 +1859,7 @@ namespace
         mfxU32      fid)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CountLeadingFF");
-        mfxFrameData bitstream = { 0 };
+        mfxFrameData bitstream = {};
 
         task.m_numLeadingFF[fid] = 0;
         FrameLocker lock(&core, bitstream, task.m_midBit[fid]);

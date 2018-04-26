@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1078,7 +1078,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
     // WA for RGB swapping issue
     if (enc.m_vParam.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
     {
-        mfxFrameData dstSurf = { 0 };
+        mfxFrameData dstSurf = {};
         bool bExternalFrameLocked = false;
 
         if(enc.m_pCore->GetVAType() == MFX_HW_VAAPI )
@@ -1091,8 +1091,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
                 bExternalFrameLocked = true;
             }
             MFX_CHECK(nativeSurf->Data.B != 0, MFX_ERR_LOCK_MEMORY);
-            
-        
+
+
             const int dstOrder[3] = {2, 1, 0};
             mfxSize roi = {nativeSurf->Info.Width, nativeSurf->Info.Height};
             mfxSize setroi = {nativeSurf->Info.Width*4, nativeSurf->Info.Height};
@@ -1107,7 +1107,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
                                     dstSurf.R, dstPitch,
                                     roi, dstOrder);
             MFX_CHECK(res, MFX_ERR_UNDEFINED_BEHAVIOR);
-        
+
             if (bExternalFrameLocked)
             {
                 sts = enc.m_pCore->UnlockExternalFrame(nativeSurf->Data.MemId, &nativeSurf->Data);
@@ -1126,7 +1126,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::TaskRoutineSubmitFrame(
             dst.Data = dstSurf;
             src_memtype = (mfxU16)((nativeSurf->Data.B == 0)?MFX_MEMTYPE_DXVA2_DECODER_TARGET:MFX_MEMTYPE_SYSTEM_MEMORY);
             src_memtype |= enc.m_isOpaqIn? MFX_MEMTYPE_INTERNAL_FRAME: MFX_MEMTYPE_EXTERNAL_FRAME;
-            sts = enc.m_pCore->DoFastCopyWrapper(&dst,MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_INTERNAL_FRAME,nativeSurf, 
+            sts = enc.m_pCore->DoFastCopyWrapper(&dst,MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_INTERNAL_FRAME,nativeSurf,
                 src_memtype);
             MFX_CHECK_STS(sts);
         }
