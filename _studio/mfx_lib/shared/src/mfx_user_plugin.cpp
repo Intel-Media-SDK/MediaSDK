@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -268,7 +268,7 @@ mfxStatus VideoUSERPlugin::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPar
         //printf("ERROR: VideoUSERPlugin::Query, plugin_codec_id=%c%c%c%c, query_codec_id=%c%c%c%c\n", U32TOFOURCC(m_param.CodecId), U32TOFOURCC(out->mfx.CodecId));
         return MFX_ERR_UNSUPPORTED;
     }
-    
+
     return m_plugin.Video->Query(m_plugin.pthis, in, out);
 }
 
@@ -398,7 +398,9 @@ mfxStatus VideoUSERPlugin::GetPayload(mfxU64 *ts, mfxPayload *payload) {
     return m_plugin.Video->GetPayload(m_plugin.pthis, ts, payload);
 }
 
+#ifdef _MSVC_LANG
 #pragma warning (disable: 4100)
+#endif
 
 mfxStatus VideoUSERPlugin::GetFrameParam(mfxFrameParam *par) {
     return MFX_ERR_UNSUPPORTED;
