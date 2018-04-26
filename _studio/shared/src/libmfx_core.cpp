@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -915,6 +915,13 @@ mfxStatus CommonCORE::DecreasePureReference(mfxU16& Locked)
         return MFX_ERR_NONE;
     }
 }// CommonCORE::IncreasePureReference(mfxFrameData *ptr)
+
+void CommonCORE::GetVA(mfxHDL* phdl, mfxU16 type)
+{
+    (void)type;
+
+    *phdl = 0;
+}// void CommonCORE::GetVA(mfxHDL* phdl, mfxU16 type)
 
 mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
 {

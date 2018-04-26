@@ -2374,7 +2374,7 @@ UMC::Status TaskSupplier_H265::AllocateFrameData(H265DecoderFrame * pFrame, mfxS
     pFrame->allocate(frmData, &info);
     pFrame->m_index = frmMID;
 
-    pPicParamSet = pPicParamSet;
+    (void)pPicParamSet;
 
     return UMC::UMC_OK;
 }
