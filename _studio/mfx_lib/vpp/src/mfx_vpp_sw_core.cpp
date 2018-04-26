@@ -426,8 +426,27 @@ mfxStatus VideoVPPBase::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFram
 
         mfxSts = CheckIOPattern_AndSetIOMemTypes(par->IOPattern, &(request[VPP_IN].Type), &(request[VPP_OUT].Type), bSWLib);
         MFX_CHECK_STS(mfxSts);
-        return (bSWLib)? MFX_ERR_UNSUPPORTED : MFX_ERR_NONE;
+        return (bSWLib)? MFX_WRN_PARTIAL_ACCELERATION : MFX_ERR_NONE;
     }
+    else
+    {
+        // since MSDK_3.0 asyncDepth is mandatory
+        mfxU16 vppAsyncDepth = (0 == par->AsyncDepth) ? MFX_AUTO_ASYNC_DEPTH_VALUE : par->AsyncDepth;
+        //vppAsyncDepth = IPP_MIN( MFX_MAX_ASYNC_DEPTH_VALUE, vppAsyncDepth);
+        {
+            // suggested
+            request[VPP_IN].NumFrameSuggested  += (vppAsyncDepth - 1);
+            request[VPP_OUT].NumFrameSuggested += (vppAsyncDepth - 1);
+
+            // min
+            request[VPP_IN].NumFrameMin  += (vppAsyncDepth - 1);
+            request[VPP_OUT].NumFrameMin += (vppAsyncDepth - 1);
+        }
+
+        mfxSts = CheckIOPattern_AndSetIOMemTypes(par->IOPattern, &(request[VPP_IN].Type), &(request[VPP_OUT].Type));
+        MFX_CHECK_STS( mfxSts );
+    }
+
     return MFX_ERR_NONE;
 
 } // mfxStatus VideoVPPBase::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request, const mfxU32 adapterNum)
