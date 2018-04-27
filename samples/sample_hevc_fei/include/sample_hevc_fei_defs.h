@@ -64,6 +64,8 @@ struct sInputParams
     msdk_char  mvoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvpInFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  refctrlInFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackctrlFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackstatFile[MSDK_MAX_FILENAME_LEN];
 
     bool bENCODE;
     bool bPREENC;
@@ -219,6 +221,12 @@ template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncCtuCtrl>{
 };
 template<>struct mfx_ext_buffer_id<mfxExtHEVCRefLists>{
     enum {id = MFX_EXTBUFF_HEVC_REFLISTS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackStat>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_STAT};
 };
 
 struct CmpExtBufById

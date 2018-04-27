@@ -602,8 +602,11 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     sts = m_pHWdev->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
     CHECK_STS_AND_RETURN(sts, "CreateEncode::m_pHWdev->GetHandle failed", NULL);
 
-    FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl, pars, m_inParams.encodeCtrl, m_inParams.strDstFile,
-            m_inParams.mvpInFile, pRepacker.get());
+    FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl,
+                                         pars, m_inParams.encodeCtrl,
+                                         m_inParams.strDstFile, m_inParams.mvpInFile,
+                                         m_inParams.repackctrlFile, m_inParams.repackstatFile,
+                                         pRepacker.get());
 
     pRepacker.release(); // FEI_Encode takes responsibility for pRepakcer's deallocation
 
