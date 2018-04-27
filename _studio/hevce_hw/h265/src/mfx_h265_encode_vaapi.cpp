@@ -1747,6 +1747,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
         {
             case VASurfaceReady:
                 VACodedBufferSegment *codedBufferSegment;
+                mfxU32 codedStatus;
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
@@ -1764,6 +1765,8 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 else if (!codedBufferSegment->size || !codedBufferSegment->buf)
                     sts = MFX_ERR_DEVICE_FAILED;
 
+                codedStatus = codedBufferSegment->status;
+
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
                     vaSts = vaUnmapBuffer( m_vaDisplay, codedBuffer );
@@ -1771,7 +1774,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
                 // Sync FEI output buffers
-                MFX_CHECK_WITH_ASSERT(PostQueryExtraStage() == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+                MFX_CHECK_WITH_ASSERT(PostQueryExtraStage(task, codedStatus) == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
                 return sts;
 
