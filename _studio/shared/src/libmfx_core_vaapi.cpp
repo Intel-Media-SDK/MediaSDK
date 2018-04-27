@@ -265,7 +265,18 @@ typedef struct {
     { 0x5A41, MFX_HW_CNL },
     { 0x5A49, MFX_HW_CNL },
 
-};
+    /* ICL */
+    { 0x8A50, MFX_HW_ICL },
+    { 0x8A51, MFX_HW_ICL },
+    { 0x8A5C, MFX_HW_ICL },
+    { 0x8A5D, MFX_HW_ICL },
+    { 0x8A52, MFX_HW_ICL },
+    { 0x8A5A, MFX_HW_ICL },
+    { 0x8A5B, MFX_HW_ICL },
+    { 0x8A71, MFX_HW_ICL },
+    { 0x8A70, MFX_HW_ICL },
+
+ };
 
 /* END: IOCTLs definitions */
 
