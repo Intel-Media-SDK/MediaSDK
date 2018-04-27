@@ -896,7 +896,7 @@ mfxI32 ExtBRC::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
 
 mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctrl, mfxBRCFrameStatus* status)
 {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = frame_par->SceneChange;
     mfxU32 ParFrameCmplx = frame_par->FrameCmplx;
 #else
@@ -1369,7 +1369,7 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
 {
     MFX_CHECK_NULL_PTR2(par, ctrl);
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = par->SceneChange;
     mfxU16 ParLongTerm = par->LongTerm;
     mfxU32 ParFrameCmplx = par->FrameCmplx;
