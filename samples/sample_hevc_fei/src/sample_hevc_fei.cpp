@@ -118,7 +118,8 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
 
     msdk_printf(MSDK_STRING("   [-timeout seconds] - set time to run processing in seconds\n"));
-
+    msdk_printf(MSDK_STRING("   [-repackctrl <file-name>] - use this to input encode repack ctrl file\n"));
+    msdk_printf(MSDK_STRING("   [-repackstat <file-name>] - use this to output encode repack stat file\n"));
     msdk_printf(MSDK_STRING("\n"));
 }
 
@@ -452,6 +453,16 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.nTimeout), "timeout", isParseInvalid);
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-repackctrl")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.repackctrlFile), "Repack ctrl File", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-repackstat")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.repackstatFile), "Repack stat File", isParseInvalid);
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("?")))
         {
             PrintHelp(strInput[0], NULL);
@@ -664,6 +675,19 @@ void AdjustOptions(sInputParams& params)
             params.encodeCtrl.NumMvPredictors[0] = 0;
             params.encodeCtrl.NumMvPredictors[1] = 0;
         }
+    }
+
+    if (!params.bENCODE && (params.repackctrlFile || params.repackstatFile))
+    {
+        msdk_printf(MSDK_STRING("WARNING: Repackctrl/Repackstat disabled for only supported in ENCODE!\n"));
+        MSDK_ZERO_ARRAY(params.repackctrlFile, MSDK_MAX_FILENAME_LEN);
+        MSDK_ZERO_ARRAY(params.repackstatFile, MSDK_MAX_FILENAME_LEN);
+    }
+
+    if (params.repackctrlFile && !params.bEncodedOrder)
+    {
+        msdk_printf(MSDK_STRING("WARNING: Encoded order is enabled by force in repackctrl.\n"));
+        params.bEncodedOrder = true;
     }
 }
 

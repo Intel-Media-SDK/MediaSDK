@@ -30,6 +30,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #define CHECK_STS_AND_RETURN(X, MSG, RET) {if ((X) < MFX_ERR_NONE) {MSDK_PRINT_RET_MSG(X, MSG); return RET;}}
 
+#define MSDK_ZERO_ARRAY(VAR, NUM) {memset(VAR, 0, sizeof(VAR[0])*NUM);}
+
 struct SourceFrameInfo
 {
     msdk_char  strSrcFile[MSDK_MAX_FILENAME_LEN];
@@ -64,6 +66,8 @@ struct sInputParams
     msdk_char  mvoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvpInFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  refctrlInFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackctrlFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackstatFile[MSDK_MAX_FILENAME_LEN];
 
     bool bENCODE;
     bool bPREENC;
@@ -215,6 +219,12 @@ template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncCtuCtrl>{
 };
 template<>struct mfx_ext_buffer_id<mfxExtHEVCRefLists>{
     enum {id = MFX_EXTBUFF_HEVC_REFLISTS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackStat>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_STAT};
 };
 
 struct CmpExtBufById
