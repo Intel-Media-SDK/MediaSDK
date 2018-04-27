@@ -284,6 +284,8 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
         break;
     case PLATFORM_INTEL_SKL:
     case PLATFORM_INTEL_KBL:
+    case PLATFORM_INTEL_CFL:
+    case PLATFORM_INTEL_GLK:
         res = m_device->LoadProgram((void *)genx_scd_skl, sizeof(genx_scd_skl), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_BXT:
@@ -685,6 +687,8 @@ ASC_API mfxStatus ASC::Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 Pi
     {
         m_dataIn->layer = new ASCImDetails;
         m_videoData = new ASCVidSample *[ASCVIDEOSTATSBUF];
+        for(mfxU8 i =0; i < ASCVIDEOSTATSBUF; i++)
+            m_videoData[i] = nullptr;
         m_support = new ASCVidRead;
     }
     catch (...)
