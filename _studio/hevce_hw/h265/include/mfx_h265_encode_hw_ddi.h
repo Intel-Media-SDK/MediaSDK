@@ -124,7 +124,7 @@ public:
         return MFX_ERR_NONE;
     }
 
-    virtual mfxStatus PostQueryExtraStage()
+    virtual mfxStatus PostQueryExtraStage(Task const & task, mfxU32 codedStatus)
     {
         return MFX_ERR_NONE;
     }

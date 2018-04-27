@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -20,23 +20,23 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "fei_utils.h"
 #include "hevc_fei_encode.h"
 
-FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl, MfxVideoParamsWrapper& encode_pars,
-        const mfxExtFeiHevcEncFrameCtrl& def_ctrl, const msdk_char* dst_output,
-        const msdk_char* mvpInFile, PredictorsRepaking* repacker)
+FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl,
+        MfxVideoParamsWrapper& encode_pars, const mfxExtFeiHevcEncFrameCtrl& encodeCtrl,
+        const msdk_char* strDstFile, const msdk_char* mvpInFile,
+        const msdk_char* repackctrlFile, const msdk_char* repackstatFile,
+        PredictorsRepaking* repacker)
     : m_pmfxSession(session)
     , m_mfxENCODE(*m_pmfxSession)
     , m_buf_allocator(hdl, encode_pars.mfx.FrameInfo.Width, encode_pars.mfx.FrameInfo.Height)
     , m_videoParams(encode_pars)
     , m_syncPoint(0)
-    , m_dstFileName(dst_output)
-    , m_defFrameCtrl(def_ctrl)
+    , m_dstFileName(strDstFile)
+    , m_defFrameCtrl(encodeCtrl)
     , m_processedFrames(0)
+    , m_repackCtrlFileName(repackctrlFile)
+    , m_repackStatFileName(repackstatFile)
+    , m_mvpInFileName(mvpInFile)
 {
-    if (0 != msdk_strlen(mvpInFile))
-    {
-        m_pFile_MVP_in.reset(new FileHandler(mvpInFile, MSDK_STRING("rb")));
-    }
-
     m_encodeCtrl.FrameType = MFX_FRAMETYPE_UNKNOWN;
     MSDK_ZERO_MEMORY(m_bitstream);
 
@@ -93,12 +93,44 @@ mfxStatus FEI_Encode::PreInit()
     mfxExtHEVCRefLists* pRefLists = m_encodeCtrl.AddExtBuffer<mfxExtHEVCRefLists>();
     MSDK_CHECK_POINTER(pRefLists, MFX_ERR_NOT_INITIALIZED);
 
+    if (!m_mvpInFileName.empty())
+    {
+        m_pFile_MVP_in.reset(new FileHandler(m_mvpInFileName.c_str(), MSDK_STRING("rb")));
+    }
+
     // allocate ext buffer for input MV predictors required for Encode.
     if (m_repacker.get() || m_pFile_MVP_in.get())
     {
         mfxExtFeiHevcEncMVPredictors* pMVP = m_encodeCtrl.AddExtBuffer<mfxExtFeiHevcEncMVPredictors>();
         MSDK_CHECK_POINTER(pMVP, MFX_ERR_NOT_INITIALIZED);
         pMVP->VaBufferID = VA_INVALID_ID;
+    }
+
+    if (!m_repackCtrlFileName.empty())
+    {
+        m_pFile_repack_ctrl.reset(new FileHandler(m_repackCtrlFileName.c_str(), MSDK_STRING("rb")));
+    }
+
+    if (m_pFile_repack_ctrl.get())
+    {
+        mfxExtFeiHevcRepackCtrl *pRepackCtrl = m_encodeCtrl.AddExtBuffer<mfxExtFeiHevcRepackCtrl>();
+        MSDK_CHECK_POINTER(pRepackCtrl, MFX_ERR_NOT_INITIALIZED);
+
+        pRepackCtrl->MaxFrameSize = 0;
+        pRepackCtrl->NumPasses = 1;
+        MSDK_ZERO_MEMORY(pRepackCtrl->DeltaQP);
+    }
+
+    if (!m_repackStatFileName.empty())
+    {
+        m_pFile_repack_stat.reset(new FileHandler(m_repackStatFileName.c_str(), MSDK_STRING("w")));
+    }
+
+    if (m_pFile_repack_stat.get())
+    {
+        mfxExtFeiHevcRepackStat *pRepackStat = m_encodeCtrl.AddExtBuffer<mfxExtFeiHevcRepackStat>();
+        MSDK_CHECK_POINTER(pRepackStat, MFX_ERR_NOT_INITIALIZED);
+        pRepackStat->NumPasses = 0;
     }
 
     sts = ResetExtBuffers(m_videoParams);
@@ -197,6 +229,48 @@ mfxStatus FEI_Encode::Reset(mfxVideoParam& par)
     return sts;
 }
 
+mfxStatus FEI_Encode::SetRepackCtrl()
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    mfxExtFeiHevcRepackCtrl *pRepackCtrl = m_encodeCtrl.GetExtBuffer<mfxExtFeiHevcRepackCtrl>();
+    MSDK_CHECK_POINTER(pRepackCtrl, MFX_ERR_NOT_INITIALIZED);
+
+    sts = m_pFile_repack_ctrl->Read(&(pRepackCtrl->MaxFrameSize), sizeof(mfxU32), 1);
+    MSDK_CHECK_STATUS(sts, "FEI Encode Read repack ctrl MaxFrameSize failed");
+
+    sts = m_pFile_repack_ctrl->Read(&(pRepackCtrl->NumPasses), sizeof(mfxU32), 1);
+    MSDK_CHECK_STATUS(sts, "FEI Encode Read repack ctrl NumPasses failed");
+
+    sts = m_pFile_repack_ctrl->Read(pRepackCtrl->DeltaQP, sizeof(mfxU8), 8);
+    MSDK_CHECK_STATUS(sts, "FEI Encode Read repack ctrl DeltaQP failed");
+
+    if (pRepackCtrl->NumPasses > 8)
+    {
+        msdk_printf(MSDK_STRING("ERROR: HEVC NumPasses should be less than or equal to 8\n"));
+        sts = MFX_ERR_UNSUPPORTED;
+    }
+
+    return sts;
+}
+
+mfxStatus FEI_Encode::GetRepackStat()
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    mfxI8 repackStatChar[64];
+
+    mfxExtFeiHevcRepackStat *pRepackStat = m_encodeCtrl.GetExtBuffer<mfxExtFeiHevcRepackStat>();
+    MSDK_CHECK_POINTER(pRepackStat, MFX_ERR_NOT_INITIALIZED);
+
+    snprintf(repackStatChar, sizeof(repackStatChar),
+             "%d NumPasses\n", pRepackStat->NumPasses);
+    sts = m_pFile_repack_stat->Write(repackStatChar, strlen(repackStatChar), 1);
+
+    pRepackStat->NumPasses = 0;
+
+    return sts;
+}
+
 // in encoded order
 mfxStatus FEI_Encode::EncodeFrame(HevcTask* task)
 {
@@ -223,6 +297,12 @@ mfxStatus FEI_Encode::EncodeFrame(mfxFrameSurface1* pSurf)
     for (;;)
     {
 
+        if (m_pFile_repack_ctrl.get() && pSurf)
+        {
+            sts = SetRepackCtrl();
+            MSDK_CHECK_STATUS(sts, "FEI Encode::SetRepackCtrl failed");
+        }
+
         sts = m_mfxENCODE.EncodeFrameAsync(&m_encodeCtrl, pSurf, &m_bitstream, &m_syncPoint);
         MSDK_CHECK_WRN(sts, "FEI EncodeFrameAsync");
 
@@ -238,6 +318,12 @@ mfxStatus FEI_Encode::EncodeFrame(mfxFrameSurface1* pSurf)
         if (MFX_ERR_NONE <= sts && m_syncPoint) // ignore warnings if output is available
         {
             sts = SyncOperation();
+
+            if ((MFX_ERR_NONE == sts) && m_pFile_repack_stat.get())
+            {
+                mfxStatus repack_sts = GetRepackStat();
+                MSDK_CHECK_WRN(repack_sts, "FEI Encode::GetRepackStat failed");
+            }
             break;
         }
 
