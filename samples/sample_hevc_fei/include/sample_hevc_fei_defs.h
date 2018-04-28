@@ -76,6 +76,8 @@ struct sInputParams
     mfxU16 dstHeight;          // destination picture height
     mfxU32 nNumFrames;
     mfxU16 nNumSlices;
+    mfxU16 CodecProfile;
+    mfxU16 CodecLevel;
     mfxU16 nRefDist;           // distance between I- or P (or GPB) - key frames, GopRefDist = 1, there are no regular B-frames used
     mfxU16 nGopSize;           // number of frames to next I
     mfxU16 nIdrInterval;       // distance between IDR frames in GOPs
@@ -107,6 +109,8 @@ struct sInputParams
         , dstHeight(0)
         , nNumFrames(0)
         , nNumSlices(1)
+        , CodecProfile(MFX_PROFILE_HEVC_MAIN)
+        , CodecLevel(MFX_LEVEL_UNKNOWN)
         , nRefDist(0)
         , nGopSize(0)
         , nIdrInterval(0)

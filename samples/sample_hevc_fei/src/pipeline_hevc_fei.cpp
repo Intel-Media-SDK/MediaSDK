@@ -463,7 +463,8 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
 
     // user defined settings
     pars.mfx.QPI = pars.mfx.QPP = pars.mfx.QPB = user_pars.QP;
-
+    pars.mfx.CodecLevel   = user_pars.CodecLevel;
+    pars.mfx.CodecProfile = user_pars.CodecProfile;
     pars.mfx.GopRefDist   = user_pars.nRefDist;
     pars.mfx.GopPicSize   = user_pars.nGopSize;
     pars.mfx.GopOptFlag   = user_pars.nGopOptFlag;
