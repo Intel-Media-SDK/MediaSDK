@@ -2308,7 +2308,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             task->m_vmeData = FindUnusedVmeData(m_vmeDataStorage);
             if ((!task->m_cmRawLa && extOpt2->LookAheadDS > MFX_LOOKAHEAD_DS_OFF) || !task->m_cmMb || !task->m_cmCurbe || !task->m_vmeData)
                 return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
-                task->m_cmRaw = CreateSurface(m_cmDevice, task->m_handleRaw, m_currentVaType);
+            task->m_cmRaw = CreateSurface(m_cmDevice, task->m_handleRaw, m_currentVaType);
         }
 
         if (IsOn(extOpt3.FadeDetection) && m_cmCtx.get() && m_cmCtx->isHistogramSupported())

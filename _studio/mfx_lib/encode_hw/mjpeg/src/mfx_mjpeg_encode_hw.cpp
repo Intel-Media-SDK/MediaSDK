@@ -431,7 +431,6 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
             isInvalid ++;
         } else
             out->mfx.FrameInfo.CropY = in->mfx.FrameInfo.CropY;
-            out->mfx.FrameInfo.CropY = in->mfx.FrameInfo.CropY;
 
         out->mfx.FrameInfo.AspectRatioW = in->mfx.FrameInfo.AspectRatioW;
         out->mfx.FrameInfo.AspectRatioH = in->mfx.FrameInfo.AspectRatioH;

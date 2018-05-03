@@ -2107,24 +2107,24 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
 
-        switch (hwtype)
-        {
+    switch (hwtype)
+    {
 #if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
-        case MFX_HW_BDW:
-        case MFX_HW_CHT:
-            cmSts = m_pCmDevice->LoadProgram((void*)cht_copy_kernel_genx,sizeof(cht_copy_kernel_genx),m_pCmProgram,"nojitter");
-            break;
+    case MFX_HW_BDW:
+    case MFX_HW_CHT:
+        cmSts = m_pCmDevice->LoadProgram((void*)cht_copy_kernel_genx,sizeof(cht_copy_kernel_genx),m_pCmProgram,"nojitter");
+        break;
 #endif
-        case MFX_HW_SCL:
-        case MFX_HW_APL:
-        case MFX_HW_KBL:
-            cmSts = m_pCmDevice->LoadProgram((void*)skl_copy_kernel_genx,sizeof(skl_copy_kernel_genx),m_pCmProgram,"nojitter");
-            break;
-        default:
-            cmSts = CM_FAILURE;
-            break;
-        }
-        CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
+    case MFX_HW_SCL:
+    case MFX_HW_APL:
+    case MFX_HW_KBL:
+        cmSts = m_pCmDevice->LoadProgram((void*)skl_copy_kernel_genx,sizeof(skl_copy_kernel_genx),m_pCmProgram,"nojitter");
+        break;
+    default:
+        cmSts = CM_FAILURE;
+        break;
+    }
+    CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 

@@ -978,7 +978,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
-        if ( !(out->vpp.In.FrameRateExtN * out->vpp.In.FrameRateExtD) &&
+        if ((0 == (out->vpp.In.FrameRateExtN * out->vpp.In.FrameRateExtD)) &&
             (out->vpp.In.FrameRateExtN + out->vpp.In.FrameRateExtD) )
         {
             out->vpp.In.FrameRateExtN = 0;
@@ -1031,7 +1031,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
-        if ( !(out->vpp.Out.FrameRateExtN * out->vpp.Out.FrameRateExtD) &&
+        if ((0 == (out->vpp.Out.FrameRateExtN * out->vpp.Out.FrameRateExtD)) &&
             (out->vpp.Out.FrameRateExtN + out->vpp.Out.FrameRateExtD))
         {
             out->vpp.Out.FrameRateExtN = 0;

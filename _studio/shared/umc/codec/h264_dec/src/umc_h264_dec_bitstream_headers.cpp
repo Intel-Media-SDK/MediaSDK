@@ -2045,9 +2045,9 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                 // Get reorder idc,pic_num pairs until idc==3
                 for (;;)
                 {
-                  reordering_of_pic_nums_idc = (uint8_t)GetVLCElement(false);
-                  if (reordering_of_pic_nums_idc > 5)
-                    return UMC_ERR_INVALID_STREAM;
+                    reordering_of_pic_nums_idc = (uint8_t)GetVLCElement(false);
+                    if (reordering_of_pic_nums_idc > 5)
+                      return UMC_ERR_INVALID_STREAM;
 
                     if (reordering_of_pic_nums_idc == 3)
                         break;
@@ -2082,9 +2082,9 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                     reordering_of_pic_nums_idc = 0;
                     for (;;)
                     {
-                    reordering_of_pic_nums_idc = GetVLCElement(false);
-                      if (reordering_of_pic_nums_idc > 5)
-                        return UMC_ERR_INVALID_STREAM;
+                        reordering_of_pic_nums_idc = GetVLCElement(false);
+                        if (reordering_of_pic_nums_idc > 5)
+                            return UMC_ERR_INVALID_STREAM;
 
                         if (reordering_of_pic_nums_idc == 3)
                             break;
