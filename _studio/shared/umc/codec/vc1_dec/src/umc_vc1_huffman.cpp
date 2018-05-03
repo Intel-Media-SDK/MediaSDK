@@ -189,7 +189,7 @@ static int HuffmanInitAlloc(int32_t rl, const int32_t* pSrcTable, int32_t** ppDs
                         if (rl == 0) table[code + j + 1] = (value1 << 8) | (commLen - i);
                         else      table[code + j + 1] = ((int16_t)value2 << 16) | ((uint8_t)value1 << 8) | (commLen - i);
 
-                        break;
+                    break;
                 }
                 else
                 {

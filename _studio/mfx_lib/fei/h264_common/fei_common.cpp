@@ -885,7 +885,7 @@ mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const Mf
 
             if (!I_SLICE(extFeiSliceInRintime->Slice[i].SliceType))
             {
-                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL0Active      <= is_progressive ? 16 : 32,
+                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL0Active      <= (is_progressive ? 16 : 32),
                                                                                         MFX_ERR_INVALID_VIDEO_PARAM);
                 MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL0Active,             MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -895,7 +895,7 @@ mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const Mf
 
             if (B_SLICE(extFeiSliceInRintime->Slice[i].SliceType))
             {
-                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL1Active      <= is_progressive ? 16 : 32,
+                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL1Active      <= (is_progressive ? 16 : 32),
                                                                                         MFX_ERR_INVALID_VIDEO_PARAM);
                 MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL1Active,             MFX_ERR_INVALID_VIDEO_PARAM);
 

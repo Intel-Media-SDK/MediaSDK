@@ -443,7 +443,7 @@ mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrame
     m_pMiscParamsQuality->type = (VAEncMiscParameterType)VAEncMiscParameterTypeEncQuality;
 
     m_pMiscParamsSeqInfo = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterExtensionDataSeqDisplayMPEG2) + sizeof(VAEncMiscParameterBuffer)];
-    Zero((VAEncMiscParameterExtensionDataSeqDisplayMPEG2 &)m_pMiscParamsSeqInfo->data);
+    Zero((char*)&m_pMiscParamsSeqInfo->data, sizeof(VAEncMiscParameterExtensionDataSeqDisplayMPEG2));
     m_pMiscParamsSeqInfo->type = (VAEncMiscParameterType)VAEncMiscParameterTypeExtensionData;
 
     m_pMiscParamsSkipFrame = (VAEncMiscParameterBuffer*)new mfxU8[sizeof(VAEncMiscParameterSkipFrame) + sizeof(VAEncMiscParameterBuffer)];
@@ -1001,6 +1001,7 @@ mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
 
+
 mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
 {
     VAStatus vaSts;
@@ -1031,13 +1032,11 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
 
-
 mfxStatus VAAPIEncoder::FillVideoSignalInfoBuffer(ExecuteBuffers* pExecuteBuffers)
 {
-    VAEncMiscParameterExtensionDataSeqDisplayMPEG2 &
-        miscSeqInfo  = (VAEncMiscParameterExtensionDataSeqDisplayMPEG2 &)m_pMiscParamsSeqInfo->data;
-
-    VAStatus                      vaSts;
+    // two steps cast is to work around “strict aliasing” rule warrning
+    void * data = m_pMiscParamsSeqInfo->data;
+    VAEncMiscParameterExtensionDataSeqDisplayMPEG2& miscSeqInfo = *((VAEncMiscParameterExtensionDataSeqDisplayMPEG2*)data);
 
     const mfxExtVideoSignalInfo & signalInfo = pExecuteBuffers->m_VideoSignalInfo;
     // VideoFullRange; - unused
@@ -1060,7 +1059,7 @@ mfxStatus VAAPIEncoder::FillVideoSignalInfoBuffer(ExecuteBuffers* pExecuteBuffer
     miscSeqInfo.display_vertical_size = pExecuteBuffers->m_sps.FrameHeight;
 
     MFX_DESTROY_VABUFFER(m_miscParamSeqInfoId, m_vaDisplay);
-    vaSts = vaCreateBuffer(m_vaDisplay,
+    VAStatus vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncMiscParameterBufferType,
         sizeof(VAEncMiscParameterExtensionDataSeqDisplayMPEG2) + sizeof(VAEncMiscParameterBuffer),
