@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -839,7 +839,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             return MFX_WRN_PARTIAL_ACCELERATION;
     }
 
-    
+
 
     if (IsOn(extOpt2->EnableMAD))
     {
@@ -1752,6 +1752,12 @@ void ImplementationAvc::OnHistogramQueried()
         task.m_cmRawForHist = 0;
     }
 
+    if (m_cmCtx && task.m_event)
+    {
+        m_cmCtx->DestroyEvent(task.m_event);
+        task.m_event = 0;
+    }
+
     m_lookaheadFinished.splice(m_lookaheadFinished.end(), m_histWait, m_histWait.begin());
 }
 
@@ -1923,7 +1929,7 @@ mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
             return MFX_ERR_DEVICE_FAILED;
         MFX_SAFE_CALL(amtScd.QueueFrameProgressive(handle.first, task.m_wsIdxGpuImage, &task.m_wsSubSamplingEv, &task.m_wsSubSamplingTask));
     }
-    else 
+    else
     {
         mfxFrameData pData = task.m_yuv->Data;
         FrameLocker lock2(m_core, pData, true);
@@ -1946,14 +1952,14 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
     mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(m_video);
     mfxExtCodingOption3 const * extOpt3 = GetExtBuffer(m_video);
     task.m_SceneChange = amtScd.Get_frame_shot_Decision();
-    
+
     if (extOpt3->PRefType == MFX_P_REF_PYRAMID)
     {
         // Adaptive low Delay Quantizer settings for extbrc
         m_LowDelayPyramidLayer = (!(task.m_type[0] & MFX_FRAMETYPE_P) || task.m_SceneChange) ? 0
             : ((amtScd.Get_PDist_advice() > 1 || amtScd.Get_RepeatedFrame_advice()) ? (m_LowDelayPyramidLayer ? 0 : 1) : 0);
         task.m_LowDelayPyramidLayer = m_LowDelayPyramidLayer;
-    } 
+    }
     else
         task.m_LowDelayPyramidLayer = m_LowDelayPyramidLayer = 0;
 
@@ -1967,7 +1973,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
             mfxI32 idrdist = (mfxI32)(task.m_frameOrder - m_frameOrderIdrInDisplayOrder);
             mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
             mfxI32 numRef = MFX_MIN(extDdi->NumActiveRefP, m_video.mfx.NumRefFrame);
-        
+
             mfxI32 minPDist = numRef * m_video.mfx.GopRefDist;
             mfxI32 minIdrDist = (task.m_frameLtrOff ? numRef : MFX_MAX(8,numRef)) * (bPyr ? 2 : m_video.mfx.GopRefDist);
             minIdrDist = MFX_MIN(minIdrDist, m_video.mfx.GopPicSize/2);
@@ -1997,7 +2003,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
                 task.m_ctrl.FrameType = (MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF | MFX_FRAMETYPE_IDR);
                 task.m_type = ExtendFrameType(task.m_ctrl.FrameType);
              }
-        } 
+        }
         else if (IsOn(extOpt2->AdaptiveB))
         {
             if (!(task.m_type[0] & MFX_FRAMETYPE_I))
@@ -2044,7 +2050,7 @@ mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
     return MFX_ERR_NONE;
 }
 
-mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU16 &raca128) 
+mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU16 &raca128)
 {
     mfxFrameSurface1 *pSurfI = nullptr;
     pSurfI = m_core->GetNativeSurface(task.m_yuv);
@@ -2240,7 +2246,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             // move task to reordering queue
             //OnNewFrame();
     }
-    
+
     if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_SCD)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_START_SCD");
@@ -2584,7 +2590,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             task->m_frcmplx = 0;
 
             if (IsExtBrcSceneChangeSupported(m_video)
-                && (task->GetFrameType() & MFX_FRAMETYPE_I) && (task->m_encOrder==0 || m_video.mfx.GopPicSize != 1)) 
+                && (task->GetFrameType() & MFX_FRAMETYPE_I) && (task->m_encOrder==0 || m_video.mfx.GopPicSize != 1))
             {
                 mfxStatus sts = CalculateFrameCmplx(*task, task->m_frcmplx);
                  if (sts != MFX_ERR_NONE)
@@ -2596,10 +2602,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             task->m_cqpValue[0] = task->m_cqpValue[1] = m_brc.GetQp(par);
 
             if ((m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
-            { 
+            {
                 m_LtrOrder = task->m_LtrOrder;
                 m_LtrQp    = (task->m_longTermFrameIdx != NO_INDEX_U8) ? task->m_cqpValue[0] : task->m_LtrQp;
-                if (task->m_type[0] & MFX_FRAMETYPE_REF) 
+                if (task->m_type[0] & MFX_FRAMETYPE_REF)
                 {
                     m_RefQp = task->m_cqpValue[0];
                     m_RefOrder = task->m_frameOrder;
@@ -2788,11 +2794,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         // printf("Recoding 0: frame %d, qp %d\n", task->m_frameOrder, task->m_cqpValue[0]);
                         bRecoding = true;
                         task->m_repackForBsDataLength++;
-                } 
+                }
                 if (!bRecoding)
                 {
                     BRCFrameParams par;
-                    InitFrameParams(par, &(*task)); 
+                    InitFrameParams(par, &(*task));
                     par.NumRecode = extOpt2->MaxSliceSize ? 0 : (par.NumRecode - task->m_repackForBsDataLength);
                     mfxU32 res = m_brc.Report(par, bsDataLength, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_cqpValue[0]);
                     MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -2868,7 +2874,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                             }
                             if (nextTask->m_longTermFrameIdx != NO_INDEX_U8 && nextTask->m_LtrOrder == m_LtrOrder) {
                                 m_LtrQp = nextTask->m_cqpValue[0];
-                            } 
+                            }
                             if (nextTask->m_type[0] & MFX_FRAMETYPE_REF) {
                                 m_RefQp = nextTask->m_cqpValue[0];
                                 m_RefOrder = nextTask->m_frameOrder;
@@ -2876,7 +2882,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         }
                         curTask = nextTask;
                         curTask->m_bsDataLength[0] = curTask->m_bsDataLength[1] = 0;
-                        
+
                         for (mfxU32 f = 0; f <= curTask->m_fieldPicFlag; f++)
                         {
                             PrepareSeiMessageBuffer(m_video, *curTask, curTask->m_fid[f], m_sei);
