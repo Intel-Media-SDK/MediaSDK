@@ -138,12 +138,6 @@ namespace TranscodingSample
     // that can be changed in run-time;
     struct sMctfRunTimeParam
     {
-#ifdef ENABLE_MCTF_EXT
-#if 0
-        mfxU32 BitsPerPixelx100k;
-        mfxU16 Deblock;
-#endif
-#endif
         mfxU16 FilterStrength;
     };
 
