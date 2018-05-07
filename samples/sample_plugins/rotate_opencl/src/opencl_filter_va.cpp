@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,10 +23,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 using std::endl;
 
-clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn    clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
-clCreateFromVA_APIMediaSurfaceINTEL_fn          clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
-clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn     clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
-clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn     clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
+clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn    lin_clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
+clCreateFromVA_APIMediaSurfaceINTEL_fn          lin_clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
+clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn     lin_clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
+clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn     lin_clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
 
 OpenCLFilterVA::OpenCLFilterVA()
 {
@@ -60,10 +60,10 @@ cl_int OpenCLFilterVA::InitSurfaceSharingExtension()
     INIT_CL_EXT_FUNC(clEnqueueReleaseVA_APIMediaSurfacesINTEL);
 
     // Check for success
-    if (!clGetDeviceIDsFromVA_APIMediaAdapterINTEL ||
-        !clCreateFromVA_APIMediaSurfaceINTEL ||
-        !clEnqueueAcquireVA_APIMediaSurfacesINTEL ||
-        !clEnqueueReleaseVA_APIMediaSurfacesINTEL)
+    if (!lin_clGetDeviceIDsFromVA_APIMediaAdapterINTEL ||
+        !lin_clCreateFromVA_APIMediaSurfaceINTEL ||
+        !lin_clEnqueueAcquireVA_APIMediaSurfacesINTEL ||
+        !lin_clEnqueueReleaseVA_APIMediaSurfacesINTEL)
     {
         log.error() << "OpenCLFilter: Couldn't get all of the media sharing routines" << endl;
         return CL_INVALID_PLATFORM;
@@ -78,7 +78,7 @@ cl_int OpenCLFilterVA::InitDevice()
     log.debug() << "OpenCLFilter: Try to init OCL device" << endl;
 
     cl_uint nDevices = 0;
-    error = clGetDeviceIDsFromVA_APIMediaAdapterINTEL(m_clplatform, CL_VA_API_DISPLAY_INTEL,
+    error = lin_clGetDeviceIDsFromVA_APIMediaAdapterINTEL(m_clplatform, CL_VA_API_DISPLAY_INTEL,
                                         m_vaDisplay, CL_PREFERRED_DEVICES_FOR_VA_API_INTEL, 1, &m_cldevice, &nDevices);
     if(error) {
         log.error() << "OpenCLFilter: clGetDeviceIDsFromVA_APIMediaAdapterINTEL failed. Error code: " << error << endl;
@@ -110,7 +110,7 @@ cl_mem OpenCLFilterVA::CreateSharedSurface(mfxMemId mid, int nView, bool bIsRead
     if (sts) return 0;
 
     cl_int error = CL_SUCCESS;
-    cl_mem mem = clCreateFromVA_APIMediaSurfaceINTEL(m_clcontext, bIsReadOnly ? CL_MEM_READ_ONLY : CL_MEM_READ_WRITE,
+    cl_mem mem = lin_clCreateFromVA_APIMediaSurfaceINTEL(m_clcontext, bIsReadOnly ? CL_MEM_READ_ONLY : CL_MEM_READ_WRITE,
                                             surf, nView, &error);
     if (error) {
         log.error() << "clCreateFromVA_APIMediaSurfaceINTEL failed. Error code: " << error << endl;
@@ -122,17 +122,17 @@ cl_mem OpenCLFilterVA::CreateSharedSurface(mfxMemId mid, int nView, bool bIsRead
 
 bool OpenCLFilterVA::EnqueueAcquireSurfaces(cl_mem* surfaces, int nSurfaces)
 {
-    cl_int error = clEnqueueAcquireVA_APIMediaSurfacesINTEL(m_clqueue, nSurfaces, surfaces, 0, NULL, NULL);
+    cl_int error = lin_clEnqueueAcquireVA_APIMediaSurfacesINTEL(m_clqueue, nSurfaces, surfaces, 0, NULL, NULL);
     if (error) {
         log.error() << "clEnqueueAcquireVA_APIMediaSurfacesINTEL failed. Error code: " << error << endl;
         return false;
     }
-    return true;
+    return true ;
 }
 
 bool OpenCLFilterVA::EnqueueReleaseSurfaces(cl_mem* surfaces, int nSurfaces)
 {
-    cl_int error = clEnqueueReleaseVA_APIMediaSurfacesINTEL(m_clqueue, nSurfaces, surfaces, 0, NULL, NULL);
+    cl_int error = lin_clEnqueueReleaseVA_APIMediaSurfacesINTEL(m_clqueue, nSurfaces, surfaces, 0, NULL, NULL);
     if (error) {
         log.error() << "clEnqueueReleaseVA_APIMediaSurfacesINTEL failed. Error code: " << error << endl;
         return false;

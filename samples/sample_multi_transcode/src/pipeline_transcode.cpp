@@ -19,6 +19,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "mfx_samples_config.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
 
 #include "pipeline_transcode.h"
 #include "transcode_utils.h"
@@ -171,6 +174,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_nOutputFramesNum(0),
     shouldUseGreedyFormula(false),
     isHEVCSW(false),
+    m_bInsertIDR(false),
     m_vppCompDumpRenderMode(0),
     m_nRotationAngle(0)
 {
@@ -270,7 +274,6 @@ CTranscodingPipeline::CTranscodingPipeline():
     outputStatistics.SetDirection(MSDK_STRING("Output"));
 
     m_numEncoders = 0;
-    m_encoderFourCC = 0;
     m_libvaBackend = 0;
     statisticsWindowSize=0;
     m_bIsFieldWeaving = false;
@@ -278,7 +281,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_bUseOverlay = false;
     m_bForceStop = false;
     m_bIsInterOrJoined = false;
-    m_bIsRobust = false;
+    m_bRobustFlag = false;
     m_nRotationAngle = 0;
 } //CTranscodingPipeline::CTranscodingPipeline()
 
@@ -664,6 +667,7 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
     if( MFX_ERR_NONE == sts && isHEVCSW)
     {
         sts = m_pmfxSession->SyncOperation(pExtSurface->Syncp, MSDK_WAIT_INTERVAL);
+        HandlePossibleGpuHang(sts);
         MSDK_CHECK_STATUS(sts, "m_pmfxSession->SyncOperation failed");
     }
     return sts;
@@ -710,6 +714,7 @@ mfxStatus CTranscodingPipeline::DecodeLastFrame(ExtendedSurface *pExtSurface)
     if( MFX_ERR_NONE == sts && isHEVCSW)
     {
         sts = m_pmfxSession->SyncOperation(pExtSurface->Syncp,  MSDK_WAIT_INTERVAL);
+        HandlePossibleGpuHang(sts);
         MSDK_CHECK_STATUS(sts, "m_pmfxSession->SyncOperation failed");
     }
 
@@ -1132,6 +1137,7 @@ mfxStatus CTranscodingPipeline::Decode()
         {
             MFX_ITT_TASK("SyncOperation");
             sts = m_pmfxSession->SyncOperation(PreEncExtSurface.Syncp, MSDK_WAIT_INTERVAL);
+            HandlePossibleGpuHang(sts);
             PreEncExtSurface.Syncp = NULL;
             MSDK_CHECK_STATUS(sts, "m_pmfxSession->SyncOperation failed");
         }
@@ -1183,6 +1189,7 @@ mfxStatus CTranscodingPipeline::Decode()
             if(frontSurface.Syncp)
             {
                 sts = m_pmfxSession->SyncOperation(frontSurface.Syncp, MSDK_WAIT_INTERVAL);
+                HandlePossibleGpuHang(sts);
                 MSDK_CHECK_STATUS(sts, "m_pmfxSession->SyncOperation failed");
                 frontSurface.Syncp=NULL;
             }
@@ -1227,7 +1234,6 @@ mfxStatus CTranscodingPipeline::Encode()
     ExtendedBS      *pBS = NULL;
     bool isQuit = false;
     bool bPollFlag = false;
-    bool bInsertIDR = false;
     int nFramesAlreadyPut = 0;
     SafetySurfaceBuffer   *curBuffer = m_pBuffer;
 
@@ -1264,6 +1270,7 @@ mfxStatus CTranscodingPipeline::Encode()
                 {
                     MFX_ITT_TASK("SyncOperation");
                     sts = m_pParentPipeline->m_pmfxSession->SyncOperation(DecExtSurface.Syncp, MSDK_WAIT_INTERVAL);
+                    HandlePossibleGpuHang(sts);
                     MSDK_CHECK_STATUS(sts, "m_pParentPipeline->m_pmfxSession->SyncOperation failed");
                 }
             }
@@ -1271,7 +1278,7 @@ mfxStatus CTranscodingPipeline::Encode()
             mfxU32 NumFramesForReset = m_pParentPipeline ? m_pParentPipeline->GetNumFramesForReset() : 0;
             if (NumFramesForReset && !(nFramesAlreadyPut % NumFramesForReset) )
             {
-                bInsertIDR = true;
+                m_bInsertIDR = true;
             }
 
             if (NULL == DecExtSurface.pSurface)
@@ -1341,6 +1348,7 @@ mfxStatus CTranscodingPipeline::Encode()
             {
                 // Sync to ensure VPP is completed to avoid flicker
                 sts = m_pmfxSession->SyncOperation(VppExtSurface.Syncp, MSDK_WAIT_INTERVAL);
+                HandlePossibleGpuHang(sts);
                 MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
                 /* in case if enabled dumping into file for after VPP composition */
@@ -1353,7 +1361,11 @@ mfxStatus CTranscodingPipeline::Encode()
                 if (NULL_RENDER_VPP_COMP != m_vppCompDumpRenderMode)
                 {
 
+#if defined(_WIN32) || defined(_WIN64)
+                sts = m_hwdev4Rendering->RenderFrame(VppExtSurface.pSurface, m_pMFXAllocator);
+#else
                 sts = m_hwdev4Rendering->RenderFrame(VppExtSurface.pSurface, NULL);
+#endif
                 MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
                 } // if (NULL_RENDER_VPP_COMP != m_vppCompDumpRenderMode)
             }
@@ -1373,8 +1385,8 @@ mfxStatus CTranscodingPipeline::Encode()
             m_pBSProcessor->ResetOutput();
         }
 
-        SetEncCtrlRT(VppExtSurface, bInsertIDR);
-        bInsertIDR = false;
+        SetEncCtrlRT(VppExtSurface, m_bInsertIDR);
+        m_bInsertIDR = false;
 
         if ((m_nVPPCompEnable != VppCompOnly) || (m_nVPPCompEnable == VppCompOnlyEncode))
         {
@@ -1740,7 +1752,6 @@ mfxStatus CTranscodingPipeline::Transcode()
     bool bNeedDecodedFrames = true; // indicates if we need to decode frames
     bool bEndOfFile = false;
     bool bLastCycle = false;
-    bool bInsertIDR = false;
     bool shouldReadNextFrame=true;
 
     time_t start = time(0);
@@ -1767,7 +1778,7 @@ mfxStatus CTranscodingPipeline::Transcode()
                 {
                     if (!bLastCycle)
                     {
-                        bInsertIDR = true;
+                        m_bInsertIDR = true;
 
                         m_pBSProcessor->ResetInput();
                         m_pBSProcessor->ResetOutput();
@@ -1897,8 +1908,8 @@ mfxStatus CTranscodingPipeline::Transcode()
 
         // Set Encoding control if it is required.
 
-        SetEncCtrlRT(VppExtSurface, bInsertIDR);
-        bInsertIDR = false;
+        SetEncCtrlRT(VppExtSurface, m_bInsertIDR);
+        m_bInsertIDR = false;
 
         if (bNeedDecodedFrames)
             m_nProcessedFramesNum++;
@@ -1990,6 +2001,7 @@ mfxStatus CTranscodingPipeline::PutBS()
     if(pBitstreamEx->Syncp)
     {
         sts = m_pmfxSession->SyncOperation(pBitstreamEx->Syncp, MSDK_WAIT_INTERVAL);
+        HandlePossibleGpuHang(sts);
         MSDK_CHECK_STATUS(sts, "m_pmfxSession->SyncOperation failed");
     }
 
@@ -2044,6 +2056,7 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstream* 
     if(pSurf->Syncp)
     {
         sts = m_pmfxSession->SyncOperation(pSurf->Syncp, MSDK_WAIT_INTERVAL);
+        HandlePossibleGpuHang(sts);
         MSDK_CHECK_STATUS(sts, "m_pmfxSession->SyncOperation failed");
         pSurf->Syncp=0;
 
@@ -2827,7 +2840,11 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
         MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
 
     // set memory pattern
-    if (m_bUseOpaqueMemory)
+    if (pInParams->VppOutPattern)
+    {
+        m_mfxVppParams.IOPattern = (mfxU16)(InPatternFromParent | pInParams->VppOutPattern);
+    }
+    else if (m_bUseOpaqueMemory)
     {
         m_mfxVppParams.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY|MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
     }
@@ -3504,7 +3521,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     m_FrameNumberPreference = pParams->FrameNumberPreference;
     m_numEncoders = 0;
     m_bUseOverlay = pParams->DecodeId == MFX_CODEC_RGB4 ? true : false;
-    m_bIsRobust = pParams->bRobust;
+    m_bRobustFlag = pParams->bRobustFlag;
     m_nRotationAngle = pParams->nRotationAngle;
     m_sGenericPluginPath = pParams->strVPPPluginDLLPath;
     m_decoderPluginParams = pParams->decoderPluginParams;
@@ -3568,11 +3585,39 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
         /**/
         if ((pParams->m_hwdev != NULL) && (VppCompOnly == pParams->eModeExt))
         {
+#if defined(_WIN32) || defined(_WIN64)
+            m_hwdev4Rendering = new CDecodeD3DRender;
+
+            m_hwdev4Rendering->SetHWDevice(pParams->m_hwdev);
+
+            sWindowParams RenderParam;
+
+            memset(&RenderParam, 0, sizeof(sWindowParams));
+
+            RenderParam.lpWindowName = MSDK_STRING("sample_multi_transcode");
+            RenderParam.nx           = 0;
+            RenderParam.ny           = 0;
+            RenderParam.nWidth       = pParams->nDstWidth;
+            RenderParam.nHeight      = pParams->nDstHeight;
+            RenderParam.ncell        = 0;
+            RenderParam.nAdapter     = 0;
+
+            RenderParam.lpClassName  = MSDK_STRING("Render Window Class");
+            RenderParam.dwStyle      = WS_OVERLAPPEDWINDOW;
+            RenderParam.hWndParent   = NULL;
+            RenderParam.hMenu        = NULL;
+            RenderParam.hInstance    = GetModuleHandle(NULL);
+            RenderParam.lpParam      = NULL;
+            RenderParam.bFullScreen  = TRUE;
+
+            m_hwdev4Rendering->Init(RenderParam);
+#else
             if(pParams->EncodeId)
             {
                 m_nVPPCompEnable = VppCompOnlyEncode;
             }
             m_hwdev4Rendering = pParams->m_hwdev;
+#endif
         }
         break;
     default:
@@ -3792,6 +3837,12 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 #endif //MFX_VERSION >= 1022
     }
 
+    // Dumping components configuration if required
+    if (m_strMfxParamsDumpFile.size())
+    {
+        CParametersDumper::DumpLibraryConfiguration(m_strMfxParamsDumpFile, m_pmfxDEC.get(), m_pmfxVPP.get(), m_pmfxENC.get(), &m_mfxDecParams, &m_mfxVppParams, &m_mfxEncParams);
+    }
+
     m_bIsInit = true;
 
     return sts;
@@ -3865,12 +3916,6 @@ mfxStatus CTranscodingPipeline::CompleteInit()
             MSDK_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
         }
         MSDK_CHECK_STATUS(sts, "m_pmfxENC->Init failed");
-    }
-
-    // Dumping components configuration if required
-    if (m_strMfxParamsDumpFile.size())
-    {
-        CParametersDumper::DumpLibraryConfiguration(m_strMfxParamsDumpFile, m_pmfxDEC.get(), m_pmfxVPP.get(), m_pmfxENC.get(), &m_mfxDecParams, &m_mfxVppParams, &m_mfxEncParams);
     }
 
     m_bIsInit = true;
@@ -3968,6 +4013,16 @@ void CTranscodingPipeline::SetNumFramesForReset(mfxU32 nFrames)
     m_NumFramesForReset = nFrames;
 }
 
+void CTranscodingPipeline::HandlePossibleGpuHang(mfxStatus & sts)
+{
+    if (sts == MFX_ERR_GPU_HANG && !m_bRobustFlag)
+    {
+        msdk_printf(MSDK_STRING("GPU hang happened\n"));
+        sts = MFX_ERR_NONE;
+        m_bInsertIDR = true;
+    }
+}
+
 mfxStatus CTranscodingPipeline::SetAllocatorAndHandleIfRequired()
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -4034,9 +4089,9 @@ mfxStatus CTranscodingPipeline::LoadGenericPlugin()
     return MFX_ERR_NONE;
 }
 
-bool CTranscodingPipeline::IsRobust()
+size_t CTranscodingPipeline::GetRobustFlag()
 {
-    return m_bIsRobust;
+    return m_bRobustFlag;
 }
 
 void CTranscodingPipeline::Close()
@@ -4079,6 +4134,13 @@ void CTranscodingPipeline::Close()
     }
 
     //Destroy renderer
+#if defined(_WIN32) || defined(_WIN64)
+    if(m_hwdev4Rendering)
+    {
+        delete m_hwdev4Rendering;
+        m_hwdev4Rendering=NULL;
+    }
+#endif
 
     // free allocated surfaces AFTER closing components
     FreeFrames();

@@ -269,7 +269,11 @@ void ownToMfxFrameInfo( sOwnFrameInfo* in, mfxFrameInfo* out, bool copyCropParam
 
 }
 
+#if defined(_WIN32) || defined(_WIN64)
+int _tmain(int argc, TCHAR *argv[])
+#else
 int main(int argc, msdk_char *argv[])
+#endif
 {
     mfxStatus           sts = MFX_ERR_NONE;
     mfxU32              nFrames = 0;
@@ -682,6 +686,10 @@ int main(int argc, msdk_char *argv[])
                 // if we share allocator with mediasdk we need to call Lock to access surface data and after we're done call Unlock
                 sts = yuvReaders[nInStreamInd].GetNextInputFrame(&allocator,&realFrameInfoIn[nInStreamInd],&pInSurf[nInStreamInd],nInStreamInd);
                 MSDK_BREAK_ON_ERROR(sts);
+
+                // Set input timestamps according to input framerate
+                mfxU64 expectedPTS = (((mfxU64)(numGetFrames) * mfxParamsVideo.vpp.In.FrameRateExtD * 90000) / mfxParamsVideo.vpp.In.FrameRateExtN);
+                pInSurf[nInStreamInd]->Data.TimeStamp = expectedPTS;
 
                 if( bMultiView )
                 {

@@ -20,8 +20,16 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfx_samples_config.h"
 #include "plugin_utils.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#include <psapi.h>
+#include <d3d9.h>
+#include "d3d_allocator.h"
+#include "d3d11_allocator.h"
+#else
 #include <stdarg.h>
 #include "vaapi_allocator.h"
+#endif
 
 #include "sysmem_allocator.h"
 #include "transcode_utils.h"
@@ -140,6 +148,7 @@ void TranscodingSample::PrintHelp()
 
     msdk_printf(MSDK_STRING("  -mfe_timeout <N> multi-frame encode timeout in milliseconds - set per sessions control\n"));
 #endif
+
 #ifdef ENABLE_MCTF
 #if !defined ENABLE_MCTF_EXT
     msdk_printf(MSDK_STRING("  -mctf [Strength]\n"));
@@ -164,7 +173,8 @@ void TranscodingSample::PrintHelp()
 #endif //ENABLE_MCTF_EXT
 #endif //ENABLE_MCTF
 
-    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as the come\n"));
+    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as the come (by resetting components)\n"));
+
     msdk_printf(MSDK_STRING("  -async        Depth of asynchronous pipeline. default value 1\n"));
     msdk_printf(MSDK_STRING("  -join         Join session with other session(s), by default sessions are not joined\n"));
     msdk_printf(MSDK_STRING("  -priority     Use priority for join sessions. 0 - Low, 1 - Normal, 2 - High. Normal by default\n"));
@@ -221,7 +231,6 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -dist         Distance between I- or P- key frames \n"));
     msdk_printf(MSDK_STRING("  -num_ref      Number of reference frames\n"));
     msdk_printf(MSDK_STRING("  -bref         Arrange B frames in B pyramid reference structure\n"));
-    msdk_printf(MSDK_STRING("  -nobref       Do not use B-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("  -bpyr         Enable B pyramid\n"));
     msdk_printf(MSDK_STRING("  -CodecProfile          - Specifies codec profile\n"));
     msdk_printf(MSDK_STRING("  -CodecLevel            - Specifies codec level\n"));
@@ -334,7 +343,47 @@ void TranscodingSample::PrintInfo(mfxU32 session_number, sInputParams* pParams, 
 
 bool TranscodingSample::PrintDllInfo(msdk_char* buf, mfxU32 buf_size, sInputParams* pParams)
 {
+#if defined(_WIN32) || defined(_WIN64)
+    HANDLE   hCurrent = GetCurrentProcess();
+    HMODULE *pModules;
+    DWORD    cbNeeded;
+    int      nModules;
+    if (NULL == EnumProcessModules(hCurrent, NULL, 0, &cbNeeded))
+        return false;
+
+    nModules = cbNeeded / sizeof(HMODULE);
+
+    pModules = new HMODULE[nModules];
+    if (NULL == pModules)
+    {
+        return false;
+    }
+    if (NULL == EnumProcessModules(hCurrent, pModules, cbNeeded, &cbNeeded))
+    {
+        delete []pModules;
+        return false;
+    }
+
+    for (int i = 0; i < nModules; i++)
+    {
+        GetModuleFileName(pModules[i], buf, buf_size);
+        if (_tcsstr(buf, MSDK_STRING("libmfxhw")) && (MFX_IMPL_SOFTWARE != pParams->libType))
+        {
+            delete []pModules;
+            return true;
+        }
+        else if (_tcsstr(buf, MSDK_STRING("libmfxsw")) && (MFX_IMPL_SOFTWARE == pParams->libType))
+        {
+            delete []pModules;
+            return true;
+        }
+
+    }
+    delete []pModules;
     return false;
+#else
+    return false;
+#endif
 }
 
 CmdProcessor::CmdProcessor()
@@ -350,7 +399,7 @@ CmdProcessor::CmdProcessor()
     statisticsLogFile = NULL;
     DumpLogFileName.clear();
     shouldUseGreedyFormula=false;
-    m_bRobust = false;
+    bRobustFlag = false;
 
 } //CmdProcessor::CmdProcessor()
 
@@ -421,7 +470,7 @@ mfxStatus CmdProcessor::ParseCmdLine(int argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-robust")))
         {
-            m_bRobust = true;
+            bRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-?")) )
         {
@@ -985,8 +1034,8 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     TranscodingSample::sInputParams InputParams;
     if (m_nTimeout)
         InputParams.nTimeout = m_nTimeout;
-    if (m_bRobust)
-        InputParams.bRobust = true;
+    if (bRobustFlag)
+        InputParams.bRobustFlag = bRobustFlag;
 
     InputParams.shouldUseGreedyFormula = shouldUseGreedyFormula;
 
@@ -1142,7 +1191,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust")))
         {
-            InputParams.bRobust = true;
+            InputParams.bRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-threads")))
         {
@@ -1319,10 +1368,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-bref")))
         {
             InputParams.nBRefType = MFX_B_REF_PYRAMID;
-        }
-        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-nobref")))
-        {
-            InputParams.nBRefType = MFX_B_REF_OFF;
         }
         else if(0 == msdk_strcmp(argv[i], MSDK_STRING("-u")))
         {
@@ -1543,6 +1588,14 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         {
             InputParams.bUseOpaqueMemory = false;
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp::sys")))
+        {
+            InputParams.VppOutPattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp::vid")))
+        {
+            InputParams.VppOutPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp_comp_dst_x")))
         {
             VAL_CHECK(i + 1 == argc, i, argv[i]);
@@ -1730,7 +1783,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust")))
         {
-            InputParams.bRobust = true;
+            InputParams.bRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-opencl")))
         {
