@@ -170,6 +170,9 @@ msdk_printf(MSDK_STRING("   [-rotate (angle)]   - enable rotation. Supported ang
 msdk_printf(MSDK_STRING("   [-scaling_mode (mode)] - specify type of scaling to be used for resize.\n"));
 msdk_printf(MSDK_STRING("   [-denoise (level)]  - enable denoise algorithm. Level is optional \n"));
 msdk_printf(MSDK_STRING("                         range of  noise level is [0, 100]\n"));
+#if MFX_VERSION >= 1025
+msdk_printf(MSDK_STRING("   [-chroma_siting (vmode hmode)] - specify chroma siting mode for VPP color conversion, allowed values: vtop|vcen|vbot hleft|hcen\n"));
+#endif
 #ifdef ENABLE_MCTF
 #if !defined ENABLE_MCTF_EXT
 msdk_printf(MSDK_STRING("  -mctf [Strength]\n"));
@@ -1291,6 +1294,32 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 pParams->bScaling = true;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->scalingMode);
             }
+#if MFX_VERSION >= 1025
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-chroma_siting")))
+            {
+                VAL_CHECK(2 + i == nArgNum);
+                bool bVfound = false;
+                bool bHfound = false;
+                i++;
+                for (int ii = 0; ii < 2; ii++)
+                {
+                    /* ChromaSiting */
+                    if (msdk_strcmp(strInput[i + ii], MSDK_STRING("vtop")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_VERTICAL_TOP; bVfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("vcen")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_VERTICAL_CENTER; bVfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("vbot")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_VERTICAL_BOTTOM; bVfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("hleft")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_HORIZONTAL_LEFT; bHfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("hcen")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_HORIZONTAL_CENTER; bHfound = true; }
+                    else msdk_strcmp(MSDK_STRING("Unknown Chroma siting flag %s"), strInput[i + ii]);
+                }
+                pParams->bChromaSiting = bVfound && bHfound;
+                if (!pParams->bChromaSiting)
+                {
+                    vppPrintHelp(strInput[0], MSDK_STRING("Invalid chroma siting flags\n"));
+                    return MFX_ERR_UNSUPPORTED;
+                }
+                i++;
+            }
+#endif
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-composite")))
             {
                 if( i+1 < nArgNum )
