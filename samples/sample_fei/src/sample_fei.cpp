@@ -411,6 +411,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
             i++;
             pConfig->NumRefActiveBL1 = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-n")))
+        {
+            i++;
+            pConfig->nNumFrames = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-gop_opt")))
         {
             i++;
@@ -680,67 +685,65 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
             i++;
             pConfig->nReconSurf = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-w")))
+        {
+            i++;
+            pConfig->nWidth = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-h")))
+        {
+            i++;
+            pConfig->nHeight = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-f")))
+        {
+            i++;
+            pConfig->dFrameRate = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-g")))
+        {
+            i++;
+            pConfig->gopSize = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-r")))
+        {
+            i++;
+            pConfig->refDist = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-l")))
+        {
+            i++;
+            pConfig->numSlices = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-x")))
+        {
+            i++;
+            pConfig->numRef = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-?")))
+        {
+            PrintHelp(strInput[0], NULL);
+            return MFX_ERR_UNSUPPORTED;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-i")))
+        {
+            i++;
+            if (msdk_strlen(strInput[i]) < STR_ARRAY_LEN(pConfig->strSrcFile)){
+                msdk_strcopy(pConfig->strSrcFile, strInput[i]);
+            }else{
+                PrintHelp(strInput[0], MSDK_STRING("ERROR: Too long input filename (limit is 1023 characters)!"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-o")))
+        {
+            i++;
+            pConfig->dstFileBuff.push_back(strInput[i]);
+        }
         else // 1-character options
         {
-            switch (strInput[i][1])
-            {
-            case MSDK_CHAR('w'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->nWidth = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('h'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->nHeight = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('f'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->dFrameRate = (mfxF64)msdk_strtod(strArgument, &stopCharacter);
-                break;
-            case MSDK_CHAR('n'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->nNumFrames = (mfxU32)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('g'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->gopSize = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('r'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->refDist = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('l'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->numSlices = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('x'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->numRef = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('i'):
-                GET_OPTION_POINTER(strArgument);
-                if (msdk_strlen(strArgument) < STR_ARRAY_LEN(pConfig->strSrcFile)){
-                    msdk_strcopy(pConfig->strSrcFile, strArgument);
-                }else{
-                    PrintHelp(strInput[0], MSDK_STRING("ERROR: Too long input filename (limit is 1023 characters)!"));
-                    return MFX_ERR_UNSUPPORTED;
-                }
-                break;
-            case MSDK_CHAR('o'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->dstFileBuff.push_back(strArgument);
-                break;
-            case MSDK_CHAR('?'):
-                PrintHelp(strInput[0], NULL);
-                return MFX_ERR_UNSUPPORTED;
-            default:
-                if (!bAlrShownHelp){
-                    msdk_printf(MSDK_STRING("\nWARNING: Unknown option %s\n\n"), strInput[i]);
-                    PrintHelp(strInput[0], NULL);
-                    bAlrShownHelp = true;
-                }else {
-                    msdk_printf(MSDK_STRING("\nWARNING: Unknown option %s\n\n"), strInput[i]);
-                }
-            }
+            msdk_printf(MSDK_STRING("\nWARNING: Unknown option %s\n\n"), strInput[i]);
+            return MFX_ERR_UNSUPPORTED;
         }
     }
 

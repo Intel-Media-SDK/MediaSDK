@@ -133,11 +133,18 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
     MSDK_CHECK_POINTER(m_pmfxSession, MFX_ERR_NOT_INITIALIZED);
 
     mfxStatus sts  = MFX_ERR_NONE;
+    bool bGpuHang = false;
 
     // non-null sync point indicates that task is in execution
     if (NULL != m_pTasks[m_nTaskBufferStart].EncSyncP)
     {
         sts = m_pmfxSession->SyncOperation(m_pTasks[m_nTaskBufferStart].EncSyncP, MSDK_WAIT_INTERVAL);
+        if (sts == MFX_ERR_GPU_HANG)
+        {
+            bGpuHang = true;
+            sts = MFX_ERR_NONE;
+            msdk_printf(MSDK_STRING("GPU hang happened\n"));
+        }
         MSDK_CHECK_STATUS_NO_RET(sts, "SyncOperation failed");
 
         if (MFX_ERR_NONE == sts)
@@ -167,6 +174,12 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
             {
                 // find out if the error occurred in a VPP task to perform recovery procedure if applicable
                 sts = m_pmfxSession->SyncOperation(*m_pTasks[m_nTaskBufferStart].DependentVppTasks.begin(), 0);
+                if (sts == MFX_ERR_GPU_HANG)
+                {
+                    bGpuHang = true;
+                    sts = MFX_ERR_NONE;
+                    msdk_printf(MSDK_STRING("GPU hang happened\n"));
+                }
 
                 if (MFX_ERR_NONE == sts)
                 {
@@ -181,14 +194,13 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
             }
         }
 
-        return sts;
     }
     else
     {
         sts = MFX_ERR_NOT_FOUND; // no tasks left in task buffer
     }
     m_statOverall.StopTimeMeasurement();
-    return sts;
+    return bGpuHang ? MFX_ERR_GPU_HANG : sts;
 }
 
 mfxU32 CEncTaskPool::GetFreeTaskIndex()
@@ -1693,6 +1705,11 @@ mfxStatus CEncodingPipeline::GetFreeTask(sTask **ppTask)
     if (MFX_ERR_NOT_FOUND == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
+        if (sts == MFX_ERR_GPU_HANG)
+        {
+            m_bInsertIDR = true;
+            sts = MFX_ERR_NONE;
+        }
         MSDK_CHECK_STATUS(sts, "m_TaskPool.SynchronizeFirstTask failed");
 
         // try again
@@ -1725,6 +1742,8 @@ mfxStatus CEncodingPipeline::Run()
     mfxU16 currViewNum = 0;
 
     mfxU32 nFramesProcessed = 0;
+
+    bool skipLoadingNextFrame = false;
 
     sts = MFX_ERR_NONE;
 
@@ -1767,43 +1786,47 @@ mfxStatus CEncodingPipeline::Run()
         pSurf = &m_pEncSurfaces[nEncSurfIdx];
         if (!bVppMultipleOutput)
         {
-            // if vpp is enabled find free surface for vpp input and point pSurf to vpp surface
-            if (m_pmfxVPP)
+            if(!skipLoadingNextFrame)
             {
+                // if vpp is enabled find free surface for vpp input and point pSurf to vpp surface
+                if (m_pmfxVPP)
+                {
 #if defined (ENABLE_V4L2_SUPPORT)
-                if (isV4L2InputEnabled)
-                {
-                    nVppSurfIdx = v4l2Pipeline.GetOffQ();
-                }
+                    if (isV4L2InputEnabled)
+                    {
+                        nVppSurfIdx = v4l2Pipeline.GetOffQ();
+                    }
 #else
-                if (m_nMemBuffer)
-                {
-                    nVppSurfIdx = nVppSurfIdx % m_nMemBuffer;
-                }
-                else
-                {
-                    nVppSurfIdx = GetFreeSurface(m_pVppSurfaces, m_VppResponse.NumFrameActual);
-                }
-                MSDK_CHECK_ERROR(nVppSurfIdx, MSDK_INVALID_SURF_IDX, MFX_ERR_MEMORY_ALLOC);
+                    if (m_nMemBuffer)
+                    {
+                        nVppSurfIdx = nVppSurfIdx % m_nMemBuffer;
+                    }
+                    else
+                    {
+                        nVppSurfIdx = GetFreeSurface(m_pVppSurfaces, m_VppResponse.NumFrameActual);
+                    }
+                    MSDK_CHECK_ERROR(nVppSurfIdx, MSDK_INVALID_SURF_IDX, MFX_ERR_MEMORY_ALLOC);
 #endif
 
-                pSurf = &m_pVppSurfaces[nVppSurfIdx];
+                    pSurf = &m_pVppSurfaces[nVppSurfIdx];
+                }
+
+                pSurf->Info.FrameId.ViewId = currViewNum;
+
+                m_statFile.StartTimeMeasurement();
+                sts = LoadNextFrame(pSurf);
+                m_statFile.StopTimeMeasurement();
+
+                if ( (MFX_ERR_MORE_DATA == sts) && !m_bTimeOutExceed)
+                    continue;
+
+                MSDK_BREAK_ON_ERROR(sts);
+
+                if (MVC_ENABLED & m_MVCflags)
+                {
+                    currViewNum ^= 1; // Flip between 0 and 1 for ViewId
+                }
             }
-
-            pSurf->Info.FrameId.ViewId = currViewNum;
-
-            m_statFile.StartTimeMeasurement();
-            sts = LoadNextFrame(pSurf);
-            m_statFile.StopTimeMeasurement();
-
-            if ( (MFX_ERR_MORE_DATA == sts) && !m_bTimeOutExceed)
-                continue;
-
-            MSDK_BREAK_ON_ERROR(sts);
-
-            m_statFile.StopTimeMeasurement();
-            if (MVC_ENABLED & m_MVCflags) currViewNum ^= 1; // Flip between 0 and 1 for ViewId
-
         }
 
         // perform preprocessing if required
@@ -1812,7 +1835,8 @@ mfxStatus CEncodingPipeline::Run()
             bVppMultipleOutput = false; // reset the flag before a call to VPP
             for (;;)
             {
-                sts = m_pmfxVPP->RunFrameVPPAsync(&m_pVppSurfaces[nVppSurfIdx], &m_pEncSurfaces[nEncSurfIdx],
+                sts = m_pmfxVPP->RunFrameVPPAsync(skipLoadingNextFrame ?  NULL : &m_pVppSurfaces[nVppSurfIdx],
+                                                  &m_pEncSurfaces[nEncSurfIdx],
                     NULL, &VppSyncPoint);
 
                 if (m_nMemBuffer)
@@ -1834,10 +1858,16 @@ mfxStatus CEncodingPipeline::Run()
                     break; // not a warning
             }
 
+            skipLoadingNextFrame = false;
             // process errors
             if (MFX_ERR_MORE_DATA == sts)
             {
                 continue;
+            }
+            else if(MFX_ERR_MORE_SURFACE == sts)
+            {
+                skipLoadingNextFrame = true;
+                sts = MFX_ERR_NONE;
             }
             else
             {
@@ -2029,6 +2059,11 @@ mfxStatus CEncodingPipeline::Run()
     while (MFX_ERR_NONE == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
+        if (sts == MFX_ERR_GPU_HANG)
+        {
+            m_bInsertIDR = true;
+            sts = MFX_ERR_NONE;
+        }
     }
 
     // MFX_ERR_NOT_FOUND is the correct status to exit the loop with

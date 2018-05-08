@@ -1571,6 +1571,13 @@ mfxStatus CDecodingPipeline::SyncOutputSurface(mfxU32 wait)
 
     mfxStatus sts = m_mfxSession.SyncOperation(m_pCurrentOutputSurface->syncp, wait);
 
+    if (MFX_ERR_GPU_HANG == sts) {
+        msdk_printf(MSDK_STRING("GPU hang happened\n"));
+        // Output surface can be corrupted
+        // But should be delivered to output anyway
+        sts = MFX_ERR_NONE;
+    }
+
     if (MFX_WRN_IN_EXECUTION == sts) {
         return sts;
     }

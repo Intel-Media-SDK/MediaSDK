@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define DCL_USE_DEPRECATED_OPENCL_1_1_APIS
 #include <CL/cl.h>
 #include <CL/opencl.h>
-#include <CL/va_ext.h>
+#include <CL/cl_va_api_media_sharing_intel.h>
 
 #include "opencl_filter.h"
 

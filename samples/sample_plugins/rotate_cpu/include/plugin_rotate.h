@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -35,7 +35,7 @@ typedef struct {
 class Processor
 {
 public:
-    Processor(mfxU32 uid);
+    Processor(mfxHDL uid);
     virtual ~Processor();
     virtual mfxStatus SetAllocator(mfxFrameAllocator *pAlloc);
     virtual mfxStatus Init(mfxFrameSurface1 *frame_in, mfxFrameSurface1 *frame_out);
@@ -53,14 +53,14 @@ protected:
     std::vector<mfxU8> m_YIn, m_UVIn;
     std::vector<mfxU8> m_YOut, m_UVOut;
 
-    mfxU32             m_uid;
+    mfxHDL             m_uid;
 
 };
 
 class Rotator180 : public Processor
 {
 public:
-    Rotator180(mfxU32 uid);
+    Rotator180(mfxHDL uid);
     virtual ~Rotator180();
 
     virtual mfxStatus Process(DataChunk *chunk);

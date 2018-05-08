@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -30,7 +30,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #pragma warning(disable : 4100)
 
 // map<tuple<memid, session id>, lock count>
-typedef  std::tuple<mfxMemId, mfxU32> UniqueMid;
+typedef  std::tuple<mfxMemId, mfxHDL> UniqueMid;
 std::map<UniqueMid, int> mappingResourceManager;
 
 MSDKMutex mapping_mutex;
@@ -141,9 +141,9 @@ mfxStatus Rotate::Submit(const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfx
     m_pTasks[ind].Out = real_surface_out;
     m_pTasks[ind].bBusy = true;
 
-    // Use thread id as a session identifier
-    // As session can't be obtained from plugin
-    mfxU32 tid = pthread_self();
+    // Use allocator pointer as decoding session identifier
+
+    mfxHDL tid = m_mfxCore.FrameAllocator().pthis;
 
     switch (m_Param.Angle)
     {
@@ -385,7 +385,7 @@ mfxStatus Rotate::CheckInOutFrameInfo(mfxFrameInfo *pIn, mfxFrameInfo *pOut)
 }
 
 /* Processor class implementation */
-Processor::Processor(mfxU32 uid)
+Processor::Processor(mfxHDL uid)
     : m_pIn(NULL)
     , m_pOut(NULL)
     , m_pAlloc(NULL)
@@ -420,13 +420,13 @@ mfxStatus Processor::LockFrame(mfxFrameSurface1 *frame)
     MSDK_CHECK_POINTER(frame, MFX_ERR_NULL_PTR);
     mfxStatus sts = MFX_ERR_NONE;
 
+    /* mutex locker */
+    AutomaticMutex locker(mapping_mutex);
+
     // MemId=0, that is surface was created without allocator
     // No neeed in lock/unlock
     if (frame->Data.Y != 0 && !frame->Data.MemId)
         return MFX_ERR_NONE;
-
-    /* mutex locker */
-    AutomaticMutex locker(mapping_mutex);
 
     auto currentSurface = mappingResourceManager.find(UniqueMid(frame->Data.MemId, m_uid));
     if(currentSurface == mappingResourceManager.end())
@@ -435,7 +435,9 @@ mfxStatus Processor::LockFrame(mfxFrameSurface1 *frame)
         mappingResourceManager[UniqueMid(frame->Data.MemId, m_uid)] = 1;
     }
     else /* Surface was mapped before */
+    {
         currentSurface->second++;
+    }
 
     return sts;
 }
@@ -446,6 +448,9 @@ mfxStatus Processor::UnlockFrame(mfxFrameSurface1 *frame)
     MSDK_CHECK_POINTER(frame, MFX_ERR_NULL_PTR);
     mfxStatus sts = MFX_ERR_NONE;
 
+    /* mutex locker */
+    AutomaticMutex locker(mapping_mutex);
+
     // MemId=0, that is surface was created without allocator
     // No neeed in lock/unlock
     if (frame->Data.Y != 0 && frame->Data.MemId == 0)
@@ -453,9 +458,6 @@ mfxStatus Processor::UnlockFrame(mfxFrameSurface1 *frame)
     // Already unlocked
     if (frame->Data.Y == 0)
         return MFX_ERR_NONE;
-
-    /* mutex locker */
-    AutomaticMutex locker(mapping_mutex);
 
     auto currentSurface = mappingResourceManager.find(UniqueMid(frame->Data.MemId, m_uid));
 
@@ -481,7 +483,7 @@ mfxStatus Processor::UnlockFrame(mfxFrameSurface1 *frame)
 
 
 /* 180 degrees rotator class implementation */
-Rotator180::Rotator180(mfxU32 uid) : Processor(uid)
+Rotator180::Rotator180(mfxHDL uid) : Processor(uid)
 {
 }
 
