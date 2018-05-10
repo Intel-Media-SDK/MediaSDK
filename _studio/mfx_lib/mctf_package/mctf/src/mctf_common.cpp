@@ -742,7 +742,7 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
     //Motion Estimation
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_me_bdw, sizeof(genx_me_bdw), programMe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_SKL || hwType == PLATFORM_INTEL_KBL || hwType == PLATFORM_INTEL_CNL)
+    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_me_skl, sizeof(genx_me_skl), programMe, "nojitter");
     else
         return MFX_ERR_UNSUPPORTED;
@@ -767,7 +767,7 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
     //Motion Compensation
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_mc_bdw, sizeof(genx_mc_bdw), programMc, "nojitter");
-    else if (hwType == PLATFORM_INTEL_SKL || hwType == PLATFORM_INTEL_KBL || hwType == PLATFORM_INTEL_CNL)
+    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_mc_skl, sizeof(genx_mc_skl), programMc, "nojitter");
     else
         return MFX_ERR_UNSUPPORTED;
@@ -775,7 +775,7 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
 
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_sd_bdw, sizeof(genx_mc_bdw), programDe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_SKL || hwType == PLATFORM_INTEL_KBL || hwType == PLATFORM_INTEL_CNL)
+    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_sd_skl, sizeof(genx_mc_skl), programDe, "nojitter");
     else
         return MFX_ERR_UNSUPPORTED;
