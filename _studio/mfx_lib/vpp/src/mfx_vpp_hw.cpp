@@ -3411,7 +3411,7 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
                 dstTempSurface.Data.MemId = 0;
             }
 
-            mfxI64 verticalPitch = (mfxI64)(dstTempSurface.Data.UV - dstTempSurface.Data.Y);
+            mfxI64 verticalPitch = (mfxI64)dstTempSurface.Data.UV - (mfxI64)dstTempSurface.Data.Y;
             verticalPitch = (verticalPitch % dstTempSurface.Data.Pitch)? 0 : verticalPitch / dstTempSurface.Data.Pitch;
             mfxU32 dstPitch = dstTempSurface.Data.PitchLow + ((mfxU32)dstTempSurface.Data.PitchHigh << 16);
 
@@ -4016,8 +4016,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
      */
     if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)
     {
-        BOOL analysisReady = false;
-
         mfxU32 scene_change = 0;
         mfxU32 sc_in_first_field = 0;
         mfxU32 sc_in_second_field = 0;
@@ -5047,8 +5045,10 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
     VM_ASSERT(bit_depth);
 
     mfxU64 const shift = bit_depth - 8;
+    mfxU64 const max_val = 256 << shift;
+
     return
-        ((mfxU64)                                ((255 << shift) - 1) << 48) |
+        ((mfxU64)                                 (max_val - 1) << 48) |
         ((mfxU64)VPP_RANGE_CLIP(Y, (16 << shift), (235 << shift))     << 32) |
         ((mfxU64)VPP_RANGE_CLIP(U, (16 << shift), (240 << shift))     << 16) |
         ((mfxU64)VPP_RANGE_CLIP(V, (16 << shift), (240 << shift))     <<  0)
