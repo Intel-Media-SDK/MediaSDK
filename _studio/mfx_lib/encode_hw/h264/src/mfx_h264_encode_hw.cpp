@@ -759,9 +759,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         return MFX_WRN_PARTIAL_ACCELERATION;
 
     GUID guid;
-#if defined(MFX_ENABLE_MFE)
-    mfxExtMultiFrameParam* mfeParam = (mfxExtMultiFrameParam*)GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_MULTI_FRAME_PARAM);
-#endif
     if (IsOn(m_video.mfx.LowPower))
     {
         guid = DXVA2_INTEL_LOWPOWERENCODE_AVC;
@@ -1972,6 +1969,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
             mfxI32 idist = (mfxI32)(task.m_frameOrder - m_frameOrderIntraInDisplayOrder);
             mfxI32 idrdist = (mfxI32)(task.m_frameOrder - m_frameOrderIdrInDisplayOrder);
             mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
+            MFX_CHECK_NULL_PTR1(extDdi);
             mfxI32 numRef = MFX_MIN(extDdi->NumActiveRefP, m_video.mfx.NumRefFrame);
 
             mfxI32 minPDist = numRef * m_video.mfx.GopRefDist;
