@@ -1812,6 +1812,7 @@ mfxStatus MfxHwH264Encode::CopySpsPpsToVideoParam(
     if (extBits->SPSBuffer)
     {
         mfxExtSpsHeader const * extSps = GetExtBuffer(par);
+        MFX_CHECK_NULL_PTR1(extSps);
         if (!CheckAgreementOfSequenceLevelParameters<FunctionInit>(par, *extSps))
             changed = true;
     }
@@ -1820,6 +1821,7 @@ mfxStatus MfxHwH264Encode::CopySpsPpsToVideoParam(
     if (extBits->PPSBuffer)
     {
         mfxExtPpsHeader const * extPps = GetExtBuffer(par);
+        MFX_CHECK_NULL_PTR1(extPps);
         if (!CheckAgreementOfPictureLevelParameters<FunctionInit>(par, *extPps))
             changed = true;
     }

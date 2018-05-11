@@ -1475,7 +1475,7 @@ namespace
 
 namespace
 {
-    void CreateAdditionalDpbCommands(
+    mfxStatus CreateAdditionalDpbCommands(
         MfxVideoParam const & video,
         DdiTask &             task)
     {
@@ -1524,6 +1524,7 @@ namespace
         else if (refPicFlag && IsAdaptiveLtrOn(video))
         {
             mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(video);
+            MFX_CHECK_NULL_PTR1(extDdi);
             mfxU32 numActiveRefL0 = (task.m_type[0] & MFX_FRAMETYPE_P)
                 ? extDdi->NumActiveRefP
                 : extDdi->NumActiveRefBL0;
@@ -1607,6 +1608,7 @@ namespace
                 }
             }
         }
+		return MFX_ERR_NONE;
     }
 };
 
