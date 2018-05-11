@@ -67,8 +67,6 @@ private:
 
     std::auto_ptr<HEVCEncodeParamsChecker> m_pParamChecker;
 
-    mfxU32                                 m_processedFrames;
-
 private:
     mfxStatus LoadFEIPlugin();
     mfxStatus CreateAllocator();

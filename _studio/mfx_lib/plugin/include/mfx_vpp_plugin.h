@@ -124,7 +124,7 @@ protected:
     mfxSession          m_session;
     mfxPluginParam      m_PluginParam;
     bool                m_createdByDispatcher;
-    std::auto_ptr<MFXPluginAdapter<MFXVPPPlugin> > m_adapter;
+    std::unique_ptr<MFXPluginAdapter<MFXVPPPlugin> > m_adapter;
 };
 #endif //#if defined( AS_VPP_PLUGIN )
 

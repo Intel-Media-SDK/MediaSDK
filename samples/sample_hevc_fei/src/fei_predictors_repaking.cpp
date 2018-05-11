@@ -149,7 +149,7 @@ mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& eTask,
             // 0 - MV predictor is disabled
             // 1 - enabled per 16x16 block
             // 2 - enabled per 32x32 block (used only first 16x16 block data)
-            mvp.Data[permutEncIdx].BlockSize = 2;
+            mvp.Data[permutEncIdx].BlockSize = 1; // Using finest granularity
 
             for (mfxU32 j = 0; j < numPredPairs; ++j)
             {
@@ -287,7 +287,7 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfx
             // 0 - MV predictor disabled
             // 1 - enabled per 16x16 block
             // 2 - enabled per 32x32 block (used only first 16x16 block data)
-            mvp.Data[permutEncIdx].BlockSize = 2;
+            mvp.Data[permutEncIdx].BlockSize = 1; // Using finest granularity
             for (mfxU32 j = 0; j < numPredPairs; ++j)
             {
                 ref[j][0] = refIdx_vec[j]->RefL0;

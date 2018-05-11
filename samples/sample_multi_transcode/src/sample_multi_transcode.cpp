@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,6 +23,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #if defined(LIBVA_WAYLAND_SUPPORT)
 #include "class_wayland.h"
+#endif
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
 #endif
 
 using namespace std;
@@ -182,7 +186,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
         m_pAllocArray.push_back(pAllocator);
 
-        std::auto_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
+        std::unique_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
         // extend BS processing init
         m_pExtBSProcArray.push_back(new FileBitstreamProcessor);
 
@@ -190,8 +194,8 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
 
         pThreadPipeline->pBSProcessor = m_pExtBSProcArray.back();
 
-        std::auto_ptr<CSmplBitstreamReader> reader;
-        std::auto_ptr<CSmplYUVReader> yuvreader;
+        std::unique_ptr<CSmplBitstreamReader> reader;
+        std::unique_ptr<CSmplYUVReader> yuvreader;
         if (m_InputParamsArray[i].DecodeId == MFX_CODEC_VP9)
         {
             reader.reset(new CIVFFrameReader());
@@ -223,7 +227,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetReader failed");
         }
 
-        std::auto_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
+        std::unique_ptr<CSmplBitstreamWriter> writer(new CSmplBitstreamWriter());
         sts = writer->Init(m_InputParamsArray[i].strDstFile);
 
         sts = m_pExtBSProcArray.back()->SetWriter(writer);
@@ -336,7 +340,7 @@ void Launcher::Run()
     m_StartTime = GetTick();
 
     // Robust flag is applied to every seession if enabled in one
-    if (m_pSessionArray[0]->pPipeline->IsRobust())
+    if (m_pSessionArray[0]->pPipeline->GetRobustFlag())
     {
         DoRobustTranscoding();
     }
@@ -391,7 +395,7 @@ void Launcher::DoTranscoding()
                         // Stop all the sessions if an error happened in one
                         // But do not stop in robust mode when gpu hang's happened
                         if (m_pSessionArray[i]->transcodingSts != MFX_ERR_GPU_HANG ||
-                            !m_pSessionArray[i]->pPipeline->IsRobust())
+                            !m_pSessionArray[i]->pPipeline->GetRobustFlag())
                         {
                             for (size_t j = 0; j < m_pSessionArray.size(); j++)
                             {
@@ -431,6 +435,7 @@ void Launcher::DoTranscoding()
             }
         }
     }
+    m_HDLArray.clear();
 }
 
 void Launcher::DoRobustTranscoding()
@@ -539,6 +544,7 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
     bool allMFEModesEqual=true;
     bool allMFEFramesEqual=true;
     bool allMFESessionsJoined = true;
+
     mfxU16 usedMFEMaxFrames = 0;
     mfxU16 usedMFEMode = 0;
 
@@ -636,11 +642,11 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
         }
 
         // All sessions have to know if robust mode enabled
-        if (m_InputParamsArray[i].bRobust)
+        if (m_InputParamsArray[i].bRobustFlag)
         {
             for (mfxU32 j = 0; j < m_InputParamsArray.size(); j++)
             {
-                m_InputParamsArray[j].bRobust = true;
+                m_InputParamsArray[j].bRobustFlag = m_InputParamsArray[i].bRobustFlag;
             }
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,14 @@ enum {
 };
 
 typedef struct {
+#if (MFX_VERSION >= 1026)
+    mfxU32 reserved[23];
+    mfxU16 SceneChange;     // Frame is Scene Chg frame
+    mfxU16 LongTerm;        // Frame is long term refrence
+    mfxU32 FrameCmplx;      // Frame Complexity
+#else
     mfxU32 reserved[25];
+#endif
     mfxU32 EncodedOrder;    // Frame number in a sequence of reordered frames starting from encoder Init()
     mfxU32 DisplayOrder;    // Frame number in a sequence of frames in display order starting from last IDR
     mfxU32 CodedFrameSize;  // Size of frame in bytes after encoding

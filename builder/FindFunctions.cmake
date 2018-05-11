@@ -23,16 +23,6 @@ set( CMAKE_BIN_DIR ${CMAKE_BINARY_DIR}/__bin )
 set_property( GLOBAL PROPERTY PROP_PLUGINS_CFG "" )
 set_property( GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG "" )
 
-function( collect_arch )
-  if(__ARCH MATCHES ia32)
-    set( ia32 true PARENT_SCOPE )
-    set( CMAKE_OSX_ARCHITECTURES i386 PARENT_SCOPE )
-  else ()
-    set( intel64 true PARENT_SCOPE )
-    set( CMAKE_OSX_ARCHITECTURES x86_64 PARENT_SCOPE )
-  endif()
-endfunction()
-
 # .....................................................
 function( collect_oses )
   if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
@@ -356,15 +346,15 @@ function( set_file_and_product_version input_version version_defs )
     set( git_commit "" )
     git_describe( git_commit )
 
-    set( version_defs " -DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}${git_commit}\"\\\""
-                  " -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${input_version}\"\\\""
-                  PARENT_SCOPE )
+    set( version_defs " -DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}${git_commit}\"\\\"" )
+    set( version_defs "${version_defs} -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${input_version}\"\\\"" PARENT_SCOPE )
+    
   endif()
 endfunction()
 
 function( git_describe git_commit )
   execute_process(
-    COMMAND git describe --all --dirty
+    COMMAND git rev-parse --short HEAD
     OUTPUT_VARIABLE git_commit
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )

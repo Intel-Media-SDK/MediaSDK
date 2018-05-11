@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #undef min
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 /* ******************************************************************* */
 
 static
@@ -70,6 +74,10 @@ static
         return MSDK_STRING("YV12");
     case MFX_FOURCC_YUY2:
         return MSDK_STRING("YUY2");
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        return MSDK_STRING("RGB565");
+#endif
     case MFX_FOURCC_RGB3:
         return MSDK_STRING("RGB3");
     case MFX_FOURCC_RGB4:
@@ -168,7 +176,13 @@ void PrintInfo(sInputParams* pParams, mfxVideoParam* pMfxParams, MFXVideoSession
     msdk_printf(MSDK_STRING("Deinterlace\t%s\n"), (pParams->frameInfoIn[0].PicStruct != pParams->frameInfoOut[0].PicStruct) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("Signal info\t%s\n"),   (VPP_FILTER_DISABLED != pParams->videoSignalInfoParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("Scaling\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->bScaling) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
+#if MFX_VERSION >= 1025
+    msdk_printf(MSDK_STRING("CromaSiting\t\t%s\n"), (VPP_FILTER_DISABLED != pParams->bChromaSiting) ? MSDK_STRING("ON") : MSDK_STRING("OFF"));
+#endif
     msdk_printf(MSDK_STRING("Denoise\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->denoiseParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
+#ifdef ENABLE_MCTF
+    msdk_printf(MSDK_STRING("MCTF\t\t%s\n"), (VPP_FILTER_DISABLED != pParams->mctfParam[0].mode) ? MSDK_STRING("ON") : MSDK_STRING("OFF"));
+#endif
 
     msdk_printf(MSDK_STRING("ProcAmp\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->procampParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("DetailEnh\t%s\n"),      (VPP_FILTER_DISABLED != pParams->detailParam[0].mode)  ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
@@ -472,13 +486,26 @@ mfxStatus InitSurfaces(
     nFrames = response.NumFrameActual;
     pSurfaces = new mfxFrameSurface1 [nFrames];
 
+#ifdef ENABLE_MCTF
+    if (isInput)
+    {
+        pAllocator->pExtBuffersStorageSurfaceIn[streamIndex].resize(nFrames * MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE);
+    }
+#endif
+
     for (i = 0; i < nFrames; i++)
     {
         memset(&(pSurfaces[i]), 0, sizeof(mfxFrameSurface1));
         pSurfaces[i].Info = pRequest->Info;
 
         pSurfaces[i].Data.MemId = response.mids[i];
-
+#ifdef ENABLE_MCTF
+        if (isInput)
+        {
+            pSurfaces[i].Data.ExtParam = &(pAllocator->pExtBuffersStorageSurfaceIn[streamIndex].at(i * MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE));
+            pSurfaces[i].Data.NumExtParam = 0;
+        }
+#endif
     }
 
     return sts;
@@ -859,7 +886,7 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
         h = pInfo->Height;
     }
 
-    pitch = pData->Pitch;
+    pitch = ((mfxU32)pData->PitchHigh << 16) + pData->PitchLow;
 
     if(pInfo->FourCC == MFX_FOURCC_YV12 || pInfo->FourCC == MFX_FOURCC_I420)
     {
@@ -1149,6 +1176,23 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w*2, MFX_ERR_MORE_DATA);
         }
     }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    else if (pInfo->FourCC == MFX_FOURCC_RGB565)
+    {
+        MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->G, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->B, MFX_ERR_NOT_INITIALIZED);
+
+        ptr = pData->B;
+        ptr = ptr + pInfo->CropX + pInfo->CropY * pitch;
+
+        for(i = 0; i < h; i++)
+        {
+            nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, 2*w, m_fSrc);
+            IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, 2*w, MFX_ERR_MORE_DATA);
+        }
+    }
+#endif
     else if (pInfo->FourCC == MFX_FOURCC_RGB3)
     {
         MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);

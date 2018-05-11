@@ -34,14 +34,10 @@ else()
   set( hevc_version $ENV{MFX_HEVC_VERSION} )
 endif()
 
-if( __ARCH MATCHES intel64 )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set( plugin_name mfx_hevce_hw64 )
 else()
   set( plugin_name mfx_hevce_hw32 )
-endif()
-
-if( __CONFIG MATCHES debug )
-  set( plugin_name ${plugin_name}_d )
 endif()
 
 set_file_and_product_version( ${hevc_version} version_defs )

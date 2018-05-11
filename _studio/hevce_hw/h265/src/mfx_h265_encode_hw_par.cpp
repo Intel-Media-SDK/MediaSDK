@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -164,6 +164,18 @@ mfxStatus CheckProfile(mfxVideoParam& par, mfxU16 platform)
 
     return sts;
 }
+mfxU16 getNumBPyrLayers(mfxU16 GopRefDist)
+{
+    if (GopRefDist < 3)
+        return 1;
+    mfxU16 refB = GopRefDist - 1;
+    mfxU16 num_layers = 0;
+    for (mfxU16 x = refB; x > 0;  x = (x - 1) / 2)
+    {
+        num_layers++;
+    }
+    return num_layers;
+}
 mfxU16 minRefForPyramid(mfxU16 GopRefDist, bool bField)
 {
     assert(GopRefDist > 0);
@@ -175,7 +187,7 @@ mfxU16 minRefForPyramid(mfxU16 GopRefDist, bool bField)
         refB -= x;
     }
 
-    return (bField ? 2:1)*(2 + refB);
+    return bField ? ((2 + refB)*2 +1) : (2 + refB);
 }
 
 mfxU32 GetMaxDpbSizeByLevel(MfxVideoParam const & par)
@@ -754,7 +766,6 @@ mfxU32 GetDefaultLCUSize(MfxVideoParam const & par,
     return LCUSize;
 }
 
-
 #ifdef MFX_ENABLE_HEVCE_ROI
 mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & caps, mfxExtEncoderROI *ROI, bool &bROIViaMBQP)
 {
@@ -777,8 +788,6 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
             invalid++;
     }
 
-    //// TODO: remove below macro conditional statement when ROI related caps will be correctly set up by the driver
-#if !defined(LINUX_TARGET_PLATFORM_BXTMIN) && !defined(LINUX_TARGET_PLATFORM_BXT) && !defined(LINUX_TARGET_PLATFORM_CFL)
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
         invalid += (caps.ROIDeltaQPSupport == 0);
     }
@@ -799,7 +808,6 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
             invalid++;
 #endif // MFX_VERSION > 1021
     }
-#endif  // LINUX_TARGET_PLATFORM_BXTMIN
 
     mfxU16 maxNumOfRoi = (caps.MaxNumOfROI <= MAX_NUM_ROI  && (!bROIViaMBQP)) ? caps.MaxNumOfROI : MAX_NUM_ROI;
 
@@ -1035,6 +1043,7 @@ void InheritDefaultValues(
 
     InheritOption(extOpt3Init->IntRefCycleDist, extOpt3Reset->IntRefCycleDist);
     InheritOption(extOpt3Init->PRefType, extOpt3Reset->PRefType);
+    InheritOption(extOpt3Init->GPB, extOpt3Reset->GPB);
 
     InheritOption(extOpt3Init->WinBRCMaxAvgKbps, extOpt3Reset->WinBRCMaxAvgKbps);
     InheritOption(extOpt3Init->WinBRCSize, extOpt3Reset->WinBRCSize);
@@ -1048,6 +1057,12 @@ void InheritDefaultValues(
         InheritOption(extOpt3Init->QVBRQuality,     extOpt3Reset->QVBRQuality);
     }
 
+    for (int i = 0; i < 8; i++)
+    {
+        InheritOption(extOpt3Init->NumRefActiveP[i], extOpt3Reset->NumRefActiveP[i]);
+        InheritOption(extOpt3Init->NumRefActiveBL0[i], extOpt3Reset->NumRefActiveBL0[i]);
+        InheritOption(extOpt3Init->NumRefActiveBL1[i], extOpt3Reset->NumRefActiveBL1[i]);
+    }
 
     mfxExtVideoSignalInfo const*  extOptVSIInit  = &parInit.m_ext.VSI;
     mfxExtVideoSignalInfo*  extOptVSIReset = &parReset.m_ext.VSI;
@@ -1062,6 +1077,9 @@ void InheritDefaultValues(
     mfxExtCodingOptionDDI const* extOptDDIInit = &parInit.m_ext.DDI;
     mfxExtCodingOptionDDI      * extOptDDIReset = &parReset.m_ext.DDI;
     InheritOption(extOptDDIInit->LCUSize, extOptDDIReset->LCUSize);
+    InheritOption(extOptDDIInit->NumActiveRefP, extOptDDIReset->NumActiveRefP);
+    InheritOption(extOptDDIInit->NumActiveRefBL0, extOptDDIReset->NumActiveRefBL0);
+    InheritOption(extOptDDIInit->NumActiveRefBL1, extOptDDIReset->NumActiveRefBL1);
     // not inherited:
     // InheritOption(parInit.mfx.FrameInfo.PicStruct,      parReset.mfx.FrameInfo.PicStruct);
     // InheritOption(parInit.IOPattern,                    parReset.IOPattern);
@@ -1119,7 +1137,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckTriStateOption(par.mfx.LowPower);
 
     if (!par.LCUSize)
-        par.LCUSize = GetDefaultLCUSize(par, caps);
+        par.LCUSize = GetDefaultLCUSize(par, caps); //  that a local copy of actual value;
 
     if (caps.BitDepth8Only == 0) // 10-bit supported
     {
@@ -1198,7 +1216,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (par.mfx.TargetUsage && caps.TUSupport)
         changed += CheckTU(caps.TUSupport, par.mfx.TargetUsage);
 
-    changed += CheckMax(par.mfx.GopRefDist, (caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? par.mfx.GopPicSize - 1 : 0xFFFF));
+    changed += CheckMax(par.mfx.GopRefDist, (caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? Max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
     invalid += CheckOption(par.Protected
         , 0);
@@ -1253,7 +1271,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (caps.MBBRCSupport == 0 || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP ||par.isSWBRC())
         changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_OFF, 0);
     else
-        changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, 0);
+        changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, (mfxU32)MFX_CODINGOPTION_OFF, 0);
 
  
     if (IsOn(par.m_ext.CO2.ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)
@@ -1349,8 +1367,6 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (par.mfx.NumRefFrame)
         maxDPB = par.mfx.NumRefFrame;
 
-    changed += CheckMax(par.m_ext.DDI.NumActiveRefBL0, caps.MaxNum_Reference0);
-    changed += CheckMax(par.m_ext.DDI.NumActiveRefBL1, caps.MaxNum_Reference1);
 
     if (   (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
          || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR
@@ -1423,7 +1439,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         mfxU32 nLCU  = CeilDiv(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.LCUSize) * CeilDiv(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.LCUSize);
         mfxU32 nTile = Max<mfxU32>(par.m_ext.HEVCTiles.NumTileColumns, 1) * Max<mfxU32>(par.m_ext.HEVCTiles.NumTileRows, 1);
 
-        changed += CheckRange(par.m_ext.CO2.NumMbPerSlice, 0, nLCU / nTile);
+        mfxU32 minNumMbPerSlice = CeilDiv(nLCU, MAX_SLICES) / nTile;
+        changed += CheckRange(par.m_ext.CO2.NumMbPerSlice, minNumMbPerSlice, nLCU / nTile);
     }
 
     changed += CheckOption(par.mfx.NumSlice, MakeSlices(par, caps.SliceStructure), 0);
@@ -1572,11 +1589,27 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         }
     }
 
-    for (mfxU16 i = 0; i < 8; i++)
+    //check Active Reference
+
     {
-        changed += CheckMax(CO3.NumRefActiveP[i],   Min<mfxU16>(maxDPB, caps.MaxNum_Reference0));
-        changed += CheckMax(CO3.NumRefActiveBL0[i], Min<mfxU16>(maxDPB, caps.MaxNum_Reference0));
-        changed += CheckMax(CO3.NumRefActiveBL1[i], Min<mfxU16>(maxDPB, caps.MaxNum_Reference1));
+        mfxU16 maxForward  = Min<mfxU16>(caps.MaxNum_Reference0, maxDPB);
+        mfxU16 maxBackward = Min<mfxU16>(caps.MaxNum_Reference1, maxDPB);
+
+
+        changed += CheckMax(par.m_ext.DDI.NumActiveRefP,   maxForward);
+        changed += CheckMax(par.m_ext.DDI.NumActiveRefBL0, maxForward);
+        changed += CheckMax(par.m_ext.DDI.NumActiveRefBL1, maxBackward);
+
+        mfxU16 maxP = par.m_ext.DDI.NumActiveRefP ? par.m_ext.DDI.NumActiveRefP : maxForward;
+        mfxU16 maxB0 = par.m_ext.DDI.NumActiveRefBL0 ? par.m_ext.DDI.NumActiveRefBL0 : maxForward;
+        mfxU16 maxB1 = par.m_ext.DDI.NumActiveRefBL1 ? par.m_ext.DDI.NumActiveRefBL1 : maxBackward;
+
+        for (mfxU16 i = 0; i < 8; i++)
+        {
+            changed += CheckMax(CO3.NumRefActiveP[i],   maxP);
+            changed += CheckMax(CO3.NumRefActiveBL0[i], maxB0);
+            changed += CheckMax(CO3.NumRefActiveBL1[i], maxB1);
+        }
     }
 
 
@@ -1733,8 +1766,7 @@ void SetDefaults(
     mfxExtCodingOption2& CO2 = par.m_ext.CO2;
     mfxExtCodingOption3& CO3 = par.m_ext.CO3;
 
-    if (!par.LCUSize)
-        par.LCUSize = GetDefaultLCUSize(par, hwCaps);
+
 
     if (par.mfx.CodecLevel)
     {
@@ -1882,31 +1914,11 @@ void SetDefaults(
     if (!par.mfx.GopPicSize)
         par.mfx.GopPicSize = (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP ? 1 : 0xFFFF);
 
-    if ((!par.NumRefLX[0]) && (par.mfx.TargetUsage == 7)  &&  (!par.mfx.NumRefFrame))
-    {
-        par.NumRefLX[0] = 1;
-    }
 
-    if ((!par.NumRefLX[1]) && (par.mfx.TargetUsage == 7)  &&  (!par.mfx.NumRefFrame))
-    {
-        par.NumRefLX[1] = 1;
-    }
-
-    if (!par.NumRefLX[0] && par.m_ext.DDI.NumActiveRefBL0)
-        par.NumRefLX[0] = par.m_ext.DDI.NumActiveRefBL0;
-
-    if (!par.NumRefLX[1] && par.m_ext.DDI.NumActiveRefBL1)
-        par.NumRefLX[1] = par.m_ext.DDI.NumActiveRefBL1;
-
-    if (!par.NumRefLX[0])
-        par.NumRefLX[0] = hwCaps.MaxNum_Reference0;
-
-    if (!par.NumRefLX[1])
-        par.NumRefLX[1] = hwCaps.MaxNum_Reference1;
 
     if (!par.mfx.GopRefDist)
     {
-        if (par.isTL() || hwCaps.SliceIPOnly || IsOn(par.mfx.LowPower) || !par.NumRefLX[1] || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
+        if (par.isTL() || hwCaps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
             par.mfx.GopRefDist = 1; // in case of correct SliceIPOnly using of IsOn(par.mfx.LowPower) is not necessary
         else
             par.mfx.GopRefDist = Min<mfxU16>(par.mfx.GopPicSize - 1, (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()) ? 8 : 4);
@@ -1920,6 +1932,87 @@ void SetDefaults(
             par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
     }
 
+    {
+        // calculate ActiveReference
+
+        mfxU16 RefActiveP   = par.m_ext.DDI.NumActiveRefP;
+        mfxU16 RefActiveBL0 = par.m_ext.DDI.NumActiveRefBL0;
+        mfxU16 RefActiveBL1 = par.m_ext.DDI.NumActiveRefBL0;
+
+        if (!RefActiveP)
+            for (mfxU16 i = 0; i < 8; i++)  RefActiveP   = Max(RefActiveP, CO3.NumRefActiveP[i]);
+
+        if (!RefActiveBL0)
+            for (mfxU16 i = 0; i < 8; i++)  RefActiveBL0 = Max(RefActiveBL0, CO3.NumRefActiveBL0[i]);
+
+        if (!RefActiveBL1)
+            for (mfxU16 i = 0; i < 8; i++)  RefActiveBL1 = Max(RefActiveBL1, CO3.NumRefActiveBL1[i]);
+
+        bool bDefinedActiveRef = (RefActiveP || RefActiveBL0 || RefActiveBL1);
+
+        if (!RefActiveP)
+            RefActiveP = (par.mfx.TargetUsage == 7) ? 1 :
+                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.MaxNum_Reference0, par.mfx.NumRefFrame) : hwCaps.MaxNum_Reference0;
+
+        if (!RefActiveBL0)
+            RefActiveBL0 = RefActiveP;
+
+        if (!RefActiveBL1)
+            RefActiveBL1 = (par.mfx.TargetUsage == 7) ? 1 :
+                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.MaxNum_Reference1, par.mfx.NumRefFrame) : hwCaps.MaxNum_Reference1;
+
+
+        //set ActiveReference
+
+        if (!par.m_ext.DDI.NumActiveRefP)
+            par.m_ext.DDI.NumActiveRefP = RefActiveP;
+
+        if (!par.m_ext.DDI.NumActiveRefBL0)
+            par.m_ext.DDI.NumActiveRefBL0 = RefActiveBL0;
+
+        if (!par.m_ext.DDI.NumActiveRefBL1)
+            par.m_ext.DDI.NumActiveRefBL1 = RefActiveBL1;
+
+        for (mfxU16 i = 0; i < 8; i++)
+            if (!CO3.NumRefActiveP[i])
+                CO3.NumRefActiveP[i] = ((i == 0) ? par.m_ext.DDI.NumActiveRefP: CO3.NumRefActiveP[i-1]);
+
+        for (mfxU16 i = 0; i < 8; i++)
+            if (CO3.NumRefActiveBL0[i] == 0)  CO3.NumRefActiveBL0[i] = par.m_ext.DDI.NumActiveRefBL0;
+
+        for (mfxU16 i = 0; i < 8; i++)
+            if (CO3.NumRefActiveBL1[i] == 0)  CO3.NumRefActiveBL1[i] = par.m_ext.DDI.NumActiveRefBL1;
+
+        // set DPB size
+        if (!par.mfx.NumRefFrame)
+        {
+            mfxU16 k = par.isField() ? 2 : 1;
+            if (par.isBPyramid())
+            {
+                par.mfx.NumRefFrame = mfxU16(minRefForPyramid(par.mfx.GopRefDist, par.isField()));
+                if (bDefinedActiveRef)
+                {
+                    par.mfx.NumRefFrame = Max<mfxU16>(par.mfx.NumRefFrame, CO3.NumRefActiveP[0]*k);
+                    for (mfxU16 i = 0; i < getNumBPyrLayers(par.mfx.GopRefDist); i++)
+                    {
+                        par.mfx.NumRefFrame = Max<mfxU16>(par.mfx.NumRefFrame, (CO3.NumRefActiveBL0[i] + i + 1)*k);
+                        par.mfx.NumRefFrame = Max<mfxU16>(par.mfx.NumRefFrame, (CO3.NumRefActiveBL1[i] + i + 1)*k);
+                    }
+                }
+
+            }
+            else if (par.isLowDelay())
+            {
+                par.mfx.NumRefFrame = Max<mfxU16>((mfxU16)par.PPyrInterval*k, RefActiveP);
+            }
+            else
+            {
+                par.mfx.NumRefFrame = (Max(RefActiveP, RefActiveBL0) + (par.mfx.GopRefDist > 1) * RefActiveBL0)*k;
+            }
+            par.mfx.NumRefFrame = Max(mfxU16(par.NumTL() - 1), par.mfx.NumRefFrame);
+            par.mfx.NumRefFrame = Min(maxDPB, par.mfx.NumRefFrame);
+        }
+     }
     if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
         par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
 
@@ -1929,33 +2022,6 @@ void SetDefaults(
             par.m_ext.CO3.PRefType = MFX_P_REF_PYRAMID;
         else if (par.mfx.GopRefDist == 1)
             par.m_ext.CO3.PRefType = MFX_P_REF_SIMPLE;
-    }
-
-    if (!par.mfx.NumRefFrame)
-    {
-        par.mfx.NumRefFrame = par.isBPyramid() ? mfxU16(minRefForPyramid(par.mfx.GopRefDist,par.isField())) : (((par.NumRefLX[0] + (par.mfx.GopRefDist > 1) * (par.NumRefLX[1]))*(par.isField()?2:1)));
-        par.mfx.NumRefFrame = Max(mfxU16(par.NumTL() - 1), par.mfx.NumRefFrame);
-        par.mfx.NumRefFrame = Min(maxDPB, par.mfx.NumRefFrame);
-    }
-    else if (!par.isBPyramid())
-    {
-        while (par.NumRefLX[0] + par.NumRefLX[1] > par.mfx.NumRefFrame)
-        {
-            {
-                if (par.mfx.GopRefDist == 1 && par.NumRefLX[1] == 1
-                    && par.NumRefLX[0] + par.NumRefLX[1] == par.mfx.NumRefFrame + 1)
-                    break;
-            }
-
-            if (par.NumRefLX[1] >= par.NumRefLX[0]
-                && !(par.mfx.GopRefDist == 1 && par.NumRefLX[1] == 1))
-                par.NumRefLX[1] --;
-            else
-                par.NumRefLX[0] --;
-        }
-
-        par.NumRefLX[0] = Max<mfxU16>(1, par.NumRefLX[0]);
-        par.NumRefLX[1] = Max<mfxU16>(1, par.NumRefLX[1]);
     }
 
     /*if (   DEFAULT_LTR_INTERVAL > 0
@@ -2011,19 +2077,6 @@ void SetDefaults(
     if (IsOff(CO3.EnableQPOffset))
         Zero(CO3.QPOffset);
 
-    for (mfxU16 i = 0, bl0 = 0; i < 8; i++)
-    {
-        if (!CO3.NumRefActiveP[i])
-            CO3.NumRefActiveP[i] = i ? CO3.NumRefActiveP[i - 1] : par.NumRefLX[0];
-
-        if (!CO3.NumRefActiveBL0[i])
-            CO3.NumRefActiveBL0[i] = bl0 ? CO3.NumRefActiveBL0[i-1] : CO3.NumRefActiveP[i];
-        else
-            bl0 ++;
-
-        if (!CO3.NumRefActiveBL1[i])
-            CO3.NumRefActiveBL1[i] = i ? CO3.NumRefActiveBL1[i - 1] : par.NumRefLX[1];
-    }
 
 
 

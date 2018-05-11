@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -44,6 +44,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #define __SYNC_WA // avoid sync issue on Media SDK side
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 CDecodingPipeline::CDecodingPipeline()
 {
@@ -590,7 +593,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         // trying to find PicStruct information in AVI headers
         if ( m_mfxVideoParams.mfx.CodecId == MFX_CODEC_JPEG )
             MJPEG_AVI_ParsePicStruct(&m_mfxBS);
-
 #if (MFX_VERSION >= 1025)
         if (pParams->bErrorReport)
         {
@@ -738,6 +740,11 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         {
             m_mfxVideoParams.mfx.JPEGColorFormat = pParams->chromaType;
         }
+    }
+
+    // Only shifted P010 is supported now
+    if (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010) {
+        m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
     }
 
 #if MFX_VERSION >= 1022
@@ -1312,7 +1319,7 @@ void CDecodingPipeline::SetMultiView()
 template <typename Buffer>
 mfxStatus CDecodingPipeline::AllocateExtBuffer()
 {
-    std::auto_ptr<Buffer> pExtBuffer (new Buffer());
+    std::unique_ptr<Buffer> pExtBuffer (new Buffer());
     if (!pExtBuffer.get())
         return MFX_ERR_MEMORY_ALLOC;
 
@@ -1564,6 +1571,13 @@ mfxStatus CDecodingPipeline::SyncOutputSurface(mfxU32 wait)
 
     mfxStatus sts = m_mfxSession.SyncOperation(m_pCurrentOutputSurface->syncp, wait);
 
+    if (MFX_ERR_GPU_HANG == sts) {
+        msdk_printf(MSDK_STRING("GPU hang happened\n"));
+        // Output surface can be corrupted
+        // But should be delivered to output anyway
+        sts = MFX_ERR_NONE;
+    }
+
     if (MFX_WRN_IN_EXECUTION == sts) {
         return sts;
     }
@@ -1608,7 +1622,6 @@ mfxStatus CDecodingPipeline::RunDecoding()
     CTimeInterval<>     decodeTimer(m_bIsCompleteFrame);
     time_t start_time = time(0);
     MSDKThread * pDeliverThread = NULL;
-
 #if (MFX_VERSION >= 1025)
     mfxExtDecodeErrorReport *pDecodeErrorReport = NULL;
 #endif

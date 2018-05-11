@@ -40,6 +40,8 @@ public:
 
     virtual mfxStatus PreEncFrame(HevcTask * task) = 0;
 
+    virtual mfxStatus ResetIOState() = 0;
+
 protected:
     mfxStatus ResetExtBuffers(const MfxVideoParamsWrapper & videoParams);
 
@@ -64,6 +66,8 @@ public:
     virtual mfxStatus QueryIOSurf(mfxFrameAllocRequest* request);
 
     virtual mfxStatus PreEncFrame(HevcTask * task);
+
+    virtual mfxStatus ResetIOState();
 
 private:
     mfxU8  m_numOfStructuresPerFrame; // number of mfxExtFeiPreEncMVMB structures per frame
@@ -92,6 +96,8 @@ public:
 
     mfxStatus PreEncFrame(HevcTask * task);
 
+    mfxStatus ResetIOState();
+
 private:
     mfxStatus PreEncMultiFrames(HevcTask * task);
     mfxStatus PreEncOneFrame(HevcTask & currTask, const RefIdxPair& dpbRefIdxPair, const RefIdxPair& activeRefIdxPair, const bool bDownsampleInput);
@@ -112,6 +118,7 @@ private:
     std::auto_ptr<FileHandler> m_pFile_MBstat_out;
 
     bool m_isMVoutFormatted;
+    mfxU32 m_processedFrames;
 
     DISALLOW_COPY_AND_ASSIGN(FEI_Preenc);
 
@@ -131,6 +138,7 @@ public:
     mfxStatus PreEncFrame(HevcTask * task);
 
     MfxVideoParamsWrapper GetVideoParam();
+    mfxStatus ResetIOState();
 
 private:
     mfxStatus DownSampleFrame(HevcTask & task);

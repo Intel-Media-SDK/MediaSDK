@@ -63,6 +63,9 @@ struct sInputParams
     msdk_char  mbstatoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvpInFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  refctrlInFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackctrlFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackstatFile[MSDK_MAX_FILENAME_LEN];
 
     bool bENCODE;
     bool bPREENC;
@@ -75,6 +78,8 @@ struct sInputParams
     mfxU16 dstHeight;          // destination picture height
     mfxU32 nNumFrames;
     mfxU16 nNumSlices;
+    mfxU16 CodecProfile;
+    mfxU16 CodecLevel;
     mfxU16 nRefDist;           // distance between I- or P (or GPB) - key frames, GopRefDist = 1, there are no regular B-frames used
     mfxU16 nGopSize;           // number of frames to next I
     mfxU16 nIdrInterval;       // distance between IDR frames in GOPs
@@ -89,6 +94,7 @@ struct sInputParams
     mfxU16 preencDSfactor;     // downsample input before passing to preenc (2/4/8x are supported)
     mfxU16 PicTimingSEI;       // picture timing SEI
     bool   bDisableQPOffset;   // disable qp offset per pyramid layer
+    mfxU32 nTimeout;           // execution time in seconds
 
     mfxExtFeiPreEncCtrl         preencCtrl;
     mfxExtFeiHevcEncFrameCtrl   encodeCtrl;
@@ -103,8 +109,10 @@ struct sInputParams
         , QP(26)
         , dstWidth(0)
         , dstHeight(0)
-        , nNumFrames(0xffff)
+        , nNumFrames(0)
         , nNumSlices(1)
+        , CodecProfile(MFX_PROFILE_HEVC_MAIN)
+        , CodecLevel(MFX_LEVEL_UNKNOWN)
         , nRefDist(0)
         , nGopSize(0)
         , nIdrInterval(0)
@@ -119,11 +127,13 @@ struct sInputParams
         , preencDSfactor(1)            // no downsampling
         , PicTimingSEI(MFX_CODINGOPTION_OFF)
         , bDisableQPOffset(false)
+        , nTimeout(0)
     {
         MSDK_ZERO_MEMORY(strDstFile);
         MSDK_ZERO_MEMORY(mbstatoutFile);
         MSDK_ZERO_MEMORY(mvoutFile);
         MSDK_ZERO_MEMORY(mvpInFile);
+        MSDK_ZERO_MEMORY(refctrlInFile);
 
         MSDK_ZERO_MEMORY(preencCtrl);
         preencCtrl.Header.BufferId = MFX_EXTBUFF_FEI_PREENC_CTRL;
@@ -148,8 +158,7 @@ struct sInputParams
         encodeCtrl.Header.BufferSz = sizeof(mfxExtFeiHevcEncFrameCtrl);
         encodeCtrl.SubPelMode         = 3; // quarter-pixel motion estimation
         encodeCtrl.SearchWindow       = 5; // 48 SUs 48x40 window full search
-        // TODO: return default of NumFramePartitions to 4
-        encodeCtrl.NumFramePartitions = 1; // number of partitions in frame that encoder processes concurrently
+        encodeCtrl.NumFramePartitions = 4; // number of partitions in frame that encoder processes concurrently
         // enable internal L0/L1 predictors: 1 - spatial predictors
         encodeCtrl.MultiPred[0] = encodeCtrl.MultiPred[1] = 1;
         encodeCtrl.MVPredictor = 0; // disabled MV predictors
@@ -182,7 +191,7 @@ template<class T> inline void Zero(std::vector<T> & vec)  { memset(vec.data(), 0
 template<class T> inline void Zero(T * first, size_t cnt) { memset(first, 0, sizeof(T) * cnt); }
 template<class T> inline void Fill(T & obj, int val) { memset(&obj, val, sizeof(obj)); }
 template<class T> inline void Zero(T & obj) { Fill(obj, 0); }
-template<class T> inline T Clip3(T min, T max, T x) { return std::min(std::max(min, x), max); }
+template<class T> inline T Clip3(T min, T max, T x) { return std::min<T>(std::max<T>(min, x), max); }
 
 /**********************************************************************************/
 
@@ -212,6 +221,12 @@ template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncCtuCtrl>{
 };
 template<>struct mfx_ext_buffer_id<mfxExtHEVCRefLists>{
     enum {id = MFX_EXTBUFF_HEVC_REFLISTS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackStat>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_STAT};
 };
 
 struct CmpExtBufById
@@ -284,6 +299,7 @@ public:
             if (!IsCopyAllowed(src_buf->BufferId)) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Copying buffer with pointers not allowed");
 
             mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz);
+            if (!dst_buf) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Can't allocate destination buffer");
             // copy buffer content w/o restoring its type
             memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
         }
@@ -488,7 +504,7 @@ typedef HevcDpbFrame HevcDpbArray[MAX_DPB_SIZE];
 struct HevcTask : HevcDpbFrame
 {
     mfxU16       m_frameType;
-    mfxU8        m_refPicList[2][MAX_DPB_SIZE];
+    mfxU8        m_refPicList[2][MAX_DPB_SIZE]; // index in dpb
     mfxU8        m_numRefActive[2]; // L0 and L1 lists
     mfxU8        m_shNUT;           // NALU type
     mfxI32       m_lastIPoc;
@@ -518,9 +534,20 @@ inline bool operator ==(HevcTask const & l, HevcTask const & r)
 
 /**********************************************************************************/
 
-inline mfxU32 align(const mfxU32 val, const mfxU32 alignment)
+// Version for compile-time alignment arguments
+template<mfxU32 alignment> inline mfxU32 align(mfxU32 val)
 {
-    STATIC_ASSERT(!(val == 0) && !(val & (val - 1)), is_power_of_2);
+    STATIC_ASSERT((alignment != 0) && !(alignment & (alignment - 1)), is_power_of_2);
+    return (val + alignment - 1) & ~(alignment - 1);
+}
+
+// Version for run-time alignment arguments
+inline mfxU32 align(mfxU32 val, mfxU32 alignment)
+{
+    if ((alignment == 0) || (alignment & (alignment - 1)))
+    {
+        throw mfxError(MFX_ERR_UNKNOWN, "Alignment should be a power of 2");
+    }
     return (val + alignment - 1) & ~(alignment - 1);
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -81,7 +81,6 @@ namespace
         {4, 4},  // MFX_IMPL_HARDWARE3
         {5, 5},  // MFX_IMPL_HARDWARE4
         {2, 6},  // MFX_IMPL_RUNTIME, same as MFX_IMPL_HARDWARE_ANY
-        {8, 11},  // MFX_SINGLE_THREAD,
         {7, 7}   // MFX_IMPL_AUDIO
     };
 
@@ -494,11 +493,11 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
                 hive.insert(hive.end(), plgsInHive.begin(), plgsInHive.end());
             }
 
-#if !defined(MEDIASDK_UWP_LOADER)
+#if defined(MEDIASDK_USE_CFGFILES) || !defined(MEDIASDK_UWP_LOADER)
             // SOLID dispatcher also loads plug-ins from file system
             MFX::MFXPluginsInFS plgsInFS(apiVerActual);
             hive.insert(hive.end(), plgsInFS.begin(), plgsInFS.end());
-#endif // !defined(MEDIASDK_UWP_LOADER)
+#endif // defined(MEDIASDK_USE_CFGFILES) || !defined(MEDIASDK_UWP_LOADER)
         }
 
         // UWP dispatcher uses stubs
@@ -559,12 +558,12 @@ mfxStatus MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 
 {
     mfxStatus sts = MFX_ERR_NONE;
     bool ErrFlag = false;
-    MFX_DISP_HANDLE &pHandle = *(MFX_DISP_HANDLE *) session;
-    if (!&pHandle)
-    {
+    if (!session) {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_Load: session=NULL\n")));
         return MFX_ERR_NULL_PTR;
     }
+    MFX_DISP_HANDLE &pHandle = *(MFX_DISP_HANDLE *) session;
+
     if (!uid)
     {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_Load: uid=NULL\n")));
@@ -639,12 +638,12 @@ mfxStatus MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 
 
 mfxStatus MFXVideoUSER_LoadByPath(mfxSession session, const mfxPluginUID *uid, mfxU32 version, const mfxChar *path, mfxU32 len)
 {
-    MFX_DISP_HANDLE &pHandle = *(MFX_DISP_HANDLE *) session;
-    if (!&pHandle)
+    if (!session)
     {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_LoadByPath: session=NULL\n")));
         return MFX_ERR_NULL_PTR;
     }
+    MFX_DISP_HANDLE &pHandle = *(MFX_DISP_HANDLE *) session;
     if (!uid)
     {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_LoadByPath: uid=NULL\n")));
@@ -678,12 +677,12 @@ mfxStatus MFXVideoUSER_LoadByPath(mfxSession session, const mfxPluginUID *uid, m
 
 mfxStatus MFXVideoUSER_UnLoad(mfxSession session, const mfxPluginUID *uid)
 {
-    MFX_DISP_HANDLE &rHandle = *(MFX_DISP_HANDLE *) session;
-    if (!&rHandle)
+    if (!session)
     {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_UnLoad: session=NULL\n")));
         return MFX_ERR_NULL_PTR;
     }
+    MFX_DISP_HANDLE &rHandle = *(MFX_DISP_HANDLE *) session;
     if (!uid)
     {
         DISPATCHER_LOG_ERROR((("MFXVideoUSER_UnLoad: uid=NULL\n")));
@@ -704,12 +703,12 @@ mfxStatus MFXVideoUSER_UnLoad(mfxSession session, const mfxPluginUID *uid)
 
 mfxStatus MFXAudioUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version)
 {
-    MFX_DISP_HANDLE &pHandle = *(MFX_DISP_HANDLE *) session;
-    if (!&pHandle)
+    if (!session)
     {
         DISPATCHER_LOG_ERROR((("MFXAudioUSER_Load: session=NULL\n")));
         return MFX_ERR_NULL_PTR;
     }
+    MFX_DISP_HANDLE &pHandle = *(MFX_DISP_HANDLE *) session;
     if (!uid)
     {
         DISPATCHER_LOG_ERROR((("MFXAudioUSER_Load: uid=NULL\n")));
@@ -766,12 +765,12 @@ mfxStatus MFXAudioUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 
 
 mfxStatus MFXAudioUSER_UnLoad(mfxSession session, const mfxPluginUID *uid)
 {
-    MFX_DISP_HANDLE &rHandle = *(MFX_DISP_HANDLE *) session;
-    if (!&rHandle)
+    if (!session)
     {
         DISPATCHER_LOG_ERROR((("MFXAudioUSER_UnLoad: session=NULL\n")));
         return MFX_ERR_NULL_PTR;
     }
+    MFX_DISP_HANDLE &rHandle = *(MFX_DISP_HANDLE *) session;
     if (!uid)
     {
         DISPATCHER_LOG_ERROR((("MFXAudioUSER_Load: uid=NULL\n")));

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -30,6 +30,9 @@
 const mfxU32 g_TABLE_DO_NOT_USE [] =
 {
     MFX_EXTBUFF_VPP_DENOISE,
+#ifdef MFX_ENABLE_MCTF
+    MFX_EXTBUFF_VPP_MCTF,
+#endif
     MFX_EXTBUFF_VPP_SCENE_ANALYSIS,
     MFX_EXTBUFF_VPP_PROCAMP,
     MFX_EXTBUFF_VPP_DETAIL,
@@ -49,6 +52,9 @@ const mfxU32 g_TABLE_DO_NOT_USE [] =
 const mfxU32 g_TABLE_DO_USE [] =
 {
     MFX_EXTBUFF_VPP_DENOISE,
+#ifdef MFX_ENABLE_MCTF
+    MFX_EXTBUFF_VPP_MCTF,
+#endif
     MFX_EXTBUFF_VPP_SCENE_ANALYSIS,
     MFX_EXTBUFF_VPP_PROCAMP,
     MFX_EXTBUFF_VPP_DETAIL,
@@ -71,6 +77,9 @@ const mfxU32 g_TABLE_DO_USE [] =
 const mfxU32 g_TABLE_CONFIG [] =
 {
     MFX_EXTBUFF_VPP_DENOISE,
+#ifdef MFX_ENABLE_MCTF
+    MFX_EXTBUFF_VPP_MCTF,
+#endif
     MFX_EXTBUFF_VPP_SCENE_ANALYSIS,
     MFX_EXTBUFF_VPP_PROCAMP,
     MFX_EXTBUFF_VPP_DETAIL,
@@ -99,6 +108,9 @@ const mfxU32 g_TABLE_EXT_PARAM [] =
 
     // should be the same as g_TABLE_CONFIG
     MFX_EXTBUFF_VPP_DENOISE,
+#ifdef MFX_ENABLE_MCTF
+    MFX_EXTBUFF_VPP_MCTF,
+#endif
     MFX_EXTBUFF_VPP_SCENE_ANALYSIS,
     MFX_EXTBUFF_VPP_PROCAMP,
     MFX_EXTBUFF_VPP_DETAIL,
@@ -478,6 +490,13 @@ bool IsRoiDifferent(mfxFrameSurface1 *input, mfxFrameSurface1 *output)
 
 void ShowPipeline( std::vector<mfxU32> pipelineList )
 {
+#if !defined(_DEBUG) && \
+    !defined(_WIN32) && !defined(_WIN64) || \
+    !defined(LINUX) && !defined(LINUX32) && !defined(LINUX64)
+
+    (void)pipelineList;
+#endif
+
 #ifdef _DEBUG
 
 #if defined(LINUX) || defined(LINUX32) || defined(LINUX64)
@@ -641,9 +660,16 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 fprintf(stderr, "VPP_FIELD_SPLITTING\n");
                 break;
             }
+#ifdef MFX_ENABLE_MCTF
+            case (mfxU32)MFX_EXTBUFF_VPP_MCTF:
+            {
+                fprintf(stderr, "VPP_MCTF\n");
+                break;
+            }
+#endif
             default:
             {
-                fprintf(stderr, "UNKNOUW Filter ID!!! \n");
+                fprintf(stderr, "UNKNOWN Filter ID!!! \n");
                 break;
             }
 
@@ -833,6 +859,14 @@ void ReorderPipelineListForQuality( std::vector<mfxU32> & pipelineList )
         newList[index] = MFX_EXTBUFF_VPP_MIRRORING;
         index++;
     }
+#ifdef MFX_ENABLE_MCTF
+    // add to the end
+    if (IsFilterFound(&pipelineList[0], (mfxU32)pipelineList.size(), MFX_EXTBUFF_VPP_MCTF))
+    {
+        newList[index] = MFX_EXTBUFF_VPP_MCTF;
+        index++;
+    }
+#endif
     // [1] update
     pipelineList.resize(index);
     for( index = 0; index < (mfxU32)pipelineList.size(); index++ )
@@ -1002,24 +1036,10 @@ mfxStatus GetPipelineList(
     }
 
     /* [Deinterlace] FILTER */
-    mfxU32 extParamCount        = MFX_MAX(sizeof(g_TABLE_CONFIG) / sizeof(*g_TABLE_CONFIG), videoParam->NumExtParam);
-    std::vector<mfxU32> extParamList(extParamCount);
-
-    GetConfigurableFilterList( videoParam, &extParamList[0], &extParamCount );
-
-    mfxU32*   pExtBufList = NULL;
-    mfxU32    extBufCount = 0;
-
     if( 0 != videoParam->NumExtParam && NULL == videoParam->ExtParam )
     {
         return MFX_ERR_NULL_PTR;
     }
-
-    GetDoUseFilterList( videoParam, &pExtBufList, &extBufCount );
-
-    extParamList.insert(extParamList.end(), &pExtBufList[0], &pExtBufList[extBufCount]);
-    extParamCount = (mfxU32) extParamList.size();
-
     PicStructMode picStructMode = GetPicStructMode(par->In.PicStruct, par->Out.PicStruct);
 
     mfxI32 deinterlacingMode = 0;
@@ -1107,6 +1127,16 @@ mfxStatus GetPipelineList(
     {
         pipelineList.push_back(MFX_EXTBUFF_VPP_FIELD_SPLITTING);
     }
+#ifdef MFX_ENABLE_MCTF
+    for (mfxU32 i = 0; i < videoParam->NumExtParam; i++)
+    {
+        if (videoParam->ExtParam[i] && videoParam->ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_MCTF)
+        {
+            pipelineList.push_back(MFX_EXTBUFF_VPP_MCTF);
+            break;
+        }
+    }
+#endif
 
     /* ********************************************************************** */
     /* 2. optional filters, enabled by default, disabled by DO_NOT_USE        */
@@ -1287,6 +1317,9 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
     switch (info->FourCC)
     {
         case MFX_FOURCC_NV12:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case MFX_FOURCC_RGB565:
+#endif
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:
@@ -2137,7 +2170,12 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     {
         list.push_back(MFX_EXTBUFF_VPP_PROCAMP);
     }
-
+#ifdef MFX_ENABLE_MCTF
+    if (caps.uMCTF)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_MCTF);
+    }
+#endif
     if(caps.uDenoiseFilter)
     {
         list.push_back(MFX_EXTBUFF_VPP_DENOISE);
@@ -2176,6 +2214,11 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
     if(caps.uRotation)
     {
         list.push_back(MFX_EXTBUFF_VPP_ROTATION);
+    }
+
+    if(caps.uMirroring)
+    {
+        list.push_back(MFX_EXTBUFF_VPP_MIRRORING);
     }
 
     if(caps.uScaling)

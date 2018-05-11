@@ -173,8 +173,8 @@ protected:
 
     mfx_UMC_MemAllocator       m_MemoryAllocator;
     // TBD
-    std::auto_ptr<mfx_UMC_FrameAllocator>    m_pFrameAlloc;
-    std::auto_ptr<UMC::VC1VideoDecoder>      m_pVC1VideoDecoder;
+    std::unique_ptr<mfx_UMC_FrameAllocator>    m_pFrameAlloc;
+    std::unique_ptr<UMC::VC1VideoDecoder>      m_pVC1VideoDecoder;
 
     UMC::vc1_frame_constructor*     m_frame_constructor;
     uint8_t*                          m_pReadBuffer;

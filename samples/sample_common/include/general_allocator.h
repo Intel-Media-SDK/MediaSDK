@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -51,8 +51,8 @@ protected:
     bool    isD3DMid(mfxHDL mid);
 
     std::map<mfxHDL, bool>                  m_Mids;
-    std::auto_ptr<BaseFrameAllocator>       m_D3DAllocator;
-    std::auto_ptr<SysMemFrameAllocator>     m_SYSAllocator;
+    std::unique_ptr<BaseFrameAllocator>       m_D3DAllocator;
+    std::unique_ptr<SysMemFrameAllocator>     m_SYSAllocator;
 private:
     DISALLOW_COPY_AND_ASSIGN(GeneralAllocator);
 

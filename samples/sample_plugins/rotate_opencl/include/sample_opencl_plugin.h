@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -198,8 +198,8 @@ protected: // variables
     bool m_bIsInOpaque;
     bool m_bIsOutOpaque;
 
-    std::auto_ptr<OpenCLFilterVA> m_OpenCLFilter;
-    std::auto_ptr<OpenCLRotator180Context> m_pOpenCLRotator180Context;
+    std::unique_ptr<OpenCLFilterVA> m_OpenCLFilter;
+    std::unique_ptr<OpenCLRotator180Context> m_pOpenCLRotator180Context;
     mfxHDL m_device;
 
     mfxCoreInterface *m_pmfxCore;

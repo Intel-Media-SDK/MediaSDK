@@ -3,11 +3,11 @@ Intel® Media SDK provides an API to access hardware-accelerated video decode, e
 
 **Supported video encoders**: HEVC, AVC, MPEG-2, JPEG  
 **Supported Video decoders**: HEVC, AVC, VP8, MPEG-2, VC1, JPEG  
-**Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate
+**Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition
 
 # Important note
-The current version of Intel Media SDK compatible with the open source [Linux* Graphics Driver](https://github.com/intel/media-driver) [commit f7662547ab9cec5b98d144b0943067e2251825e8](https://github.com/intel/media-driver/commit/f7662547ab9cec5b98d144b0943067e2251825e8).
-Intel Media SDK depends on a special version of [LibVA commit df544cd5a31e54d4cbd33a391795a8747ddaf789](https://github.com/01org/libva/commit/df544cd5a31e54d4cbd33a391795a8747ddaf789).
+The current version of Intel Media SDK is compatible with the open source [Intel Media Driver for VAAPI](https://github.com/intel/media-driver).
+Intel Media SDK depends on [LibVA](https://github.com/01org/libva/). 
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
@@ -16,6 +16,8 @@ You can find answers for the most frequently asked questions [here](https://soft
 
   * [License](#license)
   * [How to contribute](#how-to-contribute)
+  * [Documentation](#Documentation)
+  * [Products which use Media SDK](#products-which-use-media-sdk)
   * [System requirements](#system-requirements)
   * [How to build](#how-to-build)
     * [Requirements](#requirements)
@@ -29,16 +31,33 @@ Intel Media SDK is licensed under MIT license. See [LICENSE](./LICENSE) for deta
 # How to contribute
 See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
-# System requirements
-**Operating System:** CentOS 7.3, Ubuntu 16.04.  
-**Hardware:**
-Intel platforms with integrated graphics:
- - Intel® Xeon® E3-1200 v4 family with C226 chipset
- - Intel Xeon E3-1200 and E3-1500 v5 families with C236 chipset
- - 5th Generation Intel® Core™ processors
- - 6th Generation Intel Core processors
+# Documentation
 
-Please find documentation under the `doc/` folder or navigate to [Intel Media Server Studio support page](https://software.intel.com/en-us/intel-media-server-studio-support/documentation).
+Please find full documentation under the `doc/` folder. Key documents:
+* [Media SDK Developer Reference](./doc/mediasdk-man.pdf)
+* [Media SDK Developer Reference Extensions for User-Defined Functions](./doc/mediasdkusr-man.pdf)
+* [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.pdf)
+
+You may also wish to visit Intel Media Server Studio [support page](https://software.intel.com/en-us/intel-media-server-studio-support/documentation) for additional documentation.
+
+# Products which use Media SDK
+
+* [Intel Media Server Studio](https://software.intel.com/en-us/intel-media-server-studio)
+* [Intel Media SDK for Embedded Linux](https://software.intel.com/en-us/media-sdk/choose-download/embedded-iot)
+
+# System requirements
+
+**Operating System:** Linux
+
+**Software:**
+* [LibVA](https://github.com/intel/libva)
+* VAAPI backend driver:
+  * [Intel Media Driver for VAAPI](https://github.com/intel/media-driver)
+* Some features require CM Runtime library (part of [Intel Media Driver for VAAPI](https://github.com/intel/media-driver) package)
+
+**Hardware:** Intel platforms supported by the [Intel Media Driver for VAAPI](https://github.com/intel/media-driver)
+
+Media SDK test and sample applications may require additional software packages (for example, X Server, Wayland, LibDRM, etc.) to be functional.
 
 # How to build
 ## Requirements
@@ -46,7 +65,7 @@ Please find documentation under the `doc/` folder or navigate to [Intel Media Se
  - Perl* v5.16+
  - Cmake* v2.8+
  - GCC* v4.8+
- - Intel [Media Driver for VAAPI](https://github.com/intel/media-driver)
+ - [LibVA](https://github.com/intel/libva)
 
 ## Build steps
 
@@ -78,6 +97,5 @@ To enable the Instrumentation and Tracing Technology API you need either Intel®
 **Please note** that auto detection of the Intel VTune Amplifier configuration is not supported. The next step is mandatory if you want to use this feature: set `$ITT_PATH` so `$ITT_PATH/include/ittnotify.h` and `$ITT_PATH/libittnotify64.a` will be valid paths. MSDK build system will automatically detect it.
 
 # See also
-Intel Media Server Studio: https://software.intel.com/en-us/intel-media-server-studio
 
 Intel Media SDK: https://software.intel.com/en-us/media-sdk

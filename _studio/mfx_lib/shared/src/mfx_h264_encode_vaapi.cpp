@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1400,9 +1400,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.MaxNum_Reference1 = 1;
     }
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT) || defined (LINUX_TARGET_PLATFORM_CFL)
-    // Officially only APL and CFL supports ROI.
-
     if (attrs[idx_map[VAConfigAttribEncROI]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
         VAConfigAttribValEncROI *VaEncROIValPtr = reinterpret_cast<VAConfigAttribValEncROI *>(&attrs[idx_map[VAConfigAttribEncROI]].value);
@@ -1413,7 +1410,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.ROIBRCDeltaQPLevelSupport  = VaEncROIValPtr->bits.roi_rc_qp_delta_support;
     }
     else
-#endif
     {
         m_caps.MaxNumOfROI = 0;
     }
@@ -1928,13 +1924,14 @@ bool operator!=(const ENCODE_ENC_CTRL_CAPS& l, const ENCODE_ENC_CTRL_CAPS& r)
 //static int debug_frame_bum = 0;
 
 mfxStatus VAAPIEncoder::Execute(
-    mfxHDL          surface,
+    mfxHDLPair      pair,
     DdiTask const & task,
     mfxU32          fieldId,
     PreAllocatedVector const & sei)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
+    mfxHDL surface = pair.first;
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     VASurfaceID reconSurface;
     VASurfaceID *inputSurface = (VASurfaceID*)surface;
@@ -2357,7 +2354,7 @@ mfxStatus VAAPIEncoder::Execute(
         // SEI
         if (sei.Size() > 0)
         {
-            packed_header_param_buffer.type = VAEncPackedHeaderH264_SEI;
+            packed_header_param_buffer.type = VAEncPackedHeaderRawData;
             packed_header_param_buffer.has_emulation_bytes = 1;
             packed_header_param_buffer.bit_length = sei.Size()*8;
 
@@ -2488,7 +2485,7 @@ mfxStatus VAAPIEncoder::Execute(
         // SEI
         if (sei.Size() > 0)
         {
-            packed_header_param_buffer.type = VAEncPackedHeaderH264_SEI;
+            packed_header_param_buffer.type = VAEncPackedHeaderRawData;
             packed_header_param_buffer.has_emulation_bytes = 1;
             packed_header_param_buffer.bit_length = sei.Size()*8;
 
@@ -2746,6 +2743,12 @@ mfxStatus VAAPIEncoder::Execute(
 
     mfxU32 storedSize = 0;
 
+#ifndef MFX_AVC_ENCODING_UNIT_DISABLE
+    if (task.m_collectUnitsInfo)
+    {
+        m_headerPacker.GetHeadersInfo(task.m_headersCache[fieldId], task, fieldId);
+    }
+#endif
 
     if (skipFlag != NORMAL_MODE)
     {
@@ -2892,7 +2895,7 @@ mfxStatus VAAPIEncoder::Execute(
                 timeout = 0;
             }
         }*/
-        mfxStatus sts = m_mfe->Submit(m_vaContextEncode, (task.m_flushMfe? 0 : timeout));
+        mfxStatus sts = m_mfe->Submit(m_vaContextEncode, (task.m_flushMfe? 0 : timeout), skipFlag == NORMAL_MODE);
         if (sts != MFX_ERR_NONE)
             return sts;
     }
@@ -3021,7 +3024,6 @@ mfxStatus VAAPIEncoder::QueryStatus(
         sts = MFX_ERR_GPU_HANG;
     else if (!codedBufferSegment->size || !codedBufferSegment->buf)
         sts = MFX_ERR_DEVICE_FAILED;
-
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");

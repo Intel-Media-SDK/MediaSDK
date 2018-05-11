@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2016-2017, Intel Corporation
+Copyright (c) 2016-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -31,6 +31,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 struct BufferAllocRequest {
     mfxU32 Width;  // coded frame width
     mfxU32 Height; // coded frame height
+    mfxU32 CTUSize; // size of CTU to be used in calculations
 };
 
 const mfxU32 CTU_SIZE32 = 32;
@@ -119,6 +120,8 @@ private:
             return VAEncQPBufferType;
         case MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED:
             return VAEncFEIMVPredictorBufferType;
+        case MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL:
+            return VAEncFEIMBControlBufferType;
 #endif
         default:
             throw mfxError(MFX_ERR_UNSUPPORTED, "Unsupported buffer type");

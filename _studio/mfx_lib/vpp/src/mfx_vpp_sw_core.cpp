@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -498,6 +498,10 @@ mfxStatus VideoVPPBase::GetVideoParam(mfxVideoParam *par)
 #if (MFX_VERSION >= 1025)
                     case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
 #endif
+
+#ifdef MFX_ENABLE_MCTF
+                    case MFX_EXTBUFF_VPP_MCTF:
+#endif
                     {
                         if(numUsedFilters + 1 > pVPPHint->NumAlg)
                             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -562,6 +566,7 @@ mfxStatus VideoVPPBase::QueryCaps(VideoCORE * core, MfxHwVideoProcessing::mfxVpp
         caps.uFrameRateConversion= 1; // "1" means general FRC is supported. "Interpolation" modes descibed by caps.frcCaps
         caps.uDeinterlacing      = 1; // "1" means general deinterlacing is supported
         caps.uVideoSignalInfo    = 1; // "1" means general VSI is supported
+
         if (sts >= MFX_ERR_NONE)
            return sts;
     }
@@ -896,6 +901,13 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                     {
                         // No specific checks for Opaque ext buffer at the moment.
                     }
+#ifdef MFX_ENABLE_MCTF
+                    else if (MFX_EXTBUFF_VPP_MCTF == in->ExtParam[i]->BufferId)
+                    {
+                        // no specific checks for MCTF control buffer
+                        continue;
+                    }
+#endif
                     else
                     {
                         out->ExtParam[i]->BufferId = 0;
@@ -936,6 +948,9 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         if( out->vpp.In.FourCC != MFX_FOURCC_YV12 &&
             out->vpp.In.FourCC != MFX_FOURCC_NV12 &&
             out->vpp.In.FourCC != MFX_FOURCC_YUY2 &&
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            out->vpp.In.FourCC != MFX_FOURCC_RGB565 &&
+#endif
             out->vpp.In.FourCC != MFX_FOURCC_RGB4 &&
             out->vpp.In.FourCC != MFX_FOURCC_P010 &&
             out->vpp.In.FourCC != MFX_FOURCC_UYVY &&
@@ -963,7 +978,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
-        if ( !(out->vpp.In.FrameRateExtN * out->vpp.In.FrameRateExtD) &&
+        if ((0 == (out->vpp.In.FrameRateExtN * out->vpp.In.FrameRateExtD)) &&
             (out->vpp.In.FrameRateExtN + out->vpp.In.FrameRateExtD) )
         {
             out->vpp.In.FrameRateExtN = 0;
@@ -1016,7 +1031,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
-        if ( !(out->vpp.Out.FrameRateExtN * out->vpp.Out.FrameRateExtD) &&
+        if ((0 == (out->vpp.Out.FrameRateExtN * out->vpp.Out.FrameRateExtD)) &&
             (out->vpp.Out.FrameRateExtN + out->vpp.Out.FrameRateExtD))
         {
             out->vpp.Out.FrameRateExtN = 0;

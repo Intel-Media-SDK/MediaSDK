@@ -1,13 +1,12 @@
 cmake_minimum_required( VERSION 2.6.2 FATAL_ERROR )
 project( SafeString )
 
-set( CMAKE_VERBOSE_MAKEFILE             TRUE )
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
 if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
   add_definitions(-DMINGW_HAS_SECURE_API -DWIN32)
 
-  if(__ARCH MATCHES intel64)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions(-DWIN64)
   endif( )
 else( )
@@ -16,7 +15,7 @@ else( )
   if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
     add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
 
-    if(__ARCH MATCHES intel64)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       add_definitions(-DLINUX64)
     endif( )
   endif( )
@@ -25,16 +24,16 @@ else( )
     add_definitions(-DOSX)
     add_definitions(-DOSX32)
 
-    if(__ARCH MATCHES intel64)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       add_definitions(-DOSX64)
     endif( )
   endif( )
 
   set(no_warnings "-Wno-unknown-pragmas -Wno-unused")
+  set(warnings "-Wall -Wformat -Wformat-security")
   
-  set(CMAKE_CXX_FLAGS "-pipe -fPIC")
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -Wall ${no_warnings} -Wformat -Wformat-security -g -D_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings} -Wformat -Wformat-security -DNDEBUG")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC -std=c++11 ${warnings} ${no_warnings}")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
   if (DEFINED CMAKE_FIND_ROOT_PATH)
     append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)

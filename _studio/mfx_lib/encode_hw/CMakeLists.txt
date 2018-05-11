@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@ include_directories( ${MSDK_LIB_ROOT}/enc_hw/mpeg2/include )
 include_directories( ${MSDK_LIB_ROOT}/pak/mpeg2/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/h264_encode/include )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
+include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 # umc codec
 include_directories( ${MSDK_UMC_ROOT}/codec/brc/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )

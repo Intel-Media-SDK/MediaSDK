@@ -496,7 +496,7 @@ void MPEG2VideoDecoderHW::quant_matrix_extension(int task_num)
     uint32_t code;
     VideoContext* video = Video[task_num][0];
     int32_t load_intra_quantizer_matrix, load_non_intra_quantizer_matrix, load_chroma_intra_quantizer_matrix, load_chroma_non_intra_quantizer_matrix;
-    uint8_t q_matrix[4][64];
+    uint8_t q_matrix[4][64] = {};
 
     GET_TO9BITS(video->bs, 4 ,code)
     GET_1BIT(video->bs,load_intra_quantizer_matrix)

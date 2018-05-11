@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -592,8 +592,12 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
         mfxFrameAllocRequest request_internal = *request;
         VideoDECODEMJPEGBase_HW::AdjustFourCC(&request_internal.Info, &par->mfx, core->GetHWType(), core->GetVAType(), &needVpp);
 
+
         if (needVpp && MFX_HW_D3D11 == core->GetVAType())
+        {
             request->Type |= MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET;
+            request->Type |= MFX_MEMTYPE_FROM_VPPOUT;
+        }
         else
             request->Type |= MFX_MEMTYPE_DXVA2_DECODER_TARGET;
 
@@ -1457,7 +1461,11 @@ mfxStatus VideoDECODEMJPEG::UpdateAllocRequest(mfxVideoParam *par,
     if (request->NumFrameMin > pOpaqAlloc->Out.NumSurface)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    request->Type = MFX_MEMTYPE_OPAQUE_FRAME | MFX_MEMTYPE_FROM_DECODE;
+    if (pOpaqAlloc->Out.Type & MFX_MEMTYPE_FROM_VPPOUT)
+        request->Type = MFX_MEMTYPE_OPAQUE_FRAME | MFX_MEMTYPE_FROM_VPPOUT;
+    else
+        request->Type = MFX_MEMTYPE_OPAQUE_FRAME | MFX_MEMTYPE_FROM_DECODE;
+
     switch (pOpaqAlloc->Out.Type & (MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_SYSTEM_MEMORY|MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET))
     {
     case MFX_MEMTYPE_SYSTEM_MEMORY:
@@ -1750,7 +1758,8 @@ mfxU32 VideoDECODEMJPEGBase_HW::AdjustFrameAllocRequest(mfxFrameAllocRequest *re
 
         if (request->Type & MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET)
         {
-            request->Type -= MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET;
+            request->Type = request->Type &~ MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET;
+            request->Type = request->Type &~ MFX_MEMTYPE_FROM_VPPOUT;
         }
         request->Type |= MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
     }
@@ -1830,6 +1839,8 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxIn
 mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 threadNumber, mfxU32 )
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
+    MFX_CHECK_NULL_PTR1(params);
+
     ThreadTaskInfo * info = (ThreadTaskInfo *)params;
 
     if (m_needVpp)

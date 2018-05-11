@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -221,7 +221,6 @@ private:
         VideoDECODEVP8_HW* decoder;
         mfxFrameSurface1* surface_work;
         FrameMemID memId;
-        FrameMemID memIdToUnlock;
     };
 
     struct sFrameInfo
@@ -261,17 +260,19 @@ private:
     mfxU16 altref_indx;
     mfxU16 lastrefIndex;
 
-    std::vector<sFrameInfo> m_frames;
+    std::vector<sFrameInfo>      m_frames;
+    std::vector<UMC::FrameMemID> m_memIdReadyToFree;
 
     mfxFrameAllocResponse   m_response;
     mfxDecodeStat           m_stat;
     mfxFrameAllocRequest    m_request;
 
-    std::auto_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
+    std::unique_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
     UMC::VideoAccelerator *m_p_video_accelerator;
 
+    UMC::Mutex              m_mGuard;
 };
 
 #endif // _MFX_VP8_DECODE_HW_H_
-#endif // MFX_ENABLE_VP8_VIDEO_DECODE && MFX_VA
+#endif // MFX_ENABLE_VP8_VIDEO_DECODE_HW && MFX_VA
 /* EOF */

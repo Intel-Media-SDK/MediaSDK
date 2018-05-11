@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -916,6 +916,13 @@ mfxStatus CommonCORE::DecreasePureReference(mfxU16& Locked)
     }
 }// CommonCORE::IncreasePureReference(mfxFrameData *ptr)
 
+void CommonCORE::GetVA(mfxHDL* phdl, mfxU16 type)
+{
+    (void)type;
+
+    *phdl = 0;
+}// void CommonCORE::GetVA(mfxHDL* phdl, mfxU16 type)
+
 mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
 {
     MFX_CHECK_NULL_PTR1(ptr);
@@ -1354,6 +1361,19 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
 
         break;
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        {
+            mfxU8* ptrSrc = pSrc->Data.B;
+            mfxU8* ptrDst = pDst->Data.B;
+
+            roi.width *= 2;
+
+            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+            MFX_CHECK_STS(sts);
+            break;
+        }
+#endif
 
     case MFX_FOURCC_RGB3:
         {

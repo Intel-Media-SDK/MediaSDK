@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -31,6 +31,40 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define _MSDK_API (MFX_VERSION_MAJOR*256+MFX_VERSION_MINOR)
 #define MSDK_API(M,MM) (M*256+MM)
 
+// Run-time HSBC
+// the condition below must be changed to MFX_VERSION >= 1027 after API is promoted to 1.27
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#define ENABLE_VPP_RUNTIME_HSBC
+#endif
+
+#if (MFX_VERSION >= 1026)
+#define ENABLE_MCTF
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#define ENABLE_MCTF_EXT
+enum {MCTF_BITRATE_MULTIPLIER = 100000};
+#endif
+#endif
+
+
+#if defined(WIN32) || defined(WIN64)
+
+enum {
+    MFX_HANDLE_DEVICEWINDOW  = 0x101 /* A handle to the render window */
+}; //mfxHandleType
+
+#ifndef D3D_SURFACES_SUPPORT
+#define D3D_SURFACES_SUPPORT 1
+#endif
+
+#if defined(_WIN32) && !defined(MFX_D3D11_SUPPORT)
+#include <sdkddkver.h>
+#if (NTDDI_VERSION >= NTDDI_VERSION_FROM_WIN32_WINNT2(0x0602)) // >= _WIN32_WINNT_WIN8
+    #define MFX_D3D11_SUPPORT 1 // Enable D3D11 support if SDK allows
+#else
+    #define MFX_D3D11_SUPPORT 0
+#endif
+#endif // #if defined(WIN32) && !defined(MFX_D3D11_SUPPORT)
+#endif // #if defined(WIN32) || defined(WIN64)
 
 enum
 {

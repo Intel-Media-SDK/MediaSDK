@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -62,11 +62,29 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define TIME_STATS 1 // Enable statistics processing
 #include "time_statistics.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "decode_render.h"
+#endif
 
+#if defined(_WIN32) || defined(_WIN64)
+    #define MSDK_CPU_ROTATE_PLUGIN  MSDK_STRING("sample_rotate_plugin.dll")
+    #define MSDK_OCL_ROTATE_PLUGIN  MSDK_STRING("sample_plugin_opencl.dll")
+#else
     #define MSDK_CPU_ROTATE_PLUGIN  MSDK_STRING("libsample_rotate_plugin.so")
     #define MSDK_OCL_ROTATE_PLUGIN  MSDK_STRING("libsample_plugin_opencl.so")
+#endif
 
 #define MAX_PREF_LEN    256
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
+#ifdef ENABLE_MCTF
+const mfxU16  MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE = 2;
+const mfxU16  MCTF_MID_FILTER_STRENGTH = 10;
+const mfxF64  MCTF_LOSSLESS_BPP = 12.0;
+#endif
 
 namespace TranscodingSample
 {
@@ -107,6 +125,47 @@ namespace TranscodingSample
         mfxU16 TileId;
     };
 
+#ifdef ENABLE_MCTF
+    typedef enum
+    {
+        VPP_FILTER_DISABLED = 0,
+        VPP_FILTER_ENABLED_DEFAULT = 1,
+        VPP_FILTER_ENABLED_CONFIGURED = 7
+
+    } VPPFilterMode;
+
+    // this is a structure with mctf-parameteres
+    // that can be changed in run-time;
+    struct sMctfRunTimeParam
+    {
+        mfxU16 FilterStrength;
+    };
+
+    struct sMctfRunTimeParams
+    {
+        mfxU32 CurIdx;
+        std::vector<sMctfRunTimeParam> RunTimeParams;
+        // returns rt-param corresponding to CurIdx or NULL if
+        // CurIdx is behind available info
+        const sMctfRunTimeParam* GetCurParam();
+        // move CurIdx forward
+        void MoveForward();
+        // set CurIdx to the begining; restart indexing;
+        void Restart();
+        // reset vector & index
+        void Reset();
+        // test for emptiness
+        bool Empty() { return RunTimeParams.empty(); };
+    };
+
+    struct sMCTFParam
+    {
+        sMctfRunTimeParams   rtParams;
+        mfxExtVppMctf        params;
+        VPPFilterMode        mode;
+    };
+#endif
+
     enum ExtBRCType {
         EXTBRC_DEFAULT,
         EXTBRC_OFF,
@@ -123,7 +182,7 @@ namespace TranscodingSample
         mfxIMPL libType;  // Type of used mediaSDK library
         bool   bIsPerf;   // special performance mode. Use pre-allocated bitstreams, output
         mfxU16 nThreadsNum; // number of internal session threads number
-        bool   bRobust;   // Robust transcoding mode. Allows auto-recovery after hardware errors
+        bool bRobustFlag;   // Robust transcoding mode. Allows auto-recovery after hardware errors
 
         mfxU32 EncodeId; // type of output coded video
         mfxU32 DecodeId; // type of input coded video
@@ -131,6 +190,7 @@ namespace TranscodingSample
         msdk_char  strSrcFile[MSDK_MAX_FILENAME_LEN]; // source bitstream file
         msdk_char  strDstFile[MSDK_MAX_FILENAME_LEN]; // destination bitstream file
         msdk_char  strDumpVppCompFile[MSDK_MAX_FILENAME_LEN]; // VPP composition output dump file
+        msdk_char  strMfxParamsDumpFile[MSDK_MAX_FILENAME_LEN];
 
         // specific encode parameters
         mfxU16 nTargetUsage;
@@ -180,6 +240,7 @@ namespace TranscodingSample
 
         mfxU16 WeightedPred;
         mfxU16 WeightedBiPred;
+        mfxU16 ExtBrcAdaptiveLTR;
 
         // MVC Specific Options
         bool   bIsMVC; // true if Multi-View-Codec is in use
@@ -224,6 +285,7 @@ namespace TranscodingSample
 
         bool bUseOpaqueMemory;
         bool bForceSysMem;
+        mfxU16 VppOutPattern;
         mfxU16 nGpuCopyMode;
 
         mfxU16 nRenderColorForamt; /*0 NV12 - default, 1 is ARGB*/
@@ -263,6 +325,9 @@ namespace TranscodingSample
         bool bROIasQPMAP;
 #endif //MFX_VERSION >= 1022
         sInputParams();
+#ifdef ENABLE_MCTF
+        sMCTFParam mctfParam;
+#endif
         void Reset();
     };
 
@@ -435,6 +500,15 @@ namespace TranscodingSample
             }
             return;
         }
+        void FlushAll()
+        {
+            for (mfxU32 i = 0; i < m_pExtBS.size(); i++)
+            {
+                m_pExtBS[i].Bitstream.DataLength = 0;
+                m_pExtBS[i].Bitstream.DataOffset = 0;
+            }
+            return;
+        }
     protected:
         std::vector<ExtendedBS> m_pExtBS;
 
@@ -484,9 +558,9 @@ namespace TranscodingSample
     public:
         FileBitstreamProcessor();
         virtual ~FileBitstreamProcessor();
-        virtual mfxStatus SetReader(std::auto_ptr<CSmplBitstreamReader>& reader);
-        virtual mfxStatus SetReader(std::auto_ptr<CSmplYUVReader>& reader);
-        virtual mfxStatus SetWriter(std::auto_ptr<CSmplBitstreamWriter>& writer);
+        virtual mfxStatus SetReader(std::unique_ptr<CSmplBitstreamReader>& reader);
+        virtual mfxStatus SetReader(std::unique_ptr<CSmplYUVReader>& reader);
+        virtual mfxStatus SetWriter(std::unique_ptr<CSmplBitstreamWriter>& writer);
         virtual mfxStatus GetInputBitstream(mfxBitstream **pBitstream);
         virtual mfxStatus GetInputFrame(mfxFrameSurface1 *pSurface);
         virtual mfxStatus ProcessOutputBitstream(mfxBitstream* pBitstream);
@@ -494,10 +568,10 @@ namespace TranscodingSample
         virtual mfxStatus ResetOutput();
 
     protected:
-        std::auto_ptr<CSmplBitstreamReader> m_pFileReader;
-        std::auto_ptr<CSmplYUVReader> m_pYUVFileReader;
+        std::unique_ptr<CSmplBitstreamReader> m_pFileReader;
+        std::unique_ptr<CSmplYUVReader> m_pYUVFileReader;
         // for performance options can be zero
-        std::auto_ptr<CSmplBitstreamWriter> m_pFileWriter;
+        std::unique_ptr<CSmplBitstreamWriter> m_pFileWriter;
         mfxBitstream m_Bitstream;
     private:
         DISALLOW_COPY_AND_ASSIGN(FileBitstreamProcessor);
@@ -535,7 +609,7 @@ namespace TranscodingSample
         inline void SetPipelineID(mfxU32 id){m_nID = id;}
         void StopSession();
         bool IsOverlayUsed();
-        bool IsRobust();
+        size_t GetRobustFlag();
     protected:
         virtual mfxStatus CheckRequiredAPIVersion(mfxVersion& version, sInputParams *pParams);
 
@@ -611,6 +685,8 @@ namespace TranscodingSample
         mfxU32 GetNumFramesForReset();
         void   SetNumFramesForReset(mfxU32 nFrames);
 
+        void   HandlePossibleGpuHang(mfxStatus& sts);
+
         mfxStatus   SetAllocatorAndHandleIfRequired();
         mfxStatus   LoadGenericPlugin();
 
@@ -618,17 +694,17 @@ namespace TranscodingSample
 
         mfxVersion m_Version; // real API version with which library is initialized
 
-        std::auto_ptr<MFXVideoSession>  m_pmfxSession;
-        std::auto_ptr<MFXVideoDECODE>   m_pmfxDEC;
-        std::auto_ptr<MFXVideoENCODE>   m_pmfxENC;
-        std::auto_ptr<MFXVideoMultiVPP> m_pmfxVPP; // either VPP or VPPPlugin which wraps [VPP]-Plugin-[VPP] pipeline
-        std::auto_ptr<MFXVideoENC>      m_pmfxPreENC;
-        std::auto_ptr<MFXVideoUSER>     m_pUserDecoderModule;
-        std::auto_ptr<MFXVideoUSER>     m_pUserEncoderModule;
-        std::auto_ptr<MFXVideoUSER>     m_pUserEncModule;
-        std::auto_ptr<MFXPlugin>        m_pUserDecoderPlugin;
-        std::auto_ptr<MFXPlugin>        m_pUserEncoderPlugin;
-        std::auto_ptr<MFXPlugin>        m_pUserEncPlugin;
+        std::unique_ptr<MFXVideoSession>  m_pmfxSession;
+        std::unique_ptr<MFXVideoDECODE>   m_pmfxDEC;
+        std::unique_ptr<MFXVideoENCODE>   m_pmfxENC;
+        std::unique_ptr<MFXVideoMultiVPP> m_pmfxVPP; // either VPP or VPPPlugin which wraps [VPP]-Plugin-[VPP] pipeline
+        std::unique_ptr<MFXVideoENC>      m_pmfxPreENC;
+        std::unique_ptr<MFXVideoUSER>     m_pUserDecoderModule;
+        std::unique_ptr<MFXVideoUSER>     m_pUserEncoderModule;
+        std::unique_ptr<MFXVideoUSER>     m_pUserEncModule;
+        std::unique_ptr<MFXPlugin>        m_pUserDecoderPlugin;
+        std::unique_ptr<MFXPlugin>        m_pUserEncoderPlugin;
+        std::unique_ptr<MFXPlugin>        m_pUserEncPlugin;
 
         mfxFrameAllocResponse           m_mfxDecResponse;  // memory allocation response for decoder
         mfxFrameAllocResponse           m_mfxEncResponse;  // memory allocation response for encoder
@@ -643,7 +719,11 @@ namespace TranscodingSample
         CSmplYUVWriter                  m_dumpVppCompFileWriter;
         mfxU32                          m_vppCompDumpRenderMode;
 
+#if defined(_WIN32) || defined(_WIN64)
+        CDecodeD3DRender*               m_hwdev4Rendering;
+#else
         CHWDevice*                      m_hwdev4Rendering;
+#endif
 
         typedef std::vector<mfxFrameSurface1*> SurfPointersArray;
         SurfPointersArray  m_pSurfaceDecPool;
@@ -748,11 +828,13 @@ namespace TranscodingSample
         mfxU32          m_NumFramesForReset;
         MSDKMutex       m_mReset;
         MSDKMutex       m_mStopSession;
-        bool            m_bIsRobust;
+        bool            m_bRobustFlag;
 
         bool isHEVCSW;
 
-        std::auto_ptr<ExtendedBSStore>        m_pBSStore;
+        bool m_bInsertIDR;
+
+        std::unique_ptr<ExtendedBSStore>        m_pBSStore;
 
         mfxU32                                m_FrameNumberPreference;
         mfxU32                                m_MaxFramesForTranscode;
@@ -792,8 +874,14 @@ namespace TranscodingSample
         msdk_string       m_sGenericPluginPath;
         mfxU16            m_nRotationAngle;
 
+        msdk_string       m_strMfxParamsDumpFile;
+
         void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
 #endif //MFX_VERSION >= 1022
+
+#ifdef  ENABLE_MCTF
+        sMctfRunTimeParams   m_MctfRTParams;
+#endif
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);
 
@@ -802,7 +890,7 @@ namespace TranscodingSample
     struct ThreadTranscodeContext
     {
         // Pointer to the session's pipeline
-        std::auto_ptr<CTranscodingPipeline> pPipeline;
+        std::unique_ptr<CTranscodingPipeline> pPipeline;
         // Pointer to bitstream handling object
         FileBitstreamProcessor *pBSProcessor;
         // Session implementation type

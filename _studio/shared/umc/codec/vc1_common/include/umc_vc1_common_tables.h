@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -77,8 +77,9 @@ const extern int32_t VC1_Bitplane_IMODE_tbl[];
 //VC-1 Table 81: Code table for 3x2 and 2x3 tiles
 const extern int32_t VC1_BitplaneTaledbitsTbl[];
 
-//VC-1 Table 39
+//VC-1 7.1.1.14 Table 40
 const extern int32_t VC1_BFraction_tbl[];
+const extern int32_t VC1_BFraction_indexes[8][9];
 
 #endif //__umc_vc1_common_tables_H__
 #endif //UMC_ENABLE_VC1_VIDEO_DECODER

@@ -24,13 +24,11 @@ CEncodingPipeline::CEncodingPipeline(sInputParams& userInput)
     : m_inParams(userInput)
     , m_impl(MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_VAAPI)
     , m_EncSurfPool()
-    , m_processedFrames(0)
 {
 }
 
 CEncodingPipeline::~CEncodingPipeline()
 {
-    Close();
 }
 
 mfxStatus CEncodingPipeline::Init()
@@ -68,6 +66,12 @@ mfxStatus CEncodingPipeline::Init()
             MSDK_CHECK_STATUS(sts, "m_pYUVSource GetActualFrameInfo failed");
         }
 
+        if (0 != msdk_strlen(m_inParams.refctrlInFile)) // it is to disable RAPintra
+        {
+            frameInfo.PicStruct &= ~MFX_PICSTRUCT_PROGRESSIVE;
+            frameInfo.PicStruct |= MFX_PICSTRUCT_FIELD_SINGLE;
+        }
+
         m_pFEI_PreENC.reset(CreatePreENC(frameInfo));
         if (m_pFEI_PreENC.get())
         {
@@ -82,7 +86,11 @@ mfxStatus CEncodingPipeline::Init()
             sts = m_pParamChecker->Query(param);
             MSDK_CHECK_STATUS(sts, "m_pParamChecker->Query failed");
 
-            m_pOrderCtrl.reset(new EncodeOrderControl(param, !!(m_pFEI_PreENC.get())));
+            if (0 != msdk_strlen(m_inParams.refctrlInFile)) {
+                m_pOrderCtrl.reset(new EncodeOrderExtControl(param, !!(m_pFEI_PreENC.get()), m_inParams.refctrlInFile));
+                MSDK_CHECK_STATUS(dynamic_cast<EncodeOrderExtControl*>(m_pOrderCtrl.get())->State(), "RefList ctrl file open failed");
+            } else
+                m_pOrderCtrl.reset(new EncodeOrderControl(param, !!(m_pFEI_PreENC.get())));
         }
 
         m_pFEI_Encode.reset(CreateEncode(frameInfo));
@@ -112,11 +120,6 @@ mfxStatus CEncodingPipeline::Init()
     }
 
     return sts;
-}
-
-void CEncodingPipeline::Close()
-{
-    msdk_printf(MSDK_STRING("\nFrames processed: %u\n"), m_processedFrames);
 }
 
 void CEncodingPipeline::PrintInfo()
@@ -320,13 +323,42 @@ mfxStatus CEncodingPipeline::Execute()
     mfxFrameSurface1* pSurf = NULL; // points to frame being processed
 
     mfxU32 numSubmitted = 0;
+    time_t start = time(0);
 
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
-        if (m_inParams.nNumFrames <= numSubmitted) // frame encoding limit
+        if ((m_inParams.nNumFrames && m_inParams.nNumFrames <= numSubmitted)    // frame encoding limit
+            || (m_inParams.nTimeout && time(0) - start >= m_inParams.nTimeout)) // encoding time limit
             break;
 
         sts = m_pYUVSource->GetFrame(pSurf);
+        if (MFX_ERR_MORE_DATA == sts && (m_inParams.nTimeout || m_inParams.nNumFrames))
+        {
+            // reached end of input file, reset file pointers and start from the beginning
+            MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_DATA);
+            MSDK_BREAK_ON_ERROR(sts);
+
+            sts = m_pYUVSource->ResetIOState();
+            MSDK_BREAK_ON_ERROR(sts);
+
+            if (m_inParams.nTimeout && !m_inParams.nNumFrames)
+            {
+                // execution timeout can be too big for available disk space, so reset output file pointers
+                // despite the fact that stream can be undecodable
+                if (m_pFEI_PreENC.get())
+                {
+                    sts = m_pFEI_PreENC->ResetIOState();
+                    MSDK_BREAK_ON_ERROR(sts);
+                }
+                if (m_pFEI_Encode.get())
+                {
+                    sts = m_pFEI_Encode->ResetIOState();
+                    MSDK_BREAK_ON_ERROR(sts);
+                }
+            }
+
+            continue;
+        }
         MSDK_BREAK_ON_ERROR(sts);
 
         numSubmitted++;
@@ -337,7 +369,6 @@ mfxStatus CEncodingPipeline::Execute()
             task = m_pOrderCtrl->GetTask(pSurf);
             if (!task)
                 continue; // frame is buffered here
-            pSurf = task->m_surf;
         }
 
         if (m_pFEI_PreENC.get())
@@ -354,7 +385,6 @@ mfxStatus CEncodingPipeline::Execute()
 
         if (m_pOrderCtrl.get())
             m_pOrderCtrl->FreeTask(task);
-        m_processedFrames++;
     } // while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
 
     MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_DATA); // reached end of input file
@@ -391,7 +421,6 @@ mfxStatus CEncodingPipeline::DrainBufferedFrames()
 
             }
             m_pOrderCtrl->FreeTask(task);
-            m_processedFrames++;
         }
         return sts;
     }
@@ -434,7 +463,8 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
 
     // user defined settings
     pars.mfx.QPI = pars.mfx.QPP = pars.mfx.QPB = user_pars.QP;
-
+    pars.mfx.CodecLevel   = user_pars.CodecLevel;
+    pars.mfx.CodecProfile = user_pars.CodecProfile;
     pars.mfx.GopRefDist   = user_pars.nRefDist;
     pars.mfx.GopPicSize   = user_pars.nGopSize;
     pars.mfx.GopOptFlag   = user_pars.nGopOptFlag;
@@ -459,7 +489,7 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
 
     pCO3->PRefType             = user_pars.PRefType;
 
-    std::fill(pCO3->NumRefActiveP,   pCO3->NumRefActiveP + 8,   user_pars.NumRefActiveP);
+    std::fill(pCO3->NumRefActiveP,   pCO3->NumRefActiveP   + 8, user_pars.NumRefActiveP);
     std::fill(pCO3->NumRefActiveBL0, pCO3->NumRefActiveBL0 + 8, user_pars.NumRefActiveBL0);
     std::fill(pCO3->NumRefActiveBL1, pCO3->NumRefActiveBL1 + 8, user_pars.NumRefActiveBL1);
 
@@ -572,8 +602,11 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     sts = m_pHWdev->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
     CHECK_STS_AND_RETURN(sts, "CreateEncode::m_pHWdev->GetHandle failed", NULL);
 
-    FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl, pars, m_inParams.encodeCtrl, m_inParams.strDstFile,
-            m_inParams.mvpInFile, pRepacker.get());
+    FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl,
+                                         pars, m_inParams.encodeCtrl,
+                                         m_inParams.strDstFile, m_inParams.mvpInFile,
+                                         m_inParams.repackctrlFile, m_inParams.repackstatFile,
+                                         pRepacker.get());
 
     pRepacker.release(); // FEI_Encode takes responsibility for pRepakcer's deallocation
 

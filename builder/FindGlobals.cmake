@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 set_property( GLOBAL PROPERTY USE_FOLDERS ON )
-set( CMAKE_VERBOSE_MAKEFILE             TRUE )
 
 # the following options should disable rpath in both build and install cases
 set( CMAKE_INSTALL_RPATH "" )
@@ -27,7 +26,6 @@ set( CMAKE_BUILD_WITH_INSTALL_RPATH TRUE )
 set( CMAKE_SKIP_BUILD_RPATH TRUE )
 
 collect_oses()
-collect_arch()
 
 if( Linux OR Darwin )
   # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
@@ -46,7 +44,7 @@ if( Linux OR Darwin )
     add_definitions(-DLINUX)
     add_definitions(-DLINUX32)
 
-    if(__ARCH MATCHES intel64)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       add_definitions(-DLINUX64)
     endif()
   endif()
@@ -55,7 +53,7 @@ if( Linux OR Darwin )
     add_definitions(-DOSX)
     add_definitions(-DOSX32)
 
-    if(__ARCH MATCHES intel64)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       add_definitions(-DOSX64)
     endif()
   endif()
@@ -92,15 +90,20 @@ if( Linux OR Darwin )
     set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
   endif()
 
-  set(CMAKE_C_FLAGS "-pipe -fPIC")
-  set(CMAKE_CXX_FLAGS "-pipe -fPIC")
+  set(c_warnings "-Wall -Wformat -Wformat-security")
+  set(cxx_warnings "${c_warnings} -Wnon-virtual-dtor")
+
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${c_warnings} ${no_warnings}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${cxx_warnings} ${no_warnings}")
   append("-fPIE -pie" CMAKE_EXEC_LINKER_FLAGS)
 
   # CACHE + FORCE should be used only here to make sure that this parameters applied globally
-  set(CMAKE_C_FLAGS_DEBUG     "-O0 -Wall ${no_warnings}  -Wformat -Wformat-security -g -D_DEBUG" CACHE STRING "" FORCE)
-  set(CMAKE_C_FLAGS_RELEASE   "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings} -Wformat -Wformat-security -DNDEBUG"    CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -Wall ${no_warnings}  -Wformat -Wformat-security -g -D_DEBUG" CACHE STRING "" FORCE)
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings}  -Wformat -Wformat-security -DNDEBUG"    CACHE STRING "" FORCE)
+  # End user is responsible to adjust configuration parameters further if needed. Here
+  # we se only minimal parameters which are really required for the proper configuration build.
+  set(CMAKE_C_FLAGS_DEBUG     "${CMAKE_C_FLAGS_DEBUG} -D_DEBUG"   CACHE STRING "" FORCE)
+  set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE}"          CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG" CACHE STRING "" FORCE)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}"        CACHE STRING "" FORCE)
 
   if ( Darwin )
     if (CMAKE_C_COMPILER MATCHES clang)
@@ -114,20 +117,20 @@ if( Linux OR Darwin )
     append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
   endif (DEFINED CMAKE_FIND_ROOT_PATH)
 
-  if(__ARCH MATCHES ia32)
-    append("-m32 -g" CMAKE_C_FLAGS)
-    append("-m32 -g" CMAKE_CXX_FLAGS)
-    append("-m32 -g" LINK_FLAGS)
-  else ()
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     append("-m64 -g" CMAKE_C_FLAGS)
     append("-m64 -g" CMAKE_CXX_FLAGS)
     append("-m64 -g" LINK_FLAGS)
+  else ()
+    append("-m32 -g" CMAKE_C_FLAGS)
+    append("-m32 -g" CMAKE_CXX_FLAGS)
+    append("-m32 -g" LINK_FLAGS)
   endif()
 
-  if(__ARCH MATCHES ia32)
-    link_directories(/usr/lib)
-  else()
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     link_directories(/usr/lib64)
+  else()
+    link_directories(/usr/lib)
   endif()
 elseif( Windows )
   if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1286,6 +1286,8 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
                 isD3DToSys = !((pOpaqAlloc->Out.Type & MFX_MEMTYPE_SYSTEM_MEMORY) == 0);
             }
 
+            pSrc.Info.CropW = surface_work->Info.CropW;
+            pSrc.Info.CropH = surface_work->Info.CropH;
             sts = DoHwJpegCc(pCc, m_pCore, surface_work, &pSrc, par, isD3DToSys, taskId);
             if (sts < MFX_ERR_NONE)
                 return sts;
@@ -1334,6 +1336,10 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
                 isD3DToSys = !((pOpaqAlloc->Out.Type & MFX_MEMTYPE_SYSTEM_MEMORY) == 0);
             }
 
+            pSrcTop.Info.CropW = surface_work->Info.CropW;
+            pSrcTop.Info.CropH = surface_work->Info.CropH / 2;
+            pSrcBottom.Info.CropW = surface_work->Info.CropW;
+            pSrcBottom.Info.CropH = surface_work->Info.CropH / 2;
             sts = DoHwJpegCcFw(pCc, m_pCore, surface_work, &pSrcTop, &pSrcBottom, par, isD3DToSys, taskId);
             if (sts < MFX_ERR_NONE)
                 return sts;

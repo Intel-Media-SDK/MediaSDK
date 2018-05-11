@@ -127,8 +127,6 @@ sub get_cmake_gen_cmd {
 
     push @cmake_cmd_gen, '-DCMAKE_CONFIGURATION_TYPES:STRING="release;debug"';
     push @cmake_cmd_gen, "-DCMAKE_BUILD_TYPE:STRING=$config{'config'}";
-    push @cmake_cmd_gen, "-D__ARCH:STRING=$config{'arch'}";
-    push @cmake_cmd_gen, "-D__CONFIG:STRING=$config{'config'}";
     push @cmake_cmd_gen, "-D__IPP:STRING=" . ($config{'ipp'} || 'e9');
     push @cmake_cmd_gen, "-D__TARGET_PLATFORM:STRING=$config{'target'}";
 
@@ -140,13 +138,27 @@ sub get_cmake_gen_cmd {
 
     push @cmake_cmd_gen, '-DWARNING_FLAGS="-Wall -Werror"' if not $no_warn_as_error;
 
+    if (lc($config{'config'}) eq "release") {
+        my $compile_flags = "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -DNDEBUG";
+        push @cmake_cmd_gen, "-DCMAKE_C_FLAGS_RELEASE=\"$compile_flags\"";
+        push @cmake_cmd_gen, "-DCMAKE_CXX_FLAGS_RELEASE=\"$compile_flags\"";
+    } else {
+        my $compile_flags = "-O0 -g";
+        push @cmake_cmd_gen, "-DCMAKE_C_FLAGS_DEBUG=\"$compile_flags\"";
+        push @cmake_cmd_gen, "-DCMAKE_CXX_FLAGS_DEBUG=\"$compile_flags\"";
+    }
+
     # This is the main different between "make" and "eclipse"" generators.
-    # In case of "eclipse" main makefile will be generated into current $MFX_HOME,
-    # which is current this for this build_mfx.plcd
-    # All source directories in case of "eclipse" have good usable Makefile,
-    # in this case source tree and make files are matched
+    # In case of "Eclipse" out-of-source build you have to point cmake
+    # (1): on the current $MFX_HOME (source folder with main CMakeLists.txt)
+    # this is "-H" option, and 
+    # (2): to the desired binary directory 
+    # this is "-B" option    
+    # With this approach possible to keep separate Eclipse projects for debug/release 
+    # configurations or for gcc/icc/clang compilers for one source tree.  
     if ($config{'generator'} =~ /^eclipse$/) {
-        push @cmake_cmd_gen, ".";
+        push @cmake_cmd_gen, "-B".nativepath($build_root);
+        push @cmake_cmd_gen, "-H".nativepath($ENV{MFX_HOME});
     } else {
         push @cmake_cmd_gen, nativepath($build_root);
     }
@@ -187,7 +199,9 @@ sub usage {
     print "\tperl build_mfx.pl --cmake=intel64.make.debug                 [ only generate projects    ]\n";
     print "\tperl build_mfx.pl --cmake=intel64.make.debug --build         [ generate and then build   ]\n";
     print "\tperl build_mfx.pl --cmake=intel64.make.debug --build --clean [ generate, clean and build ]\n";
-    print "\tperl build_mfx.pl --cmake=intel64.eclipse.debug              [ generate make files for the use in Eclipse ]\n";
+    print "\tperl build_mfx.pl --cmake=intel64.eclipse.debug              [ generate make files for the use in Eclipse.]\n";
+    print "\t                                                             [ And Eclipse project by itself. This for out-of-source build.]\n";
+    print "\t                                                             [ Current MFX_HOME must be defined!]\n";
     print "\t                                                             [ all other options like --build --clean remain the same ]\n";
     print "\n";
 
@@ -257,32 +271,30 @@ GetOptions(
 my $build_root = getcwd;
 my $target_path = "$build_root/__cmake/" . get_cmake_target(%build);
 
+my $cmake_gen_cmd;
 # "make" and "eclipse"" generators output directory is different
 if ($build{'generator'} =~ /^eclipse$/) {
-    my $target_path_eclipse_case_bin_folder = $build_root . "/__bin";
-    my $target_path_eclipse_case_lib_folder = $build_root . "/__lib";
-
-    if ($clean) {
-        rmtree($target_path_eclipse_case_bin_folder) if -d $target_path_eclipse_case_bin_folder;
-        rmtree($target_path_eclipse_case_lib_folder) if -d $target_path_eclipse_case_lib_folder;
-    }
+    my $mfx_home_path = nativepath($ENV{MFX_HOME});    
+    $target_path = "$build_root/" . get_cmake_target(%build);
+    rmtree($target_path) if -d $target_path  and $clean;
+    mkpath($target_path) if !-d $target_path and -d $build_root;
+    #chdir($target_path) or die "can't chdir -> $target_path: $!";
+    # Should be used ($mfx_home_path)!
+    chdir($mfx_home_path) or die "can't chdir -> $target_path: $!";
+    $cmake_gen_cmd = get_cmake_gen_cmd($target_path, %build);
 } else {
     rmtree($target_path) if -d $target_path  and $clean;
     mkpath($target_path) if !-d $target_path and -d $build_root;
     chdir($target_path) or die "can't chdir -> $target_path: $!";
+    $cmake_gen_cmd = get_cmake_gen_cmd($build_root, %build);
 }
 
 my $exit_code = 0;
-my $cmake_gen_cmd = get_cmake_gen_cmd($build_root, %build);
 say "I am going to execute:\n  cmake $cmake_gen_cmd";
 $exit_code = command("cmake $cmake_gen_cmd");
 
 if ($run_build) {
-    if ($build{'generator'} =~ /^eclipse$/) {
-        $exit_code = command("make -j8");
-    } else {
-        $exit_code = command("cmake --build $target_path --use-stderr --config $build{'config'}");
-    }
+    $exit_code = command("cmake --build $target_path --use-stderr --config $build{'config'}");
 
     my $status_target = "$build{'arch'}.$build{'generator'}.$build{'config'}";
     my $status_state = (!$exit_code) ? "OK" : "FAIL";

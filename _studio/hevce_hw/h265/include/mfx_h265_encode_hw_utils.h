@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -175,6 +175,7 @@ enum
 
     MAX_SLICES              = 200,// WA for driver issue regerding CNL and older platforms
     DEFAULT_LTR_INTERVAL    = 16,
+    DEFAULT_PPYR_INTERVAL   = 3,
 
     MAX_NUM_ROI             = 8,
     MAX_NUM_DIRTY_RECT      = 64
@@ -377,6 +378,7 @@ typedef struct _Task : DpbFrame
 
     mfxU16        m_SkipMode;
 
+
 }Task;
 
 enum
@@ -454,6 +456,7 @@ namespace ExtBuffer
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
         EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+
     #undef EXTBUF
 
     #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
@@ -470,6 +473,9 @@ namespace ExtBuffer
     {
         _CopyPar1(PicWidthInLumaSamples);
         _CopyPar1(PicHeightInLumaSamples);
+#if (MFX_VERSION >= 1026)
+        _CopyPar1(LCUSize);
+#endif
     }
 
     inline void  CopySupportedParams(mfxExtHEVCTiles& buf_dst, mfxExtHEVCTiles& buf_src)
@@ -540,6 +546,7 @@ namespace ExtBuffer
     {
         _CopyPar1(NumActiveRefBL0);
         _CopyPar1(NumActiveRefBL1);
+        _CopyPar1(NumActiveRefP);
         _CopyPar1(LCUSize);
         _CopyPar1(QpAdjust);
     }
@@ -784,14 +791,15 @@ public:
     mfxU32 InitialDelayInKB;
     mfxU32 TargetKbps;
     mfxU32 MaxKbps;
-    mfxU16 NumRefLX[2]; // max num active refs
     mfxU32 LTRInterval;
+    mfxU32 PPyrInterval;
     mfxU32 LCUSize;
     bool   HRDConformance;
     bool   RawRef;
     bool   bROIViaMBQP;
     bool   bMBQPInput;
     bool   RAPIntra;
+    bool   bFieldReord;
 
 
     MfxVideoParam();
@@ -880,51 +888,7 @@ protected:
     mfxF64 m_prevBpAuNominalRemovalTime;
     mfxU32 m_prevBpEncOrder;
 };
-class LastReordFieldInfo
-{
-public:
-    mfxI32     m_poc;
-    bool       m_bReference;
-    mfxU32     m_level;
-    bool       m_bFirstField;
 
-    LastReordFieldInfo() :
-        m_poc(-1),
-        m_bReference(false),
-        m_level(0),
-        m_bFirstField(false){}
-
-    void Reset()
-    {
-        m_poc = -1;
-        m_bReference = false;
-        m_level = 0;
-        m_bFirstField = false;
-    }
-    void SaveInfo(Task const* task)
-    {
-        m_poc = task->m_poc;
-        m_bReference = ((task->m_frameType & MFX_FRAMETYPE_REF) != 0);
-        m_level = task->m_level;
-        m_bFirstField = !task->m_secondField;
-    }
-    void CorrectTaskInfo(Task* task)
-    {
-        if (!isCorrespondSecondField(task))
-            return;
-        // copy params in second field
-        if (m_bReference)
-            task->m_frameType |= MFX_FRAMETYPE_REF;
-        task->m_level = m_level;
-    }
-    bool isCorrespondSecondField(Task const* task) 
-    { 
-        if (m_poc + 1 != task->m_poc || !task->m_secondField || !m_bFirstField)
-            return false;
-        return true;
-    }
-    bool bFirstField() { return m_bFirstField; }
-};
 
 class TaskManager
 {
@@ -942,10 +906,6 @@ public:
     void  SkipTask  (Task* task);
     Task* GetNewTask();
     mfxStatus PutTasksForRecode(Task* pTask);
-    void SaveFieldInfo(Task* task) 
-    {
-        if (m_bFieldMode)   this->m_lastFieldInfo.SaveInfo(task);
-    };
 
 private:
     bool       m_bFieldMode;
@@ -955,7 +915,6 @@ private:
     TaskList   m_querying;
     UMC::Mutex m_listMutex;
     mfxU16     m_resetHeaders;
-    LastReordFieldInfo  m_lastFieldInfo;
 
 };
 
@@ -1000,6 +959,7 @@ void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
+    mfxU32 level,
     bool  bSecondField,
     bool  bBottomField,
     mfxU8 (&RPL)[2][MAX_DPB_SIZE],
@@ -1013,12 +973,13 @@ inline void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
+    mfxU32 level,
     bool  bSecondField,
     bool  bBottomField,
     mfxU8(&RPL)[2][MAX_DPB_SIZE],
     mfxU8(&numRefActive)[2])
 {
-    ConstructRPL(par, DPB, isB, poc, tid, bSecondField, bBottomField, RPL, numRefActive, 0, 0);
+    ConstructRPL(par, DPB, isB, poc, tid, level, bSecondField, bBottomField, RPL, numRefActive, 0, 0);
 }
 
 void UpdateDPB(
@@ -1060,7 +1021,7 @@ mfxStatus GetNativeHandleToRawSurface(
     MFXCoreInterface &    core,
     MfxVideoParam const & video,
     Task const &          task,
-    mfxHDL &              handle);
+    mfxHDLPair &          handle);
 
 mfxStatus CopyRawSurfaceToVideoMemory(
     MFXCoreInterface &    core,
@@ -1075,7 +1036,8 @@ IntraRefreshState GetIntraRefreshState(
 mfxU8 GetNumReorderFrames(
     mfxU32 BFrameRate,
     bool BPyramid,
-    bool bField);
+    bool bField,
+    bool bFieldReord);
 
 
 

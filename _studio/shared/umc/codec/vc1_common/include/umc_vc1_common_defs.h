@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -259,8 +259,8 @@ typedef struct
     uint32_t POSTPROCFLAG;      //1
     uint32_t MAX_CODED_WIDTH;   //12
     uint32_t MAX_CODED_HEIGHT;  //12
-    int32_t AspectRatioW; 
-    int32_t AspectRatioH; 
+    int32_t AspectRatioW;
+    int32_t AspectRatioH;
     uint32_t PULLDOWN;          //1
     uint32_t INTERLACE;         //1
     uint32_t TFCNTRFLAG;        //1
@@ -377,7 +377,7 @@ typedef struct
 
 //B only
     uint32_t     BFRACTION;
-    uint32_t     BFRACTION_orig; // need for correct filling VA structures
+    uint32_t     BFRACTION_index;
     VC1Bitplane      m_DirectMB;
     int32_t           ScaleFactor;
 // B only. Interlace field

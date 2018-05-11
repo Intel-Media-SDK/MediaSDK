@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -28,7 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 //#include "mfx_plugin_module.h"
 #include <iostream>
 #include <iomanip> // for std::setfill, std::setw
-#include <memory> // for std::auto_ptr
+#include <memory> // for std::unique_ptr
 
 class MsdkSoModule
 {
@@ -90,6 +90,14 @@ private:
             return MSDK_STRING("Intel (R) Media SDK plugin for HEVC ENCODE");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_HEVCE_HW))
             return MSDK_STRING("Intel (R) Media SDK HW plugin for HEVC ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP8E_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP8 ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP8D_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP8 DECODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP9E_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP9 ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP9D_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP9 DECODE");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_H264LA_HW))
             return MSDK_STRING("Intel (R) Media SDK plugin for LA ENC");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_ITELECINE_HW))
@@ -240,12 +248,12 @@ public:
 };
 
 inline MFXPlugin * LoadPluginByType(mfxPluginType type, mfxSession session, const mfxPluginUID & uid, mfxU32 version, const mfxChar *pluginName, mfxU32 len) {
-    std::auto_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version, pluginName, len));
+    std::unique_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version, pluginName, len));
     return plg->IsOk() ? plg.release() : NULL;
 }
 
 inline MFXPlugin * LoadPluginByGUID(mfxPluginType type, mfxSession session, const mfxPluginUID & uid, mfxU32 version) {
-    std::auto_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version));
+    std::unique_ptr<PluginLoader> plg(new PluginLoader (type, session, uid, version));
     return plg->IsOk() ? plg.release() : NULL;
 }
 

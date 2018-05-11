@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2016-2017, Intel Corporation
+Copyright (c) 2016-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -93,6 +93,26 @@ void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncQP& buffer,
     // buffer has 2D representation in driver
     va_pitch = buffer.Pitch;
     va_height = buffer.Height;
+}
+
+
+template<>
+void FeiBufferAllocator::CalcBufferPitchHeight(mfxExtFeiHevcEncCtuCtrl& buffer,
+        const BufferAllocRequest& request,
+        mfxU32& va_pitch,
+        mfxU32& va_height)
+{
+
+    // The driver expects a 1D buffer with the number of elements equal
+    // to the total number of CTUs in the frame
+
+    buffer.Pitch = align(request.Width, request.CTUSize) / request.CTUSize;
+    buffer.Height = align(request.Height, request.CTUSize) / request.CTUSize;
+
+    // buffer has 1D representation in driver, so vaCreateBuffer expects
+    // va_height is 1 and va_pitch is total size of buffer->Data array
+    va_pitch = sizeof(buffer.Data[0]) * buffer.Pitch * buffer.Height;
+    va_height = 1;
 }
 
 #endif // #if defined(LIBVA_SUPPORT)

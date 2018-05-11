@@ -158,7 +158,7 @@ protected:
     mfxStatus FreeTask(Task& task);
     mfxStatus WaitForQueringTask(Task& task);
 
-    std::auto_ptr<DriverEncoder>    m_ddi;
+    std::unique_ptr<DriverEncoder>    m_ddi;
     MFXCoreInterface                m_core;
 
     MfxVideoParam                   m_vpar;

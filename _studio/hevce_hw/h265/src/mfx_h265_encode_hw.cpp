@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -95,24 +95,30 @@ mfxStatus Plugin::GetPluginParam(mfxPluginParam *par)
 
 inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
-    if (sts1 > sts2)
-    {
-        return sts2 == MFX_ERR_NONE ? sts1 : sts2;
-    }
-    else
-    {
-        return sts1;
-    }
+    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
+
+    mfxStatus sts_max = (std::max)(sts1, sts2),
+              sts_min = (std::min)(sts1, sts2);
+
+    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
 }
 
 mfxU16 MaxRec(MfxVideoParam const & par)
 {
     return par.AsyncDepth + par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
 }
+mfxU16 NumFramesForReord(MfxVideoParam const & par)
+{
+    if (par.isField())
+    {
+        return (par.mfx.GopRefDist - 1) * 2 + (par.bFieldReord ? 1 : 0);
+    }
+    return par.mfx.GopRefDist - 1;
+}
 
 mfxU16 MaxRaw(MfxVideoParam const & par)
 {
-    return par.AsyncDepth + (par.mfx.GopRefDist -1)*(par.isField() ? 2 : 1)  + par.RawRef * par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
+    return par.AsyncDepth + NumFramesForReord(par) + par.RawRef * par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);
 }
 
 mfxU16 MaxBs(MfxVideoParam const & par)
@@ -150,7 +156,7 @@ mfxU32 GetMinBsSize(MfxVideoParam const & par)
 }
 mfxU16 MaxTask(MfxVideoParam const & par)
 {
-    return par.AsyncDepth + (par.mfx.GopRefDist - 1)*(par.isField() ? 2 : 1) + ((par.AsyncDepth > 1)? 1: 0);
+    return par.AsyncDepth + NumFramesForReord(par) + ((par.AsyncDepth > 1)? 1: 0);
 }
 
 
@@ -223,10 +229,11 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
 
     m_ddi.reset( CreateHWh265Encoder(&m_core, ddiType) );
     MFX_CHECK(m_ddi.get(), MFX_ERR_UNSUPPORTED);
+    GUID encoder_guid = GetGUID(m_vpar);
 
     sts = m_ddi->CreateAuxilliaryDevice(
         &m_core,
-        GetGUID(m_vpar),
+        encoder_guid,
         m_vpar.m_ext.HEVCParam.PicWidthInLumaSamples,
         m_vpar.m_ext.HEVCParam.PicHeightInLumaSamples);
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
@@ -650,6 +657,8 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     sts = CheckHeaders(parNew, m_caps);
     MFX_CHECK_STS(sts);
 
+    MFX_CHECK(m_vpar.LCUSize ==  parNew.LCUSize, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM); // LCU Size Can't be changed
+
     MFX_CHECK(
            parNew.mfx.CodecId                == MFX_CODEC_HEVC
         && m_vpar.AsyncDepth                 == parNew.AsyncDepth
@@ -752,7 +761,8 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     }
 
     if (brcReset &&
-        m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
+        m_vpar.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
+        (parNew.HRDConformance || !isIdrRequired))
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
     // waiting for submitted in driver tasks
@@ -967,7 +977,6 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
 
-        m_task.SaveFieldInfo(task);
         m_lastTask = *task;
         m_task.Submit(task);
     }
@@ -1026,7 +1035,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
                 sts = CodeAsSkipFrame(m_core,m_vpar,*taskForExecute,m_rawSkip, m_rec);
                 MFX_CHECK_STS(sts);
             }
-            sts = GetNativeHandleToRawSurface(m_core, m_vpar, *taskForExecute, surfaceHDL.first);
+            sts = GetNativeHandleToRawSurface(m_core, m_vpar, *taskForExecute, surfaceHDL);
             MFX_CHECK_STS(sts);
 
             if (!IsFrameToSkip(*taskForExecute,  m_rec, m_vpar.isSWBRC()))
@@ -1036,7 +1045,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
             }
             ExtraTaskPreparation(*taskForExecute);
 
-            sts = m_ddi->Execute(*taskForExecute, surfaceHDL.first);
+            sts = m_ddi->Execute(*taskForExecute, surfaceHDL);
             MFX_CHECK_STS(sts);
 
             m_task.SubmitForQuery(taskForExecute);
@@ -1117,7 +1126,7 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
             mfxFrameData codedFrame = {};
             mfxU32 bytesAvailable = bs->MaxLength - bs->DataOffset - bs->DataLength;
             mfxU32 bytes2copy     = taskForQuery->m_bsDataLength;
-            mfxI32 dpbOutputDelay = taskForQuery->m_fo +  GetNumReorderFrames(m_vpar.mfx.GopRefDist-1,m_vpar.isBPyramid(), m_vpar.isField()) - taskForQuery->m_eo;
+            mfxI32 dpbOutputDelay = taskForQuery->m_fo +  GetNumReorderFrames(m_vpar.mfx.GopRefDist-1,m_vpar.isBPyramid(), m_vpar.isField(), m_vpar.bFieldReord) - taskForQuery->m_eo;
             mfxU8* bsData         = bs->Data + bs->DataOffset + bs->DataLength;
             mfxU32* pDataLength   = &bs->DataLength;
 

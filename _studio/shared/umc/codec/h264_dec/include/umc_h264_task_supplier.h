@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -268,6 +268,9 @@ struct ViewItem
     // Copy constructor
     ViewItem(const ViewItem &src);
 
+    // Copy assignment
+    ViewItem &operator =(const ViewItem &src);
+
     ~ViewItem();
 
     // Initialize th view, allocate resources
@@ -296,10 +299,10 @@ struct ViewItem
     int32_t viewId;
 
     // Pointer to the view's DPB
-    mutable std::auto_ptr<H264DBPList> pDPB[MAX_NUM_LAYERS];
+    mutable std::unique_ptr<H264DBPList> pDPB[MAX_NUM_LAYERS];
 
     // Pointer to the POC processing object
-    mutable std::auto_ptr<POCDecoder> pPOCDec[MAX_NUM_LAYERS];
+    mutable std::unique_ptr<POCDecoder> pPOCDec[MAX_NUM_LAYERS];
 
     bool m_isDisplayable;
 
@@ -594,6 +597,7 @@ protected:
     virtual void OnFullFrame(H264DecoderFrame * pFrame);
     virtual bool ProcessNonPairedField(H264DecoderFrame * pFrame) = 0;
 
+    void DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame);
     void DBPUpdate(H264DecoderFrame * pFrame, int32_t field);
 
     virtual void AddFakeReferenceFrame(H264Slice * pSlice);

@@ -299,7 +299,7 @@ private:
 private:
 
     MfxHwH264Encode::CmDevicePtr                    m_cmDevice;
-    std::auto_ptr<MfxEncLA::CmContextLA>            m_cmCtx;
+    std::unique_ptr<MfxEncLA::CmContextLA>            m_cmCtx;
     MfxHwH264Encode::MfxVideoParam                  m_video;
     std::vector<MfxHwH264Encode::VmeData>           m_vmeDataStorage;
         

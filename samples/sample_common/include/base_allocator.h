@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -81,7 +81,7 @@ public:
     virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response);
 
 protected:
-    std::auto_ptr<MSDKMutex> mtx;
+    std::unique_ptr<MSDKMutex> mtx;
     typedef std::list<mfxFrameAllocResponse>::iterator Iter;
     static const mfxU32 MEMTYPE_FROM_MASK = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_FROM_DECODE | \
                                             MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT | \

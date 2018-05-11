@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,8 +48,9 @@ typedef struct {
     mfxU16  PerCtuInput;
     mfxU16  ForceCtuSplit;
     mfxU16  NumFramePartitions;
+    mfxU16  FastIntraMode;
 
-    mfxU16  reserved0[108];
+    mfxU16  reserved0[107];
 } mfxExtFeiHevcEncFrameCtrl;
 
 
@@ -106,6 +107,19 @@ typedef struct {
     mfxFeiHevcEncCtuCtrl *Data;
 } mfxExtFeiHevcEncCtuCtrl;
 
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32      MaxFrameSize; /* in bytes */
+    mfxU32      NumPasses;    /* up to 8 */
+    mfxU16      reserved[8];
+    mfxU8       DeltaQP[8];   /* list of delta QPs, only positive values */
+} mfxExtFeiHevcRepackCtrl;
+
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          NumPasses;
+    mfxU16          reserved[58];
+} mfxExtFeiHevcRepackStat;
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
 typedef struct  {
@@ -154,7 +168,7 @@ typedef struct  {
     mfxU32    IpcmEnable           : 1;
     mfxU32    IntraChromaMode      : 3;
     mfxU32    ZeroOutCoeffs        : 1;
-    mfxU32    reserved00           : 5;
+    mfxU32    reserved00           : 4;
     mfxU32    Qp                   : 7;
     mfxU32    QpSign               : 1;
     mfxU32    InterpredIdc         : 8;
@@ -237,6 +251,8 @@ enum {
     MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED    = MFX_MAKEFOURCC('F','H','P','D'),
     MFX_EXTBUFF_HEVCFEI_ENC_QP         = MFX_MAKEFOURCC('F','H','Q','P'),
     MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL   = MFX_MAKEFOURCC('F','H','E','C'),
+    MFX_EXTBUFF_HEVCFEI_REPACK_CTRL    = MFX_MAKEFOURCC('F','H','R','P'),
+    MFX_EXTBUFF_HEVCFEI_REPACK_STAT    = MFX_MAKEFOURCC('F','H','R','S'),
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
     MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC    = MFX_MAKEFOURCC('F','H','T','B'),

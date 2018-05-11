@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -47,6 +47,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "plugin_loader.h"
 #include "general_allocator.h"
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 enum MemType {
     SYSTEM_MEMORY = 0x00,
@@ -190,6 +194,13 @@ public:
 
             if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_PPS)
                 msdk_printf(MSDK_STRING("[Error] PPS Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_SLICEHEADER)
+                msdk_printf(MSDK_STRING("[Error] SliceHeader Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_FRAME_GAP)
+                msdk_printf(MSDK_STRING("[Error] Frame Gap Error detected!\n"));
+
         }
     }
 #endif
@@ -235,7 +246,7 @@ protected: // functions
 
 protected: // variables
     CSmplYUVWriter          m_FileWriter;
-    std::auto_ptr<CSmplBitstreamReader>  m_FileReader;
+    std::unique_ptr<CSmplBitstreamReader>  m_FileReader;
     mfxBitstream            m_mfxBS; // contains encoded data
     mfxU64 totalBytesProcessed;
 
@@ -245,8 +256,8 @@ protected: // variables
     MFXVideoVPP*            m_pmfxVPP;
     mfxVideoParam           m_mfxVideoParams;
     mfxVideoParam           m_mfxVppVideoParams;
-    std::auto_ptr<MFXVideoUSER>  m_pUserModule;
-    std::auto_ptr<MFXPlugin> m_pPlugin;
+    std::unique_ptr<MFXVideoUSER>  m_pUserModule;
+    std::unique_ptr<MFXPlugin> m_pPlugin;
     std::vector<mfxExtBuffer *> m_ExtBuffers;
     std::vector<mfxExtBuffer *> m_ExtBuffersMfxBS;
 #if MFX_VERSION >= 1022

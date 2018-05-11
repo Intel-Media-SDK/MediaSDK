@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -318,7 +318,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Register(mfxFrameAllocResponse& response, D3DDD
 } // mfxStatus VAAPIFEIPREENCEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
 
 mfxStatus VAAPIFEIPREENCEncoder::Execute(
-        mfxHDL surface,
+        mfxHDLPair pair,
         DdiTask const & task,
         mfxU32 fieldId,
         PreAllocatedVector const & sei)
@@ -326,6 +326,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FEI::PreENC::Execute");
     mdprintf(stderr, "\nVAAPIPREENCEncoder::Execute\n");
 
+    mfxHDL surface = pair.first;
     mfxStatus mfxSts = MFX_ERR_NONE;
     VAStatus  vaSts;
     VAPictureStats past_ref, future_ref;
@@ -1025,7 +1026,7 @@ mfxStatus VAAPIFEIENCEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFO
 } // mfxStatus VAAPIFEIENCEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
 
 mfxStatus VAAPIFEIENCEncoder::Execute(
-        mfxHDL surface,
+        mfxHDLPair pair,
         DdiTask const & task,
         mfxU32 fieldId,
         PreAllocatedVector const & sei)
@@ -1036,7 +1037,7 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     VAStatus  vaSts  = VA_STATUS_SUCCESS;
     mfxStatus mfxSts = MFX_ERR_NONE;
 
-    VASurfaceID *inputSurface = (VASurfaceID*) surface;
+    VASurfaceID *inputSurface = (VASurfaceID*) (pair.first);
 
     mfxU32 feiFieldId = task.m_fid[fieldId];
 
@@ -1981,7 +1982,7 @@ mfxStatus VAAPIFEIPAKEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFO
 
 
 mfxStatus VAAPIFEIPAKEncoder::Execute(
-        mfxHDL surface,
+        mfxHDLPair  pair,
         DdiTask const & task,
         mfxU32 fieldId,
         PreAllocatedVector const & sei)
@@ -1990,6 +1991,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
     mdprintf(stderr, "VAAPIFEIPAKEncoder::Execute\n");
 
+    mfxHDL surface = pair.first;
     VAStatus  vaSts  = VA_STATUS_SUCCESS;
     mfxStatus mfxSts = MFX_ERR_NONE;
 
@@ -2304,7 +2306,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
      //SEI
     if (sei.Size() > 0)
     {
-        packed_header_param_buffer.type                = VAEncPackedHeaderH264_SEI;
+        packed_header_param_buffer.type                = VAEncPackedHeaderRawData;
         packed_header_param_buffer.has_emulation_bytes = 1;
         packed_header_param_buffer.bit_length          = sei.Size() * 8;
 

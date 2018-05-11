@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -130,6 +130,13 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->V = ptr->Y + 3;
         ptr->Pitch = 2 * Width2;
         break;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        ptr->G = ptr->B;
+        ptr->R = ptr->B;
+        ptr->Pitch = 2 * Width2;
+        break;
+#endif
     case MFX_FOURCC_RGB3:
         ptr->G = ptr->B + 1;
         ptr->R = ptr->B + 2;
@@ -234,6 +241,11 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
     case MFX_FOURCC_NV16:
         nbytes = Width2*Height2 + (Width2>>1)*(Height2) + (Width2>>1)*(Height2);
         break;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        nbytes = 2*Width2*Height2;
+        break;
+#endif
     case MFX_FOURCC_RGB3:
         nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2;
         break;

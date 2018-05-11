@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,6 +49,10 @@ EXTBUF(mfxExtContentLightLevelInfo       , MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO 
 EXTBUF(mfxExtMasteringDisplayColourVolume, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME )
 EXTBUF(mfxExtMultiFrameParam             , MFX_EXTBUFF_MULTI_FRAME_PARAM               )
 EXTBUF(mfxExtMultiFrameControl           , MFX_EXTBUFF_MULTI_FRAME_CONTROL             )
+#if (MFX_VERSION >= 1026)
+EXTBUF(mfxExtVppMctf                     , MFX_EXTBUFF_VPP_MCTF                        )
+#endif
+EXTBUF(mfxExtColorConversion             , MFX_EXTBUFF_VPP_COLOR_CONVERSION            )
 // FEI
 EXTBUF(mfxExtFeiParam               , MFX_EXTBUFF_FEI_PARAM                 )
 EXTBUF(mfxExtFeiSPS                 , MFX_EXTBUFF_FEI_SPS                   )
@@ -74,6 +78,19 @@ EXTBUF(mfxExtFeiHevcEncQP           , MFX_EXTBUFF_HEVCFEI_ENC_QP            )
 EXTBUF(mfxExtFeiHevcEncCtuCtrl      , MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL      )
 #endif
 // end of FEI
+// Camera
+EXTBUF(mfxExtCamTotalColorControl   , MFX_EXTBUF_CAM_TOTAL_COLOR_CONTROL     )
+EXTBUF(mfxExtCamCscYuvRgb           , MFX_EXTBUF_CAM_CSC_YUV_RGB             )
+EXTBUF(mfxExtCamGammaCorrection     , MFX_EXTBUF_CAM_GAMMA_CORRECTION        )
+EXTBUF(mfxExtCamWhiteBalance        , MFX_EXTBUF_CAM_WHITE_BALANCE           )
+EXTBUF(mfxExtCamHotPixelRemoval     , MFX_EXTBUF_CAM_HOT_PIXEL_REMOVAL       )
+EXTBUF(mfxExtCamBlackLevelCorrection, MFX_EXTBUF_CAM_BLACK_LEVEL_CORRECTION  )
+EXTBUF(mfxExtCamVignetteCorrection  , MFX_EXTBUF_CAM_VIGNETTE_CORRECTION     )
+EXTBUF(mfxExtCamBayerDenoise        , MFX_EXTBUF_CAM_BAYER_DENOISE           )
+EXTBUF(mfxExtCamColorCorrection3x3  , MFX_EXTBUF_CAM_COLOR_CORRECTION_3X3    )
+EXTBUF(mfxExtCamPadding             , MFX_EXTBUF_CAM_PADDING                 )
+EXTBUF(mfxExtCamPipeControl         , MFX_EXTBUF_CAM_PIPECONTROL             )
+// end of Camera
 EXTBUF(mfxExtAVCRefLists            , MFX_EXTBUFF_AVC_REFLISTS               )
 EXTBUF(mfxExtCodingOption3          , MFX_EXTBUFF_CODING_OPTION3             )
 EXTBUF(mfxExtMBQP                   , MFX_EXTBUFF_MBQP                       )
@@ -87,6 +104,7 @@ EXTBUF(mfxExtDecodeErrorReport      , MFX_EXTBUFF_DECODE_ERROR_REPORT        )
 EXTBUF(mfxExtThreadsParam           , MFX_EXTBUFF_THREADS_PARAM)
 
 EXTBUF(mfxExtVPPRotation            , MFX_EXTBUFF_VPP_ROTATION)
+EXTBUF(mfxExtVPPMirroring           , MFX_EXTBUFF_VPP_MIRRORING)
 EXTBUF(mfxExtMVCSeqDesc             , MFX_EXTBUFF_MVC_SEQ_DESC              )
 //EXTBUF(mfxExtMVCTargetViews         , MFX_EXTBUFF_MVC_TARGET_VIEWS          )
 //EXTBUF(mfxExtJPEGQuantTables        , MFX_EXTBUFF_JPEG_QT                   )
@@ -95,8 +113,19 @@ EXTBUF(mfxExtMVCSeqDesc             , MFX_EXTBUFF_MVC_SEQ_DESC              )
 EXTBUF(mfxExtMBDisableSkipMap       , MFX_EXTBUFF_MB_DISABLE_SKIP_MAP)
 
 //Screen capture
+EXTBUF(mfxExtScreenCaptureParam     , MFX_EXTBUFF_SCREEN_CAPTURE_PARAM      )
 EXTBUF(mfxExtDirtyRect              , MFX_EXTBUFF_DIRTY_RECTANGLES          )
 EXTBUF(mfxExtMoveRect               , MFX_EXTBUFF_MOVING_RECTANGLES         )
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+EXTBUF(mfxExtVP9DecodedFrameInfo    , MFX_EXTBUFF_VP9_DECODED_FRAME_INFO    )
+#endif
+
+#if (MFX_VERSION >= 1026)
+EXTBUF(mfxExtVP9Segmentation        , MFX_EXTBUFF_VP9_SEGMENTATION          )
+EXTBUF(mfxExtVP9TemporalLayers      , MFX_EXTBUFF_VP9_TEMPORAL_LAYERS       )
+EXTBUF(mfxExtVP9Param               , MFX_EXTBUFF_VP9_PARAM                 )
+#endif
 
 EXTBUF(mfxExtHEVCParam              , MFX_EXTBUFF_HEVC_PARAM                )
 EXTBUF(mfxExtPredWeightTable        , MFX_EXTBUFF_PRED_WEIGHT_TABLE         )
@@ -106,3 +135,7 @@ EXTBUF(mfxExtBRC, MFX_EXTBUFF_BRC)
 #endif // defined(__MFXBRC_H__)
 
 EXTBUF(mfxExtEncodedUnitsInfo       , MFX_EXTBUFF_ENCODED_UNITS_INFO        )
+
+#if defined(__MFXSCD_H__)
+EXTBUF(mfxExtSCD, MFX_EXTBUFF_SCD)
+#endif // defined(__MFXSCD_H__)

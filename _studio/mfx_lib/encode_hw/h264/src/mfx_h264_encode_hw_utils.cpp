@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1424,7 +1424,7 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
     brcprintf("\r%4d: do=%4d type=%c Rt=%7.3f-%7.3f curc=%4d numc=%2d ", m_laData[0].encOrder, m_laData[0].poc/2,
         GetFrameTypeLetter(par.FrameType), m_targetRateMin, m_targetRateMax, m_laData[0].interCost / m_totNumMb, mfxU32(m_laData.size()));
 
-    
+
     mfxF64 totalEstRate[52] = { 0.0 };
 
     for (mfxU32 qp = 0; qp < 52; qp++)
@@ -1598,7 +1598,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
 
     if (m_AvgBitrate)
         m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.EncodedOrder, m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
- 
+
     m_framesBehind++;
     m_bitsBehind += realRatePerMb;
     mfxF64 framesBeyond = (mfxF64)(MFX_MAX(2, m_laData.size()) - 1 - m_first);
@@ -2512,6 +2512,14 @@ MfxFrameAllocResponse::~MfxFrameAllocResponse()
                 NumFrameActual = m_numFrameActualReturnedByAllocFrames;
                 m_core->FreeFrames(this);
             }
+            for (size_t i = 0; i < m_sysmems.size(); i++)
+            {
+                if (m_sysmems[i])
+                {
+                    CM_ALIGNED_FREE(m_sysmems[i]);
+                    m_sysmems[i] = 0;
+                }
+            }
         }
     }
 
@@ -2543,6 +2551,11 @@ void MfxFrameAllocResponse::DestroyBuffer(CmDevice * device, void * p)
 void MfxFrameAllocResponse::DestroySurface(CmDevice * device, void * p)
 {
     device->DestroySurface((CmSurface2D *&)p);
+}
+
+void MfxFrameAllocResponse::DestroySurface2DUP(CmDevice * device, void * p)
+{
+    device->DestroySurface2DUP((CmSurface2DUP *&)p);
 }
 
 void MfxFrameAllocResponse::DestroyBufferUp(CmDevice * device, void * p)
@@ -2668,6 +2681,64 @@ mfxStatus MfxFrameAllocResponse::AllocCmSurfaces(
     m_core     = 0;
     m_cmDevice = device;
     m_cmDestroy = &DestroySurface;
+    return MFX_ERR_NONE;
+}
+mfxStatus MfxFrameAllocResponse::AllocCmSurfacesUP(
+    CmDevice *             device,
+    mfxFrameAllocRequest & req)
+{
+    if (m_core || m_cmDevice)
+        return Error(MFX_ERR_MEMORY_ALLOC);
+
+    req.NumFrameSuggested = req.NumFrameMin;
+    mfxU32 size = req.Info.Width * req.Info.Height;
+
+    m_mids.resize(req.NumFrameMin, 0);
+    m_locked.resize(req.NumFrameMin, 0);
+    m_sysmems.resize(req.NumFrameMin, 0);
+
+    for (int i = 0; i < req.NumFrameMin; i++) {
+        m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
+        m_mids[i] = CreateSurface(device, m_sysmems[i], req.Info.Width, req.Info.Height, req.Info.FourCC);
+    }
+
+    NumFrameActual = req.NumFrameMin;
+    mids = &m_mids[0];
+
+    m_core = 0;
+    m_cmDevice = device;
+    m_cmDestroy = &DestroySurface2DUP;
+    return MFX_ERR_NONE;
+}
+mfxStatus MfxFrameAllocResponse::AllocFrames(
+    VideoCORE *            core,
+    mfxFrameAllocRequest & req)
+{
+    if (m_core || m_cmDevice)
+        return Error(MFX_ERR_MEMORY_ALLOC);
+
+    req.NumFrameSuggested = req.NumFrameMin;
+    mfxU32 size = req.Info.Width * req.Info.Height;
+
+    m_locked.resize(req.NumFrameMin, 0);
+    m_sysmems.resize(req.NumFrameMin, 0);
+
+    for (int i = 0; i < req.NumFrameMin; i++) {
+        m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
+    }
+
+    NumFrameActual = req.NumFrameMin;
+
+    m_core = core;
+    m_cmDestroy = 0;
+    return MFX_ERR_NONE;
+}
+mfxStatus MfxFrameAllocResponse::UpdateResourcePointers(mfxU32 idxScd, void * memY, void * gpuSurf)
+{
+    if (m_mids.size() < idxScd || m_sysmems.size() < idxScd)
+        return MFX_ERR_NOT_ENOUGH_BUFFER;
+    m_mids[idxScd] = gpuSurf;
+    m_sysmems[idxScd] = memY;
     return MFX_ERR_NONE;
 }
 
@@ -3014,7 +3085,7 @@ void MfxHwH264Encode::FastCopyBufferSys2Vid(void * dstVid, void const * srcSys, 
     assert(sts == MFX_ERR_NONE); sts;
 
 
-    
+
 }
 
 void CyclicTaskPool::Init(mfxU32 size)
@@ -3886,7 +3957,7 @@ mfxStatus  MfxHwH264Encode::CopyBitstream(VideoCORE           & core,
                                           mfxU8 *             bsData,
                                           mfxU32              bsSizeAvail)
 {
-    mfxFrameData bitstream = { 0 };
+    mfxFrameData bitstream = {};
 
     FrameLocker lock(&core, bitstream, task.m_midBit[fieldId]);
     MFX_CHECK(video.Protected == 0 || task.m_notProtected, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -4256,7 +4327,7 @@ mfxStatus MfxHwH264Encode::CorrectSliceInfo(DdiTask &  task, mfxU32  MaxSliceWei
 {
     if (task.m_SliceInfo.size() == 0)  return MFX_ERR_NONE;
 
-    SliceStructInfo new_info[256] = {0};
+    SliceStructInfo new_info[256] = {};
     mfxU32  new_slice = 0;
     mfxU32  curMB = 0;
     mfxU32  old_slice = 0;
@@ -4316,9 +4387,9 @@ mfxStatus MfxHwH264Encode::CorrectSliceInfoForsed(DdiTask & task, mfxU32 widthLa
     if (!freeSlisesMax)
         return MFX_ERR_NONE;
 
-    mfxU32 bigSlices[256] ={0};
+    mfxU32 bigSlices[256] = {};
     mfxU32 numBigSlices = 0;
-    SliceStructInfo new_info[256] = {0};
+    SliceStructInfo new_info[256] = {};
 
     mfxU32  widthMB   =  task.m_yuv->Info.Width/16;
     mfxU32  heightMB  =  task.m_yuv->Info.Height/16;

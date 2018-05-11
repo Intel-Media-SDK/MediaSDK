@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -94,7 +94,7 @@ public:
     void ResetCurrentState();
 
 protected:
-    std::auto_ptr<NALUnitSplitter> m_pNALSplitter;
+    std::unique_ptr<NALUnitSplitter> m_pNALSplitter;
 
     mfxStatus Init();
 
@@ -118,7 +118,7 @@ protected:
     bool                m_WaitForIDR;
 
     AVCHeaders     m_headers;
-    std::auto_ptr<AVCFrameInfo> m_AUInfo;
+    std::unique_ptr<AVCFrameInfo> m_AUInfo;
     AVCFrameInfo * m_currentInfo;
     AVCSlice * m_pLastSlice;
 

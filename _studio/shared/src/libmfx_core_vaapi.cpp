@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,11 +40,6 @@
 
 #include "va/va.h"
 #include <va/va_backend.h>
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-#else
-#endif
 
 #define MFX_CHECK_HDL(hdl) {if (!hdl) MFX_RETURN(MFX_ERR_INVALID_HANDLE);}
 
@@ -625,6 +620,10 @@ VAAPIVideoCORE::CreateVA(
         break;
     case MFX_CODEC_VP9:
         profile |= VA_VP9;
+        if (param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        {
+            profile |= VA_PROFILE_10;
+        }
         break;
     case MFX_CODEC_JPEG:
         profile |= VA_JPEG;
@@ -664,6 +663,9 @@ VAAPIVideoCORE::CreateVA(
         }
     }
 
+    if(GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK))
+        m_KeepVAState = true;
+    else
         m_KeepVAState = false;
 
     sts = CreateVideoAccelerator(param, profile, response->NumFrameActual, RenderTargets, allocator);
@@ -770,15 +772,15 @@ VAAPIVideoCORE::CreateVideoAccelerator(
 
     params.m_protectedVA = param->Protected;
 
-    /* There are following conditions for SFC post processing:
+    /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
-     * (3): Tested on APL platform only
+     * (3): Supported on APL platform and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if ( (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
          (MFX_PICSTRUCT_PROGRESSIVE == param->mfx.FrameInfo.PicStruct) &&
-         (MFX_HW_APL == GetHWType()) &&
+         (MFX_HW_APL <= GetHWType()) &&
          (param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
     {
         params.m_needVideoProcessingVA = true;
@@ -1094,7 +1096,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
 
                     pSrc->Data.MemId = saveMemId;
                     MFX_CHECK_STS(sts);
-                    
+
                 }
 
                 {
@@ -1307,15 +1309,20 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
         if (!m_pCmCopy.get())
         {
             m_pCmCopy.reset(new CmCopyWrapper);
-            if (!m_pCmCopy.get()->GetCmDevice(m_Display)){
+            if (!m_pCmCopy.get()->GetCmDevice(m_Display))
+            {
                 m_bCmCopy = false;
                 m_bCmCopyAllowed = false;
                 m_pCmCopy.get()->Release();
                 m_pCmCopy.reset();
                 return NULL;
-            }else{
-                if(!m_pCmCopy.get()->Initialize(GetHWType()))
+            }
+            else
+            {
+                if (MFX_ERR_NONE != m_pCmCopy.get()->Initialize(GetHWType()))
                     return NULL;
+                else
+                    m_bCmCopy = true;
             }
         }
         return (void*)m_pCmCopy.get();

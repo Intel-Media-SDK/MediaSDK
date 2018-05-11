@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,13 @@
 
 #include "mfxstructures.h"
 #include "mfxvp8.h"
+#include "mfxvp9.h"
 #include "mfxplugin.h"
 #include "mfxmvc.h"
+#include "mfxcamera.h"
 #include "mfxfei.h"
 #include "mfxla.h"
+#include "mfxsc.h"
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
 #include "mfxfeihevc.h"

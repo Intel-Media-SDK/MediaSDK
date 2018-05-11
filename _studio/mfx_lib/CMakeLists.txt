@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,7 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_enc_common.cpp
     ${prefix}/mfx_mpeg2_dec_common.cpp
     ${prefix}/mfx_critical_error_handler.cpp
+    ${prefix}/mfx_vpx_dec_common.cpp
   )
 endforeach()
 
@@ -75,6 +76,7 @@ set( defs "" )
 list( APPEND mdirs
   scheduler vpp decode/vc1
   decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
+  decode/h265 decode/vp8 decode/vp9 mctf_package/mctf
   )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
@@ -83,6 +85,9 @@ include_directories( ${MSDK_LIB_ROOT}/fei/h264_enc )
 foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
+
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
+include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
 list( APPEND cdirs
   brc h264_enc mpeg2_dec  vc1_dec vc1_common
@@ -134,17 +139,33 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/mfx_mfe_adapter.cpp
   )
 endforeach()
+foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
+  list( APPEND sources
+    ${prefix}/genx_cht_copy_isa.cpp
+    ${prefix}/genx_skl_copy_isa.cpp
+  )
+endforeach()
+
+foreach( prefix ${MSDK_LIB_ROOT}/genx/field_copy/src )
+  list( APPEND sources
+    ${prefix}/genx_fcopy_gen8_isa.cpp
+    ${prefix}/genx_fcopy_gen9_isa.cpp
+  )
+endforeach()
 
 set( USE_STRICT_NAME TRUE )
 set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/libmfx.map" )
 
-if( __ARCH MATCHES intel64 )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set( mfxlibname mfxhw64 )
 else()
   set( mfxlibname mfxhw32 )
 endif()
-if( __CONFIG MATCHES debug )
-  set( mfxlibname ${mfxlibname}_d )
+
+if( API_VERSION VERSION_GREATER 1.25 )
+  set(MCTF_LIB "mctf_hw")
+else()
+  set(MCTF_LIB "")
 endif()
 
 set( LIBS "" )
@@ -166,6 +187,8 @@ list( APPEND LIBS
   genx_h264_encode_embeded
   mfx_common
   mfx_common_hw
+  asc
+  ${MCTF_LIB}
   vpp_hw
   h264_common
   h264_preenc
@@ -173,6 +196,7 @@ list( APPEND LIBS
   h264_pak
   vc1_common
   vc1_dec_hw
+  umc_h265_hw
   ${ITT_LIBS}
   pthread
   dl
@@ -182,6 +206,20 @@ set( defs "${defs} ${WARNING_FLAGS}" )
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 
-install( TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR} )
+get_mfx_version(mfx_version_major mfx_version_minor)
+set (mfxlib_filename "lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor}")
+
+#set_target_properties( ${mfxlibname} PROPERTIES
+#    LIBRARY_OUTPUT_NAME ${mfxlib_filename}
+#    SUFFIX "" )
+
+get_target_property(bindir ${mfxlibname} RUNTIME_OUTPUT_DIRECTORY) 
+
+install( FILES ${bindir}/lib${mfxlibname}.so DESTINATION ${MFX_MODULES_DIR} RENAME ${mfxlib_filename} )
+install( CODE "execute_process(
+  COMMAND ${CMAKE_COMMAND} -E create_symlink
+  ${MFX_MODULES_DIR}/${mfxlib_filename}
+  ${MFX_MODULES_DIR}/lib${mfxlibname}.so )"
+)
 
 set( defs "" )

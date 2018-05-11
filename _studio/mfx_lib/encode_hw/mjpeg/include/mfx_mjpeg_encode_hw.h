@@ -129,7 +129,7 @@ protected:
     VideoCORE*          m_pCore;
     mfxVideoParam       m_vFirstParam;
     mfxVideoParam       m_vParam;
-    std::auto_ptr<DriverEncoder> m_ddi;
+    std::unique_ptr<DriverEncoder> m_ddi;
 
     bool                m_bInitialized;
     bool                m_deviceFailed;

@@ -69,20 +69,23 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                          if ds_strength parameter is missed or equal 1, PREENC is used on the full resolution\n"));
     msdk_printf(MSDK_STRING("                          otherwise PREENC is used on downscaled (by VPP resize in ds_strength times) surfaces\n"));
     msdk_printf(MSDK_STRING("   [-EncodedOrder] - use app-level reordering to encoded order (default is display; ENCODE only)\n"));
-    msdk_printf(MSDK_STRING("   [-n number] - number of frames to process\n"));
+    msdk_printf(MSDK_STRING("   [-n number] - number of input frames to process\n"));
+    msdk_printf(MSDK_STRING("                 if stream has fewer frames than requested, sample repeats frames from stream's beginning\n"));
     msdk_printf(MSDK_STRING("   [-qp qp_value] - QP value for frames (default is 26)\n"));
     msdk_printf(MSDK_STRING("   [-DisableQPOffset] - disable QP offset per pyramid layer\n"));
     msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
+    msdk_printf(MSDK_STRING("   [-profile value] - codec profile\n"));
+    msdk_printf(MSDK_STRING("   [-level value]   - codec level\n"));
     msdk_printf(MSDK_STRING("   [-idr_interval size] - if IdrInterval = 0, then only first I-frame is an IDR-frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 1, then every I - frame is an IDR - frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 2, then every other I - frame is an IDR - frame, etc (default is 0)\n"));
     msdk_printf(MSDK_STRING("   [-g size] - GOP size (1(default) means I-frames only)\n"));
     msdk_printf(MSDK_STRING("   [-gop_opt closed|strict] - GOP optimization flags (can be used together)\n"));
     msdk_printf(MSDK_STRING("   [-r (-GopRefDist) distance] - Distance between I- or P- key frames (1 means no B-frames) (0 - by default(I frames))\n"));
-    msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of reference frames\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P frames (up to 3)\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs] - number of maximum allowed backward references for B frames (up to 3)\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs] - number of maximum allowed forward references for B frames (up to 1)\n"));
+    msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of available reference frames (DPB size)\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P frames (valid range is [1, 3])\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs] - number of maximum allowed backward references for B frames (valid range is [1, 3])\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs] - number of maximum allowed forward references for B frames (only 1 is supported)\n"));
     msdk_printf(MSDK_STRING("   [-NumPredictorsL0 numPreds] - number of maximum L0 predictors (default - assign depending on the frame type)\n"));
     msdk_printf(MSDK_STRING("   [-NumPredictorsL1 numPreds] - number of maximum L1 predictors (default - assign depending on the frame type)\n"));
     msdk_printf(MSDK_STRING("   [-MultiPredL0 type] - use internal L0 MV predictors (0 - no internal MV predictor, 1 - spatial internal MV predictors)\n"));
@@ -90,6 +93,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-MVPBlockSize size] - external MV predictor block size (0 - no MVP, 1 - MVP per 16x16, 2 - MVP per 32x32, 7 - use with -mvpin)\n"));
     msdk_printf(MSDK_STRING("   [-ForceCtuSplit] - force splitting CTU into CU at least once\n"));
     msdk_printf(MSDK_STRING("   [-NumFramePartitions num] - number of partitions in frame that encoder processes concurrently (1, 2, 4, 8 or 16)\n"));
+    msdk_printf(MSDK_STRING("   [-FastIntraMode] - force encoder to skip HEVC-specific intra modes (use AVC modes only)\n"));
     msdk_printf(MSDK_STRING("   [-gpb:<on,off>] - make HEVC encoder use regular P-frames (off) or GPB (on) (on - by default)\n"));
     msdk_printf(MSDK_STRING("   [-ppyr:<on,off>] - enables P-pyramid\n"));
     msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
@@ -102,9 +106,11 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-mvpin <file-name>]         - use this to input MV predictors for ENCODE (Encoded Order will be enabled automatically).\n"));
     msdk_printf(MSDK_STRING("   [-mvpin::format <file-name>] - use this to input MVs for ENCODE before repacking in internal format\n"));
     msdk_printf(MSDK_STRING("                                   (Encoded Order will be enabled automatically).\n"));
+    msdk_printf(MSDK_STRING("   [-active_ref_lists_par <file-name>] - par - file for reference lists + reordering. Each line :\n"));
+    msdk_printf(MSDK_STRING("                                         <POC> <FrameType> <PicStruct> | 8 <reference POC> in L0 list | then L1 | 16 DPB\n"));
 
     msdk_printf(MSDK_STRING("   [-qrep] - quality predictor MV repacking before encode\n"));
-    msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,8] (5 is default).\n"));
+    msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,5] (5 is default).\n"));
     msdk_printf(MSDK_STRING("                           If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
     msdk_printf(MSDK_STRING("   [-RefWidth width] - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
     msdk_printf(MSDK_STRING("                       one direction and 32x32 for bidirectional search\n"));
@@ -113,6 +119,9 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full).\n"));
     msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
 
+    msdk_printf(MSDK_STRING("   [-timeout seconds] - set time to run processing in seconds\n"));
+    msdk_printf(MSDK_STRING("   [-repackctrl <file-name>] - use this to input encode repack ctrl file\n"));
+    msdk_printf(MSDK_STRING("   [-repackstat <file-name>] - use this to output encode repack stat file\n"));
     msdk_printf(MSDK_STRING("\n"));
 }
 
@@ -233,6 +242,16 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.nNumFrames), "NumFrames", isParseInvalid);
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-profile")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.CodecProfile), "CodecProfile", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-level")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.CodecLevel), "CodecLevel", isParseInvalid);
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-g")))
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
@@ -275,6 +294,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.mbstatoutFile), "MB stat out File", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-active_ref_lists_par")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.refctrlInFile), "RefList ctrl File", isParseInvalid);
+            params.bEncodedOrder = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qrep")))
         {
@@ -357,6 +382,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.encodeCtrl.NumFramePartitions), "NumFramePartitions", isParseInvalid)
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-FastIntraMode")))
+        {
+            params.encodeCtrl.FastIntraMode = 1;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-tff")))
         {
             params.input.nPicStruct = MFX_PICSTRUCT_FIELD_TFF;
@@ -431,6 +460,21 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             params.bDisableQPOffset = true;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-timeout")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.nTimeout), "timeout", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-repackctrl")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.repackctrlFile), "Repack ctrl File", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-repackstat")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.repackstatFile), "Repack stat File", isParseInvalid);
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("?")))
         {
             PrintHelp(strInput[0], NULL);
@@ -476,19 +520,19 @@ mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
         PrintHelp(appName, "Invalid QP value (must be in range [0, 51])");
         return MFX_ERR_UNSUPPORTED;
     }
-    if (params.NumRefActiveP > 3)
+    if (params.NumRefActiveP == 0 || params.NumRefActiveP > 3)
     {
-        PrintHelp(appName, "Unsupported NumRefActiveP value (must be in range [0,3])");
+        PrintHelp(appName, "Unsupported NumRefActiveP value (must be in range [1,3])");
         return MFX_ERR_UNSUPPORTED;
     }
-    if (params.NumRefActiveBL0 > 3)
+    if (params.NumRefActiveBL0 == 0 || params.NumRefActiveBL0 > 3)
     {
-        PrintHelp(appName, "Unsupported NumRefActiveBL0 value (must be in range [0,3])");
+        PrintHelp(appName, "Unsupported NumRefActiveBL0 value (must be in range [1,3])");
         return MFX_ERR_UNSUPPORTED;
     }
-    if (params.NumRefActiveBL1 > 1)
+    if (params.NumRefActiveBL1 == 0 || params.NumRefActiveBL1 > 1)
     {
-        PrintHelp(appName, "Unsupported NumRefActiveBL1 value (must be in range [0,1])");
+        PrintHelp(appName, "Unsupported NumRefActiveBL1 value (only 1 is supported)");
         return MFX_ERR_UNSUPPORTED;
     }
     if (params.encodeCtrl.NumMvPredictors[0] > 4)
@@ -553,7 +597,7 @@ mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (params.encodeCtrl.SearchWindow > 8)
+    if (params.encodeCtrl.SearchWindow > 5)
     {
         PrintHelp(appName, "Invalid SearchWindow value");
         return MFX_ERR_UNSUPPORTED;
@@ -586,6 +630,11 @@ void AdjustOptions(sInputParams& params)
     params.input.dFrameRate = tune(params.input.dFrameRate, 0.0, 30.0);
     params.nNumSlices       = tune(params.nNumSlices, 0, 1);
     params.nIdrInterval     = tune(params.nIdrInterval, 0, 0xffff);
+
+    if (params.nRefDist < 2)
+    {
+        params.NumRefActiveBL0 = params.NumRefActiveBL1 = 0;
+    }
     mfxU16 nMinRefFrame     = std::max(params.NumRefActiveP, (mfxU16)(params.NumRefActiveBL0 + params.NumRefActiveBL1));
     if (nMinRefFrame > params.nNumRef)
         params.nNumRef      = nMinRefFrame;
@@ -621,9 +670,9 @@ void AdjustOptions(sInputParams& params)
 
     if (params.encodeCtrl.MVPredictor == 0 && (params.bPREENC || 0 != msdk_strlen(params.mvpInFile)))
     {
-        msdk_printf(MSDK_STRING("WARNING: MV predictor block size is invalid. Adjust to 2 for PreENC (7 for -mvpin)\n"));
+        msdk_printf(MSDK_STRING("WARNING: MV predictor block size is invalid or unspecified. Adjust to 1 for PreENC (7 for -mvpin)\n"));
         if (params.bPREENC)
-            params.encodeCtrl.MVPredictor = 2;
+            params.encodeCtrl.MVPredictor = 1;
         if (0 != msdk_strlen(params.mvpInFile))
             params.encodeCtrl.MVPredictor = 7;
     }
@@ -638,6 +687,19 @@ void AdjustOptions(sInputParams& params)
             params.encodeCtrl.NumMvPredictors[0] = 0;
             params.encodeCtrl.NumMvPredictors[1] = 0;
         }
+    }
+
+    if (!params.bENCODE && (strlen(params.repackctrlFile)||strlen(params.repackstatFile)))
+    {
+        msdk_printf(MSDK_STRING("WARNING: Repackctrl/Repackstat disabled for only supported in ENCODE!\n"));
+        MSDK_ZERO_MEMORY(params.repackctrlFile);
+        MSDK_ZERO_MEMORY(params.repackstatFile);
+    }
+
+    if (strlen(params.repackctrlFile) && !params.bEncodedOrder)
+    {
+        msdk_printf(MSDK_STRING("WARNING: Encoded order is enabled by force in repackctrl.\n"));
+        params.bEncodedOrder = true;
     }
 }
 

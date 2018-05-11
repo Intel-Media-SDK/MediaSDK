@@ -178,18 +178,27 @@ mfxStatus YUVReader::GetFrame(mfxFrameSurface1* & pSurf)
     MSDK_CHECK_POINTER(pSurf, MFX_ERR_MEMORY_ALLOC);
 
     // need to call Lock to access surface data and...
-    sts = m_pOutSurfPool->LockSurface(pSurf);
-    MSDK_CHECK_STATUS(sts, "LockSurface failed");
+    mfxStatus lock_sts = m_pOutSurfPool->LockSurface(pSurf);
+    MSDK_CHECK_STATUS(lock_sts, "LockSurface failed");
 
     // load frame from file to surface data
     sts = m_FileReader.LoadNextFrame(pSurf);
-    MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, sts);
 
     // ... after we're done call Unlock
-    sts = m_pOutSurfPool->UnlockSurface(pSurf);
-    MSDK_CHECK_STATUS(sts, "UnlockSurface failed");
+    lock_sts = m_pOutSurfPool->UnlockSurface(pSurf);
+    MSDK_CHECK_STATUS(lock_sts, "UnlockSurface failed");
+
+    if (MFX_ERR_MORE_DATA == sts) // reach the end of input file
+        pSurf = NULL;
 
     return sts;
+}
+
+mfxStatus YUVReader::ResetIOState()
+{
+    m_FileReader.Reset();
+
+    return MFX_ERR_NONE;
 }
 
 /**********************************************************************************/
@@ -217,6 +226,14 @@ mfxStatus Decoder::PreInit()
 
     sts = InitDecParams(m_par);
     MSDK_CHECK_STATUS(sts, "Can't initialize decoder params");
+
+    // if framerate is not specified in bitstream, use framerate from SourceFrameInfo structure
+    // that always contain valid one (user-defined or default - 30fps)
+    if (0 == (m_par.mfx.FrameInfo.FrameRateExtN | m_par.mfx.FrameInfo.FrameRateExtD))
+    {
+        sts = ConvertFrameRate(m_inPars.dFrameRate, &m_par.mfx.FrameInfo.FrameRateExtN, &m_par.mfx.FrameInfo.FrameRateExtD);
+        MSDK_CHECK_STATUS(sts, "ConvertFrameRate failed");
+    }
 
     return sts;
 }
@@ -330,6 +347,13 @@ mfxStatus Decoder::InitDecParams(MfxVideoParamsWrapper & par)
     return sts;
 }
 
+mfxStatus Decoder::ResetIOState()
+{
+    m_FileReader.Reset();
+
+    return MFX_ERR_NONE;
+}
+
 /**********************************************************************************/
 
 mfxStatus FieldSplitter::QueryIOSurf(mfxFrameAllocRequest* request)
@@ -364,7 +388,7 @@ mfxStatus FieldSplitter::PreInit()
         MSDK_CHECK_STATUS(sts, "m_pTarget->GetActualFrameInfo failed");
 
         // If frame rate is not specified and input stream header doesn't contain valid values, then use default (30.0)
-        if (0 == (m_par.vpp.In.FrameRateExtN * m_par.vpp.In.FrameRateExtD))
+        if (0 == (m_par.vpp.In.FrameRateExtN | m_par.vpp.In.FrameRateExtD))
         {
             m_par.vpp.In.FrameRateExtN = 30;
             m_par.vpp.In.FrameRateExtD = 1;
@@ -531,6 +555,11 @@ mfxStatus FieldSplitter::GetFrame(mfxFrameSurface1* & pOutSrf)
 void FieldSplitter::Close()
 {
     return m_pTarget->Close();
+}
+
+mfxStatus FieldSplitter::ResetIOState()
+{
+    return m_pTarget->ResetIOState();
 }
 
 /**********************************************************************************/

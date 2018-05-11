@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -90,7 +90,9 @@ bool CheckGUID(VideoCORE * core, eMFXHWType type, mfxVideoParam const* param)
     {
         case MFX_PROFILE_HEVC_MAIN:
         case MFX_PROFILE_HEVC_MAINSP:
+#if defined(ANDROID)
         case MFX_PROFILE_HEVC_MAIN10:
+#endif
             return true;
     }
 

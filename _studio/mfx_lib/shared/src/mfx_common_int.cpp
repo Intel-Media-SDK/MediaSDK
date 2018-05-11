@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -81,6 +81,10 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     default:
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
+
+    if ((info->BitDepthLuma && (info->BitDepthLuma < 8)) ||
+        (info->BitDepthChroma && (info->BitDepthChroma < 8)))
+        return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if (info->BitDepthLuma > 8 || info->BitDepthChroma > 8)
     {
@@ -172,11 +176,11 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
     case MFX_CODEC_VP8:
         if (info->FourCC != MFX_FOURCC_NV12 && info->FourCC != MFX_FOURCC_YV12)
             return MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
+        break;
     case MFX_CODEC_VP9:
-        if (info->FourCC != MFX_FOURCC_NV12
-            && info->FourCC != MFX_FOURCC_P010
-            )
+        if (info->FourCC != MFX_FOURCC_NV12 &&
+            info->FourCC != MFX_FOURCC_AYUV &&
+            info->FourCC != MFX_FOURCC_P010)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
     case MFX_CODEC_AVC:
@@ -214,10 +218,15 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             info->ChromaFormat != MFX_CHROMAFORMAT_YUV400)
             return MFX_ERR_INVALID_VIDEO_PARAM;
     case MFX_CODEC_HEVC:
-    case MFX_CODEC_VP9:
         if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420
             && info->ChromaFormat != MFX_CHROMAFORMAT_YUV400
             )
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+        break;
+    case MFX_CODEC_VP9:
+        if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420 &&
+            info->ChromaFormat != MFX_CHROMAFORMAT_YUV400 &&
+            info->ChromaFormat != MFX_CHROMAFORMAT_YUV444)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
     default:
@@ -456,6 +465,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 {
     static const mfxU32 g_commonSupportedExtBuffers[]       = {
                                                                MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
+                                                               MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK,
     };
 
     static const mfxU32 g_decoderSupportedExtBuffersAVC[]   = {
@@ -750,6 +760,7 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
         case MFX_EXTBUFF_MVC_TARGET_VIEWS:
         case MFX_EXTBUFF_VIDEO_SIGNAL_INFO:
         case MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION:
+        case MFX_EXTBUFF_DEC_ADAPTIVE_PLAYBACK:
         case MFX_EXTBUFF_JPEG_QT:
         case MFX_EXTBUFF_JPEG_HUFFMAN:
         case MFX_EXTBUFF_HEVC_PARAM:

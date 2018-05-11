@@ -33,13 +33,12 @@ function( get_api_version mfx_version_major mfx_version_minor )
   set(${mfx_version_minor} ${minor} PARENT_SCOPE)
 endfunction()
 
-set( CMAKE_VERBOSE_MAKEFILE             TRUE )
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
 if( CMAKE_SYSTEM_NAME MATCHES Windows )
   add_definitions(-DMINGW_HAS_SECURE_API -DWIN32)
 
-  if(__ARCH MATCHES intel64)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     add_definitions(-DWIN64)
   endif( )
 else( )
@@ -70,7 +69,7 @@ else( )
   if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
     add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
 
-    if(__ARCH MATCHES intel64)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       add_definitions(-DLINUX64)
     endif( )
   endif( )
@@ -79,16 +78,16 @@ else( )
     add_definitions(-DOSX)
     add_definitions(-DOSX32)
 
-    if(__ARCH MATCHES intel64)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
       add_definitions(-DOSX64)
     endif( )
   endif( )
 
   set(no_warnings "-Wno-unknown-pragmas -Wno-unused")
+  set(warnings "-Wall -Wformat -Wformat-security")
 
-  set(CMAKE_CXX_FLAGS "-pipe -fPIC")
-  set(CMAKE_CXX_FLAGS_DEBUG   "-O0 -Wall ${no_warnings} -Wformat -Wformat-security -g -D_DEBUG")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O2 -D_FORTIFY_SOURCE=2 -fstack-protector -Wall ${no_warnings} -Wformat -Wformat-security  -DNDEBUG")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC -std=c++11 ${warnings} ${no_warnings}")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
   if (DEFINED CMAKE_FIND_ROOT_PATH)
     append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
@@ -160,9 +159,19 @@ set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG ${WARNING_FLAGS}" )
 make_static_library( dispatch_trace )
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
-set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME}.pc")
+set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}.pc")
+set( PKG_CONFIG_FNAME_SHARED "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}-shared.pc")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config-shared.pc.cmake" ${PKG_CONFIG_FNAME_SHARED} @ONLY)
 
 install( TARGETS mfx ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+install( TARGETS dispatch_shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
+install( FILES ${PKG_CONFIG_FNAME_SHARED} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN *.h )
+
+# For backwards compatibility, create a relative symbolic link without the "lib"
+# prefix to the .pc file.
+set( PKG_CONFIG_LFNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME}.pc" )
+add_custom_target(pc_link_target ALL COMMAND ${CMAKE_COMMAND} -E create_symlink lib${PROJECT_NAME}.pc ${PKG_CONFIG_LFNAME})
+install( FILES ${PKG_CONFIG_LFNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )

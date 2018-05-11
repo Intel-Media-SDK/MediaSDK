@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -36,6 +36,10 @@ struct D3DAllocatorParams;
 #define MOD_SMT_CREATE_PIPELINE
 #define MOD_SMT_PRINT_HELP
 #define MOD_SMT_PARSE_INPUT
+#endif
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
 #endif
 
 namespace TranscodingSample
@@ -121,7 +125,7 @@ namespace TranscodingSample
         //store a name of a Logfile
         msdk_tstring                                 DumpLogFileName;
         mfxU32                                       m_nTimeout;
-        bool                                         m_bRobust;
+        bool                                         bRobustFlag;
         bool                                         shouldUseGreedyFormula;
         std::vector<msdk_string>                     m_lines;
     private:

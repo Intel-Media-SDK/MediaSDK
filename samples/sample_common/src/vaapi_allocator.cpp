@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -31,6 +31,9 @@ enum {
     MFX_FOURCC_VP8_SEGMAP  = MFX_MAKEFOURCC('V','P','8','S'),
 };
 
+// TODO: remove this internal definition once it appears in VA API
+#define VA_FOURCC_R5G6B5 MFX_MAKEFOURCC('R','G','1','6')
+
 unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 {
     switch (fourcc)
@@ -43,12 +46,18 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_UYVY;
     case MFX_FOURCC_YV12:
         return VA_FOURCC_YV12;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+        return VA_FOURCC_R5G6B5;
+#endif
     case MFX_FOURCC_RGB4:
         return VA_FOURCC_ARGB;
     case MFX_FOURCC_P8:
         return VA_FOURCC_P208;
     case MFX_FOURCC_P010:
         return VA_FOURCC_P010;
+    case MFX_FOURCC_A2RGB10:
+        return VA_FOURCC_ARGB;  // rt format will be VA_RT_FORMAT_RGB32_10BPP
 
     default:
         assert(!"unsupported fourcc");
@@ -147,13 +156,16 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
     // to comply with them additional logic is required to support regular and VP8 hybrid allocation pathes
     mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
     va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
-    if (!va_fourcc || ((VA_FOURCC_NV12 != va_fourcc) &&
-                       (VA_FOURCC_YV12 != va_fourcc) &&
-                       (VA_FOURCC_YUY2 != va_fourcc) &&
-                       (VA_FOURCC_UYVY != va_fourcc) &&
-                       (VA_FOURCC_ARGB != va_fourcc) &&
-                       (VA_FOURCC_P208 != va_fourcc) &&
-                       (VA_FOURCC_P010 != va_fourcc)))
+    if (!va_fourcc || ((VA_FOURCC_NV12   != va_fourcc) &&
+                       (VA_FOURCC_YV12   != va_fourcc) &&
+                       (VA_FOURCC_YUY2   != va_fourcc) &&
+                       (VA_FOURCC_UYVY   != va_fourcc) &&
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+                       (VA_FOURCC_R5G6B5 != va_fourcc) &&
+#endif
+                       (VA_FOURCC_ARGB   != va_fourcc) &&
+                       (VA_FOURCC_P208   != va_fourcc) &&
+                       (VA_FOURCC_P010   != va_fourcc)))
     {
         msdk_printf(MSDK_STRING("VAAPI Allocator: invalid fourcc is provided (%#X), exitting\n"),va_fourcc);
         return MFX_ERR_MEMORY_ALLOC;
@@ -201,6 +213,10 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
             else if ((va_fourcc == VA_FOURCC_UYVY) || (va_fourcc == VA_FOURCC_YUY2))
             {
                 format = VA_RT_FORMAT_YUV422;
+            }
+            else if (fourcc == MFX_FOURCC_A2RGB10)
+            {
+                format = VA_RT_FORMAT_RGB32_10BPP;
             }
 
             va_res = m_libva->vaCreateSurfaces(m_dpy,
@@ -449,6 +465,18 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                 }
                 else mfx_res = MFX_ERR_LOCK_MEMORY;
                 break;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            case VA_FOURCC_R5G6B5:
+                if (mfx_fourcc == MFX_FOURCC_RGB565)
+                {
+                    ptr->Pitch = (mfxU16)vaapi_mid->m_image.pitches[0];
+                    ptr->B = pBuffer + vaapi_mid->m_image.offsets[0];
+                    ptr->G = ptr->B;
+                    ptr->R = ptr->B;
+                }
+                else mfx_res = MFX_ERR_LOCK_MEMORY;
+                break;
+#endif
             case VA_FOURCC_ARGB:
                 if (mfx_fourcc == MFX_FOURCC_RGB4)
                 {
@@ -457,6 +485,14 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                     ptr->G = ptr->B + 1;
                     ptr->R = ptr->B + 2;
                     ptr->A = ptr->B + 3;
+                }
+                else if (mfx_fourcc == MFX_FOURCC_A2RGB10)
+                {
+                    ptr->Pitch = (mfxU16)vaapi_mid->m_image.pitches[0];
+                    ptr->B = pBuffer + vaapi_mid->m_image.offsets[0];
+                    ptr->G = ptr->B;
+                    ptr->R = ptr->B;
+                    ptr->A = ptr->B;
                 }
                 else mfx_res = MFX_ERR_LOCK_MEMORY;
                 break;

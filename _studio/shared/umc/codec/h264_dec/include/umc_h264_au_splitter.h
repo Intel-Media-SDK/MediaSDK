@@ -177,7 +177,7 @@ protected:
 
     //Status DecodeHeaders(MediaDataEx *nalUnit);
 
-    std::auto_ptr<NALUnitSplitter> m_pNALSplitter;
+    std::unique_ptr<NALUnitSplitter> m_pNALSplitter;
 };
 
 } // namespace UMC

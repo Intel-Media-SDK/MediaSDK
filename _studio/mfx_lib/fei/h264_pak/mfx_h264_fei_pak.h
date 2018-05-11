@@ -91,7 +91,7 @@ private:
     VideoCORE*                                    m_core;
 
 
-    std::auto_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
+    std::unique_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
     std::vector<mfxU32>                           m_recFrameOrder; // !!! HACK !!!
     ENCODE_CAPS                                   m_caps;
 

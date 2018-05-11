@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 #define __MFXDEFS_H__
 
 #define MFX_VERSION_MAJOR 1
-#define MFX_VERSION_MINOR 25
+#define MFX_VERSION_MINOR 26
 
 // MFX_VERSION_NEXT is always +1 from last public release
 // may be enforced by MFX_VERSION_USE_LATEST define
@@ -32,9 +32,6 @@
 // MFX_VERSION - version of API that 'assumed' by build may be provided externally
 // if it omitted then latest stable API derived from Major.Minor is assumed
 
-#if !defined (OPENSOURCE) && !defined (MFX_VERSION_USE_LATEST)
-    #define MFX_VERSION_USE_LATEST
-#endif
 
 #if !defined(MFX_VERSION)
   #if defined(MFX_VERSION_USE_LATEST)

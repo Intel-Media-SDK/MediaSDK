@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,8 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)
     , m_timeWaitPeriod(vm_time_get_frequency() / 1000)
     , m_hwWakeUpThread()
+    , m_DedicatedThreadsToWakeUp(0)
+    , m_RegularThreadsToWakeUp(0)
 {
     memset(&m_param, 0, sizeof(m_param));
     m_refCounter = 1;
@@ -53,8 +55,6 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     memset(m_pTasks, 0, sizeof(m_pTasks));
     memset(m_numAssignedTasks, 0, sizeof(m_numAssignedTasks));
     m_pFailedTasks = NULL;
-    m_numHwTasks = 0;
-    m_numSwTasks = 0;
 
     m_pFreeTasks = NULL;
 
@@ -119,6 +119,8 @@ void mfxSchedulerCore::Close(void)
             // wait for particular thread
             vm_thread_wait(&(m_pThreadCtx[i].threadHandle));
             vm_thread_close(&(m_pThreadCtx[i].threadHandle));
+
+            vm_cond_destroy(&(m_pThreadCtx[i].taskAdded));
         }
 
         delete[] m_pThreadCtx;
@@ -221,54 +223,29 @@ void mfxSchedulerCore::SetThreadsAffinityToSockets(void)
     return;
 } // void mfxSchedulerCore::SetThreadsAffinityMask(void)
 
-void mfxSchedulerCore::WakeUpThreads(const mfxU32 curThreadNum,
-                                     const eWakeUpReason reason)
+void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_regular_threads)
 {
-    MFX_SCHEDULER_THREAD_CONTEXT* thctx;
-
     if (m_param.flags == MFX_SINGLE_THREAD)
         return;
 
-    // it is a common working situation, wake up only threads, which
-    // have something to do
-    if (false == m_bQuit)
-    {
-        mfxU32 i;
+    UMC::AutomaticMutex guard(m_guard);
+    MFX_SCHEDULER_THREAD_CONTEXT* thctx;
 
-        // wake up the dedicated thread
-        if ((curThreadNum) && (m_numHwTasks | m_numSwTasks))
-        {
-            if (NULL != (thctx = GetThreadCtx(0))) thctx->taskAdded.Set();
-        }
-
-        // wake up other threads
-        if ((MFX_SCHEDULER_NEW_TASK == reason) && (m_numSwTasks))
-        {
-            for (i = 1; i < m_param.numberOfThreads; i += 1)
-            {
-                if ((i != curThreadNum) && (NULL != (thctx = GetThreadCtx(i)))) {
-                    thctx->taskAdded.Set();
-                }
-            }
+    if (num_dedicated_threads) {
+        // we have single dedicated thread, thus no loop here
+        thctx = GetThreadCtx(0);
+        if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
+            vm_cond_signal(&thctx->taskAdded);
         }
     }
-    // the scheduler is going to be deleted, wake up all threads
-    else
-    {
-        mfxU32 i;
-
-        for (i = 0; i < m_param.numberOfThreads; i += 1)
-        {
-            if (NULL != (thctx = GetThreadCtx(i))) thctx->taskAdded.Set();
+    // if we have woken up dedicated thread, we exclude it from the loop below
+    for (mfxU32 i = (num_dedicated_threads)? 1: 0; (i < m_param.numberOfThreads) && num_regular_threads; ++i) {
+        thctx = GetThreadCtx(i);
+        if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
+            vm_cond_signal(&thctx->taskAdded);
+            --num_regular_threads;
         }
     }
-}
-
-void mfxSchedulerCore::WakeUpNumThreads(mfxU32 numThreadsToWakeUp,
-                                        const mfxU32 curThreadNum)
-{
-    numThreadsToWakeUp;
-    WakeUpThreads(curThreadNum);
 }
 
 void mfxSchedulerCore::Wait(const mfxU32 curThreadNum)
@@ -279,7 +256,7 @@ void mfxSchedulerCore::Wait(const mfxU32 curThreadNum)
         mfxU32 timeout = (curThreadNum)? MFX_THREAD_TIME_TO_WAIT: 1;
 
 
-        thctx->taskAdded.Wait(timeout);
+        vm_cond_timedwait(&thctx->taskAdded, &m_guard, timeout);
     }
 }
 

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -140,7 +140,13 @@ VAProfile g_VP8Profiles[] =
 
 VAProfile g_VP9Profiles[] =
 {
-    VAProfileVP9Profile0
+    VAProfileVP9Profile1, // chroma subsampling: 4:2:0, 4:2:2, 4:4:4
+    VAProfileVP9Profile0  // chroma subsampling: 4:2:0
+};
+
+VAProfile g_VP910BitsProfiles[] =
+{
+    VAProfileVP9Profile2
 };
 
 VAProfile g_JPEGProfiles[] =
@@ -174,6 +180,9 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         break;
     case UMC::VA_VP9:
         if (profile < UMC_ARRAY_SIZE(g_VP9Profiles)) va_profile = g_VP9Profiles[profile];
+        break;
+    case UMC::VA_VP9 | UMC::VA_PROFILE_10:
+        if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
         break;
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
@@ -310,10 +319,10 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_H265)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VP8)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VP9)
-#ifndef ANDROID
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_MPEG2)
-                                  && ((m_Profile & VA_CODEC) != UMC::VA_JPEG)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VC1)
+                                  && ((m_Profile & VA_CODEC) != UMC::VA_MPEG2)
+#ifndef ANDROID
+                                  && ((m_Profile & VA_CODEC) != UMC::VA_JPEG)
 #endif
                                     );
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -80,6 +80,46 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 break;
             }
 
+#ifdef MFX_ENABLE_MCTF
+            case (mfxU32)MFX_EXTBUFF_VPP_MCTF:
+            {
+                mfxU16 MctfTemporalMode = CMC::DEFAULT_REFS;
+#ifdef MFX_ENABLE_MCTF_EXT
+                mfxExtVppMctf* mctf_ctrl = reinterpret_cast<mfxExtVppMctf *>(GetExtendedBuffer(pParam->ExtParam, pParam->NumExtParam, MFX_EXTBUFF_VPP_MCTF));
+                MctfTemporalMode = mctf_ctrl ? mctf_ctrl->TemporalMode : CMC::DEFAULT_REFS;
+                // should process UNKNOWN mode here or its an error?
+                if (MCTF_TEMPORAL_MODE_UNKNOWN == MctfTemporalMode)
+                    MctfTemporalMode = CMC::DEFAULT_REFS;
+#endif
+                switch (MctfTemporalMode)
+                {
+                case MCTF_TEMPORAL_MODE_SPATIAL:
+                    // this is for spatial filtering mode only; 1 input is enough
+                    inputFramesCount[filterIndex] = 1;
+                    outputFramesCount[filterIndex] = 1;
+                    break;
+                case MCTF_TEMPORAL_MODE_1REF:
+                    // preasumably, this is for filtering mode with 1 backward refernce; 1 input is enough
+                    inputFramesCount[filterIndex] = 1;
+                    outputFramesCount[filterIndex] = 1;
+                    break;
+                case MCTF_TEMPORAL_MODE_2REF:
+                    // this is bi-directional MCTF with 2 referencies; thus 2 inputs are needed
+                    inputFramesCount[filterIndex] = 2;
+                    outputFramesCount[filterIndex] = 2;
+                    break;
+                case MCTF_TEMPORAL_MODE_4REF:
+                    // this is bi-directional MCTF with 4 references(its not a mistake! thus 3 inputs are needed
+                    inputFramesCount[filterIndex] = 3;
+                    outputFramesCount[filterIndex] = 3;
+                    break;
+                default:
+                    return MFX_ERR_INVALID_VIDEO_PARAM;
+
+                }
+                break;
+            }
+#endif
             case (mfxU32)MFX_EXTBUFF_VPP_RESIZE:
             {
                 inputFramesCount[filterIndex]  = MFXVideoVPPResize::GetInFramesCountExt();
@@ -324,6 +364,12 @@ mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint
     {
         sts = MFXVideoVPPDenoise::Query( pHint );
     }
+#ifdef MFX_ENABLE_MCTF
+    else if (MFX_EXTBUFF_VPP_MCTF == filterName)
+    {
+        sts = CMC::CheckAndFixParams((mfxExtVppMctf*)pHint);
+    }
+#endif
     else if( MFX_EXTBUFF_VPP_DETAIL == filterName )
     {
         sts = MFXVideoVPPDetailEnhancement::Query( pHint );

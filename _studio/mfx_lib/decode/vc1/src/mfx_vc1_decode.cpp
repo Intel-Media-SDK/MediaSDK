@@ -79,7 +79,7 @@ void MFXVideoDECODEVC1::FillVideoSignalInfo(mfxExtVideoSignalInfo *pVideoSignal)
 MFXVideoDECODEVC1::MFXVideoDECODEVC1(VideoCORE *core, mfxStatus* mfxSts):VideoDECODE(),
 m_VideoParams(NULL),
 m_pInternMediaDataIn(NULL),
-m_pVC1VideoDecoder(NULL),
+m_pVC1VideoDecoder(nullptr),
 m_frame_constructor(NULL),
 m_RBufID((UMC::MemID)-1),
 m_BufSize(1024*1024),
@@ -287,7 +287,7 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
 
     ConvertMfxToCodecParams(&m_par);
     m_VideoParams->lpMemoryAllocator = &m_MemoryAllocator;
-    if (par->mfx.FrameInfo.Width*par->mfx.FrameInfo.Height)
+    if (par->mfx.FrameInfo.Width && par->mfx.FrameInfo.Height)
     {
         m_BufSize = par->mfx.FrameInfo.Width*par->mfx.FrameInfo.Height*2;
         // Set surface number for decoding. HW requires
@@ -757,7 +757,7 @@ mfxStatus MFXVideoDECODEVC1::SelfConstructFrame(mfxBitstream *bs)
     mfxStatus MFXSts = MFX_ERR_NONE;
     Status IntUMCStatus = UMC_OK;
 
-    if (!(m_par.mfx.FrameInfo.Width*m_par.mfx.FrameInfo.Height))
+    if (0 == (m_par.mfx.FrameInfo.Width*m_par.mfx.FrameInfo.Height))
     {
         MFXSts = MFXVC1DecCommon::ParseSeqHeader(bs, &m_par, 0, 0);
         MFX_CHECK_STS(MFXSts);
@@ -994,7 +994,7 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
              (IntUMCStatus == UMC::UMC_ERR_NOT_ENOUGH_DATA))
     {
         // Updated parameters with weq header data
-        if (! (m_par.mfx.FrameInfo.FrameRateExtD * m_par.mfx.FrameInfo.FrameRateExtN))
+        if (0 == (m_par.mfx.FrameInfo.FrameRateExtD * m_par.mfx.FrameInfo.FrameRateExtN))
         {
             // new frame rate parameters
             mfxU32 frCode;
