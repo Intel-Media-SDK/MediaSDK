@@ -6018,17 +6018,18 @@ mfxStatus ConfigureExecuteParams(
         executeParams.bSceneDetectionEnable = false;
     }
 
-    if (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo)))
+#if defined(WIN64) || defined (WIN32)
+    if ( (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo))) &&
+         executeParams.IsDoNothing() )
     {
-        if (executeParams.IsDoNothing())
-            config.m_bPassThroughEnable = true;
-        else
-            config.m_bPassThroughEnable = false;
+        config.m_bPassThroughEnable = true;
     }
     else
     {
-        config.m_bPassThroughEnable = false;
+        config.m_bPassThroughEnable = false;// after Reset() parameters may be changed,
+                                            // flag should be disabled
     }
+#endif//m_bPassThroughEnable == false for another OS
 
     if (inDNRatio == outDNRatio && !executeParams.bVarianceEnable && !executeParams.bComposite &&
             !(config.m_extConfig.mode == IS_REFERENCES) )
