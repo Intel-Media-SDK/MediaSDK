@@ -307,7 +307,7 @@ namespace MfxHwVideoProcessing
     {
         bool   m_bMode30i60pEnable;
         bool   m_bWeave;
-        bool   m_bPassThroughEnable;
+        bool   m_bPassThroughEnable;// if this flag is true input surface will be copied to output via DoFastCopyWrapper() without VPP
         bool   m_bRefFrameEnable;
         bool   m_multiBlt;// this flag defines mode of composition for D3D11: 1 - run few hw calls per frame (Blt), 0 - run one hw call (Blt)
 
