@@ -43,6 +43,7 @@ MFEVAAPIEncoder::MFEVAAPIEncoder() :
     , m_framesToCombine(0)
     , m_maxFramesToCombine(0)
     , m_framesCollected(0)
+    , m_minTimeToWait(0)
 {
     vm_cond_set_invalid(&m_mfe_wait);
     vm_mutex_set_invalid(&m_mfe_guard);
@@ -117,8 +118,44 @@ mfxStatus MFEVAAPIEncoder::Create(mfxExtMultiFrameParam  const & par, VADisplay 
         return MFX_ERR_DEVICE_FAILED;
 
 }
+mfxStatus MFEVAAPIEncoder::reconfigureRestorationCounts(VAContextID newCtx)
+{
+    //used in Join function which already covered by mutex
+    //accurate calculation should involve float calculation for different framerates
+    //and base divisor for all the framerates in pipeline, so far simple cases are using
+    //straight forward framerates with integer calculation enough to cover engines load and AVG latency for SKL.
+    std::map<VAContextID, StreamsIter_t>::iterator iter = m_streamsMap.find(newCtx);
+    if(iter == m_streamsMap.end())
+    {
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
+    if(m_streamsMap.size()==1)
+    {
+        //if only one stream - restore every submission
+        iter->second->restoreCount = iter->second->restoreCountBase = 1;
+        m_minTimeToWait = iter->second->timeout;
 
-mfxStatus MFEVAAPIEncoder::Join(VAContextID ctx, bool doubleField)
+        return MFX_ERR_NONE;
+    }
+    if(iter->second->timeout >= m_minTimeToWait)
+    {
+        //can be problematic for cases like 24/30, but more like an exception
+        iter->second->restoreCount = iter->second->restoreCountBase = (mfxU32)(iter->second->timeout/m_minTimeToWait);
+
+        return MFX_ERR_NONE;
+    }
+    m_minTimeToWait = iter->second->timeout;
+    iter->second->restoreCount = iter->second->restoreCountBase = 1;
+    for(std::map<VAContextID, StreamsIter_t>::iterator it = m_streamsMap.begin(); it != m_streamsMap.end();it++)
+    {
+        if(iter != it)
+        {
+            it->second->restoreCount = it->second->restoreCountBase = (mfxU32)it->second->timeout/m_minTimeToWait;
+        }
+    }
+    return MFX_ERR_NONE;
+}
+mfxStatus MFEVAAPIEncoder::Join(VAContextID ctx, vm_tick timeout)
 {
     vm_mutex_lock(&m_mfe_guard);//need to protect in case there are streams added/removed in runtime.
 
@@ -152,12 +189,15 @@ mfxStatus MFEVAAPIEncoder::Join(VAContextID ctx, bool doubleField)
     {
         StreamsIter_t iter;
         // append the pool with a new item;
-        m_streams_pool.push_back(m_stream_ids_t(ctx, MFX_ERR_NONE, doubleField));
+        m_streams_pool.push_back(m_stream_ids_t(ctx, MFX_ERR_NONE, timeout));
         iter = m_streams_pool.end();
         m_streamsMap.insert(std::pair<VAContextID, StreamsIter_t>(ctx,--iter));
         // to deal with the situation when a number of sessions < requested
         if (m_framesToCombine < m_maxFramesToCombine)
             ++m_framesToCombine;
+        //new stream can come with new framerate, possibly need to change existing streams
+        //restoration counts to align with new stream
+        sts = reconfigureRestorationCounts(ctx);
     }
 
     vm_mutex_unlock(&m_mfe_guard);
@@ -211,16 +251,28 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
     vm_mutex_lock(&m_mfe_guard);
     //stream in pool corresponding to particular context;
     StreamsIter_t cur_stream;
+    vm_tick timeout = timeToWait; 
     //we can wait for less frames than expected by pipeline due to avilability.
     mfxU32 framesToSubmit = m_framesToCombine;
     if (m_streams_pool.empty())
     {
         //if current stream came to empty pool - others already submitted or in process of submission
-        //start pool from the beggining
-        while(!m_submitted_pool.empty())
+        //return streams to pool which are ready.
+        for(std::list<m_stream_ids_t>::iterator it = m_submitted_pool.begin(); it != m_submitted_pool.end(); it++)
         {
-            m_submitted_pool.begin()->reset();
-            m_streams_pool.splice(m_streams_pool.end(), m_submitted_pool,m_submitted_pool.begin());
+            it->updateRestoreCount();
+        }
+        std::list<m_stream_ids_t>::iterator it = m_submitted_pool.begin();
+        while(it != m_submitted_pool.end())
+        {
+            for(it = m_submitted_pool.begin(); it != m_submitted_pool.end(); it++)
+            {
+                if(it->getRestoreCount() == 0 || it->ctx == context)
+                {
+                    m_streams_pool.splice(m_streams_pool.end(), m_submitted_pool, it);
+                    break;
+                }
+            }
         }
     }
     if(m_streams_pool.empty())
@@ -255,6 +307,7 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
         m_toSubmit.splice(m_toSubmit.end(), m_submitted_pool, cur_stream);
         cur_stream->reset();//cleanup stream state
     }
+
     if (skipFrame)
     {
         //if frame is skipped - threat it as submitted without real submission
@@ -281,9 +334,9 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
     }
     vm_tick start_tick = vm_time_get_tick();
     vm_tick spent_ticks = 0;
-
+    timeout = timeout? timeout: cur_stream->timeout;
     while (m_framesCollected < framesToSubmit &&
-           !cur_stream->isFieldSubmitted() &&
+           !cur_stream->isFrameSubmitted() &&
            timeToWait > spent_ticks)
     {
         vm_status res = vm_cond_timed_uwait(&m_mfe_wait, &m_mfe_guard,
@@ -300,12 +353,12 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
     }
     //for interlace we will return stream back to stream pool when first field submitted
     //to submit next one imediately after than, and don't count it as submitted
-    if (!cur_stream->isFieldSubmitted())
+    if (!cur_stream->isFrameSubmitted())
     {
         // Form a linear array of contexts for submission
         for (StreamsIter_t it = m_toSubmit.begin(); it != m_toSubmit.end(); ++it)
         {
-            if (!it->isFieldSubmitted())
+            if (!it->isFrameSubmitted())
             {
                 m_contexts.push_back(it->ctx);
                 m_streams.push_back(it);
@@ -326,33 +379,27 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
         {
             VAStatus vaSts = vaMFSubmit(m_vaDisplay, m_mfe_context,
                                          &m_contexts[0], m_contexts.size());
-
+            
             mfxStatus tmp_res = VA_STATUS_SUCCESS == vaSts ? MFX_ERR_NONE : MFX_ERR_DEVICE_FAILED;
             for (std::vector<StreamsIter_t>::iterator it = m_streams.begin();
                  it != m_streams.end(); ++it)
             {
-                (*it)->fieldSubmitted();
+                (*it)->frameSubmitted();
                 (*it)->sts = tmp_res;
             }
             m_framesCollected -= m_contexts.size();
         }
-        // Broadcast is done before unlock for this case to simplify the code avoiding extra ifs
         vm_cond_broadcast(&m_mfe_wait);
         m_contexts.clear();
         m_streams.clear();
     }
 
     // This frame can be already submitted or errored
-    // we have to return strm to the pool, release mutex and exit
+    // put it into submitted pool, release mutex and exit
     mfxStatus res = cur_stream->sts;
     if(cur_stream->isFrameSubmitted())
     {
         m_submitted_pool.splice(m_submitted_pool.end(), m_toSubmit, cur_stream);
-    }
-    else
-    {
-        cur_stream->resetField();
-        m_streams_pool.splice(m_streams_pool.end(), m_toSubmit, cur_stream);
     }
     vm_mutex_unlock(&m_mfe_guard);
     return res;

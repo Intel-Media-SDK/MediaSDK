@@ -37,41 +37,42 @@ class MFEVAAPIEncoder
     {
         VAContextID ctx;
         mfxStatus   sts;
-        bool interlace;
-        mfxU8 fieldNum;
+        vm_tick timeout;
+        mfxU32 restoreCount;
+        mfxU32 restoreCountBase;
         bool isSubmitted;
         m_stream_ids_t( VAContextID _ctx,
                         mfxStatus _sts,
-                        bool fields):
+                        vm_tick defaultTimeout):
         ctx(_ctx),
         sts(_sts),
-        interlace(fields),
-        fieldNum(0),
+        timeout(defaultTimeout),
+        restoreCount(0),
+        restoreCountBase(0),
         isSubmitted(false)
         {
         };
         inline void reset()
         {
             sts = MFX_ERR_NONE;
-            fieldNum = 0;
+            restoreCount = restoreCountBase;
             isSubmitted = false;
         };
-        inline void resetField()
+        inline mfxU32 getRestoreCount()
         {
-            isSubmitted = false;
+            return restoreCount;
         };
-        inline void fieldSubmitted()
+        inline void updateRestoreCount()
         {
-            fieldNum++;
+            restoreCount--;
+        };
+        inline void frameSubmitted()
+        {
             isSubmitted = true;
-        };
-        inline bool isFieldSubmitted()
-        {
-            return (fieldNum!=0 && isSubmitted);
         };
         inline bool isFrameSubmitted()
         {
-            return isSubmitted && ((interlace && fieldNum == 2) || (fieldNum==1 && !interlace));
+            return isSubmitted;
         };
     };
 
@@ -83,7 +84,7 @@ public:
     mfxStatus Create(mfxExtMultiFrameParam const & par, VADisplay vaDisplay);
 
 
-    mfxStatus Join(VAContextID ctx, bool doubleField);
+    mfxStatus Join(VAContextID ctx, vm_tick timeout);
     mfxStatus Disjoin(VAContextID ctx);
     mfxStatus Destroy();
     mfxStatus Submit(VAContextID context, vm_tick timeToWait, bool skipFrame);//time passed in vm_tick, so milliseconds to be multiplied by vm_frequency/1000
@@ -92,6 +93,8 @@ public:
     virtual void Release();
 
 private:
+
+    mfxStatus   reconfigureRestorationCounts(VAContextID newCtx);
     mfxU32      m_refCounter;
 
     vm_cond     m_mfe_wait;
@@ -100,10 +103,10 @@ private:
     VADisplay      m_vaDisplay;
     VAMFContextID  m_mfe_context;
 
-    // a pool (heap) of objects
+    // a pool of stream objects available for submission
     std::list<m_stream_ids_t> m_streams_pool;
 
-    // a pool (heap) of objects
+    // a pool of stream objects already submitted
     std::list<m_stream_ids_t> m_submitted_pool;
 
     // a list of objects filled with context info ready to submit
@@ -131,7 +134,8 @@ private:
     std::vector<StreamsIter_t> m_streams;
     // store iterators to particular items
     std::map<VAContextID, StreamsIter_t> m_streamsMap;
-
+    //minimal timeout of all streams
+    vm_tick m_minTimeToWait;
     // currently up-to-to 3 frames worth combining
     static const mfxU32 MAX_FRAMES_TO_COMBINE = 3;
 };
