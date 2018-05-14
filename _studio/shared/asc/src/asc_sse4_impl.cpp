@@ -380,8 +380,6 @@ void ImageDiffHistogram_SSE4(pmfxU8 pSrc, pmfxU8 pRef, mfxU32 pitch, mfxU32 widt
 }
 
 mfxStatus Calc_RaCa_pic_SSE4(mfxU8 *pSrc, mfxI32 width, mfxI32 height, mfxI32 pitch, mfxF64 &RsCs) {
-    const __m128i
-        zero = _mm_setzero_si128();
     mfxU32
         count = 0;
     mfxU8*
