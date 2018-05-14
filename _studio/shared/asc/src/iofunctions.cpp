@@ -56,7 +56,14 @@ void imageInit(ASCYUV *buffer) {
 }
 
 void nullifier(ASCimageData *Buffer) {
-    memset(Buffer, 0, sizeof(ASCimageData));
+    imageInit(&Buffer->Image);
+    memset(&Buffer->pInteger, 0, sizeof(ASCMVector));
+    memset(&Buffer->Cs, 0, sizeof(Buffer->Cs));
+    memset(&Buffer->Rs, 0, sizeof(Buffer->Rs));
+    memset(&Buffer->RsCs, 0, sizeof(Buffer->RsCs));
+    memset(&Buffer->SAD, 0, sizeof(Buffer->SAD));
+    Buffer->CsVal = 0;
+    Buffer->RsVal = 0;
 }
 
 void ImDetails_Init(ASCImDetails *Rdata) {
