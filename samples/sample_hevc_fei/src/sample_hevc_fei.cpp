@@ -114,9 +114,11 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-qrep] - quality predictor MV repacking before encode\n"));
     msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,5] (5 is default).\n"));
     msdk_printf(MSDK_STRING("                           If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
-    msdk_printf(MSDK_STRING("   [-RefWidth width] - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
-    msdk_printf(MSDK_STRING("                       one direction and 32x32 for bidirectional search\n"));
-    msdk_printf(MSDK_STRING("   [-RefHeight height] - height of search region (should be multiple of 4), maximum allowed is 32\n"));
+    msdk_printf(MSDK_STRING("   [-RefWidth width]   - width of search region (should be multiple of 4),\n"));
+    msdk_printf(MSDK_STRING("                         valid range is [20, 64] for one direction and [20, 32] for bidirectional search\n"));
+    msdk_printf(MSDK_STRING("   [-RefHeight height] - height of search region (should be multiple of 4),\n"));
+    msdk_printf(MSDK_STRING("                         valid range is [20, 64] for one direction and [20, 32] for bidirectional search\n"));
+    msdk_printf(MSDK_STRING("   NOTE: Maximum allowed search area size is 2048 for one directional and 1024 for bidirectional search.\n"));
     msdk_printf(MSDK_STRING("   [-LenSP length] - defines number of search units in search path. In range [1,63] (default is 57)\n"));
     msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full).\n"));
     msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
@@ -630,6 +632,8 @@ mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
     }
 
     if (params.encodeCtrl.RefWidth % 4 != 0 || params.encodeCtrl.RefHeight % 4 != 0
+        // check the minimum possible limit
+        || params.encodeCtrl.RefHeight < 20 || params.encodeCtrl.RefWidth < 20
         // check only the highest possible limit regardless of gop structure
         || params.encodeCtrl.RefHeight > 64 || params.encodeCtrl.RefWidth > 64
         || params.encodeCtrl.RefWidth * params.encodeCtrl.RefHeight > 2048)
