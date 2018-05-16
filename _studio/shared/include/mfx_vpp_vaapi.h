@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -45,7 +45,7 @@ namespace MfxHwVideoProcessing
     public:
 
         VAAPIVideoProcessing();
-        
+
         virtual ~VAAPIVideoProcessing();
 
         virtual mfxStatus CreateDevice(VideoCORE * core, mfxVideoParam *pParams, bool isTemporal = false);
@@ -54,8 +54,8 @@ namespace MfxHwVideoProcessing
 
         virtual mfxStatus DestroyDevice( void );
 
-        virtual mfxStatus Register(mfxHDLPair* pSurfaces, 
-                                   mfxU32 num, 
+        virtual mfxStatus Register(mfxHDLPair* pSurfaces,
+                                   mfxU32 num,
                                    BOOL bRegister);
 
         virtual mfxStatus QueryTaskStatus(mfxU32 taskIndex);
@@ -64,7 +64,7 @@ namespace MfxHwVideoProcessing
 
         virtual mfxStatus QueryVariance(
             mfxU32 frameIndex,
-            std::vector<mfxU32> &variance) { return MFX_ERR_UNSUPPORTED; }
+            std::vector<mfxU32> & /*variance*/) { return MFX_ERR_UNSUPPORTED; }
 
         virtual BOOL IsRunning() { return m_bRunning; }
 
@@ -99,7 +99,7 @@ namespace MfxHwVideoProcessing
             mfxU16 y;
             _compositionStreamElement()
                 : index(0)
-                , active(false) 
+                , active(false)
                 , x(0)
                 , y(0)
             {};
@@ -149,7 +149,7 @@ namespace MfxHwVideoProcessing
 
         std::set<mfxU32> m_cachedReadyTaskIndex;
 
-        typedef struct 
+        typedef struct
         {
             VASurfaceID surface;
             mfxU32 number;
@@ -157,7 +157,7 @@ namespace MfxHwVideoProcessing
 
         VASurfaceID* m_primarySurface4Composition ;
 
-        std::vector<ExtVASurface> m_feedbackCache; 
+        std::vector<ExtVASurface> m_feedbackCache;
 
         UMC::Mutex m_guard;
 

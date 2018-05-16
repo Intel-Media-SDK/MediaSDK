@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,7 @@ static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar);
 inline
 bool CheckHardwareSupport(VideoCORE *p_core, mfxVideoParam *p_video_param)
 {
+    (void)p_core;
 
 #ifdef ANDROID
     if (p_video_param->mfx.FrameInfo.Width > 4096 || p_video_param->mfx.FrameInfo.Height > 4096)
@@ -707,7 +708,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         if (m_vPar.mfx.FrameInfo.Width > m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height > m_vInitPar.mfx.FrameInfo.Height)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
-        if (KEY_FRAME == m_frameInfo.frameType && 
+        if (KEY_FRAME == m_frameInfo.frameType &&
             (m_vPar.mfx.FrameInfo.Width != m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height != m_vInitPar.mfx.FrameInfo.Height) &&
             1 != m_index)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
@@ -921,7 +922,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
                 try
                 {
                     GetBitDepthAndColorSpace(&bsReader, &info);
-        
+
                     info.refreshFrameFlags = (mfxU8)bsReader.GetBits(NUM_REF_FRAMES);
                     GetFrameSize(&bsReader, &info);
                 }
@@ -931,7 +932,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
                     if (status != UMC::UMC_OK)
                         return MFX_ERR_UNDEFINED_BEHAVIOR;
                 }
-            
+
             }
             else
             {
@@ -1217,7 +1218,7 @@ mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const
     {
         m_Packer->BeginFrame();
         m_Packer->PackAU(&vp9bs, &info);
-        m_Packer->EndFrame(); 
+        m_Packer->EndFrame();
     }
     catch (vp9_exception const&)
     {
