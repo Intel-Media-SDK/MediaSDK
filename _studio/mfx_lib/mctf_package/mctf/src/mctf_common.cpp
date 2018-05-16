@@ -65,7 +65,7 @@ void CMC::QueryDefaultParams(mfxExtVppMctf* pBuffer)
     if (!pBuffer) return;
     IntMctfParams Mctfparam;
     QueryDefaultParams(&Mctfparam);
-	pBuffer->FilterStrength = Mctfparam.FilterStrength;
+    pBuffer->FilterStrength = Mctfparam.FilterStrength;
 #ifdef MFX_ENABLE_MCTF_EXT
     pBuffer->BitsPerPixelx100k = Mctfparam.BitsPerPixelx100k;
     pBuffer->Overlap = Mctfparam.Overlap;
@@ -242,6 +242,7 @@ void CMC::TimeStart() {
 }
 
 void CMC::TimeStart(int index) {
+    (void)index;
 }
 
 void CMC::TimeStop() {
@@ -258,6 +259,11 @@ mfxF64 CMC::CatchTime(const char* message, int print)
 }
 
 mfxF64 CMC::CatchTime(int indexInit, int indexEnd, const char* message, int print) {
+    (void)indexInit;
+    (void)indexEnd;
+    (void)message;
+    (void)print;
+
     return 0.0;
 }
 
@@ -1868,7 +1874,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
     char forwardRefDist, char backwardRefDist,
     mfxU8 mcSufIndex) {
 #if !_MRE_
-	idxMRE1, idxMRE2;
+    idxMRE1, idxMRE2;
 #endif
     time = 0;
 
@@ -1909,7 +1915,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
         (this->*(pMCTF_NOA_func))();
 
     //res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, 0, tsHeight, blSize, forwardRefDist, backwardRefDist);
-	res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, DIVUP(p_ctrl->CropX, blsize), tsHeight, blSize, forwardRefDist, backwardRefDist);
+    res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, DIVUP(p_ctrl->CropX, blsize), tsHeight, blSize, forwardRefDist, backwardRefDist);
 
     MCTF_CHECK_CM_ERR(res, res);
     if (mcSufIndex == 0) {

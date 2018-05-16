@@ -153,7 +153,9 @@ namespace MfxHwH264EncodeHW
 
     IDirect3DDeviceManager9 * GetDeviceManager(VideoCORE * core)
     {
-    throw std::logic_error("GetDeviceManager not implemented on Linux for Look Ahead");
+        (void)core;
+
+        throw std::logic_error("GetDeviceManager not implemented on Linux for Look Ahead");
     }
 
     VmeData * FindUnusedVmeData(std::vector<VmeData> & vmeData)

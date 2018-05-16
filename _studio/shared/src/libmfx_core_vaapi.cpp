@@ -413,6 +413,9 @@ VAAPIVideoCORE::TraceFrames(
     mfxFrameAllocResponse* response,
     mfxStatus sts)
 {
+    (void)request;
+    (void)response;
+
     return sts;
 }
 
@@ -678,6 +681,8 @@ VAAPIVideoCORE::CreateVA(
 
 mfxStatus VAAPIVideoCORE::CreateVideoProcessing(mfxVideoParam * param)
 {
+    (void)param;
+
     mfxStatus sts = MFX_ERR_NONE;
 #if defined (MFX_ENABLE_VPP)
     if (!m_vpp_hw_resmng.GetDevice()){
@@ -1206,6 +1211,8 @@ void VAAPIVideoCORE::ReleaseHandle()
 mfxStatus VAAPIVideoCORE::IsGuidSupported(const GUID /*guid*/,
                                          mfxVideoParam *par, bool isEncoder)
 {
+    (void)isEncoder;
+
     if (!par)
         return MFX_WRN_PARTIAL_ACCELERATION;
 
