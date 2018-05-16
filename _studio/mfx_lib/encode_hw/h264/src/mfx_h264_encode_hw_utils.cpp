@@ -1626,12 +1626,13 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     y = CLIPVAL(minY, maxY, y / x * NORM_EST_RATE);
     m_rateCoeffHistory[qp].Add(NORM_EST_RATE, y);
     mfxF64 ratio = m_rateCoeffHistory[qp].GetCoeff() / oldCoeff;
+    mfxI32 signed_qp = qp;
     for (mfxI32 i = -m_qpUpdateRange; i <= m_qpUpdateRange; i++)
-        if (i != 0 && qp + i >= 0 && qp + i < 52)
+        if (i != 0 && signed_qp + i >= 0 && signed_qp + i < 52)
         {
             mfxF64 r = ((ratio - 1.0) * (1.0 - abs(i)/(m_qpUpdateRange + 1)) + 1.0);
-            m_rateCoeffHistory[qp + i].Add(NORM_EST_RATE,
-                NORM_EST_RATE * m_rateCoeffHistory[qp + i].GetCoeff() * r);
+            m_rateCoeffHistory[signed_qp + i].Add(NORM_EST_RATE,
+                NORM_EST_RATE * m_rateCoeffHistory[signed_qp + i].GetCoeff() * r);
         }
 
     brcprintf("rrate=%6.3f newCoeff=%5.3f\n", realRatePerMb, m_rateCoeffHistory[qp].GetCoeff());
@@ -1703,12 +1704,13 @@ mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*use
         //}
 
         mfxF64 ratio = m_rateCoeffHistory[qp].GetCoeff() / oldCoeff;
+        mfxI32 signed_qp = qp;
         for (mfxI32 i = -m_qpUpdateRange; i <= m_qpUpdateRange; i++)
-            if (i != 0 && qp + i >= 0 && qp + i < 52)
+            if (i != 0 && signed_qp + i >= 0 && signed_qp + i < 52)
             {
                 mfxF64 r = ((ratio - 1.0) * (1.0 - abs(i)/(m_qpUpdateRange + 1)) + 1.0);
-                m_rateCoeffHistory[qp + i].Add(NORM_EST_RATE,
-                    NORM_EST_RATE * m_rateCoeffHistory[qp + i].GetCoeff() * r);
+                m_rateCoeffHistory[signed_qp + i].Add(NORM_EST_RATE,
+                    NORM_EST_RATE * m_rateCoeffHistory[signed_qp + i].GetCoeff() * r);
             }
 
         brcprintf("rrate=%6.3f newCoeff=%5.3f\n", realRatePerMb, m_rateCoeffHistory[qp].GetCoeff());
