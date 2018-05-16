@@ -1542,7 +1542,7 @@ void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> con
         if (vmeData[i]->encOrder < firstNewFrame || vmeData[i]->encOrder >= lastNewFrame)
             continue;
 
-        LaFrameData newData = { 0 };
+        LaFrameData newData = {};
         newData.encOrder  = vmeData[i]->encOrder;
         newData.poc       = vmeData[i]->poc;
         newData.interCost = vmeData[i]->interCost;

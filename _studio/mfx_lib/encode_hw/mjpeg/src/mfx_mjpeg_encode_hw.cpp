@@ -896,7 +896,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
 
     mfxExtJPEGQuantTables*   jpegQT = NULL;
     mfxExtJPEGHuffmanTables* jpegHT = NULL;
-    JpegEncCaps              hwCaps = {0};
+    JpegEncCaps              hwCaps = {};
 
     mfxFrameSurface1 *surface = GetOriginalSurface(inSurface);
     // input surface is opaque surface

@@ -256,13 +256,13 @@ typedef struct {
     { 0x3E9B, MFX_HW_CFL},
 
     /* CNL */
-    { 0x5A51, MFX_HW_CNL }, 
-    { 0x5A52, MFX_HW_CNL }, 
-    { 0x5A5A, MFX_HW_CNL }, 
-    { 0x5A42, MFX_HW_CNL }, 
-    { 0x5A4A, MFX_HW_CNL }, 
-    { 0x5A59, MFX_HW_CNL }, 
-    { 0x5A41, MFX_HW_CNL }, 
+    { 0x5A51, MFX_HW_CNL },
+    { 0x5A52, MFX_HW_CNL },
+    { 0x5A5A, MFX_HW_CNL },
+    { 0x5A42, MFX_HW_CNL },
+    { 0x5A4A, MFX_HW_CNL },
+    { 0x5A59, MFX_HW_CNL },
+    { 0x5A41, MFX_HW_CNL },
     { 0x5A49, MFX_HW_CNL },
 
 };
@@ -274,7 +274,9 @@ typedef struct {
 using namespace std;
 using namespace UMC;
 
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4311) // in HWVideoCORE::TraceFrames(): pointer truncation from 'void*' to 'int'
+#endif
 
 static
 eMFXHWType getPlatformType (VADisplay pVaDisplay)
