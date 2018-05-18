@@ -1306,7 +1306,6 @@ int main(int argc, char *argv[])
     mfxStatus sts = MFX_ERR_NONE; // return value check
     msdk_char parFileName[MSDK_MAX_FILENAME_LEN];
     std::unique_ptr<msdk_char[]> parBuf;
-    FILE *parFile = NULL;
     if (1 == argc)
     {
         PrintHelp(argv[0], MSDK_STRING("ERROR: Not enough input parameters"));
@@ -1315,6 +1314,8 @@ int main(int argc, char *argv[])
     std::vector<std::unique_ptr<AppConfig> > Configs;   // input parameters from command line
     if (0 == msdk_strncmp(MSDK_STRING("-par_file"), argv[1], msdk_strlen(MSDK_STRING("-par_file"))))
     {
+        FILE *parFile = NULL;
+
         if(argc < 3)
         {
             PrintHelp(argv[0], MSDK_STRING("ERROR: Parfile is missed"));
@@ -1347,6 +1348,7 @@ int main(int argc, char *argv[])
         // allocate buffer for parsing
         parBuf.reset(new msdk_char[fileSize]);
         sts = ParseParFile(parFile, Configs, parBuf.get(), fileSize);
+        fclose(parFile);
         if(sts != MFX_ERR_NONE)
         {
             msdk_printf(MSDK_STRING("ERROR: ParFile \"%s\" reading failed\n"), parFileName);
@@ -1428,10 +1430,6 @@ int main(int argc, char *argv[])
     }
     pipelines.clear();
 
-    if(parFile)
-    {
-        fclose(parFile);
-    }
     Configs.clear();
     return 0;
 }

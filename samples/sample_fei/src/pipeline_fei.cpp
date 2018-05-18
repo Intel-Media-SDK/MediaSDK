@@ -64,6 +64,7 @@ CEncodingPipeline::CEncodingPipeline(AppConfig* pAppConfig)
     , m_insertIDR(false)
     , m_bVPPneeded(pAppConfig->bVPP)
     , m_bSeparatePreENCSession(pAppConfig->bPREENC && (pAppConfig->bENCPAK || pAppConfig->bOnlyENC || (pAppConfig->preencDSstrength && m_bVPPneeded)))
+    , m_mfxSessionParent((mfxSession)0)
     , m_pPreencSession(m_bSeparatePreENCSession ? &m_preenc_mfxSession : &m_mfxSession)
 
     , m_pFEI_PreENC(NULL)
