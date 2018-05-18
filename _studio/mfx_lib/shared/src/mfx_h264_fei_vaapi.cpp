@@ -1991,7 +1991,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
     mdprintf(stderr, "VAAPIFEIPAKEncoder::Execute\n");
 
-    mfxHDL surface = pair.first;
     VAStatus  vaSts  = VA_STATUS_SUCCESS;
     mfxStatus mfxSts = MFX_ERR_NONE;
 
