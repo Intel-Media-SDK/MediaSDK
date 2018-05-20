@@ -1,15 +1,15 @@
 // Copyright (c) 2017 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -2493,7 +2493,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, 
     if (mem_id_to_unlock >= 0)
         m_FrameAllocator->DecreaseReference(mem_id_to_unlock);
 
-    if (task_num_to_unlock >= 0 && task_num_to_unlock < 2*DPB) 
+    if (task_num_to_unlock >= 0 && task_num_to_unlock < 2*DPB)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
         m_implUmc->UnLockTask(task_num_to_unlock);
@@ -2537,8 +2537,6 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
         m_implUmcHW->SaveDecoderState();
         umcRes = m_implUmc->GetPictureHeader(&m_in[m_task_num], m_task_num, m_prev_task_num);
 
-        //VM_ASSERT( m_implUmc.PictureHeader[m_task_num].picture_coding_type != 3 || ( mid[ m_implUmc.frame_buffer.latest_next ] != -1 && mid[ m_implUmc.frame_buffer.latest_prev ] != -1 ));
-
         IsField = !m_implUmc->IsFramePictureStructure(m_task_num);
         if (m_task_num >= DPB && !IsField)
         {
@@ -2552,6 +2550,25 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
 
         if (UMC::UMC_OK != umcRes)
         {
+            {
+                const UMC::sPictureHeader& picHeader = m_implUmc->GetPictureHeader(m_task_num);
+                // It's okay to read 'picture_coding_type' field in case of errors from GetPictureHeader
+                // becase MPEG2_I_PICTURE is not a default(zero) value.
+                if ((m_task_num >= DPB) && UMC::MPEG2_I_PICTURE == picHeader.picture_coding_type)
+                {
+                    // Error occured but current field is I so we can recover if to make app reset decoder.
+
+                    // decoder treats the current picture as the 2nd field in a field pair.
+                    // The 1st field was processed, an output surface was locked but wasn't passed to the scheduler for completion.
+                    // So we need to unlock the surface here.
+                    m_FrameAllocator->DecreaseReference(mid[curr_index]);
+                    mid[curr_index] = -1;
+                    m_implUmc->UnLockTask(curr_index);
+
+                    return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+                }
+            }
+
             MFX_CHECK_STS(RestoreDecoder(m_frame_curr, NO_SURFACE_TO_UNLOCK, NO_TASK_TO_UNLOCK, NO_END_FRAME, REMOVE_LAST_FRAME, 0))
 
             IsSkipped = m_implUmc->IsFrameSkipped();
