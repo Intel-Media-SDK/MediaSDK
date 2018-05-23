@@ -1450,14 +1450,15 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
            && par.mfx.GopRefDist > 0
            && ( par.mfx.GopRefDist < 2
             || minRefForPyramid(par.mfx.GopRefDist, par.isField()) > 16
-            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
+            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame
+                && !par.mfx.EncodedOrder)))
     {
         par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
         changed ++;
     }
-    if (par.mfx.GopRefDist > 1 && par.mfx.NumRefFrame == 1)
+    if (par.mfx.GopRefDist > 1 && (par.mfx.NumRefFrame && par.mfx.NumRefFrame < (par.isField() ? 4 :2)) && !par.mfx.EncodedOrder)
     {
-        par.mfx.NumRefFrame = 2;
+        par.mfx.NumRefFrame = par.isField() ? 4 :2;
         changed ++;
     }
 
