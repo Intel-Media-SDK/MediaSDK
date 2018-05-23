@@ -1408,7 +1408,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
 
 
     slo.max_dec_pic_buffering_minus1    = mfx.NumRefFrame;
-    slo.max_num_reorder_pics            = GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord);
+    slo.max_num_reorder_pics            = Min(GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord), slo.max_dec_pic_buffering_minus1);
     slo.max_latency_increase_plus1      = 0;
 
     Zero(m_sps);
@@ -1443,6 +1443,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
 
     assert(0 == m_sps.pcm_enabled_flag);
 
+    if (!mfx.EncodedOrder)
     {
         mfxExtCodingOption3& CO3 = m_ext.CO3;
         mfxU32 MaxPocLsb = (1<<(m_sps.log2_max_pic_order_cnt_lsb_minus4+4));
