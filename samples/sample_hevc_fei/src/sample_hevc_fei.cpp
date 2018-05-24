@@ -632,8 +632,6 @@ mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
     }
 
     if (params.encodeCtrl.RefWidth % 4 != 0 || params.encodeCtrl.RefHeight % 4 != 0
-        // check the minimum possible limit
-        || params.encodeCtrl.RefHeight < 20 || params.encodeCtrl.RefWidth < 20
         // check only the highest possible limit regardless of gop structure
         || params.encodeCtrl.RefHeight > 64 || params.encodeCtrl.RefWidth > 64
         || params.encodeCtrl.RefWidth * params.encodeCtrl.RefHeight > 2048)
@@ -686,6 +684,15 @@ void AdjustOptions(sInputParams& params)
             params.encodeCtrl.RefWidth = 32;
         if (!params.encodeCtrl.RefHeight)
             params.encodeCtrl.RefHeight = 32;
+    }
+
+    if (!params.encodeCtrl.SearchWindow && (params.encodeCtrl.RefHeight < 20 || params.encodeCtrl.RefWidth < 20))
+    {
+        msdk_printf(MSDK_STRING("WARNING: Invalid RefWidth/RefHeight value. Adjust to 20 (minimum supported)\n"));
+        if (params.encodeCtrl.RefWidth < 20)
+            params.encodeCtrl.RefWidth = 20;
+        if (params.encodeCtrl.RefHeight < 20)
+            params.encodeCtrl.RefHeight = 20;
     }
 
     if (params.encodeCtrl.MVPredictor == 0 && (params.bPREENC || 0 != msdk_strlen(params.mvpInFile)))
