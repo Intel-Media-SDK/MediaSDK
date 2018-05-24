@@ -49,6 +49,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-single_field_processing] - single-field coding mode, one call for each field, tff/bff option required\n"));
     msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
     msdk_printf(MSDK_STRING("   [-nobref] - do not use B-pyramid (by default the decision is made by library)\n"));
+    msdk_printf(MSDK_STRING("   [-noPtoBref] - in B pyramid case, disable prediction of P frames from reference B; not for ENCODE pipeline\n"));
     msdk_printf(MSDK_STRING("   [-idr_interval size] - idr interval, default 0 means every I is an IDR, 1 means every other I frame is an IDR etc (default is infinite)\n"));
     msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
     msdk_printf(MSDK_STRING("   [-n number] - number of frames to process\n"));
@@ -368,6 +369,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-nobref")))
         {
             pConfig->bRefType = MFX_B_REF_OFF;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-noPtoBref")))
+        {
+            pConfig->bNoPtoBref = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-idr_interval")))
         {
@@ -1184,6 +1189,18 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         msdk_printf(MSDK_STRING("           Current number of references extended.\n"));
 
         pConfig->numRef = 2;
+    }
+
+    if (pConfig->bRefType != MFX_B_REF_PYRAMID && pConfig->bNoPtoBref)
+    {
+        msdk_printf(MSDK_STRING("\nWARNING: option -noPtoBref can only be set together with -bref\n"));
+        pConfig->bNoPtoBref = false;
+    }
+
+    if (pConfig->bENCODE && pConfig->bNoPtoBref)
+    {
+        msdk_printf(MSDK_STRING("\nWARNING: option -noPtoBref doesn't work with ENCODE pipeline\n"));
+        pConfig->bNoPtoBref = false;
     }
 
     return MFX_ERR_NONE;
