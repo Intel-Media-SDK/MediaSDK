@@ -285,6 +285,14 @@ mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDe
         return resultPicStruct;
     }
 
+    // FIELDS->INTERLACE
+    if( (inPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && (outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) )
+    {
+        resultPicStruct = outPicStruct;
+        sts = MFX_ERR_NONE;
+        return resultPicStruct;
+    }
+
     // INTERLACE->INTERLACE
     inPicStructCore  = inPicStruct  & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF);
     outPicStructCore = outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF);
@@ -305,14 +313,6 @@ mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDe
         resultPicStruct = outPicStruct;
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        return resultPicStruct;
-    }
-
-    // FIELDS->INTERLACE
-    if( (inPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && (outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) )
-    {
-        resultPicStruct = outPicStruct;
-        sts = MFX_ERR_NONE;
         return resultPicStruct;
     }
 
