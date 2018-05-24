@@ -712,6 +712,7 @@ struct iTaskParams
     mfxU16 NumMVPredictorsBL0;
     mfxU16 NumMVPredictorsBL1;
     bool   SingleFieldMode;
+    bool   NoPRefB;
 
     mfxFrameSurface1 *InputSurf;
     mfxFrameSurface1 *ReconSurf;
@@ -732,6 +733,7 @@ struct iTaskParams
         , NumMVPredictorsBL0(0)
         , NumMVPredictorsBL1(0)
         , SingleFieldMode(false)
+        , NoPRefB(false)
         , InputSurf(NULL)
         , ReconSurf(NULL)
         , DSsurface(NULL)
@@ -772,6 +774,7 @@ struct iTask
         , m_tid(0)
         , m_tidx(0)
         , m_longTermPicNum(PairU8(0, 0))
+        , m_bNoPRefB(task_params.NoPRefB)
         , prevTask(NULL)
     {
         NumMVPredictorsP[0]   = task_params.NumMVPredictorsP;
@@ -883,6 +886,7 @@ struct iTask
         m_type            = task.m_type;
         m_dpbPostEncoding = task.m_dpbPostEncoding;
         m_poc             = task.m_poc;
+        m_bNoPRefB        = task.m_bNoPRefB;
         PicStruct         = task.PicStruct;
 
         return *this;
@@ -1073,6 +1077,7 @@ struct iTask
 
     PairU8  m_longTermPicNum;
     PairU8  m_reference;        // is reference (short or long term) or not
+    bool    m_bNoPRefB;         // disable P frames to refer to B frames
     //.........................................................................................
 
     iTask* prevTask;
@@ -1167,6 +1172,7 @@ inline void InitNewDpbFrame(
     ref.m_frameNum       = task.m_frameNum;
     ref.m_frameNumWrap   = task.m_frameNumWrap;
     ref.m_longTermPicNum = task.m_longTermPicNum;
+    ref.m_type           = task.m_type;
     ref.m_longterm       = 0;
     ref.m_refBase        = 0;
 

@@ -844,6 +844,7 @@ mfxStatus CEncodingPipeline::SetSequenceParameters()
         m_appCfg.NumMVPredictors_Bl1 : (std::min)(mfxU16(m_numRefFrame*m_numOfFields), MaxFeiEncMVPNum);
 
     m_taskInitializationParams.BRefType           = m_bRefType;
+    m_taskInitializationParams.NoPRefB            = m_appCfg.bNoPtoBref;
 
     /* Section below calculates number of macroblocks for extension buffers allocation */
 
