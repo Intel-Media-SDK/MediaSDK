@@ -666,13 +666,13 @@ void AdjustOptions(sInputParams& params)
         params.bEncodedOrder = true;
     }
 
-    if (params.encodeCtrl.SearchWindow && (params.encodeCtrl.AdaptiveSearch || params.encodeCtrl.SearchPath
-        || params.encodeCtrl.LenSP || params.encodeCtrl.RefWidth || params.encodeCtrl.RefHeight))
+    if (params.encodeCtrl.SearchWindow && (params.encodeCtrl.SearchPath || params.encodeCtrl.LenSP
+                                        || params.encodeCtrl.RefWidth || params.encodeCtrl.RefHeight))
     {
         msdk_printf(MSDK_STRING("WARNING: SearchWindow is specified."));
-        msdk_printf(MSDK_STRING("LenSP, RefWidth, RefHeight, SearchPath and AdaptiveSearch will be ignored.\n"));
+        msdk_printf(MSDK_STRING("LenSP, RefWidth, RefHeight and SearchPath will be ignored.\n"));
         params.encodeCtrl.LenSP = params.encodeCtrl.SearchPath = params.encodeCtrl.RefWidth =
-            params.encodeCtrl.RefHeight = params.encodeCtrl.AdaptiveSearch = 0;
+            params.encodeCtrl.RefHeight = 0;
     }
     else if (!params.encodeCtrl.SearchWindow && (!params.encodeCtrl.LenSP || !params.encodeCtrl.RefWidth || !params.encodeCtrl.RefHeight))
     {
