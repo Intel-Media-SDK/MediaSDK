@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -117,10 +117,10 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
+    MFX_CHECK(EncFrameCtrl->AdaptiveSearch <= 1,  MFX_ERR_INVALID_VIDEO_PARAM);
     if (EncFrameCtrl->SearchWindow)
     {
-        MFX_CHECK(EncFrameCtrl->AdaptiveSearch == 0
-               && EncFrameCtrl->LenSP          == 0
+        MFX_CHECK(EncFrameCtrl->LenSP          == 0
                && EncFrameCtrl->SearchPath     == 0
                && EncFrameCtrl->RefWidth       == 0
                && EncFrameCtrl->RefHeight      == 0, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -129,7 +129,6 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
     }
     else
     {
-        MFX_CHECK(EncFrameCtrl->AdaptiveSearch <= 1,  MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(EncFrameCtrl->SearchPath     <= 2,  MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(EncFrameCtrl->LenSP          >= 1 &&
                   EncFrameCtrl->LenSP          <= 63, MFX_ERR_INVALID_VIDEO_PARAM);
