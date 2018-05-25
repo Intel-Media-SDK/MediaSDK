@@ -699,6 +699,70 @@ static mfxStatus SetROI(
     return MFX_ERR_NONE;
 }
 
+mfxStatus SetRoundingOffset(
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    mfxExtAVCRoundingOffset const & roundingOffset,
+    VABufferID & roundingOffsetBuf_id)
+{
+    VAStatus vaSts;
+    VAEncMiscParameterBuffer *misc_param;
+    VAEncMiscParameterCustomRoundingControl *rounding_param;
+
+    if ( roundingOffsetBuf_id != VA_INVALID_ID)
+    {
+        vaSts = vaDestroyBuffer(vaDisplay, roundingOffsetBuf_id);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
+
+    vaSts = vaCreateBuffer(vaDisplay,
+                   vaContextEncode,
+                   VAEncMiscParameterBufferType,
+                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterCustomRoundingControl),
+                   1,
+                   NULL,
+                   &roundingOffsetBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    vaSts = vaMapBuffer(vaDisplay,
+                 roundingOffsetBuf_id,
+                (void **)&misc_param);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    misc_param->type = (VAEncMiscParameterType)VAEncMiscParameterTypeCustomRoundingControl;
+
+    rounding_param = (VAEncMiscParameterCustomRoundingControl *)misc_param->data;
+    if (IsOn(roundingOffset.EnableRoundingIntra))
+    {
+        rounding_param->rounding_offset_setting.bits.enable_custom_rouding_intra  = 1;
+        rounding_param->rounding_offset_setting.bits.rounding_offset_intra        = roundingOffset.RoundingOffsetIntra;
+    }
+    else
+    {
+        rounding_param->rounding_offset_setting.bits.enable_custom_rouding_intra  = 0;
+        rounding_param->rounding_offset_setting.bits.rounding_offset_intra        = 0;
+    }
+
+    if (IsOn(roundingOffset.EnableRoundingInter))
+    {
+        rounding_param->rounding_offset_setting.bits.enable_custom_rounding_inter = 1;
+        rounding_param->rounding_offset_setting.bits.rounding_offset_inter        = roundingOffset.RoundingOffsetInter;
+    }
+    else
+    {
+        rounding_param->rounding_offset_setting.bits.enable_custom_rounding_inter = 0;
+        rounding_param->rounding_offset_setting.bits.rounding_offset_inter        = 0;
+    }
+
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        vaSts = vaUnmapBuffer(vaDisplay, roundingOffsetBuf_id);
+    }
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    return MFX_ERR_NONE;
+}
+
 void FillConstPartOfPps(
     MfxVideoParam const & par,
     VAEncPictureParameterBufferH264 & pps)
@@ -1149,6 +1213,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_rirId(VA_INVALID_ID)
     , m_qualityParamsId(VA_INVALID_ID)
     , m_miscParameterSkipBufferId(VA_INVALID_ID)
+    , m_roundingOffsetId(VA_INVALID_ID)
     , m_roiBufferId(VA_INVALID_ID)
     , m_ppsBufferId(VA_INVALID_ID)
     , m_mbqpBufferId(VA_INVALID_ID)
@@ -1312,7 +1377,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribEncMaxRefFrames,
         VAConfigAttribEncSliceStructure,
         VAConfigAttribEncROI,
-        VAConfigAttribEncSkipFrame
+        VAConfigAttribEncSkipFrame,
+        VAConfigAttribCustomRoundingControl
     };
 
     std::vector<VAConfigAttrib> attrs;
@@ -1350,6 +1416,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         attrs[idx_map[VAConfigAttribEncIntraRefresh]].value;
     m_caps.SkipFrame =
         (attrs[idx_map[VAConfigAttribEncSkipFrame]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
+    m_caps.RoundingOffset =
+        (attrs[idx_map[VAConfigAttribCustomRoundingControl]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
 
     m_caps.UserMaxFrameSizeSupport = 1;
     m_caps.MBBRCSupport            = 1;
@@ -1950,6 +2018,7 @@ mfxStatus VAAPIEncoder::Execute(
     mfxExtCodingOption3     const * ctrlOpt3      = GetExtBuffer(task.m_ctrl);
     mfxExtMBDisableSkipMap  const * ctrlNoSkipMap = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOption      const*  extOpt        = GetExtBuffer(m_videoParam);
+    mfxExtAVCRoundingOffset const * ctrlRoundingOffset  = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
     mfxU8 qp_delta_list[] = {0,0,0,0, 0,0,0,0};
 
     if (ctrlOpt2 && ctrlOpt2->SkipFrame <= MFX_SKIPFRAME_BRC_ONLY)
@@ -2733,6 +2802,12 @@ mfxStatus VAAPIEncoder::Execute(
         }
     }
 
+    if (m_caps.RoundingOffset && ctrlRoundingOffset)
+    {
+        MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRoundingOffset(m_vaDisplay, m_vaContextEncode, *ctrlRoundingOffset, m_roundingOffsetId), MFX_ERR_DEVICE_FAILED);
+
+        configBuffers[buffersCount++] = m_roundingOffsetId;
+    }
 
     if (ctrlOpt2 || ctrlOpt3)
     {

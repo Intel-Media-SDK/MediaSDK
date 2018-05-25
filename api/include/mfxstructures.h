@@ -867,6 +867,7 @@ enum {
     MFX_EXTBUFF_TIME_CODE                       = MFX_MAKEFOURCC('T','M','C','D'),
     MFX_EXTBUFF_HEVC_REGION                     = MFX_MAKEFOURCC('2','6','5','R'),
     MFX_EXTBUFF_PRED_WEIGHT_TABLE               = MFX_MAKEFOURCC('E','P','W','T'),
+    MFX_EXTBUFF_AVC_ROUNDING_OFFSET             = MFX_MAKEFOURCC('R','N','D','O'),
     MFX_EXTBUFF_DIRTY_RECTANGLES                = MFX_MAKEFOURCC('D','R','O','I'),
     MFX_EXTBUFF_MOVING_RECTANGLES               = MFX_MAKEFOURCC('M','R','O','I'),
     MFX_EXTBUFF_CODING_OPTION_VPS               = MFX_MAKEFOURCC('C','O','V','P'),
@@ -1721,6 +1722,17 @@ typedef struct {
     mfxI16       Weights[2][32][3][2];      // [list][list entry][Y, Cb, Cr][weight, offset]
     mfxU16       reserved[58];
 } mfxExtPredWeightTable;
+
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU16       EnableRoundingIntra;       // tri-state option
+    mfxU16       RoundingOffsetIntra;       // valid value [0,7]
+    mfxU16       EnableRoundingInter;       // tri-state option
+    mfxU16       RoundingOffsetInter;       // valid value [0,7]
+
+    mfxU16       reserved[24];
+} mfxExtAVCRoundingOffset;
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
 
