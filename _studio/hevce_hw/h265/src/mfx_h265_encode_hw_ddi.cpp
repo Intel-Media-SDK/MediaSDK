@@ -34,7 +34,6 @@ namespace MfxHwH265Encode
 GUID GetGUID(MfxVideoParam const & par)
 {
     GUID guid = DXVA2_Intel_Encode_HEVC_Main;
-    mfxU16 bdId = 0, cfId = 0;
 
     return guid;
 }
