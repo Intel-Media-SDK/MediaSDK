@@ -10,7 +10,7 @@ MFX_LOCAL_SRC_FILES := $(addprefix h265/src/, \
     mfx_h265_encode_hw_utils.cpp \
     mfx_h265_encode_vaapi.cpp)
 
-MFX_LOCAL_C_INCLUDES := \
+MFX_LOCAL_INCLUDES := \
     $(LOCAL_PATH)/h265/include \
     $(MFX_HOME)/_studio/shared/umc/codec/brc/include
 
@@ -32,8 +32,8 @@ include $(MFX_HOME)/android/mfx_defs.mk
 LOCAL_SRC_FILES := $(MFX_LOCAL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
-    $(MFX_LOCAL_C_INCLUDES) \
-    $(MFX_C_INCLUDES_INTERNAL_HW)
+    $(MFX_LOCAL_INCLUDES) \
+    $(MFX_INCLUDES_INTERNAL_HW)
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL) \
@@ -62,8 +62,8 @@ include $(MFX_HOME)/android/mfx_defs.mk
 LOCAL_SRC_FILES := $(MFX_LOCAL_SRC_FILES)
 
 LOCAL_C_INCLUDES := \
-    $(MFX_LOCAL_C_INCLUDES) \
-    $(MFX_C_INCLUDES_INTERNAL_HW)
+    $(MFX_LOCAL_INCLUDES) \
+    $(MFX_INCLUDES_INTERNAL_HW)
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL) \
