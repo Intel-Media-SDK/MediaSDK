@@ -104,6 +104,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-weights file] - file to input weights for explicit weighted prediction (ENCODE only).\n"));
     msdk_printf(MSDK_STRING("   [-ImplicitWPB] - enable implicit weighted prediction B frames (ENCODE only).\n"));
     msdk_printf(MSDK_STRING("   [-streamout file] - dump decode streamout structures\n"));
+    msdk_printf(MSDK_STRING("   [-recon file] - dump reconstructed surfaces to YUV file, it's for pipelines with PAK (PAK, ENC+PAK, PREENC+ENC+PAK)\n"));
     msdk_printf(MSDK_STRING("   [-sys] - use system memory for surfaces (ENCODE only)\n"));
     msdk_printf(MSDK_STRING("   [-8x8stat] - set 8x8 block for statistic report, default is 16x16 (PREENC only)\n"));
     msdk_printf(MSDK_STRING("   [-search_window value] - specifies one of the predefined search path and window size. In range [1,8] (5 is default).\n"));
@@ -339,6 +340,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         {
             pConfig->bDECODESTREAMOUT = true;
             pConfig->decodestreamoutFile = strInput[i + 1];
+            i++;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-recon")))
+        {
+            pConfig->reconFile = strInput[i + 1];
             i++;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-nv12")))
@@ -1104,6 +1110,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         pConfig->mbcodeoutFile       = NULL;
         pConfig->mbQpFile            = NULL;
         pConfig->repackctrlFile      = NULL;
+        pConfig->reconFile           = NULL;
 #if (MFX_VERSION >= 1025)
         pConfig->repackstatFile      = NULL;
 #endif
@@ -1124,6 +1131,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         pConfig->repackstatFile =
 #endif
           NULL;
+    }
+
+    if (pConfig->reconFile && !pConfig->bENCPAK && !pConfig->bOnlyPAK)
+    {
+        msdk_printf(MSDK_STRING("\nWARNING: Reconstructed Surface dump is disabled for pipeline without PAK!\n"));
+        pConfig->reconFile = NULL;
     }
 
     if (pConfig->bENCODE || pConfig->bENCPAK || pConfig->bOnlyENC || pConfig->bOnlyPAK)

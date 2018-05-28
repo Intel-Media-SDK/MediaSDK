@@ -47,9 +47,13 @@ public:
     mfxSyncPoint      m_SyncPoint;
     bool              m_bSingleFieldMode;
     RefInfo           m_RefInfo;
+    MFXFrameAllocator* m_pMFXAllocator;
 
     /* Bitstream writer */
     CSmplBitstreamWriter m_FileWriter;
+
+    /* YUV writer */
+    CSmplYUVWriter       m_ReconWriter;
 
     /* For I/O operations with extension buffers */
     FILE* m_pMvPred_in;
@@ -102,6 +106,8 @@ public:
 
     // Decode StreamOut -> PAK
     mfxStatus PakOneStreamoutFrame(iTask *eTask, mfxU8 QP, iTaskPool *pTaskList);
+
+    mfxStatus SetFrameAllocator(MFXFrameAllocator *allocator);
 };
 
 #endif // __SAMPLE_FEI_ENCPAK_INTERFACE_H__

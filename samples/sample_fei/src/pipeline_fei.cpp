@@ -202,6 +202,7 @@ mfxStatus CEncodingPipeline::Init(mfxSession parentSession)
         sts = m_pFEI_ENCPAK->FillParameters();
         MSDK_CHECK_STATUS(sts, "ENCPAK: Parameters initialization failed");
         m_commonFrameInfo = m_pFEI_ENCPAK->GetCommonVideoParams()->mfx.FrameInfo;
+        sts = m_pFEI_ENCPAK->SetFrameAllocator(m_pMFXAllocator);
     }
 
 #if (MFX_VERSION >= 1024)
