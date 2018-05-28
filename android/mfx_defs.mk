@@ -3,7 +3,8 @@
 #
 # Defined variables:
 #   MFX_CFLAGS - common flags for all targets
-#   MFX_C_INCLUDES - common include paths for all targets
+#   MFX_INCLUDES - common include paths for all targets
+#   MFX_INCLUDES_LIBVA - include paths to LibVA headers
 #   MFX_LDFLAGS - common link flags for all targets
 
 # =============================================================================
@@ -23,25 +24,28 @@ endif
 # Passing Android-dependency information to the code
 MFX_CFLAGS += \
   -DMFX_ANDROID_VERSION=$(MFX_ANDROID_VERSION) \
-  -include $(MFX_HOME)/android/include/mfx_config.h
-
-# Setting usual paths to include files
-MFX_C_INCLUDES := \
-  $(LOCAL_PATH)/include \
-  $(MFX_HOME)/api/include \
-  $(MFX_HOME)/android/include
-
-# Setting usual link flags
-MFX_LDFLAGS := \
-  -z noexecstack \
-  -z relro -z now
+  -include mfx_config.h
 
 #  Security
 MFX_CFLAGS += \
   -fstack-protector \
   -fPIE -fPIC -pie \
   -O2 -D_FORTIFY_SOURCE=2 \
-  -Wformat -Wformat-security
+  -Wformat -Wformat-security \
+  -fexceptions -frtti
+
+# Setting usual paths to include files
+MFX_INCLUDES := \
+  $(LOCAL_PATH)/include \
+  $(MFX_HOME)/api/include \
+  $(MFX_HOME)/android/include
+
+MFX_INCLUDES_LIBVA := $(TARGET_OUT_HEADERS)/libva
+
+# Setting usual link flags
+MFX_LDFLAGS := \
+  -z noexecstack \
+  -z relro -z now
 
 # Setting vendor
 LOCAL_MODULE_OWNER := intel
@@ -51,11 +55,5 @@ LOCAL_PROPRIETARY_MODULE := true
 
 # =============================================================================
 
-# Android OS specifics
-include $(MFX_HOME)/android/build/mfx_android_os.mk
-
-# STL support definitions
-include $(MFX_HOME)/android/build/mfx_stl.mk
-
 # Definitions specific to Media SDK internal things
-include $(MFX_HOME)/android/build/mfx_defs_internal.mk
+include $(MFX_HOME)/android/mfx_defs_internal.mk
