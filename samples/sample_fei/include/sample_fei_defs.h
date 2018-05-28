@@ -371,6 +371,7 @@ struct AppConfig
         , mbstatoutFile(NULL)
         , mbQpFile(NULL)
         , repackctrlFile(NULL)
+        , reconFile(NULL)
 #if (MFX_VERSION >= 1025)
         , repackstatFile(NULL)
         , numMfeFrames(0)
@@ -492,6 +493,7 @@ struct AppConfig
     msdk_char* mbstatoutFile;
     msdk_char* mbQpFile;
     msdk_char* repackctrlFile;
+    msdk_char* reconFile;
 #if (MFX_VERSION >= 1025)
     msdk_char* repackstatFile;
     mfxI32     numMfeFrames;
