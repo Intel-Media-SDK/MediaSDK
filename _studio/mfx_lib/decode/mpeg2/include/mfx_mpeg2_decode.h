@@ -223,11 +223,13 @@ protected:
     int32_t display_order;
     unsigned long long last_timestamp;
     mfxF64 last_good_timestamp;
+    mfxU16 m_fieldsInCurrFrame; // first field or new frame if 3 or 0; 1 - only top etc
 
     int32_t m_Protected;
 
     void ResetFcState(FcState& state) { state.picStart = state.picHeader = 0; }
     mfxStatus UpdateCurrVideoParams(mfxFrameSurface1 *surface_work, int task_num);
+    bool VerifyPictureBits(mfxBitstream* currPicBs, const mfxU8* head, const mfxU8* tail);
 
     //get index to read input data:
     bool SetCurr_m_frame()

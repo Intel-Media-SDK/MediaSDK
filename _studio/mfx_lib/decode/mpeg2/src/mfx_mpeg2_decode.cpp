@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -328,6 +328,95 @@ static bool CalcAspectRatio(mfxI32 dar_code, mfxI32 width, mfxI32 height,
         *AspectRatioH = 1;
       }
       return ret;
+}
+
+struct PicInfo {
+    // from header
+    mfxU16 temporal_reference = 0; // modulo 10 bit
+    mfxU16 picture_type = 0;       // 1-I, 2-P, 3-B (table 6-12)
+    mfxU16 picture_structure = 0;  // 1-TF, 2-BF, 3-Frame (table 6-14)
+    bool top_ff = false;           // only if !prog.seq and frame structure
+    bool repeat_ff = false;        // like top_ff
+    // derived, assume interlace sequence
+    mfxU16 first_polarity = 0;
+    mfxU16 last_polarity = 0;
+};
+
+const mfxU8* FindAnyStartCode(const mfxU8* begin, const mfxU8* end);
+
+static
+bool GetPicInfo(PicInfo& picInfo, const mfxU8* begin, const mfxU8* end)
+{
+    const mfxU8* p = begin - 4;
+    do {
+        p = FindAnyStartCode(p + 4, end);
+        if (p + 5 >= end)
+            return false;
+        if (p[3] >= 1 && p[3] <= 0xAF) // check to be not slices
+            return false;
+    } while (p[3] != ePIC);
+    picInfo.temporal_reference = p[4] << 2 | p[5] >> 6;
+    picInfo.picture_type = p[5] >> 3 & 7;
+    p = FindAnyStartCode(p + 4, end);
+    if (p + 7 >= end)
+        return true; // ok without picture coding extension
+    if (p[3] != eEXT || p[4] >> 4 != 8)
+        return false; // must be picture coding ext, stream error
+    picInfo.picture_structure = p[6] & 3;
+    picInfo.top_ff = ((p[7] & 0x80) != 0);
+    picInfo.repeat_ff = ((p[7] & 2) != 0);
+    picInfo.first_polarity = (picInfo.picture_structure == 3) ? (picInfo.top_ff ? 1 : 2) : picInfo.picture_structure;
+    // field and frame&repeat both have last==first
+    picInfo.last_polarity = (picInfo.picture_structure == 3 && !picInfo.repeat_ff) ? picInfo.first_polarity ^ 3 : picInfo.first_polarity;
+    return true;
+}
+
+// out - picture to be decoded, head - start of the next picture, tail - end of available data
+// secondField is related to the former of two
+bool VideoDECODEMPEG2InternalBase::VerifyPictureBits(mfxBitstream* currPicBs, const mfxU8* head, const mfxU8* tail)
+{
+    // info for both pictures
+    PicInfo picInfo[2];
+    const mfxU8* begin = currPicBs->Data + currPicBs->DataOffset;
+    const mfxU8* end = begin + currPicBs->DataLength;
+
+    // get info for current picture, it is completely in the buffer
+    if (!GetPicInfo(picInfo[0], begin, end))
+        return false;
+
+    bool progseq = ((m_implUmc->GetSequenceHeader()).progressive_sequence != 0);
+
+    if (!dec_frame_count)
+        m_fieldsInCurrFrame = 0;
+
+    // analyze next picture header and pictures' sequence
+    if (GetPicInfo(picInfo[1], head, tail)) {
+
+        if (!m_fieldsInCurrFrame && // new frame to be either frame or paired fields
+            picInfo[0].picture_structure != 3 &&
+            (picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3)
+            return false;
+
+        if (picInfo[0].temporal_reference == picInfo[1].temporal_reference) {
+            if (m_fieldsInCurrFrame || (picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3) // must be field, first field
+                if (picInfo[0].picture_type != I_PICTURE || picInfo[1].picture_type != I_PICTURE) // each I can start new count
+                    return false;
+            // same type or IP
+            if (picInfo[0].picture_type != picInfo[1].picture_type &&
+                picInfo[0].picture_type != I_PICTURE && picInfo[1].picture_type != P_PICTURE)
+                return false; // invalid pair, broken stream
+        }
+        else if (((picInfo[0].temporal_reference + 1) & 0x3ff) == picInfo[1].temporal_reference) { // consequent in display and coding order
+            if (!progseq && (picInfo[0].last_polarity ^ picInfo[1].first_polarity) != 3) // invalid field order
+                return false;
+        }
+    }
+
+    m_fieldsInCurrFrame |= picInfo[0].picture_structure;
+    if (m_fieldsInCurrFrame == 3)
+        m_fieldsInCurrFrame = 0; // frame complete
+
+    return true;
 }
 
 VideoDECODEMPEG2::VideoDECODEMPEG2(VideoCORE* core, mfxStatus *sts)
@@ -2330,6 +2419,13 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
 
             MoveBitstreamData(*in, (mfxU32)(curr - head));
 
+            if (m_fcState.picHeader == FcState::FRAME)
+                if (!VerifyPictureBits(out, curr, tail)) {
+                    out->DataLength = 0; // drop prepared picture, continue to find next
+                    m_fcState.picStart = 0;
+                    m_fcState.picHeader = FcState::NONE;
+                }
+
             if (FcState::FRAME == m_fcState.picHeader)
             {
                 // If buffer contains less than 8 bytes it means there is no full frame in that buffer
@@ -3136,7 +3232,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::PerformStatusCheck(void *pParam)
     {
         GetStatusReport(current_index, parameters->mid[current_index]);
 
-        TranslateCorruptionFlag(disp_index, parameters->surface_work);
+        TranslateCorruptionFlag(current_index, parameters->surface_work);
 
         return MFX_ERR_NONE;
     }
