@@ -28,7 +28,8 @@ MFX_LOCAL_SRC_FILES_IMPL := \
 
 MFX_LOCAL_SRC_FILES_HW := \
     $(MFX_LOCAL_SRC_FILES_IMPL) \
-    $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp)))
+    $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp))) \
+    $(patsubst $(LOCAL_PATH)/%, %, $(wildcard $(LOCAL_PATH)/hevce_hw/h265/src/*.cpp))
 
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
@@ -43,7 +44,8 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
-    $(MFX_HOME)/_studio/shared/asc/include
+    $(MFX_HOME)/_studio/shared/asc/include \
+    $(MFX_HOME)/mdp_msdk-lib/_studio/hevce_hw/h265/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libmfx_lib_merged_hw \
