@@ -69,12 +69,24 @@ public:
     {
         mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl = reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
 
-        if (EncFrameCtrl && (!!EncFrameCtrl->PerCuQp != !!m_vpar.m_pps.cu_qp_delta_enabled_flag))
-        {
-            SoftReset(task);
-        }
+        mfxExtFeiHevcRepackCtrl* repackctrl = reinterpret_cast<mfxExtFeiHevcRepackCtrl*>(GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
 
-        return;
+        if (m_vpar.m_pps.cu_qp_delta_enabled_flag)
+        {
+            if (!repackctrl && !EncFrameCtrl->PerCuQp)
+            {
+                // repackctrl or PerCuQp is disabled, so insert PPS and turn the flag off.
+                SoftReset(task);
+            }
+        }
+        else
+        {
+            if (repackctrl || EncFrameCtrl->PerCuQp)
+            {
+                // repackctrl or PerCuQp is enabled, so insert PPS and turn the flag on.
+                SoftReset(task);
+            }
+        }
     }
     void SoftReset(MfxHwH265Encode::Task& task)
     {
