@@ -29,13 +29,35 @@ namespace MfxHwH265FeiEncode
 {
 
 H265FeiEncodePlugin::H265FeiEncodePlugin(bool CreateByDispatcher)
-    : Plugin(CreateByDispatcher)
-{
-}
+    : m_createdByDispatcher(CreateByDispatcher)
+    , m_adapter(this)
+    , m_pImpl(nullptr)
+{}
 
 H265FeiEncodePlugin::~H265FeiEncodePlugin()
+{}
+
+mfxStatus H265FeiEncodePlugin::PluginInit(mfxCoreInterface *core)
 {
-    Close();
+    MFX_TRACE_INIT();
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "H265FeiEncodePlugin::PluginInit");
+
+    MFX_CHECK_NULL_PTR1(core);
+    m_core = *core;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus H265FeiEncodePlugin::PluginClose()
+{
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "H265FeiEncodePlugin::PluginClose");
+        if (m_createdByDispatcher)
+            Release();
+    }
+
+    MFX_TRACE_CLOSE();
+
+    return MFX_ERR_NONE;
 }
 
 DriverEncoder* H265FeiEncodePlugin::CreateHWh265Encoder(MFXCoreInterface* core, ENCODER_TYPE type)
@@ -63,13 +85,7 @@ mfxStatus H265FeiEncodePlugin::GetPluginParam(mfxPluginParam *par)
 }
 
 
-mfxStatus H265FeiEncodePlugin::Close()
-{
-    Plugin::Close();
-    return MFX_ERR_NONE;
-}
-
-mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
+mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
 {
     if (!surface) return MFX_ERR_NONE; // In case of frames draining in display order
 

@@ -33,65 +33,6 @@ void      SetDefaults    (MfxVideoParam & par, ENCODE_CAPS_HEVC const & hwCaps);
 void      InheritDefaultValues(MfxVideoParam const & parInit, MfxVideoParam &  parReset);
 bool      CheckTriStateOption(mfxU16 & opt);
 
-Plugin::Plugin(bool CreateByDispatcher)
-    : m_createdByDispatcher(CreateByDispatcher)
-    , m_adapter(this)
-    , m_caps()
-    , m_lastTask()
-    , m_prevBPEO(0)
-    , m_NumberOfSlicesForOpt(0)
-    , m_bInit(false)
-    , m_runtimeErr(MFX_ERR_NONE)
-    , m_brc(NULL)
-{
-    ZeroParams();
-}
-
-Plugin::~Plugin()
-{
-    Close();
-}
-
-mfxStatus Plugin::PluginInit(mfxCoreInterface *core)
-{
-    MFX_TRACE_INIT();
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::PluginInit");
-
-    MFX_CHECK_NULL_PTR1(core);
-
-    m_core = *core;
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus Plugin::PluginClose()
-{
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::PluginClose");
-        if (m_createdByDispatcher)
-            Release();
-    }
-
-    MFX_TRACE_CLOSE();
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus Plugin::GetPluginParam(mfxPluginParam *par)
-{
-    MFX_CHECK_NULL_PTR1(par);
-
-    par->PluginUID          = MFX_PLUGINID_HEVCE_HW;
-    par->PluginVersion      = 1;
-    par->ThreadPolicy       = MFX_THREADPOLICY_SERIAL;
-    par->MaxThreadNum       = 1;
-    par->APIVersion.Major   = MFX_VERSION_MAJOR;
-    par->APIVersion.Minor   = MFX_VERSION_MINOR;
-    par->Type               = MFX_PLUGINTYPE_VIDEO_ENCODE;
-    par->CodecId            = MFX_CODEC_HEVC;
-
-    return MFX_ERR_NONE;
-}
 
 inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
@@ -207,9 +148,9 @@ mfxStatus LoadSPSPPS(MfxVideoParam& par, mfxExtCodingOptionSPSPPS* pSPSPPS)
     return sts;
 }
 #define printCaps(arg) printf("Caps: %s %d\n", #arg, m_caps.arg);
-mfxStatus Plugin::InitImpl(mfxVideoParam *par)
+mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
 {
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::InitImpl");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODEH265_HW::InitImpl");
     mfxStatus sts = MFX_ERR_NONE, qsts = MFX_ERR_NONE;
     mfxCoreParam coreParams = {};
     ENCODER_TYPE ddiType = ENCODER_DEFAULT;
@@ -363,7 +304,7 @@ mfxStatus Plugin::InitImpl(mfxVideoParam *par)
     return qsts;
 }
 
-mfxStatus Plugin::Init(mfxVideoParam *par)
+mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(par);
@@ -379,12 +320,14 @@ mfxStatus Plugin::Init(mfxVideoParam *par)
     return sts;
 }
 
-mfxStatus Plugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request, mfxFrameAllocRequest * /*out*/)
+mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR2(par, request);
 
     MFX_CHECK(par->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
+
+    MFXCoreInterface _core = *core;
 
     MfxVideoParam tmp = *par;
     ENCODE_CAPS_HEVC caps = {};
@@ -406,14 +349,14 @@ mfxStatus Plugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request,
     default: return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
-    m_core.QueryPlatform(&tmp.m_platform);
+    _core.QueryPlatform(&tmp.m_platform);
 
     (void)SetLowpowerDefault(tmp);
 
-    sts = QueryHwCaps(&m_core, GetGUID(tmp), caps);
+    sts = QueryHwCaps(&_core, GetGUID(tmp), caps);
     MFX_CHECK_STS(sts);
 
-    CheckVideoParam(tmp, caps);
+    MfxHwH265Encode::CheckVideoParam(tmp, caps);
     SetDefaults(tmp, caps);
 
     request->Info = tmp.mfx.FrameInfo;
@@ -425,7 +368,7 @@ mfxStatus Plugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request,
     return sts;
 }
 
-mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
+mfxStatus MFXVideoENCODEH265_HW::Query(mfxCoreInterface *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(out);
@@ -480,7 +423,9 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
             return MFX_ERR_UNSUPPORTED;
         }
 
-        sts = m_core.QueryPlatform(&tmp.m_platform);
+        MFXCoreInterface _core = *core;
+
+        sts = _core.QueryPlatform(&tmp.m_platform);
         MFX_CHECK_STS(sts);
 
         MFX_CHECK(in->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
@@ -493,16 +438,9 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
 
         mfxStatus lpsts = SetLowpowerDefault(tmp);
 
-        if (m_ddi.get())
-        {
-            sts = m_ddi->QueryEncodeCaps(caps);
-            MFX_CHECK_STS(sts);
-        }
-        else
-        {
-            sts = QueryHwCaps(&m_core, GetGUID(tmp), caps);
-            MFX_CHECK_STS(sts);
-        }
+        sts = QueryHwCaps(&_core, GetGUID(tmp), caps);
+        MFX_CHECK_STS(sts);
+
         mfxExtCodingOptionSPSPPS* pSPSPPS = ExtBuffer::Get(*in);
         if (pSPSPPS && pSPSPPS->SPSBuffer)
         {
@@ -513,7 +451,7 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
             MFX_CHECK_STS(sts);
         }
 
-        sts = CheckVideoParam(tmp, caps);
+        sts = MfxHwH265Encode::CheckVideoParam(tmp, caps);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM)
             sts = MFX_ERR_UNSUPPORTED;
 
@@ -536,7 +474,7 @@ mfxStatus Plugin::Query(mfxVideoParam *in, mfxVideoParam *out)
 
     return sts;
 }
-mfxStatus   Plugin::WaitingForAsyncTasks(bool bResetTasks)
+mfxStatus    MFXVideoENCODEH265_HW::WaitingForAsyncTasks(bool bResetTasks)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -613,7 +551,7 @@ mfxStatus   Plugin::WaitingForAsyncTasks(bool bResetTasks)
 }
 
 
-mfxStatus Plugin::CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit /*= false*/)
+mfxStatus  MFXVideoENCODEH265_HW::CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit /*= false*/)
 {
     mfxStatus sts = ExtraCheckVideoParam(par, caps, bInit);
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
@@ -621,7 +559,7 @@ mfxStatus Plugin::CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & 
     return GetWorstSts(MfxHwH265Encode::CheckVideoParam(par, caps, bInit), sts);
 }
 
-mfxStatus  Plugin::Reset(mfxVideoParam *par)
+mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE, qsts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(par);
@@ -797,7 +735,7 @@ mfxStatus  Plugin::Reset(mfxVideoParam *par)
     return qsts;
 }
 
-mfxStatus Plugin::GetVideoParam(mfxVideoParam *par)
+mfxStatus  MFXVideoENCODEH265_HW::GetVideoParam(mfxVideoParam *par)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -808,7 +746,7 @@ mfxStatus Plugin::GetVideoParam(mfxVideoParam *par)
     return sts;
 }
 
-mfxStatus Plugin::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxThreadTask *thread_task)
+mfxStatus  MFXVideoENCODEH265_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxThreadTask *thread_task)
 {
     mfxStatus sts = MFX_ERR_NONE;
     Task* task = 0;
@@ -895,7 +833,7 @@ mfxStatus Plugin::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surfa
 
     return sts;
 }
-mfxStatus Plugin::PrepareTask(Task& input_task)
+mfxStatus  MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
 {
     mfxStatus sts = MFX_ERR_NONE;
     Task* task = &input_task;
@@ -984,7 +922,7 @@ mfxStatus Plugin::PrepareTask(Task& input_task)
     return sts;
 }
 
-mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
+mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_STS(m_runtimeErr);
@@ -1196,11 +1134,11 @@ mfxStatus Plugin::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*
    return sts;
 }
 
-mfxStatus Plugin::FreeResources(mfxThreadTask /*thread_task*/, mfxStatus /*sts*/)
+mfxStatus  MFXVideoENCODEH265_HW::FreeResources(mfxThreadTask /*thread_task*/, mfxStatus /*sts*/)
 {
     return MFX_ERR_NONE;
 }
-mfxStatus Plugin::FreeTask(Task &task)
+mfxStatus  MFXVideoENCODEH265_HW::FreeTask(Task &task)
 {
     if (task.m_midBs)
     {
@@ -1282,7 +1220,7 @@ mfxStatus Plugin::FreeTask(Task &task)
 
     return MFX_ERR_NONE;
 }
-mfxStatus Plugin::WaitForQueringTask(Task& task)
+mfxStatus  MFXVideoENCODEH265_HW::WaitForQueringTask(Task& task)
 {
    mfxStatus sts = m_ddi->QueryStatus(task);
    while  (sts ==  MFX_WRN_DEVICE_BUSY)
@@ -1293,7 +1231,7 @@ mfxStatus Plugin::WaitForQueringTask(Task& task)
    return sts;
 }
 
-void Plugin::FreeResources()
+void  MFXVideoENCODEH265_HW::FreeResources()
 {
     mfxExtOpaqueSurfaceAlloc& opaq = m_vpar.m_ext.Opaque;
 
@@ -1320,7 +1258,7 @@ void Plugin::FreeResources()
     }
 }
 
-mfxStatus Plugin::Close()
+mfxStatus  MFXVideoENCODEH265_HW::Close()
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
 
