@@ -65,7 +65,7 @@
         #define MFX_ENABLE_H264_VIDEO_ENCODE
 
         //h265e
-        #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
+        #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(MFX_VA)
             #define MFX_ENABLE_H265_VIDEO_ENCODE
         #endif
         //hevc FEI ENCODE

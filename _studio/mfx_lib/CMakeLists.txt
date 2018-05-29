@@ -88,6 +88,7 @@ endforeach()
 
 include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
+include_directories( ${MSDK_STUDIO_ROOT}/hevce_hw/h265/include )
 
 list( APPEND cdirs
   brc h264_enc mpeg2_dec  vc1_dec vc1_common

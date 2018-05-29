@@ -28,7 +28,6 @@
 #include "mfx_h265_encode_hw_ddi.h"
 #include "mfx_h265_encode_hw_utils.h"
 #include "umc_mutex.h"
-#include "mfxplugin++.h"
 #include "mfx_h265_encode_hw_brc.h"
 #include "mfxvideo++int.h"
 #include <mfx_task.h>
@@ -36,7 +35,6 @@
 namespace MfxHwH265Encode
 {
 
-static const mfxPluginUID  MFX_PLUGINID_HEVCE_HW = {{0x6f, 0xad, 0xc7, 0x91, 0xa0, 0xc2, 0xeb, 0x47, 0x9a, 0xb6, 0xdc, 0xd5, 0xea, 0x9d, 0xa3, 0x47}};
 
 class MFXVideoENCODEH265_HW : public VideoENCODE
 {
@@ -201,170 +199,6 @@ protected:
     bool                            m_bInit;
     mfxStatus                       m_runtimeErr;
     BrcIface*                       m_brc;
-
-};
-
-class Plugin : public MFXEncoderPlugin
-{
-public:
-    static MFXEncoderPlugin* Create()
-    {
-        return new Plugin(false);
-    }
-
-    static mfxStatus CreateByDispatcher(mfxPluginUID guid, mfxPlugin* mfxPlg)
-    {
-        if (memcmp(& guid , &MFX_PLUGINID_HEVCE_HW, sizeof(mfxPluginUID)))
-        {
-            return MFX_ERR_NOT_FOUND;
-        }
-
-        Plugin* tmp_pplg = 0;
-
-        try
-        {
-            tmp_pplg = new Plugin(false);
-        }
-        catch(std::bad_alloc&)
-        {
-            return MFX_ERR_MEMORY_ALLOC;
-        }
-        catch(...)
-        {
-            delete tmp_pplg;
-            return MFX_ERR_UNKNOWN;
-        }
-
-        *mfxPlg = tmp_pplg->m_adapter;
-        tmp_pplg->m_createdByDispatcher = true;
-
-        return MFX_ERR_NONE;
-    }
-
-    virtual mfxStatus PluginInit(mfxCoreInterface *core)
-    {
-        MFX_TRACE_INIT();
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::PluginInit");
-
-        MFX_CHECK_NULL_PTR1(core);
-
-        m_core = *core;
-
-        return MFX_ERR_NONE;
-    }
-    virtual mfxStatus PluginClose()
-    {
-        {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::PluginClose");
-            if (m_createdByDispatcher)
-                Release();
-        }
-
-        MFX_TRACE_CLOSE();
-
-        return MFX_ERR_NONE;
-    }
-    virtual mfxStatus GetPluginParam(mfxPluginParam *par)
-    {
-        MFX_CHECK_NULL_PTR1(par);
-
-        par->PluginUID          = MFX_PLUGINID_HEVCE_HW;
-        par->PluginVersion      = 1;
-        par->ThreadPolicy       = MFX_THREADPOLICY_SERIAL;
-        par->MaxThreadNum       = 1;
-        par->APIVersion.Major   = MFX_VERSION_MAJOR;
-        par->APIVersion.Minor   = MFX_VERSION_MINOR;
-        par->Type               = MFX_PLUGINTYPE_VIDEO_ENCODE;
-        par->CodecId            = MFX_CODEC_HEVC;
-
-        return MFX_ERR_NONE;
-    }
-    virtual mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a)
-    {
-        if (m_pImpl.get())
-            return MFXVideoENCODEH265_HW::Execute((reinterpret_cast<void*>(m_pImpl.get())), task, uid_p, uid_a);
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-    virtual mfxStatus FreeResources(mfxThreadTask /*task*/, mfxStatus /*sts*/)
-    {
-        return MFX_ERR_NONE;
-    }
-
-    virtual mfxStatus Init(mfxVideoParam *par)
-    {
-        mfxStatus sts;
-        m_pImpl.reset(new MFXVideoENCODEH265_HW(&m_core, &sts));
-        MFX_CHECK_STS(sts);
-        return m_pImpl->Init(par);
-    }
-    virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *in, mfxFrameAllocRequest * /*out*/)
-    {
-        return MFXVideoENCODEH265_HW::QueryIOSurf(&m_core, par, in);
-    }
-    virtual mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out)
-    {
-        return MFXVideoENCODEH265_HW::Query(&m_core, in, out);
-    }
-    virtual mfxStatus Reset(mfxVideoParam *par)
-    {
-        if (m_pImpl.get())
-            return m_pImpl->Reset(par);
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par)
-    {
-        if (m_pImpl.get())
-            return m_pImpl->GetVideoParam(par);
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-
-    virtual mfxStatus EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxThreadTask *task)
-    {
-        if (m_pImpl.get())
-            return m_pImpl->EncodeFrameSubmit(ctrl, surface, bs, task);
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-
-    virtual mfxU32 GetPluginType()
-    {
-        return MFX_PLUGINTYPE_VIDEO_ENCODE;
-    }
-
-    virtual void Release()
-    {
-        delete this;
-    }
-
-    virtual mfxStatus Close()
-    {
-        if (m_pImpl.get())
-            return m_pImpl->Close();
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-
-    virtual mfxStatus SetAuxParams(void*, int)
-    {
-        return MFX_ERR_UNSUPPORTED;
-    }
-
-protected:
-    explicit Plugin(bool CreateByDispatcher)
-        : m_createdByDispatcher(CreateByDispatcher)
-        , m_adapter(this)
-        , m_pImpl(nullptr)
-    {}
-    virtual ~Plugin()
-    {}
-
-    bool m_createdByDispatcher;
-    MFXPluginAdapter<MFXEncoderPlugin> m_adapter;
-    mfxCoreInterface m_core;
-    std::unique_ptr<MFXVideoENCODEH265_HW> m_pImpl;
 
 };
 

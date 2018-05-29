@@ -47,7 +47,13 @@
 #endif
 
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
+#if !defined(AS_HEVCE_PLUGIN)
+#if defined(MFX_VA)
+#include "mfx_h265_encode_hw.h"
+#endif
+#else
 #include "mfx_h265_encode_api.h"
+#endif
 #endif
 
 
@@ -109,6 +115,19 @@ VideoENCODE *CreateENCODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
         break;
         break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+    case MFX_CODEC_HEVC:
+        if (session->m_bIsHWENCSupport)
+        {
+            pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(&session->m_coreInt, &mfxRes);
+        }
+        else
+        {
+            pENCODE = nullptr;
+        }
+        break;
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
     default:
         break;
@@ -217,6 +236,20 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+        case MFX_CODEC_HEVC:
+            mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&session->m_coreInt, in, out);
+            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+            {
+                mfxRes = MFX_ERR_UNSUPPORTED;
+            }
+            else
+            {
+                bIsHWENCSupport = true;
+            }
+            break;
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
@@ -342,6 +375,20 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+        case MFX_CODEC_HEVC:
+            mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&session->m_coreInt, par, request);
+            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+            {
+                mfxRes = MFX_ERR_UNSUPPORTED;
+            }
+            else
+            {
+                bIsHWENCSupport = true;
+            }
+            break;
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
