@@ -2419,13 +2419,8 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
 
             MoveBitstreamData(*in, (mfxU32)(curr - head));
 
-            if (m_fcState.picHeader == FcState::FRAME)
-                if (!VerifyPictureBits(out, curr, tail)) {
-                    out->DataLength = 0; // drop prepared picture, continue to find next
-                    m_fcState.picStart = 0;
-                    m_fcState.picHeader = FcState::NONE;
-                    continue;
-                }
+            if (m_fcState.picHeader == FcState::FRAME && !VerifyPictureBits(out, curr, tail))
+                return MFX_ERR_NOT_ENOUGH_BUFFER; // to start again with next picture
 
             if (FcState::FRAME == m_fcState.picHeader)
             {
