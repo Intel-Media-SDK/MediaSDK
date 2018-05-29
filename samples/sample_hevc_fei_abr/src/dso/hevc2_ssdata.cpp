@@ -1754,7 +1754,8 @@ void SDParser::parsePC(CU& cu)
         , palette_transpose_flag = 0
         , log2BlockSize = cu.log2CbSize
         , nCbS = (1 << cu.log2CbSize)
-        , xC, yC, xcPrev, ycPrev, xR, yR
+        , xC, yC, xR, yR
+        , xcPrev = 0, ycPrev = 0
         //, x0 = cu.x
         //, y0 = cu.y
         , PaletteRun
