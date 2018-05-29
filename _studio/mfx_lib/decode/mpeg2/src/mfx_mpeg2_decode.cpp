@@ -2424,6 +2424,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
                     out->DataLength = 0; // drop prepared picture, continue to find next
                     m_fcState.picStart = 0;
                     m_fcState.picHeader = FcState::NONE;
+                    continue;
                 }
 
             if (FcState::FRAME == m_fcState.picHeader)
