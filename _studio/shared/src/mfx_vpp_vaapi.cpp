@@ -1483,7 +1483,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
     for ( unsigned int i = 0; i < layerCount; i++)
     {
         mfxDrvSurface* pRefSurf = &(pParams->pRefSurfaces[i]);
-        VASurfaceID* srf = (VASurfaceID*)(pRefSurf->hdl.first);
+        VASurfaceID* srf        = (VASurfaceID*)(pRefSurf->hdl.first);
 
         m_pipelineParam[i].surface = *srf;
 
@@ -1512,6 +1512,19 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
                 break;
         }
 
+        if(pParams->VideoSignalInfo[i].enabled)
+        {
+            if(pParams->VideoSignalInfo[i].TransferMatrix != MFX_TRANSFERMATRIX_UNKNOWN)
+            {
+                m_pipelineParam[i].surface_color_standard = (MFX_TRANSFERMATRIX_BT709 == pParams->VideoSignalInfo[i].TransferMatrix) ? VAProcColorStandardBT709 : VAProcColorStandardBT601;
+            }
+
+            if(pParams->VideoSignalInfo[i].NominalRange != MFX_NOMINALRANGE_UNKNOWN)
+            {
+                m_pipelineParam[i].input_color_properties.color_range = (MFX_NOMINALRANGE_0_255 == pParams->VideoSignalInfo[i].NominalRange) ? VA_SOURCE_RANGE_FULL : VA_SOURCE_RANGE_REDUCED;
+            }
+        }
+
         switch (pRefSurf->frameInfo.PicStruct)
         {
             case MFX_PICSTRUCT_PROGRESSIVE:
@@ -1527,19 +1540,19 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
         /* to process input parameters of sub stream:
          * crop info and original size*/
-        mfxFrameInfo *inInfo = &(pRefSurf->frameInfo);
-        input_region[i].y       = inInfo->CropY;
-        input_region[i].x       = inInfo->CropX;
-        input_region[i].height     = inInfo->CropH;
-        input_region[i].width      = inInfo->CropW;
+        mfxFrameInfo *inInfo              = &(pRefSurf->frameInfo);
+        input_region[i].y                 = inInfo->CropY;
+        input_region[i].x                 = inInfo->CropX;
+        input_region[i].height            = inInfo->CropH;
+        input_region[i].width             = inInfo->CropW;
         m_pipelineParam[i].surface_region = &input_region[i];
 
         /* to process output parameters of sub stream:
          *  position and destination size */
-        output_region[i].y      = pParams->dstRects[i].DstY;
-        output_region[i].x       = pParams->dstRects[i].DstX;
-        output_region[i].height    = pParams->dstRects[i].DstH;
-        output_region[i].width  = pParams->dstRects[i].DstW;
+        output_region[i].y               = pParams->dstRects[i].DstY;
+        output_region[i].x               = pParams->dstRects[i].DstX;
+        output_region[i].height          = pParams->dstRects[i].DstH;
+        output_region[i].width           = pParams->dstRects[i].DstW;
         m_pipelineParam[i].output_region = &output_region[i];
 
         mfxU32 currTileId = pParams->dstRects[i].TileId;
@@ -1634,11 +1647,12 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
                                *outputSurface);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
+        outputparam         = m_pipelineParam[0];
         outputparam.surface = *outputSurface;
         // The targerRect.width and targerRect.height here actually storing the x2 and y2
         // value. Deduct x and y respectively to get the exact targerRect.width and
         // targerRect.height
-        tilingParams[currTile].targerRect.width -= tilingParams[currTile].targerRect.x;
+        tilingParams[currTile].targerRect.width  -= tilingParams[currTile].targerRect.x;
         tilingParams[currTile].targerRect.height -= tilingParams[currTile].targerRect.y;
 
         outputparam.output_region  = &tilingParams[currTile].targerRect;
@@ -1688,7 +1702,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
         ExtVASurface currentFeedback; // {surface & number_of_task}
         currentFeedback.surface = *outputSurface;
-        currentFeedback.number = pParams->statusReportID;
+        currentFeedback.number  = pParams->statusReportID;
         m_feedbackCache.push_back(currentFeedback);
     }
 
