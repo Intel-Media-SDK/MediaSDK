@@ -255,16 +255,11 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
             return MFX_ERR_DEVICE_FAILED;
         }
 
-        // Configuration
-        VAConfigAttrib va_attributes;
-        vaSts = vaGetConfigAttributes(m_vaDisplay, VAProfileNone, VAEntrypointVideoProc, &va_attributes, 1);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
         vaSts = vaCreateConfig( m_vaDisplay,
                                 VAProfileNone,
                                 VAEntrypointVideoProc,
-                                &va_attributes,
-                                1,
+                                NULL,
+                                0,
                                 &m_vaConfig);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
