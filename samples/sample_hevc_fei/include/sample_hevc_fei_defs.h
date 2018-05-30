@@ -139,6 +139,8 @@ struct sInputParams
         MSDK_ZERO_MEMORY(mvoutFile);
         MSDK_ZERO_MEMORY(mvpInFile);
         MSDK_ZERO_MEMORY(refctrlInFile);
+        MSDK_ZERO_MEMORY(repackctrlFile);
+        MSDK_ZERO_MEMORY(repackstatFile);
 
         MSDK_ZERO_MEMORY(preencCtrl);
         preencCtrl.Header.BufferId = MFX_EXTBUFF_FEI_PREENC_CTRL;
