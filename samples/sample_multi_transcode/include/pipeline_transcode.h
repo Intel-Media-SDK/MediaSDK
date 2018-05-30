@@ -143,6 +143,9 @@ namespace TranscodingSample
 
     struct sMctfRunTimeParams
     {
+        sMctfRunTimeParams() : CurIdx(0)
+        {}
+
         mfxU32 CurIdx;
         std::vector<sMctfRunTimeParam> RunTimeParams;
         // returns rt-param corresponding to CurIdx or NULL if

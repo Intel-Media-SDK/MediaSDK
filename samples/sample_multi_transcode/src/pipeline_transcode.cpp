@@ -176,7 +176,8 @@ CTranscodingPipeline::CTranscodingPipeline():
     isHEVCSW(false),
     m_bInsertIDR(false),
     m_vppCompDumpRenderMode(0),
-    m_nRotationAngle(0)
+    m_nRotationAngle(0),
+    m_encoderFourCC(0)
 {
     MSDK_ZERO_MEMORY(m_mfxDecParams);
     MSDK_ZERO_MEMORY(m_mfxVppParams);
@@ -741,7 +742,8 @@ mfxStatus CTranscodingPipeline::VPPOneFrame(ExtendedSurface *pSurfaceIn, Extende
     bool bAttachMctfBuffer = false;
     mfxExtVppMctf * MctfRTParams = NULL;
 
-    bAttachMctfBuffer = NULL != m_MctfRTParams.GetCurParam();
+    const sMctfRunTimeParam* pMctfCurParam = m_MctfRTParams.GetCurParam();
+    bAttachMctfBuffer = NULL != pMctfCurParam;
     if (bAttachMctfBuffer && pSurfaceIn->pSurface)
     {
         // get a new (or existing) Mctf control buffer
@@ -749,7 +751,7 @@ mfxStatus CTranscodingPipeline::VPPOneFrame(ExtendedSurface *pSurfaceIn, Extende
         if (MctfRTParams)
         {
             // suppose the following is going to to be pass:
-            MctfRTParams->FilterStrength = m_MctfRTParams.GetCurParam()->FilterStrength;
+            MctfRTParams->FilterStrength = pMctfCurParam->FilterStrength;
 #if defined ENABLE_MCTF_EXT
             MctfRTParams->BitsPerPixelx100k = mfxU32(MCTF_LOSSLESS_BPP * MCTF_BITRATE_MULTIPLIER);
             MctfRTParams->Deblocking = MFX_CODINGOPTION_OFF;
