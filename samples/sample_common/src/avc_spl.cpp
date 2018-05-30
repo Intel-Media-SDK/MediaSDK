@@ -676,7 +676,7 @@ mfxStatus AVC_Spl::GetFrame(mfxBitstream * bs_in, FrameSplitterInfo ** frame)
                 return MFX_ERR_NONE;
         }
 
-        mfxBitstream * destination;
+        mfxBitstream * destination=NULL;
         mfxI32 nalType = m_pNALSplitter->GetNalUnits(bs_in, destination);
         mfxStatus sts = ProcessNalUnit(nalType, destination);
 

@@ -914,7 +914,7 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU32 nArgNum, mfxU32& curArg, sInp
                         {
                             // currently, there is just 1 param in the file;
                             sMctfRunTimeParam tmp;
-                            if(msdk_sscanf(line.c_str(), MSDK_STRING("%hd:%*c"), &(tmp.FilterStrength)))
+                            if(msdk_sscanf(line.c_str(), MSDK_STRING("%hu:%*c"), &(tmp.FilterStrength)))
                                 pParams->mctfParam.rtParams.RunTimeParams.push_back(tmp);
                             else
                             {
@@ -956,7 +956,10 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU32 nArgNum, mfxU32& curArg, sInp
                 else
                 {
                     // take very first FS value from the file and use it as a value for FilterStrength
-                    pParams->mctfParam.params.FilterStrength = pParams->mctfParam.rtParams.GetCurParam()->FilterStrength;
+                    if(pParams->mctfParam.rtParams.GetCurParam())
+                    {
+                        pParams->mctfParam.params.FilterStrength = pParams->mctfParam.rtParams.GetCurParam()->FilterStrength;
+                    }
                 }
 #if defined ENABLE_MCTF_EXT
                 pParams->mctfParam.params.BitsPerPixelx100k = mfxU32(_bitsperpixel*MCTF_BITRATE_MULTIPLIER);
