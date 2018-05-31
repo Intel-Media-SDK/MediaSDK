@@ -140,6 +140,8 @@ struct sInputParams
 
     bool enableQSVFF;
 
+    bool bSoftRobustFlag;
+
     mfxU32 nTimeout;
     mfxU16 nMemBuf;
 
@@ -209,10 +211,14 @@ public:
     virtual CTimeStatistics& GetOverallStatistics() { return m_statOverall;}
     virtual CTimeStatistics& GetFileStatistics() { return m_statFile;}
     virtual void Close();
+    virtual void SetGpuHangRecoveryFlag();
+    virtual void ClearTasks();
 protected:
     sTask* m_pTasks;
     mfxU32 m_nPoolSize;
     mfxU32 m_nTaskBufferStart;
+
+    bool m_bGpuHangRecovery;
 
     MFXVideoSession* m_pmfxSession;
 
@@ -251,7 +257,7 @@ public:
 protected:
     std::pair<CSmplBitstreamWriter *,CSmplBitstreamWriter *> m_FileWriters;
     CSmplYUVReader m_FileReader;
-    CEncTaskPool m_TaskPool;
+    CEncTaskPool   m_TaskPool;
 
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
@@ -308,6 +314,8 @@ protected:
     CHWDevice *m_hwdev;
 
     bool isV4L2InputEnabled;
+
+    bool m_bSoftRobustFlag;
 
     mfxU32 m_nTimeout;
 

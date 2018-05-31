@@ -1140,6 +1140,17 @@ mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
     return MSDK_INVALID_SURF_IDX;
 }
 
+void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
+{
+    if (pSurfacesPool)
+    {
+        for (mfxU16 i = 0; i < nPoolSize; i++)
+        {
+            pSurfacesPool[i].Data.Locked = 0;
+        }
+    }
+}
+
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
 {
     mfxU32 SleepInterval = 10; // milliseconds
