@@ -136,12 +136,18 @@ Status MPEG2VideoDecoderHW::DecodeSliceHeader(VideoContext *video, int task_num)
             uint8_t *ptr = start_ptr;
             uint32_t count = 0;
 
-            // calculate number of bytes of slice data
-            while (ptr < end_ptr && (ptr[0] || ptr[1] || ptr[2] || ptr[3]))
+            uint32_t zeroes = 0;
+            //calculating the size of slice data, if 4 consecutive 0s are found, it indicates the end of the slice no further check is needed
+            while (ptr < end_ptr)
             {
-                ptr++;
-                count++;
-            }
+                if (*ptr++) zeroes = 0;
+                else ++zeroes;
+                ++count;
+                if (zeroes == 4) break;
+             }
+            // Adjust the count by reducing the number of 0s found, either 4 consecutive 0s or 0-3 0s existing at the end of the data. 
+            // Based on the standard, they should be stuffing bytes.
+            count -= zeroes;
 
             // update slice info structures (+ extra 10 bytes, this is @to do@)
             if(pack_w.pSliceInfoBuffer < pack_w.pSliceInfo)
