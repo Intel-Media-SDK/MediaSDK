@@ -452,7 +452,8 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         if (MFX_FOURCC_NV12    == g_TABLE_SUPPORTED_FOURCC[indx] ||
             MFX_FOURCC_YUY2    == g_TABLE_SUPPORTED_FOURCC[indx] ||
             MFX_FOURCC_RGB4    == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_A2RGB10 == g_TABLE_SUPPORTED_FOURCC[indx])
+            MFX_FOURCC_A2RGB10 == g_TABLE_SUPPORTED_FOURCC[indx] ||
+            MFX_FOURCC_P010    == g_TABLE_SUPPORTED_FOURCC[indx])
             caps.mFormatSupport[g_TABLE_SUPPORTED_FOURCC[indx]] |= MFX_FORMAT_SUPPORT_OUTPUT;
     }
 
