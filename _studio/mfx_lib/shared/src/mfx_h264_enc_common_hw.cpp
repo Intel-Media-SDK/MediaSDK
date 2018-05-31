@@ -5868,9 +5868,13 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                mfxU32 bufferSizeInBits = MFX_MIN(
-                    GetMaxBufferSize(par),                           // limit by spec
-                    par.calcParam.maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
+                // HRD buffer size can be different for the same level for AVC and MVC profiles. 
+                // So in case of MVC we need to copy MVC-specific buffer size to calcParam.bufferSizeInKB to assure that application will get enough size for bitstream buffer allocation
+                mfxU32 maxKbps = IsMvcProfile( par.mfx.CodecProfile ) ? par.calcParam.mvcPerViewPar.maxKbps : par.calcParam.maxKbps;
+                mfxU32 maxBufferSize = IsMvcProfile( par.mfx.CodecProfile ) ? GetMaxPerViewBufferSize( par ) : GetMaxBufferSize( par );
+                mfxU32 bufferSizeInBits = IPP_MIN(
+                   maxBufferSize,                           // limit by spec
+                   maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
 
                 par.calcParam.bufferSizeInKB = !IsHRDBasedBRCMethod(par.mfx.RateControlMethod)
                         ? GetMaxCodedFrameSizeInKB(par)
