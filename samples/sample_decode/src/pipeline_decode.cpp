@@ -1952,11 +1952,11 @@ void CDecodingPipeline::PrintInfo()
     msdk_printf(MSDK_STRING("\nInput video\t%s\n"), CodecIdToStr(m_mfxVideoParams.mfx.CodecId).c_str());
     if (m_bVppIsUsed)
     {
-        msdk_printf(MSDK_STRING("Output format\t%s (using vpp)\n"), CodecIdToStr(m_mfxVppVideoParams.vpp.Out.FourCC).c_str());
+        msdk_printf(MSDK_STRING("Output format\t%s (using vpp)\n"), m_bOutI420 ? "I420(YUV)" : CodecIdToStr(m_mfxVppVideoParams.vpp.Out.FourCC).c_str());
     }
     else
     {
-        msdk_printf(MSDK_STRING("Output format\t%s\n"), CodecIdToStr(m_mfxVideoParams.mfx.FrameInfo.FourCC).c_str());
+        msdk_printf(MSDK_STRING("Output format\t%s\n"), m_bOutI420 ? "I420(YUV)" : CodecIdToStr(m_mfxVideoParams.mfx.FrameInfo.FourCC).c_str());
     }
 
     mfxFrameInfo Info = m_mfxVideoParams.mfx.FrameInfo;
@@ -1970,7 +1970,9 @@ void CDecodingPipeline::PrintInfo()
     }
     else
     {
-        msdk_printf(MSDK_STRING("  Resolution\t%dx%d\n"), Info.Width, Info.Height);
+        msdk_printf(MSDK_STRING("  Resolution\t%dx%d\n"),
+                    Info.CropW ? Info.CropW : Info.Width,
+                    Info.CropH ? Info.CropH : Info.Height);
     }
 
     mfxF64 dFrameRate = CalculateFrameRate(Info.FrameRateExtN, Info.FrameRateExtD);
