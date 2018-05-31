@@ -1211,10 +1211,11 @@ mfxStatus ExtendMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize)
 
 void WipeMfxBitstream(mfxBitstream* pBitstream)
 {
-    MSDK_CHECK_POINTER(pBitstream);
-
-    //free allocated memory
-    MSDK_SAFE_DELETE_ARRAY(pBitstream->Data);
+    if(pBitstream)
+    {
+        //free allocated memory
+        MSDK_SAFE_DELETE_ARRAY(pBitstream->Data);
+    }
 }
 
 std::basic_string<msdk_char> CodecIdToStr(mfxU32 nFourCC)
