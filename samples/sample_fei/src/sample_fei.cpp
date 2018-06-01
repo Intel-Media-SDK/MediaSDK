@@ -1447,16 +1447,16 @@ int main(int argc, char *argv[])
         RunPipeline(pipelines[0].get(), 0);
     }
 
-    for(std::vector<std::thread>::iterator t = pipe_threads.begin(); t != pipe_threads.end(); t++)
+    for(auto t = pipe_threads.begin(); t != pipe_threads.end(); t++)
     {
         t->join();
     }
     msdk_printf(MSDK_STRING("\nProcessing finished after %.2f sec \n"), MSDK_GET_TIME(msdk_time_get_tick(), startTime, frequency));
     pipe_threads.clear();
 
-    for (auto & pipeline : pipelines)
+    for(auto iPipeline = pipelines.rbegin(); iPipeline != pipelines.rend(); iPipeline++)
     {
-        pipeline->Close();
+        (*iPipeline)->Close();
     }
     pipelines.clear();
 
