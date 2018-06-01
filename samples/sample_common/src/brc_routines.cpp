@@ -162,9 +162,9 @@ mfxStatus   cBRCParams::GetBRCResetType(mfxVideoParam* par, bool bNewSequence, b
     if (bHRDConformance)
     {
         MFX_CHECK(new_par.bufferSizeInBytes   == bufferSizeInBytes, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        MFX_CHECK(new_par.initialDelayInBytes == initialDelayInBytes, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);  
+        MFX_CHECK(new_par.initialDelayInBytes == initialDelayInBytes, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         MFX_CHECK(new_par.targetbps == targetbps, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        MFX_CHECK(new_par.maxbps == maxbps, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);        
+        MFX_CHECK(new_par.maxbps == maxbps, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
     else
     {
@@ -827,16 +827,17 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         }
         if (quant_new != quant)
         {
-           if (brcSts == MFX_BRC_SMALL_FRAME)
-           {
+            if (brcSts == MFX_BRC_SMALL_FRAME)
+            {
                quant_new = IPP_MAX(quant_new, quant-2);
                brcSts = MFX_BRC_PANIC_SMALL_FRAME;
-           }
-           if (quant_new > GetCurQP (picType, layer))
-           {
+            }
+            // Idea is to check a sign mismatch, 'true' if both are negative or positive
+            if ((quant_new - qpY) * (quant_new - GetCurQP (picType, layer)) > 0)
+            {
                 UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer);
-           }
-           bNeedUpdateQP = false;
+            }
+            bNeedUpdateQP = false;
         }
         SetRecodeParams(brcSts,quant,quant_new, m_ctx.QuantMin , m_ctx.QuantMax, m_ctx, status);
     }
@@ -969,7 +970,7 @@ mfxStatus ExtBRC::Reset(mfxVideoParam *par )
         sts = Init(par);
     }
     else
-    { 
+    {
         bool brcReset = false;
         bool slidingWindowReset = false;
 
