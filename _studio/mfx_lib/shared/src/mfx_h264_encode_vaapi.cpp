@@ -3094,8 +3094,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
 
     task.m_bsDataLength[fieldId] = codedBufferSegment->size;
 
-    // Disable QP report on Linux until driver fix.
-    //task.m_qpY[fieldId] = (codedBufferSegment->status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK);
+    task.m_qpY[fieldId] = (codedBufferSegment->status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK);
 
     if (codedBufferSegment->status & VA_CODED_BUF_STATUS_BAD_BITSTREAM)
         sts = MFX_ERR_GPU_HANG;
