@@ -45,7 +45,7 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
     $(MFX_HOME)/_studio/shared/asc/include \
-    $(MFX_HOME)/mdp_msdk-lib/_studio/hevce_hw/h265/include
+    $(MFX_HOME)/_studio/hevce_hw/h265/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libmfx_lib_merged_hw \
