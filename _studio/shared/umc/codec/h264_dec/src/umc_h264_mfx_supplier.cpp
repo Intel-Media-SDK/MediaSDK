@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -967,6 +967,38 @@ UMC::Status MFX_Utility::FillVideoParamMVCEx(UMC::TaskSupplier * supplier, ::mfx
     return sts;
 }
 
+void CheckCrops(const mfxFrameInfo &in, mfxFrameInfo &out, mfxStatus & sts)
+{
+    mfxU32 maskW = 1;
+    mfxU32 maskH = 1;
+    if (in.ChromaFormat >= MFX_CHROMAFORMAT_MONOCHROME && in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
+    {
+        maskW = SubWidthC[in.ChromaFormat];
+        maskH = SubHeightC[in.ChromaFormat];
+        if (in.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
+            maskH <<= 1;
+    }
+    maskW--;
+    maskH--;
+
+    out.CropX = in.CropX;
+    out.CropY = in.CropY;
+    out.CropW = in.CropW;
+    out.CropH = in.CropH;
+
+    if ((in.CropX & maskW) || in.CropX + in.CropW > in.Width)
+        out.CropX = 0;
+    if ((in.CropY & maskH) || in.CropY + in.CropH > in.Height)
+        out.CropY = 0;
+    if ((in.CropW & maskW) || in.CropX + in.CropW > in.Width)
+        out.CropW = 0;
+    if ((in.CropH & maskH) || in.CropY + in.CropH > in.Height)
+        out.CropH = 0;
+
+    if (out.CropX != in.CropX || out.CropY != in.CropY || out.CropW != in.CropW || out.CropH != in.CropH)
+        sts = MFX_ERR_UNSUPPORTED;
+}
+
 template <typename T>
 void CheckDimensions(T &info_in, T &info_out, mfxStatus & sts)
 {
@@ -1133,17 +1165,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
 
         CheckDimensions(in->mfx.FrameInfo, out->mfx.FrameInfo, sts);
 
-        /*if (in->mfx.FrameInfo.CropX <= out->mfx.FrameInfo.Width)
-            out->mfx.FrameInfo.CropX = in->mfx.FrameInfo.CropX;
-
-        if (in->mfx.FrameInfo.CropY <= out->mfx.FrameInfo.Height)
-            out->mfx.FrameInfo.CropY = in->mfx.FrameInfo.CropY;
-
-        if (out->mfx.FrameInfo.CropX + in->mfx.FrameInfo.CropW <= out->mfx.FrameInfo.Width)
-            out->mfx.FrameInfo.CropW = in->mfx.FrameInfo.CropW;
-
-        if (out->mfx.FrameInfo.CropY + in->mfx.FrameInfo.CropH <= out->mfx.FrameInfo.Height)
-            out->mfx.FrameInfo.CropH = in->mfx.FrameInfo.CropH;*/
+        CheckCrops(in->mfx.FrameInfo, out->mfx.FrameInfo, sts);
 
         out->mfx.FrameInfo.FrameRateExtN = in->mfx.FrameInfo.FrameRateExtN;
         out->mfx.FrameInfo.FrameRateExtD = in->mfx.FrameInfo.FrameRateExtD;
