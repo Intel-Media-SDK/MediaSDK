@@ -2597,6 +2597,12 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     }
 #endif
 
+    if (pInParams->bDisableQPOffset)
+    {
+        m_CodingOption3.EnableQPOffset = MFX_CODINGOPTION_OFF;
+        addCodingOpt3 = true;
+    }
+
     if (addCodingOpt3)
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
 

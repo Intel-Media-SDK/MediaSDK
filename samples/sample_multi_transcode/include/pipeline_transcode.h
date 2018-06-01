@@ -269,6 +269,7 @@ namespace TranscodingSample
         mfxU16 nQPI;
         mfxU16 nQPP;
         mfxU16 nQPB;
+        bool bDisableQPOffset;
 
         bool bOpenCL;
         mfxU16 reserved[4];
