@@ -399,19 +399,19 @@ mfxStatus CFeiTranscodingPipeline::AllocBuffers()
 
         for (mfxU32 i = 0; i < lookaheadRequest.NumFrameSuggested; ++i)
         {
-            auto* mvp = new mfxExtFeiHevcEncMVPredictors;
+            std::unique_ptr<mfxExtFeiHevcEncMVPredictors> mvp(new mfxExtFeiHevcEncMVPredictors);
             init_ext_buffer(*mvp);
 
-            m_bufferAllocator->Alloc(mvp, request);
-            m_mvpPool->Add(std::unique_ptr<mfxExtFeiHevcEncMVPredictors>(mvp));
+            m_bufferAllocator->Alloc(mvp.get(), request);
+            m_mvpPool->Add(std::move(mvp));
 
             if (m_ctuCtrlPool.get())
             {
-                auto* ctuCtrl = new mfxExtFeiHevcEncCtuCtrl;
+                std::unique_ptr<mfxExtFeiHevcEncCtuCtrl> ctuCtrl(new mfxExtFeiHevcEncCtuCtrl);
                 init_ext_buffer(*ctuCtrl);
 
-                m_bufferAllocator->Alloc(ctuCtrl, request);
-                m_ctuCtrlPool->Add(std::unique_ptr<mfxExtFeiHevcEncCtuCtrl>(ctuCtrl));
+                m_bufferAllocator->Alloc(ctuCtrl.get(), request);
+                m_ctuCtrlPool->Add(std::move(ctuCtrl));
             }
         }
     }

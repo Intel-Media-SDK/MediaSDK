@@ -64,10 +64,10 @@ public:
         m_allocator = allocator;
     }
 
-    void Add(std::unique_ptr<T, D> buffer)
+    void Add(std::unique_ptr<T, D> && buffer)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_pool.push_back(std::move(buffer));
+        m_pool.emplace_back(std::move(buffer));
         m_condition.notify_one();
     }
 
