@@ -62,34 +62,30 @@ Media SDK test and sample applications may require additional software packages 
 # How to build
 ## Requirements
  - Git* (with [LFS](https://git-lfs.github.com/) support)
- - Perl* v5.16+
  - Cmake* v2.8+
  - GCC* v4.8+
  - [LibVA](https://github.com/intel/libva)
 
 ## Build steps
 
-Get sources
+Get sources:
 ```sh
 git clone https://github.com/Intel-Media-SDK/MediaSDK msdk
 cd msdk
 ```
 
-Configure build with GCC (default) compiler:
+Configure and build as follows:
 ```sh
-perl tools/builder/build_mfx.pl --cmake=intel64.make.release
+mkdir build && cd build
+cmake ..
+make
+make install
 ```
-This will build MSDK binaries and MSDK samples.
+This will build MSDK binaries and MSDK samples. The following cmake configuration options can be used to customize the build:
 
-If you want to configure build with CLang compiler use the following command:
-```sh
-perl tools/builder/build_mfx.pl --cmake=intel64.make.release.clang
-```
-
-Run build:
-```sh
-make -j8 -C __cmake/intel64.make.release
-```
+| Option | Values | Description |
+| ------ | ------ | ----------- |
+| API | master\|latest\|major.minor | Build mediasdk library with specified API. 'latest' will enable experimental features. 'master' will configure the most recent available published API (that's the default). |
 
 ## Enabling Instrumentation and Tracing Technology
 To enable the Instrumentation and Tracing Technology API you need either Intel® VTune™ Amplifier installed or to manually build an open source version. You can get ITT source files from [GitHub](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) and build it on your own.
