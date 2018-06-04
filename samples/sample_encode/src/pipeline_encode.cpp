@@ -79,6 +79,7 @@ CEncTaskPool::CEncTaskPool()
     m_pmfxSession       = NULL;
     m_nTaskBufferStart  = 0;
     m_nPoolSize         = 0;
+    m_bGpuHangRecovery = false;
 }
 
 CEncTaskPool::~CEncTaskPool()
@@ -139,9 +140,17 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
     if (NULL != m_pTasks[m_nTaskBufferStart].EncSyncP)
     {
         sts = m_pmfxSession->SyncOperation(m_pTasks[m_nTaskBufferStart].EncSyncP, MSDK_WAIT_INTERVAL);
-        if (sts == MFX_ERR_GPU_HANG)
+        if (sts == MFX_ERR_GPU_HANG && m_bGpuHangRecovery)
         {
             bGpuHang = true;
+            {
+            for (mfxU32 i = 0; i < m_nPoolSize; i++)
+                if (m_pTasks[i].EncSyncP != NULL)
+                {
+                    sts = m_pmfxSession->SyncOperation(m_pTasks[i].EncSyncP, 0);//MSDK_WAIT_INTERVAL
+                }
+            }
+            ClearTasks();
             sts = MFX_ERR_NONE;
             msdk_printf(MSDK_STRING("GPU hang happened\n"));
         }
@@ -174,9 +183,10 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
             {
                 // find out if the error occurred in a VPP task to perform recovery procedure if applicable
                 sts = m_pmfxSession->SyncOperation(*m_pTasks[m_nTaskBufferStart].DependentVppTasks.begin(), 0);
-                if (sts == MFX_ERR_GPU_HANG)
+                if (sts == MFX_ERR_GPU_HANG && m_bGpuHangRecovery)
                 {
                     bGpuHang = true;
+                    ClearTasks();
                     sts = MFX_ERR_NONE;
                     msdk_printf(MSDK_STRING("GPU hang happened\n"));
                 }
@@ -257,6 +267,20 @@ void CEncTaskPool::Close()
     m_pmfxSession = NULL;
     m_nTaskBufferStart = 0;
     m_nPoolSize = 0;
+}
+
+void CEncTaskPool::SetGpuHangRecoveryFlag()
+{
+    m_bGpuHangRecovery = true;
+}
+
+void CEncTaskPool::ClearTasks()
+{
+    for (size_t i = 0; i < m_nPoolSize; i++)
+    {
+        m_pTasks[i].Reset();
+    }
+    m_nTaskBufferStart = 0;
 }
 
 sTask::sTask()
@@ -1077,6 +1101,8 @@ CEncodingPipeline::CEncodingPipeline()
     m_nFramesRead = 0;
     m_bFileWriterReset = false;
 
+    m_bSoftRobustFlag = true;
+
     m_MVCflags = MVC_DISABLED;
     m_nNumView = 0;
 
@@ -1394,6 +1420,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // set memory type
     m_memType = pParams->memType;
     m_nMemBuffer = pParams->nMemBuf;
+  
+    m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
     // create and init frame allocator
     sts = CreateAllocator();
@@ -1657,6 +1685,9 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
     sts = m_TaskPool.Init(&m_mfxSession, m_FileWriters.first, m_mfxEncParams.AsyncDepth, nEncodedDataBufferSize, m_FileWriters.second);
     MSDK_CHECK_STATUS(sts, "m_TaskPool.Init failed");
 
+    if (m_bSoftRobustFlag)
+        m_TaskPool.SetGpuHangRecoveryFlag();
+
     sts = FillBuffers();
     MSDK_CHECK_STATUS(sts, "FillBuffers failed");
 
@@ -1705,8 +1736,10 @@ mfxStatus CEncodingPipeline::GetFreeTask(sTask **ppTask)
     if (MFX_ERR_NOT_FOUND == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
-        if (sts == MFX_ERR_GPU_HANG)
+        if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
+            m_TaskPool.ClearTasks();
+            FreeSurfacePool(m_pEncSurfaces, m_EncResponse.NumFrameActual);
             m_bInsertIDR = true;
             sts = MFX_ERR_NONE;
         }
@@ -2059,9 +2092,11 @@ mfxStatus CEncodingPipeline::Run()
     while (MFX_ERR_NONE == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
-        if (sts == MFX_ERR_GPU_HANG)
+        if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_bInsertIDR = true;
+            m_TaskPool.ClearTasks();//may be not needed
+            FreeSurfacePool(m_pEncSurfaces, m_EncResponse.NumFrameActual);
             sts = MFX_ERR_NONE;
         }
     }

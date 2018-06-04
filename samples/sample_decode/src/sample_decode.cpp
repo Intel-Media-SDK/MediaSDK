@@ -106,6 +106,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-calc_latency]           - calculates latency during decoding and prints log (supported only for H.264 and JPEG codec)\n"));
     msdk_printf(MSDK_STRING("   [-async]                  - depth of asynchronous pipeline. default value is 4. must be between 1 and 20\n"));
     msdk_printf(MSDK_STRING("   [-gpucopy::<on,off>] Enable or disable GPU copy mode\n"));
+    msdk_printf(MSDK_STRING("   [-robust:soft]            - GPU hang recovery by inserting an IDR frame\n"));
     msdk_printf(MSDK_STRING("   [-timeout]                - timeout in seconds\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("   [-dec_postproc force/auto] - resize after decoder using direct pipe\n"));

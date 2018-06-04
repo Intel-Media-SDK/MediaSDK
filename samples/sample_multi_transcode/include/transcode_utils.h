@@ -126,6 +126,7 @@ namespace TranscodingSample
         msdk_tstring                                 DumpLogFileName;
         mfxU32                                       m_nTimeout;
         bool                                         bRobustFlag;
+        bool                                         bSoftRobustFlag;
         bool                                         shouldUseGreedyFormula;
         std::vector<msdk_string>                     m_lines;
     private:

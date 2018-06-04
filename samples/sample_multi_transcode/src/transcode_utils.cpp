@@ -173,7 +173,8 @@ void TranscodingSample::PrintHelp()
 #endif //ENABLE_MCTF_EXT
 #endif //ENABLE_MCTF
 
-    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as the come (by resetting components)\n"));
+    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as they come (by resetting components)\n"));
+    msdk_printf(MSDK_STRING("  -robust:soft  Recover from gpu hang errors by inserting an IDR\n"));
 
     msdk_printf(MSDK_STRING("  -async        Depth of asynchronous pipeline. default value 1\n"));
     msdk_printf(MSDK_STRING("  -join         Join session with other session(s), by default sessions are not joined\n"));
@@ -400,6 +401,7 @@ CmdProcessor::CmdProcessor()
     DumpLogFileName.clear();
     shouldUseGreedyFormula=false;
     bRobustFlag = false;
+    bSoftRobustFlag = false;
 
 } //CmdProcessor::CmdProcessor()
 
@@ -471,6 +473,10 @@ mfxStatus CmdProcessor::ParseCmdLine(int argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-robust")))
         {
             bRobustFlag = true;
+        }
+        else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-robust:soft")))
+        {
+            bSoftRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-?")) )
         {
@@ -1038,7 +1044,9 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     if (m_nTimeout)
         InputParams.nTimeout = m_nTimeout;
     if (bRobustFlag)
-        InputParams.bRobustFlag = bRobustFlag;
+        InputParams.bRobustFlag = true;
+    if (bSoftRobustFlag)
+        InputParams.bSoftRobustFlag = true;
 
     InputParams.shouldUseGreedyFormula = shouldUseGreedyFormula;
 
@@ -1195,6 +1203,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust")))
         {
             InputParams.bRobustFlag = true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust:soft")))
+        {
+            InputParams.bSoftRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-threads")))
         {

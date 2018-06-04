@@ -68,6 +68,8 @@ CDecodingPipeline::CDecodingPipeline()
     m_memType = SYSTEM_MEMORY;
     m_bExternalAlloc = false;
     m_bDecOutSysmem = false;
+    m_bSoftRobustFlag = false;
+
     MSDK_ZERO_MEMORY(m_mfxResponse);
     MSDK_ZERO_MEMORY(m_mfxVppResponse);
 
@@ -220,6 +222,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     m_bOutI420 = pParams->outI420;
 
     m_nTimeout = pParams->nTimeout;
+    m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
     // Initializing file reader
     totalBytesProcessed = 0;
@@ -1571,7 +1574,7 @@ mfxStatus CDecodingPipeline::SyncOutputSurface(mfxU32 wait)
 
     mfxStatus sts = m_mfxSession.SyncOperation(m_pCurrentOutputSurface->syncp, wait);
 
-    if (MFX_ERR_GPU_HANG == sts) {
+    if (MFX_ERR_GPU_HANG == sts && m_bSoftRobustFlag) {
         msdk_printf(MSDK_STRING("GPU hang happened\n"));
         // Output surface can be corrupted
         // But should be delivered to output anyway

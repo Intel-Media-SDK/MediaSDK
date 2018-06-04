@@ -1999,6 +1999,8 @@ mfxStatus CTranscodingPipeline::PutBS()
 {
     mfxStatus       sts = MFX_ERR_NONE;
     ExtendedBS *pBitstreamEx  = m_BSPool.front();
+    MSDK_CHECK_POINTER(pBitstreamEx, MFX_ERR_NULL_PTR);
+
     // get result coded stream, synchronize only if we still have sync point
     if(pBitstreamEx->Syncp)
     {
@@ -2024,7 +2026,8 @@ mfxStatus CTranscodingPipeline::PutBS()
     pBitstreamEx->Bitstream.DataLength = 0;
     pBitstreamEx->Bitstream.DataOffset = 0;
 
-    m_BSPool.pop_front();
+    if (m_BSPool.size())
+        m_BSPool.pop_front();
     m_pBSStore->Release(pBitstreamEx);
 
     return sts;
@@ -3524,6 +3527,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     m_numEncoders = 0;
     m_bUseOverlay = pParams->DecodeId == MFX_CODEC_RGB4 ? true : false;
     m_bRobustFlag = pParams->bRobustFlag;
+    m_bSoftGpuHangRecovery = pParams->bSoftRobustFlag;
     m_nRotationAngle = pParams->nRotationAngle;
     m_sGenericPluginPath = pParams->strVPPPluginDLLPath;
     m_decoderPluginParams = pParams->decoderPluginParams;
@@ -4017,11 +4021,18 @@ void CTranscodingPipeline::SetNumFramesForReset(mfxU32 nFrames)
 
 void CTranscodingPipeline::HandlePossibleGpuHang(mfxStatus & sts)
 {
-    if (sts == MFX_ERR_GPU_HANG && !m_bRobustFlag)
+    if (sts == MFX_ERR_GPU_HANG && m_bSoftGpuHangRecovery)
     {
-        msdk_printf(MSDK_STRING("GPU hang happened\n"));
-        sts = MFX_ERR_NONE;
+        msdk_printf(MSDK_STRING("[WARNING] GPU hang happened. Inserting an IDR and continuing transcoding.\n"));
         m_bInsertIDR = true;
+        for (BSList::iterator it = m_BSPool.begin(); it != m_BSPool.end(); it++)
+        {
+            (*it)->IsFree = true;
+            (*it)->Bitstream.DataOffset = 0;
+            (*it)->Bitstream.DataLength = 0;
+        }
+        m_BSPool.clear();
+        sts = MFX_ERR_NONE;
     }
 }
 
