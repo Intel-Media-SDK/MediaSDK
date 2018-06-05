@@ -48,6 +48,7 @@ CVPPExtBuffersStorage::CVPPExtBuffersStorage(void)
     MSDK_ZERO_MEMORY(deinterlaceFilter);
     MSDK_ZERO_MEMORY(vppFieldProcessingFilter);
     MSDK_ZERO_MEMORY(extDoUse);
+    pExtVPPAuxData = 0;
 }
 
 
