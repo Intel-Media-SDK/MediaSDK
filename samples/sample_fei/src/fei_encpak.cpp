@@ -117,6 +117,7 @@ FEI_EncPakInterface::FEI_EncPakInterface(MFXVideoSession* session, iTaskPool* ta
     , m_pAppConfig(config)
     , m_SyncPoint(0)
     , m_bSingleFieldMode(config->bFieldProcessingMode)
+    , m_pMFXAllocator(NULL)
     , m_pMvPred_in(NULL)
     , m_pENC_MBCtrl_in(NULL)
     , m_pMbQP_in(NULL)
@@ -124,7 +125,6 @@ FEI_EncPakInterface::FEI_EncPakInterface(MFXVideoSession* session, iTaskPool* ta
     , m_pMBstat_out(NULL)
     , m_pMV_out(NULL)
     , m_pMBcode_out(NULL)
-    , m_pMFXAllocator(NULL)
 {
     MSDK_ZERO_MEMORY(m_mfxBS);
     MSDK_ZERO_MEMORY(m_videoParams_ENC);
