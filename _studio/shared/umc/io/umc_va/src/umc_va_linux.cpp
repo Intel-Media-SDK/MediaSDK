@@ -86,6 +86,7 @@ VAEntrypoint umc_to_va_entrypoint(uint32_t umc_entrypoint)
     {
     case UMC::VA_VLD:
     case UMC::VA_VLD | UMC::VA_PROFILE_10:
+    case UMC::VA_VLD | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
         va_entrypoint = VAEntrypointVLD;
         break;
     default:
@@ -146,7 +147,8 @@ VAProfile g_VP9Profiles[] =
 
 VAProfile g_VP910BitsProfiles[] =
 {
-    VAProfileVP9Profile2
+    VAProfileVP9Profile3, // chroma subsampling: 4:2:0, 4:2:2, 4:4:4
+    VAProfileVP9Profile2  // chroma subsampling: 4:2:0
 };
 
 VAProfile g_JPEGProfiles[] =
@@ -179,9 +181,11 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         if (profile < UMC_ARRAY_SIZE(g_VP8Profiles)) va_profile = g_VP8Profiles[profile];
         break;
     case UMC::VA_VP9:
+    case UMC::VA_VP9 | UMC::VA_PROFILE_444:
         if (profile < UMC_ARRAY_SIZE(g_VP9Profiles)) va_profile = g_VP9Profiles[profile];
         break;
     case UMC::VA_VP9 | UMC::VA_PROFILE_10:
+    case UMC::VA_VP9 | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
         if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
         break;
     case UMC::VA_JPEG:

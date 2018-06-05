@@ -77,7 +77,7 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_P210:
     case MFX_FOURCC_AYUV:
-
+    case MFX_FOURCC_Y410:
 
 
         break;
@@ -95,7 +95,7 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
         {
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:
-
+        case MFX_FOURCC_Y410:
 
 
             break;
@@ -181,9 +181,11 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
     case MFX_CODEC_VP9:
-        if (info->FourCC != MFX_FOURCC_NV12 &&
-            info->FourCC != MFX_FOURCC_AYUV &&
-            info->FourCC != MFX_FOURCC_P010)
+        if (info->FourCC != MFX_FOURCC_NV12
+            && info->FourCC != MFX_FOURCC_AYUV
+            && info->FourCC != MFX_FOURCC_P010
+            && info->FourCC != MFX_FOURCC_Y410
+            )
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
     case MFX_CODEC_AVC:
@@ -198,7 +200,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             info->FourCC != MFX_FOURCC_YUY2 &&
             info->FourCC != MFX_FOURCC_P010 &&
             info->FourCC != MFX_FOURCC_NV16 &&
-            info->FourCC != MFX_FOURCC_P210
+            info->FourCC != MFX_FOURCC_P210 &&
+            info->FourCC != MFX_FOURCC_Y410
             )
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
@@ -422,7 +425,7 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
     {
         case MFX_FOURCC_A2RGB10:     MFX_CHECK(data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
-
+        case MFX_FOURCC_Y410:        MFX_CHECK(data.Y410, MFX_ERR_UNDEFINED_BEHAVIOR); break;
         case MFX_FOURCC_P8:
         case MFX_FOURCC_P8_TEXTURE:
         case MFX_FOURCC_R16:         MFX_CHECK(data.Y, MFX_ERR_UNDEFINED_BEHAVIOR); break;
@@ -874,6 +877,7 @@ mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:        return width * 2;
 
+        case MFX_FOURCC_Y410:        return width * 4;
 
     }
 
@@ -901,6 +905,7 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
 
         case MFX_FOURCC_A2RGB10:     return data.B; break;
 
+        case MFX_FOURCC_Y410:        return reinterpret_cast<mfxU8*>(data.Y410); break;
 
 
         default:                     return data.Y;

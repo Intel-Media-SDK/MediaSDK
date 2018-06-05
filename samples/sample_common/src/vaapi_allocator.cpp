@@ -58,6 +58,8 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_P208;
     case MFX_FOURCC_P010:
         return VA_FOURCC_P010;
+    case MFX_FOURCC_Y410:
+        return VA_FOURCC_Y410;
     case MFX_FOURCC_A2RGB10:
         return VA_FOURCC_ARGB;  // rt format will be VA_RT_FORMAT_RGB32_10BPP
 
@@ -168,7 +170,8 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
                        (VA_FOURCC_ARGB   != va_fourcc) &&
                        (VA_FOURCC_RGBP   != va_fourcc) &&
                        (VA_FOURCC_P208   != va_fourcc) &&
-                       (VA_FOURCC_P010   != va_fourcc)))
+                       (VA_FOURCC_P010   != va_fourcc)&&
+                       (VA_FOURCC_Y410   != va_fourcc)))
     {
         msdk_printf(MSDK_STRING("VAAPI Allocator: invalid fourcc is provided (%#X), exitting\n"),va_fourcc);
         return MFX_ERR_MEMORY_ALLOC;
@@ -407,7 +410,7 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         if (vaapi_mid->m_fourcc == MFX_FOURCC_VP8_SEGMAP)
             va_res =  m_libva->vaMapBuffer(m_dpy, *(vaapi_mid->m_surface), (void **)(&pBuffer));
         else
-        va_res =  m_libva->vaMapBuffer(m_dpy, *(vaapi_mid->m_surface), (void **)(&coded_buffer_segment));
+            va_res =  m_libva->vaMapBuffer(m_dpy, *(vaapi_mid->m_surface), (void **)(&coded_buffer_segment));
         mfx_res = va_to_mfx_status(va_res);
         if (MFX_ERR_NONE == mfx_res)
         {
@@ -528,6 +531,18 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                     ptr->Y = pBuffer + vaapi_mid->m_image.offsets[0];
                     ptr->U = pBuffer + vaapi_mid->m_image.offsets[1];
                     ptr->V = ptr->U + 2;
+                }
+                else mfx_res = MFX_ERR_LOCK_MEMORY;
+                break;
+            case VA_FOURCC_Y410:
+                if (mfx_fourcc == MFX_FOURCC_Y410)
+                {
+                    ptr->PitchHigh = (mfxU16)(vaapi_mid->m_image.pitches[0] / (1 << 16));
+                    ptr->PitchLow  = (mfxU16)(vaapi_mid->m_image.pitches[0] % (1 << 16));
+                    ptr->Y410 = (mfxY410 *)(pBuffer + vaapi_mid->m_image.offsets[0]);
+                    ptr->Y = 0;
+                    ptr->V = 0;
+                    ptr->A = 0;
                 }
                 else mfx_res = MFX_ERR_LOCK_MEMORY;
                 break;
