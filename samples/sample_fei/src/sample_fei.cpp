@@ -175,7 +175,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
 
 mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pConfig)
 {
-    const msdk_char* strArgument = MSDK_STRING("");
     msdk_char* stopCharacter;
 
     bool bRefWSizeSpecified = false, bAlrShownHelp = false, bParseDRC = false;
