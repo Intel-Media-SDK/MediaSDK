@@ -224,7 +224,7 @@ VA_X11Proxy::~VA_X11Proxy()
 {}
 
 XLib_Proxy::XLib_Proxy()
-    : lib("libX11.so")
+    : lib("libX11.so.6")
     , SIMPLE_LOADER_FUNCTION(XOpenDisplay)
     , SIMPLE_LOADER_FUNCTION(XCloseDisplay)
     , SIMPLE_LOADER_FUNCTION(XCreateSimpleWindow)
