@@ -60,14 +60,6 @@ mfxStatus H265FeiEncodePlugin::PluginClose()
     return MFX_ERR_NONE;
 }
 
-DriverEncoder* H265FeiEncodePlugin::CreateHWh265Encoder(MFXCoreInterface* core, ENCODER_TYPE type)
-{
-    core;
-    type;
-
-    return new VAAPIh265FeiEncoder;
-}
-
 mfxStatus H265FeiEncodePlugin::GetPluginParam(mfxPluginParam *par)
 {
     MFX_CHECK_NULL_PTR1(par);
