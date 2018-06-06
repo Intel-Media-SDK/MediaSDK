@@ -142,6 +142,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
   list( APPEND sources
     ${prefix}/genx_cht_copy_isa.cpp
     ${prefix}/genx_skl_copy_isa.cpp
+    ${prefix}/genx_icl_copy_isa.cpp
+    ${prefix}/genx_icllp_copy_isa.cpp
+    ${prefix}/genx_cnl_copy_isa.cpp
   )
 endforeach()
 

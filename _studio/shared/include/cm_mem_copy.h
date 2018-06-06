@@ -27,6 +27,10 @@
 #if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
 #include "cht_copy_kernel_genx_isa.h"
 #endif
+#include "cnl_copy_kernel_genx_isa.h"
+#include "icl_copy_kernel_genx_isa.h"
+#include "icllp_copy_kernel_genx_isa.h"
+
 
 #ifdef _MSVC_LANG
 #pragma warning(disable: 4505)
