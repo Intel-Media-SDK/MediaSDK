@@ -511,16 +511,15 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
     // qp offset per pyramid layer, default is library behavior
     pCO3->EnableQPOffset = user_pars.bDisableQPOffset ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN;
 
-    // When height and/or width divided with 8 but not divided with 16
-    // add extended parameter to set real size of coding window.
-    if ((pars.mfx.FrameInfo.CropW & 15) == 8 || (pars.mfx.FrameInfo.CropH & 15) == 8) {
+    // This buffer is a correct way to pass coding window size
+    // (if required, it will be rounded up to 16 or 8 alignment depending on HW (expect warning in such case)).
+    // This code added to sample just to show this possibility. Current implementation of sample will work correctly without this buffer as well.
 
-        mfxExtHEVCParam* pHP = pars.AddExtBuffer<mfxExtHEVCParam>();
-        if (!pHP) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtHEVCParam");
+    mfxExtHEVCParam* pHP = pars.AddExtBuffer<mfxExtHEVCParam>();
+    if (!pHP) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtHEVCParam");
 
-        pHP->PicWidthInLumaSamples  = pars.mfx.FrameInfo.CropW;
-        pHP->PicHeightInLumaSamples = pars.mfx.FrameInfo.CropH;
-    }
+    pHP->PicWidthInLumaSamples  = pars.mfx.FrameInfo.CropX + pars.mfx.FrameInfo.CropW;
+    pHP->PicHeightInLumaSamples = pars.mfx.FrameInfo.CropY + pars.mfx.FrameInfo.CropH;
 
     return pars;
 }
