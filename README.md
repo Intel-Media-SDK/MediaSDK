@@ -16,13 +16,13 @@ You can find answers for the most frequently asked questions [here](https://soft
 
   * [License](#license)
   * [How to contribute](#how-to-contribute)
-  * [Documentation](#Documentation)
+  * [Documentation](#documentation)
   * [Products which use Media SDK](#products-which-use-media-sdk)
   * [System requirements](#system-requirements)
   * [How to build](#how-to-build)
-    * [Requirements](#requirements)
     * [Build steps](#build-steps)
     * [Enabling Instrumentation and Tracing Technology](#enabling-instrumentation-and-tracing-technology)
+  * [Recommendations](#recommendations)
   * [See also](#see-also)
 
 # License
@@ -32,6 +32,8 @@ Intel Media SDK is licensed under MIT license. See [LICENSE](./LICENSE) for deta
 See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
 # Documentation
+
+To get copy of Media SDK documentation use Git* with [LFS](https://git-lfs.github.com/) support.
 
 Please find full documentation under the `doc/` folder. Key documents:
 * [Media SDK Developer Reference](./doc/mediasdk-man.pdf)
@@ -60,28 +62,23 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 Media SDK test and sample applications may require additional software packages (for example, X Server, Wayland, LibDRM, etc.) to be functional.
 
 # How to build
-## Requirements
- - Git* (with [LFS](https://git-lfs.github.com/) support)
- - Cmake* v2.8+
- - GCC* v4.8+
- - [LibVA](https://github.com/intel/libva)
 
 ## Build steps
 
-Get sources:
+Get sources with the following Git* command (pay attention that to get full Media SDK sources bundle it is required to have Git* with [LFS](https://git-lfs.github.com/) support):
 ```sh
 git clone https://github.com/Intel-Media-SDK/MediaSDK msdk
 cd msdk
 ```
 
-Configure and build as follows:
+To configure and build Media SDK install cmake version 2.8.5 or later and run the following commands:
 ```sh
 mkdir build && cd build
 cmake ..
 make
 make install
 ```
-This will build MSDK binaries and MSDK samples. The following cmake configuration options can be used to customize the build:
+Media SDK depends on a number of packages which are identified and checked for the proper version during configuration stage. Please, make sure to install these packages to satisfy Media SDK requirements. After successful configuration 'make' will build Media SDK binaries and samples. The following cmake configuration options can be used to customize the build:
 
 | Option | Values | Description |
 | ------ | ------ | ----------- |
@@ -91,6 +88,10 @@ This will build MSDK binaries and MSDK samples. The following cmake configuratio
 To enable the Instrumentation and Tracing Technology API you need either Intel® VTune™ Amplifier installed or to manually build an open source version. You can get ITT source files from [GitHub](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) and build it on your own.
 
 **Please note** that auto detection of the Intel VTune Amplifier configuration is not supported. The next step is mandatory if you want to use this feature: set `$ITT_PATH` so `$ITT_PATH/include/ittnotify.h` and `$ITT_PATH/libittnotify64.a` will be valid paths. MSDK build system will automatically detect it.
+
+# Recommendations
+
+* In case of GCC compiler it is strongly recommended to use GCC version 6 or later since that's the first GCC version which has non-experimental support of C++11 being used in Media SDK.
 
 # See also
 
