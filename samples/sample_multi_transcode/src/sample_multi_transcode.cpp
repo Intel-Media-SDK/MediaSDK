@@ -539,6 +539,7 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
 
     mfxU16 minAsyncDepth = 0;
     bool bUseExternalAllocator = false;
+    bool bSingleTexture = false;
 
 #if (MFX_VERSION >= 1025)
     bool allMFEModesEqual=true;
@@ -617,6 +618,11 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
             m_InputParamsArray[i].nVppCompSrcW)
         {
             bUseExternalAllocator = true;
+        }
+
+        if (m_InputParamsArray[i].bSingleTexture)
+        {
+            bSingleTexture = true;
         }
 
         // All sessions have to know about timeout
@@ -761,6 +767,24 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
         PrintError(MSDK_STRING("Error: Sink must be defined"));
         return MFX_ERR_UNSUPPORTED;
     }
+
+    if(bSingleTexture)
+    {
+        bool showWarning = false;
+        for (mfxU32 j = 0; j < m_InputParamsArray.size(); j++)
+        {
+            if (!m_InputParamsArray[j].bSingleTexture)
+            {
+                showWarning = true;
+            }
+            m_InputParamsArray[j].bSingleTexture = true;
+        }
+        if (showWarning)
+        {
+            msdk_printf(MSDK_STRING("WARNING: At least one session has -single_texture_d3d11 option, all other sessions are modified to have this setting enabled al well.\n"));
+        }
+    }
+
     return MFX_ERR_NONE;
 
 } // mfxStatus Launcher::VerifyCrossSessionsOptions()

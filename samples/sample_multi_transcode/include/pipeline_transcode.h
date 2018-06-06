@@ -296,6 +296,7 @@ namespace TranscodingSample
         mfxI32  monitorType;
         bool shouldUseGreedyFormula;
         bool enableQSVFF;
+        bool bSingleTexture;
 
         ExtBRCType nExtBRC;
 
