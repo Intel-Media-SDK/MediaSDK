@@ -303,6 +303,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -vpp_comp_dump null_render  Disabling rendering after VPP Composition. This is for performance measurements\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -dec_postproc               Resize after decoder using direct pipe (should be used in decoder session)\n"));
+    msdk_printf(MSDK_STRING("  -single_texture_d3d11       single texture mode for d3d11 allocator \n"));
 #endif //MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("ParFile format:\n"));
@@ -1926,6 +1927,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-qsv-ff")))
         {
             InputParams.enableQSVFF=true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-single_texture_d3d11")))
+        {
+            InputParams.bSingleTexture = true;
         }
 #if (MFX_VERSION >= 1024)
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-extbrc::on")))
