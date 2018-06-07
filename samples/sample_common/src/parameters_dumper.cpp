@@ -1014,3 +1014,24 @@ mfxStatus CParametersDumper::DumpLibraryConfiguration(msdk_string fileName, MFXV
     }
     return MFX_ERR_NONE;
 }
+
+void CParametersDumper::ShowConfigurationDiff(msdk_ostream & str1, msdk_ostream & str2)
+{
+    msdk_stringstream ss1;
+    ss1 << str1.rdbuf();
+    msdk_stringstream ss2;
+    ss2 << str2.rdbuf();
+
+    msdk_string l, r;
+    while (ss1 >> l && ss2 >> r)
+    {
+        if (l != r)
+        {
+            msdk_printf(MSDK_STRING("%s changed to %s \n"), l.c_str(), r.c_str());
+        }
+        else
+        {
+            continue;
+        }
+    }
+}
