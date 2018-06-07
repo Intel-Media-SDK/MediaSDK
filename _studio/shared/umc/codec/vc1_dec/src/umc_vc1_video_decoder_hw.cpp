@@ -231,7 +231,7 @@ bool VC1VideoDecoderHW::InitAlloc(VC1Context* pContext, uint32_t )
         m_stCodes_VA = (MediaDataEx::_MediaDataEx *)malloc(START_CODE_NUMBER * 2 * sizeof(int32_t) + sizeof(MediaDataEx::_MediaDataEx));
         if (m_stCodes_VA == NULL)
             return false;
-        memset(m_stCodes_VA, 0, (START_CODE_NUMBER * 2 * sizeof(int32_t) + sizeof(MediaDataEx::_MediaDataEx)));
+        memset(reinterpret_cast<void*>(m_stCodes_VA), 0, (START_CODE_NUMBER * 2 * sizeof(int32_t) + sizeof(MediaDataEx::_MediaDataEx)));
         m_stCodes_VA->count = 0;
         m_stCodes_VA->index = 0;
         m_stCodes_VA->bstrm_pos = 0;

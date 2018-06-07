@@ -381,7 +381,7 @@ mfxStatus MFXVideoDECODEVC1::Reset(mfxVideoParam *par)
     // buffers setting
     m_FrameConstrData.SetBufferPointer(m_pReadBuffer, m_BufSize);
     m_FrameConstrData.SetDataSize(0);
-    memset(m_pStCodes, 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
+    memset(reinterpret_cast<void*>(m_pStCodes), 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
     m_pStCodes->count      = 0;
     m_pStCodes->index      = 0;
     m_pStCodes->bstrm_pos  = 0;

@@ -126,7 +126,7 @@ namespace MfxHwH264Encode
 
     template<class T> inline T* SecondHalfOf(std::vector<T>& v) { return &v[v.size() / 2]; }
 
-    template<class T> inline void Zero(T & obj)                { memset(&obj, 0, sizeof(obj)); }
+    template<class T> inline void Zero(T & obj)                { memset(reinterpret_cast<void*>(&obj), 0, sizeof(obj)); }
     template<class T> inline void Zero(std::vector<T> & vec)   { if (vec.size() > 0) memset(&vec[0], 0, sizeof(T) * vec.size()); }
     template<class T> inline void Zero(T * first, size_t cnt)  { memset(first, 0, sizeof(T) * cnt); }
 
