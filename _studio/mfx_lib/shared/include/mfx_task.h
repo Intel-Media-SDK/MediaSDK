@@ -121,9 +121,9 @@ struct MFX_TASK
     // these are only in/out dependencies.
 
     // Array of source dependencies
-    const void *(pSrc[MFX_TASK_NUM_DEPENDENCIES]);
+    const void *pSrc[MFX_TASK_NUM_DEPENDENCIES];
     // Array of destination dependencies
-    void *(pDst[MFX_TASK_NUM_DEPENDENCIES]);
+    void *pDst[MFX_TASK_NUM_DEPENDENCIES];
 
     // Task's priority
     mfxPriority priority;
