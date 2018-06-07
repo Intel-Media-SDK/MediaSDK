@@ -284,6 +284,8 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_bIsInterOrJoined = false;
     m_bRobustFlag = false;
     m_nRotationAngle = 0;
+    m_bROIasQPMAP = false;
+    m_bExtMBQP = false;
 } //CTranscodingPipeline::CTranscodingPipeline()
 
 CTranscodingPipeline::~CTranscodingPipeline()
@@ -1592,9 +1594,20 @@ mfxStatus CTranscodingPipeline::Encode()
 } // mfxStatus CTranscodingPipeline::Encode()
 
 #if MFX_VERSION >= 1022
-// Fill MBQP buffer with ROI data
 void CTranscodingPipeline::FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct)
 {
+    // External MBQP case
+    if (m_bExtMBQP)
+    {
+        // Use simplistic approach to fill in QP buffer
+        for (size_t i = 0; i < qpMap.NumQPAlloc; i++)
+        {
+            qpMap.QP[i] = i % 52;
+        }
+        return;
+    }
+
+    // External MBQP with ROI case
     if (pictStruct == MFX_PICSTRUCT_PROGRESSIVE)
     {
         mfxI8 fQP = (m_nSubmittedFramesNum % m_GOPSize) ? (mfxI8)m_QPforP : (mfxI8)m_QPforI;
@@ -2570,7 +2583,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         addCodingOpt3 = true;
     }
 #if MFX_VERSION >= 1022
-    if (pInParams->bROIasQPMAP)
+    if (pInParams->bROIasQPMAP || pInParams->bExtMBQP)
     {
         switch(m_mfxEncParams.mfx.CodecId)
         {
@@ -3551,6 +3564,9 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 
     m_encoderFourCC = pParams->EncoderFourCC;
 
+    m_bExtMBQP = pParams->bExtMBQP;
+    m_bROIasQPMAP = pParams->bROIasQPMAP;
+
 #if MFX_VERSION >= 1022
     m_ROIData = pParams->m_ROIData;
 #endif //MFX_VERSION >= 1022
@@ -3831,6 +3847,11 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
         MSDK_CHECK_STATUS(sts, "m_pmfxENC->Init failed");
 
 #if MFX_VERSION >= 1022
+        if (pParams->bExtMBQP)
+        {
+            m_bUseQPMap = true;
+        }
+
         if(pParams->bROIasQPMAP)
         {
             mfxVideoParam enc_par;

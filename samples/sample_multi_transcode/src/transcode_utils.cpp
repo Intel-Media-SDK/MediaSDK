@@ -256,6 +256,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("                Set Regions of Interest for each frame from <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("  -roi_qpmap    Use QP map to emulate ROI for CQP mode\n"));
+    msdk_printf(MSDK_STRING("  -extmbqp      Use external MBQP map\n"));
 #endif //MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (vpp options):\n"));
@@ -1172,6 +1173,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-roi_qpmap")))
         {
             InputParams.bROIasQPMAP = true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-extmbqp")))
+        {
+            InputParams.bExtMBQP = true;
         }
 #endif //MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-sw")))
