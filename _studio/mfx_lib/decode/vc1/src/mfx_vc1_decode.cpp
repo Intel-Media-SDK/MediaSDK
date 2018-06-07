@@ -316,7 +316,7 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
         return MFX_ERR_MEMORY_ALLOC;
 
     m_pStCodes = (UMC::MediaDataEx::_MediaDataEx*)(m_MemoryAllocator.Lock(m_stCodesID));
-    memset(m_pStCodes, 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
+    memset(reinterpret_cast<void*>(m_pStCodes), 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
     m_pStCodes->count      = 0;
     m_pStCodes->index      = 0;
     m_pStCodes->bstrm_pos  = 0;

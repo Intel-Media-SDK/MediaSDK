@@ -158,7 +158,7 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
     // discarded when read again here.
     try
     {
-        memset(&m_SliceHeader, 0, sizeof(m_SliceHeader));
+        memset(reinterpret_cast<void*>(&m_SliceHeader), 0, sizeof(m_SliceHeader));
 
         umcRes = m_BitStream.GetNALUnitType(m_SliceHeader.nal_unit_type,
                                             m_SliceHeader.nuh_temporal_id);
