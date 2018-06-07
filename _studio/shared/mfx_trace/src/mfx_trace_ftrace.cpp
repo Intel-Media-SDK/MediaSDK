@@ -79,7 +79,7 @@ namespace
     // not thread-safe
     const char *get_tracing_file(const char *file_name)
     {
-        snprintf(trace_file_name, MAX_PATH, "%s/%s", get_debugfs_prefix(), file_name);
+        snprintf(trace_file_name, MAX_PATH, "%.160s/%.96s", get_debugfs_prefix(), file_name);
         return trace_file_name;
     }
 
