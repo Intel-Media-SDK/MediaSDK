@@ -85,7 +85,7 @@ int32_t H265Slice::RetrievePicParamSetNumber()
     if (!m_source.GetDataSize())
         return -1;
 
-    memset(&m_SliceHeader, 0, sizeof(m_SliceHeader));
+    memset(reinterpret_cast<void*>(&m_SliceHeader), 0, sizeof(m_SliceHeader));
     m_BitStream.Reset((uint8_t *) m_source.GetPointer(), (uint32_t) m_source.GetDataSize());
 
     UMC::Status umcRes = UMC::UMC_OK;

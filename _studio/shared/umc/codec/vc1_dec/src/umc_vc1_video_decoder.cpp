@@ -346,7 +346,7 @@ Status VC1VideoDecoder::ContextAllocation(uint32_t mbWidth,uint32_t mbHeight)
             m_stCodes = (MediaDataEx::_MediaDataEx *)(ptr);
 
 
-            memset(m_stCodes, 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(MediaDataEx::_MediaDataEx)));
+            memset(reinterpret_cast<void*>(m_stCodes), 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(MediaDataEx::_MediaDataEx)));
             m_stCodes->count      = 0;
             m_stCodes->index      = 0;
             m_stCodes->bstrm_pos  = 0;
