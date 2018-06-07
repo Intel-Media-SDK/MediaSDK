@@ -81,7 +81,7 @@ mfxStatus CEncodingPipeline::Init()
 
         if (m_inParams.bEncodedOrder)
         {
-            MfxVideoParamsWrapper param = GetEncodeParams(m_inParams, frameInfo);
+            MfxVideoParamsWrapper param = GetEncodeParams(m_inParams, frameInfo, PIPELINE_COMPONENT::ENCODE);
 
             sts = m_pParamChecker->Query(param);
             MSDK_CHECK_STATUS(sts, "m_pParamChecker->Query failed");
@@ -445,7 +445,7 @@ mfxStatus CEncodingPipeline::DrainBufferedFrames()
 
 // Function generates common mfxVideoParam ENCODE
 // from user cmd line parameters and frame info from upstream component in pipeline.
-MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi)
+MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi, PIPELINE_COMPONENT component)
 {
     MfxVideoParamsWrapper pars;
 
@@ -481,7 +481,7 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
     // configure B-pyramid settings
     pCO2->BRefType = user_pars.BRefType;
 
-    if (user_pars.bExtBRC) {
+    if (user_pars.bExtBRC && component == PIPELINE_COMPONENT::ENCODE) {
         // This is for explicit extbrc only. In case of implicit (built-into-library) version - we don't need this extension buffer
         mfxExtBRC* pBrc = pars.AddExtBuffer<mfxExtBRC>();
         if (!pBrc) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtBRC");
@@ -511,16 +511,16 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
     // qp offset per pyramid layer, default is library behavior
     pCO3->EnableQPOffset = user_pars.bDisableQPOffset ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN;
 
-    // This buffer is a correct way to pass coding window size
+    // This buffer is a correct way to pass coding window size to HEVC encoder
     // (if required, it will be rounded up to 16 or 8 alignment depending on HW (expect warning in such case)).
     // This code added to sample just to show this possibility. Current implementation of sample will work correctly without this buffer as well.
+    if (component == PIPELINE_COMPONENT::ENCODE) {
+        mfxExtHEVCParam* pHP = pars.AddExtBuffer<mfxExtHEVCParam>();
+        if (!pHP) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtHEVCParam");
 
-    mfxExtHEVCParam* pHP = pars.AddExtBuffer<mfxExtHEVCParam>();
-    if (!pHP) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtHEVCParam");
-
-    pHP->PicWidthInLumaSamples  = pars.mfx.FrameInfo.CropX + pars.mfx.FrameInfo.CropW;
-    pHP->PicHeightInLumaSamples = pars.mfx.FrameInfo.CropY + pars.mfx.FrameInfo.CropH;
-
+        pHP->PicWidthInLumaSamples  = pars.mfx.FrameInfo.CropX + pars.mfx.FrameInfo.CropW;
+        pHP->PicHeightInLumaSamples = pars.mfx.FrameInfo.CropY + pars.mfx.FrameInfo.CropH;
+    }
     return pars;
 }
 
@@ -560,7 +560,7 @@ IPreENC* CEncodingPipeline::CreatePreENC(mfxFrameInfo& in_fi)
     if (!m_inParams.bPREENC && (0 == msdk_strlen(m_inParams.mvpInFile) || !m_inParams.bFormattedMVPin))
         return NULL;
 
-    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi);
+    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi, PIPELINE_COMPONENT::PREENC);
 
     mfxStatus sts = m_pParamChecker->Query(pars);
     CHECK_STS_AND_RETURN(sts, "m_pParamChecker->Query failed", NULL);
@@ -606,7 +606,7 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     sts = LoadFEIPlugin();
     CHECK_STS_AND_RETURN(sts, "LoadFEIPlugin failed", NULL);
 
-    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi);
+    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi, PIPELINE_COMPONENT::ENCODE);
     sts = m_pParamChecker->Query(pars);
     CHECK_STS_AND_RETURN(sts, "m_pParamChecker->Query failed", NULL);
 

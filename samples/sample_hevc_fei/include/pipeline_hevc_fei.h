@@ -83,6 +83,11 @@ private:
     DISALLOW_COPY_AND_ASSIGN(CEncodingPipeline);
 };
 
-MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi);
+enum PIPELINE_COMPONENT {
+    PREENC,
+    ENCODE
+};
+
+MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi, PIPELINE_COMPONENT component);
 
 #endif // __PIPELINE_FEI_H__
