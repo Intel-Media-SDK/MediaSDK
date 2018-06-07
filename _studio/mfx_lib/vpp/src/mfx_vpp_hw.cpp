@@ -2145,7 +2145,7 @@ mfxStatus  VideoVPPHW::Init(
         {
             m_ddi = new VPPHWResMng();
         }
-        catch(std::bad_alloc)
+        catch(std::bad_alloc&)
         {
             return MFX_WRN_PARTIAL_ACCELERATION;
         }

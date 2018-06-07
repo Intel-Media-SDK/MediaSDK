@@ -573,7 +573,7 @@ UMC::Status HeadersAnalyzer::ProcessNalUnit(UMC::MediaData * data)
                     return UMC::UMC_OK;
                 }
             }
-            catch(h265_exception ex)
+            catch(h265_exception& ex)
             {
                 if (ex.GetStatus() != UMC::UMC_ERR_UNSUPPORTED)
                 {
