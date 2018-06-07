@@ -267,7 +267,7 @@ MFXPluginsInFS::MFXPluginsInFS(mfxVersion currentAPIVersion)
             PluginDescriptionRecord descriptionRecord;
             descriptionRecord.onlyVersionRegistered = true;
             char cfgName[MAX_PLUGIN_PATH];
-            snprintf(cfgName, sizeof(cfgName), "%s/%s/%s", selfName, namelist[i]->d_name, pluginCfgFileName);
+            snprintf(cfgName, sizeof(cfgName), "%.512s/%.512s/%s", selfName, namelist[i]->d_name, pluginCfgFileName);
             if ( strlen(selfName) + strlen("/") + strlen(namelist[i]->d_name) >= MAX_PLUGIN_PATH)
             {
                 TRACE_HIVE_ERROR("buffer of MAX_PLUGIN_PATH characters which is %d, not enough to store plugin directory path: %s/%s\n",
