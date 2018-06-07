@@ -30,7 +30,7 @@ namespace UMC
 
 void Trace(vm_char const* format, ...)
 {
-    va_list(arglist);
+    va_list arglist;
     va_start(arglist, format);
 
     vm_char cStr[256];

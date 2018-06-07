@@ -462,7 +462,7 @@ void mfxSchedulerCore::ScrubCompletedTasks(bool bComprehensive)
 void mfxSchedulerCore::RegisterTaskDependencies(MFX_SCHEDULER_TASK  *pTask)
 {
     mfxU32 i, tableIdx, remainInputs;
-    const void *(pSrcCopy[MFX_TASK_NUM_DEPENDENCIES]);
+    const void *pSrcCopy[MFX_TASK_NUM_DEPENDENCIES];
     mfxStatus taskRes = MFX_WRN_IN_EXECUTION;
 
     //
