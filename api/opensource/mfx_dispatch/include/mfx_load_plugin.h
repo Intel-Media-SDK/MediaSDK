@@ -51,7 +51,7 @@ namespace MFX
             PluginModule module;
             mfxPlugin plugin;
             FactoryRecord ()
-                : plugin()
+                : plgParams(), plugin()
             {}
             FactoryRecord(const mfxPluginParam &plgParams,
                           PluginModule &module,
