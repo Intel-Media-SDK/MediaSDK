@@ -537,10 +537,24 @@ mfxStatus CTranscodingPipeline::EncodePreInit(sInputParams *pParams)
 
             // Querying parameters
             mfxU16 ioPattern = m_mfxEncParams.IOPattern;
+
+            msdk_stringstream str1, str2;
+            CParametersDumper().SerializeVideoParamStruct(str1, MSDK_STRING(""), m_mfxEncParams);
+
             sts = m_pmfxENC->Query(&m_mfxEncParams, &m_mfxEncParams);
+
+            CParametersDumper().SerializeVideoParamStruct(str2, MSDK_STRING(""), m_mfxEncParams);
+
             m_mfxEncParams.IOPattern=ioPattern; // Workaround for a problem: Query changes IOPattern incorrectly
 
-            MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
+            {
+                msdk_printf(MSDK_STRING("[WARNING] Configuration changed on the Query() call\n"));
+
+                CParametersDumper().ShowConfigurationDiff(str1, str2);
+                MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+            }
+
             MSDK_CHECK_STATUS(sts, "m_pmfxENC->Query failed");
         }
         else
