@@ -1647,7 +1647,16 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
                                *outputSurface);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        outputparam         = m_pipelineParam[0];
+        //Need not set outputparam to m_pipelineParam[0], it is enough to initialized outputparam to tilingParams
+        //This condition only for using different transformation matrix
+        if (pParams->VideoSignalInfo[currTile].enabled)
+        {
+            if(pParams->VideoSignalInfo[currTile].TransferMatrix != MFX_TRANSFERMATRIX_UNKNOWN)
+            {
+                outputparam.pipeline_flags = m_pipelineParam[0].pipeline_flags;
+            }
+        }
+
         outputparam.surface = *outputSurface;
         // The targerRect.width and targerRect.height here actually storing the x2 and y2
         // value. Deduct x and y respectively to get the exact targerRect.width and
