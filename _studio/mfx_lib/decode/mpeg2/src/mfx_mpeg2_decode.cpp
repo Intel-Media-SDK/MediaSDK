@@ -348,6 +348,7 @@ static
 bool GetPicInfo(PicInfo& picInfo, const mfxU8* begin, const mfxU8* end)
 {
     const mfxU8* p = begin - 4;
+find_pic_head:
     do {
         p = FindAnyStartCode(p + 4, end);
         if (p + 5 >= end)
@@ -357,12 +358,20 @@ bool GetPicInfo(PicInfo& picInfo, const mfxU8* begin, const mfxU8* end)
     } while (p[3] != ePIC);
     picInfo.temporal_reference = p[4] << 2 | p[5] >> 6;
     picInfo.picture_type = p[5] >> 3 & 7;
+    if (picInfo.picture_type == 0 || picInfo.picture_type > 3)
+        goto find_pic_head; // invalid data in picture header, find another
+
     p = FindAnyStartCode(p + 4, end);
     if (p + 7 >= end)
-        return true; // ok without picture coding extension
-    if (p[3] != eEXT || p[4] >> 4 != 8)
-        return false; // must be picture coding ext, stream error
+        return false; // need pic.struct from picture coding extension
+    if (p[3] != eEXT || p[4] >> 4 != 8) {
+        p -= 4; // must be picture coding ext, stream error. -=4 to process the header again
+        goto find_pic_head;
+    }
     picInfo.picture_structure = p[6] & 3;
+    if (picInfo.picture_structure == 0)
+        goto find_pic_head; // invalid pic.ext, find next pic.header
+
     picInfo.top_ff = ((p[7] & 0x80) != 0);
     picInfo.repeat_ff = ((p[7] & 2) != 0);
     picInfo.first_polarity = (picInfo.picture_structure == 3) ? (picInfo.top_ff ? 1 : 2) : picInfo.picture_structure;
@@ -2109,6 +2118,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrame(mfxBitstream *in, mfxBits
             out->DataOffset = 0;
             memset(m_last_bytes, 0, NUM_REST_BYTES);
             ResetFcState(m_fcState);
+            m_found_SH = false; // to parse and verify next SeqH
         }
     } while (MFX_ERR_NOT_ENOUGH_BUFFER == sts);
 
