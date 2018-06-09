@@ -112,10 +112,12 @@ enum {
     MFX_FOURCC_AYUV         = MFX_MAKEFOURCC('A','Y','U','V'),   /* YUV 4:4:4, AYUV in that order, A channel is 8 MSBs */
     MFX_FOURCC_AYUV_RGB4    = MFX_MAKEFOURCC('A','V','U','Y'),   /* ARGB in that order, A channel is 8 MSBs stored in AYUV surface*/
     MFX_FOURCC_UYVY         = MFX_MAKEFOURCC('U','Y','V','Y'),
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
     MFX_FOURCC_Y210         = MFX_MAKEFOURCC('Y','2','1','0'),
-    MFX_FOURCC_Y216         = MFX_MAKEFOURCC('Y','2','1','6'),
     MFX_FOURCC_Y410         = MFX_MAKEFOURCC('Y','4','1','0'),
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_FOURCC_Y216         = MFX_MAKEFOURCC('Y','2','1','6'),
     MFX_FOURCC_Y416         = MFX_MAKEFOURCC('Y','4','1','6'),
 #endif
 };
@@ -174,8 +176,7 @@ enum {
     MFX_CORRUPTION_REFERENCE_LIST  = 0x0020
 };
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
+#if (MFX_VERSION >= 1027)
 #pragma pack(push, 4)
 typedef struct
 {
@@ -235,7 +236,7 @@ typedef struct {
         mfxU8   *U;
         mfxU16  *U16;
         mfxU8   *G;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
         mfxY410 *Y410;          /* for.U format (merged AVYU) */
 #endif
     };
@@ -762,7 +763,7 @@ typedef struct {
 #else
     mfxU16      reserved7;
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
     mfxU16      TargetChromaFormatPlus1;   /* Minus 1 specifies target encoding chroma format (see ColorFormat enum). May differ from input one. */
     mfxU16      TargetBitDepthLuma;        /* Target encoding bit depth for luma samples. May differ from input one. */
     mfxU16      TargetBitDepthChroma;      /* Target encoding bit depth for chroma samples. May differ from input one. */
@@ -867,7 +868,6 @@ enum {
     MFX_EXTBUFF_TIME_CODE                       = MFX_MAKEFOURCC('T','M','C','D'),
     MFX_EXTBUFF_HEVC_REGION                     = MFX_MAKEFOURCC('2','6','5','R'),
     MFX_EXTBUFF_PRED_WEIGHT_TABLE               = MFX_MAKEFOURCC('E','P','W','T'),
-    MFX_EXTBUFF_AVC_ROUNDING_OFFSET             = MFX_MAKEFOURCC('R','N','D','O'),
     MFX_EXTBUFF_DIRTY_RECTANGLES                = MFX_MAKEFOURCC('D','R','O','I'),
     MFX_EXTBUFF_MOVING_RECTANGLES               = MFX_MAKEFOURCC('M','R','O','I'),
     MFX_EXTBUFF_CODING_OPTION_VPS               = MFX_MAKEFOURCC('C','O','V','P'),
@@ -894,6 +894,9 @@ enum {
     MFX_EXTBUFF_VP9_SEGMENTATION                = MFX_MAKEFOURCC('9', 'S', 'E', 'G'),
     MFX_EXTBUFF_VP9_TEMPORAL_LAYERS             = MFX_MAKEFOURCC('9', 'T', 'M', 'L'),
     MFX_EXTBUFF_VP9_PARAM                       = MFX_MAKEFOURCC('9', 'P', 'A', 'R'),
+#endif
+#if (MFX_VERSION >= 1027)
+    MFX_EXTBUFF_AVC_ROUNDING_OFFSET             = MFX_MAKEFOURCC('R','N','D','O'),
 #endif
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     MFX_EXTBUFF_DPB                             = MFX_MAKEFOURCC('E','D','P','B'),
@@ -1723,6 +1726,7 @@ typedef struct {
     mfxU16       reserved[58];
 } mfxExtPredWeightTable;
 
+#if (MFX_VERSION >= 1027)
 typedef struct {
     mfxExtBuffer Header;
 
@@ -1733,6 +1737,7 @@ typedef struct {
 
     mfxU16       reserved[24];
 } mfxExtAVCRoundingOffset;
+#endif
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
 
