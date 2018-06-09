@@ -26,7 +26,7 @@ extern "C"
 {
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
 
 typedef struct {
     mfxExtBuffer Header;

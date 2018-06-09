@@ -139,7 +139,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
 #if (MFX_VERSION >= 1024)
     msdk_printf(MSDK_STRING("   [-extbrc:<on,off,implicit>] - External BRC for AVC and HEVC encoders"));
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     msdk_printf(MSDK_STRING("   [-ExtBrcAdaptiveLTR:<on,off>] - Set AdaptiveLTR for implicit extbrc"));
 #endif
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
@@ -674,7 +674,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->nExtBRC = EXTBRC_IMPLICIT;
         }
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ExtBrcAdaptiveLTR:on")))
         {
             pParams->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_ON;

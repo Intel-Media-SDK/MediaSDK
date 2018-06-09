@@ -36,7 +36,7 @@
 #include "mfxla.h"
 #include "mfxsc.h"
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
 #include "mfxfeihevc.h"
 #endif
 

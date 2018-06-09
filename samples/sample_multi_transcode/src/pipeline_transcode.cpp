@@ -2582,7 +2582,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_CodingOption3.WeightedBiPred = pInParams->WeightedBiPred;
         addCodingOpt3 = true;
     }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     if (pInParams->ExtBrcAdaptiveLTR)
     {
         m_CodingOption3.ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
