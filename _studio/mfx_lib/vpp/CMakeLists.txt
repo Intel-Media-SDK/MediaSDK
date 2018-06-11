@@ -31,7 +31,7 @@ include_directories( ${MSDK_LIB_ROOT}/mctf_package/mctf/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/mctf/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 set( sources "" )
 set( sources.plus "" )
 file( GLOB_RECURSE srcs "src/*.c" "src/*.cpp" )

@@ -145,17 +145,17 @@ function( make_static_library name )
   set_target_properties( ${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER ${target} )
 endfunction( )
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 make_static_library( mfx )
 
-set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX ${WARNING_FLAGS}" )
+set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX" )
 make_static_library( dispatch_shared )
 
 list(APPEND sources.plus
   ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_dispatcher_log.cpp
   )
 
-set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG ${WARNING_FLAGS}" )
+set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG" )
 make_static_library( dispatch_trace )
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
