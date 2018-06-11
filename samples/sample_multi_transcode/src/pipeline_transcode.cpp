@@ -1699,7 +1699,7 @@ void CTranscodingPipeline::SetEncCtrlRT(ExtendedSurface& extSurface, bool bInser
             m_bufExtMBQP[keyId].Header.BufferId = MFX_EXTBUFF_MBQP;
             m_bufExtMBQP[keyId].Header.BufferSz = sizeof(mfxExtMBQP);
             m_bufExtMBQP[keyId].NumQPAlloc = m_QPmapWidth*m_QPmapHeight;
-            m_bufExtMBQP[keyId].QP = m_QPmapWidth*m_QPmapHeight ? &(m_qpMapStorage[keyId][0]) : NULL;
+            m_bufExtMBQP[keyId].QP = m_QPmapWidth && m_QPmapHeight ? &(m_qpMapStorage[keyId][0]) : NULL;
         }
 
         // Initialize *pCtrl optionally copying content of the pExtSurface.pAuxCtrl.encCtrl
@@ -2362,7 +2362,7 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
         ConvertFrameRate(pInParams->dDecoderFrameRateOverride, &m_mfxDecParams.mfx.FrameInfo.FrameRateExtN, &m_mfxDecParams.mfx.FrameInfo.FrameRateExtD);
     }
     // if frame rate not specified and input stream header doesn't contain valid values use default (30.0)
-    else if (!(m_mfxDecParams.mfx.FrameInfo.FrameRateExtN * m_mfxDecParams.mfx.FrameInfo.FrameRateExtD))
+    else if (0 == (m_mfxDecParams.mfx.FrameInfo.FrameRateExtN * m_mfxDecParams.mfx.FrameInfo.FrameRateExtD))
     {
         m_mfxDecParams.mfx.FrameInfo.FrameRateExtN = 30;
         m_mfxDecParams.mfx.FrameInfo.FrameRateExtD = 1;
