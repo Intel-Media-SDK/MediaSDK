@@ -474,7 +474,7 @@ msdk_char* ParseArgn(msdk_char* pIn, mfxU32 argn, msdk_char separator) {
 };
 
 template <typename T> 
-void ArgConvert(msdk_char* pIn, mfxU32 argn, msdk_char* pattern, T* pArg, T ArgDefault, mfxU32& NumOfGoodConverts) {
+void ArgConvert(msdk_char* pIn, mfxU32 argn, const msdk_char* pattern, T* pArg, T ArgDefault, mfxU32& NumOfGoodConverts) {
     msdk_char* pargs = ParseArgn(pIn, argn, msdk_char(':'));
     if (pargs) {
         if (!msdk_sscanf(pargs, pattern, pArg))
