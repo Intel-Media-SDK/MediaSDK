@@ -35,8 +35,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <string.h>
 
-char CARD_N[3] = {0};
-char CARD[7] = {0};
+char CARD_N[16] = {0};
+char CARD[32] = {0};
 
 int path_gen(char* pdst, size_t sz, const char delim, const char* a, const char* b, const char* c)
 {
