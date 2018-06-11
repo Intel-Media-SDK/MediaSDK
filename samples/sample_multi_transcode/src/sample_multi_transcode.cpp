@@ -609,7 +609,7 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
 
         // Any plugin or static frame alpha blending
         // CPU rotate plugin works with opaq frames in native mode
-        if (m_InputParamsArray[i].nRotationAngle && m_InputParamsArray[i].eMode != Native ||
+        if ((m_InputParamsArray[i].nRotationAngle && m_InputParamsArray[i].eMode != Native) ||
             m_InputParamsArray[i].bOpenCL ||
             m_InputParamsArray[i].EncoderFourCC ||
             m_InputParamsArray[i].DecoderFourCC ||

@@ -147,6 +147,8 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_pmfxBS(NULL),
     m_pMFXAllocator(NULL),
     m_hdl(NULL),
+    m_encoderFourCC(0),
+    m_vppCompDumpRenderMode(0),
     m_hwdev4Rendering(NULL),
     m_EncSurfaceType(0),
     m_DecSurfaceType(0),
@@ -167,17 +169,15 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_pParentPipeline(NULL),
     m_bIsInit(false),
     m_NumFramesForReset(0),
+    isHEVCSW(false),
+    m_bInsertIDR(false),
     m_FrameNumberPreference(0xFFFFFFFF),
     m_MaxFramesForTranscode(0xFFFFFFFF),
     m_pBSProcessor(NULL),
     m_nReqFrameTime(0),
     m_nOutputFramesNum(0),
     shouldUseGreedyFormula(false),
-    isHEVCSW(false),
-    m_bInsertIDR(false),
-    m_vppCompDumpRenderMode(0),
-    m_nRotationAngle(0),
-    m_encoderFourCC(0)
+    m_nRotationAngle(0)
 {
     MSDK_ZERO_MEMORY(m_mfxDecParams);
     MSDK_ZERO_MEMORY(m_mfxVppParams);
@@ -1149,7 +1149,7 @@ mfxStatus CTranscodingPipeline::Decode()
         // If there was PreENC plugin in the pipeline - synchronize, because
         // plugin will output data to the extended buffers and mediasdk can't
         // track such dependency on its own.
-        if (!m_bIsJoinSession && m_pParentPipeline || m_pmfxPreENC.get())
+        if ((!m_bIsJoinSession && m_pParentPipeline) || m_pmfxPreENC.get())
         {
             MFX_ITT_TASK("SyncOperation");
             sts = m_pmfxSession->SyncOperation(PreEncExtSurface.Syncp, MSDK_WAIT_INTERVAL);
