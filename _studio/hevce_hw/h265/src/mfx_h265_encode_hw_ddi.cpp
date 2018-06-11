@@ -253,7 +253,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
     if (core.GetCoreParam(&coreParams))
        return  MFX_ERR_UNSUPPORTED;
 
-    if (!task.m_bCUQPMap || ((coreParams.Impl & 0xF00) == MFX_HW_VAAPI))
+    if (!task.m_bCUQPMap || ((coreParams.Impl & 0xF00) == MFX_IMPL_VIA_VAAPI))
         return MFX_ERR_NONE;
 
     mfxExtMBQP *mbqp = ExtBuffer::Get(task.m_ctrl);
