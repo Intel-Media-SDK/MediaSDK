@@ -22,7 +22,7 @@ include_directories (
 list( APPEND LIBS_VARIANT sample_common )
 
 set(DEPENDENCIES ${skipping} itt libmfx dl pthread)
-set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
+set( defs "${API_FLAGS}" )
 make_executable( shortname universal "nosafestring" )
 
 install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )

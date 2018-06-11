@@ -80,7 +80,7 @@ endforeach()
 
 set( defs "-DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVCE_HW_PRODUCT_NAME}\"\\\" -DMFX_FILE_DESCRIPTION=\"\\\"${HEVCE_HW_DESCRIPTION}\"\\\" ${HEVCE_HW_version_defs}" )
 
-set( defs " -DAS_HEVCE_PLUGIN ${WARNING_FLAGS} ${defs}" )
+set( defs " -DAS_HEVCE_PLUGIN ${defs}" )
 make_library( mfx_hevce_lib hw static )
 
 set( defs "" )
@@ -118,7 +118,7 @@ set( defs "-DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_FEI_HW_PRODUCT_NAME}\"\\\" -DM
 
 gen_plugins_cfg("HEVC_Encoder_HW" ${HEVC_FEI_Encoder_HW_GUID} "mfx_hevc_fei_hw64" "02" "HEVC")
 
-set( defs " -DAS_HEVCE_PLUGIN -DAS_HEVC_FEI_ENCODE_PLUGIN ${WARNING_FLAGS} ${defs}" )
+set( defs " -DAS_HEVCE_PLUGIN -DAS_HEVC_FEI_ENCODE_PLUGIN ${defs}" )
 make_library( mfx_hevc_fei_hw64 hw shared )
 msdk_install( mfx_hevc_fei_hw64 ${MFX_PLUGINS_DIR} )
 set( defs "" )
