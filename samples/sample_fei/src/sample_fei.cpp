@@ -1516,7 +1516,7 @@ mfxStatus CheckDRCParams(AppConfig* pConfig)
 
     for (mfxU32 i = 0; i < pConfig->DRCqueue.size(); ++i)
     {
-        if (!(pConfig->DRCqueue[i].target_w * pConfig->DRCqueue[i].target_w))
+        if (0 == (pConfig->DRCqueue[i].target_w * pConfig->DRCqueue[i].target_w))
         {
             fprintf(stderr, "ERROR: Incomplete DRC parameters for frame %d\n", pConfig->DRCqueue[i].start_frame);
             return MFX_ERR_UNSUPPORTED;
