@@ -9,7 +9,7 @@ if(VA_HEVC_FEI MATCHES NOTFOUND)
   set(skipping _force_skipping)
 endif()
 
-if(NOT API_USE_LATEST)
+if(API_VERSION VERSION_LESS "1.27")
   set(skipping _force_skipping)
 endif()
 
