@@ -236,7 +236,6 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/genx_bdw_simple_me_isa.cpp
     ${prefix}/genx_skl_simple_me_isa.cpp
     ${prefix}/genx_hsw_simple_me_proto.cpp
-    ${prefix}/genx_hsw_histogram_isa.cpp
     ${prefix}/genx_skl_histogram_isa.cpp
   )
   list( APPEND sources
