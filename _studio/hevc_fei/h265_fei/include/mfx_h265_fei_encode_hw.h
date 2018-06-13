@@ -43,27 +43,27 @@ public:
         Close();
     }
 
-    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(MFXCoreInterface* core, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT)
+    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(MFXCoreInterface* /*core*/, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT) override
     {
-        core;
         type;
 
         return new VAAPIh265FeiEncoder;
     }
 
-    virtual mfxStatus Reset(mfxVideoParam *par)
+    virtual mfxStatus Reset(mfxVideoParam *par) override
     {
         // waiting for submitted in driver tasks
         // This Sync is required to guarantee correct encoding of Async tasks in case of dynamic CTU QP change
-        MFX_CHECK_STS(WaitingForAsyncTasks(true));
+        mfxStatus sts = WaitingForAsyncTasks(true);
+        MFX_CHECK_STS(sts);
 
         // Call base Reset()
         return MfxHwH265Encode::MFXVideoENCODEH265_HW::Reset(par);
     }
 
-    virtual mfxStatus ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs);
+    virtual mfxStatus ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs) override;
 
-    virtual mfxStatus ExtraCheckVideoParam(MfxHwH265Encode::MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false)
+    virtual mfxStatus ExtraCheckVideoParam(MfxHwH265Encode::MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false) override
     {
         // HEVC FEI Encoder uses own controls to switch on LCU QP buffer
         if (MfxHwH265Encode::IsOn(m_vpar.m_ext.CO3.EnableMBQP))
@@ -75,7 +75,8 @@ public:
 
         return MFX_ERR_NONE;
     }
-    virtual void ExtraTaskPreparation(MfxHwH265Encode::Task& task)
+
+    virtual void ExtraTaskPreparation(MfxHwH265Encode::Task& task) override
     {
         mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl = reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
 
@@ -98,6 +99,7 @@ public:
             }
         }
     }
+
     void SoftReset(MfxHwH265Encode::Task& task)
     {
         m_vpar.m_pps.cu_qp_delta_enabled_flag = 1 - m_vpar.m_pps.cu_qp_delta_enabled_flag;
@@ -145,22 +147,22 @@ public:
         return MFX_ERR_NONE;
     }
 
-    virtual mfxStatus PluginInit(mfxCoreInterface *core);
-    virtual mfxStatus PluginClose();
+    virtual mfxStatus PluginInit(mfxCoreInterface *core) override;
+    virtual mfxStatus PluginClose() override;
 
-    virtual mfxStatus GetPluginParam(mfxPluginParam *par);
+    virtual mfxStatus GetPluginParam(mfxPluginParam *par) override;
 
     virtual mfxU32 GetPluginType()
     {
         return MFX_PLUGINTYPE_VIDEO_ENCODE;
     }
 
-    virtual void Release()
+    virtual void Release() override
     {
         delete this;
     }
 
-    virtual mfxStatus Close()
+    virtual mfxStatus Close() override
     {
         if (m_pImpl.get())
             return m_pImpl->Close();
@@ -168,7 +170,7 @@ public:
             return MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a)
+    virtual mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a) override
     {
         if (m_pImpl.get())
             return H265FeiEncode_HW::Execute((reinterpret_cast<void*>(m_pImpl.get())), task, uid_p, uid_a);
@@ -176,21 +178,22 @@ public:
             return MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus FreeResources(mfxThreadTask /*task*/, mfxStatus /*sts*/)
+    virtual mfxStatus FreeResources(mfxThreadTask /*task*/, mfxStatus /*sts*/) override
     {
         return MFX_ERR_NONE;
     }
 
-    virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *in, mfxFrameAllocRequest * /*out*/)
+    virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *in, mfxFrameAllocRequest * /*out*/) override
     {
         return H265FeiEncode_HW::QueryIOSurf(&m_core, par, in);
     }
-    virtual mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out)
+
+    virtual mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out) override
     {
         return H265FeiEncode_HW::Query(&m_core, in, out);
     }
 
-    virtual mfxStatus Init(mfxVideoParam *par)
+    virtual mfxStatus Init(mfxVideoParam *par) override
     {
         mfxStatus sts;
         m_pImpl.reset(new H265FeiEncode_HW(&m_core, &sts));
@@ -198,7 +201,7 @@ public:
         return m_pImpl->Init(par);
     }
 
-    virtual mfxStatus Reset(mfxVideoParam *par)
+    virtual mfxStatus Reset(mfxVideoParam *par) override
     {
         if (m_pImpl.get())
             return m_pImpl->Reset(par);
@@ -206,7 +209,7 @@ public:
             return MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par)
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) override
     {
         if (m_pImpl.get())
             return m_pImpl->GetVideoParam(par);
@@ -214,7 +217,7 @@ public:
             return MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxThreadTask *task)
+    virtual mfxStatus EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxThreadTask *task) override
     {
         if (m_pImpl.get())
             return m_pImpl->EncodeFrameSubmit(ctrl, surface, bs, task);
@@ -222,51 +225,13 @@ public:
             return MFX_ERR_NOT_INITIALIZED;
     }
 
-    virtual mfxStatus SetAuxParams(void*, int)
+    virtual mfxStatus SetAuxParams(void*, int) override
     {
         return MFX_ERR_UNSUPPORTED;
     }
-
-
 protected:
     explicit H265FeiEncodePlugin(bool CreateByDispatcher);
     virtual ~H265FeiEncodePlugin();
-
-    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(MFXCoreInterface* core, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT)
-    {
-        if (m_pImpl.get())
-            return m_pImpl->CreateHWh265Encoder(core, type);
-        else
-            return nullptr;
-    }
-
-    virtual mfxStatus ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
-    {
-        if (m_pImpl.get())
-            return m_pImpl->ExtraParametersCheck(ctrl, surface, bs);
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-
-    virtual mfxStatus ExtraCheckVideoParam(MfxHwH265Encode::MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false)
-    {
-        if (m_pImpl.get())
-            return m_pImpl->ExtraCheckVideoParam(par, caps, bInit);
-        else
-            return MFX_ERR_NOT_INITIALIZED;
-    }
-
-    virtual void ExtraTaskPreparation(MfxHwH265Encode::Task& task)
-    {
-        if (m_pImpl.get())
-            m_pImpl->ExtraTaskPreparation(task);
-    }
-
-    void SoftReset(MfxHwH265Encode::Task& task)
-    {
-        if (m_pImpl.get())
-            m_pImpl->SoftReset(task);
-    }
 
     bool m_createdByDispatcher;
     MFXPluginAdapter<MFXEncoderPlugin> m_adapter;
