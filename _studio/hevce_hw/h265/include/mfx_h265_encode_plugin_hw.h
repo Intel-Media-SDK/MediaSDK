@@ -89,14 +89,14 @@ public:
     {
         MFX_CHECK_NULL_PTR1(par);
 
-        par->PluginUID = MFX_PLUGINID_HEVCE_HW;
-        par->PluginVersion = 1;
-        par->ThreadPolicy = MFX_THREADPOLICY_SERIAL;
-        par->MaxThreadNum = 1;
+        par->PluginUID        = MFX_PLUGINID_HEVCE_HW;
+        par->PluginVersion    = 1;
+        par->ThreadPolicy     = MFX_THREADPOLICY_SERIAL;
+        par->MaxThreadNum     = 1;
         par->APIVersion.Major = MFX_VERSION_MAJOR;
         par->APIVersion.Minor = MFX_VERSION_MINOR;
-        par->Type = MFX_PLUGINTYPE_VIDEO_ENCODE;
-        par->CodecId = MFX_CODEC_HEVC;
+        par->Type             = MFX_PLUGINTYPE_VIDEO_ENCODE;
+        par->CodecId          = MFX_CODEC_HEVC;
 
         return MFX_ERR_NONE;
     }
