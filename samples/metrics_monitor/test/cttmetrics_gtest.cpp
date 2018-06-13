@@ -80,10 +80,10 @@ void getAndCheckAvailableMetrics(unsigned int* count, cttMetric* out_metric_ids)
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetMetricInfo(*count, out_metric_ids));
 
     if (num_slices > 1)
-        EXPECT_EQ(*count, CTT_MAX_METRIC_COUNT);
+        EXPECT_EQ(*count, (unsigned int)CTT_MAX_METRIC_COUNT);
     else
         //GT2 haven't VDBOX2
-        EXPECT_EQ(*count, CTT_MAX_METRIC_COUNT - 1);
+        EXPECT_EQ(*count, (unsigned int)(CTT_MAX_METRIC_COUNT - 1));
 
     CTTMetrics_Close();
 }
@@ -367,7 +367,7 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
     rp_n_freq = getGpuFrequency(GPU_RPn_FILE_PATH);
     rp_0_freq = getGpuFrequency(GPU_RP0_FILE_PATH);
 
-    ASSERT_GT(rp_n_freq, 0) << "rp_n_freq : " << rp_n_freq;
+    ASSERT_GT(rp_n_freq, 0u) << "rp_n_freq : " << rp_n_freq;
     ASSERT_GT(rp_0_freq, rp_n_freq) << "rp_0_freq : " << rp_0_freq << " ; rp_n_freq : " << rp_n_freq;
 
     for (unsigned int rp_freq = rp_n_freq;rp_freq <= rp_0_freq;rp_freq += 50)
