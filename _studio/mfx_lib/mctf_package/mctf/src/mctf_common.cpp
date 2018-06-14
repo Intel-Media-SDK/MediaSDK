@@ -914,7 +914,7 @@ mfxStatus CMC::GEN_NoiseSURF_SET(CmSurface2DUP **p_Surface, void **p_Sys, Surfac
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     *p_Sys = CM_ALIGNED_MALLOC(surfNoiseSize, 0x1000);
-    MFX_CHECK(p_Sys, MFX_ERR_NULL_PTR);
+    MFX_CHECK(*p_Sys, MFX_ERR_NULL_PTR);
     memset(*p_Sys, 0, surfNoiseSize);
 //    res = device->CreateSurface2DUP(DIVUP(p_ctrl->width, 16) * sizeof(spatialNoiseAnalysis), DIVUP(p_ctrl->height, 16), CM_SURFACE_FORMAT_A8, *p_Sys, *p_Surface);
     res = device->CreateSurface2DUP(DIVUP(p_ctrl->CropW, 16) * sizeof(spatialNoiseAnalysis), DIVUP(p_ctrl->CropH, 16), CM_SURFACE_FORMAT_A8, *p_Sys, *p_Surface);
@@ -929,7 +929,7 @@ mfxStatus CMC::GEN_SURF_SET(CmSurface2DUP **p_Surface, void **p_Sys, SurfaceInde
     res = device->GetSurface2DInfo(ov_width_bl * sizeof(mfxI16Pair), ov_height_bl, CM_SURFACE_FORMAT_A8, surfPitch, surfSize);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     *p_Sys = CM_ALIGNED_MALLOC(surfSize, 0x1000);
-    MFX_CHECK(p_Sys, MFX_ERR_NULL_PTR);
+    MFX_CHECK(*p_Sys, MFX_ERR_NULL_PTR);
     memset(*p_Sys, 0, surfSize);
     res = device->CreateSurface2DUP(ov_width_bl * sizeof(mfxI16Pair), ov_height_bl, CM_SURFACE_FORMAT_A8, *p_Sys, *p_Surface);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
