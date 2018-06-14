@@ -4630,7 +4630,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         mfeParam.MaxNumFrames = numFrames;
         changed = true;
     }
-    if (extOpt2->IntRefType && mfeParam.MaxNumFrames != 1)
+    if (extOpt2->IntRefType && (mfeParam.MaxNumFrames > 1 || mfeParam.MFMode >= MFX_MF_AUTO))
     {
         mfeParam.MaxNumFrames = 1;
         changed = true;
