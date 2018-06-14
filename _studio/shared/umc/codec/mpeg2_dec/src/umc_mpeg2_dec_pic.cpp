@@ -384,9 +384,13 @@ Status MPEG2VideoDecoderBase::DecodeSequenceHeader(VideoContext* video, int task
           shMask.memMask = NULL;
       }
 
-        shMask.memMask = (uint8_t *) malloc(shMask.memSize);      
-        memset(shMask.memMask, 0, shMask.memSize);
-        memcpy_s(shMask.memMask, shMask.memSize, video->bs_sequence_header_start, shMask.memSize);
+      shMask.memMask = (uint8_t *) malloc(shMask.memSize);
+      if (NULL == shMask.memMask)
+      {
+        return (UMC_ERR_ALLOC);
+      }
+      memset(shMask.memMask, 0, shMask.memSize);
+      memcpy_s(shMask.memMask, shMask.memSize, video->bs_sequence_header_start, shMask.memSize);
     }
 
     if(m_ClipInfo.stream_type == MPEG1_VIDEO) {
