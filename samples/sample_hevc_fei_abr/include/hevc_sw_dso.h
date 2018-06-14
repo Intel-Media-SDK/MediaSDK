@@ -31,13 +31,15 @@ public:
               SurfacesPool* sp,
               std::shared_ptr<MVPPool> mvpPool,
               std::shared_ptr<CTUCtrlPool> ctuCtrlPool,
-              bool calc_BRC_stat = false)
+              bool calc_BRC_stat = false,
+              bool dump_mvp = false)
         : IYUVSource(inPars, sp)
         , m_inPars(inPars)
-        , m_parser(BS_HEVC2::PARSE_SSD)
+        , m_parser(BS_HEVC2::PARSE_SSD_TC)
         , m_mvpPool(mvpPool)
         , m_ctuCtrlPool(ctuCtrlPool)
         , m_bCalcBRCStat(calc_BRC_stat)
+        , m_bDumpFinalMVPs(dump_mvp)
     {
     }
 
@@ -76,8 +78,10 @@ protected:
 
 private:
     bool m_bCalcBRCStat = false;
+    bool m_bDumpFinalMVPs = false;
 
     mfxI32 m_DisplayOrderSinceLastIDR = 0, m_previousMaxDisplayOrder = -1;
+    mfxU32 m_ProcessedFrames = 0;
 
     DISALLOW_COPY_AND_ASSIGN(HevcSwDso);
 };

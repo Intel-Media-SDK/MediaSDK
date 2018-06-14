@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __BS_READER_H
+#define __BS_READER_H
 
 #include <memory.h>
 #include <stdio.h>
@@ -239,3 +240,4 @@ private:
     BSErr read_more_data();
 
 };
+#endif //__BS_READER_H

@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __HEVC_STRUCT_H
+#define __HEVC_STRUCT_H
 
 #include <bs_def.h>
 
@@ -926,3 +927,5 @@ struct AU{
 };
 
 };
+
+#endif //#ifndef __HEVC_STRUCT_H

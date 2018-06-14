@@ -27,7 +27,8 @@ using namespace BsThread;
 //Scheduler Parser::m_thread;
 
 Parser::Parser(Bs32u mode)
-    : m_mode(mode)
+    : SDParser((mode & PARSE_SSD_TC) == PARSE_SSD_TC)
+    , m_mode(mode)
     , m_au(0)
     , m_bNewSequence(true)
 {

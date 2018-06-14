@@ -90,7 +90,7 @@ mfxStatus CFeiTranscodingPipeline::Init()
                     m_source.reset(CreateYUVSource());
                     MSDK_CHECK_POINTER(m_source.get(), MFX_ERR_NOT_INITIALIZED);
 
-                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD));
+                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD, param.dumpMVP));
 
                     sts = m_source->PreInit();
                     MSDK_CHECK_STATUS(sts, "m_source PreInit failed");
@@ -119,7 +119,7 @@ mfxStatus CFeiTranscodingPipeline::Init()
                     m_source.reset(CreateYUVSource());
                     MSDK_CHECK_POINTER(m_source.get(), MFX_ERR_NOT_INITIALIZED);
 
-                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD));
+                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD, param.dumpMVP));
 
                     sts = m_source->PreInit();
                     MSDK_CHECK_STATUS(sts, "m_source PreInit failed");

@@ -18,6 +18,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
 #include <map>
+#include <string>
+#include <fstream>
+#include <iostream>
 #include "hevc_sw_dso.h"
 
 using namespace BS_HEVC2;
@@ -55,6 +58,15 @@ mfxStatus HevcSwDso::Init()
     return MFX_ERR_NONE;
 }
 
+void DumpMVPs(mfxExtFeiHevcEncMVPredictors & mvp, mfxU32 encorder)
+{
+    std::string fname = "MVPdump_encorder_frame_" + std::to_string(encorder + 1) + ".bin";
+    std::fstream out_file(fname, std::ios::out | std::ios::binary);
+    out_file.write((char*) mvp.Data, sizeof(mfxFeiHevcEncMVPredictors) * mvp.Pitch * mvp.Height);
+    out_file.close();
+}
+
+
 mfxStatus HevcSwDso::GetFrame(HevcTaskDSO & task)
 {
     BSErr bs_sts = m_parser.parse_next_unit();
@@ -76,6 +88,11 @@ mfxStatus HevcSwDso::GetFrame(HevcTaskDSO & task)
             AutoBufferLocker<mfxExtFeiHevcEncMVPredictors> lock(*m_buffAlloc.get(), *mvp);
 
             FillMVP(hdr, *mvp, task.m_nMvPredictors);
+
+            if (m_bDumpFinalMVPs)
+            {
+                DumpMVPs(*mvp, m_ProcessedFrames);
+            }
         }
 
         task.m_mvp = std::move(mvp);
@@ -96,8 +113,11 @@ mfxStatus HevcSwDso::GetFrame(HevcTaskDSO & task)
         task.m_nMvPredictors[0] = task.m_nMvPredictors[1] = 0;
     }
 
+    m_ProcessedFrames++;
+
     return MFX_ERR_NONE;
 }
+
 
 bool IsHEVCSlice(mfxU32 nut)
 {

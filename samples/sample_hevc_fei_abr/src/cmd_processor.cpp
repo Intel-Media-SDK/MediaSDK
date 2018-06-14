@@ -50,7 +50,7 @@ void PrintHelp(const msdk_char *strErrorMessage)
     {
         msdk_printf(MSDK_STRING("ERROR: %s\n"), strErrorMessage);
     }
-    msdk_printf(MSDK_STRING("Usage: sample_hevc_fei_abr [<options>] -i InputFile -o OutputEncodedFile -w width -h height\n"));
+    msdk_printf(MSDK_STRING("Usage: sample_hevc_fei_abr [<options>] -i InputFile -o OutputEncodedFile -dso InputVideoSequenceForStreamout\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Options: \n"));
     msdk_printf(MSDK_STRING("   [-i::h265 <file-name>] - input file and decoder type\n"));
@@ -67,7 +67,6 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-TargetKbps value] - target bitrate for VBR rate control\n"));
     msdk_printf(MSDK_STRING("   [-LookAheadDepth value] - depth of look ahead (defult is 100)\n"));
     msdk_printf(MSDK_STRING("   [-yuv <file-name>] - yuv file for MSE calculation, required for LA BRC\n"));
-    msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
     msdk_printf(MSDK_STRING("   [-idr_interval size] - if IdrInterval = 0, then only first I-frame is an IDR-frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 1, then every I - frame is an IDR - frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 2, then every other I - frame is an IDR - frame, etc (default is 0)\n"));
@@ -107,6 +106,8 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-ForceToIntra] - force CUs to be coded as intra using DSO information\n"));
     msdk_printf(MSDK_STRING("   [-ForceToInter] - force CUs to be coded as inter using DSO information\n"));
     msdk_printf(MSDK_STRING("   [-DrawMVP] - creates output YUV file with MVP overlay\n"));
+    msdk_printf(MSDK_STRING("   [-DumpMVP] - dumps final per-frame MVP structures with DSO data as binary files with filenames\n"));
+    msdk_printf(MSDK_STRING("                'MVPdump_encorder_frame_%%(frame_number_in_encoded_order).bin' (frame numbering starts with 1)\n"));
 
     msdk_printf(MSDK_STRING("\n"));
 }
@@ -585,6 +586,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char* argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-DrawMVP")))
         {
             params.drawMVP = true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-DumpMVP")))
+        {
+            params.dumpMVP = true;
         }
         else
         {

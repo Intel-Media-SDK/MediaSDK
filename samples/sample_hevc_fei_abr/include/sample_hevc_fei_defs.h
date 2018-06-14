@@ -17,7 +17,8 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
-#pragma once
+#ifndef __SAMPLE_HEVC_FEI_DEFS_H__
+#define __SAMPLE_HEVC_FEI_DEFS_H__
 
 #include <algorithm>
 #include <assert.h>
@@ -104,6 +105,7 @@ struct sInputParams
     mfxU16 PicTimingSEI;       // picture timing SEI
     bool   bDisableQPOffset;   // disable qp offset per pyramid layer
     bool   drawMVP;
+    bool   dumpMVP;
     mfxU16 fastIntraModeOnI;
     mfxU16 fastIntraModeOnP;
     mfxU16 fastIntraModeOnB;
@@ -135,6 +137,7 @@ struct sInputParams
         , PicTimingSEI(MFX_CODINGOPTION_OFF)
         , bDisableQPOffset(false)
         , drawMVP(false)
+        , dumpMVP(false)
         , fastIntraModeOnI(0)
         , fastIntraModeOnP(0)
         , fastIntraModeOnB(0)
@@ -405,3 +408,5 @@ inline mfxU32 align(const mfxU32 val, const mfxU32 alignment)
     STATIC_ASSERT(!(val == 0) && !(val & (val - 1)), is_power_of_2);
     return (val + alignment - 1) & ~(alignment - 1);
 }
+
+#endif // #define __SAMPLE_HEVC_FEI_DEFS_H__

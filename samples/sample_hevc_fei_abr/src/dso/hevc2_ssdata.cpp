@@ -29,9 +29,10 @@ using namespace BsReader2;
  if (TraceOffset()) fprintf(GetLog(), "0x%016llX[%i]|%3u|%3u: ",\
      GetByteOffset(), GetBitOffset(), GetR(), GetV());
 
-SDParser::SDParser()
+SDParser::SDParser(bool report_TC)
     : Reader()
     , CABAC((Reader&)*this)
+    , report_TCLevels(report_TC)
     , m_pAllocator(nullptr)
 {
     SetTraceLevel(TRACE_DEFAULT);
@@ -70,12 +71,18 @@ CTU* SDParser::parseSSD(NALU& nalu, NALU* pColPic, Bs32u NumCtb)
         Bs32u PicSizeInMinTbY = PicSizeInMinCbsY
             * (1 << (MinCbLog2SizeY - MinTbLog2SizeY)) * (1 << (MinCbLog2SizeY - MinTbLog2SizeY));
 
-        m_ctu.resize(0);
-        m_cu.resize(0);
-        m_pu.resize(0);
-        m_tu.resize(0);
-        TCLevels.resize((1 << MaxTbLog2SizeY) * (1 << MaxTbLog2SizeY));
+        m_ctu.clear();
+        m_cu.clear();
+        m_pu.clear();
+        m_tu.clear();
 
+        TCLevels.reserve(1 << (2*MaxTbLog2SizeY));
+
+        if (report_TCLevels)
+        {
+            m_TC_lvl.clear();
+            m_TC_lvl.reserve(PicSizeInSamplesY);
+        }
         m_ctu.reserve(PicSizeInCtbsY);
         m_cu.reserve(PicSizeInMinCbsY);
         m_pu.reserve(PicSizeInMinCbsY * 4);
@@ -230,6 +237,13 @@ CTU* SDParser::parseSSD(NALU& nalu, NALU* pColPic, Bs32u NumCtb)
         if (pPU) memmove(pPU, pPU0, sizeof(PU) * nPU);
         if (pTU) memmove(pTU, pTU0, sizeof(TU) * nTU);
 
+        Bs32s* pTC_levels = nullptr;
+        if (report_TCLevels)
+        {
+            pTC_levels = m_pAllocator->alloc<Bs32s>(pCTU, Bs32u(m_TC_lvl.size()));
+            std::copy(std::begin(m_TC_lvl), std::end(m_TC_lvl), pTC_levels);
+        }
+
         auto pcCTU = pCTU;
 
         for (;;)
@@ -258,6 +272,11 @@ CTU* SDParser::parseSSD(NALU& nalu, NALU* pColPic, Bs32u NumCtb)
 
                         for (;;)
                         {
+                            if (report_TCLevels && pcTU->tc_levels_luma)
+                            {
+                                pcTU->tc_levels_luma = pTC_levels + std::distance(m_TC_lvl.data(), pcTU->tc_levels_luma);
+                            }
+
                             if (!pcTU->Next)
                                 break;
                             pcTU = pcTU->Next = pTU + (pcTU->Next - pTU0);
@@ -1407,7 +1426,20 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
     BS2_TRACE(cIdx, cIdx);
     TLEnd();
 
-    memset(&TCLevels[0], 0, sizeof(TCLevels[0]) * Bs32u(1 << log2TrafoSize) * Bs32u(1 << log2TrafoSize));
+    Bs32s* pTCLevels = nullptr;
+    Bs16u  nCoeff    = 1 << (2 * log2TrafoSize);
+
+    if (report_TCLevels && cIdx == 0)
+    {
+        pTCLevels = tu.tc_levels_luma = Alloc<Bs32s>(nCoeff);
+    }
+    else
+    {
+        TCLevels.resize(nCoeff);
+        std::fill(std::begin(TCLevels), std::end(TCLevels), 0);
+
+        pTCLevels = TCLevels.data();
+    }
 
     if (   cu.PredMode == MODE_INTRA
         && (log2TrafoSize == 2 || (log2TrafoSize == 3 && (cIdx == 0 || ChromaArrayType == 3))))
@@ -1658,12 +1690,12 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
                 BS2_SET(CoeffAbsLevelRemaining(i, baseLevel, cIdx, cu, tu), coeff_abs_level_remaining);
             }
 
-            if (TLTest(TRACE_COEF))
+            if ((report_TCLevels && cIdx == 0) || TLTest(TRACE_COEF))
             {
                 xC = (xS << 2) + ScanOrder_2(n, 0);
                 yC = (yS << 2) + ScanOrder_2(n, 1);
 
-                auto& TransCoeffLevel = TCLevels[(yC << log2TrafoSize) + xC];
+                auto& TransCoeffLevel = pTCLevels[(yC << log2TrafoSize) + xC];
                 TransCoeffLevel = (coeff_abs_level_remaining + baseLevel) * (1 - 2 * coeff_sign_flag[n]);
 
                 if (pps.sign_data_hiding_enabled_flag && signHidden)
@@ -1684,7 +1716,7 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
     TLStart(TRACE_COEF);
     if (Trace())
     {
-        auto TransCoeffLevel = &TCLevels[0];
+        auto TransCoeffLevel = pTCLevels;
         Bs16u side = (1 << log2TrafoSize);
         Bs16u size = side * side;
         BS2_TRACE_ARR_F(TransCoeffLevel, size, side, "%4i ");

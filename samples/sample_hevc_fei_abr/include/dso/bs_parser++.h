@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __BS_PARSER_PP_H
+#define __BS_PARSER_PP_H
 
 #include <bs_parser.h>
 #include <memory.h>
@@ -80,3 +81,6 @@ private:
     BS_HEVC2::HDL hdl;
     UnitType* hdr;
 };
+
+
+#endif //__BS_PARSER_PP_H

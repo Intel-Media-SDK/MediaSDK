@@ -34,6 +34,7 @@ enum INIT_MODE
     PARALLEL_AU         = 0x02,
     PARALLEL_SD         = 0x04,
     PARALLEL_TILES      = 0x08,
+    PARSE_SSD_TC        = 0x10 | PARSE_SSD,
 
     ASYNC               = (PARALLEL_AU | PARALLEL_SD | PARALLEL_TILES)
 };
@@ -817,6 +818,8 @@ struct TU
     Bs32u                            : 7;
 
     Bs16s QP[3];
+
+    Bs32s* tc_levels_luma = nullptr;
 
     TU* Next;
 };

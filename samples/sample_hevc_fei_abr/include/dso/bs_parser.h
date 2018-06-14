@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __BS_PARSER_H
+#define __BS_PARSER_H
 
 #include <hevc2_struct.h>
 
@@ -37,3 +38,6 @@ extern "C"{
     Bs16u __STDCALL BS_HEVC2_GetAsyncDepth     (BS_HEVC2::HDL hdl);
 
 }
+
+
+#endif //__BS_PARSER_H
