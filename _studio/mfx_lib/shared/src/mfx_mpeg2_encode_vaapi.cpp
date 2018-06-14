@@ -785,37 +785,6 @@ mfxI32 VAAPIEncoder::GetRawFrameIndex (mfxMemId memID, bool bAddFrames)
     return -1;
 } // mfxI32 VAAPIEncoder::GetRawFrameIndex (mfxMemId memID, bool bAddFrames)
 
-mfxStatus VAAPIEncoder::CreateMBDataBuffer(mfxU32 numRefFrames)
-{
-    mfxStatus sts = MFX_ERR_NONE;
-    mfxFrameAllocRequest request = {};
-
-    // Buffer for MB INFO
-    sts = QueryCompBufferInfo(D3DDDIFMT_INTELENCODE_MBDATA, &request, NULL);
-    MFX_CHECK_STS(sts);
-
-    request.NumFrameMin = (request.NumFrameMin < numRefFrames)? (mfxU16)numRefFrames:request.NumFrameMin;
-    request.NumFrameSuggested = (request.NumFrameSuggested < request.NumFrameMin)? request.NumFrameMin:request.NumFrameSuggested;
-
-    if (m_allocResponseMB.NumFrameActual == 0)
-    {
-        request.Info.FourCC = MFX_FOURCC_P8; //D3DFMT_P8;
-        request.Type = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_INTERNAL_FRAME;
-        sts = m_core->AllocFrames(&request, &m_allocResponseMB);
-        MFX_CHECK_STS(sts);
-    }
-    else
-    {
-        if (m_allocResponseMB.NumFrameActual < request.NumFrameMin)
-        {
-            return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-        }
-    }
-    sts = Register(&m_allocResponseMB, D3DDDIFMT_INTELENCODE_MBDATA);
-    MFX_CHECK_STS(sts);
-
-    return MFX_ERR_NONE;
-} // mfxStatus VAAPIEncoder::CreateMBDataBuffer(mfxU32 numRefFrames)
 
 mfxStatus VAAPIEncoder::CreateCompBuffers(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames)
 {
