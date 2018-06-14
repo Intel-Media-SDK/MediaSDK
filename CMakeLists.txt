@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@ project( mediasdk )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Default to Release build if nothing was specified
+# Default to `release` build if nothing was specified
 if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "No build type selected, default to Release")
-  set(CMAKE_BUILD_TYPE Release)
+  message(STATUS "No build type selected, default to release")
+  set(CMAKE_BUILD_TYPE release)
 endif()
 
 set( BUILDER_ROOT "${CMAKE_HOME_DIRECTORY}/builder" )
