@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __BS_DEF_H
+#define __BS_DEF_H
 
 //#undef __BS_TRACE__
 //#define  __BS_TRACE__
@@ -68,3 +69,5 @@ typedef enum {
 #define BS_MIN(x, y) ( ((x) < (y)) ? (x) : (y) )
 #define BS_MAX(x, y) ( ((x) > (y)) ? (x) : (y) )
 #define BS_ABS(x)    ( ((x) > 0) ? (x) : (-(x)) )
+
+#endif //__BS_DEF_H

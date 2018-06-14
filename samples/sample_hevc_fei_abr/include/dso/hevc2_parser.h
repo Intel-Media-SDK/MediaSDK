@@ -420,10 +420,11 @@ class SDParser //Slice data parser
     , public virtual Info
 {
 private:
-    std::vector<CTU> m_ctu;
-    std::vector<CU>  m_cu;
-    std::vector<PU>  m_pu;
-    std::vector<TU>  m_tu;
+    std::vector<CTU>   m_ctu;
+    std::vector<CU>    m_cu;
+    std::vector<PU>    m_pu;
+    std::vector<TU>    m_tu;
+    std::vector<Bs32s> m_TC_lvl;
 
     bool  IntraSplitFlag;
     Bs16u MaxTrafoDepth;
@@ -432,9 +433,11 @@ private:
     bool  IsCuQpDeltaCoded;
     bool  IsCuChromaQpOffsetCoded;
     Bs8u  intra_chroma_pred_mode[2][2];
+
+    bool report_TCLevels = false;
     std::vector<Bs32s> TCLevels;
 
-    template<class T> T* Alloc()
+    template<class T> T* Alloc(Bs16u n_elem = 1)
     {
         if (std::is_same<CTU, T>::value)
         {
@@ -464,6 +467,12 @@ private:
             m_tu.push_back(z);
             return (T*)&m_tu.back();
         }
+        if (std::is_same<Bs32s, T>::value)
+        {
+            assert(m_TC_lvl.capacity() >= m_TC_lvl.size() + n_elem);
+            m_TC_lvl.insert(m_TC_lvl.end(), n_elem, 0);
+            return (T*)&m_TC_lvl[m_TC_lvl.size() - n_elem];
+        }
         throw std::bad_alloc();
         return 0;
     }
@@ -482,7 +491,7 @@ private:
 public:
     BS_MEM::Allocator* m_pAllocator;
 
-    SDParser();
+    SDParser(bool report_TC = false);
 
     inline Bs32u u(Bs32u n)  { return GetBits(n); };
     inline Bs32u u1()        { return GetBit(); };

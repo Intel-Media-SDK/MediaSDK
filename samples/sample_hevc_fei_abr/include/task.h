@@ -17,13 +17,14 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
-#pragma once
+#ifndef __HEVC_FEI_ABR_TASK__
+#define __HEVC_FEI_ABR_TASK__
 
 #include "buffer_pool.h"
 #include <queue>
 #include <cmath>
 
-#define DEBUG_OUTPUT
+//#define DEBUG_OUTPUT
 
 #ifdef DEBUG_OUTPUT
 #include <cstdio>
@@ -229,3 +230,5 @@ private:
         return l2normSq / m_YUVdata.size();
     }
 };
+
+#endif // __HEVC_FEI_ABR_TASK__

@@ -225,7 +225,7 @@ void calcQsteps_IB(std::vector<FrameStatData> &statData, mfxU32 start_index = 0)
         else // P-frame
         {
             logq = (logq + std::log(qstep))*statData[i].propagation;
-            norm = (norm + 1.0)*statData[i].propagation;
+            norm = (norm + 1.0            )*statData[i].propagation;
         }
 
         // Update qpstep of B-frames

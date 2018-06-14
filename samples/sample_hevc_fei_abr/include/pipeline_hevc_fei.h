@@ -16,8 +16,8 @@ This sample was distributed or derived from the Intel's Media Samples package.
 The original version of this sample may be obtained from https://software.intel.com/en-us/intel-media-server-studio
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
-
-#pragma once
+#ifndef __PIPELINE_FEI_H__
+#define __PIPELINE_FEI_H__
 
 #include "sample_hevc_fei_defs.h"
 #include "mfxplugin.h"
@@ -157,3 +157,5 @@ private:
 };
 
 MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi);
+
+#endif // __PIPELINE_FEI_H__
