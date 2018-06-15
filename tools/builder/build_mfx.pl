@@ -143,7 +143,7 @@ sub get_cmake_gen_cmd {
     }
 
     if (lc($config{'config'}) eq "release") {
-        $compile_flags .= " -O2 -D_FORTIFY_SOURCE=2 -fstack-protector -DNDEBUG";
+        $compile_flags .= " -O2 -D_FORTIFY_SOURCE=2 -fstack-protector-strong -DNDEBUG";
         push @cmake_cmd_gen, "-DCMAKE_C_FLAGS_RELEASE=\"$compile_flags\"";
         push @cmake_cmd_gen, "-DCMAKE_CXX_FLAGS_RELEASE=\"$compile_flags\"";
     } else {
