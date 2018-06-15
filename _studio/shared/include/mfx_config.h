@@ -173,7 +173,7 @@
         #define MFX_ENABLE_H265_VIDEO_ENCODE
             #define MFX_ENABLE_CM
     #endif
-    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= MFX_VERSION_NEXT && !defined(LINUX_TARGET_PLATFORM_BXT)
+    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= 1027 && !defined(LINUX_TARGET_PLATFORM_BXT)
         #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
     #endif
     #if defined(AS_VP8DHW_PLUGIN)
