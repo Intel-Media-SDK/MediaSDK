@@ -201,7 +201,8 @@
 
 #if MFX_VERSION >= 1026
     #define MFX_ENABLE_MCTF
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
+    // behavior test need extended version on MCTF
     #define MFX_ENABLE_MCTF_EXT // extended MCTF interface
 #endif
 #endif

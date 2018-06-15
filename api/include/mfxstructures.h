@@ -2094,7 +2094,7 @@ typedef struct {
 #endif
 
 #if (MFX_VERSION >= 1026)
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
 /* MCTFTemporalMode */
 enum {
     MFX_MCTF_TEMPORAL_MODE_UNKNOWN  = 0,
@@ -2109,7 +2109,7 @@ enum {
 typedef struct {
     mfxExtBuffer Header;
     mfxU16       FilterStrength;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
     mfxU16       Overlap;               /* tri-state option */
     mfxU32       BitsPerPixelx100k;
     mfxU16       Deblocking;            /* tri-state option */
