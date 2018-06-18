@@ -354,6 +354,10 @@ mfxF64 QP2Qstep(mfxI32 qp, mfxI32 qpoffset = 0)
 
 mfxF64  cHRD::GetBufferDiviationFactor()
 {
+    if (m_buffSizeInBits == 0)
+    {
+        return 0.0;
+    }
     mfxF64 targetFullness = m_buffSizeInBits / 2;
     mfxF64 factor = abs((targetFullness - (mfxF64) m_bufFullness) / targetFullness);
     return factor;
@@ -829,7 +833,8 @@ mfxF64 ExtBRC::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, 
     mfxF64 bAbPreriod = m_par.bAbPeriod;
 
     mfxF64 totDiv = m_ctx.totalDiviation;
-    mfxF64 lf = 1.0 / pow(m_par.inputBitsPerFrame / fAbLong, 1.0 + (mfxF64)m_hrd.GetBufferDiviationFactor());
+    const mfxF64 factor = m_par.bHRDConformance ? m_hrd.GetBufferDiviationFactor() : 0.0;
+    mfxF64 lf = 1.0 / pow(m_par.inputBitsPerFrame / fAbLong, 1.0 + factor);
 
     if (m_par.bHRDConformance && totDiv > 0)
     {
@@ -1258,7 +1263,9 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             //Update QP
 
             mfxF64 totDiv = m_ctx.totalDiviation;
-            mfxF64 dequant_new = m_ctx.dQuantAb*pow(m_par.inputBitsPerFrame / m_ctx.fAbLong, 1.0 + (mfxF64) m_hrd.GetBufferDiviationFactor());
+
+            const mfxF64 factor = m_par.bHRDConformance ? m_hrd.GetBufferDiviationFactor() : 0.0;
+            mfxF64 dequant_new = m_ctx.dQuantAb*pow(m_par.inputBitsPerFrame / m_ctx.fAbLong, 1.0 + factor);
 
             mfxF64 bAbPreriod = m_par.bAbPeriod;
 
