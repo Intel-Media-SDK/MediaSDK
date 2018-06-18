@@ -322,6 +322,7 @@ void MfxFrameAllocResponse::Free()
             mids = 0;
         }
     }
+    m_core = nullptr;
 }
 
 mfxStatus MfxFrameAllocResponse::Alloc(
