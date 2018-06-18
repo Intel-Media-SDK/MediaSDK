@@ -135,6 +135,11 @@ public:
 
     mfxStatus WaitingForAsyncTasks(bool bResetTasks);
 
+    bool IsInitialized()
+    {
+        return m_bInit;
+    }
+
     void ZeroParams()
     {
         m_frameOrder     = 0;
