@@ -196,6 +196,8 @@ public:
     virtual mfxStatus Init(mfxVideoParam *par) override
     {
         mfxStatus sts;
+        if (m_pImpl.get() && (m_pImpl->IsInitialized()))
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
         m_pImpl.reset(new H265FeiEncode_HW(&m_core, &sts));
         MFX_CHECK_STS(sts);
         return m_pImpl->Init(par);
