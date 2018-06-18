@@ -102,6 +102,11 @@ static const MFX_GUID MFXMFEDDIENCODER_SEARCH_GUID =
 { 0xaaa16189, 0x4e5a, 0x4da9, { 0xbb, 0x97, 0x4c, 0xd1, 0xb0, 0xba, 0xac, 0x73 } };
 
 #endif
+
+// {D53EF10E-D4CF-41A7-B1C2-D30FAB30BB64}
+static const MFX_GUID MFXICORE_GT_CONFIG_GUID =
+{ 0xd53ef10e, 0xd4cf, 0x41a7,{ 0xb1, 0xc2, 0xd3, 0xf, 0xab, 0x30, 0xbb, 0x64 } };
+
 // Try to obtain required interface
 // Declare a template to query an interface
 template <class T> inline

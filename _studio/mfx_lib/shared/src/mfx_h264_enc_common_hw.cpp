@@ -833,14 +833,14 @@ namespace
     }
 #if defined(MFX_ENABLE_MFE)
     mfxU16 GetDefaultNumMfeFrames(mfxU32 targetUsage, const mfxFrameInfo& info,
-        eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed)
+        eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed,
+        eMFXGTConfig config)
     {
         targetUsage;//no specific check for TU now, can be added later
         if (platform <= MFX_HW_BDW)//no MFE support prior to SKL.
             return 1;
-        else if (platform == MFX_HW_SCL)
+        else if (platform == MFX_HW_SCL && config >= MFX_GT3)
         {
-            //at GT2 SKUs this can require adjustment, also only 3840x2160 verified, between 1088 and 2160 there can be difference and 2 frames can be run normally
             if ((info.CropH > 1088 && info.CropW > 1920) || slices > 1)
             {
                 return 1;
@@ -857,7 +857,32 @@ namespace
             }
             else
             {
-                return 3;//for legacy now
+                return 3;
+            }
+        }
+        else if (platform == MFX_HW_SCL && config == MFX_GT2)
+        {
+            if ((info.CropH > 1088 && info.CropW > 1920) || slices > 1)
+            {
+                return 1;
+            }
+            else if (extSurfUsed || func == MFX_FEI_FUNCTION_ENCODE)
+            {
+                return 2;
+            }
+            //other functions either already rejected(PAK, ENC/PreEnc absense of support) or can run bigger amount of frames(for PreEnc).
+            //extSurfUsed - mean we are using running into kernel limitation for max number of surfaces used in kernel
+            else if (func)
+            {
+                return 1;
+            }
+            else if (info.CropH > 720 && info.CropW > 1280)
+            {
+                return 2;
+            }
+            else
+            {
+                return 3;
             }
         }
         else
@@ -1853,6 +1878,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     bool                setExtAlloc,
     eMFXHWType          platform,
     eMFXVAType          vaType,
+    eMFXGTConfig        config,
     bool                bInit)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MfxHwH264Encode::CheckVideoParam");
@@ -1927,7 +1953,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         }
     }
 
-    sts = CheckVideoParamQueryLike(par, hwCaps, platform, vaType);
+    sts = CheckVideoParamQueryLike(par, hwCaps, platform, vaType, config);
     switch (sts)
     {
     case MFX_ERR_UNSUPPORTED:
@@ -1966,7 +1992,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         MFX_CHECK(extOpt3->NumSliceB > 0, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
-    SetDefaults(par, hwCaps, setExtAlloc, platform, vaType);
+    SetDefaults(par, hwCaps, setExtAlloc, platform, vaType, config);
 
     sts = CheckForAllowedH264SpecViolations(par);
     if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
@@ -2212,7 +2238,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     MfxVideoParam &     par,
     ENCODE_CAPS const & hwCaps,
     eMFXHWType          platform,
-    eMFXVAType          vaType)
+    eMFXVAType          vaType,
+    eMFXGTConfig        config)
 {
     Bool unsupported(false);
     Bool changed(false);
@@ -4621,10 +4648,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     /*explicitly force defualt number of frames, higher number will cause performance degradation
     multi-slice can be supported only through slice map control for MFE
     Adding any of Mad/MBQP/NonSkipMap/ForceIntraMap causing additional surfaces for kernel, leading to surface state cache size overhead*/
+
     mfxU16 numFrames = GetDefaultNumMfeFrames(par.mfx.TargetUsage, par.mfx.FrameInfo, platform, feiParam->Func,
         par.mfx.NumSlice,
         (extOpt2->EnableMAD == MFX_CODINGOPTION_ON) ||  (extOpt3->EnableMBQP == MFX_CODINGOPTION_ON) ||
-        (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON));
+        (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config);
     if (mfeParam.MaxNumFrames > numFrames)
     {
         mfeParam.MaxNumFrames = numFrames;
@@ -5207,7 +5235,8 @@ void MfxHwH264Encode::SetDefaults(
     ENCODE_CAPS const & hwCaps,
     bool                setExtAlloc,
     eMFXHWType          platform,
-    eMFXVAType          vaType)
+    eMFXVAType          vaType,
+    eMFXGTConfig        config)
 {
     mfxExtCodingOption *       extOpt  = GetExtBuffer(par);
     mfxExtCodingOption2 *      extOpt2 = GetExtBuffer(par);
@@ -5280,7 +5309,7 @@ void MfxHwH264Encode::SetDefaults(
             mfeParam->MaxNumFrames = GetDefaultNumMfeFrames(par.mfx.TargetUsage, par.mfx.FrameInfo, platform, feiParam->Func,
                 par.mfx.NumSlice,
                 (extOpt2->EnableMAD == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBQP == MFX_CODINGOPTION_ON) ||
-                (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON));
+                (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config);
         }
     }
     if (mfeControl)
@@ -5766,7 +5795,7 @@ void MfxHwH264Encode::SetDefaults(
     }
 #endif //(MFX_VERSION >= 1026)
 
-    CheckVideoParamQueryLike(par, hwCaps, platform, vaType);
+    CheckVideoParamQueryLike(par, hwCaps, platform, vaType, config);
 
     if (extOpt3->NumSliceI == 0 && extOpt3->NumSliceP == 0 && extOpt3->NumSliceB == 0)
         extOpt3->NumSliceI = extOpt3->NumSliceP = extOpt3->NumSliceB = par.mfx.NumSlice;

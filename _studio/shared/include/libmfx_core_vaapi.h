@@ -154,6 +154,7 @@ protected:
     bool                                 m_bUseExtAllocForHWFrames;
     s_ptr<mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator, true> m_pcHWAlloc;
     eMFXHWType                           m_HWType;
+    eMFXGTConfig                         m_GTConfig;
 
     bool                                 m_bCmCopy;
     bool                                 m_bCmCopyAllowed;
