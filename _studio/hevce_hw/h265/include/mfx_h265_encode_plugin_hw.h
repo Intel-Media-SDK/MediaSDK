@@ -142,7 +142,7 @@ public:
 
     virtual void Release()
     {
-        delete this;
+        return MFX_ERR_NONE;
     }
 
     virtual mfxStatus Close()
