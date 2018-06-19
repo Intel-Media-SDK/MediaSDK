@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -64,7 +64,8 @@ size_t RawHeader_H265::GetSize() const
 
 uint8_t * RawHeader_H265::GetPointer()
 {
-    return &m_buffer[0];
+    return
+        m_buffer.empty() ? nullptr : &m_buffer[0];
 }
 
 void RawHeader_H265::Resize(int32_t id, size_t newSize)
@@ -271,14 +272,27 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
             case NAL_UT_PPS:
                 {
                     static const uint8_t start_code_prefix[] = {0, 0, 0, 1};
+                    size_t const prefix_size = sizeof(start_code_prefix);
 
                     size_t size = nalUnit->GetDataSize();
                     bool isSPS = (nal_unit_type == NAL_UT_SPS);
                     RawHeader_H265 * hdr = isSPS ? GetSPS() : GetPPS();
                     int32_t id = isSPS ? m_Headers.m_SeqParams.GetCurrentID() : m_Headers.m_PicParams.GetCurrentID();
-                    hdr->Resize(id, size + sizeof(start_code_prefix));
-                    MFX_INTERNAL_CPY(hdr->GetPointer(), start_code_prefix,  sizeof(start_code_prefix));
-                    MFX_INTERNAL_CPY(hdr->GetPointer() + sizeof(start_code_prefix), (uint8_t*)nalUnit->GetDataPointer(), size);
+                    if (hdr->GetPointer() && hdr->GetID() == id)
+                    {
+                        bool changed =
+                            size + prefix_size != hdr->GetSize() ||
+                            !!memcmp(hdr->GetPointer() + prefix_size, nalUnit->GetDataPointer(), size);
+
+                        if (isSPS)
+                            m_Headers.m_SeqParams.GetCurrentHeader()->m_changed = changed;
+                        else
+                            m_Headers.m_PicParams.GetCurrentHeader()->m_changed = changed;
+                    }
+
+                    hdr->Resize(id, size + prefix_size);
+                    MFX_INTERNAL_CPY(hdr->GetPointer(), start_code_prefix,  prefix_size);
+                    MFX_INTERNAL_CPY(hdr->GetPointer() + prefix_size, (uint8_t*)nalUnit->GetDataPointer(), size);
                 }
             break;
         }

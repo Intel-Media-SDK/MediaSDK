@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1799,15 +1799,18 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
             case NAL_UT_PPS:
                 {
                     UMC::Status umsRes = DecodeHeaders(nalUnit);
+
+                    int32_t nalIndex = pMediaDataEx->index;
+                    int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
                     if (umsRes != UMC::UMC_OK)
                     {
-                        if (umsRes == UMC::UMC_NTF_NEW_RESOLUTION ||
+                        if (umsRes == UMC::UMC_WRN_REPOSITION_INPROGRESS)
+                        {
+                            umsRes = UMC::UMC_OK;
+                        }
+                        else if (umsRes == UMC::UMC_NTF_NEW_RESOLUTION ||
                             (nut == NAL_UT_SPS && umsRes == UMC::UMC_ERR_INVALID_STREAM))
                         {
-
-                            int32_t nalIndex = pMediaDataEx->index;
-                            int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
-
                             m_checkCRAInsideResetProcess = true;
 
                             if (AddSlice(0, !pSource) == UMC::UMC_OK)
@@ -2174,9 +2177,17 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
             pSlice->CopyFromBaseSlice(pLastFrameSlice);
         }
 
-        // if the slices belong to different AUs,
+        // Accord. to ITU-T H.265 7.4.2.4 Any SPS/PPS w/ id equal to active one
+        // shall have the same content, unless it follows the last VCL NAL of the coded picture
+        // and precedes the first VCL NAL unit of another coded picture
+        // if the slices belong to different AUs or SPS/PPS was changed,
         // close the current AU and start new one.
-        if (!IsPictureTheSame(firstSlice, pSlice))
+        bool changed =
+            m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID())->m_changed ||
+            m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID())->m_changed ||
+            !IsPictureTheSame(firstSlice, pSlice);
+
+        if (changed)
         {
             CompleteFrame(view.pCurFrame);
             OnFullFrame(view.pCurFrame);
@@ -2189,6 +2200,10 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
     // try to allocate a new frame.
     else
     {
+        // clear change flags when get first VCL NAL
+        m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID())->m_changed = false;
+        m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID())->m_changed = false;
+
         // allocate a new frame, initialize it with slice's parameters.
         pFrame = AllocateNewFrame(pSlice);
         if (!pFrame)
