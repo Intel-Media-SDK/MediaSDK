@@ -2291,9 +2291,12 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
 
     DEBUG_PRINT((VM_STRING("Complete frame POC - (%d) type - %d, count - %d, m_uid - %d, IDR - %d\n"), pFrame->m_PicOrderCnt, pFrame->m_FrameType, slicesInfo->GetSliceCount(), pFrame->m_UID, slicesInfo->GetAnySlice()->GetSliceHeader()->IdrPicFlag));
 
+    slicesInfo->EliminateASO();
+    slicesInfo->EliminateErrors();
+
     // skipping algorithm
-    const H265Slice *slice = slicesInfo->GetAnySlice();
-    if (IsShouldSkipFrame(pFrame) || IsSkipForCRAorBLA(slice))
+    const H265Slice *slice = slicesInfo->GetSlice(0);
+    if (!slice || IsShouldSkipFrame(pFrame) || IsSkipForCRAorBLA(slice))
     {
         slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
 
@@ -2305,11 +2308,6 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
         DEBUG_PRINT((VM_STRING("Skip frame ForCRAorBLA - %s\n"), GetFrameInfoString(pFrame)));
         return;
     }
-
-    slicesInfo->EliminateASO();
-
-    slicesInfo->EliminateErrors();
-
 
     slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_FILLED);
 }
