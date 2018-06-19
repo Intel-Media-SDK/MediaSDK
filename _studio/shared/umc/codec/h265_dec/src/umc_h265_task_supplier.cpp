@@ -1799,18 +1799,15 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
             case NAL_UT_PPS:
                 {
                     UMC::Status umsRes = DecodeHeaders(nalUnit);
-
-                    int32_t nalIndex = pMediaDataEx->index;
-                    int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
                     if (umsRes != UMC::UMC_OK)
                     {
-                        if (umsRes == UMC::UMC_WRN_REPOSITION_INPROGRESS)
-                        {
-                            umsRes = UMC::UMC_OK;
-                        }
-                        else if (umsRes == UMC::UMC_NTF_NEW_RESOLUTION ||
+                        if (umsRes == UMC::UMC_NTF_NEW_RESOLUTION ||
                             (nut == NAL_UT_SPS && umsRes == UMC::UMC_ERR_INVALID_STREAM))
                         {
+
+                            int32_t nalIndex = pMediaDataEx->index;
+                            int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
+
                             m_checkCRAInsideResetProcess = true;
 
                             if (AddSlice(0, !pSource) == UMC::UMC_OK)
