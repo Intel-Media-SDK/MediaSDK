@@ -935,7 +935,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
     mfxF64 e2pe     =  0;
     bool bMaxFrameSizeMode = m_par.maxFrameSizeInBits != 0 &&
         m_par.maxFrameSizeInBits < m_par.inputBitsPerFrame * 2 &&
-        m_ctx.totalDiviation < (mfxI32)(-1)*m_par.inputBitsPerFrame*m_par.frameRate;
+        m_ctx.totalDiviation < (-1)*m_par.inputBitsPerFrame*m_par.frameRate;
 
     if (IS_IFRAME(picType)) {
         e2pe = (m_ctx.eRateSH == 0) ? (BRC_SCENE_CHANGE_RATIO2 + 1) : eRate / m_ctx.eRateSH;
@@ -1252,7 +1252,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             m_avg->UpdateSlidingWindow(bitsEncoded, m_ctx.encOrder, m_ctx.bPanic, bSHStart || IS_IFRAME(picType),frame_par->NumRecode, qpY);
         }
 
-        m_ctx.totalDiviation += (bitsEncoded - (mfxI32)m_par.inputBitsPerFrame);
+        m_ctx.totalDiviation += ((mfxF64)bitsEncoded -m_par.inputBitsPerFrame);
 
         //printf("------------------ %d (%d)) Total diviation %d, old scene %d, bNeedUpdateQP %d, m_ctx.Quant %d, type %d, m_ctx.fAbLong %f m_par.inputBitsPerFrame %f\n", frame_par->EncodedOrder, frame_par->DisplayOrder,m_ctx.totalDiviation, oldScene , bNeedUpdateQP, m_ctx.Quant,picType, m_ctx.fAbLong, m_par.inputBitsPerFrame);
 
