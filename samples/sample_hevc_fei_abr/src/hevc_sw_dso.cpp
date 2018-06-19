@@ -126,8 +126,6 @@ bool IsHEVCSlice(mfxU32 nut)
 
 void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
 {
-    bool isFirstSlice = true;
-
     for (auto pNALU = header; pNALU; pNALU = pNALU->next)
     {
         if (!IsHEVCSlice(pNALU->nal_unit_type))

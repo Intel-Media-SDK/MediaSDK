@@ -63,7 +63,6 @@ CTU* SDParser::parseSSD(NALU& nalu, NALU* pColPic, Bs32u NumCtb)
     BS_MEM::AutoLock _cpLock(m_pAllocator, pColPic);
     auto& slice = *nalu.slice;
     auto& pps = *slice.pps;
-    bool FakeSlice = !!nalu.forbidden_zero_bit;
     std::vector<Slice*> colSLices;
 
     if (NewPicture)
@@ -1270,7 +1269,6 @@ void SDParser::parseTU(CU& cu, TU& tu, TU& tuBase, Bs16u blkIdx)
 {
     TLAuto tl(*this, TRACE_TU);
     Bs16u log2TrafoSizeC = BS_MAX(2, tu.log2TrafoSize - (ChromaArrayType == 3 ? 0 : 1));
-    auto& sps = *m_cSlice->sps;
     auto& pps = *m_cSlice->pps;
     auto& slice = *m_cSlice;
     bool cbfLuma = tu.cbf_luma, cbfChroma;
@@ -1399,7 +1397,6 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
     TLAuto tl(*this, TRACE_RESIDUAL);
     auto& sps = *m_cSlice->sps;
     auto& pps = *m_cSlice->pps;
-    auto& slice = *m_cSlice;
     bool  transform_skip_flag = false
         , explicit_rdpcm_flag = false
         , explicit_rdpcm_dir_flag
@@ -1774,8 +1771,6 @@ void SDParser::parsePC(CU& cu)
 {
     TLAuto tl(*this, TRACE_RESIDUAL);
     auto& sps = *m_cSlice->sps;
-    auto& pps = *m_cSlice->pps;
-    auto& slice = *m_cSlice;
     Bs16u NumPredictedPaletteEntries = 0
         , num_signalled_palette_entries = 0
         , CurrentPaletteSize

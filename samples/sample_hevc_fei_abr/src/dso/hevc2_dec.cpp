@@ -1093,9 +1093,7 @@ void Info::decodeMvLX(CU& cu, PU&pu, Bs16u partIdx)
         refIdxLX[Col][0] = 0;
         refIdxLX[Col][1] = 0;
 
-        bool  availableFlagL0A   = false
-            , availableFlagL0B   = false
-            , availableFlagL0Col = false
+        bool  availableFlagL0Col = false
             , availableFlagL1Col = false;
 
         //8.5.3.2.8
