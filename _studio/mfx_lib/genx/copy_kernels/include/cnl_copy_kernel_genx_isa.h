@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,5 +19,5 @@
 // SOFTWARE.
 #ifndef __cnl_copy_kernel_genx__
 #define __cnl_copy_kernel_genx__
-extern const unsigned char cnl_copy_kernel_genx[1053079];
+extern const unsigned char cnl_copy_kernel_genx[1053307];
 #endif
