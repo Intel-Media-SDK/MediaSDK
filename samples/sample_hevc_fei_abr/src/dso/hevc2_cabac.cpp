@@ -637,7 +637,6 @@ Bs32u CABAC::CoeffAbsLevelRemaining(Bs16u i, Bs16u baseLevel, Bs16u cIdx, CU& cu
     //9.3.3.10 current sub-block scan index i, baseLevel
     //bypass bypass bypass bypass bypass bypass
     auto& sps = *m_cSlice->sps;
-    auto& pps = *m_cSlice->pps;
     auto& cAbsLevel  = cLastAbsLevel;
     auto& cRiceParam = cLastRiceParam;
     Bs16u initRiceValue, sbType = 0;
