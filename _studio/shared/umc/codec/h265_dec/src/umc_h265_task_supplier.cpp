@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -2276,9 +2276,12 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
 
     DEBUG_PRINT((VM_STRING("Complete frame POC - (%d) type - %d, count - %d, m_uid - %d, IDR - %d\n"), pFrame->m_PicOrderCnt, pFrame->m_FrameType, slicesInfo->GetSliceCount(), pFrame->m_UID, slicesInfo->GetAnySlice()->GetSliceHeader()->IdrPicFlag));
 
+    slicesInfo->EliminateASO();
+    slicesInfo->EliminateErrors();
+
     // skipping algorithm
-    const H265Slice *slice = slicesInfo->GetAnySlice();
-    if (IsShouldSkipFrame(pFrame) || IsSkipForCRAorBLA(slice))
+    const H265Slice *slice = slicesInfo->GetSlice(0);
+    if (!slice || IsShouldSkipFrame(pFrame) || IsSkipForCRAorBLA(slice))
     {
         slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
 
@@ -2290,11 +2293,6 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
         DEBUG_PRINT((VM_STRING("Skip frame ForCRAorBLA - %s\n"), GetFrameInfoString(pFrame)));
         return;
     }
-
-    slicesInfo->EliminateASO();
-
-    slicesInfo->EliminateErrors();
-
 
     slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_FILLED);
 }
