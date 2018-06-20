@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,13 +33,10 @@
 #include "mfx_vpp_main.h"       // this VideoVPP class builds VPP pipeline and run the VPP pipeline
 #endif
 
-VideoVPP *CreateVPPSpecificClass(mfxU32 reserved, VideoCORE *core)
+VideoVPP *CreateVPPSpecificClass(mfxU32 /* reserved */, VideoCORE *core)
 {
     VideoVPP *pVPP = (VideoVPP *) 0;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
-
-    // touch unreferenced parameter
-    reserved = reserved;
 
 #ifdef MFX_ENABLE_VPP
     pVPP = new VideoVPPMain(core, &mfxRes);
@@ -246,15 +243,12 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 
 static
 mfxStatus MFXVideoVPPLegacyRoutine(void *pState, void *pParam,
-                                   mfxU32 threadNumber, mfxU32 callNumber)
+                                   mfxU32 threadNumber, mfxU32 /* callNumber */)
 {
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     VideoVPP *pVPP = (VideoVPP *) pState;
     MFX_THREAD_TASK_PARAMETERS *pTaskParam = (MFX_THREAD_TASK_PARAMETERS *) pParam;
     mfxStatus mfxRes;
-
-    // touch unreferenced parameter(s)
-    callNumber = callNumber;
 
     // check error(s)
     if ((NULL == pState) ||
