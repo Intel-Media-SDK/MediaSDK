@@ -27,7 +27,9 @@
 #include "umc_mpeg2_dec_bstream.h"
 #include "mfx_trace.h"
 
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4244)
+#endif
 
 using namespace UMC;
 
@@ -145,7 +147,7 @@ Status MPEG2VideoDecoderHW::DecodeSliceHeader(VideoContext *video, int task_num)
                 ++count;
                 if (zeroes == 4) break;
              }
-            // Adjust the count by reducing the number of 0s found, either 4 consecutive 0s or 0-3 0s existing at the end of the data. 
+            // Adjust the count by reducing the number of 0s found, either 4 consecutive 0s or 0-3 0s existing at the end of the data.
             // Based on the standard, they should be stuffing bytes.
             count -= zeroes;
 
