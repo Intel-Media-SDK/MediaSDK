@@ -218,7 +218,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     {
         //let really run task to
         MFX_CALL_INFO call = {};
-        mfxTaskHandle previousTaskHandle = {0, 0};
+        mfxTaskHandle previousTaskHandle = {};
 
         mfxStatus task_sts = MFX_ERR_NONE;
         mfxU64 start = GetHighPerformanceCounter();
