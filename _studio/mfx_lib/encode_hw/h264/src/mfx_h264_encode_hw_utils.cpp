@@ -3602,7 +3602,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     if (needAtLeastOneSei && IsOn(extOpt->SingleSeiNalUnit))
         writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
 
-    mfxExtAvcSeiBufferingPeriod msgBufferingPeriod = { 0 };
+    mfxExtAvcSeiBufferingPeriod msgBufferingPeriod = {};
     {
         mfxExtAvcSeiPicTiming msgPicTiming;
 
@@ -3753,7 +3753,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     mfxU8 const SEI_STARTCODE[5] = { 0, 0, 0, 1, 6 };
 
 // MVC BD {
-    mfxExtAvcSeiBufferingPeriod msgBufferingPeriod = { 0 };
+    mfxExtAvcSeiBufferingPeriod msgBufferingPeriod = {};
     mfxExtAvcSeiPicTiming msgPicTiming;
     mfxU32 sps_id = extSps->seqParameterSetId;
     sps_id = ((sps_id + !!task.m_viewIdx) & 0x1f);  // use appropriate sps id for dependent views

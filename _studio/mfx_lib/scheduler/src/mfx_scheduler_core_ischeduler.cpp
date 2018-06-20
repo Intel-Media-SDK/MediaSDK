@@ -217,7 +217,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     if (MFX_SINGLE_THREAD == m_param.flags)
     {
         //let really run task to
-        MFX_CALL_INFO call = {0};
+        MFX_CALL_INFO call = {};
         mfxTaskHandle previousTaskHandle = {0, 0};
 
         mfxStatus task_sts = MFX_ERR_NONE;
