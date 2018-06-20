@@ -381,7 +381,7 @@ protected:
     // Guard for task queues
     vm_mutex m_guard;
     // array of task queues
-    MFX_SCHEDULER_TASK *(m_pTasks[MFX_PRIORITY_NUMBER][MFX_TYPE_NUMBER]);
+    MFX_SCHEDULER_TASK *m_pTasks[MFX_PRIORITY_NUMBER][MFX_TYPE_NUMBER];
     // Number of assigned tasks for each kind of tasks
     mfxU32 m_numAssignedTasks[MFX_PRIORITY_NUMBER];
     // Queue of failed tasks

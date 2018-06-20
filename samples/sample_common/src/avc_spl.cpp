@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -676,7 +676,7 @@ mfxStatus AVC_Spl::GetFrame(mfxBitstream * bs_in, FrameSplitterInfo ** frame)
                 return MFX_ERR_NONE;
         }
 
-        mfxBitstream * destination;
+        mfxBitstream * destination=NULL;
         mfxI32 nalType = m_pNALSplitter->GetNalUnits(bs_in, destination);
         mfxStatus sts = ProcessNalUnit(nalType, destination);
 

@@ -162,9 +162,9 @@ mfxStatus   cBRCParams::GetBRCResetType(mfxVideoParam* par, bool bNewSequence, b
     if (bHRDConformance)
     {
         MFX_CHECK(new_par.bufferSizeInBytes   == bufferSizeInBytes, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        MFX_CHECK(new_par.initialDelayInBytes == initialDelayInBytes, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);  
+        MFX_CHECK(new_par.initialDelayInBytes == initialDelayInBytes, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         MFX_CHECK(new_par.targetbps == targetbps, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-        MFX_CHECK(new_par.maxbps == maxbps, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);        
+        MFX_CHECK(new_par.maxbps == maxbps, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
     else
     {
@@ -631,7 +631,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
     bool bMaxFrameSizeMode = m_par.maxFrameSizeInBits != 0 &&
         m_par.rateControlMethod == MFX_RATECONTROL_VBR &&
         m_par.maxFrameSizeInBits < m_par.inputBitsPerFrame * 2 &&
-        m_ctx.totalDiviation < (mfxI32)(-1)*m_par.inputBitsPerFrame*m_par.frameRate;
+        m_ctx.totalDiviation < (-1)*m_par.inputBitsPerFrame*m_par.frameRate;
 
     if (picType == MFX_FRAMETYPE_I)
         e2pe = (m_ctx.eRateSH == 0) ? (BRC_SCENE_CHANGE_RATIO2 + 1) : eRate / m_ctx.eRateSH;
@@ -697,7 +697,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             bSHStart = true;
             m_ctx.SceneChange |= 16;
             m_ctx.eRateSH = eRate;
-            if ((frame_par->DisplayOrder - m_ctx.SChPoc) >= IPP_MIN((mfxU32)(m_par.frameRate), m_par.gopRefDist))
+            //if ((frame_par->DisplayOrder - m_ctx.SChPoc) >= IPP_MIN((mfxU32)(m_par.frameRate), m_par.gopRefDist))
             {
                 m_ctx.dQuantAb  = 1./m_ctx.Quant;
             }
@@ -827,16 +827,17 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         }
         if (quant_new != quant)
         {
-           if (brcSts == MFX_BRC_SMALL_FRAME)
-           {
+            if (brcSts == MFX_BRC_SMALL_FRAME)
+            {
                quant_new = IPP_MAX(quant_new, quant-2);
                brcSts = MFX_BRC_PANIC_SMALL_FRAME;
-           }
-           if (quant_new > GetCurQP (picType, layer))
-           {
+            }
+            // Idea is to check a sign mismatch, 'true' if both are negative or positive
+            if ((quant_new - qpY) * (quant_new - GetCurQP (picType, layer)) > 0)
+            {
                 UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer);
-           }
-           bNeedUpdateQP = false;
+            }
+            bNeedUpdateQP = false;
         }
         SetRecodeParams(brcSts,quant,quant_new, m_ctx.QuantMin , m_ctx.QuantMax, m_ctx, status);
     }
@@ -878,7 +879,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             m_avg->UpdateSlidingWindow(bitsEncoded, m_ctx.encOrder, m_ctx.bPanic, bSHStart || picType == MFX_FRAMETYPE_I,frame_par->NumRecode);
         }
 
-        m_ctx.totalDiviation += (bitsEncoded - (mfxI32)m_par.inputBitsPerFrame);
+        m_ctx.totalDiviation += ((mfxF64)bitsEncoded - m_par.inputBitsPerFrame);
 
         //printf("-- %d (%d)) Total diviation %d, old scene %d, bNeedUpdateQP %d, m_ctx.Quant %d, type %d\n", frame_par->EncodedOrder, frame_par->DisplayOrder,m_ctx.totalDiviation, oldScene , bNeedUpdateQP, m_ctx.Quant,picType);
 
@@ -969,7 +970,7 @@ mfxStatus ExtBRC::Reset(mfxVideoParam *par )
         sts = Init(par);
     }
     else
-    { 
+    {
         bool brcReset = false;
         bool slidingWindowReset = false;
 

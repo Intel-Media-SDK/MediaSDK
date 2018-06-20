@@ -20,8 +20,16 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfx_samples_config.h"
 #include "plugin_utils.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#include <psapi.h>
+#include <d3d9.h>
+#include "d3d_allocator.h"
+#include "d3d11_allocator.h"
+#else
 #include <stdarg.h>
 #include "vaapi_allocator.h"
+#endif
 
 #include "sysmem_allocator.h"
 #include "transcode_utils.h"
@@ -140,6 +148,7 @@ void TranscodingSample::PrintHelp()
 
     msdk_printf(MSDK_STRING("  -mfe_timeout <N> multi-frame encode timeout in milliseconds - set per sessions control\n"));
 #endif
+
 #ifdef ENABLE_MCTF
 #if !defined ENABLE_MCTF_EXT
     msdk_printf(MSDK_STRING("  -mctf [Strength]\n"));
@@ -164,7 +173,8 @@ void TranscodingSample::PrintHelp()
 #endif //ENABLE_MCTF_EXT
 #endif //ENABLE_MCTF
 
-    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as the come\n"));
+    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as the come (by resetting components)\n"));
+
     msdk_printf(MSDK_STRING("  -async        Depth of asynchronous pipeline. default value 1\n"));
     msdk_printf(MSDK_STRING("  -join         Join session with other session(s), by default sessions are not joined\n"));
     msdk_printf(MSDK_STRING("  -priority     Use priority for join sessions. 0 - Low, 1 - Normal, 2 - High. Normal by default\n"));
@@ -240,11 +250,13 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -qpp          Constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
     msdk_printf(MSDK_STRING("  -qpb          Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
 #endif
+    msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
     msdk_printf(MSDK_STRING("  -qsv-ff       Enable QSV-FF mode\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("                Set Regions of Interest for each frame from <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("  -roi_qpmap    Use QP map to emulate ROI for CQP mode\n"));
+    msdk_printf(MSDK_STRING("  -extmbqp      Use external MBQP map\n"));
 #endif //MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (vpp options):\n"));
@@ -273,7 +285,7 @@ void TranscodingSample::PrintHelp()
 #if (MFX_VERSION >= 1024)
     msdk_printf(MSDK_STRING("  -extbrc:<on,off,implicit>           Enables external BRC for AVC and HEVC encoders"));
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
     msdk_printf(MSDK_STRING("  -ExtBrcAdaptiveLTR:<on,off>         Set AdaptiveLTR for implicit extbrc"));
 #endif
     msdk_printf(MSDK_STRING("  -vpp_comp <sourcesNum>      Enables composition from several decoding sessions. Result is written to the file\n"));
@@ -292,6 +304,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -vpp_comp_dump null_render  Disabling rendering after VPP Composition. This is for performance measurements\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -dec_postproc               Resize after decoder using direct pipe (should be used in decoder session)\n"));
+    msdk_printf(MSDK_STRING("  -single_texture_d3d11       single texture mode for d3d11 allocator \n"));
 #endif //MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("ParFile format:\n"));
@@ -334,7 +347,47 @@ void TranscodingSample::PrintInfo(mfxU32 session_number, sInputParams* pParams, 
 
 bool TranscodingSample::PrintDllInfo(msdk_char* buf, mfxU32 buf_size, sInputParams* pParams)
 {
+#if defined(_WIN32) || defined(_WIN64)
+    HANDLE   hCurrent = GetCurrentProcess();
+    HMODULE *pModules;
+    DWORD    cbNeeded;
+    int      nModules;
+    if (NULL == EnumProcessModules(hCurrent, NULL, 0, &cbNeeded))
+        return false;
+
+    nModules = cbNeeded / sizeof(HMODULE);
+
+    pModules = new HMODULE[nModules];
+    if (NULL == pModules)
+    {
+        return false;
+    }
+    if (NULL == EnumProcessModules(hCurrent, pModules, cbNeeded, &cbNeeded))
+    {
+        delete []pModules;
+        return false;
+    }
+
+    for (int i = 0; i < nModules; i++)
+    {
+        GetModuleFileName(pModules[i], buf, buf_size);
+        if (_tcsstr(buf, MSDK_STRING("libmfxhw")) && (MFX_IMPL_SOFTWARE != pParams->libType))
+        {
+            delete []pModules;
+            return true;
+        }
+        else if (_tcsstr(buf, MSDK_STRING("libmfxsw")) && (MFX_IMPL_SOFTWARE == pParams->libType))
+        {
+            delete []pModules;
+            return true;
+        }
+
+    }
+    delete []pModules;
     return false;
+#else
+    return false;
+#endif
 }
 
 CmdProcessor::CmdProcessor()
@@ -350,7 +403,7 @@ CmdProcessor::CmdProcessor()
     statisticsLogFile = NULL;
     DumpLogFileName.clear();
     shouldUseGreedyFormula=false;
-    m_bRobust = false;
+    bRobustFlag = false;
 
 } //CmdProcessor::CmdProcessor()
 
@@ -421,7 +474,7 @@ mfxStatus CmdProcessor::ParseCmdLine(int argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-robust")))
         {
-            m_bRobust = true;
+            bRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-?")) )
         {
@@ -865,7 +918,7 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU32 nArgNum, mfxU32& curArg, sInp
                         {
                             // currently, there is just 1 param in the file;
                             sMctfRunTimeParam tmp;
-                            if(msdk_sscanf(line.c_str(), MSDK_STRING("%hd:%*c"), &(tmp.FilterStrength)))
+                            if(msdk_sscanf(line.c_str(), MSDK_STRING("%hu:%*c"), &(tmp.FilterStrength)))
                                 pParams->mctfParam.rtParams.RunTimeParams.push_back(tmp);
                             else
                             {
@@ -907,7 +960,10 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU32 nArgNum, mfxU32& curArg, sInp
                 else
                 {
                     // take very first FS value from the file and use it as a value for FilterStrength
-                    pParams->mctfParam.params.FilterStrength = pParams->mctfParam.rtParams.GetCurParam()->FilterStrength;
+                    if(pParams->mctfParam.rtParams.GetCurParam())
+                    {
+                        pParams->mctfParam.params.FilterStrength = pParams->mctfParam.rtParams.GetCurParam()->FilterStrength;
+                    }
                 }
 #if defined ENABLE_MCTF_EXT
                 pParams->mctfParam.params.BitsPerPixelx100k = mfxU32(_bitsperpixel*MCTF_BITRATE_MULTIPLIER);
@@ -985,8 +1041,8 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     TranscodingSample::sInputParams InputParams;
     if (m_nTimeout)
         InputParams.nTimeout = m_nTimeout;
-    if (m_bRobust)
-        InputParams.bRobust = true;
+    if (bRobustFlag)
+        InputParams.bRobustFlag = bRobustFlag;
 
     InputParams.shouldUseGreedyFormula = shouldUseGreedyFormula;
 
@@ -1118,6 +1174,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         {
             InputParams.bROIasQPMAP = true;
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-extmbqp")))
+        {
+            InputParams.bExtMBQP = true;
+        }
 #endif //MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-sw")))
         {
@@ -1142,7 +1202,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust")))
         {
-            InputParams.bRobust = true;
+            InputParams.bRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-threads")))
         {
@@ -1543,6 +1603,14 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         {
             InputParams.bUseOpaqueMemory = false;
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp::sys")))
+        {
+            InputParams.VppOutPattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp::vid")))
+        {
+            InputParams.VppOutPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
+        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vpp_comp_dst_x")))
         {
             VAL_CHECK(i + 1 == argc, i, argv[i]);
@@ -1730,7 +1798,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust")))
         {
-            InputParams.bRobust = true;
+            InputParams.bRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-opencl")))
         {
@@ -1857,9 +1925,17 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-DisableQPOffset")))
+        {
+            InputParams.bDisableQPOffset=true;
+        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-qsv-ff")))
         {
             InputParams.enableQSVFF=true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-single_texture_d3d11")))
+        {
+            InputParams.bSingleTexture = true;
         }
 #if (MFX_VERSION >= 1024)
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-extbrc::on")))
@@ -1875,7 +1951,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             InputParams.nExtBRC = EXTBRC_IMPLICIT;
         }
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ExtBrcAdaptiveLTR:on")))
         {
             InputParams.ExtBrcAdaptiveLTR = MFX_CODINGOPTION_ON;

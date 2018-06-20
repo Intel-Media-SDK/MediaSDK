@@ -115,6 +115,8 @@ int32_t vm_dir_open(vm_dir **dd, vm_char *path) {
 /*
  * directory traverse */
 int32_t vm_dir_read(vm_dir *dd, vm_char *filename,int nchars) {
+  (void)nchars;
+
   int32_t rtv = 0;
   if (dd != NULL) {
    struct dirent *ent=readdir(dd);

@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,12 +24,16 @@
 using namespace ns_asc;
 
 void TimeStart(ASCTime* timer) {
+    (void)timer;
 }
 
 void TimeStart(ASCTime* timer, int index) {
+    (void)timer;
+    (void)index;
 }
 
 void TimeStop(ASCTime* timer) {
+    (void)timer;
 }
 
 mfxF64 CatchTime(ASCTime *timer, const char* message)
@@ -42,10 +46,19 @@ mfxF64 CatchTime(ASCTime *timer, const char* message)
 }
 
 mfxF64 CatchTime(ASCTime *timer, int index, const char* message) {
+    (void)timer;
+    (void)index;
+    (void)message;
+
     return 0.0;
 }
 
 mfxF64 CatchTime(ASCTime *timer, int indexInit, int indexEnd, const char* message) {
+    (void)timer;
+    (void)indexInit;
+    (void)indexEnd;
+    (void)message;
+
     return 0.0;
 }
 
@@ -56,7 +69,14 @@ void imageInit(ASCYUV *buffer) {
 }
 
 void nullifier(ASCimageData *Buffer) {
-    memset(Buffer, 0, sizeof(ASCimageData));
+    imageInit(&Buffer->Image);
+    memset(&Buffer->pInteger, 0, sizeof(ASCMVector));
+    memset(&Buffer->Cs, 0, sizeof(Buffer->Cs));
+    memset(&Buffer->Rs, 0, sizeof(Buffer->Rs));
+    memset(&Buffer->RsCs, 0, sizeof(Buffer->RsCs));
+    memset(&Buffer->SAD, 0, sizeof(Buffer->SAD));
+    Buffer->CsVal = 0;
+    Buffer->RsVal = 0;
 }
 
 void ImDetails_Init(ASCImDetails *Rdata) {

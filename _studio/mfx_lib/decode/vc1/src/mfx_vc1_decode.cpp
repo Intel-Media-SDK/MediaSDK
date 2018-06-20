@@ -287,7 +287,7 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
 
     ConvertMfxToCodecParams(&m_par);
     m_VideoParams->lpMemoryAllocator = &m_MemoryAllocator;
-    if (par->mfx.FrameInfo.Width*par->mfx.FrameInfo.Height)
+    if (par->mfx.FrameInfo.Width && par->mfx.FrameInfo.Height)
     {
         m_BufSize = par->mfx.FrameInfo.Width*par->mfx.FrameInfo.Height*2;
         // Set surface number for decoding. HW requires
@@ -316,7 +316,7 @@ mfxStatus MFXVideoDECODEVC1::Init(mfxVideoParam *par)
         return MFX_ERR_MEMORY_ALLOC;
 
     m_pStCodes = (UMC::MediaDataEx::_MediaDataEx*)(m_MemoryAllocator.Lock(m_stCodesID));
-    memset(m_pStCodes, 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
+    memset(reinterpret_cast<void*>(m_pStCodes), 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
     m_pStCodes->count      = 0;
     m_pStCodes->index      = 0;
     m_pStCodes->bstrm_pos  = 0;
@@ -381,7 +381,7 @@ mfxStatus MFXVideoDECODEVC1::Reset(mfxVideoParam *par)
     // buffers setting
     m_FrameConstrData.SetBufferPointer(m_pReadBuffer, m_BufSize);
     m_FrameConstrData.SetDataSize(0);
-    memset(m_pStCodes, 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
+    memset(reinterpret_cast<void*>(m_pStCodes), 0, (START_CODE_NUMBER*2*sizeof(int32_t)+sizeof(UMC::MediaDataEx::_MediaDataEx)));
     m_pStCodes->count      = 0;
     m_pStCodes->index      = 0;
     m_pStCodes->bstrm_pos  = 0;
@@ -757,7 +757,7 @@ mfxStatus MFXVideoDECODEVC1::SelfConstructFrame(mfxBitstream *bs)
     mfxStatus MFXSts = MFX_ERR_NONE;
     Status IntUMCStatus = UMC_OK;
 
-    if (!(m_par.mfx.FrameInfo.Width*m_par.mfx.FrameInfo.Height))
+    if (0 == (m_par.mfx.FrameInfo.Width*m_par.mfx.FrameInfo.Height))
     {
         MFXSts = MFXVC1DecCommon::ParseSeqHeader(bs, &m_par, 0, 0);
         MFX_CHECK_STS(MFXSts);
@@ -994,7 +994,7 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
              (IntUMCStatus == UMC::UMC_ERR_NOT_ENOUGH_DATA))
     {
         // Updated parameters with weq header data
-        if (! (m_par.mfx.FrameInfo.FrameRateExtD * m_par.mfx.FrameInfo.FrameRateExtN))
+        if (0 == (m_par.mfx.FrameInfo.FrameRateExtD * m_par.mfx.FrameInfo.FrameRateExtN))
         {
             // new frame rate parameters
             mfxU32 frCode;

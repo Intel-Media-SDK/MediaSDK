@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -131,16 +131,26 @@ void InitRefPicList(
         // 8.2.4.2.1-2 "Initialisation process for
         // the reference picture list for P and SP slices in frames/fields"
         for (mfxU32 i = 0; i < dpb.Size(); i++)
+        {
+            if (task.m_bNoPRefB && ((dpb[i].m_type[0] & MFX_FRAMETYPE_B) || (dpb[i].m_type[1] & MFX_FRAMETYPE_B)))
+                continue;
+
             if (!dpb[i].m_longterm)
                 list0Frm.PushBack(mfxU8(i));
+        }
 
         std::sort(list0Frm.Begin(), list0Frm.End(), RefPicNumIsGreater(dpb));
 
         mfxU8 * firstLongTerm = list0Frm.End();
 
         for (mfxU32 i = 0; i < dpb.Size(); i++)
+        {
+            if (task.m_bNoPRefB && ((dpb[i].m_type[0] & MFX_FRAMETYPE_B) || (dpb[i].m_type[1] & MFX_FRAMETYPE_B)))
+                continue;
+
             if (dpb[i].m_longterm)
                 list0Frm.PushBack(mfxU8(i));
+        }
 
         std::sort(
             firstLongTerm,

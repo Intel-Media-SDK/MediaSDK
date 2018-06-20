@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -329,9 +329,9 @@ public:
 
     CM_INLINE int n_elems() const { return SZ; }
 
-    virtual T get(uint i) const = 0; 
-    virtual T& getref(uint i) = 0; 
-    virtual void* get_addr(uint i) = 0; 
+    virtual T get(uint i) const = 0;
+    virtual T& getref(uint i) = 0;
+    virtual void* get_addr(uint i) = 0;
     virtual void* get_addr_data() = 0;
     virtual void* get_addr_obj() = 0;
     int extract_data(void *buf, uint size = 0xffffffff);
@@ -451,7 +451,7 @@ public:
 
     CM_NOINLINE matrix();
     template <typename T2> CM_NOINLINE matrix(const T2 initArray[]);
-    CM_NOINLINE matrix(const matrix<T, R, C>& src); 
+    CM_NOINLINE matrix(const matrix<T, R, C>& src);
     template <typename T2> CM_NOINLINE matrix(const T2& src);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix(const matrix<T2, R2, C2>& src, const uint sat = 0);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix(const matrix_ref<T2, R2, C2>& src, const uint sat = 0);
@@ -472,7 +472,7 @@ public:
     }
 
     //operator =
-    CM_NOINLINE matrix<T, R, C>& operator = (const matrix<T, R, C>& src); 
+    CM_NOINLINE matrix<T, R, C>& operator = (const matrix<T, R, C>& src);
     template <typename T2> CM_NOINLINE matrix<T, R, C>& operator = (const T2 src);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix<T, R, C>& operator = (const matrix<T2, R2, C2>& src);
     template <typename T2, uint R2, uint C2> CM_NOINLINE matrix<T, R, C>& operator = (const matrix_ref<T2, R2, C2>& src);
@@ -518,7 +518,7 @@ public:
 
     declare_operation(+= )     // +=
         declare_operation(-= )     // -=
-        declare_operation(*= )     // *= 
+        declare_operation(*= )     // *=
         declare_operation(/= )     // /=
         declare_operation(%= )     // %=
         declare_operation(&= )     // &=
@@ -541,7 +541,7 @@ private:
     T data[SZ];
 #ifdef CM_EMU
     cm::array_2d<T, R, C> array_2d_;
-#endif 
+#endif
     CM_NOINLINE T operator () (uint i) const {
         assert(i < SZ);
         return get(i);
@@ -557,7 +557,7 @@ private:
    // vector
 template <typename T, uint SZ>
 class vector : public matrix<T, 1, SZ> {
-    void assign(const stream<T, SZ> &src); 
+    void assign(const stream<T, SZ> &src);
     template <typename T1, uint R1, uint C1> friend class matrix_ref;
     template <typename T1, uint SZ1> friend class vector_ref;
 public:
@@ -589,7 +589,7 @@ public:
     template <typename T2> CM_NOINLINE vector(const T2 initArray[]) : ::matrix<T, 1, SZ>(initArray) {
         CM_STATIC_ERROR(!std::is_floating_point<T2>::value, "floating point array initialization values are not supported");
     }
-    CM_NOINLINE vector(const vector<T, SZ>& src) : ::matrix<T, 1, SZ>((const matrix<T, 1, SZ>&)src) {} 
+    CM_NOINLINE vector(const vector<T, SZ>& src) : ::matrix<T, 1, SZ>((const matrix<T, 1, SZ>&)src) {}
     template <typename T2> CM_NOINLINE vector(const T2& src) : ::matrix<T, 1, SZ>(src) {}
     template <typename T2, uint R2, uint C2> CM_NOINLINE vector(const matrix<T2, R2, C2>& src, uint sat = 0) : ::matrix<T, 1, SZ>(src, sat) {}
     template <typename T2, uint R2, uint C2> CM_NOINLINE vector(const matrix_ref<T2, R2, C2>& src, uint sat = 0) : ::matrix<T, 1, SZ>(src, sat) {}
@@ -678,7 +678,7 @@ public:
 
 /*
     STREAM
-*/   
+*/
 
 template <typename T, uint SZ>
 int stream<T, SZ>::extract_data(void *buf, uint size)
@@ -686,6 +686,8 @@ int stream<T, SZ>::extract_data(void *buf, uint size)
     uint i;
 
     assert(SZ * sizeof(T) <= size);
+
+    (void)size;
 
     for (i = 0; i< SZ; i++) {
         ((T*)buf)[i] = get(i);
@@ -911,7 +913,7 @@ void stream<T, SZ>::merge(const T x, const T y, const stream<T1, SZ>& c)
     }
 }
 
-   
+
 /*
     MATRIX
 */
@@ -1120,7 +1122,7 @@ matrix<T,R,C>& matrix<T,R,C>::operator OP##= (const vector_ref<T2,SZ>& x) \
 
 matrix_operation(+)     // +=
 matrix_operation(-)     // -=
-matrix_operation(*)     // *= 
+matrix_operation(*)     // *=
 matrix_operation(/ )     // /=
 matrix_operation(%)     // %=
 matrix_operation(&)     // &=

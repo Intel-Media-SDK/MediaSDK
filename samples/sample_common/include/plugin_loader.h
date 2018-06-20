@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -90,6 +90,14 @@ private:
             return MSDK_STRING("Intel (R) Media SDK plugin for HEVC ENCODE");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_HEVCE_HW))
             return MSDK_STRING("Intel (R) Media SDK HW plugin for HEVC ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP8E_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP8 ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP8D_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP8 DECODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP9E_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP9 ENCODE");
+        else if(AreGuidsEqual(guid, MFX_PLUGINID_VP9D_HW))
+            return MSDK_STRING("Intel (R) Media SDK HW plugin for VP9 DECODE");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_H264LA_HW))
             return MSDK_STRING("Intel (R) Media SDK plugin for LA ENC");
         else if(AreGuidsEqual(guid, MFX_PLUGINID_ITELECINE_HW))
@@ -97,7 +105,7 @@ private:
         else if (AreGuidsEqual(guid, MFX_PLUGINID_HEVCE_GACC))
             return MSDK_STRING("Intel (R) Media SDK GPU-Accelerated plugin for HEVC ENCODE");
         else
-#if MFX_VERSION >= MFX_VERSION_NEXT
+#if MFX_VERSION >= 1027
         if (AreGuidsEqual(guid, MFX_PLUGINID_HEVC_FEI_ENCODE))
             return MSDK_STRING("Intel (R) Media SDK HW plugin for HEVC FEI ENCODE");
         else

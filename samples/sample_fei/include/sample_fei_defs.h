@@ -299,6 +299,7 @@ struct AppConfig
         , NumRefActiveBL0(0)
         , NumRefActiveBL1(0)
         , bRefType(MFX_B_REF_UNKNOWN) // Let MSDK library to decide wheather to use B-pyramid or not
+        , bNoPtoBref(false)
         , nIdrInterval(0xffff)        // Infinite IDR interval
         , preencDSstrength(0)         // No Downsampling
         , bDynamicRC(false)
@@ -370,6 +371,7 @@ struct AppConfig
         , mbstatoutFile(NULL)
         , mbQpFile(NULL)
         , repackctrlFile(NULL)
+        , reconFile(NULL)
 #if (MFX_VERSION >= 1025)
         , repackstatFile(NULL)
         , numMfeFrames(0)
@@ -407,6 +409,7 @@ struct AppConfig
     mfxU16 NumRefActiveBL0;  // maximal number of backward references for B frames
     mfxU16 NumRefActiveBL1;  // maximal number of forward references for B frames
     mfxU16 bRefType;         // B-pyramid ON/OFF/UNKNOWN (default, let MSDK lib to decide)
+    bool   bNoPtoBref;       // disable prediction of P frames from reference B
     mfxU16 nIdrInterval;     // distance between IDR frames in GOPs
     mfxU8  preencDSstrength; // downsample input before passing to preenc (2/4/8x are supported)
     bool   bDynamicRC;
@@ -490,6 +493,7 @@ struct AppConfig
     msdk_char* mbstatoutFile;
     msdk_char* mbQpFile;
     msdk_char* repackctrlFile;
+    msdk_char* reconFile;
 #if (MFX_VERSION >= 1025)
     msdk_char* repackstatFile;
     mfxI32     numMfeFrames;
@@ -762,6 +766,7 @@ struct DpbFrame
     PairU8  m_refPicFlag;
     mfxU8   m_longterm; // at least one field is a long term reference
     mfxU8   m_refBase;
+    PairU8  m_type;     // type of first and second field
 };
 
 struct ArrayDpbFrame : public FixedArray<DpbFrame, 16>

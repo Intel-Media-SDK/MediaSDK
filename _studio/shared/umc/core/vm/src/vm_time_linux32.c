@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -103,12 +103,10 @@ vm_status vm_time_close(vm_time_handle *handle)
 /* Start the process of time measure */
 vm_status vm_time_start(vm_time_handle handle, vm_time *m)
 {
+   (void)handle;
+
    if (NULL == m)
        return VM_NULL_PTR;
-
-   /*  touch unreferenced parameters.
-       Take into account Intel's compiler. */
-   handle = handle;
 
    m->start = vm_time_get_tick();
    return VM_OK;
@@ -118,12 +116,10 @@ vm_status vm_time_start(vm_time_handle handle, vm_time *m)
 /* Stop the process of time measure and obtain the sampling time in seconds */
 double vm_time_stop(vm_time_handle handle, vm_time *m)
 {
+   (void)handle;
+
    double speed_sec;
    long long end;
-
-   /*  touch unreferenced parameters.
-       Take into account Intel's compiler. */
-   handle = handle;
 
    end = vm_time_get_tick();
    m->diff += (end - m->start);

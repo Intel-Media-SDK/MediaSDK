@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -65,7 +65,7 @@ void CMC::QueryDefaultParams(mfxExtVppMctf* pBuffer)
     if (!pBuffer) return;
     IntMctfParams Mctfparam;
     QueryDefaultParams(&Mctfparam);
-	pBuffer->FilterStrength = Mctfparam.FilterStrength;
+    pBuffer->FilterStrength = Mctfparam.FilterStrength;
 #ifdef MFX_ENABLE_MCTF_EXT
     pBuffer->BitsPerPixelx100k = Mctfparam.BitsPerPixelx100k;
     pBuffer->Overlap = Mctfparam.Overlap;
@@ -78,7 +78,7 @@ void CMC::QueryDefaultParams(mfxExtVppMctf* pBuffer)
 mfxStatus CMC::CheckAndFixParams(mfxExtVppMctf* pBuffer)
 {
     mfxStatus sts = MFX_ERR_NONE;
-    if (!pBuffer) MFX_ERR_NULL_PTR;
+    if (!pBuffer) return MFX_ERR_NULL_PTR;
     if (pBuffer->FilterStrength > 20) {
         pBuffer->FilterStrength = AUTO_FILTER_STRENTH;
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
@@ -183,7 +183,7 @@ inline mfxStatus CMC::SetupMeControl(const mfxFrameInfo& FrameInfo, mfxU16 th, m
         0x20,0x11,0xCF,0xF1,0x05,0x11,//45
         0x00,0x00,0x00,0x00,0x00,0x00,//51
     };
-    memcpy(p_ctrl->searchPath.sp, Diamond, MIN(sizeof(Diamond), sizeof(p_ctrl->searchPath.sp)));
+    memcpy_s(p_ctrl->searchPath.sp, sizeof(Diamond), Diamond, sizeof(p_ctrl->searchPath.sp));
     p_ctrl->searchPath.lenSp = 16;
     p_ctrl->searchPath.maxNumSu = 57;
 
@@ -242,6 +242,7 @@ void CMC::TimeStart() {
 }
 
 void CMC::TimeStart(int index) {
+    (void)index;
 }
 
 void CMC::TimeStop() {
@@ -258,13 +259,17 @@ mfxF64 CMC::CatchTime(const char* message, int print)
 }
 
 mfxF64 CMC::CatchTime(int indexInit, int indexEnd, const char* message, int print) {
+    (void)indexInit;
+    (void)indexEnd;
+    (void)message;
+    (void)print;
+
     return 0.0;
 }
 
 void CMC::CatchEndTime(mfxI32 processed_frames) {
     TimeStop();
 //    CatchTime("Total process time:", 1);
-    processed_frames = processed_frames;
 }
 
 mfxStatus CMC::MCTF_GET_FRAME(CmSurface2D* outFrame) {
@@ -602,7 +607,7 @@ mfxStatus CMC::MCTF_INIT( VideoCORE * core, CmDevice *pCmDevice, const mfxFrameI
     mfxStatus sts = MFX_ERR_NONE;
     pSCD.reset(new(ASC));
 
-    IntMctfParams MctfParam{ 0 };
+    IntMctfParams MctfParam{};
     QueryDefaultParams(&MctfParam);
 
     // if no MctfParams are passed, to use default
@@ -742,7 +747,7 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
     //Motion Estimation
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_me_bdw, sizeof(genx_me_bdw), programMe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_SKL || hwType == PLATFORM_INTEL_KBL || hwType == PLATFORM_INTEL_CNL)
+    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_me_skl, sizeof(genx_me_skl), programMe, "nojitter");
     else
         return MFX_ERR_UNSUPPORTED;
@@ -767,7 +772,7 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
     //Motion Compensation
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_mc_bdw, sizeof(genx_mc_bdw), programMc, "nojitter");
-    else if (hwType == PLATFORM_INTEL_SKL || hwType == PLATFORM_INTEL_KBL || hwType == PLATFORM_INTEL_CNL)
+    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_mc_skl, sizeof(genx_mc_skl), programMc, "nojitter");
     else
         return MFX_ERR_UNSUPPORTED;
@@ -775,7 +780,7 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
 
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_sd_bdw, sizeof(genx_mc_bdw), programDe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_SKL || hwType == PLATFORM_INTEL_KBL || hwType == PLATFORM_INTEL_CNL)
+    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_sd_skl, sizeof(genx_mc_skl), programDe, "nojitter");
     else
         return MFX_ERR_UNSUPPORTED;
@@ -856,8 +861,6 @@ mfxStatus CMC::MCTF_UpdateANDApplyRTParams(mfxU8 srcNum)
 
 #ifdef MCTF_UPDATE_RT_FRAME_ORDER_BASED
         m_RTParams = QfIn[srcNum].mfxMctfControl;
-#else
-        srcNum = srcNum;
 #endif
         if (MCTF_CONFIGURATION::MCTF_MAN_NCA_NBA == ConfigMode)
         {
@@ -896,7 +899,6 @@ mfxStatus CMC::MCTF_UpdateBitrateInfo(mfxU32 BitsPerPexelx100k)
     }
     else
     {
-		BitsPerPexelx100k = BitsPerPexelx100k;
         // if any other mode, update the bitrate does not have any effect;
         // let notify a caller about this; 
         // however, its not critical as MCTF can operate further
@@ -912,6 +914,7 @@ mfxStatus CMC::GEN_NoiseSURF_SET(CmSurface2DUP **p_Surface, void **p_Sys, Surfac
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     *p_Sys = CM_ALIGNED_MALLOC(surfNoiseSize, 0x1000);
+    MFX_CHECK(*p_Sys, MFX_ERR_NULL_PTR);
     memset(*p_Sys, 0, surfNoiseSize);
 //    res = device->CreateSurface2DUP(DIVUP(p_ctrl->width, 16) * sizeof(spatialNoiseAnalysis), DIVUP(p_ctrl->height, 16), CM_SURFACE_FORMAT_A8, *p_Sys, *p_Surface);
     res = device->CreateSurface2DUP(DIVUP(p_ctrl->CropW, 16) * sizeof(spatialNoiseAnalysis), DIVUP(p_ctrl->CropH, 16), CM_SURFACE_FORMAT_A8, *p_Sys, *p_Surface);
@@ -926,6 +929,7 @@ mfxStatus CMC::GEN_SURF_SET(CmSurface2DUP **p_Surface, void **p_Sys, SurfaceInde
     res = device->GetSurface2DInfo(ov_width_bl * sizeof(mfxI16Pair), ov_height_bl, CM_SURFACE_FORMAT_A8, surfPitch, surfSize);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     *p_Sys = CM_ALIGNED_MALLOC(surfSize, 0x1000);
+    MFX_CHECK(*p_Sys, MFX_ERR_NULL_PTR);
     memset(*p_Sys, 0, surfSize);
     res = device->CreateSurface2DUP(ov_width_bl * sizeof(mfxI16Pair), ov_height_bl, CM_SURFACE_FORMAT_A8, *p_Sys, *p_Surface);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
@@ -1870,7 +1874,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
     char forwardRefDist, char backwardRefDist,
     mfxU8 mcSufIndex) {
 #if !_MRE_
-	idxMRE1, idxMRE2;
+    idxMRE1, idxMRE2;
 #endif
     time = 0;
 
@@ -1911,7 +1915,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
         (this->*(pMCTF_NOA_func))();
 
     //res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, 0, tsHeight, blSize, forwardRefDist, backwardRefDist);
-	res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, DIVUP(p_ctrl->CropX, blsize), tsHeight, blSize, forwardRefDist, backwardRefDist);
+    res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, DIVUP(p_ctrl->CropX, blsize), tsHeight, blSize, forwardRefDist, backwardRefDist);
 
     MCTF_CHECK_CM_ERR(res, res);
     if (mcSufIndex == 0) {
@@ -1990,17 +1994,18 @@ mfxI32 CMC::MCTF_RUN_ME_MRE(
 
 void CMC::GET_DISTDATA() {
     for (int y = 0; y < ov_height_bl; y++)
-        memcpy(distRef.data() + y * ov_width_bl, (char *)distSys + y * surfPitch, sizeof(mfxU32) * ov_width_bl);
+        memcpy_s(distRef.data() + y * ov_width_bl, sizeof(mfxU32) * ov_width_bl * ov_height_bl,(char *)distSys + y * surfPitch, sizeof(mfxU32) * ov_width_bl);
 }
 
 void CMC::GET_DISTDATA_H() {
     for (int y = 0; y < ov_height_bl / 2; y++)
-        memcpy(distRef.data() + y * ov_width_bl, (char *)distSys + y * surfPitch, sizeof(mfxU32) * ov_width_bl);
+        memcpy_s(distRef.data() + y * ov_width_bl, sizeof(mfxU32) * ov_width_bl * ov_height_bl, (char *)distSys + y * surfPitch, sizeof(mfxU32) * ov_width_bl);
 }
 
 void CMC::GET_NOISEDATA() {
+    int var_sc_area = DIVUP(p_ctrl->CropW, 16) * DIVUP(p_ctrl->CropH, 16);
     for (int y = 0; y < DIVUP(p_ctrl->CropH, 16); y++)
-        memcpy(var_sc.data() + y * DIVUP(p_ctrl->CropW, 16), (char *)noiseAnalysisSys + y * surfNoisePitch, sizeof(spatialNoiseAnalysis) * DIVUP(p_ctrl->CropW, 16));
+        memcpy_s(var_sc.data() + y * DIVUP(p_ctrl->CropW, 16), var_sc_area, (char *)noiseAnalysisSys + y * surfNoisePitch, sizeof(spatialNoiseAnalysis) * DIVUP(p_ctrl->CropW, 16));
 }
 
 mfxF64 CMC::GET_TOTAL_SAD() {

@@ -211,7 +211,7 @@ static int perf_read(struct pmu_metrics *pm)
         PERF_FORMAT_TOTAL_TIME_ENABLED |
         PERF_FORMAT_GROUP;
     struct perf_read_format data;
-    size_t len;
+    ssize_t len;
 
     if (pm->fd < 0)
         return -1;
@@ -440,7 +440,6 @@ cttStatus CTTMetrics_PMU_GetValue(unsigned int count, float* out_metric_values)
         return CTT_ERR_OUT_OF_RANGE;
 
     unsigned int metric_idx, pm_metric_idx;
-    uint64_t engine_time, cpu_time;
     double value;
     bool read_pm = true;
 

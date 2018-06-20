@@ -23,14 +23,14 @@ mfx_include_dirs()
 set( CURRENT_SRC_ROOT "${MSDK_STUDIO_ROOT}/shared/umc" )
 include_directories( ${CURRENT_SRC_ROOT}/../include )
 
+set( defs "" )
+
 ### UMC core umc
 set( sources "" )
 file( GLOB_RECURSE srcs "${CURRENT_SRC_ROOT}/core/umc/src/*.c" "${CURRENT_SRC_ROOT}/core/umc/src/*.cpp" )
 list( APPEND sources ${srcs})
 
-set( defs "${WARNING_FLAGS}" )
 make_library( umc none static )
-set( defs "" )
 ### UMC core umc
 
 ### UMC vm
@@ -38,9 +38,7 @@ set( sources "" )
 file( GLOB_RECURSE srcs "${CURRENT_SRC_ROOT}/core/vm/src/*.c" "${CURRENT_SRC_ROOT}/core/vm/src/*.cpp" )
 list( APPEND sources ${srcs})
 
-set( defs "${WARNING_FLAGS}" )
 make_library( vm none static )
-set( defs "" )
 ### UMC vm
 
 ### UMC vm plus
@@ -48,9 +46,7 @@ set( sources "" )
 file( GLOB_RECURSE srcs "${CURRENT_SRC_ROOT}/core/vm_plus/src/*.c" "${CURRENT_SRC_ROOT}/core/vm_plus/src/*.cpp" )
 list( APPEND sources ${srcs} )
 
-set( defs "${WARNING_FLAGS}" )
 make_library( vm_plus none static )
-set( defs "" )
 ### UMC vm plus
 
 ### UMC VA
@@ -58,7 +54,5 @@ set( sources "" )
 file( GLOB_RECURSE srcs "${CURRENT_SRC_ROOT}/io/umc_va/src/*.c" "${CURRENT_SRC_ROOT}/io/umc_va/src/*.cpp" )
 list( APPEND sources ${srcs} )
 
-set( defs "${WARNING_FLAGS}" )
 make_library( umc_va hw static )
-set( defs "" )
 ### UMC VA

@@ -23,7 +23,7 @@ mfx_include_dirs( )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../../mfx_lib/cmrt_cross_platform/include )
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 set( sources "" )
 set( sources.plus "" )
 

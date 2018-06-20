@@ -57,7 +57,7 @@ uint16_t CalculateUMCGOPLength (mfxU16 GOPSize, mfxU8 targetUsage)
         case MFX_TARGETUSAGE_BEST_SPEED:
             return 1;
         }
-        return 1;
+    return 1;
 }
 bool SetUFParameters(mfxU8 TargetUsages, bool& mixed,uint32_t& twoRef )
 {

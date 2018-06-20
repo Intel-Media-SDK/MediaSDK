@@ -26,7 +26,7 @@ extern "C"
 {
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
 
 typedef struct {
     mfxExtBuffer Header;
@@ -107,6 +107,19 @@ typedef struct {
     mfxFeiHevcEncCtuCtrl *Data;
 } mfxExtFeiHevcEncCtuCtrl;
 
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32      MaxFrameSize; /* in bytes */
+    mfxU32      NumPasses;    /* up to 8 */
+    mfxU16      reserved[8];
+    mfxU8       DeltaQP[8];   /* list of delta QPs, only positive values */
+} mfxExtFeiHevcRepackCtrl;
+
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          NumPasses;
+    mfxU16          reserved[58];
+} mfxExtFeiHevcRepackStat;
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
 typedef struct  {
@@ -238,6 +251,8 @@ enum {
     MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED    = MFX_MAKEFOURCC('F','H','P','D'),
     MFX_EXTBUFF_HEVCFEI_ENC_QP         = MFX_MAKEFOURCC('F','H','Q','P'),
     MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL   = MFX_MAKEFOURCC('F','H','E','C'),
+    MFX_EXTBUFF_HEVCFEI_REPACK_CTRL    = MFX_MAKEFOURCC('F','H','R','P'),
+    MFX_EXTBUFF_HEVCFEI_REPACK_STAT    = MFX_MAKEFOURCC('F','H','R','S'),
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
     MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC    = MFX_MAKEFOURCC('F','H','T','B'),

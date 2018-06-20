@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -127,6 +127,14 @@ namespace MfxHwH265FeiEncode
             mfxExtFeiHevcEncCtuCtrl* ctuctrl = reinterpret_cast<mfxExtFeiHevcEncCtuCtrl*>(GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL));
             vaFeiFrameControl->ctb_ctrl = (EncFrameCtrl->PerCtuInput && ctuctrl) ? ctuctrl->VaBufferID : VA_INVALID_ID;
 
+            mfxExtFeiHevcRepackCtrl* repackctrl = reinterpret_cast<mfxExtFeiHevcRepackCtrl*>(GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
+            if (NULL != repackctrl)
+            {
+                vaFeiFrameControl->max_frame_size = repackctrl->MaxFrameSize;
+                vaFeiFrameControl->num_passes = repackctrl->NumPasses;
+                vaFeiFrameControl->delta_qp = repackctrl->DeltaQP;
+            }
+
             // Output buffers
 #if MFX_VERSION >= MFX_VERSION_NEXT
             mfxExtFeiHevcPakCtuRecordV0* ctucmd = reinterpret_cast<mfxExtFeiHevcPakCtuRecordV0*>(GetBufById(task.m_bs, MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC));
@@ -153,8 +161,32 @@ namespace MfxHwH265FeiEncode
         return MFX_ERR_NONE;
     }
 
-    mfxStatus VAAPIh265FeiEncoder::PostQueryExtraStage()
+    mfxStatus VAAPIh265FeiEncoder::PostQueryExtraStage(Task const & task, mfxU32 codedStatus)
     {
+        mfxExtFeiHevcRepackStat *repackStat = reinterpret_cast<mfxExtFeiHevcRepackStat *>
+            (GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_STAT));
+
+        if (repackStat)
+        {
+            repackStat->NumPasses = 0;
+
+            mfxExtFeiHevcRepackCtrl* repackctrl = reinterpret_cast<mfxExtFeiHevcRepackCtrl*>
+                (GetBufById(task.m_ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
+
+            if (NULL != repackctrl)
+            {
+                mfxU8 QP = codedStatus & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK;
+                mfxU8 QPOption = task.m_qpY;
+                mfxU32 numPasses = 0;
+
+                while ((QPOption != QP) && (numPasses < repackctrl->NumPasses))
+                    QPOption += repackctrl->DeltaQP[numPasses++];
+
+                if (QPOption == QP)
+                    repackStat->NumPasses = numPasses+1;
+            }
+        }
+
         return MFX_ERR_NONE;
     }
 }

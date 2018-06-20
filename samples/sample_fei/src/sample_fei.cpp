@@ -49,6 +49,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-single_field_processing] - single-field coding mode, one call for each field, tff/bff option required\n"));
     msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
     msdk_printf(MSDK_STRING("   [-nobref] - do not use B-pyramid (by default the decision is made by library)\n"));
+    msdk_printf(MSDK_STRING("   [-noPtoBref] - in B pyramid case, disable prediction of P frames from reference B; not for ENCODE pipeline\n"));
     msdk_printf(MSDK_STRING("   [-idr_interval size] - idr interval, default 0 means every I is an IDR, 1 means every other I frame is an IDR etc (default is infinite)\n"));
     msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
     msdk_printf(MSDK_STRING("   [-n number] - number of frames to process\n"));
@@ -104,6 +105,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-weights file] - file to input weights for explicit weighted prediction (ENCODE only).\n"));
     msdk_printf(MSDK_STRING("   [-ImplicitWPB] - enable implicit weighted prediction B frames (ENCODE only).\n"));
     msdk_printf(MSDK_STRING("   [-streamout file] - dump decode streamout structures\n"));
+    msdk_printf(MSDK_STRING("   [-recon file] - dump reconstructed surfaces to YUV file, it's for pipelines with PAK (PAK, ENC+PAK, PREENC+ENC+PAK)\n"));
     msdk_printf(MSDK_STRING("   [-sys] - use system memory for surfaces (ENCODE only)\n"));
     msdk_printf(MSDK_STRING("   [-8x8stat] - set 8x8 block for statistic report, default is 16x16 (PREENC only)\n"));
     msdk_printf(MSDK_STRING("   [-search_window value] - specifies one of the predefined search path and window size. In range [1,8] (5 is default).\n"));
@@ -173,7 +175,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
 
 mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pConfig)
 {
-    const msdk_char* strArgument = MSDK_STRING("");
     msdk_char* stopCharacter;
 
     bool bRefWSizeSpecified = false, bAlrShownHelp = false, bParseDRC = false;
@@ -341,6 +342,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
             pConfig->decodestreamoutFile = strInput[i + 1];
             i++;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-recon")))
+        {
+            pConfig->reconFile = strInput[i + 1];
+            i++;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-nv12")))
         {
             pConfig->ColorFormat = MFX_FOURCC_NV12;
@@ -368,6 +374,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-nobref")))
         {
             pConfig->bRefType = MFX_B_REF_OFF;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-noPtoBref")))
+        {
+            pConfig->bNoPtoBref = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-idr_interval")))
         {
@@ -410,6 +420,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         {
             i++;
             pConfig->NumRefActiveBL1 = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-n")))
+        {
+            i++;
+            pConfig->nNumFrames = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-gop_opt")))
         {
@@ -680,67 +695,65 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
             i++;
             pConfig->nReconSurf = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-w")))
+        {
+            i++;
+            pConfig->nWidth = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-h")))
+        {
+            i++;
+            pConfig->nHeight = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-f")))
+        {
+            i++;
+            pConfig->dFrameRate = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-g")))
+        {
+            i++;
+            pConfig->gopSize = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-r")))
+        {
+            i++;
+            pConfig->refDist = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-l")))
+        {
+            i++;
+            pConfig->numSlices = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-x")))
+        {
+            i++;
+            pConfig->numRef = (mfxU16)msdk_strtol(strInput[i], &stopCharacter, 10);
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-?")))
+        {
+            PrintHelp(strInput[0], NULL);
+            return MFX_ERR_UNSUPPORTED;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-i")))
+        {
+            i++;
+            if (msdk_strlen(strInput[i]) < STR_ARRAY_LEN(pConfig->strSrcFile)){
+                msdk_strcopy(pConfig->strSrcFile, strInput[i]);
+            }else{
+                PrintHelp(strInput[0], MSDK_STRING("ERROR: Too long input filename (limit is 1023 characters)!"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-o")))
+        {
+            i++;
+            pConfig->dstFileBuff.push_back(strInput[i]);
+        }
         else // 1-character options
         {
-            switch (strInput[i][1])
-            {
-            case MSDK_CHAR('w'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->nWidth = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('h'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->nHeight = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('f'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->dFrameRate = (mfxF64)msdk_strtod(strArgument, &stopCharacter);
-                break;
-            case MSDK_CHAR('n'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->nNumFrames = (mfxU32)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('g'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->gopSize = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('r'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->refDist = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('l'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->numSlices = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('x'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->numRef = (mfxU16)msdk_strtol(strArgument, &stopCharacter, 10);
-                break;
-            case MSDK_CHAR('i'):
-                GET_OPTION_POINTER(strArgument);
-                if (msdk_strlen(strArgument) < STR_ARRAY_LEN(pConfig->strSrcFile)){
-                    msdk_strcopy(pConfig->strSrcFile, strArgument);
-                }else{
-                    PrintHelp(strInput[0], MSDK_STRING("ERROR: Too long input filename (limit is 1023 characters)!"));
-                    return MFX_ERR_UNSUPPORTED;
-                }
-                break;
-            case MSDK_CHAR('o'):
-                GET_OPTION_POINTER(strArgument);
-                pConfig->dstFileBuff.push_back(strArgument);
-                break;
-            case MSDK_CHAR('?'):
-                PrintHelp(strInput[0], NULL);
-                return MFX_ERR_UNSUPPORTED;
-            default:
-                if (!bAlrShownHelp){
-                    msdk_printf(MSDK_STRING("\nWARNING: Unknown option %s\n\n"), strInput[i]);
-                    PrintHelp(strInput[0], NULL);
-                    bAlrShownHelp = true;
-                }else {
-                    msdk_printf(MSDK_STRING("\nWARNING: Unknown option %s\n\n"), strInput[i]);
-                }
-            }
+            msdk_printf(MSDK_STRING("\nWARNING: Unknown option %s\n\n"), strInput[i]);
+            return MFX_ERR_UNSUPPORTED;
         }
     }
 
@@ -1101,6 +1114,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         pConfig->mbcodeoutFile       = NULL;
         pConfig->mbQpFile            = NULL;
         pConfig->repackctrlFile      = NULL;
+        pConfig->reconFile           = NULL;
 #if (MFX_VERSION >= 1025)
         pConfig->repackstatFile      = NULL;
 #endif
@@ -1121,6 +1135,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         pConfig->repackstatFile =
 #endif
           NULL;
+    }
+
+    if (pConfig->reconFile && !pConfig->bENCPAK && !pConfig->bOnlyPAK)
+    {
+        msdk_printf(MSDK_STRING("\nWARNING: Reconstructed Surface dump is disabled for pipeline without PAK!\n"));
+        pConfig->reconFile = NULL;
     }
 
     if (pConfig->bENCODE || pConfig->bENCPAK || pConfig->bOnlyENC || pConfig->bOnlyPAK)
@@ -1181,6 +1201,18 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
         msdk_printf(MSDK_STRING("           Current number of references extended.\n"));
 
         pConfig->numRef = 2;
+    }
+
+    if (pConfig->bRefType != MFX_B_REF_PYRAMID && pConfig->bNoPtoBref)
+    {
+        msdk_printf(MSDK_STRING("\nWARNING: option -noPtoBref can only be set together with -bref\n"));
+        pConfig->bNoPtoBref = false;
+    }
+
+    if (pConfig->bENCODE && pConfig->bNoPtoBref)
+    {
+        msdk_printf(MSDK_STRING("\nWARNING: option -noPtoBref doesn't work with ENCODE pipeline\n"));
+        pConfig->bNoPtoBref = false;
     }
 
     return MFX_ERR_NONE;
@@ -1303,7 +1335,6 @@ int main(int argc, char *argv[])
     mfxStatus sts = MFX_ERR_NONE; // return value check
     msdk_char parFileName[MSDK_MAX_FILENAME_LEN];
     std::unique_ptr<msdk_char[]> parBuf;
-    FILE *parFile = NULL;
     if (1 == argc)
     {
         PrintHelp(argv[0], MSDK_STRING("ERROR: Not enough input parameters"));
@@ -1312,6 +1343,8 @@ int main(int argc, char *argv[])
     std::vector<std::unique_ptr<AppConfig> > Configs;   // input parameters from command line
     if (0 == msdk_strncmp(MSDK_STRING("-par_file"), argv[1], msdk_strlen(MSDK_STRING("-par_file"))))
     {
+        FILE *parFile = NULL;
+
         if(argc < 3)
         {
             PrintHelp(argv[0], MSDK_STRING("ERROR: Parfile is missed"));
@@ -1344,6 +1377,7 @@ int main(int argc, char *argv[])
         // allocate buffer for parsing
         parBuf.reset(new msdk_char[fileSize]);
         sts = ParseParFile(parFile, Configs, parBuf.get(), fileSize);
+        fclose(parFile);
         if(sts != MFX_ERR_NONE)
         {
             msdk_printf(MSDK_STRING("ERROR: ParFile \"%s\" reading failed\n"), parFileName);
@@ -1412,23 +1446,19 @@ int main(int argc, char *argv[])
         RunPipeline(pipelines[0].get(), 0);
     }
 
-    for(std::vector<std::thread>::iterator t = pipe_threads.begin(); t != pipe_threads.end(); t++)
+    for(auto t = pipe_threads.begin(); t != pipe_threads.end(); t++)
     {
         t->join();
     }
     msdk_printf(MSDK_STRING("\nProcessing finished after %.2f sec \n"), MSDK_GET_TIME(msdk_time_get_tick(), startTime, frequency));
     pipe_threads.clear();
 
-    for (auto & pipeline : pipelines)
+    for(auto iPipeline = pipelines.rbegin(); iPipeline != pipelines.rend(); iPipeline++)
     {
-        pipeline->Close();
+        (*iPipeline)->Close();
     }
     pipelines.clear();
 
-    if(parFile)
-    {
-        fclose(parFile);
-    }
     Configs.clear();
     return 0;
 }
@@ -1486,7 +1516,7 @@ mfxStatus CheckDRCParams(AppConfig* pConfig)
 
     for (mfxU32 i = 0; i < pConfig->DRCqueue.size(); ++i)
     {
-        if (!(pConfig->DRCqueue[i].target_w * pConfig->DRCqueue[i].target_w))
+        if (0 == (pConfig->DRCqueue[i].target_w * pConfig->DRCqueue[i].target_w))
         {
             fprintf(stderr, "ERROR: Incomplete DRC parameters for frame %d\n", pConfig->DRCqueue[i].start_frame);
             return MFX_ERR_UNSUPPORTED;

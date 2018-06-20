@@ -35,7 +35,7 @@
 
  #include "cmrt_cross_platform.h" // Gpucopy stuff
  #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-  #include "mfx_scd.h"        // Scene change detection
+  #include "asc.h"        // Scene change detection
  #endif
  #include "cm_mem_copy.h"         // Needed for mirroring kernels
  #include "genx_fcopy_gen8_isa.h" // Field copy kernels
@@ -307,7 +307,7 @@ namespace MfxHwVideoProcessing
     {
         bool   m_bMode30i60pEnable;
         bool   m_bWeave;
-        bool   m_bPassThroughEnable;
+        bool   m_bCopyPassThroughEnable;// if this flag is true input surface will be copied to output via DoFastCopyWrapper() without VPP
         bool   m_bRefFrameEnable;
         bool   m_multiBlt;// this flag defines mode of composition for D3D11: 1 - run few hw calls per frame (Blt), 0 - run one hw call (Blt)
 
@@ -987,7 +987,7 @@ namespace MfxHwVideoProcessing
         CmCopyWrapper *m_pCmCopy;
 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-        SceneChangeDetector m_SCD;
+       ns_asc::ASC m_SCD;
 #endif
 
         CmDevice  *m_pCmDevice;

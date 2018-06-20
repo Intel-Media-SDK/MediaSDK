@@ -273,7 +273,7 @@ vm_thread_priority vm_get_current_thread_priority()
 
 void vm_set_current_thread_priority(vm_thread_priority priority)
 {
-    priority = priority;
+    (void)priority;
 }
 
 void vm_set_thread_affinity_mask(vm_thread *thread, unsigned long long mask)

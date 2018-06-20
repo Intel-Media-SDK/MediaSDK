@@ -78,6 +78,5 @@ function( make_static_library name )
   set_target_properties( ${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER ${target} )
 endfunction( )
 
-set( defs "${defs} ${WARNING_FLAGS}" )
 make_static_library( SafeString )
 set( defs "" )

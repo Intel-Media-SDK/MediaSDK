@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -223,11 +223,13 @@ protected:
     int32_t display_order;
     unsigned long long last_timestamp;
     mfxF64 last_good_timestamp;
+    mfxU16 m_fieldsInCurrFrame; // first field or new frame if 3 or 0; 1 - only top etc
 
     int32_t m_Protected;
 
     void ResetFcState(FcState& state) { state.picStart = state.picHeader = 0; }
     mfxStatus UpdateCurrVideoParams(mfxFrameSurface1 *surface_work, int task_num);
+    bool VerifyPictureBits(mfxBitstream* currPicBs, const mfxU8* head, const mfxU8* tail);
 
     //get index to read input data:
     bool SetCurr_m_frame()
@@ -355,7 +357,9 @@ protected:
     int32_t m_SkipLevel;
 };
 
+#ifdef _MSVC_LANG
 #pragma warning(default: 4324)
+#endif
 
 #endif //MFX_ENABLE_MPEG2_VIDEO_DECODE
 #endif //__MFX_MPEG2_DECODE_H__

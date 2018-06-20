@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -22,6 +22,5 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define FILE_VERSION_STRING "1,0,0,0"
 #define FILTER_NAME_PREFIX ""
 #define FILTER_NAME_SUFFIX ""
-#define PRODUCT_COPYRIGHT "Copyright\xa9 2003-2014 Intel Corporation"
 #define PRODUCT_VERSION 1,0,0,0
 #define PRODUCT_VERSION_STRING "1,0,0,0"

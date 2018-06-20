@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -29,21 +29,35 @@ namespace MfxHwH265FeiEncode
 {
 
 H265FeiEncodePlugin::H265FeiEncodePlugin(bool CreateByDispatcher)
-    : Plugin(CreateByDispatcher)
-{
-}
+    : m_createdByDispatcher(CreateByDispatcher)
+    , m_adapter(this)
+    , m_pImpl(nullptr)
+{}
 
 H265FeiEncodePlugin::~H265FeiEncodePlugin()
+{}
+
+mfxStatus H265FeiEncodePlugin::PluginInit(mfxCoreInterface *core)
 {
-    Close();
+    MFX_TRACE_INIT();
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "H265FeiEncodePlugin::PluginInit");
+
+    MFX_CHECK_NULL_PTR1(core);
+    m_core = *core;
+    return MFX_ERR_NONE;
 }
 
-DriverEncoder* H265FeiEncodePlugin::CreateHWh265Encoder(MFXCoreInterface* core, ENCODER_TYPE type)
+mfxStatus H265FeiEncodePlugin::PluginClose()
 {
-    core;
-    type;
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "H265FeiEncodePlugin::PluginClose");
+        if (m_createdByDispatcher)
+            Release();
+    }
 
-    return new VAAPIh265FeiEncoder;
+    MFX_TRACE_CLOSE();
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus H265FeiEncodePlugin::GetPluginParam(mfxPluginParam *par)
@@ -63,13 +77,7 @@ mfxStatus H265FeiEncodePlugin::GetPluginParam(mfxPluginParam *par)
 }
 
 
-mfxStatus H265FeiEncodePlugin::Close()
-{
-    Plugin::Close();
-    return MFX_ERR_NONE;
-}
-
-mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
+mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
 {
     if (!surface) return MFX_ERR_NONE; // In case of frames draining in display order
 
@@ -117,10 +125,10 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
+    MFX_CHECK(EncFrameCtrl->AdaptiveSearch <= 1,  MFX_ERR_INVALID_VIDEO_PARAM);
     if (EncFrameCtrl->SearchWindow)
     {
-        MFX_CHECK(EncFrameCtrl->AdaptiveSearch == 0
-               && EncFrameCtrl->LenSP          == 0
+        MFX_CHECK(EncFrameCtrl->LenSP          == 0
                && EncFrameCtrl->SearchPath     == 0
                && EncFrameCtrl->RefWidth       == 0
                && EncFrameCtrl->RefHeight      == 0, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -129,7 +137,6 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
     }
     else
     {
-        MFX_CHECK(EncFrameCtrl->AdaptiveSearch <= 1,  MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(EncFrameCtrl->SearchPath     <= 2,  MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(EncFrameCtrl->LenSP          >= 1 &&
                   EncFrameCtrl->LenSP          <= 63, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -147,6 +154,8 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
                    && EncFrameCtrl->RefHeight % 4 == 0
                    && EncFrameCtrl->RefWidth  <= ((frameType & MFX_FRAMETYPE_B) ? 32 : 64)
                    && EncFrameCtrl->RefHeight <= ((frameType & MFX_FRAMETYPE_B) ? 32 : 64)
+                   && EncFrameCtrl->RefWidth  >= 20
+                   && EncFrameCtrl->RefHeight >= 20
                    && EncFrameCtrl->RefWidth * EncFrameCtrl->RefHeight <= 2048,
                       // For B frames actual limit is RefWidth*RefHeight <= 1024.
                       // Is is already guranteed by limit of 32 pxls for RefWidth and RefHeight in case of B frame
@@ -175,6 +184,17 @@ mfxStatus H265FeiEncodePlugin::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFram
     if (EncFrameCtrl->PerCtuInput)
     {
         MFX_CHECK(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL), MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    // Check for mfxExtFeiHevcRepackCtrl
+
+    mfxExtFeiHevcRepackCtrl* repackctrl = reinterpret_cast<mfxExtFeiHevcRepackCtrl*>(
+        GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
+
+    if (repackctrl)
+    {
+        MFX_CHECK(!EncFrameCtrl->PerCuQp, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(repackctrl->NumPasses <= 8, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     return MFX_ERR_NONE;

@@ -170,6 +170,10 @@ namespace
 
 } // namespace
 
+const mfxPluginUID NativePlugins[] =
+{
+    MFX_PLUGINID_HEVCE_HW
+};
 
 mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
                                 const mfxPlugin *par)
@@ -178,6 +182,8 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
 
     // check error(s)
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK_NULL_PTR1(par);
+    MFX_CHECK_NULL_PTR1(par->GetPluginParam);
     
     try
     {
@@ -187,12 +193,24 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
         std::unique_ptr<VideoDECODE> &decPtr = sessionPtr.codec<VideoDECODE>();
         std::unique_ptr<VideoVPP> &vppPtr = sessionPtr.codec<VideoVPP>();
         std::unique_ptr<VideoENC> &preEncPtr = sessionPtr.codec<VideoENC>();
+        mfxPluginParam pluginParam = {};
 
         // the plugin with the same type is already exist
         if (pluginPtr.get() || decPtr.get() || encPtr.get() || preEncPtr.get())
         {
             return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
+
+        //check is this plugin was included into MSDK lib as a native component
+        mfxRes = par->GetPluginParam(par->pthis, &pluginParam);
+        MFX_CHECK_STS(mfxRes);
+
+        for (auto& uid : NativePlugins)
+        {
+            if (!memcmp(&uid, &pluginParam.PluginUID, sizeof(uid)))
+                return MFX_ERR_NONE; //do nothing
+        }
+
         // create a new plugin's instance
         pluginPtr.reset(CreateUSERSpecificClass(type));
         MFX_CHECK(pluginPtr.get(), MFX_ERR_INVALID_VIDEO_PARAM);

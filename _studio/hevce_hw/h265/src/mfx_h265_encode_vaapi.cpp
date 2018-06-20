@@ -93,14 +93,12 @@ static mfxStatus SetROI(
         roi_Param->max_delta_qp = 51;
         roi_Param->min_delta_qp = -51;
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
         roi_Param->roi_flags.bits.roi_value_is_qp_delta = 0;
 #if MFX_VERSION > 1021
         if (task.m_roiMode == MFX_ROI_MODE_QP_DELTA) {
             roi_Param->roi_flags.bits.roi_value_is_qp_delta = 1;
         }
 #endif // MFX_VERSION > 1021
-#endif // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
     }
 
     vaSts = vaUnmapBuffer(vaDisplay, roiParam_id);
@@ -1749,6 +1747,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
         {
             case VASurfaceReady:
                 VACodedBufferSegment *codedBufferSegment;
+                mfxU32 codedStatus;
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
@@ -1766,6 +1765,8 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 else if (!codedBufferSegment->size || !codedBufferSegment->buf)
                     sts = MFX_ERR_DEVICE_FAILED;
 
+                codedStatus = codedBufferSegment->status;
+
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
                     vaSts = vaUnmapBuffer( m_vaDisplay, codedBuffer );
@@ -1773,7 +1774,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
                 // Sync FEI output buffers
-                MFX_CHECK_WITH_ASSERT(PostQueryExtraStage() == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+                MFX_CHECK_WITH_ASSERT(PostQueryExtraStage(task, codedStatus) == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
                 return sts;
 

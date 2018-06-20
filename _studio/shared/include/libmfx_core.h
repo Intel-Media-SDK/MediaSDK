@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -98,7 +98,7 @@ public:
     virtual mfxStatus DecreasePureReference(mfxU16 &Locked);
 
     // Get Video Accelerator.
-    virtual void  GetVA(mfxHDL* phdl, mfxU16 type) {type=type;*phdl = 0;}
+    virtual void  GetVA(mfxHDL* phdl, mfxU16 type);
     virtual mfxStatus CreateVA(mfxVideoParam * , mfxFrameAllocRequest *, mfxFrameAllocResponse *, UMC::FrameAllocator *) { return MFX_ERR_UNSUPPORTED; }
     // Get the current working adapter's number
     virtual mfxU32 GetAdapterNumber(void) {return 0;}

@@ -40,10 +40,32 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #if (MFX_VERSION >= 1026)
 #define ENABLE_MCTF
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
+//---MCTF, extended interface
 #define ENABLE_MCTF_EXT
 enum {MCTF_BITRATE_MULTIPLIER = 100000};
 #endif
 #endif
+
+
+#if defined(WIN32) || defined(WIN64)
+
+enum {
+    MFX_HANDLE_DEVICEWINDOW  = 0x101 /* A handle to the render window */
+}; //mfxHandleType
+
+#ifndef D3D_SURFACES_SUPPORT
+#define D3D_SURFACES_SUPPORT 1
+#endif
+
+#if defined(_WIN32) && !defined(MFX_D3D11_SUPPORT)
+#include <sdkddkver.h>
+#if (NTDDI_VERSION >= NTDDI_VERSION_FROM_WIN32_WINNT2(0x0602)) // >= _WIN32_WINNT_WIN8
+    #define MFX_D3D11_SUPPORT 1 // Enable D3D11 support if SDK allows
+#else
+    #define MFX_D3D11_SUPPORT 0
+#endif
+#endif // #if defined(WIN32) && !defined(MFX_D3D11_SUPPORT)
+#endif // #if defined(WIN32) || defined(WIN64)
 
 enum
 {

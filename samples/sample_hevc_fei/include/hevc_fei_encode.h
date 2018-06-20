@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -25,13 +25,16 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "ref_list_manager.h"
 #include "fei_buffer_allocator.h"
 #include "fei_predictors_repacking.h"
+#include "brc_routines.h"
 
 class FEI_Encode
 {
 public:
-    FEI_Encode(MFXVideoSession* session, mfxHDL hdl, MfxVideoParamsWrapper& encode_pars,
-        const mfxExtFeiHevcEncFrameCtrl& def_ctrl, const msdk_char* dst_output,
-        const msdk_char* mvpInFile, PredictorsRepaking* rpck);
+    FEI_Encode(MFXVideoSession* session, mfxHDL hdl,
+        MfxVideoParamsWrapper& encode_pars, const mfxExtFeiHevcEncFrameCtrl& encodeCtrl,
+        const msdk_char* strDstFile, const msdk_char* mvpInFile,
+        const msdk_char* repackctrlFile, const msdk_char* repackstatFile,
+        PredictorsRepaking* repacker);
 
     ~FEI_Encode();
 
@@ -47,6 +50,9 @@ public:
 
     mfxStatus EncodeFrame(mfxFrameSurface1* pSurf);
     mfxStatus EncodeFrame(HevcTask* task);
+
+    mfxStatus SetRepackCtrl();
+    mfxStatus GetRepackStat();
 
     mfxStatus ResetIOState();
 
@@ -75,7 +81,14 @@ private:
     mfxStatus SetCtrlParams(const HevcTask& task); // for encoded order
     mfxStatus ResetExtBuffers(const MfxVideoParamsWrapper & videoParams);
 
+    std::string m_repackCtrlFileName;
+    std::auto_ptr<FileHandler> m_pFile_repack_ctrl;
+
+    std::string m_repackStatFileName;
+    std::auto_ptr<FileHandler> m_pFile_repack_stat;
+
     /* For I/O operations with extension buffers */
+    std::string m_mvpInFileName;
     std::auto_ptr<FileHandler> m_pFile_MVP_in;
 
     DISALLOW_COPY_AND_ASSIGN(FEI_Encode);

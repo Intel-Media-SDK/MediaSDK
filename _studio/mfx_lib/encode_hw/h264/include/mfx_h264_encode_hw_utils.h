@@ -1268,7 +1268,7 @@ namespace MfxHwH264Encode
         par.EncodedOrder = task->m_encOrder;
         par.PyramidLayer = (mfxU16)task->m_loc.level;
         par.NumRecode = (mfxU16)task->m_repack;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1026)
         par.FrameCmplx   = task->m_frcmplx;
         par.LongTerm     = (task->m_longTermFrameIdx != NO_INDEX_U8) ? 1 : 0;
         par.SceneChange  = (mfxU16) task->m_SceneChange;

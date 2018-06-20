@@ -285,6 +285,7 @@ typedef struct tagENCODE_CAPS
 
     union {
         struct {
+            UINT    RoundingOffset          : 1;
             UINT    SkipFrame               : 1;
             UINT    MbQpDataSupport         : 1;
             UINT    SliceLevelWeightedPred  : 1;
@@ -295,7 +296,7 @@ typedef struct tagENCODE_CAPS
             UINT    HMEOffsetSupport        : 1;
             UINT    DirtyRectSupport        : 1;
             UINT    MoveRectSupport         : 1;
-            UINT                            : 22;
+            UINT                            : 21;
         };
         UINT      CodingLimits2;
     };

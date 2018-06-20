@@ -406,14 +406,7 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
                 sts = m_resources.CreatePlugins(pParams->pluginParams.pluginGuid,NULL);
                 MSDK_CHECK_STATUS(sts, "m_resources.CreatePlugins failed");
             }
-            if(sts==MFX_ERR_UNSUPPORTED)
-            {
-                msdk_printf(isDefaultPlugin ?
-                    MSDK_STRING("Default plugin cannot be loaded (possibly you have to define plugin explicitly)\n")
-                    : MSDK_STRING("Explicitly specified plugin cannot be loaded.\n"));
-            }
         }
-        MSDK_CHECK_STATUS(sts, "m_resources.CreatePlugins failed");
     }
 
     // set memory type

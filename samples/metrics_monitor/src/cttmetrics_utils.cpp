@@ -35,8 +35,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include <string.h>
 
-char CARD_N[3] = {0};
-char CARD[7] = {0};
+char CARD_N[16] = {0};
+char CARD[32] = {0};
 
 int path_gen(char* pdst, size_t sz, const char delim, const char* a, const char* b, const char* c)
 {
@@ -92,10 +92,10 @@ cttStatus discover_path_to_gpu()
     struct stat buffer;
     char DRM_CARD[30] = {0};
     int i;
-    for (i=0; ; i++)
+    for (i=0; i<100 ; i++)
     {
-        sprintf(CARD_N, "%d", i);
-        sprintf(CARD, "card%s", CARD_N);
+        snprintf(CARD_N, sizeof(CARD_N), "%d", i);
+        snprintf(CARD, sizeof(CARD), "card%s", CARD_N);
 
         path_gen(DRM_CARD, sizeof(DRM_CARD)/sizeof(DRM_CARD[0]), '/', DRM_DIR, CARD, "");
         if(lstat(DRM_CARD, &buffer))

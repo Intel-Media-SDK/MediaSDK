@@ -65,7 +65,7 @@
         #define MFX_ENABLE_H264_VIDEO_ENCODE
 
         //h265e
-        #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
+        #if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN) || defined(MFX_VA)
             #define MFX_ENABLE_H265_VIDEO_ENCODE
         #endif
         //hevc FEI ENCODE
@@ -173,7 +173,7 @@
         #define MFX_ENABLE_H265_VIDEO_ENCODE
             #define MFX_ENABLE_CM
     #endif
-    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= MFX_VERSION_NEXT && !defined(LINUX_TARGET_PLATFORM_BXT)
+    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= 1027 && !defined(LINUX_TARGET_PLATFORM_BXT)
         #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
     #endif
     #if defined(AS_VP8DHW_PLUGIN)
@@ -197,9 +197,7 @@
 #endif // LINUX_TARGET_PLATFORM
 
 #define MFX_ENABLE_HEVCE_INTERLACE
-#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_CFL)
-    #define MFX_ENABLE_HEVCE_ROI
-#endif
+#define MFX_ENABLE_HEVCE_ROI
 
 #if MFX_VERSION >= 1026
     #define MFX_ENABLE_MCTF

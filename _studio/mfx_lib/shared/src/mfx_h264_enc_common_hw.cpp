@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -833,14 +833,14 @@ namespace
     }
 #if defined(MFX_ENABLE_MFE)
     mfxU16 GetDefaultNumMfeFrames(mfxU32 targetUsage, const mfxFrameInfo& info,
-        eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed)
+        eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed,
+        eMFXGTConfig config)
     {
         targetUsage;//no specific check for TU now, can be added later
         if (platform <= MFX_HW_BDW)//no MFE support prior to SKL.
             return 1;
-        else if (platform == MFX_HW_SCL)
+        else if (platform == MFX_HW_SCL && config >= MFX_GT3)
         {
-            //at GT2 SKUs this can require adjustment, also only 3840x2160 verified, between 1088 and 2160 there can be difference and 2 frames can be run normally
             if ((info.CropH > 1088 && info.CropW > 1920) || slices > 1)
             {
                 return 1;
@@ -857,7 +857,32 @@ namespace
             }
             else
             {
-                return 3;//for legacy now
+                return 3;
+            }
+        }
+        else if (platform == MFX_HW_SCL && config == MFX_GT2)
+        {
+            if ((info.CropH > 1088 && info.CropW > 1920) || slices > 1)
+            {
+                return 1;
+            }
+            else if (extSurfUsed || func == MFX_FEI_FUNCTION_ENCODE)
+            {
+                return 2;
+            }
+            //other functions either already rejected(PAK, ENC/PreEnc absense of support) or can run bigger amount of frames(for PreEnc).
+            //extSurfUsed - mean we are using running into kernel limitation for max number of surfaces used in kernel
+            else if (func)
+            {
+                return 1;
+            }
+            else if (info.CropH > 720 && info.CropW > 1280)
+            {
+                return 2;
+            }
+            else
+            {
+                return 3;
             }
         }
         else
@@ -1547,6 +1572,7 @@ bool MfxHwH264Encode::IsRunTimeOnlyExtBuffer(mfxU32 id)
 {
     return
            id == MFX_EXTBUFF_AVC_REFLIST_CTRL
+        || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET
         || id == MFX_EXTBUFF_ENCODED_FRAME_INFO
         || id == MFX_EXTBUFF_MBQP
 #if MFX_VERSION >= 1023
@@ -1571,6 +1597,7 @@ bool MfxHwH264Encode::IsRunTimeExtBufferIdSupported(MfxVideoParam const & video,
     return
           (id == MFX_EXTBUFF_AVC_REFLIST_CTRL
         || id == MFX_EXTBUFF_AVC_REFLISTS
+        || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET
         || id == MFX_EXTBUFF_ENCODED_FRAME_INFO
         || id == MFX_EXTBUFF_PICTURE_TIMING_SEI
         || id == MFX_EXTBUFF_CODING_OPTION2
@@ -1636,7 +1663,8 @@ bool MfxHwH264Encode::IsRunTimeExtBufferPairAllowed(MfxVideoParam const & video,
     (void)video;
 #endif
 
-    return (id == MFX_EXTBUFF_AVC_REFLISTS)
+    return (id == MFX_EXTBUFF_AVC_REFLISTS
+            || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET)
 #if defined (MFX_ENABLE_H264_VIDEO_FEI_ENCPAK)
            || (isFeiENCPAK &&
                 (  id == MFX_EXTBUFF_FEI_SLICE
@@ -1812,6 +1840,7 @@ mfxStatus MfxHwH264Encode::CopySpsPpsToVideoParam(
     if (extBits->SPSBuffer)
     {
         mfxExtSpsHeader const * extSps = GetExtBuffer(par);
+        MFX_CHECK_NULL_PTR1(extSps);
         if (!CheckAgreementOfSequenceLevelParameters<FunctionInit>(par, *extSps))
             changed = true;
     }
@@ -1820,6 +1849,7 @@ mfxStatus MfxHwH264Encode::CopySpsPpsToVideoParam(
     if (extBits->PPSBuffer)
     {
         mfxExtPpsHeader const * extPps = GetExtBuffer(par);
+        MFX_CHECK_NULL_PTR1(extPps);
         if (!CheckAgreementOfPictureLevelParameters<FunctionInit>(par, *extPps))
             changed = true;
     }
@@ -1848,6 +1878,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     bool                setExtAlloc,
     eMFXHWType          platform,
     eMFXVAType          vaType,
+    eMFXGTConfig        config,
     bool                bInit)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MfxHwH264Encode::CheckVideoParam");
@@ -1922,7 +1953,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         }
     }
 
-    sts = CheckVideoParamQueryLike(par, hwCaps, platform, vaType);
+    sts = CheckVideoParamQueryLike(par, hwCaps, platform, vaType, config);
     switch (sts)
     {
     case MFX_ERR_UNSUPPORTED:
@@ -1961,7 +1992,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         MFX_CHECK(extOpt3->NumSliceB > 0, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
-    SetDefaults(par, hwCaps, setExtAlloc, platform, vaType);
+    SetDefaults(par, hwCaps, setExtAlloc, platform, vaType, config);
 
     sts = CheckForAllowedH264SpecViolations(par);
     if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
@@ -2207,7 +2238,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     MfxVideoParam &     par,
     ENCODE_CAPS const & hwCaps,
     eMFXHWType          platform,
-    eMFXVAType          vaType)
+    eMFXVAType          vaType,
+    eMFXGTConfig        config)
 {
     Bool unsupported(false);
     Bool changed(false);
@@ -4616,16 +4648,27 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     /*explicitly force defualt number of frames, higher number will cause performance degradation
     multi-slice can be supported only through slice map control for MFE
     Adding any of Mad/MBQP/NonSkipMap/ForceIntraMap causing additional surfaces for kernel, leading to surface state cache size overhead*/
+
     mfxU16 numFrames = GetDefaultNumMfeFrames(par.mfx.TargetUsage, par.mfx.FrameInfo, platform, feiParam->Func,
         par.mfx.NumSlice,
         (extOpt2->EnableMAD == MFX_CODINGOPTION_ON) ||  (extOpt3->EnableMBQP == MFX_CODINGOPTION_ON) ||
-        (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON));
+        (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config);
     if (mfeParam.MaxNumFrames > numFrames)
     {
         mfeParam.MaxNumFrames = numFrames;
         changed = true;
     }
-    if (mfeParam.MaxNumFrames && mfeParam.MFMode < MFX_MF_AUTO)
+    if (extOpt2->IntRefType && (mfeParam.MaxNumFrames > 1 || (!mfeParam.MaxNumFrames && mfeParam.MFMode >= MFX_MF_AUTO)))
+    {
+        mfeParam.MaxNumFrames = 1;
+        changed = true;
+    }
+    if (mfeParam.MaxNumFrames != 1 && mfeParam.MFMode == MFX_MF_DISABLED)
+    {
+        mfeParam.MaxNumFrames = 1;
+        changed = true;
+    }
+    if (mfeParam.MaxNumFrames > 1 && mfeParam.MFMode == MFX_MF_DEFAULT)
     {
         mfeParam.MFMode = MFX_MF_AUTO;
         changed = true;
@@ -5192,7 +5235,8 @@ void MfxHwH264Encode::SetDefaults(
     ENCODE_CAPS const & hwCaps,
     bool                setExtAlloc,
     eMFXHWType          platform,
-    eMFXVAType          vaType)
+    eMFXVAType          vaType,
+    eMFXGTConfig        config)
 {
     mfxExtCodingOption *       extOpt  = GetExtBuffer(par);
     mfxExtCodingOption2 *      extOpt2 = GetExtBuffer(par);
@@ -5265,7 +5309,7 @@ void MfxHwH264Encode::SetDefaults(
             mfeParam->MaxNumFrames = GetDefaultNumMfeFrames(par.mfx.TargetUsage, par.mfx.FrameInfo, platform, feiParam->Func,
                 par.mfx.NumSlice,
                 (extOpt2->EnableMAD == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBQP == MFX_CODINGOPTION_ON) ||
-                (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON));
+                (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config);
         }
     }
     if (mfeControl)
@@ -5751,7 +5795,7 @@ void MfxHwH264Encode::SetDefaults(
     }
 #endif //(MFX_VERSION >= 1026)
 
-    CheckVideoParamQueryLike(par, hwCaps, platform, vaType);
+    CheckVideoParamQueryLike(par, hwCaps, platform, vaType, config);
 
     if (extOpt3->NumSliceI == 0 && extOpt3->NumSliceP == 0 && extOpt3->NumSliceB == 0)
         extOpt3->NumSliceI = extOpt3->NumSliceP = extOpt3->NumSliceB = par.mfx.NumSlice;
@@ -5853,9 +5897,13 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
+                // HRD buffer size can be different for the same level for AVC and MVC profiles. 
+                // So in case of MVC we need to copy MVC-specific buffer size to calcParam.bufferSizeInKB to assure that application will get enough size for bitstream buffer allocation
+                mfxU32 maxKbps = IsMvcProfile( par.mfx.CodecProfile ) ? par.calcParam.mvcPerViewPar.maxKbps : par.calcParam.maxKbps;
+                mfxU32 maxBufferSize = IsMvcProfile( par.mfx.CodecProfile ) ? GetMaxPerViewBufferSize( par ) : GetMaxBufferSize( par );
                 mfxU32 bufferSizeInBits = MFX_MIN(
-                    GetMaxBufferSize(par),                           // limit by spec
-                    par.calcParam.maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
+                   maxBufferSize,                           // limit by spec
+                   maxKbps * DEFAULT_CPB_IN_SECONDS); // limit by common sense
 
                 par.calcParam.bufferSizeInKB = !IsHRDBasedBRCMethod(par.mfx.RateControlMethod)
                         ? GetMaxCodedFrameSizeInKB(par)
@@ -6330,6 +6378,32 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
         MFX_CHECK(sts >= MFX_ERR_NONE, sts);
         if (sts != MFX_ERR_NONE)
             checkSts = sts;
+    }
+
+    for (mfxU16 fieldId = 0; fieldId < NumFields; fieldId++)
+    {
+        mfxExtAVCRoundingOffset* extRoundingOffset =
+                reinterpret_cast<mfxExtAVCRoundingOffset*>(MfxHwH264Encode::GetExtBuffer(ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_AVC_ROUNDING_OFFSET, fieldId));
+        if (extRoundingOffset)
+        {
+            if (IsOn(extRoundingOffset->EnableRoundingIntra))
+            {
+                if (extRoundingOffset->RoundingOffsetIntra > 7)
+                {
+                    checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+                    extRoundingOffset->RoundingOffsetIntra = extRoundingOffset->RoundingOffsetIntra % 7;
+                }
+            }
+
+            if (IsOn(extRoundingOffset->EnableRoundingInter))
+            {
+                if (extRoundingOffset->RoundingOffsetInter > 7)
+                {
+                    checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+                    extRoundingOffset->RoundingOffsetInter = extRoundingOffset->RoundingOffsetInter % 7;
+                }
+            }
+        }
     }
 
     mfxExtAVCRefListCtrl const * extRefListCtrl = GetExtBuffer(*ctrl);
@@ -8672,7 +8746,7 @@ namespace
 {
     ENCODE_PACKEDHEADER_DATA MakePackedByteBuffer(mfxU8 * data, mfxU32 size, mfxU32 skipEmulCount)
     {
-        ENCODE_PACKEDHEADER_DATA desc = { 0 };
+        ENCODE_PACKEDHEADER_DATA desc = {};
         desc.pData                  = data;
         desc.BufferSize             = size;
         desc.DataLength             = size;

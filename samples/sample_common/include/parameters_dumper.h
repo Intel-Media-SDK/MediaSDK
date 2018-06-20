@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -27,7 +27,7 @@ protected:
     static void SerializeFrameInfoStruct(msdk_ostream& sstr,msdk_string prefix,mfxFrameInfo& info);
     static void SerializeMfxInfoMFXStruct(msdk_ostream& sstr,msdk_string prefix,mfxInfoMFX& info);
     static void SerializeExtensionBuffer(msdk_ostream& sstr,msdk_string prefix,mfxExtBuffer* pExtBuffer);
-    static void SerializeVPPCompInputStream(msdk_ostream& sstr,msdk_string prefix,mfxVPPCompInputStream& info);
+    static void SerializeVPPCompInputStream(msdk_ostream& sstr, msdk_string prefix, mfxVPPCompInputStream& info);
 
     template <class T>
     static mfxStatus GetUnitParams(T* pMfxUnit, const mfxVideoParam* pPresetParams, mfxVideoParam* pOutParams)
@@ -68,5 +68,6 @@ public:
     static void SerializeVideoParamStruct(msdk_ostream& sstr,msdk_string sectionName,mfxVideoParam& info,bool shouldUseVPPSection=false);
     static mfxStatus DumpLibraryConfiguration(msdk_string fileName, MFXVideoDECODE* pMfxDec, MFXVideoVPP* pMfxVPP, MFXVideoENCODE* pMfxEnc,
         const mfxVideoParam* pDecoderPresetParams, const mfxVideoParam* pVPPPresetParams, const mfxVideoParam* pEncoderPresetParams);
+    static void ShowConfigurationDiff(msdk_ostream& sstr1, msdk_ostream& sstr2);
 };
 #endif

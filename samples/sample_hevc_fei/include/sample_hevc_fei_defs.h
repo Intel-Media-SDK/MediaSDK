@@ -26,6 +26,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxvideo++.h"
 #include "mfxfei.h"
 #include "mfxfeihevc.h"
+#include "brc_routines.h"
 #include <algorithm>
 
 #define CHECK_STS_AND_RETURN(X, MSG, RET) {if ((X) < MFX_ERR_NONE) {MSDK_PRINT_RET_MSG(X, MSG); return RET;}}
@@ -64,6 +65,8 @@ struct sInputParams
     msdk_char  mvoutFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  mvpInFile[MSDK_MAX_FILENAME_LEN];
     msdk_char  refctrlInFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackctrlFile[MSDK_MAX_FILENAME_LEN];
+    msdk_char  repackstatFile[MSDK_MAX_FILENAME_LEN];
 
     bool bENCODE;
     bool bPREENC;
@@ -71,11 +74,15 @@ struct sInputParams
     bool bFormattedMVout;      // use internal format for dumping MVP
     bool bFormattedMVPin;      // use internal format for reading MVP
     bool bQualityRepack;       // use quality mode in MV repack
+    bool bExtBRC;
     mfxU8  QP;
     mfxU16 dstWidth;           // destination picture width
     mfxU16 dstHeight;          // destination picture height
     mfxU32 nNumFrames;
     mfxU16 nNumSlices;
+    mfxU16 CodecProfile;
+    mfxU16 CodecLevel;
+    mfxU16 TargetKbps;
     mfxU16 nRefDist;           // distance between I- or P (or GPB) - key frames, GopRefDist = 1, there are no regular B-frames used
     mfxU16 nGopSize;           // number of frames to next I
     mfxU16 nIdrInterval;       // distance between IDR frames in GOPs
@@ -102,11 +109,15 @@ struct sInputParams
         , bFormattedMVout(false)
         , bFormattedMVPin(false)
         , bQualityRepack(false)
-        , QP(26)
+        , bExtBRC(false)
+        , QP(0)
         , dstWidth(0)
         , dstHeight(0)
         , nNumFrames(0)
         , nNumSlices(1)
+        , CodecProfile(MFX_PROFILE_HEVC_MAIN)
+        , CodecLevel(MFX_LEVEL_UNKNOWN)
+        , TargetKbps(0)
         , nRefDist(0)
         , nGopSize(0)
         , nIdrInterval(0)
@@ -128,6 +139,8 @@ struct sInputParams
         MSDK_ZERO_MEMORY(mvoutFile);
         MSDK_ZERO_MEMORY(mvpInFile);
         MSDK_ZERO_MEMORY(refctrlInFile);
+        MSDK_ZERO_MEMORY(repackctrlFile);
+        MSDK_ZERO_MEMORY(repackstatFile);
 
         MSDK_ZERO_MEMORY(preencCtrl);
         preencCtrl.Header.BufferId = MFX_EXTBUFF_FEI_PREENC_CTRL;
@@ -215,6 +228,18 @@ template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncCtuCtrl>{
 };
 template<>struct mfx_ext_buffer_id<mfxExtHEVCRefLists>{
     enum {id = MFX_EXTBUFF_HEVC_REFLISTS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackStat>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_STAT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtBRC> {
+    enum {id = MFX_EXTBUFF_BRC};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCParam> {
+    enum {id = MFX_EXTBUFF_HEVC_PARAM};
 };
 
 struct CmpExtBufById
@@ -397,6 +422,8 @@ private:
             MFX_EXTBUFF_CODING_OPTION2,
             MFX_EXTBUFF_CODING_OPTION3,
             MFX_EXTBUFF_FEI_PARAM,
+            MFX_EXTBUFF_BRC,
+            MFX_EXTBUFF_HEVC_PARAM,
         };
 
         for (mfxU32 i = 0; i < sizeof(allowed)/sizeof(allowed[0]); i++)

@@ -544,13 +544,13 @@ namespace UMC
             break;
         }
     }
-    void  VC1PackerLVA::VC1PackOneSlice (VC1Context* pContext,
+    void  VC1PackerLVA::VC1PackOneSlice (VC1Context* /*pContext*/,
         SliceParams* slparams,
         uint32_t SliceBufIndex,
         uint32_t MBOffset,
         uint32_t SliceDataSize,
         uint32_t StartCodeOffset,
-        uint32_t ChoppingType) //compatibility with Windows code
+        uint32_t /*ChoppingType*/) //compatibility with Windows code
     {
         if (SliceBufIndex)
             ++m_pSliceInfo;

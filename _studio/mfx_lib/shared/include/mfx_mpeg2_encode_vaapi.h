@@ -95,7 +95,6 @@ namespace MfxHwMpeg2Encode
 
         mfxStatus QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequest* pRequest, ExecuteBuffers* pExecuteBuffers);
         mfxStatus CreateCompBuffers  (ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames);
-        mfxStatus CreateMBDataBuffer  (mfxU32 numRefFrames);
         mfxStatus CreateBSBuffer      (mfxU32 numRefFrames, ExecuteBuffers* pExecuteBuffers);
 
         mfxStatus GetBuffersInfo();

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -33,7 +33,7 @@ enum
     MSDK_VENCODE = 0x0002,
     MSDK_VPP     = 0x0004,
     MSDK_VENC    = 0x0008,
-#if MFX_VERSION >= MFX_VERSION_NEXT
+#if (MFX_VERSION >= 1027)
     MSDK_FEI     = 0x1000,
 #endif
 };

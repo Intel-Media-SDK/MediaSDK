@@ -80,10 +80,10 @@ void getAndCheckAvailableMetrics(unsigned int* count, cttMetric* out_metric_ids)
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetMetricInfo(*count, out_metric_ids));
 
     if (num_slices > 1)
-        EXPECT_EQ(*count, CTT_MAX_METRIC_COUNT);
+        EXPECT_EQ(*count, (unsigned int)CTT_MAX_METRIC_COUNT);
     else
         //GT2 haven't VDBOX2
-        EXPECT_EQ(*count, CTT_MAX_METRIC_COUNT - 1);
+        EXPECT_EQ(*count, (unsigned int)(CTT_MAX_METRIC_COUNT - 1));
 
     CTTMetrics_Close();
 }
@@ -367,7 +367,7 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
     rp_n_freq = getGpuFrequency(GPU_RPn_FILE_PATH);
     rp_0_freq = getGpuFrequency(GPU_RP0_FILE_PATH);
 
-    ASSERT_GT(rp_n_freq, 0) << "rp_n_freq : " << rp_n_freq;
+    ASSERT_GT(rp_n_freq, 0u) << "rp_n_freq : " << rp_n_freq;
     ASSERT_GT(rp_0_freq, rp_n_freq) << "rp_0_freq : " << rp_0_freq << " ; rp_n_freq : " << rp_n_freq;
 
     for (unsigned int rp_freq = rp_n_freq;rp_freq <= rp_0_freq;rp_freq += 50)
@@ -377,14 +377,16 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
         int gem_fd = open(I915_DRI_DIR, O_RDWR);
         if (gem_fd >= 0)
         {
-            igt_spin_t* spin = igt_spin_batch_new(gem_fd, 0, I915_EXEC_RENDER, 0);
-
             EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
             EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(test_metric_cnt, metrics_ids));
 
             for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
             {
+                igt_spin_t* spin = igt_spin_batch_new(gem_fd, 0, I915_EXEC_RENDER, 0);
+
                 EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetValue(test_metric_cnt, metric_values)) << "rp_freq : " << rp_freq;
+
+                igt_spin_batch_free(gem_fd, spin);
 
                 if (rp_freq >= (rp_0_freq - 50*num_slices) && rp_freq <= rp_0_freq && metric_values[0] < (rp_freq - epsilon) && device_info->is_skylake)
                 {
@@ -400,8 +402,6 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
             }
 
             CTTMetrics_Close();
-
-            igt_spin_batch_free(gem_fd, spin);
             close(gem_fd);
         }
     }
@@ -439,16 +439,17 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnSingleEngine)
         int gem_fd = open(I915_DRI_DIR, O_RDWR);
         if (gem_fd >= 0)
         {
-            igt_spin_t* spin = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[i915_metric_num], gem_fd), 0);
-
             for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
             {
+                igt_spin_t* spin = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[i915_metric_num], gem_fd), 0);
+
                 EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetValue(test_metric_cnt, metric_values));
+
+                igt_spin_batch_free(gem_fd, spin);
+
                 EXPECT_GE(metric_values[0], value - epsilon) << "metric_values[0] : " << metric_values[0];
                 EXPECT_LE(metric_values[0], value + epsilon) << "metric_values[0] : " << metric_values[0];
             }
-
-            igt_spin_batch_free(gem_fd, spin);
             close(gem_fd);
         }
 
@@ -494,12 +495,15 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnFewEngines)
             int gem_fd = open(I915_DRI_DIR, O_RDWR);
             if (gem_fd >= 0)
             {
-                igt_spin_t* spin_1 = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[i], gem_fd), 0);
-                igt_spin_t* spin_2 = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[j], gem_fd), 0);
-
                 for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
                 {
+                    igt_spin_t* spin_1 = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[i], gem_fd), 0);
+                    igt_spin_t* spin_2 = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[j], gem_fd), 0);
+
                     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetValue(test_metric_cnt, metric_values));
+
+                    igt_spin_batch_free(gem_fd, spin_1);
+                    igt_spin_batch_free(gem_fd, spin_2);
 
                     EXPECT_GE(metric_values[0], value - epsilon) << "metric_values[0] : " << metric_values[0];
                     EXPECT_LE(metric_values[0], value + epsilon) << "metric_values[0] : " << metric_values[0];
@@ -507,9 +511,6 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnFewEngines)
                     EXPECT_GE(metric_values[1], value - epsilon) << "metric_values[1] : " << metric_values[1];
                     EXPECT_LE(metric_values[1], value + epsilon) << "metric_values[1] : " << metric_values[1];
                 }
-
-                igt_spin_batch_free(gem_fd, spin_1);
-                igt_spin_batch_free(gem_fd, spin_2);
                 close(gem_fd);
             }
 

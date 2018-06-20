@@ -178,6 +178,16 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
 
         pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->scalingConfig);
     }
+#if MFX_VERSION >= 1025
+    if (pParams->bChromaSiting)
+    {
+        pResources->chromaSitingConfig.Header.BufferId = MFX_EXTBUFF_VPP_COLOR_CONVERSION;
+        pResources->chromaSitingConfig.Header.BufferSz = sizeof(mfxExtColorConversion);
+        pResources->chromaSitingConfig.ChromaSiting = pParams->uChromaSiting;
+
+        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->chromaSitingConfig);
+    }
+#endif
     //if( VPP_FILTER_ENABLED_CONFIGURED == pParams->gamutParam.mode )
     //{
     //    pResources->gamutConfig.Header.BufferId = MFX_EXTBUFF_VPP_GAMUT_MAPPING;

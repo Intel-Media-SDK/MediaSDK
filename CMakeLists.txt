@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@ project( mediasdk )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Default to Release build if nothing was specified
+# Default to `release` build if nothing was specified
 if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "No build type selected, default to Release")
-  set(CMAKE_BUILD_TYPE Release)
+  message(STATUS "No build type selected, default to release")
+  set(CMAKE_BUILD_TYPE release)
 endif()
 
 set( BUILDER_ROOT "${CMAKE_HOME_DIRECTORY}/builder" )
@@ -41,8 +41,6 @@ endif()
 
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
 if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
-  option( ENABLE_DRM "Build DRM versions of the targets?" ON )
-  option( ENABLE_X11 "Build X11 versions of the targets?" ON )
   option( ENABLE_X11_DRI3 "Build X11 DRI3 versions of the targets?" OFF )
   option( ENABLE_WAYLAND "Build WAYLAND versions of the targets?" OFF )
 endif()

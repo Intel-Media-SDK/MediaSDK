@@ -3,7 +3,7 @@
  *
  * 2012, Jonathan Toppins <jtoppins@users.sourceforge.net>
  *
- * Copyright (c) 2012 Cisco Systems
+ * Copyright (c) 2012-2018 Cisco Systems
  * All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
@@ -67,8 +67,10 @@
 
 void abort_handler_s(const char *msg, void *ptr, errno_t error)
 {
-	slprintf("ABORT CONSTRAINT HANDLER: (%u) %s\n", error,
-		 (msg) ? msg : "Null message");
-	slabort();
+    (void)ptr;
+
+    slprintf("ABORT CONSTRAINT HANDLER: (%u) %s\n", error,
+        (msg) ? msg : "Null message");
+    slabort();
 }
 EXPORT_SYMBOL(abort_handler_s);

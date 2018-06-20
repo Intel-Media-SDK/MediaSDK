@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -224,7 +224,7 @@ VA_X11Proxy::~VA_X11Proxy()
 {}
 
 XLib_Proxy::XLib_Proxy()
-    : lib("libX11.so")
+    : lib("libX11.so.6")
     , SIMPLE_LOADER_FUNCTION(XOpenDisplay)
     , SIMPLE_LOADER_FUNCTION(XCloseDisplay)
     , SIMPLE_LOADER_FUNCTION(XCreateSimpleWindow)

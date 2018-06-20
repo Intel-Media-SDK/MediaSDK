@@ -945,13 +945,13 @@ mfxStatus VideoPAK_PAK::ProcessAndCheckNewParameters(
     mfxStatus sts = CheckInitExtBuffers(m_video, *newParIn);
     MFX_CHECK_STS(sts);
 
-    mfxExtSpsHeader const * extSpsNew = GetExtBuffer(newPar);
-    mfxExtSpsHeader const * extSpsOld = GetExtBuffer(m_video);
+    mfxExtSpsHeader const & extSpsNew = GetExtBufferRef(newPar);
+    mfxExtSpsHeader const & extSpsOld = GetExtBufferRef(m_video);
 
     // check if IDR required after change of encoding parameters
-    bool isSpsChanged = extSpsNew->vuiParametersPresentFlag == 0 ?
-        memcmp(extSpsNew, extSpsOld, sizeof(mfxExtSpsHeader) - sizeof(VuiParameters)) != 0 :
-    !Equal(*extSpsNew, *extSpsOld);
+    bool isSpsChanged = extSpsNew.vuiParametersPresentFlag == 0 ?
+        memcmp(&extSpsNew, &extSpsOld, sizeof(mfxExtSpsHeader) - sizeof(VuiParameters)) != 0 :
+    !Equal(extSpsNew, extSpsOld);
 
     isIdrRequired = isSpsChanged
         || newPar.mfx.GopPicSize != m_video.mfx.GopPicSize;
