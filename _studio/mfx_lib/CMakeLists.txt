@@ -199,7 +199,8 @@ list( APPEND LIBS
   vc1_common
   vc1_dec_hw
   umc_h265_hw
-  ${ITT_LIBS}
+  mfx_trace
+  ${ITT_LIBRARIES}
   pthread
   dl
 )

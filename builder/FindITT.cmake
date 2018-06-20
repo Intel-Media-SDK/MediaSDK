@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,35 +18,40 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if(__ITT)
+if( ENABLE_ITT )
+
+
   if( Linux )
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set( arch "64" )
-    elseif()
-      set( arch "32" )
+    # VTune is a source of ITT library
+    if( NOT CMAKE_VTUNE_HOME )
+      set( CMAKE_VTUNE_HOME /opt/intel/vtune_amplifier )
     endif()
 
-    find_path( ITT_INCLUDE ittnotify.h PATHS $ENV{ITT_PATH}/include )
-    find_path( ITT_LIB libittnotify${arch}.a PATHS $ENV{ITT_PATH} )
-    if(NOT ITT_INCLUDE MATCHES NOTFOUND AND NOT ITT_LIB MATCHES NOTFOUND)
-      set( VTUNE_FOUND TRUE )
-      message( STATUS "ITT_PATH is set to $ENV{ITT_PATH}" )
+    find_path( ITT_INCLUDE_DIRS ittnotify.h
+      PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
+      PATH_SUFFIXES include )
+    find_path( ITT_LIBRARY_DIRS libittnotify.a
+      PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
+      PATH_SUFFIXES lib64 )
 
-      include_directories( $ENV{ITT_PATH}/include )
-      link_directories( $ENV{ITT_PATH}/ )
+    if(NOT ITT_INCLUDE_DIRS MATCHES NOTFOUND AND
+       NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
 
-      append("-DMFX_TRACE_ENABLE_ITT" CMAKE_C_FLAGS)
-      append("-DMFX_TRACE_ENABLE_ITT" CMAKE_CXX_FLAGS)
+      message( STATUS "itt header is in ${ITT_INCLUDE_DIRS}" )
+      message( STATUS "itt lib is in ${ITT_LIBRARY_DIRS}" )
 
-      set( ITT_LIBS "" )
-      list( APPEND ITT_LIBS
-        mfx_trace
-        ittnotify${arch}
-        dl
-      )
-    else()
-      set( ITT_LIBS mfx_trace )
-      set( VTUNE_FOUND FALSE )
+      include_directories( ${ITT_INCLUDE_DIRS} )
+      link_directories( ${ITT_LIBRARY_DIRS} )
+
+      set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMFX_TRACE_ENABLE_ITT" )
+      set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMFX_TRACE_ENABLE_ITT" )
+
+      set( ITT_LIBRARIES "ittnotify" )
+      set( ITT_FOUND TRUE )
     endif()
+  endif()
+  
+  if (NOT ITT_FOUND)
+    message( FATAL_ERROR "Failed to find ITT library" )
   endif()
 endif()
