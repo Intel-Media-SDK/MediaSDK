@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -934,8 +934,6 @@ mfxStatus VideoDECODEMPEG2::DecodeHeader(VideoCORE *core, mfxBitstream* bs, mfxV
 mfxStatus VideoDECODEMPEG2::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEMPEG2::Query");
-    // touch unreferenced parameter
-    core = core;
 
     MFX_CHECK_NULL_PTR1(out);
     mfxStatus res = MFX_ERR_NONE;
@@ -2601,7 +2599,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, 
     if (mem_id_to_unlock >= 0)
         m_FrameAllocator->DecreaseReference(mem_id_to_unlock);
 
-    if (task_num_to_unlock >= 0 && task_num_to_unlock < 2*DPB) 
+    if (task_num_to_unlock >= 0 && task_num_to_unlock < 2*DPB)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
         m_implUmc->UnLockTask(task_num_to_unlock);
