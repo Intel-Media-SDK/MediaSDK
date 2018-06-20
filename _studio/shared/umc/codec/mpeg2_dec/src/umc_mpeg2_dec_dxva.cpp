@@ -26,7 +26,9 @@
 
 #include "vaapi_ext_interface.h"
 
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4244)
+#endif
 
 using namespace UMC;
 
