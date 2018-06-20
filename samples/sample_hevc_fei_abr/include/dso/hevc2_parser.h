@@ -249,16 +249,8 @@ public:
 
 struct CabacCtx
 {
-    CabacCtx() {}
-    CabacCtx(const CabacCtx& other)
-    {
-        memcpy(m_ctxState, other.m_ctxState, sizeof(m_ctxState));
-        memcpy(StatCoeff, other.StatCoeff, sizeof(StatCoeff));
-        PredictorPaletteEntries[0] = other.PredictorPaletteEntries[0];
-        PredictorPaletteEntries[1] = other.PredictorPaletteEntries[1];
-        PredictorPaletteEntries[2] = other.PredictorPaletteEntries[2];
-        PredictorPaletteSize = other.PredictorPaletteSize;
-    }
+    CabacCtx() = default;
+
     Bs8u  m_ctxState[BS_HEVC::CtxTblSize];
     Bs16u StatCoeff[4];
     std::vector<Bs16u> PredictorPaletteEntries[3];
