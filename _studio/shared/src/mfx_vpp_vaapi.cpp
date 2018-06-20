@@ -1629,7 +1629,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
     }
 
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
-    VAProcPipelineParameterBuffer outputparam = {0};
+    VAProcPipelineParameterBuffer outputparam = {};
     VABufferID vpp_pipeline_outbuf = VA_INVALID_ID;
 
     MFX_CHECK_NULL_PTR1(outputSurface);

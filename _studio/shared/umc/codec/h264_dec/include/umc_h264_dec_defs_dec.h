@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -322,7 +322,7 @@ struct H264VUI
 {
     void Reset()
     {
-        H264VUI vui = {0};
+        H264VUI vui = {};
         // set some parameters by default
         vui.video_format = 5; // unspecified
         vui.video_full_range_flag = 0;
@@ -441,7 +441,7 @@ struct H264SeqParamSetBase
 
     void Reset()
     {
-        H264SeqParamSetBase sps = {0};
+        H264SeqParamSetBase sps = {};
         *this = sps;
     }
 
@@ -738,7 +738,7 @@ struct H264PicParamSetBase
 
     void Reset()
     {
-        H264PicParamSetBase pps = {0};
+        H264PicParamSetBase pps = {};
         *this = pps;
     }
 };

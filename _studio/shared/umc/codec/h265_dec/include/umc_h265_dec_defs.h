@@ -909,7 +909,7 @@ struct H265SeqParamSetBase
 
     void Reset()
     {
-        H265SeqParamSetBase sps = {0};
+        H265SeqParamSetBase sps = {};
         *this = sps;
     }
 
@@ -1106,7 +1106,7 @@ struct H265PicParamSetBase
 
     void Reset()
     {
-        H265PicParamSetBase pps = {0};
+        H265PicParamSetBase pps = {};
         *this = pps;
     }
 };  // H265PicParamSetBase
