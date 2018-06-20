@@ -109,7 +109,8 @@ endforeach()
     umc
     vm
     vm_plus
-    ${ITT_LIBS}
+    mfx_trace
+    ${ITT_LIBRARIES}
     pthread
     dl
   )

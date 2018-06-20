@@ -165,7 +165,8 @@ if( DEFINED HEVC_DECODER_HW_GUID )
     umc
     vm
     vm_plus
-    ${ITT_LIBS}
+    mfx_trace
+    ${ITT_LIBRARIES}
     pthread
     dl
   )
@@ -262,7 +263,8 @@ if( DEFINED H264LA_ENCODER_GUID )
     vm
     vm_plus
     asc
-    ${ITT_LIBS}
+    mfx_trace
+    ${ITT_LIBRARIES}
     pthread
     dl
   )
@@ -336,7 +338,8 @@ if( DEFINED VP8_DECODER_HW_GUID )
     vm_plus
     va
     umc_va_hw
-    ${ITT_LIBS}
+    mfx_trace
+    ${ITT_LIBRARIES}
     pthread
     dl
   )
@@ -422,7 +425,8 @@ if( DEFINED VP9_DECODER_HW_GUID )
     vm_plus
     va
     umc_va_hw
-    ${ITT_LIBS}
+    mfx_trace
+    ${ITT_LIBRARIES}
     pthread
     dl
   )
