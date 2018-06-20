@@ -402,27 +402,27 @@ mfxStatus VideoUSERPlugin::GetPayload(mfxU64 *ts, mfxPayload *payload) {
 #pragma warning (disable: 4100)
 #endif
 
-mfxStatus VideoUSERPlugin::GetFrameParam(mfxFrameParam *par) {
+mfxStatus VideoUSERPlugin::GetFrameParam(mfxFrameParam * /* par */) {
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus VideoUSERPlugin::GetEncodeStat(mfxEncodeStat *stat) {
+mfxStatus VideoUSERPlugin::GetEncodeStat(mfxEncodeStat * /* stat */) {
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::GetDecodeStat(mfxDecodeStat *stat) {
+mfxStatus VideoUSERPlugin::GetDecodeStat(mfxDecodeStat * /* stat */) {
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::GetVPPStat(mfxVPPStat *stat) {
+mfxStatus VideoUSERPlugin::GetVPPStat(mfxVPPStat * /* stat */) {
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::SetSkipMode(mfxSkipMode mode) {
+mfxStatus VideoUSERPlugin::SetSkipMode(mfxSkipMode /* mode */) {
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus VideoUSERPlugin::EncodeFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) {
+mfxStatus VideoUSERPlugin::EncodeFrame(mfxEncodeCtrl * /* ctrl */, mfxEncodeInternalParams * /* pInternalParams */, mfxFrameSurface1 * /* surface */, mfxBitstream * /* bs */) {
     return MFX_ERR_UNSUPPORTED;
 }
-mfxStatus VideoUSERPlugin::CancelFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) {
+mfxStatus VideoUSERPlugin::CancelFrame(mfxEncodeCtrl * /* ctrl */, mfxEncodeInternalParams * /* pInternalParams */, mfxFrameSurface1 * /* surface */, mfxBitstream * /* bs */) {
     return MFX_ERR_UNSUPPORTED;
 }
 mfxStatus VideoUSERPlugin::EncFrame(mfxENCInput * /* in */, mfxENCOutput * /* out */)

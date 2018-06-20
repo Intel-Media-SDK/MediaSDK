@@ -1224,7 +1224,7 @@ mfxTaskThreadingPolicy VideoVPPBase::GetThreadingPolicy(void)
 mfxStatus VideoVPPBase::CheckPlatformLimitations(
     VideoCORE* core,
     mfxVideoParam & param,
-    bool bCorrectionEnable)
+    bool /* bCorrectionEnable */)
 {
     std::vector<mfxU32> capsList;
 
