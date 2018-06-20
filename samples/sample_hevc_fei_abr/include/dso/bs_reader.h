@@ -159,6 +159,9 @@ public:
         trace_level = 0xFFFFFFFF;
     }
 
+    BS_Reader(BS_Reader const&) = delete;
+    BS_Reader& operator=(BS_Reader const&) = delete;
+
     virtual ~BS_Reader(){
         if( bs && buf ) free( buf );
         close();

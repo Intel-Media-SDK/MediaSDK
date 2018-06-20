@@ -51,6 +51,10 @@ public:
         BS_HEVC2_Init(hdl, mode);
         hdr = 0;
     };
+
+    BS_HEVC2_parser(BS_HEVC2_parser const&) = delete;
+    BS_HEVC2_parser& operator=(BS_HEVC2_parser const&) = delete;
+
     ~BS_HEVC2_parser() { BS_HEVC2_Close(hdl); };
 
     BSErr parse_next_au(UnitType*& pAU)         { return BS_HEVC2_ParseNextAU(hdl, pAU); };
