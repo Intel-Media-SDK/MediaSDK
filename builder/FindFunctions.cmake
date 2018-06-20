@@ -25,17 +25,17 @@ set_property( GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG "" )
 
 # .....................................................
 function( collect_oses )
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
+  if( CMAKE_SYSTEM_NAME MATCHES Windows )
     set( Windows    true PARENT_SCOPE )
     set( NotLinux   true PARENT_SCOPE )
     set( NotDarwin  true PARENT_SCOPE )
 
-  elseif( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
+  elseif( CMAKE_SYSTEM_NAME MATCHES Linux )
     set( Linux      true PARENT_SCOPE )
     set( NotDarwin  true PARENT_SCOPE )
     set( NotWindows true PARENT_SCOPE )
 
-  elseif( ${CMAKE_SYSTEM_NAME} MATCHES Darwin )
+  elseif( CMAKE_SYSTEM_NAME MATCHES Darwin )
     set( Darwin     true PARENT_SCOPE )
     set( NotLinux   true PARENT_SCOPE )
     set( NotWindows true PARENT_SCOPE )
