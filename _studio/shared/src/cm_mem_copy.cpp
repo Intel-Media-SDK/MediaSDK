@@ -2535,7 +2535,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, m
     }
     return status;
 }
-mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format)
+mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 /* srcPitch */, mfxSize roi, mfxU32 format)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::ARGBSwapVideoToSystem");
     CmEvent* e = CM_NO_EVENT;
@@ -2550,7 +2550,7 @@ mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitc
     return EnqueueCopySwapRBGPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
 
 }
-mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format)
+mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 /* srcPitch */, mfxSize roi, mfxU32 format)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::MirrorVideoToSystem");
     CmEvent* e = CM_NO_EVENT;
@@ -2565,7 +2565,7 @@ mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPi
     return EnqueueCopyMirrorNV12GPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
 
 }
-mfxStatus CmCopyWrapper::CopyMirrorSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
+mfxStatus CmCopyWrapper::CopyMirrorSystemToVideoMemory(void *pDst, mfxU32 /* dstPitch */, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::MirrorSystemToVideo");
     CmEvent* e = CM_NO_EVENT;

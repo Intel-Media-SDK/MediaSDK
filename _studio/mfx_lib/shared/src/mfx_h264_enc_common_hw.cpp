@@ -4679,7 +4679,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         mfeControl.Timeout = 0;
         changed = true;
     }
-
+#else
+    (void)config;
 #endif
 
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE

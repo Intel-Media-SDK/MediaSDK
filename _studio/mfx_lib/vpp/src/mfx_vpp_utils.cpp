@@ -1309,7 +1309,7 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 
 
 /* check each field of FrameInfo excluding PicStruct */
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType /* platform */)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
 

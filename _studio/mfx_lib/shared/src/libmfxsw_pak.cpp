@@ -37,6 +37,10 @@
 
 VideoPAK *CreatePAKSpecificClass(mfxVideoParam *par, mfxU32 /* codecProfile */, VideoCORE *pCore)
 {
+#if !defined(MFX_VA_LINUX) || !defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) || !defined(MFX_ENABLE_H264_VIDEO_FEI_PAK)
+    (void)pCore;
+#endif
+
     VideoPAK *pPAK = (VideoPAK *) 0;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
 

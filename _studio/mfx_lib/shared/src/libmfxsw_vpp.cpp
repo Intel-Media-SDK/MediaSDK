@@ -299,7 +299,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
           if (task.entryPoint.pRoutine)
           {
               mfxStatus mfxAddRes;
-  
+
               task.pOwner = session->m_plgVPP.get();
               task.priority = session->m_priority;
               task.threadingPolicy = session->m_plgVPP->GetThreadingPolicy();
@@ -308,12 +308,12 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
               task.pDst[0] = out;
               if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                 task.pDst[0] = NULL;
-  
+
               #ifdef MFX_TRACE_ENABLE
               task.nParentId = MFX_AUTO_TRACE_GETID();
               task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
               #endif
-  
+
               // register input and call the task
               mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
               if (MFX_ERR_NONE != mfxAddRes)
@@ -488,6 +488,10 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 
 mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
+#if !defined(MFX_ENABLE_USER_VPP)
+    (void)surface_out;
+#endif
+
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_RunFrameVPPAsyncEx");
@@ -512,7 +516,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
           if (task.entryPoint.pRoutine)
           {
               mfxStatus mfxAddRes;
-  
+
               task.pOwner = session->m_plgVPP.get();
               task.priority = session->m_priority;
               task.threadingPolicy = session->m_plgVPP->GetThreadingPolicy();
@@ -521,12 +525,12 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
               task.pDst[0] = surface_work;
               if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                 task.pDst[0] = NULL;
-  
+
               #ifdef MFX_TRACE_ENABLE
               task.nParentId = MFX_AUTO_TRACE_GETID();
               task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
               #endif
-  
+
               // register input and call the task
               mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
               if (MFX_ERR_NONE != mfxAddRes)

@@ -126,6 +126,8 @@ int32_t vm_thread_create(vm_thread *thread,
 /* attach to current thread. return 1 if successful  */
 int32_t vm_thread_attach(vm_thread *thread, vm_thread_callback func, void *arg)
 {
+    (void)arg;
+
     int32_t i_res = 1;
     pthread_attr_t attr;
 
@@ -299,6 +301,9 @@ void vm_set_thread_affinity_mask(vm_thread *thread, unsigned long long mask)
     }
 
     pthread_setaffinity_np(thread->handle, sizeof(cpu_set_t), &cpuset);
+#else
+    (void)thread;
+    (void)mask;
 #endif
 }
 
