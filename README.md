@@ -82,7 +82,10 @@ Media SDK depends on a number of packages which are identified and checked for t
 
 | Option | Values | Description |
 | ------ | ------ | ----------- |
-| API | master\|latest\|major.minor | Build mediasdk library with specified API. 'latest' will enable experimental features. 'master' will configure the most recent available published API (that's the default). |
+| API | master\|latest\|major.minor | Build mediasdk library with specified API. 'latest' will enable experimental features. 'master' will configure the most recent available published API (default: master). |
+| ENABLE_OPENCL | ON\|OFF | Enable OpenCL dependent code to be built (default: ON) |
+| ENABLE_X11_DRI3 | ON\|OFF | Enable X11 DRI3 dependent code to be built (default: OFF) |
+| ENABLE_WAYLAND | ON\|OFF | Enable Wayland dependent code to be built (default: OFF) |
 
 ## Enabling Instrumentation and Tracing Technology
 To enable the Instrumentation and Tracing Technology API you need either Intel® VTune™ Amplifier installed or to manually build an open source version. You can get ITT source files from [GitHub](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) and build it on your own.

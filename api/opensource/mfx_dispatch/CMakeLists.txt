@@ -66,7 +66,7 @@ else( )
 
   add_definitions(-DUNIX)
 
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
+  if( CMAKE_SYSTEM_NAME MATCHES Linux )
     add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -74,7 +74,7 @@ else( )
     endif( )
   endif( )
 
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Darwin )
+  if( CMAKE_SYSTEM_NAME MATCHES Darwin )
     add_definitions(-DOSX)
     add_definitions(-DOSX32)
 
