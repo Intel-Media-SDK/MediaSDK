@@ -2212,8 +2212,8 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     }
     else
     {
-        // Decoding plugin was set manually, so let's check if codec supports plugins
-        if (!IsPluginCodecSupported(InputParams.DecodeId))
+        // Encoding plugin was set manually, so let's check if codec supports plugins
+        if (!IsPluginCodecSupported(InputParams.EncodeId))
         {
             msdk_printf(MSDK_STRING("error: encoder does not support plugins\n"));
             return MFX_ERR_UNSUPPORTED;

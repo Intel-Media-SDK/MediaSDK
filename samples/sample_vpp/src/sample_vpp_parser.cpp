@@ -243,7 +243,6 @@ msdk_printf(MSDK_STRING("   [-istab (mode)]       - enable Image Stabilization a
 msdk_printf(MSDK_STRING("                           mode of istab can be [1, 2] (def: 2)\n"));
 msdk_printf(MSDK_STRING("                           where: 1 means upscale mode, 2 means croppping mode\n"));
 msdk_printf(MSDK_STRING("   [-view:count value]   - enable Multi View preprocessing. range of views [1, 1024] (def: 1)\n\n"));
-msdk_printf(MSDK_STRING("   [-svc id width height]- enable Scalable Video Processing mode\n"));
 msdk_printf(MSDK_STRING("                           id-layerId, width/height-resolution \n\n"));
 msdk_printf(MSDK_STRING("   [-ssitm (id)]         - specify YUV<->RGB transfer matrix for input surface.\n"));
 msdk_printf(MSDK_STRING("   [-dsitm (id)]         - specify YUV<->RGB transfer matrix for output surface.\n"));
