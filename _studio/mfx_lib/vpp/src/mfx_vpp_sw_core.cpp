@@ -1009,6 +1009,9 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
             out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
             out->vpp.Out.FourCC != MFX_FOURCC_RGB4 &&
+#ifdef MFX_ENABLE_RGBP
+            out->vpp.Out.FourCC != MFX_FOURCC_RGBP &&
+#endif
             out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
             out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&

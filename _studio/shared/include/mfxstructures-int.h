@@ -95,7 +95,10 @@ enum
     MFX_FOURCC_YUV422H      = MFX_MAKEFOURCC('4','2','2','H'),
     MFX_FOURCC_YUV422V      = MFX_MAKEFOURCC('4','2','2','V'),
     MFX_FOURCC_YUV444       = MFX_MAKEFOURCC('4','4','4','P'),
-    MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P')
+#if (MFX_VERSION <= 1027)
+    MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P'),
+#else
+#endif
 };
 
 #ifdef __cplusplus

@@ -65,6 +65,10 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_ARGB;
     case MFX_FOURCC_BGR4:
         return VA_FOURCC_ABGR;
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+        return VA_FOURCC_RGBP;
+#endif
     case MFX_FOURCC_P8:
         return VA_FOURCC_P208;
     case MFX_FOURCC_UYVY:
@@ -108,6 +112,9 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
                        (VA_FOURCC_YUY2   != va_fourcc) &&
                        (VA_FOURCC_ARGB   != va_fourcc) &&
                        (VA_FOURCC_ABGR   != va_fourcc) &&
+#ifdef MFX_ENABLE_RGBP
+                       (VA_FOURCC_RGBP   != va_fourcc) &&
+#endif
                        (VA_FOURCC_UYVY   != va_fourcc) &&
                        (VA_FOURCC_P208   != va_fourcc) &&
                        (VA_FOURCC_P010   != va_fourcc) &&
@@ -167,6 +174,12 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
             {
                 format = VA_RT_FORMAT_YUV422;
             }
+#ifdef MFX_ENABLE_RGBP            
+            else if (va_fourcc == VA_FOURCC_RGBP)
+            {
+                format = VA_RT_FORMAT_RGBP;
+            }
+#endif
 
             if ( request->Type & MFX_MEMTYPE_FROM_ENCODE)
             {
@@ -400,6 +413,19 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         else mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
+#ifdef MFX_ENABLE_RGBP
+    case VA_FOURCC_RGBP:
+        if (mfx_fourcc == MFX_FOURCC_RGBP)
+        {
+            ptr->PitchHigh = (mfxU16)(va_image.pitches[0] / (1 << 16));
+            ptr->PitchLow  = (mfxU16)(va_image.pitches[0] % (1 << 16));
+            ptr->B = pBuffer + va_image.offsets[0];
+            ptr->G = pBuffer + va_image.offsets[1];
+            ptr->R = pBuffer + va_image.offsets[2];
+        }
+        else mfx_res = MFX_ERR_LOCK_MEMORY;
+        break;
+#endif
     case VA_FOURCC_ABGR:
         if (mfx_fourcc == MFX_FOURCC_BGR4)
         {
