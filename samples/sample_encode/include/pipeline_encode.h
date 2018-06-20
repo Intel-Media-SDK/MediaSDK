@@ -222,7 +222,7 @@ struct bufSet
 
 struct bufList
 {
-    std::vector<bufSet*> buf_list;
+    std::vector<std::unique_ptr<bufSet>> buf_list;
     mfxU16 m_nBufListStart;
 
     bufList()
@@ -231,15 +231,18 @@ struct bufList
 
     ~bufList() { Clear(); }
 
-    void AddSet(bufSet* set) { buf_list.push_back(set); }
+    void AddSet(std::unique_ptr<bufSet> && set) { buf_list.push_back(std::move(set)); }
 
     bool Empty() { return buf_list.empty(); }
 
     void Clear()
     {
-        for (std::vector<bufSet*>::iterator it = buf_list.begin(); it != buf_list.end(); ++it)
+        for (std::vector<std::unique_ptr<bufSet>>::iterator it = buf_list.begin(); it != buf_list.end(); ++it)
         {
-            MSDK_SAFE_DELETE(*it);
+            if (*it)
+            {
+                (*it)->Destroy();
+            }
         }
 
         buf_list.clear();
@@ -250,7 +253,7 @@ struct bufList
         bufSet *pBufSet = NULL;
         if (m_nBufListStart < buf_list.size())
         {
-            pBufSet = buf_list[m_nBufListStart];
+            pBufSet = (buf_list[m_nBufListStart]).get();
 
             m_nBufListStart += 1;
             m_nBufListStart = m_nBufListStart % (buf_list.size());
