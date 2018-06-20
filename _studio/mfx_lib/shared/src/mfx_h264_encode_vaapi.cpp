@@ -238,7 +238,7 @@ mfxStatus SetFrameRate(
     VAEncMiscParameterFrameRate *frameRate_param;
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, frameRateBuf_id);
-    MFX_CHECK_STS(mfxSts); 
+    MFX_CHECK_STS(mfxSts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -317,7 +317,7 @@ static mfxStatus SetTrellisQuantization(
     VAEncMiscParameterQuantization  *trellis_param;
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, trellisBuf_id);
-    MFX_CHECK_STS(mfxSts); 
+    MFX_CHECK_STS(mfxSts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -356,7 +356,7 @@ static mfxStatus SetRollingIntraRefresh(
     VAEncMiscParameterRIR    *rir_param;
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, rirBuf_id);
-    MFX_CHECK_STS(mfxSts); 
+    MFX_CHECK_STS(mfxSts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -402,7 +402,7 @@ mfxStatus SetQualityParams(
     mfxExtFeiCodingOption const * extOptFEI = GetExtBuffer(par);
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, qualityParams_id);
-    MFX_CHECK_STS(mfxSts); 
+    MFX_CHECK_STS(mfxSts);
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
@@ -1652,7 +1652,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
         //progressive to be changed for particular 2 field cases
         //default timeout is calculated from framerate
         vm_tick timeout = (((mfxU64)par.mfx.FrameInfo.FrameRateExtD)*1000000/par.mfx.FrameInfo.FrameRateExtN)/((par.mfx.FrameInfo.PicStruct!=MFX_PICSTRUCT_PROGRESSIVE)?2:1);
-        sts = m_mfe->Join(m_vaContextEncode, timeout); 
+        sts = m_mfe->Join(m_vaContextEncode, timeout);
         MFX_CHECK_STS(sts);
     }
 #endif
@@ -1873,7 +1873,7 @@ mfxStatus VAAPIEncoder::QueryMbPerSec(mfxVideoParam const & par, mfxU32 (&mbPerS
     return MFX_ERR_NONE;
 }
 
-mfxStatus VAAPIEncoder::QueryInputTilingSupport(mfxVideoParam const & par, mfxU32 &inputTiling)
+mfxStatus VAAPIEncoder::QueryInputTilingSupport(mfxVideoParam const & par, mfxU32 & /* inputTiling */)
 {
     VAConfigID config = VA_INVALID_ID;
     VAEntrypoint targetEntrypoint = IsOn(par.mfx.LowPower) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
@@ -1905,6 +1905,8 @@ mfxStatus VAAPIEncoder::QueryInputTilingSupport(mfxVideoParam const & par, mfxU3
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT((mfxU32)numAttribs < static_cast<mfxU32>(maxNumAttribs), MFX_ERR_UNDEFINED_BEHAVIOR);
 
+// VAConfigAttribInputTiling defined as -1 while attrs[i].type (type VAConfigAttribType) has values ranged from 0 to 38
+/*
     if (entrypoint == targetEntrypoint)
     {
         for(mfxI32 i=0; i<numAttribs; i++)
@@ -1913,6 +1915,7 @@ mfxStatus VAAPIEncoder::QueryInputTilingSupport(mfxVideoParam const & par, mfxU3
                 inputTiling = attrs[i].value;
         }
     }
+*/
 
     vaDestroyConfig(m_vaDisplay, config);
 
