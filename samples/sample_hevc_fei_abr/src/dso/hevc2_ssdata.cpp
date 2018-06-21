@@ -1744,7 +1744,7 @@ protected:
     }
 
 public:
-    ArrayWrap() { offset = 0; n = 0; }
+    ArrayWrap() { offset = 0; n = 0; pBase = nullptr; }
 
     template<class T, Bs32u N>
     inline ArrayWrap& operator=(T(&_pBase)[N])

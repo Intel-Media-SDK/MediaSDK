@@ -111,6 +111,9 @@ public:
         tmp.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
         tmp.mfx.TargetKbps        = TargetKbps;
 
+        MSDK_ZERO_MEMORY(m_BRCPar);
+        MSDK_ZERO_MEMORY(m_BRCCtrl);
+
         mfxExtCodingOption CO;
         MSDK_ZERO_MEMORY(CO);
 

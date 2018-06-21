@@ -51,7 +51,7 @@ char __UIA2CS::c_str[256];
 #else
 struct __UIA2CS
 {
-    char* c_str;
+    char* c_str = nullptr;
     __UIA2CS(unsigned int n, unsigned int *s)
     {
         (void)n;

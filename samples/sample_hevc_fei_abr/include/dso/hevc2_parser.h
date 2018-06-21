@@ -154,55 +154,54 @@ class Info
 public:
     Info()
     {
-        m_prevSlicePOC = 0;
         m_prevPOC.Lsb  = 0;
         m_prevPOC.Msb  = 0;
-        m_cSlice       = 0;
-        m_bRPLDecoded = false;
     }
 
     void decodeSSH  (NALU& nalu, bool bNewSequence);
     void decodePOC  (NALU& nalu);
     void decodeRPL  (NALU& nalu);
 
-    bool  NoRaslOutputFlag;
-    bool  NoBackwardPredFlag;
-    bool  NewPicture;
-    bool  TwoVersionsOfCurrDecPicFlag;
-    Bs32s MaxPicOrderCntLsb;
-    Bs16u MinCbLog2SizeY;
-    Bs16u CtbLog2SizeY;
-    Bs16u CtbSizeY;
-    Bs16u PicWidthInCtbsY;
-    Bs16u PicHeightInCtbsY;
-    Bs16u MinCbSizeY;
-    Bs16u PicWidthInMinCbsY;
-    Bs16u PicHeightInMinCbsY;
-    Bs32u PicSizeInMinCbsY;
-    Bs32u PicSizeInCtbsY;
-    Bs32u PicSizeInSamplesY;
-    Bs16u PicWidthInSamplesC;
-    Bs16u PicHeightInSamplesC;
-    Bs16u MinTbLog2SizeY;
-    Bs16u MaxTbLog2SizeY;
-    Bs16u Log2MinIpcmCbSizeY;
-    Bs16u Log2MaxIpcmCbSizeY;
-    Bs16u Log2MinCuQpDeltaSize;
-    Bs16u Log2ParMrgLevel;
-    Bs16s SliceQpY;
-    Bs16u BitDepthY;
-    Bs16u BitDepthC;
-    Bs16u ChromaArrayType;
-    Bs16u Log2MinCuChromaQpOffsetSize;
-    Bs16u SubWidthC;
-    Bs16u SubHeightC;
-    Bs16u CtbWidthC;
-    Bs16u CtbHeightC;
-    Bs32u RawCtuBits;
-    Bs16s QpBdOffsetY;
-    Bs16s QpBdOffsetC;
-    Bs16u PaletteMaxPredictorSize;
+    bool  NoRaslOutputFlag            = false;
+    bool  NoBackwardPredFlag          = false;
+    bool  NewPicture                  = false;
+    bool  TwoVersionsOfCurrDecPicFlag = false;
+    Bs32s MaxPicOrderCntLsb           = 0;
+    Bs16u MinCbLog2SizeY              = 0;
+    Bs16u CtbLog2SizeY                = 0;
+    Bs16u CtbSizeY                    = 0;
+    Bs16u PicWidthInCtbsY             = 0;
+    Bs16u PicHeightInCtbsY            = 0;
+    Bs16u MinCbSizeY                  = 0;
+    Bs16u PicWidthInMinCbsY           = 0;
+    Bs16u PicHeightInMinCbsY          = 0;
+    Bs32u PicSizeInMinCbsY            = 0;
+    Bs32u PicSizeInCtbsY              = 0;
+    Bs32u PicSizeInSamplesY           = 0;
+    Bs16u PicWidthInSamplesC          = 0;
+    Bs16u PicHeightInSamplesC         = 0;
+    Bs16u MinTbLog2SizeY              = 0;
+    Bs16u MaxTbLog2SizeY              = 0;
+    Bs16u Log2MinIpcmCbSizeY          = 0;
+    Bs16u Log2MaxIpcmCbSizeY          = 0;
+    Bs16u Log2MinCuQpDeltaSize        = 0;
+    Bs16u Log2ParMrgLevel             = 0;
+    Bs16s SliceQpY                    = 0;
+    Bs16u BitDepthY                   = 0;
+    Bs16u BitDepthC                   = 0;
+    Bs16u ChromaArrayType             = 0;
+    Bs16u Log2MinCuChromaQpOffsetSize = 0;
+    Bs16u SubWidthC                   = 0;
+    Bs16u SubHeightC                  = 0;
+    Bs16u CtbWidthC                   = 0;
+    Bs16u CtbHeightC                  = 0;
+    Bs32u RawCtuBits                  = 0;
+    Bs16s QpBdOffsetY                 = 0;
+    Bs16s QpBdOffsetC                 = 0;
+    Bs16u PaletteMaxPredictorSize     = 0;
 
+    Slice**            ColPicSlices   = nullptr;
+    Bs16u              NumColSlices   = 0;
     std::vector<Bs16u> colWidth;
     std::vector<Bs16u> rowHeight;
     std::vector<Bs16u> colBd;
@@ -212,24 +211,22 @@ public:
     std::vector<Bs16u> TileId;
     std::vector<Bs16s> SliceAddrRsInTs;
     std::vector<CTU*>  CtuInRs;
-    Slice**            ColPicSlices;
-    Bs16u              NumColSlices;
 
     PocInfo               m_prevPOC;
-    Bs32s                 m_prevSlicePOC;
-    Slice*                m_cSlice;
+    Bs32s                 m_prevSlicePOC = 0;
+    Slice*                m_cSlice = nullptr;
     std::map<Bs32s, bool> m_DPB;
     std::map<Bs32s, bool> m_DPBafter;
     std::vector<Bs32s>    m_MinTbAddrZs;
-    Bs32u                 m_MinTbAddrZsPitch;
+    Bs32u                 m_MinTbAddrZsPitch = 0;
     std::vector<SAO>      m_sao[3];
 
     std::vector<Bs8u>   PalettePredictorEntryReuseFlags;
-    Bs16u               PaletteIndexIdc[32 * 32];
-    bool                CopyAboveIndicesFlag[32][32];
-    Bs16u               PaletteIndexMap[32][32];
+    Bs16u               PaletteIndexIdc[32 * 32]     = {};
+    bool                CopyAboveIndicesFlag[32][32] = {};
+    Bs16u               PaletteIndexMap[32][32]      = {};
     std::vector<Bs16u>  CurrentPaletteEntries[3];
-    bool m_bRPLDecoded;
+    bool                m_bRPLDecoded = false;
 
     inline Bs32s& MinTbAddrZs(Bs32u x, Bs32u y) { return m_MinTbAddrZs[y * m_MinTbAddrZsPitch + x]; }
     inline SAO& GetSAO(Bs16u cIdx, Bs16u rx, Bs16u ry) { return m_sao[cIdx][ry * PicWidthInCtbsY + rx]; }
@@ -263,16 +260,16 @@ class CABAC
     , public CabacCtx
 {
 private:
-    Bs16s m_g1I;
-    Bs16s m_rI;
+    Bs16s m_g1I             = 0;
+    Bs16s m_rI              = 0;
     CabacCtx m_ctxWPP;
     CabacCtx m_ctxDS;
-    Bs16u ctxSet;
-    Bs16u lastGreater1Ctx;
-    bool  lastGreater1Flag;
-    Bs32u cLastAbsLevel;
-    Bs16u cLastRiceParam;
-    Bs16u m_paletteIdxCnt;
+    Bs16u ctxSet            = 0;
+    Bs16u lastGreater1Ctx   = 0;
+    bool  lastGreater1Flag  = false;
+    Bs32u cLastAbsLevel     = 0;
+    Bs16u cLastRiceParam    = 0;
+    Bs16u m_paletteIdxCnt   = 0;
 
     inline Bs8u DecodeBin(Bs16s off, Bs16s inc)
     {
@@ -291,7 +288,7 @@ private:
     inline bool DB() { BinCount++; return !!DecodeBypass(); }
 
 public:
-    Bs64u BinCount;
+    Bs64u BinCount = 0;
 
     CABAC(BsReader2::Reader& r)
         : ADE(r)
@@ -418,13 +415,13 @@ private:
     std::vector<TU>    m_tu;
     std::vector<Bs32s> m_TC_lvl;
 
-    bool  IntraSplitFlag;
-    Bs16u MaxTrafoDepth;
-    Bs16s CuQpDeltaVal;
-    Bs16s qPY_PREV;
-    bool  IsCuQpDeltaCoded;
-    bool  IsCuChromaQpOffsetCoded;
-    Bs8u  intra_chroma_pred_mode[2][2];
+    bool  IntraSplitFlag          = false;
+    Bs16u MaxTrafoDepth           = 0;
+    Bs16s CuQpDeltaVal            = 0;
+    Bs16s qPY_PREV                = 0;
+    bool  IsCuQpDeltaCoded        = false;
+    bool  IsCuChromaQpOffsetCoded = false;
+    Bs8u  intra_chroma_pred_mode[2][2] = {};
 
     bool report_TCLevels = false;
     std::vector<Bs32s> TCLevels;
