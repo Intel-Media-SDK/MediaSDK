@@ -59,7 +59,7 @@ public:
 
     // Weakness in design. Consider using a customer deleter for T
     // instead of explicit FeiBufferAllocator
-    void SetDeleter(std::shared_ptr<FeiBufferAllocator> allocator)
+    void SetDeleter(std::shared_ptr<FeiBufferAllocator> & allocator)
     {
         m_allocator = allocator;
     }
@@ -80,9 +80,10 @@ public:
             m_condition.wait(lock, [this] { return !m_pool.empty(); });
         }
 
-        Type temp(m_pool.front().release(), Return2Pool(this) );
+        auto tmp = m_pool.front().release();
         m_pool.pop_front();
-        return std::move(temp);
+
+        return Type(tmp, Return2Pool(this));
     }
 
     bool empty() const

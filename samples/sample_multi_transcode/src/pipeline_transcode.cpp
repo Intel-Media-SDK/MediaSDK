@@ -147,6 +147,8 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_pmfxBS(NULL),
     m_pMFXAllocator(NULL),
     m_hdl(NULL),
+    m_encoderFourCC(0),
+    m_vppCompDumpRenderMode(0),
     m_hwdev4Rendering(NULL),
     m_EncSurfaceType(0),
     m_DecSurfaceType(0),
@@ -167,17 +169,15 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_pParentPipeline(NULL),
     m_bIsInit(false),
     m_NumFramesForReset(0),
+    isHEVCSW(false),
+    m_bInsertIDR(false),
     m_FrameNumberPreference(0xFFFFFFFF),
     m_MaxFramesForTranscode(0xFFFFFFFF),
     m_pBSProcessor(NULL),
     m_nReqFrameTime(0),
     m_nOutputFramesNum(0),
     shouldUseGreedyFormula(false),
-    isHEVCSW(false),
-    m_bInsertIDR(false),
-    m_vppCompDumpRenderMode(0),
-    m_nRotationAngle(0),
-    m_encoderFourCC(0)
+    m_nRotationAngle(0)
 {
     MSDK_ZERO_MEMORY(m_mfxDecParams);
     MSDK_ZERO_MEMORY(m_mfxVppParams);
@@ -284,6 +284,8 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_bIsInterOrJoined = false;
     m_bRobustFlag = false;
     m_nRotationAngle = 0;
+    m_bROIasQPMAP = false;
+    m_bExtMBQP = false;
 } //CTranscodingPipeline::CTranscodingPipeline()
 
 CTranscodingPipeline::~CTranscodingPipeline()
@@ -1149,7 +1151,7 @@ mfxStatus CTranscodingPipeline::Decode()
         // If there was PreENC plugin in the pipeline - synchronize, because
         // plugin will output data to the extended buffers and mediasdk can't
         // track such dependency on its own.
-        if (!m_bIsJoinSession && m_pParentPipeline || m_pmfxPreENC.get())
+        if ((!m_bIsJoinSession && m_pParentPipeline) || m_pmfxPreENC.get())
         {
             MFX_ITT_TASK("SyncOperation");
             sts = m_pmfxSession->SyncOperation(PreEncExtSurface.Syncp, MSDK_WAIT_INTERVAL);
@@ -1592,9 +1594,20 @@ mfxStatus CTranscodingPipeline::Encode()
 } // mfxStatus CTranscodingPipeline::Encode()
 
 #if MFX_VERSION >= 1022
-// Fill MBQP buffer with ROI data
 void CTranscodingPipeline::FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct)
 {
+    // External MBQP case
+    if (m_bExtMBQP)
+    {
+        // Use simplistic approach to fill in QP buffer
+        for (size_t i = 0; i < qpMap.NumQPAlloc; i++)
+        {
+            qpMap.QP[i] = i % 52;
+        }
+        return;
+    }
+
+    // External MBQP with ROI case
     if (pictStruct == MFX_PICSTRUCT_PROGRESSIVE)
     {
         mfxI8 fQP = (m_nSubmittedFramesNum % m_GOPSize) ? (mfxI8)m_QPforP : (mfxI8)m_QPforI;
@@ -1699,7 +1712,7 @@ void CTranscodingPipeline::SetEncCtrlRT(ExtendedSurface& extSurface, bool bInser
             m_bufExtMBQP[keyId].Header.BufferId = MFX_EXTBUFF_MBQP;
             m_bufExtMBQP[keyId].Header.BufferSz = sizeof(mfxExtMBQP);
             m_bufExtMBQP[keyId].NumQPAlloc = m_QPmapWidth*m_QPmapHeight;
-            m_bufExtMBQP[keyId].QP = m_QPmapWidth*m_QPmapHeight ? &(m_qpMapStorage[keyId][0]) : NULL;
+            m_bufExtMBQP[keyId].QP = m_QPmapWidth && m_QPmapHeight ? &(m_qpMapStorage[keyId][0]) : NULL;
         }
 
         // Initialize *pCtrl optionally copying content of the pExtSurface.pAuxCtrl.encCtrl
@@ -2362,7 +2375,7 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
         ConvertFrameRate(pInParams->dDecoderFrameRateOverride, &m_mfxDecParams.mfx.FrameInfo.FrameRateExtN, &m_mfxDecParams.mfx.FrameInfo.FrameRateExtD);
     }
     // if frame rate not specified and input stream header doesn't contain valid values use default (30.0)
-    else if (!(m_mfxDecParams.mfx.FrameInfo.FrameRateExtN * m_mfxDecParams.mfx.FrameInfo.FrameRateExtD))
+    else if (0 == (m_mfxDecParams.mfx.FrameInfo.FrameRateExtN * m_mfxDecParams.mfx.FrameInfo.FrameRateExtD))
     {
         m_mfxDecParams.mfx.FrameInfo.FrameRateExtN = 30;
         m_mfxDecParams.mfx.FrameInfo.FrameRateExtD = 1;
@@ -2570,7 +2583,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         addCodingOpt3 = true;
     }
 #if MFX_VERSION >= 1022
-    if (pInParams->bROIasQPMAP)
+    if (pInParams->bROIasQPMAP || pInParams->bExtMBQP)
     {
         switch(m_mfxEncParams.mfx.CodecId)
         {
@@ -3551,6 +3564,9 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 
     m_encoderFourCC = pParams->EncoderFourCC;
 
+    m_bExtMBQP = pParams->bExtMBQP;
+    m_bROIasQPMAP = pParams->bROIasQPMAP;
+
 #if MFX_VERSION >= 1022
     m_ROIData = pParams->m_ROIData;
 #endif //MFX_VERSION >= 1022
@@ -3831,6 +3847,11 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
         MSDK_CHECK_STATUS(sts, "m_pmfxENC->Init failed");
 
 #if MFX_VERSION >= 1022
+        if (pParams->bExtMBQP)
+        {
+            m_bUseQPMap = true;
+        }
+
         if(pParams->bROIasQPMAP)
         {
             mfxVideoParam enc_par;

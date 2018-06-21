@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __BS_READER_H
+#define __BS_READER_H
 
 #include <memory.h>
 #include <stdio.h>
@@ -158,6 +159,9 @@ public:
         trace_level = 0xFFFFFFFF;
     }
 
+    BS_Reader(BS_Reader const&) = delete;
+    BS_Reader& operator=(BS_Reader const&) = delete;
+
     virtual ~BS_Reader(){
         if( bs && buf ) free( buf );
         close();
@@ -239,3 +243,4 @@ private:
     BSErr read_more_data();
 
 };
+#endif //__BS_READER_H

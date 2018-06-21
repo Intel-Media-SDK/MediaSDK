@@ -27,7 +27,7 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 ### CM
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
 set( SRC_DIR "${MSDK_LIB_ROOT}/cmrt_cross_platform/src" )
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 set( sources "" )
 set( sources.plus "" )
 file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
@@ -50,10 +50,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   )
 endforeach()
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 make_library( mfx_common none static )
 append_property( mfx_common COMPILE_FLAGS " -DMFX_RT" )
-set( defs "" )
 
 foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   list( APPEND sources
@@ -67,10 +66,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   )
 endforeach()
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 make_library( mfx_common hw static )
 append_property( mfx_common_hw COMPILE_FLAGS " -DMFX_RT" )
-set( defs "" )
 
 ### libmfxhw
 list( APPEND mdirs
@@ -144,6 +142,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
   list( APPEND sources
     ${prefix}/genx_cht_copy_isa.cpp
     ${prefix}/genx_skl_copy_isa.cpp
+    ${prefix}/genx_icl_copy_isa.cpp
+    ${prefix}/genx_icllp_copy_isa.cpp
+    ${prefix}/genx_cnl_copy_isa.cpp
   )
 endforeach()
 
@@ -203,7 +204,6 @@ list( APPEND LIBS
   dl
 )
 
-set( defs "${defs} ${WARNING_FLAGS}" )
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 
@@ -222,5 +222,3 @@ install( CODE "execute_process(
   ${MFX_MODULES_DIR}/${mfxlib_filename}
   ${MFX_MODULES_DIR}/lib${mfxlibname}.so )"
 )
-
-set( defs "" )

@@ -17,7 +17,8 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
-#pragma once
+#ifndef __SAMPLE_FEI_ENCODE_H__
+#define __SAMPLE_FEI_ENCODE_H__
 
 #include "task.h"
 #include "fei_buffer_allocator.h"
@@ -213,3 +214,5 @@ private:
 private:
     DISALLOW_COPY_AND_ASSIGN(MVPOverlay);
 };
+
+#endif // __SAMPLE_FEI_ENCODE_H__

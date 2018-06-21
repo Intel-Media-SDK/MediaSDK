@@ -16,8 +16,8 @@ This sample was distributed or derived from the Intel's Media Samples package.
 The original version of this sample may be obtained from https://software.intel.com/en-us/intel-media-server-studio
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
-
-#pragma once
+#ifndef __ABR_BRC_H__
+#define __ABR_BRC_H__
 
 #include "task.h"
 #include "brc_routines.h"
@@ -262,3 +262,5 @@ private:
 
     bool PossibleEncodeAsIs(mfxU32 start_index = 0);
 };
+
+#endif // __ABR_BRC_H__

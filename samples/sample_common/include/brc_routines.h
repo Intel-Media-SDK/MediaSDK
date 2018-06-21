@@ -199,7 +199,7 @@ struct BRC_Ctx
     mfxF64 fAbLong;         // avarage frame size (long period)
     mfxF64 fAbShort;        // avarage frame size (short period)
     mfxF64 dQuantAb;        // avarage dequant
-    mfxI32 totalDiviation;   // divation from  target bitrate (total)
+    mfxF64 totalDiviation;   // divation from  target bitrate (total)
 
     mfxF64 eRate;               // eRate of last encoded frame, this parameter is used for scene change calculation
     mfxF64 eRateSH;             // eRate of last encoded scene change frame, this parameter is used for scene change calculation

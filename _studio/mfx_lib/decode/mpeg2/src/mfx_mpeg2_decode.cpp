@@ -407,13 +407,14 @@ bool VideoDECODEMPEG2InternalBase::VerifyPictureBits(mfxBitstream* currPicBs, co
             return false;
 
         if (picInfo[0].temporal_reference == picInfo[1].temporal_reference) {
-            if (m_fieldsInCurrFrame || (picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3) // must be field, first field
-                if (picInfo[0].picture_type != I_PICTURE || picInfo[1].picture_type != I_PICTURE) // each I can start new count
+            if (m_fieldsInCurrFrame || (picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3) { // not field pair: must be field, first field
+                if (picInfo[1].picture_type != I_PICTURE) // each I can start new count
                     return false;
-            // same type or IP
-            if (picInfo[0].picture_type != picInfo[1].picture_type &&
-                picInfo[0].picture_type != I_PICTURE && picInfo[1].picture_type != P_PICTURE)
-                return false; // invalid pair, broken stream
+            } else {    // field pair: same type or IP
+                if (picInfo[0].picture_type != picInfo[1].picture_type &&
+                    picInfo[0].picture_type != I_PICTURE && picInfo[1].picture_type != P_PICTURE)
+                    return false; // invalid pair, broken stream
+            }
         }
         else if (((picInfo[0].temporal_reference + 1) & 0x3ff) == picInfo[1].temporal_reference) { // consequent in display and coding order
             if (!progseq && (picInfo[0].last_polarity ^ picInfo[1].first_polarity) != 3) // invalid field order
@@ -2268,6 +2269,8 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
             if (eEXT == ptr[3])
             {
                 sts = AppendBitstream(*out, curr, (mfxU32)(ptr - curr));
+                if (sts == MFX_ERR_NOT_ENOUGH_BUFFER)
+                    MoveBitstreamData(*in, (mfxU32)(ptr - curr)); // huge frame - skip it
                 MFX_CHECK_STS(sts);
                 curr = ptr;
             }

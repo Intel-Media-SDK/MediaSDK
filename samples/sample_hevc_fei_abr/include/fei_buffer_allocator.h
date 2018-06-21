@@ -17,7 +17,8 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
-#pragma once
+#ifndef __FEI_BUFFER_ALLOCATOR_H__
+#define __FEI_BUFFER_ALLOCATOR_H__
 
 #include "mfxfeihevc.h"
 #include "sample_hevc_fei_defs.h"
@@ -191,3 +192,5 @@ private:
     AutoBufferLocker(AutoBufferLocker const &);
     AutoBufferLocker & operator =(AutoBufferLocker const &);
 };
+
+#endif // __FEI_BUFFER_ALLOCATOR_H__

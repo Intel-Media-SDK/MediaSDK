@@ -83,8 +83,6 @@ inline bool isProfile(PTL& ptl, Bs32u profile)
 
 void Parser::parsePTL(PTL& ptl)
 {
-    Bs32u& pcf = ptl.profile_compatibility_flags;
-
     if (ptl.profile_present_flag)
     {
         BS2_SET(u(2), ptl.profile_space);
@@ -283,7 +281,6 @@ void Parser::parseHRD(
 void Parser::parseVPS(VPS& vps)
 {
     TLAuto tl(*this, TRACE_VPS);
-    Bs16u dim2x2[3] = { 1, 0, 0 };
 
     BS2_SET(u(4), vps.video_parameter_set_id);
     BS2_SET(u1(), vps.base_layer_internal_flag);
@@ -1590,8 +1587,6 @@ void Parser::parseSEI(SEI& first)
     TLAuto tl(*this, TRACE_SEI);
 
     SEI* next = &first;
-    SPS* activeSPS = 0;
-    bool postpone = false;
 
     for (;;)
     {

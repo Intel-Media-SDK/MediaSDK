@@ -354,6 +354,10 @@ mfxF64 QP2Qstep(mfxI32 qp, mfxI32 qpoffset = 0)
 
 mfxF64  cHRD::GetBufferDiviationFactor()
 {
+    if (m_buffSizeInBits == 0)
+    {
+        return 0.0;
+    }
     mfxF64 targetFullness = m_buffSizeInBits / 2;
     mfxF64 factor = abs((targetFullness - (mfxF64) m_bufFullness) / targetFullness);
     return factor;
@@ -829,7 +833,8 @@ mfxF64 ExtBRC::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, 
     mfxF64 bAbPreriod = m_par.bAbPeriod;
 
     mfxF64 totDiv = m_ctx.totalDiviation;
-    mfxF64 lf = 1.0 / pow(m_par.inputBitsPerFrame / fAbLong, 1.0 + (mfxF64)m_hrd.GetBufferDiviationFactor());
+    const mfxF64 factor = m_par.bHRDConformance ? m_hrd.GetBufferDiviationFactor() : 0.0;
+    mfxF64 lf = 1.0 / pow(m_par.inputBitsPerFrame / fAbLong, 1.0 + factor);
 
     if (m_par.bHRDConformance && totDiv > 0)
     {
@@ -930,7 +935,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
     mfxF64 e2pe     =  0;
     bool bMaxFrameSizeMode = m_par.maxFrameSizeInBits != 0 &&
         m_par.maxFrameSizeInBits < m_par.inputBitsPerFrame * 2 &&
-        m_ctx.totalDiviation < (mfxI32)(-1)*m_par.inputBitsPerFrame*m_par.frameRate;
+        m_ctx.totalDiviation < (-1)*m_par.inputBitsPerFrame*m_par.frameRate;
 
     if (IS_IFRAME(picType)) {
         e2pe = (m_ctx.eRateSH == 0) ? (BRC_SCENE_CHANGE_RATIO2 + 1) : eRate / m_ctx.eRateSH;
@@ -1247,7 +1252,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             m_avg->UpdateSlidingWindow(bitsEncoded, m_ctx.encOrder, m_ctx.bPanic, bSHStart || IS_IFRAME(picType),frame_par->NumRecode, qpY);
         }
 
-        m_ctx.totalDiviation += (bitsEncoded - (mfxI32)m_par.inputBitsPerFrame);
+        m_ctx.totalDiviation += ((mfxF64)bitsEncoded -m_par.inputBitsPerFrame);
 
         //printf("------------------ %d (%d)) Total diviation %d, old scene %d, bNeedUpdateQP %d, m_ctx.Quant %d, type %d, m_ctx.fAbLong %f m_par.inputBitsPerFrame %f\n", frame_par->EncodedOrder, frame_par->DisplayOrder,m_ctx.totalDiviation, oldScene , bNeedUpdateQP, m_ctx.Quant,picType, m_ctx.fAbLong, m_par.inputBitsPerFrame);
 
@@ -1258,7 +1263,9 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             //Update QP
 
             mfxF64 totDiv = m_ctx.totalDiviation;
-            mfxF64 dequant_new = m_ctx.dQuantAb*pow(m_par.inputBitsPerFrame / m_ctx.fAbLong, 1.0 + (mfxF64) m_hrd.GetBufferDiviationFactor());
+
+            const mfxF64 factor = m_par.bHRDConformance ? m_hrd.GetBufferDiviationFactor() : 0.0;
+            mfxF64 dequant_new = m_ctx.dQuantAb*pow(m_par.inputBitsPerFrame / m_ctx.fAbLong, 1.0 + factor);
 
             mfxF64 bAbPreriod = m_par.bAbPeriod;
 

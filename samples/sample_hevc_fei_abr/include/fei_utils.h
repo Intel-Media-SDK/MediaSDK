@@ -17,7 +17,8 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
-#pragma once
+#ifndef __FEI_UTILS_H__
+#define __FEI_UTILS_H__
 
 #include "sample_defs.h"
 
@@ -249,3 +250,5 @@ void DrawLine(mfxI32 x0, mfxI32 y0, mfxI32 dx, mfxI32 dy, mfxU8 *pPic, mfxI32 nP
 /**********************************************************************************/
 
 mfxStatus CopySurface(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src);
+
+#endif // #define __FEI_UTILS_H__

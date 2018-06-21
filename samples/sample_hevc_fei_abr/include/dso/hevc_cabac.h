@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#ifndef __HEVC_CABAC_H
+#define __HEVC_CABAC_H
 
 #include "bs_reader.h"
 #include "hevc_struct.h"
@@ -346,3 +347,5 @@ private:
 
 };
 }// namespace BS_HEVC;
+
+#endif // __HEVC_CABAC_H

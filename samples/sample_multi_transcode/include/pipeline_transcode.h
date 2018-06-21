@@ -245,6 +245,8 @@ namespace TranscodingSample
         mfxU16 WeightedBiPred;
         mfxU16 ExtBrcAdaptiveLTR;
 
+        bool   bExtMBQP;
+
         // MVC Specific Options
         bool   bIsMVC; // true if Multi-View-Codec is in use
         mfxU32 numViews; // number of views for Multi-View-Codec
@@ -297,6 +299,7 @@ namespace TranscodingSample
         mfxI32  monitorType;
         bool shouldUseGreedyFormula;
         bool enableQSVFF;
+        bool bSingleTexture;
 
         ExtBRCType nExtBRC;
 
@@ -762,6 +765,9 @@ namespace TranscodingSample
         mfxVideoParam                  m_mfxPreEncParams;
         mfxU32                         m_nTimeout;
         bool                           m_bUseOverlay;
+
+        bool                           m_bROIasQPMAP;
+        bool                           m_bExtMBQP;
         // various external buffers
         // for disabling VPP algorithms
         mfxExtVPPDoNotUse m_VppDoNotUse;

@@ -34,7 +34,7 @@ class Plugin : public MFXEncoderPlugin
 public:
     static MFXEncoderPlugin* Create()
     {
-        return new Plugin(false);
+        return GetInstance();
     }
     static mfxStatus CreateByDispatcher(mfxPluginUID guid, mfxPlugin* mfxPlg)
     {
@@ -51,7 +51,7 @@ public:
 
         try
         {
-            tmp_pplg = new Plugin(false);
+            tmp_pplg = GetInstance();
         }
         catch (std::bad_alloc&)
         {
@@ -89,14 +89,14 @@ public:
     {
         MFX_CHECK_NULL_PTR1(par);
 
-        par->PluginUID = MFX_PLUGINID_HEVCE_HW;
-        par->PluginVersion = 1;
-        par->ThreadPolicy = MFX_THREADPOLICY_SERIAL;
-        par->MaxThreadNum = 1;
+        par->PluginUID        = MFX_PLUGINID_HEVCE_HW;
+        par->PluginVersion    = 1;
+        par->ThreadPolicy     = MFX_THREADPOLICY_SERIAL;
+        par->MaxThreadNum     = 1;
         par->APIVersion.Major = MFX_VERSION_MAJOR;
         par->APIVersion.Minor = MFX_VERSION_MINOR;
-        par->Type = MFX_PLUGINTYPE_VIDEO_ENCODE;
-        par->CodecId = MFX_CODEC_HEVC;
+        par->Type             = MFX_PLUGINTYPE_VIDEO_ENCODE;
+        par->CodecId          = MFX_CODEC_HEVC;
 
         return MFX_ERR_NONE;
     }
@@ -142,7 +142,7 @@ public:
 
     virtual void Release()
     {
-        delete this;
+        return;
     }
 
     virtual mfxStatus Close()
@@ -162,6 +162,12 @@ protected:
 
     virtual ~Plugin()
     {}
+
+    static Plugin* GetInstance()
+    {
+        static Plugin instance(false);
+        return &instance;
+    }
 
     bool m_createdByDispatcher;
     MFXPluginAdapter<MFXEncoderPlugin> m_adapter;

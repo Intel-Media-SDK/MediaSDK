@@ -1609,8 +1609,6 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
             m_pipelineParam[i].blend_state = &blend_state[i];
         }
 
-        m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-
 #if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
         m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
         m_pipelineParam[i].filter_flags   |= VA_FILTER_SCALING_HQ;
@@ -1647,7 +1645,6 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
                                *outputSurface);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        outputparam         = m_pipelineParam[0];
         outputparam.surface = *outputSurface;
         // The targerRect.width and targerRect.height here actually storing the x2 and y2
         // value. Deduct x and y respectively to get the exact targerRect.width and

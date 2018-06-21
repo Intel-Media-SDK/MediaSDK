@@ -41,8 +41,6 @@ if( API_VERSION VERSION_GREATER 1.25 )
     list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_me.cpp")
     list (REMOVE_ITEM sources "${MSDK_LIB_ROOT}/genx/mctf/src/genx_sd.cpp")
 
-    set( defs "${defs} ${WARNING_FLAGS}")
-
     make_library( mctf hw static )
     set( defs "" )
 endif()

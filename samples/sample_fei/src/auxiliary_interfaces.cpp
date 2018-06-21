@@ -332,7 +332,7 @@ mfxStatus MFX_DecodeInterface::FillParameters()
     }
 
     // if input stream header doesn't contain valid values use default (30.0)
-    if (!(m_videoParams.mfx.FrameInfo.FrameRateExtN * m_videoParams.mfx.FrameInfo.FrameRateExtD))
+    if (0 == (m_videoParams.mfx.FrameInfo.FrameRateExtN * m_videoParams.mfx.FrameInfo.FrameRateExtD))
     {
         m_videoParams.mfx.FrameInfo.FrameRateExtN = 30;
         m_videoParams.mfx.FrameInfo.FrameRateExtD = 1;

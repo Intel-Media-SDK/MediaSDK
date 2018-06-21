@@ -9,7 +9,7 @@ if(VA_HEVC_FEI MATCHES NOTFOUND)
   set(skipping _force_skipping)
 endif()
 
-if(NOT API_USE_LATEST)
+if(API_VERSION VERSION_LESS "1.27")
   set(skipping _force_skipping)
 endif()
 
@@ -21,7 +21,6 @@ include_directories (
 list( APPEND LIBS_VARIANT sample_common )
 
 set(DEPENDENCIES ${skipping} itt libmfx dl pthread)
-set( defs "${WARNING_FLAGS}" )
 make_executable( shortname universal "nosafestring" )
 
 install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
