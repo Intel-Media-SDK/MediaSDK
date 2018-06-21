@@ -829,31 +829,31 @@ struct iTask
             task_params.DSsurface->Info.PicStruct = task_params.InputSurf->Info.PicStruct & 0xf;
 
             PREENC_in.InSurface = task_params.DSsurface;
-            PREENC_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PREENC_in.InSurface->Data.Locked);
         }
         // PreENC on full-res surface
         else if (task_params.InputSurf)
         {
             PREENC_in.InSurface = task_params.InputSurf;
-            PREENC_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PREENC_in.InSurface->Data.Locked);
         }
 
         if (task_params.InputSurf)
         {
             ENC_in.InSurface = task_params.InputSurf;
-            ENC_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&ENC_in.InSurface->Data.Locked);
 
             PAK_in.InSurface = task_params.InputSurf;
-            PAK_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PAK_in.InSurface->Data.Locked);
         }
 
         if (task_params.ReconSurf)
         {
             ENC_out.OutSurface = task_params.ReconSurf;
-            ENC_out.OutSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&ENC_out.OutSurface->Data.Locked);
 
             PAK_out.OutSurface = task_params.ReconSurf;
-            PAK_out.OutSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PAK_out.OutSurface->Data.Locked);
         }
     }
 
