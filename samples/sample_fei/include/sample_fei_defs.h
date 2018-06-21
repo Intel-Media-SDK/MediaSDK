@@ -42,7 +42,7 @@ const mfxU16 MaxFeiEncMVPNum = 4;
 
 #define MSDK_ZERO_ARRAY(VAR, NUM) {memset(VAR, 0, sizeof(VAR[0])*NUM);}
 #define SAFE_RELEASE_EXT_BUFSET(SET) {if (SET){ SET->vacant = true; SET = NULL;}}
-#define SAFE_DEC_LOCKER(SURFACE){if (SURFACE && SURFACE->Data.Locked) {SURFACE->Data.Locked--;}}
+#define SAFE_DEC_LOCKER(SURFACE){if (SURFACE && SURFACE->Data.Locked) {msdk_atomic_dec16((volatile mfxU16*)&SURFACE->Data.Locked);}}
 #define SAFE_UNLOCK(SURFACE){if (SURFACE) {SURFACE->Data.Locked = 0;}}
 #define SAFE_FCLOSE_ERR(FPTR, ERR){ if (FPTR && fclose(FPTR)) { FPTR = NULL; return ERR; } else {FPTR = NULL;}}
 #define SAFE_FCLOSE(FPTR){ if (FPTR) { fclose(FPTR); FPTR = NULL; }}
