@@ -2327,6 +2327,9 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
 
                     MoveBitstreamData(*in, len);
 
+                    if (len < (8-4) + 9) // (min pic. header - startcode) + min pic.coding ext.
+                        return MFX_ERR_NOT_ENOUGH_BUFFER; // to start again with next picture
+
                     m_fcState.picStart = 0;
                     m_fcState.picHeader = FcState::NONE;
                     memset(m_last_bytes, 0, NUM_REST_BYTES);
