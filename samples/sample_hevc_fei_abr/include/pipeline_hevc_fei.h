@@ -58,7 +58,7 @@ public:
     }
     void UpdateBRCStat(FrameStatData& stat)
     {
-        return m_encoder->UpdateBRCStat(stat);
+        m_encoder->UpdateBRCStat(stat);
     }
     MfxVideoParamsWrapper GetVideoParam()
     {
