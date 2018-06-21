@@ -154,7 +154,7 @@ public:
     virtual mfxStatus PreInit() { return m_pBase->PreInit(); }
     virtual MfxVideoParamsWrapper   GetVideoParam() { return m_pBase->GetVideoParam(); }
     virtual mfxStatus SubmitFrame(std::shared_ptr<HevcTaskDSO> & task);
-    virtual void UpdateBRCStat(FrameStatData& stat_data) { return m_pBase->UpdateBRCStat(stat_data); }
+    virtual void UpdateBRCStat(FrameStatData& stat_data) { m_pBase->UpdateBRCStat(stat_data); }
 private:
 
     struct MfxFrameSurface1Wrap: public mfxFrameSurface1
