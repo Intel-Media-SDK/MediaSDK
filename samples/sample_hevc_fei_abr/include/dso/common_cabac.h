@@ -31,12 +31,12 @@ namespace COMMON_CABAC
     {
     private:
         BsReader2::Reader& m_bs;
-        Bs64u m_bpos;
-        bool  m_pcm;
+        Bs64u m_bpos  = 0;
+        bool  m_pcm   = false;
 #if (BS_AVC2_ADE_MODE == 1)
-        Bs32u m_val;
-        Bs32u m_range;
-        Bs32s m_bits;
+        Bs32u m_val   = 0;
+        Bs32u m_range = 0;
+        Bs32s m_bits  = 0;
 
         inline Bs32u B(Bs16u n) { m_bpos += n * 8; return m_bs.GetBytes(n, true); }
 #else
@@ -48,7 +48,7 @@ namespace COMMON_CABAC
 #endif
 
     public:
-        ADE(BsReader2::Reader& r) : m_bs(r), m_pcm(false) {}
+        ADE(BsReader2::Reader& r) : m_bs(r) {}
         ~ADE() {}
 
         inline void Init()

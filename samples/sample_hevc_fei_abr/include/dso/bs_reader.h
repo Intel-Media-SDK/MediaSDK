@@ -155,7 +155,8 @@ public:
         ignore_bytes = (BS_FADDR_TYPE*)malloc(sizeof(BS_FADDR_TYPE));
         ignore_bytes_cnt  = 0;
         next_ignored_byte = NULL;
-        trace_flag = true;
+        tmp_buf     = 0;
+        trace_flag  = true;
         trace_level = 0xFFFFFFFF;
     }
 

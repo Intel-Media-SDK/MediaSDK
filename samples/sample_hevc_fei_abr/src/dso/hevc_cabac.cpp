@@ -24,6 +24,8 @@ using namespace BS_HEVC;
 
 HEVC_CABAC::HEVC_CABAC()
     : m_decPar(0)
+    , m_lastGreater1Ctx(0)
+    , m_ctxSet(0)
     , m_pCtx(NULL)
     , m_cAbsLevel(0)
     , m_cRiceParam(0)
