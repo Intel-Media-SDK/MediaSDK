@@ -157,7 +157,7 @@ function(configure_itt_target target)
 
   set(SCOPE_CFLAGS ${SCOPE_CFLAGS} PARENT_SCOPE)
   set(SCOPE_LINKFLAGS ${SCOPE_LINKFLAGS} PARENT_SCOPE)
-  set(SCOPE_LIBS ${SCOPE_LIBS} ittnotify PARENT_SCOPE)
+  set(SCOPE_LIBS ${SCOPE_LIBS} ${ITT_LIBRARIES} PARENT_SCOPE)
 endfunction()
 
 
