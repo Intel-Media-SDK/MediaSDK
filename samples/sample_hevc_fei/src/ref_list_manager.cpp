@@ -764,6 +764,14 @@ HevcTask* EncodeOrderControl::ReorderFrame(mfxFrameSurface1 * surface)
         task.m_lastIPoc = m_lastTask.m_lastIPoc;
         task.m_lastRAP  = m_lastTask.m_lastRAP;
 
+        mfxExtCodingOption3 * CO3 = m_par;
+        if (CO3 && CO3->GPB == MFX_CODINGOPTION_ON && task.m_frameType & MFX_FRAMETYPE_P)
+        {
+            // encode P as GPB
+            task.m_frameType &= ~MFX_FRAMETYPE_P;
+            task.m_frameType |= MFX_FRAMETYPE_B;
+        }
+
         InitDPB(task, m_lastTask);
 
         // update dpb
