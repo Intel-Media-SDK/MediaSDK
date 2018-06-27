@@ -76,6 +76,9 @@ namespace MfxHwVideoProcessing
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
         MFX_FOURCC_RGB565    ,
 #endif
+#ifdef MFX_ENABLE_RGBP
+        MFX_FOURCC_RGBP      ,
+#endif
         MFX_FOURCC_P8        ,
         MFX_FOURCC_P8_TEXTURE,
         MFX_FOURCC_P010      ,

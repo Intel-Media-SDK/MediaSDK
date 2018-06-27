@@ -1341,6 +1341,9 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType /* platf
             if (VPP_OUT == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
         case MFX_FOURCC_A2RGB10:
             // 10bit RGB supported as output format only
             if (VPP_IN == request)
