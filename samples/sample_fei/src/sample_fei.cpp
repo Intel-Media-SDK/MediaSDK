@@ -1383,6 +1383,19 @@ int main(int argc, char *argv[])
             msdk_printf(MSDK_STRING("ERROR: ParFile \"%s\" reading failed\n"), parFileName);
             return MFX_ERR_UNSUPPORTED;
         }
+
+        mfxI32 i = 0;
+        while (i < argc && !strstr(argv[i], "-timeout")) ++i;
+        if (i < argc - 1)
+        {
+            mfxU32 timeout = atoi(argv[++i]);
+            // sample should use the same timeout for all sessions
+            // because sessions should work in parallel
+            for (auto & config : Configs)
+            {
+                config->nTimeout = timeout;
+            }
+        }
     }
     else
     {
