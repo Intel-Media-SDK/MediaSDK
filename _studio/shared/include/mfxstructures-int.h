@@ -86,7 +86,13 @@ enum {
     // AVC Profiles & Levels
     MFX_PROFILE_AVC_HIGH10      =110,
 };
-
+/*
+Some components (samples, JPEG decoder) has used MFX_FOURCC_RGBP already.
+So, for API 1.27 and below "MFX_FOURCC_RGBP" defined inside of msdk library
+and samples.
+Since next version of API (1.28) "MFX_FOURCC_RGBP" should officially
+defined in API "mfxstructures.h".
+*/
 enum
 {
     MFX_FOURCC_IMC3         = MFX_MAKEFOURCC('I','M','C','3'),
