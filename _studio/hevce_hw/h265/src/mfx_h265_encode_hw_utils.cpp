@@ -184,31 +184,53 @@ template <class T> mfxU32 BPyrReorder(std::vector<T> brefs, bool bField)
     }
     return ind;
 }
-
-
-
-template<class T> mfxU32 MinL1(
+template <class T> bool IsL1Ready(
+    DpbArray const & dpb,
+    mfxI32 poc,
     T begin,
     T end,
     bool bField,
     bool flush)
 {
-    if ( !bField) return 1;
-
-    T top = begin;
-    mfxU32 numNonB = 0;
-
-    while (top != end && IsB(top->m_frameType)) top++;
-    while (top != end && !IsB(top->m_frameType)) 
+    mfxU32 c = 0;
+    mfxI32 pocL1 = 0;
+    for (mfxU32 i = 0; !isDpbEnd(dpb, i); i++)
     {
-        numNonB++;
-        top++;
+        if (dpb[i].m_poc > poc)
+        {
+            c++;
+            pocL1 = dpb[i].m_poc;
+        }
     }
-    if (numNonB >= 2 || numNonB == 0) return 2;
-    if (top == end && flush)  return 1;
-    return 2;
+    if (c == 0)
+        return false; // waiting for one non B frame
+    else if ((!bField) || (c > 1))
+        return true; //one non-B is enought for progressive and two for interlace
+    else
+    {
+        //need to check if pair's reference field is present into m_reordering
+        T top = begin;
+        while (top != end && top->m_poc <= pocL1)
+            top++;
+        if (top != end)
+        {
+            if (IsB(top->m_frameType))
+                return true; // only one non-B
+            else
+                return false; //wait for next nonB frame
+        }
+        else
+        {
+            if (flush)
+                return true; //only one non-B (no input nonB)
+            else
+                return false; // wait for second field
+
+        }
+    }
 
 }
+
 template<class T> T Reorder(
     MfxVideoParam const & par,
     DpbArray const & dpb,
@@ -221,7 +243,7 @@ template<class T> T Reorder(
     std::vector<T> brefs;
     while (top != end && IsB(top->m_frameType))
     {
-        if (CountL1(dpb, top->m_poc) >= MinL1(begin, end, par.isField(), flush))
+        if (IsL1Ready(dpb, top->m_poc, begin, end, par.isField(), flush))
         {
             if (par.isBPyramid())
                 brefs.push_back(top);
