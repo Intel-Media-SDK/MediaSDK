@@ -2179,9 +2179,16 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
         // and precedes the first VCL NAL unit of another coded picture
         // if the slices belong to different AUs or SPS/PPS was changed,
         // close the current AU and start new one.
+
+        const H265SeqParamSet * sps = m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID());
+        const H265PicParamSet * pps = m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID());
+
+        if (!sps || !pps) // undefined behavior
+            return UMC::UMC_ERR_FAILED;
+
         bool changed =
-            m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID())->m_changed ||
-            m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID())->m_changed ||
+            sps->m_changed ||
+            pps->m_changed ||
             !IsPictureTheSame(firstSlice, pSlice);
 
         if (changed)
@@ -2197,9 +2204,15 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
     // try to allocate a new frame.
     else
     {
+        H265SeqParamSet * sps = m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID());
+        H265PicParamSet * pps = m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID());
+
+        if (!sps || !pps) // undefined behavior
+            return UMC::UMC_ERR_FAILED;
+
         // clear change flags when get first VCL NAL
-        m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID())->m_changed = false;
-        m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID())->m_changed = false;
+        sps->m_changed = false;
+        pps->m_changed = false;
 
         // allocate a new frame, initialize it with slice's parameters.
         pFrame = AllocateNewFrame(pSlice);
