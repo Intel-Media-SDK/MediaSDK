@@ -324,8 +324,8 @@ public:
 private:
     mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size)
     {
-        if(!size || !id)
-            return 0;
+        if (!size || !id)
+            throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Failed to attach undefined buffer");
 
         // Limitation: only one ExtBuffer instance can be stored
         ExtBufIterator it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));

@@ -240,7 +240,7 @@ CTU* SDParser::parseSSD(NALU& nalu, NALU* pColPic, Bs32u NumCtb)
         if (report_TCLevels)
         {
             pTC_levels = m_pAllocator->alloc<Bs32s>(pCTU, Bs32u(m_TC_lvl.size()));
-            std::copy(std::begin(m_TC_lvl), std::end(m_TC_lvl), pTC_levels);
+            if (pTC_levels) std::copy(std::begin(m_TC_lvl), std::end(m_TC_lvl), pTC_levels);
         }
 
         auto pcCTU = pCTU;
