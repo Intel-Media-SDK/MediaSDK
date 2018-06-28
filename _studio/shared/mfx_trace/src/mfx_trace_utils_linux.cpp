@@ -50,10 +50,10 @@ FILE* mfx_trace_open_conf_file(const char* name)
 
     if (home)
     {
-        snprintf_s_ss(file_name, MAX_PATH-1, "%s/.%s", getenv("HOME"), name);
+        snprintf_s_ss(file_name, MAX_PATH-1, "%s/.%s", home, name);
         file = fopen(file_name, "r");
     }
-    else
+    if (!file)
     {
         snprintf_s_ss(file_name, MAX_PATH-1, "%s/%s", MFX_TRACE_CONFIG_PATH, name);
         file = fopen(file_name, "r");
