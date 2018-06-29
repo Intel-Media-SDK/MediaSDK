@@ -27,7 +27,7 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 ### CM
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
 set( SRC_DIR "${MSDK_LIB_ROOT}/cmrt_cross_platform/src" )
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 set( sources "" )
 set( sources.plus "" )
 file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
@@ -50,10 +50,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   )
 endforeach()
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 make_library( mfx_common none static )
 append_property( mfx_common COMPILE_FLAGS " -DMFX_RT" )
-set( defs "" )
 
 foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   list( APPEND sources
@@ -67,10 +66,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   )
 endforeach()
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 make_library( mfx_common hw static )
 append_property( mfx_common_hw COMPILE_FLAGS " -DMFX_RT" )
-set( defs "" )
 
 ### libmfxhw
 list( APPEND mdirs
@@ -88,6 +86,7 @@ endforeach()
 
 include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
+include_directories( ${MSDK_STUDIO_ROOT}/hevce_hw/h265/include )
 
 list( APPEND cdirs
   brc h264_enc mpeg2_dec  vc1_dec vc1_common
@@ -143,6 +142,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
   list( APPEND sources
     ${prefix}/genx_cht_copy_isa.cpp
     ${prefix}/genx_skl_copy_isa.cpp
+    ${prefix}/genx_icl_copy_isa.cpp
+    ${prefix}/genx_icllp_copy_isa.cpp
+    ${prefix}/genx_cnl_copy_isa.cpp
   )
 endforeach()
 
@@ -161,8 +163,11 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
 else()
   set( mfxlibname mfxhw32 )
 endif()
-if( CMAKE_BUILD_TYPE MATCHES Debug )
-  set( mfxlibname ${mfxlibname}_d )
+
+if( API_VERSION VERSION_GREATER 1.25 )
+  set(MCTF_LIB "mctf_hw")
+else()
+  set(MCTF_LIB "")
 endif()
 
 set( LIBS "" )
@@ -185,7 +190,7 @@ list( APPEND LIBS
   mfx_common
   mfx_common_hw
   asc
-  mctf_hw
+  ${MCTF_LIB}
   vpp_hw
   h264_common
   h264_preenc
@@ -194,12 +199,12 @@ list( APPEND LIBS
   vc1_common
   vc1_dec_hw
   umc_h265_hw
-  ${ITT_LIBS}
+  mfx_trace
+  ${ITT_LIBRARIES}
   pthread
   dl
 )
 
-set( defs "${defs} ${WARNING_FLAGS}" )
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 
@@ -218,5 +223,3 @@ install( CODE "execute_process(
   ${MFX_MODULES_DIR}/${mfxlib_filename}
   ${MFX_MODULES_DIR}/lib${mfxlibname}.so )"
 )
-
-set( defs "" )

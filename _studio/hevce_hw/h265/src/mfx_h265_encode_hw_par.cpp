@@ -187,7 +187,7 @@ mfxU16 minRefForPyramid(mfxU16 GopRefDist, bool bField)
         refB -= x;
     }
 
-    return (bField ? 2:1)*(2 + refB);
+    return bField ? ((2 + refB)*2 +1) : (2 + refB);
 }
 
 mfxU32 GetMaxDpbSizeByLevel(MfxVideoParam const & par)
@@ -788,8 +788,6 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
             invalid++;
     }
 
-    //// TODO: remove below macro conditional statement when ROI related caps will be correctly set up by the driver
-#if !defined(LINUX_TARGET_PLATFORM_BXTMIN) && !defined(LINUX_TARGET_PLATFORM_BXT) && !defined(LINUX_TARGET_PLATFORM_CFL)
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
         invalid += (caps.ROIDeltaQPSupport == 0);
     }
@@ -810,7 +808,6 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
             invalid++;
 #endif // MFX_VERSION > 1021
     }
-#endif  // LINUX_TARGET_PLATFORM_BXTMIN
 
     mfxU16 maxNumOfRoi = (caps.MaxNumOfROI <= MAX_NUM_ROI  && (!bROIViaMBQP)) ? caps.MaxNumOfROI : MAX_NUM_ROI;
 
@@ -1046,6 +1043,7 @@ void InheritDefaultValues(
 
     InheritOption(extOpt3Init->IntRefCycleDist, extOpt3Reset->IntRefCycleDist);
     InheritOption(extOpt3Init->PRefType, extOpt3Reset->PRefType);
+    InheritOption(extOpt3Init->GPB, extOpt3Reset->GPB);
 
     InheritOption(extOpt3Init->WinBRCMaxAvgKbps, extOpt3Reset->WinBRCMaxAvgKbps);
     InheritOption(extOpt3Init->WinBRCSize, extOpt3Reset->WinBRCSize);
@@ -1452,14 +1450,15 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
            && par.mfx.GopRefDist > 0
            && ( par.mfx.GopRefDist < 2
             || minRefForPyramid(par.mfx.GopRefDist, par.isField()) > 16
-            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
+            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame
+                && !par.mfx.EncodedOrder)))
     {
         par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
         changed ++;
     }
-    if (par.mfx.GopRefDist > 1 && par.mfx.NumRefFrame == 1)
+    if (par.mfx.GopRefDist > 1 && (par.mfx.NumRefFrame && par.mfx.NumRefFrame < (par.isField() ? 4 :2)) && !par.mfx.EncodedOrder)
     {
-        par.mfx.NumRefFrame = 2;
+        par.mfx.NumRefFrame = par.isField() ? 4 :2;
         changed ++;
     }
 

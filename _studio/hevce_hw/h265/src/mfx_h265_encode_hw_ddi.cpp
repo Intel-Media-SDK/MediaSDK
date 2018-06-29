@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,10 +31,9 @@
 namespace MfxHwH265Encode
 {
 
-GUID GetGUID(MfxVideoParam const & par)
+GUID GetGUID(MfxVideoParam const & /* par */)
 {
     GUID guid = DXVA2_Intel_Encode_HEVC_Main;
-    mfxU16 bdId = 0, cfId = 0;
 
     return guid;
 }
@@ -254,7 +253,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
     if (core.GetCoreParam(&coreParams))
        return  MFX_ERR_UNSUPPORTED;
 
-    if (!task.m_bCUQPMap || ((coreParams.Impl & 0xF00) == MFX_HW_VAAPI))
+    if (!task.m_bCUQPMap || ((coreParams.Impl & 0xF00) == MFX_IMPL_VIA_VAAPI))
         return MFX_ERR_NONE;
 
     mfxExtMBQP *mbqp = ExtBuffer::Get(task.m_ctrl);

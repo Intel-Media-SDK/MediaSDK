@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,7 +26,9 @@
 
 #include "vaapi_ext_interface.h"
 
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4244)
+#endif
 
 using namespace UMC;
 
@@ -124,6 +126,8 @@ PackVA::SaveVLDParameters(
     int32_t              task_num,
     int32_t              source_mb_height)
 {
+    (void)source_mb_height;
+
     int i;
     int NumOfItem;
 
@@ -260,6 +264,8 @@ PackVA::SetBufferSize(
     int             size_bs,
     int             size_sl)
 {
+    (void)size_bs;
+
         try
         {
             UMCVACompBuffer*  CompBuf  = NULL;

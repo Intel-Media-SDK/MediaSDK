@@ -64,6 +64,7 @@ CEncodingPipeline::CEncodingPipeline(AppConfig* pAppConfig)
     , m_insertIDR(false)
     , m_bVPPneeded(pAppConfig->bVPP)
     , m_bSeparatePreENCSession(pAppConfig->bPREENC && (pAppConfig->bENCPAK || pAppConfig->bOnlyENC || (pAppConfig->preencDSstrength && m_bVPPneeded)))
+    , m_mfxSessionParent((mfxSession)0)
     , m_pPreencSession(m_bSeparatePreENCSession ? &m_preenc_mfxSession : &m_mfxSession)
 
     , m_pFEI_PreENC(NULL)
@@ -201,6 +202,7 @@ mfxStatus CEncodingPipeline::Init(mfxSession parentSession)
         sts = m_pFEI_ENCPAK->FillParameters();
         MSDK_CHECK_STATUS(sts, "ENCPAK: Parameters initialization failed");
         m_commonFrameInfo = m_pFEI_ENCPAK->GetCommonVideoParams()->mfx.FrameInfo;
+        sts = m_pFEI_ENCPAK->SetFrameAllocator(m_pMFXAllocator);
     }
 
 #if (MFX_VERSION >= 1024)
@@ -843,6 +845,7 @@ mfxStatus CEncodingPipeline::SetSequenceParameters()
         m_appCfg.NumMVPredictors_Bl1 : (std::min)(mfxU16(m_numRefFrame*m_numOfFields), MaxFeiEncMVPNum);
 
     m_taskInitializationParams.BRefType           = m_bRefType;
+    m_taskInitializationParams.NoPRefB            = m_appCfg.bNoPtoBref;
 
     /* Section below calculates number of macroblocks for extension buffers allocation */
 

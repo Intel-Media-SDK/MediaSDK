@@ -47,6 +47,8 @@ CVPPExtBuffersStorage::CVPPExtBuffersStorage(void)
     MSDK_ZERO_MEMORY(frcFilter);
     MSDK_ZERO_MEMORY(deinterlaceFilter);
     MSDK_ZERO_MEMORY(vppFieldProcessingFilter);
+    MSDK_ZERO_MEMORY(extDoUse);
+    pExtVPPAuxData = 0;
 }
 
 
@@ -69,8 +71,10 @@ mfxStatus CVPPExtBuffersStorage::Init(TranscodingSample::sInputParams* params)
         mctfFilter.Header.BufferSz = sizeof(mfxExtVppMctf);
         mctfFilter.FilterStrength = params->mctfParam.params.FilterStrength;
         //.if an external file is given & at least 1 value is given, use it.
-        if (!params->mctfParam.rtParams.Empty())
+        if (!params->mctfParam.rtParams.Empty() && params->mctfParam.rtParams.GetCurParam())
+        {
             mctfFilter.FilterStrength = params->mctfParam.rtParams.GetCurParam()->FilterStrength;
+        }
 #if defined ENABLE_MCTF_EXT
         mctfFilter.Overlap = params->mctfParam.params.Overlap;
         mctfFilter.TemporalMode = params->mctfParam.params.TemporalMode;

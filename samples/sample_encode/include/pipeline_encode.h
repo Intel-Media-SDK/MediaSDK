@@ -54,6 +54,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #error MFX_VERSION not defined
 #endif
 
+#define SAFE_FREAD(PTR, SZ, COUNT, FPTR, ERR) { if (FPTR && (fread(PTR, SZ, COUNT, FPTR) != COUNT)){ return ERR; }}
+
 msdk_tick time_get_tick(void);
 msdk_tick time_get_frequency(void);
 
@@ -169,6 +171,7 @@ struct sInputParams
     bool shouldUseShiftedP010Enc;
     bool shouldUseShiftedP010VPP;
 
+    msdk_char *RoundingOffsetFile;
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
 
@@ -182,12 +185,93 @@ struct sInputParams
 
 };
 
+struct bufSet
+{
+    mfxU16 m_nFields;
+    std::vector<mfxExtBuffer *> buffers;
+
+    bufSet(mfxU16 n_fields = 1)
+    : m_nFields(n_fields)
+    {}
+
+    ~bufSet() { Destroy();}
+
+    void Destroy()
+    {
+        for (mfxU16 i = 0; i < buffers.size(); /*i++*/)
+        {
+            switch (buffers[i]->BufferId)
+            {
+                case MFX_EXTBUFF_AVC_ROUNDING_OFFSET:
+                {
+                    mfxExtAVCRoundingOffset* roundingOffset = reinterpret_cast<mfxExtAVCRoundingOffset*>(buffers[i]);
+                    MSDK_SAFE_DELETE_ARRAY(roundingOffset);
+                    i += m_nFields;
+                }
+                break;
+
+                default:
+                    ++i;
+                    break;
+            }
+        }
+
+        buffers.clear();
+    }
+};
+
+struct bufList
+{
+    std::vector<std::unique_ptr<bufSet>> buf_list;
+    mfxU16 m_nBufListStart;
+
+    bufList()
+    : m_nBufListStart(0)
+    {}
+
+    ~bufList() { Clear(); }
+
+    void AddSet(std::unique_ptr<bufSet> && set) { buf_list.push_back(std::move(set)); }
+
+    bool Empty() { return buf_list.empty(); }
+
+    void Clear()
+    {
+        for (std::vector<std::unique_ptr<bufSet>>::iterator it = buf_list.begin(); it != buf_list.end(); ++it)
+        {
+            if (*it)
+            {
+                (*it)->Destroy();
+            }
+        }
+
+        buf_list.clear();
+    }
+
+    bufSet* GetFreeSet()
+    {
+        bufSet *pBufSet = NULL;
+        if (m_nBufListStart < buf_list.size())
+        {
+            pBufSet = (buf_list[m_nBufListStart]).get();
+
+            m_nBufListStart += 1;
+            m_nBufListStart = m_nBufListStart % (buf_list.size());
+
+            return pBufSet;
+        }
+
+        return NULL;
+    }
+};
+
 struct sTask
 {
     mfxBitstream mfxBS;
     mfxSyncPoint EncSyncP;
     std::list<mfxSyncPoint> DependentVppTasks;
     CSmplBitstreamWriter *pWriter;
+    bufSet* extBufs;
 
     sTask();
     mfxStatus WriteBitstream();
@@ -242,6 +326,9 @@ public:
     void CaptureStopV4L2Pipeline();
 
     void InsertIDR(bool bIsNextFrameIDR);
+
+    virtual mfxStatus AllocExtBuffers(sInputParams *pInParams);
+    mfxStatus InitEncFrameParams(sTask* pTask);
 
 #if defined (ENABLE_V4L2_SUPPORT)
     v4l2Device v4l2Pipeline;
@@ -306,6 +393,9 @@ protected:
     std::vector<mfxPayload*> m_UserDataUnregSEI;
 
     CHWDevice *m_hwdev;
+
+    bufList m_encExtBufs;
+    FILE* m_round_in;
 
     bool isV4L2InputEnabled;
 

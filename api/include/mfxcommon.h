@@ -156,7 +156,10 @@ enum {
     MFX_PLATFORM_GEMINILAKE     = 10,
     MFX_PLATFORM_COFFEELAKE     = 11,
     MFX_PLATFORM_CANNONLAKE     = 20,
-#endif 
+#endif
+#if (MFX_VERSION >= 1027)
+    MFX_PLATFORM_ICELAKE = 30,
+#endif
 };
 
 typedef struct {

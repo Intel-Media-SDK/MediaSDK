@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -596,12 +596,12 @@ mfxStatus drmRenderer::render(mfxFrameSurface1 * pSurface)
 
     /* Unlock previous Render Target Surface (if exists) */
     if (NULL != m_pCurrentRenderTargetSurface)
-        m_pCurrentRenderTargetSurface->Data.Locked--;
+        msdk_atomic_dec16((volatile mfxU16*)&m_pCurrentRenderTargetSurface->Data.Locked);
 
     /* new Render target */
     m_pCurrentRenderTargetSurface = pSurface;
     /* And lock it */
-    m_pCurrentRenderTargetSurface->Data.Locked++;
+    msdk_atomic_inc16((volatile mfxU16*)&m_pCurrentRenderTargetSurface->Data.Locked);
     return MFX_ERR_NONE;
 }
 

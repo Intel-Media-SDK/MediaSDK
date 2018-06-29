@@ -799,6 +799,7 @@ public:
     bool   bROIViaMBQP;
     bool   bMBQPInput;
     bool   RAPIntra;
+    bool   bFieldReord;
 
 
     MfxVideoParam();
@@ -887,51 +888,7 @@ protected:
     mfxF64 m_prevBpAuNominalRemovalTime;
     mfxU32 m_prevBpEncOrder;
 };
-class LastReordFieldInfo
-{
-public:
-    mfxI32     m_poc;
-    bool       m_bReference;
-    mfxU32     m_level;
-    bool       m_bFirstField;
 
-    LastReordFieldInfo() :
-        m_poc(-1),
-        m_bReference(false),
-        m_level(0),
-        m_bFirstField(false){}
-
-    void Reset()
-    {
-        m_poc = -1;
-        m_bReference = false;
-        m_level = 0;
-        m_bFirstField = false;
-    }
-    void SaveInfo(Task const* task)
-    {
-        m_poc = task->m_poc;
-        m_bReference = ((task->m_frameType & MFX_FRAMETYPE_REF) != 0);
-        m_level = task->m_level;
-        m_bFirstField = !task->m_secondField;
-    }
-    void CorrectTaskInfo(Task* task)
-    {
-        if (!isCorrespondSecondField(task))
-            return;
-        // copy params in second field
-        if (m_bReference)
-            task->m_frameType |= MFX_FRAMETYPE_REF;
-        task->m_level = m_level;
-    }
-    bool isCorrespondSecondField(Task const* task) 
-    { 
-        if (m_poc + 1 != task->m_poc || !task->m_secondField || !m_bFirstField)
-            return false;
-        return true;
-    }
-    bool bFirstField() { return m_bFirstField; }
-};
 
 class TaskManager
 {
@@ -949,10 +906,6 @@ public:
     void  SkipTask  (Task* task);
     Task* GetNewTask();
     mfxStatus PutTasksForRecode(Task* pTask);
-    void SaveFieldInfo(Task* task) 
-    {
-        if (m_bFieldMode)   this->m_lastFieldInfo.SaveInfo(task);
-    };
 
 private:
     bool       m_bFieldMode;
@@ -962,7 +915,6 @@ private:
     TaskList   m_querying;
     UMC::Mutex m_listMutex;
     mfxU16     m_resetHeaders;
-    LastReordFieldInfo  m_lastFieldInfo;
 
 };
 
@@ -1007,6 +959,7 @@ void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
+    mfxU32 level,
     bool  bSecondField,
     bool  bBottomField,
     mfxU8 (&RPL)[2][MAX_DPB_SIZE],
@@ -1020,12 +973,13 @@ inline void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
+    mfxU32 level,
     bool  bSecondField,
     bool  bBottomField,
     mfxU8(&RPL)[2][MAX_DPB_SIZE],
     mfxU8(&numRefActive)[2])
 {
-    ConstructRPL(par, DPB, isB, poc, tid, bSecondField, bBottomField, RPL, numRefActive, 0, 0);
+    ConstructRPL(par, DPB, isB, poc, tid, level, bSecondField, bBottomField, RPL, numRefActive, 0, 0);
 }
 
 void UpdateDPB(
@@ -1082,7 +1036,8 @@ IntraRefreshState GetIntraRefreshState(
 mfxU8 GetNumReorderFrames(
     mfxU32 BFrameRate,
     bool BPyramid,
-    bool bField);
+    bool bField,
+    bool bFieldReord);
 
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -876,6 +876,8 @@ int32_t MPEG2VideoDecoderBase::GetDisplayIndex()
     if(frame_buffer.ret_array[frame_buffer.ret_array_curr] != -1)
     {
       frame_buffer.retrieve     = frame_buffer.ret_array[frame_buffer.ret_array_curr];
+      if (frame_buffer.retrieve >= DPB_SIZE)
+          frame_buffer.retrieve -= DPB_SIZE;
       frame_buffer.ret_array[frame_buffer.ret_array_curr] = -1;
       frame_buffer.ret_array_curr++;
       if(frame_buffer.ret_array_curr >= DPB_SIZE)

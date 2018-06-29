@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -909,7 +909,7 @@ struct H265SeqParamSetBase
 
     void Reset()
     {
-        H265SeqParamSetBase sps = {0};
+        H265SeqParamSetBase sps = {};
         *this = sps;
     }
 
@@ -920,6 +920,7 @@ struct H265SeqParamSet : public HeapObject, public H265SeqParamSetBase
 {
     H265ScalingList     m_scalingList;
     std::vector<uint32_t> m_paletteInitializers;
+    bool                m_changed;
 
     H265SeqParamSet()
         : HeapObject()
@@ -960,6 +961,7 @@ struct H265SeqParamSet : public HeapObject, public H265SeqParamSetBase
         conf_win_bottom_offset = 0;
 
         m_scalingList.destroy();
+        m_changed = false;
     }
 
     int SubWidthC() const
@@ -1104,7 +1106,7 @@ struct H265PicParamSetBase
 
     void Reset()
     {
-        H265PicParamSetBase pps = {0};
+        H265PicParamSetBase pps = {};
         *this = pps;
     }
 };  // H265PicParamSetBase
@@ -1114,7 +1116,8 @@ struct H265PicParamSet : public HeapObject, public H265PicParamSetBase
 {
     H265ScalingList       m_scalingList;
     std::vector<TileInfo> tilesInfo;
-    std::vector<uint32_t>   m_paletteInitializers;
+    std::vector<uint32_t> m_paletteInitializers;
+    bool                  m_changed;
 
     H265PicParamSet()
         : H265PicParamSetBase()
@@ -1141,6 +1144,8 @@ struct H265PicParamSet : public HeapObject, public H265PicParamSetBase
 
         loop_filter_across_tiles_enabled_flag = true;
         pps_loop_filter_across_slices_enabled_flag = true;
+
+        m_changed = false;
     }
 
     ~H265PicParamSet()

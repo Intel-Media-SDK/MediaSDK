@@ -172,7 +172,7 @@ struct sInputParams
     mfxU16   asyncNum;
     mfxU32   vaType;
 
-    std::vector<mfxU16                   > rotate;
+    std::vector<mfxU16> rotate;
 
     bool     bScaling;
     mfxU16   scalingMode;
@@ -200,6 +200,21 @@ struct sInputParams
     /*  plug-in GUID */
     msdk_char strPlgGuid[MSDK_MAX_FILENAME_LEN];
     bool    need_plugin;
+
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+    /* run-time ProcAmp parameters */
+    typedef struct {
+        bool   isEnabled;
+        mfxU32 interval;
+        mfxF64 value1;
+        mfxF64 value2;        
+    } sRtProcAmpParam;
+
+    sRtProcAmpParam rtHue;
+    sRtProcAmpParam rtSaturation;
+    sRtProcAmpParam rtBrightness;
+    sRtProcAmpParam rtContrast;
+#endif
 
     /* ********************** */
     /* input\output streams   */
@@ -454,6 +469,9 @@ struct sAppResources
 #endif
     mfxExtVPPRotation   rotationConfig;
     mfxExtVPPScaling    scalingConfig;
+#if MFX_VERSION >= 1025
+    mfxExtColorConversion    chromaSitingConfig;
+#endif
     mfxExtVPPFrameRateConversion    frcConfig;
     mfxExtVPPDeinterlacing deinterlaceConfig;
     mfxExtVPPVideoSignalInfo  videoSignalInfoConfig;

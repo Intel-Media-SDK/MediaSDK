@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1475,7 +1475,7 @@ namespace
 
 namespace
 {
-    void CreateAdditionalDpbCommands(
+    mfxStatus CreateAdditionalDpbCommands(
         MfxVideoParam const & video,
         DdiTask &             task)
     {
@@ -1524,6 +1524,7 @@ namespace
         else if (refPicFlag && IsAdaptiveLtrOn(video))
         {
             mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(video);
+            MFX_CHECK_NULL_PTR1(extDdi);
             mfxU32 numActiveRefL0 = (task.m_type[0] & MFX_FRAMETYPE_P)
                 ? extDdi->NumActiveRefP
                 : extDdi->NumActiveRefBL0;
@@ -1607,6 +1608,7 @@ namespace
                 }
             }
         }
+		return MFX_ERR_NONE;
     }
 };
 
@@ -2406,7 +2408,7 @@ mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
             surface->Data.DataFlag   = task.m_yuv->Data.DataFlag;
         }
 
-        mfxFrameData d3dSurf = { 0 };
+        mfxFrameData d3dSurf = {};
         mfxFrameData sysSurf = surface->Data;
 
         //FrameLocker lock1(&core, d3dSurf, task.m_midRaw);
@@ -2452,13 +2454,13 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
         sts = core.GetFrameHDL(task.m_midRaw, &task.m_handleRaw.first);
         MFX_CHECK_STS(sts);
     }
-    
+
 
     if (task.GetFrameType() & MFX_FRAMETYPE_I)
     {
-        mfxFrameData curr = { 0 };
+        mfxFrameData curr = {};
         curr.MemId = task.m_midRaw;
-        FrameLocker lock1(&core, curr, task.m_midRaw);  
+        FrameLocker lock1(&core, curr, task.m_midRaw);
         mfxU32 size = curr.Pitch*video.mfx.FrameInfo.Height;
         memset(curr.Y, 0, size);
 
@@ -2478,8 +2480,8 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
     if (task.GetFrameType() & MFX_FRAMETYPE_P)
     {
         DpbFrame& refFrame = task.m_dpb[0][task.m_list0[0][0] & 127];
-        mfxFrameData curr = { 0 };
-        mfxFrameData ref  = { 0 };
+        mfxFrameData curr = {};
+        mfxFrameData ref  = {};
         curr.MemId = task.m_midRaw;
         ref.MemId  = refFrame.m_midRec;
 
@@ -2491,7 +2493,7 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
     if (task.GetFrameType() & MFX_FRAMETYPE_B)
     {
         task.m_ctrl.SkipFrame = 1;
-    } 
+    }
 
     return sts;
 }

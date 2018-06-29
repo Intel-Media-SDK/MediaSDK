@@ -3,7 +3,7 @@ project( SafeString )
 
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
-if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
+if( CMAKE_SYSTEM_NAME MATCHES Windows )
   add_definitions(-DMINGW_HAS_SECURE_API -DWIN32)
 
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -12,7 +12,7 @@ if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
 else( )
   add_definitions(-DUNIX)
 
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
+  if( CMAKE_SYSTEM_NAME MATCHES Linux )
     add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -20,7 +20,7 @@ else( )
     endif( )
   endif( )
 
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Darwin )
+  if( CMAKE_SYSTEM_NAME MATCHES Darwin )
     add_definitions(-DOSX)
     add_definitions(-DOSX32)
 
@@ -78,6 +78,5 @@ function( make_static_library name )
   set_target_properties( ${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER ${target} )
 endfunction( )
 
-set( defs "${defs} ${WARNING_FLAGS}" )
 make_static_library( SafeString )
 set( defs "" )

@@ -66,6 +66,12 @@ mfxStatus CEncodingPipeline::Init()
             MSDK_CHECK_STATUS(sts, "m_pYUVSource GetActualFrameInfo failed");
         }
 
+        if (0 != msdk_strlen(m_inParams.refctrlInFile)) // it is to disable RAPintra
+        {
+            frameInfo.PicStruct &= ~MFX_PICSTRUCT_PROGRESSIVE;
+            frameInfo.PicStruct |= MFX_PICSTRUCT_FIELD_SINGLE;
+        }
+
         m_pFEI_PreENC.reset(CreatePreENC(frameInfo));
         if (m_pFEI_PreENC.get())
         {
@@ -75,12 +81,16 @@ mfxStatus CEncodingPipeline::Init()
 
         if (m_inParams.bEncodedOrder)
         {
-            MfxVideoParamsWrapper param = GetEncodeParams(m_inParams, frameInfo);
+            MfxVideoParamsWrapper param = GetEncodeParams(m_inParams, frameInfo, PIPELINE_COMPONENT::ENCODE);
 
             sts = m_pParamChecker->Query(param);
             MSDK_CHECK_STATUS(sts, "m_pParamChecker->Query failed");
 
-            m_pOrderCtrl.reset(new EncodeOrderControl(param, !!(m_pFEI_PreENC.get())));
+            if (0 != msdk_strlen(m_inParams.refctrlInFile)) {
+                m_pOrderCtrl.reset(new EncodeOrderExtControl(param, !!(m_pFEI_PreENC.get()), m_inParams.refctrlInFile));
+                MSDK_CHECK_STATUS(dynamic_cast<EncodeOrderExtControl*>(m_pOrderCtrl.get())->State(), "RefList ctrl file open failed");
+            } else
+                m_pOrderCtrl.reset(new EncodeOrderControl(param, !!(m_pFEI_PreENC.get())));
         }
 
         m_pFEI_Encode.reset(CreateEncode(frameInfo));
@@ -435,7 +445,7 @@ mfxStatus CEncodingPipeline::DrainBufferedFrames()
 
 // Function generates common mfxVideoParam ENCODE
 // from user cmd line parameters and frame info from upstream component in pipeline.
-MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi)
+MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi, PIPELINE_COMPONENT component)
 {
     MfxVideoParamsWrapper pars;
 
@@ -445,15 +455,13 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
     pars.mfx.CodecId = MFX_CODEC_HEVC;
 
     // default settings
-    pars.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
     pars.mfx.TargetUsage       = 0;
-    pars.mfx.TargetKbps        = 0;
     pars.AsyncDepth            = 1; // inherited limitation from AVC FEI
     pars.IOPattern             = MFX_IOPATTERN_IN_VIDEO_MEMORY;
 
     // user defined settings
-    pars.mfx.QPI = pars.mfx.QPP = pars.mfx.QPB = user_pars.QP;
-
+    pars.mfx.CodecLevel   = user_pars.CodecLevel;
+    pars.mfx.CodecProfile = user_pars.CodecProfile;
     pars.mfx.GopRefDist   = user_pars.nRefDist;
     pars.mfx.GopPicSize   = user_pars.nGopSize;
     pars.mfx.GopOptFlag   = user_pars.nGopOptFlag;
@@ -473,6 +481,22 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
     // configure B-pyramid settings
     pCO2->BRefType = user_pars.BRefType;
 
+    if (user_pars.bExtBRC && component == PIPELINE_COMPONENT::ENCODE) {
+        // This is for explicit extbrc only. In case of implicit (built-into-library) version - we don't need this extension buffer
+        mfxExtBRC* pBrc = pars.AddExtBuffer<mfxExtBRC>();
+        if (!pBrc) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtBRC");
+
+        pCO2->ExtBRC = (mfxU16)MFX_CODINGOPTION_ON;
+
+        pars.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
+        pars.mfx.TargetKbps = user_pars.TargetKbps;
+    }
+    else
+    {
+        pars.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
+        pars.mfx.QPI = pars.mfx.QPP = pars.mfx.QPB = user_pars.QP;
+    }
+
     mfxExtCodingOption3* pCO3 = pars.AddExtBuffer<mfxExtCodingOption3>();
     if (!pCO3) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtCodingOption3");
 
@@ -487,6 +511,16 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
     // qp offset per pyramid layer, default is library behavior
     pCO3->EnableQPOffset = user_pars.bDisableQPOffset ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_UNKNOWN;
 
+    // This buffer is a correct way to pass coding window size to HEVC encoder
+    // (if required, it will be rounded up to 16 or 8 alignment depending on HW (expect warning in such case)).
+    // This code added to sample just to show this possibility. Current implementation of sample will work correctly without this buffer as well.
+    if (component == PIPELINE_COMPONENT::ENCODE) {
+        mfxExtHEVCParam* pHP = pars.AddExtBuffer<mfxExtHEVCParam>();
+        if (!pHP) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtHEVCParam");
+
+        pHP->PicWidthInLumaSamples  = pars.mfx.FrameInfo.CropX + pars.mfx.FrameInfo.CropW;
+        pHP->PicHeightInLumaSamples = pars.mfx.FrameInfo.CropY + pars.mfx.FrameInfo.CropH;
+    }
     return pars;
 }
 
@@ -526,7 +560,7 @@ IPreENC* CEncodingPipeline::CreatePreENC(mfxFrameInfo& in_fi)
     if (!m_inParams.bPREENC && (0 == msdk_strlen(m_inParams.mvpInFile) || !m_inParams.bFormattedMVPin))
         return NULL;
 
-    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi);
+    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi, PIPELINE_COMPONENT::PREENC);
 
     mfxStatus sts = m_pParamChecker->Query(pars);
     CHECK_STS_AND_RETURN(sts, "m_pParamChecker->Query failed", NULL);
@@ -572,7 +606,7 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     sts = LoadFEIPlugin();
     CHECK_STS_AND_RETURN(sts, "LoadFEIPlugin failed", NULL);
 
-    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi);
+    MfxVideoParamsWrapper pars = GetEncodeParams(m_inParams, in_fi, PIPELINE_COMPONENT::ENCODE);
     sts = m_pParamChecker->Query(pars);
     CHECK_STS_AND_RETURN(sts, "m_pParamChecker->Query failed", NULL);
 
@@ -591,8 +625,11 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     sts = m_pHWdev->GetHandle(MFX_HANDLE_VA_DISPLAY, &hdl);
     CHECK_STS_AND_RETURN(sts, "CreateEncode::m_pHWdev->GetHandle failed", NULL);
 
-    FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl, pars, m_inParams.encodeCtrl, m_inParams.strDstFile,
-            m_inParams.mvpInFile, pRepacker.get());
+    FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl,
+                                         pars, m_inParams.encodeCtrl,
+                                         m_inParams.strDstFile, m_inParams.mvpInFile,
+                                         m_inParams.repackctrlFile, m_inParams.repackstatFile,
+                                         pRepacker.get());
 
     pRepacker.release(); // FEI_Encode takes responsibility for pRepakcer's deallocation
 

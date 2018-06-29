@@ -2,7 +2,7 @@ LOCAL_PATH:= $(MFX_HOME)/_studio
 
 # =============================================================================
 
-MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8
+MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8 vp9
 MFX_LOCAL_ENCODERS := h264 mjpeg
 
 # Setting subdirectories to march thru
@@ -17,6 +17,7 @@ MFX_LOCAL_DIRS_IMPL := \
 MFX_LOCAL_DIRS_HW := \
     $(addprefix encode_hw/, $(MFX_LOCAL_ENCODERS)) \
     genx/h264_encode \
+    mctf_package/mctf \
     cmrt_cross_platform
 
 MFX_LOCAL_SRC_FILES := \
@@ -27,21 +28,24 @@ MFX_LOCAL_SRC_FILES_IMPL := \
 
 MFX_LOCAL_SRC_FILES_HW := \
     $(MFX_LOCAL_SRC_FILES_IMPL) \
-    $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp)))
+    $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp))) \
+    $(patsubst $(LOCAL_PATH)/%, %, $(wildcard $(LOCAL_PATH)/hevce_hw/h265/src/*.cpp))
 
-MFX_LOCAL_C_INCLUDES := \
+MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
 
-MFX_LOCAL_C_INCLUDES_IMPL := \
-    $(MFX_LOCAL_C_INCLUDES) \
+MFX_LOCAL_INCLUDES_IMPL := \
+    $(MFX_LOCAL_INCLUDES) \
     $(foreach dir, $(MFX_LOCAL_DIRS_IMPL), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
 
-MFX_LOCAL_C_INCLUDES_HW := \
-    $(MFX_LOCAL_C_INCLUDES_IMPL) \
+MFX_LOCAL_INCLUDES_HW := \
+    $(MFX_LOCAL_INCLUDES_IMPL) \
     $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include)) \
     $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
-    $(MFX_HOME)/_studio/shared/asc/include
+    $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
+    $(MFX_HOME)/_studio/shared/asc/include \
+    $(MFX_HOME)/_studio/hevce_hw/h265/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libmfx_lib_merged_hw \
@@ -53,7 +57,7 @@ MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libasc \
     libsafec
 
-MFX_LOCAL_LDFLAGS_HW += \
+MFX_LOCAL_LDFLAGS_HW := \
     $(MFX_LDFLAGS) \
     -Wl,--version-script=$(LOCAL_PATH)/mfx_lib/libmfx.map
 
@@ -64,18 +68,18 @@ UMC_DIRS := \
     brc
 
 UMC_DIRS_IMPL := \
-    h265_dec h264_dec mpeg2_dec vc1_dec jpeg_dec \
+    h265_dec h264_dec mpeg2_dec vc1_dec jpeg_dec vp9_dec \
     vc1_common jpeg_common
 
-UMC_LOCAL_C_INCLUDES := \
+UMC_LOCAL_INCLUDES := \
     $(foreach dir, $(UMC_DIRS), $(wildcard $(MFX_HOME)/_studio/shared/umc/codec/$(dir)/include))
 
-UMC_LOCAL_C_INCLUDES_IMPL := \
-    $(UMC_LOCAL_C_INCLUDES) \
+UMC_LOCAL_INCLUDES_IMPL := \
+    $(UMC_LOCAL_INCLUDES) \
     $(foreach dir, $(UMC_DIRS_IMPL), $(wildcard $(MFX_HOME)/_studio/shared/umc/codec/$(dir)/include))
 
-UMC_LOCAL_C_INCLUDES_HW := \
-    $(UMC_LOCAL_C_INCLUDES_IMPL)
+UMC_LOCAL_INCLUDES_HW := \
+    $(UMC_LOCAL_INCLUDES_IMPL)
 
 # =============================================================================
 
@@ -103,6 +107,14 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/src/, \
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/src/, \
     genx_fcopy_gen8_isa.cpp \
     genx_fcopy_gen9_isa.cpp)
+
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/src/, \
+    genx_me_skl_isa.cpp \
+    genx_me_bdw_isa.cpp \
+    genx_mc_skl_isa.cpp \
+    genx_mc_bdw_isa.cpp \
+    genx_sd_skl_isa.cpp \
+    genx_sd_bdw_isa.cpp)
 
 MFX_LIB_SHARED_FILES_1 := $(addprefix mfx_lib/shared/src/, \
     libmfxsw.cpp \
@@ -140,9 +152,9 @@ LOCAL_SRC_FILES := \
     $(MFX_SHARED_FILES_HW)
 
 LOCAL_C_INCLUDES := \
-    $(MFX_LOCAL_C_INCLUDES_HW) \
-    $(UMC_LOCAL_C_INCLUDES_HW) \
-    $(MFX_C_INCLUDES_INTERNAL_HW)
+    $(MFX_LOCAL_INCLUDES_HW) \
+    $(UMC_LOCAL_INCLUDES_HW) \
+    $(MFX_INCLUDES_INTERNAL_HW)
 
 LOCAL_CFLAGS := $(MFX_CFLAGS_INTERNAL)
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
@@ -161,17 +173,16 @@ include $(MFX_HOME)/android/mfx_defs.mk
 LOCAL_SRC_FILES := $(MFX_LIB_SHARED_FILES_1) $(MFX_LIB_SHARED_FILES_2)
 
 LOCAL_C_INCLUDES := \
-    $(MFX_LOCAL_C_INCLUDES_HW) \
-    $(UMC_LOCAL_C_INCLUDES_HW) \
-    $(MFX_C_INCLUDES_INTERNAL_HW)
+    $(MFX_LOCAL_INCLUDES_HW) \
+    $(UMC_LOCAL_INCLUDES_HW) \
+    $(MFX_INCLUDES_INTERNAL_HW)
 
 LOCAL_CFLAGS := $(MFX_CFLAGS_INTERNAL)
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 
-LOCAL_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
-
 LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
 
+LOCAL_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
 LOCAL_SHARED_LIBRARIES := libva
 
 LOCAL_MODULE_TAGS := optional
@@ -189,17 +200,16 @@ include $(MFX_HOME)/android/mfx_defs.mk
 LOCAL_SRC_FILES := $(MFX_LIB_SHARED_FILES_1) $(MFX_LIB_SHARED_FILES_2)
 
 LOCAL_C_INCLUDES := \
-    $(MFX_LOCAL_C_INCLUDES_HW) \
-    $(UMC_LOCAL_C_INCLUDES_HW) \
-    $(MFX_C_INCLUDES_INTERNAL_HW)
+    $(MFX_LOCAL_INCLUDES_HW) \
+    $(UMC_LOCAL_INCLUDES_HW) \
+    $(MFX_INCLUDES_INTERNAL_HW)
 
 LOCAL_CFLAGS := $(MFX_CFLAGS_INTERNAL)
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
 
-LOCAL_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
-
 LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
 
+LOCAL_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
 LOCAL_SHARED_LIBRARIES := libva
 
 LOCAL_MODULE_TAGS := optional

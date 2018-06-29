@@ -221,7 +221,6 @@ private:
         VideoDECODEVP8_HW* decoder;
         mfxFrameSurface1* surface_work;
         FrameMemID memId;
-        FrameMemID memIdToUnlock;
     };
 
     struct sFrameInfo
@@ -261,7 +260,8 @@ private:
     mfxU16 altref_indx;
     mfxU16 lastrefIndex;
 
-    std::vector<sFrameInfo> m_frames;
+    std::vector<sFrameInfo>      m_frames;
+    std::vector<UMC::FrameMemID> m_memIdReadyToFree;
 
     mfxFrameAllocResponse   m_response;
     mfxDecodeStat           m_stat;
@@ -270,6 +270,7 @@ private:
     std::unique_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
     UMC::VideoAccelerator *m_p_video_accelerator;
 
+    UMC::Mutex              m_mGuard;
 };
 
 #endif // _MFX_VP8_DECODE_HW_H_

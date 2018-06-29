@@ -198,7 +198,7 @@ protected:
         }
 
         // reset new items to zero
-        memset(pNewArray + i, 0, sizeof(item_t) * (sizeNew - i));
+        memset(reinterpret_cast<void*>(pNewArray + i), 0, sizeof(item_t) * (sizeNew - i));
 
         // set the pointer and size
         m_pArray = pNewArray;

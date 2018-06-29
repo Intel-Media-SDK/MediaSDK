@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -712,6 +712,7 @@ struct iTaskParams
     mfxU16 NumMVPredictorsBL0;
     mfxU16 NumMVPredictorsBL1;
     bool   SingleFieldMode;
+    bool   NoPRefB;
 
     mfxFrameSurface1 *InputSurf;
     mfxFrameSurface1 *ReconSurf;
@@ -732,6 +733,7 @@ struct iTaskParams
         , NumMVPredictorsBL0(0)
         , NumMVPredictorsBL1(0)
         , SingleFieldMode(false)
+        , NoPRefB(false)
         , InputSurf(NULL)
         , ReconSurf(NULL)
         , DSsurface(NULL)
@@ -772,6 +774,7 @@ struct iTask
         , m_tid(0)
         , m_tidx(0)
         , m_longTermPicNum(PairU8(0, 0))
+        , m_bNoPRefB(task_params.NoPRefB)
         , prevTask(NULL)
     {
         NumMVPredictorsP[0]   = task_params.NumMVPredictorsP;
@@ -826,31 +829,31 @@ struct iTask
             task_params.DSsurface->Info.PicStruct = task_params.InputSurf->Info.PicStruct & 0xf;
 
             PREENC_in.InSurface = task_params.DSsurface;
-            PREENC_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PREENC_in.InSurface->Data.Locked);
         }
         // PreENC on full-res surface
         else if (task_params.InputSurf)
         {
             PREENC_in.InSurface = task_params.InputSurf;
-            PREENC_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PREENC_in.InSurface->Data.Locked);
         }
 
         if (task_params.InputSurf)
         {
             ENC_in.InSurface = task_params.InputSurf;
-            ENC_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&ENC_in.InSurface->Data.Locked);
 
             PAK_in.InSurface = task_params.InputSurf;
-            PAK_in.InSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PAK_in.InSurface->Data.Locked);
         }
 
         if (task_params.ReconSurf)
         {
             ENC_out.OutSurface = task_params.ReconSurf;
-            ENC_out.OutSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&ENC_out.OutSurface->Data.Locked);
 
             PAK_out.OutSurface = task_params.ReconSurf;
-            PAK_out.OutSurface->Data.Locked++;
+            msdk_atomic_inc16((volatile mfxU16*)&PAK_out.OutSurface->Data.Locked);
         }
     }
 
@@ -883,6 +886,7 @@ struct iTask
         m_type            = task.m_type;
         m_dpbPostEncoding = task.m_dpbPostEncoding;
         m_poc             = task.m_poc;
+        m_bNoPRefB        = task.m_bNoPRefB;
         PicStruct         = task.PicStruct;
 
         return *this;
@@ -1073,6 +1077,7 @@ struct iTask
 
     PairU8  m_longTermPicNum;
     PairU8  m_reference;        // is reference (short or long term) or not
+    bool    m_bNoPRefB;         // disable P frames to refer to B frames
     //.........................................................................................
 
     iTask* prevTask;
@@ -1167,6 +1172,7 @@ inline void InitNewDpbFrame(
     ref.m_frameNum       = task.m_frameNum;
     ref.m_frameNumWrap   = task.m_frameNumWrap;
     ref.m_longTermPicNum = task.m_longTermPicNum;
+    ref.m_type           = task.m_type;
     ref.m_longterm       = 0;
     ref.m_refBase        = 0;
 

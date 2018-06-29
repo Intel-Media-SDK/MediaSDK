@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -117,6 +117,7 @@ FEI_EncPakInterface::FEI_EncPakInterface(MFXVideoSession* session, iTaskPool* ta
     , m_pAppConfig(config)
     , m_SyncPoint(0)
     , m_bSingleFieldMode(config->bFieldProcessingMode)
+    , m_pMFXAllocator(NULL)
     , m_pMvPred_in(NULL)
     , m_pENC_MBCtrl_in(NULL)
     , m_pMbQP_in(NULL)
@@ -645,6 +646,12 @@ mfxStatus FEI_EncPakInterface::FillParameters()
     {
         sts = m_FileWriter.Init(m_pAppConfig->dstFileBuff[0]);
         MSDK_CHECK_STATUS(sts, "FEI ENCPAK: FileWriter.Init failed");
+
+        if (m_pAppConfig->reconFile)
+        {
+            sts = m_ReconWriter.Init(m_pAppConfig->reconFile, 0);
+            MSDK_CHECK_STATUS(sts, "FEI ENCPAK: Recon YUV Writer Init failed");
+        }
     }
 
     return sts;
@@ -1178,7 +1185,26 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
         eTask->EncodedFrameSize = eTask->PAK_out.Bs->DataLength; //save frame size for BRC
 #endif
         sts = m_FileWriter.WriteNextFrame(&m_mfxBS);
-        MSDK_CHECK_STATUS(sts, "FEI ENCODE: WriteNextFrame failed");
+        MSDK_CHECK_STATUS(sts, "FEI ENCPAK: WriteNextFrame failed");
+
+        if (m_pAppConfig->reconFile)
+        {
+            if (m_pMFXAllocator)
+            {
+                mfxFrameSurface1 *pSurf = eTask->PAK_out.OutSurface;
+                MSDK_CHECK_POINTER(pSurf, MFX_ERR_NULL_PTR);
+
+                // get YUV pointers
+                sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis, pSurf->Data.MemId, &(pSurf->Data));
+                MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
+
+                sts = m_ReconWriter.WriteNextFrame(pSurf);
+                MSDK_CHECK_STATUS(sts, "FEI ENCPAK: Dump recon surface failed");
+
+                sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis, pSurf->Data.MemId, &(pSurf->Data));
+                MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+            }
+        }
     }
 
     if (m_pmfxENC)
@@ -1254,6 +1280,12 @@ mfxStatus FEI_EncPakInterface::ResetState()
         // reset FileWriter
         sts = m_FileWriter.Init(m_pAppConfig->dstFileBuff[0]);
         MSDK_CHECK_STATUS(sts, "FEI ENCPAK: FileWriter.Init failed");
+
+        if (m_pAppConfig->reconFile)
+        {
+            sts = m_ReconWriter.Init(m_pAppConfig->reconFile, 0);
+            MSDK_CHECK_STATUS(sts, "FEI ENCPAK: Recon YUV Writer Init failed");
+        }
     }
 
     SAFE_FSEEK(m_pMvPred_in,     0, SEEK_SET, MFX_ERR_MORE_DATA);
@@ -1265,4 +1297,12 @@ mfxStatus FEI_EncPakInterface::ResetState()
     SAFE_FSEEK(m_pMBcode_out,    0, SEEK_SET, MFX_ERR_MORE_DATA);
 
     return sts;
+}
+
+mfxStatus FEI_EncPakInterface::SetFrameAllocator(MFXFrameAllocator *allocator)
+{
+    MSDK_CHECK_POINTER(allocator, MFX_ERR_NULL_PTR);
+
+    m_pMFXAllocator = allocator;
+    return MFX_ERR_NONE;
 }

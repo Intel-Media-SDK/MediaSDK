@@ -252,7 +252,7 @@ protected:
     MFX_DEPENDENCY_LIST_ITEM m_beginListObjects;
     MFX_DEPENDENCY_LIST_ITEM m_endListObjects;
     // Pointer to the next item in the corresponding dependency list
-    MFX_DEPENDENCY_LIST_ITEM (m_dependency[dependency_level]);
+    MFX_DEPENDENCY_LIST_ITEM m_dependency[dependency_level];
 };
 
 #endif // __MFX_DEPENDENCY_ITEM_H

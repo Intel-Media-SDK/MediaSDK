@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,8 +31,9 @@
 #include "mfx_trace.h"
 #include "mfx_common_int.h"
 
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4244)
-
+#endif
 
 using namespace UMC;
 
@@ -384,9 +385,13 @@ Status MPEG2VideoDecoderBase::DecodeSequenceHeader(VideoContext* video, int task
           shMask.memMask = NULL;
       }
 
-        shMask.memMask = (uint8_t *) malloc(shMask.memSize);      
-        memset(shMask.memMask, 0, shMask.memSize);
-        memcpy_s(shMask.memMask, shMask.memSize, video->bs_sequence_header_start, shMask.memSize);
+      shMask.memMask = (uint8_t *) malloc(shMask.memSize);
+      if (NULL == shMask.memMask)
+      {
+        return (UMC_ERR_ALLOC);
+      }
+      memset(shMask.memMask, 0, shMask.memSize);
+      memcpy_s(shMask.memMask, shMask.memSize, video->bs_sequence_header_start, shMask.memSize);
     }
 
     if(m_ClipInfo.stream_type == MPEG1_VIDEO) {
@@ -895,11 +900,6 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
      // return (UMC_ERR_INVALID_STREAM);
         isCorrupted = true;
     }
-    // compute maximum slice vertical position
-    if(PictureHeader[task_num].picture_structure == FRAME_PICTURE)
-      PictureHeader[task_num].max_slice_vert_pos = sequenceHeader.mb_height[task_num];
-    else
-      PictureHeader[task_num].max_slice_vert_pos = sequenceHeader.mb_height[task_num] >> 1;
 
     if(code == EXTENSION_START_CODE)
     {
@@ -907,6 +907,12 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
 
         FIND_START_CODE(video->bs, code);
     }
+
+    // compute maximum slice vertical position
+    if(PictureHeader[task_num].picture_structure == FRAME_PICTURE)
+      PictureHeader[task_num].max_slice_vert_pos = sequenceHeader.mb_height[task_num];
+    else
+      PictureHeader[task_num].max_slice_vert_pos = sequenceHeader.mb_height[task_num] >> 1;
 
     while (code == EXTENSION_START_CODE || code == USER_DATA_START_CODE)
     {

@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,17 +25,17 @@ set_property( GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG "" )
 
 # .....................................................
 function( collect_oses )
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Windows )
+  if( CMAKE_SYSTEM_NAME MATCHES Windows )
     set( Windows    true PARENT_SCOPE )
     set( NotLinux   true PARENT_SCOPE )
     set( NotDarwin  true PARENT_SCOPE )
 
-  elseif( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
+  elseif( CMAKE_SYSTEM_NAME MATCHES Linux )
     set( Linux      true PARENT_SCOPE )
     set( NotDarwin  true PARENT_SCOPE )
     set( NotWindows true PARENT_SCOPE )
 
-  elseif( ${CMAKE_SYSTEM_NAME} MATCHES Darwin )
+  elseif( CMAKE_SYSTEM_NAME MATCHES Darwin )
     set( Darwin     true PARENT_SCOPE )
     set( NotLinux   true PARENT_SCOPE )
     set( NotWindows true PARENT_SCOPE )
@@ -346,17 +346,18 @@ function( set_file_and_product_version input_version version_defs )
     set( git_commit "" )
     git_describe( git_commit )
 
-    set( version_defs " -DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}${git_commit}\"\\\""
-                  " -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${input_version}\"\\\""
-                  PARENT_SCOPE )
+    set( version_defs " -DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}${git_commit}\"\\\"" )
+    set( version_defs "${version_defs} -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${input_version}\"\\\"" PARENT_SCOPE )
+    
   endif()
 endfunction()
 
 function( git_describe git_commit )
   execute_process(
-    COMMAND git describe --all --dirty
+    COMMAND git rev-parse --short HEAD
     OUTPUT_VARIABLE git_commit
     OUTPUT_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   )
   if( NOT ${git_commit} MATCHES "^$" )
     set( git_commit ".${git_commit}" PARENT_SCOPE )

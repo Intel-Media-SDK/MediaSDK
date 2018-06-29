@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -39,11 +39,11 @@ static int trace_handle = -1;
 static char debugfs_prefix[MAX_PATH+1];
 static char trace_file_name[MAX_PATH+1];
 
-namespace 
+namespace
 {
     // not thread-safe
     const char *get_debugfs_prefix()
-    {        
+    {
         FILE *fp = fopen("/proc/mounts","r");
 
         if (!fp)
@@ -79,7 +79,7 @@ namespace
     // not thread-safe
     const char *get_tracing_file(const char *file_name)
     {
-        snprintf(trace_file_name, MAX_PATH, "%s/%s", get_debugfs_prefix(), file_name);
+        snprintf(trace_file_name, MAX_PATH, "%.160s/%.96s", get_debugfs_prefix(), file_name);
         return trace_file_name;
     }
 
@@ -153,15 +153,17 @@ mfxTraceU32 MFXTraceFtrace_vDebugMessage(mfxTraceStaticHandle* //static_handle
     , va_list args
     )
 {
+    (void)function_name;
+
     if (trace_handle == -1) return 1;
-    
+
     if (MFX_TRACE_LEVEL_INTERNAL_VTUNE != level)
         return 0;
 
     size_t len = MFX_TRACE_MAX_LINE_LENGTH;
     char str[MFX_TRACE_MAX_LINE_LENGTH] = {0}, *p_str = str;
 
-    
+
 //     if (file_name /*&& !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME)*/)
 //     {
 //         p_str = mfx_trace_sprintf(p_str, len, "%-60s: ", file_name);
@@ -226,6 +228,10 @@ mfxTraceU32 MFXTraceFtrace_BeginTask(mfxTraceStaticHandle *static_handle
     , mfxTraceTaskHandle *handle
     , const void * /*task_params*/)
 {
+    (void)static_handle;
+    (void)task_name;
+    (void)handle;
+
     if (trace_handle == -1) return 1;
 
     if (MFX_TRACE_LEVEL_INTERNAL_VTUNE == level)
@@ -242,6 +248,8 @@ mfxTraceU32 MFXTraceFtrace_EndTask(mfxTraceStaticHandle * //static_handle
     , mfxTraceTaskHandle *handle
     )
 {
+    (void)handle;
+
     if (trace_handle == -1) return 1;
 
 

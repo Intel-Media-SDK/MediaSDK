@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2018 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if( API_USE_LATEST )
+if(API_VERSION VERSION_LESS "1.27")
+  message("Skipping HEVC FEI plugin due to API restriction")
+else()
 
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
@@ -78,7 +80,7 @@ endforeach()
 
 set( defs "-DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVCE_HW_PRODUCT_NAME}\"\\\" -DMFX_FILE_DESCRIPTION=\"\\\"${HEVCE_HW_DESCRIPTION}\"\\\" ${HEVCE_HW_version_defs}" )
 
-set( defs " -DAS_HEVCE_PLUGIN ${API_FLAGS} ${WARNING_FLAGS} ${defs}" )
+set( defs " -DAS_HEVCE_PLUGIN ${defs}" )
 make_library( mfx_hevce_lib hw static )
 
 set( defs "" )
@@ -107,17 +109,18 @@ endforeach()
     umc
     vm
     vm_plus
-    ${ITT_LIBS}
+    mfx_trace
+    ${ITT_LIBRARIES}
     pthread
     dl
   )
 
-set( defs "${API_FLAGS} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_FEI_HW_PRODUCT_NAME}\"\\\" -DMFX_FILE_DESCRIPTION=\"\\\"${HEVC_FEI_HW_DESCRIPTION}\"\\\" ${HEVCE_FEI_HW_version_defs}" )
+set( defs "-DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_FEI_HW_PRODUCT_NAME}\"\\\" -DMFX_FILE_DESCRIPTION=\"\\\"${HEVC_FEI_HW_DESCRIPTION}\"\\\" ${HEVCE_FEI_HW_version_defs}" )
 
 gen_plugins_cfg("HEVC_Encoder_HW" ${HEVC_FEI_Encoder_HW_GUID} "mfx_hevc_fei_hw64" "02" "HEVC")
 
-set( defs " -DAS_HEVCE_PLUGIN -DAS_HEVC_FEI_ENCODE_PLUGIN ${API_FLAGS} ${WARNING_FLAGS} ${defs}" )
+set( defs " -DAS_HEVCE_PLUGIN -DAS_HEVC_FEI_ENCODE_PLUGIN ${defs}" )
 make_library( mfx_hevc_fei_hw64 hw shared )
 msdk_install( mfx_hevc_fei_hw64 ${MFX_PLUGINS_DIR} )
 set( defs "" )
-endif( API_USE_LATEST )
+endif( )

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -2045,9 +2045,9 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                 // Get reorder idc,pic_num pairs until idc==3
                 for (;;)
                 {
-                  reordering_of_pic_nums_idc = (uint8_t)GetVLCElement(false);
-                  if (reordering_of_pic_nums_idc > 5)
-                    return UMC_ERR_INVALID_STREAM;
+                    reordering_of_pic_nums_idc = (uint8_t)GetVLCElement(false);
+                    if (reordering_of_pic_nums_idc > 5)
+                      return UMC_ERR_INVALID_STREAM;
 
                     if (reordering_of_pic_nums_idc == 3)
                         break;
@@ -2082,9 +2082,9 @@ Status H264HeadersBitstream::GetSliceHeaderPart3(
                     reordering_of_pic_nums_idc = 0;
                     for (;;)
                     {
-                    reordering_of_pic_nums_idc = GetVLCElement(false);
-                      if (reordering_of_pic_nums_idc > 5)
-                        return UMC_ERR_INVALID_STREAM;
+                        reordering_of_pic_nums_idc = GetVLCElement(false);
+                        if (reordering_of_pic_nums_idc > 5)
+                            return UMC_ERR_INVALID_STREAM;
 
                         if (reordering_of_pic_nums_idc == 3)
                             break;
@@ -2677,7 +2677,9 @@ void H264HeadersBitstream::unparsed_sei_message(H264SEIPayLoad *spl)
     AlignPointerRight();
 }
 
+#ifdef _MSVC_LANG
 #pragma warning(disable : 4189)
+#endif
 void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
 {
     spl->SEI_messages.scalability_info.temporal_id_nesting_flag = (uint8_t)Get1Bit();
@@ -2899,8 +2901,9 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
     }
 }
 
+#ifdef _MSVC_LANG
 #pragma warning(default : 4189)
-
+#endif
 void SetDefaultScalingLists(H264SeqParamSet * sps)
 {
     int32_t i;

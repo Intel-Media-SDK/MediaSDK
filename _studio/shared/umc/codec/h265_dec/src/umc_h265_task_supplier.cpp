@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -2174,9 +2174,17 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
             pSlice->CopyFromBaseSlice(pLastFrameSlice);
         }
 
-        // if the slices belong to different AUs,
+        // Accord. to ITU-T H.265 7.4.2.4 Any SPS/PPS w/ id equal to active one
+        // shall have the same content, unless it follows the last VCL NAL of the coded picture
+        // and precedes the first VCL NAL unit of another coded picture
+        // if the slices belong to different AUs or SPS/PPS was changed,
         // close the current AU and start new one.
-        if (!IsPictureTheSame(firstSlice, pSlice))
+        bool changed =
+            m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID())->m_changed ||
+            m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID())->m_changed ||
+            !IsPictureTheSame(firstSlice, pSlice);
+
+        if (changed)
         {
             CompleteFrame(view.pCurFrame);
             OnFullFrame(view.pCurFrame);
@@ -2189,6 +2197,10 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
     // try to allocate a new frame.
     else
     {
+        // clear change flags when get first VCL NAL
+        m_Headers.m_SeqParams.GetHeader(pSlice->GetSeqParam()->GetID())->m_changed = false;
+        m_Headers.m_PicParams.GetHeader(pSlice->GetPicParam()->GetID())->m_changed = false;
+
         // allocate a new frame, initialize it with slice's parameters.
         pFrame = AllocateNewFrame(pSlice);
         if (!pFrame)
@@ -2276,9 +2288,12 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
 
     DEBUG_PRINT((VM_STRING("Complete frame POC - (%d) type - %d, count - %d, m_uid - %d, IDR - %d\n"), pFrame->m_PicOrderCnt, pFrame->m_FrameType, slicesInfo->GetSliceCount(), pFrame->m_UID, slicesInfo->GetAnySlice()->GetSliceHeader()->IdrPicFlag));
 
+    slicesInfo->EliminateASO();
+    slicesInfo->EliminateErrors();
+
     // skipping algorithm
-    const H265Slice *slice = slicesInfo->GetAnySlice();
-    if (IsShouldSkipFrame(pFrame) || IsSkipForCRAorBLA(slice))
+    const H265Slice *slice = slicesInfo->GetSlice(0);
+    if (!slice || IsShouldSkipFrame(pFrame) || IsSkipForCRAorBLA(slice))
     {
         slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_COMPLETED);
 
@@ -2290,11 +2305,6 @@ void TaskSupplier_H265::CompleteFrame(H265DecoderFrame * pFrame)
         DEBUG_PRINT((VM_STRING("Skip frame ForCRAorBLA - %s\n"), GetFrameInfoString(pFrame)));
         return;
     }
-
-    slicesInfo->EliminateASO();
-
-    slicesInfo->EliminateErrors();
-
 
     slicesInfo->SetStatus(H265DecoderFrameInfo::STATUS_FILLED);
 }
@@ -2374,7 +2384,7 @@ UMC::Status TaskSupplier_H265::AllocateFrameData(H265DecoderFrame * pFrame, mfxS
     pFrame->allocate(frmData, &info);
     pFrame->m_index = frmMID;
 
-    pPicParamSet = pPicParamSet;
+    (void)pPicParamSet;
 
     return UMC::UMC_OK;
 }

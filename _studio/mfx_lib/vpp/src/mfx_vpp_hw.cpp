@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -90,8 +90,10 @@ enum
 enum
 {
     NO_SCENE_CHANGE = 0x0,
-    SCENE_CHANGE = 0x1, // Clean scene change
+    SCENE_CHANGE = 0x1, // Clean scene change = first field of new scene
     MORE_SCENE_CHANGE_DETECTED = 0x2, // Back to back scene change detected
+    LAST_IN_SCENE = 0x3, // last field of old scene
+    NEXT_IS_LAST_IN_SCENE = 0x4, //next field is last
 };
 
 // enum for m_surfQueue with 1 reference
@@ -1865,7 +1867,7 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
     m_config.m_bMode30i60pEnable = false;
     m_config.m_bWeave = false;
     m_config.m_extConfig.mode  = FRC_DISABLED;
-    m_config.m_bPassThroughEnable = false;
+    m_config.m_bCopyPassThroughEnable = false;
     m_config.m_surfCount[VPP_IN]   = 1;
     m_config.m_surfCount[VPP_OUT]  = 1;
     m_config.m_IOPattern = 0;
@@ -2063,7 +2065,7 @@ mfxStatus VideoVPPHW::Query(VideoCORE *core, mfxVideoParam *par)
     mfxStatus sts = MFX_ERR_NONE;
     VPPHWResMng *vpp_ddi = 0;
     mfxVideoParam params = *par;
-    Config config = {0};
+    Config config = {};
     MfxHwVideoProcessing::mfxExecuteParams executeParams;
 
     sts = CheckIOMode(par, ALL);
@@ -2143,7 +2145,7 @@ mfxStatus  VideoVPPHW::Init(
         {
             m_ddi = new VPPHWResMng();
         }
-        catch(std::bad_alloc)
+        catch(std::bad_alloc&)
         {
             return MFX_WRN_PARTIAL_ACCELERATION;
         }
@@ -2308,7 +2310,7 @@ mfxStatus  VideoVPPHW::Init(
         sts = m_SCD.Init(par->vpp.In.CropW, par->vpp.In.CropH, par->vpp.In.Width, par->vpp.In.PicStruct, pCmDevice);
         MFX_CHECK_STS(sts);
 
-        m_SCD.SetGoPSize(Immediate_GoP);
+        m_SCD.SetGoPSize(ns_asc::Immediate_GoP);
     }
 #endif
 
@@ -2558,7 +2560,7 @@ mfxStatus VideoVPPHW::QueryCaps(VideoCORE* core, MfxHwVideoProcessing::mfxVppCap
 
     VPPHWResMng* ddi = 0;
     mfxStatus sts = MFX_ERR_NONE;
-    mfxVideoParam tmpPar = {0};
+    mfxVideoParam tmpPar = {};
 
     sts = core->CreateVideoProcessing(&tmpPar);
     MFX_CHECK_STS( sts );
@@ -2605,7 +2607,7 @@ mfxStatus VideoVPPHW::QueryIOSurf(
     sts = CheckIOMode(par, ioMode);
     MFX_CHECK_STS(sts);
 
-    mfxVideoParam tmpPar = {0};
+    mfxVideoParam tmpPar = {};
     sts = core->CreateVideoProcessing(&tmpPar);
     MFX_CHECK_STS(sts);
 
@@ -2854,7 +2856,7 @@ mfxStatus VideoVPPHW::Close()
     m_config.m_extConfig.mode  = FRC_DISABLED;
     m_config.m_bMode30i60pEnable  = false;
     m_config.m_bRefFrameEnable = false;
-    m_config.m_bPassThroughEnable = false;
+    m_config.m_bCopyPassThroughEnable = false;
     m_config.m_surfCount[VPP_IN]  = 1;
     m_config.m_surfCount[VPP_OUT] = 1;
 
@@ -2942,7 +2944,7 @@ mfxStatus VideoVPPHW::VppFrameCheck(
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
-    pEntryPoint= pEntryPoint;
+    (void)pEntryPoint;
     mfxStatus sts;
     mfxStatus intSts = MFX_ERR_NONE;
 
@@ -3092,8 +3094,8 @@ mfxStatus VideoVPPHW::VppFrameCheck(
         // submit task
         SyncTaskSubmission(pTask);
 
-        if (false == m_config.m_bPassThroughEnable ||
-            (true == m_config.m_bPassThroughEnable && true == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf)))
+        if (false == m_config.m_bCopyPassThroughEnable ||
+            (true == m_config.m_bCopyPassThroughEnable && true == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf)))
         {
             // configure entry point
             pEntryPoint[0].pRoutine = VideoVPPHW::QueryTaskRoutine;
@@ -3107,8 +3109,8 @@ mfxStatus VideoVPPHW::VppFrameCheck(
     }
     else
     {
-        if (false == m_config.m_bPassThroughEnable ||
-            (true == m_config.m_bPassThroughEnable && true == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf)))
+        if (false == m_config.m_bCopyPassThroughEnable ||
+            (true == m_config.m_bCopyPassThroughEnable && true == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf)))
         {
             // configure entry point
             pEntryPoint[1].pRoutine = VideoVPPHW::QueryTaskRoutine;
@@ -3409,7 +3411,7 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
                 dstTempSurface.Data.MemId = 0;
             }
 
-            mfxI64 verticalPitch = (mfxI64)(dstTempSurface.Data.UV - dstTempSurface.Data.Y);
+            mfxI64 verticalPitch = (mfxI64)dstTempSurface.Data.UV - (mfxI64)dstTempSurface.Data.Y;
             verticalPitch = (verticalPitch % dstTempSurface.Data.Pitch)? 0 : verticalPitch / dstTempSurface.Data.Pitch;
             mfxU32 dstPitch = dstTempSurface.Data.PitchLow + ((mfxU32)dstTempSurface.Data.PitchHigh << 16);
 
@@ -3689,6 +3691,22 @@ mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcess
             execParams->VideoSignalInfoOut.TransferMatrix = vsi->TransferMatrix;
      }
 
+#ifdef MFX_ENABLE_VPP_RUNTIME_HSBC
+    // Update ProcAmp parameters for output
+    mfxExtVPPProcAmp *procamp = reinterpret_cast<mfxExtVPPProcAmp *>(GetExtendedBuffer(outputSurf->Data.ExtParam,
+                                                                     outputSurf->Data.NumExtParam,
+                                                                     MFX_EXTBUFF_VPP_PROCAMP));
+
+    if (procamp)
+    {
+        execParams->Brightness     = procamp->Brightness;
+        execParams->Saturation     = procamp->Saturation;
+        execParams->Hue            = procamp->Hue;
+        execParams->Contrast       = procamp->Contrast;
+        execParams->bEnableProcAmp = true;
+    }
+#endif
+
     return sts;
 }
 
@@ -3714,7 +3732,7 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
 #ifdef MFX_ENABLE_MCTF
     if (pTask->outputForApp.pSurf)
     {
-        if (true == m_config.m_bPassThroughEnable &&
+        if (true == m_config.m_bCopyPassThroughEnable &&
             false == IsRoiDifferent(pTask->input.pSurf, pTask->outputForApp.pSurf))
         {
             sts = CopyPassThrough(pTask->input.pSurf, pTask->outputForApp.pSurf);
@@ -3731,7 +3749,7 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
             return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 #else
-    if (true == m_config.m_bPassThroughEnable &&
+    if (true == m_config.m_bCopyPassThroughEnable &&
         false == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf))
     {
         sts = CopyPassThrough(pTask->input.pSurf, pTask->output.pSurf);
@@ -3992,131 +4010,138 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
      * present in current frame) in ADI mode.
      * BOB is used when previous or next field can not be used
      *   1. To deinterlace first frame
-     *   2. When scene change occur
+     *   2. When scene change occur (first of new scene and last of previous scene)
      *   3. To deinterlace last frame for 30i->60p mode
+     * SCD engine detects if a picture belongs to a new scene
      */
     if (MFX_DEINTERLACING_ADVANCED_SCD == m_executeParams.iDeinterlacingAlgorithm)
     {
-        BOOL analysisReady = false;
-
-        /* Feed scene change detector with input rame */
-        mfxFrameSurface1 * inFrame = surfQueue[pTask->bkwdRefCount].pSurf;
-
-        MFX_CHECK_NULL_PTR1(inFrame);
-
         mfxU32 scene_change = 0;
         mfxU32 sc_in_first_field = 0;
         mfxU32 sc_in_second_field = 0;
         mfxU32  sc_detected = 0;
         BOOL is30i60pConversion = 0;
-        mfxU32 LastSceneInframe = 0;
-        mfxU32 sc_shot_in_second_field = 0;
 
+        mfxU32 frameIndex = pTask->bkwdRefCount; // index of current frame
+        mfxHDL frameHandle;
+        mfxFrameSurface1 frameSurface;
+        memset(&frameSurface, 0, sizeof(mfxFrameSurface1));
+
+        if (m_executeParams.bDeinterlace30i60p)
         {
-            mfxHDL frameHandle;
-            mfxFrameSurface1 frameSurface;
-            memset(&frameSurface, 0, sizeof(mfxFrameSurface1));
-            frameSurface.Info = inFrame->Info;
+            is30i60pConversion = 1;
+        }
 
-            if (m_executeParams.bDeinterlace30i60p)
-            {
-                is30i60pConversion = 1;
-            }
+        /* Feed scene change detector with input frame */
+        mfxFrameSurface1 *inFrame = surfQueue[frameIndex].pSurf;
+        MFX_CHECK_NULL_PTR1(inFrame);
+        frameSurface.Info = inFrame->Info;
 
-            if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode)
+
+        if (SYS_TO_D3D == m_ioMode || SYS_TO_SYS == m_ioMode)
+        {
+            sts = m_pCore->GetFrameHDL(m_internalVidSurf[VPP_IN].mids[surfQueue[frameIndex].resIdx], &frameHandle);
+            MFX_CHECK_STS(sts);
+        }
+        else
+        {
+            if(m_IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY)
             {
-                sts = m_pCore->GetFrameHDL(m_internalVidSurf[VPP_IN].mids[surfQueue[pTask->bkwdRefCount].resIdx], &frameHandle);
-                MFX_CHECK_STS(sts);
+                MFX_SAFE_CALL(m_pCore->GetFrameHDL(surfQueue[frameIndex].pSurf->Data.MemId, (mfxHDL *)&frameHandle));
             }
             else
             {
-                if(m_IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-                {
-                    MFX_SAFE_CALL(m_pCore->GetFrameHDL(surfQueue[pTask->bkwdRefCount].pSurf->Data.MemId, (mfxHDL *)&frameHandle));
-                }
-                else
-                {
-                    MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surfQueue[pTask->bkwdRefCount].pSurf->Data.MemId, (mfxHDL *)&frameHandle));
-                }
+                MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surfQueue[frameIndex].pSurf->Data.MemId, (mfxHDL *)&frameHandle));
             }
-            frameSurface.Data.MemId = frameHandle;
+        }
+        frameSurface.Data.MemId = frameHandle;
 
-            sts = m_SCD.MapFrame(&frameSurface);
+        // Set input frame parity in SCD
+        if(frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF)
+        {
+            m_SCD.SetParityTFF();
+        }
+        else if (frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)
+        {
+            m_SCD.SetParityBFF();
+        }
+
+        // Check for scene change
+        // Do it only when new input frame are fed to deinterlacer.
+        // For 30i->60p, this happens every odd frames as:
+        // m_frame_num = 0: input0 -> BOB -> ouput0 but we need to feed SCD engine with first reference frame
+        // m_frame_num = 1: input1 + reference input 0 -> ADI -> output1
+        // m_frame_num = 2: input1 + referemce input 0 -> ADI -> output2 (no need to check as same input is used)
+        // m_frame_num = 3: input2 + reference input 1 -> ADI -> output3
+
+        if (is30i60pConversion == 0 || (m_frame_num % 2) == 1 || m_frame_num == 0)
+        {
+            // SCD detects scene change for field to be display.
+            // 30i->30p displays only first of current (frame N = field 2N)
+            // for 30i->60p, check happends on odd output frame 2N +1
+            // 30i->60p display output 2N+1, 2N+2
+            // input fields to SCD detection engine are field 2N + 2 and 2N + 3
+
+            // SCD needs field input in display order
+            // SCD detects if input field is the first field of a new Scene 
+            // based on current and previous stream statistics
+            sts = m_SCD.PutFrameInterlaced(frameHandle);
             MFX_CHECK_STS(sts);
 
-            // Set input frame parity in SCD
-            if(frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_TFF)
+            // detect scene change in first field of current 2N + 2
+            sc_in_first_field = m_SCD.Get_frame_shot_Decision();
+
+            // Feed SCD detector with second field of current frame
+            sts = m_SCD.PutFrameInterlaced(frameHandle);
+            MFX_CHECK_STS(sts);
+
+            // check second field of current
+            sc_in_second_field = m_SCD.Get_frame_shot_Decision();//m_SCD.Get_frame_last_in_scene();
+
+            sc_detected = sc_in_first_field + sc_in_second_field;
+            scene_change += sc_detected;
+
+            /* Check next state depending on value of previous
+             * m_scene_change and detected scene change.
+             * Typically, use BOB for last field before scene change and
+             * first field of a new scene.
+             * For 30i->30p: use BOB + first field of input frame to compute
+             * output. For 30i->60p: use BOB + field location when scene
+             * change occurs for the first time. Use BOB and first field
+             * only for reference when more scene change are detected to
+             * avoid out of frame order.
+             */
+            switch (m_scene_change) // previous status
             {
-                m_SCD.SetParityTFF();
-            }
-            else if (frameSurface.Info.PicStruct & MFX_PICSTRUCT_FIELD_BFF)
-            {
-                m_SCD.SetParityBFF();
-            }
+                case NO_SCENE_CHANGE:
+                    // for 30i->60p we display second of reference (field 2N+1) here
+                    // displayed field is is last if next is new scene
+                    if (is30i60pConversion && sc_in_first_field)
+                        m_scene_change = LAST_IN_SCENE;
+                    else if (is30i60pConversion && sc_in_second_field)
+                        // notify that second field of reference display by ADI will be last
+                        m_scene_change = NEXT_IS_LAST_IN_SCENE;
+                    else if (scene_change)
+                         m_scene_change = SCENE_CHANGE;
+                    break;
+                case SCENE_CHANGE:
+                    if (scene_change)
+                        m_scene_change = MORE_SCENE_CHANGE_DETECTED;
+                    else
+                        m_scene_change = NO_SCENE_CHANGE;
+                    break;
+                case MORE_SCENE_CHANGE_DETECTED:
+                    if (scene_change)
+                        m_scene_change = MORE_SCENE_CHANGE_DETECTED;
+                    else
+                        m_scene_change = NO_SCENE_CHANGE;
+                    break;
+                default:
+                    break;
+            } //end switch
 
-            // Check for scene change
-            // Do it only when new input frame are fed to deinterlacer.
-            // For 30i->60p, this happens every odd frames as:
-            // m_frame_num = 0: input0 -> BOB -> ouput0 but we need to feed SCD engine with first reference frame
-            // m_frame_num = 1: input1 + reference input 0 -> ADI -> output1
-            // m_frame_num = 2: input1 + referemce input 0 -> ADI -> output2 (no need to check as same input is used)
-            // m_frame_num = 3: input2 + reference input 1 -> ADI -> output3
+        } // end (is30i60pConversion == 0 || m_frame_num % 2 == 1)
 
-            if (is30i60pConversion == 0 || (m_frame_num % 2) == 1 || m_frame_num == 0)
-            {
-                // SCD detects scene change for first field to be display.
-                // for 30i->60p, check happend on odd output frame 2N +1
-                // input fiels to SCD detection engine are field 2N + 2 and 2N + 3
-
-                // Decision on first field is done for field 2N + 1
-                analysisReady = m_SCD.ProcessField();
-                sc_in_first_field = m_SCD.Get_frame_shot_Decision() + m_SCD.Get_frame_last_in_scene(); //takes care of bad parity info
-                LastSceneInframe += m_SCD.Get_frame_last_in_scene();
-
-                // Decision on second field is done for field 2N + 2
-                analysisReady = m_SCD.ProcessField();
-                sc_in_second_field = m_SCD.Get_frame_shot_Decision() + m_SCD.Get_frame_last_in_scene(); //Dima
-                LastSceneInframe += m_SCD.Get_frame_last_in_scene();
-                sc_shot_in_second_field = m_SCD.Get_frame_shot_Decision(); // 30i->60p will display new field in 2 frames
-
-                sc_detected = sc_in_first_field + sc_in_second_field;
-                scene_change += sc_detected;
-
-                /* Check next state depending on value of previous
-                 * m_scene_change and detected scene change.
-                 * Typically, use BOB for last field before scene change and
-                 * first field of a new scene.
-                 * For 30i->30p: use BOB + first field of input frame to compute
-                 * output. For 30i->60p: use BOB + field location when scene
-                 * change occurs for the first time. Use BOB and first field
-                 * only for reference when more scene change are detected to
-                 * avoid out of frame order.
-                 */
-                switch (m_scene_change) // previous status
-                {
-                    case NO_SCENE_CHANGE:
-                        if (scene_change)
-                            m_scene_change = SCENE_CHANGE;
-                        break;
-                    case SCENE_CHANGE:
-                        if (scene_change)
-                            m_scene_change = MORE_SCENE_CHANGE_DETECTED;
-                        else
-                            m_scene_change = NO_SCENE_CHANGE;
-                        break;
-                    case MORE_SCENE_CHANGE_DETECTED:
-                        if (scene_change)
-                            m_scene_change = MORE_SCENE_CHANGE_DETECTED;
-                        else
-                            m_scene_change = NO_SCENE_CHANGE;
-                        break;
-                    default:
-                        break;
-                } //end switch
-
-            } // end (is30i60pConversion == 0 || m_frame_num % 2 == 1)
-
-        }
 
         // set up m_executeParams.scene for vaapi interface;
         switch (m_scene_change)
@@ -4129,6 +4154,17 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
                 break;
             case MORE_SCENE_CHANGE_DETECTED:
                 m_executeParams.scene = VPP_MORE_SCENE_CHANGE_DETECTED;
+                break;
+            case LAST_IN_SCENE:
+                m_executeParams.scene = VPP_SCENE_NEW;
+                m_scene_change = SCENE_CHANGE;
+                break;
+            case NEXT_IS_LAST_IN_SCENE:
+                if (m_frame_num % 2 == 0) // 2N+2 field processed
+                {
+                    m_scene_change = LAST_IN_SCENE;
+                    m_executeParams.scene = VPP_SCENE_NEW;
+                }
                 break;
             default:
                 break;
@@ -4288,8 +4324,8 @@ mfxStatus VideoVPPHW::AsyncTaskSubmission(void *pState, void *pParam, mfxU32 thr
     mfxStatus sts;
 
     // touch unreferenced parameters(s)
-    threadNumber = threadNumber;
-    callNumber = callNumber;
+    (void)threadNumber;
+    (void)callNumber;
 
 #ifdef MFX_ENABLE_MCTF
     VideoVPPHW *pHwVpp = (VideoVPPHW *)pState;
@@ -4311,8 +4347,8 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::QueryTaskRoutine");
     mfxStatus sts = MFX_ERR_NONE;
 
-    threadNumber = threadNumber;
-    callNumber   = callNumber;
+    (void)threadNumber;
+    (void)callNumber;
 
     VideoVPPHW *pHwVpp = (VideoVPPHW *) pState;
     DdiTask *pTask     = (DdiTask*) pParam;
@@ -4497,6 +4533,8 @@ mfxStatus VideoVPPHW::SubmitToMctf(void *pState, void *pParam, bool* bMctfReadyT
 }
 mfxStatus VideoVPPHW::QueryFromMctf(void *pState, void *pParam, bool bMctfReadyToReturn, bool bEoF)
 {
+    (void)bEoF;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -5007,8 +5045,10 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
     VM_ASSERT(bit_depth);
 
     mfxU64 const shift = bit_depth - 8;
+    mfxU64 const max_val = 256 << shift;
+
     return
-        ((mfxU64)                                ((255 << shift) - 1) << 48) |
+        ((mfxU64)                                 (max_val - 1) << 48) |
         ((mfxU64)VPP_RANGE_CLIP(Y, (16 << shift), (235 << shift))     << 32) |
         ((mfxU64)VPP_RANGE_CLIP(U, (16 << shift), (240 << shift))     << 16) |
         ((mfxU64)VPP_RANGE_CLIP(V, (16 << shift), (240 << shift))     <<  0)
@@ -5530,7 +5570,7 @@ mfxStatus ConfigureExecuteParams(
 
                         for (mfxU32 cnt = 0; cnt < StreamCount; ++cnt)
                         {
-                            DstRect rec = {0};
+                            DstRect rec = {};
                             rec.DstX = extComp->InputStream[cnt].DstX;
                             rec.DstY = extComp->InputStream[cnt].DstY;
                             rec.DstW = extComp->InputStream[cnt].DstW;
@@ -5978,24 +6018,25 @@ mfxStatus ConfigureExecuteParams(
         executeParams.bSceneDetectionEnable = false;
     }
 
-    if (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo)))
+#if defined(WIN64) || defined (WIN32)
+    if ( (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo))) &&
+         executeParams.IsDoNothing() )
     {
-        if (executeParams.IsDoNothing())
-            config.m_bPassThroughEnable = true;
-        else
-            config.m_bPassThroughEnable = false;
+        config.m_bCopyPassThroughEnable = true;
     }
     else
     {
-        config.m_bPassThroughEnable = false;
+        config.m_bCopyPassThroughEnable = false;// after Reset() parameters may be changed,
+                                            // flag should be disabled
     }
+#endif//m_bCopyPassThroughEnable == false for another OS
 
     if (inDNRatio == outDNRatio && !executeParams.bVarianceEnable && !executeParams.bComposite &&
             !(config.m_extConfig.mode == IS_REFERENCES) )
     {
         // work around
         config.m_extConfig.mode  = FRC_DISABLED;
-        //config.m_bPassThroughEnable = false;
+        //config.m_bCopyPassThroughEnable = false;
     }
 
     if (true == executeParams.bComposite && 0 == executeParams.dstRects.size()) // composition was enabled via DO USE

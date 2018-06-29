@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2017, Intel Corporation
+Copyright (c) 2005-2018, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -199,7 +199,7 @@ struct BRC_Ctx
     mfxF64 fAbLong;         // avarage frame size (long period)
     mfxF64 fAbShort;        // avarage frame size (short period)
     mfxF64 dQuantAb;        // avarage dequant
-    mfxI32 totalDiviation;   // divation from  target bitrate (total)
+    mfxF64 totalDiviation;   // divation from  target bitrate (total)
 
     mfxF64 eRate;               // eRate of last encoded frame, this parameter is used for scene change calculation
     mfxF64 eRateSH;             // eRate of last encoded scene change frame, this parameter is used for scene change calculation

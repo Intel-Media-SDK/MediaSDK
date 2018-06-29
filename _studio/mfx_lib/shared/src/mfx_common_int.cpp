@@ -70,6 +70,9 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_RGB3:
     case MFX_FOURCC_RGB4:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
     case MFX_FOURCC_P010:
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_P210:
@@ -176,11 +179,11 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
     case MFX_CODEC_VP8:
         if (info->FourCC != MFX_FOURCC_NV12 && info->FourCC != MFX_FOURCC_YV12)
             return MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
+        break;
     case MFX_CODEC_VP9:
-        if (info->FourCC != MFX_FOURCC_NV12
-            && info->FourCC != MFX_FOURCC_P010
-            )
+        if (info->FourCC != MFX_FOURCC_NV12 &&
+            info->FourCC != MFX_FOURCC_AYUV &&
+            info->FourCC != MFX_FOURCC_P010)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
     case MFX_CODEC_AVC:
@@ -218,10 +221,15 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             info->ChromaFormat != MFX_CHROMAFORMAT_YUV400)
             return MFX_ERR_INVALID_VIDEO_PARAM;
     case MFX_CODEC_HEVC:
-    case MFX_CODEC_VP9:
         if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420
             && info->ChromaFormat != MFX_CHROMAFORMAT_YUV400
             )
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+        break;
+    case MFX_CODEC_VP9:
+        if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420 &&
+            info->ChromaFormat != MFX_CHROMAFORMAT_YUV400 &&
+            info->ChromaFormat != MFX_CHROMAFORMAT_YUV444)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         break;
     default:
@@ -423,8 +431,9 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:        MFX_CHECK(data.Y && data.UV, MFX_ERR_UNDEFINED_BEHAVIOR); break;
-
-
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
         case MFX_FOURCC_RGB3:        MFX_CHECK(data.R && data.G && data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
         case MFX_FOURCC_AYUV:
@@ -841,6 +850,9 @@ mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
         case MFX_FOURCC_P8_TEXTURE:
         case MFX_FOURCC_NV12:
         case MFX_FOURCC_YV12:
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
         case MFX_FOURCC_NV16:        return width * 1;
 
         case MFX_FOURCC_R16:         return width * 2;
@@ -875,6 +887,9 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
         case MFX_FOURCC_RGB3:
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
         case MFX_FOURCC_ARGB16:
         case MFX_FOURCC_ABGR16:      return MFX_MIN(MFX_MIN(data.R, data.G), data.B); break;
 

@@ -126,7 +126,7 @@ namespace MfxHwH264Encode
 
     template<class T> inline T* SecondHalfOf(std::vector<T>& v) { return &v[v.size() / 2]; }
 
-    template<class T> inline void Zero(T & obj)                { memset(&obj, 0, sizeof(obj)); }
+    template<class T> inline void Zero(T & obj)                { memset(reinterpret_cast<void*>(&obj), 0, sizeof(obj)); }
     template<class T> inline void Zero(std::vector<T> & vec)   { if (vec.size() > 0) memset(&vec[0], 0, sizeof(T) * vec.size()); }
     template<class T> inline void Zero(T * first, size_t cnt)  { memset(first, 0, sizeof(T) * cnt); }
 
@@ -170,6 +170,7 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtSpsHeader,            MFX_EXTBUFF_SPS_HEADER               );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtPpsHeader,            MFX_EXTBUFF_PPS_HEADER               );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefListCtrl,       MFX_EXTBUFF_AVC_REFLIST_CTRL         );
+    BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRoundingOffset,    MFX_EXTBUFF_AVC_ROUNDING_OFFSET      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAvcTemporalLayers,    MFX_EXTBUFF_AVC_TEMPORAL_LAYERS      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVppAuxData,           MFX_EXTBUFF_VPP_AUXDATA              );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption2,        MFX_EXTBUFF_CODING_OPTION2           );
@@ -760,6 +761,7 @@ namespace MfxHwH264Encode
         bool                setExtAlloc,
         eMFXHWType          platform = MFX_HW_UNKNOWN,
         eMFXVAType          vaType = MFX_HW_NO,
+        eMFXGTConfig        config = MFX_GT_UNKNOWN,
         bool                bInit = false);
 
     mfxStatus CheckVideoParamFEI(
@@ -769,7 +771,8 @@ namespace MfxHwH264Encode
         MfxVideoParam &     par,
         ENCODE_CAPS const & hwCaps,
         eMFXHWType          platform = MFX_HW_UNKNOWN,
-        eMFXVAType          vaType = MFX_HW_NO);
+        eMFXVAType          vaType = MFX_HW_NO,
+        eMFXGTConfig        config = MFX_GT_UNKNOWN);
 
     mfxStatus CheckVideoParamMvcQueryLike(MfxVideoParam &     par);
 
@@ -782,7 +785,8 @@ namespace MfxHwH264Encode
         ENCODE_CAPS const & hwCaps,
         bool                setExtAlloc,
         eMFXHWType          platform = MFX_HW_UNKNOWN,
-        eMFXVAType          vaType = MFX_HW_NO);
+        eMFXVAType          vaType = MFX_HW_NO,
+        eMFXGTConfig        config = MFX_GT_UNKNOWN);
 
     void InheritDefaultValues(
         MfxVideoParam const & parInit,
@@ -1479,7 +1483,7 @@ namespace MfxHwH264Encode
         static const mfxU32 SLICE_BUFFER_SIZE  = 2048;
     };
 
-    inline const mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)
+    inline mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)
     {
         switch (LookAheadDS)
         {

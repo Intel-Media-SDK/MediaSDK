@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -151,6 +151,9 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
     UINT            stride_in_bytes         = widthStride;
@@ -329,6 +332,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
     UINT            stride_in_bytes         = widthStride;
@@ -508,6 +514,9 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
     UINT            stride_in_bytes         = widthStride;
@@ -690,6 +699,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: (format==MFX_FOURCC_R16)?2: 4;
     UINT            stride_in_bytes         = widthStride;
@@ -871,6 +883,9 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoGPU(   CmSurface2D* pSurfaceIn,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
 
@@ -953,6 +968,10 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorGPUtoGPU(   CmSurface2D* pSurfaceIn,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)format;
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
 //    UINT            sizePerPixel            = (format==MFX_FOURCC_ARGB16||format==MFX_FOURCC_ABGR16)? 8: 4;//RGB now
 
@@ -1036,6 +1055,10 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)format;
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
     UINT            stride_in_dwords        = 0;
@@ -1214,6 +1237,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
     UINT            stride_in_dwords        = 0;
@@ -1394,6 +1420,10 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)format;
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
     UINT            stride_in_dwords        = 0;
@@ -1563,6 +1593,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
                                     const UINT option,
                                     CmEvent* & pEvent )
 {
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
     UINT            stride_in_dwords        = 0;
@@ -1740,6 +1773,10 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
                                     int bitshift,
                                     CmEvent* & pEvent )
 {
+    (void)format;
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
     UINT            stride_in_dwords        = 0;
@@ -1914,6 +1951,10 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
                                     int bitshift,
                                     CmEvent* & pEvent )
 {
+    (void)format;
+    (void)option;
+    (void)pEvent;
+
     INT             hr                      = CM_SUCCESS;
     UINT            stride_in_bytes         = widthStride;
     UINT            stride_in_dwords        = 0;
@@ -2085,8 +2126,11 @@ mfxStatus CmCopyWrapper::Initialize(eMFXHWType hwtype)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
     m_timeout = CM_MAX_TIMEOUT_MS;
-    if(hwtype >= MFX_HW_SCL)
-        InitializeSwapKernels(hwtype);
+    if(hwtype >= MFX_HW_BDW)
+    {
+        mfxStatus mfxSts = InitializeSwapKernels(hwtype);
+        MFX_CHECK_STS(mfxSts);
+    }
     cmSts = m_pCmDevice->CreateQueue(m_pCmQueue);
     CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
     m_tableCmRelations2.clear();
@@ -2104,24 +2148,25 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
 
-        switch (hwtype)
-        {
+    switch (hwtype)
+    {
 #if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
-        case MFX_HW_BDW:
-        case MFX_HW_CHT:
-            cmSts = m_pCmDevice->LoadProgram((void*)cht_copy_kernel_genx,sizeof(cht_copy_kernel_genx),m_pCmProgram,"nojitter");
-            break;
+    case MFX_HW_BDW:
+    case MFX_HW_CHT:
+        cmSts = m_pCmDevice->LoadProgram((void*)cht_copy_kernel_genx,sizeof(cht_copy_kernel_genx),m_pCmProgram,"nojitter");
+        break;
 #endif
-        case MFX_HW_SCL:
-        case MFX_HW_APL:
-        case MFX_HW_KBL:
-            cmSts = m_pCmDevice->LoadProgram((void*)skl_copy_kernel_genx,sizeof(skl_copy_kernel_genx),m_pCmProgram,"nojitter");
-            break;
-        default:
-            cmSts = CM_FAILURE;
-            break;
-        }
-        CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
+    case MFX_HW_SCL:
+    case MFX_HW_APL:
+    case MFX_HW_KBL:
+    case MFX_HW_CFL:
+        cmSts = m_pCmDevice->LoadProgram((void*)skl_copy_kernel_genx,sizeof(skl_copy_kernel_genx),m_pCmProgram,"nojitter");
+        break;
+    default:
+        cmSts = CM_FAILURE;
+        break;
+    }
+    CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 
@@ -2265,6 +2310,8 @@ mfxStatus CmCopyWrapper::IsCmCopySupported(mfxFrameSurface1 *pSurface, mfxSize r
 
 mfxStatus CmCopyWrapper::CopySystemToVideoMemoryAPI(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi)
 {
+    (void)dstPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopySystemToVideoMemoryAPI");
     cmStatus cmSts = 0;
 
@@ -2301,6 +2348,8 @@ mfxStatus CmCopyWrapper::CopySystemToVideoMemoryAPI(void *pDst, mfxU32 dstPitch,
 }
 mfxStatus CmCopyWrapper::CopySystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
 {
+    (void)dstPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopySystemToVideoMemory");
     cmStatus cmSts = 0;
 
@@ -2354,6 +2403,8 @@ mfxStatus CmCopyWrapper::CopySystemToVideoMemory(void *pDst, mfxU32 dstPitch, mf
 }
 mfxStatus CmCopyWrapper::CopySwapSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
 {
+    (void)dstPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::ARGBSwapSystemToVideo");
     CmEvent* e = CM_NO_EVENT;
     mfxU32 width  = roi.width;
@@ -2369,6 +2420,8 @@ mfxStatus CmCopyWrapper::CopySwapSystemToVideoMemory(void *pDst, mfxU32 dstPitch
 }
 mfxStatus CmCopyWrapper::CopyShiftSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 bitshift)
 {
+    (void)dstPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::ShiftSystemToVideo");
     CmEvent* e = CM_NO_EVENT;
     mfxU32 width  = roi.width;
@@ -2385,6 +2438,8 @@ mfxStatus CmCopyWrapper::CopyShiftSystemToVideoMemory(void *pDst, mfxU32 dstPitc
 
 mfxStatus CmCopyWrapper::CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 bitshift)
 {
+    (void)srcPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::ShiftVideoToSystem");
     CmEvent* e = CM_NO_EVENT;
     mfxU32 width  = roi.width;
@@ -2399,6 +2454,8 @@ mfxStatus CmCopyWrapper::CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPit
 }
 mfxStatus CmCopyWrapper::CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi)
 {
+    (void)srcPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopyVideoToSystemMemoryAPI");
     cmStatus cmSts = 0;
     CmEvent* e = NULL;
@@ -2430,6 +2487,8 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemoryAPI(mfxU8 *pDst, mfxU32 dstPitch
 }
 mfxStatus CmCopyWrapper::CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format)
 {
+    (void)srcPitch;
+
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::CopyVideoToSystemMemory");
     cmStatus cmSts = 0;
     CmEvent* e = CM_NO_EVENT;
@@ -2476,7 +2535,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, m
     }
     return status;
 }
-mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format)
+mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 /* srcPitch */, mfxSize roi, mfxU32 format)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::ARGBSwapVideoToSystem");
     CmEvent* e = CM_NO_EVENT;
@@ -2491,7 +2550,7 @@ mfxStatus CmCopyWrapper::CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitc
     return EnqueueCopySwapRBGPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
 
 }
-mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format)
+mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 /* srcPitch */, mfxSize roi, mfxU32 format)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::MirrorVideoToSystem");
     CmEvent* e = CM_NO_EVENT;
@@ -2506,7 +2565,7 @@ mfxStatus CmCopyWrapper::CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPi
     return EnqueueCopyMirrorNV12GPUtoCPU(pCmSurface2D, pDst, roi.width, roi.height, dstPitch, dstUVOffset, format, CM_FASTCOPY_OPTION_BLOCKING, e);
 
 }
-mfxStatus CmCopyWrapper::CopyMirrorSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
+mfxStatus CmCopyWrapper::CopyMirrorSystemToVideoMemory(void *pDst, mfxU32 /* dstPitch */, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CmCopyWrapper::MirrorSystemToVideo");
     CmEvent* e = CM_NO_EVENT;

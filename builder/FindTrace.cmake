@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2018 Intel Corporation
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,6 @@
 if(__TRACE)
   message( STATUS "Enabled tracing: ${__TRACE}" )
 endif()
-
-# ITT instrumentation is enabled by default to make VTune working out of the box
-set(__ITT TRUE)
-include ($ENV{MFX_HOME}/builder/FindVTune.cmake)
 
 if(__TRACE MATCHES all)
   append("-DMFX_TRACE_ENABLE_TEXTLOG -DMFX_TRACE_ENABLE_STAT" CMAKE_C_FLAGS)

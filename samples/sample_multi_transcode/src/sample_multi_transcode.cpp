@@ -85,7 +85,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     sts = VerifyCrossSessionsOptions();
     MSDK_CHECK_STATUS(sts, "VerifyCrossSessionsOptions failed");
 
-#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT)
+#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT) || defined(ANDROID)
     if (m_eDevType == MFX_HANDLE_VA_DISPLAY)
     {
         mfxI32  libvaBackend = 0;
@@ -106,12 +106,14 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
                 return MFX_ERR_DEVICE_FAILED;
             }
             sts = m_hwdev->Init(&params.monitorType, 1, MSDKAdapter::GetNumber(0) );
+#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT)
             if (params.libvaBackend == MFX_LIBVA_DRM_MODESET) {
                 CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev.get());
                 pVAAPIParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
                 pVAAPIParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
 
             }
+#endif
 #if defined(LIBVA_WAYLAND_SUPPORT)
             else if (params.libvaBackend == MFX_LIBVA_WAYLAND) {
                 VADisplay va_dpy = NULL;
@@ -340,7 +342,7 @@ void Launcher::Run()
     m_StartTime = GetTick();
 
     // Robust flag is applied to every seession if enabled in one
-    if (m_pSessionArray[0]->pPipeline->IsRobust())
+    if (m_pSessionArray[0]->pPipeline->GetRobustFlag())
     {
         DoRobustTranscoding();
     }
@@ -395,7 +397,7 @@ void Launcher::DoTranscoding()
                         // Stop all the sessions if an error happened in one
                         // But do not stop in robust mode when gpu hang's happened
                         if (m_pSessionArray[i]->transcodingSts != MFX_ERR_GPU_HANG ||
-                            !m_pSessionArray[i]->pPipeline->IsRobust())
+                            !m_pSessionArray[i]->pPipeline->GetRobustFlag())
                         {
                             for (size_t j = 0; j < m_pSessionArray.size(); j++)
                             {
@@ -539,6 +541,7 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
 
     mfxU16 minAsyncDepth = 0;
     bool bUseExternalAllocator = false;
+    bool bSingleTexture = false;
 
 #if (MFX_VERSION >= 1025)
     bool allMFEModesEqual=true;
@@ -609,7 +612,7 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
 
         // Any plugin or static frame alpha blending
         // CPU rotate plugin works with opaq frames in native mode
-        if (m_InputParamsArray[i].nRotationAngle && m_InputParamsArray[i].eMode != Native ||
+        if ((m_InputParamsArray[i].nRotationAngle && m_InputParamsArray[i].eMode != Native) ||
             m_InputParamsArray[i].bOpenCL ||
             m_InputParamsArray[i].EncoderFourCC ||
             m_InputParamsArray[i].DecoderFourCC ||
@@ -617,6 +620,11 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
             m_InputParamsArray[i].nVppCompSrcW)
         {
             bUseExternalAllocator = true;
+        }
+
+        if (m_InputParamsArray[i].bSingleTexture)
+        {
+            bSingleTexture = true;
         }
 
         // All sessions have to know about timeout
@@ -642,11 +650,11 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
         }
 
         // All sessions have to know if robust mode enabled
-        if (m_InputParamsArray[i].bRobust)
+        if (m_InputParamsArray[i].bRobustFlag)
         {
             for (mfxU32 j = 0; j < m_InputParamsArray.size(); j++)
             {
-                m_InputParamsArray[j].bRobust = true;
+                m_InputParamsArray[j].bRobustFlag = m_InputParamsArray[i].bRobustFlag;
             }
         }
 
@@ -761,6 +769,24 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
         PrintError(MSDK_STRING("Error: Sink must be defined"));
         return MFX_ERR_UNSUPPORTED;
     }
+
+    if(bSingleTexture)
+    {
+        bool showWarning = false;
+        for (mfxU32 j = 0; j < m_InputParamsArray.size(); j++)
+        {
+            if (!m_InputParamsArray[j].bSingleTexture)
+            {
+                showWarning = true;
+            }
+            m_InputParamsArray[j].bSingleTexture = true;
+        }
+        if (showWarning)
+        {
+            msdk_printf(MSDK_STRING("WARNING: At least one session has -single_texture_d3d11 option, all other sessions are modified to have this setting enabled al well.\n"));
+        }
+    }
+
     return MFX_ERR_NONE;
 
 } // mfxStatus Launcher::VerifyCrossSessionsOptions()

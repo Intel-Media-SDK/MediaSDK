@@ -644,14 +644,14 @@ bool MfxH264FEIcommon::FirstFieldProcessingDone(T* inParams, const DdiTask & tas
 mfxStatus MfxH264FEIcommon::CheckInitExtBuffers(const MfxVideoParam & owned_video, const mfxVideoParam & passed_video)
 {
     // Slice number control through CO3 is not allowed
-    mfxExtCodingOption3 const * extOpt3 = GetExtBuffer(owned_video);
-    mfxExtFeiParam const * feiParam = GetExtBuffer(owned_video);
-    if (feiParam->Func != MFX_FEI_FUNCTION_PREENC)
+    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(owned_video);
+    mfxExtFeiParam const & feiParam     = GetExtBufferRef(owned_video);
+    if (feiParam.Func != MFX_FEI_FUNCTION_PREENC)
     {
         // NumSliceI/NumSliceP/NumSliceB are unnecessary parameters for PreENC and will not be initialized
-        MFX_CHECK(extOpt3->NumSliceI == owned_video.mfx.NumSlice, MFX_ERR_INVALID_VIDEO_PARAM);
-        MFX_CHECK(extOpt3->NumSliceP == owned_video.mfx.NumSlice, MFX_ERR_INVALID_VIDEO_PARAM);
-        MFX_CHECK(extOpt3->NumSliceB == owned_video.mfx.NumSlice, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(extOpt3.NumSliceI == owned_video.mfx.NumSlice, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(extOpt3.NumSliceP == owned_video.mfx.NumSlice, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(extOpt3.NumSliceB == owned_video.mfx.NumSlice, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     // Internal headers should be updated before CreateAccelerationService call
@@ -741,8 +741,8 @@ bool MfxH264FEIcommon::IsRunTimeInputExtBufferIdSupported(MfxVideoParam const & 
 
 bool MfxH264FEIcommon::IsRunTimeOutputExtBufferIdSupported(MfxVideoParam const & owned_video, mfxU32 id)
 {
-    mfxExtFeiParam const * feiParam = GetExtBuffer(owned_video);
-    switch(feiParam->Func)
+    mfxExtFeiParam const & feiParam = GetExtBufferRef(owned_video);
+    switch(feiParam.Func)
     {
         case MFX_FEI_FUNCTION_ENC:
             return (  id == MFX_EXTBUFF_FEI_ENC_MV
@@ -885,7 +885,7 @@ mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const Mf
 
             if (!I_SLICE(extFeiSliceInRintime->Slice[i].SliceType))
             {
-                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL0Active      <= is_progressive ? 16 : 32,
+                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL0Active      <= (is_progressive ? 16 : 32),
                                                                                         MFX_ERR_INVALID_VIDEO_PARAM);
                 MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL0Active,             MFX_ERR_INVALID_VIDEO_PARAM);
 
@@ -895,7 +895,7 @@ mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const Mf
 
             if (B_SLICE(extFeiSliceInRintime->Slice[i].SliceType))
             {
-                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL1Active      <= is_progressive ? 16 : 32,
+                MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL1Active      <= (is_progressive ? 16 : 32),
                                                                                         MFX_ERR_INVALID_VIDEO_PARAM);
                 MFX_CHECK(extFeiSliceInRintime->Slice[i].NumRefIdxL1Active,             MFX_ERR_INVALID_VIDEO_PARAM);
 

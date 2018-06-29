@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -93,14 +93,12 @@ static mfxStatus SetROI(
         roi_Param->max_delta_qp = 51;
         roi_Param->min_delta_qp = -51;
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
         roi_Param->roi_flags.bits.roi_value_is_qp_delta = 0;
 #if MFX_VERSION > 1021
         if (task.m_roiMode == MFX_ROI_MODE_QP_DELTA) {
             roi_Param->roi_flags.bits.roi_value_is_qp_delta = 1;
         }
 #endif // MFX_VERSION > 1021
-#endif // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
     }
 
     vaSts = vaUnmapBuffer(vaDisplay, roiParam_id);
@@ -534,8 +532,8 @@ void UpdatePPS(
 
 void FillSliceBuffer(
     MfxVideoParam const & par,
-    VAEncSequenceParameterBufferHEVC const & sps,
-    VAEncPictureParameterBufferHEVC const & pps,
+    VAEncSequenceParameterBufferHEVC const & /* sps */,
+    VAEncPictureParameterBufferHEVC const & /* pps */,
     std::vector<VAEncSliceParameterBufferHEVC> & slices)
 {
     slices.resize(par.m_slice.size());
@@ -553,7 +551,7 @@ void FillSliceBuffer(
 
 void UpdateSlice(
     Task const &                               task,
-    VAEncSequenceParameterBufferHEVC const     & sps,
+    VAEncSequenceParameterBufferHEVC const     & /* sps */,
     VAEncPictureParameterBufferHEVC const      & pps,
     std::vector<VAEncSliceParameterBufferHEVC> & slices)
 {
@@ -673,9 +671,10 @@ void VAAPIEncoder::FillSps(
     sps.general_profile_idc = par.m_sps.general.profile_idc;
     sps.general_level_idc   = par.m_sps.general.level_idc;
     sps.general_tier_flag   = par.m_sps.general.tier_flag;
-    sps.intra_period        = par.mfx.GopPicSize;
-    sps.intra_idr_period    = par.mfx.GopPicSize*par.mfx.IdrInterval;
-    sps.ip_period           = mfxU8(par.mfx.GopRefDist);
+    mfxU8 nPicturesPerFrame = par.isField() ? 2 : 1;
+    sps.intra_period        = par.mfx.GopPicSize * nPicturesPerFrame;
+    sps.intra_idr_period    = par.mfx.GopPicSize * par.mfx.IdrInterval * nPicturesPerFrame;
+    sps.ip_period           = mfxU8(par.mfx.GopRefDist * nPicturesPerFrame);
 
     if (   par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ
@@ -1748,6 +1747,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
         {
             case VASurfaceReady:
                 VACodedBufferSegment *codedBufferSegment;
+                mfxU32 codedStatus;
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
@@ -1765,6 +1765,8 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 else if (!codedBufferSegment->size || !codedBufferSegment->buf)
                     sts = MFX_ERR_DEVICE_FAILED;
 
+                codedStatus = codedBufferSegment->status;
+
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
                     vaSts = vaUnmapBuffer( m_vaDisplay, codedBuffer );
@@ -1772,7 +1774,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
                 // Sync FEI output buffers
-                MFX_CHECK_WITH_ASSERT(PostQueryExtraStage() == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+                MFX_CHECK_WITH_ASSERT(PostQueryExtraStage(task, codedStatus) == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
                 return sts;
 

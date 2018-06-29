@@ -87,7 +87,7 @@ msdk_printf(MSDK_STRING("   [-dcrY  y]                  - cropY  of dst video (d
 msdk_printf(MSDK_STRING("   [-dcrW  w]                  - cropW  of dst video (def: width)\n"));
 msdk_printf(MSDK_STRING("   [-dcrH  h]                  - cropH  of dst video (def: height)\n"));
 msdk_printf(MSDK_STRING("   [-df  frameRate]            - frame rate of dst video (def: 30.0)\n"));
-msdk_printf(MSDK_STRING("   [-dcc format]               - format (FourCC) of dst video (def: nv12. support i420|nv12|yuy2|rgb4|yv12|ayuv)\n"));
+msdk_printf(MSDK_STRING("   [-dcc format]               - format (FourCC) of dst video (def: nv12. support i420|nv12|yuy2|rgb4|rgbp|yv12|ayuv)\n"));
 msdk_printf(MSDK_STRING("   [-dbitshift 0|1]            - shift data to right or keep it the same way as in Microsoft's P010\n"));
 msdk_printf(MSDK_STRING("   [-dbitdepthluma value]      - shift luma channel to left to \"16 - value\" bytes\n"));
 msdk_printf(MSDK_STRING("   [-dbitdepthchroma value]    - shift chroma channel to left to \"16 - value\" bytes\n"));
@@ -170,6 +170,9 @@ msdk_printf(MSDK_STRING("   [-rotate (angle)]   - enable rotation. Supported ang
 msdk_printf(MSDK_STRING("   [-scaling_mode (mode)] - specify type of scaling to be used for resize.\n"));
 msdk_printf(MSDK_STRING("   [-denoise (level)]  - enable denoise algorithm. Level is optional \n"));
 msdk_printf(MSDK_STRING("                         range of  noise level is [0, 100]\n"));
+#if MFX_VERSION >= 1025
+msdk_printf(MSDK_STRING("   [-chroma_siting (vmode hmode)] - specify chroma siting mode for VPP color conversion, allowed values: vtop|vcen|vbot hleft|hcen\n"));
+#endif
 #ifdef ENABLE_MCTF
 #if !defined ENABLE_MCTF_EXT
 msdk_printf(MSDK_STRING("  -mctf [Strength]\n"));
@@ -199,6 +202,28 @@ msdk_printf(MSDK_STRING("   [-pa_hue  hue]        - procamp hue property.       
 msdk_printf(MSDK_STRING("   [-pa_sat  saturation] - procamp satursation property. range [   0.0,  10.0] (def: 1.0)\n"));
 msdk_printf(MSDK_STRING("   [-pa_con  contrast]   - procamp contrast property.    range [   0.0,  10.0] (def: 1.0)\n"));
 msdk_printf(MSDK_STRING("   [-pa_bri  brightness] - procamp brightness property.  range [-100.0, 100.0] (def: 0.0)\n\n"));
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+msdk_printf(MSDK_STRING("   [-rt_hue  num_frames hue1 hue2] - enable per-frame hue adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which hue is changed either from hue1 to hue2 or from hue2 to hue1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to hue1.\n"));
+msdk_printf(MSDK_STRING("             hue1 - the first hue value in range [-180.0, 180.0] (def: 0.0)\n"));
+msdk_printf(MSDK_STRING("             hue2 - the second hue value in range [-180.0, 180.0] (def: 0.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_sat  num_frames sat1 sat2] - enable per-frame saturation adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which saturation is changed either from sat1 to sat2 or from sat2 to sat1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to sat1.\n"));
+msdk_printf(MSDK_STRING("             sat1 - the first saturation value in range [0.0, 10.0] (def: 1.0)\n"));
+msdk_printf(MSDK_STRING("             sat2 - the second saturation value in range [0.0, 10.0] (def: 1.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_con  num_frames con1 con2] - enable per-frame contrast adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which contrast is changed either from con1 to con2 or from con2 to con1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to con1.\n"));
+msdk_printf(MSDK_STRING("             con1 - the first contrast value in range [0.0, 10.0] (def: 1.0)\n"));
+msdk_printf(MSDK_STRING("             con2 - the second contrast value in range [0.0, 10.0] (def: 1.0)\n\n"));
+msdk_printf(MSDK_STRING("   [-rt_bri  num_frames bri1 bri2] - enable per-frame brightness adjustment in run-time without the whole video processing pipeline reinitialization.\n"));
+msdk_printf(MSDK_STRING("             num_frames - a number of frames after which brightness is changed either from bri1 to bri2 or from bri2 to bri1. \n"));
+msdk_printf(MSDK_STRING("                          The first num_frames frames are initialized to bri1.\n"));
+msdk_printf(MSDK_STRING("             bri1 - the first brightness value in range [-100.0, 100.0] (def: 0.0)\n"));
+msdk_printf(MSDK_STRING("             bri2 - the second brightness value in range [-100.0, 100.0] (def: 0.0)\n\n"));
+#endif
 msdk_printf(MSDK_STRING("   [-gamut:compression]  - enable gamut compression algorithm (xvYCC->sRGB) \n"));
 msdk_printf(MSDK_STRING("   [-gamut:bt709]        - enable BT.709 matrix transform (RGB->YUV conversion)(def: BT.601)\n\n"));
 msdk_printf(MSDK_STRING("   [-frc:advanced]       - enable advanced FRC algorithm (based on PTS) \n"));
@@ -218,7 +243,6 @@ msdk_printf(MSDK_STRING("   [-istab (mode)]       - enable Image Stabilization a
 msdk_printf(MSDK_STRING("                           mode of istab can be [1, 2] (def: 2)\n"));
 msdk_printf(MSDK_STRING("                           where: 1 means upscale mode, 2 means croppping mode\n"));
 msdk_printf(MSDK_STRING("   [-view:count value]   - enable Multi View preprocessing. range of views [1, 1024] (def: 1)\n\n"));
-msdk_printf(MSDK_STRING("   [-svc id width height]- enable Scalable Video Processing mode\n"));
 msdk_printf(MSDK_STRING("                           id-layerId, width/height-resolution \n\n"));
 msdk_printf(MSDK_STRING("   [-ssitm (id)]         - specify YUV<->RGB transfer matrix for input surface.\n"));
 msdk_printf(MSDK_STRING("   [-dsitm (id)]         - specify YUV<->RGB transfer matrix for output surface.\n"));
@@ -314,6 +338,10 @@ mfxU32 Str2FourCC( msdk_char* strInput )
     else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("rgb4")) )
     {
         fourcc = MFX_FOURCC_RGB4;
+    }
+    else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("rgbp")) )
+    {
+        fourcc = MFX_FOURCC_RGBP;
     }
     else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("yuy2")) )
     {
@@ -449,7 +477,7 @@ msdk_char* ParseArgn(msdk_char* pIn, mfxU32 argn, msdk_char separator) {
 };
 
 template <typename T> 
-void ArgConvert(msdk_char* pIn, mfxU32 argn, msdk_char* pattern, T* pArg, T ArgDefault, mfxU32& NumOfGoodConverts) {
+void ArgConvert(msdk_char* pIn, mfxU32 argn, const msdk_char* pattern, T* pArg, T ArgDefault, mfxU32& NumOfGoodConverts) {
     msdk_char* pargs = ParseArgn(pIn, argn, msdk_char(':'));
     if (pargs) {
         if (!msdk_sscanf(pargs, pattern, pArg))
@@ -806,7 +834,60 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->procampParam[paramID].saturation);
             }
-
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_hue")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtHue.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value2);
+                pParams->rtHue.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_bri")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtBrightness.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value2);
+                pParams->rtBrightness.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_con")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtContrast.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value2);
+                pParams->rtContrast.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_sat")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtSaturation.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value2);
+                pParams->rtSaturation.isEnabled = true;
+            }
+#endif
             //MSDK 3.0
             else if(0 == msdk_strcmp(strInput[i], MSDK_STRING("-gamut:compression")))
             {
@@ -1216,6 +1297,32 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 pParams->bScaling = true;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->scalingMode);
             }
+#if MFX_VERSION >= 1025
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-chroma_siting")))
+            {
+                VAL_CHECK(2 + i == nArgNum);
+                bool bVfound = false;
+                bool bHfound = false;
+                i++;
+                for (int ii = 0; ii < 2; ii++)
+                {
+                    /* ChromaSiting */
+                    if (msdk_strcmp(strInput[i + ii], MSDK_STRING("vtop")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_VERTICAL_TOP; bVfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("vcen")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_VERTICAL_CENTER; bVfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("vbot")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_VERTICAL_BOTTOM; bVfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("hleft")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_HORIZONTAL_LEFT; bHfound = true; }
+                    else if (msdk_strcmp(strInput[i + ii], MSDK_STRING("hcen")) == 0) { pParams->uChromaSiting |= MFX_CHROMA_SITING_HORIZONTAL_CENTER; bHfound = true; }
+                    else msdk_strcmp(MSDK_STRING("Unknown Chroma siting flag %s"), strInput[i + ii]);
+                }
+                pParams->bChromaSiting = bVfound && bHfound;
+                if (!pParams->bChromaSiting)
+                {
+                    vppPrintHelp(strInput[0], MSDK_STRING("Invalid chroma siting flags\n"));
+                    return MFX_ERR_UNSUPPORTED;
+                }
+                i++;
+            }
+#endif
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-composite")))
             {
                 if( i+1 < nArgNum )
@@ -1265,6 +1372,60 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->procampParam[0].saturation);
             }
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_hue")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtHue.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtHue.value2);
+                pParams->rtHue.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_bri")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtBrightness.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtBrightness.value2);
+                pParams->rtBrightness.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_con")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtContrast.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtContrast.value2);
+                pParams->rtContrast.isEnabled = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-rt_sat")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%u"), &pParams->rtSaturation.interval);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value1);
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%lf"), &pParams->rtSaturation.value2);
+                pParams->rtSaturation.isEnabled = true;
+            }
+#endif
 
             //MSDK 3.0
             else if(0 == msdk_strcmp(strInput[i], MSDK_STRING("-gamut:compression")))

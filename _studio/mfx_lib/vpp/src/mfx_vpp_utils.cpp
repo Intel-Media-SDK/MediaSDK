@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -285,6 +285,14 @@ mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDe
         return resultPicStruct;
     }
 
+    // FIELDS->INTERLACE
+    if( (inPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && (outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) )
+    {
+        resultPicStruct = outPicStruct;
+        sts = MFX_ERR_NONE;
+        return resultPicStruct;
+    }
+
     // INTERLACE->INTERLACE
     inPicStructCore  = inPicStruct  & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF);
     outPicStructCore = outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF);
@@ -305,14 +313,6 @@ mfxU16 UpdatePicStruct( mfxU16 inPicStruct, mfxU16 outPicStruct, bool bDynamicDe
         resultPicStruct = outPicStruct;
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        return resultPicStruct;
-    }
-
-    // FIELDS->INTERLACE
-    if( (inPicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && (outPicStruct & (MFX_PICSTRUCT_FIELD_TFF | MFX_PICSTRUCT_FIELD_BFF)) )
-    {
-        resultPicStruct = outPicStruct;
-        sts = MFX_ERR_NONE;
         return resultPicStruct;
     }
 
@@ -490,6 +490,13 @@ bool IsRoiDifferent(mfxFrameSurface1 *input, mfxFrameSurface1 *output)
 
 void ShowPipeline( std::vector<mfxU32> pipelineList )
 {
+#if !defined(_DEBUG) && \
+    !defined(_WIN32) && !defined(_WIN64) || \
+    !defined(LINUX) && !defined(LINUX32) && !defined(LINUX64)
+
+    (void)pipelineList;
+#endif
+
 #ifdef _DEBUG
 
 #if defined(LINUX) || defined(LINUX32) || defined(LINUX64)
@@ -1302,7 +1309,7 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 
 
 /* check each field of FrameInfo excluding PicStruct */
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType /* platform */)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
 
@@ -1334,6 +1341,9 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
             if (VPP_OUT == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
         case MFX_FOURCC_A2RGB10:
             // 10bit RGB supported as output format only
             if (VPP_IN == request)

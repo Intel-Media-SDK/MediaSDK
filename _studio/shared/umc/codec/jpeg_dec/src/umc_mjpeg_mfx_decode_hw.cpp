@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -147,7 +147,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
     std::set<mfxU32>::iterator iteratorReady;
     std::set<mfxU32>::iterator iteratorSubmitted;
     std::set<mfxU32>::iterator iteratorCorrupted;
-    
+
     AutomaticUMCMutex guard(m_guard);
     iteratorReady = find(m_cachedReadyTaskIndex.begin(), m_cachedReadyTaskIndex.end(), statusReportFeedbackNumber);
     iteratorSubmitted = find(m_submittedTaskIndex.begin(), m_submittedTaskIndex.end(), statusReportFeedbackNumber);
@@ -199,7 +199,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
             if (m_cachedReadyTaskIndex.end() == iteratorReady)
             {
                 iteratorCorrupted = find(m_cachedCorruptedTaskIndex.begin(), m_cachedCorruptedTaskIndex.end(), statusReportFeedbackNumber);
-        
+
                 if(m_cachedCorruptedTaskIndex.end() == iteratorCorrupted)
                 {
                     if(m_submittedTaskIndex.end() != iteratorSubmitted && numZeroFeedback == numStructures )
@@ -214,7 +214,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
                 m_submittedTaskIndex.erase(iteratorSubmitted);
                 return MFX_TASK_DONE;
             }
-    
+
             m_submittedTaskIndex.erase(iteratorSubmitted);
             m_cachedReadyTaskIndex.erase(iteratorReady);
         }
@@ -238,7 +238,7 @@ Status MJPEGVideoDecoderMFX_HW::_DecodeHeader(CBaseStreamInput* in, int32_t* cnt
     if(JPEG_OK != jerr)
         return UMC_ERR_FAILED;
 
-    mfxSize size = {0};
+    mfxSize size = {};
 
     int32_t frameChannels, framePrecision;
     jerr = m_decBase->ReadHeader(

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -44,7 +44,7 @@ static uint32_t bit_mask[33] =
 
 #define GetNBits(current_data, bit_ptr, nbits, pData,type)              \
 {                                                                       \
-    register uint32_t x;                                                  \
+    uint32_t x;                                                  \
                                                                         \
     bit_ptr -= nbits;                                                   \
                                                                         \
@@ -189,7 +189,7 @@ static int HuffmanInitAlloc(int32_t rl, const int32_t* pSrcTable, int32_t** ppDs
                         if (rl == 0) table[code + j + 1] = (value1 << 8) | (commLen - i);
                         else      table[code + j + 1] = ((int16_t)value2 << 16) | ((uint8_t)value1 << 8) | (commLen - i);
 
-                        break;
+                    break;
                 }
                 else
                 {
@@ -224,8 +224,8 @@ int DecodeHuffmanOne(uint32_t**  pBitStream, int* pOffset,
     int32_t*  pDst, const int32_t* pDecodeTable)
 {
     uint32_t table_bits, code_len;
-    register uint32_t  pos;
-    register int32_t  val;
+    uint32_t  pos;
+    int32_t  val;
 
     if (!pBitStream || !pOffset || !pDecodeTable || !*pBitStream || !pDst)
         return -1;

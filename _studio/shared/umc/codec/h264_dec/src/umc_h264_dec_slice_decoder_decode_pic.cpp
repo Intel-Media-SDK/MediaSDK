@@ -71,7 +71,7 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
     ReferenceFlags *pFields1;
     uint32_t NumShortTermRefs, NumLongTermRefs;
     H264RefListInfo rli;
-    H264DecoderFrame *(pLastInList[2]) = {NULL, NULL};
+    H264DecoderFrame *pLastInList[2] = {NULL, NULL};
 
     VM_ASSERT(m_pCurrentFrame);
 

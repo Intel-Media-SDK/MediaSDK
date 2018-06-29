@@ -102,6 +102,11 @@ else( )
   endif()  
 endif()
 
+set( API_VERSION "${major_vers}.${minor_vers}")
+if (NOT API_FLAGS STREQUAL "")
+    add_definitions(${API_FLAGS})
+endif()
+
 message(STATUS "Enabling API ${major_vers}.${minor_vers} feature set with flags ${API_FLAGS}")
 
 if( Linux )

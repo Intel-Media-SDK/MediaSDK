@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,7 +27,9 @@
 #include "umc_mpeg2_dec_bstream.h"
 #include "mfx_trace.h"
 
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4244)
+#endif
 
 using namespace UMC;
 
@@ -136,12 +138,18 @@ Status MPEG2VideoDecoderHW::DecodeSliceHeader(VideoContext *video, int task_num)
             uint8_t *ptr = start_ptr;
             uint32_t count = 0;
 
-            // calculate number of bytes of slice data
-            while (ptr < end_ptr && (ptr[0] || ptr[1] || ptr[2] || ptr[3]))
+            uint32_t zeroes = 0;
+            //calculating the size of slice data, if 4 consecutive 0s are found, it indicates the end of the slice no further check is needed
+            while (ptr < end_ptr)
             {
-                ptr++;
-                count++;
-            }
+                if (*ptr++) zeroes = 0;
+                else ++zeroes;
+                ++count;
+                if (zeroes == 4) break;
+             }
+            // Adjust the count by reducing the number of 0s found, either 4 consecutive 0s or 0-3 0s existing at the end of the data.
+            // Based on the standard, they should be stuffing bytes.
+            count -= zeroes;
 
             // update slice info structures (+ extra 10 bytes, this is @to do@)
             if(pack_w.pSliceInfoBuffer < pack_w.pSliceInfo)
@@ -296,6 +304,8 @@ Status MPEG2VideoDecoderHW::DecodeSliceHeader(VideoContext *video, int task_num)
 
 Status MPEG2VideoDecoderHW::DecodeSlice(VideoContext  *video, int task_num)
 {
+    (void)video;
+    (void)task_num;
 
     pack_w.pSliceInfo++;
     return UMC_OK;
@@ -496,7 +506,7 @@ void MPEG2VideoDecoderHW::quant_matrix_extension(int task_num)
     uint32_t code;
     VideoContext* video = Video[task_num][0];
     int32_t load_intra_quantizer_matrix, load_non_intra_quantizer_matrix, load_chroma_intra_quantizer_matrix, load_chroma_non_intra_quantizer_matrix;
-    uint8_t q_matrix[4][64];
+    uint8_t q_matrix[4][64] = {};
 
     GET_TO9BITS(video->bs, 4 ,code)
     GET_1BIT(video->bs,load_intra_quantizer_matrix)

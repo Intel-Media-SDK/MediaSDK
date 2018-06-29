@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -47,7 +47,13 @@
 #endif
 
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
+#if !defined(AS_HEVCE_PLUGIN)
+#if defined(MFX_VA)
+#include "mfx_h265_encode_hw.h"
+#endif
+#else
 #include "mfx_h265_encode_api.h"
+#endif
 #endif
 
 
@@ -63,14 +69,17 @@ VideoENCODE* CreateUnsupported(VideoCORE *, mfxStatus *res)
 
 } // namespace
 
-VideoENCODE *CreateENCODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSession session, mfxVideoParam *par)
+VideoENCODE *CreateENCODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSession session, mfxVideoParam * /* par */)
 {
+#if (!defined(MFX_ENABLE_H264_VIDEO_ENCODE) || !defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW)) && \
+    !defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE) && \
+    !defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE) && \
+    (!defined(MFX_ENABLE_H265_VIDEO_ENCODE) || !defined(MFX_VA) || defined(AS_HEVCE_PLUGIN))
+    (void)session;
+#endif
+
     VideoENCODE *pENCODE = (VideoENCODE *) 0;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
-
-    // touch unreferenced parameter
-    session = session;
-    par = par;
 
     // create a codec instance
     switch (CodecId)
@@ -109,6 +118,19 @@ VideoENCODE *CreateENCODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSessi
         break;
         break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+    case MFX_CODEC_HEVC:
+        if (session->m_bIsHWENCSupport)
+        {
+            pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(&session->m_coreInt, &mfxRes);
+        }
+        else
+        {
+            pENCODE = nullptr;
+        }
+        break;
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
     default:
         break;
@@ -217,6 +239,20 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+        case MFX_CODEC_HEVC:
+            mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&session->m_coreInt, in, out);
+            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+            {
+                mfxRes = MFX_ERR_UNSUPPORTED;
+            }
+            else
+            {
+                bIsHWENCSupport = true;
+            }
+            break;
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
@@ -342,6 +378,20 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+        case MFX_CODEC_HEVC:
+            mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&session->m_coreInt, par, request);
+            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+            {
+                mfxRes = MFX_ERR_UNSUPPORTED;
+            }
+            else
+            {
+                bIsHWENCSupport = true;
+            }
+            break;
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
@@ -474,15 +524,12 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
 
 static
 mfxStatus MFXVideoENCODELegacyRoutine(void *pState, void *pParam,
-                                      mfxU32 threadNumber, mfxU32 callNumber)
+                                      mfxU32 threadNumber, mfxU32 /* callNumber */)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "EncodeFrame");
     VideoENCODE *pENCODE = (VideoENCODE *) pState;
     MFX_THREAD_TASK_PARAMETERS *pTaskParam = (MFX_THREAD_TASK_PARAMETERS *) pParam;
     mfxStatus mfxRes;
-
-    // touch unreferenced parameter(s)
-    callNumber = callNumber;
 
     // check error(s)
     if ((NULL == pState) ||

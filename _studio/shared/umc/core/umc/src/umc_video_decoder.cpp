@@ -27,7 +27,7 @@ namespace UMC
 VideoDecoderParams::VideoDecoderParams(void)
 {
     m_pData = NULL;
-    memset(&info, 0, sizeof(sVideoStreamInfo));
+    memset(reinterpret_cast<void*>(&info), 0, sizeof(sVideoStreamInfo));
     lFlags = 0;
     pPostProcessing = NULL;
     lpMemoryAllocator = NULL;

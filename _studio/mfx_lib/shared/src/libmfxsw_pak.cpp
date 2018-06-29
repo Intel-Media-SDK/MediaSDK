@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -35,13 +35,15 @@
 #include "mfx_h264_fei_pak.h"
 #endif
 
-VideoPAK *CreatePAKSpecificClass(mfxVideoParam *par, mfxU32 codecProfile, VideoCORE *pCore)
+VideoPAK *CreatePAKSpecificClass(mfxVideoParam *par, mfxU32 /* codecProfile */, VideoCORE *pCore)
 {
+#if !defined(MFX_VA_LINUX) || !defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) || !defined(MFX_ENABLE_H264_VIDEO_FEI_PAK)
+    (void)pCore;
+#endif
+
     VideoPAK *pPAK = (VideoPAK *) 0;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
 
-    // touch unreferenced parameters
-    codecProfile = codecProfile;
     mfxU32 codecId = par->mfx.CodecId;
 
     switch (codecId)
@@ -214,7 +216,7 @@ mfxStatus MFXVideoPAK_Close(mfxSession session)
     return mfxRes;
 
 } // mfxStatus MFXVideoPAK_Close(mfxSession session)
-                                   
+
 enum
 {
     MFX_NUM_ENTRY_POINTS = 2

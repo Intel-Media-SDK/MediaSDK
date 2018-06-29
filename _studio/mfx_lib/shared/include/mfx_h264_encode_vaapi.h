@@ -50,6 +50,18 @@ do {                                               \
 
 #define VAConfigAttribInputTiling  -1  // Inform the app what kind of tiling format supported by driver
 
+inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_id)
+{
+    if (buffer_id != VA_INVALID_ID)
+    {
+        VAStatus vaSts = vaDestroyBuffer(display, buffer_id);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        buffer_id = VA_INVALID_ID;
+    }
+
+    return MFX_ERR_NONE;
+}
 
 mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
 
@@ -85,6 +97,11 @@ mfxStatus SetFrameRate(
     VAContextID  vaContextEncode,
     VABufferID & frameRateBuf_id);
 
+mfxStatus SetRoundingOffset(
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    mfxExtAVCRoundingOffset const & roundingOffset,
+    VABufferID & roundingOffsetBuf_id);
 
 namespace MfxHwH264Encode
 {
@@ -238,6 +255,7 @@ namespace MfxHwH264Encode
         VABufferID m_rirId;                     // VAEncMiscParameterRIR
         VABufferID m_qualityParamsId;           // VAEncMiscParameterEncQuality
         VABufferID m_miscParameterSkipBufferId; // VAEncMiscParameterSkipFrame
+        VABufferID m_roundingOffsetId;          // VAEncMiscParameterCustomRoundingControl
         VABufferID m_roiBufferId;
         VABufferID m_ppsBufferId;
         VABufferID m_mbqpBufferId;
@@ -288,7 +306,7 @@ namespace MfxHwH264Encode
 
         std::vector<VAEncROI> m_arrayVAEncROI;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 27 + 5; //added FEI buffers
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 28 + 5; //added FEI buffers
 
         UMC::Mutex m_guard;
         HeaderPacker m_headerPacker;

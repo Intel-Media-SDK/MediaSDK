@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -862,11 +862,8 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEMJPEG::DecodeFrame(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out)
+mfxStatus VideoDECODEMJPEG::DecodeFrame(mfxBitstream * /* bs */, mfxFrameSurface1 * /* surface_work */, mfxFrameSurface1 * /* surface_out */)
 {
-    bs = bs;
-    surface_work = surface_work;
-    surface_out = surface_out;
     return MFX_ERR_NONE;
 }
 
@@ -1086,24 +1083,26 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
         if (par->mfx.FrameInfo.Width > 8192 || par->mfx.FrameInfo.Height > 8192)
             return true;
 
-        if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV411)
-            return true;
-
-        if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444)
-            return true;
-
-        if (par->mfx.JPEGColorFormat  == MFX_JPEG_COLORFORMAT_YCbCr &&
+        if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
             par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_MONOCHROME)
             return true;
 
-        if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 &&
-            par->mfx.JPEGColorFormat  == MFX_JPEG_COLORFORMAT_RGB &&
-            par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420)
+        if (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV411)
             return true;
 
-        if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4 &&
-            par->mfx.JPEGColorFormat  == MFX_JPEG_COLORFORMAT_YCbCr &&
-            par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420)
+        if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
+            par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444)
+            return true;
+
+        if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
+            par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420 &&
+            par->mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4 &&
+            (par->mfx.FrameInfo.Width > 4096 || par->mfx.FrameInfo.Height > 4096))
+            return true;
+
+        if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
+            par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 &&
+            par->mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4)
             return true;
     }
     if (core->GetHWType() == MFX_HW_VLV)
@@ -1769,6 +1768,8 @@ mfxU32 VideoDECODEMJPEGBase_HW::AdjustFrameAllocRequest(mfxFrameAllocRequest *re
 
 void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool *needVpp)
 {
+    (void)vaType;
+
     if (info->JPEGColorFormat == MFX_JPEG_COLORFORMAT_UNKNOWN || info->JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr)
     {
         #if defined (MFX_VA_LINUX)
@@ -1836,7 +1837,7 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxIn
 }
 
 
-mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 threadNumber, mfxU32 )
+mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 /* threadNumber */, mfxU32 )
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(params);
@@ -1898,7 +1899,6 @@ mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 threadNumber, 
     }
 
     info = 0;
-    threadNumber = threadNumber;
 
     return MFX_TASK_DONE;
 }

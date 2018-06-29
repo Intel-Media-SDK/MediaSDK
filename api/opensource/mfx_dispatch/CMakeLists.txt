@@ -66,7 +66,7 @@ else( )
 
   add_definitions(-DUNIX)
 
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
+  if( CMAKE_SYSTEM_NAME MATCHES Linux )
     add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -74,7 +74,7 @@ else( )
     endif( )
   endif( )
 
-  if( ${CMAKE_SYSTEM_NAME} MATCHES Darwin )
+  if( CMAKE_SYSTEM_NAME MATCHES Darwin )
     add_definitions(-DOSX)
     add_definitions(-DOSX32)
 
@@ -145,25 +145,29 @@ function( make_static_library name )
   set_target_properties( ${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER ${target} )
 endfunction( )
 
-set( defs "${WARNING_FLAGS}" )
+set( defs "" )
 make_static_library( mfx )
 
-set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX ${WARNING_FLAGS}" )
+set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX" )
 make_static_library( dispatch_shared )
 
 list(APPEND sources.plus
   ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_dispatcher_log.cpp
   )
 
-set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG ${WARNING_FLAGS}" )
+set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG" )
 make_static_library( dispatch_trace )
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
 set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}.pc")
+set( PKG_CONFIG_FNAME_SHARED "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}-shared.pc")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config-shared.pc.cmake" ${PKG_CONFIG_FNAME_SHARED} @ONLY)
 
 install( TARGETS mfx ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+install( TARGETS dispatch_shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
+install( FILES ${PKG_CONFIG_FNAME_SHARED} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN *.h )
 
 # For backwards compatibility, create a relative symbolic link without the "lib"

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,11 +27,16 @@
 #if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
 #include "cht_copy_kernel_genx_isa.h"
 #endif
+#include "cnl_copy_kernel_genx_isa.h"
+#include "icl_copy_kernel_genx_isa.h"
+#include "icllp_copy_kernel_genx_isa.h"
 
+
+#ifdef _MSVC_LANG
 #pragma warning(disable: 4505)
 #pragma warning(disable: 4100)
 #pragma warning(disable: 4201)
-
+#endif
 
 #include "umc_mutex.h"
 

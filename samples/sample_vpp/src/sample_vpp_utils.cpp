@@ -82,6 +82,8 @@ static
         return MSDK_STRING("RGB3");
     case MFX_FOURCC_RGB4:
         return MSDK_STRING("RGB4");
+    case MFX_FOURCC_RGBP:
+        return MSDK_STRING("RGBP");
     case MFX_FOURCC_YUV400:
         return MSDK_STRING("YUV400");
     case MFX_FOURCC_YUV411:
@@ -176,6 +178,9 @@ void PrintInfo(sInputParams* pParams, mfxVideoParam* pMfxParams, MFXVideoSession
     msdk_printf(MSDK_STRING("Deinterlace\t%s\n"), (pParams->frameInfoIn[0].PicStruct != pParams->frameInfoOut[0].PicStruct) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("Signal info\t%s\n"),   (VPP_FILTER_DISABLED != pParams->videoSignalInfoParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
     msdk_printf(MSDK_STRING("Scaling\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->bScaling) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
+#if MFX_VERSION >= 1025
+    msdk_printf(MSDK_STRING("CromaSiting\t\t%s\n"), (VPP_FILTER_DISABLED != pParams->bChromaSiting) ? MSDK_STRING("ON") : MSDK_STRING("OFF"));
+#endif
     msdk_printf(MSDK_STRING("Denoise\t\t%s\n"),     (VPP_FILTER_DISABLED != pParams->denoiseParam[0].mode) ? MSDK_STRING("ON"): MSDK_STRING("OFF"));
 #ifdef ENABLE_MCTF
     msdk_printf(MSDK_STRING("MCTF\t\t%s\n"), (VPP_FILTER_DISABLED != pParams->mctfParam[0].mode) ? MSDK_STRING("ON") : MSDK_STRING("OFF"));
@@ -883,7 +888,7 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
         h = pInfo->Height;
     }
 
-    pitch = pData->Pitch;
+    pitch = ((mfxU32)pData->PitchHigh << 16) + pData->PitchLow;
 
     if(pInfo->FourCC == MFX_FOURCC_YV12 || pInfo->FourCC == MFX_FOURCC_I420)
     {
@@ -1826,6 +1831,28 @@ mfxStatus CRawVideoWriter::WriteFrame(
         for(i = 0; i < h; i++)
         {
             MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, 4*w, m_fDst), 4u*w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+    }
+    else if (pInfo->FourCC == MFX_FOURCC_RGBP)
+    {
+        MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->G, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->B, MFX_ERR_NOT_INITIALIZED);
+
+        ptr = pData->R + pInfo->CropX + pInfo->CropY * pitch;
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+        ptr = pData->G + pInfo->CropX + pInfo->CropY * pitch;
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+        ptr = pData->B + pInfo->CropX + pInfo->CropY * pitch;
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
     else if (pInfo->FourCC == MFX_FOURCC_AYUV)

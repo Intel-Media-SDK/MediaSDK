@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -88,7 +88,7 @@ namespace UMC
             void s_new(T** pObj, uint32_t size)
         {
             int32_t size_T = sizeof(T);
-            if ((m_iRemSize - align_value<int32_t>(size_T)*size) < 0)
+            if ((m_iRemSize - align_value<int32_t>(size_T)*((int32_t)size)) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
@@ -109,7 +109,7 @@ namespace UMC
                        Arg*   pArg)
         {
             int32_t size_T = sizeof(T);
-            if ((m_iRemSize - align_value<int32_t>(size_T)*size) < 0)
+            if ((m_iRemSize - align_value<int32_t>(size_T)*((int32_t)size)) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
@@ -288,7 +288,7 @@ namespace UMC
         {
             pDS->m_bIsReadyToDisplay = false;
             pDS->m_bIsReadyToLoad = true;
-            pDS->m_bIsBusy = false; 
+            pDS->m_bIsBusy = false;
             --m_iNumDSActiveinQueue;
             uint32_t i;
             for (i = 0; i < m_iNumFramesProcessing; i++)

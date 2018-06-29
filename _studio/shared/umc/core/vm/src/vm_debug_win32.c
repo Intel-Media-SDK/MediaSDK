@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,10 +33,11 @@
 # include <syslog.h>
 #endif
 
-
+#ifdef _MSVC_LANG
 #pragma warning(disable:4047)
 #pragma warning(disable:4024)
 #pragma warning(disable:4133)
+#endif
 
 #if defined(UMC_VA) && ( defined(LINUX32) || defined(LINUX64) )
 #endif
@@ -59,15 +60,13 @@ vm_debug_output vm_debug_setoutput(vm_debug_output output)
 
 void vm_debug_setfile(vm_char *file, int32_t truncate)
 {
-    // touch unreferenced parameters
-    file = file;
-    truncate = truncate;
+    (void)file;
+    (void)truncate;
 }
 
 void vm_debug_message(const vm_char *format, ...)
 {
-    // touch unreferenced parameters
-    format = format;
+    (void)format;
 }
 
 
@@ -121,23 +120,28 @@ ErrorStringTable[] =
 
 int32_t vm_trace_hresult_func(int32_t hr, vm_char *mess, void *pthis, vm_char *func, vm_char *file, uint32_t line)
 {
-    /* touch unreferenced parameter */
-    pthis = pthis;
+    (void)pthis;
 
     // touch unreferenced parameters
-    hr = hr;
-    mess = mess;
-    func = func;
-    file = file;
-    line = line;
+    (void)hr;
+    (void)mess;
+    (void)func;
+    (void)file;
+    (void)line;
 
     return hr;
 }
 
 #if defined(LINUX32)
-void vm_debug_trace_ex(int32_t level, const vm_char *func_name, const vm_char *file_name,
-                       int32_t num_line, const vm_char *format, ...)
-{}
+void vm_debug_trace_ex(int32_t level, const vm_char * func_name, const vm_char * file_name,
+                       int32_t num_line, const vm_char * format, ...)
+{
+    (void)level;
+    (void)func_name;
+    (void)file_name;
+    (void)num_line;
+    (void)format;
+}
 #endif
 
 //#endif

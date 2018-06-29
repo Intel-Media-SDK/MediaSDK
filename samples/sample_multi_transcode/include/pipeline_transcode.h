@@ -62,9 +62,17 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define TIME_STATS 1 // Enable statistics processing
 #include "time_statistics.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "decode_render.h"
+#endif
 
+#if defined(_WIN32) || defined(_WIN64)
+    #define MSDK_CPU_ROTATE_PLUGIN  MSDK_STRING("sample_rotate_plugin.dll")
+    #define MSDK_OCL_ROTATE_PLUGIN  MSDK_STRING("sample_plugin_opencl.dll")
+#else
     #define MSDK_CPU_ROTATE_PLUGIN  MSDK_STRING("libsample_rotate_plugin.so")
     #define MSDK_OCL_ROTATE_PLUGIN  MSDK_STRING("libsample_plugin_opencl.so")
+#endif
 
 #define MAX_PREF_LEN    256
 
@@ -130,13 +138,14 @@ namespace TranscodingSample
     // that can be changed in run-time;
     struct sMctfRunTimeParam
     {
-#ifdef ENABLE_MCTF_EXT
-#endif
         mfxU16 FilterStrength;
     };
 
     struct sMctfRunTimeParams
     {
+        sMctfRunTimeParams() : CurIdx(0)
+        {}
+
         mfxU32 CurIdx;
         std::vector<sMctfRunTimeParam> RunTimeParams;
         // returns rt-param corresponding to CurIdx or NULL if
@@ -176,7 +185,7 @@ namespace TranscodingSample
         mfxIMPL libType;  // Type of used mediaSDK library
         bool   bIsPerf;   // special performance mode. Use pre-allocated bitstreams, output
         mfxU16 nThreadsNum; // number of internal session threads number
-        bool   bRobust;   // Robust transcoding mode. Allows auto-recovery after hardware errors
+        bool bRobustFlag;   // Robust transcoding mode. Allows auto-recovery after hardware errors
 
         mfxU32 EncodeId; // type of output coded video
         mfxU32 DecodeId; // type of input coded video
@@ -236,6 +245,8 @@ namespace TranscodingSample
         mfxU16 WeightedBiPred;
         mfxU16 ExtBrcAdaptiveLTR;
 
+        bool   bExtMBQP;
+
         // MVC Specific Options
         bool   bIsMVC; // true if Multi-View-Codec is in use
         mfxU32 numViews; // number of views for Multi-View-Codec
@@ -260,6 +271,7 @@ namespace TranscodingSample
         mfxU16 nQPI;
         mfxU16 nQPP;
         mfxU16 nQPB;
+        bool bDisableQPOffset;
 
         bool bOpenCL;
         mfxU16 reserved[4];
@@ -279,6 +291,7 @@ namespace TranscodingSample
 
         bool bUseOpaqueMemory;
         bool bForceSysMem;
+        mfxU16 VppOutPattern;
         mfxU16 nGpuCopyMode;
 
         mfxU16 nRenderColorForamt; /*0 NV12 - default, 1 is ARGB*/
@@ -286,6 +299,7 @@ namespace TranscodingSample
         mfxI32  monitorType;
         bool shouldUseGreedyFormula;
         bool enableQSVFF;
+        bool bSingleTexture;
 
         ExtBRCType nExtBRC;
 
@@ -602,7 +616,7 @@ namespace TranscodingSample
         inline void SetPipelineID(mfxU32 id){m_nID = id;}
         void StopSession();
         bool IsOverlayUsed();
-        bool IsRobust();
+        size_t GetRobustFlag();
     protected:
         virtual mfxStatus CheckRequiredAPIVersion(mfxVersion& version, sInputParams *pParams);
 
@@ -678,6 +692,8 @@ namespace TranscodingSample
         mfxU32 GetNumFramesForReset();
         void   SetNumFramesForReset(mfxU32 nFrames);
 
+        void   HandlePossibleGpuHang(mfxStatus& sts);
+
         mfxStatus   SetAllocatorAndHandleIfRequired();
         mfxStatus   LoadGenericPlugin();
 
@@ -710,7 +726,11 @@ namespace TranscodingSample
         CSmplYUVWriter                  m_dumpVppCompFileWriter;
         mfxU32                          m_vppCompDumpRenderMode;
 
+#if defined(_WIN32) || defined(_WIN64)
+        CDecodeD3DRender*               m_hwdev4Rendering;
+#else
         CHWDevice*                      m_hwdev4Rendering;
+#endif
 
         typedef std::vector<mfxFrameSurface1*> SurfPointersArray;
         SurfPointersArray  m_pSurfaceDecPool;
@@ -745,6 +765,9 @@ namespace TranscodingSample
         mfxVideoParam                  m_mfxPreEncParams;
         mfxU32                         m_nTimeout;
         bool                           m_bUseOverlay;
+
+        bool                           m_bROIasQPMAP;
+        bool                           m_bExtMBQP;
         // various external buffers
         // for disabling VPP algorithms
         mfxExtVPPDoNotUse m_VppDoNotUse;
@@ -815,9 +838,11 @@ namespace TranscodingSample
         mfxU32          m_NumFramesForReset;
         MSDKMutex       m_mReset;
         MSDKMutex       m_mStopSession;
-        bool            m_bIsRobust;
+        bool            m_bRobustFlag;
 
         bool isHEVCSW;
+
+        bool m_bInsertIDR;
 
         std::unique_ptr<ExtendedBSStore>        m_pBSStore;
 
