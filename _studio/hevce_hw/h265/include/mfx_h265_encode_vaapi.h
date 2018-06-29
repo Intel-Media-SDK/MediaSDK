@@ -247,7 +247,12 @@ mfxStatus SetSkipFrame(
         virtual
         VAEntrypoint GetVAEntryPoint()
         {
-            return IsOn(m_videoParam.mfx.LowPower) ? VAEntrypointEncSliceLP : VAEntrypointEncSlice;
+#if (MFX_VERSION >= 1025)
+            return (IsOn(m_videoParam.mfx.LowPower) && m_videoParam.m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE) ?
+                    VAEntrypointEncSliceLP : VAEntrypointEncSlice;
+#else
+            return VAEntrypointEncSlice;
+#endif
         }
 
     protected:
