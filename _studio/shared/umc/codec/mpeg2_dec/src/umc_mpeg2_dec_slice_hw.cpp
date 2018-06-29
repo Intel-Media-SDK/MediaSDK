@@ -254,10 +254,7 @@ Status MPEG2VideoDecoderHW::DecodeSliceHeader(VideoContext *video, int task_num)
 
             if (video->stream_type != MPEG1_VIDEO)
             {
-                const int field_pic = PictureHeader[task_num].picture_structure != FRAME_PICTURE;
-                pack_l.pSliceInfo->slice_vertical_position = (start_code - 0x00000101) << field_pic; //SLICE_MIN_START_CODE 0x00000101
-                if(BOTTOM_FIELD == PictureHeader[task_num].picture_structure)
-                    ++pack_l.pSliceInfo->slice_vertical_position;
+                pack_l.pSliceInfo->slice_vertical_position = start_code - 0x00000101; //SLICE_MIN_START_CODE 0x00000101
 
                 uint32_t macroblock_address_increment=1;
 
