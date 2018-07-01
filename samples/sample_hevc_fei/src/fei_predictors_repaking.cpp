@@ -32,8 +32,8 @@ PredictorsRepaking::PredictorsRepaking() :
     m_heightCU_ds(0),
     m_widthCU_enc(0),
     m_heightCU_enc(0),
-    m_NumMvPredictorsL0(0),
-    m_NumMvPredictorsL1(0)
+    m_maxNumMvPredictorsL0(0),
+    m_maxNumMvPredictorsL1(0)
 {}
 
 mfxStatus PredictorsRepaking::Init(const mfxVideoParam& videoParams, mfxU16 preencDSfactor, const mfxU16 numMvPredictors[2])
@@ -50,8 +50,8 @@ mfxStatus PredictorsRepaking::Init(const mfxVideoParam& videoParams, mfxU16 pree
     m_widthCU_enc  = (MSDK_ALIGN32(m_width)) >> 4;
     m_heightCU_enc = (MSDK_ALIGN32(m_height)) >> 4;
 
-    m_NumMvPredictorsL0 = numMvPredictors[0];
-    m_NumMvPredictorsL1 = numMvPredictors[1];
+    m_maxNumMvPredictorsL0 = numMvPredictors[0];
+    m_maxNumMvPredictorsL1 = numMvPredictors[1];
 
     return MFX_ERR_NONE;
 }
@@ -73,17 +73,17 @@ mfxU8 PredictorsRepaking::ConvertDSratioPower2(mfxU8 downsample_ratio)
     }
 }
 
-mfxStatus PredictorsRepaking::RepackPredictors(const HevcTask& eTask, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2])
+mfxStatus PredictorsRepaking::RepackPredictors(const HevcTask& task, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2])
 {
     mfxStatus sts = MFX_ERR_NONE;
 
     switch (m_repakingMode)
     {
     case PERFORMANCE:
-        sts = RepackPredictorsPerformance(eTask, mvp, nMvPredictors);
+        sts = RepackPredictorsPerformance(task, mvp, nMvPredictors);
         break;
     case QUALITY:
-        sts = RepackPredictorsQuality(eTask, mvp, nMvPredictors);
+        sts = RepackPredictorsQuality(task, mvp, nMvPredictors);
         break;
     default:
         return MFX_ERR_UNSUPPORTED;
@@ -92,24 +92,24 @@ mfxStatus PredictorsRepaking::RepackPredictors(const HevcTask& eTask, mfxExtFeiH
     return sts;
 }
 
-mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& eTask, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2])
+mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& task, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2])
 {
     std::vector<mfxExtFeiPreEncMVExtended*> mvs_vec;
     std::vector<const RefIdxPair*>          refIdx_vec;
 
-    mfxU8 numFinalL0Predictors = (std::min)(eTask.m_numRefActive[0], (mfxU8)m_NumMvPredictorsL0);
-    mfxU8 numFinalL1Predictors = (std::min)(eTask.m_numRefActive[1], (mfxU8)m_NumMvPredictorsL1);
+    mfxU8 numFinalL0Predictors = (std::min)(task.m_numRefActive[0], (mfxU8)m_maxNumMvPredictorsL0);
+    mfxU8 numFinalL1Predictors = (std::min)(task.m_numRefActive[1], (mfxU8)m_maxNumMvPredictorsL1);
     mfxU8 numPredPairs = (std::min)(m_max_fei_enc_mvp_num, (std::max)(numFinalL0Predictors, numFinalL1Predictors));
 
     // I-frames, nothing to do
-    if (numPredPairs == 0 || (eTask.m_frameType & MFX_FRAMETYPE_I))
+    if (numPredPairs == 0 || (task.m_frameType & MFX_FRAMETYPE_I))
         return MFX_ERR_NONE;
 
     mvs_vec.reserve(m_max_fei_enc_mvp_num);
     refIdx_vec.reserve(m_max_fei_enc_mvp_num);
 
     // PreENC parameters reading
-    for (std::list<PreENCOutput>::const_iterator it = eTask.m_preEncOutput.begin(); it != eTask.m_preEncOutput.end(); ++it)
+    for (std::list<PreENCOutput>::const_iterator it = task.m_preEncOutput.begin(); it != task.m_preEncOutput.end(); ++it)
     {
         if (!it->m_mv)
             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -220,13 +220,18 @@ mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& eTask,
                     block.MV[j][1].y <<= m_downsample_power2;
                 }
             }
+
+            // Duplicate predictors to the first L0 reference in the first L1 MVP slot
+            if (task.m_ldb)
+            {
+                assert(m_maxNumMvPredictorsL1 == 1);
+
+                block.RefIdx[0].RefL1 = block.RefIdx[0].RefL0;
+                block.MV[0][1] = block.MV[0][0];
+            }
         }
     }
-    /* NB: Repacker in the performance mode uses only a single (the first) predictor of each 16x16 block
-     * from each PreENC output pair "current_surface<->reference_surface"
-     * so it's valid to set a number of MVPs according to number of active references for a current frame.
-     * Such approach mitigates the code problem above
-     * that we don't clean up MVPs remained in mfxExtFeiHevcEncMVPredictors buffer from previous calls. */
+
     nMvPredictors[0] = numFinalL0Predictors;
     nMvPredictors[1] = numFinalL1Predictors;
 
@@ -235,18 +240,19 @@ mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& eTask,
 
 void SelectFromMV(const mfxI16Pair(*mv)[2], mfxI32 count, mfxI16Pair(&res)[2]);
 
-mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2])
+mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& task, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2])
 {
     std::vector<mfxExtFeiPreEncMVExtended*>     mvs_vec;
     std::vector<mfxExtFeiPreEncMBStatExtended*> mbs_vec;
     std::vector<const RefIdxPair*>              refIdx_vec;
 
-    mfxU8 numFinalL0Predictors = (std::min)(eTask.m_numRefActive[0], (mfxU8)m_NumMvPredictorsL0);
-    mfxU8 numFinalL1Predictors = (std::min)(eTask.m_numRefActive[1], (mfxU8)m_NumMvPredictorsL1);
+    mfxU8 numFinalL0Predictors = (std::min)(task.m_numRefActive[0], (mfxU8)m_maxNumMvPredictorsL0);
+    // Currently RepackPredictorsQuality() doesn't have logic to handle L1 predictors of GPB frames
+    mfxU8 numFinalL1Predictors = (std::min)((mfxU8)(task.m_ldb ? 0 : task.m_numRefActive[1]), (mfxU8)m_maxNumMvPredictorsL1);
     mfxU8 numPredPairs = (std::min)(m_max_fei_enc_mvp_num, (std::max)(numFinalL0Predictors, numFinalL1Predictors));
 
     // I-frames, nothing to do
-    if (numPredPairs == 0 || (eTask.m_frameType & MFX_FRAMETYPE_I))
+    if (numPredPairs == 0 || (task.m_frameType & MFX_FRAMETYPE_I))
         return MFX_ERR_NONE;
 
     mvs_vec.reserve(m_max_fei_enc_mvp_num);
@@ -254,7 +260,7 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfx
     refIdx_vec.reserve(m_max_fei_enc_mvp_num);
 
     // PreENC parameters reading
-    for (std::list<PreENCOutput>::const_iterator it = eTask.m_preEncOutput.begin(); it != eTask.m_preEncOutput.end(); ++it)
+    for (std::list<PreENCOutput>::const_iterator it = task.m_preEncOutput.begin(); it != task.m_preEncOutput.end(); ++it)
     {
         if (!it->m_mv || !it->m_mb)
             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -372,8 +378,8 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& eTask, mfx
                     mv[j][1].x <<= m_downsample_power2;
                     mv[j][1].y <<= m_downsample_power2;
 
-                    distortion[j][0] = (j < eTask.m_numRefActive[0]) ? mbs_vec[j]->MB[preencCUIdx].Inter[0].BestDistortion : 0xffff;
-                    distortion[j][1] = (j < eTask.m_numRefActive[1]) ? mbs_vec[j]->MB[preencCUIdx].Inter[1].BestDistortion : 0xffff;
+                    distortion[j][0] = (j < task.m_numRefActive[0]) ? mbs_vec[j]->MB[preencCUIdx].Inter[0].BestDistortion : 0xffff;
+                    distortion[j][1] = (j < task.m_numRefActive[1]) ? mbs_vec[j]->MB[preencCUIdx].Inter[1].BestDistortion : 0xffff;
                 }
             }
 
