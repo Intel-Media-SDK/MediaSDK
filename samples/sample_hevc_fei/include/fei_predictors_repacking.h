@@ -30,7 +30,7 @@ public:
     ~PredictorsRepaking() {}
 
     mfxStatus Init(const mfxVideoParam& videoParams, mfxU16 preencDSfactor, const mfxU16 numMvPredictors[2]);
-    mfxStatus RepackPredictors(const HevcTask& eTask, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2]);
+    mfxStatus RepackPredictors(const HevcTask& task, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2]);
 
     enum
     {
@@ -44,20 +44,20 @@ public:
 private:
     const mfxU8  m_max_fei_enc_mvp_num;// maximum number of predictors for encoder
     //variables
-    mfxU8  m_repakingMode;       // repaking type: PERFORMANCE or QUALITY
-    mfxU16 m_width;              // input surface width
-    mfxU16 m_height;             // input surface height
-    mfxU8  m_downsample_power2;  // power of 2 for down-sampling: 0..3
-    mfxU16 m_widthCU_ds;         // width in CU (16x16) of ds surface
-    mfxU16 m_heightCU_ds;        // height in CU (16x16) of ds surface
-    mfxU16 m_widthCU_enc;        // width in CU (16x16) for encoder
-    mfxU16 m_heightCU_enc;       // height in CU (16x16) for encoder
-    mfxU16 m_NumMvPredictorsL0;  // maximum number of predictors for L0
-    mfxU16 m_NumMvPredictorsL1;  // maximum number of predictors for L1
+    mfxU8  m_repakingMode;         // repaking type: PERFORMANCE or QUALITY
+    mfxU16 m_width;                // input surface width
+    mfxU16 m_height;               // input surface height
+    mfxU8  m_downsample_power2;    // power of 2 for down-sampling: 0..3
+    mfxU16 m_widthCU_ds;           // width in CU (16x16) of ds surface
+    mfxU16 m_heightCU_ds;          // height in CU (16x16) of ds surface
+    mfxU16 m_widthCU_enc;          // width in CU (16x16) for encoder
+    mfxU16 m_heightCU_enc;         // height in CU (16x16) for encoder
+    mfxU16 m_maxNumMvPredictorsL0;
+    mfxU16 m_maxNumMvPredictorsL1;
 
     //functions
-    mfxStatus RepackPredictorsPerformance(const HevcTask& eTask, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2]);
-    mfxStatus RepackPredictorsQuality(const HevcTask& eTask, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2]);
+    mfxStatus RepackPredictorsPerformance(const HevcTask& task, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2]);
+    mfxStatus RepackPredictorsQuality(const HevcTask& task, mfxExtFeiHevcEncMVPredictors& mvp, mfxU16 nMvPredictors[2]);
     mfxU8 ConvertDSratioPower2(mfxU8 DSfactor);
 
     DISALLOW_COPY_AND_ASSIGN(PredictorsRepaking);
