@@ -649,7 +649,7 @@ void AdjustOptions(sInputParams& params)
     params.nNumSlices       = tune(params.nNumSlices, 0, 1);
     params.nIdrInterval     = tune(params.nIdrInterval, 0, 0xffff);
 
-    if (params.nRefDist < 2)
+    if (params.nRefDist < 2 && params.GPB != MFX_CODINGOPTION_ON)
     {
         params.NumRefActiveBL0 = params.NumRefActiveBL1 = 0;
     }
