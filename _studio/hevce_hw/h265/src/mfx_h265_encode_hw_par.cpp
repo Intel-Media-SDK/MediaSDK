@@ -1450,16 +1450,32 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
            && par.mfx.GopRefDist > 0
            && ( par.mfx.GopRefDist < 2
             || minRefForPyramid(par.mfx.GopRefDist, par.isField()) > 16
-            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame
-                && !par.mfx.EncodedOrder)))
+            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
     {
-        par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
-        changed ++;
+        if (par.mfx.EncodedOrder
+         && par.mfx.NumRefFrame > 2 
+         && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)
+        {
+            par.bNonStandardReord = true;  // let's allow this mode in encoding order (may be special B pyr is used)
+        }
+        else
+        {
+            // disable B pyramid
+            par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
+            changed++;
+        }
     }
-    if (par.mfx.GopRefDist > 1 && (par.mfx.NumRefFrame && par.mfx.NumRefFrame < (par.isField() ? 4 :2)) && !par.mfx.EncodedOrder)
+    if (par.mfx.GopRefDist > 1 && (par.mfx.NumRefFrame && par.mfx.NumRefFrame < (par.isField() ? 4 :2)) )
     {
-        par.mfx.NumRefFrame = par.isField() ? 4 :2;
-        changed ++;
+        if (par.mfx.EncodedOrder && par.isField() && par.mfx.NumRefFrame > 1 && par.mfx.NumRefFrame < 4)
+        {
+            par.bNonStandardReord = true;  // let's allow this mode in encoding order 
+        }
+        else
+        {
+            par.mfx.NumRefFrame = par.isField() ? 4 : 2;
+            changed++;
+        }
     }
 
     if (par.m_ext.CO3.PRefType == MFX_P_REF_PYRAMID &&  par.mfx.GopRefDist > 1)
