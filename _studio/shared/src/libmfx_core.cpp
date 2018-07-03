@@ -796,6 +796,10 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
     case MFX_HW_CFL    : platform->CodeName = MFX_PLATFORM_COFFEELAKE;  break;
     case MFX_HW_CNL    : platform->CodeName = MFX_PLATFORM_CANNONLAKE;  break;
 #endif
+#if (MFX_VERSION >= 1027)
+    case MFX_HW_ICL    :
+    case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;     break;
+#endif
     default:             platform->CodeName = MFX_PLATFORM_UNKNOWN;     break;
     }
 
@@ -1359,6 +1363,20 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
         sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
         MFX_CHECK_STS(sts);
 
+        break;
+
+    case MFX_FOURCC_Y410:
+        {
+            MFX_CHECK_NULL_PTR1(pDst->Data.Y410);
+
+            mfxU8* ptrDst = (mfxU8*) pDst->Data.Y410;
+            mfxU8* ptrSrc = (mfxU8*) pSrc->Data.Y410;
+
+            roi.width *= 4;
+
+            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+            MFX_CHECK_STS(sts);
+        }
         break;
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)

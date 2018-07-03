@@ -237,6 +237,10 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
     case MFX_FOURCC_AYUV:
         nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
         break;
+    case MFX_FOURCC_Y410:
+        Pitch=ALIGN32(request->Info.Width*4);
+        nbytes=Pitch*Height2;
+        break;
 
 
 
@@ -391,6 +395,12 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
         ptr->U = ptr->V + 1;
         ptr->Y = ptr->V + 2;
         ptr->A = ptr->V + 3;
+        break;
+    case MFX_FOURCC_Y410:
+        ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
+        ptr->PitchLow  = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
+        ptr->Y = ptr->U = ptr->V = ptr->A = 0;
+        ptr->Y410 = (mfxY410*)sptr;
         break;
 
 

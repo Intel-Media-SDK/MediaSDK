@@ -67,6 +67,11 @@ typedef mfxI32 cmStatus;
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
 
+static bool operator < (const mfxHDLPair & l, const mfxHDLPair & r)
+{
+    return (l.first == r.first) ? (l.second < r.second) : (l.first < r.first);
+};
+
 class CmDevice;
 class CmBuffer;
 class CmBufferUP;
@@ -145,7 +150,11 @@ public:
     mfxStatus IsCmCopySupported(mfxFrameSurface1 *pSurface, mfxSize roi);
 
     static bool CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
-
+    static bool isSinglePlainFormat(mfxU32 format);
+    static bool isNeedSwapping(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
+    static bool isNeedShift(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
+    static bool isNV12LikeFormat(mfxU32 format);
+    static int  getSizePerPixel(mfxU32 format);
     mfxStatus CopyVideoToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
     mfxStatus CopySysToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
     mfxStatus CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
@@ -159,8 +168,8 @@ public:
 
     mfxStatus CopySwapVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format);
     mfxStatus CopySwapSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
-    mfxStatus CopyShiftSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 bitshift);
-    mfxStatus CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 bitshift);
+    mfxStatus CopyShiftSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 bitshift, mfxU32 format);
+    mfxStatus CopyShiftVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 bitshift, mfxU32 format);
     mfxStatus CopyMirrorVideoToSystemMemory(mfxU8 *pDst, mfxU32 dstPitch, mfxU32 dstUVOffset, void *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU32 format);
     mfxStatus CopyMirrorSystemToVideoMemory(void *pDst, mfxU32 dstPitch, mfxU8 *pSrc, mfxU32 srcPitch, mfxU32 srcUVOffset, mfxSize roi, mfxU32 format);
     mfxStatus CopySwapVideoToVideoMemory(void *pDst, void *pSrc, mfxSize roi, mfxU32 format);
@@ -255,6 +264,16 @@ public:
                                     const UINT option,
                                     int bitshift,
                                     CmEvent* & pEvent );
+    mfxStatus EnqueueCopyShiftGPUtoCPU(CmSurface2D* pSurface,
+                                    unsigned char* pSysMem,
+                                    int width,
+                                    int height,
+                                    const UINT widthStride,
+                                    const UINT heightStride,
+                                    mfxU32 format,
+                                    const UINT option,
+                                    int bitshift,
+                                    CmEvent* & pEvent);
     mfxStatus EnqueueCopyShiftP010CPUtoGPU( CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
@@ -265,6 +284,16 @@ public:
                                     const UINT option,
                                     int bitshift,
                                     CmEvent* & pEvent );
+    mfxStatus EnqueueCopyShiftCPUtoGPU(CmSurface2D* pSurface,
+                                    unsigned char* pSysMem,
+                                    int width,
+                                    int height,
+                                    const UINT widthStride,
+                                    const UINT heightStride,
+                                    mfxU32 format,
+                                    int bitshift,
+                                    const UINT option,
+                                    CmEvent* & pEvent);
     mfxStatus EnqueueCopyNV12CPUtoGPU(   CmSurface2D* pSurface,
                                     unsigned char* pSysMem,
                                     int width,
@@ -301,7 +330,7 @@ protected:
     std::map<CmSurface2D *, SurfaceIndex *> m_tableCmIndex;
     std::map<CmBufferUP *,  SurfaceIndex *> m_tableSysIndex;
 
-    std::map<void *, CmSurface2D *> m_tableCmRelations2;
+    std::map<mfxHDLPair, CmSurface2D *> m_tableCmRelations2;
     std::map<mfxU8 *, CmBufferUP *> m_tableSysRelations2;
 
     std::map<CmSurface2D *, SurfaceIndex *> m_tableCmIndex2;
@@ -313,7 +342,7 @@ protected:
     UMC::Mutex m_guard;
 
     CmSurface2D * CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 height, bool isSecondMode,
-                                    std::map<void *, CmSurface2D *> & tableCmRelations,
+                                    std::map<mfxHDLPair, CmSurface2D *> & tableCmRelations,
                                     std::map<CmSurface2D *, SurfaceIndex *> & tableCmIndex);
 
     SurfaceIndex  * CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize,

@@ -98,6 +98,7 @@ enum VideoAccelerationProfile
     VA_VLD          = 0x00400,
 
     VA_PROFILE                  = 0xff000,
+    VA_PROFILE_444              = 0x0b000,
 
     //profile amendments
     VA_PROFILE_10               = 0x10000,

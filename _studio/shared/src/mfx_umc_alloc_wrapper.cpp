@@ -270,7 +270,8 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
 
     int32_t bit_depth;
     if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
-        params->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
+        params->mfx.FrameInfo.FourCC == MFX_FOURCC_P210 ||
+        params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
         )
         bit_depth = 10;
     else
@@ -304,6 +305,11 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     case MFX_FOURCC_AYUV:
         color_format = UMC::AYUV;
         break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y410:
+        color_format = UMC::Y410;
+        break;
+#endif
     default:
         return UMC::UMC_ERR_UNSUPPORTED;
     }
@@ -820,6 +826,9 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y410:
+#endif
         break;
     default:
         return -1;
