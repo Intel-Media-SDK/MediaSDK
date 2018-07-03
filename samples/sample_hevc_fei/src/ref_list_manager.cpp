@@ -118,19 +118,6 @@ namespace HevcRplUtils
         bool   m_IsBottomField;
     };
 
-    struct RefPocIsGreater : public BasePredicateForRefPicure
-    {
-        RefPocIsGreater(Dpb const & dpb)
-        : BasePredicateForRefPicure(dpb)
-        {
-        }
-
-        bool operator ()(size_t l, size_t r) const
-        {
-            return m_dpb[l].m_poc > m_dpb[r].m_poc;
-        }
-    };
-
     bool SortByPoc(const HevcDpbFrame & l, const HevcDpbFrame & r)
     {
         return l.m_poc < r.m_poc;
@@ -587,9 +574,9 @@ namespace HevcRplUtils
             l1 = (mfxU8)NumRefLX[1];
         }
 
-        // reorder STRs to POC descending order
+        // reorder STRs to give priority to closest frames
         for (mfxU8 lx = 0; lx < 2; lx++)
-            std::sort(&RPL[lx][0], &RPL[lx][numRefActive[lx]], RefPocIsGreater(DPB));
+            std::sort(&RPL[lx][0], &RPL[lx][numRefActive[lx]], PocDistanceIsLess(DPB, poc));
 
         if (nLTR)
         {
@@ -605,15 +592,7 @@ namespace HevcRplUtils
         assert(l0 > 0);
 
         if (isB && !l1 && l0)
-            RPL[1][l1++] = RPL[0][l0 - 1];
-
-        if (!isB)
-        {
-            l1 = 0; //ignore l1 != l0
-
-            for (mfxU16 i = 0; i < std::min<mfxU16>(l0, NumRefLX[1]); i++)
-                RPL[1][l1++] = RPL[0][i];
-        }
+            RPL[1][l1++] = RPL[0][0];
     }
 
     mfxU8 GetSHNUT(HevcTask const & task, bool RAPIntra)
