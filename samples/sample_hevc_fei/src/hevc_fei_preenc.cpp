@@ -414,9 +414,9 @@ mfxStatus FEI_Preenc::PreEncMultiFrames(HevcTask* pTask)
 
     bool bDownsampleInput = true;
     for (size_t idxL0 = 0, idxL1 = 0;
-         idxL0 < task.m_numRefActive[0] || idxL1 < task.m_numRefActive[1] // Iterate thru L0/L1 frames
-         || idxL0 < !!(task.m_frameType & MFX_FRAMETYPE_I); // trick: use idxL0 for 1 iteration for I-frame
-         ++idxL0, ++idxL1)
+         idxL0 < task.m_numRefActive[0] || idxL1 < task.m_numRefActive[1] // Iterate thru L0/L1 frames.
+         || idxL0 < !!(task.m_frameType & MFX_FRAMETYPE_I); // Trick: use idxL0 for 1 iteration for I-frame,
+         ++idxL0, ++idxL1)                                  // the aim is so that driver can downsample input surface (corresponds to I frame).
     {
         RefIdxPair dpbRefIdxPair    = {IDX_INVALID, IDX_INVALID};
         RefIdxPair activeRefIdxPair = {IDX_INVALID, IDX_INVALID};
@@ -427,7 +427,9 @@ mfxStatus FEI_Preenc::PreEncMultiFrames(HevcTask* pTask)
             activeRefIdxPair.RefL0 = idxL0;
         }
 
-        if (RPL[1][idxL1] < MAX_DPB_SIZE)
+        // FEI_Preenc class operates with AVC PreENC which isn't optimized for GPB frames
+        // so it's useless to call PreENC with L1 references of GPB frames.
+        if (RPL[1][idxL1] < MAX_DPB_SIZE && !task.m_ldb)
         {
             dpbRefIdxPair.RefL1    = RPL[1][idxL1];
             activeRefIdxPair.RefL1 = idxL1;

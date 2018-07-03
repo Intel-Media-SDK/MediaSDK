@@ -615,7 +615,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     // add extended parameter to increase performance
     if ( ( !((m_mfxEncParams.mfx.FrameInfo.CropW & 15 ) ^ 8 ) ||
         !((m_mfxEncParams.mfx.FrameInfo.CropH & 15 ) ^ 8 ) ) &&
-        (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC) )
+        (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC) && !m_bIsFieldSplitting)
     {
         m_ExtHEVCParam.PicWidthInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropW;
         m_ExtHEVCParam.PicHeightInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropH;
@@ -1675,7 +1675,7 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
 
     if (m_bIsFieldSplitting)
     {
-        m_mfxEncParams.mfx.FrameInfo.Height /= 2;
+        m_mfxEncParams.mfx.FrameInfo.Height = MSDK_ALIGN32((m_mfxEncParams.mfx.FrameInfo.Height/2));
         m_mfxEncParams.mfx.FrameInfo.CropH /= 2;
     }
 

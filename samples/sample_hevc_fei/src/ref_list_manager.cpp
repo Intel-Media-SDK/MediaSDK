@@ -770,6 +770,7 @@ HevcTask* EncodeOrderControl::ReorderFrame(mfxFrameSurface1 * surface)
             // encode P as GPB
             task.m_frameType &= ~MFX_FRAMETYPE_P;
             task.m_frameType |= MFX_FRAMETYPE_B;
+            task.m_ldb = true;
         }
 
         InitDPB(task, m_lastTask);
