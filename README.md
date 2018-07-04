@@ -40,6 +40,8 @@ Please find full documentation under the `doc/` folder. Key documents:
 * [Media SDK Developer Reference Extensions for User-Defined Functions](./doc/mediasdkusr-man.pdf)
 * [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.pdf)
 
+Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for the detailed setting and building instructions, runtime tips and other information.
+
 You may also wish to visit Intel Media Server Studio [support page](https://software.intel.com/en-us/intel-media-server-studio-support/documentation) for additional documentation.
 
 # Products which use Media SDK
@@ -94,6 +96,8 @@ The following cmake settings can be used to adjust search path locations for som
 | ------- | ------ | ----------- |
 | CMAKE_ITT_HOME | Valid system path | Location of ITT installation, takes precendence over CMAKE_VTUNE_HOME (by default not defined) |
 | CMAKE_VTUNE_HOME | Valid system path | Location of VTune installation (default: /opt/intel/vtune_amplifier) |
+
+Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for advanced topics on setting and building Media SDK.
 
 ## Enabling Instrumentation and Tracing Technology (ITT)
 
