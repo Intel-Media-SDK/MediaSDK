@@ -1124,7 +1124,12 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
         pEntryPoint->requiredNumThreads = m_vPar.mfx.NumThread;
         pEntryPoint->pParam = info;
     }
-    else
+    // if we get NOT_INITIALIZED, m_pH264VideoDecoder null, so avoid that crash
+    else if (MFX_ERR_NOT_INITIALIZED == mfxSts) 
+    {
+        return mfxSts;
+    }
+    else 
     {
         if (m_pH264VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true) && !m_globalTask)
         {
