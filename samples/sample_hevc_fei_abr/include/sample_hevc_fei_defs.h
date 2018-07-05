@@ -63,11 +63,22 @@ enum BRC_TYPE
     MSDKSW    = 2
 };
 
+enum DIST_EST_ALGO
+{
+    MSE = 0, // Mean Squared Error
+    NNZ = 1, // Number of Non-Zero transform coefficients
+    SSC = 2  // Sum of Squared Coefficients
+};
+
 struct sBrcParams
 {
-    BRC_TYPE eBrcType     = NONE; // bitrate control type
-    mfxU16 TargetKbps     = 0;    // valid if VBR set on
-    mfxU16 LookAheadDepth = 0;    // valid if VBR set on
+    BRC_TYPE eBrcType       = NONE; // bitrate control type
+    mfxU16 TargetKbps       = 0;    // valid if BRC used
+    // Following controls are valid for LA BRC
+    mfxU16 LookAheadDepth   = 0;    // Frames to Look Ahead
+    mfxU16 LookBackDepth    = 0;    // Frames to take into account from past
+    mfxU16 AdaptationLength = 0;    // Frames from past to compute bitrate adjustment ratio
+    DIST_EST_ALGO eAlgType  = NNZ;  // Algorithm to estimate Distortion
 
     msdk_char strYUVFile[MSDK_MAX_FILENAME_LEN] = {0}; // YUV file for MSE calculation
 };
@@ -176,8 +187,8 @@ template<class T, class U> inline void Copy(T & dst, U const & src)
     MSDK_MEMCPY(&dst, &src, sizeof(dst));
 }
 
-template<class T> inline void Zero(std::vector<T> & vec)  { memset(vec.data(), 0, sizeof(T) * vec.size()); }
-template<class T> inline void Zero(T * first, size_t cnt) { memset(first, 0, sizeof(T) * cnt); }
+template<class T> inline void Zero(std::vector<T> & vec)  { std::fill(std::begin(vec), std::end(vec), 0); }
+template<class T> inline void Zero(T * first, size_t cnt) { std::fill(first, first + cnt, 0); }
 template<class T> inline void Fill(T & obj, int val) { memset(&obj, val, sizeof(obj)); }
 template<class T> inline void Zero(T & obj) { Fill(obj, 0); }
 template<class T> inline T Clip3(T min, T max, T x) { return std::min(std::max(min, x), max); }
