@@ -378,8 +378,8 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& task, mfxE
                     mv[j][1].x <<= m_downsample_power2;
                     mv[j][1].y <<= m_downsample_power2;
 
-                    distortion[j][0] = (j < task.m_numRefActive[0]) ? mbs_vec[j]->MB[preencCUIdx].Inter[0].BestDistortion : 0xffff;
-                    distortion[j][1] = (j < task.m_numRefActive[1]) ? mbs_vec[j]->MB[preencCUIdx].Inter[1].BestDistortion : 0xffff;
+                    distortion[j][0] = (j < numFinalL0Predictors) ? mbs_vec[j]->MB[preencCUIdx].Inter[0].BestDistortion : 0xffff;
+                    distortion[j][1] = (j < numFinalL1Predictors) ? mbs_vec[j]->MB[preencCUIdx].Inter[1].BestDistortion : 0xffff;
                 }
             }
 
