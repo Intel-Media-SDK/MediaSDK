@@ -1309,7 +1309,7 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 
 
 /* check each field of FrameInfo excluding PicStruct */
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType /* platform */)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
 
@@ -1341,6 +1341,9 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
             if (VPP_OUT == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
         case MFX_FOURCC_A2RGB10:
             // 10bit RGB supported as output format only
             if (VPP_IN == request)

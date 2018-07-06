@@ -386,6 +386,12 @@ void FillHEVCRefLists(const HevcTask& task, mfxExtHEVCRefLists & refLists)
 mfxStatus FEI_Encode::SetCtrlParams(const HevcTask& task)
 {
     m_encodeCtrl.FrameType = task.m_frameType;
+    if (task.m_ldb)
+    {
+        // According to MediaSDK manual GPB frames should be passed as MFX_FRAMETYPE_P, not MFX_FRAMETYPE_B
+        m_encodeCtrl.FrameType &= ~MFX_FRAMETYPE_B;
+        m_encodeCtrl.FrameType |= MFX_FRAMETYPE_P;
+    }
 
     mfxExtHEVCRefLists* pRefLists = m_encodeCtrl.GetExtBuffer<mfxExtHEVCRefLists>();
     MSDK_CHECK_POINTER(pRefLists, MFX_ERR_NOT_INITIALIZED);

@@ -17,11 +17,12 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#include "hevc_sw_dso.h"
+
 #include <map>
 #include <string>
 #include <fstream>
-#include <iostream>
-#include "hevc_sw_dso.h"
+#include <numeric>
 
 using namespace BS_HEVC2;
 
@@ -118,8 +119,7 @@ mfxStatus HevcSwDso::GetFrame(HevcTaskDSO & task)
     return MFX_ERR_NONE;
 }
 
-
-bool IsHEVCSlice(mfxU32 nut)
+inline bool IsHEVCSlice(mfxU32 nut)
 {
     return (nut <= 21) && ((nut < 10) || (nut > 15));
 }
@@ -130,6 +130,9 @@ void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
     {
         if (!IsHEVCSlice(pNALU->nal_unit_type))
             continue;
+
+        if (!pNALU->slice)
+            throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillFrameTask : pNALU->slice pointer is null");
 
         auto& slice = *pNALU->slice;
 
@@ -151,7 +154,7 @@ void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
         task.m_frameType |= (slice.type == SLICE_TYPE::I) ? MFX_FRAMETYPE_I :
                                 ((slice.type == SLICE_TYPE::P) ? MFX_FRAMETYPE_P : MFX_FRAMETYPE_B);
 
-        task.m_statData.poc = slice.POC;
+        task.m_statData.POC = slice.POC;
 
         m_previousMaxDisplayOrder = std::max(m_previousMaxDisplayOrder, m_DisplayOrderSinceLastIDR + slice.POC);
 
@@ -163,66 +166,136 @@ void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
             task.m_refListActive[1].push_back(slice.L1[i].POC);
 
         if (!slice.pps)
-            throw mfxError(MFX_ERR_NULL_PTR, "slice.pps pointer is null");
+            throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillFrameTask : slice.pps pointer is null");
 
-        task.m_statData.qp = slice.qp_delta + slice.pps->init_qp_minus26 + 26;
+        task.m_statData.QP = slice.qp_delta + slice.pps->init_qp_minus26 + 26;
 
         break;
     }
 
-    task.m_surf->Data.FrameOrder = task.m_frameOrder = task.m_statData.DisplayOrder = m_DisplayOrderSinceLastIDR + task.m_statData.poc;
+    task.m_surf->Data.FrameOrder = task.m_frameOrder = task.m_statData.DisplayOrder = m_DisplayOrderSinceLastIDR + task.m_statData.POC;
 
-    task.m_statData.frame_type   = task.m_frameType;
+    task.m_statData.FrameType = task.m_frameType;
 
     // Detect GPB frames
     if ((task.m_frameType & MFX_FRAMETYPE_B) &&
-        std::none_of(std::begin(task.m_refListActive[1]), std::end(task.m_refListActive[1]), [&task](mfxI32 poc) { return poc > task.m_statData.poc; }))
+        std::none_of(std::begin(task.m_refListActive[1]), std::end(task.m_refListActive[1]), [&task](mfxI32 poc) { return poc > task.m_statData.POC; }))
     {
-        // Convert GPB frame to P in case of LA BRC
-        if (m_bCalcBRCStat)
-        {
-            task.m_statData.frame_type = MFX_FRAMETYPE_P;
-        }
-
         task.m_isGPBFrame = true;
     }
 
     // Calculate some statistics for LA BRC
-    task.m_statData.frame_size = 0;
+    if (m_bCalcBRCStat)
+    {
+        FillBRCParams(header, task);
+    }
+}
 
-    mfxU32 n_cu_intra = 0, n_cu_total = 0, cur_cu_size = 0;
+void CountRefPixels(const BS_HEVC2::CU & cu, HevcTaskDSO & task, mfxI32 base)
+{
+    for (auto pu = cu.Pu; pu; pu = pu->Next)
+    {
+        switch (pu->inter_pred_idc)
+        {
+        case BS_HEVC2::INTER_PRED::PRED_L0:
+            task.m_statData.AddPxlCount(base + task.m_refListActive[0][pu->ref_idx_l0], pu->w*pu->h);
+            break;
+        case BS_HEVC2::INTER_PRED::PRED_L1:
+            task.m_statData.AddPxlCount(base + task.m_refListActive[1][pu->ref_idx_l1], pu->w*pu->h);
+            break;
+        case BS_HEVC2::INTER_PRED::PRED_BI:
+            task.m_statData.AddPxlCount(base + task.m_refListActive[0][pu->ref_idx_l0], (pu->w*pu->h) >> 1);
+            task.m_statData.AddPxlCount(base + task.m_refListActive[1][pu->ref_idx_l1], (pu->w*pu->h) >> 1);
+            break;
+        default:
+            throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "ERROR : CountRefPixels : invalid inter_pred_idc");
+        }
+    }
+}
+
+void HevcSwDso::FillBRCParams(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
+{
+
+    // Convert GPB frame to P in case of LA BRC
+    if (task.m_isGPBFrame)
+    {
+        task.m_statData.FrameType = MFX_FRAMETYPE_P;
+    }
+
+    task.m_statData.FrameSize = 0;
+
+    task.m_statData.NPixelsInFrame = task.m_surf->Info.CropW * task.m_surf->Info.CropH;
+
+    mfxU32 numPixelsIntra = 0, numNonZeroCoeff = 0;
+    mfxU64 sumOfSquaredCoeff = 0;
 
     for (auto pNALU = header; pNALU; pNALU = pNALU->next)
     {
-        task.m_statData.frame_size += pNALU->NumBytesInNalUnit * 8;
+        task.m_statData.FrameSize += pNALU->NumBytesInNalUnit << 3;
 
-        if (!IsHEVCSlice(pNALU->nal_unit_type))
-            continue;
+         if (!IsHEVCSlice(pNALU->nal_unit_type))
+             continue;
 
-        auto& slice = *pNALU->slice;
+         if (!pNALU->slice)
+             throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillFrameTask : pNALU->slice pointer is null");
 
-        if (m_bCalcBRCStat)
+         for (auto ctu = pNALU->slice->ctu; ctu; ctu = ctu->Next)
+         {
+             for (auto cu = ctu->Cu; cu; cu = cu->Next)
+             {
+                 if (m_bEstimateDistortion)
+                 {
+                     for (auto tu = cu->Tu; tu; tu = tu->Next)
+                     {
+                         if (!tu->tc_levels_luma)
+                             continue;
+
+                         switch (m_AlgorithmType)
+                         {
+                         case NNZ:
+                             numNonZeroCoeff   += std::count_if(tu->tc_levels_luma, tu->tc_levels_luma + (1 << (tu->log2TrafoSize << 1)), [](mfxI32 coeff) { return coeff != 0; });
+                             break;
+                         case SSC:
+                             sumOfSquaredCoeff += std::accumulate(tu->tc_levels_luma, tu->tc_levels_luma + (1 << (tu->log2TrafoSize << 1)), mfxU64(0), [](mfxU64 sum_sq, mfxI32 coeff) { return sum_sq + coeff*coeff; });
+                             break;
+                         default:
+                             break;
+                         }
+                     }
+                 }
+
+                 CountRefPixels(*cu, task, m_DisplayOrderSinceLastIDR);
+
+                 if (cu->PredMode == MODE_INTRA)
+                 {
+                     // Number of pixels in CU is (2^log2CbSize)^2 = 2^(2*log2CbSize)
+                     numPixelsIntra += 1 << (cu->log2CbSize << 1);
+                 }
+             }
+         }
+    }
+
+    if (m_bEstimateDistortion)
+    {
+        switch (m_AlgorithmType)
         {
-            for (auto ctu = slice.ctu; ctu; ctu = ctu->Next)
-            {
-                for (auto cu = ctu->Cu; cu; cu = cu->Next)
-                {
-                    cur_cu_size = 1 << cu->log2CbSize;
-
-                    if (cu->PredMode == MODE_INTRA)
-                    {
-                        n_cu_intra += cur_cu_size;
-                    }
-                    n_cu_total += cur_cu_size;
-                }
-            }
+        case NNZ:
+            task.m_statData.VisualDistortion = numNonZeroCoeff;
+            break;
+        case SSC:
+            task.m_statData.VisualDistortion = sumOfSquaredCoeff;
+            break;
+        default:
+            break;
         }
     }
 
-    if (n_cu_total)
+    if (task.m_statData.NPixelsInFrame)
     {
-        task.m_statData.share_intra = mfxF64(n_cu_intra) / n_cu_total;
+        task.m_statData.ShareIntra = mfxF64(numPixelsIntra) / task.m_statData.NPixelsInFrame;
     }
+
+    task.m_statData.FillProp();
 }
 
 void PU2MVP(const PU & pu, mfxFeiHevcEncMVPredictors & mvpBlock, mfxU8 idx)
@@ -254,7 +327,7 @@ class PUSizeComparator
 public:
     bool operator()(const PU* pu1, const PU* pu2)
     {
-        if (pu1 == NULL || pu2 == NULL)
+        if (pu1 == nullptr || pu2 == nullptr)
         {
             throw std::string("ERROR: PUSizeComparator - null pointer reference");
         }
@@ -327,7 +400,7 @@ void HevcSwDso::FillMVP(const BS_HEVC2::NALU* header, mfxExtFeiHevcEncMVPredicto
                             // had 8x8 CUs, need to write the corresponding MVPs to destination now
                             if (!pusFrom8x8CUs.empty())
                             {
-                                sort(pusFrom8x8CUs.rbegin(), pusFrom8x8CUs.rend(), PUSizeComparator());
+                                std::sort(pusFrom8x8CUs.rbegin(), pusFrom8x8CUs.rend(), PUSizeComparator());
                                 mfxU32 mvpsToFill = std::min(pusFrom8x8CUs.size(), (size_t)4);
 
                                 for (mfxU32 mvpCounter = 0; mvpCounter < mvpsToFill; mvpCounter++)

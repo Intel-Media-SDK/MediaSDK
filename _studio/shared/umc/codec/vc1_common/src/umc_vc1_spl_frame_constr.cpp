@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -89,7 +89,9 @@ namespace UMC
         return umcSts;
     }
 
+#ifdef _MSVC_LANG
 #pragma warning(disable : 4100)
+#endif
     Status vc1_frame_constructor_rcv::GetData(VC1FrameConstrInfo& Info)
     {
         if ((uint32_t)Info.out->GetBufferSize() < (uint32_t)Info.out->GetDataSize())
@@ -315,7 +317,7 @@ namespace UMC
 
                         currFramePos = currFramePos + size;
                         frameSize = frameSize + size;
-                        
+
                         if (Info.splMode == 1)
                         {
                             zeroNum = frameSize - 4*((frameSize)/4);
@@ -360,7 +362,7 @@ namespace UMC
                             return UMC_ERR_NOT_ENOUGH_BUFFER;
 
                         MFX_INTERNAL_CPY(currFramePos, readBuf + readDataSize, size);
-                        
+
                         currFramePos = currFramePos + size;
                         frameSize = frameSize + size;
 
@@ -383,14 +385,14 @@ namespace UMC
 
                         //end of sequence
                         if((((*(readPos))<<24) + ((*(readPos-1))<<16) + ((*(readPos-2))<<8) + (*(readPos-3))) == 0x0A010000)
-                        {                            
+                        {
                             size = (uint32_t)(readPos- readBuf - readDataSize + 1);
 
                             MFX_INTERNAL_CPY(currFramePos, readBuf + readDataSize, size);
                             Info.out->SetDataSize(frameSize + size);
 
                             Info.in->SetDataSize(Info.in->GetDataSize() + size);
-                        
+
                             Info.stCodes->offsets[Info.stCodes->count] = (uint32_t)(0);
                             Info.stCodes->values[Info.stCodes->count]  = ((*(readPos))<<24) + ((*(readPos-1))<<16) + ((*(readPos-2))<<8) + (*(readPos-3));
 

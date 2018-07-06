@@ -210,6 +210,7 @@
 // after THE API is switched to 1.27
 #if MFX_VERSION >= MFX_VERSION_NEXT
     #define MFX_ENABLE_VPP_RUNTIME_HSBC
+    #define MFX_ENABLE_RGBP
 #endif
 
 #endif // _MFX_CONFIG_H_

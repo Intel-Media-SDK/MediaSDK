@@ -452,6 +452,9 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         if (MFX_FOURCC_NV12    == g_TABLE_SUPPORTED_FOURCC[indx] ||
             MFX_FOURCC_YUY2    == g_TABLE_SUPPORTED_FOURCC[indx] ||
             MFX_FOURCC_RGB4    == g_TABLE_SUPPORTED_FOURCC[indx] ||
+#ifdef MFX_ENABLE_RGBP
+            MFX_FOURCC_RGBP    == g_TABLE_SUPPORTED_FOURCC[indx] ||
+#endif
             MFX_FOURCC_A2RGB10 == g_TABLE_SUPPORTED_FOURCC[indx])
             caps.mFormatSupport[g_TABLE_SUPPORTED_FOURCC[indx]] |= MFX_FORMAT_SUPPORT_OUTPUT;
     }
@@ -1037,6 +1040,12 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     switch (refFourcc)
     {
     case MFX_FOURCC_RGB4:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+#endif
         m_pipelineParam[0].surface_color_standard = VAProcColorStandardNone;
         ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].input_color_properties.color_range = VA_SOURCE_RANGE_FULL);
         break;
@@ -1051,6 +1060,12 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     switch (targetFourcc)
     {
     case MFX_FOURCC_RGB4:
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_RGB565:
+#endif
         m_pipelineParam[0].output_color_standard = VAProcColorStandardNone;
         ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_FULL);
         break;
@@ -1629,7 +1644,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
     }
 
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
-    VAProcPipelineParameterBuffer outputparam = {0};
+    VAProcPipelineParameterBuffer outputparam = {};
     VABufferID vpp_pipeline_outbuf = VA_INVALID_ID;
 
     MFX_CHECK_NULL_PTR1(outputSurface);

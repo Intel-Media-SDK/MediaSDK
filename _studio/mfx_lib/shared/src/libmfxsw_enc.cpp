@@ -229,7 +229,7 @@ mfxStatus MFXVideoENC_Init(mfxSession session, mfxVideoParam *par)
             MFX_ERR_NONE <= mfxRes)
         {
             mfxRes = MFX_WRN_PARTIAL_ACCELERATION;
-        } 
+        }
     }
     // handle error(s)
     catch(MFX_CORE_CATCH_TYPE)
@@ -292,13 +292,10 @@ mfxStatus MFXVideoENC_Close(mfxSession session)
 
 static
 mfxStatus MFXVideoENCLegacyRoutineExt(void *pState, void *pParam,
-                                   mfxU32 threadNumber, mfxU32 callNumber)
+                                   mfxU32 threadNumber, mfxU32 /* callNumber */)
 {
     VideoENC_Ext * pENC = (VideoENC_Ext  *) pState;
     MFX_THREAD_TASK_PARAMETERS *pTaskParam = (MFX_THREAD_TASK_PARAMETERS *) pParam;
-
-    // touch unreferenced parameter(s)
-    callNumber = callNumber;
 
     // check error(s)
     if ((NULL == pState) ||
@@ -364,7 +361,7 @@ mfxStatus  MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mf
                 // fill dependencies
                 task.pSrc[0] = in;
                 task.pDst[0] = out;
-                task.pOwner= pEnc;  
+                task.pOwner= pEnc;
                 mfxRes = session->m_pScheduler->AddTask(task, &syncPoint);
 
             } // END OF OBSOLETE PART
@@ -396,7 +393,7 @@ mfxStatus  MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mf
                 task.priority = session->m_priority;
                 task.threadingPolicy = pEnc->GetThreadingPolicy();
                 // fill dependencies
-                
+
                 task.pSrc[0] = in->InSurface;
                 task.pDst[0] = entryPoints[0].pParam;
 
@@ -411,7 +408,7 @@ mfxStatus  MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mf
                 // fill dependencies
                 task.pSrc[0] = entryPoints[0].pParam;
                 task.pDst[0] = (MFX_ERR_NONE == mfxRes) ? out:0; // sync point for LA plugin
-                task.pDst[1] = in->InSurface; 
+                task.pDst[1] = in->InSurface;
 
 
                 // register input and call the task
@@ -423,7 +420,7 @@ mfxStatus  MFXVideoENC_ProcessFrameAsync(mfxSession session, mfxENCInput *in, mf
             {
                 mfxRes = MFX_ERR_MORE_DATA;
                 syncPoint = NULL;
-            }          
+            }
 
         }
 

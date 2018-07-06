@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -75,7 +75,7 @@ extern int16_t reset_dc[4];
 extern int16_t intra_dc_multi[4];
 
 
-struct sVideoFrameBuffer 
+struct sVideoFrameBuffer
 {
     typedef std::vector< std::pair<uint8_t *,size_t> > UserDataVector;
 
@@ -107,7 +107,7 @@ struct sGOPTimeCode
     uint16_t           gop_drop_frame_flag;
 };
 
-struct sSequenceHeader 
+struct sSequenceHeader
 {
     int32_t           mb_width[2*DPB_SIZE]; //the number of macroblocks in the row of the picture
     int32_t           mb_height[2*DPB_SIZE];//the number of macroblocks in the column of the picture
@@ -289,7 +289,9 @@ enum { FCodeFwdX = 0, FCodeFwdY = 1, FCodeBwdX = 2, FCodeBwdY = 3 };
 
 } // namespace UMC
 
+#ifdef _MSVC_LANG
 #pragma warning(default: 4324)
+#endif
 
 extern int16_t zero_memory[64*8];
 

@@ -140,7 +140,7 @@ mfxStatus FEI_Encode::DoWork(std::shared_ptr<HevcTaskDSO> & task)
         // Set up BRC frame QP
         if (m_pBRC.get())
         {
-            m_pBRC->PreEnc(*task /*task->m_statData*/);
+            m_pBRC->PreEnc(task->m_statData);
             m_encodeCtrl.QP = m_pBRC->GetQP();
         }
     }
@@ -157,7 +157,6 @@ mfxStatus FEI_Encode::EncodeFrame(mfxFrameSurface1* pSurf)
 
     for (;;)
     {
-
         sts = m_mfxENCODE.EncodeFrameAsync(&m_encodeCtrl, pSurf, &m_bitstream, &m_syncPoint);
         MSDK_CHECK_WRN(sts, "FEI EncodeFrameAsync");
 

@@ -63,7 +63,7 @@ namespace MfxHwVideoProcessing
         virtual mfxStatus QueryCapabilities( mfxVppCaps& caps );
 
         virtual mfxStatus QueryVariance(
-            mfxU32 frameIndex,
+            mfxU32 /* frameIndex */,
             std::vector<mfxU32> & /*variance*/) { return MFX_ERR_UNSUPPORTED; }
 
         virtual BOOL IsRunning() { return m_bRunning; }

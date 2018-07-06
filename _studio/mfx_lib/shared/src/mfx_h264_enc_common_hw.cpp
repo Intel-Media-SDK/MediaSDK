@@ -3963,7 +3963,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 #if (MFX_VERSION >= 1026)
     if (!CheckTriStateOption(extOpt3->ExtBrcAdaptiveLTR)) changed = true;
 
-    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && IsOff(extOpt2->ExtBRC)) 
+    if (IsOn(extOpt3->ExtBrcAdaptiveLTR) && IsOff(extOpt2->ExtBRC))
     {
         extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;
         changed = true;
@@ -4551,7 +4551,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckRangeDflt(extOpt2->DisableDeblockingIdc, 0, 2, 0)) changed = true;
     if (!CheckTriStateOption(extOpt2->EnableMAD)) changed = true;
-    
+
     if (!CheckTriStateOption(extOpt2->AdaptiveI)) changed = true;
     if (IsOn(extOpt2->AdaptiveI) && (!IsExtBrcSceneChangeSupported(par) || (par.mfx.GopOptFlag & MFX_GOP_STRICT)))
     {
@@ -4679,7 +4679,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         mfeControl.Timeout = 0;
         changed = true;
     }
-
+#else
+    (void)config;
 #endif
 
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
@@ -5764,7 +5765,7 @@ void MfxHwH264Encode::SetDefaults(
         if (IsExtBrcSceneChangeSupported(par) && !extBRC->pthis)
         {
             extOpt3->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_ON;
-            // make sure to call CheckVideoParamQueryLike 
+            // make sure to call CheckVideoParamQueryLike
             // or add additional conditions above (num ref & num active)
         }
     }
@@ -5897,7 +5898,7 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                // HRD buffer size can be different for the same level for AVC and MVC profiles. 
+                // HRD buffer size can be different for the same level for AVC and MVC profiles.
                 // So in case of MVC we need to copy MVC-specific buffer size to calcParam.bufferSizeInKB to assure that application will get enough size for bitstream buffer allocation
                 mfxU32 maxKbps = IsMvcProfile( par.mfx.CodecProfile ) ? par.calcParam.mvcPerViewPar.maxKbps : par.calcParam.maxKbps;
                 mfxU32 maxBufferSize = IsMvcProfile( par.mfx.CodecProfile ) ? GetMaxPerViewBufferSize( par ) : GetMaxBufferSize( par );
@@ -9216,10 +9217,8 @@ mfxU32 HeaderPacker::WriteSlice(
     DdiTask const &   task,
     mfxU32            fieldId,
     mfxU32            firstMbInSlice,
-    mfxU32            numMbInSlice)
+    mfxU32            /* numMbInSlice */)
 {
-    numMbInSlice = numMbInSlice;
-
     mfxU32 sliceType    = ConvertMfxFrameType2SliceType(task.m_type[fieldId]) % 5;
     mfxU32 refPicFlag   = !!(task.m_type[fieldId] & MFX_FRAMETYPE_REF);
     mfxU32 idrPicFlag   = !!(task.m_type[fieldId] & MFX_FRAMETYPE_IDR);

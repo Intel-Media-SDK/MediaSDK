@@ -54,7 +54,7 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Options: \n"));
     msdk_printf(MSDK_STRING("   [-i::h265 <file-name>] - input file and decoder type\n"));
-    msdk_printf(MSDK_STRING("   [-sink] - pipeline makes decode only and put data to shared buffer\n"));
+    msdk_printf(MSDK_STRING("   [-sink]   - pipeline makes decode only and put data to shared buffer\n"));
     msdk_printf(MSDK_STRING("   [-source] - pipeline makes vpp + encode and get data from shared buffer\n"));
     msdk_printf(MSDK_STRING("   [-dso <file-name>] - input stream for DSO extraction\n"));
     msdk_printf(MSDK_STRING("   [-dstw width]  - destination picture width, invokes VPP resizing\n"));
@@ -64,9 +64,14 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-DisableQPOffset] - disable QP offset per pyramid layer\n"));
     msdk_printf(MSDK_STRING("   [-vbr::sw] - use MSDK SW VBR rate control\n"));
     msdk_printf(MSDK_STRING("   [-vbr::la] - use lookahead VBR rate control\n"));
-    msdk_printf(MSDK_STRING("   [-TargetKbps value] - target bitrate for VBR rate control\n"));
-    msdk_printf(MSDK_STRING("   [-LookAheadDepth value] - depth of look ahead (defult is 100)\n"));
-    msdk_printf(MSDK_STRING("   [-yuv <file-name>] - yuv file for MSE calculation, required for LA BRC\n"));
+    msdk_printf(MSDK_STRING("   [-TargetKbps value] - target bitrate\n"));
+    msdk_printf(MSDK_STRING("       Block of LA BRC options:\n"));
+    msdk_printf(MSDK_STRING("       [-LookAheadDepth   value] - depth of look ahead (defult is 100)\n"));
+    msdk_printf(MSDK_STRING("       [-LookBackDepth    value] - depth of look back window for taking into account encoded frames statistics (defult is 100)\n"));
+    msdk_printf(MSDK_STRING("       [-AdaptationLength value] - number of frames to calculate adjustment ratio to minimize Algorithms bitrate estimation error (defult is 100)\n"));
+    msdk_printf(MSDK_STRING("       [-Algorithm::MSE <file-name>] - use yuv file for MSE calculation (not optimized implementation)\n"));
+    msdk_printf(MSDK_STRING("       [-Algorithm::NNZ]             - use number of non-zero transform coefficients as distortion approximation (default)\n"));
+    msdk_printf(MSDK_STRING("       [-Algorithm::SSC]             - use sum of squared transform coefficients as distortion approximation\n"));
     msdk_printf(MSDK_STRING("   [-idr_interval size] - if IdrInterval = 0, then only first I-frame is an IDR-frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 1, then every I - frame is an IDR - frame\n"));
     msdk_printf(MSDK_STRING("                          if IdrInterval = 2, then every other I - frame is an IDR - frame, etc (default is 0)\n"));
@@ -74,9 +79,9 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-gop_opt closed|strict] - GOP optimization flags (can be used together)\n"));
     msdk_printf(MSDK_STRING("   [-r (-GopRefDist) distance] - Distance between I- or P- key frames (1 means no B-frames) (0 - by default(I frames))\n"));
     msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of reference frames\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P frames (up to 4)\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs] - number of maximum allowed backward references for B frames (up to 4)\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs] - number of maximum allowed forward references for B frames (up to 2)\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs]  - number of maximum allowed references for P frames (up to 4)\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs]  - number of maximum allowed backward references for B frames (up to 3)\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs]  - number of maximum allowed forward references for B frames (up to 2)\n"));
     msdk_printf(MSDK_STRING("   [-NumPredictorsL0 numPreds] - number of maximum L0 predictors (default - assign depending on the frame type)\n"));
     msdk_printf(MSDK_STRING("   [-NumPredictorsL1 numPreds] - number of maximum L1 predictors (default - assign depending on the frame type)\n"));
     msdk_printf(MSDK_STRING("   [-MultiPredL0 type] - use internal L0 MV predictors (0 - no internal MV predictor, 1 - spatial internal MV predictors)\n"));
@@ -90,18 +95,18 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-FastIntra:I] - force encoder to skip HEVC-specific intra modes (use AVC modes only) on I-frames\n"));
     msdk_printf(MSDK_STRING("   [-FastIntra:P] - force encoder to skip HEVC-specific intra modes (use AVC modes only) on P-frames\n"));
     msdk_printf(MSDK_STRING("   [-FastIntra:B] - force encoder to skip HEVC-specific intra modes (use AVC modes only) on B-frames\n"));
-    msdk_printf(MSDK_STRING("   [-gpb:<on,off>] - make HEVC encoder use regular P-frames (off) or GPB (on) (on - by default)\n"));
+    msdk_printf(MSDK_STRING("   [-gpb:<on,off>]  - make HEVC encoder use regular P-frames (off) or GPB (on) (on - by default)\n"));
     msdk_printf(MSDK_STRING("   [-ppyr:<on,off>] - enables P-pyramid\n"));
-    msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
+    msdk_printf(MSDK_STRING("   [-bref]   - arrange B frames in B pyramid reference structure\n"));
     msdk_printf(MSDK_STRING("   [-nobref] - do not use B-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("   [-l numSlices] - number of slices \n"));
     msdk_printf(MSDK_STRING("   [-PicTimingSEI] - inserts picture timing SEI\n"));
     msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,8] (5 is default).\n"));
     msdk_printf(MSDK_STRING("                           If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
-    msdk_printf(MSDK_STRING("   [-RefWidth width] - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
-    msdk_printf(MSDK_STRING("                       one direction and 32x32 for bidirectional search\n"));
+    msdk_printf(MSDK_STRING("   [-RefWidth width]   - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
+    msdk_printf(MSDK_STRING("                         one direction and 32x32 for bidirectional search\n"));
     msdk_printf(MSDK_STRING("   [-RefHeight height] - height of search region (should be multiple of 4), maximum allowed is 32\n"));
-    msdk_printf(MSDK_STRING("   [-LenSP length] - defines number of search units in search path. In range [1,63] (default is 57)\n"));
+    msdk_printf(MSDK_STRING("   [-LenSP length]     - defines number of search units in search path. In range [1,63] (default is 57)\n"));
     msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full)\n"));
     msdk_printf(MSDK_STRING("   [-ForceToIntra] - force CUs to be coded as intra using DSO information\n"));
     msdk_printf(MSDK_STRING("   [-ForceToInter] - force CUs to be coded as inter using DSO information\n"));
@@ -223,11 +228,6 @@ mfxStatus CheckOptions(const sInputParams & params)
             return MFX_ERR_UNSUPPORTED;
         }
 
-        if (params.sBRCparams.eBrcType == LOOKAHEAD && !params.sBRCparams.strYUVFile[0])
-        {
-            PrintHelp("YUV file is mandatory for Look Ahead BRC");
-            return MFX_ERR_UNSUPPORTED;
-        }
         if (!(params.input.DSOMVPBlockSize == 0 || params.input.DSOMVPBlockSize == 1 ||
               params.input.DSOMVPBlockSize == 2 || params.input.DSOMVPBlockSize == 7 ))
         {
@@ -335,11 +335,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char* argv[])
             PARSE_CHECK(msdk_opt_read(argv[++i], params.input.strDsoFile), "Input DSO stream", isParseInvalid);
             params.input.bDSO = true;
         }
-        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-yuv")))
-        {
-            CHECK_NEXT_VAL(i + 1 >= argc, argv[i]);
-            PARSE_CHECK(msdk_opt_read(argv[++i], params.sBRCparams.strYUVFile), "Input YUV file", isParseInvalid);
-        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-i::source")))
         {
             if (params.pipeMode != Full)
@@ -389,6 +384,37 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char* argv[])
                 PrintHelp(MSDK_STRING("ERROR: LookAheadDepth is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-LookBackDepth")))
+        {
+            if (!argv[++i] || MFX_ERR_NONE != msdk_opt_read(argv[i], params.sBRCparams.LookBackDepth))
+            {
+                PrintHelp(MSDK_STRING("ERROR: LookBackDepth is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AdaptationLength")))
+        {
+            if (!argv[++i] || MFX_ERR_NONE != msdk_opt_read(argv[i], params.sBRCparams.AdaptationLength))
+            {
+                PrintHelp(MSDK_STRING("ERROR: AdaptationLength is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-Algorithm::NNZ")))
+        {
+            params.sBRCparams.eAlgType = NNZ;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-Algorithm::SSC")))
+        {
+            params.sBRCparams.eAlgType = SSC;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-Algorithm::MSE")))
+        {
+            params.sBRCparams.eAlgType = MSE;
+
+            CHECK_NEXT_VAL(i + 1 >= argc, argv[i]);
+            PARSE_CHECK(msdk_opt_read(argv[++i], params.sBRCparams.strYUVFile), "Input YUV file", isParseInvalid);
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-dstw")))
         {

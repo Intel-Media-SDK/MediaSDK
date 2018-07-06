@@ -82,6 +82,8 @@ static
         return MSDK_STRING("RGB3");
     case MFX_FOURCC_RGB4:
         return MSDK_STRING("RGB4");
+    case MFX_FOURCC_RGBP:
+        return MSDK_STRING("RGBP");
     case MFX_FOURCC_YUV400:
         return MSDK_STRING("YUV400");
     case MFX_FOURCC_YUV411:
@@ -1829,6 +1831,28 @@ mfxStatus CRawVideoWriter::WriteFrame(
         for(i = 0; i < h; i++)
         {
             MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, 4*w, m_fDst), 4u*w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+    }
+    else if (pInfo->FourCC == MFX_FOURCC_RGBP)
+    {
+        MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->G, MFX_ERR_NOT_INITIALIZED);
+        MSDK_CHECK_POINTER(pData->B, MFX_ERR_NOT_INITIALIZED);
+
+        ptr = pData->R + pInfo->CropX + pInfo->CropY * pitch;
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+        ptr = pData->G + pInfo->CropX + pInfo->CropY * pitch;
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+        ptr = pData->B + pInfo->CropX + pInfo->CropY * pitch;
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
     else if (pInfo->FourCC == MFX_FOURCC_AYUV)

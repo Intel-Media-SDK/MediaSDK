@@ -1483,7 +1483,7 @@ namespace MfxHwH264Encode
         static const mfxU32 SLICE_BUFFER_SIZE  = 2048;
     };
 
-    inline const mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)
+    inline mfxU16 LaDSenumToFactor(const mfxU16& LookAheadDS)
     {
         switch (LookAheadDS)
         {
