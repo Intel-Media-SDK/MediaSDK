@@ -1,5 +1,5 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -71,13 +71,10 @@
 #endif
 
 
-VideoDECODE *CreateDECODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSession session)
+VideoDECODE *CreateDECODESpecificClass(mfxU32 CodecId, VideoCORE *core, mfxSession /* session */)
 {
     VideoDECODE *pDECODE = (VideoDECODE *) 0;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
-
-    // touch unreferenced parameter
-    session = session;
 
     // create a codec instance
     switch (CodecId)
@@ -542,7 +539,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             task.pSrc[0] = *surface_out;
 #endif
             task.pDst[0] = *surface_out;
-            // this is wa to remove external task dependency for HEVC SW decode plugin. 
+            // this is wa to remove external task dependency for HEVC SW decode plugin.
             // need only because SW HEVC decode is pseudo
             {
                 mfxPlugin plugin;

@@ -290,7 +290,7 @@ VC1Status DecodePicHeader(VC1Context* pContext)
    return vc1Sts;
 }
 
-VC1Status DecodeSkippicture(VC1Context* pContext)
+VC1Status DecodeSkippicture(VC1Context* /* pContext */)
 {
     return VC1_OK;
 }

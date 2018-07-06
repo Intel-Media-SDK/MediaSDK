@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -2476,7 +2476,7 @@ mfxStatus TaskManager::PutTasksForRecode(Task* pTask)
     TaskList::iterator it_from = m_querying.begin();
     TaskList::iterator it_where =m_encoding.begin();
 
-    for (;it_from != m_querying.end() && pTask != &*it_from; it_from ++);
+    for (;it_from != m_querying.end() && pTask != &*it_from; it_from ++) {}
     MFX_CHECK(it_from != m_querying.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     for (;it_where != m_encoding.end() && (it_where->m_stage & FRAME_SUBMITTED)!=0; it_where ++);

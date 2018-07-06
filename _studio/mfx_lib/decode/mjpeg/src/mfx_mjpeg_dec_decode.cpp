@@ -862,11 +862,8 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEMJPEG::DecodeFrame(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out)
+mfxStatus VideoDECODEMJPEG::DecodeFrame(mfxBitstream * /* bs */, mfxFrameSurface1 * /* surface_work */, mfxFrameSurface1 * /* surface_out */)
 {
-    bs = bs;
-    surface_work = surface_work;
-    surface_out = surface_out;
     return MFX_ERR_NONE;
 }
 
@@ -1840,7 +1837,7 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxIn
 }
 
 
-mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 threadNumber, mfxU32 )
+mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 /* threadNumber */, mfxU32 )
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(params);
@@ -1902,7 +1899,6 @@ mfxStatus VideoDECODEMJPEGBase_HW::RunThread(void *params, mfxU32 threadNumber, 
     }
 
     info = 0;
-    threadNumber = threadNumber;
 
     return MFX_TASK_DONE;
 }

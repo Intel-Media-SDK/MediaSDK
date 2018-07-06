@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -879,10 +879,9 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
         ENCODE_SET_SLICE_HEADER_MPEG2&  ddiSlice = pExecuteBuffers->m_pSlice[i];
         assert(ddiSlice.NumMbsForSlice == width_in_mbs);
         sliceParam = &m_sliceParam[i];
-        //sliceParam->macroblock_address = i * width_in_mbs;
-        sliceParam->macroblock_address = i;
-        sliceParam->num_macroblocks      = ddiSlice.NumMbsForSlice;
-        sliceParam->is_intra_slice       = ddiSlice.IntraSlice;
+        sliceParam->macroblock_address = i * width_in_mbs;
+        sliceParam->num_macroblocks    = ddiSlice.NumMbsForSlice;
+        sliceParam->is_intra_slice     = ddiSlice.IntraSlice;
         // prevent GPU hang due to different scale_code in different slices
         sliceParam->quantiser_scale_code = pExecuteBuffers->m_pSlice[0].quantiser_scale_code;
         MFX_DESTROY_VABUFFER(m_sliceParamBufferId[i], m_vaDisplay);

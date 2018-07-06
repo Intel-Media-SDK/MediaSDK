@@ -127,8 +127,6 @@ mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& task, 
 
     const mfxI16Pair zeroPair = { 0, 0 };
 
-
-
     // disable all MVP blocks at first
     std::for_each(mvp.Data, mvp.Data + mvp.Pitch * mvp.Height,
             [](mfxFeiHevcEncMVPredictors& block)

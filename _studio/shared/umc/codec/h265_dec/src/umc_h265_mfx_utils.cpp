@@ -913,12 +913,10 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
 }
 
 // Validate input parameters
-bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
+bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType /* type */)
 {
     if (!in)
         return false;
-
-    type = type;
 
     if (MFX_CODEC_HEVC != in->mfx.CodecId)
         return false;

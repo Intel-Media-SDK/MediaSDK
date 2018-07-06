@@ -33,10 +33,11 @@
 # include <syslog.h>
 #endif
 
-
+#ifdef _MSVC_LANG
 #pragma warning(disable:4047)
 #pragma warning(disable:4024)
 #pragma warning(disable:4133)
+#endif
 
 #if defined(UMC_VA) && ( defined(LINUX32) || defined(LINUX64) )
 #endif

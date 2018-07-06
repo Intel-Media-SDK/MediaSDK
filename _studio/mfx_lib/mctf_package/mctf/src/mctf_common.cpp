@@ -267,7 +267,7 @@ mfxF64 CMC::CatchTime(int indexInit, int indexEnd, const char* message, int prin
     return 0.0;
 }
 
-void CMC::CatchEndTime(mfxI32 processed_frames) {
+void CMC::CatchEndTime(mfxI32 /* processed_frames */) {
     TimeStop();
 //    CatchTime("Total process time:", 1);
 }
@@ -851,7 +851,7 @@ mfxStatus CMC::MCTF_UpdateRTParams(IntMctfParams* pMctfControl)
         m_RTParams = m_InitRTParams;
     return MFX_ERR_NONE;
 }
-mfxStatus CMC::MCTF_UpdateANDApplyRTParams(mfxU8 srcNum)
+mfxStatus CMC::MCTF_UpdateANDApplyRTParams(mfxU8 /* srcNum */)
 {
     // deblock can be controled for every mode
     if (MCTF_CONFIGURATION::MCTF_MAN_NCA_NBA == ConfigMode ||

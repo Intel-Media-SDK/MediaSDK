@@ -85,7 +85,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     sts = VerifyCrossSessionsOptions();
     MSDK_CHECK_STATUS(sts, "VerifyCrossSessionsOptions failed");
 
-#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT)
+#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT) || defined(ANDROID)
     if (m_eDevType == MFX_HANDLE_VA_DISPLAY)
     {
         mfxI32  libvaBackend = 0;
@@ -106,12 +106,14 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
                 return MFX_ERR_DEVICE_FAILED;
             }
             sts = m_hwdev->Init(&params.monitorType, 1, MSDKAdapter::GetNumber(0) );
+#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT)
             if (params.libvaBackend == MFX_LIBVA_DRM_MODESET) {
                 CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev.get());
                 pVAAPIParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
                 pVAAPIParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
 
             }
+#endif
 #if defined(LIBVA_WAYLAND_SUPPORT)
             else if (params.libvaBackend == MFX_LIBVA_WAYLAND) {
                 VADisplay va_dpy = NULL;

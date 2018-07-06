@@ -94,6 +94,7 @@ enum {
     MFX_FOURCC_YUY2         = MFX_MAKEFOURCC('Y','U','Y','2'),
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     MFX_FOURCC_RGB565       = MFX_MAKEFOURCC('R','G','B','2'),
+    MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P'),
 #endif
     MFX_FOURCC_RGB3         = MFX_MAKEFOURCC('R','G','B','3'),   /* deprecated */
     MFX_FOURCC_RGB4         = MFX_MAKEFOURCC('R','G','B','4'),   /* ARGB in that order, A channel is 8 MSBs */

@@ -27,18 +27,40 @@ if( ENABLE_ITT )
       set( CMAKE_VTUNE_HOME /opt/intel/vtune_amplifier )
     endif()
 
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+      set( arch "64" )
+    else()
+      set( arch "32" )
+    endif()
+
     find_path( ITT_INCLUDE_DIRS ittnotify.h
       PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
       PATH_SUFFIXES include )
-    find_path( ITT_LIBRARY_DIRS libittnotify.a
+
+    # Unfortunately SEAPI and VTune uses different names for itt library:
+    #  * SEAPI uses libittnotify${arch}.a
+    #  * VTune uses libittnotify.a
+    # We are trying to check both giving preference to SEAPI name.
+    find_path( ITT_LIBRARY_DIRS libittnotify${arch}.a
       PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
       PATH_SUFFIXES lib64 )
+    if( NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND )
+      set( ITT_LIBRARIES "ittnotify${arch}" )
+    else()
+      find_path( ITT_LIBRARY_DIRS libittnotify.a
+        PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
+        PATH_SUFFIXES lib64 )
+      if( NOT ITT_LIBRARY_PATH MATCHES NOTFOUND )
+        set( ITT_LIBRARIES "ittnotify" )
+      endif()
+    endif()
 
     if(NOT ITT_INCLUDE_DIRS MATCHES NOTFOUND AND
        NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND)
 
       message( STATUS "itt header is in ${ITT_INCLUDE_DIRS}" )
       message( STATUS "itt lib is in ${ITT_LIBRARY_DIRS}" )
+      message( STATUS "itt lib name is ${ITT_LIBRARIES}" )
 
       include_directories( ${ITT_INCLUDE_DIRS} )
       link_directories( ${ITT_LIBRARY_DIRS} )
@@ -46,7 +68,6 @@ if( ENABLE_ITT )
       set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DMFX_TRACE_ENABLE_ITT" )
       set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMFX_TRACE_ENABLE_ITT" )
 
-      set( ITT_LIBRARIES "ittnotify" )
       set( ITT_FOUND TRUE )
     endif()
   endif()
