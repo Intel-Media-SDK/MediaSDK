@@ -39,7 +39,7 @@ struct Return2Pool
 
     void operator()(T* ptr)
     {
-        m_pool->Add(std::unique_ptr<T, D>{ptr}); // return back to the pool
+        m_pool->Add(ptr); // return back to the pool
     }
 
     private:
@@ -68,6 +68,15 @@ public:
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_pool.emplace_back(std::move(buffer));
+        m_condition.notify_one();
+    }
+
+    void Add(T* bufferRawPtr)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        // Take advantage of perfect forwarding and construct unique_ptr in place
+        m_pool.emplace_back(bufferRawPtr);
         m_condition.notify_one();
     }
 
