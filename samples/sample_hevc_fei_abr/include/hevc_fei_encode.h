@@ -46,7 +46,7 @@ public:
             return static_cast<BRC*>(new SW_BRC(video_param, brc_params.TargetKbps));
             break;
         case LOOKAHEAD:
-            return static_cast<BRC*>(new LA_BRC(video_param, brc_params.TargetKbps, brc_params.LookAheadDepth));
+            return static_cast<BRC*>(new LA_BRC(video_param, brc_params.TargetKbps, brc_params.LookAheadDepth, brc_params.LookBackDepth, brc_params.AdaptationLength));
             break;
         case NONE:
         default:

@@ -90,7 +90,7 @@ mfxStatus CFeiTranscodingPipeline::Init()
                     m_source.reset(CreateYUVSource());
                     MSDK_CHECK_POINTER(m_source.get(), MFX_ERR_NOT_INITIALIZED);
 
-                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD, param.dumpMVP));
+                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD, param.dumpMVP, !param.sBRCparams.strYUVFile[0], param.sBRCparams.eAlgType));
 
                     sts = m_source->PreInit();
                     MSDK_CHECK_STATUS(sts, "m_source PreInit failed");
@@ -119,7 +119,7 @@ mfxStatus CFeiTranscodingPipeline::Init()
                     m_source.reset(CreateYUVSource());
                     MSDK_CHECK_POINTER(m_source.get(), MFX_ERR_NOT_INITIALIZED);
 
-                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD, param.dumpMVP));
+                    m_dso.reset(new HevcSwDso(param.input, &m_EncSurfPool, m_mvpPool, m_ctuCtrlPool, param.sBRCparams.eBrcType == LOOKAHEAD, param.dumpMVP, !param.sBRCparams.strYUVFile[0], param.sBRCparams.eAlgType));
 
                     sts = m_source->PreInit();
                     MSDK_CHECK_STATUS(sts, "m_source PreInit failed");
@@ -163,7 +163,7 @@ mfxStatus CFeiTranscodingPipeline::Init()
         sts = InitComponents();
         MSDK_CHECK_STATUS(sts, "InitComponents failed");
 
-        // for MSE calculation
+        // We need an allocator to lock surface for MSE calculation
         m_la_queue->SetAllocator(m_pMFXAllocator.get());
     }
     catch (mfxError& ex)
@@ -218,11 +218,20 @@ void CFeiTranscodingPipeline::PrintInfo()
     mfxU32 id = 0;
     for (auto & encoder : m_encoders)
     {
-        msdk_printf(MSDK_STRING("\n\nEncoder #%d:\t"), id++);
+        msdk_printf(MSDK_STRING("\n\nEncoder #%d:\t"), id);
         MfxVideoParamsWrapper param;
         param = encoder->GetVideoParam();
 
         msdk_printf(MSDK_STRING("\nProcessing order :\t%s"), param.mfx.EncodedOrder ? MSDK_STRING("Encoded") : MSDK_STRING("Display"));
+        if (m_inParamsArray[id].sBRCparams.eBrcType)
+        {
+            msdk_printf(MSDK_STRING("\nTargetKbps       :\t%d"), m_inParamsArray[id].sBRCparams.TargetKbps);
+            if (m_inParamsArray[id].sBRCparams.LookAheadDepth)
+            {
+                msdk_printf(MSDK_STRING("\nLookAheadDepth   :\t%d"), m_inParamsArray[id].sBRCparams.LookAheadDepth);
+            }
+        }
+        ++id;
         msdk_printf(MSDK_STRING("\nGop Size         :\t%d"), param.mfx.GopPicSize);
 
         mfxU16 gopOptFlag = param.mfx.GopOptFlag;
@@ -467,10 +476,6 @@ mfxStatus CFeiTranscodingPipeline::Execute()
 
         sts = m_dso->GetFrame(*task.get()); // TODO: need to change GetFrame to accept shared_ptr
         MSDK_BREAK_ON_ERROR(sts);
-
-#ifdef DEBUG_OUTPUT
-        std::cout << "Submitted frame #" << numSubmitted << std::endl;
-#endif
 
         numSubmitted++;
 

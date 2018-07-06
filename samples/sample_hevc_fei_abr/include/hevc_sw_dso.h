@@ -29,10 +29,12 @@ class HevcSwDso : public IYUVSource
 public:
     HevcSwDso(const SourceFrameInfo& inPars,
               SurfacesPool* sp,
-              std::shared_ptr<MVPPool> mvpPool,
-              std::shared_ptr<CTUCtrlPool> ctuCtrlPool,
+              std::shared_ptr<MVPPool> & mvpPool,
+              std::shared_ptr<CTUCtrlPool> & ctuCtrlPool,
               bool calc_BRC_stat = false,
-              bool dump_mvp = false)
+              bool dump_mvp      = false,
+              bool est_dist      = false,
+              DIST_EST_ALGO alg  = NNZ)
         : IYUVSource(inPars, sp)
         , m_inPars(inPars)
         , m_parser(BS_HEVC2::PARSE_SSD_TC)
@@ -40,6 +42,8 @@ public:
         , m_ctuCtrlPool(ctuCtrlPool)
         , m_bCalcBRCStat(calc_BRC_stat)
         , m_bDumpFinalMVPs(dump_mvp)
+        , m_bEstimateDistortion(est_dist)
+        , m_AlgorithmType(alg)
     {
     }
 
@@ -47,26 +51,28 @@ public:
     {
     }
 
-    virtual mfxStatus SetBufferAllocator(std::shared_ptr<FeiBufferAllocator> bufferAlloc)
+    virtual mfxStatus SetBufferAllocator(std::shared_ptr<FeiBufferAllocator> & bufferAlloc) override
     {
         m_buffAlloc = bufferAlloc;
 
         return MFX_ERR_NONE;
     }
 
-    virtual mfxStatus QueryIOSurf(mfxFrameAllocRequest* request) { return MFX_ERR_UNSUPPORTED; }
-    virtual mfxStatus PreInit() { return MFX_ERR_UNSUPPORTED; }
-    virtual mfxStatus Init();
-    virtual void      Close() { return; }
+    virtual mfxStatus QueryIOSurf(mfxFrameAllocRequest* request) override { return MFX_ERR_UNSUPPORTED; }
+    virtual mfxStatus PreInit() override { return MFX_ERR_UNSUPPORTED; }
+    virtual mfxStatus Init()    override;
+    virtual void      Close()   override { return; }
 
-    virtual mfxStatus GetActualFrameInfo(mfxFrameInfo & info) { return MFX_ERR_UNSUPPORTED; }
-    virtual mfxStatus GetFrame(mfxFrameSurface1* & pSurf) { return MFX_ERR_UNSUPPORTED; }
-    virtual mfxStatus GetFrame(HevcTaskDSO & task);
+    virtual mfxStatus GetActualFrameInfo(mfxFrameInfo & info) override { return MFX_ERR_UNSUPPORTED; }
+    virtual mfxStatus GetFrame(mfxFrameSurface1* & pSurf)     override { return MFX_ERR_UNSUPPORTED; }
+    virtual mfxStatus GetFrame(HevcTaskDSO & task)            override;
 
 protected:
     void FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task);
     void FillMVP(const BS_HEVC2::NALU* header, mfxExtFeiHevcEncMVPredictors & mvp, mfxU32 nMvPredictors[2]);
     void FillCtuControls(const BS_HEVC2::NALU* header, mfxExtFeiHevcEncCtuCtrl & ctuCtrls);
+
+    void FillBRCParams(const BS_HEVC2::NALU* header, HevcTaskDSO & task);
 
 protected:
     const SourceFrameInfo               m_inPars;
@@ -77,8 +83,11 @@ protected:
     std::shared_ptr<CTUCtrlPool>        m_ctuCtrlPool;
 
 private:
-    bool m_bCalcBRCStat = false;
-    bool m_bDumpFinalMVPs = false;
+    bool m_bCalcBRCStat        = false;
+    bool m_bDumpFinalMVPs      = false;
+    bool m_bEstimateDistortion = false;
+
+    DIST_EST_ALGO m_AlgorithmType = NNZ;
 
     mfxI32 m_DisplayOrderSinceLastIDR = 0, m_previousMaxDisplayOrder = -1;
     mfxU32 m_ProcessedFrames = 0;
