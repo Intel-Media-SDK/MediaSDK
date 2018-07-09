@@ -91,6 +91,9 @@ class SW_BRC : public BRC
 public:
     SW_BRC(mfxVideoParam const & video, mfxU16 TargetKbps)
     {
+        Zero(m_BRCPar);
+        Zero(m_BRCCtrl);
+
         //prepare mfxVideoParam for BRC Init
         mfxVideoParam tmp = video;
         tmp.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
