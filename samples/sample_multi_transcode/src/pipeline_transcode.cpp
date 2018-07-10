@@ -100,15 +100,8 @@ namespace TranscodingSample
 
 
 // set structure to define values
-sInputParams::sInputParams()
+sInputParams::sInputParams() : __sInputParams()
 {
-    Reset();
-} // sInputParams::sInputParams()
-
-void sInputParams::Reset()
-{
-    memset(static_cast<__sInputParams*>(this), 0, sizeof(__sInputParams));
-
 #ifdef ENABLE_MCTF
     mctfParam.mode = VPP_FILTER_DISABLED;
     mctfParam.params.FilterStrength = 0;
@@ -135,9 +128,7 @@ void sInputParams::Reset()
     mfeTimeout = 0;
 #endif
 
-    DumpLogFileName.clear();
 #if MFX_VERSION >= 1022
-    m_ROIData.clear();
     bDecoderPostProcessing = false;
     bROIasQPMAP = false;
 #endif //MFX_VERSION >= 1022
