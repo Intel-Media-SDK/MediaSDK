@@ -218,7 +218,7 @@ void LA_BRC::UpdateStatData()
 
 void LA_BRC::PreEnc(FrameStatData& /*statData*/)
 {
-    queue_mutex.lock();
+    std::lock_guard<std::mutex> lock(queue_mutex);
 
     // Shift index of current frame
     m_frameStatQueue.StartNewFrameProcessing();
@@ -307,8 +307,6 @@ void LA_BRC::PreEnc(FrameStatData& /*statData*/)
         statData.QstepCalculated = Qp2QStep(m_curQp);
         statData.QP              = m_curQp;
     }
-
-    queue_mutex.unlock();
 }
 
 void LA_BRC::Report(mfxU32 dataLength)
