@@ -27,8 +27,8 @@ class MFXVideoMultiVPP : public MFXVideoVPP
 {
 public:
 
-    MFXVideoMultiVPP(mfxSession session) : MFXVideoVPP(m_session)
-    { m_session = session; }
+    MFXVideoMultiVPP(mfxSession session) : MFXVideoVPP(session)
+    {}
     virtual ~MFXVideoMultiVPP(void) { Close(); }
 
     // topology methods
