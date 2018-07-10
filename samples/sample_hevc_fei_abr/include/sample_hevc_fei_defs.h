@@ -30,8 +30,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "sample_defs.h"
 
-#define CHECK_STS_AND_RETURN(X, MSG, RET) {if ((X) < MFX_ERR_NONE) {MSDK_PRINT_RET_MSG(X, MSG); return RET;}}
-
 struct SourceFrameInfo
 {
     msdk_char  strSrcFile[MSDK_MAX_FILENAME_LEN];

@@ -103,7 +103,7 @@ public:
     };
 
 private:
-    MFXVideoSession*      m_pmfxSession;
+    MFXVideoSession*      m_pmfxSession = nullptr;
     MFXVideoENCODE        m_mfxENCODE;
 
     MfxVideoParamsWrapper m_videoParams;
@@ -139,7 +139,7 @@ private:
 class MVPOverlay : public IEncoder
 {
 public:
-    MVPOverlay(IEncoder * pBase, MFXFrameAllocator * allocator, std::shared_ptr<FeiBufferAllocator> bufferAllocator, std::string file)
+    MVPOverlay(IEncoder * pBase, MFXFrameAllocator * allocator, std::shared_ptr<FeiBufferAllocator> & bufferAllocator, std::string & file)
         : m_pBase(pBase)
         , m_allocator(allocator)
         , m_buffAlloc(bufferAllocator)

@@ -37,7 +37,7 @@ public:
               DIST_EST_ALGO alg  = NNZ)
         : IYUVSource(inPars, sp)
         , m_inPars(inPars)
-        , m_parser(BS_HEVC2::PARSE_SSD_TC)
+        , m_parser(est_dist ? BS_HEVC2::PARSE_SSD_TC : BS_HEVC2::PARSE_SSD)
         , m_mvpPool(mvpPool)
         , m_ctuCtrlPool(ctuCtrlPool)
         , m_bCalcBRCStat(calc_BRC_stat)
