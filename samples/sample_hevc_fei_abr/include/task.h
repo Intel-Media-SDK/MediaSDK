@@ -103,7 +103,7 @@ struct HevcTaskDSO
     std::vector<mfxI32> m_refListActive[2];
 
     MVPPool::Type       m_mvp;
-    mfxU32              m_nMvPredictors[2];
+    mfxU32              m_nMvPredictors[2] = {0, 0};
 
     CTUCtrlPool::Type   m_ctuCtrl;
     bool                m_isGPBFrame = false;

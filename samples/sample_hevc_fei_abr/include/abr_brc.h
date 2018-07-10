@@ -405,7 +405,7 @@ public:
 
     virtual void SubmitNewStat(FrameStatData& stat) override
     {
-        queue_mutex.lock();
+        std::lock_guard<std::mutex> lock(queue_mutex);
 
         // Fill some additional information
         stat.Propagation        = 1.0 - std::pow(stat.ShareIntra, BRC3_PROPAGATION_EXPONENT);
@@ -413,8 +413,6 @@ public:
         stat.ComplexityOriginal = stat.QstepOriginal*stat.FrameSize;
 
         m_frameStatQueue.Add(stat);
-
-        queue_mutex.unlock();
     }
 
 private:
