@@ -559,7 +559,7 @@ IYUVSource* CFeiTranscodingPipeline::CreateYUVSource()
 
 mfxStatus EncoderContext::PreInit(MFXFrameAllocator * mfxAllocator,
                                   mfxHDL hdl,
-                                  std::shared_ptr<FeiBufferAllocator> bufferAllocator,
+                                  std::shared_ptr<FeiBufferAllocator> & bufferAllocator,
                                   const sInputParams & params,
                                   const mfxFrameInfo & inFrameInfo)
 {
