@@ -324,6 +324,7 @@ namespace TranscodingSample
 
     struct sInputParams: public __sInputParams
     {
+        sInputParams();
         msdk_string DumpLogFileName;
 #if MFX_VERSION >= 1022
         std::vector<mfxExtEncoderROI> m_ROIData;
@@ -331,11 +332,9 @@ namespace TranscodingSample
         bool bDecoderPostProcessing;
         bool bROIasQPMAP;
 #endif //MFX_VERSION >= 1022
-        sInputParams();
 #ifdef ENABLE_MCTF
         sMCTFParam mctfParam;
 #endif
-        void Reset();
     };
 
     struct PreEncAuxBuffer
