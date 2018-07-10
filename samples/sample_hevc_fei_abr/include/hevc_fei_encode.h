@@ -159,10 +159,8 @@ private:
 
     struct MfxFrameSurface1Wrap: public mfxFrameSurface1
     {
-        MfxFrameSurface1Wrap()
-        {
-            memset(this, 0, sizeof(mfxFrameSurface1));
-        }
+        MfxFrameSurface1Wrap() : mfxFrameSurface1()
+        {}
         ~MfxFrameSurface1Wrap()
         {}
 
