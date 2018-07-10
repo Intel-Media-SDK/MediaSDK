@@ -230,9 +230,10 @@ void CFeiTranscodingPipeline::PrintInfo()
         const msdk_char* GopStrict = (gopOptFlag & MFX_GOP_STRICT) == 0 ? MSDK_STRING("Not Strict") : MSDK_STRING("Strict");
         msdk_printf(MSDK_STRING("\nGopOptFlag       :\t%s, %s"), GopClosed, GopStrict);
 
-        msdk_char idrInterval[6];
-        msdk_itoa_decimal(param.mfx.IdrInterval, idrInterval);
-        msdk_printf(MSDK_STRING("\nIDR Interval     :\t%s"), param.mfx.IdrInterval == 0xffff ? MSDK_STRING("Infinite") : MSDK_STRING(idrInterval));
+	if (param.mfx.IdrInterval == 0xffff)
+            msdk_printf(MSDK_STRING("\nIDR Interval     :\tInfinite"));
+	else
+	    msdk_printf(MSDK_STRING("\nIDR Interval     :\t%d"), param.mfx.IdrInterval);
 
         msdk_printf(MSDK_STRING("\nGopRefDist       :\t%d"), param.mfx.GopRefDist);
         msdk_printf(MSDK_STRING("\nNumRefFrame      :\t%d"), param.mfx.NumRefFrame);
