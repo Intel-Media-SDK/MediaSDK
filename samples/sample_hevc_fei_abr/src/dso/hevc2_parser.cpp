@@ -428,7 +428,7 @@ BSErr Parser::ParseNextAuSubmit(NALU*& pAU)
             else
                 m_spAuToId[pAU].AUDone = m_spAuToId[pAU].AU;
         }
-        catch (TaskQueueOverflow)
+        catch (TaskQueueOverflow&)
         {
             m_thread.WaitForAny(-1);
 
@@ -582,7 +582,7 @@ BSErr Parser::ParseNextAu(NALU*& pAU)
             {
                 NextStartCode(true);
             }
-            catch (EndOfBuffer)
+            catch (EndOfBuffer&)
             {
                 nalu.complete = true;
             }
@@ -601,7 +601,7 @@ BSErr Parser::ParseNextAu(NALU*& pAU)
             TLEnd();
         }
     }
-    catch (EndOfBuffer)
+    catch (EndOfBuffer&)
     {
         if (!auSize)
         {
@@ -611,11 +611,11 @@ BSErr Parser::ParseNextAu(NALU*& pAU)
             return BS_ERR_MORE_DATA;
         }
     }
-    catch (std::bad_alloc)
+    catch (std::bad_alloc&)
     {
         return BS_ERR_MEM_ALLOC;
     }
-    catch (Exception ex)
+    catch (Exception& ex)
     {
         return ex.Err();
     }
@@ -642,7 +642,7 @@ BSErr Parser::ParseNextAu(NALU*& pAU)
 
         firstNALU->next = 0;
     }
-    catch (std::bad_alloc)
+    catch (std::bad_alloc&)
     {
         return BS_ERR_MEM_ALLOC;
     }
@@ -714,7 +714,7 @@ Bs32u Parser::ParseSSDSubmit(SDThread*& pSDT, NALU* AU)
             {
                 sp = m_thread.Submit(ParallelSD, pSDT, 0, (Bs32u)sliceDep.size(), sliceDep.empty() ? 0 : &sliceDep[0]);
             }
-            catch (TaskQueueOverflow)
+            catch (TaskQueueOverflow&)
             {
                 m_thread.WaitForAny(-1);
                 continue;
@@ -986,11 +986,11 @@ BsThread::State Parser::ParallelSD(void* self, unsigned int)
         par.Slice->slice->ctu = sdt.p.parseSSD(*par.Slice, par.ColPic, par.NumCtb);
         sdt.p.m_pAllocator->bound(par.Slice->slice->ctu, par.Slice->slice);
     }
-    catch(Exception ex)
+    catch(Exception& ex)
     {
         st = FAILED;
     }
-    catch (std::bad_alloc)
+    catch (std::bad_alloc&)
     {
         st = FAILED;
     }
