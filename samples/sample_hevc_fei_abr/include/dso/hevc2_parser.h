@@ -431,28 +431,28 @@ private:
         if (std::is_same<CTU, T>::value)
         {
             assert(m_ctu.capacity() >= m_ctu.size() + 1);
-            CTU z = {};
+            CTU z{};
             m_ctu.push_back(z);
             return (T*)&m_ctu.back();
         }
         if (std::is_same<CU, T>::value)
         {
             assert(m_cu.capacity() >= m_cu.size() + 1);
-            CU z = {};
+            CU z{};
             m_cu.push_back(z);
             return (T*)&m_cu.back();
         }
         if (std::is_same<PU, T>::value)
         {
             assert(m_pu.capacity() >= m_pu.size() + 1);
-            PU z = {};
+            PU z{};
             m_pu.push_back(z);
             return (T*)&m_pu.back();
         }
         if (std::is_same<TU, T>::value)
         {
             assert(m_tu.capacity() >= m_tu.size() + 1);
-            TU z = {};
+            TU z{};
             m_tu.push_back(z);
             return (T*)&m_tu.back();
         }
