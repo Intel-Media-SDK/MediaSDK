@@ -49,7 +49,6 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     m_vmtick_msec_frequency = vm_time_get_frequency()/1000;
     vm_mutex_set_invalid(&m_guard);
     vm_event_set_invalid(&m_hwTaskDone);
-    vm_thread_set_invalid(&m_hwWakeUpThread);
 
     // reset task variables
     memset(m_pTasks, 0, sizeof(m_pTasks));
@@ -82,18 +81,22 @@ mfxSchedulerCore::~mfxSchedulerCore(void)
 
 } // mfxSchedulerCore::~mfxSchedulerCore(void)
 
-bool mfxSchedulerCore::SetScheduling(vm_thread& handle)
+bool mfxSchedulerCore::SetScheduling(std::thread& handle)
 {
-    handle;
+    (void)handle;
     if (m_param.params.SchedulingType || m_param.params.Priority) {
-        vm_thread_linux_schedparams params;
+        if (handle.joinable()) {
+            struct sched_param param{};
 
-        memset(&params, 0, sizeof(params));
-        params.schedtype = m_param.params.SchedulingType;
-        params.priority = m_param.params.Priority;
-        return vm_thread_set_scheduling(&handle, &params);
+            param.sched_priority = m_param.params.Priority;
+            return !pthread_setschedparam(handle.native_handle(), m_param.params.SchedulingType, &param);
+        }
     }
     return true;
+}
+
+void mfxSchedulerCore::SetThreadsAffinityToSockets(void)
+{
 }
 
 void mfxSchedulerCore::Close(void)
@@ -117,8 +120,8 @@ void mfxSchedulerCore::Close(void)
         for (i = 0; i < m_param.numberOfThreads; i += 1)
         {
             // wait for particular thread
-            vm_thread_wait(&(m_pThreadCtx[i].threadHandle));
-            vm_thread_close(&(m_pThreadCtx[i].threadHandle));
+            if (m_pThreadCtx[i].threadHandle.joinable())
+                m_pThreadCtx[i].threadHandle.join();
 
             vm_cond_destroy(&(m_pThreadCtx[i].taskAdded));
         }
@@ -183,45 +186,6 @@ void mfxSchedulerCore::Close(void)
 
     vm_mutex_destroy(&m_guard);
 }
-
-void mfxSchedulerCore::SetThreadsAffinityMask(void)
-{
-    mfxU32 numCpu;
-
-    // get the actual number of threads
-    numCpu = vm_sys_info_get_cpu_num();
-
-    // simple case,
-    // set one CPU per thread
-    if (m_param.numberOfThreads == numCpu)
-    {
-        mfxU32 i;
-
-        for (i = 0; i < m_param.numberOfThreads; i += 1)
-        {
-            vm_set_thread_affinity_mask(&(m_pThreadCtx[i].threadHandle), 1LL << i);
-        }
-    }
-    else
-    {
-        mfxU32 i;
-        mfxF32 cpuPerThread = ((mfxF32) numCpu) / ((mfxF32) m_param.numberOfThreads);
-
-        for (i = 0; i < m_param.numberOfThreads; i += 1)
-        {
-            vm_set_thread_affinity_mask(&(m_pThreadCtx[i].threadHandle),
-                1LL << (mfxU32)(cpuPerThread * i));
-        }
-    }
-
-} // void mfxSchedulerCore::SetThreadsAffinityMask(void)
-
-void mfxSchedulerCore::SetThreadsAffinityToSockets(void)
-{
-// The code below works correctly on Linux, but doesn't affect performance,
-// because Linux scheduler ensures socket affinity by itself
-    return;
-} // void mfxSchedulerCore::SetThreadsAffinityMask(void)
 
 void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_regular_threads)
 {
