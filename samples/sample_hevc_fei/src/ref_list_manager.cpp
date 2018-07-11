@@ -746,9 +746,7 @@ HevcTask* EncodeOrderControl::ReorderFrame(mfxFrameSurface1 * surface)
         mfxExtCodingOption3 * CO3 = m_par;
         if (CO3 && CO3->GPB == MFX_CODINGOPTION_ON && task.m_frameType & MFX_FRAMETYPE_P)
         {
-            // encode P as GPB
-            task.m_frameType &= ~MFX_FRAMETYPE_P;
-            task.m_frameType |= MFX_FRAMETYPE_B;
+            // mark GPB frame
             task.m_ldb = true;
         }
 

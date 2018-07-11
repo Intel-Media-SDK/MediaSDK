@@ -85,7 +85,7 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-gop_opt closed|strict] - GOP optimization flags (can be used together)\n"));
     msdk_printf(MSDK_STRING("   [-r (-GopRefDist) distance] - Distance between I- or P- key frames (1 means no B-frames) (0 - by default(I frames))\n"));
     msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of available reference frames (DPB size)\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P frames (valid range is [1, 3])\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P/GPB frames (valid range is [1, 3])\n"));
     msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs] - number of maximum allowed backward references for B frames (valid range is [1, 3])\n"));
     msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs] - number of maximum allowed forward references for B frames (only 1 is supported)\n"));
     msdk_printf(MSDK_STRING("   [-NumPredictorsL0 numPreds] - number of maximum L0 predictors (default - assign depending on the frame type)\n"));
@@ -649,7 +649,7 @@ void AdjustOptions(sInputParams& params)
     params.nNumSlices       = tune(params.nNumSlices, 0, 1);
     params.nIdrInterval     = tune(params.nIdrInterval, 0, 0xffff);
 
-    if (params.nRefDist < 2 && params.GPB != MFX_CODINGOPTION_ON)
+    if (params.nRefDist < 2) // avoid impact of NumRefActiveBL0/L1 in gop with P/GPB only
     {
         params.NumRefActiveBL0 = params.NumRefActiveBL1 = 0;
     }
