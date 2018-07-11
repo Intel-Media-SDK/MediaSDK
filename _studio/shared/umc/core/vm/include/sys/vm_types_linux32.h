@@ -89,19 +89,6 @@ typedef struct vm_semaphore
     int32_t max_count;
 } vm_semaphore;
 
-/* vm_thread.h */
-typedef struct vm_thread
-{
-    pthread_t handle;
-    int32_t is_valid;
-    uint32_t (*p_thread_func)(void *);
-    void *p_arg;
-    vm_event exit_event;
-    vm_mutex access_mut;
-    int32_t i_wait_count;
-} vm_thread;
-
-
 typedef struct vm_time
 {
    long long start;
