@@ -344,7 +344,9 @@ protected:
         frame_par.DisplayOrder = task.m_poc;    // Frame number in a sequence of frames in display order starting from last IDR
         frame_par.FrameType = task.m_frameType;       // See FrameType enumerator
         frame_par.PyramidLayer = (mfxU16)task.m_level;    // B-pyramid or P-pyramid layer, frame belongs to
-        frame_par.NumRecode = (mfxU16)task.m_recode;       // Number of recodings performed for this frame    
+        frame_par.NumRecode = (mfxU16)task.m_recode;       // Number of recodings performed for this frame
+        if (task.m_secondField)
+            frame_par.PyramidLayer = frame_par.PyramidLayer +1;    
     }
 
  
