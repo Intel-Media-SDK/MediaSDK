@@ -2941,8 +2941,9 @@ void ConstructRPL(
 #elif (HEVCE_FIELD_MODE == 2)
                         MFX_SORT_COMMON(RPL[1], numRefActive[1], (Abs(DPB[RPL[1][_i]].m_poc/2 - poc/2)  + ((DPB[RPL[1][_i]].m_secondField == bSecondField) ? 0 : 16)) > (Abs(DPB[RPL[1][_j]].m_poc/2 - poc/2)  + ((DPB[RPL[1][_j]].m_secondField == bSecondField) ? 0 : 16)));
 #elif (HEVCE_FIELD_MODE == 3 || HEVCE_FIELD_MODE == 4)
-                    if (par.isBPyramid())
+                    if (par.isBPyramid() && l0 > 1)
                     {
+                       // if the case of B pyramid with multireference frames nearest L1 field is used.
                         MFX_SORT_COMMON(RPL[1], numRefActive[1], Abs(DPB[RPL[1][_i]].m_poc - poc) > Abs(DPB[RPL[1][_j]].m_poc - poc));
                     }
                     else

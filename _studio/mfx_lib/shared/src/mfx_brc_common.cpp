@@ -135,13 +135,13 @@ mfxI32 GetRawFrameSize(mfxU32 lumaSize, mfxU16 chromaFormat, mfxU16 bitDepthLuma
     return frameSize * 8; //frame size in bits
 }
 
-mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bFielMode)
+mfxStatus cBRCParams::Init(mfxVideoParam* par, bool fieldMode)
 {
     MFX_CHECK_NULL_PTR1(par);
     MFX_CHECK(par->mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
               par->mfx.RateControlMethod == MFX_RATECONTROL_VBR,
               MFX_ERR_UNDEFINED_BEHAVIOR);
-
+    bFieldMode = fieldMode;
     mfxU32 k = par->mfx.BRCParamMultiplier == 0 ?  1: par->mfx.BRCParamMultiplier;
     mfxU32 bpsScale  = (par->mfx.CodecId == MFX_CODEC_AVC) ? 10 : 6;
 
@@ -179,8 +179,8 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bFielMode)
 
     inputBitsPerFrame    = targetbps / frameRate;
     maxInputBitsPerFrame = maxbps / frameRate;
-    gopPicSize = par->mfx.GopPicSize*(bFielMode ? 2 : 1);
-    gopRefDist = par->mfx.GopRefDist*(bFielMode ? 2 : 1);
+    gopPicSize = par->mfx.GopPicSize*(bFieldMode ? 2 : 1);
+    gopRefDist = par->mfx.GopRefDist*(bFieldMode ? 2 : 1);
 
     mfxExtCodingOption2 * pExtCO2 = (mfxExtCodingOption2*)Hevc_GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
     bPyr = (pExtCO2 && pExtCO2->BRefType == MFX_B_REF_PYRAMID);
@@ -544,14 +544,17 @@ void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI
 
     SetQPParams(qp, type, ctx, rec_num, minQuant, maxQuant, level, iDQp, isRef);
 }
-
+bool isFieldMode(mfxVideoParam *par)
+{
+	return ((par->mfx.CodecId == MFX_CODEC_HEVC) && !(par->mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE));
+}
 
 mfxStatus ExtBRC::Init (mfxVideoParam* par)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
     MFX_CHECK(!m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
-    sts = m_par.Init(par);
+    sts = m_par.Init(par, isFieldMode(par));
     MFX_CHECK_STS(sts);
 
     if (m_par.bHRDConformance)
@@ -1050,7 +1053,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
     {
         mfxF64 targetFrameSize = MFX_MAX((mfxF64)m_par.inputBitsPerFrame, fAbLong);
         mfxF64 dqf = DQF(picType, m_par.iDQp, ((picType == MFX_FRAMETYPE_IDR) ? m_par.mIntraBoost : false), (ParSceneChange || m_ctx.encOrder == 0));
-        mfxF64 maxFrameSizeByRatio = dqf * FRM_RATIO(picType, m_ctx.encOrder, bSHStart, m_par.bPyr) * targetFrameSize;
+        mfxF64 maxFrameSizeByRatio = dqf * FRM_RATIO(picType, m_ctx.encOrder, bSHStart, m_par.bPyr && (!m_par.bFieldMode)) * targetFrameSize;
         if (m_par.rateControlMethod == MFX_RATECONTROL_CBR && m_par.bHRDConformance) {
             mfxF64 dev = -1.0*maxFrameSizeByRatio - m_hrd.GetBufferDiviation();
             if (dev > 0) maxFrameSizeByRatio += MFX_MIN(maxFrameSizeByRatio, (dev / (IS_IFRAME(picType) ? 2.0 : 4.0)));
@@ -1567,6 +1570,7 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
     return MFX_ERR_NONE;
 }
 
+
 mfxStatus ExtBRC::Reset(mfxVideoParam *par )
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -1589,7 +1593,7 @@ mfxStatus ExtBRC::Reset(mfxVideoParam *par )
 
         if (brcReset)
         {
-            sts = m_par.Init(par);
+            sts = m_par.Init(par, isFieldMode(par));
             MFX_CHECK_STS(sts);
 
             m_ctx.Quant = (mfxI32)(1. / m_ctx.dQuantAb * pow(m_ctx.fAbLong / m_par.inputBitsPerFrame, 0.32) + 0.5);
