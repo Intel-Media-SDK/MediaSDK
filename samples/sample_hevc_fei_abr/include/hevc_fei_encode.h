@@ -28,6 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 class IEncoder
 {
 public:
+
     virtual ~IEncoder() {};
     virtual mfxStatus Init() = 0;
     virtual mfxStatus Query() = 0;
@@ -56,6 +57,9 @@ public:
     }
     // Submit new data to BRC
     virtual void UpdateBRCStat(FrameStatData& stat_data) = 0;
+
+    typedef std::function< void() > NotifyErrorCallback;
+    virtual void SetNotifyErrorCallback(NotifyErrorCallback callback) = 0;
 };
 
 
@@ -83,8 +87,19 @@ public:
 
         m_working_queue.Push( [ task, this ] () mutable
         {
-            DoWork(task);
-
+            try
+            {
+                // DoWork does jobs by encoding frames in separate thread(s).
+                // If it fails we need to notify 'the main' thread to stop supplying new tasks to 'encode' thread(s).
+                mfxStatus sts = DoWork(task);
+                if (MFX_ERR_NONE != sts)
+                    m_error_callback();
+            }
+            catch(...)
+            {
+                MSDK_TRACE_ERROR("Caught an exception from DoWork");
+                m_error_callback();
+            }
             if (task.get() && task->m_surf)
                 msdk_atomic_dec16((volatile mfxU16*)&task->m_surf->Data.Locked);
 
@@ -101,6 +116,11 @@ public:
             m_pBRC->SubmitNewStat(stat_data);
         }
     };
+
+    void SetNotifyErrorCallback(NotifyErrorCallback callback)
+    {
+        m_error_callback = callback;
+    }
 
 private:
     MFXVideoSession*      m_pmfxSession = nullptr;
@@ -127,6 +147,8 @@ private:
     std::unique_ptr<BRC> m_pBRC;
 
     Worker               m_working_queue;
+
+    NotifyErrorCallback  m_error_callback;
 
     mfxU16 m_FastIntraModeOnI = 0;
     mfxU16 m_FastIntraModeOnP = 0;
@@ -155,6 +177,7 @@ public:
     virtual MfxVideoParamsWrapper   GetVideoParam() { return m_pBase->GetVideoParam(); }
     virtual mfxStatus SubmitFrame(std::shared_ptr<HevcTaskDSO> & task);
     virtual void UpdateBRCStat(FrameStatData& stat_data) { m_pBase->UpdateBRCStat(stat_data); }
+    virtual void SetNotifyErrorCallback(NotifyErrorCallback callback) { m_pBase->SetNotifyErrorCallback(callback); }
 private:
 
     struct MfxFrameSurface1Wrap: public mfxFrameSurface1
