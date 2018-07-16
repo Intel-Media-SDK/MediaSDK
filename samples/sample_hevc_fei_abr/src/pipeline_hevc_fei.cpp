@@ -31,6 +31,7 @@ CFeiTranscodingPipeline::CFeiTranscodingPipeline(const std::vector<sInputParams>
     , m_ctuCtrlPool(nullptr)
     , m_FramesToProcess(0)
     , m_processedFrames(0)
+    , m_error(false)
 {
     mfxU16 LookAheadDepth = 1;
     for (auto const & param : m_inParamsArray)
@@ -450,6 +451,10 @@ mfxStatus CFeiTranscodingPipeline::InitComponents()
     {
         sts = encoder->Init();
         MSDK_CHECK_STATUS(sts, "FEI ENCODE Init failed");
+
+        encoder->SetNotifyErrorCallback(
+            [this] { m_error = true; }
+        );
     }
 
     return sts;
@@ -465,6 +470,8 @@ mfxStatus CFeiTranscodingPipeline::Execute()
     {
         if (m_FramesToProcess <= numSubmitted) // frame encoding limit
             break;
+
+        MSDK_CHECK_ERROR(m_error, true, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         mfxFrameSurface1* surface = NULL;
 
@@ -507,6 +514,8 @@ mfxStatus CFeiTranscodingPipeline::Execute()
         std::shared_ptr<HevcTaskDSO> task;
         while (m_la_queue->GetTask(task))
         {
+            MSDK_CHECK_ERROR(m_error, true, MFX_ERR_UNDEFINED_BEHAVIOR);
+
             for (auto & encoder : m_encoders)
             {
                 sts = encoder->SubmitFrame(task); // asynchronous call

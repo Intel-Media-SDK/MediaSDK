@@ -72,6 +72,10 @@ public:
     {
         return m_encoder->SubmitFrame(task);
     }
+    void SetNotifyErrorCallback(IEncoder::NotifyErrorCallback callback)
+    {
+        m_encoder->SetNotifyErrorCallback(callback);
+    }
 
     // Function generates common mfxVideoParam ENCODE
     // from user cmd line parameters and frame info from upstream component in pipeline.
@@ -91,7 +95,6 @@ private:
 };
 
 /**********************************************************************************/
-
 /* This class implements a FEI pipeline */
 class CFeiTranscodingPipeline
 {
@@ -154,6 +157,8 @@ private:
     mfxStatus FillInputFrameInfo(mfxFrameInfo& fi);
 
     DISALLOW_COPY_AND_ASSIGN(CFeiTranscodingPipeline);
+
+    volatile bool m_error; // used by asynchronous encoders to signal an error
 };
 
 MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFrameInfo& in_fi);
