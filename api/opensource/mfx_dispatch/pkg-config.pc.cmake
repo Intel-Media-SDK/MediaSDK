@@ -6,4 +6,4 @@ prefix=@CMAKE_INSTALL_PREFIX@
 libdir=@CMAKE_INSTALL_FULL_LIBDIR@
 includedir=@CMAKE_INSTALL_FULL_INCLUDEDIR@
 Libs: -L${libdir} -lmfx -lstdc++ -ldl
-Cflags: -I${includedir}
+Cflags: -I${includedir} -I${includedir}/mfx
