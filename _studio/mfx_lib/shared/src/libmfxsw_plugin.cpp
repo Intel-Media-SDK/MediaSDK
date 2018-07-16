@@ -172,7 +172,10 @@ namespace
 
 const mfxPluginUID NativePlugins[] =
 {
-    MFX_PLUGINID_HEVCE_HW
+    MFX_PLUGINID_HEVCE_HW,
+    MFX_PLUGINID_HEVCD_HW,
+    MFX_PLUGINID_VP8D_HW,
+    MFX_PLUGINID_VP9D_HW
 };
 
 mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
@@ -313,7 +316,7 @@ mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type)
         SessionPtr sessionPtr(session, type);
         std::unique_ptr<VideoCodecUSER> & registeredPlg = sessionPtr.plugin();
         if (NULL == registeredPlg.get())
-            return MFX_ERR_NOT_INITIALIZED;
+            return MFX_ERR_NONE;
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForTaskCompletion(registeredPlg.get());

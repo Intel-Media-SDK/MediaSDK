@@ -36,20 +36,16 @@ include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 
 list( APPEND umc_dirs
   brc
-  mpeg2_dec h264_dec h264_enc
-  h265_dec vp9_dec
-  )
+  h264_enc
+)
 
 foreach( dir ${umc_dirs} )
   include_directories( ${MSDK_STUDIO_ROOT}/shared/umc/codec/${dir}/include )
 endforeach()
 
-list( APPEND vdecs h264 mpeg2 vp8 vp9)
-foreach( dec ${vdecs} )
-  list( APPEND vdirs_impl decode/${dec} )
-endforeach()
-
-list( APPEND vencs h264 mpeg2 )
+list( APPEND vencs 
+  h264 
+)
 foreach( enc ${vencs} )
   list( APPEND vdirs_hw encode_hw/${enc} )
 endforeach()
@@ -66,7 +62,6 @@ endforeach()
 set( prefix ${MSDK_LIB_ROOT}/shared/src )
 list( APPEND plugin_common_sources
   ${prefix}/mfx_common_int.cpp
-  ${prefix}/mfx_common_decode_int.cpp
   ${prefix}/libmfxsw.cpp
   ${prefix}/libmfxsw_async.cpp
   ${prefix}/libmfxsw_query.cpp
@@ -107,81 +102,6 @@ list( APPEND plugin_common_sources
   ${prefix}/genx_icl_copy_isa.cpp
   ${prefix}/genx_icllp_copy_isa.cpp
 )
-
-###############################################################################
-## HEVC Decoder                                                              ##
-###############################################################################
-if( DEFINED HEVC_DECODER_HW_GUID )
-  set( version_defs "" )
-  set( defs "" )
-  set( sources "" )
-  set( sources.plus "" )
-  set( LIBS "" )
-
-  include_directories( ${MSDK_LIB_ROOT}/decode/h265/include )
-  include_directories( ${MSDK_STUDIO_ROOT}/shared/umc/codec/h265_dec/include )
-
-  ## umc_h265
-  set( SRC_DIR "${MSDK_STUDIO_ROOT}/shared/umc/codec/h265_dec/src" )
-  set( defs "-DAS_HEVCD_PLUGIN" )
-  file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-  list( APPEND sources ${srcs})
-  make_library( umc_h265 hw static )
-
-  ## cleanup
-  set( version_defs "" )
-  set( defs "" )
-  set( sources "" )
-  set( sources.plus "" )
-  set( LIBS "" )
-
-  ## plugin info: name, description and version
-  set( HEVC_PRODUCT_NAME "Intel(R) Media SDK" )
-  set( hw_HEVC_DECODER_DESCRIPTION "Intel(R) Media SDK HEVC Hardware Decode Plug-in" )
-
-  if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
-    set( hevc_version 0.0.000.0000 )
-  else()
-    set( hevc_version $ENV{MFX_HEVC_VERSION} )
-  endif()
-
-  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set( plugin_name mfx_hevcd_hw64 )
-  else()
-    set( plugin_name mfx_hevcd_hw32 )
-  endif()
-
-  set_file_and_product_version( ${hevc_version} version_defs )
-
-  list( APPEND sources ${plugin_common_sources} )
-  list( APPEND sources
-    ${MSDK_LIB_ROOT}/shared/src/libmfxsw_decode.cpp
-    ${MSDK_LIB_ROOT}/decode/h265/src/mfx_h265_dec_decode.cpp
-    ${MSDK_LIB_ROOT}/plugin/src/mfx_hevc_dec_plugin.cpp
-  )
-  list( APPEND LIBS
-    umc_h265_hw
-    umc_va_hw
-    umc
-    vm
-    vm_plus
-    mfx_trace
-    ${ITT_LIBRARIES}
-    pthread
-    dl
-  )
-
-  ## defs
-  set( USE_STRICT_NAME TRUE )
-  set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
-  set( defs "${defs} -DMFX_VA -DVA_HEVC_DECODER -DAS_HEVCD_PLUGIN" )
-  set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_PRODUCT_NAME}\"\\\"" )
-  set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_HEVC_DECODER_DESCRIPTION}\"\\\"" )
-  set( defs "${defs} ${version_defs}" )
-  gen_plugins_cfg("HEVC_Decoder_HW" ${HEVC_DECODER_HW_GUID} ${plugin_name} "01" "HEVC" "not_eval")
-  make_library( ${plugin_name} hw shared)
-  install( TARGETS ${plugin_name} ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
-endif()
 
 ###############################################################################
 ## 1toN Lookahead (H264 LA)                                                  ##
@@ -281,6 +201,51 @@ if( DEFINED H264LA_ENCODER_GUID )
 endif()
 
 ###############################################################################
+## HEVC Decoder                                                              ##
+###############################################################################
+if( DEFINED HEVC_DECODER_HW_GUID )
+  set( version_defs "" )
+  set( defs "" )
+  set( sources "" )
+  set( sources.plus "" )
+  set( LIBS "" )
+
+  ## plugin info: name, description and version
+  set( HEVC_PRODUCT_NAME "Intel(R) Media SDK" )
+  set( hw_HEVC_DECODER_DESCRIPTION "Intel(R) Media SDK HEVC Hardware Decode Plug-in - Compatibility Stub" )
+
+  if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
+    set( hevc_version 0.0.000.0000 )
+  else()
+    set( hevc_version $ENV{MFX_HEVC_VERSION} )
+  endif()
+
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set( plugin_name mfx_hevcd_hw64 )
+  else()
+    set( plugin_name mfx_hevcd_hw32 )
+  endif()
+
+  set_file_and_product_version( ${hevc_version} version_defs )
+
+  list( APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_hevc_dec_plugin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_stub_dec_plugin.cpp
+  )
+
+  ## defs
+  set( USE_STRICT_NAME TRUE )
+  set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
+  set( defs "${defs} -DMFX_VA -DVA_HEVC_DECODER -DAS_HEVCD_PLUGIN" )
+  set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_PRODUCT_NAME}\"\\\"" )
+  set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_HEVC_DECODER_DESCRIPTION}\"\\\"" )
+  set( defs "${defs} ${version_defs}" )
+  gen_plugins_cfg("HEVC_Decoder_HW" ${HEVC_DECODER_HW_GUID} ${plugin_name} "01" "HEVC" "not_eval")
+  make_library( ${plugin_name} hw shared)
+  install( TARGETS ${plugin_name} ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
+endif()
+
+###############################################################################
 ## VP8                                                                       ##
 ###############################################################################
 if( DEFINED VP8_DECODER_HW_GUID )
@@ -293,7 +258,7 @@ if( DEFINED VP8_DECODER_HW_GUID )
 
   ## plugin info: name, description and version
   set( VP8_PRODUCT_NAME "Intel(R) Media SDK" )
-  set( hw_VP8_DECODER_DESCRIPTION "Intel(R) Media SDK VP8 Hardware Decode Plug-in" )
+  set( hw_VP8_DECODER_DESCRIPTION "Intel(R) Media SDK VP8 Hardware Decode Plug-in - Compatibility Stub" )
 
   if( NOT DEFINED ENV{MFX_VP8_VERSION} )
     set( vp8_version 0.0.000.0000 )
@@ -309,45 +274,15 @@ if( DEFINED VP8_DECODER_HW_GUID )
 
   set_file_and_product_version( ${vp8_version} version_defs )
 
-  ## include, source and libs
-  include_directories( ${MSDK_LIB_ROOT}/scheduler/include )
-
-  list( APPEND sources ${plugin_common_sources} )
-  list( APPEND sources ${MSDK_LIB_ROOT}/shared/src/libmfxsw_decode.cpp )
-  list( APPEND sources ${MSDK_LIB_ROOT}/shared/src/mfx_vpx_dec_common.cpp )
-
-  set( prefix ${MSDK_LIB_ROOT}/plugin/src )
-  list( APPEND sources.plus
-    ${prefix}/mfx_vp8_dec_plugin.cpp
-  )
-  set( prefix ${MSDK_LIB_ROOT}/decode/vp8/src )
   list( APPEND sources
-    ${prefix}/mfx_vp8_dec_decode_hw.cpp
-    ${prefix}/mfx_vp8_dec_decode_common.cpp
-    ${prefix}/mfx_vp8_dec_decode_hw_vaapi.cpp
-    ${prefix}/mfx_vp8_dec_decode_tables.cpp
-  )
-  set( prefix ${MSDK_STUDIO_ROOT}/shared/umc/io/umc_va/src )
-  list( APPEND sources
-    ${prefix}/umc_va_linux.cpp
-  )
-
-  list( APPEND LIBS
-    umc
-    vm
-    vm_plus
-    va
-    umc_va_hw
-    mfx_trace
-    ${ITT_LIBRARIES}
-    pthread
-    dl
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_vp8_dec_plugin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_stub_dec_plugin.cpp
   )
 
   ## defs
   set( USE_STRICT_NAME TRUE )
   set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
-  set( defs " -DAS_VP8D_PLUGIN -DUMC_ENABLE_VP8_VIDEO_DECODER -DMFX_VA" )
+  set( defs " -DAS_VP8D_PLUGIN -DMFX_VA" )
   set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${VP8_PRODUCT_NAME}\"\\\"" )
   set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_VP8_DECODER_DESCRIPTION}\"\\\"" )
   set( defs "${defs} ${version_defs}" )
@@ -370,7 +305,7 @@ if( DEFINED VP9_DECODER_HW_GUID )
 
   ## plugin info: name, description and version
   set( VP9_PRODUCT_NAME "Intel(R) Media SDK" )
-  set( hw_VP9_DECODER_DESCRIPTION "Intel(R) Media SDK VP9 Hardware Decode Plug-in" )
+  set( hw_VP9_DECODER_DESCRIPTION "Intel(R) Media SDK VP9 Hardware Decode Plug-in - Compatibility Stub" )
 
   if( NOT DEFINED ENV{MFX_VP9_VERSION} )
     set( vp9_version 0.0.000.0000 )
@@ -387,54 +322,15 @@ if( DEFINED VP9_DECODER_HW_GUID )
   set_file_and_product_version( ${vp9_version} version_defs )
 
   ## include, source and libs
-  include_directories( ${MSDK_LIB_ROOT}/scheduler/include )
-
-  list( APPEND sources ${plugin_common_sources} )
-  list( APPEND sources ${MSDK_LIB_ROOT}/shared/src/libmfxsw_decode.cpp )
-  list( APPEND sources ${MSDK_LIB_ROOT}/shared/src/mfx_vpx_dec_common.cpp )
-
-  set( prefix ${MSDK_LIB_ROOT}/plugin/src )
-  list( APPEND sources.plus
-    ${prefix}/mfx_vp9_dec_plugin.cpp
-  )
-  set( prefix ${MSDK_LIB_ROOT}/decode/vp9/src )
-
   list( APPEND sources
-    ${prefix}/mfx_vp9_dec_decode.cpp
-    ${prefix}/mfx_vp9_dec_decode_hw.cpp
-    ${prefix}/mfx_vp9_dec_decode_utils.cpp
-  )
-
-  set( prefix ${MSDK_STUDIO_ROOT}/shared/umc/codec/vp9_dec/src )
-
-  list( APPEND sources
-    ${prefix}/umc_vp9_bitstream.cpp
-    ${prefix}/umc_vp9_utils.cpp
-    ${prefix}/umc_vp9_va_packer.cpp
-  )
-
-  set( prefix ${MSDK_STUDIO_ROOT}/shared/umc/io/umc_va/src )
-
-  list( APPEND sources
-    ${prefix}/umc_va_linux.cpp
-  )
-
-  list( APPEND LIBS
-    umc
-    vm
-    vm_plus
-    va
-    umc_va_hw
-    mfx_trace
-    ${ITT_LIBRARIES}
-    pthread
-    dl
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_vp9_dec_plugin.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_stub_dec_plugin.cpp
   )
 
   ## defs
   set( USE_STRICT_NAME TRUE )
   set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
-  set( defs " -DAS_VP9D_PLUGIN -DUMC_ENABLE_VP9_VIDEO_DECODER -DMFX_VA" )
+  set( defs " -DAS_VP9D_PLUGIN -DMFX_VA" )
   set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${VP9_PRODUCT_NAME}\"\\\"" )
   set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_VP9_DECODER_DESCRIPTION}\"\\\"" )
   set( defs "${defs} ${version_defs}" )
