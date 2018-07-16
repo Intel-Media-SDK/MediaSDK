@@ -89,7 +89,7 @@ include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_STUDIO_ROOT}/hevce_hw/h265/include )
 
 list( APPEND cdirs
-  brc h264_enc mpeg2_dec  vc1_dec vc1_common
+  brc h264_enc mpeg2_dec vc1_dec vp9_dec vc1_common
   )
 foreach( dir ${cdirs} )
   include_directories( ${MSDK_UMC_ROOT}/codec/${dir}/include )
@@ -121,6 +121,7 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_brc_common.cpp
     ${prefix}/mfx_mpeg2_dec_common.cpp
     ${prefix}/mfx_vc1_dec_common.cpp
+    ${prefix}/mfx_vpx_dec_common.cpp
     #=================
   )
 endforeach()
@@ -175,15 +176,19 @@ list( APPEND LIBS
   mfx_trace_hw
   bitrate_control
   h264_dec_hw
+  h265_dec_hw
   jpeg_common
   jpeg_dec_hw
   mpeg2_dec_hw
+  vc1_common
+  vc1_dec_hw
+  vp8_dec_hw
+  vp9_dec_hw
   umc
   vm
   vm_plus
   umc_va_hw
   cmrt_cross_platform_hw
-  decode_hw
   encode_hw
   h264_la
   genx_h264_encode_embeded
@@ -196,9 +201,6 @@ list( APPEND LIBS
   h264_preenc
   h264_enc
   h264_pak
-  vc1_common
-  vc1_dec_hw
-  umc_h265_hw
   mfx_trace
   ${ITT_LIBRARIES}
   pthread
