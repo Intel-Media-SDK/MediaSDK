@@ -28,7 +28,7 @@ constexpr mfxF64 BRC3_QSTEP_COMPL_EXPONENT   = 0.4;
 constexpr mfxF64 BRC3_BITRATE_QSTEP_EXPONENT = 1.0;
 
 constexpr mfxF64 BRC3_INTRA_QSTEP_FACTOR = 1.4;
-constexpr mfxF64 BRC3_INTRA_QP_DELTA     = 6.0 * std::log2(BRC3_INTRA_QSTEP_FACTOR);
+const     mfxF64 BRC3_INTRA_QP_DELTA     = 6.0 * std::log2(BRC3_INTRA_QSTEP_FACTOR);
 
 
 constexpr mfxF64 BRC3_B_QSTEP_EXPONENT = 0.35;
@@ -38,7 +38,7 @@ constexpr mfxF64 BRC3_B_QP_DELTA_MAX   = 6.0;
 
 
 constexpr mfxF64 BRC3_B_QSTEP_FACTOR   = 1.4;
-constexpr mfxF64 BRC3_B_QP_DELTA       = 6.0 * std::log2(BRC3_B_QSTEP_FACTOR);
+const     mfxF64 BRC3_B_QP_DELTA       = 6.0 * std::log2(BRC3_B_QSTEP_FACTOR);
 
 void LA_Stat_Queue::CalcScaledQsteps(mfxF64 scale)
 {
