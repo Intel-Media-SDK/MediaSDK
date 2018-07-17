@@ -701,6 +701,7 @@ typedef enum _GPU_PLATFORM {
     PLATFORM_INTEL_ICL = 10,  //Icelake
     PLATFORM_INTEL_KBL = 11,  //Kabylake
     PLATFORM_INTEL_GLV = 12,  //Glenview
+    PLATFORM_INTEL_ICLLP = 13,  //IcelakeLP
     PLATFORM_INTEL_GLK = 16,   //GeminiLake
     PLATFORM_INTEL_CFL = 17  //CofeeLake
 } GPU_PLATFORM;
@@ -1118,6 +1119,9 @@ typedef enum _MEMORY_OBJECT_CONTROL
     MEMORY_OBJECT_CONTROL_SKL_NO_CACHE,
     MEMORY_OBJECT_CONTROL_SKL_COUNT,
 
+    MEMORY_OBJECT_CONTROL_ICL_DEFAULT = 0,
+    MEMORY_OBJECT_CONTROL_ICL_COUNT,
+
     MEMORY_OBJECT_CONTROL_UNKNOWN = 0xff
 } MEMORY_OBJECT_CONTROL;
 
@@ -1165,6 +1169,25 @@ typedef enum _L3_SUGGEST_CONFIG
     SKL_L3_PLANE_7,
     SKL_L3_CONFIG_COUNT,
 
+
+    ICL_L3_PLANE_DEFAULT = 0,
+    ICL_L3_PLANE_1,
+    ICL_L3_PLANE_2,
+    ICL_L3_PLANE_3,
+    ICL_L3_PLANE_4,
+    ICL_L3_PLANE_5,
+    ICL_L3_CONFIG_COUNT,
+
+    ICLLP_L3_PLANE_DEFAULT = 0,
+    ICLLP_L3_PLANE_1,
+    ICLLP_L3_PLANE_2,
+    ICLLP_L3_PLANE_3,
+    ICLLP_L3_PLANE_4,
+    ICLLP_L3_PLANE_5,
+    ICLLP_L3_PLANE_6,
+    ICLLP_L3_PLANE_7,
+    ICLLP_L3_PLANE_8,
+    ICLLP_L3_CONFIG_COUNT,
     BDW_SLM_PLANE_DEFAULT = BDW_L3_PLANE_5,
     SKL_SLM_PLANE_DEFAULT = SKL_L3_PLANE_5
 } L3_SUGGEST_CONFIG;
@@ -1551,6 +1574,7 @@ public:
     CM_RT_API virtual INT CreateBuffer(UINT size, CmBuffer* & pSurface) = 0;
     CM_RT_API virtual INT CreateSurface2D(UINT width, UINT height, CM_SURFACE_FORMAT format, CmSurface2D* & pSurface) = 0;
     CM_RT_API virtual INT CreateSurface3D(UINT width, UINT height, UINT depth, CM_SURFACE_FORMAT format, CmSurface3D* & pSurface) = 0;
+    CM_RT_API virtual INT CreateSurface2D(mfxHDLPair D3DSurfPair, CmSurface2D* & pSurface) = 0;
     CM_RT_API virtual INT CreateSurface2D(AbstractSurfaceHandle pD3DSurf, CmSurface2D* & pSurface) = 0;
     //CM_RT_API virtual INT CreateSurface2D( AbstractSurfaceHandle * pD3DSurf, const UINT surfaceCount, CmSurface2D**  pSpurface ) = 0;
     CM_RT_API virtual INT DestroySurface(CmBuffer* & pSurface) = 0;
@@ -2175,6 +2199,7 @@ public:
     CM_RT_API virtual INT CreateBuffer(UINT size, CmBuffer* & pSurface) = 0;
     CM_RT_API virtual INT CreateSurface2D(UINT width, UINT height, CM_SURFACE_FORMAT format, CmSurface2D* & pSurface) = 0;
     CM_RT_API virtual INT CreateSurface3D(UINT width, UINT height, UINT depth, CM_SURFACE_FORMAT format, CmSurface3D* & pSurface) = 0;
+    CM_RT_API virtual INT CreateSurface2D(mfxHDLPair D3DSurfPair, CmSurface2D* & pSurface) = 0;
     CM_RT_API virtual INT CreateSurface2D(AbstractSurfaceHandle pD3DSurf, CmSurface2D* & pSurface) = 0;
     //CM_RT_API virtual INT CreateSurface2D( AbstractSurfaceHandle * pD3DSurf, const UINT surfaceCount, CmSurface2D**  pSpurface ) = 0;
     CM_RT_API virtual INT DestroySurface(CmBuffer* & pSurface) = 0;
