@@ -63,6 +63,8 @@ else()
   message( STATUS "There is no ConfTargets.cmake" )
 endif()
 
+include( ${BUILDER_ROOT}/ConfCodecs.cmake )
+
 foreach( dir api contrib _studio samples )
   set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
   create_build()

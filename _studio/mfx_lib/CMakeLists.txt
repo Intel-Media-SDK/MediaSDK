@@ -22,6 +22,8 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 mfx_include_dirs()
 
+cmake_policy(SET CMP0057 NEW)
+
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 ### CM
@@ -44,11 +46,18 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_common_decode_int.cpp
     ${prefix}/mfx_common_int.cpp
     ${prefix}/mfx_enc_common.cpp
-    ${prefix}/mfx_mpeg2_dec_common.cpp
     ${prefix}/mfx_critical_error_handler.cpp
     ${prefix}/mfx_vpx_dec_common.cpp
   )
 endforeach()
+
+if ("mpeg2" IN_LIST MFX_CODECS )
+  foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
+    list( APPEND sources
+      ${prefix}/mfx_mpeg2_dec_common.cpp
+    )
+  endforeach()
+endif()
 
 set( defs "" )
 make_library( mfx_common none static )
@@ -60,11 +69,18 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_h264_enc_common_hw.cpp
     ${prefix}/mfx_h264_encode_vaapi.cpp
     ${prefix}/mfx_h264_encode_factory.cpp
-    ${prefix}/mfx_mpeg2_enc_common_hw.cpp
-    ${prefix}/mfx_mpeg2_encode_vaapi.cpp
-    ${prefix}/mfx_mpeg2_encode_factory.cpp
   )
 endforeach()
+
+if ("mpeg2" IN_LIST MFX_CODECS )
+  foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
+    list( APPEND sources
+      ${prefix}/mfx_mpeg2_enc_common_hw.cpp
+      ${prefix}/mfx_mpeg2_encode_vaapi.cpp
+      ${prefix}/mfx_mpeg2_encode_factory.cpp
+    )
+  endforeach()
+endif()
 
 set( defs "" )
 make_library( mfx_common hw static )
@@ -72,14 +88,42 @@ append_property( mfx_common_hw COMPILE_FLAGS " -DMFX_RT" )
 
 ### libmfxhw
 list( APPEND mdirs
-  scheduler vpp decode/vc1
-  decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
-  decode/h265 decode/vp8 decode/vp9 mctf_package/mctf
+  scheduler vpp 
+  decode/h264 cmrt_cross_platform encode_hw/h264 
+  decode/h265 decode/vp9 mctf_package/mctf
   )
-include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
-include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
-include_directories( ${MSDK_LIB_ROOT}/fei/h264_pak )
-include_directories( ${MSDK_LIB_ROOT}/fei/h264_enc )
+
+if ("mpeg2" IN_LIST MFX_CODECS )
+  list( APPEND mdirs
+    decode/mpeg2 encde_hw/mpeg2
+    )
+endif()
+
+if ("vc1" IN_LIST MFX_CODECS )
+  list( APPEND mdirs
+    decode/vc1
+    )
+endif()
+
+if ("mjpeg" IN_LIST MFX_CODECS )
+  list( APPEND mdirs
+    decode/mjpeg encode_hw/mjpeg
+    )
+endif()
+
+if ("vp8" IN_LIST MFX_CODECS )
+  list( APPEND mdirs
+    decode/vp8
+    )
+endif()
+
+if ( ${MFX_USE_FEI} )
+  include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
+  include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
+  include_directories( ${MSDK_LIB_ROOT}/fei/h264_pak )
+  include_directories( ${MSDK_LIB_ROOT}/fei/h264_enc )
+endif()
+
 foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
@@ -89,8 +133,21 @@ include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_STUDIO_ROOT}/hevce_hw/h265/include )
 
 list( APPEND cdirs
-  brc h264_enc mpeg2_dec  vc1_dec vc1_common
+  brc h264_enc vp9_dec
   )
+
+if ("mpeg2" IN_LIST MFX_CODECS )
+  list( APPEND cdirs
+    mpeg2_dec
+    )
+endif()
+
+if ("vc1" IN_LIST MFX_CODECS )
+  list( APPEND cdirs
+    vc1_dec vc1_common 
+    )
+endif()
+
 foreach( dir ${cdirs} )
   include_directories( ${MSDK_UMC_ROOT}/codec/${dir}/include )
 endforeach()
@@ -119,11 +176,23 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_user_plugin.cpp
     #=================
     ${prefix}/mfx_brc_common.cpp
-    ${prefix}/mfx_mpeg2_dec_common.cpp
-    ${prefix}/mfx_vc1_dec_common.cpp
     #=================
   )
 endforeach()
+
+if ("mpeg2" IN_LIST MFX_CODECS )
+  list( APPEND sources
+    ${prefix}/mfx_mpeg2_dec_common.cpp
+  )
+endif()
+
+if ("vc1" IN_LIST MFX_CODECS )
+  list( APPEND sources
+    ${prefix}/mfx_vc1_dec_common.cpp
+  )
+endif()
+
+
 foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
   list( APPEND sources
     ${prefix}/cm_mem_copy.cpp
@@ -138,15 +207,18 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/mfx_mfe_adapter.cpp
   )
 endforeach()
-foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
-  list( APPEND sources
-    ${prefix}/genx_cht_copy_isa.cpp
-    ${prefix}/genx_skl_copy_isa.cpp
-    ${prefix}/genx_icl_copy_isa.cpp
-    ${prefix}/genx_icllp_copy_isa.cpp
-    ${prefix}/genx_cnl_copy_isa.cpp
-  )
-endforeach()
+
+if ( ${MFX_USE_COPY_KERNEL_GENX} )
+  foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
+    list( APPEND sources
+      ${prefix}/genx_cht_copy_isa.cpp
+      ${prefix}/genx_skl_copy_isa.cpp
+      ${prefix}/genx_icl_copy_isa.cpp
+      ${prefix}/genx_icllp_copy_isa.cpp
+      ${prefix}/genx_cnl_copy_isa.cpp
+    )
+  endforeach()
+endif()
 
 foreach( prefix ${MSDK_LIB_ROOT}/genx/field_copy/src )
   list( APPEND sources
@@ -172,38 +244,74 @@ endif()
 
 set( LIBS "" )
 list( APPEND LIBS
-  mfx_trace_hw
-  bitrate_control
-  h264_dec_hw
-  jpeg_common
-  jpeg_dec_hw
-  mpeg2_dec_hw
   umc
   vm
   vm_plus
   umc_va_hw
   cmrt_cross_platform_hw
   decode_hw
-  encode_hw
-  h264_la
-  genx_h264_encode_embeded
   mfx_common
   mfx_common_hw
   asc
   ${MCTF_LIB}
   vpp_hw
-  h264_common
-  h264_preenc
-  h264_enc
-  h264_pak
-  vc1_common
-  vc1_dec_hw
-  umc_h265_hw
-  mfx_trace
   ${ITT_LIBRARIES}
   pthread
   dl
 )
+
+if (("h264" IN_LIST MFX_CODECS))
+  list( APPEND LIBS h264_dec_hw )
+endif()
+
+if (("h265" IN_LIST MFX_CODECS))
+  list( APPEND LIBS umc_h265_hw )
+endif()
+
+if ( NOT ${MFX_TRACE_DISABLE} )
+  list( APPEND LIBS
+    mfx_trace
+    mfx_trace_hw
+  )
+endif()
+
+if ( ${MFX_USE_JPEG} )
+  list( APPEND LIBS
+    jpeg_common
+    jpeg_dec_hw
+  )
+endif()
+
+if ( ${MFX_USE_ENCODERS} )
+  list( APPEND LIBS
+    lbitrate_control
+    h264_common
+    lh264_la
+    encode_hw
+    h264_preenc
+    h264_enc
+    h264_pak
+ )
+endif()
+
+if ( ${MFX_USE_COPY_KERNEL_GENX} )
+  list( APPEND LIBS
+    genx_h264_encode_embeded
+ )
+endif()
+
+if ("mpeg2" IN_LIST MFX_CODECS )
+  list( APPEND LIBS
+    mpeg2_dec_hw
+  )
+endif()
+
+if ("vc1" IN_LIST MFX_CODECS )
+  list( APPEND LIBS
+    vc1_common
+    vc1_dec_hw
+  )
+endif()
 
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )

@@ -85,9 +85,9 @@ if( Linux OR Darwin )
   endif()
 
   if (CMAKE_C_COMPILER MATCHES icc)
-    set(no_warnings "-Wno-deprecated -Wno-unknown-pragmas -Wno-unused")
+    set(no_warnings "-Wno-deprecated -Wno-unknown-pragmas -Wno-unused ")
   else()
-    set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
+    set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused ")
   endif()
 
   set(c_warnings "-Wall -Wformat -Wformat-security")
