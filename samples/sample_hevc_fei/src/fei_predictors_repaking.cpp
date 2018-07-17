@@ -228,6 +228,7 @@ mfxStatus PredictorsRepaking::RepackPredictorsPerformance(const HevcTask& task, 
 
                 block.RefIdx[0].RefL1 = block.RefIdx[0].RefL0;
                 block.MV[0][1] = block.MV[0][0];
+                numFinalL1Predictors = 1;
             }
         }
     }
@@ -378,8 +379,8 @@ mfxStatus PredictorsRepaking::RepackPredictorsQuality(const HevcTask& task, mfxE
                     mv[j][1].x <<= m_downsample_power2;
                     mv[j][1].y <<= m_downsample_power2;
 
-                    distortion[j][0] = (j < task.m_numRefActive[0]) ? mbs_vec[j]->MB[preencCUIdx].Inter[0].BestDistortion : 0xffff;
-                    distortion[j][1] = (j < task.m_numRefActive[1]) ? mbs_vec[j]->MB[preencCUIdx].Inter[1].BestDistortion : 0xffff;
+                    distortion[j][0] = (j < numFinalL0Predictors) ? mbs_vec[j]->MB[preencCUIdx].Inter[0].BestDistortion : 0xffff;
+                    distortion[j][1] = (j < numFinalL1Predictors) ? mbs_vec[j]->MB[preencCUIdx].Inter[1].BestDistortion : 0xffff;
                 }
             }
 

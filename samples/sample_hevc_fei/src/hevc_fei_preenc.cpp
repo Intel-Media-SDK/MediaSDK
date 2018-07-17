@@ -123,6 +123,12 @@ FEI_Preenc::FEI_Preenc(MFXVideoSession* session, MfxVideoParamsWrapper& preenc_p
             m_default_MVMB.MV[i][j].y = (mfxI16)0x8000;
         }
     }
+
+    // Important!
+    // When DisableMVOutput and DisableStatisticsOutput are 1 on some particular frame (e.g. I frame),
+    // driver produces wrong MVs on further frames.
+    // So we always need to enable statistic output even if we don't need it at application side.
+    m_defFrameCtrl.DisableStatisticsOutput = 0;
 }
 
 FEI_Preenc::~FEI_Preenc()

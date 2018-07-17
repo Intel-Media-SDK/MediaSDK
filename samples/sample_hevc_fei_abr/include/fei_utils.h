@@ -79,7 +79,7 @@ public:
     {
         m_pOutSurfPool = sp;
     }
-    virtual mfxStatus SetBufferAllocator(std::shared_ptr<FeiBufferAllocator> bufferAlloc)
+    virtual mfxStatus SetBufferAllocator(std::shared_ptr<FeiBufferAllocator> & bufferAlloc)
     {
         return MFX_ERR_UNSUPPORTED;
     }
