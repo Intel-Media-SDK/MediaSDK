@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2017 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,9 +18,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_policy(SET CMP0057 NEW)
+mfx_include_dirs()
 
-if ( ${MFX_USE_FEI} )
-  include( "hevc_fei.cmake" )
-endif()
+include_directories (
+  ${MSDK_STUDIO_ROOT}/shared/mfx_trace/include
+)
 
+file( GLOB_RECURSE srcs "${MSDK_STUDIO_ROOT}/shared/mfx_trace/src/*.cpp" )
+list( APPEND sources ${srcs})
+
+set( defs "" )
+make_library( mfx_trace none static )
+make_library( mfx_trace hw static )
+set( defs "" )

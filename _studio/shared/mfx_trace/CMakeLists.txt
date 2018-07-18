@@ -20,14 +20,8 @@
 
 mfx_include_dirs()
 
-include_directories (
-  ${MSDK_STUDIO_ROOT}/shared/mfx_trace/include
-)
+if ( NOT ${MFX_TRACE_DISABLE} )
+  include( "mfx_trace.cmake" )
+endif()
 
-file( GLOB_RECURSE srcs "${MSDK_STUDIO_ROOT}/shared/mfx_trace/src/*.cpp" )
-list( APPEND sources ${srcs})
 
-set( defs "" )
-make_library( mfx_trace none static )
-make_library( mfx_trace hw static )
-set( defs "" )

@@ -18,12 +18,25 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+cmake_policy(SET CMP0057 NEW)
+
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 mfx_include_dirs()
 
 ### ENCODE HW
-list( APPEND Encoders h264 mjpeg mpeg2 )
+if ("mpeg2" IN_LIST MFX_CODECS )
+  list( APPEND Encoders mpeg2 )
+endif()
+
+if ("mjpeg" IN_LIST MFX_CODECS )
+  list( APPEND Encoders mjpeg )
+endif()
+
+if ("h264" IN_LIST MFX_CODECS )
+  list( APPEND Encoders h264 )
+endif()
+
 foreach( dir ${Encoders} )
   include_directories( ${MSDK_LIB_ROOT}/encode_hw/${dir}/include )
 endforeach()

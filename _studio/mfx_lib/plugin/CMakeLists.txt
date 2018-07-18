@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+cmake_policy(SET CMP0057 NEW)
+
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 set(HEVC_DECODER_HW_GUID   "33a61c0b4c27454ca8d85dde757c6f8e")
@@ -36,25 +38,53 @@ include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 
 list( APPEND umc_dirs
   brc
-  mpeg2_dec h264_dec h264_enc
-  h265_dec vp9_dec
   )
+
+if ( ${MFX_USE_DECODERS} )
+  if ("mpeg2" IN_LIST MFX_CODECS )
+    list( APPEND umc_dirs mpeg2_dec )
+    list( APPEND vdecs mpeg2 )
+  endif()
+  if ("h264" IN_LIST MFX_CODECS )
+    list( APPEND umc_dirs h264_dec )
+    list( APPEND vdecs h264 )
+  endif()
+  if ("h265" IN_LIST MFX_CODECS )
+    list( APPEND umc_dirs h265_dec )
+  endif()
+  if ("vp8" IN_LIST MFX_CODECS )
+    list( APPEND vdecs vp8)
+  endif()
+  if ("vp9" IN_LIST MFX_CODECS )
+    list( APPEND umc_dirs vp9_dec )
+    list( APPEND vdecs vp9)
+  endif()
+endif()
+
+if ( ${MFX_USE_ENCODERS} )
+  if ("h264" IN_LIST MFX_CODECS )
+    list( APPEND umc_dirs h264_enc )
+    list( APPEND vencs h264 )
+  endif()
+  if ("mpeg2" IN_LIST MFX_CODECS )
+    list( APPEND vencs mpeg2 )
+  endif()
+endif()
 
 foreach( dir ${umc_dirs} )
   include_directories( ${MSDK_STUDIO_ROOT}/shared/umc/codec/${dir}/include )
 endforeach()
 
-list( APPEND vdecs h264 mpeg2 vp8 vp9)
-foreach( dec ${vdecs} )
-  list( APPEND vdirs_impl decode/${dec} )
-endforeach()
-
-list( APPEND vencs h264 mpeg2 )
 foreach( enc ${vencs} )
   list( APPEND vdirs_hw encode_hw/${enc} )
 endforeach()
 
-list( APPEND vdirs_impl vpp cmrt_cross_platform genx/h264_encode)
+list( APPEND vdirs_impl vpp cmrt_cross_platform )
+
+if ( ${MFX_USE_COPY_KERNEL_GENX} )
+  list( APPEND genx/h264_encode)
+endif()
+
 foreach( dir  ${vdirs} ${vdirs_impl} ${vdirs_hw} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
@@ -111,7 +141,7 @@ list( APPEND plugin_common_sources
 ###############################################################################
 ## HEVC Decoder                                                              ##
 ###############################################################################
-if( DEFINED HEVC_DECODER_HW_GUID )
+if( (DEFINED HEVC_DECODER_HW_GUID) AND ("h265" IN_LIST MFX_CODECS))
   set( version_defs "" )
   set( defs "" )
   set( sources "" )
@@ -187,7 +217,7 @@ endif()
 ## 1toN Lookahead (H264 LA)                                                  ##
 ###############################################################################
 
-if( DEFINED H264LA_ENCODER_GUID )
+if( (DEFINED H264LA_ENCODER_GUID) AND ("h264" IN_LIST MFX_CODECS) AND (${MFX_USE_H264LA}))
   ## cleanup
   set( version_defs "" )
   set( defs "" )
@@ -283,7 +313,7 @@ endif()
 ###############################################################################
 ## VP8                                                                       ##
 ###############################################################################
-if( DEFINED VP8_DECODER_HW_GUID )
+if( (DEFINED VP8_DECODER_HW_GUID) AND ("vp8" IN_LIST MFX_CODECS) AND (${MFX_USE_DECODERS}) )
   ## cleanup
   set( version_defs "" )
   set( defs "" )
@@ -360,7 +390,7 @@ endif()
 # VP9
 # =============================================================================
 
-if( DEFINED VP9_DECODER_HW_GUID )
+if( (DEFINED VP9_DECODER_HW_GUID) AND ("vp9" IN_LIST MFX_CODECS) AND (${MFX_USE_DECODERS}) )
   ## cleanup
   set( version_defs "" )
   set( defs "" )
