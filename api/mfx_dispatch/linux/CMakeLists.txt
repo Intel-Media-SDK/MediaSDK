@@ -35,87 +35,64 @@ endfunction()
 
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 
-if( CMAKE_SYSTEM_NAME MATCHES Windows )
-  add_definitions(-DMINGW_HAS_SECURE_API -DWIN32)
+# If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
+# to /opt/intel/mediasdk instead of cmake's default
+if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+  set( CMAKE_INSTALL_PREFIX /opt/intel/mediasdk CACHE PATH "Install Path Prefix" FORCE )
+endif( )
+message( STATUS "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" )
+
+include( GNUInstallDirs )
+
+if( NOT DEFINED MFX_PLUGINS_DIR )
+  set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/mfx )
+endif( )
+add_definitions( -DMFX_PLUGINS_DIR="${MFX_PLUGINS_DIR}" )
+message( STATUS "MFX_PLUGINS_DIR=${MFX_PLUGINS_DIR}" )
+
+if( NOT DEFINED MFX_MODULES_DIR )
+  set( MFX_MODULES_DIR ${CMAKE_INSTALL_FULL_LIBDIR} )
+endif( )
+add_definitions( -DMFX_MODULES_DIR="${MFX_MODULES_DIR}" )
+message( STATUS "MFX_MODULES_DIR=${MFX_MODULES_DIR}" )
+
+add_definitions(-DUNIX)
+
+if( CMAKE_SYSTEM_NAME MATCHES Linux )
+  add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
 
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    add_definitions(-DWIN64)
+    add_definitions(-DLINUX64)
   endif( )
-else( )
-
-  # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
-  # to /opt/intel/mediasdk instead of cmake's default
-  if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
-    set( CMAKE_INSTALL_PREFIX /opt/intel/mediasdk CACHE PATH "Install Path Prefix" FORCE )
-  endif( )
-  message( STATUS "CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}" )
-
-  include( GNUInstallDirs )
-
-  if( NOT DEFINED MFX_PLUGINS_DIR )
-    set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/mfx )
-  endif( )
-  add_definitions( -DMFX_PLUGINS_DIR="${MFX_PLUGINS_DIR}" )
-  message( STATUS "MFX_PLUGINS_DIR=${MFX_PLUGINS_DIR}" )
-
-  if( NOT DEFINED MFX_MODULES_DIR )
-    set( MFX_MODULES_DIR ${CMAKE_INSTALL_FULL_LIBDIR} )
-  endif( )
-  add_definitions( -DMFX_MODULES_DIR="${MFX_MODULES_DIR}" )
-  message( STATUS "MFX_MODULES_DIR=${MFX_MODULES_DIR}" )
-
-  add_definitions(-DUNIX)
-
-  if( CMAKE_SYSTEM_NAME MATCHES Linux )
-    add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64 -DLINUX -DLINUX32)
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      add_definitions(-DLINUX64)
-    endif( )
-  endif( )
-
-  if( CMAKE_SYSTEM_NAME MATCHES Darwin )
-    add_definitions(-DOSX)
-    add_definitions(-DOSX32)
-
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      add_definitions(-DOSX64)
-    endif( )
-  endif( )
-
-  set(no_warnings "-Wno-unknown-pragmas -Wno-unused")
-  set(warnings "-Wall -Wformat -Wformat-security")
-
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC -std=c++11 ${warnings} ${no_warnings}")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
-
-  if (DEFINED CMAKE_FIND_ROOT_PATH)
-    append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
-  endif (DEFINED CMAKE_FIND_ROOT_PATH)
 endif( )
+
+if( CMAKE_SYSTEM_NAME MATCHES Darwin )
+  add_definitions(-DOSX)
+  add_definitions(-DOSX32)
+
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_definitions(-DOSX64)
+  endif( )
+endif( )
+
+set(no_warnings "-Wno-unknown-pragmas -Wno-unused")
+set(warnings "-Wall -Wformat -Wformat-security")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC -std=c++11 ${warnings} ${no_warnings}")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
+
+if (DEFINED CMAKE_FIND_ROOT_PATH)
+  append("--sysroot=${CMAKE_FIND_ROOT_PATH} " LINK_FLAGS)
+endif (DEFINED CMAKE_FIND_ROOT_PATH)
+
+list(APPEND sources
+  ${CMAKE_CURRENT_SOURCE_DIR}/mfxloader.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/mfxparser.cpp
+)
 
 include_directories (
   ${MFX_API_FOLDER}
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
-list(APPEND sources
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_critical_section.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_critical_section_linux.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_dispatcher.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_function_table.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_library_iterator.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_library_iterator_linux.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_load_dll.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_load_dll_linux.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_win_reg_key.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_dxva2_device.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_plugin_hive.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_plugin_hive_linux.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_plugin_cfg_parser.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_load_plugin.cpp
-  )
 
 function( append_property target property_name property )
   get_target_property( property ${ARGV0} ${ARGV1} )
@@ -150,10 +127,6 @@ make_static_library( mfx )
 
 set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX" )
 make_static_library( dispatch_shared )
-
-list(APPEND sources.plus
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/mfx_dispatcher_log.cpp
-  )
 
 set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG" )
 make_static_library( dispatch_trace )
