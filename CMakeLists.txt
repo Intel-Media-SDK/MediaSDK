@@ -101,7 +101,7 @@ if (BUILD_RUNTIME)
 endif()
 
 if (BUILD_DISPATCHER)
-  add_subdirectory(api/opensource/mfx_dispatch)
+  add_subdirectory(api/mfx_dispatch/linux)
 endif()
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
