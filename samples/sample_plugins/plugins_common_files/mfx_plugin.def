@@ -1,5 +1,0 @@
-EXPORTS
-	mfxCreateDecoderPlugin
-	mfxCreateEncoderPlugin
-	mfxCreateGenericPlugin
-	CreatePlugin
