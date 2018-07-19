@@ -1528,7 +1528,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         par.m_ext.CO2.IntRefCycleSize = 0;
         changed +=1;
     }
-    if (par.m_ext.CO2.MaxFrameSize)
+    if (par.m_ext.CO2.MaxFrameSize && ((!par.isSWBRC()) || (par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)))
     {
         par.m_ext.CO2.MaxFrameSize = 0;
         changed+=1;
