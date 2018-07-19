@@ -2941,14 +2941,7 @@ void ConstructRPL(
 #elif (HEVCE_FIELD_MODE == 2)
                         MFX_SORT_COMMON(RPL[1], numRefActive[1], (Abs(DPB[RPL[1][_i]].m_poc/2 - poc/2)  + ((DPB[RPL[1][_i]].m_secondField == bSecondField) ? 0 : 16)) > (Abs(DPB[RPL[1][_j]].m_poc/2 - poc/2)  + ((DPB[RPL[1][_j]].m_secondField == bSecondField) ? 0 : 16)));
 #elif (HEVCE_FIELD_MODE == 3 || HEVCE_FIELD_MODE == 4)
-                    if (par.isBPyramid())
-                    {
-                        MFX_SORT_COMMON(RPL[1], numRefActive[1], Abs(DPB[RPL[1][_i]].m_poc - poc) > Abs(DPB[RPL[1][_j]].m_poc - poc));
-                    }
-                    else
-                    {
-                        MFX_SORT_COMMON(RPL[1], numRefActive[1], FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_i]]) > FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_j]]));
-                    }
+                       MFX_SORT_COMMON(RPL[1], numRefActive[1], FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_i]]) > FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_j]]));
 #endif
                 }
                 else
