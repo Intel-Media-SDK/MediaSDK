@@ -6,20 +6,8 @@ include $(CLEAR_VARS)
 include $(MFX_HOME)/android/mfx_defs.mk
 
 LOCAL_SRC_FILES := $(addprefix src/, \
-    main.cpp \
-    mfx_critical_section.cpp \
-    mfx_critical_section_linux.cpp \
-    mfx_dispatcher.cpp \
-    mfx_function_table.cpp \
-    mfx_library_iterator.cpp \
-    mfx_library_iterator_linux.cpp \
-    mfx_load_dll.cpp \
-    mfx_load_dll_linux.cpp \
-    mfx_win_reg_key.cpp \
-    mfx_dxva2_device.cpp \
-    mfx_plugin_hive_linux.cpp \
-    mfx_plugin_cfg_parser.cpp \
-    mfx_load_plugin.cpp)
+    mfxloader.cpp \
+    mfxparser.cpp)
 
 LOCAL_C_INCLUDES := $(MFX_INCLUDES)
 
