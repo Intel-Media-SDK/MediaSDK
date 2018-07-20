@@ -51,7 +51,7 @@ CEncodingPipeline::CEncodingPipeline(AppConfig* pAppConfig)
 #endif
     , m_frameOrderIdrInDisplayOrder(0)
     , m_frameType((mfxU8)MFX_FRAMETYPE_UNKNOWN, (mfxU8)MFX_FRAMETYPE_UNKNOWN)
-
+    , m_commonFrameInfo()
     , m_preencBufs(m_numOfFields)
     , m_encodeBufs(m_numOfFields)
 
@@ -88,12 +88,13 @@ CEncodingPipeline::CEncodingPipeline(AppConfig* pAppConfig)
     , m_EncSurfaces(m_surfPoolStrategy)
     , m_ReconSurfaces(m_surfPoolStrategy)
 
+    , m_DecResponse()
+    , m_VppResponse()
+    , m_dsResponse()
+    , m_EncResponse()
+    , m_ReconResponse()
     , m_BaseAllocID(0)
 {
-    MSDK_ZERO_MEMORY(m_commonFrameInfo);
-
-    MSDK_ZERO_MEMORY(m_DecResponse);
-    MSDK_ZERO_MEMORY(m_EncResponse);
 
     m_appCfg.PipelineCfg.mixedPicstructs = m_appCfg.nPicStruct == MFX_PICSTRUCT_UNKNOWN;
 }
