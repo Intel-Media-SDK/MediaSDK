@@ -211,17 +211,17 @@ make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 
 get_mfx_version(mfx_version_major mfx_version_minor)
-set (mfxlib_filename "lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor}")
 
-#set_target_properties( ${mfxlibname} PROPERTIES
-#    LIBRARY_OUTPUT_NAME ${mfxlib_filename}
-#    SUFFIX "" )
+set_target_properties(${mfxlibname} PROPERTIES   VERSION ${mfx_version_major}.${mfx_version_minor})
+set_target_properties(${mfxlibname} PROPERTIES SOVERSION ${mfx_version_major})
 
-get_target_property(bindir ${mfxlibname} RUNTIME_OUTPUT_DIRECTORY) 
+install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR})
 
-install( FILES ${bindir}/lib${mfxlibname}.so DESTINATION ${MFX_MODULES_DIR} RENAME ${mfxlib_filename} )
+#get_target_property(bindir ${mfxlibname} RUNTIME_OUTPUT_DIRECTORY) 
+
+# compatibility staff
 install( CODE "execute_process(
   COMMAND ${CMAKE_COMMAND} -E create_symlink
-  ${MFX_MODULES_DIR}/${mfxlib_filename}
-  ${MFX_MODULES_DIR}/lib${mfxlibname}.so )"
+  ${MFX_MODULES_DIR}/lib${mfxlibname}.so.${mfx_version_major}.${mfx_version_minor}
+  ${MFX_MODULES_DIR}/lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor} )"
 )
