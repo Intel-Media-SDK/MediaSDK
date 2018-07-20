@@ -151,6 +151,10 @@ inline mfxU64 SwapEndian(mfxU64 val)
         ((val >>  8) & 0x00000000ff000000) | ((val >> 24) & 0x0000000000ff0000) |
         ((val >> 40) & 0x000000000000ff00) | ((val >> 56) & 0x00000000000000ff);
 }
+inline mfxU32 GetAlignmentByPlatform(mfxU32 platformCodeName)
+{
+    return platformCodeName >= MFX_PLATFORM_CANNONLAKE ? 8 : 16;
+}
 
 enum
 {
@@ -176,7 +180,7 @@ enum
     DEFAULT_LTR_INTERVAL    = 16,
     DEFAULT_PPYR_INTERVAL   = 3,
 
-    MAX_NUM_ROI             = 8,
+    MAX_NUM_ROI             = 16,
     MAX_NUM_DIRTY_RECT      = 64
 };
 
@@ -472,7 +476,9 @@ namespace ExtBuffer
     {
         _CopyPar1(PicWidthInLumaSamples);
         _CopyPar1(PicHeightInLumaSamples);
+        _CopyPar1(GeneralConstraintFlags);
 #if (MFX_VERSION >= 1026)
+        _CopyPar1(SampleAdaptiveOffset);
         _CopyPar1(LCUSize);
 #endif
     }
@@ -527,6 +533,14 @@ namespace ExtBuffer
         _CopyStruct1(NumRefActiveBL1);
         _CopyStruct1(QVBRQuality);
         _CopyPar1(EnableMBQP);
+#if (MFX_VERSION >= 1026)
+        _CopyPar1(TransformSkip);
+#endif
+#if (MFX_VERSION >= 1027)
+        _CopyPar1(TargetChromaFormatPlus1);
+        _CopyPar1(TargetBitDepthLuma);
+        _CopyPar1(TargetBitDepthChroma);
+#endif
         _CopyPar1(WinBRCMaxAvgKbps);
         _CopyPar1(WinBRCSize);
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
@@ -539,6 +553,7 @@ namespace ExtBuffer
 #if (MFX_VERSION >= 1025)
         _CopyPar1(EnableNalUnitType);
 #endif
+        _CopyPar1(LowDelayBRC);
     }
 
     inline void  CopySupportedParams(mfxExtCodingOptionDDI& buf_dst, mfxExtCodingOptionDDI& buf_src)
@@ -793,6 +808,7 @@ public:
     mfxU32 LTRInterval;
     mfxU32 PPyrInterval;
     mfxU32 LCUSize;
+    mfxU32 CodedPicAlignment;
     bool   HRDConformance;
     bool   RawRef;
     bool   bROIViaMBQP;
@@ -804,7 +820,7 @@ public:
 
     MfxVideoParam();
     MfxVideoParam(MfxVideoParam const & par);
-    MfxVideoParam(mfxVideoParam const & par);
+    MfxVideoParam(mfxVideoParam const & par, mfxPlatform const & platform);
 
     MfxVideoParam & operator = (mfxVideoParam const &);
     MfxVideoParam & operator = (MfxVideoParam const &);
@@ -889,7 +905,6 @@ protected:
     mfxU32 m_prevBpEncOrder;
 };
 
-
 class TaskManager
 {
 public:
@@ -915,7 +930,6 @@ private:
     TaskList   m_querying;
     UMC::Mutex m_listMutex;
     mfxU16     m_resetHeaders;
-
 };
 
 class FrameLocker : public mfxFrameData
@@ -945,6 +959,7 @@ inline bool isDpbEnd(DpbArray const & dpb, mfxU32 idx) { return idx >= MAX_DPB_S
 
 mfxU8 GetFrameType(MfxVideoParam const & video, mfxU32 frameOrder);
 
+mfxU16 GetMaxBitDepth(mfxU32 FourCC);
 
 void ConstructSTRPS(
     DpbArray const & DPB,

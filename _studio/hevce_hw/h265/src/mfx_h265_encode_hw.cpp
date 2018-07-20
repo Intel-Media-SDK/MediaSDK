@@ -28,6 +28,7 @@
 namespace MfxHwH265Encode
 {
 
+mfxStatus CheckInputParam(mfxVideoParam *inPar, mfxVideoParam *outPar = NULL);
 mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
 void      SetDefaults    (MfxVideoParam & par, ENCODE_CAPS_HEVC const & hwCaps);
 void      InheritDefaultValues(MfxVideoParam const & parInit, MfxVideoParam &  parReset);
@@ -75,12 +76,21 @@ mfxU32 GetMinBsSize(MfxVideoParam const & par)
     mfxU32 size = par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height;
 
     mfxF64 k = 2.0;
+#if (MFX_VERSION >= 1027)
+    if (par.m_ext.CO3.TargetBitDepthLuma == 10)
+        k = k + 0.3;
+    if (par.m_ext.CO3.TargetChromaFormatPlus1 - 1 == MFX_CHROMAFORMAT_YUV422)
+        k = k + 0.5;
+    else if (par.m_ext.CO3.TargetChromaFormatPlus1 - 1 == MFX_CHROMAFORMAT_YUV444)
+        k = k + 1.5;
+#else
     if (par.mfx.FrameInfo.BitDepthLuma == 10)
         k = k + 0.3;
     if (par.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV422)
         k = k + 0.5;
     else if (par.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV444)
         k = k + 1.5;
+#endif
 
     size = (mfxU32)(k*size);
 
@@ -100,10 +110,64 @@ mfxU16 MaxTask(MfxVideoParam const & par)
     return par.AsyncDepth + NumFramesForReord(par) + ((par.AsyncDepth > 1)? 1: 0);
 }
 
+#if (MFX_VERSION >= 1027)
+bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
+{
+    const mfxExtCodingOption3& CO3 = par.m_ext.CO3;
+
+    rec = par.mfx.FrameInfo;
+
+    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 10)
+    {
+        rec.FourCC = MFX_FOURCC_Y410;
+        rec.Width /= 2;
+        rec.Height *= 3;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 8)
+    {
+        rec.FourCC = MFX_FOURCC_AYUV;
+        rec.Width /= 4;
+        rec.Height *= 3;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 10)
+    {
+        rec.FourCC = MFX_FOURCC_Y210;
+        rec.Width /= 2;
+        rec.Height *= 2;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 8)
+    {
+        rec.FourCC = MFX_FOURCC_YUY2;
+        rec.Width /= 2;
+        rec.Height *= 2;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
+    {
+        rec.FourCC = MFX_FOURCC_NV12;
+        rec.Width = Align(rec.Width, 32) * 2;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 8)
+    {
+        rec.FourCC = MFX_FOURCC_NV12;
+    }
+    else
+    {
+        assert(!"undefined target format");
+        return false;
+    }
+
+    rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
+    rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
+    rec.BitDepthChroma = CO3.TargetBitDepthChroma;
+
+    return true;
+}
+#endif //(MFX_VERSION >= 1027)
 
 /*
     Setting default value for LowPower option.
     By default LowPower is OFF (using DualPipe)
+    For CNL: if no B-frames found and LowPower is Unknown then LowPower is ON
 
     Return value:
     MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
@@ -113,6 +177,16 @@ mfxStatus SetLowpowerDefault(MfxVideoParam& par)
 {
     mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 
+#if (MFX_VERSION >= 1025)
+    if (par.m_platform.CodeName == MFX_PLATFORM_CANNONLAKE
+        && par.mfx.TargetUsage >= MFX_TARGETUSAGE_6
+        && par.mfx.GopRefDist < 2
+        && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+    {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
+        return sts;
+    }
+#endif // MFX_VERSION >= 1025
     if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
         par.mfx.LowPower = MFX_CODINGOPTION_OFF;
 
@@ -177,6 +251,8 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
         encoder_guid,
         m_vpar.m_ext.HEVCParam.PicWidthInLumaSamples,
         m_vpar.m_ext.HEVCParam.PicHeightInLumaSamples);
+
+    MFX_CHECK(sts != MFX_ERR_INVALID_VIDEO_PARAM, sts);
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
 
     sts = m_ddi->QueryEncodeCaps(m_caps);
@@ -251,12 +327,16 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
 
     request.NumFrameMin = MaxRec(m_vpar);
 
+#if (MFX_VERSION >= 1027)
+    MFX_CHECK(GetRecInfo(m_vpar, request.Info), MFX_ERR_UNDEFINED_BEHAVIOR);
+#else
     if(request.Info.FourCC == MFX_FOURCC_RGB4)
     {
         //in case of ARGB input we need NV12 reconstruct allocation
         request.Info.FourCC = (m_vpar.mfx.FrameInfo.BitDepthLuma == 10) ? MFX_FOURCC_P010 : MFX_FOURCC_NV12;
         request.Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
     }
+#endif
     //For MMCD encoder bind flag is required.
     request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
     sts = m_rec.Alloc(&m_core, request, false);
@@ -325,15 +405,18 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoPar
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR2(par, request);
 
-    MFX_CHECK(par->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
+    sts = CheckInputParam(par);
+    MFX_CHECK_STS(sts);
 
     MFXCoreInterface _core = *core;
 
-    MfxVideoParam tmp = *par;
-    ENCODE_CAPS_HEVC caps = {};
-
-    sts = ExtBuffer::CheckBuffers(*par);
+    mfxPlatform platform;
+    sts = _core.QueryPlatform(&platform);
     MFX_CHECK_STS(sts);
+
+    MfxVideoParam tmp(*par, platform);
+
+    ENCODE_CAPS_HEVC caps = {};
 
     switch (par->IOPattern & MFX_IOPATTERN_IN_MASK)
     {
@@ -349,8 +432,6 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoPar
     default: return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
-    _core.QueryPlatform(&tmp.m_platform);
-
     (void)SetLowpowerDefault(tmp);
 
     sts = QueryHwCaps(&_core, GetGUID(tmp), caps);
@@ -360,7 +441,12 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoPar
     SetDefaults(tmp, caps);
 
     request->Info = tmp.mfx.FrameInfo;
+#if (MFX_VERSION >= 1027)
+    request->Info.Shift = (tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
+                           tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210) ? 1: 0;
+#else
     request->Info.Shift = tmp.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10? 1: 0;
+#endif
     request->NumFrameMin = MaxRaw(tmp);
 
     request->NumFrameSuggested = request->NumFrameMin;
@@ -414,27 +500,21 @@ mfxStatus MFXVideoENCODEH265_HW::Query(mfxCoreInterface *core, mfxVideoParam *in
     }
     else
     {
-        MfxVideoParam tmp = *in;
+        sts = CheckInputParam(in, out);
+        MFX_CHECK_STS(sts);
+
+        mfxPlatform platform;
+        MFXCoreInterface _core = *core;
+        sts = _core.QueryPlatform(&platform);
+        MFX_CHECK_STS(sts);
+
+        MfxVideoParam tmp(*in, platform);
+
         ENCODE_CAPS_HEVC caps = {};
         mfxExtEncoderCapability * enc_cap = ExtBuffer::Get(*in);
 
-        if (enc_cap!=0)
-        {
+        if (enc_cap)
             return MFX_ERR_UNSUPPORTED;
-        }
-
-        MFXCoreInterface _core = *core;
-
-        sts = _core.QueryPlatform(&tmp.m_platform);
-        MFX_CHECK_STS(sts);
-
-        MFX_CHECK(in->mfx.CodecId == MFX_CODEC_HEVC, MFX_ERR_UNSUPPORTED);
-
-        // matching ExtBuffers
-        sts = ExtBuffer::CheckBuffers(*in, *out);
-        if (sts == MFX_ERR_INVALID_VIDEO_PARAM)
-            sts = MFX_ERR_UNSUPPORTED;
-        MFX_CHECK_STS(sts);
 
         mfxStatus lpsts = SetLowpowerDefault(tmp);
 
@@ -566,13 +646,21 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
 
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
 
-    sts = ExtBuffer::CheckBuffers(*par);
+    sts = CheckInputParam(par);
     MFX_CHECK_STS(sts);
 
-    MfxVideoParam parNew = *par;
+    mfxPlatform platform;
+    sts = m_core.QueryPlatform(&platform);
+    MFX_CHECK_STS(sts);
+
+    MfxVideoParam parNew(*par, platform);
 
     mfxExtEncoderResetOption * pResetOpt = ExtBuffer::Get(*par);
     mfxExtCodingOptionSPSPPS* pSPSPPS = ExtBuffer::Get(*par);
+
+    // Preventing usage of garbage in parNew.m_pps if pSPSPPS->PPSBuffer isn't attched
+    if (pSPSPPS && pSPSPPS->SPSBuffer && pSPSPPS->PPSBuffer == NULL)
+        Copy(parNew.m_pps, m_vpar.m_pps);
 
     sts = LoadSPSPPS(parNew, pSPSPPS);
     MFX_CHECK_STS(sts);
@@ -597,6 +685,24 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
 
     MFX_CHECK(m_vpar.LCUSize ==  parNew.LCUSize, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM); // LCU Size Can't be changed
 
+#if (MFX_VERSION >= 1027)
+    {
+        mfxFrameInfo recNew = {};
+        MFX_CHECK(GetRecInfo(parNew, recNew), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        MFX_CHECK(parNew.mfx.CodecId                == MFX_CODEC_HEVC                   , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_vpar.AsyncDepth                 == parNew.AsyncDepth                , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_vpar.mfx.GopRefDist             >= parNew.mfx.GopRefDist            , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_vpar.mfx.NumRefFrame            >= parNew.mfx.NumRefFrame           , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_vpar.mfx.RateControlMethod      == parNew.mfx.RateControlMethod     , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_vpar.mfx.FrameInfo.ChromaFormat == parNew.mfx.FrameInfo.ChromaFormat, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_vpar.IOPattern                  == parNew.IOPattern                 , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
+        MFX_CHECK(m_rec.m_info.Width  >= recNew.Width , MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_rec.m_info.Height >= recNew.Height, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(m_rec.m_info.FourCC == recNew.FourCC, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    }
+#else
     MFX_CHECK(
            parNew.mfx.CodecId                == MFX_CODEC_HEVC
         && m_vpar.AsyncDepth                 == parNew.AsyncDepth
@@ -609,6 +715,7 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
         && m_vpar.mfx.FrameInfo.ChromaFormat == parNew.mfx.FrameInfo.ChromaFormat
         && m_vpar.IOPattern                  == parNew.IOPattern
         ,  MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+#endif //(MFX_VERSION >= 1027)
 
     MFX_CHECK(m_vpar.m_ext.CO2.ExtBRC == parNew.m_ext.CO2.ExtBRC, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     if (IsOn(m_vpar.m_ext.CO2.ExtBRC))
@@ -955,8 +1062,11 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
             }
             if (m_brc)
             {
-               if (IsOn(m_vpar.mfx.LowPower) || m_vpar.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
-                   )
+               if (IsOn(m_vpar.mfx.LowPower) || (m_vpar.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
+#if (MFX_VERSION >= 1025)
+                   && m_vpar.m_platform.CodeName < MFX_PLATFORM_CANNONLAKE
+#endif
+                   ))
                    taskForExecute->m_qpY = (mfxI8)Clip3( 0, 51, m_brc->GetQP(m_vpar, *taskForExecute));  //driver limitation
                else
                    taskForExecute->m_qpY = (mfxI8)Clip3( -6 * m_vpar.m_sps.bit_depth_luma_minus8, 51, m_brc->GetQP(m_vpar, *taskForExecute));

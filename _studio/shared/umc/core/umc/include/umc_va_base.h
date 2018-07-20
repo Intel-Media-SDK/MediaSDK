@@ -98,9 +98,10 @@ enum VideoAccelerationProfile
     VA_VLD          = 0x00400,
 
     VA_PROFILE                  = 0xff000,
-
-    //profile amendments
+    VA_PROFILE_422              = 0x0a000,
+    VA_PROFILE_444              = 0x0b000,
     VA_PROFILE_10               = 0x10000,
+    VA_PROFILE_REXT             = 0x20000,
 
     // configurations
     VA_CONFIGURATION            = 0x0ff00000,
@@ -116,6 +117,14 @@ enum VideoAccelerationProfile
     VP8_VLD         = VA_VP8 | VA_VLD,
     HEVC_VLD        = VA_H265 | VA_VLD,
     VP9_VLD         = VA_VP9 | VA_VLD,
+
+    H265_VLD_REXT               = VA_H265 | VA_VLD | VA_PROFILE_REXT,
+    H265_10_VLD_REXT            = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10,
+    H265_10_VLD                 = VA_H265 | VA_VLD | VA_PROFILE_10,
+    H265_VLD_422                = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_422,
+    H265_VLD_444                = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_444,
+    H265_10_VLD_422             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10 | VA_PROFILE_422,
+    H265_10_VLD_444             = VA_H265 | VA_VLD | VA_PROFILE_REXT | VA_PROFILE_10 | VA_PROFILE_444,
 
 };
 

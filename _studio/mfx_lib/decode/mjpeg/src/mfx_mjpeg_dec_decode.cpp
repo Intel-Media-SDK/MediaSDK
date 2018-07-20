@@ -1038,6 +1038,7 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
         return true;
 
     if (core->GetHWType() == MFX_HW_APL
+        || core->GetHWType() == MFX_HW_CFL
        )
     {
         if (par->mfx.FrameInfo.Width > 4096 || par->mfx.FrameInfo.Height > 4096)

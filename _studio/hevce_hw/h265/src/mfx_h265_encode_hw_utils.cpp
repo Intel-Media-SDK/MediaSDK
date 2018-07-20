@@ -368,6 +368,17 @@ mfxStatus MfxFrameAllocResponse::Alloc(
         m_responseQueue.resize(req.NumFrameMin);
         m_mids.resize(req.NumFrameMin);
 
+        // WA for RExt formats to fix CreateTexture2D failure
+        if ((tmp.Info.FourCC == MFX_FOURCC_YUY2)
+            || (tmp.Info.FourCC == MFX_FOURCC_P210)
+            || (tmp.Info.FourCC == MFX_FOURCC_AYUV)
+#if (MFX_VERSION >= 1027)
+            || (tmp.Info.FourCC == MFX_FOURCC_Y210)
+            || (tmp.Info.FourCC == MFX_FOURCC_Y410)
+#endif
+            )
+            tmp.Type &= ~MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
+
         for (int i = 0; i < req.NumFrameMin; i++)
         {
             mfxStatus sts = fa.Alloc(fa.pthis, &tmp, &m_responseQueue[i]);
@@ -579,6 +590,9 @@ mfxStatus CopyRawSurfaceToVideoMemory(
         mfxFrameSurface1 surfDst = { {}, video.mfx.FrameInfo, d3dSurf };
 
         if (surfDst.Info.FourCC == MFX_FOURCC_P010
+#if (MFX_VERSION >= 1027)
+            || surfDst.Info.FourCC == MFX_FOURCC_Y210
+#endif
             )
             surfDst.Info.Shift = 1; // convert to native shift in core.CopyFrame() if required
 
@@ -609,28 +623,56 @@ mfxStatus CopyRawSurfaceToVideoMemory(
 
 namespace ExtBuffer
 {
-    bool Construct(mfxVideoParam const & par, mfxExtHEVCParam& buf, mfxExtBuffer* pBuffers[], mfxU16 & numbuffers)
+    bool Construct(mfxVideoParam const & par, mfxExtHEVCParam& buf, mfxExtBuffer* pBuffers[], mfxU16 & numbuffers, mfxU32 codedPicAlignment)
     {
         if (!Construct<mfxVideoParam, mfxExtHEVCParam>(par, buf, pBuffers, numbuffers))
         {
-            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX) : par.mfx.FrameInfo.Width, CODED_PIC_ALIGN_W);
-            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, CODED_PIC_ALIGN_H);
+            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width, codedPicAlignment);
+            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
             return false;
         }
-        if (buf.PicWidthInLumaSamples== 0)
-            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX) : par.mfx.FrameInfo.Width, CODED_PIC_ALIGN_W);
-        else
-            buf.PicWidthInLumaSamples  = Align(buf.PicWidthInLumaSamples, CODED_PIC_ALIGN_W);
+        if (buf.PicWidthInLumaSamples == 0)
+            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX) : par.mfx.FrameInfo.Width, codedPicAlignment);
 
         if (buf.PicHeightInLumaSamples == 0)
-            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, CODED_PIC_ALIGN_H);
-        else
-            buf.PicHeightInLumaSamples = Align(buf.PicHeightInLumaSamples, CODED_PIC_ALIGN_H);
+            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
         return true;
     }
 
+#if (MFX_VERSION >= 1027)
+    inline mfxU16 CorrectBitDepth(mfxU16 x, mfxU32 fcc) { return x == 0 ? GetMaxBitDepth(fcc) : (x < 10) ? 8 : (x < 12) ? 10 : (x < 16) ? 12 : 16; }
+
+    bool Construct(mfxVideoParam const & par, mfxExtCodingOption3& buf, mfxExtBuffer* pBuffers[], mfxU16 & numbuffers)
+    {
+        if (!Construct<mfxVideoParam, mfxExtCodingOption3>(par, buf, pBuffers, numbuffers))
+        {
+            if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
+                buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
+            else
+                buf.TargetChromaFormatPlus1 = Clip3<mfxU16>(MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444, par.mfx.FrameInfo.ChromaFormat) + 1;
+            buf.TargetBitDepthLuma      = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
+            buf.TargetBitDepthChroma    = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
+
+            return false;
+        }
+
+        if (!buf.TargetChromaFormatPlus1)
+        {
+            if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
+                buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
+            else
+                buf.TargetChromaFormatPlus1 = Clip3<mfxU16>(MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444, par.mfx.FrameInfo.ChromaFormat) + 1;
+        }
+        if (!buf.TargetBitDepthLuma)
+            buf.TargetBitDepthLuma = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
+        if (!buf.TargetBitDepthChroma)
+            buf.TargetBitDepthChroma = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
+
+        return true;
+    }
+#endif
 
     mfxStatus CheckBuffers(mfxVideoParam const & par, const mfxU32 allowed[], mfxU32 notDetected[], mfxU32 size)
     {
@@ -666,7 +708,8 @@ MfxVideoParam::MfxVideoParam()
     , MaxKbps         (0)
     , LTRInterval     (0)
     , PPyrInterval    (0)
-    , LCUSize         (0)
+    , LCUSize           (0)
+    , CodedPicAlignment (0)
     , HRDConformance  (false)
     , RawRef          (false)
     , bROIViaMBQP     (false)
@@ -681,34 +724,33 @@ MfxVideoParam::MfxVideoParam()
 
 MfxVideoParam::MfxVideoParam(MfxVideoParam const & par)
 {
+     Copy(m_platform, par.m_platform);
      Construct(par);
 
      Copy(m_vps, par.m_vps);
      Copy(m_sps, par.m_sps);
      Copy(m_pps, par.m_pps);
-     Copy(m_platform, par.m_platform);
 
      CopyCalcParams(par);
 }
 
-MfxVideoParam::MfxVideoParam(mfxVideoParam const & par)
-    : BufferSizeInKB  (0)
-    , InitialDelayInKB(0)
-    , TargetKbps      (0)
-    , MaxKbps         (0)
-    , LTRInterval     (0)
-    , PPyrInterval    (0)
-    , LCUSize         (0)
-    , HRDConformance  (false)
-    , RawRef          (false)
-    , bROIViaMBQP     (false)
-    , bMBQPInput      (false)
-    , RAPIntra        (false)
-    , bFieldReord     (false)
-    , bNonStandardReord(false)
+MfxVideoParam::MfxVideoParam(mfxVideoParam const & par, mfxPlatform const & platform)
+    : BufferSizeInKB    (0)
+    , InitialDelayInKB  (0)
+    , TargetKbps        (0)
+    , MaxKbps           (0)
+    , LTRInterval       (0)
+    , PPyrInterval      (0)
+    , LCUSize           (0)
+    , CodedPicAlignment (0)
+    , HRDConformance    (false)
+    , RawRef            (false)
+    , bROIViaMBQP       (false)
+    , bMBQPInput        (false)
+    , RAPIntra          (false)
 {
     Zero(*(mfxVideoParam*)this);
-    Zero(m_platform);
+    Copy(m_platform, platform);
     Construct(par);
     SyncVideoToCalculableParam();
 }
@@ -735,7 +777,7 @@ void MfxVideoParam::CopyCalcParams(MfxVideoParam const & par)
 
 MfxVideoParam& MfxVideoParam::operator=(MfxVideoParam const & par)
 {
-
+    Copy(m_platform, par.m_platform);
     Construct(par);
     CopyCalcParams(par);
 
@@ -770,7 +812,8 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
     base.NumExtParam = 0;
     base.ExtParam = m_ext.m_extParam;
 
-    ExtBuffer::Construct(par, m_ext.HEVCParam, m_ext.m_extParam, base.NumExtParam);
+    CodedPicAlignment = GetAlignmentByPlatform(m_platform.CodeName);
+    ExtBuffer::Construct(par, m_ext.HEVCParam, m_ext.m_extParam, base.NumExtParam, CodedPicAlignment);
     ExtBuffer::Construct(par, m_ext.HEVCTiles, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.Opaque, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.CO,  m_ext.m_extParam, base.NumExtParam);
@@ -1301,9 +1344,14 @@ void MfxVideoParam::SyncHeadersToMfxParam()
     if (m_sps.general.tier_flag)
         mfx.CodecLevel |= MFX_TIER_HEVC_HIGH;
 
+    m_ext.HEVCParam.GeneralConstraintFlags = m_sps.general.rext_constraint_flags_0_31;
+    m_ext.HEVCParam.GeneralConstraintFlags |= ((mfxU64)m_sps.general.rext_constraint_flags_32_42 << 32);
 
     mfx.NumRefFrame = m_sps.sub_layer[0].max_dec_pic_buffering_minus1;
 
+#if (MFX_VERSION >= 1027)
+    m_ext.CO3.TargetChromaFormatPlus1 = 1 +
+#endif
         (mfx.FrameInfo.ChromaFormat = m_sps.chroma_format_idc);
 
     m_ext.HEVCParam.PicWidthInLumaSamples  = (mfxU16)m_sps.pic_width_in_luma_samples;
@@ -1327,8 +1375,14 @@ void MfxVideoParam::SyncHeadersToMfxParam()
         fi.CropH -= cropUnitY * (mfxU16)m_sps.conf_win_bottom_offset;
     }
 
+#if (MFX_VERSION >= 1027)
+    m_ext.CO3.TargetBitDepthLuma =
+#endif
         fi.BitDepthLuma = m_sps.bit_depth_luma_minus8 + 8;
 
+#if (MFX_VERSION >= 1027)
+    m_ext.CO3.TargetBitDepthChroma =
+#endif
         fi.BitDepthChroma = m_sps.bit_depth_chroma_minus8 + 8;
 
     if (m_sps.vui_parameters_present_flag)
@@ -1390,6 +1444,9 @@ void MfxVideoParam::SyncHeadersToMfxParam()
         m_ext.HEVCTiles.NumTileRows = m_pps.num_tile_rows_minus1 + 1;
     }
 
+#if (MFX_VERSION >= 1026)
+    m_ext.CO3.TransformSkip = (m_pps.transform_skip_enabled_flag ? (mfxU16)MFX_CODINGOPTION_ON : (mfxU16)MFX_CODINGOPTION_OFF);
+#endif
 }
 
 mfxU8 GetNumReorderFrames(mfxU32 BFrameRate, bool BPyramid,bool bField, bool bFieldReord){
@@ -1433,6 +1490,12 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     general.frame_only_constraint_flag  = 0;
     general.level_idc                   = (mfxU8)(mfx.CodecLevel & 0xFF) * 3;
 
+    if (mfx.CodecProfile == MFX_PROFILE_HEVC_REXT
+        )
+    {
+        general.rext_constraint_flags_0_31  = (mfxU32)(m_ext.HEVCParam.GeneralConstraintFlags & 0xffffffff);
+        general.rext_constraint_flags_32_42 = (mfxU32)(m_ext.HEVCParam.GeneralConstraintFlags >> 32);
+    }
 
     slo.max_dec_pic_buffering_minus1    = mfx.NumRefFrame;
     slo.max_num_reorder_pics            = Min(GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord), slo.max_dec_pic_buffering_minus1);
@@ -1445,14 +1508,23 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_sps.temporal_id_nesting_flag = m_vps.temporal_id_nesting_flag;
 
     m_sps.seq_parameter_set_id              = 0;
+#if (MFX_VERSION >= 1027)
+    m_sps.chroma_format_idc                 = m_ext.CO3.TargetChromaFormatPlus1 - 1;
+#else
     //hardcoded untill support for encoding in chroma format other than YUV420 support added.
     m_sps.chroma_format_idc                 = 1;
+#endif
     m_sps.separate_colour_plane_flag        = 0;
     m_sps.pic_width_in_luma_samples         = m_ext.HEVCParam.PicWidthInLumaSamples;
     m_sps.pic_height_in_luma_samples        = m_ext.HEVCParam.PicHeightInLumaSamples;
     m_sps.conformance_window_flag           = 0;
+#if (MFX_VERSION >= 1027)
+    m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)m_ext.CO3.TargetBitDepthLuma - 8);
+    m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)m_ext.CO3.TargetBitDepthChroma - 8);
+#else
     m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)mfx.FrameInfo.BitDepthLuma - 8);
     m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)mfx.FrameInfo.BitDepthChroma - 8);
+#endif
     m_sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)Clip3(0, 12, (mfxI32)CeilLog2(mfx.GopRefDist*(isField() ? 2 : 1) + slo.max_dec_pic_buffering_minus1) - 1);
 
     m_sps.log2_min_luma_coding_block_size_minus3   = 0;
@@ -1462,6 +1534,14 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_sps.max_transform_hierarchy_depth_inter      = 2;
     m_sps.max_transform_hierarchy_depth_intra      = 2;
     m_sps.scaling_list_enabled_flag                = 0;
+#if (MFX_VERSION >= 1025)
+    if (m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE)
+    {
+        m_sps.amp_enabled_flag = 1; // only 1
+        m_sps.sample_adaptive_offset_enabled_flag = !(m_ext.HEVCParam.SampleAdaptiveOffset & MFX_SAO_DISABLE);
+    }
+    else
+#endif  //(MFX_VERSION >= 1025)
     { // SKL/KBL
         m_sps.amp_enabled_flag = 0;
         m_sps.sample_adaptive_offset_enabled_flag = 0;
@@ -1713,6 +1793,32 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
         cpb0.cbr_flag              = (mfx.RateControlMethod == MFX_RATECONTROL_CBR);
     }
 
+    if (mfx.CodecProfile == MFX_PROFILE_HEVC_REXT)
+    {
+        //TBD
+        m_sps.transform_skip_rotation_enabled_flag    = 0;
+        m_sps.transform_skip_context_enabled_flag     = 0;
+        m_sps.implicit_rdpcm_enabled_flag             = 0;
+        m_sps.explicit_rdpcm_enabled_flag             = 0;
+        m_sps.extended_precision_processing_flag      = 0;
+        m_sps.intra_smoothing_disabled_flag           = 0;
+        m_sps.high_precision_offsets_enabled_flag     = 0;
+        m_sps.persistent_rice_adaptation_enabled_flag = 0;
+        m_sps.cabac_bypass_alignment_enabled_flag     = 0;
+
+        m_sps.range_extension_flag =
+               m_sps.transform_skip_rotation_enabled_flag
+            || m_sps.transform_skip_context_enabled_flag
+            || m_sps.implicit_rdpcm_enabled_flag
+            || m_sps.explicit_rdpcm_enabled_flag
+            || m_sps.extended_precision_processing_flag
+            || m_sps.intra_smoothing_disabled_flag
+            || m_sps.high_precision_offsets_enabled_flag
+            || m_sps.persistent_rice_adaptation_enabled_flag
+            || m_sps.cabac_bypass_alignment_enabled_flag;
+
+        m_sps.extension_flag |= m_sps.range_extension_flag;
+    }
 
 
     Zero(m_pps);
@@ -1729,6 +1835,11 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_pps.init_qp_minus26                       = 0;
     m_pps.constrained_intra_pred_flag           = 0;
 
+#if (MFX_VERSION >= 1025)
+    if (m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE)
+        m_pps.transform_skip_enabled_flag = IsOn(m_ext.CO3.TransformSkip);
+    else
+#endif
         m_pps.transform_skip_enabled_flag = 0;
 
     m_pps.cu_qp_delta_enabled_flag = IsOn(m_ext.CO3.EnableMBQP);
@@ -1739,7 +1850,18 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     if (m_ext.ROI.NumROI)
         m_pps.cu_qp_delta_enabled_flag = 1;
 #endif
+    if (IsOn(mfx.LowPower))
+        m_pps.cu_qp_delta_enabled_flag = 1;
 
+#if (MFX_VERSION >= 1025)
+    if ((m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE))
+    {
+        if (IsOn(mfx.LowPower))
+            m_pps.diff_cu_qp_delta_depth = 3;
+        else
+            m_pps.diff_cu_qp_delta_depth = 2;
+    }
+#endif
 
     m_pps.cb_qp_offset                          = 0;
     m_pps.cr_qp_offset                          = 0;
@@ -1793,6 +1915,11 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
         m_pps.loop_filter_across_tiles_enabled_flag = 1;
     }
 
+#if (MFX_VERSION >= 1025)
+    if (m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE)
+        m_pps.loop_filter_across_slices_enabled_flag = 1;
+    else
+#endif //(MFX_VERSION >= 1025)
         m_pps.loop_filter_across_slices_enabled_flag = 0;
 
     m_pps.deblocking_filter_control_present_flag  = 1;
@@ -1804,6 +1931,32 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_pps.log2_parallel_merge_level_minus2            = 0;
     m_pps.slice_segment_header_extension_present_flag = 0;
 
+    if (mfx.CodecProfile == MFX_PROFILE_HEVC_REXT)
+    {
+        //TBD
+        m_pps.cross_component_prediction_enabled_flag   = 0;
+        m_pps.chroma_qp_offset_list_enabled_flag        = 0;
+        m_pps.log2_sao_offset_scale_luma                = 0;
+        m_pps.log2_sao_offset_scale_chroma              = 0;
+        m_pps.chroma_qp_offset_list_len_minus1          = 0;
+        m_pps.diff_cu_chroma_qp_offset_depth            = 0;
+        m_pps.log2_max_transform_skip_block_size_minus2 = 0;
+        Zero(m_pps.cb_qp_offset_list);
+        Zero(m_pps.cr_qp_offset_list);
+
+        m_pps.range_extension_flag =
+               m_pps.cross_component_prediction_enabled_flag
+            || m_pps.chroma_qp_offset_list_enabled_flag
+            || m_pps.log2_sao_offset_scale_luma
+            || m_pps.log2_sao_offset_scale_chroma
+            || m_pps.chroma_qp_offset_list_len_minus1
+            || m_pps.diff_cu_chroma_qp_offset_depth
+            || m_pps.log2_max_transform_skip_block_size_minus2
+            || !IsZero(m_pps.cb_qp_offset_list)
+            || !IsZero(m_pps.cr_qp_offset_list);
+
+        m_pps.extension_flag |= m_pps.range_extension_flag;
+    }
 
 }
 
@@ -2088,8 +2241,16 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
 
     if (m_sps.sample_adaptive_offset_enabled_flag)
     {
+#if (MFX_VERSION >= 1026)
+        mfxExtHEVCParam* rtHEVCParam = ExtBuffer::Get(task.m_ctrl);
+        mfxU16 FrameSAO = (rtHEVCParam && rtHEVCParam->SampleAdaptiveOffset) ? rtHEVCParam->SampleAdaptiveOffset : m_ext.HEVCParam.SampleAdaptiveOffset;
+
+        s.sao_luma_flag   = !!(FrameSAO & MFX_SAO_ENABLE_LUMA);
+        s.sao_chroma_flag = !!(FrameSAO & MFX_SAO_ENABLE_CHROMA);
+#else
         s.sao_luma_flag   = 0;
         s.sao_chroma_flag = 0;
+#endif
     }
 
     if (isP || isB)
@@ -3239,7 +3400,11 @@ void ConfigureTask(
     const mfxExtCodingOption3& CO3 = par.m_ext.CO3;
     (void)(caps);
 
+#if (MFX_VERSION >= 1027)
+    const mfxU8 maxQP = mfxU8(51 + 6 * (CO3.TargetBitDepthLuma - 8));
+#else
     const mfxU8 maxQP = mfxU8(51 + 6 * (par.mfx.FrameInfo.BitDepthLuma - 8));
+#endif
 
     mfxExtAVCRefLists*      pExtLists = ExtBuffer::Get(task.m_ctrl);
     mfxExtAVCRefListCtrl*   pExtListCtrl = ExtBuffer::Get(task.m_ctrl);
@@ -3397,8 +3562,11 @@ void ConfigureTask(
 
         task.m_qpY -= 6 * par.m_sps.bit_depth_luma_minus8;
 
-        if (task.m_qpY < 0 && (IsOn(par.mfx.LowPower) || par.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
-            ))
+        if (task.m_qpY < 0 && (IsOn(par.mfx.LowPower) || (par.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
+#if (MFX_VERSION >= 1025)
+            && par.m_platform.CodeName <= MFX_PLATFORM_CANNONLAKE
+#endif
+            )))
             task.m_qpY = 0;
     }
     else if (par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT)

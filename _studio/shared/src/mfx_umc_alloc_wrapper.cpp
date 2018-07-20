@@ -271,6 +271,10 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     int32_t bit_depth;
     if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
         params->mfx.FrameInfo.FourCC == MFX_FOURCC_P210
+#if (MFX_VERSION >= 1027)
+        || params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+        || params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
+#endif
         )
         bit_depth = 10;
     else
@@ -304,6 +308,14 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
     case MFX_FOURCC_AYUV:
         color_format = UMC::AYUV;
         break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+        color_format = UMC::Y210;
+        break;
+    case MFX_FOURCC_Y410:
+        color_format = UMC::Y410;
+        break;
+#endif
     default:
         return UMC::UMC_ERR_UNSUPPORTED;
     }
@@ -683,7 +695,12 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
     if ((surf->Info.BitDepthChroma ? surf->Info.BitDepthChroma : 8) != (m_surface_info.BitDepthChroma ? m_surface_info.BitDepthChroma : 8))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    if (surf->Info.FourCC == MFX_FOURCC_P010 || surf->Info.FourCC == MFX_FOURCC_P210)
+    if (   surf->Info.FourCC == MFX_FOURCC_P010
+        || surf->Info.FourCC == MFX_FOURCC_P210
+#if (MFX_VERSION >= 1027)
+        || surf->Info.FourCC == MFX_FOURCC_Y210
+#endif
+        )
     {
         if (m_isSWDecode)
         {
@@ -820,6 +837,11 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y410:
+#endif
+
         break;
     default:
         return -1;

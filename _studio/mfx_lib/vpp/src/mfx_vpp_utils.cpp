@@ -1309,7 +1309,7 @@ mfxU32 GetFilterIndex( mfxU32* pList, mfxU32 len, mfxU32 filterName )
 
 
 /* check each field of FrameInfo excluding PicStruct */
-mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType /* platform */)
+mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
 
@@ -1317,16 +1317,23 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType /* platf
     switch (info->FourCC)
     {
         case MFX_FOURCC_NV12:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:
-#endif
+#endif // MFX_ENABLE_FOURCC_RGB565
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_YUY2:
-        case MFX_FOURCC_AYUV:
             break;
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_Y210:
+        case MFX_FOURCC_Y410:
+            if (platform < MFX_HW_ICL)
+                return MFX_ERR_INVALID_VIDEO_PARAM;
+            break;
+#endif
         case MFX_FOURCC_IMC3:
         case MFX_FOURCC_YV12:
         case MFX_FOURCC_YUV400:

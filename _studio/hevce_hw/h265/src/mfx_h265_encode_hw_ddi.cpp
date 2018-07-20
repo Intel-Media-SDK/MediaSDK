@@ -65,10 +65,52 @@ DriverEncoder* CreatePlatformH265Encoder(MFXCoreInterface* core, ENCODER_TYPE /*
 mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* core)
 {
     mfxStatus sts = MFX_ERR_NONE;
+    if (!caps.BitDepth8Only && !caps.MaxEncodedBitDepth)
+        caps.MaxEncodedBitDepth = 1;
+    if (!caps.Color420Only && !(caps.YUV444ReconSupport || caps.YUV422ReconSupport))
+        caps.YUV444ReconSupport = 1;
+    if (!caps.Color420Only && !(caps.YUV422ReconSupport))   // VPG: caps are not correct now
+        caps.YUV422ReconSupport = 1;
+#if (MFX_VERSION >= 1025)
+    mfxPlatform pltfm;
+    sts = core->QueryPlatform(&pltfm);
+    MFX_CHECK_STS(sts);
+
+    if (pltfm.CodeName < MFX_PLATFORM_CANNONLAKE)
+    {   // not set until CNL now
+        caps.LCUSizeSupported = 0b10;   // 32x32 lcu is only supported
+        caps.BlockSize = 0b10; // 32x32
+    }
+
+    if (pltfm.CodeName < MFX_PLATFORM_ICELAKE)
+        caps.NegativeQPSupport = 0;
+    else
+        caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
+
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+    if (pltfm.CodeName >= MFX_PLATFORM_ICELAKE)
+    {
+        if (caps.NoWeightedPred)
+            caps.NoWeightedPred = 0;
+
+        caps.LumaWeightedPred = 1;
+        caps.ChromaWeightedPred = 1;
+
+        if (!caps.MaxNum_WeightedPredL0)
+            caps.MaxNum_WeightedPredL0 = 3;
+        if (!caps.MaxNum_WeightedPredL1)
+            caps.MaxNum_WeightedPredL1 = 3;
+
+        //caps.SliceLevelWeightedPred;
+    }
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#else
     if (!caps.LCUSizeSupported)
         caps.LCUSizeSupported = 2;
     caps.BlockSize = 2; // 32x32
     (void)core;
+#endif
+
     return sts;
 }
 
@@ -97,27 +139,75 @@ mfxStatus CheckHeaders(
         && par.m_sps.separate_colour_plane_flag == 0
         && par.m_sps.pcm_enabled_flag == 0);
 
+#if (MFX_VERSION >= 1025)
+    if (par.m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE)
+    {
+        MFX_CHECK_COND(par.m_sps.amp_enabled_flag == 1);
+    }
+    else
+#endif
     {
         MFX_CHECK_COND(par.m_sps.amp_enabled_flag == 0);
         MFX_CHECK_COND(par.m_sps.sample_adaptive_offset_enabled_flag == 0);
     }
 
+#if (MFX_VERSION < 1027)
     MFX_CHECK_COND(par.m_pps.tiles_enabled_flag == 0);
+#endif
 
+#if (MFX_VERSION >= 1027)
+    MFX_CHECK_COND(
+      !(   (!caps.YUV444ReconSupport && (par.m_sps.chroma_format_idc == 3))
+        || (!caps.YUV422ReconSupport && (par.m_sps.chroma_format_idc == 2))
+        || (caps.Color420Only && (par.m_sps.chroma_format_idc != 1))));
+
+    MFX_CHECK_COND(caps.NumScalablePipesMinus1 == 0 || par.m_pps.num_tile_columns_minus1 <= caps.NumScalablePipesMinus1);
+
+    if (par.m_pps.tiles_enabled_flag)
+    {
+        MFX_CHECK_COND(par.m_pps.loop_filter_across_tiles_enabled_flag);
+    }
+#else
     MFX_CHECK_COND(par.m_sps.chroma_format_idc == 1);
+#endif
 
     MFX_CHECK_COND(
       !(   par.m_sps.pic_width_in_luma_samples > caps.MaxPicWidth
         || par.m_sps.pic_height_in_luma_samples > caps.MaxPicHeight
         || (UINT)(((par.m_pps.num_tile_columns_minus1 + 1) * (par.m_pps.num_tile_rows_minus1 + 1)) > 1) > caps.TileSupport));
-    MFX_CHECK_COND(
-        !(  caps.BitDepth8Only == 1 // 8 bit only
-            && (par.m_sps.bit_depth_luma_minus8 != 0 || par.m_sps.bit_depth_chroma_minus8 != 0))); // not 8 bit 
 
     MFX_CHECK_COND(
-        !(  caps.BitDepth8Only == 0 // 10 or 8 bit only
-            && (!(par.m_sps.bit_depth_luma_minus8 == 0 || par.m_sps.bit_depth_luma_minus8 == 2)
-                || !(par.m_sps.bit_depth_chroma_minus8 == 0 || par.m_sps.bit_depth_chroma_minus8 == 2))));
+      !(   (caps.MaxEncodedBitDepth == 0 || caps.BitDepth8Only)
+        && (par.m_sps.bit_depth_luma_minus8 != 0 || par.m_sps.bit_depth_chroma_minus8 != 0)));
+
+    MFX_CHECK_COND(
+      !(   (caps.MaxEncodedBitDepth == 2 || caps.MaxEncodedBitDepth == 1 || !caps.BitDepth8Only)
+        && ( !(par.m_sps.bit_depth_luma_minus8 == 0
+            || par.m_sps.bit_depth_luma_minus8 == 2
+            || par.m_sps.bit_depth_luma_minus8 == 4)
+          || !(par.m_sps.bit_depth_chroma_minus8 == 0
+            || par.m_sps.bit_depth_chroma_minus8 == 2
+            || par.m_sps.bit_depth_chroma_minus8 == 4))));
+
+    MFX_CHECK_COND(
+      !(   caps.MaxEncodedBitDepth == 2
+        && ( !(par.m_sps.bit_depth_luma_minus8 == 0
+            || par.m_sps.bit_depth_luma_minus8 == 2
+            || par.m_sps.bit_depth_luma_minus8 == 4)
+          || !(par.m_sps.bit_depth_chroma_minus8 == 0
+            || par.m_sps.bit_depth_chroma_minus8 == 2
+            || par.m_sps.bit_depth_chroma_minus8 == 4))));
+
+    MFX_CHECK_COND(
+      !(   caps.MaxEncodedBitDepth == 3
+        && ( !(par.m_sps.bit_depth_luma_minus8 == 0
+            || par.m_sps.bit_depth_luma_minus8 == 2
+            || par.m_sps.bit_depth_luma_minus8 == 4
+            || par.m_sps.bit_depth_luma_minus8 == 8)
+          || !(par.m_sps.bit_depth_chroma_minus8 == 0
+            || par.m_sps.bit_depth_chroma_minus8 == 2
+            || par.m_sps.bit_depth_chroma_minus8 == 4
+            || par.m_sps.bit_depth_chroma_minus8 == 8))));
 
     return MFX_ERR_NONE;
 }

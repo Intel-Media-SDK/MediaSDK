@@ -48,6 +48,9 @@ void ConvertUMCParamsToMFX(UMC::VideoDecoderParams const*, mfxVideoParam*);
 
 bool IsNeedChangeVideoParam(mfxVideoParam *par);
 
+mfxU16 FourCcBitDepth(mfxU32 fourCC);
+bool InitBitDepthFields(mfxFrameInfo *info);
+
 inline mfxU32 ExtractProfile(mfxU32 profile)
 {
     return profile & 0xFF;

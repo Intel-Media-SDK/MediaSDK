@@ -159,8 +159,14 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/genx_hsw_simple_me_isa.cpp
     ${prefix}/genx_bdw_simple_me_isa.cpp
     ${prefix}/genx_skl_simple_me_isa.cpp
+    ${prefix}/genx_cnl_simple_me_isa.cpp
+    ${prefix}/genx_icl_simple_me_isa.cpp
+    ${prefix}/genx_icllp_simple_me_isa.cpp
     ${prefix}/genx_hsw_simple_me_proto.cpp
     ${prefix}/genx_skl_histogram_isa.cpp
+    ${prefix}/genx_cnl_histogram_isa.cpp
+    ${prefix}/genx_icl_histogram_isa.cpp
+    ${prefix}/genx_icllp_histogram_isa.cpp
   )
   list( APPEND sources
     ${MSDK_STUDIO_ROOT}/shared/umc/codec/brc/src/umc_video_brc.cpp

@@ -282,6 +282,9 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
         if (m_platform != MFX_PLATFORM_SOFTWARE)
         {
             if (   par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+    #if (MFX_VERSION >= 1027)
+                || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+    #endif
                 )
 
                 request.Info.Shift = 1;
@@ -602,6 +605,9 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
     if (MFX_Utility::GetPlatform_H265(core, par) != MFX_PLATFORM_SOFTWARE)
     {
         if (   par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+#if (MFX_VERSION >= 1027)
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+#endif
             )
 
             par->mfx.FrameInfo.Shift = 1;
@@ -1210,10 +1216,17 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     case 0:
         surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV400;
         break;
+    case 1:
+        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+        break;
     case 2:
         surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
         break;
+    case 3:
+        surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
+        break;
     default:
+        VM_ASSERT(!"Unknown chroma format");
         surface_out->Info.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
         break;
     }

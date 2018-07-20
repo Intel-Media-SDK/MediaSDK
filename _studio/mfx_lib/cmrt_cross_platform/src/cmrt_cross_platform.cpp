@@ -92,6 +92,14 @@ public:
         }
     }
 
+    INT CreateSurface2D(mfxHDLPair D3DSurfPair, CmSurface2D *& pSurface)
+    {
+        switch (m_platform) {
+        case VAAPI: return m_linux->CreateSurface2D(*(VASurfaceID*)D3DSurfPair.first, pSurface);
+        default:    return CM_NOT_IMPLEMENTED;
+        }
+    }
+
     INT CreateSurface2D(AbstractSurfaceHandle pD3DSurf, CmSurface2D *& pSurface)
     {
         switch (m_platform) {

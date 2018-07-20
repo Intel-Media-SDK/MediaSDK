@@ -198,7 +198,7 @@ protected:
     protected:
         T* m_ptr;
     private:
-        s_ptr(s_ptr&);
+        s_ptr(const s_ptr&);
         void operator =(s_ptr &);
     };
 

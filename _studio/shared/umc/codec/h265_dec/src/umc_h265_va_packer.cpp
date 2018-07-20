@@ -22,6 +22,7 @@
 #ifdef UMC_ENABLE_H265_VIDEO_DECODER
 
 #include "umc_h265_va_packer.h"
+#include "umc_va_base.h"
 
 #ifdef UMC_VA
 #include "umc_h265_task_supplier.h"
@@ -113,14 +114,37 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
     const H265SliceHeader* sliceHeader = pSlice->GetSliceHeader();
     const H265SeqParamSet* pSeqParamSet = pSlice->GetSeqParam();
     const H265PicParamSet* pPicParamSet = pSlice->GetPicParam();
+    VAPictureParameterBufferHEVC *picParam = nullptr;
+    VAPictureParameterBufferHEVCExtension* picParamExt = nullptr;
+    VAPictureParameterBufferHEVCRext *picParamRext = nullptr;
+    UMCVACompBuffer *picParamBuf = nullptr;
 
-    UMCVACompBuffer *picParamBuf;
-    VAPictureParameterBufferHEVC* picParam = (VAPictureParameterBufferHEVC*)m_va->GetCompBuffer(VAPictureParameterBufferType, &picParamBuf, sizeof(VAPictureParameterBufferHEVC));
-    if (!picParam)
-        throw h265_exception(UMC_ERR_FAILED);
+    if (m_va->m_Profile &VA_PROFILE_REXT)
+    {
+        picParamExt = (VAPictureParameterBufferHEVCExtension*)m_va->GetCompBuffer(VAPictureParameterBufferType, &picParamBuf, sizeof(VAPictureParameterBufferHEVCExtension));
+        if (!picParamExt)
+            throw h265_exception(UMC_ERR_FAILED);
 
-    picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferHEVC));
-    memset(picParam, 0, sizeof(VAPictureParameterBufferHEVC));
+        picParam = &picParamExt->base;
+        if (!picParam)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        picParamRext = &picParamExt->rext;
+        if (!picParamRext)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferHEVCExtension));
+        memset(picParam, 0, sizeof(VAPictureParameterBufferHEVCExtension));
+
+    }
+    else
+    {
+        picParam = (VAPictureParameterBufferHEVC*)m_va->GetCompBuffer(VAPictureParameterBufferType, &picParamBuf, sizeof(VAPictureParameterBufferHEVC));
+        if (!picParam)
+            throw h265_exception(UMC_ERR_FAILED);
+        picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferHEVC));
+        memset(picParam, 0, sizeof(VAPictureParameterBufferHEVC));
+    }
 
     picParam->CurrPic.picture_id = m_va->GetSurfaceID(pCurrentFrame->GetFrameMID());
     picParam->CurrPic.pic_order_cnt = pCurrentFrame->m_PicOrderCnt;
@@ -288,6 +312,34 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
     picParam->num_extra_slice_header_bits = (uint8_t)pPicParamSet->num_extra_slice_header_bits;
 
     picParam->st_rps_bits = pSlice->GetSliceHeader()->wNumBitsForShortTermRPSInSlice;
+
+    /* RExt structures */
+    if (nullptr != picParamRext)
+    {
+        picParamRext->range_extension_pic_fields.bits.transform_skip_rotation_enabled_flag        = pSeqParamSet->transform_skip_rotation_enabled_flag;
+        picParamRext->range_extension_pic_fields.bits.transform_skip_context_enabled_flag         = pSeqParamSet->transform_skip_context_enabled_flag;
+        picParamRext->range_extension_pic_fields.bits.implicit_rdpcm_enabled_flag                 = pSeqParamSet->implicit_residual_dpcm_enabled_flag;
+        picParamRext->range_extension_pic_fields.bits.explicit_rdpcm_enabled_flag                 = pSeqParamSet->explicit_residual_dpcm_enabled_flag;
+        picParamRext->range_extension_pic_fields.bits.extended_precision_processing_flag          = pSeqParamSet->extended_precision_processing_flag;
+        picParamRext->range_extension_pic_fields.bits.intra_smoothing_disabled_flag               = pSeqParamSet->intra_smoothing_disabled_flag;
+        picParamRext->range_extension_pic_fields.bits.high_precision_offsets_enabled_flag         = pSeqParamSet->high_precision_offsets_enabled_flag;;
+        picParamRext->range_extension_pic_fields.bits.persistent_rice_adaptation_enabled_flag     = pSeqParamSet->fast_rice_adaptation_enabled_flag;
+        picParamRext->range_extension_pic_fields.bits.cabac_bypass_alignment_enabled_flag         = pPicParamSet->cabac_init_present_flag;
+        picParamRext->range_extension_pic_fields.bits.cross_component_prediction_enabled_flag     = pPicParamSet->cross_component_prediction_enabled_flag;
+        picParamRext->range_extension_pic_fields.bits.chroma_qp_offset_list_enabled_flag          = pPicParamSet->chroma_qp_offset_list_enabled_flag;
+
+        picParamRext->diff_cu_chroma_qp_offset_depth = (uint8_t)pPicParamSet->diff_cu_chroma_qp_offset_depth;
+        picParamRext->chroma_qp_offset_list_len_minus1 = pPicParamSet->chroma_qp_offset_list_enabled_flag ? (uint8_t)pPicParamSet->chroma_qp_offset_list_len - 1 : 0;
+        picParamRext->log2_sao_offset_scale_luma = (uint8_t)pPicParamSet->log2_sao_offset_scale_luma;
+        picParamRext->log2_sao_offset_scale_chroma = (uint8_t)pPicParamSet->log2_sao_offset_scale_chroma;
+        picParamRext->log2_max_transform_skip_block_size_minus2 = pPicParamSet->pps_range_extensions_flag && pPicParamSet->transform_skip_enabled_flag ? (uint8_t)pPicParamSet->log2_max_transform_skip_block_size_minus2 : 0;
+
+        for (uint32_t i = 0; i < pPicParamSet->chroma_qp_offset_list_len; i++)
+        {
+            picParamRext->cb_qp_offset_list[i] = (int8_t)pPicParamSet->cb_qp_offset_list[i + 1];
+            picParamRext->cr_qp_offset_list[i] = (int8_t)pPicParamSet->cr_qp_offset_list[i + 1];
+        }
+    } // if (nullptr != picParamRext)
 }
 
 void PackerVA::CreateSliceParamBuffer(H265DecoderFrameInfo * sliceInfo)
@@ -296,6 +348,10 @@ void PackerVA::CreateSliceParamBuffer(H265DecoderFrameInfo * sliceInfo)
 
     UMCVACompBuffer *pSliceParamBuf;
     size_t sizeOfStruct = m_va->IsLongSliceControl() ? sizeof(VASliceParameterBufferHEVC) : sizeof(VASliceParameterBufferBase);
+    if (m_va->m_Profile &VA_PROFILE_REXT) /* RExt cases*/
+    {
+        sizeOfStruct = m_va->IsLongSliceControl() ? sizeof(VASliceParameterBufferHEVCExtension) : sizeof(VASliceParameterBufferBase);
+    }
     m_va->GetCompBuffer(VASliceParameterBufferType, &pSliceParamBuf, sizeOfStruct*(count));
     if (!pSliceParamBuf)
         throw h265_exception(UMC_ERR_FAILED);
@@ -341,25 +397,64 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
     H265DecoderFrame *pCurrentFrame = pSlice->GetCurrentFrame();
     const H265SliceHeader *sliceHeader = pSlice->GetSliceHeader();
     const H265PicParamSet *pPicParamSet = pSlice->GetPicParam();
+    VAPictureParameterBufferHEVCExtension* picParamsExt = nullptr;
+    VAPictureParameterBufferHEVC* picParams = nullptr;
+    VASliceParameterBufferHEVCExtension* sliceParamsExt = nullptr;
+    VASliceParameterBufferHEVC* sliceParams = nullptr;
+    VASliceParameterBufferHEVCRext* sliceParamsRExt = nullptr;
+    UMCVACompBuffer* compBuf = nullptr;
 
-    VAPictureParameterBufferHEVC* picParams = (VAPictureParameterBufferHEVC*)m_va->GetCompBuffer(VAPictureParameterBufferType);
-    if (!picParams)
-        throw h265_exception(UMC_ERR_FAILED);
-
-    UMCVACompBuffer* compBuf;
-    VASliceParameterBufferHEVC* sliceParams = (VASliceParameterBufferHEVC*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBuf);
-    if (!sliceParams)
-        throw h265_exception(UMC_ERR_FAILED);
-
-    if (m_va->IsLongSliceControl())
+    if (m_va->m_Profile &VA_PROFILE_REXT)
     {
-        sliceParams += sliceNum;
-        memset(sliceParams, 0, sizeof(VASliceParameterBufferHEVC));
+        picParamsExt = (VAPictureParameterBufferHEVCExtension*)m_va->GetCompBuffer(VAPictureParameterBufferType);
+        if (!picParamsExt)
+            throw h265_exception(UMC_ERR_FAILED);
+        picParams = &picParamsExt->base;
+        if (!picParams)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        sliceParamsExt = (VASliceParameterBufferHEVCExtension*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBuf);
+
+        if (!sliceParamsExt)
+            throw h265_exception(UMC_ERR_FAILED);
+        sliceParams = &sliceParamsExt->base;
+        if (!sliceParams)
+            throw h265_exception(UMC_ERR_FAILED);
+        sliceParamsRExt = &sliceParamsExt->rext;
+        if (!sliceParamsRExt)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        if (m_va->IsLongSliceControl())
+        {
+            sliceParamsExt += sliceNum;
+            memset(sliceParamsExt, 0, sizeof(VASliceParameterBufferHEVCExtension));
+        }
+        else
+        {
+            sliceParamsExt = (VASliceParameterBufferHEVCExtension*)((VASliceParameterBufferBase*)sliceParamsExt + sliceNum);
+            memset(sliceParamsExt, 0, sizeof(VASliceParameterBufferHEVCExtension));
+        }
     }
     else
     {
-        sliceParams = (VASliceParameterBufferHEVC*)((VASliceParameterBufferBase*)sliceParams + sliceNum);
-        memset(sliceParams, 0, sizeof(VASliceParameterBufferBase));
+        picParams = (VAPictureParameterBufferHEVC*)m_va->GetCompBuffer(VAPictureParameterBufferType);
+        if (!picParams)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        sliceParams = (VASliceParameterBufferHEVC*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBuf);
+        if (!sliceParams)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        if (m_va->IsLongSliceControl())
+        {
+            sliceParams += sliceNum;
+            memset(sliceParams, 0, sizeof(VASliceParameterBufferHEVC));
+        }
+        else
+        {
+            sliceParams = (VASliceParameterBufferHEVC*)((VASliceParameterBufferBase*)sliceParams + sliceNum);
+            memset(sliceParams, 0, sizeof(VASliceParameterBufferHEVC));
+        }
     }
 
     uint32_t  rawDataSize = 0;
@@ -501,6 +596,41 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
     }
 
     sliceParams->five_minus_max_num_merge_cand = (uint8_t)(5 - sliceHeader->max_num_merge_cand);
+
+    /* RExt */
+    if (nullptr != sliceParamsRExt)
+    {
+        for (int32_t l = 0; l < 2; l++)
+        {
+            const wpScalingParam *wp;
+            EnumRefPicList eRefPicList = ( l == 1 ? REF_PIC_LIST_1 : REF_PIC_LIST_0 );
+            for (int32_t iRefIdx = 0; iRefIdx < pSlice->getNumRefIdx(eRefPicList); iRefIdx++)
+            {
+                wp = sliceHeader->pred_weight_table[eRefPicList][iRefIdx];
+
+                if (eRefPicList == REF_PIC_LIST_0)
+                {
+                    sliceParamsRExt->luma_offset_l0[iRefIdx]   = (int8_t)wp[0].offset;
+                    for(int chroma=0;chroma < 2;chroma++)
+                        sliceParamsRExt->ChromaOffsetL0        [iRefIdx][chroma] = (int8_t)wp[1 + chroma].offset;
+                }
+                else
+                {
+                    sliceParamsRExt->luma_offset_l1[iRefIdx]       = (int8_t)wp[0].offset;
+                    for(int chroma=0;chroma < 2;chroma++)
+                        sliceParamsRExt->ChromaOffsetL1        [iRefIdx][chroma] = (int8_t)wp[1 + chroma].offset;
+                }
+            }
+        }
+
+        sliceParamsRExt->slice_ext_flags.bits.cu_chroma_qp_offset_enabled_flag = sliceHeader->cu_chroma_qp_offset_enabled_flag;
+        sliceParamsRExt->slice_ext_flags.bits.use_integer_mv_flag    = (uint8_t)sliceHeader->use_integer_mv_flag;
+
+        sliceParamsRExt->slice_act_y_qp_offset  = (int8_t)sliceHeader->slice_act_y_qp_offset;
+        sliceParamsRExt->slice_act_cb_qp_offset = (int8_t)sliceHeader->slice_act_cb_qp_offset;
+        sliceParamsRExt->slice_act_cr_qp_offset = (int8_t)sliceHeader->slice_act_cr_qp_offset;
+    }
+
     return true;
 }
 

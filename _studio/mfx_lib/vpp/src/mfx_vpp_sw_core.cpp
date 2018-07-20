@@ -936,6 +936,12 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
              out->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
              out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
              out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
+             out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
+             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
+#if (MFX_VERSION >= 1027)
+             out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
+             out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
+#endif
              out->vpp.Out.FourCC != MFX_FOURCC_RGB4){
             if( out->vpp.In.FourCC )
             {
@@ -948,13 +954,17 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         if( out->vpp.In.FourCC != MFX_FOURCC_YV12 &&
             out->vpp.In.FourCC != MFX_FOURCC_NV12 &&
             out->vpp.In.FourCC != MFX_FOURCC_YUY2 &&
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if defined (MFX_ENABLE_FOURCC_RGB565)
             out->vpp.In.FourCC != MFX_FOURCC_RGB565 &&
-#endif
+#endif // MFX_ENABLE_FOURCC_RGB565
             out->vpp.In.FourCC != MFX_FOURCC_RGB4 &&
             out->vpp.In.FourCC != MFX_FOURCC_P010 &&
             out->vpp.In.FourCC != MFX_FOURCC_UYVY &&
             out->vpp.In.FourCC != MFX_FOURCC_P210 &&
+#if (MFX_VERSION >= 1027)
+            out->vpp.In.FourCC != MFX_FOURCC_Y210 &&
+            out->vpp.In.FourCC != MFX_FOURCC_Y410 &&
+#endif
             out->vpp.In.FourCC != MFX_FOURCC_AYUV)
         {
             if( out->vpp.In.FourCC )
@@ -964,10 +974,13 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
         }
 
+        // Check for invalid cases
         if (out->vpp.In.PicStruct != MFX_PICSTRUCT_PROGRESSIVE &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_TFF   &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_BFF   &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_SINGLE &&
+            out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_TOP && // Field pass-through
+            out->vpp.In.PicStruct != MFX_PICSTRUCT_FIELD_BOTTOM &&
             out->vpp.In.PicStruct != MFX_PICSTRUCT_UNKNOWN)
         {
 
@@ -1014,6 +1027,10 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
 #endif
             out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
             out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
+#if (MFX_VERSION >= 1027)
+            out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
+            out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
+#endif
             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
             out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10 )
         {
@@ -1024,7 +1041,9 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         if (out->vpp.Out.PicStruct != MFX_PICSTRUCT_PROGRESSIVE &&
             out->vpp.Out.PicStruct != MFX_PICSTRUCT_FIELD_TFF   &&
             out->vpp.Out.PicStruct != MFX_PICSTRUCT_FIELD_BFF   &&
-            out->vpp.Out.PicStruct != MFX_PICSTRUCT_FIELD_SINGLE &&
+            out->vpp.Out.PicStruct != MFX_PICSTRUCT_FIELD_SINGLE && // Field pass-through
+            out->vpp.Out.PicStruct != MFX_PICSTRUCT_FIELD_TOP &&
+            out->vpp.Out.PicStruct != MFX_PICSTRUCT_FIELD_BOTTOM &&
             out->vpp.Out.PicStruct != MFX_PICSTRUCT_UNKNOWN)
         {
             if(out->vpp.Out.PicStruct)

@@ -17,7 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 #ifndef __genx_fcopy_gen8__
 #define __genx_fcopy_gen8__
-extern const unsigned char genx_fcopy_gen8[8833];
+extern const unsigned char genx_fcopy_gen8[8938];
 #endif

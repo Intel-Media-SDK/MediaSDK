@@ -751,27 +751,47 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 #if MFX_VERSION >= 1022
+    mfxPlatform p = {};
+
+    sts = m_core->QueryPlatform(&p);
+    MFX_CHECK_STS(sts);
+
+    if (p.CodeName >= MFX_PLATFORM_SKYLAKE)
     {
-        mfxPlatform p = {};
-
-        sts = m_core->QueryPlatform(&p);
-        MFX_CHECK_STS(sts);
-
-        if (p.CodeName >= MFX_PLATFORM_SKYLAKE)
-        {
-            m_caps.Color420Only       = 1;
-            m_caps.BitDepth8Only      = 1;
-            m_caps.MaxEncodedBitDepth = 0;
-            m_caps.YUV422ReconSupport = 0;
-            m_caps.YUV444ReconSupport = 0;
-        }
-        if (p.CodeName >= MFX_PLATFORM_KABYLAKE)
-        {
-            m_caps.BitDepth8Only      = 0;
-            m_caps.MaxEncodedBitDepth = 1;
-        }
+        m_caps.Color420Only       = 1;
+        m_caps.BitDepth8Only      = 1;
+        m_caps.MaxEncodedBitDepth = 0;
+        m_caps.YUV422ReconSupport = 0;
+        m_caps.YUV444ReconSupport = 0;
     }
+    if (p.CodeName >= MFX_PLATFORM_KABYLAKE)
+    {
+        m_caps.BitDepth8Only      = 0;
+        m_caps.MaxEncodedBitDepth = 1;
+    }
+    if (p.CodeName >= MFX_PLATFORM_ICELAKE)
+    {
+        m_caps.Color420Only = 0;
+        m_caps.YUV422ReconSupport = 1;
+        m_caps.YUV444ReconSupport = 1;
+    }
+    if (p.CodeName >= MFX_PLATFORM_CANNONLAKE)
+    {
+        if(IsOn(m_videoParam.mfx.LowPower)) //CNL + VDENC => LCUSizeSupported = 4
+        {
+            m_caps.LCUSizeSupported = (64 >> 4);
+        }
+        else //CNL + VME => LCUSizeSupported = 6
+        {
+            m_caps.LCUSizeSupported = (32 >> 4) | (64 >> 4);
+        }
+    } else
 #endif //MFX_VERSION >= 1022
+    {
+        m_caps.LCUSizeSupported = (32 >> 4);
+    }
+
+    m_caps.BlockSize = 2;
 
     m_caps.VCMBitRateControl =
         attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_VCM ? 1 : 0; //Video conference mode
@@ -809,8 +829,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.MaxNum_Reference0 = 3;
         m_caps.MaxNum_Reference1 = 1;
     }
-    m_caps.LCUSizeSupported = 2;
-    m_caps.BlockSize = 2;
 
     if (attrs[ idx_map[VAConfigAttribEncROI] ].value != VA_ATTRIB_NOT_SUPPORTED) // VAConfigAttribEncROI
     {

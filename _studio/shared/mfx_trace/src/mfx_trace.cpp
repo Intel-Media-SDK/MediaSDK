@@ -20,7 +20,7 @@
 
 #include "mfxdefs.h"
 #include "mfx_trace.h"
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1027)
 #include "mfxfeihevc.h"
 #endif
 
@@ -260,7 +260,8 @@ mfxTraceU32 MFXTrace_Init()
     }
 
 #if (MFX_VERSION >= 1025)
-    if (g_OutputMode & (MFX_TRACE_OUTPUT_ETW | MFX_TRACE_OUTPUT_TEXTLOG))
+    if (!g_Reflection.m_bIsInitialized &&
+        g_OutputMode & (MFX_TRACE_OUTPUT_ETW | MFX_TRACE_OUTPUT_TEXTLOG))
     {
         g_Reflection.DeclareMsdkStructs();
         g_Reflection.m_bIsInitialized = true;

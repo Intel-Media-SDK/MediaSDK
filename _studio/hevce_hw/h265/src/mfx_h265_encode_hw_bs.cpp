@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -783,11 +783,43 @@ mfxStatus HeaderReader::ReadSPS(BitstreamReader& bs, SPS & sps)
         sps.general.non_packed_constraint_flag = bs.GetBit();
         sps.general.frame_only_constraint_flag = bs.GetBit();
 
-        //general_reserved_zero_44bits
-        if (bs.GetBits(24))
+        if (   ((sps.general.profile_idc >= 4) && (sps.general.profile_idc <= 7))
+            || (sps.general.profile_compatibility_flags & 0xf0))
+        {
+            sps.general.constraint.max_12bit        = bs.GetBit();
+            sps.general.constraint.max_10bit        = bs.GetBit();
+            sps.general.constraint.max_8bit         = bs.GetBit();
+            sps.general.constraint.max_422chroma    = bs.GetBit();
+            sps.general.constraint.max_420chroma    = bs.GetBit();
+            sps.general.constraint.max_monochrome   = bs.GetBit();
+            sps.general.constraint.intra            = bs.GetBit();
+            sps.general.constraint.one_picture_only = bs.GetBit();
+            sps.general.constraint.lower_bit_rate   = bs.GetBit();
+
+            //general_reserved_zero_34bits
+            if (bs.GetBits(24))
+                return MFX_ERR_UNSUPPORTED;
+            if (bs.GetBits(10))
+                return MFX_ERR_UNSUPPORTED;
+        }
+        else
+        {
+            //general_reserved_zero_43bits
+            if (bs.GetBits(24))
+                return MFX_ERR_UNSUPPORTED;
+            if (bs.GetBits(19))
+                return MFX_ERR_UNSUPPORTED;
+        }
+
+        /*if (   sps.general.profile_idc >= 1 && sps.general.profile_idc <= 5
+            || (sps.general.profile_compatibility_flags & 0x3e))
+        {
+            sps.general.inbld_flag = bs.GetBit();
+        }
+        else*/ if (bs.GetBit()) //general_reserved_zero_bit
+        {
             return MFX_ERR_UNSUPPORTED;
-        if (bs.GetBits(20))
-            return MFX_ERR_UNSUPPORTED;
+        }
 
         sps.general.level_idc = (mfxU8)bs.GetBits(8);
 
@@ -813,11 +845,43 @@ mfxStatus HeaderReader::ReadSPS(BitstreamReader& bs, SPS & sps)
                 sps.sub_layer[i].non_packed_constraint_flag = bs.GetBit();
                 sps.sub_layer[i].frame_only_constraint_flag = bs.GetBit();
 
-                //general_reserved_zero_44bits
-                if (bs.GetBits(24))
+                if (   ((sps.sub_layer[i].profile_idc >= 4) && (sps.sub_layer[i].profile_idc <= 7))
+                    || (sps.sub_layer[i].profile_compatibility_flags & 0xf0))
+                {
+                    sps.sub_layer[i].constraint.max_12bit        = bs.GetBit();
+                    sps.sub_layer[i].constraint.max_10bit        = bs.GetBit();
+                    sps.sub_layer[i].constraint.max_8bit         = bs.GetBit();
+                    sps.sub_layer[i].constraint.max_422chroma    = bs.GetBit();
+                    sps.sub_layer[i].constraint.max_420chroma    = bs.GetBit();
+                    sps.sub_layer[i].constraint.max_monochrome   = bs.GetBit();
+                    sps.sub_layer[i].constraint.intra            = bs.GetBit();
+                    sps.sub_layer[i].constraint.one_picture_only = bs.GetBit();
+                    sps.sub_layer[i].constraint.lower_bit_rate   = bs.GetBit();
+
+                    //sub_layer_reserved_zero_34bits
+                    if (bs.GetBits(24))
+                        return MFX_ERR_UNSUPPORTED;
+                    if (bs.GetBits(10))
+                        return MFX_ERR_UNSUPPORTED;
+                }
+                else
+                {
+                    //sub_layer_reserved_zero_43bits
+                    if (bs.GetBits(24))
+                        return MFX_ERR_UNSUPPORTED;
+                    if (bs.GetBits(19))
+                        return MFX_ERR_UNSUPPORTED;
+                }
+
+                /*if (   sps.sub_layer[i].profile_idc >= 1 && sps.sub_layer[i].profile_idc <= 5
+                    || (sps.sub_layer[i].profile_compatibility_flags & 0x3e))
+                {
+                    sps.sub_layer[i].inbld_flag = bs.GetBit();
+                }
+                else*/ if (bs.GetBit()) //sub_layer_reserved_zero_bit
+                {
                     return MFX_ERR_UNSUPPORTED;
-                if (bs.GetBits(20))
-                    return MFX_ERR_UNSUPPORTED;
+                }
             }
 
             if (sps.sub_layer[i].level_present_flag)
@@ -1175,9 +1239,28 @@ mfxStatus HeaderReader::ReadSPS(BitstreamReader& bs, SPS & sps)
             }
         }
 
+        sps.extension_flag = bs.GetBit();
 
-        if (bs.GetBit()) //sps.extension_flag
-            return MFX_ERR_UNSUPPORTED;
+        if (sps.extension_flag)
+        {
+            sps.range_extension_flag = bs.GetBit();
+            if (bs.GetBits(7))
+                return MFX_ERR_UNSUPPORTED;
+        }
+
+        if (sps.range_extension_flag)
+        {
+            sps.transform_skip_rotation_enabled_flag = bs.GetBit();
+            sps.transform_skip_context_enabled_flag = bs.GetBit();
+            sps.implicit_rdpcm_enabled_flag = bs.GetBit();
+            sps.explicit_rdpcm_enabled_flag = bs.GetBit();
+            sps.extended_precision_processing_flag = bs.GetBit();
+            sps.intra_smoothing_disabled_flag = bs.GetBit();
+            sps.high_precision_offsets_enabled_flag = bs.GetBit();
+            sps.persistent_rice_adaptation_enabled_flag = bs.GetBit();
+            sps.cabac_bypass_alignment_enabled_flag = bs.GetBit();
+        }
+
     }
     catch (std::exception &)
     {
@@ -1269,9 +1352,38 @@ mfxStatus HeaderReader::ReadPPS(BitstreamReader& bs, PPS & pps)
         pps.log2_parallel_merge_level_minus2 = (mfxU16)bs.GetUE();
         pps.slice_segment_header_extension_present_flag = bs.GetBit();
 
+        pps.extension_flag = bs.GetBit();
 
-        if (bs.GetBit()) //pps.extension_flag
-            return MFX_ERR_UNSUPPORTED;
+        if (pps.extension_flag)
+        {
+            pps.range_extension_flag = bs.GetBit();
+            if (bs.GetBits(7))
+                return MFX_ERR_UNSUPPORTED;
+        }
+
+        if (pps.range_extension_flag)
+        {
+            if (pps.transform_skip_enabled_flag)
+                pps.log2_max_transform_skip_block_size_minus2 = bs.GetUE();
+
+            pps.cross_component_prediction_enabled_flag = bs.GetBit();
+            pps.chroma_qp_offset_list_enabled_flag = bs.GetBit();
+
+            if (pps.chroma_qp_offset_list_enabled_flag)
+            {
+                pps.diff_cu_chroma_qp_offset_depth = bs.GetUE();
+                pps.chroma_qp_offset_list_len_minus1 = bs.GetUE();
+
+                for (mfxU32 i = 0; i <= pps.chroma_qp_offset_list_len_minus1; i++)
+                {
+                    pps.cb_qp_offset_list[i] = (mfxI8)bs.GetSE();
+                    pps.cr_qp_offset_list[i] = (mfxI8)bs.GetSE();
+                }
+            }
+
+            pps.log2_sao_offset_scale_luma = bs.GetUE();
+            pps.log2_sao_offset_scale_chroma = bs.GetUE();
+        }
     }
     catch (std::exception &)
     {
@@ -1352,8 +1464,18 @@ void HeaderPacker::PackPTL(BitstreamWriter& bs, LayersInfo const & ptl, mfxU16 m
     bs.PutBit(ptl.general.interlaced_source_flag);
     bs.PutBit(ptl.general.non_packed_constraint_flag);
     bs.PutBit(ptl.general.frame_only_constraint_flag);
-    bs.PutBits(24, 0); //general_reserved_zero_44bits
-    bs.PutBits(20, 0); //general_reserved_zero_44bits
+    bs.PutBit(ptl.general.constraint.max_12bit       );
+    bs.PutBit(ptl.general.constraint.max_10bit       );
+    bs.PutBit(ptl.general.constraint.max_8bit        );
+    bs.PutBit(ptl.general.constraint.max_422chroma   );
+    bs.PutBit(ptl.general.constraint.max_420chroma   );
+    bs.PutBit(ptl.general.constraint.max_monochrome  );
+    bs.PutBit(ptl.general.constraint.intra           );
+    bs.PutBit(ptl.general.constraint.one_picture_only);
+    bs.PutBit(ptl.general.constraint.lower_bit_rate  );
+    bs.PutBits(23, 0);
+    bs.PutBits(11, 0);
+    bs.PutBit(ptl.general.inbld_flag);
     bs.PutBits(8, ptl.general.level_idc);
 
     for (mfxU32 i = 0; i < max_sub_layers_minus1; i++ )
@@ -1379,8 +1501,18 @@ void HeaderPacker::PackPTL(BitstreamWriter& bs, LayersInfo const & ptl, mfxU16 m
             bs.PutBit(ptl.sub_layer[i].interlaced_source_flag);
             bs.PutBit(ptl.sub_layer[i].non_packed_constraint_flag);
             bs.PutBit(ptl.sub_layer[i].frame_only_constraint_flag);
-            bs.PutBits(24, 0); //general_reserved_zero_44bits
-            bs.PutBits(20, 0); //general_reserved_zero_44bits
+            bs.PutBit(ptl.general.constraint.max_12bit);
+            bs.PutBit(ptl.general.constraint.max_10bit);
+            bs.PutBit(ptl.general.constraint.max_8bit);
+            bs.PutBit(ptl.general.constraint.max_422chroma);
+            bs.PutBit(ptl.general.constraint.max_420chroma);
+            bs.PutBit(ptl.general.constraint.max_monochrome);
+            bs.PutBit(ptl.general.constraint.intra);
+            bs.PutBit(ptl.general.constraint.one_picture_only);
+            bs.PutBit(ptl.general.constraint.lower_bit_rate);
+            bs.PutBits(23, 0);
+            bs.PutBits(11, 0);
+            bs.PutBit(ptl.sub_layer[i].inbld_flag);
         }
 
         if (ptl.sub_layer[i].level_present_flag)
@@ -1696,7 +1828,26 @@ void HeaderPacker::PackSPS(BitstreamWriter& bs, SPS const & sps)
     if (sps.vui_parameters_present_flag)
         PackVUI(bs, sps.vui, sps.max_sub_layers_minus1);
 
-    bs.PutBit(0); //sps.extension_flag
+    bs.PutBit(sps.extension_flag);
+
+    if (sps.extension_flag)
+    {
+        bs.PutBit(sps.range_extension_flag);
+        bs.PutBits(7, 0);
+    }
+
+    if (sps.range_extension_flag)
+    {
+        bs.PutBit(sps.transform_skip_rotation_enabled_flag);
+        bs.PutBit(sps.transform_skip_context_enabled_flag);
+        bs.PutBit(sps.implicit_rdpcm_enabled_flag);
+        bs.PutBit(sps.explicit_rdpcm_enabled_flag);
+        bs.PutBit(sps.extended_precision_processing_flag);
+        bs.PutBit(sps.intra_smoothing_disabled_flag);
+        bs.PutBit(sps.high_precision_offsets_enabled_flag);
+        bs.PutBit(sps.persistent_rice_adaptation_enabled_flag);
+        bs.PutBit(sps.cabac_bypass_alignment_enabled_flag);
+    }
 
     bs.PutTrailingBits();
 }
@@ -1773,7 +1924,37 @@ void HeaderPacker::PackPPS(BitstreamWriter& bs, PPS const &  pps)
     bs.PutUE(pps.log2_parallel_merge_level_minus2);
     bs.PutBit(pps.slice_segment_header_extension_present_flag);
 
-    bs.PutBit(0); //pps.extension_flag
+    bs.PutBit(pps.extension_flag);
+
+    if (pps.extension_flag)
+    {
+        bs.PutBit(pps.range_extension_flag);
+        bs.PutBits(7, 0);
+    }
+
+    if (pps.range_extension_flag)
+    {
+        if (pps.transform_skip_enabled_flag)
+            bs.PutUE(pps.log2_max_transform_skip_block_size_minus2);
+
+        bs.PutBit(pps.cross_component_prediction_enabled_flag);
+        bs.PutBit(pps.chroma_qp_offset_list_enabled_flag);
+
+        if (pps.chroma_qp_offset_list_enabled_flag)
+        {
+            bs.PutUE(pps.diff_cu_chroma_qp_offset_depth);
+            bs.PutUE(pps.chroma_qp_offset_list_len_minus1);
+
+            for (mfxU32 i = 0; i <= pps.chroma_qp_offset_list_len_minus1; i++)
+            {
+                bs.PutSE(pps.cb_qp_offset_list[i]);
+                bs.PutSE(pps.cr_qp_offset_list[i]);
+            }
+        }
+
+        bs.PutUE(pps.log2_sao_offset_scale_luma);
+        bs.PutUE(pps.log2_sao_offset_scale_chroma);
+    }
 
     bs.PutTrailingBits();
 }
@@ -1957,8 +2138,7 @@ void HeaderPacker::PackSSH(
                 || (pps.weighted_bipred_flag && slice.type == B))
             {
                 const mfxU16 Y = 0, Cb = 1, Cr = 2, W = 0, O = 1;
-                mfxI16
-                      WpOffsetHalfRangeC = (1 << 7)
+                mfxI16 WpOffsetHalfRangeC = (1 << (sps.high_precision_offsets_enabled_flag ? (sps.bit_depth_chroma_minus8 + 8 - 1) : 7))
                     , wY = (1 << slice.luma_log2_weight_denom)
                     , wC = (1 << slice.chroma_log2_weight_denom)
                     , l2WDc = slice.chroma_log2_weight_denom;
@@ -2592,7 +2772,7 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
             sizeInBytes = 0;
         }
 
-        if (!buf || prefixPL.empty())
+        if (!buf || (prefixPL.empty() && !(task.m_insertHeaders & INSERT_DCVSEI) && !(task.m_insertHeaders & INSERT_LLISEI)))
             goto exit;
 
         buf += sizeInBytes;
