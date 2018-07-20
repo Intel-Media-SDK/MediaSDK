@@ -152,6 +152,15 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVi
     case MFX_FOURCC_P210:
         umcVideoParams->color_format = UMC::P210;
         break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+        umcVideoParams->color_format = UMC::Y210;
+        break;
+    case MFX_FOURCC_Y410:
+        umcVideoParams->color_format = UMC::Y410;
+        break;
+#endif
+
     case MFX_FOURCC_AYUV:
         umcVideoParams->color_format = UMC::YUV444A;
         break;
@@ -221,6 +230,10 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
         case UMC::YV12:    return MFX_FOURCC_YV12;
         case UMC::P010:    return MFX_FOURCC_P010;
         case UMC::P210:    return MFX_FOURCC_P210;
+#if (MFX_VERSION >= 1027)
+        case UMC::Y210:    return MFX_FOURCC_Y210;
+        case UMC::Y410:    return MFX_FOURCC_Y410;
+#endif
         case UMC::YUV444A: return MFX_FOURCC_AYUV;
         case UMC::IMC3:    return MFX_FOURCC_IMC3;
         case UMC::YUV411:  return MFX_FOURCC_YUV411;
@@ -322,4 +335,49 @@ void RefCounter::DecrementReference()
     {
         Free();
     }
+}
+
+mfxU16 FourCcBitDepth(mfxU32 fourCC)
+{
+    mfxU16 bitDepth = 0;
+
+    switch (fourCC)
+    {
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_NV16:
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_AYUV:
+        bitDepth = 8;
+        break;
+
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y410:
+#endif
+        bitDepth = 10;
+        break;
+
+    default:
+        bitDepth = 0;
+    }
+
+    return bitDepth;
+}
+
+bool InitBitDepthFields(mfxFrameInfo *info)
+{
+    if (info->BitDepthLuma == 0)
+    {
+        info->BitDepthLuma = FourCcBitDepth(info->FourCC);
+    }
+
+    if (info->BitDepthChroma == 0)
+    {
+        info->BitDepthChroma = info->BitDepthLuma;
+    }
+
+    return ((info->BitDepthLuma != 0) &&
+        (info->BitDepthChroma != 0));
 }

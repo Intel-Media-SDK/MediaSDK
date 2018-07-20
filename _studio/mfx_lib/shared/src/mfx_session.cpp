@@ -687,6 +687,9 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
 
     // get the number of available threads
     maxNumThreads = vm_sys_info_get_cpu_num();
+    if (maxNumThreads == 1) {
+        maxNumThreads = 2;
+    }
 
     // allocate video core
     if (MFX_PLATFORM_SOFTWARE == m_currentPlatform)
@@ -897,7 +900,13 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
     }
 
     // get the number of available threads
-    maxNumThreads = (par.ExternalThreads != 0) ? 0 : vm_sys_info_get_cpu_num();
+    maxNumThreads = 0;
+    if (par.ExternalThreads == 0) {
+        maxNumThreads = vm_sys_info_get_cpu_num();
+        if (maxNumThreads == 1) {
+            maxNumThreads = 2;
+        }
+    }
 
     // allocate video core
     if (MFX_PLATFORM_SOFTWARE == m_currentPlatform)

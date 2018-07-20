@@ -436,27 +436,51 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 
     // [FourCC]
     // should be changed by libva support
-    for (mfxU32 indx = 0; indx < sizeof(g_TABLE_SUPPORTED_FOURCC)/sizeof(mfxU32); indx++)
+    for (auto fourcc : g_TABLE_SUPPORTED_FOURCC)
     {
-        if (MFX_FOURCC_NV12   == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_YV12   == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_YUY2   == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_UYVY   == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_RGB4   == g_TABLE_SUPPORTED_FOURCC[indx] ||
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-            MFX_FOURCC_RGB565 == g_TABLE_SUPPORTED_FOURCC[indx] ||
+        // Mark supported input
+        switch(fourcc)
+        {
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YV12:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_UYVY:
+        case MFX_FOURCC_RGB4:
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+        case MFX_FOURCC_RGB565:
 #endif
-            MFX_FOURCC_P010   == g_TABLE_SUPPORTED_FOURCC[indx])
-            caps.mFormatSupport[g_TABLE_SUPPORTED_FOURCC[indx]] |= MFX_FORMAT_SUPPORT_INPUT;
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_Y210:
+        case MFX_FOURCC_Y410:
+#endif
+        case MFX_FOURCC_P010:
+            caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_INPUT;
+            break;
+        default:
+            break;
+        }
 
-        if (MFX_FOURCC_NV12    == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_YUY2    == g_TABLE_SUPPORTED_FOURCC[indx] ||
-            MFX_FOURCC_RGB4    == g_TABLE_SUPPORTED_FOURCC[indx] ||
-#ifdef MFX_ENABLE_RGBP
-            MFX_FOURCC_RGBP    == g_TABLE_SUPPORTED_FOURCC[indx] ||
+        // Mark supported output
+        switch(fourcc)
+        {
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_RGB4:
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_Y210:
+        case MFX_FOURCC_Y410:
 #endif
-            MFX_FOURCC_A2RGB10 == g_TABLE_SUPPORTED_FOURCC[indx])
-            caps.mFormatSupport[g_TABLE_SUPPORTED_FOURCC[indx]] |= MFX_FORMAT_SUPPORT_OUTPUT;
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
+        case MFX_FOURCC_P010:
+            caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_OUTPUT;
+            break;
+        default:
+            break;
+        }
     }
 
     caps.uMirroring = 1;

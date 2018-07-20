@@ -1038,6 +1038,20 @@ namespace
         mfxU32 m_extFrameTag;
     };
 
+    struct FindInDpbByFrameOrder
+    {
+        FindInDpbByFrameOrder(mfxU32 frameOrder) : m_frameOrder(frameOrder) {}
+
+        bool operator ()(DpbFrame const & dpbFrame) const
+        {
+            return dpbFrame.m_frameOrder == m_frameOrder;
+        }
+
+        mfxU32 m_frameOrder;
+    };
+
+
+
     struct FindInDpbByLtrIdx
     {
         FindInDpbByLtrIdx(mfxU32 longTermIdx) : m_LongTermIdx(longTermIdx) {}
@@ -1206,6 +1220,8 @@ namespace
         mfxExtAVCRefListCtrl const * ctrl = (task.m_internalListCtrlPresent && (task.m_internalListCtrlHasPriority || !ext_ctrl))
             ? &task.m_internalListCtrl
             : ext_ctrl;
+        bool useInternalFrameOrder = false;
+        if (ctrl && ctrl == &task.m_internalListCtrl) useInternalFrameOrder = true;
 
         if (video.calcParam.numTemporalLayer > 0 &&
             false == ValidateLtrForTemporalScalability(video, task))
@@ -1224,7 +1240,7 @@ namespace
             {
                 for (mfxU32 i = 0; i < 16 && ctrl->LongTermRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
                 {
-                    if (ctrl->LongTermRefList[i].FrameOrder == task.m_extFrameTag)
+                    if (ctrl->LongTermRefList[i].FrameOrder == (useInternalFrameOrder ? task.m_frameOrder : task.m_extFrameTag))
                     {
                         marking.long_term_reference_flag = 1;
                         task.m_longTermFrameIdx = 0;
@@ -1264,10 +1280,21 @@ namespace
             {
                 for (mfxU32 i = 0; i < 16 && ctrl->RejectedRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
                 {
-                    DpbFrame * ref = std::find_if(
-                        currDpb.Begin(),
-                        currDpb.End(),
-                        FindInDpbByExtFrameTag(ctrl->RejectedRefList[i].FrameOrder));
+                    DpbFrame * ref = currDpb.End();
+                    if (!useInternalFrameOrder) 
+                    {
+                        ref = std::find_if(
+                            currDpb.Begin(),
+                            currDpb.End(),
+                            FindInDpbByExtFrameTag(ctrl->RejectedRefList[i].FrameOrder));
+                    }
+                    else
+                    {
+                        ref = std::find_if(
+                            currDpb.Begin(),
+                            currDpb.End(),
+                            FindInDpbByFrameOrder(ctrl->RejectedRefList[i].FrameOrder));
+                    }
 
                     if (ref != currDpb.End())
                     {
@@ -1297,10 +1324,22 @@ namespace
                 {
                     // adaptive marking for long-term references is supported only for progressive encoding
                     assert(task.GetPicStructForEncode() == MFX_PICSTRUCT_PROGRESSIVE);
-                    DpbFrame * ref = std::find_if(
-                        currDpb.Begin(),
-                        currDpb.End(),
-                        FindInDpbByExtFrameTag(ctrl->LongTermRefList[i].FrameOrder));
+                    DpbFrame * ref = currDpb.End();
+
+                    if (!useInternalFrameOrder)
+                    {
+                        ref = std::find_if(
+                            currDpb.Begin(),
+                            currDpb.End(),
+                            FindInDpbByExtFrameTag(ctrl->LongTermRefList[i].FrameOrder));
+                    }
+                    else
+                    {
+                        ref = std::find_if(
+                            currDpb.Begin(),
+                            currDpb.End(),
+                            FindInDpbByFrameOrder(ctrl->LongTermRefList[i].FrameOrder));
+                    }
 
                     if (video.calcParam.numTemporalLayer == 0 && // for temporal scalability only current frame could be marked as LTR
                         ref != currDpb.End() && ref->m_longterm == 0)
@@ -1325,7 +1364,7 @@ namespace
 
                         ref->m_longterm = 1;
                     }
-                    else if (ctrl->LongTermRefList[i].FrameOrder == task.m_extFrameTag)
+                    else if (ctrl->LongTermRefList[i].FrameOrder == (useInternalFrameOrder ? task.m_frameOrder : task.m_extFrameTag))
                     {
                         // frame is not in dpb, but it is a current frame
                         // mark it as 'long-term'
@@ -3014,12 +3053,57 @@ void MfxHwH264Encode::CalcPredWeightTable(
     for (mfxU32 field = 0; field <= task.m_fieldPicFlag; field++)
     {
         mfxU32 fid = task.m_fid[field];
-
+        Zero(task.m_pwt[fid]);
         mfxExtPredWeightTable const * external = GetExtBuffer(task.m_ctrl, field);
         bool fade = true;
 
         if (external)
+        {
+            if ((task.m_hwType >= MFX_HW_KBL) &&
+                ((external->LumaLog2WeightDenom && external->LumaLog2WeightDenom != 6) ||
+                (external->ChromaLog2WeightDenom && external->ChromaLog2WeightDenom != 6)))
+            {
+                task.m_pwt[fid] = *external;
+                // ajust weights for Denom == 6
+                if (external->LumaLog2WeightDenom && (external->LumaLog2WeightDenom != 6))
+                {
+                    for (mfxU8 i = 0; i < 2; i++)//list
+                        for (mfxU8 j = 0; j < 32; j++)//entry
+                        {
+                            if (task.m_pwt[fid].LumaWeightFlag[i][j])
+                            {
+                                if (task.m_pwt[fid].LumaLog2WeightDenom <= 6)
+                                    task.m_pwt[fid].Weights[i][j][0][0] = task.m_pwt[fid].Weights[i][j][0][0] * (1 << (6 - task.m_pwt[fid].LumaLog2WeightDenom));//2^(6-k)
+                                else
+                                    task.m_pwt[fid].Weights[i][j][0][0] /= (1 << (task.m_pwt[fid].LumaLog2WeightDenom - 6));//2^(-1)
+                            }
+                        }
+                    task.m_pwt[fid].LumaLog2WeightDenom = 6;
+                }
+                if (external->ChromaLog2WeightDenom && (external->ChromaLog2WeightDenom != 6))
+                {
+                    for (mfxU8 i = 0; i < 2; i++)//list
+                        for (mfxU8 j = 0; j < 32; j++)//entry
+                        {
+                            if (task.m_pwt[fid].ChromaWeightFlag[i][j])
+                            {
+                                if (task.m_pwt[fid].ChromaLog2WeightDenom <= 6)
+                                {
+                                    task.m_pwt[fid].Weights[i][j][1][0] = task.m_pwt[fid].Weights[i][j][1][0] * (1 << (6 - task.m_pwt[fid].ChromaLog2WeightDenom));//2^(6-k)
+                                    task.m_pwt[fid].Weights[i][j][2][0] = task.m_pwt[fid].Weights[i][j][2][0] * (1 << (6 - task.m_pwt[fid].ChromaLog2WeightDenom));//2^(6-k)
+                                }
+                                else
+                                {
+                                    task.m_pwt[fid].Weights[i][j][1][0] /= (1 << (task.m_pwt[fid].ChromaLog2WeightDenom - 6));//2^(-1)
+                                    task.m_pwt[fid].Weights[i][j][2][0] /= (1 << (task.m_pwt[fid].ChromaLog2WeightDenom - 6));//2^(-1)
+                                }
+                            }
+                        }
+                    task.m_pwt[fid].ChromaLog2WeightDenom = 6;
+                }
+            }
             continue;
+        }
 
         //fprintf(stderr, "FO: %04d POC %04d:\n", task.m_frameOrder, task.GetPoc()[fid]); fflush(stderr);
 

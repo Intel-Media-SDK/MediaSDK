@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,8 +48,6 @@ public:
     int32_t subsamplingX;
     int32_t subsamplingY;
 
-    // RefCntBuffer frame_bufs[FRAME_BUFFERS];
-
     UMC::FrameMemID currFrame;
 
     int32_t activeRefIdx[REFS_PER_FRAME];
@@ -92,7 +90,6 @@ public:
     VP9Segmentation segmentation;
 
     uint32_t frameContextIdx;
-    // FRAME_COUNTS counts; // ?????????????
 
     uint32_t currentVideoFrame;
     uint32_t profile;

@@ -194,6 +194,7 @@
 #if MFX_VERSION >= MFX_VERSION_NEXT
     #define MFX_ENABLE_VPP_RUNTIME_HSBC
     #define MFX_ENABLE_RGBP
+	#define MFX_ENABLE_FOURCC_RGB565
 #endif
 
 #endif // _MFX_CONFIG_H_

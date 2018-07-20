@@ -62,13 +62,17 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_in_framerate(0),
       m_frameOrder(0),
       m_statusReportFeedbackNumber(0),
+      m_mGuard(),
       m_adaptiveMode(false),
       m_index(0),
+      m_FrameAllocator(),
+      m_Packer(),
       m_request(),
       m_response(),
       m_OpaqAlloc(),
       m_stat(),
       m_va(NULL),
+      m_completedList(),
       m_firstSizes(),
       m_bs(),
       m_baseQIndex(0),
@@ -89,6 +93,13 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
 VideoDECODEVP9_HW::~VideoDECODEVP9_HW(void)
 {
     Close();
+}
+
+
+static bool CheckVP9BitDepthRestriction(mfxFrameInfo *info)
+{
+    return ((info->BitDepthLuma == FourCcBitDepth(info->FourCC)) &&
+     (info->BitDepthLuma == info->BitDepthChroma));
 }
 
 mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
@@ -115,7 +126,19 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     m_FrameAllocator.reset(new mfx_UMC_FrameAllocator_D3D());
 
-    m_vPar = m_vInitPar = *par;
+    m_vInitPar = *par;
+
+    if (!InitBitDepthFields(&m_vInitPar.mfx.FrameInfo))
+    {
+        return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
+
+    if (!CheckVP9BitDepthRestriction(&m_vInitPar.mfx.FrameInfo))
+    {
+        return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
+
+    m_vPar = m_vInitPar;
 
     m_vInitPar.IOPattern = (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
         | (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
@@ -128,6 +151,12 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
     }
 
     m_in_framerate = (mfxF64) m_vInitPar.mfx.FrameInfo.FrameRateExtD / m_vInitPar.mfx.FrameInfo.FrameRateExtN;
+
+    if ((m_vPar.mfx.FrameInfo.AspectRatioH == 0) && (m_vPar.mfx.FrameInfo.AspectRatioW == 0))
+    {
+        m_vPar.mfx.FrameInfo.AspectRatioH = 1;
+        m_vPar.mfx.FrameInfo.AspectRatioW = 1;
+    }
 
     // allocate memory
     memset(&m_request, 0, sizeof(m_request));
@@ -177,9 +206,10 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
     m_core->GetVA((mfxHDL*)&m_va, MFX_MEMTYPE_FROM_DECODE);
 
     bool isUseExternalFrames = (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || m_is_opaque_memory;
-    m_adaptiveMode = isUseExternalFrames && par->mfx.SliceGroupsPresent;
+    bool reallocFrames = (par->mfx.EnableReallocRequest == MFX_CODINGOPTION_ON);
+    m_adaptiveMode = isUseExternalFrames && reallocFrames;
 
-    if (isUseExternalFrames && !m_adaptiveMode)
+    if (isUseExternalFrames && !reallocFrames)
     {
         m_FrameAllocator->SetExternalFramesResponse(&m_response);
     }
@@ -344,6 +374,12 @@ static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar)
         return false;
     }
 
+    if (newPar->mfx.FrameInfo.BitDepthLuma != oldPar->mfx.FrameInfo.BitDepthLuma ||
+        newPar->mfx.FrameInfo.BitDepthChroma != oldPar->mfx.FrameInfo.BitDepthChroma)
+    {
+        return false;
+    }
+
     if (newPar->Protected != oldPar->Protected)
     {
         return false;
@@ -387,13 +423,45 @@ mfxStatus VideoDECODEVP9_HW::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVi
 {
     MFX_CHECK_NULL_PTR1(p_out);
 
-    eMFXHWType type = p_core->GetHWType();
+    mfxVideoParam localIn{};
+    if (p_in == p_out)
+    {
+        MFX_CHECK_NULL_PTR1(p_in);
+        MFX_INTERNAL_CPY(&localIn, p_in, sizeof(mfxVideoParam));
+        p_in = &localIn;
+    }
 
-    if (!CheckHardwareSupport(p_core, p_in))
+    eMFXHWType type = p_core->GetHWType();
+    mfxVideoParam *p_check_hw_par = p_in;
+
+    mfxVideoParam check_hw_par{};
+    if (p_in == NULL)
+    {
+        check_hw_par.mfx.CodecId = MFX_CODEC_VP9;
+        p_check_hw_par = &check_hw_par;
+    }
+
+    if (!CheckHardwareSupport(p_core, p_check_hw_par))
         return MFX_ERR_UNSUPPORTED;
 
-    return
-        MFX_VPX_Utility::Query(p_core, p_in, p_out, MFX_CODEC_VP9, type);
+    mfxStatus status = MFX_VPX_Utility::Query(p_core, p_in, p_out, MFX_CODEC_VP9, type);
+
+    if (p_in == NULL)
+    {
+        p_out->mfx.EnableReallocRequest = 1;
+    }
+    else
+    {
+        // Disable DRC realloc surface, unless the user explicitly enable it.
+        p_out->mfx.EnableReallocRequest = MFX_CODINGOPTION_OFF;
+
+        if (p_in->mfx.EnableReallocRequest == MFX_CODINGOPTION_ON)
+        {
+            p_out->mfx.EnableReallocRequest = MFX_CODINGOPTION_ON;
+        }
+    }
+
+    return status;
 }
 
 mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_video_param, mfxFrameAllocRequest *p_request)
@@ -665,6 +733,10 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
         // work with the native (original) surface
         surface_work = GetOriginalSurface(surface_work);
+        if (surface_work == NULL)
+        {
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
     }
 
     sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_VP9, true);
@@ -751,7 +823,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     if (!m_frameInfo.show_existing_frame)
     {
-        if (UMC::UMC_OK != m_va->BeginFrame(m_frameInfo.currFrame))
+        if (UMC::UMC_OK != m_va->BeginFrame(m_frameInfo.currFrame, 0))
             return MFX_ERR_DEVICE_FAILED;
 
         sts = PackHeaders(&m_bs, m_frameInfo);
@@ -1161,22 +1233,20 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
 
 mfxStatus VideoDECODEVP9_HW::UpdateRefFrames(mfxU8 refreshFrameFlags, VP9DecoderFrame & info)
 {
-    mfxI32 ref_index = 0;
-    mfxU8 r_mask = 0;
-
-    /* For case of update ref frames at NOT Key Frame */
-    for (int i = 0; i < NUM_REF_FRAMES; ++i)
+    for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
     {
-        if (info.ref_frame_map[i] == (UMC::FrameMemID)-1)
-        {
-            r_mask |= 1;
-            r_mask <<= 1;
-        }
-    }
+        mfxU8 mask = refreshFrameFlags & (1 << ref_index);
+        if ((mask != 0) // we should update the reference according to the bitstream data
 
-    for (mfxU8 mask = refreshFrameFlags | r_mask; mask; mask >>= 1)
-    {
-        if (mask & 1)
+            // The next condition is for decoder robustness.
+            // After the first keyframe is decoded this frame occupies all ref slots
+            // its mask is 011111111 and the condition "minus one" never hits.
+            // But if the first frame is Inter-frame encoded in the intra-only mode
+            // then we can receive "minus one" ref_frame_map item.
+            // The decoder never should touch these references.
+            // But if the stream is broken then decode may touch not initialized reference
+            // So to prevent crash let's put something as the reference frame.
+            || (info.ref_frame_map[ref_index] == (UMC::FrameMemID)-1))
         {
             const UMC::FrameMemID oldMid = info.ref_frame_map[ref_index];
             if (oldMid >= 0)
@@ -1193,7 +1263,6 @@ mfxStatus VideoDECODEVP9_HW::UpdateRefFrames(mfxU8 refreshFrameFlags, VP9Decoder
             if (m_FrameAllocator->IncreaseReference(info.currFrame) != UMC::UMC_OK)
                 return MFX_ERR_UNKNOWN;
         }
-        ++ref_index;
     }
 
     return MFX_ERR_NONE;
@@ -1217,8 +1286,9 @@ mfxStatus VideoDECODEVP9_HW::PackHeaders(mfxBitstream *bs, VP9DecoderFrame const
     try
     {
         m_Packer->BeginFrame();
-        m_Packer->PackAU(&vp9bs, &info);
-        m_Packer->EndFrame();
+        VP9DecoderFrame packerInfo = info;
+        m_Packer->PackAU(&vp9bs, &packerInfo);
+        m_Packer->EndFrame(); 
     }
     catch (vp9_exception const&)
     {

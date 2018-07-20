@@ -578,7 +578,10 @@ mfxStatus ImplementationAvc::Query(
     }
     else if (5 == queryMode)
     {
-        if(IsOn(in->mfx.LowPower))
+        MfxVideoParam tmp = *in;
+        eMFXHWType platform = core->GetHWType();
+        (void)SetLowPowerDefault(tmp, platform);
+        if(IsOn(tmp.mfx.LowPower))
             return QueryGuid(core, DXVA2_INTEL_LOWPOWERENCODE_AVC);
         return QueryGuid(core, DXVA2_Intel_Encode_AVC);
     }
@@ -1212,7 +1215,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
 
     InheritDefaultValues(m_video, newPar, newParIn);
 
-    mfxStatus checkStatus = CheckVideoParam(newPar, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType);
+    mfxStatus checkStatus = CheckVideoParam(newPar, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType,*QueryCoreInterface<eMFXGTConfig>(m_core, MFXICORE_GT_CONFIG_GUID));
     if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
         return MFX_ERR_INVALID_VIDEO_PARAM;
     else if (checkStatus < MFX_ERR_NONE)

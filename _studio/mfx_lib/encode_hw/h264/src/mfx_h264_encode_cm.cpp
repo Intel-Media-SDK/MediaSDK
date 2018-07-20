@@ -35,6 +35,13 @@
 #include "genx_bdw_simple_me_isa.h"
 #include "genx_skl_simple_me_isa.h"
 #include "genx_skl_histogram_isa.h"
+#include "genx_cnl_simple_me_isa.h"
+#include "genx_cnl_histogram_isa.h"
+#include "genx_icl_simple_me_isa.h"
+#include "genx_icl_histogram_isa.h"
+#include "genx_icllp_simple_me_isa.h"
+#include "genx_icllp_histogram_isa.h"
+
 
 namespace MfxHwH264EncodeHW
 {
@@ -852,6 +859,18 @@ void CmContext::Setup(
     case MFX_HW_CFL:
         m_program = ReadProgram(m_device, genx_skl_simple_me, SizeOf(genx_skl_simple_me));
         m_programHist = ReadProgram(m_device, genx_skl_histogram, SizeOf(genx_skl_histogram));
+        break;
+    case MFX_HW_CNL:
+        m_program = ReadProgram(m_device, genx_cnl_simple_me, SizeOf(genx_cnl_simple_me));
+        m_programHist = ReadProgram(m_device, genx_cnl_histogram, SizeOf(genx_cnl_histogram));
+        break;
+    case MFX_HW_ICL:
+        m_program = ReadProgram(m_device, genx_icl_simple_me, SizeOf(genx_icl_simple_me));
+        m_programHist = ReadProgram(m_device, genx_icl_histogram, SizeOf(genx_icl_histogram));
+        break;
+    case MFX_HW_ICL_LP:
+        m_program = ReadProgram(m_device, genx_icllp_simple_me, SizeOf(genx_icllp_simple_me));
+        m_programHist = ReadProgram(m_device, genx_icllp_histogram, SizeOf(genx_icllp_histogram));
         break;
     default:
         throw CmRuntimeError();

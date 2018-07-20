@@ -52,6 +52,7 @@ class DriverEncoder;
 typedef enum tagENCODER_TYPE
 {
     ENCODER_DEFAULT = 0
+    , ENCODER_REXT
 } ENCODER_TYPE;
 
 DriverEncoder* CreatePlatformH265Encoder(MFXCoreInterface* core, ENCODER_TYPE type = ENCODER_DEFAULT);

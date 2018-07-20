@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -76,7 +76,10 @@ typedef struct tagENCODE_CAPS_HEVC
     union {
         struct {
             UINT    SliceLevelReportSupport         : 1;
-            UINT    MaxNumOfTileColumnsMinus1       : 4;
+            UINT    CTULevelReportSupport           : 1;
+            UINT    SearchWindow64Support           : 1;
+            UINT    CustomRoundingControl           : 1;
+            UINT    ReservedBit1                    : 1;
             UINT    IntraRefreshBlockUnitSize       : 2;
             UINT    LCUSizeSupported                : 3;
             UINT    MaxNumDeltaQP                   : 4;
@@ -85,12 +88,27 @@ typedef struct tagENCODE_CAPS_HEVC
             UINT    FrameSizeToleranceSupport       : 1;
             UINT    HWCounterAutoIncrementSupport   : 2;
             UINT    ROIDeltaQPSupport               : 1;
-            UINT                                    : 12; // For future expansion
+            UINT    NumScalablePipesMinus1          : 5;
+            UINT    NegativeQPSupport               : 1;
+            UINT    ReservedBit2                    : 1;
+            UINT    TileBasedEncodingSupport        : 1;
+            UINT    PartialFrameUpdateSupport       : 1;
+            UINT    RGBEncodingSupport              : 1;
+            UINT    LLCStreamingBufferSupport       : 1;
+            UINT    DDRStreamingBufferSupport       : 1;
         };
         UINT    CodingLimits2;
     };
 
     UCHAR    MaxNum_WeightedPredL0;
     UCHAR    MaxNum_WeightedPredL1;
+    USHORT   MaxNumOfDirtyRect;
+    USHORT   MaxNumOfMoveRect;
+    USHORT   MaxNumOfConcurrentFramesMinus1;
+    USHORT   LLCSizeInMBytes;
+    USHORT   reserved16bits0;
+    UINT     reserved32bits1;
+    UINT     reserved32bits2;
+    UINT     reserved32bits3;
 } ENCODE_CAPS_HEVC;
 

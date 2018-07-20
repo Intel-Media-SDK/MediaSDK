@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -203,6 +203,8 @@ mfxStatus FillVideoParam(VideoCORE* core, UMC_VP9_DECODER::VP9DecoderFrame const
     params->mfx.FrameInfo.AspectRatioW = 1;
     params->mfx.FrameInfo.AspectRatioH = 1;
 
+    params->mfx.FrameInfo.CropX = 0;
+    params->mfx.FrameInfo.CropY = 0;
     params->mfx.FrameInfo.CropW = static_cast<mfxU16>(frame.width);
     params->mfx.FrameInfo.CropH = static_cast<mfxU16>(frame.height);
 
@@ -222,10 +224,10 @@ mfxStatus FillVideoParam(VideoCORE* core, UMC_VP9_DECODER::VP9DecoderFrame const
     {
         case  8:
             params->mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
-            if (params->mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV444)
-            {
+            if (MFX_CHROMAFORMAT_YUV444 == params->mfx.FrameInfo.ChromaFormat)
                 params->mfx.FrameInfo.FourCC = MFX_FOURCC_AYUV;
-            }
+            else if (MFX_CHROMAFORMAT_YUV422 == params->mfx.FrameInfo.ChromaFormat)
+                params->mfx.FrameInfo.FourCC = MFX_FOURCC_YUY2;
             params->mfx.FrameInfo.BitDepthLuma   = 8;
             params->mfx.FrameInfo.BitDepthChroma = 8;
             params->mfx.FrameInfo.Shift = 0;
@@ -233,6 +235,12 @@ mfxStatus FillVideoParam(VideoCORE* core, UMC_VP9_DECODER::VP9DecoderFrame const
 
         case 10:
             params->mfx.FrameInfo.FourCC = MFX_FOURCC_P010;
+#if (MFX_VERSION >= 1027)
+            if (MFX_CHROMAFORMAT_YUV444 == params->mfx.FrameInfo.ChromaFormat)
+                params->mfx.FrameInfo.FourCC = MFX_FOURCC_Y410;
+            else if (MFX_CHROMAFORMAT_YUV422 == params->mfx.FrameInfo.ChromaFormat)
+                params->mfx.FrameInfo.FourCC = MFX_FOURCC_Y210;
+#endif
             params->mfx.FrameInfo.BitDepthLuma   = 10;
             params->mfx.FrameInfo.BitDepthChroma = 10;
             break;

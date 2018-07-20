@@ -84,6 +84,7 @@ foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
 
+include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_STUDIO_ROOT}/hevce_hw/h265/include )
@@ -153,6 +154,9 @@ foreach( prefix ${MSDK_LIB_ROOT}/genx/field_copy/src )
   list( APPEND sources
     ${prefix}/genx_fcopy_gen8_isa.cpp
     ${prefix}/genx_fcopy_gen9_isa.cpp
+    ${prefix}/genx_fcopy_gen10_isa.cpp
+    ${prefix}/genx_fcopy_gen11_isa.cpp
+    ${prefix}/genx_fcopy_gen11lp_isa.cpp
   )
 endforeach()
 

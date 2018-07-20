@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,7 @@ public:
     }
 
     //Copy constructor
-    Array(Array &src)
+    Array(const Array &src)
     {
         m_pArray = (item_t *)0;
         m_numItems = 0;

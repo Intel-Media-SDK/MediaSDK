@@ -630,19 +630,39 @@ VAAPIVideoCORE::CreateVA(
         break;
     case MFX_CODEC_HEVC:
         profile |= VA_H265;
-        if (param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        if (MFX_PROFILE_HEVC_REXT == param->mfx.CodecProfile)
+        {
+            profile |= VA_PROFILE_REXT;
+        }
+        if ((param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010) ||
+            (param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210) ||
+            (param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410) )
         {
             profile |= VA_PROFILE_10;
         }
+
+        if (MFX_CHROMAFORMAT_YUV422 == param->mfx.FrameInfo.ChromaFormat)
+            profile |= (VA_PROFILE_422 | VA_PROFILE_REXT);
+        else if (MFX_CHROMAFORMAT_YUV444 == param->mfx.FrameInfo.ChromaFormat)
+            profile |= (VA_PROFILE_444 |VA_PROFILE_REXT);
+
         break;
     case MFX_CODEC_VP8:
         profile |= VA_VP8;
         break;
     case MFX_CODEC_VP9:
         profile |= VA_VP9;
-        if (param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        switch (param->mfx.FrameInfo.FourCC)
         {
+        case MFX_FOURCC_P010:
             profile |= VA_PROFILE_10;
+            break;
+        case MFX_FOURCC_AYUV:
+            profile |= VA_PROFILE_444;
+            break;
+        case MFX_FOURCC_Y410:
+            profile |= VA_PROFILE_10 | VA_PROFILE_444;
+            break;
         }
         break;
     case MFX_CODEC_JPEG:

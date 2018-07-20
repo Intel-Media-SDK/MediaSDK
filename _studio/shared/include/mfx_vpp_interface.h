@@ -73,7 +73,7 @@ namespace MfxHwVideoProcessing
         MFX_FOURCC_YUY2      ,
         MFX_FOURCC_RGB3      ,
         MFX_FOURCC_RGB4      ,
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if defined (MFX_ENABLE_FOURCC_RGB565)
         MFX_FOURCC_RGB565    ,
 #endif
 #ifdef MFX_ENABLE_RGBP
@@ -90,6 +90,10 @@ namespace MfxHwVideoProcessing
         MFX_FOURCC_AYUV      ,
         MFX_FOURCC_AYUV_RGB4 ,
         MFX_FOURCC_UYVY
+#if (MFX_VERSION >= 1027)
+        , MFX_FOURCC_Y210
+        , MFX_FOURCC_Y410
+#endif
     };
 
     typedef enum mfxFormatSupport {
@@ -295,6 +299,7 @@ namespace MfxHwVideoProcessing
                , MctfMVPrecision(MFX_MVPRECISION_INTEGER)
 #endif
 #endif
+               , reset(0)
             {
                    memset(&targetSurface, 0, sizeof(mfxDrvSurface));
                    dstRects.clear();
@@ -433,6 +438,7 @@ namespace MfxHwVideoProcessing
         mfxU16       MctfMVPrecision;
 #endif
 #endif
+        bool reset;
     };
 
     class DriverVideoProcessing

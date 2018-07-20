@@ -87,6 +87,120 @@ inline void copyVideoToSys(const mfxU8* src, mfxU8* dst, int width)
     }
 }
 
+inline void copyVideoToSysShift(const mfxU16* src, mfxU16* dst, int width, int shift)
+{
+    static const int item_size = 4 * sizeof(__m128i);
+
+    int align16 = (0x10 - (reinterpret_cast<size_t>((mfxU8*)src) & 0xf)) & 0xf;
+    for (int i = 0; i < align16/2; i++)
+        *dst++ = (*src++)>>shift;
+
+    int w = width*2 - align16;
+    if (w < 0)
+        return;
+
+    int width4 = w & (-item_size);
+
+    __m128i * src_reg = (__m128i *)src;
+    __m128i * dst_reg = (__m128i *)dst;
+
+    int i = 0;
+    for (; i < width4; i += item_size)
+    {
+        __m128i xmm0 = _mm_stream_load_si128(src_reg);
+        __m128i xmm1 = _mm_stream_load_si128(src_reg + 1);
+        __m128i xmm2 = _mm_stream_load_si128(src_reg + 2);
+        __m128i xmm3 = _mm_stream_load_si128(src_reg + 3);
+        __m128i xmm4 = _mm_srli_epi16(xmm0, shift);
+        __m128i xmm5 = _mm_srli_epi16(xmm1, shift);
+        __m128i xmm6 = _mm_srli_epi16(xmm2, shift);
+        __m128i xmm7 = _mm_srli_epi16(xmm3, shift);
+        _mm_storeu_si128(dst_reg, xmm4);
+        _mm_storeu_si128(dst_reg + 1, xmm5);
+        _mm_storeu_si128(dst_reg + 2, xmm6);
+        _mm_storeu_si128(dst_reg + 3, xmm7);
+
+        src_reg += 4;
+        dst_reg += 4;
+    }
+
+    size_t tail_data_sz = w & (item_size - 1);
+    if (tail_data_sz)
+    {
+        for (; tail_data_sz >= sizeof(__m128i); tail_data_sz -= sizeof(__m128i))
+        {
+            __m128i xmm0 = _mm_stream_load_si128(src_reg);
+            __m128i xmm1 = _mm_srli_epi16(xmm0, shift);
+            _mm_storeu_si128(dst_reg, xmm1);
+            src_reg += 1;
+            dst_reg += 1;
+        }
+
+        src = (const mfxU16 *)src_reg;
+        dst = (mfxU16 *)dst_reg;
+
+        for (; tail_data_sz > 0; tail_data_sz--)
+            *dst++ = (*src++)>>shift;
+    }
+}
+
+inline void copySysToVideoShift(const mfxU16* src, mfxU16* dst, int width, int shift)
+{
+    static const int item_size = 4 * sizeof(__m128i);
+
+    int align16 = (0x10 - (reinterpret_cast<size_t>((mfxU8*)src) & 0xf)) & 0xf;
+    for (int i = 0; i < align16; i++)
+        *dst++ = (*src++)<< shift;
+
+    int w = width*2 - align16;
+    if (w < 0)
+        return;
+
+    int width4 = w & (-item_size);
+
+    __m128i * src_reg = (__m128i *)src;
+    __m128i * dst_reg = (__m128i *)dst;
+
+    int i = 0;
+    for (; i < width4; i += item_size)
+    {
+        __m128i xmm0 = _mm_load_si128(src_reg);
+        __m128i xmm1 = _mm_load_si128(src_reg + 1);
+        __m128i xmm2 = _mm_load_si128(src_reg + 2);
+        __m128i xmm3 = _mm_load_si128(src_reg + 3);
+        __m128i xmm4 = _mm_slli_epi32(xmm0, shift);
+        __m128i xmm5 = _mm_slli_epi32(xmm1, shift);
+        __m128i xmm6 = _mm_slli_epi32(xmm2, shift);
+        __m128i xmm7 = _mm_slli_epi32(xmm3, shift);
+        _mm_storeu_si128(dst_reg, xmm4);
+        _mm_storeu_si128(dst_reg + 1, xmm5);
+        _mm_storeu_si128(dst_reg + 2, xmm6);
+        _mm_storeu_si128(dst_reg + 3, xmm7);
+
+        src_reg += 4;
+        dst_reg += 4;
+    }
+
+    size_t tail_data_sz = w & (item_size - 1);
+    if (tail_data_sz)
+    {
+        for (; tail_data_sz >= sizeof(__m128i); tail_data_sz -= sizeof(__m128i))
+        {
+            __m128i xmm0 = _mm_load_si128(src_reg);
+            __m128i xmm1 = _mm_slli_epi32(xmm0, shift);
+            _mm_storeu_si128(dst_reg, xmm1);
+            src_reg += 1;
+            dst_reg += 1;
+        }
+
+        src = (const mfxU16 *)src_reg;
+        dst = (mfxU16 *)dst_reg;
+
+        for (; tail_data_sz > 0; tail_data_sz--)
+            *dst++ = (*src++)<<shift;
+    }
+}
+
 template<typename T>
 inline int mfxCopyRect(const T* pSrc, int srcStep, T* pDst, int dstStep, mfxSize roiSize, int flag)
 {
@@ -135,6 +249,34 @@ public:
 
         mfxCopyRect<mfxU8>(pSrc, srcPitch, pDst, dstPitch, roi, flag);
 
+        return MFX_ERR_NONE;
+    }
+    static mfxStatus CopyAndShift(mfxU16 *pDst, mfxU32 dstPitch, mfxU16 *pSrc, mfxU32 srcPitch, mfxSize roi, mfxU8 lshift, mfxU8 rshift, int flag)
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy::Copy");
+
+        if (NULL == pDst || NULL == pSrc)
+        {
+            return MFX_ERR_NULL_PTR;
+        }
+
+        if (flag & COPY_VIDEO_TO_SYS)
+        {
+            for (int h = 0; h < roi.height; h++)
+            {
+                copyVideoToSysShift( pSrc, pDst, roi.width, rshift);
+                pSrc = (mfxU16 *)((mfxU8*)pSrc + srcPitch);
+                pDst = (mfxU16 *)((mfxU8*)pDst + dstPitch);
+            }
+        }
+        else {
+            for (int h = 0; h < roi.height; h++)
+            {
+                copySysToVideoShift( pSrc, pDst, roi.width, lshift);
+                pSrc = (mfxU16 *)((mfxU8*)pSrc + srcPitch);
+                pDst = (mfxU16 *)((mfxU8*)pDst + dstPitch);
+            }
+        }
         return MFX_ERR_NONE;
     }
 };
