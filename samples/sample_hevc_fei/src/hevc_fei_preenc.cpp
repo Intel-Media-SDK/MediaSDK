@@ -259,8 +259,20 @@ mfxStatus FEI_Preenc::DumpResult(HevcTask* task)
                 sts = m_pFile_MV_out->Write(&it->m_activeRefIdxPair.RefL1, sizeof(it->m_activeRefIdxPair.RefL1), 1);
                 MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
 
-                sts = m_pFile_MV_out->Write(it->m_mv->MB, sizeof(it->m_mv->MB[0]) * it->m_mv->NumMBAlloc, 1);
-                MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
+                // For some frames MVoutput may be switched off
+                if (it->m_mv)
+                {
+                    sts = m_pFile_MV_out->Write(it->m_mv->MB, sizeof(it->m_mv->MB[0]) * it->m_mv->NumMBAlloc, 1);
+                    MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
+                }
+                else
+                {
+                    for (mfxU32 k = 0; k < numMB; k++)
+                    {
+                        sts = m_pFile_MV_out->Write(&m_default_MVMB, sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB), 1);
+                        MSDK_CHECK_STATUS(sts, "Write MV output to file failed in DumpResult");
+                    }
+                }
             }
 
             RefIdxPair refFramesIdxs = { IDX_INVALID, IDX_INVALID };
