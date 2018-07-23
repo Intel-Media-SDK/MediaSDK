@@ -3121,7 +3121,7 @@ mfxStatus CTranscodingPipeline::AllocFrames(mfxFrameAllocRequest *pRequest, bool
 #ifdef ENABLE_MCTF
         if (isDecAlloc)
         {
-            // to allocate a buffer of pointers to buffer and initialize it 
+            // to allocate a buffer of pointers to buffer and initialize it
             surface->Data.ExtParam = new mfxExtBuffer*[MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE];
             for (size_t k = 0; k < MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE; ++k)
                 surface->Data.ExtParam[k] = NULL;
@@ -3583,7 +3583,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 
 // if no statistic-window is passed but overall stat-log exist:
     // is requested, set statisticsWindowSize to m_MaxFramesForTranscode
-    if ((pParams->statisticsLogFile || !pParams->DumpLogFileName.empty()) && 
+    if ((pParams->statisticsLogFile || !pParams->DumpLogFileName.empty()) &&
         0 == statisticsWindowSize)
         statisticsWindowSize = m_MaxFramesForTranscode;
 
@@ -4693,7 +4693,7 @@ mfxStatus FileBitstreamProcessor::ResetOutput()
 {
     if (m_pFileWriter.get())
     {
-        m_pFileWriter.reset();
+        m_pFileWriter->Reset();
     }
     return MFX_ERR_NONE;
 }
