@@ -1106,10 +1106,6 @@ void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
 
 bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
 {
-    mfxStatus mfxSts = MFX_ERR_NONE;
-    mfxCoreParam coreParams = {};
-
-
     if (!task.m_bCUQPMap)
         return false;
 
@@ -1226,7 +1222,6 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
-    VASurfaceID reconSurface;
     VASurfaceID *inputSurface = (VASurfaceID*)pair.first;
     VABufferID  codedBuffer;
     mfxU32      i;
