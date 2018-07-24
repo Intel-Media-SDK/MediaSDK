@@ -1682,9 +1682,8 @@ size_t GetConfigSize( mfxU32 filterId )
 } // size_t GetConfigSize( mfxU32 filterId )
 
 
-mfxStatus CheckTransferMatrix( mfxU16 transferMatrix )
+mfxStatus CheckTransferMatrix( mfxU16 /*transferMatrix*/ )
 {
-    transferMatrix;
     return MFX_ERR_NONE;
 
 } // mfxStatus CheckTransferMatrix( mfxU16 transferMatrix )
