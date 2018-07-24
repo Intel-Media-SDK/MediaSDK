@@ -41,7 +41,7 @@ public:
   size_t NBytesRead(void) { return m_currpos; }
 
 private:
-  JERRCODE Open(vm_char* name) { name; return JPEG_NOT_IMPLEMENTED; }
+  JERRCODE Open(vm_char* /*name*/) { return JPEG_NOT_IMPLEMENTED; }
 
 protected:
   const uint8_t *m_buf;

@@ -2617,7 +2617,7 @@ uint32_t GetLevelIDCIndex(uint32_t level_idc)
 }
 
 // Calculate maximum DPB size based on level and resolution
-int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
+int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
 {
     // can increase level_idc to hold num_ref_frames
     uint32_t lumaPsArray[] = { 36864, 122880, 245760, 552960, 983040, 2228224, 2228224, 8912896, 8912896, 8912896, 35651584, 35651584, 35651584 };
@@ -2630,7 +2630,6 @@ int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t widt
         uint32_t MaxLumaPs = lumaPsArray[index];
         uint32_t const maxDpbPicBuf =
             6;//HW handles second version of current reference (twoVersionsOfCurrDecPicFlag) itself
-        profile_idc;
 
         uint32_t PicSizeInSamplesY = width * height;
 
