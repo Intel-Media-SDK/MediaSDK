@@ -492,4 +492,3 @@ mfxStatus FEI_Encode::ResetIOState()
 
     return sts;
 }
-

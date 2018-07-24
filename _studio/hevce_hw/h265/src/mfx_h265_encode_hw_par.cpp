@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -129,11 +129,9 @@ mfxU32 GetMaxDpbSize(mfxU32 PicSizeInSamplesY, mfxU32 MaxLumaPs, mfxU32 maxDpbPi
     return maxDpbPicBuf;
 }
 
-mfxStatus CheckProfile(mfxVideoParam& par, mfxU16 platform)
+mfxStatus CheckProfile(mfxVideoParam& par, mfxU16 /*platform*/)
 {
     mfxStatus sts = MFX_ERR_NONE;
-
-    platform;
 
     switch (par.mfx.CodecProfile)
     {
@@ -375,7 +373,7 @@ mfxU16 AddTileSlices(
 
         if (f == 0)
         {
-            f;
+            (void)f;
         }
         else if (f > nSlice / 2)
         {
@@ -1144,7 +1142,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         // For 10 bit encode we need adjust min/max QP
         mfxU16 BitDepthLuma = par.mfx.FrameInfo.BitDepthLuma;
 
-        if (BitDepthLuma == 0 ) 
+        if (BitDepthLuma == 0 )
             BitDepthLuma = (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010) ? 10 : 8;
 
         maxQP += 6 * (BitDepthLuma - 8);
@@ -1273,14 +1271,14 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     else
         changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, (mfxU32)MFX_CODINGOPTION_OFF, 0);
 
- 
+
     if (IsOn(par.m_ext.CO2.ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)
     {
         par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
         changed ++;
     }
 
-    if ((!IsOn(par.m_ext.CO2.ExtBRC)) && 
+    if ((!IsOn(par.m_ext.CO2.ExtBRC)) &&
         (par.m_ext.extBRC.pthis || par.m_ext.extBRC.Init || par.m_ext.extBRC.Close || par.m_ext.extBRC.GetFrameCtrl || par.m_ext.extBRC.Update || par.m_ext.extBRC.Reset))
     {
         par.m_ext.extBRC.pthis = 0;
@@ -1306,7 +1304,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
 #ifdef MFX_ENABLE_HEVCE_INTERLACE
 
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP ||
         (IsOn(par.m_ext.CO2.ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)))
     {
         changed += CheckOption(par.mfx.FrameInfo.PicStruct, (mfxU16)MFX_PICSTRUCT_PROGRESSIVE, MFX_PICSTRUCT_FIELD_TOP, MFX_PICSTRUCT_FIELD_BOTTOM, MFX_PICSTRUCT_FIELD_SINGLE, MFX_PICSTRUCT_FIELD_TFF, MFX_PICSTRUCT_FIELD_BFF,0);
@@ -1334,7 +1332,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
             invalid += CheckOption(par.mfx.FrameInfo.FourCC, (mfxU32)MFX_FOURCC_NV12, 0);
         else if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10)
             invalid += CheckOption(par.mfx.FrameInfo.FourCC, (mfxU32)MFX_FOURCC_P010, 0);
-        else if (par.mfx.FrameInfo.FourCC && par.mfx.FrameInfo.FourCC != (mfxU32)MFX_FOURCC_NV12 && par.mfx.FrameInfo.FourCC != (mfxU32)MFX_FOURCC_P010) 
+        else if (par.mfx.FrameInfo.FourCC && par.mfx.FrameInfo.FourCC != (mfxU32)MFX_FOURCC_NV12 && par.mfx.FrameInfo.FourCC != (mfxU32)MFX_FOURCC_P010)
         {
             invalid ++;
             par.mfx.FrameInfo.FourCC = 0;
@@ -1418,8 +1416,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckTriStateOption(par.m_ext.CO.VuiNalHrdParameters);
     changed += CheckTriStateOption(par.m_ext.CO.NalHrdConformance);
 
-    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CBR && 
-        par.mfx.RateControlMethod != MFX_RATECONTROL_VBR && 
+    if (par.mfx.RateControlMethod != MFX_RATECONTROL_CBR &&
+        par.mfx.RateControlMethod != MFX_RATECONTROL_VBR &&
         par.mfx.RateControlMethod != MFX_RATECONTROL_VCM)
     {
        changed += CheckOption(par.m_ext.CO.VuiNalHrdParameters, (mfxU32)MFX_CODINGOPTION_OFF, 0);
@@ -1450,16 +1448,32 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
            && par.mfx.GopRefDist > 0
            && ( par.mfx.GopRefDist < 2
             || minRefForPyramid(par.mfx.GopRefDist, par.isField()) > 16
-            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame
-                && !par.mfx.EncodedOrder)))
+            || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
     {
-        par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
-        changed ++;
+        if (par.mfx.EncodedOrder
+         && par.mfx.NumRefFrame > 2
+         && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)
+        {
+            par.bNonStandardReord = true;  // let's allow this mode in encoding order (may be special B pyr is used)
+        }
+        else
+        {
+            // disable B pyramid
+            par.m_ext.CO2.BRefType = MFX_B_REF_OFF;
+            changed++;
+        }
     }
-    if (par.mfx.GopRefDist > 1 && (par.mfx.NumRefFrame && par.mfx.NumRefFrame < (par.isField() ? 4 :2)) && !par.mfx.EncodedOrder)
+    if (par.mfx.GopRefDist > 1 && (par.mfx.NumRefFrame && par.mfx.NumRefFrame < (par.isField() ? 4 :2)) )
     {
-        par.mfx.NumRefFrame = par.isField() ? 4 :2;
-        changed ++;
+        if (par.mfx.EncodedOrder && par.isField() && par.mfx.NumRefFrame > 1 && par.mfx.NumRefFrame < 4)
+        {
+            par.bNonStandardReord = true;  // let's allow this mode in encoding order
+        }
+        else
+        {
+            par.mfx.NumRefFrame = par.isField() ? 4 : 2;
+            changed++;
+        }
     }
 
     if (par.m_ext.CO3.PRefType == MFX_P_REF_PYRAMID &&  par.mfx.GopRefDist > 1)
@@ -1512,7 +1526,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         par.m_ext.CO2.IntRefCycleSize = 0;
         changed +=1;
     }
-    if (par.m_ext.CO2.MaxFrameSize)
+    if (par.m_ext.CO2.MaxFrameSize && ((!par.isSWBRC()) || (par.mfx.RateControlMethod != MFX_RATECONTROL_VBR)))
     {
         par.m_ext.CO2.MaxFrameSize = 0;
         changed+=1;
@@ -1554,8 +1568,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (CheckRangeDflt(par.m_ext.VSI.ColourPrimaries,         0, 255, 2)) changed +=1;
     if (CheckRangeDflt(par.m_ext.VSI.TransferCharacteristics, 0, 255, 2)) changed +=1;
     if (CheckRangeDflt(par.m_ext.VSI.MatrixCoefficients,      0, 255, 2)) changed +=1;
-    if (CheckOption(par.m_ext.VSI.VideoFullRange, 0))                     changed +=1;
-    if (CheckOption(par.m_ext.VSI.ColourDescriptionPresent, 0))           changed +=1;
+    if (CheckOption(par.m_ext.VSI.VideoFullRange, 0, 1))                  changed +=1;
+    if (CheckOption(par.m_ext.VSI.ColourDescriptionPresent, 0, 1))        changed +=1;
 
 #if defined(LINUX32) || defined(LINUX64)
     changed += CheckOption(CO3.GPB, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON, (mfxU16)MFX_CODINGOPTION_OFF);
@@ -1647,7 +1661,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     if (CO3.EnableMBQP !=0 || par.bROIViaMBQP)
     {
         if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && !par.isSWBRC())
-            changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON); 
+            changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON);
         else if (caps.MbQpDataSupport == 0)
         {
 #ifdef MFX_ENABLE_HEVCE_ROI

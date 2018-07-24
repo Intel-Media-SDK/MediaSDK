@@ -21,38 +21,70 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define __HEVC_FEI_ABR_TASK__
 
 #include "buffer_pool.h"
+#include "base_allocator.h"
+
 #include <queue>
 #include <cmath>
-
-//#define DEBUG_OUTPUT
-
-#ifdef DEBUG_OUTPUT
-#include <cstdio>
-#endif
-#include "base_allocator.h"
+#include <map>
 
 struct FrameStatData
 {
-    mfxU32 EncodedOrder   = 0xffffffff;
-    mfxU32 DisplayOrder   = 0xffffffff;
-    mfxU8  qp             = 0xff;
-    mfxF64 qstep0         = -1.0;
-    mfxF64 qstep          = -1.0;
-    mfxU16 frame_type     = MFX_FRAMETYPE_UNKNOWN;
-    mfxI32 poc            = -100;
-    //mfxU32 num_intra      = 0;
-    mfxF64 share_intra    = 0.0;
-    mfxF64 propagation    = 0.0;
-    //mfxU32 num_inter      = 0;
-    //mfxF64 share_inter    = 0.0;
-    //mfxU32 num_skip       = 0;
-    //mfxF64 share_skip     = 0.0;
-    mfxU32 frame_size     = 0;
-    //mfxF64 psnrY          = 0.0;
-    mfxF64 mseY           = 0.0;
-    mfxF64 complexity0    = 0.0;
-    mfxF64 complexity     = 0.0;
-    mfxF64 predicted_size = 0.0;
+    mfxU32 EncodedOrder                  = 0xffffffff;
+    mfxU32 DisplayOrder                  = 0xffffffff;
+    mfxU8  QP                            = 0xff;
+    mfxF64 QstepOriginal                 = -1.0;
+    mfxF64 QstepCalculated               = -1.0;
+    mfxU16 FrameType                     = MFX_FRAMETYPE_UNKNOWN;
+    mfxI32 POC                           = -100;
+    mfxF64 ShareIntra                    = 0.0;
+    mfxF64 Propagation                   = 0.0;
+    mfxU32 FrameSize                     = 0;
+    mfxF64 VisualDistortion              = 0.0; // MSE or any approximation like number of nonzero coefficients
+    mfxF64 ComplexityOriginal            = 0.0;
+    mfxF64 ComplexitySmoothed            = 0.0;
+
+    mfxU32 NPixelsPropagated             = 0;
+    mfxF64 NPixelsTransitivelyPropagated = 1.0;
+    mfxU32 NPixelsInFrame                = 0;
+
+    mfxU64 BitsEncoded                   = 0;
+    mfxU64 BitsPredicted                 = 0;
+
+    // Map of FrameDisplayOrder <=> NumOfPixels.
+    // Stores amount of pixels predicted FROM reference frame.
+    std::map<mfxU32, mfxU32> NumPixelsPredictedFromRef;
+    // Map of FrameDisplayOrder <=> ShareOfPixels.
+    // Shows share of INTER pixels predicted FROM reference frame.
+    std::map<mfxU32, mfxF64> ShareOfPredictedPixelsFromRef;
+
+    bool Contains(mfxU32 fo)
+    {
+        return NumPixelsPredictedFromRef.find(fo) != NumPixelsPredictedFromRef.end();
+    }
+
+    void AddPxlCount(mfxU32 fo, mfxU32 amount)
+    {
+        if (Contains(fo))
+        {
+            NumPixelsPredictedFromRef[fo] += amount;
+        }
+        else
+        {
+            NumPixelsPredictedFromRef[fo] = amount;
+        }
+    }
+
+    void FillProp()
+    {
+        for (auto & item : NumPixelsPredictedFromRef)
+        {
+            mfxF64 denom = (1.0 - ShareIntra) * NPixelsInFrame;
+            if (denom == 0.0)
+                throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "ERROR: FillProp - zero denominator");
+
+            ShareOfPredictedPixelsFromRef[item.first] = mfxF64(item.second) / denom;
+        }
+    }
 };
 
 struct HevcTaskDSO
@@ -71,14 +103,13 @@ struct HevcTaskDSO
     std::vector<mfxI32> m_refListActive[2];
 
     MVPPool::Type       m_mvp;
-    mfxU32              m_nMvPredictors[2];
+    mfxU32              m_nMvPredictors[2] = {0, 0};
 
     CTUCtrlPool::Type   m_ctuCtrl;
+    bool                m_isGPBFrame = false;
 
     // Data for BRC
     FrameStatData       m_statData;
-
-    bool                m_isGPBFrame = false;
 };
 
 class LA_queue
@@ -86,8 +117,9 @@ class LA_queue
 public:
     LA_queue(mfxU16 la_depth = 1, const msdk_char* yuv_file = nullptr)
         : m_LookAheadDepth(la_depth)
+        , m_calc_mse_from_file(yuv_file[0])
     {
-        if (yuv_file[0])
+        if (m_calc_mse_from_file)
         {
             m_fpYUV = fopen(yuv_file, "rb");
 
@@ -117,10 +149,9 @@ public:
 
         task->m_statData.EncodedOrder = m_submittedTasks;
 
-        // Calc MSE
-        if (m_fpYUV)
+        if (m_calc_mse_from_file)
         {
-            task->m_statData.mseY = CalcMSE(*task);
+            task->m_statData.VisualDistortion = CalcMSE(*task);
         }
 
         la_queue.push(std::move(task));
@@ -137,7 +168,7 @@ public:
                 return false;
         }
 
-        if (!m_drain && la_queue.size() < m_LookAheadDepth)
+        if (!m_drain && la_queue.size() <= m_LookAheadDepth)
         {
             return false;
         }
@@ -184,9 +215,10 @@ public:
 private:
     std::queue<std::shared_ptr<HevcTaskDSO>> la_queue;
 
-    mfxU16 m_LookAheadDepth = 100;
-    mfxU32 m_submittedTasks = 0;
-    bool   m_drain          = false;
+    mfxU16 m_LookAheadDepth     = 100;
+    bool   m_calc_mse_from_file = false;
+    mfxU32 m_submittedTasks     = 0;
+    bool   m_drain              = false;
 
     // for MSE calculation
     MFXFrameAllocator* m_pAllocator = nullptr;
@@ -217,17 +249,17 @@ private:
         if (sts != MFX_ERR_NONE)
             throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Failed to calculate MSE: m_pAllocator->Lock failed");
 
-        mfxF64 l2normSq = 0.0;
+        mfxU64 l2normSq = 0;
         for (mfxU32 i = 0; i < m_YUVdata.size(); ++i)
         {
-            l2normSq += std::pow(mfxF64(m_YUVdata[i]) - mfxF64(task.m_surf->Data.Y[(i / task.m_surf->Info.Width)*task.m_surf->Data.Pitch + (i % task.m_surf->Info.Width)]), 2);
+            l2normSq += std::pow(m_YUVdata[i] - task.m_surf->Data.Y[(i / task.m_surf->Info.Width)*task.m_surf->Data.Pitch + (i % task.m_surf->Info.Width)], 2);
         }
 
         sts = m_pAllocator->Unlock(m_pAllocator->pthis, task.m_surf->Data.MemId, &(task.m_surf->Data));
         if (sts != MFX_ERR_NONE)
             throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Failed to calculate MSE: m_pAllocator->Unlock failed");
 
-        return l2normSq / m_YUVdata.size();
+        return mfxF64(l2normSq) / m_YUVdata.size();
     }
 };
 

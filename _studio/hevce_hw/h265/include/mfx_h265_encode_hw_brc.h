@@ -174,11 +174,8 @@ public:
 
     void PreEnc(mfxU32 frameType, std::vector<VmeData *> const & vmeData, mfxU32 encOrder);
 
-    mfxBRCStatus   PostPackFrame(MfxVideoParam &video, Task &task, mfxI32 bitsEncodedFrame, mfxI32 overheadBits, mfxI32 recode = 0)
+    mfxBRCStatus   PostPackFrame(MfxVideoParam & /*video*/, Task &task, mfxI32 bitsEncodedFrame, mfxI32 /*overheadBits*/, mfxI32 /*recode = 0*/)
     {
-        recode;
-        overheadBits;
-        video;
         Report(task.m_frameType, bitsEncodedFrame >> 3, 0, 0, task.m_eo, 0, 0); 
         return MFX_ERR_NONE;    
     }
@@ -344,7 +341,9 @@ protected:
         frame_par.DisplayOrder = task.m_poc;    // Frame number in a sequence of frames in display order starting from last IDR
         frame_par.FrameType = task.m_frameType;       // See FrameType enumerator
         frame_par.PyramidLayer = (mfxU16)task.m_level;    // B-pyramid or P-pyramid layer, frame belongs to
-        frame_par.NumRecode = (mfxU16)task.m_recode;       // Number of recodings performed for this frame    
+        frame_par.NumRecode = (mfxU16)task.m_recode;       // Number of recodings performed for this frame
+        if (task.m_secondField)
+            frame_par.PyramidLayer = frame_par.PyramidLayer +1;    
     }
 
  

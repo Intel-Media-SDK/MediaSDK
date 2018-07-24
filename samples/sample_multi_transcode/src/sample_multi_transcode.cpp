@@ -78,7 +78,6 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     while(m_parser.GetNextSessionParams(InputParams))
     {
         m_InputParamsArray.push_back(InputParams);
-        InputParams.Reset();
     }
 
     // check correctness of input parameters

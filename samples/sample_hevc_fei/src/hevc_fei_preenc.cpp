@@ -80,13 +80,11 @@ mfxStatus IPreENC::ResetExtBuffers(const MfxVideoParamsWrapper & videoParams)
     m_mbs.resize(nBuffers);
     for (size_t i = 0; i < nBuffers; ++i)
     {
-        MSDK_ZERO_MEMORY(m_mvs[i]);
         m_mvs[i].Header.BufferId = MFX_EXTBUFF_FEI_PREENC_MV;
         m_mvs[i].Header.BufferSz = sizeof(mfxExtFeiPreEncMV);
         m_mvs[i].MB = new mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB[nMB];
         m_mvs[i].NumMBAlloc = nMB;
 
-        MSDK_ZERO_MEMORY(m_mbs[i]);
         m_mbs[i].Header.BufferId = MFX_EXTBUFF_FEI_PREENC_MB;
         m_mbs[i].Header.BufferSz = sizeof(mfxExtFeiPreEncMBStat);
         m_mbs[i].MB = new mfxExtFeiPreEncMBStat::mfxExtFeiPreEncMBStatMB[nMB];
@@ -125,6 +123,12 @@ FEI_Preenc::FEI_Preenc(MFXVideoSession* session, MfxVideoParamsWrapper& preenc_p
             m_default_MVMB.MV[i][j].y = (mfxI16)0x8000;
         }
     }
+
+    // Important!
+    // When DisableMVOutput and DisableStatisticsOutput are 1 on some particular frame (e.g. I frame),
+    // driver produces wrong MVs on further frames.
+    // So we always need to enable statistic output even if we don't need it at application side.
+    m_defFrameCtrl.DisableStatisticsOutput = 0;
 }
 
 FEI_Preenc::~FEI_Preenc()
@@ -255,8 +259,20 @@ mfxStatus FEI_Preenc::DumpResult(HevcTask* task)
                 sts = m_pFile_MV_out->Write(&it->m_activeRefIdxPair.RefL1, sizeof(it->m_activeRefIdxPair.RefL1), 1);
                 MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
 
-                sts = m_pFile_MV_out->Write(it->m_mv->MB, sizeof(it->m_mv->MB[0]) * it->m_mv->NumMBAlloc, 1);
-                MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
+                // For some frames MVoutput may be switched off
+                if (it->m_mv)
+                {
+                    sts = m_pFile_MV_out->Write(it->m_mv->MB, sizeof(it->m_mv->MB[0]) * it->m_mv->NumMBAlloc, 1);
+                    MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
+                }
+                else
+                {
+                    for (mfxU32 k = 0; k < numMB; k++)
+                    {
+                        sts = m_pFile_MV_out->Write(&m_default_MVMB, sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB), 1);
+                        MSDK_CHECK_STATUS(sts, "Write MV output to file failed in DumpResult");
+                    }
+                }
             }
 
             RefIdxPair refFramesIdxs = { IDX_INVALID, IDX_INVALID };
@@ -414,9 +430,9 @@ mfxStatus FEI_Preenc::PreEncMultiFrames(HevcTask* pTask)
 
     bool bDownsampleInput = true;
     for (size_t idxL0 = 0, idxL1 = 0;
-         idxL0 < task.m_numRefActive[0] || idxL1 < task.m_numRefActive[1] // Iterate thru L0/L1 frames
-         || idxL0 < !!(task.m_frameType & MFX_FRAMETYPE_I); // trick: use idxL0 for 1 iteration for I-frame
-         ++idxL0, ++idxL1)
+         idxL0 < task.m_numRefActive[0] || idxL1 < task.m_numRefActive[1] // Iterate thru L0/L1 frames.
+         || idxL0 < !!(task.m_frameType & MFX_FRAMETYPE_I); // Trick: use idxL0 for 1 iteration for I-frame,
+         ++idxL0, ++idxL1)                                  // the aim is so that driver can downsample input surface (corresponds to I frame).
     {
         RefIdxPair dpbRefIdxPair    = {IDX_INVALID, IDX_INVALID};
         RefIdxPair activeRefIdxPair = {IDX_INVALID, IDX_INVALID};
@@ -427,7 +443,9 @@ mfxStatus FEI_Preenc::PreEncMultiFrames(HevcTask* pTask)
             activeRefIdxPair.RefL0 = idxL0;
         }
 
-        if (RPL[1][idxL1] < MAX_DPB_SIZE)
+        // FEI_Preenc class operates with AVC PreENC which isn't optimized for GPB frames
+        // so it's useless to call PreENC with L1 references of GPB frames.
+        if (RPL[1][idxL1] < MAX_DPB_SIZE && !task.m_ldb)
         {
             dpbRefIdxPair.RefL1    = RPL[1][idxL1];
             activeRefIdxPair.RefL1 = idxL1;

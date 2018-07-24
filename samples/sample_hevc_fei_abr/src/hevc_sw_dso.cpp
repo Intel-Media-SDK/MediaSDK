@@ -17,11 +17,12 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#include "hevc_sw_dso.h"
+
 #include <map>
 #include <string>
 #include <fstream>
-#include <iostream>
-#include "hevc_sw_dso.h"
+#include <numeric>
 
 using namespace BS_HEVC2;
 
@@ -118,8 +119,7 @@ mfxStatus HevcSwDso::GetFrame(HevcTaskDSO & task)
     return MFX_ERR_NONE;
 }
 
-
-bool IsHEVCSlice(mfxU32 nut)
+inline bool IsHEVCSlice(mfxU32 nut)
 {
     return (nut <= 21) && ((nut < 10) || (nut > 15));
 }
@@ -130,6 +130,9 @@ void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
     {
         if (!IsHEVCSlice(pNALU->nal_unit_type))
             continue;
+
+        if (!pNALU->slice)
+            throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillFrameTask : pNALU->slice pointer is null");
 
         auto& slice = *pNALU->slice;
 
@@ -151,7 +154,7 @@ void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
         task.m_frameType |= (slice.type == SLICE_TYPE::I) ? MFX_FRAMETYPE_I :
                                 ((slice.type == SLICE_TYPE::P) ? MFX_FRAMETYPE_P : MFX_FRAMETYPE_B);
 
-        task.m_statData.poc = slice.POC;
+        task.m_statData.POC = slice.POC;
 
         m_previousMaxDisplayOrder = std::max(m_previousMaxDisplayOrder, m_DisplayOrderSinceLastIDR + slice.POC);
 
@@ -163,69 +166,126 @@ void HevcSwDso::FillFrameTask(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
             task.m_refListActive[1].push_back(slice.L1[i].POC);
 
         if (!slice.pps)
-            throw mfxError(MFX_ERR_NULL_PTR, "slice.pps pointer is null");
+            throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillFrameTask : slice.pps pointer is null");
 
-        task.m_statData.qp = slice.qp_delta + slice.pps->init_qp_minus26 + 26;
+        task.m_statData.QP = slice.qp_delta + slice.pps->init_qp_minus26 + 26;
 
         break;
     }
 
-    task.m_surf->Data.FrameOrder = task.m_frameOrder = task.m_statData.DisplayOrder = m_DisplayOrderSinceLastIDR + task.m_statData.poc;
+    task.m_surf->Data.FrameOrder = task.m_frameOrder = task.m_statData.DisplayOrder = m_DisplayOrderSinceLastIDR + task.m_statData.POC;
 
-    task.m_statData.frame_type   = task.m_frameType;
+    task.m_statData.FrameType = task.m_frameType;
 
     // Detect GPB frames
     if ((task.m_frameType & MFX_FRAMETYPE_B) &&
-        std::none_of(std::begin(task.m_refListActive[1]), std::end(task.m_refListActive[1]), [&task](mfxI32 poc) { return poc > task.m_statData.poc; }))
+        std::none_of(std::begin(task.m_refListActive[1]), std::end(task.m_refListActive[1]), [&task](mfxI32 poc) { return poc > task.m_statData.POC; }))
     {
-        // Convert GPB frame to P in case of LA BRC
-        if (m_bCalcBRCStat)
-        {
-            task.m_statData.frame_type = MFX_FRAMETYPE_P;
-        }
-
         task.m_isGPBFrame = true;
     }
 
     // Calculate some statistics for LA BRC
-    task.m_statData.frame_size = 0;
-
-    mfxU32 n_cu_intra = 0, n_cu_total = 0, cur_cu_size = 0;
-
-    for (auto pNALU = header; pNALU; pNALU = pNALU->next)
+    if (m_bCalcBRCStat)
     {
-        task.m_statData.frame_size += pNALU->NumBytesInNalUnit * 8;
-
-        if (!IsHEVCSlice(pNALU->nal_unit_type))
-            continue;
-
-        auto& slice = *pNALU->slice;
-
-        if (m_bCalcBRCStat)
-        {
-            for (auto ctu = slice.ctu; ctu; ctu = ctu->Next)
-            {
-                for (auto cu = ctu->Cu; cu; cu = cu->Next)
-                {
-                    cur_cu_size = 1 << cu->log2CbSize;
-
-                    if (cu->PredMode == MODE_INTRA)
-                    {
-                        n_cu_intra += cur_cu_size;
-                    }
-                    n_cu_total += cur_cu_size;
-                }
-            }
-        }
-    }
-
-    if (n_cu_total)
-    {
-        task.m_statData.share_intra = mfxF64(n_cu_intra) / n_cu_total;
+        FillBRCParams(header, task);
     }
 }
 
-void PU2MVP(const PU & pu, mfxFeiHevcEncMVPredictors & mvpBlock, mfxU8 idx)
+void CountRefPixels(const BS_HEVC2::CU & cu, HevcTaskDSO & task, mfxI32 base)
+{
+    for (auto pu = cu.Pu; pu; pu = pu->Next)
+    {
+        switch (pu->inter_pred_idc)
+        {
+        case BS_HEVC2::INTER_PRED::PRED_L0:
+            task.m_statData.AddPxlCount(base + task.m_refListActive[0][pu->ref_idx_l0], pu->w*pu->h);
+            break;
+        case BS_HEVC2::INTER_PRED::PRED_L1:
+            task.m_statData.AddPxlCount(base + task.m_refListActive[1][pu->ref_idx_l1], pu->w*pu->h);
+            break;
+        case BS_HEVC2::INTER_PRED::PRED_BI:
+            task.m_statData.AddPxlCount(base + task.m_refListActive[0][pu->ref_idx_l0], (pu->w*pu->h) >> 1);
+            task.m_statData.AddPxlCount(base + task.m_refListActive[1][pu->ref_idx_l1], (pu->w*pu->h) >> 1);
+            break;
+        default:
+            throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "ERROR : CountRefPixels : invalid inter_pred_idc");
+        }
+    }
+}
+
+void HevcSwDso::FillBRCParams(const BS_HEVC2::NALU* header, HevcTaskDSO & task)
+{
+    // Convert GPB frame to P in case of LA BRC
+    if (task.m_isGPBFrame)
+    {
+        task.m_statData.FrameType = MFX_FRAMETYPE_P;
+    }
+
+    task.m_statData.FrameSize = 0;
+
+    task.m_statData.NPixelsInFrame = task.m_surf->Info.CropW * task.m_surf->Info.CropH;
+
+    mfxU32 numPixelsIntra = 0;
+
+    for (auto pNALU = header; pNALU; pNALU = pNALU->next)
+    {
+        task.m_statData.FrameSize += pNALU->NumBytesInNalUnit << 3;
+
+         if (!IsHEVCSlice(pNALU->nal_unit_type))
+             continue;
+
+         if (!pNALU->slice)
+             throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillBRCParams : pNALU->slice pointer is null");
+
+         for (auto ctu = pNALU->slice->ctu; ctu; ctu = ctu->Next)
+         {
+             for (auto cu = ctu->Cu; cu; cu = cu->Next)
+             {
+                 if (m_bEstimateDistortion)
+                 {
+                     for (auto tu = cu->Tu; tu; tu = tu->Next)
+                     {
+                         if (!tu->tc_levels_luma)
+                             continue;
+
+                         switch (m_AlgorithmType)
+                         {
+                         case NNZ:
+                             // Count Number of Non-Zero luma transform coefficients
+                             task.m_statData.VisualDistortion += std::count_if(tu->tc_levels_luma, tu->tc_levels_luma + (1 << (tu->log2TrafoSize << 1)),
+                                                                                    [](mfxI32 coeff) { return coeff != 0; });
+                             break;
+                         case SSC:
+                             // Count Sum of Squared luma transform Coefficients
+                             task.m_statData.VisualDistortion += std::accumulate(tu->tc_levels_luma, tu->tc_levels_luma + (1 << (tu->log2TrafoSize << 1)), mfxU64(0),
+                                                                                    [](mfxU64 sum_sq, mfxI32 coeff) { return sum_sq + coeff*coeff; });
+                             break;
+                         default:
+                             break;
+                         }
+                     }
+                 }
+
+                 CountRefPixels(*cu, task, m_DisplayOrderSinceLastIDR);
+
+                 if (cu->PredMode == MODE_INTRA)
+                 {
+                     // Number of pixels in CU is (2^log2CbSize)^2 = 2^(2*log2CbSize)
+                     numPixelsIntra += 1 << (cu->log2CbSize << 1);
+                 }
+             }
+         }
+    }
+
+    if (task.m_statData.NPixelsInFrame)
+    {
+        task.m_statData.ShareIntra = mfxF64(numPixelsIntra) / task.m_statData.NPixelsInFrame;
+    }
+
+    task.m_statData.FillProp();
+}
+
+inline void PU2MVP(const PU & pu, mfxFeiHevcEncMVPredictors & mvpBlock, mfxU8 idx)
 {
     if (PRED_L0 == pu.inter_pred_idc || PRED_BI == pu.inter_pred_idc)
     {
@@ -241,12 +301,10 @@ void PU2MVP(const PU & pu, mfxFeiHevcEncMVPredictors & mvpBlock, mfxU8 idx)
     }
 }
 
-bool isIntersecting(const PU& pu, mfxU32 x, mfxU32 y, mfxU32 w, mfxU32 h)
+inline bool isIntersecting(const PU& pu, mfxU32 x, mfxU32 y, mfxU32 w, mfxU32 h)
 {
-    return !((pu.x >= x + w ||
-                x >= pu.x + pu.w)           // If one rectangle is on side of other
-                || (pu.y >= y + h ||
-                        y >= pu.y + pu.h)); // If one rectangle is above other
+    return !((pu.x >= x + w || x >= pu.x + pu.w) || // If one rectangle is on side of other
+             (pu.y >= y + h || y >= pu.y + pu.h));  // If one rectangle is above other
 }
 
 class PUSizeComparator
@@ -254,7 +312,7 @@ class PUSizeComparator
 public:
     bool operator()(const PU* pu1, const PU* pu2)
     {
-        if (pu1 == NULL || pu2 == NULL)
+        if (pu1 == nullptr || pu2 == nullptr)
         {
             throw std::string("ERROR: PUSizeComparator - null pointer reference");
         }
@@ -286,6 +344,9 @@ void HevcSwDso::FillMVP(const BS_HEVC2::NALU* header, mfxExtFeiHevcEncMVPredicto
         if (!IsHEVCSlice(pNALU->nal_unit_type))
             continue;
 
+        if (!pNALU->slice)
+            throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillMVP : pNALU->slice pointer is null");
+
         auto& slice = *pNALU->slice;
 
         mfxU32 ctuAddr = 0;
@@ -298,139 +359,138 @@ void HevcSwDso::FillMVP(const BS_HEVC2::NALU* header, mfxExtFeiHevcEncMVPredicto
         {
             std::map<mfxU32, mfxU8> usedBlockEntries; // serves to check how many MVP entries inside 16x16 are used. Used for handling CU 8x8
 
-
             for (auto cu = ctu->Cu; cu; cu = cu->Next)
             {
-                if (cu->PredMode == MODE_INTER || cu->PredMode == MODE_SKIP)
+                if (cu->PredMode == MODE_INTRA)
+                    continue;
+
+                mfxU32 colIdx = cu->x >> 4;
+                mfxU32 rowIdx = cu->y >> 4;
+
+                mfxU32 baseBlockIdx =
+                    ((colIdx >> 1) << 2)            // column offset;
+                    + (rowIdx & ~1) * mvps.Pitch;   // offset for new line of 32x32 blocks layout;
+
+                mfxU32 mvpBlockIdx =
+                    baseBlockIdx                    // column offset;
+                                                    // offset for new line of 32x32 blocks layout;
+                    + (colIdx & 1)                  // zero or single offset depending on the number of comumn index;
+                    + ((rowIdx & 1) << 1);          // zero or double offset depending on the number of row index,
+                                                    // zero shift for top 16x16 blocks into 32x32 layout and double for bottom blocks;
+
+                mfxFeiHevcEncMVPredictors & baseBlock = mvps.Data[baseBlockIdx];
+                mfxFeiHevcEncMVPredictors & mvpBlock  = mvps.Data[mvpBlockIdx];
+
+                if (m_inPars.DSOMVPBlockSize == 1) // Repacked MVPs will be per 16x16 block
                 {
-                    mfxU32 colIdx = cu->x >> 4;
-                    mfxU32 rowIdx = cu->y >> 4;
-
-                    mfxU32 baseBlockIdx =
-                        ((colIdx >> 1) << 2)            // column offset;
-                        + (rowIdx & ~1) * mvps.Pitch;   // offset for new line of 32x32 blocks layout;
-
-                    mfxU32 mvpBlockIdx =
-                        baseBlockIdx                    // column offset;
-                                                        // offset for new line of 32x32 blocks layout;
-                        + (colIdx & 1)                  // zero or single offset depending on the number of comumn index;
-                        + ((rowIdx & 1) << 1);          // zero or double offset depending on the number of row index,
-                                                        // zero shift for top 16x16 blocks into 32x32 layout and double for bottom blocks;
-
-                    mfxFeiHevcEncMVPredictors & baseBlock = mvps.Data[baseBlockIdx];
-                    mfxFeiHevcEncMVPredictors & mvpBlock  = mvps.Data[mvpBlockIdx];
-
-                    if (m_inPars.DSOMVPBlockSize == 1) // Repacked MVPs will be per 16x16 block
-                    {
-                        if (lastProcessed16x16BlockIdx != mvpBlockIdx)
-                        {   // Finished processing the last 16x16 block; if previous 16x16 block
-                            // had 8x8 CUs, need to write the corresponding MVPs to destination now
-                            if (!pusFrom8x8CUs.empty())
-                            {
-                                sort(pusFrom8x8CUs.rbegin(), pusFrom8x8CUs.rend(), PUSizeComparator());
-                                mfxU32 mvpsToFill = std::min(pusFrom8x8CUs.size(), (size_t)4);
-
-                                for (mfxU32 mvpCounter = 0; mvpCounter < mvpsToFill; mvpCounter++)
-                                {
-                                    PU& pu = *(pusFrom8x8CUs[mvpCounter]);
-                                    PU2MVP(pu, mvps.Data[lastProcessed16x16BlockIdx], mvpCounter);
-                                    mvps.Data[lastProcessed16x16BlockIdx].BlockSize = 1;
-                                }
-
-                                pusFrom8x8CUs.clear();
-                            }
-
-                            lastProcessed16x16BlockIdx = mvpBlockIdx;
-                        }
-
-                        mfxU32 targetSize = 16;
-
-                        std::vector<PU*> puVec;
-                        puVec.reserve(4); // 4 PUs in a CU max
-                        for (auto pu = cu->Pu; pu; pu = pu->Next)
+                    if (lastProcessed16x16BlockIdx != mvpBlockIdx)
+                    {   // Finished processing the last 16x16 block; if previous 16x16 block
+                        // had 8x8 CUs, need to write the corresponding MVPs to destination now
+                        if (!pusFrom8x8CUs.empty())
                         {
-                            puVec.emplace_back(pu);
-                        }
-                        std::sort(puVec.rbegin(), puVec.rend(), PUSizeComparator()); // Sort source PUs in descending order of size
+                            std::sort(pusFrom8x8CUs.rbegin(), pusFrom8x8CUs.rend(), PUSizeComparator());
+                            mfxU32 mvpsToFill = std::min(pusFrom8x8CUs.size(), (size_t)4);
 
-                        if (5 == cu->log2CbSize) // 32x32 - iterate over destination 16x16 blocks and intersect
-                        {                        // them with source PUs; put 1 MV from each src intersected PU to dest
-                            for (mfxU32 k = baseBlockIdx; k < baseBlockIdx + 4; ++k)
+                            for (mfxU32 mvpCounter = 0; mvpCounter < mvpsToFill; mvpCounter++)
                             {
-                                mfxU32 xpos = (k % 2);
-                                mfxU32 ypos = (k % 4) / 2;
-
-                                for (PU* pPu : puVec)
-                                {
-                                    PU& pu = *pPu;
-                                    if (isIntersecting(pu, cu->x + xpos * targetSize, cu->y + ypos * targetSize, targetSize, targetSize))
-                                    {
-                                        PU2MVP(pu, mvps.Data[k], usedBlockEntries[k]);
-                                        mvps.Data[k].BlockSize = 1;
-                                        ++usedBlockEntries[k];
-                                    }
-                                }
+                                PU& pu = *(pusFrom8x8CUs[mvpCounter]);
+                                PU2MVP(pu, mvps.Data[lastProcessed16x16BlockIdx], mvpCounter);
+                                mvps.Data[lastProcessed16x16BlockIdx].BlockSize = 1;
                             }
+
+                            pusFrom8x8CUs.clear();
                         }
-                        else if (4 == cu->log2CbSize) // 16x16 - put MVs from each PU of the source CU into the target 16x16 block
-                        {                             // starting from the largest PU
+
+                        lastProcessed16x16BlockIdx = mvpBlockIdx;
+                    }
+
+                    constexpr mfxU32 targetSize = 16;
+
+                    std::vector<PU*> puVec;
+                    puVec.reserve(4); // 4 PUs in a CU max
+                    for (auto pu = cu->Pu; pu; pu = pu->Next)
+                    {
+                        puVec.emplace_back(pu);
+                    }
+                    std::sort(puVec.rbegin(), puVec.rend(), PUSizeComparator()); // Sort source PUs in descending order of size
+
+                    if (5 == cu->log2CbSize) // 32x32 - iterate over destination 16x16 blocks and intersect
+                    {                        // them with source PUs; put 1 MV from each src intersected PU to dest
+                        for (mfxU32 k = baseBlockIdx; k < baseBlockIdx + 4; ++k)
+                        {
+                            mfxU32 xpos = (k % 2);
+                            mfxU32 ypos = (k % 4) / 2;
+
                             for (PU* pPu : puVec)
                             {
                                 PU& pu = *pPu;
-                                PU2MVP(pu, mvps.Data[mvpBlockIdx], usedBlockEntries[mvpBlockIdx]);
-                                mvps.Data[mvpBlockIdx].BlockSize = 1;
-                                ++usedBlockEntries[mvpBlockIdx];
+                                if (isIntersecting(pu, cu->x + xpos * targetSize, cu->y + ypos * targetSize, targetSize, targetSize))
+                                {
+                                    PU2MVP(pu, mvps.Data[k], usedBlockEntries[k]);
+                                    mvps.Data[k].BlockSize = 1;
+                                    ++usedBlockEntries[k];
+                                }
                             }
-                        }
-                        else // 8x8 - just add the PUs into an auxiliary vector here, populating the
-                        {    // destination 16x16 block occurs after the whole current 16x16 block has
-                             // been processed
-                            pusFrom8x8CUs.insert(pusFrom8x8CUs.end(), puVec.begin(), puVec.end());
                         }
                     }
-                    else if (m_inPars.DSOMVPBlockSize == 2)
-                    {
-                        // TODO: implement this
-                        throw std::string("ERROR: DSOMVPBlockSize 2 not implemented yet");
+                    else if (4 == cu->log2CbSize) // 16x16 - put MVs from each PU of the source CU into the target 16x16 block
+                    {                             // starting from the largest PU
+                        for (PU* pPu : puVec)
+                        {
+                            PU& pu = *pPu;
+                            PU2MVP(pu, mvps.Data[mvpBlockIdx], usedBlockEntries[mvpBlockIdx]);
+                            mvps.Data[mvpBlockIdx].BlockSize = 1;
+                            ++usedBlockEntries[mvpBlockIdx];
+                        }
                     }
-                    else if (m_inPars.DSOMVPBlockSize == 7) // Repack MVPs as closely to the DSO MVs as possible
+                    else // 8x8 - just add the PUs into an auxiliary vector here, populating the
+                    {    // destination 16x16 block occurs after the whole current 16x16 block has
+                         // been processed
+                        pusFrom8x8CUs.insert(pusFrom8x8CUs.end(), puVec.begin(), puVec.end());
+                    }
+                }
+                else if (m_inPars.DSOMVPBlockSize == 2)
+                {
+                    // TODO: implement this
+                    throw std::string("ERROR: DSOMVPBlockSize 2 not implemented yet");
+                }
+                else if (m_inPars.DSOMVPBlockSize == 7) // Repack MVPs as closely to the DSO MVs as possible
+                {
+                    if (5 == cu->log2CbSize) // 32x32 - MVs from each PU (up to 4 in total) will be written
+                    {                        // into the "base" 16x16 MVP structure
+                        mvpBlock.BlockSize = 2;
+
+                        mfxU32 i = 0;
+                        for (auto pu = cu->Pu; pu; pu = pu->Next, ++i)
+                        {
+                            PU2MVP(*pu, mvpBlock, i);
+                        }
+                    }
+                    else if (4 == cu->log2CbSize) // 16x16
                     {
-                        if (5 == cu->log2CbSize) // 32x32 - MVs from each PU (up to 4 in total) will be written
-                        {                        // into the "base" 16x16 MVP structure
-                            mvpBlock.BlockSize = 2;
+                        baseBlock.BlockSize = 1; // enable the 'base' 16x16 block
+                        mvpBlock.BlockSize  = 1;
 
-                            mfxU32 i = 0;
-                            for (auto pu = cu->Pu; pu; pu = pu->Next, ++i)
-                            {
-                                PU2MVP(*pu, mvpBlock, i);
-                            }
-                        }
-                        else if (4 == cu->log2CbSize) // 16x16
+                        mfxU32 i = 0;
+                        for (auto pu = cu->Pu; pu; pu = pu->Next, ++i)
                         {
-                            baseBlock.BlockSize = 1; // enable the 'base' 16x16 block
-                            mvpBlock.BlockSize  = 1;
-
-                            mfxU32 i = 0;
-                            for (auto pu = cu->Pu; pu; pu = pu->Next, ++i)
-                            {
-                                PU2MVP(*pu, mvpBlock, i);
-                            }
+                            PU2MVP(*pu, mvpBlock, i);
                         }
-                        else // 8x8
+                    }
+                    else // 8x8
+                    {
+                        baseBlock.BlockSize = 1;
+                        mvpBlock.BlockSize  = 1;
+
+                        auto pu = cu->Pu;
+                        // Take only the first PU in 8x8 CU, ignore the other if any
+                        if (pu)
                         {
-                            baseBlock.BlockSize = 1;
-                            mvpBlock.BlockSize  = 1;
+                            auto & entryIdx = usedBlockEntries[mvpBlockIdx];
 
-                            auto pu = cu->Pu;
-                            // Take only the first PU in 8x8 CU, ignore the other if any
-                            if (pu)
-                            {
-                                auto & entryIdx = usedBlockEntries[mvpBlockIdx];
-
-                                // Since we take only the first PU, entryIdx can't be bigger than 3 so MVP overflow can't happen
-                                PU2MVP(*pu, mvpBlock, entryIdx);
-                                entryIdx++;
-                            }
+                            // Since we take only the first PU, entryIdx can't be bigger than 3 so MVP overflow can't happen
+                            PU2MVP(*pu, mvpBlock, entryIdx);
+                            entryIdx++;
                         }
                     }
                 }
@@ -456,35 +516,44 @@ void HevcSwDso::FillCtuControls(const BS_HEVC2::NALU* header, mfxExtFeiHevcEncCt
         if (!IsHEVCSlice(pNALU->nal_unit_type))
             continue;
 
+        if (!pNALU->slice)
+            throw mfxError(MFX_ERR_NULL_PTR, "ERROR : HevcSwDso::FillCtuControls : pNALU->slice pointer is null");
+
         auto& slice = *pNALU->slice;
 
         for (auto ctu = slice.ctu; ctu; ctu = ctu->Next)
         {
-            std::map<mfxU32, mfxU8> cuTypes;
-            mfxU32 nCU = 0;
+            mfxU32 nCU = 0, nInter = 0, nIntra = 0;
+
             for (auto cu = ctu->Cu; cu; cu = cu->Next)
             {
-                cuTypes[cu->PredMode == MODE_SKIP ? MODE_INTER : cu->PredMode]++; // count number of CUs of intra or inter/skip types
+                // Count number of CUs of intra or inter/skip types
+                switch (cu->PredMode)
+                {
+                case MODE_INTRA:
+                    ++nIntra;
+                    break;
+                case MODE_INTER:
+                case MODE_SKIP:
+                    ++nInter;
+                    break;
+                }
                 ++nCU;
             }
 
             mfxFeiHevcEncCtuCtrl & ctrl = ctuCtrls.Data[ctu->CtbAddrInRs];
 
-            // Force to INTRA/INTER if all CUs are the same type
-            if (m_inPars.forceToIntra && cuTypes[MODE_INTRA] == nCU)
+            // Force to INTRA/INTER if all CUs have the same type
+            ctrl.ForceToIntra = false;
+            ctrl.ForceToInter = false;
+
+            if (m_inPars.forceToIntra && nIntra == nCU)
             {
                 ctrl.ForceToIntra = true;
-                ctrl.ForceToInter = false;
             }
-            else if (m_inPars.forceToInter && cuTypes[MODE_INTER] == nCU)
+            else if (m_inPars.forceToInter && nInter == nCU)
             {
-                ctrl.ForceToIntra = false;
                 ctrl.ForceToInter = true;
-            }
-            else
-            {
-                ctrl.ForceToIntra = false;
-                ctrl.ForceToInter = false;
             }
         }
     }

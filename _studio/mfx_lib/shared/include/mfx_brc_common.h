@@ -196,6 +196,7 @@ public:
     mfxU16 gopPicSize;
     mfxU16 gopRefDist;
     bool   bPyr;
+    bool   bFieldMode;
 
     //BRC accurancy params
     mfxF64 fAbPeriodLong;   // number on frames to calculate abberation from target frame
@@ -245,6 +246,7 @@ public:
         gopPicSize(0),
         gopRefDist(0),
         bPyr(0),
+        bFieldMode(0),
         fAbPeriodLong(0),
         fAbPeriodShort(0),
         dqAbPeriod(0),

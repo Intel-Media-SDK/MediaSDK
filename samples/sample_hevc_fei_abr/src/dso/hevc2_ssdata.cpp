@@ -1187,7 +1187,7 @@ TU* SDParser::parseTT(CU& cu, TU& tu, TU& tuBase, Bs16u blkIdx)
             pTU = parseTT(cu, *pTU, tu0, blk);
         };
 
-        memset(&tu, 0, sizeof(tu));
+        tu = TU();
         transform_tree(x0, y0, 0);
 
         pTU->Next = Alloc<TU>();

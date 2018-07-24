@@ -2138,7 +2138,7 @@ mfxStatus  VideoVPPHW::Init(
     if( pHint )
     {
         /* Multi-view processing needs separate devices for each view. Using one device is not possible since
-         * bakward/forward references from different views will be messed up. Thus each VPPHW instance needs to
+         * backward/forward references from different views will be messed up. Thus each VPPHW instance needs to
          * create its own device. Core is not able to handle this like it does for single view case.
          */
         try

@@ -218,7 +218,7 @@ function( make_library name variant type )
       target_link_libraries( ${target} ${lib} )
     endforeach()
 
-    set_target_properties( ${target} PROPERTIES LINK_INTERFACE_LIBRARIES "" )
+#    set_target_properties( ${target} PROPERTIES LINK_INTERFACE_LIBRARIES "" )
   endif()
 
   configure_build_variant( ${target} ${ARGV1} )
@@ -272,8 +272,6 @@ function( make_executable name variant )
   if( sources.plus )
     list( APPEND sources ${sources.plus} )
   endif()
-
-  project( ${target} )
 
   add_executable( ${target} ${include} ${sources} )
 

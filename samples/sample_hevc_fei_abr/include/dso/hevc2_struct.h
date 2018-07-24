@@ -819,7 +819,7 @@ struct TU
 
     Bs16s QP[3];
 
-    Bs32s* tc_levels_luma = nullptr;
+    Bs32s* tc_levels_luma;
 
     TU* Next;
 };

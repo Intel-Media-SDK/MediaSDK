@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,13 +19,13 @@
 // SOFTWARE.
 
 #include "mfx_vp9_dec_plugin.h"
-#include "mfx_session.h"
-#include "vm_sys_info.h"
 
 //defining module template for decoder plugin
 #include "mfx_plugin_module.h"
 
 #include "plugin_version_linux.h"
+
+#include "mfx_utils.h"
 
 #ifndef UNIFIED_PLUGIN 
 
@@ -42,82 +42,50 @@ MSDK_PLUGIN_API(mfxStatus) CreatePlugin(mfxPluginUID uid, mfxPlugin* plugin) {
 const mfxPluginUID MFXVP9DecoderPlugin::g_VP9DecoderGuid = { 0xa9, 0x22, 0x39, 0x4d, 0x8d, 0x87, 0x45, 0x2f, 0x87, 0x8c, 0x51, 0xf2, 0xfc, 0x9b, 0x41, 0x31 };
 // a922394d8d87452f878c51f2fc9b4131
 
-MFXVP9DecoderPlugin::MFXVP9DecoderPlugin(bool CreateByDispatcher)
+static
+MFXVP9DecoderPlugin* GetVP9DecoderInstance()
 {
-    m_session = 0;
-    m_pmfxCore = 0;
-    memset(&m_PluginParam, 0, sizeof(mfxPluginParam));
-
-    m_PluginParam.CodecId = MFX_CODEC_VP9;
-    m_PluginParam.ThreadPolicy = MFX_THREADPOLICY_SERIAL;
-    m_PluginParam.MaxThreadNum = 1;
-    m_PluginParam.APIVersion.Major = MFX_VERSION_MAJOR;
-    m_PluginParam.APIVersion.Minor = MFX_VERSION_MINOR;
-    m_PluginParam.PluginUID = g_VP9DecoderGuid;
-    m_PluginParam.Type = MFX_PLUGINTYPE_VIDEO_DECODE;
-    m_PluginParam.PluginVersion = 1;
-    m_createdByDispatcher = CreateByDispatcher;
+    static MFXVP9DecoderPlugin instance{};
+    return &instance;
 }
 
-MFXVP9DecoderPlugin::~MFXVP9DecoderPlugin()
+MFXDecoderPlugin* MFXVP9DecoderPlugin::Create()
+{ return GetVP9DecoderInstance(); }
+
+mfxStatus  MFXVP9DecoderPlugin::_GetPluginParam(mfxHDL /*pthis*/, mfxPluginParam *par)
 {
-    if (m_session)
-    {
-        PluginClose();
-    }
-}
+    MFX_CHECK_NULL_PTR1(par);
 
-mfxStatus MFXVP9DecoderPlugin::PluginInit(mfxCoreInterface *core)
-{
-    if (!core)
-        return MFX_ERR_NULL_PTR;
-    mfxCoreParam par;
-    mfxStatus mfxRes = MFX_ERR_NONE;
+    memset(par, 0, sizeof(mfxPluginParam));
 
-    m_pmfxCore = core;
-    mfxRes = m_pmfxCore->GetCoreParam(m_pmfxCore->pthis, &par);
-    MFX_CHECK_STS(mfxRes);
+    par->CodecId = MFX_CODEC_VP9;
+    par->ThreadPolicy = MFX_THREADPOLICY_SERIAL;
+    par->MaxThreadNum = 1;
+    par->APIVersion.Major = MFX_VERSION_MAJOR;
+    par->APIVersion.Minor = MFX_VERSION_MINOR;
+    par->PluginUID = g_VP9DecoderGuid;
+    par->Type = MFX_PLUGINTYPE_VIDEO_DECODE;
+    par->PluginVersion = 1;
 
-    mfxRes = MFXInit(par.Impl, &par.Version, &m_session);
-    MFX_CHECK_STS(mfxRes);
-
-    mfxRes = MFXInternalPseudoJoinSession((mfxSession) m_pmfxCore->pthis, m_session);
-    MFX_CHECK_STS(mfxRes);
-
-    return mfxRes;
-}
-
-mfxStatus MFXVP9DecoderPlugin::PluginClose()
-{
-    mfxStatus mfxRes = MFX_ERR_NONE;
-    mfxStatus mfxRes2 = MFX_ERR_NONE;
-    if (m_session)
-    {
-        //The application must ensure there is no active task running in the session before calling this (MFXDisjoinSession) function.
-        mfxRes = MFXVideoDECODE_Close(m_session);
-        //Return the first met wrn or error
-        if(mfxRes != MFX_ERR_NONE && mfxRes != MFX_ERR_NOT_INITIALIZED)
-            mfxRes2 = mfxRes;
-        mfxRes = MFXInternalPseudoDisjoinSession(m_session);
-        if(mfxRes != MFX_ERR_NONE && mfxRes != MFX_ERR_NOT_INITIALIZED && mfxRes2 == MFX_ERR_NONE)
-            mfxRes2 = mfxRes;
-        mfxRes = MFXClose(m_session);
-        if(mfxRes != MFX_ERR_NONE && mfxRes != MFX_ERR_NOT_INITIALIZED && mfxRes2 == MFX_ERR_NONE)
-            mfxRes2 = mfxRes;
-        m_session = 0;
-    }
-    if (m_createdByDispatcher) {
-        delete this;
-    }
-
-    return mfxRes2;
-}
-
-mfxStatus MFXVP9DecoderPlugin::GetPluginParam(mfxPluginParam *par)
-{
-    if (!par)
-        return MFX_ERR_NULL_PTR;
-    *par = m_PluginParam;
 
     return MFX_ERR_NONE;
 }
+
+mfxStatus MFXVP9DecoderPlugin::GetPluginParam(mfxPluginParam* par)
+{
+    return _GetPluginParam(this, par);
+}
+
+mfxStatus MFXVP9DecoderPlugin::CreateByDispatcher(mfxPluginUID guid, mfxPlugin* mfxPlg)
+{
+    if (memcmp(& guid , &g_VP9DecoderGuid, sizeof(mfxPluginUID))) {
+        return MFX_ERR_NOT_FOUND;
+    }
+
+    MFXStubDecoderPlugin::CreateByDispatcher(guid, mfxPlg);
+    mfxPlg->pthis          = reinterpret_cast<mfxHDL>(MFXVP9DecoderPlugin::Create());
+    mfxPlg->GetPluginParam = _GetPluginParam;
+
+    return MFX_ERR_NONE;
+}
+

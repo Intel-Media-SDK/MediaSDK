@@ -22,17 +22,12 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "task.h"
 #include "brc_routines.h"
 
-#include <cmath>
 #include <algorithm>
-#include <vector>
-
-#ifdef DEBUG_OUTPUT
-#include<cstdio>
-#endif
+#include <mutex>
 
 namespace
 {
-    // Magic part
+    // LA BRC auxiliary functions
     constexpr mfxU32 BRC3_RATE_BLUR_LENGTH    = 10;
     constexpr mfxF64 BRC3_GAUSS_VARIANCE      = 160.0;
     constexpr mfxF64 BRC3_BLUR_STOP           = 0.001;
@@ -47,37 +42,22 @@ namespace
         57.018, 64.000, 71.838, 80.635, 90.510, 101.594, 114.035, 128.000, 143.675, 161.270, 181.019, 203.187, 228.070
     };
 
-#if 0
-    mfxU8 QStep2QpCeil(mfxF64 qstep) // QSTEP[qp] > qstep, may return qp=52
-    {
-        return mfxU8(std::lower_bound(QSTEP, QSTEP + 52, qstep) - QSTEP);
-    }
-#endif
-
-    mfxU8 QStep2QpFloor(mfxF64 qstep) // QSTEP[qp] <= qstep, return 0<=qp<=51
+    inline mfxU8 QStep2QpFloor(mfxF64 qstep) // QSTEP[qp] <= qstep, return 0<=qp<=51
     {
         mfxU8 qp = mfxU8(std::upper_bound(QSTEP, QSTEP + 52, qstep) - QSTEP);
         return qp > 0 ? qp - 1 : 0;
     }
 
-    mfxU8 QStep2QpNearest(mfxF64 qstep) // return 0<=qp<=51
+    inline mfxU8 QStep2QpNearest(mfxF64 qstep) // return 0<=qp<=51
     {
         mfxU8 qp = QStep2QpFloor(qstep);
         return (qp == 51 || qstep < (QSTEP[qp] + QSTEP[qp + 1]) / 2) ? qp : qp + 1;
     }
 
-    mfxF64 Qp2QStep(mfxU8 qp)
+    inline mfxF64 Qp2QStep(mfxU8 qp)
     {
         return QSTEP[std::min(mfxU8(51), qp)];
     }
-
-#if 0
-    mfxF64 fQP2Qstep(mfxF64 fqp)
-    {
-        return std::pow(2.0, (fqp - 4.0) / 6.0);
-    }
-#endif
-
 }
 
 // BRC interface
@@ -92,7 +72,7 @@ public:
 
     virtual ~BRC() {}
 
-    virtual void PreEnc(HevcTaskDSO& task /*FrameStatData& statData*/) = 0;
+    virtual void PreEnc(FrameStatData& statData) = 0;
 
     virtual void Report(mfxU32 dataLength) = 0;
 
@@ -101,28 +81,33 @@ public:
     virtual void SubmitNewStat(FrameStatData& stat) = 0;
 };
 
+/*
+    This is not canonical way of using SW BRC, in sample_encode correct approach is implemented.
+    Code below gives for better understanding how actually SW BRC interface works and shows a way
+    how to use BRC without letting MSDK lib know it.
+*/
 class SW_BRC : public BRC
 {
 public:
     SW_BRC(mfxVideoParam const & video, mfxU16 TargetKbps)
     {
-        //prepare mfxVideoParam for BRC
+        Zero(m_BRCPar);
+        Zero(m_BRCCtrl);
+
+        //prepare mfxVideoParam for BRC Init
         mfxVideoParam tmp = video;
         tmp.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
         tmp.mfx.TargetKbps        = TargetKbps;
 
-        MSDK_ZERO_MEMORY(m_BRCPar);
-        MSDK_ZERO_MEMORY(m_BRCCtrl);
-
         mfxExtCodingOption CO;
-        MSDK_ZERO_MEMORY(CO);
+        Zero(CO);
 
         CO.Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
         CO.Header.BufferSz = sizeof(mfxExtCodingOption);
         CO.NalHrdConformance = MFX_CODINGOPTION_OFF;
 
         mfxExtBuffer *ext = &CO.Header;
-        tmp.ExtParam = &ext;
+        tmp.ExtParam    = &ext;
         tmp.NumExtParam = 1;
 
         mfxStatus sts = m_SW_BRC.Init(&tmp);
@@ -137,36 +122,24 @@ public:
 
     ~SW_BRC() {}
 
-    void PreEnc(HevcTaskDSO& task /*FrameStatData& statData*/)
+    virtual void PreEnc(FrameStatData& statData) override
     {
-        FrameStatData& statData = task.m_statData;
-
-        MSDK_ZERO_MEMORY(m_BRCPar);
-        MSDK_ZERO_MEMORY(m_BRCCtrl);
+        Zero(m_BRCPar);
+        Zero(m_BRCCtrl);
 
         m_BRCPar.EncodedOrder = statData.EncodedOrder;
         m_BRCPar.DisplayOrder = statData.DisplayOrder;
-        m_BRCPar.FrameType    = statData.frame_type;
+        m_BRCPar.FrameType    = statData.FrameType;
 
         mfxStatus sts = m_SW_BRC.GetFrameCtrl(&m_BRCPar, &m_BRCCtrl);
         if (MFX_ERR_NONE != sts)
             throw mfxError(sts, "m_SW_BRC.GetFrameCtrl failed");
 
         m_curQp = m_BRCCtrl.QpY;
-
-#ifdef DEBUG_OUTPUT
-        std::cout << std::endl << std::endl << "Frame #" << task.m_statData.DisplayOrder << std::endl;
-        std::cout << "initial qp:   " << mfxI32(task.m_statData.qp) << "    qp set:    " << mfxI32(m_curQp) << std::endl;
-        std::cout << "initial size: " << task.m_statData.frame_size << " result size: ";
-#endif
     }
 
-    void Report(mfxU32 dataLength)
+    virtual void Report(mfxU32 dataLength) override
     {
-#ifdef DEBUG_OUTPUT
-        std::cout << dataLength << std::endl;
-#endif
-
         m_BRCPar.CodedFrameSize = dataLength;
 
         mfxBRCFrameStatus bsts;
@@ -178,7 +151,7 @@ public:
             throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "m_SW_BRC.Update failed. Re encode is not supported");
     }
 
-    mfxU8 GetQP()
+    virtual mfxU8 GetQP() override
     {
         return m_curQp;
     }
@@ -187,29 +160,231 @@ public:
 
 private:
     ExtBRC m_SW_BRC;
-    mfxU8  m_curQp         = 0xff;
-    mfxU64 m_BitsEncoded   = 0;
-    mfxF64 m_TargetBitrate = 0.0; // it is bits per frame, actually
-    mfxU32 m_curFrame      = 0;
+    mfxU8  m_curQp = 0xff;
 
     mfxBRCFrameParam m_BRCPar;
     mfxBRCFrameCtrl  m_BRCCtrl;
 };
 
+class LA_Stat_Queue
+{
+public:
+    LA_Stat_Queue(mfxU16 la_depth = 100, mfxU16 lb_depth = 100, mfxU16 adpt_length = 100)
+        : m_LookAheadDepth(la_depth)
+        , m_LookBackDepth(lb_depth)
+        , m_AdaptationLength(adpt_length)
+        , m_SizeLimit(1 + std::max(m_LookBackDepth, m_AdaptationLength) + m_LookAheadDepth)
+    {
+        for (mfxU32 j = 1; j < BRC3_RATE_BLUR_LENGTH; ++j)
+        {
+            m_normFactors[j - 1] = std::exp(-mfxF64(j*j) / BRC3_GAUSS_VARIANCE);
+        }
+    }
+
+    void Add(FrameStatData& stat)
+    {
+        m_frameStatData.emplace_back(std::move(stat));
+
+        // Update pixel counters for reference frames
+        for (auto fo_amount : m_frameStatData.back().NumPixelsPredictedFromRef)
+        {
+            auto it = std::find_if(std::begin(m_frameStatData), std::end(m_frameStatData),
+                        [fo_amount](FrameStatData& dat) { return dat.DisplayOrder == fo_amount.first; });
+
+            if (it != std::end(m_frameStatData))
+            {
+                it->NPixelsPropagated += fo_amount.second;
+            }
+        }
+
+        if (m_frameStatData.size() > m_SizeLimit)
+        {
+            RemoveLast();
+        }
+
+        m_DistortionAccumulated += m_frameStatData.back().VisualDistortion;
+    }
+
+    void StartNewFrameProcessing()
+    {
+        ++m_curIndex;
+
+        // Store old indexes to detect window bound change
+        mfxU16 lb_old = m_lbIndex, al_old = m_alIndex;
+
+        m_lbIndex = std::max(0, mfxI32(m_curIndex) - mfxI32(m_LookBackDepth));
+        m_alIndex = std::max(0, mfxI32(m_curIndex) - mfxI32(m_AdaptationLength));
+
+        // Calculate transitive propagation of current frame pixels
+
+        // How many pixels were directly propagated to another frames (+1.0 to guarantee positiveness)
+        m_frameStatData[m_curIndex].NPixelsTransitivelyPropagated = 1.0 + mfxF64(m_frameStatData[m_curIndex].NPixelsPropagated) / m_frameStatData[m_curIndex].NPixelsInFrame;
+
+        // Go through future frames and incorporate indirect pixels influence by adding weighted sum which is:
+        // share_of_directly_predicted_pixels_from_frame__m_frameStatData[m_curIndex] * total_propagated_pixels_of_frame__m_frameStatData[i] / amount_of_pixels_in_frame
+        for (mfxU32 i = m_curIndex + 1; i < m_frameStatData.size(); ++i)
+        {
+            if (m_frameStatData[i].Contains(m_frameStatData[m_curIndex].DisplayOrder))
+            {
+                m_frameStatData[m_curIndex].NPixelsTransitivelyPropagated +=
+                    (m_frameStatData[i].ShareOfPredictedPixelsFromRef[m_frameStatData[m_curIndex].DisplayOrder] * m_frameStatData[i].NPixelsPropagated) / m_frameStatData[i].NPixelsInFrame;
+            }
+        }
+
+        // Precalculate temporary values of NPixelsTransitivelyPropagated. We can't guarantee correct values for some of them near the end of LA window but it doesn't harm the algorithm much
+        m_PixelsWeightedPropagation_tmp = 0.0;
+        for (mfxU32 i = m_curIndex + 1; i < m_frameStatData.size(); ++i)
+        {
+            m_frameStatData[i].NPixelsTransitivelyPropagated = 1.0 + mfxF64(m_frameStatData[i].NPixelsPropagated) / m_frameStatData[i].NPixelsInFrame;
+
+            for (mfxU32 j = i + 1; j < m_frameStatData.size(); ++j)
+            {
+                if (m_frameStatData[j].Contains(m_frameStatData[i].DisplayOrder))
+                {
+                    m_frameStatData[i].NPixelsTransitivelyPropagated +=
+                        (m_frameStatData[j].ShareOfPredictedPixelsFromRef[m_frameStatData[i].DisplayOrder] * m_frameStatData[j].NPixelsPropagated) / m_frameStatData[j].NPixelsInFrame;
+                }
+            }
+            m_PixelsWeightedPropagation_tmp += m_frameStatData[i].NPixelsTransitivelyPropagated;
+        }
+
+        m_PixelsWeightedPropagation += m_frameStatData[m_curIndex].NPixelsTransitivelyPropagated;
+
+        if (m_curIndex)
+        {
+            // Update counters if window is shifted - remove frame which falls out of window
+            if (lb_old != m_lbIndex)
+            {
+                m_DistortionAccumulated     -= m_frameStatData[lb_old].VisualDistortion;
+                m_PixelsWeightedPropagation -= m_frameStatData[lb_old].NPixelsTransitivelyPropagated;
+                m_BitsEncodedAccumulated    -= m_frameStatData[lb_old].BitsEncoded;
+            }
+
+            if (al_old != m_alIndex)
+            {
+                if (m_frameStatData.front().FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_P))
+                {
+                    m_BitsPredictedAccumulatedIP -= m_frameStatData[al_old].BitsPredicted;
+                    m_BitsEncodedAccumulatedIP   -= m_frameStatData[al_old].BitsEncoded;
+                }
+                else
+                {
+                    m_BitsPredictedAccumulatedB -= m_frameStatData[al_old].BitsPredicted;
+                    m_BitsEncodedAccumulatedB   -= m_frameStatData[al_old].BitsEncoded;
+                }
+            }
+
+            m_BitsEncodedAccumulated += m_frameStatData[m_curIndex - 1].BitsEncoded;
+
+            // Update counter with size of recently encoded frame
+            if (m_frameStatData[m_curIndex - 1].FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_P))
+            {
+                m_BitsPredictedAccumulatedIP += m_frameStatData[m_curIndex - 1].BitsPredicted;
+                m_BitsEncodedAccumulatedIP   += m_frameStatData[m_curIndex - 1].BitsEncoded;
+            }
+            else
+            {
+                m_BitsPredictedAccumulatedB  += m_frameStatData[m_curIndex - 1].BitsPredicted;
+                m_BitsEncodedAccumulatedB    += m_frameStatData[m_curIndex - 1].BitsEncoded;
+            }
+        }
+    }
+
+    FrameStatData& GetCurrentStatData()
+    {
+        return m_frameStatData[m_curIndex];
+    }
+
+    mfxU32 GetCurrentIndex()
+    {
+        return m_curIndex;
+    }
+
+    FrameStatData& operator[] (size_t i)
+    {
+        return m_frameStatData[i];
+    }
+
+    void CalcScaledQsteps(mfxF64 scale);
+
+    mfxF64 GetBitrateAdjustmentRatio(mfxU32 frameType);
+
+    void CalcComplexities();
+
+    mfxF64 CalcBitrate();
+
+private:
+
+    void RemoveLast()
+    {
+        if (m_lbIndex <= m_alIndex)
+        {
+            // Update accumulated values
+            m_DistortionAccumulated     -= m_frameStatData.front().VisualDistortion;
+            m_PixelsWeightedPropagation -= m_frameStatData.front().NPixelsTransitivelyPropagated;
+            m_BitsEncodedAccumulated    -= m_frameStatData.front().BitsEncoded;
+        }
+
+        if (m_alIndex <= m_lbIndex)
+        {
+            // Update accumulators for Predicted / Encoded bits
+            if (m_frameStatData.front().FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_P))
+            {
+                m_BitsPredictedAccumulatedIP -= m_frameStatData.front().BitsPredicted;
+                m_BitsEncodedAccumulatedIP   -= m_frameStatData.front().BitsEncoded;
+            }
+            else
+            {
+                m_BitsPredictedAccumulatedB  -= m_frameStatData.front().BitsPredicted;
+                m_BitsEncodedAccumulatedB    -= m_frameStatData.front().BitsEncoded;
+            }
+        }
+
+        m_frameStatData.pop_front();
+        --m_curIndex;
+
+        // Update LookBack and Adaptation regions starting indexes
+        m_lbIndex = std::max(0, mfxI32(m_curIndex) - mfxI32(m_LookBackDepth));
+        m_alIndex = std::max(0, mfxI32(m_curIndex) - mfxI32(m_AdaptationLength));
+    }
+
+    std::deque<FrameStatData> m_frameStatData;
+
+    mfxU16 m_LookAheadDepth   = 100; // Frames to look ahead
+    mfxU16 m_LookBackDepth    = 100; // Frames to take into account from past (use already fixed statistics)
+    mfxU16 m_AdaptationLength = 100; // Frames from past to calculate adaptation ratio
+
+    mfxU16 m_SizeLimit        = 0;
+    mfxI16 m_curIndex         = -1;// Current frame index
+    mfxU16 m_lbIndex          = 0; // Starting index for LookBack   region
+    mfxU16 m_alIndex          = 0; // Starting index for Adaptation region
+
+    mfxF64 m_normFactors[BRC3_RATE_BLUR_LENGTH - 1]; // Half of Gaussian blurring kernel
+
+    // Bit counters for bitrate adjustment which use Adjustment window
+    mfxU64 m_BitsPredictedAccumulatedIP = 0;
+    mfxU64 m_BitsEncodedAccumulatedIP   = 0;
+    mfxU64 m_BitsPredictedAccumulatedB  = 0;
+    mfxU64 m_BitsEncodedAccumulatedB    = 0;
+
+    // Bit counter for bitrate calculation which use LookBack window
+    mfxU64 m_BitsEncodedAccumulated     = 0;
+
+    // Accumulator for Distortion
+    mfxF64 m_DistortionAccumulated      = 0.0;
+
+    // Frames which propagates more pixels should be encoded with better quality, because for such frames quality changes propagates more
+    mfxF64 m_PixelsWeightedPropagation     = 0.0; // Accumulated pixel propagation
+    mfxF64 m_PixelsWeightedPropagation_tmp = 0.0; // Accumulated pixel propagation for future frames (contains not final values)
+};
+
 class LA_BRC : public BRC
 {
 public:
-    LA_BRC(mfxVideoParam const & video, mfxU16 TargetKbps, mfxU16 la_depth = 100, msdk_char* yuv_file = nullptr)
-        : m_LookAheadDepth(la_depth)
-        , m_TargetBitrate(mfxF64(1000 * TargetKbps * video.mfx.FrameInfo.FrameRateExtD) / video.mfx.FrameInfo.FrameRateExtN)
+    LA_BRC(mfxVideoParam const & video, mfxU16 TargetKbps, mfxU16 la_depth = 100, mfxU16 lb_depth = 100, mfxU16 adpt_length = 100)
+        : m_TargetBitrate(mfxF64(1000 * TargetKbps * video.mfx.FrameInfo.FrameRateExtD) / video.mfx.FrameInfo.FrameRateExtN)
+        , m_frameStatQueue(la_depth, lb_depth, adpt_length)
     {
-        /*
-        for (mfxU32 j = 1; j < BRC3_RATE_BLUR_LENGTH; ++j)
-        {
-            m_normFactors[j - 1] = exp(-(mfxF64)j*j / BRC3_GAUSS_VARIANCE);
-        }*/
-
-        m_frameStatData.reserve(m_LookAheadDepth);
     }
 
     LA_BRC(LA_BRC const&)            = delete;
@@ -219,51 +394,38 @@ public:
 
     ~LA_BRC() {}
 
-    void PreEnc(HevcTaskDSO& task /*FrameStatData& statData*/);
+    virtual void PreEnc(FrameStatData& /*statData*/) override;
 
-    void Report(mfxU32 dataLength);
+    virtual void Report(mfxU32 dataLength) override;
 
-    mfxU8 GetQP()
+    virtual mfxU8 GetQP() override
     {
         return m_curQp;
     }
 
-    void SubmitNewStat(FrameStatData& stat)
+    virtual void SubmitNewStat(FrameStatData& stat) override
     {
-        // Fill some additional information
-        stat.propagation = 1.0 - std::pow(stat.share_intra, BRC3_PROPAGATION_EXPONENT);
-        stat.qstep0      = Qp2QStep(stat.qp);
-        stat.complexity0 = stat.qstep0*stat.frame_size;
+        std::lock_guard<std::mutex> lock(queue_mutex);
 
-        m_frameStatData.push_back(stat);
+        // Fill some additional information
+        stat.Propagation        = 1.0 - std::pow(stat.ShareIntra, BRC3_PROPAGATION_EXPONENT);
+        stat.QstepOriginal      = Qp2QStep(stat.QP);
+        stat.ComplexityOriginal = stat.QstepOriginal*stat.FrameSize;
+
+        m_frameStatQueue.Add(stat);
     }
 
 private:
-    mfxU16 m_LookAheadDepth = 100;
-    mfxU8  m_curQp          = 0xff;
-    mfxF64 m_avMSE          = 0.0;
-    mfxF64 m_TargetBitrate  = 0.0; // it is bits per frame, actually
-    mfxU32 m_curFrame       = 0;
+    mfxU8  m_curQp         = 0xff;
+    mfxF64 m_TargetBitrate = 0.0; // bits per frame
 
-#ifdef SEPARATE_IP_B_PROCESSING
-    mfxU64 m_IP_BitsEncoded   = 0;
-    mfxU64 m_IP_BitsPredicted = 0;
+    LA_Stat_Queue m_frameStatQueue;
 
-    mfxU64 m_B_BitsEncoded    = 0;
-    mfxU64 m_B_BitsPredicted  = 0;
-#else
-    mfxU64 m_BitsEncoded   = 0;
-    mfxU64 m_BitsPredicted = 0;
-#endif
-
-    //mfxF64 m_normFactors[BRC3_RATE_BLUR_LENGTH - 1];
-
-    std::vector<FrameStatData> m_frameStatData;
+    // To protect LA queue from pushing / pulling from different threads
+    std::mutex queue_mutex;
 
     // Update internal state with new frame
-    void UpdateStatData(mfxU32 frame_number);
-
-    bool PossibleEncodeAsIs(mfxU32 start_index = 0);
+    void UpdateStatData();
 };
 
 #endif // __ABR_BRC_H__

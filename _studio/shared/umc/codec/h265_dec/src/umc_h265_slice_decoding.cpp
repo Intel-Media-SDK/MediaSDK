@@ -275,6 +275,12 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
    }
     catch(...)
     {
+	if (!m_SliceHeader.dependent_slice_segment_flag)
+        {
+            if (m_SliceHeader.slice_type != I_SLICE)
+                m_bError = true;
+        }
+
         return false;
     }
 

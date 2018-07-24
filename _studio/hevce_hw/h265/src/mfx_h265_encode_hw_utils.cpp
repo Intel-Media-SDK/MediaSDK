@@ -184,31 +184,53 @@ template <class T> mfxU32 BPyrReorder(std::vector<T> brefs, bool bField)
     }
     return ind;
 }
-
-
-
-template<class T> mfxU32 MinL1(
+template <class T> bool IsL1Ready(
+    DpbArray const & dpb,
+    mfxI32 poc,
     T begin,
     T end,
     bool bField,
     bool flush)
 {
-    if ( !bField) return 1;
-
-    T top = begin;
-    mfxU32 numNonB = 0;
-
-    while (top != end && IsB(top->m_frameType)) top++;
-    while (top != end && !IsB(top->m_frameType)) 
+    mfxU32 c = 0;
+    mfxI32 pocL1 = 0;
+    for (mfxU32 i = 0; !isDpbEnd(dpb, i); i++)
     {
-        numNonB++;
-        top++;
+        if (dpb[i].m_poc > poc)
+        {
+            c++;
+            pocL1 = dpb[i].m_poc;
+        }
     }
-    if (numNonB >= 2 || numNonB == 0) return 2;
-    if (top == end && flush)  return 1;
-    return 2;
+    if (c == 0)
+        return false; // waiting for one non B frame
+    else if ((!bField) || (c > 1))
+        return true; //one non-B is enought for progressive and two for interlace
+    else
+    {
+        //need to check if pair's reference field is present into m_reordering
+        T top = begin;
+        while (top != end && top->m_poc <= pocL1)
+            top++;
+        if (top != end)
+        {
+            if (IsB(top->m_frameType))
+                return true; // only one non-B
+            else
+                return false; //wait for next nonB frame
+        }
+        else
+        {
+            if (flush)
+                return true; //only one non-B (no input nonB)
+            else
+                return false; // wait for second field
+
+        }
+    }
 
 }
+
 template<class T> T Reorder(
     MfxVideoParam const & par,
     DpbArray const & dpb,
@@ -221,7 +243,7 @@ template<class T> T Reorder(
     std::vector<T> brefs;
     while (top != end && IsB(top->m_frameType))
     {
-        if (CountL1(dpb, top->m_poc) >= MinL1(begin, end, par.isField(), flush))
+        if (IsL1Ready(dpb, top->m_poc, begin, end, par.isField(), flush))
         {
             if (par.isBPyramid())
                 brefs.push_back(top);
@@ -651,6 +673,7 @@ MfxVideoParam::MfxVideoParam()
     , bMBQPInput      (false)
     , RAPIntra        (false)
     , bFieldReord     (false)
+    , bNonStandardReord (false)
 {
     Zero(*(mfxVideoParam*)this);
     Zero(m_platform);
@@ -682,6 +705,7 @@ MfxVideoParam::MfxVideoParam(mfxVideoParam const & par)
     , bMBQPInput      (false)
     , RAPIntra        (false)
     , bFieldReord     (false)
+    , bNonStandardReord(false)
 {
     Zero(*(mfxVideoParam*)this);
     Zero(m_platform);
@@ -704,6 +728,7 @@ void MfxVideoParam::CopyCalcParams(MfxVideoParam const & par)
     bMBQPInput       = par.bMBQPInput;
     RAPIntra         = par.RAPIntra;
     bFieldReord      = par.bFieldReord;
+    bNonStandardReord = par.bNonStandardReord;
     SetTL(par.m_ext.AVCTL);
 
 }
@@ -893,6 +918,7 @@ void MfxVideoParam::SyncVideoToCalculableParam()
     bMBQPInput     = false;
     RAPIntra       = !isField();
     bFieldReord    = false; /*isField() && isBPyramid()*/;
+    bNonStandardReord = false;
 
     m_slice.resize(0);
 
@@ -1444,7 +1470,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
 
     assert(0 == m_sps.pcm_enabled_flag);
 
-    if (!mfx.EncodedOrder)
+    if (!bNonStandardReord)
     {
         mfxExtCodingOption3& CO3 = m_ext.CO3;
         mfxU32 MaxPocLsb = (1<<(m_sps.log2_max_pic_order_cnt_lsb_minus4+4));
@@ -2150,7 +2176,7 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             }
         }
 #else
-        caps;
+        (void)caps;
         assert(0 == m_pps.weighted_pred_flag);
         assert(0 == m_pps.weighted_bipred_flag);
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
@@ -2783,7 +2809,7 @@ void ConstructRPL(
     bool isB,
     mfxI32 poc,
     mfxU8  tid,
-    mfxU32 level,
+    mfxU32 /*level*/,
     bool  bSecondField,
     bool  bBottomField,
     mfxU8 (&RPL)[2][MAX_DPB_SIZE],
@@ -2875,7 +2901,6 @@ void ConstructRPL(
                     bBottomField; level
                     MFX_SORT_COMMON(RPL[0], numRefActive[0], (Abs(DPB[RPL[0][_i]].m_poc / 2 - poc / 2) + ((DPB[RPL[0][_i]].m_secondField == bSecondField) ? 0 : 16)) < (Abs(DPB[RPL[0][_j]].m_poc / 2 - poc / 2) + ((DPB[RPL[0][_j]].m_secondField == bSecondField) ? 0 : 16)));
 #elif (HEVCE_FIELD_MODE == 3)
-                    level;
                     MFX_SORT_COMMON(RPL[0], numRefActive[0], FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[0][_i]]) < FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[0][_j]]));
 #elif (HEVCE_FIELD_MODE == 4)
                     MFX_SORT_COMMON(RPL[0], numRefActive[0], FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[0][_i]] + WeightForBPyrForw(par, DPB, poc, cur_level, bSecondField, DPB[RPL[0][_i])) < (FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[0][_j]] + WeightForBPyrForw(par, DPB, poc, cur_level, bSecondField, DPB[RPL[0][_j]))));                  
@@ -2915,14 +2940,7 @@ void ConstructRPL(
 #elif (HEVCE_FIELD_MODE == 2)
                         MFX_SORT_COMMON(RPL[1], numRefActive[1], (Abs(DPB[RPL[1][_i]].m_poc/2 - poc/2)  + ((DPB[RPL[1][_i]].m_secondField == bSecondField) ? 0 : 16)) > (Abs(DPB[RPL[1][_j]].m_poc/2 - poc/2)  + ((DPB[RPL[1][_j]].m_secondField == bSecondField) ? 0 : 16)));
 #elif (HEVCE_FIELD_MODE == 3 || HEVCE_FIELD_MODE == 4)
-                    if (par.isBPyramid())
-                    {
-                        MFX_SORT_COMMON(RPL[1], numRefActive[1], Abs(DPB[RPL[1][_i]].m_poc - poc) > Abs(DPB[RPL[1][_j]].m_poc - poc));
-                    }
-                    else
-                    {
-                        MFX_SORT_COMMON(RPL[1], numRefActive[1], FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_i]]) > FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_j]]));
-                    }
+                       MFX_SORT_COMMON(RPL[1], numRefActive[1], FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_i]]) > FieldDistancePolarity(poc, bSecondField, bBottomField, DPB[RPL[1][_j]]));
 #endif
                 }
                 else

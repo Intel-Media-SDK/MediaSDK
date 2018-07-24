@@ -1454,7 +1454,7 @@ void Parser::parseSEIPL(BP_SEI& bp)
         if (B != (1u << o))
             BS2_SET((B >> (o - 1)), bp.use_alt_cpb_params_flag);
     }
-    catch (EndOfBuffer)
+    catch (EndOfBuffer&)
     {
         //ignore
     }
@@ -1576,7 +1576,7 @@ void Parser::parseSEIPL(SEI& sei)
             break;
         }
     }
-    catch (EndOfBuffer)
+    catch (EndOfBuffer&)
     {
         throw InvalidSyntax();
     }
@@ -1621,7 +1621,7 @@ void Parser::parseSEI(SEI& first)
         {
             parseSEIPL(sei);
         }
-        catch (NoActiveSet)
+        catch (NoActiveSet&)
         {
             m_postponedSEI.push_back(&sei);
         }
