@@ -410,40 +410,6 @@ mfxStatus SetQualityLevelParams(
     return MFX_ERR_NONE;
 }
 
-static mfxStatus SetMaxFrameSize(
-    const UINT   userMaxFrameSize,
-    VADisplay    vaDisplay,
-    VAContextID  vaContextEncode,
-    VABufferID & frameSizeBuf_id)
-{
-    VAEncMiscParameterBuffer             *misc_param;
-    VAEncMiscParameterBufferMaxFrameSize *p_maxFrameSize;
-
-    MFX_DESTROY_VABUFFER(frameSizeBuf_id, vaDisplay);
-
-    VAStatus vaSts = vaCreateBuffer(vaDisplay,
-                   vaContextEncode,
-                   VAEncMiscParameterBufferType,
-                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterBufferMaxFrameSize),
-                   1,
-                   NULL,
-                   &frameSizeBuf_id);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    vaSts = vaMapBuffer(vaDisplay, frameSizeBuf_id, (void **)&misc_param);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    misc_param->type = VAEncMiscParameterTypeMaxFrameSize;
-    p_maxFrameSize = (VAEncMiscParameterBufferMaxFrameSize *)misc_param->data;
-
-    p_maxFrameSize->max_frame_size = userMaxFrameSize*8;    // in bits for libva
-
-    vaSts = vaUnmapBuffer(vaDisplay, frameSizeBuf_id);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    return MFX_ERR_NONE;
-}
-
 void FillConstPartOfPps(
     MfxVideoParam const & par,
     VAEncPictureParameterBufferHEVC & pps)
