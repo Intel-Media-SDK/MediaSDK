@@ -373,7 +373,7 @@ mfxU16 AddTileSlices(
 
         if (f == 0)
         {
-            f;
+            (void)f;
         }
         else if (f > nSlice / 2)
         {
