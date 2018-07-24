@@ -49,12 +49,7 @@ mfxF64 const QSTEP_VME[52] = {
     468.34,525.69 
 };*/
 
-
-mfxF64 const INTRA_QSTEP_COEFF  = 2.0;
-mfxF64 const INTRA_MODE_BITCOST = 0.0;
-mfxF64 const INTER_MODE_BITCOST = 0.0;
 mfxI32 const MAX_QP_CHANGE      = 2;
-mfxF64 const LOG2_64            = 3;
 mfxF64 const MIN_EST_RATE       = 0.3;
 mfxF64 const NORM_EST_RATE      = 100.0;
 
