@@ -401,15 +401,20 @@ bool VideoDECODEMPEG2InternalBase::VerifyPictureBits(mfxBitstream* currPicBs, co
     // analyze next picture header and pictures' sequence
     if (GetPicInfo(picInfo[1], head, tail)) {
 
-        if (!m_fieldsInCurrFrame && // new frame to be either frame or paired fields
+        if (!m_fieldsInCurrFrame && // new frame to be either frame or paired fields, same type or IP pair
             picInfo[0].picture_structure != 3 &&
-            (picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3)
+            (((picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3) ||
+                (picInfo[0].picture_type != picInfo[1].picture_type &&
+                picInfo[0].picture_type != I_PICTURE && picInfo[1].picture_type != P_PICTURE)))
             return false;
 
         if (picInfo[0].temporal_reference == picInfo[1].temporal_reference) {
             if (m_fieldsInCurrFrame || (picInfo[0].picture_structure ^ picInfo[1].picture_structure) != 3) { // not field pair: must be field, first field
                 if (picInfo[1].picture_type != I_PICTURE) // each I can start new count
+                {
+                    m_fieldsInCurrFrame = 0;
                     return false;
+                }
             } else {    // field pair: same type or IP
                 if (picInfo[0].picture_type != picInfo[1].picture_type &&
                     picInfo[0].picture_type != I_PICTURE && picInfo[1].picture_type != P_PICTURE)
@@ -418,7 +423,10 @@ bool VideoDECODEMPEG2InternalBase::VerifyPictureBits(mfxBitstream* currPicBs, co
         }
         else if (((picInfo[0].temporal_reference + 1) & 0x3ff) == picInfo[1].temporal_reference) { // consequent in display and coding order
             if (!progseq && (picInfo[0].last_polarity ^ picInfo[1].first_polarity) != 3) // invalid field order
+            {
+                m_fieldsInCurrFrame = 0;
                 return false;
+            }
         }
     }
 
