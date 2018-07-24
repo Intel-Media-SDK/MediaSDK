@@ -133,7 +133,7 @@ public:
     virtual
     mfxStatus CopyFrameEx(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) {return DoFastCopyWrapper(pDst, dstMemType, pSrc, srcMemType);}
 
-    virtual mfxStatus IsGuidSupported(const GUID guid, mfxVideoParam *par, bool isEncoder = false) {guid; par; isEncoder;  return MFX_ERR_NONE;};
+    virtual mfxStatus IsGuidSupported(const GUID /*guid*/, mfxVideoParam * /*par*/, bool /*isEncoder = false*/) { return MFX_ERR_NONE; };
 
     bool CheckOpaqueRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, bool ExtendedSearch = true);
     
