@@ -1322,9 +1322,8 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
 
 const mfxF64 COEFF_INTRA[2] = { -0.107510, 0.694515 };
 
-void get_coeff_intra(mfxF64 rscs, mfxF64 *pCoeff)
+void get_coeff_intra(mfxF64 /*rscs*/, mfxF64 *pCoeff)
 {
-    rscs;
     pCoeff[0] = COEFF_INTRA[0];
     pCoeff[1] = COEFF_INTRA[1];
 }

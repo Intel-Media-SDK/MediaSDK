@@ -116,12 +116,10 @@ protected:
             mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
             mfxFrameSurface1 *surface,
             mfxBitstream *bs,
-            mfxFrameSurface1 **reordered_surface,
-            mfxEncodeInternalParams *pInternalParams,
+            mfxFrameSurface1 ** /*reordered_surface*/,
+            mfxEncodeInternalParams * /*pInternalParams*/,
             MFX_ENTRY_POINT *pEntryPoint)
         {
-            reordered_surface;
-            pInternalParams;
             return m_plg->EncodeFrameCheck(ctrl, surface, bs, pEntryPoint);
         }
         virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl * /*ctrl*/

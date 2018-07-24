@@ -30,9 +30,8 @@
 namespace
 {
 
-    VideoCodecUSER *CreateUSERSpecificClass(mfxU32 type)
+    VideoCodecUSER *CreateUSERSpecificClass(mfxU32 /*type*/)
     {
-        type;
         return new VideoUSERPlugin;
 
     } // VideoUSER *CreateUSERSpecificClass(mfxU32 type)
