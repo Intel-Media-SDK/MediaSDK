@@ -659,10 +659,9 @@ mfxStatus VideoDECODEMPEG2::GetPayload( mfxU64 *ts, mfxPayload *payload )
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEMPEG2::DecodeHeader(VideoCORE *core, mfxBitstream* bs, mfxVideoParam* par)
+mfxStatus VideoDECODEMPEG2::DecodeHeader(VideoCORE * /*core*/, mfxBitstream* bs, mfxVideoParam* par)
 {
     MFX_CHECK_NULL_PTR3(bs,bs->Data,par);
-    core;
 
     mfxU8* ptr;
     mfxU8* beg = bs->Data + bs->DataOffset;
@@ -3147,11 +3146,8 @@ mfxStatus VideoDECODEMPEG2Internal_HW::CompleteTasks(void *pParam)
     return MFX_TASK_DONE;
 }
 
-mfxStatus VideoDECODEMPEG2Internal_HW::GetStatusReportByIndex(int32_t current_index, mfxU32 currIdx)
+mfxStatus VideoDECODEMPEG2Internal_HW::GetStatusReportByIndex(int32_t /*current_index*/, mfxU32 /*currIdx*/)
 {
-    current_index; currIdx;
-
-
     return MFX_ERR_NONE;
 }
 
