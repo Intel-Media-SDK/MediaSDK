@@ -224,10 +224,8 @@ void VMEBrc::PreEnc(mfxU32 /*frameType*/, std::vector<VmeData *> const & /*vmeDa
 }
 
 
-mfxU32 VMEBrc::Report(mfxU32 frameType, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
+mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
 {
-    frameType; // unused
-
     UMC::AutomaticUMCMutex guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
@@ -281,10 +279,8 @@ mfxU32 VMEBrc::Report(mfxU32 frameType, mfxU32 dataLength, mfxU32 /*userDataLeng
     return 0;
 }
 
-mfxI32 VMEBrc::GetQP(MfxVideoParam &video, Task &task )
+mfxI32 VMEBrc::GetQP(MfxVideoParam & /*video*/, Task &task )
 {
-    video;
-
     UMC::AutomaticUMCMutex guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VMEBrc::GetQp");

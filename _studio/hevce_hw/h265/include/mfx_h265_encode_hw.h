@@ -159,9 +159,8 @@ protected:
     mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
     mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a);
 
-    virtual mfxStatus ExtraCheckVideoParam(MfxVideoParam & /*par*/, ENCODE_CAPS_HEVC const & /*caps*/, bool bInit = false)
+    virtual mfxStatus ExtraCheckVideoParam(MfxVideoParam & /*par*/, ENCODE_CAPS_HEVC const & /*caps*/, bool /*bInit = false*/)
     {
-        bInit;
         return MFX_ERR_NONE;
     }
 
