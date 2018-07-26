@@ -59,9 +59,9 @@ mfxU32 CalculateNumThread(eMFXPlatform platform, mfxVideoParam *par)
     return MFX_MIN(par->AsyncDepth, numThread);
 }
 
-inline bool IsNeedToUseHWBuffering(eMFXHWType type)
+inline bool IsNeedToUseHWBuffering(eMFXHWType /*type*/)
 {
-    type;return false;
+    return false;
 }
 
 inline bool IsBigSurfacePoolApplicable(eMFXHWType type)

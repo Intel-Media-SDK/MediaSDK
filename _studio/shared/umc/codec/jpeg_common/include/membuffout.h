@@ -42,7 +42,7 @@ public:
   size_t GetPosition() { return (size_t)m_currpos; }
 
 private:
-  JERRCODE Open(vm_char* name) { name; return JPEG_NOT_IMPLEMENTED; }
+  JERRCODE Open(vm_char* /*name*/) { return JPEG_NOT_IMPLEMENTED; }
 
 protected:
   uint8_t*  m_buf;

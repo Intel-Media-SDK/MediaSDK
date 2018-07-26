@@ -179,9 +179,8 @@ int get_num_threads(void)
 } // get_num_threads()
 
 
-void set_num_threads(int maxThreads)
+void set_num_threads(int /*maxThreads*/)
 {
-  maxThreads;
   return;
 } // set_num_threads()
 

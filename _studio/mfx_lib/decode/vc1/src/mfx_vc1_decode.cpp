@@ -1973,12 +1973,11 @@ bool MFXVideoDECODEVC1::IsBufferMode(VideoCORE *pCore, mfxVideoParam *par)
 }
 mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work, 
                                        mfxFrameSurface1 *surface_disp, 
-                                       mfxU32 threadNumber,
+                                       mfxU32 /*threadNumber*/,
                                        mfxU32 taskID)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoDECODEVC1::RunThread");
 
-    threadNumber;
     mfxStatus sts;
 
     {
