@@ -2022,8 +2022,8 @@ void HeaderPacker::PackSSH(
             if (pwt_length && pwt_offset)
                 *pwt_length = bs.GetOffset() - *pwt_offset;
 #else
-            pwt_offset;
-            pwt_length;
+            (void)pwt_offset;
+            (void)pwt_length;
             assert(0 == pps.weighted_pred_flag);
             assert(0 == pps.weighted_bipred_flag);
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)

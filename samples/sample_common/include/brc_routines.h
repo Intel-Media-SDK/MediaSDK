@@ -243,14 +243,14 @@ public:
         {
             if (bPanic || bSH)
             {
-                m_maxWinBitsLim = IPP_MAX(IPP_MIN( (GetLastFrameBits(windowSize) + m_maxWinBits)/2, m_maxWinBits), GetMaxWinBitsLim());
+                m_maxWinBitsLim = IPP_MAX(IPP_MIN( (GetLastFrameBits(windowSize, false) + m_maxWinBits)/2, m_maxWinBits), GetMaxWinBitsLim());
             }
             else
             {
                 if (recode)
-                    m_maxWinBitsLim = IPP_MIN(IPP_MAX(GetLastFrameBits(windowSize) + GetStep()/2, m_maxWinBitsLim), m_maxWinBits);
+                    m_maxWinBitsLim = IPP_MIN(IPP_MAX(GetLastFrameBits(windowSize,false) + GetStep()/2, m_maxWinBitsLim), m_maxWinBits);
                 else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
-                    (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1) + sizeInBits)))
+                    (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1, false) + sizeInBits)))
                    m_maxWinBitsLim -= GetStep();
             }
 
@@ -259,7 +259,8 @@ public:
     }
     mfxU32 GetMaxFrameSize(bool bPanic, bool bSH, mfxU32 recode)
     {
-        mfxU32 winBits = GetLastFrameBits(GetWindowSize() - 1);
+        mfxU32 winBits = GetLastFrameBits(GetWindowSize() - 1, recode < 1);
+
         mfxU32 maxWinBitsLim = m_maxWinBitsLim;
         if (bSH)
             maxWinBitsLim =  (m_maxWinBits + m_maxWinBitsLim)/2;
@@ -292,13 +293,16 @@ protected:
 
 
 
-    mfxU32 GetLastFrameBits(mfxU32 numFrames)
+    mfxU32 GetLastFrameBits(mfxU32 numFrames, bool bCheckSkip)
     {
         mfxU32 size = 0;
         numFrames = numFrames < m_slidingWindow.size() ? numFrames : (mfxU32)m_slidingWindow.size();
         for (mfxU32 i = 0; i < numFrames; i++)
         {
-            size += m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
+			mfxU32 frame_size = m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
+			if (bCheckSkip && (frame_size < m_avgBitPerFrame / 3))
+				frame_size = m_avgBitPerFrame / 3;
+            size += frame_size;
             //printf("GetLastFrames: %d) %d sum %d\n",i,m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ], size);
         }
         return size;

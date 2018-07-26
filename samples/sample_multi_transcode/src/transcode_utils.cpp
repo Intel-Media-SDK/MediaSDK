@@ -233,6 +233,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -bref         Arrange B frames in B pyramid reference structure\n"));
     msdk_printf(MSDK_STRING("  -nobref       Do not use B-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("  -bpyr         Enable B pyramid\n"));
+    msdk_printf(MSDK_STRING("  -gpb:<on,off>          - Enable or disable Generalized P/B frames\n"));
     msdk_printf(MSDK_STRING("  -CodecProfile          - Specifies codec profile\n"));
     msdk_printf(MSDK_STRING("  -CodecLevel            - Specifies codec level\n"));
     msdk_printf(MSDK_STRING("  -GopOptFlag:closed     - Closed gop\n"));
@@ -1383,6 +1384,14 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-nobref")))
         {
             InputParams.nBRefType = MFX_B_REF_OFF;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-gpb:on")))
+        {
+            InputParams.GPB = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-gpb:off")))
+        {
+            InputParams.GPB = MFX_CODINGOPTION_OFF;
         }
         else if(0 == msdk_strcmp(argv[i], MSDK_STRING("-u")))
         {
