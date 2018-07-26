@@ -141,8 +141,8 @@ namespace MfxHwH264Encode
 
         virtual
         mfxStatus QueryInputTilingSupport(
-            mfxVideoParam const & par,
-            mfxU32               &inputTiling) { par; inputTiling = 0; return MFX_ERR_NONE; };
+            mfxVideoParam const & /*par*/,
+            mfxU32               & inputTiling) { inputTiling = 0; return MFX_ERR_NONE; };
 
         virtual
         mfxStatus QueryStatus(
@@ -163,15 +163,15 @@ namespace MfxHwH264Encode
 
         virtual
         mfxStatus QueryEncCtrlCaps(
-            ENCODE_ENC_CTRL_CAPS & caps) { caps; return MFX_ERR_UNSUPPORTED; };
+            ENCODE_ENC_CTRL_CAPS & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
 
         virtual
         mfxStatus GetEncCtrlCaps(
-            ENCODE_ENC_CTRL_CAPS & caps) { caps; return MFX_ERR_UNSUPPORTED; };
+            ENCODE_ENC_CTRL_CAPS & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
 
         virtual
         mfxStatus SetEncCtrlCaps(
-            ENCODE_ENC_CTRL_CAPS const & caps) { caps; return MFX_ERR_UNSUPPORTED; };
+            ENCODE_ENC_CTRL_CAPS const & /*caps*/) { return MFX_ERR_UNSUPPORTED; };
     };
 
     DriverEncoder* CreatePlatformH264Encoder( VideoCORE* core ); 

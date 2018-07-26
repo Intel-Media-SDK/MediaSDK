@@ -425,10 +425,8 @@ mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
 
 } // mfxStatus VideoDECODEVP8_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_par, mfxFrameAllocRequest *p_request)
 
-mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurface1 *p_surface_work, mfxFrameSurface1 **pp_surface_out)
+mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream * /*p_bs*/, mfxFrameSurface1 * /*p_surface_work*/, mfxFrameSurface1 ** /*pp_surface_out*/)
 {
-    p_bs; p_surface_work; pp_surface_out;
-
     return MFX_ERR_NONE;
 
 } // mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurface1 *p_surface_work, mfxFrameSurface1 **pp_surface_out)
@@ -581,10 +579,9 @@ UMC::FrameMemID VideoDECODEVP8_HW::GetMemIdToUnlock()
     return memId;
 }
 
-static mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void *pp_param, mfxU32 thread_number, mfxU32)
+static mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void * /*pp_param*/, mfxU32 /*thread_number*/, mfxU32)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VP8DECODERoutine");
-    p_state; pp_param; thread_number;
     mfxStatus sts = MFX_ERR_NONE;
     VideoDECODEVP8_HW::VP8DECODERoutineData& data = *(VideoDECODEVP8_HW::VP8DECODERoutineData*)p_state;
     VideoDECODEVP8_HW& decoder = *data.decoder;
@@ -620,9 +617,8 @@ static mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void *pp_param, mfxU3
     return sts;
 }
 
-static mfxStatus VP8CompleteProc(void *, void *pp_param, mfxStatus)
+static mfxStatus VP8CompleteProc(void *, void * /*pp_param*/, mfxStatus)
 {
-    pp_param;
     return MFX_ERR_NONE;
 }
 

@@ -35,8 +35,6 @@
 #include <mfx_interface_scheduler.h>
 #include <libmfx_core_operation.h>
 
-#define MSDK_STATIC_ASSERT(COND, MSG)  typedef char static_assertion_##MSG[ (COND) ? 1 : -1];
-
 // WARNING: please do not change the type of _mfxSession.
 // It is declared as 'struct' in the main header.h
 
@@ -180,9 +178,9 @@ private:
 };
 
 #if defined(LINUX64)
-  MSDK_STATIC_ASSERT(sizeof(_mfxSession) == 440, size_of_session_is_fixed);
+  static_assert(sizeof(_mfxSession) == 440, "size_of_session_is_fixed");
 #elif defined(LINUX32)
-  MSDK_STATIC_ASSERT(sizeof(_mfxSession) == 244, size_of_session_is_fixed);
+  static_assert(sizeof(_mfxSession) == 244, "size_of_session_is_fixed");
 #endif
 
 

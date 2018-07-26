@@ -90,7 +90,7 @@ public:
     virtual mfxStatus SetSkipMode(mfxSkipMode mode);
     virtual mfxStatus GetPayload(mfxU64 *ts, mfxPayload *payload);
     // to satisfy internal API
-    virtual mfxStatus DecodeFrame(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out){bs, surface_work, surface_out; return MFX_ERR_UNSUPPORTED;};
+    virtual mfxStatus DecodeFrame(mfxBitstream * /*bs*/, mfxFrameSurface1 * /*surface_work*/, mfxFrameSurface1 * /*surface_out*/){ return MFX_ERR_UNSUPPORTED; };
 
     mfxStatus RunThread(mfxFrameSurface1 *surface_work, 
                         mfxFrameSurface1 *surface_disp, 
