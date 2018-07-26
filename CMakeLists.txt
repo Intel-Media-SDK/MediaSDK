@@ -63,7 +63,7 @@ else()
   message( STATUS "There is no ConfTargets.cmake" )
 endif()
 
-foreach( dir api contrib _studio samples )
+foreach( dir api contrib _studio samples tools )
   set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
   create_build()
 endforeach()
