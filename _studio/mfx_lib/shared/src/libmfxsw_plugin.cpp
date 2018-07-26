@@ -24,8 +24,6 @@
 #include <mfx_user_plugin.h>
 #include <mfx_utils.h>
 
-#define MSDK_STATIC_ASSERT(COND, MSG)  typedef char static_assertion_##MSG[ (COND) ? 1 : -1];
-
 // static section of the file
 namespace
 {
@@ -81,7 +79,7 @@ namespace
             case MFX_PLUGINTYPE_VIDEO_ENC :
                 {
 #if defined (MFX_PLUGIN_FILE_VERSION) || defined(MFX_PLUGIN_PRODUCT_VERSION)
-                    MSDK_STATIC_ASSERT("This file under no conditions should appear in plugin code.");
+                    static_assert(false, "This file under no conditions should appear in plugin code.");
 #endif
                     // we know that this conversion is safe as this is library-only code
                     // _mfxSession_1_10 - should be used always to get versioned session instance
