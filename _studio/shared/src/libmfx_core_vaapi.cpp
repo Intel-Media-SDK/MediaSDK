@@ -266,16 +266,16 @@ typedef struct {
     { 0x5A41, MFX_HW_CNL, MFX_GT2 },
     { 0x5A49, MFX_HW_CNL, MFX_GT2 },
 
-    /* ICL */
-    { 0x8A50, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A51, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A5C, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A5D, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A52, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A5A, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A5B, MFX_HW_ICL, MFX_GT2 },
-    { 0x8A71, MFX_HW_ICL, MFX_GT1 },
-    { 0x8A70, MFX_HW_ICL, MFX_GT1 } 
+    /* ICL LP */
+    { 0x8A50, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A51, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A5C, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A5D, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A52, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A5A, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A5B, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 } 
 
  };
 
