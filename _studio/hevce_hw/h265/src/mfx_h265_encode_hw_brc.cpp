@@ -49,12 +49,7 @@ mfxF64 const QSTEP_VME[52] = {
     468.34,525.69 
 };*/
 
-
-mfxF64 const INTRA_QSTEP_COEFF  = 2.0;
-mfxF64 const INTRA_MODE_BITCOST = 0.0;
-mfxF64 const INTER_MODE_BITCOST = 0.0;
 mfxI32 const MAX_QP_CHANGE      = 2;
-mfxF64 const LOG2_64            = 3;
 mfxF64 const MIN_EST_RATE       = 0.3;
 mfxF64 const NORM_EST_RATE      = 100.0;
 
@@ -224,10 +219,8 @@ void VMEBrc::PreEnc(mfxU32 /*frameType*/, std::vector<VmeData *> const & /*vmeDa
 }
 
 
-mfxU32 VMEBrc::Report(mfxU32 frameType, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
+mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
 {
-    frameType; // unused
-
     UMC::AutomaticUMCMutex guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
@@ -281,10 +274,8 @@ mfxU32 VMEBrc::Report(mfxU32 frameType, mfxU32 dataLength, mfxU32 /*userDataLeng
     return 0;
 }
 
-mfxI32 VMEBrc::GetQP(MfxVideoParam &video, Task &task )
+mfxI32 VMEBrc::GetQP(MfxVideoParam & /*video*/, Task &task )
 {
-    video;
-
     UMC::AutomaticUMCMutex guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VMEBrc::GetQp");

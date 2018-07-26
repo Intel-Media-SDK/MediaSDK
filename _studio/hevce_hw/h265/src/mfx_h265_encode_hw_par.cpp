@@ -129,11 +129,9 @@ mfxU32 GetMaxDpbSize(mfxU32 PicSizeInSamplesY, mfxU32 MaxLumaPs, mfxU32 maxDpbPi
     return maxDpbPicBuf;
 }
 
-mfxStatus CheckProfile(mfxVideoParam& par, mfxU16 platform)
+mfxStatus CheckProfile(mfxVideoParam& par, mfxU16 /*platform*/)
 {
     mfxStatus sts = MFX_ERR_NONE;
-
-    platform;
 
     switch (par.mfx.CodecProfile)
     {
@@ -375,7 +373,7 @@ mfxU16 AddTileSlices(
 
         if (f == 0)
         {
-            f;
+            (void)f;
         }
         else if (f > nSlice / 2)
         {

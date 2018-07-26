@@ -410,40 +410,6 @@ mfxStatus SetQualityLevelParams(
     return MFX_ERR_NONE;
 }
 
-static mfxStatus SetMaxFrameSize(
-    const UINT   userMaxFrameSize,
-    VADisplay    vaDisplay,
-    VAContextID  vaContextEncode,
-    VABufferID & frameSizeBuf_id)
-{
-    VAEncMiscParameterBuffer             *misc_param;
-    VAEncMiscParameterBufferMaxFrameSize *p_maxFrameSize;
-
-    MFX_DESTROY_VABUFFER(frameSizeBuf_id, vaDisplay);
-
-    VAStatus vaSts = vaCreateBuffer(vaDisplay,
-                   vaContextEncode,
-                   VAEncMiscParameterBufferType,
-                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterBufferMaxFrameSize),
-                   1,
-                   NULL,
-                   &frameSizeBuf_id);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    vaSts = vaMapBuffer(vaDisplay, frameSizeBuf_id, (void **)&misc_param);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    misc_param->type = VAEncMiscParameterTypeMaxFrameSize;
-    p_maxFrameSize = (VAEncMiscParameterBufferMaxFrameSize *)misc_param->data;
-
-    p_maxFrameSize->max_frame_size = userMaxFrameSize*8;    // in bits for libva
-
-    vaSts = vaUnmapBuffer(vaDisplay, frameSizeBuf_id);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    return MFX_ERR_NONE;
-}
-
 void FillConstPartOfPps(
     MfxVideoParam const & par,
     VAEncPictureParameterBufferHEVC & pps)
@@ -1016,10 +982,8 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par, bool bResetBRC)
     return MFX_ERR_NONE;
 }
 
-mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequest& request)
+mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT /*type*/, mfxFrameAllocRequest& request)
 {
-    type;
-
     // request linear buffer
     request.Info.FourCC = MFX_FOURCC_P8;
 
@@ -1075,11 +1039,8 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
     return MFX_ERR_NONE;
 }
 
-mfxStatus VAAPIEncoder::Register(mfxMemId memId, D3DDDIFORMAT type)
+mfxStatus VAAPIEncoder::Register(mfxMemId /*memId*/, D3DDDIFORMAT /*type*/)
 {
-    memId;
-    type;
-
     return MFX_ERR_UNSUPPORTED;
 }
 
@@ -1111,10 +1072,6 @@ void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
 
 bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
 {
-    mfxStatus mfxSts = MFX_ERR_NONE;
-    mfxCoreParam coreParams = {};
-
-
     if (!task.m_bCUQPMap)
         return false;
 
@@ -1231,7 +1188,6 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
     VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
-    VASurfaceID reconSurface;
     VASurfaceID *inputSurface = (VASurfaceID*)pair.first;
     VABufferID  codedBuffer;
     mfxU32      i;
