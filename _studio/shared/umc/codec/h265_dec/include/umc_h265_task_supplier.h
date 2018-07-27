@@ -97,7 +97,6 @@ private:
     int32_t m_SkipCycle;
     int32_t m_ModSkipCycle;
     int32_t m_PermanentTurnOffDeblocking;
-    int32_t m_SkipFlag;
 
     int32_t m_NumberOfSkippedFrames;
 };
