@@ -92,9 +92,7 @@ bool CheckGUID(VideoCORE * core, eMFXHWType type, mfxVideoParam const* param)
     {
         case MFX_PROFILE_HEVC_MAIN:
         case MFX_PROFILE_HEVC_MAINSP:
-#if defined(ANDROID)
         case MFX_PROFILE_HEVC_MAIN10:
-#endif
             return true;
     }
 
