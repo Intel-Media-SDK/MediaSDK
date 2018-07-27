@@ -423,8 +423,6 @@ private:
     t_MCTF_SPDEN pMCTF_SpDen_func;
 
     CmDevice *device;
-    // if it is shared(passed from outside), don't destroy
-    bool IfCmDeviceShared;
     CmQueue*queue;
     CmTask *task;
     CmEvent
@@ -461,8 +459,7 @@ private:
         // from DefaultIdx2Out in the beginning and end;
         CurrentIdx2Out,
         deblocking_Control,
-        overlap_Motion,
-        accuracy_Level;
+        overlap_Motion;
     bool bitrate_Adaptation;
     MCTF_MODE m_AutoMode;
     MCTF_CONFIGURATION ConfigMode;
@@ -474,7 +471,7 @@ private:
     mfxI8 backward_distance,forward_distance;
     mfxU16 bth;
     std::unique_ptr<MeControlSmall> p_ctrl;
-    CmBuffer *ctrlBuf, *refsBuf;
+    CmBuffer *ctrlBuf;
     CmSurface2D *qpel1, *qpel2;
     CmSurface2DUP
         *mv_1,
@@ -485,7 +482,6 @@ private:
         *distSurf;
     SurfaceIndex
         *idxCtrl,
-        *idxRefBuf,
         *idxSrc,
         *idxRef1,
         *idxRef2,
@@ -517,12 +513,11 @@ private:
         *mvSys4,
         *noiseAnalysisSys,
         *distSys;
-    mfxF64 sequenceBitrate, bpp;
+    mfxF64 bpp;
     mfxU32 m_FrameRateExtN, m_FrameRateExtD;
     mfxU32 scene_numbers[5];
     mfxU64 time;
    
-    CM_STATUS status;
     mfxI32 res;
 
     std::vector<mfxU32> distRef;
@@ -538,7 +533,6 @@ private:
     //MC elements
     CmProgram
         *programMc,
-        *programMc2,
         *programDe;
     CmKernel
         *kernelNoise,
