@@ -4208,7 +4208,6 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     deinterlaceAlgorithm = m_executeParams.iDeinterlacingAlgorithm;
     FMDEnable = m_executeParams.bFMDEnable;
 
-    static mfxU32 num_progressive = 0;
     mfxU32 currFramePicStruct = m_executeSurf[pTask->bkwdRefCount].frameInfo.PicStruct;
     mfxU32 refFramePicStruct = m_executeSurf[0].frameInfo.PicStruct;
     bool isFirstField = true;
