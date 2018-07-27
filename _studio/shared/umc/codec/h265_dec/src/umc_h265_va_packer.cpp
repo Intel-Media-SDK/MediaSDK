@@ -201,10 +201,6 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
         }
     }
 
-    int32_t cntRefPicSetStCurrBefore = 0,
-        cntRefPicSetStCurrAfter  = 0,
-        cntRefPicSetLtCurr = 0;
-
     for(int32_t n=0 ; n < numRefPicSetStCurrBefore + numRefPicSetStCurrAfter + numRefPicSetLtCurr ; n++)
     {
         if (!rps->getUsed(n))

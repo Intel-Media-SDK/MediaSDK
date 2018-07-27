@@ -186,7 +186,6 @@ public:
         , m_SeqParamsSvcExt(pObjHeap)
         , m_PicParams(pObjHeap)
         , m_SEIParams(pObjHeap)
-        , m_pObjHeap(pObjHeap)
     {
         memset(&m_nalExtension, 0, sizeof(m_nalExtension));
     }
@@ -208,9 +207,6 @@ public:
     HeaderSet<H264PicParamSet>             m_PicParams;
     HeaderSet<H264SEIPayLoad>              m_SEIParams;
     H264NalExtension                       m_nalExtension;
-
-private:
-    H264_Heap_Objects  *m_pObjHeap;
 };
 
 } // namespace UMC

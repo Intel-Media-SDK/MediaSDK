@@ -29,8 +29,6 @@ namespace UMC
 {
 void SwapMemoryAndRemovePreventingBytes(void *pDestination, size_t &nDstSize, void *pSource, size_t nSrcSize);
 
-static uint8_t start_code_prefix[] = {0, 0, 0, 1};
-
 static int32_t FindStartCode(uint8_t * (&pb), size_t &nSize)
 {
     // there is no data

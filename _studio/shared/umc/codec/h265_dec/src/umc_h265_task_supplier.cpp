@@ -279,7 +279,6 @@ Skipping_H265::Skipping_H265()
     , m_SkipCycle(1)
     , m_ModSkipCycle(1)
     , m_PermanentTurnOffDeblocking(0)
-    , m_SkipFlag(0)
     , m_NumberOfSkippedFrames(0)
 {
 }

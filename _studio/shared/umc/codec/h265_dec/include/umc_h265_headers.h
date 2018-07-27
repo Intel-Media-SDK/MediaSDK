@@ -183,7 +183,6 @@ public:
         , m_SeqParams(pObjHeap)
         , m_PicParams(pObjHeap)
         , m_SEIParams(pObjHeap)
-        , m_pObjHeap(pObjHeap)
     {
     }
 
@@ -199,9 +198,6 @@ public:
     HeaderSet<H265SeqParamSet>             m_SeqParams;
     HeaderSet<H265PicParamSet>             m_PicParams;
     HeaderSet<H265SEIPayLoad>              m_SEIParams;
-
-private:
-    Heap_Objects  *m_pObjHeap;
 };
 
 } // namespace UMC_HEVC_DECODER
