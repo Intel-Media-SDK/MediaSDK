@@ -629,7 +629,6 @@ mfxStatus ImplementationAvc::QueryIOSurf(
         checkSts = lpSts;
 
     SetDefaults(tmp, hwCaps, true, core->GetHWType(), core->GetVAType(), *QueryCoreInterface<eMFXGTConfig>(core, MFXICORE_GT_CONFIG_GUID));
-    mfxExtCodingOption3 const &   extOpt3 = GetExtBufferRef(tmp);
     if (tmp.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
     {
         request->Type =

@@ -173,7 +173,6 @@ mfxStatus SetRateControl(
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterRateControl *rate_param;
-    mfxExtCodingOption3 const * extOpt3  = GetExtBuffer(par);
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, rateParamBuf_id);
     MFX_CHECK_STS(mfxSts);
@@ -206,6 +205,7 @@ mfxStatus SetRateControl(
 
 #if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_CFL)
     // Activate frame tolerance sliding window mode
+    mfxExtCodingOption3 const * extOpt3  = GetExtBuffer(par);
     if (extOpt3->WinBRCSize) {
         rate_param->rc_flags.bits.frame_tolerance_mode = 1;
     }
@@ -1083,7 +1083,6 @@ void UpdateSliceSizeLimited(
     MfxVideoParam const                        & par,
     std::vector<ExtVASurface> const & reconQueue)
 {
-    mfxU32 numPics = task.GetPicStructForEncode() == MFX_PICSTRUCT_PROGRESSIVE ? 1 : 2;
     mfxU32 idx = 0, ref = 0;
 
     mfxExtCodingOptionDDI * extDdi      = GetExtBuffer(par);
@@ -2013,9 +2012,7 @@ mfxStatus VAAPIEncoder::Execute(
     mfxExtCodingOption2     const * ctrlOpt2      = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOption3     const * ctrlOpt3      = GetExtBuffer(task.m_ctrl);
     mfxExtMBDisableSkipMap  const * ctrlNoSkipMap = GetExtBuffer(task.m_ctrl);
-    mfxExtCodingOption      const*  extOpt        = GetExtBuffer(m_videoParam);
     mfxExtAVCRoundingOffset const * ctrlRoundingOffset  = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
-    mfxU8 qp_delta_list[] = {0,0,0,0, 0,0,0,0};
 
     if (ctrlOpt2 && ctrlOpt2->SkipFrame <= MFX_SKIPFRAME_BRC_ONLY)
         skipMode = ctrlOpt2->SkipFrame;
@@ -2110,6 +2107,7 @@ mfxStatus VAAPIEncoder::Execute(
     VABufferID vaFeiMVPredId       = VA_INVALID_ID;
     VABufferID vaFeiMBControlId    = VA_INVALID_ID;
     VABufferID vaFeiMBQPId         = VA_INVALID_ID;
+    mfxU8 qp_delta_list[] = {0,0,0,0, 0,0,0,0};
 
     // Parity to order conversion (FEI ext buffers attached by field order, but MSDK operates in terms of fields parity)
     mfxU32 feiFieldId = task.m_fid[fieldId];

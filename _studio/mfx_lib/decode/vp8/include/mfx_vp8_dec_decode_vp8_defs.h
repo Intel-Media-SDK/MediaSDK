@@ -127,10 +127,6 @@ enum
 
 extern const uint8_t  vp8_range_normalization_shift[64];
 
-extern const int32_t vp8_quant_dc[VP8_MAX_QP + 1 + 32];
-extern const int32_t vp8_quant_ac[VP8_MAX_QP + 1 + 32];
-extern const int32_t vp8_quant_dc2[VP8_MAX_QP + 1 + 32];
-
 extern const uint8_t  vp8_kf_mb_mode_y_probs[VP8_NUM_MB_MODES_Y - 1];
 extern const uint8_t  vp8_kf_mb_mode_uv_probs[VP8_NUM_MB_MODES_UV - 1];
 extern const uint8_t  vp8_kf_block_mode_probs[VP8_NUM_INTRA_BLOCK_MODES][VP8_NUM_INTRA_BLOCK_MODES][VP8_NUM_INTRA_BLOCK_MODES-1];
