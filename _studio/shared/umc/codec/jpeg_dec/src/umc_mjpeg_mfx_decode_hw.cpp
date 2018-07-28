@@ -543,10 +543,8 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
 // Linux/Android version
 Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
 {
-    UMCVACompBuffer* compBuf = 0;
     uint32_t bitstreamTile = 0;
     bool shiftDataOffset = false;
-    Status sts = UMC_OK;
 
     /////////////////////////////////////////////////////////////////////////////////////////
     if((*buffersForUpdate & 1) != 0)
