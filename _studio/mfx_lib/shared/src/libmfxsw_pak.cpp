@@ -141,13 +141,6 @@ mfxStatus MFXVideoPAK_Init(mfxSession session, mfxVideoParam *par)
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
     try
     {
-        // close the existing PAK unit,
-        // if it is initialized.
-        if (session->m_pPAK.get())
-        {
-            MFXVideoPAK_Close(session);
-        }
-
         // create a new instance
         session->m_pPAK.reset(session->Create<VideoPAK>(*par));
         MFX_CHECK(session->m_pPAK.get(), MFX_ERR_INVALID_VIDEO_PARAM);
