@@ -577,8 +577,8 @@ _mfxSession::_mfxSession(const mfxU32 adapterNum)
     , m_priority()
     , m_version()
     , m_pOperatorCore()
-    , m_bIsHWENCSupport()
-    , m_bIsHWDECSupport()
+    , m_reserved1()
+    , m_reserved2()
 {
     m_currentPlatform = MFX_PLATFORM_HARDWARE;
 
@@ -597,9 +597,6 @@ void _mfxSession::Clear(void)
     m_pSchedulerAllocated = NULL;
 
     m_priority = MFX_PRIORITY_NORMAL;
-    m_bIsHWENCSupport = false;
-    //m_coreInt.ExternalSurfaceAllocator = 0;
-
 } // void _mfxSession::Clear(void)
 
 void _mfxSession::Cleanup(void)
