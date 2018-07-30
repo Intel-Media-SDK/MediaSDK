@@ -201,6 +201,12 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
             return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
 
+#ifndef MFX_ENABLE_USER_VPP
+        if (sessionPtr.isNeedVPP()) {
+            return MFX_ERR_UNSUPPORTED;
+        }
+#endif
+
         //check is this plugin was included into MSDK lib as a native component
         mfxRes = par->GetPluginParam(par->pthis, &pluginParam);
         MFX_CHECK_STS(mfxRes);
