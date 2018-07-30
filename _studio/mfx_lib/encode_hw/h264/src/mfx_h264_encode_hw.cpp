@@ -173,13 +173,6 @@ namespace MfxHwH264EncodeHW
 }
 using namespace MfxHwH264EncodeHW;
 
-VideoENCODE * CreateMFXHWVideoENCODEH264(
-    VideoCORE * core,
-    mfxStatus * res)
-{
-    return new MFXHWVideoENCODEH264(core, res);
-}
-
 mfxStatus MFXHWVideoENCODEH264::Init(mfxVideoParam * par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MFXHWVideoENCODEH264::Init");

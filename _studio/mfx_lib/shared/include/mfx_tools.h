@@ -23,15 +23,6 @@
 
 #include <mfxvideo++int.h>
 
-// Declare functions for components creation
-VideoENCODE *CreateENCODESpecificClass(mfxU32 codecId, VideoCORE *pCore, mfxSession session, mfxVideoParam *par);
-VideoDECODE *CreateDECODESpecificClass(mfxU32 codecId, VideoCORE *pCore);
-VideoVPP *CreateVPPSpecificClass(mfxU32 reserved, VideoCORE *pCore);
-VideoENC *CreateENCSpecificClass(mfxU32 codecId, VideoCORE *pCore);
-VideoPAK *CreatePAKSpecificClass(mfxU32 codecId, mfxU32 codecProfile, VideoCORE *pCore);
-
-VideoENCODE* CreateMFXHWVideoENCODEH264(VideoCORE *core, mfxStatus *res);
-
 namespace MFX
 {
     unsigned int CreateUniqId();
