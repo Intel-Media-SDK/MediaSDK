@@ -33,23 +33,25 @@
 #include "mfx_vpp_main.h"       // this VideoVPP class builds VPP pipeline and run the VPP pipeline
 #endif
 
-VideoVPP *CreateVPPSpecificClass(mfxU32 /* reserved */, VideoCORE *core)
+template<>
+VideoVPP* _mfxSession::Create<VideoVPP>(mfxVideoParam& par)
 {
-    VideoVPP *pVPP = (VideoVPP *) 0;
-    mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
+    VideoVPP *pVPP = nullptr;
 
 #ifdef MFX_ENABLE_VPP
+    VideoCORE* core = m_pCORE.get();
+    mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
+
     pVPP = new VideoVPPMain(core, &mfxRes);
     if (MFX_ERR_NONE != mfxRes)
     {
         delete pVPP;
-        pVPP = (VideoVPP *) 0;
+        pVPP = nullptr;
     }
 #endif // MFX_ENABLE_VPP
 
     return pVPP;
-
-} // VideoVPP *CreateVPPSpecificClass(mfxU32 reserved)
+}
 
 mfxStatus MFXVideoVPP_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
@@ -167,7 +169,7 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
 
 
             // create a new instance
-            session->m_pVPP.reset(CreateVPPSpecificClass(0 ,session->m_pCORE.get()));
+            session->m_pVPP.reset(session->Create<VideoVPP>(*par));
             MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
             mfxRes = session->m_pVPP->Init(par);
 #endif // MFX_ENABLE_VPP
