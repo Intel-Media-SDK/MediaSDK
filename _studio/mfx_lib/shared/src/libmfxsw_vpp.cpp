@@ -150,32 +150,20 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
 
     try
     {
-#ifdef MFX_ENABLE_USER_VPP
-        if (session->m_plgVPP.get())
+        // check existence of component
+        if (!session->m_pVPP.get())
         {
-            mfxRes = session->m_plgVPP->Init(par);
-        }
-        else
-        {
-#endif
-
-#ifdef MFX_ENABLE_VPP
-            // close the existing video processor,
-            // if it is initialized.
-            if (session->m_pVPP.get())
-            {
-                MFXVideoVPP_Close(session);
-            }
-
-
             // create a new instance
             session->m_pVPP.reset(session->Create<VideoVPP>(*par));
-            MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
-            mfxRes = session->m_pVPP->Init(par);
-#endif // MFX_ENABLE_VPP
-#ifdef MFX_ENABLE_USER_VPP
-        }
+#ifdef MFX_ENABLE_VPP
+            MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_INVALID_VIDEO_PARAM);
+#else
+            MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_UNSUPPORTED);
 #endif
+        }
+
+        // create a new instance
+        mfxRes = session->m_pVPP->Init(par);
     }
     // handle error(s)
     catch(MFX_CORE_CATCH_TYPE)
