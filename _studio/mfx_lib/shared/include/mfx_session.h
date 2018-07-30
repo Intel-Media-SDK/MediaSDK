@@ -135,11 +135,8 @@ struct _mfxSession
 
     MFXIPtr<OperatorCORE> m_pOperatorCore;
 
-    // if there are no Enc HW capabilities but HW library is used
-    bool m_bIsHWENCSupport;
-
-    // if there are no Dec HW capabilities but HW library is used
-    bool m_bIsHWDECSupport;
+    bool m_reserved1;
+    bool m_reserved2;
 
 
     inline
