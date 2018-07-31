@@ -73,7 +73,8 @@ append_property( mfx_common_hw COMPILE_FLAGS " -DMFX_RT" )
 ### libmfxhw
 list( APPEND mdirs
   scheduler vpp decode/vc1
-  decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
+  decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform
+  encode_hw/h265 encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
   decode/h265 decode/vp8 decode/vp9 mctf_package/mctf
   )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
@@ -87,7 +88,6 @@ endforeach()
 include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
-include_directories( ${MSDK_STUDIO_ROOT}/hevce_hw/h265/include )
 
 list( APPEND cdirs
   brc h264_enc mpeg2_dec vc1_dec vp9_dec vc1_common
