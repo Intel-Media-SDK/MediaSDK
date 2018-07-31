@@ -3,7 +3,7 @@ LOCAL_PATH:= $(MFX_HOME)/_studio
 # =============================================================================
 
 MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8 vp9
-MFX_LOCAL_ENCODERS := h264 mjpeg
+MFX_LOCAL_ENCODERS := h265 h264 mjpeg
 
 # Setting subdirectories to march thru
 MFX_LOCAL_DIRS := \
@@ -28,8 +28,7 @@ MFX_LOCAL_SRC_FILES_IMPL := \
 
 MFX_LOCAL_SRC_FILES_HW := \
     $(MFX_LOCAL_SRC_FILES_IMPL) \
-    $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp))) \
-    $(patsubst $(LOCAL_PATH)/%, %, $(wildcard $(LOCAL_PATH)/hevce_hw/h265/src/*.cpp))
+    $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp)))
 
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
@@ -44,8 +43,7 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
-    $(MFX_HOME)/_studio/shared/asc/include \
-    $(MFX_HOME)/_studio/hevce_hw/h265/include
+    $(MFX_HOME)/_studio/shared/asc/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libmfx_lib_merged_hw \
