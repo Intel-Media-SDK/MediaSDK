@@ -295,6 +295,7 @@ namespace MfxHwH264Encode
         mfxU32 m_userMaxFrameSize;  // current MaxFrameSize from user.
         mfxU32 m_mbbrc;
         ENCODE_CAPS m_caps;
+        eMFXHWType m_hwType;
 /*
  * Current RollingIntraRefresh state, as it came through the task state and passing to DDI in PPS
  * for Windows we keep it here to send update by VAMapBuffer as happened.

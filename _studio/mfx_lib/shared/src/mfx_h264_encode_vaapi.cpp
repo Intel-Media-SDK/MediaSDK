@@ -168,7 +168,8 @@ mfxStatus SetRateControl(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
     VABufferID & rateParamBuf_id,
-    bool         isBrcResetRequired = false)
+    bool         isBrcResetRequired = false,
+    bool         isBrcSlidingWindowFrameToleranceMode = false)
 {
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -204,12 +205,12 @@ mfxStatus SetRateControl(
     if(par.calcParam.maxKbps)
         rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_CFL)
-    // Activate frame tolerance sliding window mode
-    if (extOpt3->WinBRCSize) {
-        rate_param->rc_flags.bits.frame_tolerance_mode = 1;
+    if (isBrcSlidingWindowFrameToleranceMode) {
+        // Activate frame tolerance sliding window mode
+        if (extOpt3->WinBRCSize) {
+            rate_param->rc_flags.bits.frame_tolerance_mode = 1;
+        }
     }
-#endif  // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_CFL)
 
 /*
  * MBBRC control
@@ -1225,6 +1226,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_userMaxFrameSize()
     , m_mbbrc()
     , m_caps()
+    , m_hwType(MFX_HW_UNKNOWN)
     , m_RIRState()
     , m_curTrellisQuantization()
     , m_newTrellisQuantization()
@@ -1344,6 +1346,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         mfxStatus mfxSts = hwcore->GetVAService(&m_vaDisplay);
         MFX_CHECK_STS(mfxSts);
+        m_hwType = hwcore->GetHWType();
     }
 
     m_width  = width;
@@ -1697,12 +1700,13 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     Zero(m_pps);
     Zero(m_slice);
     //------------------------------------------------------------------
+    bool isBrcSlidingWindowFrameToleranceMode = (MFX_HW_APL == m_hwType || MFX_HW_CFL == m_hwType);
 
     FillSps(par, m_sps);
     FillBrcStructures(par, m_vaBrcPar, m_vaFrameRate);
 
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId),                              MFX_ERR_DEVICE_FAILED);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(par, m_mbbrc, 0, 0, m_vaDisplay, m_vaContextEncode, m_rateParamBufferId), MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(par, m_mbbrc, 0, 0, m_vaDisplay, m_vaContextEncode, m_rateParamBufferId, false, isBrcSlidingWindowFrameToleranceMode), MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateId),                        MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelId),            MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(par, m_vaDisplay, m_vaContextEncode, m_qualityParamsId),                MFX_ERR_DEVICE_FAILED);
@@ -1761,8 +1765,10 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
         || !Equal(m_vaFrameRate, oldFrameRate)
         || m_userMaxFrameSize != extOpt2->MaxFrameSize;
 
+    bool isBrcSlidingWindowFrameToleranceMode = (MFX_HW_APL == m_hwType || MFX_HW_CFL == m_hwType);
+
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId),                                                  MFX_ERR_DEVICE_FAILED);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(par, m_mbbrc, 0, 0, m_vaDisplay, m_vaContextEncode, m_rateParamBufferId, isBrcResetRequired), MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(par, m_mbbrc, 0, 0, m_vaDisplay, m_vaContextEncode, m_rateParamBufferId, isBrcResetRequired, isBrcSlidingWindowFrameToleranceMode), MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateId),                                            MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelId),                                      MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(par, m_vaDisplay, m_vaContextEncode, m_qualityParamsId),                                    MFX_ERR_DEVICE_FAILED);
@@ -2730,9 +2736,11 @@ mfxStatus VAAPIEncoder::Execute(
         }
     }
 
+    bool isBrcSlidingWindowFrameToleranceMode = (MFX_HW_APL == m_hwType || MFX_HW_CFL == m_hwType);
+
     configBuffers[buffersCount++] = m_hrdBufferId;
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRateControl(m_videoParam, m_mbbrc, task.m_minQP, task.m_maxQP,
-                                                         m_vaDisplay, m_vaContextEncode, m_rateParamBufferId), MFX_ERR_DEVICE_FAILED);
+                                                         m_vaDisplay, m_vaContextEncode, m_rateParamBufferId, false, isBrcSlidingWindowFrameToleranceMode), MFX_ERR_DEVICE_FAILED);
     configBuffers[buffersCount++] = m_rateParamBufferId;
     configBuffers[buffersCount++] = m_frameRateId;
     configBuffers[buffersCount++] = m_qualityLevelId;
