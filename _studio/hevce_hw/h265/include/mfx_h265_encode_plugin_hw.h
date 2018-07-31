@@ -69,19 +69,12 @@ public:
     }
     virtual mfxStatus PluginInit(mfxCoreInterface * /*core*/)
     {
-        MFX_TRACE_INIT();
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::PluginInit");
         return MFX_ERR_NONE;
     }
     virtual mfxStatus PluginClose()
     {
-        {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "Plugin::PluginClose");
-            if (m_createdByDispatcher)
-                Release();
-        }
-
-        MFX_TRACE_CLOSE();
+        if (m_createdByDispatcher)
+            Release();
 
         return MFX_ERR_NONE;
     }
