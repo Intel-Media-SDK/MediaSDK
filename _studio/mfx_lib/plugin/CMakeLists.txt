@@ -94,15 +94,6 @@ list( APPEND plugin_common_sources
   ${prefix}/mfx_scheduler_core_thread.cpp
 )
 
-set( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
-list( APPEND plugin_common_sources
-  ${prefix}/genx_cht_copy_isa.cpp
-  ${prefix}/genx_skl_copy_isa.cpp
-  ${prefix}/genx_cnl_copy_isa.cpp
-  ${prefix}/genx_icl_copy_isa.cpp
-  ${prefix}/genx_icllp_copy_isa.cpp
-)
-
 ###############################################################################
 ## 1toN Lookahead (H264 LA)                                                  ##
 ###############################################################################
@@ -154,20 +145,6 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/mfx_h264_encode_hw.cpp
   )
 
-  set( prefix ${MSDK_LIB_ROOT}/genx/h264_encode/src )
-  list( APPEND sources
-    ${prefix}/genx_hsw_simple_me_isa.cpp
-    ${prefix}/genx_bdw_simple_me_isa.cpp
-    ${prefix}/genx_skl_simple_me_isa.cpp
-    ${prefix}/genx_cnl_simple_me_isa.cpp
-    ${prefix}/genx_icl_simple_me_isa.cpp
-    ${prefix}/genx_icllp_simple_me_isa.cpp
-    ${prefix}/genx_hsw_simple_me_proto.cpp
-    ${prefix}/genx_skl_histogram_isa.cpp
-    ${prefix}/genx_cnl_histogram_isa.cpp
-    ${prefix}/genx_icl_histogram_isa.cpp
-    ${prefix}/genx_icllp_histogram_isa.cpp
-  )
   list( APPEND sources
     ${MSDK_STUDIO_ROOT}/shared/umc/codec/brc/src/umc_video_brc.cpp
     ${MSDK_STUDIO_ROOT}/shared/umc/codec/brc/src/umc_h264_brc.cpp
@@ -188,6 +165,7 @@ if( DEFINED H264LA_ENCODER_GUID )
     umc
     vm
     vm_plus
+    genx
     asc
     mfx_trace
     ${ITT_LIBRARIES}
