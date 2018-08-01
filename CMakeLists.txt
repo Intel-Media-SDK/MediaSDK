@@ -63,6 +63,10 @@ else()
   message( STATUS "There is no ConfTargets.cmake" )
 endif()
 
+include( "${BUILDER_ROOT}/profiles/linux.cmake" )
+include( ${BUILDER_ROOT}/ConfCodecs.cmake )
+add_codecs_definitions()
+
 foreach( dir api contrib _studio samples )
   set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
   create_build()

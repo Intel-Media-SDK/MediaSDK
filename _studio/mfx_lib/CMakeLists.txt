@@ -24,6 +24,10 @@ mfx_include_dirs()
 
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
+remove_codecs_definitions()
+include( "${BUILDER_ROOT}/profiles/linux.cmake" )
+add_codecs_definitions()
+
 ### CM
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
 set( SRC_DIR "${MSDK_LIB_ROOT}/cmrt_cross_platform/src" )

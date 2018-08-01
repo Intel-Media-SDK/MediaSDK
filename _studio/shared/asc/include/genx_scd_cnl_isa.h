@@ -19,5 +19,9 @@
 // SOFTWARE.
 #ifndef __genx_scd_cnl__
 #define __genx_scd_cnl__
+
+#ifndef MFX_NO_COPY_KERNEL_GENX
 extern const unsigned char genx_scd_cnl[18354];
+#endif
+
 #endif
