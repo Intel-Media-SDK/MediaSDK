@@ -98,7 +98,7 @@ list( APPEND plugin_common_sources
 ## 1toN Lookahead (H264 LA)                                                  ##
 ###############################################################################
 
-if( DEFINED H264LA_ENCODER_GUID )
+if( MFX_ENABLE_KERNELS AND DEFINED H264LA_ENCODER_GUID )
   ## cleanup
   set( version_defs "" )
   set( defs "" )

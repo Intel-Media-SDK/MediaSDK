@@ -156,6 +156,12 @@ else()
   set(MCTF_LIB "")
 endif()
 
+if( MFX_ENABLE_KERNELS )
+  set(GENX_LIB "genx")
+else()
+  set(GENX_LIB "")
+endif()
+
 set( LIBS "" )
 list( APPEND LIBS
   mfx_trace_hw
@@ -176,7 +182,7 @@ list( APPEND LIBS
   cmrt_cross_platform_hw
   encode_hw
   h264_la
-  genx
+  ${GENX_LIB}
   mfx_common
   mfx_common_hw
   asc

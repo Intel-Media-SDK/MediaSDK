@@ -257,6 +257,7 @@ bool ASC::Query_ASCCmDevice() {
 }
 
 mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
+#ifdef MFX_ENABLE_KERNELS
     INT res = CM_SUCCESS;
     m_subSamplingEv = nullptr;
     m_frameCopyEv   = nullptr;
@@ -297,6 +298,10 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
+#else
+    (void)pCmDevice;
+    return MFX_ERR_UNSUPPORTED;
+#endif
 }
 
 void ASC::Params_Init() {

@@ -2612,6 +2612,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
 
     switch (hwtype)
     {
+#ifdef MFX_ENABLE_KERNELS
 #if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
     case MFX_HW_BDW:
     case MFX_HW_CHT:
@@ -2633,6 +2634,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     case MFX_HW_ICL_LP:
         cmSts = m_pCmDevice->LoadProgram((void*)icllp_copy_kernel_genx,sizeof(icllp_copy_kernel_genx),m_pCmProgram,"nojitter");
         break;
+#endif
     default:
         cmSts = CM_FAILURE;
         break;
