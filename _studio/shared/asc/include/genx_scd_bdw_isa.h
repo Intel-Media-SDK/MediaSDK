@@ -19,5 +19,9 @@
 // SOFTWARE.
 #ifndef __genx_scd_bdw__
 #define __genx_scd_bdw__
+
+#ifdef ENABLE_MFX_CMRT
 extern const unsigned char genx_scd_bdw[17970];
+#endif
+
 #endif

@@ -2148,6 +2148,9 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     if (!m_pCmDevice)
         return MFX_ERR_DEVICE_FAILED;
 
+#ifndef ENABLE_MFX_CMRT
+    cmSts = CM_FAILURE;
+#else
     switch (hwtype)
     {
 #if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
@@ -2166,6 +2169,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
         cmSts = CM_FAILURE;
         break;
     }
+#endif
     CHECK_CM_STATUS(cmSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;

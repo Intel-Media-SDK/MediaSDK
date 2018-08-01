@@ -19,5 +19,9 @@
 // SOFTWARE.
 #ifndef __genx_scd_skl__
 #define __genx_scd_skl__
+
+#ifdef ENABLE_MFX_CMRT
 extern const unsigned char genx_scd_skl[18354];
+#endif
+
 #endif

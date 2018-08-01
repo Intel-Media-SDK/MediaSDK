@@ -25,6 +25,8 @@ set(H264LA_ENCODER_GUID    "588f1185d47b42968dea377bb5d0dcb4")
 set(VP8_DECODER_HW_GUID    "f622394d8d87452f878c51f2fc9b4131")
 set(VP9_DECODER_HW_GUID    "a922394d8d87452f878c51f2fc9b4131")
 
+remove_codecs_definitions()
+
 # =============================================================================
 
 mfx_include_dirs()

@@ -277,6 +277,9 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
     res = m_device->GetCaps(CAP_GPU_PLATFORM, hwSize, &hwType);
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
+#ifndef ENABLE_MFX_CMRT
+    res = CM_NOT_IMPLEMENTED;
+#else
     switch (hwType)
     {
     case PLATFORM_INTEL_BDW:
@@ -293,7 +296,8 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
         break;
     default:
         res = CM_NOT_IMPLEMENTED;
-}
+    }
+#endif
     SCD_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
