@@ -100,6 +100,12 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/shared/src/, \
     mfx_h264_encode_vaapi.cpp \
     mfx_h264_encode_factory.cpp)
 
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/src/, \
+    genx_scd_bdw_isa.cpp \
+    genx_scd_bxt_isa.cpp \
+    genx_scd_cnl_isa.cpp \
+    genx_scd_skl_isa.cpp)
+
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/src/, \
     genx_cht_copy_isa.cpp \
     genx_skl_copy_isa.cpp \
