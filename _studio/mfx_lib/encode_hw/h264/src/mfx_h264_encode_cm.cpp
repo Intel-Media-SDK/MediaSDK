@@ -849,6 +849,7 @@ void CmContext::Setup(
 
     switch (core->GetHWType())
     {
+#ifdef MFX_ENABLE_KERNELS
     case MFX_HW_BDW:
     case MFX_HW_CHT:
         m_program = ReadProgram(m_device, genx_bdw_simple_me, SizeOf(genx_bdw_simple_me));
@@ -872,6 +873,7 @@ void CmContext::Setup(
         m_program = ReadProgram(m_device, genx_icllp_simple_me, SizeOf(genx_icllp_simple_me));
         m_programHist = ReadProgram(m_device, genx_icllp_histogram, SizeOf(genx_icllp_histogram));
         break;
+#endif
     default:
         throw CmRuntimeError();
     }

@@ -745,11 +745,13 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     //Motion Estimation
+#ifdef MFX_ENABLE_KERNELS
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_me_bdw, sizeof(genx_me_bdw), programMe, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_me_skl, sizeof(genx_me_skl), programMe, "nojitter");
     else
+#endif
         return MFX_ERR_UNSUPPORTED;
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     //ME Kernel
@@ -770,19 +772,23 @@ mfxStatus CMC::MCTF_SET_ENV(const mfxFrameInfo& FrameInfo, const IntMctfParams* 
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     //Motion Compensation
+#ifdef MFX_ENABLE_KERNELS
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_mc_bdw, sizeof(genx_mc_bdw), programMc, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_mc_skl, sizeof(genx_mc_skl), programMc, "nojitter");
     else
+#endif
         return MFX_ERR_UNSUPPORTED;
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
+#ifdef MFX_ENABLE_KERNELS
     if (hwType == PLATFORM_INTEL_BDW)
         res = device->LoadProgram((void *)genx_sd_bdw, sizeof(genx_mc_bdw), programDe, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_sd_skl, sizeof(genx_mc_skl), programDe, "nojitter");
     else
+#endif
         return MFX_ERR_UNSUPPORTED;
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
