@@ -19,6 +19,7 @@
 # SOFTWARE.
 
 mfx_include_dirs( )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/asc/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/copy_kernels/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/field_copy/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h264_encode/include )
@@ -30,6 +31,14 @@ set( sources "" )
 set( sources.plus "" )
 
 set( MSDK_GENX_ROOT ${MSDK_LIB_ROOT}/genx )
+
+set( prefix ${MSDK_GENX_ROOT}/asc/src )
+list( APPEND sources
+    ${prefix}/genx_scd_bdw_isa.cpp
+    ${prefix}/genx_scd_bxt_isa.cpp
+    ${prefix}/genx_scd_cnl_isa.cpp
+    ${prefix}/genx_scd_skl_isa.cpp
+)
 
 set( prefix ${MSDK_GENX_ROOT}/copy_kernels/src )
 list( APPEND sources
