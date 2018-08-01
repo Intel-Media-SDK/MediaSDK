@@ -407,7 +407,6 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         }
     }
 
-#ifdef MFX_ENABLE_VPP_ROTATION
     memset(&m_pipelineCaps,  0, sizeof(VAProcPipelineCaps));
     vaSts = vaQueryVideoProcPipelineCaps(m_vaDisplay,
                                  m_vaContextVPP,
@@ -415,6 +414,8 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                  0,
                                  &m_pipelineCaps);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+#ifdef MFX_ENABLE_VPP_ROTATION
     if (m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_90 ) &&
         m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_180) &&
         m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_270))
@@ -424,13 +425,23 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #endif
 
     /* NB! The code below should to be replaced with querying caps from driver*/
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-    caps.uMaxWidth  = 8192;
-    caps.uMaxHeight = 8192;
-#else
-    caps.uMaxWidth  = 4096;
-    caps.uMaxHeight = 4096;
-#endif
+    if (m_pipelineCaps.max_output_width && m_pipelineCaps.max_output_height)
+    {
+        caps.uMaxWidth = m_pipelineCaps.max_output_width;
+        caps.uMaxHeight = m_pipelineCaps.max_output_height;
+    }
+    else {
+        VAAPIVideoCORE *hwCore = dynamic_cast<VAAPIVideoCORE *>(m_core);
+        MFX_CHECK_NULL_PTR1(hwCore);
+        eMFXHWType hwType = hwCore->GetHWType();
+        if (MFX_HW_APL == hwType) {
+            caps.uMaxWidth = 8192;
+            caps.uMaxHeight = 8192;
+        } else {
+            caps.uMaxWidth = 4096;
+            caps.uMaxHeight = 4096;
+        }
+    }
 
     caps.uFieldWeavingControl = 1;
 
@@ -573,12 +584,14 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                 else /* For BFF, second field is Top */
                     deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST;
 
-                #if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
-                if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
-                    deint.flags = VA_DEINTERLACING_ONE_FIELD;
-                else /* For BFF case required to set all bits  */
-                    deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST | VA_DEINTERLACING_BOTTOM_FIELD | VA_DEINTERLACING_ONE_FIELD;
-                #endif // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
+                if(MFX_HW_APL == hwType)
+                {
+                    if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
+                        deint.flags = VA_DEINTERLACING_ONE_FIELD;
+                    else /* For BFF case required to set all bits  */
+                        deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST | VA_DEINTERLACING_BOTTOM_FIELD |
+                                      VA_DEINTERLACING_ONE_FIELD;
+                }
             }
 
             /* For 30i->60p case we have to indicate
@@ -1206,35 +1219,33 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     if((pParams->bEOS) && (pParams->bDeinterlace30i60p == true))
         m_deintFrameCount = 0;
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-// It looks like only BXT supports this at the moment
-#define VPP_NO_COLORFILL
-#endif
+    // It looks like only BXT supports this at the moment
+    bool VppNoColorFill = MFX_HW_APL == hwType;
 
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
-
-#if defined(VPP_NO_COLORFILL)
-    /* Explicitly define regions in output surface
-     * By default, driver assumes that the whole output surface should be used
-     * and in case width/height of the surface are different from input dest region,
-     * it may cause undesired driver behavior like additional forced colorfill
-     */
     VAProcPipelineParameterBuffer outputParam = {0};
-    VABufferID  outputParamBuf = VA_INVALID_ID;
+    VABufferID outputParamBuf = VA_INVALID_ID;
 
-    outputParam.surface = *outputSurface;
-    outputParam.surface_region = &output_region;
-    outputParam.output_region  = &output_region;
+    if (VppNoColorFill) {
+        /* Explicitly define regions in output surface
+         * By default, driver assumes that the whole output surface should be used
+         * and in case width/height of the surface are different from input dest region,
+         * it may cause undesired driver behavior like additional forced colorfill
+         */
 
-    vaSts = vaCreateBuffer(m_vaDisplay,
-                           m_vaContextVPP,
-                           VAProcPipelineParameterBufferType,
-                           sizeof(VAProcPipelineParameterBuffer),
-                           1,
-                           &outputParam,
-                           &outputParamBuf);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-#endif
+        outputParam.surface = *outputSurface;
+        outputParam.surface_region = &output_region;
+        outputParam.output_region = &output_region;
+
+        vaSts = vaCreateBuffer(m_vaDisplay,
+                               m_vaContextVPP,
+                               VAProcPipelineParameterBufferType,
+                               sizeof(VAProcPipelineParameterBuffer),
+                               1,
+                               &outputParam,
+                               &outputParamBuf);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
 
     MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|VPP|FILTER|PACKET_START|", "%d|%d", m_vaContextVPP, 0);
     {
@@ -1246,14 +1257,14 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     }
 
 
-#if defined(VPP_NO_COLORFILL)
-    if(0 == output_region.x && 0 == output_region.y) // Do not disable colorfill if letterboxing is used
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
-        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &outputParamBuf, 1);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    if (VppNoColorFill) {
+        if (0 == output_region.x && 0 == output_region.y) // Do not disable colorfill if letterboxing is used
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
+            vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &outputParamBuf, 1);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
     }
-#endif
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
@@ -1278,10 +1289,10 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         }
     }
 
-#if defined(VPP_NO_COLORFILL)
-    vaSts = vaDestroyBuffer(m_vaDisplay, outputParamBuf);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-#endif
+    if (VppNoColorFill) {
+        vaSts = vaDestroyBuffer(m_vaDisplay, outputParamBuf);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
 
     if (m_deintFilterID != VA_INVALID_ID)
     {
@@ -1624,12 +1635,17 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
             m_pipelineParam[i].blend_state = &blend_state[i];
         }
 
-#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
-        m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-        m_pipelineParam[i].filter_flags   |= VA_FILTER_SCALING_HQ;
-#else
-        m_pipelineParam[i].pipeline_flags  |= VA_PROC_PIPELINE_FAST;
-#endif
+        VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
+        MFX_CHECK_NULL_PTR1( hwCore );
+        eMFXHWType hwType = hwCore->GetHWType();
+        if(MFX_HW_APL == hwType)
+        {
+            m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
+            m_pipelineParam[i].filter_flags |= VA_FILTER_SCALING_HQ;
+        }
+        else {
+            m_pipelineParam[i].pipeline_flags |= VA_PROC_PIPELINE_FAST;
+        }
         m_pipelineParam[i].filters      = 0;
         m_pipelineParam[i].num_filters  = 0;
 
@@ -1967,13 +1983,19 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
          * pipeline and filter properties should be *_FAST */
         if (pParams->bComposite)
         {
+            VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
+            MFX_CHECK_NULL_PTR1( hwCore );
+            eMFXHWType hwType = hwCore->GetHWType();
             m_pipelineParam[refIdx].num_filters  = 0;
-#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
-            m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-            m_pipelineParam[refIdx].filter_flags   |= VA_FILTER_SCALING_HQ;
-#else
-            m_pipelineParam[refIdx].pipeline_flags  |= VA_PROC_PIPELINE_FAST;
-#endif
+            if(MFX_HW_APL == hwType)
+            {
+                m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
+                m_pipelineParam[refIdx].filter_flags |= VA_FILTER_SCALING_HQ;
+            }
+            else
+            {
+                m_pipelineParam[refIdx].pipeline_flags  |= VA_PROC_PIPELINE_FAST;
+            }
         }
     }
 
