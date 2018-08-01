@@ -122,6 +122,8 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-LenSP length] - defines number of search units in search path. In range [1,63] (default is 57)\n"));
     msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full).\n"));
     msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
+    msdk_printf(MSDK_STRING("   [-preenc::SearchWindow value] - specifies one of the predefined search path and window size for PreENC.\n"));
+    msdk_printf(MSDK_STRING("                                   In range [1,5] (5 is default).\n"));
 
     msdk_printf(MSDK_STRING("   [-timeout seconds] - set time to run processing in seconds\n"));
     msdk_printf(MSDK_STRING("   [-repackctrl <file-name>] - use this to input encode repack ctrl file\n"));
@@ -435,10 +437,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
             PARSE_CHECK(msdk_opt_read(strInput[++i], params.encodeCtrl.SearchWindow), "SearchWindow", isParseInvalid);
-
-            // PreENC doesn't support SearchWindow 0
-            if (params.encodeCtrl.SearchWindow)
-                params.preencCtrl.SearchWindow = params.encodeCtrl.SearchWindow;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-preenc::SearchWindow")))
+        {
+            CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
+            PARSE_CHECK(msdk_opt_read(strInput[++i], params.preencCtrl.SearchWindow), "SearchWindow", isParseInvalid);
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-LenSP")))
         {
@@ -702,6 +705,12 @@ void AdjustOptions(sInputParams& params)
             params.encodeCtrl.MVPredictor = 1;
         if (0 != msdk_strlen(params.mvpInFile))
             params.encodeCtrl.MVPredictor = 7;
+    }
+
+    if (params.bPREENC && (!params.preencCtrl.SearchWindow || params.preencCtrl.SearchWindow > 5))
+    {
+        msdk_printf(MSDK_STRING("WARNING: Invalid SearchWindow for PreENC - setting to default value 5\n"));
+        params.preencCtrl.SearchWindow = 5;
     }
 
     if (!params.bPREENC && 0 == msdk_strlen(params.mvpInFile))
