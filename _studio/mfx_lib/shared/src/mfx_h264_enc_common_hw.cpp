@@ -7021,11 +7021,10 @@ bool SliceDividerBluRay::Next(SliceDividerState & state)
 
 
 SliceDividerOneSlice::SliceDividerOneSlice(
-    mfxU32 numSlice,
+    mfxU32 /*numSlice*/,
     mfxU32 widthInMbs,
     mfxU32 heightInMbs)
 {
-    numSlice;
     m_pfNext              = &SliceDividerOneSlice::Next;
     m_numSlice            = 1;
     m_numMbInRow          = widthInMbs;

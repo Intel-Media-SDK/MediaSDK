@@ -173,7 +173,7 @@ namespace UMC
         void UnlockSurfaces();
         virtual UMC::FrameMemID GetSkippedIndex(bool isIn = true) = 0;
         FrameMemID GetFrameOrder(bool isLast, bool isSamePolar, uint32_t & frameOrder);
-        virtual Status RunThread(int threadNumber) { threadNumber; return UMC_OK; }
+        virtual Status RunThread(int /*threadNumber*/) { return UMC_OK; }
 
         UMC::VC1FrameDescriptor* m_pDescrToDisplay;
         mfxU32                   m_frameOrder;

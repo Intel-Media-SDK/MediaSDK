@@ -248,9 +248,8 @@ mfxStatus VideoUSERPlugin::Check(const mfxHDL *in, mfxU32 in_num,
 (char)((mfxu32 >> 16) & 0xFF),\
 (char)((mfxu32 >> 24) & 0xFF)
 
-mfxStatus VideoUSERPlugin::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *in, mfxFrameAllocRequest *out)
+mfxStatus VideoUSERPlugin::QueryIOSurf(VideoCORE * /*core*/, mfxVideoParam *par, mfxFrameAllocRequest *in, mfxFrameAllocRequest *out)
 {
-    core;
     if (m_param.CodecId != par->mfx.CodecId)
     {
         //printf("ERROR: VideoUSERPlugin::QueryIOSurf, plugin_codec_id=%c%c%c%c, query_codec_id=%c%c%c%c\n", U32TOFOURCC(m_param.CodecId), U32TOFOURCC(par->mfx.CodecId));
@@ -260,9 +259,8 @@ mfxStatus VideoUSERPlugin::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     return m_plugin.Video->QueryIOSurf(m_plugin.pthis, par, in, out);
 }
 
-mfxStatus VideoUSERPlugin::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
+mfxStatus VideoUSERPlugin::Query(VideoCORE * /*core*/, mfxVideoParam *in, mfxVideoParam *out)
 {
-    core;
     if (m_param.CodecId != out->mfx.CodecId)
     {
         //printf("ERROR: VideoUSERPlugin::Query, plugin_codec_id=%c%c%c%c, query_codec_id=%c%c%c%c\n", U32TOFOURCC(m_param.CodecId), U32TOFOURCC(out->mfx.CodecId));
@@ -272,9 +270,8 @@ mfxStatus VideoUSERPlugin::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPar
     return m_plugin.Video->Query(m_plugin.pthis, in, out);
 }
 
-mfxStatus VideoUSERPlugin::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVideoParam *par)
+mfxStatus VideoUSERPlugin::DecodeHeader(VideoCORE * /*core*/, mfxBitstream *bs, mfxVideoParam *par)
 {
-    core;
     if (m_param.CodecId != par->mfx.CodecId)
     {
         return MFX_ERR_UNSUPPORTED;

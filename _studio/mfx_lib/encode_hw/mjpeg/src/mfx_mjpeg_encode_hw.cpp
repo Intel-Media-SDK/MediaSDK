@@ -886,14 +886,11 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
                                mfxEncodeCtrl *ctrl,
                                mfxFrameSurface1 *inSurface,
                                mfxBitstream *bs,
-                               mfxFrameSurface1 **reordered_surface,
-                               mfxEncodeInternalParams *pInternalParams,
+                               mfxFrameSurface1 ** /*reordered_surface*/,
+                               mfxEncodeInternalParams * /*pInternalParams*/,
                                MFX_ENTRY_POINT pEntryPoints[],
                                mfxU32 &numEntryPoints)
 {
-    reordered_surface;
-    pInternalParams;
-
     mfxExtJPEGQuantTables*   jpegQT = NULL;
     mfxExtJPEGHuffmanTables* jpegHT = NULL;
     JpegEncCaps              hwCaps = {};

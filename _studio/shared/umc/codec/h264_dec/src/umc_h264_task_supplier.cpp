@@ -3770,11 +3770,8 @@ void TaskSupplier::OnFullFrame(H264DecoderFrame * pFrame)
     }
 }
 
-Status TaskSupplier::InitializeLayers(AccessUnit *accessUnit, H264DecoderFrame * pFrame, int32_t field)
+Status TaskSupplier::InitializeLayers(AccessUnit *accessUnit, H264DecoderFrame * /*pFrame*/, int32_t /*field*/)
 {
-    pFrame;
-    field;
-
     accessUnit->SortforASO();
     size_t layersCount = accessUnit->GetLayersCount();
 
