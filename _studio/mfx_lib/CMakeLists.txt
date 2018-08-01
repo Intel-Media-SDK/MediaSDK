@@ -140,25 +140,6 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/mfx_mfe_adapter.cpp
   )
 endforeach()
-foreach( prefix ${MSDK_LIB_ROOT}/genx/copy_kernels/src )
-  list( APPEND sources
-    ${prefix}/genx_cht_copy_isa.cpp
-    ${prefix}/genx_skl_copy_isa.cpp
-    ${prefix}/genx_icl_copy_isa.cpp
-    ${prefix}/genx_icllp_copy_isa.cpp
-    ${prefix}/genx_cnl_copy_isa.cpp
-  )
-endforeach()
-
-foreach( prefix ${MSDK_LIB_ROOT}/genx/field_copy/src )
-  list( APPEND sources
-    ${prefix}/genx_fcopy_gen8_isa.cpp
-    ${prefix}/genx_fcopy_gen9_isa.cpp
-    ${prefix}/genx_fcopy_gen10_isa.cpp
-    ${prefix}/genx_fcopy_gen11_isa.cpp
-    ${prefix}/genx_fcopy_gen11lp_isa.cpp
-  )
-endforeach()
 
 set( USE_STRICT_NAME TRUE )
 set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/libmfx.map" )
@@ -195,7 +176,7 @@ list( APPEND LIBS
   cmrt_cross_platform_hw
   encode_hw
   h264_la
-  genx_h264_encode_embeded
+  genx
   mfx_common
   mfx_common_hw
   asc
