@@ -306,6 +306,7 @@ static mfxStatus SetMaxFrameSize(
     return MFX_ERR_NONE;
 }
 
+#if !defined(ANDROID)
 static mfxStatus SetTrellisQuantization(
     mfxU32       trellis,
     VADisplay    vaDisplay,
@@ -344,6 +345,7 @@ static mfxStatus SetTrellisQuantization(
 
     return MFX_ERR_NONE;
 } // void SetTrellisQuantization(...)
+#endif
 
 static mfxStatus SetRollingIntraRefresh(
     IntraRefreshState const & rirState,
