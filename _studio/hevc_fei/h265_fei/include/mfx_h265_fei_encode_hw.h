@@ -152,11 +152,6 @@ public:
 
     virtual mfxStatus GetPluginParam(mfxPluginParam *par) override;
 
-    virtual mfxU32 GetPluginType()
-    {
-        return MFX_PLUGINTYPE_VIDEO_ENCODE;
-    }
-
     virtual void Release() override
     {
         delete this;
