@@ -2008,7 +2008,7 @@ DdiTaskIter MfxHwH264Encode::FindFrameToWaitEncodeNext(
 
     DdiTaskIter oldest = cur;
 
-    for (begin; begin != end; ++begin)
+    for (; begin != end; ++begin)
         if (((oldest->m_encOrder > begin->m_encOrder)&&(oldest != cur)) || ( (oldest == cur) && (begin->m_encOrder > cur->m_encOrder)))
             oldest = begin;
     return oldest;
