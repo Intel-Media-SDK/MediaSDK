@@ -83,7 +83,7 @@ namespace
 
         return true;
     }
-
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
     bool CheckTriStateOptionWithAdaptive(mfxU16 & opt)
     {
         if (opt != MFX_CODINGOPTION_UNKNOWN &&
@@ -97,6 +97,7 @@ namespace
 
         return true;
     }
+#endif
 
     bool CheckTriStateOptionForOff(mfxU16 & opt)
     {
@@ -981,13 +982,6 @@ namespace
         }
 
         return mfxU32(MFX_MIN(UINT_MAX, (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
-    }
-
-
-    mfxU8 GetDefaultLog2MaxFrameNumMinux4(mfxVideoParam const & video)
-    {
-        // frame_num should be able to distinguish NumRefFrame reference frames + current frame
-        return mfxU8(MFX_MAX(4, CeilLog2(video.mfx.NumRefFrame + 1)) - 4);
     }
 
     mfxU32 CheckAgreementOfFrameRate(

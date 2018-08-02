@@ -1065,23 +1065,6 @@ namespace
     {
         return mfxU8(std::lower_bound(QSTEP, QSTEP + 52, qstep) - QSTEP);
     }
-
-    mfxU8 QStep2QpFloor(mfxF64 qstep) // QSTEP[qp] <= qstep, return 0<=qp<=51
-    {
-        mfxU8 qp = mfxU8(std::upper_bound(QSTEP, QSTEP + 52, qstep) - QSTEP);
-        return qp > 0 ? qp - 1 : 0;
-    }
-
-    mfxU8 QStep2QpNearest(mfxF64 qstep) // return 0<=qp<=51
-    {
-        mfxU8 qp = QStep2QpFloor(qstep);
-        return (qp == 51 || qstep < (QSTEP[qp] + QSTEP[qp + 1]) / 2) ? qp : qp + 1;
-    }
-
-    mfxF64 Qp2QStep(mfxU32 qp)
-    {
-        return QSTEP[MFX_MIN(51, qp)];
-    }
 }
 
 #ifdef _DEBUG
@@ -3907,50 +3890,6 @@ bool MfxHwH264Encode::IsSlicePatchNeeded(
         task.m_decRefPicMrk[fieldId].mmco.Size() > 0            || // driver doesn't write dec_ref_pic_marking syntax
         task.m_decRefPicMrk[fieldId].long_term_reference_flag;     // even for idr frames
 }
-
-namespace
-{
-    void ReadUntilGapsInFrameNumValueAllowedFlag(
-        InputBitstream & reader)
-    {
-        mfxU32 profileIdc = reader.GetBits(8);
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBit();
-        reader.GetBits(8);
-        reader.GetUe();
-        if (profileIdc == 100 || profileIdc == 110 || profileIdc == 122 ||
-            profileIdc == 244 || profileIdc ==  44 || profileIdc ==  83 ||
-            profileIdc ==  86 || profileIdc == 118 || profileIdc == 128)
-        {
-            if (reader.GetUe() == 3)
-                reader.GetBit();
-            reader.GetUe();
-            reader.GetUe();
-            reader.GetBit();
-            if (reader.GetBit())
-                assert(0);
-        }
-        reader.GetUe();
-        mfxU32 picOrderCntType = reader.GetUe();
-        if (picOrderCntType == 0)
-        {
-            reader.GetUe();
-        }
-        else if (picOrderCntType == 1)
-        {
-            assert(0);
-        }
-
-        reader.GetUe();
-    }
-}
-
 
 mfxStatus  MfxHwH264Encode::CopyBitstream(VideoCORE           & core,
                                           MfxVideoParam const & video,

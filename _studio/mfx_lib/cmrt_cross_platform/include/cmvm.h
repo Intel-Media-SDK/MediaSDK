@@ -193,18 +193,6 @@ template <> struct is_inttype<unsigned long long> {
 
 namespace CmEmulSys
 {
-
-    static long long
-        abs(long long a)
-    {
-        if (a < 0) {
-            return -a;
-        }
-        else {
-            return a;
-        }
-    }
-
     template<typename RT>
     struct satur {
         template<typename T> static RT
