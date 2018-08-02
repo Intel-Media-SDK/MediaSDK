@@ -104,10 +104,7 @@ public:
         tmp_pplg->m_createdByDispatcher = true;
         return MFX_ERR_NONE;
     }
-    virtual mfxU32 GetPluginType()
-    {
-        return MFX_PLUGINTYPE_VIDEO_ENC;
-    }
+
     virtual mfxStatus SetAuxParams(void* , int )
     {
         return MFX_ERR_UNKNOWN;
