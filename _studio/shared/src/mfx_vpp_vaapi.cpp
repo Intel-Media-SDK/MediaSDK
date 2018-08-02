@@ -406,13 +406,13 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         }
     }
 
-#ifdef MFX_ENABLE_VPP_ROTATION
     memset(&m_pipelineCaps,  0, sizeof(VAProcPipelineCaps));
     vaSts = vaQueryVideoProcPipelineCaps(m_vaDisplay,
                                  m_vaContextVPP,
                                  NULL,
                                  0,
                                  &m_pipelineCaps);
+#ifdef MFX_ENABLE_VPP_ROTATION
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     if (m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_90 ) &&
         m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_180) &&
@@ -422,14 +422,16 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     }
 #endif
 
-    /* NB! The code below should to be replaced with querying caps from driver*/
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-    caps.uMaxWidth  = 8192;
-    caps.uMaxHeight = 8192;
-#else
-    caps.uMaxWidth  = 4096;
-    caps.uMaxHeight = 4096;
-#endif
+    if (m_pipelineCaps.max_output_width && m_pipelineCaps.max_output_height)
+    {
+        caps.uMaxWidth = m_pipelineCaps.max_output_width;
+        caps.uMaxHeight = m_pipelineCaps.max_output_height;
+    }
+    else
+    {
+        caps.uMaxWidth = 4096;
+        caps.uMaxHeight = 4096;
+    }
 
     caps.uFieldWeavingControl = 1;
 
