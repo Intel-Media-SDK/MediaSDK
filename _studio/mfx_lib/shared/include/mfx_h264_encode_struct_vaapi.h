@@ -297,7 +297,15 @@ typedef struct tagENCODE_CAPS
             UINT    HMEOffsetSupport        : 1;
             UINT    DirtyRectSupport        : 1;
             UINT    MoveRectSupport         : 1;
-            UINT                            : 21;
+            UINT    FrameSizeToleranceSupport     : 1; // eFrameSizeTolerance_Low (Sliding window) supported
+            UINT    HWCounterAutoIncrementSupport : 2;
+            UINT    MBControlSupport              : 1;
+            UINT    ForceReparationCheckSupport   : 1;
+            UINT    CustomRoundingControl         : 1;
+            UINT    LLCStreamingBufferSupport     : 1;
+            UINT    DDRStreamingBufferSupport     : 1;
+            UINT    LowDelayBRCSupport            : 1; // eFrameSizeTolerance_ExtremelyLow (Low delay) supported
+            UINT                            : 12;
         };
         UINT      CodingLimits2;
     };
@@ -501,6 +509,31 @@ typedef enum tagENCODE_ARGB_COLOR
     eColorSpace_P2020 = 2
 }ENCODE_ARGB_COLOR;
 
+typedef enum tagENCODE_FRAME_SIZE_TOLERANCE
+{
+    eFrameSizeTolerance_Normal = 0,//default
+    eFrameSizeTolerance_Low = 1,//Sliding Window
+    eFrameSizeTolerance_ExtremelyLow = 2//low delay
+}ENCODE_FRAME_SIZE_TOLERANCE;
+
+typedef enum tagENCODE_SCENARIO
+{
+    eScenario_Unknown = 0,
+    eScenario_DisplayRemoting = 1,
+    eScenario_VideoConference = 2,
+    eScenario_Archive = 3,
+    eScenario_LiveStreaming = 4,
+    eScenario_VideoCapture = 5,
+    eScenario_VideoSurveillance = 6
+} ENCODE_SCENARIO;
+
+typedef enum tagENCODE_CONTENT
+{
+    eContent_Unknown = 0,
+    eContent_FullScreenVideo = 1,
+    eContent_NonVideoScreen = 2
+} ENCODE_CONTENT;
+
 typedef struct tagENCODE_SET_SEQUENCE_PARAMETERS_H264
 {
     USHORT  FrameWidth;
@@ -566,8 +599,12 @@ typedef struct tagENCODE_SET_SEQUENCE_PARAMETERS_H264
     };
 
     UINT    UserMaxFrameSize;
-    USHORT  AVBRAccuracy;
-    USHORT  AVBRConvergence;
+    USHORT  ICQQualityFactor;
+
+    ENCODE_ARGB_COLOR ARGB_input_color;
+    ENCODE_SCENARIO scenario_info;
+    ENCODE_CONTENT  content_info;
+    ENCODE_FRAME_SIZE_TOLERANCE frame_size_tolerance;
 
 } ENCODE_SET_SEQUENCE_PARAMETERS_H264;
 
@@ -638,22 +675,6 @@ typedef struct tagENCODE_ROI
     CHAR   PriorityLevelOrDQp; // [-3..3] or [-51..51]
 } ENCODE_ROI;
 
-typedef enum tagENCODE_SCENARIO
-{
-	eScenario_Unknown = 0,
-	eScenario_DisplayRemoting = 1,
-	eScenario_VideoConference = 2,
-	eScenario_Archive = 3,
-	eScenario_LiveStreaming = 4
-} ENCODE_SCENARIO;
-
-typedef enum tagENCODE_CONTENT
-{
-	eContent_Unknown = 0,
-	eContent_FullScreenVideo = 1,
-	eContent_NonVideoScreen = 2
-} ENCODE_CONTENT;
-
 typedef struct tagMOVE_RECT
 {
     USHORT SourcePointX;
@@ -661,13 +682,6 @@ typedef struct tagMOVE_RECT
     ENCODE_RECT DestRect;
 } MOVE_RECT;
 
-
-typedef enum tagENCODE_FRAME_SIZE_TOLERANCE
-{
-    eFrameSizeTolerance_Normal = 0,//default
-    eFrameSizeTolerance_Low = 1,//Sliding Window
-    eFrameSizeTolerance_ExtremelyLow = 2//low delay
-}ENCODE_FRAME_SIZE_TOLERANCE;
 
 typedef struct tagENCODE_SET_PICTURE_PARAMETERS_H264
 {
