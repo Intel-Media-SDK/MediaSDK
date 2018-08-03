@@ -956,12 +956,12 @@ mfxStatus VAAPIFEIENCEncoder::CreateENCAccelerationService(MfxVideoParam const &
 
     m_slice.resize(par.mfx.NumSlice); // it is enough for encoding
     m_sliceBufferId.resize(par.mfx.NumSlice);
-    m_packeSliceHeaderBufferId.resize(par.mfx.NumSlice);
+    m_packedSliceHeaderBufferId.resize(par.mfx.NumSlice);
     m_packedSliceBufferId.resize(par.mfx.NumSlice);
 
-    std::fill(m_sliceBufferId.begin(),            m_sliceBufferId.end(),            VA_INVALID_ID);
-    std::fill(m_packeSliceHeaderBufferId.begin(), m_packeSliceHeaderBufferId.end(), VA_INVALID_ID);
-    std::fill(m_packedSliceBufferId.begin(),      m_packedSliceBufferId.end(),      VA_INVALID_ID);
+    std::fill(m_sliceBufferId.begin(),             m_sliceBufferId.end(),             VA_INVALID_ID);
+    std::fill(m_packedSliceHeaderBufferId.begin(), m_packedSliceHeaderBufferId.end(), VA_INVALID_ID);
+    std::fill(m_packedSliceBufferId.begin(),       m_packedSliceBufferId.end(),       VA_INVALID_ID);
 
     // Reserve buffers for each reconstructed surface (one per field)
     mfxU32 n_fields   = 1 + !(m_videoParam.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
@@ -1473,14 +1473,14 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = 0;
         packed_header_param_buffer.bit_length          = packedSlice.DataLength - (prefix_bytes * 8); // DataLength is already in bits !
 
-        //MFX_DESTROY_VABUFFER(m_packeSliceHeaderBufferId[i], m_vaDisplay);
+        //MFX_DESTROY_VABUFFER(m_packedSliceHeaderBufferId[i], m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
                                 sizeof(packed_header_param_buffer),
                                 1,
                                 &packed_header_param_buffer,
-                                &m_packeSliceHeaderBufferId[i]);
+                                &m_packedSliceHeaderBufferId[i]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         //MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i], m_vaDisplay);
@@ -1491,7 +1491,7 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
                                 &m_packedSliceBufferId[i]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        configBuffers[buffersCount++] = m_packeSliceHeaderBufferId[i];
+        configBuffers[buffersCount++] = m_packedSliceHeaderBufferId[i];
         configBuffers[buffersCount++] = m_packedSliceBufferId[i];
     }
 
@@ -1583,9 +1583,9 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
 
     for(size_t i = 0; i < m_slice.size(); i++)
     {
-        MFX_DESTROY_VABUFFER(m_sliceBufferId[i],            m_vaDisplay);
-        MFX_DESTROY_VABUFFER(m_packeSliceHeaderBufferId[i], m_vaDisplay);
-        MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i],      m_vaDisplay);
+        MFX_DESTROY_VABUFFER(m_sliceBufferId[i],             m_vaDisplay);
+        MFX_DESTROY_VABUFFER(m_packedSliceHeaderBufferId[i], m_vaDisplay);
+        MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i],       m_vaDisplay);
     }
 
     mdprintf(stderr, "submit_vaapi done: %d\n", task.m_frameOrder);
@@ -1918,12 +1918,12 @@ mfxStatus VAAPIFEIPAKEncoder::CreatePAKAccelerationService(MfxVideoParam const &
 
     m_slice.resize(par.mfx.NumSlice); // it is enough for encoding
     m_sliceBufferId.resize(par.mfx.NumSlice);
-    m_packeSliceHeaderBufferId.resize(par.mfx.NumSlice);
+    m_packedSliceHeaderBufferId.resize(par.mfx.NumSlice);
     m_packedSliceBufferId.resize(par.mfx.NumSlice);
 
-    std::fill(m_sliceBufferId.begin(),            m_sliceBufferId.end(),            VA_INVALID_ID);
-    std::fill(m_packeSliceHeaderBufferId.begin(), m_packeSliceHeaderBufferId.end(), VA_INVALID_ID);
-    std::fill(m_packedSliceBufferId.begin(),      m_packedSliceBufferId.end(),      VA_INVALID_ID);
+    std::fill(m_sliceBufferId.begin(),             m_sliceBufferId.end(),             VA_INVALID_ID);
+    std::fill(m_packedSliceHeaderBufferId.begin(), m_packedSliceHeaderBufferId.end(), VA_INVALID_ID);
+    std::fill(m_packedSliceBufferId.begin(),       m_packedSliceBufferId.end(),       VA_INVALID_ID);
 
     m_vaFeiMVOutId.resize(1);
     m_vaFeiMCODEOutId.resize(1);
@@ -2387,14 +2387,14 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = 0;
         packed_header_param_buffer.bit_length          = packedSlice.DataLength - (prefix_bytes * 8); // DataLength is already in bits !
 
-        //MFX_DESTROY_VABUFFER(m_packeSliceHeaderBufferId[i], m_vaDisplay);
+        //MFX_DESTROY_VABUFFER(m_packedSliceHeaderBufferId[i], m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
                                 sizeof(packed_header_param_buffer),
                                 1,
                                 &packed_header_param_buffer,
-                                &m_packeSliceHeaderBufferId[i]);
+                                &m_packedSliceHeaderBufferId[i]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         //MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i], m_vaDisplay);
@@ -2405,7 +2405,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 &m_packedSliceBufferId[i]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        configBuffers[buffersCount++] = m_packeSliceHeaderBufferId[i];
+        configBuffers[buffersCount++] = m_packedSliceHeaderBufferId[i];
         configBuffers[buffersCount++] = m_packedSliceBufferId[i];
     }
 
@@ -2506,9 +2506,9 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
     for( size_t i = 0; i < m_slice.size(); i++ )
     {
-        MFX_DESTROY_VABUFFER(m_sliceBufferId[i],            m_vaDisplay);
-        MFX_DESTROY_VABUFFER(m_packeSliceHeaderBufferId[i], m_vaDisplay);
-        MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i],      m_vaDisplay);
+        MFX_DESTROY_VABUFFER(m_sliceBufferId[i],             m_vaDisplay);
+        MFX_DESTROY_VABUFFER(m_packedSliceHeaderBufferId[i], m_vaDisplay);
+        MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i],       m_vaDisplay);
     }
 
     mdprintf(stderr, "submit_vaapi done: %d\n", task.m_frameOrder);

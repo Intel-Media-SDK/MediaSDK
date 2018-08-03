@@ -272,7 +272,7 @@ namespace MfxHwH264Encode
         VABufferID m_packedSeiBufferId;
         VABufferID m_packedSkippedSliceHeaderBufferId;
         VABufferID m_packedSkippedSliceBufferId;
-        std::vector<VABufferID> m_packeSliceHeaderBufferId;
+        std::vector<VABufferID> m_packedSliceHeaderBufferId;
         std::vector<VABufferID> m_packedSliceBufferId;
         std::vector<VABufferID> m_packedSvcPrefixHeaderBufferId;
         std::vector<VABufferID> m_packedSvcPrefixBufferId;
