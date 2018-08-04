@@ -156,9 +156,9 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
             // create a new instance
             session->m_pVPP.reset(session->Create<VideoVPP>(*par));
 #ifdef MFX_ENABLE_VPP
-            MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_INVALID_VIDEO_PARAM);
+            MFX_CHECK(session->m_pVPP.get(), MFX_ERR_INVALID_VIDEO_PARAM);
 #else
-            MFX_CHECK(session->m_pENCODE.get(), MFX_ERR_UNSUPPORTED);
+            MFX_CHECK(session->m_pVPP.get(), MFX_ERR_UNSUPPORTED);
 #endif
         }
 
