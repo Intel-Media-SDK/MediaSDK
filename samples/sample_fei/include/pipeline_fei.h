@@ -47,19 +47,19 @@ class CEncodingPipeline
 {
 public:
     CEncodingPipeline(AppConfig* pAppConfig);
-    virtual ~CEncodingPipeline();
+    ~CEncodingPipeline();
 
-    virtual mfxStatus Init(mfxSession parentSession = NULL);
-    virtual mfxStatus Run();
-    virtual mfxStatus ProcessBufferedFrames();
-    virtual void Close();
-    virtual mfxStatus ResetMFXComponents();
-    virtual mfxStatus InitSessions();
-    virtual mfxStatus ResetSessions();
-    virtual mfxStatus ResetDevice();
-    virtual mfxStatus GetEncodeSession(mfxSession &session);
+    mfxStatus Init(mfxSession parentSession = NULL);
+    mfxStatus Run();
+    mfxStatus ProcessBufferedFrames();
+    void Close();
+    mfxStatus ResetMFXComponents();
+    mfxStatus InitSessions();
+    mfxStatus ResetSessions();
+    mfxStatus ResetDevice();
+    mfxStatus GetEncodeSession(mfxSession &session);
 
-    virtual void  PrintInfo();
+    void  PrintInfo();
 
 protected:
     AppConfig   m_appCfg; // this structure holds information about current pipeline setup
@@ -153,37 +153,37 @@ protected:
     mfxU32 m_BaseAllocID;
 
 
-    virtual mfxStatus AllocExtBuffers();
-    virtual mfxStatus SetSequenceParameters();
-    virtual mfxStatus ResetIOFiles(const AppConfig & Config);
+    mfxStatus AllocExtBuffers();
+    mfxStatus SetSequenceParameters();
+    mfxStatus ResetIOFiles();
 
-    virtual mfxStatus CreateAllocator();
-    virtual void DeleteAllocator();
+    mfxStatus CreateAllocator();
+    void DeleteAllocator();
 
-    virtual mfxStatus CreateHWDevice();
-    virtual void DeleteHWDevice();
+    mfxStatus CreateHWDevice();
+    void DeleteHWDevice();
 
-    virtual mfxStatus AllocFrames();
-    virtual mfxStatus FillSurfacePool(mfxFrameSurface1* & surfacesPool, mfxFrameAllocResponse* allocResponse, mfxFrameInfo* FrameInfo);
-    virtual void DeleteFrames();
-    virtual void ReleaseResources();
+    mfxStatus AllocFrames();
+    mfxStatus FillSurfacePool(mfxFrameSurface1* & surfacesPool, mfxFrameAllocResponse* allocResponse, mfxFrameInfo* FrameInfo);
+    void DeleteFrames();
+    void ReleaseResources();
 
-    virtual mfxStatus UpdateVideoParam();
+    mfxStatus UpdateVideoParam();
 
-    virtual PairU8 GetFrameType(mfxU32 pos);
+    PairU8 GetFrameType(mfxU32 pos);
 
-    virtual mfxStatus GetOneFrame(mfxFrameSurface1* & pSurf);
-    virtual mfxStatus ResizeFrame(mfxU32 frameNum, mfxU16 picstruct);
+    mfxStatus GetOneFrame(mfxFrameSurface1* & pSurf);
+    mfxStatus ResizeFrame(mfxU32 frameNum, mfxU16 picstruct);
 
-    virtual mfxStatus PreProcessOneFrame(mfxFrameSurface1* & pSurf);
+    mfxStatus PreProcessOneFrame(mfxFrameSurface1* & pSurf);
 
-    virtual mfxStatus doGPUHangRecovery();
+    mfxStatus doGPUHangRecovery();
 
     void ClearDecoderBuffers();
     void ResetExtBuffers();
     mfxU16 GetCurPicType(mfxU32 fieldId);
 };
 
-PairU8 ExtendFrameType(mfxU32 type);
+inline PairU8 ExtendFrameType(mfxU32 type);
 
 #endif // __PIPELINE_FEI_H__

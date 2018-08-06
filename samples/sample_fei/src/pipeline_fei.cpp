@@ -754,7 +754,7 @@ void CEncodingPipeline::DeleteAllocator()
     DeleteHWDevice();
 }
 
-mfxStatus CEncodingPipeline::ResetIOFiles(const AppConfig & Config)
+mfxStatus CEncodingPipeline::ResetIOFiles()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -1606,7 +1606,7 @@ mfxStatus CEncodingPipeline::Run()
         if (sts == MFX_ERR_MORE_DATA && m_appCfg.nTimeout) // New cycle in loop mode
         {
             m_insertIDR = true;
-            sts = ResetIOFiles(m_appCfg);
+            sts = ResetIOFiles();
             MSDK_CHECK_STATUS(sts, "ResetIOFiles failed");
             continue;
         }
