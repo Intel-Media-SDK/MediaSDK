@@ -457,6 +457,17 @@ struct bufList
         buf_list.clear();
     }
 
+    void UnlockAll()
+    {
+        for (auto pBuffer : buf_list)
+        {
+            if (pBuffer)
+            {
+                pBuffer->vacant = true;
+            }
+        }
+    }
+
     bufSet* GetFreeSet()
     {
         for (std::list<bufSet*>::iterator it = buf_list.begin(); it != buf_list.end(); ++it){

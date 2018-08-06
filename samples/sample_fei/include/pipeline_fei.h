@@ -135,6 +135,8 @@ protected:
 
     bool m_bParametersAdjusted;
 
+    bool m_bRecoverDeviceFailWithInputReset; // If true reset input files pointers to beginning during recovery after DEVICE_FAILED error
+
     CHWDevice *m_hwdev;
 
     SurfStrategy m_surfPoolStrategy; // strategy to pick surfaces from pool
@@ -178,7 +180,7 @@ protected:
     virtual mfxStatus doGPUHangRecovery();
 
     void ClearDecoderBuffers();
-    mfxStatus ResetBuffers();
+    void ResetExtBuffers();
     mfxU16 GetCurPicType(mfxU32 fieldId);
 };
 
