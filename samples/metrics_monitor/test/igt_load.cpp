@@ -27,10 +27,10 @@
 /* Source file content was taken from Intel GPU Tools */
 
 #include "igt_load.h"
-#include <libio.h>
 #include <errno.h>
 #include <time.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
