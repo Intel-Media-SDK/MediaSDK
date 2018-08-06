@@ -601,6 +601,29 @@ void _mfxSession::Clear(void)
 
 void _mfxSession::Cleanup(void)
 {
+    // wait until all task are processed
+    if (m_pScheduler)
+    {
+        if (m_plgGen.get())
+            m_pScheduler->WaitForTaskCompletion(m_plgGen.get());
+        if (m_plgDec.get())
+            m_pScheduler->WaitForTaskCompletion(m_plgDec.get());
+        if (m_pDECODE.get())
+            m_pScheduler->WaitForTaskCompletion(m_pDECODE.get());
+        if (m_plgVPP.get())
+            m_pScheduler->WaitForTaskCompletion(m_plgVPP.get());
+        if (m_pVPP.get())
+            m_pScheduler->WaitForTaskCompletion(m_pVPP.get());
+        if (m_pENC.get())
+            m_pScheduler->WaitForTaskCompletion(m_pENC.get());
+        if (m_pPAK.get())
+            m_pScheduler->WaitForTaskCompletion(m_pPAK.get());
+        if (m_plgEnc.get())
+            m_pScheduler->WaitForTaskCompletion(m_plgEnc.get());
+        if (m_pENCODE.get())
+            m_pScheduler->WaitForTaskCompletion(m_pENCODE.get());
+    }
+
     // unregister plugin before closing
     if (m_plgGen.get())
     {
