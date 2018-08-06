@@ -169,7 +169,6 @@ vm_status vm_semaphore_timedwait(vm_semaphore *sem, uint32_t msec)
 vm_status vm_semaphore_wait(vm_semaphore *sem)
 {
     vm_status umc_status = VM_NOT_INITIALIZED;
-    int32_t i_res = 0;
 
     /* check error(s) */
     if (NULL == sem)

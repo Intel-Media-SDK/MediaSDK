@@ -401,9 +401,6 @@ namespace UMC
 
         AutomaticMutex l(m_SyncMutex);
 
-        VAStatus va_res;
-        VAImage image;
-
         for (int i = 0; i < 2; ++i)
         {
             VAStreamOutBuffer* streamOut = QueryStreamOutBuffer(index, i);
