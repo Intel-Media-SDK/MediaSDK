@@ -44,6 +44,45 @@
 #include "mfx_vpp_interface.h"
 #endif
 
+//helper struct, it is help convert linux GUIDs to VAProfile and VAEntrypoint
+struct VaGuidMapper
+{
+    VAProfile profile;
+    VAEntrypoint entrypoint;
+
+    VaGuidMapper(VAProfile prf, VAEntrypoint ntr){
+        profile    = prf;
+        entrypoint = ntr;
+    }
+
+    VaGuidMapper(int prf, int ntr)
+    {
+        profile    = static_cast<VAProfile>    (prf);
+        entrypoint = static_cast<VAEntrypoint> (ntr);
+    }
+
+    VaGuidMapper(GUID guid)
+    {
+        profile    = static_cast<VAProfile>    (guid.Data1);
+        entrypoint = static_cast<VAEntrypoint> ((guid.Data2 << 16) + guid.Data3);
+    }
+
+    operator GUID() const
+    {
+        GUID res = { (unsigned long)  profile,
+                     (unsigned short) (entrypoint >> 16),
+                     (unsigned short) (entrypoint & 0xffff),
+                     {} };
+
+        static_assert( sizeof(res.Data1) >= sizeof(VAProfile),
+            "Error! Can't store data profile in guid.data1 (unsigned long).");
+        static_assert((sizeof(res.Data2) + sizeof(res.Data3)) >= sizeof(VAEntrypoint),
+            "Error! Can't store data entrypoint in guid.data2 (unsigned short) and guid.data3 (unsigned short).");
+
+        return res;
+    }
+};
+
 class CmCopyWrapper;
 
 // disable the "conditional expression is constant" warning

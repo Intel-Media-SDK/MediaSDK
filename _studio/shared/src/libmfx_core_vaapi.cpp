@@ -275,7 +275,7 @@ typedef struct {
     { 0x8A5A, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A5B, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 } 
+    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 }
 
  };
 
@@ -1243,58 +1243,65 @@ void VAAPIVideoCORE::ReleaseHandle()
 
 } // void VAAPIVideoCORE::ReleaseHandle()
 
-mfxStatus VAAPIVideoCORE::IsGuidSupported(const GUID /*guid*/,
-                                         mfxVideoParam *par, bool isEncoder)
+//function checks profile and entrypoint and video resolution support
+//On linux specific function!
+mfxStatus VAAPIVideoCORE::IsGuidSupported(const GUID guid,
+                                         mfxVideoParam *par, bool /* isEncoder */)
 {
-    (void)isEncoder;
+    MFX_CHECK(par, MFX_WRN_PARTIAL_ACCELERATION);
+    MFX_CHECK(!IsMVCProfile(par->mfx.CodecProfile), MFX_WRN_PARTIAL_ACCELERATION);
 
-    if (!par)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+    MFX_CHECK(m_Display, MFX_ERR_DEVICE_FAILED);
 
-    if (IsMVCProfile(par->mfx.CodecProfile))
-        return MFX_WRN_PARTIAL_ACCELERATION;
+    VaGuidMapper mapper(guid);
+    VAProfile req_profile = mapper.profile;
+    VAEntrypoint req_entrypoint = mapper.entrypoint;
+    mfxI32 va_max_num_entrypoints = vaMaxNumEntrypoints(m_Display);
+    mfxI32 va_max_num_profiles = vaMaxNumProfiles(m_Display);
+    MFX_CHECK_COND(va_max_num_entrypoints && va_max_num_profiles);
 
-    switch (par->mfx.CodecId)
+    //driver always support VAProfileNone
+    if (req_profile != VAProfileNone)
     {
-    case MFX_CODEC_VC1:
-        break;
-    case MFX_CODEC_AVC:
-        break;
-    case MFX_CODEC_HEVC:
-        if (m_HWType < MFX_HW_HSW)
-            return MFX_WRN_PARTIAL_ACCELERATION;
-        if (par->mfx.FrameInfo.Width > 8192 || par->mfx.FrameInfo.Height > 8192)
-            return MFX_WRN_PARTIAL_ACCELERATION;
-        break;
-    case MFX_CODEC_MPEG2:
-        if (par->mfx.FrameInfo.Width  > 2048 || par->mfx.FrameInfo.Height > 2048) //MPEG2 decoder doesn't support resolution bigger than 2K
-            return MFX_WRN_PARTIAL_ACCELERATION;
-        break;
-    case MFX_CODEC_JPEG:
-        if (par->mfx.FrameInfo.Width > 8192 || par->mfx.FrameInfo.Height > 8192)
-            return MFX_WRN_PARTIAL_ACCELERATION;
-        break;
-    case MFX_CODEC_VP8:
-        if (m_HWType < MFX_HW_BDW)
-            return MFX_ERR_UNSUPPORTED;
-    case MFX_CODEC_VP9:
-        break;
-    default:
-        return MFX_ERR_UNSUPPORTED;
+        vector <VAProfile> va_profiles (va_max_num_profiles, VAProfileNone);
+
+        //ask driver about profile support
+        VAStatus va_sts = vaQueryConfigProfiles(m_Display,
+                            va_profiles.data(), &va_max_num_profiles);
+        MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
+
+        //check profile support
+        auto it_profile = find(va_profiles.begin(), va_profiles.end(), req_profile);
+        MFX_CHECK(it_profile != va_profiles.end(), MFX_ERR_UNSUPPORTED);
     }
 
-    if (MFX_HW_SNB == m_HWType)
-    {
-        if (par->mfx.FrameInfo.Width > 1920 || par->mfx.FrameInfo.Height > 1200)
-            return MFX_WRN_PARTIAL_ACCELERATION;
-    }
-    else
-    {
-        if (MFX_CODEC_JPEG != par->mfx.CodecId &&
-            MFX_CODEC_HEVC != par->mfx.CodecId &&
-        (par->mfx.FrameInfo.Width > 4096 || par->mfx.FrameInfo.Height > 4096))
-            return MFX_WRN_PARTIAL_ACCELERATION;
-    }
+    vector <VAEntrypoint> va_entrypoints (va_max_num_entrypoints, static_cast<VAEntrypoint> (0));
+
+    //ask driver about entrypoint support
+    VAStatus va_sts = vaQueryConfigEntrypoints(m_Display, req_profile,
+                    va_entrypoints.data(), &va_max_num_entrypoints);
+    MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
+
+    //check entrypoint support
+    auto it_entrypoint = find(va_entrypoints.begin(), va_entrypoints.end(), req_entrypoint);
+    MFX_CHECK(it_entrypoint != va_entrypoints.end(), MFX_ERR_UNSUPPORTED);
+
+    VAConfigAttrib attr[] = {{VAConfigAttribMaxPictureWidth,  0},
+                             {VAConfigAttribMaxPictureHeight, 0}};
+
+    //ask driver about support
+    va_sts = vaGetConfigAttributes(m_Display, mapper.profile,
+                                   mapper.entrypoint,
+                                   attr, sizeof(attr)/sizeof(*attr));
+
+    MFX_CHECK(va_sts == VA_STATUS_SUCCESS, MFX_ERR_UNSUPPORTED);
+
+    //check resolution video
+    MFX_CHECK(attr[0].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(attr[1].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK_COND(attr[0].value && attr[1].value);
+    MFX_CHECK(attr[0].value >= par->mfx.FrameInfo.Width, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(attr[1].value >= par->mfx.FrameInfo.Height, MFX_ERR_UNSUPPORTED);
 
     return MFX_ERR_NONE;
 }
