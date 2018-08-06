@@ -68,7 +68,7 @@ mfxTraceU32 mfx_trace_get_value_pos(FILE* file,
                                     char* line, mfxTraceU32 line_size,
                                     char** value_pos)
 {
-    char *str = NULL, *p = NULL;
+    char *str = NULL;
     mfxTraceU32 n = 0;
     bool bFound = false;
 
