@@ -51,15 +51,6 @@
 
     #define UMC_ENABLE_UMC_SCENE_ANALYZER
 
-    // audio decoders
-    #define UMC_ENABLE_AAC_AUDIO_DECODER
-    #define UMC_ENABLE_MP3_AUDIO_DECODER
-
-    // audio encoders
-    #define UMC_ENABLE_AAC_AUDIO_ENCODER
-    //#define UMC_ENABLE_AC3_AUDIO_ENCODER
-    //#define UMC_ENABLE_MP3_AUDIO_ENCODER
-
 #endif // Linux on IA32
 
 /*
