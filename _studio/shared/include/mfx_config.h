@@ -22,6 +22,11 @@
 #define _MFX_CONFIG_H_
 
 #include "mfxdefs.h"
+#if !defined(ANDROID)
+    // mfxconfig.h is auto-generated file containing mediasdk per-component
+    // enable defines
+    #include "mfxconfig.h"
+#endif
 
 #define CMAPIUPDATE
 #define MFX_ENABLE_VPP_COMPOSITION
