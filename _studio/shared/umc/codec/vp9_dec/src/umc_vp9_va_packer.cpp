@@ -20,7 +20,7 @@
 
 #include "umc_vp9_dec_defs.h"
 
-#ifdef UMC_ENABLE_VP9_VIDEO_DECODER
+#ifdef MFX_ENABLE_VP9_VIDEO_DECODE
 
 #include "umc_vp9_va_packer.h"
 #include "umc_vp9_bitstream.h"
@@ -208,4 +208,4 @@ void PackerVA::PackSliceParams(VASliceParameterBufferVP9* sliceParam, VP9Decoder
 
 } // namespace UMC_HEVC_DECODER
 
-#endif // UMC_ENABLE_VP9_VIDEO_DECODER
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE

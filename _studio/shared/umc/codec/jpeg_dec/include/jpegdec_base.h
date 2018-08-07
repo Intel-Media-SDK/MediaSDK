@@ -22,7 +22,7 @@
 #define __JPEGDEC_BASE_H__
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "jpegbase.h"
 #include "decqtbl.h"
 #include "dechtbl.h"
@@ -146,5 +146,5 @@ public:
   JERRCODE DetectSampling(void);
 };
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
 #endif // __JPEGDEC_BASE_H__

@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #ifndef __UMC_H265_DEC_DEFS_DEC_H__
 #define __UMC_H265_DEC_DEFS_DEC_H__
@@ -1467,4 +1467,4 @@ inline size_t CalculateSuggestedSize(const H265SeqParamSet * sps)
 } // end namespace UMC_HEVC_DECODER
 
 #endif // H265_GLOBAL_ROM_H
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

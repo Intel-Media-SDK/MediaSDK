@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #ifndef __UMC_H264_DEC_DEFS_DEC_H__
 #define __UMC_H264_DEC_DEFS_DEC_H__
@@ -1337,4 +1337,4 @@ extern const uint32_t SubHeightC[4];
 
 
 #endif // __UMC_H264_DEC_DEFS_DEC_H__
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

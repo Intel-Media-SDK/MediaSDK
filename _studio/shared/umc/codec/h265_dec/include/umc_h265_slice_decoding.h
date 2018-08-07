@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #ifndef __UMC_H265_SLICE_DECODING_H
 #define __UMC_H265_SLICE_DECODING_H
@@ -247,4 +247,4 @@ bool IsSubLayerNonReference(int32_t nal_unit_type)
 } // namespace UMC_HEVC_DECODER
 
 #endif // __UMC_H265_SLICE_DECODING_H
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE
