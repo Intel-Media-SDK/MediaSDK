@@ -423,14 +423,16 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     }
 #endif
 
-    /* NB! The code below should to be replaced with querying caps from driver*/
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-    caps.uMaxWidth  = 8192;
-    caps.uMaxHeight = 8192;
-#else
-    caps.uMaxWidth  = 4096;
-    caps.uMaxHeight = 4096;
-#endif
+    VAAPIVideoCORE *hwCore = dynamic_cast<VAAPIVideoCORE *>(m_core);
+    MFX_CHECK_NULL_PTR1(hwCore);
+    eMFXHWType hwType = hwCore->GetHWType();
+    if (MFX_HW_APL == hwType) {
+        caps.uMaxWidth = 8192;
+        caps.uMaxHeight = 8192;
+    } else {
+        caps.uMaxWidth = 4096;
+        caps.uMaxHeight = 4096;
+    }
 
     caps.uFieldWeavingControl = 1;
 
