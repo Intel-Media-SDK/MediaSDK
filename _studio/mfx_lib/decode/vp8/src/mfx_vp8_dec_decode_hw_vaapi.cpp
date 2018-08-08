@@ -221,6 +221,8 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
          picParams->mv_probs[1][i] = m_frameProbs.mvContexts[1][i];
      }
 
+     // Note that va says that count is a number of remained bits in value,
+     // but in fact when count is 0 it does need next byte in value. That is what we have.
      picParams->bool_coder_ctx.range = m_boolDecoder[VP8_FIRST_PARTITION].range();
      picParams->bool_coder_ctx.value = (m_boolDecoder[VP8_FIRST_PARTITION].value() >> 24) & 0xff;
      picParams->bool_coder_ctx.count = m_boolDecoder[VP8_FIRST_PARTITION].bitcount() & 0x7;
