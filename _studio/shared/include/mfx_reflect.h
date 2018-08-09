@@ -17,7 +17,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 #pragma once
+
+#include "mfx_config.h"
+#include "mfx_trace.h"
+
+#if defined(MFX_TRACE_ENABLE_REFLECT)
 
 #include <memory>
 #include <string>
@@ -26,7 +32,6 @@
 #include <vector>
 #include <map>
 #include <stdexcept>
-#include "mfx_config.h"
 
 #include <typeindex>
 
@@ -249,6 +254,8 @@ namespace mfx_reflect
                 return AccessorType(p, *pType);
             }
         }
+
+        static void Initialize();
     };
 
     class TypeComparisonResult;
@@ -280,4 +287,8 @@ namespace mfx_reflect
     std::ostream& operator<< (std::ostream& stream, AccessorType data);
 
     template <class T> ReflectedType::SP DeclareTypeT(ReflectedTypesCollection& collection, const std::string typeName);
-}
+
+    mfx_reflect::AccessibleTypesCollection GetReflection();
+} // namespace mfx_reflect
+
+#endif // #if defined(MFX_TRACE_ENABLE_REFLECT)
