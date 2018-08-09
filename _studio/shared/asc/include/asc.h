@@ -20,6 +20,8 @@
 #ifndef _ASC_H_
 #define _ASC_H_
 
+#include <list>
+#include <map>
 #include <string>
 #include "asc_structures.h"
 
