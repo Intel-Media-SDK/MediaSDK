@@ -74,15 +74,6 @@ static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAParam = {
     { DXVA2_Intel_LowpowerEncode_HEVC_Main422_10,     VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main444,        VAParameters(VAProfileHEVCMain444,    VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main444_10,     VAParameters(VAProfileHEVCMain444_10, VAEntrypointEncSliceLP)},
-#ifdef PRE_SI_TARGET_PLATFORM_GEN12
-    { DXVA2_Intel_Encode_HEVC_Main12,                 VAParameters(VAProfileHEVCMain12,     VAEntrypointEncSlice)},
-    { DXVA2_Intel_Encode_HEVC_Main422_12,             VAParameters(VAProfileHEVCMain422_12, VAEntrypointEncSlice)},
-    { DXVA2_Intel_Encode_HEVC_Main444_12,             VAParameters(VAProfileHEVCMain444_12, VAEntrypointEncSlice)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main,       VAParameters(VAProfileHEVCSccMain,    VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main10,     VAParameters(VAProfileHEVCSccMain10,  VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444,    VAParameters(VAProfileHEVCSccMain444, VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_SCC_Main444_10, VAParameters(VAProfileNone,           VAEntrypointEncSliceLP)} // Unsupported by VA
-#endif
 };
 
 static mfxStatus SetROI(
