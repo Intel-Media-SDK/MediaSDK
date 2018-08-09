@@ -18,12 +18,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set( BUILD_SAMPLES OFF )
-set( BUILD_TOOLS OFF )
-
-set( MFX_ENABLE_KERNELS OFF )
-
-set( MFX_ENABLE_USER_DECODE OFF )
-set( MFX_ENABLE_USER_ENCODE OFF )
-set( MFX_ENABLE_USER_ENC OFF )
-set( MFX_ENABLE_USER_VPP OFF )
+add_subdirectory(sample_common)
+add_subdirectory(sample_decode)
+add_subdirectory(sample_encode)
+add_subdirectory(sample_fei)
+add_subdirectory(sample_hevc_fei)
+add_subdirectory(sample_hevc_fei_abr)
+add_subdirectory(sample_vpp)
+add_subdirectory(sample_multi_transcode)
+add_subdirectory(sample_misc/wayland)
+add_subdirectory(sample_plugins/rotate_cpu)
+add_subdirectory(sample_plugins/rotate_opencl)
+add_subdirectory(sample_plugins/vpp_plugin)
+add_subdirectory(metrics_monitor)
