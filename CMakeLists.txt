@@ -21,6 +21,8 @@
 cmake_minimum_required( VERSION 2.8.5 )
 project( mediasdk )
 
+include(CMakeDependentOption)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Default to `release` build if nothing was specified
@@ -47,7 +49,10 @@ endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
 
-option( BUILD_TOOLS "Build tools?" OFF )
+option( BUILD_SAMPLES "Build samples?" ON )
+# Tools depend on samples (sample_common) and can't be built without it. The
+# following BUILD_TOOLS option declaration assures that.
+cmake_dependent_option(BUILD_TOOLS "Build tools?" OFF "BUILD_SAMPLES" OFF)
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
@@ -64,7 +69,11 @@ if (BUILD_TOOLS)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
 endif()
 
-foreach( dir api contrib _studio samples )
+if (BUILD_SAMPLES)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/samples)
+endif()
+
+foreach( dir api contrib _studio )
   set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
   create_build()
 endforeach()
@@ -120,5 +129,6 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
 endif()
 message("  ENABLE_ITT                              : ${ENABLE_ITT}")
 message("Build:")
+message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("*****************************************************************************")
