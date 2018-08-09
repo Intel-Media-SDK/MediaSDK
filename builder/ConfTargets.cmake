@@ -72,5 +72,10 @@ if (DEFINED MFX_CONFIG_FILE)
     include(${MFX_CONFIG_FILE})
 endif()
 
+option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
+option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
+option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
+option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
+
 configure_file(mfxconfig.h.in mfxconfig.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
