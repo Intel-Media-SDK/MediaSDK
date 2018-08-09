@@ -49,6 +49,7 @@ endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
 
+option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
 option( BUILD_SAMPLES "Build samples?" ON )
 # Tools depend on samples (sample_common) and can't be built without it. The
 # following BUILD_TOOLS option declaration assures that.
@@ -73,7 +74,12 @@ if (BUILD_SAMPLES)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/samples)
 endif()
 
-foreach( dir api contrib _studio )
+if (BUILD_RUNTIME)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/SafeStringStaticLibrary/)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
+endif()
+
+foreach( dir api )
   set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
   create_build()
 endforeach()
@@ -129,6 +135,7 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
 endif()
 message("  ENABLE_ITT                              : ${ENABLE_ITT}")
 message("Build:")
+message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("*****************************************************************************")
