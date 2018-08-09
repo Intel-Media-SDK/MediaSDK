@@ -24,8 +24,9 @@
 #if defined(MFX_VA_LINUX) && defined(MFX_ENABLE_MFE)
 #include <va/va.h>
 #include <vaapi_ext_interface.h>
-#include <vector>
+#include <map>
 #include <list>
+#include <vector>
 #include "vm_mutex.h"
 #include "vm_cond.h"
 #include "vm_time.h"

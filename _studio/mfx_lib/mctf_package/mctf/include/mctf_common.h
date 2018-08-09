@@ -17,10 +17,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 #pragma once
-#ifndef _MCTF_COMMON_H_
-#define _MCTF_COMMON_H_
+
+#include <vector>
 #include "mfx_common.h"
+
 #ifndef MFX_ENABLE_MCTF_EXT
 // all internal logic is based on these constants
 // if they are not defined, the logic of all checks,
@@ -744,5 +746,3 @@ public:
 
     bool MCTF_ReadyToOutut() { return (AMCTF_READY == MctfState); };
 };
-
-#endif //_MCTF_COMMON_H_
