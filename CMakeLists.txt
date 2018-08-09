@@ -79,10 +79,7 @@ if (BUILD_RUNTIME)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
-foreach( dir api )
-  set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
-  create_build()
-endforeach()
+add_subdirectory(api/opensource/mfx_dispatch)
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
 

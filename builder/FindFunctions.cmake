@@ -49,17 +49,6 @@ function( append what where )
 endfunction()
 
 # .....................................................
-function( create_build )
-  file( GLOB_RECURSE components "${CMAKE_SOURCE_DIR}/*/CMakeLists.txt" )
-  foreach( component ${components} )
-    get_filename_component( path ${component} PATH )
-    if(NOT path MATCHES ".*/deprecated/.*")
-      add_subdirectory( ${path} )
-    endif()
-  endforeach()
-endfunction()
-
-# .....................................................
 function( get_source include sources)
   file( GLOB_RECURSE include "[^.]*.h" )
   file( GLOB_RECURSE sources "[^.]*.c" "[^.]*.cpp" )
