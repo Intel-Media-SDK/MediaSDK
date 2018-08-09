@@ -1300,12 +1300,21 @@ mfxStatus RunPipeline(CEncodingPipeline * pPipeline, mfxU32 session_id)
     mfxStatus sts = MFX_ERR_NONE;
     msdk_tick frequency = msdk_time_get_frequency();
     msdk_tick sessionStartTime = msdk_time_get_tick();
+
+    mfxU32 num_reset_times = 0, num_reset_limit = 20;
     for (;;)
     {
         sts = pPipeline->Run();
 
         if (MFX_ERR_DEVICE_LOST == sts || MFX_ERR_DEVICE_FAILED == sts)
         {
+            // Close application if HW device wasn't recovered after several attempts
+            if (++num_reset_times == num_reset_limit)
+            {
+                msdk_printf(MSDK_STRING("\nERROR: Too many errors from device, there were %d attempts to reset. Application terminated to prevent infinite recovery loop\n"), num_reset_limit);
+                return sts;
+            }
+
             msdk_printf(MSDK_STRING("\nERROR: Hardware device was lost or returned an unexpected error. Recovering...\n"));
             sts = pPipeline->ResetDevice();
             MSDK_CHECK_STATUS(sts, "pPipeline->ResetDevice failed");
