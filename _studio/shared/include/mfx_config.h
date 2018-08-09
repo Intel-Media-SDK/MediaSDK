@@ -115,12 +115,6 @@
 
         // H265 FEI plugin
 
-        // user plugin for decoder, encoder, and vpp
-        #define MFX_ENABLE_USER_DECODE
-        #define MFX_ENABLE_USER_ENCODE
-        #define MFX_ENABLE_USER_ENC
-        #define MFX_ENABLE_USER_VPP
-
         // aac
         #define MFX_ENABLE_AAC_AUDIO_DECODE
 
@@ -158,8 +152,6 @@
         #undef MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
         #undef MFX_ENABLE_H264_VIDEO_ENCODE_HW
         #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE_HW
-        #undef MFX_ENABLE_USER_DECODE
-        #undef MFX_ENABLE_USER_ENCODE
         #undef MFX_ENABLE_AAC_AUDIO_DECODE
         #undef MFX_ENABLE_MP3_AUDIO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
