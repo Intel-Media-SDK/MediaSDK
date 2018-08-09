@@ -164,7 +164,6 @@ endif()
 
 set( LIBS "" )
 list( APPEND LIBS
-  mfx_trace_hw
   bitrate_control
   h264_dec_hw
   h265_dec_hw

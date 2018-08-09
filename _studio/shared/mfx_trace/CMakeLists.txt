@@ -29,5 +29,4 @@ list( APPEND sources ${srcs})
 
 set( defs "" )
 make_library( mfx_trace none static )
-make_library( mfx_trace hw static )
 set( defs "" )
