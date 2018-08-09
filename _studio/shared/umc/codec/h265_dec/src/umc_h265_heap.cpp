@@ -334,48 +334,5 @@ void RefCounter::DecrementReference()
     }
 }
 
-// Allocate several arrays inside of one memory buffer
-uint8_t * CumulativeArraysAllocation(int n, int align, ...)
-{
-    va_list args;
-    va_start(args, align);
-
-    int cumulativeSize = 0;
-    for (int i = 0; i < n; i++)
-    {
-        void * ptr = va_arg(args, void *);
-        ptr; // just skip it
-
-        int currSize = va_arg(args, int);
-        cumulativeSize += currSize;
-    }
-
-    va_end(args);
-
-    uint8_t *cumulativePtr = h265_new_array_throw<uint8_t>(cumulativeSize + align*n);
-    uint8_t *cumulativePtrSaved = cumulativePtr;
-
-    va_start(args, align);
-
-    for (int i = 0; i < n; i++)
-    {
-        void ** ptr = va_arg(args, void **);
-        
-        *ptr = align ? UMC::align_pointer<void*> (cumulativePtr, align) : cumulativePtr;
-
-        int currSize = va_arg(args, int);
-        cumulativePtr = (uint8_t*)*ptr + currSize;
-    }
-
-    va_end(args);
-    return cumulativePtrSaved;
-}
-
-// Free memory allocated by CumulativeArraysAllocation
-void CumulativeFree(uint8_t * ptr)
-{
-    delete[] ptr;
-}
-
 } // namespace UMC_HEVC_DECODER
 #endif // UMC_ENABLE_H265_VIDEO_DECODER

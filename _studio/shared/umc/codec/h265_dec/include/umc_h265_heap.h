@@ -31,12 +31,6 @@
 
 namespace UMC_HEVC_DECODER
 {
-
-// Allocate several arrays inside of one memory buffer
-uint8_t * CumulativeArraysAllocation(int n, int align, ...);
-// Free memory allocated by CumulativeArraysAllocation
-void CumulativeFree(uint8_t * ptr);
-
 //*********************************************************************************************/
 // Memory buffer container class
 //*********************************************************************************************/

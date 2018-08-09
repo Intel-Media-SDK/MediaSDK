@@ -77,13 +77,13 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 
 #if defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
     case MFX_CODEC_MPEG2:
-        pENCODE = new MFXVideoENCODEMPEG2_HW(core, &mfxRes);
+            pENCODE = new MFXVideoENCODEMPEG2_HW(core, &mfxRes);
         break;
 #endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
     case MFX_CODEC_JPEG:
-        pENCODE = new MFXVideoENCODEMJPEG_HW(core, &mfxRes);
+            pENCODE = new MFXVideoENCODEMJPEG_HW(core, &mfxRes);
         break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
@@ -398,7 +398,7 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
         }
 
         mfxRes = session->m_pENCODE->Init(par);
-    }
+        }
     // handle error(s)
     catch(MFX_CORE_CATCH_TYPE)
     {
@@ -704,8 +704,8 @@ mfxStatus MFXVideoENCODE_Reset(mfxSession session, mfxVideoParam *par)
             session->m_pScheduler->WaitForTaskCompletion(session->m_pENCODE.get());
             /* call the codec's method */
             mfxRes = session->m_pENCODE->Reset(par);
+            }
         }
-    }
     /* handle error(s) */
     catch(MFX_CORE_CATCH_TYPE)
     {
