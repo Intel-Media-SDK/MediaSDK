@@ -20,6 +20,8 @@
 
 #include "mfx_reflect.h"
 
+#if defined(MFX_TRACE_ENABLE_REFLECT)
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -40,19 +42,32 @@
 #include "mfxfeihevc.h"
 #endif
 
-
-#if (MFX_VERSION >= 1025)
 #include "ts_typedef.h"
-
 
 #include <memory>
 
 namespace mfx_reflect
 {
+    static AccessibleTypesCollection g_Reflection;
+
+    AccessibleTypesCollection GetReflection()
+    {
+        return g_Reflection;
+    }
+
+    void AccessibleTypesCollection::Initialize()
+    {
+        if (!g_Reflection.m_bIsInitialized)
+        {
+            g_Reflection.DeclareMsdkStructs();
+            g_Reflection.m_bIsInitialized = true;
+        }
+    }
+
     template<class T>
-    struct mfx_ext_buffer_id {
-        enum { id = 0 };
-    };
+      struct mfx_ext_buffer_id {
+          enum { id = 0 };
+      };
 
 #define EXTBUF(STRUCT, ID)                               \
         template<>struct mfx_ext_buffer_id<STRUCT> {     \
@@ -549,4 +564,4 @@ namespace mfx_reflect
     }
 }
 
-#endif
+#endif // #if defined(MFX_TRACE_ENABLE_REFLECT)

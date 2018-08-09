@@ -231,15 +231,15 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         mfxRes = MFX_ERR_UNSUPPORTED;
     }
 
-#if (MFX_VERSION >= 1025)
+#if defined(MFX_TRACE_ENABLE_REFLECT)
     if (mfxRes == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM || mfxRes == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
     {
         try
         {
-            mfx_reflect::AccessibleTypesCollection g_Reflection = GetReflection();
-            if (g_Reflection.m_bIsInitialized)
+            mfx_reflect::AccessibleTypesCollection reflection = mfx_reflect::GetReflection();
+            if (reflection.m_bIsInitialized)
             {
-                std::string result = mfx_reflect::CompareStructsToString(g_Reflection.Access(in), g_Reflection.Access(out));
+                std::string result = mfx_reflect::CompareStructsToString(reflection.Access(in), reflection.Access(out));
                 MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, result.c_str())
             }  
         }
