@@ -38,6 +38,17 @@
 #include <string.h>
 
 typedef struct {
+
+    size_t GetHashCode() const
+    {
+        size_t hash = 0;
+        for (unsigned short i = 0; i < sizeof(*this) / (sizeof(size_t)); ++i)
+        {
+            hash |= i%2? *(reinterpret_cast<const size_t * >(this) + i) : (hash & *(reinterpret_cast<const size_t * >(this) + i));
+        }
+        return hash;
+    }
+
     unsigned long  Data1;
     unsigned short Data2;
     unsigned short Data3;
