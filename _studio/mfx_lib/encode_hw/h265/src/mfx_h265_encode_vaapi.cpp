@@ -857,6 +857,11 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
             attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value & 0xffff;
         m_caps.MaxNum_Reference1 =
             (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value >>16) & 0xffff;
+
+        if(!m_caps.MaxNum_Reference1 || (m_caps.MaxNum_Reference1 > m_caps.MaxNum_Reference0))
+        {
+            m_caps.MaxNum_Reference1 = m_caps.MaxNum_Reference0;
+        }
     }
     else
     {
