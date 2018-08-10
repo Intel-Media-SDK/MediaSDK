@@ -22,7 +22,7 @@
 #define __MEMBUFFIN_H__
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "basestream.h"
 #include "basestreamin.h"
 
@@ -50,6 +50,6 @@ protected:
 
 };
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
 #endif // __MEMBUFFIN_H__
 
