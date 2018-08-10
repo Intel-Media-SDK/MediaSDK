@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #ifndef __UMC_H264_NAL_SPL_H
 #define __UMC_H264_NAL_SPL_H
@@ -192,4 +192,4 @@ protected:
 } // namespace UMC
 
 #endif // __UMC_H264_NAL_SPL_H
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE
