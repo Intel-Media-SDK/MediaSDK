@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #ifndef __UMC_VC1_DEC_FRAME_DESCR_VA_H_
 #define __UMC_VC1_DEC_FRAME_DESCR_VA_H_
@@ -1512,5 +1512,5 @@ namespace UMC
 #endif // #if defined(UMC_VA)
 
 #endif //__UMC_VC1_DEC_FRAME_DESCR_VA_H_
-#endif //UMC_ENABLE_VC1_VIDEO_DECODER
+#endif //MFX_ENABLE_VC1_VIDEO_DECODE
 

@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #ifndef __UMC_VC1_DEC_SEQ_H__
 #define __UMC_VC1_DEC_SEQ_H__
@@ -108,4 +108,4 @@ VC1Status EntryPointLayer(VC1Context* m_pContext);
 
 
 #endif //__umc_vc1_dec_seq_H__
-#endif //UMC_ENABLE_VC1_VIDEO_DECODER
+#endif //MFX_ENABLE_VC1_VIDEO_DECODE

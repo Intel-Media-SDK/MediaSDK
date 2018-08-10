@@ -35,7 +35,6 @@
 #if defined(LINUX32) && !defined(ANDROID)
 
     // video decoders
-    #define UMC_ENABLE_VC1_VIDEO_DECODER
     #define UMC_ENABLE_H265_VIDEO_DECODER
     #define UMC_ENABLE_MPEG2_VIDEO_DECODER
 
@@ -60,7 +59,6 @@
 #if defined(ANDROID)
 
     // video decoders
-    #define UMC_ENABLE_VC1_VIDEO_DECODER
     #define UMC_ENABLE_H265_VIDEO_DECODER
     #define UMC_ENABLE_MPEG2_VIDEO_DECODER
 
