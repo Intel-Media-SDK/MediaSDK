@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include <cstdarg>
 #include "umc_h264_task_broker.h"
@@ -419,4 +419,4 @@ bool TaskBroker::IsEnoughForStartDecoding(bool )
 }
 
 } // namespace UMC
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

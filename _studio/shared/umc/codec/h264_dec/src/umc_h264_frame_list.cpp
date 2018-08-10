@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include "umc_h264_frame_list.h"
 #include "umc_h264_dec_debug.h"
@@ -1251,4 +1251,4 @@ void H264DBPList::DebugPrint()
 
 
 } // end namespace UMC
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE
