@@ -32,11 +32,13 @@ extern "C"
 
 /*------------------------------------------------------------------------------*/
 
-mfxTraceU32 g_PrintfSuppress = MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME |
-                          MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM |
-                          MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL;
-FILE* g_mfxTracePrintfFile = NULL;
-mfxTraceChar g_mfxTracePrintfFileName[MAX_PATH] = MFT_TRACE_PATH_TO_TEMP_LIBLOG;
+static FILE* g_mfxTracePrintfFile = NULL;
+static mfxTraceChar g_mfxTracePrintfFileName[MAX_PATH] =
+    MFT_TRACE_PATH_TO_TEMP_LIBLOG;
+static mfxTraceU32 g_PrintfSuppress =
+    MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME |
+    MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM |
+    MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL;
 
 /*------------------------------------------------------------------------------*/
 
