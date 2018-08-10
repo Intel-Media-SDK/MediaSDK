@@ -108,6 +108,7 @@ void PrintHelp(const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-RefHeight height] - height of search region (should be multiple of 4), maximum allowed is 32\n"));
     msdk_printf(MSDK_STRING("   [-LenSP length]     - defines number of search units in search path. In range [1,63] (default is 57)\n"));
     msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full)\n"));
+    msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
     msdk_printf(MSDK_STRING("   [-ForceToIntra] - force CUs to be coded as intra using DSO information\n"));
     msdk_printf(MSDK_STRING("   [-ForceToInter] - force CUs to be coded as inter using DSO information\n"));
     msdk_printf(MSDK_STRING("   [-DrawMVP] - creates output YUV file with MVP overlay\n"));
@@ -249,13 +250,13 @@ void AdjustOptions(sInputParams& params)
         if (nMinRefFrame > params.nNumRef)
             params.nNumRef      = nMinRefFrame;
 
-        if (params.encodeCtrl.SearchWindow && (params.encodeCtrl.AdaptiveSearch || params.encodeCtrl.SearchPath
-            || params.encodeCtrl.LenSP || params.encodeCtrl.RefWidth || params.encodeCtrl.RefHeight))
+        if (params.encodeCtrl.SearchWindow && (params.encodeCtrl.SearchPath || params.encodeCtrl.LenSP
+                || params.encodeCtrl.RefWidth || params.encodeCtrl.RefHeight))
         {
             msdk_printf(MSDK_STRING("WARNING: SearchWindow is specified."));
-            msdk_printf(MSDK_STRING("LenSP, RefWidth, RefHeight, SearchPath and AdaptiveSearch will be ignored.\n"));
+            msdk_printf(MSDK_STRING("LenSP, RefWidth, RefHeight and SearchPath will be ignored.\n"));
             params.encodeCtrl.LenSP = params.encodeCtrl.SearchPath = params.encodeCtrl.RefWidth =
-                params.encodeCtrl.RefHeight = params.encodeCtrl.AdaptiveSearch = 0;
+                params.encodeCtrl.RefHeight = 0;
         }
         else if (!params.encodeCtrl.SearchWindow && (!params.encodeCtrl.LenSP || !params.encodeCtrl.RefWidth || !params.encodeCtrl.RefHeight))
         {
@@ -589,6 +590,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char* argv[])
         {
             CHECK_NEXT_VAL(i + 1 >= argc, argv[i]);
             PARSE_CHECK(msdk_opt_read(argv[++i], params.encodeCtrl.SearchPath), "SearchPath", isParseInvalid);
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AdaptiveSearch")))
+        {
+            params.encodeCtrl.AdaptiveSearch = 1;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-DisableQPOffset")))
         {
