@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_VP9_VIDEO_DECODER
+#ifdef MFX_ENABLE_VP9_VIDEO_DECODE
 
 #include "vm_debug.h"
 
@@ -217,4 +217,4 @@ void SetupLoopFilter(VP9Bitstream* bs, Loopfilter* filter)
 }
 
 } // namespace UMC_VP9_DECODER
-#endif // UMC_ENABLE_VP9_VIDEO_DECODER
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE
