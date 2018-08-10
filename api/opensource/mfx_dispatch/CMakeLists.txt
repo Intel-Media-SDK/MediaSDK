@@ -53,7 +53,7 @@ else( )
   include( GNUInstallDirs )
 
   if( NOT DEFINED MFX_PLUGINS_DIR )
-    set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_PREFIX}/plugins )
+    set( MFX_PLUGINS_DIR ${CMAKE_INSTALL_FULL_LIBDIR}/mfx )
   endif( )
   add_definitions( -DMFX_PLUGINS_DIR="${MFX_PLUGINS_DIR}" )
   message( STATUS "MFX_PLUGINS_DIR=${MFX_PLUGINS_DIR}" )

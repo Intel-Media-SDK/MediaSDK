@@ -2721,15 +2721,15 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
         uint8_t   layer_dependency_info_present_flag = (uint8_t)Get1Bit();
         uint8_t   parameter_sets_info_present_flag = (uint8_t)Get1Bit();
         uint8_t   bitstream_restriction_info_present_flag = (uint8_t)Get1Bit();
-        uint8_t   exact_inter_layer_pred_flag = (uint8_t)Get1Bit();
+        /*uint8_t   exact_inter_layer_pred_flag = (uint8_t)*/Get1Bit();
 
         if (sub_pic_layer_flag || iroi_division_info_present_flag)
         {
-            uint8_t   exact_sample_value_match_flag = (uint8_t)Get1Bit();
+            /*uint8_t   exact_sample_value_match_flag = (uint8_t)*/Get1Bit();
         }
 
         uint8_t   layer_conversion_flag = (uint8_t)Get1Bit();
-        uint8_t   layer_output_flag = (uint8_t)Get1Bit();
+        /*uint8_t   layer_output_flag = (uint8_t)*/Get1Bit();
 
         if (profile_level_info_present_flag)
         {
@@ -2738,10 +2738,10 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
 
         if (bitrate_info_present_flag)
         {
-            uint32_t  avg_bitrate = GetBits(16);
-            uint32_t  max_bitrate_layer = GetBits(16);
-            uint32_t  max_bitrate_layer_representation = GetBits(16);
-            uint32_t  max_bitrate_calc_window = GetBits(16);
+            /*uint32_t  avg_bitrate = */GetBits(16);
+            /*uint32_t  max_bitrate_layer = */GetBits(16);
+            /*uint32_t  max_bitrate_layer_representation = */GetBits(16);
+            /*uint32_t  max_bitrate_calc_window = */GetBits(16);
         }
 
         if (frm_rate_info_present_flag)
@@ -2758,20 +2758,20 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
 
         if (sub_region_layer_flag)
         {
-            uint32_t base_region_layer_id = GetVLCElement(false);
+            /*uint32_t base_region_layer_id = */GetVLCElement(false);
             uint8_t dynamic_rect_flag = (uint8_t)Get1Bit();
             if (!dynamic_rect_flag)
             {
-                uint32_t horizontal_offset = GetBits(16);
-                uint32_t vertical_offset = GetBits(16);
-                uint32_t region_width = GetBits(16);
-                uint32_t region_height = GetBits(16);
+                /*uint32_t horizontal_offset = */GetBits(16);
+                /*uint32_t vertical_offset = */GetBits(16);
+                /*uint32_t region_width = */GetBits(16);
+                /*uint32_t region_height = */GetBits(16);
             }
         }
 
         if(sub_pic_layer_flag)
         {
-            uint32_t roi_id = GetVLCElement(false);
+            /*uint32_t roi_id = */GetVLCElement(false);
         }
 
         if (iroi_division_info_present_flag)
@@ -2779,8 +2779,8 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
             uint8_t iroi_grid_flag = (uint8_t)Get1Bit();
             if (iroi_grid_flag)
             {
-                uint32_t grid_width_in_mbs_minus1 = GetVLCElement(false);
-                uint32_t grid_height_in_mbs_minus1 = GetVLCElement(false);
+                /*uint32_t grid_width_in_mbs_minus1 = */GetVLCElement(false);
+                /*uint32_t grid_height_in_mbs_minus1 = */GetVLCElement(false);
             } else {
                 int32_t num_rois_minus1 = GetVLCElement(false);
                 int32_t FrmSizeInMbs = layers[i].frm_height_in_mbs * layers[i].frm_width_in_mbs;
@@ -2789,9 +2789,9 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
                     throw h264_exception(UMC_ERR_INVALID_STREAM);
                 for (int32_t j = 0; j <= num_rois_minus1; j++)
                 {
-                    uint32_t first_mb_in_roi = GetVLCElement(false);
-                    uint32_t roi_width_in_mbs_minus1 = GetVLCElement(false);
-                    uint32_t roi_height_in_mbs_minus1 = GetVLCElement(false);
+                    /*uint32_t first_mb_in_roi = */GetVLCElement(false);
+                    /*uint32_t roi_width_in_mbs_minus1 = */GetVLCElement(false);
+                    /*uint32_t roi_height_in_mbs_minus1 = */GetVLCElement(false);
                 }
             }
         }
@@ -2820,49 +2820,49 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
                 throw h264_exception(UMC_ERR_INVALID_STREAM);
 
             for(int32_t j = 0; j <= num_seq_parameter_set_minus1; j++ )
-                uint32_t seq_parameter_set_id_delta = GetVLCElement(false);
+                /*uint32_t seq_parameter_set_id_delta = */GetVLCElement(false);
 
             int32_t num_subset_seq_parameter_set_minus1 = GetVLCElement(false);
             if (num_subset_seq_parameter_set_minus1 < 0 || num_subset_seq_parameter_set_minus1 > 32)
                 throw h264_exception(UMC_ERR_INVALID_STREAM);
 
             for(int32_t j = 0; j <= num_subset_seq_parameter_set_minus1; j++ )
-                uint32_t subset_seq_parameter_set_id_delta = GetVLCElement(false);
+                /*uint32_t subset_seq_parameter_set_id_delta = */GetVLCElement(false);
 
             int32_t num_pic_parameter_set_minus1 = GetVLCElement(false);
             if (num_pic_parameter_set_minus1 < 0 || num_pic_parameter_set_minus1 > 255)
                 throw h264_exception(UMC_ERR_INVALID_STREAM);
 
             for(int32_t j = 0; j <= num_pic_parameter_set_minus1; j++)
-                uint32_t pic_parameter_set_id_delta = GetVLCElement(false);
+                /*uint32_t pic_parameter_set_id_delta = */GetVLCElement(false);
         }
         else
         {
-            uint32_t parameter_sets_info_src_layer_id_delta = GetVLCElement(false);
+            /*uint32_t parameter_sets_info_src_layer_id_delta = */GetVLCElement(false);
         }
 
         if (bitstream_restriction_info_present_flag)
         {
-            uint8_t motion_vectors_over_pic_boundaries_flag = (uint8_t)Get1Bit();
-            uint32_t max_bytes_per_pic_denom = GetVLCElement(false);
-            uint32_t max_bits_per_mb_denom = GetVLCElement(false);
-            uint32_t log2_max_mv_length_horizontal = GetVLCElement(false);
-            uint32_t log2_max_mv_length_vertical = GetVLCElement(false);
-            uint32_t num_reorder_frames = GetVLCElement(false);
-            uint32_t max_dec_frame_buffering = GetVLCElement(false);
+            /*uint8_t motion_vectors_over_pic_boundaries_flag = (uint8_t)*/Get1Bit();
+            /*uint32_t max_bytes_per_pic_denom = */GetVLCElement(false);
+            /*uint32_t max_bits_per_mb_denom = */GetVLCElement(false);
+            /*uint32_t log2_max_mv_length_horizontal = */GetVLCElement(false);
+            /*uint32_t log2_max_mv_length_vertical = */GetVLCElement(false);
+            /*uint32_t num_reorder_frames = */GetVLCElement(false);
+            /*uint32_t max_dec_frame_buffering = */GetVLCElement(false);
         }
 
         if (layer_conversion_flag)
         {
-            uint32_t conversion_type_idc = GetVLCElement(false);
+            /*uint32_t conversion_type_idc = */GetVLCElement(false);
             for(uint32_t j = 0; j < 2; j++)
             {
                 uint8_t rewriting_info_flag = (uint8_t)Get1Bit();
                 if (rewriting_info_flag)
                 {
-                    uint32_t rewriting_profile_level_idc = GetBits(24);
-                    uint32_t rewriting_avg_bitrate = GetBits(16);
-                    uint32_t rewriting_max_bitrate = GetBits(16);
+                    /*uint32_t rewriting_profile_level_idc = */GetBits(24);
+                    /*uint32_t rewriting_avg_bitrate = */GetBits(16);
+                    /*uint32_t rewriting_max_bitrate = */GetBits(16);
                 }
             }
         }
@@ -2873,7 +2873,7 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
         uint32_t pr_num_dId_minus1 = GetVLCElement(false);
         for(uint32_t i = 0; i <= pr_num_dId_minus1; i++)
         {
-            uint32_t pr_dependency_id = GetBits(3);
+            /*uint32_t pr_dependency_id = */GetBits(3);
             int32_t pr_num_minus1 = GetVLCElement(false);
 
             if (pr_num_minus1 < 0 || pr_num_minus1 > 63)
@@ -2881,10 +2881,10 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
 
             for(int32_t j = 0; j <= pr_num_minus1; j++)
             {
-                uint32_t pr_id = GetVLCElement(false);
-                uint32_t pr_profile_level_idc = GetBits(24);
-                uint32_t pr_avg_bitrate = GetBits(16);
-                uint32_t pr_max_bitrate = GetBits(16);
+                /*uint32_t pr_id = */GetVLCElement(false);
+                /*uint32_t pr_profile_level_idc = */GetBits(24);
+                /*uint32_t pr_avg_bitrate = */GetBits(16);
+                /*uint32_t pr_max_bitrate = */GetBits(16);
             }
         }
     }

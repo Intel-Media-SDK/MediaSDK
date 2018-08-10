@@ -43,8 +43,6 @@
 
 using namespace MfxHwH264Encode;
 
-static char chFrameType[] = "?IP?B???";
-
 namespace MfxHwH264Encode
 {
     const mfxU32 NUM_CLOCK_TS[9] = { 1, 1, 1, 2, 2, 3, 3, 2, 3 };
@@ -1080,8 +1078,6 @@ namespace
 namespace MfxHwH264EncodeHW
 {
     mfxF64 const INTRA_QSTEP_COEFF  = 2.0;
-    mfxF64 const INTRA_MODE_BITCOST = 0.0;
-    mfxF64 const INTER_MODE_BITCOST = 0.0;
     mfxI32 const MAX_QP_CHANGE      = 2;
     mfxF64 const LOG2_64            = 3;
     mfxF64 const MIN_EST_RATE       = 0.3;
@@ -1095,8 +1091,6 @@ namespace MfxHwH264EncodeHW
         1.801, 1.796, 1.682, 1.549, 1.485, 1.439, 1.248, 1.221, 1.133, 1.045, 0.990, 0.987, 0.895,
         0.921, 0.891, 0.887, 0.896, 0.925, 0.917, 0.942, 0.964, 0.997, 1.035, 1.098, 1.170, 1.275
     };
-
-    mfxF64 const DEP_STRENTH        = 2.0;
 
     mfxU8 GetSkippedQp(MbData const & mb)
     {

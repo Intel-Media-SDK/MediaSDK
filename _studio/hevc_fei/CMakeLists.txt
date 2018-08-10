@@ -59,20 +59,17 @@ set(MFX_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/include )
 include_directories( ${MFX_ROOTDIR}/shared/include )
+include_directories( ${MFX_ROOTDIR}/mfx_lib/encode_hw/h265/include )
 include_directories( ${MFX_ROOTDIR}/mfx_lib/plugin/include )
 include_directories( ${MFX_ROOTDIR}/mfx_lib/scheduler/include )
 include_directories( ${MFX_ROOTDIR}/mfx_lib/cmrt_cross_platform/include )
-#include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/genx/include )
-#include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/genx/src )
 
 # =============================================================================
 
 set( sources "" )
 set( sources.plus "" )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../hevce_hw/h265/include )
-
-foreach( dir ${CMAKE_CURRENT_SOURCE_DIR}/../hevce_hw/h265/src )
+foreach( dir ${CMAKE_CURRENT_SOURCE_DIR}/../mfx_lib/encode_hw/h265/src )
   file( GLOB_RECURSE srcs "${dir}/*.c" "${dir}/*.cpp" )
   list( APPEND sources ${srcs})
 endforeach()
@@ -94,7 +91,6 @@ set( sources.plus "" )
 set( USE_STRICT_NAME TRUE )
 set(MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MFX_ROOTDIR}/mfx_lib/plugin/libmfxsw_plugin.map" )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../hevce_hw/h265/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/include )
 
 foreach( dir ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/src )

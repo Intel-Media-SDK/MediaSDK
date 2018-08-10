@@ -1141,7 +1141,6 @@ namespace UMC
             uint32_t* pFirstFieldStartCode = this->m_pContext->m_bitstream.pBitstream;
             uint32_t Offset = 0;
 
-            uint32_t RemBytesInSlice = 4;
             uint32_t PicHeaderSize = 0;
             uint8_t  Flag_03 = 0; //for search 00 00 03 on the end of pic header
 
@@ -1247,7 +1246,6 @@ namespace UMC
             VM_ASSERT(SliceSize<0x0FFFFFFF);
 
             {
-                uint32_t BytesAlreadyExecuted = 0;
                 this->m_pPacker.VC1PackBitStream(this->m_pContext,
                                             DataSize,
                                             p_CurOriginalData + Offset,
@@ -1351,7 +1349,6 @@ namespace UMC
                     slparams.MBStartRow = 0; //we should decode fields steb by steb
 
                     {
-                        uint32_t BytesAlreadyExecuted = 0;
                         this->m_pPacker.VC1PackBitStream(this->m_pContext, DataSize,
                                                     pOriginalData + *p_CurOriginalOffsets + Offset,SliceSize,
                                                     0, Flag_03);

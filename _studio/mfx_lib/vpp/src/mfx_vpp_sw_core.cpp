@@ -292,7 +292,6 @@ mfxStatus VideoVPPBase::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *ou
     //printf("\nVideoVPPBase::VppFrameCheck()\n"); fflush(stdout);
 
     mfxStatus sts = MFX_ERR_NONE;
-    mfxStatus stsReadinessPipeline = MFX_ERR_NONE; stsReadinessPipeline;
 
     /* [IN] */
     // it is end of stream procedure if(NULL == in)
@@ -306,9 +305,6 @@ mfxStatus VideoVPPBase::VppFrameCheck(mfxFrameSurface1 *in, mfxFrameSurface1 *ou
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-
-    // need for SW due to algorithm processing
-    mfxU16  realOutPicStruct = out->Info.PicStruct; realOutPicStruct;
 
     /* *************************************** */
     /*              check info                 */
