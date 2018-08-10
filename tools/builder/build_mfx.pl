@@ -137,7 +137,7 @@ sub get_cmake_gen_cmd {
     push @cmake_cmd_gen, "-DCMAKE_CXX_COMPILER:STRING=$config{'cxx'}"  if $config{'cxx'};
     push @cmake_cmd_gen, "-DCMAKE_TOOLCHAIN_FILE=$config{'toolchain'}" if $config{'toolchain'};
     push @cmake_cmd_gen, "-DCMAKE_INSTALL_PREFIX=$config{'prefix'} "   if $config{'prefix'};
-    push @cmake_cmd_gen, "-DENABLE_TOOLS=ON"                           if $config{'tools'} eq 'on';
+    push @cmake_cmd_gen, "-DBUILD_TOOLS=ON"                            if $config{'tools'} eq 'on';
 
     my $compile_flags = "";
 
