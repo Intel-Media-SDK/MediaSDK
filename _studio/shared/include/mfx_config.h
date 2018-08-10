@@ -82,11 +82,6 @@
 
         // H265 FEI plugin
 
-        // aac
-        #define MFX_ENABLE_AAC_AUDIO_DECODE
-
-        //mp3
-        #define MFX_ENABLE_MP3_AUDIO_DECODE
 
         // av1
 
