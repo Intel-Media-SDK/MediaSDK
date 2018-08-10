@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,69 +21,7 @@
 #ifndef __UMC_DEFS_H__
 #define __UMC_DEFS_H__
 
-// This file contains defines which switch on/off support of
-// codecs and renderers on application level
-/*
-// Windows
-*/
-
-/*
-// Linux on IA32
-*/
-
-#if defined(LINUX32) && !defined(ANDROID)
-
-    // video decoders
-    #define UMC_ENABLE_MJPEG_VIDEO_DECODER
-    #define UMC_ENABLE_VP8_VIDEO_DECODER
-    #define UMC_ENABLE_VC1_VIDEO_DECODER
-    #define UMC_ENABLE_H264_VIDEO_DECODER
-    #define UMC_ENABLE_H265_VIDEO_DECODER
-    #define UMC_ENABLE_MPEG2_VIDEO_DECODER
-    #define UMC_ENABLE_VP9_VIDEO_DECODER
-
-    // video encoders
-    #define UMC_ENABLE_H264_VIDEO_ENCODER
-    #define UMC_ENABLE_MVC_VIDEO_ENCODER
-    #define UMC_ENABLE_MPEG2_VIDEO_ENCODER
-    #define UMC_ENABLE_MPEG4_VIDEO_ENCODER
-    #define UMC_ENABLE_MJPEG_VIDEO_ENCODER
-
-    #define UMC_ENABLE_UMC_SCENE_ANALYZER
-
-    // audio decoders
-    #define UMC_ENABLE_AAC_AUDIO_DECODER
-    #define UMC_ENABLE_MP3_AUDIO_DECODER
-
-    // audio encoders
-    #define UMC_ENABLE_AAC_AUDIO_ENCODER
-    //#define UMC_ENABLE_AC3_AUDIO_ENCODER
-    //#define UMC_ENABLE_MP3_AUDIO_ENCODER
-
-#endif // Linux on IA32
-
-/*
-// Android
-*/
-
-#if defined(ANDROID)
-
-    // video decoders
-    #define UMC_ENABLE_MJPEG_VIDEO_DECODER
-    #define UMC_ENABLE_VC1_VIDEO_DECODER
-    #define UMC_ENABLE_H264_VIDEO_DECODER
-    #define UMC_ENABLE_H265_VIDEO_DECODER
-    #define UMC_ENABLE_MPEG2_VIDEO_DECODER
-    #define UMC_ENABLE_VP9_VIDEO_DECODER
-
-    // video encoders
-    #define UMC_ENABLE_H264_VIDEO_ENCODER
-    #define UMC_ENABLE_MVC_VIDEO_ENCODER
-    #define UMC_ENABLE_MJPEG_VIDEO_ENCODER
-
-    #define UMC_ENABLE_UMC_SCENE_ANALYZER
-
-#endif // Android
+#include "mfx_config.h"
 
 #ifdef __cplusplus
 

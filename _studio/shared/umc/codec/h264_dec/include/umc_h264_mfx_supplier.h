@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #ifndef __UMC_H264_MFX_SUPPLIER_H
 #define __UMC_H264_MFX_SUPPLIER_H
@@ -151,4 +151,4 @@ private:
 
 
 #endif // __UMC_H264_MFX_SUPPLIER_H
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

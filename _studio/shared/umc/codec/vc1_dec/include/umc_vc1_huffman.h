@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #ifndef __UMC_VC1_HUFFMAN_H__
 #define __UMC_VC1_HUFFMAN_H__
@@ -38,4 +38,4 @@ int HuffmanRunLevelTableInitAlloc(const int32_t* pSrcTable, int32_t** ppDstSpec)
 void HuffmanTableFree(int32_t *pDecodeTable);
 
 #endif // __UMC_VC1_HUFFMAN_H__
-#endif // #if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#endif // #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)

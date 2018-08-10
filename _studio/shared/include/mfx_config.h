@@ -59,6 +59,7 @@
         #define MFX_ENABLE_H264_VIDEO_DECODE
         #define MFX_ENABLE_H265_VIDEO_DECODE
         #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
+        #define MFX_ENABLE_VP9_VIDEO_DECODE
         #define MFX_ENABLE_VP9_VIDEO_DECODE_HW
         
         //h264e
@@ -121,14 +122,6 @@
         #define MFX_ENABLE_USER_ENC
         #define MFX_ENABLE_USER_VPP
 
-        // aac
-        #define MFX_ENABLE_AAC_AUDIO_DECODE
-
-        //mp3
-        #define MFX_ENABLE_MP3_AUDIO_DECODE
-
-        // av1
-
     #else // #if !defined(ANDROID)
         #include "mfx_android_defs.h"
     #endif // #if !defined(ANDROID)
@@ -160,12 +153,12 @@
         #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE_HW
         #undef MFX_ENABLE_USER_DECODE
         #undef MFX_ENABLE_USER_ENCODE
-        #undef MFX_ENABLE_AAC_AUDIO_DECODE
-        #undef MFX_ENABLE_MP3_AUDIO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
         #undef MFX_ENABLE_H264_VIDEO_FEI_PREENC
         #undef MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
         #undef MFX_ENABLE_VP8_VIDEO_DECODE_HW
+        #undef MFX_ENABLE_VP9_VIDEO_DECODE
+        #undef MFX_ENABLE_VP9_VIDEO_DECODE_HW
     #endif // #if defined(AS_HEVCD_PLUGIN)
 
     #if defined(AS_HEVCE_PLUGIN)

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include "umc_h264_frame.h"
 #include "umc_h264_slice_decoding.h"
@@ -341,4 +341,4 @@ bool H264Slice::DecodeSliceHeader(H264NalExtension *pNalExt)
 }
 
 } // namespace UMC
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

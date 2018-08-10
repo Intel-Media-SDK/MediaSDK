@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include <string.h>
 
@@ -472,4 +472,4 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
     }
 }
 
-#endif //UMC_ENABLE_VC1_VIDEO_DECODER
+#endif //MFX_ENABLE_VC1_VIDEO_DECODE

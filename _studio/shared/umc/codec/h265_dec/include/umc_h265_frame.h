@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #ifndef __UMC_H265_FRAME_H__
 #define __UMC_H265_FRAME_H__
@@ -347,4 +347,4 @@ inline bool isInDisplayngStage(H265DecoderFrame * pTmp)
 } // end namespace UMC_HEVC_DECODER
 
 #endif // __UMC_H265_FRAME_H__
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

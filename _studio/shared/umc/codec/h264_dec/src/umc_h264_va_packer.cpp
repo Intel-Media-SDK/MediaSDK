@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include "umc_h264_va_packer.h"
 #include "umc_h264_task_supplier.h"
@@ -892,4 +892,4 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
 
 } // namespace UMC
 
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include <algorithm>
 #include <memory>
@@ -4230,4 +4230,4 @@ Status TaskSupplier::AllocateNewFrame(const H264Slice *slice, H264DecoderFrame *
 } // H264DecoderFrame * TaskSupplier::AddFrame(H264Slice *pSlice)
 
 } // namespace UMC
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

@@ -21,7 +21,7 @@
 #pragma once
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_VP9_VIDEO_DECODER
+#ifdef MFX_ENABLE_VP9_VIDEO_DECODE
 
 #include "umc_vp9_dec_defs.h"
 
@@ -117,4 +117,4 @@ namespace UMC_VP9_DECODER
 } //UMC_VP9_DECODER
 
 #endif //__UMC_VP9_UTILS_H_
-#endif //UMC_ENABLE_VP9_VIDEO_DECODER
+#endif //MFX_ENABLE_VP9_VIDEO_DECODE
