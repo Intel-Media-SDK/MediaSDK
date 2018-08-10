@@ -26,7 +26,7 @@
 #pragma once
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MPEG2_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
 
 #include "umc_video_decoder.h"
 
@@ -52,4 +52,4 @@ namespace UMC
     
 }
 
-#endif // ifdef UMC_ENABLE_MPEG2_VIDEO_DECODER
+#endif // ifdef MFX_ENABLE_MPEG2_VIDEO_DECODE

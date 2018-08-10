@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MPEG2_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
 
 #include "umc_mpeg2_dec_defs.h"
 #include "umc_mpeg2_dec_base.h"
@@ -1186,4 +1186,4 @@ void MPEG2VideoDecoderBase::picture_temporal_scalable_extension(int task_num)
 }
 
 
-#endif // UMC_ENABLE_MPEG2_VIDEO_DECODER
+#endif // MFX_ENABLE_MPEG2_VIDEO_DECODE

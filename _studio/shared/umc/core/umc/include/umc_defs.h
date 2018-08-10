@@ -36,10 +36,8 @@
 
     // video decoders
     #define UMC_ENABLE_H265_VIDEO_DECODER
-    #define UMC_ENABLE_MPEG2_VIDEO_DECODER
 
     // video encoders
-    #define UMC_ENABLE_MPEG2_VIDEO_ENCODER
 
     // audio decoders
     #define UMC_ENABLE_AAC_AUDIO_DECODER
@@ -60,7 +58,6 @@
 
     // video decoders
     #define UMC_ENABLE_H265_VIDEO_DECODER
-    #define UMC_ENABLE_MPEG2_VIDEO_DECODER
 
     // video encoders
 
