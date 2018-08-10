@@ -89,6 +89,7 @@ Media SDK depends on a number of packages which are identified and checked for t
 | ENABLE_X11_DRI3 | ON\|OFF | Enable X11 DRI3 dependent code to be built (default: OFF) |
 | ENABLE_WAYLAND | ON\|OFF | Enable Wayland dependent code to be built (default: OFF) |
 | ENABLE_ITT | ON\|OFF | Enable ITT (VTune) instrumentation support (default: OFF) |
+| BUILD_ALL | ON\|OFF | Build all the BUILD_* targets below (default: OFF) |
 | BUILD_RUNTIME | ON\|OFF | Build mediasdk runtime, library and plugins (default: ON) |
 | BUILD_SAMPLES | ON\|OFF | Build samples (default: ON) |
 | BUILD_TOOLS | ON\|OFF | Build tools (default: OFF) |

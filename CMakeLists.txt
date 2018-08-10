@@ -49,11 +49,17 @@ endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
 
+# -DBUILD_ALL will enable all the build targets unless user did not explicitly
+# switched some targets OFF, i.e. configuring in the following way is possible:
+#   cmake -DBUILD_ALL=ON -DBUILD_SAMPLES=OFF
+# and it will configure all targets except samples.
+option( BUILD_ALL "Build all the targets?" OFF )
+
 option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
 option( BUILD_SAMPLES "Build samples?" ON )
 # Tools depend on samples (sample_common) and can't be built without it. The
 # following BUILD_TOOLS option declaration assures that.
-cmake_dependent_option(BUILD_TOOLS "Build tools?" OFF "BUILD_SAMPLES" OFF)
+cmake_dependent_option(BUILD_TOOLS "Build tools?" ON "BUILD_ALL;BUILD_SAMPLES" OFF)
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
