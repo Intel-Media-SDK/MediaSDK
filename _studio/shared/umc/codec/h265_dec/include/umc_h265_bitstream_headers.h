@@ -21,7 +21,7 @@
 #pragma once
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #ifndef __UMC_H265_BITSTREAM_HEADERS_H_
 #define __UMC_H265_BITSTREAM_HEADERS_H_
@@ -546,4 +546,4 @@ inline void H265BaseBitstream::AlignPointerRight(void)
 
 
 #endif // __UMC_H265_BITSTREAM_HEADERS_H_
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE
