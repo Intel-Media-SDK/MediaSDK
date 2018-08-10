@@ -86,4 +86,4 @@ uint32_t bMax_LevelLimits[4][5] =
     }
 };
 
-#endif // MFX_ENABLE_VC1_VIDEO_DECODE
+#endif //UMC_ENABLE_VC1_SPLITTER || MFX_ENABLE_VC1_VIDEO_DECODE
