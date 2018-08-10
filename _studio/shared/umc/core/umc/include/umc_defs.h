@@ -21,6 +21,7 @@
 #ifndef __UMC_DEFS_H__
 #define __UMC_DEFS_H__
 
+#include "mfx_config.h"
 // This file contains defines which switch on/off support of
 // codecs and renderers on application level
 /*
@@ -43,7 +44,6 @@
     #define UMC_ENABLE_VP9_VIDEO_DECODER
 
     // video encoders
-    #define UMC_ENABLE_H264_VIDEO_ENCODER
     #define UMC_ENABLE_MVC_VIDEO_ENCODER
     #define UMC_ENABLE_MPEG2_VIDEO_ENCODER
     #define UMC_ENABLE_MPEG4_VIDEO_ENCODER
@@ -77,7 +77,6 @@
     #define UMC_ENABLE_VP9_VIDEO_DECODER
 
     // video encoders
-    #define UMC_ENABLE_H264_VIDEO_ENCODER
     #define UMC_ENABLE_MVC_VIDEO_ENCODER
     #define UMC_ENABLE_MJPEG_VIDEO_ENCODER
 

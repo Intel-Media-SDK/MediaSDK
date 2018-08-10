@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined(UMC_ENABLE_H264_VIDEO_ENCODER)
+#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
 
 #ifndef __UMC_H264_COMMON_H__
 #define __UMC_H264_COMMON_H__
@@ -159,5 +159,4 @@ const int32_t dec_single_scan_8x8[2][64] = {
 } // end namespace UMC_H264_ENCODER
 
 #endif // __UMC_H264_COMMON_H__
-
-#endif //UMC_ENABLE_H264_VIDEO_ENCODER
+#endif // #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
