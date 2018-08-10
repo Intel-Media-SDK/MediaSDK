@@ -21,7 +21,7 @@
 #include "umc_defs.h"
 #include "umc_structures.h"
 
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #if defined(__GNUC__)
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -80,4 +80,4 @@ JERRCODE CJPEGDecoderQuantTable::Init(int id,uint16_t raw[64])
 } // CJPEGDecoderQuantTable::Init()
 
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
