@@ -44,12 +44,8 @@
     #define UMC_ENABLE_VP9_VIDEO_DECODER
 
     // video encoders
-    #define UMC_ENABLE_MVC_VIDEO_ENCODER
     #define UMC_ENABLE_MPEG2_VIDEO_ENCODER
-    #define UMC_ENABLE_MPEG4_VIDEO_ENCODER
     #define UMC_ENABLE_MJPEG_VIDEO_ENCODER
-
-    #define UMC_ENABLE_UMC_SCENE_ANALYZER
 
     // audio decoders
     #define UMC_ENABLE_AAC_AUDIO_DECODER
@@ -77,10 +73,7 @@
     #define UMC_ENABLE_VP9_VIDEO_DECODER
 
     // video encoders
-    #define UMC_ENABLE_MVC_VIDEO_ENCODER
     #define UMC_ENABLE_MJPEG_VIDEO_ENCODER
-
-    #define UMC_ENABLE_UMC_SCENE_ANALYZER
 
 #endif // Android
 
