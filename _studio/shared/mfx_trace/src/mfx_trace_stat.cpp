@@ -35,7 +35,7 @@ mfxTraceU32 MFXTraceStat_PrintHeader(void);
 mfxTraceU32 MFXTraceStat_PrintInfo(mfxTraceStaticHandle* static_handle);
 
 #define FORMAT_FN_NAME    "%-40s: "
-#define FORMAT_TASK_NAME  "%-20s: "
+#define FORMAT_TASK_NAME  "%-40s: "
 #define FORMAT_FULL_STAT  "%10.6f, %6d, %10.6f, %10.6f"
 #define FORMAT_SHORT_STAT "%10.6f, %6d, %10s, %10s"
 #define FORMAT_CAT        ": %s"
@@ -44,7 +44,7 @@ mfxTraceU32 MFXTraceStat_PrintInfo(mfxTraceStaticHandle* static_handle);
 #define FORMAT_LINE_NUM   ": %d"
 
 #define FORMAT_HDR_FN_NAME   "%-40s: "
-#define FORMAT_HDR_TASK_NAME "%-20s: "
+#define FORMAT_HDR_TASK_NAME "%-40s: "
 #define FORMAT_HDR_STAT      "%10s, %6s, %10s, %10s"
 #define FORMAT_HDR_CAT       FORMAT_CAT
 #define FORMAT_HDR_LEV       ": %-6s"
@@ -153,12 +153,13 @@ protected:
 
 /*------------------------------------------------------------------------------*/
 
-mfxTraceU32 g_StatSuppress = MFX_TRACE_STAT_SUPPRESS_FILE_NAME |
-                             MFX_TRACE_STAT_SUPPRESS_LINE_NUM |
-                             MFX_TRACE_STAT_SUPPRESS_LEVEL;
-mfxTraceChar g_mfxTraceStatFileName[MAX_PATH] = {0};
-FILE* g_mfxTraceStatFile = NULL;
-mfxStatGlobalHandle g_StatGlobalHandle;
+static mfxStatGlobalHandle g_StatGlobalHandle;
+static mfxTraceChar g_mfxTraceStatFileName[MAX_PATH] = {0};
+static FILE* g_mfxTraceStatFile = NULL;
+static mfxTraceU32 g_StatSuppress =
+    MFX_TRACE_STAT_SUPPRESS_FILE_NAME |
+    MFX_TRACE_STAT_SUPPRESS_LINE_NUM |
+    MFX_TRACE_STAT_SUPPRESS_LEVEL;
 
 /*------------------------------------------------------------------------------*/
 
@@ -176,6 +177,7 @@ mfxTraceU32 MFXTraceStat_GetRegistryParams(void)
     {
         g_mfxTraceStatFileName[0] = '\0';
     }
+
     if (!mfx_trace_get_conf_dword(conf_file,
                                   MFX_TRACE_STAT_REG_SUPPRESS,
                                   &value))
