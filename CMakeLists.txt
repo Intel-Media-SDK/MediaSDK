@@ -48,6 +48,8 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
 endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
+option( ENABLE_TEXTLOG "Enable textlog tracing?" OFF )
+option( ENABLE_STAT "Enable stat tracing?" OFF )
 
 # -DBUILD_ALL will enable all the build targets unless user did not explicitly
 # switched some targets OFF, i.e. configuring in the following way is possible:
@@ -68,7 +70,6 @@ include( ${BUILDER_ROOT}/FindMFX.cmake )
 include( ${BUILDER_ROOT}/FindPackages.cmake )
 include( ${BUILDER_ROOT}/FindInternals.cmake )
 include( ${BUILDER_ROOT}/FindITT.cmake )
-include( ${BUILDER_ROOT}/FindTrace.cmake )
 include( ${BUILDER_ROOT}/FindGTest.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
@@ -137,6 +138,8 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
   message("  ENABLE_WAYLAND                          : ${ENABLE_WAYLAND}")
 endif()
 message("  ENABLE_ITT                              : ${ENABLE_ITT}")
+message("  ENABLE_TEXTLOG                          : ${ENABLE_TEXTLOG}")
+message("  ENABLE_STAT                             : ${ENABLE_STAT}")
 message("Build:")
 message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")

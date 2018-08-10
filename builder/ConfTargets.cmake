@@ -64,6 +64,16 @@ append("-std=c++11" CMAKE_CXX_FLAGS)
     append("-m${T_ARCH}" CMAKE_CXX_FLAGS)
   endif()
 
+if (ENABLE_TEXTLOG)
+  append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_C_FLAGS)
+  append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_CXX_FLAGS)
+endif()
+
+if (ENABLE_STAT)
+  append("-DMFX_TRACE_ENABLE_STAT" CMAKE_C_FLAGS)
+  append("-DMFX_TRACE_ENABLE_STAT" CMAKE_CXX_FLAGS)
+endif()
+
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
 
 if (DEFINED MFX_CONFIG_FILE)
