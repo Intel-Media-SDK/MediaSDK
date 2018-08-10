@@ -48,8 +48,21 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
 endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
-option( ENABLE_TEXTLOG "Enable textlog tracing?" OFF )
-option( ENABLE_STAT "Enable stat tracing?" OFF )
+
+# -DENABLE_ALL will enable all the dependencies and features unless user did not
+# explicitly switched some of them OFF, i.e. configuring in the following way
+# is possible:
+#   cmake -DENABLE_ALL=ON -DENABLE_TEXTLOG=OFF
+# and it will configure all targets except samples.
+#
+# TODO: As of now ENABLE_ALL is not fully implemented, it will not affect all
+#   of the ENABLE_* options. Those options it don't affect are placed above
+#   ENABLE_ALL definition and require some rework and/or pending CI adoption.
+#
+option( ENABLE_ALL "Enable all dependencies and features?" OFF )
+
+cmake_dependent_option( ENABLE_TEXTLOG "Enable textlog tracing?" ON "ENABLE_ALL" OFF)
+cmake_dependent_option( ENABLE_STAT "Enable stat tracing?" ON "ENABLE_ALL" OFF)
 
 # -DBUILD_ALL will enable all the build targets unless user did not explicitly
 # switched some targets OFF, i.e. configuring in the following way is possible:
