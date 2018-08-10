@@ -42,8 +42,72 @@ namespace MfxHwH265Encode
 static const GUID DXVA2_Intel_Encode_HEVC_Main =
 { 0x28566328, 0xf041, 0x4466, { 0x8b, 0x14, 0x8f, 0x58, 0x31, 0xe7, 0x8f, 0x8b } };
 
+static const GUID DXVA2_Intel_Encode_HEVC_Main10 =
+{ 0x6b4a94db, 0x54fe, 0x4ae1, { 0x9b, 0xe4, 0x7a, 0x7d, 0xad, 0x00, 0x46, 0x00 } };
+
+static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main =
+{ 0xb8b28e0c, 0xecab, 0x4217, { 0x8c, 0x82, 0xea, 0xaa, 0x97, 0x55, 0xaa, 0xf0 } };
+static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main10 =
+{ 0x8732ecfd, 0x9747, 0x4897, { 0xb4, 0x2a, 0xe5, 0x34, 0xf9, 0xff, 0x2b, 0x7a } };
+
+static const GUID DXVA2_Intel_Encode_HEVC_Main422 =
+{ 0x056a6e36, 0xf3a8, 0x4d00, { 0x96, 0x63, 0x7e, 0x94, 0x30, 0x35, 0x8b, 0xf9 } };
+static const GUID DXVA2_Intel_Encode_HEVC_Main422_10 =
+{ 0xe139b5ca, 0x47b2, 0x40e1, { 0xaf, 0x1c, 0xad, 0x71, 0xa6, 0x7a, 0x18, 0x36 } };
+static const GUID DXVA2_Intel_Encode_HEVC_Main444 =
+{ 0x5415a68c, 0x231e, 0x46f4, { 0x87, 0x8b, 0x5e, 0x9a, 0x22, 0xe9, 0x67, 0xe9 } };
+static const GUID DXVA2_Intel_Encode_HEVC_Main444_10 =
+{ 0x161be912, 0x44c2, 0x49c0, { 0xb6, 0x1e, 0xd9, 0x46, 0x85, 0x2b, 0x32, 0xa1 } };
+static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main422 =
+{ 0xcee393ab, 0x1030, 0x4f7b, { 0x8d, 0xbc, 0x55, 0x62, 0x9c, 0x72, 0xf1, 0x7e } };
+static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main422_10 =
+{ 0x580da148, 0xe4bf, 0x49b1, { 0x94, 0x3b, 0x42, 0x14, 0xab, 0x05, 0xa6, 0xff } };
+static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main444 =
+{ 0x87b2ae39, 0xc9a5, 0x4c53, { 0x86, 0xb8, 0xa5, 0x2d, 0x7e, 0xdb, 0xa4, 0x88 } };
+static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main444_10 =
+{ 0x10e19ac8, 0xbf39, 0x4443, { 0xbe, 0xc3, 0x1b, 0x0c, 0xbf, 0xe4, 0xc7, 0xaa } };
 
 GUID GetGUID(MfxVideoParam const & par);
+
+const GUID GuidTable[3][3][3] =
+{
+    // LowPower = OFF
+    {
+        // BitDepthLuma = 8
+        {
+            /*420*/ DXVA2_Intel_Encode_HEVC_Main,
+            /*422*/ DXVA2_Intel_Encode_HEVC_Main422,
+            /*444*/ DXVA2_Intel_Encode_HEVC_Main444
+        },
+        // BitDepthLuma = 10
+        {
+            /*420*/ DXVA2_Intel_Encode_HEVC_Main10,
+            /*422*/ DXVA2_Intel_Encode_HEVC_Main422_10,
+            /*444*/ DXVA2_Intel_Encode_HEVC_Main444_10
+        },
+        // BitDepthLuma = 12
+        {
+        }
+    },
+    // LowPower = ON
+    {
+        // BitDepthLuma = 8
+        {
+            /*420*/ DXVA2_Intel_LowpowerEncode_HEVC_Main,
+            /*422*/ DXVA2_Intel_LowpowerEncode_HEVC_Main422,
+            /*444*/ DXVA2_Intel_LowpowerEncode_HEVC_Main444
+        },
+        // BitDepthLuma = 10
+        {
+            /*420*/ DXVA2_Intel_LowpowerEncode_HEVC_Main10,
+            /*422*/ DXVA2_Intel_LowpowerEncode_HEVC_Main422_10,
+            /*444*/ DXVA2_Intel_LowpowerEncode_HEVC_Main444_10
+        },
+        // BitDepthLuma = 12
+        {
+        }
+    }
+};
 
 mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* pCore);
 

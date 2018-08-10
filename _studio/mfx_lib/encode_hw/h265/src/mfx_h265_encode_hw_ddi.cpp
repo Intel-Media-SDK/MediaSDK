@@ -31,10 +31,34 @@
 namespace MfxHwH265Encode
 {
 
-GUID GetGUID(MfxVideoParam const & /* par */)
+GUID GetGUID(MfxVideoParam const & par)
 {
     GUID guid = DXVA2_Intel_Encode_HEVC_Main;
 
+    mfxU16 bdId = 0, cfId = 0;
+
+#if (MFX_VERSION >= 1027)
+    if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.m_ext.CO3.TargetBitDepthLuma == 10)
+        bdId = 1;
+
+    cfId = Clip3<mfxU16>(MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444, par.m_ext.CO3.TargetChromaFormatPlus1 - 1) - MFX_CHROMAFORMAT_YUV420;
+
+    if (par.m_platform.CodeName && par.m_platform.CodeName < MFX_PLATFORM_ICELAKE)
+        cfId = 0; // platforms below ICL do not support Main422/Main444 profile, using Main instead.
+#else
+    if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.mfx.FrameInfo.BitDepthLuma == 10 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        bdId = 1;
+
+     cfId = 0;
+#endif
+    if (par.m_platform.CodeName && par.m_platform.CodeName < MFX_PLATFORM_KABYLAKE)
+        bdId = 0;
+
+    mfxU16 cFamily = IsOn(par.mfx.LowPower);
+
+
+    guid = GuidTable[cFamily][bdId] [cfId];
+    DDITracer::TraceGUID(guid, stdout);
     return guid;
 }
 
