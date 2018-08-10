@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "umc_h265_tables.h"
 
@@ -90,4 +90,4 @@ const uint16_t g_invQuantScales[6] =
 
 } // end namespace UMC_HEVC_DECODER
 
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

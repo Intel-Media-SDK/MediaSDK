@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #ifndef __UMC_H265_VA_SUPPLIER_H
 #define __UMC_H265_VA_SUPPLIER_H
@@ -110,4 +110,4 @@ protected:
 
 
 #endif // __UMC_H265_VA_SUPPLIER_H
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

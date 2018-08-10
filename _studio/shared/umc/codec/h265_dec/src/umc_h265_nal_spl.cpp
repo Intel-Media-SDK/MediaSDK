@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "umc_h265_nal_spl.h"
 #include "mfx_common.h" //  for trace routines
@@ -650,4 +650,4 @@ void SwapMemoryAndRemovePreventingBytes_H265(void *pDestination, size_t &nDstSiz
 
 } // namespace UMC_HEVC_DECODER
 
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE
