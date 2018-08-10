@@ -89,7 +89,7 @@ Media SDK depends on a number of packages which are identified and checked for t
 | ENABLE_X11_DRI3 | ON\|OFF | Enable X11 DRI3 dependent code to be built (default: OFF) |
 | ENABLE_WAYLAND | ON\|OFF | Enable Wayland dependent code to be built (default: OFF) |
 | ENABLE_ITT | ON\|OFF | Enable ITT (VTune) instrumentation support (default: OFF) |
-| ENABLE_TOOLS | ON\|OFF | Enable additional tools (default: OFF) |
+| BUILD_TOOLS | ON\|OFF | Build tools (default: OFF) |
 
 The following cmake settings can be used to adjust search path locations for some components Media SDK build may depend on:
 

@@ -46,7 +46,8 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
 endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
-option( ENABLE_TOOLS "Build targets with additional tools" OFF )
+
+option( BUILD_TOOLS "Build tools?" OFF )
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
@@ -59,7 +60,7 @@ include( ${BUILDER_ROOT}/FindTrace.cmake )
 include( ${BUILDER_ROOT}/FindGTest.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
-if (ENABLE_TOOLS)
+if (BUILD_TOOLS)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
 endif()
 
@@ -118,5 +119,6 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
   message("  ENABLE_WAYLAND                          : ${ENABLE_WAYLAND}")
 endif()
 message("  ENABLE_ITT                              : ${ENABLE_ITT}")
-message("  ENABLE_TOOLS                            : ${ENABLE_TOOLS}")
+message("Build:")
+message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("*****************************************************************************")
