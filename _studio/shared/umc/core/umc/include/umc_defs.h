@@ -22,32 +22,6 @@
 #define __UMC_DEFS_H__
 
 #include "mfx_config.h"
-// This file contains defines which switch on/off support of
-// codecs and renderers on application level
-/*
-// Windows
-*/
-
-/*
-// Linux on IA32
-*/
-
-#if defined(LINUX32) && !defined(ANDROID)
-
-    // video decoders
-
-    // video encoders
-
-    // audio decoders
-    #define UMC_ENABLE_AAC_AUDIO_DECODER
-    #define UMC_ENABLE_MP3_AUDIO_DECODER
-
-    // audio encoders
-    #define UMC_ENABLE_AAC_AUDIO_ENCODER
-    //#define UMC_ENABLE_AC3_AUDIO_ENCODER
-    //#define UMC_ENABLE_MP3_AUDIO_ENCODER
-
-#endif // Linux on IA32
 
 /*
 // Android
