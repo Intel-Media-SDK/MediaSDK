@@ -76,16 +76,21 @@ endif()
 
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
 
+option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
+option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
+option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
+option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
+
+# Now we will include config file which may overwrite default values of the
+# options and options which user provided in a command line.
+# It is critically important to include config file _after_ definition of
+# all options. Otherwise rewrite of options in a config file will not take
+# effect!
 if (DEFINED MFX_CONFIG_FILE)
     # Include user provided cmake config file of the format:
     # set( VARIABLE VALUE )
     include(${MFX_CONFIG_FILE})
 endif()
-
-option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
-option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
-option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
-option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
 
 configure_file(mfxconfig.h.in mfxconfig.h)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
