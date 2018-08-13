@@ -101,6 +101,15 @@ bool MVcalcSAD8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails *dataIn,
     return false;
 }
 
+void MVcalcVar8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, mfxI16 curAvg, mfxI16 refAvg, mfxI32 &var, mfxI32 &jtvar, mfxI32 &jtMCvar, ASCImDetails *dataIn) {
+    mfxI32
+        _fPos = MV.x + (MV.y * dataIn->Extended_Width);
+    pmfxU8
+        fRef = &refY[_fPos];
+
+    ME_VAR_8x8_Block(curY, refY, fRef, curAvg, refAvg, dataIn->Extended_Width, dataIn->Extended_Width, var, jtvar, jtMCvar);
+}
+
 bool MVcalcSAD16x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
     mfxI32
         preDist = (MV.x * MV.x) + (MV.y * MV.y);
@@ -344,6 +353,7 @@ mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn,
         }
     }
     videoIn->average += (current[fPos].x * current[fPos].x) + (current[fPos].y * current[fPos].y);
+    MVcalcVar8x8(current[fPos], objFrame, refFrame, scale->avgval, scaleRef->avgval, scale->var, scale->jtvar, scale->mcjtvar, dataIn);
     return(zeroSAD);
 }
 };

@@ -222,6 +222,9 @@ typedef struct ASCstats_structure {
         AbsMVSize,
         AbsMVHSize,
         AbsMVVSize;
+    mfxI16
+        tcor,
+        mcTcor;
     mfxU16
         AFD;
     mfxI32
