@@ -18,13 +18,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set( BUILD_RUNTIME ON )
-set( BUILD_SAMPLES OFF )
-set( BUILD_TOOLS OFF )
+add_subdirectory(shared/mfx_trace)
+add_subdirectory(shared/umc)
+add_subdirectory(shared/asc)
+add_subdirectory(mfx_lib/decode)
+add_subdirectory(mfx_lib/encode_hw)
+add_subdirectory(mfx_lib/fei)
+add_subdirectory(mfx_lib/genx)
+add_subdirectory(mfx_lib/vpp)
+add_subdirectory(mfx_lib/mctf_package)
+add_subdirectory(mfx_lib)
 
-set( MFX_ENABLE_KERNELS OFF )
-
-set( MFX_ENABLE_USER_DECODE OFF )
-set( MFX_ENABLE_USER_ENCODE OFF )
-set( MFX_ENABLE_USER_ENC OFF )
-set( MFX_ENABLE_USER_VPP OFF )
+add_subdirectory(hevce_hw)
+add_subdirectory(hevc_fei)
+add_subdirectory(mfx_lib/plugin)

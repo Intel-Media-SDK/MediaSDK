@@ -21,6 +21,8 @@
 cmake_minimum_required( VERSION 2.8.5 )
 project( mediasdk )
 
+include(CMakeDependentOption)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Default to `release` build if nothing was specified
@@ -46,7 +48,18 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
 endif()
 
 option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
-option( ENABLE_TOOLS "Build targets with additional tools" OFF )
+
+# -DBUILD_ALL will enable all the build targets unless user did not explicitly
+# switched some targets OFF, i.e. configuring in the following way is possible:
+#   cmake -DBUILD_ALL=ON -DBUILD_SAMPLES=OFF
+# and it will configure all targets except samples.
+option( BUILD_ALL "Build all the targets?" OFF )
+
+option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
+option( BUILD_SAMPLES "Build samples?" ON )
+# Tools depend on samples (sample_common) and can't be built without it. The
+# following BUILD_TOOLS option declaration assures that.
+cmake_dependent_option(BUILD_TOOLS "Build tools?" ON "BUILD_ALL;BUILD_SAMPLES" OFF)
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
@@ -59,14 +72,20 @@ include( ${BUILDER_ROOT}/FindTrace.cmake )
 include( ${BUILDER_ROOT}/FindGTest.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
-if (ENABLE_TOOLS)
+if (BUILD_TOOLS)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
 endif()
 
-foreach( dir api contrib _studio samples )
-  set( CMAKE_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}/${dir}" )
-  create_build()
-endforeach()
+if (BUILD_SAMPLES)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/samples)
+endif()
+
+if (BUILD_RUNTIME)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/SafeStringStaticLibrary/)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
+endif()
+
+add_subdirectory(api/opensource/mfx_dispatch)
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
 
@@ -118,5 +137,8 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
   message("  ENABLE_WAYLAND                          : ${ENABLE_WAYLAND}")
 endif()
 message("  ENABLE_ITT                              : ${ENABLE_ITT}")
-message("  ENABLE_TOOLS                            : ${ENABLE_TOOLS}")
+message("Build:")
+message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
+message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
+message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("*****************************************************************************")
