@@ -37,21 +37,10 @@
 
 
 
-    #if defined(LINUX32) || defined(LINUX64)
-        #undef  MFX_VA_LINUX
-        #define MFX_VA_LINUX
-
-
-    #endif // #if defined(LINUX32) || defined(LINUX64)
-
-#if defined(AS_HEVCD_PLUGIN) || defined(AS_HEVCE_PLUGIN)
-    #if defined(HEVCE_EVALUATION)
-        #define MFX_MAX_ENCODE_FRAMES 1000
-    #endif
-    #if defined(HEVCD_EVALUATION)
-        #define MFX_MAX_DECODE_FRAMES 1000
-    #endif
-#endif
+#if defined(LINUX32) || defined(LINUX64)
+    #undef  MFX_VA_LINUX
+    #define MFX_VA_LINUX
+#endif // #if defined(LINUX32) || defined(LINUX64)
 
 #if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL) || defined(LINUX_TARGET_PLATFORM_BXT)
     #if !defined(ANDROID)
