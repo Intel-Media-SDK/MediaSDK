@@ -522,10 +522,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             task.priority = session->m_priority;
             task.threadingPolicy = session->m_pDECODE->GetThreadingPolicy();
             // fill dependencies
-// specific plug-in case to run additional task after main task
-#if !defined(AS_HEVCD_PLUGIN) && !defined(AS_VP8D_PLUGIN)
             task.pSrc[0] = *surface_out;
-#endif
             task.pDst[0] = *surface_out;
             // this is wa to remove external task dependency for HEVC SW decode plugin.
             // need only because SW HEVC decode is pseudo
