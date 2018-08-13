@@ -53,11 +53,6 @@
         //h264e
         #define MFX_ENABLE_H264_VIDEO_ENCODE
 
-        //h265e
-        #if defined(AS_HEVCE_PLUGIN) || defined(MFX_VA)
-            #define MFX_ENABLE_H265_VIDEO_ENCODE
-        #endif
-        
         #if MFX_VERSION >= 1023 && !defined(LINUX_TARGET_PLATFORM_BXT)
             #define MFX_ENABLE_H264_REPARTITION_CHECK
         #endif
@@ -126,9 +121,8 @@
         #undef MFX_ENABLE_VPP
     #endif
 
-    #if defined(AS_HEVCE_PLUGIN) || (defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= MFX_VERSION_NEXT)
+    #if defined(AS_HEVCE_PLUGIN) || defined(AS_HEVC_FEI_ENCODE_PLUGIN)
         #undef MFX_ENABLE_H265_VIDEO_DECODE
-        #undef MFX_ENABLE_H265_VIDEO_ENCODE
         #undef MFX_ENABLE_H264_VIDEO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_ENCODE
         #undef MFX_ENABLE_MPEG2_VIDEO_DECODE
@@ -145,18 +139,9 @@
         #undef MFX_ENABLE_MP3_AUDIO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
         #undef MFX_ENABLE_H264_VIDEO_FEI_PREENC
-        #undef MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
         #undef MFX_ENABLE_VP8_VIDEO_DECODE_HW
     #endif
 
-    #if defined(AS_HEVCE_PLUGIN)
-        #define MFX_ENABLE_H265_VIDEO_ENCODE
-            #define MFX_ENABLE_CM
-    #endif
-    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN) && MFX_VERSION >= 1027 && !defined(LINUX_TARGET_PLATFORM_BXT)
-        #define MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-    #endif
-    
 #else // LINUX_TARGET_PLATFORM
     #if defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
         #include "mfx_common_linux_bxtmin.h"
@@ -165,8 +150,15 @@
     #endif
 #endif // LINUX_TARGET_PLATFORM
 
-#define MFX_ENABLE_HEVCE_INTERLACE
-#define MFX_ENABLE_HEVCE_ROI
+// Here follows per-codec feature enable options which as of now we don't
+// want to expose on build system level since they are too detailed.
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+    #define MFX_ENABLE_HEVCE_INTERLACE
+    #define MFX_ENABLE_HEVCE_ROI
+    //#define MFX_ENABLE_HEVCE_DIRTY_RECT
+    //#define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
+    //#define MFX_ENABLE_HEVCE_FADE_DETECTION
+#endif
 
 #if MFX_VERSION >= 1026
     #define MFX_ENABLE_MCTF
