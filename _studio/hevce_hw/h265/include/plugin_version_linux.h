@@ -22,7 +22,6 @@
 
 #pragma once
 
-
 /* These string constants set Media SDK version information for Linux, Android, OSX. */
 #ifndef MFX_PLUGIN_FILE_VERSION
 #define MFX_PLUGIN_FILE_VERSION "0.0.0.0"
@@ -37,16 +36,9 @@
 #define MFX_FILE_DESCRIPTION "File info ought to be here"
 #endif
 
-
 const char* g_MfxProductName = "mediasdk_product_name: " MFX_PLUGIN_PRODUCT_NAME;
 const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2007-2018 Intel Corporation";
-
-#if defined(HEVCD_EVALUATION) || defined(HEVCE_EVALUATION)
-const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PLUGIN_PRODUCT_VERSION " Evaluation version";
-#else
 const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PLUGIN_PRODUCT_VERSION;
-#endif
-
 const char* g_MfxFileVersion = "mediasdk_file_version: " MFX_PLUGIN_FILE_VERSION;
 const char* g_MfxFileDescription = "mediasdk_file_description: " MFX_FILE_DESCRIPTION;
 

@@ -982,11 +982,6 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
     if (sts != MFX_ERR_NONE)
         return sts;
 
-#ifdef MFX_MAX_DECODE_FRAMES
-    if (m_stat.NumFrame >= MFX_MAX_DECODE_FRAMES)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-#endif
-
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
 
