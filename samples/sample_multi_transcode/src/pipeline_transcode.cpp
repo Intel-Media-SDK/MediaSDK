@@ -900,9 +900,15 @@ mfxStatus CTranscodingPipeline::PreEncOneFrame(ExtendedSurface *pInSurface, Exte
 // signal that there are no more frames
 void CTranscodingPipeline::NoMoreFramesSignal()
 {
+    SafetySurfaceBuffer *pNextBuffer = m_pBuffer;
+
+    // For transcoding pipelines (PipelineMode::Native) this pointer is null
+    if (!pNextBuffer)
+        return;
+
     ExtendedSurface surf={};
-    SafetySurfaceBuffer   *pNextBuffer = m_pBuffer;
     pNextBuffer->AddSurface(surf);
+
     /*if 1_to_N mode */
     if (0 == m_nVPPCompEnable)
     {
