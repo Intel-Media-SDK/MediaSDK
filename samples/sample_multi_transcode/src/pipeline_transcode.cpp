@@ -4463,14 +4463,27 @@ mfxStatus CTranscodingPipeline::Join(MFXVideoSession *pChildSession)
 
 mfxStatus CTranscodingPipeline::Run()
 {
+    mfxStatus sts = MFX_ERR_NONE;
+
     if (m_bDecodeEnable && m_bEncodeEnable)
-        return Transcode();
+    {
+        sts = Transcode();
+        MSDK_CHECK_STATUS(sts, "CTranscodingPipeline::Run::Transcode() failed");
+    }
     else if (m_bDecodeEnable)
-        return Decode();
+    {
+        sts = Decode();
+        MSDK_CHECK_STATUS(sts, "CTranscodingPipeline::Run::Decode() failed");
+    }
     else if (m_bEncodeEnable)
-        return Encode();
+    {
+        sts = Encode();
+        MSDK_CHECK_STATUS(sts, "CTranscodingPipeline::Run::Encode() failed");
+    }
     else
         return MFX_ERR_UNSUPPORTED;
+
+    return sts;
 }
 
 void IncreaseReference(mfxFrameData *ptr)
