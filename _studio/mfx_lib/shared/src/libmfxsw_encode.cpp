@@ -47,13 +47,7 @@
 #endif
 
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
-#if !defined(AS_HEVCE_PLUGIN)
-#if defined(MFX_VA)
 #include "mfx_h265_encode_hw.h"
-#endif
-#else
-#include "mfx_h265_encode_api.h"
-#endif
 #endif
 
 template<>
@@ -87,7 +81,7 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
         break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     case MFX_CODEC_HEVC:
         pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(&m_coreInt, &mfxRes);
         break;
@@ -200,7 +194,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
         case MFX_CODEC_HEVC:
             mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&session->m_coreInt, in, out);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
@@ -339,7 +333,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA) && !defined(AS_HEVCE_PLUGIN)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
         case MFX_CODEC_HEVC:
             mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&session->m_coreInt, par, request);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
@@ -561,12 +555,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                 task.pSrc[0] = surface;
                 task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0: bs;
 
-// specific plug-in case to run additional task after main task 
-#if !defined(AS_HEVCE_PLUGIN) 
-                {
-                    task.pSrc[1] =  bs;
-                }
-#endif
+                task.pSrc[1] = bs;
                 task.pSrc[2] = ctrl ? ctrl->ExtParam : 0;
 
 #ifdef MFX_TRACE_ENABLE
@@ -588,12 +577,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
                 task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
                 // fill dependencies
                 task.pSrc[0] = surface;
-                // specific plug-in case to run additional task after main task 
-#if !defined(AS_HEVCE_PLUGIN) 
-                {
-                    task.pSrc[1] =  bs;
-                }
-#endif
+                task.pSrc[1] =  bs;
                 task.pSrc[2] = ctrl ? ctrl->ExtParam : 0;
                 task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0 : bs;
 
