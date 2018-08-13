@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(AS_HEVCE_PLUGIN)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 #include "mfx_h265_encode_plugin_hw.h"
 #include "plugin_version_linux.h"
 

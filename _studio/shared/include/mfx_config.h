@@ -121,7 +121,7 @@
         #undef MFX_ENABLE_VPP
     #endif
 
-    #if defined(AS_HEVCE_PLUGIN) || defined(AS_HEVC_FEI_ENCODE_PLUGIN)
+    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN)
         #undef MFX_ENABLE_H265_VIDEO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_ENCODE
