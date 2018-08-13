@@ -46,10 +46,6 @@
     #if !defined(ANDROID)
         // HW decoders are part of library
         #define MFX_ENABLE_H264_VIDEO_DECODE
-        #define MFX_ENABLE_H265_VIDEO_DECODE
-        #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
-        #define MFX_ENABLE_VP9_VIDEO_DECODE
-        #define MFX_ENABLE_VP9_VIDEO_DECODE_HW
         
         #if MFX_VERSION >= 1025
             #if !defined(AS_H264LA_PLUGIN)
@@ -111,7 +107,6 @@
         #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE_HW
         #undef MFX_ENABLE_AAC_AUDIO_DECODE
         #undef MFX_ENABLE_MP3_AUDIO_DECODE
-        #undef MFX_ENABLE_VP8_VIDEO_DECODE_HW
     #endif
 
 #else // LINUX_TARGET_PLATFORM
@@ -143,6 +138,14 @@
     //#define MFX_ENABLE_HEVCE_DIRTY_RECT
     //#define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
     //#define MFX_ENABLE_HEVCE_FADE_DETECTION
+#endif
+
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
+#define MFX_ENABLE_VP9_VIDEO_DECODE_HW
+#endif
+
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
+#define MFX_ENABLE_VP8_VIDEO_DECODE_HW
 #endif
 
 #if MFX_VERSION >= 1026
