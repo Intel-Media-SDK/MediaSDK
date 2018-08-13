@@ -23,8 +23,6 @@
 
 #include "mfx_stub_dec_plugin.h"
 
-#if defined( AS_VP8D_PLUGIN )
-
 class MFXVP8DecoderPlugin : MFXStubDecoderPlugin
 {
 public:
@@ -38,7 +36,6 @@ public:
 
     mfxStatus GetPluginParam(mfxPluginParam* par) override;
 };
-#endif //#if defined( AS_VP8D_PLUGIN )
 
 #define MSDK_PLUGIN_API(ret_type) extern "C"  ret_type
 
