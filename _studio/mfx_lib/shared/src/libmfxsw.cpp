@@ -130,9 +130,11 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         return MFX_ERR_UNSUPPORTED;
     }
 
+    // if user did not specify MFX_IMPL_VIA_* treat it as MFX_IMPL_VIA_ANY
+    if (!implInterface)
+        implInterface = MFX_IMPL_VIA_ANY;
 
     if (!(implInterface & MFX_IMPL_AUDIO) &&
-        (0 != implInterface) &&
 #if defined(MFX_VA_LINUX)
         (MFX_IMPL_VIA_VAAPI != implInterface) &&
 #endif // MFX_VA_*
@@ -140,7 +142,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     {
         return MFX_ERR_UNSUPPORTED;
     }
-
 
     // set the adapter number
     switch (impl)
