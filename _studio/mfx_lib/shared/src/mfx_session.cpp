@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
 #include "mfx_common.h"
 #include <mfx_session.h>
 
@@ -683,22 +684,21 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     // save working HW interface
     switch (implInterface&-MFX_IMPL_VIA_ANY)
     {
-        // if nothing is set, nothing is returned
     case MFX_IMPL_UNSUPPORTED:
-        m_implInterface = MFX_IMPL_UNSUPPORTED;
+        assert(!"MFXInit(Ex) was supposed to correct zero-impl to MFX_IMPL_VIA_ANY");
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+#if defined(MFX_VA_LINUX)
+    // VAAPI is only one supported interface
+    case MFX_IMPL_VIA_ANY:
+    case MFX_IMPL_VIA_VAAPI:
+        m_implInterface = MFX_IMPL_VIA_VAAPI;
         break;
+#else
     case MFX_IMPL_VIA_D3D9:
         m_implInterface = MFX_IMPL_VIA_D3D9;
         break;
     case MFX_IMPL_VIA_D3D11:
         m_implInterface = MFX_IMPL_VIA_D3D11;
-        break;
-        
-#if defined(MFX_VA_LINUX)        
-        // VAAPI is only one supported interface
-    case MFX_IMPL_VIA_ANY:
-    case MFX_IMPL_VIA_VAAPI:
-        m_implInterface = MFX_IMPL_VIA_VAAPI;
         break;
 #endif        
 
@@ -883,26 +883,25 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
     // save working HW interface
     switch (par.Implementation&-MFX_IMPL_VIA_ANY)
     {
-        // if nothing is set, nothing is returned
     case MFX_IMPL_UNSUPPORTED:
-        m_implInterface = MFX_IMPL_UNSUPPORTED;
+        assert(!"MFXInit(Ex) was supposed to correct zero-impl to MFX_IMPL_VIA_ANY");
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+#if defined(MFX_VA_LINUX)
+    // VAAPI is only one supported interface
+    case MFX_IMPL_VIA_ANY:
+    case MFX_IMPL_VIA_VAAPI:
+        m_implInterface = MFX_IMPL_VIA_VAAPI;
         break;
+#else
     case MFX_IMPL_VIA_D3D9:
         m_implInterface = MFX_IMPL_VIA_D3D9;
         break;
     case MFX_IMPL_VIA_D3D11:
         m_implInterface = MFX_IMPL_VIA_D3D11;
         break;
-
-#if defined(MFX_VA_LINUX)        
-        // VAAPI is only one supported interface
-    case MFX_IMPL_VIA_ANY:
-    case MFX_IMPL_VIA_VAAPI:
-        m_implInterface = MFX_IMPL_VIA_VAAPI;
-        break;
 #endif        
 
-        // unknown hardware interface
+    // unknown hardware interface
     default:
         if (MFX_PLATFORM_HARDWARE == m_currentPlatform)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
