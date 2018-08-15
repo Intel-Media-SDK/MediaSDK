@@ -86,6 +86,8 @@ option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
 option( MFX_ENABLE_H265_VIDEO_DECODE "Enabled HEVC decoder?" ON)
 option( MFX_ENABLE_MPEG2_VIDEO_DECODE "Enabled MPEG2 decoder?" ON)
 option( MFX_ENABLE_MPEG2_VIDEO_ENCODE "Enabled MPEG2 encoder?" ON)
+option( MFX_ENABLE_MJPEG_VIDEO_DECODE "Enabled MJPEG decoder?" ON)
+option( MFX_ENABLE_MJPEG_VIDEO_ENCODE "Enabled MJPEG encoder?" ON)
 
 option( MFX_ENABLE_H264_VIDEO_ENCODE "Enable H.264 (AVC) encoder?" ON)
 cmake_dependent_option(
