@@ -178,7 +178,7 @@ static inline __m256i LoadPartialYmm(unsigned char *pSrc, mfxI32 len)
 #pragma warning(disable:4505)
 #endif
 
-static void calc_RACA_4x4_C(mfxU8 *pSrc, mfxI32 pitch, mfxI32 *RS, mfxI32 *CS) {
+static inline void calc_RACA_4x4_C(mfxU8 *pSrc, mfxI32 pitch, mfxI32 *RS, mfxI32 *CS) {
     mfxI32 i, j;
     mfxU8 *pS = pSrc;
     mfxU8 *pS2 = pSrc + pitch;

@@ -32,11 +32,11 @@
 #pragma warning(disable:4505)
 #endif
 
-static mfxI32 CpuFeature_SSE41() {
+static inline mfxI32 CpuFeature_SSE41() {
     return((__builtin_cpu_supports("sse4.1")));
 }
 
-static mfxI32 CpuFeature_AVX2() {
+static inline mfxI32 CpuFeature_AVX2() {
 #if defined(__AVX2__)
         return((__builtin_cpu_supports("avx2")));
 #else
