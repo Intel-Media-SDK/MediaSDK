@@ -207,7 +207,9 @@ set_target_properties(${mfxlibname} PROPERTIES SOVERSION ${mfx_version_major})
 
 install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR})
 
-#get_target_property(bindir ${mfxlibname} RUNTIME_OUTPUT_DIRECTORY) 
+set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${mfxlibname}.pc")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
+install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 
 # compatibility staff
 install( CODE "execute_process(
