@@ -953,7 +953,6 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if ((attrib[1].value & vaRCType) == 0)
         return MFX_ERR_DEVICE_FAILED;
 
-    attrib[0].value = VA_RT_FORMAT_YUV420;
     attrib[1].value = vaRCType;
 
     sts = CheckExtraVAattribs(attrib);
