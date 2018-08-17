@@ -68,11 +68,27 @@ mfxStatus SurfacesPool::AllocSurfaces(mfxFrameAllocRequest& request)
 mfxFrameSurface1* SurfacesPool::GetFreeSurface()
 {
     if (m_pool.empty()) // seems AllocSurfaces wasn't called
-        return NULL;
+        return nullptr;
 
-    mfxU16 idx = GetFreeSurfaceIndex(m_pool.data(), m_pool.size());
+    CTimer t;
+    t.Start();
 
-    return (idx != MSDK_INVALID_SURF_IDX) ? &m_pool[idx] : NULL;
+    do
+    {
+        auto it = std::find_if(std::begin(m_pool), std::end(m_pool), [](const mfxFrameSurface1 & item) { return item.Data.Locked == 0; });
+
+        if (it != std::end(m_pool))
+        {
+            return &(*it);
+        }
+
+        MSDK_SLEEP(1);
+
+    } while (t.GetTime() < MSDK_SURFACE_WAIT_INTERVAL / 1000);
+
+    msdk_printf(MSDK_STRING("ERROR: No free surfaces in pool (during long period)\n"));
+
+    return nullptr;
 }
 
 mfxStatus SurfacesPool::LockSurface(mfxFrameSurface1* pSurf)
