@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "membuffin.h"
 
 
@@ -117,5 +117,5 @@ JERRCODE CMemBuffInput::TellPos(size_t* pos)
   return JPEG_OK;
 } // CMemBuffInput::TellPos()
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE
 

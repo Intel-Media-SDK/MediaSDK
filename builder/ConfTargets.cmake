@@ -81,6 +81,10 @@ option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
 option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
 option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
 
+option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
+option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
+option( MFX_ENABLE_H265_VIDEO_DECODE "Enabled HEVC decoder?" ON)
+
 option( MFX_ENABLE_H264_VIDEO_ENCODE "Enable H.264 (AVC) encoder?" ON)
 cmake_dependent_option(
   MFX_ENABLE_H264_VIDEO_FEI_ENCODE "Enable H.264 (AVC) FEI?" ON

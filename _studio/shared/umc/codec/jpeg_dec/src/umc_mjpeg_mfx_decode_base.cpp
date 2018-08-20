@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "vm_debug.h"
 #include "umc_video_data.h"
 #include "umc_mjpeg_mfx_decode_base.h"
@@ -397,4 +397,4 @@ Status MJPEGVideoDecoderBaseMFX::FindStartOfImage(MediaData * in)
 
 } // end namespace UMC
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE

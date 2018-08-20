@@ -22,7 +22,7 @@
 #define __JPEGBASE_H__
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER) || defined (UMC_ENABLE_MJPEG_VIDEO_ENCODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) || defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #include "umc_defs.h"
 #include "vm_strings.h"
 
@@ -362,7 +362,7 @@ enum ChromaType
     CHROMA_TYPE_BGR            = 9  // Y: h=1 v=1, Cb/Cr: h=1 v=1
 };
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER || UMC_ENABLE_MJPEG_VIDEO_ENCODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE || MFX_ENABLE_MJPEG_VIDEO_ENCODE
 #endif // __JPEGBASE_H__
 
 

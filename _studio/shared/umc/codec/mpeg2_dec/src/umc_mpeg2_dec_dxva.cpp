@@ -20,7 +20,7 @@
 
 #include <stdio.h>
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MPEG2_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
 
 #include "umc_mpeg2_dec_hw.h"
 
@@ -314,4 +314,4 @@ PackVA::SetBufferSize(
 }
 
 
-#endif // UMC_ENABLE_MPEG2_VIDEO_DECODER
+#endif // MFX_ENABLE_MPEG2_VIDEO_DECODE

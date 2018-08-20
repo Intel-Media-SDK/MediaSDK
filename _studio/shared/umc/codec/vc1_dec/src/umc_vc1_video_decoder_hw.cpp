@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_video_decoder_hw.h"
 #include "umc_video_data.h"
@@ -506,5 +506,5 @@ UMC::FrameMemID VC1VideoDecoderHW::GetSkippedIndex(bool isIn)
     return VC1VideoDecoder::GetSkippedIndex(m_pStore->GetLastDS(), isIn);
 }
 
-#endif //UMC_ENABLE_VC1_VIDEO_DECODER
+#endif //MFX_ENABLE_VC1_VIDEO_DECODE
 

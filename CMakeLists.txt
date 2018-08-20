@@ -71,7 +71,8 @@ cmake_dependent_option( ENABLE_STAT "Enable stat tracing?" ON "ENABLE_ALL" OFF)
 option( BUILD_ALL "Build all the targets?" OFF )
 
 option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
-option( BUILD_SAMPLES "Build samples?" ON )
+option( BUILD_DISPATCHER "Build dispatcher?" ON )
+cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF )
 # Tools depend on samples (sample_common) and can't be built without it. The
 # following BUILD_TOOLS option declaration assures that.
 cmake_dependent_option(BUILD_TOOLS "Build tools?" ON "BUILD_ALL;BUILD_SAMPLES" OFF)
@@ -99,7 +100,9 @@ if (BUILD_RUNTIME)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
-add_subdirectory(api/opensource/mfx_dispatch)
+if (BUILD_DISPATCHER)
+  add_subdirectory(api/opensource/mfx_dispatch)
+endif()
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
 
@@ -155,6 +158,7 @@ message("  ENABLE_TEXTLOG                          : ${ENABLE_TEXTLOG}")
 message("  ENABLE_STAT                             : ${ENABLE_STAT}")
 message("Build:")
 message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
+message("  BUILD_DISPATCHER                        : ${BUILD_DISPATCHER}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("*****************************************************************************")

@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "umc_h265_va_packer.h"
 #include "umc_va_base.h"
@@ -735,4 +735,4 @@ void PackerVA::EndFrame()
 
 } // namespace UMC_HEVC_DECODER
 
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include "umc_vc1_common_tables_adv.h"
 #include "umc_vc1_common_defs.h"
@@ -87,4 +87,4 @@ const extern int32_t VC1_FieldRefdistTable[] =
 
 -1 /* end of table */
 };
-#endif //UMC_ENABLE_VC1_VIDEO_DECODER
+#endif //MFX_ENABLE_VC1_VIDEO_DECODE

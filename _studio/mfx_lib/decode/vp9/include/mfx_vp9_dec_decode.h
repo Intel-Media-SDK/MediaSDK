@@ -31,10 +31,8 @@
 
 #include "mfx_umc_alloc_wrapper.h"
 #include "mfx_vp9_dec_decode_utils.h"
-#endif
 
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
 namespace MFX_VP9_Utility
 {
     mfxStatus DecodeHeader(VideoCORE * /*core*/, mfxBitstream *bs, mfxVideoParam *params);

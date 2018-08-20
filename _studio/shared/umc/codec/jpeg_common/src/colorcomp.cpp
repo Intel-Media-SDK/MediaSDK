@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER) || defined (UMC_ENABLE_MJPEG_VIDEO_ENCODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) || defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 
 #ifndef __COLORCOMP_H__
 #include "colorcomp.h"
@@ -129,5 +129,5 @@ uint8_t* CJPEGColorComponent::GetLNZBufferPtr(int thread_id)
   return &ptr[m_lnz_bufsize * thread_id];
 } // CJPEGColorComponent::GetLNZBufferPtr()
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER || UMC_ENABLE_MJPEG_VIDEO_ENCODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE || MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
