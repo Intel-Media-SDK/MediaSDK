@@ -37,6 +37,20 @@
 
 namespace MfxHwH265Encode
 {
+#if defined(MFX_VA_LINUX) //include guid for linux
+DEFINE_GUID_VA(DXVA2_Intel_Encode_HEVC_Main,               VAProfileHEVCMain,       VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_Intel_Encode_HEVC_Main10,             VAProfileHEVCMain10,     VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_Intel_LowpowerEncode_HEVC_Main,       VAProfileHEVCMain,       VAEntrypointEncSliceLP);
+DEFINE_GUID_VA(DXVA2_Intel_LowpowerEncode_HEVC_Main10,     VAProfileHEVCMain10,     VAEntrypointEncSliceLP);
+DEFINE_GUID_VA(DXVA2_Intel_Encode_HEVC_Main422,            VAProfileHEVCMain422_10, VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_Intel_Encode_HEVC_Main422_10,         VAProfileHEVCMain422_10, VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_Intel_Encode_HEVC_Main444,            VAProfileHEVCMain444,    VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_Intel_Encode_HEVC_Main444_10,         VAProfileHEVCMain444_10, VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_Intel_LowpowerEncode_HEVC_Main422,    VAProfileHEVCMain422_10, VAEntrypointEncSliceLP);
+DEFINE_GUID_VA(DXVA2_Intel_LowpowerEncode_HEVC_Main422_10, VAProfileHEVCMain422_10, VAEntrypointEncSliceLP);
+DEFINE_GUID_VA(DXVA2_Intel_LowpowerEncode_HEVC_Main444,    VAProfileHEVCMain444,    VAEntrypointEncSliceLP);
+DEFINE_GUID_VA(DXVA2_Intel_LowpowerEncode_HEVC_Main444_10, VAProfileHEVCMain444_10, VAEntrypointEncSliceLP);
+#else
 
 // GUIDs from DDI for HEVC Encoder spec 0.956
 static const GUID DXVA2_Intel_Encode_HEVC_Main =
@@ -66,7 +80,7 @@ static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main444 =
 { 0x87b2ae39, 0xc9a5, 0x4c53, { 0x86, 0xb8, 0xa5, 0x2d, 0x7e, 0xdb, 0xa4, 0x88 } };
 static const GUID DXVA2_Intel_LowpowerEncode_HEVC_Main444_10 =
 { 0x10e19ac8, 0xbf39, 0x4443, { 0xbe, 0xc3, 0x1b, 0x0c, 0xbf, 0xe4, 0xc7, 0xaa } };
-
+#endif
 GUID GetGUID(MfxVideoParam const & par);
 
 const GUID GuidTable[3][3][3] =

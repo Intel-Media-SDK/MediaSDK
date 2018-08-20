@@ -30,52 +30,12 @@
 #include "mfx_common_int.h"
 #include "mfx_h265_encode_vaapi.h"
 #include "mfx_h265_encode_hw_utils.h"
-#include <unordered_map>
 
 #define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
 //#define PARALLEL_BRC_support
 
 namespace MfxHwH265Encode
 {
-
-struct VAParameters
-{
-    VAParameters():
-        profile(VAProfileNone), entrypoint(VAEntrypointEncSlice)
-    {}
-
-    VAParameters(VAProfile p, VAEntrypoint e) :
-        profile(p), entrypoint(e)
-    {}
-
-    VAProfile profile;
-    VAEntrypoint entrypoint;
-};
-
-class GUIDhash
-{
-public:
-    size_t operator()(const GUID &guid) const
-    {
-        return guid.GetHashCode();
-    }
-};
-
-static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAParam = {
-    { DXVA2_Intel_Encode_HEVC_Main,                   VAParameters(VAProfileHEVCMain,       VAEntrypointEncSlice)},
-    { DXVA2_Intel_Encode_HEVC_Main10,                 VAParameters(VAProfileHEVCMain10,     VAEntrypointEncSlice)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_Main,           VAParameters(VAProfileHEVCMain,       VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_Main10,         VAParameters(VAProfileHEVCMain10,     VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_Encode_HEVC_Main422,                VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSlice)}, // Unsupported by VA
-    { DXVA2_Intel_Encode_HEVC_Main422_10,             VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSlice)},
-    { DXVA2_Intel_Encode_HEVC_Main444,                VAParameters(VAProfileHEVCMain444,    VAEntrypointEncSlice)},
-    { DXVA2_Intel_Encode_HEVC_Main444_10,             VAParameters(VAProfileHEVCMain444_10, VAEntrypointEncSlice)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_Main422,        VAParameters(VAProfileHEVCMain422_10,  VAEntrypointEncSliceLP)}, // Unsupported by VA
-    { DXVA2_Intel_LowpowerEncode_HEVC_Main422_10,     VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_Main444,        VAParameters(VAProfileHEVCMain444,    VAEntrypointEncSliceLP)},
-    { DXVA2_Intel_LowpowerEncode_HEVC_Main444_10,     VAParameters(VAProfileHEVCMain444_10, VAEntrypointEncSliceLP)},
-};
-
 static mfxStatus SetROI(
                 Task const & task,
                 std::vector<VAEncROI> & arrayVAEncROI,
@@ -774,9 +734,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         idx_map[ attr_types[i] ] = i;
     }
 
-    VAParameters vaParams;
-    try { vaParams = GUID2VAParam.at(guid); }
-    catch (std::out_of_range&) { return MFX_ERR_DEVICE_FAILED; }
+    VaGuidMapper vaParams(guid);
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           vaParams.profile,
@@ -900,14 +858,14 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     MFX_CHECK(m_vaDisplay, MFX_ERR_DEVICE_FAILED);
 
+    GUID guid = GetGUID(par);
+
     mfxI32 numEntrypoints = vaMaxNumEntrypoints(m_vaDisplay);
     MFX_CHECK(numEntrypoints, MFX_ERR_DEVICE_FAILED);
 
     std::vector<VAEntrypoint> pEntrypoints(numEntrypoints);
 
-    VAParameters vaParams;
-    try { vaParams = GUID2VAParam.at(GetGUID(par)); }
-    catch (std::out_of_range&) { return MFX_ERR_DEVICE_FAILED; }
+    VaGuidMapper vaParams(guid);
 
     std::vector<VAProfile> profile_list(vaMaxNumProfiles(m_vaDisplay), VAProfileNone);
     mfxI32 num_profiles = 0;
@@ -952,9 +910,6 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     if ((attrib[1].value & vaRCType) == 0)
         return MFX_ERR_DEVICE_FAILED;
-
-    attrib[0].value = VA_RT_FORMAT_YUV420;
-    attrib[1].value = vaRCType;
 
     sts = CheckExtraVAattribs(attrib);
     MFX_CHECK_STS(sts);
