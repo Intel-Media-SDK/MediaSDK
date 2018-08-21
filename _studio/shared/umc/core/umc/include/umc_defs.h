@@ -23,18 +23,6 @@
 
 #include "mfx_config.h"
 
-/*
-// Android
-*/
-
-#if defined(ANDROID)
-
-    // video decoders
-
-    // video encoders
-
-#endif // Android
-
 #ifdef __cplusplus
 
 namespace UMC
