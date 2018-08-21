@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -63,6 +63,43 @@ static int operator==(const GUID & guidOne, const GUID & guidOther)
 #define GUID_TYPE_DEFINED
 #endif
 
+#if defined(MFX_VA_LINUX) //define guids for linux
+#include "va/va.h"
+
+//Pack VAEntrypoint and VAProfile in to GUID data structure
+#define DEFINE_GUID_VA(name, profile, entrypoint) \
+    static const GUID name = { profile, entrypoint >> 16, entrypoint & 0xffff, {} }
+
+/* H.264/AVC Enc */
+DEFINE_GUID_VA(DXVA2_Intel_Encode_AVC,                      VAProfileH264High,      VAEntrypointEncSlice);
+DEFINE_GUID_VA(DXVA2_INTEL_LOWPOWERENCODE_AVC,              VAProfileH264High,      VAEntrypointEncSliceLP);
+
+/* H.264/AVC VLD */
+DEFINE_GUID_VA(sDXVA2_ModeH264_VLD_NoFGT,                   VAProfileH264High,      VAEntrypointVLD);
+
+/* H.265 VLD */
+DEFINE_GUID_VA(DXVA_ModeHEVC_VLD_Main,                      VAProfileHEVCMain,      VAEntrypointVLD);
+
+/* VP9 */
+DEFINE_GUID_VA(DXVA_Intel_ModeVP9_Profile0_VLD,                          VAProfileVP9Profile0,   VAEntrypointVLD);
+DEFINE_GUID_VA(DXVA_Intel_ModeVP9_Profile1_YUV444_VLD,                   VAProfileVP9Profile1,   VAEntrypointVLD);
+DEFINE_GUID_VA(DXVA_Intel_ModeVP9_Profile2_10bit_VLD,                    VAProfileVP9Profile2,   VAEntrypointVLD);
+DEFINE_GUID_VA(DXVA_Intel_ModeVP9_Profile3_YUV444_10bit_VLD,             VAProfileVP9Profile3,   VAEntrypointVLD);
+
+/* VP8 */
+DEFINE_GUID_VA(sDXVA_Intel_ModeVP8_VLD,                     VAProfileVP8Version0_3, VAEntrypointVLD);
+
+/* VC1 */
+DEFINE_GUID_VA(sDXVA2_Intel_ModeVC1_D_Super,                VAProfileVC1Advanced,   VAEntrypointVLD);
+
+/* JPEG */
+DEFINE_GUID_VA(sDXVA2_Intel_IVB_ModeJPEG_VLD_NoFGT,         VAProfileJPEGBaseline,  VAEntrypointVLD);
+
+/* MPEG2 */
+DEFINE_GUID_VA(sDXVA2_ModeMPEG2_VLD,                        VAProfileMPEG2Main,     VAEntrypointVLD);
+DEFINE_GUID_VA(DXVA2_Intel_Encode_MPEG2,                    VAProfileMPEG2Main,     VAEntrypointEncSlice);
+
+#else //define guids for other
 
 static const GUID DXVA2_Intel_Encode_AVC =
 { 0x97688186, 0x56a8, 0x4094, { 0xb5, 0x43, 0xfc, 0x9d, 0xaa, 0xa4, 0x9f, 0x4b } };
@@ -91,6 +128,7 @@ static const GUID sDXVA2_Intel_IVB_ModeJPEG_VLD_NoFGT =
 static const GUID sDXVA2_Intel_ModeVC1_D_Super =
 { 0xE07EC519, 0xE651, 0x4cd6,{ 0xAC, 0x84, 0x13, 0x70, 0xCC, 0xEE, 0xC8, 0x51 } };
 
+#endif //end define guids
 
 namespace UMC
 {

@@ -20,7 +20,7 @@
 
 #include "umc_defs.h"
 
-#if defined (UMC_ENABLE_VC1_VIDEO_DECODER)
+#if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #ifndef __UMC_VC1_SPL_TBL_H__
 #define __UMC_VC1_SPL_TBL_H__
@@ -41,4 +41,4 @@ extern double FrameRateDenomerator[16];
 extern uint32_t bMax_LevelLimits[4][5];
 
 #endif  //__UMC_VC1_SPL_TBL_H__
-#endif //UMC_ENABLE_VC1_SPLITTER || UMC_ENABLE_VC1_VIDEO_DECODER
+#endif //UMC_ENABLE_VC1_SPLITTER || MFX_ENABLE_VC1_VIDEO_DECODE

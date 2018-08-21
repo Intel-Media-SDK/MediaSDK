@@ -20,10 +20,15 @@
 
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
-set(HEVC_DECODER_HW_GUID   "33a61c0b4c27454ca8d85dde757c6f8e")
-set(H264LA_ENCODER_GUID    "588f1185d47b42968dea377bb5d0dcb4")
-set(VP8_DECODER_HW_GUID    "f622394d8d87452f878c51f2fc9b4131")
-set(VP9_DECODER_HW_GUID    "a922394d8d87452f878c51f2fc9b4131")
+if(MFX_ENABLE_USER_ENC AND MFX_ENABLE_KERNELS)
+  set(H264LA_ENCODER_GUID "588f1185d47b42968dea377bb5d0dcb4")
+endif()
+
+if(MFX_ENABLE_USER_DECODE)
+  set(HEVC_DECODER_HW_GUID "33a61c0b4c27454ca8d85dde757c6f8e")
+  set(VP8_DECODER_HW_GUID "f622394d8d87452f878c51f2fc9b4131")
+  set(VP9_DECODER_HW_GUID "a922394d8d87452f878c51f2fc9b4131")
+endif()
 
 # =============================================================================
 
@@ -98,7 +103,7 @@ list( APPEND plugin_common_sources
 ## 1toN Lookahead (H264 LA)                                                  ##
 ###############################################################################
 
-if( MFX_ENABLE_KERNELS AND DEFINED H264LA_ENCODER_GUID )
+if( DEFINED H264LA_ENCODER_GUID )
   ## cleanup
   set( version_defs "" )
   set( defs "" )
@@ -220,7 +225,7 @@ if( DEFINED HEVC_DECODER_HW_GUID )
   ## defs
   set( USE_STRICT_NAME TRUE )
   set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
-  set( defs "${defs} -DMFX_VA -DVA_HEVC_DECODER -DAS_HEVCD_PLUGIN" )
+  set( defs "${defs} -DMFX_VA -DVA_HEVC_DECODER" )
   set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_PRODUCT_NAME}\"\\\"" )
   set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_HEVC_DECODER_DESCRIPTION}\"\\\"" )
   set( defs "${defs} ${version_defs}" )
@@ -266,7 +271,7 @@ if( DEFINED VP8_DECODER_HW_GUID )
   ## defs
   set( USE_STRICT_NAME TRUE )
   set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
-  set( defs " -DAS_VP8D_PLUGIN -DMFX_VA" )
+  set( defs "-DMFX_VA" )
   set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${VP8_PRODUCT_NAME}\"\\\"" )
   set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_VP8_DECODER_DESCRIPTION}\"\\\"" )
   set( defs "${defs} ${version_defs}" )
@@ -314,7 +319,7 @@ if( DEFINED VP9_DECODER_HW_GUID )
   ## defs
   set( USE_STRICT_NAME TRUE )
   set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/plugin/libmfxsw_plugin.map" )
-  set( defs " -DAS_VP9D_PLUGIN -DMFX_VA" )
+  set( defs "-DMFX_VA" )
   set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${VP9_PRODUCT_NAME}\"\\\"" )
   set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${hw_VP9_DECODER_DESCRIPTION}\"\\\"" )
   set( defs "${defs} ${version_defs}" )

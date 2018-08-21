@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_H264_VIDEO_DECODER)
+#if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #ifndef __UMC_H264_SLICE_DECODING_H
 #define __UMC_H264_SLICE_DECODING_H
@@ -316,4 +316,4 @@ extern void SwapMemoryAndRemovePreventingBytes(void *pDst, size_t &nDstSize, voi
 } // namespace UMC
 
 #endif // __UMC_H264_SLICE_DECODING_H
-#endif // UMC_ENABLE_H264_VIDEO_DECODER
+#endif // MFX_ENABLE_H264_VIDEO_DECODE

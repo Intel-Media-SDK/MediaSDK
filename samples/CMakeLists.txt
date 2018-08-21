@@ -18,22 +18,16 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-set( BUILD_RUNTIME ON )
-set( BUILD_DISPATCHER OFF )
-set( BUILD_SAMPLES OFF )
-set( BUILD_TOOLS OFF )
-
-set( MFX_ENABLE_KERNELS OFF )
-
-set( MFX_ENABLE_USER_DECODE OFF )
-set( MFX_ENABLE_USER_ENCODE OFF )
-set( MFX_ENABLE_USER_ENC OFF )
-set( MFX_ENABLE_USER_VPP OFF )
-
-set( MFX_ENABLE_H264_VIDEO_ENCODE OFF )
-set( MFX_ENABLE_H264_VIDEO_FEI_ENCODE OFF )
-set( MFX_ENABLE_H265_VIDEO_ENCODE OFF )
-set( MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE OFF )
-set( MFX_ENABLE_VP8_VIDEO_DECODE OFF)
-set( MFX_ENABLE_VP9_VIDEO_DECODE ON)
-set( MFX_ENABLE_H265_VIDEO_DECODE ON)
+add_subdirectory(sample_common)
+add_subdirectory(sample_decode)
+add_subdirectory(sample_encode)
+add_subdirectory(sample_fei)
+add_subdirectory(sample_hevc_fei)
+add_subdirectory(sample_hevc_fei_abr)
+add_subdirectory(sample_vpp)
+add_subdirectory(sample_multi_transcode)
+add_subdirectory(sample_misc/wayland)
+add_subdirectory(sample_plugins/rotate_cpu)
+add_subdirectory(sample_plugins/rotate_opencl)
+add_subdirectory(sample_plugins/vpp_plugin)
+add_subdirectory(metrics_monitor)

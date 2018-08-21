@@ -21,20 +21,31 @@
 #ifndef __MFX_TRACE_H__
 #define __MFX_TRACE_H__
 
+#include "mfxdefs.h"
+
 #ifndef MFX_TRACE_DISABLE
 // Uncomment one or several lines below to enable tracing
-
-#if defined(LINUX32)
-#define MFX_TRACE_ENABLE_FTRACE
-#endif
 
 //#define MFX_TRACE_ENABLE_ITT
 //#define MFX_TRACE_ENABLE_TEXTLOG
 //#define MFX_TRACE_ENABLE_STAT
 
+#if defined(LINUX32) && defined(MFX_TRACE_ENABLE_ITT) && !defined(MFX_TRACE_ENABLE_FTRACE)
+    // Accompany ITT trace with ftrace. This combination is used by VTune.
+    #define MFX_TRACE_ENABLE_FTRACE
+#endif
+
+#if (MFX_VERSION >= 1025) && defined(MFX_TRACE_ENABLE_TEXTLOG)
+    // mfx reflect mechanism feeds output to one of the mfx trace modules
+    // thus, there is no reason for it to be enabled if no trace module
+    // is enabled
+    #define MFX_TRACE_ENABLE_REFLECT
+#endif
+
 #if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
 #define MFX_TRACE_ENABLE
 #endif
+
 #endif // #ifndef MFX_TRACE_DISABLE
 
 #include <stdarg.h>
@@ -392,11 +403,6 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 // C++ section
 
 #ifdef __cplusplus
-
-
-#include "mfx_reflect.h"
-
-mfx_reflect::AccessibleTypesCollection GetReflection();
 
 
 #ifdef MFX_TRACE_ENABLE

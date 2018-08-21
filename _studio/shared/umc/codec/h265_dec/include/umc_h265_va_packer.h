@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #ifndef __UMC_H265_VA_PACKER_H
 #define __UMC_H265_VA_PACKER_H
@@ -214,4 +214,4 @@ inline bool IsVLDProfile (int32_t profile)
 } // namespace UMC_HEVC_DECODER
 
 #endif /* __UMC_H265_VA_PACKER_H */
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

@@ -20,8 +20,6 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(AS_HEVCE_PLUGIN)
-
 #include "mfxplugin++.h"
 
 namespace MfxHwH265Encode
@@ -161,5 +159,3 @@ protected:
     MFXPluginAdapter<MFXEncoderPlugin> m_adapter;
 };
 } //MfxHwH265Encode
-
-#endif//defined(AS_HEVCE_PLUGIN)

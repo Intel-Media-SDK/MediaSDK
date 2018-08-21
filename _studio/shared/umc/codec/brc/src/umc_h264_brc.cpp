@@ -23,6 +23,8 @@
 #include "umc_video_data.h"
 #include "umc_h264_common.h"
 
+#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
+
 using namespace UMC_H264_ENCODER;
 
 namespace UMC
@@ -1064,3 +1066,4 @@ Status H264BRC::GetInitialCPBRemovalDelay(uint32_t *initial_cpb_removal_delay, i
   return UMC_OK;
 }
 }
+#endif

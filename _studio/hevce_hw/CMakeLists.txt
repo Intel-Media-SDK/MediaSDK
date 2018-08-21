@@ -55,7 +55,6 @@ set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_STUDIO_ROOT}/m
 set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVCE_HW_PRODUCT_NAME}\"\\\"" )
 set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${HEVCE_HW_DESCRIPTION}\"\\\"" )
 set( defs "${defs} ${version_defs}" )
-set( defs "-DAS_HEVCE_PLUGIN ${defs} " )
 gen_plugins_cfg( "HEVC_Encoder_HW" ${HEVC_Encoder_HW_GUID} ${plugin_name} "02" "HEVC" )
 make_library( ${plugin_name} hw shared )
 install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )

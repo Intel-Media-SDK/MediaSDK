@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "umc_h265_frame_list.h"
 #include "umc_h265_debug.h"
@@ -510,4 +510,4 @@ void H265DBPList::DebugPrint()
 
 
 } // end namespace UMC_HEVC_DECODER
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

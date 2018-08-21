@@ -20,6 +20,8 @@
 #ifndef _ASC_H_
 #define _ASC_H_
 
+#include <list>
+#include <map>
 #include <string>
 #include "asc_structures.h"
 
@@ -41,6 +43,13 @@ public:
     ASCYUV Image;
     ASCMVector
         *pInteger;
+    mfxI32
+        var,
+        jtvar,
+        mcjtvar;
+    mfxI16
+        tcor,
+        mcTcor;
     CmSurface2DUP
         *gpuImage;
     SurfaceIndex

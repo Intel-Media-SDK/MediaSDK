@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MPEG2_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
 
 #include <vector>
 
@@ -938,5 +938,5 @@ bool MPEG2VideoDecoderBase::GetCorruptionFlag(int index)
     return frame_buffer.frame_p_c_n[index].isCorrupted;
 }
 
-#endif // UMC_ENABLE_MPEG2_VIDEO_DECODER
+#endif // MFX_ENABLE_MPEG2_VIDEO_DECODE
 

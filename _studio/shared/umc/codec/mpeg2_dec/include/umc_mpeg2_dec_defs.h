@@ -20,7 +20,7 @@
 
 #pragma once
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MPEG2_VIDEO_DECODER)
+#if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
 #include "umc_structures.h"
 #include "umc_memory_allocator.h"
 #include "umc_mpeg2_dec_bstream.h"
@@ -302,4 +302,4 @@ extern int16_t zero_memory[64*8];
     ((int32_t*)array)[nn] = 0;                                   \
 }
 
-#endif // UMC_ENABLE_MPEG2_VIDEO_DECODER
+#endif // MFX_ENABLE_MPEG2_VIDEO_DECODE

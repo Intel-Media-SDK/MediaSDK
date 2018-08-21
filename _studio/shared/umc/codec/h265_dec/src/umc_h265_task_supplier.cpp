@@ -19,8 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-//#define UMC_ENABLE_H265_VIDEO_DECODER
-#ifdef UMC_ENABLE_H265_VIDEO_DECODER
+#ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "memory"
 
@@ -2657,4 +2656,4 @@ int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t 
 
 
 } // namespace UMC_HEVC_DECODER
-#endif // UMC_ENABLE_H265_VIDEO_DECODER
+#endif // MFX_ENABLE_H265_VIDEO_DECODE

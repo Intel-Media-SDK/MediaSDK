@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#if defined (UMC_ENABLE_MJPEG_VIDEO_DECODER) || defined (UMC_ENABLE_MJPEG_VIDEO_ENCODER)
+#if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE) || defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #ifndef __MEMBUFFOUT_H__
 #include "membuffout.h"
 #endif
@@ -83,4 +83,4 @@ JERRCODE CMemBuffOutput::Write(void* buf,uic_size_t len,uic_size_t* cnt)
   return JPEG_OK;
 } // CMemBuffOutput::Write()
 
-#endif // UMC_ENABLE_MJPEG_VIDEO_DECODER || UMC_ENABLE_MJPEG_VIDEO_ENCODER
+#endif // MFX_ENABLE_MJPEG_VIDEO_DECODE || MFX_ENABLE_MJPEG_VIDEO_ENCODE

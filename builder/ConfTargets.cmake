@@ -64,8 +64,42 @@ append("-std=c++11" CMAKE_CXX_FLAGS)
     append("-m${T_ARCH}" CMAKE_CXX_FLAGS)
   endif()
 
+if (ENABLE_TEXTLOG)
+  append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_C_FLAGS)
+  append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_CXX_FLAGS)
+endif()
+
+if (ENABLE_STAT)
+  append("-DMFX_TRACE_ENABLE_STAT" CMAKE_C_FLAGS)
+  append("-DMFX_TRACE_ENABLE_STAT" CMAKE_CXX_FLAGS)
+endif()
+
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
 
+option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
+option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
+option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
+option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
+
+option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
+option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
+option( MFX_ENABLE_H265_VIDEO_DECODE "Enabled HEVC decoder?" ON)
+
+option( MFX_ENABLE_H264_VIDEO_ENCODE "Enable H.264 (AVC) encoder?" ON)
+cmake_dependent_option(
+  MFX_ENABLE_H264_VIDEO_FEI_ENCODE "Enable H.264 (AVC) FEI?" ON
+  "MFX_ENABLE_H264_VIDEO_ENCODE" OFF)
+
+option( MFX_ENABLE_H265_VIDEO_ENCODE "Enable H.265 (HEVC) encoder?" ON)
+cmake_dependent_option(
+  MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE "Enable H.265 (HEVC) FEI?" ON
+  "MFX_ENABLE_H265_VIDEO_ENCODE" OFF)
+
+# Now we will include config file which may overwrite default values of the
+# options and options which user provided in a command line.
+# It is critically important to include config file _after_ definition of
+# all options. Otherwise rewrite of options in a config file will not take
+# effect!
 if (DEFINED MFX_CONFIG_FILE)
     # Include user provided cmake config file of the format:
     # set( VARIABLE VALUE )

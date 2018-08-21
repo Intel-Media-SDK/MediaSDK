@@ -25,8 +25,8 @@ set( MFX_API_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../include )
 
 # While equal to get_mfx_version in samples/builder, this function should remain separate to make this file self-sufficient 
 function( get_api_version mfx_version_major mfx_version_minor )
-  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR")
-  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h minor REGEX "#define MFX_VERSION_MINOR")
+  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h major REGEX "#define MFX_VERSION_MAJOR" LIMIT_COUNT 1)
+  file(STRINGS ${MFX_API_FOLDER}/mfxdefs.h minor REGEX "#define MFX_VERSION_MINOR" LIMIT_COUNT 1)
   string(REPLACE "#define MFX_VERSION_MAJOR " "" major ${major})
   string(REPLACE "#define MFX_VERSION_MINOR " "" minor ${minor})
   set(${mfx_version_major} ${major} PARENT_SCOPE)

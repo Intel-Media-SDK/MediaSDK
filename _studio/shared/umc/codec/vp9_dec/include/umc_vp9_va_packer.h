@@ -19,7 +19,7 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
-#ifdef UMC_ENABLE_VP9_VIDEO_DECODER
+#ifdef MFX_ENABLE_VP9_VIDEO_DECODE
 
 #ifndef __UMC_VP9_VA_PACKER_H
 #define __UMC_VP9_VA_PACKER_H
@@ -87,4 +87,4 @@ public:
 } // namespace UMC_HEVC_DECODER
 
 #endif /* __UMC_VP9_VA_PACKER_H */
-#endif // UMC_ENABLE_VP9_VIDEO_DECODER
+#endif // MFX_ENABLE_VP9_VIDEO_DECODE
