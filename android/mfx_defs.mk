@@ -37,6 +37,9 @@ MFX_CFLAGS += \
   -Wformat -Wformat-security \
   -fexceptions -frtti
 
+# LibVA support.
+MFX_CFLAGS_LIBVA := -DLIBVA_SUPPORT -DLIBVA_ANDROID_SUPPORT
+
 # Setting usual paths to include files
 MFX_INCLUDES := \
   $(LOCAL_PATH)/include \
