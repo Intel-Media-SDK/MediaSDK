@@ -59,7 +59,7 @@ private:
 
 /**********************************************************************************/
 
-class HevcTaskDSO;
+struct HevcTaskDSO;
 class IYUVSource
 {
 public:
