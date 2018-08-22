@@ -53,7 +53,7 @@ public:
         if (!request.Width || !request.Height) throw mfxError(MFX_ERR_NOT_INITIALIZED, "BufferAllocRequest is uninitialized for buffer");
 
         mfxU32 va_num_elem = 1;
-        mfxU32 va_data_size = sizeof(*(T::Data));
+        mfxU32 va_data_size = sizeof(buffer->Data[0]);
 
         CalcBufferPitchHeight(*buffer, request, va_data_size, va_num_elem);
 

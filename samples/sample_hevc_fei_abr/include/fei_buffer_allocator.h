@@ -50,7 +50,7 @@ public:
         if (!request.Width || !request.Height) throw mfxError(MFX_ERR_NOT_INITIALIZED, "BufferAllocRequest is uninitialized for buffer");
 
         mfxU32 va_num_elem = 1;
-        mfxU32 va_data_size = sizeof(*(T::Data));
+        mfxU32 va_data_size = sizeof(buffer->Data[0]);
 
         CalcBufferPitchHeight(*buffer, request, va_data_size, va_num_elem);
 
@@ -149,7 +149,7 @@ private:
 
         // since most buffers have 1D representation in driver, so vaCreateBuffer expects
         // va_height is 1 and va_pitch is total size of buffer->Data array
-        va_pitch = sizeof(*(T::Data)) * buffer.Pitch * buffer.Height;
+        va_pitch = sizeof(buffer.Data[0]) * buffer.Pitch * buffer.Height;
         va_height = 1;
     };
 
