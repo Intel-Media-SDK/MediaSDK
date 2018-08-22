@@ -49,7 +49,7 @@
 #include "mfx_mjpeg_dec_decode.h"
 #endif
 
-#if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP8_VIDEO_DECODE)
 #include "mfx_vp8_dec_decode_common.h"
 #if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
 #include "mfx_vp8_dec_decode_hw.h"
@@ -58,7 +58,7 @@
 #endif
 #endif
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
 #include "mfx_vp9_dec_decode.h"
 #if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
 #include "mfx_vp9_dec_decode_hw.h"
@@ -202,7 +202,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
         case MFX_CODEC_VP8:
 #if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP8_HW::Query(session->m_pCORE.get(), in, out);
@@ -212,7 +212,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif
 
-#if defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP9_VIDEO_DECODE)
         case MFX_CODEC_VP9:
 #if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP9_HW::Query(session->m_pCORE.get(), in, out);
@@ -291,7 +291,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif
 
-#if defined(MFX_ENABLE_VP8_VIDEO_DECODE_HW)
+#if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
         case MFX_CODEC_VP8:
 #if defined (MFX_ENABLE_VP8_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP8_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
@@ -301,7 +301,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif
 
-#if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
+#if defined (MFX_ENABLE_VP9_VIDEO_DECODE)
         case MFX_CODEC_VP9:
 #if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
             mfxRes = VideoDECODEVP9_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
