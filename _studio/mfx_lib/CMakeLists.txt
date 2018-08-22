@@ -145,10 +145,14 @@ endforeach()
 set( USE_STRICT_NAME TRUE )
 set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/libmfx.map" )
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set( mfxlibname mfxhw64 )
+if( DEFINED MFX_LIBNAME )
+  set( mfxlibname "${MFX_LIBNAME}")
 else()
-  set( mfxlibname mfxhw32 )
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set( mfxlibname mfxhw64 )
+  else()
+    set( mfxlibname mfxhw32 )
+  endif()
 endif()
 
 if( API_VERSION VERSION_GREATER 1.25 )
@@ -212,9 +216,12 @@ set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${mfxlibname}.pc"
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 
-# compatibility staff
-install( CODE "execute_process(
-  COMMAND ${CMAKE_COMMAND} -E create_symlink
-  ${MFX_MODULES_DIR}/lib${mfxlibname}.so.${mfx_version_major}.${mfx_version_minor}
-  ${MFX_MODULES_DIR}/lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor} )"
-)
+if (NOT DEFINED MFX_LIBNAME)
+  # compatibility staff which we definitely don't need if user manually
+  # specified library name
+  install( CODE "execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+    ${MFX_MODULES_DIR}/lib${mfxlibname}.so.${mfx_version_major}.${mfx_version_minor}
+    ${MFX_MODULES_DIR}/lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor} )"
+  )
+endif()
