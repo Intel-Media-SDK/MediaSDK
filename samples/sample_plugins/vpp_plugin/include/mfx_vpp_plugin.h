@@ -52,17 +52,17 @@ public:
 
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported
     // QueryIOSurf must be called prior to Init to create topology
-    mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL);
+    mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
 
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported; topology must be the same as in QueryIOSurf
-    mfxStatus Init(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL);
-    mfxStatus RunFrameVPPAsync(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp);
-    mfxStatus Reset(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL);
-    mfxStatus Close(void);
+    mfxStatus Init(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus RunFrameVPPAsync(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp) override;
+    mfxStatus Reset(mfxVideoParam *par, mfxVideoParam */*par1*/, mfxVideoParam */*par2*/) override;
+    mfxStatus Close(void) override;
 
-    mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out, mfxU8 component_idx = 0);
-    mfxStatus GetVideoParam(mfxVideoParam *par, mfxU8 component_idx = 0);
-    mfxStatus GetVPPStat(mfxVPPStat *stat, mfxU8 component_idx = 0);
+    mfxStatus Query(mfxVideoParam */*in*/, mfxVideoParam */*out*/, mfxU8 /*component_idx*/) override;
+    mfxStatus GetVideoParam(mfxVideoParam *par, mfxU8 /*component_idx*/) override;
+    mfxStatus GetVPPStat(mfxVPPStat *stat, mfxU8 /*component_idx*/) override;
 
 protected:
     mfxFrameAllocator   m_FrameAllocator;

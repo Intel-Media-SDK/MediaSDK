@@ -93,21 +93,18 @@ MFXVideoVPPPlugin::~MFXVideoVPPPlugin(void)
 }
 
 // per-component methods currently not implemented, you can add your own implementation if needed
-mfxStatus MFXVideoVPPPlugin::Query(mfxVideoParam *in, mfxVideoParam *out, mfxU8 component_idx)
+mfxStatus MFXVideoVPPPlugin::Query(mfxVideoParam */*in*/, mfxVideoParam */*out*/, mfxU8 /*component_idx*/)
 {
-    in;out;component_idx;
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus MFXVideoVPPPlugin::GetVideoParam(mfxVideoParam *par, mfxU8 component_idx)
+mfxStatus MFXVideoVPPPlugin::GetVideoParam(mfxVideoParam */*par*/, mfxU8 /*component_idx*/)
 {
-    par;component_idx;
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus MFXVideoVPPPlugin::GetVPPStat(mfxVPPStat *stat, mfxU8 component_idx)
+mfxStatus MFXVideoVPPPlugin::GetVPPStat(mfxVPPStat */*stat*/, mfxU8 /*component_idx*/)
 {
-    stat;component_idx;
     return MFX_ERR_UNSUPPORTED;
 }
 
@@ -425,9 +422,8 @@ mfxStatus MFXVideoVPPPlugin::Init(mfxVideoParam *par, mfxVideoParam *par1, mfxVi
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFXVideoVPPPlugin::Reset(mfxVideoParam *par, mfxVideoParam *par1, mfxVideoParam *par2)
+mfxStatus MFXVideoVPPPlugin::Reset(mfxVideoParam */*par*/, mfxVideoParam */*par1*/, mfxVideoParam */*par2*/)
 {
-    par;par1;par2;
     return MFX_ERR_UNSUPPORTED;
 }
 
