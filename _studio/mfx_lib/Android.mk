@@ -149,7 +149,8 @@ MFX_LIB_SHARED_FILES_2 := $(addprefix shared/src/, \
     libmfx_core.cpp \
     libmfx_core_factory.cpp \
     libmfx_core_vaapi.cpp \
-    mfx_umc_alloc_wrapper.cpp)
+    mfx_umc_alloc_wrapper.cpp \
+    mfx_umc_mjpeg_vpp.cpp)
 
 # =============================================================================
 
