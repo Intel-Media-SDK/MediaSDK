@@ -120,7 +120,7 @@ const mfxPluginUID & msdkGetPluginUID(mfxIMPL impl, msdkComponentType type, mfxU
             break;
         }
     }
-    else if (impl |= MFX_IMPL_HARDWARE)
+    else
     {
         switch(type)
         {
