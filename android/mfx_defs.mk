@@ -27,7 +27,7 @@ endif
 # Passing Android-dependency information to the code
 MFX_CFLAGS += \
   -DMFX_ANDROID_VERSION=$(MFX_ANDROID_VERSION) \
-  -include mfx_config.h
+  -include mfx_android_config.h
 
 #  Security
 MFX_CFLAGS += \
