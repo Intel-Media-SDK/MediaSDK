@@ -96,8 +96,6 @@ struct sInputParams
 
     bool bEncodedOrder;        // use EncodeOrderControl for external reordering
     mfxU8  QP;
-    mfxU16 dstWidth;           // destination picture width
-    mfxU16 dstHeight;          // destination picture height
     mfxU32 nNumFrames;
     mfxU16 nNumSlices;
     mfxU16 nRefDist;           // distance between I- or P (or GPB) - key frames, GopRefDist = 1, there are no regular B-frames used
@@ -128,8 +126,6 @@ struct sInputParams
     sInputParams()
         : bEncodedOrder(true)
         , QP(26)
-        , dstWidth(0)
-        , dstHeight(0)
         , nNumFrames(0xffff)
         , nNumSlices(1)
         , nRefDist(0)
