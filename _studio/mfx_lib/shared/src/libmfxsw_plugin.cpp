@@ -170,6 +170,7 @@ namespace
 const mfxPluginUID NativePlugins[] =
 {
     MFX_PLUGINID_HEVCE_HW,
+    MFX_PLUGINID_VP9E_HW,
     MFX_PLUGINID_HEVCD_HW,
     MFX_PLUGINID_VP8D_HW,
     MFX_PLUGINID_VP9D_HW

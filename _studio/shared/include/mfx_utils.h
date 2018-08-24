@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,8 @@
 #include "umc_structures.h"
 #include "mfx_trace.h"
 #include "mfx_timing.h"
+
+#include <cassert>
 
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
@@ -105,6 +107,13 @@ mfxU64 GetMfxTimeStamp(mfxF64 ts)
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(PTR)   { if (PTR) { PTR->Release(); PTR = NULL; } }
 #endif
+
+/// Align integral T @value to power of two @alignment
+template<class T> inline T AlignValue(T value, mfxU32 alignment)
+{
+    assert((alignment & (alignment - 1)) == 0); // should be 2^n
+    return static_cast<T>((value + alignment - 1) & ~(alignment - 1));
+}
 
 
 //#undef  SUCCEEDED

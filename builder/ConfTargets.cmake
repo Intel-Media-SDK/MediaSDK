@@ -100,6 +100,8 @@ cmake_dependent_option(
   MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE "Enable H.265 (HEVC) FEI?" ON
   "MFX_ENABLE_H265_VIDEO_ENCODE" OFF)
 
+option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
+
 # Now we will include config file which may overwrite default values of the
 # options and options which user provided in a command line.
 # It is critically important to include config file _after_ definition of

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,21 +18,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __MFX_MPEG2_DEC_COMMON_H__
-#define __MFX_MPEG2_DEC_COMMON_H__
+// This file should be included by exactly one cpp in each MediaSDK plugin
 
-#include "mfx_common.h"
-#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
+#pragma once
 
-#include "mfx_common_int.h"
-#include "mfxvideo.h"
-#include "umc_mpeg2_dec_defs.h"
-
-#define MFX_PROFILE_MPEG1 8
-
-void GetMfxFrameRate(mfxU8 umcFrameRateCode, mfxU32 *frameRateNom, mfxU32 *frameRateDenom);
-inline bool IsMpeg2StartCodeEx(const mfxU8* p);
-
+/* These string constants set Media SDK version information for Linux, Android, OSX. */
+#ifndef MFX_PLUGIN_FILE_VERSION
+#define MFX_PLUGIN_FILE_VERSION "0.0.0.0"
+#endif
+#ifndef MFX_PLUGIN_PRODUCT_NAME
+#define MFX_PLUGIN_PRODUCT_NAME "Intel(R) Media SDK Plugin"
+#endif
+#ifndef MFX_PLUGIN_PRODUCT_VERSION
+#define MFX_PLUGIN_PRODUCT_VERSION "0.0.000.0000"
+#endif
+#ifndef MFX_FILE_DESCRIPTION
+#define MFX_FILE_DESCRIPTION "File info ought to be here"
 #endif
 
-#endif //__MFX_MPEG2_DEC_COMMON_H__
+const char* g_MfxProductName = "mediasdk_product_name: " MFX_PLUGIN_PRODUCT_NAME;
+const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2007-2018 Intel Corporation";
+const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PLUGIN_PRODUCT_VERSION;
+const char* g_MfxFileVersion = "mediasdk_file_version: " MFX_PLUGIN_FILE_VERSION;
+const char* g_MfxFileDescription = "mediasdk_file_description: " MFX_FILE_DESCRIPTION;
+
