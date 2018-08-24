@@ -191,9 +191,11 @@ namespace
         sps.aspect_ratio_information = winSps.AspectRatio;
         // sps.vbv_buffer_size = winSps.vbv_buffer_size; // B = 16 * 1024 * vbv_buffer_size
 
-        sps.intra_period    = pExecuteBuffers->m_GOPPictureSize; // 22??
+        sps.intra_period    = pExecuteBuffers->m_GOPPictureSize;
         sps.ip_period       = pExecuteBuffers->m_GOPRefDist;
-        sps.bits_per_second = winSps.bit_rate; // 104857200;
+        // For VBR maxBitrate should be used as sps parameter, target bitrate has no place in sps, only in BRC
+        sps.bits_per_second = (winSps.RateControlMethod == MFX_RATECONTROL_VBR && winSps.MaxBitRate > winSps.bit_rate) ?
+                winSps.MaxBitRate : winSps.bit_rate;
         if (winSps.vbv_buffer_size)
         {
             sps.vbv_buffer_size = winSps.vbv_buffer_size;
