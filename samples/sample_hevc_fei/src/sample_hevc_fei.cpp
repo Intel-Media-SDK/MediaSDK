@@ -43,6 +43,8 @@ void AdjustOptions(sInputParams& params);
     } \
 }
 
+constexpr mfxU32 MinNumberOfOptions = 6; // app_name + input + file + output + file + component
+
 void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
 {
     msdk_printf(MSDK_STRING("\nIntel(R) Media SDK HEVC FEI Encoding Sample Version %s\n\n"), GetMSDKSampleVersion().c_str());
@@ -51,89 +53,120 @@ void PrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
     {
         msdk_printf(MSDK_STRING("ERROR: %s\n"), strErrorMessage);
     }
-    msdk_printf(MSDK_STRING("Usage: %s [<options>] -i InputFile -o OutputEncodedFile -w width -h height\n"), strAppName);
+    msdk_printf(MSDK_STRING("Usage: %s [<options>] -i InputFile -o OutputEncodedFile -w width -h height -encode\n"), strAppName);
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Options: \n"));
-    msdk_printf(MSDK_STRING("   [-i <file-name>] - input YUV file\n"));
+    msdk_printf(MSDK_STRING("   [?] - print this message\n"));
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("Specify input/output: \n"));
+    msdk_printf(MSDK_STRING("Video sequences: \n"));
+    msdk_printf(MSDK_STRING("   [-i <file-name>]                      - input YUV file\n"));
     msdk_printf(MSDK_STRING("   [-i::h264|mpeg2|vc1|h265 <file-name>] - input file and decoder type\n"));
-    msdk_printf(MSDK_STRING("   [-w] - width of input YUV file\n"));
-    msdk_printf(MSDK_STRING("   [-h] - height of input YUV file\n"));
-    msdk_printf(MSDK_STRING("   [-dstw width]  - destination picture width, invokes VPP resizing\n"));
-    msdk_printf(MSDK_STRING("   [-dsth height] - destination picture height, invokes VPP resizing\n"));
-    msdk_printf(MSDK_STRING("   [-fieldSplitting] - use VPP field splitting (works only with interlaced input)\n"));
-    msdk_printf(MSDK_STRING("   [-nv12] - input is in NV12 color format, if not specified YUV420 is expected\n"));
-    msdk_printf(MSDK_STRING("   [-tff|bff|mixed] - input stream is interlaced, top|bottom field first, if not specified progressive is expected\n"));
-    msdk_printf(MSDK_STRING("                    - mixed means that picture structure should be obtained from the input stream\n"));
-    msdk_printf(MSDK_STRING("   [-encode] - use extended FEI interface ENC+PAK (FEI ENCODE) (RC is forced to constant QP)\n"));
-    msdk_printf(MSDK_STRING("   [-preenc dsStrength] - use extended FEI interface PREENC\n"));
-    msdk_printf(MSDK_STRING("                          if ds_strength parameter is missed or equal 1, PREENC is used on the full resolution\n"));
-    msdk_printf(MSDK_STRING("                          otherwise PREENC is used on downscaled (by VPP resize in ds_strength times) surfaces\n"));
-    msdk_printf(MSDK_STRING("   [-EncodedOrder] - use app-level reordering to encoded order (default is display; ENCODE only)\n"));
-    msdk_printf(MSDK_STRING("   [-n number] - number of input frames to process\n"));
-    msdk_printf(MSDK_STRING("                 if stream has fewer frames than requested, sample repeats frames from stream's beginning\n"));
-    msdk_printf(MSDK_STRING("   [-qp qp_value] - QP value for frames (default is 26)\n"));
-    msdk_printf(MSDK_STRING("   [-DisableQPOffset] - disable QP offset per pyramid layer\n"));
-    msdk_printf(MSDK_STRING("   [-f frameRate] - video frame rate (frames per second)\n"));
-    msdk_printf(MSDK_STRING("   [-b bitRate]   - target bitrate (Kbits per second)\n"));
-    msdk_printf(MSDK_STRING("   [-ExtBRC]      - enables external BRC\n"));
-    msdk_printf(MSDK_STRING("   [-profile value] - codec profile\n"));
-    msdk_printf(MSDK_STRING("   [-level value]   - codec level\n"));
-    msdk_printf(MSDK_STRING("   [-idr_interval size] - if IdrInterval = 0, then only first I-frame is an IDR-frame\n"));
-    msdk_printf(MSDK_STRING("                          if IdrInterval = 1, then every I - frame is an IDR - frame\n"));
-    msdk_printf(MSDK_STRING("                          if IdrInterval = 2, then every other I - frame is an IDR - frame, etc (default is 0)\n"));
-    msdk_printf(MSDK_STRING("   [-g size] - GOP size (1(default) means I-frames only)\n"));
-    msdk_printf(MSDK_STRING("   [-gop_opt closed|strict] - GOP optimization flags (can be used together)\n"));
-    msdk_printf(MSDK_STRING("   [-r (-GopRefDist) distance] - Distance between I- or P- key frames (1 means no B-frames) (0 - by default(I frames))\n"));
-    msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of available reference frames (DPB size)\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs] - number of maximum allowed references for P/GPB frames (valid range is [1, 3])\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs] - number of maximum allowed backward references for B frames (valid range is [1, 3])\n"));
-    msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs] - number of maximum allowed forward references for B frames (only 1 is supported)\n"));
-    msdk_printf(MSDK_STRING("   [-NumPredictorsL0 numPreds] - number of maximum L0 predictors (default - assign depending on the frame type)\n"));
-    msdk_printf(MSDK_STRING("   [-NumPredictorsL1 numPreds] - number of maximum L1 predictors (default - assign depending on the frame type)\n"));
-    msdk_printf(MSDK_STRING("   [-MultiPredL0 type] - use internal L0 MV predictors (0 - no internal MV predictor, 1 - spatial internal MV predictors)\n"));
-    msdk_printf(MSDK_STRING("   [-MultiPredL1 type] - use internal L1 MV predictors (0 - no internal MV predictor, 1 - spatial internal MV predictors)\n"));
-    msdk_printf(MSDK_STRING("   [-MVPBlockSize size] - external MV predictor block size (0 - no MVP, 1 - MVP per 16x16, 2 - MVP per 32x32, 7 - use with -mvpin)\n"));
-    msdk_printf(MSDK_STRING("   [-ForceCtuSplit] - force splitting CTU into CU at least once\n"));
-    msdk_printf(MSDK_STRING("   [-NumFramePartitions num] - number of partitions in frame that encoder processes concurrently (1, 2, 4, 8 or 16)\n"));
-    msdk_printf(MSDK_STRING("   [-FastIntraMode] - force encoder to skip HEVC-specific intra modes (use AVC modes only)\n"));
-    msdk_printf(MSDK_STRING("   [-gpb:<on,off>] - make HEVC encoder use regular P-frames (off) or GPB (on) (on - by default)\n"));
-    msdk_printf(MSDK_STRING("   [-ppyr:<on,off>] - enables P-pyramid\n"));
-    msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
-    msdk_printf(MSDK_STRING("   [-nobref] - do not use B-pyramid (by default the decision is made by library)\n"));
-    msdk_printf(MSDK_STRING("   [-l numSlices] - number of slices \n"));
-    msdk_printf(MSDK_STRING("   [-PicTimingSEI] - inserts picture timing SEI\n"));
-    msdk_printf(MSDK_STRING("   [-mbstat <file-name>] - use this to output per MB distortions for each frame after PreENC\n"));
-    msdk_printf(MSDK_STRING("   [-mvout <file-name>]  - use this to output MV predictors after PreENC\n"));
-    msdk_printf(MSDK_STRING("   [-mvout::format <file-name>] - use this to output MV predictors after PreENC in an internal format (without downsampling).\n"));
+    msdk_printf(MSDK_STRING("   [-o <file-name>]                      - output h265 encoded file\n"));
+    msdk_printf(MSDK_STRING("   [-w]        - width of input YUV file\n"));
+    msdk_printf(MSDK_STRING("   [-h]        - height of input YUV file\n"));
+    msdk_printf(MSDK_STRING("   [-nv12]     - input is in NV12 color format, if not specified YUV420 is expected\n"));
+    msdk_printf(MSDK_STRING("   [-tff|bff]  - input stream is interlaced, top|bottom field first, if not specified progressive is expected\n"));
+    msdk_printf(MSDK_STRING("Video input processing: \n"));
+    msdk_printf(MSDK_STRING("   [-EncodedOrder]    - use app-level reordering to encoded order (default is display; ENCODE only)\n"));
+    msdk_printf(MSDK_STRING("   [-n number]        - number of input frames to process\n"));
+    msdk_printf(MSDK_STRING("                        if stream has fewer frames than requested, sample repeats frames from stream's beginning\n"));
+    msdk_printf(MSDK_STRING("   [-timeout seconds] - set time to run processing in seconds\n"));
+
+    msdk_printf(MSDK_STRING("FEI files: \n"));
+    msdk_printf(MSDK_STRING("   [-mbstat <file-name>]        - use this to output per MB distortions for each frame after PreENC\n"));
+    msdk_printf(MSDK_STRING("   [-mvout <file-name>]         - use this to output MV predictors after PreENC\n"));
+    msdk_printf(MSDK_STRING("   [-mvout::format <file-name>] - use this to output MV predictors after PreENC in an internal format\n"));
+    msdk_printf(MSDK_STRING("                                  (downsampling is not allowed with this option).\n"));
     msdk_printf(MSDK_STRING("   [-mvpin <file-name>]         - use this to input MV predictors for ENCODE (Encoded Order will be enabled automatically).\n"));
     msdk_printf(MSDK_STRING("   [-mvpin::format <file-name>] - use this to input MVs for ENCODE before repacking in internal format\n"));
-    msdk_printf(MSDK_STRING("                                   (Encoded Order will be enabled automatically).\n"));
+    msdk_printf(MSDK_STRING("                                  (Encoded Order will be enabled automatically).\n"));
+    msdk_printf(MSDK_STRING("   [-repackctrl <file-name>]    - use this to input encode repack ctrl file\n"));
+    msdk_printf(MSDK_STRING("   [-repackstat <file-name>]    - use this to output encode repack stat file\n"));
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("Specify pipeline: \n"));
+    msdk_printf(MSDK_STRING("   [-encode]            - use extended FEI interface ENC+PAK (FEI ENCODE) (RC is forced to constant QP)\n"));
+    msdk_printf(MSDK_STRING("   [-preenc dsStrength] - use extended FEI interface PREENC\n"));
+    msdk_printf(MSDK_STRING("                          if ds_strength parameter is missed or equal 1, PREENC is used on the full resolution\n"));
+    msdk_printf(MSDK_STRING("                          otherwise PREENC is used on downscaled (by VPP resize in ds_strength times) surfaces.\n"));
+    msdk_printf(MSDK_STRING("                          Also forces Encoded Order\n"));
+
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("BRC (optional): \n"));
+    msdk_printf(MSDK_STRING("   [-ExtBRC] - enables external BRC\n"));
+    msdk_printf(MSDK_STRING("   [-b kbps] - target bitrate (in Kbits per second)\n"));
+
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("VPP settings (optional): \n"));
+    msdk_printf(MSDK_STRING("   [-dstw width]     - destination picture width, invokes VPP resizing\n"));
+    msdk_printf(MSDK_STRING("   [-dsth height]    - destination picture height, invokes VPP resizing\n"));
+    msdk_printf(MSDK_STRING("   [-fieldSplitting] - use VPP field splitting (works only with interlaced input)\n"));
+
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("Encoding settings: \n"));
+    msdk_printf(MSDK_STRING("   [-qp qp_value]     - QP value for frames (default is 26)\n"));
+    msdk_printf(MSDK_STRING("   [-DisableQPOffset] - disable QP offset per pyramid layer\n"));
+    msdk_printf(MSDK_STRING("   [-l numSlices]     - number of slices \n"));
+    msdk_printf(MSDK_STRING("   [-profile value]   - codec profile\n"));
+    msdk_printf(MSDK_STRING("   [-level value]     - codec level\n"));
+    msdk_printf(MSDK_STRING("   [-f frameRate]     - video frame rate (frames per second)\n"));
+    msdk_printf(MSDK_STRING("   [-PicTimingSEI]    - inserts picture timing SEI\n"));
+
+    msdk_printf(MSDK_STRING("GOP structure: \n"));
+    msdk_printf(MSDK_STRING("   [-r (-GopRefDist) distance]       - Distance between I- or P- key frames (1 means no B-frames) (0 - by default(I frames))\n"));
+    msdk_printf(MSDK_STRING("   [-num_ref (-NumRefFrame) numRefs] - number of available reference frames (DPB size)\n"));
+    msdk_printf(MSDK_STRING("   [-g size]                         - GOP size (1(default) means I-frames only)\n"));
+    msdk_printf(MSDK_STRING("   [-gop_opt closed|strict]          - GOP optimization flags (can be used together)\n"));
+    msdk_printf(MSDK_STRING("   [-idr_interval size]              - if IdrInterval = 0, then only first I-frame is an IDR-frame\n"));
+    msdk_printf(MSDK_STRING("                                       if IdrInterval = 1, then every I - frame is an IDR - frame\n"));
+    msdk_printf(MSDK_STRING("                                       if IdrInterval = 2, then every other I - frame is an IDR - frame, etc (default is 0)\n"));
+
+    msdk_printf(MSDK_STRING("References structure: \n"));
     msdk_printf(MSDK_STRING("   [-active_ref_lists_par <file-name>] - par - file for reference lists + reordering. Each line :\n"));
     msdk_printf(MSDK_STRING("                                         <POC> <FrameType> <PicStruct> | 8 <reference POC> in L0 list | then L1 | 16 DPB\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveP   numRefs]          - number of maximum allowed references for P frames (valid range is [1, 3])\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveBL0 numRefs]          - number of maximum allowed backward references for B frames (valid range is [1, 3])\n"));
+    msdk_printf(MSDK_STRING("   [-NumRefActiveBL1 numRefs]          - number of maximum allowed forward references for B frames (only 1 is supported)\n"));
+    msdk_printf(MSDK_STRING("   [-gpb:<on,off>]                     - make HEVC encoder use regular P-frames (off) or GPB (on) (on by default)\n"));
+    msdk_printf(MSDK_STRING("   [-ppyr:<on,off>]                    - enables P-pyramid (on by default)\n"));
+    msdk_printf(MSDK_STRING("   [-bref]                             - arrange B frames in B-pyramid reference structure\n"));
+    msdk_printf(MSDK_STRING("   [-nobref]                           - do not use B-pyramid (by default the decision is made by library)\n"));
 
-    msdk_printf(MSDK_STRING("   [-qrep] - quality predictor MV repacking before encode\n"));
-    msdk_printf(MSDK_STRING("   [-SearchWindow value] - specifies one of the predefined search path and window size. In range [1,5] (5 is default).\n"));
-    msdk_printf(MSDK_STRING("                           If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
-    msdk_printf(MSDK_STRING("   [-RefWidth width]   - width of search region (should be multiple of 4),\n"));
-    msdk_printf(MSDK_STRING("                         valid range is [20, 64] for one direction and [20, 32] for bidirectional search\n"));
-    msdk_printf(MSDK_STRING("   [-RefHeight height] - height of search region (should be multiple of 4),\n"));
-    msdk_printf(MSDK_STRING("                         valid range is [20, 64] for one direction and [20, 32] for bidirectional search\n"));
-    msdk_printf(MSDK_STRING("   NOTE: Maximum allowed search area size is 2048 for one directional and 1024 for bidirectional search.\n"));
-    msdk_printf(MSDK_STRING("   [-LenSP length] - defines number of search units in search path. In range [1,63] (default is 57)\n"));
-    msdk_printf(MSDK_STRING("   [-SearchPath value] - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full).\n"));
-    msdk_printf(MSDK_STRING("   [-AdaptiveSearch] - enables adaptive search\n"));
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("FEI specific settings: \n"));
+    msdk_printf(MSDK_STRING("Predictors: \n"));
+    msdk_printf(MSDK_STRING("   [-NumPredictorsL0 numPreds] - number of maximum L0 predictors (default - assign depending on the frame type)\n"));
+    msdk_printf(MSDK_STRING("   [-NumPredictorsL1 numPreds] - number of maximum L1 predictors (default - assign depending on the frame type)\n"));
+    msdk_printf(MSDK_STRING("   [-MultiPredL0 type]         - use internal L0 MV predictors (0 - no internal MV predictor, 1 - spatial internal MV predictors)\n"));
+    msdk_printf(MSDK_STRING("   [-MultiPredL1 type]         - use internal L1 MV predictors (0 - no internal MV predictor, 1 - spatial internal MV predictors)\n"));
+    msdk_printf(MSDK_STRING("   [-MVPBlockSize size]        - external MV predictor block size (0 - no MVP, 1 - MVP per 16x16, 2 - MVP per 32x32, 7 - use with -mvpin)\n"));
+    msdk_printf(MSDK_STRING("   [-qrep]                     - quality  MV predictors repacking before encode\n"));
+
+    msdk_printf(MSDK_STRING("Partitioning: \n"));
+    msdk_printf(MSDK_STRING("   [-ForceCtuSplit]          - force splitting CTU into CU at least once\n"));
+    msdk_printf(MSDK_STRING("   [-NumFramePartitions num] - number of partitions in frame that encoder processes concurrently (1, 2, 4, 8 or 16)\n"));
+    
+    msdk_printf(MSDK_STRING("Force Flags: \n"));
+    msdk_printf(MSDK_STRING("   [-FastIntraMode] - force encoder to skip HEVC-specific intra modes (use AVC modes only)\n"));
+
+    msdk_printf(MSDK_STRING("Motion Search: \n"));
+    msdk_printf(MSDK_STRING("   [-SearchWindow value]         - specifies one of the predefined search path and window size. In range [1,5] (5 is default).\n"));
+    msdk_printf(MSDK_STRING("                                   If zero value specified: -RefWidth / RefHeight, -LenSP are required\n"));
+    msdk_printf(MSDK_STRING("   [-RefWidth width]             - width of search region (should be multiple of 4), maximum allowed search window is 64x32 for\n"));
+    msdk_printf(MSDK_STRING("                                   one direction and 32x32 for bidirectional search\n"));
+    msdk_printf(MSDK_STRING("   [-RefHeight height]           - height of search region (should be multiple of 4), maximum allowed is 32\n"));
+    msdk_printf(MSDK_STRING("   [-LenSP length]               - defines number of search units in search path. In range [1,63] (default is 57)\n"));
+    msdk_printf(MSDK_STRING("   [-SearchPath value]           - defines shape of search path. 1 - diamond, 2 - full, 0 - default (full).\n"));
+    msdk_printf(MSDK_STRING("   [-AdaptiveSearch]             - enables adaptive search\n"));
     msdk_printf(MSDK_STRING("   [-preenc::SearchWindow value] - specifies one of the predefined search path and window size for PreENC.\n"));
     msdk_printf(MSDK_STRING("                                   In range [1,5] (5 is default).\n"));
 
-    msdk_printf(MSDK_STRING("   [-timeout seconds] - set time to run processing in seconds\n"));
-    msdk_printf(MSDK_STRING("   [-repackctrl <file-name>] - use this to input encode repack ctrl file\n"));
-    msdk_printf(MSDK_STRING("   [-repackstat <file-name>] - use this to output encode repack stat file\n"));
     msdk_printf(MSDK_STRING("\n"));
 }
 
 mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& params)
 {
-    if (1 == nArgNum)
+    if (nArgNum < MinNumberOfOptions)
     {
         PrintHelp(strInput[0], MSDK_STRING("Not enough input parameters"));
         return MFX_ERR_UNSUPPORTED;
@@ -400,10 +433,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         {
             params.input.nPicStruct = MFX_PICSTRUCT_FIELD_BFF;
         }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mixed")))
-        {
-            params.input.nPicStruct = MFX_PICSTRUCT_UNKNOWN;
-        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-gop_opt")))
         {
             CHECK_NEXT_VAL(i + 1 >= nArgNum, strInput[i], strInput[0]);
@@ -603,12 +632,7 @@ mfxStatus CheckOptions(const sInputParams& params, const msdk_char* appName)
     }
     if (params.preencDSfactor != 1 && params.bFormattedMVout)
     {
-        PrintHelp(appName, "Dumping of MV predictors in internal format with downsampling is unsupported.");
-        return MFX_ERR_UNSUPPORTED;
-    }
-    if (params.preencDSfactor != 1 && (params.bFormattedMVout || params.bFormattedMVPin))
-    {
-        PrintHelp(appName, "Dumping/Reading of MV predictors in internal format with downsampling is unsupported.");
+        PrintHelp(appName, "Dumping of MV predictors in internal format from PreENC with downsampling is unsupported.");
         return MFX_ERR_UNSUPPORTED;
     }
     if (params.encodeCtrl.MVPredictor != 0 && params.encodeCtrl.MVPredictor != 1 &&
