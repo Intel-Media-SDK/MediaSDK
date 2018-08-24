@@ -74,7 +74,7 @@ append_property( mfx_common_hw COMPILE_FLAGS " -DMFX_RT" )
 list( APPEND mdirs
   scheduler vpp decode/vc1
   decode/mjpeg decode/h264 decode/mpeg2 cmrt_cross_platform
-  encode_hw/h265 encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
+  encode_hw/vp9 encode_hw/h265 encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
   decode/h265 decode/vp8 decode/vp9 mctf_package/mctf
   )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )

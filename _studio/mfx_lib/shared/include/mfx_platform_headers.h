@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,6 +38,9 @@
 #ifndef D3DDDIFORMAT
 #define D3DDDIFORMAT        D3DFORMAT
 #endif
+
+static const GUID GUID_NULL =
+{ 0x00000000, 0x0000, 0x0000,{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
 
 typedef int             BOOL;
 typedef char            CHAR;

@@ -23,7 +23,7 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 mfx_include_dirs()
 
 ### ENCODE HW
-list( APPEND Encoders h265 h264 mjpeg mpeg2 )
+list( APPEND Encoders vp9 h265 h264 mjpeg mpeg2 )
 foreach( dir ${Encoders} )
   include_directories( ${MSDK_LIB_ROOT}/encode_hw/${dir}/include )
 endforeach()
