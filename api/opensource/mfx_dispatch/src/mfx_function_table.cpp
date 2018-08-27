@@ -76,9 +76,9 @@ namespace
 mfxStatus pseudoMFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
 {
     // touch unreferenced parameters
-    impl = impl;
-    ver = ver;
-    session = session;
+    (void) impl;
+    (void) ver;
+    (void) session;
 
     return MFX_ERR_UNKNOWN;
 
@@ -87,7 +87,7 @@ mfxStatus pseudoMFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
 mfxStatus pseudoMFXClose(mfxSession session)
 {
     // touch unreferenced parameters
-    session = session;
+    (void) session;
 
     return MFX_ERR_UNKNOWN;
 
@@ -96,8 +96,8 @@ mfxStatus pseudoMFXClose(mfxSession session)
 mfxStatus pseudoMFXJoinSession(mfxSession session, mfxSession child_session)
 {
     // touch unreferenced parameters
-    session = session;
-    child_session = child_session;
+    (void) session;
+    (void) child_session;
 
     return MFX_ERR_UNKNOWN;
 
@@ -106,8 +106,8 @@ mfxStatus pseudoMFXJoinSession(mfxSession session, mfxSession child_session)
 mfxStatus pseudoMFXCloneSession(mfxSession session, mfxSession *clone)
 {
     // touch unreferenced parameters
-    session = session;
-    clone = clone;
+    (void) session;
+    (void) clone;
 
     return MFX_ERR_UNKNOWN;
 
