@@ -49,11 +49,11 @@ public:
 
     MemObj(unsigned int count, bool zero)
     {
-        m_obj = new T[count];
-        m_del = true;
-
         if (zero)
-            memset(m_obj, 0, sizeof(T) * count);
+            m_obj = new T[count]{}; // array value-initialization
+        else
+            m_obj = new T[count];
+        m_del = true;
     }
 
     MemObj(T* obj)
