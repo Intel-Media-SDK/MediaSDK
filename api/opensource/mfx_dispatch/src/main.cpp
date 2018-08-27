@@ -459,7 +459,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     {
         pHandle = *candidate;
         //pulling up current mediasdk version, that required to match plugin version
-        mfxVersion apiVerActual = { 0 };
+        mfxVersion apiVerActual = { { 0, 0 } };
         mfxStatus stsQueryVersion = MFXQueryVersion((mfxSession)pHandle, &apiVerActual);
 
         if (MFX_ERR_NONE !=  stsQueryVersion)
