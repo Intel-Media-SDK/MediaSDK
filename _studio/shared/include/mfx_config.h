@@ -29,10 +29,6 @@
 #endif
 
 #define CMAPIUPDATE
-#define MFX_ENABLE_VPP_COMPOSITION
-//#define MFX_ENABLE_VPP_FRC
-#define MFX_ENABLE_VPP_ROTATION
-#define MFX_ENABLE_VPP_VIDEO_SIGNAL
 
 
 
@@ -51,13 +47,6 @@
             #if !defined(AS_H264LA_PLUGIN)
                 #define MFX_ENABLE_MFE
             #endif
-        #endif
-
-        // vpp
-        #define MFX_ENABLE_DENOISE_VIDEO_VPP
-        #define MFX_ENABLE_VPP
-        #if !defined(LINUX_TARGET_PLATFORM_BXT)
-            #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
         #endif
 
         #if defined(AS_H264LA_PLUGIN)
@@ -139,7 +128,6 @@
 // The line below HAS to be changed to MFX_VERSION specific version i.e. 1027
 // after inclusion of respective features into official API
 #if MFX_VERSION >= MFX_VERSION_NEXT
-    #define MFX_ENABLE_VPP_RUNTIME_HSBC
     #define MFX_ENABLE_RGBP
 	#define MFX_ENABLE_FOURCC_RGB565
 #endif
