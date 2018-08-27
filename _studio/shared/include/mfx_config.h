@@ -83,6 +83,10 @@
         #undef MFX_ENABLE_H264_VIDEO_DECODE
         #undef MFX_ENABLE_H264_VIDEO_ENCODE
         #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE
+<<<<<<< HEAD
+=======
+        #undef MFX_ENABLE_VC1_VIDEO_DECODE
+>>>>>>> 0c99a1d... MJPEG codec flags moved into mfxconfig.h.in
         #undef MFX_ENABLE_DENOISE_VIDEO_VPP
         #undef MFX_ENABLE_VPP
         #undef MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
