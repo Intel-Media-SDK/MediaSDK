@@ -21,6 +21,7 @@
 #pragma once
 #include "mfxdefs.h"
 #include <cstring>
+#include <cstdio>
 
 #if defined(MFX_DISPATCHER_LOG)
 #include <string>
@@ -35,10 +36,7 @@ typedef char msdk_disp_char;
 
 inline void msdk_disp_char_cpy_s(char * to, size_t to_size, const char * from)
 {
-    size_t source_len = strlen(from);
-    size_t num_chars = (to_size - 1) < source_len ? (to_size - 1) : source_len;
-    strncpy(to, from, num_chars);
-    to[num_chars] = 0;
+    snprintf(to, to_size, "%s", from);
 }
 
 #if defined(MFX_DISPATCHER_LOG)
