@@ -73,7 +73,6 @@ typedef struct {
 
   #define ALIGN_DECL(X) __attribute__ ((aligned(X)))
 
-#define THROWSEXCEPTION
 /******************************************************************************/
 
 #endif // __UMC_DEFS_H__
