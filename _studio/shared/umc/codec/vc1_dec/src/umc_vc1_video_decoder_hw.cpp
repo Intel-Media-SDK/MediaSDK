@@ -74,8 +74,7 @@ Status VC1VideoDecoderHW::Init(BaseCodecParams *pInit)
     try
     // memory allocation and Init all env for frames/tasks store - VC1TaskStore object
     {
-        m_pStore = (VC1TaskStore*)m_pHeap->s_alloc<VC1TaskStore>();
-        m_pStore = new(m_pStore) VC1TaskStore(m_pMemoryAllocator);
+        m_pStore = new(m_pHeap->s_alloc<VC1TaskStore>()) VC1TaskStore(m_pMemoryAllocator);
 
         if (!m_pStore->Init(m_iThreadDecoderNum,
                             m_iMaxFramesInProcessing,
@@ -149,10 +148,10 @@ Status VC1VideoDecoderHW::Close(void)
 
     if (m_pStore)
     {
-        delete m_pStore;
-        m_pStore = 0;
+        m_pStore->~VC1TaskStore();
+        m_pStore = nullptr;
     }
-    
+
     FreeAlloc(m_pContext);
 
     if(m_pMemoryAllocator)
