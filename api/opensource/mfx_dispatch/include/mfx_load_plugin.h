@@ -22,6 +22,7 @@
 #include "mfxplugin.h"
 #include "mfx_dispatcher_defs.h"
 #include "mfx_plugin_hive.h"
+#include <sstream>
 
 namespace MFX
 {
@@ -31,8 +32,8 @@ namespace MFX
     {
         mfxModuleHandle mHmodule;
         CreatePluginPtr_t mCreatePluginPtr;
-        msdk_disp_char mPath[MAX_PLUGIN_PATH];
-        
+        std::stringbuf mPath;
+
     public:
         PluginModule();
         PluginModule(const msdk_disp_char * path);

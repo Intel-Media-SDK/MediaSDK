@@ -35,10 +35,10 @@ MFX::PluginModule::PluginModule()
 }
 
 MFX::PluginModule::PluginModule(const PluginModule & that)
-    : mHmodule(mfx_dll_load(that.mPath))
+    : mHmodule(mfx_dll_load(that.mPath.str().c_str()))
     , mCreatePluginPtr(that.mCreatePluginPtr)
+    , mPath(that.mPath.str())
 {
-    msdk_disp_char_cpy_s(mPath, sizeof(mPath) / sizeof(*mPath), that.mPath);
 }
 
 MFX::PluginModule & MFX::PluginModule::operator = (const MFX::PluginModule & that)
@@ -46,9 +46,9 @@ MFX::PluginModule & MFX::PluginModule::operator = (const MFX::PluginModule & tha
     if (this != &that)
     {
         Tidy();
-        mHmodule = mfx_dll_load(that.mPath);
+        mHmodule = mfx_dll_load(that.mPath.str().c_str());
         mCreatePluginPtr = that.mCreatePluginPtr;
-        msdk_disp_char_cpy_s(mPath, sizeof(mPath) / sizeof(*mPath), that.mPath);
+        mPath.str(that.mPath.str());
     }
     return *this;
 }
@@ -69,7 +69,7 @@ MFX::PluginModule::PluginModule(const msdk_disp_char * path)
         return ;
     }
 
-    msdk_disp_char_cpy_s(mPath, sizeof(mPath) / sizeof(*mPath), path);
+    mPath.str(path);
 }
 
 bool MFX::PluginModule::Create( mfxPluginUID uid, mfxPlugin& plg)
@@ -80,9 +80,9 @@ bool MFX::PluginModule::Create( mfxPluginUID uid, mfxPlugin& plg)
         mfxStatus mfxResult = mCreatePluginPtr(uid, &plg);
         result = (MFX_ERR_NONE == mfxResult);
         if (!result) {
-            TRACE_PLUGIN_ERROR("\"%S::%s\" returned %d\n", MSDK2WIDE(mPath), CREATE_PLUGIN_FNC, mfxResult);
+            TRACE_PLUGIN_ERROR("\"%S::%s\" returned %d\n", MSDK2WIDE(mPath.str().c_str()), CREATE_PLUGIN_FNC, mfxResult);
         } else {
-            TRACE_PLUGIN_INFO("\"%S::%s\" SUCCEED\n", MSDK2WIDE(mPath), CREATE_PLUGIN_FNC);
+            TRACE_PLUGIN_INFO("\"%S::%s\" SUCCEED\n", MSDK2WIDE(mPath.str().c_str()), CREATE_PLUGIN_FNC);
         }
     }
     return result;
