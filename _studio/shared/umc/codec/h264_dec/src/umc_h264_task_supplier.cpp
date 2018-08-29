@@ -3608,11 +3608,27 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 
                 if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice))
                 {
+                    // gaps_in_frame_num_value_allowed_flag==true is handled in this block
                     view.pCurFrame = 0;
 
                     Status umsRes = ProcessFrameNumGap(slice, 0, 0, maxDId);
                     if (umsRes != UMC_OK)
                         return umsRes;
+                }
+                else if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice, true))
+                {
+                    // corruption prevention/recovery in case of frame gaps and gaps_in_frame_num_value_allowed_flag==false:
+                    //   drop ST frames with frame_num higher than frame_num of the input slice.
+                    //   without this logic, in case of missed MMCO (due to frames dropping),
+                    //   old ST frames can get stuck in DPB forever.
+                    for (H264DecoderFrame *pFrm = view.GetDPBList(0)->head(); pFrm; pFrm = pFrm->future())
+                    {
+                        if ((pFrm->FrameNum() > slice->GetSliceHeader()->frame_num) &&
+                            pFrm->isShortTermRef())
+                        {
+                            AddItemAndRun(pFrm, pFrm, UNSET_REFERENCE | FULL_FRAME | SHORT_TERM);
+                        }
+                    }
                 }
             }
 
@@ -3658,14 +3674,6 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
             m_currentView = lastSlice->GetSliceHeader()->nal_ext.mvc.view_id;
             ViewItem &view = GetView(m_currentView);
             view.pCurFrame = setOfSlices->m_frame;
-
-            if (lastSlice->GetSeqParam()->gaps_in_frame_num_value_allowed_flag != 1)
-            {
-                // Check if DPB has ST frames with frame_num duplicating frame_num of new slice_type
-                // If so, unmark such frames as ST
-                H264DecoderFrame * pHead = view.GetDPBList(0)->head();
-                DPBSanitize(pHead, view.pCurFrame);
-            }
 
             const H264SliceHeader *sliceHeader = lastSlice->GetSliceHeader();
             uint32_t field_index = setOfSlices->m_frame->GetNumberByParity(sliceHeader->bottom_field_flag);
@@ -4017,19 +4025,6 @@ void TaskSupplier::AddSliceToFrame(H264DecoderFrame *pFrame, H264Slice *pSlice)
     pSlice->SetSliceNumber(iSliceNumber);
     pSlice->m_pCurrentFrame = pFrame;
     au_info->AddSlice(pSlice);
-}
-
-void TaskSupplier::DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame)
-{
-    for (H264DecoderFrame *pFrm = pDPBHead; pFrm; pFrm = pFrm->future())
-    {
-        if ((pFrm != pFrame) &&
-            (pFrm->FrameNum() == pFrame->FrameNum()) &&
-             pFrm->isShortTermRef())
-        {
-            AddItemAndRun(pFrm, pFrm, UNSET_REFERENCE | FULL_FRAME | SHORT_TERM);
-        }
-    }
 }
 
 void TaskSupplier::DBPUpdate(H264DecoderFrame * pFrame, int32_t field)
