@@ -1295,6 +1295,9 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
     switch (pDst->Info.FourCC)
     {
     case MFX_FOURCC_P010:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+#endif
 
         if (pSrc->Info.Shift != pDst->Info.Shift)
         {
@@ -1434,6 +1437,54 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
         }
 #endif
 
+    case MFX_FOURCC_Y210:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216:
+#endif
+        MFX_CHECK_NULL_PTR1(pSrc->Data.Y);
+
+        //we use 8u copy, so we need to increase ROI to handle 16 bit samples
+        roi.width *= 4;
+        if (pSrc->Info.Shift != pDst->Info.Shift)
+        {
+            mfxU8 lshift = 0;
+            mfxU8 rshift = 0;
+            if(pSrc->Info.Shift != 0)
+                rshift = (mfxU8)(16 - pDst->Info.BitDepthLuma);
+            else
+                lshift = (mfxU8)(16 - pDst->Info.BitDepthLuma);
+
+            sts = FastCopy::CopyAndShift((mfxU16*)(pDst->Data.Y), dstPitch, (mfxU16 *)pSrc->Data.Y, srcPitch, roi, lshift, rshift, copyFlag);
+        }
+        else
+            sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+
+        MFX_CHECK_STS(sts);
+        break;
+    case MFX_FOURCC_Y410:
+    {
+        MFX_CHECK_NULL_PTR1(pDst->Data.Y410);
+
+        mfxU8* ptrDst = (mfxU8*) pDst->Data.Y410;
+        mfxU8* ptrSrc = (mfxU8*) pSrc->Data.Y410;
+
+        roi.width *= 4;
+
+        sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+        MFX_CHECK_STS(sts);
+        break;
+    }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y416:
+        MFX_CHECK_NULL_PTR1(pSrc->Data.U16);
+
+        //we use 8u copy, so we need to increase ROI to handle 16 bit samples
+        roi.width *= 8;
+        sts = FastCopy::Copy((mfxU8*)pDst->Data.U16, dstPitch, (mfxU8*)pSrc->Data.U16, srcPitch, roi, copyFlag);
+
+        MFX_CHECK_STS(sts);
+        break;
+#endif
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_BGR4:
