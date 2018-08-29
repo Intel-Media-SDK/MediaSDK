@@ -790,25 +790,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     sts = m_core->QueryPlatform(&p);
     MFX_CHECK_STS(sts);
 
-    if (p.CodeName >= MFX_PLATFORM_SKYLAKE)
-    {
-        m_caps.Color420Only       = 1;
-        m_caps.BitDepth8Only      = 1;
-        m_caps.MaxEncodedBitDepth = 0;
-        m_caps.YUV422ReconSupport = 0;
-        m_caps.YUV444ReconSupport = 0;
-    }
-    if (p.CodeName >= MFX_PLATFORM_KABYLAKE)
-    {
-        m_caps.BitDepth8Only      = 0;
-        m_caps.MaxEncodedBitDepth = 1;
-    }
-    if (p.CodeName >= MFX_PLATFORM_ICELAKE)
-    {
-        m_caps.Color420Only = 0;
-        m_caps.YUV422ReconSupport = 1;
-        m_caps.YUV444ReconSupport = 1;
-    }
     if (p.CodeName >= MFX_PLATFORM_CANNONLAKE)
     {
         if(vaParams.entrypoint == VAEntrypointEncSliceLP) //CNL + VDENC => LCUSizeSupported = 4
@@ -834,9 +815,25 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.UserMaxFrameSizeSupport = 1;
     m_caps.MBBRCSupport            = 1;
     m_caps.MbQpDataSupport         = 1;
-    m_caps.Color420Only            = 1; // FIXME in case VAAPI direct YUY2/RGB support added
     m_caps.TUSupport               = 73;
 
+    if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420_12)
+    {
+        m_caps.MaxEncodedBitDepth = 2;
+    }
+    else if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420_10)
+    {
+        m_caps.MaxEncodedBitDepth = 1;
+    }
+    else if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420)
+    {
+        m_caps.MaxEncodedBitDepth = 0;
+    }
+    m_caps.Color420Only = (attrs[idx_map[VAConfigAttribRTFormat]].value & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444)) ? 0 : 1;
+    m_caps.BitDepth8Only = (attrs[idx_map[VAConfigAttribRTFormat]].value &
+        (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12)) ? 0 : 1;
+    m_caps.YUV422ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV422 ? 1 : 0;
+    m_caps.YUV444ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV444 ? 1 : 0;
 
     if ((attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
         (attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != 0))
