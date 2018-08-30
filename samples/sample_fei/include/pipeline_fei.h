@@ -49,6 +49,9 @@ public:
     CEncodingPipeline(AppConfig* pAppConfig);
     ~CEncodingPipeline();
 
+    CEncodingPipeline(const CEncodingPipeline &other)            = delete;
+    CEncodingPipeline& operator=(const CEncodingPipeline& other) = delete;
+
     mfxStatus Init(mfxSession parentSession = NULL);
     mfxStatus Run();
     mfxStatus ProcessBufferedFrames();
