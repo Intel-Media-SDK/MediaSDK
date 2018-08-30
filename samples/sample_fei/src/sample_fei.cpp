@@ -80,7 +80,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-profile decimal] - set AVC profile (default is AVC high)\n"));
     msdk_printf(MSDK_STRING("   [-level decimal] - set AVC level (default is 41)\n"));
     msdk_printf(MSDK_STRING("   [-EncodedOrder] - use internal logic for reordering, reading from files (mvin, mbqp) will be in encoded order (default is display; ENCODE only)\n"));
-    msdk_printf(MSDK_STRING("   [-DecodedOrder] - output in decoded order (useful to dump streamout data in DecodedOrder). WARNING: all FEI interfaces expects frames to come in DisplayOrder.\n"));
+    msdk_printf(MSDK_STRING("   [-DecodedOrder] - output in decoded order (useful to dump streamout data in DecodedOrder).\n"));
+    msdk_printf(MSDK_STRING("                     WARNING: All FEI interface wrapper classes in sample_fei expect frames to come in DisplayOrder!\n"));
+    msdk_printf(MSDK_STRING("                     (It means that FEI processing pipeline can't be constructed by sample if this option is ON)\n"));
     msdk_printf(MSDK_STRING("   [-mbctrl file] - use the input to set MB control for FEI (only ENC+PAK)\n"));
     msdk_printf(MSDK_STRING("   [-mbsize] - with this options size control fields will be used from MB control structure (only ENC+PAK)\n"));
     msdk_printf(MSDK_STRING("   [-mvin file] - use this input to set MV predictor for FEI. PREENC and ENC (ENCODE) expect different structures.\n"));
@@ -1067,9 +1069,13 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, AppConfig* pCon
 
     if (pConfig->DecodedOrder && pConfig->bDECODE && (pConfig->bPREENC || pConfig->bENCPAK || pConfig->bOnlyENC || pConfig->bOnlyPAK || pConfig->bENCODE)){
         if (bAlrShownHelp)
-            msdk_printf(MSDK_STRING("\nERROR: DecodedOrder turned on, all FEI interfaces in sample_fei expects frame in DisplayOrder!\n"));
+        {
+            msdk_printf(MSDK_STRING("\nERROR: DecodedOrder turned on, all FEI interface wrapper classes in sample_fei expect frames to come in DisplayOrder!\n"));
+            msdk_printf(MSDK_STRING("       (It means that FEI processing pipeline can't be constructed by sample if this option is ON)\n"));
+        }
         else
-            PrintHelp(strInput[0], MSDK_STRING("ERROR: DecodedOrder turned on, all FEI interfaces in sample_fei expects frame in DisplayOrder!"));
+            PrintHelp(strInput[0], MSDK_STRING("ERROR: DecodedOrder turned on, all FEI interfaces in sample_fei expects frame in DisplayOrder!\n"
+                                               "       (It means that FEI processing pipeline can't be constructed by sample if this option is ON)"));
         return MFX_ERR_UNSUPPORTED;
     }
 
