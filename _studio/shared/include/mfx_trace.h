@@ -30,7 +30,7 @@
 //#define MFX_TRACE_ENABLE_TEXTLOG
 //#define MFX_TRACE_ENABLE_STAT
 
-#if defined(LINUX32) && defined(MFX_TRACE_ENABLE_ITT) && !defined(MFX_TRACE_ENABLE_FTRACE)
+#if (defined(LINUX32) || defined(ANDROID)) && defined(MFX_TRACE_ENABLE_ITT) && !defined(MFX_TRACE_ENABLE_FTRACE)
     // Accompany ITT trace with ftrace. This combination is used by VTune.
     #define MFX_TRACE_ENABLE_FTRACE
 #endif

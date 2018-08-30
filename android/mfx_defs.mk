@@ -37,6 +37,15 @@ MFX_CFLAGS += \
   -Wformat -Wformat-security \
   -fexceptions -frtti
 
+ifeq ($(MFX_ENABLE_ITT_TRACES),)
+  # Enabled ITT traces by default
+  MFX_ENABLE_ITT_TRACES := true
+endif
+
+ifeq ($(MFX_ENABLE_ITT_TRACES),true)
+  MFX_CFLAGS += -DMFX_TRACE_ENABLE_ITT
+endif
+
 # LibVA support.
 MFX_CFLAGS_LIBVA := -DLIBVA_SUPPORT -DLIBVA_ANDROID_SUPPORT
 
