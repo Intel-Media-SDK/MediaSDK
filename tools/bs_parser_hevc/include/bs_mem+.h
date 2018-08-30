@@ -61,6 +61,9 @@ public:
         , m_del(false)
     {}
 
+    MemObj(const MemObj&) = delete;
+    MemObj& operator=(const MemObj&) = delete;
+
     virtual ~MemObj()
     {
         if (m_del)
