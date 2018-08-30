@@ -710,6 +710,7 @@ void Info::decodeRPL(NALU& nalu)
     }
 
     if (   pps.curr_pic_ref_enabled_flag
+        && slice.type != SLICE_TYPE::I
         && !slice.ref_pic_list_modification_flag_l0
         && TmpL0.size() > slice.num_ref_idx_l0_active)
         slice.L0[slice.num_ref_idx_l0_active - 1] = currPic;
