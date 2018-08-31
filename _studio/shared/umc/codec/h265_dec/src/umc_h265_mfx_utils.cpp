@@ -37,13 +37,14 @@ namespace UMC_HEVC_DECODER { namespace MFX_Utility
 {
 
 // Check HW capabilities
-bool IsNeedPartialAcceleration_H265(mfxVideoParam* par, eMFXHWType /*type*/)
+bool IsNeedPartialAcceleration_H265(mfxVideoParam* par, eMFXHWType type)
 {
     if (!par)
         return false;
 
 #if defined(MFX_VA_LINUX)
-    if (par->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420 && par->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV400)
+    if (type < MFX_HW_ICL &&
+        par->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420 && par->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV400)
         return true;
 
     if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P210 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_NV16)
