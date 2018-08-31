@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,21 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __MFX_MPEG2_DEC_COMMON_H__
-#define __MFX_MPEG2_DEC_COMMON_H__
-
 #include "mfx_common.h"
-#if defined MFX_ENABLE_MPEG2_VIDEO_DECODE
+#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
+#include "mfx_vp9_encode_plugin_hw.h"
+#include "plugin_version_linux.h"
 
-#include "mfx_common_int.h"
-#include "mfxvideo.h"
-#include "umc_mpeg2_dec_defs.h"
-
-#define MFX_PROFILE_MPEG1 8
-
-void GetMfxFrameRate(mfxU8 umcFrameRateCode, mfxU32 *frameRateNom, mfxU32 *frameRateDenom);
-inline bool IsMpeg2StartCodeEx(const mfxU8* p);
-
+#if defined(LINUX32)
+#define MSDK_PLUGIN_API(ret_type) extern "C"  ret_type
+#else
+#define MSDK_PLUGIN_API(ret_type) extern "C"  ret_type  __cdecl
 #endif
 
-#endif //__MFX_MPEG2_DEC_COMMON_H__
+MSDK_PLUGIN_API(MFXEncoderPlugin*) mfxCreateEncoderPlugin()
+{
+    return MfxHwVP9Encode::Plugin::Create();
+}
+
+MSDK_PLUGIN_API(mfxStatus) CreatePlugin(mfxPluginUID uid, mfxPlugin* plugin)
+{
+    return MfxHwVP9Encode::Plugin::CreateByDispatcher(uid, plugin);
+}
+#endif

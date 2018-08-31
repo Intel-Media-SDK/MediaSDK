@@ -991,12 +991,6 @@ namespace MfxHwH264Encode
 
     ENCODE_FRAME_SIZE_TOLERANCE ConvertLowDelayBRCMfx2Ddi(mfxU16 type);
 
-    template<class T> inline T AlignValue(T value, mfxU32 alignment)
-    {
-        assert((alignment & (alignment - 1)) == 0); // should be 2^n
-        return static_cast<T>((value + alignment - 1) & ~(alignment - 1));
-    }
-
     struct MfxMemId
     {
     public:
