@@ -495,7 +495,7 @@ mfxStatus Launcher::ProcessResult()
 
     mfxStatus FinalSts = MFX_ERR_NONE;
     msdk_printf(MSDK_STRING("-------------------------------------------------------------------------------\n"));
-    msdk_char buffer[10] = {};
+    msdk_char buffer[11] = {};
 
     for (mfxU32 i = 0; i < m_pSessionArray.size(); i++)
     {
@@ -507,7 +507,7 @@ mfxStatus Launcher::ProcessResult()
         msdk_string SessionStsStr = _sts ? msdk_string(MSDK_STRING("FAILED"))
             : msdk_string((MSDK_STRING("PASSED")));
 
-        m_pSessionArray[i]->pPipeline->GetSessionText(buffer);
+        m_pSessionArray[i]->pPipeline->GetSessionText(buffer, 11);
         msdk_stringstream ss;
         ss << MSDK_STRING("*** session ") << i << MSDK_STRING(" [") << msdk_string(buffer) << MSDK_STRING("] ") << SessionStsStr <<MSDK_STRING(" (") << StatusToString(_sts) << MSDK_STRING(") ")
             << m_pSessionArray[i]->working_time << MSDK_STRING(" sec, ") << m_pSessionArray[i]->numTransFrames << MSDK_STRING(" frames") << std::endl
