@@ -281,7 +281,7 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 #ifdef CMRT_EMU
     return device->CreateKernel(program, kernelName, fncPnt, kernel, options);
 #else //CMRT_EMU
-    fncPnt;
+    (void)fncPnt;
     return device->CreateKernel(program, kernelName, kernel, options);
 #endif //CMRT_EMU
 }
