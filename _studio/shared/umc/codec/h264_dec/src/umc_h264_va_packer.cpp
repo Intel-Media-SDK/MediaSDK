@@ -74,8 +74,6 @@ Status Packer::QueryStreamOut(H264DecoderFrame* /*pFrame*/)
 
 Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
 {
-    va;
-    supplier;
     Packer * packer = 0;
         packer = new PackerVA(va, supplier);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -72,8 +72,6 @@ JERRCODE CJPEGDecoderHuffmanTable::Destroy(void)
 
 JERRCODE CJPEGDecoderHuffmanTable::Init(int id,int hclass,uint8_t* bits,uint8_t* vals)
 {
-  int status;
-
   m_id     = id     & 0x0f;
   m_hclass = hclass & 0x0f;
 

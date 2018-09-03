@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -46,8 +46,10 @@
 template<>
 VideoENC* _mfxSession::Create<VideoENC>(mfxVideoParam& par)
 {
-    VideoENC* pENC = nullptr;
+#if ( defined(MFX_ENABLE_LA_H264_VIDEO_HW) || defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC) || defined(MFX_ENABLE_H264_VIDEO_FEI_ENC))
     VideoCORE* pCore = m_pCORE.get();
+#endif
+    VideoENC* pENC = nullptr;
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     mfxU32 codecId = par.mfx.CodecId;
 
@@ -86,6 +88,10 @@ VideoENC* _mfxSession::Create<VideoENC>(mfxVideoParam& par)
 
 mfxStatus MFXVideoENC_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
+#if ( !defined(MFX_ENABLE_LA_H264_VIDEO_HW) && !defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC) && !defined(MFX_ENABLE_USER_ENC))
+    (void)in;
+#endif
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 
@@ -122,9 +128,6 @@ mfxStatus MFXVideoENC_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam
             break;
 #endif // MFX_ENABLE_H264_VIDEO_ENC || MFX_ENABLE_H264_VIDEO_ENC_H
 
-
-
-        case 0: in;
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
         }
