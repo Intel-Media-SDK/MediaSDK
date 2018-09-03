@@ -26,6 +26,8 @@
 #include "genx_scd_skl_isa.h"
 #include "genx_scd_bxt_isa.h"
 #include "genx_scd_cnl_isa.h"
+#include "genx_scd_icl_isa.h"
+#include "genx_scd_icllp_isa.h"
 #include "../include/tree.h"
 #include "../include/iofunctions.h"
 #include "../include/motion_estimation_engine.h"
@@ -293,6 +295,12 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
     case PLATFORM_INTEL_CFL:
     case PLATFORM_INTEL_GLK:
         res = m_device->LoadProgram((void *)genx_scd_skl, sizeof(genx_scd_skl), m_program, "nojitter");
+        break;
+    case PLATFORM_INTEL_ICL:
+        res = m_device->LoadProgram((void *)genx_scd_icl, sizeof(genx_scd_icl), m_program, "nojitter");
+        break;
+    case PLATFORM_INTEL_ICLLP:
+        res = m_device->LoadProgram((void *)genx_scd_icllp, sizeof(genx_scd_icllp), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_BXT:
         res = m_device->LoadProgram((void *)genx_scd_bxt, sizeof(genx_scd_bxt), m_program, "nojitter");

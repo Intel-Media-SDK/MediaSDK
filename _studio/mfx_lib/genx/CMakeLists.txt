@@ -39,6 +39,8 @@ if(MFX_ENABLE_KERNELS)
       ${prefix}/genx_scd_bxt_isa.cpp
       ${prefix}/genx_scd_cnl_isa.cpp
       ${prefix}/genx_scd_skl_isa.cpp
+      ${prefix}/genx_scd_icl_isa.cpp
+      ${prefix}/genx_scd_icllp_isa.cpp
   )
 
   set( prefix ${MSDK_GENX_ROOT}/copy_kernels/src )
