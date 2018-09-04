@@ -943,7 +943,8 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
                           attrib.data(), (mfxI32)attrib.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
+    if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0
+        && (attrib[0].value & VA_RT_FORMAT_YUV420_10) == 0)
         return MFX_ERR_DEVICE_FAILED;
 
     mfxU8 vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, par.isSWBRC());
