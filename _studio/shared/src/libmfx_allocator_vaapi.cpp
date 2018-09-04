@@ -495,8 +495,9 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         {
             ptr->PitchHigh = (mfxU16)(va_image.pitches[0] / (1 << 16));
             ptr->PitchLow  = (mfxU16)(va_image.pitches[0] % (1 << 16));
-            ptr->Y = ptr->U = ptr->V = ptr->A = 0;
+            ptr->U = ptr->V = ptr->A = nullptr;
             ptr->Y410 = (mfxY410*)(pBuffer + va_image.offsets[0]);
+            ptr->Y = (mfxU8*)(ptr->Y410);
         }
         else mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
