@@ -23,7 +23,7 @@
 
 #include "mfx_trace.h"
 
-#if defined(MFX_TRACE_ENABLE_FTRACE) && defined(LINUX32)
+#if defined(MFX_TRACE_ENABLE_FTRACE) && (defined(LINUX32) || defined(ANDROID))
 
 
 mfxTraceU32 MFXTraceFtrace_Init();
@@ -57,5 +57,5 @@ mfxTraceU32 MFXTraceFtrace_EndTask(mfxTraceStaticHandle *static_handle,
 
 mfxTraceU32 MFXTraceFtrace_Close(void);
 
-#endif // defined(MFX_TRACE_ENABLE_FTRACE) && defined(LINUX32)
+#endif // #if defined(MFX_TRACE_ENABLE_FTRACE) && (defined(LINUX32) || defined(ANDROID))
 #endif // #ifndef __MFX_TRACE_FTRACE_LOG_H__
