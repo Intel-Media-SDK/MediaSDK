@@ -1594,7 +1594,7 @@ mfxStatus CommonCORE::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 {
     if(!dst || !src)
         return MFX_ERR_NULL_PTR;
-    if(src->Data.Y && dst->Data.Y) //input video frame is locked or system, call old copy function
+    if(!LumaIsNull(src) && !LumaIsNull(dst)) //input video frame is locked or system, call old copy function
     {
         mfxU16 srcMemType = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_EXTERNAL_FRAME;
         mfxU16 dstMemType = MFX_MEMTYPE_SYSTEM_MEMORY | MFX_MEMTYPE_EXTERNAL_FRAME;
@@ -1618,7 +1618,7 @@ mfxStatus CommonCORE::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
         MFX_CHECK_STS(sts);
         return sts;
     }
-    else if(src->Data.Y && dst->Data.MemId)
+    else if(!LumaIsNull(src) && dst->Data.MemId)
     {
         mfxHDLPair dstHandle = {};
         mfxU16 dstMemType = MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
