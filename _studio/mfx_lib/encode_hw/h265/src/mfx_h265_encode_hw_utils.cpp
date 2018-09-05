@@ -596,7 +596,7 @@ mfxStatus CopyRawSurfaceToVideoMemory(
             )
             surfDst.Info.Shift = 1; // convert to native shift in core.CopyFrame() if required
 
-        if (!sysSurf.Y)
+        if (LumaIsNull(surface))
         {
             sts = fa.Lock(fa.pthis, sysSurf.MemId, &surfSrc.Data);
             MFX_CHECK_STS(sts);
