@@ -26,8 +26,24 @@ namespace MfxHwVP9Encode
 {
 
 VP9MfxVideoParam::VP9MfxVideoParam()
+    : m_inMemType(INPUT_VIDEO_MEMORY)
+    , m_targetKbps(0)
+    , m_maxKbps(0)
+    , m_bufferSizeInKb(0)
+    , m_initialDelayInKb(0)
+    , m_segBufPassed(false)
+    , m_tempLayersBufPassed(false)
+    , m_numLayers(0)
 {
-    Zero(*this);
+    Zero(m_layerParam);
+    Zero(m_extParam);
+    Zero(m_extPar);
+    Zero(m_extOpaque);
+    Zero(m_extOpt2);
+    Zero(m_extOpt3);
+    Zero(m_extOptDDI);
+    Zero(m_extSeg);
+    Zero(m_extTempLayers);
 }
 
 VP9MfxVideoParam::VP9MfxVideoParam(VP9MfxVideoParam const & par)
