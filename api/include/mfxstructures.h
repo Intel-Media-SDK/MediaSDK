@@ -1929,7 +1929,6 @@ typedef struct {
 
 typedef struct {
     mfxExtBuffer Header;
-
     mfxU16 Enable;        /* tri-state option */
     mfxU16 reserved[11];
 } mfxExtVPPColorFill;

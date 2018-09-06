@@ -64,6 +64,16 @@ static float convertValue(const float OldMin,const float OldMax,const float NewM
     return (((OldValue - OldMin) * newRange) / oldRange) + NewMin;
 }
 
+static inline uint32_t RGBA64TO32(uint64_t iColor)
+{
+    uint32_t A = (uint32_t) ((iColor >> 48) & 0x00ff);
+    uint32_t R = (uint32_t) ((iColor >> 32) & 0x00ff);
+    uint32_t G = (uint32_t) ((iColor >> 16) & 0x00ff);
+    uint32_t B = (uint32_t) ((iColor >> 0) & 0x00ff);
+    return (A << 24) | (R << 16) | (G << 8) | (B << 0);
+}
+
+
 #define DEFAULT_HUE 0
 #define DEFAULT_SATURATION 1
 #define DEFAULT_CONTRAST 1
@@ -1056,7 +1066,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     output_region.width  = outInfo->CropW;
     m_pipelineParam[0].output_region = &output_region;
 
-    m_pipelineParam[0].output_background_color = 0xff000000; // black for ARGB
+    m_pipelineParam[0].output_background_color = RGBA64TO32(pParams->iBackgroundColor);
 
 #ifdef MFX_ENABLE_VPP_VIDEO_SIGNAL
 #define ENABLE_VPP_VIDEO_SIGNAL(X) X
@@ -1234,35 +1244,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     if((pParams->bEOS) && (pParams->bDeinterlace30i60p == true))
         m_deintFrameCount = 0;
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-// It looks like only BXT supports this at the moment
-#define VPP_NO_COLORFILL
-#endif
-
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
-
-#if defined(VPP_NO_COLORFILL)
-    /* Explicitly define regions in output surface
-     * By default, driver assumes that the whole output surface should be used
-     * and in case width/height of the surface are different from input dest region,
-     * it may cause undesired driver behavior like additional forced colorfill
-     */
-    VAProcPipelineParameterBuffer outputParam = {0};
-    VABufferID  outputParamBuf = VA_INVALID_ID;
-
-    outputParam.surface = *outputSurface;
-    outputParam.surface_region = &output_region;
-    outputParam.output_region  = &output_region;
-
-    vaSts = vaCreateBuffer(m_vaDisplay,
-                           m_vaContextVPP,
-                           VAProcPipelineParameterBufferType,
-                           sizeof(VAProcPipelineParameterBuffer),
-                           1,
-                           &outputParam,
-                           &outputParamBuf);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-#endif
 
     MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|VPP|FILTER|PACKET_START|", "%d|%d", m_vaContextVPP, 0);
     {
@@ -1272,16 +1254,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                             *outputSurface);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
-
-
-#if defined(VPP_NO_COLORFILL)
-    if(0 == output_region.x && 0 == output_region.y) // Do not disable colorfill if letterboxing is used
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
-        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &outputParamBuf, 1);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    }
-#endif
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
@@ -1305,11 +1277,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             m_pipelineParamID[refIdx] = VA_INVALID_ID;
         }
     }
-
-#if defined(VPP_NO_COLORFILL)
-    vaSts = vaDestroyBuffer(m_vaDisplay, outputParamBuf);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-#endif
 
     if (m_deintFilterID != VA_INVALID_ID)
     {
@@ -1831,16 +1798,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
              * it is easy for ARGB format as Initial background value ARGB*/
             if (imagePrimarySurface.format.fourcc == VA_FOURCC_ARGB)
             {
-                uint32_t A, R, G, B;
-                uint32_t iBackgroundColorRGBA;
-
-                A = (uint32_t)((pParams->iBackgroundColor >> 48) & 0x00ff);
-                R = (uint32_t)((pParams->iBackgroundColor >> 32) & 0x00ff);
-                G = (uint32_t)((pParams->iBackgroundColor >> 16) & 0x00ff);
-                B = (uint32_t)((pParams->iBackgroundColor >>  0) & 0x00ff);
-
-                iBackgroundColorRGBA = (A << 24) | (R << 16) | (G << 8) | (B << 0);
-
+                uint32_t iBackgroundColorRGBA = RGBA64TO32(pParams->iBackgroundColor);
                 bool setPlaneSts = SetPlaneROI<uint32_t>(iBackgroundColorRGBA, (uint32_t *)pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
             }

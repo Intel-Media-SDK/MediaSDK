@@ -133,7 +133,8 @@ typedef struct _filtersParam
     sIStabParam               *pImgStabParam      ;
     sSVCParam                 *pSVCParam          ;
     sVideoSignalInfoParam     *pVideoSignalInfo   ;
-    sMirroringParam           *pMirroringParam;
+    sMirroringParam           *pMirroringParam    ;
+    sColorFillParam           *pColorfillParam    ;
 } sFiltersParam;
 
 struct sInputParams
@@ -165,6 +166,7 @@ struct sInputParams
     std::vector<sSteParam                > steParam;
     std::vector<sIStabParam              > istabParam;
 
+    std::vector<sColorFillParam          > colorfillParam;
     // flag describes type of memory
     // true  - frames in video memory (d3d surfaces),
     // false - in system memory
@@ -474,21 +476,23 @@ struct sAppResources
 #if MFX_VERSION >= 1025
     mfxExtColorConversion    chromaSitingConfig;
 #endif
-    mfxExtVPPFrameRateConversion    frcConfig;
-    mfxExtVPPDeinterlacing deinterlaceConfig;
-    mfxExtVPPVideoSignalInfo  videoSignalInfoConfig;
-    mfxExtVPPMirroring  mirroringConfig;
-    mfxExtVPPComposite     compositeConfig;
+    mfxExtVPPFrameRateConversion frcConfig;
+    mfxExtVPPDeinterlacing       deinterlaceConfig;
+    mfxExtVPPVideoSignalInfo     videoSignalInfoConfig;
+    mfxExtVPPMirroring           mirroringConfig;
+    mfxExtVPPComposite           compositeConfig;
 
     // MSDK 3.0
     //  mfxExtVPPGamutMapping gamutConfig;
-    mfxExtMVCSeqDesc      multiViewConfig;
+    mfxExtMVCSeqDesc             multiViewConfig;
 
 
     ////MSDK API 1.5
     //mfxExtVPPSkinTone              steConfig;
     //mfxExtVPPColorSaturationLevel  tccConfig;
     mfxExtVPPImageStab             istabConfig;
+
+    mfxExtVPPColorFill              colorfillConfig;
 
 };
 

@@ -118,6 +118,17 @@ struct sMirroringParam: public mfxExtVPPMirroring
     };
 } ;
 
+struct sColorFillParam: public mfxExtVPPColorFill
+{
+    FilterConfig mode;
+    sColorFillParam():
+            mode(VPP_FILTER_DISABLED)
+    {
+        Header.BufferId = MFX_EXTBUFF_VPP_COLORFILL;
+        Header.BufferSz = sizeof(mfxExtVPPColorFill);
+    };
+} ;
+
 typedef struct
 {
     mfxU16  factor;

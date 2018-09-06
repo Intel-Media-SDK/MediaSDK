@@ -252,6 +252,8 @@ msdk_printf(MSDK_STRING("   [-mirror (mode)]      - mirror image using specified
 
 msdk_printf(MSDK_STRING("   [-n frames] - number of frames to VPP process\n\n"));
 
+msdk_printf(MSDK_STRING("   [-cf_disable]         - disable colorfill.\n\n"));
+
 msdk_printf(MSDK_STRING("   [-iopattern IN/OUT surface type] -  IN/OUT surface type: sys_to_sys, sys_to_d3d, d3d_to_sys, d3d_to_d3d    (def: sys_to_sys)\n"));
 msdk_printf(MSDK_STRING("   [-async n] - maximum number of asynchronious tasks. def: -async 1 \n"));
 msdk_printf(MSDK_STRING("   [-perf_opt n m] - n: number of prefetech frames. m : number of passes. In performance mode app preallocates bufer and load first n frames,  def: no performace 1 \n"));
@@ -624,6 +626,7 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
     pParams->videoSignalInfoParam.push_back(*pDefaultFiltersParam->pVideoSignalInfo    );
     pParams->mirroringParam.push_back(      *pDefaultFiltersParam->pMirroringParam     );
     pParams->rotate.push_back(               0                                         );
+    pParams->colorfillParam.push_back(      *pDefaultFiltersParam->pColorfillParam     );
 
     mfxU32 readData;
     mfxU32 ioStatus;
@@ -687,6 +690,11 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
 
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->mirroringParam[paramID].Type);
+            }
+            else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf_disable")) )
+            {
+                pParams->colorfillParam[paramID].mode = VPP_FILTER_ENABLED_CONFIGURED;
+                pParams->colorfillParam[paramID].Enable = MFX_CODINGOPTION_OFF;
             }
             else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-sw")) )
             {
@@ -1078,6 +1086,11 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
 
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->mirroringParam[0].Type);
+            }
+            else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf_disable")) )
+            {
+                pParams->colorfillParam[0].mode = VPP_FILTER_ENABLED_CONFIGURED;
+                pParams->colorfillParam[0].Enable = MFX_CODINGOPTION_OFF;
             }
             else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-gpu_copy")) )
             {
