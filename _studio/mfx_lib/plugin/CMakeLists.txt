@@ -196,7 +196,7 @@ if( DEFINED H264LA_ENCODER_GUID )
 
   ## plugin info: name, description and version
   set( H264LA_PRODUCT_NAME "Intel(R) Media SDK" )
-  set( hw_H264LA_ENCODER_DESCRIPTION "Intel(R) Media SDK Advanced AVCe Plug-in" )
+  set( hw_H264LA_ENCODER_DESCRIPTION "Intel(R) Media SDK Advanced AVC Hardware Encoder Plug-in" )
 
   if( NOT DEFINED ENV{MFX_H264LA_VERSION} )
     set( h264la_version 0.0.000.0000 )

@@ -26,7 +26,7 @@ set( HEVC_Encoder_HW_GUID "6fadc791a0c2eb479ab6dcd5ea9da347" )
 
 # Plugin version info
 set( HEVCE_HW_PRODUCT_NAME "Intel(R) Media SDK" )
-set( HEVCE_HW_DESCRIPTION "Intel(R) Media SDK HEVCe plugin" )
+set( HEVCE_HW_DESCRIPTION "Intel(R) Media SDK HEVC Hardware Encode Plug-in" )
 
 if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
   set( hevc_version 0.0.000.0000 )
