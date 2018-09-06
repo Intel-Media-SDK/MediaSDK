@@ -1680,8 +1680,10 @@ bool CommonCORE::CheckOpaqueRequest(mfxFrameAllocRequest *request,
                                     mfxU32 NumOpaqueSurface,
                                     bool ExtendedSearch)
 {
-    if (pOpaqueSurface &&
-        request->NumFrameMin != NumOpaqueSurface)
+    if (!pOpaqueSurface || !request)
+        return false;
+
+    if (request->NumFrameMin != NumOpaqueSurface)
         return false;
 
     if (!(request->Type  & MFX_MEMTYPE_OPAQUE_FRAME))
@@ -1720,6 +1722,9 @@ bool CommonCORE::IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface,
                                              mfxFrameAllocResponse *response,
                                              bool ExtendedSearch)
 {
+    if (!pOpaqueSurface || !response)
+        return false;
+
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
