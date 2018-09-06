@@ -598,12 +598,13 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                 else /* For BFF, second field is Top */
                     deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST;
 
-                #if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
-                if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
-                    deint.flags = VA_DEINTERLACING_ONE_FIELD;
-                else /* For BFF case required to set all bits  */
-                    deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST | VA_DEINTERLACING_BOTTOM_FIELD | VA_DEINTERLACING_ONE_FIELD;
-                #endif // defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
+                if (MFX_HW_APL == hwType)
+                {
+                    if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
+                        deint.flags = VA_DEINTERLACING_ONE_FIELD;
+                    else /* For BFF case required to set all bits  */
+                        deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST | VA_DEINTERLACING_BOTTOM_FIELD | VA_DEINTERLACING_ONE_FIELD;
+                }
             }
 
             /* For 30i->60p case we have to indicate
