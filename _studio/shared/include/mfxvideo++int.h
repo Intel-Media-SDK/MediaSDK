@@ -55,7 +55,7 @@ typedef struct {
     unsigned char  Data4[8];
 } GUID;
 
-static int operator==(const GUID & guidOne, const GUID & guidOther)
+static inline int operator==(const GUID & guidOne, const GUID & guidOther)
 {
     return !memcmp(&guidOne, &guidOther, sizeof(GUID));
 }
