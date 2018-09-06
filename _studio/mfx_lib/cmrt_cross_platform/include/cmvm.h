@@ -964,9 +964,7 @@ matrix<T, R, C>::matrix(const matrix_ref<T2, R2, C2>& src, const uint sat)
 {
     static_assert(R*C == R2*C2, "matrices have different dimensions");
 
-    uint sat1 = 0;
     vector<T2, SZ> in_src; in_src.assign(src);
-
     for (uint i = 0; i < SZ; i++) {
         SIMDCF_WRAPPER((*this)(i) = CmEmulSys::satur<T>::saturate(in_src(i), sat), SZ, i);
     }
