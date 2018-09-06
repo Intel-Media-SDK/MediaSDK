@@ -821,6 +821,8 @@ CmContext::CmContext(
     MfxVideoParam const & video,
     CmDevice *            cmDevice,
     VideoCORE *           core)
+: m_kernelHistFrame(nullptr)
+, m_kernelHistFields(nullptr)
 {
     Setup(video, cmDevice, core);
 }
