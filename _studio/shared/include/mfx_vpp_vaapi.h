@@ -129,6 +129,7 @@ namespace MfxHwVideoProcessing
         VAProcFilterCapDeinterlacing m_deinterlacingCaps[VAProcDeinterlacingCount];
 #ifdef MFX_ENABLE_VPP_FRC
         VAProcFilterCapFrameRateConversion m_frcCaps[2]; /* only two modes, 24p->60p and 30p->60p */
+        mfxU32 m_frcCyclicCounter;
 #endif
 
         VABufferID m_denoiseFilterID;
@@ -138,7 +139,6 @@ namespace MfxHwVideoProcessing
         VABufferID m_frcFilterID;
         mfxU32     m_deintFrameCount;
         VASurfaceID m_refForFRC[5];
-        mfxU32 m_frcCyclicCounter;
 
         VABufferID m_filterBufs[VAProcFilterCount];
         mfxU32 m_numFilterBufs;
