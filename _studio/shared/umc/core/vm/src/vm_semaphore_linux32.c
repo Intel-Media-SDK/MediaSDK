@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -77,6 +77,7 @@ vm_status vm_semaphore_init(vm_semaphore *sem, int32_t init_count)
         {
             int cres = pthread_cond_destroy(&sem->cond);
             assert(!cres); // we experienced undefined behavior
+            (void)cres;
             vm_semaphore_set_invalid_internal(sem);
         }
     }
@@ -102,7 +103,8 @@ vm_status vm_semaphore_init_max(vm_semaphore *sem, int32_t init_count, int32_t m
         if (res)
         {
             int cres = pthread_cond_destroy(&sem->cond);
-            assert(!res); // we experienced undefined behavior
+            assert(!cres); // we experienced undefined behavior
+            (void)cres;
             vm_semaphore_set_invalid_internal(sem);
         }
     }
