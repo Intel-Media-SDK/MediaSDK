@@ -74,8 +74,6 @@ Status Packer::QueryStreamOut(H264DecoderFrame* /*pFrame*/)
 
 Packer * Packer::CreatePacker(VideoAccelerator * va, TaskSupplier* supplier)
 {
-    va;
-    supplier;
     Packer * packer = 0;
         packer = new PackerVA(va, supplier);
 
@@ -637,7 +635,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
         {
             int32_t defaultIndex = ((0 == pCurrentFrame->m_index) && !pRefPicList0[i]->IsFrameExist()) ? 1 : 0;
 
-            int32_t idx = FillRefFrame(&(pSlice_H264->RefPicList0[i]), pRefPicList0[i],
+            FillRefFrame(&(pSlice_H264->RefPicList0[i]), pRefPicList0[i],
                 pFields0[i], pSliceHeader->field_pic_flag, defaultIndex);
 
             if (pSlice_H264->RefPicList0[i].picture_id == pPicParams_H264->CurrPic.picture_id &&
@@ -655,7 +653,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
         {
             int32_t defaultIndex = ((0 == pCurrentFrame->m_index) && !pRefPicList1[i]->IsFrameExist()) ? 1 : 0;
 
-            int32_t idx = FillRefFrame(&(pSlice_H264->RefPicList1[i]), pRefPicList1[i],
+            FillRefFrame(&(pSlice_H264->RefPicList1[i]), pRefPicList1[i],
                 pFields1[i], pSliceHeader->field_pic_flag, defaultIndex);
 
             if (pSlice_H264->RefPicList1[i].picture_id == pPicParams_H264->CurrPic.picture_id && pRefPicList1[i]->IsFrameExist())
