@@ -398,6 +398,11 @@ void Launcher::DoTranscoding()
                         if (m_pSessionArray[i]->transcodingSts != MFX_ERR_GPU_HANG ||
                             !m_pSessionArray[i]->pPipeline->GetRobustFlag())
                         {
+                            msdk_stringstream ss;
+                            ss << MSDK_STRING("\n\n session ") << i << MSDK_STRING(" [") << m_pSessionArray[i]->pPipeline->GetSessionText() << MSDK_STRING("] failed with status ") << StatusToString(m_pSessionArray[i]->transcodingSts)
+                               << MSDK_STRING(" shutting down the application...") << std::endl << std::endl;
+                            msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+
                             for (size_t j = 0; j < m_pSessionArray.size(); j++)
                             {
                                 m_pSessionArray[j]->pPipeline->StopSession();
