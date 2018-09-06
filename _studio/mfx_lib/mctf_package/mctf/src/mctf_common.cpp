@@ -250,6 +250,10 @@ void CMC::TimeStop() {
 
 mfxF64 CMC::CatchTime(const char* message, int print)
 {
+#if defined(ANDROID)
+    (void)message;
+#endif
+
     mfxF64
         timeval = 0.0;
 //    timeval = TimeMeasurement(pTimer->tStart, pTimer->tStop, pTimer->tFrequency);
@@ -1879,11 +1883,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
     SurfaceIndex *idxMRE1, SurfaceIndex *idxMRE2,
     char forwardRefDist, char backwardRefDist,
     mfxU8 mcSufIndex) {
-#if !_MRE_
-    idxMRE1, idxMRE2;
-#endif
     time = 0;
-
     mfxU8
         blSize = SetOverlapOp_half();
 //    res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, idxMRE1, idxMRE2, 0, 0, blSize, forwardRefDist, backwardRefDist);

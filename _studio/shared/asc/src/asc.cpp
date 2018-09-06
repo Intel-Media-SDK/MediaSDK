@@ -1366,7 +1366,6 @@ ASC_API bool ASC::Query_resize_Event() {
 
 ASC_API mfxStatus ASC::ProcessQueuedFrame(CmEvent **subSamplingEv, CmTask **subSamplingTask, CmSurface2DUP **inputFrame, mfxU8 **pixelData)
 {
-    pixelData; inputFrame;
     if (!m_ASCinitialized)
         return MFX_ERR_NOT_INITIALIZED;
     INT res;

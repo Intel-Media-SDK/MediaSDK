@@ -47,28 +47,7 @@
 #if defined(_DEBUG)
 #endif
 
-
-vm_debug_level vm_debug_setlevel(vm_debug_level level)
-{
-    return level;
-}
-
-vm_debug_output vm_debug_setoutput(vm_debug_output output)
-{
-    return output;
-}
-
-void vm_debug_setfile(vm_char *file, int32_t truncate)
-{
-    (void)file;
-    (void)truncate;
-}
-
-void vm_debug_message(const vm_char *format, ...)
-{
-    (void)format;
-}
-
+#ifdef VM_DEBUG
 
 static struct {
     int code;
@@ -117,6 +96,31 @@ ErrorStringTable[] =
     { 0x80040211L,          VM_STRING("VFW_E_NOT_COMMITTED: Cannot allocate a sample when the allocator is not active") },
     { 0x80040227L,          VM_STRING("VFW_E_WRONG_STATE: The operation could not be performed because the filter is in the wrong state") },
 };
+
+#else /*  VM_DEBUG */
+
+vm_debug_level vm_debug_setlevel(vm_debug_level level)
+{
+    return level;
+}
+
+vm_debug_output vm_debug_setoutput(vm_debug_output output)
+{
+    return output;
+}
+
+void vm_debug_setfile(vm_char *file, int32_t truncate)
+{
+    (void)file;
+    (void)truncate;
+}
+
+void vm_debug_message(const vm_char *format, ...)
+{
+    (void)format;
+}
+
+#endif /*  VM_DEBUG */
 
 int32_t vm_trace_hresult_func(int32_t hr, vm_char *mess, void *pthis, vm_char *func, vm_char *file, uint32_t line)
 {

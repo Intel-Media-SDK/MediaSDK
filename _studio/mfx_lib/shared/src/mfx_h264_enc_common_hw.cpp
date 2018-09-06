@@ -1239,9 +1239,9 @@ mfxU32 MfxHwH264Encode::GetMaxBitrateValue(mfxU32 kbps, mfxU32 scale)
 
 mfxU8 MfxHwH264Encode::GetCabacInitIdc(mfxU32 targetUsage)
 {
-    targetUsage;
     assert(targetUsage >= 1);
     assert(targetUsage <= 7);
+    (void)targetUsage;
     //const mfxU8 CABAC_INIT_IDC_TABLE[] = { 0, 2, 2, 1, 0, 0, 0, 0 };
     return 0;
     //return CABAC_INIT_IDC_TABLE[targetUsage];
@@ -4427,7 +4427,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 
     bool mfxRateControlHwCbr =
-        (platform == MFX_HW_APL || platform == MFX_HW_CFL) && 
+        (platform == MFX_HW_APL || platform == MFX_HW_CFL) &&
         (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR);
 
     bool slidingWindowSupported  =
@@ -8163,8 +8163,7 @@ mfxU8 MfxHwH264Encode::ReadSpsIdOfPpsHeader(
     InputBitstream is)
 {
     InputBitstreamCheckedRange reader(is);
-    mfxU8 ppsId = reader.GetUe();
-    ppsId;
+    /*mfxU8 ppsId = */reader.GetUe();
 
     mfxU8 spsId = reader.GetUe();
     if (spsId > 31)

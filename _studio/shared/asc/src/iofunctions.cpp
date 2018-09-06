@@ -38,6 +38,10 @@ void TimeStop(ASCTime* timer) {
 
 mfxF64 CatchTime(ASCTime *timer, const char* message)
 {
+#if defined(ANDROID)
+    (void)message;
+#endif
+
     mfxF64
         timeval = 0.0;
     timeval = TimeMeasurement(timer->tStart, timer->tStop, timer->tFrequency);

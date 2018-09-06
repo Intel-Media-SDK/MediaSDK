@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -1959,7 +1959,6 @@ mfxStatus MFXVideoDECODEVC1::IsDisplayFrameReady(mfxFrameSurface1 **surface_disp
 }
 bool MFXVideoDECODEVC1::IsBufferMode(VideoCORE *pCore, mfxVideoParam *par)
 {
-    pCore; par;
 #if defined(MFX_VA_LINUX)
     if ((IsHWSupported(pCore, par) && 
         (MFX_PLATFORM_HARDWARE == pCore->GetPlatformType())&&
@@ -1968,11 +1967,14 @@ bool MFXVideoDECODEVC1::IsBufferMode(VideoCORE *pCore, mfxVideoParam *par)
         1 != par->AsyncDepth))
         return true;
     else
-#endif          
+#else
+    (void)pCore;
+    (void)par;
+#endif
         return false;
 }
-mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work, 
-                                       mfxFrameSurface1 *surface_disp, 
+mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
+                                       mfxFrameSurface1 *surface_disp,
                                        mfxU32 /*threadNumber*/,
                                        mfxU32 taskID)
 {

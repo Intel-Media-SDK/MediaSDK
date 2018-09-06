@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -60,7 +60,7 @@ namespace UMC
 #define MFX_MAXABS_64F ( 1.7976931348623158e+308 )
 #define MFX_MAX_32U    ( 0xFFFFFFFF )
 
-  #define MFX_MAX_64S  ( 9223372036854775807LL )
+#define MFX_MAX_64S    ( 9223372036854775807LL )
 
 typedef struct {
     int width;
@@ -73,7 +73,13 @@ typedef struct {
 
   #define ALIGN_DECL(X) __attribute__ ((aligned(X)))
 
-#define THROWSEXCEPTION
+#if (defined(_MSC_VER) && _MSC_VER >= 1900) || \
+    (defined(__clang__) && (__clang_major__ == 3 && __clang_minor__ > 4 || __clang_major__ >= 4))
+
+    #define THROWSEXCEPTION noexcept(false)
+#else
+    #define THROWSEXCEPTION
+#endif
 /******************************************************************************/
 
 #endif // __UMC_DEFS_H__

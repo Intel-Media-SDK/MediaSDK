@@ -1583,7 +1583,6 @@ bool GetExtParamList(
     mfxU32* pList,
     mfxU32* pLen)
 {
-    pList;
     mfxU32 fIdx = 0;
 
     /* robustness */
@@ -1620,7 +1619,6 @@ bool GetExtParamList(
 
 void GetConfigurableFilterList( mfxVideoParam* par, mfxU32* pList, mfxU32* pLen )
 {
-    pList;
     mfxU32 fIdx = 0;
 
     /* robustness */
