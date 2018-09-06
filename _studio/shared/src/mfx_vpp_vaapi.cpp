@@ -88,7 +88,9 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_procampFilterID(VA_INVALID_ID)
 , m_frcFilterID(VA_INVALID_ID)
 , m_deintFrameCount(0)
+#ifdef MFX_ENABLE_VPP_FRC
 , m_frcCyclicCounter(0)
+#endif
 , m_numFilterBufs(0)
 , m_primarySurface4Composition(NULL)
 {
