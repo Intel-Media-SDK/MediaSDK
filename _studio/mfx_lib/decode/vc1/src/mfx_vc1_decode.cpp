@@ -1959,20 +1959,22 @@ mfxStatus MFXVideoDECODEVC1::IsDisplayFrameReady(mfxFrameSurface1 **surface_disp
 }
 bool MFXVideoDECODEVC1::IsBufferMode(VideoCORE *pCore, mfxVideoParam *par)
 {
-    pCore; par;
+    (void)pCore;
+    (void)par;
+
 #if defined(MFX_VA_LINUX)
-    if ((IsHWSupported(pCore, par) && 
+    if ((IsHWSupported(pCore, par) &&
         (MFX_PLATFORM_HARDWARE == pCore->GetPlatformType())&&
         (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)&&
         !par->mfx.DecodedOrder &&
         1 != par->AsyncDepth))
         return true;
     else
-#endif          
+#endif
         return false;
 }
-mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work, 
-                                       mfxFrameSurface1 *surface_disp, 
+mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
+                                       mfxFrameSurface1 *surface_disp,
                                        mfxU32 /*threadNumber*/,
                                        mfxU32 taskID)
 {

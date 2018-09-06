@@ -178,7 +178,8 @@ void CmDevicePtr::Reset(CmDevice * device)
     if (m_device)
     {
         int result = ::DestroyCmDevice(m_device);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
     m_device = device;
 }
@@ -242,7 +243,8 @@ void CmSurface::Reset(CmDevice * device, IDirect3DSurface9 * d3dSurface)
     if (m_device && m_surface)
     {
         int result = m_device->DestroySurface(m_surface);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device  = device;
@@ -256,7 +258,8 @@ void CmSurface::Reset(CmDevice * device, mfxU32 width, mfxU32 height, mfxU32 fou
     if (m_device && m_surface)
     {
         int result = m_device->DestroySurface(m_surface);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device  = device;
@@ -306,7 +309,8 @@ void CmSurfaceVme75::Reset(CmDevice * device, SurfaceIndex * index)
     if (m_device && m_index)
     {
         int result = m_device->DestroyVmeSurfaceG7_5(m_index);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device = device;
@@ -359,7 +363,8 @@ void CmBuf::Reset(CmDevice * device, mfxU32 size)
     if (m_device && m_buffer)
     {
         int result = m_device->DestroySurface(m_buffer);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device = device;
@@ -414,7 +419,7 @@ CmSurface2D * CreateSurface(CmDevice * device, ID3D11Texture2D * d3dSurface)
     int result = CM_SUCCESS;
     CmSurface2D * cmSurface = 0;
     if (device && d3dSurface && (result = device->CreateSurface2D(d3dSurface, cmSurface)) != CM_SUCCESS)
-        throw CmRuntimeError(); 
+        throw CmRuntimeError();
     return cmSurface;
 }
 
@@ -674,7 +679,7 @@ namespace MfxHwH264EncodeHW
             costs.ModeCost[LUTMODE_INTRA_16x16]   = Map44LutValue((mfxU16)(lambda * 10  * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTRA_8x8]     = Map44LutValue((mfxU16)(lambda * 14  * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTRA_4x4]     = Map44LutValue((mfxU16)(lambda * 35  * had_bias), 0x8f);
-            
+
             costs.ModeCost[LUTMODE_INTER_16x16] = Map44LutValue((mfxU16)(lambda * 2.75 * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTER_16x8]  = Map44LutValue((mfxU16)(lambda * 4.25 * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTER_8x8q]  = Map44LutValue((mfxU16)(lambda * 1.32 * had_bias), 0x6f);
@@ -967,7 +972,7 @@ mfxStatus CmContext::QueryHistogram(CmEvent * e)
         return MFX_ERR_GPU_HANG;
     else if(status != CM_SUCCESS)
         throw CmRuntimeError();
-    
+
     return MFX_ERR_NONE;
 }
 
@@ -1078,7 +1083,7 @@ mfxStatus CmContext::QueryVme(
                 if (mb.MbType5Bits != MBTYPE_BP_L0_16x16 &&
                     mb.MbType5Bits != MBTYPE_B_L1_16x16  &&
                     mb.MbType5Bits != MBTYPE_B_Bi_16x16)
-                { 
+                {
                 // fprintf(stdout,"MbType5Bits: %x\n", mb.MbType5Bits );fflush(stdout);
                     assert(0);
                 }
