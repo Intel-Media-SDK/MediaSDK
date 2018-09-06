@@ -4466,26 +4466,24 @@ mfxStatus CTranscodingPipeline::Run()
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    msdk_char buffer[11] = {};
-    GetSessionText(buffer, 11);
-
+    msdk_stringstream ss;
     if (m_bDecodeEnable && m_bEncodeEnable)
     {
         sts = Transcode();
-        msdk_string msg = MSDK_STRING("CTranscodingPipeline::Run::Transcode() [") + msdk_string(buffer) + MSDK_STRING("] failed");
-        MSDK_CHECK_STATUS(sts, msg);
+        ss << MSDK_STRING("CTranscodingPipeline::Run::Transcode() [") << GetSessionText() << MSDK_STRING("] failed");
+        MSDK_CHECK_STATUS(sts, ss.str());
     }
     else if (m_bDecodeEnable)
     {
         sts = Decode();
-        msdk_string msg = MSDK_STRING("CTranscodingPipeline::Run::Decode() [") + msdk_string(buffer) + MSDK_STRING("] failed");
-        MSDK_CHECK_STATUS(sts, msg);
+        ss << MSDK_STRING("CTranscodingPipeline::Run::Decode() [") << GetSessionText() << MSDK_STRING("] failed");
+        MSDK_CHECK_STATUS(sts, ss.str());
     }
     else if (m_bEncodeEnable)
     {
         sts = Encode();
-        msdk_string msg = MSDK_STRING("CTranscodingPipeline::Run::Encode() [") + msdk_string(buffer) + MSDK_STRING("] failed");
-        MSDK_CHECK_STATUS(sts, msg);
+        ss << MSDK_STRING("CTranscodingPipeline::Run::Encode() [") << GetSessionText() << MSDK_STRING("] failed");
+        MSDK_CHECK_STATUS(sts, ss.str());
     }
     else
         return MFX_ERR_UNSUPPORTED;

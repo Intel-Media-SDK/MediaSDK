@@ -618,12 +618,12 @@ namespace TranscodingSample
         bool IsOverlayUsed();
         size_t GetRobustFlag();
 
-        void GetSessionText(msdk_char* buf, mfxU32 n)
+        msdk_string GetSessionText()
         {
-            if (buf && m_pmfxSession)
-            {
-                 snprintf((char*)buf, n, "%p", m_pmfxSession->operator mfxSession());
-            }
+            msdk_stringstream ss;
+            ss << m_pmfxSession->operator mfxSession();
+
+            return ss.str();
         }
     protected:
         virtual mfxStatus CheckRequiredAPIVersion(mfxVersion& version, sInputParams *pParams);
