@@ -924,6 +924,10 @@ void CTranscodingPipeline::StopSession()
 {
     AutomaticMutex guard(m_mStopSession);
     m_bForceStop = true;
+
+    msdk_stringstream ss;
+    ss << MSDK_STRING("session [") << GetSessionText() << MSDK_STRING("] m_bForceStop is set") << std::endl;
+    msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
 }
 
 bool CTranscodingPipeline::IsOverlayUsed()
