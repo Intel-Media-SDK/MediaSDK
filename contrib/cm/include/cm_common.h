@@ -58,7 +58,6 @@ private:
      *
      * Depending on the special object size after adding below "extra_byte",
      * SetKernelArg and SetThreadArg can recognize this object and follow GNU's convention to construct kernel function's stack.
-     * Detail can be found on "http://wiki.ith.intel.com/display/VPGCompiler/CM+Linux"
      */
     unsigned char extra_byte;
 #endif
