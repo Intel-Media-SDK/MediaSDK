@@ -632,6 +632,18 @@ Status DecReferencePictureMarking::UpdateRefPicMarking(ViewItem &view, H264Decod
     // set MVC 'inter view flag'
     pFrame->SetInterViewRef(0 != sliceHeader->nal_ext.mvc.inter_view_flag, field_index);
 
+    // corruption recovery
+    if (pFrame->m_bIFlag)
+    {
+        for (H264DecoderFrame *pCurr = view.GetDPBList(0)->head(); pCurr; pCurr = pCurr->future())
+        {
+            if (pCurr->GetError() & ERROR_FRAME_SHORT_TERM_STUCK)
+            {
+                AddItemAndRun(pFrame, pCurr, UNSET_REFERENCE | FULL_FRAME | SHORT_TERM);
+            }
+        }
+    }
+
     if (pFrame->m_bIDRFlag)
     {
         // mark all reference pictures as unused
@@ -3608,27 +3620,11 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 
                 if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice))
                 {
-                    // gaps_in_frame_num_value_allowed_flag==true is handled in this block
                     view.pCurFrame = 0;
 
                     Status umsRes = ProcessFrameNumGap(slice, 0, 0, maxDId);
                     if (umsRes != UMC_OK)
                         return umsRes;
-                }
-                else if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice, true))
-                {
-                    // corruption prevention/recovery in case of frame gaps and gaps_in_frame_num_value_allowed_flag==false:
-                    //   drop ST frames with frame_num higher than frame_num of the input slice.
-                    //   without this logic, in case of missed MMCO (due to frames dropping),
-                    //   old ST frames can get stuck in DPB forever.
-                    for (H264DecoderFrame *pFrm = view.GetDPBList(0)->head(); pFrm; pFrm = pFrm->future())
-                    {
-                        if ((pFrm->FrameNum() > slice->GetSliceHeader()->frame_num) &&
-                            pFrm->isShortTermRef())
-                        {
-                            AddItemAndRun(pFrm, pFrm, UNSET_REFERENCE | FULL_FRAME | SHORT_TERM);
-                        }
-                    }
                 }
             }
 
@@ -3962,9 +3958,24 @@ void TaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice *
         uint32_t NumShortTerm, NumLongTerm;
         dpb->countActiveRefs(NumShortTerm, NumLongTerm);
 
-        //set error flag only we have some references in DPB
         if ((NumShortTerm + NumLongTerm > 0))
+        {
+            // set error flag only we have some references in DPB
             pFrame->SetErrorFlagged(ERROR_FRAME_REFERENCE_FRAME);
+
+            // Leaving aside a legal frame_num wrapping cases, when a rapid _decrease_ of frame_num occurs due to frame gaps,
+            // frames marked as short-term prior the gap may get stuck in DPB for a very long sequence (up to '(1 << log2_max_frame_num) - 1').
+            // Reference lists are generated incorrectly. A potential recovery point can be at next I frame (if GOP is closed).
+            // So let's mark these potentially dangereous ST frames
+            // to remove them later from DPB in UpdateRefPicMarking() (if they're still there) at next I frame or SEI recovery point.
+            for (H264DecoderFrame *pFrm = view.GetDPBList(0)->head(); pFrm; pFrm = pFrm->future())
+            {
+                if ((pFrm->FrameNum() > sliceHeader->frame_num) && pFrm->isShortTermRef())
+                {
+                    pFrm->SetErrorFlagged(ERROR_FRAME_SHORT_TERM_STUCK);
+                }
+            }
+        }
     }
 
     if (sliceHeader->IdrPicFlag)
@@ -3975,6 +3986,9 @@ void TaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice *
     view.GetPOCDecoder(0)->DecodePictureOrderCount(pSlice, sliceHeader->frame_num);
 
     pFrame->m_bIDRFlag = (sliceHeader->IdrPicFlag != 0);
+
+    const int32_t recoveryFrameNum = view.GetDPBList(0)->GetRecoveryFrameCnt();
+    pFrame->m_bIFlag = (sliceHeader->slice_type == INTRASLICE) || (recoveryFrameNum != -1 && pFrame->FrameNum() == recoveryFrameNum);
 
     if (pFrame->m_bIDRFlag)
     {
