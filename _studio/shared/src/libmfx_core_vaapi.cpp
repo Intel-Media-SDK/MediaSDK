@@ -818,12 +818,12 @@ VAAPIVideoCORE::CreateVideoAccelerator(
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
-     * (3): Supported on APL platform and above
+     * (3): Supported on SKL (Core) and APL (Atom) platforms and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if ( (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
          (MFX_PICSTRUCT_PROGRESSIVE == param->mfx.FrameInfo.PicStruct) &&
-         (MFX_HW_APL <= GetHWType()) &&
+         (MFX_HW_SCL <= GetHWType()) &&
          (param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
     {
         params.m_needVideoProcessingVA = true;
