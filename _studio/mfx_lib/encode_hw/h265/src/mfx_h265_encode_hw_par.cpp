@@ -941,29 +941,30 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
             invalid++;
     }
 
-    //// TODO: remove below macro conditional statement when ROI related caps will be correctly set up by the driver
-#if !defined(LINUX_TARGET_PLATFORM_BXTMIN) && !defined(LINUX_TARGET_PLATFORM_BXT) && !defined(LINUX_TARGET_PLATFORM_CFL)
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
-        invalid += (caps.ROIDeltaQPSupport == 0);
-    }
-    else if (par.isSWBRC())
-    {
-        if (caps.ROIDeltaQPSupport == 0)
-            bROIViaMBQP = true;
-
-    }
-    else
-    {
-#if MFX_VERSION > 1021
-        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
+    if (par.m_platform.CodeName != MFX_PLATFORM_APOLLOLAKE && par.m_platform.CodeName != MFX_PLATFORM_COFFEELAKE)
+	{
+        if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+        {
             invalid += (caps.ROIDeltaQPSupport == 0);
-        else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
-            invalid += (caps.ROIBRCPriorityLevelSupport == 0);
+        }
+        else if (par.isSWBRC())
+        {
+            if (caps.ROIDeltaQPSupport == 0)
+                bROIViaMBQP = true;
+
+        }
         else
-            invalid++;
+        {
+#if MFX_VERSION > 1021
+            if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
+                invalid += (caps.ROIDeltaQPSupport == 0);
+            else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
+                invalid += (caps.ROIBRCPriorityLevelSupport == 0);
+            else
+                invalid++;
 #endif // MFX_VERSION > 1021
-    }
-#endif  // LINUX_TARGET_PLATFORM_BXTMIN
+        }
+	}
 
     mfxU16 maxNumOfRoi = (caps.MaxNumOfROI <= MAX_NUM_ROI  && (!bROIViaMBQP)) ? caps.MaxNumOfROI : MAX_NUM_ROI;
 
