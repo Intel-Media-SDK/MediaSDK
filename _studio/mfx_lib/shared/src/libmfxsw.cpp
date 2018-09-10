@@ -47,36 +47,10 @@ void* g_hModule = NULL; // DLL handle received in DllMain
 #endif
 
 // Copyright strings
-#if defined(mfxhw64_EXPORTS) || defined(mfxhw32_EXPORTS) || defined(mfxsw64_EXPORTS) || defined(mfxsw32_EXPORTS)
-
-#if defined(LINUX_TARGET_PLATFORM_BDW)
 const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK";
-#elif defined(LINUX_TARGET_PLATFORM_BXT) || defined (LINUX_TARGET_PLATFORM_BXTMIN)
-const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK for Embedded Linux";
-#else
-const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK";
-#endif
-
-const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2018 Intel Corporation";
-const char* g_MfxFileVersion = "mediasdk_file_version: " MFX_FILE_VERSION;
-const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PRODUCT_VERSION;
-
-#endif // mfxhwXX_EXPORTS
-#if defined(mfxaudiosw64_EXPORTS) || defined(mfxaudiosw32_EXPORTS)
-#if defined(LINUX_TARGET_PLATFORM_BDW)
-const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK - Audio for Linux*";
-#elif defined(LINUX_TARGET_PLATFORM_BXT) || defined (LINUX_TARGET_PLATFORM_BXTMIN)
-const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK for Embedded Linux";
-#else
-const char* g_MfxProductName = "mediasdk_product_name: Intel(R) Media SDK - Audio for Linux*";
-#endif
-
 const char* g_MfxCopyright = "mediasdk_copyright: Copyright(c) 2014-2018 Intel Corporation";
 const char* g_MfxFileVersion = "mediasdk_file_version: " MFX_FILE_VERSION;
 const char* g_MfxProductVersion = "mediasdk_product_version: " MFX_PRODUCT_VERSION;
-
-#endif // mfxaudioswXX_EXPORTS
-
 
 mfxStatus MFXInit(mfxIMPL implParam, mfxVersion *ver, mfxSession *session)
 {
