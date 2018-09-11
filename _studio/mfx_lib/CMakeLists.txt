@@ -161,6 +161,12 @@ else()
   set(MCTF_LIB "")
 endif()
 
+if( ${MFX_ENABLE_ASC} )
+  set(ASC_LIB "asc")
+else()
+  set(ASC_LIB "")
+endif()
+
 if( MFX_ENABLE_KERNELS )
   set(GENX_LIB "genx")
 else()
@@ -189,7 +195,7 @@ list( APPEND LIBS
   ${GENX_LIB}
   mfx_common
   mfx_common_hw
-  asc
+  ${ASC_LIB}
   ${MCTF_LIB}
   vpp_hw
   h264_common
