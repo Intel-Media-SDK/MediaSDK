@@ -19,8 +19,7 @@
 // SOFTWARE.
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-#include "mfx_h265_fei_encode_hw.h"
+#include "mfx_h265_fei_encode_plugin_hw.h"
 #include "plugin_version_linux.h"
 
 #if defined(LINUX32)
@@ -38,4 +37,3 @@ MSDK_PLUGIN_API(mfxStatus) CreatePlugin(mfxPluginUID uid, mfxPlugin* plugin)
 {
     return MfxHwH265FeiEncode::H265FeiEncodePlugin::CreateByDispatcher(uid, plugin);
 }
-#endif

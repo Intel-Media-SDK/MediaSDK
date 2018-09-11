@@ -209,6 +209,8 @@ private:
 #ifdef MFX_ENABLE_MFE
     ComPtrCore<MFEVAAPIEncoder> m_mfe;
 #endif
+    //required to WA FEI enabling after move it from plugin to library
+    bool                                 m_bHEVCFEIEnabled;
 };
 
 class PointerProxy
