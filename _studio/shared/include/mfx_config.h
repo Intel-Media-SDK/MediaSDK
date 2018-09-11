@@ -56,9 +56,6 @@
         // vpp
         #define MFX_ENABLE_DENOISE_VIDEO_VPP
         #define MFX_ENABLE_VPP
-        #if !defined(LINUX_TARGET_PLATFORM_BXT)
-            #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
-        #endif
 
         #if defined(AS_H264LA_PLUGIN)
             #define MFX_ENABLE_LA_H264_VIDEO_HW
@@ -114,6 +111,10 @@
 
 #if defined(MFX_ENABLE_VP8_VIDEO_DECODE)
 #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
+#endif
+
+#if defined(MFX_ENABLE_ASC)
+    #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
 #endif
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT) && defined(MFX_ENABLE_MCTF)
