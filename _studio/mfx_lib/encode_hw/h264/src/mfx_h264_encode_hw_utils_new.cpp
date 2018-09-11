@@ -716,13 +716,13 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 list1.End());
         }
 
-        mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(video);
-        mfxExtCodingOption2 const * extOpt2  = GetExtBuffer(video);
+        mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(video);
+        mfxExtCodingOption2 const   & extOpt2 = GetExtBufferRef(video);
         const mfxU32 numMaxActiveRefL1 = GetMaxNumRefActiveBL1(video.mfx.TargetUsage, isField);
-        mfxU32 numActiveRefL1 = MFX_MIN(extDdi->NumActiveRefBL1, numMaxActiveRefL1);
+        mfxU32 numActiveRefL1 = MFX_MIN(extDdi.NumActiveRefBL1, numMaxActiveRefL1);
         mfxU32 numActiveRefL0 = (task.m_type[fieldId] & MFX_FRAMETYPE_P)
-            ? extDdi->NumActiveRefP
-            : extDdi->NumActiveRefBL0;
+            ? extDdi.NumActiveRefP
+            : extDdi.NumActiveRefBL0;
 
         mfxExtAVCRefListCtrl * ctrl = GetExtBuffer(task.m_ctrl);
         
@@ -880,7 +880,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
                     list1.Resize(MFX_MIN(list1.Size(), 1));
                 }
             }
-            else if (extOpt2->BRefType == MFX_B_REF_PYRAMID && (task.m_type[0] & MFX_FRAMETYPE_P))
+            else if (extOpt2.BRefType == MFX_B_REF_PYRAMID && (task.m_type[0] & MFX_FRAMETYPE_P))
             {
                 if (task.GetPicStructForEncode() & MFX_PICSTRUCT_PROGRESSIVE) {
                     std::sort(list0.Begin(), list0.End(), RefPocIsGreater(dpb));
@@ -1775,22 +1775,22 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
     ENCODE_CAPS     caps)
 {
     IntraRefreshState state;
-    mfxExtCodingOption2 * extOpt2Init = GetExtBuffer(video);
-    mfxExtCodingOption3 * extOpt3Init = GetExtBuffer(video);
+    mfxExtCodingOption2 & extOpt2Init = GetExtBufferRef(video);
+    mfxExtCodingOption3 & extOpt3Init = GetExtBufferRef(video);
     state.firstFrameInCycle = false;
 
-    if (extOpt2Init->IntRefType == 0)
+    if (extOpt2Init.IntRefType == 0)
         return state;
 
     // set QP for Intra macroblocks within refreshing line
-    state.IntRefQPDelta = extOpt2Init->IntRefQPDelta;
+    state.IntRefQPDelta = extOpt2Init.IntRefQPDelta;
     if (ctrl)
     {
         mfxExtCodingOption2 * extOpt2Runtime = GetExtBuffer(*ctrl);
         if (extOpt2Runtime && extOpt2Runtime->IntRefQPDelta <= 51 && extOpt2Runtime->IntRefQPDelta >= -51)
             state.IntRefQPDelta = extOpt2Runtime->IntRefQPDelta;
     }
-    if (extOpt2Init->IntRefType == MFX_REFRESH_SLICE)
+    if (extOpt2Init.IntRefType == MFX_REFRESH_SLICE)
     {
         if (mfxI32(frameOrderInGopDispOrder - 1) < 0)
         {
@@ -1798,8 +1798,8 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
             divider = MakeSliceDivider(
                 (caps.SliceLevelRateCtrl) ? 4 : caps.SliceStructure,
-                extOpt2Init->NumMbPerSlice,
-                extOpt3Init->NumSliceP,
+                extOpt2Init.NumMbPerSlice,
+                extOpt3Init.NumSliceP,
                 video.mfx.FrameInfo.Width / 16,
                 video.mfx.FrameInfo.Height / 16 / (fieldCoding ? 2 : 1));
             return state;
@@ -1808,7 +1808,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
         if (mfxI32(frameOrderInGopDispOrder - 1) < 0)
             return state;
 
-        state.firstFrameInCycle = extOpt3Init->IntRefCycleDist ? (((frameOrderInGopDispOrder - 1) % extOpt3Init->IntRefCycleDist == 0) && frameOrderInGopDispOrder) : (((frameOrderInGopDispOrder - 1) % extOpt3Init->NumSliceP == 0) && frameOrderInGopDispOrder);
+        state.firstFrameInCycle = extOpt3Init.IntRefCycleDist ? (((frameOrderInGopDispOrder - 1) % extOpt3Init.IntRefCycleDist == 0) && frameOrderInGopDispOrder) : (((frameOrderInGopDispOrder - 1) % extOpt3Init.NumSliceP == 0) && frameOrderInGopDispOrder);
 
         state.IntraSize = ((USHORT)divider.GetNumMbInSlice() / (video.mfx.FrameInfo.Width >> 4));
         state.IntraLocation = ((USHORT)divider.GetFirstMbInSlice() / (video.mfx.FrameInfo.Width >> 4));
@@ -1819,14 +1819,14 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
         }
         else
         {
-            state.refrType = extOpt2Init->IntRefType;
+            state.refrType = extOpt2Init.IntRefType;
             if (!divider.Next())
             {
                 bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
                 divider = MakeSliceDivider(
                     (caps.SliceLevelRateCtrl) ? 4 : caps.SliceStructure,
-                    extOpt2Init->NumMbPerSlice,
-                    extOpt3Init->NumSliceP,
+                    extOpt2Init.NumMbPerSlice,
+                    extOpt3Init.NumSliceP,
                     video.mfx.FrameInfo.Width / 16,
                     video.mfx.FrameInfo.Height / 16 / (fieldCoding ? 2 : 1));
             }
@@ -1835,27 +1835,27 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
     }
 
 
-    mfxU32 refreshPeriod = extOpt3Init->IntRefCycleDist ? extOpt3Init->IntRefCycleDist : extOpt2Init->IntRefCycleSize;
-    mfxU32 offsetFromStartOfGop = extOpt3Init->IntRefCycleDist ? refreshPeriod : 1; // 1st refresh cycle in GOP starts with offset
+    mfxU32 refreshPeriod = extOpt3Init.IntRefCycleDist ? extOpt3Init.IntRefCycleDist : extOpt2Init.IntRefCycleSize;
+    mfxU32 offsetFromStartOfGop = extOpt3Init.IntRefCycleDist ? refreshPeriod : 1; // 1st refresh cycle in GOP starts with offset
 
     mfxI32 frameOrderMinusOffset = frameOrderInGopDispOrder - offsetFromStartOfGop;
     if (frameOrderMinusOffset < 0)
         return state; // too early to start refresh
 
     mfxU32 frameOrderInRefreshPeriod = frameOrderMinusOffset % refreshPeriod;
-    if (frameOrderInRefreshPeriod >= extOpt2Init->IntRefCycleSize)
+    if (frameOrderInRefreshPeriod >= extOpt2Init.IntRefCycleSize)
         return state; // for current refresh period refresh cycle is already passed
 
     // check if Intra refresh required for current frame
-    mfxU32 refreshDimension = extOpt2Init->IntRefType == MFX_REFRESH_HORIZONTAL ? video.mfx.FrameInfo.Height >> 4 : video.mfx.FrameInfo.Width >> 4;
-    mfxU32 numFramesWithoutRefresh = extOpt2Init->IntRefCycleSize - (refreshDimension + intraStripeWidthInMBs - 1) / intraStripeWidthInMBs;
+    mfxU32 refreshDimension = extOpt2Init.IntRefType == MFX_REFRESH_HORIZONTAL ? video.mfx.FrameInfo.Height >> 4 : video.mfx.FrameInfo.Width >> 4;
+    mfxU32 numFramesWithoutRefresh = extOpt2Init.IntRefCycleSize - (refreshDimension + intraStripeWidthInMBs - 1) / intraStripeWidthInMBs;
     mfxU32 idxInRefreshCycle = frameOrderInRefreshPeriod;
     state.firstFrameInCycle = (idxInRefreshCycle == 0);
     mfxI32 idxInActualRefreshCycle = idxInRefreshCycle - numFramesWithoutRefresh;
     if (idxInActualRefreshCycle < 0)
         return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
 
-    state.refrType = extOpt2Init->IntRefType;
+    state.refrType = extOpt2Init.IntRefType;
     state.IntraSize = intraStripeWidthInMBs;
     state.IntraLocation = (mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs;
 
@@ -1873,23 +1873,23 @@ mfxStatus MfxHwH264Encode::UpdateIntraRefreshWithoutIDR(
     ENCODE_CAPS     caps)
 {
     MFX_CHECK_WITH_ASSERT((oldPar.mfx.FrameInfo.Width == newPar.mfx.FrameInfo.Width) && (oldPar.mfx.FrameInfo.Height == newPar.mfx.FrameInfo.Height), MFX_ERR_UNDEFINED_BEHAVIOR);
-    mfxExtCodingOption2 * extOpt2Old = GetExtBuffer(oldPar);
-    mfxExtCodingOption2 * extOpt2New = GetExtBuffer(newPar);
-    mfxExtCodingOption3 * extOpt3Old = GetExtBuffer(oldPar);
-    mfxExtCodingOption3 * extOpt3New = GetExtBuffer(newPar);
+    mfxExtCodingOption2 & extOpt2Old = GetExtBufferRef(oldPar);
+    mfxExtCodingOption2 & extOpt2New = GetExtBufferRef(newPar);
+    mfxExtCodingOption3 & extOpt3Old = GetExtBufferRef(oldPar);
+    mfxExtCodingOption3 & extOpt3New = GetExtBufferRef(newPar);
 
-    MFX_CHECK_WITH_ASSERT(extOpt2New->IntRefType && extOpt2New->IntRefCycleSize, MFX_ERR_UNDEFINED_BEHAVIOR);
-    mfxU16 refreshDimension = extOpt2New->IntRefType == MFX_REFRESH_HORIZONTAL ? newPar.mfx.FrameInfo.Height >> 4 : newPar.mfx.FrameInfo.Width >> 4;
-    updatedStripeWidthInMBs = (refreshDimension + extOpt2New->IntRefCycleSize - 1) / extOpt2New->IntRefCycleSize;
+    MFX_CHECK_WITH_ASSERT(extOpt2New.IntRefType && extOpt2New.IntRefCycleSize, MFX_ERR_UNDEFINED_BEHAVIOR);
+    mfxU16 refreshDimension = extOpt2New.IntRefType == MFX_REFRESH_HORIZONTAL ? newPar.mfx.FrameInfo.Height >> 4 : newPar.mfx.FrameInfo.Width >> 4;
+    updatedStripeWidthInMBs = (refreshDimension + extOpt2New.IntRefCycleSize - 1) / extOpt2New.IntRefCycleSize;
 
-    if ((!extOpt2Old->IntRefType) || (extOpt2Old->IntRefType == MFX_REFRESH_SLICE))
+    if ((!extOpt2Old.IntRefType) || (extOpt2Old.IntRefType == MFX_REFRESH_SLICE))
     {
-        updatedStartFrame = baseLayerOrder - (extOpt3New->IntRefCycleDist ? extOpt3New->IntRefCycleDist : 1);
+        updatedStartFrame = baseLayerOrder - (extOpt3New.IntRefCycleDist ? extOpt3New.IntRefCycleDist : 1);
         return MFX_ERR_NONE;
     }
 
-    mfxU16 oldRefreshDimension = extOpt2Old->IntRefType == MFX_REFRESH_HORIZONTAL ? newPar.mfx.FrameInfo.Height >> 4 : newPar.mfx.FrameInfo.Width >> 4;
-    mfxU16 oldStripeWidthInMBs = (oldRefreshDimension + extOpt2Old->IntRefCycleSize - 1) / extOpt2Old->IntRefCycleSize;
+    mfxU16 oldRefreshDimension = extOpt2Old.IntRefType == MFX_REFRESH_HORIZONTAL ? newPar.mfx.FrameInfo.Height >> 4 : newPar.mfx.FrameInfo.Width >> 4;
+    mfxU16 oldStripeWidthInMBs = (oldRefreshDimension + extOpt2Old.IntRefCycleSize - 1) / extOpt2Old.IntRefCycleSize;
     IntraRefreshState oldIRState = MfxHwH264Encode::GetIntraRefreshState(
         oldPar,
         mfxU32(baseLayerOrder - oldStartFrame),
@@ -1898,25 +1898,25 @@ mfxStatus MfxHwH264Encode::UpdateIntraRefreshWithoutIDR(
         divider,
         caps);
 
-    if (   extOpt2New->IntRefType != extOpt2Old->IntRefType
+    if (   extOpt2New.IntRefType != extOpt2Old.IntRefType
         || (!oldIRState.IntraLocation && !oldIRState.firstFrameInCycle))
     {
-        if (!extOpt3New->IntRefCycleDist)
+        if (!extOpt3New.IntRefCycleDist)
         {
             updatedStartFrame = baseLayerOrder - 1;
         }
         else
         {
-            mfxU16 oldIRProgressInFrames = extOpt3Old->IntRefCycleDist ? (baseLayerOrder % extOpt3Old->IntRefCycleDist) : 0;
+            mfxU16 oldIRProgressInFrames = extOpt3Old.IntRefCycleDist ? (baseLayerOrder % extOpt3Old.IntRefCycleDist) : 0;
 
             if (!oldIRProgressInFrames || oldIRState.IntraLocation)
             {
-                oldIRProgressInFrames += (mfxU16)(extOpt3Old->IntRefCycleDist < baseLayerOrder ? extOpt3Old->IntRefCycleDist : baseLayerOrder);
+                oldIRProgressInFrames += (mfxU16)(extOpt3Old.IntRefCycleDist < baseLayerOrder ? extOpt3Old.IntRefCycleDist : baseLayerOrder);
             }
 
-            if (extOpt3New->IntRefCycleDist < oldIRProgressInFrames || !oldIRProgressInFrames)
+            if (extOpt3New.IntRefCycleDist < oldIRProgressInFrames || !oldIRProgressInFrames)
             {
-                updatedStartFrame = baseLayerOrder - extOpt3New->IntRefCycleDist;
+                updatedStartFrame = baseLayerOrder - extOpt3New.IntRefCycleDist;
             }
             else
             {
@@ -1924,7 +1924,7 @@ mfxStatus MfxHwH264Encode::UpdateIntraRefreshWithoutIDR(
             }
         }
     }
-    else if (extOpt3Old->IntRefCycleDist || extOpt3New->IntRefCycleDist)
+    else if (extOpt3Old.IntRefCycleDist || extOpt3New.IntRefCycleDist)
     {
         if (oldIRState.IntraLocation)
         {
@@ -1935,15 +1935,15 @@ mfxStatus MfxHwH264Encode::UpdateIntraRefreshWithoutIDR(
             updatedStartFrame = baseLayerOrder;
         }
 
-        if (   extOpt3New->IntRefCycleDist > extOpt3Old->IntRefCycleDist
-            && extOpt3Old->IntRefCycleDist > extOpt2Old->IntRefCycleSize)
+        if (   extOpt3New.IntRefCycleDist > extOpt3Old.IntRefCycleDist
+            && extOpt3Old.IntRefCycleDist > extOpt2Old.IntRefCycleSize)
         {
-            updatedStartFrame += (extOpt3New->IntRefCycleDist - extOpt3Old->IntRefCycleDist);
+            updatedStartFrame += (extOpt3New.IntRefCycleDist - extOpt3Old.IntRefCycleDist);
         }
 
-        if (extOpt3New->IntRefCycleDist)
+        if (extOpt3New.IntRefCycleDist)
         {
-            updatedStartFrame = (updatedStartFrame % extOpt3New->IntRefCycleDist) - extOpt3New->IntRefCycleDist;
+            updatedStartFrame = (updatedStartFrame % extOpt3New.IntRefCycleDist) - extOpt3New.IntRefCycleDist;
         }
         else
         {
@@ -1952,7 +1952,7 @@ mfxStatus MfxHwH264Encode::UpdateIntraRefreshWithoutIDR(
     }
     else
     {
-        mfxU16 updatedNumFramesWithoutRefresh = extOpt2New->IntRefCycleSize - (refreshDimension + updatedStripeWidthInMBs - 1) / updatedStripeWidthInMBs;
+        mfxU16 updatedNumFramesWithoutRefresh = extOpt2New.IntRefCycleSize - (refreshDimension + updatedStripeWidthInMBs - 1) / updatedStripeWidthInMBs;
         mfxU16 newIRProgressInFrames = oldIRState.IntraLocation / updatedStripeWidthInMBs + updatedNumFramesWithoutRefresh + 1;
         updatedStartFrame = baseLayerOrder - newIRProgressInFrames;
     }
@@ -2041,11 +2041,11 @@ BiFrameLocation MfxHwH264Encode::GetBiFrameLocation(
     MfxVideoParam const & video,
     mfxU32                frameOrder)
 {
-    mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(video);
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
 
     mfxU32 gopPicSize = video.mfx.GopPicSize;
     mfxU32 gopRefDist = video.mfx.GopRefDist;
-    mfxU32 biPyramid  = extOpt2->BRefType;
+    mfxU32 biPyramid  = extOpt2.BRefType;
 
     BiFrameLocation loc;
 
@@ -2079,7 +2079,7 @@ void MfxHwH264Encode::ConfigureTask(
     mfxExtAvcTemporalLayers const & extTemp        = GetExtBufferRef(video);
     mfxExtEncoderROI const &        extRoi         = GetExtBufferRef(video);
     mfxExtEncoderROI const *        extRoiRuntime  = GetExtBuffer(task.m_ctrl);
-    mfxExtCodingOption3 const *     extOpt3        = GetExtBuffer(video);
+    mfxExtCodingOption3 const &     extOpt3        = GetExtBufferRef(video);
     mfxExtDirtyRect const *    extDirtyRect        = GetExtBuffer(video);
     mfxExtDirtyRect const *    extDirtyRectRuntime = GetExtBuffer(task.m_ctrl);
     mfxExtMoveRect const *     extMoveRect         = GetExtBuffer(video);
@@ -2294,10 +2294,10 @@ void MfxHwH264Encode::ConfigureTask(
         }
     }
 
-    if (extOpt3->MaxFrameSizeI)
+    if (extOpt3.MaxFrameSizeI)
     {
-        task.m_maxIFrameSize = extOpt3->MaxFrameSizeI;
-        task.m_maxPBFrameSize = extOpt3->MaxFrameSizeP;
+        task.m_maxIFrameSize  = extOpt3.MaxFrameSizeI;
+        task.m_maxPBFrameSize = extOpt3.MaxFrameSizeP;
     }
     else
     {
@@ -2306,10 +2306,10 @@ void MfxHwH264Encode::ConfigureTask(
     }
 
     task.m_numMbPerSlice = extOpt2.NumMbPerSlice;
-    task.m_numSlice[ffid] = (task.m_type[ffid] & MFX_FRAMETYPE_I) ? extOpt3->NumSliceI :
-        (task.m_type[ffid] & MFX_FRAMETYPE_P) ? extOpt3->NumSliceP : extOpt3->NumSliceB;
-    task.m_numSlice[!ffid] = (task.m_type[!ffid] & MFX_FRAMETYPE_I) ? extOpt3->NumSliceI :
-        (task.m_type[!ffid] & MFX_FRAMETYPE_P) ? extOpt3->NumSliceP : extOpt3->NumSliceB;
+    task.m_numSlice[ffid] = (task.m_type[ffid] & MFX_FRAMETYPE_I) ? extOpt3.NumSliceI :
+        (task.m_type[ffid] & MFX_FRAMETYPE_P) ? extOpt3.NumSliceP : extOpt3.NumSliceB;
+    task.m_numSlice[!ffid] = (task.m_type[!ffid] & MFX_FRAMETYPE_I) ? extOpt3.NumSliceI :
+        (task.m_type[!ffid] & MFX_FRAMETYPE_P) ? extOpt3.NumSliceP : extOpt3.NumSliceB;
 
     if (video.calcParam.tempScalabilityMode)
     {
@@ -2416,7 +2416,7 @@ void MfxHwH264Encode::ConfigureTask(
     } // for (mfxU32 field = 0; field < fieldMaxCount; field++)
 
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
-    task.m_collectUnitsInfo = IsOn(extOpt3->EncodedUnitsInfo);
+    task.m_collectUnitsInfo = IsOn(extOpt3.EncodedUnitsInfo);
 #endif
 
 }
@@ -2427,12 +2427,12 @@ mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
     MfxVideoParam const & video,
     DdiTask const &       task)
 {
-    mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
+    mfxExtOpaqueSurfaceAlloc const & extOpaq = GetExtBufferRef(video);
 
     mfxFrameSurface1 * surface = task.m_yuv;
 
     if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
     {
         if (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
         {
@@ -2548,7 +2548,7 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
+    mfxExtOpaqueSurfaceAlloc const & extOpaq = GetExtBufferRef(video);
 
     Zero(handle);
     mfxHDL * nativeHandle = &handle.first;
@@ -2569,7 +2569,7 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
     }
 
     if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
         sts = core.GetFrameHDL(task.m_midRaw, nativeHandle);
     else if (video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         sts = core.GetExternalFrameHDL(surface->Data.MemId, nativeHandle);
@@ -3166,7 +3166,7 @@ AsyncRoutineEmulator::AsyncRoutineEmulator(MfxVideoParam const & video)
 
 void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
 {
-    mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(video);
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
 
     switch (video.mfx.RateControlMethod)
     {
@@ -3196,7 +3196,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
         m_stageGreediness[STG_WAIT_LA     ] = 1 + !!(video.AsyncDepth > 1);
         m_stageGreediness[STG_START_HIST  ] = 1;
         m_stageGreediness[STG_WAIT_HIST   ] = 1;
-        m_stageGreediness[STG_START_ENCODE] = extOpt2->LookAheadDepth;
+        m_stageGreediness[STG_START_ENCODE] = extOpt2.LookAheadDepth;
         m_stageGreediness[STG_WAIT_ENCODE ] = 1 + !!(video.AsyncDepth > 1);
         break;
     default:
