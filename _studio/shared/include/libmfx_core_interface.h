@@ -107,6 +107,10 @@ static const MFX_GUID MFXMFEDDIENCODER_SEARCH_GUID =
 static const MFX_GUID MFXICORE_GT_CONFIG_GUID =
 { 0xd53ef10e, 0xd4cf, 0x41a7,{ 0xb1, 0xc2, 0xd3, 0xf, 0xab, 0x30, 0xbb, 0x64 } };
 
+// {7DF28D19-889A-45C1-AA05-A4F7EFAE9528}
+static const MFX_GUID MFXIFEIEnabled_GUID =
+{ 0x7df28d19, 0x889a, 0x45c1,{ 0xaa, 0x5, 0xa4, 0xf7, 0xef, 0xae, 0x95, 0x28 } };
+
 // Try to obtain required interface
 // Declare a template to query an interface
 template <class T> inline
@@ -171,6 +175,8 @@ public:
             m_encode_guid = encode_guid;
             m_size = array_size;
             m_caps = malloc(sizeof(CAPS)*array_size);
+            if (!m_caps)
+                return MFX_ERR_MEMORY_ALLOC;
             memcpy_s(m_caps, sizeof(CAPS)*array_size, hwCaps, sizeof(CAPS)*array_size);
         }
         else
