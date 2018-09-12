@@ -312,8 +312,10 @@ mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type)
     {
         SessionPtr sessionPtr(session, type);
         std::unique_ptr<VideoCodecUSER> & registeredPlg = sessionPtr.plugin();
+        // Do nothing if no registred plugins, because plugins from NativePlugins[] can't be registred - MFXVideoUSER_Register() does fake registration for them
+        // It's required for keep backward comatibility
         if (NULL == registeredPlg.get())
-            return MFX_ERR_NOT_INITIALIZED;
+            return MFX_ERR_NONE;
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForTaskCompletion(registeredPlg.get());
