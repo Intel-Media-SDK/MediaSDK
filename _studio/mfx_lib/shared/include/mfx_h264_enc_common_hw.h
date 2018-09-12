@@ -869,7 +869,7 @@ namespace MfxHwH264Encode
         return mfxExtBufferProxy(par.ExtParam, par.NumExtParam);
     }
 
-    //version with assert, special for KW
+    // version with assert, special for KW
     struct mfxExtBufferRefProxy{
     public:
         template <typename T> operator T&()
@@ -895,6 +895,14 @@ namespace MfxHwH264Encode
         mfxU32          m_numExtParam;
     };
 
+    // Intention of GetExtBufferRef is to get ext buffers
+    // from MfxVideoParam structure which always has full set
+    // of extension buffers ("MfxHwH264Encode::GetExtBuffer" can't return zero).
+    //
+    // So, for MfxVideoParam it's better to use function GetExtBufferRef()
+    // instead GetExtBuffer(), we can wrap issues from static code analyze
+    // to one place (body of function GetExtBufferRef()) instead several
+    // places (every calling GetExtBuffer())
     template <typename T> mfxExtBufferRefProxy GetExtBufferRef(T const & par)
     {
         return mfxExtBufferRefProxy(par.ExtParam, par.NumExtParam);
