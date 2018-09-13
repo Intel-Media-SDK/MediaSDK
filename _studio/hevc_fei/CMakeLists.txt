@@ -21,72 +21,45 @@
 if(API_VERSION VERSION_LESS "1.27")
   message("Skipping HEVC FEI plugin due to API restriction")
 else()
+  set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
+  mfx_include_dirs( )
 
-set(HEVC_FEI_Encoder_HW_GUID "5418a70666f94d5cb4f7b1caee86339b")
+  set(HEVC_FEI_Encoder_HW_GUID "5418a70666f94d5cb4f7b1caee86339b")
 
-# Plugin version info
-set (HEVC_FEI_HW_PRODUCT_NAME "Intel(R) Media Server Studio 2018 - HEVC FEI Encode")
-set (HEVC_FEI_HW_DESCRIPTION "Intel(R) Media Server Studio 2018 - HEVC FEI Hardware Encode Plug-in")
+  # Plugin version info
+  set (HEVC_FEI_HW_PRODUCT_NAME "Intel(R) Media SDK")
+  set (HEVC_FEI_HW_DESCRIPTION "Intel(R) Media SDK HEVC FEI Hardware Encode Plug-in")
 
+  if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
+    set( hevc_version 0.0.000.0000 )
+  else( )
+    set( hevc_version $ENV{MFX_HEVC_VERSION} )
+  endif( )
 
-if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
-  set( hevc_version 0.0.000.0000 )
-else( )
-  set( hevc_version $ENV{MFX_HEVC_VERSION} )
-endif( )
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set( plugin_name mfx_hevc_fei_hw64 )
+  else()
+    set( plugin_name mfx_hevc_fei_hw32 )
+  endif()
 
-if( Linux OR Darwin )
-  execute_process(
-    COMMAND echo
-    COMMAND cut -f 1 -d.
-    COMMAND date "+.%-y.%-m.%-d"
-    OUTPUT_VARIABLE cur_date
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-  string( SUBSTRING ${hevc_version} 0 1 ver )
+  set_file_and_product_version( ${hevc_version} version_defs )
 
-  set(HEVCE_FEI_HW_version_defs  "-DMFX_PLUGIN_FILE_VERSION=\"\\\"${ver}${cur_date}\"\\\" -DMFX_PLUGIN_PRODUCT_VERSION=\"\\\"${hevc_version}\"\\\"")
-endif( )
+  set( sources "" )
+  set( sources.plus "" )
+  set( LIBS "" )
+  set( defs "" )
 
-# =============================================================================
-
-mfx_include_dirs( )
-
-set(MFX_ROOTDIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
-
-set( sources "" )
-set( sources.plus "" )
-
-set( USE_STRICT_NAME TRUE )
-set(MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MFX_ROOTDIR}/mfx_lib/plugin/libmfxsw_plugin.map" )
-
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/include )
-include_directories( ${MFX_ROOTDIR}/shared/include )
-include_directories( ${MFX_ROOTDIR}/mfx_lib/plugin/include )
-include_directories( ${MFX_ROOTDIR}/mfx_lib/scheduler/include )
-
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/include )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../mfx_lib/plugin/include )
   list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/src/export.cpp)
 
-  set( LIBS "" )
-  list( APPEND LIBS
-    mfx_common_hw
-    umc
-    vm
-    vm_plus
-    mfx_trace
-    ${ITT_LIBRARIES}
-    pthread
-    dl
-  )
-
-set( defs "-DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_FEI_HW_PRODUCT_NAME}\"\\\" -DMFX_FILE_DESCRIPTION=\"\\\"${HEVC_FEI_HW_DESCRIPTION}\"\\\" ${HEVCE_FEI_HW_version_defs}" )
-
-gen_plugins_cfg("HEVC_Encoder_HW" ${HEVC_FEI_Encoder_HW_GUID} "mfx_hevc_fei_hw64" "02" "HEVC")
-
-set( defs "-DAS_HEVC_FEI_ENCODE_PLUGIN ${defs}" )
-make_library( mfx_hevc_fei_hw64 hw shared )
-msdk_install( mfx_hevc_fei_hw64 ${MFX_PLUGINS_DIR} )
-set( defs "" )
+  set( USE_STRICT_NAME TRUE )
+  set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_STUDIO_ROOT}/mfx_lib/plugin/libmfxsw_plugin.map" )
+  set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_FEI_HW_PRODUCT_NAME}\"\\\"" )
+  set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${HEVC_FEI_HW_DESCRIPTION}\"\\\"" )
+  set( defs "${defs} ${version_defs}" )
+  gen_plugins_cfg("HEVC_Encoder_HW" ${HEVC_FEI_Encoder_HW_GUID} ${plugin_name} "02" "HEVC")
+  make_library( ${plugin_name} hw shared )
+  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
 endif( )
