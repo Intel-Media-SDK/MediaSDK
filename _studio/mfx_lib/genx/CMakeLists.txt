@@ -76,7 +76,7 @@ if(MFX_ENABLE_KERNELS)
     ${prefix}/genx_skl_simple_me_isa.cpp
   )
 
-  if( API_VERSION VERSION_GREATER 1.25 )
+  if( ${MFX_ENABLE_MCTF} )
     set( prefix ${MSDK_GENX_ROOT}/mctf/src )
     list( APPEND sources
       ${prefix}/genx_mc_bdw_isa.cpp
