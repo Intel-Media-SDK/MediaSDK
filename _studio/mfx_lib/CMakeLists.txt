@@ -155,7 +155,7 @@ else()
   endif()
 endif()
 
-if( API_VERSION VERSION_GREATER 1.25 )
+if( ${MFX_ENABLE_MCTF} )
   set(MCTF_LIB "mctf_hw")
 else()
   set(MCTF_LIB "")
