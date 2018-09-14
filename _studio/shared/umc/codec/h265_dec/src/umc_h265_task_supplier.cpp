@@ -1849,7 +1849,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
 
     } while ((pSource) && (MINIMAL_DATA_SIZE_H265 < pSource->GetDataSize()));
 
-    if (m_checkCRAInsideResetProcess)
+    if (pSource && m_checkCRAInsideResetProcess)
     {
         pSource->MoveDataPointer(int32_t(pSource->GetDataSize() - moveToSpsOffset));
         m_pNALSplitter->Reset();
