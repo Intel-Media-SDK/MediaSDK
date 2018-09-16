@@ -767,8 +767,9 @@ int main(int argc, msdk_char *argv[])
                     // suppose bitrate & deblock control is going to be passed:
                     MctfRTParams->FilterStrength = MCTF_MID_FILTER_STRENGTH;
 #if defined (ENABLE_MCTF_EXT)
-                    MctfRTParams->BitsPerPixelx100k = mfxU32(MCTF_LOSSLESS_BPP * MCTF_BITRATE_MULTIPLIER);
+                    MctfRTParams->BitsPerPixelx100k = mfxU32(MCTF_AUTO_BPP * MCTF_BITRATE_MULTIPLIER);
                     MctfRTParams->Deblocking = MFX_CODINGOPTION_OFF;
+                    MctfRTParams->TemporalMode = MCTF_TEMPORAL_2REF_MODE;
 #endif
 
                     if (pInSurf[nInStreamInd]->Data.NumExtParam >= MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE) {
