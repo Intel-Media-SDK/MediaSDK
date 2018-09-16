@@ -508,22 +508,20 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, sInput
             mfxU16 _strength(0);
             mfxU32 strength_idx = 0;
             mfxU32 ParsedArgsNumber = 0;
-#if defined ENABLE_MCTF_EXT
-            strength_idx = 2;
-#endif
+
             //the order of arguments is:
-            // MctfMode:BitsPerPixel:Strength:ME:Overlap:DB
+            //Strength:ReferencesMode:BitsPerPixel:ME:Overlap:DB
 
             ArgConvert(strInput[i + 1], strength_idx, MSDK_STRING("%hd:%*c"), &_strength, _strength, ParsedArgsNumber);
 #if defined ENABLE_MCTF_EXT
-            mfxU16 _refnum(2);
+            mfxU16 _refnum(MFX_MCTF_TEMPORAL_MODE_2REF);
             mfxF64 _bitsperpixel(0.0);
             mfxU16 _me_precision(0);
             mfxU16 _overlap(0);
             mfxU16 _deblock(0);
 
-            ArgConvert(strInput[i + 1], 0, MSDK_STRING("%hd:%*c"), &_refnum, _refnum, ParsedArgsNumber);
-            ArgConvert(strInput[i + 1], 1, MSDK_STRING("%lf:%*c"), &_bitsperpixel, _bitsperpixel, ParsedArgsNumber);
+            ArgConvert(strInput[i + 1], 1, MSDK_STRING("%hd:%*c"), &_refnum, _refnum, ParsedArgsNumber);
+            ArgConvert(strInput[i + 1], 2, MSDK_STRING("%lf:%*c"), &_bitsperpixel, _bitsperpixel, ParsedArgsNumber);
             ArgConvert(strInput[i + 1], 3, MSDK_STRING("%hd:%*c"), &_me_precision, _me_precision, ParsedArgsNumber);
             ArgConvert(strInput[i + 1], 4, MSDK_STRING("%hd:%*c"), &_overlap, _overlap, ParsedArgsNumber);
             ArgConvert(strInput[i + 1], 5, MSDK_STRING("%hd:%*c"), &_deblock, _deblock, ParsedArgsNumber);

@@ -24,7 +24,6 @@
 #include "libmfx_core_interface.h"
 #include "genx_scd_bdw_isa.h"
 #include "genx_scd_skl_isa.h"
-#include "genx_scd_bxt_isa.h"
 #include "genx_scd_cnl_isa.h"
 #include "genx_scd_icl_isa.h"
 #include "genx_scd_icllp_isa.h"
@@ -294,6 +293,7 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
     case PLATFORM_INTEL_KBL:
     case PLATFORM_INTEL_CFL:
     case PLATFORM_INTEL_GLK:
+    case PLATFORM_INTEL_BXT:
         res = m_device->LoadProgram((void *)genx_scd_skl, sizeof(genx_scd_skl), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_ICL:
@@ -301,9 +301,6 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
         break;
     case PLATFORM_INTEL_ICLLP:
         res = m_device->LoadProgram((void *)genx_scd_icllp, sizeof(genx_scd_icllp), m_program, "nojitter");
-        break;
-    case PLATFORM_INTEL_BXT:
-        res = m_device->LoadProgram((void *)genx_scd_bxt, sizeof(genx_scd_bxt), m_program, "nojitter");
         break;
     default:
         res = CM_NOT_IMPLEMENTED;

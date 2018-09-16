@@ -101,11 +101,10 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/shared/src/, \
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/src/, \
     genx_scd_bdw_isa.cpp \
-    genx_scd_bxt_isa.cpp \
     genx_scd_cnl_isa.cpp \
-    genx_scd_skl_isa.cpp \
     genx_scd_icl_isa.cpp \
-    genx_scd_icllp_isa.cpp)
+    genx_scd_icllp_isa.cpp \
+    genx_scd_skl_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/src/, \
     genx_cht_copy_isa.cpp \
@@ -123,10 +122,16 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/src/, \
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/src/, \
     genx_me_skl_isa.cpp \
+    genx_me_icl_isa.cpp \
+    genx_me_icllp_isa.cpp \
     genx_me_bdw_isa.cpp \
     genx_mc_skl_isa.cpp \
+    genx_mc_icl_isa.cpp \
+    genx_mc_icllp_isa.cpp \
     genx_mc_bdw_isa.cpp \
     genx_sd_skl_isa.cpp \
+    genx_sd_icl_isa.cpp \
+    genx_sd_icllp_isa.cpp \
     genx_sd_bdw_isa.cpp)
 
 MFX_LIB_SHARED_FILES_1 := $(addprefix mfx_lib/shared/src/, \
