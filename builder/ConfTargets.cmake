@@ -74,6 +74,12 @@ if (ENABLE_STAT)
   append("-DMFX_TRACE_ENABLE_STAT" CMAKE_CXX_FLAGS)
 endif()
 
+if( API STREQUAL "latest" )
+  set(API_NEXT_OPTIONS ON)
+else()
+  set(API_NEXT_OPTIONS OFF)
+endif()
+
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
 
 if ( ${API_VERSION} VERSION_GREATER 1.25 )
@@ -86,6 +92,30 @@ option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
 option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
 option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
 option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
+
+option( MFX_ENABLE_VPP "Enabled VPP?" ON)
+cmake_dependent_option(
+  MFX_ENABLE_DENOISE_VIDEO_VPP "Enabled VPP denoise?" ON
+  "MFX_ENABLE_VPP" OFF)
+cmake_dependent_option(
+  MFX_ENABLE_VPP_COMPOSITION "Enabled VPP composition?" ON
+  "MFX_ENABLE_VPP" OFF)
+cmake_dependent_option(
+  MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP "Enabled VPP scene change detection?" ON
+  "MFX_ENABLE_VPP" OFF)
+cmake_dependent_option(
+  MFX_ENABLE_VPP_FRC "Enabled VPP frame rate conversion?" OFF
+  "MFX_ENABLE_VPP" OFF)
+cmake_dependent_option(
+  MFX_ENABLE_VPP_ROTATION "Enabled VPP rotation?" ON
+  "MFX_ENABLE_VPP" OFF)
+cmake_dependent_option(
+  MFX_ENABLE_VPP_VIDEO_SIGNAL "Enabled VPP video signal?" ON
+  "MFX_ENABLE_VPP" OFF)
+cmake_dependent_option(
+  MFX_ENABLE_VPP_RUNTIME_HSBC "Enabled VPP runtime HSBC?" ${API_NEXT_OPTIONS}
+  "MFX_ENABLE_VPP" OFF)
+
 
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
