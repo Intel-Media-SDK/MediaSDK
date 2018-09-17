@@ -32,7 +32,7 @@ namespace MfxHwH265FeiEncode
 class H265FeiEncode_HW : public MfxHwH265Encode::MFXVideoENCODEH265_HW
 {
 public:
-    H265FeiEncode_HW(mfxCoreInterface *core, mfxStatus *status)
+    H265FeiEncode_HW(VideoCORE *core, mfxStatus *status)
         :MFXVideoENCODEH265_HW(core, status)
     {}
 
@@ -41,7 +41,7 @@ public:
         Close();
     }
 
-    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(MFXCoreInterface* /*core*/, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT) override
+    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(VideoCORE* /*core*/, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT) override
     {
         type;
 

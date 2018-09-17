@@ -37,6 +37,14 @@
 #include <vector>
 #include <list>
 #include <assert.h>
+
+#ifndef MFX_MAX
+#define MFX_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
+#endif
+#ifndef MFX_MIN
+#define MFX_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
+#endif
+
 #define MFX_SORT_COMMON(_AR, _SZ, _COND)\
     for (mfxU32 _i = 0; _i < (_SZ); _i ++)\
         for (mfxU32 _j = _i; _j < (_SZ); _j ++)\
@@ -151,9 +159,9 @@ inline mfxU64 SwapEndian(mfxU64 val)
         ((val >>  8) & 0x00000000ff000000) | ((val >> 24) & 0x0000000000ff0000) |
         ((val >> 40) & 0x000000000000ff00) | ((val >> 56) & 0x00000000000000ff);
 }
-inline mfxU32 GetAlignmentByPlatform(mfxU32 platformCodeName)
+inline mfxU32 GetAlignmentByPlatform(eMFXHWType platform)
 {
-    return platformCodeName >= MFX_PLATFORM_CANNONLAKE ? 8 : 16;
+    return platform >= MFX_HW_CNL ? 8 : 16;
 }
 
 enum
@@ -172,9 +180,6 @@ enum
 
     HW_SURF_ALIGN_W         = 16,
     HW_SURF_ALIGN_H         = 16,
-
-    CODED_PIC_ALIGN_W       = 16,
-    CODED_PIC_ALIGN_H       = 16,
 
     MAX_SLICES              = 200,// WA for driver issue regerding CNL and older platforms
     DEFAULT_LTR_INTERVAL    = 16,
@@ -237,10 +242,14 @@ public:
     ~MfxFrameAllocResponse();
 
     mfxStatus Alloc(
-        MFXCoreInterface *     core,
+        VideoCORE            * core,
         mfxFrameAllocRequest & req,
         bool                   isCopyRequired);
-
+    mfxStatus Alloc(
+        VideoCORE            * core,
+        mfxFrameAllocRequest & req,
+        mfxFrameSurface1 **    opaqSurf,
+        mfxU32                 numOpaqSurf);
     mfxU32 Lock(mfxU32 idx);
 
     void Unlock();
@@ -264,7 +273,7 @@ private:
     MfxFrameAllocResponse(MfxFrameAllocResponse const &);
     MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &);
 
-    MFXCoreInterface * m_core;
+    VideoCORE        * m_core;
     mfxU16             m_numFrameActualReturnedByAllocFrames;
 
     std::vector<mfxFrameAllocResponse> m_responseQueue;
@@ -768,7 +777,7 @@ private:
 class MfxVideoParam : public mfxVideoParam, public TemporalLayers
 {
 public:
-    mfxPlatform m_platform;
+    eMFXHWType m_platform;
     VPS m_vps;
     SPS m_sps;
     PPS m_pps;
@@ -820,7 +829,7 @@ public:
 
     MfxVideoParam();
     MfxVideoParam(MfxVideoParam const & par);
-    MfxVideoParam(mfxVideoParam const & par, mfxPlatform const & platform);
+    MfxVideoParam(mfxVideoParam const & par, eMFXHWType const & platform);
 
     MfxVideoParam & operator = (mfxVideoParam const &);
     MfxVideoParam & operator = (MfxVideoParam const &);
@@ -935,7 +944,7 @@ private:
 class FrameLocker : public mfxFrameData
 {
 public:
-    FrameLocker(MFXCoreInterface* core, mfxMemId mid)
+    FrameLocker(VideoCORE* core, mfxMemId mid)
         : m_core(core)
         , m_mid(mid)
     {
@@ -946,11 +955,12 @@ public:
     {
         Unlock();
     }
-    mfxStatus Lock()   { return m_core->FrameAllocator().Lock  (m_core->FrameAllocator().pthis, m_mid, this); }
-    mfxStatus Unlock() { return m_core->FrameAllocator().Unlock(m_core->FrameAllocator().pthis, m_mid, this); }
+    mfxStatus Lock()   { return m_core != nullptr ? m_core->LockFrame(m_mid, this): MFX_ERR_NULL_PTR; }
+    mfxStatus Unlock() { return m_core != nullptr ? m_core->UnlockFrame(m_mid, this): MFX_ERR_NULL_PTR;
+    }
 
 private:
-    MFXCoreInterface* m_core;
+    VideoCORE* m_core;
     mfxMemId m_mid;
 };
 
@@ -1033,13 +1043,13 @@ void ReleaseResource(
     mfxMemId                mid);
 
 mfxStatus GetNativeHandleToRawSurface(
-    MFXCoreInterface &    core,
+    VideoCORE &    core,
     MfxVideoParam const & video,
     Task const &          task,
     mfxHDLPair &          handle);
 
 mfxStatus CopyRawSurfaceToVideoMemory(
-    MFXCoreInterface &    core,
+    VideoCORE &    core,
     MfxVideoParam const & video,
     Task const &          task);
 
@@ -1062,7 +1072,7 @@ bool IsFrameToSkip(
     bool bSWBRC);
 
 mfxStatus CodeAsSkipFrame(
-    MFXCoreInterface & core,
+    VideoCORE & core,
     MfxVideoParam const & video,
     Task & task,
     MfxFrameAllocResponse & poolSkip,

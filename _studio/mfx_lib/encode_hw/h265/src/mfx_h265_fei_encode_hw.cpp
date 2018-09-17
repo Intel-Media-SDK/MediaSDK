@@ -33,12 +33,10 @@ mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSu
 
     MFX_CHECK(ctrl, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    mfxPlatform p = {};
+    eMFXHWType platform = m_core->GetHWType();
 
-    mfxStatus sts = m_core.QueryPlatform(&p);
-    MFX_CHECK_STS(sts);
+    bool isSKL = platform == MFX_HW_SCL;
 
-    bool isSKL = p.CodeName == MFX_PLATFORM_SKYLAKE;
 
     // mfxExtFeiHevcEncFrameCtrl is a mandatory buffer
     mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl = reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
