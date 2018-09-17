@@ -941,6 +941,27 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
             invalid++;
     }
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
+        invalid += (caps.ROIDeltaQPSupport == 0);
+    }
+    else if (par.isSWBRC())
+    {
+        if (caps.ROIDeltaQPSupport == 0)
+            bROIViaMBQP = true;
+
+    }
+    else
+    {
+#if MFX_VERSION > 1021
+        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
+            invalid += (caps.ROIDeltaQPSupport == 0);
+        else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
+            invalid += (caps.ROIBRCPriorityLevelSupport == 0);
+        else
+            invalid++;
+#endif // MFX_VERSION > 1021
+    }
+
     mfxU16 maxNumOfRoi = (caps.MaxNumOfROI <= MAX_NUM_ROI  && (!bROIViaMBQP)) ? caps.MaxNumOfROI : MAX_NUM_ROI;
 
     changed += CheckMax(ROI->NumROI, maxNumOfRoi);
