@@ -29,6 +29,15 @@ MFX_CFLAGS += \
   -DMFX_ANDROID_VERSION=$(MFX_ANDROID_VERSION) \
   -include mfx_android_config.h
 
+# Setting version information for the binaries
+ifeq ($(MFX_VERSION),)
+  MFX_VERSION = "6.0.010"
+endif
+
+MFX_CFLAGS += \
+  -DMFX_FILE_VERSION=\"`echo $(MFX_VERSION) | cut -f 1 -d.``date +.%-y.%-m.%-d`\" \
+  -DMFX_PRODUCT_VERSION=\"$(MFX_VERSION)\"
+
 #  Security
 MFX_CFLAGS += \
   -fstack-protector \

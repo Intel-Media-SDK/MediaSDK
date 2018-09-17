@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #cmakedefine MFX_ENABLE_KERNELS
+#cmakedefine MFX_ENABLE_MCTF
 
 #cmakedefine MFX_ENABLE_USER_DECODE
 #cmakedefine MFX_ENABLE_USER_ENCODE

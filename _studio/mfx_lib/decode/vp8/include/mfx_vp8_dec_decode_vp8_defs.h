@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -250,10 +250,10 @@ typedef struct _vp8_FrameInfo
 
   mfxSize frameSize; // actual width/height without padding cols/rows
 
-  uint32_t firstPartitionSize;
+  uint32_t firstPartitionSize; // Header info bits rounded up to byte
   uint16_t version;
 
-  uint32_t entropyDecSize;
+  uint32_t entropyDecSize; // Header info consumed bits
   uint32_t entropyDecOffset;
 
 } vp8_FrameInfo;

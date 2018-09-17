@@ -316,7 +316,7 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
     ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
     if (!ret)
     {
-        listSize = (sizeof(listLegalDevIDs)/sizeof(mfx_device_item));
+        listSize = (sizeof(listLegalDevIDs) / sizeof(mfx_device_item));
         for (i = 0; i < listSize; ++i)
         {
             if (listLegalDevIDs[i].device_id == devID)
@@ -351,6 +351,7 @@ VAAPIVideoCORE::VAAPIVideoCORE(
           , m_bCmCopy(false)
           , m_bCmCopyAllowed(false)
 #endif
+          , m_bHEVCFEIEnabled(false)
 {
 } // VAAPIVideoCORE::VAAPIVideoCORE(...)
 
@@ -817,12 +818,12 @@ VAAPIVideoCORE::CreateVideoAccelerator(
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
-     * (3): Supported on APL platform and above
+     * (3): Supported on SKL (Core) and APL (Atom) platforms and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if ( (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
          (MFX_PICSTRUCT_PROGRESSIVE == param->mfx.FrameInfo.PicStruct) &&
-         (MFX_HW_APL <= GetHWType()) &&
+         (MFX_HW_SCL <= GetHWType()) &&
          (param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
     {
         params.m_needVideoProcessingVA = true;
@@ -884,7 +885,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
     {
         if (srcMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pSrc->Data.Y)
+            if (LumaIsNull(pSrc))
             {
                 sts = LockExternalFrame(srcMemId, &srcTempSurface.Data);
                 MFX_CHECK_STS(sts);
@@ -909,7 +910,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
     {
         if (srcMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pSrc->Data.Y)
+            if (LumaIsNull(pSrc))
             {
                 sts = LockFrame(srcMemId, &srcTempSurface.Data);
                 MFX_CHECK_STS(sts);
@@ -935,7 +936,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
     {
         if (dstMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pDst->Data.Y)
+            if (LumaIsNull(pDst))
             {
                 sts = LockExternalFrame(dstMemId, &dstTempSurface.Data);
                 MFX_CHECK_STS(sts);
@@ -960,7 +961,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
     {
         if (dstMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-            if (NULL == pDst->Data.Y)
+            if (LumaIsNull(pDst))
             {
                 sts = LockFrame(dstMemId, &dstTempSurface.Data);
                 MFX_CHECK_STS(sts);
@@ -1036,8 +1037,8 @@ VAAPIVideoCORE::DoFastCopyExtended(
     // check that only memId or pointer are passed
     // otherwise don't know which type of memory copying is requested
     if (
-        (NULL != pDst->Data.Y && NULL != pDst->Data.MemId) ||
-        (NULL != pSrc->Data.Y && NULL != pSrc->Data.MemId)
+        (!LumaIsNull(pDst) && NULL != pDst->Data.MemId) ||
+        (!LumaIsNull(pSrc) && NULL != pSrc->Data.MemId)
         )
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -1091,9 +1092,9 @@ VAAPIVideoCORE::DoFastCopyExtended(
             MFX_CHECK(VA_STATUS_SUCCESS == va_sts, MFX_ERR_DEVICE_FAILED);
         }
     }
-    else if (NULL != pSrc->Data.MemId && NULL != pDst->Data.Y)
+    else if (NULL != pSrc->Data.MemId && !LumaIsNull(pDst))
     {
-        MFX_CHECK((pDst->Data.Y == 0) == (pDst->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(LumaIsNull(pDst) == (pDst->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(dstPitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         MFX_CHECK(m_Display,MFX_ERR_NOT_INITIALIZED);
@@ -1154,21 +1155,21 @@ VAAPIVideoCORE::DoFastCopyExtended(
         }
 
     }
-    else if (NULL != pSrc->Data.Y && NULL != pDst->Data.Y)
+    else if (!LumaIsNull(pSrc) && !LumaIsNull(pDst))
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "memcpy_sys2sys");
         // system memories were passed
         // use common way to copy frames
 
-        MFX_CHECK((pSrc->Data.Y == 0) == (pSrc->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
-        MFX_CHECK((pDst->Data.Y == 0) == (pDst->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(LumaIsNull(pSrc) == (pSrc->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
+        MFX_CHECK(LumaIsNull(pDst) == (pDst->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(dstPitch < 0x8000 || pDst->Info.FourCC == MFX_FOURCC_RGB4 || pDst->Info.FourCC == MFX_FOURCC_YUY2, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(srcPitch < 0x8000 || pSrc->Info.FourCC == MFX_FOURCC_RGB4 || pSrc->Info.FourCC == MFX_FOURCC_YUY2, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         sts = CoreDoSWFastCopy(pDst, pSrc, COPY_SYS_TO_SYS); // sw copy
         MFX_CHECK_STS(sts);
     }
-    else if (NULL != pSrc->Data.Y && NULL != pDst->Data.MemId)
+    else if (!LumaIsNull(pSrc) && NULL != pDst->Data.MemId)
     {
         if (canUseCMCopy)
         {
@@ -1177,7 +1178,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
         }
         else
         {
-            MFX_CHECK((pSrc->Data.Y == 0) == (pSrc->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(LumaIsNull(pSrc) == (pSrc->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
             MFX_CHECK(srcPitch < 0x8000 || pSrc->Info.FourCC == MFX_FOURCC_RGB4 || pSrc->Info.FourCC == MFX_FOURCC_YUY2, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             VAStatus va_sts = VA_STATUS_SUCCESS;
@@ -1395,10 +1396,16 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
         return (void*) &m_encode_mbprocrate;
     }
     else if (MFXIEXTERNALLOC_GUID == guid && m_bSetExtFrameAlloc)
+    {
         return &m_FrameAllocator.frameAllocator;
+    }
     else if (MFXICORE_API_1_19_GUID == guid)
     {
         return &m_API_1_19;
+    }
+    else if (MFXIFEIEnabled_GUID == guid)
+    {
+        return &m_bHEVCFEIEnabled;
     }
     else
     {

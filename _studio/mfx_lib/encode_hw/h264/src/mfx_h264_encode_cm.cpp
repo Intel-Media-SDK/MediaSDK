@@ -178,7 +178,8 @@ void CmDevicePtr::Reset(CmDevice * device)
     if (m_device)
     {
         int result = ::DestroyCmDevice(m_device);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
     m_device = device;
 }
@@ -242,7 +243,8 @@ void CmSurface::Reset(CmDevice * device, IDirect3DSurface9 * d3dSurface)
     if (m_device && m_surface)
     {
         int result = m_device->DestroySurface(m_surface);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device  = device;
@@ -256,7 +258,8 @@ void CmSurface::Reset(CmDevice * device, mfxU32 width, mfxU32 height, mfxU32 fou
     if (m_device && m_surface)
     {
         int result = m_device->DestroySurface(m_surface);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device  = device;
@@ -306,7 +309,8 @@ void CmSurfaceVme75::Reset(CmDevice * device, SurfaceIndex * index)
     if (m_device && m_index)
     {
         int result = m_device->DestroyVmeSurfaceG7_5(m_index);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device = device;
@@ -359,7 +363,8 @@ void CmBuf::Reset(CmDevice * device, mfxU32 size)
     if (m_device && m_buffer)
     {
         int result = m_device->DestroySurface(m_buffer);
-        result; assert(result == CM_SUCCESS);
+        assert(result == CM_SUCCESS);
+        (void)result;
     }
 
     m_device = device;
@@ -414,7 +419,7 @@ CmSurface2D * CreateSurface(CmDevice * device, ID3D11Texture2D * d3dSurface)
     int result = CM_SUCCESS;
     CmSurface2D * cmSurface = 0;
     if (device && d3dSurface && (result = device->CreateSurface2D(d3dSurface, cmSurface)) != CM_SUCCESS)
-        throw CmRuntimeError(); 
+        throw CmRuntimeError();
     return cmSurface;
 }
 
@@ -674,7 +679,7 @@ namespace MfxHwH264EncodeHW
             costs.ModeCost[LUTMODE_INTRA_16x16]   = Map44LutValue((mfxU16)(lambda * 10  * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTRA_8x8]     = Map44LutValue((mfxU16)(lambda * 14  * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTRA_4x4]     = Map44LutValue((mfxU16)(lambda * 35  * had_bias), 0x8f);
-            
+
             costs.ModeCost[LUTMODE_INTER_16x16] = Map44LutValue((mfxU16)(lambda * 2.75 * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTER_16x8]  = Map44LutValue((mfxU16)(lambda * 4.25 * had_bias), 0x8f);
             costs.ModeCost[LUTMODE_INTER_8x8q]  = Map44LutValue((mfxU16)(lambda * 1.32 * had_bias), 0x6f);
@@ -821,6 +826,8 @@ CmContext::CmContext(
     MfxVideoParam const & video,
     CmDevice *            cmDevice,
     VideoCORE *           core)
+: m_kernelHistFrame(nullptr)
+, m_kernelHistFields(nullptr)
 {
     Setup(video, cmDevice, core);
 }
@@ -965,7 +972,7 @@ mfxStatus CmContext::QueryHistogram(CmEvent * e)
         return MFX_ERR_GPU_HANG;
     else if(status != CM_SUCCESS)
         throw CmRuntimeError();
-    
+
     return MFX_ERR_NONE;
 }
 
@@ -1076,7 +1083,7 @@ mfxStatus CmContext::QueryVme(
                 if (mb.MbType5Bits != MBTYPE_BP_L0_16x16 &&
                     mb.MbType5Bits != MBTYPE_B_L1_16x16  &&
                     mb.MbType5Bits != MBTYPE_B_Bi_16x16)
-                { 
+                {
                 // fprintf(stdout,"MbType5Bits: %x\n", mb.MbType5Bits );fflush(stdout);
                     assert(0);
                 }
@@ -1091,7 +1098,7 @@ mfxStatus CmContext::QueryVme(
 
 
     { MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Convert mb data");
-        mfxExtPpsHeader const * extPps = GetExtBuffer(m_video);
+        mfxExtPpsHeader const & extPps = GetExtBufferRef(m_video);
 
         cur->intraCost = 0;
         cur->interCost = 0;
@@ -1105,7 +1112,7 @@ mfxStatus CmContext::QueryVme(
             cur->mb[i].mbType        = cmMb[i].MbType5Bits;
             cur->mb[i].subMbShape    = cmMb[i].SubMbShape;
             cur->mb[i].subMbPredMode = cmMb[i].SubMbPredMode;
-            cur->mb[i].w1            = mfxU8(extPps->weightedBipredIdc == 2 ? CalcBiWeight(task, 0, 0) : 32);
+            cur->mb[i].w1            = mfxU8(extPps.weightedBipredIdc == 2 ? CalcBiWeight(task, 0, 0) : 32);
             cur->mb[i].w0            = mfxU8(64 - cur->mb[i].w1);
             cur->mb[i].costCenter0.x = cmMb[i].costCenter0X;
             cur->mb[i].costCenter0.y = cmMb[i].costCenter0Y;
@@ -1158,8 +1165,8 @@ void CmContext::SetCurbeData(
     DdiTask const &   task,
     mfxU32            qp)
 {
-    mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
-    mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(m_video);
+    mfxExtCodingOptionDDI const & extDdi = GetExtBufferRef(m_video);
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(m_video);
     //mfxExtCodingOption const *    extOpt = GetExtBuffer(m_video);
 
     mfxU32 interSad       = 2; // 0-sad,2-haar
@@ -1199,7 +1206,7 @@ void CmContext::SetCurbeData(
     curbeData.EarlyImeStop          = 0;
     //DW1
     curbeData.MaxNumMVs             = (GetMaxMvsPer2Mb(m_video.mfx.CodecLevel) >> 1) & 0x3F;
-    curbeData.BiWeight              = ((task.m_type[ffid] & MFX_FRAMETYPE_B) && extDdi->WeightedBiPredIdc == 2) ? CalcBiWeight(task, 0, 0) : 32;
+    curbeData.BiWeight              = ((task.m_type[ffid] & MFX_FRAMETYPE_B) && extDdi.WeightedBiPredIdc == 2) ? CalcBiWeight(task, 0, 0) : 32;
     curbeData.UniMixDisable         = 0;
     //DW2
     curbeData.MaxNumSU              = 57;
@@ -1384,7 +1391,7 @@ void CmContext::SetCurbeData(
     curbeData.HMERefWindowsCombiningThreshold = (task.m_type[ffid] & MFX_FRAMETYPE_B) ? 8 : 16; //  0;  (should be =8 for B frames)
     curbeData.CheckAllFractionalEnable        = 0;
     //DW37
-    curbeData.CurLayerDQId                    = LaDSenumToFactor(extOpt2->LookAheadDS);  // 0; use 8 bit as LaScaleFactor
+    curbeData.CurLayerDQId                    = LaDSenumToFactor(extOpt2.LookAheadDS);  // 0; use 8 bit as LaScaleFactor
     curbeData.TemporalId                      = 0;
     curbeData.NoInterLayerPredictionFlag      = 1;
     curbeData.AdaptivePredictionFlag          = 0;
@@ -1414,7 +1421,7 @@ void CmContext::SetCurbeData(
     mfxU32 biWeight)
 {
 
-    mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
+    mfxExtCodingOptionDDI const & extDdi = GetExtBufferRef(m_video);
     //mfxExtCodingOption const *    extOpt = GetExtBuffer(m_video);
 
     mfxU32 interSad       = 2; // 0-sad,2-haar
@@ -1451,7 +1458,7 @@ void CmContext::SetCurbeData(
     curbeData.EarlyImeStop          = 0;
     //DW1
     curbeData.MaxNumMVs             = (GetMaxMvsPer2Mb(m_video.mfx.CodecLevel) >> 1) & 0x3F;
-    curbeData.BiWeight              = ((frameType & MFX_FRAMETYPE_B) && extDdi->WeightedBiPredIdc == 2) ? biWeight : 32;
+    curbeData.BiWeight              = ((frameType & MFX_FRAMETYPE_B) && extDdi.WeightedBiPredIdc == 2) ? biWeight : 32;
     curbeData.UniMixDisable         = 0;
     //DW2
     curbeData.MaxNumSU              = 57;

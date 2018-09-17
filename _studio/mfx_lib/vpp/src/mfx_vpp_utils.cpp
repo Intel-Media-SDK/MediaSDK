@@ -1326,12 +1326,15 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_YUY2:
             break;
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
+#if !defined(_WIN32) || !defined(_WIN64)
+            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
+#endif
+            break;
+#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
-            if (platform < MFX_HW_ICL)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
+            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
             break;
 #endif
         case MFX_FOURCC_IMC3:
@@ -1583,7 +1586,6 @@ bool GetExtParamList(
     mfxU32* pList,
     mfxU32* pLen)
 {
-    pList;
     mfxU32 fIdx = 0;
 
     /* robustness */
@@ -1620,7 +1622,6 @@ bool GetExtParamList(
 
 void GetConfigurableFilterList( mfxVideoParam* par, mfxU32* pList, mfxU32* pLen )
 {
-    pList;
     mfxU32 fIdx = 0;
 
     /* robustness */

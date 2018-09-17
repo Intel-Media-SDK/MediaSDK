@@ -64,17 +64,10 @@ set(MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MFX_ROOTDIR}/mfx_lib
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/include )
 include_directories( ${MFX_ROOTDIR}/shared/include )
-include_directories( ${MFX_ROOTDIR}/mfx_lib/encode_hw/h265/include )
 include_directories( ${MFX_ROOTDIR}/mfx_lib/plugin/include )
 include_directories( ${MFX_ROOTDIR}/mfx_lib/scheduler/include )
-include_directories( ${MFX_ROOTDIR}/mfx_lib/cmrt_cross_platform/include )
 
-foreach( dir
-  ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/../mfx_lib/encode_hw/h265/src )
-    file( GLOB_RECURSE srcs "${dir}/*.c" "${dir}/*.cpp" )
-    list( APPEND sources ${srcs})
-endforeach()
+  list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/src/export.cpp)
 
   set( LIBS "" )
   list( APPEND LIBS

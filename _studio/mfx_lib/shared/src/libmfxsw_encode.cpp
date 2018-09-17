@@ -54,6 +54,12 @@
 #include "mfx_vp9_encode_hw.h"
 #endif
 
+#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+#if defined(MFX_VA)
+#include "mfx_h265_fei_encode_hw.h"
+#include <libmfx_core_interface.h>
+#endif
+#endif
 
 template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
@@ -62,7 +68,6 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
     VideoCORE* core = m_pCORE.get();
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     mfxU32 CodecId = par.mfx.CodecId;
-
     // create a codec instance
     switch (CodecId)
     {
@@ -88,8 +93,18 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     case MFX_CODEC_HEVC:
-        pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(&m_coreInt, &mfxRes);
+    {
+#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+            bool * feiEnabled = (bool*)core->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
+            if (feiEnabled == nullptr)
+                return nullptr;
+            if(*feiEnabled)
+                pENCODE = new MfxHwH265FeiEncode::H265FeiEncode_HW(&m_coreInt, &mfxRes);
+            else
+#endif
+                pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(&m_coreInt, &mfxRes);
         break;
+    }
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
@@ -207,7 +222,15 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
         case MFX_CODEC_HEVC:
-            mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&session->m_coreInt, in, out);
+        {
+#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+            bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
+            MFX_CHECK_NULL_PTR1(feiEnabled);
+            if(*feiEnabled)
+                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::Query(&session->m_coreInt, in, out);
+            else
+#endif
+                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&session->m_coreInt, in, out);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;
@@ -217,6 +240,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
                 bIsHWENCSupport = true;
             }
             break;
+        }
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
@@ -360,7 +384,15 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
         case MFX_CODEC_HEVC:
-            mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&session->m_coreInt, par, request);
+        {
+#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+            bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
+            MFX_CHECK_NULL_PTR1(feiEnabled);
+            if(*feiEnabled)
+                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(&session->m_coreInt, par, request);
+            else
+#endif
+                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&session->m_coreInt, par, request);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;
@@ -370,6 +402,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
                 bIsHWENCSupport = true;
             }
             break;
+        }
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)

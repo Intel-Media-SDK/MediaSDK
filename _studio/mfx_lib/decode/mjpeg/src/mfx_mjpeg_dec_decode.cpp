@@ -217,7 +217,7 @@ mfxStatus VideoDECODEMJPEG::Init(mfxVideoParam *par)
         decoder->m_FrameAllocator->SetExternalFramesResponse(&m_response_alien);
         request_internal.Type |= MFX_MEMTYPE_INTERNAL_FRAME;
         request = request_internal;
-        mfxSts = m_core->AllocFrames(&request_internal, &m_response, ((m_vPar.IOPattern&MFX_MEMTYPE_SYSTEM_MEMORY) != 0));
+        mfxSts = m_core->AllocFrames(&request_internal, &m_response, (m_vPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY));
         if (mfxSts < MFX_ERR_NONE)
             return mfxSts;
     }
@@ -1121,9 +1121,9 @@ eMFXPlatform MFX_JPEG_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par
 {
     eMFXPlatform platform = core->GetPlatformType();
 
-    if(platform != MFX_PLATFORM_SOFTWARE)
+    if (platform != MFX_PLATFORM_SOFTWARE)
     {
-        if (par && IsNeedPartialAcceleration(core, par))
+        if (IsNeedPartialAcceleration(core, par))
         {
             return MFX_PLATFORM_SOFTWARE;
         }
@@ -1134,8 +1134,8 @@ eMFXPlatform MFX_JPEG_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par
         }
 
         bool needVpp = false;
-        if(par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF ||
-           par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF)
+        if (par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_TFF ||
+            par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_FIELD_BFF)
         {
             needVpp = true;
         }
@@ -1145,7 +1145,7 @@ eMFXPlatform MFX_JPEG_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par
 
         VideoDECODEMJPEGBase_HW::AdjustFourCC(&request.Info, &par->mfx, core->GetHWType(), core->GetVAType(), &needVpp);
 
-        if(needVpp)
+        if (needVpp)
         {
 
             if (MFX_ERR_NONE != VideoDECODEMJPEGBase_HW::CheckVPPCaps(core, par))
