@@ -99,10 +99,10 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
             if (feiEnabled == nullptr)
                 return nullptr;
             if(*feiEnabled)
-                pENCODE = new MfxHwH265FeiEncode::H265FeiEncode_HW(&m_coreInt, &mfxRes);
+                pENCODE = new MfxHwH265FeiEncode::H265FeiEncode_HW(core, &mfxRes);
             else
 #endif
-                pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(&m_coreInt, &mfxRes);
+                pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(core, &mfxRes);
         break;
     }
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
@@ -227,10 +227,10 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
             MFX_CHECK_NULL_PTR1(feiEnabled);
             if(*feiEnabled)
-                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::Query(&session->m_coreInt, in, out);
+                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::Query(session->m_pCORE.get(), in, out);
             else
 #endif
-                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(&session->m_coreInt, in, out);
+                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(session->m_pCORE.get(), in, out);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;
@@ -389,10 +389,10 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
             MFX_CHECK_NULL_PTR1(feiEnabled);
             if(*feiEnabled)
-                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(&session->m_coreInt, par, request);
+                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
             else
 #endif
-                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&session->m_coreInt, par, request);
+                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;

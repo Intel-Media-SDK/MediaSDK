@@ -178,7 +178,7 @@ mfxStatus SetLowpowerDefault(MfxVideoParam& par)
     mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 
 #if (MFX_VERSION >= 1025)
-    if (par.m_platform.CodeName == MFX_PLATFORM_CANNONLAKE
+    if (par.m_platform == MFX_HW_CNL
         && par.mfx.TargetUsage >= MFX_TARGETUSAGE_6
         && par.mfx.GopRefDist < 2
         && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
@@ -226,28 +226,22 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXVideoENCODEH265_HW::InitImpl");
     mfxStatus sts = MFX_ERR_NONE, qsts = MFX_ERR_NONE;
-    mfxCoreParam coreParams = {};
     ENCODER_TYPE ddiType = ENCODER_DEFAULT;
-
-    if (m_core.GetCoreParam(&coreParams))
-       return  MFX_ERR_UNSUPPORTED;
 
     sts = ExtBuffer::CheckBuffers(*par);
     MFX_CHECK_STS(sts);
 
-    m_vpar = *par;
-
-    sts = m_core.QueryPlatform(&m_vpar.m_platform);
-    MFX_CHECK_STS(sts);
+    eMFXHWType platform = m_core->GetHWType();
+    m_vpar = MfxVideoParam(*par, platform);
 
     mfxStatus lpsts = SetLowpowerDefault(m_vpar);
 
-    m_ddi.reset( CreateHWh265Encoder(&m_core, ddiType) );
+    m_ddi.reset( CreateHWh265Encoder(m_core, ddiType) );
     MFX_CHECK(m_ddi.get(), MFX_ERR_UNSUPPORTED);
     GUID encoder_guid = GetGUID(m_vpar);
 
     sts = m_ddi->CreateAuxilliaryDevice(
-        &m_core,
+        m_core,
         encoder_guid,
         m_vpar.m_ext.HEVCParam.PicWidthInLumaSamples,
         m_vpar.m_ext.HEVCParam.PicHeightInLumaSamples);
@@ -296,21 +290,24 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
         request.Type        = MFX_MEMTYPE_D3D_INT;
         request.NumFrameMin = MaxRaw(m_vpar);
 
-        sts = m_raw.Alloc(&m_core, request, true);
+        sts = m_raw.Alloc(m_core, request, true);
         MFX_CHECK_STS(sts);
     }
     else if (m_vpar.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
     {
         mfxExtOpaqueSurfaceAlloc& opaq = m_vpar.m_ext.Opaque;
+        request.Type = opaq.In.Type;
+        request.NumFrameMin = opaq.In.NumSurface;
 
-        sts = m_core.MapOpaqueSurface(opaq.In.NumSurface, opaq.In.Type, opaq.In.Surfaces);
+        sts = m_opaq.Alloc(m_core, request, opaq.In.Surfaces, opaq.In.NumSurface);
         MFX_CHECK_STS(sts);
 
         if (opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
             request.Type        = MFX_MEMTYPE_D3D_INT;
             request.NumFrameMin = opaq.In.NumSurface;
-            sts = m_raw.Alloc(&m_core, request, true);
+            sts = m_raw.Alloc(m_core, request, true);
+            MFX_CHECK_STS(sts);
         }
     }
 
@@ -319,7 +316,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
     {
         request.Type        = MFX_MEMTYPE_D3D_INT;
         request.NumFrameMin =  mfxU16(m_vpar.AsyncDepth + m_vpar.RawRef * m_vpar.mfx.NumRefFrame) ;
-        sts = m_rawSkip.Alloc(&m_core, request, true);
+        sts = m_rawSkip.Alloc(m_core, request, false);
         MFX_CHECK_STS(sts);
     }
 
@@ -339,7 +336,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
 #endif
     //For MMCD encoder bind flag is required.
     request.Type |= MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
-    sts = m_rec.Alloc(&m_core, request, false);
+    sts = m_rec.Alloc(m_core, request, false);
     MFX_CHECK_STS(sts);
 
     sts = m_ddi->Register(m_rec.NumFrameActual ? m_rec : m_raw, D3DDDIFMT_NV12);
@@ -357,7 +354,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
         request.Info.Height = (mfxU16)CeilDiv(GetMinBsSize(m_vpar), request.Info.Width);
     }
 
-    sts = m_bs.Alloc(&m_core, request, false);
+    sts = m_bs.Alloc(m_core, request, false);
     MFX_CHECK_STS(sts);
 
     sts = m_ddi->Register(m_bs, D3DDDIFMT_INTELENCODE_BITSTREAMDATA);
@@ -400,19 +397,15 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
     return sts;
 }
 
-mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
+mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
     mfxStatus sts = MFX_ERR_NONE;
-    MFX_CHECK_NULL_PTR2(par, request);
+    MFX_CHECK_NULL_PTR3(core, par, request);
 
     sts = CheckInputParam(par);
     MFX_CHECK_STS(sts);
 
-    MFXCoreInterface _core = *core;
-
-    mfxPlatform platform;
-    sts = _core.QueryPlatform(&platform);
-    MFX_CHECK_STS(sts);
+    eMFXHWType platform = core->GetHWType();
 
     MfxVideoParam tmp(*par, platform);
 
@@ -434,7 +427,7 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoPar
 
     (void)SetLowpowerDefault(tmp);
 
-    sts = QueryHwCaps(&_core, GetGUID(tmp), caps);
+    sts = QueryHwCaps(core, GetGUID(tmp), caps);
     MFX_CHECK_STS(sts);
 
     MfxHwH265Encode::CheckVideoParam(tmp, caps);
@@ -454,10 +447,10 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(mfxCoreInterface *core, mfxVideoPar
     return sts;
 }
 
-mfxStatus MFXVideoENCODEH265_HW::Query(mfxCoreInterface *core, mfxVideoParam *in, mfxVideoParam *out)
+mfxStatus MFXVideoENCODEH265_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     mfxStatus sts = MFX_ERR_NONE;
-    MFX_CHECK_NULL_PTR1(out);
+    MFX_CHECK_NULL_PTR2(core, out);
 
     if (!in)
     {
@@ -503,10 +496,7 @@ mfxStatus MFXVideoENCODEH265_HW::Query(mfxCoreInterface *core, mfxVideoParam *in
         sts = CheckInputParam(in, out);
         MFX_CHECK_STS(sts);
 
-        mfxPlatform platform;
-        MFXCoreInterface _core = *core;
-        sts = _core.QueryPlatform(&platform);
-        MFX_CHECK_STS(sts);
+        eMFXHWType platform = core->GetHWType();
 
         MfxVideoParam tmp(*in, platform);
 
@@ -518,7 +508,7 @@ mfxStatus MFXVideoENCODEH265_HW::Query(mfxCoreInterface *core, mfxVideoParam *in
 
         mfxStatus lpsts = SetLowpowerDefault(tmp);
 
-        sts = QueryHwCaps(&_core, GetGUID(tmp), caps);
+        sts = QueryHwCaps(core, GetGUID(tmp), caps);
         MFX_CHECK_STS(sts);
 
         mfxExtCodingOptionSPSPPS* pSPSPPS = ExtBuffer::Get(*in);
@@ -590,7 +580,7 @@ mfxStatus    MFXVideoENCODEH265_HW::WaitingForAsyncTasks(bool bResetTasks)
 
         if (pTask->m_surf)
         {
-            m_core.DecreaseReference(&pTask->m_surf->Data);
+            m_core->DecreaseReference(&pTask->m_surf->Data);
             pTask->m_surf = 0;
         }
         m_task.SkipTask(pTask);
@@ -649,9 +639,7 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
     sts = CheckInputParam(par);
     MFX_CHECK_STS(sts);
 
-    mfxPlatform platform;
-    sts = m_core.QueryPlatform(&platform);
-    MFX_CHECK_STS(sts);
+    eMFXHWType platform = m_core->GetHWType();
 
     MfxVideoParam parNew(*par, platform);
 
@@ -665,7 +653,7 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
     sts = LoadSPSPPS(parNew, pSPSPPS);
     MFX_CHECK_STS(sts);
 
-    Copy(parNew.m_platform, m_vpar.m_platform);
+    parNew.m_platform = m_vpar.m_platform;
     InheritDefaultValues(m_vpar, parNew);
     parNew.SyncVideoToCalculableParam();
 
@@ -891,12 +879,9 @@ mfxStatus  MFXVideoENCODEH265_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFram
 
         if (m_vpar.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
         {
-            task->m_surf_real = 0;
+            task->m_surf_real = m_core->GetNativeSurface(task->m_surf);
 
-            sts = m_core.GetRealSurface(task->m_surf, &task->m_surf_real);
-            MFX_CHECK_STS(sts);
-
-            if (task->m_surf_real == 0)
+            if (task->m_surf_real == nullptr)
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
 
             task->m_surf_real->Info            = task->m_surf->Info;
@@ -908,7 +893,7 @@ mfxStatus  MFXVideoENCODEH265_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFram
         else
             task->m_surf_real = task->m_surf;
 
-        m_core.IncreaseReference(&surface->Data);
+        m_core->IncreaseReference(&surface->Data);
     }
     else if (m_numBuffered)
     {
@@ -940,7 +925,8 @@ mfxStatus  MFXVideoENCODEH265_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFram
 
     return sts;
 }
-mfxStatus  MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
+
+mfxStatus MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
 {
     mfxStatus sts = MFX_ERR_NONE;
     Task* task = &input_task;
@@ -983,7 +969,7 @@ mfxStatus  MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
             m_lastIDR = m_frameOrder;
 
         task->m_poc = m_frameOrder - m_lastIDR;
-        task->m_fo =  m_frameOrder;
+        task->m_fo  = m_frameOrder;
         task->m_bpo = (mfxU32)MFX_FRAMEORDER_UNKNOWN;
         task->m_secondField = m_vpar.isField() ? (!!(task->m_fo & 1)) : false;
         task->m_bottomField = false;
@@ -1007,17 +993,17 @@ mfxStatus  MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
 
     if (task->m_surf)
     {
-        task->m_idxRaw = (mfxU8)FindFreeResourceIndex(m_raw);
-        task->m_idxRec = (mfxU8)FindFreeResourceIndex(m_rec);
-        task->m_idxBs  = (mfxU8)FindFreeResourceIndex(m_bs);
+        task->m_idxRaw  = (mfxU8)FindFreeResourceIndex(m_raw);
+        task->m_idxRec  = (mfxU8)FindFreeResourceIndex(m_rec);
+        task->m_idxBs   = (mfxU8)FindFreeResourceIndex(m_bs);
         task->m_idxCUQp = (mfxU8)FindFreeResourceIndex(m_CuQp);
         MFX_CHECK(task->m_idxBs  != IDX_INVALID, MFX_ERR_NONE);
         MFX_CHECK(task->m_idxRec != IDX_INVALID, MFX_ERR_NONE);
 
-        task->m_midRaw = AcquireResource(m_raw, task->m_idxRaw);
-        task->m_midRec = AcquireResource(m_rec, task->m_idxRec);
-        task->m_midBs  = AcquireResource(m_bs,  task->m_idxBs);
-        task->m_midCUQp  = AcquireResource(m_bs,  task->m_idxCUQp);
+        task->m_midRaw  = AcquireResource(m_raw, task->m_idxRaw);
+        task->m_midRec  = AcquireResource(m_rec, task->m_idxRec);
+        task->m_midBs   = AcquireResource(m_bs,  task->m_idxBs);
+        task->m_midCUQp = AcquireResource(m_bs,  task->m_idxCUQp);
         MFX_CHECK(task->m_midRec && task->m_midBs, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
@@ -1062,9 +1048,9 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
             }
             if (m_brc)
             {
-               if (IsOn(m_vpar.mfx.LowPower) || (m_vpar.m_platform.CodeName >= MFX_PLATFORM_KABYLAKE
+               if (IsOn(m_vpar.mfx.LowPower) || (m_vpar.m_platform >= MFX_HW_KBL
 #if (MFX_VERSION >= 1025)
-                   && m_vpar.m_platform.CodeName < MFX_PLATFORM_CANNONLAKE
+                   && m_vpar.m_platform < MFX_HW_CNL
 #endif
                    ))
                    taskForExecute->m_qpY = (mfxI8)Clip3( 0, 51, m_brc->GetQP(m_vpar, *taskForExecute));  //driver limitation
@@ -1080,15 +1066,15 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
 
             if (IsFrameToSkip(*taskForExecute,  m_rec, m_vpar.isSWBRC()))
             {
-                sts = CodeAsSkipFrame(m_core,m_vpar,*taskForExecute,m_rawSkip, m_rec);
+                sts = CodeAsSkipFrame(*m_core,m_vpar,*taskForExecute, m_rawSkip, m_rec);
                 MFX_CHECK_STS(sts);
             }
-            sts = GetNativeHandleToRawSurface(m_core, m_vpar, *taskForExecute, surfaceHDL);
+            sts = GetNativeHandleToRawSurface(*m_core, m_vpar, *taskForExecute, surfaceHDL);
             MFX_CHECK_STS(sts);
 
             if (!IsFrameToSkip(*taskForExecute,  m_rec, m_vpar.isSWBRC()))
             {
-                sts = CopyRawSurfaceToVideoMemory(m_core, m_vpar, *taskForExecute);
+                sts = CopyRawSurfaceToVideoMemory(*m_core, m_vpar, *taskForExecute);
                 MFX_CHECK_STS(sts);
             }
             ExtraTaskPreparation(*taskForExecute);
@@ -1115,7 +1101,7 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
         if (taskForQuery->m_bsDataLength > GetBsSize(m_bs.m_info))
             sts = MFX_ERR_DEVICE_FAILED; //possible memory corruption in driver
 
-        if (sts < 0)
+        if (sts < MFX_ERR_NONE)
             m_runtimeErr = sts;
 
         MFX_CHECK_STS(sts);
@@ -1170,7 +1156,6 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
         //update bitstream
         if (taskForQuery->m_bsDataLength)
         {
-            mfxFrameAllocator & fa = m_core.FrameAllocator();
             mfxFrameData codedFrame = {};
             mfxU32 bytesAvailable = bs->MaxLength - bs->DataOffset - bs->DataLength;
             mfxU32 bytes2copy     = taskForQuery->m_bsDataLength;
@@ -1181,12 +1166,13 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
 
             MFX_CHECK(bytesAvailable >= bytes2copy, MFX_ERR_NOT_ENOUGH_BUFFER);
             //codedFrame.MemType = MFX_MEMTYPE_INTERNAL_FRAME;
-            sts = fa.Lock(fa.pthis, taskForQuery->m_midBs, &codedFrame);
+            sts = m_core->LockFrame(taskForQuery->m_midBs, &codedFrame);
+            MFX_CHECK_STS(sts);
             MFX_CHECK(codedFrame.Y, MFX_ERR_LOCK_MEMORY);
             mfxSize roi = {(int32_t)bytes2copy,1};
             //memcpy_s(bs->Data + bs->DataOffset + bs->DataLength, bytes2copy, codedFrame.Y, bytes2copy);
             FastCopy::Copy(bsData,bytes2copy,codedFrame.Y,codedFrame.Pitch,roi,COPY_VIDEO_TO_SYS);
-            sts = fa.Unlock(fa.pthis, taskForQuery->m_midBs, &codedFrame);
+            sts = m_core->UnlockFrame(taskForQuery->m_midBs, &codedFrame);
             MFX_CHECK_STS(sts);
 
             *pDataLength += bytes2copy;
@@ -1265,7 +1251,7 @@ mfxStatus  MFXVideoENCODEH265_HW::FreeTask(Task &task)
     {
         if (task.m_surf)
         {
-            m_core.DecreaseReference(&task.m_surf->Data);
+            m_core->DecreaseReference(&task.m_surf->Data);
             task.m_surf = 0;
         }
         if (task.m_midRaw)
@@ -1287,7 +1273,7 @@ mfxStatus  MFXVideoENCODEH265_HW::FreeTask(Task &task)
         {
             if (task.m_surf)
             {
-                m_core.DecreaseReference(&task.m_surf->Data);
+                m_core->DecreaseReference(&task.m_surf->Data);
                 task.m_surf = 0;
             }
             if (task.m_midRaw)
@@ -1316,7 +1302,7 @@ mfxStatus  MFXVideoENCODEH265_HW::FreeTask(Task &task)
             {
                 if (task.m_dpb[TASK_DPB_BEFORE][i].m_surf)
                 {
-                    m_core.DecreaseReference(&task.m_dpb[TASK_DPB_BEFORE][i].m_surf->Data);
+                    m_core->DecreaseReference(&task.m_dpb[TASK_DPB_BEFORE][i].m_surf->Data);
                     task.m_dpb[TASK_DPB_BEFORE][i].m_surf = 0;
                 }
                 if (task.m_dpb[TASK_DPB_BEFORE][i].m_midRaw)
@@ -1358,13 +1344,13 @@ void  MFXVideoENCODEH265_HW::FreeResources()
 
     if (m_vpar.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && opaq.In.Surfaces)
     {
-        m_core.UnmapOpaqueSurface(opaq.In.NumSurface, opaq.In.Type, opaq.In.Surfaces);
+        m_core->FreeFrames(&m_opaq);
         Zero(opaq);
     }
     if (m_brc)
     {
         delete m_brc;
-        m_brc = 0;
+        m_brc = nullptr;
     }
 }
 
