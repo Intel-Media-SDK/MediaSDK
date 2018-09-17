@@ -35,12 +35,14 @@ using namespace MfxHwMJpegEncode;
 
 mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
 {
-    //Should be replaced with once quering capabs as other encoders do
+    MFX_CHECK_NULL_PTR1(core);
+
+    // Should be replaced with once quering capabs as other encoders do
     // remove this when driver starts returning actual encode caps
     hwCaps.MaxPicWidth      = 4096;
     hwCaps.MaxPicHeight     = 4096;
 
-    if (core && core->GetVAType() == MFX_HW_VAAPI && core->GetHWType() < MFX_HW_CHT)
+    if (core->GetVAType() == MFX_HW_VAAPI && core->GetHWType() < MFX_HW_CHT)
         return MFX_ERR_UNSUPPORTED;
 
     std::unique_ptr<DriverEncoder> ddi;
