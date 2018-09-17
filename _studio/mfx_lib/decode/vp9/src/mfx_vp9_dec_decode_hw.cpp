@@ -146,7 +146,7 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
     if (!CheckHardwareSupport(m_core, par))
         return MFX_ERR_UNSUPPORTED;
 
-    if (!MFX_VPX_Utility::CheckVideoParam(par, MFX_CODEC_VP9, m_platform))
+    if (!MFX_VPX_Utility::CheckVideoParam(par, MFX_CODEC_VP9, m_platform, type))
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     m_FrameAllocator.reset(new mfx_UMC_FrameAllocator_D3D());
