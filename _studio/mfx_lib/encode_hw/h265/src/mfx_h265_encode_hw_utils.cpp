@@ -2830,7 +2830,7 @@ void UpdateDPB(
     MFX_SORT_STRUCT((dpb + st0), mfxU16(end - st0), m_poc, >);
 
     // sliding window over STRs
-    if (end && end == par.mfx.NumRefFrame)
+    if (end && end == par.mfx.NumRefFrame - 1) // not consider current frame
     {
         if (par.isLowDelay() && st0 == 0)  //P pyramid if no LTR. Pyramid is possible if NumRefFrame > 1
         {
