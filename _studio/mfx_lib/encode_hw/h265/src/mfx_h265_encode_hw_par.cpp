@@ -120,11 +120,11 @@ mfxU16 MfxLevel(mfxU16 l, mfxU16 t){ return LevelIdxToMfx[Min(l, MaxLidx)] | (MF
 mfxU32 GetMaxDpbSize(mfxU32 PicSizeInSamplesY, mfxU32 MaxLumaPs, mfxU32 maxDpbPicBuf)
 {
     if (PicSizeInSamplesY <= (MaxLumaPs >> 2))
-        return Min(4 * maxDpbPicBuf, 16U);
+        return Min(4 * maxDpbPicBuf, (mfxU32)MAX_DPB_SIZE);
     else if (PicSizeInSamplesY <= (MaxLumaPs >> 1))
-        return Min( 2 * maxDpbPicBuf, 16U);
+        return Min( 2 * maxDpbPicBuf, (mfxU32)MAX_DPB_SIZE);
     else if (PicSizeInSamplesY <= ((3 * MaxLumaPs) >> 2))
-        return Min( (4 * maxDpbPicBuf ) / 3, 16U);
+        return Min( (4 * maxDpbPicBuf ) / 3, (mfxU32)MAX_DPB_SIZE);
 
     return maxDpbPicBuf;
 }
@@ -1497,7 +1497,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     mfxF64 maxFR   = 300.;
     mfxU32 maxBR   = 0xFFFFFFFF;
     mfxU32 maxBuf  = 0xFFFFFFFF;
-    mfxU16 maxDPB  = 16;
+    mfxU16 maxDPB  = MAX_DPB_SIZE;
     mfxU16 minQP   = 1;
     mfxU16 maxQP   = 51;
     mfxU16 surfAlignW = HW_SURF_ALIGN_W;
@@ -2498,7 +2498,7 @@ void SetDefaults(
     mfxF64 maxFR   = 300.;
     mfxU32 maxBR   = 0xFFFFFFFF;
     mfxU32 maxBuf  = 0xFFFFFFFF;
-    mfxU16 maxDPB  = 16;
+    mfxU16 maxDPB  = MAX_DPB_SIZE;
     mfxU16 maxQP   = 51;
     mfxU16 minQP   = 1;
 
