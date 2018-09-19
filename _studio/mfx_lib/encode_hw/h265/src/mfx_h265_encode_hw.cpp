@@ -1003,7 +1003,7 @@ mfxStatus MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
         task->m_midRaw  = AcquireResource(m_raw, task->m_idxRaw);
         task->m_midRec  = AcquireResource(m_rec, task->m_idxRec);
         task->m_midBs   = AcquireResource(m_bs,  task->m_idxBs);
-        task->m_midCUQp = AcquireResource(m_bs,  task->m_idxCUQp);
+        task->m_midCUQp = AcquireResource(m_CuQp,  task->m_idxCUQp);
         MFX_CHECK(task->m_midRec && task->m_midBs, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
