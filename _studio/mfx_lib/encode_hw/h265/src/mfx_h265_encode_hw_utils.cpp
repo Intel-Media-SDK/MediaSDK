@@ -2833,7 +2833,7 @@ void UpdateDPB(
         }
         else
         {
-            for (st0 = 0; dpb[st0].m_ltr && st0 < end; st0 ++); // excess?
+            //for (st0 = 0; st0 < end && dpb[st0].m_ltr; st0 ++); // st0 is first !ltr
 
             if (par.LTRInterval)
             {
@@ -2857,7 +2857,7 @@ void UpdateDPB(
 
     }
 
-    if (end < MAX_DPB_SIZE) //just for KW
+    if (end < MAX_DPB_SIZE)
         dpb[end++] = task;
     else
         assert(!"DPB overflow, no space for new frame");

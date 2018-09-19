@@ -2027,10 +2027,10 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         invalid ++;
     }
 
-    changed += CheckMax(par.mfx.NumRefFrame, maxDPB);
+    changed += CheckMax(par.mfx.NumRefFrame, maxDPB - 1);
 
     if (par.mfx.NumRefFrame)
-        maxDPB = par.mfx.NumRefFrame;
+        maxDPB = par.mfx.NumRefFrame + 1;
 
 
     if (   (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
