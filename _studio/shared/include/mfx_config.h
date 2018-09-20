@@ -34,13 +34,13 @@
 #define MFX_ENABLE_VPP_ROTATION
 #define MFX_ENABLE_VPP_VIDEO_SIGNAL
 
-
-
-
-#if defined(LINUX32) || defined(LINUX64)
-    #undef  MFX_VA_LINUX
-    #define MFX_VA_LINUX
-#endif // #if defined(LINUX32) || defined(LINUX64)
+#ifdef MFX_VA
+    #if defined(LINUX32) || defined(LINUX64)
+        #include <va/va_version.h>
+        #undef  MFX_VA_LINUX
+        #define MFX_VA_LINUX
+    #endif
+#endif
 
 #if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL) || defined(LINUX_TARGET_PLATFORM_BXT)
     #if !defined(ANDROID)
@@ -130,6 +130,12 @@
 // after inclusion of respective features into official API
 #if MFX_VERSION >= MFX_VERSION_NEXT
     #define MFX_ENABLE_VPP_RUNTIME_HSBC
+#endif
+
+#if defined(MFX_VA_LINUX)
+    #if VA_CHECK_VERSION(1,3,0)
+        #define MFX_ENABLE_QVBR
+    #endif
 #endif
 
 #endif // _MFX_CONFIG_H_
