@@ -47,6 +47,26 @@
 #define VA_FOURCC_R5G6B5 MFX_MAKEFOURCC('R','G','1','6')
 #endif // VA_FOURCC_R5G6B5
 
+enum {
+    MFX_FOURCC_VP8_NV12    = MFX_MAKEFOURCC('V','P','8','N'),
+    MFX_FOURCC_VP8_MBDATA  = MFX_MAKEFOURCC('V','P','8','M'),
+    MFX_FOURCC_VP8_SEGMAP  = MFX_MAKEFOURCC('V','P','8','S'),
+};
+
+unsigned int ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
+{
+    switch (fourcc)
+    {
+    case MFX_FOURCC_VP8_NV12:
+    case MFX_FOURCC_VP8_MBDATA:
+        return MFX_FOURCC_NV12;
+    case MFX_FOURCC_VP8_SEGMAP:
+        return MFX_FOURCC_P8;
+
+    default:
+        return fourcc;
+    }
+}
 
 unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 {
@@ -112,7 +132,9 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
 
     memset(response, 0, sizeof(mfxFrameAllocResponse));
 
-    mfxU32 mfx_fourcc = fourcc;
+    // VP8/VP9 driver has weird requirements for allocation of surfaces/buffers for VP8/VP9 encoding
+    // to comply with them additional logic is required to support regular and VP8/VP9 allocation pathes
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
     va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
     if (!va_fourcc || ((VA_FOURCC_NV12   != va_fourcc) &&
                        (VA_FOURCC_YV12   != va_fourcc) &&
@@ -175,7 +197,19 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
             attrib.value.value.i = va_fourcc;
             format               = va_fourcc;
 
-            if (va_fourcc == VA_FOURCC_NV12)
+            if (fourcc == MFX_FOURCC_VP8_NV12)
+            {
+                // special configuration for NV12 surf allocation for VP8/VP9 encoder is required
+                attrib.type          = (VASurfaceAttribType)VASurfaceAttribUsageHint;
+                attrib.value.value.i = VA_SURFACE_ATTRIB_USAGE_HINT_ENCODER;
+            }
+            else if (fourcc == MFX_FOURCC_VP8_MBDATA)
+            {
+                // special configuration for MB data surf allocation for VP8 hybrid encoder is required
+                attrib.value.value.i = VA_FOURCC_P208;
+                format               = VA_FOURCC_P208;
+            }
+            else if (va_fourcc == VA_FOURCC_NV12)
             {
                 format = VA_RT_FORMAT_YUV420;
             }
@@ -183,7 +217,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
             {
                 format = VA_RT_FORMAT_YUV422;
             }
-#ifdef MFX_ENABLE_RGBP            
+#ifdef MFX_ENABLE_RGBP
             else if (va_fourcc == VA_FOURCC_RGBP)
             {
                 format = VA_RT_FORMAT_RGBP;
@@ -239,6 +273,12 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
             mfxU32 codedbuf_size;
             VABufferType codedbuf_type;
 
+            if (fourcc == MFX_FOURCC_VP8_SEGMAP)
+            {
+                codedbuf_size = request->Info.Width * request->Info.Height;
+                codedbuf_type = (VABufferType)VAEncMacroblockMapBufferType;
+            }
+            else
             {
                 int width32 = 32 * ((request->Info.Width + 31) >> 5);
                 int height32 = 32 * ((request->Info.Height + 31) >> 5);
@@ -283,7 +323,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
         response->mids = NULL;
         response->NumFrameActual = 0;
         if (VA_FOURCC_P208 != va_fourcc
-            )
+            || fourcc == MFX_FOURCC_VP8_MBDATA)
         {
             if (bCreateSrfSucceeded) vaDestroySurfaces(pSelf->pVADisplay, surfaces, surfaces_num);
         }
@@ -317,7 +357,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::FreeFramesHW(
     if (response->mids)
     {
         vaapi_mids = (vaapiMemIdInt*)(response->mids[0]);
-        mfxU32 mfx_fourcc = vaapi_mids->m_fourcc;
+        mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc);
         isBufferMemory = (MFX_FOURCC_P8 == mfx_fourcc)?true:false;
         surfaces = vaapi_mids->m_surface;
         for (i = 0; i < response->NumFrameActual; ++i)
@@ -500,6 +540,14 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         else mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
+    case MFX_FOURCC_VP8_SEGMAP:
+        if (mfx_fourcc == MFX_FOURCC_P8)
+        {
+            ptr->PitchHigh = (mfxU16)(va_image.pitches[0] / (1 << 16));
+            ptr->PitchLow  = (mfxU16)(va_image.pitches[0] % (1 << 16));
+            ptr->Y = pBuffer;
+        }
+        else mfx_res = MFX_ERR_LOCK_MEMORY;
     default:
         mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
@@ -524,15 +572,21 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
 
     if (!vaapi_mids || !(vaapi_mids->m_surface)) return MFX_ERR_INVALID_HANDLE;
 
-    mfxU32 mfx_fourcc = vaapi_mids->m_fourcc;
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc);
     if (MFX_FOURCC_P8 == mfx_fourcc)   // bitstream processing
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
         VACodedBufferSegment *coded_buffer_segment;
+        if (vaapi_mids->m_fourcc == MFX_FOURCC_VP8_SEGMAP)
+            va_res =  vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&pBuffer));
+        else
             va_res =  vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&coded_buffer_segment));
         mfx_res = VA_TO_MFX_STATUS(va_res);
         if (MFX_ERR_NONE == mfx_res)
         {
+            if (vaapi_mids->m_fourcc == MFX_FOURCC_VP8_SEGMAP)
+                ptr->Y = pBuffer;
+            else
                 ptr->Y = (mfxU8*)coded_buffer_segment->buf;
         }
     }
@@ -571,7 +625,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::UnlockFrameHW(
 
     if (!vaapi_mids || !(vaapi_mids->m_surface)) return MFX_ERR_INVALID_HANDLE;
 
-    mfxU32 mfx_fourcc = vaapi_mids->m_fourcc;
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc);
 
     if (MFX_FOURCC_P8 == mfx_fourcc)   // bitstream processing
     {

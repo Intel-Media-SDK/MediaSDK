@@ -319,7 +319,7 @@ namespace MFX_VPX_Utility
         return sts;
     }
 
-    bool CheckVideoParam(mfxVideoParam const*p_in, mfxU32 codecId, eMFXPlatform platform)
+    bool CheckVideoParam(mfxVideoParam const*p_in, mfxU32 codecId, eMFXPlatform platform, eMFXHWType hwtype)
     {
         if (!p_in)
             return false;
@@ -379,7 +379,11 @@ namespace MFX_VPX_Utility
         {
             if (MFX_FOURCC_NV12 != p_in->mfx.FrameInfo.FourCC &&
                 MFX_FOURCC_AYUV != p_in->mfx.FrameInfo.FourCC &&
-                MFX_FOURCC_P010 != p_in->mfx.FrameInfo.FourCC)
+                MFX_FOURCC_P010 != p_in->mfx.FrameInfo.FourCC
+#if (MFX_VERSION >= 1027)
+                && !(MFX_FOURCC_Y410 == p_in->mfx.FrameInfo.FourCC && hwtype >= MFX_HW_ICL)
+#endif
+                )
                 return false;
             if (MFX_CHROMAFORMAT_YUV420 != p_in->mfx.FrameInfo.ChromaFormat &&
                 MFX_CHROMAFORMAT_YUV444 != p_in->mfx.FrameInfo.ChromaFormat)

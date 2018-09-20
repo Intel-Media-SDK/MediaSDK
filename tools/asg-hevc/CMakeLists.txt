@@ -5,10 +5,12 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-list( APPEND LIBS sample_common)
+list( APPEND LIBS sample_common )
 
 set( defs " -DMFX_VERSION_USE_LATEST " )
 set(DEPENDENCIES libmfx)
 
 make_executable( shortname universal "nosafestring" )
+
+install( TARGETS ${target} RUNTIME DESTINATION ${MFX_APPS_DIR} )
 set( defs "" )

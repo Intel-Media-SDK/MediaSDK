@@ -39,7 +39,6 @@ template<>
 VideoPAK* _mfxSession::Create<VideoPAK>(mfxVideoParam& par)
 {
     VideoPAK* pPAK = nullptr;
-    VideoCORE* pCore = m_pCORE.get();
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     mfxU32 codecId = par.mfx.CodecId;
 
@@ -48,7 +47,7 @@ VideoPAK* _mfxSession::Create<VideoPAK>(mfxVideoParam& par)
 #if defined(MFX_VA_LINUX) && defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_ENABLE_H264_VIDEO_FEI_PAK)
     case MFX_CODEC_AVC:
         if (bEnc_PAK(&par))
-            pPAK = (VideoPAK*) new VideoPAK_PAK(pCore, &mfxRes);
+            pPAK = (VideoPAK*) new VideoPAK_PAK(m_pCORE.get(), &mfxRes);
         break;
 #endif // MFX_ENABLE_H264_VIDEO_FEI_PAK
 
@@ -68,7 +67,8 @@ VideoPAK* _mfxSession::Create<VideoPAK>(mfxVideoParam& par)
 
 mfxStatus MFXVideoPAK_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
 {
-    in;
+    (void)in;
+
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(out, MFX_ERR_NULL_PTR);
 

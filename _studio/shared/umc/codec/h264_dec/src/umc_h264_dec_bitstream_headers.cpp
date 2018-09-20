@@ -2733,7 +2733,7 @@ void H264HeadersBitstream::scalability_info(H264SEIPayLoad *spl)
 
         if (profile_level_info_present_flag)
         {
-            uint32_t   layer_profile_level_idc = (uint8_t)GetBits(24);
+            /*uint32_t   layer_profile_level_idc = (uint8_t)*/GetBits(24);
         }
 
         if (bitrate_info_present_flag)

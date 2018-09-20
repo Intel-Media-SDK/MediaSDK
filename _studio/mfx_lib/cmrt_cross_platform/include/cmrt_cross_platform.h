@@ -52,6 +52,9 @@
 #if defined(__clang__)
   #pragma clang diagnostic push
   #pragma clang diagnostic ignored "-Wnon-virtual-dtor"
+
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunused-private-field"
 #elif defined(__GNUC__)
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -70,6 +73,15 @@ public:
 private:
     unsigned int index;
 #ifdef CM_LINUX
+    /*
+     * Do not delete this line:
+     * SurfaceIndex is commonly used as CM kernel function's parameter.
+     * It has virutal table and has copy constructor, so GNU calling convetion will pass the object's pointer to kernel function.
+     * This is different with Windows VC++, which always copies the entire object transferred on the callee's stack.
+     *
+     * Depending on the special object size after adding below "extra_byte",
+     * SetKernelArg and SetThreadArg can recognize this object and follow GNU's convention to construct kernel function's stack.
+     */
     unsigned char extra_byte;
 #endif
 };
@@ -86,9 +98,17 @@ public:
 private:
     unsigned int index;
 #ifdef CM_LINUX
+    /*
+     * Do not delete this line:
+     * Same reason as SurfaceIndex.
+     */
     unsigned char extra_byte;
 #endif
 };
+
+#if defined(__clang__)
+  #pragma clang diagnostic pop // "-Wunused-private-field"
+#endif
 
 #ifdef _MSVC_LANG
 #pragma warning(push)

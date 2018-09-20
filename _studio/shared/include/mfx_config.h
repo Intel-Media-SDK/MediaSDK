@@ -64,11 +64,6 @@
             #define MFX_ENABLE_LA_H264_VIDEO_HW
         #endif
 
-        // H265 FEI plugin
-
-
-        // av1
-
     #else // #if !defined(ANDROID)
         #include "mfx_android_defs.h"
     #endif // #if !defined(ANDROID)
@@ -76,18 +71,6 @@
     #if defined(AS_H264LA_PLUGIN)
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
         #undef MFX_ENABLE_VPP
-    #endif
-
-    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN)
-        #undef MFX_ENABLE_H265_VIDEO_DECODE
-        #undef MFX_ENABLE_H264_VIDEO_DECODE
-        #undef MFX_ENABLE_H264_VIDEO_ENCODE
-        #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE
-        #undef MFX_ENABLE_DENOISE_VIDEO_VPP
-        #undef MFX_ENABLE_VPP
-        #undef MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
-        #undef MFX_ENABLE_AAC_AUDIO_DECODE
-        #undef MFX_ENABLE_MP3_AUDIO_DECODE
     #endif
 
 #else // LINUX_TARGET_PLATFORM

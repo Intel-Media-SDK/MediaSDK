@@ -638,7 +638,7 @@ void UpdateSlice(
 }
 
 VAAPIEncoder::VAAPIEncoder()
-: m_core(NULL)
+: m_core(nullptr)
 , m_numSkipFrames(0)
 , m_sizeSkipFrames(0)
 , m_vaContextEncode(VA_INVALID_ID)
@@ -736,7 +736,7 @@ static VAConfigAttrib createVAConfigAttrib(VAConfigAttribType type, unsigned int
 }
 
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
-    MFXCoreInterface * core,
+    VideoCORE * core,
     GUID guid,
     mfxU32 width,
     mfxU32 height)
@@ -785,12 +785,9 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 #if MFX_VERSION >= 1022
-    mfxPlatform p = {};
+    eMFXHWType platform = m_core->GetHWType();
 
-    sts = m_core->QueryPlatform(&p);
-    MFX_CHECK_STS(sts);
-
-    if (p.CodeName >= MFX_PLATFORM_CANNONLAKE)
+    if (platform >= MFX_HW_CNL)
     {
         if(vaParams.entrypoint == VAEntrypointEncSliceLP) //CNL + VDENC => LCUSizeSupported = 4
         {
@@ -800,7 +797,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         {
             m_caps.LCUSizeSupported = (32 >> 4) | (64 >> 4);
         }
-    } else
+    }
+    else
 #endif //MFX_VERSION >= 1022
     {
         m_caps.LCUSizeSupported = (32 >> 4);
@@ -1070,12 +1068,10 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
     ExtVASurface extSurf = {VA_INVALID_SURFACE, 0, 0, 0};
     VASurfaceID *pSurface = NULL;
 
-    mfxFrameAllocator & allocator = m_core->FrameAllocator();
-
     for (mfxU32 i = 0; i < response.NumFrameActual; i++)
     {
 
-        sts = allocator.GetHDL(allocator.pthis, response.mids[i], (mfxHDL *)&pSurface);
+        sts = m_core->GetFrameHDL(response.mids[i], (mfxHDL *)&pSurface);
         MFX_CHECK_STS(sts);
 
         extSurf.number  = i;

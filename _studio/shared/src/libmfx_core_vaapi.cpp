@@ -316,7 +316,7 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
     ret = ioctl(fd, DRM_IOCTL_I915_GETPARAM, &gp);
     if (!ret)
     {
-        listSize = (sizeof(listLegalDevIDs)/sizeof(mfx_device_item));
+        listSize = (sizeof(listLegalDevIDs) / sizeof(mfx_device_item));
         for (i = 0; i < listSize; ++i)
         {
             if (listLegalDevIDs[i].device_id == devID)
@@ -351,6 +351,7 @@ VAAPIVideoCORE::VAAPIVideoCORE(
           , m_bCmCopy(false)
           , m_bCmCopyAllowed(false)
 #endif
+          , m_bHEVCFEIEnabled(false)
 {
 } // VAAPIVideoCORE::VAAPIVideoCORE(...)
 
@@ -817,12 +818,12 @@ VAAPIVideoCORE::CreateVideoAccelerator(
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
-     * (3): Supported on APL platform and above
+     * (3): Supported on SKL (Core) and APL (Atom) platforms and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if ( (GetExtBuffer(param->ExtParam, param->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING)) &&
          (MFX_PICSTRUCT_PROGRESSIVE == param->mfx.FrameInfo.PicStruct) &&
-         (MFX_HW_APL <= GetHWType()) &&
+         (MFX_HW_SCL <= GetHWType()) &&
          (param->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
     {
         params.m_needVideoProcessingVA = true;
@@ -1395,10 +1396,16 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
         return (void*) &m_encode_mbprocrate;
     }
     else if (MFXIEXTERNALLOC_GUID == guid && m_bSetExtFrameAlloc)
+    {
         return &m_FrameAllocator.frameAllocator;
+    }
     else if (MFXICORE_API_1_19_GUID == guid)
     {
         return &m_API_1_19;
+    }
+    else if (MFXIFEIEnabled_GUID == guid)
+    {
+        return &m_bHEVCFEIEnabled;
     }
     else
     {

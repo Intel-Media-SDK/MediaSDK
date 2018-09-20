@@ -75,6 +75,7 @@ vm_status vm_event_init(vm_event *event, int32_t manual, int32_t state)
         {
             int cres = pthread_cond_destroy(&event->cond);
             assert(!cres); // we experienced undefined behavior
+            (void)cres;
             vm_event_set_invalid_internal(event);
         }
     }

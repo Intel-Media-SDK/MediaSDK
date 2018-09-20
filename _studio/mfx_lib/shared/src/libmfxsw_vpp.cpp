@@ -34,7 +34,7 @@
 #endif
 
 template<>
-VideoVPP* _mfxSession::Create<VideoVPP>(mfxVideoParam& par)
+VideoVPP* _mfxSession::Create<VideoVPP>(mfxVideoParam& /*par*/)
 {
     VideoVPP *pVPP = nullptr;
 
@@ -268,7 +268,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 
     MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_RunFrameVPPAsync");
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, aux);
-    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in);    
+    MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, in);
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pVPP.get(), MFX_ERR_NOT_INITIALIZED);
@@ -354,7 +354,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 // fill dependencies
                 task.pSrc[0] = in;
                 task.pDst[0] = out;
-                
+
                 if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                     task.pDst[0] = NULL;
 
@@ -380,7 +380,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 task.pDst[0] = out;
                 if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
                     task.pDst[0] = NULL;
-                
+
 
 #ifdef MFX_TRACE_ENABLE
                 task.nParentId = MFX_AUTO_TRACE_GETID();
@@ -401,7 +401,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 // fill dependencies
                 task.pSrc[0] = in;
                 task.pDst[0] = entryPoints[0].pParam;
-               
+
 
 #ifdef MFX_TRACE_ENABLE
                 task.nParentId = MFX_AUTO_TRACE_GETID();
@@ -415,7 +415,7 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
                 task.entryPoint = entryPoints[1];
                 task.priority = session->m_priority;
                 task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
-                
+
                 // fill dependencies
                 task.pSrc[0] = entryPoints[0].pParam;
                 task.pDst[0] = out;
