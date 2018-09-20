@@ -54,7 +54,7 @@ static mfxU8 ConvertMfxFrameType2VaapiSliceType(mfxU8 type)
     }
 }
 
-mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
+uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
 {
     switch (rateControl)
     {
@@ -65,8 +65,7 @@ mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ;
     default: assert(!"Unsupported RateControl"); return 0;
     }
-
-} // mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
+}
 
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type)
 {
@@ -1588,7 +1587,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
         return MFX_ERR_DEVICE_FAILED;
 
-    mfxU8 vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
+    uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
 
     mfxExtCodingOption2 const *extOpt2 = GetExtBuffer(par);
     if( NULL == extOpt2 )

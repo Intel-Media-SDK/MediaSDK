@@ -63,7 +63,7 @@ inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_
     return MFX_ERR_NONE;
 }
 
-mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
+uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
 
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type);
 

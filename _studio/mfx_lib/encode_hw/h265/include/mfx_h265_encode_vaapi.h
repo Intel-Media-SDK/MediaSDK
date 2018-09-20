@@ -120,8 +120,6 @@ private:
     inline std::vector<VABufferID>::iterator _PoolEnd  (mfxU32 pool) { _CheckPool(pool); return m_buf.begin() + m_pool[m_poolMap[pool] + 1]; };
 };
 
-mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
-
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type);
 
 mfxStatus SetHRD(

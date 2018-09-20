@@ -54,7 +54,7 @@ do {                                               \
 namespace
 {
 
-    mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
+    uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     {
         switch (rateControl)
         {
@@ -65,7 +65,7 @@ namespace
         default: assert(!"Unsupported RateControl"); return 0;
         }
 
-    } // mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
+    }
 
     VAProfile ConvertProfileTypeMFX2VAAPI(mfxU8 type)
     {
@@ -543,7 +543,7 @@ mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
 
     //m_caps.SkipFrame = (attrib[2].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
 
-    mfxU8 vaRCType = ConvertRateControlMFX2VAAPI(pExecuteBuffers->m_sps.RateControlMethod);
+    uint32_t vaRCType = ConvertRateControlMFX2VAAPI(pExecuteBuffers->m_sps.RateControlMethod);
 
     if ((attrib[1].value & vaRCType) == 0)
         return MFX_ERR_DEVICE_FAILED;
