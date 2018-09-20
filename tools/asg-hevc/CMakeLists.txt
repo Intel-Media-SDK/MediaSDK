@@ -12,5 +12,5 @@ set(DEPENDENCIES libmfx)
 
 make_executable( shortname universal "nosafestring" )
 
-install( TARGETS ${target} RUNTIME DESTINATION ${MFX_APPS_DIR} )
+install( TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 set( defs "" )
