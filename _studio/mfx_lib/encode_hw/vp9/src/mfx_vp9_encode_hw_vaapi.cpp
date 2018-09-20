@@ -36,7 +36,7 @@ namespace MfxHwVP9Encode
         return new VAAPIEncoder;
     }
 
-    mfxU8 ConvertRTFormatMFX2VAAPI(mfxU8 chromaFormat)
+    uint32_t ConvertRTFormatMFX2VAAPI(mfxU8 chromaFormat)
     {
         VP9_LOG("ConvertRTFormatMFX2VAAPI \n");
         switch (chromaFormat)
@@ -47,7 +47,7 @@ namespace MfxHwVP9Encode
                 return VA_RT_FORMAT_YUV444;
             default: assert(!"Unsupported ChromaFormat"); return 0;
         }
-    } // mfxU8 ConvertRTFormatMFX2VAAPI(mfxU8 chromaFormat)
+    }
 
     uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     {
@@ -700,7 +700,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
                           &attrib[0], 2);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    mfxU8 vaRTFormat = ConvertRTFormatMFX2VAAPI(par.mfx.FrameInfo.ChromaFormat);
+    uint32_t vaRTFormat = ConvertRTFormatMFX2VAAPI(par.mfx.FrameInfo.ChromaFormat);
     if ((attrib[0].value & vaRTFormat) == 0)
         return MFX_ERR_DEVICE_FAILED;
 
