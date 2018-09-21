@@ -74,7 +74,7 @@ static
         return MSDK_STRING("YV12");
     case MFX_FOURCC_YUY2:
         return MSDK_STRING("YUY2");
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1028)
     case MFX_FOURCC_RGB565:
         return MSDK_STRING("RGB565");
 #endif
@@ -1178,7 +1178,7 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, w*2, MFX_ERR_MORE_DATA);
         }
     }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1028)
     else if (pInfo->FourCC == MFX_FOURCC_RGB565)
     {
         MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);

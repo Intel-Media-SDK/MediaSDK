@@ -120,12 +120,15 @@
     #define MFX_ENABLE_MCTF_EXT // extended MCTF interface
 #endif
 
+#if MFX_VERSION >= 1028
+    #define MFX_ENABLE_RGBP
+    #define MFX_ENABLE_FOURCC_RGB565
+#endif
+
 // The line below HAS to be changed to MFX_VERSION specific version i.e. 1027
 // after inclusion of respective features into official API
 #if MFX_VERSION >= MFX_VERSION_NEXT
     #define MFX_ENABLE_VPP_RUNTIME_HSBC
-    #define MFX_ENABLE_RGBP
-	#define MFX_ENABLE_FOURCC_RGB565
 #endif
 
 #endif // _MFX_CONFIG_H_

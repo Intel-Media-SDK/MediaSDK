@@ -1071,7 +1071,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1028)
     case MFX_FOURCC_RGB565:
 #endif
         m_pipelineParam[0].surface_color_standard = VAProcColorStandardNone;
@@ -1091,7 +1091,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1028)
     case MFX_FOURCC_RGB565:
 #endif
         m_pipelineParam[0].output_color_standard = VAProcColorStandardNone;
