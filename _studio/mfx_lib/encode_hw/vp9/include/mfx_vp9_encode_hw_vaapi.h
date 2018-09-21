@@ -144,6 +144,7 @@ do {                                               \
         // encode params (extended structures)
         VAEncSequenceParameterBufferVP9             m_sps;
         VAEncPictureParameterBufferVP9              m_pps;
+        VAEncMiscParameterTemporalLayerStructure    m_tempLayers;
         VAEncMiscParameterTypeVP9PerSegmantParam    m_segPar;
         VAEncMiscParameterRateControl               m_vaBrcPar;
         VAEncMiscParameterFrameRate                 m_vaFrameRate;
@@ -155,12 +156,15 @@ do {                                               \
         VABufferID m_ppsBufferId;
         VABufferID m_segMapBufferId;
         VABufferID m_segParBufferId;
-        VABufferID m_frameRateBufferId;
-        VABufferID m_rateCtrlBufferId;
         VABufferID m_hrdBufferId;
         VABufferID m_qualityLevelBufferId;
         VABufferID m_packedHeaderParameterBufferId;
         VABufferID m_packedHeaderDataBufferId;
+
+        // max number of temp layers is 8, but now supported only 4
+        VABufferID m_tempLayersBufferId;
+        std::vector<VABufferID> m_frameRateBufferIds; // individual buffer for every temporal layer
+        std::vector<VABufferID> m_rateCtrlBufferIds;  // individual buffer for every temporal layer
 
         std::vector<ExtVASurface> m_feedbackCache;
         std::vector<ExtVASurface> m_reconQueue;
@@ -169,7 +173,7 @@ do {                                               \
 
         std::vector<mfxU8> m_frameHeaderBuf;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 10; // sps, pps, bitstream, uncomp header, segment map, per-segment parameters, frame rate, rate ctrl, hrd, quality level
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 26; // sps, pps, bitstream, uncomp header, segment map, per-segment parameters, temp layers, frame rate(up to 8), rate ctrl(up to 8), hrd, quality level
 
         mfxU32 m_width;
         mfxU32 m_height;
