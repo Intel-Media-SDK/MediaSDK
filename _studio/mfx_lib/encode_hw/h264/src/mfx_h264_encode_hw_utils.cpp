@@ -2946,8 +2946,8 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
             MFX_CHECK(feiParam.Func != MFX_FEI_FUNCTION_ENCODE, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
-        mfxExtOpaqueSurfaceAlloc * extOpaq = GetExtBuffer(video);
-        bool opaq = extOpaq->In.Surfaces != 0;
+        mfxExtOpaqueSurfaceAlloc & extOpaq = GetExtBufferRef(video);
+        bool opaq = extOpaq.In.Surfaces != 0;
 
         MFX_CHECK((surface->Data.Y == 0) == (surface->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(surface->Data.Pitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);

@@ -1917,9 +1917,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
 
     if (IsMvcProfile(par.mfx.CodecProfile))
     {
-        mfxExtCodingOption * extOpt = GetExtBuffer(par);
+        mfxExtCodingOption & extOpt = GetExtBufferRef(par);
         mfxExtMVCSeqDesc * extMvc   = GetExtBuffer(par);
-        sts = CheckAndFixMVCSeqDesc(extMvc, extOpt->ViewOutput == MFX_CODINGOPTION_ON);
+        sts = CheckAndFixMVCSeqDesc(extMvc, extOpt.ViewOutput == MFX_CODINGOPTION_ON);
         if (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == sts)
         {
             checkSts = sts;
@@ -5209,17 +5209,17 @@ void MfxHwH264Encode::InheritDefaultValues(
 
 
 
-    mfxExtBRC*   extBRCInit       = GetExtBuffer(parInit);
-    mfxExtBRC*   extBRCReset      = GetExtBuffer(parReset);
+    mfxExtBRC & extBRCInit  = GetExtBufferRef(parInit);
+    mfxExtBRC & extBRCReset = GetExtBufferRef(parReset);
 
-    if (!extBRCReset->pthis &&
-        !extBRCReset->Init &&
-        !extBRCReset->Reset &&
-        !extBRCReset->Close &&
-        !extBRCReset->GetFrameCtrl &&
-        !extBRCReset->Update)
+    if (!extBRCReset.pthis &&
+        !extBRCReset.Init &&
+        !extBRCReset.Reset &&
+        !extBRCReset.Close &&
+        !extBRCReset.GetFrameCtrl &&
+        !extBRCReset.Update)
     {
-        *extBRCReset = *extBRCInit;
+        extBRCReset = extBRCInit;
     }
 
 
@@ -8798,14 +8798,14 @@ namespace
         std::vector<mfxExtSpsHeader> &      sps,
         std::vector<mfxExtPpsHeader> &      pps)
     {
-        mfxExtSpsHeader const *  extSps = GetExtBuffer(par);
-        mfxExtPpsHeader const *  extPps = GetExtBuffer(par);
+        mfxExtSpsHeader const & extSps = GetExtBufferRef(par);
+        mfxExtPpsHeader const & extPps = GetExtBufferRef(par);
 
-        mfxU16 numViews  = extSps->profileIdc == MFX_PROFILE_AVC_STEREO_HIGH ? 2 : 1;
-        mfxU16 heightMul = 2 - extSps->frameMbsOnlyFlag;
+        mfxU16 numViews  = extSps.profileIdc == MFX_PROFILE_AVC_STEREO_HIGH ? 2 : 1;
+        mfxU16 heightMul = 2 - extSps.frameMbsOnlyFlag;
 
         // prepare sps for base layer
-        sps[0] = *extSps;
+        sps[0] = extSps;
         sps[0].picWidthInMbsMinus1       = par.mfx.FrameInfo.Width / 16 - 1;
         sps[0].picHeightInMapUnitsMinus1 = par.mfx.FrameInfo.Height / 16 / heightMul - 1;
 
@@ -8818,8 +8818,8 @@ namespace
             // Second SPS will be re-packed to SubsetSPS after return from driver.
             for (mfxU16 view = 0; view < numViews; view++)
             {
-                sps[view] = *extSps;
-                pps[view] = *extPps;
+                sps[view] = extSps;
+                pps[view] = extPps;
 
                 if (numViews > 1 && view == 0) // MVC base view
                     sps[view].profileIdc = MFX_PROFILE_AVC_HIGH;
@@ -8832,7 +8832,7 @@ namespace
         }
 
 
-        pps[0] = *extPps;
+        pps[0] = extPps;
 
     }
 };
