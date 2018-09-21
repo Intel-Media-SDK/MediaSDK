@@ -546,7 +546,7 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
     mfxExtOpaqueSurfaceAlloc *pOpqExt = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
     if (pOpqExt)
     {
-        if (false == internalImpl->m_isOpaqueMemory)
+        if (false == internalImpl->IsOpaqueMemory())
         {
             // decoder was not initialized with opaque extended buffer
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
@@ -1361,7 +1361,7 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream *bs,
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    if (true == internalImpl->m_isOpaqueMemory)
+    if (true == internalImpl->IsOpaqueMemory())
     {
         if (surface_work->Data.MemId || surface_work->Data.Y || surface_work->Data.R || surface_work->Data.A || surface_work->Data.UV) // opaq surface
             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -1821,7 +1821,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::AllocFrames(mfxVideoParam *par)
         allocResponse.NumFrameActual = allocRequest.NumFrameSuggested;
 
         mfxStatus mfxSts;
-        if (m_isOpaqueMemory)
+        if (pOpqExt)
         {
             mfxSts  = m_pCore->AllocFrames(&allocRequest,
                                            &allocResponse,
