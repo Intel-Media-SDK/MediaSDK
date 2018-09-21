@@ -1235,27 +1235,27 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
 
     mfxExtSpsHeader const * extSpsNew = GetExtBuffer(newPar);
     mfxExtSpsHeader const * extSpsOld = GetExtBuffer(m_video);
-    mfxExtCodingOption2 const * extOpt2New = GetExtBuffer(newPar);
-    mfxExtCodingOption2 const * extOpt2Old = GetExtBuffer(m_video);
-    mfxExtCodingOption3 const * extOpt3New = GetExtBuffer(newPar);
+    mfxExtCodingOption2 const & extOpt2New = GetExtBufferRef(newPar);
+    mfxExtCodingOption2 const & extOpt2Old = GetExtBufferRef(m_video);
+    mfxExtCodingOption3 const & extOpt3New = GetExtBufferRef(newPar);
 
     if(!IsOn(m_video.mfx.LowPower))
     {
-        MFX_CHECK((extOpt2New->MaxSliceSize != 0) ==
-                  (extOpt2Old->MaxSliceSize != 0),
+        MFX_CHECK((extOpt2New.MaxSliceSize != 0) ==
+                  (extOpt2Old.MaxSliceSize != 0),
                   MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
     MFX_CHECK(!((m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA ||
                 m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT ||
                 m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD) &&
-                !IsOn(m_video.mfx.LowPower) && extOpt2New->MaxSliceSize == 0),
+                !IsOn(m_video.mfx.LowPower) && extOpt2New.MaxSliceSize == 0),
               MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     // check if IDR required after change of encoding parameters
     bool isSpsChanged = extSpsNew->vuiParametersPresentFlag == 0 ?
         memcmp(extSpsNew, extSpsOld, sizeof(mfxExtSpsHeader) - sizeof(VuiParameters)) != 0 :
-    !Equal(*extSpsNew, *extSpsOld);
+        !Equal(*extSpsNew, *extSpsOld);
 
     isIdrRequired = isSpsChanged
         || (tempLayerIdx != 0 && changeTScalLayers)
@@ -1285,7 +1285,7 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         m_videoInit.mfx.FrameInfo.Width    >= newPar.mfx.FrameInfo.Width        &&
         m_videoInit.mfx.FrameInfo.Height   >= newPar.mfx.FrameInfo.Height       &&
         m_video.mfx.FrameInfo.ChromaFormat == newPar.mfx.FrameInfo.ChromaFormat &&
-        extOpt2Old->ExtBRC                 == extOpt2New->ExtBRC,
+        extOpt2Old.ExtBRC                  == extOpt2New.ExtBRC,
         MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     if (m_video.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
@@ -1307,23 +1307,22 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
 
 #if MFX_VERSION >= 1023
     // we can use feature only if sufs was allocated on init
-    if (IsOn(extOpt3New->EnableMBForceIntra) && m_useMbControlSurfs == false)
+    if (IsOn(extOpt3New.EnableMBForceIntra) && m_useMbControlSurfs == false)
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 #endif
 
 
-    if (    extOpt3New && IsOn(extOpt3New->FadeDetection)
-        && !(m_cmCtx.get() && m_cmCtx->isHistogramSupported()))
+    if (IsOn(extOpt3New.FadeDetection) && !(m_cmCtx.get() && m_cmCtx->isHistogramSupported()))
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
     if (bIntRateControlLA(m_video.mfx.RateControlMethod) )
     {
-        MFX_CHECK(extOpt2Old->LookAheadDepth >= extOpt2New->LookAheadDepth,
+        MFX_CHECK(extOpt2Old.LookAheadDepth >= extOpt2New.LookAheadDepth,
                   MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
 
-    if (IsOn(extOpt2Old->ExtBRC))
+    if (IsOn(extOpt2Old.ExtBRC))
     {
         mfxExtBRC & extBRCInit  = GetExtBufferRef(m_video);
         mfxExtBRC & extBRCReset = GetExtBufferRef(newPar);
