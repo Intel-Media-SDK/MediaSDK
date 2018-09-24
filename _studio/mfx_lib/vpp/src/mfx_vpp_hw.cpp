@@ -4672,6 +4672,15 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
 
+#if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
+            if (extDI->Mode == MFX_DEINTERLACING_ADVANCED_SCD &&
+                par->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
+                par->vpp.Out.FourCC != MFX_FOURCC_YV12)
+            {
+                // SCD kernels support only planar 8-bit formats
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            }
+#endif
             break;
         } //case MFX_EXTBUFF_VPP_DEINTERLACING
         case MFX_EXTBUFF_VPP_DOUSE:
