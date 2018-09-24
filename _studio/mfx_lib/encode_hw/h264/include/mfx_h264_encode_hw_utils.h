@@ -1263,7 +1263,7 @@ namespace MfxHwH264Encode
     {
         memset(&par,0,sizeof(par));
         par.FrameType = task->m_type[task->m_fid[0]];
-        par.picStruct = 0;
+        par.picStruct = task->GetPicStructForEncode();
         par.DisplayOrder = task->m_frameOrder;
         par.EncodedOrder = task->m_encOrder;
         par.PyramidLayer = (mfxU16)task->m_loc.level;
