@@ -627,7 +627,7 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     CHECK_STS_AND_RETURN(sts, "CreateEncode::m_pHWdev->GetHandle failed", NULL);
 
     FEI_Encode* pEncode = new FEI_Encode(&m_mfxSession, hdl,
-                                         pars, m_inParams.encodeCtrl,
+                                         pars, m_inParams.encodeCtrl, m_inParams.frameCtrl,
                                          m_inParams.strDstFile, m_inParams.mvpInFile,
                                          m_inParams.repackctrlFile, m_inParams.repackstatFile,
                                          pRepacker.get());
