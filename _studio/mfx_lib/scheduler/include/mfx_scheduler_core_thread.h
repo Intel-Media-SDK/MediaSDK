@@ -41,8 +41,9 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
     {}
 
     enum State {
-        Waiting, // thread is waiting for incoming tasks
-        Running  // thread is executing a task
+        Waiting,  // thread is waiting for incoming tasks
+        Running,  // thread is executing a task
+        Stopping, // thread is going to stop
     };
 
     State state;                       // thread state, waiting or running

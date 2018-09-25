@@ -61,7 +61,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
     }
 
     // main working cycle for threads
-    while (false == m_bQuit)
+    while (pContext->state != MFX_SCHEDULER_THREAD_CONTEXT::Stopping)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "thread_proc");
 

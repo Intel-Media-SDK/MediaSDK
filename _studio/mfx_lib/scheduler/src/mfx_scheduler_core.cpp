@@ -45,8 +45,6 @@ mfxSchedulerCore::mfxSchedulerCore(void)
     memset(m_workingTime, 0, sizeof(m_workingTime));
     m_timeIdx = 0;
 
-    m_bQuit = false;
-
     m_pThreadCtx = NULL;
     m_vmtick_msec_frequency = vm_time_get_frequency()/1000;
     vm_event_set_invalid(&m_hwTaskDone);
@@ -110,19 +108,13 @@ void mfxSchedulerCore::Close(void)
     // stop threads
     if (m_pThreadCtx)
     {
-        mfxU32 i;
-
-        // set the 'quit' flag for threads
-        m_bQuit = true;
-
+        for (mfxU32 i = 0; i < m_param.numberOfThreads; ++i)
         {
-            // set the events to wake up sleeping threads
-            std::lock_guard<std::mutex> guard(m_guard);
-            WakeUpThreads();
-        }
-
-        for (i = 0; i < m_param.numberOfThreads; i += 1)
-        {
+            {
+                std::lock_guard<std::mutex> guard(m_guard);
+                m_pThreadCtx[i].state = MFX_SCHEDULER_THREAD_CONTEXT::Stopping;
+                m_pThreadCtx[i].taskAdded.notify_one();
+            }
             // wait for particular thread
             if (m_pThreadCtx[i].threadHandle.joinable())
                 m_pThreadCtx[i].threadHandle.join();
@@ -167,7 +159,6 @@ void mfxSchedulerCore::Close(void)
     m_timeIdx = 0;
 
     // reset variables
-    m_bQuit = false;
     m_pThreadCtx = NULL;
     // reset task variables
     memset(m_pTasks, 0, sizeof(m_pTasks));

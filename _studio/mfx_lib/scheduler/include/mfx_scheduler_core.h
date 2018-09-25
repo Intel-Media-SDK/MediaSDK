@@ -341,9 +341,6 @@ protected:
     // Stop and terminate the wake up thread
     mfxStatus StopWakeUpThread(void);
 
-    // 'quit' flag for threads
-    volatile
-    bool m_bQuit;
     volatile
     bool m_bQuitWakeUpThread;
     
