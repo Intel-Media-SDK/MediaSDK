@@ -2283,8 +2283,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     //check Active Reference
 
     {
-        mfxU16 maxForward  = Min<mfxU16>(caps.MaxNum_Reference0, maxDPB);
-        mfxU16 maxBackward = Min<mfxU16>(caps.MaxNum_Reference1, maxDPB);
+        mfxU16 maxForward  = Min<mfxU16>(caps.MaxNum_Reference0, maxDPB - 1);
+        mfxU16 maxBackward = Min<mfxU16>(caps.MaxNum_Reference1, maxDPB - 1);
 
 #if (MFX_VERSION >= 1025)
         if (par.m_platform >= MFX_HW_CNL)
@@ -2840,8 +2840,8 @@ void SetDefaults(
             {
                 par.mfx.NumRefFrame = (Max(RefActiveP, RefActiveBL0) + (par.mfx.GopRefDist > 1) * RefActiveBL0)*k;
             }
-            par.mfx.NumRefFrame = Max(mfxU16(par.NumTL() - 1), par.mfx.NumRefFrame);
-            par.mfx.NumRefFrame = Min(maxDPB, par.mfx.NumRefFrame);
+            par.mfx.NumRefFrame = Max<mfxU16>(par.NumTL() - 1, par.mfx.NumRefFrame);
+            par.mfx.NumRefFrame = Min<mfxU16>(maxDPB - 1, par.mfx.NumRefFrame);
         }
      }
     if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
