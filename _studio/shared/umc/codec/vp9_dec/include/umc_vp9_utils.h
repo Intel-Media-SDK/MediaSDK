@@ -28,12 +28,15 @@
 #ifndef __UMC_VP9_UTILS_H_
 #define __UMC_VP9_UTILS_H_
 
-#define ALIGN_POWER_OF_TWO(value, n) \
-    (((value) + ((1 << (n)) - 1)) & ~((1 << (n)) - 1))
-
 namespace UMC_VP9_DECODER
 {
+    constexpr auto VP9_INVALID_REF_FRAME = -1;
     class VP9DecoderFrame;
+
+    inline mfxU32 AlignPowerOfTwo(mfxU32 value, mfxU32 n)
+    {
+        return (((value) + ((1 << (n)) - 1)) & ~((1 << (n)) - 1));
+    }
 
     inline
     int32_t clamp(int32_t value, int32_t low, int32_t high)
