@@ -369,7 +369,7 @@ mfxStatus MFXVideoVPPPlugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocReques
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFXVideoVPPPlugin::Init(mfxVideoParam *par, mfxVideoParam *par1, mfxVideoParam *par2)
+mfxStatus MFXVideoVPPPlugin::InitMulti(mfxVideoParam *par, mfxVideoParam *par1, mfxVideoParam *par2)
 {
     mfxStatus sts = MFX_ERR_NONE;
 

@@ -3827,7 +3827,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     if (m_pmfxVPP.get())
     {
         if (m_bIsPlugin && m_bIsVpp)
-            sts = m_pmfxVPP->Init(&m_mfxPluginParams, &m_mfxVppParams);
+            sts = m_pmfxVPP->InitMulti(&m_mfxPluginParams, &m_mfxVppParams);
         else if (m_bIsPlugin)
             sts = m_pmfxVPP->Init(&m_mfxPluginParams);
         else
@@ -3938,7 +3938,7 @@ mfxStatus CTranscodingPipeline::CompleteInit()
     if (m_pmfxVPP.get())
     {
         if (m_bIsPlugin && m_bIsVpp)
-            sts = m_pmfxVPP->Init(&m_mfxPluginParams, &m_mfxVppParams);
+            sts = m_pmfxVPP->InitMulti(&m_mfxPluginParams, &m_mfxVppParams);
         else if (m_bIsPlugin)
             sts = m_pmfxVPP->Init(&m_mfxPluginParams);
         else
@@ -4366,7 +4366,7 @@ mfxStatus CTranscodingPipeline::Reset()
             sts = m_pmfxVPP->QueryIOSurf(&m_mfxPluginParams, request, &m_mfxVppParams);
             MSDK_CHECK_STATUS(sts, "m_pmfxVPP->QueryIOSurf failed");
 
-            sts = m_pmfxVPP->Init(&m_mfxPluginParams, &m_mfxVppParams);
+            sts = m_pmfxVPP->InitMulti(&m_mfxPluginParams, &m_mfxVppParams);
         }
         else if (m_bIsPlugin)
             sts = m_pmfxVPP->Init(&m_mfxPluginParams);

@@ -35,8 +35,11 @@ public:
     virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
     { (void)par1; (void)par2; return MFXVideoVPP_QueryIOSurf(m_session, par, request); }
 
-    virtual mfxStatus Init(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
+    virtual mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
     { (void)par1; (void)par2; return MFXVideoVPP_Init(m_session, par); }
+
+    virtual mfxStatus Init(mfxVideoParam *par)
+    {  return InitMulti(par);  }
 
     virtual mfxStatus Reset(mfxVideoParam *par, mfxVideoParam */*par1*/, mfxVideoParam */*par2*/)
     { return MFXVideoVPP_Reset(m_session, par); }

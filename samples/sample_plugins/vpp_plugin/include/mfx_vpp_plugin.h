@@ -55,7 +55,7 @@ public:
     mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
 
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported; topology must be the same as in QueryIOSurf
-    mfxStatus Init(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
     mfxStatus RunFrameVPPAsync(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp) override;
     mfxStatus Reset(mfxVideoParam *par, mfxVideoParam */*par1*/, mfxVideoParam */*par2*/) override;
     mfxStatus Close(void) override;
