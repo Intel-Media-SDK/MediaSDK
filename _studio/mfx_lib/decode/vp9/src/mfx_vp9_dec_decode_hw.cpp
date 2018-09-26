@@ -106,7 +106,7 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_uv_ac_delta_q(0)
 {
     memset(&m_sizesOfRefFrame, 0, sizeof(m_sizesOfRefFrame));
-    memset(&m_frameInfo.ref_frame_map, -1, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
+    memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
     ResetFrameInfo();
 
     if (sts)
@@ -375,7 +375,7 @@ void VideoDECODEVP9_HW::ResetFrameInfo()
     m_frameInfo.currFrame = -1;
     m_frameInfo.frameCountInBS = 0;
     m_frameInfo.currFrameInBS = 0;
-    memset(&m_frameInfo.ref_frame_map, -1, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
+    memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
 }
 
 mfxStatus VideoDECODEVP9_HW::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* par)
@@ -1186,7 +1186,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
 
         // setup_tile_info()
         {
-            const mfxI32 alignedWidth = ALIGN_POWER_OF_TWO(info.width, MI_SIZE_LOG2);
+            const mfxI32 alignedWidth = AlignPowerOfTwo(info.width, MI_SIZE_LOG2);
             int minLog2TileColumns, maxLog2TileColumns, maxOnes;
             mfxU32 miCols = alignedWidth >> MI_SIZE_LOG2;
             GetTileNBits(miCols, minLog2TileColumns, maxLog2TileColumns);

@@ -382,7 +382,7 @@ namespace UMC_VP9_DECODER
 
     void GetTileNBits(const int32_t miCols, int32_t & minLog2TileCols, int32_t & maxLog2TileCols)
     {
-        const int32_t sbCols = ALIGN_POWER_OF_TWO(miCols, MI_BLOCK_SIZE_LOG2) >> MI_BLOCK_SIZE_LOG2;
+        const int32_t sbCols = AlignPowerOfTwo(miCols, MI_BLOCK_SIZE_LOG2) >> MI_BLOCK_SIZE_LOG2;
         int32_t minLog2 = 0, maxLog2 = 0;
 
         while ((sbCols >> maxLog2) >= MIN_TILE_WIDTH_B64)
