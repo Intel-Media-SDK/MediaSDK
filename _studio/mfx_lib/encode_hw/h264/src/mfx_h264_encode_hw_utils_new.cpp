@@ -2578,9 +2578,6 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
     else
         return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    if (nativeHandle == 0)
-        return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
-
     return sts;
 }
 
