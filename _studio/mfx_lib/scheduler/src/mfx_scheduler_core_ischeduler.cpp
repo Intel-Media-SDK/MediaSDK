@@ -102,23 +102,16 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
                 return MFX_ERR_UNKNOWN;
             }
 
-            // allocate thread contexts
-            m_pThreadCtx = new MFX_SCHEDULER_THREAD_CONTEXT[m_param.numberOfThreads];
-
+            auto thread_proc = [this](MFX_SCHEDULER_THREAD_CONTEXT* ctx) { ThreadProc(ctx); };
             // start threads
-            for (i = 0; i < m_param.numberOfThreads; i += 1)
+            for (i = 0; i < m_param.numberOfThreads; ++i)
             {
-                // prepare context
-                m_pThreadCtx[i].threadNum = i;
-                m_pThreadCtx[i].pSchedulerCore = this;
+                std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT> thread(new MFX_SCHEDULER_THREAD_CONTEXT(i, thread_proc));
 
-                // spawn a thread
-                m_pThreadCtx[i].threadHandle = std::thread(
-                    std::bind(&mfxSchedulerCore::ThreadProc, this, &m_pThreadCtx[i]));
-
-                if (!SetScheduling(m_pThreadCtx[i].threadHandle)) {
+                if (!SetScheduling(thread->threadHandle)) {
                     return MFX_ERR_UNSUPPORTED;
                 }
+                m_pThreads.emplace_back(std::move(thread));
             }
         }
         catch (...)

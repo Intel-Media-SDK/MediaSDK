@@ -23,6 +23,8 @@
 
 #include <mfxdefs.h>
 
+#include <functional>
+#include <memory>
 #include <thread>
 #include <condition_variable>
 
@@ -31,14 +33,35 @@ class mfxSchedulerCore;
 
 struct MFX_SCHEDULER_THREAD_CONTEXT
 {
-    MFX_SCHEDULER_THREAD_CONTEXT()
+    typedef std::function<void(MFX_SCHEDULER_THREAD_CONTEXT*)> SchedulerThreadFunc;
+
+    MFX_SCHEDULER_THREAD_CONTEXT() = delete;
+
+    MFX_SCHEDULER_THREAD_CONTEXT(mfxU32 id, SchedulerThreadFunc func)
       : state(State::Waiting)
-      , pSchedulerCore(NULL)
-      , threadNum(0)
-      , threadHandle()
+      , threadNum(id)
+      , threadHandle([this, func](){ func(this); })
       , workTime(0)
       , sleepTime(0)
-    {}
+    {
+    }
+
+    MFX_SCHEDULER_THREAD_CONTEXT(const MFX_SCHEDULER_THREAD_CONTEXT&) = delete;
+    MFX_SCHEDULER_THREAD_CONTEXT(const MFX_SCHEDULER_THREAD_CONTEXT&&) = delete;
+    MFX_SCHEDULER_THREAD_CONTEXT& operator=(const MFX_SCHEDULER_THREAD_CONTEXT& other) = delete;
+    MFX_SCHEDULER_THREAD_CONTEXT& operator=(MFX_SCHEDULER_THREAD_CONTEXT&& other) = delete;
+
+    ~MFX_SCHEDULER_THREAD_CONTEXT()
+    {
+        if (threadHandle.joinable())
+            threadHandle.join();
+    }
+
+    void Stop(std::lock_guard<std::mutex>& /*lock*/)
+    {
+        state = MFX_SCHEDULER_THREAD_CONTEXT::Stopping;
+        taskAdded.notify_one();
+    }
 
     enum State {
         Waiting,  // thread is waiting for incoming tasks
@@ -47,7 +70,6 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
     };
 
     State state;                       // thread state, waiting or running
-    mfxSchedulerCore *pSchedulerCore;  // pointer to the owning core
     mfxU32 threadNum;                  // thread number assigned by the core
     std::thread threadHandle;          // thread handle
     std::condition_variable taskAdded; // cond. variable to signal new tasks

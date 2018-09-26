@@ -92,22 +92,21 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
         }
         else
         {
+            mfxU32 timeout = (threadNum)? MFX_THREAD_TIME_TO_WAIT: 1;
             mfxU64 start, stop;
-
 
             // mark beginning of sleep period
             start = GetHighPerformanceCounter();
 
             // there is no any task.
             // sleep for a while until the event is signaled.
-            Wait(threadNum, guard);
+            pContext->taskAdded.wait_for(guard, std::chrono::milliseconds(timeout));
 
             // mark end of sleep period
             stop = GetHighPerformanceCounter();
 
             // update thread statistic
             pContext->sleepTime += (stop - start);
-
         }
     }
 }
