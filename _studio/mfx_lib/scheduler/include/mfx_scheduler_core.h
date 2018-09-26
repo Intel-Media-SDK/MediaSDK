@@ -21,6 +21,8 @@
 #if !defined(__MFX_SCHEDULER_CORE_H)
 #define __MFX_SCHEDULER_CORE_H
 
+#include <list>
+
 #include <mfx_interface_scheduler.h>
 
 #include <mfx_scheduler_core_thread.h>
@@ -222,9 +224,6 @@ protected:
     // Release the object
     void Close(void);
 
-    // Wait until the scheduler got more work
-    void Wait(const mfxU32 curThreadNum, std::unique_lock<std::mutex>& mutex);
-
     // Get high performance counter value. This counter is used to calculate
     // tasks duration and priority management.
     mfxU64 GetHighPerformanceCounter(void);
@@ -308,10 +307,6 @@ protected:
     // Assign socket affinity for every thread
     void SetThreadsAffinityToSockets(void);
 
-    inline MFX_SCHEDULER_THREAD_CONTEXT* GetThreadCtx(mfxU32 thread_id)
-    { return &m_pThreadCtx[thread_id]; }
-
-
     // Scheduler's initialization parameters
     MFX_SCHEDULER_PARAM2 m_param;
     // Reference counters
@@ -345,9 +340,7 @@ protected:
     bool m_bQuitWakeUpThread;
     
     // Threads contexts
-    MFX_SCHEDULER_THREAD_CONTEXT *m_pThreadCtx;
-
-
+    std::list<std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT>> m_pThreads;
 
     // Event to wait free task objects
     UMC::Semaphore m_freeTasks;
@@ -408,7 +401,6 @@ protected:
     mfxU32 m_jobCounter;
 
     mfxU32 m_timer_hw_event;
-
 
 private:
     // declare a assignment operator to avoid warnings
