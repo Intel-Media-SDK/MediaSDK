@@ -43,6 +43,7 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
+    $(MFX_HOME)/_studio/mfx_lib/genx/asc/include \
     $(MFX_HOME)/_studio/shared/asc/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
@@ -102,7 +103,9 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/src/, \
     genx_scd_bdw_isa.cpp \
     genx_scd_bxt_isa.cpp \
     genx_scd_cnl_isa.cpp \
-    genx_scd_skl_isa.cpp)
+    genx_scd_skl_isa.cpp \
+    genx_scd_icl_isa.cpp \
+    genx_scd_icllp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/src/, \
     genx_cht_copy_isa.cpp \
@@ -193,11 +196,11 @@ LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 
 LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
 
-LOCAL_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
+LOCAL_WHOLE_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
 LOCAL_SHARED_LIBRARIES := libva
 
 ifeq ($(MFX_ENABLE_ITT_TRACES),true)
-    LOCAL_STATIC_LIBRARIES += libittnotify
+    LOCAL_WHOLE_STATIC_LIBRARIES += libittnotify
 endif
 
 LOCAL_MODULE_TAGS := optional
@@ -224,11 +227,11 @@ LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
 
 LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
 
-LOCAL_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
+LOCAL_WHOLE_STATIC_LIBRARIES := $(MFX_LOCAL_STATIC_LIBRARIES_HW)
 LOCAL_SHARED_LIBRARIES := libva
 
 ifeq ($(MFX_ENABLE_ITT_TRACES),true)
-    LOCAL_STATIC_LIBRARIES += libittnotify
+    LOCAL_WHOLE_STATIC_LIBRARIES += libittnotify
 endif
 
 LOCAL_MODULE_TAGS := optional
