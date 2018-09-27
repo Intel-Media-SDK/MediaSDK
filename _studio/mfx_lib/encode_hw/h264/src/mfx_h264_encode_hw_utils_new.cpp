@@ -2312,6 +2312,18 @@ void MfxHwH264Encode::ConfigureTask(
         task.m_maxPBFrameSize = 0;
     }
 
+#ifdef MFX_ENABLE_H264_MAX_FRAME_SIZE
+    if (video.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+    {
+        task.m_repackMaxIFrameSize = extOpt3.RepackMaxFrameSizeI;
+        task.m_repackMaxPFrameSize = extOpt3.RepackMaxFrameSizeP;
+        task.m_repackMaxBFrameSize = extOpt3.RepackMaxFrameSizeB;
+        task.m_repackNumPasses = extOpt3.RepackNumPasses;
+        std::copy(std::begin(extOpt3.RepackDeltaQP), std::begin(extOpt3.RepackDeltaQP) + task.m_repackNumPasses, 
+                  std::begin(task.m_repackDeltaQP));
+    }
+#endif
+
     task.m_numMbPerSlice = extOpt2.NumMbPerSlice;
     task.m_numSlice[ffid] = (task.m_type[ffid] & MFX_FRAMETYPE_I) ? extOpt3.NumSliceI :
         (task.m_type[ffid] & MFX_FRAMETYPE_P) ? extOpt3.NumSliceP : extOpt3.NumSliceB;

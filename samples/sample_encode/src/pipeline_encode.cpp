@@ -414,6 +414,32 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        bool enableRepackCtrl = pInParams->repackctrlFile != NULL && pInParams->CodecId == MFX_CODEC_AVC;
+
+        if (m_pRepackCtrl_in == NULL && enableRepackCtrl)
+        {
+            MSDK_FOPEN(m_pRepackCtrl_in, pInParams->repackctrlFile, MSDK_CHAR("rb"));
+            if (m_pRepackCtrl_in == NULL)
+            {
+                msdk_printf(MSDK_STRING("ERROR: Can't open file %s\n"), pInParams->repackctrlFile);
+                return MFX_ERR_UNSUPPORTED;
+            }
+            msdk_printf(MSDK_STRING("Using Frame Size control input file: %s\n"), pInParams->repackctrlFile);
+
+            SAFE_FREAD(&(m_CodingOption3.RepackMaxFrameSizeI), sizeof(m_CodingOption3.RepackMaxFrameSizeI), 
+                       1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&(m_CodingOption3.RepackMaxFrameSizeP), sizeof(m_CodingOption3.RepackMaxFrameSizeP), 
+                       1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&(m_CodingOption3.RepackMaxFrameSizeB), sizeof(m_CodingOption3.RepackMaxFrameSizeB), 
+                       1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&(m_CodingOption3.RepackNumPasses), sizeof(m_CodingOption3.RepackNumPasses), 
+                       1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(m_CodingOption3.RepackDeltaQP, sizeof(m_CodingOption3.RepackDeltaQP), 
+                       1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+        }
+#endif
+
         m_mfxEncParams.mfx.QPI = pInParams->nQPI;
         m_mfxEncParams.mfx.QPP = pInParams->nQPP;
         m_mfxEncParams.mfx.QPB = pInParams->nQPB;
@@ -624,6 +650,12 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    else if (m_CodingOption3.RepackMaxFrameSizeI || m_CodingOption3.RepackMaxFrameSizeP || m_CodingOption3.RepackMaxFrameSizeB)
+    {
+        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
+    }
+#endif
 
     // In case of HEVC when height and/or width divided with 8 but not divided with 16
     // add extended parameter to increase performance
@@ -1135,6 +1167,9 @@ CEncodingPipeline::CEncodingPipeline()
 #if (MFX_VERSION >= 1027)
     m_round_in = NULL;
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    m_pRepackCtrl_in = NULL;
+#endif
 
     MSDK_ZERO_MEMORY(m_mfxEncParams);
     MSDK_ZERO_MEMORY(m_mfxVppParams);
@@ -1634,6 +1669,14 @@ void CEncodingPipeline::Close()
     {
         fclose(m_round_in);
         m_round_in = NULL;
+    }
+#endif
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if(m_pRepackCtrl_in)
+    {
+        fclose(m_pRepackCtrl_in);
+        m_pRepackCtrl_in = NULL;
     }
 #endif
 

@@ -890,6 +890,11 @@ STRUCT(mfxExtCodingOption3,
     FIELD_T(mfxU16, EncodedUnitsInfo)
     FIELD_T(mfxU16, EnableNalUnitType)
     FIELD_T(mfxU16, ExtBrcAdaptiveLTR)     /* tri-state option for ExtBrcAdaptiveLTR */
+    FIELD_T(mfxU32, RepackMaxFrameSizeI)
+    FIELD_T(mfxU32, RepackMaxFrameSizeP)
+    FIELD_T(mfxU32, RepackMaxFrameSizeB)
+    FIELD_T(mfxU32, RepackNumPasses)
+    FIELD_T(mfxU8 , RepackDeltaQP)
 )
 #elif (MFX_VERSION >= 1027)
 STRUCT(mfxExtCodingOption3,
@@ -977,7 +982,7 @@ STRUCT(mfxExtCodingOption3,
     FIELD_T(mfxU16      , NumRefActiveP                 )
     FIELD_T(mfxU16      , NumRefActiveBL0               )
     FIELD_T(mfxU16      , NumRefActiveBL1               )
-    FIELD_T(mfxU16      , TransformSkip)
+    FIELD_T(mfxU16      , TransformSkip                 )
     FIELD_T(mfxU16      , BRCPanicMode                  )
     FIELD_T(mfxU16      , LowDelayBRC                   )
     FIELD_T(mfxU16      , EnableMBForceIntra            )
@@ -985,7 +990,7 @@ STRUCT(mfxExtCodingOption3,
     FIELD_T(mfxU16      , RepartitionCheckEnable        ) /* tri-state option */
     FIELD_T(mfxU16      , EncodedUnitsInfo              )
     FIELD_T(mfxU16      , EnableNalUnitType             )
-    FIELD_T(mfxU16      , ExtBrcAdaptiveLTR)
+    FIELD_T(mfxU16      , ExtBrcAdaptiveLTR             )
 )
 #else
 STRUCT(mfxExtCodingOption3,

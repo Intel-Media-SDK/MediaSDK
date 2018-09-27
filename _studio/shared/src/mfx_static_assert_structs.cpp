@@ -822,6 +822,13 @@
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,ExtBrcAdaptiveLTR             ,184  )
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackMaxFrameSizeI           ,188  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackMaxFrameSizeP           ,192  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackMaxFrameSizeB           ,196  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackNumPasses               ,200  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackDeltaQP                 ,204  )
+#endif
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPDoNotUse                  ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPDoNotUse                  ,NumAlg                        ,8    )
@@ -1461,6 +1468,13 @@
 #endif
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,ExtBrcAdaptiveLTR             ,184  )
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackMaxFrameSizeI           ,188  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackMaxFrameSizeP           ,192  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackMaxFrameSizeB           ,196  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackNumPasses               ,200  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCodingOption3                ,RepackDeltaQP                 ,204  )
 #endif
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPDoNotUse                  ,Header                        ,0    )

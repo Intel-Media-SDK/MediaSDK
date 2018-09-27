@@ -796,7 +796,18 @@ typedef struct {
 #else
     mfxU16      reserved9;
 #endif
-    mfxU16      reserved[163];
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxU16      reserved10;
+    mfxU32      RepackMaxFrameSizeI;       /* max I frame size option for multipass PAK */
+    mfxU32      RepackMaxFrameSizeP;       /* max P frame size option for multipass PAK */
+    mfxU32      RepackMaxFrameSizeB;       /* max B frame size option for multipass PAK */
+    mfxU32      RepackNumPasses;           /* pass number option for multipass PAK */
+    mfxU8       RepackDeltaQP[8];          /* delta QP option for multipass PAK */
+#else
+    mfxU16      reserved10[13];
+#endif
+
+    mfxU16      reserved[150];
 } mfxExtCodingOption3;
 
 /* IntraPredBlockSize/InterPredBlockSize */

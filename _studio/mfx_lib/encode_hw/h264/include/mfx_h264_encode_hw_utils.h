@@ -897,6 +897,12 @@ namespace MfxHwH264Encode
             , m_addRepackSize(0, 0)
             , m_maxIFrameSize(0)
             , m_maxPBFrameSize(0)
+#ifdef MFX_ENABLE_H264_MAX_FRAME_SIZE
+            , m_repackMaxIFrameSize(0)
+            , m_repackMaxPFrameSize(0)
+            , m_repackMaxBFrameSize(0)
+            , m_repackNumPasses(0)
+#endif
             , m_numMbPerSlice(0)
             , m_numSlice(0, 0)
             , m_numRoi(0)
@@ -986,6 +992,9 @@ namespace MfxHwH264Encode
             Zero(m_handleRaw);
             Zero(m_fid);
             Zero(m_pwt);
+#ifdef MFX_ENABLE_H264_MAX_FRAME_SIZE
+            Zero(m_repackDeltaQP);
+#endif
             m_FrameName[0] = 0;
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
             m_collectUnitsInfo = false;
@@ -1088,6 +1097,13 @@ namespace MfxHwH264Encode
 // MVC BD }
         mfxU32  m_maxIFrameSize;
         mfxU32  m_maxPBFrameSize;
+#ifdef MFX_ENABLE_H264_MAX_FRAME_SIZE
+        mfxU32  m_repackMaxIFrameSize; // in bytes
+        mfxU32  m_repackMaxPFrameSize; // in bytes
+        mfxU32  m_repackMaxBFrameSize; // in bytes
+        mfxU32  m_repackNumPasses;    // up to 8
+        mfxU8   m_repackDeltaQP[8];   // list of delta QPs, only positive values
+#endif
 
         mfxU16  m_numMbPerSlice;
         PairU16 m_numSlice;

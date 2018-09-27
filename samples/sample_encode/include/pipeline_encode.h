@@ -181,6 +181,9 @@ struct sInputParams
 #if (MFX_VERSION >= 1027)
     msdk_char *RoundingOffsetFile;
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    msdk_char *repackctrlFile;
+#endif
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
 
@@ -408,6 +411,10 @@ protected:
 #if (MFX_VERSION >= 1027)
     FILE* m_round_in;
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    FILE* m_pRepackCtrl_in;
+#endif
+
     bool isV4L2InputEnabled;
 
     mfxU32 m_nTimeout;

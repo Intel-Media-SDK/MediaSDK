@@ -366,6 +366,15 @@ void CParametersDumper::SerializeExtensionBuffer(msdk_ostream& sstr,msdk_string 
             SERIALIZE_INFO_ARRAY(NumRefActiveBL0);
             SERIALIZE_INFO_ARRAY(NumRefActiveBL1);
             SERIALIZE_INFO(BRCPanicMode);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            SERIALIZE_INFO(RepackMaxFrameSizeI);
+            SERIALIZE_INFO(RepackMaxFrameSizeP);
+            SERIALIZE_INFO(RepackMaxFrameSizeB);
+            SERIALIZE_INFO(RepackNumPasses);
+            SERIALIZE_INFO_ARRAY(RepackDeltaQP);
+#else
+            SERIALIZE_INFO_ARRAY(reserved10);
+#endif
             SERIALIZE_INFO_ARRAY(reserved);
         }
         break;

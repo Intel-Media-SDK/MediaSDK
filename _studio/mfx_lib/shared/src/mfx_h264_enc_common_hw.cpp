@@ -4018,6 +4018,15 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 #endif // (MFX_VERSION >= 1026)
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if ((par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) && (extOpt3->RepackNumPasses > 4))
+    {
+        // for AVC encoder, NumPasses should be less than or equal to 4
+        extOpt3->RepackNumPasses = 4;
+        changed = true;
+    }
+#endif
+
     if (hwCaps.UserMaxFrameSizeSupport == 0 && ((extOpt2->MaxFrameSize) || (extOpt3->MaxFrameSizeI) || (extOpt3->MaxFrameSizeP)))
     {
         extOpt2->MaxFrameSize = 0;
