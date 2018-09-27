@@ -1084,6 +1084,7 @@ mfxStatus VAAPIEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = 1;
         packed_header_param_buffer.bit_length = packedData.DataLength*8;
 
+        MFX_DESTROY_VABUFFER(m_packedHeaderParameterBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                 m_vaContextEncode,
                 VAEncPackedHeaderParameterBufferType,
@@ -1095,6 +1096,7 @@ mfxStatus VAAPIEncoder::Execute(
 
         configBuffers[buffersCount++] = m_packedHeaderParameterBufferId;
 
+        MFX_DESTROY_VABUFFER(m_packedHeaderDataBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
                             VAEncPackedHeaderDataBufferType,
