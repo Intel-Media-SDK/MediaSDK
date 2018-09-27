@@ -32,17 +32,23 @@ public:
     virtual ~MFXVideoMultiVPP(void) { Close(); }
 
     // topology methods
-    virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
+    virtual mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
     { (void)par1; (void)par2; return MFXVideoVPP_QueryIOSurf(m_session, par, request); }
+
+    virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2]) final
+    { return QueryIOSurfMulti(par, request); }
 
     virtual mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
     { (void)par1; (void)par2; return MFXVideoVPP_Init(m_session, par); }
 
-    virtual mfxStatus Init(mfxVideoParam *par)
+    virtual mfxStatus Init(mfxVideoParam *par) final
     {  return InitMulti(par);  }
 
-    virtual mfxStatus Reset(mfxVideoParam *par, mfxVideoParam */*par1*/, mfxVideoParam */*par2*/)
-    { return MFXVideoVPP_Reset(m_session, par); }
+    virtual mfxStatus ResetMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
+    { (void)par1; (void)par2; return MFXVideoVPP_Reset(m_session, par); }
+
+    virtual mfxStatus Reset(mfxVideoParam *par) final
+    { return ResetMulti(par); }
 
     virtual mfxStatus RunFrameVPPAsync(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp)
     { return MFXVideoVPP_RunFrameVPPAsync(m_session, in, out, aux, syncp); }
@@ -53,14 +59,23 @@ public:
     virtual mfxStatus Close(void) { return MFXVideoVPP_Close(m_session); }
 
     // per-component methods
-    virtual mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out, mfxU8 /*component_idx*/)
-    { return MFXVideoVPP_Query(m_session, in, out); }
+    virtual mfxStatus QueryMulti(mfxVideoParam *in, mfxVideoParam *out, mfxU8 component_idx = 0)
+    { (void)component_idx; return MFXVideoVPP_Query(m_session, in, out); }
 
-    virtual mfxStatus GetVideoParam(mfxVideoParam *par, mfxU8 /*component_idx*/)
-    { return MFXVideoVPP_GetVideoParam(m_session, par); }
+    virtual mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out) final
+    { return QueryMulti(in, out); }
 
-    virtual mfxStatus GetVPPStat(mfxVPPStat *stat, mfxU8 /*component_idx*/)
-    { return MFXVideoVPP_GetVPPStat(m_session, stat); }
+    virtual mfxStatus GetVideoParamMulti(mfxVideoParam *par, mfxU8 component_idx = 0)
+    { (void)component_idx; return MFXVideoVPP_GetVideoParam(m_session, par); }
+
+    virtual mfxStatus GetVideoParam(mfxVideoParam *par) final
+    { return GetVideoParamMulti(par); }
+
+    virtual mfxStatus GetVPPStatMulti(mfxVPPStat *stat, mfxU8 component_idx = 0)
+    { (void)component_idx; return MFXVideoVPP_GetVPPStat(m_session, stat); }
+
+    virtual mfxStatus GetVPPStat(mfxVPPStat *stat) final
+    { return GetVPPStatMulti(stat); }
 };
 
 #endif//__MFX_MULTI_VPP_H
