@@ -118,6 +118,11 @@ STRUCT(mfxFrameSurface1,
 )
 
 STRUCT(mfxInfoMFX,
+    FIELD_T(mfxU32, MaxIFrameSize     )
+    FIELD_T(mfxU32, MaxPFrameSize     )
+    FIELD_T(mfxU32, MaxBFrameSize     )
+    FIELD_T(mfxU32, NumPasses         )
+    FIELD_T(mfxU16, DecodedOrder      )
     FIELD_T(mfxU16, LowPower          )
     FIELD_T(mfxU16, BRCParamMultiplier)
     FIELD_S(mfxFrameInfo, FrameInfo   )

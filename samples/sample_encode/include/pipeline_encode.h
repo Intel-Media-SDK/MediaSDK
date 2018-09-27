@@ -172,6 +172,7 @@ struct sInputParams
     bool shouldUseShiftedP010VPP;
 
     msdk_char *RoundingOffsetFile;
+    msdk_char *repackctrlFile;
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
 
@@ -396,6 +397,7 @@ protected:
 
     bufList m_encExtBufs;
     FILE* m_round_in;
+    FILE* m_pRepackCtrl_in;
 
     bool isV4L2InputEnabled;
 

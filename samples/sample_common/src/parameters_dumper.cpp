@@ -92,7 +92,13 @@ void CParametersDumper::SerializeFrameInfoStruct(msdk_ostream& sstr,msdk_string 
 
 void CParametersDumper::SerializeMfxInfoMFXStruct(msdk_ostream& sstr,msdk_string prefix,mfxInfoMFX& info)
 {
-    SERIALIZE_INFO_ARRAY(reserved);
+    SERIALIZE_INFO(reserved);
+
+    SERIALIZE_INFO(MaxIFrameSize);
+    SERIALIZE_INFO(MaxPFrameSize);
+    SERIALIZE_INFO(MaxPFrameSize);
+    SERIALIZE_INFO(NumPasses);
+    SERIALIZE_INFO_ARRAY(DeltaQP);
 
     SERIALIZE_INFO(LowPower);
     SERIALIZE_INFO(BRCParamMultiplier);

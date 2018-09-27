@@ -272,7 +272,12 @@ enum {
 
 /* Transcoding Info */
 typedef struct {
-    mfxU32  reserved[7];
+    mfxU32  reserved;
+    mfxU32  MaxIFrameSize;
+    mfxU32  MaxPFrameSize;
+    mfxU32  MaxBFrameSize;
+    mfxU32  NumPasses;
+    mfxU8   DeltaQP[8];
 
     mfxU16  LowPower;
     mfxU16  BRCParamMultiplier;

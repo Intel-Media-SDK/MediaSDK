@@ -251,6 +251,7 @@ namespace MfxHwH264Encode
         VABufferID m_frameRateId;               // VAEncMiscParameterFrameRate
         VABufferID m_qualityLevelId;            // VAEncMiscParameterBufferQualityLevel
         VABufferID m_maxFrameSizeId;            // VAEncMiscParameterFrameRate
+        VABufferID m_multiPassFrameSizeId;            // VAEncMiscParameterBufferMultiPassFrameSize
         VABufferID m_quantizationId;            // VAEncMiscParameterQuantization
         VABufferID m_rirId;                     // VAEncMiscParameterRIR
         VABufferID m_qualityParamsId;           // VAEncMiscParameterEncQuality

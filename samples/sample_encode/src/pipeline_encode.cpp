@@ -414,6 +414,29 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
+        bool enableRepackCtrl = pInParams->repackctrlFile != NULL && pInParams->CodecId == MFX_CODEC_AVC;
+
+        if (m_pRepackCtrl_in == NULL && enableRepackCtrl)
+        {
+            MSDK_FOPEN(m_pRepackCtrl_in, pInParams->repackctrlFile, MSDK_CHAR("rb"));
+            if (m_pRepackCtrl_in == NULL)
+            {
+                msdk_printf(MSDK_STRING("ERROR: Can't open file %s\n"), pInParams->repackctrlFile);
+                return MFX_ERR_UNSUPPORTED;
+            }
+            msdk_printf(MSDK_STRING("Using Frame Size control input file: %s\n"), pInParams->repackctrlFile);
+
+            SAFE_FREAD(&(m_mfxEncParams.mfx.MaxIFrameSize), sizeof(mfxU32), 1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&(m_mfxEncParams.mfx.MaxPFrameSize), sizeof(mfxU32), 1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&(m_mfxEncParams.mfx.MaxBFrameSize), sizeof(mfxU32), 1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&(m_mfxEncParams.mfx.NumPasses), sizeof(mfxU32), 1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(m_mfxEncParams.mfx.DeltaQP, sizeof(mfxU8) * 8, 1, m_pRepackCtrl_in, MFX_ERR_MORE_DATA);
+            if (m_mfxEncParams.mfx.NumPasses > 4)
+            {
+                msdk_printf(MSDK_STRING("WARNING: NumPasses should be less than or equal to 4\n"));
+            }
+        }
+
         m_mfxEncParams.mfx.QPI = pInParams->nQPI;
         m_mfxEncParams.mfx.QPP = pInParams->nQPP;
         m_mfxEncParams.mfx.QPB = pInParams->nQPB;
@@ -1119,6 +1142,7 @@ CEncodingPipeline::CEncodingPipeline()
     m_hwdev = NULL;
 
     m_round_in = NULL;
+    m_pRepackCtrl_in = NULL;
 
     MSDK_ZERO_MEMORY(m_mfxEncParams);
     MSDK_ZERO_MEMORY(m_mfxVppParams);
@@ -1601,6 +1625,12 @@ void CEncodingPipeline::Close()
     {
         fclose(m_round_in);
         m_round_in = NULL;
+    }
+
+    if(m_pRepackCtrl_in)
+    {
+        fclose(m_pRepackCtrl_in);
+        m_pRepackCtrl_in = NULL;
     }
 
     m_encExtBufs.Clear();

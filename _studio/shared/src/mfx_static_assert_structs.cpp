@@ -662,6 +662,11 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Info                          ,16   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Data                          ,88   )
 
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxIFrameSize                 ,4  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxPFrameSize                 ,8  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxBFrameSize                 ,12  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,NumPasses                     ,16  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,DeltaQP                       ,20  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,LowPower                      ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,BRCParamMultiplier            ,30   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,FrameInfo                     ,32   )
@@ -1302,6 +1307,11 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Info                          ,16   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Data                          ,88   )
 
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxIFrameSize                 ,4  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxPFrameSize                 ,8  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxBFrameSize                 ,12  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,NumPasses                     ,16  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,DeltaQP                       ,20  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,LowPower                      ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,BRCParamMultiplier            ,30   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,FrameInfo                     ,32   )

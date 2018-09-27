@@ -2305,6 +2305,15 @@ void MfxHwH264Encode::ConfigureTask(
         task.m_maxPBFrameSize = 0;
     }
 
+    if (video.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+    {
+        task.m_repackMaxIFrameSize = video.mfx.MaxIFrameSize;
+        task.m_repackMaxPFrameSize = video.mfx.MaxPFrameSize;
+        task.m_repackMaxBFrameSize = video.mfx.MaxBFrameSize;
+        task.m_repackNumPasses = video.mfx.NumPasses;
+        memcpy_s(task.m_repackDeltaQP, task.m_repackNumPasses, video.mfx.DeltaQP, task.m_repackNumPasses);
+    }
+
     task.m_numMbPerSlice = extOpt2.NumMbPerSlice;
     task.m_numSlice[ffid] = (task.m_type[ffid] & MFX_FRAMETYPE_I) ? extOpt3.NumSliceI :
         (task.m_type[ffid] & MFX_FRAMETYPE_P) ? extOpt3.NumSliceP : extOpt3.NumSliceB;
