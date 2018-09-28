@@ -25,8 +25,13 @@
 #include <assert.h>
 
 #include <string.h>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <windows.h>
+    #pragma warning(disable:4355)
+#else
     #include <dlfcn.h>
     #include <iostream>
+#endif // defined(_WIN32) || defined(_WIN64)
 
 
 MFX_DISP_HANDLE::MFX_DISP_HANDLE(const mfxVersion requiredVersion) :
