@@ -705,15 +705,15 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     if (attrs[idx_map[VAConfigAttribEncMacroblockInfo]].value != VA_ATTRIB_NOT_SUPPORTED &&
         attrs[idx_map[VAConfigAttribEncMacroblockInfo]].value)
-        m_caps.SegmentFeatureSupport &= 0b0001;
+        m_caps.SegmentFeatureSupport |= 1 << FEAT_QIDX;
 
     if (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != VA_ATTRIB_NOT_SUPPORTED &&
         attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value)
-        m_caps.SegmentFeatureSupport &= 0b0100;
+        m_caps.SegmentFeatureSupport |= 1 << FEAT_REF;
 
     if (attrs[idx_map[VAConfigAttribEncSkipFrame]].value != VA_ATTRIB_NOT_SUPPORTED &&
         attrs[idx_map[VAConfigAttribEncSkipFrame]].value)
-        m_caps.SegmentFeatureSupport &= 0b1000;
+        m_caps.SegmentFeatureSupport |= 1 << FEAT_SKIP;
 
     if (attrs[idx_map[VAConfigAttribEncDynamicScaling]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
