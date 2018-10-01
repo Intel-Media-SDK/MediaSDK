@@ -708,7 +708,8 @@ inline void ConvertStatusToBools(Bool& changed, Bool& unsupported, mfxStatus sts
     }
 }
 
-mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, mfxU32 frameHeight, ENCODE_CAPS_VP9 const & caps, mfxU16 QP)
+// if called with only video_par - assumed stream init, if both video_par and ctrl_par - assumed on-frame checking
+mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, mfxU32 frameHeight, ENCODE_CAPS_VP9 const & caps, mfxInfoMFX &video_par, mfxEncodeCtrl *ctrl_par = nullptr)
 {
     Bool changed = false;
     Bool unsupported = false;
@@ -755,7 +756,7 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
 
     for (mfxU16 i = 0; i < seg.NumSegments; i++)
     {
-        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, QP);
+        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par.QPI);
         if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             changed = true;
@@ -785,6 +786,62 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
         {
             seg.SegmentId = 0;
             unsupported = true;
+        }
+    }
+
+    // corner cases checks
+    if (seg.NumSegments == 1)
+    {
+        // corner case: only one segment is set
+        // segmentation doesn't make sense here, because one segment covers whole frame and all params can be applied directly to frame
+        if (seg.Segment[0].QIndexDelta)
+        {
+            if (ctrl_par == nullptr)
+            {
+                // global segmentation
+                if (video_par.RateControlMethod == MFX_RATECONTROL_CQP)
+                {
+                    // CQP: apply segment's QP_delta to global QP and disable segmentation
+                    CheckAndFixQIndexDelta(seg.Segment[0].QIndexDelta, video_par.QPI);
+                    video_par.QPI += seg.Segment[0].QIndexDelta;
+                    CheckAndFixQIndexDelta(seg.Segment[0].QIndexDelta, video_par.QPP);
+                    video_par.QPP += seg.Segment[0].QIndexDelta;
+                }
+                else
+                {
+                    unsupported = true;
+                }
+            }
+            else
+            {
+                // on-frame segmentation
+                unsupported = true;
+            }
+
+            seg.Segment[0].QIndexDelta = 0;
+        }
+
+        seg.NumSegments = 0;
+
+        changed = true;
+    }
+    else if (seg.NumSegments > 1)
+    {
+        // corner case: several segments are set but no segment params
+        // segmentation doesn't make sense because no actual changes are applied
+        Bool enabled_deltas = false;
+        for (mfxU16 i = 0; i < seg.NumSegments; i++)
+        {
+            if (seg.Segment[i].QIndexDelta || seg.Segment[i].LoopFilterLevelDelta || seg.Segment[i].FeatureEnabled || seg.Segment[i].ReferenceFrame)
+            {
+                enabled_deltas = true;
+                break;
+            }
+        }
+        if (enabled_deltas == false)
+        {
+            seg.NumSegments = 0;
+            changed = true;
         }
     }
 
@@ -1397,7 +1454,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
 
     mfxExtVP9Segmentation& seg = GetExtBufferRef(par);
 
-    mfxStatus segSts = CheckSegmentationParam(seg, width, height, caps, par.mfx.QPI);
+    mfxStatus segSts = CheckSegmentationParam(seg, width, height, caps, par.mfx);
     ConvertStatusToBools(changed, unsupported, segSts);
 
     if (IsOn(opt2.MBBRC) && seg.NumSegments)
@@ -1901,7 +1958,10 @@ mfxStatus CheckAndFixCtrl(
         else if (seg->NumSegments)
         {
             const mfxExtVP9Param& extPar = GetExtBufferRef(video);
-            sts = CheckSegmentationParam(*seg, extPar.FrameWidth, extPar.FrameHeight, caps, ctrl.QP);
+
+            mfxInfoMFX video_par_tmp = video.mfx;
+
+            sts = CheckSegmentationParam(*seg, extPar.FrameWidth, extPar.FrameHeight, caps, video_par_tmp, &ctrl);
             if (sts == MFX_ERR_UNSUPPORTED ||
                 (true == AnyMandatorySegMapParam(*seg) && false == AllMandatorySegMapParams(*seg)) ||
                 IsOn(opt2.MBBRC))
