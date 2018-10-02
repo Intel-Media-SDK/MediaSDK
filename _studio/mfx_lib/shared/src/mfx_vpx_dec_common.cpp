@@ -345,16 +345,6 @@ namespace MFX_VPX_Utility
             (p_in->mfx.FrameInfo.AspectRatioH && p_in->mfx.FrameInfo.AspectRatioH != 1))
             return false;
 
-        switch (p_in->mfx.FrameInfo.PicStruct)
-        {
-        case MFX_PICSTRUCT_UNKNOWN:
-        case MFX_PICSTRUCT_PROGRESSIVE:
-            break;
-
-        default:
-            return false;
-        }
-
         if (!(p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(p_in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
             return false;
 

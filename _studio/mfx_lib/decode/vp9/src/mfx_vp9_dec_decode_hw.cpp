@@ -47,7 +47,14 @@ bool CheckHardwareSupport(VideoCORE *p_core, mfxVideoParam *p_video_param)
 
     GUID guid;
 
-    switch(p_video_param->mfx.CodecProfile)
+    mfxU32 profile = p_video_param->mfx.CodecProfile;
+
+    if (!profile)
+    {
+        profile = UMC_VP9_DECODER::GetMinProfile(p_video_param->mfx.FrameInfo.BitDepthLuma, p_video_param->mfx.FrameInfo.ChromaFormat);
+    }
+
+    switch(profile)
     {
     case MFX_PROFILE_VP9_0:
     {
