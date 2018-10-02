@@ -372,7 +372,6 @@ mfxStatus SetRateControl(
 
     mfxExtVP9TemporalLayers& extTL = GetExtBufferRef(par);
 
-    rateParamBuf_ids.resize(numTL);
     for (VABufferID id : rateParamBuf_ids)
     {
         if (id != VA_INVALID_ID)
@@ -380,6 +379,8 @@ mfxStatus SetRateControl(
             vaDestroyBuffer(m_vaDisplay, id);
         }
     }
+
+    rateParamBuf_ids.resize(numTL);
 
     for (mfxU8 tl = 0; tl < rateParamBuf_ids.size(); tl++)
     {
@@ -530,7 +531,6 @@ mfxStatus SetFrameRate(
     else
         TL_attached = true;
 
-    frameRateBufIds.resize(numTL);
     for (VABufferID id : frameRateBufIds)
     {
         if (id != VA_INVALID_ID)
@@ -538,6 +538,8 @@ mfxStatus SetFrameRate(
             vaDestroyBuffer(m_vaDisplay, id);
         }
     }
+
+    frameRateBufIds.resize(numTL);
 
     mfxU32 base_framerate;
     PackMfxFrameRate(par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD, base_framerate);
