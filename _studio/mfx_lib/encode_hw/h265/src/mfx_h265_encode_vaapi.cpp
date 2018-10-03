@@ -1360,6 +1360,7 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
         }
     }
 
+
     if (bCUQPMap)
     {
 
@@ -1794,6 +1795,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
             vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
+        surfSts = VASurfaceReady;
 
         surfSts = VASurfaceReady;
 
