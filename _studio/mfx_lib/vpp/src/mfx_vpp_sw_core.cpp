@@ -254,11 +254,7 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     m_errPrtctState.IOPattern  = par->IOPattern;
     m_errPrtctState.AsyncDepth = par->AsyncDepth;
 
-    sts = GetCompositionEnabledStatus(par);
-    if (sts == MFX_ERR_NONE)
-        m_errPrtctState.isCompositionModeEnabled = true;
-    else
-        m_errPrtctState.isCompositionModeEnabled = false;
+    m_errPrtctState.isCompositionModeEnabled = IsCompositionMode(par);
 
     m_InitState = m_errPrtctState; // Save params on init
 
@@ -1211,17 +1207,17 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
         }
     }// Opaque
 
+    bool isCompositionModeInNewParams = IsCompositionMode(par);
+    // Enabling/disabling composition via Reset() doesn't work currently.
+    // This is a workaround to prevent undefined behavior.
+    MFX_CHECK(m_errPrtctState.isCompositionModeEnabled != isCompositionModeInNewParams, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
     /* save init params to prevent core crash */
     m_errPrtctState.In  = par->vpp.In;
     m_errPrtctState.Out = par->vpp.Out;
     m_errPrtctState.IOPattern  = par->IOPattern;
     m_errPrtctState.AsyncDepth = par->AsyncDepth;
-
-    mfxStatus compSts = GetCompositionEnabledStatus(par);
-    if (compSts == MFX_ERR_NONE)
-        m_errPrtctState.isCompositionModeEnabled = true;
-    else
-        m_errPrtctState.isCompositionModeEnabled = false;
+    m_errPrtctState.isCompositionModeEnabled = isCompositionModeInNewParams;
 
     return sts;
 
