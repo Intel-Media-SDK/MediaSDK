@@ -104,6 +104,7 @@ if (BUILD_SAMPLES)
 endif()
 
 if (BUILD_RUNTIME)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/ipp)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
