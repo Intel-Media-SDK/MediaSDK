@@ -1903,7 +1903,7 @@ mfxStatus CEncodingPipeline::ResizeFrame(mfxU32 m_frameCount, mfxU16 picstruct)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    bool reset_point = m_DRCqueue.size() && m_DRCqueue[m_nDRC_idx].start_frame == m_frameCount;
+    bool reset_point = (m_DRCqueue.size() > m_nDRC_idx) && (m_DRCqueue[m_nDRC_idx].start_frame == m_frameCount);
 
     if (!reset_point)
         return sts;
