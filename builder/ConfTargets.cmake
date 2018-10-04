@@ -75,6 +75,8 @@ if (ENABLE_STAT)
 endif()
 
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
+option( MFX_ENABLE_SW_FALLBACK "Enabled software fallback for codecs?" ON )
+
 cmake_dependent_option(
   BUILD_KERNELS "Rebuild kernels (shaders)?" OFF
   "MFX_ENABLE_KERNELS" OFF)

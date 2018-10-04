@@ -173,6 +173,12 @@ else()
   set(GENX_LIB "")
 endif()
 
+if( MFX_ENABLE_SW_FALLBACK )
+  set(SW_FALLBACK_LIBS "color_space_converter_hw;ipp")
+else()
+  set(SW_FALLBACK_LIBS "")
+endif()
+
 set( LIBS "" )
 list( APPEND LIBS
   bitrate_control
@@ -180,6 +186,7 @@ list( APPEND LIBS
   h265_dec_hw
   jpeg_common
   jpeg_dec_hw
+  ${SW_FALLBACK_LIBS}
   mpeg2_dec_hw
   vc1_common
   vc1_dec_hw

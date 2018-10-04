@@ -18,26 +18,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ASC
+#ifndef __UMC_COLOR_SPACE_CONVERSION_H__
+#define __UMC_COLOR_SPACE_CONVERSION_H__
 
-#cmakedefine MFX_ENABLE_USER_DECODE
-#cmakedefine MFX_ENABLE_USER_ENCODE
-#cmakedefine MFX_ENABLE_USER_ENC
-#cmakedefine MFX_ENABLE_USER_VPP
+#include "umc_base_codec.h"
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
+namespace UMC
+{
+
+class ColorSpaceConversion : public BaseCodec
+{
+  DYNAMIC_CAST_DECL(ColorSpaceConversion, BaseCodec)
+public:
+  // Initialize codec with specified parameter(s)
+  virtual Status Init(BaseCodecParams *) { return UMC_OK; };
+
+  // Convert next frame
+  virtual Status GetFrame(MediaData *in, MediaData *out);
+
+  // Get codec working (initialization) parameter(s)
+  virtual Status GetInfo(BaseCodecParams *) { return UMC_OK; };
+
+  // Close all codec resources
+  virtual Status Close(void) { return UMC_OK; };
+
+  // Set codec to initial state
+  virtual Status Reset(void) { return UMC_OK; };
+
+private:
+  Status GetFrameInternal(MediaData *in, MediaData *out);
+};
+
+} // namespace UMC
+
+#endif /* __UMC_COLOR_SPACE_CONVERSION_H__ */
