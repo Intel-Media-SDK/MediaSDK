@@ -20,9 +20,6 @@
 
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-#if defined(__GNUC__)
-    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
 
 #include <stdio.h>
 #include <string.h>

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,8 +31,8 @@
 #include "umc_video_decoder.h"
 #include "mfx_umc_alloc_wrapper.h"
 
-#include "umc_mutex.h"
-
+#include <mutex>
+#include <queue>
 
 #include "mfx_task.h"
 
@@ -55,7 +55,7 @@ public:
     UMC::VideoDecoderParams umcVideoParams;
 
     // Free tasks queue guard (if SW is used)
-    UMC::Mutex m_guard;
+    std::mutex m_guard;
     mfxDecodeStat m_stat;
     bool    m_isOpaq;
     mfxVideoParamWrapper m_vPar;
@@ -110,7 +110,7 @@ public:
     mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType);
 
     static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool *needVpp);
-    
+
     static mfxStatus CheckVPPCaps(VideoCORE * core, mfxVideoParam * par);
 
 
@@ -131,6 +131,37 @@ protected:
     UMC::VideoAccelerator * m_va;
 };
 
+#ifdef MFX_ENABLE_SW_FALLBACK
+// Forward declaration of used classes
+class CJpegTask;
+
+class VideoDECODEMJPEGBase_SW : public VideoDECODEMJPEGBase
+{
+public:
+    VideoDECODEMJPEGBase_SW();
+
+    mfxStatus Init(mfxVideoParam *decPar, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxFrameAllocRequest *request_internal, bool isUseExternalFrames, VideoCORE *core) override;
+    mfxStatus Reset(mfxVideoParam *par) override;
+    mfxStatus Close(void) override;
+
+    mfxStatus GetVideoParam(mfxVideoParam *par) override;
+    mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber) override;
+    mfxStatus CompleteTask(void *pParam, mfxStatus taskRes) override;
+    mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber) override;
+    mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq) override;
+    void ReleaseReservedTask() override;
+    mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic) override;
+    mfxStatus AllocateFrameData(UMC::FrameData *&data) override;
+    mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out) override;
+
+protected:
+    CJpegTask *pLastTask;
+    // Free tasks queue (if SW is used)
+    std::queue<std::unique_ptr<CJpegTask>> m_freeTasks;
+    // Count of created tasks (if SW is used)
+    mfxU16  m_tasksCount;
+};
+#endif
 
 class VideoDECODEMJPEG : public VideoDECODE
 {
@@ -191,7 +222,7 @@ protected:
     mfxFrameAllocResponse m_response_alien;
     eMFXPlatform m_platform;
 
-    UMC::Mutex m_mGuard;
+    std::mutex m_mGuard;
 
     // Frame skipping rate
     mfxU32 m_skipRate;

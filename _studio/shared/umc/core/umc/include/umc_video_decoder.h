@@ -24,6 +24,7 @@
 #include "umc_structures.h"
 #include "umc_video_data.h"
 #include "umc_base_codec.h"
+#include "umc_base_color_space_converter.h"
 
 namespace UMC
 {
