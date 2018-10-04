@@ -408,7 +408,6 @@ CORE_FUNC_IMPL(IncreaseReference, (mfxHDL pthis, mfxFrameData *fd), (fd))
 CORE_FUNC_IMPL(DecreaseReference, (mfxHDL pthis, mfxFrameData *fd), (fd))
 CORE_FUNC_IMPL(CopyFrame, (mfxHDL pthis, mfxFrameSurface1 *dst, mfxFrameSurface1 *src), (dst, src))
 CORE_FUNC_IMPL(CopyBuffer, (mfxHDL pthis, mfxU8 *dst, mfxU32 dst_size, mfxFrameSurface1 *src), (dst, dst_size, src))
-CORE_FUNC_IMPL(CopyFrameEx, (mfxHDL pthis, mfxFrameSurface1 *dst, mfxU16  dstMemType, mfxFrameSurface1 *src, mfxU16  srcMemType), (dst, dstMemType, src, srcMemType))
 
 #undef CORE_FUNC_IMPL
 
@@ -467,45 +466,6 @@ mfxStatus mfxDefFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
     return pExtAlloc?pExtAlloc->Free(pExtAlloc->pthis,response):pCore->FreeFrames(response); 
 
 } // mfxStatus mfxDefFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
-
-
-
-// exposed external allocator
-mfxStatus mfxExtAllocFrames(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
-{
-    MFX_CHECK_NULL_PTR1(pthis);
-    if (request->Type & MFX_MEMTYPE_EXTERNAL_FRAME)
-    {
-        VideoCORE *pCore = (VideoCORE*)pthis;
-        return pCore->AllocFrames(request,response); 
-    }
-    return MFX_ERR_UNSUPPORTED;
-
-} // mfxStatus mfxExtAllocFrames(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
-mfxStatus mfxExtLockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr)
-{
-    VideoCORE *pCore = (VideoCORE*)pthis;
-    return pCore->LockExternalFrame(mid,ptr); 
-
-} // mfxStatus mfxExtLockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr)
-mfxStatus mfxExtGetHDL(mfxHDL pthis, mfxMemId mid, mfxHDL *handle)
-{
-    VideoCORE *pCore = (VideoCORE*)pthis;
-    return pCore->GetExternalFrameHDL(mid, handle);
-
-} // mfxStatus mfxExtGetHDL(mfxHDL pthis, mfxMemId mid, mfxHDL *handle)
-mfxStatus mfxExtUnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0)
-{
-    VideoCORE *pCore = (VideoCORE*)pthis;
-    return pCore->UnlockExternalFrame(mid, ptr); 
-
-} // mfxStatus mfxExtUnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0)
-mfxStatus mfxExtFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
-{
-    VideoCORE *pCore = (VideoCORE*)pthis;
-    return pCore->FreeFrames(response); 
-
-} // mfxStatus mfxExtFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
 
 void InitCoreInterface(mfxCoreInterface *pCoreInterface,
                        const mfxSession session)

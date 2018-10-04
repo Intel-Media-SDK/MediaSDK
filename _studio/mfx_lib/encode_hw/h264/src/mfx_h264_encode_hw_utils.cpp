@@ -59,18 +59,18 @@ namespace MfxHwH264Encode
             }
             else // MFX_IOPATTERN_IN_VIDEO_MEMORY || MFX_IOPATTERN_IN_OPAQUE_MEMORY
             {
-                mfxExtCodingOptionDDI * extDdi = GetExtBuffer(par);
-                numFrameMin = IsOn(extDdi->RefRaw)
+                mfxExtCodingOptionDDI & extDdi = GetExtBufferRef(par);
+                numFrameMin = IsOn(extDdi.RefRaw)
                     ? par.mfx.GopRefDist + par.mfx.NumRefFrame
                     : par.mfx.GopRefDist;
             }
 
             numFrameMin = numFrameMin + par.AsyncDepth - 1;
 
-            mfxExtMVCSeqDesc * extMvc = GetExtBuffer(par);
-            numFrameMin = mfxU16(MFX_MIN(0xffff, numFrameMin       * extMvc->NumView));
+            mfxExtMVCSeqDesc & extMvc = GetExtBufferRef(par);
+            numFrameMin = mfxU16(MFX_MIN(0xffff, numFrameMin * extMvc.NumView));
         }
-        if (IsAvcProfile(par.mfx.CodecProfile))//AVC
+        if (IsAvcProfile(par.mfx.CodecProfile)) //AVC
         {
             mfxExtCodingOption2 *       extOpt2 = GetExtBuffer(par);
             mfxExtCodingOption3 *       extOpt3 = GetExtBuffer(par);
@@ -82,8 +82,8 @@ namespace MfxHwH264Encode
             {
                 numFrameMin = (mfxU16)AsyncRoutineEmulator(par).GetTotalGreediness() + par.AsyncDepth - 1;
 
-                mfxExtCodingOptionDDI * extDdi = GetExtBuffer(par);
-                numFrameMin += IsOn(extDdi->RefRaw)
+                mfxExtCodingOptionDDI & extDdi = GetExtBufferRef(par);
+                numFrameMin += IsOn(extDdi.RefRaw)
                     ? par.mfx.NumRefFrame
                     : 0;
 
@@ -154,10 +154,10 @@ namespace MfxHwH264Encode
         MfxVideoParam const & video,
         mfxU16                runtPs)
     {
-        mfxExtCodingOption const * extOpt = GetExtBuffer(video);
+        mfxExtCodingOption const & extOpt = GetExtBufferRef(video);
         mfxU16 initPs   = video.mfx.FrameInfo.PicStruct;
-        mfxU16 framePic = extOpt->FramePicture;
-        mfxU16 fieldOut = extOpt->FieldOutput;
+        mfxU16 framePic = extOpt.FramePicture;
+        mfxU16 fieldOut = extOpt.FieldOutput;
 
         static mfxU16 const PRG  = MFX_PICSTRUCT_PROGRESSIVE;
         static mfxU16 const TFF  = MFX_PICSTRUCT_FIELD_TFF;
@@ -604,8 +604,8 @@ void FrameTypeGenerator::Init(MfxVideoParam const & video)
     m_gopRefDist = MFX_MAX(video.mfx.GopRefDist, 1);
     m_idrDist    = m_gopPicSize * (video.mfx.IdrInterval + 1);
 
-    mfxExtCodingOption2 * extOpt2 = GetExtBuffer(video);
-    m_biPyramid = extOpt2->BRefType == MFX_B_REF_OFF ? 0 : extOpt2->BRefType;
+    mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(video);
+    m_biPyramid = extOpt2.BRefType == MFX_B_REF_OFF ? 0 : extOpt2.BRefType;
 
     m_frameOrder = 0;
 }
@@ -820,11 +820,11 @@ void MfxHwH264Encode::PrepareSeiMessage(
     MfxVideoParam const &   par,
     mfxExtAvcSeiRecPoint &  msg)
 {
-    mfxExtCodingOption2 * extOpt2 = GetExtBuffer(par);
+    mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
     mfxU32 numTL = par.calcParam.numTemporalLayer;
-    if (extOpt2->IntRefType)
+    if (extOpt2.IntRefType)
         // following calculation assumes that for multiple temporal layers last layer is always non-reference
-        msg.recovery_frame_cnt = (extOpt2->IntRefCycleSize - 1) << (numTL > 2 ? (numTL >> 1) : 0);
+        msg.recovery_frame_cnt = (extOpt2.IntRefCycleSize - 1) << (numTL > 2 ? (numTL >> 1) : 0);
     else
         msg.recovery_frame_cnt = par.mfx.GopPicSize;
     msg.exact_match_flag = 1;
@@ -962,15 +962,16 @@ mfxStatus UmcBrc::Init(MfxVideoParam  & video)
         video.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
         video.mfx.RateControlMethod == MFX_RATECONTROL_AVBR);
 
-    mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(video);
-    m_lookAhead = extOpt2->LookAheadDepth;
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
+    m_lookAhead = extOpt2.LookAheadDepth;
 
     mfxVideoParam tmpVideo = video;
-    tmpVideo.mfx.GopRefDist = (extOpt2->LookAheadDepth >= 5) ? 1 : tmpVideo.mfx.GopRefDist;
+    tmpVideo.mfx.GopRefDist = (extOpt2.LookAheadDepth >= 5) ? 1 : tmpVideo.mfx.GopRefDist;
 
     UMC::VideoBrcParams umcBrcParams;
     mfxStatus sts = ConvertVideoParam_Brc(&tmpVideo, &umcBrcParams);
-    assert(sts == MFX_ERR_NONE); sts;
+    assert(sts == MFX_ERR_NONE);
+    (void)sts;
 
     umcBrcParams.GOPPicSize = tmpVideo.mfx.GopPicSize;
     umcBrcParams.GOPRefDist = tmpVideo.mfx.GopRefDist;
@@ -978,7 +979,8 @@ mfxStatus UmcBrc::Init(MfxVideoParam  & video)
     umcBrcParams.level      = tmpVideo.mfx.CodecLevel;
 
     UMC::Status umcSts = m_impl.Init(&umcBrcParams);
-    assert(umcSts == UMC::UMC_OK); umcSts;
+    assert(umcSts == UMC::UMC_OK);
+    (void)umcSts;
 
     return MFX_ERR_NONE;
 }
@@ -1072,7 +1074,7 @@ namespace
 #endif // _DEBUG
 
 #ifndef brcprintf
-#define brcprintf
+#define brcprintf(...)
 #endif // brcprintf
 
 namespace MfxHwH264EncodeHW
@@ -1124,16 +1126,16 @@ using namespace MfxHwH264EncodeHW;
 
 mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 {
-    mfxExtCodingOptionDDI const * extDdi  = GetExtBuffer(video);
-    mfxExtCodingOption2 const *   extOpt2 = GetExtBuffer(video);
-    mfxExtCodingOption3  const *   extOpt3  = GetExtBuffer(video);
+    mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(video);
+    mfxExtCodingOption2   const & extOpt2 = GetExtBufferRef(video);
+    mfxExtCodingOption3   const & extOpt3 = GetExtBufferRef(video);
 
 
-    m_lookAhead     = extOpt2->LookAheadDepth - extDdi->LookAheadDependency;
-    m_lookAheadDep  = extDdi->LookAheadDependency;
-    m_LaScaleFactor = LaDSenumToFactor(extOpt2->LookAheadDS);
-    m_qpUpdateRange = extDdi->QpUpdateRange;
-    m_strength      = extDdi->StrengthN;
+    m_lookAhead     = extOpt2.LookAheadDepth - extDdi.LookAheadDependency;
+    m_lookAheadDep  = extDdi.LookAheadDependency;
+    m_LaScaleFactor = LaDSenumToFactor(extOpt2.LookAheadDS);
+    m_qpUpdateRange = extDdi.QpUpdateRange;
+    m_strength      = extDdi.StrengthN;
 
     m_fr = mfxF64(video.mfx.FrameInfo.FrameRateExtN) / video.mfx.FrameInfo.FrameRateExtD;
     m_totNumMb = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height / 256;
@@ -1142,9 +1144,9 @@ mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
     m_targetRateMax = m_initTargetRate;
     m_laData.reserve(m_lookAhead);
 
-    assert(extDdi->RegressionWindow <= m_rateCoeffHistory[0].MAX_WINDOW);
+    assert(extDdi.RegressionWindow <= m_rateCoeffHistory[0].MAX_WINDOW);
     for (mfxU32 qp = 0; qp < 52; qp++)
-        m_rateCoeffHistory[qp].Reset(extDdi->RegressionWindow, 100.0, 100.0 * INIT_RATE_COEFF[qp]);
+        m_rateCoeffHistory[qp].Reset(extDdi.RegressionWindow, 100.0, 100.0 * INIT_RATE_COEFF[qp]);
     m_framesBehind = 0;
     m_bitsBehind = 0.0;
     m_curQp = -1;
@@ -1156,9 +1158,9 @@ mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 
     m_bControlMaxFrame = (video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD);
     m_AvgBitrate = 0;
-    if (extOpt3->WinBRCSize)
+    if (extOpt3.WinBRCSize)
     {
-        m_AvgBitrate = new AVGBitrate(extOpt3->WinBRCSize, (mfxU32)(1000.0* video.calcParam.WinBRCMaxAvgKbps / m_fr), (mfxU32)(1000.0* video.calcParam.targetKbps / m_fr), true);
+        m_AvgBitrate = new AVGBitrate(extOpt3.WinBRCSize, (mfxU32)(1000.0* video.calcParam.WinBRCMaxAvgKbps / m_fr), (mfxU32)(1000.0* video.calcParam.targetKbps / m_fr), true);
     }
     m_AsyncDepth = video.AsyncDepth > 1 ? 1 : 0;
     m_first = 0;
@@ -1179,14 +1181,14 @@ void LookAheadBrc2::Close()
 
 mfxStatus VMEBrc::Init(MfxVideoParam  & video)
 {
-    mfxExtCodingOptionDDI const * extDdi    = GetExtBuffer(video);
-    mfxExtCodingOption2  const * extOpt2    = GetExtBuffer(video);
-    mfxExtCodingOption3  const *   extOpt3  = GetExtBuffer(video);
+    mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(video);
+    mfxExtCodingOption2   const & extOpt2 = GetExtBufferRef(video);
+    mfxExtCodingOption3   const & extOpt3 = GetExtBufferRef(video);
 
 
-    m_LaScaleFactor = LaDSenumToFactor(extOpt2->LookAheadDS);
-    m_qpUpdateRange = extDdi->QpUpdateRange;
-    m_strength      = extDdi->StrengthN;
+    m_LaScaleFactor = LaDSenumToFactor(extOpt2.LookAheadDS);
+    m_qpUpdateRange = extDdi.QpUpdateRange;
+    m_strength      = extDdi.StrengthN;
 
     m_fr = mfxF64(video.mfx.FrameInfo.FrameRateExtN) / video.mfx.FrameInfo.FrameRateExtD;
 
@@ -1196,9 +1198,9 @@ mfxStatus VMEBrc::Init(MfxVideoParam  & video)
     m_targetRateMax = m_initTargetRate;
     m_laData.resize(0);
 
-    assert(extDdi->RegressionWindow <= m_rateCoeffHistory[0].MAX_WINDOW);
+    assert(extDdi.RegressionWindow <= m_rateCoeffHistory[0].MAX_WINDOW);
     for (mfxU32 qp = 0; qp < 52; qp++)
-        m_rateCoeffHistory[qp].Reset(extDdi->RegressionWindow, 100.0, 100.0 * INIT_RATE_COEFF[qp]);
+        m_rateCoeffHistory[qp].Reset(extDdi.RegressionWindow, 100.0, 100.0 * INIT_RATE_COEFF[qp]);
     m_framesBehind = 0;
     m_bitsBehind = 0.0;
     m_curQp = -1;
@@ -1207,9 +1209,9 @@ mfxStatus VMEBrc::Init(MfxVideoParam  & video)
     m_lookAhead = 0;
 
     m_AvgBitrate = 0;
-    if (extOpt3->WinBRCSize)
+    if (extOpt3.WinBRCSize)
     {
-        m_AvgBitrate = new AVGBitrate(extOpt3->WinBRCSize, (mfxU32)(1000.0 * video.calcParam.WinBRCMaxAvgKbps/m_fr),(mfxU32)(1000.0* video.calcParam.targetKbps / m_fr),true);
+        m_AvgBitrate = new AVGBitrate(extOpt3.WinBRCSize, (mfxU32)(1000.0 * video.calcParam.WinBRCMaxAvgKbps/m_fr),(mfxU32)(1000.0* video.calcParam.targetKbps / m_fr),true);
     }
     return MFX_ERR_NONE;
 }
@@ -1397,6 +1399,7 @@ mfxU8 GetFrameTypeLetter(mfxU32 frameType)
 
 mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
 {
+    (void)par;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::GetQp");
     brcprintf("\r%4d: do=%4d type=%c Rt=%7.3f-%7.3f curc=%4d numc=%2d ", m_laData[0].encOrder, m_laData[0].poc/2,
         GetFrameTypeLetter(par.FrameType), m_targetRateMin, m_targetRateMax, m_laData[0].interCost / m_totNumMb, mfxU32(m_laData.size()));
@@ -1820,9 +1823,9 @@ mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 
 mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
 {
-    mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(video);
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
 
-    m_lookAhead  = extOpt2->LookAheadDepth;
+    m_lookAhead  = extOpt2.LookAheadDepth;
     m_crfQuality = video.mfx.ICQQuality;
     m_totNumMb   = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height / 256;
 
@@ -1904,8 +1907,8 @@ void Hrd::Setup(MfxVideoParam const & par)
 
 // MVC BD {
     // for ViewOutput mode HRD should be controlled for every view separately
-    mfxExtCodingOption * opts = GetExtBuffer(par);
-    if (IsMvcProfile(par.mfx.CodecProfile) && opts->ViewOutput == MFX_CODINGOPTION_ON)
+    mfxExtCodingOption & opts = GetExtBufferRef(par);
+    if (IsMvcProfile(par.mfx.CodecProfile) && opts.ViewOutput == MFX_CODINGOPTION_ON)
     {
         m_bitrate  = GetMaxBitrateValue(par.calcParam.mvcPerViewPar.maxKbps) << (6 + SCALE_FROM_DRIVER);
         m_hrdIn90k = mfxU32(8000.0 * par.calcParam.mvcPerViewPar.bufferSizeInKB / m_bitrate * 90000.0);
@@ -1920,7 +1923,7 @@ void Hrd::Setup(MfxVideoParam const & par)
 
     m_taf_prv = 0.0;
 // MVC BD {
-    if (IsMvcProfile(par.mfx.CodecProfile) && opts->ViewOutput == MFX_CODINGOPTION_ON)
+    if (IsMvcProfile(par.mfx.CodecProfile) && opts.ViewOutput == MFX_CODINGOPTION_ON)
         m_trn_cur = double(8000) * par.calcParam.mvcPerViewPar.initialDelayInKB / m_bitrate;
     else
         m_trn_cur = double(8000) * par.calcParam.initialDelayInKB / m_bitrate;
@@ -2419,7 +2422,7 @@ void MfxHwH264Encode::PutSeiMessage(
     if (needBufferingPeriod == 0 && needPicTimingSei == 0 && fillerSize == 0)
         return;
 
-    mfxExtMVCSeqDesc * extMvc = GetExtBuffer(video);
+    mfxExtMVCSeqDesc & extMvc = GetExtBufferRef(video);
 
     mfxU32 dataSizeInBytes = 2; // hardcoded 2 bytes for MVC nested SEI syntax prior sei_messages (1 view in op)
 
@@ -2447,7 +2450,7 @@ void MfxHwH264Encode::PutSeiMessage(
 
     bs.PutBit(1); // put operation_point_flag = 1
     bs.PutUe(0); // put num_view_components_op_minus1 = 0
-    bs.PutBits(extMvc->View[1].ViewId, 10); // put sei_op_view_id[0]
+    bs.PutBits(extMvc.View[1].ViewId, 10); // put sei_op_view_id[0]
     bs.PutBits(0, 3); // sei_op_temporal_id
     bs.PutBits(0, 1); // put sei_nesting_zero_bits
 
@@ -2938,13 +2941,13 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         else
         {
             // FEI frame control buffer is mandatory for encoding
-            mfxExtFeiParam const * feiParam = GetExtBuffer(video);
+            mfxExtFeiParam const & feiParam = GetExtBufferRef(video);
             // FEI encoding without any extension buffers provided is impossible
-            MFX_CHECK(feiParam->Func != MFX_FEI_FUNCTION_ENCODE, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(feiParam.Func != MFX_FEI_FUNCTION_ENCODE, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
-        mfxExtOpaqueSurfaceAlloc * extOpaq = GetExtBuffer(video);
-        bool opaq = extOpaq->In.Surfaces != 0;
+        mfxExtOpaqueSurfaceAlloc & extOpaq = GetExtBufferRef(video);
+        bool opaq = extOpaq.In.Surfaces != 0;
 
         MFX_CHECK((surface->Data.Y == 0) == (surface->Data.UV == 0), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(surface->Data.Pitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -3051,7 +3054,8 @@ void MfxHwH264Encode::FastCopyBufferVid2Sys(void * dstSys, void const * srcVid, 
 
     mfxSize roi = { bytes, 1 };
     mfxStatus sts = FastCopy::Copy((uint8_t *)dstSys, bytes, (uint8_t *)srcVid, bytes, roi, COPY_VIDEO_TO_SYS);
-    assert(sts == MFX_ERR_NONE); sts;
+    assert(sts == MFX_ERR_NONE);
+    (void)sts;
 }
 
 void MfxHwH264Encode::FastCopyBufferSys2Vid(void * dstVid, void const * srcSys, mfxI32 bytes)
@@ -3061,10 +3065,8 @@ void MfxHwH264Encode::FastCopyBufferSys2Vid(void * dstVid, void const * srcSys, 
 
     mfxSize roi = { bytes, 1 };
     mfxStatus sts = FastCopy::Copy((uint8_t *)dstVid, bytes, (uint8_t *)srcSys, bytes, roi, COPY_SYS_TO_VIDEO);
-    assert(sts == MFX_ERR_NONE); sts;
-
-
-
+    assert(sts == MFX_ERR_NONE);
+    (void)sts;
 }
 
 void CyclicTaskPool::Init(mfxU32 size)
@@ -3276,7 +3278,7 @@ void MfxHwH264Encode::ReadDecRefPicMarking(
     {
         mfxU32 tmp = reader.GetBit();       // adaptive_ref_pic_marking_mode_flag
         assert(tmp == 0 && "adaptive_ref_pic_marking_mode_flag should be 0");
-        tmp;
+        (void)tmp;
     }
 }
 
@@ -3340,8 +3342,8 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
     DdiTask const &       task,
     mfxU32                fieldId)
 {
-    mfxExtSpsHeader * extSps = GetExtBuffer(par);
-    mfxExtPpsHeader * extPps = GetExtBuffer(par);
+    mfxExtSpsHeader & extSps = GetExtBufferRef(par);
+    mfxExtPpsHeader & extPps = GetExtBufferRef(par);
 
     mfxU32 num_ref_idx_l0_active_minus1     = 0;
     mfxU32 num_ref_idx_l1_active_minus1     = 0;
@@ -3351,7 +3353,7 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
 
     mfxU32 tmp = 0;
 
-    if (extPps->entropyCodingModeFlag == 0)
+    if (extPps.entropyCodingModeFlag == 0)
     {
         // remove start code emulation prevention bytes when doing full repack for CAVLC
         mfxU32 zeroCount = 0;
@@ -3371,17 +3373,17 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
         }
     }
 
-    InputBitstream  reader(sbegin, send, true, extPps->entropyCodingModeFlag == 1);
+    InputBitstream  reader(sbegin, send, true, extPps.entropyCodingModeFlag == 1);
     OutputBitstream writer(dbegin, dend);
 
     writer.PutUe(reader.GetUe());                               // first_mb_in_slice
     writer.PutUe(sliceType = reader.GetUe());                   // slice_type
     writer.PutUe(reader.GetUe());                               // pic_parameter_set_id
 
-    mfxU32 log2MaxFrameNum = extSps->log2MaxFrameNumMinus4 + 4;
+    mfxU32 log2MaxFrameNum = extSps.log2MaxFrameNumMinus4 + 4;
     writer.PutBits(reader.GetBits(log2MaxFrameNum), log2MaxFrameNum);
 
-    if (!extSps->frameMbsOnlyFlag)
+    if (!extSps.frameMbsOnlyFlag)
     {
         writer.PutBit(fieldPicFlag = reader.GetBit());          // field_pic_flag
         if (fieldPicFlag)
@@ -3391,9 +3393,9 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
     if (task.m_type[fieldId] & MFX_FRAMETYPE_IDR)
         writer.PutUe(reader.GetUe());                           // idr_pic_id
 
-    if (extSps->picOrderCntType == 0)
+    if (extSps.picOrderCntType == 0)
     {
-        mfxU32 log2MaxPicOrderCntLsb = extSps->log2MaxPicOrderCntLsbMinus4 + 4;
+        mfxU32 log2MaxPicOrderCntLsb = extSps.log2MaxPicOrderCntLsbMinus4 + 4;
         writer.PutBits(reader.GetBits(log2MaxPicOrderCntLsb), log2MaxPicOrderCntLsb);
     }
 
@@ -3415,8 +3417,8 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
         }
         else
         {
-            num_ref_idx_l0_active_minus1 = extPps->numRefIdxL0DefaultActiveMinus1;
-            num_ref_idx_l1_active_minus1 = extPps->numRefIdxL1DefaultActiveMinus1;
+            num_ref_idx_l0_active_minus1 = extPps.numRefIdxL0DefaultActiveMinus1;
+            num_ref_idx_l1_active_minus1 = extPps.numRefIdxL1DefaultActiveMinus1;
         }
     }
 
@@ -3454,7 +3456,7 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
         WriteDecRefPicMarking(writer, task.m_decRefPicMrk[fieldId], idrPicFlag);
     }
 
-    if (extPps->entropyCodingModeFlag && (sliceType % 5 != 2))
+    if (extPps.entropyCodingModeFlag && (sliceType % 5 != 2))
         writer.PutUe(reader.GetUe());                           // cabac_init_idc
 
     writer.PutSe(reader.GetSe());                               // slice_qp_delta
@@ -3469,7 +3471,7 @@ mfxU8 * MfxHwH264Encode::RePackSlice(
         }
     }
 
-    if (extPps->entropyCodingModeFlag)
+    if (extPps.entropyCodingModeFlag)
     {
         while (reader.NumBitsRead() % 8)
             reader.GetBit();                                    // cabac_alignment_one_bit
@@ -3527,47 +3529,47 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     mfxU32                fieldId,
     PreAllocatedVector &  sei)
 {
-    mfxExtCodingOption const *     extOpt =  GetExtBuffer(video);
-    mfxExtSpsHeader const *        extSps =  GetExtBuffer(video);
-    mfxExtCodingOption2 const *    extOpt2 = GetExtBuffer(video);
-    mfxExtPictureTimingSEI const * extPt  = SelectPicTimingSei(video, task);
+    mfxExtCodingOption const     & extOpt  = GetExtBufferRef(video);
+    mfxExtSpsHeader const        & extSps  = GetExtBufferRef(video);
+    mfxExtCodingOption2 const    & extOpt2 = GetExtBufferRef(video);
+    mfxExtPictureTimingSEI const * extPt   = SelectPicTimingSei(video, task);
 
     mfxU32 fillerSize         = task.m_fillerSize[fieldId];
     mfxU32 fieldPicFlag       = (task.GetPicStructForEncode() != MFX_PICSTRUCT_PROGRESSIVE);
     mfxU32 secondFieldPicFlag = (task.GetFirstField() != fieldId);
     mfxU32 idrPicFlag         = (task.m_type[fieldId] & MFX_FRAMETYPE_IDR);
-    mfxU32 isIPicture = (task.m_type[fieldId] & MFX_FRAMETYPE_I);
+    mfxU32 isIPicture         = (task.m_type[fieldId] & MFX_FRAMETYPE_I);
     mfxU32 recoveryPoint      = IsRecoveryPointSeiMessagePresent(
         task.m_ctrl.Payload,
         task.m_ctrl.NumPayload,
         GetPayloadLayout(fieldPicFlag, secondFieldPicFlag));
 
-    mfxU32 needRecoveryPointSei = (extOpt->RecoveryPointSEI == MFX_CODINGOPTION_ON &&
-        ((extOpt2->IntRefType && task.m_IRState.firstFrameInCycle && task.m_IRState.IntraLocation == 0) ||
-        (extOpt2->IntRefType == 0 && isIPicture)));
+    mfxU32 needRecoveryPointSei = (extOpt.RecoveryPointSEI == MFX_CODINGOPTION_ON &&
+        ((extOpt2.IntRefType && task.m_IRState.firstFrameInCycle && task.m_IRState.IntraLocation == 0) ||
+        (extOpt2.IntRefType == 0 && isIPicture)));
 
     mfxU32 needCpbRemovalDelay = idrPicFlag || recoveryPoint || needRecoveryPointSei ||
-        (isIPicture && extOpt2->BufferingPeriodSEI == MFX_BPSEI_IFRAME);
+        (isIPicture && extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME);
 
     mfxU32 needMarkingRepetitionSei =
-        IsOn(extOpt->RefPicMarkRep) && task.m_decRefPicMrkRep[fieldId].presentFlag;
+        IsOn(extOpt.RefPicMarkRep) && task.m_decRefPicMrkRep[fieldId].presentFlag;
 
     mfxU32 needBufferingPeriod =
-        (IsOn(extOpt->VuiNalHrdParameters) && needCpbRemovalDelay) ||
-        (IsOn(extOpt->VuiVclHrdParameters) && needCpbRemovalDelay) ||
-        (IsOn(extOpt->PicTimingSEI) &&
-        (idrPicFlag || (isIPicture && extOpt2->BufferingPeriodSEI == MFX_BPSEI_IFRAME))); // to activate sps
+        (IsOn(extOpt.VuiNalHrdParameters) && needCpbRemovalDelay) ||
+        (IsOn(extOpt.VuiVclHrdParameters) && needCpbRemovalDelay) ||
+        (IsOn(extOpt.PicTimingSEI) &&
+        (idrPicFlag || (isIPicture && extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))); // to activate sps
 
     mfxU32 needPicTimingSei =
-        IsOn(extOpt->VuiNalHrdParameters) ||
-        IsOn(extOpt->VuiVclHrdParameters) ||
-        IsOn(extOpt->PicTimingSEI);
+        IsOn(extOpt.VuiNalHrdParameters) ||
+        IsOn(extOpt.VuiVclHrdParameters) ||
+        IsOn(extOpt.PicTimingSEI);
 
     if (video.calcParam.cqpHrdMode)
         needBufferingPeriod = needPicTimingSei = 0; // in CQP HRD mode application inserts BP and PT SEI itself
 
     mfxU32 needAtLeastOneSei =
-        (task.m_ctrl.Payload && task.m_ctrl.NumPayload > secondFieldPicFlag && task.m_ctrl.Payload[secondFieldPicFlag] != 0) ||
+        (task.m_ctrl.NumPayload > secondFieldPicFlag && task.m_ctrl.Payload[secondFieldPicFlag] != 0) ||
         (fillerSize > 0)    ||
         needBufferingPeriod ||
         needPicTimingSei    ||
@@ -3576,29 +3578,29 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     OutputBitstream writer(sei.Buffer(), sei.Capacity());
 
     mfxU8 const SEI_STARTCODE[5] = { 0, 0, 0, 1, 6 };
-    if (needAtLeastOneSei && IsOn(extOpt->SingleSeiNalUnit))
+    if (needAtLeastOneSei && IsOn(extOpt.SingleSeiNalUnit))
         writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
 
     mfxExtAvcSeiBufferingPeriod msgBufferingPeriod = {};
     {
         mfxExtAvcSeiPicTiming msgPicTiming;
 
-        mfxU32 sps_id = extSps->seqParameterSetId;
+        mfxU32 sps_id = extSps.seqParameterSetId;
         sps_id = ((sps_id + !!task.m_viewIdx) & 0x1f);  // use appropriate sps id for dependent views
 
         if (needBufferingPeriod)
         {
             PrepareSeiMessage(
                 task,
-                IsOn(extOpt->VuiNalHrdParameters),
-                IsOn(extOpt->VuiVclHrdParameters),
+                IsOn(extOpt.VuiNalHrdParameters),
+                IsOn(extOpt.VuiVclHrdParameters),
                 sps_id,
                 msgBufferingPeriod);
 
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
             PutSeiMessage(writer, msgBufferingPeriod);
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutTrailingBits();
         }
 
@@ -3607,13 +3609,13 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
             PrepareSeiMessage(
                 task,
                 fieldId,
-                IsOn(extOpt->VuiNalHrdParameters) || IsOn(extOpt->VuiVclHrdParameters),
+                IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters),
                 msgPicTiming);
 
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
             PutSeiMessage(writer, *extPt, msgPicTiming);
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutTrailingBits();
         }
     }
@@ -3622,11 +3624,11 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     {
         if (task.m_ctrl.Payload[i] != 0)
         {
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
             for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
                 writer.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutTrailingBits();
         }
     }
@@ -3638,10 +3640,10 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
         mfxExtAvcSeiDecRefPicMrkRep decRefPicMrkRep;
         PrepareSeiMessage(task, fieldId, frameMbsOnlyFlag, decRefPicMrkRep);
 
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiMessage(writer, decRefPicMrkRep);
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutTrailingBits();
     }
 
@@ -3649,10 +3651,10 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
     {
         mfxExtAvcSeiRecPoint msgPicTiming;
         PrepareSeiMessage(video, msgPicTiming);
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiMessage(writer, msgPicTiming);
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutTrailingBits();
     }
 
@@ -3661,15 +3663,15 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
         // how many bytes takes to encode payloadSize depends on size of sei message
         // need to compensate it
         fillerSize -= fillerSize / 256;
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiHeader(writer, SEI_TYPE_FILLER_PAYLOAD, fillerSize);
         writer.PutFillerBytes(0xff, fillerSize);
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutTrailingBits();
     }
 
-    if (needAtLeastOneSei && IsOn(extOpt->SingleSeiNalUnit))
+    if (needAtLeastOneSei && IsOn(extOpt.SingleSeiNalUnit))
         writer.PutTrailingBits();
 
     // add repack compensation to the end of last sei NALu.
@@ -3687,8 +3689,8 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     mfxU32                fieldId,
     PreAllocatedVector &  sei)
 {
-    mfxExtCodingOption const *     extOpt = GetExtBuffer(video);
-    mfxExtSpsHeader const *        extSps = GetExtBuffer(video);
+    mfxExtCodingOption const     & extOpt = GetExtBufferRef(video);
+    mfxExtSpsHeader const        & extSps = GetExtBufferRef(video);
     mfxExtPictureTimingSEI const * extPt  = SelectPicTimingSei(video, task);
 
     mfxU32 fillerSize         = task.m_fillerSize[fieldId];
@@ -3703,26 +3705,26 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     mfxU32 needCpbRemovalDelay = idrPicFlag || recoveryPoint;
 
     mfxU32 needMarkingRepetitionSei =
-        IsOn(extOpt->RefPicMarkRep) && task.m_decRefPicMrkRep[fieldId].presentFlag;
+        IsOn(extOpt.RefPicMarkRep) && task.m_decRefPicMrkRep[fieldId].presentFlag;
 
     mfxU32 needBufferingPeriod =
-        (IsOn(extOpt->VuiNalHrdParameters) && needCpbRemovalDelay) ||
-        (IsOn(extOpt->VuiVclHrdParameters) && needCpbRemovalDelay) ||
-        (IsOn(extOpt->PicTimingSEI)        && idrPicFlag); // to activate sps
+        (IsOn(extOpt.VuiNalHrdParameters) && needCpbRemovalDelay) ||
+        (IsOn(extOpt.VuiVclHrdParameters) && needCpbRemovalDelay) ||
+        (IsOn(extOpt.PicTimingSEI)        && idrPicFlag); // to activate sps
 
     mfxU32 needPicTimingSei =
-        IsOn(extOpt->VuiNalHrdParameters) ||
-        IsOn(extOpt->VuiVclHrdParameters) ||
-        IsOn(extOpt->PicTimingSEI);
+        IsOn(extOpt.VuiNalHrdParameters) ||
+        IsOn(extOpt.VuiVclHrdParameters) ||
+        IsOn(extOpt.PicTimingSEI);
 
     mfxU32 needMvcNestingSei = needBufferingPeriod || needPicTimingSei;
     // for BD/AVCHD compatible encoding filler SEI should have MVC nesting wrapper
-    if (IsOn(extOpt->ViewOutput))
+    if (IsOn(extOpt.ViewOutput))
         needMvcNestingSei |= (fillerSize != 0);
 
     mfxU32 needNotNestingSei =
-        (task.m_ctrl.Payload && task.m_ctrl.NumPayload > 0) ||
-        (fillerSize > 0 && IsOff(extOpt->ViewOutput)) ||
+        (task.m_ctrl.NumPayload > 0)                 ||
+        (fillerSize > 0 && IsOff(extOpt.ViewOutput)) ||
         needMarkingRepetitionSei;
 
     OutputBitstream writer(sei.Buffer(), sei.Capacity());
@@ -3732,7 +3734,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
 // MVC BD {
     mfxExtAvcSeiBufferingPeriod msgBufferingPeriod = {};
     mfxExtAvcSeiPicTiming msgPicTiming;
-    mfxU32 sps_id = extSps->seqParameterSetId;
+    mfxU32 sps_id = extSps.seqParameterSetId;
     sps_id = ((sps_id + !!task.m_viewIdx) & 0x1f);  // use appropriate sps id for dependent views
 // MVC BD }
 
@@ -3742,8 +3744,8 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
         {
             PrepareSeiMessage(
                 task,
-                IsOn(extOpt->VuiNalHrdParameters),
-                IsOn(extOpt->VuiVclHrdParameters),
+                IsOn(extOpt.VuiNalHrdParameters),
+                IsOn(extOpt.VuiVclHrdParameters),
                 sps_id,
                 msgBufferingPeriod);
 
@@ -3758,7 +3760,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
             PrepareSeiMessage(
                 task,
                 fieldId,
-                IsOn(extOpt->VuiNalHrdParameters) || IsOn(extOpt->VuiVclHrdParameters),
+                IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters),
                 msgPicTiming);
 
             // write NAL unit with MVC nesting SEI for PT
@@ -3776,7 +3778,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
         }
     }
 
-    if (needNotNestingSei && IsOn(extOpt->SingleSeiNalUnit))
+    if (needNotNestingSei && IsOn(extOpt.SingleSeiNalUnit))
         writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
 
     // user-defined messages
@@ -3784,11 +3786,11 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
     {
         if (task.m_ctrl.Payload[i] != 0)
         {
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
             for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
                 writer.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
-            if (IsOff(extOpt->SingleSeiNalUnit))
+            if (IsOff(extOpt.SingleSeiNalUnit))
                 writer.PutTrailingBits();
         }
     }
@@ -3800,27 +3802,27 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
         mfxExtAvcSeiDecRefPicMrkRep decRefPicMrkRep;
         PrepareSeiMessage(task, fieldId, frameMbsOnlyFlag, decRefPicMrkRep);
 
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiMessage(writer, decRefPicMrkRep);
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutTrailingBits();
     }
 
-    if (fillerSize > 0 && IsOff(extOpt->ViewOutput))
+    if (fillerSize > 0 && IsOff(extOpt.ViewOutput))
     {
         // how many bytes takes to encode payloadSize depends on size of sei message
         // need to compensate it
         fillerSize -= fillerSize / 256;
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
         PutSeiHeader(writer, SEI_TYPE_FILLER_PAYLOAD, fillerSize);
         writer.PutFillerBytes(0xff, fillerSize);
-        if (IsOff(extOpt->SingleSeiNalUnit))
+        if (IsOff(extOpt.SingleSeiNalUnit))
             writer.PutTrailingBits();
     }
 
-    if (needNotNestingSei && IsOn(extOpt->SingleSeiNalUnit))
+    if (needNotNestingSei && IsOn(extOpt.SingleSeiNalUnit))
         writer.PutTrailingBits();
 
     // w/a for SNB/IVB: padd sei buffer to compensate re-pack  of AVC headers to MVC
@@ -3832,29 +3834,30 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
 
 }
 // MVC BD }
+
 bool MfxHwH264Encode::IsInplacePatchNeeded(
     MfxVideoParam const & par,
     DdiTask const &       task,
     mfxU32                fieldId)
 {
-    mfxExtSpsHeader const * extSps = GetExtBuffer(par);
-    mfxExtPpsHeader const * extPps = GetExtBuffer(par);
+    mfxExtSpsHeader const & extSps = GetExtBufferRef(par);
+    mfxExtPpsHeader const & extPps = GetExtBufferRef(par);
 
     mfxU8 constraintFlags =
-        (extSps->constraints.set0 << 7) | (extSps->constraints.set1 << 6) |
-        (extSps->constraints.set2 << 5) | (extSps->constraints.set3 << 4) |
-        (extSps->constraints.set4 << 3) | (extSps->constraints.set5 << 2) |
-        (extSps->constraints.set6 << 1) | (extSps->constraints.set7 << 0);
+        (extSps.constraints.set0 << 7) | (extSps.constraints.set1 << 6) |
+        (extSps.constraints.set2 << 5) | (extSps.constraints.set3 << 4) |
+        (extSps.constraints.set4 << 3) | (extSps.constraints.set5 << 2) |
+        (extSps.constraints.set6 << 1) | (extSps.constraints.set7 << 0);
 
     if (task.m_nalRefIdc[fieldId] > 1)
         return true;
 
     return
-        constraintFlags   != 0 ||
-        extSps->nalRefIdc != 1 ||
-        extPps->nalRefIdc != 1 ||
-        extSps->gapsInFrameNumValueAllowedFlag == 1 ||
-        (extSps->maxNumRefFrames & 1);
+        constraintFlags  != 0 ||
+        extSps.nalRefIdc != 1 ||
+        extPps.nalRefIdc != 1 ||
+        extSps.gapsInFrameNumValueAllowedFlag == 1 ||
+        (extSps.maxNumRefFrames & 1);
 }
 
 bool MfxHwH264Encode::IsSlicePatchNeeded(
@@ -3953,14 +3956,14 @@ mfxU8 * MfxHwH264Encode::PatchBitstream(
     mfxU8 *               dbegin,
     mfxU8 *               dend)
 {
-    mfxExtSpsHeader const * extSps = GetExtBuffer(video);
-    mfxExtPpsHeader const * extPps = GetExtBuffer(video);
+    mfxExtSpsHeader const & extSps = GetExtBufferRef(video);
+    mfxExtPpsHeader const & extPps = GetExtBufferRef(video);
 
     mfxU8 constraintFlags =
-        (extSps->constraints.set0 << 7) | (extSps->constraints.set1 << 6) |
-        (extSps->constraints.set2 << 5) | (extSps->constraints.set3 << 4) |
-        (extSps->constraints.set4 << 3) | (extSps->constraints.set5 << 2) |
-        (extSps->constraints.set6 << 1) | (extSps->constraints.set7 << 0);
+        (extSps.constraints.set0 << 7) | (extSps.constraints.set1 << 6) |
+        (extSps.constraints.set2 << 5) | (extSps.constraints.set3 << 4) |
+        (extSps.constraints.set4 << 3) | (extSps.constraints.set5 << 2) |
+        (extSps.constraints.set6 << 1) | (extSps.constraints.set7 << 0);
 
     bool copy = (sbegin != dbegin);
 
@@ -3976,15 +3979,15 @@ mfxU8 * MfxHwH264Encode::PatchBitstream(
         if (nalu->type == 7)
         {
             mfxU8 * spsBegin = dbegin;
-            if (extSps->gapsInFrameNumValueAllowedFlag || (extSps->maxNumRefFrames & 1))
+            if (extSps.gapsInFrameNumValueAllowedFlag || (extSps.maxNumRefFrames & 1))
             {
                 assert(copy);
                 InputBitstream reader(nalu->begin + nalu->numZero + 1, nalu->end);
                 mfxExtSpsHeader spsHead = { };
                 ReadSpsHeader(reader, spsHead);
 
-                spsHead.gapsInFrameNumValueAllowedFlag = extSps->gapsInFrameNumValueAllowedFlag;
-                spsHead.maxNumRefFrames                = extSps->maxNumRefFrames;
+                spsHead.gapsInFrameNumValueAllowedFlag = extSps.gapsInFrameNumValueAllowedFlag;
+                spsHead.maxNumRefFrames                = extSps.maxNumRefFrames;
 
                 OutputBitstream writer(dbegin, dend);
                 dbegin += WriteSpsHeader(writer, spsHead) / 8;
@@ -4000,7 +4003,7 @@ mfxU8 * MfxHwH264Encode::PatchBitstream(
             // if nal_ref_idc from mfxExtCodingOptionSPSPPS differs from value hardcoded in driver (1)
             // it needs to be patched
             spsBegin[nalu->numZero + 1] &= ~0x30;
-            spsBegin[nalu->numZero + 1] |= extSps->nalRefIdc << 5;
+            spsBegin[nalu->numZero + 1] |= extSps.nalRefIdc << 5;
 
             // snb and ivb driver doesn't provide controls for constraint flags in sps header
             // if any of them were set via mfxExtCodingOptionSPSPPS
@@ -4023,7 +4026,7 @@ mfxU8 * MfxHwH264Encode::PatchBitstream(
                 // if nal_ref_idc from mfxExtCodingOptionSPSPPS differs from value hardcoded in driver (1)
                 // it needs to be patched
                 ppsBegin[nalu->numZero + 1] &= ~0x30;
-                ppsBegin[nalu->numZero + 1] |= extPps->nalRefIdc << 5;
+                ppsBegin[nalu->numZero + 1] |= extPps.nalRefIdc << 5;
             }
         }
         else if (nalu->type == 9)
@@ -4160,9 +4163,9 @@ mfxU32 MfxHwH264Encode::CalcBiWeight(
 
 BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video)
 {
-    mfxExtCodingOption2 const * ext = GetExtBuffer(video);
+    mfxExtCodingOption2 const & ext = GetExtBufferRef(video);
 
-    if (ext->MaxSliceSize && video.mfx.LowPower != MFX_CODINGOPTION_ON)
+    if (ext.MaxSliceSize && video.mfx.LowPower != MFX_CODINGOPTION_ON)
         return new UmcBrc;
 
     switch (video.mfx.RateControlMethod)
@@ -4405,86 +4408,86 @@ mfxStatus MfxHwH264Encode::CorrectSliceInfoForsed(DdiTask & task, mfxU32 widthLa
 
 const mfxU8 rangeTabLPS[64][4] =
 {
-    { 128, 176, 208, 240 },
-    { 128, 167, 197, 227 },
-    { 128, 158, 187, 216 },
-    { 123, 150, 178, 205 },
-    { 116, 142, 169, 195 },
-    { 111, 135, 160, 185 },
-    { 105, 128, 152, 175 },
-    { 100, 122, 144, 166 },
-    {  95, 116, 137, 158 },
-    {  90, 110, 130, 150 },
-    {  85, 104, 123, 142 },
-    {  81,  99, 117, 135 },
-    {  77,  94, 111, 128 },
-    {  73,  89, 105, 122 },
-    {  69,  85, 100, 116 },
-    {  66,  80,  95, 110 },
-    {  62,  76,  90, 104 },
-    {  59,  72,  86,  99 },
-    {  56,  69,  81,  94 },
-    {  53,  65,  77,  89 },
-    {  51,  62,  73,  85 },
-    {  48,  59,  69,  80 },
-    {  46,  56,  66,  76 },
-    {  43,  53,  63,  72 },
-    {  41,  50,  59,  69 },
-    {  39,  48,  56,  65 },
-    {  37,  45,  54,  62 },
-    {  35,  43,  51,  59 },
-    {  33,  41,  48,  56 },
-    {  32,  39,  46,  53 },
-    {  30,  37,  43,  50 },
-    {  29,  35,  41,  48 },
-    {  27,  33,  39,  45 },
-    {  26,  31,  37,  43 },
-    {  24,  30,  35,  41 },
-    {  23,  28,  33,  39 },
-    {  22,  27,  32,  37 },
-    {  21,  26,  30,  35 },
-    {  20,  24,  29,  33 },
-    {  19,  23,  27,  31 },
-    {  18,  22,  26,  30 },
-    {  17,  21,  25,  28 },
-    {  16,  20,  23,  27 },
-    {  15,  19,  22,  25 },
-    {  14,  18,  21,  24 },
-    {  14,  17,  20,  23 },
-    {  13,  16,  19,  22 },
-    {  12,  15,  18,  21 },
-    {  12,  14,  17,  20 },
-    {  11,  14,  16,  19 },
-    {  11,  13,  15,  18 },
-    {  10,  12,  15,  17 },
-    {  10,  12,  14,  16 },
-    {   9,  11,  13,  15 },
-    {   9,  11,  12,  14 },
-    {   8,  10,  12,  14 },
-    {   8,   9,  11,  13 },
-    {   7,   9,  11,  12 },
-    {   7,   9,  10,  12 },
-    {   7,   8,  10,  11 },
-    {   6,   8,   9,  11 },
-    {   6,   7,   9,  10 },
-    {   6,   7,   8,   9 },
-    {   2,   2,   2,   2 }
+    {   93 + 35 , 101 + 75 ,  19 + 189,  82 + 158, },
+    {   82 + 46 , 145 + 22 , 193 + 4  ,  29 + 198, },
+    {    5 + 123, 107 + 51 , 152 + 35 ,  72 + 144, },
+    {  106 + 17 ,  23 + 127, 116 + 62 , 152 + 53 , },
+    {   26 + 90 ,  33 + 109,  27 + 142, 129 + 66 , },
+    {   37 + 74 ,  88 + 47 ,  30 + 130,   5 + 180, },
+    {   60 + 45 ,  91 + 37 , 139 + 13 ,  96 + 79 , },
+    {   70 + 30 ,  14 + 108, 120 + 24 , 138 + 28 , },
+    {   31 + 64 ,   8 + 108,  80 + 57 ,  77 + 81 , },
+    {   78 + 12 ,  29 + 81 ,  23 + 107,   1 + 149, },
+    {   26 + 59 ,  99 + 5  ,  19 + 104,  99 + 43 , },
+    {   21 + 60 ,  61 + 38 ,   7 + 110,  15 + 120, },
+    {   63 + 14 ,  64 + 30 ,  76 + 35 ,  30 + 98 , },
+    {    0 + 73 ,  54 + 35 ,   8 + 97 ,  94 + 28 , },
+    {   25 + 44 ,  61 + 24 ,  67 + 33 ,  84 + 32 , },
+    {   50 + 16 ,  16 + 64 ,  27 + 68 , 108 + 2  , },
+    {   54 + 8  ,  16 + 60 ,  24 + 66 ,  43 + 61 , },
+    {    5 + 54 ,  46 + 26 ,  65 + 21 ,  93 + 6  , },
+    {   50 + 6  ,  57 + 12 ,  42 + 39 ,  22 + 72 , },
+    {   51 + 2  ,  24 + 41 ,  50 + 27 ,  81 + 8  , },
+    {   46 + 5  ,  14 + 48 ,  55 + 18 ,  76 + 9  , },
+    {   47 + 1  ,  21 + 38 ,  26 + 43 ,  17 + 63 , },
+    {    7 + 39 ,  31 + 25 ,  58 + 8  ,  42 + 34 , },
+    {   39 + 4  ,   7 + 46 ,  30 + 33 ,  20 + 52 , },
+    {    5 + 36 ,  29 + 21 ,   1 + 58 ,  29 + 40 , },
+    {   25 + 14 ,  47 + 1  ,  15 + 41 ,  12 + 53 , },
+    {    2 + 35 ,  10 + 35 ,  45 + 9  ,  50 + 12 , },
+    {    3 + 32 ,  36 + 7  ,  23 + 28 ,  11 + 48 , },
+    {   11 + 22 ,  24 + 17 ,  31 + 17 ,  15 + 41 , },
+    {    8 + 24 ,  19 + 20 ,  17 + 29 ,   2 + 51 , },
+    {   28 + 2  ,  16 + 21 ,  40 + 3  ,  28 + 22 , },
+    {   11 + 18 ,  34 + 1  ,  18 + 23 ,  17 + 31 , },
+    {   12 + 15 ,  28 + 5  ,  20 + 19 ,  17 + 28 , },
+    {    6 + 20 ,  15 + 16 ,  19 + 18 ,  12 + 31 , },
+    {   19 + 5  ,  23 + 7  ,  31 + 4  ,  27 + 14 , },
+    {    4 + 19 ,  25 + 3  ,  32 + 1  ,   0 + 39 , },
+    {   10 + 12 ,  22 + 5  ,   8 + 24 ,  17 + 20 , },
+    {   11 + 10 ,  25 + 1  ,   0 + 30 ,   4 + 31 , },
+    {    2 + 18 ,   9 + 15 ,   0 + 29 ,   6 + 27 , },
+    {   18 + 1  ,  11 + 12 ,   2 + 25 ,   0 + 31 , },
+    {   12 + 6  ,  10 + 12 ,  17 + 9  ,  24 + 6  , },
+    {    5 + 12 ,  18 + 3  ,   2 + 23 ,   6 + 22 , },
+    {    1 + 15 ,   7 + 13 ,  19 + 4  ,  18 + 9  , },
+    {    4 + 11 ,  12 + 7  ,  21 + 1  ,   5 + 20 , },
+    {   12 + 2  ,   6 + 12 ,   5 + 16 ,  10 + 14 , },
+    {    4 + 10 ,   7 + 10 ,  17 + 3  ,  17 + 6  , },
+    {   10 + 3  ,   7 + 9  ,  14 + 5  ,  10 + 12 , },
+    {    1 + 11 ,  14 + 1  ,   2 + 16 ,  10 + 11 , },
+    {    2 + 10 ,  12 + 2  ,   6 + 11 ,   1 + 19 , },
+    {    1 + 10 ,   3 + 11 ,   0 + 16 ,  18 + 1  , },
+    {    3 + 8  ,   8 + 5  ,   1 + 14 ,  16 + 2  , },
+    {    9 + 1  ,   9 + 3  ,   3 + 12 ,  14 + 3  , },
+    {    1 + 9  ,   6 + 6  ,   9 + 5  ,   0 + 16 , },
+    {    1 + 8  ,   6 + 5  ,  11 + 2  ,   6 + 9  , },
+    {    2 + 7  ,  10 + 1  ,   3 + 9  ,   5 + 9  , },
+    {    3 + 5  ,   4 + 6  ,   7 + 5  ,  12 + 2  , },
+    {    4 + 4  ,   6 + 3  ,  10 + 1  ,   6 + 7  , },
+    {    0 + 7  ,   3 + 6  ,   8 + 3  ,   2 + 10 , },
+    {    6 + 1  ,   8 + 1  ,   7 + 3  ,   9 + 3  , },
+    {    0 + 7  ,   6 + 2  ,   0 + 10 ,   9 + 2  , },
+    {    0 + 6  ,   1 + 7  ,   5 + 4  ,   5 + 6  , },
+    {    3 + 3  ,   1 + 6  ,   5 + 4  ,   8 + 2  , },
+    {    0 + 6  ,   5 + 2  ,   4 + 4  ,   0 + 9  , },
+    {    1 + 1  ,   0 + 2  ,   1 + 1  ,   0 + 2  , },
 };
 
 const mfxU8 transIdxLPS[64] =
 {
-     0,  0,  1,  2,  2,  4,  4,  5,  6,  7,  8,  9,  9, 11, 11, 12,
-    13, 13, 15, 15, 16, 16, 18, 18, 19, 19, 21, 21, 22, 22, 23, 24,
-    24, 25, 26, 26, 27, 27, 28, 29, 29, 30, 30, 30, 31, 32, 32, 33,
-    33, 33, 34, 34, 35, 35, 35, 36, 36, 36, 37, 37, 37, 38, 38, 63
+    55 - 55, 168 - 168, 0 + 1, 0 + 2, 1 + 1, 0 + 4, 1 + 3, 0 + 5, 1 + 5, 4 + 3, 4 + 4, 6 + 3, 8 + 1, 4 + 7, 9 + 2, 1 + 11,
+    1 + 12, 9 + 4, 10 + 5, 9 + 6, 10 + 6, 14 + 2, 8 + 10, 0 + 18, 18 + 1, 18 + 1, 3 + 18, 10 + 11, 7 + 15, 10 + 12, 18 + 5, 16 + 8,
+    18 + 6, 14 + 11, 5 + 21, 12 + 14, 25 + 2, 20 + 7, 21 + 7, 5 + 24, 26 + 3, 10 + 20, 21 + 9, 0 + 30, 11 + 20, 12 + 20, 14 + 18, 29 + 4,
+    22 + 11, 13 + 20, 11 + 23, 33 + 1, 0 + 35, 24 + 11, 22 + 13, 26 + 10, 20 + 16, 35 + 1, 8 + 29, 13 + 24, 19 + 18, 5 + 33, 32 + 6, 32 + 31,
 };
 
 const mfxU8 transIdxMPS[64] =
 {
-     1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16,
-    17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-    33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-    49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 62, 63
+    0 + 1, 0 + 2, 2 + 1, 1 + 3, 0 + 5, 2 + 4, 0 + 7, 2 + 6, 3 + 6, 7 + 3, 6 + 5, 4 + 8, 2 + 11, 11 + 3, 10 + 5, 10 + 6,
+    8 + 9, 14 + 4, 10 + 9, 5 + 15, 0 + 21, 15 + 7, 15 + 8, 4 + 20, 20 + 5, 15 + 11, 14 + 13, 23 + 5, 11 + 18, 17 + 13, 1 + 30, 13 + 19,
+    17 + 16, 17 + 17, 27 + 8, 0 + 36, 0 + 37, 7 + 31, 25 + 14, 4 + 36, 22 + 19, 8 + 34, 9 + 34, 15 + 29, 16 + 29, 36 + 10, 37 + 10, 25 + 23,
+    43 + 6, 12 + 38, 43 + 8, 5 + 47, 10 + 43, 25 + 29, 37 + 18, 27 + 29, 38 + 19, 15 + 43, 31 + 28, 24 + 36, 10 + 51, 54 + 8, 28 + 34, 59 + 4,
 };
 
 CabacPackerSimple::CabacPackerSimple(mfxU8 * buf, mfxU8 * bufEnd, bool emulationControl)

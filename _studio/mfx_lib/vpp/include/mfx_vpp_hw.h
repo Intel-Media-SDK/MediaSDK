@@ -248,6 +248,7 @@ namespace MfxHwVideoProcessing
             , bAdvGfxEnable(false)
             , bVariance(false)
             , bEOS(false)
+            , bRunTimeCopyPassThrough(false)
 #ifdef MFX_ENABLE_MCTF
             , bMCTF(false)
             , MctfControlActive(false)
@@ -277,6 +278,7 @@ namespace MfxHwVideoProcessing
         bool bAdvGfxEnable;     // VarianceReport, FRC_interpolation
         bool bVariance;
         bool bEOS;
+        bool bRunTimeCopyPassThrough; // based on config.m_bCopyPassThroughEnable and current runtime parameters (input / output surface.Info), if TRUE - VPP must execute task in PassThrough mode
 #ifdef MFX_ENABLE_MCTF
         bool bMCTF;
         // per-frame control

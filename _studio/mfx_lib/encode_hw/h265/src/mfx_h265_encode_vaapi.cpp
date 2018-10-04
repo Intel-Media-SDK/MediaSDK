@@ -146,6 +146,47 @@ static mfxStatus SetROI(
     return MFX_ERR_NONE;
 }
 
+static mfxStatus SetRollingIntraRefresh(
+    IntraRefreshState const & rirState,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & rirBuf_id)
+{
+    VAStatus vaSts;
+    VAEncMiscParameterBuffer *misc_param;
+    VAEncMiscParameterRIR    *rir_param;
+
+    MFX_DESTROY_VABUFFER(rirBuf_id, vaDisplay);
+
+    vaSts = vaCreateBuffer(vaDisplay,
+                   vaContextEncode,
+                   VAEncMiscParameterBufferType,
+                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterRIR),
+                   1,
+                   NULL,
+                   &rirBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    vaSts = vaMapBuffer(vaDisplay, rirBuf_id, (void **)&misc_param);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    misc_param->type = VAEncMiscParameterTypeRIR;
+    rir_param = (VAEncMiscParameterRIR *)misc_param->data;
+
+    rir_param->rir_flags.value             = rirState.refrType;
+    rir_param->intra_insertion_location    = rirState.IntraLocation;
+    rir_param->intra_insert_size           = rirState.IntraSize;
+    rir_param->qp_delta_for_inserted_intra = mfxU8(rirState.IntRefQPDelta);
+
+    {
+        //MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        vaSts = vaUnmapBuffer(vaDisplay, rirBuf_id);
+    }
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    return MFX_ERR_NONE;
+} // void SetRollingIntraRefresh(...)
+
 void VABuffersHandler::_CheckPool(mfxU32 pool)
 {
     if (!m_poolMap.count(pool))
@@ -246,7 +287,7 @@ void VABuffersHandler::VABuffersDestroyPool(mfxU32 pool)
 }
 
 
-mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl, bool bSWBRC)
+uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl, bool bSWBRC)
 {
     if (bSWBRC)
         return VA_RC_CQP;
@@ -638,7 +679,7 @@ void UpdateSlice(
 }
 
 VAAPIEncoder::VAAPIEncoder()
-: m_core(NULL)
+: m_core(nullptr)
 , m_numSkipFrames(0)
 , m_sizeSkipFrames(0)
 , m_vaContextEncode(VA_INVALID_ID)
@@ -736,7 +777,7 @@ static VAConfigAttrib createVAConfigAttrib(VAConfigAttribType type, unsigned int
 }
 
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
-    MFXCoreInterface * core,
+    VideoCORE * core,
     GUID guid,
     mfxU32 width,
     mfxU32 height)
@@ -785,12 +826,9 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 #if MFX_VERSION >= 1022
-    mfxPlatform p = {};
+    eMFXHWType platform = m_core->GetHWType();
 
-    sts = m_core->QueryPlatform(&p);
-    MFX_CHECK_STS(sts);
-
-    if (p.CodeName >= MFX_PLATFORM_CANNONLAKE)
+    if (platform >= MFX_HW_CNL)
     {
         if(vaParams.entrypoint == VAEntrypointEncSliceLP) //CNL + VDENC => LCUSizeSupported = 4
         {
@@ -800,7 +838,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         {
             m_caps.LCUSizeSupported = (32 >> 4) | (64 >> 4);
         }
-    } else
+    }
+    else
 #endif //MFX_VERSION >= 1022
     {
         m_caps.LCUSizeSupported = (32 >> 4);
@@ -947,7 +986,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
         && (attrib[0].value & VA_RT_FORMAT_YUV420_10) == 0)
         return MFX_ERR_DEVICE_FAILED;
 
-    mfxU8 vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, par.isSWBRC());
+    uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, par.isSWBRC());
 
     if ((attrib[1].value & vaRCType) == 0)
         return MFX_ERR_DEVICE_FAILED;
@@ -1070,12 +1109,10 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
     ExtVASurface extSurf = {VA_INVALID_SURFACE, 0, 0, 0};
     VASurfaceID *pSurface = NULL;
 
-    mfxFrameAllocator & allocator = m_core->FrameAllocator();
-
     for (mfxU32 i = 0; i < response.NumFrameActual; i++)
     {
 
-        sts = allocator.GetHDL(allocator.pthis, response.mids[i], (mfxHDL *)&pSurface);
+        sts = m_core->GetFrameHDL(response.mids[i], (mfxHDL *)&pSurface);
         MFX_CHECK_STS(sts);
 
         extSurf.number  = i;
@@ -1547,6 +1584,13 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
         VABufferID &m_roiBufferId = VABufferNew(VABID_ROI, 0);
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetROI(task, m_arrayVAEncROI, m_vaDisplay, m_vaContextEncode, m_roiBufferId),
                               MFX_ERR_DEVICE_FAILED);
+    }
+
+    if (task.m_IRState.refrType)
+    {
+        VABufferID &m_rirId = VABufferNew(VABID_RIR,0);
+        MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRollingIntraRefresh(task.m_IRState, m_vaDisplay,
+                                                                 m_vaContextEncode, m_rirId), MFX_ERR_DEVICE_FAILED);
     }
 
     mfxU32 storedSize = 0;

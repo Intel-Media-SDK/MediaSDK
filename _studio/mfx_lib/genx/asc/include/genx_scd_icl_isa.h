@@ -20,5 +20,5 @@
 
 #ifndef __genx_scd_icl__
 #define __genx_scd_icl__
-extern const unsigned char genx_scd_icl[19057];
+extern const unsigned char genx_scd_icl[19145];
 #endif

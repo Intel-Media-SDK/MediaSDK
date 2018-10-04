@@ -147,6 +147,8 @@ public:
 
     virtual mfxStatus CompleteTasks(void *pParam) = 0;
 
+    bool IsOpaqueMemory() const { return m_isOpaqueMemory; }
+
 public:
     int32_t display_frame_count;
     int32_t cashed_frame_count;
@@ -178,7 +180,6 @@ public:
     std::unique_ptr<UMC::MPEG2VideoDecoderBase> m_implUmc;
 
     bool m_isSWBuf;
-    bool m_isOpaqueMemory;
     mfxVideoParam m_vPar;
     UMC::VideoDecoderParams m_vdPar;
 
@@ -194,6 +195,8 @@ protected:
 
     bool m_resizing;
     bool m_isSWDecoder;
+
+    bool m_isOpaqueMemory;
 
     struct FcState
     {

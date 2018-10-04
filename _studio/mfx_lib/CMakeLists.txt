@@ -155,10 +155,16 @@ else()
   endif()
 endif()
 
-if( API_VERSION VERSION_GREATER 1.25 )
+if( ${MFX_ENABLE_MCTF} )
   set(MCTF_LIB "mctf_hw")
 else()
   set(MCTF_LIB "")
+endif()
+
+if( ${MFX_ENABLE_ASC} )
+  set(ASC_LIB "asc")
+else()
+  set(ASC_LIB "")
 endif()
 
 if( MFX_ENABLE_KERNELS )
@@ -189,7 +195,7 @@ list( APPEND LIBS
   ${GENX_LIB}
   mfx_common
   mfx_common_hw
-  asc
+  ${ASC_LIB}
   ${MCTF_LIB}
   vpp_hw
   h264_common

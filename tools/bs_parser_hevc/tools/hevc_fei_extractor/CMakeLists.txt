@@ -10,4 +10,6 @@ set( defs " -DMFX_VERSION_USE_LATEST " )
 set(DEPENDENCIES pthread)
 
 make_executable( shortname universal "nosafestring" )
+
+install( TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 set( defs "" )

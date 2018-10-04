@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -327,24 +327,20 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
 } // mfxStatus GetExternalFramesCount(...)
 
 // all check must be done before call
-mfxStatus GetCompositionEnabledStatus(mfxVideoParam* pParam )
+bool IsCompositionMode(mfxVideoParam* pParam)
 {
-    mfxU32 bufferIndex;
-
-    if( pParam->ExtParam && pParam->NumExtParam > 0 )
+    if (pParam->ExtParam && pParam->NumExtParam > 0)
     {
-        for( bufferIndex = 0; bufferIndex < pParam->NumExtParam; bufferIndex++ )
+        for (mfxU32 i = 0; i < pParam->NumExtParam; ++i)
         {
-            mfxExtBuffer *pExtBuffer = pParam->ExtParam[bufferIndex];
+            mfxExtBuffer *pExtBuffer = pParam->ExtParam[i];
             if (pExtBuffer->BufferId == (mfxU32)MFX_EXTBUFF_VPP_COMPOSITE)
-                return MFX_ERR_NONE;
+                return true;
         }
     }
 
-    /* default case */
-    return MFX_ERR_NOT_FOUND;
-
-} // mfxStatus GetCompositionEnabledStatus(mfxVideoParam* pParam,
+    return false;
+}
 
 mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
 {

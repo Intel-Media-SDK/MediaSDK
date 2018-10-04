@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -73,14 +73,6 @@ typedef enum vm_debug_output {  /* debug output */
 
 /* ///////////////////// */
 
-vm_debug_level vm_debug_setlevel(vm_debug_level level);
-vm_debug_output vm_debug_setoutput(vm_debug_output output);
-void vm_debug_setfile(vm_char *file, int32_t truncate);
-
-void vm_debug_message(const vm_char *format, ...);
-
-/* ///////////////////// */
-
 #if defined(UNICODE) || defined(_UNICODE)
 #define VM_STRING_FORMAT VM_STRING("%S")
 #else
@@ -99,9 +91,6 @@ void vm_debug_message(const vm_char *format, ...);
 
 #define vm_trace_GUID(guid)
 
-
-#define vm_trace_hresult(hr, mess, pthis) \
-    vm_trace_hresult_func(hr, mess, pthis, (vm_char*)VM_STRING(__FUNCTION__), VM_STRING(__FILE__), __LINE__)
 
 /* ////////////////// */
 
@@ -157,8 +146,6 @@ if (PTR) \
         _PRINTABLE(((char*)&(x))[1]),  \
         _PRINTABLE(((char*)&(x))[2]),  \
         _PRINTABLE(((char*)&(x))[3]))
-
-int32_t vm_trace_hresult_func(int32_t hr, vm_char *mess, void *pthis, vm_char *func, vm_char *file, uint32_t line);
 
 /* ///////////////////// */
 

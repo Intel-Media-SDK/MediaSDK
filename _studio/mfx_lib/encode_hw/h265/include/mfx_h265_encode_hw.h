@@ -38,18 +38,17 @@ namespace MfxHwH265Encode
 class MFXVideoENCODEH265_HW : public VideoENCODE
 {
 public:
-    MFXVideoENCODEH265_HW(mfxCoreInterface *core, mfxStatus *status)
-        : m_caps()
+    MFXVideoENCODEH265_HW(VideoCORE *core, mfxStatus *status)
+        : m_core(core)
+        , m_caps()
         , m_lastTask()
         , m_prevBPEO(0)
         , m_NumberOfSlicesForOpt(0)
         , m_bInit(false)
         , m_runtimeErr(MFX_ERR_NONE)
-        , m_brc(NULL)
+        , m_brc(nullptr)
     {
         ZeroParams();
-        if (core)
-            m_core = *core;
 
         if (status)
             *status = MFX_ERR_NONE;
@@ -59,15 +58,15 @@ public:
         Close();
     }
 
-    static mfxStatus QueryIOSurf(mfxCoreInterface *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
+    static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
-    static mfxStatus Query(mfxCoreInterface *core, mfxVideoParam *in, mfxVideoParam *out);
+    static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
 
     virtual mfxStatus Init(mfxVideoParam *par);
 
     virtual mfxStatus Reset(mfxVideoParam *par);
 
-    virtual mfxStatus Close(void);
+    virtual mfxStatus Close();
 
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);
 
@@ -151,7 +150,7 @@ protected:
     mfxStatus InitImpl(mfxVideoParam *par);
     void      FreeResources();
 
-    virtual DriverEncoder* CreateHWh265Encoder(MFXCoreInterface* core, ENCODER_TYPE type = ENCODER_DEFAULT)
+    virtual DriverEncoder* CreateHWh265Encoder(VideoCORE* core, ENCODER_TYPE type = ENCODER_DEFAULT)
     {
         return CreatePlatformH265Encoder(core, type);
     }
@@ -179,12 +178,13 @@ protected:
     mfxStatus WaitForQueringTask(Task& task);
 
     std::unique_ptr<DriverEncoder>  m_ddi;
-    MFXCoreInterface                m_core;
+    VideoCORE                      *m_core;
     MfxVideoParam                   m_vpar;
     ENCODE_CAPS_HEVC                m_caps;
 
     MfxFrameAllocResponse           m_raw;
     MfxFrameAllocResponse           m_rawSkip;
+    MfxFrameAllocResponse           m_opaq;
     MfxFrameAllocResponse           m_rec;
     MfxFrameAllocResponse           m_bs;
     MfxFrameAllocResponse           m_CuQp; // for DDI only (not used in VA)

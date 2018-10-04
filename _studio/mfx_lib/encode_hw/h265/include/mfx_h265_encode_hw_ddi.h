@@ -108,8 +108,7 @@ const GUID GuidTable[3][3][3] =
         }
     }
 };
-
-mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* pCore);
+mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, VideoCORE* pCore);
 
 class DriverEncoder;
 
@@ -119,11 +118,12 @@ typedef enum tagENCODER_TYPE
     , ENCODER_REXT
 } ENCODER_TYPE;
 
-DriverEncoder* CreatePlatformH265Encoder(MFXCoreInterface* core, ENCODER_TYPE type = ENCODER_DEFAULT);
-mfxStatus QueryHwCaps(MFXCoreInterface* core, GUID guid, ENCODE_CAPS_HEVC & caps);
+DriverEncoder* CreatePlatformH265Encoder(VideoCORE* core, ENCODER_TYPE type = ENCODER_DEFAULT);
+mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, ENCODE_CAPS_HEVC & caps);
 mfxStatus CheckHeaders(MfxVideoParam const & par, ENCODE_CAPS_HEVC const & caps);
 
-mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core, mfxFrameInfo &CUQPFrameInfo);
+mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFrameInfo &CUQPFrameInfo);
+
 
 enum
 {
@@ -138,7 +138,7 @@ public:
 
     virtual
     mfxStatus CreateAuxilliaryDevice(
-                    MFXCoreInterface * core,
+                    VideoCORE * core,
                     GUID        guid,
                     mfxU32      width,
                     mfxU32      height) = 0;

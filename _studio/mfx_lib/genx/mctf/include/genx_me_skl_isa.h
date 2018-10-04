@@ -17,8 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 #ifndef __genx_me_skl__
 #define __genx_me_skl__
-extern const unsigned char genx_me_skl[45891];
+extern const unsigned char genx_me_skl[27848];
 #endif

@@ -30,6 +30,9 @@ const vm_char * DLL_NAME_LINUX = VM_STRING("igfxcmrt32.so");
 #else
 #error "undefined configuration"
 #endif
+#if defined(ANDROID)
+const vm_char * DLL_NAME_ANDROID = VM_STRING("libigfxcmrt.so");
+#endif
 
 #ifdef CMRT_EMU
     const char * FUNC_NAME_CREATE_CM_DEVICE  = "CreateCmDeviceEmu";
@@ -201,7 +204,13 @@ INT CreateCmDevice(CmDevice *& pD, UINT & version, VADisplay va_dpy, UINT mode)
     CmDeviceImpl * device = new CmDeviceImpl;
 
     device->m_platform = VAAPI;
+#if defined(ANDROID)
+    device->m_dll = vm_so_load(DLL_NAME_ANDROID);
+    if (device->m_dll == 0)
+        device->m_dll = vm_so_load(DLL_NAME_LINUX);
+#else
     device->m_dll = vm_so_load(DLL_NAME_LINUX);
+#endif
     if (device->m_dll == 0)
     {
         delete device;
@@ -259,7 +268,8 @@ INT DestroyCmDevice(CmDevice *& pD)
 int ReadProgram(CmDevice * device, CmProgram *& program, const unsigned char * buffer, unsigned int len)
 {
 #ifdef CMRT_EMU
-    buffer; len;
+    (void)buffer;
+    (void)len;
     return device->LoadProgram(0, 0, program, "nojitter");
 #else //CMRT_EMU
     return device->LoadProgram((void *)buffer, len, program, "nojitter");
@@ -269,7 +279,8 @@ int ReadProgram(CmDevice * device, CmProgram *& program, const unsigned char * b
 int ReadProgramJit(CmDevice * device, CmProgram *& program, const unsigned char * buffer, unsigned int len)
 {
 #ifdef CMRT_EMU
-    buffer; len;
+    (void)buffer;
+    (void)len;
     return device->LoadProgram(0, 0, program);
 #else //CMRT_EMU
     return device->LoadProgram((void *)buffer, len, program);
@@ -281,7 +292,7 @@ int CreateKernel(CmDevice * device, CmProgram * program, const char * kernelName
 #ifdef CMRT_EMU
     return device->CreateKernel(program, kernelName, fncPnt, kernel, options);
 #else //CMRT_EMU
-    fncPnt;
+    (void)fncPnt;
     return device->CreateKernel(program, kernelName, kernel, options);
 #endif //CMRT_EMU
 }

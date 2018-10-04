@@ -54,7 +54,7 @@ static mfxU8 ConvertMfxFrameType2VaapiSliceType(mfxU8 type)
     }
 }
 
-mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
+uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
 {
     switch (rateControl)
     {
@@ -62,10 +62,10 @@ mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     case MFX_RATECONTROL_VBR:  return VA_RC_VBR;
     case MFX_RATECONTROL_AVBR: return VA_RC_VBR;
     case MFX_RATECONTROL_CQP:  return VA_RC_CQP;
+    case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ;
     default: assert(!"Unsupported RateControl"); return 0;
     }
-
-} // mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
+}
 
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type)
 {
@@ -201,12 +201,15 @@ mfxStatus SetRateControl(
     rate_param->min_qp = minQP;
     rate_param->max_qp = maxQP;
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
+        rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
+
     if(par.calcParam.maxKbps)
         rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
 
     // Activate frame tolerance sliding window mode
-    mfxExtCodingOption3 const * extOpt3  = GetExtBuffer(par);
-    if (extOpt3->WinBRCSize && caps.FrameSizeToleranceSupport)
+    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(par);
+    if (extOpt3.WinBRCSize && caps.FrameSizeToleranceSupport)
     {
         rate_param->rc_flags.bits.frame_tolerance_mode = eFrameSizeTolerance_Low;
     }
@@ -986,10 +989,9 @@ void FillPWT(
         mfxU32 idxToPickBuffer = task.m_singleFieldMode ? 0 : task.m_fid[fieldId];
 
         mfxExtCodingOptionDDI * extDdi      = GetExtBuffer(par);
-        mfxExtCodingOption2   * extOpt2     = GetExtBuffer(par);
+        mfxExtCodingOption2   & extOpt2     = GetExtBufferRef(par);
         mfxExtFeiSliceHeader  * extFeiSlice = GetExtBuffer(par, idxToPickBuffer);
         assert(extDdi      != 0);
-        assert(extOpt2     != 0);
         assert(extFeiSlice != 0);
 
         mfxExtPredWeightTable const * pPWT = GetExtBuffer(task.m_ctrl, idxToPickBuffer);
@@ -1062,7 +1064,7 @@ void FillPWT(
             slice[i].cabac_init_idc                     = extDdi ? (mfxU8)extDdi->CabacInitIdcPlus1 - 1 : 0;
             slice[i].slice_qp_delta                     = mfxI8(task.m_cqpValue[fieldId] - pps.pic_init_qp);
 
-            slice[i].disable_deblocking_filter_idc = (extFeiSlice->Slice ? extFeiSlice->Slice[i].DisableDeblockingFilterIdc : extOpt2->DisableDeblockingIdc);
+            slice[i].disable_deblocking_filter_idc = (extFeiSlice->Slice ? extFeiSlice->Slice[i].DisableDeblockingFilterIdc : extOpt2.DisableDeblockingIdc);
             slice[i].slice_alpha_c0_offset_div2    = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceAlphaC0OffsetDiv2     : 0);
             slice[i].slice_beta_offset_div2        = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceBetaOffsetDiv2        : 0);
 
@@ -1086,10 +1088,9 @@ void UpdateSliceSizeLimited(
     mfxU32 idx = 0, ref = 0;
 
     mfxExtCodingOptionDDI * extDdi      = GetExtBuffer(par);
-    mfxExtCodingOption2   * extOpt2     = GetExtBuffer(par);
+    mfxExtCodingOption2   & extOpt2     = GetExtBufferRef(par);
     mfxExtFeiSliceHeader  * extFeiSlice = GetExtBuffer(par, task.m_fid[fieldId]);
     assert(extDdi      != 0);
-    assert(extOpt2     != 0);
     assert(extFeiSlice != 0);
 
     mfxExtPredWeightTable const * pPWT = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
@@ -1167,7 +1168,7 @@ void UpdateSliceSizeLimited(
         slice[i].cabac_init_idc                     = extDdi ? (mfxU8)extDdi->CabacInitIdcPlus1 - 1 : 0;
         slice[i].slice_qp_delta                     = mfxI8(task.m_cqpValue[fieldId] - pps.pic_init_qp);
 
-        slice[i].disable_deblocking_filter_idc = (extFeiSlice->Slice ? extFeiSlice->Slice[i].DisableDeblockingFilterIdc : extOpt2->DisableDeblockingIdc);
+        slice[i].disable_deblocking_filter_idc = (extFeiSlice->Slice ? extFeiSlice->Slice[i].DisableDeblockingFilterIdc : extOpt2.DisableDeblockingIdc);
         slice[i].slice_alpha_c0_offset_div2    = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceAlphaC0OffsetDiv2     : 0);
         slice[i].slice_beta_offset_div2        = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceBetaOffsetDiv2        : 0);
 
@@ -1399,6 +1400,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.VCMBitrateControl =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VCM) ? 1 : 0; //Video conference mode
+    m_caps.ICQBRCSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_ICQ) ? 1 : 0;
     m_caps.TrelisQuantization =
         (attrs[idx_map[VAConfigAttribEncQuantization]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0;
     m_caps.vaTrellisQuantization =
@@ -1584,7 +1587,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
         return MFX_ERR_DEVICE_FAILED;
 
-    mfxU8 vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
+    uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
 
     mfxExtCodingOption2 const *extOpt2 = GetExtBuffer(par);
     if( NULL == extOpt2 )

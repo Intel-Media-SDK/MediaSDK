@@ -546,7 +546,7 @@ mfxStatus VideoDECODEMPEG2::Reset(mfxVideoParam *par)
     mfxExtOpaqueSurfaceAlloc *pOpqExt = (mfxExtOpaqueSurfaceAlloc *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
     if (pOpqExt)
     {
-        if (false == internalImpl->m_isOpaqueMemory)
+        if (false == internalImpl->IsOpaqueMemory())
         {
             // decoder was not initialized with opaque extended buffer
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
@@ -1361,7 +1361,7 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream *bs,
         return MFX_ERR_NOT_INITIALIZED;
     }
 
-    if (true == internalImpl->m_isOpaqueMemory)
+    if (true == internalImpl->IsOpaqueMemory())
     {
         if (surface_work->Data.MemId || surface_work->Data.Y || surface_work->Data.R || surface_work->Data.A || surface_work->Data.UV) // opaq surface
             return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -1821,7 +1821,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::AllocFrames(mfxVideoParam *par)
         allocResponse.NumFrameActual = allocRequest.NumFrameSuggested;
 
         mfxStatus mfxSts;
-        if (m_isOpaqueMemory)
+        if (pOpqExt)
         {
             mfxSts  = m_pCore->AllocFrames(&allocRequest,
                                            &allocResponse,
@@ -2519,7 +2519,6 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
 
 static bool IsStatusReportEnable(VideoCORE * core)
 {
-    core; // touch unreferenced parameter
     UMC::VideoAccelerator *va;
     core->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);
 
@@ -2598,7 +2597,8 @@ mfxStatus VideoDECODEMPEG2Internal_HW::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, UMC::FrameMemID mem_id_to_unlock, int32_t task_num_to_unlock, bool end_frame, bool remove_2frames, int decrease_dec_field_count)
 {
-    end_frame;
+    (void)end_frame;
+
     m_frame[frame_buffer_num].DataLength = 0;
     m_frame[frame_buffer_num].DataOffset = 0;
     m_frame_in_use[frame_buffer_num] = false;
@@ -3154,7 +3154,6 @@ mfxStatus VideoDECODEMPEG2Internal_HW::GetStatusReportByIndex(int32_t /*current_
 mfxStatus VideoDECODEMPEG2Internal_HW::GetStatusReport(int32_t current_index, UMC::FrameMemID surface_id)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEMPEG2Internal_HW::GetStatusReport");
-    current_index; surface_id;
 
     UMC::VideoAccelerator *va;
     m_pCore->GetVA((mfxHDL*)&va, MFX_MEMTYPE_FROM_DECODE);

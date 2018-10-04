@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -72,10 +72,10 @@ H264SEIPayLoad* SeiPayloadArray::FindPayload(SEI_TYPE type) const
 
 int32_t SeiPayloadArray::FindPayloadPos(SEI_TYPE type) const
 {
-    size_t count = GetPayloadCount();
+    size_t count = m_payloads.size();
     for (size_t i = 0; i < count; i++)
     {
-        H264SEIPayLoad* payload = GetPayload(i);
+        H264SEIPayLoad* payload = m_payloads[i];
         if (payload->payLoadType == type)
             return (int32_t)i;
     }
@@ -174,8 +174,8 @@ SetOfSlices& SetOfSlices::operator=(const SetOfSlices& set)
 
 H264Slice * SetOfSlices::GetSlice(size_t pos) const
 {
-    if (pos >= GetSliceCount())
-        return 0;
+    if (pos >= m_pSliceQueue.size())
+        return nullptr;
 
     return m_pSliceQueue[pos];
 }
@@ -192,10 +192,10 @@ void SetOfSlices::AddSlice(H264Slice * slice)
 
 void SetOfSlices::Release()
 {
-    size_t count = GetSliceCount();
+    size_t count = m_pSliceQueue.size();
     for (size_t sliceId = 0; sliceId < count; sliceId++)
     {
-        H264Slice * slice = GetSlice(sliceId);
+        H264Slice * slice = m_pSliceQueue[sliceId];
         slice->DecrementReference();
     }
 
@@ -222,14 +222,14 @@ void SetOfSlices::AddSet(const SetOfSlices *set)
 
 void SetOfSlices::CleanUseless()
 {
-    size_t count = GetSliceCount();
+    size_t count = m_pSliceQueue.size();
     for (size_t sliceId = 0; sliceId < count; sliceId++)
     {
-        H264Slice * curSlice = GetSlice(sliceId);
+        H264Slice * curSlice = m_pSliceQueue[sliceId];
         if (curSlice->m_bDecoded)
         {
             m_pSliceQueue.erase(m_pSliceQueue.begin() + sliceId); // remove
-            count = GetSliceCount();
+            count = m_pSliceQueue.size();
             --sliceId;
             curSlice->Release();
             curSlice->DecrementReference();
@@ -244,16 +244,16 @@ void SetOfSlices::SortSlices()
     if (GetSlice(0) && GetSlice(0)->IsSliceGroups())
         return;
 
-    size_t count = GetSliceCount();
+    size_t count = m_pSliceQueue.size();
     for (size_t sliceId = 0; sliceId < count; sliceId++)
     {
-        H264Slice * curSlice = GetSlice(sliceId);
+        H264Slice * curSlice = m_pSliceQueue[sliceId];
         int32_t minFirst = MAX_MB_NUMBER;
         size_t minSlice = 0;
 
         for (size_t j = sliceId; j < count; j++)
         {
-            H264Slice * slice = GetSlice(j);
+            H264Slice * slice = m_pSliceQueue[j];
             if (slice->GetStreamFirstMB() < curSlice->GetStreamFirstMB() && minFirst > slice->GetStreamFirstMB() &&
                 curSlice->GetSliceHeader()->nal_ext.svc.dependency_id == slice->GetSliceHeader()->nal_ext.svc.dependency_id &&
                 curSlice->GetSliceHeader()->nal_ext.svc.quality_id == slice->GetSliceHeader()->nal_ext.svc.quality_id)
@@ -273,7 +273,7 @@ void SetOfSlices::SortSlices()
 
     for (size_t sliceId = 0; sliceId < count; sliceId++)
     {
-        H264Slice * slice = GetSlice(sliceId);
+        H264Slice * slice     = m_pSliceQueue[sliceId];
         H264Slice * nextSlice = GetSlice(sliceId + 1);
         if (!nextSlice)
             break;
@@ -327,15 +327,15 @@ size_t AccessUnit::GetLayersCount() const
 
 void AccessUnit::CleanUseless()
 {
-    size_t count = GetLayersCount();
+    size_t count = m_layers.size();
     for (size_t pos = 0; pos < count; pos++)
     {
-        SetOfSlices * set = GetLayer(pos);
+        SetOfSlices * set = &m_layers[pos];
         set->CleanUseless();
         if (!set->GetSliceCount())
         {
             m_layers.erase(m_layers.begin() + pos);
-            count = GetLayersCount();
+            count = m_layers.size();
             pos--;
         }
     }
@@ -343,10 +343,10 @@ void AccessUnit::CleanUseless()
 
 int32_t AccessUnit::FindLayerByDependency(int32_t dependency)
 {
-    size_t count = GetLayersCount();
+    size_t count = m_layers.size();
     for (size_t i = 0; i < count; i++)
     {
-        SetOfSlices * set = GetLayer(i);
+        SetOfSlices * set = &m_layers[i];
         if (set->GetSlice(0) && set->GetSlice(0)->GetSliceHeader()->nal_ext.svc.dependency_id == dependency)
             return (int32_t)i;
     }
@@ -356,30 +356,30 @@ int32_t AccessUnit::FindLayerByDependency(int32_t dependency)
 
 SetOfSlices * AccessUnit::GetLastLayer()
 {
-    if (!GetLayersCount())
-        return 0;
+    if (m_layers.empty())
+        return nullptr;
 
-    return GetLayer(GetLayersCount() - 1);
+    return &m_layers.back();
 }
 
 SetOfSlices * AccessUnit::GetLayer(size_t pos)
 {
     if (pos >= m_layers.size())
-        return 0;
+        return nullptr;
 
     return &m_layers[pos];
 }
 
 void AccessUnit::CombineSets()
 {
-    if (!m_layers.size())
+    if (m_layers.empty())
         return;
 
-    SetOfSlices * setOfSlices = GetLayer(0);
-    size_t count = GetLayersCount();
+    SetOfSlices * setOfSlices = &m_layers[0];
+    size_t count = m_layers.size();
     for (size_t i = 1; i < count; i++)
     {
-        SetOfSlices * set = GetLayer(i);
+        SetOfSlices * set = &m_layers[i];
         setOfSlices->AddSet(set);
         set->Reset();
     }
@@ -442,10 +442,9 @@ bool AccessUnit::AddSlice(H264Slice * slice)
 
 void AccessUnit::Release()
 {
-    size_t count = GetLayersCount();
-    for (size_t i = 0; i < count; i++)
+    for (auto & set: m_layers)
     {
-        GetLayer(i)->Release();
+       set.Release();
     }
 
     Reset();
@@ -454,10 +453,9 @@ void AccessUnit::Release()
 
 void AccessUnit::Reset()
 {
-    size_t count = GetLayersCount();
-    for (size_t i = 0; i < count; i++)
+    for (auto & set: m_layers)
     {
-        GetLayer(i)->Reset();
+       set.Reset();
     }
 
     m_layers.clear();
@@ -468,10 +466,9 @@ void AccessUnit::Reset()
 
 void AccessUnit::SortforASO()
 {
-    size_t count = GetLayersCount();
-    for (size_t i = 0; i < count; i++)
+    for (auto & set: m_layers)
     {
-        GetLayer(i)->SortSlices();
+       set.SortSlices();
     }
 }
 
@@ -495,7 +492,7 @@ bool AccessUnit::IsItSliceOfThisAU(H264Slice * slice)
 SetOfSlices * AccessUnit::GetLayerBySlice(H264Slice * slice)
 {
     if (!slice)
-        return 0;
+        return nullptr;
 
     size_t count = m_layers.size();
     for (size_t i = 0; i < count; i++)
@@ -509,7 +506,7 @@ SetOfSlices * AccessUnit::GetLayerBySlice(H264Slice * slice)
             return &m_layers[i];
     }
 
-    return 0;
+    return nullptr;
 }
 
 AU_Splitter::AU_Splitter(H264_Heap_Objects *objectHeap)

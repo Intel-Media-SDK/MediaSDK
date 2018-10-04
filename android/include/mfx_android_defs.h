@@ -45,4 +45,8 @@
 
   #define MFX_ENABLE_USER_ENCODE
 
+#if MFX_ANDROID_VERSION >= MFX_P
+  #define MFX_ENABLE_KERNELS
+#endif
+
 #endif // #ifndef __MFX_ANDROID_DEFS_H__

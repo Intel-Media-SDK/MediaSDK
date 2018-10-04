@@ -67,7 +67,7 @@ msdk_printf(MSDK_STRING("   [-sf   frameRate]           - frame rate of src vide
 #if MFX_VERSION >= MFX_VERSION_NEXT
 msdk_printf(MSDK_STRING("   [-scc  format]              - format (FourCC) of src video (def: nv12. support i420|nv12|yv12|yuy2|rgb565|rgb3|rgb4|imc3|yuv400|yuv411|yuv422h|yuv422v|yuv444|uyvy|ayuv|p010)\n"));
 #else
-msdk_printf(MSDK_STRING("   [-scc  format]              - format (FourCC) of src video (def: nv12. support i420|nv12|yv12|yuy2|rgb3|rgb4|imc3|yuv400|yuv411|yuv422h|yuv422v|yuv444|uyvy|ayuv)\n"));
+msdk_printf(MSDK_STRING("   [-scc  format]              - format (FourCC) of src video (def: nv12. support i420|nv12|yv12|yuy2|rgb565|rgb3|rgb4|imc3|yuv400|yuv411|yuv422h|yuv422v|yuv444|uyvy|ayuv)\n"));
 #endif
 msdk_printf(MSDK_STRING("   [-sbitshift 0|1]            - shift data to right or keep it the same way as in Microsoft's P010\n"));
 msdk_printf(MSDK_STRING("   [-sbitdepthluma value]      - shift luma channel to right to \"16 - value\" bytes\n"));
@@ -325,7 +325,7 @@ mfxU32 Str2FourCC( msdk_char* strInput )
     {
         fourcc = MFX_FOURCC_YV12;
     }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1028)
     else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("rgb565")) )
     {
         fourcc = MFX_FOURCC_RGB565;
@@ -508,22 +508,20 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, sInput
             mfxU16 _strength(0);
             mfxU32 strength_idx = 0;
             mfxU32 ParsedArgsNumber = 0;
-#if defined ENABLE_MCTF_EXT
-            strength_idx = 2;
-#endif
+
             //the order of arguments is:
-            // MctfMode:BitsPerPixel:Strength:ME:Overlap:DB
+            //Strength:ReferencesMode:BitsPerPixel:ME:Overlap:DB
 
             ArgConvert(strInput[i + 1], strength_idx, MSDK_STRING("%hd:%*c"), &_strength, _strength, ParsedArgsNumber);
 #if defined ENABLE_MCTF_EXT
-            mfxU16 _refnum(2);
+            mfxU16 _refnum(MFX_MCTF_TEMPORAL_MODE_2REF);
             mfxF64 _bitsperpixel(0.0);
             mfxU16 _me_precision(0);
             mfxU16 _overlap(0);
             mfxU16 _deblock(0);
 
-            ArgConvert(strInput[i + 1], 0, MSDK_STRING("%hd:%*c"), &_refnum, _refnum, ParsedArgsNumber);
-            ArgConvert(strInput[i + 1], 1, MSDK_STRING("%lf:%*c"), &_bitsperpixel, _bitsperpixel, ParsedArgsNumber);
+            ArgConvert(strInput[i + 1], 1, MSDK_STRING("%hd:%*c"), &_refnum, _refnum, ParsedArgsNumber);
+            ArgConvert(strInput[i + 1], 2, MSDK_STRING("%lf:%*c"), &_bitsperpixel, _bitsperpixel, ParsedArgsNumber);
             ArgConvert(strInput[i + 1], 3, MSDK_STRING("%hd:%*c"), &_me_precision, _me_precision, ParsedArgsNumber);
             ArgConvert(strInput[i + 1], 4, MSDK_STRING("%hd:%*c"), &_overlap, _overlap, ParsedArgsNumber);
             ArgConvert(strInput[i + 1], 5, MSDK_STRING("%hd:%*c"), &_deblock, _deblock, ParsedArgsNumber);

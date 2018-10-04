@@ -82,6 +82,7 @@ public:
         , VABID_PACKED_SkipBuffer
 
         , VABID_ROI
+        , VABID_RIR
 
         , VABID_END_OF_LIST // Remain this item last in the list
     };
@@ -119,8 +120,6 @@ private:
     inline std::vector<VABufferID>::iterator _PoolBegin(mfxU32 pool) { _CheckPool(pool); return m_buf.begin() + m_pool[m_poolMap[pool]]; };
     inline std::vector<VABufferID>::iterator _PoolEnd  (mfxU32 pool) { _CheckPool(pool); return m_buf.begin() + m_pool[m_poolMap[pool] + 1]; };
 };
-
-mfxU8 ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
 
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type);
 
@@ -194,7 +193,7 @@ mfxStatus SetSkipFrame(
 
         virtual
         mfxStatus CreateAuxilliaryDevice(
-            MFXCoreInterface * core,
+            VideoCORE * core,
             GUID       guid,
             mfxU32     width,
             mfxU32     height);
@@ -248,7 +247,7 @@ mfxStatus SetSkipFrame(
         VAEntrypoint GetVAEntryPoint()
         {
 #if (MFX_VERSION >= 1025)
-            return (IsOn(m_videoParam.mfx.LowPower) && m_videoParam.m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE) ?
+            return (IsOn(m_videoParam.mfx.LowPower) && m_videoParam.m_platform >= MFX_HW_CNL) ?
                     VAEntrypointEncSliceLP : VAEntrypointEncSlice;
 #else
             return VAEntrypointEncSlice;
@@ -273,7 +272,7 @@ mfxStatus SetSkipFrame(
 
         void FillSps(MfxVideoParam const & par, VAEncSequenceParameterBufferHEVC & sps);
 
-        MFXCoreInterface*    m_core;
+        VideoCORE*    m_core;
         MfxVideoParam m_videoParam;
         mfxU8  m_numSkipFrames;
         mfxU32 m_sizeSkipFrames;

@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef __genx_scd_bxt__
-#define __genx_scd_bxt__
-extern const unsigned char genx_scd_bxt[18354];
+#ifndef __genx_me_icl__
+#define __genx_me_icl__
+extern const unsigned char genx_me_icl[28104];
 #endif

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -235,7 +235,7 @@ H264DecoderFrame * H264DBPList::findDisplayableByDPBDelay(void)
                 SmallestPicOrderCnt = pCurr->PicOrderCnt(0,3);
             }
 
-            if (!pOldest->IsFrameExist() && pCurr->IsFrameExist())
+            if (pOldest && !pOldest->IsFrameExist() && pCurr->IsFrameExist())
             {
                 if (pCurr->PicOrderCnt(0,3) == SmallestPicOrderCnt &&
                     pCurr->RefPicListResetCount(0) == LargestRefPicListResetCount)
@@ -284,7 +284,7 @@ H264DecoderFrame * H264DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
                 SmallestPicOrderCnt = pCurr->PicOrderCnt(0,3);
             }
 
-            if (!pOldest->IsFrameExist() && pCurr->IsFrameExist())
+            if (pOldest && !pOldest->IsFrameExist() && pCurr->IsFrameExist())
             {
                 if (pCurr->PicOrderCnt(0,3) == SmallestPicOrderCnt &&
                     pCurr->RefPicListResetCount(0) == LargestRefPicListResetCount)

@@ -20,7 +20,7 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "mfx_common.h"
+#include "libmfx_core_interface.h"
 
 #include "mfx_h265_encode_hw_ddi.h"
 #if defined (MFX_VA_LINUX)
@@ -43,7 +43,7 @@ GUID GetGUID(MfxVideoParam const & par)
 
     cfId = Clip3<mfxU16>(MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444, par.m_ext.CO3.TargetChromaFormatPlus1 - 1) - MFX_CHROMAFORMAT_YUV420;
 
-    if (par.m_platform.CodeName && par.m_platform.CodeName < MFX_PLATFORM_ICELAKE)
+    if (par.m_platform && par.m_platform < MFX_HW_ICL)
         cfId = 0; // platforms below ICL do not support Main422/Main444 profile, using Main instead.
 #else
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.mfx.FrameInfo.BitDepthLuma == 10 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
@@ -51,7 +51,7 @@ GUID GetGUID(MfxVideoParam const & par)
 
      cfId = 0;
 #endif
-    if (par.m_platform.CodeName && par.m_platform.CodeName < MFX_PLATFORM_KABYLAKE)
+    if (par.m_platform && par.m_platform < MFX_HW_KBL)
         bdId = 0;
 
     mfxU16 cFamily = IsOn(par.mfx.LowPower);
@@ -62,33 +62,31 @@ GUID GetGUID(MfxVideoParam const & par)
     return guid;
 }
 
-DriverEncoder* CreatePlatformH265Encoder(MFXCoreInterface* core, ENCODER_TYPE /*type*/)
+DriverEncoder* CreatePlatformH265Encoder(VideoCORE* core, ENCODER_TYPE type)
 {
+    (void)type;
+
     if (core)
     {
-        mfxCoreParam par = {};
-
-        if (core->GetCoreParam(&par))
-            return 0;
-
-        switch(par.Impl & 0xF00)
+        switch(core->GetVAType())
         {
 #if defined (MFX_VA_LINUX)
-        case MFX_IMPL_VIA_VAAPI:
+        case MFX_HW_VAAPI:
             return new VAAPIEncoder;
 #endif
         default:
-            return 0;
+            return nullptr;
         }
     }
 
-    return 0;
+    return nullptr;
 }
 
 // this function is aimed to workaround all CAPS reporting problems in mainline driver
-mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* core)
+mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, VideoCORE* core)
 {
     mfxStatus sts = MFX_ERR_NONE;
+    MFX_CHECK_NULL_PTR1(core);
     if (!caps.BitDepth8Only && !caps.MaxEncodedBitDepth)
         caps.MaxEncodedBitDepth = 1;
     if (!caps.Color420Only && !(caps.YUV444ReconSupport || caps.YUV422ReconSupport))
@@ -96,23 +94,21 @@ mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* core)
     if (!caps.Color420Only && !(caps.YUV422ReconSupport))   // VPG: caps are not correct now
         caps.YUV422ReconSupport = 1;
 #if (MFX_VERSION >= 1025)
-    mfxPlatform pltfm;
-    sts = core->QueryPlatform(&pltfm);
-    MFX_CHECK_STS(sts);
+    eMFXHWType platform = core->GetHWType();
 
-    if (pltfm.CodeName < MFX_PLATFORM_CANNONLAKE)
+    if (platform < MFX_HW_CNL)
     {   // not set until CNL now
         caps.LCUSizeSupported = 0b10;   // 32x32 lcu is only supported
         caps.BlockSize = 0b10; // 32x32
     }
 
-    if (pltfm.CodeName < MFX_PLATFORM_ICELAKE)
+    if (platform < MFX_HW_ICL)
         caps.NegativeQPSupport = 0;
     else
         caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
 
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
-    if (pltfm.CodeName >= MFX_PLATFORM_ICELAKE)
+    if (platform >= MFX_HW_ICL)
     {
         if (caps.NoWeightedPred)
             caps.NoWeightedPred = 0;
@@ -138,10 +134,11 @@ mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, MFXCoreInterface* core)
     return sts;
 }
 
-mfxStatus QueryHwCaps(MFXCoreInterface* core, GUID guid, ENCODE_CAPS_HEVC & caps)
+mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, ENCODE_CAPS_HEVC & caps)
 {
     std::unique_ptr<DriverEncoder> ddi;
 
+    MFX_CHECK_NULL_PTR1(core);
     ddi.reset(CreatePlatformH265Encoder(core));
     MFX_CHECK(ddi.get(), MFX_ERR_UNSUPPORTED);
 
@@ -164,7 +161,7 @@ mfxStatus CheckHeaders(
         && par.m_sps.pcm_enabled_flag == 0);
 
 #if (MFX_VERSION >= 1025)
-    if (par.m_platform.CodeName >= MFX_PLATFORM_CANNONLAKE)
+    if (par.m_platform >= MFX_HW_CNL)
     {
         MFX_CHECK_COND(par.m_sps.amp_enabled_flag == 1);
     }
@@ -357,15 +354,10 @@ ENCODE_PACKEDHEADER_DATA* DDIHeaderPacker::PackSkippedSlice(Task const & task, m
 
     return &*m_cur;
 }
-mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core, mfxFrameInfo &CUQPFrameInfo)
+mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFrameInfo &CUQPFrameInfo)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
-    mfxCoreParam coreParams = {};
-
-    if (core.GetCoreParam(&coreParams))
-       return  MFX_ERR_UNSUPPORTED;
-
-    if (!task.m_bCUQPMap || ((coreParams.Impl & 0xF00) == MFX_IMPL_VIA_VAAPI))
+    if (!task.m_bCUQPMap || (core.GetVAType() == MFX_HW_VAAPI))
         return MFX_ERR_NONE;
 
     mfxExtMBQP *mbqp = ExtBuffer::Get(task.m_ctrl);
@@ -377,14 +369,14 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
     MFX_CHECK(CUQPFrameInfo.AspectRatioW && CUQPFrameInfo.AspectRatioH, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxU32 drBlkW  = CUQPFrameInfo.AspectRatioW;  // block size of driver
-    mfxU32 drBlkH  = CUQPFrameInfo.AspectRatioH;  // block size of driver       
+    mfxU32 drBlkH  = CUQPFrameInfo.AspectRatioH;  // block size of driver
     mfxU16 inBlkSize = 16;                            //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
 
     mfxU32 pitch_MBQP = (par.mfx.FrameInfo.Width  + inBlkSize - 1)/ inBlkSize;
 
     if (mbqp && mbqp->NumQPAlloc)
     {
-        if ((mbqp->NumQPAlloc *  inBlkSize *  inBlkSize) < 
+        if ((mbqp->NumQPAlloc *  inBlkSize *  inBlkSize) <
             (drBlkW  *  drBlkH  *  CUQPFrameInfo.Width  *  CUQPFrameInfo.Height))
         {
             task.m_bCUQPMap = false;
@@ -398,7 +390,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
             for (mfxU32 j = 0; j < CUQPFrameInfo.Width; j++)
                     lock.Y[i * lock.Pitch + j] = mbqp->QP[i*drBlkH/inBlkSize * pitch_MBQP + j*drBlkW/inBlkSize];
 
-    } 
+    }
 #ifdef MFX_ENABLE_HEVCE_ROI
     else if (roi)
     {
@@ -427,7 +419,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, MFXCoreInterface& core
     }
 #endif
     return mfxSts;
-    
+
 }
 
 

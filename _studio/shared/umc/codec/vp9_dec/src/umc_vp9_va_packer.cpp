@@ -126,7 +126,16 @@ void PackerVA::PackPicParams(VADecPictureParameterBufferVP9* picParam, VP9Decode
     else
     {
         for (mfxU8 ref = 0; ref < NUM_REF_FRAMES; ++ref)
-            picParam->reference_frames[ref] = m_va->GetSurfaceID(info->ref_frame_map[ref]);
+        {
+            if (info->ref_frame_map[ref] != VP9_INVALID_REF_FRAME)
+            {
+                picParam->reference_frames[ref] = m_va->GetSurfaceID(info->ref_frame_map[ref]);
+            }
+            else
+            {
+                picParam->reference_frames[ref] = VA_INVALID_SURFACE;
+            }
+        }
     }
 
     picParam->pic_fields.bits.subsampling_x = info->subsamplingX;

@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -254,11 +254,7 @@ mfxStatus VideoVPPBase::Init(mfxVideoParam *par)
     m_errPrtctState.IOPattern  = par->IOPattern;
     m_errPrtctState.AsyncDepth = par->AsyncDepth;
 
-    sts = GetCompositionEnabledStatus(par);
-    if (sts == MFX_ERR_NONE)
-        m_errPrtctState.isCompositionModeEnabled = true;
-    else
-        m_errPrtctState.isCompositionModeEnabled = false;
+    m_errPrtctState.isCompositionModeEnabled = IsCompositionMode(par);
 
     m_InitState = m_errPrtctState; // Save params on init
 
@@ -574,7 +570,6 @@ mfxStatus VideoVPPBase::QueryCaps(VideoCORE * core, MfxHwVideoProcessing::mfxVpp
 mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam *out)
 {
     mfxStatus mfxSts = MFX_ERR_NONE;
-    core;
 
     MFX_CHECK_NULL_PTR1( out );
 
@@ -1212,17 +1207,17 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
         }
     }// Opaque
 
+    bool isCompositionModeInNewParams = IsCompositionMode(par);
+    // Enabling/disabling composition via Reset() doesn't work currently.
+    // This is a workaround to prevent undefined behavior.
+    MFX_CHECK(m_errPrtctState.isCompositionModeEnabled != isCompositionModeInNewParams, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
     /* save init params to prevent core crash */
     m_errPrtctState.In  = par->vpp.In;
     m_errPrtctState.Out = par->vpp.Out;
     m_errPrtctState.IOPattern  = par->IOPattern;
     m_errPrtctState.AsyncDepth = par->AsyncDepth;
-
-    mfxStatus compSts = GetCompositionEnabledStatus(par);
-    if (compSts == MFX_ERR_NONE)
-        m_errPrtctState.isCompositionModeEnabled = true;
-    else
-        m_errPrtctState.isCompositionModeEnabled = false;
+    m_errPrtctState.isCompositionModeEnabled = isCompositionModeInNewParams;
 
     return sts;
 

@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-
 #include "mfx_common.h"
 #if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
 #include "mfx_h265_fei_encode_hw.h"
@@ -28,67 +27,16 @@ using namespace MfxHwH265Encode;
 namespace MfxHwH265FeiEncode
 {
 
-H265FeiEncodePlugin::H265FeiEncodePlugin(bool CreateByDispatcher)
-    : m_createdByDispatcher(CreateByDispatcher)
-    , m_adapter(this)
-    , m_pImpl(nullptr)
-{}
-
-H265FeiEncodePlugin::~H265FeiEncodePlugin()
-{}
-
-mfxStatus H265FeiEncodePlugin::PluginInit(mfxCoreInterface *core)
-{
-    MFX_TRACE_INIT();
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "H265FeiEncodePlugin::PluginInit");
-
-    MFX_CHECK_NULL_PTR1(core);
-    m_core = *core;
-    return MFX_ERR_NONE;
-}
-
-mfxStatus H265FeiEncodePlugin::PluginClose()
-{
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "H265FeiEncodePlugin::PluginClose");
-        if (m_createdByDispatcher)
-            Release();
-    }
-
-    MFX_TRACE_CLOSE();
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus H265FeiEncodePlugin::GetPluginParam(mfxPluginParam *par)
-{
-    MFX_CHECK_NULL_PTR1(par);
-
-    par->PluginUID        = MFX_PLUGINID_HEVC_FEI_ENCODE;
-    par->PluginVersion    = 1;
-    par->ThreadPolicy     = MFX_THREADPOLICY_SERIAL;
-    par->MaxThreadNum     = 1;
-    par->APIVersion.Major = MFX_VERSION_MAJOR;
-    par->APIVersion.Minor = MFX_VERSION_MINOR;
-    par->Type             = MFX_PLUGINTYPE_VIDEO_ENCODE;
-    par->CodecId          = MFX_CODEC_HEVC;
-
-    return MFX_ERR_NONE;
-}
-
-
 mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs)
 {
     if (!surface) return MFX_ERR_NONE; // In case of frames draining in display order
 
     MFX_CHECK(ctrl, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    mfxPlatform p = {};
+    eMFXHWType platform = m_core->GetHWType();
 
-    mfxStatus sts = m_core.QueryPlatform(&p);
-    MFX_CHECK_STS(sts);
+    bool isSKL = platform == MFX_HW_SCL;
 
-    bool isSKL = p.CodeName == MFX_PLATFORM_SKYLAKE;
 
     // mfxExtFeiHevcEncFrameCtrl is a mandatory buffer
     mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl = reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));

@@ -108,7 +108,11 @@ cmake_dependent_option(
 
 option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
 
-option( MFX_ENABLE_MCTF "Build with MCTF support?"  ${MFX_1_25_OPTIONS_ALLOWED} )
+option( MFX_ENABLE_ASC "Enable ASC support?"  ON )
+
+cmake_dependent_option(
+  MFX_ENABLE_MCTF "Build with MCTF support?"  ${MFX_1_25_OPTIONS_ALLOWED}
+  "MFX_ENABE_ASC;MFX_ENABE_KERNELS" OFF)
 
 # Now we will include config file which may overwrite default values of the
 # options and options which user provided in a command line.

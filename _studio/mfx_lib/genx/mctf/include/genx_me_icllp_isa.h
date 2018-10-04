@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,45 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
-#pragma once
-
-#ifndef __LINUX__
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
+#ifndef __genx_me_icllp__
+#define __genx_me_icllp__
+extern const unsigned char genx_me_icllp[28104];
 #endif
-
-#include "cmkernelruntimeenv.h"
-
-// NOTE: to be implemented by test application
-void Test(const string & isaFileName);
-
-int main (int argc, char * argv[])
-{
-#ifndef __LINUX__
-  _CrtSetDbgFlag (_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-
-#ifdef _DEBUG
-  int * pLeak = new int[1];
-  pLeak[0] = 0xA31EA31E;
-#endif
-#endif
-
-  try
-  {
-    const std::string isaFileName(ISA_FILE_NAME2 (argv[0]));
-
-    Test (isaFileName);
-
-    cout << "Pass" << endl;
-
-    return TEST_TARGET_PASS;
-  } catch (std::exception & exp) {
-    cout << "Fail" << endl;
-
-    cout << exp.what () << endl;
-
-    return TEST_TARGET_FAIL;
-  }
-}

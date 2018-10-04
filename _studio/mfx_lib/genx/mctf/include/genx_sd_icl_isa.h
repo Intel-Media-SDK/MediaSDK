@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,18 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
-#pragma once
-
-#include "cmrt_cross_platform.h"
-#include "cmdeviceex.h"
-#include "cmbufferex.h"
-#include "cmutility.h"
-#include "cmkernelex.h"
-#include "cmqueueex.h"
-#include "cmtaskex.h"
-#include "cmsurface2dupext.h"
-#include "cmsurface2dext.h"
-#include "cmthreadspaceex.h"
-#include "cmbenchmark.h"
-
+#ifndef __genx_sd_icl__
+#define __genx_sd_icl__
+extern const unsigned char genx_sd_icl[103186];
+#endif

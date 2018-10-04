@@ -316,13 +316,13 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC
      * (2): Progressive only
-     * (3): Supported on APL platform and above
+     * (3): Supported on SKL (Core) and APL (Atom) platform and above
      * (4): Only video memory supported (so, OPAQ memory does not supported!)
      * */
     if (videoProcessing)
     {
         if ((MFX_PICSTRUCT_PROGRESSIVE == m_vPar.mfx.FrameInfo.PicStruct) &&
-            (MFX_HW_APL <= m_core->GetHWType()) &&
+            (MFX_HW_SCL <= m_core->GetHWType()) &&
             (m_vPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
             useInternal = 1;
         else /* fixed function engine is not available */

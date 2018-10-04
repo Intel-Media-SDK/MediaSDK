@@ -56,18 +56,10 @@
         // vpp
         #define MFX_ENABLE_DENOISE_VIDEO_VPP
         #define MFX_ENABLE_VPP
-        #if !defined(LINUX_TARGET_PLATFORM_BXT)
-            #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
-        #endif
 
         #if defined(AS_H264LA_PLUGIN)
             #define MFX_ENABLE_LA_H264_VIDEO_HW
         #endif
-
-        // H265 FEI plugin
-
-
-        // av1
 
     #else // #if !defined(ANDROID)
         #include "mfx_android_defs.h"
@@ -76,18 +68,6 @@
     #if defined(AS_H264LA_PLUGIN)
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
         #undef MFX_ENABLE_VPP
-    #endif
-
-    #if defined(AS_HEVC_FEI_ENCODE_PLUGIN)
-        #undef MFX_ENABLE_H265_VIDEO_DECODE
-        #undef MFX_ENABLE_H264_VIDEO_DECODE
-        #undef MFX_ENABLE_H264_VIDEO_ENCODE
-        #undef MFX_ENABLE_MPEG2_VIDEO_ENCODE
-        #undef MFX_ENABLE_DENOISE_VIDEO_VPP
-        #undef MFX_ENABLE_VPP
-        #undef MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
-        #undef MFX_ENABLE_AAC_AUDIO_DECODE
-        #undef MFX_ENABLE_MP3_AUDIO_DECODE
     #endif
 
 #else // LINUX_TARGET_PLATFORM
@@ -133,16 +113,23 @@
 #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
 #endif
 
+#if defined(MFX_ENABLE_ASC)
+    #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
+#endif
+
 #if (MFX_VERSION >= MFX_VERSION_NEXT) && defined(MFX_ENABLE_MCTF)
     #define MFX_ENABLE_MCTF_EXT // extended MCTF interface
+#endif
+
+#if MFX_VERSION >= 1028
+    #define MFX_ENABLE_RGBP
+    #define MFX_ENABLE_FOURCC_RGB565
 #endif
 
 // The line below HAS to be changed to MFX_VERSION specific version i.e. 1027
 // after inclusion of respective features into official API
 #if MFX_VERSION >= MFX_VERSION_NEXT
     #define MFX_ENABLE_VPP_RUNTIME_HSBC
-    #define MFX_ENABLE_RGBP
-	#define MFX_ENABLE_FOURCC_RGB565
 #endif
 
 #endif // _MFX_CONFIG_H_
