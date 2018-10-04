@@ -11,6 +11,6 @@ list( APPEND LIBS_NOVARIANT vpp_plugin )
 
 set(DEPENDENCIES itt libmfx dl pthread)
 
-make_executable( shortname universal "nosafestring" )
+make_executable( shortname universal )
 
 install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )

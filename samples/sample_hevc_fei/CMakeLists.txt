@@ -21,7 +21,7 @@ include_directories (
 list( APPEND LIBS_VARIANT sample_common )
 
 set(DEPENDENCIES ${skipping} itt libmfx dl pthread)
-make_executable( shortname universal "nosafestring" )
+make_executable( shortname universal )
 
 install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
 set( defs "" )

@@ -97,7 +97,6 @@ if (BUILD_SAMPLES)
 endif()
 
 if (BUILD_RUNTIME)
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/SafeStringStaticLibrary/)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
