@@ -262,7 +262,7 @@ public:
 
             if (al_old != m_alIndex)
             {
-                if (m_frameStatData.front().FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_P))
+                if (m_frameStatData[al_old].FrameType & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_P))
                 {
                     m_BitsPredictedAccumulatedIP -= m_frameStatData[al_old].BitsPredicted;
                     m_BitsEncodedAccumulatedIP   -= m_frameStatData[al_old].BitsEncoded;
