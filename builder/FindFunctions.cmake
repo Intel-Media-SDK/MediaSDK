@@ -139,20 +139,15 @@ function( create_plugins_cfg directory )
 endfunction()
 
 # Usage:
-#  make_library(shortname|<name> none|<variant> static|shared nosafestring|<true|false>)
+#  make_library(shortname|<name> none|<variant> static|shared)
 #    - shortname|<name>: use folder name as library name or <name> specified by user
 #    - <variant>|none: build library in specified variant (with drm or x11 or wayland support, etc),
 #      universal - special variant which enables compilation flags required for all backends, but
 #      moves dependency to runtime instead of linktime
 #    or without variant if none was specified
 #    - static|shared: build static or shared library
-#    - nosafestring|<true|false>: any value evaluated as True by CMake to disable link against SafeString
 #
 function( make_library name variant type )
-  set( nosafestring ${ARGV3} )
-  if( Windows )
-    set( nosafestring TRUE )
-  endif()
   get_target( target ${ARGV0} ${ARGV1} )
   if( ${ARGV0} MATCHES shortname )
     get_folder( folder )
@@ -216,10 +211,6 @@ function( make_library name variant type )
 
   configure_build_variant( ${target} ${ARGV1} )
 
-  if( NOT nosafestring )
-    target_link_libraries( ${target} SafeString )
-  endif()
-
   if( defs )
     append_property( ${target} COMPILE_FLAGS ${defs} )
   endif()
@@ -235,19 +226,13 @@ function( make_library name variant type )
 endfunction()
 
 # Usage:
-#  make_executable(name|<name> none|<variant> nosafestring|<true|false>)
+#  make_executable(name|<name> none|<variant>)
 #    - name|<name>: use folder name as library name or <name> specified by user
 #    - <variant>|none: build library in specified variant (with drm or x11 or wayland support, etc),
 #      universal - special variant which enables compilation flags required for all backends, but
 #      moves dependency to runtime instead of linktime
-#    or without variant if none was specified
-#    - nosafestring|<true|false>: any value evaluated as True by CMake to disable link against SafeString
 #
 function( make_executable name variant )
-  set( nosafestring ${ARGV2} )
-  if( Windows )
-    set( nosafestring TRUE )
-  endif()
   get_target( target ${ARGV0} ${ARGV1} )
   get_folder( folder )
 
@@ -309,10 +294,6 @@ function( make_executable name variant )
   foreach( lib ${LIBS_SUFFIX} )
     target_link_libraries( ${target} ${lib} )
   endforeach()
-
-  if( NOT nosafestring )
-    target_link_libraries( ${target} SafeString )
-  endif()
 
   if( Linux )
     target_link_libraries( ${target} "-Xlinker --end-group -lgcc" )

@@ -9,8 +9,8 @@ set( sources "" )
 file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" )
 list( APPEND sources ${srcs})
 
-make_library( cttmetrics none shared "nosafestring" )
-make_library( cttmetrics_static none static "nosafestring" )
+make_library( cttmetrics none shared )
+make_library( cttmetrics_static none static )
 
 # metrics_monitor sample
 
@@ -20,7 +20,7 @@ file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/sample/*.cpp" )
 list( APPEND sources ${srcs})
 list( APPEND LIBS cttmetrics)
 
-make_executable( metrics_monitor none "nosafestring" )
+make_executable( metrics_monitor none )
 
 # test_monitor
 
@@ -51,7 +51,7 @@ if( PKG_LIBDRM_FOUND AND
 
     set(DEPENDENCIES libdrm)
 
-    make_executable( test_monitor none "nosafestring" )
+    make_executable( test_monitor none )
 
 else()
 

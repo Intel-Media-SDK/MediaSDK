@@ -45,9 +45,26 @@ namespace UMC
 #endif //__cplusplus
 
 #include <stdint.h>
+#include <errno.h>
 
 #ifdef __cplusplus
+#include <cstring>
 #include <algorithm>
+
+inline int memcpy_s(void *dest, size_t destsz, const void *src, size_t count)
+{
+    if ((dest == nullptr) || (src == nullptr))
+    {
+        return EINVAL;
+    }
+    if (destsz < count)
+    {
+        return ERANGE;
+    }
+    std::memcpy(dest, src, count);
+    return 0;
+}
+
 #endif //__cplusplus
 
 #define MFX_INTERNAL_CPY_S(dst, dstsize, src, src_size) memcpy_s((uint8_t *)(dst), (size_t)(dstsize), (const uint8_t *)(src), (size_t)src_size)
