@@ -1210,7 +1210,7 @@ mfxStatus VideoVPPBase::Reset(mfxVideoParam *par)
     bool isCompositionModeInNewParams = IsCompositionMode(par);
     // Enabling/disabling composition via Reset() doesn't work currently.
     // This is a workaround to prevent undefined behavior.
-    MFX_CHECK(m_errPrtctState.isCompositionModeEnabled != isCompositionModeInNewParams, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+    MFX_CHECK(m_errPrtctState.isCompositionModeEnabled == isCompositionModeInNewParams, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     /* save init params to prevent core crash */
     m_errPrtctState.In  = par->vpp.In;
@@ -1422,4 +1422,3 @@ mfxStatus VideoVPP_HW::RunFrameVPP(mfxFrameSurface1* , mfxFrameSurface1* , mfxEx
 
 #endif // MFX_ENABLE_VPP
 /* EOF */
-
