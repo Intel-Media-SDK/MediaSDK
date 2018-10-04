@@ -31,6 +31,7 @@ include_directories( ${MSDK_LIB_ROOT}/vpp/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_dec/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/vc1_common/include )
+include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
 
 set( sources.plus "" )
 
@@ -118,3 +119,10 @@ list( APPEND sources
 	${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_utils.cpp )
 make_library( vp9_dec hw static )
 
+### color space converter
+set( SRC_DIR "${MSDK_UMC_ROOT}/codec/color_space_converter/src" )
+set( defs "" )
+set( sources "" )
+file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
+list( APPEND sources ${srcs})
+make_library( color_space_converter hw static )
