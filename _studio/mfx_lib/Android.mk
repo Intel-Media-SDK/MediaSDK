@@ -52,8 +52,7 @@ MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libumc_io_merged_hw \
     libumc_core_merged_hw \
     libmfx_trace_hw \
-    libasc \
-    libsafec
+    libasc
 
 MFX_LOCAL_LDFLAGS_HW := \
     $(MFX_LDFLAGS) \

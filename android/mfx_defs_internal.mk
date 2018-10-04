@@ -20,8 +20,7 @@ MFX_INCLUDES_INTERNAL :=  \
     $(MFX_HOME)/_studio/shared/umc/core/vm/include \
     $(MFX_HOME)/_studio/shared/umc/core/vm_plus/include \
     $(MFX_HOME)/_studio/shared/umc/io/umc_va/include \
-    $(MFX_HOME)/_studio/mfx_lib/shared/include \
-    $(MFX_HOME)/contrib/SafeStringStaticLibrary/include
+    $(MFX_HOME)/_studio/mfx_lib/shared/include
 
 MFX_INCLUDES_INTERNAL_HW := \
     $(MFX_INCLUDES_INTERNAL) \
