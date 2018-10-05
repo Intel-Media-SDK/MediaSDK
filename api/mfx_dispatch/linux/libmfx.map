@@ -59,6 +59,12 @@ LIBMFX_1.1 {
     MFXVideoUSER_ProcessFrameAsync;
 } LIBMFX_1.0;
 
+LIBMFX_1.8 {
+  global:
+    MFXVideoUSER_Load;
+    MFXVideoUSER_UnLoad;
+} LIBMFX_1.1;
+
 LIBMFX_1.10 {
   global:
     MFXVideoENC_Query;
@@ -79,6 +85,7 @@ LIBMFX_1.13 {
     MFXVideoPAK_Reset;
     MFXVideoPAK_Close;
     MFXVideoPAK_ProcessFrameAsync;
+    MFXVideoUSER_LoadByPath;
 } LIBMFX_1.10;
 
 LIBMFX_1.14 {
@@ -94,3 +101,11 @@ LIBMFX_1.19 {
     MFXVideoCORE_QueryPlatform;
     MFXVideoUSER_GetPlugin;
 } LIBMFX_1.14;
+
+LIBMFXAUDIO_1.9 {
+  global:
+    MFXAudioUSER_Load;
+    MFXAudioUSER_UnLoad;
+  local:
+    *;
+};
