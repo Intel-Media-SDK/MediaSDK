@@ -737,9 +737,8 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
             }
             else if (MFX_ERR_NONE < sts && m_SyncPoint)
             {
-                // ignore warnings if output is available
                 sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                MSDK_CHECK_STATUS(sts, "FEI ENCODE: SyncOperation failed");
+                MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "FEI ENCODE: SyncOperation failed");
                 break;
             }
             else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
@@ -752,7 +751,7 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
                 if (m_SyncPoint)
                 {
                     sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
-                    MSDK_CHECK_STATUS(sts, "FEI ENCODE: SyncOperation failed");
+                    MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "FEI ENCODE: SyncOperation failed");
                 }
                 break;
             }
