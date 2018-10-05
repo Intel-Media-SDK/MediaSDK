@@ -33,7 +33,7 @@ function( get_api_version mfx_version_major mfx_version_minor )
   set(${mfx_version_minor} ${minor} PARENT_SCOPE)
 endfunction()
 
-set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
+set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__bin )
 
 # If user did not override CMAKE_INSTALL_PREFIX, then set the default prefix
 # to /opt/intel/mediasdk instead of cmake's default
@@ -94,53 +94,23 @@ include_directories (
   ${MFX_API_FOLDER}
 )
 
-function( append_property target property_name property )
-  get_target_property( property ${ARGV0} ${ARGV1} )
-  if( property MATCHES NOTFOUND)
-    set( property "" )
-  endif( )
-  string( REPLACE ";" " " property "${ARGV2} ${property}" )
-  set_target_properties( ${ARGV0} PROPERTIES ${ARGV1} "${property}" )
-endfunction( )
-
-function( make_static_library name )
-  if( sources.plus )
-    list( APPEND sources ${sources.plus} )
-  endif( )
-
-  set( target ${ARGV0} )
-
-  add_library( ${target} STATIC ${include} ${sources} )
-
-  set( link_flags_list "-Wl,--no-undefined,-z,relro,-z,now,-z,noexecstack")
-  append_property( ${target} LINK_FLAGS "${link_flags_list} -fstack-protector" )
-
-  if( defs )
-    append_property( ${target} COMPILE_FLAGS ${defs} )
-  endif( )
-
-  set_target_properties( ${target} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER ${target} )
-endfunction( )
-
-set( defs "" )
-make_static_library( mfx )
-
-set( defs "-DMFX_DISPATCHER_EXPOSED_PREFIX" )
-make_static_library( dispatch_shared )
-
-set( defs "-DMFX_DISPATCHER_LOG -DDXVA2DEVICE_LOG" )
-make_static_library( dispatch_trace )
+add_library(mfx SHARED ${sources})
+target_link_libraries(mfx dl)
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
-set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}.pc")
-set( PKG_CONFIG_FNAME_SHARED "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}-shared.pc")
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config-shared.pc.cmake" ${PKG_CONFIG_FNAME_SHARED} @ONLY)
 
-install( TARGETS mfx ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
-install( TARGETS dispatch_shared ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} )
+set_target_properties( mfx PROPERTIES LINK_FLAGS
+  "-Wl,--no-undefined,-z,relro,-z,now,-z,noexecstack -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/libmfx.map -fstack-protector")
+set_target_properties( mfx PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE} FOLDER mfx )
+set_target_properties( mfx PROPERTIES   VERSION ${MFX_VERSION_MAJOR}.${MFX_VERSION_MINOR})
+set_target_properties( mfx PROPERTIES SOVERSION ${MFX_VERSION_MAJOR})
+
+install(TARGETS mfx LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${PROJECT_NAME}.pc")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
+
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
-install( FILES ${PKG_CONFIG_FNAME_SHARED} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
 install( DIRECTORY ${MFX_API_FOLDER}/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mfx FILES_MATCHING PATTERN *.h )
 
 # For backwards compatibility, create a relative symbolic link without the "lib"
