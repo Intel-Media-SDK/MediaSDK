@@ -143,7 +143,7 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
 endforeach()
 
 set( USE_STRICT_NAME TRUE )
-set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/libmfx.map" )
+set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_LIB_ROOT}/libmfxhw.map" )
 
 if( DEFINED MFX_LIBNAME )
   set( mfxlibname "${MFX_LIBNAME}")
