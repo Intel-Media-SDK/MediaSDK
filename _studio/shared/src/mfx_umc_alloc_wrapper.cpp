@@ -667,9 +667,12 @@ UMC::Status mfx_UMC_FrameAllocator::Free(UMC::FrameMemID mid)
 
     if ((m_IsUseExternalFrames) || (m_sfcVideoPostProcessing))
     {
-        sts = m_pCore->DecreaseReference(&m_extSurfaces[index].FrameSurface->Data);
-        if (sts < MFX_ERR_NONE)
-            return UMC::UMC_ERR_FAILED;
+        if (m_extSurfaces[index].FrameSurface)
+        {
+            sts = m_pCore->DecreaseReference(&m_extSurfaces[index].FrameSurface->Data);
+            if (sts < MFX_ERR_NONE)
+                return UMC::UMC_ERR_FAILED;
+        }
         m_extSurfaces[index].isUsed = false;
     }
 
