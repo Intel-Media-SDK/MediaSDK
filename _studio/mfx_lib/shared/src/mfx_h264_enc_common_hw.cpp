@@ -9038,7 +9038,9 @@ void WritePredWeightTable(
     mfxU32              chromaArrayType)
 {
     // Transform field parity to field number before buffer request (PWT attached according to field order, not parity)
-    const mfxExtPredWeightTable* pPWT = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
+    // However in case of FEI single field mode, only one buffer is attached.
+    mfxU32 fieldNum = task.m_singleFieldMode ? 0 : task.m_fid[fieldId];
+    const mfxExtPredWeightTable* pPWT = GetExtBuffer(task.m_ctrl, fieldNum);
 
     if (!pPWT)
         pPWT = &task.m_pwt[fieldId];
