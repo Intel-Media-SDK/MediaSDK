@@ -228,7 +228,16 @@ void CFeiTranscodingPipeline::PrintInfo()
             msdk_printf(MSDK_STRING("\nTargetKbps       :\t%d"), m_inParamsArray[id].sBRCparams.TargetKbps);
             if (m_inParamsArray[id].sBRCparams.LookAheadDepth)
             {
+                msdk_printf(MSDK_STRING("\nBRC type         :\tLook Ahead"));
                 msdk_printf(MSDK_STRING("\nLookAheadDepth   :\t%d"), m_inParamsArray[id].sBRCparams.LookAheadDepth);
+                msdk_printf(MSDK_STRING("\nLookBackDepth    :\t%d"), m_inParamsArray[id].sBRCparams.LookBackDepth);
+                msdk_printf(MSDK_STRING("\nAdaptationLength :\t%d"), m_inParamsArray[id].sBRCparams.AdaptationLength);
+                static std::string sAlgType[] = { "MSE", "NNZ", "SSC" };
+                msdk_printf(MSDK_STRING("\nEstimation Algo  :\t%s"), sAlgType[m_inParamsArray[id].sBRCparams.eAlgType].c_str());
+            }
+            else
+            {
+                msdk_printf(MSDK_STRING("\nBRC type         :\tSW"));
             }
         }
         ++id;
