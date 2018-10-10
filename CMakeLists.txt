@@ -77,6 +77,7 @@ cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF 
 # Tools depend on samples (sample_common) and can't be built without it. The
 # following BUILD_TOOLS option declaration assures that.
 cmake_dependent_option(BUILD_TOOLS "Build tools?" "${BUILD_ALL}" "BUILD_SAMPLES" OFF)
+option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
@@ -102,6 +103,10 @@ endif()
 
 if (BUILD_DISPATCHER)
   add_subdirectory(api/mfx_dispatch/linux)
+endif()
+
+if (BUILD_TESTS AND GTEST_FOUND)
+  add_subdirectory(tests)
 endif()
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
@@ -163,5 +168,6 @@ message("Build:")
 message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
 message("  BUILD_DISPATCHER                        : ${BUILD_DISPATCHER}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
+message("  BUILD_TESTS                             : ${BUILD_TESTS}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("*****************************************************************************")
