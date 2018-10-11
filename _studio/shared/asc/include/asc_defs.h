@@ -34,6 +34,9 @@
 #define CHROMASUBSAMPLE   4
 #define ASC_SMALL_WIDTH   128
 #define ASC_SMALL_HEIGHT  64
+#define ASC_SMALL_BD      8
+#define ASC_LARGE_BD      16
+#define ASC_DEFAULT_BD    8
 #define MAXLTRHISTORY     120
 #define ASC_SMALL_AREA    8192//13 bits
 #define S_AREA_SHIFT      13

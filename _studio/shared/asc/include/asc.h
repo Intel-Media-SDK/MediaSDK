@@ -158,6 +158,8 @@ private:
         m_width,
         m_height,
         m_pitch;
+    mfxU8
+        m_bitDepth;
     /**
     ****************************************************************
     * \Brief List of long term reference friendly frame detection
@@ -185,23 +187,61 @@ private:
     t_Calc_RaCa_pic            Calc_RaCa_pic;
 
     void SubSample_Point(
-        pmfxU8 pSrc, mfxU32 srcWidth, mfxU32 srcHeight, mfxU32 srcPitch,
-        pmfxU8 pDst, mfxU32 dstWidth, mfxU32 dstHeight, mfxU32 dstPitch,
+        pmfxU8 pSrc,
+        mfxU32 srcWidth,
+        mfxU32 srcHeight,
+        mfxU32 srcPitch,
+        pmfxU8 pDst,
+        mfxU32 dstWidth,
+        mfxU32 dstHeight,
+        mfxU32 dstPitch,
+        mfxU8 bitDepthAdj,
         mfxI16 &avgLuma);
     mfxStatus RsCsCalc();
-    mfxI32 ShotDetect(ASCimageData& Data, ASCimageData& DataRef, ASCImDetails& imageInfo, ASCTSCstat *current, ASCTSCstat *reference, mfxU8 controlLevel);
-    void MotionAnalysis(ASCVidSample *videoIn, ASCVidSample *videoRef, mfxU32 *TSC, mfxU16 *AFD, mfxU32 *MVdiffVal, mfxU32 *AbsMVSize, mfxU32 *AbsMVHSize, mfxU32 *AbsMVVSize, ASCLayers lyrIdx);
+    mfxI32 ShotDetect(
+        ASCimageData & Data,
+        ASCimageData & DataRef,
+        ASCImDetails & imageInfo,
+        ASCTSCstat   * current,
+        ASCTSCstat   * reference,
+        mfxU8          controlLevel);
+    void MotionAnalysis(
+        ASCVidSample * videoIn,
+        ASCVidSample * videoRef,
+        mfxU32       * TSC,
+        mfxU16       * AFD,
+        mfxU32       * MVdiffVal,
+        mfxU32       * AbsMVSize,
+        mfxU32       * AbsMVHSize,
+        mfxU32       * AbsMVVSize,
+        ASCLayers      lyrIdx);
 
-    typedef void(ASC::*t_resizeImg)(mfxU8 *frame, mfxI32 srcWidth, mfxI32 srcHeight, mfxI32 inputPitch, ns_asc::ASCLayers dstIdx, mfxU32 parity);
+    typedef void(ASC::*t_resizeImg)(
+        mfxU8           * frame,
+        mfxI32            srcWidth,
+        mfxI32            srcHeight,
+        mfxI32            inputPitch,
+        mfxU8             bitDepthAdj,
+        ns_asc::ASCLayers dstIdx,
+        mfxU32            parity);
     t_resizeImg resizeFunc;
     mfxStatus VidSample_Alloc();
     void VidSample_dispose();
     void VidRead_dispose();
-    mfxStatus SetWidth(mfxI32 Width);
-    mfxStatus SetHeight(mfxI32 Height);
-    mfxStatus SetPitch(mfxI32 Pitch);
+    mfxStatus SetWidth(
+        mfxI32 Width);
+    mfxStatus SetHeight(
+        mfxI32 Height);
+    mfxStatus SetPitch(
+        mfxI32 Pitch);
+    mfxStatus SetBitDepth(
+        mfxU8 bitDepth);
     void SetNextField();
-    mfxStatus SetDimensions(mfxI32 Width, mfxI32 Height, mfxI32 Pitch);
+    mfxStatus SetDimensions(
+        mfxI32 Width,
+        mfxI32 Height,
+        mfxI32 Pitch,
+        mfxU8 bitDepth);
     mfxStatus alloc();
     mfxStatus InitCPU();
     void Setup_Environment();
@@ -212,9 +252,25 @@ private:
     void InitStruct();
     mfxStatus VidRead_Init();
     void VidSample_Init();
-    void SubSampleASC_ImagePro(mfxU8 *frame, mfxI32 srcWidth, mfxI32 srcHeight, mfxI32 inputPitch, ASCLayers dstIdx, mfxU32 parity);
-    void SubSampleASC_ImageInt(mfxU8 *frame, mfxI32 srcWidth, mfxI32 srcHeight, mfxI32 inputPitch, ASCLayers dstIdx, mfxU32 parity);
-    bool CompareStats(mfxU8 current, mfxU8 reference);
+    void SubSampleASC_ImagePro(
+        mfxU8   * frame,
+        mfxI32    srcWidth,
+        mfxI32    srcHeight,
+        mfxI32    inputPitch,
+        mfxU8     bitDepthAdj,
+        ASCLayers dstIdx,
+        mfxU32    parity);
+    void SubSampleASC_ImageInt(
+        mfxU8   * frame,
+        mfxI32    srcWidth,
+        mfxI32    srcHeight,
+        mfxI32    inputPitch,
+        mfxU8     bitDepthAdj,
+        ASCLayers dstIdx,
+        mfxU32    parity);
+    bool CompareStats(
+        mfxU8 current,
+        mfxU8 reference);
     bool FrameRepeatCheck();
     void DetectShotChangeFrame();
     void GeneralBufferRotation();
@@ -247,6 +303,7 @@ private:
     bool Query_ASCCmDevice();
     ASC_API mfxStatus SetInterlaceMode(ASCFTS interlaceMode);
 public:
+    ASC_API mfxStatus Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU16 bitDepth, mfxU32 PicStruct, CmDevice* pCmDevice);
     ASC_API mfxStatus Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct, CmDevice* pCmDevice);
     ASC_API void Close();
     ASC_API bool IsASCinitialized();
