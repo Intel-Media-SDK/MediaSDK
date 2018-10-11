@@ -21,7 +21,6 @@
 #ifndef __VM_SYS_INFO_H__
 #define __VM_SYS_INFO_H__
 
-
 #include "vm_types.h"
 #include "vm_strings.h"
 
@@ -32,16 +31,6 @@ extern "C"
 
 /* Functions to obtain processor's specific information */
 uint32_t vm_sys_info_get_cpu_num(void);
-uint32_t vm_sys_info_get_numa_nodes_num(void);
-unsigned long long vm_sys_info_get_cpu_mask_of_numa_node(uint32_t node);
-void vm_sys_info_get_cpu_name(vm_char *cpu_name);
-void vm_sys_info_get_vga_card(vm_char *vga_card);
-void vm_sys_info_get_os_name(vm_char *os_name);
-void vm_sys_info_get_computer_name(vm_char *computer_name);
-void vm_sys_info_get_program_name(vm_char *program_name);
-void vm_sys_info_get_program_path(vm_char *program_path);
-uint32_t vm_sys_info_get_cpu_speed(void);
-uint32_t vm_sys_info_get_mem_size(void);
 
 #ifdef __cplusplus
 }
