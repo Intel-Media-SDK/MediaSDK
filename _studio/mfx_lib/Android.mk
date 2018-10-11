@@ -101,7 +101,6 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/shared/src/, \
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/src/, \
     genx_scd_bdw_isa.cpp \
-    genx_scd_cnl_isa.cpp \
     genx_scd_icl_isa.cpp \
     genx_scd_icllp_isa.cpp \
     genx_scd_skl_isa.cpp)
