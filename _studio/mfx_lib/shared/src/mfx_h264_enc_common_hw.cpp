@@ -6905,56 +6905,6 @@ mfxStatus MfxHwH264Encode::CopyFrameDataBothFields(
     return core->DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY);
 }
 
-
-
-mfxStatus MfxHwH264Encode::ReadFrameData(
-    vm_file *            file,
-    mfxU32               frameNum,
-    VideoCORE *          core,
-    mfxFrameData const & fdata,
-    mfxFrameInfo const & info)
-{
-    mfxFrameData data = fdata;
-    FrameLocker lock(core, data, false);
-
-    if (file != 0 && data.Y != 0 && data.UV != 0)
-    {
-        mfxU32 frameSize = (info.Height * info.Width * 5) / 4;
-        if (vm_file_fseek(file, frameSize * frameNum, VM_FILE_SEEK_SET) != 0)
-        {
-            MFX_RETURN(MFX_ERR_NOT_FOUND);
-        }
-
-        for (mfxU32 i = 0; i < info.Height; i++)
-        {
-            if(!vm_file_fread(data.Y + i * data.Pitch, 1, info.Width, file))
-            {
-                return MFX_ERR_UNKNOWN;
-            }
-        }
-
-        for (mfxI32 y = 0; y < info.Height / 2; y++)
-            for (mfxI32 x = 0; x < info.Width; x += 2)
-            {
-                if(!vm_file_fread(data.UV + y * data.Pitch + x, 1, 1, file))
-                {
-                    return MFX_ERR_UNKNOWN;
-                }
-            }
-
-        for (mfxI32 y = 0; y < info.Height / 2; y++)
-            for (mfxI32 x = 1; x < info.Width; x += 2)
-            {
-                if(!vm_file_fread(data.UV + y * data.Pitch + x, 1, 1, file))
-                {
-                    return MFX_ERR_UNKNOWN;
-    }
-            }
-    }
-
-    return MFX_ERR_NONE;
-}
-
 mfxExtBuffer* MfxHwH264Encode::GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id, mfxU32 offset)
 {
     if (extBuf != 0)
