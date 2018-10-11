@@ -682,18 +682,6 @@ mfxStatus VAAPIFEIPREENCEncoder::QueryStatus(
     VASurfaceStatus surfSts = VASurfaceSkipped;
 
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
-        vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
-    }
-    // following code is workaround:
-    // because of driver bug it could happen that decoding error will not be returned after decoder sync
-    // and will be returned at subsequent encoder sync instead
-    // just ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
-    if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
-        vaSts = VA_STATUS_SUCCESS;
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaQuerySurfaceStatus");
         vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
     }
@@ -1628,16 +1616,6 @@ mfxStatus VAAPIFEIENCEncoder::QueryStatus(
 
     VASurfaceStatus surfSts = VASurfaceSkipped;
 
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
-        vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
-    }
-
-    // ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
-    if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
-        vaSts = VA_STATUS_SUCCESS;
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
     vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -2537,17 +2515,6 @@ mfxStatus VAAPIFEIPAKEncoder::QueryStatus(
         }
     }
     MFX_CHECK(indxSurf != m_statFeedbackCache.size(), MFX_ERR_UNKNOWN);
-
-
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
-        vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
-    }
-
-    //  ignore VA_STATUS_ERROR_DECODING_ERROR in encoder
-    if (vaSts == VA_STATUS_ERROR_DECODING_ERROR)
-        vaSts = VA_STATUS_SUCCESS;
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     VASurfaceStatus surfSts = VASurfaceSkipped;
 
