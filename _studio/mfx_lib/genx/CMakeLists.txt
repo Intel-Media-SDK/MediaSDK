@@ -36,7 +36,6 @@ if(MFX_ENABLE_KERNELS)
   set( prefix ${MSDK_GENX_ROOT}/asc/src )
   list( APPEND sources
       ${prefix}/genx_scd_bdw_isa.cpp
-      ${prefix}/genx_scd_cnl_isa.cpp
       ${prefix}/genx_scd_icl_isa.cpp
       ${prefix}/genx_scd_icllp_isa.cpp
       ${prefix}/genx_scd_skl_isa.cpp
