@@ -20,11 +20,9 @@
 
 #include <umc_va_base.h>
 
-
 #include "umc_defs.h"
 #include "umc_va_linux.h"
 #include "umc_va_video_processing.h"
-#include "vm_file.h"
 #include "mfx_trace.h"
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
