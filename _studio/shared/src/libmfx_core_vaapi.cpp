@@ -1414,11 +1414,6 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
 
 } // void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
 
-bool IsHwMvcEncSupported()
-{
-    return false;
-}
-
 
 #endif
 /* EOF */

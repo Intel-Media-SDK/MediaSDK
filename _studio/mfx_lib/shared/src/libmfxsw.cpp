@@ -23,6 +23,8 @@
 #include <mfx_session.h>
 #include <mfx_trace.h>
 
+#include "libmfx_core_hw.h"
+
 
 #if (MFX_VERSION_MAJOR == 1) && (MFX_VERSION_MINOR >= 10)
   #define MFX_USE_VERSIONED_SESSION
@@ -151,6 +153,11 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         adapterNum = 0;
         break;
 
+    }
+
+    if (!CheckForIntelHWDisplayDevicePresent(adapterNum, implInterface))
+    {
+        return MFX_ERR_UNSUPPORTED;
     }
 
     try

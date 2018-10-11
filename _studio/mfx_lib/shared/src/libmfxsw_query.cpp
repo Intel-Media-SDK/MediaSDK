@@ -20,6 +20,7 @@
 
 #include <mfxvideo.h>
 #include <mfx_session.h>
+#include "libmfx_core_hw.h"
 
 mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
 {
@@ -44,6 +45,13 @@ mfxStatus MFXQueryIMPL(mfxSession session, mfxIMPL *impl)
     {
         currentImpl = (mfxIMPL) (MFX_IMPL_HARDWARE2 + (session->m_adapterNum - 1));
     }
+
+    if (currentImpl == MFX_IMPL_HARDWARE &&
+        !CheckForIntelHWDisplayDevicePresent(session->m_adapterNum, session->m_implInterface))
+    {
+        return MFX_ERR_UNSUPPORTED;
+    }
+
     currentImpl |= session->m_implInterface;
 
     // save the current implementation type

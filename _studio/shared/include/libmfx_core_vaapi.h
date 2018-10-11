@@ -222,7 +222,6 @@ class PointerProxy
         void* mp;
 };
 
-
 #endif // __LIBMFX_CORE__VAAPI_H__
 #endif // MFX_VA_LINUX
 /* EOF */

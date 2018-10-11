@@ -18,15 +18,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_common.h"
-
-
 #ifndef __LIBMFX_CORE__HW_H__
 #define __LIBMFX_CORE__HW_H__
 
+#include "mfx_common.h"
 #include "umc_va_base.h"
+#include <memory>
+#include <mutex>
+#include <vector>
 
-mfxU32 ChooseProfile(mfxVideoParam * param, eMFXHWType hwType);
+struct PciDisplayDevice
+{
+    mfxU32 vendor_id;
+    mfxU32 device_id;
+};
+
+class HardwareInfoStore
+{
+public:
+    static HardwareInfoStore& GetInstance()
+    {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        if (!m_instance)
+        {
+            m_instance.reset(new HardwareInfoStore());
+        }
+        return (*m_instance);
+    }
+    const std::vector<PciDisplayDevice>& GetPciDisplayDeviceList()
+    {
+        {
+            std::lock_guard<std::mutex> lock(m_mtx);
+            if (m_pci_disp_dev_list.empty())
+            {
+                LoadPciDisplayDevicesList();
+            }
+        }
+        return m_pci_disp_dev_list;
+    };
+
+private:
+    HardwareInfoStore() = default;
+    void LoadPciDisplayDevicesList();
+    std::vector<PciDisplayDevice> m_pci_disp_dev_list;
+    static std::unique_ptr<HardwareInfoStore> m_instance;
+    static std::mutex m_mtx;
+};
+
+bool CheckForIntelHWDisplayDevicePresent(mfxU32 adapter_num, mfxIMPL interface);
 bool IsHwMvcEncSupported();
 
 #endif

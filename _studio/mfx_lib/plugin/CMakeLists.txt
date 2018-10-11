@@ -142,6 +142,11 @@ if( DEFINED H264LA_ENCODER_GUID )
     ${prefix}/libmfxsw_enc.cpp
   )
 
+  set( prefix ${MSDK_STUDIO_ROOT}/shared/src )
+  list( APPEND sources
+    ${prefix}/libmfx_core_hw.cpp
+  )
+
   set( prefix ${MSDK_LIB_ROOT}/encode_hw/h264/src )
   list( APPEND sources
     ${prefix}/mfx_h264_encode_cm.cpp
