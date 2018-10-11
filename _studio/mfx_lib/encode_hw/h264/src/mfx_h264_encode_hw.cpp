@@ -3535,12 +3535,10 @@ void ImplementationAvc::FillEncodingUnitsInfo(
 
         if (encUnitsInfo->NumUnitsAlloc > encUnitsInfo->NumUnitsEncoded)
         {
-            memcpy_s(
-                encUnitsInfo->UnitInfo + encUnitsInfo->NumUnitsEncoded,
-                sizeof(mfxEncodedUnitInfo) * (encUnitsInfo->NumUnitsAlloc - encUnitsInfo->NumUnitsEncoded),
-                &task.m_headersCache[fid].front(),
-                sizeof(mfxEncodedUnitInfo) * std::min(size_t(encUnitsInfo->NumUnitsAlloc) - encUnitsInfo->NumUnitsEncoded, task.m_headersCache[fid].size())
-            );
+            size_t count = std::min<size_t>(encUnitsInfo->NumUnitsAlloc - encUnitsInfo->NumUnitsEncoded, task.m_headersCache[fid].size());
+
+            std::copy(std::begin(task.m_headersCache[fid]), std::begin(task.m_headersCache[fid]) + count,
+                        encUnitsInfo->UnitInfo + encUnitsInfo->NumUnitsEncoded);
         }
 
         if (task.m_headersCache[fid].size() > 0)
