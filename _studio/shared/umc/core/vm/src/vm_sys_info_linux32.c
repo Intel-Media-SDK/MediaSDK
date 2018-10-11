@@ -21,14 +21,11 @@
 #if defined(LINUX32)
 
 #include "vm_sys_info.h"
-#include "vm_file.h"
 #include <time.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 
 #include <sys/sysinfo.h>
-
-
 
 uint32_t vm_sys_info_get_cpu_num(void)
 {
@@ -50,11 +47,11 @@ void vm_sys_info_get_cpu_name(vm_char *cpu_name)
     if (NULL == cpu_name)
         return;
 
-    pFile = vm_file_fopen(VM_STRING("/proc/cpuinfo"), "r");
+    pFile = fopen("/proc/cpuinfo", "r");
     if (!pFile)
         return;
 
-    while ((vm_file_fgets(buf, _MAX_LEN, pFile)))
+    while (fgets(buf, _MAX_LEN, pFile))
     {
         if (!vm_string_strncmp(buf, VM_STRING("vendor_id"), 9))
         {
@@ -144,11 +141,11 @@ uint32_t vm_sys_info_get_cpu_speed(void)
     FILE *pFile = NULL;
     vm_char buf[PATH_MAX];
 
-    pFile = vm_file_fopen(VM_STRING("/proc/cpuinfo"), "r" );
+    pFile = fopen("/proc/cpuinfo", "r" );
     if (!pFile)
         return 1000;
 
-    while ((vm_file_fgets(buf, PATH_MAX, pFile)))
+    while (fgets(buf, PATH_MAX, pFile))
     {
         if (!vm_string_strncmp(buf, VM_STRING("cpu MHz"), 7))
         {
