@@ -29,7 +29,6 @@
 #include <vector>
 #include <assert.h>
 #include <memory>
-#include "vm_file.h"
 #include "mfx_ext_buffers.h"
 #include "mfxfei.h"
 #include "mfxbrc.h"
@@ -822,14 +821,6 @@ namespace MfxHwH264Encode
         VideoCORE *          core,
         mfxFrameData const & dst,
         mfxFrameData const & src,
-        mfxFrameInfo const & info);
-
-
-    mfxStatus ReadFrameData(
-        vm_file *            file,
-        mfxU32               frameNum,
-        VideoCORE *          core,
-        mfxFrameData const & data,
         mfxFrameInfo const & info);
 
     mfxExtBuffer * GetExtBuffer(
