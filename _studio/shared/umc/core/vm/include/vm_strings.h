@@ -55,18 +55,13 @@ extern "C"
 
 typedef char vm_char;
 
-# include "vm_file.h"
-
-
 #define VM_STRING(x) x
 
 #define vm_string_printf    printf
-#define vm_string_fprintf   vm_file_fprintf
 #define vm_string_sprintf   sprintf
 #define vm_string_sprintf_s sprintf
 #define vm_string_snprintf  snprintf
 
-#define vm_string_vfprintf  vm_file_vfprintf
 #define vm_string_vsprintf  vsprintf
 #define vm_string_vsnprintf vsnprintf
 
