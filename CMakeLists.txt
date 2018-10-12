@@ -37,8 +37,10 @@ if( NOT DEFINED CMAKE_MFX_HOME )
   set( CMAKE_MFX_HOME "${CMAKE_HOME_DIRECTORY}/api" )
 endif()
 
-if( "$ENV{MFX_HOME}" STREQUAL "" )
-  set( ENV{MFX_HOME} ${CMAKE_HOME_DIRECTORY} )
+if(NOT DEFINED $ENV{MFX_HOME} )
+  set( MFX_HOME ${CMAKE_HOME_DIRECTORY} )
+else()
+  set( MFX_HOME $ENV{MFX_HOME} )
 endif()
 
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
