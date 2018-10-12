@@ -73,7 +73,7 @@ public:
 
     // Get an address of the beginning of valid data.
     // This pointer could not be equal to the beginning of the buffer.
-    virtual void* GetDataPointer(void)   { return m_pDataPointer; }
+    virtual uint8_t* GetDataPointer(void)   { return m_pDataPointer; }
 
     // Return size of the buffer
     virtual size_t GetBufferSize(void) const   { return m_nBufferSize; }
