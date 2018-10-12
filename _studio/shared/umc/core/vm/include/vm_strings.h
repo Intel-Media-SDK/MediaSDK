@@ -55,18 +55,12 @@ extern "C"
 
 typedef char vm_char;
 
-# include "vm_file.h"
-
-
 #define VM_STRING(x) x
 
 #define vm_string_printf    printf
-#define vm_string_fprintf   vm_file_fprintf
 #define vm_string_sprintf   sprintf
-#define vm_string_sprintf_s sprintf
 #define vm_string_snprintf  snprintf
 
-#define vm_string_vfprintf  vm_file_vfprintf
 #define vm_string_vsprintf  vsprintf
 #define vm_string_vsnprintf vsnprintf
 
@@ -74,17 +68,12 @@ typedef char vm_char;
 #if !defined(ANDROID)
 
 #define vm_string_strcat    strcat
-#define vm_string_strcat_s  strcat_s
-#define vm_string_strncat   strncat_s
 #define vm_string_strcpy    strcpy
-#define vm_string_strcpy_s  strcpy_s
 #define vm_string_strncpy   strncpy
-#define vm_string_strncpy_s strncpy_s
 #define vm_string_strcspn   strcspn
 #define vm_string_strspn    strspn
 
 #define vm_string_strlen    strlen
-#define vm_string_strnlen_s strnlen_s
 #define vm_string_strcmp    strcmp
 #define vm_string_strncmp   strncmp
 #define vm_string_stricmp   strcmp
@@ -94,17 +83,12 @@ typedef char vm_char;
 #else // ANDROID
 
 #define vm_string_strcat    strcat
-#define vm_string_strcat_s(dest, size, src)  (strncat((dest), (src), (size)),0)
-#define vm_string_strncat   strncat
 #define vm_string_strcpy    strcpy
-#define vm_string_strcpy_s(dest, size, src)  (strncpy((dest), (src), (size)),0)
 #define vm_string_strncpy   strncpy
-#define vm_string_strncpy_s(dst, dst_size, src, n) (strncpy(dst,src,n))
 #define vm_string_strcspn   strcspn
 #define vm_string_strspn    strspn
 
 #define vm_string_strlen    strlen
-#define vm_string_strnlen_s strnlen_s
 #define vm_string_strcmp    strcmp
 #define vm_string_strncmp   strncmp
 #define vm_string_stricmp   strcasecmp
