@@ -356,7 +356,7 @@ mfxStatus VideoDECODEMJPEG::GetVideoParam(mfxVideoParam *par)
 
     MFX_CHECK_NULL_PTR1(par);
 
-    memcpy_s(&par->mfx, sizeof(mfxInfoMFX), &m_vPar.mfx, sizeof(mfxInfoMFX));
+    par->mfx = m_vPar.mfx;
 
     par->Protected = m_vPar.Protected;
     par->IOPattern = m_vPar.IOPattern;
@@ -453,8 +453,7 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     decoder.Close();
     tempAllocator.Close();
 
-    memcpy_s(&(par->mfx.FrameInfo), sizeof(mfxFrameInfo), &temp.mfx.FrameInfo, sizeof(mfxFrameInfo));
-
+    par->mfx.FrameInfo = temp.mfx.FrameInfo;
     par->mfx.JPEGChromaFormat = temp.mfx.JPEGChromaFormat;
     par->mfx.JPEGColorFormat = temp.mfx.JPEGColorFormat;
     par->mfx.Rotation  = temp.mfx.Rotation;
@@ -475,8 +474,7 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfx
         type = core->GetHWType();
     }
 
-    mfxVideoParam params;
-    memcpy_s(&params, sizeof(mfxVideoParam), par, sizeof(mfxVideoParam));
+    mfxVideoParam params = *par;
     bool isNeedChangeVideoParamWarning = IsNeedChangeVideoParam(&params);
 
     if (!(par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(par->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(par->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
@@ -543,7 +541,7 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
 {
     eMFXPlatform platform = MFX_JPEG_Utility::GetPlatform(core, par);
 
-    memcpy_s(&request->Info, sizeof(mfxFrameInfo), &par->mfx.FrameInfo, sizeof(mfxFrameInfo));
+    request->Info = par->mfx.FrameInfo;
 
     mfxU32 asyncDepth = (par->AsyncDepth ? par->AsyncDepth : core->GetAutoAsyncDepth());
 
@@ -616,7 +614,7 @@ mfxStatus VideoDECODEMJPEG::GetDecodeStat(mfxDecodeStat *stat)
     decoder->m_stat.NumCachedFrame = 0;
     decoder->m_stat.NumError = 0;
 
-    memcpy_s(stat, sizeof(mfxDecodeStat), &decoder->m_stat, sizeof(mfxDecodeStat));
+    *stat = decoder->m_stat;
     return MFX_ERR_NONE;
 }
 
@@ -1141,7 +1139,7 @@ eMFXPlatform MFX_JPEG_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par
         }
         mfxFrameAllocRequest request;
         memset(&request, 0, sizeof(request));
-        memcpy_s(&request.Info, sizeof(mfxFrameInfo), &par->mfx.FrameInfo, sizeof(mfxFrameInfo));
+        request.Info = par->mfx.FrameInfo;
 
         VideoDECODEMJPEGBase_HW::AdjustFourCC(&request.Info, &par->mfx, core->GetHWType(), core->GetVAType(), &needVpp);
 
@@ -1165,8 +1163,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
 
     if (in == out)
     {
-        mfxVideoParam in1;
-        memcpy_s(&in1, sizeof(mfxVideoParam), in, sizeof(mfxVideoParam));
+        mfxVideoParam in1 = *in;
         return Query(core, &in1, out, type);
     }
 
