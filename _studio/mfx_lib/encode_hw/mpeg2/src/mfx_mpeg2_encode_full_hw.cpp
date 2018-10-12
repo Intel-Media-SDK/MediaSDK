@@ -670,7 +670,8 @@ mfxStatus UserDataBuffer::AddUserData(mfxU8* pUserData, mfxU32 len)
             *(pCurr++) = 1;
             *(pCurr++) = 0xB2;           
         }
-        memcpy_s(pCurr, m_bufSize - m_dataSize, pUserData, size);
+        //memcpy_s(pCurr, m_bufSize - m_dataSize, pUserData, size);
+        std::copy(pUserData, pUserData + size, pCurr);
     }
     return MFX_ERR_NONE;
 }
