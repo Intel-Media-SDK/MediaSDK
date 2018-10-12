@@ -22,11 +22,27 @@
 # library implementation inside. A key thing for the trick to work is
 # avoiding non-default symbol versioning, i.e. -Wl,--default-symver which
 # is propagated by mediasdk test system should be avoided. 
-add_executable(mfx_dispatch_tests mfx_dispatch_tests.cpp)
 
-set_target_properties(mfx_dispatch_tests PROPERTIES
+if( NOT DEFINED MFX_MODULES_DIR )
+  set( MFX_MODULES_DIR ${CMAKE_INSTALL_FULL_LIBDIR} )
+endif( )
+
+add_definitions( -DMFX_MODULES_DIR="${MFX_MODULES_DIR}" )
+add_definitions( -DMFX_PLUGINS_CONF_DIR="${MFX_PLUGINS_CONF_DIR}" )
+
+add_executable(mfx_dispatch_test
+  mfx_dispatch_test_main.cpp
+  mfx_dispatch_test_cases_libs.cpp
+  mfx_dispatch_test_cases_plugins.cpp
+  mfx_dispatch_test_mocks.cpp
+  mfx_dispatch_test_fixtures.cpp)
+
+set_target_properties(mfx_dispatch_test PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
 
-target_link_libraries( mfx_dispatch_tests mfx gtest pthread)
+target_link_libraries( mfx_dispatch_test mfx gtest gmock pthread )
 
-install(TARGETS mfx_dispatch_tests RUNTIME DESTINATION ${MFX_APPS_DIR}/tests)
+target_include_directories( mfx_dispatch_test PUBLIC ../../../api/mfx_dispatch/linux )
+
+install(TARGETS mfx_dispatch_test RUNTIME DESTINATION ${MFX_APPS_DIR}/tests)
+
