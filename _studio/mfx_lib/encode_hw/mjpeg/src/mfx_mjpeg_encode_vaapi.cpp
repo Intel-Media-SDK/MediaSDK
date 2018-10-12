@@ -250,7 +250,7 @@ mfxStatus VAAPIEncoder::RegisterBitstreamBuffer(mfxFrameAllocResponse& response)
         // we should register allocated HW bitstreams and recon surfaces
         MFX_CHECK( response.mids, MFX_ERR_NULL_PTR );
 
-        ExtVASurface extSurf;
+        ExtVASurface extSurf = {VA_INVALID_ID, 0, 0, 0};
         VASurfaceID *pSurface = NULL;
 
         for (mfxU32 i = 0; i < response.NumFrameActual; i++)
@@ -350,7 +350,7 @@ mfxStatus VAAPIEncoder::Execute(DdiTask &task, mfxHDL surface)
     {
         UMC::AutomaticUMCMutex guard(m_guard);
 
-        ExtVASurface currentFeedback;
+        ExtVASurface currentFeedback = {VA_INVALID_ID, 0, 0, 0};
         currentFeedback.number  = task.m_statusReportNumber;
         currentFeedback.surface = *(VASurfaceID*)surface;
         currentFeedback.idxBs   = task.m_idxBS;
