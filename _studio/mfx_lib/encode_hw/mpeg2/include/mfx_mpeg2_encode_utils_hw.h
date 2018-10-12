@@ -508,7 +508,8 @@ namespace MPEG2EncoderHW
                        mfxEncodeInternalParams* pEncodeInternalParams)
         {
             m_Frames = *pFrames;
-            memcpy_s(&m_sEncodeInternalParams, sizeof(mfxEncodeInternalParams), pEncodeInternalParams, sizeof(mfxEncodeInternalParams));
+            //memcpy_s(&m_sEncodeInternalParams, sizeof(mfxEncodeInternalParams), pEncodeInternalParams, sizeof(mfxEncodeInternalParams));
+            std::copy(pEncodeInternalParams, pEncodeInternalParams + sizeof(mfxEncodeInternalParams), &m_sEncodeInternalParams);
         }
         inline
             mfxStatus FillFrameParams (mfxU8 frameType, mfxVideoParamEx_MPEG2 *pExParams, mfxU16 surface_pict_struct, bool bBackwOnly, bool bFwdOnly, bool bAddSH, bool bAddEOS)
