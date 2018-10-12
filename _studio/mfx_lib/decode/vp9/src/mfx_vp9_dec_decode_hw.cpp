@@ -589,7 +589,7 @@ mfxStatus VideoDECODEVP9_HW::GetDecodeStat(mfxDecodeStat *pStat)
     m_stat.NumSkippedFrame = 0;
     m_stat.NumCachedFrame = 0;
 
-    memcpy_s(pStat, sizeof(m_stat), &m_stat, sizeof(m_stat));
+    *pStat = m_stat;
 
     return MFX_ERR_NONE;
 }
