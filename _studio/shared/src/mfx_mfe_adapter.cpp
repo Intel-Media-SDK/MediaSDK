@@ -45,9 +45,6 @@ MFEVAAPIEncoder::MFEVAAPIEncoder() :
     , m_framesCollected(0)
     , m_minTimeToWait(0)
 {
-    vm_cond_set_invalid(&m_mfe_wait);
-    vm_mutex_set_invalid(&m_mfe_guard);
-
     m_contexts.reserve(MAX_FRAMES_TO_COMBINE);
     m_streams.reserve(MAX_FRAMES_TO_COMBINE);
 }
@@ -79,27 +76,16 @@ mfxStatus MFEVAAPIEncoder::Create(mfxExtMultiFrameParam  const & par, VADisplay 
 
     if (VA_INVALID_ID != m_mfe_context)
     {
-        vm_mutex_lock(&m_mfe_guard);
+        std::lock_guard<std::mutex> guard(m_mfe_guard);
         //TMP WA for SKL due to number of frames limitation in different scenarios:
         //to simplify submission process and not add additional checks for frame wait depending on input parameters
         //if there are encoder want to run less frames within the same MFE Adapter(parent session) align to less now
         //in general just if someone set 3, but another one set 2 after that(or we need to decrease due to parameters) - use 2 for all.
         m_maxFramesToCombine = m_maxFramesToCombine > par.MaxNumFrames ? par.MaxNumFrames : m_maxFramesToCombine;
-        vm_mutex_unlock(&m_mfe_guard);
         return MFX_ERR_NONE;
     }
 
     m_vaDisplay = vaDisplay;
-
-    if (VM_OK != vm_mutex_init(&m_mfe_guard))
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
-
-    if (VM_OK != vm_cond_init(&m_mfe_wait))
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
 
     m_framesToCombine = 0;
 
@@ -155,9 +141,9 @@ mfxStatus MFEVAAPIEncoder::reconfigureRestorationCounts(VAContextID newCtx)
     }
     return MFX_ERR_NONE;
 }
-mfxStatus MFEVAAPIEncoder::Join(VAContextID ctx, vm_tick timeout)
+mfxStatus MFEVAAPIEncoder::Join(VAContextID ctx, long long timeout)
 {
-    vm_mutex_lock(&m_mfe_guard);//need to protect in case there are streams added/removed in runtime.
+    std::lock_guard<std::mutex> guard(m_mfe_guard);//need to protect in case there are streams added/removed in runtime.
 
     VAStatus vaSts = vaMFAddContext(m_vaDisplay, m_mfe_context, ctx);
 
@@ -200,33 +186,30 @@ mfxStatus MFEVAAPIEncoder::Join(VAContextID ctx, vm_tick timeout)
         sts = reconfigureRestorationCounts(ctx);
     }
 
-    vm_mutex_unlock(&m_mfe_guard);
     return sts;
 }
 
 mfxStatus MFEVAAPIEncoder::Disjoin(VAContextID ctx)
 {
-    vm_mutex_lock(&m_mfe_guard);//need to protect in case there are streams added/removed in runtime
+    std::lock_guard<std::mutex> guard(m_mfe_guard);//need to protect in case there are streams added/removed in runtime
     std::map<VAContextID, StreamsIter_t>::iterator iter = m_streamsMap.find(ctx);
 
     VAStatus vaSts = vaMFReleaseContext(m_vaDisplay, m_mfe_context, ctx);
 
     if(iter == m_streamsMap.end())
     {
-        vm_mutex_unlock(&m_mfe_guard);
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
     m_streams_pool.erase(iter->second);
     m_streamsMap.erase(iter);
     if (m_framesToCombine > 0 && m_framesToCombine >= m_maxFramesToCombine)
         --m_framesToCombine;
-    vm_mutex_unlock(&m_mfe_guard);
     return (VA_STATUS_SUCCESS == vaSts)? MFX_ERR_NONE: MFX_ERR_DEVICE_FAILED;
 }
 
 mfxStatus MFEVAAPIEncoder::Destroy()
 {
-    vm_mutex_lock(&m_mfe_guard);
+    std::lock_guard<std::mutex> guard(m_mfe_guard);
 /* Disabled for now in case driver doesn't support properly.
     for(StreamsIter_t it = m_streams_pool.begin();it == m_streams_pool.end(); it++)
     {
@@ -235,10 +218,7 @@ mfxStatus MFEVAAPIEncoder::Destroy()
 */
     VAStatus vaSts = vaDestroyContext(m_vaDisplay, VAContextID(m_mfe_context));
     m_mfe_context = VA_INVALID_ID;
-    vm_mutex_unlock(&m_mfe_guard);
 
-    vm_mutex_destroy(&m_mfe_guard);
-    vm_cond_destroy(&m_mfe_wait);
     m_streams_pool.clear();
     m_streamsMap.clear();
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
@@ -246,12 +226,11 @@ mfxStatus MFEVAAPIEncoder::Destroy()
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool skipFrame)
+mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, long long timeToWait, bool skipFrame)
 {
-    vm_mutex_lock(&m_mfe_guard);
+    std::unique_lock<std::mutex> guard(m_mfe_guard);
     //stream in pool corresponding to particular context;
     StreamsIter_t cur_stream;
-    vm_tick timeout = timeToWait; 
     //we can wait for less frames than expected by pipeline due to avilability.
     mfxU32 framesToSubmit = m_framesToCombine;
     if (m_streams_pool.empty())
@@ -277,7 +256,6 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
     }
     if(m_streams_pool.empty())
     {
-        vm_mutex_unlock(&m_mfe_guard);
         return MFX_ERR_MEMORY_ALLOC;
     }
 
@@ -285,7 +263,6 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
     std::map<VAContextID, StreamsIter_t>::iterator iter = m_streamsMap.find(context);
     if(iter == m_streamsMap.end())
     {
-        vm_mutex_unlock(&m_mfe_guard);
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
@@ -313,7 +290,6 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
         //if frame is skipped - threat it as submitted without real submission
         //to not lock other streams waiting for it
         m_submitted_pool.splice(m_submitted_pool.end(), m_toSubmit, cur_stream);
-        vm_mutex_unlock(&m_mfe_guard);
         return MFX_ERR_NONE;
     }
     ++m_framesCollected;
@@ -329,28 +305,12 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
 
     if(!framesToSubmit)
     {
-        vm_mutex_unlock(&m_mfe_guard);
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-    vm_tick start_tick = vm_time_get_tick();
-    vm_tick spent_ticks = 0;
-    timeout = timeout? timeout: cur_stream->timeout;
-    while (m_framesCollected < framesToSubmit &&
-           !cur_stream->isFrameSubmitted() &&
-           timeToWait > spent_ticks)
-    {
-        vm_status res = vm_cond_timed_uwait(&m_mfe_wait, &m_mfe_guard,
-                                          (timeToWait - spent_ticks));
-        if ((VM_OK == res) || (VM_TIMEOUT == res))
-        {
-            spent_ticks = (vm_time_get_tick() - start_tick);
-        }
-        else
-        {
-            vm_mutex_unlock(&m_mfe_guard);
-            return MFX_ERR_UNKNOWN;
-        }
-    }
+    m_mfe_wait.wait_for(guard, std::chrono::microseconds(timeToWait), [this, framesToSubmit, cur_stream] {
+        return (m_framesCollected >= framesToSubmit) || cur_stream->isFrameSubmitted();
+    });
+
     //for interlace we will return stream back to stream pool when first field submitted
     //to submit next one imediately after than, and don't count it as submitted
     if (!cur_stream->isFrameSubmitted())
@@ -389,7 +349,7 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
             }
             m_framesCollected -= m_contexts.size();
         }
-        vm_cond_broadcast(&m_mfe_wait);
+        m_mfe_wait.notify_all();
         m_contexts.clear();
         m_streams.clear();
     }
@@ -401,7 +361,6 @@ mfxStatus MFEVAAPIEncoder::Submit(VAContextID context, vm_tick timeToWait, bool 
     {
         m_submitted_pool.splice(m_submitted_pool.end(), m_toSubmit, cur_stream);
     }
-    vm_mutex_unlock(&m_mfe_guard);
     return res;
 }
 
