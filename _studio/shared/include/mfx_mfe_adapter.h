@@ -27,9 +27,7 @@
 #include <map>
 #include <list>
 #include <vector>
-#include "vm_mutex.h"
-#include "vm_cond.h"
-#include "vm_time.h"
+#include <condition_variable>
 #include <mfxstructures.h>
 
 class MFEVAAPIEncoder
@@ -38,13 +36,13 @@ class MFEVAAPIEncoder
     {
         VAContextID ctx;
         mfxStatus   sts;
-        vm_tick timeout;
+        long long timeout;
         mfxU32 restoreCount;
         mfxU32 restoreCountBase;
         bool isSubmitted;
         m_stream_ids_t( VAContextID _ctx,
                         mfxStatus _sts,
-                        vm_tick defaultTimeout):
+                        long long defaultTimeout):
         ctx(_ctx),
         sts(_sts),
         timeout(defaultTimeout),
@@ -85,10 +83,10 @@ public:
     mfxStatus Create(mfxExtMultiFrameParam const & par, VADisplay vaDisplay);
 
 
-    mfxStatus Join(VAContextID ctx, vm_tick timeout);
+    mfxStatus Join(VAContextID ctx, long long timeout);
     mfxStatus Disjoin(VAContextID ctx);
     mfxStatus Destroy();
-    mfxStatus Submit(VAContextID context, vm_tick timeToWait, bool skipFrame);//time passed in vm_tick, so milliseconds to be multiplied by vm_frequency/1000
+    mfxStatus Submit(VAContextID context, long long timeToWait, bool skipFrame);//time passed in microseconds
 
     virtual void AddRef();
     virtual void Release();
@@ -98,8 +96,8 @@ private:
     mfxStatus   reconfigureRestorationCounts(VAContextID newCtx);
     mfxU32      m_refCounter;
 
-    vm_cond     m_mfe_wait;
-    vm_mutex    m_mfe_guard;
+    std::condition_variable     m_mfe_wait;
+    std::mutex                  m_mfe_guard;
 
     VADisplay      m_vaDisplay;
     VAMFContextID  m_mfe_context;
@@ -136,7 +134,7 @@ private:
     // store iterators to particular items
     std::map<VAContextID, StreamsIter_t> m_streamsMap;
     //minimal timeout of all streams
-    vm_tick m_minTimeToWait;
+    long long m_minTimeToWait;
     // currently up-to-to 3 frames worth combining
     static const mfxU32 MAX_FRAMES_TO_COMBINE = 3;
 };
