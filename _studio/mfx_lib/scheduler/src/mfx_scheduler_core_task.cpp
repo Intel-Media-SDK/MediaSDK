@@ -30,18 +30,11 @@ MFX_SCHEDULER_TASK::MFX_SCHEDULER_TASK(mfxU32 taskID, mfxSchedulerCore *pSchedul
     pNext(NULL),
     m_pSchedulerCore(pSchedulerCore)
 {
-    vm_cond_set_invalid(&done);
-    if (VM_OK != vm_cond_init(&done)) {
-        throw std::bad_alloc();
-    }
     // reset task parameters
     memset(&param, 0, sizeof(param));
 }
 
-MFX_SCHEDULER_TASK::~MFX_SCHEDULER_TASK(void)
-{
-    vm_cond_destroy(&done);
-}
+MFX_SCHEDULER_TASK::~MFX_SCHEDULER_TASK(void) {}
 
 mfxStatus MFX_SCHEDULER_TASK::Reset(void)
 {
@@ -76,7 +69,7 @@ void MFX_SCHEDULER_TASK::OnDependencyResolved(mfxStatus result)
 
         // need to update dependency table for all tasks dependent from failed 
         m_pSchedulerCore->ResolveDependencyTable(this);
-        vm_cond_broadcast(&done);
+        done.notify_all();
 
         // release the current task resources
         ReleaseResources();

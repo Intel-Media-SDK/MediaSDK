@@ -24,7 +24,7 @@
 #include <mfxdefs.h>
 
 #include <thread>
-#include <vm_cond.h>
+#include <condition_variable>
 
 // forward declaration of the owning class
 class mfxSchedulerCore;
@@ -38,23 +38,21 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
       , threadHandle()
       , workTime(0)
       , sleepTime(0)
-    {
-        vm_cond_set_invalid(&taskAdded);
-    }
+    {}
 
     enum State {
         Waiting, // thread is waiting for incoming tasks
         Running  // thread is executing a task
     };
 
-    State state;                      // thread state, waiting or running
-    mfxSchedulerCore *pSchedulerCore; // pointer to the owning core
-    mfxU32 threadNum;                 // thread number assigned by the core
-    std::thread threadHandle;         // thread handle
-    vm_cond taskAdded;                // cond. variable to signal new tasks
+    State state;                       // thread state, waiting or running
+    mfxSchedulerCore *pSchedulerCore;  // pointer to the owning core
+    mfxU32 threadNum;                  // thread number assigned by the core
+    std::thread threadHandle;          // thread handle
+    std::condition_variable taskAdded; // cond. variable to signal new tasks
 
-    mfxU64 workTime;                  // integral working time
-    mfxU64 sleepTime;                 // integral sleeping time
+    mfxU64 workTime;                   // integral working time
+    mfxU64 sleepTime;                  // integral sleeping time
 };
 
 #endif // #ifndef __MFX_SCHEDULER_CORE_THREAD_H

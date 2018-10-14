@@ -29,11 +29,8 @@
 #include <mfx_task.h>
 
 // synchronization stuff
-#include <vm_cond.h>
 #include <vm_time.h>
 
-#include <umc_mutex.h>
-#include <umc_automatic_mutex.h>
 #include <umc_semaphore.h>
 #include <umc_event.h>
 #include <umc_array.h>
@@ -225,13 +222,8 @@ protected:
     // Release the object
     void Close(void);
 
-    // Wake up requested number of dedicated and regular threads (default: wake up all)
-    void WakeUpThreads(
-        mfxU32 num_dedicated_threads = (mfxU32)-1,
-        mfxU32 num_regular_threads = (mfxU32)-1);
-
     // Wait until the scheduler got more work
-    void Wait(const mfxU32 curThreadNum);
+    void Wait(const mfxU32 curThreadNum, std::unique_lock<std::mutex>& mutex);
 
     // Get high performance counter value. This counter is used to calculate
     // tasks duration and priority management.
@@ -248,6 +240,10 @@ protected:
     // external synchronization is required.
     //
 
+    // Wake up requested number of dedicated and regular threads
+    void WakeUpThreads(
+        mfxU32 num_dedicated_threads = (mfxU32)-1,
+        mfxU32 num_regular_threads = (mfxU32)-1);
     // Allocate the empty task
     mfxStatus AllocateEmptyTask(void);
     // Get the index in the occupancy table. The functions searches through
@@ -372,7 +368,7 @@ protected:
     //
 
     // Guard for task queues
-    vm_mutex m_guard;
+    std::mutex m_guard;
     // array of task queues
     MFX_SCHEDULER_TASK *m_pTasks[MFX_PRIORITY_NUMBER][MFX_TYPE_NUMBER];
     // Number of assigned tasks for each kind of tasks
