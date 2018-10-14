@@ -27,7 +27,7 @@
 #include <mfx_task.h>
 #include <mfx_scheduler_core_handle.h>
 
-#include <vm_cond.h>
+#include <condition_variable>
 
 // forward declaration of used types
 struct MFX_SCHEDULER_TASK;
@@ -89,7 +89,7 @@ struct MFX_SCHEDULER_TASK : public mfxDependencyItem<MFX_TASK_NUM_DEPENDENCIES>
     // task state variables
 
     // Waiting 'until task is done' object
-    vm_cond done;
+    std::condition_variable done;
     // Final status of the current job
     volatile
     mfxStatus opRes;

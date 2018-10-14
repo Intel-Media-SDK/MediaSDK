@@ -68,11 +68,6 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
         m_param = *pParam;
     }
 
-
-    if (VM_OK != vm_mutex_init(&m_guard)) {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
-
     // clean up the task look up table
     umcRes = m_ppTaskLookUpTable.Alloc(MFX_MAX_NUMBER_TASK);
     if (UMC::UMC_OK != umcRes)
@@ -129,10 +124,7 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
                 // prepare context
                 m_pThreadCtx[i].threadNum = i;
                 m_pThreadCtx[i].pSchedulerCore = this;
-                vm_status vmRes = vm_cond_init(&m_pThreadCtx[i].taskAdded);
-                if (VM_OK != vmRes) {
-                    return MFX_ERR_UNKNOWN;
-                }
+
                 // spawn a thread
                 m_pThreadCtx[i].threadHandle = std::thread(
                     std::bind(&mfxSchedulerCore::ThreadProc, this, &m_pThreadCtx[i]));
@@ -217,20 +209,20 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
         mfxU64 frequency = vm_time_get_frequency();
         while (MFX_WRN_IN_EXECUTION == pTask->opRes)
         {
-            UMC::AutomaticMutex guard(m_guard);
+            std::unique_lock<std::mutex> guard(m_guard);
             task_sts = GetTask(call, previousTaskHandle, 0);
 
             if (task_sts != MFX_ERR_NONE)
                 continue;
 
-            guard.Unlock();
+            guard.unlock();
 
             call.res = call.pTask->entryPoint.pRoutine(call.pTask->entryPoint.pState,
                                                        call.pTask->entryPoint.pParam,
                                                        call.threadNum,
                                                        call.callNum);
 
-            guard.Lock();
+            guard.lock();
 
             // save the previous task's handle
             previousTaskHandle = call.taskHandle;
@@ -244,9 +236,9 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
             {
                 vm_status vmRes;
 
-                guard.Unlock();
+                guard.unlock();
                 vmRes = vm_event_timed_wait(&m_hwTaskDone, 15 /*ms*/);
-                guard.Lock();
+                guard.lock();
 
                 if (VM_OK == vmRes|| VM_TIMEOUT == vmRes)
                 {
@@ -286,31 +278,15 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     }
     else
     {
-        UMC::AutomaticMutex guard(m_guard);
-        vm_status res;
-        vm_tick start_tick = vm_time_get_tick(), end_tick;
-        mfxU32 spent_ms;
+        std::unique_lock<std::mutex> guard(m_guard);
 
-        while ((pTask->jobID == handle.jobID) &&
-               (MFX_WRN_IN_EXECUTION == pTask->opRes)) {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_PRIVATE, "Scheduler::Wait");
-            MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Depends^on", "%d", pTask->param.task.nParentId);
-            MFX_LTRACE_I(MFX_TRACE_LEVEL_SCHED, timeToWait);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_PRIVATE, "Scheduler::Wait");
+        MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Depends^on", "%d", pTask->param.task.nParentId);
+        MFX_LTRACE_I(MFX_TRACE_LEVEL_SCHED, timeToWait);
 
-            res = vm_cond_timedwait(&pTask->done, &m_guard, timeToWait);
-            if ((VM_OK == res) || (VM_TIMEOUT == res)) {
-                end_tick = vm_time_get_tick();
-
-                spent_ms = (mfxU32)((end_tick - start_tick)/m_vmtick_msec_frequency);
-                if (spent_ms >= timeToWait) {
-                  break;
-                }
-                timeToWait -= spent_ms;
-                start_tick = end_tick;
-            } else {
-                return MFX_ERR_UNKNOWN;
-            }
-        }
+        pTask->done.wait_for(guard, std::chrono::milliseconds(timeToWait), [pTask, handle] {
+           return (pTask->jobID != handle.jobID) || (MFX_WRN_IN_EXECUTION != pTask->opRes);
+        });
 
         if (pTask->jobID == handle.jobID) {
             return pTask->opRes;
@@ -348,7 +324,7 @@ mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 
     // find a handle to wait
     {
-        UMC::AutomaticMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         mfxU32 curIdx;
 
         for (curIdx = 0; curIdx < m_numDependencies; curIdx += 1)
@@ -394,12 +370,12 @@ mfxStatus mfxSchedulerCore::WaitForTaskCompletion(const void *pOwner)
 
     // make sure that threads are running
     {
-        UMC::AutomaticMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ResetWaitingTasks(pOwner);
-
         WakeUpThreads();
     }
+
 
     do
     {
@@ -410,7 +386,7 @@ mfxStatus mfxSchedulerCore::WaitForTaskCompletion(const void *pOwner)
         // make searching in a separate code block,
         // to avoid dead-locks with other threads.
         {
-            UMC::AutomaticMutex guard(m_guard);
+            std::lock_guard<std::mutex> guard(m_guard);
             int priority;
 
             priority = MFX_PRIORITY_HIGH;
@@ -462,6 +438,8 @@ mfxStatus mfxSchedulerCore::ResetWaitingStatus(const void *pOwner)
 {
     // reset 'waiting' tasks belong to the given state
     ResetWaitingTasks(pOwner);
+
+    std::lock_guard<std::mutex> guard(m_guard);
 
     // wake up sleeping threads
     WakeUpThreads();
@@ -516,7 +494,7 @@ mfxStatus mfxSchedulerCore::Reset(void)
 
     // enter guarded section
     {
-        UMC::AutomaticMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         // clean up the working queue
         ScrubCompletedTasks(true);
@@ -591,7 +569,7 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
 
     // enter protected section
     {
-        UMC::AutomaticMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         mfxStatus mfxRes;
         MFX_SCHEDULER_TASK *pTask, **ppTemp;
         mfxTaskHandle handle;
