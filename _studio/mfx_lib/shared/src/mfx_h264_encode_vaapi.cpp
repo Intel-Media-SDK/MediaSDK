@@ -1439,8 +1439,12 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     if (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
+        // Attribute for VAConfigAttribEncSliceStructure includes both (1) information about supported slice structure and
+        // (2) indication of support for max slice size feature
+        const unsigned int sliceCapabilities = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
+        const unsigned int sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
         m_caps.SliceStructure =
-            ConvertSliceStructureVAAPIToMFX(attrs[idx_map[VAConfigAttribEncSliceStructure]].value);
+            ConvertSliceStructureVAAPIToMFX(sliceStructure);
     }
     else
     {
