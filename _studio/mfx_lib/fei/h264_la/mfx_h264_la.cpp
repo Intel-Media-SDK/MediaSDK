@@ -239,12 +239,12 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
        if (out->mfx.GopPicSize && out->mfx.GopRefDist > out->mfx.GopPicSize)
        {
            out->mfx.GopRefDist = 0;
-           bChanged = true;       
+           bChanged = true;
        }
        MFX_CHECK ((out->mfx.FrameInfo.Width & 0x03) == 0 && (out->mfx.FrameInfo.Height & 0x03) == 0, MFX_ERR_INVALID_VIDEO_PARAM);
        MFX_CHECK (pControl_in->NumOutStream == pControl_out->NumOutStream, MFX_ERR_INVALID_VIDEO_PARAM);
 
-        
+
        pControl_out->DependencyDepth = pControl_in->DependencyDepth;
        pControl_out->DownScaleFactor = pControl_in->DownScaleFactor;
        pControl_out->LookAheadDepth  = pControl_in->LookAheadDepth;
@@ -259,17 +259,17 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
            break;
        default:
            pControl_out->DownScaleFactor = 0;
-           break;       
+           break;
        }
        if (pControl_out->LookAheadDepth && (pControl_out->LookAheadDepth < pControl_out->DependencyDepth))
        {
            pControl_out->DependencyDepth = 0;
-           bChanged = true;       
-       } 
-       memcpy_s (pControl_out->OutStream,pControl_in->NumOutStream * sizeof(mfxExtLAControl), pControl_in->OutStream, pControl_in->NumOutStream * sizeof(mfxExtLAControl));
+           bChanged = true;
+       }
+       std::copy(pControl_in->OutStream, pControl_in->OutStream + pControl_in->NumOutStream, pControl_out->OutStream);
        
        if (bChanged) return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-    
+
     }
     return MFX_ERR_NONE;
 }
@@ -1545,19 +1545,20 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
             std::list<sLASummaryTask>::iterator nextTask = m_OutputTasks.begin();
             mfxLAFrameInfo* pFrameData =  &aux->FrameStat[frameNum*j];
             for (mfxU32 i = 0; i < frameNum; i++)
-            {  
+            {
                 pFrameData[i].Width  = m_LaControl.OutStream[j].Width;
                 pFrameData[i].Height = m_LaControl.OutStream[j].Height;
 
-                pFrameData[i].FrameType = (*nextTask).frameInfo.frameType;
-                pFrameData[i].FrameDisplayOrder = (*nextTask).frameInfo.dispFrameOrder ;
-                pFrameData[i].FrameEncodeOrder = (*nextTask).frameInfo.encFrameOrder;
-                pFrameData[i].Layer =  (*nextTask).frameInfo.layer;
+                pFrameData[i].FrameType         = nextTask->frameInfo.frameType;
+                pFrameData[i].FrameDisplayOrder = nextTask->frameInfo.dispFrameOrder;
+                pFrameData[i].FrameEncodeOrder  = nextTask->frameInfo.encFrameOrder;
+                pFrameData[i].Layer             = nextTask->frameInfo.layer;
 
-                pFrameData[i].IntraCost = (*nextTask).VMESum[j].IntraCost;
-                pFrameData[i].InterCost = (*nextTask).VMESum[j].InterCost;
-                pFrameData[i].DependencyCost =  (*nextTask).VMESum[j].DependencyCost; 
-                memcpy_s(pFrameData[i].EstimatedRate, sizeof(pFrameData[i].EstimatedRate), (*nextTask).VMESum[j].EstimatedRate, sizeof((*nextTask).VMESum[j].EstimatedRate));
+                pFrameData[i].IntraCost         = nextTask->VMESum[j].IntraCost;
+                pFrameData[i].InterCost         = nextTask->VMESum[j].InterCost;
+                pFrameData[i].DependencyCost    = nextTask->VMESum[j].DependencyCost;
+
+                std::copy(std::begin(nextTask->VMESum[j].EstimatedRate), std::end(nextTask->VMESum[j].EstimatedRate), std::begin(pFrameData[i].EstimatedRate));
                 nextTask++;
             }
         }
