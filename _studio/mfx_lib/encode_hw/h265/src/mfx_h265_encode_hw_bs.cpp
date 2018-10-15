@@ -315,7 +315,7 @@ mfxU32 AddEmulationPreventionAndCopy(
 
     if (!bEmulationByteInsertion)
     {
-        memcpy_s(bsDataStart, len, sbegin, len);
+        std::copy(sbegin, sbegin + len / sizeof(mfxU8), bsDataStart);
         return len;
     }
 
@@ -396,7 +396,7 @@ void BitstreamWriter::PutBitsBuffer(mfxU32 n, void* bb, mfxU32 o)
         n &= 7;
 
         assert(N + !!n < (m_bsEnd - m_bs));
-        memcpy_s(m_bs, N, b, N);
+        std::copy(b, b + N / sizeof(mfxU8), m_bs);
 
         m_bs += N;
 
