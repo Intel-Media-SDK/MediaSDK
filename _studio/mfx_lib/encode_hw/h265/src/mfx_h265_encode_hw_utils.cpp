@@ -874,7 +874,8 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
         {
             packer.GetSPS(buf, len);
             MFX_CHECK(pSPSPPS->SPSBufSize >= len, MFX_ERR_NOT_ENOUGH_BUFFER);
-            memcpy_s(pSPSPPS->SPSBuffer, len, buf, len);
+            std::copy(buf, buf + len / sizeof(mfxU8), pSPSPPS->SPSBuffer);
+
             pSPSPPS->SPSBufSize = (mfxU16)len;
 
             if (pSPSPPS->PPSBuffer)
@@ -882,7 +883,7 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
                 packer.GetPPS(buf, len);
                 MFX_CHECK(pSPSPPS->PPSBufSize >= len, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-                memcpy_s(pSPSPPS->PPSBuffer, len, buf, len);
+                std::copy(buf, buf + len / sizeof(mfxU8), pSPSPPS->PPSBuffer);
                 pSPSPPS->PPSBufSize = (mfxU16)len;
             }
         }
@@ -901,7 +902,7 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
         packer.GetVPS(buf, len);
         MFX_CHECK(pVPS->VPSBufSize >= len, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-        memcpy_s(pVPS->VPSBuffer, len, buf, len);
+        std::copy(buf, buf + len / sizeof(mfxU8), pVPS->VPSBuffer);
         pVPS->VPSBufSize = (mfxU16)len;
     }
 
@@ -3456,7 +3457,7 @@ void ConfigureTask(
     {
         for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
         {
-            memcpy_s(&task.m_roi[i], sizeof(RoiData), &parRoi->ROI[i], sizeof(RoiData));
+        	task.m_roi[i] = parRoi->ROI[i];
             task.m_numRoi ++;
         }
 #if MFX_VERSION > 1021
@@ -3486,7 +3487,7 @@ void ConfigureTask(
     task.m_numDirtyRect = 0;
     if (parDirtyRect && parDirtyRect->NumRect) {
         for (mfxU16 i = 0; i < parDirtyRect->NumRect; i++) {
-            memcpy_s(&task.m_dirtyRect[i], sizeof(RectData), &parDirtyRect->Rect[i], sizeof(RectData));
+        	task.m_dirtyRect[i] = parDirtyRect->Rect[i];
             task.m_numDirtyRect++;
         }
     }

@@ -1426,7 +1426,7 @@ typedef struct {
     mfxU16  ROIMode;
     mfxU16  reserved1[10];
 
-    struct  {
+    struct roi {
         mfxU32  Left;
         mfxU32  Top;
         mfxU32  Right;
@@ -1436,7 +1436,8 @@ typedef struct {
             mfxI16  DeltaQP;
         };
         mfxU16  reserved2[7];
-    } ROI[256];
+    } ;
+    roi ROI[256];
 } mfxExtEncoderROI;
 
 /*Deinterlacing Mode*/

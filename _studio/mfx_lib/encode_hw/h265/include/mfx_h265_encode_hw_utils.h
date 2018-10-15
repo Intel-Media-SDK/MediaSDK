@@ -30,6 +30,7 @@
 #include "mfxplugin++.h"
 #include "umc_mutex.h"
 #include "mfxla.h"
+#include "mfxstructures.h"
 
 #include "mfxbrc.h"
 
@@ -334,6 +335,12 @@ struct RoiData{
     mfxU32  Bottom;
 
     mfxI16  Priority;
+
+    RoiData& operator = (mfxExtEncoderROI::roi roi)
+    {
+    	*this = roi;
+    	return *this;
+    }
 };
 
 typedef struct _Task : DpbFrame
@@ -679,7 +686,8 @@ namespace ExtBuffer
         mfxU32 notDetected[SIZE_OF_ARRAY(allowed_buffers)];
         mfxU32 size = SIZE_OF_ARRAY(allowed_buffers);
 
-        memcpy_s(notDetected, sizeof(notDetected), allowed_buffers, sizeof(allowed_buffers));
+        //memcpy_s(notDetected, sizeof(notDetected), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(allowed_buffers, allowed_buffers + size, notDetected);
 
         if (par.NumExtParam)
             return CheckBuffers(par, allowed_buffers, notDetected, size);
@@ -694,8 +702,10 @@ namespace ExtBuffer
         mfxU32 notDetected2[SIZE_OF_ARRAY(allowed_buffers)];
         mfxU32 size = SIZE_OF_ARRAY(allowed_buffers);
 
-        memcpy_s(notDetected1, sizeof(notDetected1), allowed_buffers, sizeof(allowed_buffers));
-        memcpy_s(notDetected2, sizeof(notDetected2), allowed_buffers, sizeof(allowed_buffers));
+//        memcpy_s(notDetected1, sizeof(notDetected1), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(allowed_buffers, allowed_buffers + size, notDetected1);
+//        memcpy_s(notDetected2, sizeof(notDetected2), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(allowed_buffers, allowed_buffers + size, notDetected2);
 
         if (par1.NumExtParam && par2.NumExtParam)
         {
