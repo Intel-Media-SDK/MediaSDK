@@ -42,7 +42,6 @@ if( "$ENV{MFX_HOME}" STREQUAL "" )
 endif()
 
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
-option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
 
 # -DENABLE_ALL will enable all the dependencies and features unless user did not
 # explicitly switched some of them OFF, i.e. configuring in the following way
@@ -60,6 +59,8 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
   option( ENABLE_X11_DRI3 "Build X11 DRI3 versions of the targets?" ${ENABLE_ALL} )
   option( ENABLE_WAYLAND "Build WAYLAND versions of the targets?" ${ENABLE_ALL} )
 endif()
+
+option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
 
 option( ENABLE_TEXTLOG "Enable textlog tracing?" "${ENABLE_ALL}")
 option( ENABLE_STAT "Enable stat tracing?" "${ENABLE_ALL}")
