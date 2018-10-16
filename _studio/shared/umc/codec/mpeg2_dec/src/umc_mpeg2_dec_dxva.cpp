@@ -144,8 +144,7 @@ PackVA::SaveVLDParameters(
         if (slice.slice_vertical_position == prevSlice.slice_vertical_position && slice.slice_horizontal_position == prevSlice.slice_horizontal_position)
         {
             // remove slice duplication
-            memmove_s(&pSliceInfoBuffer[i - 1], (pSliceInfo - &pSliceInfoBuffer[i]) * sizeof(VASliceParameterBufferMPEG2),
-                &pSliceInfoBuffer[i], (pSliceInfo - &pSliceInfoBuffer[i]) * sizeof(VASliceParameterBufferMPEG2));
+            std::copy(&pSliceInfoBuffer[i], pSliceInfo, &pSliceInfoBuffer[i-1]);
             numSlices--;
             pSliceInfo--;
             i--;
