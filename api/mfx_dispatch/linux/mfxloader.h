@@ -41,12 +41,13 @@ inline bool operator != (const mfxPluginUID &lhs, const mfxPluginUID & rhs)
 
 inline bool operator < (const mfxVersion &lhs, const mfxVersion & rhs)
 {
-    return (lhs.Major == rhs.Major) && (lhs.Minor < rhs.Minor);
+    return (lhs.Major < rhs.Major ||
+            (lhs.Major == rhs.Major && lhs.Minor < rhs.Minor));
 }
 
 inline bool operator <= (const mfxVersion &lhs, const mfxVersion & rhs)
 {
-    return (lhs.Major == rhs.Major) && (lhs.Minor <= rhs.Minor);
+    return (lhs < rhs || (lhs.Major == rhs.Major && lhs.Minor == rhs.Minor));
 }
 
 namespace MFX {
