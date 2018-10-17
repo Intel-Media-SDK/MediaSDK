@@ -812,7 +812,9 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
                     VM_ASSERT(false);
                     throw UMC::UMC_ERR_FAILED;
                 }
-                memcpy_s((void*)out, out->BufferSz, in, par.ExtParam[i]->BufferSz);
+
+                mfxU8 *src = reinterpret_cast<mfxU8*>(in), *dst = reinterpret_cast<mfxU8*>(out);
+                std::copy(src, src + par.ExtParam[i]->BufferSz, dst);
             }
             break;
         case MFX_EXTBUFF_MVC_SEQ_DESC:
@@ -837,17 +839,17 @@ void mfxVideoParamWrapper::CopyVideoParam(const mfxVideoParam & par)
                 {
                     points->NumView = points->NumViewAlloc = mvcPoints->NumView;
                     points->View = (mfxMVCViewDependency * )ptr;
-                    memcpy_s(points->View, mvcPoints->NumView * sizeof(mfxMVCViewDependency), mvcPoints->View, mvcPoints->NumView * sizeof(mfxMVCViewDependency));
+                    std::copy(mvcPoints->View, mvcPoints->View + mvcPoints->NumView, points->View);
                     ptr += mvcPoints->NumView * sizeof(mfxMVCViewDependency);
 
                     points->NumView = points->NumViewAlloc = mvcPoints->NumView;
                     points->ViewId = (mfxU16 *)ptr;
-                    memcpy_s(points->ViewId, mvcPoints->NumViewId * sizeof(mfxU16), mvcPoints->ViewId, mvcPoints->NumViewId * sizeof(mfxU16));
+                    std::copy(mvcPoints->ViewId, mvcPoints->ViewId + mvcPoints->NumViewId, points->ViewId);
                     ptr += mvcPoints->NumViewId * sizeof(mfxU16);
 
                     points->NumOP = points->NumOPAlloc = mvcPoints->NumOP;
                     points->OP = (mfxMVCOperationPoint *)ptr;
-                    memcpy_s(points->OP, mvcPoints->NumOP * sizeof(mfxMVCOperationPoint), mvcPoints->OP, mvcPoints->NumOP * sizeof(mfxMVCOperationPoint));
+                    std::copy(mvcPoints->OP, mvcPoints->OP + mvcPoints->NumOP, points->OP);
 
                     mfxU16 * targetView = points->ViewId;
                     for (mfxU32 j = 0; j < points->NumOP; j++)
