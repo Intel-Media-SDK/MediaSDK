@@ -87,7 +87,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 #else
     _mfxSession * pSession = 0;
 #endif
-    mfxVersion libver;
     mfxStatus mfxRes;
     int adapterNum = 0;
     mfxIMPL impl = par.Implementation & (MFX_IMPL_VIA_ANY - 1);
