@@ -331,9 +331,9 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
         for (mfxU32 i = 0; i < response->NumFrameActual; i++)
         {
             mfxFrameSurface1 & surface = m_frameDataInternal.GetSurface(i);
-            surface.Data.MemId = response->mids[i];
+            surface.Data.MemId   = response->mids[i];
             surface.Data.MemType = request->Type;
-            memcpy_s(&surface.Info, sizeof(mfxFrameInfo), &request->Info, sizeof(mfxFrameInfo));
+            surface.Info         = request->Info;
 
             // fill UMC frameData
             UMC::FrameData& frameData = m_frameDataInternal.GetFrameData(i);
