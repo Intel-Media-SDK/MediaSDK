@@ -648,7 +648,7 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
 
     // Preventing usage of garbage in parNew.m_pps if pSPSPPS->PPSBuffer isn't attched
     if (pSPSPPS && pSPSPPS->SPSBuffer && pSPSPPS->PPSBuffer == NULL)
-        Copy(parNew.m_pps, m_vpar.m_pps);
+        parNew.m_pps = m_vpar.m_pps;
 
     sts = LoadSPSPPS(parNew, pSPSPPS);
     MFX_CHECK_STS(sts);
@@ -1182,7 +1182,7 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
             {
                 MFX_CHECK(bytesAvailable >= pSEI->DataLength, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-                memcpy_s(bs->Data + bs->DataOffset + bs->DataLength, pSEI->DataLength, pSEI->pData + pSEI->DataOffset, pSEI->DataLength);
+                std::copy(pSEI->pData + pSEI->DataOffset, pSEI->pData + pSEI->DataOffset + pSEI->DataLength, bs->Data + bs->DataOffset + bs->DataLength);
 
                 bs->DataLength += pSEI->DataLength;
                 bytes2copy     += pSEI->DataLength;

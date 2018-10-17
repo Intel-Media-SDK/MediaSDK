@@ -65,8 +65,6 @@ template<class Class1>
     struct is_same<Class1, Class1>
     { enum { value = true }; };
 
-
-
 template<class T> inline T * Begin(std::vector<T> & t) { return &*t.begin(); }
 template<class T> inline T const * Begin(std::vector<T> const & t) { return &*t.begin(); }
 template<class T> inline bool Equal(T const & l, T const & r) { return memcmp(&l, &r, sizeof(T)) == 0; }
@@ -74,15 +72,6 @@ template<class T> inline void Fill(T & obj, int val)          { memset(&obj, val
 template<class T> inline void Zero(T & obj)                   { memset(&obj, 0, sizeof(obj)); }
 template<class T> inline void Zero(std::vector<T> & vec)      { memset(&vec[0], 0, sizeof(T) * vec.size()); }
 template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0, sizeof(T) * cnt); }
-template<class T, class U> inline void Copy(T & dst, U const & src)
-{
-    static_assert(sizeof(T) == sizeof(U), "copy_objects_of_different_size");
-    memcpy_s(&dst, sizeof(dst), &src, sizeof(dst));
-}
-template<class T> inline void CopyN(T* dst, const T* src, size_t N)
-{
-    memcpy_s(dst, sizeof(T) * N, src, sizeof(T) * N);
-}
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
 template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
 template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
@@ -473,7 +462,7 @@ namespace ExtBuffer
 
     #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
     #define _CopyPar1(PAR) _CopyPar(buf_dst, buf_src, PAR);
-    #define _CopyStruct1(PAR) Copy(buf_dst.PAR, buf_src.PAR);
+    #define _CopyArray(PAR) std::copy(std::begin(buf_src.PAR), std::end(buf_src.PAR), std::begin(buf_dst.PAR));
     #define _NO_CHECK()  buf_dst = buf_src;
 
     template <class T> void CopySupportedParams(T& buf_dst, T& buf_src)
@@ -536,12 +525,12 @@ namespace ExtBuffer
         _CopyPar1(IntRefCycleDist);
         _CopyPar1(EnableQPOffset);
         _CopyPar1(GPB);
-        _CopyStruct1(QPOffset);
-        _CopyStruct1(NumRefActiveP);
-        _CopyStruct1(NumRefActiveBL0);
-        _CopyStruct1(NumRefActiveBL1);
-        _CopyStruct1(QVBRQuality);
+        _CopyPar1(QVBRQuality);
         _CopyPar1(EnableMBQP);
+        _CopyArray(QPOffset);
+        _CopyArray(NumRefActiveP);
+        _CopyArray(NumRefActiveBL0);
+        _CopyArray(NumRefActiveBL1);
 #if (MFX_VERSION >= 1026)
         _CopyPar1(TransformSkip);
 #endif
@@ -600,7 +589,7 @@ namespace ExtBuffer
         bUnsuppoted = (memcmp(&buf_ref, &buf, sizeof(T))!=0);
         if (bUnsuppoted && bFix)
         {
-            memcpy_s(&buf, sizeof(T), &buf_ref, sizeof(T));
+            buf = buf_ref;
         }
         return bUnsuppoted;
     }
@@ -679,7 +668,7 @@ namespace ExtBuffer
         mfxU32 notDetected[SIZE_OF_ARRAY(allowed_buffers)];
         mfxU32 size = SIZE_OF_ARRAY(allowed_buffers);
 
-        memcpy_s(notDetected, sizeof(notDetected), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(std::begin(allowed_buffers), std::end(allowed_buffers), notDetected);
 
         if (par.NumExtParam)
             return CheckBuffers(par, allowed_buffers, notDetected, size);
@@ -694,8 +683,8 @@ namespace ExtBuffer
         mfxU32 notDetected2[SIZE_OF_ARRAY(allowed_buffers)];
         mfxU32 size = SIZE_OF_ARRAY(allowed_buffers);
 
-        memcpy_s(notDetected1, sizeof(notDetected1), allowed_buffers, sizeof(allowed_buffers));
-        memcpy_s(notDetected2, sizeof(notDetected2), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(std::begin(allowed_buffers), std::end(allowed_buffers), notDetected1);
+        std::copy(std::begin(allowed_buffers), std::end(allowed_buffers), notDetected2);
 
         if (par1.NumExtParam && par2.NumExtParam)
         {
