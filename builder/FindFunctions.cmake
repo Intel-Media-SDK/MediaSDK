@@ -116,7 +116,7 @@ function( create_plugins_cfg directory )
   get_property( PLUGINS_CFG GLOBAL PROPERTY PROP_PLUGINS_CFG )
   file(WRITE ${directory}/plugins.cfg ${PLUGINS_CFG})
 
-  install( FILES ${directory}/plugins.cfg DESTINATION ${MFX_PLUGINS_DIR} )
+  install( FILES ${directory}/plugins.cfg DESTINATION ${MFX_PLUGINS_CONF_DIR} )
 
 endfunction()
 
