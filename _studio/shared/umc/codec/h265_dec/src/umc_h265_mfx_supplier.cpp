@@ -277,22 +277,27 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
                     size_t size = nalUnit->GetDataSize();
                     bool isSPS = (nal_unit_type == NAL_UT_SPS);
                     RawHeader_H265 * hdr = isSPS ? GetSPS() : GetPPS();
+                    H265SeqParamSet * currSPS = isSPS ? m_Headers.m_SeqParams.GetCurrentHeader() : nullptr;
+                    H265PicParamSet * currPPS = isSPS ? nullptr : m_Headers.m_PicParams.GetCurrentHeader();
                     int32_t id = isSPS ? m_Headers.m_SeqParams.GetCurrentID() : m_Headers.m_PicParams.GetCurrentID();
-                    if (hdr->GetPointer() && hdr->GetID() == id)
+                    if (hdr->GetPointer() != nullptr)
                     {
-                        bool changed =
-                            size + prefix_size != hdr->GetSize() ||
-                            !!memcmp(hdr->GetPointer() + prefix_size, nalUnit->GetDataPointer(), size);
+                        if (hdr->GetID() == id)
+                        {
+                            bool changed =
+                                size + prefix_size != hdr->GetSize() ||
+                                !!memcmp(hdr->GetPointer() + prefix_size, nalUnit->GetDataPointer(), size);
 
-                        if (isSPS)
-                            m_Headers.m_SeqParams.GetCurrentHeader()->m_changed = changed;
-                        else
-                            m_Headers.m_PicParams.GetCurrentHeader()->m_changed = changed;
+                            if (isSPS && currSPS != nullptr)
+                                currSPS->m_changed = changed;
+                            else if (currPPS != nullptr)
+                                currPPS->m_changed = changed;
+                        }
+
+                        hdr->Resize(id, size + prefix_size);
+                        std::copy(start_code_prefix, start_code_prefix + prefix_size, hdr->GetPointer());
+                        std::copy((uint8_t*)nalUnit->GetDataPointer(), (uint8_t*)nalUnit->GetDataPointer() + size, hdr->GetPointer() + prefix_size);
                     }
-
-                    hdr->Resize(id, size + prefix_size);
-                    MFX_INTERNAL_CPY(hdr->GetPointer(), start_code_prefix,  prefix_size);
-                    MFX_INTERNAL_CPY(hdr->GetPointer() + prefix_size, (uint8_t*)nalUnit->GetDataPointer(), size);
                 }
             break;
         }
