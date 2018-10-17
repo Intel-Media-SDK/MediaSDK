@@ -264,7 +264,7 @@ mfxStatus VideoPAK_PAK::QueryIOSurf(VideoCORE *core , mfxVideoParam *par, mfxFra
         par->AsyncDepth == 1,
         MFX_ERR_INVALID_VIDEO_PARAM);
 
-    ENCODE_CAPS hwCaps = {0};
+    ENCODE_CAPS hwCaps {};
     mfxStatus sts = QueryHwCaps(core, hwCaps, par);
     MFX_CHECK_STS(sts);
 
@@ -884,7 +884,7 @@ static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &    core,
     mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
     MFX_CHECK(extOpaq, MFX_ERR_NOT_FOUND);
 
-    mfxFrameData d3dSurf = {0};
+    mfxFrameData d3dSurf {};
 
     if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
         (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))

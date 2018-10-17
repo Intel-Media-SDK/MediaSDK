@@ -1047,7 +1047,7 @@ static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &  core,
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FEI:PeENC::CopyRawSurfaceToVideoMemory");
     mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
 
-    mfxFrameData d3dSurf = {0};
+    mfxFrameData d3dSurf {};
     if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
         (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
     {
