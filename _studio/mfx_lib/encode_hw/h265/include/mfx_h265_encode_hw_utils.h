@@ -66,6 +66,11 @@ template<class Class1>
     { enum { value = true }; };
 
 
+template<class T, class U> inline void Copy(T & dst, U const & src)
+{
+    static_assert(sizeof(T) == sizeof(U), "copy_objects_of_different_size");
+    memcpy_s(&dst, sizeof(dst), &src, sizeof(dst));
+}
 
 template<class T> inline T * Begin(std::vector<T> & t) { return &*t.begin(); }
 template<class T> inline T const * Begin(std::vector<T> const & t) { return &*t.begin(); }
@@ -464,7 +469,8 @@ namespace ExtBuffer
 
     #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
     #define _CopyPar1(PAR) _CopyPar(buf_dst, buf_src, PAR);
-    #define _CopyStruct1(PAR) std::copy(std::begin(buf_src.PAR), std::end(buf_src.PAR), std::begin(buf_dst.PAR));
+    //#define _CopyStruct1(PAR) std::copy(std::begin(buf_src.PAR), std::end(buf_src.PAR), std::begin(buf_dst.PAR));
+    #define _CopyStruct1(PAR) Copy(buf_dst.PAR, buf_src.PAR);
     #define _NO_CHECK()  buf_dst = buf_src;
 
     template <class T> void CopySupportedParams(T& buf_dst, T& buf_src)
