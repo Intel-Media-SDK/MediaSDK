@@ -648,7 +648,8 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
 
     // Preventing usage of garbage in parNew.m_pps if pSPSPPS->PPSBuffer isn't attched
     if (pSPSPPS && pSPSPPS->SPSBuffer && pSPSPPS->PPSBuffer == NULL)
-        parNew.m_pps = m_vpar.m_pps;
+        //parNew.m_pps = m_vpar.m_pps;
+    	Copy(parNew.m_pps, m_vpar.m_pps);
 
     sts = LoadSPSPPS(parNew, pSPSPPS);
     MFX_CHECK_STS(sts);
