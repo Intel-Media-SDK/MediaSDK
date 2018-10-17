@@ -552,6 +552,8 @@ namespace ExtBuffer
 #endif
         _CopyPar1(WinBRCMaxAvgKbps);
         _CopyPar1(WinBRCSize);
+
+
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
         _CopyPar1(WeightedPred);
         _CopyPar1(WeightedBiPred);
