@@ -728,7 +728,8 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                         }
                         else
                         {
-                            memcpy_s((uint8_t*)out->ExtParam[i], (int)GetConfigSize(in->ExtParam[i]->BufferId), (uint8_t*)in->ExtParam[i], (int)GetConfigSize(in->ExtParam[i]->BufferId));
+                            uint8_t *src = reinterpret_cast<uint8_t *>(in->ExtParam[i]), *dst = reinterpret_cast<uint8_t *>(out->ExtParam[i]);
+                            std::copy(src, src + GetConfigSize(in->ExtParam[i]->BufferId), dst);
 
                             mfxStatus extSts = ExtendedQuery(core, in->ExtParam[i]->BufferId, out->ExtParam[i]);
                             if( MFX_ERR_NONE != extSts )
