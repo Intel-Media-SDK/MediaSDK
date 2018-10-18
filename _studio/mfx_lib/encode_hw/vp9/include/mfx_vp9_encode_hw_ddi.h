@@ -185,7 +185,7 @@ typedef struct tagENCODE_CAPS_VP9
         mfxU16 BitSizeForSegmentation;
     };
 
-    inline void AddSeqHeader(mfxU32 width,
+    inline mfxStatus AddSeqHeader(mfxU32 width,
         mfxU32 height,
         mfxU32 FrameRateN,
         mfxU32 FrameRateD,
@@ -194,13 +194,24 @@ typedef struct tagENCODE_CAPS_VP9
         mfxU32 bufferSize)
     {
         mfxU32   ivf_file_header[8] = { 0x46494B44, 0x00200000, 0x30395056, width + (height << 16), FrameRateN, FrameRateD, numFramesInFile, 0x00000000 };
-        memcpy_s(pBitstream, bufferSize, ivf_file_header, sizeof (ivf_file_header));
+        if (bufferSize < sizeof(ivf_file_header))
+            return MFX_ERR_MORE_DATA;
+
+        std::copy(std::begin(ivf_file_header),std::end(ivf_file_header), pBitstream);
+
+        return MFX_ERR_NONE;
     };
 
-    inline void AddPictureHeader(mfxU8* pBitstream, mfxU32 bufferSize)
+    inline mfxStatus AddPictureHeader(mfxU8* pBitstream, mfxU32 bufferSize)
     {
-        mfxU32 ivf_frame_header[3] = { 0x00000000, 0x00000000, 0x00000000 };
-        memcpy_s(pBitstream, bufferSize, ivf_frame_header, sizeof (ivf_frame_header));
+        mfxU32 number_of_zero_bytes = 3*sizeof(mfxU32);
+
+        if (bufferSize < number_of_zero_bytes)
+                return MFX_ERR_MORE_DATA;
+
+        std::fill_n(pBitstream, number_of_zero_bytes, 0);
+
+        return MFX_ERR_NONE;
     };
 
     inline ENCODE_PACKEDHEADER_DATA MakePackedByteBuffer(mfxU8 * data, mfxU32 size)
