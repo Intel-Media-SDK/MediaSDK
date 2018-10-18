@@ -25,16 +25,3 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 typedef MFXDecoderPlugin* (*mfxCreateDecoderPlugin)();
 typedef MFXEncoderPlugin* (*mfxCreateEncoderPlugin)();
 typedef MFXGenericPlugin* (*mfxCreateGenericPlugin)();
-
-class PluginFactory
-{
-    static MFXDecoderPlugin* CreateDecoderPlugin() {
-        return PluginFactory::CreateDecoderPlugin();
-    }
-    static  MFXEncoderPlugin* CreateEncoderPlugin() {
-        return PluginFactory::CreateEncoderPlugin();
-    }
-    static  MFXGenericPlugin* CreateGenericPlugin() {
-        return PluginFactory::CreateGenericPlugin();
-    }
-};
