@@ -75,7 +75,9 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(mfxCoreInterface *core, mfxVideoParam *in,
                     {
                         mfxExtBuffer *pCorrectedBuf = GetExtendedBuffer(toValidate.ExtParam, toValidate.NumExtParam, pInBuf->BufferId);
                         MFX_CHECK_NULL_PTR1(pCorrectedBuf);
-                        memcpy_s(pOutBuf, pOutBuf->BufferSz, pCorrectedBuf, pCorrectedBuf->BufferSz);
+                        char* src = reinterpret_cast <char*> (pCorrectedBuf);
+                        char* dst   = reinterpret_cast <char*> (pOutBuf);
+                        std::copy(src, src + pCorrectedBuf->BufferSz, dst);
                     }
                     else
                     {
@@ -903,11 +905,13 @@ mfxStatus MFXVideoENCODEVP9_HW::GetVideoParam(mfxVideoParam *par)
         mfxExtBuffer *pLocalBuf = GetExtendedBuffer(m_video.ExtParam, m_video.NumExtParam, pOutBuf->BufferId);
         if (pLocalBuf && (pOutBuf->BufferSz == pLocalBuf->BufferSz))
         {
-            memcpy_s(pOutBuf, pOutBuf->BufferSz, pLocalBuf, pLocalBuf->BufferSz);
+            char* src = reinterpret_cast <char*> (pLocalBuf);
+            char* dst   = reinterpret_cast <char*> (pOutBuf);
+            std::copy(src, src + pLocalBuf->BufferSz, dst);
         }
         else
         {
-            assert(!"Encoder doesn't have requested buffer or bufefr sizes are different!");
+            assert(!"Encoder doesn't have requested buffer or buffer sizes are different!");
             return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
     }
@@ -915,10 +919,15 @@ mfxStatus MFXVideoENCODEVP9_HW::GetVideoParam(mfxVideoParam *par)
     return MFX_ERR_NONE;
 }
 
-inline void UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pPictureHeader, mfxU32 bufferSize)
+inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pPictureHeader, mfxU32 bufferSize)
 {
     mfxU32 ivf_frame_header[3] = {frameLen, frameNum << 1, 0x00000000};
-    memcpy_s(pPictureHeader, bufferSize, ivf_frame_header, sizeof (ivf_frame_header));
+    if (bufferSize < sizeof(ivf_frame_header))
+        return MFX_ERR_MORE_DATA;
+
+    std::copy(std::begin(ivf_frame_header),std::end(ivf_frame_header), pPictureHeader);
+
+    return MFX_ERR_NONE;
 };
 
 //#define SUPERFRAME_WA_MSDK
@@ -1028,7 +1037,9 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     if (opt.WriteIVFHeaders != MFX_CODINGOPTION_OFF)
     {
         mfxU8 * pIVFPicHeader = task.m_insertIVFSeqHeader ? bsData + IVF_SEQ_HEADER_SIZE_BYTES : bsData;
-        UpdatePictureHeader(task.m_pBitsteam->DataLength - IVF_PIC_HEADER_SIZE_BYTES - (task.m_insertIVFSeqHeader ? IVF_SEQ_HEADER_SIZE_BYTES : 0), (mfxU32)task.m_frameOrder, pIVFPicHeader, bsSizeAvail - IVF_SEQ_HEADER_SIZE_BYTES);
+
+        mfxStatus sts = UpdatePictureHeader(task.m_pBitsteam->DataLength - IVF_PIC_HEADER_SIZE_BYTES - (task.m_insertIVFSeqHeader ? IVF_SEQ_HEADER_SIZE_BYTES : 0), (mfxU32)task.m_frameOrder, pIVFPicHeader, bsSizeAvail - IVF_SEQ_HEADER_SIZE_BYTES);
+        MFX_CHECK_STS(sts);
     }
 
     // Update bitstream fields
