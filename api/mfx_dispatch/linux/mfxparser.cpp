@@ -83,7 +83,6 @@ void PluginInfo::Load(char* name, char* value)
         }
         if (strlen(m_path) + strlen("/") + strlen(value) >= PATH_MAX)
             return;
-        strcpy(m_path + strlen(m_path), "/"); // TODO: looks to be wrong
         strcpy(m_path + strlen(m_path), value);
         m_parsed |= PARSED_PATH;
     } else if (0 == strcmp(name, "Default")) {
