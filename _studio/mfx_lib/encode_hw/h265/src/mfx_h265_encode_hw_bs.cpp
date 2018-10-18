@@ -315,7 +315,7 @@ mfxU32 AddEmulationPreventionAndCopy(
 
     if (!bEmulationByteInsertion)
     {
-        memcpy_s(bsDataStart, len, sbegin, len);
+        std::copy(sbegin, sbegin + len, bsDataStart);
         return len;
     }
 
@@ -2016,7 +2016,7 @@ void HeaderPacker::PackSSH(
             if (!slice.short_term_ref_pic_set_sps_flag)
             {
                 STRPS strps[65];
-                Copy(strps, sps.strps);
+                std::copy(std::begin(sps.strps), std::end(sps.strps), std::begin(strps));
                 strps[sps.num_short_term_ref_pic_sets] = slice.strps;
 
                 PackSTRPS(bs, strps, sps.num_short_term_ref_pic_sets, sps.num_short_term_ref_pic_sets);
