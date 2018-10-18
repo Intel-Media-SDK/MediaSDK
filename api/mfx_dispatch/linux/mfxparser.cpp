@@ -126,10 +126,15 @@ static inline char* skip(char* s)
 
 void parse(const char* file_name, std::list<PluginInfo>& plugins)
 {
+#if (__GLIBC__ > 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 7)
+  const char* mode = "re";
+#else
+  const char* mode = "r";
+#endif
   char line[PATH_MAX];
   PluginInfo plg;
 
-  FILE* file = fopen(file_name, "r");
+  FILE* file = fopen(file_name, mode);
   if (!file)
     return;
 
