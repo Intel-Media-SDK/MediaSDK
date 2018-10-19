@@ -966,17 +966,17 @@ namespace
         return (8000 * kbyte) >> (4 + scale);
     }
 
-    mfxU32 GetMaxCodedFrameSizeInKB(mfxVideoParam const & par)
+    mfxU32 GetMaxCodedFrameSizeInKB(MfxVideoParam const & par)
     {
         mfxU64 mvcMultiplier = 1;
         const mfxU32 maxMBBytes = 3200 / 8;
 
         if (IsMvcProfile(par.mfx.CodecProfile))
         {
-            mfxExtMVCSeqDesc * extMvc = GetExtBuffer(par);
-            mfxExtCodingOption * extOpt = GetExtBuffer(par);
-            if (extOpt->ViewOutput != MFX_CODINGOPTION_ON) // in case of ViewOutput bitstream should contain one view (not all views)
-                mvcMultiplier = extMvc->NumView ? extMvc->NumView : 1;
+            mfxExtMVCSeqDesc const & extMvc = GetExtBufferRef(par);
+            mfxExtCodingOption const & extOpt = GetExtBufferRef(par);
+            if (extOpt.ViewOutput != MFX_CODINGOPTION_ON) // in case of ViewOutput bitstream should contain one view (not all views)
+                mvcMultiplier = extMvc.NumView ? extMvc.NumView : 1;
         }
 
         return mfxU32(MFX_MIN(UINT_MAX, (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
