@@ -167,6 +167,11 @@ void parse(const char* file_name, std::list<PluginInfo>& plugins)
       }
     }
   }
+
+  if (plg.isValid()) {
+      plugins.push_back(std::move(plg));
+  }
+
   fclose(file);
 
   //print(plugins); // for debug
