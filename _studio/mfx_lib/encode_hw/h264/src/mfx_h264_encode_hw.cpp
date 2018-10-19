@@ -1245,8 +1245,8 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         changeTScalLayers = m_video.calcParam.numTemporalLayer != newPar.calcParam.numTemporalLayer;
     }
 
-    mfxExtSpsHeader const * extSpsNew = GetExtBuffer(newPar);
-    mfxExtSpsHeader const * extSpsOld = GetExtBuffer(m_video);
+    mfxExtSpsHeader const & extSpsNew = GetExtBufferRef(newPar);
+    mfxExtSpsHeader const & extSpsOld = GetExtBufferRef(m_video);
     mfxExtCodingOption2 const & extOpt2New = GetExtBufferRef(newPar);
     mfxExtCodingOption2 const & extOpt2Old = GetExtBufferRef(m_video);
     mfxExtCodingOption3 const & extOpt3New = GetExtBufferRef(newPar);
@@ -1265,9 +1265,9 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
               MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
     // check if IDR required after change of encoding parameters
-    bool isSpsChanged = extSpsNew->vuiParametersPresentFlag == 0 ?
-        memcmp(extSpsNew, extSpsOld, sizeof(mfxExtSpsHeader) - sizeof(VuiParameters)) != 0 :
-        !Equal(*extSpsNew, *extSpsOld);
+    bool isSpsChanged = extSpsNew.vuiParametersPresentFlag == 0 ?
+        memcmp(&extSpsNew, &extSpsOld, sizeof(mfxExtSpsHeader) - sizeof(VuiParameters)) != 0 :
+        !Equal(extSpsNew, extSpsOld);
 
     isIdrRequired = isSpsChanged
         || (tempLayerIdx != 0 && changeTScalLayers)
@@ -1539,8 +1539,8 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
                 // need to generate sps/pps nal units
                 mfxExtCodingOptionSPSPPS * dst = (mfxExtCodingOptionSPSPPS *)par->ExtParam[i];
 
-                mfxExtSpsHeader * sps = GetExtBuffer(m_video);
-                mfxExtPpsHeader * pps = GetExtBuffer(m_video);
+                mfxExtSpsHeader const & sps = GetExtBufferRef(m_video);
+                mfxExtPpsHeader const & pps = GetExtBufferRef(m_video);
 
                 try
                 {
@@ -1548,14 +1548,14 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
                     {
                         MFX_CHECK(dst->SPSBufSize, MFX_ERR_INVALID_VIDEO_PARAM);
                         OutputBitstream writerSps(dst->SPSBuffer, dst->SPSBufSize);
-                        WriteSpsHeader(writerSps, *sps);
+                        WriteSpsHeader(writerSps, sps);
                         dst->SPSBufSize = mfxU16((writerSps.GetNumBits() + 7) / 8);
                     }
                     if (dst->PPSBuffer)
                     {
                         MFX_CHECK(dst->PPSBufSize, MFX_ERR_INVALID_VIDEO_PARAM);
                         OutputBitstream writerPps(dst->PPSBuffer, dst->PPSBufSize);
-                        WritePpsHeader(writerPps, *pps);
+                        WritePpsHeader(writerPps, pps);
                         dst->PPSBufSize = mfxU16((writerPps.GetNumBits() + 7) / 8);
                     }
                 }
@@ -1564,8 +1564,8 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
                     return MFX_ERR_INVALID_VIDEO_PARAM;
                 }
 
-                dst->SPSId = sps->seqParameterSetId;
-                dst->PPSId = pps->picParameterSetId;
+                dst->SPSId = sps.seqParameterSetId;
+                dst->PPSId = pps.picParameterSetId;
             }
             else
             {
