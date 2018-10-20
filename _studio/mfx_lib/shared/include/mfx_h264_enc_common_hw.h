@@ -920,7 +920,7 @@ namespace MfxHwH264Encode
     inline void ResetNumSliceIPB(mfxVideoParam &par)
     {
         mfxExtCodingOption3 * extOpt3 = GetExtBuffer(par);
-        if(extOpt3->NumSliceI == 0 || extOpt3->NumSliceP == 0 || extOpt3->NumSliceB == 0){
+        if(extOpt3 != nullptr && (extOpt3->NumSliceI == 0 || extOpt3->NumSliceP == 0 || extOpt3->NumSliceB == 0)){
             extOpt3->NumSliceI = extOpt3->NumSliceP = extOpt3->NumSliceB = par.mfx.NumSlice;
         }
     }
