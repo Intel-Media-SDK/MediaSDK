@@ -87,6 +87,7 @@ struct Handlers {
     };
 
     Funcs primary;
+    Funcs fallback;
 };
 
 typedef std::map<CodecKey, Handlers> CodecId2Handlers;
@@ -119,6 +120,9 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MFXHWVideoENCODEH264::QueryIOSurf(s->m_pCORE.get(), par, request); }
+            },
+            // .fallback =
+            {
             }
         }
     },
@@ -146,6 +150,9 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MFXVideoENCODEMPEG2_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+            },
+            // .fallback =
+            {
             }
         }
     },
@@ -173,6 +180,9 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MFXVideoENCODEMJPEG_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+            },
+            // .fallback =
+            {
             }
         }
     },
@@ -223,6 +233,9 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+            },
+            // .fallback =
+            {
             }
         }
     },
@@ -250,11 +263,144 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MfxHwVP9Encode::MFXVideoENCODEVP9_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+            },
+            // .fallback =
+            {
             }
         }
     }
 #endif //MFX_ENABLE_VP9_VIDEO_ENCODE
 }; // codecId2Handlers definition
+
+// proxy to hide is HW or SW encoder is used
+class FallbackProxyENCODE : public VideoENCODE
+{
+public:
+    FallbackProxyENCODE(VideoCORE *core, const Handlers &handlers)
+        : m_core(core), m_codecHandlers(handlers)
+    {
+    }
+
+    virtual
+    ~FallbackProxyENCODE(void) {}
+    virtual
+    mfxStatus Init(mfxVideoParam *par) override;
+
+    virtual
+    mfxStatus Reset(mfxVideoParam *par) override
+    {
+        assert(m_impl);
+        mfxStatus mfxRes = m_impl->Reset(par);
+        return mfxRes;
+    }
+
+    virtual
+    mfxStatus Close() override
+    {
+        assert(m_impl);
+        return m_impl->Close();
+    }
+
+    virtual
+    mfxTaskThreadingPolicy GetThreadingPolicy() override
+    {
+        assert(m_impl);
+        return m_impl->GetThreadingPolicy();
+    }
+
+    virtual
+    mfxStatus GetVideoParam(mfxVideoParam *par) override
+    {
+        assert(m_impl);
+        return m_impl->GetVideoParam(par);
+    }
+
+    virtual
+    mfxStatus GetFrameParam(mfxFrameParam *par) override
+    {
+        assert(m_impl);
+        return m_impl->GetFrameParam(par);
+    }
+
+    virtual
+    mfxStatus GetEncodeStat(mfxEncodeStat *stat) override
+    {
+        assert(m_impl);
+        return m_impl->GetEncodeStat(stat);
+    }
+
+    virtual
+    mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
+                               mfxFrameSurface1 *surface,
+                               mfxBitstream *bs,
+                               mfxFrameSurface1 **reordered_surface,
+                               mfxEncodeInternalParams *pInternalParams,
+                               MFX_ENTRY_POINT *pEntryPoint) override
+    {
+        assert(m_impl);
+        return m_impl->EncodeFrameCheck(ctrl, surface, bs, reordered_surface,
+                                        pInternalParams, pEntryPoint);
+    }
+
+    virtual
+    mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
+                               mfxFrameSurface1 *surface,
+                               mfxBitstream *bs,
+                               mfxFrameSurface1 **reordered_surface,
+                               mfxEncodeInternalParams *pInternalParams,
+                               MFX_ENTRY_POINT pEntryPoints[],
+                               mfxU32 &numEntryPoints) override
+    {
+        assert(m_impl);
+        return m_impl->EncodeFrameCheck(ctrl, surface, bs, reordered_surface,
+                                        pInternalParams, pEntryPoints,
+                                        numEntryPoints);
+    }
+
+    virtual
+    mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxFrameSurface1 **reordered_surface, mfxEncodeInternalParams *pInternalParams) override
+    {
+        assert(m_impl);
+        return m_impl->EncodeFrameCheck(ctrl, surface, bs, reordered_surface,
+                                        pInternalParams);
+    }
+
+    virtual
+    mfxStatus EncodeFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) override
+    {
+        assert(m_impl);
+        return m_impl->EncodeFrame(ctrl, pInternalParams, surface, bs);
+    }
+
+    virtual
+    mfxStatus CancelFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) override
+    {
+        assert(m_impl);
+        return m_impl->CancelFrame(ctrl, pInternalParams, surface, bs);
+    }
+
+private:
+    std::unique_ptr<VideoENCODE> m_impl;
+    VideoCORE                   *m_core;
+    const Handlers              &m_codecHandlers;
+};
+
+mfxStatus FallbackProxyENCODE::Init(mfxVideoParam *par)
+{
+    mfxStatus mfxRes;
+
+    m_impl.reset(m_codecHandlers.primary.ctor(m_core, &mfxRes));
+    MFX_CHECK_STS(mfxRes);
+    mfxRes = m_impl->Init(par);
+    if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+    {
+        m_impl.reset(m_codecHandlers.fallback.ctor(m_core, &mfxRes));
+        MFX_CHECK(m_impl.get(), MFX_ERR_NULL_PTR);
+        MFX_CHECK(mfxRes >= MFX_ERR_NONE, mfxRes);
+        mfxRes = m_impl->Init(par);
+    }
+    return mfxRes;
+}
 
 // first - is QueryCoreInterface() returns non-null ptr, second - fei status
 std::pair<bool, bool> check_fei(VideoCORE* core)
@@ -271,7 +417,6 @@ template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 {
     VideoCORE* core = m_pCORE.get();
-    mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     mfxU32 CodecId = par.mfx.CodecId;
 
     // create a codec instance
@@ -286,6 +431,13 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
     {
         return nullptr;
     }
+    // if ctorFallback present, create FallbackProxyENCODE
+    if (handler->second.fallback.ctor)
+    {
+        return new FallbackProxyENCODE(core, handler->second);
+    }
+
+    mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     std::unique_ptr<VideoENCODE> pENCODE(
         (handler->second.primary.ctor)(core, &mfxRes));
     // check error(s)
