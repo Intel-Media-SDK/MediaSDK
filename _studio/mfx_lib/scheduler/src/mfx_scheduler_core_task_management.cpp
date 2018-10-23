@@ -296,7 +296,7 @@ bool mfxSchedulerCore::IsReadyToRun(MFX_SCHEDULER_TASK *pTask)
         // let the thread inspect other tasks.
         if (pTask->param.occupancy) {
             return false;
-        } else {
+        } else if (m_timeWaitPeriod) {
             // check the 'waiting' time period
             // calculate the period elapsed since the last 'need-waiting' call
             mfxU64 time = GetHighPerformanceCounter() - pTask->param.timing.timeLastEnter;
