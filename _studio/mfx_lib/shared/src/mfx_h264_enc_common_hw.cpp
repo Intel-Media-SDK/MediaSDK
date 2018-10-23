@@ -3394,7 +3394,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             {
                 mfxF64 rawDataBitrate = 12.0 * par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height *
                     par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD;
-                mfxU32 minTargetKbps = mfxU32(MFX_MIN(0xffffffff, rawDataBitrate / 1000 / 700));
+                mfxU32 minTargetKbps = mfxU32(MFX_MIN(0xffffffff, rawDataBitrate / 1000 / 800));
 
                 if (par.calcParam.targetKbps < minTargetKbps)
                 {
