@@ -73,12 +73,18 @@ Status H264Slice::UpdateReferenceList(ViewList &views,
     H264RefListInfo rli;
     H264DecoderFrame *pLastInList[2] = {NULL, NULL};
 
-    VM_ASSERT(m_pCurrentFrame);
+    if (m_pCurrentFrame == nullptr)
+        return UMC_ERR_NULL_PTR;
 
-    pRefPicList0 = m_pCurrentFrame->GetRefPicList(m_iNumber, 0)->m_RefPicList;
-    pRefPicList1 = m_pCurrentFrame->GetRefPicList(m_iNumber, 1)->m_RefPicList;
-    pFields0 = m_pCurrentFrame->GetRefPicList(m_iNumber, 0)->m_Flags;
-    pFields1 = m_pCurrentFrame->GetRefPicList(m_iNumber, 1)->m_Flags;
+    const H264DecoderRefPicList* pH264DecRefPicList0 = m_pCurrentFrame->GetRefPicList(m_iNumber, 0);
+    const H264DecoderRefPicList* pH264DecRefPicList1 = m_pCurrentFrame->GetRefPicList(m_iNumber, 1);
+    if (pH264DecRefPicList0 == nullptr || pH264DecRefPicList1 == nullptr)
+        return UMC_ERR_NULL_PTR;
+
+    pRefPicList0 = pH264DecRefPicList0->m_RefPicList;
+    pRefPicList1 = pH264DecRefPicList1->m_RefPicList;
+    pFields0 = pH264DecRefPicList0->m_Flags;
+    pFields1 = pH264DecRefPicList1->m_Flags;
 
     // Spec reference: 8.2.4, "Decoding process for reference picture lists
     // construction"

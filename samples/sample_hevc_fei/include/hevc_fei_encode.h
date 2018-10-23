@@ -31,7 +31,8 @@ class FEI_Encode
 {
 public:
     FEI_Encode(MFXVideoSession* session, mfxHDL hdl,
-        MfxVideoParamsWrapper& encode_pars, const mfxExtFeiHevcEncFrameCtrl& encodeCtrl,
+        MfxVideoParamsWrapper& encode_pars,
+        const mfxExtFeiHevcEncFrameCtrl& frameCtrl, const PerFrameTypeCtrl& frametypeCtrl,
         const msdk_char* strDstFile, const msdk_char* mvpInFile,
         const msdk_char* repackctrlFile, const msdk_char* repackstatFile,
         PredictorsRepaking* repacker);
@@ -72,7 +73,8 @@ private:
 
     std::auto_ptr<PredictorsRepaking> m_repacker;
 
-    mfxExtFeiHevcEncFrameCtrl m_defFrameCtrl; // contain default per-frame options including user-specified
+    mfxExtFeiHevcEncFrameCtrl m_defFrameCtrl;     // contain default and user-specified options per frame
+    PerFrameTypeCtrl          m_ctrlPerFrameType; // contain default and user-specified options per frame type
 
     mfxU32  m_processedFrames;
 

@@ -442,7 +442,7 @@ mfxStatus MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 
       if (MFX::g_GlobalCtx.m_plugins.empty()) {
         // Parsing plugin configuration file and loading information of
         // _all_ plugins registered on the system.
-        parse(MFX_PLUGINS_DIR "/plugins.cfg", MFX::g_GlobalCtx.m_plugins);
+        parse(MFX_PLUGINS_CONF_DIR "/plugins.cfg", MFX::g_GlobalCtx.m_plugins);
       }
 
       // search for plugin description

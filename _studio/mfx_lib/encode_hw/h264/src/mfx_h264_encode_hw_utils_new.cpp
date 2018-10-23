@@ -2227,8 +2227,9 @@ void MfxHwH264Encode::ConfigureTask(
         {
             if (extRoiRuntime)
             {
-                mfxRoiDesc task_roi = {};
-                memcpy_s(&task_roi, sizeof(mfxRoiDesc), &pRoi->ROI[i], sizeof(mfxRoiDesc));
+                mfxRoiDesc task_roi = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
+                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, pRoi->ROI[i].Priority};
+
                 // check runtime ROI
 #if MFX_VERSION > 1021
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoiRuntime->ROIMode);
@@ -2236,13 +2237,14 @@ void MfxHwH264Encode::ConfigureTask(
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, 0);
 #endif // MFX_VERSION > 1021
                 if (sts != MFX_ERR_UNSUPPORTED) {
-                    memcpy_s(&task.m_roi[task.m_numRoi], sizeof(mfxRoiDesc), &task_roi, sizeof(mfxRoiDesc));
+                    task.m_roi[task.m_numRoi] = task_roi;
                     task.m_numRoi++;
                 }
             }
             else
             {
-                memcpy_s(&task.m_roi[task.m_numRoi], sizeof(mfxRoiDesc), &pRoi->ROI[i], sizeof(mfxRoiDesc));
+                task.m_roi[task.m_numRoi] = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
+                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, pRoi->ROI[i].Priority};
                 task.m_numRoi ++;
             }
         }
@@ -2258,7 +2260,9 @@ void MfxHwH264Encode::ConfigureTask(
 
         for (mfxU16 i = 0; i < numRect; i ++)
         {
-            memcpy_s(&task.m_dirtyRect[task.m_numDirtyRect], sizeof(mfxRectDesc), &pDirtyRect->Rect[i], sizeof(mfxRectDesc));
+            task.m_dirtyRect[task.m_numDirtyRect] = {pDirtyRect->Rect[i].Left,  pDirtyRect->Rect[i].Top,
+                                                     pDirtyRect->Rect[i].Right, pDirtyRect->Rect[i].Bottom};
+
             if (extDirtyRectRuntime)
             {
                 // check runtime dirty rectangle
@@ -2281,7 +2285,10 @@ void MfxHwH264Encode::ConfigureTask(
 
         for (mfxU16 i = 0; i < numRect; i ++)
         {
-            memcpy_s(&task.m_movingRect[task.m_numMovingRect], sizeof(mfxMovingRectDesc), &pMoveRect->Rect[i], sizeof(mfxMovingRectDesc));
+            task.m_movingRect[task.m_numMovingRect] = {pMoveRect->Rect[i].DestLeft,   pMoveRect->Rect[i].DestTop,
+                                                       pMoveRect->Rect[i].DestRight,  pMoveRect->Rect[i].DestBottom,
+                                                       pMoveRect->Rect[i].SourceLeft, pMoveRect->Rect[i].SourceTop};
+
             if (extMoveRectRuntime)
             {
                 // check runtime moving rectangle

@@ -283,7 +283,7 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
             if (pSPS->SPSBufSize < bs_out.DataLength)
                 return MFX_ERR_NOT_ENOUGH_BUFFER;
             
-            memcpy_s(pSPS->SPSBuffer, pSPS->SPSBufSize, bs_out.Data, bs_out.DataLength);
+            std::copy(bs_out.Data, bs_out.Data + bs_out.DataLength, pSPS->SPSBuffer);
             pSPS->SPSBufSize = (mfxU16)bs_out.DataLength;
         }
         par->mfx.CodecProfile = MFX_PROFILE_VC1_ADVANCED;
@@ -636,13 +636,13 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
             if (pSPS->SPSBufSize < (size + 16))
                 return MFX_ERR_NOT_ENOUGH_BUFFER;
 
-            memcpy_s(pSPS->SPSBuffer, pSPS->SPSBufSize, bs->Data, size + 16);
+            std::copy(bs->Data, bs->Data + size + 16, pSPS->SPSBuffer);
             pSPS->SPSBufSize = (mfxU16)(size + 16);
         }
         //Simple/Main profile
         par->mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-        par->mfx.FrameInfo.Height = (mfxU16)GetDWord_s(bs->Data + 8 + size);
-        par->mfx.FrameInfo.Width = (mfxU16)GetDWord_s(bs->Data + 12 + size);
+        par->mfx.FrameInfo.Height    = (mfxU16)GetDWord_s(bs->Data + 8 + size);
+        par->mfx.FrameInfo.Width     = (mfxU16)GetDWord_s(bs->Data + 12 + size);
 
         // there is no coded cropping
         par->mfx.FrameInfo.CropH = par->mfx.FrameInfo.Height;
@@ -650,7 +650,7 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
 
         // sizes should be aligned
         par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Height, 16);
-        par->mfx.FrameInfo.Width = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Width , 16);
+        par->mfx.FrameInfo.Width  = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Width , 16);
 
 
 
@@ -749,7 +749,7 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
 
     if (pVideoSignal)
     {
-        memcpy_s(pVideoSignal, sizeof(videoSignal), &videoSignal, sizeof(videoSignal));
+        *pVideoSignal = videoSignal;
     }
     return MFXSts;
 

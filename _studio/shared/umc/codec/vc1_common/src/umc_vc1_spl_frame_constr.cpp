@@ -509,7 +509,7 @@ namespace UMC
 
         if(readBufSize > readDataSize)
         {
-            memcpy_s(currFramePos, 4, readPos - 4, 4);
+            std::copy(readPos - 4, readPos, currFramePos);
             Info.out->SetDataSize(frameSize + 4);
             Info.in->SetDataSize(0);
 

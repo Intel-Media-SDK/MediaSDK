@@ -10,7 +10,7 @@ list( APPEND LIBS sample_common )
 set( defs " -DMFX_VERSION_USE_LATEST " )
 set(DEPENDENCIES libmfx)
 
-make_executable( shortname universal "nosafestring" )
+make_executable( shortname universal )
 
 install( TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 set( defs "" )

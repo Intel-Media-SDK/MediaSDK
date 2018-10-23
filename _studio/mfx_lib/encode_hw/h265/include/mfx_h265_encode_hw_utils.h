@@ -65,8 +65,6 @@ template<class Class1>
     struct is_same<Class1, Class1>
     { enum { value = true }; };
 
-
-
 template<class T> inline T * Begin(std::vector<T> & t) { return &*t.begin(); }
 template<class T> inline T const * Begin(std::vector<T> const & t) { return &*t.begin(); }
 template<class T> inline bool Equal(T const & l, T const & r) { return memcmp(&l, &r, sizeof(T)) == 0; }
@@ -74,15 +72,6 @@ template<class T> inline void Fill(T & obj, int val)          { memset(&obj, val
 template<class T> inline void Zero(T & obj)                   { memset(&obj, 0, sizeof(obj)); }
 template<class T> inline void Zero(std::vector<T> & vec)      { memset(&vec[0], 0, sizeof(T) * vec.size()); }
 template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0, sizeof(T) * cnt); }
-template<class T, class U> inline void Copy(T & dst, U const & src)
-{
-    static_assert(sizeof(T) == sizeof(U), "copy_objects_of_different_size");
-    memcpy_s(&dst, sizeof(dst), &src, sizeof(dst));
-}
-template<class T> inline void CopyN(T* dst, const T* src, size_t N)
-{
-    memcpy_s(dst, sizeof(T) * N, src, sizeof(T) * N);
-}
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
 template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
 template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
@@ -471,87 +460,83 @@ namespace ExtBuffer
 
     #undef EXTBUF
 
-    #define _CopyPar(dst, src, PAR) dst.PAR = src.PAR;
-    #define _CopyPar1(PAR) _CopyPar(buf_dst, buf_src, PAR);
-    #define _CopyStruct1(PAR) Copy(buf_dst.PAR, buf_src.PAR);
-    #define _NO_CHECK()  buf_dst = buf_src;
-
     template <class T> void CopySupportedParams(T& buf_dst, T& buf_src)
     {
-        _NO_CHECK();
+        buf_dst = buf_src;
     }
 
     inline void CopySupportedParams(mfxExtHEVCParam& buf_dst, mfxExtHEVCParam& buf_src)
     {
-        _CopyPar1(PicWidthInLumaSamples);
-        _CopyPar1(PicHeightInLumaSamples);
-        _CopyPar1(GeneralConstraintFlags);
+        buf_dst.PicWidthInLumaSamples  = buf_src.PicWidthInLumaSamples;
+        buf_dst.PicHeightInLumaSamples = buf_src.PicHeightInLumaSamples;
+        buf_dst.GeneralConstraintFlags = buf_src.GeneralConstraintFlags;
 #if (MFX_VERSION >= 1026)
-        _CopyPar1(SampleAdaptiveOffset);
-        _CopyPar1(LCUSize);
+        buf_dst.SampleAdaptiveOffset   = buf_src.SampleAdaptiveOffset;
+        buf_dst.LCUSize                = buf_src.LCUSize;
 #endif
     }
 
     inline void  CopySupportedParams(mfxExtHEVCTiles& buf_dst, mfxExtHEVCTiles& buf_src)
     {
-        _CopyPar1(NumTileRows);
-        _CopyPar1(NumTileColumns);
+        buf_dst.NumTileRows            = buf_src.NumTileRows;
+        buf_dst.NumTileColumns         = buf_src.NumTileColumns;
     }
 
     inline void CopySupportedParams (mfxExtCodingOption& buf_dst, mfxExtCodingOption& buf_src)
     {
-        _CopyPar1(PicTimingSEI);
-        _CopyPar1(VuiNalHrdParameters);
-        _CopyPar1(NalHrdConformance);
-        _CopyPar1(AUDelimiter);
+        buf_dst.PicTimingSEI           = buf_src.PicTimingSEI;
+        buf_dst.VuiNalHrdParameters    = buf_src.VuiNalHrdParameters;
+        buf_dst.NalHrdConformance      = buf_src.NalHrdConformance;
+        buf_dst.AUDelimiter            = buf_src.AUDelimiter;
     }
     inline void  CopySupportedParams(mfxExtCodingOption2& buf_dst, mfxExtCodingOption2& buf_src)
     {
-        _CopyPar1(IntRefType);
-        _CopyPar1(IntRefCycleSize);
-        _CopyPar1(IntRefQPDelta);
-        _CopyPar1(MaxFrameSize);
+        buf_dst.IntRefType             = buf_src.IntRefType;
+        buf_dst.IntRefCycleSize        = buf_src.IntRefCycleSize;
+        buf_dst.IntRefQPDelta          = buf_src.IntRefQPDelta;
+        buf_dst.MaxFrameSize           = buf_src.MaxFrameSize;
 
-        _CopyPar1(MBBRC);
-        _CopyPar1(BRefType);
-        _CopyPar1(NumMbPerSlice);
-        _CopyPar1(DisableDeblockingIdc);
+        buf_dst.MBBRC                  = buf_src.MBBRC;
+        buf_dst.BRefType               = buf_src.BRefType;
+        buf_dst.NumMbPerSlice          = buf_src.NumMbPerSlice;
+        buf_dst.DisableDeblockingIdc   = buf_src.DisableDeblockingIdc;
 
-        _CopyPar1(RepeatPPS);
-        _CopyPar1(MaxSliceSize);
-        _CopyPar1(ExtBRC);
+        buf_dst.RepeatPPS              = buf_src.RepeatPPS;
+        buf_dst.MaxSliceSize           = buf_src.MaxSliceSize;
+        buf_dst.ExtBRC                 = buf_src.ExtBRC;
 
-        _CopyPar1(MinQPI);
-        _CopyPar1(MaxQPI);
-        _CopyPar1(MinQPP);
-        _CopyPar1(MaxQPP);
-        _CopyPar1(MinQPB);
-        _CopyPar1(MaxQPB);
-        _CopyPar1(SkipFrame);
+        buf_dst.MinQPI                 = buf_src.MinQPI;
+        buf_dst.MaxQPI                 = buf_src.MaxQPI;
+        buf_dst.MinQPP                 = buf_src.MinQPP;
+        buf_dst.MaxQPP                 = buf_src.MaxQPP;
+        buf_dst.MinQPB                 = buf_src.MinQPB;
+        buf_dst.MaxQPB                 = buf_src.MaxQPB;
+        buf_dst.SkipFrame              = buf_src.SkipFrame;
     }
 
     inline void  CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
     {
-        _CopyPar1(PRefType);
-        _CopyPar1(IntRefCycleDist);
-        _CopyPar1(EnableQPOffset);
-        _CopyPar1(GPB);
-        _CopyStruct1(QPOffset);
-        _CopyStruct1(NumRefActiveP);
-        _CopyStruct1(NumRefActiveBL0);
-        _CopyStruct1(NumRefActiveBL1);
-        _CopyStruct1(QVBRQuality);
-        _CopyPar1(EnableMBQP);
+        buf_dst.PRefType               = buf_src.PRefType;
+        buf_dst.IntRefCycleDist        = buf_src.IntRefCycleDist;
+        buf_dst.EnableQPOffset         = buf_src.EnableQPOffset;
+        buf_dst.GPB                    = buf_src.GPB;
+        buf_dst.QVBRQuality            = buf_src.QVBRQuality;
+        buf_dst.EnableMBQP             = buf_src.EnableMBQP;
+
+        std::copy(std::begin(buf_src.QPOffset),        std::end(buf_src.QPOffset),        std::begin(buf_dst.QPOffset));
+        std::copy(std::begin(buf_src.NumRefActiveP),   std::end(buf_src.NumRefActiveP),   std::begin(buf_dst.NumRefActiveP));
+        std::copy(std::begin(buf_src.NumRefActiveBL0), std::end(buf_src.NumRefActiveBL0), std::begin(buf_dst.NumRefActiveBL0));
+        std::copy(std::begin(buf_src.NumRefActiveBL1), std::end(buf_src.NumRefActiveBL1), std::begin(buf_dst.NumRefActiveBL1));
 #if (MFX_VERSION >= 1026)
-        _CopyPar1(TransformSkip);
+        buf_dst.TransformSkip           = buf_src.TransformSkip;
 #endif
 #if (MFX_VERSION >= 1027)
-        _CopyPar1(TargetChromaFormatPlus1);
-        _CopyPar1(TargetBitDepthLuma);
-        _CopyPar1(TargetBitDepthChroma);
+        buf_dst.TargetChromaFormatPlus1 = buf_src.TargetChromaFormatPlus1;
+        buf_dst.TargetBitDepthLuma      = buf_src.TargetBitDepthLuma;
+        buf_dst.TargetBitDepthChroma    = buf_src.TargetBitDepthChroma;
 #endif
-        _CopyPar1(WinBRCMaxAvgKbps);
-        _CopyPar1(WinBRCSize);
+        buf_dst.WinBRCMaxAvgKbps        = buf_src.WinBRCMaxAvgKbps;
+        buf_dst.WinBRCSize              = buf_src.WinBRCSize;
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
         _CopyPar1(WeightedPred);
         _CopyPar1(WeightedBiPred);
@@ -560,28 +545,23 @@ namespace ExtBuffer
 #endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #if (MFX_VERSION >= 1025)
-        _CopyPar1(EnableNalUnitType);
+        buf_dst.EnableNalUnitType = buf_src.EnableNalUnitType;
 #endif
-        _CopyPar1(LowDelayBRC);
+        buf_dst.LowDelayBRC       = buf_src.LowDelayBRC;
     }
 
     inline void  CopySupportedParams(mfxExtCodingOptionDDI& buf_dst, mfxExtCodingOptionDDI& buf_src)
     {
-        _CopyPar1(NumActiveRefBL0);
-        _CopyPar1(NumActiveRefBL1);
-        _CopyPar1(NumActiveRefP);
-        _CopyPar1(LCUSize);
-        _CopyPar1(QpAdjust);
+        buf_dst.NumActiveRefBL0 = buf_src.NumActiveRefBL0;
+        buf_dst.NumActiveRefBL1 = buf_src.NumActiveRefBL1;
+        buf_dst.NumActiveRefP   = buf_src.NumActiveRefP;
+        buf_dst.LCUSize         = buf_src.LCUSize;
+        buf_dst.QpAdjust        = buf_src.QpAdjust;
     }
     inline void  CopySupportedParams(mfxExtEncoderCapability& buf_dst, mfxExtEncoderCapability& buf_src)
     {
-        _CopyPar1(MBPerSec);
+        buf_dst.MBPerSec        = buf_src.MBPerSec;
     }
-
-    #undef _CopyPar
-    #undef _CopyPar1
-    #undef _CopyStruct1
-    #undef _NO_CHECK
 
     template<class T> void Init(T& buf)
     {
@@ -600,7 +580,7 @@ namespace ExtBuffer
         bUnsuppoted = (memcmp(&buf_ref, &buf, sizeof(T))!=0);
         if (bUnsuppoted && bFix)
         {
-            memcpy_s(&buf, sizeof(T), &buf_ref, sizeof(T));
+            buf = buf_ref;
         }
         return bUnsuppoted;
     }
@@ -679,7 +659,7 @@ namespace ExtBuffer
         mfxU32 notDetected[SIZE_OF_ARRAY(allowed_buffers)];
         mfxU32 size = SIZE_OF_ARRAY(allowed_buffers);
 
-        memcpy_s(notDetected, sizeof(notDetected), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(std::begin(allowed_buffers), std::end(allowed_buffers), notDetected);
 
         if (par.NumExtParam)
             return CheckBuffers(par, allowed_buffers, notDetected, size);
@@ -694,8 +674,8 @@ namespace ExtBuffer
         mfxU32 notDetected2[SIZE_OF_ARRAY(allowed_buffers)];
         mfxU32 size = SIZE_OF_ARRAY(allowed_buffers);
 
-        memcpy_s(notDetected1, sizeof(notDetected1), allowed_buffers, sizeof(allowed_buffers));
-        memcpy_s(notDetected2, sizeof(notDetected2), allowed_buffers, sizeof(allowed_buffers));
+        std::copy(std::begin(allowed_buffers), std::end(allowed_buffers), notDetected1);
+        std::copy(std::begin(allowed_buffers), std::end(allowed_buffers), notDetected2);
 
         if (par1.NumExtParam && par2.NumExtParam)
         {

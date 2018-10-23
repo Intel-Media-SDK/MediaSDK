@@ -63,9 +63,8 @@ class FEI_Encode : public IEncoder
 {
 public:
     FEI_Encode(MFXVideoSession* session, MfxVideoParamsWrapper& par,
-        const mfxExtFeiHevcEncFrameCtrl& ctrl, const msdk_char* outFile,
-        const sBrcParams& brc_params = sBrcParams(),
-        mfxU16 fastIntraModeOnI = 0, mfxU16 fastIntraModeOnP = 0, mfxU16 fastIntraModeOnB = 0);
+        const mfxExtFeiHevcEncFrameCtrl& frame_ctrl, const PerFrameTypeCtrl& frametype_ctrl,
+        const msdk_char* outFile, const sBrcParams& brc_params = sBrcParams());
 
     ~FEI_Encode();
 
@@ -115,7 +114,8 @@ private:
     std::string           m_dstFileName;
     CSmplBitstreamWriter  m_FileWriter;
 
-    mfxExtFeiHevcEncFrameCtrl m_defFrameCtrl; // contain default per-frame options including user-specified
+    mfxExtFeiHevcEncFrameCtrl m_defFrameCtrl; // contain default and user-specified options per frame
+    PerFrameTypeCtrl          m_ctrlPerFrameType; // contain default and user-specified options per frame type
 
     mfxStatus DoWork(std::shared_ptr<HevcTaskDSO> & task);
     mfxStatus EncodeFrame(mfxFrameSurface1* pSurf);
@@ -127,10 +127,6 @@ private:
     std::unique_ptr<BRC> m_pBRC;
 
     Worker               m_working_queue;
-
-    mfxU16 m_FastIntraModeOnI = 0;
-    mfxU16 m_FastIntraModeOnP = 0;
-    mfxU16 m_FastIntraModeOnB = 0;
 
     DISALLOW_COPY_AND_ASSIGN(FEI_Encode);
 };

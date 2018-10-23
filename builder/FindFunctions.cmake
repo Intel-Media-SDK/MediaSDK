@@ -21,7 +21,6 @@
 set( CMAKE_LIB_DIR ${CMAKE_BINARY_DIR}/__lib )
 set( CMAKE_BIN_DIR ${CMAKE_BINARY_DIR}/__bin )
 set_property( GLOBAL PROPERTY PROP_PLUGINS_CFG "" )
-set_property( GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG "" )
 
 # .....................................................
 function( collect_oses )
@@ -100,59 +99,37 @@ function( gen_plugins_cfg plugin_id guid plugin_name type codecID )
   get_mfx_version(mfx_version_major mfx_version_minor)
   math(EXPR api_version "${mfx_version_major}*256 + ${mfx_version_minor}")
 
-  if((NOT DEFINED ARGV5) OR (ARGV5 STREQUAL "eval"))
-    get_property( PLUGINS_EVAL_CFG GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG )
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}[${plugin_id}_${guid}]\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}GUID = ${guid}\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}PluginVersion = 1\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}APIVersion = ${api_version}\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}Path = ${MFX_PLUGINS_DIR}/lib${plugin_name}.so\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}Type = ${type}\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}CodecID = ${codecID}\n")
-    set(PLUGINS_EVAL_CFG "${PLUGINS_EVAL_CFG}Default = 0\n")
-    set_property( GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG ${PLUGINS_EVAL_CFG} )
-  endif()
-
-  if((NOT DEFINED ARGV5) OR (ARGV5 STREQUAL "not_eval"))
-    get_property( PLUGINS_CFG GLOBAL PROPERTY PROP_PLUGINS_CFG )
-    set(PLUGINS_CFG "${PLUGINS_CFG}[${plugin_id}_${guid}]\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}GUID = ${guid}\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}PluginVersion = 1\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}APIVersion = ${api_version}\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}Path = ${MFX_PLUGINS_DIR}/lib${plugin_name}.so\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}Type = ${type}\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}CodecID = ${codecID}\n")
-    set(PLUGINS_CFG "${PLUGINS_CFG}Default = 0\n")
-    set_property( GLOBAL PROPERTY PROP_PLUGINS_CFG ${PLUGINS_CFG} )
-  endif()
+  get_property( PLUGINS_CFG GLOBAL PROPERTY PROP_PLUGINS_CFG )
+  set(PLUGINS_CFG "${PLUGINS_CFG}[${plugin_id}_${guid}]\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}GUID = ${guid}\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}PluginVersion = 1\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}APIVersion = ${api_version}\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}Path = ${MFX_PLUGINS_DIR}/lib${plugin_name}.so\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}Type = ${type}\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}CodecID = ${codecID}\n")
+  set(PLUGINS_CFG "${PLUGINS_CFG}Default = 0\n")
+  set_property( GLOBAL PROPERTY PROP_PLUGINS_CFG ${PLUGINS_CFG} )
 
 endfunction()
 
 function( create_plugins_cfg directory )
   get_property( PLUGINS_CFG GLOBAL PROPERTY PROP_PLUGINS_CFG )
-  get_property( PLUGINS_EVAL_CFG GLOBAL PROPERTY PROP_PLUGINS_EVAL_CFG )
   file(WRITE ${directory}/plugins.cfg ${PLUGINS_CFG})
-  file(WRITE ${directory}/plugins_eval.cfg ${PLUGINS_EVAL_CFG})
 
-  install( FILES ${directory}/plugins.cfg ${directory}/plugins_eval.cfg DESTINATION ${MFX_PLUGINS_DIR} )
+  install( FILES ${directory}/plugins.cfg DESTINATION ${MFX_PLUGINS_CONF_DIR} )
 
 endfunction()
 
 # Usage:
-#  make_library(shortname|<name> none|<variant> static|shared nosafestring|<true|false>)
+#  make_library(shortname|<name> none|<variant> static|shared)
 #    - shortname|<name>: use folder name as library name or <name> specified by user
 #    - <variant>|none: build library in specified variant (with drm or x11 or wayland support, etc),
 #      universal - special variant which enables compilation flags required for all backends, but
 #      moves dependency to runtime instead of linktime
 #    or without variant if none was specified
 #    - static|shared: build static or shared library
-#    - nosafestring|<true|false>: any value evaluated as True by CMake to disable link against SafeString
 #
 function( make_library name variant type )
-  set( nosafestring ${ARGV3} )
-  if( Windows )
-    set( nosafestring TRUE )
-  endif()
   get_target( target ${ARGV0} ${ARGV1} )
   if( ${ARGV0} MATCHES shortname )
     get_folder( folder )
@@ -216,10 +193,6 @@ function( make_library name variant type )
 
   configure_build_variant( ${target} ${ARGV1} )
 
-  if( NOT nosafestring )
-    target_link_libraries( ${target} SafeString )
-  endif()
-
   if( defs )
     append_property( ${target} COMPILE_FLAGS ${defs} )
   endif()
@@ -235,19 +208,13 @@ function( make_library name variant type )
 endfunction()
 
 # Usage:
-#  make_executable(name|<name> none|<variant> nosafestring|<true|false>)
+#  make_executable(name|<name> none|<variant>)
 #    - name|<name>: use folder name as library name or <name> specified by user
 #    - <variant>|none: build library in specified variant (with drm or x11 or wayland support, etc),
 #      universal - special variant which enables compilation flags required for all backends, but
 #      moves dependency to runtime instead of linktime
-#    or without variant if none was specified
-#    - nosafestring|<true|false>: any value evaluated as True by CMake to disable link against SafeString
 #
 function( make_executable name variant )
-  set( nosafestring ${ARGV2} )
-  if( Windows )
-    set( nosafestring TRUE )
-  endif()
   get_target( target ${ARGV0} ${ARGV1} )
   get_folder( folder )
 
@@ -309,10 +276,6 @@ function( make_executable name variant )
   foreach( lib ${LIBS_SUFFIX} )
     target_link_libraries( ${target} ${lib} )
   endforeach()
-
-  if( NOT nosafestring )
-    target_link_libraries( ${target} SafeString )
-  endif()
 
   if( Linux )
     target_link_libraries( ${target} "-Xlinker --end-group -lgcc" )

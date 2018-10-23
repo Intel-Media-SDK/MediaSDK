@@ -109,7 +109,7 @@ JERRCODE CBitStreamInput::FillBuffer(int nMinBytes)
 
   if(remainder && !m_eod)
   {
-    memmove(m_pData, &m_pData[m_currPos], (unsigned int)remainder);
+    std::copy(m_pData + m_currPos, m_pData + m_DataLen, m_pData);
     m_currPos = 0;
   }
 
