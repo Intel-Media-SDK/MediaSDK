@@ -32,7 +32,9 @@
 
 mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)
-    , m_timeWaitPeriod(vm_time_get_frequency() / 1000)
+    // since on Linux we have blocking synchronization which means an absence of polling,
+    // there is no need to use 'waiting' time period.
+    , m_timeWaitPeriod(0)
     , m_hwWakeUpThread()
     , m_DedicatedThreadsToWakeUp(0)
     , m_RegularThreadsToWakeUp(0)
@@ -214,8 +216,7 @@ void mfxSchedulerCore::Wait(const mfxU32 curThreadNum, std::unique_lock<std::mut
     MFX_SCHEDULER_THREAD_CONTEXT* thctx = GetThreadCtx(curThreadNum);
 
     if (thctx) {
-        mfxU32 timeout = (curThreadNum)? MFX_THREAD_TIME_TO_WAIT: 1;
-        thctx->taskAdded.wait_for(mutex, std::chrono::milliseconds(timeout));
+        thctx->taskAdded.wait(mutex);
     }
 }
 
