@@ -81,6 +81,8 @@ cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF 
 cmake_dependent_option(BUILD_TOOLS "Build tools?" "${BUILD_ALL}" "BUILD_SAMPLES" OFF)
 option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
 
+cmake_dependent_option(RUN_TESTS "Run tests during build?" OFF "BUILD_TESTS" OFF )
+
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
 include( ${BUILDER_ROOT}/FindGlobals.cmake )
@@ -105,6 +107,10 @@ endif()
 
 if (BUILD_DISPATCHER)
   add_subdirectory(api/mfx_dispatch/linux)
+endif()
+
+if(RUN_TESTS)
+    enable_testing()
 endif()
 
 if (BUILD_TESTS AND GTEST_FOUND)
@@ -172,4 +178,6 @@ message("  BUILD_DISPATCHER                        : ${BUILD_DISPATCHER}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
 message("  BUILD_TESTS                             : ${BUILD_TESTS}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
+message("Test:")
+message("  RUN_TESTS                               : ${RUN_TESTS}")
 message("*****************************************************************************")
