@@ -82,6 +82,7 @@ struct CodecKey {
 struct Handlers {
     struct Funcs {
         std::function<mfxStatus(mfxSession s, mfxVideoParam *in, mfxVideoParam *out)> query;
+        std::function<mfxStatus(mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)> queryIOSurf;
     };
 
     Funcs primary;
@@ -107,7 +108,10 @@ static const CodecId2Handlers codecId2Handlers =
                     return (!s->m_pENCODE.get())?
                     MFXHWVideoENCODEH264::Query(s->m_pCORE.get(), in, out)
                     : MFXHWVideoENCODEH264::Query(s->m_pCORE.get(), in, out, s->m_pENCODE.get());
-                }
+                },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return MFXHWVideoENCODEH264::QueryIOSurf(s->m_pCORE.get(), par, request); }
             }
         }
     },
@@ -125,7 +129,10 @@ static const CodecId2Handlers codecId2Handlers =
             {
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
-                { return MFXVideoENCODEMPEG2_HW::Query(s->m_pCORE.get(), in, out); }
+                { return MFXVideoENCODEMPEG2_HW::Query(s->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return MFXVideoENCODEMPEG2_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
             }
         }
     },
@@ -143,7 +150,10 @@ static const CodecId2Handlers codecId2Handlers =
             {
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
-                { return MFXVideoENCODEMJPEG_HW::Query(s->m_pCORE.get(), in, out); }
+                { return MFXVideoENCODEMJPEG_HW::Query(s->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return MFXVideoENCODEMJPEG_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
             }
         }
     },
@@ -162,7 +172,10 @@ static const CodecId2Handlers codecId2Handlers =
             {
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
-                { return MfxHwH265FeiEncode::H265FeiEncode_HW::Query(s->m_pCORE.get(), in, out); }
+                { return MfxHwH265FeiEncode::H265FeiEncode_HW::Query(s->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
             }
         }
     },
@@ -179,7 +192,10 @@ static const CodecId2Handlers codecId2Handlers =
             {
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
-                { return MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(s->m_pCORE.get(), in, out); }
+                { return MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(s->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
             }
         }
     },
@@ -197,7 +213,10 @@ static const CodecId2Handlers codecId2Handlers =
             {
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
-                { return MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(s->m_pCORE.get(), in, out); }
+                { return MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(s->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return MfxHwVP9Encode::MFXVideoENCODEVP9_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
             }
         }
     }
@@ -401,51 +420,13 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         else
 #endif
         {
-            switch (par->mfx.CodecId)
-            {
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
-            case MFX_CODEC_AVC:
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
-                mfxRes = MFXHWVideoENCODEH264::QueryIOSurf(session->m_pCORE.get(), par, request);
-#else //MFX_VA
-                mfxRes = MFXVideoENCODEH264::QueryIOSurf(par, request);
-#endif //MFX_VA
-                break;
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE
-
-
-#ifdef MFX_ENABLE_MPEG2_VIDEO_ENCODE
-            case MFX_CODEC_MPEG2:
-                mfxRes = MFXVideoENCODEMPEG2_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-#endif // MFX_ENABLE_MPEG2_VIDEO_ENC
-
-#if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
-            case MFX_CODEC_JPEG:
-                mfxRes = MFXVideoENCODEMJPEG_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-#endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-            case MFX_CODEC_HEVC:
-            {
-                bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
-                MFX_CHECK_NULL_PTR1(feiEnabled);
-                if(*feiEnabled)
-                    mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-                else
-                    mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-                break;
-            }
-#endif // MFX_ENABLE_H265_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-            case MFX_CODEC_VP9:
-                mfxRes = MfxHwVP9Encode::MFXVideoENCODEVP9_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-                break;
-#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
-
-            default:
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            } // switch (par->mfx.CodecId)
+            // required to check FEI plugin registration
+            bool *feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);
+            MFX_CHECK_NULL_PTR1(feiEnabled);
+            const bool fei = *feiEnabled;
+            auto handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId, fei));
+            mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
+                : (handler->second.primary.queryIOSurf)(session, par, request);
 
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
