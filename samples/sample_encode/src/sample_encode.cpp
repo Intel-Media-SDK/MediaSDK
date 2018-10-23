@@ -96,6 +96,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-vbr]                   - variable bitrate control\n"));
     msdk_printf(MSDK_STRING("   [-cbr]                   - constant bitrate control\n"));
     msdk_printf(MSDK_STRING("   [-qvbr quality]          - variable bitrate control algorithm with constant quality. Quality in range [1,51]. 1 is the best quality.\n"));
+    msdk_printf(MSDK_STRING("   [-icq quality]           - Intelligent Constant Quality (ICQ) bitrate control method. In range [1,51]. 1 is the best quality.\n"));
     msdk_printf(MSDK_STRING("   [-cqp]                   - constant quantization parameter (CQP BRC) bitrate control method\n"));
     msdk_printf(MSDK_STRING("                              (by default constant bitrate control method is used), should be used along with -qpi, -qpp, -qpb.\n"));
     msdk_printf(MSDK_STRING("   [-qpi]                   - constant quantizer for I frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
@@ -605,6 +606,17 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             if (msdk_strlen(pParams->uSEI) < 32)
             {
                 PrintHelp(strInput[0], MSDK_STRING("error: option '-usei' expects at least 32 char uuid\n"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-icq")))
+        {
+            pParams->nRateControlMethod = MFX_RATECONTROL_ICQ;
+
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->ICQQuality))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("ICQQuality is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
