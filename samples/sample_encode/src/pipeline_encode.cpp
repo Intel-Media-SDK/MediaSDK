@@ -418,6 +418,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_mfxEncParams.mfx.QPP = pInParams->nQPP;
         m_mfxEncParams.mfx.QPB = pInParams->nQPB;
     }
+    else if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
+    {
+        m_mfxEncParams.mfx.ICQQuality = pInParams->ICQQuality;
+    }
     else
     {
         m_mfxEncParams.mfx.TargetKbps = pInParams->nBitRate; // in Kbps
