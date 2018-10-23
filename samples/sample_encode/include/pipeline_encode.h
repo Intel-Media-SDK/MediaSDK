@@ -158,6 +158,7 @@ struct sInputParams
     mfxU16 GopOptFlag;
     mfxU32 nMaxFrameSize;
 
+    mfxU16 ICQQuality;
     mfxU16 QVBRQuality;
     mfxU16 LowDelayBRC;
     mfxU16 ExtBrcAdaptiveLTR;
