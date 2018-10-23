@@ -161,6 +161,7 @@ struct sInputParams
     mfxU16 WinBRCSize;
     mfxU16 WinBRCMaxAvgKbps;
 
+    mfxU16 ICQQuality;
     mfxU16 QVBRQuality;
     mfxU16 LowDelayBRC;
     mfxU16 ExtBrcAdaptiveLTR;
