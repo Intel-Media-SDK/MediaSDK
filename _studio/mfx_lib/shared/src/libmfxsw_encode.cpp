@@ -20,6 +20,9 @@
 
 #include <mfxvideo.h>
 
+#include <functional>
+#include <map>
+
 #include <mfx_session.h>
 #include <mfx_tools.h>
 #include <mfx_common.h>
@@ -54,12 +57,152 @@
 #include "mfx_vp9_encode_hw.h"
 #endif
 
-#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
 #if defined(MFX_VA)
 #include "mfx_h265_fei_encode_hw.h"
 #include <libmfx_core_interface.h>
 #endif
+
+
+struct CodecKey {
+    const mfxU32 codecId;
+    const bool   fei;
+
+    CodecKey(mfxU32 codecId, bool fei) : codecId(codecId), fei(fei) {}
+
+    // Exact ordering rule is unsignificant as far as it provides strict weak ordering.
+    // Compare for fei after codecId because fei values are mostly same.
+    friend bool operator<(CodecKey l, CodecKey r)
+    {
+        if (l.codecId == r.codecId)
+            return l.fei < r.fei;
+        return l.codecId < r.codecId;
+    }
+};
+
+struct Handlers {
+    struct Funcs {
+        std::function<mfxStatus(mfxSession s, mfxVideoParam *in, mfxVideoParam *out)> query;
+    };
+
+    Funcs primary;
+};
+
+typedef std::map<CodecKey, Handlers> CodecId2Handlers;
+
+static const CodecId2Handlers codecId2Handlers =
+{
+#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
+    {
+        {
+            MFX_CODEC_AVC,
+            // .fei =
+            false
+        },
+        {
+            // .primary =
+            {
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                {
+                    return (!s->m_pENCODE.get())?
+                    MFXHWVideoENCODEH264::Query(s->m_pCORE.get(), in, out)
+                    : MFXHWVideoENCODEH264::Query(s->m_pCORE.get(), in, out, s->m_pENCODE.get());
+                }
+            }
+        }
+    },
+#endif // MFX_ENABLE_H264_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
+    {
+        {
+            MFX_CODEC_MPEG2,
+            // .fei =
+            false
+        },
+        {
+            // .primary =
+            {
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                { return MFXVideoENCODEMPEG2_HW::Query(s->m_pCORE.get(), in, out); }
+            }
+        }
+    },
 #endif
+
+#if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
+    {
+        {
+            MFX_CODEC_JPEG,
+            // .fei =
+            false
+        },
+        {
+            // .primary =
+            {
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                { return MFXVideoENCODEMJPEG_HW::Query(s->m_pCORE.get(), in, out); }
+            }
+        }
+    },
+#endif
+
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+  #if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+    {
+        {
+            MFX_CODEC_HEVC,
+            // .fei =
+            true
+        },
+        {
+            // .primary =
+            {
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                { return MfxHwH265FeiEncode::H265FeiEncode_HW::Query(s->m_pCORE.get(), in, out); }
+            }
+        }
+    },
+  #endif // MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
+
+    {
+        {
+            MFX_CODEC_HEVC,
+            // .fei =
+            false
+        },
+        {
+            // .primary =
+            {
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                { return MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(s->m_pCORE.get(), in, out); }
+            }
+        }
+    },
+#endif // MFX_ENABLE_H265_VIDEO_ENCODE
+
+#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
+    {
+        {
+            MFX_CODEC_VP9,
+            // .fei =
+            false
+        },
+        {
+            // .primary =
+            {
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                { return MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(s->m_pCORE.get(), in, out); }
+            }
+        }
+    }
+#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
+}; // codecId2Handlers definition
 
 template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
@@ -94,14 +237,12 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
     case MFX_CODEC_HEVC:
     {
-#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
             bool * feiEnabled = (bool*)core->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
             if (feiEnabled == nullptr)
                 return nullptr;
             if(*feiEnabled)
                 pENCODE = new MfxHwH265FeiEncode::H265FeiEncode_HW(core, &mfxRes);
             else
-#endif
                 pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(core, &mfxRes);
         break;
     }
@@ -169,57 +310,14 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         else
 #endif
         {
-            switch (out->mfx.CodecId)
-            {
-#ifdef MFX_ENABLE_H264_VIDEO_ENCODE
-            case MFX_CODEC_AVC:
-#if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
-                if (!session->m_pENCODE.get())
-                    mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out);
-                else
-                    mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out, session->m_pENCODE.get());
-#else //MFX_VA
-                mfxRes = MFXVideoENCODEH264::Query(in, out);
-#endif //MFX_VA
-                break;
-#endif
+            // required to check FEI plugin registration
+            bool *feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);
+            MFX_CHECK_NULL_PTR1(feiEnabled);
+            const bool fei = *feiEnabled;
 
-#ifdef MFX_ENABLE_MPEG2_VIDEO_ENCODE
-            case MFX_CODEC_MPEG2:
-                mfxRes = MFXVideoENCODEMPEG2_HW::Query(session->m_pCORE.get(), in, out);
-                break;
-#endif
-
-#if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
-            case MFX_CODEC_JPEG:
-                mfxRes = MFXVideoENCODEMJPEG_HW::Query(session->m_pCORE.get(), in, out);
-                break;
-#endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-            case MFX_CODEC_HEVC:
-            {
-#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-                bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
-                MFX_CHECK_NULL_PTR1(feiEnabled);
-                if(*feiEnabled)
-                    mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::Query(session->m_pCORE.get(), in, out);
-                else
-#endif
-                    mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(session->m_pCORE.get(), in, out);
-                break;
-            }
-#endif // MFX_ENABLE_H265_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-            case MFX_CODEC_VP9:
-                mfxRes = MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(session->m_pCORE.get(), in, out);
-                break;
-#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
-
-            default:
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            } // switch (out->mfx.CodecId)
+            auto handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId, fei));
+            mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
+                : (handler->second.primary.query)(session, in, out);
 
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
@@ -329,13 +427,11 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
             case MFX_CODEC_HEVC:
             {
-#if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
                 bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
                 MFX_CHECK_NULL_PTR1(feiEnabled);
                 if(*feiEnabled)
                     mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
                 else
-#endif
                     mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
                 break;
             }
