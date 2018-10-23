@@ -168,84 +168,59 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         // if plugin is not supported, or wrong parameters passed we should not look into library
         else
 #endif
-        switch (out->mfx.CodecId)
         {
+            switch (out->mfx.CodecId)
+            {
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
-        case MFX_CODEC_AVC:
+            case MFX_CODEC_AVC:
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
-            if (!session->m_pENCODE.get())
-                mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out);
-            else
-                mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out, session->m_pENCODE.get());
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
+                if (!session->m_pENCODE.get())
+                    mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out);
+                else
+                    mfxRes = MFXHWVideoENCODEH264::Query(session->m_pCORE.get(), in, out, session->m_pENCODE.get());
 #else //MFX_VA
                 mfxRes = MFXVideoENCODEH264::Query(in, out);
 #endif //MFX_VA
-            break;
+                break;
 #endif
 
 #ifdef MFX_ENABLE_MPEG2_VIDEO_ENCODE
-        case MFX_CODEC_MPEG2:
-            mfxRes = MFXVideoENCODEMPEG2_HW::Query(session->m_pCORE.get(), in, out);
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-            break;
+            case MFX_CODEC_MPEG2:
+                mfxRes = MFXVideoENCODEMPEG2_HW::Query(session->m_pCORE.get(), in, out);
+                break;
 #endif
 
 #if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
-        case MFX_CODEC_JPEG:
-            mfxRes = MFXVideoENCODEMJPEG_HW::Query(session->m_pCORE.get(), in, out);
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-            break;
-            break;
+            case MFX_CODEC_JPEG:
+                mfxRes = MFXVideoENCODEMJPEG_HW::Query(session->m_pCORE.get(), in, out);
+                break;
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-        case MFX_CODEC_HEVC:
-        {
+            case MFX_CODEC_HEVC:
+            {
 #if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-            bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
-            MFX_CHECK_NULL_PTR1(feiEnabled);
-            if(*feiEnabled)
-                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::Query(session->m_pCORE.get(), in, out);
-            else
+                bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
+                MFX_CHECK_NULL_PTR1(feiEnabled);
+                if(*feiEnabled)
+                    mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::Query(session->m_pCORE.get(), in, out);
+                else
 #endif
-                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(session->m_pCORE.get(), in, out);
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
+                    mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(session->m_pCORE.get(), in, out);
+                break;
             }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-            break;
-        }
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-        case MFX_CODEC_VP9:
-            mfxRes = MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(session->m_pCORE.get(), in, out);
+            case MFX_CODEC_VP9:
+                mfxRes = MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(session->m_pCORE.get(), in, out);
+                break;
+#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
+
+            default:
+                mfxRes = MFX_ERR_UNSUPPORTED;
+            } // switch (out->mfx.CodecId)
+
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;
@@ -254,12 +229,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             {
                 bIsHWENCSupport = true;
             }
-            break;
-#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
-
-        default:
-            mfxRes = MFX_ERR_UNSUPPORTED;
-        }
+        } // else of if (session->m_plgEnc.get())
     }
     // handle error(s)
     catch(...)
@@ -332,82 +302,55 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         // if plugin is not supported, or wrong parameters passed we should not look into library
         else
 #endif
-        switch (par->mfx.CodecId)
         {
+            switch (par->mfx.CodecId)
+            {
 #ifdef MFX_ENABLE_H264_VIDEO_ENCODE
-        case MFX_CODEC_AVC:
+            case MFX_CODEC_AVC:
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW)
-            mfxRes = MFXHWVideoENCODEH264::QueryIOSurf(session->m_pCORE.get(), par, request);
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
+                mfxRes = MFXHWVideoENCODEH264::QueryIOSurf(session->m_pCORE.get(), par, request);
 #else //MFX_VA
                 mfxRes = MFXVideoENCODEH264::QueryIOSurf(par, request);
 #endif //MFX_VA
-            break;
+                break;
 #endif // MFX_ENABLE_H264_VIDEO_ENCODE
 
 
 #ifdef MFX_ENABLE_MPEG2_VIDEO_ENCODE
-        case MFX_CODEC_MPEG2:
-            mfxRes = MFXVideoENCODEMPEG2_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-            if (MFX_WRN_PARTIAL_ACCELERATION  == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-            break;
+            case MFX_CODEC_MPEG2:
+                mfxRes = MFXVideoENCODEMPEG2_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
 #endif // MFX_ENABLE_MPEG2_VIDEO_ENC
 
 #if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
-        case MFX_CODEC_JPEG:
-            mfxRes = MFXVideoENCODEMJPEG_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-            break;
-            break;
+            case MFX_CODEC_JPEG:
+                mfxRes = MFXVideoENCODEMJPEG_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
 #endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-        case MFX_CODEC_HEVC:
-        {
+            case MFX_CODEC_HEVC:
+            {
 #if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-            bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
-            MFX_CHECK_NULL_PTR1(feiEnabled);
-            if(*feiEnabled)
-                mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-            else
+                bool * feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
+                MFX_CHECK_NULL_PTR1(feiEnabled);
+                if(*feiEnabled)
+                    mfxRes = MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
+                else
 #endif
-                mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
+                    mfxRes = MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
+                break;
             }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-            break;
-        }
 #endif // MFX_ENABLE_H265_VIDEO_ENCODE
 
 #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-        case MFX_CODEC_VP9:
-            mfxRes = MfxHwVP9Encode::MFXVideoENCODEVP9_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
+            case MFX_CODEC_VP9:
+                mfxRes = MfxHwVP9Encode::MFXVideoENCODEVP9_HW::QueryIOSurf(session->m_pCORE.get(), par, request);
+                break;
+#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
+
+            default:
+                mfxRes = MFX_ERR_UNSUPPORTED;
+            } // switch (par->mfx.CodecId)
+
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
                 mfxRes = MFX_ERR_UNSUPPORTED;
@@ -416,12 +359,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             {
                 bIsHWENCSupport = true;
             }
-            break;
-#endif //MFX_ENABLE_VP9_VIDEO_ENCODE
-
-        default:
-            mfxRes = MFX_ERR_UNSUPPORTED;
-        }
+        } // else of if (session->m_plgEnc.get())
     }
     // handle error(s)
     catch(...)
