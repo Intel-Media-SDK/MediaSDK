@@ -44,7 +44,7 @@ namespace MPEG2EncoderHW
 {
     mfxStatus CheckHwCaps(VideoCORE* core, mfxVideoParam const * par, mfxExtCodingOption const * ext, ENCODE_CAPS*  pCaps)
     {
-        ENCODE_CAPS hwCaps = { 0 };
+        ENCODE_CAPS hwCaps {};
 
         mfxStatus sts = MfxHwMpeg2Encode::QueryHwCaps(core, hwCaps);
         if (sts != MFX_ERR_NONE)
