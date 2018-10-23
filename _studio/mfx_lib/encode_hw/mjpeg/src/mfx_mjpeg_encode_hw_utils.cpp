@@ -210,14 +210,14 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         if (m_payload_base.length + payloadSize > m_payload_base.maxLength)
         {
             mfxU8* data = new mfxU8[m_payload_base.length + payloadSize];
-            memcpy_s(data, m_payload_base.length, m_payload_base.data, m_payload_base.length);
+            std::copy(m_payload_base.data, m_payload_base.data + m_payload_base.length, data);
             delete[] m_payload_base.data;
             m_payload_base.data = data;
             m_payload_base.maxLength = m_payload_base.length + payloadSize;
         }
         m_payload_list.resize(1);
         m_payload_list.back().data = m_payload_base.data + m_payload_base.length;
-        memcpy_s(m_payload_list.back().data, payloadSize, &m_app14_data, payloadSize);
+        std::copy(reinterpret_cast<mfxU8*>(&m_app14_data), reinterpret_cast<mfxU8*>(&m_app14_data) + payloadSize, m_payload_list.back().data);
         m_payload_list.back().length = payloadSize;
         m_payload_base.length += m_payload_list.back().length;
     }
@@ -243,14 +243,14 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
         if (m_payload_base.length + payloadSize > m_payload_base.maxLength)
         {
             mfxU8* data = new mfxU8[m_payload_base.length + payloadSize];
-            memcpy_s(data, m_payload_base.length, m_payload_base.data, m_payload_base.length);
+            std::copy(m_payload_base.data, m_payload_base.data + m_payload_base.length, data);
             delete[] m_payload_base.data;
             m_payload_base.data = data;
             m_payload_base.maxLength = m_payload_base.length + payloadSize;
         }
         m_payload_list.resize(1);
         m_payload_list.back().data = m_payload_base.data + m_payload_base.length;
-        memcpy_s(m_payload_list.back().data, payloadSize, &m_app0_data, payloadSize);
+        std::copy(reinterpret_cast<mfxU8*>(&m_app0_data), reinterpret_cast<mfxU8*>(&m_app0_data) + payloadSize, m_payload_list.back().data);
         m_payload_list.back().length = payloadSize;
         m_payload_base.length += m_payload_list.back().length;
     }
@@ -268,14 +268,14 @@ mfxStatus ExecuteBuffers::Init(mfxVideoParam const *par, mfxEncodeCtrl const * c
                     if (m_payload_base.length + payloadSize > m_payload_base.maxLength)
                     {
                         mfxU8* data = new mfxU8[m_payload_base.length + payloadSize];
-                        memcpy_s(data, m_payload_base.length, m_payload_base.data, m_payload_base.length);
+                        std::copy(m_payload_base.data, m_payload_base.data + m_payload_base.length, data);
                         delete[] m_payload_base.data;
                         m_payload_base.data = data;
                         m_payload_base.maxLength = m_payload_base.length + payloadSize;
                     }
                     m_payload_list.resize(m_payload_list.size()+1);
                     m_payload_list.back().data = m_payload_base.data + m_payload_base.length;
-                    memcpy_s(m_payload_list.back().data, payloadSize, pExtPayload->Data, payloadSize);
+                    std::copy(pExtPayload->Data, pExtPayload->Data + payloadSize, m_payload_list.back().data);
                     m_payload_list.back().length = payloadSize;
                     m_payload_base.length += m_payload_list.back().length;
                 }

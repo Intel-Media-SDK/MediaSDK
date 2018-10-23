@@ -53,7 +53,7 @@ public:
     }
     mfxStatus FillSHParameters (mfxVideoParam* par, mfxExtCodingOption * extOpt)
     {
-        mfxU8 *pSH     = 0;
+        mfxU8 *pSH      = nullptr;
         mfxU32 len      = 0;
         mfxU32 real_len = 0;
 
@@ -61,15 +61,12 @@ public:
         {
             if (!DecodeSequenceHeader (pSH,len, par, extOpt, real_len)) 
                 return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-            if (m_pBuffer !=0)
-            {
-                delete [] m_pBuffer;
-                m_pBuffer = 0;
-            }
+
+            delete [] m_pBuffer;
             m_pBuffer = new mfxU8 [real_len];
-            memcpy_s(m_pBuffer, real_len*sizeof(mfxU8), pSH, real_len*sizeof(mfxU8));
-            m_bufLen  = real_len;
-                       
+
+            std::copy(pSH, pSH + real_len, m_pBuffer);
+            m_bufLen  = real_len;                     
         }
         return MFX_ERR_NONE;
     }

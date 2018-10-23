@@ -33,26 +33,6 @@
 # include <dirent.h>
 # include <errno.h>
 
-#if !defined(ANDROID)
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif /* __cplusplus */
-
-#include <safe_lib.h>
-#include <snprintf_s.h>
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
-#else // !defined(ANDROID)
-
-# include "safe_str_lib.h"
-
-#endif // !defined(ANDROID)
-
 typedef char vm_char;
 
 #define VM_STRING(x) x

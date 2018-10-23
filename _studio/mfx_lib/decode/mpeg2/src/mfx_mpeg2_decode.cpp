@@ -615,9 +615,7 @@ mfxStatus VideoDECODEMPEG2::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts, mfxU1
     if (UMC::UMC_OK == umcSts)
     {
         // we store pts in float
-        mfxF64 pts;
-
-        memcpy_s(&pts, sizeof(mfxF64), ts, sizeof(mfxF64));
+        mfxF64 pts = *(reinterpret_cast<mfxF64*>(ts));
 
         *ts = GetMfxTimeStamp(pts);
 
@@ -870,7 +868,7 @@ mfxStatus VideoDECODEMPEG2::DecodeHeader(VideoCORE * /*core*/, mfxBitstream* bs,
                     size += 9;
             }
 
-            memcpy_s(spspps->SPSBuffer, size, pShStart, size);
+            std::copy(pShStart, pShStart + size, spspps->SPSBuffer);
             spspps->SPSBufSize = size;
         }
 
@@ -1016,7 +1014,7 @@ mfxStatus VideoDECODEMPEG2::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
 
         mfxExtBuffer **pExtBuffer = out->ExtParam;
         mfxU16 numDistBuf = out->NumExtParam;
-        memcpy_s(out, sizeof(mfxVideoParam), in, sizeof(mfxVideoParam));
+        *out = *in;
 
         if (in->AsyncDepth == 0)
             out->AsyncDepth = 3;
@@ -1759,7 +1757,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::QueryIOSurfInternal(VideoCORE *core, mfx
         }
     }
 
-    memcpy_s(&(request->Info), sizeof(mfxFrameInfo), &(par->mfx.FrameInfo), sizeof(mfxFrameInfo));
+    request->Info = par->mfx.FrameInfo;
 
     // output color format is NV12
     request->Info.FourCC = MFX_FOURCC_NV12;
@@ -1884,7 +1882,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::GetVideoParam(mfxVideoParam *par)
         m_implUmc->GetSignalInfoInformation(signal_info);
     }
 
-    memcpy_s(par->reserved,sizeof(m_vPar.reserved),m_vPar.reserved,sizeof(m_vPar.reserved));
+    std::copy(std::begin(m_vPar.reserved), std::end(m_vPar.reserved), std::begin(par->reserved));
     par->reserved2 = m_vPar.reserved2;
 
     return MFX_ERR_NONE;
@@ -2072,7 +2070,7 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrame(mfxBitstream *bs, mfxFram
         if (0 < m_last_bytes[3])
         {
             uint8_t *pData = m_frame[m_frame_free].Data + m_frame[m_frame_free].DataOffset + m_frame[m_frame_free].DataLength;
-            memcpy_s(pData, m_last_bytes[3], m_last_bytes, m_last_bytes[3]);
+            std::copy(m_last_bytes, m_last_bytes + m_last_bytes[3], pData);
 
             m_frame[m_frame_free].DataLength += m_last_bytes[3];
             memset(m_last_bytes, 0, NUM_REST_BYTES);

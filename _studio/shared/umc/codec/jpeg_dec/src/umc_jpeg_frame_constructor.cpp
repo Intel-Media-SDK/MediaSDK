@@ -395,7 +395,7 @@ MediaDataEx * JpegFrameConstructor::GetFrame(MediaData * in, uint32_t maxBitstre
         
         if (marker == JM_NONE)
         {
-            if(!in)
+            if(in == nullptr)
                 break;
 
             // frame is not declared as "complete", and next marker is not found
@@ -415,11 +415,11 @@ MediaDataEx * JpegFrameConstructor::GetFrame(MediaData * in, uint32_t maxBitstre
                 m_flags.isEOI = 1; // emulate EOI
                 m_mediaData.SetBufferPointer(&m_frame[0], m_frame.size());
                 m_mediaData.SetDataSize(m_frame.size());
-                m_mediaData.SetFlags(in ? in->GetFlags() : 0);
+                m_mediaData.SetFlags(in != nullptr ? in->GetFlags() : 0);
                 return &m_mediaData;
             }
 
-            m_mediaData.SetTime(in->GetTime());
+            m_mediaData.SetTime(in != nullptr ? in->GetTime() : 0);
             m_frame.clear();
             m_mediaDataEx.count = 0;
             m_flags.isSOI = 1;
@@ -453,7 +453,7 @@ MediaDataEx * JpegFrameConstructor::GetFrame(MediaData * in, uint32_t maxBitstre
             break;
         }
 
-        if (AddMarker(marker, &m_mediaDataEx, MFX_MAX(in ? in->GetBufferSize() : 0, maxBitstreamSize), &dst) != UMC_OK)
+        if (AddMarker(marker, &m_mediaDataEx, std::max(in != nullptr ? in->GetBufferSize() : 0, (size_t)maxBitstreamSize), &dst) != UMC_OK)
         {
             ResetForNewFrame();
             continue;
@@ -476,12 +476,14 @@ MediaDataEx * JpegFrameConstructor::GetFrame(MediaData * in, uint32_t maxBitstre
 
                 m_mediaData.SetBufferPointer(&m_frame[0], m_frame.size());
                 m_mediaData.SetDataSize(m_frame.size());
-                m_mediaData.SetFlags(in ? in->GetFlags() : 0);
+                m_mediaData.SetFlags(in != nullptr ? in->GetFlags() : 0);
                 return &m_mediaData;
             }
         }
 
-        if(marker == JM_NONE && !(in->GetFlags() & MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME) && m_flags.isSOS == 1)
+        if(marker == JM_NONE &&
+           (in == nullptr || !(in->GetFlags() & MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME)) &&
+           m_flags.isSOS == 1)
         {
             if (m_frame.size())
             {
@@ -490,7 +492,7 @@ MediaDataEx * JpegFrameConstructor::GetFrame(MediaData * in, uint32_t maxBitstre
 
                 m_mediaData.SetBufferPointer(&m_frame[0], m_frame.size());
                 m_mediaData.SetDataSize(m_frame.size());
-                m_mediaData.SetFlags(in ? in->GetFlags() : 0);
+                m_mediaData.SetFlags(in != nullptr ? in->GetFlags() : 0);
                 return &m_mediaData;
             }
         }

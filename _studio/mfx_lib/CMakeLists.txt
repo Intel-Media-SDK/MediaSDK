@@ -221,13 +221,3 @@ install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR})
 set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${mfxlibname}.pc")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
 install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
-
-if (NOT DEFINED MFX_LIBNAME)
-  # compatibility staff which we definitely don't need if user manually
-  # specified library name
-  install( CODE "execute_process(
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-    ${MFX_MODULES_DIR}/lib${mfxlibname}.so.${mfx_version_major}.${mfx_version_minor}
-    ${MFX_MODULES_DIR}/lib${mfxlibname}-p.so.${mfx_version_major}.${mfx_version_minor} )"
-  )
-endif()

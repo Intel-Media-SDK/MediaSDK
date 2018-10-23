@@ -6513,8 +6513,9 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
 
         for (mfxU16 i = 0; i < actualNumRoi; i++)
         {
-                mfxRoiDesc task_roi = {};
-                memcpy_s(&task_roi, sizeof(mfxRoiDesc), &extRoi->ROI[i], sizeof(mfxRoiDesc));
+                mfxRoiDesc task_roi = {extRoi->ROI[i].Left,  extRoi->ROI[i].Top,
+                                       extRoi->ROI[i].Right, extRoi->ROI[i].Bottom, extRoi->ROI[i].Priority};
+
                 // check runtime ROI
 #if MFX_VERSION > 1021
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoi->ROIMode);

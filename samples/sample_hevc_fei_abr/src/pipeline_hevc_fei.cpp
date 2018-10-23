@@ -627,8 +627,7 @@ mfxStatus EncoderContext::CreateEncoder(const sInputParams & params, const mfxFr
     MfxVideoParamsWrapper pars = GetEncodeParams(params, info);
 
     std::unique_ptr<IEncoder> encoder;
-    encoder.reset(new FEI_Encode(&m_mfxSession, pars, params.encodeCtrl, params.strDstFile, params.sBRCparams,
-        params.fastIntraModeOnI, params.fastIntraModeOnP, params.fastIntraModeOnB));
+    encoder.reset(new FEI_Encode(&m_mfxSession, pars, params.encodeCtrl, params.frameCtrl, params.strDstFile, params.sBRCparams));
 
     if (params.drawMVP)
     {

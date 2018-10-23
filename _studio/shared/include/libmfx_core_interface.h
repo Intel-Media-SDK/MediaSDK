@@ -160,7 +160,8 @@ public:
         {
             if (encode_guid == m_encode_guid && m_size == array_size)
             {
-                memcpy_s(hwCaps, sizeof(CAPS)*array_size, m_caps, sizeof(CAPS)*array_size);
+                CAPS* src = reinterpret_cast<CAPS*>(m_caps);
+                std::copy(src, src + array_size, hwCaps);
                 return MFX_ERR_NONE;
             }
         }
@@ -177,13 +178,14 @@ public:
             m_caps = malloc(sizeof(CAPS)*array_size);
             if (!m_caps)
                 return MFX_ERR_MEMORY_ALLOC;
-            memcpy_s(m_caps, sizeof(CAPS)*array_size, hwCaps, sizeof(CAPS)*array_size);
+
+            std::copy(hwCaps, hwCaps + array_size, reinterpret_cast<CAPS*>(m_caps));
         }
         else
         {
             m_encode_guid = encode_guid;
             m_size = array_size;
-            memcpy_s(m_caps, sizeof(CAPS)*array_size, hwCaps, sizeof(CAPS)*array_size);
+            std::copy(hwCaps, hwCaps + array_size, reinterpret_cast<CAPS*>(m_caps));
         }
         return MFX_ERR_NONE;
 

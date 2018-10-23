@@ -721,9 +721,9 @@ MfxVideoParam::MfxVideoParam(MfxVideoParam const & par)
      m_platform = par.m_platform;
      Construct(par);
 
-     Copy(m_vps, par.m_vps);
-     Copy(m_sps, par.m_sps);
-     Copy(m_pps, par.m_pps);
+     m_vps = par.m_vps;
+     m_sps = par.m_sps;
+     m_pps = par.m_pps;
 
      CopyCalcParams(par);
 }
@@ -775,9 +775,9 @@ MfxVideoParam& MfxVideoParam::operator=(MfxVideoParam const & par)
     Construct(par);
     CopyCalcParams(par);
 
-    Copy(m_vps, par.m_vps);
-    Copy(m_sps, par.m_sps);
-    Copy(m_pps, par.m_pps);
+    m_vps = par.m_vps;
+    m_sps = par.m_sps;
+    m_pps = par.m_pps;
 
     m_slice.resize(par.m_slice.size());
 
@@ -874,7 +874,7 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
         {
             packer.GetSPS(buf, len);
             MFX_CHECK(pSPSPPS->SPSBufSize >= len, MFX_ERR_NOT_ENOUGH_BUFFER);
-            memcpy_s(pSPSPPS->SPSBuffer, len, buf, len);
+            std::copy(buf, buf + len, pSPSPPS->SPSBuffer);
             pSPSPPS->SPSBufSize = (mfxU16)len;
 
             if (pSPSPPS->PPSBuffer)
@@ -882,7 +882,7 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
                 packer.GetPPS(buf, len);
                 MFX_CHECK(pSPSPPS->PPSBufSize >= len, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-                memcpy_s(pSPSPPS->PPSBuffer, len, buf, len);
+                std::copy(buf, buf + len, pSPSPPS->PPSBuffer);
                 pSPSPPS->PPSBufSize = (mfxU16)len;
             }
         }
@@ -901,7 +901,7 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
         packer.GetVPS(buf, len);
         MFX_CHECK(pVPS->VPSBufSize >= len, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-        memcpy_s(pVPS->VPSBuffer, len, buf, len);
+        std::copy(buf, buf + len, pVPS->VPSBuffer);
         pVPS->VPSBufSize = (mfxU16)len;
     }
 
@@ -2780,10 +2780,10 @@ void InitDPB(
     }
     else
     {
-        Copy(task.m_dpb[TASK_DPB_ACTIVE], prevTask.m_dpb[TASK_DPB_AFTER]);
+        std::copy(std::begin(prevTask.m_dpb[TASK_DPB_AFTER]), std::end(prevTask.m_dpb[TASK_DPB_AFTER]), std::begin(task.m_dpb[TASK_DPB_ACTIVE]));
     }
 
-    Copy(task.m_dpb[TASK_DPB_BEFORE], prevTask.m_dpb[TASK_DPB_AFTER]);
+    std::copy(std::begin(prevTask.m_dpb[TASK_DPB_AFTER]), std::end(prevTask.m_dpb[TASK_DPB_AFTER]), std::begin(task.m_dpb[TASK_DPB_BEFORE]));
 
     {
         DpbArray& dpb = task.m_dpb[TASK_DPB_ACTIVE];
@@ -3456,7 +3456,8 @@ void ConfigureTask(
     {
         for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
         {
-            memcpy_s(&task.m_roi[i], sizeof(RoiData), &parRoi->ROI[i], sizeof(RoiData));
+            task.m_roi[i] = {parRoi->ROI[i].Left,  parRoi->ROI[i].Top,
+                             parRoi->ROI[i].Right, parRoi->ROI[i].Bottom, parRoi->ROI[i].Priority};
             task.m_numRoi ++;
         }
 #if MFX_VERSION > 1021
@@ -3486,7 +3487,7 @@ void ConfigureTask(
     task.m_numDirtyRect = 0;
     if (parDirtyRect && parDirtyRect->NumRect) {
         for (mfxU16 i = 0; i < parDirtyRect->NumRect; i++) {
-            memcpy_s(&task.m_dirtyRect[i], sizeof(RectData), &parDirtyRect->Rect[i], sizeof(RectData));
+            task.m_dirtyRect[i] = parDirtyRect->Rect[i];
             task.m_numDirtyRect++;
         }
     }
@@ -3627,7 +3628,7 @@ void ConfigureTask(
     if (isIDR)
         Fill(task.m_dpb[TASK_DPB_AFTER], IDX_INVALID);
     else
-        Copy(task.m_dpb[TASK_DPB_AFTER], task.m_dpb[TASK_DPB_ACTIVE]);
+        std::copy(std::begin(task.m_dpb[TASK_DPB_ACTIVE]), std::end(task.m_dpb[TASK_DPB_ACTIVE]), std::begin(task.m_dpb[TASK_DPB_AFTER]));
 
     if (isRef)
     {
