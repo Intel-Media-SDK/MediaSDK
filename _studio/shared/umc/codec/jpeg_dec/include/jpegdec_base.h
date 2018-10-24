@@ -27,6 +27,7 @@
 #include "decqtbl.h"
 #include "dechtbl.h"
 #include "colorcomp.h"
+#include "membuffin.h"
 #include "bitstreamin.h"
 
 class CJPEGDecoderBase
@@ -38,8 +39,8 @@ public:
 
   virtual void Reset(void);
 
-  JERRCODE SetSource(
-    CBaseStreamInput* pStreamIn);
+  JERRCODE SetSource(const uint8_t* pBuf, size_t buflen);
+  JERRCODE Seek(long offset, int origin);
 
   virtual JERRCODE ReadHeader(
     int*     width,
@@ -115,6 +116,7 @@ public:
   int      m_al;
   int      m_ah;
   JMARKER  m_marker;
+  CMemBuffInput m_stream_in;
 
   int      m_nblock;
 

@@ -110,6 +110,8 @@ void CJPEGDecoderBase::Reset(void)
   m_marker                 = JM_NONE;
 
   m_nblock                 = 0;
+
+  m_stream_in.Close();
   return;
 } // CJPEGDecoderBase::Reset(void)
 
@@ -157,17 +159,23 @@ JERRCODE CJPEGDecoderBase::Clean(void)
 
 #define BS_BUFLEN 16384
 
-JERRCODE CJPEGDecoderBase::SetSource(
-  CBaseStreamInput* pInStream)
+JERRCODE CJPEGDecoderBase::SetSource(const uint8_t* pBuf, size_t buflen)
 {
-  JERRCODE jerr;
+  JERRCODE jerr = m_stream_in.Open(pBuf, buflen);
+  if(JPEG_OK != jerr)
+    return jerr;
 
-  jerr = m_BitStreamIn.Attach(pInStream);
+  jerr = m_BitStreamIn.Attach(&m_stream_in);
   if(JPEG_OK != jerr)
     return jerr;
 
   return m_BitStreamIn.Init(BS_BUFLEN);
 } // CJPEGDecoderBase::SetSource()
+
+JERRCODE CJPEGDecoderBase::Seek(long offset, int origin)
+{
+  return m_stream_in.Seek(offset, origin);
+}// CJPEGDecoderBase::Seek
 
 JERRCODE CJPEGDecoderBase::DetectSampling(void)
 {
