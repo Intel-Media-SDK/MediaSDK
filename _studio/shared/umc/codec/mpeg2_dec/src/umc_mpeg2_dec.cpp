@@ -722,28 +722,28 @@ Status MPEG2VideoDecoderBase::Reset()
 
 Status MPEG2VideoDecoderBase::GetInfo(BaseCodecParams* info)
 {
-  VideoDecoderParams *pParams;
-  if(info == NULL)
+  if(!info)
     return UMC_ERR_NULL_PTR;
 
   // BaseCodecParams
   info->profile = sequenceHeader.profile;
   info->level = sequenceHeader.level;
 
-  pParams = DynamicCast<VideoDecoderParams> (info);
+  VideoDecoderParams *pParams = DynamicCast<VideoDecoderParams> (info);
 
-  if (NULL != pParams) {
-    pParams->info = m_ClipInfo;
-    pParams->lFlags = m_lFlags;
+  if (pParams)
+  {
+    pParams->info              = m_ClipInfo;
+    pParams->lFlags            = m_lFlags;
     pParams->lpMemoryAllocator = 0;
-    pParams->numThreads = m_nNumberOfThreads;
+    pParams->numThreads        = m_nNumberOfThreads;
   }
   return UMC_OK;
 }
 
 Status MPEG2VideoDecoderBase::GetSequenceHeaderMemoryMask(uint8_t *buffer, uint16_t &size)
 {
-    if (NULL == buffer)
+    if (!buffer)
         return UMC_ERR_NULL_PTR;
     if (size < shMask.memSize)
         return UMC_ERR_NOT_ENOUGH_BUFFER;
@@ -756,11 +756,14 @@ Status MPEG2VideoDecoderBase::GetSequenceHeaderMemoryMask(uint8_t *buffer, uint1
 
 Status MPEG2VideoDecoderBase::GetSignalInfoInformation(mfxExtVideoSignalInfo *buffer)
 {
+    if (!buffer)
+        return UMC_ERR_NULL_PTR;
+
     buffer->ColourDescriptionPresent = m_signalInfo.ColourDescriptionPresent;
-    buffer->ColourPrimaries = m_signalInfo.ColourPrimaries;
-    buffer->VideoFormat = m_signalInfo.VideoFormat;
-    buffer->TransferCharacteristics = m_signalInfo.TransferCharacteristics;
-    buffer->MatrixCoefficients = m_signalInfo.MatrixCoefficients;
+    buffer->ColourPrimaries          = m_signalInfo.ColourPrimaries;
+    buffer->VideoFormat              = m_signalInfo.VideoFormat;
+    buffer->TransferCharacteristics  = m_signalInfo.TransferCharacteristics;
+    buffer->MatrixCoefficients       = m_signalInfo.MatrixCoefficients;
 
     return UMC_OK;
 }

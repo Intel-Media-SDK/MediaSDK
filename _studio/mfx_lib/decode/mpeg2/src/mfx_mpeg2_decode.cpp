@@ -1855,16 +1855,15 @@ mfxStatus VideoDECODEMPEG2InternalBase::AllocFrames(mfxVideoParam *par)
 
 mfxStatus VideoDECODEMPEG2InternalBase::GetVideoParam(mfxVideoParam *par)
 {
-    par->IOPattern = m_vPar.IOPattern;
-    par->mfx       = m_vPar.mfx;
-    par->Protected = m_vPar.Protected;
-    par->AsyncDepth = m_vPar.AsyncDepth;
-    par->mfx.FrameInfo.AspectRatioW = m_vPar.mfx.FrameInfo.AspectRatioW;
-    par->mfx.FrameInfo.AspectRatioH = m_vPar.mfx.FrameInfo.AspectRatioH;
-    par->mfx.FrameInfo.FrameRateExtD = m_vPar.mfx.FrameInfo.FrameRateExtD;
-    par->mfx.FrameInfo.FrameRateExtN = m_vPar.mfx.FrameInfo.FrameRateExtN;
+    MFX_CHECK_NULL_PTR1(par);
 
-    mfxExtCodingOptionSPSPPS *spspps = (mfxExtCodingOptionSPSPPS *) GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_SPSPPS);
+    par->AllocId    = m_vPar.AllocId;
+    par->AsyncDepth = m_vPar.AsyncDepth;
+    par->mfx        = m_vPar.mfx;
+    par->Protected  = m_vPar.Protected;
+    par->IOPattern  = m_vPar.IOPattern;
+
+    auto *spspps = reinterpret_cast<mfxExtCodingOptionSPSPPS *>(GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_SPSPPS));
 
     if (spspps && spspps->SPSBuffer)
     {
@@ -1873,15 +1872,14 @@ mfxStatus VideoDECODEMPEG2InternalBase::GetVideoParam(mfxVideoParam *par)
             return ConvertUMCStatusToMfx(sts);
     }
 
-    // get signal info buffer
-    mfxExtVideoSignalInfo *signal_info = (mfxExtVideoSignalInfo *) GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_VIDEO_SIGNAL_INFO);
+    auto *signal_info = reinterpret_cast<mfxExtVideoSignalInfo *>(GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_VIDEO_SIGNAL_INFO));
+
     if (signal_info)
     {
-        m_implUmc->GetSignalInfoInformation(signal_info);
+        UMC::Status sts = m_implUmc->GetSignalInfoInformation(signal_info);
+        if (UMC::UMC_OK != sts)
+            return ConvertUMCStatusToMfx(sts);
     }
-
-    std::copy(std::begin(m_vPar.reserved), std::end(m_vPar.reserved), std::begin(par->reserved));
-    par->reserved2 = m_vPar.reserved2;
 
     return MFX_ERR_NONE;
 }
@@ -1890,12 +1888,14 @@ mfxStatus VideoDECODEMPEG2InternalBase::UpdateWorkSurfaceParams(int task_num)
 {
     mfxFrameSurface1 *pSurface = m_FrameAllocator->GetSurfaceByIndex(mid[task_num]);
     MFX_CHECK_NULL_PTR1(pSurface);
-    pSurface->Info.CropW = m_vPar.mfx.FrameInfo.CropW;
-    pSurface->Info.CropH = m_vPar.mfx.FrameInfo.CropH;
-    pSurface->Info.CropX = m_vPar.mfx.FrameInfo.CropX;
-    pSurface->Info.CropY = m_vPar.mfx.FrameInfo.CropY;
+
+    pSurface->Info.CropW        = m_vPar.mfx.FrameInfo.CropW;
+    pSurface->Info.CropH        = m_vPar.mfx.FrameInfo.CropH;
+    pSurface->Info.CropX        = m_vPar.mfx.FrameInfo.CropX;
+    pSurface->Info.CropY        = m_vPar.mfx.FrameInfo.CropY;
     pSurface->Info.AspectRatioH = m_vPar.mfx.FrameInfo.AspectRatioH;
     pSurface->Info.AspectRatioW = m_vPar.mfx.FrameInfo.AspectRatioW;
+
     return MFX_ERR_NONE;
 }
 
