@@ -352,7 +352,7 @@ int main(int argc, msdk_char *argv[])
     sAceParam                 defaultContrastParam        = { VPP_FILTER_DISABLED };
     sSteParam                 defaultSkinParam            = { 4, VPP_FILTER_DISABLED };
     sIStabParam               defaultImgStabParam         = { MFX_IMAGESTAB_MODE_BOXING, VPP_FILTER_DISABLED };
-    sSVCParam                 defaultSVCParam             = { 0, 0, 0, 0, 0, 0, 0, 0, VPP_FILTER_DISABLED };
+    sSVCParam                 defaultSVCParam             = { {}, VPP_FILTER_DISABLED };
     sVideoSignalInfoParam     defaultVideoSignalInfoParam;
     sMirroringParam           defaultMirroringParam;
 
