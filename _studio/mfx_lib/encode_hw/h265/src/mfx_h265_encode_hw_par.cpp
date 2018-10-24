@@ -2760,7 +2760,7 @@ void SetDefaults(
 
         mfxU16 RefActiveP   = par.m_ext.DDI.NumActiveRefP;
         mfxU16 RefActiveBL0 = par.m_ext.DDI.NumActiveRefBL0;
-        mfxU16 RefActiveBL1 = par.m_ext.DDI.NumActiveRefBL0;
+        mfxU16 RefActiveBL1 = par.m_ext.DDI.NumActiveRefBL1;
 
         if (!RefActiveP)
             for (mfxU16 i = 0; i < 8; i++)  RefActiveP   = Max(RefActiveP, CO3.NumRefActiveP[i]);
