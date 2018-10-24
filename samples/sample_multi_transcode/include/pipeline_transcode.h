@@ -25,14 +25,13 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxplugin.h"
 #include "mfxplugin++.h"
 
-#include "vm/atomic_defs.h"
-#include "vm/thread_defs.h"
-
 #include <memory>
 #include <vector>
 #include <list>
 #include <ctime>
 #include <map>
+#include <future>
+#include <chrono>
 
 #include "sample_defs.h"
 #include "sample_utils.h"
@@ -88,8 +87,6 @@ const mfxF64  MCTF_LOSSLESS_BPP = 0.0;
 
 namespace TranscodingSample
 {
-    extern mfxU32 MFX_STDCALL TranscodeRoutine(void   *pObj);
-
     enum PipelineMode
     {
         Native = 0,        // means that pipeline is based depends on the cmd parameters (decode/encode/transcode)
@@ -910,28 +907,38 @@ namespace TranscodingSample
         // Pointer to the session's pipeline
         std::unique_ptr<CTranscodingPipeline> pPipeline;
         // Pointer to bitstream handling object
-        FileBitstreamProcessor *pBSProcessor;
+        FileBitstreamProcessor *pBSProcessor = nullptr;
         // Session implementation type
-        mfxIMPL implType;
+        mfxIMPL implType = MFX_IMPL_AUTO;
 
         // Session's starting status
-        mfxStatus startStatus;
+        mfxStatus startStatus = MFX_ERR_NONE;
         // Session's working time
-        mfxF64 working_time;
+        mfxF64 working_time = 0;
 
         // Number of processed frames
-        mfxU32 numTransFrames;
+        mfxU32 numTransFrames = 0;
         // Status of the finished session
-        mfxStatus transcodingSts;
+        mfxStatus transcodingSts = MFX_ERR_NONE;
 
-        ThreadTranscodeContext()
+        // Thread handle
+        std::future<void> handle;
+
+        void TranscodeRoutine()
         {
-            pBSProcessor = NULL;
-            implType = MFX_IMPL_AUTO;
-            startStatus = MFX_ERR_NONE;
-            working_time = 0;
-            numTransFrames = 0;
+            using namespace std::chrono;
+            MSDK_CHECK_POINTER_NO_RET(pPipeline);
             transcodingSts = MFX_ERR_NONE;
+
+            auto start_time = system_clock::now();
+            while (MFX_ERR_NONE == transcodingSts)
+            {
+                transcodingSts = pPipeline->Run();
+            }
+            working_time = duration_cast<microseconds>(system_clock::now() - start_time).count();
+
+            MSDK_IGNORE_MFX_STS(transcodingSts, MFX_WRN_VALUE_NOT_CHANGED);
+            numTransFrames = pPipeline->GetProcessFrames();
         }
     };
 }

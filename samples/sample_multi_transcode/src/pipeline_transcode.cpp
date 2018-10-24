@@ -46,28 +46,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 using namespace TranscodingSample;
 
-mfxU32 MFX_STDCALL TranscodingSample::TranscodeRoutine(void   *pObj)
-{
-    mfxU64 start = TranscodingSample::GetTick();
-    ThreadTranscodeContext *pContext = (ThreadTranscodeContext*)pObj;
-    pContext->transcodingSts = MFX_ERR_NONE;
-    for(;;)
-    {
-        while (MFX_ERR_NONE == pContext->transcodingSts)
-        {
-            pContext->transcodingSts = pContext->pPipeline->Run();
-        }
-        break; // exit loop
-    }
-
-    MSDK_IGNORE_MFX_STS(pContext->transcodingSts, MFX_WRN_VALUE_NOT_CHANGED);
-
-    pContext->working_time = TranscodingSample::GetTime(start);
-    pContext->numTransFrames = pContext->pPipeline->GetProcessFrames();
-
-    return 0;
-} // mfxU32 __stdcall TranscodeRoutine(void   *pObj)
-
 #ifdef ENABLE_MCTF
 namespace TranscodingSample
 {
