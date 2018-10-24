@@ -4362,7 +4362,7 @@ mfxStatus CTranscodingPipeline::Reset()
     {
         if (m_bIsPlugin && m_bIsVpp)
         {
-            mfxFrameAllocRequest request[2] = { 0 };
+            mfxFrameAllocRequest request[2] {};
             sts = m_pmfxVPP->QueryIOSurf(&m_mfxPluginParams, request, &m_mfxVppParams);
             MSDK_CHECK_STATUS(sts, "m_pmfxVPP->QueryIOSurf failed");
 
