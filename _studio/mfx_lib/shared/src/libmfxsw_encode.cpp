@@ -81,6 +81,7 @@ struct CodecKey {
 
 struct Handlers {
     struct Funcs {
+        std::function<VideoENCODE*(VideoCORE* core, mfxStatus *mfxRes)> ctor;
         std::function<mfxStatus(mfxSession s, mfxVideoParam *in, mfxVideoParam *out)> query;
         std::function<mfxStatus(mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)> queryIOSurf;
     };
@@ -102,6 +103,12 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    return new MFXHWVideoENCODEH264(core, mfxRes);
+                },
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
                 {
@@ -127,6 +134,12 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    return new MFXVideoENCODEMPEG2_HW(core, mfxRes);
+                },
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
                 { return MFXVideoENCODEMPEG2_HW::Query(s->m_pCORE.get(), in, out); },
@@ -148,6 +161,12 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    return new MFXVideoENCODEMJPEG_HW(core, mfxRes);
+                },
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
                 { return MFXVideoENCODEMJPEG_HW::Query(s->m_pCORE.get(), in, out); },
@@ -170,6 +189,10 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                { return new MfxHwH265FeiEncode::H265FeiEncode_HW(core, mfxRes); },
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
                 { return MfxHwH265FeiEncode::H265FeiEncode_HW::Query(s->m_pCORE.get(), in, out); },
@@ -190,6 +213,10 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                { return new MfxHwH265Encode::MFXVideoENCODEH265_HW(core, mfxRes); },
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
                 { return MfxHwH265Encode::MFXVideoENCODEH265_HW::Query(s->m_pCORE.get(), in, out); },
@@ -211,6 +238,12 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    return new MfxHwVP9Encode::MFXVideoENCODEVP9_HW(core, mfxRes);
+                },
                 // .query =
                 [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
                 { return MfxHwVP9Encode::MFXVideoENCODEVP9_HW::Query(s->m_pCORE.get(), in, out); },
@@ -226,65 +259,31 @@ static const CodecId2Handlers codecId2Handlers =
 template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 {
-    VideoENCODE* pENCODE = nullptr;
     VideoCORE* core = m_pCORE.get();
     mfxStatus mfxRes = MFX_ERR_MEMORY_ALLOC;
     mfxU32 CodecId = par.mfx.CodecId;
+
     // create a codec instance
-    switch (CodecId)
+    bool *feiEnabled = (bool*)core->QueryCoreInterface(MFXIFEIEnabled_GUID);
+    if (!feiEnabled)
     {
-#if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
-    case MFX_CODEC_AVC:
-#if defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW)
-        pENCODE = new MFXHWVideoENCODEH264(core, &mfxRes);
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE_HW
-        break;
-#endif // MFX_ENABLE_H264_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_MPEG2_VIDEO_ENCODE)
-    case MFX_CODEC_MPEG2:
-            pENCODE = new MFXVideoENCODEMPEG2_HW(core, &mfxRes);
-        break;
-#endif // MFX_ENABLE_MPEG2_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_MJPEG_VIDEO_ENCODE)
-    case MFX_CODEC_JPEG:
-            pENCODE = new MFXVideoENCODEMJPEG_HW(core, &mfxRes);
-        break;
-#endif // MFX_ENABLE_MJPEG_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-    case MFX_CODEC_HEVC:
+        return nullptr;
+    }
+    const bool fei = *feiEnabled;
+    auto handler = codecId2Handlers.find(CodecKey(CodecId, fei));
+    if (handler == codecId2Handlers.end() || !handler->second.primary.ctor)
     {
-            bool * feiEnabled = (bool*)core->QueryCoreInterface(MFXIFEIEnabled_GUID);//required to check FEI plugin registration.
-            if (feiEnabled == nullptr)
-                return nullptr;
-            if(*feiEnabled)
-                pENCODE = new MfxHwH265FeiEncode::H265FeiEncode_HW(core, &mfxRes);
-            else
-                pENCODE = new MfxHwH265Encode::MFXVideoENCODEH265_HW(core, &mfxRes);
-        break;
+        return nullptr;
     }
-#endif // MFX_ENABLE_H265_VIDEO_ENCODE
-
-#if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
-    case MFX_CODEC_VP9:
-        pENCODE = new MfxHwVP9Encode::MFXVideoENCODEVP9_HW(core, &mfxRes);
-        break;
-#endif // MFX_ENABLE_VP9_VIDEO_ENCODE
-
-    default:
-        break;
-    }
-
+    std::unique_ptr<VideoENCODE> pENCODE(
+        (handler->second.primary.ctor)(core, &mfxRes));
     // check error(s)
     if (MFX_ERR_NONE != mfxRes)
     {
-        delete pENCODE;
-        pENCODE = nullptr;
+        return nullptr;
     }
 
-    return pENCODE;
+    return pENCODE.release();
 }
 
 mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
