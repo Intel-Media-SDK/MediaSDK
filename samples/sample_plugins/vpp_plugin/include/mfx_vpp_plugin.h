@@ -20,8 +20,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #ifndef __MFX_PLUGIN_2_VPP_H
 #define __MFX_PLUGIN_2_VPP_H
 
-#include <memory>
-#include "mfxvideo++.h"
 #include "mfx_multi_vpp.h"
 #include "sample_defs.h"
 #include "vm/so_defs.h"
@@ -52,10 +50,10 @@ public:
 
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported
     // QueryIOSurf must be called prior to Init to create topology
-    mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = nullptr, mfxVideoParam *par2 = nullptr) override;
 
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported; topology must be the same as in QueryIOSurf
-    mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = nullptr, mfxVideoParam *par2 = nullptr) override;
     mfxStatus RunFrameVPPAsync(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp) override;
     mfxStatus ResetMulti(mfxVideoParam *par, mfxVideoParam */*par1*/, mfxVideoParam */*par2*/) override;
     mfxStatus Close(void) override;
@@ -83,7 +81,7 @@ protected:
         mfxU16            m_nPoolSize;
     public:
         SurfacePool()
-            : m_ppSurfacesPool(NULL)
+            : m_ppSurfacesPool(nullptr)
             , m_nPoolSize(0){}
         ~SurfacePool(){
             Free();

@@ -20,6 +20,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #ifndef __MFX_MULTI_VPP_H
 #define __MFX_MULTI_VPP_H
 
+#include <memory>
+#include "mfxvideo++.h"
+
 // An interface for a pipeline consisting of multiple (maximum 3) VPP-like components. Base implementation - for single VPP.
 // The application should use this interface to be able to seamlessly switch from MFXVideoVPP to MFXVideoVPPPlugin in the pipeline.
 
@@ -32,19 +35,19 @@ public:
     virtual ~MFXVideoMultiVPP(void) { Close(); }
 
     // topology methods
-    virtual mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
+    virtual mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = nullptr, mfxVideoParam *par2 = nullptr)
     { (void)par1; (void)par2; return MFXVideoVPP_QueryIOSurf(m_session, par, request); }
 
     virtual mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2]) final
     { return QueryIOSurfMulti(par, request); }
 
-    virtual mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
+    virtual mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = nullptr, mfxVideoParam *par2 = nullptr)
     { (void)par1; (void)par2; return MFXVideoVPP_Init(m_session, par); }
 
     virtual mfxStatus Init(mfxVideoParam *par) final
     {  return InitMulti(par);  }
 
-    virtual mfxStatus ResetMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL)
+    virtual mfxStatus ResetMulti(mfxVideoParam *par, mfxVideoParam *par1 = nullptr, mfxVideoParam *par2 = nullptr)
     { (void)par1; (void)par2; return MFXVideoVPP_Reset(m_session, par); }
 
     virtual mfxStatus Reset(mfxVideoParam *par) final
