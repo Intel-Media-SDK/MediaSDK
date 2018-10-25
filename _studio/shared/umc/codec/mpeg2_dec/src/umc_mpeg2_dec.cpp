@@ -760,7 +760,7 @@ Status MPEG2VideoDecoderBase::GetSequenceHeaderMemoryMask(uint8_t *buffer, uint1
     if (size < shMask.memSize)
         return UMC_ERR_NOT_ENOUGH_BUFFER;
 
-    memcpy_s(buffer, size, shMask.memMask, shMask.memSize);
+    std::copy(shMask.memMask, shMask.memMask + shMask.memSize, buffer);
     size = shMask.memSize;
 
     return UMC_OK;

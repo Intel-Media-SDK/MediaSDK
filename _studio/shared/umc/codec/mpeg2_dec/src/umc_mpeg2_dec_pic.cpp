@@ -391,7 +391,7 @@ Status MPEG2VideoDecoderBase::DecodeSequenceHeader(VideoContext* video, int task
         return (UMC_ERR_ALLOC);
       }
       memset(shMask.memMask, 0, shMask.memSize);
-      memcpy_s(shMask.memMask, shMask.memSize, video->bs_sequence_header_start, shMask.memSize);
+      std::copy(video->bs_sequence_header_start, video->bs_sequence_header_start + shMask.memSize, shMask.memMask);
     }
 
     if(m_ClipInfo.stream_type == MPEG1_VIDEO) {
