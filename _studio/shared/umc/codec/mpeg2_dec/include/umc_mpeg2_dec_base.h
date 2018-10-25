@@ -90,7 +90,7 @@ namespace UMC
         virtual Status GetInfo(BaseCodecParams* info);
 
         //additional functions for UMC-MFX interaction
-        Status GetCCData(uint8_t* ptr, uint32_t *size, unsigned long long *time, uint32_t bufsize);
+        Status GetCCData(uint8_t* ptr, uint32_t *user_data_size, double & time_stamp, uint32_t bufsize);
         Status GetPictureHeader(MediaData* input, int task_num, int prev_task_num);
         int32_t GetCurrDecodingIndex(int task_num);
         int32_t GetNextDecodingIndex(int index);
@@ -208,7 +208,7 @@ namespace UMC
  protected:
 
         sVideoFrameBuffer::UserDataVector m_user_data;
-        std::vector< std::pair<double, size_t> > m_user_ts_data;
+        std::vector<double>               m_user_ts_data;
         sSequenceHeader           sequenceHeader;
         sSHSavedPars              sHSaved;
 

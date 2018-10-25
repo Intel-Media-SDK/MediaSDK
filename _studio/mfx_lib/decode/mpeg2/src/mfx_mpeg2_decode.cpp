@@ -608,19 +608,17 @@ mfxStatus VideoDECODEMPEG2::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts, mfxU1
 {
     MFX_CHECK_NULL_PTR3(ud, sz, ts);
 
-    UMC::Status umcSts = UMC::UMC_OK;
-
-    umcSts = internalImpl->m_implUmc->GetCCData(ud, sz, ts, bufsize);
+    mfxF64 fts;
+    UMC::Status umcSts = internalImpl->m_implUmc->GetCCData(ud, sz, fts, bufsize);
 
     if (UMC::UMC_OK == umcSts)
     {
-        // we store pts in float
-        mfxF64 pts = *(reinterpret_cast<mfxF64*>(ts));
-
-        *ts = GetMfxTimeStamp(pts);
+        *ts = GetMfxTimeStamp(fts);
 
         return MFX_ERR_NONE;
     }
+
+    *ts = 0;
 
     if (UMC::UMC_ERR_NOT_ENOUGH_BUFFER == umcSts)
     {
