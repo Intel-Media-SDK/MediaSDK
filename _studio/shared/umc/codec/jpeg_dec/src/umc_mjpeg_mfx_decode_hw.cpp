@@ -621,18 +621,26 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
             if(m_decBase->m_dctbl[i].IsValid())
             {
                 huffmanParams->load_huffman_table[i] = 1;
+                if (std::end(huffmanParams->huffman_table[i].num_dc_codes) - std::begin(huffmanParams->huffman_table[i].num_dc_codes) < 16)
+                    return UMC_ERR_NOT_ENOUGH_BUFFER;
                 const uint8_t *bits = m_decBase->m_dctbl[i].GetBits();
-                memcpy_s(huffmanParams->huffman_table[i].num_dc_codes, sizeof(huffmanParams->huffman_table[i].num_dc_codes), bits, 16);
+                std::copy(bits, bits + 16, std::begin(huffmanParams->huffman_table[i].num_dc_codes));
+                if (std::end(huffmanParams->huffman_table[i].dc_values) - std::begin(huffmanParams->huffman_table[i].dc_values) < 12)
+                    return UMC_ERR_NOT_ENOUGH_BUFFER;
                 bits = m_decBase->m_dctbl[i].GetValues();
-                memcpy_s(huffmanParams->huffman_table[i].dc_values, sizeof(huffmanParams->huffman_table[i].dc_values), bits, 12);
+                std::copy(bits, bits + 12, std::begin(huffmanParams->huffman_table[i].dc_values));
             }
             if(m_decBase->m_actbl[i].IsValid())
             {
                 huffmanParams->load_huffman_table[i] = 1;
+                if (std::end(huffmanParams->huffman_table[i].num_ac_codes) - std::begin(huffmanParams->huffman_table[i].num_ac_codes) < 16)
+                    return UMC_ERR_NOT_ENOUGH_BUFFER;
                 const uint8_t *bits = m_decBase->m_actbl[i].GetBits();
-                memcpy_s(huffmanParams->huffman_table[i].num_ac_codes, sizeof(huffmanParams->huffman_table[i].num_ac_codes), bits, 16);
+                std::copy(bits, bits + 16, std::begin(huffmanParams->huffman_table[i].num_ac_codes));
+                if (std::end(huffmanParams->huffman_table[i].ac_values) - std::begin(huffmanParams->huffman_table[i].ac_values) < 162)
+                    return UMC_ERR_NOT_ENOUGH_BUFFER;
                 bits = m_decBase->m_actbl[i].GetValues();
-                memcpy_s(huffmanParams->huffman_table[i].ac_values, sizeof(huffmanParams->huffman_table[i].ac_values), bits, 162);
+                std::copy(bits, bits + 162, std::begin(huffmanParams->huffman_table[i].ac_values));
             }
             huffmanParams->huffman_table[i].pad[0] = 0;
             huffmanParams->huffman_table[i].pad[1] = 0;
@@ -678,14 +686,11 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
         if(!bistreamData)
             return UMC_ERR_DEVICE_FAILED;
 
+        std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
+
         if(m_decBase->m_num_scans == 1)
         {
-            memcpy_s(bistreamData, obtainedScanParams->DataLength, ptr + obtainedScanParams->DataOffset, obtainedScanParams->DataLength);
             shiftDataOffset = true;
-        }
-        else
-        {
-            memcpy_s(bistreamData, obtainedScanParams->DataLength, ptr + obtainedScanParams->DataOffset, obtainedScanParams->DataLength);
         }
     }
 
