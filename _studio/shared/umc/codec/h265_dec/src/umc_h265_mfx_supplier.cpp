@@ -280,24 +280,20 @@ UMC::Status MFXTaskSupplier_H265::DecodeHeaders(UMC::MediaDataEx *nalUnit)
                     H265SeqParamSet * currSPS = isSPS ? m_Headers.m_SeqParams.GetCurrentHeader() : nullptr;
                     H265PicParamSet * currPPS = isSPS ? nullptr : m_Headers.m_PicParams.GetCurrentHeader();
                     int32_t id = isSPS ? m_Headers.m_SeqParams.GetCurrentID() : m_Headers.m_PicParams.GetCurrentID();
-                    if (hdr->GetPointer() != nullptr)
+                    if (hdr->GetPointer() != nullptr && hdr->GetID() == id)
                     {
-                        if (hdr->GetID() == id)
-                        {
-                            bool changed =
-                                size + prefix_size != hdr->GetSize() ||
-                                !!memcmp(hdr->GetPointer() + prefix_size, nalUnit->GetDataPointer(), size);
+                        bool changed =
+                            size + prefix_size != hdr->GetSize() ||
+                            !!memcmp(hdr->GetPointer() + prefix_size, nalUnit->GetDataPointer(), size);
 
-                            if (isSPS && currSPS != nullptr)
-                                currSPS->m_changed = changed;
-                            else if (currPPS != nullptr)
-                                currPPS->m_changed = changed;
-                        }
-
-                        hdr->Resize(id, size + prefix_size);
-                        std::copy(start_code_prefix, start_code_prefix + prefix_size, hdr->GetPointer());
-                        std::copy((uint8_t*)nalUnit->GetDataPointer(), (uint8_t*)nalUnit->GetDataPointer() + size, hdr->GetPointer() + prefix_size);
+                        if (isSPS && currSPS != nullptr)
+                            currSPS->m_changed = changed;
+                        else if (currPPS != nullptr)
+                            currPPS->m_changed = changed;
                     }
+                    hdr->Resize(id, size + prefix_size);
+                    std::copy(start_code_prefix, start_code_prefix + prefix_size, hdr->GetPointer());
+                    std::copy((uint8_t*)nalUnit->GetDataPointer(), (uint8_t*)nalUnit->GetDataPointer() + size, hdr->GetPointer() + prefix_size);
                 }
             break;
         }
