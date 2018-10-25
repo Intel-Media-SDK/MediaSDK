@@ -103,7 +103,7 @@ bool FRCChecker::PutInputFrameAndCheck(mfxFrameSurface1* pSurface)
             return true;
         }
         mfxU32 round_counter = (m_NumFrame_In - m_asyncDeep) / m_FramePeriod_In;
-        m_AverageError = labs(m_NumFrame_Out - round_counter* m_FramePeriod_Out);
+        m_AverageError = labs((mfxI64)m_NumFrame_Out - round_counter* m_FramePeriod_Out);
         if (m_AverageError > m_Error_Out)
         {
             PrintDumpInfoAboutAverageError();
@@ -145,7 +145,7 @@ bool  FRCChecker::PutOutputFrameAndCheck(mfxFrameSurface1* pSurface)
             return true;
         }
         mfxU32 round_counter = (m_NumFrame_Out / m_FramePeriod_Out);
-        m_AverageError = labs(m_NumFrame_In - m_asyncDeep - round_counter * m_FramePeriod_In);
+        m_AverageError = labs((mfxI64)m_NumFrame_In - m_asyncDeep - round_counter * m_FramePeriod_In);
         if (m_AverageError  > m_Error_In)
         {
             PrintDumpInfoAboutAverageError();
