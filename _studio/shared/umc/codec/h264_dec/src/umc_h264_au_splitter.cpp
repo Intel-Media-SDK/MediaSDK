@@ -141,11 +141,9 @@ SetOfSlices::SetOfSlices(const SetOfSlices& set)
     , m_payloads(set.m_payloads)
     , m_pSliceQueue(set.m_pSliceQueue)
 {
-    size_t count = GetSliceCount();
-    for (size_t sliceId = 0; sliceId < count; sliceId++)
+    for (auto pSlice : m_pSliceQueue)
     {
-        H264Slice * slice = GetSlice(sliceId);
-        slice->IncrementReference();
+        pSlice->IncrementReference();
     }
 }
 
@@ -162,11 +160,9 @@ SetOfSlices& SetOfSlices::operator=(const SetOfSlices& set)
     }
 
     *this = set;
-    size_t count = GetSliceCount();
-    for (size_t sliceId = 0; sliceId < count; sliceId++)
+    for (auto pSlice : m_pSliceQueue)
     {
-        H264Slice * slice = GetSlice(sliceId);
-        slice->IncrementReference();
+        pSlice->IncrementReference();
     }
 
     return *this;
@@ -241,7 +237,7 @@ void SetOfSlices::SortSlices()
 {
     static int32_t MAX_MB_NUMBER = 0x7fffffff;
 
-    if (GetSlice(0) && GetSlice(0)->IsSliceGroups())
+    if (!m_pSliceQueue.empty() && m_pSliceQueue[0]->IsSliceGroups())
         return;
 
     size_t count = m_pSliceQueue.size();
@@ -271,12 +267,10 @@ void SetOfSlices::SortSlices()
         }
     }
 
-    for (size_t sliceId = 0; sliceId < count; sliceId++)
+    for (size_t sliceId = 0; sliceId < count - 1; sliceId++)
     {
         H264Slice * slice     = m_pSliceQueue[sliceId];
-        H264Slice * nextSlice = GetSlice(sliceId + 1);
-        if (!nextSlice)
-            break;
+        H264Slice * nextSlice = m_pSliceQueue[sliceId + 1];
 
         if (nextSlice->IsSliceGroups() || slice->IsSliceGroups())
             continue;
@@ -394,15 +388,15 @@ bool AccessUnit::IsFullAU() const
 
 void AccessUnit::CompleteLastLayer()
 {
-    if (GetLayersCount())
-        GetLastLayer()->m_isFull = true;
+    if (!m_layers.empty())
+        m_layers.back().m_isFull = true;
 }
 
 bool AccessUnit::AddSlice(H264Slice * slice)
 {
     if (!slice)
     {
-        if (GetLayersCount())
+        if (!m_layers.empty())
         {
             m_isFullAU = true;
         }
@@ -413,7 +407,7 @@ bool AccessUnit::AddSlice(H264Slice * slice)
     SetOfSlices * setOfSlices = GetLayerBySlice(slice);
     if (!setOfSlices)
     {
-        if (GetLayersCount())
+        if (!m_layers.empty())
         {
             SetOfSlices * lastSetOfSlices = GetLastLayer();
             if (lastSetOfSlices->GetSlice(0)->GetSliceHeader()->nal_ext.svc.dependency_id > slice->GetSliceHeader()->nal_ext.svc.dependency_id)
