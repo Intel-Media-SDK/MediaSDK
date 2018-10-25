@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -85,6 +85,7 @@ H264DecoderFrame::H264DecoderFrame(MemoryAllocator *pMemoryAllocator, H264_Heap_
     m_LongTermPicNum[0] = m_PicNum[1] = -1;
     m_PicOrderCnt[0] = m_PicOrderCnt[1] = 0;
     m_bIDRFlag = false;
+    m_bIFlag   = false;
 
     // set memory managment tools
     m_pMemoryAllocator = pMemoryAllocator;
@@ -160,6 +161,7 @@ void H264DecoderFrame::Reset()
 
     post_procces_complete = false;
     m_bIDRFlag = false;
+    m_bIFlag   = false;
 
     m_RefPicListResetCount[0] = m_RefPicListResetCount[1] = 0;
     m_PicNum[0] = m_PicNum[1] = -1;
