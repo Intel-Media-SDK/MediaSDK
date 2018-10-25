@@ -260,61 +260,49 @@ bool MPEG2VideoDecoderBase::IsPictureToSkip(int task_num)
 
 //$$$$$$$$$$$$$$$$
 //additional functions for UMC-MFX interaction
-Status MPEG2VideoDecoderBase::GetCCData(uint8_t* ptr, uint32_t *size, unsigned long long *time, uint32_t bufsize)
+Status MPEG2VideoDecoderBase::GetCCData(uint8_t* ptr, uint32_t *user_data_size, double & time_stamp, uint32_t bufsize)
 {
-    Status umcRes = UMC_OK;
-
-    if (0 == m_user_ts_data.size())
+    if (m_user_ts_data.empty() || m_user_data.empty())
     {
-        *size = 0;
-        *time = 0;
+        *user_data_size = 0;
+        time_stamp      = 0.0;
 
         return UMC_OK;
     }
 
-    if (0 < m_user_ts_data.front().second)
-    {
-        MFX_INTERNAL_CPY((uint8_t *)time, (uint8_t *)&m_user_ts_data.front().first, (uint32_t)m_user_ts_data.front().second);
-    }
-
-
-    if (0 == m_user_data.size())
-    {
-        *size = 0;
-        *time = 0;
-
-        return UMC_OK;
-    }
+    time_stamp         = m_user_ts_data.front();
 
     uint8_t *p_user_data = m_user_data.front().first;
-    uint32_t user_data_size = (uint32_t) m_user_data.front().second;
-    *size = user_data_size;
+    *user_data_size      = static_cast<uint32_t>(m_user_data.front().second);
 
-    if (*size == 0 || p_user_data == NULL)
+    if (*user_data_size == 0 || p_user_data == nullptr)
     {
         m_user_ts_data.erase(m_user_ts_data.begin());
         m_user_data.erase(m_user_data.begin());
-        *size = 0;
-        *time = 0;
+
+        *user_data_size = 0;
+        time_stamp      = 0.0;
+
         return UMC_OK;
     }
 
-    if (bufsize < *size)
+    if (bufsize < *user_data_size)
     {
-        *size *= 8;
-        *time = 0;
+        *user_data_size *= 8;
+        time_stamp       = 0.0;
+
         return UMC_ERR_NOT_ENOUGH_BUFFER;
     }
 
-    MFX_INTERNAL_CPY(ptr, p_user_data, *size);
-    *size *= 8;
+    std::copy(p_user_data, p_user_data + *user_data_size, ptr);
+    *user_data_size *= 8;
 
     free(p_user_data);
 
     m_user_ts_data.erase(m_user_ts_data.begin());
     m_user_data.erase(m_user_data.begin());
 
-    return umcRes;
+    return UMC_OK;
 }
 Status MPEG2VideoDecoderBase::GetPictureHeader(MediaData* input, int task_num, int prev_task_num)
 {
@@ -575,7 +563,7 @@ Status MPEG2VideoDecoderBase::PostProcessUserData(int display_index)
           for (uint32_t i = 0; i < userDataCount; i += 1)
           {
               m_user_data.push_back(frame_user_data_v[display_index][i]);
-              m_user_ts_data.push_back(std::make_pair(m_dTime[display_index].time, sizeof(double)));
+              m_user_ts_data.push_back(m_dTime[display_index].time);
           }
 
           // memory ownership transfered to m_user_data, so just clear()
