@@ -1762,6 +1762,9 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
     MFX_CHECK_NULL_PTR1( pParams->pRefSurfaces );
     MFX_CHECK_NULL_PTR1( pParams->pRefSurfaces[0].hdl.first );
 
+    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    eMFXHWType hwType = hwCore->GetHWType();
+
     mfxU32 refCount = (mfxU32) pParams->fwdRefCount;
     bool hasResize = false;
 
@@ -1994,12 +1997,14 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         if (pParams->bComposite)
         {
             m_pipelineParam[refIdx].num_filters  = 0;
-#if defined(LINUX_TARGET_PLATFORM_BXT) || defined(LINUX_TARGET_PLATFORM_BXTMIN)
-            m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-            m_pipelineParam[refIdx].filter_flags   |= VA_FILTER_SCALING_HQ;
-#else
-            m_pipelineParam[refIdx].pipeline_flags  |= VA_PROC_PIPELINE_FAST;
-#endif
+            if(MFX_HW_APL == hwType) {
+                m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
+                m_pipelineParam[refIdx].filter_flags |= VA_FILTER_SCALING_HQ;
+            }
+            else
+            {
+                m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_FAST;
+            }
         }
     }
 
