@@ -386,10 +386,9 @@ Status MPEG2VideoDecoderHW::PostProcessFrame(int display_index, int task_num)
                            + pack_w.pSliceInfo[-1].slice_data_size;
             if (pack_w.bs_size >= pack_w.bs_size_getting)
             {
-                VASliceParameterBufferMPEG2  s_info;
+                VASliceParameterBufferMPEG2 s_info = pack_w.pSliceInfo[-1];
                 bool slice_split = false;
                 int32_t sz = 0, sz_align = 0;
-                s_info = pack_w.pSliceInfo[-1];
                 pack_w.pSliceInfo--;
                 int size_bs = GET_END_PTR(Video[task_num][0]->bs) - GET_START_PTR(Video[task_num][0]->bs)+4;   // ao: I copied from BeginVAFrame. Is it ok? or == bs_size
                 int size_sl = m_ClipInfo.clip_info.width*m_ClipInfo.clip_info.height/256;      // ao: I copied from BeginVAFrame. Is it ok?
