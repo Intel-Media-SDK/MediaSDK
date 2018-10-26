@@ -2648,7 +2648,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
 
         //VM_ASSERT( m_implUmc.PictureHeader[m_task_num].picture_coding_type != 3 || ( mid[ m_implUmc.frame_buffer.latest_next ] != -1 && mid[ m_implUmc.frame_buffer.latest_prev ] != -1 ));
 
-        IsField = !m_implUmc->IsFramePictureStructure(m_task_num);
+        IsField = !m_implUmc->IsFramePictureStructure(m_task_num); // is invalid (1) if GetPictureHeader() failed (skipped)
         if (m_task_num >= DPB && !IsField)
         {
             int decrease_dec_field_count = dec_field_count % 2 == 0 ? 0 : 1;
@@ -2712,7 +2712,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
                         display_order++;
                     }
 
-                    if ((true == IsField && !(dec_field_count & 1)) || false == IsField)
+                    if (false == IsField || !(dec_field_count & 1) || IsSkipped) // not 2nd field or skipped 2nd
                     {
                         pEntryPoint->requiredNumThreads = m_NumThreads;
                         pEntryPoint->pRoutine = &MPEG2TaskRoutine;
