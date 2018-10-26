@@ -688,7 +688,7 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
         throw h264_exception(UMC_ERR_FAILED);
 
     UMCVACompBuffer *pipelineVABuf;
-    VAProcPipelineParameterBuffer* pipelineBuf = (VAProcPipelineParameterBuffer*)m_va->GetCompBuffer(VAProcPipelineParameterBufferType, &pipelineVABuf, sizeof(VAProcPipelineParameterBuffer));
+    auto* pipelineBuf = reinterpret_cast<VAProcPipelineParameterBuffer *>(m_va->GetCompBuffer(VAProcPipelineParameterBufferType, &pipelineVABuf, sizeof(VAProcPipelineParameterBuffer)));
     if (!pipelineBuf)
         throw h264_exception(UMC_ERR_FAILED);
     pipelineVABuf->SetDataSize(sizeof(VAProcPipelineParameterBuffer));
@@ -702,27 +702,21 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
 void PackerVA::PackQmatrix(const H264ScalingPicParams * scaling)
 {
     UMCVACompBuffer *quantBuf;
-    VAIQMatrixBufferH264* pQmatrix_H264 = (VAIQMatrixBufferH264*)m_va->GetCompBuffer(VAIQMatrixBufferType, &quantBuf, sizeof(VAIQMatrixBufferH264));
+    auto* pQmatrix_H264 = reinterpret_cast<VAIQMatrixBufferH264 *>(m_va->GetCompBuffer(VAIQMatrixBufferType, &quantBuf, sizeof(VAIQMatrixBufferH264)));
     if (!pQmatrix_H264)
         throw h264_exception(UMC_ERR_FAILED);
     quantBuf->SetDataSize(sizeof(VAIQMatrixBufferH264));
 
-    int32_t i, j;
-    //may be just use memcpy???
-    for(j = 0; j < 6; j++)
+    int32_t j;
+
+    for(j = 0; j < 6; ++j)
     {
-        for(i = 0; i < 16; i++)
-        {
-             pQmatrix_H264->ScalingList4x4[j][i] = scaling->ScalingLists4x4[j].ScalingListCoeffs[i];
-        }
+        std::copy(std::begin(scaling->ScalingLists4x4[j].ScalingListCoeffs), std::end(scaling->ScalingLists4x4[j].ScalingListCoeffs), std::begin(pQmatrix_H264->ScalingList4x4[j]));
     }
 
-    for(j = 0; j < 2; j++)
+    for(j = 0; j < 2; ++j)
     {
-        for(i = 0; i < 64; i++)
-        {
-             pQmatrix_H264->ScalingList8x8[j][i] = scaling->ScalingLists8x8[j].ScalingListCoeffs[i];
-        }
+        std::copy(std::begin(scaling->ScalingLists8x8[j].ScalingListCoeffs), std::end(scaling->ScalingLists8x8[j].ScalingListCoeffs), std::begin(pQmatrix_H264->ScalingList8x8[j]));
     }
 }
 
