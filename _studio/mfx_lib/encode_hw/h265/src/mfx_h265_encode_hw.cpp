@@ -1163,19 +1163,20 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
             mfxU8* bsData         = bs->Data + bs->DataOffset + bs->DataLength;
             mfxU32* pDataLength   = &bs->DataLength;
 
-
             MFX_CHECK(bytesAvailable >= bytes2copy, MFX_ERR_NOT_ENOUGH_BUFFER);
             //codedFrame.MemType = MFX_MEMTYPE_INTERNAL_FRAME;
+
             sts = m_core->LockFrame(taskForQuery->m_midBs, &codedFrame);
             MFX_CHECK_STS(sts);
             MFX_CHECK(codedFrame.Y, MFX_ERR_LOCK_MEMORY);
-            mfxSize roi = {(int32_t)bytes2copy,1};
-            //memcpy_s(bs->Data + bs->DataOffset + bs->DataLength, bytes2copy, codedFrame.Y, bytes2copy);
-            FastCopy::Copy(bsData,bytes2copy,codedFrame.Y,codedFrame.Pitch,roi,COPY_VIDEO_TO_SYS);
+
+            mfxSize roi = {(int32_t)bytes2copy, 1};
+            FastCopy::Copy(bsData, bytes2copy, codedFrame.Y, codedFrame.Pitch, roi, COPY_VIDEO_TO_SYS);
+
             sts = m_core->UnlockFrame(taskForQuery->m_midBs, &codedFrame);
             MFX_CHECK_STS(sts);
 
-            *pDataLength += bytes2copy;
+            *pDataLength   += bytes2copy;
             bytesAvailable -= bytes2copy;
 
             if (SEI_len)
