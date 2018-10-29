@@ -934,8 +934,6 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
         }
 
         IntUMCStatus = m_pVC1VideoDecoder->GetFrame(&m_FrameConstrData, &m_InternMediaDataOut);
-        if (UMC_ERR_LOCK == IntUMCStatus)
-            return MFX_ERR_LOCK_MEMORY;
     }
     else  // mean that we need one more surface for range map
     {
@@ -1151,6 +1149,10 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
     }
     else if (IntUMCStatus == UMC::UMC_ERR_INVALID_PARAMS) // SH with invalid params
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+    else if (IntUMCStatus == UMC::UMC_ERR_LOCK)
+        return MFX_ERR_LOCK_MEMORY;
+    else if (IntUMCStatus == UMC::UMC_ERR_UNSUPPORTED)
+        return MFX_ERR_UNSUPPORTED;
     else
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 }
