@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -681,6 +681,7 @@ namespace UMC
         ERROR_FRAME_RECOVERY                = 0x00000010,  // major artifacts at recovery point
         ERROR_FRAME_TOP_FIELD_ABSENT        = 0x00000020,
         ERROR_FRAME_BOTTOM_FIELD_ABSENT     = 0x00000040,
+        ERROR_FRAME_SHORT_TERM_STUCK        = 0x00000100,  // used to mark ST which potentially can get stuck in DPB due to frame gaps
         ERROR_FRAME_DEVICE_FAILURE          = 0x80000000   //if this bit is set, this means the error is [UMC::Status] code
     };
 
