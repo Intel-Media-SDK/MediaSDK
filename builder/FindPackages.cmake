@@ -145,7 +145,10 @@ function(configure_target target cflags libdirs)
 endfunction()
 
 function(configure_libmfx_target target)
-  configure_target(${ARGV0} "${LIBMFX_CFLAGS}" "${LIBMFX_LIBRARY_DIRS}")
+  # prefer local Dispatcher sources to preinstalled
+  if (NOT TARGET mfx)
+     configure_target(${ARGV0} "${PKG_MFX_CFLAGS}" "${PKG_MFX_LIBRARY_DIRS}")
+  endif()
 
   set(SCOPE_CFLAGS ${SCOPE_CFLAGS} PARENT_SCOPE)
   set(SCOPE_LINKFLAGS "${SCOPE_LINKFLAGS} -Wl,--default-symver" PARENT_SCOPE)
@@ -488,6 +491,7 @@ if( Linux )
   # optional:
   pkg_check_modules( PKG_X11       x11 )
   pkg_check_modules( PKG_LIBVA_X11 libva-x11>=0.33 )
+  pkg_check_modules( PKG_MFX       libmfx>=1.28 )
 
   if ( PKG_X11_FOUND AND PKG_LIBVA_X11_FOUND )
     set( ENABLE_X11 true )
