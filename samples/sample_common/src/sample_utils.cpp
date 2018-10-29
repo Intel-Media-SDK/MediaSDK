@@ -216,13 +216,13 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
             break;
         case MFX_FOURCC_YUY2:
             pitch = pData.Pitch;
-            ptr = pData.Y + pInfo.CropX + pInfo.CropY * pData.Pitch;
+            ptr = pData.Y + pInfo.CropX*2 + pInfo.CropY * pData.Pitch;
 
             for(i = 0; i < h; i++)
             {
-                nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, 2*w, m_files[vid]);
+                nBytesRead = (mfxU32)fread(ptr + i * pitch, 2, w, m_files[vid]);
 
-                if ((mfxU32)2*w != nBytesRead)
+                if ((mfxU32)w != nBytesRead)
                 {
                     return MFX_ERR_MORE_DATA;
                 }
