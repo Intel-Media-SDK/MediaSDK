@@ -597,7 +597,6 @@ protected:
     virtual void OnFullFrame(H264DecoderFrame * pFrame);
     virtual bool ProcessNonPairedField(H264DecoderFrame * pFrame) = 0;
 
-    void DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame);
     void DBPUpdate(H264DecoderFrame * pFrame, int32_t field);
 
     virtual void AddFakeReferenceFrame(H264Slice * pSlice);
