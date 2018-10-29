@@ -1557,10 +1557,9 @@ void CEncodingPipeline::Close()
     if (m_FileWriters.first)
     {
         msdk_printf(MSDK_STRING("Frame number: %u\r\n"), m_FileWriters.first->m_nProcessedFramesNum);
-#ifdef TIME_STATS
+
         mfxF64 ProcDeltaTime = m_statOverall.GetDeltaTime() - m_statFile.GetDeltaTime() - m_TaskPool.GetFileStatistics().GetDeltaTime();
         msdk_printf(MSDK_STRING("Encoding fps: %.0f\n"), m_FileWriters.first->m_nProcessedFramesNum / ProcDeltaTime);
-#endif
     }
 
     if (m_UserDataUnregSEI.size() > 0)
