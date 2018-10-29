@@ -123,6 +123,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-BufferSizeInKB ]       - represents the maximum possible size of any compressed frames\n"));
     msdk_printf(MSDK_STRING("   [-MaxKbps ]              - for variable bitrate control, specifies the maximum bitrate at which \
                             the encoded data enters the Video Buffering Verifier buffer\n"));
+    msdk_printf(MSDK_STRING("   [-ws]                    - specifies sliding window size in frames\n"));
+    msdk_printf(MSDK_STRING("   [-wb]                    - specifies the maximum bitrate averaged over a sliding window in Kbps\n"));
     msdk_printf(MSDK_STRING("   [-amfs:<on,off>]         - adaptive max frame size. If set on, P or B frame size can exceed MaxFrameSize when the scene change is detected.\
                             It can benefit the video quality \n"));
 #if (MFX_VERSION >= 1023)
@@ -459,6 +461,24 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->BufferSizeInKB))
             {
                 PrintHelp(strInput[0], MSDK_STRING("BufferSizeInKB is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ws")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->WinBRCSize))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Sliding window size is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-wb")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->WinBRCMaxAvgKbps))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Sliding window bitrate is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
