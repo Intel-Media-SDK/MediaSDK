@@ -2130,6 +2130,24 @@ struct FindNonSkip
 
     mfxU16 m_skipFrameMode;
 };
+mfxStatus FixForcedFrameType (DdiTask & newTask, mfxU32 frameOrder)
+{
+    if (frameOrder == 0 &&
+        !(newTask.m_type[0] & MFX_FRAMETYPE_IDR) &&
+        !(newTask.m_type[1] & MFX_FRAMETYPE_IDR))
+    {
+        if (newTask.m_type[0] & MFX_FRAMETYPE_I)
+            newTask.m_type[0] |= MFX_FRAMETYPE_IDR;
+        else if (newTask.m_type[1] & MFX_FRAMETYPE_I)
+            newTask.m_type[1] |= MFX_FRAMETYPE_IDR;
+        else
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
+    newTask.m_type[0] |= MFX_FRAMETYPE_REF;
+    newTask.m_type[1] |= MFX_FRAMETYPE_REF;
+
+    return MFX_ERR_NONE;
+}
 
 void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
 {
@@ -2250,6 +2268,12 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 if (newTask.m_type[0] == 0)
                     newTask.m_type = GetFrameType(m_video, m_frameOrder - m_frameOrderIdrInDisplayOrder);
+                else
+                {
+                    mfxStatus sts = FixForcedFrameType(newTask, m_frameOrder - m_frameOrderIdrInDisplayOrder);
+                    if (sts != MFX_ERR_NONE)
+                        return Error(sts);
+                }
 
                 newTask.m_frameOrder = m_frameOrder;
                 AssignFrameTypes(newTask);
