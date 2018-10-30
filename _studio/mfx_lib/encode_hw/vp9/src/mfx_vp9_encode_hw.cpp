@@ -925,7 +925,7 @@ inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pP
     if (bufferSize < sizeof(ivf_frame_header))
         return MFX_ERR_MORE_DATA;
 
-    std::copy(std::begin(ivf_frame_header),std::end(ivf_frame_header), pPictureHeader);
+    std::copy(std::begin(ivf_frame_header),std::end(ivf_frame_header), reinterpret_cast<mfxU32*>(pPictureHeader));
 
     return MFX_ERR_NONE;
 };
