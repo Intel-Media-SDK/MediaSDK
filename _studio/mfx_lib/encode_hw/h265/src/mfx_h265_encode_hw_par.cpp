@@ -2692,7 +2692,10 @@ void SetDefaults(
         if (!par.MaxKbps)
             par.MaxKbps = par.TargetKbps;
         if (!par.BufferSizeInKB)
+        {
             par.BufferSizeInKB = Min(maxBuf, par.MaxKbps / 4); //2 sec: the same as H264
+            par.BufferSizeInKB = Max(par.BufferSizeInKB, par.InitialDelayInKB);
+        }
         if (!par.InitialDelayInKB)
             par.InitialDelayInKB = par.BufferSizeInKB / 2;
         if (par.m_ext.CO2.MBBRC == MFX_CODINGOPTION_UNKNOWN)
