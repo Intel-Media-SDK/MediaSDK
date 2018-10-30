@@ -2752,6 +2752,16 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 }
                 //printf("Real frameSize %d, repack %d\n", bsDataLength, task->m_repack);
                 bool bRecoding = false;
+                //CpbRemovalDelay can be incorrect if previous frames were recorded in async mode
+                if ((task->GetFrameType() & MFX_FRAMETYPE_IDR) &&
+                     ( task->m_initCpbRemoval != hrd.GetInitCpbRemovalDelay() ||
+                    task->m_initCpbRemovalOffset != hrd.GetInitCpbRemovalDelayOffset()))
+                {
+                    task->m_initCpbRemoval = hrd.GetInitCpbRemovalDelay();
+                    task->m_initCpbRemovalOffset = hrd.GetInitCpbRemovalDelayOffset();
+                    bRecoding = true;
+                    task->m_repackForBsDataLength++ ;
+                }
                 if (extOpt2.MaxSliceSize)
                 {
                     mfxU32   bsSizeAvail = mfxU32(m_tmpBsBuf.size());
