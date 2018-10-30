@@ -417,25 +417,34 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes;
-    MFX_CHECK(par, MFX_ERR_NULL_PTR);
 
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, par);
 
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(par, MFX_ERR_NULL_PTR);
+
+    try
+    {
         // check existence of component
-        if (!session->m_pDECODE.get())
+        if (!session->m_pDECODE)
         {
             // create a new instance
             session->m_pDECODE.reset(session->Create<VideoDECODE>(*par));
             MFX_CHECK(session->m_pDECODE.get(), MFX_ERR_INVALID_VIDEO_PARAM);
         }
 
-    mfxRes = session->m_pDECODE->Init(par);
+        mfxRes = session->m_pDECODE->Init(par);
+    }
+    catch(...)
+    {
+        // set the default error value
+        mfxRes = MFX_ERR_UNKNOWN;
+    }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
-
-} // mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
+}
 
 mfxStatus MFXVideoDECODE_Close(mfxSession session)
 {
