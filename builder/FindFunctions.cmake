@@ -325,3 +325,4 @@ function(msdk_install target dir)
     install( TARGETS ${target} LIBRARY DESTINATION ${dir} )
   endif()
 endfunction()
+

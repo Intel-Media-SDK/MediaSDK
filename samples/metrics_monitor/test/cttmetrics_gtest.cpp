@@ -30,7 +30,7 @@ File Name: cttmetrics_gtest.cpp
 
 #include "cttmetrics.h"
 #include "cttmetrics_utils.h"
-#include "gtest.h"
+#include "gtest/gtest.h"
 #include "igt_load.h"
 
 #ifndef I915_EXEC_BSD_RING1
