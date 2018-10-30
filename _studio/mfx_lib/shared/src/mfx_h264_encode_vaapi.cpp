@@ -61,6 +61,9 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     case MFX_RATECONTROL_CBR:  return VA_RC_CBR;
     case MFX_RATECONTROL_VBR:  return VA_RC_VBR;
     case MFX_RATECONTROL_AVBR: return VA_RC_VBR;
+#ifdef MFX_ENABLE_QVBR
+    case MFX_RATECONTROL_QVBR: return VA_RC_QVBR;
+#endif
     case MFX_RATECONTROL_CQP:  return VA_RC_CQP;
     case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ;
     default: assert(!"Unsupported RateControl"); return 0;
@@ -174,6 +177,7 @@ mfxStatus SetRateControl(
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterRateControl *rate_param;
+    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(par);
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, rateParamBuf_id);
     MFX_CHECK_STS(mfxSts);
@@ -203,21 +207,22 @@ mfxStatus SetRateControl(
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
         rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
+#ifdef MFX_ENABLE_QVBR
+    else if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
+        rate_param->quality_factor = extOpt3.QVBRQuality;
+#endif
 
     if(par.calcParam.maxKbps)
         rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
 
     // Activate frame tolerance sliding window mode
-    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(par);
     if (extOpt3.WinBRCSize && caps.FrameSizeToleranceSupport)
     {
         rate_param->rc_flags.bits.frame_tolerance_mode = eFrameSizeTolerance_Low;
     }
 
-/*
- * MBBRC control
- * Control VA_RC_MB 0: default, 1: enable, 2: disable, other: reserved
- */
+    //  MBBRC control
+    // Control VA_RC_MB 0: default, 1: enable, 2: disable, other: reserved
     rate_param->rc_flags.bits.mb_rate_control = mbbrc & 0xf;
     rate_param->rc_flags.bits.reset = isBrcResetRequired;
 
@@ -990,9 +995,8 @@ void FillPWT(
 
         mfxExtCodingOptionDDI * extDdi      = GetExtBuffer(par);
         mfxExtCodingOption2   & extOpt2     = GetExtBufferRef(par);
-        mfxExtFeiSliceHeader  * extFeiSlice = GetExtBuffer(par, idxToPickBuffer);
+        mfxExtFeiSliceHeader const & extFeiSlice = GetExtBufferRef(par, idxToPickBuffer);
         assert(extDdi      != 0);
-        assert(extFeiSlice != 0);
 
         mfxExtPredWeightTable const * pPWT = GetExtBuffer(task.m_ctrl, idxToPickBuffer);
         if (!pPWT)
@@ -1064,9 +1068,9 @@ void FillPWT(
             slice[i].cabac_init_idc                     = extDdi ? (mfxU8)extDdi->CabacInitIdcPlus1 - 1 : 0;
             slice[i].slice_qp_delta                     = mfxI8(task.m_cqpValue[fieldId] - pps.pic_init_qp);
 
-            slice[i].disable_deblocking_filter_idc = (extFeiSlice->Slice ? extFeiSlice->Slice[i].DisableDeblockingFilterIdc : extOpt2.DisableDeblockingIdc);
-            slice[i].slice_alpha_c0_offset_div2    = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceAlphaC0OffsetDiv2     : 0);
-            slice[i].slice_beta_offset_div2        = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceBetaOffsetDiv2        : 0);
+            slice[i].disable_deblocking_filter_idc = (extFeiSlice.Slice ? extFeiSlice.Slice[i].DisableDeblockingFilterIdc : extOpt2.DisableDeblockingIdc);
+            slice[i].slice_alpha_c0_offset_div2    = (extFeiSlice.Slice ? extFeiSlice.Slice[i].SliceAlphaC0OffsetDiv2     : 0);
+            slice[i].slice_beta_offset_div2        = (extFeiSlice.Slice ? extFeiSlice.Slice[i].SliceBetaOffsetDiv2        : 0);
 
             if (pPWT)
                 FillPWT(hwCaps, pps, *pPWT, slice[i]);
@@ -1089,9 +1093,8 @@ void UpdateSliceSizeLimited(
 
     mfxExtCodingOptionDDI * extDdi      = GetExtBuffer(par);
     mfxExtCodingOption2   & extOpt2     = GetExtBufferRef(par);
-    mfxExtFeiSliceHeader  * extFeiSlice = GetExtBuffer(par, task.m_fid[fieldId]);
+    mfxExtFeiSliceHeader const & extFeiSlice = GetExtBufferRef(par, task.m_fid[fieldId]);
     assert(extDdi      != 0);
-    assert(extFeiSlice != 0);
 
     mfxExtPredWeightTable const * pPWT = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
     if (!pPWT)
@@ -1168,9 +1171,9 @@ void UpdateSliceSizeLimited(
         slice[i].cabac_init_idc                     = extDdi ? (mfxU8)extDdi->CabacInitIdcPlus1 - 1 : 0;
         slice[i].slice_qp_delta                     = mfxI8(task.m_cqpValue[fieldId] - pps.pic_init_qp);
 
-        slice[i].disable_deblocking_filter_idc = (extFeiSlice->Slice ? extFeiSlice->Slice[i].DisableDeblockingFilterIdc : extOpt2.DisableDeblockingIdc);
-        slice[i].slice_alpha_c0_offset_div2    = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceAlphaC0OffsetDiv2     : 0);
-        slice[i].slice_beta_offset_div2        = (extFeiSlice->Slice ? extFeiSlice->Slice[i].SliceBetaOffsetDiv2        : 0);
+        slice[i].disable_deblocking_filter_idc = (extFeiSlice.Slice ? extFeiSlice.Slice[i].DisableDeblockingFilterIdc : extOpt2.DisableDeblockingIdc);
+        slice[i].slice_alpha_c0_offset_div2    = (extFeiSlice.Slice ? extFeiSlice.Slice[i].SliceAlphaC0OffsetDiv2     : 0);
+        slice[i].slice_beta_offset_div2        = (extFeiSlice.Slice ? extFeiSlice.Slice[i].SliceBetaOffsetDiv2        : 0);
 
         if (pPWT)
             FillPWT(hwCaps, pps, *pPWT, slice[i]);
@@ -1402,6 +1405,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VCM) ? 1 : 0; //Video conference mode
     m_caps.ICQBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_ICQ) ? 1 : 0;
+#ifdef MFX_ENABLE_QVBR
+    m_caps.QVBRBRCSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_QVBR) ? 1 : 0;
+#endif
     m_caps.TrelisQuantization =
         (attrs[idx_map[VAConfigAttribEncQuantization]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0;
     m_caps.vaTrellisQuantization =
@@ -1439,8 +1446,12 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     if (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
+        // Attribute for VAConfigAttribEncSliceStructure includes both (1) information about supported slice structure and
+        // (2) indication of support for max slice size feature
+        const unsigned int sliceCapabilities = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
+        const unsigned int sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
         m_caps.SliceStructure =
-            ConvertSliceStructureVAAPIToMFX(attrs[idx_map[VAConfigAttribEncSliceStructure]].value);
+            ConvertSliceStructureVAAPIToMFX(sliceStructure);
     }
     else
     {

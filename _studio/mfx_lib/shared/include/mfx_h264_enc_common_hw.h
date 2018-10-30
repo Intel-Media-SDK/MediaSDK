@@ -29,7 +29,6 @@
 #include <vector>
 #include <assert.h>
 #include <memory>
-#include "vm_file.h"
 #include "mfx_ext_buffers.h"
 #include "mfxfei.h"
 #include "mfxbrc.h"
@@ -824,19 +823,17 @@ namespace MfxHwH264Encode
         mfxFrameData const & src,
         mfxFrameInfo const & info);
 
-
-    mfxStatus ReadFrameData(
-        vm_file *            file,
-        mfxU32               frameNum,
-        VideoCORE *          core,
-        mfxFrameData const & data,
-        mfxFrameInfo const & info);
-
     mfxExtBuffer * GetExtBuffer(
         mfxExtBuffer ** extBuf,
         mfxU32          numExtBuf,
         mfxU32          id,
         mfxU32          offset = 0);
+
+    struct mfxExtBufferProxy;
+    struct mfxExtBufferRefProxy;
+    template <typename T> mfxExtBufferProxy GetExtBuffer(const T & par, mfxU32 fieldId = 0);
+    template <typename T> mfxExtBufferProxy GetExtBufferFEI(const T & bs, mfxU32 fieldId = 0);
+    template <typename T> mfxExtBufferRefProxy GetExtBufferRef(const T & par, mfxU32 fieldId = 0);
 
     struct mfxExtBufferProxy
     {
@@ -846,117 +843,22 @@ namespace MfxHwH264Encode
             mfxExtBuffer * p = MfxHwH264Encode::GetExtBuffer(
                 m_extParam,
                 m_numExtParam,
-                ExtBufTypeToId<typename GetPointedType<T>::Type>::id);
+                ExtBufTypeToId<typename GetPointedType<T>::Type>::id,
+                m_fieldId);
             return reinterpret_cast<T>(p);
         }
 
-        template <typename T> friend mfxExtBufferProxy GetExtBuffer(const T & par);
+        template <typename T> friend mfxExtBufferProxy GetExtBuffer(const T & par, mfxU32 fieldId)
+        {
+            return mfxExtBufferProxy(par.ExtParam, par.NumExtParam, fieldId);
+        }
+        template <typename T> friend mfxExtBufferProxy GetExtBufferFEI(const T & bs, mfxU32 fieldId)
+        {
+            return mfxExtBufferProxy(bs->ExtParam, bs->NumExtParam, fieldId);
+        }
 
     protected:
-        mfxExtBufferProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam)
-            : m_extParam(extParam)
-            , m_numExtParam(numExtParam)
-        {
-        }
-
-    private:
-        mfxExtBuffer ** m_extParam;
-        mfxU32          m_numExtParam;
-    };
-
-    template <typename T> mfxExtBufferProxy GetExtBuffer(T const & par)
-    {
-        return mfxExtBufferProxy(par.ExtParam, par.NumExtParam);
-    }
-
-    // version with assert, special for KW
-    struct mfxExtBufferRefProxy{
-    public:
-        template <typename T> operator T&()
-        {
-            mfxExtBuffer * p = MfxHwH264Encode::GetExtBuffer(
-                m_extParam,
-                m_numExtParam,
-                ExtBufTypeToId<typename GetPointedType<T*>::Type>::id);
-            assert(p);
-            return *(reinterpret_cast<T*>(p));
-        }
-
-        template <typename T> friend mfxExtBufferRefProxy GetExtBufferRef(const T & par);
-
-    protected:
-        mfxExtBufferRefProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam)
-            : m_extParam(extParam)
-            , m_numExtParam(numExtParam)
-        {
-        }
-    private:
-        mfxExtBuffer ** m_extParam;
-        mfxU32          m_numExtParam;
-    };
-
-    // Intention of GetExtBufferRef is to get ext buffers
-    // from MfxVideoParam structure which always has full set
-    // of extension buffers ("MfxHwH264Encode::GetExtBuffer" can't return zero).
-    //
-    // So, for MfxVideoParam it's better to use function GetExtBufferRef()
-    // instead GetExtBuffer(), we can wrap issues from static code analyze
-    // to one place (body of function GetExtBufferRef()) instead several
-    // places (every calling GetExtBuffer())
-    template <typename T> mfxExtBufferRefProxy GetExtBufferRef(T const & par)
-    {
-        return mfxExtBufferRefProxy(par.ExtParam, par.NumExtParam);
-    }
-
-
-    inline bool IsFieldCodingPossible(MfxVideoParam const & par)
-    {
-        return (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
-    }
-
-    inline void ResetNumSliceIPB(mfxVideoParam &par)
-    {
-        mfxExtCodingOption3 * extOpt3 = GetExtBuffer(par);
-        if(extOpt3->NumSliceI == 0 || extOpt3->NumSliceP == 0 || extOpt3->NumSliceB == 0){
-            extOpt3->NumSliceI = extOpt3->NumSliceP = extOpt3->NumSliceB = par.mfx.NumSlice;
-        }
-    }
-
-    struct mfxExtBufferProxyField
-    {
-    public:
-        template <typename T> operator T()
-        {
-            if (m_fieldId)
-            {
-                if (m_extParam == 0 || m_numExtParam < 2)
-                    return 0;
-
-                mfxU16 i;
-                mfxU32 bufId = ExtBufTypeToId<typename GetPointedType<T>::Type>::id;
-                for (i = 0; i < m_numExtParam; i++)
-                    if (m_extParam[i] != 0 && m_extParam[i]->BufferId == bufId)
-                        break;
-
-                if (i >= m_numExtParam - 1)
-                    return 0;
-
-                m_extParam = &m_extParam[i + 1];
-                m_numExtParam = m_numExtParam - (i + 1);
-            }
-
-            mfxExtBuffer * p = MfxHwH264Encode::GetExtBuffer(
-                m_extParam,
-                m_numExtParam,
-                ExtBufTypeToId<typename GetPointedType<T>::Type>::id);
-            return reinterpret_cast<T>(p);
-        }
-
-        template <typename T> friend mfxExtBufferProxyField GetExtBuffer(const T & par, mfxU32 fieldId);
-        template <typename T> friend mfxExtBufferProxyField GetExtBufferFEI(const T & bs, mfxU32 fieldId);
-
-    protected:
-        mfxExtBufferProxyField(mfxExtBuffer ** extParam, mfxU32 numExtParam,  mfxU32 fieldId)
+        mfxExtBufferProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam,  mfxU32 fieldId = 0)
             : m_extParam(extParam)
             , m_numExtParam(numExtParam)
             , m_fieldId(fieldId)
@@ -969,14 +871,58 @@ namespace MfxHwH264Encode
         mfxU32          m_fieldId;
     };
 
-    template <typename T> mfxExtBufferProxyField GetExtBuffer(T const & par, mfxU32 fieldId)
+    // version with assert, special for extract extBuffer from wrapper MfxVideoParam
+    struct mfxExtBufferRefProxy{
+    public:
+        template <typename T> operator T&()
+        {
+            mfxExtBuffer * p = MfxHwH264Encode::GetExtBuffer(
+                m_extParam,
+                m_numExtParam,
+                ExtBufTypeToId<typename GetPointedType<T*>::Type>::id,
+                m_fieldId);
+            assert(p);
+            return *(reinterpret_cast<T*>(p));
+        }
+
+        // Intention of GetExtBufferRef is to get ext buffers
+        // from MfxVideoParam structure which always has full set
+        // of extension buffers ("MfxHwH264Encode::GetExtBuffer" can't return zero).
+        //
+        // So, for MfxVideoParam it's better to use function GetExtBufferRef()
+        // instead GetExtBuffer(), we can wrap issues from static code analyze
+        // to one place (body of function GetExtBufferRef()) instead several
+        // places (every calling GetExtBuffer())
+        template <typename T> friend mfxExtBufferRefProxy GetExtBufferRef(const T & par, mfxU32 fieldId)
+        {
+            return mfxExtBufferRefProxy(par.ExtParam, par.NumExtParam, fieldId);
+        }
+
+    protected:
+        mfxExtBufferRefProxy(mfxExtBuffer ** extParam, mfxU32 numExtParam,  mfxU32 fieldId = 0)
+            : m_extParam(extParam)
+            , m_numExtParam(numExtParam)
+            , m_fieldId(fieldId)
+        {
+        }
+
+    private:
+        mfxExtBuffer ** m_extParam;
+        mfxU32          m_numExtParam;
+        mfxU32          m_fieldId;
+    };
+
+    inline bool IsFieldCodingPossible(MfxVideoParam const & par)
     {
-        return mfxExtBufferProxyField(par.ExtParam, par.NumExtParam, fieldId);
+        return (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
     }
 
-    template <typename T> mfxExtBufferProxyField GetExtBufferFEI(T const & feiCUC, mfxU32 fieldId)
+    inline void ResetNumSliceIPB(mfxVideoParam &par)
     {
-        return mfxExtBufferProxyField(feiCUC->ExtParam, feiCUC->NumExtParam, fieldId);
+        mfxExtCodingOption3 * extOpt3 = GetExtBuffer(par);
+        if(extOpt3 != nullptr && (extOpt3->NumSliceI == 0 || extOpt3->NumSliceP == 0 || extOpt3->NumSliceB == 0)){
+            extOpt3->NumSliceI = extOpt3->NumSliceP = extOpt3->NumSliceB = par.mfx.NumSlice;
+        }
     }
 
     inline mfxU8 GetPayloadLayout(mfxU32 fieldPicFlag, mfxU32 secondFieldPicFlag)

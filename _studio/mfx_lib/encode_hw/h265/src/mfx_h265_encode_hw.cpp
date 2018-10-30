@@ -362,7 +362,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
 
     m_task.Reset(m_vpar.isField(), MaxTask(m_vpar));
 
-    Fill(m_lastTask, IDX_INVALID);
+    m_lastTask = Task();
 
 
     m_NumberOfSlicesForOpt = m_vpar.mfx.NumSlice;
@@ -614,7 +614,7 @@ mfxStatus    MFXVideoENCODEH265_HW::WaitingForAsyncTasks(bool bResetTasks)
     m_bs.Unlock();
     m_CuQp.Unlock();
 
-    Fill(m_lastTask, 0xFF);
+    m_lastTask = Task();
     ZeroParams();
 
     return sts;
@@ -648,7 +648,7 @@ mfxStatus   MFXVideoENCODEH265_HW::Reset(mfxVideoParam *par)
 
     // Preventing usage of garbage in parNew.m_pps if pSPSPPS->PPSBuffer isn't attched
     if (pSPSPPS && pSPSPPS->SPSBuffer && pSPSPPS->PPSBuffer == NULL)
-        Copy(parNew.m_pps, m_vpar.m_pps);
+        parNew.m_pps = m_vpar.m_pps;
 
     sts = LoadSPSPPS(parNew, pSPSPPS);
     MFX_CHECK_STS(sts);
@@ -1182,7 +1182,7 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
             {
                 MFX_CHECK(bytesAvailable >= pSEI->DataLength, MFX_ERR_NOT_ENOUGH_BUFFER);
 
-                memcpy_s(bs->Data + bs->DataOffset + bs->DataLength, pSEI->DataLength, pSEI->pData + pSEI->DataOffset, pSEI->DataLength);
+                std::copy(pSEI->pData + pSEI->DataOffset, pSEI->pData + pSEI->DataOffset + pSEI->DataLength, bs->Data + bs->DataOffset + bs->DataLength);
 
                 bs->DataLength += pSEI->DataLength;
                 bytes2copy     += pSEI->DataLength;
@@ -1339,7 +1339,7 @@ void  MFXVideoENCODEH265_HW::FreeResources()
     m_ddi.reset();
 
     m_frameOrder = 0;
-    Zero(m_lastTask);
+    m_lastTask   = Task();
     Zero(m_caps);
 
     if (m_vpar.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && opaq.In.Surfaces)

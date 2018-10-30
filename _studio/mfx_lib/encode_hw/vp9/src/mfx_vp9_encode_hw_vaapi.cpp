@@ -267,7 +267,7 @@ namespace MfxHwVP9Encode
         if (task.m_frameParam.segmentation == 0)
             return MFX_ERR_NONE; // segment map isn't required
 
-        mfxFrameData segMap = { 0 };
+        mfxFrameData segMap {};
 
         FrameLocker lock(pCore, segMap, task.m_pSegmentMap->pSurface->Data.MemId);
         mfxU8 *pBuf = segMap.Y;

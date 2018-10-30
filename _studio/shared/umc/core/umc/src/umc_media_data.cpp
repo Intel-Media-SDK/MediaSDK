@@ -274,7 +274,7 @@ Status MediaData::MoveDataTo(MediaData* dst)
 
     if (size)
     {
-        MFX_INTERNAL_CPY_S(pDataEnd, (int)size, src->m_pDataPointer, (int)size);
+        std::copy(src->m_pDataPointer, src->m_pDataPointer + size, pDataEnd);
     }
 
     dst->m_nDataSize += size;

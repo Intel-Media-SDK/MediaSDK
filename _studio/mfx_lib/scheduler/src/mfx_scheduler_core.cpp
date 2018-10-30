@@ -47,7 +47,6 @@ mfxSchedulerCore::mfxSchedulerCore(void)
 
     m_pThreadCtx = NULL;
     m_vmtick_msec_frequency = vm_time_get_frequency()/1000;
-    vm_mutex_set_invalid(&m_guard);
     vm_event_set_invalid(&m_hwTaskDone);
 
     // reset task variables
@@ -114,16 +113,17 @@ void mfxSchedulerCore::Close(void)
         // set the 'quit' flag for threads
         m_bQuit = true;
 
-        // set the events to wake up sleeping threads
-        WakeUpThreads();
+        {
+            // set the events to wake up sleeping threads
+            std::lock_guard<std::mutex> guard(m_guard);
+            WakeUpThreads();
+        }
 
         for (i = 0; i < m_param.numberOfThreads; i += 1)
         {
             // wait for particular thread
             if (m_pThreadCtx[i].threadHandle.joinable())
                 m_pThreadCtx[i].threadHandle.join();
-
-            vm_cond_destroy(&(m_pThreadCtx[i].taskAdded));
         }
 
         delete[] m_pThreadCtx;
@@ -183,8 +183,6 @@ void mfxSchedulerCore::Close(void)
     // reset task counters
     m_taskCounter = 0;
     m_jobCounter = 0;
-
-    vm_mutex_destroy(&m_guard);
 }
 
 void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_regular_threads)
@@ -192,35 +190,32 @@ void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_re
     if (m_param.flags == MFX_SINGLE_THREAD)
         return;
 
-    UMC::AutomaticMutex guard(m_guard);
     MFX_SCHEDULER_THREAD_CONTEXT* thctx;
 
     if (num_dedicated_threads) {
         // we have single dedicated thread, thus no loop here
         thctx = GetThreadCtx(0);
         if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
-            vm_cond_signal(&thctx->taskAdded);
+            thctx->taskAdded.notify_one();
         }
     }
     // if we have woken up dedicated thread, we exclude it from the loop below
     for (mfxU32 i = (num_dedicated_threads)? 1: 0; (i < m_param.numberOfThreads) && num_regular_threads; ++i) {
         thctx = GetThreadCtx(i);
         if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
-            vm_cond_signal(&thctx->taskAdded);
+            thctx->taskAdded.notify_one();
             --num_regular_threads;
         }
     }
 }
 
-void mfxSchedulerCore::Wait(const mfxU32 curThreadNum)
+void mfxSchedulerCore::Wait(const mfxU32 curThreadNum, std::unique_lock<std::mutex>& mutex)
 {
     MFX_SCHEDULER_THREAD_CONTEXT* thctx = GetThreadCtx(curThreadNum);
 
     if (thctx) {
         mfxU32 timeout = (curThreadNum)? MFX_THREAD_TIME_TO_WAIT: 1;
-
-
-        vm_cond_timedwait(&thctx->taskAdded, &m_guard, timeout);
+        thctx->taskAdded.wait_for(mutex, std::chrono::milliseconds(timeout));
     }
 }
 
@@ -541,7 +536,7 @@ void mfxSchedulerCore::RegisterTaskDependencies(MFX_SCHEDULER_TASK  *pTask)
         // save the status
         m_pFreeTasks->curStatus = taskRes;
         m_pFreeTasks->opRes = taskRes;
-        vm_cond_broadcast(&m_pFreeTasks->done);
+        m_pFreeTasks->done.notify_all();
     }
 
 } // void mfxSchedulerCore::RegisterTaskDependencies(MFX_SCHEDULER_TASK  *pTask)

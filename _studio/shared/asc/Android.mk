@@ -10,7 +10,9 @@ LOCAL_C_INCLUDES := \
     $(MFX_HOME)/_studio/mfx_lib/cmrt_cross_platform/include \
     $(MFX_HOME)/_studio/mfx_lib/genx/asc/include
 
-LOCAL_CFLAGS := $(MFX_CFLAGS_INTERNAL_HW)
+LOCAL_CFLAGS := \
+	$(MFX_CFLAGS_INTERNAL_HW) \
+	-Wall -Werror
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
 

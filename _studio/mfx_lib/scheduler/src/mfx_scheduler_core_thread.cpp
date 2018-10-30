@@ -50,8 +50,7 @@ mfxStatus mfxSchedulerCore::StopWakeUpThread(void)
 
 void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 {
-    UMC::AutomaticMutex guard(m_guard);
-
+    std::unique_lock<std::mutex> guard(m_guard);
     mfxTaskHandle previousTaskHandle = {};
     const uint32_t threadNum = pContext->threadNum;
 
@@ -75,12 +74,12 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
         if (MFX_ERR_NONE == mfxRes)
         {
             pContext->state = MFX_SCHEDULER_THREAD_CONTEXT::Running;
-            vm_mutex_unlock(&m_guard);
+            guard.unlock();
             {
                 // perform asynchronous operation
                 call_pRoutine(call);
             }
-            vm_mutex_lock(&m_guard);
+            guard.lock();
 
             pContext->workTime += call.timeSpend;
             // save the previous task's handle
@@ -101,7 +100,7 @@ void mfxSchedulerCore::ThreadProc(MFX_SCHEDULER_THREAD_CONTEXT *pContext)
 
             // there is no any task.
             // sleep for a while until the event is signaled.
-            Wait(threadNum);
+            Wait(threadNum, guard);
 
             // mark end of sleep period
             stop = GetHighPerformanceCounter();
@@ -135,7 +134,10 @@ void mfxSchedulerCore::WakeupThreadProc()
 
             //MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "HW Event");
             IncrementHWEventCounter();
-            WakeUpThreads(1,1);
+            {
+                std::lock_guard<std::mutex> guard(m_guard);
+                WakeUpThreads(1,1);
+            }
         }
     }
 }

@@ -503,7 +503,8 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     VM_ASSERT (CompBuf->GetBufferSize() >= pSlice_H264->slice_data_offset + AlignedNalUnitSize);
 
     pVAAPI_BitStreamBuffer += pSlice_H264->slice_data_offset;
-    memcpy(pVAAPI_BitStreamBuffer, pNalUnit, NalUnitSize);
+
+    std::copy(pNalUnit, pNalUnit + NalUnitSize, pVAAPI_BitStreamBuffer);
     memset(pVAAPI_BitStreamBuffer + NalUnitSize, 0, AlignedNalUnitSize - NalUnitSize);
 
     if (!m_va->IsLongSliceControl())
@@ -623,10 +624,20 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
     }
 
     int32_t realSliceNum = pSlice->GetSliceNum();
-    H264DecoderFrame **pRefPicList0 = pCurrentFrame->GetRefPicList(realSliceNum, 0)->m_RefPicList;
-    H264DecoderFrame **pRefPicList1 = pCurrentFrame->GetRefPicList(realSliceNum, 1)->m_RefPicList;
-    ReferenceFlags *pFields0 = pCurrentFrame->GetRefPicList(realSliceNum, 0)->m_Flags;
-    ReferenceFlags *pFields1 = pCurrentFrame->GetRefPicList(realSliceNum, 1)->m_Flags;
+
+    if (pCurrentFrame == nullptr)
+        throw h264_exception(UMC_ERR_NULL_PTR);
+
+    const H264DecoderRefPicList* pH264DecRefPicList0 = pCurrentFrame->GetRefPicList(realSliceNum, 0);
+    const H264DecoderRefPicList* pH264DecRefPicList1 = pCurrentFrame->GetRefPicList(realSliceNum, 1);
+
+    if (pH264DecRefPicList0 == nullptr || pH264DecRefPicList1 == nullptr)
+        throw h264_exception(UMC_ERR_NULL_PTR);
+
+    H264DecoderFrame **pRefPicList0 = pH264DecRefPicList0->m_RefPicList;
+    H264DecoderFrame **pRefPicList1 = pH264DecRefPicList1->m_RefPicList;
+    ReferenceFlags *pFields0 = pH264DecRefPicList0->m_Flags;
+    ReferenceFlags *pFields1 = pH264DecRefPicList1->m_Flags;
 
     int32_t i;
     for(i = 0; i < 32; i++)
@@ -857,13 +868,13 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     if (!dst)
         return UMC_ERR_FAILED;
 
-    void const* src = buffer->GetPtr();
+    mfxU8 const* src = reinterpret_cast<mfxU8 *>(buffer->GetPtr());
     VM_ASSERT(src);
 
     int32_t const offset1 =  size * top;
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "memcpy");
-        memcpy_s(dst + offset1, size, src, size);
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "std::copy");
+        std::copy(src, src + size, dst + offset1);
     }
 
     fei_va->ReleaseBuffer(buffer);
@@ -876,11 +887,11 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     if (!buffer || !buffer->GetPtr())
         return UMC_ERR_FAILED;
 
-    src = buffer->GetPtr();
+    src = reinterpret_cast<mfxU8 *>(buffer->GetPtr());
     VM_ASSERT(src);
 
     int32_t const offset2 =  size * bottom;
-    memcpy_s(dst + offset2, size, src, size);
+    std::copy(src, src + size, dst + offset2);
 
     fei_va->ReleaseBuffer(buffer);
 

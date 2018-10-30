@@ -37,12 +37,13 @@ if( NOT DEFINED CMAKE_MFX_HOME )
   set( CMAKE_MFX_HOME "${CMAKE_HOME_DIRECTORY}/api" )
 endif()
 
-if( "$ENV{MFX_HOME}" STREQUAL "" )
-  set( ENV{MFX_HOME} ${CMAKE_HOME_DIRECTORY} )
+if(NOT DEFINED $ENV{MFX_HOME} )
+  set( MFX_HOME ${CMAKE_HOME_DIRECTORY} )
+else()
+  set( MFX_HOME $ENV{MFX_HOME} )
 endif()
 
 option( ENABLE_OPENCL "Build targets dependent on OpenCL?" ON )
-option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" OFF )
 
 # -DENABLE_ALL will enable all the dependencies and features unless user did not
 # explicitly switched some of them OFF, i.e. configuring in the following way
@@ -61,6 +62,8 @@ if( CMAKE_SYSTEM_NAME MATCHES Linux )
   option( ENABLE_WAYLAND "Build WAYLAND versions of the targets?" ${ENABLE_ALL} )
 endif()
 
+option( ENABLE_ITT "Build targets with ITT instrumentation support (requires VTune)?" ${ENABLE_ALL} )
+
 option( ENABLE_TEXTLOG "Enable textlog tracing?" "${ENABLE_ALL}")
 option( ENABLE_STAT "Enable stat tracing?" "${ENABLE_ALL}")
 
@@ -76,6 +79,9 @@ cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF 
 # Tools depend on samples (sample_common) and can't be built without it. The
 # following BUILD_TOOLS option declaration assures that.
 cmake_dependent_option(BUILD_TOOLS "Build tools?" "${BUILD_ALL}" "BUILD_SAMPLES" OFF)
+option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
+
+cmake_dependent_option(RUN_TESTS "Run tests during build?" OFF "BUILD_TESTS" OFF )
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
@@ -87,6 +93,11 @@ include( ${BUILDER_ROOT}/FindITT.cmake )
 include( ${BUILDER_ROOT}/FindGTest.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
+# should prepend others to define target mfx
+if (BUILD_DISPATCHER)
+  add_subdirectory(api/mfx_dispatch/linux)
+endif()
+
 if (BUILD_TOOLS)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
 endif()
@@ -96,12 +107,15 @@ if (BUILD_SAMPLES)
 endif()
 
 if (BUILD_RUNTIME)
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/SafeStringStaticLibrary/)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
-if (BUILD_DISPATCHER)
-  add_subdirectory(api/mfx_dispatch/linux)
+if(RUN_TESTS)
+    enable_testing()
+endif()
+
+if (BUILD_TESTS AND GTEST_FOUND)
+  add_subdirectory(tests)
 endif()
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
@@ -163,5 +177,8 @@ message("Build:")
 message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
 message("  BUILD_DISPATCHER                        : ${BUILD_DISPATCHER}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
+message("  BUILD_TESTS                             : ${BUILD_TESTS}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
+message("Test:")
+message("  RUN_TESTS                               : ${RUN_TESTS}")
 message("*****************************************************************************")

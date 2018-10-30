@@ -3,6 +3,6 @@ include_directories (
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-make_library( shortname none static "nosafestring" )
+make_library( shortname none static )
 
 install( TARGETS ${target} ARCHIVE DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} )

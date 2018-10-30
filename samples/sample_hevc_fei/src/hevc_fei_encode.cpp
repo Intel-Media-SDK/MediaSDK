@@ -21,7 +21,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "hevc_fei_encode.h"
 
 FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl,
-        MfxVideoParamsWrapper& encode_pars, const mfxExtFeiHevcEncFrameCtrl& encodeCtrl,
+        MfxVideoParamsWrapper& encode_pars,
+        const mfxExtFeiHevcEncFrameCtrl& frameCtrl, const PerFrameTypeCtrl& frametypeCtrl,
         const msdk_char* strDstFile, const msdk_char* mvpInFile,
         const msdk_char* repackctrlFile, const msdk_char* repackstatFile,
         PredictorsRepaking* repacker)
@@ -31,7 +32,8 @@ FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl,
     , m_videoParams(encode_pars)
     , m_syncPoint(0)
     , m_dstFileName(strDstFile)
-    , m_defFrameCtrl(encodeCtrl)
+    , m_defFrameCtrl(frameCtrl)
+    , m_ctrlPerFrameType(frametypeCtrl)
     , m_processedFrames(0)
     , m_repackCtrlFileName(repackctrlFile)
     , m_repackStatFileName(repackstatFile)
@@ -431,6 +433,28 @@ mfxStatus FEI_Encode::SetCtrlParams(const HevcTask& task)
                 ctrl->NumMvPredictors[1] = m_defFrameCtrl.NumMvPredictors[1];
             }
         }
+    }
+
+    switch (m_encodeCtrl.FrameType  & (MFX_FRAMETYPE_I | MFX_FRAMETYPE_P | MFX_FRAMETYPE_B))
+    {
+        case MFX_FRAMETYPE_I:
+            ctrl->FastIntraMode      = m_ctrlPerFrameType.CtrlI.FastIntraMode;
+            ctrl->ForceCtuSplit      = m_ctrlPerFrameType.CtrlI.ForceCtuSplit;
+            ctrl->NumFramePartitions = m_ctrlPerFrameType.CtrlI.NumFramePartitions;
+            break;
+        case MFX_FRAMETYPE_P:
+            ctrl->FastIntraMode      = m_ctrlPerFrameType.CtrlP.FastIntraMode;
+            ctrl->ForceCtuSplit      = m_ctrlPerFrameType.CtrlP.ForceCtuSplit;
+            ctrl->NumFramePartitions = m_ctrlPerFrameType.CtrlP.NumFramePartitions;
+            break;
+        case MFX_FRAMETYPE_B:
+            ctrl->FastIntraMode      = m_ctrlPerFrameType.CtrlB.FastIntraMode;
+            ctrl->ForceCtuSplit      = m_ctrlPerFrameType.CtrlB.ForceCtuSplit;
+            ctrl->NumFramePartitions = m_ctrlPerFrameType.CtrlB.NumFramePartitions;
+            break;
+        default:
+            throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Invalid m_encodeCtrl.FrameType");
+            break;
     }
 
     return MFX_ERR_NONE;

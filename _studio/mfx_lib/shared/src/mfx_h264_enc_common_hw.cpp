@@ -966,17 +966,17 @@ namespace
         return (8000 * kbyte) >> (4 + scale);
     }
 
-    mfxU32 GetMaxCodedFrameSizeInKB(mfxVideoParam const & par)
+    mfxU32 GetMaxCodedFrameSizeInKB(MfxVideoParam const & par)
     {
         mfxU64 mvcMultiplier = 1;
         const mfxU32 maxMBBytes = 3200 / 8;
 
         if (IsMvcProfile(par.mfx.CodecProfile))
         {
-            mfxExtMVCSeqDesc * extMvc = GetExtBuffer(par);
-            mfxExtCodingOption * extOpt = GetExtBuffer(par);
-            if (extOpt->ViewOutput != MFX_CODINGOPTION_ON) // in case of ViewOutput bitstream should contain one view (not all views)
-                mvcMultiplier = extMvc->NumView ? extMvc->NumView : 1;
+            mfxExtMVCSeqDesc const & extMvc = GetExtBufferRef(par);
+            mfxExtCodingOption const & extOpt = GetExtBufferRef(par);
+            if (extOpt.ViewOutput != MFX_CODINGOPTION_ON) // in case of ViewOutput bitstream should contain one view (not all views)
+                mvcMultiplier = extMvc.NumView ? extMvc.NumView : 1;
         }
 
         return mfxU32(MFX_MIN(UINT_MAX, (par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height * mvcMultiplier / (16u * 16u) * maxMBBytes + 999u) / 1000u));
@@ -1924,7 +1924,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
         {
             checkSts = sts;
         }
-        else if (sts == MFX_ERR_UNSUPPORTED)
+        else if (sts < MFX_ERR_NONE)
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
@@ -2408,6 +2408,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
        par.mfx.RateControlMethod != 0 &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_CBR &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_VBR &&
+       par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
        !bRateControlLA(par.mfx.RateControlMethod))
@@ -4990,6 +4991,11 @@ mfxStatus MfxHwH264Encode::CheckMVCSeqDescQueryLike(mfxExtMVCSeqDesc * mvcSeqDes
 // check mfxExtMVCSeqDesc before encoding
 mfxStatus MfxHwH264Encode::CheckAndFixMVCSeqDesc(mfxExtMVCSeqDesc * mvcSeqDesc, bool isViewOutput)
 {
+    if (mvcSeqDesc == nullptr)
+    {
+        return MFX_ERR_NULL_PTR;
+    }
+
     bool unsupported = false;
     bool changed = false;
     if (mvcSeqDesc->NumView > 2 || mvcSeqDesc->NumView < 2)
@@ -6513,8 +6519,9 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
 
         for (mfxU16 i = 0; i < actualNumRoi; i++)
         {
-                mfxRoiDesc task_roi = {};
-                memcpy_s(&task_roi, sizeof(mfxRoiDesc), &extRoi->ROI[i], sizeof(mfxRoiDesc));
+                mfxRoiDesc task_roi = {extRoi->ROI[i].Left,  extRoi->ROI[i].Top,
+                                       extRoi->ROI[i].Right, extRoi->ROI[i].Bottom, extRoi->ROI[i].Priority};
+
                 // check runtime ROI
 #if MFX_VERSION > 1021
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoi->ROIMode);
@@ -6903,56 +6910,6 @@ mfxStatus MfxHwH264Encode::CopyFrameDataBothFields(
     mfxFrameSurface1 surfSrc = { {0,}, info, src };
     mfxFrameSurface1 surfDst = { {0,}, info, dst };
     return core->DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_EXTERNAL_FRAME|MFX_MEMTYPE_SYSTEM_MEMORY);
-}
-
-
-
-mfxStatus MfxHwH264Encode::ReadFrameData(
-    vm_file *            file,
-    mfxU32               frameNum,
-    VideoCORE *          core,
-    mfxFrameData const & fdata,
-    mfxFrameInfo const & info)
-{
-    mfxFrameData data = fdata;
-    FrameLocker lock(core, data, false);
-
-    if (file != 0 && data.Y != 0 && data.UV != 0)
-    {
-        mfxU32 frameSize = (info.Height * info.Width * 5) / 4;
-        if (vm_file_fseek(file, frameSize * frameNum, VM_FILE_SEEK_SET) != 0)
-        {
-            MFX_RETURN(MFX_ERR_NOT_FOUND);
-        }
-
-        for (mfxU32 i = 0; i < info.Height; i++)
-        {
-            if(!vm_file_fread(data.Y + i * data.Pitch, 1, info.Width, file))
-            {
-                return MFX_ERR_UNKNOWN;
-            }
-        }
-
-        for (mfxI32 y = 0; y < info.Height / 2; y++)
-            for (mfxI32 x = 0; x < info.Width; x += 2)
-            {
-                if(!vm_file_fread(data.UV + y * data.Pitch + x, 1, 1, file))
-                {
-                    return MFX_ERR_UNKNOWN;
-                }
-            }
-
-        for (mfxI32 y = 0; y < info.Height / 2; y++)
-            for (mfxI32 x = 1; x < info.Width; x += 2)
-            {
-                if(!vm_file_fread(data.UV + y * data.Pitch + x, 1, 1, file))
-                {
-                    return MFX_ERR_UNKNOWN;
-    }
-            }
-    }
-
-    return MFX_ERR_NONE;
 }
 
 mfxExtBuffer* MfxHwH264Encode::GetExtBuffer(mfxExtBuffer** extBuf, mfxU32 numExtBuf, mfxU32 id, mfxU32 offset)

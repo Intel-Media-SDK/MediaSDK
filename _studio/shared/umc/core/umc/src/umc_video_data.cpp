@@ -697,7 +697,7 @@ VideoData & VideoData::operator = (const VideoData &par)
 
     MediaData::operator=(par);
 
-    memcpy_s(PlaneData, par.m_iPlanes*sizeof(PlaneInfo), par.m_pPlaneData, par.m_iPlanes*sizeof(PlaneInfo));
+    std::copy(par.m_pPlaneData, par.m_pPlaneData + par.m_iPlanes, PlaneData);
 
     m_iPlanes      = par.m_iPlanes;
     m_ippSize      = par.m_ippSize;

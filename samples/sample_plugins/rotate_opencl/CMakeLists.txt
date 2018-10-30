@@ -17,7 +17,7 @@ list( APPEND LIBS_VARIANT sample_common )
 list(APPEND sources.plus "${PLUGINS_COMMON_PATH}/mfx_plugin_module.cpp")
 
 set(DEPENDENCIES opencl libva libmfx dl)
-make_library( sample_plugin_opencl none shared "nosafestring" )
+make_library( sample_plugin_opencl none shared )
 
 install( TARGETS ${target} LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} )
 

@@ -1085,6 +1085,10 @@ uint32_t MVC_Extension::GetLevelIDC() const
 
 ViewItem & MVC_Extension::AllocateAndInitializeView(H264Slice * slice)
 {
+    if (slice == nullptr)
+    {
+        throw h264_exception(UMC_ERR_NULL_PTR);
+    }
     ViewItem * view = FindView(slice->GetSliceHeader()->nal_ext.mvc.view_id);
     if (view)
         return *view;
@@ -3597,11 +3601,17 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
             InitializeLayers(&m_accessUnit, 0, 0);
 
             size_t layersCount = m_accessUnit.GetLayersCount();
-            uint32_t maxDId = layersCount ? m_accessUnit.GetLayer(layersCount - 1)->GetSlice(0)->GetSliceHeader()->nal_ext.svc.dependency_id : 0;
+            uint32_t maxDId = 0;
+            if (layersCount && m_accessUnit.GetLayer(layersCount - 1)->GetSliceCount())
+            {
+                maxDId = m_accessUnit.GetLayer(layersCount - 1)->GetSlice(0)->GetSliceHeader()->nal_ext.svc.dependency_id;
+            }
             for (size_t i = 0; i < layersCount; i++)
             {
                 SetOfSlices * setOfSlices = m_accessUnit.GetLayer(i);
                 H264Slice * slice = setOfSlices->GetSlice(0);
+                if (slice == nullptr)
+                    continue;
 
                 AllocateAndInitializeView(slice);
 
@@ -3702,7 +3712,7 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
                     slice->UpdateReferenceList(m_views, 0);
                 }
 
-                if (!setOfSlices->GetSlice(0)->IsSliceGroups())
+                if (count && !setOfSlices->GetSlice(0)->IsSliceGroups())
                 {
                     H264Slice * slice = setOfSlices->GetSlice(0);
                     if (slice->m_iFirstMB)
@@ -4045,7 +4055,8 @@ void TaskSupplier::DBPUpdate(H264DecoderFrame * pFrame, int32_t field)
 {
     H264DecoderFrameInfo *slicesInfo = pFrame->GetAU(field);
 
-    for (uint32_t i = 0; i < slicesInfo->GetSliceCount(); i++)
+    uint32_t count = slicesInfo->GetSliceCount();
+    for (uint32_t i = 0; i < count; i++)
     {
         H264Slice * slice = slicesInfo->GetSlice(i);
         if (!slice->IsReference())

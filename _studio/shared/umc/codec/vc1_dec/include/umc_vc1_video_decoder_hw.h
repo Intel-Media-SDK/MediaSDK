@@ -93,7 +93,6 @@ namespace UMC
                 // special header (with frame size) in case of .rcv format
                 SCoffset = -VC1FHSIZE;
 
-            m_pStore = m_pStore;
             Status umcRes = UMC_ERR_NOT_ENOUGH_DATA;
             try
             {

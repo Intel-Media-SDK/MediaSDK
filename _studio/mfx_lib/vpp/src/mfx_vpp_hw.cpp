@@ -406,7 +406,8 @@ mfxStatus CpuFrc::DoCpuFRC_AndUpdatePTS(
     mfxFrameSurface1 *output,
     mfxStatus *intSts)
 {
-    if(NULL == input) return MFX_ERR_MORE_DATA;
+    if(nullptr == input) return MFX_ERR_MORE_DATA;
+    if(nullptr == output) return MFX_ERR_MORE_SURFACE;
     if (FRC_STANDARD & m_frcMode) // standard FRC (input frames count -> output frames count)
     {
         return m_stdFrc.DoCpuFRC_AndUpdatePTS(input, output, intSts);

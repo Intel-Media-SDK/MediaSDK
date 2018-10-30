@@ -442,7 +442,7 @@ void SelectFromMV(const mfxI16Pair(* mv)[2], mfxI32 count, mfxI16Pair (&res)[2])
         mfxI32 found = 0, xsum = 0, ysum = 0;
         for (int i = 0; i < count; i++)
         {
-            if (mv[i][ref].x == 0x8000) // ignore intra
+            if (mv[i][ref].x == -0x8000) // ignore intra
                 continue;
             found++;
             xsum += mv[i][ref].x;

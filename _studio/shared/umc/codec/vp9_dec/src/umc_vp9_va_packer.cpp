@@ -33,12 +33,6 @@ using namespace UMC;
 namespace UMC_VP9_DECODER
 {
 
-inline
-void mfx_memcpy(void * dst, size_t dstLen, void * src, size_t len)
-{
-    memcpy_s(dst, dstLen, src, len);
-}
-
 Packer * Packer::CreatePacker(UMC::VideoAccelerator * va)
 {
     Packer * packer = 0;
@@ -109,7 +103,7 @@ void PackerVA::PackAU(VP9Bitstream* bs, VP9DecoderFrame const* info)
     if (!bistreamData)
         throw vp9_exception(MFX_ERR_MEMORY_ALLOC);
     
-    mfx_memcpy(bistreamData, length, data + offset, length);
+    std::copy(data + offset, data + offset + length, bistreamData);
     pCompBuf->SetDataSize(length);
 }
 

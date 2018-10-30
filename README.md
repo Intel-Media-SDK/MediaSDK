@@ -94,7 +94,9 @@ Media SDK depends on a number of packages which are identified and checked for t
 | BUILD_ALL | ON\|OFF | Build all the BUILD_* targets below (default: OFF) |
 | BUILD_RUNTIME | ON\|OFF | Build mediasdk runtime, library and plugins (default: ON) |
 | BUILD_SAMPLES | ON\|OFF | Build samples (default: ON) |
+| BUILD_TESTS | ON\|OFF | Build unit tests (default: OFF) |
 | BUILD_TOOLS | ON\|OFF | Build tools (default: OFF) |
+| RUN_TESTS | ON\|OFF | Run unit tests as part of build - requires BUILD_TESTS=ON (default: OFF) |
 
 The following cmake settings can be used to adjust search path locations for some components Media SDK build may depend on:
 

@@ -3569,7 +3569,7 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
         needBufferingPeriod = needPicTimingSei = 0; // in CQP HRD mode application inserts BP and PT SEI itself
 
     mfxU32 needAtLeastOneSei =
-        (task.m_ctrl.NumPayload > secondFieldPicFlag && task.m_ctrl.Payload[secondFieldPicFlag] != 0) ||
+        (task.m_ctrl.NumPayload > secondFieldPicFlag && task.m_ctrl.Payload != nullptr && task.m_ctrl.Payload[secondFieldPicFlag] != nullptr) ||
         (fillerSize > 0)    ||
         needBufferingPeriod ||
         needPicTimingSei    ||
@@ -3620,16 +3620,19 @@ void MfxHwH264Encode::PrepareSeiMessageBuffer(
         }
     }
     // user-defined messages
-    for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i = i + 1 + fieldPicFlag)
+    if (task.m_ctrl.Payload != nullptr)
     {
-        if (task.m_ctrl.Payload[i] != 0)
+        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i += 1 + fieldPicFlag)
         {
-            if (IsOff(extOpt.SingleSeiNalUnit))
-                writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
-            for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
-                writer.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
-            if (IsOff(extOpt.SingleSeiNalUnit))
-                writer.PutTrailingBits();
+            if (task.m_ctrl.Payload[i] != nullptr)
+            {
+                if (IsOff(extOpt.SingleSeiNalUnit))
+                    writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+                for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
+                    writer.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
+                if (IsOff(extOpt.SingleSeiNalUnit))
+                    writer.PutTrailingBits();
+            }
         }
     }
 
@@ -3782,16 +3785,19 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
         writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
 
     // user-defined messages
-    for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i = i + 1 + fieldPicFlag)
+    if (task.m_ctrl.Payload != nullptr)
     {
-        if (task.m_ctrl.Payload[i] != 0)
+        for (mfxU32 i = secondFieldPicFlag; i < task.m_ctrl.NumPayload; i += 1 + fieldPicFlag)
         {
-            if (IsOff(extOpt.SingleSeiNalUnit))
-                writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
-            for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
-                writer.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
-            if (IsOff(extOpt.SingleSeiNalUnit))
-                writer.PutTrailingBits();
+            if (task.m_ctrl.Payload[i] != nullptr)
+            {
+                if (IsOff(extOpt.SingleSeiNalUnit))
+                    writer.PutRawBytes(SEI_STARTCODE, SEI_STARTCODE + sizeof(SEI_STARTCODE));
+                for (mfxU32 b = 0; b < task.m_ctrl.Payload[i]->NumBit / 8; b++)
+                    writer.PutBits(task.m_ctrl.Payload[i]->Data[b], 8);
+                if (IsOff(extOpt.SingleSeiNalUnit))
+                    writer.PutTrailingBits();
+            }
         }
     }
 

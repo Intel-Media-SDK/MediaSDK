@@ -239,12 +239,12 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
        if (out->mfx.GopPicSize && out->mfx.GopRefDist > out->mfx.GopPicSize)
        {
            out->mfx.GopRefDist = 0;
-           bChanged = true;       
+           bChanged = true;
        }
        MFX_CHECK ((out->mfx.FrameInfo.Width & 0x03) == 0 && (out->mfx.FrameInfo.Height & 0x03) == 0, MFX_ERR_INVALID_VIDEO_PARAM);
        MFX_CHECK (pControl_in->NumOutStream == pControl_out->NumOutStream, MFX_ERR_INVALID_VIDEO_PARAM);
 
-        
+
        pControl_out->DependencyDepth = pControl_in->DependencyDepth;
        pControl_out->DownScaleFactor = pControl_in->DownScaleFactor;
        pControl_out->LookAheadDepth  = pControl_in->LookAheadDepth;
@@ -259,17 +259,17 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
            break;
        default:
            pControl_out->DownScaleFactor = 0;
-           break;       
+           break;
        }
        if (pControl_out->LookAheadDepth && (pControl_out->LookAheadDepth < pControl_out->DependencyDepth))
        {
            pControl_out->DependencyDepth = 0;
-           bChanged = true;       
-       } 
-       memcpy_s (pControl_out->OutStream,pControl_in->NumOutStream * sizeof(mfxExtLAControl), pControl_in->OutStream, pControl_in->NumOutStream * sizeof(mfxExtLAControl));
+           bChanged = true;
+       }
+       std::copy(pControl_in->OutStream, pControl_in->OutStream + pControl_in->NumOutStream, pControl_out->OutStream);
        
        if (bChanged) return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-    
+
     }
     return MFX_ERR_NONE;
 }
@@ -614,8 +614,8 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenig(sLAInputTask &newTask, bool bEndO
     { 
         m_numLastB = 0;
         m_miniGop.resize(0);
-        sLAInputTask finished_task = {0};
-        m_syncTasks.push_back(finished_task);    
+        sLAInputTask finished_task {};
+        m_syncTasks.push_back(finished_task);
     }
 
 
@@ -725,8 +725,8 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenigBPyr(sLAInputTask &newTask, bool b
     { 
         m_numLastB = 0;
         m_miniGop.resize(0);
-        sLAInputTask finished_task = {0};
-        m_syncTasks.push_back(finished_task);    
+        sLAInputTask finished_task {};
+        m_syncTasks.push_back(finished_task);
     }
     return MFX_ERR_NONE;
 }
@@ -748,16 +748,13 @@ mfxFrameSurface1 * VideoENC_LA::GetFrameToVME()
 }
 
 
-static mfxStatus SubmitFrameLARoutine(void *pState, void * pParam, mfxU32 threadNumber, mfxU32 callNumber)
+static mfxStatus SubmitFrameLARoutine(void *pState, void * pParam, mfxU32 /*threadNumber*/, mfxU32 /*callNumber*/)
 {
     mfxStatus tskRes;
 
     VideoENC_LA *pLa = (VideoENC_LA *)pState;
     sAsyncParams *out = (sAsyncParams *)pParam;
- 
-    threadNumber = threadNumber;
-    callNumber = callNumber;
-    
+
     //printf("Start Run FrameVPP %x %x %x\n", pAsyncParams->surf_in, pAsyncParams->surf_out, pAsyncParams->aux);
     tskRes = pLa->SubmitFrameLA(out->reordered_surface);
     //printf("Run FrameVPP %x %x %x %d\n", pAsyncParams->surf_in, pAsyncParams->surf_out, pAsyncParams->aux, tskRes);
@@ -766,16 +763,13 @@ static mfxStatus SubmitFrameLARoutine(void *pState, void * pParam, mfxU32 thread
 
 } // mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
 
-static mfxStatus QueryFrameLARoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
+static mfxStatus QueryFrameLARoutine(void *pState, void *pParam, mfxU32 /*threadNumber*/, mfxU32 /*callNumber*/)
 {
     mfxStatus tskRes;
 
     VideoENC_LA *pLa = (VideoENC_LA *)pState;
     sAsyncParams *out = (sAsyncParams *)pParam;
-  
-    threadNumber = threadNumber;
-    callNumber = callNumber;
-    
+
     //printf("Start Run FrameVPP %d %d\n", out && out->reordered_surface?  out->reordered_surface->Data.FrameOrder: 0, out && out->output_surface?  out->output_surface->Data.FrameOrder: 0);
     tskRes = pLa->QueryFrameLA(out->reordered_surface,out->stat);
     //printf("Run FrameVPP %d %d %d\n", out && out->reordered_surface?  out->reordered_surface->Data.FrameOrder: 0, out && out->output_surface?  out->output_surface->Data.FrameOrder: 0, tskRes);
@@ -783,15 +777,12 @@ static mfxStatus QueryFrameLARoutine(void *pState, void *pParam, mfxU32 threadNu
     return tskRes;
 
 } // mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
-static mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
+static mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 /*threadNumber*/, mfxU32 /*callNumber*/)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
     VideoENC_LA *pLa = (VideoENC_LA *)pState;
     sAsyncParams *out = (sAsyncParams *)pParam;
-
-    threadNumber = threadNumber;
-    callNumber = callNumber;
 
     //printf("Start Run FrameVPP %x %x %x\n", pAsyncParams->surf_in, pAsyncParams->surf_out, pAsyncParams->aux);
 
@@ -1160,7 +1151,7 @@ mfxStatus CopyRawSurfaceToVideoMemory(  VideoCORE &  core,
 {
     mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
 
-    mfxFrameData d3dSurf = {0};
+    mfxFrameData d3dSurf {};
     if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
         (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
     {
@@ -1247,8 +1238,8 @@ mfxStatus VideoENC_LA::FreeUnusedVMEData(sVMEFrameInfo *pVME)
 }
 mfxStatus VideoENC_LA::SubmitFrameLA(mfxFrameSurface1 *pInSurface)
 {
-    mfxFrameSurface1*       inputSurface = 0;
-    sLAInputTask            currTask = { 0 };
+    mfxFrameSurface1*       inputSurface = nullptr;
+    sLAInputTask            currTask {};
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::SubmitFrame");
 
@@ -1545,19 +1536,20 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
             std::list<sLASummaryTask>::iterator nextTask = m_OutputTasks.begin();
             mfxLAFrameInfo* pFrameData =  &aux->FrameStat[frameNum*j];
             for (mfxU32 i = 0; i < frameNum; i++)
-            {  
+            {
                 pFrameData[i].Width  = m_LaControl.OutStream[j].Width;
                 pFrameData[i].Height = m_LaControl.OutStream[j].Height;
 
-                pFrameData[i].FrameType = (*nextTask).frameInfo.frameType;
-                pFrameData[i].FrameDisplayOrder = (*nextTask).frameInfo.dispFrameOrder ;
-                pFrameData[i].FrameEncodeOrder = (*nextTask).frameInfo.encFrameOrder;
-                pFrameData[i].Layer =  (*nextTask).frameInfo.layer;
+                pFrameData[i].FrameType         = nextTask->frameInfo.frameType;
+                pFrameData[i].FrameDisplayOrder = nextTask->frameInfo.dispFrameOrder;
+                pFrameData[i].FrameEncodeOrder  = nextTask->frameInfo.encFrameOrder;
+                pFrameData[i].Layer             = nextTask->frameInfo.layer;
 
-                pFrameData[i].IntraCost = (*nextTask).VMESum[j].IntraCost;
-                pFrameData[i].InterCost = (*nextTask).VMESum[j].InterCost;
-                pFrameData[i].DependencyCost =  (*nextTask).VMESum[j].DependencyCost; 
-                memcpy_s(pFrameData[i].EstimatedRate, sizeof(pFrameData[i].EstimatedRate), (*nextTask).VMESum[j].EstimatedRate, sizeof((*nextTask).VMESum[j].EstimatedRate));
+                pFrameData[i].IntraCost         = nextTask->VMESum[j].IntraCost;
+                pFrameData[i].InterCost         = nextTask->VMESum[j].InterCost;
+                pFrameData[i].DependencyCost    = nextTask->VMESum[j].DependencyCost;
+
+                std::copy(std::begin(nextTask->VMESum[j].EstimatedRate), std::end(nextTask->VMESum[j].EstimatedRate), std::begin(pFrameData[i].EstimatedRate));
                 nextTask++;
             }
         }

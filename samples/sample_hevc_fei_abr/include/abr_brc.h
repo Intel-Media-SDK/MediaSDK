@@ -156,7 +156,7 @@ public:
         return m_curQp;
     }
 
-    void SubmitNewStat(FrameStatData& /*stat*/) { return; }
+    void SubmitNewStat(FrameStatData& /*stat*/) override { return; }
 
 private:
     ExtBRC m_SW_BRC;

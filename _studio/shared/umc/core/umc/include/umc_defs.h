@@ -45,12 +45,14 @@ namespace UMC
 #endif //__cplusplus
 
 #include <stdint.h>
+#include <errno.h>
 
 #ifdef __cplusplus
+#include <cstring>
 #include <algorithm>
+
 #endif //__cplusplus
 
-#define MFX_INTERNAL_CPY_S(dst, dstsize, src, src_size) memcpy_s((uint8_t *)(dst), (size_t)(dstsize), (const uint8_t *)(src), (size_t)src_size)
 #define MFX_INTERNAL_CPY(dst, src, size) std::copy((const uint8_t *)(src), (const uint8_t *)(src) + (int)(size), (uint8_t *)(dst))
 
 #define MFX_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
@@ -73,7 +75,6 @@ typedef struct {
 
   #define ALIGN_DECL(X) __attribute__ ((aligned(X)))
 
-#define THROWSEXCEPTION
 /******************************************************************************/
 
 #endif // __UMC_DEFS_H__

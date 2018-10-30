@@ -534,8 +534,8 @@ mfxStatus VideoDECODEH265::GetVideoParam(mfxVideoParam *par)
         spsPps->SPSBufSize = spsPpsInternal->SPSBufSize;
         spsPps->PPSBufSize = spsPpsInternal->PPSBufSize;
 
-        memcpy_s(spsPps->SPSBuffer, spsPps->SPSBufSize, spsPpsInternal->SPSBuffer, spsPps->SPSBufSize);
-        memcpy_s(spsPps->PPSBuffer, spsPps->PPSBufSize, spsPpsInternal->PPSBuffer, spsPps->PPSBufSize);
+        std::copy(spsPpsInternal->SPSBuffer, spsPpsInternal->SPSBuffer + spsPps->SPSBufSize, spsPps->SPSBuffer);
+        std::copy(spsPpsInternal->PPSBuffer, spsPpsInternal->PPSBuffer + spsPps->PPSBufSize, spsPps->PPSBuffer);
     }
 
     par->mfx.FrameInfo.FrameRateExtN = m_vFirstPar.mfx.FrameInfo.FrameRateExtN;
@@ -626,7 +626,7 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
                 return MFX_ERR_NOT_ENOUGH_BUFFER;
 
             spsPps->SPSBufSize = (mfxU16)sps->GetSize();
-            memcpy_s(spsPps->SPSBuffer, spsPps->SPSBufSize, sps->GetPointer(), spsPps->SPSBufSize);
+            std::copy(sps->GetPointer(), sps->GetPointer() + spsPps->SPSBufSize, spsPps->SPSBuffer);
         }
         else
         {
@@ -639,7 +639,7 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
                 return MFX_ERR_NOT_ENOUGH_BUFFER;
 
             spsPps->PPSBufSize = (mfxU16)pps->GetSize();
-            memcpy_s(spsPps->PPSBuffer, spsPps->PPSBufSize, pps->GetPointer(), spsPps->PPSBufSize);
+            std::copy(pps->GetPointer(), pps->GetPointer() + spsPps->PPSBufSize, spsPps->PPSBuffer);
         }
         else
         {
@@ -1366,7 +1366,8 @@ mfxStatus VideoDECODEH265::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts)
 
     *sz = (mfxU32)data.GetDataSize();
     *ts = GetMfxTimeStamp(data.GetTime());
-    memcpy_s(ud, *sz, data.GetDataPointer(), data.GetDataSize());
+    mfxU8 *pDataPointer = reinterpret_cast <mfxU8*> (data.GetDataPointer());
+    std::copy(pDataPointer, pDataPointer + *sz, ud);
 
     return MFXSts;
 }
@@ -1395,7 +1396,7 @@ mfxStatus VideoDECODEH265::GetPayload( mfxU64 *ts, mfxPayload *payload )
 
         *ts = GetMfxTimeStamp(msg->timestamp);
 
-        memcpy_s(payload->Data, payload->BufSize, msg->data, msg->size);
+        std::copy(msg->data, msg->data + msg->size, payload->Data);
 
         payload->CtrlFlags =
             msg->nal_type == NAL_UT_SEI_SUFFIX ? MFX_PAYLOAD_CTRL_SUFFIX : 0;

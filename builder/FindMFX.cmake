@@ -35,20 +35,14 @@ endif()
 if( CMAKE_MFX_HOME )
   set( MFX_API_HOME ${CMAKE_MFX_HOME} )
 else()
-  set( MFX_API_HOME $ENV{MFX_HOME} )
+  set( MFX_API_HOME ${MFX_HOME} )
 endif()
 
-find_path( MFX_INCLUDE mfxdefs.h PATHS ${MFX_API_HOME}/include )
-find_library( MFX_LIBRARY libmfx.a PATHS ${MFX_API_HOME}/lib PATH_SUFFIXES ${os_arch} )
+find_path( MFX_INCLUDE mfxdefs.h PATHS ${MFX_API_HOME}/include NO_CMAKE_FIND_ROOT_PATH )
 
 if( NOT MFX_INCLUDE MATCHES NOTFOUND )
   include_directories( ${MFX_API_HOME}/mediasdk_structures )
   include_directories( ${MFX_INCLUDE} )
-endif()
-
-if( NOT MFX_LIBRARY MATCHES NOTFOUND )
-  get_filename_component( MFX_LIBRARY_PATH ${MFX_LIBRARY} PATH )
-  link_directories( ${MFX_LIBRARY_PATH} )
 endif()
 
 if( NOT MFX_INCLUDE MATCHES NOTFOUND )
@@ -59,12 +53,7 @@ endif()
 if( NOT DEFINED MFX_FOUND )
   message( FATAL_ERROR "Intel(R) Media SDK was not found (required)! Set/check MFX_HOME environment variable!")
 else()
-  message( STATUS "Intel(R) Media SDK was found here $ENV{MFX_HOME}")
-endif()
-
-if( NOT MFX_LIBRARY MATCHES NOTFOUND )
-  get_filename_component(MFX_LIBRARY_PATH ${MFX_LIBRARY} PATH )
-  link_directories( ${MFX_LIBRARY_PATH} )
+  message( STATUS "Intel(R) Media SDK was found here ${MFX_HOME}")
 endif()
 
 # Potential source of confusion here. Environment $MFX_VERSION translates to product name (strings libmfxhw64.so | grep mediasdk),

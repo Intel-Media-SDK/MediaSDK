@@ -528,7 +528,7 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
                 mfxStatus mfxRes;
 
                 // temporarily leave the protected code section
-                vm_mutex_unlock(&m_guard);
+                m_guard.unlock();
 
                 mfxRes = pTask->CompleteTask(pTask->curStatus);
                 if ((isFailed(mfxRes)) &&
@@ -538,7 +538,7 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
                 }
 
                 // enter the protected code section
-                vm_mutex_lock(&m_guard);
+                m_guard.lock();
             }
         }
 
@@ -550,7 +550,7 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
             // save the status
             pTask->opRes = pTask->curStatus;
 
-            vm_cond_broadcast(&pTask->done);
+            pTask->done.notify_all();
 
             // update dependencies produced from the dependency table
             //for (i = 0; i < MFX_TASK_NUM_DEPENDENCIES; i += 1)
@@ -580,7 +580,7 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
             // save the status
             pTask->opRes = MFX_ERR_NONE;
 
-            vm_cond_broadcast(&pTask->done);
+            pTask->done.notify_all();
 
             // remove dependencies produced from the dependency table
             for (i = 0; i < MFX_TASK_NUM_DEPENDENCIES; i += 1)

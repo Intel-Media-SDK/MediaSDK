@@ -203,7 +203,8 @@ inline mfxStatus CMC::SetupMeControl(
         0x20,0x11,0xCF,0xF1,0x05,0x11,//45
         0x00,0x00,0x00,0x00,0x00,0x00,//51
     };
-    memcpy_s(p_ctrl->searchPath.sp, sizeof(Diamond), Diamond, sizeof(p_ctrl->searchPath.sp));
+    std::copy(std::begin(Diamond), std::end(Diamond), std::begin(p_ctrl->searchPath.sp));
+
     p_ctrl->searchPath.lenSp    = 16;
     p_ctrl->searchPath.maxNumSu = 57;
 
@@ -1772,21 +1773,28 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
 void CMC::GET_DISTDATA()
 {
     for (int y = 0; y < ov_height_bl; y++)
-        memcpy_s(distRef.data() + y * ov_width_bl, sizeof(mfxU32) * ov_width_bl * ov_height_bl,(char *)distSys + y * surfPitch, sizeof(mfxU32) * ov_width_bl);
-
+    {
+        mfxU32 * src = reinterpret_cast<mfxU32*>(reinterpret_cast<mfxU8*>(distSys) + y * surfPitch);
+        std::copy(src, src + ov_width_bl, &distRef[y * ov_width_bl]);
+    }
 }
 
 void CMC::GET_DISTDATA_H()
 {
     for (int y = 0; y < ov_height_bl / 2; y++)
-        memcpy_s(distRef.data() + y * ov_width_bl, sizeof(mfxU32) * ov_width_bl * ov_height_bl, (char *)distSys + y * surfPitch, sizeof(mfxU32) * ov_width_bl);
+    {
+        mfxU32 * src = reinterpret_cast<mfxU32*>(reinterpret_cast<mfxU8*>(distSys) + y * surfPitch);
+        std::copy(src, src + ov_width_bl, &distRef[y * ov_width_bl]);
+    }
 }
 
 void CMC::GET_NOISEDATA()
 {
-    int var_sc_area = DIVUP(p_ctrl->CropW, 16) * DIVUP(p_ctrl->CropH, 16);
     for (int y = 0; y < DIVUP(p_ctrl->CropH, 16); y++)
-        memcpy_s(var_sc.data() + y * DIVUP(p_ctrl->CropW, 16), var_sc_area, (char *)noiseAnalysisSys + y * surfNoisePitch, sizeof(spatialNoiseAnalysis) * DIVUP(p_ctrl->CropW, 16));
+    {
+        spatialNoiseAnalysis * src = reinterpret_cast<spatialNoiseAnalysis*>(reinterpret_cast<mfxU8*>(noiseAnalysisSys) + y * surfNoisePitch);
+        std::copy(src, src + DIVUP(p_ctrl->CropW, 16), &var_sc[y * DIVUP(p_ctrl->CropW, 16)]);
+    }
 }
 
 mfxF64 CMC::GET_TOTAL_SAD()
