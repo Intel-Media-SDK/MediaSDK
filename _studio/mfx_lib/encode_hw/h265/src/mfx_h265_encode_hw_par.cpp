@@ -2913,6 +2913,23 @@ void SetDefaults(
     if (IsOff(CO3.EnableQPOffset))
         Zero(CO3.QPOffset);
 
+    if (CO2.MinQPI || CO2.MinQPP || CO2.MinQPB ||
+        CO2.MaxQPI || CO2.MaxQPP || CO2.MaxQPB)
+    {
+        if (!CO2.MinQPI)
+            CO2.MinQPI = (mfxU8)minQP;
+        if (!CO2.MinQPP)
+            CO2.MinQPP = (mfxU8)minQP;
+        if (!CO2.MinQPB)
+            CO2.MinQPB = (mfxU8)minQP;
+
+        if (!CO2.MaxQPI)
+            CO2.MaxQPI = (mfxU8)maxQP;
+        if (!CO2.MaxQPP)
+            CO2.MaxQPP = (mfxU8)maxQP;
+        if (!CO2.MaxQPB)
+            CO2.MaxQPB = (mfxU8)maxQP;
+    }
 
 
 #if (MFX_VERSION >= 1026)
