@@ -197,7 +197,7 @@ typedef struct tagENCODE_CAPS_VP9
         if (bufferSize < sizeof(ivf_file_header))
             return MFX_ERR_MORE_DATA;
 
-        std::copy(std::begin(ivf_file_header),std::end(ivf_file_header), pBitstream);
+        std::copy(std::begin(ivf_file_header),std::end(ivf_file_header), reinterpret_cast<mfxU32*>(pBitstream));
 
         return MFX_ERR_NONE;
     };
