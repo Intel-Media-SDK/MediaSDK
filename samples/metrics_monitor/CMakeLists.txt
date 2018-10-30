@@ -28,30 +28,16 @@ pkg_check_modules(PKG_LIBDRM    libdrm)
 pkg_check_modules(PKG_PCIACCESS pciaccess)
 
 if( PKG_LIBDRM_FOUND AND
-    PKG_PCIACCESS_FOUND AND
-    DEFINED GTEST_FOUND)
+    PKG_PCIACCESS_FOUND )
 
-    set( sources "" )
+    file( GLOB_RECURSE test_srcs "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp" )
 
-    list ( APPEND incldirs
-        ${GTEST_INCLUDE}/gtest
-        ${GTEST_INCLUDE}/gtest/internal
-        ${CMAKE_CURRENT_SOURCE_DIR}/test )
+    add_executable( test_monitor ${test_srcs})
+    target_include_directories( test_monitor PUBLIC ./include ${PKG_LIBDRM_INCLUDE_DIRS})
+    target_link_libraries( test_monitor pthread rt gtest cttmetrics ${PKG_LIBDRM_LIBRARIES})
 
-    foreach( dir ${incldirs} )
-      include_directories( ${dir} )
-    endforeach( )
-
-    file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp" )
-    list( APPEND sources ${srcs})
-    list( APPEND LIBS
-      pthread
-      rt
-      gtest )
-
-    set(DEPENDENCIES libdrm)
-
-    make_executable( test_monitor none )
+    set_target_properties(test_monitor PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
 
 else()
 
@@ -61,10 +47,6 @@ else()
 
     if( NOT PKG_LIBDRM_FOUND )
         message( STATUS "libdrm was not found (optional), the following will not be built: test_monitor." )
-    endif()
-
-    if( NOT DEFINED GTEST_FOUND )
-        message( STATUS "Google tests was not found (optional), the following will not be built: test_monitor." )
     endif()
 
 endif()

@@ -88,7 +88,6 @@ include( ${BUILDER_ROOT}/FindMFX.cmake )
 include( ${BUILDER_ROOT}/FindPackages.cmake )
 include( ${BUILDER_ROOT}/FindInternals.cmake )
 include( ${BUILDER_ROOT}/FindITT.cmake )
-include( ${BUILDER_ROOT}/FindGTest.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
 # should prepend others to define target mfx
@@ -110,6 +109,27 @@ endif()
 
 if (BUILD_TESTS)
   enable_testing()
+  configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+  execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+  if(result)
+    message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+  endif()
+  execute_process(COMMAND ${CMAKE_COMMAND} --build .
+    RESULT_VARIABLE result
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+  if(result)
+    message(FATAL_ERROR "Build step for googletest failed: ${result}")
+  endif()
+
+  add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+                 EXCLUDE_FROM_ALL)
+  if (CMAKE_VERSION VERSION_LESS 2.8.11)
+    include_directories("${gtest_SOURCE_DIR}/include")
+  endif()
+  
   add_subdirectory(tests)
 endif()
 
