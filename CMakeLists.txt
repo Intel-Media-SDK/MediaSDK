@@ -93,6 +93,11 @@ include( ${BUILDER_ROOT}/FindITT.cmake )
 include( ${BUILDER_ROOT}/FindGTest.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
+# should prepend others to define target mfx
+if (BUILD_DISPATCHER)
+  add_subdirectory(api/mfx_dispatch/linux)
+endif()
+
 if (BUILD_TOOLS)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/tools)
 endif()
@@ -105,8 +110,8 @@ if (BUILD_RUNTIME)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 
-if (BUILD_DISPATCHER)
-  add_subdirectory(api/mfx_dispatch/linux)
+if(RUN_TESTS)
+    enable_testing()
 endif()
 
 if(RUN_TESTS)
