@@ -1115,7 +1115,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_histRun.clear();
         m_histWait.clear();
         m_encoding.clear();
-        m_decodeTimeStamps.clear();
+        m_timeStamps.clear();
     }
     m_fieldCounter   = 0;
     m_1stFieldStatus = MFX_ERR_NONE;
@@ -1436,7 +1436,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         m_free.splice(m_free.end(), m_histRun);
         m_free.splice(m_free.end(), m_histWait);
         m_free.splice(m_free.end(), m_encoding);
-        m_decodeTimeStamps.clear();
+        m_timeStamps.clear();
 
         for (DdiTaskIter i = m_free.begin(); i != m_free.end(); ++i)
         {
@@ -2168,6 +2168,25 @@ void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
     }
 }
 
+void ImplementationAvc::AssignDecodeTimeStamp(DdiTask & task)
+{
+    mfxU8 numReorderFrames = GetNumReorderFrames(m_video);
+    if (task.m_encOrder < numReorderFrames)
+    {
+        // For the first reorder frames the DTS is calculated from the first frame's timestamp
+        // DTS = firstTimeStamp - distanceToFirstFrameInTime
+        mfxU64 firstTimeStamp = m_timeStamps.front();
+        mfxU32 distToFirstTimeStamp = numReorderFrames-task.m_encOrder;
+        mfxU16 distInTickUnit = static_cast<mfxU16>(2 * distToFirstTimeStamp);
+        task.m_decodeTimeStamp =  CalcDTSFromPTS(m_video.mfx.FrameInfo, distInTickUnit, firstTimeStamp);
+    }
+    else
+    {
+        task.m_decodeTimeStamp = static_cast<mfxI64>(m_timeStamps.front());
+        m_timeStamps.pop_front();
+    }
+}
+
 mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 {
     mfxExtCodingOption     const & extOpt  = GetExtBufferRef(m_video);
@@ -2205,7 +2224,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_ACCEPT_FRAME");
         DdiTask & newTask = m_incoming.front();
-        m_decodeTimeStamps.push_back(newTask.m_timeStamp);
+        m_timeStamps.push_back(newTask.m_timeStamp);
 
        if (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
        {
@@ -2342,6 +2361,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         task->m_hwType = m_currentPlatform;
 
         ConfigureTask(*task, m_lastTask, m_video, m_caps);
+        AssignDecodeTimeStamp(*task);
 
         Zero(task->m_IRState);
         if (task->m_tidx == 0)
@@ -2479,22 +2499,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         bool bParallelEncPak = (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CQP && m_video.mfx.GopRefDist > 2 && m_video.AsyncDepth > 2);
         DdiTaskIter task = FindFrameToStartEncode(m_video, m_lookaheadFinished.begin(), m_lookaheadFinished.end());
         assert(task != m_lookaheadFinished.end());
-
-        mfxU8 numReorderFrames = GetNumReorderFrames(m_video);
-        if (task->m_encOrder < numReorderFrames)
-        {
-            // For the first reorder frames the DTS is calculated from the first frame's timestamp
-            // DTS = firstTimeStamp - distanceToFirstFrameInTime
-            mfxU64 firstTimeStamp = m_decodeTimeStamps.front();
-            mfxU32 distToFirstTimeStamp = numReorderFrames-task->m_encOrder;
-            mfxU16 distInTickUnit = static_cast<mfxU16>(2 * distToFirstTimeStamp);
-            task->m_decodeTimeStamp =  CalcDTSFromPTS(m_video.mfx.FrameInfo, distInTickUnit, firstTimeStamp);
-        }
-        else
-        {
-            task->m_decodeTimeStamp = m_decodeTimeStamps.front();
-            m_decodeTimeStamps.pop_front();
-        }
 
         //char task_name [40];
         //sprintf(task_name,"Avc::START_ENCODE (%d) - %x", task->m_encOrder, task->m_yuv);
@@ -3431,6 +3435,7 @@ mfxStatus ImplementationAvc::UpdateBitstream(
     // Update bitstream fields
     task.m_bs->TimeStamp = task.m_timeStamp;
     task.m_bs->DecodeTimeStamp = task.m_decodeTimeStamp;
+
     task.m_bs->PicStruct = task.GetPicStructForDisplay();
     task.m_bs->FrameType = task.m_type[task.GetFirstField()] & ~MFX_FRAMETYPE_KEYPIC;
     if (task.m_fieldPicFlag)
