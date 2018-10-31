@@ -92,7 +92,6 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
             return MFX_ERR_UNSUPPORTED;
         }
 
-
         try
         {
             // allocate 'free task' event
@@ -113,14 +112,13 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
                 }
                 m_pThreads.emplace_back(std::move(thread));
             }
+
+            SetThreadsAffinityToSockets();
         }
         catch (...)
         {
             return MFX_ERR_MEMORY_ALLOC;
         }
-
-
-        SetThreadsAffinityToSockets();
     }
     else
     {
@@ -129,8 +127,7 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
     }
 
     return MFX_ERR_NONE;
-
-} // mfxStatus mfxSchedulerCore::Initialize(mfxSchedulerFlags flags, mfxU32 numberOfThreads)
+}
 
 mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint)
 {
@@ -163,12 +160,6 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWai
 
 mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 {
-    // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-
     // look up the task
     MFX_SCHEDULER_TASK *pTask = m_ppTaskLookUpTable.at(handle.taskID);
 
@@ -259,6 +250,8 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     {
         std::unique_lock<std::mutex> guard(m_guard);
 
+        MFX_CHECK(!m_pThreads.empty(), MFX_ERR_NOT_INITIALIZED);
+
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_PRIVATE, "Scheduler::Wait");
         MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Depends^on", "%d", pTask->param.task.nParentId);
         MFX_LTRACE_I(MFX_TRACE_LEVEL_SCHED, timeToWait);
@@ -292,10 +285,6 @@ mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
     bool bFind = false;
 
     // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
     if (NULL == pDependency)
     {
         return MFX_ERR_NONE;
@@ -338,14 +327,7 @@ mfxStatus mfxSchedulerCore::WaitForTaskCompletion(const void *pOwner)
     mfxTaskHandle waitHandle;
 
     // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-    if (NULL == pOwner)
-    {
-        return MFX_ERR_NULL_PTR;
-    }
+    MFX_CHECK(pOwner, MFX_ERR_NULL_PTR);
 
     // make sure that threads are running
     {
@@ -429,43 +411,23 @@ mfxStatus mfxSchedulerCore::ResetWaitingStatus(const void *pOwner)
 
 mfxStatus mfxSchedulerCore::GetState(void)
 {
-    // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-
     return MFX_ERR_NONE;
-
-} // mfxStatus mfxSchedulerCore::GetState(void)
+}
 
 mfxStatus mfxSchedulerCore::GetParam(MFX_SCHEDULER_PARAM *pParam)
 {
     // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-    if (NULL == pParam)
-    {
-        return MFX_ERR_NULL_PTR;
-    }
+    MFX_CHECK(pParam, MFX_ERR_NULL_PTR);
 
     // copy the parameters
     *pParam = m_param;
 
     return MFX_ERR_NONE;
-
-} // mfxStatus mfxSchedulerCore::GetParam(MFX_SCHEDULER_PARAM *pParam)
+}
 
 mfxStatus mfxSchedulerCore::Reset(void)
 {
     // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-
     if (NULL == m_pFailedTasks)
     {
         return MFX_ERR_NONE;
@@ -486,12 +448,6 @@ mfxStatus mfxSchedulerCore::Reset(void)
 mfxStatus mfxSchedulerCore::AdjustPerformance(const mfxSchedulerMessage message)
 {
     mfxStatus mfxRes = MFX_ERR_NONE;
-
-    // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
 
     switch(message)
     {
@@ -533,15 +489,9 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
 
 
     // check error(s)
-    if (0 == m_param.numberOfThreads)
-    {
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-    if ((NULL == task.entryPoint.pRoutine) ||
-        (NULL == pSyncPoint))
-    {
-        return MFX_ERR_NULL_PTR;
-    }
+    MFX_CHECK(pSyncPoint, MFX_ERR_NULL_PTR);
+    MFX_CHECK(task.entryPoint.pRoutine, MFX_ERR_NULL_PTR);
+    MFX_CHECK(!m_pThreads.empty(), MFX_ERR_NOT_INITIALIZED);
 
     // make sure that there is enough free task objects
     m_freeTasks.Wait();
@@ -606,10 +556,10 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
         pAssignment->m_numRefs += 1;
 
         // saturate the number of available threads
-        uint32_t numThreads = m_pFreeTasks->param.task.entryPoint.requiredNumThreads;
-        numThreads = (0 == numThreads) ? (m_param.numberOfThreads) : (numThreads);
-        numThreads = UMC::get_min(m_param.numberOfThreads, numThreads);
-        numThreads = (uint32_t) UMC::get_min(sizeof(pAssignment->threadMask) * 8, numThreads);
+        uint32_t numThreads = (uint32_t)std::min<uint64_t>({
+            m_pFreeTasks->param.task.entryPoint.requiredNumThreads,
+            m_pThreads.size(),
+            sizeof(pAssignment->threadMask) * 8});
         m_pFreeTasks->param.task.entryPoint.requiredNumThreads = numThreads;
 
         // set the advanced task's info
