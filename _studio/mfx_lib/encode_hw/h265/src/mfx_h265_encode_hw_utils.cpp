@@ -1693,6 +1693,9 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
                 tmp.m_tid = cur->m_tid;
                 tmp.m_secondField = (isField()&&(tmp.m_poc & 1));
                 tmp.m_bottomField = (isBFF()!= tmp.m_secondField);
+                /* WA: there is no m_idxRec for formal Task,
+                but we need to set it to 0 to defer from non-initialized dpb[i] with m_idxRec = IDX_INVALID*/
+                tmp.m_idxRec = 0;
                 UpdateDPB(*this, tmp, dpb);
             }
 
