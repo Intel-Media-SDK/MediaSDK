@@ -23,6 +23,17 @@
 # avoiding non-default symbol versioning, i.e. -Wl,--default-symver which
 # is propagated by mediasdk test system should be avoided. 
 
+# mfx_dispatch_test relies on standard function (fgets, etc.) name shadowing,
+# and FORTIFY_SOURCE makes it impossible. 
+string(REGEX REPLACE " -D_FORTIFY_SOURCE=([0-9]+)" "" TMP_C_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
+string(REGEX REPLACE " -D_FORTIFY_SOURCE=([0-9]+)" "" TMP_CXX_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+string(REGEX REPLACE " -D_FORTIFY_SOURCE=([0-9]+)" "" TMP_C_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
+string(REGEX REPLACE " -D_FORTIFY_SOURCE=([0-9]+)" "" TMP_CXX_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+set(CMAKE_C_FLAGS_DEBUG "${TMP_C_DEBUG}")
+set(CMAKE_CXX_FLAGS_DEBUG "${TMP_CXX_DEBUG}")
+set(CMAKE_C_FLAGS_RELEASE "${TMP_C_RELEASE}")
+set(CMAKE_CXX_FLAGS_RELEASE "${TMP_CXX_RELEASE}")
+
 if( NOT DEFINED MFX_MODULES_DIR )
   set( MFX_MODULES_DIR ${CMAKE_INSTALL_FULL_LIBDIR} )
 endif( )
