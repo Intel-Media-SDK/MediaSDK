@@ -275,10 +275,10 @@ private:
 struct DpbFrame
 {
     mfxI32              m_poc         = 0;
-    mfxU32              m_fo          = 0; // FrameOrder
-    mfxU32              m_eo          = 0; // Encoded order
-    mfxU32              m_bpo         = 0; // B-pyramid order
-    mfxU32              m_level       = 0; // pyramid level
+    mfxU32              m_fo          = 0;          // FrameOrder
+    mfxU32              m_eo          = 0xffffffff; // Encoded order
+    mfxU32              m_bpo         = 0;          // B-pyramid order
+    mfxU32              m_level       = 0;          // pyramid level
     mfxU8               m_tid         = 0;
     bool                m_ltr         = false; // is "long-term"
     bool                m_ldb         = false; // is "low-delay B"
