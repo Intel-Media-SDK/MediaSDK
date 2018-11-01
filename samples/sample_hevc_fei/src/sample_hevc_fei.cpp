@@ -424,7 +424,8 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ForceCtuSplit")))
         {
-            params.frameCtrl.CtrlI.ForceCtuSplit = params.frameCtrl.CtrlP.ForceCtuSplit = params.frameCtrl.CtrlB.ForceCtuSplit = 1;
+            params.encodeCtrl.ForceCtuSplit = params.frameCtrl.CtrlI.ForceCtuSplit =
+                params.frameCtrl.CtrlP.ForceCtuSplit = params.frameCtrl.CtrlB.ForceCtuSplit = 1;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ForceCtuSplit:I")))
         {
@@ -464,9 +465,8 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU32 nArgNum, sInputParams& 
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-FastIntraMode")))
         {
-            params.frameCtrl.CtrlI.FastIntraMode =
-                params.frameCtrl.CtrlP.FastIntraMode =
-                params.frameCtrl.CtrlB.FastIntraMode = 1;
+            params.encodeCtrl.FastIntraMode = params.frameCtrl.CtrlI.FastIntraMode =
+                params.frameCtrl.CtrlP.FastIntraMode = params.frameCtrl.CtrlB.FastIntraMode = 1;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-FastIntra:I")))
         {
@@ -824,14 +824,37 @@ void AdjustOptions(sInputParams& params)
         params.bEncodedOrder = true;
     }
 
-    if (!params.bExtBRC && params.TargetKbps) {
+    if (!params.bExtBRC && params.TargetKbps)
+    {
         msdk_printf(MSDK_STRING("WARNING: Target bitrate is ignored as external BRC is disabled\n"));
         params.TargetKbps = 0;
     }
 
-    if (!params.bExtBRC && !params.QP) {
+    if (!params.bExtBRC && !params.QP)
+    {
         msdk_printf(MSDK_STRING("WARNING: QP is not specified. Adjust to 26 (default)\n"));
         params.QP = 26;
+    }
+
+    if (!params.bEncodedOrder && !params.encodeCtrl.FastIntraMode &&
+            (params.frameCtrl.CtrlI.FastIntraMode || params.frameCtrl.CtrlP.FastIntraMode || params.frameCtrl.CtrlB.FastIntraMode))
+    {
+        msdk_printf(MSDK_STRING("WARNING: -FastIntra:I, -FastIntra:P and -FastIntra:B are not supported in display order\n"));
+        params.frameCtrl.CtrlI.FastIntraMode = params.frameCtrl.CtrlP.FastIntraMode = params.frameCtrl.CtrlB.FastIntraMode = 0;
+    }
+    if (!params.bEncodedOrder && !params.encodeCtrl.ForceCtuSplit &&
+            (params.frameCtrl.CtrlI.ForceCtuSplit || params.frameCtrl.CtrlP.ForceCtuSplit || params.frameCtrl.CtrlB.ForceCtuSplit))
+    {
+        msdk_printf(MSDK_STRING("WARNING: -ForceCtuSplit:I, -ForceCtuSplit:P and -ForceCtuSplit:B are not supported in display order\n"));
+        params.frameCtrl.CtrlI.ForceCtuSplit = params.frameCtrl.CtrlP.ForceCtuSplit = params.frameCtrl.CtrlB.ForceCtuSplit = 0;
+    }
+    if (!params.bEncodedOrder && (params.encodeCtrl.NumFramePartitions != params.frameCtrl.CtrlI.NumFramePartitions ||
+            params.encodeCtrl.NumFramePartitions != params.frameCtrl.CtrlP.NumFramePartitions ||
+            params.encodeCtrl.NumFramePartitions != params.frameCtrl.CtrlB.NumFramePartitions))
+    {
+        msdk_printf(MSDK_STRING("WARNING: -NFP:I, -NFP:P and -NFP:B are not supported in display order\n"));
+        params.frameCtrl.CtrlI.NumFramePartitions = params.frameCtrl.CtrlP.NumFramePartitions =
+            params.frameCtrl.CtrlB.NumFramePartitions = params.encodeCtrl.NumFramePartitions;
     }
 }
 
