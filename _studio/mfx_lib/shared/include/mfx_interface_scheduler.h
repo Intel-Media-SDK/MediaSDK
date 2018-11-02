@@ -37,6 +37,11 @@ static const
 MFX_GUID MFXIScheduler2_GUID =
 { 0xdc775b1c, 0x951d, 0x421f, { 0xbf, 0xd8, 0xca, 0x56, 0x2d, 0x95, 0xa4, 0x18 } };
 
+// {CA33464F-30AB-4FD1-9BA8-D936B353D8DD}
+static const
+MFX_GUID MFXIScheduler3_GUID =
+{ 0xca33464f, 0x30ab, 0x4fd1, { 0x9b, 0xa8, 0xd9, 0x36, 0xb3, 0x53, 0xd8, 0xdd } };
+
 enum mfxSchedulerFlags
 {
     // default behaviour policy
@@ -119,8 +124,6 @@ public:
     // Send a performance message to the scheduler
     virtual
     mfxStatus AdjustPerformance(const mfxSchedulerMessage message) = 0;
-
-
 };
 
 struct MFX_SCHEDULER_PARAM2: public MFX_SCHEDULER_PARAM
@@ -140,6 +143,13 @@ public:
 
     virtual
     mfxStatus GetTimeout(mfxU32 & maxTimeToRun) = 0;
+};
+
+class MFXIScheduler3 : public MFXIScheduler2
+{
+public:
+    virtual
+    mfxStatus SetThreadNum(const void *pComponent, mfxU32 threadNum) = 0;
 };
 
 #endif // __MFX_INTERFACE_SCHEDULER_H

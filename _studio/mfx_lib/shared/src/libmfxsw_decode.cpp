@@ -431,6 +431,22 @@ mfxStatus MFXVideoDECODE_Init(mfxSession session, mfxVideoParam *par)
         }
 
         mfxRes = session->m_pDECODE->Init(par);
+
+        if (mfxRes >= MFX_ERR_NONE) {
+            MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+
+            if (pScheduler3) {
+                mfxU32 threadNum = 0;
+                mfxStatus sts = session->m_pDECODE->GetThreadNum(threadNum);
+
+                if (MFX_ERR_NONE == sts)
+                    sts = pScheduler3->SetThreadNum(session->m_pDECODE.get(), threadNum);
+                if (MFX_ERR_NONE != sts)
+                    mfxRes = sts;
+
+                pScheduler3->Release();
+            }
+        }
     }
     catch(...)
     {
@@ -460,6 +476,12 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForTaskCompletion(session->m_pDECODE.get());
+
+        MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+        if (pScheduler3) {
+            pScheduler3->SetThreadNum(session->m_pDECODE.get(), 0);
+            pScheduler3->Release();
+        }
 
         mfxRes = session->m_pDECODE->Close();
         // delete the codec's instance if not plugin

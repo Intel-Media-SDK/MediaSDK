@@ -26,9 +26,6 @@
 
 #include <umc_automatic_mutex.h>
 #include <vm_time.h>
-#include <vm_sys_info.h>
-
-
 
 mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)

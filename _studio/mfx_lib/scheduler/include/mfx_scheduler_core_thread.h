@@ -24,6 +24,7 @@
 #include <mfxdefs.h>
 
 #include <functional>
+#include <future>
 #include <memory>
 #include <thread>
 #include <condition_variable>
@@ -37,10 +38,13 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
 
     MFX_SCHEDULER_THREAD_CONTEXT() = delete;
 
-    MFX_SCHEDULER_THREAD_CONTEXT(mfxU32 id, SchedulerThreadFunc func)
+    MFX_SCHEDULER_THREAD_CONTEXT(mfxU32 id)
       : state(State::Waiting)
       , threadNum(id)
-      , threadHandle([this, func](){ func(this); })
+      , threadHandle([this]() {
+          start.get_future().wait();
+          if (threadFunc) threadFunc(this);
+      })
       , workTime(0)
       , sleepTime(0)
     {
@@ -54,7 +58,17 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
     ~MFX_SCHEDULER_THREAD_CONTEXT()
     {
         if (threadHandle.joinable())
+        {
+            if (!threadFunc) // meaning Start() was not called
+                start.set_value();
             threadHandle.join();
+        }
+    }
+
+    void Start(SchedulerThreadFunc func)
+    {
+        threadFunc = std::move(func);
+        start.set_value();
     }
 
     void Stop(std::lock_guard<std::mutex>& /*lock*/)
@@ -71,8 +85,10 @@ struct MFX_SCHEDULER_THREAD_CONTEXT
 
     State state;                       // thread state, waiting or running
     mfxU32 threadNum;                  // thread number assigned by the core
-    std::thread threadHandle;          // thread handle
     std::condition_variable taskAdded; // cond. variable to signal new tasks
+    std::promise<void> start;
+    SchedulerThreadFunc threadFunc;
+    std::thread threadHandle;          // thread handle
 
     mfxU64 workTime;                   // integral working time
     mfxU64 sleepTime;                  // integral sleeping time

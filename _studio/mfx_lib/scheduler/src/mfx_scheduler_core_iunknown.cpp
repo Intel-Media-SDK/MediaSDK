@@ -41,6 +41,14 @@ void *mfxSchedulerCore::QueryInterface(const MFX_GUID &guid)
         return (MFXIScheduler2 *) this;
     }
 
+    if (MFXIScheduler3_GUID == guid)
+    {
+        // increment reference counter
+        vm_interlocked_inc32(&m_refCounter);
+
+        return (MFXIScheduler3 *) this;
+    }
+
     // it is unsupported interface
     return NULL;
 

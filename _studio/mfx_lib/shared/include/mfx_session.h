@@ -297,7 +297,21 @@ mfxStatus MFXVideo##component##_##func_name formal_param_list \
         /* wait until all tasks are processed */ \
         session->m_pScheduler->WaitForTaskCompletion(session->m_p##component.get()); \
         /* call the codec's method */ \
-        return session->m_p##component->func_name actual_param_list; \
+        mfxStatus mfxRes = session->m_p##component->func_name actual_param_list; \
+        if (mfxRes >= MFX_ERR_NONE) { \
+            MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID); \
+            if (pScheduler3) { \
+                mfxU32 threadNum = 0; \
+                mfxStatus sts = session->m_p##component->GetThreadNum(threadNum); \
+                \
+                if (MFX_ERR_NONE == sts) \
+                    sts = pScheduler3->SetThreadNum(session->m_p##component.get(), threadNum); \
+                if (MFX_ERR_NONE != sts) \
+                    mfxRes = sts; \
+                pScheduler3->Release(); \
+            } \
+        } \
+        return mfxRes; \
     } catch(...) { \
         return MFX_ERR_NULL_PTR; \
     } \
