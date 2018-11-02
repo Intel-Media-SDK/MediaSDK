@@ -21,6 +21,8 @@
 #ifndef __MFXVIDEOPLUSPLUS_INTERNAL_H
 #define __MFXVIDEOPLUSPLUS_INTERNAL_H
 
+#include <thread>
+
 #include "mfxvideo.h"
 #include "mfxstructures-int.h"
 #include <mfx_task_threading_policy.h>
@@ -276,6 +278,12 @@ public:
     mfxStatus Close(void) = 0;
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEFAULT;}
+    virtual
+    mfxStatus GetThreadNum(mfxU32& threadNum) {
+        // some mediasdk components require 2 threads as a minimum
+        threadNum = std::max(std::thread::hardware_concurrency(), 2u);
+        return MFX_ERR_NONE;
+    }
 
     virtual
     mfxStatus GetVideoParam(mfxVideoParam *par) = 0;
@@ -299,6 +307,12 @@ public:
     mfxStatus Close(void) = 0;
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEFAULT;}
+    virtual
+    mfxStatus GetThreadNum(mfxU32& threadNum) {
+        // some mediasdk components require 2 threads as a minimum
+        threadNum = std::max(std::thread::hardware_concurrency(), 2u);
+        return MFX_ERR_NONE;
+    }
 
     virtual
     mfxStatus GetVideoParam(mfxVideoParam *par) = 0;
@@ -341,6 +355,12 @@ public:
     mfxStatus Close(void) = 0;
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEFAULT;}
+    virtual
+    mfxStatus GetThreadNum(mfxU32& threadNum) {
+        // some mediasdk components require 2 threads as a minimum
+        threadNum = std::max(std::thread::hardware_concurrency(), 2u);
+        return MFX_ERR_NONE;
+    }
 
     virtual
     mfxStatus GetVideoParam(mfxVideoParam *par) = 0;
@@ -400,6 +420,12 @@ public:
     mfxStatus Close(void) = 0;
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEFAULT;}
+    virtual
+    mfxStatus GetThreadNum(mfxU32& threadNum) {
+        // some mediasdk components require 2 threads as a minimum
+        threadNum = std::max(std::thread::hardware_concurrency(), 2u);
+        return MFX_ERR_NONE;
+    }
 
     virtual
     mfxStatus GetVideoParam(mfxVideoParam *par) = 0;
@@ -435,6 +461,12 @@ public:
     mfxStatus Close(void) = 0;
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEFAULT;}
+    virtual
+    mfxStatus GetThreadNum(mfxU32& threadNum) {
+        // some mediasdk components require 2 threads as a minimum
+        threadNum = std::max(std::thread::hardware_concurrency(), 2u);
+        return MFX_ERR_NONE;
+    }
 
     virtual
     mfxStatus GetVideoParam(mfxVideoParam *par) = 0;
@@ -497,6 +529,12 @@ public:
     // Get the plugin's threading policy
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_DEFAULT;}
+    virtual
+    mfxStatus GetThreadNum(mfxU32& threadNum) {
+        // some mediasdk components require 2 threads as a minimum
+        threadNum = std::max(std::thread::hardware_concurrency(), 2u);
+        return MFX_ERR_NONE;
+    }
 
     // Check the parameters to start a new tasl
     virtual

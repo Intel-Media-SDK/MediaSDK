@@ -43,6 +43,7 @@ public:
     mfxStatus PluginClose(void);
     // Get the plugin's threading policy
     mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    mfxStatus GetThreadNum(mfxU32& threadNum);
 
     // Check the parameters to start a new tasl
     mfxStatus Check(const mfxHDL *in, mfxU32 in_num,
@@ -102,6 +103,10 @@ protected:
         mfxTaskThreadingPolicy GetThreadingPolicy(void) {
             return m_plg->GetThreadingPolicy();
         }
+        mfxStatus GetThreadNum(mfxU32& threadNum) {
+            return m_plg->GetThreadNum(threadNum);
+        }
+
         mfxStatus GetVideoParam(mfxVideoParam *par) {
             return m_plg->GetVideoParam(par);
         }
