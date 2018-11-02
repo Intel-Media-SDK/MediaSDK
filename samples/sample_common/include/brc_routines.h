@@ -174,9 +174,6 @@ private:
 
 };
 
-#define IPP_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#define IPP_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-
 struct BRC_Ctx
 {
     mfxI32 QuantI;  //currect qp for intra frames
@@ -210,7 +207,7 @@ public:
     AVGBitrate(mfxU32 windowSize, mfxU32 maxBitPerFrame, mfxU32 avgBitPerFrame) :
         m_maxWinBits(maxBitPerFrame*windowSize),
         m_maxWinBitsLim(0),
-        m_avgBitPerFrame(IPP_MIN(avgBitPerFrame, maxBitPerFrame)),
+        m_avgBitPerFrame(std::min(avgBitPerFrame, maxBitPerFrame)),
         m_currPosInWindow(0),
         m_lastFrameOrder(0)
 
@@ -243,12 +240,12 @@ public:
         {
             if (bPanic || bSH)
             {
-                m_maxWinBitsLim = IPP_MAX(IPP_MIN( (GetLastFrameBits(windowSize, false) + m_maxWinBits)/2, m_maxWinBits), GetMaxWinBitsLim());
+                m_maxWinBitsLim = mfx::clamp((GetLastFrameBits(windowSize, false) + m_maxWinBits)/2, GetMaxWinBitsLim(), m_maxWinBits);
             }
             else
             {
                 if (recode)
-                    m_maxWinBitsLim = IPP_MIN(IPP_MAX(GetLastFrameBits(windowSize,false) + GetStep()/2, m_maxWinBitsLim), m_maxWinBits);
+                    m_maxWinBitsLim = mfx::clamp((GetLastFrameBits(windowSize, false) + GetStep())/2, m_maxWinBitsLim, m_maxWinBits);
                 else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
                     (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1, false) + sizeInBits)))
                    m_maxWinBitsLim -= GetStep();
@@ -266,7 +263,7 @@ public:
             maxWinBitsLim =  (m_maxWinBits + m_maxWinBitsLim)/2;
         if (bPanic)
             maxWinBitsLim = m_maxWinBits;
-        maxWinBitsLim = IPP_MIN(maxWinBitsLim + recode*GetStep()/2, m_maxWinBits);
+        maxWinBitsLim = std::min(maxWinBitsLim + recode*GetStep()/2, m_maxWinBits);
 
         mfxU32 maxFrameSize = winBits >= m_maxWinBitsLim ?
             m_maxWinBits  - winBits:
@@ -319,8 +316,7 @@ protected:
 
 
 };
-#undef IPP_MAX
-#undef IPP_MIN
+
 class ExtBRC
 {
 private:
