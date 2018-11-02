@@ -215,8 +215,13 @@ mfxTaskThreadingPolicy VideoUSERPlugin::GetThreadingPolicy(void)
     }
 
     return threadingPolicy;
+}
 
-} // mfxTaskThreadingPolicy VideoUSERPlugin::GetThreadingPolicy(void)
+mfxStatus VideoUSERPlugin::GetThreadNum(mfxU32& threadNum)
+{
+    threadNum = m_param.MaxThreadNum;
+    return MFX_ERR_NONE;
+}
 
 mfxStatus VideoUSERPlugin::Check(const mfxHDL *in, mfxU32 in_num,
                                  const mfxHDL *out, mfxU32 out_num,
