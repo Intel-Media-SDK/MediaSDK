@@ -168,6 +168,22 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
 
         // create a new instance
         mfxRes = session->m_pVPP->Init(par);
+
+        if (mfxRes >= MFX_ERR_NONE) {
+            MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+
+            if (pScheduler3) {
+                mfxU32 threadNum = 0;
+                mfxStatus sts = session->m_pVPP->GetThreadNum(threadNum);
+
+                if (MFX_ERR_NONE == sts)
+                    sts = pScheduler3->SetThreadNum(session->m_pVPP.get(), threadNum);
+                if (MFX_ERR_NONE != sts)
+                    mfxRes = sts;
+
+                pScheduler3->Release();
+            }
+        }
     }
     // handle error(s)
     catch(...)
@@ -198,6 +214,12 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForTaskCompletion(session->m_pVPP.get());
+
+        MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+        if (pScheduler3) {
+            pScheduler3->SetThreadNum(session->m_pVPP.get(), 0);
+            pScheduler3->Release();
+        }
 
         mfxRes = session->m_pVPP->Close();
         // delete the codec's instance if not plugin

@@ -44,11 +44,6 @@ mfxStatus mfxSchedulerCore::Initialize(const MFX_SCHEDULER_PARAM *pParam)
         MFX_SCHEDULER_PARAM* casted_param2 = &param2;
         *casted_param2 = *pParam;
     }
-    if (!param2.numberOfThreads) {
-        // that's just in case: core, which calls scheduler, is doing
-        // exactly the same what we are doing below
-        param2.numberOfThreads = vm_sys_info_get_cpu_num();
-    }
     return Initialize2(&param2);
 }
 
@@ -80,14 +75,8 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 
     if (MFX_SINGLE_THREAD != m_param.flags)
     {
-        if (m_param.numberOfThreads && m_param.params.NumThread) {
-            // use user-overwritten number of threads
-            m_param.numberOfThreads = m_param.params.NumThread;
-        }
-        if (!m_param.numberOfThreads) {
-            return MFX_ERR_UNSUPPORTED;
-        }
-        if (m_param.numberOfThreads == 1) {
+        // use user-overwritten number of threads
+        if (m_param.params.NumThread == 1) {
             // we need at least 2 threads to avoid dead locks
             return MFX_ERR_UNSUPPORTED;
         }
@@ -103,15 +92,17 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 
             auto thread_proc = [this](MFX_SCHEDULER_THREAD_CONTEXT* ctx) { ThreadProc(ctx); };
             // start threads
-            for (i = 0; i < m_param.numberOfThreads; ++i)
+            for (i = 0; i < m_param.params.NumThread; ++i)
             {
-                std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT> thread(new MFX_SCHEDULER_THREAD_CONTEXT(i, thread_proc));
+                std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT> thread(new MFX_SCHEDULER_THREAD_CONTEXT(i));
 
                 if (!SetScheduling(thread->threadHandle)) {
                     return MFX_ERR_UNSUPPORTED;
                 }
                 m_pThreads.emplace_back(std::move(thread));
+                m_pThreads.back()->Start(thread_proc);
             }
+            m_param.numberOfThreads = m_param.params.NumThread;
 
             SetThreadsAffinityToSockets();
         }
@@ -126,6 +117,73 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 
     }
 
+    return MFX_ERR_NONE;
+}
+
+mfxStatus mfxSchedulerCore::SetThreadNum(const void *pComponent, mfxU32 threadNum)
+{
+    MFX_CHECK(pComponent, MFX_ERR_INVALID_HANDLE);
+
+    // If user requested certain number of threads we follow his choice
+    // doing nothing in this function.
+    if (m_param.params.NumThread)
+        return MFX_ERR_NONE;
+
+    std::lock_guard<std::mutex> map_lock(m_pThreadsMapMutex);
+
+    if (threadNum)
+        m_pThreadsMap[pComponent] = threadNum;
+    else
+        m_pThreadsMap.erase(pComponent);
+
+    threadNum = 0; // reuse it now to count number of total threads
+    for (auto it: m_pThreadsMap) {
+        threadNum += it.second;
+    }
+
+    mfxU32 maxParallelism = std::thread::hardware_concurrency();
+    if (maxParallelism && (threadNum > maxParallelism)) threadNum = maxParallelism;
+
+    if (threadNum > m_pThreads.size()) {
+        // We need to create some threads.
+        std::list<std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT>> started;
+
+        auto thread_proc = [this](MFX_SCHEDULER_THREAD_CONTEXT* ctx) {
+            ThreadProc(ctx);
+        };
+
+        for (mfxU32 thread_id = m_pThreads.size(); thread_id < threadNum; ++thread_id) {
+            std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT> thread(
+                new MFX_SCHEDULER_THREAD_CONTEXT(thread_id));
+
+            if (!SetScheduling(thread->threadHandle)) {
+                return MFX_ERR_UNKNOWN;
+            }
+            started.emplace_back(std::move(thread));
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_guard);
+            for (auto& it: started) it->Start(thread_proc);
+            m_pThreads.splice(m_pThreads.end(), started);
+
+            SetThreadsAffinityToSockets();
+        }
+    } else if (threadNum < m_pThreads.size()) {
+        // We need to stop some threads. We will do this from the end
+        // of the threads arrray since these threads are less likely to be busy.
+        std::list<std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT>> stopped;
+
+        {
+            std::lock_guard<std::mutex> lock(m_guard);
+            do {
+                m_pThreads.front()->Stop(lock);
+                stopped.splice(stopped.end(), m_pThreads, m_pThreads.begin());
+            } while (m_pThreads.size() != threadNum);
+        }
+    }
+    // finally, let's update how many threads we have
+    m_param.numberOfThreads = m_pThreads.size();
     return MFX_ERR_NONE;
 }
 

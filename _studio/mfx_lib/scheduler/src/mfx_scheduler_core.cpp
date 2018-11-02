@@ -25,9 +25,6 @@
 #include <mfx_trace.h>
 
 #include <vm_time.h>
-#include <vm_sys_info.h>
-
-
 
 mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)

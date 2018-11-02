@@ -139,6 +139,14 @@ namespace
         {
             return _isNeedVPP;
         }
+        bool isGeneric()const
+        {
+            return
+              !isNeedEnc() &&
+              !isNeedEncoder() &&
+              !isNeedDecoder() &&
+              !isNeedVPP();
+        }
     };      
 
 
@@ -249,12 +257,31 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
         if (sessionPtr.isNeedVPP()) {
             vppPtr.reset(pluginPtr->GetVPPPtr());
         }
+
         if (sessionPtr.isNeedEnc()) {
             preEncPtr.reset(pluginPtr->GetEncPtr());
         }
 
         // initialize the plugin
         mfxRes = pluginPtr->PluginInit(par, session, type);
+        if (sessionPtr.isGeneric() && (mfxRes >= MFX_ERR_NONE)) {
+            // For the generic plugin that's the only place we can
+            // initialize the scheduler with the desired number of
+            // threads.
+            MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+
+            if (pScheduler3) {
+                mfxU32 threadNum = 0;
+                mfxStatus sts = pluginPtr->GetThreadNum(threadNum);
+
+                if (MFX_ERR_NONE == sts)
+                    sts = pScheduler3->SetThreadNum(pluginPtr.get(), threadNum);
+                if (MFX_ERR_NONE != sts)
+                    mfxRes = sts;
+
+                pScheduler3->Release();
+            }
+        }
     }
     catch(...)
     {
@@ -326,6 +353,14 @@ mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type)
 
         // wait until all tasks are processed
         session->m_pScheduler->WaitForTaskCompletion(registeredPlg.get());
+
+        if (sessionPtr.isGeneric()) {
+            MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+            if (pScheduler3) {
+                pScheduler3->SetThreadNum(registeredPlg.get(), 0);
+                pScheduler3->Release();
+            }
+        }
 
         // deinitialize the plugin
         mfxRes = registeredPlg->PluginClose();

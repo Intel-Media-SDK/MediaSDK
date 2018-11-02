@@ -23,6 +23,62 @@
 #include <mfx_session.h>
 #include <mfx_utils.h>
 
+static mfxStatus RegisterComponents(mfxSession session)
+{
+    MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+
+    if (!pScheduler3)
+        return MFX_ERR_NONE;
+
+    mfxStatus mfxRes = MFX_ERR_NONE;
+
+    if (session->m_pENCODE && (mfxRes == MFX_ERR_NONE)) {
+        mfxU32 threadNum = 0;
+        mfxRes = session->m_pENCODE->GetThreadNum(threadNum);
+        if (mfxRes == MFX_ERR_NONE) {
+            mfxRes = pScheduler3->SetThreadNum(session->m_pENCODE.get(), threadNum);
+        }
+    }
+    if (session->m_pDECODE && (mfxRes == MFX_ERR_NONE)) {
+        mfxU32 threadNum = 0;
+        mfxRes = session->m_pDECODE->GetThreadNum(threadNum);
+        if (mfxRes == MFX_ERR_NONE) {
+            mfxRes = pScheduler3->SetThreadNum(session->m_pDECODE.get(), threadNum);
+        }
+    }
+    if (session->m_pVPP && (mfxRes == MFX_ERR_NONE)) {
+        mfxU32 threadNum = 0;
+        mfxRes = session->m_pVPP->GetThreadNum(threadNum);
+        if (mfxRes == MFX_ERR_NONE) {
+            mfxRes = pScheduler3->SetThreadNum(session->m_pVPP.get(), threadNum);
+        }
+    }
+    if (session->m_pENC && (mfxRes == MFX_ERR_NONE)) {
+        mfxU32 threadNum = 0;
+        mfxRes = session->m_pENC->GetThreadNum(threadNum);
+        if (mfxRes == MFX_ERR_NONE) {
+            mfxRes = pScheduler3->SetThreadNum(session->m_pENC.get(), threadNum);
+        }
+    }
+    if (session->m_pPAK && (mfxRes == MFX_ERR_NONE)) {
+        mfxU32 threadNum = 0;
+        mfxRes = session->m_pPAK->GetThreadNum(threadNum);
+        if (mfxRes == MFX_ERR_NONE) {
+            mfxRes = pScheduler3->SetThreadNum(session->m_pPAK.get(), threadNum);
+        }
+    }
+    if (session->m_plgGen && (mfxRes == MFX_ERR_NONE)) {
+        mfxU32 threadNum = 0;
+        mfxRes = session->m_plgGen->GetThreadNum(threadNum);
+        if (mfxRes == MFX_ERR_NONE) {
+            mfxRes = pScheduler3->SetThreadNum(session->m_plgGen.get(), threadNum);
+        }
+    }
+
+    pScheduler3->Release();
+    return mfxRes;
+}
+
 mfxStatus MFXJoinSession(mfxSession session, mfxSession child_session)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "MFXJoinSession");
@@ -63,7 +119,8 @@ mfxStatus MFXJoinSession(mfxSession session, mfxSession child_session)
         }
         child_session->m_pOperatorCore = session->m_pOperatorCore;
 
-        return MFX_ERR_NONE;
+        // register child session components in the parent session
+        return RegisterComponents(child_session);
     }
     catch(...)
     {
@@ -96,13 +153,23 @@ mfxStatus MFXDisjoinSession(mfxSession session)
         session->m_pScheduler->WaitForTaskCompletion(session->m_pPAK.get());
         session->m_pScheduler->WaitForTaskCompletion(session->m_plgGen.get());
 
+        // unregister components from the scheduler
+        MFXIScheduler3* pScheduler3 = (MFXIScheduler3*)session->m_pScheduler->QueryInterface(MFXIScheduler3_GUID);
+        if (pScheduler3) {
+            pScheduler3->SetThreadNum(session->m_pENCODE.get(), 0);
+            pScheduler3->SetThreadNum(session->m_pDECODE.get(), 0);
+            pScheduler3->SetThreadNum(session->m_pVPP.get(), 0);
+            pScheduler3->SetThreadNum(session->m_pENC.get(), 0);
+            pScheduler3->SetThreadNum(session->m_pPAK.get(), 0);
+            pScheduler3->SetThreadNum(session->m_plgGen.get(), 0);
+            pScheduler3->Release();
+        }
+
         // remove child core from parent core operator
         session->m_pOperatorCore->RemoveCore(session->m_pCORE.get());
 
         // create new self core operator
         session->m_pOperatorCore = new OperatorCORE(session->m_pCORE.get());
-
-
 
         // leave the scheduler
         session->m_pScheduler->Release();
@@ -111,8 +178,13 @@ mfxStatus MFXDisjoinSession(mfxSession session)
 
         // join the original scheduler
         mfxRes = session->RestoreScheduler();
+        if (MFX_ERR_NONE != mfxRes)
+        {
+            return mfxRes;
+        }
 
-        return mfxRes;
+        // register session components in the restored scheduler
+        return RegisterComponents(session);
     }
     catch(...)
     {

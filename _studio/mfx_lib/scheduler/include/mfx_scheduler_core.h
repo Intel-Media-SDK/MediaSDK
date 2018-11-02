@@ -22,6 +22,7 @@
 #define __MFX_SCHEDULER_CORE_H
 
 #include <list>
+#include <map>
 
 #include <mfx_interface_scheduler.h>
 
@@ -125,7 +126,7 @@ enum eWakeUpReason
 };
 
 
-class mfxSchedulerCore : public MFXIScheduler2
+class mfxSchedulerCore : public MFXIScheduler3
 {
 public:
     // Default constructor
@@ -182,6 +183,9 @@ public:
     virtual
     mfxStatus AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint,
                       const char *pFileName, int lineNumber);
+
+    virtual
+    mfxStatus SetThreadNum(const void *pComponent, mfxU32 threadNum);
 
     //
     // MFXIUnknown interface
@@ -342,6 +346,10 @@ protected:
     
     // Threads contexts
     std::list<std::unique_ptr<MFX_SCHEDULER_THREAD_CONTEXT>> m_pThreads;
+    // Number of threads required for each component to be functional
+    std::map<const void*, mfxU32> m_pThreadsMap;
+    // Mutex to guard threads add/remove operations
+    std::mutex m_pThreadsMapMutex;
 
     // Event to wait free task objects
     UMC::Semaphore m_freeTasks;
