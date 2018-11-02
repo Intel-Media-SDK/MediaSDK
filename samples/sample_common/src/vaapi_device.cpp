@@ -95,7 +95,9 @@ mfxStatus CVAAPIDeviceX11::Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapterNu
     }
     m_xcbconn = x11xcblib.XGetXCBConnection(m_dpy);
 
-    m_dri_fd = open("/dev/dri/card0", O_RDWR);
+    // it's enough to pass render node, because we only request
+    // information from kernel via m_dri_fd
+    m_dri_fd = open("/dev/dri/renderD128", O_RDWR);
     if (m_dri_fd < 0) {
         msdk_printf(MSDK_STRING("Failed to open dri device\n"));
         return MFX_ERR_NOT_INITIALIZED;
