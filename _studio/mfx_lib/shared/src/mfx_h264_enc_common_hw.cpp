@@ -3854,8 +3854,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ ||
-        par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ)
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
+    {
+        if (!CheckRange(par.mfx.ICQQuality, 1, 51)) changed = true;
+    }
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ)
     {
         if (!CheckRange(par.mfx.ICQQuality, 0, 51)) changed = true;
     }
