@@ -47,6 +47,9 @@
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE)
 #include "mfx_mjpeg_encode_hw.h"
+#if defined(MFX_ENABLE_SW_FALLBACK)
+#include "mfx_mjpeg_encode.h"
+#endif
 #endif
 
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
@@ -183,6 +186,20 @@ static const CodecId2Handlers codecId2Handlers =
             },
             // .fallback =
             {
+  #if defined(MFX_ENABLE_SW_FALLBACK)
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    return new MFXVideoENCODEMJPEG(core, mfxRes);
+                },
+                // .query =
+                [](mfxSession, mfxVideoParam *in, mfxVideoParam *out)
+                { return MFXVideoENCODEMJPEG::Query(in, out); },
+                [](mfxSession, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                // .queryIOSurf =
+                { return MFXVideoENCODEMJPEG::QueryIOSurf(par, request); }
+  #endif
             }
         }
     },
@@ -277,7 +294,7 @@ class FallbackProxyENCODE : public VideoENCODE
 {
 public:
     FallbackProxyENCODE(VideoCORE *core, const Handlers &handlers)
-        : m_core(core), m_codecHandlers(handlers)
+        : m_core(core), m_codecHandlers(handlers), m_useSWFallback(false)
     {
     }
 
@@ -383,6 +400,7 @@ private:
     std::unique_ptr<VideoENCODE> m_impl;
     VideoCORE                   *m_core;
     const Handlers              &m_codecHandlers;
+    bool                         m_useSWFallback;
 };
 
 mfxStatus FallbackProxyENCODE::Init(mfxVideoParam *par)
@@ -394,11 +412,20 @@ mfxStatus FallbackProxyENCODE::Init(mfxVideoParam *par)
     mfxRes = m_impl->Init(par);
     if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
     {
+        if (m_core->GetPlatformType() == MFX_PLATFORM_HARDWARE)
+        {
+            m_useSWFallback = true;
+        }
         m_impl.reset(m_codecHandlers.fallback.ctor(m_core, &mfxRes));
         MFX_CHECK(m_impl.get(), MFX_ERR_NULL_PTR);
         MFX_CHECK(mfxRes >= MFX_ERR_NONE, mfxRes);
         mfxRes = m_impl->Init(par);
     }
+    if (m_useSWFallback && MFX_ERR_NONE <= mfxRes)
+    {
+        mfxRes = MFX_WRN_PARTIAL_ACCELERATION;
+    }
+
     return mfxRes;
 }
 
@@ -464,6 +491,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             return MFX_ERR_UNSUPPORTED;
         }
     }
+
 #endif
 
     mfxStatus mfxRes;
@@ -502,7 +530,9 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
-                mfxRes = MFX_ERR_UNSUPPORTED;
+                assert(handler != codecId2Handlers.end());
+                mfxRes = !handler->second.fallback.query ? MFX_ERR_UNSUPPORTED
+                    : (handler->second.fallback.query)(session, in, out);
             }
             else
             {
@@ -515,12 +545,15 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
-    // SW fallback if EncodeGUID is absence
     if (MFX_PLATFORM_HARDWARE == session->m_currentPlatform &&
         !bIsHWENCSupport &&
         MFX_ERR_NONE <= mfxRes)
     {
+#if defined(MFX_ENABLE_SW_FALLBACK)
+        mfxRes = MFX_WRN_PARTIAL_ACCELERATION;
+#else
         mfxRes = MFX_ERR_UNSUPPORTED;
+#endif
     }
 
 #if defined(MFX_TRACE_ENABLE_REFLECT)
@@ -593,13 +626,15 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
             if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
             {
-                mfxRes = MFX_ERR_UNSUPPORTED;
+                assert(handler != codecId2Handlers.end());
+                mfxRes = !handler->second.fallback.queryIOSurf ? MFX_ERR_UNSUPPORTED
+                    : (handler->second.fallback.queryIOSurf)(session, par, request);
             }
             else
             {
                 bIsHWENCSupport = true;
             }
-        } // else of if (session->m_plgEnc.get())
+        }
     }
     // handle error(s)
     catch(...)
@@ -607,12 +642,15 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         mfxRes = MFX_ERR_NULL_PTR;
     }
 
-    // SW fallback if EncodeGUID is absence
     if (MFX_PLATFORM_HARDWARE == session->m_currentPlatform &&
         !bIsHWENCSupport &&
         MFX_ERR_NONE <= mfxRes)
     {
+#if defined(MFX_ENABLE_SW_FALLBACK)
+        mfxRes = MFX_WRN_PARTIAL_ACCELERATION;
+#else
         mfxRes = MFX_ERR_UNSUPPORTED;
+#endif
     }
 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, request);
