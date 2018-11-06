@@ -77,7 +77,7 @@ namespace MfxHwH264EncodeHW
 
         const mfxU32 maxFrameSize = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height;
         if (fullness > bufsize)
-            return MFX_MIN((fullness - bufsize + 7) / 8, maxFrameSize);
+            return std::min((fullness - bufsize + 7) / 8, maxFrameSize);
 
         return 0;
     }
@@ -118,7 +118,7 @@ namespace MfxHwH264EncodeHW
 
         const mfxU32 maxFrameSize = video.mfx.FrameInfo.Width * video.mfx.FrameInfo.Height;
         if (fullness > bufsize)
-            return MFX_MIN((fullness - bufsize + 7) / 8, maxFrameSize);
+            return std::min((fullness - bufsize + 7) / 8, maxFrameSize);
 
         return 0;
     }
@@ -1003,12 +1003,12 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (IsFieldCodingPossible(m_video))
         request.NumFrameMin *= 2; // 2 bitstream surfaces per frame
     // driver may suggest too small buffer for bitstream
-    request.Info.Width  = MFX_MAX(request.Info.Width,  m_video.mfx.FrameInfo.Width);
+    request.Info.Width  = std::max(request.Info.Width,  m_video.mfx.FrameInfo.Width);
     // Check for Video Conference scenario to reduce memory footprint
     if (MFX_RATECONTROL_CQP == m_video.mfx.RateControlMethod && MFX_SCENARIO_VIDEO_CONFERENCE != extOpt3.ScenarioInfo)
-        request.Info.Height = MFX_MAX(request.Info.Height, m_video.mfx.FrameInfo.Height * 3);
+        request.Info.Height = std::max<mfxU16>(request.Info.Height, m_video.mfx.FrameInfo.Height * 3);
     else
-        request.Info.Height = MFX_MAX(request.Info.Height, m_video.mfx.FrameInfo.Height * 3 / 2);
+        request.Info.Height = std::max<mfxU16>(request.Info.Height, m_video.mfx.FrameInfo.Height * 3 / 2);
 
     // workaround for high bitrates on small resolutions,
     // as driver do not respect coded buffer size we have to provide buffer large enough
@@ -1023,11 +1023,11 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (MFX_SCENARIO_VIDEO_CONFERENCE != extOpt3.ScenarioInfo)
     {
         const mfxU32 SLICE_BUFFER_SIZE  = 2048; //from HeaderPacker
-        const mfxU32 MAX_MB_SIZE  = 512; //4095 bits in bytes
+        const mfxU32 MAX_MB_SIZE        = 512;  //4095 bits in bytes
 
-        const mfxU32 nMBs = (m_video.mfx.FrameInfo.Width * m_video.mfx.FrameInfo.Height) / 256;
-        const mfxU32 maxNumSlices = MFX_MAX(GetMaxNumSlices(m_video), 1);
-        const mfxU32 maxBufSize = MAX_MB_SIZE * nMBs + SLICE_BUFFER_SIZE * maxNumSlices;
+        const mfxU32 nMBs         = (m_video.mfx.FrameInfo.Width * m_video.mfx.FrameInfo.Height) / 256;
+        const mfxU32 maxNumSlices = std::max<mfxU16>(GetMaxNumSlices(m_video), 1);
+        const mfxU32 maxBufSize   = MAX_MB_SIZE * nMBs + SLICE_BUFFER_SIZE * maxNumSlices;
 
         if (maxBufSize > static_cast<mfxU32>(request.Info.Width * request.Info.Height))
             request.Info.Height = mfx::align2_value(static_cast<mfxU16>(maxBufSize / request.Info.Width), 16);
@@ -1914,7 +1914,7 @@ namespace
         if (bitstream.Y == 0)
             return Error(MFX_ERR_LOCK_MEMORY);
 
-        mfxU32 skippedMax = MFX_MIN(15, task.m_bsDataLength[fid]);
+        mfxU32 skippedMax = std::min(15u, task.m_bsDataLength[fid]);
         while (*bitstream.Y == 0xff && task.m_numLeadingFF[fid] < skippedMax)
         {
             ++bitstream.Y;
@@ -1934,7 +1934,8 @@ void ImplementationAvc::BrcPreEnc(
     mfxU32 numLaFrames = (mfxU32)m_lookaheadFinished.size();
     while (j->m_encOrder != task.m_encOrder)
         ++j, --numLaFrames;
-    numLaFrames = MFX_MIN(extOpt2.LookAheadDepth, numLaFrames);
+
+    numLaFrames = std::min<mfxU32>(extOpt2.LookAheadDepth, numLaFrames);
 
     m_tmpVmeData.resize(numLaFrames);
     for (size_t i = 0; i < m_tmpVmeData.size(); ++i, ++j)
@@ -2011,20 +2012,22 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
 
     if(task.m_SceneChange)
     {
-        bool bPyr = (extOpt2.BRefType == MFX_B_REF_PYRAMID) ? true : false;
+        bool bPyr = extOpt2.BRefType == MFX_B_REF_PYRAMID;
 
         if (IsOn(extOpt2.AdaptiveI))
         {
-            mfxI32 idist = (mfxI32)(task.m_frameOrder - m_frameOrderIntraInDisplayOrder);
+            mfxI32 idist   = (mfxI32)(task.m_frameOrder - m_frameOrderIntraInDisplayOrder);
             mfxI32 idrdist = (mfxI32)(task.m_frameOrder - m_frameOrderIdrInDisplayOrder);
+
             mfxExtCodingOptionDDI const * extDdi = GetExtBuffer(m_video);
             MFX_CHECK_NULL_PTR1(extDdi);
-            mfxI32 numRef = MFX_MIN(extDdi->NumActiveRefP, m_video.mfx.NumRefFrame);
 
-            mfxI32 minPDist = numRef * m_video.mfx.GopRefDist;
-            mfxI32 minIdrDist = (task.m_frameLtrOff ? numRef : MFX_MAX(8,numRef)) * (bPyr ? 2 : m_video.mfx.GopRefDist);
-            minIdrDist = MFX_MIN(minIdrDist, m_video.mfx.GopPicSize/2);
-            minPDist = MFX_MIN(minPDist, minIdrDist);
+            mfxI32 numRef     = std::min(extDdi->NumActiveRefP, m_video.mfx.NumRefFrame);
+            mfxI32 minPDist   = numRef * m_video.mfx.GopRefDist;
+            mfxI32 minIdrDist = (task.m_frameLtrOff ? numRef : std::max(8, numRef)) * (bPyr ? 2 : m_video.mfx.GopRefDist);
+
+            minIdrDist = std::min(minIdrDist, m_video.mfx.GopPicSize/2);
+            minPDist   = std::min(minPDist, minIdrDist);
 
             if (!(task.m_type[0] & MFX_FRAMETYPE_I) && idist < minPDist && IsOn(extOpt2.AdaptiveB))
             {
@@ -3471,7 +3474,7 @@ mfxStatus ImplementationAvc::UpdateBitstream(
         if (m_video.Protected)
         {
             bsSizeToCopy = mfx::align2_value(bsSizeToCopy - 15, 16);
-            bsSizeActual = MFX_MIN(bsSizeActual, bsSizeToCopy);
+            bsSizeActual = std::min(bsSizeActual, bsSizeToCopy);
         }
     }
 
