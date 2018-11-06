@@ -597,7 +597,7 @@ namespace MfxHwH264EncodeHW
         mfxU32 diffy = abs(mb.costCenter0Y - mb.mv[0].y) >> 2;
         mfxU32 costx = diffx > 64 ? lutMv[64] + ((diffx - 64) >> 2) : lutMv[diffx];
         mfxU32 costy = diffy > 64 ? lutMv[64] + ((diffy - 64) >> 2) : lutMv[diffy];
-        return mfxU16(MFX_MIN(0x3ff, costx + costy));
+        return mfxU16(std::min(0x3ffu, costx + costy));
     }
 
     mfxU16 GetVmeMvCostB(
@@ -612,8 +612,8 @@ namespace MfxHwH264EncodeHW
         mfxU32 costy0 = diffy0 > 64 ? lutMv[64] + ((diffy0 - 64) >> 2) : lutMv[diffy0];
         mfxU32 costx1 = diffx1 > 64 ? lutMv[64] + ((diffx1 - 64) >> 2) : lutMv[diffx1];
         mfxU32 costy1 = diffy1 > 64 ? lutMv[64] + ((diffy1 - 64) >> 2) : lutMv[diffy1];
-        mfxU32 mvCost0 = (MFX_MIN(0x3ff, costx0 + costy0));
-        mfxU32 mvCost1 = (MFX_MIN(0x3ff, costx1 + costy1));
+        mfxU32 mvCost0 = std::min(0x3ffu, costx0 + costy0);
+        mfxU32 mvCost1 = std::min(0x3ffu, costx1 + costy1);
         return mfxU16(mvCost0 + mvCost1);
     }
 
@@ -937,11 +937,10 @@ CmEvent * CmContext::RunHistogram(
     m_device->GetCaps(CAP_USER_DEFINED_THREAD_COUNT_PER_THREAD_GROUP, CapSize, &numThreadsPerGroup);
     m_device->GetCaps(CAP_HW_THREAD_COUNT, CapSize, &maxThreads);
 
-    numThreads = MFX_MAX(numThreads, 1);
-    numThreads = MFX_MIN(numThreads, maxThreads);
-    numThreadsPerGroup = MFX_MIN(numThreads, numThreadsPerGroup);
-    numGroups = (numThreads + numThreadsPerGroup - 1) / numThreadsPerGroup;
-    numThreadsPerGroup = MFX_MIN(numThreads / numGroups, numThreadsPerGroup);
+    numThreads         = mfx::clamp(numThreads, 1u, maxThreads);
+    numThreadsPerGroup = std::min(numThreads, numThreadsPerGroup);
+    numGroups          = (numThreads + numThreadsPerGroup - 1) / numThreadsPerGroup;
+    numThreadsPerGroup = std::min(numThreads / numGroups, numThreadsPerGroup);
 
     for (tsH = numThreadsPerGroup, tsW = 1; tsH > tsW || tsW * tsH != numThreadsPerGroup; tsH = numThreadsPerGroup / ++tsW);
     for (gsH = numGroups, gsW = 1; gsH > gsW || gsW * gsH != numGroups; gsH = numGroups / ++gsW);
@@ -1097,7 +1096,7 @@ mfxStatus CmContext::QueryVme(
                 mfxU32 modeCostLambda = Map44LutValueBack(costs.ModeCost[LUTMODE_INTER_16x16]);
                 mfxU32 mvCostLambda   = (task.m_type[0] & MFX_FRAMETYPE_P)
                     ? GetVmeMvCostP(m_lutMvP, mb) : GetVmeMvCostB(m_lutMvB, mb);
-                mfxU16 bitCostLambda = mfxU16(MFX_MIN(mb.interCost, modeCostLambda + mvCostLambda));
+                mfxU16 bitCostLambda = mfxU16(std::min<mfxU32>(mb.interCost, modeCostLambda + mvCostLambda));
                 mb.dist = mb.interCost - bitCostLambda;
             }
         }
@@ -1113,7 +1112,7 @@ mfxStatus CmContext::QueryVme(
         for (size_t i = 0; i < cur->mb.size(); i++)
         {
             cur->mb[i].intraCost     = cmMb[i].intraCost;
-            cur->mb[i].interCost     = MFX_MIN(cmMb[i].intraCost, cmMb[i].interCost);
+            cur->mb[i].interCost     = std::min(cmMb[i].intraCost, cmMb[i].interCost);
             cur->mb[i].intraMbFlag   = cmMb[i].IntraMbFlag;
             cur->mb[i].skipMbFlag    = cmMb[i].SkipMbFlag;
             cur->mb[i].mbType        = cmMb[i].MbType5Bits;
