@@ -82,8 +82,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-num_active_BL1 numRefs] - number of maximum allowed references for B frames in L1 (for HEVC only)\n"));
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
+    msdk_printf(MSDK_STRING("           if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
     msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100].\n"));
     msdk_printf(MSDK_STRING("            may be 1 in the case when -mss option is specified \n"));
+    msdk_printf(MSDK_STRING("            if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
     msdk_printf(MSDK_STRING("   [-dstw width] - destination picture width, invokes VPP resizing\n"));
     msdk_printf(MSDK_STRING("   [-dsth height] - destination picture height, invokes VPP resizing\n"));
     msdk_printf(MSDK_STRING("   [-hw] - use platform specific SDK implementation (default)\n"));
@@ -97,6 +99,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-cbr]                   - constant bitrate control\n"));
     msdk_printf(MSDK_STRING("   [-qvbr quality]          - variable bitrate control algorithm with constant quality. Quality in range [1,51]. 1 is the best quality.\n"));
     msdk_printf(MSDK_STRING("   [-icq quality]           - Intelligent Constant Quality (ICQ) bitrate control method. In range [1,51]. 1 is the best quality.\n"));
+    msdk_printf(MSDK_STRING("                              If [-la] or [-lad] options are enabled simultaneously, then LA_ICQ bitrate control method will be used.\n"));
     msdk_printf(MSDK_STRING("   [-cqp]                   - constant quantization parameter (CQP BRC) bitrate control method\n"));
     msdk_printf(MSDK_STRING("                              (by default constant bitrate control method is used), should be used along with -qpi, -qpp, -qpb.\n"));
     msdk_printf(MSDK_STRING("   [-qpi]                   - constant quantizer for I frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
@@ -331,12 +334,39 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-la")))
         {
-            pParams->nRateControlMethod = MFX_RATECONTROL_LA;
+            if (!pParams->nRateControlMethod)
+            {
+                pParams->nRateControlMethod = MFX_RATECONTROL_LA;
+            }
+            else if (pParams->nRateControlMethod == MFX_RATECONTROL_ICQ)
+            {
+                pParams->nRateControlMethod = MFX_RATECONTROL_LA_ICQ;
+            }
+            else if (pParams->nRateControlMethod != MFX_RATECONTROL_LA &&
+                    pParams->nRateControlMethod != MFX_RATECONTROL_LA_ICQ)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("More than one BRC modes assigned, and another BRC mode isn't compatible with LA."));
+                return MFX_ERR_UNSUPPORTED;
+            }
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-lad")))
         {
             VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
-            pParams->nRateControlMethod = MFX_RATECONTROL_LA;
+            if (!pParams->nRateControlMethod)
+            {
+                pParams->nRateControlMethod = MFX_RATECONTROL_LA;
+            }
+            else if (pParams->nRateControlMethod == MFX_RATECONTROL_ICQ)
+            {
+                pParams->nRateControlMethod = MFX_RATECONTROL_LA_ICQ;
+            }
+            else if (pParams->nRateControlMethod != MFX_RATECONTROL_LA &&
+                    pParams->nRateControlMethod != MFX_RATECONTROL_LA_ICQ)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("More than one BRC modes assigned, and another BRC mode isn't compatible with LA."));
+                return MFX_ERR_UNSUPPORTED;
+            }
+
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nLADepth))
             {
                 PrintHelp(strInput[0], MSDK_STRING("Look Ahead Depth is invalid"));
@@ -591,7 +621,19 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-icq")))
         {
-            pParams->nRateControlMethod = MFX_RATECONTROL_ICQ;
+            if (!pParams->nRateControlMethod)
+            {
+                pParams->nRateControlMethod = MFX_RATECONTROL_ICQ;
+            }
+            else if (pParams->nRateControlMethod == MFX_RATECONTROL_LA)
+            {
+                pParams->nRateControlMethod = MFX_RATECONTROL_LA_ICQ;
+            }
+            else
+            {
+                PrintHelp(strInput[0], MSDK_STRING("More than one BRC modes assigned, and another BRC mode isn't compatible with ICQ.\n"));
+                return MFX_ERR_UNSUPPORTED;
+            }
 
             VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->ICQQuality))
