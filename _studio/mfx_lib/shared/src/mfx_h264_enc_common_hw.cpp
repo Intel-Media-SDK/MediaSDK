@@ -3862,7 +3862,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
     {
-        if (!CheckRange(extOpt3->QVBRQuality, 0, 51)) changed = true;
+        if (!CheckRange(extOpt3->QVBRQuality, 1, 51)) changed = true;
     }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
