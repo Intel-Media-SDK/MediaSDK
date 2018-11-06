@@ -255,6 +255,7 @@ typedef struct {
     { 0x3E94, MFX_HW_CFL, MFX_GT2 },
     { 0x3E96, MFX_HW_CFL, MFX_GT2 },
     { 0x3E9B, MFX_HW_CFL, MFX_GT2 },
+    { 0x3EA5, MFX_HW_CFL, MFX_GT3 },
 
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
