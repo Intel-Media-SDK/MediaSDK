@@ -1123,6 +1123,17 @@ namespace MfxHwH264EncodeHW
     }
 }
 using namespace MfxHwH264EncodeHW;
+inline void SetMinMaxQP(mfxExtCodingOption2 const &  extOpt2, mfxU8  QPMin[], mfxU8  QPMax[])
+{
+	// qp=0 doesn't supported
+	QPMin[0] = (extOpt2.MinQPI) ? extOpt2.MinQPI : 1;
+	QPMin[1] = (extOpt2.MinQPP) ? extOpt2.MinQPP : 1;
+	QPMin[2] = (extOpt2.MinQPB) ? extOpt2.MinQPB : 1;
+
+	QPMax[0] = (extOpt2.MaxQPI) ? extOpt2.MaxQPI : 51;
+	QPMax[1] = (extOpt2.MaxQPP) ? extOpt2.MaxQPP : 51;
+	QPMax[2] = (extOpt2.MaxQPB) ? extOpt2.MaxQPB : 51;
+}
 
 mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 {
@@ -1158,6 +1169,9 @@ mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
 
     m_bControlMaxFrame = (video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD);
     m_AvgBitrate = 0;
+
+	SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
+
     if (extOpt3.WinBRCSize)
     {
         m_AvgBitrate = new AVGBitrate(extOpt3.WinBRCSize, (mfxU32)(1000.0* video.calcParam.WinBRCMaxAvgKbps / m_fr), (mfxU32)(1000.0* video.calcParam.targetKbps / m_fr), true);
@@ -1207,6 +1221,7 @@ mfxStatus VMEBrc::Init(MfxVideoParam  & video)
     m_curBaseQp = -1;
     m_skipped = 0;
     m_lookAhead = 0;
+	SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
 
     m_AvgBitrate = 0;
     if (extOpt3.WinBRCSize)
@@ -1396,6 +1411,16 @@ mfxU8 GetFrameTypeLetter(mfxU32 frameType)
         return mfxU8('B' + ref);
     return 'x';
 }
+inline mfxU32 GetFrameTypeIndex(mfxU32 frameType)
+{
+    if (frameType & MFX_FRAMETYPE_I)
+        return 0;
+    if (frameType & MFX_FRAMETYPE_P)
+        return 1;
+    if (frameType & MFX_FRAMETYPE_B)
+        return 2;
+    return 0;
+}
 
 mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
 {
@@ -1477,7 +1502,8 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
         m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, maxQp);
     else
         ; // do not change qp if last qp guarantees target rate interval
-    m_curQp = CLIPVAL(1, 51, m_curBaseQp + m_laData[m_first].deltaQp ); // driver doesn't support qp=0
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_curBaseQp + m_laData[m_first].deltaQp );
 
     //printf("bqp=%2d qp=%2d dqp=%2d erate=%7.3f ", m_curBaseQp, m_curQp, m_laData[0].deltaQp, m_laData[0].estRateTotal[m_curQp]);
 
@@ -1486,7 +1512,9 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
 mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
     mfxU8 qp = curQP + (mfxU8)par.NumRecode;
-    qp = CLIPVAL(1,51,qp);
+
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp);
     return qp;
 }
 void  LookAheadBrc2::SetQp(const BRCFrameParams& /*par*/, mfxU32 qp)
@@ -1807,7 +1835,9 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
         m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, maxQp);
     else
         ; // do not change qp if last qp guarantees target rate interval
-    m_curQp = CLIPVAL(1, 51, m_curBaseQp + (*start).deltaQp); // driver doesn't support qp=0
+
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_curBaseQp + (*start).deltaQp);
 
 
     brcprintf("bqp=%2d qp=%2d dqp=%2d erate=%7.3f ", m_curBaseQp, m_curQp, (*start).deltaQp, (*start).estRateTotal[m_curQp]);
@@ -1817,7 +1847,8 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
 mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
     mfxU8 qp = curQP + (mfxU8)par.NumRecode;
-    qp = CLIPVAL(1,51,qp);
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind],qp);
     return qp;
 }
 
@@ -1833,10 +1864,11 @@ mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
     m_interCost = 0;
     m_propCost  = 0;
 
+	SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
     return MFX_ERR_NONE;
 }
 
-mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& /*par*/)
+mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& par)
 {
     mfxF64 strength = 0.03 * m_crfQuality + .75;
     mfxF64 ratio    = 1.0;
@@ -1846,14 +1878,18 @@ mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& /*par*/)
         ? -mfxI32(deltaQpF * 2 * strength + 0.5)
         : -mfxI32(deltaQpF * 1 * strength + 0.5);
 
-    m_curQp = CLIPVAL(1, 51, m_crfQuality + deltaQp); // driver doesn't support qp=0
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_crfQuality + deltaQp); // driver doesn't support qp=0
 
     return mfxU8(m_curQp);
 }
 mfxU8 LookAheadCrfBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
     mfxU8 qp = curQP + (mfxU8)par.NumRecode;
-    qp = CLIPVAL(1,51,qp);
+
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp); 
+
     return qp;
 }
 
