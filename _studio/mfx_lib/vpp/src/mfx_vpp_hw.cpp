@@ -5139,7 +5139,33 @@ mfxU64 get_background_color(const mfxVideoParam &videoParam)
             break;
 
         mfxExtVPPColorFill *extCF = reinterpret_cast<mfxExtVPPColorFill *>(videoParam.ExtParam[i]);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        mfxU32 targetFourCC = videoParam.vpp.Out.FourCC;
 
+        if (targetFourCC == MFX_FOURCC_NV12 ||
+            targetFourCC == MFX_FOURCC_YV12 ||
+            targetFourCC == MFX_FOURCC_NV16 ||
+            targetFourCC == MFX_FOURCC_YUY2 ||
+            targetFourCC == MFX_FOURCC_AYUV)
+        {
+            argb_back_color = make_back_color_yuv(8, extCF->Y, extCF->U, extCF->V);
+        }
+        if (targetFourCC == MFX_FOURCC_P010 ||
+            targetFourCC == MFX_FOURCC_Y210 ||
+            targetFourCC == MFX_FOURCC_Y410 ||
+            targetFourCC == MFX_FOURCC_P210)
+        {
+            argb_back_color = make_back_color_yuv(10, extCF->Y, extCF->U, extCF->V);
+        }
+        if (targetFourCC == MFX_FOURCC_RGB4 ||
+            targetFourCC == MFX_FOURCC_BGR4)
+        {
+            argb_back_color = ((mfxU64)0xff << 48)|
+                                             ((mfxU64)VPP_RANGE_CLIP(extCF->R, 0, 255) << 32)|
+                                             ((mfxU64)VPP_RANGE_CLIP(extCF->G, 0, 255) << 16)|
+                                             ((mfxU64)VPP_RANGE_CLIP(extCF->B, 0, 255) <<  0);
+        }
+#endif
         // if colorfill is disabled
         if (extCF->Enable != MFX_CODINGOPTION_ON) {
             argb_back_color = 0;

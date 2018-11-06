@@ -252,6 +252,9 @@ msdk_printf(MSDK_STRING("   [-mirror (mode)]      - mirror image using specified
 
 msdk_printf(MSDK_STRING("   [-n frames] - number of frames to VPP process\n\n"));
 
+#if MFX_VERSION >= MFX_VERSION_NEXT
+msdk_printf(MSDK_STRING("   [-cf #RRGGBB]          - use specified color for the colorfill (in 8-bit rgb format).\n"));
+#endif
 msdk_printf(MSDK_STRING("   [-cf_disable]         - disable colorfill.\n\n"));
 
 msdk_printf(MSDK_STRING("   [-iopattern IN/OUT surface type] -  IN/OUT surface type: sys_to_sys, sys_to_d3d, d3d_to_sys, d3d_to_d3d    (def: sys_to_sys)\n"));
@@ -691,6 +694,23 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->mirroringParam[paramID].Type);
             }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf")) )
+            {
+                mfxU32 bgColor;
+                VAL_CHECK(1 + i == nArgNum);
+
+                pParams->colorfillParam[paramID].mode = VPP_FILTER_ENABLED_CONFIGURED;
+                pParams->colorfillParam[paramID].Enable = MFX_CODINGOPTION_ON;
+
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%X"), &bgColor);
+                pParams->colorfillParam[paramID].R = (bgColor&0xff0000) >> 16;
+                pParams->colorfillParam[paramID].G = (bgColor&0xff00) >> 8;
+                pParams->colorfillParam[paramID].B = bgColor&0xff;
+
+            }
+#endif
             else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf_disable")) )
             {
                 pParams->colorfillParam[paramID].mode = VPP_FILTER_ENABLED_CONFIGURED;
@@ -1087,6 +1107,22 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 i++;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->mirroringParam[0].Type);
             }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf")) )
+            {
+                mfxU32 bgColor = 0;
+                VAL_CHECK(1 + i == nArgNum);
+
+                pParams->colorfillParam[0].mode = VPP_FILTER_ENABLED_CONFIGURED;
+                pParams->colorfillParam[0].Enable = MFX_CODINGOPTION_ON;
+
+                i++;
+                msdk_sscanf(strInput[i], MSDK_STRING("%X"), &bgColor);
+                pParams->colorfillParam[0].R = (bgColor&0xff0000) >> 16;
+                pParams->colorfillParam[0].G = (bgColor&0xff00) >> 8;
+                pParams->colorfillParam[0].B = bgColor&0xff;
+            }
+#endif
             else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf_disable")) )
             {
                 pParams->colorfillParam[0].mode = VPP_FILTER_ENABLED_CONFIGURED;

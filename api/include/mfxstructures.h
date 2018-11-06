@@ -1930,7 +1930,23 @@ typedef struct {
 typedef struct {
     mfxExtBuffer Header;
     mfxU16 Enable;        /* tri-state option */
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    union {
+        mfxU16   Y;
+        mfxU16   R;
+    };
+    union {
+        mfxU16   U;
+        mfxU16   G;
+    };
+    union {
+        mfxU16   V;
+        mfxU16   B;
+    };
+    mfxU16 reserved[8];
+#else
     mfxU16 reserved[11];
+#endif
 } mfxExtVPPColorFill;
 
 #if (MFX_VERSION >= 1025)
