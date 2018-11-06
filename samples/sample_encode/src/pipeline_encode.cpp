@@ -418,7 +418,8 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_mfxEncParams.mfx.QPP = pInParams->nQPP;
         m_mfxEncParams.mfx.QPB = pInParams->nQPB;
     }
-    else if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
+    else if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_ICQ ||
+             m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ)
     {
         m_mfxEncParams.mfx.ICQQuality = pInParams->ICQQuality;
     }
