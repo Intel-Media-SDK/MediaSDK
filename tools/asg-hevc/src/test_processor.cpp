@@ -218,7 +218,8 @@ void TestProcessor::RunRepackVerify()
         fpRepackStat.getline(repackStat, sizeof(repackStat));
         if (!fpRepackStat.good())
             throw string("ERROR: Repack stat file read failed");
-        sscanf(repackStat, "%d NumPasses\n", &activeNumPasses);
+        istringstream repackStatStream(string(repackStat, strlen(repackStat)));
+        repackStatStream >> activeNumPasses;
 
         // Check read repack data
 
