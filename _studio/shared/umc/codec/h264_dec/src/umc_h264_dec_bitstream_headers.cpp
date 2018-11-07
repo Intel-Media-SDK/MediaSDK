@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1292,7 +1292,7 @@ Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps, H264
                 if (pps->SliceGroupInfo.t3.pic_size_in_map_units != PicSizeInMapUnits)
                     return UMC_ERR_INVALID_STREAM;
 
-                uint32_t const len = MFX_MAX(1, pps->SliceGroupInfo.t3.pic_size_in_map_units);
+                uint32_t const len = std::max(1u, pps->SliceGroupInfo.t3.pic_size_in_map_units);
 
                 pps->SliceGroupInfo.pSliceGroupIDMap.resize(len);
 
