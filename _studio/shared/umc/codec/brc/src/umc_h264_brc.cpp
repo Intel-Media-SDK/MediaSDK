@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -400,9 +400,9 @@ Status H264BRC::Init(BaseCodecParams *params, int32_t enableRecode)
 
   if (!mRecode) {
       if (q - 6 > 10)
-        mQuantMin = MFX_MAX(10, q - 24);
+        mQuantMin = std::max(10, q - 24);
       else
-        mQuantMin = MFX_MAX(q - 6, 2);
+        mQuantMin = std::max(q - 6, 2);
 
       if (q < mQuantMin)
         q = mQuantMin;
@@ -594,9 +594,9 @@ Status H264BRC::Reset(BaseCodecParams *params, int32_t enableRecode)
     mRCq = GetInitQP();
     if (!mRecode) {
         if (mRCq - 6 > 10)
-            mQuantMin = MFX_MAX(10, mRCq - 24);
+            mQuantMin = std::max(10, mRCq - 24);
         else
-            mQuantMin = MFX_MAX(mRCq - 6, 2);
+            mQuantMin = std::max(mRCq - 6, 2);
         if (mRCq < mQuantMin)
             mRCq = mQuantMin;
     }
@@ -721,7 +721,7 @@ BRCStatus H264BRC::PostPackFrame(FrameType picType, int32_t totalFrameBits, int3
     mRCfa_short += (bitsEncoded - mRCfa_short) / BRC_RCFAP_SHORT;
 
     double frameFactor = 1.0;
-    double targetFrameSize = MFX_MAX((double)mBitsDesiredFrame, mRCfa);
+    double targetFrameSize = std::max<double>(mBitsDesiredFrame, mRCfa);
     if (isField) targetFrameSize *= 0.5; 
     
     qstep = QP2Qstep(qp);
@@ -802,7 +802,7 @@ BRCStatus H264BRC::PostPackFrame(FrameType picType, int32_t totalFrameBits, int3
         mFrameType = prevFrameType;
         mRCfa_short = fa_short0;
     } else {
-        unsigned long long maxBitsPerFrame = MFX_MIN(mMaxBitsPerPic >> isField, mHRD.bufSize);
+        unsigned long long maxBitsPerFrame = std::min<unsigned long long>(mMaxBitsPerPic >> isField, mHRD.bufSize);
 
         if (static_cast<unsigned long long>(totalFrameBits) > maxBitsPerFrame) {
             if (maxBitsPerFrame > static_cast<unsigned long long>(mHRD.minFrameSize)) { // otherwise we ignore minCR requirement
@@ -900,7 +900,7 @@ BRCStatus H264BRC::UpdateQuant(int32_t bEncoded, int32_t totalPicBits)
   mBitsDesiredTotal += bitsPerPic;
 
   long long targetFullness = mParams.HRDInitialDelayBytes << 3;
-  long long minTargetFullness = MFX_MIN(mHRD.bufSize / 2, mBitrate * 2); // half bufsize or 2 sec
+  long long minTargetFullness = std::min(mHRD.bufSize / 2, mBitrate * 2); // half bufsize or 2 sec
   if (targetFullness < minTargetFullness)
       targetFullness = minTargetFullness;
   totalBitsDeviation = targetFullness - (long long)mHRD.bufFullness;
@@ -921,7 +921,7 @@ BRCStatus H264BRC::UpdateQuant(int32_t bEncoded, int32_t totalPicBits)
 
   if (totalBitsDeviation > 0) {
       bap = (int32_t)bfRatio*3;
-      bap = MFX_MAX(bap, 10);
+      bap = std::max(bap, 10);
       bap = mfx::clamp(bap, mRCbap/10, mRCbap);
   }
   bo = (double)totalBitsDeviation / bap / mBitsDesiredFrame; // ??? bitsPerPic ?
@@ -948,7 +948,7 @@ BRCStatus H264BRC::UpdateQuant(int32_t bEncoded, int32_t totalPicBits)
   mRCq = quant;
 
   double qstep = QP2Qstep(quant);
-  double fullnessThreshold = MFX_MIN(bitsPerPic * 12, mHRD.bufSize*3/16);
+  double fullnessThreshold = std::min(bitsPerPic * 12, mHRD.bufSize*3/16);
   qs = 1.0;
   if (bEncoded > mHRD.bufFullness && mFrameType != I_PICTURE) {
     qs = (double)bEncoded / (mHRD.bufFullness);
