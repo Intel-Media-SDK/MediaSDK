@@ -12,6 +12,8 @@ list( APPEND sources ${srcs})
 make_library( cttmetrics none shared )
 make_library( cttmetrics_static none static )
 
+install( TARGETS cttmetrics LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+
 # metrics_monitor sample
 
 set( sources "" )
@@ -21,6 +23,8 @@ list( APPEND sources ${srcs})
 list( APPEND LIBS cttmetrics)
 
 make_executable( metrics_monitor none )
+
+install( TARGETS metrics_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
 
 # test_monitor
 
@@ -52,6 +56,8 @@ if( PKG_LIBDRM_FOUND AND
     set(DEPENDENCIES libdrm)
 
     make_executable( test_monitor none )
+
+    install( TARGETS test_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
 
 else()
 
