@@ -157,7 +157,7 @@ mfxU8 PLayer(
 {
     if (par.isLowDelay())
     {
-        return Min<mfxU8>(7, GetPFrameLevel((order / (par.isField() ? 2 : 1)) % par.PPyrInterval, par.PPyrInterval));
+        return std::min<mfxU8>(7, GetPFrameLevel((order / (par.isField() ? 2 : 1)) % par.PPyrInterval, par.PPyrInterval));
     }
 
     return 0;
@@ -674,7 +674,7 @@ namespace ExtBuffer
             else
                 buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
             buf.TargetBitDepthLuma      = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
-            buf.TargetBitDepthChroma    = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
+            buf.TargetBitDepthChroma    = std::min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
 
             return false;
         }
@@ -689,7 +689,7 @@ namespace ExtBuffer
         if (!buf.TargetBitDepthLuma)
             buf.TargetBitDepthLuma = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
         if (!buf.TargetBitDepthChroma)
-            buf.TargetBitDepthChroma = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
+            buf.TargetBitDepthChroma = std::min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
 
         return true;
     }
@@ -970,11 +970,11 @@ bool MfxVideoParam::CheckExtBufferParam()
 
 void MfxVideoParam::SyncVideoToCalculableParam()
 {
-    mfxU32 multiplier = Max<mfxU32>(mfx.BRCParamMultiplier, 1);
+    mfxU32 multiplier = std::max<mfxU32>(mfx.BRCParamMultiplier, 1);
 
     BufferSizeInKB = mfx.BufferSizeInKB * multiplier;
     LTRInterval    = 0;
-    PPyrInterval = (mfx.NumRefFrame >0) ? Min<mfxU32> (DEFAULT_PPYR_INTERVAL, mfx.NumRefFrame) : DEFAULT_PPYR_INTERVAL;
+    PPyrInterval   = (mfx.NumRefFrame >0) ? std::min<mfxU32> (DEFAULT_PPYR_INTERVAL, mfx.NumRefFrame) : DEFAULT_PPYR_INTERVAL;
 
     if (mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
@@ -1007,10 +1007,10 @@ void MfxVideoParam::SyncCalculableToVideoParam()
 
     if (mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
-        maxVal32 = Max(maxVal32, TargetKbps);
+        maxVal32 = std::max(maxVal32, TargetKbps);
 
         if (mfx.RateControlMethod != MFX_RATECONTROL_AVBR)
-            maxVal32 = Max(maxVal32, Max(MaxKbps, InitialDelayInKB));
+            maxVal32 = std::max({maxVal32, MaxKbps, InitialDelayInKB});
     }
 
     mfx.BRCParamMultiplier = mfxU16((maxVal32 + 0x10000) / 0x10000);
@@ -1531,7 +1531,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     }
 
     slo.max_dec_pic_buffering_minus1    = mfx.NumRefFrame;
-    slo.max_num_reorder_pics            = Min(GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord), slo.max_dec_pic_buffering_minus1);
+    slo.max_num_reorder_pics            = std::min(GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord), slo.max_dec_pic_buffering_minus1);
     slo.max_latency_increase_plus1      = 0;
 
     Zero(m_sps);
@@ -1552,11 +1552,11 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_sps.pic_height_in_luma_samples        = m_ext.HEVCParam.PicHeightInLumaSamples;
     m_sps.conformance_window_flag           = 0;
 #if (MFX_VERSION >= 1027)
-    m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)m_ext.CO3.TargetBitDepthLuma - 8);
-    m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)m_ext.CO3.TargetBitDepthChroma - 8);
+    m_sps.bit_depth_luma_minus8             = std::max<mfxI32>(0, m_ext.CO3.TargetBitDepthLuma   - 8);
+    m_sps.bit_depth_chroma_minus8           = std::max<mfxI32>(0, m_ext.CO3.TargetBitDepthChroma - 8);
 #else
-    m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)mfx.FrameInfo.BitDepthLuma - 8);
-    m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)mfx.FrameInfo.BitDepthChroma - 8);
+    m_sps.bit_depth_luma_minus8             = std::max<mfxI32>(0, mfx.FrameInfo.BitDepthLuma   - 8);
+    m_sps.bit_depth_chroma_minus8           = std::max<mfxI32>(0, mfx.FrameInfo.BitDepthChroma - 8);
 #endif
     m_sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)clamp<mfxI32>(CeilLog2(mfx.GopRefDist*(isField() ? 2 : 1) + slo.max_dec_pic_buffering_minus1) - 1, 0, 12);
 
@@ -1596,7 +1596,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
         mfxU8 rpl[2][MAX_DPB_SIZE] = {};
         mfxU8 nRef[2] = {};
         STRPS rps;
-        mfxI32 STDist = Min<mfxI32>(mfx.GopPicSize, 128);
+        mfxI32 STDist = std::min<mfxI32>(mfx.GopPicSize, 128);
         bool moreLTR = !!LTRInterval;
         mfxI32 lastIPoc = 0;
 
@@ -1645,7 +1645,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
                 {
                     mfxI32 layer = PLayer(cur->m_poc - lastIPoc, *this);
                     nRef[0] = (mfxU8)CO3.NumRefActiveP[layer];
-                    nRef[1] = (mfxU8)Min(CO3.NumRefActiveP[layer], m_ext.DDI.NumActiveRefBL1);
+                    nRef[1] = (mfxU8)std::min(CO3.NumRefActiveP[layer], m_ext.DDI.NumActiveRefBL1);
                 }
 
                 ConstructRPL(*this, dpb, !!(cur->m_frameType & MFX_FRAMETYPE_B), cur->m_poc, cur->m_tid, cur->m_level, cur->m_secondField, isBFF()? !cur->m_secondField : cur->m_secondField, rpl, nRef);
@@ -1863,7 +1863,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_pps.num_extra_slice_header_bits           = 0;
     m_pps.sign_data_hiding_enabled_flag         = 0;
     m_pps.cabac_init_present_flag               = 0;
-    m_pps.num_ref_idx_l0_default_active_minus1  = Max(m_ext.DDI.NumActiveRefP, m_ext.DDI.NumActiveRefBL0) -1;
+    m_pps.num_ref_idx_l0_default_active_minus1  = std::max(m_ext.DDI.NumActiveRefP, m_ext.DDI.NumActiveRefBL0) -1;
     m_pps.num_ref_idx_l1_default_active_minus1  = m_ext.DDI.NumActiveRefBL1 -1;
     m_pps.init_qp_minus26                       = 0;
     m_pps.constrained_intra_pred_flag           = 0;
@@ -1931,8 +1931,8 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     {
         mfxU16 nCol   = (mfxU16)CeilDiv(m_ext.HEVCParam.PicWidthInLumaSamples,  LCUSize);
         mfxU16 nRow   = (mfxU16)CeilDiv(m_ext.HEVCParam.PicHeightInLumaSamples, LCUSize);
-        mfxU16 nTCol  = Max<mfxU16>(m_ext.HEVCTiles.NumTileColumns, 1);
-        mfxU16 nTRow  = Max<mfxU16>(m_ext.HEVCTiles.NumTileRows, 1);
+        mfxU16 nTCol  = std::max<mfxU16>(m_ext.HEVCTiles.NumTileColumns, 1);
+        mfxU16 nTRow  = std::max<mfxU16>(m_ext.HEVCTiles.NumTileRows,    1);
 
         m_pps.tiles_enabled_flag        = 1;
         m_pps.uniform_spacing_flag      = 1;
@@ -2245,8 +2245,8 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             mfxI32 RPLTempX[2][16] = {}; // default ref. list without modifications
             mfxU16 NumRpsCurrTempListX[2] =
             {
-                Max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[0]),
-                Max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[1])
+                std::max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[0]),
+                std::max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[1])
             };
 
             for (j = 0; j < 2; j ++)
@@ -2341,8 +2341,8 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             {
                 mfxU16 sz[2] =
                 {
-                    Min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL0),
-                    Min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL1)
+                    std::min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL0),
+                    std::min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL1)
                 };
 
                 for (mfxU16 l = 0; l < 2; l++)
@@ -2503,7 +2503,7 @@ void HRD::Update(mfxU32 sizeInbits, const Task &pic)
             // (C-6)
             : auNominalRemovalTime - m_cpbSize90k;
         // (C-4)
-        initArrivalTime = Max(m_prevAuFinalArrivalTime, initArrivalEarliestTime * m_bitrate);
+        initArrivalTime = std::max(m_prevAuFinalArrivalTime, initArrivalEarliestTime * m_bitrate);
     }
     // (C-8)
     mfxF64 auFinalArrivalTime = initArrivalTime + (mfxF64)sizeInbits * 90000;
@@ -2546,7 +2546,7 @@ mfxU32 HRD::GetInitCpbRemovalDelay(const Task &pic)
             // (C-19)
             ? (mfxU32)(deltaTime90k)
             // (C-18)
-            : (mfxU32)Min(deltaTime90k, m_cpbSize90k);
+            : (mfxU32)std::min(deltaTime90k, m_cpbSize90k);
     }
 
     return (mfxU32)m_initCpbRemovalDelay;
@@ -3173,10 +3173,10 @@ void ConstructRPL(
         mfxU16 pref[2] = {};
 
         if (pLCtrl->NumRefIdxL0Active)
-            MaxRef[0] = Min(pLCtrl->NumRefIdxL0Active, MaxRef[0]);
+            MaxRef[0] = std::min(pLCtrl->NumRefIdxL0Active, MaxRef[0]);
 
         if (pLCtrl->NumRefIdxL1Active)
-            MaxRef[1] = Min(pLCtrl->NumRefIdxL1Active, MaxRef[1]);
+            MaxRef[1] = std::min(pLCtrl->NumRefIdxL1Active, MaxRef[1]);
 
         for (mfxU16 i = 0; i < 16 && pLCtrl->RejectedRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
         {
@@ -3242,7 +3242,7 @@ void ConstructRPL(
     {
         l1 = 0; //ignore l1 != l0 in pExtLists for LDB (unsupported by HW)
 
-        for (mfxU16 i = 0; i < Min<mfxU16>(l0, NumRefLX[1]); i ++)
+        for (mfxU16 i = 0; i < std::min<mfxU16>(l0, NumRefLX[1]); i ++)
             RPL[1][l1++] = RPL[0][i];
         //for (mfxI16 i = l0 - 1; i >= 0 && l1 < NumRefLX[1]; i --)
         //    RPL[1][l1++] = RPL[0][i];
