@@ -88,12 +88,7 @@ mfxStatus CVAAPIDeviceX11::Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapterNu
     MfxLoader::XLib_Proxy & x11lib = m_X11LibVA.GetX11();
     MfxLoader::X11_Xcb_Proxy & x11xcblib = m_X11LibVA.GetX11XcbX11();
 
-    m_dpy = x11lib.XOpenDisplay(NULL);
-    if (m_dpy == NULL){
-        msdk_printf(MSDK_STRING("Failed to open display\n"));
-        return MFX_ERR_NOT_INITIALIZED;
-    }
-    m_xcbconn = x11xcblib.XGetXCBConnection(m_dpy);
+    m_xcbconn = x11xcblib.XGetXCBConnection(VAAPI_GET_X_DISPLAY(m_X11LibVA.GetXDisplay()));
 
     // it's enough to pass render node, because we only request
     // information from kernel via m_dri_fd
@@ -131,11 +126,6 @@ void CVAAPIDeviceX11::Close(void)
     if (m_dri_fd)
     {
         close(m_dri_fd);
-    }
-    if (m_dpy)
-    {
-        MfxLoader::XLib_Proxy & x11lib = m_X11LibVA.GetX11();
-        x11lib.XCloseDisplay(m_dpy);
     }
 #endif
 }
@@ -251,8 +241,10 @@ mfxStatus CVAAPIDeviceX11::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllo
 
     if (MFX_ERR_NONE == mfx_res)
     {
-        x11lib.XResizeWindow(m_dpy, *window, pSurface->Info.CropW, pSurface->Info.CropH);
-        x11lib.XGetGeometry(m_dpy, *window, &root, &x, &y, &width, &height, &border, &depth);
+        x11lib.XResizeWindow(VAAPI_GET_X_DISPLAY(m_X11LibVA.GetXDisplay()),
+                             *window, pSurface->Info.CropW, pSurface->Info.CropH);
+        x11lib.XGetGeometry(VAAPI_GET_X_DISPLAY(m_X11LibVA.GetXDisplay()),
+                            *window, &root, &x, &y, &width, &height, &border, &depth);
 
         switch (depth) {
             case 8: bpp = 8; break;
