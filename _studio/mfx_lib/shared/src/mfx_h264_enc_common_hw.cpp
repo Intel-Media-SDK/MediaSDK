@@ -1466,14 +1466,14 @@ mfxStatus MfxHwH264Encode::ReadSpsPpsHeaders(MfxVideoParam & par)
         if (extBits.SPSBuffer)
         {
             InputBitstream reader(extBits.SPSBuffer, extBits.SPSBufSize);
-            mfxExtSpsHeader * extSps = GetExtBuffer(par);
-            ReadSpsHeader(reader, *extSps);
+            mfxExtSpsHeader & extSps = GetExtBufferRef(par);
+            ReadSpsHeader(reader, extSps);
 
             if (extBits.PPSBuffer)
             {
                 InputBitstream pps_reader(extBits.PPSBuffer, extBits.PPSBufSize);
-                mfxExtPpsHeader * extPps = GetExtBuffer(par);
-                ReadPpsHeader(pps_reader, *extSps, *extPps);
+                mfxExtPpsHeader & extPps = GetExtBufferRef(par);
+                ReadPpsHeader(pps_reader, extSps, extPps);
             }
         }
     }
@@ -2013,18 +2013,18 @@ mfxStatus MfxHwH264Encode::CheckVideoParamFEI(
 {
     mfxStatus checkSts = MFX_ERR_NONE;
 
-    mfxExtFeiParam* feiParam = (mfxExtFeiParam*)MfxHwH264Encode::GetExtBuffer(par.ExtParam, par.NumExtParam, MFX_EXTBUFF_FEI_PARAM);
+    mfxExtFeiParam & feiParam = GetExtBufferRef(par);
 
-    if (!feiParam->Func)
+    if (!feiParam.Func)
     {
         // It is not FEI, but regular encoder
         return MFX_ERR_NONE;
     }
 
-    bool isPAK      = feiParam->Func == MFX_FEI_FUNCTION_PAK;
-    bool isENCorPAK = feiParam->Func == MFX_FEI_FUNCTION_ENC || isPAK;
+    bool isPAK      = feiParam.Func == MFX_FEI_FUNCTION_PAK;
+    bool isENCorPAK = feiParam.Func == MFX_FEI_FUNCTION_ENC || isPAK;
 
-    switch (feiParam->Func)
+    switch (feiParam.Func)
     {
     case MFX_FEI_FUNCTION_PREENC:
     case MFX_FEI_FUNCTION_ENCODE:
@@ -7523,7 +7523,7 @@ void MfxVideoParam::SyncVideoToCalculableParam()
     if (IsMvcProfile(mfx.CodecProfile))
     {
         mfxExtMVCSeqDesc * extMvc = GetExtBuffer(*this);
-        if (extMvc->NumView)
+        if (extMvc && extMvc->NumView)
         {
             calcParam.mvcPerViewPar.bufferSizeInKB   = calcParam.bufferSizeInKB / extMvc->NumView;
             if (mfx.RateControlMethod != MFX_RATECONTROL_CQP
