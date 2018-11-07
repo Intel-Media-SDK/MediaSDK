@@ -1282,7 +1282,7 @@ Status H264HeadersBitstream::GetPictureParamSetPart2(H264PicParamSet  *pps, H264
                 if (pps->SliceGroupInfo.t3.pic_size_in_map_units != PicSizeInMapUnits)
                     return UMC_ERR_INVALID_STREAM;
 
-                uint32_t const len = MFX_MAX(1, pps->SliceGroupInfo.t3.pic_size_in_map_units);
+                uint32_t const len = std::max<uint32_t>(1, pps->SliceGroupInfo.t3.pic_size_in_map_units);
 
                 pps->SliceGroupInfo.pSliceGroupIDMap.resize(len);
 

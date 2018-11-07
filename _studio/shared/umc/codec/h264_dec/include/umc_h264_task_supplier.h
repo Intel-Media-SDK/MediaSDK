@@ -675,7 +675,7 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
 {
     uint32_t dpbSize;
 
-    num_ref_frames = MFX_MIN(16, num_ref_frames);
+    num_ref_frames = std::min<uint32_t>(16, num_ref_frames);
 
     for (;;)
     {
@@ -732,7 +732,7 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         }
 
         uint32_t dpbLevel = MaxDPBMbs*256 / (width * height);
-        dpbSize = MFX_MIN(16, dpbLevel);
+        dpbSize = std::min<uint32_t>(16, dpbLevel);
 
         if (num_ref_frames <= dpbSize || level_idc == H264VideoDecoderParams::H264_LEVEL_MAX)
             break;

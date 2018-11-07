@@ -237,7 +237,7 @@ public:
     {
         if ((m_PictureStructureForRef >= FRM_STRUCTURE && force==0) || force==3)
         {
-            return MFX_MIN(m_PicNum[0],m_PicNum[1]);
+            return std::min(m_PicNum[0],m_PicNum[1]);
         }
 
         return m_PicNum[f];
@@ -308,12 +308,12 @@ public:
     {
         if ((m_PictureStructureForRef>=FRM_STRUCTURE && force==0) || force==3)
         {
-            return MFX_MIN(m_PicOrderCnt[0],m_PicOrderCnt[1]);
+            return std::min(m_PicOrderCnt[0],m_PicOrderCnt[1]);
         }
         else if (force==2)
         {
             if (isShortTermRef(0) && isShortTermRef(1))
-                return MFX_MIN(m_PicOrderCnt[0],m_PicOrderCnt[1]);
+                return std::min(m_PicOrderCnt[0],m_PicOrderCnt[1]);
             else if (isShortTermRef(0))
                 return m_PicOrderCnt[0];
             else
@@ -347,12 +347,12 @@ public:
     {
         if ((m_PictureStructureForRef>=FRM_STRUCTURE && force==0) || force==3)
         {
-            return MFX_MIN(m_LongTermPicNum[0],m_LongTermPicNum[1]);
+            return std::min(m_LongTermPicNum[0],m_LongTermPicNum[1]);
         }
         else if (force==2)
         {
             if (isLongTermRef(0) && isLongTermRef(1))
-                return MFX_MIN(m_LongTermPicNum[0],m_LongTermPicNum[1]);
+                return std::min(m_LongTermPicNum[0],m_LongTermPicNum[1]);
             else if (isLongTermRef(0))
                 return m_LongTermPicNum[0];
             else return m_LongTermPicNum[1];
@@ -401,7 +401,7 @@ public:
     uint32_t RefPicListResetCount(int32_t f) const
     {
         if (m_PictureStructureForRef >= FRM_STRUCTURE)
-            return MFX_MAX(m_RefPicListResetCount[0], m_RefPicListResetCount[1]);
+            return std::max(m_RefPicListResetCount[0], m_RefPicListResetCount[1]);
         else
             return m_RefPicListResetCount[f];
     }

@@ -275,7 +275,7 @@ bool IsPictureTheSame(H264Slice *pSliceOne, H264Slice *pSliceTwo)
         return false;
 
     if ((pOne->nal_ref_idc != pTwo->nal_ref_idc) &&
-        (0 == MFX_MIN(pOne->nal_ref_idc, pTwo->nal_ref_idc)))
+        (0 == std::min(pOne->nal_ref_idc, pTwo->nal_ref_idc)))
         return false;
 
     if (0 == pSliceTwo->GetSeqParam()->pic_order_cnt_type)

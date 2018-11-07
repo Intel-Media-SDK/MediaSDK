@@ -159,7 +159,7 @@ public:
                 if (m_prev.size() + sz >  m_suggestedSize)
                 {
                     m_prev.clear();
-                    sz = MFX_MIN(sz, m_suggestedSize);
+                    sz = std::min(sz, m_suggestedSize);
                 }
 
                 m_prev.insert(m_prev.end(), (uint8_t *)pSource->GetDataPointer(), (uint8_t *)pSource->GetDataPointer() + sz);
@@ -310,7 +310,7 @@ private:
 
             if (zeroCount >= 2 && pb[0] == 1)
             {
-                startCodeSize = MFX_MIN(zeroCount + 1, 4);
+                startCodeSize = std::min<uint32_t>(zeroCount + 1, 4);
                 size -= i + 1;
                 pb++; // remove 0x01 symbol
                 zeroCount = 0;
@@ -344,7 +344,7 @@ private:
             }
         }
 
-        zeroCount = MFX_MIN(zeroCount, 3);
+        zeroCount = std::min<uint32_t>(zeroCount, 3);
         pb -= zeroCount;
         size = zeroCount;
         zeroCount = 0;
@@ -581,7 +581,7 @@ void SwapMemoryAndRemovePreventingBytes(void *pDestination, size_t &nDstSize, vo
 
     // first two bytes
     i = 0;
-    while (i < (uint32_t) MFX_MIN(2, nSrcSize))
+    while (i < std::min<uint32_t>(2, nSrcSize))
     {
         pDst = (uint8_t) pSrc;
         ++pDst;
