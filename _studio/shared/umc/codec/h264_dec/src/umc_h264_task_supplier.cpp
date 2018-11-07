@@ -193,10 +193,7 @@ void SVC_Extension::ChooseLevelIdc(const H264SeqParamSetSVCExtension * extension
     if (m_level_idc)
         return;
 
-    m_level_idc = extension->level_idc;
-
-    uint8_t maxLevel = MFX_MAX(baseViewLevelIDC, extensionLevelIdc);
-    m_level_idc = MFX_MAX(maxLevel, m_level_idc);
+    m_level_idc = std::max({baseViewLevelIDC, extensionLevelIdc, extension->level_idc});
 
     assert(m_level_idc != 0);
 }
@@ -1237,8 +1234,7 @@ void MVC_Extension::ChooseLevelIdc(const H264SeqParamSetMVCExtension * extension
         }
     }
 
-    uint8_t maxLevel = MFX_MAX(baseViewLevelIDC, extensionLevelIdc);
-    m_level_idc = MFX_MAX(maxLevel, m_level_idc);
+    m_level_idc = std::max({baseViewLevelIDC, extensionLevelIdc, m_level_idc});
 
     assert(m_level_idc != 0);
 }
@@ -3951,7 +3947,7 @@ void TaskSupplier::InitFreeFrame(H264DecoderFrame * pFrame, const H264Slice *pSl
     uint8_t bit_depth_luma = pSeqParam->bit_depth_luma;
     uint8_t bit_depth_chroma = pSeqParam->bit_depth_chroma;
 
-    int32_t bit_depth = MFX_MAX(bit_depth_luma, bit_depth_chroma);
+    int32_t bit_depth = std::max(bit_depth_luma, bit_depth_chroma);
 
     int32_t iMBWidth = pSeqParam->frame_width_in_mbs;
     int32_t iMBHeight = pSeqParam->frame_height_in_mbs;
