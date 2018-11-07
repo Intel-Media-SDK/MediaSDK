@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,13 +38,6 @@
 #include <list>
 #include <assert.h>
 
-#ifndef MFX_MAX
-#define MFX_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
-#ifndef MFX_MIN
-#define MFX_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
-
 #define MFX_SORT_COMMON(_AR, _SZ, _COND)\
     for (mfxU32 _i = 0; _i < (_SZ); _i ++)\
         for (mfxU32 _j = _i; _j < (_SZ); _j ++)\
@@ -73,8 +66,6 @@ template<class T> inline void Zero(T & obj)                   { memset(&obj, 0, 
 template<class T> inline void Zero(std::vector<T> & vec)      { memset(&vec[0], 0, sizeof(T) * vec.size()); }
 template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0, sizeof(T) * cnt); }
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
-template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
-template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
 template<class T> inline T Align(T value, mfxU32 alignment)
 {
     assert((alignment & (alignment - 1)) == 0); // should be 2^n
@@ -488,7 +479,7 @@ namespace ExtBuffer
         MFX_COPY_FIELD(NalHrdConformance);
         MFX_COPY_FIELD(AUDelimiter);
     }
-    inline void CopySupportedParams(mfxExtCodingOption2& buf_dst, mfxExtCodingOption2& buf_src)
+    inline void  CopySupportedParams(mfxExtCodingOption2& buf_dst, mfxExtCodingOption2& buf_src)
     {
         MFX_COPY_FIELD(IntRefType);
         MFX_COPY_FIELD(IntRefCycleSize);
@@ -514,7 +505,7 @@ namespace ExtBuffer
         MFX_COPY_FIELD(EnableMAD);
     }
 
-    inline void CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
+    inline void  CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
     {
         MFX_COPY_FIELD(PRefType);
         MFX_COPY_FIELD(IntRefCycleDist);
@@ -724,7 +715,7 @@ public:
             }
         }
 
-        m_numTL = Max<mfxU8>(m_numTL, 1);
+        m_numTL = std::max<mfxU8>(m_numTL, 1);
     }
 
     mfxU8 NumTL() const { return m_numTL; }
