@@ -1643,11 +1643,10 @@ namespace MfxHwH264EncodeHW
         mfxU32 pocL0,
         mfxU32 pocL1)
     {
-        mfxI32 tb = MFX_MIN(MFX_MAX(-128, mfxI32(pocCur - pocL0)), 127);
-        mfxI32 td = MFX_MIN(MFX_MAX(-128, mfxI32(pocL1  - pocL0)), 127);
+        mfxI32 tb = mfx::clamp(mfxI32(pocCur - pocL0), -128, 127);
+        mfxI32 td = mfx::clamp(mfxI32(pocL1  - pocL0), -128, 127);
         mfxI32 tx = (16384 + abs(td/2)) / td;
-        mfxI32 distScaleFactor = MFX_MIN(MFX_MAX(-1024, (tb * tx + 32) >> 6), 1023);
-        return distScaleFactor;
+        return mfx::clamp((tb * tx + 32) >> 6, -1024, 1023);
     }
 
 
@@ -1977,7 +1976,7 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
             mfxU32 modeCostLambda = Map44LutValueBack(costs.ModeCost[LUTMODE_INTER_16x16]);
             mfxU32 mvCostLambda   = (task.m_TaskInfo.InputFrame.frameType & MFX_FRAMETYPE_P)
                 ? GetVmeMvCostP(m_lutMvP, mb) : GetVmeMvCostB(m_lutMvB, mb);
-            mfxU16 bitCostLambda = mfxU16(MFX_MIN(mb.interCost, modeCostLambda + mvCostLambda));
+            mfxU16 bitCostLambda = mfxU16(std::min<mfxU32>(mb.interCost, modeCostLambda + mvCostLambda));
             mb.dist = mb.interCost - bitCostLambda;
         }
     }
@@ -1993,7 +1992,7 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
     for (size_t i = 0; i < cur->mb.size(); i++)
     {
         cur->mb[i].intraCost     = cmMb[i].intraCost;
-        cur->mb[i].interCost     = MFX_MIN(cmMb[i].intraCost, cmMb[i].interCost);
+        cur->mb[i].interCost     = std::min(cmMb[i].intraCost, cmMb[i].interCost);
         cur->mb[i].intraMbFlag   = cmMb[i].IntraMbFlag;
         cur->mb[i].skipMbFlag    = cmMb[i].SkipMbFlag;
         cur->mb[i].mbType        = cmMb[i].MbType5Bits;
