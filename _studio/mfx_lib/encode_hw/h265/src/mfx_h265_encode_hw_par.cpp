@@ -86,7 +86,7 @@ const mfxU16 LevelIdxToMfx[] =
     MFX_LEVEL_HEVC_62,
 };
 
-inline mfxU16 MaxTidx(mfxU16 l) { return (LevelIdxToMfx[Min(l, MaxLidx)] >= MFX_LEVEL_HEVC_4); }
+inline mfxU16 MaxTidx(mfxU16 l) { return (LevelIdxToMfx[std::min(l, MaxLidx)] >= MFX_LEVEL_HEVC_4); }
 
 mfxU16 LevelIdx(mfxU16 mfx_level)
 {
@@ -116,16 +116,16 @@ mfxU16 TierIdx(mfxU16 mfx_level)
     return !!(mfx_level & MFX_TIER_HEVC_HIGH);
 }
 
-mfxU16 MfxLevel(mfxU16 l, mfxU16 t){ return LevelIdxToMfx[Min(l, MaxLidx)] | (MFX_TIER_HEVC_HIGH * !!t); }
+mfxU16 MfxLevel(mfxU16 l, mfxU16 t){ return LevelIdxToMfx[std::min(l, MaxLidx)] | (MFX_TIER_HEVC_HIGH * !!t); }
 
 mfxU32 GetMaxDpbSize(mfxU32 PicSizeInSamplesY, mfxU32 MaxLumaPs, mfxU32 maxDpbPicBuf)
 {
     if (PicSizeInSamplesY <= (MaxLumaPs >> 2))
-        return Min(4 * maxDpbPicBuf, 16U);
+        return std::min(4 * maxDpbPicBuf, 16U);
     else if (PicSizeInSamplesY <= (MaxLumaPs >> 1))
-        return Min( 2 * maxDpbPicBuf, 16U);
+        return std::min( 2 * maxDpbPicBuf, 16U);
     else if (PicSizeInSamplesY <= ((3 * MaxLumaPs) >> 2))
-        return Min( (4 * maxDpbPicBuf ) / 3, 16U);
+        return std::min( (4 * maxDpbPicBuf ) / 3, 16U);
 
     return maxDpbPicBuf;
 }
@@ -384,7 +384,7 @@ mfxU16 AddTileSlices(
     }
     else if (SliceStructure < 4)
     {
-        nSlice = Min(nSlice, nRow);
+        nSlice = std::min(nSlice, nRow);
         mfxU32 nRowsPerSlice = CeilDiv(nRow, nSlice);
 
         if (SliceStructure == 1)
@@ -486,11 +486,11 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
 {
     mfxU32 nCol   = CeilDiv(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.LCUSize);
     mfxU32 nRow   = CeilDiv(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.LCUSize);
-    mfxU32 nTCol  = Max<mfxU32>(par.m_ext.HEVCTiles.NumTileColumns, 1);
-    mfxU32 nTRow  = Max<mfxU32>(par.m_ext.HEVCTiles.NumTileRows, 1);
+    mfxU32 nTCol  = std::max<mfxU32>(par.m_ext.HEVCTiles.NumTileColumns, 1);
+    mfxU32 nTRow  = std::max<mfxU32>(par.m_ext.HEVCTiles.NumTileRows,    1);
     mfxU32 nTile  = nTCol * nTRow;
     mfxU32 nLCU   = nCol * nRow;
-    mfxU32 nSlice = Min(Min<mfxU32>(nLCU, MAX_SLICES), Max<mfxU32>(par.mfx.NumSlice, 1));
+    mfxU32 nSlice = std::min<mfxU32>({nLCU, MAX_SLICES, std::max<mfxU32>(par.mfx.NumSlice, 1)});
 
 #if (MFX_VERSION >= 1027)
     /*
@@ -502,7 +502,7 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
     */
     if (par.m_platform <= MFX_HW_ICL)
     {
-        nSlice = Max(nSlice, nTile);
+        nSlice = std::max(nSlice, nTile);
     }
 
     if (par.m_platform >= MFX_HW_ICL && IsOn(par.mfx.LowPower)) {
@@ -519,7 +519,7 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
         nSlice = 1;
 
     if (nSlice > 1)
-        nSlice = Max(nSlice, nTile);
+        nSlice = std::max(nSlice, nTile);
 
     if (nTile == 1) //TileScan = RasterScan, no SegmentAddress conversion required
         return (mfxU16)AddTileSlices(par, SliceStructure, nCol, nRow, nSlice);
@@ -591,7 +591,7 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
                 tile[id].nCol = colWidth[i];
                 tile[id].nRow = rowHeight[j];
                 tile[id].nLCU = tile[id].nCol * tile[id].nRow;
-                tile[id].nSlice = Max(1U, tile[id].nLCU / nLcuPerSlice);
+                tile[id].nSlice = std::max(1U, tile[id].nLCU / nLcuPerSlice);
                 nSliceRest -= tile[id].nSlice;
                 id ++;
             }
@@ -1242,13 +1242,13 @@ void InheritDefaultValues(
 #if (MFX_VERSION >= 1025)
         if (parInit.mfx.TargetUsage != parReset.mfx.TargetUsage)
         {  // NumActiveRefs depends on TU
-            extOpt3Reset->NumRefActiveP[i] = Min<mfxU16>(extOpt3Init->NumRefActiveP[i], GetMaxNumRef(parReset, true));
-            extOpt3Reset->NumRefActiveBL0[i] = Min<mfxU16>(extOpt3Init->NumRefActiveBL0[i], GetMaxNumRef(parReset, true));
-            extOpt3Reset->NumRefActiveBL1[i] = Min<mfxU16>(extOpt3Init->NumRefActiveBL1[i], GetMaxNumRef(parReset, false));
+            extOpt3Reset->NumRefActiveP[i]   = std::min<mfxU16>(extOpt3Init->NumRefActiveP[i],   GetMaxNumRef(parReset, true));
+            extOpt3Reset->NumRefActiveBL0[i] = std::min<mfxU16>(extOpt3Init->NumRefActiveBL0[i], GetMaxNumRef(parReset, true));
+            extOpt3Reset->NumRefActiveBL1[i] = std::min<mfxU16>(extOpt3Init->NumRefActiveBL1[i], GetMaxNumRef(parReset, false));
         }  else
 #endif
         {
-            InheritOption(extOpt3Init->NumRefActiveP[i], extOpt3Reset->NumRefActiveP[i]);
+            InheritOption(extOpt3Init->NumRefActiveP[i],   extOpt3Reset->NumRefActiveP[i]);
             InheritOption(extOpt3Init->NumRefActiveBL0[i], extOpt3Reset->NumRefActiveBL0[i]);
             InheritOption(extOpt3Init->NumRefActiveBL1[i], extOpt3Reset->NumRefActiveBL1[i]);
         }
@@ -1270,9 +1270,9 @@ void InheritDefaultValues(
 #if (MFX_VERSION >= 1025)
     if (parInit.mfx.TargetUsage != parReset.mfx.TargetUsage)
     {   // NumActiveRefs depends on TU
-        extOptDDIReset->NumActiveRefP = Min<mfxU16>(extOptDDIInit->NumActiveRefP, GetMaxNumRef(parReset, true));
-        extOptDDIReset->NumActiveRefBL0 = Min<mfxU16>(extOptDDIInit->NumActiveRefBL0, GetMaxNumRef(parReset, true));
-        extOptDDIReset->NumActiveRefBL1 = Min<mfxU16>(extOptDDIInit->NumActiveRefBL1, GetMaxNumRef(parReset, false));
+        extOptDDIReset->NumActiveRefP   = std::min<mfxU16>(extOptDDIInit->NumActiveRefP,   GetMaxNumRef(parReset, true));
+        extOptDDIReset->NumActiveRefBL0 = std::min<mfxU16>(extOptDDIInit->NumActiveRefBL0, GetMaxNumRef(parReset, true));
+        extOptDDIReset->NumActiveRefBL1 = std::min<mfxU16>(extOptDDIInit->NumActiveRefBL1, GetMaxNumRef(parReset, false));
     }  else
 #endif
     {
@@ -1357,9 +1357,9 @@ mfxU16 GetMaxChroma(MfxVideoParam const & par)
         mfxU64 REXTConstr = par.m_ext.HEVCParam.GeneralConstraintFlags;
 
         if (REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_420CHROMA)
-            c = Min<mfxU16>(c, MFX_CHROMAFORMAT_YUV420);
+            c = std::min<mfxU16>(c, MFX_CHROMAFORMAT_YUV420);
         else if (REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_422CHROMA)
-            c = Min<mfxU16>(c, MFX_CHROMAFORMAT_YUV422);
+            c = std::min<mfxU16>(c, MFX_CHROMAFORMAT_YUV422);
     }
 
 
@@ -1367,7 +1367,7 @@ mfxU16 GetMaxChroma(MfxVideoParam const & par)
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_P010:
-        c = Min<mfxU16>(c, MFX_CHROMAFORMAT_YUV420);
+        c = std::min<mfxU16>(c, MFX_CHROMAFORMAT_YUV420);
         break;
 
     case MFX_FOURCC_YUY2:
@@ -1375,7 +1375,7 @@ mfxU16 GetMaxChroma(MfxVideoParam const & par)
     case MFX_FOURCC_Y210:
 #endif
     case MFX_FOURCC_P210:
-        c = Min<mfxU16>(c, MFX_CHROMAFORMAT_YUV422);
+        c = std::min<mfxU16>(c, MFX_CHROMAFORMAT_YUV422);
         break;
     case MFX_FOURCC_A2RGB10:
     case MFX_FOURCC_RGB4:
@@ -1419,7 +1419,7 @@ mfxU16 GetMaxBitDepth(MfxVideoParam const & par, mfxU32 MaxEncodedBitDepth = 3)
     const mfxU16 undefined = 999;
     mfxU16 d = undefined;
 
-    d = Min<mfxU16>(d, 8 + (1 << MaxEncodedBitDepth));
+    d = std::min<mfxU16>(d, 8 + (1 << MaxEncodedBitDepth));
 
     if (   par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN
         || par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP
@@ -1429,10 +1429,10 @@ mfxU16 GetMaxBitDepth(MfxVideoParam const & par, mfxU32 MaxEncodedBitDepth = 3)
     }
 
     if (par.mfx.FrameInfo.BitDepthLuma)
-        d = Min(d, par.mfx.FrameInfo.BitDepthLuma);
+        d = std::min(d, par.mfx.FrameInfo.BitDepthLuma);
 
     if ( par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 )
-        d = Min<mfxU16>(d, 10);
+        d = std::min<mfxU16>(d, 10);
 
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_REXT
         )
@@ -1440,14 +1440,14 @@ mfxU16 GetMaxBitDepth(MfxVideoParam const & par, mfxU32 MaxEncodedBitDepth = 3)
         mfxU64 REXTConstr = par.m_ext.HEVCParam.GeneralConstraintFlags;
 
         if (REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_8BIT)
-            d = Min<mfxU16>(d, 8);
+            d = std::min<mfxU16>(d, 8);
         else if (REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_10BIT)
-            d = Min<mfxU16>(d, 10);
+            d = std::min<mfxU16>(d, 10);
         else if (REXTConstr & MFX_HEVC_CONSTR_REXT_MAX_12BIT)
-            d = Min<mfxU16>(d, 12);
+            d = std::min<mfxU16>(d, 12);
     }
 
-    d = Min<mfxU16>(d, GetMaxBitDepth(par.mfx.FrameInfo.FourCC));
+    d = std::min<mfxU16>(d, GetMaxBitDepth(par.mfx.FrameInfo.FourCC));
 
     return (d == undefined ? 8 : d);
 }
@@ -1883,7 +1883,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     if (par.mfx.TargetUsage && caps.ddi_caps.TUSupport)
         changed += CheckTU(caps.ddi_caps.TUSupport, par.mfx.TargetUsage);
 
-    changed += CheckMax(par.mfx.GopRefDist, (caps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? Max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
+    changed += CheckMax(par.mfx.GopRefDist, (caps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? std::max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
     invalid += CheckOption(par.Protected
         , 0);
@@ -2120,7 +2120,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     if (par.m_ext.CO2.NumMbPerSlice != 0)
     {
         mfxU32 nLCU  = CeilDiv(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.LCUSize) * CeilDiv(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.LCUSize);
-        mfxU32 nTile = Max<mfxU32>(par.m_ext.HEVCTiles.NumTileColumns, 1) * Max<mfxU32>(par.m_ext.HEVCTiles.NumTileRows, 1);
+        mfxU32 nTile = std::max<mfxU32>(par.m_ext.HEVCTiles.NumTileColumns, 1) * std::max<mfxU32>(par.m_ext.HEVCTiles.NumTileRows, 1);
 
         mfxU32 minNumMbPerSlice = CeilDiv(nLCU, MAX_SLICES) / nTile;
         changed += CheckRange(par.m_ext.CO2.NumMbPerSlice, minNumMbPerSlice, nLCU / nTile);
@@ -2293,14 +2293,14 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     //check Active Reference
 
     {
-        mfxU16 maxForward  = Min<mfxU16>(caps.ddi_caps.MaxNum_Reference0, maxDPB - 1);
-        mfxU16 maxBackward = Min<mfxU16>(caps.ddi_caps.MaxNum_Reference1, maxDPB - 1);
+        mfxU16 maxForward  = std::min<mfxU16>(caps.ddi_caps.MaxNum_Reference0, maxDPB - 1);
+        mfxU16 maxBackward = std::min<mfxU16>(caps.ddi_caps.MaxNum_Reference1, maxDPB - 1);
 
 #if (MFX_VERSION >= 1025)
         if (par.m_platform >= MFX_HW_CNL)
         {
-            maxForward  = Min<mfxU16>(maxForward,  GetMaxNumRef(par, true));
-            maxBackward = Min<mfxU16>(maxBackward, GetMaxNumRef(par, false));
+            maxForward  = std::min<mfxU16>(maxForward,  GetMaxNumRef(par, true));
+            maxBackward = std::min<mfxU16>(maxBackward, GetMaxNumRef(par, false));
         }
 #endif
 
@@ -2618,7 +2618,7 @@ void SetDefaults(
     if (!par.mfx.FrameInfo.FrameRateExtN || !par.mfx.FrameInfo.FrameRateExtD)
     {
         par.mfx.FrameInfo.FrameRateExtD = 1001;
-        par.mfx.FrameInfo.FrameRateExtN = mfxU32(Min(30000./par.mfx.FrameInfo.FrameRateExtD, maxFR) * par.mfx.FrameInfo.FrameRateExtD);
+        par.mfx.FrameInfo.FrameRateExtN = mfxU32(std::min(30000./par.mfx.FrameInfo.FrameRateExtD, maxFR) * par.mfx.FrameInfo.FrameRateExtD);
     }
 
     if (!par.mfx.FrameInfo.AspectRatioW)
@@ -2662,18 +2662,18 @@ void SetDefaults(
         if (!par.mfx.QPI)
             par.mfx.QPI = 26;
         if (!par.mfx.QPP)
-            par.mfx.QPP = Min<mfxU16>(par.mfx.QPI + 2, maxQP);
+            par.mfx.QPP = std::min<mfxU16>(par.mfx.QPI + 2, maxQP);
         if (!par.mfx.QPB)
-            par.mfx.QPB = Min<mfxU16>(par.mfx.QPP + 2, maxQP);
+            par.mfx.QPB = std::min<mfxU16>(par.mfx.QPP + 2, maxQP);
 
         if (!par.BufferSizeInKB)
-            par.BufferSizeInKB = Min(maxBuf, mfxU32(rawBits / 8000));
+            par.BufferSizeInKB = std::min(maxBuf, mfxU32(rawBits / 8000));
 
     }
     else if (   par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
     {
         if (!par.BufferSizeInKB)
-            par.BufferSizeInKB = Min(maxBuf, mfxU32(rawBits / 8000));
+            par.BufferSizeInKB = std::min(maxBuf, mfxU32(rawBits / 8000));
     }
     else if (   par.mfx.RateControlMethod == MFX_RATECONTROL_CBR
              || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
@@ -2684,19 +2684,19 @@ void SetDefaults(
         if (!par.TargetKbps)
         {
             if (par.mfx.FrameInfo.FrameRateExtD) // KW
-                par.TargetKbps = Min(maxBR, mfxU32(rawBits * par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD / 150000));
+                par.TargetKbps = std::min(maxBR, mfxU32(rawBits * par.mfx.FrameInfo.FrameRateExtN / par.mfx.FrameInfo.FrameRateExtD / 150000));
             else
             {
                 assert(!"FrameRateExtD = 0");
-                par.TargetKbps = Min(maxBR, mfxU32(rawBits * Min(maxFR, 30000. / 1001) / 150000));
+                par.TargetKbps = std::min(maxBR, mfxU32(rawBits * std::min(maxFR, 30000. / 1001) / 150000));
             }
         }
         if (!par.MaxKbps)
             par.MaxKbps = par.TargetKbps;
         if (!par.BufferSizeInKB)
         {
-            par.BufferSizeInKB = Min(maxBuf, par.MaxKbps / 4); //2 sec: the same as H264
-            par.BufferSizeInKB = Max(par.BufferSizeInKB, par.InitialDelayInKB);
+            par.BufferSizeInKB = std::min(maxBuf, par.MaxKbps / 4); //2 sec: the same as H264
+            par.BufferSizeInKB = std::max(par.BufferSizeInKB, par.InitialDelayInKB);
         }
         if (!par.InitialDelayInKB)
             par.InitialDelayInKB = par.BufferSizeInKB / 2;
@@ -2728,7 +2728,7 @@ void SetDefaults(
         if (par.isTL() || hwCaps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
             par.mfx.GopRefDist = 1; // in case of correct SliceIPOnly using of IsOn(par.mfx.LowPower) is not necessary
         else
-            par.mfx.GopRefDist = Min<mfxU16>(par.mfx.GopPicSize - 1, (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()) ? 8 : 4);
+            par.mfx.GopRefDist = std::min<mfxU16>(par.mfx.GopPicSize - 1, (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()) ? 8 : 4);
     }
 
     if (par.m_ext.CO2.BRefType == MFX_B_REF_UNKNOWN)
@@ -2770,33 +2770,33 @@ void SetDefaults(
         mfxU16 RefActiveBL1 = par.m_ext.DDI.NumActiveRefBL1;
 
         if (!RefActiveP)
-            for (mfxU16 i = 0; i < 8; i++)  RefActiveP   = Max(RefActiveP, CO3.NumRefActiveP[i]);
+            RefActiveP   = *std::max_element(std::begin(CO3.NumRefActiveP), std::end(CO3.NumRefActiveP));
 
         if (!RefActiveBL0)
-            for (mfxU16 i = 0; i < 8; i++)  RefActiveBL0 = Max(RefActiveBL0, CO3.NumRefActiveBL0[i]);
+            RefActiveBL0 = *std::max_element(std::begin(CO3.NumRefActiveBL0), std::end(CO3.NumRefActiveBL0));
 
         if (!RefActiveBL1)
-            for (mfxU16 i = 0; i < 8; i++)  RefActiveBL1 = Max(RefActiveBL1, CO3.NumRefActiveBL1[i]);
+            RefActiveBL1 = *std::max_element(std::begin(CO3.NumRefActiveBL1), std::end(CO3.NumRefActiveBL1));
 
         bool bDefinedActiveRef = (RefActiveP || RefActiveBL0 || RefActiveBL1);
 
         if (!RefActiveP)
             RefActiveP = (par.mfx.TargetUsage == 7) ? 1 :
-                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference0, par.mfx.NumRefFrame) : hwCaps.ddi_caps.MaxNum_Reference0;
+                par.mfx.NumRefFrame ? std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference0, par.mfx.NumRefFrame) : hwCaps.ddi_caps.MaxNum_Reference0;
 
         if (!RefActiveBL0)
             RefActiveBL0 = RefActiveP;
 
         if (!RefActiveBL1)
             RefActiveBL1 = (par.mfx.TargetUsage == 7) ? 1 :
-                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference1, par.mfx.NumRefFrame) : hwCaps.ddi_caps.MaxNum_Reference1;
+                par.mfx.NumRefFrame ? std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference1, par.mfx.NumRefFrame) : hwCaps.ddi_caps.MaxNum_Reference1;
 
 #if (MFX_VERSION >= 1025)
         if (par.m_platform >= MFX_HW_CNL)
         {
-            RefActiveP = Min(RefActiveP, GetMaxNumRef(par, true));
-            RefActiveBL0 = Min(RefActiveBL0, GetMaxNumRef(par, true));
-            RefActiveBL1 = Min(RefActiveBL1, GetMaxNumRef(par, false));
+            RefActiveP   = std::min(RefActiveP,   GetMaxNumRef(par, true));
+            RefActiveBL0 = std::min(RefActiveBL0, GetMaxNumRef(par, true));
+            RefActiveBL1 = std::min(RefActiveBL1, GetMaxNumRef(par, false));
         }
 #endif
 
@@ -2830,25 +2830,24 @@ void SetDefaults(
                 par.mfx.NumRefFrame = mfxU16(minRefForPyramid(par.mfx.GopRefDist, par.isField()));
                 if (bDefinedActiveRef)
                 {
-                    par.mfx.NumRefFrame = Max<mfxU16>(par.mfx.NumRefFrame, CO3.NumRefActiveP[0]*k);
+                    par.mfx.NumRefFrame = std::max<mfxU16>(par.mfx.NumRefFrame, CO3.NumRefActiveP[0]*k);
                     for (mfxU16 i = 0; i < getNumBPyrLayers(par.mfx.GopRefDist); i++)
                     {
-                        par.mfx.NumRefFrame = Max<mfxU16>(par.mfx.NumRefFrame, (CO3.NumRefActiveBL0[i] + i + 1)*k);
-                        par.mfx.NumRefFrame = Max<mfxU16>(par.mfx.NumRefFrame, (CO3.NumRefActiveBL1[i] + i + 1)*k);
+                        par.mfx.NumRefFrame = std::max<mfxU16>(par.mfx.NumRefFrame, (CO3.NumRefActiveBL0[i] + i + 1)*k);
+                        par.mfx.NumRefFrame = std::max<mfxU16>(par.mfx.NumRefFrame, (CO3.NumRefActiveBL1[i] + i + 1)*k);
                     }
                 }
 
             }
             else if (par.isLowDelay())
             {
-                par.mfx.NumRefFrame = Max<mfxU16>((mfxU16)par.PPyrInterval*k, RefActiveP);
+                par.mfx.NumRefFrame = std::max<mfxU16>((mfxU16)par.PPyrInterval*k, RefActiveP);
             }
             else
             {
-                par.mfx.NumRefFrame = (Max(RefActiveP, RefActiveBL0) + (par.mfx.GopRefDist > 1) * RefActiveBL0)*k;
+                par.mfx.NumRefFrame = (std::max(RefActiveP, RefActiveBL0) + (par.mfx.GopRefDist > 1) * RefActiveBL0)*k;
             }
-            par.mfx.NumRefFrame = Max<mfxU16>(par.NumTL() - 1, par.mfx.NumRefFrame);
-            par.mfx.NumRefFrame = Min<mfxU16>(maxDPB - 1, par.mfx.NumRefFrame);
+            par.mfx.NumRefFrame = mfx::clamp<mfxU16>(par.mfx.NumRefFrame, par.NumTL() - 1, maxDPB - 1);
             par.PPyrInterval = std::min<mfxU32>(par.PPyrInterval, par.mfx.NumRefFrame);
         }
     }

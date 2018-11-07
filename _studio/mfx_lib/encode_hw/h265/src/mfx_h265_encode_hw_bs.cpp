@@ -292,11 +292,11 @@ const
 static
     void InitializeContext(mfxU8 *pContext, mfxU8 initVal, mfxI32 SliceQPy)
 {
-    SliceQPy = MFX_MIN(MFX_MAX(0, SliceQPy), 51);
+    SliceQPy = mfx::clamp(SliceQPy, 0, 51);
 
     mfxI32 slope = (initVal >> 4) * 5 - 45;
     mfxI32 offset = ((initVal & 15) << 3) - 16;
-    mfxI32 initState = MFX_MIN(MFX_MAX(1, (((slope * SliceQPy) >> 4) + offset)), 126);
+    mfxI32 initState = mfx::clamp(((slope * SliceQPy) >> 4) + offset, 1, 126);
     mfxU32 mpState = (initState >= 64);
     *pContext = mfxU8(((mpState ? (initState - 64) : (63 - initState)) << 0) + (mpState << 6));
 } //void InitializeContext(CABAC_CONTEXT_H265 *pContext, mfxU8 initVal, mfxI32 SliceQPy)
@@ -1893,10 +1893,10 @@ void HeaderPacker::PackPPS(BitstreamWriter& bs, PPS const &  pps)
         if(!pps.uniform_spacing_flag)
         {
             for (mfxU32 i = 0; i < pps.num_tile_columns_minus1; i++)
-                bs.PutUE(Max<mfxU16>(pps.column_width[i], 1) - 1);
+                bs.PutUE(std::max<mfxU16>(pps.column_width[i], 1) - 1);
 
             for (mfxU32 i = 0; i < pps.num_tile_rows_minus1; i++)
-                bs.PutUE(Max<mfxU16>(pps.row_height[i], 1) - 1);
+                bs.PutUE(std::max<mfxU16>(pps.row_height[i], 1) - 1);
         }
 
         bs.PutBit(pps.loop_filter_across_tiles_enabled_flag);
@@ -2658,7 +2658,7 @@ void PackPTPayload(BitstreamWriter& rbsp, MfxVideoParam const & par, Task const 
 
     pt.duplicate_flag = 0;
 
-    pt.au_cpb_removal_delay_minus1 = Max(task.m_cpb_removal_delay, 1U) - 1;
+    pt.au_cpb_removal_delay_minus1 = std::max(task.m_cpb_removal_delay, 1U) - 1;
     pt.pic_dpb_output_delay        = task.m_dpb_output_delay;
 
     mfxU32 size = CeilDiv(rbsp.GetOffset(), 8);
@@ -3092,7 +3092,7 @@ void HeaderPacker::GetSkipSlice(Task const & task, mfxU32 id, mfxU8*& buf, mfxU3
     mfxI8 SliceQPy = mfxI8(m_par->m_pps.init_qp_minus26 + 26 + sh.slice_qp_delta);//task.m_qpY;
 
     mfxU32 l = 0;
-    SliceQPy = MFX_MAX(0, SliceQPy);
+    SliceQPy = std::max<mfxI8>(0, SliceQPy);
     m_bs.cabacInit();
     mfxU8 frameType = 0;
     switch (sh.type){
