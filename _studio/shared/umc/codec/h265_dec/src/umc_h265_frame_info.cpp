@@ -103,10 +103,8 @@ void H265DecoderFrameInfo::EliminateErrors()
     if (!GetSlice(0))
         return;
 
-    uint32_t count = m_SliceCount;
-
     // Remove dependent slices without a corresponding independent slice
-    for (uint32_t sliceId = 0; sliceId < count; sliceId++)
+    for (uint32_t sliceId = 0; sliceId < GetSliceCount(); sliceId++)
     {
         H265Slice * slice = GetSlice(sliceId);
 
@@ -123,9 +121,8 @@ void H265DecoderFrameInfo::EliminateErrors()
     {
         // HEVC 7.4.7.1 General slice segment header semantics
         H265Slice *baseSlice = GetSlice(0); // after the for() loop above ,the first slice is treated as 'base' slice
-
         bool bIndepSliceMissing = false;
-        for (uint32_t sliceId = 1; sliceId < count; sliceId++)
+        for (uint32_t sliceId = 1; sliceId < GetSliceCount(); sliceId++)
         {
             H265SliceHeader *sliceHeader = GetSlice(sliceId)->GetSliceHeader();
 
@@ -148,7 +145,7 @@ void H265DecoderFrameInfo::EliminateErrors()
     }
 
     // Remove slices with duplicated slice_segment_address syntax
-    for (uint32_t sliceId = 0; sliceId < count; sliceId++)
+    for (uint32_t sliceId = 0; sliceId < GetSliceCount(); sliceId++)
     {
         H265Slice * slice     = m_pSliceQueue[sliceId];
         H265Slice * nextSlice = GetSlice(sliceId + 1);
