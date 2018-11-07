@@ -84,7 +84,6 @@ public:
         m_bRenderWin=false;
 #if defined(X11_DRI3_SUPPORT)
         m_dri_fd = 0;
-        m_dpy = NULL;
         m_bufmgr = NULL;
         m_xcbconn = NULL;
 #endif
@@ -117,7 +116,6 @@ private:
     mfxU32 m_nRenderWinH;
 #if defined(X11_DRI3_SUPPORT)
     int m_dri_fd;
-    Display* m_dpy;
     drm_intel_bufmgr* m_bufmgr;
     xcb_connection_t *m_xcbconn;
 #endif

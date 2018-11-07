@@ -39,7 +39,6 @@ X11LibVA::X11LibVA(void)
     int major_version = 0, minor_version = 0;
     char* currentDisplay = getenv("DISPLAY");
 
-#if !defined(X11_DRI3_SUPPORT)
     try
     {
         if (currentDisplay)
@@ -48,23 +47,21 @@ X11LibVA::X11LibVA(void)
             m_display = m_x11lib.XOpenDisplay(VAAPI_X_DEFAULT_DISPLAY);
 
         if (NULL == m_display) sts = MFX_ERR_NOT_INITIALIZED;
+
         if (MFX_ERR_NONE == sts)
         {
             m_va_dpy = m_vax11lib.vaGetDisplay(m_display);
 
             if (!m_va_dpy)
             {
-                m_x11lib.XCloseDisplay(m_display);
                 sts = MFX_ERR_NULL_PTR;
             }
         }
+#if !defined(X11_DRI3_SUPPORT)
         if (MFX_ERR_NONE == sts)
         {
             va_res = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
             sts = va_to_mfx_status(va_res);
-            if (MFX_ERR_NONE != sts) {
-                m_x11lib.XCloseDisplay(m_display);
-            }
         }
         if (MFX_ERR_NONE == sts)
         {
@@ -96,37 +93,18 @@ X11LibVA::X11LibVA(void)
                                              0,
                                              &m_contextID);
         }
-    }
 #else
-    try
-    {
-        if (currentDisplay)
-            m_display = m_x11lib.XOpenDisplay(currentDisplay);
-        else
-            m_display = m_x11lib.XOpenDisplay(VAAPI_X_DEFAULT_DISPLAY);
-
-        if (NULL == m_display) sts = MFX_ERR_NOT_INITIALIZED;
-        if (MFX_ERR_NONE == sts)
-        {
-            m_va_dpy = m_vax11lib.vaGetDisplay(m_display);
-
-            if (!m_va_dpy)
-            {
-                m_x11lib.XCloseDisplay(m_display);
-                sts = MFX_ERR_NULL_PTR;
-            }
-        }
         if (MFX_ERR_NONE == sts)
         {
             va_res = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
             sts = va_to_mfx_status(va_res);
-            if (MFX_ERR_NONE != sts)
-            {
-                m_x11lib.XCloseDisplay(m_display);
-            }
+        }
+#endif // X11_DRI3_SUPPORT
+        if (MFX_ERR_NONE != sts)
+        {
+            m_x11lib.XCloseDisplay(m_display);
         }
     }
-#endif // X11_DRI3_SUPPORT
     catch(std::exception& )
     {
         sts = MFX_ERR_NOT_INITIALIZED;
