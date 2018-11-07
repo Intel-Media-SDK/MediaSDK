@@ -38,13 +38,6 @@
 #include <list>
 #include <assert.h>
 
-#ifndef MFX_MAX
-#define MFX_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
-#ifndef MFX_MIN
-#define MFX_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
-
 #define MFX_SORT_COMMON(_AR, _SZ, _COND)\
     for (mfxU32 _i = 0; _i < (_SZ); _i ++)\
         for (mfxU32 _j = _i; _j < (_SZ); _j ++)\
@@ -73,8 +66,6 @@ template<class T> inline void Zero(T & obj)                   { memset(&obj, 0, 
 template<class T> inline void Zero(std::vector<T> & vec)      { memset(&vec[0], 0, sizeof(T) * vec.size()); }
 template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0, sizeof(T) * cnt); }
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
-template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
-template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
 
 template<class T> bool AlignDown(T& value, mfxU32 alignment)
 {
@@ -728,7 +719,7 @@ public:
             }
         }
 
-        m_numTL = Max<mfxU8>(m_numTL, 1);
+        m_numTL = std::max<mfxU8>(m_numTL, 1);
     }
 
     mfxU8 NumTL() const { return m_numTL; }
