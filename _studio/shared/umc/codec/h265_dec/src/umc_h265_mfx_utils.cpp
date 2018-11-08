@@ -241,7 +241,7 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
         return 0;
 
     mfxU16 bit_depth =
-       MFX_MAX(frameInfo->BitDepthLuma, frameInfo->BitDepthChroma);
+       std::max(frameInfo->BitDepthLuma, frameInfo->BitDepthChroma);
 
     //map chroma fmt & bit depth onto fourcc (NOTE: we currently don't support bit depth above 10 bit)
     mfxU32 const map[][4] =
