@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -405,14 +405,12 @@ namespace MfxHwVideoProcessing
         ReleaseResource* CreateSubResourceForMode30i60p(void);
 
         //-------------------------------------------------
-        mfxU32   GetNumToRemove( void )
+        mfxU32 GetNumToRemove( void )
         {
-            mfxU32 numFramesToRemove = m_inputFramesOrFieldPerCycle - MFX_MIN(m_inputFramesOrFieldPerCycle, m_bkwdRefCountRequired - m_bkwdRefCount);
-
             if (m_fieldWeaving)
-                numFramesToRemove = 2;
+                return 2;
 
-            return numFramesToRemove;
+            return m_inputFramesOrFieldPerCycle - std::min(m_inputFramesOrFieldPerCycle, m_bkwdRefCountRequired - m_bkwdRefCount);
         }
 
         mfxU32   GetNextBkwdRefCount( void )
@@ -423,9 +421,8 @@ namespace MfxHwVideoProcessing
             }
 
             mfxU32 numBkwdRef = m_bkwdRefCount + (m_inputFramesOrFieldPerCycle - GetNumToRemove());
-            numBkwdRef = MFX_MIN(numBkwdRef,  m_bkwdRefCountRequired);
 
-            return numBkwdRef;
+            return std::min(numBkwdRef,  m_bkwdRefCountRequired);
         }
 
         //-------------------------------------------------
@@ -636,7 +633,7 @@ namespace MfxHwVideoProcessing
                 m_frcRational[VPP_IN]  = frcRational[VPP_IN];
                 m_frcRational[VPP_OUT] = frcRational[VPP_OUT];
 
-                m_minDeltaTime = MFX_MIN((__UINT64) (m_frcRational[VPP_IN].FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_frcRational[VPP_IN].FrameRateExtN),
+                m_minDeltaTime = std::min((__UINT64) (m_frcRational[VPP_IN].FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_frcRational[VPP_IN].FrameRateExtN),
                     (__UINT64) (m_frcRational[VPP_OUT].FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_frcRational[VPP_OUT].FrameRateExtN));
             }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -213,14 +213,14 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
                 mfxF64 outFrameRate = CalculateUMCFramerate(info.FrameRateExtN, info.FrameRateExtD);
 
                 outputFramesCount[ filterIndex ] = (mfxU16)(ceil(outFrameRate / inFrameRate));
-                outputFramesCount[ filterIndex ] = MFX_MAX(outputFramesCount[ filterIndex ], 1);//robustness
+                outputFramesCount[ filterIndex ] = std::max<mfxU16>(outputFramesCount[ filterIndex ], 1);//robustness
 
                 // numInFrames = inFrameRate / inFrameRate = 1;
                 inputFramesCount[ filterIndex ] = 1;
 
                 // after analysis for correct FRC processing we require following equations
-                inputFramesCount[ filterIndex ]  = MFX_MAX( inputFramesCount[ filterIndex ],  MFXVideoVPPFrameRateConversion::GetInFramesCountExt() );
-                outputFramesCount[ filterIndex ] = MFX_MAX( outputFramesCount[ filterIndex ], MFXVideoVPPFrameRateConversion::GetOutFramesCountExt() );
+                inputFramesCount[ filterIndex ]  = std::max<mfxU16>( inputFramesCount[ filterIndex ],  MFXVideoVPPFrameRateConversion::GetInFramesCountExt() );
+                outputFramesCount[ filterIndex ] = std::max<mfxU16>( outputFramesCount[ filterIndex ], MFXVideoVPPFrameRateConversion::GetOutFramesCountExt() );
 
                 break;
             }
