@@ -363,7 +363,7 @@ protected:
 
         _GetBits (8,temp); // vbv_buffer_size_ext
         vbv_buffer_size |= (temp << 10);
-        par->mfx.BufferSizeInKB = mfxU16(MFX_MIN(0xffff, 2 * vbv_buffer_size));
+        par->mfx.BufferSizeInKB = mfxU16(std::min<mfxU32>(0xffff, 2 * vbv_buffer_size));
 
         _GetBits (1,temp); //low delay
         if (temp == 1)
