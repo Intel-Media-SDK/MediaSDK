@@ -840,9 +840,13 @@ void CmContext::Setup(
 {
     m_video  = video;
     m_device = cmDevice;
-
-    if (m_device->CreateQueue(m_queue) != CM_SUCCESS)
-        throw CmRuntimeError();
+    if (core->GetHWType() >= MFX_HW_ICL)
+    {
+        if (m_device->CreateQueueEx(m_queue, CM_VME_QUEUE_CREATE_OPTION) != CM_SUCCESS)
+            throw CmRuntimeError();
+    }
+    else if (m_device->CreateQueue(m_queue) != CM_SUCCESS)
+            throw CmRuntimeError();
 
     mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(m_video);
     if (!extOpt2)
