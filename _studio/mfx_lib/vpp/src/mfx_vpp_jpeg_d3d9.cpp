@@ -30,7 +30,6 @@
 #include "mfx_task.h"
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_jpeg_d3d9.h"
-#include <umc_automatic_mutex.h>
 
 using namespace MfxHwVideoProcessing;
 
