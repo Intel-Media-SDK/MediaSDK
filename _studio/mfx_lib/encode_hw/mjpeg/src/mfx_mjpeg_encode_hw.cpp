@@ -516,7 +516,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::QueryIOSurf(VideoCORE * core, mfxVideoParam *p
             ? MFX_MEMTYPE_OPAQUE_FRAME
             : MFX_MEMTYPE_EXTERNAL_FRAME;
     }
-    request->NumFrameSuggested = MFX_MAX( request->NumFrameMin,par->AsyncDepth);
+    request->NumFrameSuggested = std::max(request->NumFrameMin, par->AsyncDepth);
 
     return MFX_ERR_NONE;
 }
@@ -699,8 +699,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
             doubleBytesPerPx = 8;
             break;
     }
-    request.Info.Width  = MFX_MAX(request.Info.Width,  m_vParam.mfx.FrameInfo.Width);
-    request.Info.Height = MFX_MAX(request.Info.Height, m_vParam.mfx.FrameInfo.Height * doubleBytesPerPx / 2);
+    request.Info.Width  = std::max        (request.Info.Width,  m_vParam.mfx.FrameInfo.Width);
+    request.Info.Height = std::max<mfxU16>(request.Info.Height, m_vParam.mfx.FrameInfo.Height * doubleBytesPerPx / 2);
 
     sts = m_bitstream.Alloc(m_pCore, request);
     MFX_CHECK(

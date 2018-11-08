@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1948,9 +1948,8 @@ mfxStatus MFXVideoENCODEMJPEG::EncodeFrameCheck(mfxEncodeCtrl *ctrl, mfxFrameSur
             pTask = m_freeTasks.front();
         }
 
-        pEntryPoint->requiredNumThreads = MFX_MIN(pTask->m_pMJPEGVideoEncoder->NumEncodersAllocated(),
-                                                  MFX_MIN(m_vParam.mfx.NumThread,
-                                                          pTask->CalculateNumPieces(pOriginalSurface, &(m_vParam.mfx.FrameInfo))));
+        pEntryPoint->requiredNumThreads = std::min<mfxU32>( { pTask->m_pMJPEGVideoEncoder->NumEncodersAllocated(), m_vParam.mfx.NumThread,
+                                                      pTask->CalculateNumPieces(pOriginalSurface, &(m_vParam.mfx.FrameInfo)) } );
 
         pTask->bs           = bs;
         pTask->ctrl         = ctrl;
