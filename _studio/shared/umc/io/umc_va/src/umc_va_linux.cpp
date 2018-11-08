@@ -262,8 +262,6 @@ LinuxVideoAccelerator::LinuxVideoAccelerator(void)
     m_uiCompBuffersNum  = 0;
     m_uiCompBuffersUsed = 0;
 
-    vm_mutex_set_invalid(&m_SyncMutex);
-
 #if defined(ANDROID)
     m_isUseStatuReport  = false;
 #else
@@ -307,11 +305,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         umcRes = UMC_ERR_INVALID_PARAMS;
     if ((UMC_OK == umcRes) && (pParams->m_iNumberSurfaces < 0))
         umcRes = UMC_ERR_INVALID_PARAMS;
-    if (UMC_OK == umcRes)
-    {
-        vm_mutex_set_invalid(&m_SyncMutex);
-        umcRes = (Status)vm_mutex_init(&m_SyncMutex);
-    }
+
     // filling input parameters
     if (UMC_OK == umcRes)
     {
@@ -568,8 +562,6 @@ Status LinuxVideoAccelerator::Close(void)
     m_FrameState = lvaBeforeBegin;
     m_uiCompBuffersNum  = 0;
     m_uiCompBuffersUsed = 0;
-    vm_mutex_unlock (&m_SyncMutex);
-    vm_mutex_destroy(&m_SyncMutex);
 
     return VideoAccelerator::Close();
 }
@@ -639,7 +631,7 @@ void* LinuxVideoAccelerator::GetCompBuffer(int32_t buffer_type, UMCVACompBuffer 
 
     if (NULL != buf) *buf = NULL;
 
-    vm_mutex_lock(&m_SyncMutex);
+    std::lock_guard<std::mutex> guard(m_SyncMutex);
     for (i = 0; i < m_uiCompBuffersUsed; ++i)
     {
         pCompBuf = m_pCompBuffers[i];
@@ -660,7 +652,6 @@ void* LinuxVideoAccelerator::GetCompBuffer(int32_t buffer_type, UMCVACompBuffer 
         if (NULL != buf) *buf = pCompBuf;
         pBufferPointer = pCompBuf->GetPtr();
     }
-    vm_mutex_unlock(&m_SyncMutex);
     return pBufferPointer;
 }
 
@@ -766,10 +757,9 @@ LinuxVideoAccelerator::Execute()
     uint32_t         i;
     VACompBuffer*  pCompBuf = NULL;
 
-    vm_mutex_lock(&m_SyncMutex);
-
     if (UMC_OK == umcRes)
     {
+        std::lock_guard<std::mutex> guard(m_SyncMutex);
         for (i = 0; i < m_uiCompBuffersUsed; i++)
         {
             pCompBuf = m_pCompBuffers[i];
@@ -796,7 +786,6 @@ LinuxVideoAccelerator::Execute()
         }
     }
 
-    vm_mutex_unlock(&m_SyncMutex);
     if (UMC_OK == umcRes)
     {
         umcRes = va_to_umc_res(va_res);
@@ -809,7 +798,7 @@ Status LinuxVideoAccelerator::EndFrame(void*)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "EndFrame");
     VAStatus va_res = VA_STATUS_SUCCESS;
 
-    vm_mutex_lock(&m_SyncMutex);
+    std::lock_guard<std::mutex> guard(m_SyncMutex);
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaEndPicture");
@@ -833,7 +822,6 @@ Status LinuxVideoAccelerator::EndFrame(void*)
     }
     m_uiCompBuffersUsed = 0;
 
-    vm_mutex_unlock(&m_SyncMutex);
     return va_to_umc_res(va_res);
 }
 

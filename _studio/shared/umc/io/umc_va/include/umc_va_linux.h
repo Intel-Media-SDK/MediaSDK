@@ -24,8 +24,7 @@
 #include "umc_va_base.h"
 
 
-#include "umc_mutex.h"
-#include "umc_event.h"
+#include <mutex>
 
 namespace UMC
 {
@@ -147,7 +146,7 @@ protected:
     int32_t   m_NumOfFrameBuffers;
     uint32_t   m_uiCompBuffersNum;
     uint32_t   m_uiCompBuffersUsed;
-    vm_mutex m_SyncMutex;
+    std::mutex m_SyncMutex;
     VACompBuffer** m_pCompBuffers;
 
     const char * m_sDecodeTraceStart;
