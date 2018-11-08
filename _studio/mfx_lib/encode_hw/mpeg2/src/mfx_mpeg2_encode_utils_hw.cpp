@@ -1883,7 +1883,7 @@ namespace MPEG2EncoderHW
             sts = ConvertVideoParam_Brc(par, &brcParams);
             MFX_CHECK_STS(sts);
             if (brcParams.HRDBufferSizeBytes == 0)
-                brcParams.HRDBufferSizeBytes = MFX_MIN(65535000, brcParams.targetBitrate / 4); // limit buffer size with 2 seconds
+                brcParams.HRDBufferSizeBytes = std::min(65535000, brcParams.targetBitrate / 4); // limit buffer size with 2 seconds
             if (brcParams.maxBitrate == 0)
                 brcParams.maxBitrate = brcParams.targetBitrate;
 
@@ -1922,13 +1922,11 @@ namespace MPEG2EncoderHW
             m_bufferSizeInKB = (mfxU32)(brcParams.HRDBufferSizeBytes / 1000);
             m_InputBitsPerFrame = (mfxI32)(brcParams.targetBitrate / brcParams.info.framerate);
 
-            mfxU32 maxVal32 = MFX_MAX(
-                MFX_MAX(
-                (mfxU32)brcParams.HRDInitialDelayBytes / 1000,
-                (mfxU32)brcParams.HRDBufferSizeBytes / 1000),
-                MFX_MAX(
-                (mfxU32)brcParams.targetBitrate / 1000,
-                (mfxU32)brcParams.maxBitrate / 1000));
+            mfxU32 maxVal32 = std::max<mfxU32>({
+                mfxU32(brcParams.HRDInitialDelayBytes / 1000),
+                mfxU32(brcParams.HRDBufferSizeBytes   / 1000),
+                mfxU32(brcParams.targetBitrate        / 1000),
+                mfxU32(brcParams.maxBitrate           / 1000)});
 
             par->mfx.BRCParamMultiplier = (mfxU16)((maxVal32 + 0x10000) / 0x10000);
             par->mfx.BufferSizeInKB     = (mfxU16)(m_bufferSizeInKB                      / par->mfx.BRCParamMultiplier);

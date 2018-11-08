@@ -597,13 +597,13 @@ mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequ
 {
     if (type == D3DDDIFMT_INTELENCODE_MBDATA)
     {
-        pRequest->Info.Width = MFX_MAX(pRequest->Info.Width, pExecuteBuffers->m_sps.FrameWidth);
-        pRequest->Info.Height = MFX_MAX(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
+        pRequest->Info.Width  = std::max(pRequest->Info.Width,  pExecuteBuffers->m_sps.FrameWidth);
+        pRequest->Info.Height = std::max(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
     }
     else if (type == D3DDDIFMT_INTELENCODE_BITSTREAMDATA)
     {
-        pRequest->Info.Width = MFX_MAX(pRequest->Info.Width, pExecuteBuffers->m_sps.FrameWidth);
-        pRequest->Info.Height = MFX_MAX(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
+        pRequest->Info.Width  = std::max(pRequest->Info.Width,  pExecuteBuffers->m_sps.FrameWidth);
+        pRequest->Info.Height = std::max(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
     }
     else
     {
@@ -943,7 +943,7 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
     VAEncPackedHeaderParameterBuffer packedParamsBuffer = {};
     packedParamsBuffer.type = VAEncPackedHeaderRawData;
     packedParamsBuffer.has_emulation_bytes = false;
-    mfxU32 correctedLength = MFX_MIN(userDataLen, UINT_MAX/8); // keep start code
+    mfxU32 correctedLength = std::min(userDataLen, UINT_MAX/8); // keep start code
     packedParamsBuffer.bit_length = correctedLength * 8;
 
     mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedUserDataParamsId);

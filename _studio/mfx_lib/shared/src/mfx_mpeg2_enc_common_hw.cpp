@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -186,7 +186,7 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
         m_sps.FrameRateExtD = (USHORT) fr_codeD;
         m_sps.FrameRateExtN = (USHORT) fr_codeN;
 
-        mfxU32 multiplier = MFX_MAX(par->mfxVideoParams.mfx.BRCParamMultiplier, 1);
+        mfxU32 multiplier = std::max<mfxU32>(par->mfxVideoParams.mfx.BRCParamMultiplier, 1);
 
         m_sps.bit_rate = (par->mfxVideoParams.mfx.RateControlMethod != MFX_RATECONTROL_CQP) ?
                                                             par->mfxVideoParams.mfx.TargetKbps * multiplier : 0;
