@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 #define VPP_DETAIL_GAIN_MAX      (63)
 #define VPP_DETAIL_GAIN_MAX_REAL (63)
 // replaced range [0...63] to native [0, 100%] wo notification of dev
-// so a lot of modification requiried to provide smooth control (recalculate test streams etc)
+// so a lot of modification required to provide smooth control (recalculate test streams etc)
 // solution is realGain = CLIP(userGain, 0, 63)
 #define VPP_DETAIL_GAIN_MAX_USER_LEVEL (100)
 #define VPP_DETAIL_GAIN_DEFAULT VPP_DETAIL_GAIN_MIN

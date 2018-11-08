@@ -399,12 +399,12 @@ mfxStatus VideoVPPBase::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFram
         if( !bSWLib )
         {
             // suggested
-            request[VPP_IN].NumFrameSuggested = MFX_MAX(request[VPP_IN].NumFrameSuggested, hwRequest[VPP_IN].NumFrameSuggested);
-            request[VPP_OUT].NumFrameSuggested = MFX_MAX(request[VPP_OUT].NumFrameSuggested, hwRequest[VPP_OUT].NumFrameSuggested);
+            request[VPP_IN].NumFrameSuggested  = std::max(request[VPP_IN].NumFrameSuggested,  hwRequest[VPP_IN].NumFrameSuggested);
+            request[VPP_OUT].NumFrameSuggested = std::max(request[VPP_OUT].NumFrameSuggested, hwRequest[VPP_OUT].NumFrameSuggested);
 
             // min
-            request[VPP_IN].NumFrameMin  = MFX_MAX(request[VPP_IN].NumFrameMin, hwRequest[VPP_IN].NumFrameMin);
-            request[VPP_OUT].NumFrameMin = MFX_MAX(request[VPP_OUT].NumFrameMin, hwRequest[VPP_OUT].NumFrameMin);
+            request[VPP_IN].NumFrameMin  = std::max(request[VPP_IN].NumFrameMin,  hwRequest[VPP_IN].NumFrameMin);
+            request[VPP_OUT].NumFrameMin = std::max(request[VPP_OUT].NumFrameMin, hwRequest[VPP_OUT].NumFrameMin);
         }
 
         mfxU16 vppAsyncDepth = (0 == par->AsyncDepth) ? MFX_AUTO_ASYNC_DEPTH_VALUE : par->AsyncDepth;
