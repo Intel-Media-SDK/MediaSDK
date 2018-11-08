@@ -28,7 +28,6 @@
 #include "umc_h264_dec_defs_dec.h"
 #include "umc_h264_dec.h"
 #include "umc_h264_bitstream_headers.h"
-#include "umc_automatic_mutex.h"
 #include "umc_h264_heap.h"
 
 namespace UMC

@@ -28,7 +28,6 @@
 #include "mfx_common_decode_int.h"
 
 
-#include "umc_automatic_mutex.h"
 #include "mfx_enc_common.h"
 
 #include "umc_jpeg_frame_constructor.h"

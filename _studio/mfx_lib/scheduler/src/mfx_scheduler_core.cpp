@@ -24,7 +24,6 @@
 #include <mfx_scheduler_core_handle.h>
 #include <mfx_trace.h>
 
-#include <umc_automatic_mutex.h>
 #include <vm_time.h>
 #include <vm_sys_info.h>
 
