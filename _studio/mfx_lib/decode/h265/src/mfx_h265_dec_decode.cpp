@@ -55,7 +55,7 @@ mfxU32 CalculateNumThread(mfxVideoParam *par, eMFXPlatform platform)
     if (!par->AsyncDepth)
         return numThread;
 
-    return MFX_MIN(par->AsyncDepth, numThread);
+    return std::min<mfxU32>(par->AsyncDepth, numThread);
 }
 
 inline
@@ -323,7 +323,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     UMC::VideoDecoderParams umcVideoParams;
     ConvertMFXParamsToUMC(&m_vFirstPar, &umcVideoParams);
     umcVideoParams.numThreads = m_vPar.mfx.NumThread;
-    umcVideoParams.info.bitrate = MFX_MAX(asyncDepth - umcVideoParams.numThreads, 0); // buffered frames
+    umcVideoParams.info.bitrate = asyncDepth - umcVideoParams.numThreads; // buffered frames
 
     if (MFX_PLATFORM_SOFTWARE != m_platform)
     {
