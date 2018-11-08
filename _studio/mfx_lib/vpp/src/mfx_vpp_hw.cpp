@@ -2959,7 +2959,6 @@ mfxStatus VideoVPPHW::VppFrameCheck(
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
-    (void)pEntryPoint;
     mfxStatus sts;
     mfxStatus intSts = MFX_ERR_NONE;
 
