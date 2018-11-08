@@ -33,7 +33,6 @@
 
 #include <assert.h>
 #include "vm_time.h"
-#include "umc_automatic_mutex.h"
 #include "mfx_brc_common.h"
 #include "mfx_h264_encode_hw_utils.h"
 #include "libmfx_core.h"

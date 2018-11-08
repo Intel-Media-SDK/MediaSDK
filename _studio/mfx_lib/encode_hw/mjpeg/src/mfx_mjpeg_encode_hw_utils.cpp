@@ -28,8 +28,6 @@
 #include "mfx_enc_common.h"
 #include "mfx_mjpeg_encode_interface.h"
 
-#include "umc_automatic_mutex.h"
-
 using namespace MfxHwMJpegEncode;
 
 
