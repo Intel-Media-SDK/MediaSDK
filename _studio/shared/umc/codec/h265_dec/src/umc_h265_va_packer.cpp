@@ -282,11 +282,8 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, TaskSupplier
 
     if (pPicParamSet->tiles_enabled_flag)
     {
-        picParam->num_tile_columns_minus1 = (uint8_t)(pPicParamSet->num_tile_columns - 1);
-        picParam->num_tile_rows_minus1 = (uint8_t)(pPicParamSet->num_tile_rows - 1);
-
-        picParam->num_tile_columns_minus1 = MFX_MIN(sizeof(picParam->column_width_minus1)/sizeof(picParam->column_width_minus1[0]) - 1, picParam->num_tile_columns_minus1);
-        picParam->num_tile_rows_minus1 = MFX_MIN(sizeof(picParam->row_height_minus1)/sizeof(picParam->row_height_minus1[0]) - 1, picParam->num_tile_rows_minus1);
+        picParam->num_tile_columns_minus1 = std::min<uint8_t>(sizeof(picParam->column_width_minus1)/sizeof(picParam->column_width_minus1[0]) - 1, pPicParamSet->num_tile_columns - 1);
+        picParam->num_tile_rows_minus1    = std::min<uint8_t>(sizeof(picParam->row_height_minus1)  /sizeof(picParam->row_height_minus1[0])   - 1, pPicParamSet->num_tile_rows    - 1);
 
         for (uint32_t i = 0; i <= picParam->num_tile_columns_minus1; i++)
             picParam->column_width_minus1[i] = (uint16_t)(pPicParamSet->column_width[i] - 1);
@@ -689,7 +686,7 @@ void PackerVA::PackQmatrix(const H265Slice *pSlice)
                 {
                     const int *src = getDefaultScalingList(sizeId, listId);
                           int *dst = sl.getScalingListAddress(sizeId, listId);
-                    int count = MFX_MIN(MAX_MATRIX_COEF_NUM, (int32_t)g_scalingListSize[sizeId]);
+                    int count = std::min(MAX_MATRIX_COEF_NUM, (int32_t)g_scalingListSize[sizeId]);
                     ::MFX_INTERNAL_CPY(dst, src, sizeof(int32_t) * count);
                     sl.setScalingListDC(sizeId, listId, SCALING_LIST_DC);
                 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -89,13 +89,13 @@ void H265ScalingList::calculateDequantCoef(void)
             {
                 uint32_t width = g_scalingListSizeX[sizeId];
                 uint32_t height = g_scalingListSizeX[sizeId];
-                uint32_t ratio = g_scalingListSizeX[sizeId] / MFX_MIN(MAX_MATRIX_SIZE_NUM, (int32_t)g_scalingListSizeX[sizeId]);
+                uint32_t ratio = g_scalingListSizeX[sizeId] / std::min(MAX_MATRIX_SIZE_NUM, (int32_t)g_scalingListSizeX[sizeId]);
                 int16_t *dequantcoeff;
                 int32_t *coeff = getScalingListAddress(sizeId, listId);
 
                 dequantcoeff = getDequantCoeff(listId, qp, sizeId);
                 processScalingListDec(coeff, dequantcoeff, g_invQuantScales[qp], height, width, ratio,
-                    MFX_MIN(MAX_MATRIX_SIZE_NUM, (int32_t)g_scalingListSizeX[sizeId]), getScalingListDC(sizeId, listId));
+                    std::min(MAX_MATRIX_SIZE_NUM, (int32_t)g_scalingListSizeX[sizeId]), getScalingListDC(sizeId, listId));
             }
         }
     }
@@ -114,7 +114,7 @@ void H265ScalingList::initFromDefaultScalingList()
         {
             MFX_INTERNAL_CPY(getScalingListAddress(sizeId, listId),
                 getScalingListDefaultAddress(sizeId, listId),
-                sizeof(int32_t) * MFX_MIN(MAX_MATRIX_COEF_NUM, (int32_t)g_scalingListSize[sizeId]));
+                sizeof(int32_t) * std::min(MAX_MATRIX_COEF_NUM, (int32_t)g_scalingListSize[sizeId]));
             setScalingListDC(sizeId, listId, SCALING_LIST_DC);
         }
     }
@@ -139,9 +139,9 @@ void H265ScalingList::processScalingListDec(int32_t *coeff, int16_t *dequantcoef
 }
 
 // Returns default scaling matrix for specified parameters
-const int* H265ScalingList::getScalingListDefaultAddress(unsigned sizeId, unsigned listId)
+const int32_t* H265ScalingList::getScalingListDefaultAddress(unsigned sizeId, unsigned listId)
 {
-    const int *src = 0;
+    const int32_t *src = 0;
     switch(sizeId)
     {
     case SCALING_LIST_4x4:
@@ -169,7 +169,7 @@ void H265ScalingList::processRefMatrix(unsigned sizeId, unsigned listId , unsign
 {
   MFX_INTERNAL_CPY(getScalingListAddress(sizeId, listId),
       ((listId == refListId) ? getScalingListDefaultAddress(sizeId, refListId) : getScalingListAddress(sizeId, refListId)),
-      sizeof(int)*MFX_MIN(MAX_MATRIX_COEF_NUM, (int)g_scalingListSize[sizeId]));
+      sizeof(int32_t)*std::min(MAX_MATRIX_COEF_NUM, (int32_t)g_scalingListSize[sizeId]));
 }
 
 } // end namespace UMC_HEVC_DECODER

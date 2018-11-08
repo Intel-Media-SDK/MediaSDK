@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -174,7 +174,7 @@ UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize
 H265Slice * VATaskSupplier::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
 {
     size_t dataSize = nalUnit->GetDataSize();
-    nalUnit->SetDataSize(MFX_MIN(1024, dataSize));
+    nalUnit->SetDataSize(std::min<size_t>(1024, dataSize));
 
     H265Slice * slice = TaskSupplier_H265::DecodeSliceHeader(nalUnit);
 

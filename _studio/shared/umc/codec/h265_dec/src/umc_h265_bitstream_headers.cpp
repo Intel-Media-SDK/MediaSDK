@@ -396,7 +396,7 @@ void H265HeadersBitstream::xDecodeScalingList(H265ScalingList *scalingList, unsi
 {
     VM_ASSERT(scalingList);
 
-    int32_t i,coefNum = MFX_MIN(MAX_MATRIX_COEF_NUM,(int32_t)g_scalingListSize[sizeId]);
+    int32_t i,coefNum = std::min(MAX_MATRIX_COEF_NUM,(int32_t)g_scalingListSize[sizeId]);
     int32_t nextCoef = SCALING_LIST_START_VALUE;
     const uint16_t *scan  = (sizeId == 0) ? ScanTableDiag4x4 : g_sigLastScanCG32x32;
     int32_t *dst = scalingList->getScalingListAddress(sizeId, listId);
@@ -728,7 +728,7 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
     pcSPS->m_maxTrSize = 1 << pcSPS->log2_max_transform_block_size;
 
     uint32_t CtbLog2SizeY = pcSPS->log2_max_luma_coding_block_size;
-    if (pcSPS->log2_max_transform_block_size > MFX_MIN(5, CtbLog2SizeY))
+    if (pcSPS->log2_max_transform_block_size > std::min(5u, CtbLog2SizeY))
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
     pcSPS->max_transform_hierarchy_depth_inter = GetVLCElementU();
@@ -775,12 +775,12 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
 
         pcSPS->log2_min_pcm_luma_coding_block_size = GetVLCElementU() + 3;
 
-        if (pcSPS->log2_min_pcm_luma_coding_block_size < MFX_MIN(MinCbLog2SizeY, 5) || pcSPS->log2_min_pcm_luma_coding_block_size > MFX_MIN(CtbLog2SizeY, 5))
+        if (pcSPS->log2_min_pcm_luma_coding_block_size < std::min(MinCbLog2SizeY, 5u) || pcSPS->log2_min_pcm_luma_coding_block_size > std::min(CtbLog2SizeY, 5u))
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
         pcSPS->log2_max_pcm_luma_coding_block_size = GetVLCElementU() + pcSPS->log2_min_pcm_luma_coding_block_size;
 
-        if (pcSPS->log2_max_pcm_luma_coding_block_size > MFX_MIN(CtbLog2SizeY, 5))
+        if (pcSPS->log2_max_pcm_luma_coding_block_size > std::min(CtbLog2SizeY, 5u))
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
         pcSPS->pcm_loop_filter_disabled_flag = Get1Bit();
