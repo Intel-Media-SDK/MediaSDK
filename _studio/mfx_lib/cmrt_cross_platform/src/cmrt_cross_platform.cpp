@@ -33,7 +33,6 @@ const vm_char * DLL_NAME_LINUX = VM_STRING("igfxcmrt32.so");
 #if defined(ANDROID)
 const vm_char * DLL_NAME_ANDROID = VM_STRING("libigfxcmrt.so");
 #endif
-
 #ifdef CMRT_EMU
     const char * FUNC_NAME_CREATE_CM_DEVICE  = "CreateCmDeviceEmu";
     const char * FUNC_NAME_CREATE_CM_DEVICE_EX  = "CreateCmDeviceEmu";
@@ -196,6 +195,7 @@ public:
 #endif
     IMPL_FOR_ALL(INT, InitPrintBuffer, (size_t printbufsize), (printbufsize));
     IMPL_FOR_ALL(INT, FlushPrintBuffer, (), ());
+    IMPL_FOR_ALL(INT, CreateQueueEx, (CmQueue *&pQueue, CM_QUEUE_CREATE_OPTION QueueCreateOption = CM_DEFAULT_QUEUE_CREATE_OPTION), (pQueue, QueueCreateOption));
 };
 
 
