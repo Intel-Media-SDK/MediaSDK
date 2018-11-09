@@ -851,17 +851,21 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     mfxStatus mfxSts;
     mfxSts = SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
     if (par.m_numLayers)
     {
         mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
     }
+
+    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
 
     m_frameHeaderBuf.resize(VP9_MAX_UNCOMPRESSED_HEADER_SIZE + MAX_IVF_HEADER_SIZE);
     InitVp9SeqLevelParam(par, m_seqParam);
@@ -884,17 +888,21 @@ mfxStatus VAAPIEncoder::Reset(VP9MfxVideoParam const & par)
     mfxStatus mfxSts;
     mfxSts = SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
     if (par.m_numLayers)
     {
         mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
     }
+
+    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
@@ -1118,11 +1126,14 @@ mfxStatus VAAPIEncoder::Execute(
 
         configBuffers[buffersCount++] = m_packedHeaderDataBufferId;
 
-//*********
-
         // 8. hrd parameters
         configBuffers[buffersCount++] = m_hrdBufferId;
-        // 9. RC parameters
+        
+        // 9. temporal layers
+        if (m_video.m_numLayers)
+            configBuffers[buffersCount++] = m_tempLayersBufferId;
+
+        // 10. RC parameters
         SetRateControl(m_video, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds, m_isBrcResetRequired);
         MFX_CHECK_WITH_ASSERT(m_rateCtrlBufferIds.size() == m_frameRateBufferIds.size(), MFX_ERR_DEVICE_FAILED);
         m_isBrcResetRequired = false; // reset BRC only once
@@ -1130,16 +1141,15 @@ mfxStatus VAAPIEncoder::Execute(
         {
             configBuffers[buffersCount++] = m_rateCtrlBufferIds[i];
         }
-        // 10. frame rate
+
+        // 11. frame rate
         for (VABufferID id : m_frameRateBufferIds)
         {
             configBuffers[buffersCount++] = id;
         }
-        // 11. quality level
+
+        // 12. quality level
         configBuffers[buffersCount++] = m_qualityLevelBufferId;
-        // 12. temporal layers
-        if (m_video.m_numLayers)
-            configBuffers[buffersCount++] = m_tempLayersBufferId;
     }
 
     assert(buffersCount <= configBuffers.size());
