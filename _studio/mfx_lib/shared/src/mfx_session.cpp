@@ -70,22 +70,10 @@ mfxStatus mfxCOREGetCoreParam(mfxHDL pthis, mfxCoreParam *par)
         par->NumWorkingThread = param.numberOfThreads;
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pScheduler)
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
-        else if (0 == par)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
     }
 
     return mfxRes;
@@ -128,7 +116,7 @@ mfxStatus mfxCOREMapOpaqueSurface(mfxHDL pthis, mfxU32  num, mfxU32  type, mfxFr
 
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
@@ -188,15 +176,11 @@ mfxStatus mfxCOREUnmapOpaqueSurface(mfxHDL pthis, mfxU32  num, mfxU32  , mfxFram
 
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pScheduler)
+        if (0 == session->m_pScheduler)
         {
             mfxRes = MFX_ERR_NOT_INITIALIZED;
         }
@@ -223,15 +207,11 @@ mfxStatus mfxCOREGetRealSurface(mfxHDL pthis, mfxFrameSurface1 *op_surf, mfxFram
         return mfxRes;
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pScheduler)
+        if (0 == session->m_pScheduler)
         {
             mfxRes = MFX_ERR_NOT_INITIALIZED;
         }
@@ -257,15 +237,11 @@ mfxStatus mfxCOREGetOpaqueSurface(mfxHDL pthis, mfxFrameSurface1 *surf, mfxFrame
         return mfxRes;
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pScheduler)
+        if (0 == session->m_pScheduler)
         {
             mfxRes = MFX_ERR_NOT_INITIALIZED;
         }
@@ -293,21 +269,9 @@ mfxStatus mfxCORECreateAccelerationDevice(mfxHDL pthis, mfxHandleType type, mfxH
         }
     }
     /* handle error(s) */
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
-        /* set the default error value */
-        if (NULL == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (NULL == session->m_pCORE.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
-        else
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
+        mfxRes = MFX_ERR_NULL_PTR;
     }
     return mfxRes;
 }// mfxStatus mfxCORECreateAccelerationDevice(mfxHDL pthis, mfxHandleType type, mfxHDL *handle)
@@ -333,7 +297,7 @@ mfxStatus mfxCOREGetFrameHDL(mfxHDL pthis, mfxFrameData *fd, mfxHDL *handle)
             mfxRes = pCore->GetFrameHDL(fd->MemId, handle);
         }
     }
-    catch (MFX_CORE_CATCH_TYPE)
+    catch (...)
     {
         mfxRes = MFX_ERR_UNKNOWN;
     }
@@ -363,7 +327,7 @@ mfxStatus mfxCOREQueryPlatform(mfxHDL pthis, mfxPlatform *platform)
             memset(platform, 0, sizeof(mfxPlatform));
         }
     }
-    catch (MFX_CORE_CATCH_TYPE)
+    catch (...)
     {
         mfxRes = MFX_ERR_UNKNOWN;
     }
@@ -384,21 +348,9 @@ mfxStatus mfxCORE##func_name formal_param_list \
         mfxRes = session->m_pCORE->func_name actual_param_list; \
     } \
     /* handle error(s) */ \
-    catch(MFX_CORE_CATCH_TYPE) \
+    catch(...) \
     { \
-        /* set the default error value */ \
-        if (NULL == session) \
-        { \
-            mfxRes = MFX_ERR_INVALID_HANDLE; \
-        } \
-        else if (NULL == session->m_pCORE.get()) \
-        { \
-            mfxRes = MFX_ERR_NOT_INITIALIZED; \
-        } \
-        else \
-        { \
-            mfxRes = MFX_ERR_NULL_PTR; \
-        } \
+        mfxRes = MFX_ERR_NULL_PTR; \
     } \
     return mfxRes; \
 } /* mfxStatus mfxCORE##func_name formal_param_list */
