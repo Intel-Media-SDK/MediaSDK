@@ -48,46 +48,28 @@ FUNCTION_IMPL(CORE, GetHandle, (mfxSession session, mfxHandleType type, mfxHDL *
 mfxStatus MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform)
 {
     mfxStatus mfxRes;
+
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
     try
     {
-        if (0 == session)
+        /* call the codec's method */
+        IVideoCore_API_1_19 * pInt = QueryCoreInterface<IVideoCore_API_1_19>(session->m_pCORE.get(), MFXICORE_API_1_19_GUID);
+        if (pInt)
         {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        /* the absent components caused many issues in application.
-        check the pointer to avoid extra exceptions */
-        else if (0 == session->m_pCORE.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
+            mfxRes = pInt->QueryPlatform(platform);
         }
         else
         {
-            /* call the codec's method */
-            IVideoCore_API_1_19 * pInt = QueryCoreInterface<IVideoCore_API_1_19>(session->m_pCORE.get(), MFXICORE_API_1_19_GUID);
-            if (pInt)
-            {
-                mfxRes = pInt->QueryPlatform(platform);
-            }
-            else
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-                memset(platform, 0, sizeof(mfxPlatform));
-            }
+            mfxRes = MFX_ERR_UNSUPPORTED;
+            memset(platform, 0, sizeof(mfxPlatform));
         }
     }
     /* handle error(s) */
-    catch (MFX_CORE_CATCH_TYPE)
+    catch (...)
     {
         /* set the default error value */
         mfxRes = MFX_ERR_NULL_PTR;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pCORE.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
     }
     return mfxRes;
 }
@@ -220,7 +202,7 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
             return this->DefaultAllocFrames(request, response);
         }
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_MEMORY_ALLOC;
     }
@@ -272,7 +254,7 @@ mfxStatus CommonCORE::LockFrame(mfxHDL mid, mfxFrameData *ptr)
             return MFX_ERR_INVALID_HANDLE;
         return (*pAlloc->Lock)(pAlloc->pthis, mid, ptr);
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_INVALID_HANDLE;
     }
@@ -302,7 +284,7 @@ mfxStatus CommonCORE::GetFrameHDL(mfxHDL mid, mfxHDL* handle, bool ExtendedSearc
             return (*pAlloc->GetHDL)(pAlloc->pthis, mid, handle);
 
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
@@ -319,7 +301,7 @@ mfxStatus CommonCORE::UnlockFrame(mfxHDL mid, mfxFrameData *ptr)
             return MFX_ERR_INVALID_HANDLE;
         return (*pAlloc->Unlock)(pAlloc->pthis, mid, ptr);
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_INVALID_HANDLE;
     }
@@ -467,7 +449,7 @@ mfxStatus CommonCORE::InternalFreeFrames(mfxFrameAllocResponse *response)
         response->mids = 0;
         return sts;
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
@@ -506,7 +488,7 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
         }
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_LOCK_MEMORY;
     }
@@ -533,7 +515,7 @@ mfxStatus  CommonCORE::GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool Ex
         }
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
@@ -570,7 +552,7 @@ mfxStatus  CommonCORE::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool
         }
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_LOCK_MEMORY;
     }
