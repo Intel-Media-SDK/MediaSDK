@@ -228,7 +228,7 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_UNKNOWN;
     }
@@ -317,7 +317,7 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_UNKNOWN;
     }
@@ -401,13 +401,9 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            return MFX_ERR_INVALID_HANDLE;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
@@ -457,7 +453,7 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
 
     try
     {
-        if (!session->m_pDECODE.get())
+        if (!session->m_pDECODE)
         {
             return MFX_ERR_NOT_INITIALIZED;
         }
@@ -467,26 +463,21 @@ mfxStatus MFXVideoDECODE_Close(mfxSession session)
 
         mfxRes = session->m_pDECODE->Close();
         // delete the codec's instance if not plugin
-        if (!session->m_plgDec.get())
+        if (!session->m_plgDec)
         {
-            session->m_pDECODE.reset((VideoDECODE *) 0);
+            session->m_pDECODE.reset(nullptr);
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
-
-} // mfxStatus MFXVideoDECODE_Close(mfxSession session)
+}
 
 mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
@@ -574,22 +565,10 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            return MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pDECODE.get())
-        {
-            return MFX_ERR_NOT_INITIALIZED;
-        }
-        else if (0 == syncp)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
     }
 
     if (mfxRes == MFX_ERR_NONE)

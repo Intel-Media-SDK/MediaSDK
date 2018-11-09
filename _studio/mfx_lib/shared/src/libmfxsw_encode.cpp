@@ -262,7 +262,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
@@ -424,7 +424,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
@@ -454,9 +454,8 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
 
     try
     {
-
         // check existence of component
-        if (!session->m_pENCODE.get())
+        if (!session->m_pENCODE)
         {
             // create a new instance
             session->m_pENCODE.reset(session->Create<VideoENCODE>(*par));
@@ -464,30 +463,17 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
         }
 
         mfxRes = session->m_pENCODE->Init(par);
-        }
+    }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pENCODE.get())
-        {
-            mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
-        }
-        else if (0 == par)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
-
-} // mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
+}
 
 mfxStatus MFXVideoENCODE_Close(mfxSession session)
 {
@@ -500,7 +486,7 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
 
     try
     {
-        if (!session->m_pENCODE.get())
+        if (!session->m_pENCODE)
         {
             return MFX_ERR_NOT_INITIALIZED;
         }
@@ -510,26 +496,21 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
 
         mfxRes = session->m_pENCODE->Close();
         // delete the codec's instance if not plugin
-        if (!session->m_plgEnc.get())
+        if (!session->m_plgEnc)
         {
-            session->m_pENCODE.reset((VideoENCODE *) 0);
+            session->m_pENCODE.reset(nullptr);
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;
-
-} // mfxStatus MFXVideoENCODE_Close(mfxSession session)
+}
 
 static
 mfxStatus MFXVideoENCODELegacyRoutine(void *pState, void *pParam,
@@ -711,22 +692,10 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
         *syncp = syncPoint;
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pENCODE.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
-        else if (0 == syncp)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
     }
 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
@@ -746,35 +715,21 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
 mfxStatus MFXVideoENCODE_Reset(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes;
+
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session->m_pENCODE, MFX_ERR_NOT_INITIALIZED);
     try
     {
-        /* the absent components caused many issues in application.
-        check the pointer to avoid extra exceptions */
-        if (0 == session->m_pENCODE.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
-        else
-        {
-            /* wait until all tasks are processed */
-            session->m_pScheduler->WaitForTaskCompletion(session->m_pENCODE.get());
-            /* call the codec's method */
-            mfxRes = session->m_pENCODE->Reset(par);
-            }
-        }
+        /* wait until all tasks are processed */
+        session->m_pScheduler->WaitForTaskCompletion(session->m_pENCODE.get());
+        /* call the codec's method */
+        mfxRes = session->m_pENCODE->Reset(par);
+    }
     /* handle error(s) */
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         /* set the default error value */
         mfxRes = MFX_ERR_NULL_PTR;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pENCODE.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
     }
     return mfxRes;
 

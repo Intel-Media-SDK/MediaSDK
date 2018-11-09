@@ -92,11 +92,11 @@ public:
         }
         catch(std::bad_alloc&)
         {
-            return MFX_ERR_MEMORY_ALLOC;;
+            return MFX_ERR_MEMORY_ALLOC;
         }
-        catch(MFX_CORE_CATCH_TYPE) 
+        catch(...)
         { 
-            return MFX_ERR_UNKNOWN;; 
+            return MFX_ERR_UNKNOWN;
         }
 
         tmp_pplg->m_adapter.reset(new MFXPluginAdapter<MFXEncPlugin> (tmp_pplg));
