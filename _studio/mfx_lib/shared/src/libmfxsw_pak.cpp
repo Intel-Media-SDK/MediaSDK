@@ -92,7 +92,7 @@ mfxStatus MFXVideoPAK_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
@@ -126,7 +126,7 @@ mfxStatus MFXVideoPAK_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFra
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
@@ -139,35 +139,24 @@ mfxStatus MFXVideoPAK_Init(mfxSession session, mfxVideoParam *par)
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
+
     try
     {
         // create a new instance
         session->m_pPAK.reset(session->Create<VideoPAK>(*par));
         MFX_CHECK(session->m_pPAK.get(), MFX_ERR_INVALID_VIDEO_PARAM);
+
         mfxRes = session->m_pPAK->Init(par);
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pPAK.get())
-        {
-            mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
-        }
-        else if (0 == par)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
     }
 
     return mfxRes;
-
-} // mfxStatus MFXVideoPAK_Init(mfxSession session, mfxVideoParam *par)
+}
 
 mfxStatus MFXVideoPAK_Close(mfxSession session)
 {
@@ -177,7 +166,7 @@ mfxStatus MFXVideoPAK_Close(mfxSession session)
 
     try
     {
-        if (!session->m_pPAK.get())
+        if (!session->m_pPAK)
         {
             return MFX_ERR_NOT_INITIALIZED;
         }
@@ -187,22 +176,17 @@ mfxStatus MFXVideoPAK_Close(mfxSession session)
 
         mfxRes = session->m_pPAK->Close();
         // delete the codec's instance
-        session->m_pPAK.reset((VideoPAK *) 0);
+        session->m_pPAK.reset(nullptr);
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
     }
 
     return mfxRes;
-
-} // mfxStatus MFXVideoPAK_Close(mfxSession session)
+}
 
 enum
 {
@@ -296,22 +280,10 @@ mfxStatus MFXVideoPAK_ProcessFrameAsync(mfxSession session , mfxPAKInput *in, mf
          *syncp = syncPoint;
      }
      // handle error(s)
-     catch(MFX_CORE_CATCH_TYPE)
+     catch(...)
      {
          // set the default error value
          mfxRes = MFX_ERR_UNKNOWN;
-         if (0 == session)
-         {
-             mfxRes = MFX_ERR_INVALID_HANDLE;
-         }
-         else if (0 == pPak)
-         {
-             mfxRes = MFX_ERR_NOT_INITIALIZED;
-         }
-         else if (0 == syncp)
-         {
-             return MFX_ERR_NULL_PTR;
-         }
      }
 
      return mfxRes;
