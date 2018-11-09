@@ -53,11 +53,6 @@ enum eMFXAudioPlatform
     MFX_AUDIO_PLATFORM_HARDWARE      = 1,
 };
 
-
-// commented since running behavior tests w/o catch is very annoying
-// #define MFX_CORE_CATCH_TYPE     int**** // to disable catch
-#define MFX_CORE_CATCH_TYPE     ...
-
 // Forward declaration of used classes
 struct MFX_ENTRY_POINT;
 
