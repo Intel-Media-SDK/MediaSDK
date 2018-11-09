@@ -231,15 +231,6 @@ namespace MFX_VPX_Utility
                 }
             }
 
-            switch (p_in->mfx.FrameInfo.PicStruct)
-            {
-            case MFX_PICSTRUCT_UNKNOWN:
-            case MFX_PICSTRUCT_PROGRESSIVE:
-                p_out->mfx.FrameInfo.PicStruct = p_in->mfx.FrameInfo.PicStruct;
-                break;
-            default:
-                sts = MFX_ERR_UNSUPPORTED;
-            }
 
             if (p_in->mfx.ExtendedPicStruct)
                 sts = MFX_ERR_UNSUPPORTED;
