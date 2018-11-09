@@ -1779,6 +1779,11 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
             if (pps->pps_curr_pic_ref_enabled_flag)
                 numPicTotalCurr++;
 
+            if (numPicTotalCurr > 8)
+                //A.4.1 General tier and level limits
+                //The value of NumPicTotalCurr shall be less than or equal to 8
+                throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
             //7.4.7.2 value of list_entry_l0/list_entry_l1[ i ] shall be in the range of 0 to NumPicTotalCurr - 1, inclusive
             for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_0); idx++)
             {
