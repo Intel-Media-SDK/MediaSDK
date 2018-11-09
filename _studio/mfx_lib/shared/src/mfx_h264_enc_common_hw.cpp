@@ -833,10 +833,13 @@ namespace
 #if defined(MFX_ENABLE_MFE)
     mfxU16 GetDefaultNumMfeFrames(mfxU32 targetUsage, const mfxFrameInfo& info,
         eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed,
-        eMFXGTConfig config)
+        eMFXGTConfig config, mfxU16 brcMethod)
     {
         targetUsage;//no specific check for TU now, can be added later
         if (platform <= MFX_HW_BDW)//no MFE support prior to SKL.
+            return 1;
+        // ICQ is unsupported for MFE now, QVBR and VCM are low latency usage rate controls, MFE is not suitable for low latency usages
+        if(brcMethod == MFX_RATECONTROL_ICQ || brcMethod == MFX_RATECONTROL_QVBR || brcMethod == MFX_RATECONTROL_VCM)
             return 1;
         else if (platform == MFX_HW_SCL && config >= MFX_GT3)
         {
@@ -4679,7 +4682,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     mfxU16 numFrames = GetDefaultNumMfeFrames(par.mfx.TargetUsage, par.mfx.FrameInfo, platform, feiParam->Func,
         par.mfx.NumSlice,
         (extOpt2->EnableMAD == MFX_CODINGOPTION_ON) ||  (extOpt3->EnableMBQP == MFX_CODINGOPTION_ON) ||
-        (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config);
+        (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config, par.mfx.RateControlMethod);
     if (mfeParam.MaxNumFrames > numFrames)
     {
         mfeParam.MaxNumFrames = numFrames;
@@ -5342,7 +5345,7 @@ void MfxHwH264Encode::SetDefaults(
             mfeParam->MaxNumFrames = GetDefaultNumMfeFrames(par.mfx.TargetUsage, par.mfx.FrameInfo, platform, feiParam->Func,
                 par.mfx.NumSlice,
                 (extOpt2->EnableMAD == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBQP == MFX_CODINGOPTION_ON) ||
-                (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config);
+                (extOpt3->MBDisableSkipMap == MFX_CODINGOPTION_ON) || (extOpt3->EnableMBForceIntra == MFX_CODINGOPTION_ON), config, par.mfx.RateControlMethod);
         }
     }
     if (mfeControl)
