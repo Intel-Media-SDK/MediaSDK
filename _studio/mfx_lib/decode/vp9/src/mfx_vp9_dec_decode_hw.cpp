@@ -170,6 +170,12 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
+    if ((m_vInitPar.mfx.FrameInfo.AspectRatioH == 0) && (m_vInitPar.mfx.FrameInfo.AspectRatioW == 0))
+    {
+        m_vInitPar.mfx.FrameInfo.AspectRatioH = 1;
+        m_vInitPar.mfx.FrameInfo.AspectRatioW = 1;
+    }
+
     m_vPar = m_vInitPar;
 
     m_vInitPar.IOPattern = (m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY)
@@ -183,12 +189,6 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
     }
 
     m_in_framerate = (mfxF64) m_vInitPar.mfx.FrameInfo.FrameRateExtD / m_vInitPar.mfx.FrameInfo.FrameRateExtN;
-
-    if ((m_vPar.mfx.FrameInfo.AspectRatioH == 0) && (m_vPar.mfx.FrameInfo.AspectRatioW == 0))
-    {
-        m_vPar.mfx.FrameInfo.AspectRatioH = 1;
-        m_vPar.mfx.FrameInfo.AspectRatioW = 1;
-    }
 
     // allocate memory
     memset(&m_request, 0, sizeof(m_request));
