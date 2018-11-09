@@ -419,7 +419,7 @@ VAAPIVideoCORE::SetHandle(
         }
         return MFX_ERR_NONE;
     }
-    catch (MFX_CORE_CATCH_TYPE)
+    catch (...)
     {
         ReleaseHandle();
         return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -555,7 +555,7 @@ VAAPIVideoCORE::AllocFrames(
             }
         }
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         return MFX_ERR_MEMORY_ALLOC;
     }
