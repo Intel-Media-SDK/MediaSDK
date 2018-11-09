@@ -2635,7 +2635,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             }
         }
 
-        task->m_singleFieldMode = IsOn(extFeiParams->SingleFieldProcessing);
+        // In case of progressive frames in PAFF mode need to switch the flag off to prevent m_fieldCounter changes
+        task->m_singleFieldMode = (task->m_fieldPicFlag != 0) && IsOn(extFeiParams->SingleFieldProcessing);
 
 
         for (mfxU32 f = 0; f <= task->m_fieldPicFlag; f++)
