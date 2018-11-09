@@ -5081,33 +5081,105 @@ template <class T> T get_total_area(std::vector< cRect<T> > &rects) {
 inline
 mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
 {
-    VM_ASSERT(bit_depth);
+    if (bit_depth<8)
+            throw MfxHwVideoProcessing::VpUnsupportedError();
 
     mfxU64 const shift = bit_depth - 8;
-    mfxU64 const max_val = 256 << shift;
+    mfxU64 const max_val = (1 << bit_depth) - 1;
 
     return
-        ((mfxU64)                                 (max_val - 1) << 48) |
-        ((mfxU64)VPP_RANGE_CLIP(Y, (16 << shift), (235 << shift))     << 32) |
-        ((mfxU64)VPP_RANGE_CLIP(U, (16 << shift), (240 << shift))     << 16) |
-        ((mfxU64)VPP_RANGE_CLIP(V, (16 << shift), (240 << shift))     <<  0)
-        ;
-};
+        ((mfxU64) max_val << 48) |
+        ((mfxU64) VPP_RANGE_CLIP(Y, (16 << shift), (235 << shift))     << 32) |
+        ((mfxU64) VPP_RANGE_CLIP(U, (16 << shift), (240 << shift))     << 16) |
+        ((mfxU64) VPP_RANGE_CLIP(V, (16 << shift), (240 << shift))     <<  0);
+}
+
+inline
+mfxU64 make_back_color_argb(mfxU16 bit_depth, mfxU16 R, mfxU16 G, mfxU16 B)
+{
+    if (bit_depth<8)
+            throw MfxHwVideoProcessing::VpUnsupportedError();
+
+    mfxU64 const max_val = (1 << bit_depth) - 1;
+
+    return ((mfxU64) max_val << 48) |
+           ((mfxU64) VPP_RANGE_CLIP(R, 0, max_val) << 32) |
+           ((mfxU64) VPP_RANGE_CLIP(G, 0, max_val) << 16) |
+           ((mfxU64) VPP_RANGE_CLIP(B, 0, max_val) << 0);
+}
 
 inline
 mfxU64 make_def_back_color_yuv(mfxU16 bit_depth)
 {
-    assert(bit_depth);
+    if (bit_depth<8)
+            throw MfxHwVideoProcessing::VpUnsupportedError();
 
     mfxU64 const shift = bit_depth - 8;
-    mfxU64 const min_val = 16 << shift, max_val = 256 << shift;
-    return
-        ((max_val - 1ULL) << 48) |
-        ( min_val      << 32) |
-        ( max_val / 2  << 16) |
-        ( max_val / 2  <<  0)
-        ;
-};
+    mfxU16 const min_val = 16 << shift, max_val = 256 << shift;
+    return make_back_color_yuv(bit_depth, min_val, max_val / 2, max_val / 2);
+}
+
+inline
+mfxU64 make_def_back_color_argb(mfxU16 bit_depth)
+{
+    return make_back_color_argb(bit_depth, 0, 0, 0);
+}
+
+static
+mfxU64 get_background_color(const mfxVideoParam & videoParam)
+{
+    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+    {
+        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_COMPOSITE)
+        {
+            mfxExtVPPComposite *extComp = (mfxExtVPPComposite *) videoParam.ExtParam[i];
+            switch (videoParam.vpp.Out.FourCC) {
+                case MFX_FOURCC_NV12:
+                case MFX_FOURCC_YV12:
+                case MFX_FOURCC_NV16:
+                case MFX_FOURCC_YUY2:
+                case MFX_FOURCC_AYUV:
+                    return make_back_color_yuv(8, extComp->Y, extComp->U, extComp->V);
+                case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1027)
+                case MFX_FOURCC_Y210:
+                case MFX_FOURCC_Y410:
+#endif
+                case MFX_FOURCC_P210:
+                    return make_back_color_yuv(10, extComp->Y, extComp->U, extComp->V);
+                case MFX_FOURCC_RGB4:
+                case MFX_FOURCC_BGR4:
+                    return make_back_color_argb(8, extComp->R, extComp->G, extComp->B);
+                default:
+                    break;
+            }
+        }
+    }
+
+    switch (videoParam.vpp.Out.FourCC)
+    {
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YV12:
+        case MFX_FOURCC_NV16:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_AYUV:
+            return make_def_back_color_yuv(8);
+        case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_Y210:
+        case MFX_FOURCC_Y410:
+#endif
+        case MFX_FOURCC_P210:
+            return make_def_back_color_yuv(10);
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+            return make_def_back_color_argb(8);
+        default:
+            break;
+    }
+
+    throw MfxHwVideoProcessing::VpUnsupportedError();
+}
 
 //---------------------------------------------------------
 // Do internal configuration
@@ -5135,27 +5207,7 @@ mfxStatus ConfigureExecuteParams(
     config.m_surfCount[VPP_IN]  = 1;
     config.m_surfCount[VPP_OUT] = 1;
 
-    mfxU64 def_back_color = 0xffff000000000000;
-    if (videoParam.vpp.Out.FourCC == MFX_FOURCC_NV12 ||
-        videoParam.vpp.Out.FourCC == MFX_FOURCC_YV12 ||
-        videoParam.vpp.Out.FourCC == MFX_FOURCC_NV16 ||
-        videoParam.vpp.Out.FourCC == MFX_FOURCC_YUY2 ||
-        videoParam.vpp.Out.FourCC == MFX_FOURCC_AYUV )
-    {
-        def_back_color = make_def_back_color_yuv(8);
-    }
-    else if(videoParam.vpp.Out.FourCC == MFX_FOURCC_P010 ||
-#if (MFX_VERSION >= 1027)
-            videoParam.vpp.Out.FourCC == MFX_FOURCC_Y210 ||
-            videoParam.vpp.Out.FourCC == MFX_FOURCC_Y410 ||
-#endif
-            videoParam.vpp.Out.FourCC == MFX_FOURCC_P210)
-    {
-        def_back_color = make_def_back_color_yuv(10);
-    }
-
-    executeParams.iBackgroundColor = def_back_color;
-
+    executeParams.iBackgroundColor = get_background_color(videoParam);
 
     //-----------------------------------------------------
     for (mfxU32 j = 0; j < pipelineList.size(); j += 1)
@@ -5638,35 +5690,6 @@ mfxStatus ConfigureExecuteParams(
                                 rec.PixelAlphaEnable = 1;
                             executeParams.dstRects[cnt]= rec ;
                         }
-                        /* And now lets calculate background color*/
-
-                        mfxU32 targetFourCC = videoParam.vpp.Out.FourCC;
-
-                        if (targetFourCC == MFX_FOURCC_NV12 ||
-                            targetFourCC == MFX_FOURCC_YV12 ||
-                            targetFourCC == MFX_FOURCC_NV16 ||
-                            targetFourCC == MFX_FOURCC_YUY2 ||
-                            targetFourCC == MFX_FOURCC_AYUV)
-                        {
-                            executeParams.iBackgroundColor = make_back_color_yuv(8, extComp->Y, extComp->U, extComp->V);
-                        }
-                        if (targetFourCC == MFX_FOURCC_P010 ||
-#if (MFX_VERSION >= 1027)
-                            targetFourCC == MFX_FOURCC_Y210 ||
-                            targetFourCC == MFX_FOURCC_Y410 ||
-#endif
-                            targetFourCC == MFX_FOURCC_P210)
-                        {
-                            executeParams.iBackgroundColor = make_back_color_yuv(10, extComp->Y, extComp->U, extComp->V);
-                        }
-                        if (targetFourCC == MFX_FOURCC_RGB4 ||
-                            targetFourCC == MFX_FOURCC_BGR4)
-                        {
-                            executeParams.iBackgroundColor = ((mfxU64)0xff << 48)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->R, 0, 255) << 32)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->G, 0, 255) << 16)|
-                               ((mfxU64)VPP_RANGE_CLIP(extComp->B, 0, 255) <<  0);
-                        }
                     }
                 }
 
@@ -5991,8 +6014,6 @@ mfxStatus ConfigureExecuteParams(
                 {
                     executeParams.bComposite = false;
                     executeParams.dstRects.clear();
-
-                    executeParams.iBackgroundColor = def_back_color;
                 }
                 else if (MFX_EXTBUFF_VPP_FIELD_PROCESSING == bufferId)
                 {
