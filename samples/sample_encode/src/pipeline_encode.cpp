@@ -585,7 +585,8 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     if (pInParams->nGPB || pInParams->LowDelayBRC || pInParams->WeightedPred || pInParams->WeightedBiPred
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
         || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
-        || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality)
+        || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality || pInParams->WinBRCSize
+        || pInParams->WinBRCMaxAvgKbps)
     {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
@@ -607,6 +608,8 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 #if (MFX_VERSION >= 1026)
         m_CodingOption3.ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
 #endif
+        m_CodingOption3.WinBRCSize = pInParams->WinBRCSize;
+        m_CodingOption3.WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
 
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }

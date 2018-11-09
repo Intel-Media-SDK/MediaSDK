@@ -1446,8 +1446,8 @@ namespace MfxHwH264Encode
         mfxU16  m_AsyncDepth;
         mfxU16  m_first;
         mfxU16  m_skipped;
-
-
+        mfxU8  m_QPMin[3]; // for I, P and B
+        mfxU8  m_QPMax[3]; // for I, P and B
 
         bool        m_bControlMaxFrame;
         AVGBitrate* m_AvgBitrate;
@@ -1512,6 +1512,8 @@ namespace MfxHwH264Encode
         mfxU16  m_qpUpdateRange;
         mfxF64  m_fr;
         mfxU16  m_skipped;
+        mfxU8   m_QPMin[3]; // for I, P and B
+        mfxU8   m_QPMax[3]; // for I, P and B
 
         AVGBitrate* m_AvgBitrate;
 
@@ -1549,6 +1551,8 @@ namespace MfxHwH264Encode
         mfxU32  m_intraCost;
         mfxU32  m_interCost;
         mfxU32  m_propCost;
+        mfxU8   m_QPMin[3]; // for I, P and B
+        mfxU8   m_QPMax[3]; // for I, P and B
     };
     class H264SWBRC : public BrcIface
     {
