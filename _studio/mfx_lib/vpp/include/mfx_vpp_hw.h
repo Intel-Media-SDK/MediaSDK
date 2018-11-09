@@ -1005,6 +1005,13 @@ namespace MfxHwVideoProcessing
         public:
             void SetCmDevice(CmDevice * device) { m_pCmDevice = device; }
     };
+
+    class VpUnsupportedError : public std::exception
+    {
+    public:
+        VpUnsupportedError() : std::exception() { assert(!"VpUnsupportedError"); }
+    };
+
 }; // namespace MfxHwVideoProcessing
 
 
