@@ -105,7 +105,7 @@ public:
     char* FeedEmulatedPluginsCfgLines(char * str, int num, FILE * stream);
     mfxStatus ReturnMockPlugin(mfxPluginUID uid, mfxPlugin* pPlugin)
     {
-        pPlugin = &m_mock_plugin;
+        *pPlugin = m_mock_plugin;
         return MFX_ERR_NONE;
     }
     mfxPlugin m_mock_plugin;
