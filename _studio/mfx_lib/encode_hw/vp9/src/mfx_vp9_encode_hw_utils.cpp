@@ -83,7 +83,7 @@ void VP9MfxVideoParam::CalculateInternalParams()
     }
 
     m_targetKbps = m_maxKbps = m_bufferSizeInKb = m_initialDelayInKb = 0;
-    mfxU16 mult = MFX_MAX(mfx.BRCParamMultiplier, 1);
+    mfxU16 mult = std::max<mfxU16>(mfx.BRCParamMultiplier, 1);
 
     //"RateControlMethod == 0" always maps to CBR or VBR depending on TargetKbps and MaxKbps
     if (IsBitrateBasedBRC(mfx.RateControlMethod) || mfx.RateControlMethod == 0)
@@ -116,20 +116,20 @@ void VP9MfxVideoParam::SyncInternalParamToExternal()
 
     if (IsBitrateBasedBRC(mfx.RateControlMethod))
     {
-        maxBrcVal32 = MFX_MAX(m_maxKbps, MFX_MAX(maxBrcVal32, m_targetKbps));
+        maxBrcVal32 = std::max({m_maxKbps, maxBrcVal32, m_targetKbps});
 
         if (IsBufferBasedBRC(mfx.RateControlMethod))
         {
-            maxBrcVal32 = MFX_MAX(maxBrcVal32, m_initialDelayInKb);
+            maxBrcVal32 = std::max(maxBrcVal32, m_initialDelayInKb);
         }
 
         for (mfxU16 i = 0; i < MAX_NUM_TEMP_LAYERS; i++)
         {
-            maxBrcVal32 = MFX_MAX(maxBrcVal32, m_layerParam[i].targetKbps);
+            maxBrcVal32 = std::max(maxBrcVal32, m_layerParam[i].targetKbps);
         }
     }
 
-    mfxU16 mult = MFX_MAX(mfx.BRCParamMultiplier, 1);
+    mfxU16 mult = std::max<mfxU16>(mfx.BRCParamMultiplier, 1);
 
     if (maxBrcVal32)
     {
