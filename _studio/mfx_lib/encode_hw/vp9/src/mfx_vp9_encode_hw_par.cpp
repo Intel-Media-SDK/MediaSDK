@@ -1481,7 +1481,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
     if (rows && height)
     {
         mfxU16 heightInSBs = static_cast<mfxU16>(CeilDiv(height, SB_SIZE));
-        mfxU16 maxPossibleRows = MFX_MIN(heightInSBs, MAX_NUM_TILE_ROWS);
+        mfxU16 maxPossibleRows = std::min<mfxU16>(heightInSBs, MAX_NUM_TILE_ROWS);
         if (rows > maxPossibleRows)
         {
             rows = maxPossibleRows;
@@ -1501,7 +1501,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
     if (cols && width)
     {
         mfxU16 widthInMinTileCols = static_cast<mfxU16>(CeilDiv(width, MIN_TILE_WIDTH));
-        mfxU16 maxPossibleCols = MFX_MIN(widthInMinTileCols, MAX_NUM_TILES);
+        mfxU16 maxPossibleCols = std::min<mfxU16>(widthInMinTileCols, MAX_NUM_TILES);
         if (cols > maxPossibleCols)
         {
             cols = maxPossibleCols;
@@ -1673,7 +1673,7 @@ mfxStatus SetDefaults(
     mfxExtVP9Param& extPar = GetExtBufferRef(par);
     if (extPar.FrameWidth)
     {
-        SetDefault(fi.CropW, MFX_MIN(fi.Width, extPar.FrameWidth));
+        SetDefault(fi.CropW, std::min(fi.Width, extPar.FrameWidth));
     }
     else
     {
@@ -1682,7 +1682,7 @@ mfxStatus SetDefaults(
     }
     if (extPar.FrameHeight)
     {
-        SetDefault(fi.CropH, MFX_MIN(fi.Height, extPar.FrameHeight));
+        SetDefault(fi.CropH, std::min(fi.Height, extPar.FrameHeight));
     }
     else
     {
