@@ -255,6 +255,7 @@ typedef struct {
     { 0x3E94, MFX_HW_CFL, MFX_GT2 },
     { 0x3E96, MFX_HW_CFL, MFX_GT2 },
     { 0x3E9B, MFX_HW_CFL, MFX_GT2 },
+    { 0x3EA5, MFX_HW_CFL, MFX_GT3 },
 
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
@@ -1127,7 +1128,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
                 MFX_CHECK(srcPitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
 
                 {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "memcpy_vid2sys");
+                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_vid2sys");
                     mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, &pSrc->Data);
                     MFX_CHECK_STS(sts);
 
@@ -1157,7 +1158,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
     }
     else if (!LumaIsNull(pSrc) && !LumaIsNull(pDst))
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "memcpy_sys2sys");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2sys");
         // system memories were passed
         // use common way to copy frames
 
@@ -1202,7 +1203,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
             MFX_CHECK(dstPitch < 0x8000 || pDst->Info.FourCC == MFX_FOURCC_RGB4 || pDst->Info.FourCC == MFX_FOURCC_YUY2, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "memcpy_sys2vid");
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FastCopy_sys2vid");
 
                 mfxStatus sts = mfxDefaultAllocatorVAAPI::SetFrameData(va_image, pDst->Info.FourCC, (mfxU8*)pBits, &pDst->Data);
                 MFX_CHECK_STS(sts);

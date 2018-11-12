@@ -24,6 +24,7 @@
 #include "mfx_h265_encode_hw_ddi.h"
 #include <assert.h>
 #include <math.h>
+#include <algorithm>
 
 namespace MfxHwH265Encode
 {
@@ -2692,7 +2693,10 @@ void SetDefaults(
         if (!par.MaxKbps)
             par.MaxKbps = par.TargetKbps;
         if (!par.BufferSizeInKB)
+        {
             par.BufferSizeInKB = Min(maxBuf, par.MaxKbps / 4); //2 sec: the same as H264
+            par.BufferSizeInKB = Max(par.BufferSizeInKB, par.InitialDelayInKB);
+        }
         if (!par.InitialDelayInKB)
             par.InitialDelayInKB = par.BufferSizeInKB / 2;
         if (par.m_ext.CO2.MBBRC == MFX_CODINGOPTION_UNKNOWN)
@@ -2842,8 +2846,9 @@ void SetDefaults(
             }
             par.mfx.NumRefFrame = Max<mfxU16>(par.NumTL() - 1, par.mfx.NumRefFrame);
             par.mfx.NumRefFrame = Min<mfxU16>(maxDPB - 1, par.mfx.NumRefFrame);
+            par.PPyrInterval = std::min<mfxU32>(par.PPyrInterval, par.mfx.NumRefFrame);
         }
-     }
+    }
     if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
         par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
 

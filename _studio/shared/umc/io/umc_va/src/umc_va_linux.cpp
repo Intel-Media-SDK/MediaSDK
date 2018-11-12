@@ -461,9 +461,6 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
-        if (UMC_OK == umcRes && (!(va_attributes[0].value & VA_RT_FORMAT_YUV420)))
-            umcRes = UMC_ERR_FAILED;
-
         if (UMC_OK == umcRes)
         {
             va_attributes[1].value = VA_DEC_SLICE_MODE_NORMAL;

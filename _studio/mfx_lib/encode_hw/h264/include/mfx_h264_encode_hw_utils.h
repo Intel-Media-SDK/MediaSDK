@@ -1152,7 +1152,7 @@ namespace MfxHwH264Encode
         mfxU8   m_fid[2];               // progressive fid=[0,0]; tff fid=[0,1]; bff fid=[1,0]
         mfxU8   m_fieldCounter;
         mfxU64  m_timeStamp;
-        mfxU64  m_decodeTimeStamp;
+        mfxI64  m_decodeTimeStamp;
 
         mfxU8   m_minQP;
         mfxU8   m_maxQP;
@@ -1446,8 +1446,8 @@ namespace MfxHwH264Encode
         mfxU16  m_AsyncDepth;
         mfxU16  m_first;
         mfxU16  m_skipped;
-
-
+        mfxU8  m_QPMin[3]; // for I, P and B
+        mfxU8  m_QPMax[3]; // for I, P and B
 
         bool        m_bControlMaxFrame;
         AVGBitrate* m_AvgBitrate;
@@ -1512,6 +1512,8 @@ namespace MfxHwH264Encode
         mfxU16  m_qpUpdateRange;
         mfxF64  m_fr;
         mfxU16  m_skipped;
+        mfxU8   m_QPMin[3]; // for I, P and B
+        mfxU8   m_QPMax[3]; // for I, P and B
 
         AVGBitrate* m_AvgBitrate;
 
@@ -1549,6 +1551,8 @@ namespace MfxHwH264Encode
         mfxU32  m_intraCost;
         mfxU32  m_interCost;
         mfxU32  m_propCost;
+        mfxU8   m_QPMin[3]; // for I, P and B
+        mfxU8   m_QPMax[3]; // for I, P and B
     };
     class H264SWBRC : public BrcIface
     {
@@ -1947,6 +1951,8 @@ namespace MfxHwH264Encode
             DdiTask & task);
         void      AssignFrameTypes(
             DdiTask & newTask);
+        void      AssignDecodeTimeStamp(
+            DdiTask & task);
 
         mfxStatus UpdateBitstream(
             DdiTask & task,
@@ -2046,7 +2052,7 @@ namespace MfxHwH264Encode
         std::list<DdiTask>  m_histRun;
         std::list<DdiTask>  m_histWait;
         std::list<DdiTask>  m_encoding;
-        std::list<mfxU64>   m_decodeTimeStamps;
+        std::list<mfxU64>   m_timeStamps;
         UMC::Mutex          m_listMutex;
         DdiTask             m_lastTask;
         mfxU32              m_stagesToGo;
