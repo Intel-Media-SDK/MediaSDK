@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -67,9 +67,7 @@ JERRCODE CMemBuffOutput::Close(void)
 
 JERRCODE CMemBuffOutput::Write(void* buf,uic_size_t len,uic_size_t* cnt)
 {
-  uic_size_t wb;
-
-  wb = (uic_size_t)MFX_MIN((int)len,m_buflen - m_currpos);
+  uic_size_t wb = std::min<uic_size_t>(len, m_buflen - m_currpos);
 
   MFX_INTERNAL_CPY(m_buf + m_currpos,(uint8_t*)buf,wb);
 
