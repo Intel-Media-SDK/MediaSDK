@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1751,7 +1751,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           for(i = 0; i < m_mcuHeight / m_dd_factor; i++)
           {
               j = 0;
-              pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
+              pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
               while(j < (int) srcWidth / m_dd_factor)
               {
                   status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pSrc + j, pixelToProcess , pDst + j * 2);
@@ -1761,7 +1761,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                     return JPEG_ERR_INTERNAL;
                   }
                   j += pixelToProcess;
-                  pixelToProcess = MFX_MIN(intervalSize, srcWidth / m_dd_factor - j);
+                  pixelToProcess = std::min(intervalSize, srcWidth / m_dd_factor - j);
               }
 
               pSrc += srcStep;
@@ -1841,7 +1841,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
 
           // filling the zero row
           j = 0;
-          pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
+          pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
           while(j < (int) srcWidth / m_dd_factor)
           {
               status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + j, pSrc + j, pixelToProcess, pDst + j * 2);    
@@ -1851,7 +1851,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                 return JPEG_ERR_INTERNAL;
               }
               j += pixelToProcess;
-              pixelToProcess = MFX_MIN(intervalSize, srcWidth / m_dd_factor - j);
+              pixelToProcess = std::min(intervalSize, srcWidth / m_dd_factor - j);
           }
           pDst += dstStep;
 
@@ -1860,7 +1860,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           {
               // filling odd rows
               j = 0;
-              pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
+              pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
               while(j < (int) srcWidth / m_dd_factor)
               {
                   status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + j, pSrc + srcStep + j, pixelToProcess, pDst + j * 2);    
@@ -1870,13 +1870,13 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                     return JPEG_ERR_INTERNAL;
                   }
                   j += pixelToProcess;
-                  pixelToProcess = MFX_MIN(intervalSize, srcWidth / m_dd_factor - j);
+                  pixelToProcess = std::min(intervalSize, srcWidth / m_dd_factor - j);
               }
               pDst += dstStep;
 
               // filling even rows
               j = 0;
-              pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
+              pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
               while(j < (int) srcWidth / m_dd_factor)
               {
                   status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + srcStep + j, pSrc + j, pixelToProcess, pDst + j * 2);    
@@ -1886,7 +1886,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                     return JPEG_ERR_INTERNAL;
                   }
                   j += pixelToProcess;
-                  pixelToProcess = MFX_MIN(intervalSize, srcWidth / m_dd_factor - j);
+                  pixelToProcess = std::min(intervalSize, srcWidth / m_dd_factor - j);
               }
               pDst += dstStep;
               pSrc += srcStep;
@@ -1894,7 +1894,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
 
           // filling the last row
           j = 0;
-          pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
+          pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
           while(j < (int) srcWidth / m_dd_factor)
           {
               status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + j, pSrc + j, pixelToProcess, pDst + j * 2);    
@@ -1904,7 +1904,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                 return JPEG_ERR_INTERNAL;
               }
               j += pixelToProcess;
-              pixelToProcess = MFX_MIN(intervalSize, srcWidth / m_dd_factor - j);
+              pixelToProcess = std::min(intervalSize, srcWidth / m_dd_factor - j);
           }
         } // 420
 
@@ -1941,7 +1941,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           for(i = 0; i < m_mcuHeight / m_dd_factor; i++)
           {
               j = 0;
-              pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
+              pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
               while(j < (int) srcWidth / m_dd_factor)
               {
                   status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pSrc + j, pixelToProcess, pTmp.get() + j * 2);
@@ -1951,11 +1951,11 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                     return JPEG_ERR_INTERNAL;
                   }
                   j += pixelToProcess;
-                  pixelToProcess = MFX_MIN(intervalSize, srcWidth / m_dd_factor - j);
+                  pixelToProcess = std::min(intervalSize, srcWidth / m_dd_factor - j);
               }
               
               j = 0;
-              pixelToProcess = MFX_MIN(2 * tileSize, 2 * srcWidth / m_dd_factor);
+              pixelToProcess = std::min(2 * tileSize, 2 * srcWidth / m_dd_factor);
               while(j < 2 * (int) srcWidth / m_dd_factor)
               {
                   status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pTmp.get() + j, pixelToProcess, pDst + j * 2);
@@ -1965,7 +1965,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
                     return JPEG_ERR_INTERNAL;
                   }
                   j += pixelToProcess;
-                  pixelToProcess = MFX_MIN(2 * intervalSize, 2 * srcWidth / m_dd_factor - j);
+                  pixelToProcess = std::min(2 * intervalSize, 2 * srcWidth / m_dd_factor - j);
               }
 
               pSrc += srcStep;
@@ -4213,8 +4213,8 @@ JERRCODE CJPEGDecoder::ReadHeader(
   du_height = (JPEG_LOSSLESS == m_jpeg_mode) ? 1 : 8;
 
   // MCU dimensions
-  m_mcuWidth  = du_width  * MFX_MAX(m_max_hsampling,1);
-  m_mcuHeight = du_height * MFX_MAX(m_max_vsampling,1);
+  m_mcuWidth  = du_width  * std::max(m_max_hsampling,1);
+  m_mcuHeight = du_height * std::max(m_max_vsampling,1);
 
   // num of MCUs in whole image
   m_numxMCU = (m_jpeg_width  + (m_mcuWidth  - 1)) / m_mcuWidth;
