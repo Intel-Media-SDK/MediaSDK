@@ -31,7 +31,7 @@ namespace MfxHwVP9Encode
 
  /* ----------- Functions to convert MediaSDK into DDI --------------------- */
 
-    DriverEncoder* CreatePlatformVp9Encoder(mfxCoreInterface*)
+    DriverEncoder* CreatePlatformVp9Encoder(VideoCORE*)
     {
         return new VAAPIEncoder;
     }
@@ -260,7 +260,7 @@ namespace MfxHwVP9Encode
     mfxStatus FillSegMap(
         Task const & task,
         mfxVideoParam const & par,
-        mfxCoreInterface *    pCore,
+        VideoCORE *    pCore,
         VAEncMiscParameterTypeVP9PerSegmantParam & segPar)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillSegMap");
@@ -621,7 +621,7 @@ VAProfile ConvertGuidToVAAPIProfile(const GUID& guid)
 #define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
 
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
-    mfxCoreInterface* pCore,
+    VideoCORE* pCore,
     GUID guid,
     mfxU32 width,
     mfxU32 height)
@@ -631,11 +631,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK_WITH_ASSERT(pCore != 0, MFX_ERR_NULL_PTR);
     m_pmfxCore = pCore;
 
-    mfxStatus mfxSts = pCore->GetHandle(pCore->pthis, MFX_HANDLE_VA_DISPLAY, &m_vaDisplay);
+    mfxStatus mfxSts = pCore->GetHandle(MFX_HANDLE_VA_DISPLAY, &m_vaDisplay);
     MFX_CHECK_STS(mfxSts);
 
-    mfxStatus sts = pCore->QueryPlatform(pCore->pthis, &m_platform);
-    MFX_CHECK_STS(sts);
+    m_platform = m_pmfxCore->GetHWType();
 
     m_width  = width;
     m_height = height;
@@ -678,7 +677,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.CodingLimitSet = 1;
     m_caps.Color420Only =  1; // See DDI
 
-    if (m_platform.CodeName >= MFX_PLATFORM_ICELAKE)
+    if (m_platform >= MFX_HW_ICL)
     {
         m_caps.Color420Only = 0;
         m_caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
@@ -964,11 +963,9 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
     ExtVASurface extSurf {VA_INVALID_SURFACE, 0, 0};
     VASurfaceID *pSurface = NULL;
 
-    mfxFrameAllocator & allocator = m_pmfxCore->FrameAllocator;
-
     for (mfxU32 i = 0; i < response.NumFrameActual; i++)
     {
-        sts = allocator.GetHDL(allocator.pthis, response.mids[i], (mfxHDL *)&pSurface);
+        sts = m_pmfxCore->GetFrameHDL(response.mids[i], (mfxHDL *)&pSurface);
         MFX_CHECK_STS(sts);
 
         extSurf.number  = i;
@@ -1201,7 +1198,7 @@ mfxStatus VAAPIEncoder::Execute(
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::Execute(ExecuteBuffers& data, mfxU32 fieldId)
 
-mfxStatus VAAPIEncoder::QueryPlatform(mfxPlatform& platform)
+mfxStatus VAAPIEncoder::QueryPlatform(eMFXHWType& platform)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::QueryPlatform");
     platform = m_platform;

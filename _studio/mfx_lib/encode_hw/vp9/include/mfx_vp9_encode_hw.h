@@ -36,7 +36,7 @@ namespace MfxHwVP9Encode
 class MFXVideoENCODEVP9_HW : public VideoENCODE
 {
 public:
-    MFXVideoENCODEVP9_HW(mfxCoreInterface *core, mfxStatus *status)
+    MFXVideoENCODEVP9_HW(VideoCORE *core, mfxStatus *status)
         : m_bStartIVFSequence(false)
         , m_maxBsSize(0)
         , m_initialized(false)
@@ -67,9 +67,9 @@ public:
         Close();
     }
 
-    static mfxStatus QueryIOSurf(mfxCoreInterface *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
+    static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
-    static mfxStatus Query(mfxCoreInterface *core, mfxVideoParam *in, mfxVideoParam *out);
+    static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
 
     virtual mfxStatus Init(mfxVideoParam *par);
 
@@ -170,6 +170,7 @@ protected:
     std::queue<mfxBitstream*> m_outs;
 
     ExternalFrames  m_rawFrames;
+    InternalFrames  m_opaqFrames;
     InternalFrames  m_rawLocalFrames;
     InternalFrames  m_reconFrames;
     InternalFrames  m_outBitstreams;
@@ -177,7 +178,7 @@ protected:
 
     std::vector<sFrameEx*> m_dpb;
 
-    mfxCoreInterface    *m_pCore;
+    VideoCORE    *m_pCore;
 
     bool m_initialized;
 
