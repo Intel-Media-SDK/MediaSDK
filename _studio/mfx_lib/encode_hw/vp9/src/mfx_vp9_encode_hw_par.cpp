@@ -1643,8 +1643,7 @@ void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
 
 mfxStatus SetDefaults(
     VP9MfxVideoParam &par,
-    ENCODE_CAPS_VP9 const &caps,
-    mfxPlatform const & /*platform*/)
+    ENCODE_CAPS_VP9 const &caps)
 {
     SetDefault(par.AsyncDepth, GetDefaultAsyncDepth(par));
 
@@ -1764,8 +1763,7 @@ mfxStatus SetDefaults(
 
 mfxStatus CheckParametersAndSetDefaults(
     VP9MfxVideoParam &par,
-    ENCODE_CAPS_VP9 const &caps,
-    mfxPlatform const & platform)
+    ENCODE_CAPS_VP9 const &caps)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -1870,7 +1868,7 @@ mfxStatus CheckParametersAndSetDefaults(
     }
 
     // set defaults for parameters not defined by application
-    sts = SetDefaults(par, caps, platform);
+    sts = SetDefaults(par, caps);
     MFX_CHECK(sts >= 0, sts);
 
     // during parameters validation we worked with internal parameter versions

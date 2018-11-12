@@ -72,7 +72,7 @@ do {                                               \
 
         virtual
         mfxStatus CreateAuxilliaryDevice(
-            mfxCoreInterface* core,
+            VideoCORE* core,
             GUID       guid,
             mfxU32     width,
             mfxU32     height);
@@ -117,7 +117,7 @@ do {                                               \
 
         virtual
         mfxStatus QueryPlatform(
-            mfxPlatform& platform);
+            eMFXHWType& platform);
 
         virtual
         mfxStatus QueryStatus(
@@ -133,7 +133,7 @@ do {                                               \
         VAAPIEncoder(const VAAPIEncoder&); // no implementation
         VAAPIEncoder& operator=(const VAAPIEncoder&); // no implementation
 
-        mfxCoreInterface*  m_pmfxCore;
+        VideoCORE*  m_pmfxCore;
         VP9MfxVideoParam    m_video;
 
         // encoder specific. can be encapsulated by auxDevice class
@@ -180,7 +180,7 @@ do {                                               \
         bool m_isBrcResetRequired;
 
         ENCODE_CAPS_VP9 m_caps;
-        mfxPlatform m_platform;
+        eMFXHWType m_platform;
 
         UMC::Mutex                      m_guard;
     };
