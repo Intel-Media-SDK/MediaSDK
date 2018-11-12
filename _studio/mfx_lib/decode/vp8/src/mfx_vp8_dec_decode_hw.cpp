@@ -241,7 +241,7 @@ static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar)
     if (newPar->Protected != oldPar->Protected)
         return false;
 
-    int32_t asyncDepth = MFX_MIN(newPar->AsyncDepth, MFX_MAX_ASYNC_DEPTH_VALUE);
+    int32_t asyncDepth = std::min<int32_t>(newPar->AsyncDepth, MFX_MAX_ASYNC_DEPTH_VALUE);
     if (asyncDepth != oldPar->AsyncDepth)
         return false;
 

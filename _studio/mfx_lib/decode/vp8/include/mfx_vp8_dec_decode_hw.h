@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -118,7 +118,7 @@ public:
 
     void init(uint8_t *pBitStream, int32_t dataSize)
     {
-        dataSize = MFX_MIN(dataSize, 2);
+        dataSize = std::min(dataSize, 2);
         m_range = 255;
         m_bitcount = 8;
         m_pos = 0;
