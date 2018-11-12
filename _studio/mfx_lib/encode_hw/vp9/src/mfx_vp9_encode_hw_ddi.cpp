@@ -62,7 +62,7 @@ namespace MfxHwVP9Encode
         }
     }
 
-    mfxStatus QueryCapsAndPlatform(mfxCoreInterface * pCore, ENCODE_CAPS_VP9 & caps, mfxPlatform & platform, GUID guid, mfxU32 width, mfxU32 height)
+    mfxStatus QueryCaps(VideoCORE* pCore, ENCODE_CAPS_VP9 & caps, GUID guid, mfxU32 width, mfxU32 height)
     {
         std::unique_ptr<DriverEncoder> ddi;
 
@@ -73,9 +73,6 @@ namespace MfxHwVP9Encode
         MFX_CHECK_STS(sts);
 
         sts = ddi.get()->QueryEncodeCaps(caps);
-        MFX_CHECK_STS(sts);
-
-        sts = ddi.get()->QueryPlatform(platform);
         MFX_CHECK_STS(sts);
 
         return MFX_ERR_NONE;
