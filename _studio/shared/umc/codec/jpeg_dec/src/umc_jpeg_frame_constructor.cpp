@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ int32_t JpegFrameConstructor::FindMarkerCode(uint8_t * (&source), size_t & size,
 
     if (m_prevLengthOfSegment)
     {
-        size_t copySize = MFX_MIN(m_prevLengthOfSegment, size);
+        size_t copySize = std::min(m_prevLengthOfSegment, size);
         m_prevLengthOfSegment -= copySize;
         source += copySize;
         size -= copySize;
@@ -187,7 +187,7 @@ int32_t JpegFrameConstructor::GetMarker(MediaData * pSource, MediaData * pDst)
             if (m_suggestedSize && m_prev.size() + sz >  m_suggestedSize)
             {
                 m_prev.clear();
-                sz = MFX_MIN(sz, m_suggestedSize);
+                sz = std::min(sz, m_suggestedSize);
             }
 
             m_prev.insert(m_prev.end(), (uint8_t *)pSource->GetDataPointer(), (uint8_t *)pSource->GetDataPointer() + sz);
