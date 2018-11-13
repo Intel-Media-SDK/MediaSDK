@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -54,9 +54,6 @@ namespace UMC
 #endif //__cplusplus
 
 #define MFX_INTERNAL_CPY(dst, src, size) std::copy((const uint8_t *)(src), (const uint8_t *)(src) + (int)(size), (uint8_t *)(dst))
-
-#define MFX_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#define MFX_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
 
 #define MFX_MAX_32S    ( 2147483647 )
 #define MFX_MAXABS_64F ( 1.7976931348623158e+308 )
