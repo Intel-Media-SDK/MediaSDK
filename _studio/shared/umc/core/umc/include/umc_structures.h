@@ -695,19 +695,6 @@ namespace UMC
                     ~(lAlignValue - 1));
     }
 
-    // template to get minimum value
-    template<class value_t, class min_t> inline
-    value_t get_min(value_t value, min_t another)
-    {
-        return ((value < (value_t) another) ? (value) : (another));
-    }
-
-    // template to get maximum value
-    template<class value_t, class max_t> inline
-    value_t get_max(value_t value, max_t another)
-    {
-        return ((value > (value_t) another) ? (value) : (another));
-    }
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
     #define DISALLOW_COPY_AND_ASSIGN(className) \
