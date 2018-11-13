@@ -564,10 +564,14 @@ void _mfxSession::Cleanup(void)
     m_pVPP.reset();
     m_pDECODE.reset();
     m_pENCODE.reset();
-    m_pCORE.reset();
 
     // release m_pScheduler and m_pSchedulerAllocated
     ReleaseScheduler();
+
+    // release core
+    // should be released at the end, becaude m_pCORE may be used during destroy of
+    // components and scheduler
+    m_pCORE.reset();
 
     //delete m_coreInt.ExternalSurfaceAllocator;
     Clear();
