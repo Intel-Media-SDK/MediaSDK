@@ -89,6 +89,10 @@ extern "C"
     {
         return g_call_obj_ptr->MFXVideoUSER_Register(session, type, par);
     }
+    mfxStatus MFXVideoUSER_UnregisterWrap(mfxSession session, mfxU32 type)
+    {
+        return g_call_obj_ptr->MFXVideoUSER_Unregister(session, type);
+    }
 
 } // extern "C"
 
