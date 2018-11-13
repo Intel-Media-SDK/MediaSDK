@@ -270,7 +270,7 @@ Status MediaData::MoveDataTo(MediaData* dst)
     src = this;
     pDataEnd = dst->m_pDataPointer + dst->m_nDataSize;
     pBufferEnd = dst->m_pBufferPointer + dst->m_nBufferSize;
-    size = MFX_MIN(src->m_nDataSize, (size_t) (pBufferEnd - pDataEnd));
+    size = std::min<size_t>(src->m_nDataSize, pBufferEnd - pDataEnd);
 
     if (size)
     {
