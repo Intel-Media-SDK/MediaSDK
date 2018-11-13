@@ -34,11 +34,11 @@ TEST_F(DispatcherPluginsTest, ShouldSearchForPluginsCfgByCorrectPath)
     MockCallObj& mock = *g_call_obj_ptr;
 
     std::string path = std::string(MFX_PLUGINS_CONF_DIR) + "/plugins.cfg";
-    EXPECT_CALL(mock, fopen(StrEq(path.c_str()),_));
+    EXPECT_CALL(mock, fopen(StrEq(path.c_str()),_)).Times(1);
 
     mfxPluginUID uid{0};
     std::fill(uid.Data, uid.Data + sizeof(mfxPluginUID), MOCK_PLUGIN_UID_BYTE_BASE);
-    mfxStatus sts = MFXVideoUSER_Load(session, &uid, 0);
+    MFXVideoUSER_Load(session, &uid, 0);
 }
 
 
