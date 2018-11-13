@@ -598,9 +598,9 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
 
         // saturate the number of available threads
         uint32_t numThreads = m_pFreeTasks->param.task.entryPoint.requiredNumThreads;
-        numThreads = (0 == numThreads) ? (m_param.numberOfThreads) : (numThreads);
-        numThreads = UMC::get_min(m_param.numberOfThreads, numThreads);
-        numThreads = (uint32_t) UMC::get_min(sizeof(pAssignment->threadMask) * 8, numThreads);
+        numThreads = (0 == numThreads) ? m_param.numberOfThreads : numThreads;
+
+        numThreads = std::min<uint32_t>({m_param.numberOfThreads, numThreads, sizeof(pAssignment->threadMask) * 8});
         m_pFreeTasks->param.task.entryPoint.requiredNumThreads = numThreads;
 
         // set the advanced task's info
