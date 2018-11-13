@@ -287,10 +287,10 @@ Status VideoData::SetColorFormat(ColorFormat cFormat)
             m_pPlaneData[i].m_ippSize.height = m_ippSize.height;
         }
         bpp = m_pPlaneData[i].m_iSampleSize * m_pPlaneData[i].m_iSamples;
-        align = MFX_MAX(m_iAlignment, bpp);
+        align = std::max(m_iAlignment, bpp);
         if (i < pFormat->m_iPlanes) {
             // sometimes dimension of image may be not aligned to native size
-            align = MFX_MAX(align, pFormat->m_iMinAlign);
+            align = std::max(align, pFormat->m_iMinAlign);
             align *= pFormat->m_PlaneFormatInfo[i].m_iAlignMult;
         }
         m_pPlaneData[i].m_nPitch =
