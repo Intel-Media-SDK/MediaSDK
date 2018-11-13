@@ -55,6 +55,7 @@ extern "C"
     mfxStatus CreatePluginWrap(mfxPluginUID uid, mfxPlugin* pPlugin);
     mfxStatus GetPluginParamWrap(mfxHDL pthis, mfxPluginParam *par);
     mfxStatus MFXVideoUSER_RegisterWrap(mfxSession session, mfxU32 type, const mfxPlugin *par);
+    mfxStatus MFXVideoUSER_UnregisterWrap(mfxSession session, mfxU32 type);
 }
 
 

@@ -57,6 +57,7 @@ public:
     virtual mfxStatus CreatePlugin(mfxPluginUID uid, mfxPlugin* pPlugin) = 0;
     virtual mfxStatus GetPluginParam(mfxHDL pthis, mfxPluginParam *par) = 0;
     virtual mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par) = 0;
+    virtual mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type) = 0;
 };
 
 class MockCallObj : public CallObj
@@ -70,6 +71,7 @@ public:
         ON_CALL(*this, CreatePlugin(_,_)).WillByDefault(Return(MFX_ERR_UNSUPPORTED));
         ON_CALL(*this, GetPluginParam(_,_)).WillByDefault(Return(MFX_ERR_UNSUPPORTED));
         ON_CALL(*this, MFXVideoUSER_Register(_,_,_)).WillByDefault(Return(MFX_ERR_UNSUPPORTED));
+        ON_CALL(*this, MFXVideoUSER_Unregister(_,_)).WillByDefault(Return(MFX_ERR_UNSUPPORTED));
 
         m_mock_plugin.GetPluginParam = GetPluginParamWrap;
     }
@@ -86,6 +88,7 @@ public:
     MOCK_METHOD2(CreatePlugin, mfxStatus(mfxPluginUID, mfxPlugin*));
     MOCK_METHOD2(GetPluginParam, mfxStatus (mfxHDL, mfxPluginParam*));
     MOCK_METHOD3(MFXVideoUSER_Register, mfxStatus (mfxSession, mfxU32, const mfxPlugin *));
+    MOCK_METHOD2(MFXVideoUSER_Unregister, mfxStatus(mfxSession, mfxU32));
 
     mfxVersion emulated_api_version = {{0, 0}};
 
@@ -105,7 +108,9 @@ public:
     char* FeedEmulatedPluginsCfgLines(char * str, int num, FILE * stream);
     mfxStatus ReturnMockPlugin(mfxPluginUID uid, mfxPlugin* pPlugin)
     {
-        pPlugin = &m_mock_plugin;
+        if (pPlugin == nullptr)
+            return MFX_ERR_UNSUPPORTED;
+        *pPlugin = m_mock_plugin;
         return MFX_ERR_NONE;
     }
     mfxPlugin m_mock_plugin;

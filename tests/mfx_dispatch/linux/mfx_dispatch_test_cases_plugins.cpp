@@ -59,19 +59,25 @@ TEST_P(DispatcherPluginsTestParametrized, ShouldLoadFromGoodPluginsCfgCorrectly)
         // and the parsed plugin list is stored as a global variable in the
         // dispatcher lib. Therefore, the calls below will only be executed once.
         std::string path = std::string(MFX_PLUGINS_CONF_DIR) + "/plugins.cfg";
-        EXPECT_CALL(mock, fopen(StrEq(path.c_str()),_)).WillRepeatedly(Return(MOCK_FILE_DESCRIPTOR));
-        EXPECT_CALL(mock, fgets(_,_,MOCK_FILE_DESCRIPTOR)).WillRepeatedly(Invoke(&mock, &MockCallObj::FeedEmulatedPluginsCfgLines));
-        EXPECT_CALL(mock, fclose);
+        EXPECT_CALL(mock, fopen(StrEq(path.c_str()), _)).Times(1).WillRepeatedly(Return(MOCK_FILE_DESCRIPTOR));
+        EXPECT_CALL(mock, fgets(_, _, MOCK_FILE_DESCRIPTOR)).Times(AtLeast(1)).WillRepeatedly(Invoke(&mock, &MockCallObj::FeedEmulatedPluginsCfgLines));
+        EXPECT_CALL(mock, fclose).Times(1).WillRepeatedly(Return(MFX_ERR_NONE));
         successfully_parsed_at_least_once = true;
     }
 
-    EXPECT_CALL(mock, dlopen(StrEq(plugin.Path.c_str()),_));
-    EXPECT_CALL(mock, dlsym(_,StrEq("CreatePlugin"))).WillRepeatedly(Return(reinterpret_cast<void*>(CreatePluginWrap)));
-    EXPECT_CALL(mock, CreatePlugin(plugin.PluginUID,_)).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnMockPlugin));
-    EXPECT_CALL(mock, GetPluginParam(&mock.m_mock_plugin,_)).WillRepeatedly(Return(MFX_ERR_NONE));
-    EXPECT_CALL(mock, MFXVideoUSER_Register(session,plugin.Type, &mock.m_mock_plugin)).WillRepeatedly(Return(MFX_ERR_NONE));
+    EXPECT_CALL(mock, dlopen(StrEq(plugin.Path.c_str()), _)).Times(1).WillRepeatedly(Return(MOCK_DLOPEN_HANDLE));
+    EXPECT_CALL(mock, dlsym(_, StrEq("CreatePlugin"))).Times(1).WillRepeatedly(Return(reinterpret_cast<void*>(CreatePluginWrap)));
+    EXPECT_CALL(mock, CreatePlugin(plugin.PluginUID, _)).Times(1).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnMockPlugin));
+    EXPECT_CALL(mock, GetPluginParam(mock.m_mock_plugin.pthis, _)).Times(1).WillRepeatedly(DoAll(SetArgPointee<1>(plugin), Return(MFX_ERR_NONE)));
+    EXPECT_CALL(mock, MFXVideoUSER_Register(MOCK_SESSION_HANDLE, plugin.Type, _)).Times(1).WillRepeatedly(Return(MFX_ERR_NONE));
 
     mfxStatus sts = MFXVideoUSER_Load(session, &plugin.PluginUID, 0);
+    ASSERT_EQ(sts, MFX_ERR_NONE);
+
+    EXPECT_CALL(mock, dlclose).Times(1);
+    EXPECT_CALL(mock, MFXVideoUSER_Unregister(MOCK_SESSION_HANDLE, plugin.Type)).Times(1).WillRepeatedly(Return(MFX_ERR_NONE));
+    sts = MFXVideoUSER_UnLoad(session, &plugin.PluginUID);
+    ASSERT_EQ(sts, MFX_ERR_NONE);
 }
 
 INSTANTIATE_TEST_CASE_P(EnumeratingPlugins, DispatcherPluginsTestParametrized, ::testing::Range((size_t) 0, TEST_PLUGIN_COUNT));

@@ -78,6 +78,8 @@ void* MockCallObj::EmulateAPI(void *handle, const char *symbol)
     std::string mfxqueryversion_symbol("MFXQueryVersion");
     std::string mfxclose_symbol("MFXClose");
     std::string createplugin_symbol("CreatePlugin");
+    std::string mfxvideoregister_symbol("MFXVideoUSER_Register");
+    std::string mfxvideounregister_symbol("MFXVideoUSER_Unregister");
 
     for (int i = 0; i < eFunctionsNum; ++i)
     {
@@ -104,6 +106,14 @@ void* MockCallObj::EmulateAPI(void *handle, const char *symbol)
             else if (symbol == createplugin_symbol)
             {
                 return reinterpret_cast<void*>(CreatePluginWrap);
+            }
+            else if (symbol == mfxvideoregister_symbol)
+            {
+                return reinterpret_cast<void*>(MFXVideoUSER_RegisterWrap);
+            }
+            else if (symbol == mfxvideounregister_symbol)
+            {
+                return reinterpret_cast<void*>(MFXVideoUSER_UnregisterWrap);
             }
             else
             {
