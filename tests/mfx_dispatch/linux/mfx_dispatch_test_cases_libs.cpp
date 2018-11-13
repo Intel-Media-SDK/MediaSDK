@@ -35,11 +35,11 @@ TEST_F(DispatcherLibsTest, ShouldSucceedForSeeminglyGoodMockLibrary)
     ver = {{MFX_VERSION_MINOR, MFX_VERSION_MAJOR}};
     mock.emulated_api_version = ver;
 
-    EXPECT_CALL(mock, dlopen).Times(AtLeast(1)).WillRepeatedly(Return(MOCK_DLOPEN_HANDLE));
+    EXPECT_CALL(mock, dlopen).Times(1).WillRepeatedly(Return(MOCK_DLOPEN_HANDLE));
     EXPECT_CALL(mock, dlsym).Times(AtLeast(1)).WillRepeatedly(Invoke(&mock, &MockCallObj::EmulateAPI));
-    EXPECT_CALL(mock, MFXInitEx).Times(AtLeast(1)).WillRepeatedly(DoAll(SetArgPointee<1>(MOCK_SESSION_HANDLE), Return(MFX_ERR_NONE)));
-    EXPECT_CALL(mock, MFXQueryIMPL).Times(AtLeast(1)).WillRepeatedly(Return(MFX_ERR_NONE));
-    EXPECT_CALL(mock, MFXQueryVersion).Times(AtLeast(1)).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnEmulatedVersion));
+    EXPECT_CALL(mock, MFXInitEx).Times(1).WillRepeatedly(DoAll(SetArgPointee<1>(MOCK_SESSION_HANDLE), Return(MFX_ERR_NONE)));
+    EXPECT_CALL(mock, MFXQueryIMPL).Times(1).WillRepeatedly(Return(MFX_ERR_NONE));
+    EXPECT_CALL(mock, MFXQueryVersion).Times(1).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnEmulatedVersion));
 
     mfxStatus sts = MFXInit(impl, &ver, &session);
     ASSERT_EQ(sts, MFX_ERR_NONE);
@@ -111,10 +111,10 @@ TEST_P(DispatcherLibsTestParametrized, ShouldEnumerateCorrectLibNames)
 
     for (std::string lib : libs)
     {
-        EXPECT_CALL(mock, dlopen(StrEq(lib.c_str()),_));
+        EXPECT_CALL(mock, dlopen(StrEq(lib.c_str()),_)).Times(1);
     }
 
-    mfxStatus sts = MFXInit(impl, &this->ver, &this->session);
+    MFXInit(impl, &this->ver, &this->session);
 }
 
 INSTANTIATE_TEST_CASE_P(EnumeratingLibs, DispatcherLibsTestParametrized, impl_case_list);
