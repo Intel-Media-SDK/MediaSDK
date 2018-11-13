@@ -26,7 +26,7 @@
 
 #include <vm_time.h>
 #include <vm_sys_info.h>
-
+#include <algorithm>
 
 
 mfxSchedulerCore::mfxSchedulerCore(void)
@@ -330,7 +330,7 @@ mfxStatus mfxSchedulerCore::GetOccupancyTableIndex(mfxU32 &idx,
     }
 
     // update the number of allocated objects
-    m_numOccupancies = UMC::get_max(m_numOccupancies, i + 1);
+    m_numOccupancies = std::max(mfxU32(m_numOccupancies), i + 1);
 
     // save the index to return
     idx = i;
