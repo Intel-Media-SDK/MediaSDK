@@ -1703,7 +1703,13 @@ void TaskManager::UpdatePTS_Mode30i60p(
     mfxU32 taskIndex,
     mfxStatus *intSts)
 {
-    if (input == NULL)
+    if (output == nullptr)
+    {
+        *intSts = MFX_ERR_MORE_SURFACE;
+        return;
+    }
+
+    if (input == nullptr)
     {
         output->Data.TimeStamp = (mfxU64)MFX_TIME_STAMP_INVALID;
         output->Data.FrameOrder = (mfxU32)MFX_FRAMEORDER_UNKNOWN;
