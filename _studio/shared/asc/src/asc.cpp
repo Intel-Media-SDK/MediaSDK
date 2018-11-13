@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -929,7 +929,7 @@ mfxStatus ASC::RsCsCalc() {
 }
 
 bool Hint_LTR_op_on(mfxU32 SC, mfxU32 TSC) {
-    bool ltr = TSC *TSC < (MFX_MAX(SC, 64) / 12);
+    bool ltr = TSC *TSC < (std::max(SC, 64u) / 12);
     return ltr;
 }
 
