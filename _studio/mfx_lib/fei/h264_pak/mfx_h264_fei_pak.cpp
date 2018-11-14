@@ -217,8 +217,8 @@ mfxStatus VideoPAK_PAK::QueryStatus(DdiTask& task)
 
     for (mfxU32 f = f_start; f <= fieldCount; f++)
     {
-        sts = m_ddi->QueryStatus(task, task.m_fid[f]);
-        MFX_CHECK(sts != MFX_WRN_DEVICE_BUSY, MFX_TASK_BUSY);
+        while ((sts = m_ddi->QueryStatus(task, task.m_fid[f])) == MFX_WRN_DEVICE_BUSY)
+            vm_time_sleep(1);
         MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
     }
 
