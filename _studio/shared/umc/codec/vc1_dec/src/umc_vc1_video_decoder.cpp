@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -512,12 +512,13 @@ Status VC1VideoDecoder::SMProfilesProcessing(uint8_t* pBitstream)
         params.info.clip_info.height = m_ClipInfo.clip_info.height;
         params.m_SuggestedOutputSize = m_SurfaceNum;
         params.lpMemoryAllocator = m_pMemoryAllocator;
-    
+
         bool deblocking = (int32_t)m_pStore->IsDeblockingOn();
 
         Close();
-        Init(&params);
-        
+        umcRes = Init(&params);
+        UMC_CHECK_STATUS(umcRes);
+
         //need to add code for restoring skip mode!
         if(!deblocking)
         {
