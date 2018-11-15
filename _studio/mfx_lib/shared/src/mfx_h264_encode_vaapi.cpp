@@ -60,6 +60,7 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     {
     case MFX_RATECONTROL_CBR:  return VA_RC_CBR;
     case MFX_RATECONTROL_VBR:  return VA_RC_VBR;
+    case MFX_RATECONTROL_QVBR: return VA_RC_QVBR;
     case MFX_RATECONTROL_AVBR: return VA_RC_VBR;
     case MFX_RATECONTROL_CQP:  return VA_RC_CQP;
     case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ;
@@ -174,6 +175,7 @@ mfxStatus SetRateControl(
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterRateControl *rate_param;
+    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(par);
 
     mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, rateParamBuf_id);
     MFX_CHECK_STS(mfxSts);
@@ -201,6 +203,9 @@ mfxStatus SetRateControl(
     rate_param->min_qp = minQP;
     rate_param->max_qp = maxQP;
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
+        rate_param->quality_factor = extOpt3.QVBRQuality;
+
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
         rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
 
@@ -208,7 +213,6 @@ mfxStatus SetRateControl(
         rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
 
     // Activate frame tolerance sliding window mode
-    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(par);
     if (extOpt3.WinBRCSize && caps.FrameSizeToleranceSupport)
     {
         rate_param->rc_flags.bits.frame_tolerance_mode = eFrameSizeTolerance_Low;
@@ -1450,6 +1454,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.VCMBitrateControl =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VCM) ? 1 : 0; //Video conference mode
+    m_caps.QVBRBRCSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_QVBR) ? 1 : 0; //QVBR mode
     m_caps.ICQBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_ICQ) ? 1 : 0;
     m_caps.TrelisQuantization =
