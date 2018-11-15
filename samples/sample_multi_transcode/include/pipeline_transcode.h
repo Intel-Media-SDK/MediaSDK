@@ -935,7 +935,7 @@ namespace TranscodingSample
             {
                 transcodingSts = pPipeline->Run();
             }
-            working_time = duration_cast<microseconds>(system_clock::now() - start_time).count();
+            working_time = duration_cast<duration<mfxF64>>(system_clock::now() - start_time).count();
 
             MSDK_IGNORE_MFX_STS(transcodingSts, MFX_WRN_VALUE_NOT_CHANGED);
             numTransFrames = pPipeline->GetProcessFrames();
