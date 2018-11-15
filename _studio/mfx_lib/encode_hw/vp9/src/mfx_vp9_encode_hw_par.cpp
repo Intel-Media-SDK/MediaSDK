@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -550,7 +550,7 @@ bool CheckFourcc(mfxU32 fourcc, ENCODE_CAPS_VP9 const &caps)
 #if (MFX_VERSION >= 1027)
             || (fourcc == MFX_FOURCC_Y410 && caps.YUV444ReconSupport)
 #endif
-            )); 
+            ));
 }
 
 mfxU16 MapTUToSupportedRange(mfxU16 tu)
@@ -1574,14 +1574,14 @@ inline mfxU32 GetDefaultBufferSize(VP9MfxVideoParam const &par)
     else
     {
         const mfxExtVP9Param& extPar = GetExtBufferRef(par);
-        if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 
+        if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
             || par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
 #endif
             ) {
             return (extPar.FrameWidth * extPar.FrameHeight * 3) / 1000; // size of two uncompressed 420 8bit frames in KB
         }
-        else 
+        else
             return (extPar.FrameWidth * extPar.FrameHeight * 3) / 2 / 1000;  // size of uncompressed 420 8bit frame in KB
     }
 }
@@ -1874,9 +1874,11 @@ mfxStatus CheckSurface(
 
     if (video.m_inMemType == INPUT_SYSTEM_MEMORY)
     {
-        MFX_CHECK(surface.Data.Y != 0, MFX_ERR_NULL_PTR);
-        MFX_CHECK(surface.Data.U != 0, MFX_ERR_NULL_PTR);
-        MFX_CHECK(surface.Data.V != 0, MFX_ERR_NULL_PTR);
+        MFX_CHECK(!LumaIsNull(&surface), MFX_ERR_NULL_PTR);
+        if (surface.Info.FourCC != MFX_FOURCC_Y410) {
+            MFX_CHECK(surface.Data.U != 0, MFX_ERR_NULL_PTR);
+            MFX_CHECK(surface.Data.V != 0, MFX_ERR_NULL_PTR);
+        }
     }
     else if (isOpaq == false)
     {

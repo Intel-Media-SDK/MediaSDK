@@ -99,9 +99,12 @@ mfxU64 GetMfxTimeStamp(mfxF64 ts)
 }
 
 inline
-bool LumaIsNull(mfxFrameSurface1 * surf)
+bool LumaIsNull(const mfxFrameSurface1 * surf)
 {
-    return !surf->Data.Y && !surf->Data.Y410;
+    if (surf->Info.FourCC == MFX_FOURCC_Y410)
+        return !surf->Data.Y410;
+    else
+        return !surf->Data.Y;
 }
 
 #define MFX_ZERO_MEM(_X)    memset(&_X, 0, sizeof(_X))
