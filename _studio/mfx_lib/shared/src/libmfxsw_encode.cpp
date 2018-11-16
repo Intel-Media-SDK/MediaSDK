@@ -72,6 +72,12 @@ struct CodecKey {
 
     CodecKey(mfxU32 codecId, bool fei) : codecId(codecId), fei(fei) {}
 
+    enum {
+        // special value for codecId to denote plugin, it must be
+        // different from other MFX_CODEC_* used in codecId2Handlers
+        MFX_CODEC_DUMMY_FOR_PLUGIN = 0
+    };
+
     // Exact ordering rule is unsignificant as far as it provides strict weak ordering.
     // Compare for fei after codecId because fei values are mostly same.
     friend bool operator<(CodecKey l, CodecKey r)
@@ -97,6 +103,38 @@ typedef std::map<CodecKey, Handlers> CodecId2Handlers;
 
 static const CodecId2Handlers codecId2Handlers =
 {
+#if defined(MFX_ENABLE_USER_ENCODE)
+    {
+        {
+            CodecKey::MFX_CODEC_DUMMY_FOR_PLUGIN,
+            // .fei =
+            false
+        },
+        {
+            // .primary =
+            {
+                // .ctor =
+                nullptr,
+                // .query =
+                [](mfxSession s, mfxVideoParam *in, mfxVideoParam *out)
+                {
+                    assert(s->m_plgEnc);
+                    return s->m_plgEnc->Query(s->m_pCORE.get(), in, out);
+                },
+                // .queryIOSurf =
+                [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                {
+                    assert(s->m_plgEnc);
+                    return s->m_plgEnc->QueryIOSurf(s->m_pCORE.get(), par, request, 0);
+                }
+            },
+            // .fallback =
+            {
+            }
+        }
+    },
+#endif // MFX_ENABLE_USER_ENCODE
+
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE)
     {
         {
@@ -502,43 +540,37 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 
     try
     {
-#ifdef MFX_ENABLE_USER_ENCODE
-        mfxRes = MFX_ERR_UNSUPPORTED;
+        CodecId2Handlers::const_iterator handler;
+
         if (session->m_plgEnc.get())
         {
-            mfxRes = session->m_plgEnc->Query(session->m_pCORE.get(), in, out);
-            if (mfxRes >= MFX_ERR_NONE &&
-              mfxRes != MFX_WRN_PARTIAL_ACCELERATION)
-              bIsHWENCSupport = true;
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
+            handler = codecId2Handlers.find(CodecKey(CodecKey::MFX_CODEC_DUMMY_FOR_PLUGIN, false));
+            assert(handler != codecId2Handlers.end());
         }
         // if plugin is not supported, or wrong parameters passed we should not look into library
         else
-#endif
         {
             // required to check FEI plugin registration
             bool feiStatusAvailable, fei;
             std::tie(feiStatusAvailable, fei) = check_fei(session->m_pCORE.get());
             MFX_CHECK(feiStatusAvailable, MFX_ERR_NULL_PTR);
 
-            auto handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId, fei));
-            mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
-                : (handler->second.primary.query)(session, in, out);
+            handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId, fei));
+        }
 
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                assert(handler != codecId2Handlers.end());
-                mfxRes = !handler->second.fallback.query ? MFX_ERR_UNSUPPORTED
-                    : (handler->second.fallback.query)(session, in, out);
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
-        } // else of if (session->m_plgEnc.get())
+        mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
+            : (handler->second.primary.query)(session, in, out);
+
+        if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+        {
+            assert(handler != codecId2Handlers.end());
+            mfxRes = !handler->second.fallback.query ? MFX_ERR_UNSUPPORTED
+                : (handler->second.fallback.query)(session, in, out);
+        }
+        else
+        {
+            bIsHWENCSupport = true;
+        }
     }
     // handle error(s)
     catch(...)
@@ -598,42 +630,36 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 
     try
     {
-#ifdef MFX_ENABLE_USER_ENCODE
-        mfxRes = MFX_ERR_UNSUPPORTED;
+        CodecId2Handlers::const_iterator handler;
+
         if (session->m_plgEnc.get())
         {
-            mfxRes = session->m_plgEnc->QueryIOSurf(session->m_pCORE.get(), par, request, 0);
-            if (mfxRes >= MFX_ERR_NONE &&
-              mfxRes != MFX_WRN_PARTIAL_ACCELERATION)
-              bIsHWENCSupport = true;
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                mfxRes = MFX_ERR_UNSUPPORTED;
-            }
+            handler = codecId2Handlers.find(CodecKey(CodecKey::MFX_CODEC_DUMMY_FOR_PLUGIN, false));
+            assert(handler != codecId2Handlers.end());
         }
         // if plugin is not supported, or wrong parameters passed we should not look into library
         else
-#endif
         {
             // required to check FEI plugin registration
             bool feiStatusAvailable, fei;
             std::tie(feiStatusAvailable, fei) = check_fei(session->m_pCORE.get());
             MFX_CHECK(feiStatusAvailable, MFX_ERR_NULL_PTR);
 
-            auto handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId, fei));
-            mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
-                : (handler->second.primary.queryIOSurf)(session, par, request);
+            handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId, fei));
+        }
 
-            if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
-            {
-                assert(handler != codecId2Handlers.end());
-                mfxRes = !handler->second.fallback.queryIOSurf ? MFX_ERR_UNSUPPORTED
-                    : (handler->second.fallback.queryIOSurf)(session, par, request);
-            }
-            else
-            {
-                bIsHWENCSupport = true;
-            }
+        mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
+            : (handler->second.primary.queryIOSurf)(session, par, request);
+
+        if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
+        {
+            assert(handler != codecId2Handlers.end());
+            mfxRes = !handler->second.fallback.queryIOSurf ? MFX_ERR_UNSUPPORTED
+                : (handler->second.fallback.queryIOSurf)(session, par, request);
+        }
+        else
+        {
+            bIsHWENCSupport = true;
         }
     }
     // handle error(s)
