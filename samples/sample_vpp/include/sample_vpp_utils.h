@@ -277,6 +277,13 @@ struct sInputParams
         uChromaSiting = 0;
         bChromaSiting = false;
         fccSource = 0;
+
+#ifdef ENABLE_VPP_RUNTIME_HSBC
+        rtHue = {};
+        rtSaturation = {};
+        rtBrightness = {};
+        rtContrast = {};
+#endif
     }
 };
 
