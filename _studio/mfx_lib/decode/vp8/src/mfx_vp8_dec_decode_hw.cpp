@@ -818,7 +818,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
     routineData->surface_work = p_surface_work;
 
     p_entry_point->pState = routineData;
-    p_entry_point->requiredNumThreads = 1;
+    p_entry_point->requiredNumThreads = m_thread_num;
 
     return show_frame ? MFX_ERR_NONE : MFX_ERR_MORE_DATA;
 
@@ -1301,6 +1301,13 @@ mfxStatus VideoDECODEVP8_HW::GetFrame(MediaData* /*in*/, FrameData** /*out*/)
 mfxTaskThreadingPolicy VideoDECODEVP8_HW::GetThreadingPolicy()
 {
     return MFX_TASK_THREADING_INTRA;
+}
+
+mfxStatus VideoDECODEVP8_HW::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_is_initialized, MFX_ERR_NOT_INITIALIZED);
+    threadNum = m_thread_num;
+    return MFX_ERR_NONE;
 }
 
 mfxStatus VideoDECODEVP8_HW::GetVideoParam(mfxVideoParam *pPar)

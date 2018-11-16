@@ -469,6 +469,13 @@ mfxTaskThreadingPolicy VideoDECODEH265::GetThreadingPolicy(void)
     return MFX_TASK_THREADING_SHARED;
 }
 
+mfxStatus VideoDECODEH265::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
+    threadNum = m_vPar.mfx.NumThread;
+    return MFX_ERR_NONE;
+}
+
 // MediaSDK DECODE_Query API function
 mfxStatus VideoDECODEH265::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {

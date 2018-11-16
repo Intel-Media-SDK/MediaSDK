@@ -77,6 +77,7 @@ public:
     virtual mfxStatus Close(void);
     // Returns decoder threading mode
     virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum);
 
     // MediaSDK DECODE_GetVideoParam API function
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);

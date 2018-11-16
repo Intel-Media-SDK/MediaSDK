@@ -54,6 +54,7 @@ public:
     virtual mfxStatus Close();
 
     virtual mfxTaskThreadingPolicy GetThreadingPolicy();
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum);
     virtual mfxStatus GetVideoParam(mfxVideoParam *pPar);
     virtual mfxStatus GetDecodeStat(mfxDecodeStat *pStat);
 
@@ -80,6 +81,7 @@ protected:
     mfxStatus GetOutputSurface(mfxFrameSurface1 **, mfxFrameSurface1 *, UMC::FrameMemID);
 
 private:
+    const mfxU32            m_thread_num = 1;
     bool                    m_isInit;
     bool                    m_is_opaque_memory;
     VideoCORE*              m_core;

@@ -644,6 +644,13 @@ mfxTaskThreadingPolicy VideoDECODEH264::GetThreadingPolicy(void)
     return MFX_TASK_THREADING_SHARED;
 }
 
+mfxStatus VideoDECODEH264::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
+    threadNum = m_vPar.mfx.NumThread;
+    return MFX_ERR_NONE;
+}
+
 mfxStatus VideoDECODEH264::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::Query");

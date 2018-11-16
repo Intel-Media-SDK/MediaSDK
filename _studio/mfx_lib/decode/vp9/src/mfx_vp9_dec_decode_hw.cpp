@@ -451,6 +451,13 @@ mfxTaskThreadingPolicy VideoDECODEVP9_HW::GetThreadingPolicy()
     return MFX_TASK_THREADING_SHARED;
 }
 
+mfxStatus VideoDECODEVP9_HW::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
+    threadNum = m_thread_num;
+    return MFX_ERR_NONE;
+}
+
 mfxStatus VideoDECODEVP9_HW::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVideoParam *p_out)
 {
     MFX_CHECK_NULL_PTR1(p_out);
@@ -888,7 +895,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     routineData->showFrame = m_frameInfo.showFrame;
 
     p_entry_point->pState = routineData;
-    p_entry_point->requiredNumThreads = 1;
+    p_entry_point->requiredNumThreads = m_thread_num;
 
     if (m_frameInfo.showFrame)
     {

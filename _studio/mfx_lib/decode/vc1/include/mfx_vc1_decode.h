@@ -74,6 +74,7 @@ public:
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close(void);
     virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum);
 
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);
 

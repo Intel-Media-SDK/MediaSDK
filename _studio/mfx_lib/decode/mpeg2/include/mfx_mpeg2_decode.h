@@ -319,6 +319,12 @@ public:
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close();
     virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) { return MFX_TASK_THREADING_INTRA; }
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        MFX_CHECK(m_isInitialized, MFX_ERR_NOT_INITIALIZED);
+        threadNum = internalImpl->m_vdPar.numThreads;
+        return MFX_ERR_NONE;
+    }
 
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);
 

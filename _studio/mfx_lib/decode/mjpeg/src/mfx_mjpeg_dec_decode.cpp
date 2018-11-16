@@ -341,6 +341,13 @@ mfxTaskThreadingPolicy VideoDECODEMJPEG::GetThreadingPolicy(void)
     return MFX_TASK_THREADING_INTER;
 }
 
+mfxStatus VideoDECODEMJPEG::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_isInit, MFX_ERR_NOT_INITIALIZED);
+    threadNum = m_vPar.mfx.NumThread;
+    return MFX_ERR_NONE;
+}
+
 mfxStatus VideoDECODEMJPEG::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     MFX_CHECK_NULL_PTR1(out);

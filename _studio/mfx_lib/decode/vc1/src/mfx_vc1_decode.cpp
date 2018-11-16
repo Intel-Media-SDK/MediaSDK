@@ -531,6 +531,13 @@ mfxTaskThreadingPolicy MFXVideoDECODEVC1::GetThreadingPolicy(void)
     }
 }
 
+mfxStatus MFXVideoDECODEVC1::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_bIsDecInit, MFX_ERR_NOT_INITIALIZED);
+    threadNum = m_par.mfx.NumThread;
+    return MFX_ERR_NONE;
+}
+
 mfxStatus MFXVideoDECODEVC1::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     mfxStatus       MFXSts = MFX_ERR_NONE;
