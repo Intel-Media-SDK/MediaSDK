@@ -184,9 +184,13 @@ mfxStatus VideoVPPMain::Close( void )
 mfxTaskThreadingPolicy VideoVPPMain::GetThreadingPolicy(void)
 {
     return MFX_TASK_THREADING_INTRA;
+}
 
-} // mfxTaskThreadingPolicy VideoVPPMain::GetThreadingPolicy(void)
-
+mfxStatus VideoVPPMain::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_impl.get(), MFX_ERR_NOT_INITIALIZED);
+    return m_impl->GetThreadNum(threadNum);
+}
 
 mfxStatus VideoVPPMain::VppFrameCheck(mfxFrameSurface1 *in,
                                       mfxFrameSurface1 *out,

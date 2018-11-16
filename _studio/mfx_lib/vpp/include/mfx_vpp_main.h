@@ -95,6 +95,7 @@ public:
     }
 
     virtual mfxTaskThreadingPolicy GetThreadingPolicy(void);
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum);
 
     // multi threading of SW_VPP functions
     mfxStatus RunVPPTask(

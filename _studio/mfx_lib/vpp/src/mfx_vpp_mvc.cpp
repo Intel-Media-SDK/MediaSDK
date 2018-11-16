@@ -223,9 +223,16 @@ mfxStatus ImplementationMvc::GetVPPStat(mfxVPPStat *stat)
 mfxTaskThreadingPolicy ImplementationMvc::GetThreadingPolicy(void)
 {
     return MFX_TASK_THREADING_INTRA;
+}
 
-} // mfxTaskThreadingPolicy ImplementationMvc::GetThreadingPolicy(void)
-
+mfxStatus ImplementationMvc::GetThreadNum(mfxU32& threadNum)
+{
+    MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+    // TODO: std::accumulate across all MVC VPP?
+    // or return 1 for HW path and N cores for SW?
+    threadNum = 1;
+    return MFX_ERR_NONE;
+}
 
 mfxStatus ImplementationMvc::VppFrameCheck(
     mfxFrameSurface1 *in,
