@@ -78,6 +78,12 @@ public:
     virtual mfxStatus Close();
 
     virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) { return MFX_TASK_THREADING_INTRA; }
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        MFX_CHECK(m_initialized, MFX_ERR_NOT_INITIALIZED);
+        threadNum = m_thread_num;
+        return MFX_ERR_NONE;
+    }
 
     virtual mfxStatus GetVideoParam(mfxVideoParam *par);
 
@@ -106,7 +112,7 @@ public:
             pEntryPoint->pState = this;
             pEntryPoint->pRoutine = Execute;
             pEntryPoint->pCompleteProc = FreeResources;
-            pEntryPoint->requiredNumThreads = 1;
+            pEntryPoint->requiredNumThreads = m_thread_num;
             pEntryPoint->pParam = userParam;
         }
 
@@ -154,6 +160,7 @@ public:
     }
 
 protected:
+    static const mfxU32           m_thread_num = 1;
     VP9MfxVideoParam              m_video;
     std::list<VP9MfxVideoParam>   m_videoForParamChange; // encoder keeps several versions of encoding parameters
                                                          // to allow dynamic parameter change w/o drain of all buffered tasks.
