@@ -228,6 +228,11 @@ public:
     mfxStatus Close(void);
     virtual
     mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_INTRA;}
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        threadNum = m_thread_num;
+        return MFX_ERR_NONE;
+    }
 
     static 
     mfxStatus Query(VideoCORE*, mfxVideoParam *in, mfxVideoParam *out);
@@ -276,7 +281,7 @@ protected:
     
 
 private:
-
+    static const mfxU32     m_thread_num = 1;
     bool                    m_bInit;
     VideoCORE*              m_core;
     mfxExtLAControl         m_LaControl;

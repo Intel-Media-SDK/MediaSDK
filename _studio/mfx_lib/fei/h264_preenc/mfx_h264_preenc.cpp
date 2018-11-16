@@ -654,7 +654,7 @@ mfxStatus VideoENC_PREENC::Query(VideoCORE* core, mfxVideoParam *in, mfxVideoPar
         out->IOPattern                   = MFX_IOPATTERN_IN_VIDEO_MEMORY;
         out->AsyncDepth                  = 1;
         out->mfx.NumRefFrame             = 1;
-        out->mfx.NumThread               = 1;
+        out->mfx.NumThread               = m_thread_num;
         out->mfx.EncodedOrder            = 1;
         out->mfx.FrameInfo.FourCC        = 1;
         out->mfx.FrameInfo.Width         = 1;
@@ -1025,7 +1025,7 @@ mfxStatus VideoENC_PREENC::RunFrameVmeENCCheck(
     pEntryPoints[0].pCompleteProc        = 0;
     pEntryPoints[0].pGetSubTaskProc      = 0;
     pEntryPoints[0].pCompleteSubTaskProc = 0;
-    pEntryPoints[0].requiredNumThreads   = 1;
+    pEntryPoints[0].requiredNumThreads   = m_thread_num;
     pEntryPoints[0].pRoutineName         = "AsyncRoutine";
     pEntryPoints[0].pRoutine             = AsyncRoutine;
     pEntryPoints[1] = pEntryPoints[0];

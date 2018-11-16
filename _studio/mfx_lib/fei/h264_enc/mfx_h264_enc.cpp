@@ -632,7 +632,7 @@ mfxStatus VideoENC_ENC::RunFrameVmeENCCheck(
     pEntryPoints[0].pCompleteProc        = 0;
     pEntryPoints[0].pGetSubTaskProc      = 0;
     pEntryPoints[0].pCompleteSubTaskProc = 0;
-    pEntryPoints[0].requiredNumThreads   = 1;
+    pEntryPoints[0].requiredNumThreads   = m_thread_num;
     pEntryPoints[0].pRoutineName         = "AsyncRoutine";
     pEntryPoints[0].pRoutine             = AsyncRoutine;
     pEntryPoints[1] = pEntryPoints[0];

@@ -937,13 +937,13 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
         /*pEntryPoints[0].pRoutine = &SubmitFrameLARoutine;
         pEntryPoints[0].pCompleteProc =0;
         pEntryPoints[0].pState = this;
-        pEntryPoints[0].requiredNumThreads = 1;
+        pEntryPoints[0].requiredNumThreads = m_thread_num;
         pEntryPoints[0].pParam = pAsyncParams;
 
         pEntryPoints[1].pRoutine = &QueryFrameLARoutine;
         pEntryPoints[1].pCompleteProc = &CompleteFrameLARoutine;
         pEntryPoints[1].pState = this;
-        pEntryPoints[1].requiredNumThreads = 1;
+        pEntryPoints[1].requiredNumThreads = m_thread_num;
         pEntryPoints[1].pParam = pAsyncParams;
 
         numEntryPoints = 2;*/
@@ -953,7 +953,7 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
         pEntryPoints[0].pRoutine = &RunFrameVPPRoutine;
         pEntryPoints[0].pCompleteProc = &CompleteFrameLARoutine;
         pEntryPoints[0].pState = this;
-        pEntryPoints[0].requiredNumThreads = 1;
+        pEntryPoints[0].requiredNumThreads = m_thread_num;
         pEntryPoints[0].pParam = pAsyncParams;
 
         numEntryPoints = 1;

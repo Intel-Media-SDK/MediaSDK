@@ -48,6 +48,11 @@ public:
     virtual mfxStatus Reset(mfxVideoParam *par);
     virtual mfxStatus Close(void);
     virtual mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_INTRA;}
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        threadNum = m_thread_num;
+        return MFX_ERR_NONE;
+    }
 
     mfxStatus Submit(mfxEncodeInternalParams * iParams);
 
@@ -66,7 +71,7 @@ public:
     virtual mfxStatus RunFrameVmeENC(mfxENCInput *in, mfxENCOutput *out);
 
 private:
-
+    static const mfxU32                           m_thread_num = 1;
     bool                                          m_bInit;
     VideoCORE*                                    m_core;
 
