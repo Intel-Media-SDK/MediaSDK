@@ -2034,7 +2034,8 @@ typedef struct {
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     mfxU16  NumTileRows;
     mfxU16  NumTileColumns;
-    mfxU16  reserved[110];
+    mfxU16  DynamicScaling;
+    mfxU16  reserved[109];
 #else // API 1.26
     mfxU16  reserved[112];
 #endif

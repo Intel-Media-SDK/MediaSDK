@@ -471,6 +471,14 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
+            extParAfter.FrameHeight != extParBefore.FrameHeight) &&
+            extParAfter.DynamicScaling != MFX_CODINGOPTION_ON)
+        {
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+        }
+#endif
     }
 
     sts = m_ddi->Reset(m_video);
