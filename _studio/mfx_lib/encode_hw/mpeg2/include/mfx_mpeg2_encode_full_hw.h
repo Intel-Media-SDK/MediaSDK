@@ -362,7 +362,12 @@ public:
         virtual
         mfxTaskThreadingPolicy GetThreadingPolicy(void) {return MFX_TASK_THREADING_INTRA;}
      
-
+        virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+        {
+            MFX_CHECK(is_initialized(), MFX_ERR_NOT_INITIALIZED);
+            threadNum = m_thread_num;
+            return MFX_ERR_NONE;
+        }
 
     protected:
         inline bool is_initialized() {return m_pController!=0;}
@@ -392,6 +397,7 @@ public:
 
 
     private:
+        static const mfxU32              m_thread_num = 1;
         UMC::Mutex                       m_guard;
 
         VideoCORE *                      m_pCore;

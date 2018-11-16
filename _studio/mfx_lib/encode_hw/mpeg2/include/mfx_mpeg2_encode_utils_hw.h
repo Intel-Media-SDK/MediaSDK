@@ -92,7 +92,8 @@ namespace MPEG2EncoderHW
             mfxStatus CancelFrame(mfxEncodeCtrl *ctrl, mfxEncodeInternalParams *pInternalParams, mfxFrameSurface1 *surface, mfxBitstream *bs) = 0;
         virtual
             mfxTaskThreadingPolicy GetThreadingPolicy(void) = 0;
-
+        virtual
+            mfxStatus GetThreadNum(mfxU32& threadNum) = 0;
     };
     class FramesSet
     {

@@ -176,8 +176,11 @@ public:
         }
         return pEncoder->GetThreadingPolicy();
     }
-protected:
-
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        MFX_CHECK(pEncoder, MFX_ERR_NOT_INITIALIZED);
+        return pEncoder->GetThreadNum(threadNum);
+    }
 
 private:
     VideoCORE*                      m_pCore;
