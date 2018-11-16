@@ -207,7 +207,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Query(VideoCORE * core, mfxVideoParam *in, mfx
         out->mfx.CodecId                 = MFX_CODEC_JPEG;
         out->mfx.CodecLevel              = 0;
         out->mfx.CodecProfile            = MFX_PROFILE_JPEG_BASELINE;
-        out->mfx.NumThread               = 1;
+        out->mfx.NumThread               = m_thread_num;
         out->mfx.Interleaved             = MFX_SCANTYPE_INTERLEAVED;
         out->mfx.Quality                 = 1;
         out->mfx.RestartInterval         = 0;
@@ -987,7 +987,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::EncodeFrameCheck(
     pEntryPoints[0].pGetSubTaskProc      = 0;
     pEntryPoints[0].pCompleteSubTaskProc = 0;
 
-    pEntryPoints[0].requiredNumThreads   = 1;
+    pEntryPoints[0].requiredNumThreads   = m_thread_num;
     pEntryPoints[1] = pEntryPoints[0];
     pEntryPoints[0].pRoutineName = (char *)"Encode Submit";
     pEntryPoints[1].pRoutineName = (char *)"Encode Query";

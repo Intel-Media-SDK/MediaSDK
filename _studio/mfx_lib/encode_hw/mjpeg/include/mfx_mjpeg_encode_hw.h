@@ -70,6 +70,13 @@ public:
     virtual mfxStatus GetFrameParam(mfxFrameParam *par);
     virtual mfxStatus GetEncodeStat(mfxEncodeStat *stat);
 
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        MFX_CHECK(m_bInitialized, MFX_ERR_NOT_INITIALIZED);
+        threadNum = m_thread_num;
+        return MFX_ERR_NONE;
+    }
+
     virtual
     mfxStatus EncodeFrameCheck(mfxEncodeCtrl *ctrl,
                                mfxFrameSurface1 *surface,
@@ -124,6 +131,8 @@ protected:
     mfxStatus CheckEncodeFrameParam(mfxFrameSurface1    * surface,
                                     mfxBitstream        * bs,
                                     bool                  isExternalFrameAllocator);
+
+    static const mfxU32 m_thread_num = 1;
 
     // pointer to video core - class for memory/frames management and allocation
     VideoCORE*          m_pCore;
