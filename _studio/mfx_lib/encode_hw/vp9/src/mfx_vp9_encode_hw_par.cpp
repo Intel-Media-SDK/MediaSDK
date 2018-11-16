@@ -190,6 +190,7 @@ inline void SetOrCopy(mfxExtVP9Param *pDst, mfxExtVP9Param const *pSrc = 0, bool
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     SET_OR_COPY_PAR(NumTileRows);
     SET_OR_COPY_PAR(NumTileColumns);
+    SET_OR_COPY_PAR(DynamicScaling);
 #endif
 }
 
@@ -1530,6 +1531,22 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         rows = 0;
         unsupported = true;
     }
+
+    if (false == CheckTriStateOption(extPar.DynamicScaling))
+    {
+        changed = true;
+    }
+    if (!caps.DynamicScaling && extPar.DynamicScaling == MFX_CODINGOPTION_ON)
+    {
+        extPar.DynamicScaling = MFX_CODINGOPTION_OFF;
+        unsupported = true;
+    }
+    //known limitation: these 2 features don't work together
+    if (extPar.DynamicScaling && par.m_numLayers > 0)
+    {
+        extPar.DynamicScaling = MFX_CODINGOPTION_OFF;
+        unsupported = true;
+    }
 #endif // MFX_VERSION >= MFX_VERSION_NEXT
 
     return GetCheckStatus(changed, unsupported);
@@ -1726,6 +1743,7 @@ mfxStatus SetDefaults(
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     SetDefault(extPar.NumTileColumns, (extPar.FrameWidth + MAX_TILE_WIDTH - 1) / MAX_TILE_WIDTH);
     SetDefault(extPar.NumTileRows, 1);
+    SetDefault(extPar.DynamicScaling, MFX_CODINGOPTION_OFF);
 #endif // (MFX_VERSION >= MFX_VERSION_NEXT)
 
     // ext buffers
