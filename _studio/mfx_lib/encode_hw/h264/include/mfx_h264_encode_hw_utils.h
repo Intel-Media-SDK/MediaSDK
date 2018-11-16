@@ -1886,6 +1886,12 @@ namespace MfxHwH264Encode
 
         virtual mfxStatus Reset(mfxVideoParam * par);
 
+        virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+        {
+            threadNum = m_thread_num;
+            return MFX_ERR_NONE;
+        }
+
         virtual mfxStatus GetVideoParam(mfxVideoParam * par);
 
         virtual mfxStatus GetFrameParam(mfxFrameParam * par);
@@ -2029,6 +2035,7 @@ namespace MfxHwH264Encode
 
         void DestroyDanglingCmResources();
 
+        static const mfxU32 m_thread_num = 1;
         VideoCORE *         m_core;
         CmDevicePtr         m_cmDevice;
         MfxVideoParam       m_video;

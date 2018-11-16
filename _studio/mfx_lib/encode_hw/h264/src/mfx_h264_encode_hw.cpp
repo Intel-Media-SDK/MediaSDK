@@ -284,7 +284,7 @@ mfxStatus ImplementationAvc::Query(
         out->mfx.MaxKbps           = 1;
         out->mfx.NumSlice          = 1;
         out->mfx.NumRefFrame       = 1;
-        out->mfx.NumThread         = 1;
+        out->mfx.NumThread         = m_thread_num;
         out->mfx.EncodedOrder      = 1;
 
         out->mfx.FrameInfo.FourCC        = 1;
@@ -3144,7 +3144,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheck(
             entryPoints[0].pCompleteProc        = 0;
             entryPoints[0].pGetSubTaskProc      = 0;
             entryPoints[0].pCompleteSubTaskProc = 0;
-            entryPoints[0].requiredNumThreads   = 1;
+            entryPoints[0].requiredNumThreads   = m_thread_num;
             entryPoints[0].pRoutineName         = "AsyncRoutine";
             entryPoints[0].pRoutine             = AsyncRoutineHelper;
             numEntryPoints = 1;
@@ -3186,7 +3186,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
         entryPoints[0].pCompleteProc        = 0;
         entryPoints[0].pGetSubTaskProc      = 0;
         entryPoints[0].pCompleteSubTaskProc = 0;
-        entryPoints[0].requiredNumThreads   = 1;
+        entryPoints[0].requiredNumThreads   = m_thread_num;
         entryPoints[0].pRoutineName         = "AsyncRoutine";
         entryPoints[0].pRoutine             = AsyncRoutineHelper;
         numEntryPoints = 1;
@@ -3268,7 +3268,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
     entryPoints[0].pCompleteProc        = 0;
     entryPoints[0].pGetSubTaskProc      = 0;
     entryPoints[0].pCompleteSubTaskProc = 0;
-    entryPoints[0].requiredNumThreads   = 1;
+    entryPoints[0].requiredNumThreads   = m_thread_num;
     entryPoints[0].pRoutineName         = "AsyncRoutine";
     entryPoints[0].pRoutine             = AsyncRoutineHelper;
     numEntryPoints = 1;

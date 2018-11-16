@@ -55,6 +55,13 @@ public:
         return MFX_TASK_THREADING_INTRA;
     }
 
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        return m_impl.get()
+            ? m_impl->GetThreadNum(threadNum)
+            : MFX_ERR_NOT_INITIALIZED;
+    }
+
     virtual mfxStatus Reset(mfxVideoParam *par)
     {
         return m_impl.get()
