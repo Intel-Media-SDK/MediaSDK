@@ -58,6 +58,13 @@ public:
         Close();
     }
 
+    virtual mfxStatus GetThreadNum(mfxU32& threadNum)
+    {
+        MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+        threadNum = m_thread_num;
+        return MFX_ERR_NONE;
+    }
+
     static mfxStatus QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxFrameAllocRequest *request);
 
     static mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
@@ -95,7 +102,7 @@ public:
             pEntryPoint->pState             = this;
             pEntryPoint->pRoutine           = Execute;
             pEntryPoint->pCompleteProc      = FreeResources;
-            pEntryPoint->requiredNumThreads = 1;
+            pEntryPoint->requiredNumThreads = m_thread_num;
             pEntryPoint->pParam             = userParam;
         }
 
@@ -177,6 +184,7 @@ protected:
     mfxStatus FreeTask(Task& task);
     mfxStatus WaitForQueringTask(Task& task);
 
+    static const mfxU32             m_thread_num = 1;
     std::unique_ptr<DriverEncoder>  m_ddi;
     VideoCORE                      *m_core;
     MfxVideoParam                   m_vpar;
