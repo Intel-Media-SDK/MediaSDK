@@ -2593,8 +2593,6 @@ mfxStatus VideoDECODEMPEG2Internal_HW::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, UMC::FrameMemID mem_id_to_unlock, int32_t task_num_to_unlock, bool end_frame, bool remove_2frames, int decrease_dec_field_count)
 {
-    (void)end_frame;
-
     m_frame[frame_buffer_num].DataLength = 0;
     m_frame[frame_buffer_num].DataOffset = 0;
     m_frame_in_use[frame_buffer_num] = false;
@@ -2608,10 +2606,8 @@ mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, 
         m_implUmc->UnLockTask(task_num_to_unlock);
     }
 
-#if defined (MFX_VA_LINUX)
     if (end_frame)
         m_implUmcHW->pack_w.m_va->EndFrame();
-#endif
 
     if (remove_2frames)
         m_implUmcHW->RestoreDecoderStateAndRemoveLastField();
