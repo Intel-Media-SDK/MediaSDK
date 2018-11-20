@@ -184,7 +184,7 @@ mfxStatus CVAAPIDeviceX11::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllo
     if (MFX_ERR_NONE == mfx_res)
     {
         VADisplay dpy = m_X11LibVA.GetVADisplay();
-        VADisplay rnddpy = m_X11LibVA.GetVADisplay(true);
+        VADisplay rnddpy = m_X11LibVA.GetVADisplay();
         VASurfaceID rndsrf;
         void* ctx;
 
