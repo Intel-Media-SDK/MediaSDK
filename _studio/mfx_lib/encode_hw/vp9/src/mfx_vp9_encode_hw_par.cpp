@@ -1542,7 +1542,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         unsupported = true;
     }
     //known limitation: these 2 features don't work together
-    if (extPar.DynamicScaling && par.m_numLayers > 0)
+    if (extPar.DynamicScaling == MFX_CODINGOPTION_ON && par.m_numLayers > 0)
     {
         extPar.DynamicScaling = MFX_CODINGOPTION_OFF;
         unsupported = true;
