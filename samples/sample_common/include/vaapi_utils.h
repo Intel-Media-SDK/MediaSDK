@@ -444,19 +444,16 @@ public:
         VASurfaceID srf2);
 
     inline int getBackendType() { return m_type; }
-    VADisplay GetVADisplay(bool render = false)
-     { return (render && m_va_dpy_render)? m_va_dpy_render: m_va_dpy; }
+    VADisplay GetVADisplay() { return m_va_dpy; }
     const MfxLoader::VA_Proxy m_libva;
 
 protected:
     CLibVA(int type)
       : m_type(type)
       , m_va_dpy(NULL)
-      , m_va_dpy_render(NULL)
     {}
     int m_type;
     VADisplay m_va_dpy;
-    VADisplay m_va_dpy_render;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(CLibVA);
