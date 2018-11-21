@@ -3762,7 +3762,7 @@ void MfxHwH264Encode::PrepareSeiMessageBufferDepView(
         needMvcNestingSei |= (fillerSize != 0);
 
     mfxU32 needNotNestingSei =
-        (task.m_ctrl.NumPayload > 0)                 ||
+        (task.m_ctrl.Payload && task.m_ctrl.NumPayload > 0) ||
         (fillerSize > 0 && IsOff(extOpt.ViewOutput)) ||
         needMarkingRepetitionSei;
 

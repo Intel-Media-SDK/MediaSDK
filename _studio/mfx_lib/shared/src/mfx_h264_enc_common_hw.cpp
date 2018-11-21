@@ -6907,6 +6907,9 @@ bool MfxHwH264Encode::IsRecoveryPointSeiMessagePresent(
     mfxU16 numPayload,
     mfxU32 payloadLayout)
 {
+    if (!payload)
+        return false;
+
     mfxU32 step = payloadLayout == 0 /*MFX_PAYLOAD_LAYOUT_ALL*/ ? 1 : 2;
     mfxU32 i    = payloadLayout == 2 /*MFX_PAYLOAD_LAYOUT_ODD*/ ? 1 : 0;
 
