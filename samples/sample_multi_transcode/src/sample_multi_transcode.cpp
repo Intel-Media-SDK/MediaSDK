@@ -183,10 +183,12 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     // create sessions, allocators
     for (i = 0; i < m_InputParamsArray.size(); i++)
     {
-        GeneralAllocator* pAllocator = new GeneralAllocator;
+        std::unique_ptr<GeneralAllocator> pAllocator(new GeneralAllocator);
         sts = pAllocator->Init(m_pAllocParam.get());
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
-        m_pAllocArray.push_back(pAllocator);
+
+        m_pAllocArray.push_back(pAllocator.get());
+        pAllocator.release();
 
         std::unique_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
         // extend BS processing init

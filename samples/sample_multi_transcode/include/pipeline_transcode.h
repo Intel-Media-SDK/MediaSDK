@@ -416,7 +416,7 @@ namespace TranscodingSample
             inline void PrintStatistics(mfxU32 numPipelineid, mfxF64 target_framerate = -1 /*default stands for infinite*/)
             {
                 // print timings in ms
-                msdk_fprintf(   ofile, MSDK_STRING("stat[%d.%llu]: %s=%d;Framerate=%.3f;Total=%.3lf;Samples=%lld;StdDev=%.3lf;Min=%.3lf;Max=%.3lf;Avg=%.3lf\n"),
+                msdk_fprintf(   ofile, MSDK_STRING("stat[%u.%llu]: %s=%d;Framerate=%.3f;Total=%.3lf;Samples=%lld;StdDev=%.3lf;Min=%.3lf;Max=%.3lf;Avg=%.3lf\n"),
                                 msdk_get_current_pid(), rdtsc(),
                                 bufDir, numPipelineid,
                                 target_framerate,
