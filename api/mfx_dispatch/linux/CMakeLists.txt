@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-cmake_minimum_required( VERSION 2.8.5 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.6 FATAL_ERROR )
 project( mfx )
 
 set( MFX_API_FOLDER ${CMAKE_CURRENT_SOURCE_DIR}/../../include )
