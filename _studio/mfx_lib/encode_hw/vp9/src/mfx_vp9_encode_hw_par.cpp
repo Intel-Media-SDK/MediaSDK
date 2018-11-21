@@ -1019,6 +1019,12 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         unsupported = true;
     }
 
+    if (fi.Width > caps.MaxPicWidth || fi.Height > caps.MaxPicHeight)
+    {
+        fi.Width = 0;
+        fi.Height = 0;
+        unsupported = true;
+    }
     //VP9 doesn't support CropX, CropY due to absence of syntax in bitstream header
     if ((fi.Width  && (fi.CropW > fi.Width))  ||
         (fi.Height && (fi.CropH > fi.Height)) ||
