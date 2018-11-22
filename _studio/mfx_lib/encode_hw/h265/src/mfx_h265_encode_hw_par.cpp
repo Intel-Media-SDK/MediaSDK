@@ -2370,6 +2370,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
 
     }
+    //not supported in driver
+    changed += CheckOption(CO2.EnableMAD, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_OFF);
 
     if (CO3.WinBRCSize > 0 || CO3.WinBRCMaxAvgKbps > 0)
     {
