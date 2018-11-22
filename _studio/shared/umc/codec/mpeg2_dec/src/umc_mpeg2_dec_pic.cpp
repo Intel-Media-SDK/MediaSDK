@@ -931,28 +931,19 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
       }
     }
 
-    m_IsFrameSkipped = IsPictureToSkip(task_num);
-
-    if(m_IsFrameSkipped)
-    {
-        return UMC_OK;
-    }
-
     {
         // Bitstream error, not clear picture type
         // Skipping picture because wrong picture type (frame or field) can take decoder to unrecoverable state
 
         if (!PictureStructureValid(PictureHeader[task_num].picture_structure))
         {
-            m_IsFrameSkipped = true;
-            return UMC_OK;
+            return UMC_ERR_INVALID_STREAM;
         }
 
         // The check below is from progressive_frame field description in 6.3.10 part of MPEG2 standard
         if (PictureHeader[task_num].progressive_frame && PictureHeader[task_num].picture_structure != FRAME_PICTURE)
         {
-            m_IsFrameSkipped = true;
-            return UMC_OK;
+            return UMC_ERR_INVALID_STREAM;
         }
 
         // second field must be the same, except IP
@@ -961,10 +952,17 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
                 if ( m_picture_coding_type_save != PictureHeader[task_num].picture_coding_type)
                 {
                     frame_buffer.field_buffer_index[task_num] = 0;
-                    m_IsFrameSkipped = true;
                     return UMC_ERR_INVALID_STREAM;
                 }
         m_picture_coding_type_save = PictureHeader[task_num].picture_coding_type;
+    }
+
+    // m_IsFrameSkipped is true at this point
+    m_IsFrameSkipped = IsPictureToSkip(task_num);
+
+    if(m_IsFrameSkipped)
+    {
+        return UMC_OK;
     }
 
     if (PictureHeader[task_num].picture_structure == FRAME_PICTURE
