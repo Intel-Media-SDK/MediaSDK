@@ -1014,6 +1014,39 @@ mfxStatus MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
 
     return sts;
 }
+template <class T> void SetUsedRefList(T list, Task* taskForQuery, mfxU32 dir, bool bInterlace)
+{
+    mfxU32 i = 0;
+    for (; i < (mfxU32)taskForQuery->m_numRefActive[dir]; i++)
+    {
+        DpbFrame& refFrame = taskForQuery->m_dpb[0][taskForQuery->m_refPicList[dir][i] & 127]; // retrieve corresponding ref frame from DPB
+        list[i].FrameOrder = refFrame.m_fo;
+        list[i].LongTermIdx = (refFrame.m_ltr && (dir == 0)) ? 0 : MFX_LONGTERM_IDX_NO_IDX;
+        list[i].PicStruct = (mfxU16)(bInterlace ? (refFrame.m_bottomField ? MFX_PICSTRUCT_FIELD_BOTTOM : MFX_PICSTRUCT_FIELD_TOP) : MFX_PICSTRUCT_PROGRESSIVE);
+    }
+    for (; i < 32; i++)
+    {
+        list[i].FrameOrder = (mfxU32)MFX_FRAMEORDER_UNKNOWN;
+        list[i].LongTermIdx = NO_INDEX_U16;
+        list[i].PicStruct = (mfxU16)MFX_PICSTRUCT_UNKNOWN;
+    }
+}
+void SetEncFrameInfo(MfxVideoParam &m_vpar,
+                     mfxExtAVCEncodedFrameInfo * encFrameInfo,
+                     Task* taskForQuery)
+{
+    if (encFrameInfo && taskForQuery)
+    {
+        encFrameInfo->QP = taskForQuery->m_avgQP;
+        encFrameInfo->FrameOrder = taskForQuery->m_fo;
+        encFrameInfo->PicStruct = taskForQuery->m_surf->Info.PicStruct;
+        if (IsOn(m_vpar.m_ext.CO2.EnableMAD))
+            encFrameInfo->MAD = taskForQuery->m_MAD;
+
+        SetUsedRefList(encFrameInfo->UsedRefListL0, taskForQuery, 0, m_vpar.isField());
+        SetUsedRefList(encFrameInfo->UsedRefListL1, taskForQuery, 1, m_vpar.isField());
+    }
+}
 
 mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
@@ -1163,6 +1196,8 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
             mfxU8* bsData         = bs->Data + bs->DataOffset + bs->DataLength;
             mfxU32* pDataLength   = &bs->DataLength;
 
+            mfxExtAVCEncodedFrameInfo * encFrameInfo = ExtBuffer::Get(*(taskForQuery->m_bs));
+            SetEncFrameInfo(m_vpar,encFrameInfo,taskForQuery);
             MFX_CHECK(bytesAvailable >= bytes2copy, MFX_ERR_NOT_ENOUGH_BUFFER);
             //codedFrame.MemType = MFX_MEMTYPE_INTERNAL_FRAME;
 

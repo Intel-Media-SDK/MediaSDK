@@ -1813,6 +1813,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
                 }
 
                  task.m_bsDataLength = codedBufferSegment->size;
+                 task.m_avgQP = (codedBufferSegment->status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK);
 
                 if (codedBufferSegment->status & VA_CODED_BUF_STATUS_BAD_BITSTREAM)
                     sts = MFX_ERR_GPU_HANG;

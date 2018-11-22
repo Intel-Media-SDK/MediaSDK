@@ -345,6 +345,8 @@ struct Task : DpbFrame
     mfxU16            m_insertHeaders                 = 0;
     mfxU8             m_shNUT                         = 0;
     mfxI8             m_qpY                           = 0;
+    mfxU8             m_avgQP                         = 0;
+    mfxU32            m_MAD                           = 0;
     mfxI32            m_lastIPoc                      = 0;
     mfxI32            m_lastRAP                       = 0;
 
@@ -429,6 +431,7 @@ namespace ExtBuffer
          MFX_EXTBUFF_MBQP,
          MFX_EXTBUFF_ENCODER_ROI,
          MFX_EXTBUFF_DIRTY_RECTANGLES,
+         MFX_EXTBUFF_ENCODED_FRAME_INFO
     };
 
     template<class T> struct ExtBufferMap {};
@@ -457,6 +460,7 @@ namespace ExtBuffer
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
         EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+        EXTBUF(mfxExtAVCEncodedFrameInfo, MFX_EXTBUFF_ENCODED_FRAME_INFO);
 
     #undef EXTBUF
 
@@ -512,6 +516,7 @@ namespace ExtBuffer
         buf_dst.MinQPB                 = buf_src.MinQPB;
         buf_dst.MaxQPB                 = buf_src.MaxQPB;
         buf_dst.SkipFrame              = buf_src.SkipFrame;
+      buf_dst.EnableMAD=buf_src.EnableMAD;
     }
 
     inline void  CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
