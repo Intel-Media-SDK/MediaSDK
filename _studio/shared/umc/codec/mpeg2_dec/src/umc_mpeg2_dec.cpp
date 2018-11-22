@@ -308,7 +308,7 @@ Status MPEG2VideoDecoderBase::GetPictureHeader(MediaData* input, int task_num, i
 {
   Status umcRes = UMC_OK;
 
-  m_IsFrameSkipped = false;
+  m_IsFrameSkipped = true;
   m_IsSHDecoded = false;
 
   if(task_num >= DPB_SIZE)
@@ -353,6 +353,7 @@ Status MPEG2VideoDecoderBase::GetPictureHeader(MediaData* input, int task_num, i
         }
         m_IsLastFrameProcessed = true;
       }
+      m_IsFrameSkipped = false;
       return UMC_OK;
   }
 
@@ -390,6 +391,7 @@ Status MPEG2VideoDecoderBase::GetPictureHeader(MediaData* input, int task_num, i
     }
   } while (code != PICTURE_START_CODE);
 
+  // this call sets m_IsFrameSkipped
   umcRes = DecodeHeader(PICTURE_START_CODE, video, task_num);
   if(umcRes != UMC_OK)
       return umcRes;
