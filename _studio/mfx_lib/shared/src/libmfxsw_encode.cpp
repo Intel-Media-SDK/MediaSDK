@@ -256,6 +256,17 @@ static const CodecId2Handlers codecId2Handlers =
 #endif //MFX_ENABLE_VP9_VIDEO_ENCODE
 }; // codecId2Handlers definition
 
+// first - is QueryCoreInterface() returns non-null ptr, second - fei status
+std::pair<bool, bool> check_fei(VideoCORE* core)
+{
+    bool *feiEnabled = (bool*)core->QueryCoreInterface(MFXIFEIEnabled_GUID);
+    if (!feiEnabled)
+    {
+        return std::pair<bool,bool>(false,false);
+    }
+    return std::pair<bool,bool>(true, *feiEnabled);
+}
+
 template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 {
@@ -264,12 +275,12 @@ VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
     mfxU32 CodecId = par.mfx.CodecId;
 
     // create a codec instance
-    bool *feiEnabled = (bool*)core->QueryCoreInterface(MFXIFEIEnabled_GUID);
-    if (!feiEnabled)
+    bool feiStatusAvailable, fei;
+    std::tie(feiStatusAvailable, fei) = check_fei(core);
+    if (!feiStatusAvailable)
     {
         return nullptr;
     }
-    const bool fei = *feiEnabled;
     auto handler = codecId2Handlers.find(CodecKey(CodecId, fei));
     if (handler == codecId2Handlers.end() || !handler->second.primary.ctor)
     {
@@ -329,9 +340,9 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
 #endif
         {
             // required to check FEI plugin registration
-            bool *feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);
-            MFX_CHECK_NULL_PTR1(feiEnabled);
-            const bool fei = *feiEnabled;
+            bool feiStatusAvailable, fei;
+            std::tie(feiStatusAvailable, fei) = check_fei(session->m_pCORE.get());
+            MFX_CHECK(feiStatusAvailable, MFX_ERR_NULL_PTR);
 
             auto handler = codecId2Handlers.find(CodecKey(out->mfx.CodecId, fei));
             mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
@@ -420,9 +431,10 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 #endif
         {
             // required to check FEI plugin registration
-            bool *feiEnabled = (bool*)session->m_pCORE->QueryCoreInterface(MFXIFEIEnabled_GUID);
-            MFX_CHECK_NULL_PTR1(feiEnabled);
-            const bool fei = *feiEnabled;
+            bool feiStatusAvailable, fei;
+            std::tie(feiStatusAvailable, fei) = check_fei(session->m_pCORE.get());
+            MFX_CHECK(feiStatusAvailable, MFX_ERR_NULL_PTR);
+
             auto handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId, fei));
             mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
                 : (handler->second.primary.queryIOSurf)(session, par, request);
