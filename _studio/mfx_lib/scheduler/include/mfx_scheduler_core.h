@@ -446,6 +446,7 @@ void mfxSchedulerCore::call_pRoutine(MFX_CALL_INFO& call)
         "MFX Async Task";
     mfxU64 start;
 
+    (void)pRoutineName;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, pRoutineName);
     MFX_LTRACE_1(MFX_TRACE_LEVEL_SCHED, "^Child^of", "%d", call.pTask->nParentId);
 
