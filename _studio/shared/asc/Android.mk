@@ -11,10 +11,12 @@ LOCAL_C_INCLUDES := \
     $(MFX_HOME)/_studio/mfx_lib/genx/asc/include
 
 LOCAL_CFLAGS := \
-	$(MFX_CFLAGS_INTERNAL_HW) \
-	-Wall -Werror
+    $(MFX_CFLAGS_INTERNAL_HW) \
+    -Wall -Werror
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
+
+LOCAL_HEADER_LIBRARIES := libmfx_headers
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libasc
