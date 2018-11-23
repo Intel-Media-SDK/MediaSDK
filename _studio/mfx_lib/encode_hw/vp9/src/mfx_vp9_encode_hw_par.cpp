@@ -129,9 +129,8 @@ if (pSrc)\
     COPY_PAR_IF_ZERO(pDst, pSrc, PTR); \
 }\
 
-inline void SetOrCopy(mfxInfoMFX *pDst, mfxInfoMFX const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxInfoMFX *pDst, mfxInfoMFX const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    zeroDst;
     SET_OR_COPY_PAR(FrameInfo.Width);
     SET_OR_COPY_PAR(FrameInfo.Height);
     SET_OR_COPY_PAR(FrameInfo.CropW);
@@ -194,15 +193,16 @@ inline void SetOrCopy(mfxExtVP9Param *pDst, mfxExtVP9Param const *pSrc = 0, bool
 #endif
 }
 
-inline void SetOrCopy(mfxExtCodingOption2 *pDst, mfxExtCodingOption2 const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxExtCodingOption2 *pDst, mfxExtCodingOption2 const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    zeroDst;
     SET_OR_COPY_PAR(MBBRC);
 }
 
-inline void SetOrCopy(mfxExtCodingOption3 *pDst, mfxExtCodingOption3 const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxExtCodingOption3 *pDst, mfxExtCodingOption3 const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    pSrc; pDst; zeroDst;
+    (void)pSrc;
+    (void)pDst;
+
 #if (MFX_VERSION >= 1027)
     SET_OR_COPY_PAR(TargetChromaFormatPlus1);
     SET_OR_COPY_PAR(TargetBitDepthLuma);
@@ -236,9 +236,8 @@ inline void SetOrCopy(mfxExtVP9TemporalLayers *pDst, mfxExtVP9TemporalLayers con
     }
 }
 
-inline void SetOrCopy(mfxExtCodingOptionDDI *pDst, mfxExtCodingOptionDDI const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxExtCodingOptionDDI *pDst, mfxExtCodingOptionDDI const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    zeroDst;
     SET_OR_COPY_PAR(RefreshFrameContext);
     SET_OR_COPY_PAR(ChangeFrameContextIdxForTS);
     SET_OR_COPY_PAR(SuperFrameForTS);
@@ -1609,9 +1608,8 @@ inline mfxU32 GetDefaultBufferSize(VP9MfxVideoParam const &par)
     }
 }
 
-inline mfxU16 GetDefaultAsyncDepth(VP9MfxVideoParam const &par)
+inline mfxU16 GetDefaultAsyncDepth(VP9MfxVideoParam const &/*par*/)
 {
-    par;
     return 2;
 }
 
@@ -1646,9 +1644,8 @@ void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
 mfxStatus SetDefaults(
     VP9MfxVideoParam &par,
     ENCODE_CAPS_VP9 const &caps,
-    mfxPlatform const & platform)
+    mfxPlatform const & /*platform*/)
 {
-    platform;
     SetDefault(par.AsyncDepth, GetDefaultAsyncDepth(par));
 
     // mfxInfoMfx
@@ -1926,8 +1923,6 @@ mfxStatus CheckAndFixCtrl(
     mfxEncodeCtrl & ctrl,
     ENCODE_CAPS_VP9 const & caps)
 {
-    video;
-
     mfxStatus checkSts = MFX_ERR_NONE;
 
     // check mfxEncodeCtrl for correct parameters

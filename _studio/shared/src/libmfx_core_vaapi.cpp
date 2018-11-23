@@ -729,7 +729,6 @@ mfxStatus VAAPIVideoCORE::CreateVideoProcessing(mfxVideoParam * param)
         sts = m_vpp_hw_resmng.CreateDevice(this);
     }
 #else
-    param;
     sts = MFX_ERR_UNSUPPORTED;
 #endif
     return sts;
