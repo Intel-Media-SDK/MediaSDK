@@ -101,9 +101,11 @@ mfxU64 GetMfxTimeStamp(mfxF64 ts)
 inline
 bool LumaIsNull(const mfxFrameSurface1 * surf)
 {
+#if (MFX_VERSION >= 1027)
     if (surf->Info.FourCC == MFX_FOURCC_Y410)
         return !surf->Data.Y410;
     else
+#endif
         return !surf->Data.Y;
 }
 

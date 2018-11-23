@@ -1567,7 +1567,9 @@ bool MfxHwH264Encode::IsRunTimeOnlyExtBuffer(mfxU32 id)
 {
     return
            id == MFX_EXTBUFF_AVC_REFLIST_CTRL
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
         || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET
+#endif
         || id == MFX_EXTBUFF_ENCODED_FRAME_INFO
         || id == MFX_EXTBUFF_MBQP
 #if MFX_VERSION >= 1023
@@ -1592,7 +1594,9 @@ bool MfxHwH264Encode::IsRunTimeExtBufferIdSupported(MfxVideoParam const & video,
     return
           (id == MFX_EXTBUFF_AVC_REFLIST_CTRL
         || id == MFX_EXTBUFF_AVC_REFLISTS
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
         || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET
+#endif
         || id == MFX_EXTBUFF_ENCODED_FRAME_INFO
         || id == MFX_EXTBUFF_PICTURE_TIMING_SEI
         || id == MFX_EXTBUFF_CODING_OPTION2
@@ -1659,7 +1663,10 @@ bool MfxHwH264Encode::IsRunTimeExtBufferPairAllowed(MfxVideoParam const & video,
 #endif
 
     return (id == MFX_EXTBUFF_AVC_REFLISTS
-            || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET)
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
+            || id == MFX_EXTBUFF_AVC_ROUNDING_OFFSET
+#endif
+           )
 #if defined (MFX_ENABLE_H264_VIDEO_FEI_ENCPAK)
            || (isFeiENCPAK &&
                 (  id == MFX_EXTBUFF_FEI_SLICE
@@ -6430,6 +6437,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
             checkSts = sts;
     }
 
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     for (mfxU16 fieldId = 0; fieldId < NumFields; fieldId++)
     {
         mfxExtAVCRoundingOffset* extRoundingOffset =
@@ -6455,6 +6463,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
             }
         }
     }
+#endif
 
     mfxExtAVCRefListCtrl const * extRefListCtrl = GetExtBuffer(*ctrl);
     if (extRefListCtrl && video.calcParam.numTemporalLayer > 0 && video.calcParam.tempScalabilityMode == 0)

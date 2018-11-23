@@ -639,9 +639,12 @@ VAAPIVideoCORE::CreateVA(
         {
             profile |= VA_PROFILE_REXT;
         }
-        if ((param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010) ||
-            (param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210) ||
-            (param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410) )
+        if (param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+#if (MFX_VERSION >= 1027)
+            || param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+            || param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
+#endif
+        )
         {
             profile |= VA_PROFILE_10;
         }
@@ -665,9 +668,11 @@ VAAPIVideoCORE::CreateVA(
         case MFX_FOURCC_AYUV:
             profile |= VA_PROFILE_444;
             break;
+#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y410:
             profile |= VA_PROFILE_10 | VA_PROFILE_444;
             break;
+#endif
         }
         break;
     case MFX_CODEC_JPEG:

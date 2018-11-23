@@ -66,6 +66,7 @@ static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAParam = {
     { DXVA2_Intel_Encode_HEVC_Main10,                 VAParameters(VAProfileHEVCMain10,     VAEntrypointEncSlice)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main,           VAParameters(VAProfileHEVCMain,       VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main10,         VAParameters(VAProfileHEVCMain10,     VAEntrypointEncSliceLP)},
+#if VA_CHECK_VERSION(1,2,0)
     { DXVA2_Intel_Encode_HEVC_Main422,                VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSlice)}, // Unsupported by VA
     { DXVA2_Intel_Encode_HEVC_Main422_10,             VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSlice)},
     { DXVA2_Intel_Encode_HEVC_Main444,                VAParameters(VAProfileHEVCMain444,    VAEntrypointEncSlice)},
@@ -74,6 +75,7 @@ static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAParam = {
     { DXVA2_Intel_LowpowerEncode_HEVC_Main422_10,     VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main444,        VAParameters(VAProfileHEVCMain444,    VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main444_10,     VAParameters(VAProfileHEVCMain444_10, VAEntrypointEncSliceLP)},
+#endif
 };
 
 static mfxStatus SetROI(
@@ -856,6 +858,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.MbQpDataSupport         = 1;
     m_caps.TUSupport               = 73;
 
+#if VA_CHECK_VERSION(1,2,0)
     if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420_12)
     {
         m_caps.MaxEncodedBitDepth = 2;
@@ -864,13 +867,19 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.MaxEncodedBitDepth = 1;
     }
-    else if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420)
+    else
+#endif
+    if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420)
     {
         m_caps.MaxEncodedBitDepth = 0;
     }
     m_caps.Color420Only = (attrs[idx_map[VAConfigAttribRTFormat]].value & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444)) ? 0 : 1;
+#if VA_CHECK_VERSION(1,2,0)
     m_caps.BitDepth8Only = (attrs[idx_map[VAConfigAttribRTFormat]].value &
         (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12)) ? 0 : 1;
+#else
+    m_caps.BitDepth8Only = 1;
+#endif
     m_caps.YUV422ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV422 ? 1 : 0;
     m_caps.YUV444ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV444 ? 1 : 0;
 
@@ -982,8 +991,11 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
                           attrib.data(), (mfxI32)attrib.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0
-        && (attrib[0].value & VA_RT_FORMAT_YUV420_10) == 0)
+    if (   (attrib[0].value & VA_RT_FORMAT_YUV420) == 0
+#if VA_CHECK_VERSION(1,2,0)
+        && (attrib[0].value & VA_RT_FORMAT_YUV420_10) == 0
+#endif
+    )
         return MFX_ERR_DEVICE_FAILED;
 
     uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod, par.isSWBRC());

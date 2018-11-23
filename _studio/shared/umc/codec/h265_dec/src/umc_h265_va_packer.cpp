@@ -115,10 +115,13 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
     const H265SeqParamSet* pSeqParamSet = pSlice->GetSeqParam();
     const H265PicParamSet* pPicParamSet = pSlice->GetPicParam();
     VAPictureParameterBufferHEVC *picParam = nullptr;
+#if (MFX_VERSION >= 1027)
     VAPictureParameterBufferHEVCExtension* picParamExt = nullptr;
     VAPictureParameterBufferHEVCRext *picParamRext = nullptr;
+#endif
     UMCVACompBuffer *picParamBuf = nullptr;
 
+#if (MFX_VERSION >= 1027)
     if (m_va->m_Profile &VA_PROFILE_REXT)
     {
         picParamExt = (VAPictureParameterBufferHEVCExtension*)m_va->GetCompBuffer(VAPictureParameterBufferType, &picParamBuf, sizeof(VAPictureParameterBufferHEVCExtension));
@@ -138,6 +141,7 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
 
     }
     else
+#endif
     {
         picParam = (VAPictureParameterBufferHEVC*)m_va->GetCompBuffer(VAPictureParameterBufferType, &picParamBuf, sizeof(VAPictureParameterBufferHEVC));
         if (!picParam)
@@ -311,6 +315,7 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
 
     picParam->st_rps_bits = pSlice->GetSliceHeader()->wNumBitsForShortTermRPSInSlice;
 
+#if (MFX_VERSION >= 1027)
     /* RExt structures */
     if (nullptr != picParamRext)
     {
@@ -338,6 +343,7 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
             picParamRext->cr_qp_offset_list[i] = (int8_t)pPicParamSet->cr_qp_offset_list[i + 1];
         }
     } // if (nullptr != picParamRext)
+#endif // #if (MFX_VERSION >= 1027)
 }
 
 void PackerVA::CreateSliceParamBuffer(H265DecoderFrameInfo * sliceInfo)
@@ -346,10 +352,12 @@ void PackerVA::CreateSliceParamBuffer(H265DecoderFrameInfo * sliceInfo)
 
     UMCVACompBuffer *pSliceParamBuf;
     size_t sizeOfStruct = m_va->IsLongSliceControl() ? sizeof(VASliceParameterBufferHEVC) : sizeof(VASliceParameterBufferBase);
+#if (MFX_VERSION >= 1027)
     if (m_va->m_Profile &VA_PROFILE_REXT) /* RExt cases*/
     {
         sizeOfStruct = m_va->IsLongSliceControl() ? sizeof(VASliceParameterBufferHEVCExtension) : sizeof(VASliceParameterBufferBase);
     }
+#endif
     m_va->GetCompBuffer(VASliceParameterBufferType, &pSliceParamBuf, sizeOfStruct*(count));
     if (!pSliceParamBuf)
         throw h265_exception(UMC_ERR_FAILED);
@@ -395,13 +403,19 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
     H265DecoderFrame *pCurrentFrame = pSlice->GetCurrentFrame();
     const H265SliceHeader *sliceHeader = pSlice->GetSliceHeader();
     const H265PicParamSet *pPicParamSet = pSlice->GetPicParam();
-    VAPictureParameterBufferHEVCExtension* picParamsExt = nullptr;
+
     VAPictureParameterBufferHEVC* picParams = nullptr;
-    VASliceParameterBufferHEVCExtension* sliceParamsExt = nullptr;
     VASliceParameterBufferHEVC* sliceParams = nullptr;
+
+#if (MFX_VERSION >= 1027)
+    VAPictureParameterBufferHEVCExtension* picParamsExt = nullptr;
+    VASliceParameterBufferHEVCExtension* sliceParamsExt = nullptr;
     VASliceParameterBufferHEVCRext* sliceParamsRExt = nullptr;
+#endif
+
     UMCVACompBuffer* compBuf = nullptr;
 
+#if (MFX_VERSION >= 1027)
     if (m_va->m_Profile &VA_PROFILE_REXT)
     {
         picParamsExt = (VAPictureParameterBufferHEVCExtension*)m_va->GetCompBuffer(VAPictureParameterBufferType);
@@ -434,6 +448,7 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
         }
     }
     else
+#endif
     {
         picParams = (VAPictureParameterBufferHEVC*)m_va->GetCompBuffer(VAPictureParameterBufferType);
         if (!picParams)
@@ -595,6 +610,7 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
 
     sliceParams->five_minus_max_num_merge_cand = (uint8_t)(5 - sliceHeader->max_num_merge_cand);
 
+#if (MFX_VERSION >= 1027)
     /* RExt */
     if (nullptr != sliceParamsRExt)
     {
@@ -628,6 +644,7 @@ bool PackerVA::PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLas
         sliceParamsRExt->slice_act_cb_qp_offset = (int8_t)sliceHeader->slice_act_cb_qp_offset;
         sliceParamsRExt->slice_act_cr_qp_offset = (int8_t)sliceHeader->slice_act_cr_qp_offset;
     }
+#endif // #if (MFX_VERSION >= 1027)
 
     return true;
 }
