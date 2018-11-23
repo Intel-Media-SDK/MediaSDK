@@ -152,6 +152,8 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, H265DecoderF
 
     size_t count = 0;
     H265DBPList *dpb = supplier->GetDPBList();
+    if (!dpb)
+        throw h265_exception(UMC_ERR_FAILED);
     for(H265DecoderFrame* frame = dpb->head() ; frame && count < sizeof(picParam->ReferenceFrames)/sizeof(picParam->ReferenceFrames[0]) ; frame = frame->future())
     {
         if (frame == pCurrentFrame)
