@@ -163,6 +163,8 @@ struct sInputParams
 
     mfxU16 ICQQuality;
     mfxU16 QVBRQuality;
+    mfxU16 Convergence;
+    mfxU16 Accuracy;
     mfxU16 LowDelayBRC;
     mfxU16 ExtBrcAdaptiveLTR;
 
