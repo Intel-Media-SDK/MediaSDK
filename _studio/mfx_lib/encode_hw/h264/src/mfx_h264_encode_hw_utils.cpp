@@ -1890,7 +1890,8 @@ void Hrd::Setup(MfxVideoParam const & par)
 {
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
         || par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ)
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ
+        || par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
         // hrd control isn't required for BRC methods above
         m_bIsHrdRequired = false;
