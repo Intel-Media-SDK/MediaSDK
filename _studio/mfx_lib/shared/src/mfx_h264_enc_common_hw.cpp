@@ -2420,6 +2420,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
        par.mfx.RateControlMethod != MFX_RATECONTROL_VBR &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
+       par.mfx.RateControlMethod != MFX_RATECONTROL_AVBR &&
        par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ &&
        !bRateControlLA(par.mfx.RateControlMethod))
     {
@@ -3850,6 +3851,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR &&
         hwCaps.QVBRBRCSupport == 0)
+    {
+        par.mfx.RateControlMethod = 0;
+        unsupported = true;
+    }
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR &&
+        hwCaps.AVBRBRCSupport == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
@@ -5396,7 +5404,7 @@ void MfxHwH264Encode::SetDefaults(
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
         if (par.mfx.Accuracy == 0)
-            par.mfx.Accuracy = AVBR_ACCURACY_MAX;
+            par.mfx.Accuracy = 100;
 
         if (par.mfx.Convergence == 0)
             par.mfx.Convergence = AVBR_CONVERGENCE_MAX;
@@ -7550,7 +7558,8 @@ void MfxVideoParam::SyncVideoToCalculableParam()
             calcParam.mvcPerViewPar.bufferSizeInKB   = calcParam.bufferSizeInKB / extMvc->NumView;
             if (mfx.RateControlMethod != MFX_RATECONTROL_CQP
                 && mfx.RateControlMethod != MFX_RATECONTROL_ICQ
-                && mfx.RateControlMethod != MFX_RATECONTROL_LA_ICQ)
+                && mfx.RateControlMethod != MFX_RATECONTROL_LA_ICQ
+                && mfx.RateControlMethod != MFX_RATECONTROL_AVBR)
             {
                 calcParam.mvcPerViewPar.initialDelayInKB = calcParam.initialDelayInKB / extMvc->NumView;
                 calcParam.mvcPerViewPar.targetKbps       = calcParam.targetKbps / extMvc->NumView;

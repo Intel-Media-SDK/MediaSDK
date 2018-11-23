@@ -98,6 +98,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-cbr]                   - constant bitrate control\n"));
     msdk_printf(MSDK_STRING("   [-qvbr quality]          - variable bitrate control algorithm with constant quality. Quality in range [1,51]. 1 is the best quality.\n"));
     msdk_printf(MSDK_STRING("   [-icq quality]           - Intelligent Constant Quality (ICQ) bitrate control method. In range [1,51]. 1 is the best quality.\n"));
+    msdk_printf(MSDK_STRING("   [-avbr]                  - average variable bitrate control algorithm \n"));
+    msdk_printf(MSDK_STRING("   [-convergence]           - bitrate convergence period for avbr, in the unit of frame \n"));
+    msdk_printf(MSDK_STRING("   [-accuracy]              - bitrate accuracy for avbr, in the range of [1, 100] \n"));
     msdk_printf(MSDK_STRING("   [-cqp]                   - constant quantization parameter (CQP BRC) bitrate control method\n"));
     msdk_printf(MSDK_STRING("                              (by default constant bitrate control method is used), should be used along with -qpi, -qpp, -qpb.\n"));
     msdk_printf(MSDK_STRING("   [-qpi]                   - constant quantizer for I frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
@@ -397,6 +400,28 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->QVBRQuality))
             {
                 PrintHelp(strInput[0], MSDK_STRING("QVBRQuality param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-avbr")))
+        {
+            pParams->nRateControlMethod = MFX_RATECONTROL_AVBR;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-convergence")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->Convergence))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("convergence is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-accuracy")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->Accuracy))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("accuracy is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
@@ -1123,6 +1148,15 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     {
         PrintHelp(strInput[0], MSDK_STRING("Look ahead BRC is supported only with -hw option!"));
         return MFX_ERR_UNSUPPORTED;
+    }
+
+    if (pParams->nRateControlMethod == MFX_RATECONTROL_AVBR)
+    {
+        if (pParams->Accuracy > 100)
+        {
+            msdk_printf(MSDK_STRING("For AVBR BRC, the assigned accuracy exceeds 100, now set it to 100\n"));
+            pParams->Accuracy = 100;
+        }
     }
 
     if ((pParams->nMaxSliceSize) && (!pParams->bUseHWLib))

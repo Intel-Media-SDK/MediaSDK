@@ -422,6 +422,12 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     {
         m_mfxEncParams.mfx.ICQQuality = pInParams->ICQQuality;
     }
+    else if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+    {
+        m_mfxEncParams.mfx.Accuracy    = pInParams->Accuracy;
+        m_mfxEncParams.mfx.TargetKbps  = pInParams->nBitRate;
+        m_mfxEncParams.mfx.Convergence = pInParams->Convergence;
+    }
     else
     {
         m_mfxEncParams.mfx.TargetKbps = pInParams->nBitRate; // in Kbps
