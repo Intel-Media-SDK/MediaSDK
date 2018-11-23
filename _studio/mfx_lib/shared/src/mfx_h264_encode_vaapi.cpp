@@ -701,6 +701,7 @@ static mfxStatus SetROI(
     return MFX_ERR_NONE;
 }
 
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
 mfxStatus SetRoundingOffset(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
@@ -761,6 +762,7 @@ mfxStatus SetRoundingOffset(
 
     return MFX_ERR_NONE;
 }
+#endif
 
 void FillConstPartOfPps(
     MfxVideoParam const & par,
@@ -1207,7 +1209,9 @@ VAAPIEncoder::VAAPIEncoder()
     , m_rirId(VA_INVALID_ID)
     , m_qualityParamsId(VA_INVALID_ID)
     , m_miscParameterSkipBufferId(VA_INVALID_ID)
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     , m_roundingOffsetId(VA_INVALID_ID)
+#endif
     , m_roiBufferId(VA_INVALID_ID)
     , m_ppsBufferId(VA_INVALID_ID)
     , m_mbqpBufferId(VA_INVALID_ID)
@@ -1419,8 +1423,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         attrs[idx_map[VAConfigAttribEncIntraRefresh]].value;
     m_caps.SkipFrame =
         (attrs[idx_map[VAConfigAttribEncSkipFrame]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     m_caps.RoundingOffset =
         (attrs[idx_map[VAConfigAttribCustomRoundingControl]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
+#endif
 
     m_caps.UserMaxFrameSizeSupport = 1;
     m_caps.MBBRCSupport            = 1;
@@ -2029,7 +2035,9 @@ mfxStatus VAAPIEncoder::Execute(
     mfxExtCodingOption2     const * ctrlOpt2      = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOption3     const * ctrlOpt3      = GetExtBuffer(task.m_ctrl);
     mfxExtMBDisableSkipMap  const * ctrlNoSkipMap = GetExtBuffer(task.m_ctrl);
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     mfxExtAVCRoundingOffset const * ctrlRoundingOffset  = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
+#endif
 
     if (ctrlOpt2 && ctrlOpt2->SkipFrame <= MFX_SKIPFRAME_BRC_ONLY)
         skipMode = ctrlOpt2->SkipFrame;
@@ -2866,12 +2874,14 @@ mfxStatus VAAPIEncoder::Execute(
         }
     }
 
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     if (m_caps.RoundingOffset && ctrlRoundingOffset)
     {
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRoundingOffset(m_vaDisplay, m_vaContextEncode, *ctrlRoundingOffset, m_roundingOffsetId), MFX_ERR_DEVICE_FAILED);
 
         configBuffers[buffersCount++] = m_roundingOffsetId;
     }
+#endif
 
     if (ctrlOpt2 || ctrlOpt3)
     {

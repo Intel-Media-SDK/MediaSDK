@@ -247,10 +247,17 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
     mfxU32 const map[][4] =
     {
             /* 8 bit */      /* 10 bit */
+#if (MFX_VERSION >= 1027)
         {               0,               0,               0, 0 }, //400
         { MFX_FOURCC_NV12, MFX_FOURCC_P010,               0, 0 }, //420
         { MFX_FOURCC_YUY2, MFX_FOURCC_Y210,               0, 0 }, //422
         { MFX_FOURCC_AYUV, MFX_FOURCC_Y410,               0, 0 }  //444
+#else
+        {               0,               0,               0, 0 }, //400
+        { MFX_FOURCC_NV12, MFX_FOURCC_P010,               0, 0 }, //420
+        {               0,               0,               0, 0 }, //422
+        {               0,               0,               0, 0 }  //444
+#endif
     };
 
     VM_ASSERT(
