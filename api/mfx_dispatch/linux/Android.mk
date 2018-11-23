@@ -5,13 +5,15 @@ LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 include $(MFX_HOME)/android/mfx_defs.mk
 
-LOCAL_SRC_FILES := $(addprefix src/, \
+LOCAL_SRC_FILES := \
     mfxloader.cpp \
-    mfxparser.cpp)
+    mfxparser.cpp
 
 LOCAL_C_INCLUDES := $(MFX_INCLUDES)
 
-LOCAL_CFLAGS := $(MFX_CFLAGS_INTERNAL)
+LOCAL_CFLAGS := \
+    $(MFX_CFLAGS_INTERNAL) \
+    -DMFX_PLUGINS_CONF_DIR=\"/vendor/etc\"
 LOCAL_CFLAGS_32 := \
     $(MFX_CFLAGS_INTERNAL_32) \
     -DMFX_MODULES_DIR=\"/system/vendor/lib\"
