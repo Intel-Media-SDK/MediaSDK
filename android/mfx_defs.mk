@@ -3,6 +3,7 @@
 #
 # Defined variables:
 #   MFX_CFLAGS - common flags for all targets
+#   MFX_CFLAGS_LIBVA - LibVA support flags (to build apps with or without LibVA support)
 #   MFX_INCLUDES - common include paths for all targets
 #   MFX_INCLUDES_LIBVA - include paths to LibVA headers
 #   MFX_LDFLAGS - common link flags for all targets
@@ -71,10 +72,7 @@ ifneq ($(filter $(MFX_ANDROID_VERSION), MFX_O),)
 endif
 
 # Setting usual paths to include files
-MFX_INCLUDES := \
-  $(LOCAL_PATH)/include \
-  $(MFX_HOME)/api/include \
-  $(MFX_HOME)/android/include
+MFX_INCLUDES := $(LOCAL_PATH)/include
 
 MFX_INCLUDES_LIBVA := $(TARGET_OUT_HEADERS)/libva
 
@@ -91,5 +89,5 @@ LOCAL_PROPRIETARY_MODULE := true
 
 # =============================================================================
 
-# Definitions specific to Media SDK internal things
+# Definitions specific to Media SDK internal things (do not apply for samples)
 include $(MFX_HOME)/android/mfx_defs_internal.mk
