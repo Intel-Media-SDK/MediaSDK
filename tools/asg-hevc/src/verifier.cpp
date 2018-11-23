@@ -36,7 +36,7 @@ void Verifier::Init()
         }
     }
     catch (std::string& e) {
-        std::cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: Couldn't initialize Verifier");
     }
 }
@@ -149,7 +149,7 @@ void Verifier::VerifyDesc(FrameChangeDescriptor & frameDescr)
         }
     }
     catch (std::string& e) {
-        std::cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: Verifier::VerifyDesc");
     }
 }
@@ -215,7 +215,7 @@ void Verifier::ExtractMVs(const CTUDescriptor& ctuDescr, std::vector<MVCompareBl
             break;
         }
         default:
-            throw string("ERROR: ExtractMVs: unknown CU prediction type\n");
+            throw std::string("ERROR: ExtractMVs: unknown CU prediction type\n");
         }
     }
 }
@@ -618,7 +618,7 @@ CTUDescriptor Verifier::ConvertFeiOutInLocalStr(const mfxFeiHevcPakCtuRecordV0& 
     }
 
     catch (std::string& e) {
-        std::cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: Verifier::ConvertFeiOutInLocalStr");
     }
 }
@@ -678,7 +678,7 @@ bool Verifier::CheckLowerThreshold(mfxU32 numerator, mfxU32 denominator, mfxU32 
     if (denominator > 0)
     {
         std::cout.precision(1);
-        std::cout.setf(ios::fixed);
+        std::cout.setf(std::ios::fixed);
         std::cout << 100 * ((mfxF32)numerator / denominator) << "%";
         return (100 * ((mfxF32)numerator / denominator) >= (mfxF32)threshold);
     }
@@ -694,7 +694,7 @@ void Verifier::PrintPercentRatio(mfxU32 numerator, mfxU32 denominator)
     if (denominator > 0)
     {
         std::cout.precision(1);
-        std::cout.setf(ios::fixed);
+        std::cout.setf(std::ios::fixed);
         std::cout << 100 * ((mfxF32)numerator / denominator) << "%";
     }
     else

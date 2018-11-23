@@ -127,7 +127,7 @@ void TestProcessor::RunTest(const InputParams & params)
         }
     }
     catch (std::string & e) {
-        cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: TestProcessor::RunTest");
     }
     return;
@@ -157,10 +157,10 @@ void TestProcessor::RunRepackGenerate()
 
         fpRepackStr.read((mfxI8 *)&multiPakInBin, sizeof(multiPakInBin));
         if (!fpRepackStr.good())
-            throw string("ERROR: multiPakStr file read failed");
+            throw std::string("ERROR: multiPakStr file read failed");
 
         if (multiPakInBin.NumBytesInNalUnit > maxNumBytesInNalUnit)
-            throw string("ERROR: NumBytesInNalUnit more than HW limitation");
+            throw std::string("ERROR: NumBytesInNalUnit more than HW limitation");
 
         MaxFrameSize = multiPakInBin.NumBytesInNalUnit
                        - (multiPakInBin.NumBytesInNalUnit*partFrame)/10;
@@ -174,15 +174,15 @@ void TestProcessor::RunRepackGenerate()
 
         fpRepackCtrl.write((mfxI8 *)&MaxFrameSize, sizeof(MaxFrameSize));
         if (!fpRepackCtrl.good())
-            throw string("ERROR: Repack ctrl file write failed");
+            throw std::string("ERROR: Repack ctrl file write failed");
 
         fpRepackCtrl.write((mfxI8 *)&m_InputParams.m_NumAddPasses, sizeof(m_InputParams.m_NumAddPasses));
         if (!fpRepackCtrl.good())
-            throw string("ERROR: Repack ctrl file write failed");
+            throw std::string("ERROR: Repack ctrl file write failed");
 
         fpRepackCtrl.write((mfxI8 *)m_InputParams.m_DeltaQP, sizeof(m_InputParams.m_DeltaQP));
         if (!fpRepackCtrl.good())
-            throw string("ERROR: Repack ctrl file write failed");
+            throw std::string("ERROR: Repack ctrl file write failed");
     }
 }
 
@@ -201,24 +201,24 @@ void TestProcessor::RunRepackVerify()
 
         fpRepackCtrl.read((mfxI8 *)&repackCtrl.MaxFrameSize, sizeof(repackCtrl.MaxFrameSize));
         if (!fpRepackCtrl.good())
-            throw string("ERROR: Repack ctrl file read failed");
+            throw std::string("ERROR: Repack ctrl file read failed");
 
         fpRepackCtrl.read((mfxI8 *)&repackCtrl.NumPasses, sizeof(repackCtrl.NumPasses));
         if (!fpRepackCtrl.good())
-            throw string("ERROR: Repack ctrl file read failed");
+            throw std::string("ERROR: Repack ctrl file read failed");
 
         fpRepackCtrl.read((mfxI8 *)&repackCtrl.DeltaQP, sizeof(repackCtrl.DeltaQP));
         if (!fpRepackCtrl.good())
-            throw string("ERROR: Repack ctrl file read failed");
+            throw std::string("ERROR: Repack ctrl file read failed");
 
         fpRepackStr.read((mfxI8 *)&multiPakInBin, sizeof(multiPakInBin));
         if (!fpRepackStr.good())
-            throw string("ERROR: Repack str file read failed");
+            throw std::string("ERROR: Repack str file read failed");
 
         fpRepackStat.getline(repackStat, sizeof(repackStat));
         if (!fpRepackStat.good())
-            throw string("ERROR: Repack stat file read failed");
-        istringstream repackStatStream(string(repackStat, strlen(repackStat)));
+            throw std::string("ERROR: Repack stat file read failed");
+        std::istringstream repackStatStream(std::string(repackStat, strlen(repackStat)));
         repackStatStream >> activeNumPasses;
 
         // Check read repack data
@@ -226,27 +226,27 @@ void TestProcessor::RunRepackVerify()
         if (0xFF == multiPakInBin.SliceQP)
         {
             // 0xFF indicates skipping
-            cout << "INFO: Frame " << countFrame << " in coded order skipped" << endl;
+            std::cout << "INFO: Frame " << countFrame << " in coded order skipped" << std::endl;
             continue;
         }
 
         if (repackCtrl.MaxFrameSize == 0)
-            throw string("ERROR: Incorrect MaxFrameSize value in repack ctrl");
+            throw std::string("ERROR: Incorrect MaxFrameSize value in repack ctrl");
 
         if ((repackCtrl.NumPasses < 1) || (repackCtrl.NumPasses > HEVC_MAX_NUMPASSES))
-            throw string("ERROR: Incorrect NumPasses value in repack ctrl");
+            throw std::string("ERROR: Incorrect NumPasses value in repack ctrl");
 
         if ((activeNumPasses > 0) && (activeNumPasses <= (repackCtrl.NumPasses + 1)))
             activeNumPassesMinus1 = activeNumPasses - 1;
         else
-            throw string("ERROR: Incorrect output NumPasses value in repack stat");
+            throw std::string("ERROR: Incorrect output NumPasses value in repack stat");
 
         if ((multiPakInBin.SliceQP < m_InputParams.m_InitialQP)
          || (multiPakInBin.SliceQP > HEVC_MAX_QP))
-            throw string("ERROR: Incorrect parsed QP value in repack str");
+            throw std::string("ERROR: Incorrect parsed QP value in repack str");
 
         // Verify repack control result
-        vector<mfxU8> validQP(repackCtrl.NumPasses + 1);
+        std::vector<mfxU8> validQP(repackCtrl.NumPasses + 1);
 
         validQP[0] = m_InputParams.m_InitialQP;
         for (mfxU32 idxPass = 0; idxPass < repackCtrl.NumPasses; ++idxPass)
@@ -254,24 +254,24 @@ void TestProcessor::RunRepackVerify()
 
         mfxU8 sliceQPParser = multiPakInBin.SliceQP;
 
-        auto it = find_if(validQP.begin(), validQP.end(),
+        auto it = std::find_if(validQP.begin(), validQP.end(),
             [sliceQPParser](const mfxU8 curQP) { return curQP == sliceQPParser; });
 
         if (it == validQP.end() || (distance(validQP.begin(), it) != activeNumPassesMinus1))
         {
-            cout << "ERROR: parsed " << (mfxU32)multiPakInBin.SliceQP
-                 << ", expected " << (mfxU32)*it << " for Frame "
-                 << countFrame << " in coded order" << endl;
-            throw string("ERROR: QP mismatched");
+            std::cout << "ERROR: parsed " << (mfxU32)multiPakInBin.SliceQP
+                      << ", expected " << (mfxU32)*it << " for Frame "
+                      << countFrame << " in coded order" << std::endl;
+            throw std::string("ERROR: QP mismatched");
         }
 
         if ((multiPakInBin.NumBytesInNalUnit > repackCtrl.MaxFrameSize)
             && (multiPakInBin.SliceQP < validQP[repackCtrl.NumPasses]/*The max */))
         {
-            cout << "ERROR: NumBytesInNalUnit " << multiPakInBin.NumBytesInNalUnit
-                 << " MaxFrameSize " << repackCtrl.MaxFrameSize << " for Frame "
-                 << countFrame << " in coded order" << endl;
-            throw string("ERROR: Max exceeded");
+            std::cout << "ERROR: NumBytesInNalUnit " << multiPakInBin.NumBytesInNalUnit
+                      << " MaxFrameSize " << repackCtrl.MaxFrameSize << " for Frame "
+                      << countFrame << " in coded order" << std::endl;
+            throw std::string("ERROR: Max exceeded");
         }
     }
 }
@@ -307,7 +307,7 @@ void TestProcessor::Init(const InputParams &params)
 
         if (params.m_TestType == GENERATE_PICSTRUCT)
         {
-            fpPicStruct.open(params.m_PicStructFileName.c_str(), (params.m_ProcMode == VERIFY) ? fstream::in : fstream::out);
+            fpPicStruct.open(params.m_PicStructFileName.c_str(), (params.m_ProcMode == VERIFY) ? std::fstream::in : std::fstream::out);
             if (!fpPicStruct.is_open())
                 throw std::string("ERROR: PicStruct buffer open failed");
         }
@@ -315,27 +315,27 @@ void TestProcessor::Init(const InputParams &params)
         {
             if (params.m_ProcMode == GENERATE)
             {
-                fpRepackStr.open(params.m_RepackStrFileName.c_str(), fstream::in | fstream::binary);
+                fpRepackStr.open(params.m_RepackStrFileName.c_str(), std::fstream::in | std::fstream::binary);
                 if(!fpRepackStr.is_open())
-                    throw string("ERROR: multiPakStr file open failed");
+                    throw std::string("ERROR: multiPakStr file open failed");
 
-                fpRepackCtrl.open(params.m_RepackCtrlFileName.c_str(), fstream::out | fstream::binary);
+                fpRepackCtrl.open(params.m_RepackCtrlFileName.c_str(), std::fstream::out | std::fstream::binary);
                 if (!fpRepackCtrl.is_open())
-                    throw string("ERROR: Repack ctrl file open failed");
+                    throw std::string("ERROR: Repack ctrl file open failed");
             }
             else //VERIFY
             {
-                fpRepackStr.open(params.m_RepackStrFileName.c_str(), fstream::in | fstream::binary);
+                fpRepackStr.open(params.m_RepackStrFileName.c_str(), std::fstream::in | std::fstream::binary);
                 if(!fpRepackStr.is_open())
-                    throw string("ERROR: multiPakStr file open failed");
+                    throw std::string("ERROR: multiPakStr file open failed");
 
-                fpRepackCtrl.open(params.m_RepackCtrlFileName.c_str(), fstream::in | fstream::binary);
+                fpRepackCtrl.open(params.m_RepackCtrlFileName.c_str(), std::fstream::in | std::fstream::binary);
                 if (!fpRepackCtrl.is_open())
-                    throw string("ERROR: Repack ctrl file open failed");
+                    throw std::string("ERROR: Repack ctrl file open failed");
 
-                fpRepackStat.open(params.m_RepackStatFileName.c_str(), fstream::in);
+                fpRepackStat.open(params.m_RepackStatFileName.c_str(), std::fstream::in);
                 if (!fpRepackStat.is_open())
-                    throw string("ERROR: Repack stat file open failed");
+                    throw std::string("ERROR: Repack stat file open failed");
             }
         }
         else
@@ -352,7 +352,7 @@ void TestProcessor::Init(const InputParams &params)
         }
     }
     catch (std::string& e) {
-        cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: Couldn't initialize TestProcessor");
     }
 }
@@ -373,7 +373,7 @@ void TestProcessor::ChangePicture(ExtendedSurface & frame)
         {
         case GEN:
             // Current GEN frame will be used as reference for MOD frame
-            m_ProcessedFramesDescr.push_back(move(descr));
+            m_ProcessedFramesDescr.push_back(std::move(descr));
             break;
 
         case SKIP:
@@ -389,7 +389,7 @@ void TestProcessor::ChangePicture(ExtendedSurface & frame)
 
     }
     catch (std::string & e) {
-        cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: TestProcessor::ChangePicture");
     }
     return;
@@ -472,22 +472,22 @@ void TestProcessor::PrepareDescriptor(FrameChangeDescriptor & descr, const mfxU3
 
 // Select references from list
 // Most recently processed frames are at the end of the return list
-list<FrameChangeDescriptor> TestProcessor::GetReferences(const list<FrameChangeDescriptor> & RecentProcessed, const vector<mfxU32>& ref_idx)
+std::list<FrameChangeDescriptor> TestProcessor::GetReferences(const std::list<FrameChangeDescriptor> & RecentProcessed, const std::vector<mfxU32>& ref_idx)
 {
-    list<FrameChangeDescriptor> refs_for_frame;
+    std::list<FrameChangeDescriptor> refs_for_frame;
 
     for (auto & frm_descr : RecentProcessed)
     {
-        if (find(ref_idx.begin(), ref_idx.end(), frm_descr.m_frameNumber) != ref_idx.end())
+        if (std::find(ref_idx.begin(), ref_idx.end(), frm_descr.m_frameNumber) != ref_idx.end())
             refs_for_frame.emplace_back(frm_descr);
     }
 
     return refs_for_frame;
 }
 
-list<FrameChangeDescriptor> TestProcessor::GetSkips(const list<FrameChangeDescriptor> & RecentProcessed)
+std::list<FrameChangeDescriptor> TestProcessor::GetSkips(const std::list<FrameChangeDescriptor> & RecentProcessed)
 {
-    list<FrameChangeDescriptor> skips;
+    std::list<FrameChangeDescriptor> skips;
 
     for (auto & frm_descr : RecentProcessed)
     {

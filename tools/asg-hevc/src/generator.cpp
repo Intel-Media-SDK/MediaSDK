@@ -29,7 +29,7 @@ void Generator::Init()
 {
     try
     {
-        mfxStatus sts = m_FileReader.Init(list<msdk_string>{m_InputParams.m_InputFileName}, MFX_FOURCC_I420);
+        mfxStatus sts = m_FileReader.Init(std::list<msdk_string>{m_InputParams.m_InputFileName}, MFX_FOURCC_I420);
         CHECK_THROW_ERR(sts, "Generator::Init::m_FileReader.Init");
 
         sts = m_FileWriter.Init(m_InputParams.m_OutputFileName.c_str(), 1);
@@ -40,7 +40,7 @@ void Generator::Init()
             m_BufferWriter.AddBuffer(MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED, m_InputParams.m_PredBufferFileName);
     }
     catch (std::string& e) {
-        cout << e << endl;
+        std::cout << e << std::endl;
         throw std::string("ERROR: Couldn't initialize Generator");
     }
     return;
