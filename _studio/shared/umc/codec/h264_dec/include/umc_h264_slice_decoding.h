@@ -225,8 +225,6 @@ public:  // DEBUG !!!! should remove dependence
     bool m_bError;                                              // (bool) there is an error in decoding
     bool m_isInitialized;
 
-    uint16_t m_WidevineStatusReportNumber;
-
     AdaptiveMarkingInfo     m_AdaptiveMarkingInfo;
     AdaptiveMarkingInfo     m_BaseAdaptiveMarkingInfo;
 
