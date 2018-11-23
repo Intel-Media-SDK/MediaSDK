@@ -305,7 +305,8 @@ typedef struct tagENCODE_CAPS
             UINT    LLCStreamingBufferSupport     : 1;
             UINT    DDRStreamingBufferSupport     : 1;
             UINT    LowDelayBRCSupport            : 1; // eFrameSizeTolerance_ExtremelyLow (Low delay) supported
-            UINT                            : 12;
+            UINT    AVBRBRCSupport                : 1;
+            UINT                            : 11;
         };
         UINT      CodingLimits2;
     };
