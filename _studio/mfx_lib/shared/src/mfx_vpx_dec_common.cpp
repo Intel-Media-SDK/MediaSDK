@@ -312,6 +312,8 @@ namespace MFX_VPX_Utility
 
     bool CheckVideoParam(mfxVideoParam const*p_in, mfxU32 codecId, eMFXPlatform platform, eMFXHWType hwtype)
     {
+        (void)hwtype;
+
         if (!p_in)
             return false;
 

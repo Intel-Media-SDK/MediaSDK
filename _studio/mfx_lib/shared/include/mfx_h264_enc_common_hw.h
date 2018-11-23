@@ -167,7 +167,9 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtSpsHeader,            MFX_EXTBUFF_SPS_HEADER               );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtPpsHeader,            MFX_EXTBUFF_PPS_HEADER               );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRefListCtrl,       MFX_EXTBUFF_AVC_REFLIST_CTRL         );
+#if defined MFX_ENABLE_H264_ROUNDING_OFFSET
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAVCRoundingOffset,    MFX_EXTBUFF_AVC_ROUNDING_OFFSET      );
+#endif
     BIND_EXTBUF_TYPE_TO_ID (mfxExtAvcTemporalLayers,    MFX_EXTBUFF_AVC_TEMPORAL_LAYERS      );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtVppAuxData,           MFX_EXTBUFF_VPP_AUXDATA              );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtCodingOption2,        MFX_EXTBUFF_CODING_OPTION2           );

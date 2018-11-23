@@ -174,7 +174,9 @@ const mfxPluginUID NativePlugins[] =
     MFX_PLUGINID_VP9D_HW,
     MFX_PLUGINID_HEVCE_HW,
     MFX_PLUGINID_VP9E_HW,
+#if MFX_VERSION >= 1027
     MFX_PLUGINID_HEVC_FEI_ENCODE
+#endif
 };
 
 mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,

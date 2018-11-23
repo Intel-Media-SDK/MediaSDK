@@ -1125,7 +1125,9 @@ CEncodingPipeline::CEncodingPipeline()
 #endif
     m_hwdev = NULL;
 
+#if (MFX_VERSION >= 1027)
     m_round_in = NULL;
+#endif
 
     MSDK_ZERO_MEMORY(m_mfxEncParams);
     MSDK_ZERO_MEMORY(m_mfxVppParams);
@@ -1546,6 +1548,7 @@ mfxStatus CEncodingPipeline::InitEncFrameParams(sTask* pTask)
     {
         switch ((*it)->BufferId)
         {
+#if (MFX_VERSION >= 1027)
             case MFX_EXTBUFF_AVC_ROUNDING_OFFSET:
                 if (m_round_in)
                 {
@@ -1557,6 +1560,7 @@ mfxStatus CEncodingPipeline::InitEncFrameParams(sTask* pTask)
                     SAFE_FREAD(&pAVCRoundingOffset->RoundingOffsetInter, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
                 }
                 break;
+#endif
 
             default:
                 msdk_printf(MSDK_STRING("Unsupported extension buffer, ignored\n"));
@@ -1618,11 +1622,13 @@ void CEncodingPipeline::Close()
     m_FileReader.Close();
     FreeFileWriters();
 
+#if (MFX_VERSION >= 1027)
     if(m_round_in)
     {
         fclose(m_round_in);
         m_round_in = NULL;
     }
+#endif
 
     m_encExtBufs.Clear();
 
@@ -1747,6 +1753,7 @@ mfxStatus CEncodingPipeline::AllocExtBuffers(sInputParams *pInParams)
     MSDK_CHECK_POINTER(pInParams, MFX_ERR_NULL_PTR);
     mfxStatus sts = MFX_ERR_NONE;
 
+#if (MFX_VERSION >= 1027)
     bool enableRoundingOffset = pInParams->RoundingOffsetFile && pInParams->CodecId == MFX_CODEC_AVC;
     if (enableRoundingOffset && m_round_in == NULL)
     {
@@ -1797,6 +1804,7 @@ mfxStatus CEncodingPipeline::AllocExtBuffers(sInputParams *pInParams)
 
         m_encExtBufs.AddSet(std::move(tmpForInit));
     }
+#endif
 
     return sts;
 }
