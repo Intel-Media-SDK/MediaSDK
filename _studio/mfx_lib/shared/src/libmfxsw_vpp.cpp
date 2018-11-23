@@ -453,6 +453,8 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
 #if !defined(MFX_ENABLE_USER_VPP)
+    (void)in;
+    (void)surface_work;
     (void)surface_out;
 #endif
 
