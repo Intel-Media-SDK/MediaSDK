@@ -34,6 +34,12 @@ ifeq ($(MFX_VERSION),)
   MFX_VERSION = "6.0.010"
 endif
 
+# We need to freeze Media SDK API to 1.26 on Android O
+# because there is used old version of LibVA 2.0
+ifneq ($(filter MFX_O MFX_O_MR1, $(MFX_ANDROID_VERSION)),)
+  MFX_CFLAGS += -DMFX_VERSION=1026
+endif
+
 MFX_CFLAGS += \
   -DMFX_FILE_VERSION=\"`echo $(MFX_VERSION) | cut -f 1 -d.``date +.%-y.%-m.%-d`\" \
   -DMFX_PRODUCT_VERSION=\"$(MFX_VERSION)\"
@@ -46,9 +52,11 @@ MFX_CFLAGS += \
   -Wformat -Wformat-security \
   -fexceptions -frtti
 
-ifeq ($(MFX_ENABLE_ITT_TRACES),)
-  # Enabled ITT traces by default
-  MFX_ENABLE_ITT_TRACES := true
+ifeq ($(filter MFX_O MFX_O_MR1, $(MFX_ANDROID_VERSION)),)
+  ifeq ($(MFX_ENABLE_ITT_TRACES),)
+    # Enabled ITT traces by default
+    MFX_ENABLE_ITT_TRACES := true
+  endif
 endif
 
 ifeq ($(MFX_ENABLE_ITT_TRACES),true)
@@ -57,6 +65,10 @@ endif
 
 # LibVA support.
 MFX_CFLAGS_LIBVA := -DLIBVA_SUPPORT -DLIBVA_ANDROID_SUPPORT
+
+ifneq ($(filter $(MFX_ANDROID_VERSION), MFX_O),)
+  MFX_CFLAGS_LIBVA += -DANDROID_O
+endif
 
 # Setting usual paths to include files
 MFX_INCLUDES := \
