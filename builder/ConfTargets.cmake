@@ -75,6 +75,29 @@ if (ENABLE_STAT)
 endif()
 
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
+cmake_dependent_option(
+  BUILD_KERNELS "Rebuild kernels (shaders)?" OFF
+  "MFX_ENABLE_KERNELS" OFF)
+
+if (BUILD_KERNELS)
+  if(NOT DEFINED ENV{CMC_SEARCH_PATH})
+    message(FATAL_ERROR "No CMC search path provided (CMC_SEARCH_PATH)")
+  endif()
+  file(GLOB_RECURSE CMC $ENV{CMC_SEARCH_PATH}/*/cmc )
+  if(NOT CMC)
+    message(FATAL_ERROR "Failed to find cm compiler")
+  endif()
+  file(GLOB_RECURSE CMC_INCLUDE $ENV{CMC_SEARCH_PATH}/*/cm.h )
+  if(NOT CMC_INCLUDE)
+    message(FATAL_ERROR "Failed to find cm headers")
+  endif()
+  get_filename_component(CMC_INCLUDE ${CMC_INCLUDE} DIRECTORY)
+  set(CMC_INCLUDE "${CMC_INCLUDE}/..") # jumping out of 'cm' directory
+  file(GLOB_RECURSE GENX_IR $ENV{CMC_SEARCH_PATH}/*/GenX_IR )
+  if(NOT GENX_IR)
+    message(FATAL_ERROR "Failed to find GenX_IR compiler")
+  endif()
+endif()
 
 if ( ${API_VERSION} VERSION_GREATER 1.25 )
   set ( MFX_1_25_OPTIONS_ALLOWED ON )
