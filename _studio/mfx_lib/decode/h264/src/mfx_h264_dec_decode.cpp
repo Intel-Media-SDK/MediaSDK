@@ -89,9 +89,13 @@ mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ebuffers, mfxU32 nbuffers, mfxU32 Buff
 
 struct ThreadTaskInfo
 {
-    mfxFrameSurface1 *surface_work;
-    mfxFrameSurface1 *surface_out;
-    mfxU32            taskID; // for task ordering
+    mfxFrameSurface1* surface_work = nullptr;
+    mfxFrameSurface1* surface_out  = nullptr;
+
+    ThreadTaskInfo(mfxFrameSurface1* work, mfxFrameSurface1* out)
+        : surface_work(work)
+        , surface_out(out)
+    {}
 };
 
 enum
@@ -1013,25 +1017,32 @@ mfxStatus VideoDECODEH264::GetDecodeStat(mfxDecodeStat *stat)
     return MFX_ERR_NONE;
 }
 
-static mfxStatus __CDECL AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 )
+static mfxStatus AVCDECODERoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 )
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "AVCDECODERoutine");
-    VideoDECODEH264 *decoder = (VideoDECODEH264 *)pState;
 
-    mfxStatus sts = decoder->RunThread(pParam, threadNumber);
-    return sts;
+    auto decoder = reinterpret_cast<VideoDECODEH264*>(pState);
+    if (!decoder)
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+    auto task =
+        reinterpret_cast<ThreadTaskInfo*>(pParam);
+    if (!task)
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+    return
+        decoder->RunThread(task, threadNumber);
 }
 
 static mfxStatus AVCCompleteProc(void *, void *pParam, mfxStatus )
 {
-    delete (ThreadTaskInfo *)pParam;
+    delete reinterpret_cast<ThreadTaskInfo*>(pParam);
     return MFX_ERR_NONE;
 }
 
-mfxStatus VideoDECODEH264::RunThread(void * params, mfxU32 threadNumber)
+mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH264::RunThread");
-    ThreadTaskInfo * info = (ThreadTaskInfo *)params;
 
     mfxStatus sts = MFX_TASK_WORKING;
 
@@ -1114,39 +1125,26 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
 
     mfxStatus mfxSts = DecodeFrameCheck(bs, surface_work, surface_out);
 
-    if (MFX_ERR_NONE == mfxSts) // It can be useful to run threads right after first frame receive
+    if (MFX_ERR_NONE == mfxSts || MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxSts) // It can be useful to run threads right after first frame receive
     {
-        ThreadTaskInfo * info = new ThreadTaskInfo();
-        info->surface_work = GetOriginalSurface(surface_work);
-        info->surface_out = GetOriginalSurface(*surface_out);
-
-        pEntryPoint->pRoutine = &AVCDECODERoutine;
-        pEntryPoint->pCompleteProc = &AVCCompleteProc;
-        pEntryPoint->pState = this;
-        pEntryPoint->requiredNumThreads = m_vPar.mfx.NumThread;
-        pEntryPoint->pParam = info;
-    }
-    // if we get NOT_INITIALIZED, m_pH264VideoDecoder null, so avoid that crash
-    else if (MFX_ERR_NOT_INITIALIZED == mfxSts) 
-    {
-        return mfxSts;
-    }
-    else 
-    {
-        if (m_pH264VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true) && !m_globalTask)
+        if (!*surface_out)
         {
-            ThreadTaskInfo * info = new ThreadTaskInfo();
-            info->surface_work = 0;
-            info->surface_out = 0;
-
-            pEntryPoint->pRoutine = &AVCDECODERoutine;
-            pEntryPoint->pCompleteProc = &AVCCompleteProc;
-            pEntryPoint->pState = this;
-            pEntryPoint->requiredNumThreads = m_vPar.mfx.NumThread;
-            pEntryPoint->pParam = info;
-
-            m_globalTask = true;
+            if (!m_globalTask && m_pH264VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true))
+                m_globalTask = true;
+            else
+                return MFX_WRN_DEVICE_BUSY;
         }
+
+        ThreadTaskInfo * info = new ThreadTaskInfo{
+            GetOriginalSurface(surface_work),
+            GetOriginalSurface(*surface_out)
+        };
+
+        pEntryPoint->pRoutine      = &AVCDECODERoutine;
+        pEntryPoint->pCompleteProc = &AVCCompleteProc;
+        pEntryPoint->pState        = this;
+        pEntryPoint->requiredNumThreads = m_vPar.mfx.NumThread;
+        pEntryPoint->pParam        = info;
     }
 
     return mfxSts;
@@ -1232,7 +1230,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         for (;;)
         {
-                    umcRes = m_pH264VideoDecoder->AddSource(bs ? &src : 0);
+            umcRes = m_pH264VideoDecoder->AddSource(bs ? &src : 0);
 
             umcAddSourceRes = umcFrameRes = umcRes;
 
@@ -1269,10 +1267,10 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                 umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
             }
 
-            if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER || umcRes == UMC::UMC_WRN_INFO_NOT_READY)
+            if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER || umcRes == UMC::UMC_WRN_INFO_NOT_READY || umcRes == UMC::UMC_ERR_NEED_FORCE_OUTPUT)
             {
-                force = umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
-                sts = MFX_WRN_DEVICE_BUSY;
+                force = umcRes == UMC::UMC_ERR_NEED_FORCE_OUTPUT;
+                sts = umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER ? MFX_ERR_MORE_DATA_SUBMIT_TASK: MFX_WRN_DEVICE_BUSY;
             }
 
             if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_DATA || umcRes == UMC::UMC_ERR_SYNC)
