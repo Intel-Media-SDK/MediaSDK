@@ -390,6 +390,10 @@ void Launcher::DoTranscoding()
             auto waitSts = m_pThreadContextArray[i]->handle.wait_for(std::chrono::milliseconds(1));
             if (waitSts == std::future_status::ready)
             {
+                // Invoke get() of the handle just to reset the valid state.
+                // This allows to skip already processed sessions
+                m_pThreadContextArray[i]->handle.get();
+
                 // Session is completed, let's check for its status
                 if (m_pThreadContextArray[i]->transcodingSts < MFX_ERR_NONE)
                 {
