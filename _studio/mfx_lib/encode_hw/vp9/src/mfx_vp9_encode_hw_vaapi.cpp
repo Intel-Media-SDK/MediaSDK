@@ -664,8 +664,13 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         idx_map[ attr_types[i] ] = i;
     }
 
+    VAProfile vaapipr = ConvertGuidToVAAPIProfile(guid);
+    if (vaapipr == VAProfileNone) {
+        return MFX_ERR_UNSUPPORTED;
+    }
+
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          ConvertGuidToVAAPIProfile(guid),
+                          vaapipr,
                           VAEntrypointEncSliceLP,
                           attrs.data(),
                           (int)attrs.size());
