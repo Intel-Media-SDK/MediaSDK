@@ -978,8 +978,8 @@ void CheckCrops(const mfxFrameInfo &in, mfxFrameInfo &out, mfxStatus & sts)
     mfxU32 maskH = 1;
     if (in.ChromaFormat >= MFX_CHROMAFORMAT_MONOCHROME && in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
     {
-        maskW = SubWidthC[in.ChromaFormat];
-        maskH = SubHeightC[in.ChromaFormat];
+        maskW = UMC::SubWidthC[in.ChromaFormat];
+        maskH = UMC::SubHeightC[in.ChromaFormat];
         if (in.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
             maskH <<= 1;
     }
@@ -1479,7 +1479,7 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType /* type */)
     if (MFX_CODEC_AVC != in->mfx.CodecId)
         return false;
 
-    uint32_t profile_idc = ExtractProfile(in->mfx.CodecProfile);
+    uint32_t profile_idc = UMC::ExtractProfile(in->mfx.CodecProfile);
     switch (profile_idc)
     {
     case MFX_PROFILE_UNKNOWN:
