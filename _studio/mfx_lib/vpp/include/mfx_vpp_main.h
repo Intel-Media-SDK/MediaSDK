@@ -27,8 +27,6 @@
 #ifndef __MFX_VPP_MAIN_H
 #define __MFX_VPP_MAIN_H
 
-using namespace std;
-
 #include "mfxvideo++int.h"
 
 #include "mfx_task.h"
