@@ -1479,6 +1479,15 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         unsupported = true;
     }
 
+#if defined(MFX_VA_LINUX)
+    // TODO: For now driver on Linux doesn't support MxN tiles
+    if (rows > 1 && cols > 1)
+    {
+        rows = cols = 1;
+        unsupported = true;
+    }
+#endif
+
     if (rows && height)
     {
         mfxU16 heightInSBs = static_cast<mfxU16>(CeilDiv(height, SB_SIZE));
