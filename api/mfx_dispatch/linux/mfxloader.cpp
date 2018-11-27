@@ -38,13 +38,23 @@
 namespace MFX {
 
 #if defined(__i386__)
-#define LIBMFXSW "libmfxsw32.so.1"
-#define LIBMFXHW "libmfxhw32.so.1"
+    #ifdef ANDROID
+        #define LIBMFXSW "libmfxsw32.so"
+        #define LIBMFXHW "libmfxhw32.so"
+    #else
+        #define LIBMFXSW "libmfxsw32.so.1"
+        #define LIBMFXHW "libmfxhw32.so.1"
+    #endif
 #elif defined(__x86_64__)
-#define LIBMFXSW "libmfxsw64.so.1"
-#define LIBMFXHW "libmfxhw64.so.1"
+    #ifdef ANDROID
+        #define LIBMFXSW "libmfxsw64.so"
+        #define LIBMFXHW "libmfxhw64.so"
+    #else
+        #define LIBMFXSW "libmfxsw64.so.1"
+        #define LIBMFXHW "libmfxhw64.so.1"
+    #endif
 #else
-#error Unsupported architecture
+    #error Unsupported architecture
 #endif
 
 #undef FUNCTION
