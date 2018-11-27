@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -127,7 +127,7 @@ mfxStatus ImplementationMvc::Init(mfxVideoParam *par)
             mfxSts = MFX_ERR_NONE;
         }
 
-        pair<mfxMultiViewVPP_Iterator, bool> insertSts = m_VPP.insert( make_pair(viewId, pNewVPP) );
+        std::pair<mfxMultiViewVPP_Iterator, bool> insertSts = m_VPP.insert( std::make_pair(viewId, pNewVPP) );
         if( !insertSts.second )
         {
             return MFX_ERR_UNDEFINED_BEHAVIOR;
