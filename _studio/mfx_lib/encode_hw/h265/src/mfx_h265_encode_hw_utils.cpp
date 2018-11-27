@@ -37,48 +37,48 @@
 namespace MfxHwH265Encode
 {
 
-// TODO: simplify with std::remove_reference_t when C++14 will be fully enabled
-template<typename T>
-using get_element_type = typename std::remove_reference<decltype(*std::begin(std::declval<T&>()))>::type;
-
-// TODO: merge two following template functions with constexpr if when C++17 will be fully enabled
-
-// If some integral type or a floating-point type
-template<class T>
-typename std::enable_if<std::is_arithmetic<T>::value, T>::type
-    get_default_value(T /*t*/)
+template<class T, class Enable = void>
+struct DefaultFiller
 {
-    return IDX_INVALID;
+    static constexpr typename std::remove_reference<T>::type Get()
+    {
+        return typename std::remove_reference<T>::type();
+    }
+};
+
+template<class T>
+struct DefaultFiller<T, typename std::enable_if<
+    std::is_arithmetic<
+    typename std::remove_reference<T>::type
+    >::value
+>::type>
+{
+    static constexpr typename std::remove_reference<T>::type Get()
+    {
+        return typename std::remove_reference<T>::type(-1);
+    }
+};
+
+template<class A>
+void Remove(A &_from, size_t _where, size_t _num = 1)
+{
+    if (std::end(_from) < std::begin(_from) + _where + _num)
+        throw std::out_of_range("Remove() target is out of container range");
+
+    auto it = std::copy(std::begin(_from) + _where + _num, std::end(_from), std::begin(_from) + _where);
+    std::fill(it, std::end(_from), DefaultFiller<decltype(*it)>::Get());
 }
 
-// If a class / struct, call default constructor
-template<class T>
-typename std::enable_if<!std::is_arithmetic<T>::value, T>::type
-    get_default_value(T&& /*t*/)
+template<class T, class A>
+void Insert(A& _to, mfxU32 _where, T const & _what)
 {
-    return T();
-}
-
-template<class T, class A> mfxStatus Insert(A& _to, mfxU32 _where, T const & _what)
-{
-    MFX_CHECK(std::begin(_to) + _where < std::end(_to), MFX_ERR_UNDEFINED_BEHAVIOR);
+    if (std::begin(_to) + _where < std::end(_to))
+        throw std::out_of_range("Insert() target is out of container range");
 
     if (std::begin(_to) + _where + 1 != std::end(_to))
         std::copy_backward(std::begin(_to) + _where, std::end(_to) - 1, std::end(_to));
 
     _to[_where] = _what;
-    return MFX_ERR_NONE;
-}
-
-template<class A> mfxStatus Remove(A& _from, mfxU32 _where, mfxU32 _num = 1)
-{
-    MFX_CHECK(std::end(_from) >= std::begin(_from) + _where + _num, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-    auto it_to_fill = std::copy(std::begin(_from) + _where + _num, std::end(_from), std::begin(_from) + _where);
-
-    std::fill(it_to_fill, std::end(_from), get_default_value(get_element_type<A>()));
-
-    return MFX_ERR_NONE;
 }
 
 mfxU32 CountL1(DpbArray const & dpb, mfxI32 poc)
