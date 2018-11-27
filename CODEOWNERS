@@ -64,13 +64,14 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/vp8_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
 
 # vp9d:
-/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
+/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
+/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
+/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
 
 # vp9e:
-/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com
+/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
+_studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
 
 # vpp:
 /_studio/mfx_lib/vpp/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com roman.bykadorov@intel.com andrey.larionov@intel.com tuyet.trang.lam@intel.com
