@@ -948,6 +948,8 @@ namespace MPEG2EncoderHW
         CHECK_CODEC_ID(par->mfx.CodecId, MFX_CODEC_MPEG2);
         MFX_CHECK (CheckExtendedBuffers(par) == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
 
+        mfxStatus sts = core->IsGuidSupported(DXVA2_Intel_Encode_MPEG2, par);
+        MFX_CHECK_STS(sts);
 
         mfxExtCodingOption* ext = GetExtCodingOptions(par->ExtParam, par->NumExtParam);
         mfxExtCodingOptionSPSPPS* pSPSPPS = GetExtCodingOptionsSPSPPS (par->ExtParam, par->NumExtParam);
@@ -976,16 +978,11 @@ namespace MPEG2EncoderHW
 
         ENCODE_CAPS EncCaps = {};
 
-        mfxStatus sts = CheckHwCaps(core, par, ext, &EncCaps);
+        sts = CheckHwCaps(core, par, ext, &EncCaps);
         MFX_CHECK_STS(sts);
 
-        if (par->mfx.FrameInfo.Width > 0x1fff || (par->mfx.FrameInfo.Width & 0x0f) != 0)
-        {
-            return MFX_ERR_INVALID_VIDEO_PARAM;
-        }
         mfxU32 mask = (par->mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE)? 0x0f:0x1f;
-
-        if (par->mfx.FrameInfo.Height > 0x1fff || (par->mfx.FrameInfo.Height & mask) != 0 )
+        if ((par->mfx.FrameInfo.Width & 0x0f) != 0 || (par->mfx.FrameInfo.Height & mask) != 0 )
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
