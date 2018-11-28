@@ -133,18 +133,18 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/isa/, \
     genx_fcopy_gen11lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/isa/, \
-    genx_me_skl_isa.cpp \
-    genx_me_icl_isa.cpp \
-    genx_me_icllp_isa.cpp \
-    genx_me_bdw_isa.cpp \
-    genx_mc_skl_isa.cpp \
-    genx_mc_icl_isa.cpp \
-    genx_mc_icllp_isa.cpp \
-    genx_mc_bdw_isa.cpp \
-    genx_sd_skl_isa.cpp \
-    genx_sd_icl_isa.cpp \
-    genx_sd_icllp_isa.cpp \
-    genx_sd_bdw_isa.cpp)
+    genx_me_gen8_isa.cpp \
+    genx_me_gen9_isa.cpp \
+    genx_me_gen11_isa.cpp \
+    genx_me_gen11lp_isa.cpp \
+    genx_mc_gen8_isa.cpp \
+    genx_mc_gen9_isa.cpp \
+    genx_mc_gen11_isa.cpp \
+    genx_mc_gen11lp_isa.cpp \
+    genx_sd_gen8_isa.cpp \
+    genx_sd_gen9_isa.cpp \
+    genx_sd_gen11_isa.cpp \
+    genx_sd_gen11lp_isa.cpp)
 
 MFX_LIB_SHARED_FILES_1 := $(addprefix mfx_lib/shared/src/, \
     libmfxsw.cpp \

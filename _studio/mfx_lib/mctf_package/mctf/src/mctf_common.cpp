@@ -22,21 +22,21 @@
 #include "asc.h"
 #include "asc_defs.h"
 
-#include "genx_me_bdw_isa.h"
-#include "genx_mc_bdw_isa.h"
-#include "genx_sd_bdw_isa.h"
+#include "genx_me_gen8_isa.h"
+#include "genx_mc_gen8_isa.h"
+#include "genx_sd_gen8_isa.h"
 
-#include "genx_me_skl_isa.h"
-#include "genx_mc_skl_isa.h"
-#include "genx_sd_skl_isa.h"
+#include "genx_me_gen9_isa.h"
+#include "genx_mc_gen9_isa.h"
+#include "genx_sd_gen9_isa.h"
 
-#include "genx_me_icl_isa.h"
-#include "genx_mc_icl_isa.h"
-#include "genx_sd_icl_isa.h"
+#include "genx_me_gen11_isa.h"
+#include "genx_mc_gen11_isa.h"
+#include "genx_sd_gen11_isa.h"
 
-#include "genx_me_icllp_isa.h"
-#include "genx_mc_icllp_isa.h"
-#include "genx_sd_icllp_isa.h"
+#include "genx_me_gen11lp_isa.h"
+#include "genx_mc_gen11lp_isa.h"
+#include "genx_sd_gen11lp_isa.h"
 
 #include <algorithm>
 #include <climits>
@@ -737,13 +737,13 @@ mfxStatus CMC::MCTF_SET_ENV(
     //Motion Estimation
 #ifdef MFX_ENABLE_KERNELS
     if (hwType == PLATFORM_INTEL_BDW)
-        res = device->LoadProgram((void *)genx_me_bdw, sizeof(genx_me_bdw), programMe, "nojitter");
+        res = device->LoadProgram((void *)genx_me_gen8, sizeof(genx_me_gen8), programMe, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICL)
-        res = device->LoadProgram((void *)genx_me_icl, sizeof(genx_me_icl), programMe, "nojitter");
+        res = device->LoadProgram((void *)genx_me_gen11, sizeof(genx_me_gen11), programMe, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICLLP)
-        res = device->LoadProgram((void *)genx_me_icllp, sizeof(genx_me_icllp), programMe, "nojitter");
+        res = device->LoadProgram((void *)genx_me_gen11lp, sizeof(genx_me_gen11lp), programMe, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
-        res = device->LoadProgram((void *)genx_me_skl, sizeof(genx_me_skl), programMe, "nojitter");
+        res = device->LoadProgram((void *)genx_me_gen9, sizeof(genx_me_gen9), programMe, "nojitter");
     else
 #endif
         return MFX_ERR_UNSUPPORTED;
@@ -768,13 +768,13 @@ mfxStatus CMC::MCTF_SET_ENV(
     //Motion Compensation
 #ifdef MFX_ENABLE_KERNELS
     if (hwType == PLATFORM_INTEL_BDW)
-        res = device->LoadProgram((void *)genx_mc_bdw, sizeof(genx_mc_bdw), programMc, "nojitter");
+        res = device->LoadProgram((void *)genx_mc_gen8, sizeof(genx_mc_gen8), programMc, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICL)
-        res = device->LoadProgram((void *)genx_mc_icl, sizeof(genx_mc_icl), programMc, "nojitter");
+        res = device->LoadProgram((void *)genx_mc_gen11, sizeof(genx_mc_gen11), programMc, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICLLP)
-        res = device->LoadProgram((void *)genx_mc_icllp, sizeof(genx_mc_icllp), programMc, "nojitter");
+        res = device->LoadProgram((void *)genx_mc_gen11lp, sizeof(genx_mc_gen11lp), programMc, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
-        res = device->LoadProgram((void *)genx_mc_skl, sizeof(genx_mc_skl), programMc, "nojitter");
+        res = device->LoadProgram((void *)genx_mc_gen9, sizeof(genx_mc_gen9), programMc, "nojitter");
     else
 #endif
         return MFX_ERR_UNSUPPORTED;
@@ -782,13 +782,13 @@ mfxStatus CMC::MCTF_SET_ENV(
 
 #ifdef MFX_ENABLE_KERNELS
     if (hwType == PLATFORM_INTEL_BDW)
-        res = device->LoadProgram((void *)genx_sd_bdw, sizeof(genx_sd_bdw), programDe, "nojitter");
+        res = device->LoadProgram((void *)genx_sd_gen8, sizeof(genx_sd_gen8), programDe, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICL)
-        res = device->LoadProgram((void *)genx_sd_icl, sizeof(genx_sd_icl), programDe, "nojitter");
+        res = device->LoadProgram((void *)genx_sd_gen11, sizeof(genx_sd_gen11), programDe, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICLLP)
-        res = device->LoadProgram((void *)genx_sd_icllp, sizeof(genx_sd_icllp), programDe, "nojitter");
+        res = device->LoadProgram((void *)genx_sd_gen11lp, sizeof(genx_sd_gen11lp), programDe, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
-        res = device->LoadProgram((void *)genx_sd_skl, sizeof(genx_sd_skl), programDe, "nojitter");
+        res = device->LoadProgram((void *)genx_sd_gen9, sizeof(genx_sd_gen9), programDe, "nojitter");
     else
 #endif
         return MFX_ERR_UNSUPPORTED;

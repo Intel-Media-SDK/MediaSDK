@@ -80,18 +80,18 @@ if(MFX_ENABLE_KERNELS)
   if( MFX_ENABLE_MCTF )
     set( prefix ${MSDK_GENX_ROOT}/mctf/isa )
     list( APPEND sources
-      ${prefix}/genx_mc_bdw_isa.cpp
-      ${prefix}/genx_mc_icl_isa.cpp
-      ${prefix}/genx_mc_icllp_isa.cpp
-      ${prefix}/genx_mc_skl_isa.cpp
-      ${prefix}/genx_me_bdw_isa.cpp
-      ${prefix}/genx_me_icl_isa.cpp
-      ${prefix}/genx_me_icllp_isa.cpp
-      ${prefix}/genx_me_skl_isa.cpp
-      ${prefix}/genx_sd_bdw_isa.cpp
-      ${prefix}/genx_sd_icl_isa.cpp
-      ${prefix}/genx_sd_icllp_isa.cpp
-      ${prefix}/genx_sd_skl_isa.cpp
+      ${prefix}/genx_mc_gen8_isa.cpp
+      ${prefix}/genx_mc_gen9_isa.cpp
+      ${prefix}/genx_mc_gen11_isa.cpp
+      ${prefix}/genx_mc_gen11lp_isa.cpp
+      ${prefix}/genx_me_gen8_isa.cpp
+      ${prefix}/genx_me_gen9_isa.cpp
+      ${prefix}/genx_me_gen11_isa.cpp
+      ${prefix}/genx_me_gen11lp_isa.cpp
+      ${prefix}/genx_sd_gen8_isa.cpp
+      ${prefix}/genx_sd_gen9_isa.cpp
+      ${prefix}/genx_sd_gen11_isa.cpp
+      ${prefix}/genx_sd_gen11lp_isa.cpp
     )
   endif()
 
