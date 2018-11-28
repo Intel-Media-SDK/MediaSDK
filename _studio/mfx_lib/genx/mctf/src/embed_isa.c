@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,15 +27,25 @@
 void make_copyright(FILE* f)
 {
     fprintf(f,
+"// Copyright (c) 2018 Intel Corporation\n"
 "//\n"
-"// INTEL CORPORATION PROPRIETARY INFORMATION\n"
+"// Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+"// of this software and associated documentation files (the \"Software\"), to deal\n"
+"// in the Software without restriction, including without limitation the rights\n"
+"// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+"// copies of the Software, and to permit persons to whom the Software is\n"
+"// furnished to do so, subject to the following conditions:\n"
 "//\n"
-"// This software is supplied under the terms of a license agreement or\n"
-"// nondisclosure agreement with Intel Corporation and may not be copied\n"
-"// or disclosed except in accordance with the terms of that agreement.\n"
+"// The above copyright notice and this permission notice shall be included in all\n"
+"// copies or substantial portions of the Software.\n"
 "//\n"
-"// Copyright(c) 2012-2018 Intel Corporation. All Rights Reserved.\n"
-"//\n"
+"// THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+"// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+"// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+"// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+"// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
+"// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
+"// SOFTWARE.\n"
 );
 }
 
@@ -50,6 +60,7 @@ int main(int argc, char** argv)
     char* basename;
     char* fname, *sbase, *ebase, *bufname;
     int len,i;
+    size_t result;
 
     if(argc != 2)
     {
@@ -63,7 +74,7 @@ int main(int argc, char** argv)
         size = ftell(f);
         rewind(f);
         buf = (unsigned char*)malloc(size);
-        fread(buf,1,size,f);
+        result = fread(buf,1,size,f);
         fclose(f);   
     }
 
@@ -85,14 +96,14 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        basename = (char*)malloc(len+5);
+        basename = (char*)malloc(len+9);
         bufname = (char*)malloc(len+1);
         strncpy(bufname, sbase, len);
         bufname[len] = 0;
 
         strncpy(basename, sbase, len);
-        strncpy(basename+len, ".cpp", 4);
-        basename[len+4] = 0;
+        strncpy(basename+len, "_isa.cpp", 8);
+        basename[len+8] = 0;
 
         //cpp file
         if((f=fopen(basename,"wt")) != NULL)
@@ -100,7 +111,7 @@ int main(int argc, char** argv)
              make_copyright(f);
             //fprintf(f,"#ifndef __%s__\n#define __%s__\n",bufname,bufname);
             fprintf(f,"#include \"%s_isa.h\"\n\n", bufname);
-            fprintf(f,"const unsigned char %s[%d] = { \n",bufname, size);
+            fprintf(f,"const unsigned char %s[%lu] = {\n",bufname, size);
             for(i=0; i<size; i++)
             {                
                 fprintf(f,"0x%02x", buf[i]);
@@ -117,14 +128,14 @@ int main(int argc, char** argv)
 
         //header file
         strncpy(basename, sbase, len);
-        strncpy(basename+len, ".h", 2);
-        basename[len+2] = 0;
+        strncpy(basename+len, "_isa.h", 6);
+        basename[len+6] = 0;
         if((f=fopen(basename,"wt")) != NULL)
         {
              make_copyright(f);
             //fprintf(f,"#ifndef __%s__\n#define __%s__\n",bufname,bufname);
             fprintf(f,"#ifndef __%s__\n#define __%s__\n",bufname, bufname);
-            fprintf(f,"extern const unsigned char %s[%d];\n", bufname, size);
+            fprintf(f,"extern const unsigned char %s[%lu];\n", bufname, size);
             fprintf(f,"#endif\n");
             //fprintf(f,"#endif\n");
             fclose(f);
