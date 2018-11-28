@@ -609,12 +609,13 @@ mfxStatus CMC::MCTF_INIT(
     if (!pMctfParam)
         pMctfParam = &MctfParam;
 
-    sts = MCTF_SET_ENV(FrameInfo, pMctfParam);
+    sts = MCTF_SET_ENV(core, FrameInfo, pMctfParam);
     MFX_CHECK_STS(sts);
     return sts;
 }
 
 mfxStatus CMC::MCTF_SET_ENV(
+    VideoCORE           * core,
     const mfxFrameInfo  & FrameInfo,
     const IntMctfParams * pMctfParam
 )
@@ -624,10 +625,14 @@ mfxStatus CMC::MCTF_SET_ENV(
     if (!device)
         return MFX_ERR_NOT_INITIALIZED;
 
-    res = device->CreateQueue(queue);
-    MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     hwSize = 4;
     res = device->GetCaps(CAP_GPU_PLATFORM, hwSize, &hwType);
+    MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+
+    if(core->GetHWType() >= MFX_HW_ICL)
+        res = device->CreateQueueEx(queue, CM_VME_QUEUE_CREATE_OPTION);
+    else
+        res = device->CreateQueue(queue);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     task = 0;
