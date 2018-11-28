@@ -24,10 +24,10 @@ mfx_include_dirs()
 
 include_directories( ${MSDK_LIB_ROOT}/vpp/include )
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
+include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/isa )
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/isa )
+include_directories( ${MSDK_LIB_ROOT}/genx/mctf/isa )
 include_directories( ${MSDK_LIB_ROOT}/mctf_package/mctf/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/mctf/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
 set( defs "" )

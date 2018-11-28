@@ -16,7 +16,6 @@ MFX_LOCAL_DIRS_IMPL := \
 
 MFX_LOCAL_DIRS_HW := \
     $(addprefix encode_hw/, $(MFX_LOCAL_ENCODERS)) \
-    genx/h264_encode \
     mctf_package/mctf \
     cmrt_cross_platform
 
@@ -30,6 +29,19 @@ MFX_LOCAL_SRC_FILES_HW := \
     $(MFX_LOCAL_SRC_FILES_IMPL) \
     $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp)))
 
+MFX_LOCAL_SRC_FILES_HW += $(addprefix mfx_lib/genx/h264_encode/isa/, \
+    genx_bdw_simple_me_isa.cpp \
+    genx_cnl_histogram_isa.cpp \
+    genx_cnl_simple_me_isa.cpp \
+    genx_hsw_simple_me_isa.cpp \
+    genx_hsw_simple_me_proto.cpp \
+    genx_icl_histogram_isa.cpp \
+    genx_icllp_histogram_isa.cpp \
+    genx_icllp_simple_me_isa.cpp \
+    genx_icl_simple_me_isa.cpp \
+    genx_skl_histogram_isa.cpp \
+    genx_skl_simple_me_isa.cpp)
+
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
 
@@ -40,10 +52,11 @@ MFX_LOCAL_INCLUDES_IMPL := \
 MFX_LOCAL_INCLUDES_HW := \
     $(MFX_LOCAL_INCLUDES_IMPL) \
     $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include)) \
-    $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/include \
-    $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/include \
-    $(MFX_HOME)/_studio/mfx_lib/genx/mctf/include \
-    $(MFX_HOME)/_studio/mfx_lib/genx/asc/include \
+    $(MFX_HOME)/_studio/mfx_lib/genx/h264_encode/isa \
+    $(MFX_HOME)/_studio/mfx_lib/genx/field_copy/isa \
+    $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/isa \
+    $(MFX_HOME)/_studio/mfx_lib/genx/mctf/isa \
+    $(MFX_HOME)/_studio/mfx_lib/genx/asc/isa \
     $(MFX_HOME)/_studio/shared/asc/include
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
@@ -98,28 +111,28 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/shared/src/, \
     mfx_h264_encode_vaapi.cpp \
     mfx_h264_encode_factory.cpp)
 
-MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/src/, \
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/isa/, \
     genx_scd_bdw_isa.cpp \
     genx_scd_cnl_isa.cpp \
     genx_scd_icl_isa.cpp \
     genx_scd_icllp_isa.cpp \
     genx_scd_skl_isa.cpp)
 
-MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/src/, \
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/isa/, \
     genx_cht_copy_isa.cpp \
     genx_skl_copy_isa.cpp \
     genx_cnl_copy_isa.cpp \
     genx_icl_copy_isa.cpp \
     genx_icllp_copy_isa.cpp)
 
-MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/src/, \
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/isa/, \
     genx_fcopy_gen8_isa.cpp \
     genx_fcopy_gen9_isa.cpp \
     genx_fcopy_gen10_isa.cpp \
     genx_fcopy_gen11_isa.cpp \
     genx_fcopy_gen11lp_isa.cpp)
 
-MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/src/, \
+MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/isa/, \
     genx_me_skl_isa.cpp \
     genx_me_icl_isa.cpp \
     genx_me_icllp_isa.cpp \
