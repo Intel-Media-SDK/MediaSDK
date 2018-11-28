@@ -105,9 +105,9 @@ public:
 
     bool IsUseDelayOutputValue() const;
 
-    int32_t GetDPBOutputDelay(H264SEIPayLoad * payload);
+    int32_t GetDPBOutputDelay(UMC_H264_DECODER::H264SEIPayLoad * payload);
 
-    void OnNewSps(H264SeqParamSet * sps);
+    void OnNewSps(UMC_H264_DECODER::H264SeqParamSet * sps);
 
 private:
 
@@ -167,11 +167,11 @@ public:
 
     // Set the POCs when frame gap is processed
     void DecodePictureOrderCountFrameGap(H264DecoderFrame *pFrame,
-                                         const H264SliceHeader *pSliceHeader,
+                                         const UMC_H264_DECODER::H264SliceHeader *pSliceHeader,
                                          int32_t frameNum);
     // Set the POCs when fake frames are imagined
     void DecodePictureOrderCountFakeFrames(H264DecoderFrame *pFrame,
-                                           const H264SliceHeader *pSliceHeader);
+                                           const UMC_H264_DECODER::H264SliceHeader *pSliceHeader);
     // Set the POCs when the frame is initialized
     void DecodePictureOrderCountInitFrame(H264DecoderFrame *pFrame,
                                           int32_t fieldIdx);
@@ -283,7 +283,7 @@ struct ViewItem
     void Reset(void);
 
     // Reset the size of DPB for particular view item
-    void SetDPBSize(H264SeqParamSet *pSps, uint8_t & level_idc);
+    void SetDPBSize(UMC_H264_DECODER::H264SeqParamSet *pSps, uint8_t & level_idc);
 
     H264DBPList *GetDPBList(int32_t dIdRev = 0)
     {
@@ -335,7 +335,7 @@ public:
 
     virtual bool IsShouldSkipSlice(H264Slice * slice);
 
-    virtual bool IsShouldSkipSlice(H264NalExtension *nal_ext);
+    virtual bool IsShouldSkipSlice(UMC_H264_DECODER::H264NalExtension *nal_ext);
 
     uint32_t GetLevelIDC() const;
 
@@ -384,8 +384,8 @@ protected:
     // Array of pointers to views and their components
     ViewList m_views;
 
-    void ChooseLevelIdc(const H264SeqParamSetMVCExtension * extension, uint8_t baseViewLevelIDC, uint8_t extensionLevelIdc);
-    void AnalyzeDependencies(const H264SeqParamSetMVCExtension * extension);
+    void ChooseLevelIdc(const UMC_H264_DECODER::H264SeqParamSetMVCExtension * extension, uint8_t baseViewLevelIDC, uint8_t extensionLevelIdc);
+    void AnalyzeDependencies(const UMC_H264_DECODER::H264SeqParamSetMVCExtension * extension);
     Status AllocateView(int32_t view_id);
     ViewItem & AllocateAndInitializeView(H264Slice * slice);
 };
@@ -404,8 +404,8 @@ public:
     virtual void Close();
 
     virtual bool IsShouldSkipSlice(H264Slice * slice);
-    virtual bool IsShouldSkipSlice(H264NalExtension *nal_ext);
-    void ChooseLevelIdc(const H264SeqParamSetSVCExtension * extension, uint8_t baseViewLevelIDC, uint8_t extensionLevelIdc);
+    virtual bool IsShouldSkipSlice(UMC_H264_DECODER::H264NalExtension *nal_ext);
+    void ChooseLevelIdc(const UMC_H264_DECODER::H264SeqParamSetSVCExtension * extension, uint8_t baseViewLevelIDC, uint8_t extensionLevelIdc);
     void SetSVCTargetLayer(uint32_t dependency_id, uint32_t quality_id, uint32_t temporal_id);
 
 protected:
@@ -429,7 +429,7 @@ public:
     void Reset();
 
     void CheckSEIRepetition(ViewItem &view, H264DecoderFrame * frame);
-    Status CheckSEIRepetition(ViewItem &view, H264SEIPayLoad *payload);
+    Status CheckSEIRepetition(ViewItem &view, UMC_H264_DECODER::H264SEIPayLoad *payload);
 
     uint32_t  GetDPBError() const;
 
@@ -563,7 +563,7 @@ public:
     Headers * GetHeaders() { return &m_Headers;}
 
     inline
-    const H264SeqParamSet *GetCurrentSequence(void) const
+    const UMC_H264_DECODER::H264SeqParamSet *GetCurrentSequence(void) const
     {
         return m_Headers.m_SeqParams.GetCurrentHeader();
     }
@@ -651,7 +651,7 @@ protected:
 
     int32_t m_UIDFrameCounter;
 
-    H264SEIPayLoad m_UserData;
+    UMC_H264_DECODER::H264SEIPayLoad m_UserData;
     SEI_Storer *m_sei_messages;
 
     AccessUnit m_accessUnit;
@@ -797,7 +797,7 @@ inline H264DBPList *GetDPB(ViewList &views, int32_t viewId, int32_t dIdRev = 0)
     throw h264_exception(UMC_ERR_FAILED);
 } // H264DBPList *GetDPB(ViewList &views)
 
-inline uint32_t GetVOIdx(const H264SeqParamSetMVCExtension *pSeqParamSetMvc, uint32_t viewId)
+inline uint32_t GetVOIdx(const UMC_H264_DECODER::H264SeqParamSetMVCExtension *pSeqParamSetMvc, uint32_t viewId)
 {
     for (uint32_t i = 0; i <= pSeqParamSetMvc->num_views_minus1; ++i)
     {

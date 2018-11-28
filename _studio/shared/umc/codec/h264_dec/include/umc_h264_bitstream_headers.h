@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -161,76 +161,76 @@ public:
 
 
     // Decode sequence parameter set
-    Status GetSequenceParamSet(H264SeqParamSet *sps);
-    Status GetSequenceParamSetSvcExt(H264SeqParamSetSVCExtension *pSPSSvcExt);
-    Status GetSequenceParamSetSvcVuiExt(H264SeqParamSetSVCExtension *pSPSSvcExt);
+    Status GetSequenceParamSet(UMC_H264_DECODER::H264SeqParamSet *sps);
+    Status GetSequenceParamSetSvcExt(UMC_H264_DECODER::H264SeqParamSetSVCExtension *pSPSSvcExt);
+    Status GetSequenceParamSetSvcVuiExt(UMC_H264_DECODER::H264SeqParamSetSVCExtension *pSPSSvcExt);
 
     // Decode sequence parameter set extension
-    Status GetSequenceParamSetExtension(H264SeqParamSetExtension *sps_ex);
+    Status GetSequenceParamSetExtension(UMC_H264_DECODER::H264SeqParamSetExtension *sps_ex);
     // Decode sequence param set MVC extension
-    Status GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtension *pSPSMvcExt);
+    Status GetSequenceParamSetMvcExt(UMC_H264_DECODER::H264SeqParamSetMVCExtension *pSPSMvcExt);
 
     // Decoding picture's parameter set functions
-    Status GetPictureParamSetPart1(H264PicParamSet *pps);
-    Status GetPictureParamSetPart2(H264PicParamSet *pps, H264SeqParamSet const*);
+    Status GetPictureParamSetPart1(UMC_H264_DECODER::H264PicParamSet *pps);
+    Status GetPictureParamSetPart2(UMC_H264_DECODER::H264PicParamSet *pps, UMC_H264_DECODER::H264SeqParamSet const*);
 
     // Decode NAL unit prefix
-    Status GetNalUnitPrefix(H264NalExtension *pExt, uint32_t NALRef_idc);
+    Status GetNalUnitPrefix(UMC_H264_DECODER::H264NalExtension *pExt, uint32_t NALRef_idc);
 
     // Decode NAL unit extension parameters
-    Status GetNalUnitExtension(H264NalExtension *pExt);
+    Status GetNalUnitExtension(UMC_H264_DECODER::H264NalExtension *pExt);
 
     // Decoding slice header functions
-    Status GetSliceHeaderPart1(H264SliceHeader *pSliceHeader);
-    Status GetSliceHeaderPart2(H264SliceHeader *pSliceHeader,
-                               const H264PicParamSet *pps,
-                               const H264SeqParamSet *sps);
-    Status GetSliceHeaderPart3(H264SliceHeader *pSliceHeader,
-                               PredWeightTable *pPredWeight_L0,
-                               PredWeightTable *pPredWeight_L1,
-                               RefPicListReorderInfo *pReorderInfo_L0,
-                               RefPicListReorderInfo *pReorderInfo_L1,
-                               AdaptiveMarkingInfo *pAdaptiveMarkingInfo,
-                               AdaptiveMarkingInfo *pBaseAdaptiveMarkingInfo,
-                               const H264PicParamSet *pps,
-                               const H264SeqParamSet *sps,
-                               const H264SeqParamSetSVCExtension *spsSvcExt);
-    Status GetSliceHeaderPart4(H264SliceHeader *hdr,
-                                const H264SeqParamSetSVCExtension *spsSvcExt); // from slice header in
+    Status GetSliceHeaderPart1(UMC_H264_DECODER::H264SliceHeader *pSliceHeader);
+    Status GetSliceHeaderPart2(UMC_H264_DECODER::H264SliceHeader *pSliceHeader,
+                               const UMC_H264_DECODER::H264PicParamSet *pps,
+                               const UMC_H264_DECODER::H264SeqParamSet *sps);
+    Status GetSliceHeaderPart3(UMC_H264_DECODER::H264SliceHeader *pSliceHeader,
+                               UMC_H264_DECODER::PredWeightTable *pPredWeight_L0,
+                               UMC_H264_DECODER::PredWeightTable *pPredWeight_L1,
+                               UMC_H264_DECODER::RefPicListReorderInfo *pReorderInfo_L0,
+                               UMC_H264_DECODER::RefPicListReorderInfo *pReorderInfo_L1,
+                               UMC_H264_DECODER::AdaptiveMarkingInfo *pAdaptiveMarkingInfo,
+                               UMC_H264_DECODER::AdaptiveMarkingInfo *pBaseAdaptiveMarkingInfo,
+                               const UMC_H264_DECODER::H264PicParamSet *pps,
+                               const UMC_H264_DECODER::H264SeqParamSet *sps,
+                               const UMC_H264_DECODER::H264SeqParamSetSVCExtension *spsSvcExt);
+    Status GetSliceHeaderPart4(UMC_H264_DECODER::H264SliceHeader *hdr,
+                                const UMC_H264_DECODER::H264SeqParamSetSVCExtension *spsSvcExt); // from slice header in
                                                                                // scalable extension NAL unit
 
 
     Status GetNALUnitType(NAL_Unit_Type &nal_unit_type, uint32_t &nal_ref_idc);
     // SEI part
-    int32_t ParseSEI(const Headers & headers, H264SEIPayLoad *spl);
-    int32_t sei_message(const Headers & headers, int32_t current_sps, H264SEIPayLoad *spl);
-    int32_t sei_payload(const Headers & headers, int32_t current_sps,H264SEIPayLoad *spl);
-    int32_t buffering_period(const Headers & headers, int32_t , H264SEIPayLoad *spl);
-    int32_t pic_timing(const Headers & headers, int32_t current_sps, H264SEIPayLoad *spl);
-    void user_data_registered_itu_t_t35(H264SEIPayLoad *spl);
-    void recovery_point(H264SEIPayLoad *spl);
-    int32_t dec_ref_pic_marking_repetition(const Headers & headers, int32_t current_sps, H264SEIPayLoad *spl);
-    void unparsed_sei_message(H264SEIPayLoad *spl);
-    void scalability_info(H264SEIPayLoad *spl);
+    int32_t ParseSEI(const Headers & headers, UMC_H264_DECODER::H264SEIPayLoad *spl);
+    int32_t sei_message(const Headers & headers, int32_t current_sps, UMC_H264_DECODER::H264SEIPayLoad *spl);
+    int32_t sei_payload(const Headers & headers, int32_t current_sps, UMC_H264_DECODER::H264SEIPayLoad *spl);
+    int32_t buffering_period(const Headers & headers, int32_t, UMC_H264_DECODER::H264SEIPayLoad *spl);
+    int32_t pic_timing(const Headers & headers, int32_t current_sps, UMC_H264_DECODER::H264SEIPayLoad *spl);
+    void user_data_registered_itu_t_t35(UMC_H264_DECODER::H264SEIPayLoad *spl);
+    void recovery_point(UMC_H264_DECODER::H264SEIPayLoad *spl);
+    int32_t dec_ref_pic_marking_repetition(const Headers & headers, int32_t current_sps, UMC_H264_DECODER::H264SEIPayLoad *spl);
+    void unparsed_sei_message(UMC_H264_DECODER::H264SEIPayLoad *spl);
+    void scalability_info(UMC_H264_DECODER::H264SEIPayLoad *spl);
 
 protected:
 
-    Status DecRefBasePicMarking(AdaptiveMarkingInfo *pAdaptiveMarkingInfo,
+    Status DecRefBasePicMarking(UMC_H264_DECODER::AdaptiveMarkingInfo *pAdaptiveMarkingInfo,
         uint8_t &adaptive_ref_pic_marking_mode_flag);
 
-    Status DecRefPicMarking(H264SliceHeader *hdr, AdaptiveMarkingInfo *pAdaptiveMarkingInfo);
+    Status DecRefPicMarking(UMC_H264_DECODER::H264SliceHeader *hdr, UMC_H264_DECODER::AdaptiveMarkingInfo *pAdaptiveMarkingInfo);
 
     void GetScalingList4x4(H264ScalingList4x4 *scl, uint8_t *def, uint8_t *scl_type);
     void GetScalingList8x8(H264ScalingList8x8 *scl, uint8_t *def, uint8_t *scl_type);
 
-    Status GetVUIParam(H264SeqParamSet *sps, H264VUI *vui);
-    Status GetHRDParam(H264SeqParamSet *sps, H264VUI *vui);
+    Status GetVUIParam(UMC_H264_DECODER::H264SeqParamSet *sps, UMC_H264_DECODER::H264VUI *vui);
+    Status GetHRDParam(UMC_H264_DECODER::H264SeqParamSet *sps, UMC_H264_DECODER::H264VUI *vui);
 
-    Status GetPredWeightTable(H264SliceHeader *hdr, const H264SeqParamSet *sps,
-        PredWeightTable *pPredWeight_L0, PredWeightTable *pPredWeight_L1);
+    Status GetPredWeightTable(UMC_H264_DECODER::H264SliceHeader *hdr, const UMC_H264_DECODER::H264SeqParamSet *sps,
+        UMC_H264_DECODER::PredWeightTable *pPredWeight_L0, UMC_H264_DECODER::PredWeightTable *pPredWeight_L1);
 };
 
-void SetDefaultScalingLists(H264SeqParamSet * sps);
+void SetDefaultScalingLists(UMC_H264_DECODER::H264SeqParamSet * sps);
 
 inline
 void FillFlatScalingList4x4(H264ScalingList4x4 *scl)
@@ -400,7 +400,7 @@ inline void H264BaseBitstream::AlignPointerRight()
     }
 }
 
-Status InitializePictureParamSet(H264PicParamSet *pps, const H264SeqParamSet *sps, bool isExtension);
+Status InitializePictureParamSet(UMC_H264_DECODER::H264PicParamSet *pps, const UMC_H264_DECODER::H264SeqParamSet *sps, bool isExtension);
 
 } // namespace UMC
 

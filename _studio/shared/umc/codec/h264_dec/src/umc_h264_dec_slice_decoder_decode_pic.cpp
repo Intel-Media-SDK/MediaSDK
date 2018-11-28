@@ -56,9 +56,9 @@ static H264DecoderFrame *FindLastValidReference(H264DecoderFrame **pList, int32_
 Status H264Slice::UpdateReferenceList(ViewList &views,
                                       int32_t dIdIndex)
 {
-    RefPicListReorderInfo *pReorderInfo_L0 = &ReorderInfoL0;
-    RefPicListReorderInfo *pReorderInfo_L1 = &ReorderInfoL1;
-    const H264SeqParamSet *sps = GetSeqParam();
+    UMC_H264_DECODER::RefPicListReorderInfo *pReorderInfo_L0 = &ReorderInfoL0;
+    UMC_H264_DECODER::RefPicListReorderInfo *pReorderInfo_L1 = &ReorderInfoL1;
+    const UMC_H264_DECODER::H264SeqParamSet *sps = GetSeqParam();
     uint32_t uMaxFrameNum;
     uint32_t uMaxPicNum;
     H264DecoderFrame *pFrm;
@@ -459,7 +459,7 @@ int32_t H264Slice::AdjustRefPicListForFields(H264DecoderFrame **pRefPicList,
 
 void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
                                   ReferenceFlags *pFields,
-                                  RefPicListReorderInfo *pReorderInfo,
+                                  UMC_H264_DECODER::RefPicListReorderInfo *pReorderInfo,
                                   int32_t MaxPicNum,
                                   ViewList &views,
                                   int32_t dIdIndex,
@@ -600,7 +600,7 @@ void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
                 }
             }
 
-            const H264ViewRefInfo &viewInfo = m_pSeqParamSetMvcEx->viewInfo[currVOIdx];
+            const UMC_H264_DECODER::H264ViewRefInfo &viewInfo = m_pSeqParamSetMvcEx->viewInfo[currVOIdx];
 
             // get the maximum number of reference
             if (m_SliceHeader.nal_ext.mvc.anchor_pic_flag)

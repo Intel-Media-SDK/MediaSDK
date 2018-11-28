@@ -1191,8 +1191,6 @@ struct H264SEIPayLoad : public UMC::HeapObject, public H264SEIPayLoadBase
 };
 } // end of namespace UMC_H264_DECODER
 
-using namespace UMC_H264_DECODER;
-
 namespace UMC
 {
 
@@ -1305,7 +1303,7 @@ inline int32_t GetH264ColorFormat(ColorFormat color_format)
     return format;
 }
 
-inline size_t CalculateSuggestedSize(const H264SeqParamSet * sps)
+inline size_t CalculateSuggestedSize(const UMC_H264_DECODER::H264SeqParamSet * sps)
 {
     size_t base_size = sps->frame_width_in_mbs * sps->frame_height_in_mbs * 256;
     size_t size = 0;

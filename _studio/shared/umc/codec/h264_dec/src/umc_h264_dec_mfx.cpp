@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +49,7 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
 
     for (size_t i = 0; i < seqEx->levelInfo.Size(); i++)
     {
-        const H264LevelValueSignaled & levelSignal = seqEx->levelInfo[i];
+        const UMC_H264_DECODER::H264LevelValueSignaled & levelSignal = seqEx->levelInfo[i];
 
         if ((uint32_t)levelSignal.num_applicable_ops_minus1 + 1 != levelSignal.opsInfo.Size())
         {
@@ -58,7 +58,7 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
 
         for (size_t j = 0; j < levelSignal.opsInfo.Size(); j++)
         {
-            const H264ApplicableOp & ops = levelSignal.opsInfo[j];
+            const UMC_H264_DECODER::H264ApplicableOp & ops = levelSignal.opsInfo[j];
             if ((uint32_t)ops.applicable_op_num_target_views_minus1 + 1 != ops.applicable_op_target_view_id.Size())
             {
                 return UMC_ERR_FAILED;
@@ -80,7 +80,7 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
 
     for (size_t i = 0; i < seqEx->viewInfo.Size(); i++)
     {
-        const H264ViewRefInfo & viewInfo = seqEx->viewInfo[i];
+        const UMC_H264_DECODER::H264ViewRefInfo & viewInfo = seqEx->viewInfo[i];
         mfxMVCViewDependency * dependency = &points->View[i];
         dependency->ViewId = (mfxU16)viewInfo.view_id;
 
@@ -108,11 +108,11 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
 
     for (size_t i = 0; i < seqEx->levelInfo.Size(); i++)
     {
-        const H264LevelValueSignaled & levelSignal = seqEx->levelInfo[i];
+        const UMC_H264_DECODER::H264LevelValueSignaled & levelSignal = seqEx->levelInfo[i];
 
         for (size_t j = 0; j < levelSignal.opsInfo.Size(); j++)
         {
-            const H264ApplicableOp & ops = levelSignal.opsInfo[j];
+            const UMC_H264_DECODER::H264ApplicableOp & ops = levelSignal.opsInfo[j];
 
             operationPoints->TemporalId = ops.applicable_op_temporal_id;
             operationPoints->LevelIdc = levelSignal.level_idc;

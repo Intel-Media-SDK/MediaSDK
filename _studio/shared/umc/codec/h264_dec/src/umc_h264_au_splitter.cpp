@@ -56,7 +56,7 @@ size_t SeiPayloadArray::GetPayloadCount() const
     return m_payloads.size();
 }
 
-H264SEIPayLoad* SeiPayloadArray::GetPayload(size_t pos) const
+UMC_H264_DECODER::H264SEIPayLoad* SeiPayloadArray::GetPayload(size_t pos) const
 {
     if (pos >= m_payloads.size())
         return 0;
@@ -64,7 +64,7 @@ H264SEIPayLoad* SeiPayloadArray::GetPayload(size_t pos) const
     return m_payloads[pos];
 }
 
-H264SEIPayLoad* SeiPayloadArray::FindPayload(SEI_TYPE type) const
+UMC_H264_DECODER::H264SEIPayLoad* SeiPayloadArray::FindPayload(SEI_TYPE type) const
 {
     int32_t pos = FindPayloadPos(type);
     return (pos < 0) ? 0 : GetPayload(pos);
@@ -75,7 +75,7 @@ int32_t SeiPayloadArray::FindPayloadPos(SEI_TYPE type) const
     size_t count = m_payloads.size();
     for (size_t i = 0; i < count; i++)
     {
-        H264SEIPayLoad* payload = m_payloads[i];
+        UMC_H264_DECODER::H264SEIPayLoad* payload = m_payloads[i];
         if (payload->payLoadType == type)
             return (int32_t)i;
     }
@@ -100,14 +100,14 @@ void SeiPayloadArray::Release()
     PayloadArray::iterator iter_end = m_payloads.end();
     for (; iter != iter_end; ++iter)
     {
-        H264SEIPayLoad* payload = *iter;
+        UMC_H264_DECODER::H264SEIPayLoad* payload = *iter;
         payload->DecrementReference();
     }
 
     m_payloads.clear();
 }
 
-void SeiPayloadArray::AddPayload(H264SEIPayLoad* payload)
+void SeiPayloadArray::AddPayload(UMC_H264_DECODER::H264SEIPayLoad* payload)
 {
     if (!payload)
         return;

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -198,7 +198,7 @@ Status VATaskSupplier::DecodeHeaders(NalUnit *nalUnit)
     if (nal_unit_type == NAL_UT_SPS && m_firstVideoParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE &&
         isMVCProfile(m_firstVideoParams.mfx.CodecProfile) && m_va)
     {
-        H264SeqParamSet * currSPS = m_Headers.m_SeqParams.GetCurrentHeader();
+        UMC_H264_DECODER::H264SeqParamSet * currSPS = m_Headers.m_SeqParams.GetCurrentHeader();
         if (currSPS && !currSPS->frame_mbs_only_flag)
         {
             return UMC_NTF_NEW_RESOLUTION;
