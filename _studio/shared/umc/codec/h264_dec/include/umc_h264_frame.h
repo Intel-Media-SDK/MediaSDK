@@ -81,7 +81,7 @@ class H264DecoderFrame
     H264DecoderFrame *m_pPreviousFrame;
     H264DecoderFrame *m_pFutureFrame;
 
-    H264SEIPayLoad m_UserData;
+    UMC_H264_DECODER::H264SEIPayLoad m_UserData;
 
     double           m_dFrameTime;
     bool             m_isOriginalPTS;

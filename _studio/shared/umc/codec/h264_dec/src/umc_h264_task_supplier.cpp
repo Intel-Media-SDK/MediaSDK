@@ -39,6 +39,8 @@
 
 #include "umc_h264_dec_debug.h"
 
+using namespace UMC_H264_DECODER;
+
 namespace UMC
 {
 
