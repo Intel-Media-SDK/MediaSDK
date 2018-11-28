@@ -683,7 +683,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.Color420Only = 0;
         m_caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
-        m_caps.NumScalablePipesMinus1 = 1;
+        m_caps.NumScalablePipesMinus1 = 0; // TODO: for now driver doesn't support multiple pipes scalability
     }
     if (attrs[idx_map[VAConfigAttribRTFormat]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
