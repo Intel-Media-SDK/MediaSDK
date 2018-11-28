@@ -20,11 +20,11 @@
 
 if(MFX_ENABLE_KERNELS)
   mfx_include_dirs( )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/asc/include )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/copy_kernels/include )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/field_copy/include )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h264_encode/include )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/include )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/asc/isa )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/copy_kernels/isa )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/field_copy/isa )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h264_encode/isa )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/isa )
   include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../cmrt_cross_platform/include )
 
   set( defs "" )
@@ -34,7 +34,7 @@ if(MFX_ENABLE_KERNELS)
   set( MSDK_GENX_ROOT ${MSDK_LIB_ROOT}/genx )
 
   if( MFX_ENABLE_ASC )
-    set( prefix ${MSDK_GENX_ROOT}/asc/src )
+    set( prefix ${MSDK_GENX_ROOT}/asc/isa )
     list( APPEND sources
         ${prefix}/genx_scd_bdw_isa.cpp
         ${prefix}/genx_scd_cnl_isa.cpp
@@ -44,7 +44,7 @@ if(MFX_ENABLE_KERNELS)
     )
   endif()
 
-  set( prefix ${MSDK_GENX_ROOT}/copy_kernels/src )
+  set( prefix ${MSDK_GENX_ROOT}/copy_kernels/isa )
   list( APPEND sources
     ${prefix}/genx_cht_copy_isa.cpp
     ${prefix}/genx_skl_copy_isa.cpp
@@ -53,7 +53,7 @@ if(MFX_ENABLE_KERNELS)
     ${prefix}/genx_cnl_copy_isa.cpp
   )
 
-  set( prefix ${MSDK_GENX_ROOT}/field_copy/src )
+  set( prefix ${MSDK_GENX_ROOT}/field_copy/isa )
   list( APPEND sources
     ${prefix}/genx_fcopy_gen8_isa.cpp
     ${prefix}/genx_fcopy_gen9_isa.cpp
@@ -62,7 +62,7 @@ if(MFX_ENABLE_KERNELS)
     ${prefix}/genx_fcopy_gen11lp_isa.cpp
   )
 
-  set( prefix ${MSDK_GENX_ROOT}/h264_encode/src )
+  set( prefix ${MSDK_GENX_ROOT}/h264_encode/isa )
   list( APPEND sources
     ${prefix}/genx_bdw_simple_me_isa.cpp
     ${prefix}/genx_cnl_histogram_isa.cpp
@@ -78,7 +78,7 @@ if(MFX_ENABLE_KERNELS)
   )
 
   if( MFX_ENABLE_MCTF )
-    set( prefix ${MSDK_GENX_ROOT}/mctf/src )
+    set( prefix ${MSDK_GENX_ROOT}/mctf/isa )
     list( APPEND sources
       ${prefix}/genx_mc_bdw_isa.cpp
       ${prefix}/genx_mc_icl_isa.cpp

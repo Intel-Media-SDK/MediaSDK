@@ -31,7 +31,7 @@ endforeach()
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
 include_directories( ${MSDK_LIB_ROOT}/enc_hw/mpeg2/include )
 include_directories( ${MSDK_LIB_ROOT}/pak/mpeg2/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/h264_encode/include )
+include_directories( ${MSDK_LIB_ROOT}/genx/h264_encode/isa )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 # umc codec
