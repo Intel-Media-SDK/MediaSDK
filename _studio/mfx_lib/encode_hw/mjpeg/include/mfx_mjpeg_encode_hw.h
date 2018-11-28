@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,6 @@
 #include "mfxvideo++int.h"
 #include "mfx_mjpeg_encode_hw_utils.h"
 #include "mfx_mjpeg_encode_interface.h"
-
-using namespace MfxHwMJpegEncode;
 
 class MfxFrameAllocResponse : public mfxFrameAllocResponse
 {
@@ -129,7 +127,7 @@ protected:
     VideoCORE*          m_pCore;
     mfxVideoParam       m_vFirstParam;
     mfxVideoParam       m_vParam;
-    std::unique_ptr<DriverEncoder> m_ddi;
+    std::unique_ptr<MfxHwMJpegEncode::DriverEncoder> m_ddi;
 
     bool                m_bInitialized;
     bool                m_deviceFailed;
@@ -139,7 +137,7 @@ protected:
     MfxFrameAllocResponse m_bitstream;  // bitstream surface
     mfxU32                m_counter;    // task number (StatusReportFeedbackNumber)
 
-    TaskManager           m_TaskManager;
+    MfxHwMJpegEncode::TaskManager m_TaskManager;
 
     mfxExtJPEGQuantTables    m_checkedJpegQT;
     mfxExtJPEGHuffmanTables  m_checkedJpegHT;
