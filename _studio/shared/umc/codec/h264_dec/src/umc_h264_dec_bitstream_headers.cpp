@@ -57,6 +57,8 @@
     (data) = x & bits_data[nbits]; \
 }
 
+using namespace UMC_H264_DECODER;
+
 namespace UMC
 {
 static const int32_t pre_norm_adjust_index4x4[16] =

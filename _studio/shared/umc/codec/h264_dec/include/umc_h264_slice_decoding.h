@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -76,7 +76,7 @@ public:
     ~H264Slice(void);
 
     // Set slice source data
-    virtual bool Reset(H264NalExtension *pNalExt);
+    virtual bool Reset(UMC_H264_DECODER::H264NalExtension *pNalExt);
     // Set current slice number
     void SetSliceNumber(int32_t iSliceNumber);
 
@@ -90,12 +90,12 @@ public:
     //
 
     // Obtain pointer to slice header
-    const H264SliceHeader *GetSliceHeader(void) const {return &m_SliceHeader;}
-    H264SliceHeader *GetSliceHeader(void) {return &m_SliceHeader;}
+    const UMC_H264_DECODER::H264SliceHeader *GetSliceHeader(void) const {return &m_SliceHeader;}
+    UMC_H264_DECODER::H264SliceHeader *GetSliceHeader(void) {return &m_SliceHeader;}
     // Obtain bit stream object
     H264HeadersBitstream *GetBitStream(void){return &m_BitStream;}
     // Obtain prediction weigth table
-    const PredWeightTable *GetPredWeigthTable(int32_t iNum) const {return m_PredWeight[iNum & 1];}
+    const UMC_H264_DECODER::PredWeightTable *GetPredWeigthTable(int32_t iNum) const {return m_PredWeight[iNum & 1];}
     // Obtain first MB number
     int32_t GetFirstMBNumber(void) const {return m_iFirstMBFld;}
     int32_t GetStreamFirstMB(void) const {return m_iFirstMB;}
@@ -111,21 +111,21 @@ public:
     // Obtain current sequence parameter set number
     int32_t GetSeqParamSet(void) const {return m_pSeqParamSet->seq_parameter_set_id;}
     // Obtain current picture parameter set
-    const H264PicParamSet *GetPicParam(void) const {return m_pPicParamSet;}
-    void SetPicParam(const H264PicParamSet * pps) {m_pPicParamSet = pps;}
+    const UMC_H264_DECODER::H264PicParamSet *GetPicParam(void) const {return m_pPicParamSet;}
+    void SetPicParam(const UMC_H264_DECODER::H264PicParamSet * pps) {m_pPicParamSet = pps;}
     // Obtain current sequence parameter set
-    const H264SeqParamSet *GetSeqParam(void) const {return m_pSeqParamSet;}
-    void SetSeqParam(const H264SeqParamSet * sps) {m_pSeqParamSet = sps;}
+    const UMC_H264_DECODER::H264SeqParamSet *GetSeqParam(void) const {return m_pSeqParamSet;}
+    void SetSeqParam(const UMC_H264_DECODER::H264SeqParamSet * sps) {m_pSeqParamSet = sps;}
 
     // Obtain current sequence extension parameter set
-    const H264SeqParamSetExtension *GetSeqParamEx(void) const {return m_pSeqParamSetEx;}
-    void SetSeqExParam(const H264SeqParamSetExtension * spsex) {m_pSeqParamSetEx = spsex;}
+    const UMC_H264_DECODER::H264SeqParamSetExtension *GetSeqParamEx(void) const {return m_pSeqParamSetEx;}
+    void SetSeqExParam(const UMC_H264_DECODER::H264SeqParamSetExtension * spsex) {m_pSeqParamSetEx = spsex;}
 
-    const H264SeqParamSetMVCExtension *GetSeqMVCParam(void) const {return m_pSeqParamSetMvcEx;}
-    void SetSeqMVCParam(const H264SeqParamSetMVCExtension * sps);
+    const UMC_H264_DECODER::H264SeqParamSetMVCExtension *GetSeqMVCParam(void) const {return m_pSeqParamSetMvcEx;}
+    void SetSeqMVCParam(const UMC_H264_DECODER::H264SeqParamSetMVCExtension * sps);
 
-    const H264SeqParamSetSVCExtension *GetSeqSVCParam(void) const {return m_pSeqParamSetSvcEx;}
-    void SetSeqSVCParam(const H264SeqParamSetSVCExtension * sps);
+    const UMC_H264_DECODER::H264SeqParamSetSVCExtension *GetSeqSVCParam(void) const {return m_pSeqParamSetSvcEx;}
+    void SetSeqSVCParam(const UMC_H264_DECODER::H264SeqParamSetSVCExtension * sps);
 
     // Obtain current destination frame
     H264DecoderFrame *GetCurrentFrame(void){return m_pCurrentFrame;}
@@ -159,7 +159,7 @@ public:
     // Segment decoding mode's variables
     //
 
-    AdaptiveMarkingInfo * GetAdaptiveMarkingInfo();
+    UMC_H264_DECODER::AdaptiveMarkingInfo * GetAdaptiveMarkingInfo();
 
     bool IsError() const {return m_bError;}
 
@@ -186,25 +186,25 @@ public:  // DEBUG !!!! should remove dependence
     virtual void ZeroedMembers();
 
     // Decode slice header
-    bool DecodeSliceHeader(H264NalExtension *pNalExt);
+    bool DecodeSliceHeader(UMC_H264_DECODER::H264NalExtension *pNalExt);
 
     // Reference list(s) management functions & tools
     int32_t AdjustRefPicListForFields(H264DecoderFrame **pRefPicList, ReferenceFlags *pFields, H264RefListInfo &rli);
-    void ReOrderRefPicList(H264DecoderFrame **pRefPicList, ReferenceFlags *pFields, RefPicListReorderInfo *pReorderInfo, int32_t MaxPicNum, ViewList &views, int32_t dIdIndex, uint32_t listNum);
+    void ReOrderRefPicList(H264DecoderFrame **pRefPicList, ReferenceFlags *pFields, UMC_H264_DECODER::RefPicListReorderInfo *pReorderInfo, int32_t MaxPicNum, ViewList &views, int32_t dIdIndex, uint32_t listNum);
 
-    RefPicListReorderInfo ReorderInfoL0;                        // (RefPicListReorderInfo) reference list 0 info
-    RefPicListReorderInfo ReorderInfoL1;                        // (RefPicListReorderInfo) reference list 1 info
+    UMC_H264_DECODER::RefPicListReorderInfo ReorderInfoL0;                        // (RefPicListReorderInfo) reference list 0 info
+    UMC_H264_DECODER::RefPicListReorderInfo ReorderInfoL1;                        // (RefPicListReorderInfo) reference list 1 info
 
-    H264SliceHeader m_SliceHeader;                              // (H264SliceHeader) slice header
+    UMC_H264_DECODER::H264SliceHeader m_SliceHeader;                              // (H264SliceHeader) slice header
     H264HeadersBitstream m_BitStream;                           // (H264Bitstream) slice bit stream
 
-    PredWeightTable m_PredWeight[2][MAX_NUM_REF_FRAMES];        // (PredWeightTable []) prediction weight table
+    UMC_H264_DECODER::PredWeightTable m_PredWeight[2][MAX_NUM_REF_FRAMES];        // (PredWeightTable []) prediction weight table
 
-    const H264PicParamSet* m_pPicParamSet;                      // (H264PicParamSet *) pointer to array of picture parameters sets
-    const H264SeqParamSet* m_pSeqParamSet;                      // (H264SeqParamSet *) pointer to array of sequence parameters sets
-    const H264SeqParamSetExtension* m_pSeqParamSetEx;
-    const H264SeqParamSetMVCExtension* m_pSeqParamSetMvcEx;
-    const H264SeqParamSetSVCExtension* m_pSeqParamSetSvcEx;
+    const UMC_H264_DECODER::H264PicParamSet* m_pPicParamSet;                      // (H264PicParamSet *) pointer to array of picture parameters sets
+    const UMC_H264_DECODER::H264SeqParamSet* m_pSeqParamSet;                      // (H264SeqParamSet *) pointer to array of sequence parameters sets
+    const UMC_H264_DECODER::H264SeqParamSetExtension* m_pSeqParamSetEx;
+    const UMC_H264_DECODER::H264SeqParamSetMVCExtension* m_pSeqParamSetMvcEx;
+    const UMC_H264_DECODER::H264SeqParamSetSVCExtension* m_pSeqParamSetSvcEx;
 
     H264DecoderFrame *m_pCurrentFrame;        // (H264DecoderFrame *) pointer to destination frame
 
@@ -224,8 +224,8 @@ public:  // DEBUG !!!! should remove dependence
     bool m_bError;                                              // (bool) there is an error in decoding
     bool m_isInitialized;
 
-    AdaptiveMarkingInfo     m_AdaptiveMarkingInfo;
-    AdaptiveMarkingInfo     m_BaseAdaptiveMarkingInfo;
+    UMC_H264_DECODER::AdaptiveMarkingInfo     m_AdaptiveMarkingInfo;
+    UMC_H264_DECODER::AdaptiveMarkingInfo     m_BaseAdaptiveMarkingInfo;
 
     bool m_bDecoded;                                            // (bool) "slice has been decoded" flag
     bool m_bPrevDeblocked;                                      // (bool) "previous slice has been deblocked" flag
@@ -244,8 +244,8 @@ bool IsPictureTheSame(H264Slice *pSliceOne, H264Slice *pSliceTwo)
     if (!pSliceOne)
         return true;
 
-    const H264SliceHeader *pOne = pSliceOne->GetSliceHeader();
-    const H264SliceHeader *pTwo = pSliceTwo->GetSliceHeader();
+    const UMC_H264_DECODER::H264SliceHeader *pOne = pSliceOne->GetSliceHeader();
+    const UMC_H264_DECODER::H264SliceHeader *pTwo = pSliceTwo->GetSliceHeader();
 
     // this function checks two slices are from same picture or not
     // 7.4.1.2.4 and G.7.4.1.2.4 parts of h264 standard
