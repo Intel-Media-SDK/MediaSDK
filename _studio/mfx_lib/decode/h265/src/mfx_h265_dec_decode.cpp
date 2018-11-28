@@ -33,6 +33,8 @@
 
 #include "umc_h265_va_supplier.h"
 
+using namespace UMC_HEVC_DECODER;
+
 inline
 mfxU32 CalculateAsyncDepth(eMFXPlatform platform, mfxVideoParam *par)
 {
@@ -66,27 +68,27 @@ mfxU16 UMC2MFX_PicStruct(int dps, bool extended)
 {
     switch (dps)
     {
-        case UMC_HEVC_DECODER::DPS_FRAME_H265:
+        case DPS_FRAME_H265:
             return MFX_PICSTRUCT_PROGRESSIVE;
 
-        case UMC_HEVC_DECODER::DPS_TOP_H265:
+        case DPS_TOP_H265:
             return MFX_PICSTRUCT_FIELD_TOP;
-        case UMC_HEVC_DECODER::DPS_BOTTOM_H265:
+        case DPS_BOTTOM_H265:
             return MFX_PICSTRUCT_FIELD_BOTTOM;
 
-        case UMC_HEVC_DECODER::DPS_TOP_BOTTOM_H265:
+        case DPS_TOP_BOTTOM_H265:
             return MFX_PICSTRUCT_PROGRESSIVE | (extended ? MFX_PICSTRUCT_FIELD_TFF: 0);
-        case UMC_HEVC_DECODER::DPS_BOTTOM_TOP_H265:
+        case DPS_BOTTOM_TOP_H265:
             return MFX_PICSTRUCT_PROGRESSIVE | (extended ? MFX_PICSTRUCT_FIELD_BFF: 0);
 
-        case UMC_HEVC_DECODER::DPS_TOP_BOTTOM_TOP_H265:
+        case DPS_TOP_BOTTOM_TOP_H265:
             return MFX_PICSTRUCT_PROGRESSIVE | (extended ? MFX_PICSTRUCT_FIELD_REPEATED | MFX_PICSTRUCT_FIELD_TFF: 0);
-        case UMC_HEVC_DECODER::DPS_BOTTOM_TOP_BOTTOM_H265:
+        case DPS_BOTTOM_TOP_BOTTOM_H265:
             return MFX_PICSTRUCT_PROGRESSIVE | (extended ? MFX_PICSTRUCT_FIELD_REPEATED | MFX_PICSTRUCT_FIELD_BFF: 0);
 
-        case UMC_HEVC_DECODER::DPS_FRAME_DOUBLING_H265:
+        case DPS_FRAME_DOUBLING_H265:
             return MFX_PICSTRUCT_PROGRESSIVE | (extended ? MFX_PICSTRUCT_FRAME_DOUBLING : 0);
-        case UMC_HEVC_DECODER::DPS_FRAME_TRIPLING_H265:
+        case DPS_FRAME_TRIPLING_H265:
             return MFX_PICSTRUCT_PROGRESSIVE | (extended ? MFX_PICSTRUCT_FRAME_TRIPLING : 0);
 
         case DPS_TOP_BOTTOM_PREV_H265:
