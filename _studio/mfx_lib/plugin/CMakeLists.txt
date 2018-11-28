@@ -37,7 +37,8 @@ mfx_include_dirs()
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_LIB_ROOT}/plugin/include )
 include_directories( ${MSDK_LIB_ROOT}/scheduler/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/isa )
+include_directories( ${MSDK_LIB_ROOT}/genx/h264_encode/isa )
 
 list( APPEND umc_dirs
   brc
@@ -55,7 +56,7 @@ foreach( enc ${vencs} )
   list( APPEND vdirs_hw encode_hw/${enc} )
 endforeach()
 
-list( APPEND vdirs_impl vpp cmrt_cross_platform genx/h264_encode)
+list( APPEND vdirs_impl vpp cmrt_cross_platform)
 foreach( dir  ${vdirs} ${vdirs_impl} ${vdirs_hw} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
