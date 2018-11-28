@@ -33,14 +33,16 @@ if(MFX_ENABLE_KERNELS)
 
   set( MSDK_GENX_ROOT ${MSDK_LIB_ROOT}/genx )
 
-  set( prefix ${MSDK_GENX_ROOT}/asc/src )
-  list( APPEND sources
-      ${prefix}/genx_scd_bdw_isa.cpp
-      ${prefix}/genx_scd_cnl_isa.cpp
-      ${prefix}/genx_scd_icl_isa.cpp
-      ${prefix}/genx_scd_icllp_isa.cpp
-      ${prefix}/genx_scd_skl_isa.cpp
-  )
+  if( MFX_ENABLE_ASC )
+    set( prefix ${MSDK_GENX_ROOT}/asc/src )
+    list( APPEND sources
+        ${prefix}/genx_scd_bdw_isa.cpp
+        ${prefix}/genx_scd_cnl_isa.cpp
+        ${prefix}/genx_scd_icl_isa.cpp
+        ${prefix}/genx_scd_icllp_isa.cpp
+        ${prefix}/genx_scd_skl_isa.cpp
+    )
+  endif()
 
   set( prefix ${MSDK_GENX_ROOT}/copy_kernels/src )
   list( APPEND sources
@@ -75,7 +77,7 @@ if(MFX_ENABLE_KERNELS)
     ${prefix}/genx_skl_simple_me_isa.cpp
   )
 
-  if( ${MFX_ENABLE_MCTF} )
+  if( MFX_ENABLE_MCTF )
     set( prefix ${MSDK_GENX_ROOT}/mctf/src )
     list( APPEND sources
       ${prefix}/genx_mc_bdw_isa.cpp
