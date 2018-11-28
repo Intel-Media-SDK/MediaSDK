@@ -78,6 +78,12 @@ if(MFX_ENABLE_KERNELS)
   set( sources.plus "" )
 
   if( MFX_ENABLE_ASC )
+    if(BUILD_KERNELS)
+      foreach(platform gen8 gen9 gen10 gen11 gen11lp)
+        add_cmc_target(${MSDK_GENX_ROOT}/asc/src/genx_scd.cpp ${platform} ${MSDK_GENX_ROOT}/asc/isa)
+      endforeach()
+    endif()
+
     set( prefix ${MSDK_GENX_ROOT}/asc/isa )
     list( APPEND sources
         ${prefix}/genx_scd_gen8_isa.cpp
