@@ -80,11 +80,11 @@ if(MFX_ENABLE_KERNELS)
   if( MFX_ENABLE_ASC )
     set( prefix ${MSDK_GENX_ROOT}/asc/isa )
     list( APPEND sources
-        ${prefix}/genx_scd_bdw_isa.cpp
-        ${prefix}/genx_scd_cnl_isa.cpp
-        ${prefix}/genx_scd_icl_isa.cpp
-        ${prefix}/genx_scd_icllp_isa.cpp
-        ${prefix}/genx_scd_skl_isa.cpp
+        ${prefix}/genx_scd_gen8_isa.cpp
+        ${prefix}/genx_scd_gen9_isa.cpp
+        ${prefix}/genx_scd_gen10_isa.cpp
+        ${prefix}/genx_scd_gen11_isa.cpp
+        ${prefix}/genx_scd_gen11lp_isa.cpp
     )
   endif()
 

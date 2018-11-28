@@ -112,11 +112,11 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/shared/src/, \
     mfx_h264_encode_factory.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/isa/, \
-    genx_scd_bdw_isa.cpp \
-    genx_scd_cnl_isa.cpp \
-    genx_scd_icl_isa.cpp \
-    genx_scd_icllp_isa.cpp \
-    genx_scd_skl_isa.cpp)
+    genx_scd_gen8_isa.cpp \
+    genx_scd_gen9_isa.cpp \
+    genx_scd_gen10_isa.cpp \
+    genx_scd_gen11_isa.cpp \
+    genx_scd_gen11lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/isa/, \
     genx_cht_copy_isa.cpp \
