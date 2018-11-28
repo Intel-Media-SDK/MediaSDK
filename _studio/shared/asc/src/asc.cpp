@@ -22,11 +22,11 @@
 #include "asc_defs.h"
 #include "asc_cpu_dispatcher.h"
 #include "libmfx_core_interface.h"
-#include "genx_scd_bdw_isa.h"
-#include "genx_scd_skl_isa.h"
-#include "genx_scd_cnl_isa.h"
-#include "genx_scd_icl_isa.h"
-#include "genx_scd_icllp_isa.h"
+#include "genx_scd_gen8_isa.h"
+#include "genx_scd_gen9_isa.h"
+#include "genx_scd_gen10_isa.h"
+#include "genx_scd_gen11_isa.h"
+#include "genx_scd_gen11lp_isa.h"
 #include "../include/tree.h"
 #include "../include/iofunctions.h"
 #include "../include/motion_estimation_engine.h"
@@ -287,20 +287,20 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
     switch (hwType)
     {
     case PLATFORM_INTEL_BDW:
-        res = m_device->LoadProgram((void *)genx_scd_bdw, sizeof(genx_scd_bdw), m_program, "nojitter");
+        res = m_device->LoadProgram((void *)genx_scd_gen8, sizeof(genx_scd_gen8), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_SKL:
     case PLATFORM_INTEL_KBL:
     case PLATFORM_INTEL_CFL:
     case PLATFORM_INTEL_GLK:
     case PLATFORM_INTEL_BXT:
-        res = m_device->LoadProgram((void *)genx_scd_skl, sizeof(genx_scd_skl), m_program, "nojitter");
+        res = m_device->LoadProgram((void *)genx_scd_gen9, sizeof(genx_scd_gen9), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_ICL:
-        res = m_device->LoadProgram((void *)genx_scd_icl, sizeof(genx_scd_icl), m_program, "nojitter");
+        res = m_device->LoadProgram((void *)genx_scd_gen11, sizeof(genx_scd_gen11), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_ICLLP:
-        res = m_device->LoadProgram((void *)genx_scd_icllp, sizeof(genx_scd_icllp), m_program, "nojitter");
+        res = m_device->LoadProgram((void *)genx_scd_gen11lp, sizeof(genx_scd_gen11lp), m_program, "nojitter");
         break;
     default:
         res = CM_NOT_IMPLEMENTED;

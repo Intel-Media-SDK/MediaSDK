@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -17,10 +17,9 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+#include "genx_scd_gen10_isa.h"
 
-#include "genx_scd_cnl_isa.h"
-
-const unsigned char genx_scd_cnl[19089] = { 
+const unsigned char genx_scd_gen10[19089] = {
 0x43,0x49,0x53,0x41,0x03,0x06,0x04,0x00,0x10,0x53,0x75,0x62,0x53,0x61,0x6d,0x70,
 0x6c,0x65,0x50,0x6f,0x69,0x6e,0x74,0x5f,0x70,0xb5,0x00,0x00,0x00,0x62,0x0e,0x00,
 0x00,0xf7,0x06,0x00,0x00,0x00,0x00,0x00,0x00,0x01,0x07,0x17,0x0f,0x00,0x00,0xc0,
