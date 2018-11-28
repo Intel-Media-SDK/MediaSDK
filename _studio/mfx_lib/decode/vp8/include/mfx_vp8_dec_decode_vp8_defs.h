@@ -25,9 +25,7 @@
 #ifndef _MFX_VP8_DEC_DECODE_VP8_DEFS_H_
 #define _MFX_VP8_DEC_DECODE_VP8_DEFS_H_
 
-using namespace UMC;
 #include "umc_structures.h"
-
 
 namespace VP8Defs
 {

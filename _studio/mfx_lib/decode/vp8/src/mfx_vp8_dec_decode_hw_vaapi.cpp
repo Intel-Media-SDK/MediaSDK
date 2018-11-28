@@ -53,7 +53,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
      sFrameInfo info = m_frames.back();
 
    /////////////////////////////////////////////////////////////////////////////////////////
-     UMCVACompBuffer* compBufPic;
+     UMC::UMCVACompBuffer* compBufPic;
      VAPictureParameterBufferVP8 *picParams
          = (VAPictureParameterBufferVP8*)m_p_video_accelerator->GetCompBuffer(VAPictureParameterBufferType, &compBufPic,
                                                                               sizeof(VAPictureParameterBufferVP8));
@@ -64,7 +64,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
 
      picParams->pic_fields.value = 0;
 
-     if (I_PICTURE == m_frame_info.frameType)
+     if (UMC::I_PICTURE == m_frame_info.frameType)
      {
          //0 means key_frame
          picParams->pic_fields.bits.key_frame = 0;
@@ -116,7 +116,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
      //same as sign_bias_alternate in bitstream syntax
      picParams->pic_fields.bits.sign_bias_alternate = 0;
 
-     if (I_PICTURE != m_frame_info.frameType)
+     if (UMC::I_PICTURE != m_frame_info.frameType)
      {
          picParams->pic_fields.bits.sign_bias_golden = m_refresh_info.refFrameBiasTable[3];
          picParams->pic_fields.bits.sign_bias_alternate = m_refresh_info.refFrameBiasTable[2];
@@ -193,7 +193,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
      const mfxU8 *prob_y_table;
      const mfxU8 *prob_uv_table;
 
-     if (I_PICTURE == m_frame_info.frameType)
+     if (UMC::I_PICTURE == m_frame_info.frameType)
      {
          prob_y_table = vp8_kf_mb_mode_y_probs;
          prob_uv_table = vp8_kf_mb_mode_uv_probs;
@@ -230,7 +230,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
      compBufPic->SetDataSize(sizeof(VAPictureParameterBufferVP8));
 
      //////////////////////////////////////////////////////////////////
-     UMCVACompBuffer* compBufCp;
+     UMC::UMCVACompBuffer* compBufCp;
      VAProbabilityDataBufferVP8 *coeffProbs = (VAProbabilityDataBufferVP8*)m_p_video_accelerator->
              GetCompBuffer(VAProbabilityBufferType, &compBufCp, sizeof(VAProbabilityDataBufferVP8));
 
@@ -241,7 +241,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
      compBufCp->SetDataSize(sizeof(VAProbabilityDataBufferVP8));
 
      //////////////////////////////////////////////////////////////////
-     UMCVACompBuffer* compBufQm;
+     UMC::UMCVACompBuffer* compBufQm;
      VAIQMatrixBufferVP8 *qmTable = (VAIQMatrixBufferVP8*)m_p_video_accelerator->
              GetCompBuffer(VAIQMatrixBufferType, &compBufQm, sizeof(VAIQMatrixBufferVP8));
 
@@ -276,14 +276,14 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
 
      uint32_t offset = 0;
 
-     if (I_PICTURE == m_frame_info.frameType)
+     if (UMC::I_PICTURE == m_frame_info.frameType)
          offset = 10;
      else
          offset = 3;
 
      int32_t size = p_bistream->DataLength;
 
-     UMCVACompBuffer* compBufSlice;
+     UMC::UMCVACompBuffer* compBufSlice;
 
      VASliceParameterBufferVP8 *sliceParams
          = (VASliceParameterBufferVP8*)m_p_video_accelerator->
@@ -329,7 +329,7 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
      compBufSlice->SetDataSize(sizeof(VASliceParameterBufferVP8));
 
      //////////////////////////////////////////////////////////////////
-     UMCVACompBuffer* compBufBs;
+     UMC::UMCVACompBuffer* compBufBs;
      uint8_t *bistreamData = (uint8_t *)m_p_video_accelerator->GetCompBuffer(VASliceDataBufferType, &compBufBs, p_bistream->DataLength - offset);
 
      uint8_t *pBuffer = (uint8_t*) p_bistream->Data;
