@@ -162,22 +162,18 @@ enum
     MFX_MEMTYPE_SYS_INT = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY        | MFX_MEMTYPE_INTERNAL_FRAME,
 };
 
-enum
-{
-    MAX_DPB_SIZE            = 15,
-    IDX_INVALID             = 0xFF,
+constexpr mfxU8    MAX_DPB_SIZE          = 15;
+constexpr mfxU8    IDX_INVALID           = 0xff;
 
-    HW_SURF_ALIGN_W         = 16,
-    HW_SURF_ALIGN_H         = 16,
+constexpr mfxU8    HW_SURF_ALIGN_W       = 16;
+constexpr mfxU8    HW_SURF_ALIGN_H       = 16;
 
-    MAX_SLICES              = 200,// WA for driver issue regerding CNL and older platforms
-    DEFAULT_LTR_INTERVAL    = 16,
-    DEFAULT_PPYR_INTERVAL   = 3,
+constexpr mfxU8    MAX_SLICES            = 200; // WA for driver issue regarding CNL and older platforms
+constexpr mfxU8    DEFAULT_LTR_INTERVAL  = 16;
+constexpr mfxU8    DEFAULT_PPYR_INTERVAL = 3;
 
-    MAX_NUM_ROI             = 16,
-    MAX_NUM_DIRTY_RECT      = 64
-};
-
+constexpr mfxU8    MAX_NUM_ROI           = 16;
+constexpr mfxU8    MAX_NUM_DIRTY_RECT    = 64;
 
 enum
 {
@@ -274,8 +270,8 @@ private:
 
 struct DpbFrame
 {
-    mfxI32              m_poc         = 0;
-    mfxU32              m_fo          = 0;          // FrameOrder
+    mfxI32              m_poc         = -1;
+    mfxU32              m_fo          = 0xffffffff; // FrameOrder
     mfxU32              m_eo          = 0xffffffff; // Encoded order
     mfxU32              m_bpo         = 0;          // B-pyramid order
     mfxU32              m_level       = 0;          // pyramid level
