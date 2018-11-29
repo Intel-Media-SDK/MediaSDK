@@ -940,6 +940,13 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
             return UMC_ERR_INVALID_STREAM;
         }
 
+        // For progressive_sequence only progressive frame and frame picture
+        if (sequenceHeader.progressive_sequence &&
+            (!PictureHeader[task_num].progressive_frame || PictureHeader[task_num].picture_structure != FRAME_PICTURE))
+        {
+            return UMC_ERR_INVALID_STREAM;
+        }
+
         // The check below is from progressive_frame field description in 6.3.10 part of MPEG2 standard
         if (PictureHeader[task_num].progressive_frame && PictureHeader[task_num].picture_structure != FRAME_PICTURE)
         {
@@ -1001,7 +1008,7 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
                 || frame_buffer.field_buffer_index[task_num] == 1)
             { // complete frame
               // reorder frames
-                if (m_lFlags & FLAG_VDEC_REORDER) {
+                if (m_lFlags & FLAG_VDEC_REORDER)
                 {
                     if (frame_buffer.latest_prev >= 0)
                     {
@@ -1015,28 +1022,27 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
                         frame_buffer.ret_array_len++;
                     }
                 }
-            }
-            else // no reordering
-            {
-                int ret_index = frame_buffer.curr_index[task_num];
-
-                if (ret_index >= DPB_SIZE)
+                else // no reordering
                 {
-                    ret_index -= DPB_SIZE;
-                }
-                
-                frame_buffer.ret_array[frame_buffer.ret_array_free] = ret_index;
-                frame_buffer.ret_index = ret_index;
-                frame_buffer.ret_array_free++;
+                    int ret_index = frame_buffer.curr_index[task_num];
 
-                if (frame_buffer.ret_array_free >= DPB_SIZE)
-                {
-                    frame_buffer.ret_array_free = 0;
-                }
+                    if (ret_index >= DPB_SIZE)
+                    {
+                        ret_index -= DPB_SIZE;
+                    }
 
-                frame_buffer.ret_array_len++;
+                    frame_buffer.ret_array[frame_buffer.ret_array_free] = ret_index;
+                    frame_buffer.ret_index = ret_index;
+                    frame_buffer.ret_array_free++;
+
+                    if (frame_buffer.ret_array_free >= DPB_SIZE)
+                    {
+                        frame_buffer.ret_array_free = 0;
+                    }
+
+                    frame_buffer.ret_array_len++;
+                }
             }
-        }
         
         break;
 

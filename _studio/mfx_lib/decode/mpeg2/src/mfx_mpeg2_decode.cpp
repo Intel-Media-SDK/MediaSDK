@@ -2845,11 +2845,12 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
         memset(&m_task_param[m_task_num],0,sizeof(MParam));
         m_implUmc->LockTask(m_task_num);
 
-        umcRes = m_implUmc->DecodeSlices(0, m_task_num);
+        umcRes = m_implUmc->DecodeSlices(0, m_task_num); // never returns UMC_OK
 
-        if (UMC::UMC_OK != umcRes &&
+        if (m_implUmcHW->pack_w.pSliceInfo == m_implUmcHW->pack_w.pSliceInfoBuffer || (// no slices decoded
+            UMC::UMC_OK != umcRes &&
             UMC::UMC_ERR_NOT_ENOUGH_DATA != umcRes &&
-            UMC::UMC_ERR_SYNC != umcRes)
+            UMC::UMC_ERR_SYNC != umcRes))
         {
             MFX_CHECK_STS(RestoreDecoder(m_frame_curr, mid[curr_index], m_task_num, END_FRAME, REMOVE_LAST_FRAME, IsField?1:2))
             return MFX_ERR_MORE_DATA;
