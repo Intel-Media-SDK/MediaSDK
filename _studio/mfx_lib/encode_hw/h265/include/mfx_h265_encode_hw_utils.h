@@ -539,10 +539,10 @@ namespace ExtBuffer
         buf_dst.WinBRCMaxAvgKbps        = buf_src.WinBRCMaxAvgKbps;
         buf_dst.WinBRCSize              = buf_src.WinBRCSize;
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
-        _CopyPar1(WeightedPred);
-        _CopyPar1(WeightedBiPred);
+        buf_dst.WeightedPred            = buf_src.WeightedPred;
+        buf_dst.WeightedBiPred          = buf_src.WeightedBiPred;
 #if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
-        _CopyPar1(FadeDetection);
+        buf_dst.FadeDetection           = buf_src.FadeDetection;
 #endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #if (MFX_VERSION >= 1025)
