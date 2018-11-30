@@ -674,8 +674,6 @@ mfxStatus VAAPIFEIPREENCEncoder::QueryStatus(
     }
     MFX_CHECK(indxSurf != m_statFeedbackCache.size(), MFX_ERR_UNKNOWN);
 
-    VASurfaceStatus surfSts = VASurfaceSkipped;
-
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
@@ -688,112 +686,81 @@ mfxStatus VAAPIFEIPREENCEncoder::QueryStatus(
         vaSts = VA_STATUS_SUCCESS;
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaQuerySurfaceStatus");
-        vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
-    }
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    mdprintf(stderr, "sync on surface: %d\n", surfSts);
+    mfxENCInput*  in  = reinterpret_cast<mfxENCInput* >(task.m_userData[0]);
+    mfxENCOutput* out = reinterpret_cast<mfxENCOutput*>(task.m_userData[1]);
 
-    switch (surfSts)
+    //find control buffer
+    mfxExtFeiPreEncCtrl*   feiCtrl   = GetExtBufferFEI(in,  feiFieldId);
+    //find output surfaces
+    mfxExtFeiPreEncMV*     mvsOut    = GetExtBufferFEI(out, feiFieldId);
+    mfxExtFeiPreEncMBStat* mbstatOut = GetExtBufferFEI(out, feiFieldId);
+
+    if (!feiCtrl->DisableMVOutput && mvsOut && (VA_INVALID_ID != statMVid))
     {
-        default: //for now driver does not return correct status
-        case VASurfaceReady:
+        // Copy back MVs
+        VAMotionVector* mvs;
+
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MV");
         {
-            VAMotionVector* mvs;
-            VAStatsStatisticsH264* mbstat;
-
-            mfxENCInput*  in  = reinterpret_cast<mfxENCInput* >(task.m_userData[0]);
-            mfxENCOutput* out = reinterpret_cast<mfxENCOutput*>(task.m_userData[1]);
-
-            //find control buffer
-            mfxExtFeiPreEncCtrl*   feiCtrl   = GetExtBufferFEI(in,  feiFieldId);
-            //find output surfaces
-            mfxExtFeiPreEncMV*     mvsOut    = GetExtBufferFEI(out, feiFieldId);
-            mfxExtFeiPreEncMBStat* mbstatOut = GetExtBufferFEI(out, feiFieldId);
-
-            if (!feiCtrl->DisableMVOutput && mvsOut && (VA_INVALID_ID != statMVid))
-            {
-                // Copy back MVs
-
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MV");
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                    vaSts = vaMapBuffer(
-                            m_vaDisplay,
-                            statMVid,
-                            (void **) (&mvs));
-                }
-
-                if(VA_STATUS_ERROR_ENCODING_ERROR == vaSts)
-                {
-                    sts = MFX_ERR_GPU_HANG;
-                    break;
-                }
-                else
-                {
-                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-                }
-
-                FastCopyBufferVid2Sys(mvsOut->MB, mvs, 16 * sizeof(VAMotionVector) * mvsOut->NumMBAlloc);
-
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaSts = vaUnmapBuffer(m_vaDisplay, statMVid);
-                }
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-            }
-
-            if (!feiCtrl->DisableStatisticsOutput && mbstatOut && VA_INVALID_ID != statOUTid)
-            {
-                // Copy back statistics
-
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MBstat");
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                    vaSts = vaMapBuffer(
-                            m_vaDisplay,
-                            statOUTid,
-                            (void **) (&mbstat));
-                }
-
-                if(VA_STATUS_ERROR_ENCODING_ERROR == vaSts)
-                {
-                    sts = MFX_ERR_GPU_HANG;
-                    break;
-                }
-                else
-                {
-                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-                }
-
-                FastCopyBufferVid2Sys(mbstatOut->MB, mbstat, sizeof(VAStatsStatisticsH264) * mbstatOut->NumMBAlloc);
-
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaSts = vaUnmapBuffer(m_vaDisplay, statOUTid);
-                }
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-            }
-
-            // remove task
-            m_statFeedbackCache.erase(m_statFeedbackCache.begin() + indxSurf);
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            vaSts = vaMapBuffer(
+                    m_vaDisplay,
+                    statMVid,
+                    (void **) (&mvs));
         }
-            sts =  MFX_ERR_NONE;
-            break;
-        case VASurfaceRendering:
-        case VASurfaceDisplaying:
-            sts = MFX_WRN_DEVICE_BUSY;
-            break;
 
-        case VASurfaceSkipped:
-            //default:
-            assert(!"bad feedback status");
-            sts =  MFX_ERR_DEVICE_FAILED;
-            //return MFX_ERR_NONE;
-            break;
+        if(vaSts != VA_STATUS_ERROR_ENCODING_ERROR)
+        {
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+            FastCopyBufferVid2Sys(mvsOut->MB, mvs, 16 * sizeof(VAMotionVector) * mvsOut->NumMBAlloc);
+
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+                vaSts = vaUnmapBuffer(m_vaDisplay, statMVid);
+            }
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
+        else
+        {
+            sts = MFX_ERR_GPU_HANG;
+        }
     }
+
+    if (!feiCtrl->DisableStatisticsOutput && mbstatOut && VA_INVALID_ID != statOUTid)
+    {
+        // Copy back statistics
+        VAStatsStatisticsH264* mbstat;
+
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MBstat");
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            vaSts = vaMapBuffer(
+                    m_vaDisplay,
+                    statOUTid,
+                    (void **) (&mbstat));
+        }
+
+        if(vaSts != VA_STATUS_ERROR_ENCODING_ERROR)
+        {
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+            FastCopyBufferVid2Sys(mbstatOut->MB, mbstat, sizeof(VAStatsStatisticsH264) * mbstatOut->NumMBAlloc);
+
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+                vaSts = vaUnmapBuffer(m_vaDisplay, statOUTid);
+            }
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
+        else
+        {
+            sts = MFX_ERR_GPU_HANG;
+        }
+    }
+
+    m_statFeedbackCache.erase(m_statFeedbackCache.begin() + indxSurf);
 
     mdprintf(stderr, "query_vaapi done\n");
     return sts;
@@ -1595,7 +1562,6 @@ mfxStatus VAAPIFEIENCEncoder::QueryStatus(
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FEI::ENC::QueryStatus");
     VAStatus vaSts;
-    mfxStatus sts = MFX_ERR_NONE;
 
     mdprintf(stderr, "VAAPIFEIENCEncoder::QueryStatus frame: %d\n", task.m_frameOrder);
     //------------------------------------------
@@ -1625,8 +1591,6 @@ mfxStatus VAAPIFEIENCEncoder::QueryStatus(
     }
     MFX_CHECK(indxSurf != m_statFeedbackCache.size(), MFX_ERR_UNKNOWN);
 
-    VASurfaceStatus surfSts = VASurfaceSkipped;
-
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
@@ -1637,123 +1601,97 @@ mfxStatus VAAPIFEIENCEncoder::QueryStatus(
         vaSts = VA_STATUS_SUCCESS;
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    mdprintf(stderr, "sync on surface: %d\n", surfSts);
+    // In case of single-field processing, only one buffer is attached
+    mfxU32 idxToPickBuffer = task.m_singleFieldMode ? 0 : feiFieldId;
 
-    switch (surfSts)
+    mfxENCOutput*       out       = reinterpret_cast<mfxENCOutput*>(task.m_userData[1]);
+    mfxExtFeiEncMBStat* mbstat    = GetExtBufferFEI(out, idxToPickBuffer);
+    mfxExtFeiEncMV*     mvout     = GetExtBufferFEI(out, idxToPickBuffer);
+    mfxExtFeiPakMBCtrl* mbcodeout = GetExtBufferFEI(out, idxToPickBuffer);
+
+    /* NO Bitstream in ENC */
+    task.m_bsDataLength[feiFieldId] = 0;
+
+    if (mbstat != NULL && vaFeiMBStatId != VA_INVALID_ID)
     {
-        default: //for now driver does not return correct status
-        case VASurfaceReady:
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MBstat");
+        VAEncFEIDistortionH264* mbs;
         {
-            // In case of single-field processing, only one buffer is attached
-            mfxU32 idxToPickBuffer = task.m_singleFieldMode ? 0 : feiFieldId;
-
-            mfxENCOutput*       out       = reinterpret_cast<mfxENCOutput*>(task.m_userData[1]);
-            mfxExtFeiEncMBStat* mbstat    = GetExtBufferFEI(out, idxToPickBuffer);
-            mfxExtFeiEncMV*     mvout     = GetExtBufferFEI(out, idxToPickBuffer);
-            mfxExtFeiPakMBCtrl* mbcodeout = GetExtBufferFEI(out, idxToPickBuffer);
-
-            /* NO Bitstream in ENC */
-            task.m_bsDataLength[feiFieldId] = 0;
-
-            if (mbstat != NULL && vaFeiMBStatId != VA_INVALID_ID)
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MBstat");
-                VAEncFEIDistortionH264* mbs;
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                    vaSts = vaMapBuffer(
-                            m_vaDisplay,
-                            vaFeiMBStatId,
-                            (void **) (&mbs));
-                }
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-                //copy to output in task here MVs
-                FastCopyBufferVid2Sys(mbstat->MB, mbs, sizeof(VAEncFEIDistortionH264) * mbstat->NumMBAlloc);
-
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMBStatId);
-                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-                }
-                mdprintf(stderr, "Destroy - Distortion bufId=%d\n", m_vaFeiMBStatId[feiFieldId]);
-
-                sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_vaFeiMBStatId[feiFieldId]);
-                MFX_CHECK_STS(sts);
-            }
-
-            if (mvout != NULL && vaFeiMVOutId != VA_INVALID_ID)
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MV");
-                VAMotionVector* mvs;
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                    vaSts = vaMapBuffer(
-                            m_vaDisplay,
-                            vaFeiMVOutId,
-                            (void **) (&mvs));
-                }
-
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-                //copy to output in task here MVs
-                FastCopyBufferVid2Sys(mvout->MB, mvs, sizeof(VAMotionVector) * 16 * mvout->NumMBAlloc);
-
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMVOutId);
-                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-                }
-//                mdprintf(stderr, "Destroy - MV bufId=%d\n", m_vaFeiMVOutId[feiFieldId]);
-            }
-
-            if (mbcodeout != NULL && vaFeiMBCODEOutId != VA_INVALID_ID)
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MBcode");
-                VAEncFEIMBCodeH264* mbcs;
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                    vaSts = vaMapBuffer(
-                            m_vaDisplay,
-                            vaFeiMBCODEOutId,
-                            (void **) (&mbcs));
-                }
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-                //copy to output in task here MVs
-                FastCopyBufferVid2Sys(mbcodeout->MB, mbcs, sizeof(VAEncFEIMBCodeH264) * mbcodeout->NumMBAlloc);
-
-                {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                    vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMBCODEOutId);
-                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-                }
-//                mdprintf(stderr, "Destroy - MBCODE bufId=%d\n", m_vaFeiMCODEOutId[feiFieldId]);
-            }
-
-            // remove task
-            m_statFeedbackCache.erase(m_statFeedbackCache.begin() + indxSurf);
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            vaSts = vaMapBuffer(
+                    m_vaDisplay,
+                    vaFeiMBStatId,
+                    (void **) (&mbs));
         }
-            sts = MFX_ERR_NONE;
-            break;
-        case VASurfaceRendering:
-        case VASurfaceDisplaying:
-            sts = MFX_WRN_DEVICE_BUSY;
-            break;
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        //copy to output in task here MB stat
+        FastCopyBufferVid2Sys(mbstat->MB, mbs, sizeof(VAEncFEIDistortionH264) * mbstat->NumMBAlloc);
 
-        case VASurfaceSkipped:
-            //default:
-            assert(!"bad feedback status");
-            sts =  MFX_ERR_DEVICE_FAILED;
-            //return MFX_ERR_NONE;
-            break;
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMBStatId);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
+        mdprintf(stderr, "Destroy - Distortion bufId=%d\n", m_vaFeiMBStatId[feiFieldId]);
+
+        mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_vaFeiMBStatId[feiFieldId]);
+        MFX_CHECK_STS(sts);
     }
+
+    if (mvout != NULL && vaFeiMVOutId != VA_INVALID_ID)
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MV");
+        VAMotionVector* mvs;
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            vaSts = vaMapBuffer(
+                    m_vaDisplay,
+                    vaFeiMVOutId,
+                    (void **) (&mvs));
+        }
+
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        //copy to output in task here MVs
+        FastCopyBufferVid2Sys(mvout->MB, mvs, sizeof(VAMotionVector) * 16 * mvout->NumMBAlloc);
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMVOutId);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
+    }
+
+    if (mbcodeout != NULL && vaFeiMBCODEOutId != VA_INVALID_ID)
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MBcode");
+        VAEncFEIMBCodeH264* mbcs;
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+            vaSts = vaMapBuffer(
+                    m_vaDisplay,
+                    vaFeiMBCODEOutId,
+                    (void **) (&mbcs));
+        }
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        //copy to output in task here MVs
+        FastCopyBufferVid2Sys(mbcodeout->MB, mbcs, sizeof(VAEncFEIMBCodeH264) * mbcodeout->NumMBAlloc);
+
+        {
+            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+            vaSts = vaUnmapBuffer(m_vaDisplay, vaFeiMBCODEOutId);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        }
+    }
+
+    // remove task
+    m_statFeedbackCache.erase(m_statFeedbackCache.begin() + indxSurf);
 
     mdprintf(stderr, "query_vaapi done\n");
 
-    return sts;
+    return MFX_ERR_NONE;
 } // mfxStatus VAAPIFEIENCEncoder::QueryStatus( DdiTask & task, mfxU32 fieldId)
 
 #endif //#if defined(MFX_ENABLE_H264_VIDEO_FEI_ENC)
@@ -2550,82 +2488,59 @@ mfxStatus VAAPIFEIPAKEncoder::QueryStatus(
         vaSts = VA_STATUS_SUCCESS;
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    VASurfaceStatus surfSts = VASurfaceSkipped;
-
-    vaSts = vaQuerySurfaceStatus(m_vaDisplay, waitSurface, &surfSts);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-    mdprintf(stderr, "sync on surface: %d\n", surfSts);
-
-    switch (surfSts)
+    VACodedBufferSegment *codedBufferSegment;
     {
-        default:
-        case VASurfaceReady:
-        {
-            VACodedBufferSegment *codedBufferSegment;
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-                vaSts = vaMapBuffer(
-                            m_vaDisplay,
-                            m_codedBufferId[feiFieldId],
-                            (void **)(&codedBufferSegment));
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-            }
-
-            if (codedBufferSegment->status & VA_CODED_BUF_STATUS_BAD_BITSTREAM)
-            {
-                sts = MFX_ERR_GPU_HANG;
-            }
-            else if (!codedBufferSegment->size || !codedBufferSegment->buf)
-            {
-                sts = MFX_ERR_DEVICE_FAILED;
-            }
-            else
-            {
-                task.m_bsDataLength[feiFieldId] = codedBufferSegment->size;
-
-                FastCopyBufferVid2Sys(task.m_bs->Data + task.m_bs->DataLength,
-                                      codedBufferSegment->buf, codedBufferSegment->size);
-
-                task.m_bs->DataLength += codedBufferSegment->size;
-                //Update other fields in mfxBitstream
-                task.m_bs->TimeStamp = task.m_timeStamp;
-                task.m_bs->DecodeTimeStamp = CalcDTSFromPTS(m_videoParam.mfx.FrameInfo,
-                                             mfxU16(task.m_dpbOutputDelay), task.m_timeStamp);
-                task.m_bs->PicStruct = task.GetPicStructForDisplay();
-                task.m_bs->FrameType = task.m_type[task.GetFirstField()] & ~MFX_FRAMETYPE_KEYPIC;
-                if (task.m_fieldPicFlag)
-                    task.m_bs->FrameType = mfxU16(task.m_bs->FrameType |
-                    ((task.m_type[!task.GetFirstField()]& ~MFX_FRAMETYPE_KEYPIC) << 8));
-                sts = MFX_ERR_NONE;
-            }
-
-            {
-                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-                vaSts = vaUnmapBuffer( m_vaDisplay, m_codedBufferId[feiFieldId] );
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-                // ??? may affect for performance
-                sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_codedBufferId[feiFieldId]);
-                MFX_CHECK_STS(sts);
-            }
-
-            // remove task
-            m_statFeedbackCache.erase(m_statFeedbackCache.begin() + indxSurf);
-        }
-            break;
-        case VASurfaceRendering:
-        case VASurfaceDisplaying:
-            sts = MFX_WRN_DEVICE_BUSY;
-            break;
-
-        case VASurfaceSkipped:
-            //default:
-            assert(!"bad feedback status");
-            sts = MFX_ERR_DEVICE_FAILED;
-            //return MFX_ERR_NONE;
-            break;
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+        vaSts = vaMapBuffer(
+                    m_vaDisplay,
+                    m_codedBufferId[feiFieldId],
+                    (void **)(&codedBufferSegment));
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
+
+    if (codedBufferSegment->status & VA_CODED_BUF_STATUS_BAD_BITSTREAM)
+    {
+        sts = MFX_ERR_GPU_HANG;
+    }
+    else if (!codedBufferSegment->size || !codedBufferSegment->buf)
+    {
+        sts = MFX_ERR_DEVICE_FAILED;
+    }
+    else
+    {
+        task.m_bsDataLength[feiFieldId] = codedBufferSegment->size;
+
+        FastCopyBufferVid2Sys(task.m_bs->Data + task.m_bs->DataLength,
+                              codedBufferSegment->buf, codedBufferSegment->size);
+
+        task.m_bs->DataLength += codedBufferSegment->size;
+
+        task.m_bs->TimeStamp       = task.m_timeStamp;
+        task.m_bs->DecodeTimeStamp = CalcDTSFromPTS(m_videoParam.mfx.FrameInfo,
+                                     mfxU16(task.m_dpbOutputDelay), task.m_timeStamp);
+
+        task.m_bs->PicStruct = task.GetPicStructForDisplay();
+        task.m_bs->FrameType = task.m_type[task.GetFirstField()] & ~MFX_FRAMETYPE_KEYPIC;
+
+        if (task.m_fieldPicFlag)
+            task.m_bs->FrameType = mfxU16(task.m_bs->FrameType |
+                                          ((task.m_type[!task.GetFirstField()]& ~MFX_FRAMETYPE_KEYPIC) << 8));
+
+        sts = MFX_ERR_NONE;
+    }
+
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        vaSts = vaUnmapBuffer( m_vaDisplay, m_codedBufferId[feiFieldId] );
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        // ??? may affect for performance
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_codedBufferId[feiFieldId]);
+        MFX_CHECK_STS(sts);
+    }
+
+    // remove task
+    m_statFeedbackCache.erase(m_statFeedbackCache.begin() + indxSurf);
 
     mdprintf(stderr, "query_vaapi done\n");
     return sts;
