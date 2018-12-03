@@ -31,13 +31,6 @@
 #include "mfx_enc_common.h"
 #include "assert.h"
 
-//#define VP9_LOGGING
-#ifdef VP9_LOGGING
-#define VP9_LOG(string, ...) printf(string, ##__VA_ARGS__); fflush(0);
-#else
-#define VP9_LOG(string, ...)
-#endif
-
 namespace MfxHwVP9Encode
 {
 
