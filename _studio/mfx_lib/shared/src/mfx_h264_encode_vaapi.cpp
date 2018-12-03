@@ -60,7 +60,9 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     {
     case MFX_RATECONTROL_CBR:  return VA_RC_CBR;
     case MFX_RATECONTROL_VBR:  return VA_RC_VBR;
+#if VA_CHECK_VERSION(1,3,0)
     case MFX_RATECONTROL_AVBR: return VA_RC_AVBR;
+#endif
 #ifdef MFX_ENABLE_QVBR
     case MFX_RATECONTROL_QVBR: return VA_RC_QVBR;
 #endif
@@ -1427,8 +1429,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.QVBRBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_QVBR) ? 1 : 0;
 #endif
+#if VA_CHECK_VERSION(1,3,0)
     m_caps.AVBRBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_AVBR) ? 1 : 0;
+#endif
     m_caps.TrelisQuantization =
         (attrs[idx_map[VAConfigAttribEncQuantization]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0;
     m_caps.vaTrellisQuantization =
