@@ -699,7 +699,8 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
         MSDK_CHECK_STATUS(sts, "FEI ENCODE: InitFrameParams failed");
     }
 
-    for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
+    int numberOfCalls = (m_bSingleFieldMode && eTask->m_fieldPicFlag) ? 2 : 1;
+    for (int i = 0; i < numberOfCalls; ++i)
     {
         for (;;) {
             // at this point surface for encoder contains either a frame from file or a frame processed by vpp
@@ -759,7 +760,7 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
 
         MSDK_BREAK_ON_ERROR(sts);
 
-    } // for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
+    } // for (int i = 0; i < numberOfCalls; ++i)
 
     if (sts == MFX_ERR_MORE_DATA)
     {
