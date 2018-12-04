@@ -1165,8 +1165,8 @@ mfxStatus LookAheadBrc2::Init(MfxVideoParam  & video)
     m_skipped = 0;
 
     m_targetRateMin = m_initTargetRate;
+    m_maxFrameSize = 0;
 
-    m_bControlMaxFrame = (video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD);
     m_AvgBitrate = 0;
 
 	SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
@@ -1508,12 +1508,27 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
 
     return mfxU8(m_curQp);
 }
+mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
+{
+    mfxF64 qstep = 0, qstep_new = 0;
+    qstep = QSTEP[std::min<mfxU8>(51, curQP)];
+    qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
+    mfxU8 qp_new = QStep2QpCeil(qstep_new);
+    if (qp_new < 51 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new + 1]) / 2)
+        qp_new++;
+    return  qp_new;
+}
 mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
-    mfxU8 qp = curQP + (mfxU8)par.NumRecode;
-
+    mfxU8 qp = curQP;
+    if (m_maxFrameSize < par.CodedFrameSize)
+    {
+        qp = GetNewQP(par.CodedFrameSize, m_maxFrameSize, curQP);
+    }
+    qp = curQP + std::max<mfxU8>(1, par.NumRecode);
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
     qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp);
+
     return qp;
 }
 void  LookAheadBrc2::SetQp(const BRCFrameParams& /*par*/, mfxU32 qp)
@@ -1588,7 +1603,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
     mfxF64 realRatePerMb = 8 * dataLength / mfxF64(m_totNumMb);
-    mfxU32 maxFS = m_bControlMaxFrame ? maxFrameSize : 0xFFFFFFF;
+    mfxU32 maxFS = maxFrameSize? maxFrameSize*8 : 0xFFFFFFF;
 
     qp = CLIPVAL(1, 51, qp);
 
@@ -1601,7 +1616,10 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
         maxFS = MFX_MIN(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode));
 
     if ((8 * dataLength + 24) > maxFS)
+    {
+        m_maxFrameSize = maxFS / 8; // for recoding
         return 1;
+    }
 
     if (m_AvgBitrate)
         m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.EncodedOrder, m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
@@ -1616,7 +1634,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     //printf("Target: Max %f, Min %f, framesBeyond %f, m_framesBehind %d, m_bitsBehind %f, m_lookAhead %d, picOrder %d, m_laData[0] %d, delta %d, qp %d  \n", m_targetRateMax, m_targetRateMin, framesBeyond, m_framesBehind, m_bitsBehind, m_lookAhead, picOrder, m_laData[0].encOrder, m_laData[0].deltaQp, qp );
 
     // correct m_targetRateMax, m_targetRateMin if Max bitrate
-    if (m_bControlMaxFrame)
+    if (maxFrameSize)
     {
         mfxF64 MaxRate = (mfxF64)maxFrameSize*8.0*2.0/ (3.0 *m_totNumMb);
         m_targetRateMax =  MaxRate > m_targetRateMax ?  m_targetRateMax : MaxRate;
@@ -1647,12 +1665,12 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     return 0;
 }
 
-mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32  /* maxFrameSize */, mfxU32 qp )
+mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32  maxFrameSize, mfxU32 qp )
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
     mfxF64 realRatePerMb = 8 * dataLength / mfxF64(m_totNumMb);
 
-    mfxU32 maxFS = 0xFFFFFFF;
+    mfxU32 maxFS = maxFrameSize ? maxFrameSize*8 : 0xFFFFFFF;
 
     if ((m_skipped == 1) && ((par.FrameType & MFX_FRAMETYPE_B)!=0) && par.NumRecode < 100)
         return 3;  // skip mode for this frame
@@ -1663,7 +1681,10 @@ mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*use
         maxFS = MFX_MIN(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode));
 
     if ((8 * dataLength + 24) > maxFS)
+    {
+        m_maxFrameSize = maxFS/8; // for recoding
         return 1;
+    }
 
     if (m_AvgBitrate)
         m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.EncodedOrder, m_skipped>0,(par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
@@ -1845,7 +1866,12 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
 }
 mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
-    mfxU8 qp = curQP + (mfxU8)par.NumRecode;
+    mfxU8 qp = curQP;
+    if (m_maxFrameSize > par.CodedFrameSize)
+    {
+        qp = GetNewQP(par.CodedFrameSize, m_maxFrameSize, curQP);
+    }
+    qp = curQP + std::max<mfxU8>(1, par.NumRecode);
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
     qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind],qp);
     return qp;
@@ -1923,10 +1949,8 @@ Hrd::Hrd()
 
 void Hrd::Setup(MfxVideoParam const & par)
 {
-    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ
-        || par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+    mfxExtCodingOption & opts = GetExtBufferRef(par);
+    if (!IsOn(opts.NalHrdConformance))
     {
         // hrd control isn't required for BRC methods above
         m_bIsHrdRequired = false;
@@ -1943,7 +1967,7 @@ void Hrd::Setup(MfxVideoParam const & par)
 
 // MVC BD {
     // for ViewOutput mode HRD should be controlled for every view separately
-    mfxExtCodingOption & opts = GetExtBufferRef(par);
+
     if (IsMvcProfile(par.mfx.CodecProfile) && opts.ViewOutput == MFX_CODINGOPTION_ON)
     {
         m_bitrate  = GetMaxBitrateValue(par.calcParam.mvcPerViewPar.maxKbps) << (6 + SCALE_FROM_DRIVER);
