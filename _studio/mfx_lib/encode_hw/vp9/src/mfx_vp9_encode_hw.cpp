@@ -794,7 +794,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
     {
         Task& frameToGet = m_submitted.front();
 
-        MFX_LTRACE_1(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::QueryFrame", "Frame %d", frameToGet.m_frameOrder);
+        MFX_LTRACE_1(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::QueryFrame ", "Frame %d", frameToGet.m_frameOrder);
         assert(m_outs.size() > 0);
 
         mfxStatus sts = MFX_ERR_NONE;
