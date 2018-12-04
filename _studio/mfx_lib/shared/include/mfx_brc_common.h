@@ -112,7 +112,7 @@ public:
     mfxI32 GetBudget(mfxU32 numFrames)
     {
         numFrames = MFX_MIN((mfxU32)m_slidingWindow.size(), numFrames);
-        return ((mfxI32)m_maxWinBitsLim - (mfxI32)GetLastFrameBits((mfxU32)m_slidingWindow.size() - numFrames, false));
+        return ((mfxI32)m_maxWinBitsLim - (mfxI32)GetLastFrameBits((mfxU32)m_slidingWindow.size() - numFrames, true));
     }
 
 
