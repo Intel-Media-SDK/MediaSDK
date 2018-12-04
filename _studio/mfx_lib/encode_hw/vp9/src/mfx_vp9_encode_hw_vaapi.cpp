@@ -530,13 +530,7 @@ mfxStatus SetFrameRate(
     VAEncMiscParameterFrameRate *frameRate_param;
 
     mfxExtVP9TemporalLayers& extTL = GetExtBufferRef(par);
-
-    mfxU8 numTL = par.m_numLayers;
-    bool TL_attached = false;
-    if (numTL == 0) 
-        numTL = 1;
-    else
-        TL_attached = true;
+    mfxU16 numTL = std::max<mfxU16>(par.m_numLayers, 1);
 
     for (VABufferID id : frameRateBufIds)
     {
@@ -548,10 +542,10 @@ mfxStatus SetFrameRate(
 
     frameRateBufIds.resize(numTL);
 
-    mfxU32 base_framerate;
-    PackMfxFrameRate(par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD, base_framerate);
+    mfxU32 nom = par.mfx.FrameInfo.FrameRateExtN;
+    mfxU32 denom = par.mfx.FrameInfo.FrameRateExtD;
 
-    for (mfxU8 tl = 0; tl < frameRateBufIds.size(); tl++)
+    for (mfxU16 tl = 0; tl < numTL; tl++)
     {
         vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
@@ -570,7 +564,10 @@ mfxStatus SetFrameRate(
         misc_param->type = VAEncMiscParameterTypeFrameRate;
         frameRate_param = (VAEncMiscParameterFrameRate *)misc_param->data;
 
-        frameRate_param->framerate = TL_attached ? base_framerate / extTL.Layer[par.m_numLayers - 1 - tl].FrameRateScale : base_framerate;
+        if (tl == numTL - 1)
+            PackMfxFrameRate(nom, denom, frameRate_param->framerate);
+        else
+            PackMfxFrameRate(nom*extTL.Layer[tl].FrameRateScale, denom*extTL.Layer[numTL - 1].FrameRateScale, frameRate_param->framerate);
         frameRate_param->framerate_flags.bits.temporal_id = tl;
 
         vaSts = vaUnmapBuffer(m_vaDisplay, frameRateBufIds[tl]);
