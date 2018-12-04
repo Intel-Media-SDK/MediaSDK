@@ -911,7 +911,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         }
     }
     mfxExtCodingOption3 & extOpt3 = GetExtBufferRef(m_video);
-    bool bPanicModeSupport = ((extOpt3.WinBRCSize > 0 && (m_video.mfx.RateControlMethod != MFX_RATECONTROL_VBR && m_video.mfx.RateControlMethod != MFX_RATECONTROL_QVBR)) || (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD) || IsOn(extOpt2.ExtBRC));
+    bool bPanicModeSupport = (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA) || (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD) || IsOn(extOpt2.ExtBRC);
     if (m_raw.NumFrameActual == 0 && bPanicModeSupport )
     {
         request.Type        = MFX_MEMTYPE_D3D_INT;
@@ -2185,7 +2185,19 @@ void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
         m_baseLayerOrderStartIntraRefresh = newTask.m_baseLayerOrder;
     }
 }
+mfxU32 GetMaxFrameSize(DdiTask const & task, MfxVideoParam const &video, Hrd const &hrd)
+{
+    mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(video);
+    mfxExtCodingOption3    const & extOpt3 = GetExtBufferRef(video);
 
+    mfxU32 maxFrameSize_hrd = hrd.GetMaxFrameSize(task.GetFrameType() & MFX_FRAMETYPE_IDR)>>3;
+    mfxU32 maxFrameSize     = (task.GetFrameType() & MFX_FRAMETYPE_I) ? extOpt3.MaxFrameSizeI : extOpt3.MaxFrameSizeP;
+    maxFrameSize = (!maxFrameSize) ? extOpt2.MaxFrameSize : maxFrameSize;
+
+    return (maxFrameSize_hrd && maxFrameSize) ?
+        std::min(maxFrameSize_hrd,maxFrameSize):
+        std::max(maxFrameSize_hrd,maxFrameSize);
+}
 void ImplementationAvc::AssignDecodeTimeStamp(DdiTask & task)
 {
     mfxU8 numReorderFrames = GetNumReorderFrames(m_video);
@@ -2864,7 +2876,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     BRCFrameParams par;
                     InitFrameParams(par, &(*task));
                     par.NumRecode = extOpt2.MaxSliceSize ? 0 : (par.NumRecode - task->m_repackForBsDataLength);
-                    mfxU32 res = m_brc.Report(par, bsDataLength, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_cqpValue[0]);
+                    mfxU32 res = m_brc.Report(par, bsDataLength, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_cqpValue[0]);
                     MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
                     if ((res != 0) && (!extOpt2.MaxSliceSize))
                     {
