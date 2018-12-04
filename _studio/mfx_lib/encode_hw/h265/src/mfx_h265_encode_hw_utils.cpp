@@ -72,7 +72,7 @@ void Remove(A &_from, size_t _where, size_t _num = 1)
 template<class T, class A>
 void Insert(A& _to, mfxU32 _where, T const & _what)
 {
-    if (std::begin(_to) + _where < std::end(_to))
+    if (std::end(_to) <= std::begin(_to) + _where)
         throw std::out_of_range("Insert() target is out of container range");
 
     if (std::begin(_to) + _where + 1 != std::end(_to))
