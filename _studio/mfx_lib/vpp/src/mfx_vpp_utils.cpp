@@ -1325,11 +1325,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_P210:
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_YUY2:
-            break;
         case MFX_FOURCC_AYUV:
-#if !defined(_WIN32) && !defined(_WIN64)
-            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
-#endif
             break;
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
