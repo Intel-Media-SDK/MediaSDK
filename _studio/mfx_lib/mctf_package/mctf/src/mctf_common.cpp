@@ -482,7 +482,7 @@ mfxStatus CMC::MCTF_SetMemory(
     else
     {
         auto inp_iter = mfxSurfPool.begin();
-        for (auto it = QfIn.begin(); it != QfIn.end(); ++it, ++inp_iter)
+        for (auto it = QfIn.begin(); it != QfIn.end() && inp_iter != mfxSurfPool.end(); ++it, ++inp_iter)
             it->mfxFrame = *inp_iter;
         res = IM_SURF_SET();
         MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
