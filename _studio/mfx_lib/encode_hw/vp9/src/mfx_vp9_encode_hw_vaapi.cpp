@@ -746,7 +746,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.EncodeFunc = 1;
     m_caps.HybridPakFunc = 1;
 
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CreateAuxilliaryDevice return ERR_NONE");
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(VideoCORE* core, GUID guid, mfxU32 width, mfxU32 height)
