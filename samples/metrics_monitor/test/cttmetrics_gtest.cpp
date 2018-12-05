@@ -91,7 +91,6 @@ void getAndCheckAvailableMetrics(unsigned int* count, cttMetric* out_metric_ids)
 int getGpuFrequency(char* path)
 {
     int fd, res = -1;
-    char buf[6] =  {0};
 
     fd = open(path, O_RDONLY);
     if (fd >= 0)
@@ -106,14 +105,13 @@ int getGpuFrequency(char* path)
 int setGpuFrequency(int min, int max, int boost)
 {
     int fd_min, fd_max, fd_boost, res = -1, res_min = -1, res_max = -1, res_boost = -1;
-    char buf_max[6] = {0}, buf_min[6] = {0}, buf_boost[6] = {0};
 
     if (!(min <= max && min <= boost && boost <= max))
         return res;
 
-    sprintf(buf_min, "%d", min);
-    sprintf(buf_max, "%d", max);
-    sprintf(buf_boost, "%d", boost);
+    std::string ss_min(std::to_string(min));
+    std::string ss_max(std::to_string(max));
+    std::string ss_boost(std::to_string(boost));
 
     fd_min = open(GPU_MIN_FREQ_FILE_PATH, O_WRONLY);
     fd_max = open(GPU_MAX_FREQ_FILE_PATH, O_WRONLY);
@@ -123,20 +121,16 @@ int setGpuFrequency(int min, int max, int boost)
     {
         if (min < getGpuFrequency(GPU_MIN_FREQ_FILE_PATH))
         {
-            res_min = write(fd_min, buf_min, sizeof(buf_min));
-            res_max = write(fd_max, buf_max, sizeof(buf_max));
-            if (fd_boost >= 0) res_boost = write(fd_boost, buf_boost, sizeof(buf_boost));
+            res_min = write(fd_min, ss_min.c_str(), ss_min.size());
+            res_max = write(fd_max, ss_max.c_str(), ss_max.size());
+            if (fd_boost >= 0) res_boost = write(fd_boost, ss_boost.c_str(), ss_boost.size());
         }
         else
         {
-            if (fd_boost >= 0) res_boost = write(fd_boost, buf_boost, sizeof(buf_boost));
-            res_max = write(fd_max, buf_max, sizeof(buf_max));
-            res_min = write(fd_min, buf_min, sizeof(buf_min));
+            if (fd_boost >= 0) res_boost = write(fd_boost, ss_boost.c_str(), ss_boost.size());
+            res_max = write(fd_max, ss_max.c_str(), ss_max.size());
+            res_min = write(fd_min, ss_min.c_str(), ss_min.size());
         }
-
-        close(fd_min);
-        close(fd_max);
-        if (fd_boost >= 0) close(fd_boost);
     }
 
     if (res_min >= 0 && res_max >= 0)
@@ -144,6 +138,10 @@ int setGpuFrequency(int min, int max, int boost)
         res = 0;
         if (fd_boost >= 0) res = res_boost;
     }
+
+    if (fd_min >= 0) close(fd_min);
+    if (fd_max >= 0) close(fd_max);
+    if (fd_boost >= 0) close(fd_boost);
 
     return res;
 }
@@ -354,7 +352,6 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
     const unsigned int test_metric_cnt = 1;
     const float epsilon = 20.0f;
 
-    cttStatus sts = CTT_ERR_NONE;
     cttMetric metrics_ids [] = {CTT_AVG_GT_FREQ};
     unsigned int num_repeats = 2;
     unsigned int rp_n_freq = 0, rp_0_freq = 0;
