@@ -74,6 +74,12 @@ public:
         ON_CALL(*this, MFXVideoUSER_Unregister(_,_)).WillByDefault(Return(MFX_ERR_UNSUPPORTED));
 
         m_mock_plugin.GetPluginParam = GetPluginParamWrap;
+        m_mock_plugin.pthis = nullptr;
+        m_mock_plugin.PluginInit = nullptr;
+        m_mock_plugin.PluginClose = nullptr;
+        m_mock_plugin.Submit = nullptr;
+        m_mock_plugin.Execute = nullptr;
+        m_mock_plugin.FreeResources = nullptr;
     }
     MOCK_METHOD2(dlopen, void* (const char *, int));
     MOCK_METHOD1(dlclose, int (void*));

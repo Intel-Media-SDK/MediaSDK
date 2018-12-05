@@ -130,7 +130,7 @@ char* MockCallObj::FeedEmulatedPluginsCfgLines(char * str, int num, FILE * strea
 {
     if (m_next_plugin_cfg_line_idx < m_emulated_plugins_cfg.size())
     {
-        strcpy(str, m_emulated_plugins_cfg[m_next_plugin_cfg_line_idx].c_str());
+        strncpy(str, m_emulated_plugins_cfg[m_next_plugin_cfg_line_idx].c_str(), num);
         ++m_next_plugin_cfg_line_idx;
         return str;
     }
