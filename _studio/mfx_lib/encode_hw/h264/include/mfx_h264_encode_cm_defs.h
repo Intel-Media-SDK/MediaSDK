@@ -35,7 +35,7 @@
 namespace MfxHwH264Encode
 {
 
-struct SVCEncCURBEData {
+struct CURBEData {
     //DW0
     union {
         mfxU32   DW0;
@@ -508,7 +508,7 @@ struct SVCEncCURBEData {
 };
 
 
-struct SVCPAKObject
+struct LAOutObject
 { /* PAK Object Macroblock Codes for AVC */
 
     //DW0
@@ -723,24 +723,24 @@ const mfxU8 Diamond[56] =
 #define LUTMODE_INTER_8x8_FIELD  0x07
 
 
-extern "C" void SVCEncMB_I(
-    vector<mfxU8, sizeof(SVCEncCURBEData)> CURBEData,
+extern "C" void EncMB_I(
+    vector<mfxU8, sizeof(CURBEData)> laCURBEData,
     SurfaceIndex SrcSurfIndexRaw,
     SurfaceIndex SrcSurfIndex,
     SurfaceIndex VMEInterPredictionSurfIndex,
     SurfaceIndex MBDataSurfIndex,
     SurfaceIndex FwdFrmMBDataSurfIndex);
 
-extern "C" void SVCEncMB_P(
-    vector<mfxU8, sizeof(SVCEncCURBEData)> CURBEData,
+extern "C" void EncMB_P(
+    vector<mfxU8, sizeof(CURBEData)> laCURBEData,
     SurfaceIndex SrcSurfIndexRaw,
     SurfaceIndex SrcSurfIndex,
     SurfaceIndex VMEInterPredictionSurfIndex,
     SurfaceIndex MBDataSurfIndex,
     SurfaceIndex FwdFrmMBDataSurfIndex);
 
-extern "C" void SVCEncMB_B(
-    vector<mfxU8, sizeof(SVCEncCURBEData)> CURBEData,
+extern "C" void EncMB_B(
+    vector<mfxU8, sizeof(CURBEData)> laCURBEData,
     SurfaceIndex SrcSurfIndexRaw,
     SurfaceIndex SrcSurfIndex,
     SurfaceIndex VMEInterPredictionSurfIndex,
