@@ -28,7 +28,7 @@ namespace MfxHwVP9Encode
 {
 mfxStatus MFXVideoENCODEVP9_HW::Query(mfxCoreInterface *core, mfxVideoParam *in, mfxVideoParam *out)
 {
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::Query +");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::Query");
     MFX_CHECK_NULL_PTR1(out);
 
     if (in == 0)
@@ -89,7 +89,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(mfxCoreInterface *core, mfxVideoParam *in,
             }
         }
 
-        VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::Query -");
         return sts;
     }
 }
@@ -183,7 +182,7 @@ void SetReconInfo(VP9MfxVideoParam const & par, mfxFrameInfo& fi)
 
 mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 {
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::Init +");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MFXVideoENCODEVP9_HW::Init");
 
     if (m_initialized == true)
     {
@@ -358,13 +357,12 @@ MFX_CHECK_STS(sts);
 
     m_videoForParamChange.push_back(m_video);
 
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::Init -");
     return checkSts;
 }
 
 mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
 {
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::Reset +");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MFXVideoENCODEVP9_HW::Reset");
 
     if (m_initialized == false)
     {
@@ -486,8 +484,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
 
     m_videoForParamChange.push_back(m_video);
 
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::Reset -");
-
     return checkSts;
 }
 
@@ -518,7 +514,7 @@ mfxStatus MFXVideoENCODEVP9_HW::RemoveObsoleteParameters()
 
 mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxThreadTask *task)
 {
-    VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::EncodeFrameSubmit +", m_frameArrivalOrder);
+    MFX_LTRACE_1(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::EncodeFrameSubmit ", "Frame %d", m_frameArrivalOrder); 
 
     if (m_initialized == false || m_videoForParamChange.size() == 0)
     {
@@ -630,8 +626,6 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
     }
 
     *task = (mfxThreadTask)surface;
-
-    VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::EncodeFrameSubmit -", m_frameArrivalOrder);
 
     MFX_CHECK_STS(bufferingSts);
 
@@ -750,7 +744,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
         Task& newFrame = m_accepted.front(); // no mutex required here since splice() method doesn't cause race conditions for getting and modification of existing elements
         if (newFrame.m_pRawFrame->pSurface == pSurf) // frame pointed by pSurf isn't submitted yet - let's proceed with submission
         {
-            VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::SubmitFrame +", newFrame.m_frameOrder);
+            MFX_LTRACE_1(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::SubmitFrame ", "Frame %d", newFrame.m_frameOrder);
             mfxStatus sts = MFX_ERR_NONE;
             const VP9MfxVideoParam& curMfxPar = *newFrame.m_pParam;
             newFrame.m_pPrevSegment = &m_prevSegment;
@@ -791,8 +785,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
 
             m_frameOrderInGop++;
             m_frameOrderInRefStructure++;
-
-            VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::SubmitFrame -", newFrame.m_frameOrder);
         }
     }
 
@@ -802,7 +794,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
     {
         Task& frameToGet = m_submitted.front();
 
-        VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::QueryFrame +", frameToGet.m_frameOrder);
+        MFX_LTRACE_1(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::QueryFrame ", "Frame %d", frameToGet.m_frameOrder);
         assert(m_outs.size() > 0);
 
         mfxStatus sts = MFX_ERR_NONE;
@@ -810,7 +802,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
         sts = m_ddi->QueryStatus(frameToGet);
         if (sts == MFX_WRN_DEVICE_BUSY)
         {
-            VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::QueryFrame - (MFX_WRN_DEVICE_BUSY)", frameToGet.m_frameOrder);
             return MFX_TASK_BUSY;
         }
         MFX_CHECK_STS(sts);
@@ -826,8 +817,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
             MFX_CHECK_STS(sts);
             m_free.splice(m_free.end(), m_submitted, m_submitted.begin());
         }
-
-        VP9_LOG("\n (VP9_LOG) Frame %d MFXVideoENCODEVP9_HW::QueryFrame -", frameToGet.m_frameOrder);
     }
 
     return MFX_TASK_DONE;
@@ -944,7 +933,7 @@ inline mfxStatus UpdatePictureHeader(mfxU32 frameLen, mfxU32 frameNum, mfxU8* pP
 mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     Task & task)
 {
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::UpdateBitstream +");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::UpdateBitstream");
 
     mfxFrameData bitstream = {};
 
@@ -1054,8 +1043,6 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     task.m_pBitsteam->TimeStamp = task.m_timeStamp;
     task.m_pBitsteam->FrameType = mfxU16(task.m_frameParam.frameType == KEY_FRAME ? MFX_FRAMETYPE_I : MFX_FRAMETYPE_P);
     task.m_pBitsteam->PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-
-    VP9_LOG("\n (VP9_LOG) MFXVideoENCODEVP9_HW::UpdateBitstream -");
 
     return MFX_ERR_NONE;
 }
