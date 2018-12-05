@@ -1162,6 +1162,7 @@ mfxStatus VAAPIEncoder::Execute(
     // Rendering
     //------------------------------------------------------------------
     {
+        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_START|", "%p|%d", m_vaContextEncode, task.m_taskIdForDriver);
         vaSts = vaBeginPicture(
             m_vaDisplay,
             m_vaContextEncode,
@@ -1175,7 +1176,7 @@ mfxStatus VAAPIEncoder::Execute(
             m_vaContextEncode,
             configBuffers.data(),
             buffersCount);
-
+        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_END|", "%d|%d", m_vaContextEncode, task.m_taskIdForDriver);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
     {
