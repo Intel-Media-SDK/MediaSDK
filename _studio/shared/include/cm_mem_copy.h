@@ -23,14 +23,13 @@
 
 #include "mfxdefs.h"
 #include "mfxstructures.h"
-#include "skl_copy_kernel_genx_isa.h"
-#if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
-#include "cht_copy_kernel_genx_isa.h"
+#ifdef MFX_ENABLE_KERNELS
+#include "genx_copy_kernel_gen8_isa.h"
+#include "genx_copy_kernel_gen9_isa.h"
+#include "genx_copy_kernel_gen10_isa.h"
+#include "genx_copy_kernel_gen11_isa.h"
+#include "genx_copy_kernel_gen11lp_isa.h"
 #endif
-#include "cnl_copy_kernel_genx_isa.h"
-#include "icl_copy_kernel_genx_isa.h"
-#include "icllp_copy_kernel_genx_isa.h"
-
 
 #ifdef _MSVC_LANG
 #pragma warning(disable: 4505)

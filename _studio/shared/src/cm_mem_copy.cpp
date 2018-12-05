@@ -2613,26 +2613,24 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     switch (hwtype)
     {
 #ifdef MFX_ENABLE_KERNELS
-#if !(defined(AS_VPP_PLUGIN) || defined(UNIFIED_PLUGIN) || defined(AS_H264LA_PLUGIN))
     case MFX_HW_BDW:
     case MFX_HW_CHT:
-        cmSts = m_pCmDevice->LoadProgram((void*)cht_copy_kernel_genx,sizeof(cht_copy_kernel_genx),m_pCmProgram,"nojitter");
+        cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen8,sizeof(genx_copy_kernel_gen8),m_pCmProgram,"nojitter");
         break;
-#endif
     case MFX_HW_SCL:
     case MFX_HW_APL:
     case MFX_HW_KBL:
     case MFX_HW_CFL:
-        cmSts = m_pCmDevice->LoadProgram((void*)skl_copy_kernel_genx,sizeof(skl_copy_kernel_genx),m_pCmProgram,"nojitter");
+        cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen9,sizeof(genx_copy_kernel_gen9),m_pCmProgram,"nojitter");
         break;
     case MFX_HW_CNL:
-        cmSts = m_pCmDevice->LoadProgram((void*)cnl_copy_kernel_genx,sizeof(cnl_copy_kernel_genx),m_pCmProgram,"nojitter");
+        cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen10,sizeof(genx_copy_kernel_gen10),m_pCmProgram,"nojitter");
         break;
     case MFX_HW_ICL:
-        cmSts = m_pCmDevice->LoadProgram((void*)icl_copy_kernel_genx,sizeof(icl_copy_kernel_genx),m_pCmProgram,"nojitter");
+        cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen11,sizeof(genx_copy_kernel_gen11),m_pCmProgram,"nojitter");
         break;
     case MFX_HW_ICL_LP:
-        cmSts = m_pCmDevice->LoadProgram((void*)icllp_copy_kernel_genx,sizeof(icllp_copy_kernel_genx),m_pCmProgram,"nojitter");
+        cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen11lp,sizeof(genx_copy_kernel_gen11lp),m_pCmProgram,"nojitter");
         break;
 #endif
     default:
