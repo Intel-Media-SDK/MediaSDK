@@ -94,13 +94,19 @@ if(MFX_ENABLE_KERNELS)
     )
   endif()
 
+  if(BUILD_KERNELS)
+    foreach(platform gen8 gen9 gen10 gen11 gen11lp)
+      add_cmc_target(${MSDK_GENX_ROOT}/copy_kernels/src/genx_copy_kernel.cpp ${platform} ${MSDK_GENX_ROOT}/copy_kernels/isa)
+    endforeach()
+  endif()
+
   set( prefix ${MSDK_GENX_ROOT}/copy_kernels/isa )
   list( APPEND sources
-    ${prefix}/genx_cht_copy_isa.cpp
-    ${prefix}/genx_skl_copy_isa.cpp
-    ${prefix}/genx_icl_copy_isa.cpp
-    ${prefix}/genx_icllp_copy_isa.cpp
-    ${prefix}/genx_cnl_copy_isa.cpp
+    ${prefix}/genx_copy_kernel_gen8_isa.cpp
+    ${prefix}/genx_copy_kernel_gen9_isa.cpp
+    ${prefix}/genx_copy_kernel_gen10_isa.cpp    
+    ${prefix}/genx_copy_kernel_gen11_isa.cpp
+    ${prefix}/genx_copy_kernel_gen11lp_isa.cpp
   )
 
   set( prefix ${MSDK_GENX_ROOT}/field_copy/isa )
