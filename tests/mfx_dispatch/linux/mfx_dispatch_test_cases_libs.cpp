@@ -109,7 +109,7 @@ TEST_P(DispatcherLibsTestParametrized, ShouldEnumerateCorrectLibNames)
         libs.emplace_back(modules_dir + "/" + LIBMFXSW);
     }
 
-    for (std::string lib : libs)
+    for (const std::string& lib : libs)
     {
         EXPECT_CALL(mock, dlopen(StrEq(lib.c_str()),_)).Times(1);
     }

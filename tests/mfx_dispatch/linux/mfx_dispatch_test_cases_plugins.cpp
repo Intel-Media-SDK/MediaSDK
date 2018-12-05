@@ -144,7 +144,7 @@ TEST_F(DispatcherPluginsTest, ShouldFailIfPluginIsNotCreated)
     ASSERT_EQ(sts, MFX_ERR_UNSUPPORTED);
 }
 
-TEST_F(DispatcherPluginsTest, ShouldFailIfUnknowPluginParams)
+TEST_F(DispatcherPluginsTest, ShouldFailIfUnknownPluginParams)
 {
     MockCallObj& mock = *g_call_obj_ptr;
     SetEmulatedPluginsCfgContent(mock, TEST_PLUGIN_COUNT);
