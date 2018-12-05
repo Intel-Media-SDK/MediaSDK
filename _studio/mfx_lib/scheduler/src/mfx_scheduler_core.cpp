@@ -201,8 +201,8 @@ void mfxSchedulerCore::WakeUpThreads(mfxU32 num_dedicated_threads, mfxU32 num_re
             thctx->taskAdded.notify_one();
         }
     }
-    // we exclude dedicated thread from the loop below
-    for (mfxU32 i = 1; (i < m_param.numberOfThreads - 1) && num_regular_threads; ++i) {
+    // if we have woken up dedicated thread, we exclude it from the loop below
+    for (mfxU32 i = (num_dedicated_threads)? 1: 0; (i < m_param.numberOfThreads) && num_regular_threads; ++i) {
         thctx = GetThreadCtx(i);
         if (thctx->state == MFX_SCHEDULER_THREAD_CONTEXT::Waiting) {
             thctx->taskAdded.notify_one();
