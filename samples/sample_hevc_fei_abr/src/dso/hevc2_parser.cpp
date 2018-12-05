@@ -50,7 +50,7 @@ Parser::Parser(Bs32u mode)
 
     if (m_mode & ASYNC)
     {
-        hwThreads = std::thread::hardware_concurrency();
+        hwThreads    = std::max(1u, std::thread::hardware_concurrency());
         m_asyncAUMax = hwThreads * 2;
     }
 
