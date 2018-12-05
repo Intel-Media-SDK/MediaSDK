@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -223,7 +223,15 @@ VC1Status SequenceLayer(VC1Context* pContext)
     if (pContext->m_seqLayerHeader.PROFILE != VC1_PROFILE_ADVANCED)
     {
         // last in struct_C
-        VC1_GET_BITS(1, tempValue);
+        // RTM (release-to-manufacturer) flag. Means old WMV3 encoding with
+        // different bitstream format for P/B frames.
+        //
+        // According to Annex J Table 263, this field should be set to one
+        // and other values shall be forbidden.
+        VC1_GET_BITS(1, reserved); // Reserved6/RTM
+        if (reserved != 1)
+            return VC1_WRN_INVALID_STREAM;
+
         // skip struct_A and 0x000000C
         pContext->m_bitstream.pBitstream += 3;
         VC1_GET_BITS(3, pContext->m_seqLayerHeader.LEVEL);
