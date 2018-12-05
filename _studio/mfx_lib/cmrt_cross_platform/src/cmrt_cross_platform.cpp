@@ -23,12 +23,8 @@
 #include "vm_shared_object.h"
 #include "cmrt_cross_platform.h"
 
-#if defined(LINUX64)
-const vm_char * DLL_NAME_LINUX = VM_STRING("igfxcmrt64.so");
-#elif defined(LINUX32)
-const vm_char * DLL_NAME_LINUX = VM_STRING("igfxcmrt32.so");
-#else
-#error "undefined configuration"
+#if defined(LINUX64) || defined(LINUX32)
+const vm_char * DLL_NAME_LINUX = VM_STRING("libigfxcmrt.so.7");
 #endif
 #if defined(ANDROID)
 const vm_char * DLL_NAME_ANDROID = VM_STRING("libigfxcmrt.so");
