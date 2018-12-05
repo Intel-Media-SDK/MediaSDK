@@ -1751,6 +1751,7 @@ namespace MfxHwH264Encode
             , poc(mfxU32(-1))
             , pocL0(mfxU32(-1))
             , pocL1(mfxU32(-1))
+            , encOrder(0)
             , intraCost(0)
             , interCost(0)
             , propCost(0) { }
