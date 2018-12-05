@@ -1041,7 +1041,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             MFX_CHECK_STS(sts);
         }
 
-        request.Info.Width  = m_video.calcParam.widthLa  / 16 * sizeof(SVCPAKObject);
+        request.Info.Width  = m_video.calcParam.widthLa  / 16 * sizeof(LAOutObject);
         request.Info.Height = m_video.calcParam.heightLa / 16;
         request.Info.FourCC = MFX_FOURCC_P8;
         request.Type        = MFX_MEMTYPE_D3D_INT;
@@ -1050,7 +1050,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         sts = m_mb.AllocCmBuffersUp(m_cmDevice, request);
         MFX_CHECK_STS(sts);
 
-        request.Info.Width  = sizeof(SVCEncCURBEData);
+        request.Info.Width  = sizeof(CURBEData);
         request.Info.Height = 1;
         request.Info.FourCC = MFX_FOURCC_P8;
         request.Type        = MFX_MEMTYPE_D3D_INT;
