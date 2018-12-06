@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2018 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,30 +21,29 @@
 #pragma once
 
 #include "umc_defs.h"
+
 #if defined (MFX_ENABLE_MPEG2_VIDEO_DECODE)
 
-#include <umc_defs.h>
+#include "umc_mpeg2_defs.h"
 
-extern int32_t MBAdressing[];
+namespace UMC_MPEG2_DECODER
+{
+    eMFXPlatform GetPlatform_MPEG2(VideoCORE * core, mfxVideoParam * par);
+    mfxStatus Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out);
+    bool CheckVideoParam(mfxVideoParam *in);
 
-extern int32_t IMBType[];
+    void GetMfxFrameRate(uint8_t frame_rate_value, mfxU32 & frameRateN, mfxU32 & frameRateD);
+    mfxU8 GetMfxCodecProfile(uint8_t profile);
+    mfxU8 GetMfxCodecLevel(uint8_t level);
+    void CalcAspectRatio(uint32_t dar, uint32_t width, uint32_t height, uint16_t & aspectRatioW, uint16_t & aspectRatioH);
 
-extern int32_t PMBType[];
-
-extern int32_t BMBType[];
-
-extern int32_t MBPattern[];
-
-extern int32_t MotionVector[];
-
-extern int32_t dct_dc_size_luma[];
-
-extern int32_t dct_dc_size_chroma[];
-
-extern int32_t dct_coeff_first_RL[];
-
-extern int32_t dct_coeff_next_RL[];
-
-extern int32_t Table15[];
+    namespace MFX_Utility
+    {
+        UMC::Status FillVideoParam(const MPEG2SequenceHeader & seq,
+                                   const MPEG2SequenceExtension * seqExt,
+                                   const MPEG2SequenceDisplayExtension * dispExt,
+                                   mfxVideoParam & par);
+    }
+}
 
 #endif // MFX_ENABLE_MPEG2_VIDEO_DECODE
