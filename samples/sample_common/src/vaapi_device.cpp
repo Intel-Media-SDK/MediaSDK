@@ -85,7 +85,6 @@ mfxStatus CVAAPIDeviceX11::Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapterNu
     }
 #if defined(X11_DRI3_SUPPORT)
     MfxLoader::DrmIntel_Proxy & drmintellib = m_X11LibVA.GetDrmIntelX11();
-    MfxLoader::XLib_Proxy & x11lib = m_X11LibVA.GetX11();
     MfxLoader::X11_Xcb_Proxy & x11xcblib = m_X11LibVA.GetX11XcbX11();
 
     m_xcbconn = x11xcblib.XGetXCBConnection(VAAPI_GET_X_DISPLAY(m_X11LibVA.GetXDisplay()));
@@ -154,11 +153,11 @@ mfxStatus CVAAPIDeviceX11::SetHandle(mfxHandleType type, mfxHDL hdl)
 
 mfxStatus CVAAPIDeviceX11::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllocator * /*pmfxAlloc*/)
 {
-    VAStatus va_res = VA_STATUS_SUCCESS;
     mfxStatus mfx_res = MFX_ERR_NONE;
     vaapiMemId * memId = NULL;
 
 #if !defined(X11_DRI3_SUPPORT)
+    VAStatus va_res = VA_STATUS_SUCCESS;
     VASurfaceID surface;
     Display* display = VAAPI_GET_X_DISPLAY(m_X11LibVA.GetXDisplay());
     Window* window = VAAPI_GET_X_WINDOW(m_window);
