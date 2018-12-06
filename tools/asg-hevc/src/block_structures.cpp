@@ -133,7 +133,7 @@ void QuadTree::GetQuadTreeRefSampleAvailVectorRecur(QuadTreeNode & node, BaseBlo
 
 PatchBlock::PatchBlock(const PatchBlock & rhs) : PatchBlock(static_cast<BaseBlock>(rhs))
 {
-    memcpy(PatchData.get(), rhs.PatchData.get(), sizeof(mfxU8) * m_BWidth * m_BHeight * 3 / 2);
+    std::copy(rhs.PatchData.get(), rhs.PatchData.get() + sizeof(mfxU8) * m_BWidth * m_BHeight * 3 / 2, PatchData.get());
 }
 
 const PatchBlock & PatchBlock::operator=(const PatchBlock & rhs)
@@ -143,7 +143,7 @@ const PatchBlock & PatchBlock::operator=(const PatchBlock & rhs)
     mfxU32 sq = m_BWidth * m_BHeight;
     PatchData.reset(new mfxU8[sq * 3 / 2]);
 
-    memcpy(PatchData.get(), rhs.PatchData.get(), sizeof(mfxU8) * sq * 3 / 2);
+    std::copy(rhs.PatchData.get(), rhs.PatchData.get() + sizeof(mfxU8) * sq * 3 / 2, PatchData.get());
 
     m_YPlane = PatchData.get();
     m_UPlane = m_YPlane + sq;
@@ -193,12 +193,12 @@ PatchBlock::PatchBlock(const BaseBlock& dstBlock, const PatchBlock& srcBlock) : 
 
     for (mfxU32 i = 0; i < m_BHeight; i++)
     {
-        memcpy(m_YPlane + i * m_BWidth, srcBlock.m_YPlane + (offsetY + i) * srcBlock.m_BWidth + offsetX, m_BWidth);
+        std::copy(srcBlock.m_YPlane + (offsetY + i) * srcBlock.m_BWidth + offsetX, srcBlock.m_YPlane + (offsetY + i) * srcBlock.m_BWidth + offsetX + m_BWidth, m_YPlane + i * m_BWidth);
     }
     for (mfxU32 i = 0; i < m_BHeight / 2; i++)
     {
-        memcpy(m_UPlane + i * (m_BWidth / 2), srcBlock.m_UPlane + (offsetY / 2 + i) * (srcBlock.m_BWidth / 2) + offsetX / 2, m_BWidth / 2);
-        memcpy(m_VPlane + i * (m_BWidth / 2), srcBlock.m_VPlane + (offsetY / 2 + i) * (srcBlock.m_BWidth / 2) + offsetX / 2, m_BWidth / 2);
+        std::copy(srcBlock.m_UPlane + (offsetY / 2 + i) * (srcBlock.m_BWidth / 2) + offsetX / 2, srcBlock.m_UPlane + (offsetY / 2 + i) * (srcBlock.m_BWidth / 2) + offsetX / 2 + m_BWidth / 2, m_UPlane + i * (m_BWidth / 2));
+        std::copy(srcBlock.m_VPlane + (offsetY / 2 + i) * (srcBlock.m_BWidth / 2) + offsetX / 2, srcBlock.m_VPlane + (offsetY / 2 + i) * (srcBlock.m_BWidth / 2) + offsetX / 2 + m_BWidth / 2, m_VPlane + i * (m_BWidth / 2));
     }
 }
 
@@ -212,12 +212,12 @@ PatchBlock::PatchBlock(const BaseBlock & BB, const ExtendedSurface & surf) : Pat
 
     for (mfxU32 i = 0; i < m_BHeight; i++)
     {
-        memcpy(m_YPlane + i * m_BWidth, surf.Data.Y + (m_AdrY + i) * surf.Data.Pitch + m_AdrX, m_BWidth);
+        std::copy(surf.Data.Y + (m_AdrY + i) * surf.Data.Pitch + m_AdrX, surf.Data.Y + (m_AdrY + i) * surf.Data.Pitch + m_AdrX + m_BWidth, m_YPlane + i * m_BWidth);
     }
     for (mfxU32 i = 0; i < m_BHeight / 2; i++)
     {
-        memcpy(m_UPlane + i * (m_BWidth / 2), surf.Data.U + (m_AdrY / 2 + i) * (surf.Data.Pitch / 2) + m_AdrX / 2, m_BWidth / 2);
-        memcpy(m_VPlane + i * (m_BWidth / 2), surf.Data.V + (m_AdrY / 2 + i) * (surf.Data.Pitch / 2) + m_AdrX / 2, m_BWidth / 2);
+        std::copy(surf.Data.U + (m_AdrY / 2 + i) * (surf.Data.Pitch / 2) + m_AdrX / 2, surf.Data.U + (m_AdrY / 2 + i) * (surf.Data.Pitch / 2) + m_AdrX / 2 + m_BWidth / 2, m_UPlane + i * (m_BWidth / 2));
+        std::copy(surf.Data.V + (m_AdrY / 2 + i) * (surf.Data.Pitch / 2) + m_AdrX / 2, surf.Data.V + (m_AdrY / 2 + i) * (surf.Data.Pitch / 2) + m_AdrX / 2 + m_BWidth / 2, m_VPlane + i * (m_BWidth / 2));
     }
 }
 
@@ -270,13 +270,13 @@ void PatchBlock::InsertAnotherPatch(const PatchBlock & refPatch)
     //luma
     for (mfxU32 i = 0; i < refPatch.m_BHeight; i++)
     {
-        memcpy(m_YPlane + (offsetY + i) * m_BWidth + offsetX, refPatch.m_YPlane + i * refPatch.m_BWidth, refPatch.m_BWidth);
+        std::copy(refPatch.m_YPlane + i * refPatch.m_BWidth, refPatch.m_YPlane + i * refPatch.m_BWidth + refPatch.m_BWidth, m_YPlane + (offsetY + i) * m_BWidth + offsetX);
     }
     //chroma U, V
     for (mfxU32 i = 0; i < refPatch.m_BHeight / 2; ++i)
     {
-        memcpy(m_UPlane + (offsetY / 2 + i) * m_BWidth / 2 + offsetX / 2, refPatch.m_UPlane + i * (refPatch.m_BWidth / 2), refPatch.m_BWidth / 2);
-        memcpy(m_VPlane + (offsetY / 2 + i) * m_BWidth / 2 + offsetX / 2, refPatch.m_VPlane + i * (refPatch.m_BWidth / 2), refPatch.m_BWidth / 2);
+        std::copy(refPatch.m_UPlane + i * (refPatch.m_BWidth / 2), refPatch.m_UPlane + i * (refPatch.m_BWidth / 2) + refPatch.m_BWidth / 2, m_UPlane + (offsetY / 2 + i) * m_BWidth / 2 + offsetX / 2);
+        std::copy(refPatch.m_VPlane + i * (refPatch.m_BWidth / 2), refPatch.m_VPlane + i * (refPatch.m_BWidth / 2) + refPatch.m_BWidth / 2, m_VPlane + (offsetY / 2 + i) * m_BWidth / 2 + offsetX / 2);
     }
     return;
 }

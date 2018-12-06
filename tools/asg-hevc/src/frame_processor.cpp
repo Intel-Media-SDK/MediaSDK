@@ -1718,13 +1718,13 @@ void FrameProcessor::MakePostFilter(const std::vector<mfxU8>& RefSamples, mfxU8 
 void  FrameProcessor::PutPatchIntoFrame(const PatchBlock & Patch, mfxFrameSurface1& surf) {
     //luma
     for (mfxU32 i = 0; i < Patch.m_BHeight; i++)
-        memcpy(surf.Data.Y + (Patch.m_AdrY + i) * surf.Data.Pitch + Patch.m_AdrX, Patch.m_YPlane + i * Patch.m_BWidth, Patch.m_BWidth);
+        std::copy(Patch.m_YPlane + i * Patch.m_BWidth, Patch.m_YPlane + i * Patch.m_BWidth + Patch.m_BWidth, surf.Data.Y + (Patch.m_AdrY + i) * surf.Data.Pitch + Patch.m_AdrX);
     //chroma U
     for (mfxU32 i = 0; i < Patch.m_BHeight / 2; ++i)
-        memcpy(surf.Data.U + (Patch.m_AdrY / 2 + i) * surf.Data.Pitch / 2 + Patch.m_AdrX / 2, Patch.m_UPlane + i * (Patch.m_BWidth / 2), Patch.m_BWidth / 2);
+        std::copy(Patch.m_UPlane + i * (Patch.m_BWidth / 2), Patch.m_UPlane + i * (Patch.m_BWidth / 2) + Patch.m_BWidth / 2, surf.Data.U + (Patch.m_AdrY / 2 + i) * surf.Data.Pitch / 2 + Patch.m_AdrX / 2);
     //chroma V
     for (mfxU32 i = 0; i < Patch.m_BHeight / 2; ++i)
-        memcpy(surf.Data.V + (Patch.m_AdrY / 2 + i) * surf.Data.Pitch / 2 + Patch.m_AdrX / 2, Patch.m_VPlane + i * (Patch.m_BWidth / 2), Patch.m_BWidth / 2);
+        std::copy(Patch.m_VPlane + i * (Patch.m_BWidth / 2), Patch.m_VPlane + i * (Patch.m_BWidth / 2) + Patch.m_BWidth / 2, surf.Data.V + (Patch.m_AdrY / 2 + i) * surf.Data.Pitch / 2 + Patch.m_AdrX / 2);
 }
 
 void FrameProcessor::GetIntraPredPlane(const BaseBlock& refBlock, INTRA_MODE currMode, const PatchBlock& frame, COLOR_COMPONENT colorComp, mfxU8* currPlane)

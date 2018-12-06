@@ -715,9 +715,9 @@ void MVMVPProcessor::PutMVPIntoExtBuffer(const MVPBlock& mvpBlock, mfxExtFeiHevc
     {
         if (outputMVPBuf->Pitch > 0)
         {
-            memcpy(&actualPredictor + 4, &actualPredictor, sizeof(actualPredictor));
-            memcpy(&actualPredictor + outputMVPBuf->Pitch, &actualPredictor, sizeof(actualPredictor));
-            memcpy(&actualPredictor + outputMVPBuf->Pitch + 4, &actualPredictor, sizeof(actualPredictor));
+            std::copy(&actualPredictor, &actualPredictor + sizeof(actualPredictor), &actualPredictor + 4);
+            std::copy(&actualPredictor, &actualPredictor + sizeof(actualPredictor), &actualPredictor + outputMVPBuf->Pitch);
+            std::copy(&actualPredictor, &actualPredictor + sizeof(actualPredictor), &actualPredictor + outputMVPBuf->Pitch + 4);
         }
         else
         {
