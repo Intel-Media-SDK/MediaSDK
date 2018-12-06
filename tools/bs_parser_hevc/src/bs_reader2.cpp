@@ -237,7 +237,7 @@ bool Reader::NextBytes(Bs8u* b, Bs32u n)
         return false;
 
     if (b != m_bs)
-        memcpy(b, m_bs, n);
+        std::copy(m_bs, m_bs + n, b);
 
     return true;
 }

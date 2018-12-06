@@ -320,8 +320,8 @@ private:
     Bs8u DecodeBypass    ();
     Bs8u DecodeTerminate ();
 
-    inline void sync (Bs8u* t) { memcpy(CtxState, t, CtxTblSize); }
-    inline void store(Bs8u* t) { memcpy(t, CtxState, CtxTblSize); }
+    inline void sync (Bs8u* t) { std::copy(t, t + CtxTblSize, CtxState); }
+    inline void store(Bs8u* t) { std::copy(CtxState, CtxState + CtxTblSize, t); }
     inline void RenormD() {
         while(ivlCurrRange < 256){
             ivlCurrRange <<= 1;

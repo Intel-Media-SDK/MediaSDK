@@ -376,7 +376,7 @@ Bs32u Parser::parseEXT(Bs8u*& ExtData)
 
     ExtData = alloc<Bs8u>(0, (Bs32u)data.size());
 
-    memcpy(ExtData, data.data(), data.size());
+    std::copy(data.data(), data.data() + data.size(), ExtData);
 
     if (ExtBits > 32 * 8)
     {
@@ -438,7 +438,7 @@ void Parser::parseSLD(QM& qm)
 
                 if (refMatrixId == matrixId)
                 {
-                    memcpy(list, DSL(sizeId, refMatrixId), num);
+                    std::copy(DSL(sizeId, refMatrixId), DSL(sizeId, refMatrixId) + num, list);
                     dc = list[0];
                 }
             }
@@ -466,10 +466,9 @@ void Parser::parseSLD(QM& qm)
             case 0:
                 if (refMatrixId < matrixId)
                 {
-                    memcpy(
-                        qm.ScalingFactor0[matrixId],
-                        qm.ScalingFactor0[refMatrixId],
-                        sizeof(qm.ScalingFactor0[0]));
+                    std::copy(qm.ScalingFactor0[refMatrixId],
+                              qm.ScalingFactor0[refMatrixId] + sizeof(qm.ScalingFactor0[0]),
+                              qm.ScalingFactor0[matrixId]);
                 }
                 else
                 {
@@ -484,10 +483,9 @@ void Parser::parseSLD(QM& qm)
             case 1:
                 if (refMatrixId < matrixId)
                 {
-                    memcpy(
-                        qm.ScalingFactor1[matrixId],
-                        qm.ScalingFactor1[refMatrixId],
-                        sizeof(qm.ScalingFactor1[0]));
+                    std::copy(qm.ScalingFactor1[refMatrixId],
+                              qm.ScalingFactor1[refMatrixId] + sizeof(qm.ScalingFactor1[0]),
+                              qm.ScalingFactor1[matrixId]);
                 }
                 else
                 {
@@ -502,10 +500,9 @@ void Parser::parseSLD(QM& qm)
             case 2:
                 if (refMatrixId < matrixId)
                 {
-                    memcpy(
-                        qm.ScalingFactor2[matrixId],
-                        qm.ScalingFactor2[refMatrixId],
-                        sizeof(qm.ScalingFactor2[0]));
+                    std::copy(qm.ScalingFactor2[refMatrixId],
+                              qm.ScalingFactor2[refMatrixId] + sizeof(qm.ScalingFactor2[0]),
+                              qm.ScalingFactor2[matrixId]);
                 }
                 else
                 {
@@ -527,10 +524,9 @@ void Parser::parseSLD(QM& qm)
             case 3:
                 if (refMatrixId < matrixId)
                 {
-                    memcpy(
-                        qm.ScalingFactor3[matrixId],
-                        qm.ScalingFactor3[refMatrixId],
-                        sizeof(qm.ScalingFactor3[0]));
+                    std::copy(qm.ScalingFactor3[refMatrixId],
+                              qm.ScalingFactor3[refMatrixId] + sizeof(qm.ScalingFactor3[0]),
+                              qm.ScalingFactor3[matrixId]);
                 }
                 else
                 {

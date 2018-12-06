@@ -644,7 +644,7 @@ void Info::decodeRPL(NALU& nalu)
         NumPicTotalCurr++;
 
     if (RPS.size())
-        memcpy(slice.DPB, &RPS[0], RPS.size() * sizeof(RefPic));
+        std::copy(RPS.begin(), RPS.end(), slice.DPB);
 
     TmpL0Sz = BS_MAX(NumPicTotalCurr, slice.num_ref_idx_l0_active);
     TmpL1Sz = BS_MAX(NumPicTotalCurr, slice.num_ref_idx_l1_active);
@@ -705,7 +705,7 @@ void Info::decodeRPL(NALU& nalu)
         }
         else
         {
-            memcpy(slice.L0, &TmpL0[0], slice.num_ref_idx_l0_active * sizeof(RefPic));
+            std::copy(TmpL0.begin(), TmpL0.end(), slice.L0);
         }
     }
 
@@ -724,7 +724,7 @@ void Info::decodeRPL(NALU& nalu)
         }
         else
         {
-            memcpy(slice.L1, &TmpL1[0], slice.num_ref_idx_l1_active * sizeof(RefPic));
+            std::copy(TmpL1.begin(), TmpL1.end(), slice.L1);
         }
     }
 }

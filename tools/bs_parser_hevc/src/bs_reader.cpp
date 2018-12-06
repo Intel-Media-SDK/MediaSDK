@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include <bs_reader.h>
+#include <iterator>
 
 #define BS_SKIP_IGNORED_BYTES() \
     if( ignore_bytes_cnt && next_ignored_byte ) \
@@ -47,7 +48,7 @@ BSErr BS_Reader::read_more_data(){
     if( BS_FEOF(bs) ) return last_err = BS_ERR_MORE_DATA;
     Bs32u keep_bytes = buf_size-offset;
     if( keep_bytes == buf_size ) return last_err = BS_ERR_NOT_ENOUGH_BUFFER;
-    if( offset < buf_size ) memcpy( buf, buf+offset, keep_bytes );
+    if( offset < buf_size ) std::copy(buf + offset, buf + offset + keep_bytes, buf);
     file_pos = BS_FTELL(bs) - keep_bytes;
     if( !(buf_size = (Bs32u)BS_FREAD( bs, buf+keep_bytes, offset)) ) /*return*/ last_err = BS_ERR_MORE_DATA;
     buf_size += keep_bytes;
@@ -278,7 +279,7 @@ BSErr BS_Reader::read_arr(byte *arr, Bs32u size){
     if(bit) return BS_ERR_UNKNOWN;
     while(size){
         Bs32u to_copy = BS_MIN(size, buf_size - offset);
-        memcpy(arr, buf+offset, to_copy);
+        std::copy(buf + offset, buf + offset + to_copy, arr);
         size -= to_copy;
         offset += to_copy;
         if(size && read_more_data()) return last_err;
