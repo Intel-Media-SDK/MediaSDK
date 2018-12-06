@@ -98,7 +98,6 @@ MFX_SHARED_FILES_IMPL := $(addprefix mfx_lib/shared/src/, \
     mfx_brc_common.cpp \
     mfx_common_int.cpp \
     mfx_enc_common.cpp \
-    mfx_mpeg2_dec_common.cpp \
     mfx_vc1_dec_common.cpp \
     mfx_vpx_dec_common.cpp \
     mfx_common_decode_int.cpp)
