@@ -52,6 +52,10 @@ void TestProcessor::RunTest(const InputParams & params)
             break;
         }
 
+        //Check that processing parameters have correct number of elements
+        if (m_vProcessingParams.size() != m_InputParams.m_numFrames)
+            throw std::string("ERROR: Incorrect elements number in the m_vProcessingParams");
+
         // Sort processing params into the encoded order
         std::sort(m_vProcessingParams.begin(), m_vProcessingParams.end(),
             [](const FrameProcessingParam& left, const FrameProcessingParam& right) { return left.EncodedOrder < right.EncodedOrder; });
