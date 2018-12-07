@@ -1071,7 +1071,8 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
         {
             mfxHDLPair surfaceHDL = {};
 
-            taskForExecute->m_cpb_removal_delay = (taskForExecute->m_eo == 0) ? 0 : (taskForExecute->m_eo - m_prevBPEO);
+            if (taskForExecute->m_recode == 0)
+                taskForExecute->m_cpb_removal_delay = (taskForExecute->m_eo == 0) ? 0 : (taskForExecute->m_eo - m_prevBPEO);
 
             if (taskForExecute->m_insertHeaders & INSERT_BPSEI)
             {
