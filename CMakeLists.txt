@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018 Intel Corporation
+# Copyright (c) 2017-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -83,8 +83,8 @@ option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
-include( ${BUILDER_ROOT}/FindGlobals.cmake )
 include( ${BUILDER_ROOT}/FindMFX.cmake )
+include( ${BUILDER_ROOT}/FindGlobals.cmake )
 include( ${BUILDER_ROOT}/FindPackages.cmake )
 include( ${BUILDER_ROOT}/FindInternals.cmake )
 include( ${BUILDER_ROOT}/FindITT.cmake )

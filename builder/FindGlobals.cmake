@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -79,8 +79,6 @@ if( Linux OR Darwin )
     set( git_commit "" )
     git_describe( git_commit )
 
-    add_definitions( -DMFX_FILE_VERSION=\"${ver}${cur_date}${git_commit}\")
-    add_definitions( -DMFX_PRODUCT_VERSION=\"${version}\" )
     add_definitions( -DMSDK_BUILD=\"$ENV{BUILD_NUMBER}\")
   endif()
 
@@ -185,3 +183,54 @@ endfunction()
 function(report_add_target var target)
   set(${ARGV0} ${${ARGV0}} ${ARGV1} CACHE INTERNAL "" FORCE)
 endfunction()
+
+# Defined OS name and version and build info and build commit
+if(APPLE)
+  set(MFX_SYSTEM "MAC")
+elseif(UNIX)
+  execute_process(
+    COMMAND lsb_release -i
+    OUTPUT_VARIABLE OUTPUT
+    ERROR_VARIABLE ERROR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  if(NOT ERROR)
+    string(REPLACE  "Distributor ID:	" ""  MFX_LINUX_NAME "${OUTPUT}")
+    if(NOT "${OUTPUT}" STREQUAL "${MFX_LINUX_NAME}")
+      set(MFX_SYSTEM "${MFX_LINUX_NAME}")
+    endif()
+  endif()
+elseif(WIN32)
+  set(MFX_SYSTEM "Windows")
+endif()
+
+execute_process(
+  COMMAND getconf GNU_LIBC_VERSION
+  OUTPUT_VARIABLE OUTPUT
+  ERROR_VARIABLE ERROR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if(NOT ERROR AND UNIX)
+  set(MFX_GLIBC ${OUTPUT})
+endif()
+
+if( API_USE_LATEST )
+  set(API_VER_MODIF "${API_VERSION}+")
+else()
+  set(API_VER_MODIF "${API_VERSION}")
+endif()
+
+if( MFX_SYSTEM )
+  set( BUILD_INFO "${MFX_SYSTEM} ${CMAKE_SYSTEM_VERSION} | ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
+else()
+  set( BUILD_INFO "${CMAKE_SYSTEM} ${CMAKE_SYSTEM_VERSION} | ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" )
+endif()
+
+if(UNIX AND MFX_GLIBC)
+  set( BUILD_INFO "${BUILD_INFO} | ${MFX_GLIBC}")
+endif()
+
+git_describe( git_commit )
+add_definitions( -DMFX_BUILD_INFO=\"${BUILD_INFO}\" )
+add_definitions( -DMFX_API_VERSION=\"${API_VER_MODIF}\" )
+add_definitions( -DMFX_GIT_COMMIT=\"${git_commit}\" )

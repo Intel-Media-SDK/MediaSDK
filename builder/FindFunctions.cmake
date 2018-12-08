@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2018-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -314,7 +314,7 @@ function( git_describe git_commit )
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   )
   if( NOT ${git_commit} MATCHES "^$" )
-    set( git_commit ".${git_commit}" PARENT_SCOPE )
+    set( git_commit "${git_commit}" PARENT_SCOPE )
   endif()
 endfunction()
 
