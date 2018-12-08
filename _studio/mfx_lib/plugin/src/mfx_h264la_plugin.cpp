@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,6 @@
 
 //defining module template for decoder plugin
 #include "mfx_plugin_module.h"
-
-#include "plugin_version_linux.h"
 
 #if defined( AS_H264LA_PLUGIN )
 

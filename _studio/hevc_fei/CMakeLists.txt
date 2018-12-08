@@ -28,9 +28,6 @@ else()
   set(HEVC_FEI_Encoder_HW_GUID "5418a70666f94d5cb4f7b1caee86339b")
 
   # Plugin version info
-  set (HEVC_FEI_HW_PRODUCT_NAME "Intel(R) Media SDK")
-  set (HEVC_FEI_HW_DESCRIPTION "Intel(R) Media SDK HEVC FEI Hardware Encode Plug-in")
-
   if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
     set( hevc_version 0.0.000.0000 )
   else( )
@@ -51,13 +48,11 @@ else()
   set( defs "" )
 
   include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/include )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../mfx_lib/plugin/include )
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../mfx_lib/shared/include )
   list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/h265_fei/src/export.cpp)
 
   set( USE_STRICT_NAME TRUE )
   set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_STUDIO_ROOT}/mfx_lib/plugin/libmfxsw_plugin.map" )
-  set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${HEVC_FEI_HW_PRODUCT_NAME}\"\\\"" )
-  set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${HEVC_FEI_HW_DESCRIPTION}\"\\\"" )
   set( defs "${defs} ${version_defs}" )
   gen_plugins_cfg("HEVC_Encoder_HW" ${HEVC_FEI_Encoder_HW_GUID} ${plugin_name} "02" "HEVC")
   make_library( ${plugin_name} hw shared )
