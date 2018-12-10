@@ -2224,7 +2224,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_ACCEPT_FRAME");
         DdiTask & newTask = m_incoming.front();
-        m_timeStamps.push_back(newTask.m_timeStamp);
 
        if (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
        {
@@ -2255,6 +2254,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 AssignFrameTypes(newTask);
             }
 
+            m_timeStamps.push_back(newTask.m_timeStamp);
             m_frameOrder++;
         }
         else
@@ -2266,6 +2266,30 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
             if (newTask.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF)
                 std::swap(newTask.m_type.top, newTask.m_type.bot);
+
+            mfxU64 timeStamp = newTask.m_timeStamp;
+            // sort the time stamp if the input frame is in encoded order.
+            if (m_timeStamps.size() && (timeStamp != MFX_TIMESTAMP_UNKNOWN))
+            {
+                std::list<mfxU64>::iterator it;
+                // insert the time stampe in the increasing order.
+                for (it = m_timeStamps.begin(); it != m_timeStamps.end(); it++)
+                {
+                    if (*it != MFX_TIMESTAMP_UNKNOWN)
+                    {
+                        mfxI64 delta = static_cast<mfxI64>(timeStamp - *it);
+                        if (delta < 0)
+                        {
+                            break;
+                        }
+                    }
+                }
+                m_timeStamps.insert(it, timeStamp);
+            }
+            else
+            {
+                m_timeStamps.push_back(newTask.m_timeStamp);
+            }
         }
 
         // move task to reordering queue
