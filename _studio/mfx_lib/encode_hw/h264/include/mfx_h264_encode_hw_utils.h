@@ -1957,7 +1957,8 @@ namespace MfxHwH264Encode
             DdiTask & newTask);
         void      AssignDecodeTimeStamp(
             DdiTask & task);
-
+        void PreserveTimeStamp(
+            mfxU64 timeStamp);
         mfxStatus UpdateBitstream(
             DdiTask & task,
             mfxU32    fid); // 0 - top/progressive, 1 - bottom
