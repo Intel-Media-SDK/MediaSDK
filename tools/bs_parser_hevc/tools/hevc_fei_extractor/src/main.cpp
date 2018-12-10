@@ -60,16 +60,19 @@ public:
         if (!fileName) {
             printf("\nERROR: Unable to read file name with CU/CTU structures\n");
             m_errorSts = true;// Error sts
+            return;
         }
 
         if (!mode) {
             printf("\nERROR: Unable to read file open mode\n");
             m_errorSts = true;// Error sts
+            return;
         }
 
         if ((m_pFile = fopen(fileName, mode)) == nullptr) {
             printf("\nERROR: Unable to open the %s file in the FileHandler::FileHandler\n", fileName);
             m_errorSts = true;// Error sts
+            return;
         }
     };
 

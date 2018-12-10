@@ -986,11 +986,7 @@ BsThread::State Parser::ParallelSD(void* self, unsigned int)
         par.Slice->slice->ctu = sdt.p.parseSSD(*par.Slice, par.ColPic, par.NumCtb);
         sdt.p.m_pAllocator->bound(par.Slice->slice->ctu, par.Slice->slice);
     }
-    catch(Exception& ex)
-    {
-        st = FAILED;
-    }
-    catch (std::bad_alloc&)
+    catch(...)
     {
         st = FAILED;
     }
