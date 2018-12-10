@@ -162,22 +162,18 @@ enum
     MFX_MEMTYPE_SYS_INT = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_SYSTEM_MEMORY        | MFX_MEMTYPE_INTERNAL_FRAME,
 };
 
-enum
-{
-    MAX_DPB_SIZE            = 15,
-    IDX_INVALID             = 0xFF,
+constexpr mfxU8    MAX_DPB_SIZE          = 15;
+constexpr mfxU8    IDX_INVALID           = 0xff;
 
-    HW_SURF_ALIGN_W         = 16,
-    HW_SURF_ALIGN_H         = 16,
+constexpr mfxU8    HW_SURF_ALIGN_W       = 16;
+constexpr mfxU8    HW_SURF_ALIGN_H       = 16;
 
-    MAX_SLICES              = 200,// WA for driver issue regerding CNL and older platforms
-    DEFAULT_LTR_INTERVAL    = 16,
-    DEFAULT_PPYR_INTERVAL   = 3,
+constexpr mfxU8    MAX_SLICES            = 200; // WA for driver issue regarding CNL and older platforms
+constexpr mfxU8    DEFAULT_LTR_INTERVAL  = 16;
+constexpr mfxU8    DEFAULT_PPYR_INTERVAL = 3;
 
-    MAX_NUM_ROI             = 16,
-    MAX_NUM_DIRTY_RECT      = 64
-};
-
+constexpr mfxU8    MAX_NUM_ROI           = 16;
+constexpr mfxU8    MAX_NUM_DIRTY_RECT    = 64;
 
 enum
 {
@@ -274,11 +270,11 @@ private:
 
 struct DpbFrame
 {
-    mfxI32              m_poc         = 0;
-    mfxU32              m_fo          = 0; // FrameOrder
-    mfxU32              m_eo          = 0; // Encoded order
-    mfxU32              m_bpo         = 0; // B-pyramid order
-    mfxU32              m_level       = 0; // pyramid level
+    mfxI32              m_poc         = -1;
+    mfxU32              m_fo          = 0xffffffff; // FrameOrder
+    mfxU32              m_eo          = 0xffffffff; // Encoded order
+    mfxU32              m_bpo         = 0;          // B-pyramid order
+    mfxU32              m_level       = 0;          // pyramid level
     mfxU8               m_tid         = 0;
     bool                m_ltr         = false; // is "long-term"
     bool                m_ldb         = false; // is "low-delay B"
@@ -345,6 +341,8 @@ struct Task : DpbFrame
     mfxU16            m_insertHeaders                 = 0;
     mfxU8             m_shNUT                         = 0;
     mfxI8             m_qpY                           = 0;
+    mfxU8             m_avgQP                         = 0;
+    mfxU32            m_MAD                           = 0;
     mfxI32            m_lastIPoc                      = 0;
     mfxI32            m_lastRAP                       = 0;
 
@@ -429,6 +427,7 @@ namespace ExtBuffer
          MFX_EXTBUFF_MBQP,
          MFX_EXTBUFF_ENCODER_ROI,
          MFX_EXTBUFF_DIRTY_RECTANGLES,
+         MFX_EXTBUFF_ENCODED_FRAME_INFO
     };
 
     template<class T> struct ExtBufferMap {};
@@ -457,6 +456,7 @@ namespace ExtBuffer
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
         EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+        EXTBUF(mfxExtAVCEncodedFrameInfo, MFX_EXTBUFF_ENCODED_FRAME_INFO);
 
     #undef EXTBUF
 
@@ -512,6 +512,7 @@ namespace ExtBuffer
         buf_dst.MinQPB                 = buf_src.MinQPB;
         buf_dst.MaxQPB                 = buf_src.MaxQPB;
         buf_dst.SkipFrame              = buf_src.SkipFrame;
+      buf_dst.EnableMAD=buf_src.EnableMAD;
     }
 
     inline void  CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
@@ -538,10 +539,10 @@ namespace ExtBuffer
         buf_dst.WinBRCMaxAvgKbps        = buf_src.WinBRCMaxAvgKbps;
         buf_dst.WinBRCSize              = buf_src.WinBRCSize;
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
-        _CopyPar1(WeightedPred);
-        _CopyPar1(WeightedBiPred);
+        buf_dst.WeightedPred            = buf_src.WeightedPred;
+        buf_dst.WeightedBiPred          = buf_src.WeightedBiPred;
 #if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
-        _CopyPar1(FadeDetection);
+        buf_dst.FadeDetection           = buf_src.FadeDetection;
 #endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #if (MFX_VERSION >= 1025)

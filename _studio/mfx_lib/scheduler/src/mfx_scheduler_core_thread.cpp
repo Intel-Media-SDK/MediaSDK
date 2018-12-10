@@ -116,6 +116,7 @@ void mfxSchedulerCore::WakeupThreadProc()
 {
     {
         const char thread_name[30] = "ThreadName=MSDKHWL#0";
+        (void)thread_name;
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, thread_name);
     }
 

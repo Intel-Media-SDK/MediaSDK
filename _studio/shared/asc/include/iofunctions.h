@@ -22,23 +22,22 @@
 
 #include "asc_structures.h"
 #include "asc.h"
-using namespace ns_asc;
 
 static inline mfxF64 TimeMeasurement(LARGE_INTEGER start, LARGE_INTEGER stop, LARGE_INTEGER frequency) {
     return((stop.QuadPart - start.QuadPart) * mfxF64(1000.0) / frequency.QuadPart);
 }
 
-void TimeStart(ASCTime* timer);
-void TimeStart(ASCTime* timer, int index);
-void TimeStop(ASCTime* timer);
-mfxF64 CatchTime(ASCTime *timer, const char* message);
-mfxF64 CatchTime(ASCTime *timer, int index, const char* message);
-mfxF64 CatchTime(ASCTime *timer, int indexInit, int indexEnd, const char* message);
+void TimeStart(ns_asc::ASCTime* timer);
+void TimeStart(ns_asc::ASCTime* timer, int index);
+void TimeStop(ns_asc::ASCTime* timer);
+mfxF64 CatchTime(ns_asc::ASCTime *timer, const char* message);
+mfxF64 CatchTime(ns_asc::ASCTime *timer, int index, const char* message);
+mfxF64 CatchTime(ns_asc::ASCTime *timer, int indexInit, int indexEnd, const char* message);
 
-void imageInit(ASCYUV *buffer);
-void nullifier(ASCimageData *Buffer);
-void ImDetails_Init(ASCImDetails *Rdata);
-mfxStatus ASCTSCstat_Init(ASCTSCstat **logic);
+void imageInit(ns_asc::ASCYUV *buffer);
+void nullifier(ns_asc::ASCimageData *Buffer);
+void ImDetails_Init(ns_asc::ASCImDetails *Rdata);
+mfxStatus ASCTSCstat_Init(ns_asc::ASCTSCstat **logic);
 
 
 #endif //_IOFUNCTIONS_H_

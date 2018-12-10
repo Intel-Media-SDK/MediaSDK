@@ -35,8 +35,6 @@
 #include <list>
 #include <set>
 
-using namespace MfxVP9Decode;
-
 namespace UMC_VP9_DECODER { class Packer; }
 
 class VideoDECODEVP9_HW : public VideoDECODE, public MfxCriticalErrorHandler

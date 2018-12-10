@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2009-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -592,7 +592,7 @@ namespace MfxHwH264EncodeHW
 
     mfxU16 GetVmeMvCostP(
         mfxU32 const         lutMv[65],
-        SVCPAKObject const & mb)
+        LAOutObject const & mb)
     {
         mfxU32 diffx = abs(mb.costCenter0X - mb.mv[0].x) >> 2;
         mfxU32 diffy = abs(mb.costCenter0Y - mb.mv[0].y) >> 2;
@@ -603,7 +603,7 @@ namespace MfxHwH264EncodeHW
 
     mfxU16 GetVmeMvCostB(
         mfxU32 const         lutMv[65],
-        SVCPAKObject const & mb)
+        LAOutObject const & mb)
     {
         mfxU32 diffx0 = abs(mb.costCenter0X - mb.mv[0].x) >> 2;
         mfxU32 diffy0 = abs(mb.costCenter0Y - mb.mv[0].y) >> 2;
@@ -840,9 +840,13 @@ void CmContext::Setup(
 {
     m_video  = video;
     m_device = cmDevice;
-
-    if (m_device->CreateQueue(m_queue) != CM_SUCCESS)
-        throw CmRuntimeError();
+    if (core->GetHWType() >= MFX_HW_ICL)
+    {
+        if (m_device->CreateQueueEx(m_queue, CM_VME_QUEUE_CREATE_OPTION) != CM_SUCCESS)
+            throw CmRuntimeError();
+    }
+    else if (m_device->CreateQueue(m_queue) != CM_SUCCESS)
+            throw CmRuntimeError();
 
     mfxExtCodingOption2 const * extOpt2 = GetExtBuffer(m_video);
     if (!extOpt2)
@@ -885,9 +889,12 @@ void CmContext::Setup(
         throw CmRuntimeError();
     }
 
-    m_kernelI = CreateKernel(m_device, m_program, "SVCEncMB_I", (void *)SVCEncMB_I);
-    m_kernelP = CreateKernel(m_device, m_program, "SVCEncMB_P", (void *)SVCEncMB_P);
-    m_kernelB = CreateKernel(m_device, m_program, "SVCEncMB_B", (void *)SVCEncMB_B);
+    if (m_program)
+    {
+        m_kernelI = CreateKernel(m_device, m_program, "EncMB_I", (void *)EncMB_I);
+        m_kernelP = CreateKernel(m_device, m_program, "EncMB_P", (void *)EncMB_P);
+        m_kernelB = CreateKernel(m_device, m_program, "EncMB_B", (void *)EncMB_B);
+    }
 
     if (m_programHist)
     {
@@ -1019,7 +1026,7 @@ CmEvent * CmContext::RunVme(
 
     CmKernel * kernelPreMe = SelectKernelPreMe(task.m_type[task.m_fid[0]]);
 
-    SVCEncCURBEData curbeData;
+    CURBEData curbeData;
     SetCurbeData(curbeData, task, qp);
     Write(task.m_cmCurbe, &curbeData);
 
@@ -1063,14 +1070,14 @@ mfxStatus CmContext::QueryVme(
     else if(status != CM_SUCCESS)
         throw CmRuntimeError();
 
-    SVCPAKObject * cmMb = (SVCPAKObject *)task.m_cmMbSys;
+    LAOutObject * cmMb = (LAOutObject *)task.m_cmMbSys;
     VmeData *      cur  = task.m_vmeData;
 
     { MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Compensate costs");
         mfxVMEUNIIn const & costs = SelectCosts(task.m_type[0]);
         for (size_t i = 0; i < cur->mb.size(); i++)
         {
-            SVCPAKObject & mb = cmMb[i];
+            LAOutObject & mb = cmMb[i];
 
             if (mb.IntraMbFlag)
             {
@@ -1161,7 +1168,7 @@ mfxVMEUNIIn & CmContext::SelectCosts(mfxU32 frameType)
 
 
 void CmContext::SetCurbeData(
-    SVCEncCURBEData & curbeData,
+    CURBEData & curbeData,
     DdiTask const &   task,
     mfxU32            qp)
 {
@@ -1401,7 +1408,7 @@ void CmContext::SetCurbeData(
     curbeData.AdaptiveMotionPredictionFlag    = 0;
     curbeData.DefaultMotionPredictionFlag     = 0;
     curbeData.TcoeffLevelPredictionFlag       = 0;
-    curbeData.UseHMEPredictor                 = 0;  //!!IsOn(extDdi->Hme);
+    curbeData.UseHMEPredictor                 = 0;  //!!IsOn(extDdi.Hme);
     curbeData.SpatialResChangeFlag            = 0;
     curbeData.isFwdFrameShortTermRef          = task.m_list0[ffid].Size() > 0 && !task.m_dpb[ffid][task.m_list0[ffid][0] & 127].m_longterm;
     //DW38
@@ -1413,7 +1420,7 @@ void CmContext::SetCurbeData(
 }
 
 void CmContext::SetCurbeData(
-    SVCEncCURBEData & curbeData,
+    CURBEData & curbeData,
     mfxU16            frameType,
     mfxU32            qp,
     mfxI32 width,

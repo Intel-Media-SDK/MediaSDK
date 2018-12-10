@@ -712,6 +712,7 @@ private:
     mfxI32 MCTF_RUN_MCTF_DEN_4REF();
     mfxI32 MCTF_RUN_AMCTF_DEN();
     mfxStatus MCTF_SET_ENV(
+        VideoCORE           * core,
         const mfxFrameInfo  & FrameInfo,
         const IntMctfParams * pMctfParam
     );

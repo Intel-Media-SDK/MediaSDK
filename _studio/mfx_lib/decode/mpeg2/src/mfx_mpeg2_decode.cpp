@@ -2593,8 +2593,6 @@ mfxStatus VideoDECODEMPEG2Internal_HW::GetVideoParam(mfxVideoParam *par)
 
 mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, UMC::FrameMemID mem_id_to_unlock, int32_t task_num_to_unlock, bool end_frame, bool remove_2frames, int decrease_dec_field_count)
 {
-    (void)end_frame;
-
     m_frame[frame_buffer_num].DataLength = 0;
     m_frame[frame_buffer_num].DataOffset = 0;
     m_frame_in_use[frame_buffer_num] = false;
@@ -2608,10 +2606,8 @@ mfxStatus VideoDECODEMPEG2Internal_HW::RestoreDecoder(int32_t frame_buffer_num, 
         m_implUmc->UnLockTask(task_num_to_unlock);
     }
 
-#if defined (MFX_VA_LINUX)
     if (end_frame)
         m_implUmcHW->pack_w.m_va->EndFrame();
-#endif
 
     if (remove_2frames)
         m_implUmcHW->RestoreDecoderStateAndRemoveLastField();
@@ -2638,20 +2634,18 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
 
     UMC::Status umcRes = UMC::UMC_OK;
 
-    bool IsField = false;
-    bool IsSkipped = false;
-
     if (8 < m_frame[m_frame_curr].DataLength)
     {
         m_implUmcHW->SaveDecoderState();
         umcRes = m_implUmc->GetPictureHeader(&m_in[m_task_num], m_task_num, m_prev_task_num);
+        // Shouldn't restore decoder state if GetPictureHeader returned error
+        // because buffers were not changed
+        // also now (m_IsFrameSkipped = false) == (umcRes == UMC::UMC_OK)
 
-        //VM_ASSERT( m_implUmc.PictureHeader[m_task_num].picture_coding_type != 3 || ( mid[ m_implUmc.frame_buffer.latest_next ] != -1 && mid[ m_implUmc.frame_buffer.latest_prev ] != -1 ));
-
-        IsField = !m_implUmc->IsFramePictureStructure(m_task_num);
-        if (m_task_num >= DPB && !IsField)
+        // second field for frame picture, forget it (restore decoder)
+        if (m_task_num >= DPB && UMC::UMC_OK == umcRes && m_implUmc->IsFramePictureStructure(m_task_num))
         {
-            int decrease_dec_field_count = dec_field_count % 2 == 0 ? 0 : 1;
+            int decrease_dec_field_count = dec_field_count & 1;
             int32_t previous_field = m_task_num - DPB;
             if (previous_field > DPB)
                 return MFX_ERR_UNKNOWN;
@@ -2661,9 +2655,11 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
 
         if (UMC::UMC_OK != umcRes)
         {
-            MFX_CHECK_STS(RestoreDecoder(m_frame_curr, NO_SURFACE_TO_UNLOCK, NO_TASK_TO_UNLOCK, NO_END_FRAME, REMOVE_LAST_FRAME, 0))
+            // we trying not to modify buffers on error, so no need to restore
+            //MFX_CHECK_STS(RestoreDecoder(m_frame_curr, NO_SURFACE_TO_UNLOCK, NO_TASK_TO_UNLOCK, NO_END_FRAME, REMOVE_LAST_FRAME, 0))
+            m_frame_in_use[m_frame_curr] = false;
 
-            IsSkipped = m_implUmc->IsFrameSkipped();
+            bool IsSkipped = m_implUmc->IsFrameSkipped();
 
             if (IsSkipped && !(dec_field_count & 1))
             {
@@ -2712,7 +2708,8 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
                         display_order++;
                     }
 
-                    if ((true == IsField && !(dec_field_count & 1)) || false == IsField)
+                    // It comes here after error in GetPictureHeader and having frame to display. No need in condition.
+                    //if (false == IsField || !(dec_field_count & 1) || IsSkipped) // not 2nd field or skipped 2nd
                     {
                         pEntryPoint->requiredNumThreads = m_NumThreads;
                         pEntryPoint->pRoutine = &MPEG2TaskRoutine;
@@ -2759,13 +2756,14 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
             return MFX_ERR_UNKNOWN;
         }
 
-        if ((false == m_isDecodedOrder && maxNumFrameBuffered <= (uint32_t)(m_implUmc->GetRetBufferLen())) ||
-                true == m_isDecodedOrder)
+        if (true == m_isDecodedOrder || maxNumFrameBuffered <= static_cast<uint32_t>(m_implUmc->GetRetBufferLen()))
         {
             disp_index = m_implUmc->GetDisplayIndex();
         }
 
-        if (false == IsField || (true == IsField && !(dec_field_count & 1)))
+        bool IsField = !m_implUmc->IsFramePictureStructure(m_task_num);
+
+        if (false == IsField || !(dec_field_count & 1))
         {
             curr_index = m_task_num;
             next_index = m_implUmc->GetNextDecodingIndex(curr_index);
@@ -2847,11 +2845,12 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
         memset(&m_task_param[m_task_num],0,sizeof(MParam));
         m_implUmc->LockTask(m_task_num);
 
-        umcRes = m_implUmc->DecodeSlices(0, m_task_num);
+        umcRes = m_implUmc->DecodeSlices(0, m_task_num); // never returns UMC_OK
 
-        if (UMC::UMC_OK != umcRes &&
+        if (m_implUmcHW->pack_w.pSliceInfo == m_implUmcHW->pack_w.pSliceInfoBuffer || (// no slices decoded
+            UMC::UMC_OK != umcRes &&
             UMC::UMC_ERR_NOT_ENOUGH_DATA != umcRes &&
-            UMC::UMC_ERR_SYNC != umcRes)
+            UMC::UMC_ERR_SYNC != umcRes))
         {
             MFX_CHECK_STS(RestoreDecoder(m_frame_curr, mid[curr_index], m_task_num, END_FRAME, REMOVE_LAST_FRAME, IsField?1:2))
             return MFX_ERR_MORE_DATA;
@@ -2889,7 +2888,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
                 return status;
         }
 
-        if ((true == IsField && !(dec_field_count & 1)) || false == IsField)
+        if (false == IsField || !(dec_field_count & 1))
         {
             pEntryPoint->requiredNumThreads = m_NumThreads;
             pEntryPoint->pRoutine = &MPEG2TaskRoutine;
@@ -2997,7 +2996,8 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
 
         if (0 <= disp_index)
         {
-            if (false == m_isDecodedOrder && ((true == IsField && !(dec_field_count & 1)) || false == IsField))
+            bool IsField = !m_implUmc->IsFramePictureStructure(m_task_num);
+            if (false == m_isDecodedOrder && (false == IsField || !(dec_field_count & 1)))
             {
                 mfxStatus sts = GetOutputSurface(surface_disp, surface_work, mid[disp_index]);
                 if (sts < MFX_ERR_NONE)

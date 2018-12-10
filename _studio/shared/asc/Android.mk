@@ -8,13 +8,15 @@ LOCAL_SRC_FILES := $(addprefix src/, $(notdir $(wildcard $(LOCAL_PATH)/src/*.cpp
 LOCAL_C_INCLUDES := \
     $(MFX_INCLUDES_INTERNAL_HW) \
     $(MFX_HOME)/_studio/mfx_lib/cmrt_cross_platform/include \
-    $(MFX_HOME)/_studio/mfx_lib/genx/asc/include
+    $(MFX_HOME)/_studio/mfx_lib/genx/asc/isa
 
 LOCAL_CFLAGS := \
-	$(MFX_CFLAGS_INTERNAL_HW) \
-	-Wall -Werror
+    $(MFX_CFLAGS_INTERNAL_HW) \
+    -Wall -Werror
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
+
+LOCAL_HEADER_LIBRARIES := libmfx_headers
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := libasc

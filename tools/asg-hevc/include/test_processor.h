@@ -38,8 +38,6 @@
 
 #include "refcontrol.h"
 
-using namespace std;
-
 class TestProcessor
 {
 public:
@@ -82,20 +80,20 @@ protected:
     FrameProcessor                    m_FrameProcessor;       // Class which performs processing of frame
     std::list<ExtendedSurface>        m_Surfaces;             // Surface pool
 
-    fstream fpPicStruct;
+    std::fstream fpPicStruct;
     RefControl m_RefControl;
 
-    fstream fpRepackCtrl;
-    fstream fpRepackStr;
-    fstream fpRepackStat;
+    std::fstream fpRepackCtrl;
+    std::fstream fpRepackStr;
+    std::fstream fpRepackStat;
 
 private:
     //used to be global
 
     // used once in TestProcessor
-    list<FrameChangeDescriptor> GetReferences(const list<FrameChangeDescriptor> & RecentProcessed, const vector<mfxU32>& ref_idx);
+    std::list<FrameChangeDescriptor> GetReferences(const std::list<FrameChangeDescriptor> & RecentProcessed, const std::vector<mfxU32>& ref_idx);
     // never used actually
-    list<FrameChangeDescriptor> GetSkips(const list<FrameChangeDescriptor> & RecentProcessed);
+    std::list<FrameChangeDescriptor> GetSkips(const std::list<FrameChangeDescriptor> & RecentProcessed);
 };
 
 #endif // MFX_VERSION

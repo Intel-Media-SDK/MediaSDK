@@ -18,9 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "gtest/gtest.h"
 #include "mfx_dispatch_test_main.h"
-
 #include "mfx_dispatch_test_mocks.h"
 
 std::unique_ptr<MockCallObj> g_call_obj_ptr;
@@ -88,6 +86,10 @@ extern "C"
     mfxStatus MFXVideoUSER_RegisterWrap(mfxSession session, mfxU32 type, const mfxPlugin *par)
     {
         return g_call_obj_ptr->MFXVideoUSER_Register(session, type, par);
+    }
+    mfxStatus MFXVideoUSER_UnregisterWrap(mfxSession session, mfxU32 type)
+    {
+        return g_call_obj_ptr->MFXVideoUSER_Unregister(session, type);
     }
 
 } // extern "C"

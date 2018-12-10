@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -198,7 +198,7 @@ Status VATaskSupplier::DecodeHeaders(NalUnit *nalUnit)
     if (nal_unit_type == NAL_UT_SPS && m_firstVideoParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE &&
         isMVCProfile(m_firstVideoParams.mfx.CodecProfile) && m_va)
     {
-        H264SeqParamSet * currSPS = m_Headers.m_SeqParams.GetCurrentHeader();
+        UMC_H264_DECODER::H264SeqParamSet * currSPS = m_Headers.m_SeqParams.GetCurrentHeader();
         if (currSPS && !currSPS->frame_mbs_only_flag)
         {
             return UMC_NTF_NEW_RESOLUTION;
@@ -327,40 +327,8 @@ Status VATaskSupplier::AddSource(MediaData * pSource)
     if (!pSource)
         return MFXTaskSupplier::AddSource(pSource);
 
-    notifier0<LazyCopier> memory_leak_preventing_slice(&m_lazyCopier, &LazyCopier::CopyAll);
-
-    uint32_t const flags = pSource->GetFlags();
-    if (flags & MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME)
-        return MFXTaskSupplier::AddSource(pSource);
-
-    if (m_currentView == INVALID_VIEW_ID)
-        return MFXTaskSupplier::AddSource(pSource);
-
-    ViewItem &view = GetView(m_currentView);
-    if (view.pCurFrame && view.pCurFrame->m_PictureStructureForDec < FRM_STRUCTURE)
-    {
-        H264Slice* pFirstFrameSlice = view.pCurFrame->GetAU(0)->GetSlice(0);
-        //we need to check only for first slice
-        if (pFirstFrameSlice)
-            return MFXTaskSupplier::AddSource(pSource);
-    }
-
-    H264DBPList* pDPB = view.GetDPBList(0);
-    VM_ASSERT(pDPB && "DPB pointer should be valid here");
-    if (!pDPB)
-        return UMC_ERR_FAILED;
-
-    //check if we have free frame
-    if (pDPB->countAllFrames() < view.maxDecFrameBuffering + m_DPBSizeEx ||
-        pDPB->IsDisposableExist())
-        return MFXTaskSupplier::AddSource(pSource);
-
-    H264DecoderFrame* completed = 0;
-    Status umcRes = CompleteDecodedFrames(&completed);
-    if (umcRes != UMC_OK)
-        return pSource || !completed ? umcRes : UMC_OK;
-
-    return UMC_WRN_INFO_NOT_READY;
+    notifier0<LazyCopier> copy_slice_data(&m_lazyCopier, &LazyCopier::CopyAll);
+    return MFXTaskSupplier::AddSource(pSource);
 }
 
 Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)

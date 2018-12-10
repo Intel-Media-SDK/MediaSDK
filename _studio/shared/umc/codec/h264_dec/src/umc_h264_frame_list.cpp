@@ -1187,7 +1187,7 @@ void H264DBPList::AddInterViewRefs(H264Slice *slice, H264DecoderFrame **pRefPicL
     // corresponding view Id array
     {
         uint32_t VOIdx = GetVOIdx(slice->GetSeqMVCParam(), slice->GetSliceHeader()->nal_ext.mvc.view_id);
-        const H264ViewRefInfo &refInfo = slice->GetSeqMVCParam()->viewInfo[VOIdx];
+        const UMC_H264_DECODER::H264ViewRefInfo &refInfo = slice->GetSeqMVCParam()->viewInfo[VOIdx];
 
         if (slice->GetSliceHeader()->nal_ext.mvc.anchor_pic_flag)
         {

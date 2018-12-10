@@ -29,6 +29,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #error MFX_VERSION not defined
 #endif
 
+#include <future>
 using namespace std;
 using namespace TranscodingSample;
 
@@ -182,10 +183,12 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     // create sessions, allocators
     for (i = 0; i < m_InputParamsArray.size(); i++)
     {
-        GeneralAllocator* pAllocator = new GeneralAllocator;
+        std::unique_ptr<GeneralAllocator> pAllocator(new GeneralAllocator);
         sts = pAllocator->Init(m_pAllocParam.get());
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
-        m_pAllocArray.push_back(pAllocator);
+
+        m_pAllocArray.push_back(pAllocator.get());
+        pAllocator.release();
 
         std::unique_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
         // extend BS processing init
@@ -305,26 +308,26 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         pThreadPipeline->startStatus = MFX_WRN_DEVICE_BUSY;
         // set other session's parameters
         pThreadPipeline->implType = m_InputParamsArray[i].libType;
-        m_pSessionArray.push_back(pThreadPipeline.release());
+        m_pThreadContextArray.push_back(pThreadPipeline.release());
 
         mfxVersion ver = {{0, 0}};
-        sts = m_pSessionArray[i]->pPipeline->QueryMFXVersion(&ver);
-        MSDK_CHECK_STATUS(sts, "m_pSessionArray[i]->pPipeline->QueryMFXVersion failed");
+        sts = m_pThreadContextArray[i]->pPipeline->QueryMFXVersion(&ver);
+        MSDK_CHECK_STATUS(sts, "m_pThreadContextArray[i]->pPipeline->QueryMFXVersion failed");
 
         PrintInfo(i, &m_InputParamsArray[i], &ver);
     }
 
     for (i = 0; i < m_InputParamsArray.size(); i++)
     {
-        sts = m_pSessionArray[i]->pPipeline->CompleteInit();
-        MSDK_CHECK_STATUS(sts, "m_pSessionArray[i]->pPipeline->CompleteInit failed");
+        sts = m_pThreadContextArray[i]->pPipeline->CompleteInit();
+        MSDK_CHECK_STATUS(sts, "m_pThreadContextArray[i]->pPipeline->CompleteInit failed");
 
-        if (m_pSessionArray[i]->pPipeline->GetJoiningFlag())
+        if (m_pThreadContextArray[i]->pPipeline->GetJoiningFlag())
             msdk_printf(MSDK_STRING("Session %d was joined with other sessions\n"), i);
         else
             msdk_printf(MSDK_STRING("Session %d was NOT joined with other sessions\n"), i);
 
-        m_pSessionArray[i]->pPipeline->SetPipelineID(i);
+        m_pThreadContextArray[i]->pPipeline->SetPipelineID(i);
     }
 
     msdk_printf(MSDK_STRING("\n"));
@@ -341,7 +344,7 @@ void Launcher::Run()
     m_StartTime = GetTick();
 
     // Robust flag is applied to every seession if enabled in one
-    if (m_pSessionArray[0]->pPipeline->GetRobustFlag())
+    if (m_pThreadContextArray[0]->pPipeline->GetRobustFlag())
     {
         DoRobustTranscoding();
     }
@@ -356,92 +359,105 @@ void Launcher::Run()
 
 void Launcher::DoTranscoding()
 {
-    mfxStatus sts = MFX_ERR_NONE;
-
-    // get parallel sessions parameters
-    mfxU32 totalSessions = (mfxU32)m_pSessionArray.size();
-    MSDKThread* pthread = 0;
-
-    for (mfxU32 i = 0; i < totalSessions; i++)
+    auto RunTranscodeRoutine = [](ThreadTranscodeContext* context)
     {
-        pthread = new MSDKThread(sts, TranscodeRoutine, (void *)m_pSessionArray[i]);
-        m_HDLArray.push_back(pthread);
-    }
+        context->handle = std::async(std::launch::async, [context](){
+                                context->TranscodeRoutine();
+                          });
+    };
 
-    // Need to determine overlay threads count first
-    size_t nOverlayThreads = 0;
-    for (size_t i = 0; i < m_pSessionArray.size(); i++)
+    bool isOverlayUsed = false;
+    for (auto context : m_pThreadContextArray)
     {
-        if (m_pSessionArray[i]->pPipeline->IsOverlayUsed())
-            nOverlayThreads++;
+        MSDK_CHECK_POINTER_NO_RET(context);
+        RunTranscodeRoutine(context);
+
+        MSDK_CHECK_POINTER_NO_RET(context->pPipeline);
+        isOverlayUsed = isOverlayUsed || context->pPipeline->IsOverlayUsed();
     }
 
     // Transcoding threads waiting cycle
-    size_t aliveSessionsCount = totalSessions;
-    while (aliveSessionsCount)
+    bool aliveNonOverlaySessions = true;
+    while (aliveNonOverlaySessions)
     {
-        aliveSessionsCount = 0;
-        for (mfxU32 i = 0; i < totalSessions; i++)
+        aliveNonOverlaySessions = false;
+
+        for (size_t i = 0; i < m_pThreadContextArray.size(); ++i)
         {
-            if (m_HDLArray[i])
+            if (!m_pThreadContextArray[i]->handle.valid())
+                continue;
+
+            auto waitSts = m_pThreadContextArray[i]->handle.wait_for(std::chrono::milliseconds(1));
+            if (waitSts == std::future_status::ready)
             {
-                aliveSessionsCount++;
+                // Invoke get() of the handle just to reset the valid state.
+                // This allows to skip already processed sessions
+                m_pThreadContextArray[i]->handle.get();
 
-                sts = m_HDLArray[i]->TimedWait(1);
-                if (sts <= 0)
+                // Session is completed, let's check for its status
+                if (m_pThreadContextArray[i]->transcodingSts < MFX_ERR_NONE)
                 {
-                    // Session is completed, let's check for its status
-                    if (m_pSessionArray[i]->transcodingSts < 0)
+                    // Stop all the sessions if an error happened in one
+                    // But do not stop in robust mode when gpu hang's happened
+                    if (m_pThreadContextArray[i]->transcodingSts != MFX_ERR_GPU_HANG ||
+                        !m_pThreadContextArray[i]->pPipeline->GetRobustFlag())
                     {
-                        // Stop all the sessions if an error happened in one
-                        // But do not stop in robust mode when gpu hang's happened
-                        if (m_pSessionArray[i]->transcodingSts != MFX_ERR_GPU_HANG ||
-                            !m_pSessionArray[i]->pPipeline->GetRobustFlag())
-                        {
-                            msdk_stringstream ss;
-                            ss << MSDK_STRING("\n\n session ") << i << MSDK_STRING(" [") << m_pSessionArray[i]->pPipeline->GetSessionText() << MSDK_STRING("] failed with status ") << StatusToString(m_pSessionArray[i]->transcodingSts)
-                               << MSDK_STRING(" shutting down the application...") << std::endl << std::endl;
-                            msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+                        msdk_stringstream ss;
+                        ss << MSDK_STRING("\n\n session ") << i << MSDK_STRING(" [")
+                           << m_pThreadContextArray[i]->pPipeline->GetSessionText()
+                           << MSDK_STRING("] failed with status ")
+                           << StatusToString(m_pThreadContextArray[i]->transcodingSts)
+                           << MSDK_STRING(" shutting down the application...")
+                           << std::endl << std::endl;
+                        msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
 
-                            for (size_t j = 0; j < m_pSessionArray.size(); j++)
-                            {
-                                m_pSessionArray[j]->pPipeline->StopSession();
-                            }
+                        for (auto context : m_pThreadContextArray)
+                        {
+                            context->pPipeline->StopSession();
                         }
                     }
-
-                    // Now clear its handle and thread info
-                    MSDK_SAFE_DELETE(m_HDLArray[i]);
-                    m_HDLArray[i] = NULL;
                 }
+                else if (m_pThreadContextArray[i]->transcodingSts > MFX_ERR_NONE)
+                {
+                    msdk_stringstream ss;
+                    ss << MSDK_STRING("\n\n session ") << i << MSDK_STRING(" [")
+                    << m_pThreadContextArray[i]->pPipeline->GetSessionText()
+                    << MSDK_STRING("] returned warning status ")
+                    << StatusToString(m_pThreadContextArray[i]->transcodingSts)
+                    << std::endl << std::endl;
+                    msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+                }
+            }
+            else
+            {
+                aliveNonOverlaySessions = aliveNonOverlaySessions || !m_pThreadContextArray[i]->pPipeline->IsOverlayUsed();
             }
         }
 
-        // If all sessions are already stopped (no matter with error or not) - we need to forcibly stop all overlay sessions
-        if (aliveSessionsCount <= nOverlayThreads + 1)
+        // Stop overlay sessions
+        // Note: Overlay sessions never stop themselves so they should be forcibly stopped
+        // after stopping of all non-overlay sessions
+        if (!aliveNonOverlaySessions && isOverlayUsed)
         {
             // Sending stop message
-            for (size_t i = 0; i < totalSessions; i++)
+            for (auto context : m_pThreadContextArray)
             {
-                if (m_HDLArray[i] && m_pSessionArray[i]->pPipeline->IsOverlayUsed())
+                if (context->pPipeline->IsOverlayUsed())
                 {
-                    m_pSessionArray[i]->pPipeline->StopSession();
+                    context->pPipeline->StopSession();
                 }
             }
 
             // Waiting for them to be stopped
-            for (size_t i = 0; i < totalSessions; i++)
+            for (auto context : m_pThreadContextArray)
             {
-                if (m_HDLArray[i])
-                {
-                    m_HDLArray[i]->Wait();
-                    MSDK_SAFE_DELETE(m_HDLArray[i]);
-                    m_HDLArray[i]=NULL;
-                }
+                if (!context->handle.valid())
+                    continue;
+
+                context->handle.wait();
             }
         }
     }
-    m_HDLArray.clear();
 }
 
 void Launcher::DoRobustTranscoding()
@@ -455,9 +471,9 @@ void Launcher::DoRobustTranscoding()
     {
         if (bGPUHang)
         {
-            for (size_t i = 0; i < m_pSessionArray.size(); i++)
+            for (size_t i = 0; i < m_pThreadContextArray.size(); i++)
             {
-                sts = m_pSessionArray[i]->pPipeline->Reset();
+                sts = m_pThreadContextArray[i]->pPipeline->Reset();
                 if (sts)
                 {
                     msdk_printf(MSDK_STRING("\n[WARNING] GPU Hang recovery wasn't succeed. Exiting...\n"));
@@ -470,9 +486,9 @@ void Launcher::DoRobustTranscoding()
 
         DoTranscoding();
 
-        for (size_t i = 0; i < m_pSessionArray.size(); i++)
+        for (size_t i = 0; i < m_pThreadContextArray.size(); i++)
         {
-            if (m_pSessionArray[i]->transcodingSts == MFX_ERR_GPU_HANG)
+            if (m_pThreadContextArray[i]->transcodingSts == MFX_ERR_GPU_HANG)
             {
                 bGPUHang = true;
             }
@@ -501,9 +517,9 @@ mfxStatus Launcher::ProcessResult()
     mfxStatus FinalSts = MFX_ERR_NONE;
     msdk_printf(MSDK_STRING("-------------------------------------------------------------------------------\n"));
 
-    for (mfxU32 i = 0; i < m_pSessionArray.size(); i++)
+    for (mfxU32 i = 0; i < m_pThreadContextArray.size(); i++)
     {
-        mfxStatus _sts = m_pSessionArray[i]->transcodingSts;
+        mfxStatus _sts = m_pThreadContextArray[i]->transcodingSts;
 
         if (!FinalSts)
             FinalSts = _sts;
@@ -512,9 +528,14 @@ mfxStatus Launcher::ProcessResult()
             : msdk_string((MSDK_STRING("PASSED")));
 
         msdk_stringstream ss;
-        ss << MSDK_STRING("*** session ") << i << MSDK_STRING(" [") << m_pSessionArray[i]->pPipeline->GetSessionText() << MSDK_STRING("] ") << SessionStsStr <<MSDK_STRING(" (") << StatusToString(_sts) << MSDK_STRING(") ")
-            << m_pSessionArray[i]->working_time << MSDK_STRING(" sec, ") << m_pSessionArray[i]->numTransFrames << MSDK_STRING(" frames") << std::endl
-            << m_parser.GetLine(i) << std::endl << std::endl;
+        ss << MSDK_STRING("*** session ") << i
+           << MSDK_STRING(" [") << m_pThreadContextArray[i]->pPipeline->GetSessionText()
+           << MSDK_STRING("] ") << SessionStsStr <<MSDK_STRING(" (")
+           << StatusToString(_sts) << MSDK_STRING(") ")
+           << m_pThreadContextArray[i]->working_time << MSDK_STRING(" sec, ")
+           << m_pThreadContextArray[i]->numTransFrames << MSDK_STRING(" frames")
+           << std::endl
+           << m_parser.GetLine(i) << std::endl << std::endl;
 
         msdk_printf(MSDK_STRING("%s"),ss.str().c_str());
         if (pPerfFile)
@@ -829,31 +850,31 @@ mfxStatus Launcher::CreateSafetyBuffers()
 
 void Launcher::Close()
 {
-    while(m_pSessionArray.size())
+    while(m_pThreadContextArray.size())
     {
-        delete m_pSessionArray[m_pSessionArray.size()-1];
-        m_pSessionArray[m_pSessionArray.size() - 1] = NULL;
-        m_pSessionArray.pop_back();
+        delete m_pThreadContextArray[m_pThreadContextArray.size()-1];
+        m_pThreadContextArray[m_pThreadContextArray.size() - 1] = nullptr;
+        m_pThreadContextArray.pop_back();
     }
 
     while(m_pAllocArray.size())
     {
         delete m_pAllocArray[m_pAllocArray.size()-1];
-        m_pAllocArray[m_pAllocArray.size() - 1] = NULL;
+        m_pAllocArray[m_pAllocArray.size() - 1] = nullptr;
         m_pAllocArray.pop_back();
     }
 
     while(m_pBufferArray.size())
     {
         delete m_pBufferArray[m_pBufferArray.size()-1];
-        m_pBufferArray[m_pBufferArray.size() - 1] = NULL;
+        m_pBufferArray[m_pBufferArray.size() - 1] = nullptr;
         m_pBufferArray.pop_back();
     }
 
     while(m_pExtBSProcArray.size())
     {
         delete m_pExtBSProcArray[m_pExtBSProcArray.size() - 1];
-        m_pExtBSProcArray[m_pExtBSProcArray.size() - 1] = NULL;
+        m_pExtBSProcArray[m_pExtBSProcArray.size() - 1] = nullptr;
         m_pExtBSProcArray.pop_back();
     }
 } // void Launcher::Close()

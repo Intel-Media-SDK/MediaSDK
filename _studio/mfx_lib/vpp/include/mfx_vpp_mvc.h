@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,6 @@
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_base.h"
 #include "mfx_vpp_sw.h"
-
-using namespace std;
 
 namespace MfxVideoProcessing
 {
@@ -99,7 +97,7 @@ namespace MfxVideoProcessing
         bool       m_bMultiViewMode;
         VideoCORE* m_core;
 
-        typedef map<mfxU16, VideoVPPBase*> mfxMultiViewVPP;
+        typedef std::map<mfxU16, VideoVPPBase*> mfxMultiViewVPP;
         typedef mfxMultiViewVPP::iterator mfxMultiViewVPP_Iterator;
 
         mfxMultiViewVPP_Iterator m_iteratorVPP;

@@ -127,7 +127,7 @@ protected:
 
     std::vector<FILE*> m_files;
 
-    bool shouldShiftP010High;
+    bool shouldShift10BitsHigh;
     bool m_bInited;
 };
 

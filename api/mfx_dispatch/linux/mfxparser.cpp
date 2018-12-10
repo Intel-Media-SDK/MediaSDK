@@ -47,7 +47,7 @@ static bool parseGUID(const char* src, mfxPluginUID* uid)
     return true;
 }
 
-void PluginInfo::Load(char* name, char* value)
+void PluginInfo::Load(const char* name, const char* value)
 {
 #ifdef LINUX64
     #define FIELD_FileName "FileName64"
@@ -76,14 +76,19 @@ void PluginInfo::Load(char* name, char* value)
         m_parsed |= PARSED_UID;
     } else if (!strcmp(name, "Path") || !strcmp(name, FIELD_FileName)) {
         // strip quotes
-        char* p = value + strlen(value) - 1;
-        if (*value == '"' && *p == '"') {
-            *p = '\0';
-            ++value;
+        std::string str_value(value);
+
+        if (!str_value.empty() && str_value.front() == '"' && str_value.back() == '"')
+        {
+            str_value.pop_back();
+
+            if (!str_value.empty())
+                str_value.erase(0, 1);
         }
-        if (strlen(m_path) + strlen("/") + strlen(value) >= PATH_MAX)
+
+        if (strlen(m_path) + strlen("/") + str_value.size() >= PATH_MAX)
             return;
-        strcpy(m_path + strlen(m_path), value);
+        strncpy(m_path + strlen(m_path), str_value.c_str(), str_value.size() + 1);
         m_parsed |= PARSED_PATH;
     } else if (0 == strcmp(name, "Default")) {
         m_default = (0 != atoi(value));
@@ -109,19 +114,18 @@ void PluginInfo::Print()
   printf("  Default=%d\n", m_default);
 }
 
+const std::string space_search_pattern(" \f\n\r\t\v");
 // strip tailing spaces
-static inline char* strip(char* s)
+void strip(std::string & str)
 {
-    char* p = s + strlen(s);
-    while (p > s && isspace(*--p)) *p = 0;
-    return s;
+    static_assert(std::string::npos + 1 == 0, "");
+    str.erase(str.find_last_not_of(space_search_pattern) + 1);
 }
 
 // skip initial spaces
-static inline char* skip(char* s)
+void skip(std::string & str)
 {
-    while (*s && isspace(*s)) ++s;
-    return s;
+    str.erase(0, str.find_first_not_of(space_search_pattern));
 }
 
 void parse(const char* file_name, std::list<PluginInfo>& plugins)
@@ -131,43 +135,54 @@ void parse(const char* file_name, std::list<PluginInfo>& plugins)
 #else
   const char* mode = "r";
 #endif
-  char line[PATH_MAX];
-  PluginInfo plg;
 
   FILE* file = fopen(file_name, mode);
   if (!file)
     return;
 
-  while(fgets(line, PATH_MAX, file)) {
-    char* p = skip(line);
+  char c_line[PATH_MAX];
+  PluginInfo plg;
+  std::string line;
 
-    if (strchr(";#", *p)) {
+  while(fgets(c_line, PATH_MAX, file))
+  {
+    line = c_line;
+
+    strip(line);
+    skip(line);
+
+    if (line.find_first_not_of(";#") != 0)
+    {
       // skip comments
-    } else if (*p == '[') {
+      continue;
+    }
+    else if (line[0] == '[')
+    {
       if (plg.isValid()) {
         plugins.push_back(std::move(plg));
         plg = PluginInfo{};
       }
-    } else {
-      char* name = p;
-      char* value = p;
+    }
+    else
+    {
+      std::string name = line, value = line;
 
-      while(*value && !strchr("=:;#", *value)) ++value;
-      if (*value && strchr("=:", *value)) {
-        *value++ = '\0';
+      size_t pos = value.find_first_of("=:");
+      if (pos != std::string::npos)
+      {
+          // Get left part relative to delimiter
+          name.erase(pos);
+          strip(name);
+
+          // Get right part relative to delimiter
+          value.erase(0, pos + 1);
+          skip(value);
+
+          static_assert(std::string::npos + 1 == 0, "");
+          value.erase(value.find_last_not_of(";#") + 1);
       }
-
-      p = value;
-      while (*p && !strchr(";#", *p)) ++p;
-      if (*p != '\0') {
-        *p = '\0';
-      }
-
-      name = strip(name);
-      value = skip(strip(value));
-
-      if (*name != '\0' && *value != '\0') {
-        plg.Load(name, value);
+      if (!name.empty() && !value.empty()) {
+        plg.Load(name.c_str(), value.c_str());
       }
     }
   }

@@ -911,7 +911,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         }
     }
     mfxExtCodingOption3 & extOpt3 = GetExtBufferRef(m_video);
-    bool bPanicModeSupport = ((extOpt3.WinBRCSize > 0 && (m_video.mfx.RateControlMethod != MFX_RATECONTROL_VBR && m_video.mfx.RateControlMethod != MFX_RATECONTROL_QVBR)) || (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD) || IsOn(extOpt2.ExtBRC));
+    bool bPanicModeSupport = (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA) || (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD) || IsOn(extOpt2.ExtBRC);
     if (m_raw.NumFrameActual == 0 && bPanicModeSupport )
     {
         request.Type        = MFX_MEMTYPE_D3D_INT;
@@ -1041,7 +1041,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
             MFX_CHECK_STS(sts);
         }
 
-        request.Info.Width  = m_video.calcParam.widthLa  / 16 * sizeof(SVCPAKObject);
+        request.Info.Width  = m_video.calcParam.widthLa  / 16 * sizeof(LAOutObject);
         request.Info.Height = m_video.calcParam.heightLa / 16;
         request.Info.FourCC = MFX_FOURCC_P8;
         request.Type        = MFX_MEMTYPE_D3D_INT;
@@ -1050,7 +1050,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         sts = m_mb.AllocCmBuffersUp(m_cmDevice, request);
         MFX_CHECK_STS(sts);
 
-        request.Info.Width  = sizeof(SVCEncCURBEData);
+        request.Info.Width  = sizeof(CURBEData);
         request.Info.Height = 1;
         request.Info.FourCC = MFX_FOURCC_P8;
         request.Type        = MFX_MEMTYPE_D3D_INT;
@@ -2130,6 +2130,24 @@ struct FindNonSkip
 
     mfxU16 m_skipFrameMode;
 };
+mfxStatus FixForcedFrameType (DdiTask & newTask, mfxU32 frameOrder)
+{
+    if (frameOrder == 0 &&
+        !(newTask.m_type[0] & MFX_FRAMETYPE_IDR) &&
+        !(newTask.m_type[1] & MFX_FRAMETYPE_IDR))
+    {
+        if (newTask.m_type[0] & MFX_FRAMETYPE_I)
+            newTask.m_type[0] |= MFX_FRAMETYPE_IDR;
+        else if (newTask.m_type[1] & MFX_FRAMETYPE_I)
+            newTask.m_type[1] |= MFX_FRAMETYPE_IDR;
+        else
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
+    newTask.m_type[0] |= MFX_FRAMETYPE_REF;
+    newTask.m_type[1] |= MFX_FRAMETYPE_REF;
+
+    return MFX_ERR_NONE;
+}
 
 void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
 {
@@ -2165,6 +2183,37 @@ void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
     {
         m_frameOrderIntraInDisplayOrder = newTask.m_frameOrder;
         m_baseLayerOrderStartIntraRefresh = newTask.m_baseLayerOrder;
+    }
+}
+mfxU32 GetMaxFrameSize(DdiTask const & task, MfxVideoParam const &video, Hrd const &hrd)
+{
+    mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(video);
+    mfxExtCodingOption3    const & extOpt3 = GetExtBufferRef(video);
+
+    mfxU32 maxFrameSize_hrd = hrd.GetMaxFrameSize(task.GetFrameType() & MFX_FRAMETYPE_IDR)>>3;
+    mfxU32 maxFrameSize     = (task.GetFrameType() & MFX_FRAMETYPE_I) ? extOpt3.MaxFrameSizeI : extOpt3.MaxFrameSizeP;
+    maxFrameSize = (!maxFrameSize) ? extOpt2.MaxFrameSize : maxFrameSize;
+
+    return (maxFrameSize_hrd && maxFrameSize) ?
+        std::min(maxFrameSize_hrd,maxFrameSize):
+        std::max(maxFrameSize_hrd,maxFrameSize);
+}
+void ImplementationAvc::AssignDecodeTimeStamp(DdiTask & task)
+{
+    mfxU8 numReorderFrames = GetNumReorderFrames(m_video);
+    if (task.m_encOrder < numReorderFrames)
+    {
+        // For the first reorder frames the DTS is calculated from the first frame's timestamp
+        // DTS = firstTimeStamp - distanceToFirstFrameInTime
+        mfxU64 firstTimeStamp = m_timeStamps.front();
+        mfxU32 distToFirstTimeStamp = numReorderFrames-task.m_encOrder;
+        mfxU16 distInTickUnit = static_cast<mfxU16>(2 * distToFirstTimeStamp);
+        task.m_decodeTimeStamp =  CalcDTSFromPTS(m_video.mfx.FrameInfo, distInTickUnit, firstTimeStamp);
+    }
+    else
+    {
+        task.m_decodeTimeStamp = static_cast<mfxI64>(m_timeStamps.front());
+        m_timeStamps.pop_front();
     }
 }
 
@@ -2225,7 +2274,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_ACCEPT_FRAME");
         DdiTask & newTask = m_incoming.front();
 
-       if (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
+      if (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
        {
             const mfxExtLAFrameStatistics *vmeData = GetExtBuffer(newTask.m_ctrl);
             MFX_CHECK_NULL_PTR1(vmeData);
@@ -2249,6 +2298,12 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             {
                 if (newTask.m_type[0] == 0)
                     newTask.m_type = GetFrameType(m_video, m_frameOrder - m_frameOrderIdrInDisplayOrder);
+                else
+                {
+                    mfxStatus sts = FixForcedFrameType(newTask, m_frameOrder - m_frameOrderIdrInDisplayOrder);
+                    if (sts != MFX_ERR_NONE)
+                        return Error(sts);
+                }
 
                 newTask.m_frameOrder = m_frameOrder;
                 AssignFrameTypes(newTask);
@@ -2688,7 +2743,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             }
         }
 
-        task->m_singleFieldMode = IsOn(extFeiParams->SingleFieldProcessing);
+        // In case of progressive frames in PAFF mode need to switch the flag off to prevent m_fieldCounter changes
+        task->m_singleFieldMode = (task->m_fieldPicFlag != 0) && IsOn(extFeiParams->SingleFieldProcessing);
 
 
         for (mfxU32 f = 0; f <= task->m_fieldPicFlag; f++)
@@ -2776,6 +2832,16 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 }
                 //printf("Real frameSize %d, repack %d\n", bsDataLength, task->m_repack);
                 bool bRecoding = false;
+                //CpbRemovalDelay can be incorrect if previous frames were recorded in async mode
+                if ((task->GetFrameType() & MFX_FRAMETYPE_IDR) &&
+                     ( task->m_initCpbRemoval != hrd.GetInitCpbRemovalDelay() ||
+                    task->m_initCpbRemovalOffset != hrd.GetInitCpbRemovalDelayOffset()))
+                {
+                    task->m_initCpbRemoval = hrd.GetInitCpbRemovalDelay();
+                    task->m_initCpbRemovalOffset = hrd.GetInitCpbRemovalDelayOffset();
+                    bRecoding = true;
+                    task->m_repackForBsDataLength++ ;
+                }
                 if (extOpt2.MaxSliceSize)
                 {
                     mfxU32   bsSizeAvail = mfxU32(m_tmpBsBuf.size());
@@ -2853,7 +2919,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     BRCFrameParams par;
                     InitFrameParams(par, &(*task));
                     par.NumRecode = extOpt2.MaxSliceSize ? 0 : (par.NumRecode - task->m_repackForBsDataLength);
-                    mfxU32 res = m_brc.Report(par, bsDataLength, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_cqpValue[0]);
+                    mfxU32 res = m_brc.Report(par, bsDataLength, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_cqpValue[0]);
                     MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
                     if ((res != 0) && (!extOpt2.MaxSliceSize))
                     {

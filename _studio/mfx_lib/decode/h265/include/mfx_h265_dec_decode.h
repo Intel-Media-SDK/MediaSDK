@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -50,9 +50,7 @@ namespace UMC_HEVC_DECODER
     class H265DecoderFrame;
 }
 
-using namespace UMC_HEVC_DECODER;
-
-typedef VATaskSupplier  MFX_AVC_Decoder_H265;
+typedef UMC_HEVC_DECODER::VATaskSupplier  MFX_AVC_Decoder_H265;
 
 class VideoDECODE;
 // HEVC decoder interface class
@@ -104,12 +102,12 @@ protected:
     bool IsSameVideoParam(mfxVideoParam * newPar, mfxVideoParam * oldPar, eMFXHWType type);
 
     // Fill up frame parameters before returning it to application
-    void FillOutputSurface(mfxFrameSurface1 **surface_out, mfxFrameSurface1 *surface_work, H265DecoderFrame * pFrame);
+    void FillOutputSurface(mfxFrameSurface1 **surface_out, mfxFrameSurface1 *surface_work, UMC_HEVC_DECODER::H265DecoderFrame * pFrame);
     // Find a next frame ready to be output from decoder
-    H265DecoderFrame * GetFrameToDisplay_H265(bool force);
+    UMC_HEVC_DECODER::H265DecoderFrame * GetFrameToDisplay_H265(bool force);
 
     // Wait until a frame is ready to be output and set necessary surface flags
-    mfxStatus DecodeFrame(mfxFrameSurface1 *surface_out, H265DecoderFrame * pFrame = 0);
+    mfxStatus DecodeFrame(mfxFrameSurface1 *surface_out, UMC_HEVC_DECODER::H265DecoderFrame * pFrame = 0);
 
     // Check if there is enough data to start decoding in async mode
     mfxStatus DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out);
@@ -126,10 +124,10 @@ protected:
     // Get original Surface corresponding to OpaqueSurface
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *surface);
 
-    std::unique_ptr<MFXTaskSupplier_H265>  m_pH265VideoDecoder;
-    mfx_UMC_MemAllocator            m_MemoryAllocator;
+    std::unique_ptr<UMC_HEVC_DECODER::MFXTaskSupplier_H265>  m_pH265VideoDecoder;
+    mfx_UMC_MemAllocator                                     m_MemoryAllocator;
 
-    std::unique_ptr<mfx_UMC_FrameAllocator>    m_FrameAllocator;
+    std::unique_ptr<mfx_UMC_FrameAllocator>                  m_FrameAllocator;
 
     mfxVideoParamWrapper m_vInitPar;
     mfxVideoParamWrapper m_vFirstPar;

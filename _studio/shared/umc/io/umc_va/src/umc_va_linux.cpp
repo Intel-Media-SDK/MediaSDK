@@ -176,15 +176,18 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_H265:
         if (profile < UMC_ARRAY_SIZE(g_H265Profiles)) va_profile = g_H265Profiles[profile];
         break;
+#if (MFX_VERSION >= 1027)
     case UMC::VA_H265| UMC::VA_PROFILE_422 | UMC::VA_PROFILE_REXT:
         va_profile = VAProfileHEVCMain422_10;
         break;
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT:
         va_profile = VAProfileHEVCMain444;
         break;
+#endif
     case UMC::VA_H265 | UMC::VA_PROFILE_10:
         if (profile < UMC_ARRAY_SIZE(g_H26510BitsProfiles)) va_profile = g_H26510BitsProfiles[profile];
         break;
+#if (MFX_VERSION >= 1027)
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_422 | UMC::VA_PROFILE_10:
@@ -193,6 +196,7 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
         va_profile = VAProfileHEVCMain444_10;
         break;
+#endif
     case UMC::VA_VC1:
         if (profile < UMC_ARRAY_SIZE(g_VC1Profiles)) va_profile = g_VC1Profiles[profile];
         break;
@@ -262,8 +266,6 @@ LinuxVideoAccelerator::LinuxVideoAccelerator(void)
     m_uiCompBuffersNum  = 0;
     m_uiCompBuffersUsed = 0;
 
-    vm_mutex_set_invalid(&m_SyncMutex);
-
 #if defined(ANDROID)
     m_isUseStatuReport  = false;
 #else
@@ -307,11 +309,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         umcRes = UMC_ERR_INVALID_PARAMS;
     if ((UMC_OK == umcRes) && (pParams->m_iNumberSurfaces < 0))
         umcRes = UMC_ERR_INVALID_PARAMS;
-    if (UMC_OK == umcRes)
-    {
-        vm_mutex_set_invalid(&m_SyncMutex);
-        umcRes = (Status)vm_mutex_init(&m_SyncMutex);
-    }
+
     // filling input parameters
     if (UMC_OK == umcRes)
     {
@@ -461,9 +459,6 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             umcRes = va_to_umc_res(va_res);
         }
 
-        if (UMC_OK == umcRes && (!(va_attributes[0].value & VA_RT_FORMAT_YUV420)))
-            umcRes = UMC_ERR_FAILED;
-
         if (UMC_OK == umcRes)
         {
             va_attributes[1].value = VA_DEC_SLICE_MODE_NORMAL;
@@ -571,8 +566,6 @@ Status LinuxVideoAccelerator::Close(void)
     m_FrameState = lvaBeforeBegin;
     m_uiCompBuffersNum  = 0;
     m_uiCompBuffersUsed = 0;
-    vm_mutex_unlock (&m_SyncMutex);
-    vm_mutex_destroy(&m_SyncMutex);
 
     return VideoAccelerator::Close();
 }
@@ -642,7 +635,7 @@ void* LinuxVideoAccelerator::GetCompBuffer(int32_t buffer_type, UMCVACompBuffer 
 
     if (NULL != buf) *buf = NULL;
 
-    vm_mutex_lock(&m_SyncMutex);
+    std::lock_guard<std::mutex> guard(m_SyncMutex);
     for (i = 0; i < m_uiCompBuffersUsed; ++i)
     {
         pCompBuf = m_pCompBuffers[i];
@@ -663,7 +656,6 @@ void* LinuxVideoAccelerator::GetCompBuffer(int32_t buffer_type, UMCVACompBuffer 
         if (NULL != buf) *buf = pCompBuf;
         pBufferPointer = pCompBuf->GetPtr();
     }
-    vm_mutex_unlock(&m_SyncMutex);
     return pBufferPointer;
 }
 
@@ -722,12 +714,14 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
             case UMC::VA_H265 | UMC::VA_PROFILE_10:
                 va_size         = sizeof(VASliceParameterBufferHEVC);
                 va_num_elements = size/sizeof(VASliceParameterBufferHEVC);
+#if (MFX_VERSION >= 1027)
                 if (m_Profile &VA_PROFILE_REXT)
                 {
                     va_size         = sizeof(VASliceParameterBufferHEVCExtension);
                     va_num_elements = size/sizeof(VASliceParameterBufferHEVCExtension);
                 }
                 break;
+#endif
             default:
                 va_size         = 0;
                 va_num_elements = 0;
@@ -769,10 +763,9 @@ LinuxVideoAccelerator::Execute()
     uint32_t         i;
     VACompBuffer*  pCompBuf = NULL;
 
-    vm_mutex_lock(&m_SyncMutex);
-
     if (UMC_OK == umcRes)
     {
+        std::lock_guard<std::mutex> guard(m_SyncMutex);
         for (i = 0; i < m_uiCompBuffersUsed; i++)
         {
             pCompBuf = m_pCompBuffers[i];
@@ -799,7 +792,6 @@ LinuxVideoAccelerator::Execute()
         }
     }
 
-    vm_mutex_unlock(&m_SyncMutex);
     if (UMC_OK == umcRes)
     {
         umcRes = va_to_umc_res(va_res);
@@ -812,7 +804,7 @@ Status LinuxVideoAccelerator::EndFrame(void*)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "EndFrame");
     VAStatus va_res = VA_STATUS_SUCCESS;
 
-    vm_mutex_lock(&m_SyncMutex);
+    std::lock_guard<std::mutex> guard(m_SyncMutex);
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaEndPicture");
@@ -836,7 +828,6 @@ Status LinuxVideoAccelerator::EndFrame(void*)
     }
     m_uiCompBuffersUsed = 0;
 
-    vm_mutex_unlock(&m_SyncMutex);
     return va_to_umc_res(va_res);
 }
 

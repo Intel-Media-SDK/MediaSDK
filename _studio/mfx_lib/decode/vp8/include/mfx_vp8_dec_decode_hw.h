@@ -218,7 +218,7 @@ private:
     {
         VideoDECODEVP8_HW* decoder;
         mfxFrameSurface1* surface_work;
-        FrameMemID memId;
+        UMC::FrameMemID memId;
     };
 
     struct sFrameInfo

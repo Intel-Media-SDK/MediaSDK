@@ -1506,9 +1506,9 @@ mfxStatus CheckOptions(AppConfig* pConfig)
     }
 
     if (pConfig->bFieldProcessingMode &&
-        !((pConfig->nPicStruct == MFX_PICSTRUCT_FIELD_BFF) || (pConfig->nPicStruct == MFX_PICSTRUCT_FIELD_TFF)))
+        !((pConfig->nPicStruct == MFX_PICSTRUCT_FIELD_BFF) || (pConfig->nPicStruct == MFX_PICSTRUCT_FIELD_TFF) || (pConfig->nPicStruct == MFX_PICSTRUCT_UNKNOWN)))
     {
-        fprintf(stderr, "ERROR: Field Processing mode works only with interlaced content (TFF or BFF)\n");
+        fprintf(stderr, "ERROR: Field Processing mode works only with interlaced content (TFF or BFF) and PAFF (PAFF is supported for transcode only)\n");
         sts = MFX_ERR_UNSUPPORTED;
     }
 

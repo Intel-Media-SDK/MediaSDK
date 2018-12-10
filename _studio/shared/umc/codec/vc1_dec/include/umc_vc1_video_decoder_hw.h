@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2018 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,6 @@
 
 #include "umc_vc1_dec_skipping.h"
 #include "umc_vc1_dec_task_store.h"
-
-using namespace UMC::VC1Exceptions;
-
 
 class MFXVC1VideoDecoderHW;
 
@@ -100,7 +97,7 @@ namespace UMC
                 m_pStore->GetReadyDS(&pPackDescriptorChild);
 
                 if (NULL == pPackDescriptorChild)
-                    throw vc1_exception(internal_pipeline_error);
+                    throw UMC::VC1Exceptions::vc1_exception(UMC::VC1Exceptions::internal_pipeline_error);
 
 
                 pPackDescriptorChild->m_pContext->m_FrameSize = (uint32_t)in->GetDataSize() + SCoffset;
@@ -114,18 +111,18 @@ namespace UMC
                 {
 
                     if (UMC_ERR_NOT_ENOUGH_DATA == umcRes)
-                        throw vc1_exception(invalid_stream);
+                        throw UMC::VC1Exceptions::vc1_exception(UMC::VC1Exceptions::invalid_stream);
                     else
-                        throw vc1_exception(internal_pipeline_error);
+                        throw UMC::VC1Exceptions::vc1_exception(UMC::VC1Exceptions::internal_pipeline_error);
                 }
             }
-            catch (vc1_exception ex)
+            catch (UMC::VC1Exceptions::vc1_exception ex)
             {
-                if (invalid_stream == ex.get_exception_type())
+                if (UMC::VC1Exceptions::invalid_stream == ex.get_exception_type())
                 {
-                    if (fast_err_detect == vc1_except_profiler::GetEnvDescript().m_Profile)
+                    if (UMC::VC1Exceptions::fast_err_detect == UMC::VC1Exceptions::vc1_except_profiler::GetEnvDescript().m_Profile)
                         m_pStore->AddInvalidPerformedDS(pPackDescriptorChild);
-                    else if (fast_decoding == vc1_except_profiler::GetEnvDescript().m_Profile)
+                    else if (UMC::VC1Exceptions::fast_decoding == UMC::VC1Exceptions::vc1_except_profiler::GetEnvDescript().m_Profile)
                         m_pStore->ResetPerformedDS(pPackDescriptorChild);
                     else
                     {

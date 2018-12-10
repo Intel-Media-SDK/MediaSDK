@@ -74,7 +74,7 @@ public:
     return std::string(m_path);
   }
 
-  void Load(char* name, char* value);
+  void Load(const char* name, const char* value);
   void Print();
 
 private:

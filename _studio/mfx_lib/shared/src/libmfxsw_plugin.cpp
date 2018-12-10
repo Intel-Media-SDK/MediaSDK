@@ -174,7 +174,9 @@ const mfxPluginUID NativePlugins[] =
     MFX_PLUGINID_VP9D_HW,
     MFX_PLUGINID_HEVCE_HW,
     MFX_PLUGINID_VP9E_HW,
+#if MFX_VERSION >= 1027
     MFX_PLUGINID_HEVC_FEI_ENCODE
+#endif
 };
 
 mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
@@ -254,25 +256,16 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
         // initialize the plugin
         mfxRes = pluginPtr->PluginInit(par, session, type);
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
-        mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-       /* else if (0 == registeredPlg || 0 == registeredPlg->get())
-        {
-            mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
-        }*/
-        else if (0 == par)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
-        else if (type > MFX_PLUGINTYPE_VIDEO_ENCODE)
+        if (type > MFX_PLUGINTYPE_VIDEO_ENCODE)
         {
             mfxRes = MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
+        else
+        {
+            mfxRes = MFX_ERR_UNKNOWN;
         }
     }
 
@@ -302,21 +295,16 @@ mfxStatus MFXVideoUSER_GetPlugin(mfxSession session, mfxU32 type, mfxPlugin *par
 
         mfxRes = MFX_ERR_NONE;
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
-        mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == par)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
-        else if (type > MFX_PLUGINTYPE_VIDEO_ENC)
+        if (type > MFX_PLUGINTYPE_VIDEO_ENC)
         {
             mfxRes = MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
+        else
+        {
+            mfxRes = MFX_ERR_UNKNOWN;
         }
     }
 
@@ -358,17 +346,16 @@ mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type)
             sessionPtr.codec<VideoENC>().reset();
         }
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
-        mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (type > MFX_PLUGINTYPE_VIDEO_ENCODE)
+        if (type > MFX_PLUGINTYPE_VIDEO_ENCODE)
         {
             mfxRes = MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
+        else
+        {
+            mfxRes = MFX_ERR_UNKNOWN;
         }
     }
 
@@ -422,22 +409,10 @@ mfxStatus MFXVideoUSER_ProcessFrameAsync(mfxSession session,
         // return pointer to synchronization point
         *syncp = syncPoint;
     }
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            return MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_plgGen.get())
-        {
-            return MFX_ERR_NOT_INITIALIZED;
-        }
-        else if (0 == syncp)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
     }
 
     return mfxRes;

@@ -1993,8 +1993,14 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         if (pParams->bComposite)
         {
             m_pipelineParam[refIdx].num_filters  = 0;
-            m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
-            m_pipelineParam[refIdx].filter_flags |= VA_FILTER_SCALING_HQ;
+
+            if (m_pipelineCaps.pipeline_flags & VA_PROC_PIPELINE_FAST) 
+                m_pipelineParam[refIdx].pipeline_flags  |= VA_PROC_PIPELINE_FAST;
+            else
+                m_pipelineParam[refIdx].pipeline_flags |= VA_PROC_PIPELINE_SUBPICTURES;
+
+            if (m_pipelineCaps.filter_flags & VA_FILTER_SCALING_HQ)
+                m_pipelineParam[refIdx].filter_flags |= VA_FILTER_SCALING_HQ;
         }
     }
 

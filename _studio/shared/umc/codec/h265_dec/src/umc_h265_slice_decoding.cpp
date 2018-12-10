@@ -85,7 +85,7 @@ int32_t H265Slice::RetrievePicParamSetNumber()
     if (!m_source.GetDataSize())
         return -1;
 
-    memset(reinterpret_cast<void*>(&m_SliceHeader), 0, sizeof(m_SliceHeader));
+    m_SliceHeader = {};
     m_BitStream.Reset((uint8_t *) m_source.GetPointer(), (uint32_t) m_source.GetDataSize());
 
     UMC::Status umcRes = UMC::UMC_OK;
@@ -158,7 +158,7 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
     // discarded when read again here.
     try
     {
-        memset(reinterpret_cast<void*>(&m_SliceHeader), 0, sizeof(m_SliceHeader));
+        m_SliceHeader = {};
 
         umcRes = m_BitStream.GetNALUnitType(m_SliceHeader.nal_unit_type,
                                             m_SliceHeader.nuh_temporal_id);
@@ -401,9 +401,9 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList, H265D
         return UMC::UMC_OK;
     }
 
-    H265DecoderFrame *RefPicSetStCurr0[16];
-    H265DecoderFrame *RefPicSetStCurr1[16];
-    H265DecoderFrame *RefPicSetLtCurr[16];
+    H265DecoderFrame *RefPicSetStCurr0[16] = {};
+    H265DecoderFrame *RefPicSetStCurr1[16] = {};
+    H265DecoderFrame *RefPicSetLtCurr[16] = {};
     uint32_t NumPicStCurr0 = 0;
     uint32_t NumPicStCurr1 = 0;
     uint32_t NumPicLtCurr = 0;

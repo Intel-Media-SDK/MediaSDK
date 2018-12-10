@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,7 +24,6 @@
 #include <mfx_scheduler_core_handle.h>
 #include <mfx_trace.h>
 
-#include <umc_automatic_mutex.h>
 #include <vm_time.h>
 #include <vm_sys_info.h>
 
@@ -32,7 +31,9 @@
 
 mfxSchedulerCore::mfxSchedulerCore(void)
     :  m_currentTimeStamp(0)
-    , m_timeWaitPeriod(vm_time_get_frequency() / 1000)
+    // since on Linux we have blocking synchronization which means an absence of polling,
+    // there is no need to use 'waiting' time period.
+    , m_timeWaitPeriod(0)
     , m_hwWakeUpThread()
     , m_DedicatedThreadsToWakeUp(0)
     , m_RegularThreadsToWakeUp(0)
@@ -104,7 +105,7 @@ void mfxSchedulerCore::Close(void)
     size_t n;
 
     StopWakeUpThread();
-    
+
     // stop threads
     if (m_pThreadCtx)
     {
@@ -214,8 +215,7 @@ void mfxSchedulerCore::Wait(const mfxU32 curThreadNum, std::unique_lock<std::mut
     MFX_SCHEDULER_THREAD_CONTEXT* thctx = GetThreadCtx(curThreadNum);
 
     if (thctx) {
-        mfxU32 timeout = (curThreadNum)? MFX_THREAD_TIME_TO_WAIT: 1;
-        thctx->taskAdded.wait_for(mutex, std::chrono::milliseconds(timeout));
+        thctx->taskAdded.wait(mutex);
     }
 }
 

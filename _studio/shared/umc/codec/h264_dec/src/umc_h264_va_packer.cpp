@@ -209,9 +209,9 @@ void PackerVA::FillFrameAsInvalid(VAPictureH264 * pic)
 
 void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSlice)
 {
-    const H264SliceHeader* pSliceHeader = pSlice->GetSliceHeader();
-    const H264SeqParamSet* pSeqParamSet = pSlice->GetSeqParam();
-    const H264PicParamSet* pPicParamSet = pSlice->GetPicParam();
+    const UMC_H264_DECODER::H264SliceHeader* pSliceHeader = pSlice->GetSliceHeader();
+    const UMC_H264_DECODER::H264SeqParamSet* pSeqParamSet = pSlice->GetSeqParam();
+    const UMC_H264_DECODER::H264PicParamSet* pPicParamSet = pSlice->GetPicParam();
 
     const H264DecoderFrame *pCurrentFrame = pSliceInfo->m_pFrame;
 
@@ -443,7 +443,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
 {
     int32_t partial_data = CHOPPING_NONE;
     H264DecoderFrame *pCurrentFrame = pSlice->GetCurrentFrame();
-    const H264SliceHeader *pSliceHeader = pSlice->GetSliceHeader();
+    const UMC_H264_DECODER::H264SliceHeader *pSliceHeader = pSlice->GetSliceHeader();
 
     VAPictureParameterBufferH264* pPicParams_H264 = (VAPictureParameterBufferH264*)m_va->GetCompBuffer(VAPictureParameterBufferType);
     if (!pPicParams_H264)
@@ -565,7 +565,7 @@ int32_t PackerVA::PackSliceParams(H264Slice *pSlice, int32_t sliceNum, int32_t c
          ((pPicParams_H264->pic_fields.bits.weighted_bipred_idc == 1) && (BPREDSLICE == pSliceHeader->slice_type)))
     {
         //Weights
-        const PredWeightTable *pPredWeight[2];
+        const UMC_H264_DECODER::PredWeightTable *pPredWeight[2];
         pPredWeight[0] = pSlice->GetPredWeigthTable(0);
         pPredWeight[1] = pSlice->GetPredWeigthTable(1);
 
@@ -688,7 +688,7 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
         throw h264_exception(UMC_ERR_FAILED);
 
     UMCVACompBuffer *pipelineVABuf;
-    VAProcPipelineParameterBuffer* pipelineBuf = (VAProcPipelineParameterBuffer*)m_va->GetCompBuffer(VAProcPipelineParameterBufferType, &pipelineVABuf, sizeof(VAProcPipelineParameterBuffer));
+    auto* pipelineBuf = reinterpret_cast<VAProcPipelineParameterBuffer *>(m_va->GetCompBuffer(VAProcPipelineParameterBufferType, &pipelineVABuf, sizeof(VAProcPipelineParameterBuffer)));
     if (!pipelineBuf)
         throw h264_exception(UMC_ERR_FAILED);
     pipelineVABuf->SetDataSize(sizeof(VAProcPipelineParameterBuffer));
@@ -699,30 +699,24 @@ void PackerVA::PackProcessingInfo(H264DecoderFrameInfo * sliceInfo)
     pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
 }
 
-void PackerVA::PackQmatrix(const H264ScalingPicParams * scaling)
+void PackerVA::PackQmatrix(const UMC_H264_DECODER::H264ScalingPicParams * scaling)
 {
     UMCVACompBuffer *quantBuf;
-    VAIQMatrixBufferH264* pQmatrix_H264 = (VAIQMatrixBufferH264*)m_va->GetCompBuffer(VAIQMatrixBufferType, &quantBuf, sizeof(VAIQMatrixBufferH264));
+    auto* pQmatrix_H264 = reinterpret_cast<VAIQMatrixBufferH264 *>(m_va->GetCompBuffer(VAIQMatrixBufferType, &quantBuf, sizeof(VAIQMatrixBufferH264)));
     if (!pQmatrix_H264)
         throw h264_exception(UMC_ERR_FAILED);
     quantBuf->SetDataSize(sizeof(VAIQMatrixBufferH264));
 
-    int32_t i, j;
-    //may be just use memcpy???
-    for(j = 0; j < 6; j++)
+    int32_t j;
+
+    for(j = 0; j < 6; ++j)
     {
-        for(i = 0; i < 16; i++)
-        {
-             pQmatrix_H264->ScalingList4x4[j][i] = scaling->ScalingLists4x4[j].ScalingListCoeffs[i];
-        }
+        std::copy(std::begin(scaling->ScalingLists4x4[j].ScalingListCoeffs), std::end(scaling->ScalingLists4x4[j].ScalingListCoeffs), std::begin(pQmatrix_H264->ScalingList4x4[j]));
     }
 
-    for(j = 0; j < 2; j++)
+    for(j = 0; j < 2; ++j)
     {
-        for(i = 0; i < 64; i++)
-        {
-             pQmatrix_H264->ScalingList8x8[j][i] = scaling->ScalingLists8x8[j].ScalingListCoeffs[i];
-        }
+        std::copy(std::begin(scaling->ScalingLists8x8[j].ScalingListCoeffs), std::end(scaling->ScalingLists8x8[j].ScalingListCoeffs), std::begin(pQmatrix_H264->ScalingList8x8[j]));
     }
 }
 
@@ -777,7 +771,7 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
     H264Slice* slice = sliceInfo->GetSlice(first_slice);
 
     NAL_Unit_Type const type = slice->GetSliceHeader()->nal_unit_type;
-    H264ScalingPicParams const* scaling =
+    UMC_H264_DECODER::H264ScalingPicParams const* scaling =
         &slice->GetPicParam()->scaling[type == NAL_UT_CODED_SLICE_EXTENSION ? 1 : 0];
     PackQmatrix(scaling);
 

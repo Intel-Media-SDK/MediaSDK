@@ -24,7 +24,7 @@ if( ${MFX_ENABLE_MCTF} )
     mfx_include_dirs( )
 
     include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mctf/include )
-    include_directories( ${MSDK_LIB_ROOT}/genx/mctf/include )
+    include_directories( ${MSDK_LIB_ROOT}/genx/mctf/isa )
     include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
     include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )

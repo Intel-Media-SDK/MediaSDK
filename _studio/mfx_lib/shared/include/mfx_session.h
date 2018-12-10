@@ -262,76 +262,28 @@ protected:
 #define FUNCTION_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus MFXVideo##component##_##func_name formal_param_list \
 { \
-    mfxStatus mfxRes; \
-    try \
-    { \
-        if (0 == session) \
-        { \
-            mfxRes = MFX_ERR_INVALID_HANDLE; \
-        } \
-        /* the absent components caused many issues in application. \
-        check the pointer to avoid extra exceptions */ \
-        else if (0 == session->m_p##component.get()) \
-        { \
-            mfxRes = MFX_ERR_NOT_INITIALIZED; \
-        } \
-        else \
-        { \
-            /* call the codec's method */ \
-            mfxRes = session->m_p##component->func_name actual_param_list; \
-        } \
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
+    MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
+    try { \
+        /* call the codec's method */ \
+        return session->m_p##component->func_name actual_param_list; \
+    } catch(...) { \
+        return MFX_ERR_NULL_PTR; \
     } \
-    /* handle error(s) */ \
-    catch(MFX_CORE_CATCH_TYPE) \
-    { \
-        /* set the default error value */ \
-        mfxRes = MFX_ERR_NULL_PTR; \
-        if (0 == session) \
-        { \
-            mfxRes = MFX_ERR_INVALID_HANDLE; \
-        } \
-        else if (0 == session->m_p##component.get()) \
-        { \
-            mfxRes = MFX_ERR_NOT_INITIALIZED; \
-        } \
-    } \
-    return mfxRes; \
 }
 
 #undef FUNCTION_AUDIO_IMPL
 #define FUNCTION_AUDIO_IMPL(component, func_name, formal_param_list, actual_param_list) \
     mfxStatus MFXAudio##component##_##func_name formal_param_list \
 { \
-    mfxStatus mfxRes; \
-    try \
-    { \
-    /* the absent components caused many issues in application. \
-check the pointer to avoid extra exceptions */ \
-    if (0 == session->m_pAudio##component.get()) \
-        { \
-        mfxRes = MFX_ERR_NOT_INITIALIZED; \
-} \
-        else \
-        { \
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
+    MFX_CHECK(session->m_pAudio##component.get(), MFX_ERR_NOT_INITIALIZED); \
+    try { \
         /* call the codec's method */ \
-        mfxRes = session->m_pAudio##component->func_name actual_param_list; \
-} \
-} \
-    /* handle error(s) */ \
-    catch(MFX_CORE_CATCH_TYPE) \
-    { \
-    /* set the default error value */ \
-    mfxRes = MFX_ERR_NULL_PTR; \
-    if (0 == session) \
-        { \
-        mfxRes = MFX_ERR_INVALID_HANDLE; \
-} \
-        else if (0 == session->m_pAudio##component.get()) \
-        { \
-        mfxRes = MFX_ERR_NOT_INITIALIZED; \
-} \
-} \
-    return mfxRes; \
+        return session->m_pAudio##component->func_name actual_param_list; \
+    } catch(...) { \
+        return MFX_ERR_NULL_PTR; \
+    } \
 }
 
 
@@ -339,80 +291,32 @@ check the pointer to avoid extra exceptions */ \
 #define FUNCTION_RESET_IMPL(component, func_name, formal_param_list, actual_param_list) \
 mfxStatus MFXVideo##component##_##func_name formal_param_list \
 { \
-    mfxStatus mfxRes; \
-    try \
-    { \
-        if (0 == session) \
-        { \
-            mfxRes = MFX_ERR_INVALID_HANDLE; \
-        } \
-        /* the absent components caused many issues in application. \
-        check the pointer to avoid extra exceptions */ \
-        else if (0 == session->m_p##component.get()) \
-        { \
-            mfxRes = MFX_ERR_NOT_INITIALIZED; \
-        } \
-        else \
-        { \
-            /* wait until all tasks are processed */ \
-            session->m_pScheduler->WaitForTaskCompletion(session->m_p##component.get()); \
-            /* call the codec's method */ \
-            mfxRes = session->m_p##component->func_name actual_param_list; \
-        } \
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
+    MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
+    try { \
+        /* wait until all tasks are processed */ \
+        session->m_pScheduler->WaitForTaskCompletion(session->m_p##component.get()); \
+        /* call the codec's method */ \
+        return session->m_p##component->func_name actual_param_list; \
+    } catch(...) { \
+        return MFX_ERR_NULL_PTR; \
     } \
-    /* handle error(s) */ \
-    catch(MFX_CORE_CATCH_TYPE) \
-    { \
-        /* set the default error value */ \
-        mfxRes = MFX_ERR_NULL_PTR; \
-        if (0 == session) \
-        { \
-            mfxRes = MFX_ERR_INVALID_HANDLE; \
-        } \
-        else if (0 == session->m_p##component.get()) \
-        { \
-            mfxRes = MFX_ERR_NOT_INITIALIZED; \
-        } \
-    } \
-    return mfxRes; \
 }
 
 #undef FUNCTION_AUDIO_RESET_IMPL
 #define FUNCTION_AUDIO_RESET_IMPL(component, func_name, formal_param_list, actual_param_list) \
     mfxStatus MFXAudio##component##_##func_name formal_param_list \
 { \
-    mfxStatus mfxRes; \
-    try \
-    { \
-    /* the absent components caused many issues in application. \
-check the pointer to avoid extra exceptions */ \
-    if (0 == session->m_pAudio##component.get()) \
-        { \
-        mfxRes = MFX_ERR_NOT_INITIALIZED; \
-} \
-        else \
-        { \
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE); \
+    MFX_CHECK(session->m_pAudio##component.get(), MFX_ERR_NOT_INITIALIZED); \
+    try { \
         /* wait until all tasks are processed */ \
         session->m_pScheduler->WaitForTaskCompletion(session->m_pAudio##component.get()); \
         /* call the codec's method */ \
-        mfxRes = session->m_pAudio##component->func_name actual_param_list; \
-} \
-} \
-    /* handle error(s) */ \
-    catch(MFX_CORE_CATCH_TYPE) \
-    { \
-    /* set the default error value */ \
-    mfxRes = MFX_ERR_NULL_PTR; \
-    if (0 == session) \
-        { \
-        mfxRes = MFX_ERR_INVALID_HANDLE; \
-} \
-        else if (0 == session->m_pAudio##component.get()) \
-        { \
-        mfxRes = MFX_ERR_NOT_INITIALIZED; \
-} \
-} \
-    return mfxRes; \
+        return session->m_pAudio##component->func_name actual_param_list; \
+    } catch(...) { \
+        return MFX_ERR_NULL_PTR; \
+    } \
 }
 
 mfxStatus MFXInternalPseudoJoinSession(mfxSession session, mfxSession child_session);

@@ -39,6 +39,8 @@
 
 #include "umc_h264_dec_debug.h"
 
+using namespace UMC_H264_DECODER;
+
 namespace UMC
 {
 
@@ -3163,13 +3165,11 @@ Status TaskSupplier::AddSource(MediaData * pSource)
                 return UMC_WRN_INFO_NOT_READY;
 
             if (GetFrameToDisplayInternal(true))
-                return UMC_ERR_NOT_ENOUGH_BUFFER;
+                return UMC_ERR_NEED_FORCE_OUTPUT;
 
             PreventDPBFullness();
             return UMC_WRN_INFO_NOT_READY;
         }
-
-        return UMC_WRN_INFO_NOT_READY;
     }
 
     return umcRes;

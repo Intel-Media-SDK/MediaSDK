@@ -298,7 +298,7 @@ Status MFXTaskSupplier::DecodeHeaders(NalUnit *nalUnit)
     if (sts != UMC_OK)
         return sts;
 
-    H264SeqParamSet * currSPS = m_Headers.m_SeqParams.GetCurrentHeader();
+    UMC_H264_DECODER::H264SeqParamSet * currSPS = m_Headers.m_SeqParams.GetCurrentHeader();
 
     if (currSPS)
     {
@@ -395,7 +395,7 @@ Status MFXTaskSupplier::DecodeSEI(NalUnit *nalUnit)
 
         do
         {
-            H264SEIPayLoad    m_SEIPayLoads;
+            UMC_H264_DECODER::H264SEIPayLoad    m_SEIPayLoads;
 
             size_t decoded1 = bitStream.BytesDecoded();
 
@@ -419,7 +419,7 @@ Status MFXTaskSupplier::DecodeSEI(NalUnit *nalUnit)
                 if (m_SEIPayLoads.payLoadType == SEI_RESERVED)
                     continue;
 
-                H264SEIPayLoad* payload = m_Headers.m_SEIParams.AddHeader(&m_SEIPayLoads);
+                UMC_H264_DECODER::H264SEIPayLoad* payload = m_Headers.m_SEIParams.AddHeader(&m_SEIPayLoads);
                 m_accessUnit.m_payloads.AddPayload(payload);
             }
 
@@ -652,10 +652,10 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
 
     struct sps_heap_obj
     {
-        H264SeqParamSet* obj;
+        UMC_H264_DECODER::H264SeqParamSet* obj;
         sps_heap_obj() : obj(0) {}
         ~sps_heap_obj() { if (obj) obj->DecrementReference(); }
-        void set(H264SeqParamSet* sps) { if(sps) { obj = sps; obj->IncrementReference();} }
+        void set(UMC_H264_DECODER::H264SeqParamSet* sps) { if(sps) { obj = sps; obj->IncrementReference();} }
     } first_sps;
 
     UMC::Status umcRes = UMC::UMC_ERR_NOT_ENOUGH_DATA;
@@ -712,7 +712,7 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
     {
         VM_ASSERT(first_sps.obj && "Current SPS should be valid when [m_isSPSFound]");
 
-        H264SeqParamSet* last_sps = m_supplier->GetHeaders()->m_SeqParams.GetCurrentHeader();
+        UMC_H264_DECODER::H264SeqParamSet* last_sps = m_supplier->GetHeaders()->m_SeqParams.GetCurrentHeader();
         if (first_sps.obj && first_sps.obj != last_sps)
             m_supplier->GetHeaders()->m_SeqParams.AddHeader(first_sps.obj);
 
@@ -978,8 +978,8 @@ void CheckCrops(const mfxFrameInfo &in, mfxFrameInfo &out, mfxStatus & sts)
     mfxU32 maskH = 1;
     if (in.ChromaFormat >= MFX_CHROMAFORMAT_MONOCHROME && in.ChromaFormat <= MFX_CHROMAFORMAT_YUV444)
     {
-        maskW = SubWidthC[in.ChromaFormat];
-        maskH = SubHeightC[in.ChromaFormat];
+        maskW = UMC::SubWidthC[in.ChromaFormat];
+        maskH = UMC::SubHeightC[in.ChromaFormat];
         if (in.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
             maskH <<= 1;
     }
@@ -1479,7 +1479,7 @@ bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType /* type */)
     if (MFX_CODEC_AVC != in->mfx.CodecId)
         return false;
 
-    uint32_t profile_idc = ExtractProfile(in->mfx.CodecProfile);
+    uint32_t profile_idc = UMC::ExtractProfile(in->mfx.CodecProfile);
     switch (profile_idc)
     {
     case MFX_PROFILE_UNKNOWN:

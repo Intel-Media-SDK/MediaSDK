@@ -73,7 +73,7 @@ void PackerVA::PackAU(VP9Bitstream* bs, VP9DecoderFrame const* info)
     if (!bs || !info)
         throw vp9_exception(MFX_ERR_NULL_PTR);
 
-    UMC::UMCVACompBuffer* pCompBuf = NULL;
+    UMC::UMCVACompBuffer* pCompBuf = nullptr;
     VADecPictureParameterBufferVP9 *picParam =
         (VADecPictureParameterBufferVP9*)m_va->GetCompBuffer(VAPictureParameterBufferType, &pCompBuf, sizeof(VADecPictureParameterBufferVP9));
 
@@ -83,7 +83,7 @@ void PackerVA::PackAU(VP9Bitstream* bs, VP9DecoderFrame const* info)
     memset(picParam, 0, sizeof(VADecPictureParameterBufferVP9));
     PackPicParams(picParam, info);
 
-    pCompBuf = NULL;
+    pCompBuf = nullptr;
     VASliceParameterBufferVP9 *sliceParam =
         (VASliceParameterBufferVP9*)m_va->GetCompBuffer(VASliceParameterBufferType, &pCompBuf, sizeof(VASliceParameterBufferVP9));
     if (!sliceParam)
@@ -98,11 +98,11 @@ void PackerVA::PackAU(VP9Bitstream* bs, VP9DecoderFrame const* info)
     uint32_t const offset = bs->BytesDecoded();
     length -= offset;
 
-    pCompBuf = NULL;
+    pCompBuf = nullptr;
     mfxU8 *bistreamData = (mfxU8*)m_va->GetCompBuffer(VASliceDataBufferType, &pCompBuf, length);
     if (!bistreamData)
         throw vp9_exception(MFX_ERR_MEMORY_ALLOC);
-    
+
     std::copy(data + offset, data + offset + length, bistreamData);
     pCompBuf->SetDataSize(length);
 }

@@ -151,7 +151,7 @@ public:
         m_pSliceQueue.push_back(pSlice);
         m_SliceCount++;
 
-        const H264SliceHeader &sliceHeader = *(pSlice->GetSliceHeader());
+        const UMC_H264_DECODER::H264SliceHeader &sliceHeader = *(pSlice->GetSliceHeader());
         m_IsReferenceAU = m_IsReferenceAU || (sliceHeader.nal_ref_idc != 0);
         m_IsBottomField = sliceHeader.bottom_field_flag != 0;
 
@@ -172,20 +172,20 @@ public:
         m_IsSliceGroups = pSlice->IsSliceGroups();
     }
 
-    const H264SEIPayLoadBase::SEIMessages::DecRefPicMarkingRepetition *GetDecRefPicMarking() const
+    const UMC_H264_DECODER::H264SEIPayLoadBase::SEIMessages::DecRefPicMarkingRepetition *GetDecRefPicMarking() const
     {
         return &decRefPicMarking;
     }
 
     void FillDecRefPicMarking(H264Slice * pSlice)
     {
-        H264SliceHeader *hdr = pSlice->GetSliceHeader();
+        UMC_H264_DECODER::H264SliceHeader *hdr = pSlice->GetSliceHeader();
         decRefPicMarking.original_idr_flag          = (uint8_t)hdr->IdrPicFlag;
         decRefPicMarking.original_field_pic_flag    = hdr->field_pic_flag;
         decRefPicMarking.original_bottom_field_flag = hdr->bottom_field_flag;
         decRefPicMarking.original_frame_num         = (uint8_t)hdr->frame_num;
         decRefPicMarking.long_term_reference_flag   = hdr->long_term_reference_flag;
-        MFX_INTERNAL_CPY(&decRefPicMarking.adaptiveMarkingInfo, pSlice->GetAdaptiveMarkingInfo(), sizeof(AdaptiveMarkingInfo));
+        MFX_INTERNAL_CPY(&decRefPicMarking.adaptiveMarkingInfo, pSlice->GetAdaptiveMarkingInfo(), sizeof(UMC_H264_DECODER::AdaptiveMarkingInfo));
     }
 
     uint32_t GetSliceCount() const
@@ -423,7 +423,7 @@ private:
     H264DecoderFrameInfo *m_RefAU;
     H264DecoderFrameInfo *m_PrevAU;
 
-    H264SEIPayLoadBase::SEIMessages::DecRefPicMarkingRepetition decRefPicMarking;
+    UMC_H264_DECODER::H264SEIPayLoadBase::SEIMessages::DecRefPicMarkingRepetition decRefPicMarking;
 
     class FakeFrameInitializer
     {

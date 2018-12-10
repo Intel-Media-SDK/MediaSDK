@@ -355,10 +355,14 @@
     INTEL_VGA_DEVICE(0x3EA7, info), /* ULT GT3 */ \
     INTEL_VGA_DEVICE(0x3EA8, info) /* ULT GT3 */
 
+#define INTEL_WHL_U_IDS(info) \
+    INTEL_VGA_DEVICE(0x3EA0, info) /* ULT GT2 */
+
 #define INTEL_CFL_IDS(info) \
     INTEL_CFL_S_IDS(info), \
     INTEL_CFL_H_IDS(info), \
-    INTEL_CFL_U_IDS(info)
+    INTEL_CFL_U_IDS(info), \
+    INTEL_WHL_U_IDS(info)
 
 #define INTEL_CNL_U_GT2_IDS(info) \
     INTEL_VGA_DEVICE(0x5A52, info),	\

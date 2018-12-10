@@ -85,8 +85,8 @@ foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
 
-include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/include )
-include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/include )
+include_directories( ${MSDK_LIB_ROOT}/genx/field_copy/isa )
+include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/isa )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 
 list( APPEND cdirs
@@ -155,13 +155,13 @@ else()
   endif()
 endif()
 
-if( ${MFX_ENABLE_MCTF} )
+if( MFX_ENABLE_MCTF )
   set(MCTF_LIB "mctf_hw")
 else()
   set(MCTF_LIB "")
 endif()
 
-if( ${MFX_ENABLE_ASC} )
+if( MFX_ENABLE_ASC )
   set(ASC_LIB "asc")
 else()
   set(ASC_LIB "")

@@ -27,7 +27,6 @@
 #include <list>
 #include "umc_h265_dec_defs.h"
 #include "umc_h265_bitstream_headers.h"
-#include "umc_automatic_mutex.h"
 #include "umc_h265_heap.h"
 
 namespace UMC_HEVC_DECODER
@@ -163,8 +162,6 @@ public:
     int32_t m_iNumber;                                           // (int32_t) current slice number
     int32_t m_iFirstMB;                                          // (int32_t) first MB number in slice
     int32_t m_iMaxMB;                                            // (int32_t) last unavailable  MB number in slice
-
-    uint16_t m_WidevineStatusReportNumber;
 
     CUProcessInfo processInfo;
 

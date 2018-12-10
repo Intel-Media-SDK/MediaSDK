@@ -92,7 +92,7 @@ mfxStatus MFXVideoVPP_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam
 #endif
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
@@ -132,7 +132,7 @@ mfxStatus MFXVideoVPP_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFra
 #endif
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         mfxRes = MFX_ERR_NULL_PTR;
     }
@@ -145,13 +145,17 @@ mfxStatus MFXVideoVPP_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFra
 mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
 {
     mfxStatus mfxRes = MFX_ERR_UNSUPPORTED;
+
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, par);
+
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(par, MFX_ERR_NULL_PTR);
 
     try
     {
         // check existence of component
-        if (!session->m_pVPP.get())
+        if (!session->m_pVPP)
         {
             // create a new instance
             session->m_pVPP.reset(session->Create<VideoVPP>(*par));
@@ -166,28 +170,15 @@ mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
         mfxRes = session->m_pVPP->Init(par);
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pVPP.get())
-        {
-            mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
-        }
-        else if (0 == par)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_PARAMS, mfxRes);
     return mfxRes;
-
-} // mfxStatus MFXVideoVPP_Init(mfxSession session, mfxVideoParam *par)
+}
 
 mfxStatus MFXVideoVPP_Close(mfxSession session)
 {
@@ -200,7 +191,7 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 
     try
     {
-        if (!session->m_pVPP.get())
+        if (!session->m_pVPP)
         {
             return MFX_ERR_NOT_INITIALIZED;
         }
@@ -210,26 +201,21 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
 
         mfxRes = session->m_pVPP->Close();
         // delete the codec's instance if not plugin
-        if (!session->m_plgVPP.get())
+        if (!session->m_plgVPP)
         {
-            session->m_pVPP.reset((VideoVPP *) 0);
+            session->m_pVPP.reset(nullptr);
         }
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_PARAMS, mfxRes);
     return mfxRes;
-
-} // mfxStatus MFXVideoVPP_Close(mfxSession session)
+}
 
 static
 mfxStatus MFXVideoVPPLegacyRoutine(void *pState, void *pParam,
@@ -448,22 +434,10 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 #endif
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pVPP.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
-        else if (0 == syncp)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
     }
 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, out);
@@ -479,6 +453,8 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *in, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, mfxSyncPoint *syncp)
 {
 #if !defined(MFX_ENABLE_USER_VPP)
+    (void)in;
+    (void)surface_work;
     (void)surface_out;
 #endif
 
@@ -541,22 +517,10 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsyncEx(mfxSession session, mfxFrameSurface1 *i
 #endif
     }
     // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
+    catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (0 == session->m_pVPP.get())
-        {
-            mfxRes = MFX_ERR_NOT_INITIALIZED;
-        }
-        else if (0 == syncp)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
     }
 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_PARAMS, surface_work);

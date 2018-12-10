@@ -29,32 +29,19 @@ mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfx
     mfxStatus mfxRes;
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, wait);
 
-    try
-    {
+    try {
         // call the function
         mfxRes = session->m_pScheduler->Synchronize(syncp, wait);
-
-    }
-    // handle error(s)
-    catch(MFX_CORE_CATCH_TYPE)
-    {
+    } catch(...) {
         // set the default error value
         mfxRes = MFX_ERR_ABORTED;
-        if (0 == session)
-        {
-            mfxRes = MFX_ERR_INVALID_HANDLE;
-        }
-        else if (NULL == syncp)
-        {
-            mfxRes = MFX_ERR_NULL_PTR;
-        }
     }
 
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
 
     return mfxRes;
-
-} // mfxStatus MFXVideoCORE_SyncOperation(mfxSession session, mfxSyncPoint syncp, mfxU32 wait)
+}

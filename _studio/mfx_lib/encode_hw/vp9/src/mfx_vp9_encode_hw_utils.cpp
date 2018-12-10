@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -245,7 +245,6 @@ mfxU32 ModifyLoopFilterLevelQPBased(mfxU32 QP, mfxU32 loopFilterLevel)
 
 mfxStatus InitVp9SeqLevelParam(VP9MfxVideoParam const &video, VP9SeqLevelParam &param)
 {
-    video;
     Zero(param);
 
     param.profile = (mfxU8)(video.mfx.CodecProfile - 1);
@@ -274,6 +273,8 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
                           VP9FrameLevelParam &frameParam,
                           mfxPlatform const & platform)
 {
+    (void)platform;
+
     Zero(frameParam);
     frameParam.frameType = frameType;
 
@@ -351,8 +352,6 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
             frameParam.modeRefDeltaEnabled = 0;
             frameParam.modeRefDeltaUpdate = 0;
         }
-#else //MFX_VERSION >= 1027
-        platform;
 #endif //MFX_VERSION >= 1027
     }
 
@@ -836,7 +835,7 @@ mfxStatus CopyRawSurfaceToVideoMemory(
         mfxFrameSurface1 lockedSurf = {};
         lockedSurf.Info = par.mfx.FrameInfo;
 
-        if (pSysSurface->Data.Y == 0)
+        if (LumaIsNull(pSysSurface))
         {
             pCore->FrameAllocator.Lock(pCore->FrameAllocator.pthis, pSysSurface->Data.MemId, &lockedSurf.Data);
             pSysSurface = &lockedSurf;

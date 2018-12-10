@@ -1044,7 +1044,8 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
     mfxStatus sts = InitFrameParams(eTask);
     MSDK_CHECK_STATUS(sts, "FEI ENCPAK: InitFrameParams failed");
 
-    for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
+    int numberOfCalls = (m_bSingleFieldMode && eTask->m_fieldPicFlag) ? 2 : 1;
+    for (int i = 0; i < numberOfCalls; ++i)
     {
         mdprintf(stderr, "frame: %d  t:%d %d : submit ", eTask->m_frameOrder, eTask->m_type[eTask->m_fid[0]], eTask->m_type[eTask->m_fid[1]]);
 
@@ -1179,7 +1180,7 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
             MSDK_BREAK_ON_ERROR(sts);
         } // if (m_pmfxPAK)
 
-    } // for (int i = 0; i < 1 + m_bSingleFieldMode; ++i)
+    } // for (int i = 0; i < numberOfCalls; ++i)
     MSDK_CHECK_STATUS(sts, "FEI ENCPAK failed to encode frame");
 
     if (m_pmfxPAK)

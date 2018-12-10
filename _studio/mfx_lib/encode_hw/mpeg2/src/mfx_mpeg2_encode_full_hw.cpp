@@ -203,7 +203,7 @@ mfxStatus FullEncode::ResetImpl()
 
     if (!m_pFrameTasks)
     {
-        m_nFrameTasks = paramsEx->mfxVideoParams.AsyncDepth > 0 ? paramsEx->mfxVideoParams.AsyncDepth : 2;       
+        m_nFrameTasks = paramsEx->mfxVideoParams.mfx.GopRefDist + paramsEx->mfxVideoParams.AsyncDepth;
         m_pFrameTasks = new EncodeFrameTask[m_nFrameTasks]; 
     }
 
@@ -352,6 +352,7 @@ mfxStatus FullEncode::EncodeFrameCheck(
     if (m_runtimeErr)
         return m_runtimeErr;
 
+
     return  m_pController->EncodeFrameCheck(ctrl,surface,bs,reordered_surface,pInternalParams);
 }
 mfxStatus FullEncode::CancelFrame(mfxEncodeCtrl * /*ctrl*/, mfxEncodeInternalParams * /*pInternalParams*/, mfxFrameSurface1 *surface, mfxBitstream * /*bs*/)
@@ -366,9 +367,6 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "FullEncode::SubmitFrame");
     mfxStatus         sts           = MFX_ERR_NONE;
-    EncodeFrameTask*  pIntTask      = 0;
-    mfxU32            nIntTask      = 0;
-    //bool              bInputFrame   = true;
 
     if(!is_initialized())
         return MFX_ERR_NOT_INITIALIZED;
@@ -383,11 +381,8 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
 
     MFX_CHECK_NULL_PTR1(bs);
 
-    nIntTask = GetFreeIntTask();
-    MFX_CHECK(nIntTask!=0,MFX_TASK_BUSY);
-
-    pIntTask = GetIntTask(nIntTask);
-    MFX_CHECK(pIntTask!=0,MFX_TASK_BUSY);
+    EncodeFrameTask*  pIntTask = GetIntTask(pExtTask->m_nInternalTask);
+    MFX_CHECK(pIntTask, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     mfxEncodeInternalParams* pInternalParams = &pIntTask->m_sEncodeInternalParams;
     if (input_surface)
@@ -401,7 +396,6 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
         return MFX_ERR_NONE;
     }
     MFX_CHECK_STS(sts);
-    // bInputFrame = false;
 
     sts = m_pFrameStore->NextFrame( surface,
                                     pInternalParams->FrameOrder,
@@ -448,7 +442,7 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
             if (pParams->bMbqpMode)
             {
                 const mfxExtMBQP *mbqp = (mfxExtMBQP *)GetExtBuffer(pInternalParams->ExtParam, pInternalParams->NumExtParam, MFX_EXTBUFF_MBQP);
-                
+
                 mfxU32 wMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropW + 15) / 16;
                 mfxU32 hMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropH + 15) / 16;
 
@@ -475,13 +469,6 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
         }
 
         MFX_CHECK_STS(sts);
-
-
-        pExtTask->m_nInternalTask = nIntTask;
-        {
-            UMC::AutomaticUMCMutex lock(m_guard);
-            pIntTask->m_taskStatus = ENC_STARTED;
-        }
     }
 
     return MFX_ERR_NONE;
@@ -498,13 +485,13 @@ mfxStatus FullEncode::QueryFrame(sExtTask2 *pExtTask)
     if(!is_initialized())
         return MFX_ERR_NOT_INITIALIZED;
 
-    if (pExtTask->m_nInternalTask == 0)
+    pIntTask = GetIntTask(pExtTask->m_nInternalTask);
+    MFX_CHECK_NULL_PTR1(pIntTask);
+
+    if (pIntTask->m_pBitstream == 0)
     {
         return MFX_ERR_NONE;
     }
-    
-    pIntTask = GetIntTask(pExtTask->m_nInternalTask);
-    MFX_CHECK_NULL_PTR1(pIntTask);
 
     bs = pIntTask->m_pBitstream;
 
@@ -598,15 +585,27 @@ mfxStatus FullEncode::EncodeFrameCheck(
         pOriginalSurface->Data.FrameOrder = surface->Data.FrameOrder;
     }
 
+    // check availability of an internal task in sync part
+    mfxU32 nIntTask = GetFreeIntTask();
+    MFX_CHECK(nIntTask != 0, MFX_WRN_DEVICE_BUSY);
+
+    EncodeFrameTask* pIntTask = GetIntTask(nIntTask);
+    MFX_CHECK(pIntTask, MFX_WRN_DEVICE_BUSY);
 
     sts_ret = EncodeFrameCheck(ctrl, pOriginalSurface, bs, reordered_surface, internalParams);
 
     if (sts_ret != MFX_ERR_NONE && sts_ret !=(mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK && sts_ret<0)
-        return sts_ret;  
+        return sts_ret;
 
 
     sts = m_pExtTasks->AddTask( internalParams,*reordered_surface, bs, &pExtTask);
     MFX_CHECK_STS(sts);
+
+    pExtTask->m_nInternalTask = nIntTask;
+    {
+        UMC::AutomaticUMCMutex lock(m_guard);
+        pIntTask->m_taskStatus = ENC_STARTED;
+    }
 
     entryPoints[0].pState = this;
     entryPoints[0].pParam = pExtTask;

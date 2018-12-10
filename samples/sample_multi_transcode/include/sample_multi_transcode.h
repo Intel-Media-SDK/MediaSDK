@@ -63,11 +63,8 @@ namespace TranscodingSample
 
         // command line parser
         CmdProcessor m_parser;
-        // sessions to process playlist
-        std::vector<ThreadTranscodeContext*> m_pSessionArray;
-        // handles
-        typedef std::vector<MSDKThread*>::iterator MSDKThreadsIterator;
-        std::vector<MSDKThread*>             m_HDLArray;
+        // threads contexts to process playlist
+        std::vector<ThreadTranscodeContext*> m_pThreadContextArray;
         // allocator for each session
         std::vector<GeneralAllocator*>       m_pAllocArray;
         // input parameters for each session

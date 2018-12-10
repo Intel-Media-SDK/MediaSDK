@@ -38,7 +38,7 @@ namespace MfxHwVP9Encode
 
     uint32_t ConvertRTFormatMFX2VAAPI(mfxU8 chromaFormat)
     {
-        VP9_LOG("ConvertRTFormatMFX2VAAPI \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ConvertRTFormatMFX2VAAPI");
         switch (chromaFormat)
         {
             case MFX_CHROMAFORMAT_YUV420:
@@ -51,7 +51,7 @@ namespace MfxHwVP9Encode
 
     uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     {
-        VP9_LOG("ConvertRateControlMFX2VAAPI \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ConvertRateControlMFX2VAAPI");
         switch (rateControl)
         {
             case MFX_RATECONTROL_CBR:  return VA_RC_CBR;
@@ -64,7 +64,7 @@ namespace MfxHwVP9Encode
 
     mfxU16 ConvertSegmentRefControlToVAAPI(mfxU16 refFrameControl)
     {
-        VP9_LOG("ConvertSegmentRefControlToVAAPI \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "ConvertSegmentRefControlToVAAPI");
         mfxU16 refControl = refFrameControl & 0x0F;//4 bits
         switch (refControl)
         {
@@ -77,7 +77,7 @@ namespace MfxHwVP9Encode
 
     void FillSpsBuffer(mfxVideoParam const & par, VAEncSequenceParameterBufferVP9 & sps)
     {
-        VP9_LOG("FillSpsBuffer \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillSpsBuffer");
         Zero(sps);
 
         sps.max_frame_width  = par.mfx.FrameInfo.CropW!=0 ? par.mfx.FrameInfo.CropW :  par.mfx.FrameInfo.Width;
@@ -97,7 +97,7 @@ namespace MfxHwVP9Encode
         std::vector<ExtVASurface> const & reconQueue,
         BitOffsets const &offsets)
     {
-        VP9_LOG("FillPpsBuffer \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillPpsBuffer");
 
         Zero(pps);
 
@@ -212,7 +212,7 @@ namespace MfxHwVP9Encode
         VABufferID             & tempLayersBufferId)
         //VAEncMiscParameterTemporalLayerStructure & tempLayers)
     {
-        VP9_LOG("SetTemporalStructure \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "SetTemporalStructure");
 
         VAStatus vaSts;
         VAEncMiscParameterBuffer *misc_param;
@@ -262,7 +262,7 @@ namespace MfxHwVP9Encode
         mfxCoreInterface *    pCore,
         VAEncMiscParameterTypeVP9PerSegmantParam & segPar)
     {
-        VP9_LOG("FillSegMap \n");
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillSegMap");
 
         if (task.m_frameParam.segmentation == 0)
             return MFX_ERR_NONE; // segment map isn't required
@@ -339,7 +339,7 @@ void FillBrcStructures(
     VAEncMiscParameterRateControl & vaBrcPar,
     VAEncMiscParameterFrameRate   & vaFrameRate)
 {
-    VP9_LOG("FillBrcStructures \n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FillBrcStructures");
 
     Zero(vaBrcPar);
     Zero(vaFrameRate);
@@ -357,7 +357,7 @@ mfxStatus SetRateControl(
     std::vector<VABufferID> & rateParamBuf_ids,
     bool                    isBrcResetRequired = false)
 {
-    VP9_LOG("SetRateControl \n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "SetRateControl");
 
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -413,6 +413,13 @@ mfxStatus SetRateControl(
             rate_param->rc_flags.bits.temporal_id = tl;
         }
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        mfxExtVP9Param vp9param = GetExtBufferRef(par);
+        rate_param->rc_flags.bits.enable_dynamic_scaling = vp9param.DynamicScaling == MFX_CODINGOPTION_ON ? 1 : 0;
+#else
+        rate_param->rc_flags.bits.enable_dynamic_scaling = 1;
+#endif
+
         vaSts = vaUnmapBuffer(m_vaDisplay, rateParamBuf_ids[tl]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
@@ -426,7 +433,7 @@ mfxStatus SetHRD(
     VAContextID  m_vaContextEncode,
     VABufferID & hrdBuf_id)
 {
-    VP9_LOG("SetHRD \n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "SetHRD");
 
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -476,7 +483,7 @@ mfxStatus SetQualityLevel(
     VAContextID  m_vaContextEncode,
     VABufferID & qualityLevelBuf_id)
 {
-    VP9_LOG("SetQualityLevel \n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "SetQualityLevel");
 
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -517,19 +524,13 @@ mfxStatus SetFrameRate(
     VAContextID             m_vaContextEncode,
     std::vector<VABufferID> & frameRateBufIds)
 {
-    VP9_LOG("SetFrameRate \n");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "SetFrameRate");
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterFrameRate *frameRate_param;
 
     mfxExtVP9TemporalLayers& extTL = GetExtBufferRef(par);
-
-    mfxU8 numTL = par.m_numLayers;
-    bool TL_attached = false;
-    if (numTL == 0) 
-        numTL = 1;
-    else
-        TL_attached = true;
+    mfxU16 numTL = std::max<mfxU16>(par.m_numLayers, 1);
 
     for (VABufferID id : frameRateBufIds)
     {
@@ -541,10 +542,10 @@ mfxStatus SetFrameRate(
 
     frameRateBufIds.resize(numTL);
 
-    mfxU32 base_framerate;
-    PackMfxFrameRate(par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD, base_framerate);
+    mfxU32 nom = par.mfx.FrameInfo.FrameRateExtN;
+    mfxU32 denom = par.mfx.FrameInfo.FrameRateExtD;
 
-    for (mfxU8 tl = 0; tl < frameRateBufIds.size(); tl++)
+    for (mfxU16 tl = 0; tl < numTL; tl++)
     {
         vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
@@ -563,7 +564,10 @@ mfxStatus SetFrameRate(
         misc_param->type = VAEncMiscParameterTypeFrameRate;
         frameRate_param = (VAEncMiscParameterFrameRate *)misc_param->data;
 
-        frameRate_param->framerate = TL_attached ? base_framerate / extTL.Layer[par.m_numLayers - 1 - tl].FrameRateScale : base_framerate;
+        if (tl == numTL - 1)
+            PackMfxFrameRate(nom, denom, frameRate_param->framerate);
+        else
+            PackMfxFrameRate(nom*extTL.Layer[tl].FrameRateScale, denom*extTL.Layer[numTL - 1].FrameRateScale, frameRate_param->framerate);
         frameRate_param->framerate_flags.bits.temporal_id = tl;
 
         vaSts = vaUnmapBuffer(m_vaDisplay, frameRateBufIds[tl]);
@@ -593,7 +597,7 @@ VAAPIEncoder::VAAPIEncoder()
 
 VAAPIEncoder::~VAAPIEncoder()
 {
-    VP9_LOG(" \n~VAAPIEncoder");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "~VAAPIEncoder");
     Destroy();
 
 } // VAAPIEncoder::~VAAPIEncoder()
@@ -620,7 +624,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     mfxU32 width,
     mfxU32 height)
 {
-    VP9_LOG(" \nCreateAuxilliaryDevice");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CreateAuxilliaryDevice");
 
     MFX_CHECK_WITH_ASSERT(pCore != 0, MFX_ERR_NULL_PTR);
     m_pmfxCore = pCore;
@@ -657,8 +661,13 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         idx_map[ attr_types[i] ] = i;
     }
 
+    VAProfile vaapipr = ConvertGuidToVAAPIProfile(guid);
+    if (vaapipr == VAProfileNone) {
+        return MFX_ERR_UNSUPPORTED;
+    }
+
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          ConvertGuidToVAAPIProfile(guid),
+                          vaapipr,
                           VAEntrypointEncSliceLP,
                           attrs.data(),
                           (int)attrs.size());
@@ -671,7 +680,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.Color420Only = 0;
         m_caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
-        m_caps.NumScalablePipesMinus1 = 1;
+        m_caps.NumScalablePipesMinus1 = 0; // TODO: for now driver doesn't support multiple pipes scalability
     }
     if (attrs[idx_map[VAConfigAttribRTFormat]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
@@ -721,6 +730,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.DynamicScaling = attrs[idx_map[VAConfigAttribEncDynamicScaling]].value;
     }
+    m_caps.DynamicScaling = 1; // TODO: remove hardcode when driver will report correct caps
 
     if (attrs[idx_map[VAConfigAttribFrameSizeToleranceSupport]].value != VA_ATTRIB_NOT_SUPPORTED)
         m_caps.UserMaxFrameSizeSupport  = attrs[idx_map[VAConfigAttribFrameSizeToleranceSupport]].value;
@@ -733,7 +743,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.EncodeFunc = 1;
     m_caps.HybridPakFunc = 1;
 
-    VP9_LOG(" \n CreateAuxilliaryDevice return ERR_NONE \n");
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(VideoCORE* core, GUID guid, mfxU32 width, mfxU32 height)
@@ -741,7 +750,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
 mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
 {
-    VP9_LOG(" \n CreateAccelerationService");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CreateAccelerationService");
     if(0 == m_reconQueue.size())
     {
     /* We need to pass reconstructed surfaces when call vaCreateContext().
@@ -843,17 +852,21 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     mfxStatus mfxSts;
     mfxSts = SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
     if (par.m_numLayers)
     {
         mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
     }
+
+    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
 
     m_frameHeaderBuf.resize(VP9_MAX_UNCOMPRESSED_HEADER_SIZE + MAX_IVF_HEADER_SIZE);
     InitVp9SeqLevelParam(par, m_seqParam);
@@ -864,7 +877,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
 
 mfxStatus VAAPIEncoder::Reset(VP9MfxVideoParam const & par)
 {
-    VP9_LOG(" \nReset");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Reset");
     m_video = par;
 
     FillSpsBuffer(par, m_sps);
@@ -876,30 +889,34 @@ mfxStatus VAAPIEncoder::Reset(VP9MfxVideoParam const & par)
     mfxStatus mfxSts;
     mfxSts = SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
     if (par.m_numLayers)
     {
         mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
     }
 
+    mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelBufferId);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
+    mfxSts = SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateBufferIds);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
 
 mfxU32 VAAPIEncoder::GetReconSurfFourCC()
 {
-    VP9_LOG(" \nGetReconSurfFourCC");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "GetReconSurfFourCC");
     return MFX_FOURCC_VP9_NV12;
 } // mfxU32 VAAPIEncoder::GetReconSurfFourCC()
 
 mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequest& request, mfxU32 frameWidth, mfxU32 frameHeight)
 {
-    VP9_LOG(" \nQueryCompBufferInfo");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "QueryCompBufferInfo");
     if (type == D3DDDIFMT_INTELENCODE_BITSTREAMDATA)
     {
         request.Info.FourCC = MFX_FOURCC_P8;
@@ -919,7 +936,7 @@ mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequ
 
 mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS_VP9& caps)
 {
-    VP9_LOG(" \nQueryEncodeCaps");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "QueryEncodeCaps");
     caps = m_caps;
 
     return MFX_ERR_NONE;
@@ -928,7 +945,7 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS_VP9& caps)
 
 mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
 {
-    VP9_LOG(" \nRegister");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Register");
     std::vector<ExtVASurface> * pQueue;
     mfxStatus sts;
 
@@ -972,7 +989,7 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
 
 mfxStatus VAAPIEncoder::Register(mfxMemId memId, D3DDDIFORMAT type)
 {
-    VP9_LOG(" \nRegister");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Register");
     memId;
     type;
 
@@ -985,7 +1002,7 @@ mfxStatus VAAPIEncoder::Execute(
     mfxHDLPair pair)
 {
     VAStatus vaSts;
-    VP9_LOG("\nVAAPIEncoder::Execute");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
     VASurfaceID *inputSurface = (VASurfaceID*)pair.first;
     VASurfaceID reconSurface;
@@ -1110,11 +1127,14 @@ mfxStatus VAAPIEncoder::Execute(
 
         configBuffers[buffersCount++] = m_packedHeaderDataBufferId;
 
-//*********
-
         // 8. hrd parameters
         configBuffers[buffersCount++] = m_hrdBufferId;
-        // 9. RC parameters
+        
+        // 9. temporal layers
+        if (m_video.m_numLayers)
+            configBuffers[buffersCount++] = m_tempLayersBufferId;
+
+        // 10. RC parameters
         SetRateControl(m_video, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds, m_isBrcResetRequired);
         MFX_CHECK_WITH_ASSERT(m_rateCtrlBufferIds.size() == m_frameRateBufferIds.size(), MFX_ERR_DEVICE_FAILED);
         m_isBrcResetRequired = false; // reset BRC only once
@@ -1122,16 +1142,15 @@ mfxStatus VAAPIEncoder::Execute(
         {
             configBuffers[buffersCount++] = m_rateCtrlBufferIds[i];
         }
-        // 10. frame rate
+
+        // 11. frame rate
         for (VABufferID id : m_frameRateBufferIds)
         {
             configBuffers[buffersCount++] = id;
         }
-        // 11. quality level
+
+        // 12. quality level
         configBuffers[buffersCount++] = m_qualityLevelBufferId;
-        // 12. temporal layers
-        if (m_video.m_numLayers)
-            configBuffers[buffersCount++] = m_tempLayersBufferId;
     }
 
     assert(buffersCount <= configBuffers.size());
@@ -1140,6 +1159,7 @@ mfxStatus VAAPIEncoder::Execute(
     // Rendering
     //------------------------------------------------------------------
     {
+        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_START|", "%p|%d", m_vaContextEncode, task.m_taskIdForDriver);
         vaSts = vaBeginPicture(
             m_vaDisplay,
             m_vaContextEncode,
@@ -1153,13 +1173,13 @@ mfxStatus VAAPIEncoder::Execute(
             m_vaContextEncode,
             configBuffers.data(),
             buffersCount);
-
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL_VTUNE, "vaEndPicture");//??
         vaSts = vaEndPicture(m_vaDisplay, m_vaContextEncode);
 
+        MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|VP9|PACKET_END|", "%d|%d", m_vaContextEncode, task.m_taskIdForDriver);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
 
@@ -1181,7 +1201,7 @@ mfxStatus VAAPIEncoder::Execute(
 
 mfxStatus VAAPIEncoder::QueryPlatform(mfxPlatform& platform)
 {
-    VP9_LOG(" \nVAAPIEncoder::QueryPlatform");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::QueryPlatform");
     platform = m_platform;
     return MFX_ERR_NONE;
 }
@@ -1190,7 +1210,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     Task & task)
 {
     VAStatus vaSts;
-    VP9_LOG("\nVAAPIEncoder::QueryStatus +");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::QueryStatus");
 
     //------------------------------------------
     // (1) mapping feedbackNumber -> surface & mb data buffer
@@ -1287,7 +1307,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
 
 mfxStatus VAAPIEncoder::Destroy()
 {
-    VP9_LOG(" \nDestroy");
+    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Destroy");
 
     MFX_DESTROY_VABUFFER(m_spsBufferId, m_vaDisplay);
     MFX_DESTROY_VABUFFER(m_ppsBufferId, m_vaDisplay);

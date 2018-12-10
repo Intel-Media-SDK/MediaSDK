@@ -85,6 +85,9 @@
     #if MFX_VERSION >= 1023
         #define MFX_ENABLE_H264_REPARTITION_CHECK
     #endif
+    #if MFX_VERSION >= 1027
+        #define MFX_ENABLE_H264_ROUNDING_OFFSET
+    #endif
     #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCODE)
         #define MFX_ENABLE_H264_VIDEO_FEI_ENCPAK
         #define MFX_ENABLE_H264_VIDEO_FEI_PREENC

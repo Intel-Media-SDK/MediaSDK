@@ -95,11 +95,11 @@ public:
         }
         catch(std::bad_alloc&)
         {
-            return MFX_ERR_MEMORY_ALLOC;;
+            return MFX_ERR_MEMORY_ALLOC;
         }
-        catch(MFX_CORE_CATCH_TYPE) 
-        { 
-            return MFX_ERR_UNKNOWN;; 
+        catch(...)
+        {
+            return MFX_ERR_UNKNOWN;
         }
         tmp_pplg->m_adapter.reset(new MFXPluginAdapter<MFXVPPPlugin> (tmp_pplg));
         *mfxPlg = tmp_pplg->m_adapter->operator mfxPlugin();

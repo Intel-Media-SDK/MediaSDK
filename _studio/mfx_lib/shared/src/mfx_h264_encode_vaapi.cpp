@@ -60,7 +60,9 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
     {
     case MFX_RATECONTROL_CBR:  return VA_RC_CBR;
     case MFX_RATECONTROL_VBR:  return VA_RC_VBR;
-    case MFX_RATECONTROL_AVBR: return VA_RC_VBR;
+#if VA_CHECK_VERSION(1,3,0)
+    case MFX_RATECONTROL_AVBR: return VA_RC_AVBR;
+#endif
 #ifdef MFX_ENABLE_QVBR
     case MFX_RATECONTROL_QVBR: return VA_RC_QVBR;
 #endif
@@ -202,6 +204,15 @@ mfxStatus SetRateControl(
     rate_param->bits_per_second = GetMaxBitrateValue(par.calcParam.maxKbps) << (6 + SCALE_FROM_DRIVER);
     rate_param->window_size     = par.mfx.Convergence * 100;
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+    {
+        rate_param->window_size = par.mfx.Convergence;
+    }
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+    {
+        rate_param->bits_per_second = ((1000 * par.calcParam.targetKbps) >> (6 + SCALE_FROM_DRIVER)) << (6 + SCALE_FROM_DRIVER);
+    }
+
     rate_param->min_qp = minQP;
     rate_param->max_qp = maxQP;
 
@@ -214,6 +225,11 @@ mfxStatus SetRateControl(
 
     if(par.calcParam.maxKbps)
         rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+    {
+        rate_param->target_percentage = par.mfx.Accuracy;
+    }
 
     // Activate frame tolerance sliding window mode
     if (extOpt3.WinBRCSize && caps.FrameSizeToleranceSupport)
@@ -701,6 +717,7 @@ static mfxStatus SetROI(
     return MFX_ERR_NONE;
 }
 
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
 mfxStatus SetRoundingOffset(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
@@ -761,6 +778,7 @@ mfxStatus SetRoundingOffset(
 
     return MFX_ERR_NONE;
 }
+#endif
 
 void FillConstPartOfPps(
     MfxVideoParam const & par,
@@ -1207,7 +1225,9 @@ VAAPIEncoder::VAAPIEncoder()
     , m_rirId(VA_INVALID_ID)
     , m_qualityParamsId(VA_INVALID_ID)
     , m_miscParameterSkipBufferId(VA_INVALID_ID)
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     , m_roundingOffsetId(VA_INVALID_ID)
+#endif
     , m_roiBufferId(VA_INVALID_ID)
     , m_ppsBufferId(VA_INVALID_ID)
     , m_mbqpBufferId(VA_INVALID_ID)
@@ -1409,6 +1429,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.QVBRBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_QVBR) ? 1 : 0;
 #endif
+#if VA_CHECK_VERSION(1,3,0)
+    m_caps.AVBRBRCSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_AVBR) ? 1 : 0;
+#endif
     m_caps.TrelisQuantization =
         (attrs[idx_map[VAConfigAttribEncQuantization]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0;
     m_caps.vaTrellisQuantization =
@@ -1419,8 +1443,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         attrs[idx_map[VAConfigAttribEncIntraRefresh]].value;
     m_caps.SkipFrame =
         (attrs[idx_map[VAConfigAttribEncSkipFrame]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     m_caps.RoundingOffset =
         (attrs[idx_map[VAConfigAttribCustomRoundingControl]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
+#endif
 
     m_caps.UserMaxFrameSizeSupport = 1;
     m_caps.MBBRCSupport            = 1;
@@ -2029,7 +2055,9 @@ mfxStatus VAAPIEncoder::Execute(
     mfxExtCodingOption2     const * ctrlOpt2      = GetExtBuffer(task.m_ctrl);
     mfxExtCodingOption3     const * ctrlOpt3      = GetExtBuffer(task.m_ctrl);
     mfxExtMBDisableSkipMap  const * ctrlNoSkipMap = GetExtBuffer(task.m_ctrl);
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     mfxExtAVCRoundingOffset const * ctrlRoundingOffset  = GetExtBuffer(task.m_ctrl, task.m_fid[fieldId]);
+#endif
 
     if (ctrlOpt2 && ctrlOpt2->SkipFrame <= MFX_SKIPFRAME_BRC_ONLY)
         skipMode = ctrlOpt2->SkipFrame;
@@ -2866,12 +2894,14 @@ mfxStatus VAAPIEncoder::Execute(
         }
     }
 
+#if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     if (m_caps.RoundingOffset && ctrlRoundingOffset)
     {
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRoundingOffset(m_vaDisplay, m_vaContextEncode, *ctrlRoundingOffset, m_roundingOffsetId), MFX_ERR_DEVICE_FAILED);
 
         configBuffers[buffersCount++] = m_roundingOffsetId;
     }
+#endif
 
     if (ctrlOpt2 || ctrlOpt3)
     {

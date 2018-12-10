@@ -24,6 +24,7 @@
 #include "mfx_h265_encode_hw_ddi.h"
 #include <assert.h>
 #include <math.h>
+#include <algorithm>
 
 namespace MfxHwH265Encode
 {
@@ -189,6 +190,7 @@ mfxStatus CheckProfile(mfxVideoParam& par, eMFXHWType platform)
         return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 #else
+    (void)platform;
 
     switch (par.mfx.CodecProfile)
     {
@@ -2369,6 +2371,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
 
     }
+    //not supported in driver
+    changed += CheckOption(CO2.EnableMAD, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_OFF);
 
     if (CO3.WinBRCSize > 0 || CO3.WinBRCMaxAvgKbps > 0)
     {
@@ -2640,11 +2644,11 @@ void SetDefaults(
         rawBits = rawBits / 8 * par.mfx.FrameInfo.BitDepthLuma;
         maxQP += 6 * (par.mfx.FrameInfo.BitDepthLuma - 8);
 
-        if (IsOn(par.mfx.LowPower) || par.m_platform >= MFX_HW_KBL
+        if (IsOn(par.mfx.LowPower) || (par.m_platform >= MFX_HW_KBL
 #if (MFX_VERSION >= 1025)
             && par.m_platform < MFX_HW_CNL
 #endif
-            )
+            ))
             minQP += 6 * (par.mfx.FrameInfo.BitDepthLuma - 8);
     }
 #endif
@@ -2692,7 +2696,10 @@ void SetDefaults(
         if (!par.MaxKbps)
             par.MaxKbps = par.TargetKbps;
         if (!par.BufferSizeInKB)
+        {
             par.BufferSizeInKB = Min(maxBuf, par.MaxKbps / 4); //2 sec: the same as H264
+            par.BufferSizeInKB = Max(par.BufferSizeInKB, par.InitialDelayInKB);
+        }
         if (!par.InitialDelayInKB)
             par.InitialDelayInKB = par.BufferSizeInKB / 2;
         if (par.m_ext.CO2.MBBRC == MFX_CODINGOPTION_UNKNOWN)
@@ -2842,8 +2849,9 @@ void SetDefaults(
             }
             par.mfx.NumRefFrame = Max<mfxU16>(par.NumTL() - 1, par.mfx.NumRefFrame);
             par.mfx.NumRefFrame = Min<mfxU16>(maxDPB - 1, par.mfx.NumRefFrame);
+            par.PPyrInterval = std::min<mfxU32>(par.PPyrInterval, par.mfx.NumRefFrame);
         }
-     }
+    }
     if (par.m_ext.CO2.ExtBRC == MFX_CODINGOPTION_UNKNOWN)
         par.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_OFF;
 
@@ -2908,6 +2916,23 @@ void SetDefaults(
     if (IsOff(CO3.EnableQPOffset))
         Zero(CO3.QPOffset);
 
+    if (CO2.MinQPI || CO2.MinQPP || CO2.MinQPB ||
+        CO2.MaxQPI || CO2.MaxQPP || CO2.MaxQPB)
+    {
+        if (!CO2.MinQPI)
+            CO2.MinQPI = (mfxU8)minQP;
+        if (!CO2.MinQPP)
+            CO2.MinQPP = (mfxU8)minQP;
+        if (!CO2.MinQPB)
+            CO2.MinQPB = (mfxU8)minQP;
+
+        if (!CO2.MaxQPI)
+            CO2.MaxQPI = (mfxU8)maxQP;
+        if (!CO2.MaxQPP)
+            CO2.MaxQPP = (mfxU8)maxQP;
+        if (!CO2.MaxQPB)
+            CO2.MaxQPB = (mfxU8)maxQP;
+    }
 
 
 #if (MFX_VERSION >= 1026)

@@ -35,15 +35,15 @@ namespace UMC
 {
     VC1TaskStore::VC1TaskStore(MemoryAllocator *pMemoryAllocator):
                                                                 m_iConsumerNumber(0),
-                                                                m_pDescriptorQueue(NULL),
+                                                                m_pDescriptorQueue(nullptr),
                                                                 m_iNumFramesProcessing(0),
                                                                 m_iNumDSActiveinQueue(0),
-                                                                m_pGuardGet(NULL),
-                                                                pMainVC1Decoder(NULL),
+                                                                m_pGuardGet(),
+                                                                pMainVC1Decoder(nullptr),
                                                                 m_lNextFrameCounter(1),
-                                                                m_pPrefDS(NULL),
+                                                                m_pPrefDS(nullptr),
                                                                 m_iRangeMapIndex(0),
-                                                                m_pMemoryAllocator(NULL),
+                                                                m_pMemoryAllocator(nullptr),
                                                                 m_CurrIndex(-1),
                                                                 m_PrevIndex(-1),
                                                                 m_NextIndex(-1),
@@ -54,22 +54,12 @@ namespace UMC
                                                                 m_pSHeap(0),
                                                                 m_bIsLastFramesMode(false)
     {
-        vm_mutex_set_invalid(&m_mDSGuard);
         m_pMemoryAllocator = pMemoryAllocator;
     }
 
     VC1TaskStore::~VC1TaskStore()
     {
         uint32_t i;
-
-        if (vm_mutex_is_valid(&m_mDSGuard))
-            vm_mutex_destroy(&m_mDSGuard);
-
-        for (i = 0; i < m_iNumFramesProcessing; i++)
-        {
-            vm_mutex_destroy(m_pGuardGet[i]);
-            m_pGuardGet[i] = 0;
-        }
 
         if(m_pMemoryAllocator)
         {
@@ -118,22 +108,13 @@ namespace UMC
                 m_pSHeap = new VC1TSHeap((uint8_t*)m_pMemoryAllocator->Lock(m_iTSHeapID),heapSize);
             }
 
-            m_pSHeap->s_new(&m_pGuardGet,m_iNumFramesProcessing);
+            m_pGuardGet.resize(m_iNumFramesProcessing);
             for (i = 0; i < m_iNumFramesProcessing; i++)
             {
-                m_pSHeap->s_new(&m_pGuardGet[i]);
-
-                vm_mutex_set_invalid(m_pGuardGet[i]);
-                if (VM_OK != vm_mutex_init(m_pGuardGet[i]))
-                    return false;
+                m_pGuardGet[i].reset(new std::mutex);
             }
         }
 
-        if (0 == vm_mutex_is_valid(&m_mDSGuard))
-        {
-            if (VM_OK != vm_mutex_init(&m_mDSGuard))
-                return false;
-        }
         return true;
     }
 
@@ -144,15 +125,6 @@ namespace UMC
         //close
         m_bIsLastFramesMode = false;
         ResetDSQueue();
-
-        if (vm_mutex_is_valid(&m_mDSGuard))
-            vm_mutex_destroy(&m_mDSGuard);
-
-        for (i = 0; i < m_iNumFramesProcessing; i++)
-        {
-            vm_mutex_destroy(m_pGuardGet[i]);
-            m_pGuardGet[i] = 0;
-        }
 
         if(m_pMemoryAllocator)
         {
@@ -187,23 +159,11 @@ namespace UMC
             }
 
             {
-                m_pSHeap->s_new(&m_pGuardGet,m_iNumFramesProcessing);
-
                 for (i = 0; i < m_iNumFramesProcessing; i++)
                 {
-                    m_pSHeap->s_new(&m_pGuardGet[i]);
-
-                    vm_mutex_set_invalid(m_pGuardGet[i]);
-                    if (VM_OK != vm_mutex_init(m_pGuardGet[i]))
-                        return false;
+                    m_pGuardGet[i].reset(new std::mutex);
                 }
             }
-        }
-
-        if (0 == vm_mutex_is_valid(&m_mDSGuard))
-        {
-            if (VM_OK != vm_mutex_init(&m_mDSGuard))
-                return false;
         }
 
         SetBFrameIndex(-1);
@@ -217,12 +177,10 @@ namespace UMC
 
     uint32_t VC1TaskStore::CalculateHeapSize()
     {
-        uint32_t Size = align_value<uint32_t>(sizeof(vm_mutex**)*m_iNumFramesProcessing); //m_pGuardGet
-        Size += align_value<uint32_t>(sizeof(VC1FrameDescriptor*)*(m_iNumFramesProcessing));
+        uint32_t Size = align_value<uint32_t>(sizeof(VC1FrameDescriptor*)*(m_iNumFramesProcessing));
 
         for (uint32_t counter = 0; counter < m_iNumFramesProcessing; counter++)
         {
-            Size += align_value<uint32_t>(sizeof(vm_mutex)); //m_pGuardGet
                 if (pMainVC1Decoder->m_va)
                 {
                     Size += align_value<uint32_t>(sizeof(VC1FrameDescriptorVA_Linux<VC1PackerLVA>));

@@ -158,7 +158,13 @@ struct sInputParams
     mfxU16 GopOptFlag;
     mfxU32 nMaxFrameSize;
 
+    mfxU16 WinBRCSize;
+    mfxU16 WinBRCMaxAvgKbps;
+
+    mfxU16 ICQQuality;
     mfxU16 QVBRQuality;
+    mfxU16 Convergence;
+    mfxU16 Accuracy;
     mfxU16 LowDelayBRC;
     mfxU16 ExtBrcAdaptiveLTR;
 
@@ -168,10 +174,13 @@ struct sInputParams
     mfxU16 IntRefCycleDist;
 
     bool bUncut;
-    bool shouldUseShiftedP010Enc;
-    bool shouldUseShiftedP010VPP;
+    bool shouldUseShifted10BitEnc;
+    bool shouldUseShifted10BitVPP;
+    bool IsSourceMSB;
 
+#if (MFX_VERSION >= 1027)
     msdk_char *RoundingOffsetFile;
+#endif
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
 
@@ -202,6 +211,7 @@ struct bufSet
         {
             switch (buffers[i]->BufferId)
             {
+#if (MFX_VERSION >= 1027)
                 case MFX_EXTBUFF_AVC_ROUNDING_OFFSET:
                 {
                     mfxExtAVCRoundingOffset* roundingOffset = reinterpret_cast<mfxExtAVCRoundingOffset*>(buffers[i]);
@@ -209,7 +219,7 @@ struct bufSet
                     i += m_nFields;
                 }
                 break;
-
+#endif
                 default:
                     ++i;
                     break;
@@ -395,8 +405,9 @@ protected:
     CHWDevice *m_hwdev;
 
     bufList m_encExtBufs;
+#if (MFX_VERSION >= 1027)
     FILE* m_round_in;
-
+#endif
     bool isV4L2InputEnabled;
 
     mfxU32 m_nTimeout;

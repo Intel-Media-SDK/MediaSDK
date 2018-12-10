@@ -78,6 +78,8 @@ void* MockCallObj::EmulateAPI(void *handle, const char *symbol)
     std::string mfxqueryversion_symbol("MFXQueryVersion");
     std::string mfxclose_symbol("MFXClose");
     std::string createplugin_symbol("CreatePlugin");
+    std::string mfxvideoregister_symbol("MFXVideoUSER_Register");
+    std::string mfxvideounregister_symbol("MFXVideoUSER_Unregister");
 
     for (int i = 0; i < eFunctionsNum; ++i)
     {
@@ -105,6 +107,14 @@ void* MockCallObj::EmulateAPI(void *handle, const char *symbol)
             {
                 return reinterpret_cast<void*>(CreatePluginWrap);
             }
+            else if (symbol == mfxvideoregister_symbol)
+            {
+                return reinterpret_cast<void*>(MFXVideoUSER_RegisterWrap);
+            }
+            else if (symbol == mfxvideounregister_symbol)
+            {
+                return reinterpret_cast<void*>(MFXVideoUSER_UnregisterWrap);
+            }
             else
             {
                 return MOCK_FUNC_PTR;
@@ -120,7 +130,7 @@ char* MockCallObj::FeedEmulatedPluginsCfgLines(char * str, int num, FILE * strea
 {
     if (m_next_plugin_cfg_line_idx < m_emulated_plugins_cfg.size())
     {
-        strcpy(str, m_emulated_plugins_cfg[m_next_plugin_cfg_line_idx].c_str());
+        strncpy(str, m_emulated_plugins_cfg[m_next_plugin_cfg_line_idx].c_str(), num);
         ++m_next_plugin_cfg_line_idx;
         return str;
     }

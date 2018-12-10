@@ -1,15 +1,15 @@
 // Copyright (c) 2018 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -129,9 +129,8 @@ if (pSrc)\
     COPY_PAR_IF_ZERO(pDst, pSrc, PTR); \
 }\
 
-inline void SetOrCopy(mfxInfoMFX *pDst, mfxInfoMFX const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxInfoMFX *pDst, mfxInfoMFX const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    zeroDst;
     SET_OR_COPY_PAR(FrameInfo.Width);
     SET_OR_COPY_PAR(FrameInfo.Height);
     SET_OR_COPY_PAR(FrameInfo.CropW);
@@ -190,18 +189,20 @@ inline void SetOrCopy(mfxExtVP9Param *pDst, mfxExtVP9Param const *pSrc = 0, bool
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     SET_OR_COPY_PAR(NumTileRows);
     SET_OR_COPY_PAR(NumTileColumns);
+    SET_OR_COPY_PAR(DynamicScaling);
 #endif
 }
 
-inline void SetOrCopy(mfxExtCodingOption2 *pDst, mfxExtCodingOption2 const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxExtCodingOption2 *pDst, mfxExtCodingOption2 const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    zeroDst;
     SET_OR_COPY_PAR(MBBRC);
 }
 
-inline void SetOrCopy(mfxExtCodingOption3 *pDst, mfxExtCodingOption3 const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxExtCodingOption3 *pDst, mfxExtCodingOption3 const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    pSrc; pDst; zeroDst;
+    (void)pSrc;
+    (void)pDst;
+
 #if (MFX_VERSION >= 1027)
     SET_OR_COPY_PAR(TargetChromaFormatPlus1);
     SET_OR_COPY_PAR(TargetBitDepthLuma);
@@ -235,9 +236,8 @@ inline void SetOrCopy(mfxExtVP9TemporalLayers *pDst, mfxExtVP9TemporalLayers con
     }
 }
 
-inline void SetOrCopy(mfxExtCodingOptionDDI *pDst, mfxExtCodingOptionDDI const *pSrc = 0, bool zeroDst = true)
+inline void SetOrCopy(mfxExtCodingOptionDDI *pDst, mfxExtCodingOptionDDI const *pSrc = 0, bool /*zeroDst*/ = true)
 {
-    zeroDst;
     SET_OR_COPY_PAR(RefreshFrameContext);
     SET_OR_COPY_PAR(ChangeFrameContextIdxForTS);
     SET_OR_COPY_PAR(SuperFrameForTS);
@@ -550,7 +550,7 @@ bool CheckFourcc(mfxU32 fourcc, ENCODE_CAPS_VP9 const &caps)
 #if (MFX_VERSION >= 1027)
             || (fourcc == MFX_FOURCC_Y410 && caps.YUV444ReconSupport)
 #endif
-            )); 
+            ));
 }
 
 mfxU16 MapTUToSupportedRange(mfxU16 tu)
@@ -1018,6 +1018,12 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         unsupported = true;
     }
 
+    if (fi.Width > caps.MaxPicWidth || fi.Height > caps.MaxPicHeight)
+    {
+        fi.Width = 0;
+        fi.Height = 0;
+        unsupported = true;
+    }
     //VP9 doesn't support CropX, CropY due to absence of syntax in bitstream header
     if ((fi.Width  && (fi.CropW > fi.Width))  ||
         (fi.Height && (fi.CropH > fi.Height)) ||
@@ -1530,6 +1536,22 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         rows = 0;
         unsupported = true;
     }
+
+    if (false == CheckTriStateOption(extPar.DynamicScaling))
+    {
+        changed = true;
+    }
+    if (!caps.DynamicScaling && extPar.DynamicScaling == MFX_CODINGOPTION_ON)
+    {
+        extPar.DynamicScaling = MFX_CODINGOPTION_OFF;
+        unsupported = true;
+    }
+    //known limitation: these 2 features don't work together
+    if (extPar.DynamicScaling == MFX_CODINGOPTION_ON && par.m_numLayers > 0)
+    {
+        extPar.DynamicScaling = MFX_CODINGOPTION_OFF;
+        unsupported = true;
+    }
 #endif // MFX_VERSION >= MFX_VERSION_NEXT
 
     return GetCheckStatus(changed, unsupported);
@@ -1574,21 +1596,20 @@ inline mfxU32 GetDefaultBufferSize(VP9MfxVideoParam const &par)
     else
     {
         const mfxExtVP9Param& extPar = GetExtBufferRef(par);
-        if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 
+        if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
             || par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
 #endif
             ) {
             return (extPar.FrameWidth * extPar.FrameHeight * 3) / 1000; // size of two uncompressed 420 8bit frames in KB
         }
-        else 
+        else
             return (extPar.FrameWidth * extPar.FrameHeight * 3) / 2 / 1000;  // size of uncompressed 420 8bit frame in KB
     }
 }
 
-inline mfxU16 GetDefaultAsyncDepth(VP9MfxVideoParam const &par)
+inline mfxU16 GetDefaultAsyncDepth(VP9MfxVideoParam const &/*par*/)
 {
-    par;
     return 2;
 }
 
@@ -1623,9 +1644,8 @@ void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
 mfxStatus SetDefaults(
     VP9MfxVideoParam &par,
     ENCODE_CAPS_VP9 const &caps,
-    mfxPlatform const & platform)
+    mfxPlatform const & /*platform*/)
 {
-    platform;
     SetDefault(par.AsyncDepth, GetDefaultAsyncDepth(par));
 
     // mfxInfoMfx
@@ -1726,6 +1746,7 @@ mfxStatus SetDefaults(
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     SetDefault(extPar.NumTileColumns, (extPar.FrameWidth + MAX_TILE_WIDTH - 1) / MAX_TILE_WIDTH);
     SetDefault(extPar.NumTileRows, 1);
+    SetDefault(extPar.DynamicScaling, MFX_CODINGOPTION_OFF);
 #endif // (MFX_VERSION >= MFX_VERSION_NEXT)
 
     // ext buffers
@@ -1874,9 +1895,14 @@ mfxStatus CheckSurface(
 
     if (video.m_inMemType == INPUT_SYSTEM_MEMORY)
     {
-        MFX_CHECK(surface.Data.Y != 0, MFX_ERR_NULL_PTR);
-        MFX_CHECK(surface.Data.U != 0, MFX_ERR_NULL_PTR);
-        MFX_CHECK(surface.Data.V != 0, MFX_ERR_NULL_PTR);
+        MFX_CHECK(!LumaIsNull(&surface), MFX_ERR_NULL_PTR);
+#if (MFX_VERSION >= 1027)
+        if (surface.Info.FourCC != MFX_FOURCC_Y410)
+#endif
+        {
+            MFX_CHECK(surface.Data.U != 0, MFX_ERR_NULL_PTR);
+            MFX_CHECK(surface.Data.V != 0, MFX_ERR_NULL_PTR);
+        }
     }
     else if (isOpaq == false)
     {
@@ -1900,8 +1926,6 @@ mfxStatus CheckAndFixCtrl(
     mfxEncodeCtrl & ctrl,
     ENCODE_CAPS_VP9 const & caps)
 {
-    video;
-
     mfxStatus checkSts = MFX_ERR_NONE;
 
     // check mfxEncodeCtrl for correct parameters
