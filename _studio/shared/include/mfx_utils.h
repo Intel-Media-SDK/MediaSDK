@@ -23,6 +23,8 @@
 
 #include "mfx_config.h"
 
+#include "mfxstructures.h"
+
 #include "umc_structures.h"
 #include "mfx_trace.h"
 #include "mfx_timing.h"
@@ -123,6 +125,25 @@ template<class T> inline T AlignValue(T value, mfxU32 alignment)
 {
     assert((alignment & (alignment - 1)) == 0); // should be 2^n
     return static_cast<T>((value + alignment - 1) & ~(alignment - 1));
+}
+
+namespace mfx
+{
+// TODO: switch to std::clamp when C++17 support will be enabled
+
+// Clip value v to range [lo, hi]
+template<class T>
+constexpr const T& clamp( const T& v, const T& lo, const T& hi )
+{
+    return std::min(hi, std::max(v, lo));
+}
+
+// Comp is comparison function object with meaning of 'less' operator (i.e. std::less<> or operator<)
+template<class T, class Compare>
+constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
+{
+    return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
 }
 
 
