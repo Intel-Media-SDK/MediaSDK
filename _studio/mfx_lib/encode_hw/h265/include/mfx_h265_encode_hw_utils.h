@@ -467,101 +467,101 @@ namespace ExtBuffer
 
     inline void CopySupportedParams(mfxExtHEVCParam& buf_dst, mfxExtHEVCParam& buf_src)
     {
-        buf_dst.PicWidthInLumaSamples  = buf_src.PicWidthInLumaSamples;
-        buf_dst.PicHeightInLumaSamples = buf_src.PicHeightInLumaSamples;
-        buf_dst.GeneralConstraintFlags = buf_src.GeneralConstraintFlags;
+        MFX_COPY_FIELD(PicWidthInLumaSamples);
+        MFX_COPY_FIELD(PicHeightInLumaSamples);
+        MFX_COPY_FIELD(GeneralConstraintFlags);
 #if (MFX_VERSION >= 1026)
-        buf_dst.SampleAdaptiveOffset   = buf_src.SampleAdaptiveOffset;
-        buf_dst.LCUSize                = buf_src.LCUSize;
+        MFX_COPY_FIELD(SampleAdaptiveOffset);
+        MFX_COPY_FIELD(LCUSize);
 #endif
     }
 
     inline void  CopySupportedParams(mfxExtHEVCTiles& buf_dst, mfxExtHEVCTiles& buf_src)
     {
-        buf_dst.NumTileRows            = buf_src.NumTileRows;
-        buf_dst.NumTileColumns         = buf_src.NumTileColumns;
+        MFX_COPY_FIELD(NumTileRows);
+        MFX_COPY_FIELD(NumTileColumns);
     }
 
     inline void CopySupportedParams (mfxExtCodingOption& buf_dst, mfxExtCodingOption& buf_src)
     {
-        buf_dst.PicTimingSEI           = buf_src.PicTimingSEI;
-        buf_dst.VuiNalHrdParameters    = buf_src.VuiNalHrdParameters;
-        buf_dst.NalHrdConformance      = buf_src.NalHrdConformance;
-        buf_dst.AUDelimiter            = buf_src.AUDelimiter;
+        MFX_COPY_FIELD(PicTimingSEI);
+        MFX_COPY_FIELD(VuiNalHrdParameters);
+        MFX_COPY_FIELD(NalHrdConformance);
+        MFX_COPY_FIELD(AUDelimiter);
     }
-    inline void  CopySupportedParams(mfxExtCodingOption2& buf_dst, mfxExtCodingOption2& buf_src)
+    inline void CopySupportedParams(mfxExtCodingOption2& buf_dst, mfxExtCodingOption2& buf_src)
     {
-        buf_dst.IntRefType             = buf_src.IntRefType;
-        buf_dst.IntRefCycleSize        = buf_src.IntRefCycleSize;
-        buf_dst.IntRefQPDelta          = buf_src.IntRefQPDelta;
-        buf_dst.MaxFrameSize           = buf_src.MaxFrameSize;
+        MFX_COPY_FIELD(IntRefType);
+        MFX_COPY_FIELD(IntRefCycleSize);
+        MFX_COPY_FIELD(IntRefQPDelta);
+        MFX_COPY_FIELD(MaxFrameSize);
 
-        buf_dst.MBBRC                  = buf_src.MBBRC;
-        buf_dst.BRefType               = buf_src.BRefType;
-        buf_dst.NumMbPerSlice          = buf_src.NumMbPerSlice;
-        buf_dst.DisableDeblockingIdc   = buf_src.DisableDeblockingIdc;
+        MFX_COPY_FIELD(MBBRC);
+        MFX_COPY_FIELD(BRefType);
+        MFX_COPY_FIELD(NumMbPerSlice);
+        MFX_COPY_FIELD(DisableDeblockingIdc);
 
-        buf_dst.RepeatPPS              = buf_src.RepeatPPS;
-        buf_dst.MaxSliceSize           = buf_src.MaxSliceSize;
-        buf_dst.ExtBRC                 = buf_src.ExtBRC;
+        MFX_COPY_FIELD(RepeatPPS);
+        MFX_COPY_FIELD(MaxSliceSize);
+        MFX_COPY_FIELD(ExtBRC);
 
-        buf_dst.MinQPI                 = buf_src.MinQPI;
-        buf_dst.MaxQPI                 = buf_src.MaxQPI;
-        buf_dst.MinQPP                 = buf_src.MinQPP;
-        buf_dst.MaxQPP                 = buf_src.MaxQPP;
-        buf_dst.MinQPB                 = buf_src.MinQPB;
-        buf_dst.MaxQPB                 = buf_src.MaxQPB;
-        buf_dst.SkipFrame              = buf_src.SkipFrame;
-      buf_dst.EnableMAD=buf_src.EnableMAD;
+        MFX_COPY_FIELD(MinQPI);
+        MFX_COPY_FIELD(MaxQPI);
+        MFX_COPY_FIELD(MinQPP);
+        MFX_COPY_FIELD(MaxQPP);
+        MFX_COPY_FIELD(MinQPB);
+        MFX_COPY_FIELD(MaxQPB);
+        MFX_COPY_FIELD(SkipFrame);
+        MFX_COPY_FIELD(EnableMAD);
     }
 
-    inline void  CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
+    inline void CopySupportedParams(mfxExtCodingOption3& buf_dst, mfxExtCodingOption3& buf_src)
     {
-        buf_dst.PRefType               = buf_src.PRefType;
-        buf_dst.IntRefCycleDist        = buf_src.IntRefCycleDist;
-        buf_dst.EnableQPOffset         = buf_src.EnableQPOffset;
-        buf_dst.GPB                    = buf_src.GPB;
-        buf_dst.QVBRQuality            = buf_src.QVBRQuality;
-        buf_dst.EnableMBQP             = buf_src.EnableMBQP;
+        MFX_COPY_FIELD(PRefType);
+        MFX_COPY_FIELD(IntRefCycleDist);
+        MFX_COPY_FIELD(EnableQPOffset);
+        MFX_COPY_FIELD(GPB);
+        MFX_COPY_FIELD(QVBRQuality);
+        MFX_COPY_FIELD(EnableMBQP);
 
-        std::copy(std::begin(buf_src.QPOffset),        std::end(buf_src.QPOffset),        std::begin(buf_dst.QPOffset));
-        std::copy(std::begin(buf_src.NumRefActiveP),   std::end(buf_src.NumRefActiveP),   std::begin(buf_dst.NumRefActiveP));
-        std::copy(std::begin(buf_src.NumRefActiveBL0), std::end(buf_src.NumRefActiveBL0), std::begin(buf_dst.NumRefActiveBL0));
-        std::copy(std::begin(buf_src.NumRefActiveBL1), std::end(buf_src.NumRefActiveBL1), std::begin(buf_dst.NumRefActiveBL1));
+        MFX_COPY_ARRAY_FIELD(QPOffset);
+        MFX_COPY_ARRAY_FIELD(NumRefActiveP);
+        MFX_COPY_ARRAY_FIELD(NumRefActiveBL0);
+        MFX_COPY_ARRAY_FIELD(NumRefActiveBL1);
 #if (MFX_VERSION >= 1026)
-        buf_dst.TransformSkip           = buf_src.TransformSkip;
+        MFX_COPY_FIELD(TransformSkip);
 #endif
 #if (MFX_VERSION >= 1027)
-        buf_dst.TargetChromaFormatPlus1 = buf_src.TargetChromaFormatPlus1;
-        buf_dst.TargetBitDepthLuma      = buf_src.TargetBitDepthLuma;
-        buf_dst.TargetBitDepthChroma    = buf_src.TargetBitDepthChroma;
+        MFX_COPY_FIELD(TargetChromaFormatPlus1);
+        MFX_COPY_FIELD(TargetBitDepthLuma);
+        MFX_COPY_FIELD(TargetBitDepthChroma);
 #endif
-        buf_dst.WinBRCMaxAvgKbps        = buf_src.WinBRCMaxAvgKbps;
-        buf_dst.WinBRCSize              = buf_src.WinBRCSize;
+        MFX_COPY_FIELD(WinBRCMaxAvgKbps);
+        MFX_COPY_FIELD(WinBRCSize);
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
-        buf_dst.WeightedPred            = buf_src.WeightedPred;
-        buf_dst.WeightedBiPred          = buf_src.WeightedBiPred;
+        MFX_COPY_FIELD(WeightedPred);
+        MFX_COPY_FIELD(WeightedBiPred);
 #if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
-        buf_dst.FadeDetection           = buf_src.FadeDetection;
+        MFX_COPY_FIELD(FadeDetection);
 #endif //defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #if (MFX_VERSION >= 1025)
-        buf_dst.EnableNalUnitType = buf_src.EnableNalUnitType;
+        MFX_COPY_FIELD(EnableNalUnitType);
 #endif
-        buf_dst.LowDelayBRC       = buf_src.LowDelayBRC;
+        MFX_COPY_FIELD(LowDelayBRC);
     }
 
     inline void  CopySupportedParams(mfxExtCodingOptionDDI& buf_dst, mfxExtCodingOptionDDI& buf_src)
     {
-        buf_dst.NumActiveRefBL0 = buf_src.NumActiveRefBL0;
-        buf_dst.NumActiveRefBL1 = buf_src.NumActiveRefBL1;
-        buf_dst.NumActiveRefP   = buf_src.NumActiveRefP;
-        buf_dst.LCUSize         = buf_src.LCUSize;
-        buf_dst.QpAdjust        = buf_src.QpAdjust;
+        MFX_COPY_FIELD(NumActiveRefBL0);
+        MFX_COPY_FIELD(NumActiveRefBL1);
+        MFX_COPY_FIELD(NumActiveRefP);
+        MFX_COPY_FIELD(LCUSize);
+        MFX_COPY_FIELD(QpAdjust);
     }
     inline void  CopySupportedParams(mfxExtEncoderCapability& buf_dst, mfxExtEncoderCapability& buf_src)
     {
-        buf_dst.MBPerSec        = buf_src.MBPerSec;
+        MFX_COPY_FIELD(MBPerSec);
     }
 
     template<class T> void Init(T& buf)
