@@ -184,5 +184,24 @@ enum LibVABackend
 #define MSDK_CHECK_RESULT(P, X, ERR)             {if ((X) > (P)) {MSDK_PRINT_RET_MSG_(ERR); return ERR;}}
 #define MSDK_CHECK_RESULT_SAFE(P, X, ERR, ADD)   {if ((X) > (P)) {ADD; MSDK_PRINT_RET_MSG_(ERR); return ERR;}}
 
+namespace mfx
+{
+// TODO: switch to std::clamp when C++17 support will be enabled
+
+// Clip value v to range [lo, hi]
+template<class T>
+constexpr const T& clamp( const T& v, const T& lo, const T& hi )
+{
+    return std::min(hi, std::max(v, lo));
+}
+
+// Comp is comparison function object with meaning of 'less' operator (i.e. std::less<> or operator<)
+template<class T, class Compare>
+constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
+{
+    return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+}
+}
+
 #endif //__SAMPLE_DEFS_H__
 
