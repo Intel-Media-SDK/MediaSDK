@@ -18,6 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <map>
+
 #include "mfx_common.h"
 #include "mfxvideo++int.h"
 
@@ -84,6 +86,130 @@ bool CheckHardwareSupport(VideoCORE *p_core, mfxVideoParam *p_video_param)
 
     return true;
 }
+
+class ReferenceFrameStorage
+{
+private:
+    class FrameLocker
+    {
+    private:
+        UMC::FrameMemID m_frameId = -1;
+        mfx_UMC_FrameAllocator *m_frameAllocator = nullptr;
+        bool ValidFrameId() const
+        {
+            return (m_frameId >= 0);
+        }
+
+        void Lock()
+        {
+            if (ValidFrameId())
+            {
+                if (m_frameAllocator->IncreaseReference(m_frameId) != UMC::UMC_OK)
+                {
+                    throw vp9_exception(UMC::UMC_ERR_FAILED);
+                }
+            }
+        }
+
+        void Unlock()
+        {
+            if (ValidFrameId())
+            {
+                if (m_frameAllocator->DecreaseReference(m_frameId) != UMC::UMC_OK)
+                {
+                    throw vp9_exception(UMC::UMC_ERR_FAILED);
+                }
+            }
+        }
+
+        FrameLocker(const FrameLocker &) = delete;
+        FrameLocker(FrameLocker &&) = delete;
+        FrameLocker& operator=(const FrameLocker &) = delete;
+    public:
+        FrameLocker() = default;
+
+        FrameLocker(UMC::FrameMemID frameId, mfx_UMC_FrameAllocator *frameAllocator) :
+            m_frameId(frameId), m_frameAllocator(frameAllocator)
+        {
+            if (m_frameAllocator == nullptr)
+            {
+                throw vp9_exception(UMC::UMC_ERR_FAILED);
+            }
+            Lock();
+        }
+
+        FrameLocker& operator=(FrameLocker &&locker)
+        {
+            Unlock();
+            m_frameId = locker.m_frameId;
+            m_frameAllocator = locker.m_frameAllocator;
+            locker.m_frameId = -1;
+            return *this;
+        }
+
+        ~FrameLocker()
+        {
+            try
+            {
+                Unlock();
+            }
+            catch(...)
+            {
+                (void)MFX_STS_TRACE(MFX_ERR_UNKNOWN);
+            }
+        }
+    };
+
+    std::map<UMC::FrameMemID, FrameLocker[8]> m_lockedRefFrames;
+    std::vector<UMC::FrameMemID> m_decodedFramesIDs;
+    mfx_UMC_FrameAllocator *m_frameAllocator;
+
+    void FreeReferenceFrames(UMC::FrameMemID currFrame)
+    {
+        size_t erasedCount = m_lockedRefFrames.erase(currFrame);
+
+        if (erasedCount == 0)
+        {
+            throw vp9_exception(UMC::UMC_ERR_FAILED);
+        }
+    }
+public:
+    ReferenceFrameStorage(mfx_UMC_FrameAllocator *frameAllocator):m_frameAllocator(frameAllocator)
+    {
+    }
+
+    void LockReferenceFrames(UMC::FrameMemID currFrame, const UMC::FrameMemID ref_frame_map[UMC_VP9_DECODER::NUM_REF_FRAMES])
+    {
+        if(m_lockedRefFrames.find(currFrame) != m_lockedRefFrames.end())
+        {
+            // currFrame should not be in m_lockedRefFrames map
+            // but if it is there free resources (decrease the references).
+            FreeReferenceFrames(currFrame);
+            (void)MFX_STS_TRACE(MFX_ERR_UNKNOWN);
+        }
+
+        for (mfxI32 i = 0; i < NUM_REF_FRAMES; ++i)
+        {
+            m_lockedRefFrames[currFrame][i] = FrameLocker(ref_frame_map[i], m_frameAllocator);
+        }
+    }
+
+    void FreeUnusedReferenceFrames()
+    {
+        std::for_each(m_decodedFramesIDs.begin(), m_decodedFramesIDs.end(),
+            [this](UMC::FrameMemID frameId)
+            {
+                FreeReferenceFrames(frameId);
+            }
+        );
+        m_decodedFramesIDs.clear();
+    }
+
+    void FrameDecoded(UMC::FrameMemID frameId)
+    {
+        m_decodedFramesIDs.push_back(frameId);
+    }
+};
 
 VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
     : m_isInit(false),
@@ -369,6 +495,8 @@ mfxStatus VideoDECODEVP9_HW::Close()
 
 void VideoDECODEVP9_HW::ResetFrameInfo()
 {
+    m_refFramesStorage.reset(new ReferenceFrameStorage(m_FrameAllocator.get()));
+
     for (mfxU8 i = 0; i < sizeof(m_frameInfo.ref_frame_map)/sizeof(m_frameInfo.ref_frame_map[0]); i++)
     {
         const UMC::FrameMemID oldMid = m_frameInfo.ref_frame_map[i];
@@ -704,6 +832,11 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         return MFX_ERR_NONE;
     }
 
+    {
+        UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+        decoder.m_refFramesStorage->FrameDecoded(data.currFrameId);
+    }
+
 #ifdef MFX_VA_LINUX
 
     UMC::Status status = decoder.m_va->SyncTask(data.currFrameId);
@@ -744,6 +877,16 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     mfxStatus sts = MFX_ERR_NONE;
+
+    try
+    {
+        m_refFramesStorage->FreeUnusedReferenceFrames();
+    }
+    catch (const vp9_exception &ex)
+    {
+        sts = MFX_ERR_UNKNOWN;
+    }
+    MFX_CHECK_STS(sts);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -867,7 +1010,19 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         if (UMC::UMC_OK != m_va->EndFrame())
             return MFX_ERR_DEVICE_FAILED;
 
-        UpdateRefFrames(m_frameInfo.refreshFrameFlags, m_frameInfo); // move to async part
+        try
+        {
+            m_refFramesStorage->LockReferenceFrames(m_frameInfo.currFrame, m_frameInfo.ref_frame_map);
+        }
+        catch (const vp9_exception &ex)
+        {
+            sts = MFX_ERR_UNKNOWN;
+        }
+
+        MFX_CHECK_STS(sts);
+
+        sts = UpdateRefFrames(m_frameInfo.refreshFrameFlags, m_frameInfo);
+        MFX_CHECK_STS(sts);
     }
     else
     {
