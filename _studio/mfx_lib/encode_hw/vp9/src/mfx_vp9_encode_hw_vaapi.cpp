@@ -251,7 +251,8 @@ namespace MfxHwVP9Encode
 
         tempLayers->number_of_layers = static_cast<mfxU8>(numTL);
 
-        vaUnmapBuffer(m_vaDisplay, tempLayersBufferId);
+        vaSts = vaUnmapBuffer(m_vaDisplay, tempLayersBufferId);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         return MFX_ERR_NONE;
     }
@@ -472,7 +473,8 @@ mfxStatus SetHRD(
         hrd_param->buffer_size = 0;
     }
 
-    vaUnmapBuffer(m_vaDisplay, hrdBuf_id);
+    vaSts = vaUnmapBuffer(m_vaDisplay, hrdBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 } //mfxStatus SetHRD(..)
@@ -512,7 +514,7 @@ mfxStatus SetQualityLevel(
 
     quality_param->quality_level = par.mfx.TargetUsage;
 
-    vaUnmapBuffer(m_vaDisplay, qualityLevelBuf_id);
+    vaSts = vaUnmapBuffer(m_vaDisplay, qualityLevelBuf_id);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
@@ -1288,8 +1290,8 @@ mfxStatus VAAPIEncoder::QueryStatus(
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
                     vaSts = vaUnmapBuffer( m_vaDisplay, codedBuffer );
+                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
                 }
-                MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
                 return sts;
 
