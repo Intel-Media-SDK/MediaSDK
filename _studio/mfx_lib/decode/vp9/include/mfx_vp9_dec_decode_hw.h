@@ -37,6 +37,8 @@
 
 namespace UMC_VP9_DECODER { class Packer; }
 
+class ReferenceFrameStorage;
+
 class VideoDECODEVP9_HW : public VideoDECODE, public MfxCriticalErrorHandler
 {
 public:
@@ -98,6 +100,7 @@ private:
     std::unique_ptr<mfx_UMC_FrameAllocator> m_FrameAllocator;
 
     std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
+    std::unique_ptr<ReferenceFrameStorage> m_refFramesStorage;
 
     mfxFrameAllocRequest     m_request;
     mfxFrameAllocResponse    m_response;
