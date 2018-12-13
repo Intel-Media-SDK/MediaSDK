@@ -159,57 +159,52 @@ public:
     virtual void BeginFrame(H265DecoderFrame*) = 0;
     virtual void EndFrame() = 0;
 
-    virtual void PackAU(const H265DecoderFrame *pCurrentFrame, TaskSupplier_H265 * supplier) = 0;
-
-    virtual void PackPicParams(const H265DecoderFrame *pCurrentFrame,
-                        H265DecoderFrameInfo * pSliceInfo,
-                        TaskSupplier_H265 * supplier) = 0;
-
-    virtual bool PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLastSlice) = 0;
-
+    virtual void PackAU(H265DecoderFrame const*, TaskSupplier_H265*) = 0;
+    virtual void PackPicParams(H265DecoderFrame const*, TaskSupplier_H265*) = 0;
+    virtual void PackSliceParams(H265Slice const*, size_t, bool isLastSlice) = 0;
     virtual void PackQmatrix(const H265Slice *pSlice) = 0;
 
     static Packer * CreatePacker(UMC::VideoAccelerator * va);
 
 protected:
+
     UMC::VideoAccelerator *m_va;
 };
 
 
-class PackerVA : public Packer
+class PackerVA
+    : public Packer
 {
 public:
-    PackerVA(UMC::VideoAccelerator * va);
 
-    virtual UMC::Status GetStatusReport(void * pStatusReport, size_t size);
-    virtual UMC::Status SyncTask(int32_t index, void * error) { return m_va->SyncTask(index, error); }
+    PackerVA(UMC::VideoAccelerator* va)
+        : Packer(va)
+    {}
 
-    virtual void PackQmatrix(const H265Slice *pSlice);
+    UMC::Status GetStatusReport(void*, size_t) override
+    { return UMC::UMC_OK; }
 
-    virtual void PackPicParams(const H265DecoderFrame *pCurrentFrame,
-                        H265DecoderFrameInfo * pSliceInfo,
-                        TaskSupplier_H265 * supplier);
+    UMC::Status SyncTask(int32_t index, void* error) override
+    { return m_va->SyncTask(index, error); }
 
-    virtual bool PackSliceParams(H265Slice *pSlice, uint32_t &sliceNum, bool isLastSlice);
+    void BeginFrame(H265DecoderFrame*) override;
+    void EndFrame() override
+    { /* Nothing to do */ }
 
-    virtual void BeginFrame(H265DecoderFrame*);
-    virtual void EndFrame();
-
-    virtual void PackAU(const H265DecoderFrame *pCurrentFrame, TaskSupplier_H265 * supplier);
+    void PackAU(H265DecoderFrame const*, TaskSupplier_H265*) override;
 
 private:
 
-    void CreateSliceDataBuffer(H265DecoderFrameInfo * sliceInfo);
-    void CreateSliceParamBuffer(H265DecoderFrameInfo * sliceInfo);
+    void PackPicParams(H265DecoderFrame const*, TaskSupplier_H265*) override;
+    void PackSliceParams(H265Slice const*, size_t, bool isLastSlice) override;
+    void PackQmatrix(H265Slice const*) override;
 
+private:
+
+    void CreateSliceDataBuffer(H265DecoderFrameInfo const*);
+    void CreateSliceParamBuffer(H265DecoderFrameInfo const*);
 };
 
-
-
-inline bool IsVLDProfile (int32_t profile)
-{
-    return (profile & UMC::VA_VLD) != 0;
-}
 
 } // namespace UMC_HEVC_DECODER
 

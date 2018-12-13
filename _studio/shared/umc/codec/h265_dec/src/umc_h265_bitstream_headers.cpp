@@ -65,7 +65,7 @@ void H265BaseBitstream::Reset(uint8_t * const pb, int32_t offset, const uint32_t
 } // void Reset(uint8_t * const pb, int32_t offset, const uint32_t maxsize)
 
 // Return bitstream array base address and size
-void H265BaseBitstream::GetOrg(uint32_t **pbs, uint32_t *size)
+void H265BaseBitstream::GetOrg(uint32_t **pbs, uint32_t *size) const
 {
     *pbs       = m_pbsBase;
     *size      = m_maxBsSize;
