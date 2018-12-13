@@ -250,7 +250,7 @@ public:
     }
 
     // Return bitstream array base address and size
-    void GetOrg(uint32_t **pbs, uint32_t *size);
+    void GetOrg(uint32_t **pbs, uint32_t *size) const;
     // Return current bitstream address and bit offset
     void GetState(uint32_t **pbs, uint32_t *bitOffset);
     // Set current bitstream address and bit offset
