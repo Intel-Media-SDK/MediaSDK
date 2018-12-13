@@ -316,7 +316,8 @@ Status MPEG2VideoDecoderBase::DecodeSequenceHeader(VideoContext* video, int task
         m_signalInfo.TransferCharacteristics = 1;
         m_signalInfo.MatrixCoefficients = 1;
 
-        VideoStreamType newtype = MPEG1_VIDEO;
+        // if not first sequence ext is missed, try without it
+        VideoStreamType newtype = sequenceHeader.is_decoded ? MPEG2_VIDEO : MPEG1_VIDEO;
 
         if (!constrained_parameters_flag)
         {
