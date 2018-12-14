@@ -809,7 +809,20 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width || m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
     {
         if (m_adaptiveMode)
+        {
+            if (m_frameInfo.frameCountInBS > 0 && m_frameInfo.currFrameInBS > 0)
+            {
+                // SuperFrame decoding in progress.
+                // DecodeSuperFrame function increases currFrameInBS
+                // so next time we will decode the next frame in SuperFrame
+                // but in DRC mode frame decoding is interrupted here
+                // because frame resolution is not enough
+                // DecodeFrameAsync will be called again and we will skip this frame.
+                // Decrease currFrameInBS to prevent this.
+                m_frameInfo.currFrameInBS -= 1;
+            }
             return (mfxStatus)MFX_ERR_REALLOC_SURFACE;
+        }
 
         return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
     }
