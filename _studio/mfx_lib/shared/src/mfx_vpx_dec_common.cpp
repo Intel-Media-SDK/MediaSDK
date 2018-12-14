@@ -212,25 +212,16 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.FrameRateExtD = p_in->mfx.FrameInfo.FrameRateExtD;
             }
 
-            if ((p_in->mfx.FrameInfo.AspectRatioW || p_in->mfx.FrameInfo.AspectRatioH) &&
-                (!p_in->mfx.FrameInfo.AspectRatioW || !p_in->mfx.FrameInfo.AspectRatioH))
+            if ((p_in->mfx.FrameInfo.AspectRatioW == 0 && p_in->mfx.FrameInfo.AspectRatioH == 0) ||
+                (p_in->mfx.FrameInfo.AspectRatioW != 0 && p_in->mfx.FrameInfo.AspectRatioH != 0))
             {
-                sts = MFX_ERR_UNSUPPORTED;
+                p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
+                p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
             }
             else
             {
-                if ((p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioW != 1) ||
-                    (p_in->mfx.FrameInfo.AspectRatioH && p_in->mfx.FrameInfo.AspectRatioH != 1))
-                {
-                    sts = MFX_ERR_UNSUPPORTED;
-                }
-                else
-                {
-                    p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
-                    p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
-                }
+                sts = MFX_ERR_UNSUPPORTED;
             }
-
 
             if (p_in->mfx.ExtendedPicStruct)
                 sts = MFX_ERR_UNSUPPORTED;
