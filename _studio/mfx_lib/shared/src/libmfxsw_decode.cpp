@@ -391,7 +391,7 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
 
 #if defined (MFX_ENABLE_VP9_VIDEO_DECODE_HW)
         case MFX_CODEC_VP9:
-            mfxRes = MFX_VP9_Utility::DecodeHeader(session->m_pCORE.get(), bs, par);
+            mfxRes = VideoDECODEVP9_HW::DecodeHeader(session->m_pCORE.get(), bs, par);
             break;
 #endif
 
