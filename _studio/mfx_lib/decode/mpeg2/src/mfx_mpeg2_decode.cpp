@@ -2254,14 +2254,15 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
             if (false == m_first_SH && (surface_work->Info.CropW <  CropW || surface_work->Info.CropH < CropH))
             {
                 m_resizing = true;
-                //return MFX_WRN_VIDEO_PARAM_CHANGED; // don't go to error path if smaller
+
+                return MFX_WRN_VIDEO_PARAM_CHANGED;
             }
 
             if (false == m_first_SH)
                 if (m_InitW >  Width || m_InitH > Height)
                 {
                     m_resizing = true;
-                    // return MFX_WRN_VIDEO_PARAM_CHANGED; // don't go to error path if smaller
+                    return MFX_WRN_VIDEO_PARAM_CHANGED;
                 }
 
             m_first_SH = false;
@@ -2435,7 +2436,6 @@ mfxStatus VideoDECODEMPEG2InternalBase::ConstructFrameImpl(mfxBitstream *in, mfx
 
             MoveBitstreamData(*in, (mfxU32)(curr - head));
 
-            if (!m_found_SH) // have to pass sequence header, even with error frame
             if (m_fcState.picHeader == FcState::FRAME && !VerifyPictureBits(out, curr, tail))
                 return MFX_ERR_NOT_ENOUGH_BUFFER; // to start again with next picture
 
@@ -2638,7 +2638,9 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
     {
         m_implUmcHW->SaveDecoderState();
         umcRes = m_implUmc->GetPictureHeader(&m_in[m_task_num], m_task_num, m_prev_task_num);
-        // now (m_IsFrameSkipped = false) == (umcRes == UMC::UMC_OK)
+        // Shouldn't restore decoder state if GetPictureHeader returned error
+        // because buffers were not changed
+        // also now (m_IsFrameSkipped = false) == (umcRes == UMC::UMC_OK)
 
         // second field for frame picture, forget it (restore decoder)
         if (m_task_num >= DPB && UMC::UMC_OK == umcRes && m_implUmc->IsFramePictureStructure(m_task_num))
@@ -2653,7 +2655,9 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
 
         if (UMC::UMC_OK != umcRes)
         {
-            MFX_CHECK_STS(RestoreDecoder(m_frame_curr, NO_SURFACE_TO_UNLOCK, NO_TASK_TO_UNLOCK, NO_END_FRAME, REMOVE_LAST_FRAME, 0))
+            // we trying not to modify buffers on error, so no need to restore
+            //MFX_CHECK_STS(RestoreDecoder(m_frame_curr, NO_SURFACE_TO_UNLOCK, NO_TASK_TO_UNLOCK, NO_END_FRAME, REMOVE_LAST_FRAME, 0))
+            m_frame_in_use[m_frame_curr] = false;
 
             bool IsSkipped = m_implUmc->IsFrameSkipped();
 
@@ -2848,7 +2852,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::DecodeFrameCheck(mfxBitstream *bs,
             UMC::UMC_ERR_NOT_ENOUGH_DATA != umcRes &&
             UMC::UMC_ERR_SYNC != umcRes))
         {
-            MFX_CHECK_STS(RestoreDecoder(m_frame_curr, mid[curr_index], m_task_num, NO_END_FRAME, REMOVE_LAST_FRAME, IsField?1:2))
+            MFX_CHECK_STS(RestoreDecoder(m_frame_curr, mid[curr_index], m_task_num, END_FRAME, REMOVE_LAST_FRAME, IsField?1:2))
             return MFX_ERR_MORE_DATA;
         }
 

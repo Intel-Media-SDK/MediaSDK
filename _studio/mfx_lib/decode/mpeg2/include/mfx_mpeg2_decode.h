@@ -101,7 +101,7 @@ typedef struct _MParam
     mfxFrameSurface1 *surface_work;
     mfx_UMC_FrameAllocator *m_FrameAllocator;
     mfxVideoParam m_vPar;
-    UMC::FrameMemID *mid;
+    int32_t *mid;
     mfxBitstream *m_frame;
     bool *m_frame_in_use;
 
