@@ -90,7 +90,7 @@ _studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshni
 /samples/sample_hevc_fei/ @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com olga.tsiruleva@intel.com
 
 # samples:
-/samples/ @Intel-Media-SDK/mediasdk-admin fedor.zharinov@intel.com timofei.a.kulakov@intel.com
+/samples/ @Intel-Media-SDK/mediasdk-admin jon.recker@intel.com fedor.zharinov@intel.com timofei.a.kulakov@intel.com
 
 # core:
 /_studio/mfx_lib/shared/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
