@@ -119,11 +119,11 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/isa/, \
     genx_scd_gen11lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/isa/, \
-    genx_cht_copy_isa.cpp \
-    genx_skl_copy_isa.cpp \
-    genx_cnl_copy_isa.cpp \
-    genx_icl_copy_isa.cpp \
-    genx_icllp_copy_isa.cpp)
+    genx_copy_kernel_gen8_isa.cpp \
+    genx_copy_kernel_gen9_isa.cpp \
+    genx_copy_kernel_gen10_isa.cpp \
+    genx_copy_kernel_gen11_isa.cpp \
+    genx_copy_kernel_gen11lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/isa/, \
     genx_fcopy_gen8_isa.cpp \
