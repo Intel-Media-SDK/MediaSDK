@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2035
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmfx_uwp_dfp", "libmfx_uwp_dfp.vcxproj", "{313EE96A-7923-4A18-AFFA-9247181364D3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Debug|ARM.ActiveCfg = Debug|ARM
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Debug|ARM.Build.0 = Debug|ARM
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Debug|x64.ActiveCfg = Debug|x64
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Debug|x64.Build.0 = Debug|x64
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Debug|x86.ActiveCfg = Debug|Win32
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Debug|x86.Build.0 = Debug|Win32
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Release|ARM.ActiveCfg = Release|ARM
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Release|ARM.Build.0 = Release|ARM
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Release|x64.ActiveCfg = Release|x64
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Release|x64.Build.0 = Release|x64
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Release|x86.ActiveCfg = Release|Win32
+		{313EE96A-7923-4A18-AFFA-9247181364D3}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E4682004-DCE4-49DB-A527-116FA706A660}
+	EndGlobalSection
+EndGlobal
