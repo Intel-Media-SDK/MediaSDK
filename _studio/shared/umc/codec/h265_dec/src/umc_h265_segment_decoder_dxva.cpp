@@ -169,7 +169,7 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
         m_mGuard.Unlock();
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
-            sts = dxva_sd->GetPacker()->SyncTask(index, &surfErr);
+            sts = dxva_sd->GetPacker()->SyncTask(index, /*&surfErr*/nullptr);
         }
         m_mGuard.Lock();
 

@@ -924,6 +924,7 @@ void LinuxVideoAccelerator::SetTraceStrings(uint32_t umc_codec)
 
 Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * status, void * error)
 {
+    printf("QueryTaskStatus\n");
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "QueryTaskStatus");
     if ((FrameBufIndex < 0) || (FrameBufIndex >= m_NumOfFrameBuffers))
         return UMC_ERR_INVALID_PARAMS;
@@ -977,6 +978,8 @@ Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorrupti
     if (umcRes != UMC_OK)
         return umcRes;
 
+    if (nullptr == surfCorruption)
+        return UMC_OK;
     VAStatus va_sts = VA_STATUS_SUCCESS;
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
