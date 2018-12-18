@@ -835,6 +835,14 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     {
         UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
         decoder.m_refFramesStorage->FrameDecoded(data.currFrameId);
+        try
+        {
+            decoder.m_refFramesStorage->FreeUnusedReferenceFrames();
+        }
+        catch (const vp9_exception &ex)
+        {
+            return MFX_ERR_UNKNOWN;
+        }
     }
 
 #ifdef MFX_VA_LINUX
@@ -877,16 +885,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
     mfxStatus sts = MFX_ERR_NONE;
-
-    try
-    {
-        m_refFramesStorage->FreeUnusedReferenceFrames();
-    }
-    catch (const vp9_exception &ex)
-    {
-        sts = MFX_ERR_UNKNOWN;
-    }
-    MFX_CHECK_STS(sts);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
