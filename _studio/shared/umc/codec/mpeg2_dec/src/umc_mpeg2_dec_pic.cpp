@@ -37,17 +37,12 @@
 
 using namespace UMC;
 
-// can decode all headers, except of slices
+// can decode all headers, except of slices, SeqExt and PicCodExt
 // bitstream should point to next after header byte
 Status MPEG2VideoDecoderBase::DecodeHeader(int32_t startcode, VideoContext* video, int task_num)
 {
   uint32_t code;
   //m_IsUserDataPresent = false;
-  bool prev_of_m_FirstHeaderAfterSequenceHeaderParsed = m_FirstHeaderAfterSequenceHeaderParsed;
-  if (sequenceHeader.is_decoded && startcode != SEQUENCE_HEADER_CODE)
-  {
-     m_FirstHeaderAfterSequenceHeaderParsed = true;
-  }
 
   switch(startcode) {
     case SEQUENCE_HEADER_CODE:
@@ -72,72 +67,7 @@ Status MPEG2VideoDecoderBase::DecodeHeader(int32_t startcode, VideoContext* vide
       //extensions
       switch(code) {
         case SEQUENCE_EXTENSION_ID:
-          {
-            if (sequenceHeader.is_decoded && prev_of_m_FirstHeaderAfterSequenceHeaderParsed)
-            {
-                return UMC_ERR_INVALID_STREAM;
-            }
-
-            uint32_t bit_rate_extension, chroma_format;
-            GET_BITS32(video->bs, code)
-            sequenceHeader.profile                          = (code >> 24) & 0x7;//ignore escape bit
-            sequenceHeader.level                            = (code >> 20) & 0xf;
-            sequenceHeader.progressive_sequence             = (code >> 19) & 1;
-            chroma_format               = 1 << ((code >> 17) & ((1 << 2) - 1));
-            m_ClipInfo.clip_info.width  = (m_ClipInfo.clip_info.width  & 0xfff)
-              | ((code >> (15-12)) & 0x3000);
-            m_ClipInfo.clip_info.height = (m_ClipInfo.clip_info.height & 0xfff)
-              | ((code >> (13-12)) & 0x3000);
-            bit_rate_extension = (code >> 1) & 0xfff;
-
-            switch(sequenceHeader.level)
-            {
-                case  4:
-                case  6:
-                case  8:
-                case 10:
-                    break;
-                default:
-                    return UMC_ERR_INVALID_STREAM;
-            }
-
-            GET_BITS(video->bs, 16, code)
-
-            if (false == m_isFrameRateFromInit)
-            {
-                sequenceHeader.frame_rate_extension_d           = code & 31;
-                sequenceHeader.frame_rate_extension_n           = (code >> 5) & 3;
-            }
-
-            switch (chroma_format)
-            {
-            case 2:
-                m_ClipInfo.color_format = YUV420;
-                break;
-            case 4:
-                m_ClipInfo.color_format = YUV422;
-                break;
-            case 8:
-                m_ClipInfo.color_format = YUV444;
-                break;
-            default:
-                break;
-            }
-
-            if(bit_rate_extension != 0) {
-              m_ClipInfo.bitrate = (m_ClipInfo.bitrate / 400) & 0x3ffff;
-              m_ClipInfo.bitrate |= (bit_rate_extension<<18);
-              if(m_ClipInfo.bitrate >= 0x40000000/100) // check if fit to 32u
-                m_ClipInfo.bitrate = 0xffffffff;
-              else
-                m_ClipInfo.bitrate *= 400;
-            }
-            sequenceHeader.extension_start_code_ID[task_num]          = SEQUENCE_EXTENSION_ID; //needed?
-            sequenceHeader.height = m_ClipInfo.clip_info.height;
-            sequenceHeader.width = m_ClipInfo.clip_info.width;
-            sequenceHeader.chroma_format = chroma_format;
-          }
-          break;
+            return (UMC_ERR_INVALID_STREAM); // not after sequence header
         case SEQUENCE_DISPLAY_EXTENSION_ID:
           sequence_display_extension(task_num);
           break;
@@ -154,51 +84,7 @@ Status MPEG2VideoDecoderBase::DecodeHeader(int32_t startcode, VideoContext* vide
           sequence_scalable_extension(task_num);
           break;
         case PICTURE_CODING_EXTENSION_ID: // can move after picture header (if mpeg2)
-          //picture_coding_extension();
-          {
-            GET_BITS32(video->bs,code)
-            VM_ASSERT((code>>28) == PICTURE_CODING_EXTENSION_ID);
-            PictureHeader[task_num].repeat_first_field           = (code >> 1) & 1;
-            PictureHeader[task_num].alternate_scan               = (code >> 2) & 1;
-            PictureHeader[task_num].intra_vlc_format             = (code >> 3) & 1;
-            PictureHeader[task_num].q_scale_type                 = (code >> 4) & 1;
-            PictureHeader[task_num].concealment_motion_vectors   = (code >> 5) & 1;
-            PictureHeader[task_num].frame_pred_frame_dct         = (code >> 6) & 1;
-            PictureHeader[task_num].top_field_first              = (code >> 7) & 1;
-            PictureHeader[task_num].picture_structure            = (code >> 8) & 3;
-            PictureHeader[task_num].intra_dc_precision           = (code >> 10) & 3;
-            PictureHeader[task_num].f_code[3]                    = (code >> 12) & 15;
-            PictureHeader[task_num].f_code[2]                    = (code >> 16) & 15;
-            PictureHeader[task_num].f_code[1]                    = (code >> 20) & 15;
-            PictureHeader[task_num].f_code[0]                    = (code >> 24) & 15;
-
-            GET_1BIT(video->bs, PictureHeader[task_num].progressive_frame)
-            GET_1BIT(video->bs, code)
-            PictureHeader[task_num].r_size[0] = PictureHeader[task_num].f_code[0] - 1;
-            PictureHeader[task_num].r_size[1] = PictureHeader[task_num].f_code[1] - 1;
-            PictureHeader[task_num].r_size[2] = PictureHeader[task_num].f_code[2] - 1;
-            PictureHeader[task_num].r_size[3] = PictureHeader[task_num].f_code[3] - 1;
-
-            PictureHeader[task_num].curr_intra_dc_multi = intra_dc_multi[PictureHeader[task_num].intra_dc_precision];
-            PictureHeader[task_num].curr_reset_dc          = reset_dc[PictureHeader[task_num].intra_dc_precision];
-            int32_t i, f;
-            for(i = 0; i < 4; i++) {
-                f = 1 << PictureHeader[task_num].r_size[i];
-                PictureHeader[task_num].low_in_range[i] = -(f * 16);
-                PictureHeader[task_num].high_in_range[i] = (f * 16) - 1;
-                PictureHeader[task_num].range[i] = f * 32;
-            }
-            if(code)
-            {
-                GET_BITS_LONG(video->bs, 20, code)
-            }
-            if(PictureHeader[task_num].picture_structure == FRAME_PICTURE) {
-              frame_buffer.field_buffer_index[task_num] = 0; // avoid field parity loss in resync
-            }
-
-            OnDecodePicHeaderEx(task_num);
-          }
-          break;
+            return (UMC_ERR_INVALID_STREAM); // not after picture header
         case PICTURE_SPARTIAL_SCALABLE_EXTENSION_ID:
           picture_spartial_scalable_extension(task_num);
           break;
@@ -223,6 +109,119 @@ Status MPEG2VideoDecoderBase::DecodeHeader(int32_t startcode, VideoContext* vide
       return (UMC_ERR_INVALID_STREAM); // unexpected
   }
 
+}
+
+// bitstream should point to next after header byte
+Status MPEG2VideoDecoderBase::DecodePictureCodingExt(VideoContext* video, int task_num) {
+    uint32_t code;
+    SHOW_TO9BITS(video->bs, 4, code)
+    if(code != PICTURE_CODING_EXTENSION_ID)
+        return (UMC_ERR_INVALID_STREAM); // invalid stream or not mpeg2
+    GET_BITS32(video->bs,code)
+    VM_ASSERT((code>>28) == PICTURE_CODING_EXTENSION_ID);
+    PictureHeader[task_num].repeat_first_field           = (code >> 1) & 1;
+    PictureHeader[task_num].alternate_scan               = (code >> 2) & 1;
+    PictureHeader[task_num].intra_vlc_format             = (code >> 3) & 1;
+    PictureHeader[task_num].q_scale_type                 = (code >> 4) & 1;
+    PictureHeader[task_num].concealment_motion_vectors   = (code >> 5) & 1;
+    PictureHeader[task_num].frame_pred_frame_dct         = (code >> 6) & 1;
+    PictureHeader[task_num].top_field_first              = (code >> 7) & 1;
+    PictureHeader[task_num].picture_structure            = (code >> 8) & 3;
+    PictureHeader[task_num].intra_dc_precision           = (code >> 10) & 3;
+    PictureHeader[task_num].f_code[3]                    = (code >> 12) & 15;
+    PictureHeader[task_num].f_code[2]                    = (code >> 16) & 15;
+    PictureHeader[task_num].f_code[1]                    = (code >> 20) & 15;
+    PictureHeader[task_num].f_code[0]                    = (code >> 24) & 15;
+
+    GET_1BIT(video->bs, PictureHeader[task_num].progressive_frame)
+    GET_1BIT(video->bs, code)
+    PictureHeader[task_num].r_size[0] = PictureHeader[task_num].f_code[0] - 1;
+    PictureHeader[task_num].r_size[1] = PictureHeader[task_num].f_code[1] - 1;
+    PictureHeader[task_num].r_size[2] = PictureHeader[task_num].f_code[2] - 1;
+    PictureHeader[task_num].r_size[3] = PictureHeader[task_num].f_code[3] - 1;
+
+    PictureHeader[task_num].curr_intra_dc_multi = intra_dc_multi[PictureHeader[task_num].intra_dc_precision];
+    PictureHeader[task_num].curr_reset_dc          = reset_dc[PictureHeader[task_num].intra_dc_precision];
+    int32_t i, f;
+    for(i = 0; i < 4; i++) {
+        f = 1 << PictureHeader[task_num].r_size[i];
+        PictureHeader[task_num].low_in_range[i] = -(f * 16);
+        PictureHeader[task_num].high_in_range[i] = (f * 16) - 1;
+        PictureHeader[task_num].range[i] = f * 32;
+    }
+    if(code)
+    {
+        GET_BITS_LONG(video->bs, 20, code)
+    }
+
+    OnDecodePicHeaderEx(task_num);
+    return (UMC_OK);
+}
+
+// bitstream should point to next after header byte
+Status MPEG2VideoDecoderBase::DecodeSequenceExt(VideoContext* video, int task_num) {
+    uint32_t code;
+
+    SHOW_TO9BITS(video->bs, 4, code)
+    if(code != SEQUENCE_EXTENSION_ID)
+        return (UMC_ERR_INVALID_STREAM); // invalid stream or not mpeg2
+
+    uint32_t bit_rate_extension, chroma_format;
+    GET_BITS32(video->bs, code)
+    sequenceHeader.profile = (code >> 24) & 0x7; //ignore escape bit
+    sequenceHeader.level = (code >> 20) & 0xf;
+    sequenceHeader.progressive_sequence = (code >> 19) & 1;
+    chroma_format = 1 << ((code >> 17) & ((1 << 2) - 1));
+    m_ClipInfo.clip_info.width = (m_ClipInfo.clip_info.width & 0xfff)
+            | ((code >> (15 - 12)) & 0x3000);
+    m_ClipInfo.clip_info.height = (m_ClipInfo.clip_info.height & 0xfff)
+            | ((code >> (13 - 12)) & 0x3000);
+    bit_rate_extension = (code >> 1) & 0xfff;
+
+    switch (sequenceHeader.level) {
+    case 4:
+    case 6:
+    case 8:
+    case 10:
+        break;
+    default:
+        return UMC_ERR_INVALID_STREAM;
+    }
+
+    GET_BITS(video->bs, 16, code)
+
+    if (false == m_isFrameRateFromInit) {
+        sequenceHeader.frame_rate_extension_d = code & 31;
+        sequenceHeader.frame_rate_extension_n = (code >> 5) & 3;
+    }
+
+    switch (chroma_format) {
+    case 2:
+        m_ClipInfo.color_format = YUV420;
+        break;
+    case 4:
+        m_ClipInfo.color_format = YUV422;
+        break;
+    case 8:
+        m_ClipInfo.color_format = YUV444;
+        break;
+    default:
+        break;
+    }
+
+    if (bit_rate_extension != 0) {
+        m_ClipInfo.bitrate = (m_ClipInfo.bitrate / 400) & 0x3ffff;
+        m_ClipInfo.bitrate |= (bit_rate_extension << 18);
+        if (m_ClipInfo.bitrate >= 0x40000000 / 100) // check if fit to 32u
+            m_ClipInfo.bitrate = 0xffffffff;
+        else
+            m_ClipInfo.bitrate *= 400;
+    }
+    sequenceHeader.extension_start_code_ID[task_num] = SEQUENCE_EXTENSION_ID; //needed?
+    sequenceHeader.height = m_ClipInfo.clip_info.height;
+    sequenceHeader.width = m_ClipInfo.clip_info.width;
+    sequenceHeader.chroma_format = chroma_format;
+    return (UMC_OK);
 }
 
 //Sequence Header search. Stops after header start code
@@ -316,48 +315,27 @@ Status MPEG2VideoDecoderBase::DecodeSequenceHeader(VideoContext* video, int task
         m_signalInfo.TransferCharacteristics = 1;
         m_signalInfo.MatrixCoefficients = 1;
 
-        VideoStreamType newtype = MPEG1_VIDEO;
+        if (constrained_parameters_flag)
+            return UMC_ERR_UNSUPPORTED; // mpeg1 flag
 
-        if (!constrained_parameters_flag)
+        // only mpeg2 now
+        m_ClipInfo.stream_type = MPEG2_VIDEO;
+
+        Status sts = UMC_ERR_INVALID_STREAM;
+        FIND_START_CODE(video->bs,code)
+        if (EXTENSION_START_CODE == code)
         {
-            FIND_START_CODE(video->bs,code)
-            if (EXTENSION_START_CODE == code)
+            SKIP_BITS_32(video->bs);
+            sts = DecodeSequenceExt(video, task_num);
+
+            if (sts == UMC_OK)
             {
-                SKIP_BITS_32(video->bs);
-                SHOW_TO9BITS(video->bs, 4, code)
-
-                if (code == SEQUENCE_EXTENSION_ID)
-                {
-                    newtype = MPEG2_VIDEO;
-
-                    DecodeHeader(EXTENSION_START_CODE, video, task_num);
-                    shMask.memSize += (uint16_t) (video->bs_curr_ptr - (video->bs_sequence_header_start + shMask.memSize));
-                }
+                shMask.memSize += (uint16_t) (video->bs_curr_ptr - (video->bs_sequence_header_start + shMask.memSize));
+                FIND_START_CODE(video->bs,code)
             }
         }
-
-        // this workaround for initialization (m_InitClipInfo not yet filled)
-        if((!!m_InitClipInfo.clip_info.height) && (!!m_InitClipInfo.clip_info.width))
-        {
-            if(m_InitClipInfo.clip_info.height < m_ClipInfo.clip_info.height)
-                return UMC_ERR_INVALID_PARAMS;
-            if(m_InitClipInfo.clip_info.width < m_ClipInfo.clip_info.width)
-                return UMC_ERR_INVALID_PARAMS;
-        }
-
-        if (newtype == MPEG1_VIDEO)
-            return UMC_ERR_UNSUPPORTED;
-
-        if (UNDEF_VIDEO == m_ClipInfo.stream_type)
-        {
-            m_ClipInfo.stream_type = newtype;
-        }
-        else if(m_ClipInfo.stream_type != newtype)
-        {
-            return (UMC_ERR_INVALID_STREAM);
-        }
-
-        FIND_START_CODE(video->bs, code);
+        if (sts != UMC_OK) // invalid or missed SeqExt
+            return sts;
 
         while (EXTENSION_START_CODE == code || USER_DATA_START_CODE == code)
         {
@@ -366,13 +344,24 @@ Status MPEG2VideoDecoderBase::DecodeSequenceHeader(VideoContext* video, int task
             uint32_t ext_name;
             SHOW_TO9BITS(video->bs, 4, ext_name)
 
-            DecodeHeader(code, video, task_num);
+            sts = DecodeHeader(code, video, task_num);
+            if (sts != UMC_OK && sequenceHeader.is_decoded) // invalid or unexpected header, but continue with first
+                return sts;
             FIND_START_CODE(video->bs, code);
 
             if (SEQUENCE_DISPLAY_EXTENSION_ID == ext_name)
             {
                 shMask.memSize += (uint16_t) (video->bs_curr_ptr - (video->bs_sequence_header_start + shMask.memSize));
             }
+        }
+
+        // this workaround for initialization (m_InitClipInfo not yet filled)
+        if(m_InitClipInfo.clip_info.height && m_InitClipInfo.clip_info.width)
+        {
+            if(m_InitClipInfo.clip_info.height < m_ClipInfo.clip_info.height)
+                return UMC_ERR_INVALID_PARAMS;
+            if(m_InitClipInfo.clip_info.width < m_ClipInfo.clip_info.width)
+                return UMC_ERR_INVALID_PARAMS;
         }
     }
 
@@ -889,21 +878,25 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
     FIND_START_CODE(video->bs, code);
 
     //VM_ASSERT(code == EXTENSION_START_CODE);
-    uint32_t ecode = 0;
+    Status sts = UMC_ERR_INVALID_STREAM;
     if(code == EXTENSION_START_CODE)
     {
         SKIP_BITS_32(video->bs);
-        SHOW_TO9BITS(video->bs, 4, ecode)
+        sts = DecodePictureCodingExt(video, task_num);
+        FIND_START_CODE(video->bs, code);
     }
-    if((ecode == PICTURE_CODING_EXTENSION_ID) != (m_ClipInfo.stream_type == MPEG2_VIDEO))
+    if((sts == UMC_OK) != (m_ClipInfo.stream_type == MPEG2_VIDEO))
     {
      // return (UMC_ERR_INVALID_STREAM);
         isCorrupted = true;
     }
 
-    if(code == EXTENSION_START_CODE)
+    while (code == EXTENSION_START_CODE || code == USER_DATA_START_CODE)
     {
-        DecodeHeader(EXTENSION_START_CODE, video, task_num);
+        SKIP_BITS_32(video->bs);
+        sts = DecodeHeader(code, video, task_num);
+        if (sts != UMC_OK)
+            return sts;
 
         FIND_START_CODE(video->bs, code);
     }
@@ -914,12 +907,8 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
     else
       PictureHeader[task_num].max_slice_vert_pos = sequenceHeader.mb_height[task_num] >> 1;
 
-    while (code == EXTENSION_START_CODE || code == USER_DATA_START_CODE)
-    {
-        SKIP_BITS_32(video->bs);
-        DecodeHeader(code, video, task_num);
-
-        FIND_START_CODE(video->bs, code);
+    if(PictureHeader[task_num].picture_structure == FRAME_PICTURE) {
+      frame_buffer.field_buffer_index[task_num] = 0; // avoid field parity loss in resync
     }
 
     if(!sequenceHeader.first_i_occure)
@@ -952,6 +941,9 @@ Status MPEG2VideoDecoderBase::DecodePictureHeader(int task_num)
         {
             return UMC_ERR_INVALID_STREAM;
         }
+
+        if (task_num >= DPB_SIZE && PictureHeader[task_num].picture_structure == FRAME_PICTURE)
+            return UMC_ERR_INVALID_STREAM;
 
         // second field must be the same, except IP
         if (frame_buffer.field_buffer_index[task_num] != 0)

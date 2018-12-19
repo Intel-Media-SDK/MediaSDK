@@ -167,7 +167,7 @@ namespace UMC
         Status FindSequenceHeader(VideoContext *video);
 
         //Sequence Header decode
-        virtual Status DecodeSequenceHeader(VideoContext *video, int task_num);
+        Status DecodeSequenceHeader(VideoContext *video, int task_num);
 
         // Is current picture to be skipped
         bool IsPictureToSkip(int task_num);
@@ -185,8 +185,15 @@ namespace UMC
         //Slice decode, includes MB decode
         virtual  Status DecodeSlice(VideoContext *video, int task_num) = 0;
 
-        // decode all headers but slice, starts right after startcode
-        virtual Status DecodeHeader(int32_t startcode, VideoContext *video, int task_num);
+        // decode all headers but slice, SeqExt PicCodExt. Starts right after startcode
+        Status DecodeHeader(int32_t startcode, VideoContext *video, int task_num);
+
+        // decode SeqExt. Starts right after startcode
+        Status DecodeSequenceExt(VideoContext *video, int task_num);
+
+        // decode PicCodExt. Starts right after startcode
+        Status DecodePictureCodingExt(VideoContext *video, int task_num);
+
 
         ///////////////////////////////////////////////////////
         /////////////Level 3 protected interface///////////////
