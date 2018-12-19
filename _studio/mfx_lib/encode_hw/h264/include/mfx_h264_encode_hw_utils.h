@@ -41,7 +41,6 @@
 #ifndef _MFX_H264_ENCODE_HW_UTILS_H_
 #define _MFX_H264_ENCODE_HW_UTILS_H_
 
-#define CLIPVAL(MINVAL, MAXVAL, VAL) (MFX_MAX(MINVAL, MFX_MIN(MAXVAL, VAL)))
 #define bRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_EXT)||(RCMethod == MFX_RATECONTROL_LA_HRD))
 #define bIntRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_HRD))
 
@@ -1637,7 +1636,7 @@ namespace MfxHwH264Encode
 
             frame_par = *((mfxBRCFrameParam*)&par);
             m_pBRC->GetFrameCtrl(m_pBRC->pthis,&frame_par, &frame_ctrl);
-            return (mfxU8)CLIPVAL(1, 51, frame_ctrl.QpY);
+            return (mfxU8)mfx::clamp(frame_ctrl.QpY, 1, 51);
         }
         mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 /*curQP */)
         {

@@ -1002,9 +1002,7 @@ mfxU8 UmcBrc::GetQp(const BRCFrameParams& par)
 
 mfxU8 UmcBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
-    mfxU8 qp = curQP + (mfxU8)par.NumRecode;
-    qp = CLIPVAL(1,51,qp);
-    return qp;
+    return mfx::clamp<mfxU8>(curQP + (mfxU8)par.NumRecode, 1, 51);
 }
 
 mfxF32 UmcBrc::GetFractionalQp(const BRCFrameParams& par)
@@ -1325,7 +1323,7 @@ mfxF64 GetTotalRate(std::vector<LookAheadBrc2::LaFrameData> const & laData, mfxI
     mfxF64 totalRate = 0.0;
     size = (size < laData.size()) ? size : laData.size();
     for (size_t i = 0 + first; i < size; i++)
-        totalRate += laData[i].estRateTotal[CLIPVAL(0, 51, baseQp + laData[i].deltaQp)];
+        totalRate += laData[i].estRateTotal[mfx::clamp(baseQp + laData[i].deltaQp, 0, 51)];
     return totalRate;
 }
 
@@ -1336,7 +1334,7 @@ mfxF64 GetTotalRate(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VM
     std::list<VMEBrc::LaFrameData>::iterator it = start;
     for (; it!=end; ++it)
     {
-        totalRate += (*it).estRateTotal[CLIPVAL(0, 51, baseQp + (*it).deltaQp)];
+        totalRate += (*it).estRateTotal[mfx::clamp(baseQp + (*it).deltaQp, 0, 51)];
     }
     return totalRate;
 }
@@ -1350,7 +1348,7 @@ mfxF64 GetTotalRate(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VM
     {
         if ((num ++) >= size)
             break;
-        totalRate += (*it).estRateTotal[CLIPVAL(0, 51, baseQp + (*it).deltaQp)];
+        totalRate += (*it).estRateTotal[mfx::clamp(baseQp + (*it).deltaQp, 0, 51)];
     }
     return totalRate;
 }
@@ -1496,13 +1494,13 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
     if (m_curBaseQp < 0)
         m_curBaseQp = minQp; // first frame
     else if (m_curBaseQp < minQp)
-        m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, minQp);
+        m_curBaseQp = mfx::clamp<mfxI32>(minQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
     else if (m_curQp > maxQp)
-        m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, maxQp);
+        m_curBaseQp = mfx::clamp<mfxI32>(maxQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
     else
         ; // do not change qp if last qp guarantees target rate interval
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_curBaseQp + m_laData[m_first].deltaQp );
+    m_curQp = mfx::clamp<mfxI32>(m_curBaseQp + m_laData[m_first].deltaQp, m_QPMin[ind], m_QPMax[ind]);
 
     //printf("bqp=%2d qp=%2d dqp=%2d erate=%7.3f ", m_curBaseQp, m_curQp, m_laData[0].deltaQp, m_laData[0].estRateTotal[m_curQp]);
 
@@ -1531,12 +1529,12 @@ mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
 
-    return CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp);
+    return mfx::clamp(qp, m_QPMin[ind], m_QPMax[ind]);
 }
 
 void  LookAheadBrc2::SetQp(const BRCFrameParams& /*par*/, mfxU32 qp)
 {
-    m_curQp = CLIPVAL(1, 51, qp);
+    m_curQp = mfxU8(mfx::clamp<mfxU32>(qp, 1, 51));
 }
 
 void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
@@ -1608,7 +1606,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     mfxF64 realRatePerMb = 8 * dataLength / mfxF64(m_totNumMb);
     mfxU32 maxFS = maxFrameSize? maxFrameSize*8 : 0xFFFFFFF;
 
-    qp = CLIPVAL(1, 51, qp);
+    qp = mfx::clamp<mfxU32>(qp, 1, 51);
 
     if ((m_skipped == 1) && ((par.FrameType & MFX_FRAMETYPE_B)!=0) && par.NumRecode < 100)
         return 3;  // skip mode for this frame
@@ -1651,7 +1649,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     mfxF64 x = m_laData[0].estRate[qp];
     mfxF64 minY = NORM_EST_RATE * INIT_RATE_COEFF[qp] * MIN_RATE_COEFF_CHANGE;
     mfxF64 maxY = NORM_EST_RATE * INIT_RATE_COEFF[qp] * MAX_RATE_COEFF_CHANGE;
-    y = CLIPVAL(minY, maxY, y / x * NORM_EST_RATE);
+    y = mfx::clamp(y / x * NORM_EST_RATE, minY, maxY);
     m_rateCoeffHistory[qp].Add(NORM_EST_RATE, y);
     mfxF64 ratio = m_rateCoeffHistory[qp].GetCoeff() / oldCoeff;
     mfxI32 signed_qp = qp;
@@ -1723,7 +1721,7 @@ mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*use
         mfxF64 x = (*start).estRate[qp];
         mfxF64 minY = NORM_EST_RATE * INIT_RATE_COEFF[qp] * MIN_RATE_COEFF_CHANGE;
         mfxF64 maxY = NORM_EST_RATE * INIT_RATE_COEFF[qp] * MAX_RATE_COEFF_CHANGE;
-        y = CLIPVAL(minY, maxY, y / x * NORM_EST_RATE);
+        y = mfx::clamp(y / x * NORM_EST_RATE, minY, maxY);
         m_rateCoeffHistory[qp].Add(NORM_EST_RATE, y);
 
         //static int count = 0;
@@ -1853,14 +1851,14 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
     if (m_curBaseQp < 0)
         m_curBaseQp = minQp; // first frame
     else if (m_curBaseQp < minQp)
-        m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, minQp);
+        m_curBaseQp = mfx::clamp<mfxI32>(minQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
     else if (m_curQp > maxQp)
-        m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, maxQp);
+        m_curBaseQp = mfx::clamp<mfxI32>(maxQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
     else
         ; // do not change qp if last qp guarantees target rate interval
 
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_curBaseQp + (*start).deltaQp);
+    m_curQp = mfx::clamp<mfxI32>(m_curBaseQp + (*start).deltaQp, m_QPMin[ind], m_QPMax[ind]);
 
 
     brcprintf("bqp=%2d qp=%2d dqp=%2d erate=%7.3f ", m_curBaseQp, m_curQp, (*start).deltaQp, (*start).estRateTotal[m_curQp]);
@@ -1879,7 +1877,7 @@ mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
 
-    return CLIPVAL(m_QPMin[ind], m_QPMax[ind],qp);
+    return mfx::clamp(qp, m_QPMin[ind], m_QPMax[ind]);
 }
 
 mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
@@ -1909,7 +1907,7 @@ mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& par)
         : -mfxI32(deltaQpF * 1 * strength + 0.5);
 
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_crfQuality + deltaQp); // driver doesn't support qp=0
+    m_curQp = mfx::clamp<mfxI32>(m_crfQuality + deltaQp, m_QPMin[ind], m_QPMax[ind]); // driver doesn't support qp=0
 
     return mfxU8(m_curQp);
 }
@@ -1918,9 +1916,8 @@ mfxU8 LookAheadCrfBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
     mfxU8 qp = curQP + (mfxU8)par.NumRecode;
 
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp); 
 
-    return qp;
+    return mfx::clamp(qp, m_QPMin[ind], m_QPMax[ind]);
 }
 
 void LookAheadCrfBrc::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
