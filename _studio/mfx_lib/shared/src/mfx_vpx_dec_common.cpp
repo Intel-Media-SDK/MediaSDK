@@ -413,12 +413,6 @@ namespace MFX_VPX_Utility
         p_request->NumFrameMin = p_params->mfx.CodecId == MFX_CODEC_VP8 ? mfxU16(4) : mfxU16(8);
 
         p_request->NumFrameMin += p_params->AsyncDepth ? p_params->AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE;
-
-        // Increase minimum number by one
-        // E.g., if async depth 1,then one decoded frame plus eight references total nine frames are locked
-        // add one more frame so client code will have at least one input surface to call DecodeAsync function
-        p_request->NumFrameMin += 1;
-
         p_request->NumFrameSuggested = p_request->NumFrameMin;
 
         if (p_params->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
