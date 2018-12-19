@@ -69,21 +69,21 @@ mfxStatus MFXVideoVPPProcAmp::Query( mfxExtBuffer* pHint )
     if( pParam->Brightness < VPP_PROCAMP_BRIGHTNESS_MIN ||
         pParam->Brightness > VPP_PROCAMP_BRIGHTNESS_MAX )
     {
-        VPP_RANGE_CLIP(pParam->Brightness, VPP_PROCAMP_BRIGHTNESS_MIN, VPP_PROCAMP_BRIGHTNESS_MAX);
+        pParam->Brightness = mfx::clamp(pParam->Brightness, VPP_PROCAMP_BRIGHTNESS_MIN, VPP_PROCAMP_BRIGHTNESS_MAX);
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
     /* Contrast */
     if( pParam->Contrast < VPP_PROCAMP_CONTRAST_MIN || pParam->Contrast > VPP_PROCAMP_CONTRAST_MAX )
     {
-        VPP_RANGE_CLIP(pParam->Contrast, VPP_PROCAMP_CONTRAST_MIN, VPP_PROCAMP_CONTRAST_MAX);
+        pParam->Contrast = mfx::clamp(pParam->Contrast, VPP_PROCAMP_CONTRAST_MIN, VPP_PROCAMP_CONTRAST_MAX);
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
     /* Hue */
     if( pParam->Hue < VPP_PROCAMP_HUE_MIN || pParam->Hue > VPP_PROCAMP_HUE_MAX )
     {
-        VPP_RANGE_CLIP(pParam->Hue, VPP_PROCAMP_HUE_MIN, VPP_PROCAMP_HUE_MAX);
+        pParam->Hue = mfx::clamp(pParam->Hue, VPP_PROCAMP_HUE_MIN, VPP_PROCAMP_HUE_MAX);
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
@@ -91,7 +91,7 @@ mfxStatus MFXVideoVPPProcAmp::Query( mfxExtBuffer* pHint )
     if( pParam->Saturation < VPP_PROCAMP_SATURATION_MIN ||
         pParam->Saturation > VPP_PROCAMP_SATURATION_MAX)
     {
-        VPP_RANGE_CLIP(pParam->Saturation, VPP_PROCAMP_SATURATION_MIN, VPP_PROCAMP_SATURATION_MAX);
+        pParam->Saturation = mfx::clamp(pParam->Saturation, VPP_PROCAMP_SATURATION_MIN, VPP_PROCAMP_SATURATION_MAX);
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
