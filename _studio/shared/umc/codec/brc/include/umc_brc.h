@@ -26,9 +26,8 @@
 #include "umc_video_encoder.h"
 #include "umc_video_brc.h"
 
-#define BRC_CLIP(a, l, r) if (a < (l)) a = l; else if (a > (r)) a = r
-#define BRC_CLIPL(a, l) if (a < (l)) a = l
-#define BRC_CLIPR(a, r) if (a > (r)) a = r
+#include "mfx_utils.h"
+
 #define BRC_ABS(a) ((a) >= 0 ? (a) : -(a))
 
 namespace UMC

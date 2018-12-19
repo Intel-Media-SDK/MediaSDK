@@ -26,9 +26,6 @@
 #include "umc_video_encoder.h"
 #include "umc_brc.h"
 
-#define SetQuantB() \
-  mQuantB = ((mQuantP + mQuantPrev) * 563 >> 10) + 1; \
-  BRC_CLIP(mQuantB, 1, mQuantMax)
 
 namespace UMC
 {

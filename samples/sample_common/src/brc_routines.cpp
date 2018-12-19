@@ -28,7 +28,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 #if (MFX_VERSION >= 1024)
-#define Saturate(min_val, max_val, val) IPP_MAX((min_val), IPP_MIN((max_val), (val)))
 #define BRC_SCENE_CHANGE_RATIO1 20.0
 #define BRC_SCENE_CHANGE_RATIO2 5.0
 
@@ -234,9 +233,6 @@ mfxF64 QP2Qstep(mfxI32 qp, mfxI32 qpoffset = 0)
 {
     return QSTEP[IPP_MIN(51 + qpoffset, qp)];
 }
-#define BRC_CLIP(val, minval, maxval) val = Saturate(minval, maxval, val)
-
-
 
 mfxF64  cHRD::GetBufferDiviation(mfxU32 targetBitrate)
 {
@@ -344,7 +340,7 @@ mfxI32 GetNewQP(mfxF64 totalFrameBits, mfxF64 targetFrameSizeInBits, mfxI32 minQ
         if (bStrict)
             qp_new  = IPP_MAX (qp_new, qp + 1);
     }
-    return BRC_CLIP(qp_new, minQP, maxQP);
+    return mfx::clamp(qp_new, minQP, maxQP);
 }
 
 
@@ -390,9 +386,9 @@ void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 /* rec_num */
         ctx.QuantP = qp - 1;
         ctx.QuantB = qp;
     }
-    BRC_CLIP(ctx.QuantI, minQuant, maxQuant);
-    BRC_CLIP(ctx.QuantP, minQuant, maxQuant);
-    BRC_CLIP(ctx.QuantB, minQuant, maxQuant);
+    ctx.QuantI = mfx::clamp(ctx.QuantI, minQuant, maxQuant);
+    ctx.QuantP = mfx::clamp(ctx.QuantP, minQuant, maxQuant);
+    ctx.QuantB = mfx::clamp(ctx.QuantB, minQuant, maxQuant);
     //printf("ctx.QuantI %d, ctx.QuantP %d, ctx.QuantB  %d, level %d\n", ctx.QuantI, ctx.QuantP, ctx.QuantB, level);
 }
 
@@ -515,10 +511,10 @@ mfxI32 GetNewQPTotal(mfxF64 bo, mfxF64 dQP, mfxI32 minQP , mfxI32 maxQP, mfxI32 
 {
     mfxU8 mode = (!bPyr) ;
 
-    BRC_CLIP(bo, -1.0, 1.0);
-    BRC_CLIP(dQP, 1./maxQP, 1./minQP);
+    bo  = mfx::clamp(bo, -1.0, 1.0);
+    dQP = mfx::clamp(dQP, 1./maxQP, 1./minQP);
     dQP = dQP + (1./maxQP - dQP) * bo;
-    BRC_CLIP(dQP, 1./maxQP, 1./minQP);
+    dQP = mfx::clamp(dQP, 1./maxQP, 1./minQP);
     mfxI32 quant_new = (mfxI32) (1. / dQP + 0.5);
 
     //printf("   GetNewQPTotal: bo %f, quant %d, quant_new %d, mode %d\n", bo, qp, quant_new, mode);
@@ -550,9 +546,9 @@ mfxI32 GetNewQPTotal(mfxF64 bo, mfxF64 dQP, mfxI32 minQP , mfxI32 maxQP, mfxI32 
     }
     else
     {
-        BRC_CLIP (quant_new, qp - 5, qp + 5);
+        quant_new = mfx::clamp(quant_new, qp - 5, qp + 5);
     }
-    return BRC_CLIP (quant_new, minQP, maxQP);
+    return mfx::clamp(quant_new, minQP, maxQP);
 }
 // Reduce AB period before intra and increase it after intra (to avoid intra frame affect on the bottom of hrd)
 mfxF64 GetAbPeriodCoeff (mfxU32 numInGop, mfxU32 gopPicSize)
@@ -589,17 +585,17 @@ mfxI32 ExtBRC::GetCurQP (mfxU32 type, mfxI32 layer)
     if (type == MFX_FRAMETYPE_I)
     {
         qp = m_ctx.QuantI;
-        BRC_CLIP(qp, m_par.quantMinI, m_par.quantMaxI);
+        qp = mfx::clamp(qp, m_par.quantMinI, m_par.quantMaxI);
     }
     else if (type == MFX_FRAMETYPE_P)
     {
-        qp =  m_ctx.QuantP + layer;
-        BRC_CLIP(qp, m_par.quantMinP, m_par.quantMaxP);
+        qp = m_ctx.QuantP + layer;
+        qp = mfx::clamp(qp, m_par.quantMinP, m_par.quantMaxP);
     }
     else
     {
-            qp =  m_ctx.QuantB + (layer > 0 ? layer - 1 : 0);
-            BRC_CLIP(qp, m_par.quantMinB, m_par.quantMaxB);
+        qp = m_ctx.QuantB + (layer > 0 ? layer - 1 : 0);
+        qp = mfx::clamp(qp, m_par.quantMinB, m_par.quantMaxB);
     }
     //printf("GetCurQP I %d P %d B %d, min %d max %d type %d \n", m_ctx.QuantI, m_ctx.QuantP, m_ctx.QuantB, m_par.quantMinI, m_par.quantMaxI, type);
 
@@ -853,7 +849,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         if (bNeedUpdateQP)
         {
             m_ctx.dQuantAb += (k - m_ctx.dQuantAb)/dqAbPeriod;
-            BRC_CLIP(m_ctx.dQuantAb, 1./m_ctx.QuantMax , 1./m_ctx.QuantMin);
+            m_ctx.dQuantAb = mfx::clamp(m_ctx.dQuantAb, 1./m_ctx.QuantMax , 1./m_ctx.QuantMin);
 
             m_ctx.fAbLong  = fAbLong;
             m_ctx.fAbShort = fAbShort;
@@ -899,7 +895,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
                     totDiv = IPP_MAX(totDiv, m_hrd.GetBufferDiviation(m_par.targetbps));
                 }
                 bAbPreriod = (mfxF64)(m_par.bPyr? 4 : 3)*(mfxF64)m_hrd.GetMaxFrameSize() / m_par.inputBitsPerFrame*GetAbPeriodCoeff(m_ctx.encOrder - m_ctx.LastIEncOrder, m_par.gopPicSize) ;
-                BRC_CLIP(bAbPreriod , m_par.bAbPeriod/10, m_par.bAbPeriod);
+                bAbPreriod = mfx::clamp(bAbPreriod , m_par.bAbPeriod/10, m_par.bAbPeriod);
             }
             quant_new = GetNewQPTotal(totDiv / bAbPreriod / (mfxF64)m_par.inputBitsPerFrame, dequant_new, m_ctx.QuantMin, m_ctx.QuantMax, m_ctx.Quant, m_par.bPyr && m_par.bRec, bSHStart && m_ctx.bToRecode == 0);
             //printf("    ===%d quant old %d quant_new %d, bitsEncoded %d m_ctx.QuantMin %d m_ctx.QuantMax %d\n", frame_par->EncodedOrder, m_ctx.Quant, quant_new, bitsEncoded, m_ctx.QuantMin, m_ctx.QuantMax);
@@ -923,7 +919,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
 
                 //printf("   QuantNewMin %d, QuantNewMax %d, m_ctx.Quant %d, new %d (%d)\n", QuantNewMin, QuantNewMax, m_ctx.Quant, quant_corrected, quant_new);
 
-                quant_new = BRC_CLIP(quant_corrected, m_ctx.QuantMin, m_ctx.QuantMax);
+                quant_new = mfx::clamp(quant_corrected, m_ctx.QuantMin, m_ctx.QuantMax);
             }
             if ((quant_new - m_ctx.Quant)* (quant_new - GetCurQP (picType, layer)) > 0) // this check is actual for async scheme
             {
@@ -983,7 +979,7 @@ mfxStatus ExtBRC::Reset(mfxVideoParam *par )
             MFX_CHECK_STS(sts);
 
             m_ctx.Quant = (mfxI32)(1. / m_ctx.dQuantAb * pow(m_ctx.fAbLong / m_par.inputBitsPerFrame, 0.32) + 0.5);
-            BRC_CLIP(m_ctx.Quant, m_par.quantMinI, m_par.quantMaxI);
+            m_ctx.Quant = mfx::clamp(m_ctx.Quant, m_par.quantMinI, m_par.quantMaxI);
 
             UpdateQPParams(m_ctx.Quant, MFX_FRAMETYPE_I, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0);
 
