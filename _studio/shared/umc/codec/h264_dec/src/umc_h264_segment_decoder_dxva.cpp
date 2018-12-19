@@ -239,7 +239,7 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
             m_mGuard.Unlock();
 
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
-            sts = dxva_sd->GetPacker()->SyncTask(au->m_pFrame, /*&surfCorruption*/nullptr);
+            sts = dxva_sd->GetPacker()->SyncTask(au->m_pFrame, &surfCorruption);
 
             m_mGuard.Lock();
         }

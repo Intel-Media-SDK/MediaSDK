@@ -3158,7 +3158,7 @@ mfxStatus VideoDECODEMPEG2Internal_HW::GetStatusReport(int32_t current_index, UM
     mfxU16 surfCorruption = 0;
 
 
-    sts = va->SyncTask(surface_id/*, &surfCorruption*/);
+    sts = va->SyncTask(surface_id, &surfCorruption);
 
     STATUS_REPORT_DEBUG_PRINTF("index %d with corruption: %d (sts:%d)\n", surface_id, surfCorruption, sts)
 
