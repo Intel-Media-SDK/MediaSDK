@@ -49,7 +49,7 @@ mfxStatus MFXVideoVPPDenoise::Query( mfxExtBuffer* pHint )
 
     if( pParam->DenoiseFactor > PAR_NRF_STRENGTH_MAX )
     {
-        VPP_RANGE_CLIP(pParam->DenoiseFactor, PAR_NRF_STRENGTH_MIN, PAR_NRF_STRENGTH_MAX);
+        pParam->DenoiseFactor = PAR_NRF_STRENGTH_MAX;
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }

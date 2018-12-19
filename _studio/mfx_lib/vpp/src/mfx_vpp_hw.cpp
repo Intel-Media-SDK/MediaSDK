@@ -5095,9 +5095,9 @@ mfxU64 make_back_color_yuv(mfxU16 bit_depth, mfxU16 Y, mfxU16 U, mfxU16 V)
 
     return
         ((mfxU64) max_val << 48) |
-        ((mfxU64) VPP_RANGE_CLIP(Y, (16 << shift), (235 << shift))     << 32) |
-        ((mfxU64) VPP_RANGE_CLIP(U, (16 << shift), (240 << shift))     << 16) |
-        ((mfxU64) VPP_RANGE_CLIP(V, (16 << shift), (240 << shift))     <<  0);
+        ((mfxU64) mfx::clamp<mfxI32>(Y, (16 << shift), (235 << shift)) << 32) |
+        ((mfxU64) mfx::clamp<mfxI32>(U, (16 << shift), (240 << shift)) << 16) |
+        ((mfxU64) mfx::clamp<mfxI32>(V, (16 << shift), (240 << shift)) <<  0);
 }
 
 inline
@@ -5109,9 +5109,9 @@ mfxU64 make_back_color_argb(mfxU16 bit_depth, mfxU16 R, mfxU16 G, mfxU16 B)
     mfxU64 const max_val = (1 << bit_depth) - 1;
 
     return ((mfxU64) max_val << 48) |
-           ((mfxU64) VPP_RANGE_CLIP(R, 0, max_val) << 32) |
-           ((mfxU64) VPP_RANGE_CLIP(G, 0, max_val) << 16) |
-           ((mfxU64) VPP_RANGE_CLIP(B, 0, max_val) << 0);
+           (mfx::clamp<mfxU64>(R, 0, max_val) << 32) |
+           (mfx::clamp<mfxU64>(G, 0, max_val) << 16) |
+           (mfx::clamp<mfxU64>(B, 0, max_val) << 0);
 }
 
 inline

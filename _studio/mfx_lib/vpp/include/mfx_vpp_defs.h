@@ -82,8 +82,6 @@
 
 #define VPP_RESET       { m_errPrtctState.isFirstFrameProcessed = false; }
 
-#define VPP_RANGE_CLIP(val, min_val, max_val)   MFX_MAX( MFX_MIN(max_val, val), min_val )
-
 // error processing
 #define VPP_CHECK_STS_CONTINUE(sts1, sts2) { if (sts1 != MFX_ERR_NONE) sts2 = sts1; }
 

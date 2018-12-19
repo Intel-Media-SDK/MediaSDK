@@ -29,8 +29,6 @@
 #define ALIGN16(SZ) (((SZ + 15) >> 4) << 4) // round up to a multiple of 16
 #endif
 
-#define VPP_RANGE_CLIP(val, min_val, max_val)  MFX_MAX( MFX_MIN(max_val, val), min_val )
-
 #define VPP_DETAIL_GAIN_MIN      (0)
 #define VPP_DETAIL_GAIN_MAX      (63)
 #define VPP_DETAIL_GAIN_MAX_REAL (63)
@@ -57,7 +55,7 @@ mfxStatus MFXVideoVPPDetailEnhancement::Query( mfxExtBuffer* pHint )
 
     if( pParam->DetailFactor > VPP_DETAIL_GAIN_MAX_USER_LEVEL )
     {
-        VPP_RANGE_CLIP(pParam->DetailFactor, VPP_DETAIL_GAIN_MIN, VPP_DETAIL_GAIN_MAX_USER_LEVEL);
+        pParam->DetailFactor = VPP_DETAIL_GAIN_MAX_USER_LEVEL;
 
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     }
