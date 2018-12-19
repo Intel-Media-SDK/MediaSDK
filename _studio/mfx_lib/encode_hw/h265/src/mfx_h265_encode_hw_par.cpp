@@ -2909,7 +2909,7 @@ void SetDefaults(
             mfxI16 QPX = (par.mfx.GopRefDist == 1) ? par.mfx.QPP : par.mfx.QPB;
 
             for (mfxI16 i = 0; i < 8; i++)
-                CO3.QPOffset[i] = Clip3<mfxI16>((mfxI16)minQP - QPX, (mfxI16)maxQP - QPX, i + (par.mfx.GopRefDist > 1));
+                CO3.QPOffset[i] = mfx::clamp<mfxI16>(i + (par.mfx.GopRefDist > 1), (mfxI16)minQP - QPX, (mfxI16)maxQP - QPX);
         }
         else
             CO3.EnableQPOffset = MFX_CODINGOPTION_OFF;

@@ -34,6 +34,8 @@
 #include <utility>
 #include "mfx_common_int.h"
 
+using namespace mfx;
+
 namespace MfxHwH265Encode
 {
 
@@ -668,7 +670,7 @@ namespace ExtBuffer
             if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
                 buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
             else
-                buf.TargetChromaFormatPlus1 = Clip3<mfxU16>(MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444, par.mfx.FrameInfo.ChromaFormat) + 1;
+                buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
             buf.TargetBitDepthLuma      = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
             buf.TargetBitDepthChroma    = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
 
@@ -680,7 +682,7 @@ namespace ExtBuffer
             if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
                 buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
             else
-                buf.TargetChromaFormatPlus1 = Clip3<mfxU16>(MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444, par.mfx.FrameInfo.ChromaFormat) + 1;
+                buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
         }
         if (!buf.TargetBitDepthLuma)
             buf.TargetBitDepthLuma = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
@@ -1542,7 +1544,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)mfx.FrameInfo.BitDepthLuma - 8);
     m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)mfx.FrameInfo.BitDepthChroma - 8);
 #endif
-    m_sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)Clip3(0, 12, (mfxI32)CeilLog2(mfx.GopRefDist*(isField() ? 2 : 1) + slo.max_dec_pic_buffering_minus1) - 1);
+    m_sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)clamp<mfxI32>(CeilLog2(mfx.GopRefDist*(isField() ? 2 : 1) + slo.max_dec_pic_buffering_minus1) - 1, 0, 12);
 
     m_sps.log2_min_luma_coding_block_size_minus3   = 0;
     m_sps.log2_diff_max_min_luma_coding_block_size = CeilLog2(LCUSize) - 3 - m_sps.log2_min_luma_coding_block_size_minus3;
@@ -1621,7 +1623,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
             {
                 if (cur->m_frameType & MFX_FRAMETYPE_B)
                 {
-                    mfxI32 layer = isBPyramid() ? Clip3<mfxI32>(0, 7, cur->m_level - 1) : 0;
+                    mfxI32 layer = isBPyramid() ? clamp<mfxI32>(cur->m_level - 1, 0, 7) : 0;
                     nRef[0] = (mfxU8)CO3.NumRefActiveBL0[layer];
                     nRef[1] = (mfxU8)CO3.NumRefActiveBL1[layer];
                 }
@@ -3561,7 +3563,7 @@ void ConfigureTask(
                     task.m_qpY = (mfxI8)par.mfx.QPP;
                 else
                 // m_level starts from 1
-                    task.m_qpY = (mfxI8)Clip3<mfxI32>(1, maxQP, par.m_ext.CO3.QPOffset[Clip3<mfxI32>(0, 7, task.m_level - 1)] + task.m_qpY);
+                    task.m_qpY = (mfxI8)clamp<mfxI32>(par.m_ext.CO3.QPOffset[clamp<mfxI32>(task.m_level - 1, 0, 7)] + task.m_qpY, 1, maxQP);
             }
         }
         else if (isP)
@@ -3569,7 +3571,7 @@ void ConfigureTask(
             // encode P as GPB
             task.m_qpY = (mfxI8)par.mfx.QPP;
             if (par.isLowDelay())
-                task.m_qpY = (mfxI8)Clip3<mfxI32>(1, maxQP, par.m_ext.CO3.QPOffset[PLayer(task.m_poc - prevTask.m_lastIPoc, par)] + task.m_qpY);
+                task.m_qpY = (mfxI8)clamp<mfxI32>(par.m_ext.CO3.QPOffset[PLayer(task.m_poc - prevTask.m_lastIPoc, par)] + task.m_qpY, 1, maxQP);
         }
         else
         {
@@ -3621,7 +3623,7 @@ void ConfigureTask(
 
     if (isB)
     {
-        mfxI32 layer = par.isBPyramid() ? Clip3<mfxI32>(0, 7, task.m_level - 1) : 0;
+        mfxI32 layer = par.isBPyramid() ? clamp<mfxI32>(task.m_level - 1, 0, 7) : 0;
         task.m_numRefActive[0] = (mfxU8)CO3.NumRefActiveBL0[layer];
         task.m_numRefActive[1] = (mfxU8)CO3.NumRefActiveBL1[layer];
     }

@@ -2183,17 +2183,13 @@ void HeaderPacker::PackSSH(
                         {
                             bs.PutSE(slice.pwt[l][i][Cb][W] - wC);
                             bs.PutSE(
-                                Clip3(
-                                    -4 * WpOffsetHalfRangeC,
-                                    4 * WpOffsetHalfRangeC - 1,
-                                    ((WpOffsetHalfRangeC * slice.pwt[l][i][Cb][W]) >> l2WDc) + slice.pwt[l][i][Cb][O] - WpOffsetHalfRangeC));
+                                mfx::clamp(((WpOffsetHalfRangeC * slice.pwt[l][i][Cb][W]) >> l2WDc) + slice.pwt[l][i][Cb][O] - WpOffsetHalfRangeC,
+                                    -4 * WpOffsetHalfRangeC, 4 * WpOffsetHalfRangeC - 1));
 
                             bs.PutSE(slice.pwt[l][i][Cr][W] - wC);
                             bs.PutSE(
-                                Clip3(
-                                    -4 * WpOffsetHalfRangeC,
-                                    4 * WpOffsetHalfRangeC - 1,
-                                    ((WpOffsetHalfRangeC * slice.pwt[l][i][Cr][W]) >> l2WDc) + slice.pwt[l][i][Cr][O] - WpOffsetHalfRangeC));
+                                mfx::clamp(((WpOffsetHalfRangeC * slice.pwt[l][i][Cr][W]) >> l2WDc) + slice.pwt[l][i][Cr][O] - WpOffsetHalfRangeC,
+                                    -4 * WpOffsetHalfRangeC, 4 * WpOffsetHalfRangeC - 1));
                         }
                     }
                 }
