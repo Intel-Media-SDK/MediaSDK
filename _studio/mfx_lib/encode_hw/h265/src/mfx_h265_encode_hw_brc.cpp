@@ -27,7 +27,6 @@
 namespace MfxHwH265Encode
 {
 
-#define CLIPVAL(MINVAL, MAXVAL, VAL) (MFX_MAX(MINVAL, MFX_MIN(MAXVAL, VAL)))
 mfxF64 const INIT_RATE_COEFF_VME[] = {
         1.109, 1.196, 1.225, 1.309, 1.369, 1.428, 1.490, 1.588, 1.627, 1.723, 1.800, 1.851, 1.916,
         2.043, 2.052, 2.140, 2.097, 2.096, 2.134, 2.221, 2.084, 2.153, 2.117, 2.014, 1.984, 2.006,
@@ -179,7 +178,7 @@ mfxF64 GetTotalRate(std::list<VMEBrc::LaFrameData>::iterator start, std::list<VM
     mfxF64 totalRate = 0.0;
     std::list<VMEBrc::LaFrameData>::iterator it = start;
     for (; it!=end; ++it)
-        totalRate += (*it).estRateTotal[CLIPVAL(0, 51, baseQp + (*it).deltaQp)];
+        totalRate += (*it).estRateTotal[mfx::clamp(baseQp + (*it).deltaQp, 0, 51)];
     return totalRate;
 }
 
@@ -257,7 +256,7 @@ mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userData
         mfxF64 x = (*start).estRate[curQp];
         mfxF64 minY = NORM_EST_RATE * INIT_RATE_COEFF_VME[curQp] * MIN_RATE_COEFF_CHANGE;
         mfxF64 maxY = NORM_EST_RATE * INIT_RATE_COEFF_VME[curQp] * MAX_RATE_COEFF_CHANGE;
-        y = CLIPVAL(minY, maxY, y / x * NORM_EST_RATE); 
+        y = mfx::clamp(y / x * NORM_EST_RATE, minY, maxY); 
         m_rateCoeffHistory[curQp].Add(NORM_EST_RATE, y);
         //mfxF64 ratio = m_rateCoeffHistory[curQp].GetCoeff() / oldCoeff;
         mfxF64 ratio = y / (oldCoeff*NORM_EST_RATE);
@@ -354,13 +353,13 @@ mfxI32 VMEBrc::GetQP(MfxVideoParam & /*video*/, Task &task )
         if (m_curBaseQp < 0)
             m_curBaseQp = minQp; // first frame
         else if (m_curBaseQp < minQp)
-            m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, minQp);
+            m_curBaseQp = mfx::clamp<mfxI32>(minQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
         else if (m_curQp > maxQp)
-            m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, maxQp);
+            m_curBaseQp = mfx::clamp<mfxI32>(maxQp, m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE);
         else
             {}; // do not change qp if last qp guarantees target rate interval
     }
-    m_curQp = CLIPVAL(1, 51, m_curBaseQp + (*start).deltaQp); // driver doesn't support qp=0
+    m_curQp = mfx::clamp(m_curBaseQp + (*start).deltaQp, 1, 51); // driver doesn't support qp=0
     //printf("%d) intra %d, inter %d, prop %d, delta %d, maxdelta %d, baseQP %d, qp %d \n",(*start).encOrder,(*start).intraCost, (*start).interCost, (*start).propCost, (*start).deltaQp, maxDeltaQp, m_curBaseQp,m_curQp );
 
     //printf("%d\t base QP %d\tdelta QP %d\tcurQp %d, rate (%f, %f), total rate %f (%f, %f), number of frames %d\n", 
