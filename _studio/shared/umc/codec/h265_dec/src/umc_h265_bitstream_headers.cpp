@@ -1392,7 +1392,7 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
                             (1 << sps->bit_depth_chroma) / 2 : 128;
 
                         int32_t const pred = ( range - ( ( range * wp[j].weight) >> (wp[j].log2_weight_denom) ) );
-                        wp[j].offset = Clip3(-range, range - 1, (delta_chroma_offset_lX + pred) );
+                        wp[j].offset = mfx::clamp(delta_chroma_offset_lX + pred, -range, range - 1);
                     }
                 }
                 else
