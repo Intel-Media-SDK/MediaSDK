@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2012-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,5 +20,5 @@
 
 #ifndef __genx_icllp_histogram__
 #define __genx_icllp_histogram__
-extern const unsigned char genx_icllp_histogram[76146];
+extern const unsigned char genx_icllp_histogram[63286];
 #endif
