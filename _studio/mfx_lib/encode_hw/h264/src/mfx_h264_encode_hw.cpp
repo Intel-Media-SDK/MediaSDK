@@ -1111,6 +1111,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         m_histRun.clear();
         m_histWait.clear();
         m_encoding.clear();
+        m_timeStamps.clear();
     }
     m_fieldCounter   = 0;
     m_1stFieldStatus = MFX_ERR_NONE;
@@ -1429,6 +1430,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         m_free.splice(m_free.end(), m_histRun);
         m_free.splice(m_free.end(), m_histWait);
         m_free.splice(m_free.end(), m_encoding);
+        m_timeStamps.clear();
 
         for (DdiTaskIter i = m_free.begin(); i != m_free.end(); ++i)
         {
@@ -2159,6 +2161,44 @@ void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
     }
 }
 
+void ImplementationAvc::AssignDecodeTimeStamp(DdiTask & task)
+{
+    mfxU8 numReorderFrames = GetNumReorderFrames(m_video);
+    if (task.m_encOrder < numReorderFrames)
+    {
+        // For the first reorder frames the DTS is calculated from the first frame's timestamp
+        // DTS = firstTimeStamp - distanceToFirstFrameInTime
+        mfxU64 firstTimeStamp = m_timeStamps.front();
+        mfxU32 distToFirstTimeStamp = numReorderFrames-task.m_encOrder;
+        mfxU16 distInTickUnit = static_cast<mfxU16>(2 * distToFirstTimeStamp);
+        task.m_decodeTimeStamp =  CalcDTSFromPTS(m_video.mfx.FrameInfo, distInTickUnit, firstTimeStamp);
+    }
+    else
+    {
+        task.m_decodeTimeStamp = static_cast<mfxI64>(m_timeStamps.front());
+        m_timeStamps.pop_front();
+    }
+}
+
+void ImplementationAvc::PreserveTimeStamp(mfxU64 timeStamp)
+{
+    // insert the unknown time stamp in the list end.
+    if (timeStamp == static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN))
+    {
+        m_timeStamps.push_back(timeStamp);
+        return;
+    }
+    // insert the valid time stamp in the increasing order.
+    auto it = std::find_if(std::begin(m_timeStamps), std::end(m_timeStamps),
+                 [timeStamp](mfxU64 currTimeStamp)
+                 {
+                     return (currTimeStamp  != static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN))
+                         && (static_cast<mfxI64>(currTimeStamp) > static_cast<mfxI64>(timeStamp));
+                 });
+
+    m_timeStamps.insert(it, timeStamp);
+}
+
 mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 {
     mfxExtCodingOption     const * extOpt  = GetExtBuffer(m_video);
@@ -2227,6 +2267,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 AssignFrameTypes(newTask);
             }
 
+            m_timeStamps.push_back(newTask.m_timeStamp);
             m_frameOrder++;
         }
         else
@@ -2238,6 +2279,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
             if (newTask.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF)
                 std::swap(newTask.m_type.top, newTask.m_type.bot);
+
+            PreserveTimeStamp(newTask.m_timeStamp);
         }
 
         // move task to reordering queue
@@ -2333,6 +2376,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         task->m_hwType = m_currentPlatform;
 
         ConfigureTask(*task, m_lastTask, m_video, m_caps);
+        AssignDecodeTimeStamp(*task);
 
         Zero(task->m_IRState);
         if (task->m_tidx == 0)
@@ -3407,7 +3451,7 @@ mfxStatus ImplementationAvc::UpdateBitstream(
 
     // Update bitstream fields
     task.m_bs->TimeStamp = task.m_timeStamp;
-    task.m_bs->DecodeTimeStamp = CalcDTSFromPTS(m_video.mfx.FrameInfo, mfxU16(task.m_dpbOutputDelay), task.m_timeStamp);
+    task.m_bs->DecodeTimeStamp = task.m_decodeTimeStamp;
     task.m_bs->PicStruct = task.GetPicStructForDisplay();
     task.m_bs->FrameType = task.m_type[task.GetFirstField()] & ~MFX_FRAMETYPE_KEYPIC;
     if (task.m_fieldPicFlag)
