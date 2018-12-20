@@ -1510,13 +1510,14 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
 }
 mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
 {
-    mfxF64 qstep = 0, qstep_new = 0;
-    qstep = QSTEP[std::min<mfxU8>(51, curQP)];
-    qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
-    mfxU8 qp_new = QStep2QpCeil(qstep_new);
+    mfxF64 qstep     = QSTEP[std::min<mfxU8>(51, curQP)];
+    mfxF64 qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
+    mfxU8  qp_new    = QStep2QpCeil(qstep_new);
+
     if (qp_new < 51 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new + 1]) / 2)
         qp_new++;
-    return  qp_new;
+
+    return qp_new;
 }
 mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
@@ -1527,11 +1528,12 @@ mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
     }
     if (qp <= curQP)
         qp = curQP + std::max<mfxU8>(1, par.NumRecode);
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp);
 
-    return qp;
+    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+
+    return CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp);
 }
+
 void  LookAheadBrc2::SetQp(const BRCFrameParams& /*par*/, mfxU32 qp)
 {
     m_curQp = CLIPVAL(1, 51, qp);
@@ -1874,9 +1876,10 @@ mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
     }
     if (qp <= curQP)
         qp = curQP + std::max<mfxU8>(1, par.NumRecode);
+
     mfxU32 ind = GetFrameTypeIndex(par.FrameType);
-    qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind],qp);
-    return qp;
+
+    return CLIPVAL(m_QPMin[ind], m_QPMax[ind],qp);
 }
 
 mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
@@ -1891,7 +1894,7 @@ mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
     m_interCost = 0;
     m_propCost  = 0;
 
-	SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
+    SetMinMaxQP(extOpt2, m_QPMin, m_QPMax);
     return MFX_ERR_NONE;
 }
 
