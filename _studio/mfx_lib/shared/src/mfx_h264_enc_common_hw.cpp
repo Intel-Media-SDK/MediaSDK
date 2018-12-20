@@ -9461,11 +9461,9 @@ const mfxI8 M_N_cbp_b[12][3][2] = { // [ctxIdx][cabac_init_idc][m, n]
     {{-29, 127}, {-36, 127}, {-37, 127}}
 };
 
-#define Clip3(min, max, val) val > max ? max : val < min ? min : val
-
 inline void InitCabacContext(mfxI16 m, mfxI16 n, mfxU16 sliceQP, mfxU8& ctx)
 {
-    mfxI16 preCtxState = Clip3( 1, 126, ( ( m * sliceQP ) >> 4 ) + n);
+    mfxI16 preCtxState = mfx::clamp<mfxI16>(( ( m * sliceQP ) >> 4 ) + n, 1, 126);
     if (preCtxState <= 63)
         ctx = mfxU8(63 - preCtxState); // MPS = 0
     else
