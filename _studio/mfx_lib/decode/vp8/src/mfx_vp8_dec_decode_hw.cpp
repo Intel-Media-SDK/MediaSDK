@@ -955,7 +955,7 @@ void VideoDECODEVP8_HW::DecodeInitDequantization(MFX_VP8_BoolDecoder &dec)
       else
       {
         qp = m_quantInfo.yacQP + m_frame_info.segmentFeatureData[VP8Defs::VP8_ALT_QUANT][segment_id];
-        vp8_CLIP(qp, 0, VP8_MAX_QP);
+        qp = mfx::clamp(qp, 0, VP8_MAX_QP);
       }
     }
     else
@@ -963,13 +963,13 @@ void VideoDECODEVP8_HW::DecodeInitDequantization(MFX_VP8_BoolDecoder &dec)
 
 
     m_quantInfo.yacQ[segment_id]  = qp;
-    m_quantInfo.ydcQ[segment_id]  = vp8_CLIP_value(qp + m_quantInfo.ydcDeltaQP, 0, VP8_MAX_QP);
+    m_quantInfo.ydcQ[segment_id]  = mfx::clamp(qp + m_quantInfo.ydcDeltaQP,  0, VP8_MAX_QP);
 
-    m_quantInfo.y2acQ[segment_id] = vp8_CLIP_value(qp + m_quantInfo.y2acDeltaQP, 0, VP8_MAX_QP);
-    m_quantInfo.y2dcQ[segment_id] = vp8_CLIP_value(qp + m_quantInfo.y2dcDeltaQP, 0, VP8_MAX_QP);
+    m_quantInfo.y2acQ[segment_id] = mfx::clamp(qp + m_quantInfo.y2acDeltaQP, 0, VP8_MAX_QP);
+    m_quantInfo.y2dcQ[segment_id] = mfx::clamp(qp + m_quantInfo.y2dcDeltaQP, 0, VP8_MAX_QP);
 
-    m_quantInfo.uvacQ[segment_id] = vp8_CLIP_value(qp + m_quantInfo.uvacDeltaQP, 0, VP8_MAX_QP);
-    m_quantInfo.uvdcQ[segment_id] = vp8_CLIP_value(qp + m_quantInfo.uvdcDeltaQP, 0, VP8_MAX_QP);
+    m_quantInfo.uvacQ[segment_id] = mfx::clamp(qp + m_quantInfo.uvacDeltaQP, 0, VP8_MAX_QP);
+    m_quantInfo.uvdcQ[segment_id] = mfx::clamp(qp + m_quantInfo.uvdcDeltaQP, 0, VP8_MAX_QP);
 
 
   }

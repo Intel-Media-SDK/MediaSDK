@@ -31,12 +31,6 @@ namespace VP8Defs
 {
 #define VP8_START_CODE_FOUND(ptr) ((ptr)[0] == 0x9d && (ptr)[1] == 0x01 && (ptr)[2] == 0x2a)
 
-#define vp8_CLIP(x, min, max) if ((x) < (min)) (x) = (min); else if ((x) > (max)) (x) = (max)
-#define vp8_CLIP_value(x, min, max) (((x) < (min)) ? (min) : (((x) > (max)) ? (max) : (x)))
-#define vp8_CLIPR(x, max) if ((x) > (max)) (x) = (max)
-
-#define vp8_CLIP255(x) ((x) > 255) ? 255 : ((x) < 0) ? 0 : (x)
-
 #define VP8_MAX_NUM_OF_TOKEN_PARTITIONS 8
 #define VP8_MIN_QP 0
 #define VP8_MAX_QP 127
@@ -150,9 +144,8 @@ extern const uint8_t  vp8_default_mv_contexts[2][VP8_NUM_MV_PROBS];
 // get this from h264 sources - need test?????
 extern const uint8_t vp8_ClampTbl[768];
 
-#define clip(x) MFX_MIN(256, MFX_MAX(x, -256))
 #define vp8_GetClampTblValue(x) vp8_ClampTbl[256 + (x)]
-#define vp8_ClampTblLookup(x, y) vp8_GetClampTblValue((x) + clip(y))
+#define vp8_ClampTblLookup(x, y) vp8_GetClampTblValue((x) + mfx::clamp(y, -256, 256))
 
 #define vp8_clamp8s(x) vp8_ClampTblLookup((x), 128) - 128
 #define vp8_clamp8u(x) vp8_ClampTblLookup((x),  0)
