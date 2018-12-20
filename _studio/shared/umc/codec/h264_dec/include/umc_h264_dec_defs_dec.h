@@ -27,7 +27,6 @@
 
 #include <vector>
 #include "umc_structures.h"
-#include "umc_array.h"
 
 namespace UMC
 {
@@ -549,7 +548,7 @@ struct H264ApplicableOp
     // to which the the level indicated by level_idc[ i ] applies. The value of
     // applicable_op_num_target_views_minus1[ i ][ j ] shall be in the
     // range of 0 to 1023, inclusive.
-    UMC::Array<uint16_t> applicable_op_target_view_id;
+    std::vector<uint16_t> applicable_op_target_view_id;
     // ue(v) plus 1 specifies the number of views required for decoding the
     // target output views corresponding to the j-th operation point to which
     // the level indicated by level_idc[ i ] applies.
@@ -567,7 +566,7 @@ struct H264LevelValueSignaled
     uint16_t num_applicable_ops_minus1;
 
     // Array of applicable operation points for the current level value signalled
-    UMC::Array<H264ApplicableOp> opsInfo;
+    std::vector<H264ApplicableOp> opsInfo;
 
 };
 
@@ -580,7 +579,7 @@ struct H264SeqParamSetMVCExtension : public H264SeqParamSet
     uint32_t num_views_minus1;
 
     // Array of views reference info structures.
-    UMC::Array<H264ViewRefInfo> viewInfo;
+    std::vector<H264ViewRefInfo> viewInfo;
 
     // ue(v) plus 1 specifies the number of level values signalled for
     // the coded video sequence. The value of num_level_values_signalled_minus1
@@ -588,7 +587,7 @@ struct H264SeqParamSetMVCExtension : public H264SeqParamSet
     uint32_t num_level_values_signalled_minus1;
 
     // Array of level value signaled structures
-    UMC::Array<H264LevelValueSignaled> levelInfo;
+    std::vector<H264LevelValueSignaled> levelInfo;
 
     virtual void Reset()
     {

@@ -577,7 +577,6 @@ void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
         {
             int32_t abs_diff_view_idx = pReorderInfo->reorder_value[i];
             int32_t maxViewIdx;
-            uint32_t currVOIdx = 0, viewIdx;
             int32_t targetViewID;
 
             if (!m_pSeqParamSetMvcEx)
@@ -591,25 +590,21 @@ void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
             int32_t curPOC = m_pCurrentFrame->PicOrderCnt(m_pCurrentFrame->GetNumberByParity(m_SliceHeader.bottom_field_flag), pocForce);
 
             // set current VO index
-            for (viewIdx = 0; viewIdx <= m_pSeqParamSetMvcEx->num_views_minus1; viewIdx += 1)
+            const auto currView = std::find_if(m_pSeqParamSetMvcEx->viewInfo.begin(), m_pSeqParamSetMvcEx->viewInfo.end(),
+                                         [this](const UMC_H264_DECODER::H264ViewRefInfo &item){ return item.view_id == m_SliceHeader.nal_ext.mvc.view_id; });
+            if (currView == m_pSeqParamSetMvcEx->viewInfo.end())
             {
-                if (m_SliceHeader.nal_ext.mvc.view_id == m_pSeqParamSetMvcEx->viewInfo[viewIdx].view_id)
-                {
-                    currVOIdx = viewIdx;
-                    break;
-                }
+                throw h264_exception(UMC_ERR_INVALID_STREAM);
             }
-
-            const UMC_H264_DECODER::H264ViewRefInfo &viewInfo = m_pSeqParamSetMvcEx->viewInfo[currVOIdx];
 
             // get the maximum number of reference
             if (m_SliceHeader.nal_ext.mvc.anchor_pic_flag)
             {
-                maxViewIdx = viewInfo.num_anchor_refs_lx[listNum];
+                maxViewIdx = currView->num_anchor_refs_lx[listNum];
             }
             else
             {
-                maxViewIdx = viewInfo.num_non_anchor_refs_lx[listNum];
+                maxViewIdx = currView->num_non_anchor_refs_lx[listNum];
             }
 
             // get the index of view reference
@@ -640,11 +635,11 @@ void H264Slice::ReOrderRefPicList(H264DecoderFrame **pRefPicList,
             // get the target view
             if (m_SliceHeader.nal_ext.mvc.anchor_pic_flag)
             {
-                targetViewID = viewInfo.anchor_refs_lx[listNum][picViewIdxLX];
+                targetViewID = currView->anchor_refs_lx[listNum][picViewIdxLX];
             }
             else
             {
-                targetViewID = viewInfo.non_anchor_refs_lx[listNum][picViewIdxLX];
+                targetViewID = currView->non_anchor_refs_lx[listNum][picViewIdxLX];
             }
             ViewList::iterator iter = views.begin();
             ViewList::iterator iter_end = views.end();
