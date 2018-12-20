@@ -101,7 +101,6 @@ namespace MfxHwH265EncodeBRC
 #define ltrprintf(...)
 //#define ltrprintf printf
 
-#define Saturate(min_val, max_val, val) MFX_MAX((min_val), MFX_MIN((max_val), (val)))
 #define BRC_SCENE_CHANGE_RATIO1 20.0
 #define BRC_SCENE_CHANGE_RATIO2 5.0
 
