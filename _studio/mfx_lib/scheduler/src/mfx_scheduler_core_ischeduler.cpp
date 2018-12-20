@@ -68,27 +68,15 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
     }
 
     // clean up the task look up table
-    umcRes = m_ppTaskLookUpTable.Alloc(MFX_MAX_NUMBER_TASK);
-    if (UMC::UMC_OK != umcRes)
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
+    m_ppTaskLookUpTable.resize(MFX_MAX_NUMBER_TASK, nullptr);
 
     // allocate the dependency table
-    m_pDependencyTable.Alloc(MFX_MAX_NUMBER_TASK * 2);
-    if (UMC::UMC_OK != umcRes)
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
+    m_pDependencyTable.resize(MFX_MAX_NUMBER_TASK * 2, MFX_DEPENDENCY_ITEM());
 
     // allocate the thread assignment object table.
     // its size should be equal to the number of task,
     // larger table is not required.
-    m_occupancyTable.Alloc(MFX_MAX_NUMBER_TASK);
-    if (UMC::UMC_OK != umcRes)
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
+    m_occupancyTable.resize(MFX_MAX_NUMBER_TASK, MFX_THREAD_ASSIGNMENT());
 
     if (MFX_SINGLE_THREAD != m_param.flags)
     {
@@ -182,8 +170,6 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxSyncPoint syncPoint, mfxU32 timeToWai
 
 mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 {
-    MFX_SCHEDULER_TASK *pTask;
-
     // check error(s)
     if (0 == m_param.numberOfThreads)
     {
@@ -191,8 +177,9 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
     }
 
     // look up the task
-    pTask = m_ppTaskLookUpTable[handle.taskID];
-    if (NULL == pTask)
+    MFX_SCHEDULER_TASK *pTask = m_ppTaskLookUpTable.at(handle.taskID);
+
+    if (nullptr == pTask)
     {
         return MFX_ERR_NULL_PTR;
     }
@@ -328,7 +315,7 @@ mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 
         for (curIdx = 0; curIdx < m_numDependencies; curIdx += 1)
         {
-            if (m_pDependencyTable[curIdx].p == pDependency)
+            if (m_pDependencyTable.at(curIdx).p == pDependency)
             {
                 // get the handle before leaving protected section
                 waitHandle.taskID = m_pDependencyTable[curIdx].pTask->taskID;
@@ -572,7 +559,7 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
         mfxStatus mfxRes;
         MFX_SCHEDULER_TASK *pTask, **ppTemp;
         mfxTaskHandle handle;
-        MFX_THREAD_ASSIGNMENT *pAssignment = NULL;
+        MFX_THREAD_ASSIGNMENT *pAssignment = nullptr;
         mfxU32 occupancyIdx;
         int type;
 
@@ -597,6 +584,10 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
         if (MFX_ERR_NONE != mfxRes)
         {
             return mfxRes;
+        }
+        if (m_occupancyTable.size() <= occupancyIdx)
+        {
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
         pAssignment = &(m_occupancyTable[occupancyIdx]);
 

@@ -33,7 +33,8 @@
 
 #include <umc_semaphore.h>
 #include <umc_event.h>
-#include <umc_array.h>
+
+#include <vector>
 
 #include "mfx_common.h"
 
@@ -384,7 +385,7 @@ protected:
     // so synchronization is not necessary to access them.
 
     // Table to get a task by handle value
-    UMC::Array<MFX_SCHEDULER_TASK *> m_ppTaskLookUpTable;
+    std::vector<MFX_SCHEDULER_TASK *> m_ppTaskLookUpTable;
     // Queue of available tasks
     MFX_SCHEDULER_TASK *m_pFreeTasks;
 
@@ -395,12 +396,12 @@ protected:
     // Dependency table.
     // There are an index: it holds the number of values valid in the array.
     // The array may have larger size.
-    UMC::Array<MFX_DEPENDENCY_ITEM> m_pDependencyTable;
+    std::vector<MFX_DEPENDENCY_ITEM> m_pDependencyTable;
     volatile
     mfxU32 m_numDependencies;
 
     // Threads assignment table.
-    UMC::Array<MFX_THREAD_ASSIGNMENT> m_occupancyTable;
+    std::vector<MFX_THREAD_ASSIGNMENT> m_occupancyTable;
     // Number of valid entries in the table.
     volatile
     mfxU32 m_numOccupancies;
