@@ -38,7 +38,7 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
         return UMC_ERR_NULL_PTR;
 
     // calculate size
-    if ((uint32_t)seqEx->num_level_values_signalled_minus1 + 1 != seqEx->levelInfo.Size())
+    if ((uint32_t)seqEx->num_level_values_signalled_minus1 + 1 != seqEx->levelInfo.size())
     {
         return UMC_ERR_FAILED;
     }
@@ -47,25 +47,22 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
     size_t numberOfPoints = 0;
     size_t numberOfTargets = 0;
 
-    for (size_t i = 0; i < seqEx->levelInfo.Size(); i++)
+    for (const auto & levelSignal : seqEx->levelInfo)
     {
-        const UMC_H264_DECODER::H264LevelValueSignaled & levelSignal = seqEx->levelInfo[i];
-
-        if ((uint32_t)levelSignal.num_applicable_ops_minus1 + 1 != levelSignal.opsInfo.Size())
+        if ((uint32_t)levelSignal.num_applicable_ops_minus1 + 1 != levelSignal.opsInfo.size())
         {
             return UMC_ERR_FAILED;
         }
 
-        for (size_t j = 0; j < levelSignal.opsInfo.Size(); j++)
+        for (const auto & ops : levelSignal.opsInfo)
         {
-            const UMC_H264_DECODER::H264ApplicableOp & ops = levelSignal.opsInfo[j];
-            if ((uint32_t)ops.applicable_op_num_target_views_minus1 + 1 != ops.applicable_op_target_view_id.Size())
+            if ((uint32_t)ops.applicable_op_num_target_views_minus1 + 1 != ops.applicable_op_target_view_id.size())
             {
                 return UMC_ERR_FAILED;
             }
 
             numberOfPoints++;
-            numberOfTargets += ops.applicable_op_target_view_id.Size();
+            numberOfTargets += ops.applicable_op_target_view_id.size();
         }
     }
 
@@ -78,10 +75,10 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
         return UMC_ERR_NOT_ENOUGH_BUFFER;
     }
 
-    for (size_t i = 0; i < seqEx->viewInfo.Size(); i++)
+    size_t view_number = 0;
+    for (const auto & viewInfo : seqEx->viewInfo)
     {
-        const UMC_H264_DECODER::H264ViewRefInfo & viewInfo = seqEx->viewInfo[i];
-        mfxMVCViewDependency * dependency = &points->View[i];
+        mfxMVCViewDependency * dependency = &points->View[view_number];
         dependency->ViewId = (mfxU16)viewInfo.view_id;
 
         dependency->NumAnchorRefsL0 = viewInfo.num_anchor_refs_lx[0];
@@ -101,33 +98,26 @@ Status FillVideoParamExtension(const UMC_H264_DECODER::H264SeqParamSetMVCExtensi
             dependency->NonAnchorRefL0[k] = viewInfo.non_anchor_refs_lx[0][k];
             dependency->NonAnchorRefL1[k] = viewInfo.non_anchor_refs_lx[1][k];
         }
+        view_number++;
     }
 
     mfxU16 * targetViews = points->ViewId;
     mfxMVCOperationPoint * operationPoints = &points->OP[0];
 
-    for (size_t i = 0; i < seqEx->levelInfo.Size(); i++)
+    for (const auto & levelSignal : seqEx->levelInfo)
     {
-        const UMC_H264_DECODER::H264LevelValueSignaled & levelSignal = seqEx->levelInfo[i];
-
-        for (size_t j = 0; j < levelSignal.opsInfo.Size(); j++)
+        for (const auto & ops : levelSignal.opsInfo)
         {
-            const UMC_H264_DECODER::H264ApplicableOp & ops = levelSignal.opsInfo[j];
-
             operationPoints->TemporalId = ops.applicable_op_temporal_id;
             operationPoints->LevelIdc = levelSignal.level_idc;
             operationPoints->NumViews = ops.applicable_op_num_views_minus1 + 1;
             operationPoints->NumTargetViews = ops.applicable_op_num_target_views_minus1 + 1;
             operationPoints->TargetViewId = targetViews;
 
-            for (size_t k = 0; k < ops.applicable_op_target_view_id.Size(); k++)
-            {
-                uint16_t targetView = ops.applicable_op_target_view_id[k];
-                operationPoints->TargetViewId[k] = targetView;
-            }
+            std::copy(ops.applicable_op_target_view_id.begin(), ops.applicable_op_target_view_id.end(), operationPoints->TargetViewId);
 
             operationPoints++;
-            targetViews += ops.applicable_op_target_view_id.Size();
+            targetViews += ops.applicable_op_target_view_id.size();
         }
     }
 

@@ -198,10 +198,7 @@ void SVC_Extension::ChooseLevelIdc(const H264SeqParamSetSVCExtension * extension
     uint8_t maxLevel = MFX_MAX(baseViewLevelIDC, extensionLevelIdc);
     m_level_idc = MFX_MAX(maxLevel, m_level_idc);
 
-    if (!m_level_idc)
-    {
-        VM_ASSERT(false);
-    }
+    assert(m_level_idc != 0);
 }
 
 /****************************************************************************************************/
@@ -610,7 +607,7 @@ void DecReferencePictureMarking::SlideWindow(ViewItem &view, H264Slice * pSlice,
         !field_index)
     {
         // mark oldest short-term reference as unused
-        VM_ASSERT(NumShortTermRefs > 0);
+        assert(NumShortTermRefs > 0);
 
         H264DecoderFrame * pFrame = view.GetDPBList(0)->findOldestShortTermRef();
 
@@ -795,7 +792,7 @@ Status DecReferencePictureMarking::UpdateRefPicMarking(ViewItem &view, H264Decod
                 case 0:
                 default:
                     // invalid mmco command in bitstream
-                    VM_ASSERT(0);
+                    assert(0);
                     umcRes = UMC_ERR_INVALID_STREAM;
                 }    // switch
             }    // for arpmmf_idx
@@ -1186,13 +1183,13 @@ void MVC_Extension::ChooseLevelIdc(const H264SeqParamSetMVCExtension * extension
     if (m_level_idc)
         return;
 
-    VM_ASSERT(extension->viewInfo.Size() == extension->num_views_minus1 + 1);
+    assert(extension->viewInfo.size() == extension->num_views_minus1 + 1);
 
-    if (!m_viewIDsList.size())
+    if (m_viewIDsList.empty())
     {
-        for (size_t i = 0; i <= extension->num_views_minus1; i++)
+        for (const auto & viewInfo : extension->viewInfo)
         {
-            m_viewIDsList.push_back(extension->viewInfo[i].view_id);
+            m_viewIDsList.push_back(viewInfo.view_id);
         }
 
         ViewIDsList::iterator iter = m_viewIDsList.begin();
@@ -1212,33 +1209,18 @@ void MVC_Extension::ChooseLevelIdc(const H264SeqParamSetMVCExtension * extension
 
     m_level_idc = 0;
 
-    for (uint32_t i = 0; i <= extension->num_level_values_signalled_minus1; i++)
+    for (const auto & levelInfo : extension->levelInfo)
     {
-        const H264LevelValueSignaled & levelInfo = extension->levelInfo[i];
-
-        for (uint32_t j = 0; j <= levelInfo.num_applicable_ops_minus1; j++)
+        for (const auto & operationPoint : levelInfo.opsInfo)
         {
-            const H264ApplicableOp & operationPoint = levelInfo.opsInfo[j];
-
-            ViewIDsList::const_iterator iter = m_viewIDsList.begin();
-            ViewIDsList::const_iterator iter_end = m_viewIDsList.end();
-
             bool foundAll = true;
 
-            for (; iter != iter_end; ++iter)
+            for (const auto & targetView : m_viewIDsList)
             {
-                bool found = false;
-                uint32_t targetView = *iter;
-                for (uint32_t tv = 0; tv <= operationPoint.applicable_op_num_target_views_minus1; tv++)
-                {
-                    if (targetView == operationPoint.applicable_op_target_view_id[tv])
-                    {
-                        found = true;
-                        break;
-                    }
-                }
+                auto it = std::find_if(operationPoint.applicable_op_target_view_id.begin(), operationPoint.applicable_op_target_view_id.end(),
+                                       [targetView](const uint16_t & item){ return item == targetView; });
 
-                if (!found)
+                if (it == operationPoint.applicable_op_target_view_id.end())
                 {
                     foundAll = false;
                     break;
@@ -1258,10 +1240,7 @@ void MVC_Extension::ChooseLevelIdc(const H264SeqParamSetMVCExtension * extension
     uint8_t maxLevel = MFX_MAX(baseViewLevelIDC, extensionLevelIdc);
     m_level_idc = MFX_MAX(maxLevel, m_level_idc);
 
-    if (!m_level_idc)
-    {
-        VM_ASSERT(false);
-    }
+    assert(m_level_idc != 0);
 }
 
 /****************************************************************************************************/
@@ -1681,7 +1660,7 @@ void SEI_Storer::Reset()
 
 void SEI_Storer::SetFrame(H264DecoderFrame * frame, int32_t auIndex)
 {
-    VM_ASSERT(frame);
+    assert(frame);
     for (uint32_t i = 0; i < m_payloads.size(); i++)
     {
         if (m_payloads[i].frame == 0 && m_payloads[i].isUsed && m_payloads[i].auID == auIndex)
@@ -1704,7 +1683,7 @@ void SEI_Storer::SetAUID(int32_t auIndex)
 
 void SEI_Storer::SetTimestamp(H264DecoderFrame * frame)
 {
-    VM_ASSERT(frame);
+    assert(frame);
     double ts = frame->m_dFrameTime;
 
     for (uint32_t i = 0; i < m_payloads.size(); i++)
@@ -3303,7 +3282,7 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
 
             if (!(flags & MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME))
             {
-                VM_ASSERT(!m_pLastSlice);
+                assert(!m_pLastSlice);
                 return AddSlice(0, true);
             }
 
@@ -3409,7 +3388,7 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
 
         if (!(flags & MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME))
         {
-            VM_ASSERT(!m_pLastSlice);
+            assert(!m_pLastSlice);
             return AddSlice(0, true);
         }
     }
@@ -3994,7 +3973,7 @@ void TaskSupplier::InitFrameCounter(H264DecoderFrame * pFrame, const H264Slice *
     if (view.GetPOCDecoder(0)->DetectFrameNumGap(pSlice, true))
     {
         H264DBPList* dpb = view.GetDPBList(0);
-        VM_ASSERT(dpb);
+        assert(dpb);
 
         uint32_t NumShortTerm, NumLongTerm;
         dpb->countActiveRefs(NumShortTerm, NumLongTerm);

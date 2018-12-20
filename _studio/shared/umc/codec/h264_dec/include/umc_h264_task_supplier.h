@@ -800,15 +800,10 @@ inline H264DBPList *GetDPB(ViewList &views, int32_t viewId, int32_t dIdRev = 0)
 
 inline uint32_t GetVOIdx(const UMC_H264_DECODER::H264SeqParamSetMVCExtension *pSeqParamSetMvc, uint32_t viewId)
 {
-    for (uint32_t i = 0; i <= pSeqParamSetMvc->num_views_minus1; ++i)
-    {
-        if (pSeqParamSetMvc->viewInfo[i].view_id == viewId)
-        {
-            return i;
-        }
-    }
+    auto it = std::find_if(pSeqParamSetMvc->viewInfo.begin(), pSeqParamSetMvc->viewInfo.end(),
+                           [viewId](const UMC_H264_DECODER::H264ViewRefInfo & item){ return item.view_id == viewId; });
 
-    return 0;
+    return (pSeqParamSetMvc->viewInfo.end() != it) ? (it - pSeqParamSetMvc->viewInfo.begin()) : 0;
 
 } // uint32_t GetVOIdx(const H264SeqParamSetMVCExtension *pSeqParamSetMvc, uint32_t viewId)
 

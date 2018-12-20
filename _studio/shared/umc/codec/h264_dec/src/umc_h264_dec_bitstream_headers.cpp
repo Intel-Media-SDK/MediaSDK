@@ -1039,11 +1039,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
     }
 
     // allocate the views' info structs
-    Status umcRes = pSPSMvcExt->viewInfo.Alloc(pSPSMvcExt->num_views_minus1 + 1);
-    if (UMC_OK != umcRes)
-    {
-        return umcRes;
-    }
+    pSPSMvcExt->viewInfo.resize(pSPSMvcExt->num_views_minus1 + 1, H264ViewRefInfo());
 
     // parse view IDs
     for (uint32_t i = 0; i <= pSPSMvcExt->num_views_minus1; i += 1)
@@ -1067,7 +1063,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
         for (listNum = LIST_0; listNum <= LIST_1; listNum += 1)
         {
             // decode LX anchor refs info
-            umcRes = DecodeViewReferenceInfo(viewRefInfo.num_anchor_refs_lx[listNum],
+            Status umcRes = DecodeViewReferenceInfo(viewRefInfo.num_anchor_refs_lx[listNum],
                                              viewRefInfo.anchor_refs_lx[listNum],
                                              *this);
             if (UMC_OK != umcRes)
@@ -1087,7 +1083,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
         {
 
             // decode L0 non-anchor refs info
-            umcRes = DecodeViewReferenceInfo(viewRefInfo.num_non_anchor_refs_lx[listNum],
+            Status umcRes = DecodeViewReferenceInfo(viewRefInfo.num_non_anchor_refs_lx[listNum],
                                              viewRefInfo.non_anchor_refs_lx[listNum],
                                              *this);
             if (UMC_OK != umcRes)
@@ -1105,11 +1101,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
     }
 
     // allocate the level info structure
-    umcRes = pSPSMvcExt->levelInfo.Alloc(pSPSMvcExt->num_level_values_signalled_minus1 + 1);
-    if (UMC_OK != umcRes)
-    {
-        return umcRes;
-    }
+    pSPSMvcExt->levelInfo.resize(pSPSMvcExt->num_level_values_signalled_minus1 + 1, H264LevelValueSignaled());
 
     // decode all ops
     for (uint32_t i = 0; i <= pSPSMvcExt->num_level_values_signalled_minus1; i += 1)
@@ -1128,11 +1120,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
         }
 
         // allocate the operation points structures
-        umcRes = levelInfo.opsInfo.Alloc(levelInfo.num_applicable_ops_minus1 + 1);
-        if (UMC_OK != umcRes)
-        {
-            return umcRes;
-        }
+        levelInfo.opsInfo.resize(levelInfo.num_applicable_ops_minus1 + 1, H264ApplicableOp());
 
         // decode operation points
         for (j = 0; j <= levelInfo.num_applicable_ops_minus1; j += 1)
@@ -1151,11 +1139,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
             }
 
             // allocate the target view ID array
-            umcRes = op.applicable_op_target_view_id.Alloc(op.applicable_op_num_target_views_minus1 + 1);
-            if (UMC_OK != umcRes)
-            {
-                return umcRes;
-            }
+            op.applicable_op_target_view_id.resize(op.applicable_op_num_target_views_minus1 + 1, 0);
 
             // read target view IDs
             for (k = 0; k <= op.applicable_op_num_target_views_minus1; k += 1)
