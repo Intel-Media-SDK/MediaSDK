@@ -123,7 +123,8 @@ IPPFUN(IppStatus,mfxiYCbCr422_8u_P3C2R,( const Ipp8u* pSrc[3], int srcStep[3],
 # if _IPP < _IPP_A6
 
   roiSize.width *=  2;
-  for(int i = 0; i < roiSize.height; i++) {
+  int i;
+  for(i = 0; i < roiSize.height; i++) {
       int j;
       int k = 0;
       int m = 0;
