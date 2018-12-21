@@ -196,6 +196,12 @@ void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<m
 
 //mfxStatus QueryExtParams()
 
+// ToDo: we have 5 copies of IsOn() function. 
+// It should be moved into api/include/mfxstructures.h
+inline bool IsOn(mfxU16 opt)
+{
+    return opt == MFX_CODINGOPTION_ON;
+}
 
 #endif // __MFX_VPP_UTILS_H
 

@@ -131,6 +131,13 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
         pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->mirroringConfig);
     }
 
+    if( VPP_FILTER_ENABLED_CONFIGURED == pParams->colorfillParam[paramID].mode )
+    {
+        pResources->colorfillConfig = pParams->colorfillParam[paramID];
+        pVppParam->ExtParam[pVppParam->NumExtParam++] = &(pResources->colorfillConfig.Header);
+
+    }
+
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->procampParam[paramID].mode )
     {
         pResources->procampConfig.Header.BufferId = MFX_EXTBUFF_VPP_PROCAMP;

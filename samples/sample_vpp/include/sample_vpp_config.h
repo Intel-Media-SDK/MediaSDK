@@ -125,6 +125,17 @@ typedef struct
 
 } sDenoiseParam;
 
+struct sColorFillParam: public mfxExtVPPColorFill
+{
+    FilterConfig mode= VPP_FILTER_DISABLED;
+    sColorFillParam():
+        mfxExtVPPColorFill()
+    {
+        Header.BufferId = MFX_EXTBUFF_VPP_COLORFILL;
+        Header.BufferSz = sizeof(mfxExtVPPColorFill);
+    }
+} ;
+
 #ifdef ENABLE_MCTF
 typedef struct
 {
