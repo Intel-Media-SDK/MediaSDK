@@ -2325,6 +2325,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
 
     pDst8u = m_ccomp[0].GetCCBufferPtr(0/*thread_id*/);
 
+    if(!pSrc8u)
+    {
+      LOG0("Error: empty pSrc8u in CJPEGEncoder::ColorConvert()");
+      return JPEG_ERR_INTERNAL;
+    }
     status = mfxiRGBToY_JPEG_8u_C3C1R(pSrc8u,srcStep,pDst8u,dstStep,roi);
     if(ippStsNoErr != status)
     {
