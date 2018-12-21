@@ -154,7 +154,6 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
     VAStatus  va_res  = VA_STATUS_SUCCESS;
     unsigned int va_fourcc = 0;
     VASurfaceID* surfaces = NULL;
-    VASurfaceAttrib attrib;
     vaapiMemId *vaapi_mids = NULL, *vaapi_mid = NULL;
     mfxMemId* mids = NULL;
     mfxU32 fourcc = request->Info.FourCC;
@@ -206,23 +205,27 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
         if( VA_FOURCC_P208 != va_fourcc )
         {
             unsigned int format;
+            VASurfaceAttrib attrib[2];
+            int attrCnt = 0;
 
-            attrib.type          = VASurfaceAttribPixelFormat;
-            attrib.flags         = VA_SURFACE_ATTRIB_SETTABLE;
-            attrib.value.type    = VAGenericValueTypeInteger;
-            attrib.value.value.i = va_fourcc;
+            attrib[attrCnt].type          = VASurfaceAttribPixelFormat;
+            attrib[attrCnt].flags         = VA_SURFACE_ATTRIB_SETTABLE;
+            attrib[attrCnt].value.type    = VAGenericValueTypeInteger;
+            attrib[attrCnt++].value.value.i = va_fourcc;
             format               = va_fourcc;
 
             if (fourcc == MFX_FOURCC_VP8_NV12)
             {
                 // special configuration for NV12 surf allocation for VP8 hybrid encoder is required
-                attrib.type          = (VASurfaceAttribType)VASurfaceAttribUsageHint;
-                attrib.value.value.i = VA_SURFACE_ATTRIB_USAGE_HINT_ENCODER;
+                attrib[attrCnt].type          = (VASurfaceAttribType)VASurfaceAttribUsageHint;
+                attrib[attrCnt].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[attrCnt].value.type      = VAGenericValueTypeInteger;
+                attrib[attrCnt++].value.value.i = VA_SURFACE_ATTRIB_USAGE_HINT_ENCODER;
             }
             else if (fourcc == MFX_FOURCC_VP8_MBDATA)
             {
                 // special configuration for MB data surf allocation for VP8 hybrid encoder is required
-                attrib.value.value.i = VA_FOURCC_P208;
+                attrib[0].value.value.i = VA_FOURCC_P208;
                 format               = VA_FOURCC_P208;
             }
             else if (va_fourcc == VA_FOURCC_NV12)
@@ -247,7 +250,7 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
                                     request->Info.Width, request->Info.Height,
                                     surfaces,
                                     surfaces_num,
-                                    &attrib, 1);
+                                    &attrib[0], attrCnt);
 
             mfx_res = va_to_mfx_status(va_res);
             bCreateSrfSucceeded = (MFX_ERR_NONE == mfx_res);
