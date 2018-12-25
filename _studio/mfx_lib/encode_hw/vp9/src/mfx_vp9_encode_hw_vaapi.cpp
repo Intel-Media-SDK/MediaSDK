@@ -593,6 +593,10 @@ VAAPIEncoder::VAAPIEncoder()
 , m_packedHeaderParameterBufferId(VA_INVALID_ID)
 , m_packedHeaderDataBufferId(VA_INVALID_ID)
 , m_tempLayersBufferId(VA_INVALID_ID)
+, m_width(0)
+, m_height(0)
+, m_isBrcResetRequired(false)
+, m_platform()
 {
 } // VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
 
@@ -1004,9 +1008,7 @@ mfxStatus VAAPIEncoder::Execute(
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
     VASurfaceID *inputSurface = (VASurfaceID*)pair.first;
-    VASurfaceID reconSurface;
     VABufferID  codedBuffer;
-    mfxU32 i;
 
     std::vector<VABufferID> configBuffers;
     configBuffers.resize(MAX_CONFIG_BUFFERS_COUNT);
