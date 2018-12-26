@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1062,6 +1062,18 @@ namespace
     {
         return mfxU8(std::lower_bound(QSTEP, QSTEP + 52, qstep) - QSTEP);
     }
+
+    mfxU8 Qstep2QpRound(mfxF64 qstep)
+    {
+       mfxU8 qp_ceil = QStep2QpCeil(qstep);
+
+       if (qp_ceil && qstep - QSTEP[qp_ceil - 1] < QSTEP[qp_ceil] - qstep)
+       {
+           return qp_ceil - 1;
+       }
+
+       return qp_ceil;
+    }
 }
 
 #ifdef _DEBUG
@@ -1510,12 +1522,8 @@ mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
 {
     mfxF64 qstep     = QSTEP[std::min<mfxU8>(51, curQP)];
     mfxF64 qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
-    mfxU8  qp_new    = QStep2QpCeil(qstep_new);
 
-    if (qp_new < 51 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new + 1]) / 2)
-        qp_new++;
-
-    return qp_new;
+    return Qstep2QpRound(qstep_new);
 }
 mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
 {
