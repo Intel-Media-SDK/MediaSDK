@@ -599,8 +599,7 @@ mfxStatus VideoDECODEVP9_HW::GetOutputSurface(mfxFrameSurface1 **surface_out, mf
     mfxFrameSurface1 *pNativeSurface = m_FrameAllocator->GetSurface(index, surface_work, &m_vInitPar);
     if (pNativeSurface)
     {
-        mfxFrameSurface1 *pOpaqueSurface = m_core->GetOpaqSurface(pNativeSurface->Data.MemId);
-        *surface_out = pOpaqueSurface ? pOpaqueSurface : pNativeSurface;
+        *surface_out = m_is_opaque_memory ? m_core->GetOpaqSurface(pNativeSurface->Data.MemId) : pNativeSurface;
     }
     else
         return MFX_ERR_UNDEFINED_BEHAVIOR;
