@@ -1283,26 +1283,11 @@ typedef struct {
     }Layer[8];
 } mfxExtAvcTemporalLayers;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-enum {
-    MFX_MEMORY_TILING_LINEAR = 0x0001,
-    MFX_MEMORY_TILING_Y      = 0x0002,
-    MFX_MEMORY_TILING_X      = 0x0004
-};
-
-#endif
-
 typedef struct {
     mfxExtBuffer Header;
 
     mfxU32      MBPerSec;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      InputMemoryTiling;
-    mfxU16      reserved[57];
-#else
     mfxU16      reserved[58];
-#endif
 } mfxExtEncoderCapability;
 
 typedef struct {

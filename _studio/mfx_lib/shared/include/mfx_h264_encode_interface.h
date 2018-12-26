@@ -140,11 +140,6 @@ namespace MfxHwH264Encode
             mfxU32              (&mbPerSec)[16]) = 0;
 
         virtual
-        mfxStatus QueryInputTilingSupport(
-            mfxVideoParam const & /*par*/,
-            mfxU32               & inputTiling) { inputTiling = 0; return MFX_ERR_NONE; };
-
-        virtual
         mfxStatus QueryStatus(
             DdiTask & task,
             mfxU32    fieldId) = 0;

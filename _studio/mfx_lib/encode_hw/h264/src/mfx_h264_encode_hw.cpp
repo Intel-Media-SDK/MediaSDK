@@ -562,21 +562,6 @@ mfxStatus ImplementationAvc::Query(
             return MFX_ERR_UNSUPPORTED;
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        mfxU32 inputTiling = 0;
-        mfxU32 Width  = in->mfx.FrameInfo.Width == 0 ? 1920: in->mfx.FrameInfo.Width;
-        mfxU32 Height = in->mfx.FrameInfo.Height == 0 ? 1088: in->mfx.FrameInfo.Height;
-        // query input tiling support from the driver
-        sts = QueryInputTilingSupport(core, *in, inputTiling, MSDK_Private_Guid_Encode_AVC_Query, Width, Height);
-        if (sts != MFX_ERR_NONE)
-        {
-            extCaps->InputMemoryTiling = 0;
-            if (sts == MFX_ERR_UNSUPPORTED)
-                return sts; // driver don't support reporting of MB processing rate
-
-            return MFX_WRN_PARTIAL_ACCELERATION; // any other HW problem
-        }
-#endif
         return MFX_ERR_NONE;
     }
     else if (5 == queryMode)
