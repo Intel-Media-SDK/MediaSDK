@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 Intel Corporation
+// Copyright (c) 2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __genx_cnl_simple_me__
-#define __genx_cnl_simple_me__
-extern const unsigned char genx_cnl_simple_me[259388];
+#ifndef __genx_simple_me_gen7__
+#define __genx_simple_me_gen7__
+extern const unsigned char genx_simple_me_gen7[220797];
 #endif

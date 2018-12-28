@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __genx_cnl_histogram__
-#define __genx_cnl_histogram__
-extern const unsigned char genx_cnl_histogram[62934];
+#ifndef __genx_histogram_gen10__
+#define __genx_histogram_gen10__
+extern const unsigned char genx_histogram_gen10[62934];
 #endif

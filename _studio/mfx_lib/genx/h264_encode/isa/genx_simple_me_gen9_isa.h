@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef __genx_icllp_histogram__
-#define __genx_icllp_histogram__
-extern const unsigned char genx_icllp_histogram[63286];
+#ifndef __genx_simple_me_gen9__
+#define __genx_simple_me_gen9__
+extern const unsigned char genx_simple_me_gen9[259428];
 #endif

@@ -32,15 +32,15 @@
 #include "mfx_h264_encode_cm_defs.h"
 #include "mfx_h264_encode_cm.h"
 #include "mfx_h264_encode_hw_utils.h"
-#include "genx_bdw_simple_me_isa.h"
-#include "genx_skl_simple_me_isa.h"
-#include "genx_skl_histogram_isa.h"
-#include "genx_cnl_simple_me_isa.h"
-#include "genx_cnl_histogram_isa.h"
-#include "genx_icl_simple_me_isa.h"
-#include "genx_icl_histogram_isa.h"
-#include "genx_icllp_simple_me_isa.h"
-#include "genx_icllp_histogram_isa.h"
+#include "genx_simple_me_gen8_isa.h"
+#include "genx_simple_me_gen9_isa.h"
+#include "genx_histogram_gen9_isa.h"
+#include "genx_simple_me_gen10_isa.h"
+#include "genx_histogram_gen10_isa.h"
+#include "genx_simple_me_gen11_isa.h"
+#include "genx_histogram_gen11_isa.h"
+#include "genx_simple_me_gen11lp_isa.h"
+#include "genx_histogram_gen11lp_isa.h"
 
 
 namespace MfxHwH264EncodeHW
@@ -48,7 +48,7 @@ namespace MfxHwH264EncodeHW
 
 using MfxHwH264Encode::CmRuntimeError;
 
-///const char   ME_PROGRAM_NAME[] = "genx_hsw_simple_me.isa";
+///const char   ME_PROGRAM_NAME[] = "genx_simple_me_gen7.isa";
 const mfxU32 SEARCHPATHSIZE    = 56;
 const mfxU32 BATCHBUFFER_END   = 0x5000000;
 
@@ -863,26 +863,26 @@ void CmContext::Setup(
 #ifdef MFX_ENABLE_KERNELS
     case MFX_HW_BDW:
     case MFX_HW_CHT:
-        m_program = ReadProgram(m_device, genx_bdw_simple_me, SizeOf(genx_bdw_simple_me));
+        m_program = ReadProgram(m_device, genx_simple_me_gen8, SizeOf(genx_simple_me_gen8));
         break;
     case MFX_HW_SCL:
     case MFX_HW_APL:
     case MFX_HW_KBL:
     case MFX_HW_CFL:
-        m_program = ReadProgram(m_device, genx_skl_simple_me, SizeOf(genx_skl_simple_me));
-        m_programHist = ReadProgram(m_device, genx_skl_histogram, SizeOf(genx_skl_histogram));
+        m_program = ReadProgram(m_device, genx_simple_me_gen9, SizeOf(genx_simple_me_gen9));
+        m_programHist = ReadProgram(m_device, genx_histogram_gen9, SizeOf(genx_histogram_gen9));
         break;
     case MFX_HW_CNL:
-        m_program = ReadProgram(m_device, genx_cnl_simple_me, SizeOf(genx_cnl_simple_me));
-        m_programHist = ReadProgram(m_device, genx_cnl_histogram, SizeOf(genx_cnl_histogram));
+        m_program = ReadProgram(m_device, genx_simple_me_gen10, SizeOf(genx_simple_me_gen10));
+        m_programHist = ReadProgram(m_device, genx_histogram_gen10, SizeOf(genx_histogram_gen10));
         break;
     case MFX_HW_ICL:
-        m_program = ReadProgram(m_device, genx_icl_simple_me, SizeOf(genx_icl_simple_me));
-        m_programHist = ReadProgram(m_device, genx_icl_histogram, SizeOf(genx_icl_histogram));
+        m_program = ReadProgram(m_device, genx_simple_me_gen11, SizeOf(genx_simple_me_gen11));
+        m_programHist = ReadProgram(m_device, genx_histogram_gen11, SizeOf(genx_histogram_gen11));
         break;
     case MFX_HW_ICL_LP:
-        m_program = ReadProgram(m_device, genx_icllp_simple_me, SizeOf(genx_icllp_simple_me));
-        m_programHist = ReadProgram(m_device, genx_icllp_histogram, SizeOf(genx_icllp_histogram));
+        m_program = ReadProgram(m_device, genx_simple_me_gen11lp, SizeOf(genx_simple_me_gen11lp));
+        m_programHist = ReadProgram(m_device, genx_histogram_gen11lp, SizeOf(genx_histogram_gen11lp));
         break;
 #endif
     default:
