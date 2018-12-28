@@ -2032,7 +2032,12 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckMax(par.mfx.NumRefFrame, maxDPB - 1);
 
     if (par.mfx.NumRefFrame)
-        maxDPB = par.mfx.NumRefFrame + 1;
+    {
+        // If NumActiveRef parameters are set already, DPB size should not be less than NumActiveRef+1
+        maxDPB = Max<mfxU16>(
+            Max<mfxU16>(par.mfx.NumRefFrame + 1, par.m_ext.DDI.NumActiveRefP+1),
+            Max<mfxU16>(par.m_ext.DDI.NumActiveRefBL0+1, par.m_ext.DDI.NumActiveRefBL1+1)) ;
+    }
 
 
     if (   (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
