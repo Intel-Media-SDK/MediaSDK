@@ -387,7 +387,10 @@ void Launcher::DoTranscoding()
             if (!m_pThreadContextArray[i]->handle.valid())
                 continue;
 
-            auto waitSts = m_pThreadContextArray[i]->handle.wait_for(std::chrono::milliseconds(1));
+            //Payslip interval to check the state of working threads:
+            //such interval is usually a realtime, i.e. for 30 fps this would be 33ms,
+            //66ms typically mean either 1/fps or 2/fps payslip checks.
+            auto waitSts = m_pThreadContextArray[i]->handle.wait_for(std::chrono::milliseconds(66));
             if (waitSts == std::future_status::ready)
             {
                 // Invoke get() of the handle just to reset the valid state.

@@ -2886,6 +2886,12 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8To1x1(int16_t* pMCUBuf,
     {
       curr_comp = &m_ccomp[c];
       qtbl = m_qntbl[curr_comp->m_q_selector];
+      if(!qtbl)
+      {
+          LOG1("Error: in CJPEGDecoder::ReconstructMCURowBL8x8To1x1() m_qntbl[] is empty for ",
+               curr_comp->m_q_selector);
+          return JPEG_ERR_INTERNAL;
+      }
 
       for(k = 0; k < curr_comp->m_vsampling; k++)
       {
@@ -2899,7 +2905,7 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8To1x1(int16_t* pMCUBuf,
           {
             dst += (l == 0) ? 0 : 1;
 
-          DCT_QUANT_INV8x8To1x1LS(pMCUBuf, dst, qtbl);
+            DCT_QUANT_INV8x8To1x1LS(pMCUBuf, dst, qtbl);
 
             pMCUBuf += DCTSIZE2;
           } // for m_hsampling

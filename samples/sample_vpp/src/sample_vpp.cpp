@@ -144,6 +144,8 @@ static
     pParams->steParam.clear();              pParams->steParam.push_back(            *pDefaultFiltersParam->pSkinParam           );
     pParams->istabParam.clear();            pParams->istabParam.push_back(          *pDefaultFiltersParam->pImgStabParam        );
 
+    pParams->colorfillParam.clear();        pParams->colorfillParam.push_back(      *pDefaultFiltersParam->pColorfillParam      );
+
     // ROI check
     pParams->roiCheckParam.mode = ROI_FIX_TO_FIX; // ROI check is disabled
     pParams->roiCheckParam.srcSeed = 0;
@@ -355,6 +357,7 @@ int main(int argc, msdk_char *argv[])
     sSVCParam                 defaultSVCParam             = { {}, VPP_FILTER_DISABLED };
     sVideoSignalInfoParam     defaultVideoSignalInfoParam;
     sMirroringParam           defaultMirroringParam;
+    sColorFillParam           defaultColorfillParam;
 
     sFiltersParam             defaultFiltersParam =
     { &defaultOwnFrameInfo,
@@ -376,7 +379,9 @@ int main(int argc, msdk_char *argv[])
     &defaultImgStabParam,
     &defaultSVCParam,
     &defaultVideoSignalInfoParam,
-    &defaultMirroringParam};
+    &defaultMirroringParam,
+    &defaultColorfillParam};
+
 
     //reset pointers to the all internal resources
     MSDK_ZERO_MEMORY(Resources);

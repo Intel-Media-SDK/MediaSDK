@@ -562,21 +562,6 @@ mfxStatus ImplementationAvc::Query(
             return MFX_ERR_UNSUPPORTED;
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        mfxU32 inputTiling = 0;
-        mfxU32 Width  = in->mfx.FrameInfo.Width == 0 ? 1920: in->mfx.FrameInfo.Width;
-        mfxU32 Height = in->mfx.FrameInfo.Height == 0 ? 1088: in->mfx.FrameInfo.Height;
-        // query input tiling support from the driver
-        sts = QueryInputTilingSupport(core, *in, inputTiling, MSDK_Private_Guid_Encode_AVC_Query, Width, Height);
-        if (sts != MFX_ERR_NONE)
-        {
-            extCaps->InputMemoryTiling = 0;
-            if (sts == MFX_ERR_UNSUPPORTED)
-                return sts; // driver don't support reporting of MB processing rate
-
-            return MFX_WRN_PARTIAL_ACCELERATION; // any other HW problem
-        }
-#endif
         return MFX_ERR_NONE;
     }
     else if (5 == queryMode)
@@ -2198,6 +2183,26 @@ mfxU32 GetMaxFrameSize(DdiTask const & task, MfxVideoParam const &video, Hrd con
         std::min(maxFrameSize_hrd,maxFrameSize):
         std::max(maxFrameSize_hrd,maxFrameSize);
 }
+
+void ImplementationAvc::PreserveTimeStamp(mfxU64 timeStamp)
+{
+    // insert the unknown time stamp in the list end.
+    if (timeStamp == static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN))
+    {
+        m_timeStamps.push_back(timeStamp);
+        return;
+    }
+    // insert the valid time stamp in the increasing order.
+    auto it = std::find_if(std::begin(m_timeStamps), std::end(m_timeStamps),
+                 [timeStamp](mfxU64 currTimeStamp)
+                 {
+                     return (currTimeStamp  != static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN))
+                         && (static_cast<mfxI64>(currTimeStamp) > static_cast<mfxI64>(timeStamp));                         
+                 });
+
+    m_timeStamps.insert(it, timeStamp);
+}
+
 void ImplementationAvc::AssignDecodeTimeStamp(DdiTask & task)
 {
     mfxU8 numReorderFrames = GetNumReorderFrames(m_video);
@@ -2254,7 +2259,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_ACCEPT_FRAME");
         DdiTask & newTask = m_incoming.front();
-        m_timeStamps.push_back(newTask.m_timeStamp);
 
        if (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
        {
@@ -2291,6 +2295,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 AssignFrameTypes(newTask);
             }
 
+            m_timeStamps.push_back(newTask.m_timeStamp);
             m_frameOrder++;
         }
         else
@@ -2302,6 +2307,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
             if (newTask.m_picStruct[ENC] == MFX_PICSTRUCT_FIELD_BFF)
                 std::swap(newTask.m_type.top, newTask.m_type.bot);
+
+            PreserveTimeStamp(newTask.m_timeStamp);
         }
 
         // move task to reordering queue

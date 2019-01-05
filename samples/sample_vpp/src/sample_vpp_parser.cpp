@@ -155,6 +155,8 @@ msdk_printf(MSDK_STRING("                                  GlobalAlpha=128\n"));
 msdk_printf(MSDK_STRING("                                  LumaKeyEnable=1\n"));
 msdk_printf(MSDK_STRING("                                  LumaKeyMin=250\n"));
 msdk_printf(MSDK_STRING("                                  LumaKeyMax=255\n"));
+msdk_printf(MSDK_STRING("   [-cf_disable]                  disable colorfill\n"));
+
 msdk_printf(MSDK_STRING("   Video Enhancement Algorithms\n"));
 
 msdk_printf(MSDK_STRING("   [-di_mode (mode)] - set type of deinterlace algorithm\n"));
@@ -992,6 +994,11 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
             {
                 break;
             }
+            else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf_disable")) )
+            {
+                pParams->colorfillParam[paramID].mode = VPP_FILTER_ENABLED_CONFIGURED;
+                pParams->colorfillParam[paramID].Enable = MFX_CODINGOPTION_OFF;
+            }
             else
             {
                 msdk_printf(MSDK_STRING("Unknow reset option: %s\n"), strInput[i]);
@@ -1744,6 +1751,11 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
 
                 if (MFX_ERR_NONE != vppParseResetPar(strInput, nArgNum, i, pParams, (mfxU32)pParams->resetFrmNums.size(), pDefaultFiltersParam))
                     return MFX_ERR_UNKNOWN;
+            }
+            else if ( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-cf_disable")) )
+            {
+                pParams->colorfillParam[0].mode = VPP_FILTER_ENABLED_CONFIGURED;
+                pParams->colorfillParam[0].Enable = MFX_CODINGOPTION_OFF;
             }
             else
             {
