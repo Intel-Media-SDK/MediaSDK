@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -4392,7 +4392,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckRangeDflt(extOpt2->SkipFrame, 0, 3, 0)) changed = true;
 
-    if ( extOpt2->SkipFrame && hwCaps.SkipFrame == 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_HRD)
+    if ( extOpt2->SkipFrame && hwCaps.SkipFrame == 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
         extOpt2->SkipFrame = 0;
         changed = true;
@@ -4498,19 +4498,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (!CheckRangeDflt(extOpt2->MinQPI, 0, (extOpt2->MaxQPI ? extOpt2->MaxQPI : 51), 0)) changed = true;
         if (!CheckRangeDflt(extOpt2->MinQPP, 0, (extOpt2->MaxQPP ? extOpt2->MaxQPP : 51), 0)) changed = true;
         if (!CheckRangeDflt(extOpt2->MinQPB, 0, (extOpt2->MaxQPB ? extOpt2->MaxQPB : 51), 0)) changed = true;
-    }
-    if ((extOpt3->WinBRCSize > 0 && (par.mfx.RateControlMethod != MFX_RATECONTROL_VBR && par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR)) || (par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD))
-    {
-        if (extOpt2->SkipFrame!=0 && extOpt2->SkipFrame != MFX_SKIPFRAME_INSERT_DUMMY)
-        {
-            extOpt2->SkipFrame = MFX_SKIPFRAME_INSERT_DUMMY;
-            changed = true;
-        }
-        if (extOpt2->BRefType != MFX_B_REF_OFF && extOpt2->BRefType != 0)
-        {
-            extOpt2->BRefType  = MFX_B_REF_OFF;
-            changed = true;
-        }
     }
     if (!CheckTriStateOption(extOpt3->BRCPanicMode)) changed = true;
     if (IsOff(extOpt3->BRCPanicMode)
@@ -5215,11 +5202,6 @@ namespace
                     return false;
         return true;
     }
-
-    bool IsPowerOf2(mfxU32 n)
-    {
-        return (n & (n - 1)) == 0;
-    }
 };
 
 bool IsHRDBasedBRCMethod(mfxU16  RateControlMethod)
@@ -5426,11 +5408,6 @@ void MfxHwH264Encode::SetDefaults(
         }
     }
 
-    if ((!extOpt2->SkipFrame) && ((extOpt3->WinBRCSize > 0 && (par.mfx.RateControlMethod != MFX_RATECONTROL_VBR && par.mfx.RateControlMethod != MFX_RATECONTROL_QVBR)) || par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD))
-    {
-        extOpt2->SkipFrame = MFX_SKIPFRAME_INSERT_DUMMY;
-    }
-
     //WA for MVC quality problem on progressive content.
     if (IsMvcProfile(par.mfx.CodecProfile)) {
         extDdi->NumActiveRefP = extDdi->NumActiveRefBL0 = extDdi->NumActiveRefBL1 = 1;
@@ -5509,9 +5486,7 @@ void MfxHwH264Encode::SetDefaults(
         if (platform >= MFX_HW_HSW && platform != MFX_HW_VLV &&
             IsDyadic(par.calcParam.scale, par.calcParam.numTemporalLayer) &&
             par.mfx.GopRefDist >= 4 &&
-            IsPowerOf2(par.mfx.GopRefDist) &&
-            par.mfx.GopPicSize % par.mfx.GopRefDist == 0 &&
-            !bRateControlLA(par.mfx.RateControlMethod) &&
+            par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT &&
             (!par.mfx.NumRefFrame || par.mfx.NumRefFrame >= GetMinNumRefFrameForPyramid(par)))
         {
             extOpt2->BRefType = mfxU16(par.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE ? MFX_B_REF_PYRAMID : MFX_B_REF_OFF);
