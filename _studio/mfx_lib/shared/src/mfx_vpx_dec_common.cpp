@@ -212,25 +212,15 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.FrameRateExtD = p_in->mfx.FrameInfo.FrameRateExtD;
             }
 
-            if ((p_in->mfx.FrameInfo.AspectRatioW || p_in->mfx.FrameInfo.AspectRatioH) &&
-                (!p_in->mfx.FrameInfo.AspectRatioW || !p_in->mfx.FrameInfo.AspectRatioH))
+            if ((p_in->mfx.FrameInfo.AspectRatioW == 0) != (p_in->mfx.FrameInfo.AspectRatioH == 0))
             {
                 sts = MFX_ERR_UNSUPPORTED;
             }
             else
             {
-                if ((p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioW != 1) ||
-                    (p_in->mfx.FrameInfo.AspectRatioH && p_in->mfx.FrameInfo.AspectRatioH != 1))
-                {
-                    sts = MFX_ERR_UNSUPPORTED;
-                }
-                else
-                {
-                    p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
-                    p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
-                }
+                p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
+                p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
             }
-
 
             if (p_in->mfx.ExtendedPicStruct)
                 sts = MFX_ERR_UNSUPPORTED;
@@ -331,11 +321,7 @@ namespace MFX_VPX_Utility
             return false;
 
         // both zero or not zero
-        if ((p_in->mfx.FrameInfo.AspectRatioW || p_in->mfx.FrameInfo.AspectRatioH) && !(p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioH))
-            return false;
-        
-        if ((p_in->mfx.FrameInfo.AspectRatioW && p_in->mfx.FrameInfo.AspectRatioW != 1) ||
-            (p_in->mfx.FrameInfo.AspectRatioH && p_in->mfx.FrameInfo.AspectRatioH != 1))
+        if ((p_in->mfx.FrameInfo.AspectRatioW == 0) != (p_in->mfx.FrameInfo.AspectRatioH == 0))
             return false;
 
         if (!(p_in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) && !(p_in->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY) && !(p_in->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY))
