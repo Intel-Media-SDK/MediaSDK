@@ -2023,21 +2023,6 @@ JERRCODE CJPEGEncoder::Init(void)
       curr_comp->m_cc_step   = m_curr_scan.numxMCU * m_curr_scan.mcuWidth;
       break;
 
-    //case JPEG_EXTENDED:
-    //  curr_comp->m_cc_height = m_mcuHeight;
-    //  curr_comp->m_cc_step   = m_numxMCU * m_mcuWidth * ((m_jpeg_precision <= 8) ? sizeof(uint8_t) : sizeof(int16_t));
-    //  break;
-
-    //case JPEG_PROGRESSIVE:
-    //  curr_comp->m_cc_height = m_mcuHeight;
-    //  curr_comp->m_cc_step   = m_numxMCU * m_mcuWidth;
-    //  break;
-
-    //case JPEG_LOSSLESS:
-    //  curr_comp->m_cc_height = m_mcuHeight;
-    //  curr_comp->m_cc_step   = m_numxMCU * m_mcuWidth * sizeof(int16_t);
-    //  break;
-
     default:
       return JPEG_ERR_PARAMS;
     }
@@ -2055,13 +2040,6 @@ JERRCODE CJPEGEncoder::Init(void)
     if(JPEG_OK != jerr)
       return jerr;
 
-    if(JPEG_LOSSLESS == m_jpeg_mode)
-    {
-      curr_comp->m_row1.Allocate(curr_comp->m_cc_step);
-      curr_comp->m_row2.Allocate(curr_comp->m_cc_step);
-      curr_comp->m_curr_row = (int16_t*)curr_comp->m_row1.m_buffer;
-      curr_comp->m_prev_row = (int16_t*)curr_comp->m_row2.m_buffer;
-    }
   } // for m_jpeg_ncomp
 
   if(JPEG_PROGRESSIVE == m_jpeg_mode)
@@ -2081,24 +2059,6 @@ JERRCODE CJPEGEncoder::Init(void)
     else
       tr_buf_size = m_curr_scan.numxMCU * m_curr_scan.numyMCU * m_nblock * DCTSIZE2 * sizeof(int16_t) * m_num_threads;
     break;
-
-  //case JPEG_EXTENDED:
-  //  if(!m_optimal_htbl)
-  //    tr_buf_size = m_numxMCU * m_nblock * DCTSIZE2 * sizeof(int16_t) * m_num_threads;
-  //  else
-  //    tr_buf_size = m_numxMCU * m_numyMCU * m_nblock * DCTSIZE2 * sizeof(int16_t) * m_num_threads;
-  //  break;
-
-  //case JPEG_PROGRESSIVE:
-  //  tr_buf_size = m_numxMCU * m_numyMCU * m_nblock * DCTSIZE2 * sizeof(int16_t) * m_num_threads;
-  //  break;
-
-  //case JPEG_LOSSLESS:
-  //  if(!m_optimal_htbl)
-  //    tr_buf_size = m_numxMCU * m_nblock * sizeof(int16_t) * m_num_threads;
-  //  else
-  //    tr_buf_size = m_numxMCU * m_numyMCU * m_nblock * sizeof(int16_t) * m_num_threads;
-  //  break;
 
   default:
     return JPEG_ERR_PARAMS;
@@ -2320,6 +2280,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
     int    dstStep;
     uint8_t* pDst8u;
 
+    if(m_src.precision > 8)
+    {
+      return JPEG_ERR_INTERNAL;
+    }
+
     dstStep = m_ccomp[0].m_cc_step;
     convert = 1;
 
@@ -2456,6 +2421,10 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
 
     if(JD_PIXEL == m_src.order)
     {
+      if(m_src.precision > 8)
+      {
+        return JPEG_ERR_INTERNAL;
+      }
       status = mfxiRGBToYCbCr_JPEG_8u_C3P3R(pSrc8u,srcStep,pDst8u,dstStep,roi);
     }
     else
@@ -2482,6 +2451,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
     int    dstStep;
     uint8_t* pDst8u[3];
 
+    if(m_src.precision > 8)
+    {
+      return JPEG_ERR_INTERNAL;
+    }
+
     dstStep = m_ccomp[0].m_cc_step;
     convert = 1;
 
@@ -2503,6 +2477,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
   {
     int    dstStep;
     uint8_t* pDst8u[3];
+
+    if(m_src.precision > 8)
+    {
+      return JPEG_ERR_INTERNAL;
+    }
 
     dstStep = m_ccomp[0].m_cc_step;
     convert = 1;
@@ -2526,6 +2505,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
   {
     int    dstStep[3];
     uint8_t* pDst8u[3];
+
+    if(m_src.precision > 8)
+    {
+      return JPEG_ERR_INTERNAL;
+    }
 
     convert = 1;
 
@@ -2552,6 +2536,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
     int    dstStep;
     uint8_t* pDst8u[4];
 
+    if(m_src.precision > 8)
+    {
+      return JPEG_ERR_INTERNAL;
+    }
+
     dstStep = m_ccomp[0].m_cc_step;
     convert = 1;
 
@@ -2574,6 +2563,11 @@ JERRCODE CJPEGEncoder::ColorConvert(uint32_t rowMCU, uint32_t colMCU, uint32_t m
   {
     int    dstStep;
     uint8_t* pDst8u[4];
+
+    if(m_src.precision > 8)
+    {
+      return JPEG_ERR_INTERNAL;
+    }
 
     dstStep = m_ccomp[0].m_cc_step;
     convert = 1;
@@ -4555,70 +4549,10 @@ JERRCODE CJPEGEncoder::WriteHeader(void)
         }
         break;
 
-      case JPEG_EXTENDED:
-        if(!m_optimal_htbl)
-        {
-          jerr = WriteDHT(&m_dctbl[0]);
-          if(JPEG_OK != jerr)
-          {
-            LOG0("Error: WriteDHT() failed");
-            return jerr;
-          }
-
-          jerr = WriteDHT(&m_actbl[0]);
-          if(JPEG_OK != jerr)
-          {
-            LOG0("Error: WriteDHT() failed");
-            return jerr;
-          }
-
-          if(m_jpeg_ncomp != 1 && (m_jpeg_color == JC_YCBCR || m_jpeg_color == JC_YCCK || m_jpeg_color == JC_NV12))
-          {
-            jerr = WriteDHT(&m_dctbl[1]);
-            if(JPEG_OK != jerr)
-            {
-              LOG0("Error: WriteDHT() failed");
-              return jerr;
-            }
-
-            jerr = WriteDHT(&m_actbl[1]);
-            if(JPEG_OK != jerr)
-            {
-              LOG0("Error: WriteDHT() failed");
-              return jerr;
-            }
-          }
-        }
-        else
-        {
-          GenerateHuffmanTablesEX();
-        }
-        break;
-
       case JPEG_PROGRESSIVE:
         // always generated tables
         break;
 
-      case JPEG_LOSSLESS:
-        if(!m_optimal_htbl)
-        {
-          jerr = WriteDHT(&m_dctbl[0]);
-          if(JPEG_OK != jerr)
-          {
-            LOG0("Error: WriteDHT() failed");
-            return jerr;
-          }
-        }
-        else
-        {
-          jerr = GenerateHuffmanTables();
-          if(JPEG_OK != jerr)
-          {
-            LOG0("Error: GenerateHuffmanTables() failed");
-            return jerr;
-          }
-        }
-        break;
       default:
         break;
       }
