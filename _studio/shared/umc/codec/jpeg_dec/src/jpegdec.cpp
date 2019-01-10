@@ -23,6 +23,7 @@
 
 #include "ippi.h"
 #include "ipps.h"
+#include <memory>
 #include <stdio.h>
 #include <string.h>
 #include "jpegbase.h"
@@ -1913,7 +1914,6 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           int    srcStep;
           int    dstStep;
           uint8_t* pSrc;
-          uint8_t* pTmp;
           uint8_t* pDst;
           uint32_t srcWidth, intervalSize, tileSize, pixelToProcess;
 
@@ -1926,7 +1926,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           // set the pointer to source buffer
           pSrc = curr_comp->GetSSBufferPtr<uint8_t> (0) + 8 * colMCU * curr_comp->m_scan_hsampling;
           // set the pointer to temporary buffer
-          pTmp = (uint8_t*)malloc(2 * srcWidth / m_dd_factor);
+          std::unique_ptr<uint8_t> pTmp( new uint8_t[2 * srcWidth / m_dd_factor] );
           // set the pointer to destination buffer
           pDst = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU * curr_comp->m_h_factor;
          
@@ -1944,10 +1944,9 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
               pixelToProcess = MFX_MIN(tileSize, srcWidth / m_dd_factor);
               while(j < (int) srcWidth / m_dd_factor)
               {
-                  status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pSrc + j, pixelToProcess, pTmp + j * 2);
+                  status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pSrc + j, pixelToProcess, pTmp.get() + j * 2);
                   if(ippStsNoErr != status)
                   {
-                    free(pTmp);
                     LOG0("Error: mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1() failed!");
                     return JPEG_ERR_INTERNAL;
                   }
@@ -1959,10 +1958,9 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
               pixelToProcess = MFX_MIN(2 * tileSize, 2 * srcWidth / m_dd_factor);
               while(j < 2 * (int) srcWidth / m_dd_factor)
               {
-                  status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pTmp + j, pixelToProcess, pDst + j * 2);
+                  status = mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1(pTmp.get() + j, pixelToProcess, pDst + j * 2);
                   if(ippStsNoErr != status)
                   {
-                    free(pTmp);
                     LOG0("Error: mfxiSampleUpRowH2V1_Triangle_JPEG_8u_C1() failed!");
                     return JPEG_ERR_INTERNAL;
                   }
@@ -1973,7 +1971,6 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
               pSrc += srcStep;
               pDst += dstStep;
           }
-          free(pTmp);
 
         } // 411
 
@@ -2046,7 +2043,6 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
             int    srcStep;
             int    tmpStep;
             uint8_t* pSrc;
-            uint8_t* pTmp;
             uint8_t* pDst;
             mfxSize srcRoiSize;
             mfxSize tmpRoiSize;
@@ -2057,7 +2053,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
             // set the pointer to source buffer
             pSrc = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU;
             // set the pointer to temporary buffer
-            pTmp = (uint8_t*)malloc(tmpStep * m_curr_scan->mcuHeight / 2);
+            std::unique_ptr<uint8_t> pTmp( new uint8_t[tmpStep * m_curr_scan->mcuHeight / 2] );
             // set the pointer to destination buffer
             pDst = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU / 2;  
 
@@ -2069,23 +2065,19 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
             tmpRoiSize.width = (maxMCU - colMCU) * 8 / 2;
             tmpRoiSize.height = m_curr_scan->mcuHeight / 2;
 
-            status = mfxiSampleDownH2V2_JPEG_8u_C1R(pSrc, srcStep, srcRoiSize, pTmp, tmpStep, tmpRoiSize);
+            status = mfxiSampleDownH2V2_JPEG_8u_C1R(pSrc, srcStep, srcRoiSize, pTmp.get(), tmpStep, tmpRoiSize);
             if(ippStsNoErr != status)
             {
-                free(pTmp);
                 LOG0("Error: mfxiSampleDownH2V2_JPEG_8u_C1R() failed!");
                 return JPEG_ERR_INTERNAL;
             }
 
-            status = mfxsCopy_8u(pTmp, pDst, tmpStep * m_curr_scan->mcuHeight / 2);
+            status = mfxsCopy_8u(pTmp.get(), pDst, tmpStep * m_curr_scan->mcuHeight / 2);
             if(ippStsNoErr != status)
             {
-                free(pTmp);
                 LOG0("Error: mfxs_Copy_8u() failed!");
                 return JPEG_ERR_INTERNAL;
             }
-
-            free(pTmp);
         }
 
         // vertical downsampling 
@@ -2524,7 +2516,6 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8_NxN(int16_t* pMCUBuf,
   uint8_t*    lnz     = 0;
   uint8_t*    dst     = 0;
   int       dstStep = m_ccWidth;
-  uint16_t*   qtbl;
   int status;
   CJPEGColorComponent* curr_comp;
   const int thread_id = 0;
@@ -2537,12 +2528,12 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8_NxN(int16_t* pMCUBuf,
       lnz       = m_ccomp[c].GetLNZBufferPtr(thread_id);
       curr_lnz  = mcu_col * curr_comp->m_lnz_ds;
 
-      qtbl = m_qntbl[curr_comp->m_q_selector];
+      uint16_t* qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
-        LOG1("Error: in CJPEGDecoder::ReconstructMCURowBL8x8_NxN() m_qntbl[] is empty for ",
-             curr_comp->m_q_selector);
-        return JPEG_ERR_INTERNAL;
+          LOG1("Error: in CJPEGDecoder::ReconstructMCURowBL8x8_NxN() m_qntbl[] is empty for ",
+               curr_comp->m_q_selector);
+          return JPEG_ERR_INTERNAL;
       }
 
       for(k = 0; k < curr_comp->m_vsampling; k++)
