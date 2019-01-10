@@ -2523,11 +2523,13 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
     }
-    if (task.GetFrameType() & MFX_FRAMETYPE_P)
+    else
     {
-        DpbFrame& refFrame = task.m_dpb[0][task.m_list0[0][0] & 127];
+        mfxI32 fid = task.m_fid[0];
+        MFX_CHECK(task.m_list0[fid].Size(), MFX_ERR_UNDEFINED_BEHAVIOR);
+        DpbFrame& refFrame = task.m_dpb[0][task.m_list0[fid][0] & 127];
         mfxFrameData curr = {};
-        mfxFrameData ref  = {};
+        mfxFrameData ref = {};
         curr.MemId = task.m_midRaw;
         ref.MemId  = refFrame.m_midRec;
 
@@ -2535,10 +2537,6 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
         mfxFrameSurface1 surfDst = { {0,}, video.mfx.FrameInfo, curr };
         sts = core.DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE);
 
-    }
-    if (task.GetFrameType() & MFX_FRAMETYPE_B)
-    {
-        task.m_ctrl.SkipFrame = 1;
     }
 
     return sts;
