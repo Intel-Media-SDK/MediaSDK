@@ -98,8 +98,6 @@ CJpegTask::~CJpegTask(void)
 
 void CJpegTask::Close(void)
 {
-    size_t i;
-
     // delete all buffers allocated
     for (auto& pic: m_pics)
     {
