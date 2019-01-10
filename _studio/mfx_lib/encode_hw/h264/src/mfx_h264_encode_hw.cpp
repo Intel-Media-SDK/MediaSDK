@@ -718,6 +718,65 @@ void ImplementationAvc::DestroyDanglingCmResources()
         }
     }
 }
+/*Class for modifying and restoring VideoParams.
+  Needed for initialization some components */
+class ModifiedVideoParams
+{
+public:
+    ModifiedVideoParams() :
+        m_bInit(false),
+        m_RateControlMethod(0),
+        m_LookAheadDepth(0),
+        m_MaxKbps(0)
+    {}
+    void ModifyForDDI(MfxVideoParam & par, bool bSWBRC)
+    {
+        if (!bSWBRC)
+            return;
+        if (!m_bInit)
+            SaveParams(par);
+        // in the case of SWBRC driver works in CQP mode
+        par.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
+    }
+    void ModifyForBRC(MfxVideoParam & par, bool bSWBRC)
+    {
+        mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
+        if (!(bSWBRC && extOpt2.MaxSliceSize))
+            return;
+        if (!m_bInit)
+            SaveParams(par);
+        // int the case of MaxSliceSize BRC works in VBR mode (instead LA)
+        par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
+        par.mfx.MaxKbps = par.mfx.TargetKbps * 2;
+        extOpt2.LookAheadDepth = 0;
+    }
+    void Restore(MfxVideoParam & par)
+    {
+        if (!m_bInit)
+            return;
+        mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
+        par.mfx.RateControlMethod = m_RateControlMethod;
+        par.mfx.MaxKbps = m_MaxKbps;
+        extOpt2.LookAheadDepth = m_LookAheadDepth;
+        m_bInit = false;
+    }
+
+private:
+    bool    m_bInit;
+    mfxU16  m_RateControlMethod;
+    mfxU16  m_LookAheadDepth;
+    mfxU16  m_MaxKbps;
+
+protected:
+    void SaveParams(MfxVideoParam & par)
+    {
+        mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
+        m_RateControlMethod = par.mfx.RateControlMethod;
+        m_LookAheadDepth= extOpt2.LookAheadDepth;
+        m_MaxKbps = par.mfx.MaxKbps;
+        m_bInit = true;
+    }
+};
 
 mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 {
@@ -797,28 +856,16 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     if (m_enabledSwBrc)
     {
         m_brc.SetImpl(CreateBrc(m_video));
-        mfxU16 storedRateControlMethod = m_video.mfx.RateControlMethod;
-        mfxU16 storedLookAheadDepth = extOpt2.LookAheadDepth;
-        mfxU16 storedMaxKbps = m_video.mfx.MaxKbps;
-
-        if (extOpt2.MaxSliceSize)
-        {
-            m_video.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
-            m_video.mfx.MaxKbps = m_video.mfx.TargetKbps*2;
-            extOpt2.LookAheadDepth = 0;
-        }
+        // to change m_video before BRC Init and DDI init
+        ModifiedVideoParams mod_params;
+        mod_params.ModifyForBRC(m_video, true);
         m_brc.Init(m_video);
-        if (extOpt2.MaxSliceSize)
-        {
-            m_video.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
-            m_video.mfx.MaxKbps = storedMaxKbps;
-            extOpt2.LookAheadDepth = storedLookAheadDepth;
-        }
-        m_video.mfx.RateControlMethod = MFX_RATECONTROL_CQP;
+        mod_params.Restore(m_video);
+        mod_params.ModifyForDDI(m_video, true);
         sts = m_ddi->CreateAccelerationService(m_video);
         if (sts != MFX_ERR_NONE)
             return MFX_WRN_PARTIAL_ACCELERATION;
-        m_video.mfx.RateControlMethod = storedRateControlMethod;
+        mod_params.Restore(m_video);
     }
     else
     {
@@ -1387,7 +1434,11 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     m_emulatorForAsyncPart = m_emulatorForSyncPart;
 
     m_hrd.Reset(newPar);
+    // to change m_video before DDI Reset
+    ModifiedVideoParams mod_par;
+    mod_par.ModifyForDDI(newPar, m_enabledSwBrc);
     m_ddi->Reset(newPar);
+    mod_par.Restore(newPar);
 
     m_1stFieldStatus = MFX_ERR_NONE;
     m_fieldCounter   = 0;
@@ -1492,15 +1543,17 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     }
     m_video = newPar;
 
-    if (IsOn(extOpt2New.ExtBRC))
+    if (m_enabledSwBrc)
     {
-        mfxExtEncoderResetOption & resetOption = GetExtBufferRef(newPar);
         if (isIdrRequired)
         {
-            resetOption.StartNewSequence = true;
+            mfxExtEncoderResetOption & resetOption = GetExtBufferRef(newPar);
+            resetOption.StartNewSequence = MFX_CODINGOPTION_ON;
         }
+        mod_par.ModifyForBRC(newPar, true);
         sts = m_brc.Reset(newPar);
         MFX_CHECK_STS(sts);
+        mod_par.Restore(newPar);
     }
     return checkStatus;
 }
