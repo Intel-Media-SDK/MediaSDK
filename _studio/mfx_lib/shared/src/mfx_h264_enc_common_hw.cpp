@@ -8992,22 +8992,22 @@ std::vector<ENCODE_PACKEDHEADER_DATA> const & HeaderPacker::PackSlices(
     DdiTask const & task,
     mfxU32          fieldId)
 {
+    const mfxU32 maxSliceHeaderSize = 50;  //maximum coded slice header size in bytes
+    size_t numSlices = task.m_SliceInfo.size() ?
+        task.m_SliceInfo.size() :
+        task.m_numSlice[fieldId];
+
     if (task.m_SliceInfo.size())
     {
-        mfxU32 numSlices = (mfxU32)task.m_SliceInfo.size();
         m_numMbPerSlice = 0;
-        m_packedSlices.resize(numSlices);
-        if (m_sliceBuffer.size() < (size_t) (numSlices*50))
-        {
-            m_sliceBuffer.resize(numSlices*50);
-        }
-        Zero(m_sliceBuffer);
-    }
-    else if (task.m_numSlice[fieldId])
-    {
-        m_packedSlices.resize(task.m_numSlice[fieldId]);
     }
 
+    m_packedSlices.resize(numSlices);
+    if (m_sliceBuffer.size() < (numSlices * maxSliceHeaderSize))
+    {
+        m_sliceBuffer.resize(numSlices * maxSliceHeaderSize);
+    }
+    Zero(m_sliceBuffer);
     Zero(m_packedSlices);
 
     mfxU8 * sliceBufferBegin = Begin(m_sliceBuffer);
