@@ -571,7 +571,7 @@ void MPEG2VideoDecoderHW::quant_matrix_extension(int task_num)
     {
         for(i= 0; i < 64; i++) {
             GET_TO9BITS(video->bs, 8, code);
-            q_matrix[2][i] = (uint8_t)code;
+            q_matrix[3][i] = (uint8_t)code;
         }
     }
 
