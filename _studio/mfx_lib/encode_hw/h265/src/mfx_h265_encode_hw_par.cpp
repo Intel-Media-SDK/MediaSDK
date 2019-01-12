@@ -2423,7 +2423,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
             (par.m_ext.HEVCParam.SampleAdaptiveOffset == (mfxU16)MFX_SAO_ENABLE_LUMA || par.m_ext.HEVCParam.SampleAdaptiveOffset == (mfxU16)MFX_SAO_ENABLE_CHROMA))
         {
             par.m_ext.HEVCParam.SampleAdaptiveOffset = (mfxU16)MFX_SAO_DISABLE;
-            changed++;
+            invalid++;
         }
     }
     else

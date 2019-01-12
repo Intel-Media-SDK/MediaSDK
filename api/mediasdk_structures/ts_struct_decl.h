@@ -413,22 +413,10 @@ STRUCT(mfxExtAvcTemporalLayers,
     FIELD_S(mfxExtAvcTemporalLayers_Layer, Layer)
 )
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-STRUCT(mfxExtEncoderCapability,
-    FIELD_S(mfxExtBuffer, Header)
-    FIELD_T(mfxU32, MBPerSec)
-    FIELD_T(mfxU16, InputMemoryTiling)
-)
-
-#else
-
 STRUCT(mfxExtEncoderCapability,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU32, MBPerSec)
 )
-
-#endif
 
 STRUCT(mfxExtEncoderResetOption,
     FIELD_S(mfxExtBuffer, Header)

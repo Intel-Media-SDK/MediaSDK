@@ -1428,24 +1428,6 @@ mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const 
     return pEncodeCaps->SetHWCaps<mfxU32>(guid, mbPerSec, 16);
 }
 
-mfxStatus MfxHwH264Encode::QueryInputTilingSupport(VideoCORE* core, mfxVideoParam const & par, mfxU32 &inputTiling, GUID guid, mfxU32 width,  mfxU32 height)
-{
-
-    std::unique_ptr<DriverEncoder> ddi;
-
-    ddi.reset(CreatePlatformH264Encoder(core));
-    if (ddi.get() == 0)
-        return Error(MFX_ERR_DEVICE_FAILED);
-
-    mfxStatus sts = ddi->CreateAuxilliaryDevice(core, guid, width, height, true);
-    MFX_CHECK_STS(sts);
-
-    sts = ddi->QueryInputTilingSupport(par, inputTiling);
-    MFX_CHECK_STS(sts);
-
-    return MFX_ERR_NONE;
-}
-
 mfxStatus MfxHwH264Encode::QueryGuid(VideoCORE* core, GUID guid)
 {
     std::unique_ptr<DriverEncoder> ddi;
@@ -4716,6 +4698,12 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (mfeParam.MaxNumFrames > 1 && mfeParam.MFMode == MFX_MF_DEFAULT)
     {
         mfeParam.MFMode = MFX_MF_AUTO;
+        changed = true;
+    }
+    if (mfeParam.MaxNumFrames > 1 && par.mfx.LowPower == MFX_CODINGOPTION_ON)
+    {
+        mfeParam.MaxNumFrames = 1;
+        mfeParam.MFMode = MFX_MF_DEFAULT;
         changed = true;
     }
     mfxExtMultiFrameControl & mfeControl = GetExtBufferRef(par);

@@ -2050,6 +2050,12 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             MFX_CHECK_NULL_PTR1(bufFRC);
             bufFRC->Algorithm = m_executeParams.frcModeOrig;
         }
+        else if (MFX_EXTBUFF_VPP_COLORFILL == bufferId)
+        {
+            mfxExtVPPColorFill *bufColorfill = reinterpret_cast<mfxExtVPPColorFill *>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufColorfill);
+            bufColorfill->Enable = m_executeParams.iBackgroundColor?MFX_CODINGOPTION_ON:MFX_CODINGOPTION_OFF;
+        }
     }
 
     return MFX_ERR_NONE;
@@ -5130,6 +5136,12 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
 {
     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
     {
+        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_COLORFILL)
+        {
+            mfxExtVPPColorFill *extCF = reinterpret_cast<mfxExtVPPColorFill *>(videoParam.ExtParam[i]);
+            if (!IsOn(extCF->Enable))
+                return 0;
+        }
         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_COMPOSITE)
         {
             mfxExtVPPComposite *extComp = (mfxExtVPPComposite *) videoParam.ExtParam[i];

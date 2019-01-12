@@ -134,6 +134,7 @@ typedef struct _filtersParam
     sSVCParam                 *pSVCParam          ;
     sVideoSignalInfoParam     *pVideoSignalInfo   ;
     sMirroringParam           *pMirroringParam;
+    sColorFillParam           *pColorfillParam    ;
 } sFiltersParam;
 
 struct sInputParams
@@ -165,6 +166,7 @@ struct sInputParams
     std::vector<sSteParam                > steParam;
     std::vector<sIStabParam              > istabParam;
 
+    std::vector<sColorFillParam          > colorfillParam;
     // flag describes type of memory
     // true  - frames in video memory (d3d surfaces),
     // false - in system memory
@@ -496,6 +498,8 @@ struct sAppResources
     //mfxExtVPPSkinTone              steConfig;
     //mfxExtVPPColorSaturationLevel  tccConfig;
     mfxExtVPPImageStab             istabConfig;
+
+    mfxExtVPPColorFill              colorfillConfig;
 
 };
 

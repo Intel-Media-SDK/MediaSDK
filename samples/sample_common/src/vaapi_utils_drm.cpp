@@ -22,216 +22,91 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vaapi_utils_drm.h"
 #include "vaapi_allocator.h"
 #include <fcntl.h>
+#include <sys/ioctl.h>
 
-#include <dirent.h>
 #include <stdexcept>
 
+#include "vaapi_utils_drm.h"
 #include <drm_fourcc.h>
-#include <intel_bufmgr.h>
 
-#define MFX_PCI_DIR "/sys/bus/pci/devices"
-#define MFX_DRI_DIR "/dev/dri/"
-#define MFX_PCI_DISPLAY_CONTROLLER_CLASS 0x03
+constexpr mfxU32 MFX_DRI_MAX_NODES_NUM = 16;
+constexpr mfxU32 MFX_DRI_RENDER_START_INDEX = 128;
+constexpr mfxU32 MFX_DRI_CARD_START_INDEX = 0;
+constexpr  mfxU32 MFX_DRM_DRIVER_NAME_LEN = 4;
+const char* MFX_DRM_INTEL_DRIVER_NAME = "i915";
+const char* MFX_DRI_PATH = "/dev/dri/";
+const char* MFX_DRI_NODE_RENDER = "renderD";
+const char* MFX_DRI_NODE_CARD = "card";
 
-struct mfx_disp_adapters
+int get_drm_driver_name(int fd, char *name, int name_size)
 {
-    mfxU32 vendor_id;
-    mfxU32 device_id;
-};
-
-static int mfx_dir_filter(const struct dirent* dir_ent)
-{
-    if (!dir_ent) return 0;
-    if (!strcmp(dir_ent->d_name, ".")) return 0;
-    if (!strcmp(dir_ent->d_name, "..")) return 0;
-    return 1;
+    drm_version_t version = {};
+    version.name_len = name_size;
+    version.name = name;
+    return ioctl(fd, DRM_IOWR(0, drm_version), &version);
 }
 
-typedef int (*fsort)(const struct dirent**, const struct dirent**);
-
-static mfxU32 mfx_init_adapters(struct mfx_disp_adapters** p_adapters)
+int open_intel_adapter(int type)
 {
-    mfxU32 adapters_num = 0;
-    int i = 0;
-    struct mfx_disp_adapters* adapters = NULL;
-    struct dirent** dir_entries = NULL;
-    int entries_num = scandir(MFX_PCI_DIR, &dir_entries, mfx_dir_filter, (fsort)alphasort);
+    std::string adapterPath = MFX_DRI_PATH;
+    char driverName[MFX_DRM_DRIVER_NAME_LEN + 1] = {};
+    mfxU32 nodeIndex;
 
-    char file_name[300] = {};
-    char str[16] = {0};
-    FILE* file = NULL;
-
-    for (i = 0; i < entries_num; ++i)
-    {
-        long int class_id = 0, vendor_id = 0, device_id = 0;
-
-        if (!dir_entries[i])
-            continue;
-
-        // obtaining device class id
-        snprintf(file_name, sizeof(file_name)/sizeof(file_name[0]), "%s/%s/%s", MFX_PCI_DIR, dir_entries[i]->d_name, "class");
-        file = fopen(file_name, "r");
-        if (file)
-        {
-            if (fgets(str, sizeof(str), file))
-            {
-                class_id = strtol(str, NULL, 16);
-            }
-            fclose(file);
-
-            if (MFX_PCI_DISPLAY_CONTROLLER_CLASS == (class_id >> 16))
-            {
-                // obtaining device vendor id
-                snprintf(file_name, sizeof(file_name)/sizeof(file_name[0]), "%s/%s/%s", MFX_PCI_DIR, dir_entries[i]->d_name, "vendor");
-                file = fopen(file_name, "r");
-                if (file)
-                {
-                    if (fgets(str, sizeof(str), file))
-                    {
-                        vendor_id = strtol(str, NULL, 16);
-                    }
-                    fclose(file);
-                }
-                // obtaining device id
-                snprintf(file_name, sizeof(file_name)/sizeof(file_name[0]), "%s/%s/%s", MFX_PCI_DIR, dir_entries[i]->d_name, "device");
-                file = fopen(file_name, "r");
-                if (file)
-                {
-                    if (fgets(str, sizeof(str), file))
-                    {
-                        device_id = strtol(str, NULL, 16);
-                    }
-                    fclose(file);
-                }
-                // adding valid adapter to the list
-                if (vendor_id && device_id)
-                {
-                    struct mfx_disp_adapters* tmp_adapters = NULL;
-
-                    tmp_adapters = (mfx_disp_adapters*)realloc(adapters,
-                                                               (adapters_num+1)*sizeof(struct mfx_disp_adapters));
-
-                    if (tmp_adapters)
-                    {
-                        adapters = tmp_adapters;
-                        adapters[adapters_num].vendor_id = vendor_id;
-                        adapters[adapters_num].device_id = device_id;
-
-                        ++adapters_num;
-                    }
-                }
-            }
-        }
-        free(dir_entries[i]);
+    switch (type) {
+    case MFX_LIBVA_DRM:
+    case MFX_LIBVA_AUTO:
+        adapterPath += MFX_DRI_NODE_RENDER;
+        nodeIndex = MFX_DRI_RENDER_START_INDEX;
+        break;
+    case MFX_LIBVA_DRM_MODESET:
+        adapterPath += MFX_DRI_NODE_CARD;
+        nodeIndex = MFX_DRI_CARD_START_INDEX;
+        break;
+    default:
+        throw std::invalid_argument("Wrong libVA backend type");
     }
-    if (entries_num) free(dir_entries);
-    if (p_adapters) *p_adapters = adapters;
 
-    return adapters_num;
+    for (mfxU32 i = 0; i < MFX_DRI_MAX_NODES_NUM; ++i) {
+        std::string curAdapterPath = adapterPath + std::to_string(nodeIndex + i);
+
+        int fd = open(curAdapterPath.c_str(), O_RDWR);
+        if (fd < 0) continue;
+
+        if (!get_drm_driver_name(fd, driverName, MFX_DRM_DRIVER_NAME_LEN) &&
+            !strcmp(driverName, MFX_DRM_INTEL_DRIVER_NAME)) {
+            return fd;
+        }
+        close(fd);
+    }
+
+    return -1;
 }
 
 DRMLibVA::DRMLibVA(int type)
     : CLibVA(type)
     , m_fd(-1)
 {
-    const mfxU32 IntelVendorID = 0x8086;
-    //the first Intel adapter is only required now, the second - in the future
-    const mfxU32 numberOfRequiredIntelAdapter = 1;
-    const char nodesNames[][8] = {"renderD", "card"};
-
-    VAStatus va_res = VA_STATUS_SUCCESS;
     mfxStatus sts = MFX_ERR_NONE;
-    int major_version = 0, minor_version = 0;
 
-    mfx_disp_adapters* adapters = NULL;
-    int adapters_num = mfx_init_adapters(&adapters);
+    m_fd = open_intel_adapter(type);
+    if (m_fd < 0) throw std::range_error("Intel GPU was not found");
 
-    // Search for the required display adapter
-    int i = 0, nFoundAdapters = 0;
-    int nodesNumbers[] = {0,0};
-    while ((i < adapters_num) && (nFoundAdapters != numberOfRequiredIntelAdapter))
+    m_va_dpy = m_vadrmlib.vaGetDisplayDRM(m_fd);
+    if (m_va_dpy)
     {
-        if (adapters[i].vendor_id == IntelVendorID)
-        {
-            nFoundAdapters++;
-            nodesNumbers[0] = i+128; //for render nodes
-            nodesNumbers[1] = i;     //for card
-        }
-        i++;
+        int major_version = 0, minor_version = 0;
+        VAStatus va_res = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
+        sts = va_to_mfx_status(va_res);
     }
-    if (adapters_num) free(adapters);
-    // If Intel adapter with specified number wasn't found, throws exception
-    if (nFoundAdapters != numberOfRequiredIntelAdapter)
-        throw std::range_error("The Intel adapter with a specified number wasn't found");
-
-    // Initialization of paths to the device nodes
-    char** adapterPaths = new char* [2];
-    for (int i=0; i<2; i++)
-    {
-        if ((i == 0) && (type == MFX_LIBVA_DRM_MODESET)) {
-          adapterPaths[i] = NULL;
-          continue;
-        }
-        adapterPaths[i] = new char[sizeof(MFX_DRI_DIR) + sizeof(nodesNames[i]) + 3];
-        sprintf(adapterPaths[i], "%s%s%d", MFX_DRI_DIR, nodesNames[i], nodesNumbers[i]);
+    else {
+        sts = MFX_ERR_NULL_PTR;
     }
-
-    // Loading display. At first trying to open render nodes, then card.
-    for (int i=0; i<2; i++)
-    {
-        if (!adapterPaths[i]) {
-          sts = MFX_ERR_UNSUPPORTED;
-          continue;
-        }
-        sts = MFX_ERR_NONE;
-        m_fd = open(adapterPaths[i], O_RDWR);
-
-        if (m_fd < 0) sts = MFX_ERR_NOT_INITIALIZED;
-        if (MFX_ERR_NONE == sts)
-        {
-            m_va_dpy = m_vadrmlib.vaGetDisplayDRM(m_fd);
-
-            if (!m_va_dpy)
-            {
-                close(m_fd);
-                sts = MFX_ERR_NULL_PTR;
-            }
-        }
-
-        if (MFX_ERR_NONE == sts)
-        {
-            va_res = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
-            sts = va_to_mfx_status(va_res);
-            if (MFX_ERR_NONE != sts)
-            {
-                close(m_fd);
-                m_fd = -1;
-            }
-        }
-
-        if (MFX_ERR_NONE == sts) break;
-    }
-
-    for (int i=0; i<2; i++)
-    {
-        delete [] adapterPaths[i];
-    }
-    delete [] adapterPaths;
 
     if (MFX_ERR_NONE != sts)
     {
-        if (m_va_dpy)
-        {
-            m_libva.vaTerminate(m_va_dpy);
-            m_va_dpy=0;
-        }
-        if (m_fd >= 0)
-        {
-            close(m_fd);
-            m_fd=-1;
-        }
-
-        throw std::invalid_argument("Loading of VA display was failed");
+        if (m_va_dpy) m_libva.vaTerminate(m_va_dpy);
+        close(m_fd);
+        throw std::runtime_error("Loading of VA display was failed");
     }
 }
 
