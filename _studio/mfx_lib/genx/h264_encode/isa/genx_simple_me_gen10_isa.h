@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2012-2018 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,17 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef CMRT_EMU
-
-extern "C"
-{
-    void EncMB_I() {}
-    void EncMB_P() {}
-    void EncMB_B() {}
-    void DownSampleMB2X() {}
-    void DownSampleMB4X() {}
-    void HistogramFrame() {}
-    void HistogramFields() {}
-}
-
-#endif // CMRT_EMU
+#ifndef __genx_simple_me_gen10__
+#define __genx_simple_me_gen10__
+extern const unsigned char genx_simple_me_gen10[259388];
+#endif
