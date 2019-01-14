@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -720,8 +720,8 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                     va_size         = sizeof(VASliceParameterBufferHEVCExtension);
                     va_num_elements = size/sizeof(VASliceParameterBufferHEVCExtension);
                 }
-                break;
 #endif
+                break;
             default:
                 va_size         = 0;
                 va_num_elements = 0;
