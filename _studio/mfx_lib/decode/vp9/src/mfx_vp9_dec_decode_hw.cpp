@@ -86,6 +86,173 @@ bool CheckHardwareSupport(VideoCORE *p_core, mfxVideoParam *p_video_param)
     return true;
 }
 
+mfxStatus VideoDECODEVP9_HW::UpdateRefFrames()
+{
+    if (m_frameInfo.show_existing_frame)
+        return MFX_ERR_NONE;
+
+    for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
+    {
+        mfxU8 mask = m_frameInfo.refreshFrameFlags & (1 << ref_index);
+        if (mask != 0 // we should update the reference according to the bitstream data
+
+            // The next condition is for decoder robustness.
+            // After the first keyframe is decoded this frame occupies all ref slots
+            // its mask is 011111111 and the condition "minus one" never hits.
+            // But if the first frame is Inter-frame encoded in the intra-only mode
+            // then we can receive "minus one" ref_frame_map item.
+            // The decoder never should touch these references.
+            // But if the stream is broken then decode may touch not initialized reference
+            // So to prevent crash let's put something as the reference frame.
+            || (m_frameInfo.ref_frame_map[ref_index] == (UMC::FrameMemID)-1))
+        {
+            MFX_CHECK((m_FrameAllocator->IncreaseReference(m_frameInfo.currFrame) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+
+            if (m_frameInfo.ref_frame_map[ref_index] >= 0)
+                MFX_CHECK((m_FrameAllocator->DecreaseReference(m_frameInfo.ref_frame_map[ref_index]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+            m_frameInfo.ref_frame_map[ref_index] = m_frameInfo.currFrame;
+
+            m_frameInfo.sizesOfRefFrame[ref_index].width = m_frameInfo.width;
+            m_frameInfo.sizesOfRefFrame[ref_index].height = m_frameInfo.height;
+        }
+    }
+    return MFX_ERR_NONE;
+}
+mfxStatus VideoDECODEVP9_HW::CleanRefList()
+{
+    for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
+    {
+        if (m_frameInfo.ref_frame_map[ref_index] >= 0)
+            MFX_CHECK((m_FrameAllocator->DecreaseReference(m_frameInfo.ref_frame_map[ref_index]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+
+        m_frameInfo.ref_frame_map[ref_index] = -1;
+    }
+    return MFX_ERR_NONE;
+}
+
+
+class FrameStorage
+{
+private:
+    std::vector<UMC_VP9_DECODER::VP9DecoderFrame> m_submittedFrames;
+    mfx_UMC_FrameAllocator *m_frameAllocator;
+
+    void LockResources(const UMC_VP9_DECODER::VP9DecoderFrame & frame) const
+    {
+        // lock current frame for decode
+        VP9_CHECK_AND_THROW((m_frameAllocator->IncreaseReference(frame.currFrame) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+        // lock frame for copy
+        if (frame.show_existing_frame)
+        {
+            VP9_CHECK_AND_THROW((m_frameAllocator->IncreaseReference(frame.ref_frame_map[frame.frame_to_show]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+        }
+        // lock all references
+        else
+        {
+            for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
+            {
+                const UMC::FrameMemID mid = frame.ref_frame_map[ref_index];
+                if (mid >= 0)
+                {
+                     VP9_CHECK_AND_THROW((m_frameAllocator->IncreaseReference(mid) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+                }
+            }
+        }
+    }
+
+    void UnLockResources(const UMC_VP9_DECODER::VP9DecoderFrame & frame) const
+    {
+        // decoded frame should be unlocked in async routine
+
+        // unlock frame for copy
+        if (frame.show_existing_frame)
+        {
+            VP9_CHECK_AND_THROW((m_frameAllocator->DecreaseReference(frame.ref_frame_map[frame.frame_to_show]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+        }
+        // unlock all references
+        else
+        {
+            for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
+            {
+                const UMC::FrameMemID mid = frame.ref_frame_map[ref_index];
+                if (mid >= 0)
+                {
+                    VP9_CHECK_AND_THROW((m_frameAllocator->DecreaseReference(mid) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+                }
+            }
+        }
+    }
+public:
+    FrameStorage(mfx_UMC_FrameAllocator *frameAllocator):
+        m_submittedFrames(),
+        m_frameAllocator(frameAllocator)
+    {
+    }
+
+    ~FrameStorage()
+    {
+        // unlock all locked resources
+        try
+        {
+            for (auto & it : m_submittedFrames)
+                UnLockResources(it);
+        }
+        catch (vp9_exception const& e)
+        {
+            m_submittedFrames.shrink_to_fit();
+            m_submittedFrames.clear();
+            VM_ASSERT(0);
+        }
+        m_submittedFrames.shrink_to_fit();
+        m_submittedFrames.clear();
+    }
+
+    void Add(UMC_VP9_DECODER::VP9DecoderFrame & frame)
+    {
+        VP9_CHECK_AND_THROW((frame.currFrame >= 0), MFX_ERR_UNKNOWN);
+
+        // lock refereces for current frame
+        LockResources(frame);
+
+        // avoid double submit
+        auto find_it = std::find_if(m_submittedFrames.begin(), m_submittedFrames.end(),
+            [frame](const UMC_VP9_DECODER::VP9DecoderFrame & item){ return item.currFrame == frame.currFrame; });
+        VP9_CHECK_AND_THROW((find_it == m_submittedFrames.end()), MFX_ERR_UNKNOWN);
+
+        m_submittedFrames.push_back(frame);
+    }
+
+    void DecodeFrame(UMC::FrameMemID frameId)
+    {
+        auto find_it = std::find_if(m_submittedFrames.begin(), m_submittedFrames.end(),
+            [frameId](const UMC_VP9_DECODER::VP9DecoderFrame & item){ return item.currFrame == frameId; });
+
+        if (find_it != m_submittedFrames.end())
+        {
+            find_it->isDecoded = true;
+        }
+    }
+
+    void CompleteFrames()
+    {
+        for( auto it = m_submittedFrames.begin(); it != m_submittedFrames.end(); )
+        {
+            if (it->isDecoded)
+            {
+                UnLockResources(*it);
+                it = m_submittedFrames.erase(it);
+            }
+            else
+                it = std::next(it);
+        }
+    }
+
+    bool IsAllFramesCompleted() const
+    {
+        return m_submittedFrames.empty();
+    }
+};
+
 VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
     : m_isInit(false),
       m_is_opaque_memory(false),
@@ -104,7 +271,7 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_response(),
       m_OpaqAlloc(),
       m_stat(),
-      m_va(NULL),
+      m_va(nullptr),
       m_completedList(),
       m_firstSizes(),
       m_bs(),
@@ -374,14 +541,8 @@ mfxStatus VideoDECODEVP9_HW::Close()
 
 void VideoDECODEVP9_HW::ResetFrameInfo()
 {
-    for (mfxU8 i = 0; i < sizeof(m_frameInfo.ref_frame_map)/sizeof(m_frameInfo.ref_frame_map[0]); i++)
-    {
-        const UMC::FrameMemID oldMid = m_frameInfo.ref_frame_map[i];
-        if (oldMid >= 0)
-        {
-            m_FrameAllocator->DecreaseReference(oldMid);
-        }
-    }
+    CleanRefList();
+    m_framesStorage.reset(new FrameStorage(m_FrameAllocator.get()));
 
     memset(&m_frameInfo, 0, sizeof(m_frameInfo));
     m_frameInfo.currFrame = -1;
@@ -702,9 +863,11 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         decoder.m_FrameAllocator->SetSfcPostProcessingFlag(true);
         sts = decoder.m_FrameAllocator->PrepareToOutput(data.surface_work, data.copyFromFrame, 0, false);
         MFX_CHECK_STS(sts);
+
         if (data.currFrameId != -1)
-           decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
-        decoder.m_FrameAllocator->DecreaseReference(data.copyFromFrame);
+            decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
+        decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+
         decoder.m_FrameAllocator->SetSfcPostProcessingFlag(false);
         return MFX_ERR_NONE;
     }
@@ -720,7 +883,6 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     }
 
 #endif
-
 
     if (decoder.m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
     {
@@ -739,7 +901,8 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
 
     if (data.currFrameId != -1)
-       decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
+        decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
+    decoder.m_framesStorage->DecodeFrame(data.currFrameId);
 
     return MFX_TASK_DONE;
 }
@@ -791,10 +954,33 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
 
+    try
+    { m_framesStorage->CompleteFrames(); }
+    catch (vp9_exception const& e)
+    {
+        UMC::Status status = e.GetStatus();
+        if (status != UMC::UMC_OK)
+            return MFX_ERR_UNKNOWN;
+    }
+
     if (NeedToReturnCriticalStatus(bs))
         return ReturningCriticalStatus();
 
-    MFX_CHECK_NULL_PTR2(surface_work, surface_out);
+    if (bs && !bs->DataLength)
+        return MFX_ERR_MORE_DATA;
+
+    MFX_CHECK_NULL_PTR1(surface_out);
+
+    *surface_out = nullptr;
+
+    if (bs == nullptr)
+    {
+        sts = CleanRefList();
+        MFX_CHECK_STS(sts);
+        return m_framesStorage->IsAllFramesCompleted() ? MFX_ERR_MORE_DATA : MFX_WRN_DEVICE_BUSY;
+    }
+
+    MFX_CHECK_NULL_PTR1(surface_work);
 
     if (m_is_opaque_memory)
     {
@@ -808,10 +994,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
         // work with the native (original) surface
         surface_work = GetOriginalSurface(surface_work);
-        if (surface_work == NULL)
-        {
+        if (surface_work == nullptr)
             return MFX_ERR_UNDEFINED_BEHAVIOR;
-        }
     }
 
     sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_VP9, true);
@@ -827,21 +1011,14 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         MFX_CHECK_STS(sts);
     }
 
-
-    sts = bs ? CheckBitstream(bs) : MFX_ERR_NONE;
+    sts = CheckBitstream(bs);
     MFX_CHECK_STS(sts);
-
-    if (!bs || !bs->DataLength)
-    {
-        return MFX_ERR_MORE_DATA;
-    }
 
     if (surface_work->Data.Locked)
         return MFX_ERR_MORE_SURFACE;
 
     m_index++;
     m_frameInfo.showFrame = 0;
-    *surface_out = 0;
 
     sts = DecodeFrameHeader(bs, m_frameInfo);
     MFX_CHECK_STS(sts);
@@ -886,9 +1063,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     MFX_CHECK_STS(sts);
 
     if (m_FrameAllocator->FindFreeSurface() == -1)
-    {
         return MFX_WRN_DEVICE_BUSY;
-    }
 
     sts = PrepareInternalSurface(m_frameInfo.currFrame, surface_work->Info);
     MFX_CHECK_STS(sts);
@@ -897,11 +1072,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     {
         bs->DataOffset += bs->DataLength;
         bs->DataLength = 0;
-    }
-
-    if (UMC::UMC_OK != m_FrameAllocator->IncreaseReference(m_frameInfo.currFrame))
-    {
-        return MFX_ERR_UNKNOWN;
     }
 
     UMC::FrameMemID repeateFrame = UMC::FRAME_MID_INVALID;
@@ -919,13 +1089,10 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
         if (UMC::UMC_OK != m_va->EndFrame())
             return MFX_ERR_DEVICE_FAILED;
-
-        UpdateRefFrames(m_frameInfo.refreshFrameFlags, m_frameInfo); // move to async part
     }
     else
     {
         repeateFrame = m_frameInfo.ref_frame_map[m_frameInfo.frame_to_show];
-        m_FrameAllocator->IncreaseReference(repeateFrame);
         ++m_statusReportFeedbackNumber;
     }
 
@@ -943,11 +1110,24 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     p_entry_point->pState = routineData;
     p_entry_point->requiredNumThreads = 1;
 
+    try
+    { m_framesStorage->Add(m_frameInfo); }
+    catch (vp9_exception const& e)
+    {
+        UMC::Status status = e.GetStatus();
+        if (status != UMC::UMC_OK)
+            return MFX_ERR_UNKNOWN;
+    }
+
+    // update list of references for next frame
+    sts = UpdateRefFrames();
+    MFX_CHECK_STS(sts);
+
+    sts = GetOutputSurface(surface_out, surface_work, m_frameInfo.currFrame);
+    MFX_CHECK_STS(sts);
+
     if (m_frameInfo.showFrame)
     {
-        sts = GetOutputSurface(surface_out, surface_work, m_frameInfo.currFrame);
-        MFX_CHECK_STS(sts);
-
         (*surface_out)->Data.TimeStamp = bs->TimeStamp != static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN) ? bs->TimeStamp : GetMfxTimeStamp(m_frameOrder * m_in_framerate);
         (*surface_out)->Data.Corrupted = 0;
         (*surface_out)->Data.FrameOrder = m_frameOrder;
@@ -962,8 +1142,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     }
     else
     {
-        sts = GetOutputSurface(surface_out, surface_work, m_frameInfo.currFrame);
-        MFX_CHECK_STS(sts);
         surface_out = 0;
         return (mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK;
     }
@@ -1311,43 +1489,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
     catch(const vp9_exception & ex)
     {
         return ConvertStatusUmc2Mfx(ex.GetStatus() );
-    }
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus VideoDECODEVP9_HW::UpdateRefFrames(mfxU8 refreshFrameFlags, VP9DecoderFrame & info)
-{
-    for (mfxI32 ref_index = 0; ref_index < NUM_REF_FRAMES; ++ref_index)
-    {
-        mfxU8 mask = refreshFrameFlags & (1 << ref_index);
-        if ((mask != 0) // we should update the reference according to the bitstream data
-
-            // The next condition is for decoder robustness.
-            // After the first keyframe is decoded this frame occupies all ref slots
-            // its mask is 011111111 and the condition "minus one" never hits.
-            // But if the first frame is Inter-frame encoded in the intra-only mode
-            // then we can receive "minus one" ref_frame_map item.
-            // The decoder never should touch these references.
-            // But if the stream is broken then decode may touch not initialized reference
-            // So to prevent crash let's put something as the reference frame.
-            || (info.ref_frame_map[ref_index] == (UMC::FrameMemID)-1))
-        {
-            const UMC::FrameMemID oldMid = info.ref_frame_map[ref_index];
-            if (oldMid >= 0)
-            {
-                if (m_FrameAllocator->DecreaseReference(oldMid) != UMC::UMC_OK)
-                    return MFX_ERR_UNKNOWN;
-            }
-
-            info.ref_frame_map[ref_index] = info.currFrame;
-
-            info.sizesOfRefFrame[ref_index].width = info.width;
-            info.sizesOfRefFrame[ref_index].height = info.height;
-
-            if (m_FrameAllocator->IncreaseReference(info.currFrame) != UMC::UMC_OK)
-                return MFX_ERR_UNKNOWN;
-        }
     }
 
     return MFX_ERR_NONE;
