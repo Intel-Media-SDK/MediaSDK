@@ -37,6 +37,8 @@
 
 namespace UMC_VP9_DECODER { class Packer; }
 
+class FrameStorage;
+
 class VideoDECODEVP9_HW : public VideoDECODE, public MfxCriticalErrorHandler
 {
 public:
@@ -66,7 +68,8 @@ protected:
     void CalculateTimeSteps(mfxFrameSurface1 *);
     static mfxStatus QueryIOSurfInternal(eMFXPlatform, mfxVideoParam *, mfxFrameAllocRequest *);
 
-    mfxStatus UpdateRefFrames(const mfxU8 refreshFrameFlags, UMC_VP9_DECODER::VP9DecoderFrame & info);
+    mfxStatus UpdateRefFrames();
+    mfxStatus CleanRefList();
 
     mfxStatus DecodeSuperFrame(mfxBitstream *in, UMC_VP9_DECODER::VP9DecoderFrame & info);
     mfxStatus DecodeFrameHeader(mfxBitstream *in, UMC_VP9_DECODER::VP9DecoderFrame & info);
@@ -98,6 +101,7 @@ private:
     std::unique_ptr<mfx_UMC_FrameAllocator> m_FrameAllocator;
 
     std::unique_ptr<UMC_VP9_DECODER::Packer>  m_Packer;
+    std::unique_ptr<FrameStorage> m_framesStorage;
 
     mfxFrameAllocRequest     m_request;
     mfxFrameAllocResponse    m_response;

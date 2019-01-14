@@ -27,7 +27,7 @@
 
 #ifdef MFX_ENABLE_VP9_VIDEO_DECODE
 #include "umc_vp9_dec_defs.h"
-
+#define VP9_CHECK_AND_THROW(exp, err) if(!exp) throw UMC_VP9_DECODER::vp9_exception(MFX_ERR_UNKNOWN)
 
 namespace UMC_VP9_DECODER
 {
