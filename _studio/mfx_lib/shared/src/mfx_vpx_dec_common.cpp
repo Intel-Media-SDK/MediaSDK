@@ -304,8 +304,9 @@ namespace MFX_VPX_Utility
 
     bool CheckVideoParam(mfxVideoParam const*p_in, mfxU32 codecId, eMFXPlatform platform, eMFXHWType hwtype)
     {
+#if (MFX_VERSION < 1027)
         (void)hwtype;
-
+#endif
         if (!p_in)
             return false;
 
