@@ -123,19 +123,25 @@ if(MFX_ENABLE_KERNELS)
     ${prefix}/genx_fcopy_gen11lp_isa.cpp
   )
 
+  if(BUILD_KERNELS)
+    add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp gen8 ${MSDK_GENX_ROOT}/h264_encode/isa)
+    foreach(platform gen9 gen10 gen11 gen11lp)
+      add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_histogram.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
+      add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
+    endforeach()
+  endif()
+
   set( prefix ${MSDK_GENX_ROOT}/h264_encode/isa )
   list( APPEND sources
-    ${prefix}/genx_bdw_simple_me_isa.cpp
-    ${prefix}/genx_cnl_histogram_isa.cpp
-    ${prefix}/genx_cnl_simple_me_isa.cpp
-    ${prefix}/genx_hsw_simple_me_isa.cpp
-    ${prefix}/genx_hsw_simple_me_proto.cpp
-    ${prefix}/genx_icl_histogram_isa.cpp
-    ${prefix}/genx_icl_simple_me_isa.cpp
-    ${prefix}/genx_icllp_histogram_isa.cpp
-    ${prefix}/genx_icllp_simple_me_isa.cpp
-    ${prefix}/genx_skl_histogram_isa.cpp
-    ${prefix}/genx_skl_simple_me_isa.cpp
+    ${prefix}/genx_simple_me_gen8_isa.cpp
+    ${prefix}/genx_simple_me_gen9_isa.cpp
+    ${prefix}/genx_simple_me_gen10_isa.cpp
+    ${prefix}/genx_simple_me_gen11_isa.cpp
+    ${prefix}/genx_simple_me_gen11lp_isa.cpp
+    ${prefix}/genx_histogram_gen9_isa.cpp
+    ${prefix}/genx_histogram_gen10_isa.cpp
+    ${prefix}/genx_histogram_gen11_isa.cpp
+    ${prefix}/genx_histogram_gen11lp_isa.cpp
   )
 
   if(MFX_ENABLE_MCTF)
