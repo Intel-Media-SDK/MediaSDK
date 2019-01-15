@@ -48,6 +48,11 @@ public:
   CJPEGDecoderHuffmanTable(void);
   virtual ~CJPEGDecoderHuffmanTable(void);
 
+  CJPEGDecoderHuffmanTable(const CJPEGDecoderHuffmanTable&) = delete;
+  CJPEGDecoderHuffmanTable(CJPEGDecoderHuffmanTable&&) = delete;
+  CJPEGDecoderHuffmanTable& operator=(const CJPEGDecoderHuffmanTable&) = delete;
+  CJPEGDecoderHuffmanTable& operator=(CJPEGDecoderHuffmanTable&&) = delete;
+
   JERRCODE Create(void);
   JERRCODE Destroy(void);
 
@@ -75,6 +80,11 @@ private:
 public:
   CJPEGDecoderHuffmanState(void);
   virtual ~CJPEGDecoderHuffmanState(void);
+
+  CJPEGDecoderHuffmanState(const CJPEGDecoderHuffmanState&) = delete;
+  CJPEGDecoderHuffmanState(CJPEGDecoderHuffmanState&&) = delete;
+  CJPEGDecoderHuffmanState& operator=(const CJPEGDecoderHuffmanState&) = delete;
+  CJPEGDecoderHuffmanState& operator=(CJPEGDecoderHuffmanState&&) = delete;
 
   JERRCODE Create(void);
   JERRCODE Destroy(void);
