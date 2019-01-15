@@ -1235,35 +1235,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     if((pParams->bEOS) && (pParams->bDeinterlace30i60p == true))
         m_deintFrameCount = 0;
 
-#if defined(LINUX_TARGET_PLATFORM_BXTMIN) || defined(LINUX_TARGET_PLATFORM_BXT)
-// It looks like only BXT supports this at the moment
-#define VPP_NO_COLORFILL
-#endif
-
     VASurfaceID *outputSurface = (VASurfaceID*)(pParams->targetSurface.hdl.first);
-
-#if defined(VPP_NO_COLORFILL)
-    /* Explicitly define regions in output surface
-     * By default, driver assumes that the whole output surface should be used
-     * and in case width/height of the surface are different from input dest region,
-     * it may cause undesired driver behavior like additional forced colorfill
-     */
-    VAProcPipelineParameterBuffer outputParam = {0};
-    VABufferID  outputParamBuf = VA_INVALID_ID;
-
-    outputParam.surface = *outputSurface;
-    outputParam.surface_region = &output_region;
-    outputParam.output_region  = &output_region;
-
-    vaSts = vaCreateBuffer(m_vaDisplay,
-                           m_vaContextVPP,
-                           VAProcPipelineParameterBufferType,
-                           sizeof(VAProcPipelineParameterBuffer),
-                           1,
-                           &outputParam,
-                           &outputParamBuf);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-#endif
 
     MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|VPP|FILTER|PACKET_START|", "%d|%d", m_vaContextVPP, 0);
     {
@@ -1273,16 +1245,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
                             *outputSurface);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
-
-
-#if defined(VPP_NO_COLORFILL)
-    if(0 == output_region.x && 0 == output_region.y) // Do not disable colorfill if letterboxing is used
-    {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
-        vaSts = vaRenderPicture(m_vaDisplay, m_vaContextVPP, &outputParamBuf, 1);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    }
-#endif
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
@@ -1306,11 +1268,6 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             m_pipelineParamID[refIdx] = VA_INVALID_ID;
         }
     }
-
-#if defined(VPP_NO_COLORFILL)
-    vaSts = vaDestroyBuffer(m_vaDisplay, outputParamBuf);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-#endif
 
     if (m_deintFilterID != VA_INVALID_ID)
     {
