@@ -52,7 +52,7 @@ if(MFX_ENABLE_KERNELS)
           -menableiga -mCM_init_global -mCM_printregusage
           -Dtarget_${genx} -Qxcm_jit_target=${genx}
           -isystem ${CMC_INCLUDE}
-          ${src} -o ${tgt}_${platform}.isa)
+          ${src} -o ${tgt}_${genx}.isa)
 
       add_custom_command(
         OUTPUT ${tgt}_${genx}_isa.cpp ${tgt}_${genx}_isa.h
