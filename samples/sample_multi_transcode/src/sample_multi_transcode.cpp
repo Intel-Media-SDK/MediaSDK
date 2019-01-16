@@ -111,7 +111,10 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
                 CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev.get());
                 pVAAPIParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
                 pVAAPIParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
-
+            }
+            else if (params.libvaBackend == MFX_LIBVA_X11)
+            {
+                pVAAPIParams->m_export_mode = vaapiAllocatorParams::PRIME;
             }
 #endif
 #if defined(LIBVA_WAYLAND_SUPPORT)
