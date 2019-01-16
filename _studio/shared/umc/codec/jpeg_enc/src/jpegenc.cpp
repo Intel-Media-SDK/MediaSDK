@@ -2796,20 +2796,6 @@ JERRCODE CJPEGEncoder::ProcessBuffer(uint32_t rowMCU, uint32_t colMCU, uint32_t 
     else
     {
       return JPEG_NOT_IMPLEMENTED;
-      /*pSrc16u    = (uint16_t*)((uint8_t*)m_src.p.Data16s[c] + rowMCU * curr_comp->m_ss_height * srcStep) + 8 * colMCU * curr_comp->m_hsampling;
-      copyHeight = curr_comp->m_ss_height;
-
-      if(rowMCU == (uint32_t)m_numyMCU - 1)
-      {
-        yPadd       = m_yPadding;
-        copyHeight -= m_yPadding;
-      }
-
-      roi.width  = (maxMCU - colMCU) * 8 * curr_comp->m_hsampling;
-      roi.height = copyHeight;
-
-      pDst16u = (uint16_t*)curr_comp->GetSSBufferPtr(0);//thread_id);
-      status = mfxiCopy_16s_C1R((int16_t*)pSrc16u,srcStep,(int16_t*)pDst16u,curr_comp->m_ss_step,roi);*/
     }
 
     if(ippStsNoErr != status)
@@ -2823,39 +2809,25 @@ JERRCODE CJPEGEncoder::ProcessBuffer(uint32_t rowMCU, uint32_t colMCU, uint32_t 
     {
       for(i = 0; i < curr_comp->m_ss_height; i++)
       {
-        if(m_src.precision <= 8)
+        int width;
+
+        if(curr_comp->m_h_factor == 1)
         {
-          int width;
-
-          if(curr_comp->m_h_factor == 1)
-          {
-            width = (maxMCU - colMCU) * m_curr_scan.mcuWidth / curr_comp->m_h_factor;//8 * curr_comp->m_hsampling;
-            xPadd = m_curr_scan.xPadding;
-          }
-          else
-          {
-            width = ((maxMCU - colMCU) * m_curr_scan.mcuWidth / curr_comp->m_h_factor);//8 * curr_comp->m_hsampling;
-            xPadd = (m_curr_scan.xPadding + 1) / 2;
-          }
-
-          p     = curr_comp->GetSSBufferPtr(0/*thread_id*/) + i*curr_comp->m_ss_step;
-          val   = p[width - xPadd - 1];
-
-          for(j = 0; j < xPadd; j++)
-          {
-            p[width - xPadd + j] = val;
-          }
+          width = (maxMCU - colMCU) * m_curr_scan.mcuWidth / curr_comp->m_h_factor;//8 * curr_comp->m_hsampling;
+          xPadd = m_curr_scan.xPadding;
         }
-        else // 16 bit only 444 sampling
+        else
         {
-          uint16_t* p16;
-          uint16_t  v16;
-          p16 = (uint16_t*)(curr_comp->GetSSBufferPtr(0/*thread_id*/) + i * curr_comp->m_ss_step);
-          v16 = p16[(maxMCU - colMCU) * m_curr_scan.mcuWidth / curr_comp->m_h_factor - 1];//8 * curr_comp->m_hsampling;
-          for(j = 0; j < m_curr_scan.xPadding; j++)
-          {
-            p16[(maxMCU - colMCU) * m_curr_scan.mcuWidth / curr_comp->m_h_factor + j] = v16;//8 * curr_comp->m_hsampling;
-          }
+          width = ((maxMCU - colMCU) * m_curr_scan.mcuWidth / curr_comp->m_h_factor);//8 * curr_comp->m_hsampling;
+          xPadd = (m_curr_scan.xPadding + 1) / 2;
+        }
+
+        p     = curr_comp->GetSSBufferPtr(0/*thread_id*/) + i*curr_comp->m_ss_step;
+        val   = p[width - xPadd - 1];
+
+        for(j = 0; j < xPadd; j++)
+        {
+          p[width - xPadd + j] = val;
         }
       }
     }
