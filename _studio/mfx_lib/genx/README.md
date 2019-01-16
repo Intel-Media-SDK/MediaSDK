@@ -16,39 +16,12 @@ cmake -DBUILD_KERNELS=ON ...
 ## Shaders rebuild prerequisites
 
 In order to rebuild the Shaders it is required to have CM compiler (aka CMC) and
-some tools from Intel Graphics Compiler (aga IGC). They can me downloaded and
+GenX_IR compiler from Intel Graphics Compiler (aka IGC). They can me downloaded and
 installed from here:
 * https://github.com/intel/cm-compiler
 * https://github.com/intel/intel-graphics-compiler
 
-Once you have built CMC and IGC make sure to export CMC_SEARCH_PATH environment
-variable pointing to the directory with the structure similar to:
+Once you have built CMC and IGC make sure that `cmc` and `GenX_IR` are in the search path:
 ```sh
-.
-├── bin
-│   ├── cmc
-│   └── GenX_IR  # tool from IGC
-└── include
-    └── cm
-        ├── cm_atomic.h
-        ├── cm_common.h
-        ├── cm_dataport.h
-        ├── cm_gateway.h
-        ├── cm.h
-        ├── cm_internal.h
-        ├── cm_linear.h
-        ├── cm_printf.h
-        ├── cm_sampler.h
-        ├── cm_send.h
-        ├── cm_svm.h
-        ├── cm_target.h
-        ├── cmtl.h
-        ├── cm_traits.h
-        ├── cm_util.h
-        ├── cm_vme.h
-        ├── gen10_vme.h
-        ├── gen11_vme.h
-        ├── gen7_5_vme.h
-        ├── gen8_vme.h
-        └── gen9_vme.h
+export PATH=/path/to/cmc:/path/to/GenX_IR:$PATH
 ```
