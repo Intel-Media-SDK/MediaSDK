@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 Intel Corporation
+// Copyright (c) 2012-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,12 +20,8 @@
 
 #include <cm/cm.h>
 
-//#include <cm/cm_vme.h>
-
 #define MBDATA_SIZE     64      //sizeof(OutObject_t)
 #define CURBEDATA_SIZE  160     //sizeof(EncCURBEData_t)
-
-//#define USE_DOWN_SAMPLE_KERNELS
 
 enum
 {
@@ -222,8 +218,6 @@ void SetUpVmeIntra(matrix_ref<uchar, 4, 32> uniIn,
 
     // read picture's width in MB units
     uint PicWidthInMB    = GET_CURBE_PictureWidth(CURBEData);
-    //uint PicHeightInMBs  = GET_CURBE_PictureHeight(CURBEData);
-
     uint MbIndex = PicWidthInMB * mbY + mbX;
 
     cm_wait();
@@ -1347,283 +1341,6 @@ void PrepareFractionalCall(matrix_ref<uchar, 4, 32> uniIn,
 
 template <int sliceType>
 _GENX_ inline
-void CheckAllFractional(matrix_ref<uchar, 3, 32> uniIn,
-                        matrix_ref<uchar, 7, 32> best_uniOut,
-                        matrix_ref<uchar, 4, 32> best_imeOutIn,
-                        SurfaceIndex VMEInterPredictionSurfIndex,
-                        matrix_ref<uint, 16, 2> Costs,
-                        vector_ref<uchar, CURBEDATA_SIZE> CURBEData)
-{
-    uchar best_uniOut_MbSubShape;
-    matrix<uchar, 11, 32> best_imeOut;
-
-    best_imeOut.select<4, 1, 32, 1> (7, 0) = best_imeOutIn;
-
-    if (GET_CURBE_AllFractional(CURBEData))
-    {
-        U8 mode;
-        uchar FBRMbMode, FBRSubMbShape, FBRSubPredMode;
-
-        VME_GET_UNIOutput_InterMbMode(best_uniOut, mode);
-
-        matrix<uchar, 4, 32> fbrIn;
-        matrix<uchar, 7, 32> uniOut;
-
-        // BMEDisableFBR: BPREDSLICE -> 0, PREDSLICE -> 1
-        if (sliceType == BPREDSLICE)
-            VME_CLEAR_UNIInput_BMEDisableFBR(uniIn);
-
-        FBRSubMbShape = 0;
-        VME_SET_UNIInput_FBRSubMBShapeInput(uniIn, FBRSubMbShape);
-
-        if (mode != 0)//check 16x16
-        {
-            FBRMbMode = MbMode_16x16;
-            VME_SET_UNIInput_FBRMbModeInput(uniIn, FBRMbMode);
-            FBRSubPredMode = 0;
-            if (sliceType == BPREDSLICE)
-            {
-                ushort best_imeOut_RecordDst16_0;
-                ushort best_imeOut_RecordDst16_1;
-
-                VME_GET_IMEOutput_Rec0_16x16_Distortion(best_imeOut, best_imeOut_RecordDst16_0);
-                VME_GET_IMEOutput_Rec1_16x16_Distortion(best_imeOut, best_imeOut_RecordDst16_1);
-
-                // get 16x16 distortions
-                if (best_imeOut_RecordDst16_0 > best_imeOut_RecordDst16_1)
-                    FBRSubPredMode = 1;
-            }
-            VME_SET_UNIInput_FBRSubPredModeInput(uniIn, FBRSubPredMode);
-            // clone motion vectors
-            fbrIn.format<uint, 4, 8>().select<4, 1, 4, 2> (0, 0) = best_imeOut.row(7).format<uint>()[5];
-            fbrIn.format<uint, 4, 8>().select<4, 1, 4, 2> (0, 1) = best_imeOut.row(9).format<uint>()[5];
-
-            uchar fwdRefId, bwdRefId;
-            VME_GET_IMEOutput_Rec0_16x16_RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_16x16_RefID(best_imeOut, bwdRefId);
-
-            VME_SET_UNIInput_Blk0RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk1RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk2RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk3RefID(uniIn, fwdRefId, bwdRefId);
-
-            // set cost centers
-            uniIn.row(1).format<uint>().select<1, 1>(4) = Costs.row(fwdRefId)[0];
-            uniIn.row(1).format<uint>().select<1, 1>(5) = Costs.row(bwdRefId)[1];
-
-            // make fraction motion search
-            matrix<uchar, 3, 32> uniIn2 = uniIn;
-            run_vme_fbr(uniIn2, fbrIn, VMEInterPredictionSurfIndex, FBRMbMode, FBRSubMbShape, FBRSubPredMode, uniOut);
-
-            ushort uniOut_DistInter, best_uniOut_DistInter;
-            VME_GET_UNIOutput_BestInterDistortion(uniOut, uniOut_DistInter);
-            VME_GET_UNIOutput_BestInterDistortion(best_uniOut, best_uniOut_DistInter);
-            if(uniOut_DistInter < best_uniOut_DistInter)
-            {
-                best_uniOut = uniOut;
-            }
-        }
-        if (mode != 1)//check 16x8
-        {
-            FBRMbMode = MbMode_16x8;
-            VME_SET_UNIInput_FBRMbModeInput(uniIn, FBRMbMode);
-            FBRSubPredMode = 0;
-            if (sliceType == BPREDSLICE)
-            {
-                ushort best_imeOut_RecordDst_0;
-                ushort best_imeOut_RecordDst_1;
-
-                // get 16x8 distortions
-                VME_GET_IMEOutput_Rec0_16x8_0Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_16x8_0Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x05;
-
-                // get 16x8 distortions
-                VME_GET_IMEOutput_Rec0_16x8_1Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_16x8_1Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x50;
-            }
-            VME_SET_UNIInput_FBRSubPredModeInput(uniIn, FBRSubPredMode);
-            // clone motion vectors
-            fbrIn.format<uint, 4, 8>().select<2, 1, 4, 2> (0, 0) = best_imeOut.row(8).format<uint>()[0];
-            fbrIn.format<uint, 4, 8>().select<2, 1, 4, 2> (2, 0) = best_imeOut.row(8).format<uint>()[1];
-            fbrIn.format<uint, 4, 8>().select<2, 1, 4, 2> (0, 1) = best_imeOut.row(10).format<uint>()[0];
-            fbrIn.format<uint, 4, 8>().select<2, 1, 4, 2> (2, 1) = best_imeOut.row(10).format<uint>()[1];
-
-            uchar fwdRefId, bwdRefId;
-
-            VME_GET_IMEOutput_Rec0_16x8_1RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_16x8_1RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk2RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk3RefID(uniIn, fwdRefId, bwdRefId);
-
-            VME_GET_IMEOutput_Rec0_16x8_0RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_16x8_0RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk0RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk1RefID(uniIn, fwdRefId, bwdRefId);
-
-            // set cost centers
-            uniIn.row(1).format<uint>().select<1, 1>(4) = Costs.row(fwdRefId)[0];
-            uniIn.row(1).format<uint>().select<1, 1>(5) = Costs.row(bwdRefId)[1];
-
-            // make fraction motion search
-            matrix<uchar, 3, 32> uniIn2 = uniIn;
-            run_vme_fbr(uniIn2, fbrIn, VMEInterPredictionSurfIndex, FBRMbMode, FBRSubMbShape, FBRSubPredMode, uniOut);
-
-            ushort uniOut_DistInter, best_uniOut_DistInter;
-            VME_GET_UNIOutput_BestInterDistortion(uniOut, uniOut_DistInter);
-            VME_GET_UNIOutput_BestInterDistortion(best_uniOut, best_uniOut_DistInter);
-            if(uniOut_DistInter < best_uniOut_DistInter)
-            {
-                best_uniOut = uniOut;
-            }
-        }
-        if (mode != 2)//check 8x16
-        {
-            FBRMbMode = MbMode_8x16;
-            VME_SET_UNIInput_FBRMbModeInput(uniIn, FBRMbMode);
-            FBRSubPredMode = 0;
-            if (sliceType == BPREDSLICE)
-            {
-                ushort best_imeOut_RecordDst_0;
-                ushort best_imeOut_RecordDst_1;
-
-                // get 8x16 distortions
-                VME_GET_IMEOutput_Rec0_8x16_0Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_8x16_0Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x11;
-
-                // get 8x16 distortions
-                VME_GET_IMEOutput_Rec0_8x16_1Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_8x16_1Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x44;
-            }
-            VME_SET_UNIInput_FBRSubPredModeInput(uniIn, FBRSubPredMode);
-            // clone motion vectors
-            fbrIn.format<uint, 4, 8>().select<2, 2, 4, 2> (0, 0) = best_imeOut.row(8).format<uint>()[2];
-            fbrIn.format<uint, 4, 8>().select<2, 2, 4, 2> (1, 0) = best_imeOut.row(8).format<uint>()[3];
-            fbrIn.format<uint, 4, 8>().select<2, 2, 4, 2> (0, 1) = best_imeOut.row(10).format<uint>()[2];
-            fbrIn.format<uint, 4, 8>().select<2, 2, 4, 2> (1, 1) = best_imeOut.row(10).format<uint>()[3];
-
-            uchar fwdRefId, bwdRefId;
-
-            VME_GET_IMEOutput_Rec0_8x16_1RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_8x16_1RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk1RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk3RefID(uniIn, fwdRefId, bwdRefId);
-
-            VME_GET_IMEOutput_Rec0_8x16_0RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_8x16_0RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk0RefID(uniIn, fwdRefId, bwdRefId);
-            VME_SET_UNIInput_Blk2RefID(uniIn, fwdRefId, bwdRefId);
-
-            // set cost centers
-            uniIn.row(1).format<uint>().select<1, 1>(4) = Costs.row(fwdRefId)[0];
-            uniIn.row(1).format<uint>().select<1, 1>(5) = Costs.row(bwdRefId)[1];
-
-            // make fraction motion search
-            matrix<uchar, 3, 32> uniIn2 = uniIn;
-            run_vme_fbr(uniIn2, fbrIn, VMEInterPredictionSurfIndex, FBRMbMode, FBRSubMbShape, FBRSubPredMode, uniOut);
-
-            ushort uniOut_DistInter, best_uniOut_DistInter;
-            VME_GET_UNIOutput_BestInterDistortion(uniOut, uniOut_DistInter);
-            VME_GET_UNIOutput_BestInterDistortion(best_uniOut, best_uniOut_DistInter);
-            if(uniOut_DistInter < best_uniOut_DistInter)
-            {
-                best_uniOut = uniOut;
-            }
-        }
-        VME_GET_UNIOutput_SubMbShape(best_uniOut, best_uniOut_MbSubShape);
-        if ((mode != 3) || (best_uniOut_MbSubShape != 0)) // 8x8 no minors
-        {
-            FBRMbMode = MbMode_8x8;
-            VME_SET_UNIInput_FBRMbModeInput(uniIn, FBRMbMode);
-            FBRSubPredMode = 0;
-            if (sliceType == BPREDSLICE)
-            {
-                ushort best_imeOut_RecordDst_0;
-                ushort best_imeOut_RecordDst_1;
-
-                // get 8x8 distortions
-                VME_GET_IMEOutput_Rec0_8x8_0Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_8x8_0Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x01;
-
-                // get 8x8 distortions
-                VME_GET_IMEOutput_Rec0_8x8_1Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_8x8_1Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x04;
-
-                // get 8x8 distortions
-                VME_GET_IMEOutput_Rec0_8x8_2Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_8x8_2Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x10;
-
-                // get 8x8 distortions
-                VME_GET_IMEOutput_Rec0_8x8_3Distortion(best_imeOut, best_imeOut_RecordDst_0);
-                VME_GET_IMEOutput_Rec1_8x8_3Distortion(best_imeOut, best_imeOut_RecordDst_1);
-                if (best_imeOut_RecordDst_0 > best_imeOut_RecordDst_1)
-                    FBRSubPredMode |= 0x40;
-            }
-            VME_SET_UNIInput_FBRSubPredModeInput(uniIn, FBRSubPredMode);
-
-            // clone motion vectors
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (0, 0) = best_imeOut.row(8).format<uint>()[4];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (1, 0) = best_imeOut.row(8).format<uint>()[5];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (2, 0) = best_imeOut.row(8).format<uint>()[6];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (3, 0) = best_imeOut.row(8).format<uint>()[7];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (0, 1) = best_imeOut.row(10).format<uint>()[4];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (1, 1) = best_imeOut.row(10).format<uint>()[5];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (2, 1) = best_imeOut.row(10).format<uint>()[6];
-            fbrIn.format<uint, 4, 8>().select<1, 1, 4, 2> (3, 1) = best_imeOut.row(10).format<uint>()[7];
-
-            uchar fwdRefId, bwdRefId;
-
-            VME_GET_IMEOutput_Rec0_8x8_1RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_8x8_1RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk1RefID(uniIn, fwdRefId, bwdRefId);
-
-            VME_GET_IMEOutput_Rec0_8x8_2RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_8x8_2RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk2RefID(uniIn, fwdRefId, bwdRefId);
-
-            VME_GET_IMEOutput_Rec0_8x8_3RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_8x8_3RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk3RefID(uniIn, fwdRefId, bwdRefId);
-
-            VME_GET_IMEOutput_Rec0_8x8_0RefID(best_imeOut, fwdRefId);
-            VME_GET_IMEOutput_Rec1_8x8_0RefID(best_imeOut, bwdRefId);
-            VME_SET_UNIInput_Blk0RefID(uniIn, fwdRefId, bwdRefId);
-
-            // set cost centers
-            uniIn.row(1).format<uint>().select<1, 1>(4) = Costs.row(fwdRefId)[0];
-            uniIn.row(1).format<uint>().select<1, 1>(5) = Costs.row(bwdRefId)[1];
-
-            // make fraction motion search
-            matrix<uchar, 3, 32> uniIn2 = uniIn;
-            run_vme_fbr(uniIn2, fbrIn, VMEInterPredictionSurfIndex, FBRMbMode, FBRSubMbShape, FBRSubPredMode, uniOut);
-
-            ushort uniOut_DistInter, best_uniOut_DistInter;
-            VME_GET_UNIOutput_BestInterDistortion(uniOut, uniOut_DistInter);
-            VME_GET_UNIOutput_BestInterDistortion(best_uniOut, best_uniOut_DistInter);
-            if(uniOut_DistInter < best_uniOut_DistInter)
-            {
-                best_uniOut = uniOut;
-            }
-        }
-    }
-
-} // void CheckAllFractional(matrix_ref<uchar, 3, 32> uniIn,
-
-template <int sliceType>
-_GENX_ inline
 void DoInterFramePrediction(SurfaceIndex VMEInterPredictionSurfIndex,
                             matrix_ref<uchar, 4, 32> uniIn,
                             matrix_ref<uchar, 6, 32> imeIn,
@@ -1646,8 +1363,6 @@ void DoInterFramePrediction(SurfaceIndex VMEInterPredictionSurfIndex,
     if (sliceType == PREDSLICE)
     {
         {
-            /* multiple prediction is not supported yet
-            UpdateChecked(uniIn, 0); */
 
             {
                 matrix<uchar, 9, 32> temp = 0;
@@ -1681,17 +1396,11 @@ void DoInterFramePrediction(SurfaceIndex VMEInterPredictionSurfIndex,
                 best_uniOut = temp;
             }
 
-            /* multiple predictions are not used
-            CheckAdditionalPred(uniIn, imeIn, best_uniOut, best_imeOut);*/
-            /* there is only one reference
-            MultiRefCheck(in_SliceMBData, &uniIn, &imeIn, uMB, &best_uniOut, &best_imeOut, 0, 0);*/
         }
     }
     else if (sliceType == BPREDSLICE)
     {
         {
-            /* multiple prediction is not supprted yet
-            UpdateChecked(&uniIn, 0);  UpdateChecked(&uniIn, 1);*/
 
             {
                 matrix<uchar, 11, 32> temp;
@@ -1725,21 +1434,8 @@ void DoInterFramePrediction(SurfaceIndex VMEInterPredictionSurfIndex,
                 run_vme_fbr(uniIn0, fbrIn, VMEInterPredictionSurfIndex, FBRMbMode, FBRSubMbShape, FBRSubPredMode, temp);
                 best_uniOut = temp;
             }
-
-            /* multiple predictions are not used
-            status |= CheckAdditionalPred(&uniIn, &imeIn, &best_uniOut, &best_imeOut);*/
-            /* there is only one reference
-            if (CheckMultiRef)
-                status |= MultiRefBiCheck(in_SliceMBData, &uniIn, &imeIn, uMB, &best_uniOut, &best_imeOut, 0, 0, 0);*/
         }
     }
-
-/*
-    if (GET_CURBE_SubPelMode(CURBEData))
-    {
-        CheckAllFractional<sliceType> (uniIn, best_uniOut, best_imeOut,
-                                       VMEInterPredictionSurfIndex, Costs, CURBEData);
-*/
 
 } // void DoInterFramePrediction(SurfaceIndex VMEInterPredictionSurfIndex,
 
@@ -2524,20 +2220,6 @@ void SetUpVmeBSlice(matrix_ref<uchar, 4, 32> uniIn,
     VME_COPY_DWORD(sicIn, 0, 0, B_DirectMV.row(0), 0);
     // 0.1 Ref1 Skip Center 0 Delta XY
     VME_COPY_DWORD(sicIn, 0, 1, B_DirectMV.row(1), 0);
-/*
-    // 0.2 Ref0 Skip Center 1 Delta XY
-    VME_COPY_DWORD(sicIn, 0, 2, B_DirectMV.row(0), 5);
-    // 0.3 Ref1 Skip Center 1 Delta XY
-    VME_COPY_DWORD(sicIn, 0, 3, B_DirectMV.row(1), 5);
-    // 0.4 Ref0 Skip Center 2 Delta XY
-    VME_COPY_DWORD(sicIn, 0, 4, B_DirectMV.row(0), 10);
-    // 0.5 Ref1 Skip Center 2 Delta XY
-    VME_COPY_DWORD(sicIn, 0, 5, B_DirectMV.row(1), 10);
-    // 0.6 Ref0 Skip Center 3 Delta XY
-    VME_COPY_DWORD(sicIn, 0, 6, B_DirectMV.row(0), 15);
-    // 0.7 Ref1 Skip Center 3 Delta XY
-    VME_COPY_DWORD(sicIn, 0, 7, B_DirectMV.row(1), 15);
-*/
 
     // register M1
     // M1.0/1.1 ACV Intra 4x4/8x8 mode mask & intra modes
@@ -2720,7 +2402,6 @@ EncMB_B(SurfaceIndex CurbeDataSurfIndex,
                        mvPred,
                        InitRefIdx);
         ftqSkip = VME_GET_UNIInput_FTEnable(uniIn);
-//        fprintf(stderr,"ftq:%d\n", ftqSkip);
 
         VME_SET_UNIOutput_BestIntraDistortion(best_uniOut, -1);
         VME_SET_UNIOutput_InterDistortion(best_uniOut, -1);
