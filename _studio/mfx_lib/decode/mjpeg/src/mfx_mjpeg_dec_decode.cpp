@@ -1002,7 +1002,8 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
 
 #if defined (MFX_VA_LINUX)
     if (par->mfx.FrameInfo.FourCC != MFX_FOURCC_NV12 &&
-        par->mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4)
+        par->mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4 &&
+        par->mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2)
         return true;
 
     /* on Linux in case of multiscan turn off HW support until because some functionality is missed so far */
