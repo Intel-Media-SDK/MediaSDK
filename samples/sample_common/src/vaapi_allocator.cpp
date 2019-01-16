@@ -124,10 +124,6 @@ mfxStatus vaapiFrameAllocator::Init(mfxAllocatorParams *pParams)
     m_dpy = p_vaapiParams->m_dpy;
     m_export_mode = p_vaapiParams->m_export_mode;
     m_exporter = p_vaapiParams->m_exporter;
-#if defined(LIBVA_WAYLAND_SUPPORT) || defined (ENABLE_V4L2_SUPPORT)|| defined (X11_DRI3_SUPPORT)
-    // TODO this should be done on application level via allocator parameters!!
-    m_export_mode = vaapiAllocatorParams::PRIME;
-#endif
     return MFX_ERR_NONE;
 }
 
