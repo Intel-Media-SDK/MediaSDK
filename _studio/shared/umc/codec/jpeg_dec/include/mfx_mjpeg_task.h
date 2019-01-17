@@ -36,6 +36,11 @@ public:
     // Destructor
     ~CJpegTaskBuffer(void);
 
+    CJpegTaskBuffer(const CJpegTaskBuffer&) = delete;
+    CJpegTaskBuffer(CJpegTaskBuffer&&) = delete;
+    CJpegTaskBuffer& operator=(const CJpegTaskBuffer&) = delete;
+    CJpegTaskBuffer& operator=(CJpegTaskBuffer&&) = delete;
+
     // Allocate the buffer
     mfxStatus Allocate(const size_t size);
 

@@ -300,7 +300,7 @@ if ($build{'generator'} =~ /^eclipse$/) {
 
 my $exit_code = 0;
 say "I am going to execute:\n  cmake $cmake_gen_cmd";
-$exit_code = command("cmake $cmake_gen_cmd");
+$exit_code = command("cmake3 $cmake_gen_cmd");
 
 if ($run_build) {
     $exit_code = command("cmake --build $target_path --use-stderr --config $build{'config'}");

@@ -106,6 +106,24 @@ mfxU16 UMC2MFX_PicStruct(int dps, bool extended)
     }
 }
 
+inline
+UMC::Status FillParam(VideoCORE *core, MFXTaskSupplier_H265 * decoder, mfxVideoParam *par, bool full)
+{
+    UMC::Status umcRes = decoder->FillVideoParam(par, full);
+
+    if (MFX_Utility::GetPlatform_H265(core, par) != MFX_PLATFORM_SOFTWARE)
+    {
+        if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+#if (MFX_VERSION >= 1027)
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+#endif
+            )
+            par->mfx.FrameInfo.Shift = 1;
+    }
+
+    return umcRes;
+}
+
 struct ThreadTaskInfo
 {
     ThreadTaskInfo()
@@ -600,20 +618,9 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
     else if (umcRes != UMC::UMC_OK)
         return ConvertUMCStatusToMfx(umcRes);
 
-    umcRes = decoder.FillVideoParam(par, false);
+    umcRes = FillParam(core, &decoder, par, false);
     if (umcRes != UMC::UMC_OK)
         return ConvertUMCStatusToMfx(umcRes);
-
-    if (MFX_Utility::GetPlatform_H265(core, par) != MFX_PLATFORM_SOFTWARE)
-    {
-        if (   par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-#endif
-            )
-
-            par->mfx.FrameInfo.Shift = 1;
-    }
 
     // sps/pps headers
     mfxExtCodingOptionSPSPPS * spsPps = (mfxExtCodingOptionSPSPPS *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_SPSPPS);
@@ -1140,13 +1147,7 @@ void VideoDECODEH265::FillVideoParam(mfxVideoParamWrapper *par, bool full)
     if (!m_pH265VideoDecoder.get())
         return;
 
-    m_pH265VideoDecoder->FillVideoParam(par, full);
-
-    if (MFX_Utility::GetPlatform_H265(m_core, par) != MFX_PLATFORM_SOFTWARE)
-    {
-        if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
-            par->mfx.FrameInfo.Shift = 1;
-    }
+    FillParam(m_core, m_pH265VideoDecoder.get(), par, full);
 
     RawHeader_H265 *sps = m_pH265VideoDecoder->GetSPS();
     RawHeader_H265 *pps = m_pH265VideoDecoder->GetPPS();

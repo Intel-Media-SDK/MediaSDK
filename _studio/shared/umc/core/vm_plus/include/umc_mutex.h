@@ -23,7 +23,6 @@
 
 #include "mfx_vm++_pthread.h"
 #include "vm_debug.h"
-#include "vm_mutex.h"
 #include "umc_structures.h"
 
 namespace UMC
