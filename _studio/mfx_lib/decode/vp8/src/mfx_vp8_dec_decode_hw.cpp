@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1284,14 +1284,14 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameHeader(mfxBitstream *in)
         while (++i < 2);
     }
 
-// On Android O we use old version of driver and should use special code for 1st partition size computation (for count == 8)
-#if (MFX_ANDROID_VERSION >= MFX_P)
+#if !defined(ANDROID) || (MFX_ANDROID_VERSION >= MFX_P)
     // Header info consumed bits
     m_frame_info.entropyDecSize = m_boolDecoder[VP8_FIRST_PARTITION].pos() * 8 - 3*8 - m_boolDecoder[VP8_FIRST_PARTITION].bitcount();
 
     // Subtract completely consumed bytes + current byte. Current is completely consumed if bitcount is 8.
     m_frame_info.firstPartitionSize = first_partition_size - ((m_frame_info.entropyDecSize + 7) >> 3);
 #else
+    // On Android O we use old version of driver and should use special code for 1st partition size computation (for count == 8)
     // Header info consumed bits
     m_frame_info.entropyDecSize = m_boolDecoder[VP8_FIRST_PARTITION].pos() * 8 - 16 - m_boolDecoder[VP8_FIRST_PARTITION].bitcount();
 
