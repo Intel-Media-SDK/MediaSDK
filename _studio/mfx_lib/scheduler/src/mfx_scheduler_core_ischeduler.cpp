@@ -129,7 +129,7 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
                     std::bind(&mfxSchedulerCore::ThreadProc, this, &m_pThreadCtx[i]));
 
                 if (!SetScheduling(m_pThreadCtx[i].threadHandle)) {
-                    return MFX_ERR_UNKNOWN;
+                    return MFX_ERR_UNSUPPORTED;
                 }
             }
         }
