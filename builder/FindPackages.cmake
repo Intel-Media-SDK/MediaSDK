@@ -494,7 +494,6 @@ if( Linux )
   pkg_check_modules( PKG_MFX       libmfx>=1.28 )
 
   if ( PKG_X11_FOUND AND PKG_LIBVA_X11_FOUND )
-    set( ENABLE_X11 true )
     if( ENABLE_X11_DRI3 )
       pkg_check_modules(PKG_XCB REQUIRED xcb xcb-dri3 x11-xcb xcb-present)
     endif()
