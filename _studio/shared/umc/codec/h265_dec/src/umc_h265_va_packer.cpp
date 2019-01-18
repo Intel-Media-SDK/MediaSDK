@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -77,12 +77,12 @@ namespace UMC_HEVC_DECODER
     };
 
 
-Packer * Packer::CreatePacker(UMC::VideoAccelerator * va)
+Packer * Packer::CreatePacker(VideoAccelerator * va)
 {
     return new PackerVA{va};
 }
 
-Packer::Packer(UMC::VideoAccelerator * va)
+Packer::Packer(VideoAccelerator * va)
     : m_va(va)
 {
 }
@@ -99,12 +99,15 @@ void PackerVA::PackPicParams(const H265DecoderFrame *pCurrentFrame, TaskSupplier
 {
     H265DecoderFrameInfo const* pSliceInfo = pCurrentFrame->GetAU();
     if (!pSliceInfo)
-        throw h265_exception(UMC::UMC_ERR_FAILED);
+        throw h265_exception(UMC_ERR_FAILED);
 
     auto pSlice = pSliceInfo->GetSlice(0);
-    const H265SliceHeader* sliceHeader = pSlice->GetSliceHeader();
-    const H265SeqParamSet* pSeqParamSet = pSlice->GetSeqParam();
-    const H265PicParamSet* pPicParamSet = pSlice->GetPicParam();
+    if (!pSlice)
+        throw h265_exception(UMC_ERR_FAILED);
+
+    H265SliceHeader const* sliceHeader =  pSlice->GetSliceHeader();
+    H265SeqParamSet const* pSeqParamSet = pSlice->GetSeqParam();
+    H265PicParamSet const* pPicParamSet = pSlice->GetPicParam();
     VAPictureParameterBufferHEVC *picParam = nullptr;
 #if (MFX_VERSION >= 1027)
     VAPictureParameterBufferHEVCExtension* picParamExt = nullptr;
@@ -701,19 +704,19 @@ void PackerVA::PackQmatrix(const H265Slice *pSlice)
 void PackerVA::PackAU(const H265DecoderFrame *frame, TaskSupplier_H265 * supplier)
 {
     if (!frame || !supplier)
-            throw h265_exception(UMC_ERR_NULL_PTR);
+        throw h265_exception(UMC_ERR_NULL_PTR);
 
-    H265DecoderFrameInfo const* sliceInfo = frame->m_pSlicesInfo;
-    size_t const sliceCount = sliceInfo->GetSliceCount();
-    if (!sliceCount)
-        return;
+    PackPicParams(frame, supplier);
 
-    H265Slice *pSlice = sliceInfo->GetSlice(0);
-    const H265SeqParamSet *pSeqParamSet = pSlice->GetSeqParam();
-    H265DecoderFrame *pCurrentFrame = pSlice->GetCurrentFrame();
+    H265DecoderFrameInfo const* sliceInfo = frame->GetAU();
+    if (!sliceInfo)
+        throw h265_exception(UMC_ERR_FAILED);
 
-    PackPicParams(pCurrentFrame, supplier);
+    auto pSlice = sliceInfo->GetSlice(0);
+    if (!pSlice)
+        throw h265_exception(UMC_ERR_FAILED);
 
+    H265SeqParamSet const* pSeqParamSet = pSlice->GetSeqParam();
     if (pSeqParamSet->scaling_list_enabled_flag)
     {
         PackQmatrix(pSlice);
@@ -722,11 +725,10 @@ void PackerVA::PackAU(const H265DecoderFrame *frame, TaskSupplier_H265 * supplie
     CreateSliceParamBuffer(sliceInfo);
     CreateSliceDataBuffer(sliceInfo);
 
-    size_t sliceNum = 0;
-    for (size_t n = 0; n < sliceCount; n++)
+    const size_t sliceCount = sliceInfo->GetSliceCount();
+    for (size_t sliceNum = 0; sliceNum < sliceCount; sliceNum++)
     {
-        PackSliceParams(sliceInfo->GetSlice(n), sliceNum, n == sliceCount - 1);
-        sliceNum++;
+        PackSliceParams(sliceInfo->GetSlice(sliceNum), sliceNum, sliceNum == sliceCount - 1);
     }
 
     Status s = m_va->Execute();
