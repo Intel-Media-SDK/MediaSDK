@@ -897,8 +897,10 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
     if (srcMemType & MFX_MEMTYPE_EXTERNAL_FRAME)
     {
+#ifndef MFX_VA_LINUX
         if (srcMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
+#endif
             if (nullptr == srcPtr)
             {
                 sts = LockExternalFrame(srcMemId, &srcTempSurface.Data);
@@ -911,6 +913,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
                 srcTempSurface.Data = pSrc->Data;
                 srcTempSurface.Data.MemId = 0;
             }
+#ifndef MFX_VA_LINUX
         }
         else if (srcMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
@@ -919,6 +922,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
             srcTempSurface.Data.MemId = srcHandle;
         }
+#endif
     }
     else if (srcMemType & MFX_MEMTYPE_INTERNAL_FRAME)
     {
@@ -948,8 +952,10 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
     if (dstMemType & MFX_MEMTYPE_EXTERNAL_FRAME)
     {
+#ifndef MFX_VA_LINUX
         if (dstMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
+#endif
             if (nullptr == dstPtr)
             {
                 sts = LockExternalFrame(dstMemId, &dstTempSurface.Data);
@@ -962,6 +968,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
                 dstTempSurface.Data = pDst->Data;
                 dstTempSurface.Data.MemId = 0;
             }
+#ifndef MFX_VA_LINUX
         }
         else if (dstMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
@@ -970,6 +977,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
             dstTempSurface.Data.MemId = dstHandle;
         }
+#endif
     }
     else if (dstMemType & MFX_MEMTYPE_INTERNAL_FRAME)
     {

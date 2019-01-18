@@ -833,6 +833,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     if (UMC::UMC_OK != videoInfo.Init(m_vPar.mfx.FrameInfo.Width, m_vPar.mfx.FrameInfo.Height, cf, m_frameInfo.bit_depth))
         return MFX_ERR_MEMORY_ALLOC;
 
+    // We need to realize DRC processing here in lib version of allocators
     if (UMC::UMC_OK != m_FrameAllocator->Alloc(&currMid, &videoInfo, 0))
     {
         return MFX_ERR_MEMORY_ALLOC;
