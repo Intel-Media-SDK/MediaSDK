@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -90,8 +90,6 @@ public:
 
     int32_t  m_frameOrder;
     int32_t  m_ErrorType;
-
-    H265DecoderFrameInfo * m_pSlicesInfo;
 
     bool prepared;
 
@@ -304,6 +302,8 @@ public:
     void AddSlice(H265Slice * pSlice);
 
 protected:
+    H265DecoderFrameInfo * m_pSlicesInfo;
+
     // Declare memory management tools
     UMC::MemoryAllocator *m_pMemoryAllocator;   // FIXME: should be removed because it duplicated in base class
 
