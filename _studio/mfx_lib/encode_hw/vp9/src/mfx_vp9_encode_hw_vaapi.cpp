@@ -1011,8 +1011,7 @@ mfxStatus VAAPIEncoder::Execute(
     VABufferID  codedBuffer;
 
     std::vector<VABufferID> configBuffers;
-    configBuffers.resize(MAX_CONFIG_BUFFERS_COUNT);
-    mfxU16 buffersCount = 0;
+    configBuffers.reserve(MAX_CONFIG_BUFFERS_COUNT);
 
     // prepare frame header: write IVF and uncompressed header, calculate bit offsets
     BitOffsets offsets;
@@ -1057,7 +1056,7 @@ mfxStatus VAAPIEncoder::Execute(
                                    &m_spsBufferId);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-            configBuffers[buffersCount++] = m_spsBufferId;
+            configBuffers.push_back(m_spsBufferId);
         }
         // 2. Picture level
         {
@@ -1071,7 +1070,7 @@ mfxStatus VAAPIEncoder::Execute(
                                    &m_ppsBufferId);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-            configBuffers[buffersCount++] = m_ppsBufferId;
+            configBuffers.push_back(m_ppsBufferId);
         }
         //segmentation functionality is not fully implemented yet
         if (task.m_frameParam.segmentation == APP_SEGMENTATION)
@@ -1079,7 +1078,7 @@ mfxStatus VAAPIEncoder::Execute(
             // 4. Segmentation map
 
             // segmentation map buffer is already allocated and filled. Need just to attach it
-            configBuffers[buffersCount++] = m_segMapBufferId;
+            configBuffers.push_back(m_segMapBufferId);
 
             // 5. Per-segment parameters
             MFX_DESTROY_VABUFFER(m_segParBufferId, m_vaDisplay);
@@ -1092,7 +1091,7 @@ mfxStatus VAAPIEncoder::Execute(
                                    &m_segParBufferId);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-            configBuffers[buffersCount++] = m_segParBufferId;
+            configBuffers.push_back(m_segParBufferId);
         }
 
         //packed header data
@@ -1114,7 +1113,7 @@ mfxStatus VAAPIEncoder::Execute(
                 &m_packedHeaderParameterBufferId);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        configBuffers[buffersCount++] = m_packedHeaderParameterBufferId;
+        configBuffers.push_back(m_packedHeaderParameterBufferId);
 
         MFX_DESTROY_VABUFFER(m_packedHeaderDataBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
@@ -1126,14 +1125,14 @@ mfxStatus VAAPIEncoder::Execute(
                             &m_packedHeaderDataBufferId);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        configBuffers[buffersCount++] = m_packedHeaderDataBufferId;
+        configBuffers.push_back(m_packedHeaderDataBufferId);
 
         // 8. hrd parameters
-        configBuffers[buffersCount++] = m_hrdBufferId;
+        configBuffers.push_back(m_hrdBufferId);
         
         // 9. temporal layers
         if (m_video.m_numLayers)
-            configBuffers[buffersCount++] = m_tempLayersBufferId;
+            configBuffers.push_back(m_tempLayersBufferId);
 
         // 10. RC parameters
         SetRateControl(m_video, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds, m_isBrcResetRequired);
@@ -1141,20 +1140,18 @@ mfxStatus VAAPIEncoder::Execute(
         m_isBrcResetRequired = false; // reset BRC only once
         for (mfxU8 i = 0; i < m_rateCtrlBufferIds.size(); i++)
         {
-            configBuffers[buffersCount++] = m_rateCtrlBufferIds[i];
+            configBuffers.push_back(m_rateCtrlBufferIds[i]);
         }
 
         // 11. frame rate
         for (VABufferID id : m_frameRateBufferIds)
         {
-            configBuffers[buffersCount++] = id;
+            configBuffers.push_back(id);
         }
 
         // 12. quality level
-        configBuffers[buffersCount++] = m_qualityLevelBufferId;
+        configBuffers.push_back(m_qualityLevelBufferId);
     }
-
-    assert(buffersCount <= configBuffers.size());
 
     //------------------------------------------------------------------
     // Rendering
@@ -1173,7 +1170,7 @@ mfxStatus VAAPIEncoder::Execute(
             m_vaDisplay,
             m_vaContextEncode,
             configBuffers.data(),
-            buffersCount);
+            configBuffers.size());
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
     {
