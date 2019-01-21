@@ -2032,8 +2032,11 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckMax(par.mfx.NumRefFrame, maxDPB - 1);
 
     if (par.mfx.NumRefFrame)
-        maxDPB = par.mfx.NumRefFrame + 1;
-
+    {
+        // If NumActiveRef parameters are set already, DPB size should not be less than NumActiveRef+1
+        maxDPB = std::max({ par.mfx.NumRefFrame + 1, par.m_ext.DDI.NumActiveRefP + 1,
+            par.m_ext.DDI.NumActiveRefBL0 + par.m_ext.DDI.NumActiveRefBL1 + 1 });
+    }
 
     if (   (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR
          || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR
@@ -2416,8 +2419,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
             , (mfxU16)(MFX_SAO_ENABLE_LUMA | MFX_SAO_ENABLE_CHROMA)
         );
         //On Gen10+ VDEnc SAO for only Luma/Chroma in CQP mode isn't supported by driver until real customer usage
-        //For TU 1 and TU 4 SAO isn't supported due to HuC restrictions, for TU 7 SAO isn't supported at all
-        if (par.m_platform >= MFX_HW_CNL &&
+        if (par.m_platform == MFX_HW_CNL &&
             par.mfx.RateControlMethod == MFX_RATECONTROL_CQP &&
             par.mfx.LowPower == MFX_CODINGOPTION_ON &&
             (par.m_ext.HEVCParam.SampleAdaptiveOffset == (mfxU16)MFX_SAO_ENABLE_LUMA || par.m_ext.HEVCParam.SampleAdaptiveOffset == (mfxU16)MFX_SAO_ENABLE_CHROMA))

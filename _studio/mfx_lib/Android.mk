@@ -30,17 +30,15 @@ MFX_LOCAL_SRC_FILES_HW := \
     $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS_HW), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp)))
 
 MFX_LOCAL_SRC_FILES_HW += $(addprefix mfx_lib/genx/h264_encode/isa/, \
-    genx_bdw_simple_me_isa.cpp \
-    genx_cnl_histogram_isa.cpp \
-    genx_cnl_simple_me_isa.cpp \
-    genx_hsw_simple_me_isa.cpp \
-    genx_hsw_simple_me_proto.cpp \
-    genx_icl_histogram_isa.cpp \
-    genx_icllp_histogram_isa.cpp \
-    genx_icllp_simple_me_isa.cpp \
-    genx_icl_simple_me_isa.cpp \
-    genx_skl_histogram_isa.cpp \
-    genx_skl_simple_me_isa.cpp)
+    genx_simple_me_gen8_isa.cpp \
+    genx_simple_me_gen9_isa.cpp \
+    genx_simple_me_gen10_isa.cpp \
+    genx_simple_me_gen11_isa.cpp \
+    genx_simple_me_gen11lp_isa.cpp \
+    genx_histogram_gen9_isa.cpp \
+    genx_histogram_gen10_isa.cpp \
+    genx_histogram_gen11_isa.cpp \
+    genx_histogram_gen11lp_isa.cpp)
 
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
@@ -98,7 +96,6 @@ MFX_SHARED_FILES_IMPL := $(addprefix mfx_lib/shared/src/, \
     mfx_brc_common.cpp \
     mfx_common_int.cpp \
     mfx_enc_common.cpp \
-    mfx_mpeg2_dec_common.cpp \
     mfx_vc1_dec_common.cpp \
     mfx_vpx_dec_common.cpp \
     mfx_common_decode_int.cpp)

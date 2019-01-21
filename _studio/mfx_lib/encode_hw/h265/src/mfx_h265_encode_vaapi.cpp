@@ -554,7 +554,7 @@ void FillConstPartOfPps(
     pps.pic_fields.bits.transform_skip_enabled_flag                = par.m_pps.transform_skip_enabled_flag;
     pps.pic_fields.bits.cu_qp_delta_enabled_flag                   = par.m_pps.cu_qp_delta_enabled_flag;
     pps.pic_fields.bits.weighted_pred_flag                         = par.m_pps.weighted_pred_flag;
-    pps.pic_fields.bits.weighted_bipred_flag                       = par.m_pps.weighted_pred_flag;
+    pps.pic_fields.bits.weighted_bipred_flag                       = par.m_pps.weighted_bipred_flag;
     pps.pic_fields.bits.transquant_bypass_enabled_flag             = par.m_pps.transquant_bypass_enabled_flag;
     pps.pic_fields.bits.tiles_enabled_flag                         = par.m_pps.tiles_enabled_flag;
     pps.pic_fields.bits.entropy_coding_sync_enabled_flag           = par.m_pps.entropy_coding_sync_enabled_flag;
@@ -679,18 +679,37 @@ void UpdateSlice(
                 slice.ref_pic_list1[ref].flags         = VA_PICTURE_HEVC_INVALID;
             }
         }
-/*
-        slice.luma_log2_weight_denom;
-        slice.delta_chroma_log2_weight_denom
-        slice.delta_luma_weight_l0
-        slice.luma_offset_l0
-        slice.delta_chroma_weight_l0
-        slice.chroma_offset_l0
-        slice.delta_luma_weight_l1
-        slice.luma_offset_l1
-        slice.delta_chroma_weight_l1
-        slice.chroma_offset_l1
-*/
+
+#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+    if ((slice.slice_type == SLICE_TYPE_P && pps.pic_fields.bits.weighted_pred_flag) ||
+        (slice.slice_type == SLICE_TYPE_B && pps.pic_fields.bits.weighted_bipred_flag))
+    {
+        const mfxU16 Y = 0, Cb = 1, Cr = 2, Weight = 0, Offset = 1;
+
+        slice.luma_log2_weight_denom           = (mfxU8)task.m_sh.luma_log2_weight_denom;
+        slice.delta_chroma_log2_weight_denom   = (mfxI8)(task.m_sh.chroma_log2_weight_denom - slice.luma_log2_weight_denom);
+
+        mfxI16 wY = (1 << slice.luma_log2_weight_denom);
+        mfxI16 wC = (1 << task.m_sh.chroma_log2_weight_denom);
+
+        for (mfxU16 i = 0; i < 15; i++)
+        {
+            slice.luma_offset_l0[i]            = (mfxI8)task.m_sh.pwt[0][i][Y][Offset];
+            slice.delta_luma_weight_l0[i]      = (mfxI8)(task.m_sh.pwt[0][i][Y][Weight] - wY);
+            slice.chroma_offset_l0[i][0]       = (mfxI8)task.m_sh.pwt[0][i][Cb][Offset];
+            slice.chroma_offset_l0[i][1]       = (mfxI8)task.m_sh.pwt[0][i][Cr][Offset];
+            slice.delta_chroma_weight_l0[i][0] = (mfxI8)(task.m_sh.pwt[0][i][Cb][Weight] - wC);
+            slice.delta_chroma_weight_l0[i][1] = (mfxI8)(task.m_sh.pwt[0][i][Cr][Weight] - wC);
+            slice.luma_offset_l1[i]            = (mfxI8)task.m_sh.pwt[1][i][Y][Offset];
+            slice.delta_luma_weight_l1[i]      = (mfxI8)(task.m_sh.pwt[1][i][Y][Weight] - wY);
+            slice.chroma_offset_l1[i][0]       = (mfxI8)task.m_sh.pwt[1][i][Cb][Offset];
+            slice.chroma_offset_l1[i][1]       = (mfxI8)task.m_sh.pwt[1][i][Cr][Offset];
+            slice.delta_chroma_weight_l1[i][0] = (mfxI8)(task.m_sh.pwt[1][i][Cb][Weight] - wC);
+            slice.delta_chroma_weight_l1[i][1] = (mfxI8)(task.m_sh.pwt[1][i][Cr][Weight] - wC);
+        }
+    }
+#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+
         slice.max_num_merge_cand     = 5 - task.m_sh.five_minus_max_num_merge_cand;
         slice.slice_qp_delta         = task.m_sh.slice_qp_delta;
         slice.slice_cb_qp_offset     = task.m_sh.slice_cb_qp_offset;

@@ -22,10 +22,10 @@
 #define _MFX_FRAMES_H_
 
 #include <memory.h>
+#include <mutex>
 #include "mfxdefs.h"
 #include "mfx_common_int.h"
 #include "vm_event.h"
-#include "vm_mutex.h"
 
 #define NUM_TASKS 256
 
@@ -83,9 +83,6 @@
            m_currTask          = 0;
            m_maxTasks          = NUM_TASKS;
            m_pTasks            = new sExtTask1[m_maxTasks];    
-           
-           vm_mutex_set_invalid(&m_mGuard);
-           vm_mutex_init(&m_mGuard);
         }
         virtual ~clExtTasks1()
         {
@@ -93,7 +90,6 @@
             {
                 delete [] m_pTasks;
             }
-            vm_mutex_destroy(&m_mGuard);
         }
       
         mfxStatus AddTask ( mfxEncodeInternalParams *pParams,
@@ -101,7 +97,7 @@
                             mfxBitstream *bs, 
                             sExtTask1 **pOutTask)
         {
-            vm_mutex_lock(&m_mGuard);
+            std::lock_guard<std::mutex> guard(m_mGuard);
             if (m_numTasks < m_maxTasks)
             {
                 sExtTask1 *pTask = &m_pTasks[(m_currTask + m_numTasks)% m_maxTasks];
@@ -114,17 +110,14 @@
                 vm_event_signal (&pTask->m_new_frame_event);
                 *pOutTask = pTask;
                 m_numTasks ++;
-                vm_mutex_unlock(&m_mGuard);
                 return MFX_ERR_NONE;
             }
-            vm_mutex_unlock(&m_mGuard);
             return MFX_WRN_IN_EXECUTION;    
         }
         mfxStatus CheckTask (sExtTask1 *pInputTask)
         {
-            vm_mutex_lock(&m_mGuard);
             mfxStatus sts = MFX_ERR_MORE_DATA;
-
+            std::lock_guard<std::mutex> guard(m_mGuard);
             if (m_numTasks > 0)
             {
                 /* task for current frame or task for the same frame */
@@ -142,13 +135,12 @@
                     }          
                 }         
             }
-            vm_mutex_unlock(&m_mGuard);
             return sts;    
         }
 
     private:
         sExtTask1* m_pTasks;
-        vm_mutex        m_mGuard;
+        std::mutex      m_mGuard;
 
         mfxU32          m_maxTasks;
         mfxU32          m_numTasks;
@@ -174,9 +166,6 @@
            m_maxTasks          = NUM_TASKS;
            m_pTasks            = new sExtTask2[m_maxTasks];
            m_numSubmittedTasks = 0;
-           
-           vm_mutex_set_invalid(&m_mGuard);
-           vm_mutex_init(&m_mGuard);
         }
         virtual ~clExtTasks2()
         {
@@ -184,7 +173,6 @@
             {
                 delete [] m_pTasks;
             }
-            vm_mutex_destroy(&m_mGuard);
         }
 
         mfxStatus AddTask ( mfxEncodeInternalParams *pParams,
@@ -192,7 +180,7 @@
                             mfxBitstream *bs, 
                             sExtTask2 **pOutTask)
         {
-            vm_mutex_lock(&m_mGuard);
+            std::lock_guard<std::mutex> guard(m_mGuard);
             if (m_numTasks < m_maxTasks)
             {
                 sExtTask2 *pTask = &m_pTasks[(m_currTask + m_numTasks)% m_maxTasks];
@@ -207,18 +195,15 @@
                 vm_event_signal (&pTask->m_new_frame_event);
                 *pOutTask = pTask;
                 m_numTasks ++;
-                vm_mutex_unlock(&m_mGuard);
                 return MFX_ERR_NONE;
             }
-            vm_mutex_unlock(&m_mGuard);
             return MFX_WRN_IN_EXECUTION;    
         } 
 
         mfxStatus CheckTaskForSubmit(sExtTask2 *pInputTask)
         {
-            vm_mutex_lock(&m_mGuard);
             mfxStatus sts = MFX_ERR_MORE_DATA;
-            
+            std::lock_guard<std::mutex> guard(m_mGuard);
             if (m_numTasks >= m_numSubmittedTasks)
             {
                 if (pInputTask == m_pTasks + ((m_currTask + m_numSubmittedTasks - 1)% m_maxTasks))
@@ -232,20 +217,18 @@
                     sts  = ( pInputTask == &m_pTasks[nTask]) ? MFX_ERR_NONE : MFX_ERR_UNDEFINED_BEHAVIOR;
                 }         
             }
-            vm_mutex_unlock(&m_mGuard);
             return sts;    
         }
         sExtTask2* GetTaskForQuery ()
         {
-            vm_mutex_lock(&m_mGuard);
+            std::lock_guard<std::mutex> guard(m_mGuard);
             sExtTask2* task =  (m_numTasks > 0 && m_numSubmittedTasks > 0) ? &m_pTasks[m_currTask] : 0;
-            vm_mutex_unlock(&m_mGuard);
             return task;
         }
         mfxStatus NextFrame ()
         {
             mfxStatus sts = MFX_ERR_UNDEFINED_BEHAVIOR;
-            vm_mutex_lock(&m_mGuard);
+            std::lock_guard<std::mutex> guard(m_mGuard);
             if (m_numTasks > 0 && m_numSubmittedTasks > 0)
             {
                 m_currTask  = (m_currTask + 1)% m_maxTasks;
@@ -253,7 +236,6 @@
                 m_numSubmittedTasks = m_numSubmittedTasks - 1;
                 sts = MFX_ERR_NONE;
             }
-            vm_mutex_unlock(&m_mGuard);
             return sts;
         }
        
@@ -261,7 +243,7 @@
     private:
 
         sExtTask2* m_pTasks;
-        vm_mutex        m_mGuard;
+        std::mutex      m_mGuard;
 
         mfxU32          m_maxTasks;
         mfxU32          m_numTasks;

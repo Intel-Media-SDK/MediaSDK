@@ -44,7 +44,6 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_common_decode_int.cpp
     ${prefix}/mfx_common_int.cpp
     ${prefix}/mfx_enc_common.cpp
-    ${prefix}/mfx_mpeg2_dec_common.cpp
     ${prefix}/mfx_critical_error_handler.cpp
     ${prefix}/mfx_vpx_dec_common.cpp
   )
@@ -121,7 +120,6 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_user_plugin.cpp
     #=================
     ${prefix}/mfx_brc_common.cpp
-    ${prefix}/mfx_mpeg2_dec_common.cpp
     ${prefix}/mfx_vc1_dec_common.cpp
     ${prefix}/mfx_vpx_dec_common.cpp
     #=================
