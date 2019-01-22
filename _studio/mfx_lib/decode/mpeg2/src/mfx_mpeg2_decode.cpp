@@ -651,31 +651,43 @@ mfxStatus VideoDECODEMPEG2::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1*
     MFX_CHECK(m_core, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
-    MFX_CHECK_NULL_PTR2(surface_work, surface_out);
+    MFX_CHECK_NULL_PTR1(surface_out);
 
     mfxStatus sts = bs ? CheckBitstream(bs) : MFX_ERR_NONE;
     MFX_CHECK_STS(sts);
 
-    if (m_opaque)
+    // in case of EOS (flushing) decoder may return buffered surface
+    // without surface_work
+    if (surface_work != nullptr)
     {
+        if (m_opaque)
+        {
+            sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_MPEG2);
+            MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
+
+            // opaq surface
+            MFX_CHECK((surface_work->Data.MemId == 0 &&
+                       surface_work->Data.Y == nullptr && surface_work->Data.R == nullptr && surface_work->Data.A == nullptr && surface_work->Data.UV == nullptr),
+                      MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            surface_work = GetOriginalSurface(surface_work);
+            MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+
         sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_MPEG2);
-        MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
+        MFX_CHECK_STS(sts);
 
-        if (surface_work->Data.MemId || surface_work->Data.Y || surface_work->Data.R || surface_work->Data.A || surface_work->Data.UV) // opaq surface
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        sts = CheckFrameData(surface_work);
+        MFX_CHECK_STS(sts);
 
-        surface_work = GetOriginalSurface(surface_work);
-        MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
+        sts = m_allocator->SetCurrentMFXSurface(surface_work, m_opaque);
+        MFX_CHECK_STS(sts);
     }
-
-    sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_MPEG2);
-    MFX_CHECK_STS(sts);
-
-    sts = CheckFrameData(surface_work);
-    MFX_CHECK_STS(sts);
-
-    sts = m_allocator->SetCurrentMFXSurface(surface_work, m_opaque);
-    MFX_CHECK_STS(sts);
+    else
+    {
+        MFX_CHECK((bs == nullptr || bs->DataFlag == MFX_BITSTREAM_EOS),
+                  MFX_ERR_NULL_PTR);
+    }
 
     mfxThreadTask task;
     sts = SubmitFrame(bs, surface_work, surface_out, &task);
@@ -772,7 +784,8 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
 
     std::unique_ptr<TaskInfo> info(new TaskInfo); // to prevent memory leak
 
-    info->surface_work = GetOriginalSurface(surface_work);
+    if (surface_work)
+        info->surface_work = GetOriginalSurface(surface_work);
     if (*surface_out)
         info->surface_out = GetOriginalSurface(*surface_out);
 
@@ -875,7 +888,7 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
 
         for (;;)
         {
-            UMC::Status umcRes = m_allocator->FindFreeSurface() != -1 ?
+            UMC::Status umcRes = (m_allocator->FindFreeSurface() != -1 || surface_work == nullptr)?
                                     m_decoder->AddSource(bs ? &src : nullptr) :
                                     UMC::UMC_ERR_NEED_FORCE_OUTPUT; // Exit with MFX_WRN_DEVICE_BUSY
 
@@ -941,8 +954,7 @@ mfxStatus VideoDECODEMPEG2::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surf
             {
                 m_stat.NumFrame++;
                 m_stat.NumError += frame->GetError() ? 1 : 0;
-                FillOutputSurface(surface_work, surface_out, frame);
-                return MFX_ERR_NONE;
+                return FillOutputSurface(surface_work, surface_out, frame);
             }
 
             if (exit)
@@ -1026,14 +1038,17 @@ void VideoDECODEMPEG2::FillVideoParam(mfxVideoParamWrapper *par, bool full)
 }
 
 // Fill up frame parameters before returning it to application
-void VideoDECODEMPEG2::FillOutputSurface(mfxFrameSurface1* surface_work, mfxFrameSurface1** surf_out, MPEG2DecoderFrame* frame) const
+mfxStatus VideoDECODEMPEG2::FillOutputSurface(mfxFrameSurface1* surface_work, mfxFrameSurface1** surf_out, MPEG2DecoderFrame* frame) const
 {
     const auto fd = frame->GetFrameData();
 
-    mfxVideoParam vp;
-    *surf_out = m_allocator->GetSurface(fd->GetFrameMID(), surface_work, &vp);
-     if (m_opaque)
+    *surf_out = (surface_work != nullptr) ? m_allocator->GetSurface(fd->GetFrameMID(), surface_work, &m_video_par) :
+                                            m_allocator->GetSurfaceByIndex(fd->GetFrameMID());
+    MFX_CHECK(*surf_out != nullptr, MFX_ERR_MEMORY_ALLOC);
+
+    if (m_opaque)
        *surf_out = m_core->GetOpaqSurface((*surf_out)->Data.MemId);
+    MFX_CHECK(*surf_out != nullptr, MFX_ERR_MEMORY_ALLOC);
 
     auto surface_out = *surf_out;
 
@@ -1071,6 +1086,7 @@ void VideoDECODEMPEG2::FillOutputSurface(mfxFrameSurface1* surface_work, mfxFram
     auto payloads = m_decoder->GetPayloadStorage();
     if (payloads)
         payloads->SetTimestamp(frame);
+    return MFX_ERR_NONE;
 }
 
 // Find a next frame ready to be output from decoder
