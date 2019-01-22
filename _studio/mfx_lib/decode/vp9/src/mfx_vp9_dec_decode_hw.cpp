@@ -799,7 +799,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     if (!data.surface_work)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
-
+    printf("%d", data.currFrameId);
     if (data.copyFromFrame != UMC::FRAME_MID_INVALID)
     {
         UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
