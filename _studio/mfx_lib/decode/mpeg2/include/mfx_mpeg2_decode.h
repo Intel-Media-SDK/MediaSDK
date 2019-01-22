@@ -100,7 +100,7 @@ private:
     // Find a next frame ready to be output from decoder
     UMC_MPEG2_DECODER::MPEG2DecoderFrame* GetFrameToDisplay();
     // Fill mfxFrameSurface1 meta information
-    void FillOutputSurface(mfxFrameSurface1* surface_work, mfxFrameSurface1** surf_out, UMC_MPEG2_DECODER::MPEG2DecoderFrame* frame) const;
+    mfxStatus FillOutputSurface(mfxFrameSurface1* surface_work, mfxFrameSurface1** surf_out, UMC_MPEG2_DECODER::MPEG2DecoderFrame* frame) const;
     // Get real surface from opaque surface
     mfxFrameSurface1* GetOriginalSurface(mfxFrameSurface1* surface) const
     { return m_opaque ? m_core->GetNativeSurface(surface) : surface; }
