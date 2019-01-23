@@ -387,8 +387,8 @@ Status MFXTaskSupplier::DecodeSEI(NalUnit *nalUnit)
 
         bitStream.Reset((uint8_t*)swappedMem.GetPointer(), (uint32_t)swappedMem.GetDataSize());
 
-        NAL_Unit_Type nal_unit_type;
-        uint32_t nal_ref_idc;
+        NAL_Unit_Type nal_unit_type = NAL_UT_UNSPECIFIED;
+        uint32_t nal_ref_idc = 0;
 
         bitStream.GetNALUnitType(nal_unit_type, nal_ref_idc);
         nalUnit->MoveDataPointer(1); // nal_unit_type - 8 bits
