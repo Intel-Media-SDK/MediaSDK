@@ -134,7 +134,7 @@ static mfxStatus SetROI(
         roi_Param->max_delta_qp = 51;
         roi_Param->min_delta_qp = -51;
 
-        roi_Param->roi_flags.bits.roi_value_is_qp_delta = 0;
+        roi_Param->roi_flags.bits.roi_value_is_qp_delta = 1;
 #if MFX_VERSION > 1021
         if (task.m_roiMode == MFX_ROI_MODE_QP_DELTA) {
             roi_Param->roi_flags.bits.roi_value_is_qp_delta = 1;
@@ -971,12 +971,13 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     if (attrs[ idx_map[VAConfigAttribEncROI] ].value != VA_ATTRIB_NOT_SUPPORTED) // VAConfigAttribEncROI
     {
-        VAConfigAttribValEncROI *VaEncROIValPtr = reinterpret_cast<VAConfigAttribValEncROI *>(&attrs[ idx_map[VAConfigAttribEncROI] ].value);
+        //!!!!!!WA: It need to fix when we will get valid caps.
+        //VAConfigAttribValEncROI *VaEncROIValPtr = reinterpret_cast<VAConfigAttribValEncROI *>(&attrs[ idx_map[VAConfigAttribEncROI] ].value);
 
-        assert(VaEncROIValPtr->bits.num_roi_regions < 32);
-        m_caps.MaxNumOfROI                = VaEncROIValPtr->bits.num_roi_regions;
-        m_caps.ROIBRCPriorityLevelSupport = VaEncROIValPtr->bits.roi_rc_priority_support;
-        m_caps.ROIDeltaQPSupport          = VaEncROIValPtr->bits.roi_rc_qp_delta_support;
+        //assert(VaEncROIValPtr->bits.num_roi_regions < 32);
+        m_caps.MaxNumOfROI                = 16;//VaEncROIValPtr->bits.num_roi_regions;
+        m_caps.ROIBRCPriorityLevelSupport = 0;//VaEncROIValPtr->bits.roi_rc_priority_support;
+        m_caps.ROIDeltaQPSupport          = 1;//VaEncROIValPtr->bits.roi_rc_qp_delta_support;
     }
     else
     {
