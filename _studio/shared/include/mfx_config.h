@@ -29,11 +29,6 @@
 #endif
 
 #define CMAPIUPDATE
-#define MFX_ENABLE_VPP_COMPOSITION
-//#define MFX_ENABLE_VPP_FRC
-#define MFX_ENABLE_VPP_ROTATION
-#define MFX_ENABLE_VPP_VIDEO_SIGNAL
-
 #ifdef MFX_VA
     #if defined(LINUX32) || defined(LINUX64)
         #include <va/va_version.h>
@@ -52,8 +47,6 @@
         #endif
     #endif
 
-    // vpp
-    #define MFX_ENABLE_DENOISE_VIDEO_VPP
     #define MFX_ENABLE_VPP
 
     #if defined(AS_H264LA_PLUGIN)
@@ -107,6 +100,16 @@
 #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
 #endif
 
+#if defined(MFX_ENABLE_VPP)
+    #define MFX_ENABLE_VPP_COMPOSITION
+    #define MFX_ENABLE_VPP_ROTATION
+    #define MFX_ENABLE_VPP_VIDEO_SIGNAL
+    #if MFX_VERSION >= MFX_VERSION_NEXT
+        #define MFX_ENABLE_VPP_RUNTIME_HSBC
+    #endif
+    //#define MFX_ENABLE_VPP_FRC
+#endif
+
 #if defined(MFX_ENABLE_ASC)
     #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
 #endif
@@ -118,12 +121,6 @@
 #if MFX_VERSION >= 1028
     #define MFX_ENABLE_RGBP
     #define MFX_ENABLE_FOURCC_RGB565
-#endif
-
-// The line below HAS to be changed to MFX_VERSION specific version i.e. 1027
-// after inclusion of respective features into official API
-#if MFX_VERSION >= MFX_VERSION_NEXT
-    #define MFX_ENABLE_VPP_RUNTIME_HSBC
 #endif
 
 #if defined(MFX_VA_LINUX)
