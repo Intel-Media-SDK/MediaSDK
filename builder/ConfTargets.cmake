@@ -19,35 +19,9 @@
 # SOFTWARE.
 
 message( STATUS "Global Configuration of Targets" )
-if(__TARGET_PLATFORM)
-    add_definitions( -DLINUX_TARGET_PLATFORM -DLINUX_TARGET_PLATFORM_${__TARGET_PLATFORM} )
-endif()
-#
+
 set( T_ARCH "sse4.2" )
-#if( __TARGET_PLATFORM STREQUAL "BDW" )
-#    set( T_ARCH "avx2" )
-#endif()
 message( STATUS "Target Architecture to compile: ${T_ARCH}" )
-#
-if( __TARGET_PLATFORM STREQUAL "BXTMIN" )
-    set(MFX_LIB_ONLY TRUE)
-    message( STATUS "!!! BXTMIN target MFX_LIB_ONLY !!!" )
-endif()
-
-# HEVC plugins disabled by default
-set( ENABLE_HEVC FALSE )
-set( ENABLE_HEVC_FEI FALSE )
-
-if( MFX_LIB_ONLY )
-    set( ENABLE_HEVC_FEI FALSE )
-    message("!!! NO HEVC PLUGINS - MFX LIB ONLY BUILD !!!")
-else()
-    if ((CMAKE_C_COMPILER MATCHES icc) OR ENABLE_HEVC_ON_GCC )
-       set(ENABLE_HEVC TRUE)
-       set(ENABLE_HEVC_FEI TRUE)
-       message( STATUS "  Enabling HEVC plugins build!")
-    endif()
-endif()
 
 append("-std=c++11" CMAKE_CXX_FLAGS)
 
