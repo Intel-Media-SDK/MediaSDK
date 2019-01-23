@@ -40,8 +40,6 @@
     // enable defines
     #include "mfxconfig.h"
 
-    #define MFX_ENABLE_H264_VIDEO_DECODE
-
     #if defined(AS_H264LA_PLUGIN)
         #define MFX_ENABLE_LA_H264_VIDEO_HW
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE

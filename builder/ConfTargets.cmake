@@ -79,6 +79,7 @@ option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
 
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
+option( MFX_ENABLE_H264_VIDEO_DECODE "Enabled AVC decoder?" ON)
 option( MFX_ENABLE_H265_VIDEO_DECODE "Enabled HEVC decoder?" ON)
 option( MFX_ENABLE_MPEG2_VIDEO_DECODE "Enabled MPEG2 decoder?" ON)
 option( MFX_ENABLE_MPEG2_VIDEO_ENCODE "Enabled MPEG2 encoder?" ON)
