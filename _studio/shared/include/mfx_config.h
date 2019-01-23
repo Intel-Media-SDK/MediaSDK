@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,7 @@
 #define _MFX_CONFIG_H_
 
 #include "mfxdefs.h"
-#if !defined(ANDROID)
-    // mfxconfig.h is auto-generated file containing mediasdk per-component
-    // enable defines
-    #include "mfxconfig.h"
-#endif
 
-#define CMAPIUPDATE
 #ifdef MFX_VA
     #if defined(LINUX32) || defined(LINUX64)
         #include <va/va_version.h>
@@ -37,30 +31,27 @@
     #endif
 #endif
 
-#if !defined(ANDROID)
-    // HW decoders are part of library
+#if defined(ANDROID)
+    // we don't support config auto-generation on Android and have hardcoded
+    // definition instead
+    #include "mfx_android_defs.h"
+#else
+    // mfxconfig.h is auto-generated file containing mediasdk per-component
+    // enable defines
+    #include "mfxconfig.h"
+
     #define MFX_ENABLE_H264_VIDEO_DECODE
-
-    #if MFX_VERSION >= 1025
-        #if !defined(AS_H264LA_PLUGIN)
-            #define MFX_ENABLE_MFE
-        #endif
-    #endif
-
-    #define MFX_ENABLE_VPP
 
     #if defined(AS_H264LA_PLUGIN)
         #define MFX_ENABLE_LA_H264_VIDEO_HW
+        #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
+    #else
+        #if MFX_VERSION >= 1025
+            #define MFX_ENABLE_MFE
+        #endif
+        #define MFX_ENABLE_VPP
     #endif
-
-#else // #if !defined(ANDROID)
-    #include "mfx_android_defs.h"
-#endif // #if !defined(ANDROID)
-
-#if defined(AS_H264LA_PLUGIN)
-    #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-    #undef MFX_ENABLE_VPP
-#endif
+#endif // #if defined(ANDROID)
 
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
@@ -128,5 +119,7 @@
         #define MFX_ENABLE_QVBR
     #endif
 #endif
+
+#define CMAPIUPDATE
 
 #endif // _MFX_CONFIG_H_
