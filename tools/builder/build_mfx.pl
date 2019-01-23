@@ -39,7 +39,6 @@ my %build = (
     'trace'      => '',
     'prefix'     => '',
     'toolchain'  => '',
-    'target'     => 'BDW',
     'samples-dir'=> '',
     'api'        => '',
     'api-dir'    => ''
@@ -50,7 +49,6 @@ my @list_arch      = qw(intel64);
 my @list_config    = qw(release debug);
 my @list_trace     = qw(itt all);
 my @list_comp      = qw(gcc icc clang);
-my @list_target    = qw(UPSTREAM BDW BSW BXT BXTMIN CFL);
 my @list_ipp       = qw(
   px a6 w7 t7 v8 s8 p8 g9
   mx m7 u8 n8 y8 e9
@@ -129,7 +127,6 @@ sub get_cmake_gen_cmd {
     push @cmake_cmd_gen, '-DCMAKE_CONFIGURATION_TYPES:STRING="release;debug"';
     push @cmake_cmd_gen, "-DCMAKE_BUILD_TYPE:STRING=$config{'config'}";
     push @cmake_cmd_gen, "-D__IPP:STRING=" . ($config{'ipp'} || 'e9');
-    push @cmake_cmd_gen, "-D__TARGET_PLATFORM:STRING=$config{'target'}";
 
     push @cmake_cmd_gen, "-D__TRACE:STRING=$config{'trace'}"           if $config{'trace'};
     push @cmake_cmd_gen, "-DENABLE_ITT=ON"                             if $config{'trace'} eq 'itt';
@@ -196,7 +193,6 @@ sub usage {
     print "\t--trace  - enable MFX tracing with specified modules (itt|all)\n";
     print "\t--cross  - provide cross-compiler setings to CMake\n";
     print "\t--tools  - enable building of tools (on|off)\n";
-    print "\t--target - select feature subset specific to target project. default is BDW (", @list_target, ")\n";
     print "\t--no-warn-as-error  - disable Warning As Error\n";
     print "\t--prefix - set install prefix\n";
     print "\t--samples-dir - select directory root for samples to build from\n";
@@ -273,7 +269,6 @@ GetOptions(
 
     '--ipp=s'    => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_ipp]);    },
     '--trace=s'  => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_trace]);  },
-    '--target=s' => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_target]); },
 	'--tools=s'  => sub { my ($k, $v) = @_; _opt_in_list($k, $v, ['', @list_tools]); },
 ) or usage();
 

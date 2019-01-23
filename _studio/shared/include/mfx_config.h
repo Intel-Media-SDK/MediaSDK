@@ -42,41 +42,32 @@
     #endif
 #endif
 
-#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL) || defined(LINUX_TARGET_PLATFORM_BXT)
-    #if !defined(ANDROID)
-        // HW decoders are part of library
-        #define MFX_ENABLE_H264_VIDEO_DECODE
-        
-        #if MFX_VERSION >= 1025
-            #if !defined(AS_H264LA_PLUGIN)
-                #define MFX_ENABLE_MFE
-            #endif
+#if !defined(ANDROID)
+    // HW decoders are part of library
+    #define MFX_ENABLE_H264_VIDEO_DECODE
+
+    #if MFX_VERSION >= 1025
+        #if !defined(AS_H264LA_PLUGIN)
+            #define MFX_ENABLE_MFE
         #endif
+    #endif
 
-        // vpp
-        #define MFX_ENABLE_DENOISE_VIDEO_VPP
-        #define MFX_ENABLE_VPP
-
-        #if defined(AS_H264LA_PLUGIN)
-            #define MFX_ENABLE_LA_H264_VIDEO_HW
-        #endif
-
-    #else // #if !defined(ANDROID)
-        #include "mfx_android_defs.h"
-    #endif // #if !defined(ANDROID)
+    // vpp
+    #define MFX_ENABLE_DENOISE_VIDEO_VPP
+    #define MFX_ENABLE_VPP
 
     #if defined(AS_H264LA_PLUGIN)
-        #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-        #undef MFX_ENABLE_VPP
+        #define MFX_ENABLE_LA_H264_VIDEO_HW
     #endif
 
-#else // LINUX_TARGET_PLATFORM
-    #if defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
-        #include "mfx_common_linux_bxtmin.h"
-    #else
-        #error "Target platform should be specified!"
-    #endif
-#endif // LINUX_TARGET_PLATFORM
+#else // #if !defined(ANDROID)
+    #include "mfx_android_defs.h"
+#endif // #if !defined(ANDROID)
+
+#if defined(AS_H264LA_PLUGIN)
+    #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
+    #undef MFX_ENABLE_VPP
+#endif
 
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
