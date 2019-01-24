@@ -494,7 +494,8 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
     if (passed.width > allocated.width ||
         passed.height > allocated.height)
     {
-        return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
+        if (a_flags&1)
+            return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
     }
     return UMC::UMC_OK;
 }
