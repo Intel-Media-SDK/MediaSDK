@@ -33,6 +33,7 @@
 
 #include "mfx_common_decode_int.h"
 #include "mfx_vpx_dec_common.h"
+#include <libmfx_core_vaapi.h>
 
 
 using namespace UMC_VP9_DECODER;
@@ -239,7 +240,7 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     bool isUseExternalFrames = (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || m_is_opaque_memory;
     bool reallocFrames = (par->mfx.EnableReallocRequest == MFX_CODINGOPTION_ON);
-    m_adaptiveMode = isUseExternalFrames && reallocFrames;
+    m_adaptiveMode = /*isUseExternalFrames &&*/ reallocFrames;
 
     if (isUseExternalFrames && !reallocFrames)
     {
@@ -716,13 +717,23 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
 #endif
 
-
     if (decoder.m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
     {
-        if (data.showFrame) {
+        if (data.showFrame)
+        {
             mfxStatus sts = decoder.m_FrameAllocator->PrepareToOutput(data.surface_work, data.currFrameId, 0, false);
+            if (MFX_ERR_NONE != sts)
+            {
+                UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+                if (data.currFrameId != -1)
+                     decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
+            }
             MFX_CHECK_STS(sts);
-        } else decoder.m_core->DecreaseReference(&data.surface_work->Data);
+        }
+        else
+        {
+            decoder.m_core->DecreaseReference(&data.surface_work->Data);
+        }
     }
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
@@ -833,8 +844,16 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     if (UMC::UMC_OK != videoInfo.Init(m_vPar.mfx.FrameInfo.Width, m_vPar.mfx.FrameInfo.Height, cf, m_frameInfo.bit_depth))
         return MFX_ERR_MEMORY_ALLOC;
 
-    // We need to realize DRC processing here in lib version of allocators
-    if (UMC::UMC_OK != m_FrameAllocator->Alloc(&currMid, &videoInfo, 0))
+    UMC::Status umc_sts = m_FrameAllocator->Alloc(&currMid, &videoInfo, 1); // 1 means reallocation allowed
+    if (UMC::UMC_ERR_NOT_ENOUGH_BUFFER == umc_sts && m_adaptiveMode)
+    {
+        mfxFrameSurface1 *new_surf = m_FrameAllocator->GetSurfaceByIndex(currMid);
+        new_surf->Info.Width = surface_work->Info.Width;
+        new_surf->Info.Height = surface_work->Info.Height;
+        VAAPIVideoCORE *vaapi_core = (VAAPIVideoCORE *)m_core;
+        vaapi_core->ReallocFrame(new_surf);
+    }
+    else if (UMC::UMC_OK != umc_sts)
     {
         return MFX_ERR_MEMORY_ALLOC;
     }

@@ -146,6 +146,73 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
         return MFX_ERR_INVALID_HANDLE;
     }
 }
+
+mfxStatus mfxCalcSurfaceBufSize(mfxFrameSurface1 *surface, mfxU32 *nbytes)
+{
+    MFX_CHECK_NULL_PTR2(surface, nbytes);
+
+    mfxU32 Width2 = ALIGN32(surface->Info.Width);
+    mfxU32 Height2 = ALIGN32(surface->Info.Height);
+
+    switch (surface->Info.FourCC)
+    {
+    case MFX_FOURCC_YV12:
+    case MFX_FOURCC_NV12:
+        *nbytes = Width2*Height2 + (Width2>>1)*(Height2>>1) + (Width2>>1)*(Height2>>1);
+        break;
+    case MFX_FOURCC_P010:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+#endif
+        *nbytes = (Width2*Height2 + (Width2>>1)*(Height2>>1) + (Width2>>1)*(Height2>>1))*2;
+        break;
+    case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216:
+#endif
+        *nbytes = (Width2*Height2 + (Width2>>1)*(Height2) + (Width2>>1)*(Height2))*2;
+        break;
+    case MFX_FOURCC_RGB3:
+        *nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2;
+        break;
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_AYUV:
+        *nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2 + Width2*Height2;
+        break;
+    case MFX_FOURCC_A2RGB10:
+        *nbytes = Width2*Height2*4; // 4 bytes per pixel
+        break;
+    case MFX_FOURCC_YUY2:
+        *nbytes = Width2*Height2 + (Width2>>1)*(Height2) + (Width2>>1)*(Height2);
+        break;
+    case MFX_FOURCC_NV16:
+        *nbytes = Width2*Height2 + (Width2>>1)*(Height2) + (Width2>>1)*(Height2);
+        break;
+    case MFX_FOURCC_R16:
+        *nbytes = 2*Width2*Height2;
+        break;
+    case MFX_FOURCC_ARGB16:
+        *nbytes = (Width2*Height2 + Width2*Height2 + Width2*Height2 + Width2*Height2) << 1;
+        break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y410:
+        *nbytes = 4 * Width2*Height2;
+        break;
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y416:
+        *nbytes = 8 * Width2*Height2;
+        break;
+#endif
+      default:
+        *nbytes = 0;
+    }
+    return MFX_ERR_UNSUPPORTED;
+}
+
 mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     if (!pthis)
@@ -208,6 +275,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
 #endif // MFX_ENABLE_FOURCC_RGB565
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_AYUV:
         nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
         break;
     case MFX_FOURCC_A2RGB10:
@@ -233,11 +301,6 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         }
         else
             return MFX_ERR_UNSUPPORTED;
-
-    case MFX_FOURCC_AYUV:
-        nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
-        break;
-
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
         Pitch=ALIGN32(request->Info.Width*2);

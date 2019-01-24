@@ -133,6 +133,9 @@ public:
     virtual mfxStatus     SetHandle(mfxHandleType type, mfxHDL handle);
 
     virtual mfxStatus     AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true);
+
+    virtual mfxStatus     ReallocFrame(mfxFrameSurface1 *surf);
+
     virtual void          GetVA(mfxHDL* phdl, mfxU16 type)
     {
         (type & MFX_MEMTYPE_FROM_DECODE)?(*phdl = m_pVA.get()):(*phdl = 0);
@@ -192,6 +195,7 @@ protected:
     const mfxU32                         m_adapterNum; // Ordinal number of adapter to work
     bool                                 m_bUseExtAllocForHWFrames;
     s_ptr<mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator, true> m_pcHWAlloc;
+    s_ptr<mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator, true> m_pcHWRealloc;
     eMFXHWType                           m_HWType;
     eMFXGTConfig                         m_GTConfig;
 

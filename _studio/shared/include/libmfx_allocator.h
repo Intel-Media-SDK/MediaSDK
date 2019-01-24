@@ -38,6 +38,7 @@ namespace mfxDefaultAllocator
     mfxStatus GetHDL(mfxHDL pthis, mfxMemId mid, mfxHDL *handle);
     mfxStatus UnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0);
     mfxStatus FreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response);
+    mfxStatus ReallocFrame(mfxHDL pthis, mfxFrameSurface1 *surface);
 
     struct BufferStruct
     {

@@ -378,6 +378,7 @@ VAAPIVideoCORE::~VAAPIVideoCORE()
 
 void VAAPIVideoCORE::Close()
 {
+    m_pcHWRealloc.pop();
     m_KeepVAState = false;
     m_pVA.reset();
 } // void VAAPIVideoCORE::Close()
@@ -565,6 +566,27 @@ VAAPIVideoCORE::AllocFrames(
 
 } // mfxStatus VAAPIVideoCORE::AllocFrames(...)
 
+
+mfxStatus VAAPIVideoCORE::ReallocFrame(mfxFrameSurface1 *surf)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    mfxBaseWideFrameAllocator* pAlloc = m_pcHWRealloc.get();
+    if (surf->Data.MemType & MFX_MEMTYPE_INTERNAL_FRAME &&
+        ((surf->Data.MemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)||
+         (surf->Data.MemType & MFX_MEMTYPE_DXVA2_PROCESSOR_TARGET)))
+    {
+       if (pAlloc)
+       {
+           mfxHDL srcHandle;
+           GetFrameHDL(surf->Data.MemId, &srcHandle);
+           VASurfaceID *va_surf = (VASurfaceID*)srcHandle;
+           sts = mfxDefaultAllocatorVAAPI::ReallocFrameHW(pAlloc->frameAllocator.pthis, surf, va_surf);
+       }
+    }
+
+    return sts;
+}
 
 mfxStatus
 VAAPIVideoCORE::DefaultAllocFrames(
@@ -754,7 +776,7 @@ VAAPIVideoCORE::ProcessRenderTargets(
 #endif
 
     RegisterMids(response, request->Type, !m_bUseExtAllocForHWFrames, pAlloc);
-    m_pcHWAlloc.pop();
+    m_pcHWRealloc.reset(m_pcHWAlloc.pop());
 
     return MFX_ERR_NONE;
 
@@ -897,10 +919,10 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
     if (srcMemType & MFX_MEMTYPE_EXTERNAL_FRAME)
     {
-#ifndef MFX_VA_LINUX
+//#ifndef MFX_VA_LINUX
         if (srcMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-#endif
+//#endif
             if (nullptr == srcPtr)
             {
                 sts = LockExternalFrame(srcMemId, &srcTempSurface.Data);
@@ -913,7 +935,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
                 srcTempSurface.Data = pSrc->Data;
                 srcTempSurface.Data.MemId = 0;
             }
-#ifndef MFX_VA_LINUX
+//#ifndef MFX_VA_LINUX
         }
         else if (srcMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
@@ -922,7 +944,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
             srcTempSurface.Data.MemId = srcHandle;
         }
-#endif
+//#endif
     }
     else if (srcMemType & MFX_MEMTYPE_INTERNAL_FRAME)
     {
@@ -952,10 +974,10 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
     if (dstMemType & MFX_MEMTYPE_EXTERNAL_FRAME)
     {
-#ifndef MFX_VA_LINUX
+//#ifndef MFX_VA_LINUX
         if (dstMemType & MFX_MEMTYPE_SYSTEM_MEMORY)
         {
-#endif
+//#endif
             if (nullptr == dstPtr)
             {
                 sts = LockExternalFrame(dstMemId, &dstTempSurface.Data);
@@ -968,7 +990,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
                 dstTempSurface.Data = pDst->Data;
                 dstTempSurface.Data.MemId = 0;
             }
-#ifndef MFX_VA_LINUX
+//#ifndef MFX_VA_LINUX
         }
         else if (dstMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET)
         {
@@ -977,7 +999,7 @@ VAAPIVideoCORE::DoFastCopyWrapper(
 
             dstTempSurface.Data.MemId = dstHandle;
         }
-#endif
+//#endif
     }
     else if (dstMemType & MFX_MEMTYPE_INTERNAL_FRAME)
     {

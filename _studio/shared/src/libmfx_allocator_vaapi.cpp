@@ -110,6 +110,100 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     }
 }
 
+static mfxStatus ReallocImpl(mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator* pSelf, vaapiMemIdInt *vaapi_mid, mfxFrameSurface1 *surf)
+{
+    VAStatus  va_res  = VA_STATUS_SUCCESS;
+    unsigned int va_fourcc = 0;
+    mfxU32 fourcc = surf->Info.FourCC;
+
+    // VP8 hybrid driver has weird requirements for allocation of surfaces/buffers for VP8 encoding
+    // to comply with them additional logic is required to support regular and VP8 hybrid allocation pathes
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
+    va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
+    if (!va_fourcc || ((VA_FOURCC_NV12 != va_fourcc) &&
+                       (VA_FOURCC_YV12 != va_fourcc) &&
+                       (VA_FOURCC_YUY2 != va_fourcc) &&
+                       (VA_FOURCC_ARGB != va_fourcc) &&
+                       (VA_FOURCC_ABGR != va_fourcc) &&
+                       (VA_FOURCC_P208 != va_fourcc) &&
+                       (VA_FOURCC_P010 != va_fourcc) &&
+                       (VA_FOURCC_YUY2 != va_fourcc) &&
+#if (MFX_VERSION >= 1027)
+                       (VA_FOURCC_Y210 != va_fourcc) &&
+                       (VA_FOURCC_Y410 != va_fourcc) &&
+#endif
+                       (VA_FOURCC_AYUV != va_fourcc) ))
+    {
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    VASurfaceID surfaces[1];
+    VASurfaceAttrib attrib[2];
+
+    surfaces[0] = *vaapi_mid->m_surface;
+    if (MFX_FOURCC_P8 == vaapi_mid->m_fourcc)
+    {
+        vaDestroyBuffer(pSelf->pVADisplay, surfaces[0]);
+    }
+    vaDestroySurfaces(pSelf->pVADisplay, &surfaces[0], 1);
+
+    *vaapi_mid->m_surface = 0;
+
+    unsigned int format;
+    int attrCnt = 0;
+
+    attrib[attrCnt].type          = VASurfaceAttribPixelFormat;
+    attrib[attrCnt].flags         = VA_SURFACE_ATTRIB_SETTABLE;
+    attrib[attrCnt].value.type    = VAGenericValueTypeInteger;
+    attrib[attrCnt++].value.value.i = va_fourcc;
+    format               = va_fourcc;
+
+    if (fourcc == MFX_FOURCC_VP8_MBDATA)
+    {
+        // special configuration for MB data surf allocation for VP8 hybrid encoder is required
+        attrib[0].value.value.i = VA_FOURCC_P208;
+        format               = VA_FOURCC_P208;
+    }
+    else if (va_fourcc == VA_FOURCC_NV12)
+    {
+        format = VA_RT_FORMAT_YUV420;
+    }
+
+    va_res = vaCreateSurfaces(pSelf->pVADisplay,
+                            format,
+                            surf->Info.Width, surf->Info.Height,
+                            surfaces,
+                            1,
+                            &attrib[0], attrCnt);
+
+    *vaapi_mid->m_surface = surfaces[0];
+    vaapi_mid->m_fourcc = fourcc;
+
+    if (VA_STATUS_SUCCESS != va_res)
+    {
+        return MFX_ERR_DEVICE_FAILED;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+// aka AllocImpl(surface)
+mfxStatus mfxDefaultAllocatorVAAPI::ReallocFrameHW(mfxHDL pthis, mfxFrameSurface1 *surf, VASurfaceID *va_surf)
+{
+    mfxWideHWFrameAllocator *pSelf = (mfxWideHWFrameAllocator*)pthis;
+
+    for (mfxU32 i=0; i<pSelf->NumFrames; ++i)
+    {
+        vaapiMemIdInt *vaapi_mid = (vaapiMemIdInt *)pSelf->m_frameHandles[i];
+        if (*vaapi_mid->m_surface == *va_surf)
+        {
+            return ReallocImpl(pSelf, vaapi_mid, surf);
+        }
+    }
+    return MFX_ERR_MEMORY_ALLOC;
+}
+
+
 mfxStatus
 mfxDefaultAllocatorVAAPI::AllocFramesHW(
     mfxHDL                  pthis,
