@@ -59,7 +59,7 @@ option( ENABLE_ALL "Enable all dependencies and features?" OFF )
 
 if( CMAKE_SYSTEM_NAME MATCHES Linux )
   option( ENABLE_X11 "Build X11 versions of the targets?" ON)
-  option( ENABLE_X11_DRI3 "Build X11 DRI3 versions of the targets?" ${ENABLE_ALL} )
+  cmake_dependent_option(ENABLE_X11_DRI3 "Build X11 DRI3 versions of the targets?" ${ENABLE_ALL} "ENABLE_X11" OFF)
   option( ENABLE_WAYLAND "Build WAYLAND versions of the targets?" ${ENABLE_ALL} )
 endif()
 
