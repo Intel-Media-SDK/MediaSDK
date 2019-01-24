@@ -1,0 +1,9 @@
+cc_library_headers {
+    name: "soong_libmfx_api_headers",
+
+    export_include_dirs = [
+        "include"
+    ],
+
+    vendor: true,
+}
