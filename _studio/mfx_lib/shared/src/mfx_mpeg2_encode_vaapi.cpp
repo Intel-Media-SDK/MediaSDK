@@ -1134,10 +1134,8 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     mfxStatus mfxSts;
     VAStatus vaSts;
 
-    const mfxU32            NumCompBuffer = 15;
-    std::vector<VABufferID> configBuffers(NumCompBuffer, VA_INVALID_ID);
-
-    mfxU16 buffersCount = 0;
+    std::vector<VABufferID> configBuffers;
+    configBuffers.reserve(15);
 
     if (pExecuteBuffers->m_bAddSPS)
     {
@@ -1157,7 +1155,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         if (m_spsBufferId != VA_INVALID_ID)
-            configBuffers[buffersCount++] = m_spsBufferId;
+            configBuffers.push_back(m_spsBufferId);
 
         // mfxExtVideoSignalInfo present - insert only with SPS
         if (pExecuteBuffers->m_bAddDisplayExt)
@@ -1166,7 +1164,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
             MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
             if (m_miscParamSeqInfoId != VA_INVALID_ID)
-                configBuffers[buffersCount++] = m_miscParamSeqInfoId;
+                configBuffers.push_back(m_miscParamSeqInfoId);
         }
 
         pExecuteBuffers->m_bAddSPS = 0;
@@ -1189,7 +1187,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             if (m_qmBufferId != VA_INVALID_ID)
-                configBuffers[buffersCount++] = m_qmBufferId;
+                configBuffers.push_back(m_qmBufferId);
         }
     }
 
@@ -1231,19 +1229,19 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     if (m_ppsBufferId != VA_INVALID_ID)
-        configBuffers[buffersCount++] = m_ppsBufferId;
+        configBuffers.push_back(m_ppsBufferId);
 
     if (m_miscParamFpsId != VA_INVALID_ID)
-        configBuffers[buffersCount++] = m_miscParamFpsId;
+        configBuffers.push_back(m_miscParamFpsId);
 
     if (m_miscParamQualityId != VA_INVALID_ID)
-        configBuffers[buffersCount++] = m_miscParamQualityId;
+        configBuffers.push_back(m_miscParamQualityId);
 
     if (m_miscQualityParamId != VA_INVALID_ID)
-        configBuffers[buffersCount++] = m_miscQualityParamId;
+        configBuffers.push_back(m_miscQualityParamId);
 
     if (m_miscParamSkipFrameId != VA_INVALID_ID)
-        configBuffers[buffersCount++] = m_miscParamSkipFrameId;
+        configBuffers.push_back(m_miscParamSkipFrameId);
 
     if (pUserData && userDataLen > 0)
     {
@@ -1251,10 +1249,10 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
         if (m_packedUserDataParamsId != VA_INVALID_ID)
-            configBuffers[buffersCount++] = m_packedUserDataParamsId;
+            configBuffers.push_back(m_packedUserDataParamsId);
 
         if (m_packedUserDataId != VA_INVALID_ID)
-            configBuffers[buffersCount++] = m_packedUserDataId;
+            configBuffers.push_back(m_packedUserDataId);
     }
 
     bool isMBQP = pExecuteBuffers->m_mbqp_data && (pExecuteBuffers->m_mbqp_data[0] != 0);
@@ -1264,7 +1262,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
         if (m_mbqpBufferId != VA_INVALID_ID)
-            configBuffers[buffersCount++] = m_mbqpBufferId;
+            configBuffers.push_back(m_mbqpBufferId);
 
         pExecuteBuffers->m_mbqp_data[0] = 0;
     }
@@ -1290,8 +1288,8 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture(buf)");
             vaSts = vaRenderPicture(m_vaDisplay,
                 m_vaContextEncode,
-                &configBuffers[0],
-                buffersCount);
+                configBuffers.data(),
+                configBuffers.size());
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
 

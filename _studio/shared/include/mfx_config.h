@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,17 +22,6 @@
 #define _MFX_CONFIG_H_
 
 #include "mfxdefs.h"
-#if !defined(ANDROID)
-    // mfxconfig.h is auto-generated file containing mediasdk per-component
-    // enable defines
-    #include "mfxconfig.h"
-#endif
-
-#define CMAPIUPDATE
-#define MFX_ENABLE_VPP_COMPOSITION
-//#define MFX_ENABLE_VPP_FRC
-#define MFX_ENABLE_VPP_ROTATION
-#define MFX_ENABLE_VPP_VIDEO_SIGNAL
 
 #ifdef MFX_VA
     #if defined(LINUX32) || defined(LINUX64)
@@ -42,41 +31,25 @@
     #endif
 #endif
 
-#if !defined(LINUX_TARGET_PLATFORM) || defined(LINUX_TARGET_PLATFORM_BDW) || defined(LINUX_TARGET_PLATFORM_CFL) || defined(LINUX_TARGET_PLATFORM_BXT)
-    #if !defined(ANDROID)
-        // HW decoders are part of library
-        #define MFX_ENABLE_H264_VIDEO_DECODE
-        
-        #if MFX_VERSION >= 1025
-            #if !defined(AS_H264LA_PLUGIN)
-                #define MFX_ENABLE_MFE
-            #endif
-        #endif
-
-        // vpp
-        #define MFX_ENABLE_DENOISE_VIDEO_VPP
-        #define MFX_ENABLE_VPP
-
-        #if defined(AS_H264LA_PLUGIN)
-            #define MFX_ENABLE_LA_H264_VIDEO_HW
-        #endif
-
-    #else // #if !defined(ANDROID)
-        #include "mfx_android_defs.h"
-    #endif // #if !defined(ANDROID)
+#if defined(ANDROID)
+    // we don't support config auto-generation on Android and have hardcoded
+    // definition instead
+    #include "mfx_android_defs.h"
+#else
+    // mfxconfig.h is auto-generated file containing mediasdk per-component
+    // enable defines
+    #include "mfxconfig.h"
 
     #if defined(AS_H264LA_PLUGIN)
+        #define MFX_ENABLE_LA_H264_VIDEO_HW
         #undef MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-        #undef MFX_ENABLE_VPP
-    #endif
-
-#else // LINUX_TARGET_PLATFORM
-    #if defined(LINUX_TARGET_PLATFORM_BXTMIN) // PRE_SI_GEN == 9
-        #include "mfx_common_linux_bxtmin.h"
     #else
-        #error "Target platform should be specified!"
+        #if MFX_VERSION >= 1025
+            #define MFX_ENABLE_MFE
+        #endif
+        #define MFX_ENABLE_VPP
     #endif
-#endif // LINUX_TARGET_PLATFORM
+#endif // #if defined(ANDROID)
 
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
@@ -116,6 +89,16 @@
 #define MFX_ENABLE_VP8_VIDEO_DECODE_HW
 #endif
 
+#if defined(MFX_ENABLE_VPP)
+    #define MFX_ENABLE_VPP_COMPOSITION
+    #define MFX_ENABLE_VPP_ROTATION
+    #define MFX_ENABLE_VPP_VIDEO_SIGNAL
+    #if MFX_VERSION >= MFX_VERSION_NEXT
+        #define MFX_ENABLE_VPP_RUNTIME_HSBC
+    #endif
+    //#define MFX_ENABLE_VPP_FRC
+#endif
+
 #if defined(MFX_ENABLE_ASC)
     #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
 #endif
@@ -129,16 +112,12 @@
     #define MFX_ENABLE_FOURCC_RGB565
 #endif
 
-// The line below HAS to be changed to MFX_VERSION specific version i.e. 1027
-// after inclusion of respective features into official API
-#if MFX_VERSION >= MFX_VERSION_NEXT
-    #define MFX_ENABLE_VPP_RUNTIME_HSBC
-#endif
-
 #if defined(MFX_VA_LINUX)
     #if VA_CHECK_VERSION(1,3,0)
         #define MFX_ENABLE_QVBR
     #endif
 #endif
+
+#define CMAPIUPDATE
 
 #endif // _MFX_CONFIG_H_

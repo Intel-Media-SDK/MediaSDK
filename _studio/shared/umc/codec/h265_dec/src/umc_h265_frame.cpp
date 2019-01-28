@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,14 +34,14 @@ namespace UMC_HEVC_DECODER
 H265DecoderFrame::H265DecoderFrame(UMC::MemoryAllocator *pMemoryAllocator, Heap_Objects * pObjHeap)
     : H265DecYUVBufferPadded(pMemoryAllocator)
     , m_ErrorType(0)
-    , m_pSlicesInfo(0)
-    , m_pPreviousFrame(0)
-    , m_pFutureFrame(0)
+    , m_pPreviousFrame(nullptr)
+    , m_pFutureFrame(nullptr)
     , m_dFrameTime(-1.0)
     , m_isOriginalPTS(false)
     , post_procces_complete(false)
     , m_index(-1)
     , m_UID(-1)
+    , m_pSlicesInfo(nullptr)
     , m_pObjHeap(pObjHeap)
 {
     m_isShortTermRef = false;
