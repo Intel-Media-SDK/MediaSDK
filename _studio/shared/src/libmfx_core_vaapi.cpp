@@ -916,8 +916,19 @@ VAAPIVideoCORE::DoFastCopyWrapper(
         {
             sts = GetExternalFrameHDL(srcMemId, &srcHandle);
             MFX_CHECK_STS(sts);
-
-            srcTempSurface.Data.MemId = srcHandle;
+            // VP9D show_existing_frame with external D3D allocator case
+            // we need to lock temporary src as well before DoFastCopyExtended
+            // (which will perform with swCopy instead of vaDeriveImage/vaPutImage)
+            if ((dstMemType & MFX_MEMTYPE_DXVA2_DECODER_TARGET) && (dstMemType & MFX_MEMTYPE_EXTERNAL_FRAME))
+            {
+                sts = LockExternalFrame(srcMemId, &srcTempSurface.Data);
+                MFX_CHECK_STS(sts);
+                isSrcLocked = true;
+            }
+            else
+            {
+                srcTempSurface.Data.MemId = srcHandle;
+            }
         }
     }
     else if (srcMemType & MFX_MEMTYPE_INTERNAL_FRAME)
