@@ -129,6 +129,28 @@ endif()
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
 
+set(CPACK_GENERATOR "RPM;DEB")
+set(CPACK_PACKAGE_NAME "intel-mediasdk")
+set(CPACK_PACKAGE_VENDOR "Intel")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "intel-mediasdk Open Source")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Intel")
+
+set(CPACK_RPM_PACKAGE_GROUP "System Environment/Libraries")
+set(CPACK_RPM_PACKAGE_LICENSE "Intel")
+set(CPACK_PACKAGING_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+
+if(CPACK_GENERATOR MATCHES "DEB")
+  set(CPACK_PACKAGE_ARCHITECTURE "amd64")
+  set(CPACK_DEBIAN_FILE_NAME "${CPACK_PACKAGE_NAME}_${API_VERSION}_${CPACK_PACKAGE_ARCHITECTURE}.deb")
+endif()
+
+if(CPACK_GENERATOR MATCHES "RPM")
+  set(CPACK_PACKAGE_ARCHITECTURE "x86_64")
+  set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${API_VERSION}-${CPACK_PACKAGE_ARCHITECTURE}")
+endif()
+
+include(CPack)
+
 message("")
 message("********************** Media SDK Configuration Summary **********************")
 message("MediaSDK:")
