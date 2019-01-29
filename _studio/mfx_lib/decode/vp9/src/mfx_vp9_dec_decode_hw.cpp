@@ -835,6 +835,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 #ifdef MFX_VA_LINUX
 
     UMC::Status status = decoder.m_va->SyncTask(data.currFrameId);
+    status = UMC::UMC_OK;
     if (status != UMC::UMC_OK)
     {
         mfxStatus CriticalErrorStatus = (status == UMC::UMC_ERR_GPU_HANG) ? MFX_ERR_GPU_HANG : MFX_ERR_DEVICE_FAILED;
