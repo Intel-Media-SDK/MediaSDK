@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -254,20 +254,21 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
         else
         {
             VAContextID context_id = request->AllocId;
-            int codedbuf_size;
-
-            int width32 = 32 * ((request->Info.Width + 31) >> 5);
-            int height32 = 32 * ((request->Info.Height + 31) >> 5);
+            int codedbuf_size, codedbuf_num;
 
             VABufferType codedbuf_type;
             if (fourcc == MFX_FOURCC_VP8_SEGMAP)
             {
-                codedbuf_size = request->Info.Width * request->Info.Height;
-                codedbuf_type = (VABufferType)VAEncMacroblockMapBufferType;
+                codedbuf_size = request->Info.Width;
+                codedbuf_num = request->Info.Height;
+                codedbuf_type = VAEncMacroblockMapBufferType;
             }
             else
             {
+                int width32 = 32 * ((request->Info.Width + 31) >> 5);
+                int height32 = 32 * ((request->Info.Height + 31) >> 5);
                 codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16));
+                codedbuf_num = 1;
                 codedbuf_type = VAEncCodedBufferType;
             }
 
@@ -279,7 +280,7 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
                                       context_id,
                                       codedbuf_type,
                                       codedbuf_size,
-                                      1,
+                                      codedbuf_num,
                                       NULL,
                                       &coded_buf);
                 mfx_res = va_to_mfx_status(va_res);
