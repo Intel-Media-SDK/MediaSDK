@@ -536,8 +536,6 @@ public:
 
     Status GetUserData(MediaData * pUD);
 
-    bool IsWantToShowFrame(bool force = false);
-
     H264DBPList *GetDPBList(uint32_t viewId, int32_t dIdRev)
     {
         ViewItem *pView = FindView(viewId);
