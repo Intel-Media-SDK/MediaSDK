@@ -2845,25 +2845,6 @@ Status TaskSupplier::ProcessFrameNumGap(H264Slice *pSlice, int32_t field, int32_
     return UMC_OK;
 }   // ProcessFrameNumGap
 
-bool TaskSupplier::IsWantToShowFrame(bool force)
-{
-    for (int32_t i = 0; i < GetViewCount(); i++)
-    {
-        ViewItem &view = GetViewByNumber(i);
-
-        if ((view.GetDPBList(0)->countNumDisplayable() > view.maxDecFrameBuffering) ||
-            force)
-        {
-            H264DecoderFrame * pTmp;
-
-            pTmp = view.GetDPBList(0)->findOldestDisplayable(view.maxDecFrameBuffering);
-            return !!pTmp;
-        }
-    }
-
-    return false;
-}
-
 void TaskSupplier::PostProcessDisplayFrame(H264DecoderFrame *pFrame)
 {
     if (!pFrame || pFrame->post_procces_complete)
