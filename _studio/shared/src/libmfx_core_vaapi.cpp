@@ -262,6 +262,10 @@ typedef struct {
 
     /* WHL */
     { 0x3EA0, MFX_HW_CFL, MFX_GT2 },
+    { 0x3EA1, MFX_HW_CFL, MFX_GT1 },
+    { 0x3EA2, MFX_HW_CFL, MFX_GT3 },
+    { 0x3EA3, MFX_HW_CFL, MFX_GT2 },
+    { 0x3EA4, MFX_HW_CFL, MFX_GT1 },
 
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
