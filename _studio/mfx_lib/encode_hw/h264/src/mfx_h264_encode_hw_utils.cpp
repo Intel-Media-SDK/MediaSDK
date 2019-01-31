@@ -989,9 +989,9 @@ void UmcBrc::Close()
     m_impl.Close();
 }
 
-mfxU8 UmcBrc::GetQp(const BRCFrameParams& par)
+mfxU8 UmcBrc::GetQp(BRCFrameParams& par)
 {
-    mfxU32 frameType = par.FrameType;
+    mfxU32 frameType = par.frameParam.FrameType;
     if (m_lookAhead >= 5 && (frameType & MFX_FRAMETYPE_B))
         frameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
     UMC::FrameType umcFrameType = ConvertFrameTypeMfx2Umc(frameType);
@@ -1000,16 +1000,16 @@ mfxU8 UmcBrc::GetQp(const BRCFrameParams& par)
     return (mfxU8)m_impl.GetQP(umcFrameType);
 }
 
-mfxU8 UmcBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
+mfxU8 UmcBrc::GetQpForRecode(BRCFrameParams& par, mfxU8 curQP)
 {
-    mfxU8 qp = curQP + (mfxU8)par.NumRecode;
+    mfxU8 qp = curQP + (mfxU8)par.frameParam.NumRecode;
     qp = CLIPVAL(1,51,qp);
     return qp;
 }
 
-mfxF32 UmcBrc::GetFractionalQp(const BRCFrameParams& par)
+mfxF32 UmcBrc::GetFractionalQp(BRCFrameParams& par)
 {
-    mfxU32 frameType = par.FrameType;
+    mfxU32 frameType = par.frameParam.FrameType;
     if (m_lookAhead >= 5 && (frameType & MFX_FRAMETYPE_B))
         frameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
     UMC::FrameType umcFrameType = ConvertFrameTypeMfx2Umc(frameType);
@@ -1017,29 +1017,29 @@ mfxF32 UmcBrc::GetFractionalQp(const BRCFrameParams& par)
     return 0.f;//m_impl.GetFractionalQP(umcFrameType);
 }
 
-void UmcBrc::SetQp(const BRCFrameParams& par, mfxU32 qp)
+void UmcBrc::SetQp(BRCFrameParams& par, mfxU32 qp)
 {
-    mfxU32 frameType = par.FrameType;
+    mfxU32 frameType = par.frameParam.FrameType;
     if (m_lookAhead >= 5 && (frameType & MFX_FRAMETYPE_B))
         frameType = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
     m_impl.SetQP(qp, ConvertFrameTypeMfx2Umc(frameType));
 }
 
-void UmcBrc::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
+void UmcBrc::PreEnc(BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
 {
     for (size_t i = 0; i < vmeData.size(); i++)
     {
-        if (vmeData[i]->encOrder == par.EncodedOrder)
+        if (vmeData[i]->encOrder == par.frameParam.EncodedOrder)
         {
-            m_impl.PreEncFrame(ConvertFrameTypeMfx2Umc(par.FrameType), vmeData[i]->intraCost, vmeData[i]->interCost);
+            m_impl.PreEncFrame(ConvertFrameTypeMfx2Umc(par.frameParam.FrameType), vmeData[i]->intraCost, vmeData[i]->interCost);
             break;
         }
     }
 }
 
-mfxU32 UmcBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength,  mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
+mfxU32 UmcBrc::Report(BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength,  mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
 {
-    return m_impl.PostPackFrame(ConvertFrameTypeMfx2Umc(par.FrameType), 8 * dataLength, userDataLength * 8, par.NumRecode, par.EncodedOrder);
+    return m_impl.PostPackFrame(ConvertFrameTypeMfx2Umc(par.frameParam.FrameType), 8 * dataLength, userDataLength * 8, par.frameParam.NumRecode, par.frameParam.EncodedOrder);
 }
 
 mfxU32 UmcBrc::GetMinFrameSize()
@@ -1421,7 +1421,7 @@ inline mfxU32 GetFrameTypeIndex(mfxU32 frameType)
     return 0;
 }
 
-mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
+mfxU8 LookAheadBrc2::GetQp(BRCFrameParams& par)
 {
     (void)par;
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::GetQp");
@@ -1501,7 +1501,8 @@ mfxU8 LookAheadBrc2::GetQp(const BRCFrameParams& par)
         m_curBaseQp = CLIPVAL(m_curBaseQp - MAX_QP_CHANGE, m_curBaseQp + MAX_QP_CHANGE, maxQp);
     else
         ; // do not change qp if last qp guarantees target rate interval
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+
+    mfxU32 ind = GetFrameTypeIndex(par.frameParam.FrameType);
     m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_curBaseQp + m_laData[m_first].deltaQp );
 
     //printf("bqp=%2d qp=%2d dqp=%2d erate=%7.3f ", m_curBaseQp, m_curQp, m_laData[0].deltaQp, m_laData[0].estRateTotal[m_curQp]);
@@ -1519,27 +1520,27 @@ mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
 
     return qp_new;
 }
-mfxU8 LookAheadBrc2::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
+mfxU8 LookAheadBrc2::GetQpForRecode(BRCFrameParams& par, mfxU8 curQP)
 {
     mfxU8 qp = curQP;
-    if (m_maxFrameSize < par.CodedFrameSize)
+    if (m_maxFrameSize < par.frameParam.CodedFrameSize)
     {
-        qp = GetNewQP(par.CodedFrameSize, m_maxFrameSize, curQP);
+        qp = GetNewQP(par.frameParam.CodedFrameSize, m_maxFrameSize, curQP);
     }
     if (qp <= curQP)
-        qp = curQP + std::max<mfxU8>(1, par.NumRecode);
+        qp = curQP + std::max<mfxU8>(1, mfxU8(par.frameParam.NumRecode));
 
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    mfxU32 ind = GetFrameTypeIndex(par.frameParam.FrameType);
 
     return CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp);
 }
 
-void  LookAheadBrc2::SetQp(const BRCFrameParams& /*par*/, mfxU32 qp)
+void  LookAheadBrc2::SetQp(BRCFrameParams& /*par*/, mfxU32 qp)
 {
     m_curQp = CLIPVAL(1, 51, qp);
 }
 
-void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
+void LookAheadBrc2::PreEnc(BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::PreEnc");
 
@@ -1547,7 +1548,7 @@ void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> con
 
     size_t i = 0;
     for (; i < m_laData.size(); i++)
-        if (m_laData[i].encOrder == par.EncodedOrder)
+        if (m_laData[i].encOrder == par.frameParam.EncodedOrder)
         {
             break;
         }
@@ -1559,8 +1560,8 @@ void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> con
     m_laData.erase(m_laData.begin(), m_laData.begin() + i);
 
 
-    mfxU32 firstNewFrame = m_laData.empty() ? par.EncodedOrder : m_laData.back().encOrder + 1;
-    mfxU32 lastNewFrame  = par.EncodedOrder + m_lookAhead;
+    mfxU32 firstNewFrame = m_laData.empty() ? par.frameParam.EncodedOrder : m_laData.back().encOrder + 1;
+    mfxU32 lastNewFrame  = par.frameParam.EncodedOrder + m_lookAhead;
 
     for (i = 0; i < vmeData.size(); i++)
     {
@@ -1598,11 +1599,11 @@ void LookAheadBrc2::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> con
 }
 
 
-void VMEBrc::PreEnc(const BRCFrameParams& /*par*/, std::vector<VmeData *> const & /*vmeData*/)
+void VMEBrc::PreEnc(BRCFrameParams& /*par*/, std::vector<VmeData *> const & /*vmeData*/)
 {
 }
 
-mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU32 /* userDataLength */,  mfxU32 maxFrameSize, mfxU32 qp)
+mfxU32 LookAheadBrc2::Report(BRCFrameParams& par , mfxU32 dataLength, mfxU32 /* userDataLength */,  mfxU32 maxFrameSize, mfxU32 qp)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
     mfxF64 realRatePerMb = 8 * dataLength / mfxF64(m_totNumMb);
@@ -1610,13 +1611,13 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
 
     qp = CLIPVAL(1, 51, qp);
 
-    if ((m_skipped == 1) && ((par.FrameType & MFX_FRAMETYPE_B)!=0) && par.NumRecode < 100)
+    if ((m_skipped == 1) && ((par.frameParam.FrameType & MFX_FRAMETYPE_B)!=0) && par.frameParam.NumRecode < 100)
         return 3;  // skip mode for this frame
 
-    m_skipped = (par.NumRecode < 100) ? 0 : 1;  //frame was skipped (panic mode)
+    m_skipped = (par.frameParam.NumRecode < 100) ? 0 : 1;  //frame was skipped (panic mode)
                                          //we will skip all frames until next reference]
     if (m_AvgBitrate)
-        maxFS = MFX_MIN(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode));
+        maxFS = MFX_MIN(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.frameParam.FrameType & MFX_FRAMETYPE_I)!=0, par.frameParam.NumRecode));
 
     if ((8 * dataLength + 24) > maxFS)
     {
@@ -1625,7 +1626,7 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     }
 
     if (m_AvgBitrate)
-        m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.EncodedOrder, m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
+        m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.frameParam.EncodedOrder, m_skipped>0, (par.frameParam.FrameType & MFX_FRAMETYPE_I)!=0, par.frameParam.NumRecode, qp);
 
     m_framesBehind++;
     m_bitsBehind += realRatePerMb;
@@ -1668,20 +1669,20 @@ mfxU32 LookAheadBrc2::Report(const BRCFrameParams& par , mfxU32 dataLength, mfxU
     return 0;
 }
 
-mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32  maxFrameSize, mfxU32 qp )
+mfxU32 VMEBrc::Report(BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32  maxFrameSize, mfxU32 qp )
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
     mfxF64 realRatePerMb = 8 * dataLength / mfxF64(m_totNumMb);
 
     mfxU32 maxFS = maxFrameSize ? maxFrameSize*8 : 0xFFFFFFF;
 
-    if ((m_skipped == 1) && ((par.FrameType & MFX_FRAMETYPE_B)!=0) && par.NumRecode < 100)
+    if ((m_skipped == 1) && ((par.frameParam.FrameType & MFX_FRAMETYPE_B)!=0) && par.frameParam.NumRecode < 100)
         return 3;  // skip mode for this frame
 
-    m_skipped = (par.NumRecode < 100) ? 0 : 1;  //frame was skipped (panic mode)
+    m_skipped = (par.frameParam.NumRecode < 100) ? 0 : 1;  //frame was skipped (panic mode)
                                                 //we will skip all frames until next reference
     if (m_AvgBitrate)
-        maxFS = MFX_MIN(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode));
+        maxFS = MFX_MIN(maxFS, m_AvgBitrate->GetMaxFrameSize(m_skipped>0, (par.frameParam.FrameType & MFX_FRAMETYPE_I)!=0, par.frameParam.NumRecode));
 
     if ((8 * dataLength + 24) > maxFS)
     {
@@ -1690,7 +1691,7 @@ mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*use
     }
 
     if (m_AvgBitrate)
-        m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.EncodedOrder, m_skipped>0,(par.FrameType & MFX_FRAMETYPE_I)!=0, par.NumRecode, qp);
+        m_AvgBitrate->UpdateSlidingWindow(8 * dataLength, par.frameParam.EncodedOrder, m_skipped>0,(par.frameParam.FrameType & MFX_FRAMETYPE_I)!=0, par.frameParam.NumRecode, qp);
 
     m_framesBehind++;
     m_bitsBehind += realRatePerMb;
@@ -1698,7 +1699,7 @@ mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*use
     std::list<LaFrameData>::iterator start = m_laData.begin();
     for(;start != m_laData.end(); ++start)
     {
-        if ((*start).dispOrder == par.DisplayOrder)
+        if ((*start).dispOrder == par.frameParam.DisplayOrder)
             break;
     }
     mfxU32 numFrames = 0;
@@ -1751,7 +1752,7 @@ mfxU32 VMEBrc::Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*use
     return 0;
 }
 
-mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
+mfxU8 VMEBrc::GetQp(BRCFrameParams& par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VMEBrc::GetQp");
 
@@ -1762,7 +1763,7 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
     std::list<LaFrameData>::iterator start = m_laData.begin();
     while (start != m_laData.end())
     {
-        if ((*start).encOrder == par.EncodedOrder)
+        if ((*start).encOrder == par.frameParam.EncodedOrder)
             break;
         ++start;
     }
@@ -1859,7 +1860,7 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
     else
         ; // do not change qp if last qp guarantees target rate interval
 
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    mfxU32 ind = GetFrameTypeIndex(par.frameParam.FrameType);
     m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_curBaseQp + (*start).deltaQp);
 
 
@@ -1867,17 +1868,17 @@ mfxU8 VMEBrc::GetQp(const BRCFrameParams& par)
 
     return mfxU8(m_curQp);
 }
-mfxU8 VMEBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
+mfxU8 VMEBrc::GetQpForRecode(BRCFrameParams& par, mfxU8 curQP)
 {
     mfxU8 qp = curQP;
-    if (m_maxFrameSize > par.CodedFrameSize)
+    if (m_maxFrameSize > par.frameParam.CodedFrameSize)
     {
-        qp = GetNewQP(par.CodedFrameSize, m_maxFrameSize, curQP);
+        qp = GetNewQP(par.frameParam.CodedFrameSize, m_maxFrameSize, curQP);
     }
     if (qp <= curQP)
-        qp = curQP + std::max<mfxU8>(1, par.NumRecode);
+        qp = curQP + std::max<mfxU8>(1, mfxU8(par.frameParam.NumRecode));
 
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    mfxU32 ind = GetFrameTypeIndex(par.frameParam.FrameType);
 
     return CLIPVAL(m_QPMin[ind], m_QPMax[ind],qp);
 }
@@ -1898,7 +1899,7 @@ mfxStatus LookAheadCrfBrc::Init(MfxVideoParam  & video)
     return MFX_ERR_NONE;
 }
 
-mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& par)
+mfxU8 LookAheadCrfBrc::GetQp(BRCFrameParams& par)
 {
     mfxF64 strength = 0.03 * m_crfQuality + .75;
     mfxF64 ratio    = 1.0;
@@ -1908,26 +1909,26 @@ mfxU8 LookAheadCrfBrc::GetQp(const BRCFrameParams& par)
         ? -mfxI32(deltaQpF * 2 * strength + 0.5)
         : -mfxI32(deltaQpF * 1 * strength + 0.5);
 
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    mfxU32 ind = GetFrameTypeIndex(par.frameParam.FrameType);
     m_curQp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], m_crfQuality + deltaQp); // driver doesn't support qp=0
 
     return mfxU8(m_curQp);
 }
-mfxU8 LookAheadCrfBrc::GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
+mfxU8 LookAheadCrfBrc::GetQpForRecode(BRCFrameParams& par, mfxU8 curQP)
 {
-    mfxU8 qp = curQP + (mfxU8)par.NumRecode;
+    mfxU8 qp = curQP + (mfxU8)par.frameParam.NumRecode;
 
-    mfxU32 ind = GetFrameTypeIndex(par.FrameType);
+    mfxU32 ind = GetFrameTypeIndex(par.frameParam.FrameType);
     qp = CLIPVAL(m_QPMin[ind], m_QPMax[ind], qp); 
 
     return qp;
 }
 
-void LookAheadCrfBrc::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
+void LookAheadCrfBrc::PreEnc(BRCFrameParams& par, std::vector<VmeData *> const & vmeData)
 {
     for (size_t i = 0; i < vmeData.size(); i++)
     {
-        if (vmeData[i]->encOrder == par.EncodedOrder)
+        if (vmeData[i]->encOrder == par.frameParam.EncodedOrder)
         {
             m_intraCost = vmeData[i]->intraCost;
             m_interCost = vmeData[i]->interCost;
@@ -1936,7 +1937,7 @@ void LookAheadCrfBrc::PreEnc(const BRCFrameParams& par, std::vector<VmeData *> c
     }
 }
 
-mfxU32 LookAheadCrfBrc::Report(const BRCFrameParams& /*par*/, mfxU32 /*dataLength*/, mfxU32 /*userDataLength*/, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
+mfxU32 LookAheadCrfBrc::Report(BRCFrameParams& /*par*/, mfxU32 /*dataLength*/, mfxU32 /*userDataLength*/, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
 {
     return 0;
 }

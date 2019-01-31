@@ -246,6 +246,7 @@ namespace MfxHwH264Encode
         VABufferID m_frameRateId;               // VAEncMiscParameterFrameRate
         VABufferID m_qualityLevelId;            // VAEncMiscParameterBufferQualityLevel
         VABufferID m_maxFrameSizeId;            // VAEncMiscParameterFrameRate
+        VABufferID m_multiPassFrameSizeId;      // VAEncMiscParameterBufferMultiPassFrameSize
         VABufferID m_quantizationId;            // VAEncMiscParameterQuantization
         VABufferID m_rirId;                     // VAEncMiscParameterRIR
         VABufferID m_qualityParamsId;           // VAEncMiscParameterEncQuality
@@ -303,7 +304,7 @@ namespace MfxHwH264Encode
 
         std::vector<VAEncROI> m_arrayVAEncROI;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 28 + 5; //added FEI buffers
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 29 + 5; //added FEI buffers
 
         UMC::Mutex m_guard;
         HeaderPacker m_headerPacker;

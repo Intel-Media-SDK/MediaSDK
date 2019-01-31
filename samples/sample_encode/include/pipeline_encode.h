@@ -394,6 +394,7 @@ protected:
 
 #if (MFX_VERSION >= 1024)
     mfxExtBRC           m_ExtBRC;
+    bool                m_bUserCQPBRC;
 #endif
 
     // external parameters for each component are stored in a vector

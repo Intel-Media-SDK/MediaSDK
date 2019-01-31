@@ -553,10 +553,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_CodingOption.ViewOutput = MFX_CODINGOPTION_ON;
         bCodingOption = true;
     }
-    if (bCodingOption)
-    {
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
-    }
+ 
 
     // configure the depth of the look ahead BRC if specified in command line
     if (pInParams->nLADepth || pInParams->nMaxSliceSize || pInParams->nMaxFrameSize || pInParams->nBRefType ||
@@ -587,10 +584,27 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     // This is for explicit extbrc only. In case of implicit (built-into-library) version - we don't need this extended buffer
     if (pInParams->nExtBRC == EXTBRC_ON && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC))
     {
-       HEVCExtBRC::Create(m_ExtBRC);
+        if (pInParams->nQPI || pInParams->nQPP || pInParams->nQPB)
+        {
+            HEVCExtBRCUserCQP::Create(m_ExtBRC);
+            ((ExtBRCUserCQP*)m_ExtBRC.pthis)->SetCQPParams(mfxU8(pInParams->nQPI), mfxU8(pInParams->nQPP), mfxU8(pInParams->nQPB),
+                pInParams->nMaxFrameSize*2, pInParams->nMaxFrameSize*1.5, pInParams->nMaxFrameSize);
+            m_bUserCQPBRC = true;
+            m_CodingOption.NalHrdConformance = MFX_CODINGOPTION_OFF;
+            m_CodingOption.VuiNalHrdParameters = MFX_CODINGOPTION_OFF;
+        }
+        else
+        {
+            HEVCExtBRC::Create(m_ExtBRC);
+            m_bUserCQPBRC = false;
+        }
        m_EncExtParams.push_back((mfxExtBuffer *)&m_ExtBRC);
     }
 #endif
+    if (bCodingOption)
+    {
+        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
+    }
 
     // set up mfxCodingOption3
     if (pInParams->nGPB || pInParams->LowDelayBRC || pInParams->WeightedPred || pInParams->WeightedBiPred
@@ -1153,6 +1167,7 @@ CEncodingPipeline::CEncodingPipeline()
     m_bCutOutput = false;
     m_bTimeOutExceed = false;
     m_bInsertIDR = false;
+    m_bUserCQPBRC = false;
 
     m_bIsFieldSplitting = false;
 }
@@ -1615,7 +1630,10 @@ void CEncodingPipeline::Close()
     MSDK_SAFE_DELETE(m_pmfxVPP);
 
 #if (MFX_VERSION >= 1024)
-    HEVCExtBRC::Destroy(m_ExtBRC);
+    if (m_bUserCQPBRC)
+        HEVCExtBRCUserCQP::Destroy(m_ExtBRC);
+    else
+        HEVCExtBRC::Destroy(m_ExtBRC);
 #endif
 
 

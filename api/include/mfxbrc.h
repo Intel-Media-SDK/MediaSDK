@@ -53,7 +53,10 @@ typedef struct {
 
 typedef struct {
     mfxI32 QpY;             // Frame-level Luma QP
-    mfxU32 reserved1[13];
+    mfxU32 maxFrameSize;    // Max frame size in bytes (used for rePak)
+    mfxU32 nMaxNumRePak;    // Max number of rePak to provide MaxFrameSize (from 0 to 8)
+    mfxU8  deltaQP[8];      // deltaQP[i] is adding to QP value while i-rePak 
+    mfxU32 reserved1[9];
     mfxHDL reserved2;
 } mfxBRCFrameCtrl;
 

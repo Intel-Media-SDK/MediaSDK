@@ -348,6 +348,88 @@ protected:
     mfxI32 GetCurQP (mfxU32 type, mfxI32 layer);
 };
 
+mfxI32 GetNewQP(mfxF64 totalFrameBits, mfxF64 targetFrameSizeInBits, mfxI32 minQP, mfxI32 maxQP, mfxI32 qp, mfxI32 qp_offset, mfxF64 f_pow, bool bStrict = false, bool bLim = true);
+
+
+class ExtBRCUserCQP
+{
+private:
+    bool bLDB = false;
+    mfxU8 qp[3] = {0,0,0}; // qp for I, P,B
+    mfxU32 maxFrameSize[3] = {0,0,0}; //maxFrameSize for I,P,B
+
+public:
+    ExtBRCUserCQP() { mtx.reset(new MSDKMutex()); }
+    virtual ~ExtBRCUserCQP() {}
+    mfxStatus Init(mfxVideoParam* par)  { bLDB = (par->mfx.GopRefDist == 1); return MFX_ERR_NONE; }
+    mfxStatus Reset(mfxVideoParam* par) { bLDB = (par->mfx.GopRefDist == 1); return MFX_ERR_NONE; }
+    mfxStatus Close() { return MFX_ERR_NONE; }
+    mfxStatus GetFrameCtrl(mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
+    {
+        AutomaticMutex lock(*mtx);
+        if (!ctrl->QpY)
+        {
+            mfxU32 idx = GetFrameTypeInd(par->FrameType, par->PyramidLayer);
+            ctrl->QpY = qp[idx];
+            ctrl->maxFrameSize = maxFrameSize[idx];
+            ctrl->nMaxNumRePak = 3;
+            ctrl->deltaQP[0] = ctrl->deltaQP[1] = ctrl->deltaQP[2] = 1;
+        }
+        
+        printf("  QP %d\n", ctrl->QpY);
+        return MFX_ERR_NONE;        
+    }   
+   
+    mfxStatus Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status)
+    {
+#ifdef SW_RECODING
+        if (frame_par->CodedFrameSize > ctrl->maxFrameSize && (ctrl->QpY < 51))
+        {
+            // reEncoding is needed if it is possible (no panic in this case)
+            status->BRCStatus = MFX_BRC_BIG_FRAME;
+            ctrl->QpY = GetNewQP(frame_par->CodedFrameSize * 8, ctrl->maxFrameSize * 8, ctrl->QpY, 51, ctrl->QpY, 0, 1, true);
+            printf("repack  QP %d\n", ctrl->QpY);
+        }
+        else
+#else
+        frame_par;
+        ctrl;
+        status;
+#endif
+        {
+            status->BRCStatus = MFX_BRC_OK;
+        }
+        return MFX_ERR_NONE;
+    }
+
+    void SetCQPParams(mfxU8 qpI, mfxU8 qpP, mfxU8 qpB,
+        mfxU32 maxFrameSizeI, mfxU32 maxFrameSizeP, mfxU32 maxFrameSizeB)
+    {
+        AutomaticMutex lock(*mtx);
+        qp[0] = qpI; qp[1] = qpP; qp[2] = qpB;
+        maxFrameSize[0] = maxFrameSizeI; 
+        maxFrameSize[1] = maxFrameSizeP;
+        maxFrameSize[2] = maxFrameSizeB;
+    }
+protected:
+    inline mfxU32 GetFrameTypeInd(mfxU16 m_frameType, mfxU16 level)
+    {
+        if (m_frameType & MFX_FRAMETYPE_IDR)
+            return 0;
+        else if (m_frameType & MFX_FRAMETYPE_I)
+            return 0;
+        else if (m_frameType & MFX_FRAMETYPE_P)
+            return 1;
+        else if ((m_frameType & MFX_FRAMETYPE_REF) && (level == 0 || bLDB))
+            return 1; //low delay B
+        else
+            return 2;
+    }
+
+private:
+    std::unique_ptr<MSDKMutex> mtx;
+
+};
 namespace HEVCExtBRC
 {
     inline mfxStatus Init  (mfxHDL pthis, mfxVideoParam* par)
@@ -391,6 +473,61 @@ namespace HEVCExtBRC
         if(m_BRC.pthis != NULL)
         {
             delete (ExtBRC*)m_BRC.pthis;
+            m_BRC.pthis = 0;
+            m_BRC.Init = 0;
+            m_BRC.Reset = 0;
+            m_BRC.Close = 0;
+            m_BRC.GetFrameCtrl = 0;
+            m_BRC.Update = 0;
+        }
+        return MFX_ERR_NONE;
+    }
+}
+namespace HEVCExtBRCUserCQP
+{
+    inline mfxStatus Init(mfxHDL pthis, mfxVideoParam* par)
+    {
+        MFX_CHECK_NULL_PTR1(pthis);
+        return ((ExtBRCUserCQP*)pthis)->Init(par);
+    }
+    inline mfxStatus Reset(mfxHDL pthis, mfxVideoParam* par)
+    {
+        MFX_CHECK_NULL_PTR1(pthis);
+        return ((ExtBRCUserCQP*)pthis)->Reset(par);
+    }
+    inline mfxStatus Close(mfxHDL pthis)
+    {
+        MFX_CHECK_NULL_PTR1(pthis);
+        return ((ExtBRCUserCQP*)pthis)->Close();
+    }
+
+    inline mfxStatus GetFrameCtrl(mfxHDL pthis, mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
+    {
+        MFX_CHECK_NULL_PTR1(pthis);
+        return ((ExtBRCUserCQP*)pthis)->GetFrameCtrl(par, ctrl);
+    }
+    inline mfxStatus Update(mfxHDL pthis, mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status)
+    {
+        MFX_CHECK_NULL_PTR1(pthis);
+        return ((ExtBRCUserCQP*)pthis)->Update(par, ctrl, status);
+    }
+
+    inline mfxStatus Create(mfxExtBRC & m_BRC)
+    {
+        MFX_CHECK(m_BRC.pthis == NULL, MFX_ERR_UNDEFINED_BEHAVIOR);
+        m_BRC.pthis = new ExtBRCUserCQP;
+        m_BRC.Init = Init;
+        m_BRC.Reset = Reset;
+        m_BRC.Close = Close;
+        m_BRC.GetFrameCtrl = GetFrameCtrl;
+        m_BRC.Update = Update;
+        return MFX_ERR_NONE;
+    }
+    inline mfxStatus Destroy(mfxExtBRC & m_BRC)
+    {
+        if (m_BRC.pthis != NULL)
+        {
+            delete (ExtBRCUserCQP*)m_BRC.pthis;
             m_BRC.pthis = 0;
             m_BRC.Init = 0;
             m_BRC.Reset = 0;

@@ -1924,7 +1924,7 @@ namespace
 }
 
 void ImplementationAvc::BrcPreEnc(
-    DdiTask const & task)
+    DdiTask & task)
 {
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(m_video);
 
@@ -1938,9 +1938,7 @@ void ImplementationAvc::BrcPreEnc(
     for (size_t i = 0; i < m_tmpVmeData.size(); ++i, ++j)
         m_tmpVmeData[i] = j->m_vmeData;
 
-    BRCFrameParams par;
-    InitFrameParams(par, &task);
-    m_brc.PreEnc(par, m_tmpVmeData);
+    m_brc.PreEnc(task.m_brcParams, m_tmpVmeData);
 }
 using namespace ns_asc;
 mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
@@ -2711,7 +2709,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                       return Error(sts);
             }
 
-            BRCFrameParams par;
             task->m_frcmplx = 0;
 
             if (IsExtBrcSceneChangeSupported(m_video)
@@ -2722,9 +2719,9 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                      return Error(sts);
             }
 
-            InitFrameParams(par, &(*task));
+            task->InitBRCParams();
 
-            task->m_cqpValue[0] = task->m_cqpValue[1] = m_brc.GetQp(par);
+            task->m_cqpValue[0] = task->m_cqpValue[1] = m_brc.GetQp(task->m_brcParams);
 
             if ((m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
             {
@@ -2933,10 +2930,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 }
                 if (!bRecoding)
                 {
-                    BRCFrameParams par;
-                    InitFrameParams(par, &(*task));
-                    par.NumRecode = extOpt2.MaxSliceSize ? 0 : (par.NumRecode - task->m_repackForBsDataLength);
-                    mfxU32 res = m_brc.Report(par, bsDataLength, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_cqpValue[0]);
+                    task->m_brcParams.frameParam.NumRecode = extOpt2.MaxSliceSize ? 0 : (task->m_brcParams.frameParam.NumRecode - task->m_repackForBsDataLength);
+                    mfxU32 res = m_brc.Report(task->m_brcParams, bsDataLength, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_cqpValue[0]);
                     MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
                     if ((res != 0) && (!extOpt2.MaxSliceSize))
                     {
@@ -2955,16 +2950,16 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         }
                         else if (((res & UMC::BRC_NOT_ENOUGH_BUFFER) || (task->m_repack >2))&& (res & UMC::BRC_ERR_SMALL_FRAME ))
                         {
-                            par.NumRecode ++;
+                            task->m_brcParams.frameParam.NumRecode ++;
                             task->m_minFrameSize = m_brc.GetMinFrameSize()/8;
-                            m_brc.Report(par, m_brc.GetMinFrameSize()/8, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_cqpValue[0]);
+                            m_brc.Report(task->m_brcParams, m_brc.GetMinFrameSize()/8, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_cqpValue[0]);
 
                             bRecoding = false; //Padding is in update bitstream
                         }
                         else
                         {
-                            task->m_cqpValue[0]= task->m_cqpValue[1]= m_brc.GetQpForRecode(par, task->m_cqpValue[0]);
-                             bRecoding = true;
+                            task->m_cqpValue[0]= task->m_cqpValue[1]= m_brc.GetQpForRecode(task->m_brcParams, task->m_cqpValue[0]);
+                            bRecoding = true;
                         }
 
                     }
@@ -3004,9 +2999,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         if (m_enabledSwBrc && (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)) {
                             if (nextTask != task)
                             {
-                                BRCFrameParams par;
-                                InitFrameParams(par, &(*nextTask));
-                                nextTask->m_cqpValue[0] = nextTask->m_cqpValue[1] = m_brc.GetQp(par);
+                                nextTask->m_cqpValue[0] = nextTask->m_cqpValue[1] = m_brc.GetQp(nextTask->m_brcParams);
                             }
                             if (nextTask->m_longTermFrameIdx != NO_INDEX_U8 && nextTask->m_LtrOrder == m_LtrOrder) {
                                 m_LtrQp = nextTask->m_cqpValue[0];
