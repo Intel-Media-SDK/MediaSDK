@@ -247,18 +247,23 @@ typedef struct {
     { 0x593B, MFX_HW_KBL, MFX_GT4 }, // HALO GT4
     { 0x593D, MFX_HW_KBL, MFX_GT4 }, // WRK GT4
 
-    /* CFL, GT information can be wrong, need to verify */
+    /* CFL */
     { 0x3E90, MFX_HW_CFL, MFX_GT1 },
     { 0x3E91, MFX_HW_CFL, MFX_GT2 },
     { 0x3E92, MFX_HW_CFL, MFX_GT2 },
     { 0x3E93, MFX_HW_CFL, MFX_GT1 },
     { 0x3E94, MFX_HW_CFL, MFX_GT2 },
     { 0x3E96, MFX_HW_CFL, MFX_GT2 },
+    { 0x3E98, MFX_HW_CFL, MFX_GT2 },
+    { 0x3E99, MFX_HW_CFL, MFX_GT1 },
+    { 0x3E9A, MFX_HW_CFL, MFX_GT2 },
+    { 0x3E9C, MFX_HW_CFL, MFX_GT1 },
     { 0x3E9B, MFX_HW_CFL, MFX_GT2 },
     { 0x3EA5, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA6, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA7, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA8, MFX_HW_CFL, MFX_GT3 },
+    { 0x3EA9, MFX_HW_CFL, MFX_GT2 },
 
     /* WHL */
     { 0x3EA0, MFX_HW_CFL, MFX_GT2 },
