@@ -412,7 +412,7 @@ UMC::Status mfx_UMC_FrameAllocator::GetFrameHandle(UMC::FrameMemID memId, void *
     return UMC::UMC_OK;
 }
 
-UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t )
+UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t a_flags)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -468,7 +468,8 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
     if (passed.width > allocated.width ||
         passed.height > allocated.height)
     {
-        return UMC::UMC_ERR_UNSUPPORTED;
+        if (!(a_flags & mfx_UMC_ReallocAllowed))
+            return UMC::UMC_ERR_UNSUPPORTED;
     }
 
     sts = m_pCore->IncreasePureReference(m_frameDataInternal.GetSurface(index).Data.Locked);
@@ -490,6 +491,12 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
     m_frameDataInternal.ResetFrameData(index);
     m_curIndex = -1;
 
+    if (passed.width > allocated.width ||
+        passed.height > allocated.height)
+    {
+        if (a_flags & mfx_UMC_ReallocAllowed)
+            return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
+    }
     return UMC::UMC_OK;
 }
 

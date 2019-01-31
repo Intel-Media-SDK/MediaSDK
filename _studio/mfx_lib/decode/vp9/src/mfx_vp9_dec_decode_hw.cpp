@@ -33,6 +33,7 @@
 
 #include "mfx_common_decode_int.h"
 #include "mfx_vpx_dec_common.h"
+#include <libmfx_core_vaapi.h>
 
 
 using namespace UMC_VP9_DECODER;
@@ -239,7 +240,11 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
     bool isUseExternalFrames = (par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) || m_is_opaque_memory;
     bool reallocFrames = (par->mfx.EnableReallocRequest == MFX_CODINGOPTION_ON);
-    m_adaptiveMode = isUseExternalFrames && reallocFrames;
+    m_adaptiveMode =
+#ifndef MFX_VA_LINUX
+            isUseExternalFrames &&
+#endif
+            reallocFrames;
 
     if (isUseExternalFrames && !reallocFrames)
     {
@@ -719,10 +724,16 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     if (decoder.m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
     {
-        if (data.showFrame) {
+        if (data.showFrame)
+        {
             mfxStatus sts = decoder.m_FrameAllocator->PrepareToOutput(data.surface_work, data.currFrameId, 0, false);
             MFX_CHECK_STS(sts);
-        } else decoder.m_core->DecreaseReference(&data.surface_work->Data);
+        }
+        else
+        {
+            mfxStatus sts = decoder.m_core->DecreaseReference(&data.surface_work->Data);
+            MFX_CHECK_STS(sts);
+        }
     }
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
@@ -736,6 +747,38 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 mfxStatus VP9CompleteProc(void *p_state, void * /* pp_param */, mfxStatus)
 {
     delete (VideoDECODEVP9_HW::VP9DECODERoutineData*)p_state;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid, mfxFrameInfo &frameInfo)
+{
+    UMC::VideoDataInfo videoInfo;
+
+    UMC::ColorFormat const cf = GetUMCColorFormat_VP9(&m_frameInfo);
+
+    if (UMC::UMC_OK != videoInfo.Init(m_vPar.mfx.FrameInfo.Width, m_vPar.mfx.FrameInfo.Height, cf, m_frameInfo.bit_depth))
+        return MFX_ERR_MEMORY_ALLOC;
+
+#ifndef MFX_VA_LINUX
+    UMC::Status umc_sts = m_FrameAllocator->Alloc(&mid, &videoInfo, 0);
+#else
+    UMC::Status umc_sts = m_FrameAllocator->Alloc(&mid, &videoInfo, mfx_UMC_ReallocAllowed);
+    if (UMC::UMC_ERR_NOT_ENOUGH_BUFFER == umc_sts && m_adaptiveMode)
+    {
+        mfxFrameSurface1 *surf = m_FrameAllocator->GetSurfaceByIndex(mid);
+        if (!surf)
+            return MFX_ERR_INVALID_HANDLE;
+         surf->Info.Width = frameInfo.Width;
+         surf->Info.Height = frameInfo.Height;
+         VAAPIVideoCORE *vaapi_core = reinterpret_cast<VAAPIVideoCORE *>(m_core);
+         return vaapi_core->ReallocFrame(surf);
+    }
+    else
+#endif
+    if (UMC::UMC_OK != umc_sts)
+    {
+        return MFX_ERR_MEMORY_ALLOC;
+    }
     return MFX_ERR_NONE;
 }
 
@@ -847,19 +890,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         return MFX_WRN_DEVICE_BUSY;
     }
 
-    UMC::FrameMemID currMid = 0;
-    UMC::VideoDataInfo videoInfo;
-
-    UMC::ColorFormat const cf = GetUMCColorFormat_VP9(&m_frameInfo);
-    if (UMC::UMC_OK != videoInfo.Init(m_vPar.mfx.FrameInfo.Width, m_vPar.mfx.FrameInfo.Height, cf, m_frameInfo.bit_depth))
-        return MFX_ERR_MEMORY_ALLOC;
-
-    if (UMC::UMC_OK != m_FrameAllocator->Alloc(&currMid, &videoInfo, 0))
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
-
-    m_frameInfo.currFrame = currMid;
+    sts = PrepareInternalSurface(m_frameInfo.currFrame, surface_work->Info);
+    MFX_CHECK_STS(sts);
 
     if (!m_frameInfo.frameCountInBS)
     {

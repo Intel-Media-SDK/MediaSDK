@@ -133,6 +133,9 @@ public:
     virtual mfxStatus     SetHandle(mfxHandleType type, mfxHDL handle);
 
     virtual mfxStatus     AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true);
+
+    virtual mfxStatus     ReallocFrame(mfxFrameSurface1 *surf);
+
     virtual void          GetVA(mfxHDL* phdl, mfxU16 type)
     {
         (type & MFX_MEMTYPE_FROM_DECODE)?(*phdl = m_pVA.get()):(*phdl = 0);

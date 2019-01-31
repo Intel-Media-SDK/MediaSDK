@@ -146,6 +146,7 @@ mfxStatus mfxDefaultAllocator::FreeBuffer(mfxHDL pthis, mfxMemId mid)
         return MFX_ERR_INVALID_HANDLE;
     }
 }
+
 mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     if (!pthis)
@@ -208,8 +209,7 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
 #endif // MFX_ENABLE_FOURCC_RGB565
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
-        nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
-        break;
+    case MFX_FOURCC_AYUV:
     case MFX_FOURCC_A2RGB10:
         nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
         break;
@@ -233,11 +233,6 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         }
         else
             return MFX_ERR_UNSUPPORTED;
-
-    case MFX_FOURCC_AYUV:
-        nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
-        break;
-
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
         Pitch=ALIGN32(request->Info.Width*2);
