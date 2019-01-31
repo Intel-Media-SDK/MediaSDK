@@ -53,8 +53,14 @@ typedef struct {
 
 typedef struct {
     mfxI32 QpY;             // Frame-level Luma QP
-    mfxU32 reserved1[13];
-    mfxHDL reserved2;
+    mfxU32 maxFrameSize;        // Max frame size in bytes (used for rePak)
+    mfxU16 maxNumRePak;    // Max number of rePak to provide MaxFrameSize (from 0 to 8)
+    mfxU8  deltaQP[8];               // deltaQP[i] is adding to QP value while i-rePak 
+    mfxU32 initial_cpb_removal_delay;
+    mfxU32 initial_cpb_removal_offset;
+    mfxU32 reserved1[6];
+    mfxU16 NumExtParam;
+    mfxExtBuffer** ExtParam;   // extention buffer list
 } mfxBRCFrameCtrl;
 
 /* BRCStatus */
