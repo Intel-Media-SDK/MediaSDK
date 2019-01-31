@@ -1926,7 +1926,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           // set the pointer to source buffer
           pSrc = curr_comp->GetSSBufferPtr<uint8_t> (0) + 8 * colMCU * curr_comp->m_scan_hsampling;
           // set the pointer to temporary buffer
-          std::unique_ptr<uint8_t> pTmp( new uint8_t[2 * srcWidth / m_dd_factor] );
+          std::unique_ptr<uint8_t[]> pTmp( new uint8_t[2 * srcWidth / m_dd_factor] );
           // set the pointer to destination buffer
           pDst = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU * curr_comp->m_h_factor;
          
@@ -2053,7 +2053,7 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
             // set the pointer to source buffer
             pSrc = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU;
             // set the pointer to temporary buffer
-            std::unique_ptr<uint8_t> pTmp( new uint8_t[tmpStep * m_curr_scan->mcuHeight / 2] );
+            std::unique_ptr<uint8_t[]> pTmp( new uint8_t[tmpStep * m_curr_scan->mcuHeight / 2] );
             // set the pointer to destination buffer
             pDst = curr_comp->GetCCBufferPtr<uint8_t> (0) + 8 * colMCU / 2;  
 
