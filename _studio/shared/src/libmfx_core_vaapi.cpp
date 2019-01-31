@@ -367,7 +367,7 @@ VAAPIVideoCORE::~VAAPIVideoCORE()
 {
     if (m_bCmCopy)
     {
-        m_pCmCopy.get()->Release();
+        m_pCmCopy->Release();
         m_bCmCopy = false;
     }
 
@@ -466,19 +466,19 @@ VAAPIVideoCORE::AllocFrames(
         if (!m_bCmCopy && m_bCmCopyAllowed && isNeedCopy && m_Display)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
-            if (!m_pCmCopy.get()->GetCmDevice(m_Display)){
+            if (!m_pCmCopy->GetCmDevice(m_Display)){
                 m_bCmCopy = false;
                 m_bCmCopyAllowed = false;
-                m_pCmCopy.get()->Release();
+                m_pCmCopy->Release();
                 m_pCmCopy.reset();
             }else{
-                sts = m_pCmCopy.get()->Initialize(GetHWType());
+                sts = m_pCmCopy->Initialize(GetHWType());
                 MFX_CHECK_STS(sts);
                 m_bCmCopy = true;
             }
         }else if(m_bCmCopy){
-            if(m_pCmCopy.get())
-                m_pCmCopy.get()->ReleaseCmSurfaces();
+            if(m_pCmCopy)
+                m_pCmCopy->ReleaseCmSurfaces();
             else
                 m_bCmCopy = false;
         }
@@ -779,7 +779,7 @@ VAAPIVideoCORE::ProcessRenderTargets(
 #endif
 
     RegisterMids(response, request->Type, !m_bUseExtAllocForHWFrames, pAlloc);
-    m_pcHWAlloc.pop();
+    m_pcHWAlloc.release();
 
     return MFX_ERR_NONE;
 
@@ -809,9 +809,9 @@ VAAPIVideoCORE::SetCmCopyStatus(bool enable)
     m_bCmCopyAllowed = enable;
     if (!enable)
     {
-        if (m_pCmCopy.get())
+        if (m_pCmCopy)
         {
-            m_pCmCopy.get()->Release();
+            m_pCmCopy->Release();
         }
         m_bCmCopy = false;
     }
@@ -873,11 +873,11 @@ VAAPIVideoCORE::CreateVideoAccelerator(
     }
 
     m_pVA.reset((params.m_CreateFlags & VA_DECODE_STREAM_OUT_ENABLE) ? new FEIVideoAccelerator() : new LinuxVideoAccelerator());
-    m_pVA.get()->m_Platform = UMC::VA_LINUX;
-    m_pVA.get()->m_Profile = (VideoAccelerationProfile)profile;
-    m_pVA.get()->m_HWPlatform = m_HWType;
+    m_pVA->m_Platform = UMC::VA_LINUX;
+    m_pVA->m_Profile = (VideoAccelerationProfile)profile;
+    m_pVA->m_HWPlatform = m_HWType;
 
-    st = m_pVA.get()->Init(&params);
+    st = m_pVA->Init(&params);
 
     if(UMC_OK != st)
     {
@@ -1098,15 +1098,13 @@ VAAPIVideoCORE::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    CmCopyWrapper *pCmCopy = m_pCmCopy.get();
-
     bool canUseCMCopy = m_bCmCopy ? CmCopyWrapper::CanUseCmCopy(pDst, pSrc) : false;
 
     if (NULL != pSrc->Data.MemId && NULL != pDst->Data.MemId)
     {
         if (canUseCMCopy)
         {
-            sts = pCmCopy->CopyVideoToVideo(pDst, pSrc);
+            sts = m_pCmCopy->CopyVideoToVideo(pDst, pSrc);
             MFX_CHECK_STS(sts);
         }
         else
@@ -1143,7 +1141,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
         {
             if (canUseCMCopy)
             {
-                sts = pCmCopy->CopyVideoToSys(pDst, pSrc);
+                sts = m_pCmCopy->CopyVideoToSys(pDst, pSrc);
                 MFX_CHECK_STS(sts);
             }
             else
@@ -1203,7 +1201,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
     {
         if (canUseCMCopy)
         {
-            sts = pCmCopy->CopySysToVideo(pDst, pSrc);
+            sts = m_pCmCopy->CopySysToVideo(pDst, pSrc);
             MFX_CHECK_STS(sts);
         }
         else
@@ -1370,35 +1368,35 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
         if (!m_bCmCopy)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
-            pCmDevice = m_pCmCopy.get()->GetCmDevice(m_Display);
+            pCmDevice = m_pCmCopy->GetCmDevice(m_Display);
             if (!pCmDevice)
                 return NULL;
-            if (MFX_ERR_NONE != m_pCmCopy.get()->Initialize(GetHWType()))
+            if (MFX_ERR_NONE != m_pCmCopy->Initialize(GetHWType()))
                 return NULL;
             m_bCmCopy = true;
         }
         else
         {
-            pCmDevice =  m_pCmCopy.get()->GetCmDevice(m_Display);
+            pCmDevice =  m_pCmCopy->GetCmDevice(m_Display);
         }
         return (void*)pCmDevice;
     }
     else if (MFXICORECMCOPYWRAPPER_GUID == guid)
     {
-        if (!m_pCmCopy.get())
+        if (!m_pCmCopy)
         {
             m_pCmCopy.reset(new CmCopyWrapper);
-            if (!m_pCmCopy.get()->GetCmDevice(m_Display))
+            if (!m_pCmCopy->GetCmDevice(m_Display))
             {
                 m_bCmCopy = false;
                 m_bCmCopyAllowed = false;
-                m_pCmCopy.get()->Release();
+                m_pCmCopy->Release();
                 m_pCmCopy.reset();
                 return NULL;
             }
             else
             {
-                if (MFX_ERR_NONE != m_pCmCopy.get()->Initialize(GetHWType()))
+                if (MFX_ERR_NONE != m_pCmCopy->Initialize(GetHWType()))
                     return NULL;
                 else
                     m_bCmCopy = true;
@@ -1408,7 +1406,7 @@ void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
     }
     else if (MFXICMEnabledCore_GUID == guid)
     {
-        if (!m_pCmAdapter.get())
+        if (!m_pCmAdapter)
         {
             m_pCmAdapter.reset(new CMEnabledCoreAdapter(this));
         }

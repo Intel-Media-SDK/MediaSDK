@@ -44,6 +44,8 @@
 #include "mfx_vpp_interface.h"
 #endif
 
+#include <memory>
+
 //helper struct, it is help convert linux GUIDs to VAProfile and VAEntrypoint
 struct VaGuidMapper
 {
@@ -186,29 +188,31 @@ protected:
     mfxStatus              OnDeblockingInWinRegistry(mfxU32 codecId);
 
     void                   ReleaseHandle();
-    s_ptr<UMC::LinuxVideoAccelerator, true> m_pVA;
-    VADisplay                            m_Display;
-    mfxHDL                               m_VAConfigHandle;
-    mfxHDL                               m_VAContextHandle;
-    bool                                 m_KeepVAState;
 
-    const mfxU32                         m_adapterNum; // Ordinal number of adapter to work
-    bool                                 m_bUseExtAllocForHWFrames;
-    s_ptr<mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator, true> m_pcHWAlloc;
-    eMFXHWType                           m_HWType;
-    eMFXGTConfig                         m_GTConfig;
+    std::unique_ptr<UMC::LinuxVideoAccelerator> m_pVA;
+    VADisplay                                   m_Display;
+    mfxHDL                                      m_VAConfigHandle;
+    mfxHDL                                      m_VAContextHandle;
+    bool                                        m_KeepVAState;
 
-    bool                                 m_bCmCopy;
-    bool                                 m_bCmCopyAllowed;
-    s_ptr<CmCopyWrapper, true>           m_pCmCopy;
+    const mfxU32                                m_adapterNum; // Ordinal number of adapter to work
+    bool                                        m_bUseExtAllocForHWFrames;
+    std::unique_ptr<mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator>
+                                                m_pcHWAlloc;
+    eMFXHWType                                  m_HWType;
+    eMFXGTConfig                                m_GTConfig;
+
+    bool                                        m_bCmCopy;
+    bool                                        m_bCmCopyAllowed;
+    std::unique_ptr<CmCopyWrapper>              m_pCmCopy;
 #if defined (MFX_ENABLE_VPP)
-    VPPHWResMng                          m_vpp_hw_resmng;
+    VPPHWResMng                                 m_vpp_hw_resmng;
 #endif
 
 private:
 
-    s_ptr<VAAPIAdapter, true>            m_pAdapter;
-    s_ptr<CMEnabledCoreAdapter, true>    m_pCmAdapter;
+    std::unique_ptr<VAAPIAdapter>               m_pAdapter;
+    std::unique_ptr<CMEnabledCoreAdapter>       m_pCmAdapter;
 #ifdef MFX_ENABLE_MFE
     ComPtrCore<MFEVAAPIEncoder> m_mfe;
 #endif

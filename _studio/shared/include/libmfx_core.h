@@ -31,6 +31,8 @@
 #include "fast_copy.h"
 #include "libmfx_core_interface.h"
 
+#include <memory>
+
 
 class mfx_UMC_FrameAllocator;
 
@@ -163,45 +165,6 @@ protected:
     
     CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession session = NULL);
 
-    template <class T, bool isSingle>
-    class s_ptr
-    {
-    public:
-        s_ptr():m_ptr(0)
-        {
-        };
-        ~s_ptr()
-        {
-            reset(0);
-        }
-        T* get()
-        {
-            return m_ptr;
-        }
-        T* pop()
-        {
-            T* ptr = m_ptr;
-            m_ptr = 0;
-            return ptr;
-        }
-        void reset(T* ptr = NULL)
-        {
-            if (m_ptr)
-            {
-                if (isSingle)
-                    delete m_ptr;
-                else
-                    delete[] m_ptr;
-            }
-            m_ptr = ptr;
-        }
-    protected:
-        T* m_ptr;
-    private:
-        s_ptr(const s_ptr&);
-        void operator =(s_ptr &);
-    };
-
     class API_1_19_Adapter : public IVideoCore_API_1_19
     {
     public:
@@ -288,10 +251,10 @@ protected:
     bool m_bSetExtBufAlloc;
     bool m_bSetExtFrameAlloc;
 
-    s_ptr<mfxMemId, false> m_pMemId;
-    s_ptr<mfxBaseWideFrameAllocator, true> m_pcAlloc;
+    std::unique_ptr<mfxMemId[]>                m_pMemId;
+    std::unique_ptr<mfxBaseWideFrameAllocator> m_pcAlloc;
 
-    s_ptr<FastCopy, true> m_pFastCopy;
+    std::unique_ptr<FastCopy>                  m_pFastCopy;
     bool m_bUseExtManager;
     UMC::Mutex m_guard;
 
