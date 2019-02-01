@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1813,6 +1813,8 @@ ViewItem::ViewItem()
 {
     viewId = 0;
     maxDecFrameBuffering = 0;
+    maxNumReorderFrames  = 16; // Max DPB size
+
     Reset();
 
 } // ViewItem::ViewItem(void)
@@ -1828,6 +1830,7 @@ ViewItem::ViewItem(const ViewItem &src)
         MaxLongTermFrameIdx[i] = src.MaxLongTermFrameIdx[i];
     }
     maxDecFrameBuffering = src.maxDecFrameBuffering;
+    maxNumReorderFrames  = src.maxNumReorderFrames;
 
 } // ViewItem::ViewItem(const ViewItem &src)
 
@@ -1842,6 +1845,8 @@ ViewItem &ViewItem::operator =(const ViewItem &src)
         MaxLongTermFrameIdx[i] = src.MaxLongTermFrameIdx[i];
     }
     maxDecFrameBuffering = src.maxDecFrameBuffering;
+    maxNumReorderFrames  = src.maxNumReorderFrames;
+
     return *this;
 }
 
@@ -1939,6 +1944,32 @@ void ViewItem::SetDPBSize(H264SeqParamSet *pSps, uint8_t & level_idc)
         if (pDPB[i].get())
         {
             pDPB[i]->SetDPBSize(maxDecFrameBuffering);
+        }
+    }
+
+    if (pSps->vui.bitstream_restriction_flag)
+    {
+        maxNumReorderFrames = pSps->vui.num_reorder_frames;
+    }
+    else
+    {
+        // Regarding H264 Specification - E.2.1 VUI parameters semantics :
+        // When the max_num_reorder_frames syntax element is not present,
+        // the value of max_num_reorder_frames value shall be inferred as follows:
+        if ((1 == pSps->constraint_set3_flag) &&
+            (H264VideoDecoderParams::H264_PROFILE_CAVLC444_INTRA == pSps->profile_idc ||
+             H264VideoDecoderParams::H264_PROFILE_SCALABLE_HIGH  == pSps->profile_idc ||
+             H264VideoDecoderParams::H264_PROFILE_HIGH           == pSps->profile_idc ||
+             H264VideoDecoderParams::H264_PROFILE_HIGH10         == pSps->profile_idc ||
+             H264VideoDecoderParams::H264_PROFILE_HIGH422        == pSps->profile_idc ||
+             H264VideoDecoderParams::H264_PROFILE_HIGH444_PRED   == pSps->profile_idc)
+        )
+        {
+            maxNumReorderFrames = 0;
+        }
+        else
+        {
+            maxNumReorderFrames = maxDecFrameBuffering;
         }
     }
 } // void ViewItem::SetDPBSize(const H264SeqParamSet *pSps)
@@ -2928,7 +2959,26 @@ H264DecoderFrame *TaskSupplier::GetAnyFrameToDisplay(bool force)
         for (;;)
         {
             // show oldest frame
-            if (view.GetDPBList(0)->countNumDisplayable() > view.maxDecFrameBuffering || force)
+
+            // Flag SPS.VUI.max_num_reorder_frames may be presented in bitstream headers
+            // (if SPS.VUI.bitstream_restriction_flag == 1) and may be used to reduce
+            // latency on outputting decoded frames.
+            //
+            // Due to h264 is a legacy codec and flag SPS.VUI.max_num_reorder_frames
+            // is not necessary - there are existed some old encoders and coded videos
+            // where flag max_num_reorder_frames is set to 0 by default, but reordering
+            // actually exists. For this reason Media SDK ignores this flag by default,
+            // because there is a risk to break decoding some old videos.
+            //
+            // Enabling define ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT allows to reduce latency
+            // (ex: max_num_reorder_frames == 0 -> output frame immediately)
+
+            uint32_t countNumDisplayable = view.GetDPBList(0)->countNumDisplayable();
+            if (   countNumDisplayable > view.maxDecFrameBuffering
+#ifdef ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT
+                || countNumDisplayable > view.maxNumReorderFrames
+#endif
+                || force)
             {
                 H264DecoderFrame *pTmp = view.GetDPBList(0)->findOldestDisplayable(view.maxDecFrameBuffering);
 
