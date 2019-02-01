@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -316,6 +316,9 @@ struct ViewItem
     H264DecoderFrame *pCurFrame;
 
     double localFrameTime;
+
+    // SPS.VUI.(bitstream_restriction_flag == 1).max_num_reorder_frames
+    uint32_t maxNumReorderFrames;
 };
 
 typedef std::list<ViewItem> ViewList;
