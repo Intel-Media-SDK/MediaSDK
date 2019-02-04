@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Intel Corporation.  All rights reserved.
+ * Copyright (C) 2017-2019 Intel Corporation.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,7 @@
 
 struct intel_device_info {
     unsigned gen;
+    unsigned gt; /* 0 if unknown */
     bool is_mobile : 1;
     bool is_whitney : 1;
     bool is_almador : 1;
@@ -63,6 +64,7 @@ struct intel_device_info {
     bool is_geminilake : 1;
     bool is_coffeelake : 1;
     bool is_cannonlake : 1;
+    bool is_icelake : 1;
     const char *codename;
 };
 
@@ -72,6 +74,7 @@ const struct intel_device_info intel_generic_info = {
 
 const struct intel_device_info intel_i810_info = {
     .gen = BIT(0),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = true,
     .is_almador = false,
@@ -102,11 +105,13 @@ const struct intel_device_info intel_i810_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "solano"
 };
 
 const struct intel_device_info intel_i815_info = {
     .gen = BIT(0),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = true,
     .is_almador = false,
@@ -137,11 +142,13 @@ const struct intel_device_info intel_i815_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "whitney"
 };
 
 const struct intel_device_info intel_i830_info = {
     .gen = BIT(1),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = true,
@@ -172,11 +179,13 @@ const struct intel_device_info intel_i830_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "almador"
 };
 
 const struct intel_device_info intel_i845_info = {
     .gen = BIT(1),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -207,11 +216,13 @@ const struct intel_device_info intel_i845_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "brookdale"
 };
 
 const struct intel_device_info intel_i855_info = {
     .gen = BIT(1),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -242,11 +253,13 @@ const struct intel_device_info intel_i855_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "montara"
 };
 
 const struct intel_device_info intel_i865_info = {
     .gen = BIT(1),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -277,11 +290,13 @@ const struct intel_device_info intel_i865_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "spingdale"
 };
 
 const struct intel_device_info intel_i915_info = {
     .gen = BIT(2),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -312,11 +327,13 @@ const struct intel_device_info intel_i915_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "grantsdale"
 };
 
 const struct intel_device_info intel_i915m_info = {
     .gen = BIT(2),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -347,11 +364,13 @@ const struct intel_device_info intel_i915m_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "alviso"
 };
 
 const struct intel_device_info intel_i945_info = {
     .gen = BIT(2),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -382,11 +401,13 @@ const struct intel_device_info intel_i945_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "lakeport"
 };
 
 const struct intel_device_info intel_i945m_info = {
     .gen = BIT(2),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -417,11 +438,13 @@ const struct intel_device_info intel_i945m_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "calistoga"
 };
 
 const struct intel_device_info intel_g33_info = {
     .gen = BIT(2),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -452,11 +475,13 @@ const struct intel_device_info intel_g33_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "bearlake"
 };
 
 const struct intel_device_info intel_pineview_info = {
     .gen = BIT(2),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -487,11 +512,13 @@ const struct intel_device_info intel_pineview_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "pineview"
 };
 
 const struct intel_device_info intel_i965_info = {
     .gen = BIT(3),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -522,11 +549,13 @@ const struct intel_device_info intel_i965_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "broadwater"
 };
 
 const struct intel_device_info intel_i965m_info = {
     .gen = BIT(3),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -557,11 +586,13 @@ const struct intel_device_info intel_i965m_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "crestline"
 };
 
 const struct intel_device_info intel_g45_info = {
     .gen = BIT(3),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -592,11 +623,13 @@ const struct intel_device_info intel_g45_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "eaglelake"
 };
 
 const struct intel_device_info intel_gm45_info = {
     .gen = BIT(3),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -627,11 +660,13 @@ const struct intel_device_info intel_gm45_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "cantiga"
 };
 
 const struct intel_device_info intel_ironlake_info = {
     .gen = BIT(4),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -662,11 +697,13 @@ const struct intel_device_info intel_ironlake_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "ironlake" /* clarkdale? */
 };
 
 const struct intel_device_info intel_ironlake_m_info = {
     .gen = BIT(4),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -697,11 +734,13 @@ const struct intel_device_info intel_ironlake_m_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "arrandale"
 };
 
 const struct intel_device_info intel_sandybridge_info = {
     .gen = BIT(5),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -732,11 +771,13 @@ const struct intel_device_info intel_sandybridge_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "sandybridge"
 };
 
 const struct intel_device_info intel_sandybridge_m_info = {
     .gen = BIT(5),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -767,11 +808,13 @@ const struct intel_device_info intel_sandybridge_m_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "sandybridge"
 };
 
 const struct intel_device_info intel_ivybridge_info = {
     .gen = BIT(6),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -802,11 +845,13 @@ const struct intel_device_info intel_ivybridge_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "ivybridge"
 };
 
 const struct intel_device_info intel_ivybridge_m_info = {
     .gen = BIT(6),
+    .gt = 0,
     .is_mobile = true,
     .is_whitney = false,
     .is_almador = false,
@@ -837,11 +882,13 @@ const struct intel_device_info intel_ivybridge_m_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "ivybridge"
 };
 
 const struct intel_device_info intel_valleyview_info = {
     .gen = BIT(6),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -872,11 +919,13 @@ const struct intel_device_info intel_valleyview_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "valleyview"
 };
 
-const struct intel_device_info intel_haswell_info = {
+const struct intel_device_info intel_haswell_gt1_info = {
     .gen = BIT(6),
+    .gt = 1,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -907,11 +956,87 @@ const struct intel_device_info intel_haswell_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "haswell"
 };
 
-const struct intel_device_info intel_broadwell_info = {
+const struct intel_device_info intel_haswell_gt2_info = {
+    .gen = BIT(6),
+    .gt = 2,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = true,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "haswell"
+};
+
+const struct intel_device_info intel_haswell_gt3_info = {
+    .gen = BIT(6),
+    .gt = 3,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = true,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "haswell"
+};
+
+const struct intel_device_info intel_broadwell_gt1_info = {
     .gen = BIT(7),
+    .gt = 1,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -942,11 +1067,124 @@ const struct intel_device_info intel_broadwell_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "broadwell"
+};
+
+const struct intel_device_info intel_broadwell_gt2_info = {
+    .gen = BIT(7),
+    .gt = 2,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = true,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "broadwell"
+};
+
+const struct intel_device_info intel_broadwell_gt3_info = {
+    .gen = BIT(7),
+    .gt = 3,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = true,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "broadwell"
+};
+
+const struct intel_device_info intel_broadwell_unknown_info = {
+    .gen = BIT(7),
+    .gt = 0,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = true,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "broadwell"
 };
 
 const struct intel_device_info intel_cherryview_info = {
     .gen = BIT(7),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -977,11 +1215,13 @@ const struct intel_device_info intel_cherryview_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "cherryview"
 };
 
-const struct intel_device_info intel_skylake_info = {
+const struct intel_device_info intel_skylake_gt1_info = {
     .gen = BIT(8),
+    .gt = 1,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -1012,11 +1252,124 @@ const struct intel_device_info intel_skylake_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "skylake"
+};
+
+const struct intel_device_info intel_skylake_gt2_info = {
+    .gen = BIT(8),
+    .gt = 2,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = true,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "skylake"
+};
+
+const struct intel_device_info intel_skylake_gt3_info = {
+    .gen = BIT(8),
+    .gt = 3,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = true,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "skylake"
+};
+
+const struct intel_device_info intel_skylake_gt4_info = {
+    .gen = BIT(8),
+    .gt = 4,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = true,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "skylake"
 };
 
 const struct intel_device_info intel_broxton_info = {
     .gen = BIT(8),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -1047,11 +1400,13 @@ const struct intel_device_info intel_broxton_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "broxton"
 };
 
-const struct intel_device_info intel_kabylake_info = {
+const struct intel_device_info intel_kabylake_gt1_info = {
     .gen = BIT(8),
+    .gt = 1,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -1082,11 +1437,124 @@ const struct intel_device_info intel_kabylake_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "kabylake"
+};
+
+const struct intel_device_info intel_kabylake_gt2_info = {
+    .gen = BIT(8),
+    .gt = 2,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = true,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "kabylake"
+};
+
+const struct intel_device_info intel_kabylake_gt3_info = {
+    .gen = BIT(8),
+    .gt = 3,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = true,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "kabylake"
+};
+
+const struct intel_device_info intel_kabylake_gt4_info = {
+    .gen = BIT(8),
+    .gt = 4,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = true,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "kabylake"
 };
 
 const struct intel_device_info intel_geminilake_info = {
     .gen = BIT(8),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -1117,11 +1585,13 @@ const struct intel_device_info intel_geminilake_info = {
     .is_geminilake = true,
     .is_coffeelake = false,
     .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "geminilake"
 };
 
-const struct intel_device_info intel_coffeelake_info = {
+const struct intel_device_info intel_coffeelake_gt1_info = {
     .gen = BIT(8),
+    .gt = 1,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -1152,11 +1622,87 @@ const struct intel_device_info intel_coffeelake_info = {
     .is_geminilake = false,
     .is_coffeelake = true,
     .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "coffeelake"
+};
+
+const struct intel_device_info intel_coffeelake_gt2_info = {
+    .gen = BIT(8),
+    .gt = 2,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = true,
+    .is_cannonlake = false,
+    .is_icelake = false,
+    .codename = "coffeelake"
+};
+
+const struct intel_device_info intel_coffeelake_gt3_info = {
+    .gen = BIT(8),
+    .gt = 3,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = true,
+    .is_cannonlake = false,
+    .is_icelake = false,
     .codename = "coffeelake"
 };
 
 const struct intel_device_info intel_cannonlake_info = {
     .gen = BIT(9),
+    .gt = 0,
     .is_mobile = false,
     .is_whitney = false,
     .is_almador = false,
@@ -1187,7 +1733,45 @@ const struct intel_device_info intel_cannonlake_info = {
     .is_geminilake = false,
     .is_coffeelake = false,
     .is_cannonlake = true,
+    .is_icelake = false,
     .codename = "cannonlake"
+};
+
+const struct intel_device_info intel_icelake_info = {
+    .gen = BIT(10),
+    .gt = 0,
+    .is_mobile = false,
+    .is_whitney = false,
+    .is_almador = false,
+    .is_brookdale = false,
+    .is_montara = false,
+    .is_springdale = false,
+    .is_grantsdale = false,
+    .is_alviso = false,
+    .is_lakeport = false,
+    .is_calistoga = false,
+    .is_bearlake = false,
+    .is_pineview = false,
+    .is_broadwater = false,
+    .is_crestline = false,
+    .is_eaglelake = false,
+    .is_cantiga = false,
+    .is_ironlake = false,
+    .is_arrandale = false,
+    .is_sandybridge = false,
+    .is_ivybridge = false,
+    .is_valleyview = false,
+    .is_haswell = false,
+    .is_broadwell = false,
+    .is_cherryview = false,
+    .is_skylake = false,
+    .is_broxton = false,
+    .is_kabylake = false,
+    .is_geminilake = false,
+    .is_coffeelake = false,
+    .is_cannonlake = false,
+    .is_icelake = true,
+    .codename = "icelake"
 };
 
 const struct pci_id_match intel_device_match [] = {
@@ -1222,25 +1806,47 @@ const struct pci_id_match intel_device_match [] = {
     INTEL_IVB_D_IDS(&intel_ivybridge_info),
     INTEL_IVB_M_IDS(&intel_ivybridge_m_info),
 
-    INTEL_HSW_IDS(&intel_haswell_info),
+    INTEL_HSW_GT1_IDS(&intel_haswell_gt1_info),
+    INTEL_HSW_GT2_IDS(&intel_haswell_gt2_info),
+    INTEL_HSW_GT3_IDS(&intel_haswell_gt3_info),
 
     INTEL_VLV_IDS(&intel_valleyview_info),
 
-    INTEL_BDW_IDS(&intel_broadwell_info),
+    INTEL_BDW_GT1_IDS(&intel_broadwell_gt1_info),
+    INTEL_BDW_GT2_IDS(&intel_broadwell_gt2_info),
+    INTEL_BDW_GT3_IDS(&intel_broadwell_gt3_info),
+    INTEL_BDW_RSVD_IDS(&intel_broadwell_unknown_info),
 
     INTEL_CHV_IDS(&intel_cherryview_info),
 
-    INTEL_SKL_IDS(&intel_skylake_info),
+    INTEL_SKL_GT1_IDS(&intel_skylake_gt1_info),
+    INTEL_SKL_GT2_IDS(&intel_skylake_gt2_info),
+    INTEL_SKL_GT3_IDS(&intel_skylake_gt3_info),
+    INTEL_SKL_GT4_IDS(&intel_skylake_gt4_info),
 
     INTEL_BXT_IDS(&intel_broxton_info),
 
-    INTEL_KBL_IDS(&intel_kabylake_info),
+    INTEL_KBL_GT1_IDS(&intel_kabylake_gt1_info),
+    INTEL_KBL_GT2_IDS(&intel_kabylake_gt2_info),
+    INTEL_KBL_GT3_IDS(&intel_kabylake_gt3_info),
+    INTEL_KBL_GT4_IDS(&intel_kabylake_gt4_info),
+    INTEL_AML_KBL_GT2_IDS(&intel_kabylake_gt2_info),
 
     INTEL_GLK_IDS(&intel_geminilake_info),
 
-    INTEL_CFL_IDS(&intel_coffeelake_info),
+    INTEL_CFL_S_GT1_IDS(&intel_coffeelake_gt1_info),
+    INTEL_CFL_S_GT2_IDS(&intel_coffeelake_gt2_info),
+    INTEL_CFL_H_GT2_IDS(&intel_coffeelake_gt2_info),
+    INTEL_CFL_U_GT2_IDS(&intel_coffeelake_gt2_info),
+    INTEL_CFL_U_GT3_IDS(&intel_coffeelake_gt3_info),
+    INTEL_WHL_U_GT1_IDS(&intel_coffeelake_gt1_info),
+    INTEL_WHL_U_GT2_IDS(&intel_coffeelake_gt2_info),
+    INTEL_WHL_U_GT3_IDS(&intel_coffeelake_gt3_info),
+    INTEL_AML_CFL_GT2_IDS(&intel_coffeelake_gt2_info),
 
     INTEL_CNL_IDS(&intel_cannonlake_info),
+
+    INTEL_ICL_11_IDS(&intel_icelake_info),
 
     INTEL_VGA_DEVICE(PCI_MATCH_ANY, &intel_generic_info),
 };

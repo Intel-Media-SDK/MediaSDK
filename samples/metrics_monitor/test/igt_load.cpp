@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Intel Corporation.  All rights reserved.
+ * Copyright (C) 2017-2019 Intel Corporation.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -174,6 +174,17 @@ unsigned intel_gen(uint16_t devid)
 
 unsigned intel_gt(uint16_t devid)
 {
+    const struct intel_device_info *devinfo = intel_get_device_info(devid);
+
+    /* If in the database, just use that information. */
+    if (devinfo->gt != 0)
+        return devinfo->gt - 1;
+
+    /*
+     * This scheme doesn't work on Coffeelake, we should probably
+     * not rely on this anymore.
+    */
+
     unsigned mask = intel_gen(devid);
 
     if (mask >= 8)

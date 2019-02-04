@@ -79,10 +79,10 @@ void getAndCheckAvailableMetrics(unsigned int* count, cttMetric* out_metric_ids)
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetMetricCount(count));
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetMetricInfo(*count, out_metric_ids));
 
-    if (num_slices > 1)
+    if (num_slices > 1 && !device_info->is_broxton)
         EXPECT_EQ(*count, (unsigned int)CTT_MAX_METRIC_COUNT);
     else
-        //GT2 haven't VDBOX2
+        //GT2 systems, Broxton haven't VDBOX2
         EXPECT_EQ(*count, (unsigned int)(CTT_MAX_METRIC_COUNT - 1));
 
     CTTMetrics_Close();
