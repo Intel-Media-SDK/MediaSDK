@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -826,8 +826,8 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     VM_ASSERT(dynamic_cast<FEIVideoAccelerator*>(m_va) &&
               "VA should be [FEIVideoAccelerator] if [streamout] is enabled");
 
-    FEIVideoAccelerator* fei_va =
-        static_cast<FEIVideoAccelerator*>(m_va);
+    if (!pFrame)
+        return UMC_ERR_FAILED;
 
     FrameData const* fd = pFrame->GetFrameData();
     VM_ASSERT(fd);
@@ -838,19 +838,19 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
 
     VM_ASSERT(aux->type == MFX_EXTBUFF_FEI_DEC_STREAM_OUT);
 
-    mfxExtFeiDecStreamOut* so =
-        reinterpret_cast<mfxExtFeiDecStreamOut*>(aux->ptr);
-    if (!so)
+    mfxExtFeiDecStreamOut* so = reinterpret_cast<mfxExtFeiDecStreamOut*>(aux->ptr);
+
+    if (!so || !so->MB)
         return UMC_ERR_FAILED;
 
-    VM_ASSERT(!( pFrame->GetTotalMBs() < 0));
+    VM_ASSERT(pFrame->GetTotalMBs() >= 0);
     uint32_t const count = pFrame->GetTotalMBs();
 
     if (so->NumMBAlloc < count)
         return UMC_ERR_FAILED;
 
-    uint32_t const size =
-        count * sizeof(mfxFeiDecStreamOutMBCtrl);
+    FEIVideoAccelerator* fei_va =
+        static_cast<FEIVideoAccelerator*>(m_va);
 
     //top field
     int32_t const top = pFrame->GetNumberByParity(0);
@@ -858,17 +858,12 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     if (!buffer || !buffer->GetPtr())
         return UMC_ERR_FAILED;
 
-    char* dst = reinterpret_cast<char*>(so->MB);
-    if (!dst)
-        return UMC_ERR_FAILED;
+    mfxFeiDecStreamOutMBCtrl* src = reinterpret_cast<mfxFeiDecStreamOutMBCtrl *>(buffer->GetPtr());
 
-    mfxU8 const* src = reinterpret_cast<mfxU8 *>(buffer->GetPtr());
-    VM_ASSERT(src);
-
-    int32_t const offset1 =  size * top;
+    int32_t const offset1 =  count * top;
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "std::copy");
-        std::copy(src, src + size, dst + offset1);
+        std::copy(src, src + count, so->MB + offset1);
     }
 
     fei_va->ReleaseBuffer(buffer);
@@ -881,17 +876,17 @@ Status PackerVA::QueryStreamOut(H264DecoderFrame* pFrame)
     if (!buffer || !buffer->GetPtr())
         return UMC_ERR_FAILED;
 
-    src = reinterpret_cast<mfxU8 *>(buffer->GetPtr());
-    VM_ASSERT(src);
+    src = reinterpret_cast<mfxFeiDecStreamOutMBCtrl *>(buffer->GetPtr());
 
-    int32_t const offset2 =  size * bottom;
-    std::copy(src, src + size, dst + offset2);
-
+    int32_t const offset2 =  count * bottom;
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "std::copy");
+        std::copy(src, src + count, so->MB + offset2);
+    }
     fei_va->ReleaseBuffer(buffer);
 
     return UMC_OK;
 }
-
 
 } // namespace UMC
 
