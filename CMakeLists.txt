@@ -111,8 +111,12 @@ endif()
 if (BUILD_TESTS)
   enable_testing()
 
+  # Our intent is to use gtest for building, we do not want to install it.
+  # To achieve that we need to force set INSTALL_GTEST=OFF otherwise
+  # according to cmake rules it will be overwritten by option() default
+  # which might be ON.
+  set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
 
-  set (INSTALL_GTEST OFF)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/googletest)
 
   # For some Linux distro versions there is an unused-result warning
