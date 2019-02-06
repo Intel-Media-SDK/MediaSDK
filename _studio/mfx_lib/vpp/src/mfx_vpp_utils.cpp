@@ -1005,7 +1005,7 @@ mfxStatus GetPipelineList(
         return MFX_ERR_NONE;
     }
 
-    /* VPP natively supports 10bit format w/o shift. If input is shifted,
+    /* VPP natively supports P010 and P210 formats w/o shift. If input is shifted,
      * need get it back to normal position.
      */
     if ( ( MFX_FOURCC_P010 == srcFrameInfo->FourCC || MFX_FOURCC_P210 == srcFrameInfo->FourCC)
@@ -1015,7 +1015,7 @@ mfxStatus GetPipelineList(
     }
 
     /*
-     * VPP produces 10bit data w/o shift. If output is requested to be shifted, need to do so
+     * VPP produces P010 and P210 formats w/o shift. If output is requested to be shifted, need to do so
      */
     if ( ( MFX_FOURCC_P010 == dstFrameInfo->FourCC || MFX_FOURCC_P210 == dstFrameInfo->FourCC)
         && dstFrameInfo->Shift )
