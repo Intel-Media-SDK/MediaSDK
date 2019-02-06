@@ -346,14 +346,16 @@ namespace UMC_MPEG2_DECODER
             }
             break;
             case PICTURE_HEADER:
-                DecodeHeaders(unit); // 1. Got new picture header
-                if (m_currFrame)     // 2. Complete current picture if any
+            {
+                auto sts = DecodeHeaders(unit);          // 1. Parse new picture header
+                if ((UMC::UMC_OK == sts) && m_currFrame) // 2. Complete current picture
                 {
                     bool isFullFrame = OnNewPicture();
                     if (isFullFrame)
                         return UMC::UMC_OK; // exit from the loop on full frame
                 }
-                break;
+            }
+            break;
             case EXTENSION:
             case GROUP:
                 DecodeHeaders(unit);
