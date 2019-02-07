@@ -43,8 +43,6 @@
 #include "mfxstructures.h"
 #include "mfxjpeg.h"
 
-#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
-
 namespace MfxHwMJpegEncode
 {
     #define  JPEG_VIDEO_SURFACE_NUM    4

@@ -29,10 +29,6 @@
 #include <assert.h>
 #include <iterator>
 
-#ifndef MFX_CHECK_WITH_ASSERT
-#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
-#endif
-
 #define CTX(dpy) (((VADisplayContextP)dpy)->pDriverContext)
 
 

@@ -34,8 +34,6 @@
 namespace MfxHwVP9Encode
 {
 
-#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
-
 constexpr auto DPB_SIZE = 8; // DPB size by VP9 spec
 constexpr auto DPB_SIZE_REAL = 3; // DPB size really used by encoder
 constexpr auto MAX_SEGMENTS = 8;
@@ -252,8 +250,6 @@ enum // identifies memory type at encoder input w/o any details
 
         return MFX_ERR_NONE;
     }
-
-#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
 
     template<class T> inline void Zero(T & obj)                { obj = T(); }
     template<class T, size_t N> inline void Zero(T (&obj)[N])  { std::fill_n(obj, N, T()); }
