@@ -181,6 +181,7 @@ private:
                 }
             }
         }
+        VP9_CHECK_AND_THROW((m_frameAllocator->DecreaseReference(frame.currFrame) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
     }
 public:
     FrameStorage(mfx_UMC_FrameAllocator *frameAllocator):
@@ -864,8 +865,6 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         sts = decoder.m_FrameAllocator->PrepareToOutput(data.surface_work, data.copyFromFrame, 0, false);
         MFX_CHECK_STS(sts);
 
-        if (data.currFrameId != -1)
-            decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
         decoder.m_framesStorage->DecodeFrame(data.currFrameId);
 
         decoder.m_FrameAllocator->SetSfcPostProcessingFlag(false);
@@ -900,8 +899,6 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
 
-    if (data.currFrameId != -1)
-        decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
     decoder.m_framesStorage->DecodeFrame(data.currFrameId);
 
     return MFX_TASK_DONE;
