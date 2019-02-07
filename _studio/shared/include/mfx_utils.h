@@ -111,9 +111,6 @@ bool LumaIsNull(const mfxFrameSurface1 * surf)
         return !surf->Data.Y;
 }
 
-#ifndef SAFE_DELETE
-#define SAFE_DELETE(PTR)    { if (PTR) { delete PTR; PTR = NULL; } }
-#endif
 #ifndef SAFE_RELEASE
 #define SAFE_RELEASE(PTR)   { if (PTR) { PTR->Release(); PTR = NULL; } }
 #endif
