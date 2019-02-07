@@ -63,6 +63,8 @@ static inline T mfx_print_err(T sts, const char *file, int line, const char *fun
 #define MFX_CHECK_UMC_ALLOC(err) if (err != true) {return MFX_ERR_MEMORY_ALLOC;}
 #define MFX_CHECK_EXBUF_INDEX(index) if (index == -1) {return MFX_ERR_MEMORY_ALLOC;}
 
+#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) {assert(EXPR); MFX_CHECK(EXPR,ERR); }
+
 static const mfxU32 MFX_TIME_STAMP_FREQUENCY = 90000; // will go to mfxdefs.h
 static const mfxU64 MFX_TIME_STAMP_INVALID = (mfxU64)-1; // will go to mfxdefs.h
 static const mfxU32 NO_INDEX = 0xffffffff;

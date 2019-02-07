@@ -36,8 +36,6 @@
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #endif
 
-#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
-
 #define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
 do {                                               \
     if ( vaBufferId != VA_INVALID_ID)              \

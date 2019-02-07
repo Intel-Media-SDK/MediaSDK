@@ -623,8 +623,6 @@ VAProfile ConvertGuidToVAAPIProfile(const GUID& guid)
 }
 
 
-#define MFX_CHECK_WITH_ASSERT(EXPR, ERR) { assert(EXPR); MFX_CHECK(EXPR, ERR); }
-
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VideoCORE* pCore,
     GUID guid,
