@@ -130,21 +130,45 @@ mfxStatus VideoDECODEVP9_HW::CleanRefList()
     return MFX_ERR_NONE;
 }
 
+static void CheckUmcStatus(const UMC::Status status)
+{
+    VP9_CHECK_AND_THROW((status == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+}
 
 class FrameStorage
 {
 private:
+    class TraceLastUmcError
+    {
+    private:
+        UMC::Status m_status = UMC::UMC_OK;
+    public:
+        TraceLastUmcError& operator=(const UMC::Status status)
+        {
+            if(status != UMC::UMC_OK)
+            {
+                m_status = status;
+            }
+            return *this;
+        }
+
+        operator UMC::Status()
+        {
+            return m_status;
+        }
+    };
+
     std::vector<UMC_VP9_DECODER::VP9DecoderFrame> m_submittedFrames;
     mfx_UMC_FrameAllocator *m_frameAllocator;
 
     void LockResources(const UMC_VP9_DECODER::VP9DecoderFrame & frame) const
     {
         // lock current frame for decode
-        VP9_CHECK_AND_THROW((m_frameAllocator->IncreaseReference(frame.currFrame) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+        CheckUmcStatus(m_frameAllocator->IncreaseReference(frame.currFrame));
         // lock frame for copy
         if (frame.show_existing_frame)
         {
-            VP9_CHECK_AND_THROW((m_frameAllocator->IncreaseReference(frame.ref_frame_map[frame.frame_to_show]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+            CheckUmcStatus(m_frameAllocator->IncreaseReference(frame.ref_frame_map[frame.frame_to_show]));
         }
         // lock all references
         else
@@ -154,20 +178,19 @@ private:
                 const UMC::FrameMemID mid = frame.ref_frame_map[ref_index];
                 if (mid >= 0)
                 {
-                     VP9_CHECK_AND_THROW((m_frameAllocator->IncreaseReference(mid) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+                    CheckUmcStatus(m_frameAllocator->IncreaseReference(mid));
                 }
             }
         }
     }
 
-    void UnLockResources(const UMC_VP9_DECODER::VP9DecoderFrame & frame) const
+    void UnlockResources(const UMC_VP9_DECODER::VP9DecoderFrame & frame) const
     {
-        // decoded frame should be unlocked in async routine
-
+        TraceLastUmcError status;
         // unlock frame for copy
         if (frame.show_existing_frame)
         {
-            VP9_CHECK_AND_THROW((m_frameAllocator->DecreaseReference(frame.ref_frame_map[frame.frame_to_show]) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+            status = m_frameAllocator->DecreaseReference(frame.ref_frame_map[frame.frame_to_show]);
         }
         // unlock all references
         else
@@ -177,10 +200,12 @@ private:
                 const UMC::FrameMemID mid = frame.ref_frame_map[ref_index];
                 if (mid >= 0)
                 {
-                    VP9_CHECK_AND_THROW((m_frameAllocator->DecreaseReference(mid) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+                    status = m_frameAllocator->DecreaseReference(mid);
                 }
             }
         }
+        status = m_frameAllocator->DecreaseReference(frame.currFrame);
+        CheckUmcStatus(status);
     }
 public:
     FrameStorage(mfx_UMC_FrameAllocator *frameAllocator):
@@ -195,7 +220,7 @@ public:
         try
         {
             for (auto & it : m_submittedFrames)
-                UnLockResources(it);
+                UnlockResources(it);
         }
         catch (vp9_exception const& e)
         {
@@ -239,7 +264,7 @@ public:
         {
             if (it->isDecoded)
             {
-                UnLockResources(*it);
+                UnlockResources(*it);
                 it = m_submittedFrames.erase(it);
             }
             else
@@ -864,8 +889,6 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         sts = decoder.m_FrameAllocator->PrepareToOutput(data.surface_work, data.copyFromFrame, 0, false);
         MFX_CHECK_STS(sts);
 
-        if (data.currFrameId != -1)
-            decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
         decoder.m_framesStorage->DecodeFrame(data.currFrameId);
 
         decoder.m_FrameAllocator->SetSfcPostProcessingFlag(false);
@@ -900,8 +923,6 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
 
-    if (data.currFrameId != -1)
-        decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
     decoder.m_framesStorage->DecodeFrame(data.currFrameId);
 
     return MFX_TASK_DONE;
