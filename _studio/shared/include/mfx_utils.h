@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -145,12 +145,6 @@ constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
     return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }
 }
-
-
-//#undef  SUCCEEDED
-//#define SUCCEEDED(hr)   (MFX_STS_TRACE(hr) >= 0)
-//#undef  FAILED
-//#define FAILED(hr)      (MFX_STS_TRACE(hr) < 0)
 
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field
 #define MFX_COPY_ARRAY_FIELD(Array) std::copy(std::begin(buf_src.Array), std::end(buf_src.Array), std::begin(buf_dst.Array))
