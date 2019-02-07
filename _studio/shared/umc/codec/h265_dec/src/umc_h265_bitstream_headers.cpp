@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -396,10 +396,10 @@ void H265HeadersBitstream::xDecodeScalingList(H265ScalingList *scalingList, unsi
 {
     VM_ASSERT(scalingList);
 
-    int i,coefNum = MFX_MIN(MAX_MATRIX_COEF_NUM,(int)g_scalingListSize[sizeId]);
-    int nextCoef = SCALING_LIST_START_VALUE;
+    int32_t i,coefNum = MFX_MIN(MAX_MATRIX_COEF_NUM,(int32_t)g_scalingListSize[sizeId]);
+    int32_t nextCoef = SCALING_LIST_START_VALUE;
     const uint16_t *scan  = (sizeId == 0) ? ScanTableDiag4x4 : g_sigLastScanCG32x32;
-    int *dst = scalingList->getScalingListAddress(sizeId, listId);
+    int32_t *dst = scalingList->getScalingListAddress(sizeId, listId);
 
     if( sizeId > SCALING_LIST_8x8 )
     {
@@ -458,7 +458,7 @@ void H265HeadersBitstream::parseScalingList(H265ScalingList *scalingList)
 }
 
 // Parse profile tier layers header part in VPS or SPS
-void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int maxNumSubLayersMinus1 )
+void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int32_t maxNumSubLayersMinus1 )
 {
     VM_ASSERT(rpcPTL);
 
@@ -468,7 +468,7 @@ void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int maxNumSubL
     level_idc = ((level_idc*10) / 30);
     rpcPTL->GetGeneralPTL()->level_idc = level_idc;
 
-    for(int i = 0; i < maxNumSubLayersMinus1; i++)
+    for(int32_t i = 0; i < maxNumSubLayersMinus1; i++)
     {
         if (Get1Bit())
             rpcPTL->sub_layer_profile_present_flags |= 1 << i;
@@ -478,7 +478,7 @@ void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int maxNumSubL
 
     if (maxNumSubLayersMinus1 > 0)
     {
-        for (int i = maxNumSubLayersMinus1; i < 8; i++)
+        for (int32_t i = maxNumSubLayersMinus1; i < 8; i++)
         {
             uint32_t reserved_zero_2bits = GetBits(2);
             if (reserved_zero_2bits)
@@ -486,7 +486,7 @@ void H265HeadersBitstream::parsePTL(H265ProfileTierLevel *rpcPTL, int maxNumSubL
         }
     }
 
-    for(int i = 0; i < maxNumSubLayersMinus1; i++)
+    for(int32_t i = 0; i < maxNumSubLayersMinus1; i++)
     {
         if (rpcPTL->sub_layer_profile_present_flags & (1 << i))
         {
@@ -514,7 +514,7 @@ void H265HeadersBitstream::parseProfileTier(H265PTL *ptl)
     ptl->tier_flag = Get1Bit();
     ptl->profile_idc = GetBits(5);
 
-    for(int j = 0; j < 32; j++)
+    for(int32_t j = 0; j < 32; j++)
     {
         if (Get1Bit())
             ptl->profile_compatibility_flags |= 1 << j;
@@ -523,7 +523,7 @@ void H265HeadersBitstream::parseProfileTier(H265PTL *ptl)
     if (!ptl->profile_idc)
     {
         ptl->profile_idc = H265_PROFILE_MAIN;
-        for(int j = 1; j < 32; j++)
+        for(int32_t j = 1; j < 32; j++)
         {
             if (ptl->profile_compatibility_flags & (1 << j))
             {
@@ -1309,7 +1309,7 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
 
     wpScalingParam* wp;
     SliceType       eSliceType  = sliceHdr->slice_type;
-    int             iNbRef      = (eSliceType == B_SLICE ) ? (2) : (1);
+    int32_t         iNbRef      = (eSliceType == B_SLICE ) ? (2) : (1);
 
     sliceHdr->luma_log2_weight_denom = GetVLCElementU(); // used in HW decoder
     if (sliceHdr->luma_log2_weight_denom > 7)
@@ -1318,7 +1318,7 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
     if (sps->ChromaArrayType)
     {
         int32_t delta_chroma_log2_weight_denom = GetVLCElementS();
-        if (delta_chroma_log2_weight_denom + (int)sliceHdr->luma_log2_weight_denom < 0)
+        if (delta_chroma_log2_weight_denom + (int32_t)sliceHdr->luma_log2_weight_denom < 0)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
         sliceHdr->chroma_log2_weight_denom = (uint32_t)(delta_chroma_log2_weight_denom + sliceHdr->luma_log2_weight_denom);
     }
@@ -1406,7 +1406,7 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
             }
         }
 
-        for (int iRefIdx = sliceHdr->m_numRefIdx[eRefPicList]; iRefIdx < MAX_NUM_REF_PICS; iRefIdx++)
+        for (int32_t iRefIdx = sliceHdr->m_numRefIdx[eRefPicList]; iRefIdx < MAX_NUM_REF_PICS; iRefIdx++)
         {
             wp = sliceHdr->pred_weight_table[eRefPicList][iRefIdx];
             wp[0].present_flag = false;
@@ -1580,7 +1580,7 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
             if (sps->long_term_ref_pics_present_flag)
             {
                 ReferencePictureSet* rps = pSlice->getRPS();
-                int offset = rps->getNumberOfNegativePictures()+rps->getNumberOfPositivePictures();
+                int32_t offset = rps->getNumberOfNegativePictures()+rps->getNumberOfPositivePictures();
                 if (sps->num_long_term_ref_pics_sps > 0)
                 {
                     rps->num_long_term_sps = GetVLCElementU();
@@ -1597,7 +1597,7 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
 
                 for(uint32_t j = offset, k = 0; k < rps->num_long_term_sps + rps->num_long_term_pics; j++, k++)
                 {
-                    int pocLsbLt;
+                    int32_t pocLsbLt;
                     if (k < rps->num_long_term_sps)
                     {
                         uint32_t lt_idx_sps = 0;
@@ -1699,11 +1699,11 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
 
             if(refPicListModification->ref_pic_list_modification_flag_l0)
             {
-                int i = 0;
-                int numRpsCurrTempList0 = pSlice->getNumRpsCurrTempList();
+                int32_t i = 0;
+                int32_t numRpsCurrTempList0 = pSlice->getNumRpsCurrTempList();
                 if ( numRpsCurrTempList0 > 1 )
                 {
-                    int length = 1;
+                    int32_t length = 1;
                     numRpsCurrTempList0 --;
                     while ( numRpsCurrTempList0 >>= 1)
                     {
@@ -1741,11 +1741,11 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
 
             if(refPicListModification->ref_pic_list_modification_flag_l1)
             {
-                int i = 0;
-                int numRpsCurrTempList1 = pSlice->getNumRpsCurrTempList();
+                int32_t i = 0;
+                int32_t numRpsCurrTempList1 = pSlice->getNumRpsCurrTempList();
                 if ( numRpsCurrTempList1 > 1 )
                 {
-                    int length = 1;
+                    int32_t length = 1;
                     numRpsCurrTempList1 --;
                     while ( numRpsCurrTempList1 >>= 1)
                     {
@@ -1785,12 +1785,12 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
                 throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
 
             //7.4.7.2 value of list_entry_l0/list_entry_l1[ i ] shall be in the range of 0 to NumPicTotalCurr - 1, inclusive
-            for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_0); idx++)
+            for (int32_t idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_0); idx++)
             {
                 if (refPicListModification->list_entry_l0[idx] >= numPicTotalCurr)
                     throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
             }
-            for (int idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_1); idx++)
+            for (int32_t idx = 0; idx < pSlice->getNumRefIdx(REF_PIC_LIST_1); idx++)
             {
                 if (refPicListModification->list_entry_l1[idx] >= numPicTotalCurr)
                     throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -2119,7 +2119,7 @@ void H265HeadersBitstream::parseShortTermRefPicSet(const H265SeqParamSet* sps, R
         uint32_t delta_rps_sign = Get1Bit();
         uint32_t abs_delta_rps_minus1 = GetVLCElementU();
 
-        int deltaRPS = (1 - 2 * delta_rps_sign) * (abs_delta_rps_minus1 + 1);
+        int32_t deltaRPS = (1 - 2 * delta_rps_sign) * (abs_delta_rps_minus1 + 1);
         uint32_t num_pics = rpsRef->getNumberOfPictures();
         for(uint32_t j = 0 ;j <= num_pics; j++)
         {
@@ -2133,7 +2133,7 @@ void H265HeadersBitstream::parseShortTermRefPicSet(const H265SeqParamSet* sps, R
 
             if (refIdc == 1 || refIdc == 2)
             {
-                int deltaPOC = deltaRPS + ((j < rpsRef->getNumberOfPictures())? rpsRef->getDeltaPOC(j) : 0);
+                int32_t deltaPOC = deltaRPS + ((j < rpsRef->getNumberOfPictures())? rpsRef->getDeltaPOC(j) : 0);
                 rps->setDeltaPOC(k, deltaPOC);
                 rps->used_by_curr_pic_flag[k] = refIdc == 1;
 
