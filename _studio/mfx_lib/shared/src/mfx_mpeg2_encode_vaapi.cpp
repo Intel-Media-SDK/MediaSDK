@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,15 +35,6 @@
 #ifndef D3DDDIFMT_NV12
 #define D3DDDIFMT_NV12 (D3DDDIFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
 #endif
-
-#define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
-do {                                               \
-    if ( vaBufferId != VA_INVALID_ID)              \
-    {                                              \
-        vaDestroyBuffer(vaDisplay, vaBufferId);    \
-        vaBufferId = VA_INVALID_ID;                \
-    }                                              \
-} while (0)
 
 #define CODEC_MPEG2_ENC_FCODE_X(width) ((width < 200) ? 3 : (width < 500) ? 4 : (width < 1400) ? 5 : 6)
 #define CODEC_MPEG2_ENC_FCODE_Y(fcodeX) ((fcodeX > 5) ? 5 : fcodeX)
@@ -873,8 +864,8 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
     m_numSliceGroups = 1;
 
     MFX_CHECK_WITH_ASSERT(height_in_mbs == pExecuteBuffers->m_pps.NumSlice, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
-    m_numSliceGroups = 1;
 
+    mfxStatus sts;
     for (i = 0; i < height_in_mbs; i++) {
         ENCODE_SET_SLICE_HEADER_MPEG2&  ddiSlice = pExecuteBuffers->m_pSlice[i];
         assert(ddiSlice.NumMbsForSlice == width_in_mbs);
@@ -884,7 +875,9 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
         sliceParam->is_intra_slice     = ddiSlice.IntraSlice;
         // prevent GPU hang due to different scale_code in different slices
         sliceParam->quantiser_scale_code = pExecuteBuffers->m_pSlice[0].quantiser_scale_code;
-        MFX_DESTROY_VABUFFER(m_sliceParamBufferId[i], m_vaDisplay);
+
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_sliceParamBufferId[i]);
+        MFX_CHECK_STS(sts);
     }
 
     vaSts = vaCreateBuffer(m_vaDisplay,
@@ -895,7 +888,6 @@ mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
         m_sliceParam,
         m_sliceParamBufferId);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
 
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::FillSlices(ExecuteBuffers* pExecuteBuffers)
@@ -911,7 +903,9 @@ mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
 
     miscQuality.PanicModeDisable = pExecuteBuffers->m_bDisablePanicMode ? 1 : 0;
 
-    MFX_DESTROY_VABUFFER(m_miscParamFpsId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamFpsId);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncMiscParameterBufferType,
@@ -921,7 +915,9 @@ mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
         &m_miscParamFpsId);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    MFX_DESTROY_VABUFFER(m_miscParamQualityId, m_vaDisplay);
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamQualityId);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncMiscParameterBufferType,
@@ -940,7 +936,9 @@ mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterBufferQualityLevel *quality_param;
 
-    MFX_DESTROY_VABUFFER(m_miscQualityParamId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscQualityParamId);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
                    m_vaContextEncode,
                    VAEncMiscParameterBufferType,
@@ -964,7 +962,8 @@ mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
 
     quality_param->quality_level = tu;
 
-    vaUnmapBuffer(m_vaDisplay, m_miscQualityParamId);
+    vaSts = vaUnmapBuffer(m_vaDisplay, m_miscQualityParamId);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::FillQualityLevelBuffer(ExecuteBuffers* pExecuteBuffers)
@@ -979,7 +978,9 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
     mfxU32 correctedLength = MFX_MIN(userDataLen, UINT_MAX/8); // keep start code
     packedParamsBuffer.bit_length = correctedLength * 8;
 
-    MFX_DESTROY_VABUFFER(m_packedUserDataParamsId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedUserDataParamsId);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncPackedHeaderParameterBufferType,
@@ -989,7 +990,9 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
         &m_packedUserDataParamsId);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    MFX_DESTROY_VABUFFER(m_packedUserDataId, m_vaDisplay);
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedUserDataId);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncPackedHeaderDataBufferType,
@@ -1026,7 +1029,9 @@ mfxStatus VAAPIEncoder::FillVideoSignalInfoBuffer(ExecuteBuffers* pExecuteBuffer
     miscSeqInfo.display_horizontal_size = pExecuteBuffers->m_sps.FrameWidth;
     miscSeqInfo.display_vertical_size = pExecuteBuffers->m_sps.FrameHeight;
 
-    MFX_DESTROY_VABUFFER(m_miscParamSeqInfoId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamSeqInfoId);
+    MFX_CHECK_STS(sts);
+
     VAStatus vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncMiscParameterBufferType,
@@ -1075,8 +1080,8 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
                 m_mbqpDataBuffer[mbRow * (bufW/4) + mbCol].qp_y = mbqp[mbRow * width_in_mbs + mbCol];
     }
 
-
-    MFX_DESTROY_VABUFFER(m_mbqpBufferId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
@@ -1112,7 +1117,9 @@ mfxStatus VAAPIEncoder::FillSkipFrameBuffer(mfxU8 skipFlag)
     skipParam.num_skip_frames = 0; // unused in MPEG2
     skipParam.size_skip_frames = 0; // unused in MPEG2
 
-    MFX_DESTROY_VABUFFER(m_miscParamSkipFrameId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamSkipFrameId);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncMiscParameterBufferType,
@@ -1141,8 +1148,9 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         Zero(m_vaSpsBuf);
         FillSps(pExecuteBuffers, m_vaSpsBuf);
 
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_spsBufferId);
+        MFX_CHECK_STS(mfxSts);
 
-        MFX_DESTROY_VABUFFER(m_spsBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
             m_vaContextEncode,
             VAEncSequenceParameterBufferType,
@@ -1173,8 +1181,9 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
              pExecuteBuffers->m_quantMatrix.load_chroma_intra_quantiser_matrix ||
              pExecuteBuffers->m_quantMatrix.load_chroma_non_intra_quantiser_matrix))
         {
+            mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qmBufferId);
+            MFX_CHECK_STS(mfxSts);
 
-            MFX_DESTROY_VABUFFER(m_qmBufferId, m_vaDisplay);
             vaSts = vaCreateBuffer(m_vaDisplay,
                 m_vaContextEncode,
                 VAQMatrixBufferType,
@@ -1206,7 +1215,8 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     }
     else
     {
-        MFX_DESTROY_VABUFFER(m_miscParamSkipFrameId, m_vaDisplay);
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamSkipFrameId);
+        MFX_CHECK_STS(mfxSts);
     }
 
     mfxSts = FillSlices(pExecuteBuffers);
@@ -1216,7 +1226,9 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     MFX_CHECK_WITH_ASSERT(pExecuteBuffers->m_idxBs >= 0  && pExecuteBuffers->m_idxBs < m_bsQueue.size(), MFX_ERR_DEVICE_FAILED);
     m_vaPpsBuf.coded_buf = m_bsQueue[pExecuteBuffers->m_idxBs].surface;
 
-    MFX_DESTROY_VABUFFER(m_ppsBufferId, m_vaDisplay);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_ppsBufferId);
+    MFX_CHECK_STS(mfxSts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
         VAEncPictureParameterBufferType,
@@ -1431,24 +1443,44 @@ mfxStatus VAAPIEncoder::Close()
     delete [] m_pMiscParamsSkipFrame;
     m_pMiscParamsSkipFrame = 0;
 
-    MFX_DESTROY_VABUFFER(m_spsBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_qmBufferId,  m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_ppsBufferId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_spsBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qmBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_ppsBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
     for (mfxU32 i = 0; i < MAX_SLICES; i++)
     {
-        MFX_DESTROY_VABUFFER(m_sliceParamBufferId[i], m_vaDisplay);
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_sliceParamBufferId[i]);
+        std::ignore = MFX_STS_TRACE(sts);
     }
 
-    MFX_DESTROY_VABUFFER(m_miscParamFpsId,       m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_miscParamQualityId,   m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_miscQualityParamId,   m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_miscParamSeqInfoId,   m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_miscParamSkipFrameId, m_vaDisplay);
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamFpsId);
+    std::ignore = MFX_STS_TRACE(sts);
 
-    MFX_DESTROY_VABUFFER(m_packedUserDataParamsId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedUserDataId,       m_vaDisplay);
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamQualityId);
+    std::ignore = MFX_STS_TRACE(sts);
 
-    MFX_DESTROY_VABUFFER(m_mbqpBufferId, m_vaDisplay);
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscQualityParamId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamSeqInfoId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamSkipFrameId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedUserDataParamsId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedUserDataId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
 
     if (m_allocResponseMB.NumFrameActual != 0)
     {
@@ -1468,13 +1500,15 @@ mfxStatus VAAPIEncoder::Close()
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
 
-        vaDestroyContext(m_vaDisplay, m_vaContextEncode);
+        VAStatus vaSts = vaDestroyContext(m_vaDisplay, m_vaContextEncode);
+        std::ignore = MFX_STS_TRACE(vaSts);
         m_vaContextEncode = VA_INVALID_ID;
     }
 
     if (m_vaConfig != VA_INVALID_ID)
     {
-        vaDestroyConfig(m_vaDisplay, m_vaConfig);
+        VAStatus vaSts = vaDestroyConfig(m_vaDisplay, m_vaConfig);
+        std::ignore = MFX_STS_TRACE(vaSts);
         m_vaConfig = VA_INVALID_ID;
     }
 
