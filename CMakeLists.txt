@@ -117,7 +117,15 @@ if (BUILD_TESTS)
   # which might be ON.
   set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
 
+  # Make sure that gtest/gmock is built as static libs
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+  mark_as_advanced(BUILD_SHARED_LIBS)
+  set(TMP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+  set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/googletest)
+
+  set(BUILD_SHARED_LIBS ${TMP_BUILD_SHARED_LIBS})
 
   # For some Linux distro versions there is an unused-result warning
   # generated inside the Gtest code at a call to fwrite. Since Gtest sets -Werror
@@ -129,6 +137,7 @@ if (BUILD_TESTS)
   target_compile_options (gmock_main PRIVATE "-Wno-unused-result")
 
   add_subdirectory(tests)
+
 endif()
 
 create_plugins_cfg(${CMAKE_BINARY_DIR})
