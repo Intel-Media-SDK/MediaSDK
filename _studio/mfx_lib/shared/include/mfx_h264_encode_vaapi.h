@@ -48,19 +48,6 @@ do {                                               \
     }                                              \
 } while (0)
 
-inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_id)
-{
-    if (buffer_id != VA_INVALID_ID)
-    {
-        VAStatus vaSts = vaDestroyBuffer(display, buffer_id);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-        buffer_id = VA_INVALID_ID;
-    }
-
-    return MFX_ERR_NONE;
-}
-
 uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
 
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type);

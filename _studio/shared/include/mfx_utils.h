@@ -31,6 +31,10 @@
 
 #include <cassert>
 
+#if defined(MFX_VA_LINUX)
+#include <va/va.h>
+#endif
+
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
 #else
@@ -145,5 +149,20 @@ constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
 
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field
 #define MFX_COPY_ARRAY_FIELD(Array) std::copy(std::begin(buf_src.Array), std::end(buf_src.Array), std::begin(buf_dst.Array))
+
+#if defined(MFX_VA_LINUX)
+inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_id)
+{
+    if (buffer_id != VA_INVALID_ID)
+    {
+        VAStatus vaSts = vaDestroyBuffer(display, buffer_id);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        buffer_id = VA_INVALID_ID;
+    }
+
+    return MFX_ERR_NONE;
+}
+#endif
 
 #endif // __MFXUTILS_H__
