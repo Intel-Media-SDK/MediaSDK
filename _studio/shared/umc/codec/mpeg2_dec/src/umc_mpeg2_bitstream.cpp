@@ -223,11 +223,11 @@ namespace UMC_MPEG2_DECODER
         Seek(1); // marker_bit
 
         g.time_code_seconds  = GetBits(6);
-        if (g.time_code_minutes > 59)
+        if (g.time_code_seconds > 59)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
         g.time_code_pictures = GetBits(6);
-        if (g.time_code_minutes > 59)
+        if (g.time_code_pictures > 59)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_STREAM);
 
         g.closed_gop         = GetBits(1);
