@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -90,7 +90,8 @@ static mfxStatus SetROI(
     VAEncMiscParameterBufferROI *roi_Param;
     unsigned int roi_buffer_size = sizeof(VAEncMiscParameterBufferROI);
 
-    MFX_DESTROY_VABUFFER(roiParam_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, roiParam_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(vaDisplay,
             vaContextEncode,
@@ -157,7 +158,8 @@ static mfxStatus SetRollingIntraRefresh(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterRIR    *rir_param;
 
-    MFX_DESTROY_VABUFFER(rirBuf_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, rirBuf_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -224,8 +226,12 @@ VABufferID& VABuffersHandler::VABuffersNew(mfxU32 id, mfxU32 pool, mfxU32 num)
 
     begin = it; idBegin = idIt;
 
-    for (;it != end && *idIt == id; it++, idIt++)
-        MFX_DESTROY_VABUFFER(*it, m_vaDisplay);
+    mfxStatus sts;
+    for (; it != end && *idIt == id; it++, idIt++)
+    {
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, *it);
+        std::ignore = MFX_STS_TRACE(sts);
+    }
 
     end = it; idEnd = idIt;
 
@@ -259,8 +265,12 @@ VABufferID& VABuffersHandler::VABuffersNew(mfxU32 id, mfxU32 pool, mfxU32 num)
 
 void VABuffersHandler::VABuffersDestroy()
 {
+    mfxStatus sts;
     for (size_t i = 0; i < m_buf.size(); i++)
-        MFX_DESTROY_VABUFFER(m_buf[i], m_vaDisplay);
+    {
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_buf[i]);
+        std::ignore = MFX_STS_TRACE(sts);
+    }
     m_buf.resize(0);
     m_id.resize(0);
     m_pool.resize(1, 0);
@@ -277,8 +287,12 @@ void VABuffersHandler::VABuffersDestroyPool(mfxU32 pool)
 
     std::vector<mfxU32>::iterator idBegin = m_id.begin() + std::distance(m_buf.begin(), begin);
 
+    mfxStatus sts;
     for (it = begin; it != end; it++)
-        MFX_DESTROY_VABUFFER(*it, m_vaDisplay);
+    {
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, *it);
+        std::ignore = MFX_STS_TRACE(sts);
+    }
 
     m_buf.erase(begin, end);
     m_id.erase(idBegin, idBegin + poolSize);
@@ -316,7 +330,8 @@ mfxStatus SetHRD(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterHRD *hrd_param;
 
-    MFX_DESTROY_VABUFFER(hrdBuf_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, hrdBuf_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -364,7 +379,8 @@ mfxStatus SetRateControl(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterRateControl *rate_param;
 
-    MFX_DESTROY_VABUFFER(rateParamBuf_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, rateParamBuf_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -417,7 +433,8 @@ mfxStatus SetFrameRate(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterFrameRate *frameRate_param;
 
-    MFX_DESTROY_VABUFFER(frameRateBuf_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, frameRateBuf_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -450,7 +467,8 @@ mfxStatus SetMaxSliceSize(
     VAContextID  vaContextEncode,
     VABufferID & maxSliceSizeBuf_id)
 {
-    MFX_DESTROY_VABUFFER(maxSliceSizeBuf_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, maxSliceSizeBuf_id);
+    MFX_CHECK_STS(sts);
 
     VAStatus vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
@@ -489,7 +507,8 @@ mfxStatus SetQualityLevelParams(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterBufferQualityLevel *quality_param;
 
-    MFX_DESTROY_VABUFFER(qualityParams_id, vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, qualityParams_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(vaDisplay,
                    vaContextEncode,
