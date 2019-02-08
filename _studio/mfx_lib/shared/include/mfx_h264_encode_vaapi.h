@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,15 +38,6 @@
 
 #include "mfx_h264_encode_interface.h"
 #include "mfx_h264_encode_hw_utils.h"
-
-#define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
-do {                                               \
-    if ( vaBufferId != VA_INVALID_ID)              \
-    {                                              \
-        vaDestroyBuffer(vaDisplay, vaBufferId);    \
-        vaBufferId = VA_INVALID_ID;                \
-    }                                              \
-} while (0)
 
 uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
 
