@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,15 +35,6 @@
 
 #include "mfx_mjpeg_encode_hw_utils.h"
 #include "mfx_mjpeg_encode_interface.h"
-
-#define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
-do {                                               \
-    if ( vaBufferId != VA_INVALID_ID)              \
-    {                                              \
-        vaDestroyBuffer(vaDisplay, vaBufferId);    \
-        vaBufferId = VA_INVALID_ID;                \
-    }                                              \
-} while (0)
 
 namespace MfxHwMJpegEncode
 {
