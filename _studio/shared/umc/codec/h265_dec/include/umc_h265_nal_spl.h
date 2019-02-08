@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,7 @@ public:
         , m_nSourceSize(0)
         , m_pSourceBase(0)
         , m_nSourceBaseSize(0)
-        , m_suggestedSize(10 * 1024)
+        , m_suggestedSize(10 * 1024) // Actual size is calculated in CalculateSuggestedSize
     {
     }
 
