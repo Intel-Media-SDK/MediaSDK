@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +28,6 @@ namespace MfxHwVP9Encode
 #if defined (MFX_VA_LINUX)
 #include <va/va.h>
 #include <va/va_enc_vp9.h>
-
-#define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
-do {                                               \
-    if (vaBufferId != VA_INVALID_ID)               \
-    {                                              \
-        vaDestroyBuffer(vaDisplay, vaBufferId);    \
-        vaBufferId = VA_INVALID_ID;                \
-    }                                              \
-} while (0)
 
     enum {
         MFX_FOURCC_VP9_NV12    = MFX_MAKEFOURCC('V','P','8','N'),
