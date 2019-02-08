@@ -59,25 +59,23 @@ mfxStatus VAAPIFEIPREENCEncoder::Destroy()
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FEI::PreENC::Destroy");
 
-    mfxStatus sts = MFX_ERR_NONE;
-
-    MFX_DESTROY_VABUFFER(m_statParamsId, m_vaDisplay);
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_statParamsId);
+    std::ignore = MFX_STS_TRACE(sts);
 
     for( mfxU32 i = 0; i < m_statMVId.size(); i++ )
     {
-        MFX_DESTROY_VABUFFER(m_statMVId[i], m_vaDisplay);
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_statMVId[i]);
+        std::ignore = MFX_STS_TRACE(sts);
     }
 
     for( mfxU32 i = 0; i < m_statOutId.size(); i++ )
     {
-        MFX_DESTROY_VABUFFER(m_statOutId[i], m_vaDisplay);
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_statOutId[i]);
+        std::ignore = MFX_STS_TRACE(sts);
     }
 
-    sts = VAAPIEncoder::Destroy();
-
-    return sts;
-
-} // mfxStatus VAAPIFEIPREENCEncoder::Destroy()
+    return VAAPIEncoder::Destroy();
+}
 
 
 mfxStatus VAAPIFEIPREENCEncoder::CreateAccelerationService(MfxVideoParam const & par)
@@ -569,7 +567,6 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     /* Link output VA buffers */
     statParams.stats_params.outputs = outBuffers.data(); //bufIDs for outputs
 
-    //MFX_DESTROY_VABUFFER(statParamsId, m_vaDisplay);
     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
                             (VABufferType)VAStatsStatisticsParameterBufferType,
@@ -631,9 +628,12 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
         m_statFeedbackCache.push_back(currentFeedback);
     }
 
-    MFX_DESTROY_VABUFFER(mvPredid,     m_vaDisplay);
-    MFX_DESTROY_VABUFFER(statParamsId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(qpid,         m_vaDisplay);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, mvPredid);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, statParamsId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, qpid);
+    MFX_CHECK_STS(mfxSts);
 
     mdprintf(stderr, "submit_vaapi done: %d\n", task.m_frameOrder);
     return MFX_ERR_NONE;
