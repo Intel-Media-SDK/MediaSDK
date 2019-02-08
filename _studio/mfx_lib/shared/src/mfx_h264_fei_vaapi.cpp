@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1759,9 +1759,8 @@ VAAPIFEIPAKEncoder::VAAPIFEIPAKEncoder()
 , m_statParamsId(VA_INVALID_ID)
 , m_statMVId(VA_INVALID_ID)
 , m_statOutId(VA_INVALID_ID)
-//, m_codedBufferId[0](VA_INVALID_ID)
+, m_codedBufferId{VA_INVALID_ID, VA_INVALID_ID}
 {
-    m_codedBufferId[0] = m_codedBufferId[1] = VA_INVALID_ID;
 } // VAAPIFEIPAKEncoder::VAAPIFEIPAKEncoder()
 
 VAAPIFEIPAKEncoder::~VAAPIFEIPAKEncoder()
@@ -1775,17 +1774,22 @@ mfxStatus VAAPIFEIPAKEncoder::Destroy()
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FEI::PAK::Destroy");
 
-    mfxStatus sts = MFX_ERR_NONE;
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_statParamsId);
+    std::ignore = MFX_STS_TRACE(sts);
 
-    MFX_DESTROY_VABUFFER(m_statParamsId,     m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_statMVId,         m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_statOutId,        m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_codedBufferId[0], m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_codedBufferId[1], m_vaDisplay);
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_statMVId);
+    std::ignore = MFX_STS_TRACE(sts);
 
-    sts = VAAPIEncoder::Destroy();
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_statOutId);
+    std::ignore = MFX_STS_TRACE(sts);
 
-    return sts;
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_codedBufferId[0]);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_codedBufferId[1]);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    return VAAPIEncoder::Destroy();
 
 } // mfxStatus VAAPIFEIPAKEncoder::Destroy()
 
@@ -2043,7 +2047,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = !packedAud.SkipEmulationByteCount;
         packed_header_param_buffer.bit_length          = packedAud.DataLength * 8;
 
-        MFX_DESTROY_VABUFFER(m_packedAudHeaderBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
@@ -2053,7 +2056,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 &m_packedAudHeaderBufferId);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        MFX_DESTROY_VABUFFER(m_packedAudBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderDataBufferType,
@@ -2076,7 +2078,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = !packedSps.SkipEmulationByteCount;
         packed_header_param_buffer.bit_length          = packedSps.DataLength*8;
 
-        MFX_DESTROY_VABUFFER(m_packedSpsHeaderBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
@@ -2086,7 +2087,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 &m_packedSpsHeaderBufferId);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        MFX_DESTROY_VABUFFER(m_packedSpsBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderDataBufferType,
@@ -2257,7 +2257,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = !packedPps.SkipEmulationByteCount;
         packed_header_param_buffer.bit_length          = packedPps.DataLength*8;
 
-        MFX_DESTROY_VABUFFER(m_packedPpsHeaderBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
@@ -2268,7 +2267,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         mdprintf(stderr, "m_packedPpsHeaderBufferId=%d\n", m_packedPpsHeaderBufferId);
 
-        MFX_DESTROY_VABUFFER(m_packedPpsBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderDataBufferType,
@@ -2290,7 +2288,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = 1;
         packed_header_param_buffer.bit_length          = sei.Size() * 8;
 
-        MFX_DESTROY_VABUFFER(m_packedSeiHeaderBufferId, m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
@@ -2300,7 +2297,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 &m_packedSeiHeaderBufferId);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        MFX_DESTROY_VABUFFER(m_packedSeiBufferId,m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderDataBufferType,
@@ -2317,8 +2313,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
     for (size_t i = 0; i < m_slice.size(); ++i)
     {
-        // Note: legacy use 5,6,7 type values, but for FEI 0,1,2
-
         m_slice[i].macroblock_address            = pDataSliceHeader->Slice[i].MBAddress;
         m_slice[i].num_macroblocks               = pDataSliceHeader->Slice[i].NumMBs;
         m_slice[i].slice_type                    = pDataSliceHeader->Slice[i].SliceType;
@@ -2328,7 +2322,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         m_slice[i].disable_deblocking_filter_idc = pDataSliceHeader->Slice[i].DisableDeblockingFilterIdc;
         m_slice[i].slice_alpha_c0_offset_div2    = pDataSliceHeader->Slice[i].SliceAlphaC0OffsetDiv2;
         m_slice[i].slice_beta_offset_div2        = pDataSliceHeader->Slice[i].SliceBetaOffsetDiv2;
-    } // for (size_t i = 0; i < m_slice.size(); ++i)
+    }
 
     mfxU32 prefix_bytes = (task.m_AUStartsFromSlice[fieldId] + 8) * m_headerPacker.isSvcPrefixUsed();
 
@@ -2368,7 +2362,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         packed_header_param_buffer.has_emulation_bytes = 0;
         packed_header_param_buffer.bit_length          = packedSlice.DataLength - (prefix_bytes * 8); // DataLength is already in bits !
 
-        //MFX_DESTROY_VABUFFER(m_packedSliceHeaderBufferId[i], m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderParameterBufferType,
@@ -2378,7 +2371,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 &m_packedSliceHeaderBufferId[i]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-        //MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i], m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncPackedHeaderDataBufferType,
@@ -2392,7 +2384,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
 
     for( size_t i = 0; i < m_slice.size(); i++ )
     {
-        //MFX_DESTROY_VABUFFER(m_sliceBufferId[i], m_vaDisplay);
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
                                 VAEncSliceParameterBufferType,
@@ -2401,7 +2392,6 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
                                 &m_slice[i],
                                 &m_sliceBufferId[i]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-        //configBuffers.push_back(m_sliceBufferId[i]);
         mdprintf(stderr, "m_sliceBufferId[%zu]=%d\n", i, m_sliceBufferId[i]);
     }
 
@@ -2467,25 +2457,43 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
         m_statFeedbackCache.push_back(currentFeedback);
     }
 
-    MFX_DESTROY_VABUFFER(m_vaFeiMVOutId[0],         m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_vaFeiMCODEOutId[0],      m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedAudHeaderBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedAudBufferId,       m_vaDisplay);
-    MFX_DESTROY_VABUFFER(vaFeiFrameControlId,       m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedSpsHeaderBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedSpsBufferId,       m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_spsBufferId,             m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_ppsBufferId,             m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedPpsHeaderBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedPpsBufferId,       m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedSeiHeaderBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_packedSeiBufferId,       m_vaDisplay);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_vaFeiMVOutId[0]);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_vaFeiMCODEOutId[0]);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedAudHeaderBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedAudBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, vaFeiFrameControlId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSpsHeaderBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSpsBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_spsBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_ppsBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedPpsHeaderBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedPpsBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSeiHeaderBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSeiBufferId);
+    MFX_CHECK_STS(mfxSts);
 
     for( size_t i = 0; i < m_slice.size(); i++ )
     {
-        MFX_DESTROY_VABUFFER(m_sliceBufferId[i],             m_vaDisplay);
-        MFX_DESTROY_VABUFFER(m_packedSliceHeaderBufferId[i], m_vaDisplay);
-        MFX_DESTROY_VABUFFER(m_packedSliceBufferId[i],       m_vaDisplay);
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_sliceBufferId[i]);
+        MFX_CHECK_STS(mfxSts);
+
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSliceHeaderBufferId[i]);
+        MFX_CHECK_STS(mfxSts);
+
+        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedSliceBufferId[i]);
+        MFX_CHECK_STS(mfxSts);
     }
 
     mdprintf(stderr, "submit_vaapi done: %d\n", task.m_frameOrder);
@@ -2590,7 +2598,8 @@ mfxStatus VAAPIFEIPAKEncoder::QueryStatus(
                 MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
                 // ??? may affect for performance
-                MFX_DESTROY_VABUFFER(m_codedBufferId[feiFieldId], m_vaDisplay);
+                sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_codedBufferId[feiFieldId]);
+                MFX_CHECK_STS(sts);
             }
 
             // remove task
