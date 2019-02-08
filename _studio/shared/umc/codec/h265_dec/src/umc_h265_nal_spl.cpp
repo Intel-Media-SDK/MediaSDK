@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -161,18 +161,18 @@ public:
         int32_t iCodeNext = FindStartCode(source, size, startCodeSize);
 
         // Use start code data which is saved from previous call because start code could be split between input buffers from application
-        if (m_prev.size())
+        if (!m_prev.empty())
         {
             if (iCodeNext == -1)
             {
-                size_t sz = source - (uint8_t *)pSource->GetDataPointer();
-                size_t szToMove = sz;
-                if (m_prev.size() + sz >  m_suggestedSize)
+                size_t szToAdd = source - (uint8_t *)pSource->GetDataPointer();
+                size_t szToMove = szToAdd;
+                if (m_prev.size() + szToAdd >  m_suggestedSize)
                 {
-                    sz = MFX_MIN(0, m_suggestedSize - m_prev.size());
+                    szToAdd = (m_suggestedSize > m_prev.size()) ? m_suggestedSize - m_prev.size() : 0;
                 }
 
-                m_prev.insert(m_prev.end(), (uint8_t *)pSource->GetDataPointer(), (uint8_t *)pSource->GetDataPointer() + sz);
+                m_prev.insert(m_prev.end(), (uint8_t *)pSource->GetDataPointer(), (uint8_t *)pSource->GetDataPointer() + szToAdd);
                 pSource->MoveDataPointer((int32_t)szToMove);
                 return -1;
             }
