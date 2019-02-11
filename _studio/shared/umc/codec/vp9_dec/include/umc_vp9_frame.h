@@ -107,8 +107,6 @@ public:
 
     uint32_t frameCountInBS;
     uint32_t currFrameInBS;
-
-    bool isDecoded;
 };
 
 } // end namespace UMC_VP9_DECODER

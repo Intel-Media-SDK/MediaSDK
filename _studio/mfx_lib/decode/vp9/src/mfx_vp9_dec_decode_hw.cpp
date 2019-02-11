@@ -224,26 +224,16 @@ public:
 
     void DecodeFrame(UMC::FrameMemID frameId)
     {
+        if (frameId >= 0)
+            VP9_CHECK_AND_THROW((m_frameAllocator->DecreaseReference(frameId) == UMC::UMC_OK), MFX_ERR_UNKNOWN);
+
         auto find_it = std::find_if(m_submittedFrames.begin(), m_submittedFrames.end(),
             [frameId](const UMC_VP9_DECODER::VP9DecoderFrame & item){ return item.currFrame == frameId; });
 
         if (find_it != m_submittedFrames.end())
         {
-            find_it->isDecoded = true;
-        }
-    }
-
-    void CompleteFrames()
-    {
-        for( auto it = m_submittedFrames.begin(); it != m_submittedFrames.end(); )
-        {
-            if (it->isDecoded)
-            {
-                UnLockResources(*it);
-                it = m_submittedFrames.erase(it);
-            }
-            else
-                it = std::next(it);
+            UnLockResources(*find_it);
+            m_submittedFrames.erase(find_it);
         }
     }
 
@@ -864,9 +854,14 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         sts = decoder.m_FrameAllocator->PrepareToOutput(data.surface_work, data.copyFromFrame, 0, false);
         MFX_CHECK_STS(sts);
 
-        if (data.currFrameId != -1)
-            decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
-        decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+        try
+        { decoder.m_framesStorage->DecodeFrame(data.currFrameId); }
+        catch (vp9_exception const& e)
+        {
+            UMC::Status status = e.GetStatus();
+            if (status != UMC::UMC_OK)
+                return MFX_ERR_UNKNOWN;
+        }
 
         decoder.m_FrameAllocator->SetSfcPostProcessingFlag(false);
         return MFX_ERR_NONE;
@@ -900,9 +895,14 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
 
-    if (data.currFrameId != -1)
-        decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
-    decoder.m_framesStorage->DecodeFrame(data.currFrameId);
+    try
+    { decoder.m_framesStorage->DecodeFrame(data.currFrameId); }
+    catch (vp9_exception const& e)
+    {
+        UMC::Status status = e.GetStatus();
+        if (status != UMC::UMC_OK)
+            return MFX_ERR_UNKNOWN;
+    }
 
     return MFX_TASK_DONE;
 }
@@ -953,15 +953,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
-
-    try
-    { m_framesStorage->CompleteFrames(); }
-    catch (vp9_exception const& e)
-    {
-        UMC::Status status = e.GetStatus();
-        if (status != UMC::UMC_OK)
-            return MFX_ERR_UNKNOWN;
-    }
 
     if (NeedToReturnCriticalStatus(bs))
         return ReturningCriticalStatus();
