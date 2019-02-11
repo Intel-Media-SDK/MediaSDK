@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -124,26 +124,9 @@ const mfxPluginUID & msdkGetPluginUID(mfxIMPL impl, msdkComponentType type, mfxU
     {
         switch(type)
         {
-// On Android implementaion of all decoders is placed in libmfx
-// That's why we don't need default plugins for these codecs
-#if !defined(ANDROID)
-        case MSDK_VDECODE:
-            switch(uCodecid)
-            {
-            case MFX_CODEC_HEVC:
-                return MFX_PLUGINID_HEVCD_HW;
-            case MFX_CODEC_VP8:
-                return MFX_PLUGINID_VP8D_HW;
-            case MFX_CODEC_VP9:
-                return MFX_PLUGINID_VP9D_HW;
-            }
-            break;
-#endif
         case MSDK_VENCODE:
             switch(uCodecid)
             {
-            case MFX_CODEC_HEVC:
-                return MFX_PLUGINID_HEVCE_HW;
             case MFX_CODEC_VP8:
                 return MFX_PLUGINID_VP8E_HW;
             }
