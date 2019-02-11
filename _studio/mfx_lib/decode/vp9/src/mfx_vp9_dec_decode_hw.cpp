@@ -1004,6 +1004,13 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     sts = CheckFrameData(surface_work);
     MFX_CHECK_STS(sts);
 
+    //check if FourCC changed
+    if (m_vPar.mfx.FrameInfo.FourCC != surface_work->Info.FourCC)
+    {
+        sts = MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_CHECK_STS(sts);
+    }
+
     eMFXHWType type = m_core->GetHWType();
     if (!MFX_VPX_Utility::CheckFrameInfo(surface_work->Info, MFX_CODEC_VP9, m_platform, type))
     {
