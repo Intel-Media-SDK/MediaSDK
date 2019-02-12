@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2019,8 +2019,7 @@ typedef struct {
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
     mfxU16  NumTileRows;
     mfxU16  NumTileColumns;
-    mfxU16  DynamicScaling;
-    mfxU16  reserved[109];
+    mfxU16  reserved[110];
 #else // API 1.26
     mfxU16  reserved[112];
 #endif

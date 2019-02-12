@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -468,14 +468,25 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
+
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
+        // dynamic scaling and tiles don't work together
         if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
-            extParAfter.DynamicScaling != MFX_CODINGOPTION_ON)
+            (extParAfter.NumTileRows > 1 || extParAfter.NumTileColumns > 1))
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
 #endif
+
+        // dynamic scaling and segmentation don't work together
+        const mfxExtVP9Segmentation& seg = GetExtBufferRef(parAfterReset);
+        if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
+            extParAfter.FrameHeight != extParBefore.FrameHeight) &&
+            seg.NumSegments > 1)
+        {
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+        }
     }
 
     sts = m_ddi->Reset(m_video);
