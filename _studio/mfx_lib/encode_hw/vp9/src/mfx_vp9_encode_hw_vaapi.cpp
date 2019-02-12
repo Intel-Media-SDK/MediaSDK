@@ -415,12 +415,7 @@ mfxStatus SetRateControl(
             rate_param->rc_flags.bits.temporal_id = tl;
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        mfxExtVP9Param vp9param = GetExtBufferRef(par);
-        rate_param->rc_flags.bits.enable_dynamic_scaling = vp9param.DynamicScaling == MFX_CODINGOPTION_ON ? 1 : 0;
-#else
         rate_param->rc_flags.bits.enable_dynamic_scaling = 1;
-#endif
 
         vaSts = vaUnmapBuffer(m_vaDisplay, rateParamBuf_ids[tl]);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
