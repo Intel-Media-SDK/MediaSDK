@@ -238,6 +238,8 @@ namespace UMC_MPEG2_DECODER
         double                          m_localFrameTime;
 
         std::unique_ptr<Payload_Storage> m_messages;
+
+        std::unique_ptr<MPEG2Slice>     m_lastSlice; // slice which could't be processed
     };
 
     class Payload_Storage
