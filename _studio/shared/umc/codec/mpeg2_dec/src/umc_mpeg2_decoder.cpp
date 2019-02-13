@@ -132,6 +132,8 @@ namespace UMC_MPEG2_DECODER
 
         Skipping_MPEG2::Reset();
 
+        m_lastSlice.reset();
+
         return UMC::UMC_OK;
     }
 
@@ -327,7 +329,14 @@ namespace UMC_MPEG2_DECODER
     // Find units in new bitstream buffer and process them
     UMC::Status MPEG2Decoder::AddOneFrame(UMC::MediaData * source)
     {
-        // The main parsing loop
+        if (m_lastSlice)
+        {
+            UMC::Status sts = AddSlice(m_lastSlice.release());
+            if (sts == UMC::UMC_ERR_NOT_ENOUGH_BUFFER || sts == UMC::UMC_OK)
+                return sts;
+        }
+
+        // The main processing loop
         for (RawUnit unit = m_splitter.GetUnits(source); unit.begin && unit.end; unit = m_splitter.GetUnits(source))
         {
             switch (unit.type)
@@ -486,7 +495,7 @@ namespace UMC_MPEG2_DECODER
             auto umcRes = StartFrame(slice);
             if (umcRes != UMC::UMC_OK || !m_currFrame)
             {
-                delete slice;
+                m_lastSlice.reset(slice);
                 return umcRes;
             }
         }
