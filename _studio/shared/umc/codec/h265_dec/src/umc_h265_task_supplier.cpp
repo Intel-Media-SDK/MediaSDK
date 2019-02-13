@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1586,13 +1586,13 @@ UMC::Status TaskSupplier_H265::AddSource(UMC::MediaData * pSource)
     if (umcRes != UMC::UMC_OK)
         return pSource || !completed ? umcRes : UMC::UMC_OK;
 
-    if (GetFrameToDisplayInternal(false))
-        return UMC::UMC_OK;
-
     umcRes = AddOneFrame(pSource); // construct frame
 
     if (UMC::UMC_ERR_NOT_ENOUGH_BUFFER == umcRes)
     {
+        if (GetFrameToDisplayInternal(false))
+            return UMC::UMC_OK;
+
         ViewItem_H265 &view = *GetView();
 
         int32_t count = 0;
