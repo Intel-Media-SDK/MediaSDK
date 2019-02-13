@@ -99,7 +99,6 @@ Status H264_DXVA_SegmentDecoder::ProcessSegment(void)
 TaskBrokerSingleThreadDXVA::TaskBrokerSingleThreadDXVA(TaskSupplier * pTaskSupplier)
     : TaskBroker(pTaskSupplier)
     , m_lastCounter(0)
-    , m_useDXVAStatusReporting(true)
 {
     m_counterFrequency = vm_time_get_frequency();
 }
@@ -146,29 +145,6 @@ void TaskBrokerSingleThreadDXVA::Start()
 
     TaskBroker::Start();
     m_completedQueue.clear();
-
-    H264_DXVA_SegmentDecoder * dxva_sd = static_cast<H264_DXVA_SegmentDecoder *>(m_pTaskSupplier->m_pSegmentDecoder[0]);
-
-    if (dxva_sd && dxva_sd->GetPacker() && dxva_sd->GetPacker()->GetVideoAccelerator())
-    {
-        m_useDXVAStatusReporting = dxva_sd->GetPacker()->GetVideoAccelerator()->IsUseStatusReport();
-    }
-
-    if (m_useDXVAStatusReporting)
-        return;
-
-    for (H264DecoderFrameInfo *pTemp = m_FirstAU; pTemp; pTemp = pTemp->GetNextAU())
-    {
-        pTemp->SetStatus(H264DecoderFrameInfo::STATUS_COMPLETED);
-    }
-
-    for (H264DecoderFrameInfo *pTemp = m_FirstAU; pTemp; )
-    {
-        CompleteFrame(pTemp->m_pFrame);
-        pTemp = m_FirstAU;
-    }
-
-    m_FirstAU = 0;
 }
 
 enum
@@ -218,13 +194,12 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 {
     AutomaticUMCMutex guard(m_mGuard);
 
-    if (!m_useDXVAStatusReporting)
-        return false;
-
     H264_DXVA_SegmentDecoder * dxva_sd = static_cast<H264_DXVA_SegmentDecoder *>(m_pTaskSupplier->m_pSegmentDecoder[0]);
 
-    if (!dxva_sd->GetPacker())
-        return false;
+    if (dxva_sd->GetPacker() == nullptr || dxva_sd->GetPacker()->GetVideoAccelerator() == nullptr)
+        throw h264_exception(MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    bool isUseStatusReport = dxva_sd->GetPacker()->GetVideoAccelerator()->IsUseStatusReport();
 
     Status sts = UMC_OK;
     for (H264DecoderFrameInfo * au = m_FirstAU; au; au = au->GetNextAU())
@@ -234,7 +209,7 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
         bool skip = (prev && prev->m_pFrame == au->m_pFrame);
 
         uint16_t surfCorruption = 0;
-        if (!skip)
+        if (!skip && isUseStatusReport)
         {
             m_mGuard.Unlock();
 
@@ -270,7 +245,7 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
         if (sts != UMC_OK)
             throw h264_exception(sts);
 
-        if (!skip)
+        if (!skip && isUseStatusReport)
         {
             //query SO buffer with [SyncTask] only
             sts = dxva_sd->GetPacker()->QueryStreamOut(au->m_pFrame);

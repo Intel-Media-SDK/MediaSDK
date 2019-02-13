@@ -167,11 +167,6 @@ public:
 
     virtual void Reset();
 
-    void DXVAStatusReportingMode(bool mode)
-    {
-        m_useDXVAStatusReporting = mode;
-    }
-
 protected:
     virtual void AwakeThreads();
 
@@ -212,8 +207,6 @@ protected:
     Report m_reports;
     unsigned long long m_lastCounter;
     unsigned long long m_counterFrequency;
-
-    bool   m_useDXVAStatusReporting;
 };
 
 } // namespace UMC

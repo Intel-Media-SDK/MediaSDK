@@ -119,10 +119,6 @@ Status VATaskSupplier::Init(VideoDecoderParams *pInit)
     m_iThreadNum = 1;
 
     DXVASupport<VATaskSupplier>::Init();
-    if (m_va)
-    {
-        static_cast<TaskBrokerSingleThreadDXVA*>(m_pTaskBroker)->DXVAStatusReportingMode(m_va->IsUseStatusReport());
-    }
 
     H264VideoDecoderParams *initH264 = DynamicCast<H264VideoDecoderParams> (pInit);
     m_DPBSizeEx = m_iThreadNum + (initH264 ? initH264->m_bufferedFrames : 0);
