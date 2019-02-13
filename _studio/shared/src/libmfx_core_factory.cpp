@@ -30,16 +30,18 @@
 VideoCORE* FactoryCORE::CreateCORE(eMFXVAType va_type,
                                    mfxU32 adapterNum,
                                    mfxU32 numThreadsAvailable,
-                                   mfxSession session)
+                                   mfxSession session,
+                                   bool isUseStatusReport)
 {
     (void)adapterNum;
+    (void)isUseStatusReport;
     switch(va_type)
     {
     case MFX_HW_NO:
         return new CommonCORE(numThreadsAvailable, session);
 #if defined(MFX_VA_LINUX)
     case MFX_HW_VAAPI:
-        return new VAAPIVideoCORE(adapterNum, numThreadsAvailable, session);
+        return new VAAPIVideoCORE(adapterNum, numThreadsAvailable, session, isUseStatusReport);
 #endif
     default:
         return NULL;

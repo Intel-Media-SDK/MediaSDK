@@ -30,7 +30,8 @@ public:
     static VideoCORE* CreateCORE(eMFXVAType va_type, 
                                  mfxU32 adapterNum, 
                                  mfxU32 numThreadsAvailable, 
-                                 mfxSession session = NULL);
+                                 mfxSession session = NULL,
+                                 bool isUseStatusReport = true);
 };
 
 #endif

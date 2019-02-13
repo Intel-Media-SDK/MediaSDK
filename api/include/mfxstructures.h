@@ -905,6 +905,7 @@ enum {
     MFX_EXTBUFF_AVC_SCALING_MATRIX              = MFX_MAKEFOURCC('A','V','S','M'),
     MFX_EXTBUFF_MPEG2_QUANT_MATRIX              = MFX_MAKEFOURCC('M','2','Q','M'),
     MFX_EXTBUFF_TASK_DEPENDENCY                 = MFX_MAKEFOURCC('S','Y','N','C'),
+    MFX_EXTBUFF_REPORTING_MODE                  = MFX_MAKEFOURCC('E','R','P','M'),
 #endif
 };
 
@@ -2108,6 +2109,11 @@ typedef struct {
 #endif
 } mfxExtVppMctf;
 
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU16 UseStatusReport; /*3 state option*/
+} mfxExtStatusReportingMode;
 #endif
 
 #ifdef __cplusplus

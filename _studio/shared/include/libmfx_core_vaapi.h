@@ -178,7 +178,7 @@ public:
     mfxStatus SetCmCopyStatus(bool enable);
 
 protected:
-    VAAPIVideoCORE(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = NULL);
+    VAAPIVideoCORE(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = NULL, bool isUseStatusReport = true);
     virtual void           Close();
     virtual mfxStatus      DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
 
@@ -218,6 +218,7 @@ private:
 #endif
     //required to WA FEI enabling after move it from plugin to library
     bool                                 m_bHEVCFEIEnabled;
+    bool                                 m_bUseStatusReport;
 };
 
 class PointerProxy

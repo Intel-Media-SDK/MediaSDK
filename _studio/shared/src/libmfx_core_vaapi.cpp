@@ -350,7 +350,8 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
 VAAPIVideoCORE::VAAPIVideoCORE(
     const mfxU32 adapterNum,
     const mfxU32 numThreadsAvailable,
-    const mfxSession session) :
+    const mfxSession session,
+    const bool isUseStatusReport) :
             CommonCORE(numThreadsAvailable, session)
           , m_Display(0)
           , m_VAConfigHandle((mfxHDL)VA_INVALID_ID)
@@ -368,6 +369,7 @@ VAAPIVideoCORE::VAAPIVideoCORE(
           , m_bCmCopyAllowed(false)
 #endif
           , m_bHEVCFEIEnabled(false)
+          , m_bUseStatusReport(isUseStatusReport)
 {
 } // VAAPIVideoCORE::VAAPIVideoCORE(...)
 
@@ -892,6 +894,7 @@ VAAPIVideoCORE::CreateVideoAccelerator(
     {
         return MFX_ERR_UNSUPPORTED;
     }
+    m_pVA->SetStatusReportUsing(m_bUseStatusReport);
 
     return sts;
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -823,17 +823,36 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
     }
 
+    mfxExtThreadsParam* extThreadingParam = nullptr;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxExtStatusReportingMode* extStatusReportingMode = nullptr;
+#endif
+
     // only mfxExtThreadsParam is allowed
     if (par.NumExtParam)
     {
-        if ((par.NumExtParam > 1) || !par.ExtParam)
+        if ((par.NumExtParam > 2) || !par.ExtParam)
         {
             return MFX_ERR_UNSUPPORTED;
         }
-        if ((par.ExtParam[0]->BufferId != MFX_EXTBUFF_THREADS_PARAM) ||
-            (par.ExtParam[0]->BufferSz != sizeof(mfxExtThreadsParam)))
+        for (mfxU16 i = 0; i < par.NumExtParam; i++)
         {
-            return MFX_ERR_UNSUPPORTED;
+            if (par.ExtParam[i]->BufferId == MFX_EXTBUFF_THREADS_PARAM)
+            {
+                if (par.ExtParam[i]->BufferSz != sizeof(mfxExtThreadsParam))
+                    return MFX_ERR_UNSUPPORTED;
+                else
+                    extThreadingParam = (mfxExtThreadsParam*)par.ExtParam[i];
+            }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            else if (par.ExtParam[i]->BufferId == MFX_EXTBUFF_REPORTING_MODE)
+            {
+                if (par.ExtParam[i]->BufferSz != sizeof(mfxExtStatusReportingMode))
+                    return MFX_ERR_UNSUPPORTED;
+                else
+                    extStatusReportingMode = (mfxExtStatusReportingMode*)par.ExtParam[i];
+            }
+#endif
         }
     }
 
@@ -845,6 +864,12 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
             maxNumThreads = 2;
         }
     }
+    bool isUseStatusReport = true;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    // set status reporting mode
+    if (extStatusReportingMode)
+        isUseStatusReport = (extStatusReportingMode->UseStatusReport == MFX_CODINGOPTION_ON);
+#endif
 
     // allocate video core
     if (MFX_PLATFORM_SOFTWARE == m_currentPlatform)
@@ -854,7 +879,7 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
 #if defined(MFX_VA_LINUX)
     else
     {
-        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
+        m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this, isUseStatusReport));
     }
 
 #endif
@@ -871,18 +896,14 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
 
     MFXIScheduler2* pScheduler2 = ::QueryInterface<MFXIScheduler2>(m_pSchedulerAllocated, MFXIScheduler2_GUID);
 
-    if (par.NumExtParam && !pScheduler2) {
-        return MFX_ERR_UNKNOWN;
-    }
-
     if (pScheduler2) {
         MFX_SCHEDULER_PARAM2 schedParam;
         memset(&schedParam, 0, sizeof(schedParam));
         schedParam.flags = MFX_SCHEDULER_DEFAULT;
         schedParam.numberOfThreads = maxNumThreads;
         schedParam.pCore = m_pCORE.get();
-        if (par.NumExtParam) {
-            schedParam.params = *((mfxExtThreadsParam*)par.ExtParam[0]);
+        if (extThreadingParam) {
+            schedParam.params = *extThreadingParam;
         }
         mfxRes = pScheduler2->Initialize2(&schedParam);
 
