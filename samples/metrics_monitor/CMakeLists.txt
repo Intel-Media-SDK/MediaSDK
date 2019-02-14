@@ -44,8 +44,6 @@ if( PKG_LIBDRM_FOUND AND
     set_target_properties(test_monitor PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
 
-    install( TARGETS test_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
-
 else()
 
     if( NOT PKG_PCIACCESS_FOUND )
