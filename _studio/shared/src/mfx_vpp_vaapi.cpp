@@ -1754,6 +1754,17 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             attrib.value.value.i = VA_FOURCC_ARGB;
             rt_format = VA_RT_FORMAT_RGB32;
         }
+        else if(inInfo->FourCC == MFX_FOURCC_P010
+                || inInfo->FourCC == MFX_FOURCC_P210
+#if (MFX_VERSION >= 1027)
+                || inInfo->FourCC == MFX_FOURCC_Y210
+                || inInfo->FourCC == MFX_FOURCC_Y410
+#endif
+            )
+        {
+            attrib.value.value.i = VA_FOURCC_P010; // We're going to flood fill this surface, so let's use most common 10-bit format
+            rt_format = VA_RT_FORMAT_YUV420;
+        }
         else
         {
             attrib.value.value.i = VA_FOURCC_NV12;
@@ -1810,7 +1821,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
                 uint32_t V = (uint32_t)((pParams->iBackgroundColor >>  0) & 0x00ff);
 
                 uint8_t valueY = (uint8_t) Y;
-                int16_t valueUV = (int16_t)((U<<8)  + V);
+                int16_t valueUV = (int16_t)((V<<8)  + U); // Keep in mind that short is stored in memory using little-endian notation
 
                 bool setPlaneSts = SetPlaneROI<uint8_t>(valueY, pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
@@ -1822,6 +1833,28 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
                 roiSize.width = roiSize.width/2;
                 setPlaneSts = SetPlaneROI<int16_t>(valueUV, (int16_t *)(pPrimarySurfaceBuffer + imagePrimarySurface.offsets[1]),
                                                 imagePrimarySurface.pitches[1], roiSize);
+                MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
+            }
+
+            if (imagePrimarySurface.format.fourcc == VA_FOURCC_P010)
+            {
+                uint32_t Y = (uint32_t)((pParams->iBackgroundColor >> 26) & 0xffC0);
+                uint32_t U = (uint32_t)((pParams->iBackgroundColor >> 10) & 0xffC0);
+                uint32_t V = (uint32_t)((pParams->iBackgroundColor <<6) & 0xffC0);
+
+                uint16_t valueY = (uint16_t)Y;
+                uint32_t valueUV = (int32_t)((V << 16) + U); // Keep in mind that short is stored in memory using little-endian notation
+
+                bool setPlaneSts = SetPlaneROI<uint16_t>(valueY, (uint16_t*)pPrimarySurfaceBuffer, imagePrimarySurface.pitches[0], roiSize);
+                MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
+
+                // NV12 format -> need to divide height 2 times less
+                roiSize.height = roiSize.height / 2;
+                // "UV" encodes 2 pixels in a row
+                // so need to divide width 2 times
+                roiSize.width = roiSize.width / 2;
+                setPlaneSts = SetPlaneROI<uint32_t>(valueUV, (uint32_t *)(pPrimarySurfaceBuffer + imagePrimarySurface.offsets[1]),
+                    imagePrimarySurface.pitches[1], roiSize);
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
             }
 
