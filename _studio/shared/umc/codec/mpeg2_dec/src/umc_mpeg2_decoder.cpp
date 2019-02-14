@@ -489,14 +489,13 @@ namespace UMC_MPEG2_DECODER
 
         // There is no current frame.
         // Try to allocate a new one.
-        if (!m_currFrame)
+        if (nullptr == m_currFrame)
         {
             // Allocate a new frame, initialize it with slice's parameters.
-            auto umcRes = StartFrame(slice);
-            if (umcRes != UMC::UMC_OK || !m_currFrame)
+            if (nullptr == (m_currFrame = StartFrame(slice)))
             {
                 m_lastSlice.reset(slice);
-                return umcRes;
+                return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
             }
         }
 
@@ -799,55 +798,54 @@ namespace UMC_MPEG2_DECODER
         frame.currFieldIndex = frame.GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
     }
 
-    UMC::Status MPEG2Decoder::StartFrame(MPEG2Slice * slice)
+    MPEG2DecoderFrame* MPEG2Decoder::StartFrame(MPEG2Slice * slice)
     {
-        m_currFrame = GetFrameBuffer(slice);
-
-        if (!m_currFrame)
-            return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
+        auto frame = GetFrameBuffer(slice);
+        if (!frame)
+            return nullptr;
 
         const auto seq    = slice->GetSeqHeader();
         const auto seqExt = slice->GetSeqExtHeader();
         const auto pic    = slice->GetPicHeader();
         const auto picExt = slice->GetPicExtHeader();
 
-        InitFreeFrame(*m_currFrame, seq, seqExt, pic, picExt, m_params.info);
+        InitFreeFrame(*frame, seq, seqExt, pic, picExt, m_params.info);
 
-        m_currFrame->group = m_currHeaders.group;
+        frame->group = m_currHeaders.group;
 
         if (m_messages)
-            m_messages->SetAUID(m_currFrame->currFieldIndex);
+            m_messages->SetAUID(frame->currFieldIndex);
 
         // 6.1.1.11 - Reordering:
         // - If a current frame is a B-frame, then output it immediately.
         // - if a current frame is a I-frame or P-frame, then output previous (in decoded order) I-frame or P-frame.
-        if (m_currFrame->frameType == MPEG2_B_PICTURE)
+        if (frame->frameType == MPEG2_B_PICTURE)
         {
-            m_currFrame->SetReadyToBeOutputted();
+            frame->SetReadyToBeOutputted();
 
             std::unique_lock<std::mutex> l(m_guard);
-            auto last = FindLastRefFrame(*m_currFrame, m_dpb);
+            auto last = FindLastRefFrame(*frame, m_dpb);
             if (last)
             {
                 // Here we're building display order in case of reordered frames:
-                m_currFrame->displayOrder = last->displayOrder;     // 1. Output B frames sooner than their decoded order
-                last->displayOrder        = m_currFrame->decOrder;  // 2. Delay displaying I/P frames accordingly
+                frame->displayOrder = last->displayOrder; // 1. Output B frames sooner than their decoded order
+                last->displayOrder  = frame->decOrder;    // 2. Delay displaying I/P frames accordingly
             }
         }
         else
         {
             std::unique_lock<std::mutex> l(m_guard);
-            auto last = FindLastRefFrame(*m_currFrame, m_dpb);
+            auto last = FindLastRefFrame(*frame, m_dpb);
             if (last)
                 last->SetReadyToBeOutputted();
         }
 
         if (m_messages)
         {
-            m_messages->SetFrame(m_currFrame, m_currFrame->currFieldIndex);
+            m_messages->SetFrame(frame, frame->currFieldIndex);
         }
 
-        return UMC::UMC_OK;
+        return frame;
     }
 
     static

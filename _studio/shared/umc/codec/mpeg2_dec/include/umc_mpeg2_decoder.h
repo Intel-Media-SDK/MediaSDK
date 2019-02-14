@@ -201,7 +201,7 @@ namespace UMC_MPEG2_DECODER
     private:
 
         // Find a reusable frame initialize it with slice parameters
-        UMC::Status StartFrame(MPEG2Slice * slice);
+        MPEG2DecoderFrame* StartFrame(MPEG2Slice * slice);
 
     protected:
 
