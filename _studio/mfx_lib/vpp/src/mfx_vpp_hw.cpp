@@ -5151,6 +5151,9 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                 case MFX_FOURCC_NV16:
                 case MFX_FOURCC_YUY2:
                 case MFX_FOURCC_AYUV:
+#if defined(MFX_VA_LINUX)
+                case MFX_FOURCC_UYVY:
+#endif
                     return make_back_color_yuv(8, extComp->Y, extComp->U, extComp->V);
                 case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1027)
@@ -5175,6 +5178,9 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_AYUV:
+#if defined(MFX_VA_LINUX)
+        case MFX_FOURCC_UYVY:
+#endif
             return make_def_back_color_yuv(8);
         case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1027)
