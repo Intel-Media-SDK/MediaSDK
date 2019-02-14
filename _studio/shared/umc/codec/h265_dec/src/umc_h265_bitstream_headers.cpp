@@ -1590,6 +1590,9 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
                 }
 
                 rps->num_long_term_pics = GetVLCElementU();
+                if (rps->num_long_term_pics > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers - 1])
+                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
                 rps->setNumberOfLongtermPictures(rps->num_long_term_sps + rps->num_long_term_pics);
 
                 if (offset + rps->num_long_term_sps + rps->num_long_term_pics > sps->sps_max_dec_pic_buffering[sps->sps_max_sub_layers - 1])
