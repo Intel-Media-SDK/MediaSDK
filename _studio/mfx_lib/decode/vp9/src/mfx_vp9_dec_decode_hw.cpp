@@ -577,8 +577,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfx
     mfxStatus sts = MFX_VP9_Utility::DecodeHeader(core, bs, par);
     MFX_CHECK_STS(sts);
 
-    if (   par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-        )
+    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
         par->mfx.FrameInfo.Shift = 1;
 
     return sts;
@@ -759,8 +758,7 @@ void VideoDECODEVP9_HW::UpdateVideoParam(mfxVideoParam *par, VP9DecoderFrame con
 
     MFX_VP9_Utility::FillVideoParam(m_core, frameInfo, par);
 
-    if (   par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-        )
+    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
         par->mfx.FrameInfo.Shift = 1;
 }
 
@@ -964,6 +962,44 @@ mfxStatus VideoDECODEVP9_HW::PrepareInternalSurface(UMC::FrameMemID &mid, mfxFra
     return MFX_ERR_NONE;
 }
 
+
+static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info)
+{
+    MFX_SAFE_CALL(CheckFrameInfoCommon(&info, MFX_CODEC_VP9));
+
+    switch (info.FourCC)
+    {
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_AYUV:
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_Y410:
+#endif
+            break;
+        case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_Y210:
+#endif
+            MFX_CHECK(info.Shift == 1, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+            break;
+        default:
+            MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    switch(info.ChromaFormat)
+    {
+        case MFX_CHROMAFORMAT_YUV420:
+        case MFX_CHROMAFORMAT_YUV444:
+            break;
+        default:
+            MFX_CHECK_STS(MFX_ERR_INVALID_VIDEO_PARAM);
+    }
+
+    MFX_CHECK(currInfo.FourCC == info.FourCC, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
+    return MFX_ERR_NONE;
+}
+
+
 mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT * p_entry_point)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
@@ -1017,7 +1053,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
             return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_VP9, true);
+    sts = CheckFrameInfo(m_vPar.mfx.FrameInfo, surface_work->Info);
     MFX_CHECK_STS(sts);
 
     sts = CheckFrameData(surface_work);
@@ -1026,8 +1062,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     eMFXHWType type = m_core->GetHWType();
     if (!MFX_VPX_Utility::CheckFrameInfo(surface_work->Info, MFX_CODEC_VP9, m_platform, type))
     {
-        sts = MFX_ERR_INVALID_VIDEO_PARAM;
-        MFX_CHECK_STS(sts);
+        MFX_CHECK_STS(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
     }
 
     sts = CheckBitstream(bs);
