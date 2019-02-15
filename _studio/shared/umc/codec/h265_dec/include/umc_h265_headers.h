@@ -38,7 +38,8 @@ class HeaderSet
 public:
 
     HeaderSet(Heap_Objects  *pObjHeap)
-        : m_pObjHeap(pObjHeap)
+        : m_Header()
+        , m_pObjHeap(pObjHeap)
         , m_currentID(-1)
     {
     }
