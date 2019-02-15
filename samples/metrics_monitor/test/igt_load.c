@@ -20,13 +20,12 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  *
- * File Name: igt_load.cpp
+ * File Name: igt_load.c
  *
  */
 
 /* Source file content was taken from Intel GPU Tools */
 
-#include "igt_load.h"
 #include <errno.h>
 #include <time.h>
 #include <signal.h>
@@ -40,6 +39,8 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include "device_info.h"
+#include "igt_load.h"
 
 struct igt_list {
     struct igt_list *prev;
@@ -63,14 +64,14 @@ struct local_i915_gem_mmap_v2 {
 #define I915_MMAP_WC 0x1
 };
 
-struct intel_execution_engine {
+const struct intel_execution_engine {
     const char *name;
     const char *full_name;
     unsigned exec_id;
     unsigned flags;
-};
+} intel_execution_engines[];
 
-const intel_execution_engine intel_execution_engines [] = {
+const struct intel_execution_engine intel_execution_engines[] = {
     {"default", NULL, 0, 0},
     {"render", "rcs0", I915_EXEC_RENDER, 0},
     {"bsd", "vcs0", I915_EXEC_BSD, 0},
@@ -144,58 +145,6 @@ static inline void igt_list_del(struct igt_list *elm)
 }
 
 int(*igt_ioctl)(int fd, unsigned long request, void *arg) = drmIoctl;
-
-const struct intel_device_info *intel_get_device_info(uint16_t devid)
-{
-    static const struct intel_device_info *cache = &intel_generic_info;
-    static uint16_t cached_devid;
-    int i;
-
-    if (cached_devid == devid)
-        goto out;
-
-            /* XXX Presort table and bsearch! */
-    for (i = 0; intel_device_match[i].device_id != PCI_MATCH_ANY; i++) {
-        if (devid == intel_device_match[i].device_id)
-            break;
-    }
-
-    cached_devid = devid;
-    cache = (intel_device_info *)intel_device_match[i].match_data;
-
-out:
-    return cache;
-}
-
-unsigned intel_gen(uint16_t devid)
-{
-    return ffs(intel_get_device_info(devid)->gen);
-}
-
-unsigned intel_gt(uint16_t devid)
-{
-    const struct intel_device_info *devinfo = intel_get_device_info(devid);
-
-    /* If in the database, just use that information. */
-    if (devinfo->gt != 0)
-        return devinfo->gt - 1;
-
-    /*
-     * This scheme doesn't work on Coffeelake, we should probably
-     * not rely on this anymore.
-    */
-
-    unsigned mask = intel_gen(devid);
-
-    if (mask >= 8)
-        mask = 0xf;
-    else if (mask >= 6)
-        mask = 0x3;
-    else
-        mask = 0;
-
-    return (devid >> 4) & mask;
-}
 
 uint16_t intel_get_drm_devid()
 {
@@ -396,7 +345,7 @@ void *gem_mmap__gtt(int fd, uint32_t handle, uint64_t size, unsigned prot)
     if (igt_ioctl(fd, DRM_IOCTL_I915_GEM_MMAP_GTT, &mmap_arg))
         return NULL;
 
-    ptr = mmap64(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
+    ptr = mmap(0, size, prot, MAP_SHARED, fd, mmap_arg.offset);
     if (ptr == MAP_FAILED)
         ptr = NULL;
     else

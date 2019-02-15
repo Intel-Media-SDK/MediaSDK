@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2018 Intel Corporation.  All rights reserved.
+ * Copyright (C) 2017-2019 Intel Corporation.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,25 +29,24 @@
 #ifndef __IGT_LOAD_H__
 #define __IGT_LOAD_H__
 
-#include <stdint.h>
 #include <fcntl.h>
 #include <i915_drm.h>
 #include <pciaccess.h>
 #include "i915_pciids.h"
-#include "device_info.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct igt_spin igt_spin_t;
 
 bool gem_has_bsd2(int fd);
-
-const struct intel_device_info *intel_get_device_info(uint16_t devid);
-
 uint16_t intel_get_drm_devid();
-
-unsigned intel_gt(uint16_t devid);
-
 igt_spin_t * igt_spin_batch_new(int fd, uint32_t ctx, unsigned engine, uint32_t dep);
-
 void igt_spin_batch_free(int fd, igt_spin_t *spin);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __IGT_LOAD_H__ */

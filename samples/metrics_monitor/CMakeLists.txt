@@ -35,7 +35,7 @@ if( PKG_LIBDRM_FOUND AND
     PKG_PCIACCESS_FOUND AND
     BUILD_TESTS)
 
-    file( GLOB_RECURSE test_srcs "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp" )
+    file( GLOB_RECURSE test_srcs "${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/test/*.c" )
 
     add_executable( test_monitor ${test_srcs})
     target_include_directories( test_monitor PRIVATE ./include ${PKG_LIBDRM_INCLUDE_DIRS})
