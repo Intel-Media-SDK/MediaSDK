@@ -1020,27 +1020,17 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     m_index++;
     m_frameInfo.showFrame = 0;
 
-    sts = DecodeFrameHeader(bs, m_frameInfo);
+    VP9DecoderFrame frameInfo = m_frameInfo;
+    sts = DecodeFrameHeader(bs, frameInfo);
     MFX_CHECK_STS(sts);
 
-    UpdateVideoParam(&m_vPar, m_frameInfo);
+    UpdateVideoParam(&m_vPar, frameInfo);
 
     // check resize
     if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width || m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
     {
         if (m_adaptiveMode)
         {
-            if (m_frameInfo.frameCountInBS > 0 && m_frameInfo.currFrameInBS > 0)
-            {
-                // SuperFrame decoding in progress.
-                // DecodeSuperFrame function increases currFrameInBS
-                // so next time we will decode the next frame in SuperFrame
-                // but in DRC mode frame decoding is interrupted here
-                // because frame resolution is not enough
-                // DecodeFrameAsync will be called again and we will skip this frame.
-                // Decrease currFrameInBS to prevent this.
-                m_frameInfo.currFrameInBS -= 1;
-            }
             return (mfxStatus)MFX_ERR_REALLOC_SURFACE;
         }
 
@@ -1053,11 +1043,14 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         if (m_vPar.mfx.FrameInfo.Width > m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height > m_vInitPar.mfx.FrameInfo.Height)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
-        if (KEY_FRAME == m_frameInfo.frameType &&
+        if (KEY_FRAME == frameInfo.frameType &&
             (m_vPar.mfx.FrameInfo.Width != m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height != m_vInitPar.mfx.FrameInfo.Height) &&
             1 != m_index)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
     }
+
+    //update frame info
+    m_frameInfo = frameInfo;
 
     sts = m_FrameAllocator->SetCurrentMFXSurface(surface_work, m_is_opaque_memory);
     MFX_CHECK_STS(sts);
