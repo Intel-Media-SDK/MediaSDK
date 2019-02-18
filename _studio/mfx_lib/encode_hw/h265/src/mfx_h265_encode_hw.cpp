@@ -942,18 +942,27 @@ mfxStatus MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
             {
                 mfxExtLAFrameStatistics *vmeData = ExtBuffer::Get(task->m_ctrl);
                 MFX_CHECK_NULL_PTR1(vmeData);
+
                 mfxStatus status = m_brc->SetFrameVMEData(vmeData, m_vpar.mfx.FrameInfo.Width, m_vpar.mfx.FrameInfo.Height);
                 MFX_CHECK_STS(status);
+
                 mfxLAFrameInfo *pInfo = &vmeData->FrameStat[0];
                 task->m_frameType = (mfxU16)pInfo->FrameType;
-                m_frameOrder = pInfo->FrameDisplayOrder;
-                task->m_eo = pInfo->FrameEncodeOrder;
+                task->m_eo        = pInfo->FrameEncodeOrder;
+                task->m_level     = pInfo->Layer;
+                m_frameOrder      = pInfo->FrameDisplayOrder;
+
                 MFX_CHECK(m_frameOrder <= task->m_eo + m_vpar.mfx.GopRefDist - 1, MFX_ERR_UNDEFINED_BEHAVIOR);
-                task->m_level = pInfo->Layer;
             }
             MFX_CHECK(m_frameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            mfxU32 numberOfFields = m_vpar.isField() ? 2 : 1;
+            if (m_frameOrder && (m_frameOrder < m_lastTask.m_fo)) // Frame from past
+                MFX_CHECK(m_lastTask.m_fo - m_frameOrder < m_vpar.mfx.GopRefDist * numberOfFields,  MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            MFX_CHECK(m_frameOrder <= m_lastTask.m_eo + 1 + (m_vpar.mfx.GopRefDist - 1) * numberOfFields, MFX_ERR_UNDEFINED_BEHAVIOR);
+
             MFX_CHECK(task->m_frameType != MFX_FRAMETYPE_UNKNOWN, MFX_ERR_UNDEFINED_BEHAVIOR);
-            MFX_CHECK((mfxI32)(m_frameOrder - (m_lastTask.m_eo + 1)) <= (m_vpar.mfx.GopRefDist - 1)* (m_vpar.isField() ? 2 : 1), MFX_ERR_UNDEFINED_BEHAVIOR);
             if (!isValid(m_lastTask.m_dpb[1][0]))
                 MFX_CHECK(task->m_frameType & MFX_FRAMETYPE_IDR, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
