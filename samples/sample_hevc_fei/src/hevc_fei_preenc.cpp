@@ -246,38 +246,30 @@ mfxStatus FEI_Preenc::DumpResult(HevcTask* task)
 
         if (m_isMVoutFormatted) // dumping in internal output format
         {
-            mfxU8 numOfStructures = task->m_preEncOutput.size();
+            mfxU8 numOfMvStructures = std::count_if(task->m_preEncOutput.begin(), task->m_preEncOutput.end(), [](const PreENCOutput& o){return o.m_mv != nullptr;});
 
-            mfxStatus sts = m_pFile_MV_out->Write(&numOfStructures, sizeof(numOfStructures), 1);
+            mfxStatus sts = m_pFile_MV_out->Write(&numOfMvStructures, sizeof(numOfMvStructures), 1);
             MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
 
             for (std::list<PreENCOutput>::iterator it = task->m_preEncOutput.begin(); it != task->m_preEncOutput.end(); ++it)
             {
-                sts = m_pFile_MV_out->Write(&it->m_activeRefIdxPair.RefL0, sizeof(it->m_activeRefIdxPair.RefL0), 1);
-                MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
-
-                sts = m_pFile_MV_out->Write(&it->m_activeRefIdxPair.RefL1, sizeof(it->m_activeRefIdxPair.RefL1), 1);
-                MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
-
                 // For some frames MVoutput may be switched off
                 if (it->m_mv)
                 {
+                    sts = m_pFile_MV_out->Write(&it->m_activeRefIdxPair.RefL0, sizeof(it->m_activeRefIdxPair.RefL0), 1);
+                    MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
+
+                    sts = m_pFile_MV_out->Write(&it->m_activeRefIdxPair.RefL1, sizeof(it->m_activeRefIdxPair.RefL1), 1);
+                    MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
+
                     sts = m_pFile_MV_out->Write(it->m_mv->MB, sizeof(it->m_mv->MB[0]) * it->m_mv->NumMBAlloc, 1);
                     MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
                 }
-                else
-                {
-                    for (mfxU32 k = 0; k < numMB; k++)
-                    {
-                        sts = m_pFile_MV_out->Write(&m_default_MVMB, sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB), 1);
-                        MSDK_CHECK_STATUS(sts, "Write MV output to file failed in DumpResult");
-                    }
-                }
             }
 
-            RefIdxPair refFramesIdxs = { IDX_INVALID, IDX_INVALID };
             // zero padding
-            for (mfxU32 i = numOfStructures; i < m_videoParams.mfx.NumRefFrame; i++)
+            RefIdxPair refFramesIdxs = { IDX_INVALID, IDX_INVALID };
+            for (mfxU32 i = numOfMvStructures; i < m_videoParams.mfx.NumRefFrame; i++)
             {
                 sts = m_pFile_MV_out->Write(&refFramesIdxs.RefL0, sizeof(refFramesIdxs.RefL0), 1);
                 MSDK_CHECK_STATUS(sts, "Write MV formatted output to file failed in DumpResult");
@@ -692,18 +684,18 @@ mfxStatus Preenc_Reader::PreEncFrame(HevcTask * task)
 
     mfxU32 bytesRead = 0;
 
-    mfxU8 numOfStructures = 0;
-    mfxStatus sts = m_pFile_MV_in.Read(&numOfStructures, sizeof(numOfStructures), 1);
-    bytesRead += sizeof(numOfStructures);
+    mfxU8 numOfMvStructures = 0;
+    mfxU8 numOfSeek = 0;
+    mfxStatus sts = m_pFile_MV_in.Read(&numOfMvStructures, sizeof(numOfMvStructures), 1);
+    bytesRead += sizeof(numOfMvStructures);
+    MSDK_CHECK_STATUS(sts, "FEI Preenc Reader. Read MV predictors failed");
 
-    if (numOfStructures > m_numOfStructuresPerFrame)
+    if (numOfMvStructures > m_numOfStructuresPerFrame)
         MSDK_CHECK_STATUS(MFX_ERR_NOT_INITIALIZED, "Inconsistent data in MV predictors input. Unexpected number of structures.");
 
     RefIdxPair actualRefIdxPair, inputRefIdxPair;
-
     for (size_t idxL0 = 0, idxL1 = 0;
-        idxL0 < task->m_numRefActive[0] || idxL1 < task->m_numRefActive[1] // Iterate through L0/L1 frames
-        || idxL0 < !!(task->m_frameType & MFX_FRAMETYPE_I); // trick: use idxL0 for 1 iteration for I-frame
+        idxL0 < task->m_numRefActive[0] || idxL1 < task->m_numRefActive[1]; // Iterate through L0/L1 frames
         ++idxL0, ++idxL1)
     {
         actualRefIdxPair = { IDX_INVALID, IDX_INVALID };
@@ -731,15 +723,14 @@ mfxStatus Preenc_Reader::PreEncFrame(HevcTask * task)
         PreENCOutput stat;
         MSDK_ZERO_MEMORY(stat);
 
-        // disable MV output for I frames / if no reference frames provided)
-        if ((task->m_frameType & MFX_FRAMETYPE_I) ||
-            (inputRefIdxPair.RefL0 == IDX_INVALID && inputRefIdxPair.RefL1 == IDX_INVALID))
+        // no reference frames provided
+        if (inputRefIdxPair.RefL0 == IDX_INVALID && inputRefIdxPair.RefL1 == IDX_INVALID)
         {
             sts = m_pFile_MV_in.Seek(sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB) * m_numMB, SEEK_CUR);
             MSDK_CHECK_STATUS(sts, "FEI Preenc Reader. File seek failed");
 
             bytesRead += sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB) * m_numMB;
-            numOfStructures++;
+            numOfSeek++;
         }
         else
         {
@@ -759,7 +750,7 @@ mfxStatus Preenc_Reader::PreEncFrame(HevcTask * task)
     }
 
     //skip zero padding
-    mfxI32 seekOffset = (m_numOfStructuresPerFrame - numOfStructures) * (2 * sizeof(mfxU8) + sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB) * m_numMB);
+    mfxI32 seekOffset = (m_numOfStructuresPerFrame - numOfMvStructures - numOfSeek) * (2 * sizeof(mfxU8) + sizeof(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB) * m_numMB);
     sts = m_pFile_MV_in.Seek(seekOffset, SEEK_CUR);
     MSDK_CHECK_STATUS(sts, "FEI Preenc Reader. Read MV predictors failed");
     bytesRead += seekOffset;
