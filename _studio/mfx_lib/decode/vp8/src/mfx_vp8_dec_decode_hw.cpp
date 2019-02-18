@@ -49,6 +49,25 @@
 
 #define VP8_START_CODE_FOUND(ptr) ((ptr)[0] == 0x9d && (ptr)[1] == 0x01 && (ptr)[2] == 0x2a)
 
+static void SetFrameType(const VP8Defs::vp8_FrameInfo &frame_info, mfxFrameSurface1 &surface_out)
+{
+    auto extFrameInfo = reinterpret_cast<mfxExtDecodedFrameInfo *>(GetExtendedBuffer(surface_out.Data.ExtParam, surface_out.Data.NumExtParam, MFX_EXTBUFF_DECODED_FRAME_INFO));
+    if (extFrameInfo == nullptr)
+        return;
+
+    switch (frame_info.frameType)
+    {
+        case UMC::I_PICTURE:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_I;
+            break;
+        case UMC::P_PICTURE:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_P;
+            break;
+        default:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_UNKNOWN;
+    }
+}
+
 VideoDECODEVP8_HW::VideoDECODEVP8_HW(VideoCORE *p_core, mfxStatus *sts)
     : m_is_initialized(false)
     , m_is_opaque_memory(false)
@@ -796,6 +815,8 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
 
     sts = GetOutputSurface(pp_surface_out, p_surface_work, memId);
     MFX_CHECK_STS(sts);
+
+    SetFrameType(m_frame_info, **pp_surface_out);
 
     (*pp_surface_out)->Data.Corrupted = 0;
     (*pp_surface_out)->Data.FrameOrder = m_frameOrder;
