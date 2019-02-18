@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,23 @@ using namespace UMC;
 
 class VC1TaskStore;
 
+
+static void SetFrameType(const UMC::VideoData &mediaData, mfxFrameSurface1 &surface)
+{
+    auto extFrameInfo = reinterpret_cast<mfxExtDecodedFrameInfo *>(GetExtendedBuffer(surface.Data.ExtParam, surface.Data.NumExtParam, MFX_EXTBUFF_DECODED_FRAME_INFO));
+    if (extFrameInfo == nullptr)
+        return;
+
+    switch (mediaData.GetFrameType())
+    {
+        case UMC::I_PICTURE:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_I;
+            break;
+        // NONE_PICTURE, D_PICTURE (skipped)
+        default:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_UNKNOWN;
+    }
+}
 
 void MFXVideoDECODEVC1::SetFrameOrder(mfx_UMC_FrameAllocator* pFrameAlloc, mfxVideoParam* par, bool isLast, VC1TSDescriptor tsd, bool isSamePolar)
 {
@@ -1791,6 +1808,7 @@ mfxStatus MFXVideoDECODEVC1::UpdateAllocRequest(mfxVideoParam *par,
     else
         return MFX_ERR_NONE;
 }
+
 void   MFXVideoDECODEVC1::FillMFXDataOutputSurface(mfxFrameSurface1 *surface)
 {
     if (!m_qTS.front().isOriginal)
@@ -1818,6 +1836,8 @@ void   MFXVideoDECODEVC1::FillMFXDataOutputSurface(mfxFrameSurface1 *surface)
     {
         m_ext_dur += GetMfxTimeStamp((mfxF64)0.5*surface->Info.FrameRateExtD/surface->Info.FrameRateExtN);
     }
+
+    SetFrameType(m_InternMediaDataOut, *surface);
 }
 
 mfxStatus   MFXVideoDECODEVC1::FillOutputSurface(mfxFrameSurface1 *surface, UMC::FrameMemID memID)
