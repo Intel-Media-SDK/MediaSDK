@@ -147,9 +147,8 @@ mfxStatus VideoDECODEVP8_HW::PackHeaders(mfxBitstream *p_bistream)
                  picParams->loop_filter_level[i] = m_frame_info.segmentFeatureData[VP8_ALT_LOOP_FILTER][i];
              else
              {
-                 picParams->loop_filter_level[i] = m_frame_info.loopFilterLevel + m_frame_info.segmentFeatureData[VP8_ALT_LOOP_FILTER][i];
-                 picParams->loop_filter_level[i] = (picParams->loop_filter_level[i] >= 0) ?
-                     ((picParams->loop_filter_level[i] <= 63) ? picParams->loop_filter_level[i] : 63) : 0;
+                 int32_t filter_level = m_frame_info.loopFilterLevel + m_frame_info.segmentFeatureData[VP8_ALT_LOOP_FILTER][i];
+                 picParams->loop_filter_level[i] = mfx::clamp(filter_level, 0, 63);
              }
          }
      }
