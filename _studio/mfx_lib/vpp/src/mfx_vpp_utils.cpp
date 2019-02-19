@@ -1327,6 +1327,10 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_NV16:
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_AYUV:
+#if defined(MFX_VA_LINUX)
+        // UYVY is supported on Linux only
+        case MFX_FOURCC_UYVY:
+#endif
             break;
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
@@ -1341,10 +1345,6 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_YUV422H:
         case MFX_FOURCC_YUV422V:
         case MFX_FOURCC_YUV444:
-#if defined(MFX_VA_LINUX)
-        // UYVY is supported on Linux only
-        case MFX_FOURCC_UYVY:
-#endif
             if (VPP_OUT == request)
                 return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
