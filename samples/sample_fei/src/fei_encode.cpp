@@ -689,11 +689,10 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
 {
     MFX_ITT_TASK("EncodeOneFrame");
 
-    MSDK_CHECK_POINTER(eTask, MFX_ERR_NULL_PTR);
-
     mfxStatus sts = MFX_ERR_NONE;
 
-    // ENC_in.InSurface always holds full-res surface
+    // ENC_in.InSurface always holds full-res surface.
+    // eTask=NULL is valid for the case of draining encoder frames when input is in display order.
     mfxFrameSurface1* encodeSurface = eTask ? eTask->ENC_in.InSurface : NULL;
     if (encodeSurface) // no need to do this for buffered frames
     {
@@ -701,7 +700,7 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
         MSDK_CHECK_STATUS(sts, "FEI ENCODE: InitFrameParams failed");
     }
 
-    int numberOfCalls = (m_bSingleFieldMode && eTask->m_fieldPicFlag) ? 2 : 1;
+    int numberOfCalls = (m_bSingleFieldMode && (!eTask || eTask->m_fieldPicFlag)) ? 2 : 1;
     for (int i = 0; i < numberOfCalls; ++i)
     {
         for (;;) {
