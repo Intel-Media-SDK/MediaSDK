@@ -836,7 +836,8 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     mfxStatus checkStatus = CheckVideoParam(m_video, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType, *pMFXGTConfig, true);
     if (checkStatus == MFX_WRN_PARTIAL_ACCELERATION)
-        return MFX_WRN_PARTIAL_ACCELERATION;
+        // there is no sw fallback for AVC encoder, so reset the return value
+        return MFX_ERR_INVALID_VIDEO_PARAM;
     else if (checkStatus < MFX_ERR_NONE)
         return checkStatus;
     else if (checkStatus == MFX_ERR_NONE)
