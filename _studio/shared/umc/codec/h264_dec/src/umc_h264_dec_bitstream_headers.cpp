@@ -335,6 +335,39 @@ H264HeadersBitstream::H264HeadersBitstream(uint8_t * const pb, const uint32_t ma
 {
 }
 
+inline bool CheckLevel(uint8_t level_idc)
+{
+    switch(level_idc)
+    {
+    case H264VideoDecoderParams::H264_LEVEL_1:
+    case H264VideoDecoderParams::H264_LEVEL_11:
+    case H264VideoDecoderParams::H264_LEVEL_12:
+    case H264VideoDecoderParams::H264_LEVEL_13:
+
+    case H264VideoDecoderParams::H264_LEVEL_2:
+    case H264VideoDecoderParams::H264_LEVEL_21:
+    case H264VideoDecoderParams::H264_LEVEL_22:
+
+    case H264VideoDecoderParams::H264_LEVEL_3:
+    case H264VideoDecoderParams::H264_LEVEL_31:
+    case H264VideoDecoderParams::H264_LEVEL_32:
+
+    case H264VideoDecoderParams::H264_LEVEL_4:
+    case H264VideoDecoderParams::H264_LEVEL_41:
+    case H264VideoDecoderParams::H264_LEVEL_42:
+
+    case H264VideoDecoderParams::H264_LEVEL_5:
+    case H264VideoDecoderParams::H264_LEVEL_51:
+    case H264VideoDecoderParams::H264_LEVEL_52:
+
+    case H264VideoDecoderParams::H264_LEVEL_9:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 // ---------------------------------------------------------------------------
 //  H264Bitstream::GetSequenceParamSet()
 //    Read sequence parameter set data from bitstream.
@@ -387,38 +420,14 @@ Status H264HeadersBitstream::GetSequenceParamSet(H264SeqParamSet *sps)
     if (sps->level_idc == H264VideoDecoderParams::H264_LEVEL_UNKNOWN)
         sps->level_idc = H264VideoDecoderParams::H264_LEVEL_52;
 
-    switch(sps->level_idc)
+    MFX_CHECK(CheckLevel(sps->level_idc), UMC_ERR_INVALID_STREAM);
+
+    if (sps->level_idc == H264VideoDecoderParams::H264_LEVEL_9 &&
+        sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_BASELINE &&
+        sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_MAIN &&
+        sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_EXTENDED)
     {
-    case H264VideoDecoderParams::H264_LEVEL_1:
-    case H264VideoDecoderParams::H264_LEVEL_11:
-    case H264VideoDecoderParams::H264_LEVEL_12:
-    case H264VideoDecoderParams::H264_LEVEL_13:
-
-    case H264VideoDecoderParams::H264_LEVEL_2:
-    case H264VideoDecoderParams::H264_LEVEL_21:
-    case H264VideoDecoderParams::H264_LEVEL_22:
-
-    case H264VideoDecoderParams::H264_LEVEL_3:
-    case H264VideoDecoderParams::H264_LEVEL_31:
-    case H264VideoDecoderParams::H264_LEVEL_32:
-
-    case H264VideoDecoderParams::H264_LEVEL_4:
-    case H264VideoDecoderParams::H264_LEVEL_41:
-    case H264VideoDecoderParams::H264_LEVEL_42:
-
-    case H264VideoDecoderParams::H264_LEVEL_5:
-    case H264VideoDecoderParams::H264_LEVEL_51:
-    case H264VideoDecoderParams::H264_LEVEL_52:
-        break;
-    case H264VideoDecoderParams::H264_LEVEL_9:
-        if (sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_BASELINE &&
-            sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_MAIN &&
-            sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_EXTENDED) {
-                sps->level_idc = H264VideoDecoderParams::H264_LEVEL_1b;
-                break;
-        }
-    default:
-        return UMC_ERR_INVALID_STREAM;
+        sps->level_idc = H264VideoDecoderParams::H264_LEVEL_1b;
     }
 
     // id
@@ -1111,6 +1120,7 @@ Status H264HeadersBitstream::GetSequenceParamSetMvcExt(H264SeqParamSetMVCExtensi
 
         // decode the level's profile idc
         levelInfo.level_idc = (uint8_t) GetBits(8);
+        MFX_CHECK(CheckLevel(levelInfo.level_idc), UMC_ERR_INVALID_STREAM);
 
         // decode the number of operation points
         levelInfo.num_applicable_ops_minus1 = (uint16_t) GetVLCElement(false);
