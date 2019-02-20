@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,6 +84,25 @@ bool CheckHardwareSupport(VideoCORE *p_core, mfxVideoParam *p_video_param)
     MFX_CHECK(mfxSts == MFX_ERR_NONE, false);
 
     return true;
+}
+
+static void SetFrameType(const VP9DecoderFrame &frameInfo, mfxFrameSurface1 &surface_out)
+{
+    auto extFrameInfo = reinterpret_cast<mfxExtDecodedFrameInfo *>(GetExtendedBuffer(surface_out.Data.ExtParam, surface_out.Data.NumExtParam, MFX_EXTBUFF_DECODED_FRAME_INFO));
+    if (extFrameInfo == nullptr)
+        return;
+
+    switch (frameInfo.frameType)
+    {
+        case KEY_FRAME:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_I;
+            break;
+        case INTER_FRAME:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_P;
+            break;
+        default:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_UNKNOWN;
+    }
 }
 
 mfxStatus VideoDECODEVP9_HW::UpdateRefFrames()
@@ -1121,6 +1140,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     if (m_frameInfo.showFrame)
     {
+        SetFrameType(m_frameInfo, **surface_out);
+
         (*surface_out)->Data.TimeStamp = bs->TimeStamp != static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN) ? bs->TimeStamp : GetMfxTimeStamp(m_frameOrder * m_in_framerate);
         (*surface_out)->Data.Corrupted = 0;
         (*surface_out)->Data.FrameOrder = m_frameOrder;
