@@ -19,6 +19,8 @@
 // SOFTWARE.
 
 #include "umc_defs.h"
+#include <mfx_utils.h>
+
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #ifndef __UMC_H264_BITSTREAM_HEADERS_H_
