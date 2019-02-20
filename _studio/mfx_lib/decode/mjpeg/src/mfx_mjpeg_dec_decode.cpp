@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -59,6 +59,17 @@ struct ThreadTaskInfo
     bool              needCheckVppStatus;
     mfxU32            numDecodeTasksToCheck;
 };
+
+static void SetFrameType(mfxFrameSurface1 &surface_out)
+{
+    auto extFrameInfo = reinterpret_cast<mfxExtDecodedFrameInfo *>(GetExtendedBuffer(surface_out.Data.ExtParam, surface_out.Data.NumExtParam, MFX_EXTBUFF_DECODED_FRAME_INFO));
+    if (extFrameInfo == nullptr)
+        return;
+
+    // terms I/P/B frames not applicable for JPEG,
+    // so all frames marked as I
+    extFrameInfo->FrameType = MFX_FRAMETYPE_I;
+}
 
 class MFX_JPEG_Utility
 {
@@ -649,6 +660,8 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
         if (!(*surface_out))
             return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+        SetFrameType(**surface_out);
 
         (*surface_out)->Info.FrameId.ViewId = 0; // (mfxU16)pFrame->m_viewId;
 
