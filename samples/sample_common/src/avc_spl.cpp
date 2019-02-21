@@ -423,7 +423,7 @@ inline bool IsSlicesOfOneAU(const AVCSliceHeader *pOne, const AVCSliceHeader *pT
         return false;
 
     if ((pOne->nal_ref_idc != pTwo->nal_ref_idc) &&
-        (0 == MSDK_MIN(pOne->nal_ref_idc, pTwo->nal_ref_idc)))
+        (0 == std::min(pOne->nal_ref_idc, pTwo->nal_ref_idc)))
         return false;
 
     if ((pOne->pic_order_cnt_lsb != pTwo->pic_order_cnt_lsb) ||
