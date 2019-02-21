@@ -1004,7 +1004,7 @@ mfxStatus AVCHeadersBitstream::GetPictureParamSetPart2(AVCPicParamSet  *pps,
                     return MFX_ERR_UNDEFINED_BEHAVIOR;
                 }
 
-                mfxI32 len = MSDK_MAX(1, pps->SliceGroupInfo.t3.pic_size_in_map_units);
+                mfxI32 len = std::max(1u, pps->SliceGroupInfo.t3.pic_size_in_map_units);
 
                 pps->SliceGroupInfo.pSliceGroupIDMap.resize(len);
 

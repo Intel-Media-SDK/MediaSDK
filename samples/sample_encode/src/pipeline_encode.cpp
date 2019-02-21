@@ -882,7 +882,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
 
     if (!m_pmfxVPP)
     {
-        EncRequest.NumFrameMin = EncRequest.NumFrameSuggested = MSDK_MAX(EncRequest.NumFrameSuggested, m_nPerfOpt);
+        EncRequest.NumFrameMin = EncRequest.NumFrameSuggested = std::max(EncRequest.NumFrameSuggested, m_nPerfOpt);
     }
 
     if (EncRequest.NumFrameSuggested < m_mfxEncParams.AsyncDepth)
@@ -901,7 +901,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
         sts = m_pmfxVPP->QueryIOSurf(&m_mfxVppParams, VppRequest);
         MSDK_CHECK_STATUS(sts, "m_pmfxVPP->QueryIOSurf failed");
 
-        VppRequest[0].NumFrameMin = VppRequest[0].NumFrameSuggested = MSDK_MAX(VppRequest[0].NumFrameSuggested, m_nPerfOpt);
+        VppRequest[0].NumFrameMin = VppRequest[0].NumFrameSuggested = std::max(VppRequest[0].NumFrameSuggested, m_nPerfOpt);
         // The number of surfaces for vpp input - so that vpp can work at async depth = m_nAsyncDepth
         nVppSurfNum = VppRequest[0].NumFrameSuggested;
         // If surfaces are shared by 2 components, c1 and c2. NumSurf = c1_out + c2_in - AsyncDepth + 1

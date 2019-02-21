@@ -1287,8 +1287,7 @@ mfxStatus CCameraPipeline::Reset(sInputParams *pParams)
 mfxStatus CCameraPipeline::PrepareInputSurfaces()
 {
     mfxStatus           sts = MFX_ERR_NONE;
-    mfxU32 asyncDepth = MSDK_MIN(m_mfxVideoParams.AsyncDepth, m_mfxResponseIn.NumFrameActual);
-    asyncDepth = MSDK_MIN(asyncDepth, m_mfxResponseOut.NumFrameActual);
+    mfxU32 asyncDepth = std::min({m_mfxVideoParams.AsyncDepth, m_mfxResponseIn.NumFrameActual, m_mfxResponseOut.NumFrameActual});
 
     mfxU32 frnum = m_nInputFileIndex;
 
@@ -1394,8 +1393,7 @@ mfxStatus CCameraPipeline::Run()
     m_bEnd = false;
     bool quitOnFrameLimit = false;
 
-    mfxU32 asyncDepth = MSDK_MIN(m_mfxVideoParams.AsyncDepth, m_mfxResponseIn.NumFrameActual);
-    asyncDepth = MSDK_MIN(asyncDepth, m_mfxResponseOut.NumFrameActual);
+    mfxU32 asyncDepth = std::min({m_mfxVideoParams.AsyncDepth, m_mfxResponseIn.NumFrameActual, m_mfxResponseOut.NumFrameActual});
 
     mfxSyncPoint       *syncpoints = new mfxSyncPoint[asyncDepth];
     mfxFrameSurface1   **ppOutSurf = new mfxFrameSurface1*[asyncDepth];
