@@ -784,8 +784,16 @@ namespace
 
         if (hwCaps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc && IsOn(extOpt3.AdaptiveMaxFrameSize))
         {
-            extOpt3.AdaptiveMaxFrameSize = 0;
+            extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
             unsupported = true;
+        }
+
+        if (hwCaps.UserMaxFrameSizeSupport == 1 && !IsEnabledSwBrc &&
+            (extOpt3.MaxFrameSizeP == 0 || IsOn(par.mfx.LowPower)) &&
+            IsOn(extOpt3.AdaptiveMaxFrameSize))
+        {
+            extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
+            changed = true;
         }
 #endif
         return unsupported ? MFX_ERR_UNSUPPORTED : (changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE);
