@@ -203,7 +203,7 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
             pitch = pData.Pitch;
-            ptr = MSDK_MIN( MSDK_MIN(pData.R, pData.G), pData.B);
+            ptr = std::min({pData.R, pData.G, pData.B});
             ptr = ptr + pInfo.CropX*4 + pInfo.CropY * pData.Pitch;
 
             for(i = 0; i < h; i++)
@@ -1069,7 +1069,7 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
             h = pInfo.Height;
         }
 
-        ptr = MSDK_MIN(MSDK_MIN(pData.R, pData.G), pData.B);
+        ptr = std::min({pData.R, pData.G, pData.B});
         ptr = ptr + pInfo.CropX + pInfo.CropY * pData.Pitch;
 
         for (i = 0; i < h; i++)

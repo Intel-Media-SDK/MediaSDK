@@ -166,8 +166,6 @@ enum LibVABackend
 #endif // MSDK_SAFE_DELETE
 
 #define MSDK_ZERO_MEMORY(VAR)                    {memset(&VAR, 0, sizeof(VAR));}
-#define MSDK_MAX(A, B)                           (((A) > (B)) ? (A) : (B))
-#define MSDK_MIN(A, B)                           (((A) < (B)) ? (A) : (B))
 #define MSDK_ALIGN16(value)                      (((value + 15) >> 4) << 4) // round up to a multiple of 16
 #define MSDK_ALIGN32(value)                      (((value + 31) >> 5) << 5) // round up to a multiple of 32
 #define MSDK_ALIGN(value, alignment)             (alignment) * ( (value) / (alignment) + (((value) % (alignment)) ? 1 : 0))
