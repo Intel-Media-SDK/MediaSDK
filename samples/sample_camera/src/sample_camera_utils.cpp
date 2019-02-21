@@ -233,7 +233,7 @@ mfxStatus CARGB16VideoReader::LoadNextFrameSingle(mfxFrameData* pData, mfxFrameI
 
     mfxI32 w, h, i, pitch;
     mfxI32 nBytesRead;
-    mfxU16 *ptr = MSDK_MIN(MSDK_MIN(pData->Y16,pData->V16), pData->U16);
+    mfxU16 *ptr = std::min({pData->Y16, pData->V16, pData->U16});
 
     w = m_Width;
     h = m_Height;
@@ -290,7 +290,7 @@ mfxStatus CARGB16VideoReader::LoadNextFrameSequential(mfxFrameData* pData, mfxFr
 
     mfxI32 w, h, i, pitch;
     mfxI32 nBytesRead;
-    mfxU16 *ptr = MSDK_MIN(MSDK_MIN(pData->Y16,pData->V16), pData->U16);
+    mfxU16 *ptr = std::min({pData->Y16, pData->V16, pData->U16});
 
     w = m_Width;
     h = m_Height;
@@ -944,7 +944,7 @@ mfxStatus CRawVideoWriter::WriteFrameARGB16(mfxFrameData* pData, const msdk_char
 
     pitch = ( pData->PitchLow + ((mfxU32)pData->PitchHigh << 16))>>1;
 
-    ptr = MSDK_MIN(MSDK_MIN(pData->Y16,pData->V16), pData->U16) + pInfo->CropX * 4 + pInfo->CropY * pitch;
+    ptr = std::min({pData->Y16, pData->V16, pData->U16}) + pInfo->CropX * 4 + pInfo->CropY * pitch;
 #ifdef SHIFT_OUT_TO_LSB
     int shift = 16 - pInfo->BitDepthLuma;
     for (i = 0; i < h; i++)

@@ -68,7 +68,7 @@ mfxStatus CUserPipeline::AllocFrames()
     nEncSurfNum = EncRequest.NumFrameSuggested;
 
     // The number of surfaces for plugin input - so that plugin can work at async depth = m_nAsyncDepth
-    nRotateSurfNum = MSDK_MAX(m_mfxEncParams.AsyncDepth, m_nPerfOpt);
+    nRotateSurfNum = std::max(m_mfxEncParams.AsyncDepth, m_nPerfOpt);
 
     // If surfaces are shared by 2 components, c1 and c2. NumSurf = c1_out + c2_in - AsyncDepth + 1
     nEncSurfNum += nRotateSurfNum - m_mfxEncParams.AsyncDepth + 1;
