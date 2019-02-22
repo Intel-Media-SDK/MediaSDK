@@ -3757,12 +3757,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     else if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         changed = true;
 
-    if (extOpt2->MaxFrameSize == 0 && extOpt3->MaxFrameSizeI == 0 && extOpt3->LowDelayBRC == MFX_CODINGOPTION_ON)
-    {
-        extOpt3->LowDelayBRC = 0;
-        changed = true;
-    }
-
     if (IsOn(extOpt2->ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod !=MFX_RATECONTROL_CBR && par.mfx.RateControlMethod !=MFX_RATECONTROL_VBR)
     {
         extOpt2->ExtBRC = MFX_CODINGOPTION_OFF;
@@ -6026,8 +6020,18 @@ void MfxHwH264Encode::SetDefaults(
         extOpt2->MaxFrameSize == 0)
     {
         extOpt2->MaxFrameSize = std::max(extOpt3->MaxFrameSizeI, extOpt3->MaxFrameSizeP);
-        extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize :
-            std::min(GetMaxFrameSize(par), GetFirstMaxFrameSize(par));
+
+        if (extOpt3->LowDelayBRC == MFX_CODINGOPTION_ON)
+        {
+            mfxU32 avgFrameSizeInBytes = mfxU32((par.mfx.MaxKbps ? par.mfx.MaxKbps : par.mfx.TargetKbps) /
+                (mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD) * (1000 / 8));
+            extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize : avgFrameSizeInBytes;
+        }
+        else
+        {
+            extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize :
+                std::min(GetMaxFrameSize(par), GetFirstMaxFrameSize(par));
+        }
     }
 
 #if MFX_VERSION >= 1023
