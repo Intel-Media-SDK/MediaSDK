@@ -163,6 +163,7 @@ do {                                               \
 
         // max number of temp layers is 8, but now supported only 4
         VABufferID m_tempLayersBufferId;
+        bool       m_tempLayersParamsReset;
         std::vector<VABufferID> m_frameRateBufferIds; // individual buffer for every temporal layer
         std::vector<VABufferID> m_rateCtrlBufferIds;  // individual buffer for every temporal layer
 
