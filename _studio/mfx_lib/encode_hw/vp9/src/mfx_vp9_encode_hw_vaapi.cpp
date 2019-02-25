@@ -589,6 +589,7 @@ VAAPIEncoder::VAAPIEncoder()
 , m_packedHeaderParameterBufferId(VA_INVALID_ID)
 , m_packedHeaderDataBufferId(VA_INVALID_ID)
 , m_tempLayersBufferId(VA_INVALID_ID)
+, m_tempLayersParamsReset(false)
 , m_width(0)
 , m_height(0)
 , m_isBrcResetRequired(false)
@@ -889,11 +890,11 @@ mfxStatus VAAPIEncoder::Reset(VP9MfxVideoParam const & par)
     mfxSts = SetHRD(par, m_vaDisplay, m_vaContextEncode, m_hrdBufferId);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
 
-    if (par.m_numLayers)
-    {
-        mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
-        MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
-    }
+    // even we have not temporal layers (after reset), 
+    // we have to update driver temporal layers structures in the next render cycle
+    mfxSts = SetTemporalStructure(par, m_vaDisplay, m_vaContextEncode, m_tempLayersBufferId);
+    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
+    m_tempLayersParamsReset = true;
 
     mfxSts = SetRateControl(par, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == mfxSts, MFX_ERR_DEVICE_FAILED);
@@ -1143,8 +1144,11 @@ mfxStatus VAAPIEncoder::Execute(
         configBuffers.push_back(m_hrdBufferId);
 
         // 9. temporal layers
-        if (m_video.m_numLayers)
+        if (m_video.m_numLayers || m_tempLayersParamsReset)
+        {
             configBuffers.push_back(m_tempLayersBufferId);
+            m_tempLayersParamsReset = false;
+        }
 
         // 10. RC parameters
         SetRateControl(m_video, m_vaDisplay, m_vaContextEncode, m_rateCtrlBufferIds, m_isBrcResetRequired);
