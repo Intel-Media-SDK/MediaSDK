@@ -104,7 +104,9 @@ if (BUILD_SAMPLES)
 endif()
 
 if (BUILD_RUNTIME)
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/ipp)
+  if (MFX_ENABLE_SW_FALLBACK)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/ipp)
+  endif()
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/_studio)
 endif()
 

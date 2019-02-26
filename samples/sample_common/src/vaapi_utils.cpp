@@ -372,7 +372,7 @@ VAStatus CLibVA::AcquireVASurface(
     }
 
     AcquireCtx* ctx;
-    unsigned long handle=0;
+    uintptr_t handle=0;
     VAStatus va_res;
     VASurfaceAttrib attribs[2];
     VASurfaceAttribExternalBuffers extsrf;
