@@ -353,12 +353,16 @@ std::string getPathToExe()
     const size_t module_length = 1024;
     char module_name[module_length];
 
+#if defined(_WIN32) || defined(_WIN64)
+    GetModuleFileNameA(0, module_name, module_length);
+#else
     char id[module_length];
     sprintf(id, "/proc/%d/exe", getpid());
     ssize_t count = readlink(id, module_name, module_length-1);
     if (count == -1)
         return std::string("");
     module_name[count] = '\0';
+#endif
 
     std::string exePath(module_name);
     return exePath.substr(0, exePath.find_last_of("\\/") + 1);

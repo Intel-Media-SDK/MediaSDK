@@ -109,6 +109,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-calc_latency]           - calculates latency during decoding and prints log (supported only for H.264 and JPEG codec)\n"));
     msdk_printf(MSDK_STRING("   [-async]                  - depth of asynchronous pipeline. default value is 4. must be between 1 and 20\n"));
     msdk_printf(MSDK_STRING("   [-gpucopy::<on,off>] Enable or disable GPU copy mode\n"));
+    msdk_printf(MSDK_STRING("   [-robust:soft]            - GPU hang recovery by inserting an IDR frame\n"));
     msdk_printf(MSDK_STRING("   [-timeout]                - timeout in seconds\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("   [-dec_postproc force/auto] - resize after decoder using direct pipe\n"));
@@ -118,11 +119,20 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                        or perform VPP operation through separate pipeline component for unsupported streams\n"));
 
 #endif //MFX_VERSION >= 1022
+#if !defined(_WIN32) && !defined(_WIN64)
     msdk_printf(MSDK_STRING("   [-threads_num]            - number of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_schedtype]      - scheduling type of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_priority]       - priority of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_thread_printf_scheduling_help();
+#endif
+#if defined(_WIN32) || defined(_WIN64)
+    msdk_printf(MSDK_STRING("   [-jpeg_rotate n]          - rotate jpeg frame n degrees \n"));
+    msdk_printf(MSDK_STRING("       n(90,180,270)         - number of degrees \n"));
+
+    msdk_printf(MSDK_STRING("\nFeatures: \n"));
+    msdk_printf(MSDK_STRING("   Press 1 to toggle fullscreen rendering on/off\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Example:\n"));
     msdk_printf(MSDK_STRING("  %s h265 -i in.bit -o out.yuv -p 15dd936825ad475ea34e35f3f54217a6\n"), strAppName);
@@ -402,6 +412,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->gpuCopy = MFX_GPUCOPY_OFF;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-robust:soft")))
+        {
+            pParams->bSoftRobustFlag = true;
+        }
+#if !defined(_WIN32) && !defined(_WIN64)
 #if (MFX_VERSION >= 1025)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d")))
         {
@@ -447,6 +462,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+#endif // #if !defined(_WIN32) && !defined(_WIN64)
 #if MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dec_postproc")))
         {
@@ -659,7 +675,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     return MFX_ERR_NONE;
 }
 
+#if defined(_WIN32) || defined(_WIN64)
+int _tmain(int argc, TCHAR *argv[])
+#else
 int main(int argc, char *argv[])
+#endif
 {
     sInputParams        Params;   // input parameters from command line
     CDecodingPipeline   Pipeline; // pipeline for decoding, includes input file reader, decoder and output file writer

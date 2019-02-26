@@ -22,6 +22,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 /* ************************************************************************* */
 
+#if defined(_WIN32) || defined(_WIN64)
+#define D3D_SURFACES_SUPPORT
+#endif // #if defined(_WIN32) || defined(_WIN64)
 
 #ifdef D3D_SURFACES_SUPPORT
 #pragma warning(disable : 4201)

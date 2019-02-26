@@ -21,12 +21,22 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "sample_defs.h"
 #include <algorithm>
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <tchar.h>
+#include <windows.h>
+#endif
 
 #include <ctime>
 #include <algorithm>
 #include "pipeline_decode.h"
 #include "sysmem_allocator.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "d3d_allocator.h"
+#include "d3d11_allocator.h"
+#include "d3d_device.h"
+#include "d3d11_device.h"
+#endif
 
 #if defined LIBVA_SUPPORT
 #include "vaapi_allocator.h"
@@ -68,6 +78,8 @@ CDecodingPipeline::CDecodingPipeline()
     m_memType = SYSTEM_MEMORY;
     m_bExternalAlloc = false;
     m_bDecOutSysmem = false;
+    m_bSoftRobustFlag = false;
+
     MSDK_ZERO_MEMORY(m_mfxResponse);
     MSDK_ZERO_MEMORY(m_mfxVppResponse);
 
@@ -220,6 +232,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     m_bOutI420 = pParams->outI420;
 
     m_nTimeout = pParams->nTimeout;
+    m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
     // Initializing file reader
     totalBytesProcessed = 0;
@@ -745,9 +758,10 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     }
 
     // Only shifted P010 is supported now
-    if (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+    if (m_memType != SYSTEM_MEMORY &&
+        (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
-        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210)
 #endif
     ) 
     {
@@ -919,11 +933,13 @@ mfxStatus CDecodingPipeline::InitVppParams()
     }
 
     // P010 video surfaces should be shifted
-    if ((m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_P010 
+    if (m_memType != SYSTEM_MEMORY &&
+        (  m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
         || m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_Y210
 #endif
-        )&& m_memType != SYSTEM_MEMORY)
+        )
+    )
     {
         m_mfxVppVideoParams.vpp.Out.Shift = 1;
     }
@@ -1016,7 +1032,7 @@ mfxStatus CDecodingPipeline::AllocFrames()
     MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
 
     // Workaround for VP9 codec
-    if ((m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 
+    if ((m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
         || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
 #endif
@@ -1593,7 +1609,7 @@ mfxStatus CDecodingPipeline::SyncOutputSurface(mfxU32 wait)
 
     mfxStatus sts = m_mfxSession.SyncOperation(m_pCurrentOutputSurface->syncp, wait);
 
-    if (MFX_ERR_GPU_HANG == sts) {
+    if (MFX_ERR_GPU_HANG == sts && m_bSoftRobustFlag) {
         msdk_printf(MSDK_STRING("GPU hang happened\n"));
         // Output surface can be corrupted
         // But should be delivered to output anyway
@@ -1974,11 +1990,11 @@ void CDecodingPipeline::PrintInfo()
     msdk_printf(MSDK_STRING("\nInput video\t%s\n"), CodecIdToStr(m_mfxVideoParams.mfx.CodecId).c_str());
     if (m_bVppIsUsed)
     {
-        msdk_printf(MSDK_STRING("Output format\t%s (using vpp)\n"), m_bOutI420 ? "I420(YUV)" : CodecIdToStr(m_mfxVppVideoParams.vpp.Out.FourCC).c_str());
+        msdk_printf(MSDK_STRING("Output format\t%s (using vpp)\n"), m_bOutI420 ? MSDK_STRING("I420(YUV)") : CodecIdToStr(m_mfxVppVideoParams.vpp.Out.FourCC).c_str());
     }
     else
     {
-        msdk_printf(MSDK_STRING("Output format\t%s\n"), m_bOutI420 ? "I420(YUV)" : CodecIdToStr(m_mfxVideoParams.mfx.FrameInfo.FourCC).c_str());
+        msdk_printf(MSDK_STRING("Output format\t%s\n"), m_bOutI420 ? MSDK_STRING("I420(YUV)") : CodecIdToStr(m_mfxVideoParams.mfx.FrameInfo.FourCC).c_str());
     }
 
     mfxFrameInfo Info = m_mfxVideoParams.mfx.FrameInfo;
@@ -2001,7 +2017,11 @@ void CDecodingPipeline::PrintInfo()
     msdk_printf(MSDK_STRING("Frame rate\t%.2f\n"), dFrameRate);
 
     const msdk_char* sMemType =
+#if defined(_WIN32) || defined(_WIN64)
+        m_memType == D3D9_MEMORY  ? MSDK_STRING("d3d")
+#else
         m_memType == D3D9_MEMORY  ? MSDK_STRING("vaapi")
+#endif
         : (m_memType == D3D11_MEMORY ? MSDK_STRING("d3d11")
         : MSDK_STRING("system"));
     msdk_printf(MSDK_STRING("Memory type\t\t%s\n"), sMemType);

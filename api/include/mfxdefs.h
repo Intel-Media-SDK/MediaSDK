@@ -54,8 +54,13 @@ extern "C"
   #define __INT64   long long
   #define __UINT64  unsigned long long
 
-    #define MFX_CDECL
-    #define MFX_STDCALL
+#ifdef _WIN32
+  #define MFX_CDECL __cdecl
+  #define MFX_STDCALL __stdcall
+#else
+  #define MFX_CDECL
+  #define MFX_STDCALL
+#endif /* _WIN32 */
 
 #define MFX_INFINITE 0xFFFFFFFF
 

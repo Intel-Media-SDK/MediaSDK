@@ -20,6 +20,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #ifndef __AVC_STRUCTURES_H__
 #define __AVC_STRUCTURES_H__
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
 #include <string>
 #include <string.h>
 #include <vector>

@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "vm/so_defs.h"
 #include <dlfcn.h>
@@ -39,3 +40,4 @@ void msdk_so_free(msdk_so_handle handle)
     dlclose(handle);
 }
 
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

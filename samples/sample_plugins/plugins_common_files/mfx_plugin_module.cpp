@@ -25,7 +25,11 @@ extern "C"
 {
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+    #define MSDK_PLUGIN_API(ret_type) __declspec(dllexport) ret_type MFX_CDECL
+#else
     #define MSDK_PLUGIN_API(ret_type) ret_type MFX_CDECL
+#endif
 
 MSDK_PLUGIN_API(MFXDecoderPlugin*) mfxCreateDecoderPlugin() {
     if (!g_PluginModule.CreateDecoderPlugin) {

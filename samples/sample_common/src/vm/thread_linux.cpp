@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include <new> // std::bad_alloc
 #include <stdio.h> // setrlimit
@@ -315,3 +316,4 @@ mfxU32 msdk_get_current_pid()
     return syscall(SYS_getpid);
 }
 
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

@@ -863,7 +863,7 @@ int main(int argc, msdk_char *argv[])
                     extBuffPtrStorage.push_back((mfxExtBuffer *)&m_ProcAmpData[pOutSurf]);
                     m_extBuffPtrStorageForOutputSurf[pOutSurf] = extBuffPtrStorage;
                     pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
-                    pOutSurf->Data.NumExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
+                    pOutSurf->Data.NumExtParam = (mfxU16)m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
                 nOutFrames++;
 #endif
@@ -1050,7 +1050,7 @@ int main(int argc, msdk_char *argv[])
                     extBuffPtrStorage.push_back((mfxExtBuffer *)&m_ProcAmpData[pOutSurf]);
                     m_extBuffPtrStorageForOutputSurf[pOutSurf] = extBuffPtrStorage;
                     pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
-                    pOutSurf->Data.NumExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
+                    pOutSurf->Data.NumExtParam = (mfxU16)m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
                 nOutFrames++;
 #endif

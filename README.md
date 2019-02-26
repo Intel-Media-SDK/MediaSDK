@@ -51,7 +51,7 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 
 # System requirements
 
-**Operating System:** Linux
+**Operating System:** Linux , Windows (not all features are supported in Windows build - see Known Limitations for details)
 
 **Software:**
 * [LibVA](https://github.com/intel/libva)
@@ -125,6 +125,8 @@ Once Media SDK was built with ITT support, enable it in a runtime creating per-u
 ```sh
 Output=0x10
 ```
+# Known limitations
+Windows build contains only samples and dispatcher library. MediaSDK library DLL is provided with Windows GFX driver.
 
 # Recommendations
 

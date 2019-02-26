@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -39,7 +39,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #if (MFX_VERSION >= 1026)
 #define ENABLE_MCTF
+#if defined(MFX_VERSION_NEXT) && (MFX_VERSION >= MFX_VERSION_NEXT)
+//---MCTF, extended interface
 #undef ENABLE_MCTF_EXT
+#endif
 enum {MCTF_BITRATE_MULTIPLIER = 100000};
 #endif
 

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -173,7 +173,8 @@ void TranscodingSample::PrintHelp()
 #endif //ENABLE_MCTF_EXT
 #endif //ENABLE_MCTF
 
-    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as the come (by resetting components)\n"));
+    msdk_printf(MSDK_STRING("  -robust       Recover from gpu hang errors as they come (by resetting components)\n"));
+    msdk_printf(MSDK_STRING("  -robust:soft  Recover from gpu hang errors by inserting an IDR\n"));
 
     msdk_printf(MSDK_STRING("  -async        Depth of asynchronous pipeline. default value 1\n"));
     msdk_printf(MSDK_STRING("  -join         Join session with other session(s), by default sessions are not joined\n"));
@@ -188,6 +189,8 @@ void TranscodingSample::PrintHelp()
 
     msdk_printf(MSDK_STRING("  -ext_allocator    Force usage of external allocators\n"));
     msdk_printf(MSDK_STRING("  -sys          Force usage of external system allocator\n"));
+    msdk_printf(MSDK_STRING("  -vpp::sys     Set vpp output to system memory\n"));
+    msdk_printf(MSDK_STRING("  -vpp::vid     Set vpp output to video memory\n"));
     msdk_printf(MSDK_STRING("  -fps <frames per second>\n"));
     msdk_printf(MSDK_STRING("                Transcoding frame rate limit\n"));
     msdk_printf(MSDK_STRING("  -pe           Set encoding plugin for this particular session.\n"));
@@ -198,7 +201,6 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                Direct GUID number can be used as well\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (encoding options):\n"));
-    MOD_SMT_PRINT_HELP;
     msdk_printf(MSDK_STRING("  -b <Kbits per second>\n"));
     msdk_printf(MSDK_STRING("                Encoded bit rate, valid for H.264, MPEG2 and MVC encoders\n"));
     msdk_printf(MSDK_STRING("  -bm           Bitrate multiplier. Use it when required bitrate isn't fit into 16-bit\n"));
@@ -211,7 +213,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                Forces decoder output framerate to be set to provided value (overwriting actual framerate from decoder)\n"));
     msdk_printf(MSDK_STRING("  -override_encoder_framerate <framerate> \n"));
     msdk_printf(MSDK_STRING("                Overwrites framerate of stream going into encoder input with provided value (this option does not enable FRC, it just ovewrites framerate value)\n"));
-
+    msdk_printf(MSDK_STRING("  -override_encoder_picstruct <picstruct> \n"));
+    msdk_printf(MSDK_STRING("                Overwrites encoder picstruct with specific value"));
     msdk_printf(MSDK_STRING("  -u <usage>    Target usage. Valid for H.265, H.264, MPEG2 and MVC encoders. Expected values:\n"));
     msdk_printf(MSDK_STRING("                veryslow(quality), slower, slow, medium(balanced), fast, faster, veryfast(speed)\n"));
     msdk_printf(MSDK_STRING("  -q <quality>  Quality parameter for JPEG encoder; in range [1,100], 100 is the best quality\n"));
@@ -223,6 +226,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                May be 1 in the case when -mss option is specified \n"));
     msdk_printf(MSDK_STRING("  -la_ext       Use external LA plugin (compatible with h264 & hevc encoders)\n"));
     msdk_printf(MSDK_STRING("  -vbr          Variable bitrate control\n"));
+    msdk_printf(MSDK_STRING("  -cbr          Constant bitrate control\n"));
     msdk_printf(MSDK_STRING("  -hrd <KBytes> Maximum possible size of any compressed frames \n"));
     msdk_printf(MSDK_STRING("  -wb <Kbits per second>\n"));
     msdk_printf(MSDK_STRING("                Maximum bitrate for sliding window\n"));
@@ -273,7 +277,6 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -FRC::PT      Enables FRC filter with Preserve Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::DT      Enables FRC filter with Distributed Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::INTERP  Enables FRC filter with Frame Interpolation algorithm\n"));
-    msdk_printf(MSDK_STRING("     NOTE: -FRC filters do not work with -i::sink pipelines !!!\n"));
     msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210   Forces encoder input to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2   Forces decoder output to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provide d\n"));
@@ -284,9 +287,17 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -field_processing t2t|t2b|b2t|b2b|fr2fr - Field Copy feature\n"));
     msdk_printf(MSDK_STRING("  -WeightedPred::default|implicit       Enambles weighted prediction usage\n"));
     msdk_printf(MSDK_STRING("  -WeightedBiPred::default|implicit     Enambles weighted bi-prediction usage\n"));
+    msdk_printf(MSDK_STRING("  -ir_type               - Intra refresh type. 0 - no refresh, 1 - vertical refresh, 2 - horisontal refresh, 3 - slice refresh\n"));
+    msdk_printf(MSDK_STRING("  -ir_cycle_size         - Number of pictures within refresh cycle starting from 2\n"));
+    msdk_printf(MSDK_STRING("  -ir_qp_delta           - QP difference for inserted intra MBs. This is signed value in [-51, 51] range\n"));
+    msdk_printf(MSDK_STRING("  -ir_cycle_dist         - Distance between the beginnings of the intra-refresh cycles in frames\n"));
+    msdk_printf(MSDK_STRING("  -LowDelayBRC           - strictly obey average frame size set by MaxKbps\n"));
+    msdk_printf(MSDK_STRING("  -amfs:<on,off>         - adaptive max frame size. If set on, P or B frame size can exceed MaxFrameSize when the scene change is detected.\
+                            It can benefit the video quality \n"));
+    msdk_printf(MSDK_STRING("  -mfs                   - maximum frame size in bytes. Supported only with h264 and hevc codec for VBR mode.\n"));
 
 #if (MFX_VERSION >= 1024)
-    msdk_printf(MSDK_STRING("  -extbrc:<on,off,implicit>           Enables external BRC for AVC and HEVC encoders"));
+    msdk_printf(MSDK_STRING("  -extbrc::<on,off,implicit>           Enables external BRC for AVC and HEVC encoders\n"));
 #endif
 #if (MFX_VERSION >= 1026)
     msdk_printf(MSDK_STRING("  -ExtBrcAdaptiveLTR:<on,off>         Set AdaptiveLTR for implicit extbrc"));
@@ -309,6 +320,9 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -dec_postproc               Resize after decoder using direct pipe (should be used in decoder session)\n"));
     msdk_printf(MSDK_STRING("  -single_texture_d3d11       single texture mode for d3d11 allocator \n"));
 #endif //MFX_VERSION >= 1022
+    msdk_printf(MSDK_STRING("  -preset <default,dss,conference,gaming> Use particular preset for encoding parameters\n"));
+    msdk_printf(MSDK_STRING("  -pp                         Print preset parameters\n"));
+
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("ParFile format:\n"));
     msdk_printf(MSDK_STRING("  ParFile is extension of what can be achieved by setting pipeline in the command\n"));
@@ -407,6 +421,7 @@ CmdProcessor::CmdProcessor()
     DumpLogFileName.clear();
     shouldUseGreedyFormula=false;
     bRobustFlag = false;
+    bSoftRobustFlag = false;
 
 } //CmdProcessor::CmdProcessor()
 
@@ -478,6 +493,10 @@ mfxStatus CmdProcessor::ParseCmdLine(int argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-robust")))
         {
             bRobustFlag = true;
+        }
+        else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-robust:soft")))
+        {
+            bSoftRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-?")) )
         {
@@ -1042,7 +1061,9 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     if (m_nTimeout)
         InputParams.nTimeout = m_nTimeout;
     if (bRobustFlag)
-        InputParams.bRobustFlag = bRobustFlag;
+        InputParams.bRobustFlag = true;
+    if (bSoftRobustFlag)
+        InputParams.bSoftRobustFlag = true;
 
     InputParams.shouldUseGreedyFormula = shouldUseGreedyFormula;
 
@@ -1203,6 +1224,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust")))
         {
             InputParams.bRobustFlag = true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-robust:soft")))
+        {
+            InputParams.bSoftRobustFlag = true;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-threads")))
         {
@@ -1848,6 +1873,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         {
             InputParams.nRateControlMethod = MFX_RATECONTROL_VBR;
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-cbr")))
+        {
+            InputParams.nRateControlMethod = MFX_RATECONTROL_CBR;
+        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-bpyr")))
         {
             InputParams.bEnableBPyramid = true;
@@ -1892,7 +1921,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             i++;
             if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.dDecoderFrameRateOverride))
             {
-                PrintError(MSDK_STRING("-n \"%s\" is invalid"), argv[i]);
+                PrintError(MSDK_STRING("Framerate \"%s\" is invalid"), argv[i]);
                 return MFX_ERR_UNSUPPORTED;
             }
         }
@@ -1902,7 +1931,17 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             i++;
             if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.dEncoderFrameRateOverride))
             {
-                PrintError(MSDK_STRING("-n \"%s\" is invalid"), argv[i]);
+                PrintError(MSDK_STRING("Framerate \"%s\" is invalid"), argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-override_encoder_picstruct")))
+        {
+            VAL_CHECK(i + 1 == argc, i, argv[i]);
+            i++;
+            if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.EncoderPicstructOverride))
+            {
+                PrintError(MSDK_STRING("Picstruct \"%s\" is invalid"), argv[i]);
                 return MFX_ERR_UNSUPPORTED;
             }
         }
@@ -1990,7 +2029,88 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
 
 #endif
-        MOD_SMT_PARSE_INPUT
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-pp")))
+        {
+            InputParams.shouldPrintPresets = true;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-preset")))
+        {
+            msdk_char presetName[MSDK_MAX_FILENAME_LEN];
+            VAL_CHECK(i + 1 >= argc, i, argv[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], presetName))
+            {
+                PrintError(MSDK_STRING("Preset Name is not defined"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+
+            InputParams.PresetMode = CPresetManager::PresetNameToMode(presetName);
+            if (InputParams.PresetMode == PRESET_MAX_MODES)
+            {
+                PrintError(MSDK_STRING("Preset Name is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ir_type")))
+        {
+            VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.IntRefType))
+            {
+                PrintError( MSDK_STRING("Intra refresh type is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ir_cycle_size")))
+        {
+            VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.IntRefCycleSize))
+            {
+                PrintError( MSDK_STRING("IR refresh cycle size param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ir_qp_delta")))
+        {
+            VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.IntRefQPDelta))
+            {
+                PrintError( MSDK_STRING("IR QP delta param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-ir_cycle_dist")))
+        {
+            VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.IntRefCycleDist))
+            {
+                PrintError( MSDK_STRING("IR cycle distance param is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-LowDelayBRC")))
+        {
+            InputParams.LowDelayBRC = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-amfs:on")))
+        {
+            InputParams.nAdaptiveMaxFrameSize = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-amfs:off")))
+        {
+            InputParams.nAdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-mfs")))
+        {
+            VAL_CHECK(i + 1 >= argc, i, argv[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMaxFrameSize))
+            {
+                PrintError( MSDK_STRING("MaxFrameSize is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
         else if((stsExtBuf = CVPPExtBuffersStorage::ParseCmdLine(argv,argc,i,&InputParams,skipped))
             !=MFX_ERR_MORE_DATA)
         {
@@ -2141,26 +2261,24 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     }
 
     // valid target usage range is: [MFX_TARGETUSAGE_BEST_QUALITY .. MFX_TARGETUSAGE_BEST_SPEED] (at the moment [1..7])
-    if ((InputParams.nTargetUsage < MFX_TARGETUSAGE_BEST_QUALITY) ||
+    // If target usage is kept unknown - presets manager will fill in proper value
+    if ((InputParams.nTargetUsage < MFX_TARGETUSAGE_UNKNOWN) ||
         (InputParams.nTargetUsage > MFX_TARGETUSAGE_BEST_SPEED) )
     {
-        if (InputParams.nTargetUsage == MFX_TARGETUSAGE_UNKNOWN)
-        {
-            // if user did not specified target usage - use balanced
-            InputParams.nTargetUsage = MFX_TARGETUSAGE_BALANCED;
-        }
-        else
-        {
-            PrintError(NULL,"Unsupported target usage");
-            // report error if unsupported target usage was set
+            PrintError(MSDK_STRING("Unsupported target usage"));
             return MFX_ERR_UNSUPPORTED;
         }
-    }
 
     // Ignoring user-defined Async Depth for LA
     if (InputParams.nMaxSliceSize)
     {
         InputParams.nAsyncDepth = 1;
+    }
+
+    // For decoder session of inter-session case, let's set AsyncDepth to 4 by default
+    if (InputParams.eMode == Sink && !InputParams.nAsyncDepth)
+    {
+        InputParams.nAsyncDepth = 4;
     }
 
     if (InputParams.bLABRC && !(InputParams.libType & MFX_IMPL_HARDWARE_ANY))
@@ -2182,11 +2300,6 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
             PrintError(MSDK_STRING("Unsupported value of -lad parameter, must be >= 10, or 1 in case of -mss option!"));
             return MFX_ERR_UNSUPPORTED;
         }
-    }
-
-    if (InputParams.nRateControlMethod == 0)
-    {
-        InputParams.nRateControlMethod = MFX_RATECONTROL_CBR;
     }
 
     if ((InputParams.nMaxSliceSize) && !(InputParams.libType & MFX_IMPL_HARDWARE_ANY))
@@ -2257,12 +2370,6 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     if(InputParams.DecoderFourCC && InputParams.eMode != Native && InputParams.eMode != Sink)
     {
         msdk_printf(MSDK_STRING("WARNING: -dc option is used in session without decoder, this parameter will be ignored \n"));
-    }
-
-    if(InputParams.FRCAlgorithm && InputParams.eMode == Sink)
-    {
-        PrintError(NULL,MSDK_STRING("-FRC option should not be used in -o::sink pipelines \n"));
-        return MFX_ERR_UNSUPPORTED;
     }
 
     if(InputParams.EncoderFourCC && InputParams.EncoderFourCC != MFX_FOURCC_NV12 &&

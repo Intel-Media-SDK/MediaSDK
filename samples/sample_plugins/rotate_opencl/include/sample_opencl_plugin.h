@@ -27,7 +27,12 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "rotate_plugin_api.h"
 #include "sample_defs.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "opencl_filter_dx9.h"
+#include "opencl_filter_dx11.h"
+#else
 #include "opencl_filter_va.h"
+#endif
 
 // msvc ignores throw function specifications used in cl.hpp
 #pragma warning(disable : 4290)
@@ -38,8 +43,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 //#define _interlockedbittestandset64    fake_set64
 //#define _interlockedbittestandreset64  fake_reset64
 
+#if !defined(_WIN32) && !defined(_WIN64)
 #include <va/va.h>
 #define CL_USE_DEPRECATED_OPENCL_1_1_APIS 1
+#endif
 
 #undef CL_VERSION_1_2
 #include "CL/cl.hpp"
@@ -198,7 +205,11 @@ protected: // variables
     bool m_bIsInOpaque;
     bool m_bIsOutOpaque;
 
+#if defined(_WIN32) || defined(_WIN64)
+    std::unique_ptr<OpenCLFilter> m_OpenCLFilter;
+#else
     std::unique_ptr<OpenCLFilterVA> m_OpenCLFilter;
+#endif
     std::unique_ptr<OpenCLRotator180Context> m_pOpenCLRotator180Context;
     mfxHDL m_device;
 

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -18,6 +18,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
 #include "mfx_samples_config.h"
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
 
 #include "sample_multi_transcode.h"
 
@@ -46,8 +49,6 @@ Launcher::~Launcher()
 
 CTranscodingPipeline* CreatePipeline()
 {
-    MOD_SMT_CREATE_PIPELINE;
-
     return new CTranscodingPipeline;
 }
 
@@ -85,7 +86,62 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     sts = VerifyCrossSessionsOptions();
     MSDK_CHECK_STATUS(sts, "VerifyCrossSessionsOptions failed");
 
-#if defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT) || defined(ANDROID)
+#if defined(_WIN32) || defined(_WIN64)
+    if (m_eDevType == MFX_HANDLE_D3D9_DEVICE_MANAGER)
+    {
+        m_pAllocParam.reset(new D3DAllocatorParams);
+        m_hwdev.reset(new CD3D9Device());
+        /* The last param set in vector always describe VPP+ENCODE or Only VPP
+         * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
+        if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
+        {
+            /* Rendering case */
+            sts = m_hwdev->Init(NULL, 1, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9) );
+            m_InputParamsArray[m_InputParamsArray.size() -1].m_hwdev = m_hwdev.get();
+        }
+        else /* NO RENDERING*/
+        {
+            sts = m_hwdev->Init(NULL, 0, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9) );
+        }
+        MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
+        sts = m_hwdev->GetHandle(MFX_HANDLE_D3D9_DEVICE_MANAGER, (mfxHDL*)&hdl);
+        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
+        // set Device Manager to external dx9 allocator
+        D3DAllocatorParams *pD3DParams = dynamic_cast<D3DAllocatorParams*>(m_pAllocParam.get());
+        pD3DParams->pManager =(IDirect3DDeviceManager9*)hdl;
+    }
+#if MFX_D3D11_SUPPORT
+    else if (m_eDevType == MFX_HANDLE_D3D11_DEVICE)
+    {
+
+        m_pAllocParam.reset(new D3D11AllocatorParams);
+        m_hwdev.reset(new CD3D11Device());
+        /* The last param set in vector always describe VPP+ENCODE or Only VPP
+         * So, if we want to do rendering we need to do pass HWDev to CTranscodingPipeline */
+        if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
+        {
+            /* Rendering case */
+            sts = m_hwdev->Init(NULL, 1, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11) );
+            m_InputParamsArray[m_InputParamsArray.size() -1].m_hwdev = m_hwdev.get();
+        }
+        else /* NO RENDERING*/
+        {
+            sts = m_hwdev->Init(NULL, 0, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11) );
+        }
+        MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
+        sts = m_hwdev->GetHandle(MFX_HANDLE_D3D11_DEVICE, (mfxHDL*)&hdl);
+        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
+        // set Device to external dx11 allocator
+        D3D11AllocatorParams *pD3D11Params = dynamic_cast<D3D11AllocatorParams*>(m_pAllocParam.get());
+        pD3D11Params->pDevice =(ID3D11Device*)hdl;
+
+        // All sessions use same allocator parameters, so we'll take settings for the 0 session and use it for all
+        // (bSingleTexture is set for all sessions of for no one in VerifyCrossSessionsOptions())
+        pD3D11Params->bUseSingleTexture = m_InputParamsArray[0].bSingleTexture;
+
+    }
+#endif
+#elif defined(LIBVA_X11_SUPPORT) || defined(LIBVA_DRM_SUPPORT) || defined(ANDROID)
     if (m_eDevType == MFX_HANDLE_VA_DISPLAY)
     {
         mfxI32  libvaBackend = 0;
@@ -111,6 +167,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
                 CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev.get());
                 pVAAPIParams->m_export_mode = vaapiAllocatorParams::CUSTOM_FLINK;
                 pVAAPIParams->m_exporter = dynamic_cast<vaapiAllocatorParams::Exporter*>(drmdev->getRenderer());
+
             }
             else if (params.libvaBackend == MFX_LIBVA_X11)
             {
@@ -186,6 +243,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     // create sessions, allocators
     for (i = 0; i < m_InputParamsArray.size(); i++)
     {
+        msdk_printf(MSDK_STRING("Session %d:\n"), i);
         std::unique_ptr<GeneralAllocator> pAllocator(new GeneralAllocator);
         sts = pAllocator->Init(m_pAllocParam.get());
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
@@ -761,7 +819,11 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
         if (MFX_IMPL_SOFTWARE != m_InputParamsArray[i].libType)
         {
             // TODO: can we avoid ifdef and use MFX_IMPL_VIA_VAAPI?
-#if defined(LIBVA_SUPPORT)
+#if defined(_WIN32) || defined(_WIN64)
+            m_eDevType = (MFX_IMPL_VIA_D3D11 == MFX_IMPL_VIA_MASK(m_InputParamsArray[i].libType))?
+                MFX_HANDLE_D3D11_DEVICE :
+                MFX_HANDLE_D3D9_DEVICE_MANAGER;
+#elif defined(LIBVA_SUPPORT)
             m_eDevType = MFX_HANDLE_VA_DISPLAY;
 #endif
         }
@@ -885,7 +947,11 @@ void Launcher::Close()
     }
 } // void Launcher::Close()
 
+#if defined(_WIN32) || defined(_WIN64)
+int _tmain(int argc, TCHAR *argv[])
+#else
 int main(int argc, char *argv[])
+#endif
 {
     mfxStatus sts;
     Launcher transcode;

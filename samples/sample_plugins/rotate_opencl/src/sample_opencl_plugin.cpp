@@ -78,7 +78,18 @@ mfxStatus Rotate::PluginInit(mfxCoreInterface *core)
     m_impl = par.Impl;
 
     mfxHDL hdl = 0;
+#if defined(_WIN32) || defined(_WIN64)
+    if (MFX_IMPL_VIA_MASK(m_impl) == MFX_IMPL_VIA_D3D9) {
+        sts = m_pmfxCore->GetHandle(m_pmfxCore->pthis, MFX_HANDLE_D3D9_DEVICE_MANAGER, &m_device);
+    }
+    else if (MFX_IMPL_VIA_MASK(m_impl) == MFX_IMPL_VIA_D3D11) {
+        sts = m_pmfxCore->GetHandle(m_pmfxCore->pthis, MFX_HANDLE_D3D11_DEVICE, &m_device);
+    } else {
+        hdl = 0;
+    }
+#else
     sts = m_pmfxCore->GetHandle(m_pmfxCore->pthis, MFX_HANDLE_VA_DISPLAY, &m_device);
+#endif
 
     // SW lib is used if GetHandle return MFX_ERR_NOT_FOUND
     MSDK_IGNORE_MFX_STS(sts, MFX_ERR_NOT_FOUND);
@@ -338,10 +349,23 @@ mfxStatus Rotate::Init(mfxVideoParam *mfxParam)
         // init OpenCLFilter
         cl_int error = CL_SUCCESS;
 
+#if defined(_WIN32) || defined(_WIN64)
+        if (MFX_IMPL_VIA_MASK(m_impl) == MFX_IMPL_VIA_D3D11) {
+             m_OpenCLFilter.reset(new OpenCLFilterDX11());
+        } else {
+            m_OpenCLFilter.reset(new OpenCLFilterDX9());
+        }
+        error = m_OpenCLFilter.get()->AddKernel(readFile("ocl_rotate.cl").c_str(), "rotate_Y", "rotate_UV");
+        if (error) return MFX_ERR_DEVICE_FAILED;
+
+        error = m_OpenCLFilter.get()->OCLInit(m_device);
+
+#else
         m_OpenCLFilter.reset(new OpenCLFilterVA());
         error = m_OpenCLFilter.get()->AddKernel(readFile("ocl_rotate.cl").c_str(), "rotate_Y", "rotate_UV");
         if (error) return MFX_ERR_DEVICE_FAILED;
         error = m_OpenCLFilter.get()->OCLInit(m_device);
+#endif
         if (error)
         {
             error = CL_SUCCESS;
@@ -422,10 +446,17 @@ mfxStatus Rotate::SetAllocator(mfxFrameAllocator * pAlloc)
 
 mfxStatus Rotate::SetHandle(mfxHandleType type, mfxHDL hdl)
 {
+#if defined(_WIN32) || defined(_WIN64)
+    if (MFX_HANDLE_D3D9_DEVICE_MANAGER == type)
+    {
+        m_device = hdl;
+    }
+#else
     if (MFX_HANDLE_VA_DISPLAY == type)
     {
         m_device = hdl;
     }
+#endif
     return MFX_ERR_NONE;
 }
 

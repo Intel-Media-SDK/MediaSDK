@@ -96,6 +96,7 @@ struct sInputParams
     mfxU16  nAsyncDepth; // asyncronous queue
     mfxU16  nTimeout; // timeout in seconds
     mfxU16  gpuCopy; // GPU Copy mode (three-state option)
+    bool    bSoftRobustFlag;
     mfxU16  nThreadsNum;
     mfxI32  SchedulingType;
     mfxI32  Priority;
@@ -305,6 +306,7 @@ protected: // variables
     mfxU16                  m_diMode;
     bool                    m_bVppIsUsed;
     bool                    m_bVppFullColorRange;
+    bool                    m_bSoftRobustFlag;
     std::vector<msdk_tick>  m_vLatency;
 
     msdk_tick               m_startTick;

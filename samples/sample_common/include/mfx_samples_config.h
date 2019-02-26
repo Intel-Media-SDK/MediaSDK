@@ -20,5 +20,4 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #ifndef __MFX_SAMPLES_CONFIG__
 #define __MFX_SAMPLES_CONFIG__
 
-
 #endif //__MFX_SAMPLES_CONFIG__
