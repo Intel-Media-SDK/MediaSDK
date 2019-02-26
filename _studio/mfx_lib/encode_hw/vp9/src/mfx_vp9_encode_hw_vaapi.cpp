@@ -188,7 +188,7 @@ namespace MfxHwVP9Encode
         for (mfxU16 i = 0; i < 2; i ++)
             pps.mode_lf_delta[i] = framePar.lfModeDelta[i];
 
-        pps.ref_flags.bits.temporal_id = static_cast<mfxU8>(framePar.temporalLayer); //Temporal scalability is not fully implemented yet
+        pps.ref_flags.bits.temporal_id = static_cast<mfxU8>(framePar.temporalLayer);
 
         pps.bit_offset_ref_lf_delta         = offsets.BitOffsetForLFRefDelta;
         pps.bit_offset_mode_lf_delta        = offsets.BitOffsetForLFModeDelta;
@@ -611,6 +611,32 @@ VAProfile ConvertGuidToVAAPIProfile(const GUID& guid)
     return VAProfileNone; /// Lowpower == OFF is not supported yet.
 }
 
+// this function is aimed to workaround all CAPS reporting problems in driver
+void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
+{
+    caps.CodingLimitSet = 1;
+    caps.Color420Only =  1;
+
+#if (MFX_VERSION >= 1027)
+    if (platform >= MFX_HW_ICL)
+    {
+        caps.Color420Only = 0;
+        caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
+        caps.NumScalablePipesMinus1 = 0; // TODO: for now driver doesn't support multiple pipes scalability
+    }
+#else
+    std::ignore = platform;
+#endif
+
+    caps.ForcedSegmentationSupport = 1;
+    caps.AutoSegmentationSupport = 1;
+    caps.SegmentFeatureSupport = 1 << FEAT_QIDX | 1 << FEAT_LF_LVL;
+
+    caps.DynamicScaling = 1;
+
+    caps.EncodeFunc = 1;
+    caps.HybridPakFunc = 1;
+}
 
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VideoCORE* pCore,
@@ -631,7 +657,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_width  = width;
     m_height = height;
 
-    // set encoder CAPS on our own for now
     memset(&m_caps, 0, sizeof(m_caps));
 
     std::map<VAConfigAttribType, int> idx_map;
@@ -646,6 +671,9 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribFrameSizeToleranceSupport,
         VAConfigAttribProcessingRate,
         VAConfigAttribEncDynamicScaling,
+        VAConfigAttribEncMacroblockInfo,
+        VAConfigAttribEncMaxRefFrames,
+        VAConfigAttribEncSkipFrame,
     };
     std::vector<VAConfigAttrib> attrs;
 
@@ -666,15 +694,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
                           (int)attrs.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    m_caps.CodingLimitSet = 1;
-    m_caps.Color420Only =  1; // See DDI
-
-    if (m_platform >= MFX_HW_ICL)
-    {
-        m_caps.Color420Only = 0;
-        m_caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
-        m_caps.NumScalablePipesMinus1 = 0; // TODO: for now driver doesn't support multiple pipes scalability
-    }
     if (attrs[idx_map[VAConfigAttribRTFormat]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
         m_caps.YUV422ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV422 ? 1 : 0;
@@ -704,9 +723,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.TemporalLayerRateCtrl = rateControlConf.bits.max_num_temporal_layers_minus1;
     }
 
-    m_caps.ForcedSegmentationSupport = 1;
-    m_caps.AutoSegmentationSupport = 1;
-
     if (attrs[idx_map[VAConfigAttribEncMacroblockInfo]].value != VA_ATTRIB_NOT_SUPPORTED &&
         attrs[idx_map[VAConfigAttribEncMacroblockInfo]].value)
         m_caps.SegmentFeatureSupport |= 1 << FEAT_QIDX;
@@ -723,7 +739,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.DynamicScaling = attrs[idx_map[VAConfigAttribEncDynamicScaling]].value;
     }
-    m_caps.DynamicScaling = 1; // TODO: remove hardcode when driver will report correct caps
 
     if (attrs[idx_map[VAConfigAttribFrameSizeToleranceSupport]].value != VA_ATTRIB_NOT_SUPPORTED)
         m_caps.UserMaxFrameSizeSupport  = attrs[idx_map[VAConfigAttribFrameSizeToleranceSupport]].value;
@@ -733,13 +748,12 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.FrameLevelRateCtrl = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
         m_caps.BRCReset = attrs[idx_map[VAConfigAttribProcessingRate]].value == VA_PROCESSING_RATE_ENCODE;
     }
-    m_caps.EncodeFunc = 1;
-    m_caps.HybridPakFunc = 1;
+
+    HardcodeCaps(m_caps, m_platform);
 
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(VideoCORE* core, GUID guid, mfxU32 width, mfxU32 height)
-
 
 mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
 {
@@ -1068,7 +1082,7 @@ mfxStatus VAAPIEncoder::Execute(
 
             configBuffers.push_back(m_ppsBufferId);
         }
-        //segmentation functionality is not fully implemented yet
+
         if (task.m_frameParam.segmentation == APP_SEGMENTATION)
         {
             // 4. Segmentation map
