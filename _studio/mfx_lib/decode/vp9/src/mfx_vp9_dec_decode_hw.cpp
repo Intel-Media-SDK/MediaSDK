@@ -294,10 +294,7 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_completedList(),
       m_firstSizes(),
       m_bs(),
-      m_baseQIndex(0),
-      m_y_dc_delta_q(0),
-      m_uv_dc_delta_q(0),
-      m_uv_ac_delta_q(0)
+      m_baseQIndex(0)
 {
     memset(&m_sizesOfRefFrame, 0, sizeof(m_sizesOfRefFrame));
     memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
@@ -1364,9 +1361,9 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
         //setup_quantization()
         {
             info.baseQIndex = bsReader.GetBits(QINDEX_BITS);
-            mfxI32 old_y_dc_delta_q = m_y_dc_delta_q;
-            mfxI32 old_uv_dc_delta_q = m_uv_dc_delta_q;
-            mfxI32 old_uv_ac_delta_q = m_uv_ac_delta_q;
+            mfxI32 old_y_dc_delta_q = info.y_dc_delta_q;
+            mfxI32 old_uv_dc_delta_q = info.uv_dc_delta_q;
+            mfxI32 old_uv_ac_delta_q = info.uv_ac_delta_q;
 
             if (bsReader.GetBit())
             {
@@ -1391,10 +1388,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
             }
             else
                 info.uv_ac_delta_q = 0;
-
-            m_y_dc_delta_q = info.y_dc_delta_q;
-            m_uv_dc_delta_q = info.uv_dc_delta_q;
-            m_uv_ac_delta_q = info.uv_ac_delta_q;
 
             if (old_y_dc_delta_q  != info.y_dc_delta_q  ||
                 old_uv_dc_delta_q != info.uv_dc_delta_q ||
