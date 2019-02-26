@@ -7004,19 +7004,19 @@ mfxU8 MfxHwH264Encode::ConvertMfxFrameType2SliceType(mfxU8 type)
 
 mfxU32 SliceDivider::GetFirstMbInSlice() const
 {
-    assert(m_currSliceFirstMbRow * m_numMbInRow < 0x100000000);
+    assert(m_currSliceFirstMbRow * m_numMbInRow < 0x10000000);
     return m_currSliceFirstMbRow * m_numMbInRow;
 }
 
 mfxU32 SliceDivider::GetNumMbInSlice() const
 {
-    assert(m_currSliceNumMbRow * m_numMbInRow < 0x100000000);
+    assert(m_currSliceNumMbRow * m_numMbInRow < 0x10000000);
     return m_currSliceNumMbRow * m_numMbInRow;
 }
 
 mfxU32 SliceDivider::GetNumSlice() const
 {
-    assert(0 < m_numSlice && m_numSlice < 0x100000000);
+    assert(0 < m_numSlice && m_numSlice < 0x10000000);
     return m_numSlice;
 }
 
