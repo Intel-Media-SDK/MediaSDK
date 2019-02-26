@@ -144,9 +144,6 @@ private:
     mfxBitstream m_bs;
 
     mfxI32 m_baseQIndex;
-    mfxI32 m_y_dc_delta_q;
-    mfxI32 m_uv_dc_delta_q;
-    mfxI32 m_uv_ac_delta_q;
 };
 
 #endif // _MFX_VP9_DECODE_HW_H_
