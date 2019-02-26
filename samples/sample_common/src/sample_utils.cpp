@@ -1259,6 +1259,17 @@ mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
     return MSDK_INVALID_SURF_IDX;
 }
 
+void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
+{
+    if (pSurfacesPool)
+    {
+        for (mfxU16 i = 0; i < nPoolSize; i++)
+        {
+            pSurfacesPool[i].Data.Locked = 0;
+        }
+    }
+}
+
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
 {
     mfxU32 SleepInterval = 10; // milliseconds
@@ -1456,6 +1467,15 @@ mfxU16 CalculateDefaultBitrate(mfxU32 nCodecId, mfxU32 nTargetUsage, mfxU32 nWid
 
     switch (nCodecId)
     {
+    case MFX_CODEC_HEVC :
+    {
+        fnc.AddPair(0, 0);
+        fnc.AddPair(25344, 225/1.3);
+        fnc.AddPair(101376, 1000/1.3);
+        fnc.AddPair(414720, 4000/1.3);
+        fnc.AddPair(2058240, 5000/1.3);
+        break;
+    }
     case MFX_CODEC_AVC :
         {
             fnc.AddPair(0, 0);

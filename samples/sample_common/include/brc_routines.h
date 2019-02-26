@@ -18,6 +18,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 #include "sample_defs.h"
 
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
+
 #if (MFX_VERSION >= 1024)
 #include "mfxbrc.h"
 

@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "opencl_filter_va.h"
 #include "sample_defs.h"
@@ -140,3 +141,4 @@ bool OpenCLFilterVA::EnqueueReleaseSurfaces(cl_mem* surfaces, int nSurfaces)
     return true;
 }
 
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

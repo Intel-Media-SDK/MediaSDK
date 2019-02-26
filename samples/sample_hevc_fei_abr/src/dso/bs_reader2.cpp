@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -70,22 +70,6 @@ bool File::UpdateBuffer(Bs8u*& start, Bs8u*& cur, Bs8u*& end, Bs32u keepBytes)
     cur = start + keepBytes;
 
     end += fread(end, 1, m_b.size() - (end - start), m_f);
-
-#if 0
-    printf("\n");
-    for (Bs32u i = 0; i < keepBytes; i++)
-        printf("%02X ", start[i]);
-    printf("\n");
-
-    for (Bs32u i = 0; i < (end - cur); i++)
-    {
-        if (i%16 == 0)
-            printf("\n");
-        printf("%02X ", cur[i]);
-    }
-    printf("\n");
-    fflush(stdout);
-#endif
 
     return true;
 }

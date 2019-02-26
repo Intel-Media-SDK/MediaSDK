@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "vm/atomic_defs.h"
 
@@ -60,3 +61,4 @@ mfxU32 msdk_atomic_dec32(volatile mfxU32 *pVariable)
     return msdk_atomic_add32(pVariable, (mfxU32)-1) + 1;
 }
 
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

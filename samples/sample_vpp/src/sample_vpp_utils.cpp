@@ -82,8 +82,10 @@ static
         return MSDK_STRING("RGB3");
     case MFX_FOURCC_RGB4:
         return MSDK_STRING("RGB4");
+#if !(defined(_WIN32) || defined(_WIN64))
     case MFX_FOURCC_RGBP:
         return MSDK_STRING("RGBP");
+#endif
     case MFX_FOURCC_YUV400:
         return MSDK_STRING("YUV400");
     case MFX_FOURCC_YUV411:
@@ -108,6 +110,12 @@ static
         return MSDK_STRING("AYUV");
     case MFX_FOURCC_I420:
         return MSDK_STRING("I420");
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+        return MSDK_STRING("Y210");
+    case MFX_FOURCC_Y410:
+        return MSDK_STRING("Y410");
+#endif
     default:
         return MSDK_STRING("Unknown");
     }
@@ -275,12 +283,20 @@ mfxStatus ParseGUID(msdk_char strPlgGuid[MSDK_MAX_FILENAME_LEN], mfxU8 DataGUID[
     for(i = 0; i != 16; i++)
     {
         hex = 0;
+#if defined(_WIN32) || defined(_WIN64)
+        if (1 != _stscanf_s(uid + 2*i, L"%2x", &hex))
+#else
         if (1 != sscanf(uid + 2*i, "%2x", &hex))
+#endif
         {
             msdk_printf(MSDK_STRING("Failed to parse plugin uid: %s"), uid);
             return MFX_ERR_UNKNOWN;
         }
+#if defined(_WIN32) || defined(_WIN64)
+        if (hex == 0 && (uid + 2*i != _tcsstr(uid + 2*i, L"00")))
+#else
         if (hex == 0 && (uid + 2*i != strstr(uid + 2*i, "00")))
+#endif
         {
             msdk_printf(MSDK_STRING("Failed to parse plugin uid: %s"), uid);
             return MFX_ERR_UNKNOWN;
@@ -1286,6 +1302,28 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, 4*w, MFX_ERR_MORE_DATA);
         }
     }
+#if (MFX_VERSION >= 1027)
+    else if (pInfo->FourCC == MFX_FOURCC_Y210)
+    {
+        ptr = (mfxU8*)(pData->Y16 + pInfo->CropX * 2) + pInfo->CropY * pitch;
+
+        for(i = 0; i < h; i++)
+        {
+            nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, 4*w, m_fSrc);
+            IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, 4*w, MFX_ERR_MORE_DATA);
+        }
+    }
+    else if (pInfo->FourCC == MFX_FOURCC_Y410)
+    {
+        ptr = (mfxU8*)(pData->Y410 + pInfo->CropX) + pInfo->CropY * pitch;
+
+        for(i = 0; i < h; i++)
+        {
+            nBytesRead = (mfxU32)fread(ptr + i * pitch, 1, 4*w, m_fSrc);
+            IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, 4*w, MFX_ERR_MORE_DATA);
+        }
+    }
+#endif
     else
     {
         return MFX_ERR_UNSUPPORTED;
@@ -1833,6 +1871,7 @@ mfxStatus CRawVideoWriter::WriteFrame(
             MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, 4*w, m_fDst), 4u*w, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
+#if !(defined(_WIN32) || defined(_WIN64))
     else if (pInfo->FourCC == MFX_FOURCC_RGBP)
     {
         MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
@@ -1855,6 +1894,7 @@ mfxStatus CRawVideoWriter::WriteFrame(
             MSDK_CHECK_NOT_EQUAL( fwrite(ptr + i * pitch, 1, w, m_fDst), w, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
+#endif
     else if (pInfo->FourCC == MFX_FOURCC_AYUV)
     {
         ptr = std::min( std::min(pData->Y, pData->U), std::min(pData->V, pData->A) );
@@ -1920,6 +1960,22 @@ mfxStatus GeneralWriter::Init(
             msdk_char out_buf[MSDK_MAX_FILENAME_LEN*4+20];
             msdk_char fname[MSDK_MAX_FILENAME_LEN];
 
+#if defined(_WIN32) || defined(_WIN64)
+            {
+                msdk_char drive[MSDK_MAX_FILENAME_LEN];
+                msdk_char dir[MSDK_MAX_FILENAME_LEN];
+                msdk_char ext[MSDK_MAX_FILENAME_LEN];
+
+                _tsplitpath_s(
+                    strFileName,
+                    drive,
+                    dir,
+                    fname,
+                    ext);
+
+                msdk_sprintf(out_buf, MSDK_STRING("%s%s%s_layer%i.yuv"), drive, dir, fname, did);
+            }
+#else
             {
                 msdk_strncopy_s(fname, MSDK_MAX_FILENAME_LEN, strFileName, MSDK_MAX_FILENAME_LEN - 1);
                 fname[MSDK_MAX_FILENAME_LEN - 1] = 0;
@@ -1930,6 +1986,7 @@ mfxStatus GeneralWriter::Init(
                 }
                 msdk_sprintf(out_buf, MSDK_STRING("%s_layer%i.yuv"), fname, did);
             }
+#endif
 
             sts = m_ofile[did]->Init(
                 (1 == didCount) ? strFileName : out_buf,
@@ -2002,6 +2059,38 @@ mfxStatus GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize, mfxF
 
 void PrintDllInfo()
 {
+#if defined(_WIN32) || defined(_WIN64)
+    HANDLE   hCurrent = GetCurrentProcess();
+    HMODULE *pModules;
+    DWORD    cbNeeded;
+    int      nModules;
+    if (NULL == EnumProcessModules(hCurrent, NULL, 0, &cbNeeded))
+        return;
+
+    nModules = cbNeeded / sizeof(HMODULE);
+
+    pModules = new HMODULE[nModules];
+    if (NULL == pModules)
+    {
+        return;
+    }
+    if (NULL == EnumProcessModules(hCurrent, pModules, cbNeeded, &cbNeeded))
+    {
+        delete []pModules;
+        return;
+    }
+
+    for (int i = 0; i < nModules; i++)
+    {
+        msdk_char buf[2048];
+        GetModuleFileName(pModules[i], buf, ARRAYSIZE(buf));
+        if (_tcsstr(buf, MSDK_STRING("libmfx")))
+        {
+            msdk_printf(MSDK_STRING("MFX dll         %s\n"),buf);
+        }
+    }
+    delete []pModules;
+#endif
 } // void PrintDllInfo()
 
 /* ******************************************************************* */

@@ -25,6 +25,32 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 typedef unsigned int (MFX_STDCALL * msdk_thread_callback)(void*);
 
+#if defined(_WIN32) || defined(_WIN64)
+
+#include <windows.h>
+#include <process.h>
+
+struct msdkMutexHandle
+{
+    CRITICAL_SECTION m_CritSec;
+};
+
+struct msdkSemaphoreHandle
+{
+    void* m_semaphore;
+};
+
+struct msdkEventHandle
+{
+    void* m_event;
+};
+
+struct msdkThreadHandle
+{
+    void* m_thread;
+};
+
+#else // #if defined(_WIN32) || defined(_WIN64)
 
 #include <pthread.h>
 #include <errno.h>
@@ -79,6 +105,7 @@ struct msdkThreadHandle
     pthread_t m_thread;
 };
 
+#endif // #if defined(_WIN32) || defined(_WIN64)
 
 class MSDKMutex: public msdkMutexHandle
 {
@@ -153,7 +180,9 @@ public:
     mfxStatus TimedWait(mfxU32 msec);
     mfxStatus GetExitCode();
 
+#if !defined(_WIN32) && !defined(_WIN64)
     friend void* msdk_thread_start(void* arg);
+#endif
 
 private:
     MSDKThread(const MSDKThread&);

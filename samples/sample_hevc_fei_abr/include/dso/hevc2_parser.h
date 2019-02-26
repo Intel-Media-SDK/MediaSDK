@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -64,9 +64,6 @@ template<class T> Bs32u CntBits(T f, Bs32u n = 0)
 }
 
 inline Bs32u CeilLog2(Bs32u x) { Bs32u l = 0; while (x > (1U << l)) l++; return l; }
-#if 0
-inline Bs32u FloorLog2(Bs32u x) { Bs32u l = 0; while (x >>= 1) ++l; return l; }
-#else
 inline Bs32u CountOnes(Bs32u x)
 {
     x -= ((x >> 1) & 0x55555555);
@@ -86,7 +83,7 @@ inline Bs32u FloorLog2(Bs32u x)
     return (CountOnes(x) - 1);
     //return CountOnes(x >> 1);
 }
-#endif
+
 template<class T> inline T CeilDiv(T x, T y) { return (x + y - 1) / y; }
 
 inline bool isSlice(NALU& nalu) {

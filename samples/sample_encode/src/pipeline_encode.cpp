@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -79,6 +79,7 @@ CEncTaskPool::CEncTaskPool()
     m_pmfxSession       = NULL;
     m_nTaskBufferStart  = 0;
     m_nPoolSize         = 0;
+    m_bGpuHangRecovery = false;
 }
 
 CEncTaskPool::~CEncTaskPool()
@@ -139,9 +140,17 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
     if (NULL != m_pTasks[m_nTaskBufferStart].EncSyncP)
     {
         sts = m_pmfxSession->SyncOperation(m_pTasks[m_nTaskBufferStart].EncSyncP, MSDK_WAIT_INTERVAL);
-        if (sts == MFX_ERR_GPU_HANG)
+        if (sts == MFX_ERR_GPU_HANG && m_bGpuHangRecovery)
         {
             bGpuHang = true;
+            {
+            for (mfxU32 i = 0; i < m_nPoolSize; i++)
+                if (m_pTasks[i].EncSyncP != NULL)
+                {
+                    sts = m_pmfxSession->SyncOperation(m_pTasks[i].EncSyncP, 0);//MSDK_WAIT_INTERVAL
+                }
+            }
+            ClearTasks();
             sts = MFX_ERR_NONE;
             msdk_printf(MSDK_STRING("GPU hang happened\n"));
         }
@@ -174,9 +183,10 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
             {
                 // find out if the error occurred in a VPP task to perform recovery procedure if applicable
                 sts = m_pmfxSession->SyncOperation(*m_pTasks[m_nTaskBufferStart].DependentVppTasks.begin(), 0);
-                if (sts == MFX_ERR_GPU_HANG)
+                if (sts == MFX_ERR_GPU_HANG && m_bGpuHangRecovery)
                 {
                     bGpuHang = true;
+                    ClearTasks();
                     sts = MFX_ERR_NONE;
                     msdk_printf(MSDK_STRING("GPU hang happened\n"));
                 }
@@ -257,6 +267,20 @@ void CEncTaskPool::Close()
     m_pmfxSession = NULL;
     m_nTaskBufferStart = 0;
     m_nPoolSize = 0;
+}
+
+void CEncTaskPool::SetGpuHangRecoveryFlag()
+{
+    m_bGpuHangRecovery = true;
+}
+
+void CEncTaskPool::ClearTasks()
+{
+    for (size_t i = 0; i < m_nPoolSize; i++)
+    {
+        m_pTasks[i].Reset();
+    }
+    m_nTaskBufferStart = 0;
 }
 
 sTask::sTask()
@@ -471,7 +495,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.CropW = pInParams->nDstWidth;
     m_mfxEncParams.mfx.FrameInfo.CropH = pInParams->nDstHeight;
 
-#if MFX_VERSION >= 1029
+    m_ExtHEVCTiles.NumTileRows = pInParams->nEncTileRows;
+    m_ExtHEVCTiles.NumTileColumns = pInParams->nEncTileCols;
+
+#if MFX_VERSION >= MFX_VERSION_NEXT
     m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
     m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
 #endif
@@ -602,8 +629,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
         || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
         || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality || pInParams->WinBRCSize
-        || pInParams->WinBRCMaxAvgKbps || pInParams->nTransformSkip)
-    {
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        || pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset
+#endif
+        || pInParams->WinBRCMaxAvgKbps || pInParams->nTransformSkip)    {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
             m_CodingOption3.GPB = pInParams->nGPB;
@@ -630,7 +659,21 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_CodingOption3.WinBRCSize = pInParams->WinBRCSize;
         m_CodingOption3.WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        if (pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset)
+        {
+            m_CodingOption3.DeblockingAlphaTcOffset = pInParams->DeblockingAlphaTcOffset;
+            m_CodingOption3.DeblockingBetaOffset = pInParams->DeblockingBetaOffset;
+        }
+#endif
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
+    }
+
+    if (m_ExtHEVCTiles.NumTileRows
+        && m_ExtHEVCTiles.NumTileColumns
+        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+    {
+        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCTiles);
     }
 
     // In case of HEVC when height and/or width divided with 8 but not divided with 16
@@ -972,7 +1015,7 @@ mfxStatus CEncodingPipeline::CreateAllocator()
             D3D11AllocatorParams *pd3dAllocParams = new D3D11AllocatorParams;
             MSDK_CHECK_POINTER(pd3dAllocParams, MFX_ERR_MEMORY_ALLOC);
             pd3dAllocParams->pDevice = reinterpret_cast<ID3D11Device *>(hdl);
-
+            pd3dAllocParams->bUseSingleTexture = m_bSingleTexture;
             m_pmfxAllocatorParams = pd3dAllocParams;
         }
         else
@@ -1112,6 +1155,9 @@ CEncodingPipeline::CEncodingPipeline()
     m_nFramesRead = 0;
     m_bFileWriterReset = false;
 
+    m_bSoftRobustFlag = false;
+    m_bSingleTexture = false;
+
     m_MVCflags = MVC_DISABLED;
     m_nNumView = 0;
 
@@ -1140,6 +1186,10 @@ CEncodingPipeline::CEncodingPipeline()
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
     m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
     m_ExtHEVCParam.Header.BufferSz = sizeof(m_ExtHEVCParam);
+
+    MSDK_ZERO_MEMORY(m_ExtHEVCTiles);
+    m_ExtHEVCTiles.Header.BufferId = MFX_EXTBUFF_HEVC_TILES;
+    m_ExtHEVCTiles.Header.BufferSz = sizeof(m_ExtHEVCTiles);
 
     MSDK_ZERO_MEMORY(m_ExtVP9Param);
     m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
@@ -1285,6 +1335,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     initPar.Version.Minor = 0;
 
     initPar.GPUCopy = pParams->gpuCopy;
+    m_bSingleTexture = pParams->bSingleTexture;
 
     // Init session
     if (pParams->bUseHWLib) {
@@ -1404,7 +1455,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     }
     // Determine if we should shift P010 surfaces
     bool readerShift = false;
-    if (pParams->FileInputFourCC == MFX_FOURCC_P010 || pParams->FileInputFourCC == MFX_FOURCC_P210 
+    if (pParams->FileInputFourCC == MFX_FOURCC_P010
+        || pParams->FileInputFourCC == MFX_FOURCC_P210
 #if (MFX_VERSION >= 1027)
         || pParams->FileInputFourCC == MFX_FOURCC_Y210
 #endif
@@ -1451,6 +1503,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // set memory type
     m_memType = pParams->memType;
     m_nMemBuffer = pParams->nMemBuf;
+
+    m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
     // create and init frame allocator
     sts = CreateAllocator();
@@ -1773,6 +1827,9 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
     sts = m_TaskPool.Init(&m_mfxSession, m_FileWriters.first, m_mfxEncParams.AsyncDepth, nEncodedDataBufferSize, m_FileWriters.second);
     MSDK_CHECK_STATUS(sts, "m_TaskPool.Init failed");
 
+    if (m_bSoftRobustFlag)
+        m_TaskPool.SetGpuHangRecoveryFlag();
+
     sts = FillBuffers();
     MSDK_CHECK_STATUS(sts, "FillBuffers failed");
 
@@ -1881,8 +1938,10 @@ mfxStatus CEncodingPipeline::GetFreeTask(sTask **ppTask)
     if (MFX_ERR_NOT_FOUND == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
-        if (sts == MFX_ERR_GPU_HANG)
+        if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
+            m_TaskPool.ClearTasks();
+            FreeSurfacePool(m_pEncSurfaces, m_EncResponse.NumFrameActual);
             m_bInsertIDR = true;
             sts = MFX_ERR_NONE;
         }
@@ -2239,9 +2298,11 @@ mfxStatus CEncodingPipeline::Run()
     while (MFX_ERR_NONE == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
-        if (sts == MFX_ERR_GPU_HANG)
+        if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_bInsertIDR = true;
+            m_TaskPool.ClearTasks();//may be not needed
+            FreeSurfacePool(m_pEncSurfaces, m_EncResponse.NumFrameActual);
             sts = MFX_ERR_NONE;
         }
     }
@@ -2347,7 +2408,11 @@ void CEncodingPipeline::PrintInfo()
     msdk_printf(MSDK_STRING("Target usage\t%s\n"), TargetUsageToStr(m_mfxEncParams.mfx.TargetUsage));
 
     const msdk_char* sMemType =
+#if defined(_WIN32) || defined(_WIN64)
+        m_memType == D3D9_MEMORY  ? MSDK_STRING("d3d")
+#else
         m_memType == D3D9_MEMORY  ? MSDK_STRING("vaapi")
+#endif
         : (m_memType == D3D11_MEMORY ? MSDK_STRING("d3d11")
         : MSDK_STRING("system"));
     msdk_printf(MSDK_STRING("Memory type\t%s\n"), sMemType);

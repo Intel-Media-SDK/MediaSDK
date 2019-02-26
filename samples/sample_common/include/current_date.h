@@ -22,5 +22,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define FILE_VERSION_STRING "1,0,0,0"
 #define FILTER_NAME_PREFIX ""
 #define FILTER_NAME_SUFFIX ""
+#define PRODUCT_COPYRIGHT "Copyright\xa9 2003-2019 Intel Corporation"
 #define PRODUCT_VERSION 1,0,0,0
 #define PRODUCT_VERSION_STRING "1,0,0,0"
