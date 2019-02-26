@@ -37,6 +37,12 @@ function( mfx_include_dirs )
     ${CMAKE_HOME_DIRECTORY}/contrib/cm/include
   )
 
+  if( Windows )
+    include_directories (
+      ${CMAKE_HOME_DIRECTORY}/windows/include
+    )
+  endif()
+
   set ( MSDK_STUDIO_ROOT ${CMAKE_HOME_DIRECTORY}/_studio PARENT_SCOPE )
   set ( MSDK_LIB_ROOT    ${CMAKE_HOME_DIRECTORY}/_studio/mfx_lib PARENT_SCOPE )
   set ( MSDK_UMC_ROOT    ${CMAKE_HOME_DIRECTORY}/_studio/shared/umc PARENT_SCOPE )

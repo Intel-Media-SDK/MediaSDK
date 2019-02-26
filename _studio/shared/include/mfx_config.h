@@ -31,7 +31,10 @@
     #endif
 #endif
 
-#if defined(ANDROID)
+#if defined(_WIN32) || defined(_WIN64)
+    #include "mfx_windows_defs.h"
+
+#elif defined(ANDROID)
     // we don't support config auto-generation on Android and have hardcoded
     // definition instead
     #include "mfx_android_defs.h"
@@ -49,7 +52,7 @@
         #endif
         #define MFX_ENABLE_VPP
     #endif
-#endif // #if defined(ANDROID)
+#endif // #if defined(_WIN32) || defined(_WIN64) || defined(ANDROID)
 
 // Here follows per-codec feature enable options which as of now we don't
 // want to expose on build system level since they are too detailed.
