@@ -28,9 +28,20 @@ include_directories (
 
 set( SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 # Optimized for processors with Intel SSE4.2
-set( defs "-D_Y8 -D_ARCH_EM64T" )
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set( defs "-D_Y8 -D_ARCH_EM64T" )
+else ()
+  set( defs "-D_P8 -D_ARCH_IA32" )
+endif()
+
 set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/asm_intel64/*.s" )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/asm_intel64/*.s" )
+else()
+  #file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/asm_ia32/*.s" )
+endif()
+
 list( APPEND sources ${srcs})
 enable_language(C ASM)
 set( CMAKE_ASM_SOURCE_FILE_EXTENSIONS s )

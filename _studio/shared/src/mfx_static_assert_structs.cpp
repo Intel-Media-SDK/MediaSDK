@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -6,10 +6,10 @@
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -187,7 +187,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtLAFrameStatistics    ,72   )
     #elif defined(LINUX32)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtLAControl            ,576  )
-        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxLAFrameInfo             ,496  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxLAFrameInfo             ,492  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtLAFrameStatistics    ,64   )
     #endif
 #endif //defined (__MFXLA_H__)
@@ -327,7 +327,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameId                   ,8   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameInfo                 ,68  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameData                 ,72  )
-        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameSurface1             ,160 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameSurface1             ,156 )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxInfoMFX                   ,136 )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxInfoVPP                   ,168 )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxVideoParam                ,196 )
@@ -338,7 +338,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPDenoise             ,12  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPDetail              ,12  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVPPProcAmp             ,40  )
-        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxEncodeStat                ,88  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxEncodeStat                ,80  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxDecodeStat                ,80  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxVPPStat                   ,72  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppAuxData             ,20  )
@@ -410,6 +410,7 @@
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64  )
 #endif
+
     #endif
 #endif //defined (__MFXSTRUCTURES_H__)
 
@@ -1300,7 +1301,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameData                       ,DataFlag                      ,70   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Info                          ,16   )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Data                          ,88   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameSurface1                   ,Data                          ,84   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,LowPower                      ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,BRCParamMultiplier            ,30   )
@@ -1480,8 +1481,8 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVPPProcAmp                   ,Saturation                    ,32   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncodeStat                      ,NumFrame                      ,64   )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncodeStat                      ,NumBit                        ,72   )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncodeStat                      ,NumCachedFrame                ,80   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncodeStat                      ,NumBit                        ,68   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxEncodeStat                      ,NumCachedFrame                ,76   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxDecodeStat                      ,NumFrame                      ,64   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxDecodeStat                      ,NumSkippedFrame               ,68   )
@@ -2418,7 +2419,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,InterCost                     ,20   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,DependencyCost                ,24   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,Layer                         ,28   )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,EstimatedRate                 ,80   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,EstimatedRate                 ,76   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAFrameStatistics            ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAFrameStatistics            ,NumAlloc                      ,48   )
@@ -2426,6 +2427,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAFrameStatistics            ,NumFrame                      ,52   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAFrameStatistics            ,FrameStat                     ,56   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAFrameStatistics            ,OutSurface                    ,60   )
+
     #endif
 #endif //defined (__MFXLA_H__)
 
