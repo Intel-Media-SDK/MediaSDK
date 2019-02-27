@@ -826,7 +826,7 @@ void CSmplYUVWriter::Close()
                 m_fDestMVC[i] = NULL;
             }
         }
-        delete m_fDestMVC;
+        delete [] m_fDestMVC;
         m_fDestMVC = NULL;
     }
 
