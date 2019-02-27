@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -24,6 +24,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <string>
 #include <sstream>
 #include <vector>
+#include <map>
+#include <stdexcept>
+#include <mutex>
 
 #include "mfxstructures.h"
 #include "mfxvideo.h"
@@ -36,7 +39,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/time_defs.h"
 #include "vm/atomic_defs.h"
 #include "vm/thread_defs.h"
-#include <map>
 
 #include "sample_types.h"
 
@@ -46,9 +48,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "avc_headers.h"
 #include "avc_nal_spl.h"
 
-#ifdef ENABLE_MCTF
-#include  <stdexcept>
-#endif
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
@@ -766,11 +765,11 @@ ParamT * GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = 
 {
     // map <pointer, busy-status>
     static std::map<ParamT*, bool> mfxFrameParamPool;
-    static MSDKMutex ExclusiveAccess;
+    static std::mutex ExclusiveAccess;
+
     typedef typename std::map<ParamT*, bool>::iterator map_iter;
 
-
-    AutomaticMutex guard(ExclusiveAccess);
+    std::lock_guard<std::mutex> guard(ExclusiveAccess);
     if (!pmfxSurface && !DeallocateAll)
         return NULL;
     if (DeallocateAll)
