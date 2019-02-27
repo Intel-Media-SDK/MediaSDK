@@ -28,32 +28,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/thread_defs.h"
 #include "sample_utils.h"
 
-MSDKMutex::MSDKMutex(void)
-{
-    int res = pthread_mutex_init(&m_mutex, NULL);
-    if (res) throw std::bad_alloc();
-}
-
-MSDKMutex::~MSDKMutex(void)
-{
-    pthread_mutex_destroy(&m_mutex);
-}
-
-mfxStatus MSDKMutex::Lock(void)
-{
-    return (pthread_mutex_lock(&m_mutex))? MFX_ERR_UNKNOWN: MFX_ERR_NONE;
-}
-
-mfxStatus MSDKMutex::Unlock(void)
-{
-    return (pthread_mutex_unlock(&m_mutex))? MFX_ERR_UNKNOWN: MFX_ERR_NONE;
-}
-
-int MSDKMutex::Try(void)
-{
-    return (pthread_mutex_trylock(&m_mutex))? 0: 1;
-}
-
 /* ****************************************************************************** */
 
 MSDKSemaphore::MSDKSemaphore(mfxStatus &sts, mfxU32 count):

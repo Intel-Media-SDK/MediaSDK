@@ -30,11 +30,6 @@ typedef unsigned int (MFX_STDCALL * msdk_thread_callback)(void*);
 #include <windows.h>
 #include <process.h>
 
-struct msdkMutexHandle
-{
-    CRITICAL_SECTION m_CritSec;
-};
-
 struct msdkSemaphoreHandle
 {
     void* m_semaphore;
@@ -56,11 +51,6 @@ struct msdkThreadHandle
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-
-struct msdkMutexHandle
-{
-    pthread_mutex_t m_mutex;
-};
 
 struct msdkSemaphoreHandle
 {
@@ -106,39 +96,6 @@ struct msdkThreadHandle
 };
 
 #endif // #if defined(_WIN32) || defined(_WIN64)
-
-class MSDKMutex: public msdkMutexHandle
-{
-public:
-    MSDKMutex(void);
-    ~MSDKMutex(void);
-
-    mfxStatus Lock(void);
-    mfxStatus Unlock(void);
-    int Try(void);
-
-private:
-    MSDKMutex(const MSDKMutex&);
-    void operator=(const MSDKMutex&);
-};
-
-class AutomaticMutex
-{
-public:
-    AutomaticMutex(MSDKMutex& mutex);
-    ~AutomaticMutex(void);
-
-private:
-    mfxStatus Lock(void);
-    mfxStatus Unlock(void);
-
-    MSDKMutex& m_rMutex;
-    bool m_bLocked;
-
-private:
-    AutomaticMutex(const AutomaticMutex&);
-    void operator=(const AutomaticMutex&);
-};
 
 class MSDKSemaphore: public msdkSemaphoreHandle
 {
