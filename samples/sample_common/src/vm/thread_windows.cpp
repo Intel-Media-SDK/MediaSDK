@@ -24,35 +24,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/thread_defs.h"
 #include <new>
 
-MSDKMutex::MSDKMutex(void)
-{
-    InitializeCriticalSection(&m_CritSec);
-}
-
-MSDKMutex::~MSDKMutex(void)
-{
-    DeleteCriticalSection(&m_CritSec);
-}
-
-mfxStatus MSDKMutex::Lock(void)
-{
-    EnterCriticalSection(&m_CritSec);
-    return MFX_ERR_NONE;
-}
-
-mfxStatus MSDKMutex::Unlock(void)
-{
-    LeaveCriticalSection(&m_CritSec);
-    return MFX_ERR_NONE;
-}
-
-int MSDKMutex::Try(void)
-{
-    return TryEnterCriticalSection(&m_CritSec);
-}
-
-/* ****************************************************************************** */
-
 MSDKSemaphore::MSDKSemaphore(mfxStatus &sts, mfxU32 count)
 {
     sts = MFX_ERR_NONE;
