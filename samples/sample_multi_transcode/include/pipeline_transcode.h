@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -32,6 +32,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <map>
 #include <future>
 #include <chrono>
+#include <mutex>
 
 #include "sample_defs.h"
 #include "sample_utils.h"
@@ -547,15 +548,15 @@ namespace TranscodingSample
         mfxStatus         ReleaseSurfaceAll();
         void              CancelBuffering();
 
-        SafetySurfaceBuffer               *m_pNext;
+        SafetySurfaceBuffer         *m_pNext;
 
     protected:
 
-        MSDKMutex                 m_mutex;
-        std::list<SurfaceDescriptor>       m_SList;
-        bool m_IsBufferingAllowed;
-        MSDKEvent* pRelEvent;
-        MSDKEvent* pInsEvent;
+        std::mutex                   m_mutex;
+        std::list<SurfaceDescriptor> m_SList;
+        bool                         m_IsBufferingAllowed;
+        MSDKEvent*                   pRelEvent;
+        MSDKEvent*                   pInsEvent;
     private:
         DISALLOW_COPY_AND_ASSIGN(SafetySurfaceBuffer);
     };
@@ -846,8 +847,8 @@ namespace TranscodingSample
         bool                   m_bIsInit;
 
         mfxU32          m_NumFramesForReset;
-        MSDKMutex       m_mReset;
-        MSDKMutex       m_mStopSession;
+        std::mutex      m_mReset;
+        std::mutex      m_mStopSession;
         bool            m_bRobustFlag;
 
         bool isHEVCSW;

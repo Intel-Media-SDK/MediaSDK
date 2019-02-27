@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -623,11 +623,15 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
         {
             // Find new working surface
             pmfxSurface = GetFreeSurface(true, MSDK_SURFACE_WAIT_INTERVAL);
-            AutomaticMutex guard(m_mStopSession);
-            if (m_bForceStop)
             {
-                NoMoreFramesSignal();
-                return MFX_WRN_VALUE_NOT_CHANGED;
+                std::unique_lock<std::mutex> lock(m_mStopSession);
+                if (m_bForceStop)
+                {
+                    lock.unlock();
+                    // add surfaces in queue for all sinks
+                    NoMoreFramesSignal();
+                    return MFX_WRN_VALUE_NOT_CHANGED;
+                }
             }
             MSDK_CHECK_POINTER_SAFE(pmfxSurface, MFX_ERR_MEMORY_ALLOC, msdk_printf(MSDK_STRING("ERROR: No free surfaces in decoder pool (during long period)\n"))); // return an error if a free surface wasn't found
         }
@@ -904,7 +908,7 @@ void CTranscodingPipeline::NoMoreFramesSignal()
 
 void CTranscodingPipeline::StopSession()
 {
-    AutomaticMutex guard(m_mStopSession);
+    std::lock_guard<std::mutex> guard(m_mStopSession);
     m_bForceStop = true;
 
     msdk_stringstream ss;
@@ -931,15 +935,16 @@ mfxStatus CTranscodingPipeline::Decode()
     bool bLastCycle = false;
     time_t start = time(0);
 
-    m_mStopSession.Lock();
-    if (m_bForceStop)
     {
-        m_mStopSession.Unlock();
-        // add surfaces in queue for all sinks
-        NoMoreFramesSignal();
-        return MFX_WRN_VALUE_NOT_CHANGED;
+        std::unique_lock<std::mutex> lock(m_mStopSession);
+        if (m_bForceStop)
+        {
+            lock.unlock();
+            // add surfaces in queue for all sinks
+            NoMoreFramesSignal();
+            return MFX_WRN_VALUE_NOT_CHANGED;
+        }
     }
-    m_mStopSession.Unlock();
 
     if (m_bUseOverlay)
     {
@@ -1147,14 +1152,16 @@ mfxStatus CTranscodingPipeline::Decode()
         // Do not exceed buffer length (it should be not longer than AsyncDepth after adding newly processed surface)
         while(pNextBuffer->GetLength()>=m_AsyncDepth)
         {
-            m_mStopSession.Lock();
-            if (m_bForceStop)
             {
-                m_mStopSession.Unlock();
-                NoMoreFramesSignal();
-                return MFX_WRN_VALUE_NOT_CHANGED;
+                std::unique_lock<std::mutex> lock(m_mStopSession);
+                if (m_bForceStop)
+                {
+                    lock.unlock();
+                    // add surfaces in queue for all sinks
+                    NoMoreFramesSignal();
+                    return MFX_WRN_VALUE_NOT_CHANGED;
+                }
             }
-            m_mStopSession.Unlock();
 
             pNextBuffer->WaitForSurfaceRelease(MSDK_SURFACE_WAIT_INTERVAL / 1000);
 
@@ -3974,14 +3981,14 @@ mfxFrameSurface1* CTranscodingPipeline::GetFreeSurface(bool isDec, mfxU64 timeou
     t.Start();
     do
     {
-        m_mStopSession.Lock();
-        if (m_bForceStop)
         {
-            m_mStopSession.Unlock();
-            msdk_printf(MSDK_STRING("WARNING: m_bForceStop is set, returning NULL ptr from GetFreeSurface\n"));
-            break;
+            std::lock_guard<std::mutex> lock(m_mStopSession);
+            if (m_bForceStop)
+            {
+                msdk_printf(MSDK_STRING("WARNING: m_bForceStop is set, returning NULL ptr from GetFreeSurface\n"));
+                break;
+            }
         }
-        m_mStopSession.Unlock();
 
         SurfPointersArray & workArray = isDec ? m_pSurfaceDecPool : m_pSurfaceEncPool;
 
@@ -4048,13 +4055,13 @@ void CTranscodingPipeline::UnPreEncAuxBuffer(PreEncAuxBuffer* pBuff)
 
 mfxU32 CTranscodingPipeline::GetNumFramesForReset()
 {
-    AutomaticMutex guard(m_mReset);
+    std::lock_guard<std::mutex> guard(m_mReset);
     return m_NumFramesForReset;
 }
 
 void CTranscodingPipeline::SetNumFramesForReset(mfxU32 nFrames)
 {
-    AutomaticMutex guard(m_mReset);
+    std::lock_guard<std::mutex> guard(m_mReset);
     m_NumFramesForReset = nFrames;
 }
 
@@ -4520,7 +4527,7 @@ SafetySurfaceBuffer::~SafetySurfaceBuffer()
 
 mfxU32 SafetySurfaceBuffer::GetLength()
 {
-    AutomaticMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
     return (mfxU32)m_SList.size();
 }
 
@@ -4539,7 +4546,7 @@ void SafetySurfaceBuffer::AddSurface(ExtendedSurface Surf)
     bool isBufferingAllowed = false;
 
     {
-        AutomaticMutex  guard(m_mutex);
+        std::lock_guard<std::mutex>  guard(m_mutex);
 
         isBufferingAllowed = m_IsBufferingAllowed;
         if (isBufferingAllowed)
@@ -4567,7 +4574,7 @@ void SafetySurfaceBuffer::AddSurface(ExtendedSurface Surf)
 
 mfxStatus SafetySurfaceBuffer::GetSurface(ExtendedSurface &Surf)
 {
-    AutomaticMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     // no ready surfaces
     if (0 == m_SList.size())
@@ -4587,7 +4594,8 @@ mfxStatus SafetySurfaceBuffer::GetSurface(ExtendedSurface &Surf)
 
 mfxStatus SafetySurfaceBuffer::ReleaseSurface(mfxFrameSurface1* pSurf)
 {
-    m_mutex.Lock();
+    std::unique_lock<std::mutex> lock(m_mutex);
+
     std::list<SurfaceDescriptor>::iterator it;
     for (it = m_SList.begin(); it != m_SList.end(); it++)
     {
@@ -4599,25 +4607,22 @@ mfxStatus SafetySurfaceBuffer::ReleaseSurface(mfxFrameSurface1* pSurf)
             if (0 == it->Locked)
             {
                 m_SList.erase(it);
-                m_mutex.Unlock();
+                lock.unlock();
 
                 // event operation should be out of synced context
                 pRelEvent->Signal();
             }
-            else
-            {
-                m_mutex.Unlock();
-            }
+
             return MFX_ERR_NONE;
         }
     }
-    m_mutex.Unlock();
-    return MFX_ERR_UNKNOWN;
 
+    return MFX_ERR_UNKNOWN;
 } // mfxStatus SafetySurfaceBuffer::ReleaseSurface(mfxFrameSurface1* pSurf)
+
 mfxStatus SafetySurfaceBuffer::ReleaseSurfaceAll()
 {
-    AutomaticMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     m_SList.clear();
     m_IsBufferingAllowed = true;
@@ -4627,7 +4632,7 @@ mfxStatus SafetySurfaceBuffer::ReleaseSurfaceAll()
 
 void SafetySurfaceBuffer::CancelBuffering()
 {
-    AutomaticMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
     m_IsBufferingAllowed=false;
 }
 
