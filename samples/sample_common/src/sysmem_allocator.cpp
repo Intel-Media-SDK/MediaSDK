@@ -284,28 +284,29 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
         return MFX_ERR_UNSUPPORTED;
     }
 
-    safe_array<mfxMemId> mids(new mfxMemId[request->NumFrameSuggested]);
-    if (!mids.get())
-        return MFX_ERR_MEMORY_ALLOC;
+    std::unique_ptr<mfxMemId[]> mids(new mfxMemId[request->NumFrameSuggested]);
 
     // allocate frames
     for (numAllocated = 0; numAllocated < request->NumFrameSuggested; numAllocated ++)
     {
         mfxStatus sts = m_pBufferAllocator->Alloc(m_pBufferAllocator->pthis,
-            nbytes + MSDK_ALIGN32(sizeof(sFrame)), request->Type, &(mids.get()[numAllocated]));
+            nbytes + MSDK_ALIGN32(sizeof(sFrame)), request->Type, &(mids[numAllocated]));
 
         if (MFX_ERR_NONE != sts)
             break;
 
         sFrame *fs;
-        sts = m_pBufferAllocator->Lock(m_pBufferAllocator->pthis, mids.get()[numAllocated], (mfxU8 **)&fs);
+        sts = m_pBufferAllocator->Lock(m_pBufferAllocator->pthis, mids[numAllocated], (mfxU8 **)&fs);
 
         if (MFX_ERR_NONE != sts)
             break;
 
         fs->id = ID_FRAME;
         fs->info = request->Info;
-        m_pBufferAllocator->Unlock(m_pBufferAllocator->pthis, mids.get()[numAllocated]);
+        sts = m_pBufferAllocator->Unlock(m_pBufferAllocator->pthis, mids[numAllocated]);
+
+        if (MFX_ERR_NONE != sts)
+            break;
     }
 
     // check the number of allocated frames
