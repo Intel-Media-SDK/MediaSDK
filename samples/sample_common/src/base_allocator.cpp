@@ -88,7 +88,6 @@ mfxStatus MFXFrameAllocator::GetHDL_(mfxHDL pthis, mfxMemId mid, mfxHDL *handle)
 
 BaseFrameAllocator::BaseFrameAllocator()
 {
-    mtx.reset(new MSDKMutex());
 }
 
 BaseFrameAllocator::~BaseFrameAllocator()
@@ -181,7 +180,7 @@ mfxStatus BaseFrameAllocator::AllocFrames(mfxFrameAllocRequest *request, mfxFram
 
 mfxStatus BaseFrameAllocator::FreeFrames(mfxFrameAllocResponse *response)
 {
-    AutomaticMutex lock(*mtx);
+    std::lock_guard<std::mutex> lock(mtx);
 
     if (response == 0)
         return MFX_ERR_INVALID_HANDLE;
@@ -219,7 +218,8 @@ mfxStatus BaseFrameAllocator::FreeFrames(mfxFrameAllocResponse *response)
 
 mfxStatus BaseFrameAllocator::Close()
 {
-    AutomaticMutex lock(*mtx);
+    std::lock_guard<std::mutex> lock(mtx);
+
     std::list<UniqueResponse> ::iterator i;
     for (i = m_ExtResponses.begin(); i!= m_ExtResponses.end(); i++)
     {
