@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -75,7 +75,7 @@ VC1Status DecodePictureHeader_Adv(VC1Context* pContext)
                     if(picLayerHeader->PTYPE)
                     {
                         //1111
-                        picLayerHeader->PTYPE = VC1_SKIPPED_FRAME;
+                        picLayerHeader->PTYPE = VC1_P_FRAME | VC1_SKIPPED_FRAME;
                     }
                     else
                     {
@@ -101,7 +101,7 @@ VC1Status DecodePictureHeader_Adv(VC1Context* pContext)
             picLayerHeader->PTYPE = VC1_P_FRAME;
         }
 
-        if(!(picLayerHeader->PTYPE == VC1_SKIPPED_FRAME))
+        if(!VC1_IS_SKIPPED(picLayerHeader->PTYPE))
         {
             if(seqLayerHeader->TFCNTRFLAG)
             {
@@ -175,7 +175,7 @@ VC1Status DecodePictureHeader_Adv(VC1Context* pContext)
             }
         }
 
-        if(!(picLayerHeader->PTYPE == VC1_SKIPPED_FRAME))
+        if(!VC1_IS_SKIPPED(picLayerHeader->PTYPE))
         {
             //rounding control
             VC1_GET_BITS(1,picLayerHeader->RNDCTRL);

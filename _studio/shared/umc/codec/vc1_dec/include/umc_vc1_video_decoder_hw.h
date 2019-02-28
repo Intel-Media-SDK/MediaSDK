@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -157,10 +157,21 @@ namespace UMC
 
             m_bLastFrameNeedDisplay = true;
 
-            if (VC1_SKIPPED_FRAME == pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE)
-                out_data->SetFrameType(D_PICTURE); // means skipped 
-            else
-                out_data->SetFrameType(I_PICTURE);
+            switch (pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE & VC1_BI_FRAME)
+            {
+                case  VC1_I_FRAME:
+                    out_data->SetFrameType(I_PICTURE);
+                    break;
+                case  VC1_P_FRAME:
+                    out_data->SetFrameType(P_PICTURE);
+                    break;
+                case  VC1_B_FRAME:
+                case  VC1_BI_FRAME:
+                    out_data->SetFrameType(B_PICTURE);
+                    break;
+                default:// unexpected type
+                    assert(0);
+            }
 
             if (UMC_OK == umcRes)
             {
