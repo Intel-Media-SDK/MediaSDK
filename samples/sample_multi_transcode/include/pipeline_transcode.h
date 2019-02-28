@@ -556,8 +556,8 @@ namespace TranscodingSample
         virtual ~SafetySurfaceBuffer();
 
         mfxU32            GetLength();
-        mfxStatus         WaitForSurfaceRelease(mfxU32 msec);
-        mfxStatus         WaitForSurfaceInsertion(mfxU32 msec);
+        void              WaitForSurfaceRelease(mfxU32 msec);
+        bool              WaitForSurfaceInsertion(mfxU32 msec);
         void              AddSurface(ExtendedSurface Surf);
         mfxStatus         GetSurface(ExtendedSurface &Surf);
         mfxStatus         ReleaseSurface(mfxFrameSurface1* pSurf);
@@ -571,8 +571,10 @@ namespace TranscodingSample
         std::mutex                   m_mutex;
         std::list<SurfaceDescriptor> m_SList;
         bool                         m_IsBufferingAllowed;
-        MSDKEvent*                   pRelEvent;
-        MSDKEvent*                   pInsEvent;
+        std::condition_variable      m_RelEvent;
+        bool                         m_bRelEventHappened;
+        std::condition_variable      m_InsEvent;
+        bool                         m_bInsEventHappened;
     private:
         DISALLOW_COPY_AND_ASSIGN(SafetySurfaceBuffer);
     };

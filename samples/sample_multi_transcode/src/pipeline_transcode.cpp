@@ -1271,7 +1271,7 @@ mfxStatus CTranscodingPipeline::Encode()
                 // Getting next frame
                 while (MFX_ERR_MORE_SURFACE == curBuffer->GetSurface(DecExtSurface))
                 {
-                    if (MFX_ERR_NONE != curBuffer->WaitForSurfaceInsertion(MSDK_SURFACE_WAIT_INTERVAL)) {
+                    if (!curBuffer->WaitForSurfaceInsertion(MSDK_SURFACE_WAIT_INTERVAL)) {
                         msdk_printf(MSDK_STRING("ERROR: timed out waiting surface from upstream component\n"));
                         return MFX_ERR_NOT_FOUND;
                     }
@@ -4568,23 +4568,16 @@ void DecreaseReference(mfxFrameData *ptr)
 }
 
 SafetySurfaceBuffer::SafetySurfaceBuffer(SafetySurfaceBuffer *pNext)
-    :m_pNext(pNext),
-     m_IsBufferingAllowed(true)
+    : m_pNext(pNext)
+    , m_IsBufferingAllowed(true)
+    , m_bRelEventHappened(false)
+    , m_bInsEventHappened(false)
 {
-    mfxStatus sts=MFX_ERR_NONE;
-    pRelEvent = new MSDKEvent(sts,false,false);
-    MSDK_CHECK_POINTER_NO_RET(pRelEvent);
-
-    pInsEvent = new MSDKEvent(sts,false,false);
-    MSDK_CHECK_POINTER_NO_RET(pInsEvent);
-
-} // SafetySurfaceBuffer::SafetySurfaceBuffer
+}
 
 SafetySurfaceBuffer::~SafetySurfaceBuffer()
 {
-    delete pRelEvent;
-    delete pInsEvent;
-} //SafetySurfaceBuffer::~SafetySurfaceBuffer()
+}
 
 mfxU32 SafetySurfaceBuffer::GetLength()
 {
@@ -4592,14 +4585,28 @@ mfxU32 SafetySurfaceBuffer::GetLength()
     return (mfxU32)m_SList.size();
 }
 
-mfxStatus SafetySurfaceBuffer::WaitForSurfaceRelease(mfxU32 msec)
+void SafetySurfaceBuffer::WaitForSurfaceRelease(mfxU32 msec)
 {
-    return pRelEvent->TimedWait(msec);
+    using namespace std::chrono;
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    if (m_RelEvent.wait_until(lock, system_clock::now() + milliseconds(msec), [this](){ return m_bRelEventHappened; }))
+        m_bRelEventHappened = false;
 }
 
-mfxStatus SafetySurfaceBuffer::WaitForSurfaceInsertion(mfxU32 msec)
+bool SafetySurfaceBuffer::WaitForSurfaceInsertion(mfxU32 msec)
 {
-    return pInsEvent->TimedWait(msec);
+    using namespace std::chrono;
+
+    std::unique_lock<std::mutex> lock(m_mutex);
+    if (m_InsEvent.wait_until(lock, system_clock::now() + milliseconds(msec), [this](){ return m_bInsEventHappened; }))
+    {
+        m_bInsEventHappened = false;
+
+        return true;
+    }
+
+    return false;
 }
 
 void SafetySurfaceBuffer::AddSurface(ExtendedSurface Surf)
@@ -4628,7 +4635,8 @@ void SafetySurfaceBuffer::AddSurface(ExtendedSurface Surf)
 
     if (isBufferingAllowed)
     {
-        pInsEvent->Signal();
+        m_bInsEventHappened = true;
+        m_InsEvent.notify_all();
     }
 
 } // SafetySurfaceBuffer::AddSurface(mfxFrameSurface1 *pSurf)
@@ -4668,10 +4676,11 @@ mfxStatus SafetySurfaceBuffer::ReleaseSurface(mfxFrameSurface1* pSurf)
             if (0 == it->Locked)
             {
                 m_SList.erase(it);
+                m_bRelEventHappened = true;
                 lock.unlock();
 
                 // event operation should be out of synced context
-                pRelEvent->Signal();
+                m_RelEvent.notify_all();
             }
 
             return MFX_ERR_NONE;
