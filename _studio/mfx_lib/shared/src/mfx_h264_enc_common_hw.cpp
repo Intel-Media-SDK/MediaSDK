@@ -8988,10 +8988,13 @@ std::vector<ENCODE_PACKEDHEADER_DATA> const & HeaderPacker::PackSlices(
         m_numMbPerSlice = 0;
     }
 
-    m_packedSlices.resize(numSlices);
-    if (m_sliceBuffer.size() < (numSlices * maxSliceHeaderSize))
+    if (numSlices)
     {
-        m_sliceBuffer.resize(numSlices * maxSliceHeaderSize);
+        m_packedSlices.resize(numSlices);
+        if (m_sliceBuffer.size() < (numSlices * maxSliceHeaderSize))
+        {
+            m_sliceBuffer.resize(numSlices * maxSliceHeaderSize);
+        }
     }
     Zero(m_sliceBuffer);
     Zero(m_packedSlices);
