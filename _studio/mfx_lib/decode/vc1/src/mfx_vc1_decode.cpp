@@ -49,7 +49,13 @@ static void SetFrameType(const UMC::VideoData &mediaData, mfxFrameSurface1 &surf
         case UMC::I_PICTURE:
             extFrameInfo->FrameType = MFX_FRAMETYPE_I;
             break;
-        // NONE_PICTURE, D_PICTURE (skipped)
+        case UMC::P_PICTURE:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_P;
+            break;
+        case UMC::B_PICTURE:
+            extFrameInfo->FrameType = MFX_FRAMETYPE_B;
+            break;
+        // NONE_PICTURE
         default:
             extFrameInfo->FrameType = MFX_FRAMETYPE_UNKNOWN;
     }
@@ -1072,7 +1078,7 @@ mfxStatus MFXVideoDECODEVC1::SelfDecodeFrame(mfxFrameSurface1 *surface_work, mfx
         if (((m_pVC1VideoDecoder->m_pContext->m_seqLayerHeader.RANGE_MAPY_FLAG)||
             (m_pVC1VideoDecoder->m_pContext->m_seqLayerHeader.RANGE_MAPUV_FLAG)||
             (m_pVC1VideoDecoder->m_pContext->m_seqLayerHeader.RANGERED))&&
-            (m_InternMediaDataOut.GetFrameType() != D_PICTURE)) // skipped picture
+            (!m_pVC1VideoDecoder->IsLastFrameSkipped())) // skipped picture
         {
             m_bIsNeedToProcFrame = false;
             return MFX_ERR_MORE_SURFACE;

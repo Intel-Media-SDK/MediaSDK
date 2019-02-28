@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -387,7 +387,7 @@ namespace UMC
             slparams.MBStartRow = 0;
             slparams.MBEndRow = m_pContext->m_seqLayerHeader.heightMB;
             m_pContext->m_picLayerHeader->CurrField = 0;
-            if (m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME)
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
             {
                 m_bIsSkippedFrame = true;
                 m_bIsReadyToProcess = false;
@@ -967,7 +967,7 @@ namespace UMC
                                          uint8_t*   pOriginalData,
                                          MediaDataEx::_MediaDataEx* pOrigStCodes)
         {
-            if (m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME)
+            if (VC1_IS_SKIPPED(m_pContext->m_picLayerHeader->PTYPE))
             {
                 m_bIsSkippedFrame = true;
                 m_bIsReadyToProcess = false;
@@ -1102,7 +1102,7 @@ namespace UMC
                                  uint8_t*   pOriginalData,
                                  MediaDataEx::_MediaDataEx* pOrigStCodes)
         {
-            if (this->m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME)
+            if (VC1_IS_SKIPPED(this->m_pContext->m_picLayerHeader->PTYPE))
             {
                 this->m_bIsSkippedFrame = true;
                 this->m_bIsReadyToProcess = false;
@@ -1167,7 +1167,7 @@ namespace UMC
             slparams.MBEndRow = this->m_pContext->m_seqLayerHeader.heightMB;
             this->m_pContext->m_picLayerHeader->CurrField = 0;
 
-            if (this->m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME)
+            if (VC1_IS_SKIPPED(this->m_pContext->m_picLayerHeader->PTYPE))
             {
                 this->m_bIsSkippedFrame = true;
                 this->m_bIsReadyToProcess = false;

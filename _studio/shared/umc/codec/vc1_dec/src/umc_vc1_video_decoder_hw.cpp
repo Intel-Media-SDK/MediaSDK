@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -364,7 +364,7 @@ Status VC1VideoDecoderHW::FillAndExecute(MediaData* in)
     pPackDescriptorChild->m_bIsFieldAbsent = false;
 
 
-    if ((pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE != VC1_SKIPPED_FRAME) &&
+    if ((!VC1_IS_SKIPPED(pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE)) &&
         (VC1_PROFILE_ADVANCED == m_pContext->m_seqLayerHeader.PROFILE))
     {
         GetStartCodes_HW(in, stShift);
@@ -389,7 +389,7 @@ Status VC1VideoDecoderHW::FillAndExecute(MediaData* in)
         if (mem_allocation_er == e_type)
             return UMC_ERR_NOT_ENOUGH_BUFFER;
     }
-    if (pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE != VC1_SKIPPED_FRAME)
+    if (!VC1_IS_SKIPPED(pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE))
     {
         if (UMC_OK != m_va->EndFrame())
             throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
@@ -437,7 +437,7 @@ FrameMemID  VC1VideoDecoderHW::ProcessQueuesForNextFrame(bool& isSkip, mfxU16& C
     if (pCurrDescriptor)
     {
         SetCorrupted(pCurrDescriptor, Corrupted);
-        if (pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME)
+        if (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))
         {
             isSkip = true;
             if (!pCurrDescriptor->isDescriptorValid())

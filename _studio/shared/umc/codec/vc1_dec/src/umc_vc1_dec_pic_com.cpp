@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -51,12 +51,7 @@ VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
     else
         picLayerHeader->RANGEREDFRM = 0;
 
-    if(pContext->m_FrameSize < SkFrameSize) //changed from 2
-    {
-        picLayerHeader->PTYPE = VC1_SKIPPED_FRAME;
-    }
-
-    else if(seqLayerHeader->MAXBFRAMES == 0)
+    if(seqLayerHeader->MAXBFRAMES == 0)
     {
         VC1_GET_BITS(1, picLayerHeader->PTYPE);//0 = I, 1 = P
     }
@@ -105,6 +100,11 @@ VC1Status DecodePictureHeader (VC1Context* pContext,  bool isExtHeader)
             picLayerHeader->BFRACTION_index = VC1_BFraction_indexes[z1][z2];
     }
 
+    if(pContext->m_FrameSize < SkFrameSize) //changed from 2
+    {
+        picLayerHeader->PTYPE |= VC1_SKIPPED_FRAME;
+    }
+
     return vc1Sts;
 }
 
@@ -128,11 +128,11 @@ VC1Status Decode_PictureLayer(VC1Context* pContext)
 
         vc1Sts = DecodePictureLayer_ProgressiveBpicture(pContext);
         break;
-
-    case VC1_SKIPPED_FRAME:
-        pContext->m_frmBuff.m_iDisplayIndex = pContext->m_frmBuff.m_iCurrIndex;
-        break;
     }
+
+    if (VC1_IS_SKIPPED(pContext->m_picLayerHeader->PTYPE))
+        pContext->m_frmBuff.m_iDisplayIndex = pContext->m_frmBuff.m_iCurrIndex;
+
     return vc1Sts;
 }
 
