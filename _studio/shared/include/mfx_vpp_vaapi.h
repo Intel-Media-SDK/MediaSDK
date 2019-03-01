@@ -162,7 +162,7 @@ namespace MfxHwVideoProcessing
 
         mfxStatus Close( void );
 
-        mfxStatus RemoveBufferFromPipe(VABufferID);
+        mfxStatus RemoveBufferFromPipe(VABufferID & id);
     };
 
 }; // namespace
