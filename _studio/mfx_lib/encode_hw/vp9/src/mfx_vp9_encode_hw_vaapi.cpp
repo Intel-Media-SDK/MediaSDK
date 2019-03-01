@@ -226,10 +226,8 @@ namespace MfxHwVP9Encode
             numTL = 1;
         }
 
-        if (tempLayersBufferId != VA_INVALID_ID)
-        {
-            vaDestroyBuffer(m_vaDisplay, tempLayersBufferId);
-        }
+        mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, tempLayersBufferId);
+        MFX_CHECK_STS(sts);
 
         vaSts = vaCreateBuffer(m_vaDisplay,
             m_vaContextEncode,
@@ -374,12 +372,11 @@ mfxStatus SetRateControl(
 
     mfxExtVP9TemporalLayers& extTL = GetExtBufferRef(par);
 
-    for (VABufferID id : rateParamBuf_ids)
+    mfxStatus sts;
+    for (VABufferID& id : rateParamBuf_ids)
     {
-        if (id != VA_INVALID_ID)
-        {
-            vaDestroyBuffer(m_vaDisplay, id);
-        }
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, id);
+        MFX_CHECK_STS(sts);
     }
 
     rateParamBuf_ids.resize(numTL);
@@ -436,10 +433,8 @@ mfxStatus SetHRD(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterHRD *hrd_param;
 
-    if ( hrdBuf_id != VA_INVALID_ID)
-    {
-        vaDestroyBuffer(m_vaDisplay, hrdBuf_id);
-    }
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, hrdBuf_id);
+    MFX_CHECK_STS(sts);
 
     vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
@@ -487,10 +482,9 @@ mfxStatus SetQualityLevel(
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterBufferQualityLevel *quality_param;
 
-    if ( qualityLevelBuf_id != VA_INVALID_ID)
-    {
-        vaDestroyBuffer(m_vaDisplay, qualityLevelBuf_id);
-    }
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, qualityLevelBuf_id);
+    MFX_CHECK_STS(sts);
+
     vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
                     VAEncMiscParameterBufferType,
@@ -530,12 +524,11 @@ mfxStatus SetFrameRate(
     mfxExtVP9TemporalLayers& extTL = GetExtBufferRef(par);
     mfxU16 numTL = std::max<mfxU16>(par.m_numLayers, 1);
 
-    for (VABufferID id : frameRateBufIds)
+    mfxStatus sts;
+    for (VABufferID& id : frameRateBufIds)
     {
-        if (id != VA_INVALID_ID)
-        {
-            vaDestroyBuffer(m_vaDisplay, id);
-        }
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, id);
+        MFX_CHECK_STS(sts);
     }
 
     frameRateBufIds.resize(numTL);
