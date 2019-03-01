@@ -1094,10 +1094,14 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         if (m_vPar.mfx.FrameInfo.Width > m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height > m_vInitPar.mfx.FrameInfo.Height)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
+// this check is not needed if re-allocation of internal surface function is implemented 
+// (currently only in VAAPI linux)
+#ifndef MFX_VA_LINUX
         if (KEY_FRAME == frameInfo.frameType &&
             (m_vPar.mfx.FrameInfo.Width != m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height != m_vInitPar.mfx.FrameInfo.Height) &&
             1 != m_index)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+#endif
     }
 
     //update frame info
