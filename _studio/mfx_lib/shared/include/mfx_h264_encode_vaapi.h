@@ -54,7 +54,7 @@ mfxStatus SetQualityParams(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
     VABufferID & qualityParams_id,
-    mfxEncodeCtrl const * pCtrl = 0);
+    MfxHwH264Encode::DdiTask const * pTask = nullptr);
 
 mfxStatus SetQualityLevel(
     MfxHwH264Encode::MfxVideoParam const & par,
