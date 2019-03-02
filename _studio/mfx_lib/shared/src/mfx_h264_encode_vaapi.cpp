@@ -418,7 +418,7 @@ mfxStatus SetQualityParams(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
     VABufferID & qualityParams_id,
-    mfxEncodeCtrl const * pCtrl)
+    DdiTask const * pTask)
 {
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -491,13 +491,11 @@ mfxStatus SetQualityParams(
         quality_param->UltraHMEDisable = !!extOptFEI->DisableUltraHME;
     }
 
-    if (pCtrl)
+    if (pTask)
     {
-        mfxExtCodingOption2 const * extOpt2rt  = GetExtBuffer(*pCtrl);
-        mfxExtCodingOption3 const * extOpt3rt  = GetExtBuffer(*pCtrl);
+        mfxExtCodingOption3 const * extOpt3rt  = GetExtBuffer(pTask->m_ctrl);
 
-        if (extOpt2rt)
-            quality_param->useRawPicForRef = IsOn(extOpt2rt->UseRawRef);
+        quality_param->useRawPicForRef = pTask->m_isUseRawRef;
 
         if (extOpt3rt)
         {
@@ -2854,7 +2852,7 @@ mfxStatus VAAPIEncoder::Execute(
     if (ctrlOpt2 || ctrlOpt3)
     {
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(m_videoParam, m_vaDisplay,
-                                                               m_vaContextEncode, m_qualityParamsId, &task.m_ctrl), MFX_ERR_DEVICE_FAILED);
+                                                               m_vaContextEncode, m_qualityParamsId, &task), MFX_ERR_DEVICE_FAILED);
     }
     if (VA_INVALID_ID != m_qualityParamsId) configBuffers.push_back(m_qualityParamsId);
 
