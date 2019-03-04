@@ -155,23 +155,27 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H265Task *)
 
     H265_DXVA_SegmentDecoder * dxva_sd = static_cast<H265_DXVA_SegmentDecoder *>(m_pTaskSupplier->m_pSegmentDecoder[0]);
 
-    if (!dxva_sd->GetPacker())
-        return false;
+    if (dxva_sd->GetPacker() == nullptr || dxva_sd->m_va == nullptr)
+        throw h265_exception(MFX_ERR_UNDEFINED_BEHAVIOR);
 
     UMC::Status sts = UMC::UMC_OK;
     VAStatus surfErr = VA_STATUS_SUCCESS;
     int32_t index;
+    bool isUseStatusReport = dxva_sd->m_va->IsUseStatusReport();
 
     for (H265DecoderFrameInfo * au = m_FirstAU; au; au = au->GetNextAU())
     {
-        index = au->m_pFrame->GetFrameMID();
-
-        m_mGuard.Unlock();
+        if (isUseStatusReport)
         {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
-            sts = dxva_sd->GetPacker()->SyncTask(index, &surfErr);
+            index = au->m_pFrame->GetFrameMID();
+
+            m_mGuard.Unlock();
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
+                sts = dxva_sd->GetPacker()->SyncTask(index, &surfErr);
+            }
+            m_mGuard.Lock();
         }
-        m_mGuard.Lock();
 
         //we should complete frame even we got an error
         //this allows to return the error from [RunDecoding]
