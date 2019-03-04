@@ -873,15 +873,16 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
     }
 
 #ifdef MFX_VA_LINUX
-
-    UMC::Status status = decoder.m_va->SyncTask(data.currFrameId);
-    if (status != UMC::UMC_OK)
+    if (decoder.m_va->IsUseStatusReport())
     {
-        mfxStatus CriticalErrorStatus = (status == UMC::UMC_ERR_GPU_HANG) ? MFX_ERR_GPU_HANG : MFX_ERR_DEVICE_FAILED;
-        decoder.SetCriticalErrorOccured(CriticalErrorStatus);
-        return CriticalErrorStatus;
+        UMC::Status status = decoder.m_va->SyncTask(data.currFrameId);
+        if (status != UMC::UMC_OK)
+        {
+            mfxStatus CriticalErrorStatus = (status == UMC::UMC_ERR_GPU_HANG) ? MFX_ERR_GPU_HANG : MFX_ERR_DEVICE_FAILED;
+            decoder.SetCriticalErrorOccured(CriticalErrorStatus);
+            return CriticalErrorStatus;
+        }
     }
-
 #endif
 
     if (decoder.m_vInitPar.IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
