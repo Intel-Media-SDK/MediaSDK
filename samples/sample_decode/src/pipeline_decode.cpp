@@ -19,6 +19,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "mfx_samples_config.h"
 #include "sample_defs.h"
+#include "mfxstructures.h"
 #include <algorithm>
 
 
@@ -227,12 +228,10 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     MSDK_CHECK_STATUS(sts, "m_FileReader->Init failed");
 
     mfxInitParam initPar;
-    mfxExtThreadsParam threadsPar;
-    mfxExtBuffer* extBufs[1];
+
     mfxVersion version;     // real API version with which library is initialized
 
     MSDK_ZERO_MEMORY(initPar);
-    MSDK_ZERO_MEMORY(threadsPar);
 
     // we set version to 1.0 and later we will query actual version of the library which will got leaded
     initPar.Version.Major = 1;
@@ -240,9 +239,17 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     initPar.GPUCopy = pParams->gpuCopy;
 
-    init_ext_buffer(threadsPar);
+    mfxExtBuffer* extBufs[2];
 
-    bool needInitExtPar = false;
+    mfxExtThreadsParam threadsPar;
+    MSDK_ZERO_MEMORY(threadsPar);
+    init_ext_buffer(threadsPar);
+    bool needInitThreadExtPar = false;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxExtStatusReportingMode statusReportPar;
+    MSDK_ZERO_MEMORY(statusReportPar);
+    init_ext_buffer(statusReportPar);
+#endif
 
     if (pParams->eDeinterlace)
     {
@@ -256,21 +263,29 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     if (pParams->nThreadsNum) {
         threadsPar.NumThread = pParams->nThreadsNum;
-        needInitExtPar = true;
+        needInitThreadExtPar = true;
     }
     if (pParams->SchedulingType) {
         threadsPar.SchedulingType = pParams->SchedulingType;
-        needInitExtPar = true;
+        needInitThreadExtPar = true;
     }
     if (pParams->Priority) {
         threadsPar.Priority = pParams->Priority;
-        needInitExtPar = true;
+        needInitThreadExtPar = true;
     }
-    if (needInitExtPar) {
-        extBufs[0] = (mfxExtBuffer*)&threadsPar;
+    if (needInitThreadExtPar) {
+        extBufs[initPar.NumExtParam] = (mfxExtBuffer*)&threadsPar;
         initPar.ExtParam = extBufs;
-        initPar.NumExtParam = 1;
+        initPar.NumExtParam++;
     }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if (pParams->bSkipVaSyncSurf) {
+        statusReportPar.UseStatusReport = MFX_CODINGOPTION_OFF;
+        extBufs[initPar.NumExtParam] = (mfxExtBuffer*)&statusReportPar;
+        initPar.ExtParam = extBufs;
+        initPar.NumExtParam++;
+    }
+#endif
 
     // Init session
     if (pParams->bUseHWLib)

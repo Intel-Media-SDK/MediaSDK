@@ -130,6 +130,9 @@ struct sInputParams
     {
         MSDK_ZERO_MEMORY(*this);
     }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    bool bSkipVaSyncSurf;
+#endif
 };
 
 template<>struct mfx_ext_buffer_id<mfxExtMVCSeqDesc>{

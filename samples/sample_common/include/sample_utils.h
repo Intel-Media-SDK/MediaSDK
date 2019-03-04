@@ -560,6 +560,9 @@ template<>struct mfx_ext_buffer_id<mfxExtAVCRefListCtrl>{
 template<>struct mfx_ext_buffer_id<mfxExtThreadsParam>{
     enum {id = MFX_EXTBUFF_THREADS_PARAM};
 };
+template<>struct mfx_ext_buffer_id<mfxExtStatusReportingMode>{
+    enum {id = MFX_EXTBUFF_REPORTING_MODE};
+};
 
 
 //helper function to initialize mfx ext buffer structure

@@ -120,6 +120,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-threads_num]            - number of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_schedtype]      - scheduling type of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_priority]       - priority of mediasdk task threads\n"));
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    msdk_printf(MSDK_STRING("   [-skip_sync]              - skip SyncVaSurf\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
     msdk_thread_printf_scheduling_help();
     msdk_printf(MSDK_STRING("\n"));
@@ -401,6 +404,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->gpuCopy = MFX_GPUCOPY_OFF;
         }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-skip_sync")))
+        {
+            pParams->bSkipVaSyncSurf = true;
+        }
+#endif
 #if (MFX_VERSION >= 1025)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d")))
         {
