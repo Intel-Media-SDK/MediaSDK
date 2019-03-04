@@ -2258,6 +2258,10 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
     }
 
 #if !defined(ANDROID)
+    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    MFX_CHECK_NULL_PTR1( hwCore );
+
+    if(hwCore->IsUseStatusReport())
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         VAStatus vaSts = vaSyncSurface(m_vaDisplay, waitSurface);

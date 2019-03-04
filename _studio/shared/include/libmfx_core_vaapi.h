@@ -152,6 +152,7 @@ public:
     mfxHDL * GetFastCompositingService();
     void SetOnFastCompositingService(void);
     bool IsFastCompositingEnabled(void) const;
+    bool IsUseStatusReport(void) const { return m_bUseStatusReport; }
 
 
     virtual eMFXHWType     GetHWType() { return m_HWType; }
