@@ -2115,7 +2115,7 @@ mfxStatus MFXVideoDECODEVC1::GetStatusReport()
 
     UMC::VC1FrameDescriptor *pCurrDescriptor = m_pVC1VideoDecoder->m_pStore->GetFirstDS();
 
-    if (pCurrDescriptor)
+    if (pCurrDescriptor && va->IsUseStatusReport())
     {
         Status sts = va->SyncTask(pCurrDescriptor->m_pContext->m_frmBuff.m_iCurrIndex);
         if (sts != UMC::UMC_OK)
