@@ -101,10 +101,13 @@ namespace UMC_MPEG2_DECODER
         // iterate through frames submitted to the driver in decoded order
         for (MPEG2DecoderFrame* frm : decode_queue)
         {
+            frm->CompleteDecoding(); // complete frame even if there are errors
+
+            if (!m_va->IsUseStatusReport())
+                continue;
+
             uint16_t surfCorruption = 0;
             auto sts = m_packer->SyncTask(frm, &surfCorruption);
-
-            frm->CompleteDecoding(); // complete frame even if there are errors
 
             if (sts < UMC::UMC_OK)
             {
