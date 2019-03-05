@@ -471,6 +471,11 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.CropW = pInParams->nDstWidth;
     m_mfxEncParams.mfx.FrameInfo.CropH = pInParams->nDstHeight;
 
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
+    m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
+#endif
+
     bool bCodingOption = false;
     if(*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC ||
                 pInParams->CodecId == MFX_CODEC_HEVC))
@@ -635,6 +640,15 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_ExtHEVCParam.PicHeightInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropH;
         m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCParam);
     }
+
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    if (m_ExtVP9Param.NumTileRows
+        && m_ExtVP9Param.NumTileColumns
+        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+    {
+        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
+    }
+#endif
 
     if (pInParams->TransferMatrix)
     {
@@ -1123,6 +1137,10 @@ CEncodingPipeline::CEncodingPipeline()
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
     m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
     m_ExtHEVCParam.Header.BufferSz = sizeof(m_ExtHEVCParam);
+
+    MSDK_ZERO_MEMORY(m_ExtVP9Param);
+    m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
+    m_ExtVP9Param.Header.BufferSz = sizeof(m_ExtVP9Param);
 
     MSDK_ZERO_MEMORY(m_VideoSignalInfo);
     m_VideoSignalInfo.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO;
