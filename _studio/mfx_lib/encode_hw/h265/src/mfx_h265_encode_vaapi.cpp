@@ -417,6 +417,10 @@ mfxStatus SetRateControl(
 
     rate_param->initial_qp = par.m_pps.init_qp_minus26 + 26;
 
+    //  MBBRC control
+    // Control VA_RC_MB 0: default, 1: enable, 2: disable, other: reserved
+    rate_param->rc_flags.bits.mb_rate_control = IsOn(par.m_ext.CO2.MBBRC) ? 1 : IsOff(par.m_ext.CO2.MBBRC) ? 2 : 0;
+
     vaSts = vaUnmapBuffer(vaDisplay, rateParamBuf_id);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -762,7 +766,6 @@ VAAPIEncoder::VAAPIEncoder()
 , m_width(0)
 , m_height(0)
 , m_caps()
-
 {
 }
 
