@@ -124,6 +124,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-mss]                   - maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -num_slice option.\n"));
     msdk_printf(MSDK_STRING("   [-mfs]                   - maximum frame size in bytes. Supported only with h264 and hevc codec for VBR mode.\n"));
     msdk_printf(MSDK_STRING("   [-re]                    - enable region encode mode. Works only with h265 encoder\n"));
+    msdk_printf(MSDK_STRING("   [-trows rows]            - Number of rows for tiled encoding\n"));
+    msdk_printf(MSDK_STRING("   [-tcols cols]            - Number of columns for tiled encoding\n"));
     msdk_printf(MSDK_STRING("   [-CodecProfile]          - specifies codec profile\n"));
     msdk_printf(MSDK_STRING("   [-CodecLevel]            - specifies codec level\n"));
     msdk_printf(MSDK_STRING("   [-GopOptFlag:closed]     - closed gop\n"));
@@ -259,6 +261,24 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nDstHeight))
             {
                 PrintHelp(strInput[0], MSDK_STRING("Destination picture Height is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-trows")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nEncTileRows))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Encoding tile row count is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-tcols")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nEncTileCols))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Encoding tile column count is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
