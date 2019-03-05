@@ -1459,9 +1459,8 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
 
         vaSts = vaCreateBuffer(m_vaDisplay,
             m_vaContextEncode,
-
-            (VABufferType)VAEncQPBufferType,
-            m_cuqpMap.m_pitch ,
+            VAEncQPBufferType,
+            m_cuqpMap.m_pitch,
             m_cuqpMap.m_h_aligned,
             &m_cuqpMap.m_buffer[0],
             &VABufferNew(VABID_QpBuffer, 0));

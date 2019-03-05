@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2141,7 +2141,7 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MVP)");
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncFEIMVPredictorBufferType,
+                    VAEncFEIMVPredictorBufferType,
                     sizeof(VAEncFEIMVPredictorH264)*mvpred->NumMBAlloc,
                     1, //limitation from driver, num elements should be 1
                     mvpred->MB,
@@ -2154,7 +2154,7 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MBctrl)");
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncFEIMBControlBufferType,
+                    VAEncFEIMBControlBufferType,
                     sizeof(VAEncFEIMBControlH264)*mbctrl->NumMBAlloc,
                     1, //limitation from driver, num elements should be 1
                     mbctrl->MB,
@@ -2168,7 +2168,7 @@ mfxStatus VAAPIEncoder::Execute(
 #if MFX_VERSION >= 1023
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncQPBufferType,
+                    VAEncQPBufferType,
                     sizeof(VAEncQPBufferH264)*mbqp->NumMBAlloc,
                     1, //limitation from driver, num elements should be 1
                     mbqp->MB,
@@ -2176,7 +2176,7 @@ mfxStatus VAAPIEncoder::Execute(
 #else
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncQPBufferType,
+                    VAEncQPBufferType,
                     sizeof (VAEncQPBufferH264)*mbqp->NumQPAlloc,
                     1, //limitation from driver, num elements should be 1
                     mbqp->QP,
@@ -2213,7 +2213,7 @@ mfxStatus VAAPIEncoder::Execute(
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
-                            (VABufferType)VAEncFEIDistortionBufferType,
+                            VAEncFEIDistortionBufferType,
                             vaFeiMBStatBufSize,
                             1, //limitation from driver, num elements should be 1
                             NULL, //should be mapped later
@@ -2252,7 +2252,7 @@ mfxStatus VAAPIEncoder::Execute(
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
-                            (VABufferType)VAEncFEIMVBufferType,
+                            VAEncFEIMVBufferType,
                             vaFeiMVOutBufSize,
                             1, //limitation from driver, num elements should be 1
                             NULL, //should be mapped later
@@ -2278,7 +2278,7 @@ mfxStatus VAAPIEncoder::Execute(
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
-                            (VABufferType)VAEncFEIMBCodeBufferType,
+                            VAEncFEIMBCodeBufferType,
                             vaFeiMCODEOutBufSize,
                             1, //limitation from driver, num elements should be 1
                             NULL, //should be mapped later
@@ -2798,7 +2798,7 @@ mfxStatus VAAPIEncoder::Execute(
             // LibVA expect full buffer size w/o interlace adjustments
             vaSts = vaCreateBuffer(m_vaDisplay,
                 m_vaContextEncode,
-                (VABufferType)VAEncQPBufferType,
+                VAEncQPBufferType,
                 bufW * sizeof(VAEncQPBufferH264),
                 ((m_sps.picture_height_in_mbs + 7) & ~7),
                 &m_mbqp_buffer[0],
@@ -2831,7 +2831,7 @@ mfxStatus VAAPIEncoder::Execute(
 
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncMacroblockDisableSkipMapBufferType,
+                    VAEncMacroblockDisableSkipMapBufferType,
                     (bufW * bufH),
                     1,
                     &m_mb_noskip_buffer[0],

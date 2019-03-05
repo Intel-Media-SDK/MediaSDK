@@ -1085,7 +1085,7 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
 
     vaSts = vaCreateBuffer(m_vaDisplay,
         m_vaContextEncode,
-        (VABufferType)VAEncQPBufferType,
+        VAEncQPBufferType,
         bufW,
         bufH,//m_mbqpDataBuffer.size(),
         &m_mbqpDataBuffer[0],
