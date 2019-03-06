@@ -731,15 +731,11 @@ mfxDefaultAllocatorVAAPI::GetHDLHW(
     mfxMemId  mid,
     mfxHDL*   handle)
 {
-    if (!pthis)
-        return MFX_ERR_INVALID_HANDLE;
+    MFX_CHECK(pthis, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(mid,   MFX_ERR_INVALID_HANDLE);
 
-    if (0 == mid)
-        return MFX_ERR_INVALID_HANDLE;
-
-    vaapiMemIdInt* vaapi_mids = (vaapiMemIdInt*)mid;
-
-    if (!handle || !vaapi_mids || !(vaapi_mids->m_surface)) return MFX_ERR_INVALID_HANDLE;
+    auto vaapi_mids = reinterpret_cast<vaapiMemIdInt*>(mid);
+    MFX_CHECK(vaapi_mids->m_surface, MFX_ERR_INVALID_HANDLE);
 
     *handle = vaapi_mids->m_surface; //VASurfaceID* <-> mfxHDL
     return MFX_ERR_NONE;
