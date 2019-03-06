@@ -381,7 +381,11 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
             for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
             {
                 igt_spin_t* spin = igt_spin_batch_new(gem_fd, 0, I915_EXEC_RENDER, 0);
-                ASSERT_NE(spin, nullptr);
+                if (!spin)
+                {
+                    EXPECT_NE(spin, nullptr);
+                    break;
+                }
 
                 EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetValue(test_metric_cnt, metric_values)) << "rp_freq : " << rp_freq;
 
@@ -441,7 +445,11 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnSingleEngine)
             for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
             {
                 igt_spin_t* spin = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[i915_metric_num], gem_fd), 0);
-                ASSERT_NE(spin, nullptr);
+                if (!spin)
+                {
+                    EXPECT_NE(spin, nullptr);
+                    break;
+                }
 
                 EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetValue(test_metric_cnt, metric_values));
 
@@ -499,8 +507,12 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnFewEngines)
                 {
                     igt_spin_t* spin_1 = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[i], gem_fd), 0);
                     igt_spin_t* spin_2 = igt_spin_batch_new(gem_fd, 0, translateCttToDRMEngineName(metric_all_ids[j], gem_fd), 0);
-                    ASSERT_NE(spin_1, nullptr);
-                    ASSERT_NE(spin_2, nullptr);
+                    if (!spin_1 || !spin_2)
+                    {
+                        EXPECT_NE(spin_1, nullptr);
+                        EXPECT_NE(spin_2, nullptr);
+                        break;
+                    }
 
                     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetValue(test_metric_cnt, metric_values));
 
