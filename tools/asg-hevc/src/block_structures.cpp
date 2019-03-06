@@ -136,7 +136,7 @@ PatchBlock::PatchBlock(const PatchBlock & rhs) : PatchBlock(static_cast<BaseBloc
     memcpy(PatchData.get(), rhs.PatchData.get(), sizeof(mfxU8) * m_BWidth * m_BHeight * 3 / 2);
 }
 
-const PatchBlock & PatchBlock::operator=(const PatchBlock & rhs)
+PatchBlock & PatchBlock::operator=(const PatchBlock & rhs)
 {
     BaseBlock::operator=(rhs);
 

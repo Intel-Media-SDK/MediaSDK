@@ -164,7 +164,7 @@ struct PatchBlock : BaseBlock
     PatchBlock(const PatchBlock& rhs);
 
     //Assignment operator
-    const PatchBlock& operator=(const PatchBlock& rhs);
+    PatchBlock& operator=(const PatchBlock& rhs);
 
     PatchBlock(const BaseBlock& BB);
 

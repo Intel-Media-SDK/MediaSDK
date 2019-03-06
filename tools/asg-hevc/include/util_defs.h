@@ -109,7 +109,8 @@ struct PUMotionVector
 
     PUMotionVector() : PUMotionVector(0, 0, 0, 0, 0, 0) {}
 
-    PUMotionVector(const PUMotionVector& vec) = default;
+    PUMotionVector(const PUMotionVector& vec)             = default;
+    PUMotionVector& operator= (const PUMotionVector& vec) = default;
 
     bool CheckMVPExceedsSizeLimits() const
     {
@@ -381,9 +382,10 @@ public:
     bool isWritten = false;
     mfxU32 encodedOrder = 0xffffffff;
 
-    ExtendedSurface()                        = default;
-    ExtendedSurface(ExtendedSurface &&)      = default;
-    ExtendedSurface(const ExtendedSurface &) = delete;
+    ExtendedSurface()                                       = default;
+    ExtendedSurface(ExtendedSurface &&)                     = default;
+    ExtendedSurface(const ExtendedSurface &)                = delete;
+    ExtendedSurface& operator= (const ExtendedSurface& vec) = delete;
 
     // Fill info about current surface. Track dynamic memory by smart pointer
     void AllocData(mfxU32 width, mfxU32 height)
