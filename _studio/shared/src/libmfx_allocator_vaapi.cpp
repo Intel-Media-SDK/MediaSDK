@@ -199,58 +199,44 @@ static bool isFourCCSupported(unsigned int va_fourcc)
 
 static mfxStatus ReallocImpl(VADisplay* vaDisp, vaapiMemIdInt *vaapi_mid, mfxFrameSurface1 *surf)
 {
-    VAStatus  va_res  = VA_STATUS_SUCCESS;
-    unsigned int va_fourcc = 0;
-
     MFX_CHECK_NULL_PTR3(vaDisp, vaapi_mid, surf);
     MFX_CHECK_NULL_PTR1(vaapi_mid->m_surface);
 
-    mfxU32 fourcc = surf->Info.FourCC;
-
     // VP8 hybrid driver has weird requirements for allocation of surfaces/buffers for VP8 encoding
     // to comply with them additional logic is required to support regular and VP8 hybrid allocation pathes
-    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
-    va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(surf->Info.FourCC);
+    unsigned int va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
 
-    if (!isFourCCSupported(va_fourcc))
-    {
-        return MFX_ERR_UNSUPPORTED;
-    }
+    MFX_CHECK(isFourCCSupported(va_fourcc), MFX_ERR_UNSUPPORTED);
 
-    VASurfaceID surfaces[1] = { *vaapi_mid->m_surface };
-
+    VAStatus va_res = VA_STATUS_SUCCESS;
     if (MFX_FOURCC_P8 == vaapi_mid->m_fourcc)
     {
-        mfxStatus sts = CheckAndDestroyVAbuffer(vaDisp, surfaces[0]);
+        mfxStatus sts = CheckAndDestroyVAbuffer(vaDisp, *vaapi_mid->m_surface);
         MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_MEMORY_ALLOC);
     }
     else
     {
-        va_res = vaDestroySurfaces(vaDisp, surfaces, 1);
+        va_res = vaDestroySurfaces(vaDisp, vaapi_mid->m_surface, 1);
         MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
+        *vaapi_mid->m_surface = VA_INVALID_ID;
     }
 
-    *vaapi_mid->m_surface = VA_INVALID_ID;
 
     std::vector<VASurfaceAttrib> attrib;
     unsigned int format;
-    FillSurfaceAttrs(attrib, format,  fourcc, va_fourcc, 0);
+    FillSurfaceAttrs(attrib, format, surf->Info.FourCC, va_fourcc, 0);
 
     va_res = vaCreateSurfaces(vaDisp,
                             format,
                             surf->Info.Width, surf->Info.Height,
-                            surfaces,
+                            vaapi_mid->m_surface,
                             1,
                             attrib.data(), attrib.size());
+    MFX_CHECK(va_res != VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
 
-    if (VA_STATUS_SUCCESS != va_res)
-    {
-        return MFX_ERR_DEVICE_FAILED;
-    }
-
-    // update vaapi surface ID in the m_frameHandles list element
-    *vaapi_mid->m_surface = surfaces[0];
-    vaapi_mid->m_fourcc = fourcc;
+    // Update fourcc of reallocated element. VAid was updated automatically
+    vaapi_mid->m_fourcc = surf->Info.FourCC;
 
     return MFX_ERR_NONE;
 }
