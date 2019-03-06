@@ -625,51 +625,59 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
     mfxFrameData*  ptr)
 {
     MFX_CHECK(pthis, MFX_ERR_INVALID_HANDLE);
-    mfxWideHWFrameAllocator *pSelf = (mfxWideHWFrameAllocator*)pthis;
+    MFX_CHECK(mid, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK_NULL_PTR1(ptr);
 
-    mfxStatus mfx_res = MFX_ERR_NONE;
-    VAStatus  va_res  = VA_STATUS_SUCCESS;
-    vaapiMemIdInt* vaapi_mids = (vaapiMemIdInt*)mid;
-    mfxU8* pBuffer = 0;
+    auto vaapi_mids = reinterpret_cast<vaapiMemIdInt*>(mid);
+    MFX_CHECK(vaapi_mids->m_surface, MFX_ERR_INVALID_HANDLE);
 
-    if (!vaapi_mids || !(vaapi_mids->m_surface)) return MFX_ERR_INVALID_HANDLE;
+    auto pSelf = reinterpret_cast<mfxWideHWFrameAllocator*>(pthis);
+
+    VAStatus va_res = VA_STATUS_SUCCESS;
 
     mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc);
     if (MFX_FOURCC_P8 == mfx_fourcc)   // bitstream processing
     {
-        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
-        VACodedBufferSegment *coded_buffer_segment;
         if (vaapi_mids->m_fourcc == MFX_FOURCC_VP8_SEGMAP)
-            va_res =  vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&pBuffer));
-        else
-            va_res =  vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&coded_buffer_segment));
-        mfx_res = VA_TO_MFX_STATUS(va_res);
-        if (MFX_ERR_NONE == mfx_res)
         {
-            if (vaapi_mids->m_fourcc == MFX_FOURCC_VP8_SEGMAP)
-                ptr->Y = pBuffer;
-            else
-                ptr->Y = (mfxU8*)coded_buffer_segment->buf;
+            mfxU8* pBuffer = nullptr;
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                va_res = vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&pBuffer));
+                MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+            }
+
+            ptr->Y = pBuffer;
+        }
+        else
+        {
+            VACodedBufferSegment *coded_buffer_segment;
+            {
+                MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                va_res =  vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&coded_buffer_segment));
+                MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+            }
+
+            ptr->Y = reinterpret_cast<mfxU8*>(coded_buffer_segment->buf);
         }
     }
     else
     {
         va_res = vaDeriveImage(pSelf->pVADisplay, *(vaapi_mids->m_surface), &(vaapi_mids->m_image));
-        mfx_res = VA_TO_MFX_STATUS(va_res);
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
 
-        if (MFX_ERR_NONE == mfx_res)
+        mfxU8* pBuffer = nullptr;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
             va_res = vaMapBuffer(pSelf->pVADisplay, vaapi_mids->m_image.buf, (void **) &pBuffer);
-            mfx_res = VA_TO_MFX_STATUS(va_res);
+            MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
         }
 
-        if (MFX_ERR_NONE == mfx_res)
-        {
-            mfx_res = SetFrameData(vaapi_mids->m_image, mfx_fourcc, pBuffer, ptr);
-        }
+        mfxStatus mfx_res = SetFrameData(vaapi_mids->m_image, mfx_fourcc, pBuffer, ptr);
+        MFX_CHECK_STS(mfx_res);
     }
-    return mfx_res;
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus mfxDefaultAllocatorVAAPI::UnlockFrameHW(
