@@ -745,14 +745,14 @@ mfxDefaultAllocatorVAAPI::mfxWideHWFrameAllocator::mfxWideHWFrameAllocator(
     mfxU16  type,
     mfxHDL  handle)
     : mfxBaseWideFrameAllocator(type)
+    , pVADisplay(reinterpret_cast<VADisplay *>(handle))
     , m_DecId(0)
 {
-    frameAllocator.Alloc = &mfxDefaultAllocatorVAAPI::AllocFramesHW;
-    frameAllocator.Lock = &mfxDefaultAllocatorVAAPI::LockFrameHW;
+    frameAllocator.Alloc  = &mfxDefaultAllocatorVAAPI::AllocFramesHW;
+    frameAllocator.Lock   = &mfxDefaultAllocatorVAAPI::LockFrameHW;
     frameAllocator.GetHDL = &mfxDefaultAllocatorVAAPI::GetHDLHW;
     frameAllocator.Unlock = &mfxDefaultAllocatorVAAPI::UnlockFrameHW;
-    frameAllocator.Free = &mfxDefaultAllocatorVAAPI::FreeFramesHW;
-    pVADisplay = (VADisplay *)handle;
+    frameAllocator.Free   = &mfxDefaultAllocatorVAAPI::FreeFramesHW;
 }
 #endif // (MFX_VA_LINUX)
 /* EOF */
