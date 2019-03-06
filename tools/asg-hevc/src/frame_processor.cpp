@@ -864,7 +864,7 @@ void FrameProcessor::FillInBlock4x4(mfxU32 num_coeff, mfxU32 level, mfxU8 block[
     {
         throw std::string("\nERROR: Wrong num_coeff in FrameProcessor::FillInBlock4x4");
     }
-    if (level < 0 || level > 255)
+    if (level > 255)
     {
         throw std::string("\nERROR: Wrong level in FrameProcessor::FillInBlock4x4");
     }
