@@ -29,22 +29,13 @@
 #include "mfx_utils.h"
 #include "mfx_ext_buffers.h"
 
-#define VA_SAFE_CALL(__CALL)        \
-{                                   \
-    VAStatus va_sts = __CALL;       \
-    if (VA_STATUS_SUCCESS != va_sts) return MFX_ERR_INVALID_HANDLE; \
-}
-
-#define VA_TO_MFX_STATUS(_va_res) \
-    (VA_STATUS_SUCCESS == (_va_res))? MFX_ERR_NONE: MFX_ERR_DEVICE_FAILED;
-
 enum {
     MFX_FOURCC_VP8_NV12    = MFX_MAKEFOURCC('V','P','8','N'),
     MFX_FOURCC_VP8_MBDATA  = MFX_MAKEFOURCC('V','P','8','M'),
     MFX_FOURCC_VP8_SEGMAP  = MFX_MAKEFOURCC('V','P','8','S'),
 };
 
-unsigned int ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
+static inline unsigned int ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
 {
     switch (fourcc)
     {
@@ -59,7 +50,7 @@ unsigned int ConvertVP8FourccToMfxFourcc(mfxU32 fourcc)
     }
 }
 
-unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
+static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 {
     switch (fourcc)
     {
@@ -112,8 +103,6 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
     attrib[0].value.type      = VAGenericValueTypeInteger;
     attrib[0].value.value.i   = va_fourcc;
 
-    format = va_fourcc; // ???
-
     switch (fourcc)
     {
     case MFX_FOURCC_VP8_NV12:
@@ -164,11 +153,12 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
             }
             break;
         default:
+            format = va_fourcc;
             break;
     }
 }
 
-static bool isFourCCSupported(unsigned int va_fourcc)
+static inline bool isFourCCSupported(unsigned int va_fourcc)
 {
     switch (va_fourcc)
     {
@@ -316,7 +306,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
                             attrib.data(),
                             attrib.size());
 
-        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
     }
     else
     {
@@ -349,10 +339,12 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
                       NULL,
                       &coded_buf);
 
-            mfx_res = VA_TO_MFX_STATUS(va_res);
-
-            if (mfx_res != MFX_ERR_NONE)
+            if (va_res != VA_STATUS_SUCCESS)
+            {
+                // Need to clean up already allocated buffers
+                mfx_res = MFX_ERR_DEVICE_FAILED;
                 break;
+            }
         }
     }
 
@@ -383,7 +375,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
     }
     else
     {
-        // Some of vaCreateBuffer failed
+        // Some of vaCreateBuffer calls failed
         for (VABufferID& coded_buf : AllocatedSurfaces)
         {
             mfxStatus sts = CheckAndDestroyVAbuffer(pSelf->pVADisplay, coded_buf);
@@ -630,7 +622,7 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
                 va_res = vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&pBuffer));
-                MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+                MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
             }
 
             ptr->Y = pBuffer;
@@ -641,7 +633,7 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
             {
                 MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
                 va_res =  vaMapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface), (void **)(&coded_buffer_segment));
-                MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+                MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
             }
 
             ptr->Y = reinterpret_cast<mfxU8*>(coded_buffer_segment->buf);
@@ -650,13 +642,13 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
     else
     {
         va_res = vaDeriveImage(pSelf->pVADisplay, *(vaapi_mids->m_surface), &(vaapi_mids->m_image));
-        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
 
         mfxU8* pBuffer = nullptr;
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
             va_res = vaMapBuffer(pSelf->pVADisplay, vaapi_mids->m_image.buf, (void **) &pBuffer);
-            MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+            MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
         }
 
         mfxStatus mfx_res = SetFrameData(vaapi_mids->m_image, mfx_fourcc, pBuffer, ptr);
@@ -686,17 +678,17 @@ mfxStatus mfxDefaultAllocatorVAAPI::UnlockFrameHW(
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
         va_res = vaUnmapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface));
-        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
     }
     else  // Image processing
     {
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
             va_res = vaUnmapBuffer(pSelf->pVADisplay, vaapi_mids->m_image.buf);
-            MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+            MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
         }
         va_res = vaDestroyImage(pSelf->pVADisplay, vaapi_mids->m_image.image_id);
-        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_DEVICE_FAILED);
 
         if (ptr)
         {
