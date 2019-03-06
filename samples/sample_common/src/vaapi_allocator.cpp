@@ -31,9 +31,6 @@ enum {
     MFX_FOURCC_VP8_SEGMAP  = MFX_MAKEFOURCC('V','P','8','S'),
 };
 
-// TODO: remove this internal definition once it appears in VA API
-#define VA_FOURCC_R5G6B5 MFX_MAKEFOURCC('R','G','1','6')
-
 unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 {
     switch (fourcc)
@@ -48,7 +45,7 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_YV12;
 #if (MFX_VERSION >= 1028)
     case MFX_FOURCC_RGB565:
-        return VA_FOURCC_R5G6B5;
+        return VA_FOURCC_RGB565;
 #endif
     case MFX_FOURCC_RGB4:
         return VA_FOURCC_ARGB;
@@ -167,7 +164,7 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
                        (VA_FOURCC_YUY2   != va_fourcc) &&
                        (VA_FOURCC_UYVY   != va_fourcc) &&
 #if (MFX_VERSION >= 1028)
-                       (VA_FOURCC_R5G6B5 != va_fourcc) &&
+                       (VA_FOURCC_RGB565 != va_fourcc) &&
 #endif
                        (VA_FOURCC_ARGB   != va_fourcc) &&
                        (VA_FOURCC_ABGR   != va_fourcc) &&
@@ -489,7 +486,7 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                 else mfx_res = MFX_ERR_LOCK_MEMORY;
                 break;
 #if (MFX_VERSION >= 1028)
-            case VA_FOURCC_R5G6B5:
+            case VA_FOURCC_RGB565:
                 if (mfx_fourcc == MFX_FOURCC_RGB565)
                 {
                     ptr->Pitch = (mfxU16)vaapi_mid->m_image.pitches[0];

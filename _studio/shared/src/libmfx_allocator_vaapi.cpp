@@ -38,11 +38,6 @@
 #define VA_TO_MFX_STATUS(_va_res) \
     (VA_STATUS_SUCCESS == (_va_res))? MFX_ERR_NONE: MFX_ERR_DEVICE_FAILED;
 
-// TODO: remove this internal definition once it appears in VAAPI
-#if !defined (VA_FOURCC_R5G6B5)
-#define VA_FOURCC_R5G6B5 MFX_MAKEFOURCC('R','G','1','6')
-#endif // VA_FOURCC_R5G6B5
-
 enum {
     MFX_FOURCC_VP8_NV12    = MFX_MAKEFOURCC('V','P','8','N'),
     MFX_FOURCC_VP8_MBDATA  = MFX_MAKEFOURCC('V','P','8','M'),
@@ -78,7 +73,7 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_AYUV;
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
-        return VA_FOURCC_R5G6B5;
+        return VA_FOURCC_RGB565;
 #endif // MFX_ENABLE_FOURCC_RGB565
     case MFX_FOURCC_RGB4:
         return VA_FOURCC_ARGB;
@@ -184,7 +179,7 @@ static bool isFourCCSupported(unsigned int va_fourcc)
         case VA_FOURCC_P208:
         case VA_FOURCC_P010:
         case VA_FOURCC_AYUV:
-        case VA_FOURCC_R5G6B5:
+        case VA_FOURCC_RGB565:
 #if (MFX_VERSION >= 1027)
         case VA_FOURCC_Y210:
         case VA_FOURCC_Y410:
@@ -526,7 +521,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         else mfx_res = MFX_ERR_LOCK_MEMORY;
         break;
 #if defined (MFX_ENABLE_FOURCC_RGB565)
-    case VA_FOURCC_R5G6B5:
+    case VA_FOURCC_RGB565:
         if (mfx_fourcc == MFX_FOURCC_RGB565)
         {
             ptr->PitchHigh = (mfxU16)(va_image.pitches[0] >> 16);
