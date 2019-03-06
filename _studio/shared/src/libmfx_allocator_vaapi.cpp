@@ -238,17 +238,12 @@ mfxStatus mfxDefaultAllocatorVAAPI::ReallocFrameHW(mfxHDL pthis, mfxFrameSurface
 
     mfxWideHWFrameAllocator *pSelf = reinterpret_cast<mfxWideHWFrameAllocator*>(pthis);
 
-    for (mfxU32 i=0; i<pSelf->NumFrames; ++i)
-    {
-        vaapiMemIdInt *vaapi_mid = reinterpret_cast<vaapiMemIdInt *>(pSelf->m_frameHandles[i]);
-        if (vaapi_mid) {
-            if (*vaapi_mid->m_surface == *va_surf)
-            {
-                return ReallocImpl(pSelf->pVADisplay, vaapi_mid, surf);
-            }
-        }
-    }
-    return MFX_ERR_MEMORY_ALLOC;
+    auto it = std::find_if(std::begin(pSelf->m_frameHandles), std::end(pSelf->m_frameHandles),
+                            [va_surf](mfxHDL hndl){ return hndl && *(reinterpret_cast<vaapiMemIdInt *>(hndl))->m_surface == *va_surf; });
+
+    MFX_CHECK(it != std::end(pSelf->m_frameHandles), MFX_ERR_MEMORY_ALLOC);
+
+    return ReallocImpl(pSelf->pVADisplay, reinterpret_cast<vaapiMemIdInt *>(*it), surf);
 }
 
 mfxStatus
