@@ -625,7 +625,7 @@ mfxDefaultAllocatorVAAPI::LockFrameHW(
     mfxFrameData*  ptr)
 {
     MFX_CHECK(pthis, MFX_ERR_INVALID_HANDLE);
-    MFX_CHECK(mid, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(mid,   MFX_ERR_INVALID_HANDLE);
     MFX_CHECK_NULL_PTR1(ptr);
 
     auto vaapi_mids = reinterpret_cast<vaapiMemIdInt*>(mid);
@@ -685,39 +685,41 @@ mfxStatus mfxDefaultAllocatorVAAPI::UnlockFrameHW(
     mfxMemId       mid,
     mfxFrameData*  ptr)
 {
-    // TBD
-    if (!pthis)
-        return MFX_ERR_INVALID_HANDLE;
+    MFX_CHECK(pthis, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(mid,   MFX_ERR_INVALID_HANDLE);
 
-    mfxWideHWFrameAllocator *pSelf = (mfxWideHWFrameAllocator*)pthis;
+    auto vaapi_mids = reinterpret_cast<vaapiMemIdInt*>(mid);
+    MFX_CHECK(vaapi_mids->m_surface, MFX_ERR_INVALID_HANDLE);
 
-    vaapiMemIdInt* vaapi_mids = (vaapiMemIdInt*)mid;
+    auto pSelf = reinterpret_cast<mfxWideHWFrameAllocator*>(pthis);
 
-    if (!vaapi_mids || !(vaapi_mids->m_surface)) return MFX_ERR_INVALID_HANDLE;
+    VAStatus va_res = VA_STATUS_SUCCESS;
 
     mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc);
-
     if (MFX_FOURCC_P8 == mfx_fourcc)   // bitstream processing
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-        vaUnmapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface));
+        va_res = vaUnmapBuffer(pSelf->pVADisplay, *(vaapi_mids->m_surface));
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
     }
     else  // Image processing
     {
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
-            vaUnmapBuffer(pSelf->pVADisplay, vaapi_mids->m_image.buf);
+            va_res = vaUnmapBuffer(pSelf->pVADisplay, vaapi_mids->m_image.buf);
+            MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
         }
-        vaDestroyImage(pSelf->pVADisplay, vaapi_mids->m_image.image_id);
+        va_res = vaDestroyImage(pSelf->pVADisplay, vaapi_mids->m_image.image_id);
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
 
-        if (NULL != ptr)
+        if (ptr)
         {
             ptr->PitchLow  = 0;
             ptr->PitchHigh = 0;
-            ptr->Y     = NULL;
-            ptr->U     = NULL;
-            ptr->V     = NULL;
-            ptr->A     = NULL;
+            ptr->Y     = nullptr;
+            ptr->U     = nullptr;
+            ptr->V     = nullptr;
+            ptr->A     = nullptr;
         }
     }
     return MFX_ERR_NONE;
