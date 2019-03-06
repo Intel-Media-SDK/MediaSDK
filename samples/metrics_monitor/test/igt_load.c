@@ -489,6 +489,9 @@ igt_spin_t * igt_spin_batch_new(int fd, uint32_t ctx, unsigned engine, uint32_t 
 
     spin = (igt_spin_t*)calloc(1, sizeof(struct igt_spin));
 
+    if (!spin)
+        return NULL;
+
     emit_recursive_batch(spin, fd, ctx, engine, dep);
     gem_bo_busy(fd, spin->handle);
 
