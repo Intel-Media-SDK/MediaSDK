@@ -281,158 +281,130 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
     mfxFrameAllocRequest*   request,
     mfxFrameAllocResponse*  response)
 {
-    mfxStatus mfx_res = MFX_ERR_NONE;
-    VAStatus  va_res  = VA_STATUS_SUCCESS;
-    unsigned int va_fourcc = 0;
-    VASurfaceID* surfaces = NULL;
-    vaapiMemIdInt *vaapi_mids = NULL, *vaapi_mid = NULL;
-    mfxU32 fourcc = request->Info.FourCC;
-    mfxU16 surfaces_num = request->NumFrameSuggested, numAllocated = 0, i = 0;
-    bool bCreateSrfSucceeded = false;
+    MFX_CHECK_NULL_PTR2(request, response);
+    MFX_CHECK(pthis, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(request->NumFrameSuggested, MFX_ERR_MEMORY_ALLOC);
 
-    if (!pthis)
-    {
-        return MFX_ERR_INVALID_HANDLE;
-    }
-
-    memset(response, 0, sizeof(mfxFrameAllocResponse));
+    *response = {};
 
     // VP8/VP9 driver has weird requirements for allocation of surfaces/buffers for VP8/VP9 encoding
     // to comply with them additional logic is required to support regular and VP8/VP9 allocation pathes
-    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
-    va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(request->Info.FourCC);
+    unsigned int va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
+    MFX_CHECK(isFourCCSupported(va_fourcc), MFX_ERR_UNSUPPORTED);
 
-    if (!isFourCCSupported(va_fourcc))
-    {
-        return MFX_ERR_UNSUPPORTED;
-    }
 
-    if (!surfaces_num)
-    {
-        return MFX_ERR_MEMORY_ALLOC;
-    }
+    auto pSelf = reinterpret_cast<mfxWideHWFrameAllocator*>(pthis);
 
-    mfxWideHWFrameAllocator *pSelf = (mfxWideHWFrameAllocator*)pthis;
-
-    // frames were allocated
-    // return existent frames
+    // Enough frames were allocated previously. Return existing frames
     if (pSelf->NumFrames)
     {
-        if (request->NumFrameSuggested > pSelf->NumFrames)
-            return MFX_ERR_MEMORY_ALLOC;
+        MFX_CHECK(request->NumFrameSuggested <= pSelf->NumFrames, MFX_ERR_MEMORY_ALLOC);
+
+        response->mids           = pSelf->m_frameHandles.data();
+        response->NumFrameActual = request->NumFrameSuggested;
+        response->AllocId        = request->AllocId;
+
+        return MFX_ERR_NONE;
+    }
+
+    // Use temporary storage for preliminary operations. If some of them fail, current state of allocator remain unchanged.
+    // When allocation will be finished, just move content of these vectors to internal allocator storage
+    std::vector<VASurfaceID>   AllocatedSurfaces(request->NumFrameSuggested, VA_INVALID_ID);
+    std::vector<vaapiMemIdInt> AllocatedMids(request->NumFrameSuggested);
+
+    VAStatus  va_res  = VA_STATUS_SUCCESS;
+    mfxStatus mfx_res = MFX_ERR_NONE;
+
+    if( VA_FOURCC_P208 != va_fourcc)
+    {
+        unsigned int format;
+        std::vector<VASurfaceAttrib> attrib;
+        FillSurfaceAttrs(attrib, format, request->Info.FourCC, va_fourcc, request->Type);
+
+        va_res = vaCreateSurfaces(pSelf->pVADisplay,
+                            format,
+                            request->Info.Width, request->Info.Height,
+                            AllocatedSurfaces.data(),
+                            AllocatedSurfaces.size(),
+                            attrib.data(),
+                            attrib.size());
+
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, VA_TO_MFX_STATUS(va_res));
+    }
+    else
+    {
+        mfxU32 codedbuf_size, codedbuf_num;
+        VABufferType codedbuf_type;
+
+        if (request->Info.FourCC == MFX_FOURCC_VP8_SEGMAP)
+        {
+            codedbuf_size = request->Info.Width;
+            codedbuf_num  = request->Info.Height;
+            codedbuf_type = VAEncMacroblockMapBufferType;
+        }
         else
         {
-            response->mids = &pSelf->m_frameHandles[0];
-            return MFX_ERR_NONE;
+            int aligned_width  = mfx::align2_value(request->Info.Width,  32);
+            int aligned_height = mfx::align2_value(request->Info.Height, 32);
+            codedbuf_size = static_cast<mfxU32>((aligned_width * aligned_height) * 400LL / (16 * 16));
+
+            codedbuf_num  = 1;
+            codedbuf_type = VAEncCodedBufferType;
         }
-    }
 
-    // allocate frames in cycle
-    surfaces = (VASurfaceID*)calloc(surfaces_num, sizeof(VASurfaceID));
-    vaapi_mids = (vaapiMemIdInt*)calloc(surfaces_num, sizeof(vaapiMemIdInt));
-    if ((NULL == surfaces) || (NULL == vaapi_mids))
-    {
-        mfx_res = MFX_ERR_MEMORY_ALLOC;
-    }
-
-    if (MFX_ERR_NONE == mfx_res)
-    {
-        if( VA_FOURCC_P208 != va_fourcc)
+        for (VABufferID& coded_buf : AllocatedSurfaces)
         {
-            unsigned int format;
-            std::vector<VASurfaceAttrib> attrib;
-            FillSurfaceAttrs(attrib, format,  fourcc, va_fourcc, request->Type);
-
-            va_res = vaCreateSurfaces(pSelf->pVADisplay,
-                                format,
-                                request->Info.Width, request->Info.Height,
-                                surfaces,
-                                surfaces_num,
-                                attrib.data(),
-                                attrib.size());
+            va_res = vaCreateBuffer(pSelf->pVADisplay,
+                      VAContextID(request->AllocId),
+                      codedbuf_type,
+                      codedbuf_size,
+                      codedbuf_num,
+                      NULL,
+                      &coded_buf);
 
             mfx_res = VA_TO_MFX_STATUS(va_res);
-            bCreateSrfSucceeded = (MFX_ERR_NONE == mfx_res);
-        }
-        else
-        {
-            VAContextID context_id = request->AllocId;
-            mfxU32 codedbuf_size, codedbuf_num;
-            VABufferType codedbuf_type;
 
-            if (fourcc == MFX_FOURCC_VP8_SEGMAP)
-            {
-                codedbuf_size = request->Info.Width;
-                codedbuf_num = request->Info.Height;
-                codedbuf_type = VAEncMacroblockMapBufferType;
-            }
-            else
-            {
-                int aligned_width  = mfx::align2_value(request->Info.Width,  32);
-                int aligned_height = mfx::align2_value(request->Info.Height, 32);
-                codedbuf_size = static_cast<mfxU32>((aligned_width * aligned_height) * 400LL / (16 * 16));
-                codedbuf_num = 1;
-
-                codedbuf_type = VAEncCodedBufferType;
-            }
-
-            for (numAllocated = 0; numAllocated < surfaces_num; numAllocated++)
-            {
-                VABufferID coded_buf;
-
-                va_res = vaCreateBuffer(pSelf->pVADisplay,
-                                      context_id,
-                                      codedbuf_type,
-                                      codedbuf_size,
-                                      codedbuf_num,
-                                      NULL,
-                                      &coded_buf);
-                mfx_res = VA_TO_MFX_STATUS(va_res);
-                if (MFX_ERR_NONE != mfx_res)
-                    break;
-                surfaces[numAllocated] = coded_buf;
-            }
+            if (mfx_res != MFX_ERR_NONE)
+                break;
         }
     }
+
     if (MFX_ERR_NONE == mfx_res)
     {
-        for (i = 0; i < surfaces_num; ++i)
-        {
-            vaapi_mid = &(vaapi_mids[i]);
-            vaapi_mid->m_fourcc = fourcc;
-            vaapi_mid->m_surface = &(surfaces[i]);
+        // Clean up existing state
+        pSelf->NumFrames = 0;
+        pSelf->m_frameHandles.clear();
+        pSelf->m_frameHandles.reserve(request->NumFrameSuggested);
 
-            pSelf->m_frameHandles.push_back(vaapi_mid);
+        // Push new frames
+        for (mfxU32 i = 0; i < request->NumFrameSuggested; ++i)
+        { 
+            AllocatedMids[i].m_surface = &AllocatedSurfaces[i];
+            AllocatedMids[i].m_fourcc  = request->Info.FourCC;
+
+            pSelf->m_frameHandles.push_back(&AllocatedMids[i]);
         }
-        response->mids = &pSelf->m_frameHandles[0];
-        response->NumFrameActual = surfaces_num;
-        response->AllocId = request->AllocId;
-        pSelf->NumFrames = surfaces_num;
+        response->mids           = pSelf->m_frameHandles.data();
+        response->NumFrameActual = request->NumFrameSuggested;
+        response->AllocId        = request->AllocId;
+
+        pSelf->NumFrames = pSelf->m_frameHandles.size();
+
+        // Save new frames in internal state
+        pSelf->m_allocatedSurfaces = std::move(AllocatedSurfaces);
+        pSelf->m_allocatedMids     = std::move(AllocatedMids);
     }
-    else // i.e. MFX_ERR_NONE != mfx_res
+    else
     {
-        response->mids = NULL;
-        response->NumFrameActual = 0;
-        if (VA_FOURCC_P208 != va_fourcc
-            || fourcc == MFX_FOURCC_VP8_MBDATA)
+        // Some of vaCreateBuffer failed
+        for (VABufferID& coded_buf : AllocatedSurfaces)
         {
-            if (bCreateSrfSucceeded)
-            {
-                va_res = vaDestroySurfaces(pSelf->pVADisplay, surfaces, surfaces_num);
-                MFX_CHECK(VA_STATUS_SUCCESS == va_res, MFX_ERR_DEVICE_FAILED);
-            }
+            mfxStatus sts = CheckAndDestroyVAbuffer(pSelf->pVADisplay, coded_buf);
+            MFX_CHECK_STS(sts);
         }
-        else
-        {
-            for (i = 0; i < numAllocated; ++i)
-            {
-                mfx_res = CheckAndDestroyVAbuffer(pSelf->pVADisplay, surfaces[i]);
-                MFX_CHECK_STS(mfx_res);
-            }
-        }
-        if (vaapi_mids) { free(vaapi_mids); vaapi_mids = NULL; }
-        if (surfaces) { free(surfaces); surfaces = NULL; }
     }
+
     return mfx_res;
 }
 
@@ -440,37 +412,40 @@ mfxStatus mfxDefaultAllocatorVAAPI::FreeFramesHW(
     mfxHDL                  pthis,
     mfxFrameAllocResponse*  response)
 {
-    if (!pthis)
-        return MFX_ERR_INVALID_HANDLE;
-
-    if (!response) return MFX_ERR_NULL_PTR;
+    MFX_CHECK(pthis, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK_NULL_PTR1(response);
 
     if (response->mids)
     {
-        auto vaapi_mids = (vaapiMemIdInt*)(response->mids[0]);
+        auto vaapi_mids = reinterpret_cast<vaapiMemIdInt*>(response->mids[0]);
+        MFX_CHECK_NULL_PTR1(vaapi_mids);
+        MFX_CHECK_NULL_PTR1(vaapi_mids->m_surface);
 
-        bool isBufferMemory = ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc) == MFX_FOURCC_P8;
-        auto surfaces = vaapi_mids->m_surface;
+        auto pSelf = reinterpret_cast<mfxWideHWFrameAllocator*>(pthis);
+        // Make sure that we are asked to clean memory which was allocated by current allocator
+        MFX_CHECK(pSelf->m_allocatedSurfaces.data() == vaapi_mids->m_surface, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        auto pSelf = (mfxWideHWFrameAllocator*)pthis;
-        for (mfxU32 i = 0; i < response->NumFrameActual; ++i)
+        if (ConvertVP8FourccToMfxFourcc(vaapi_mids->m_fourcc) == MFX_FOURCC_P8)
         {
-            if (MFX_FOURCC_P8 == vaapi_mids[i].m_fourcc)
+            for (VABufferID& coded_buf : pSelf->m_allocatedSurfaces)
             {
-                mfxStatus sts = CheckAndDestroyVAbuffer(pSelf->pVADisplay, surfaces[i]);
+                mfxStatus sts = CheckAndDestroyVAbuffer(pSelf->pVADisplay, coded_buf);
                 MFX_CHECK_STS(sts);
             }
         }
-        free(vaapi_mids);
-        response->mids = NULL;
-
-        if (!isBufferMemory)
+        else
         {
-            VAStatus vaSts = vaDestroySurfaces(pSelf->pVADisplay, surfaces, response->NumFrameActual);
+            // Not Buffered memory
+            VAStatus vaSts = vaDestroySurfaces(pSelf->pVADisplay, vaapi_mids->m_surface, response->NumFrameActual);
             MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
+        response->mids = nullptr;
 
-        free(surfaces);
+        // Reset internal state
+        pSelf->NumFrames = 0;
+        pSelf->m_frameHandles.clear();
+        pSelf->m_allocatedSurfaces.clear();
+        pSelf->m_allocatedMids.clear();
     }
     response->NumFrameActual = 0;
 
