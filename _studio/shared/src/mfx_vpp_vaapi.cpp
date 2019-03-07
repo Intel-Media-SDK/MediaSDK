@@ -1286,10 +1286,11 @@ mfxStatus VAAPIVideoProcessing::RemoveBufferFromPipe(VABufferID& id)
 {
     if (id != VA_INVALID_ID)
     {
+        VABufferID tmp = id;
         mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, id);
         MFX_CHECK_STS(sts);
 
-        std::remove(m_filterBufs, m_filterBufs + m_numFilterBufs, id);
+        std::remove(m_filterBufs, m_filterBufs + m_numFilterBufs, tmp);
         m_filterBufs[m_numFilterBufs] = VA_INVALID_ID;
         --m_numFilterBufs;
     }
