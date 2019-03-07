@@ -38,26 +38,27 @@ using namespace UMC;
 class VC1TaskStore;
 
 
-static void SetFrameType(const UMC::VideoData &mediaData, mfxFrameSurface1 &surface)
+static void SetFrameType(const uint32_t type, mfxFrameSurface1 &surface)
 {
     auto extFrameInfo = reinterpret_cast<mfxExtDecodedFrameInfo *>(GetExtendedBuffer(surface.Data.ExtParam, surface.Data.NumExtParam, MFX_EXTBUFF_DECODED_FRAME_INFO));
     if (extFrameInfo == nullptr)
         return;
 
-    switch (mediaData.GetFrameType())
+    switch (type & VC1_BI_FRAME)
     {
-        case UMC::I_PICTURE:
+        case  VC1_I_FRAME:
             extFrameInfo->FrameType = MFX_FRAMETYPE_I;
             break;
-        case UMC::P_PICTURE:
+        case  VC1_P_FRAME:
             extFrameInfo->FrameType = MFX_FRAMETYPE_P;
             break;
-        case UMC::B_PICTURE:
+        case  VC1_B_FRAME:
+        case  VC1_BI_FRAME:
             extFrameInfo->FrameType = MFX_FRAMETYPE_B;
             break;
-        // NONE_PICTURE
-        default:
+        default:// unexpected type
             extFrameInfo->FrameType = MFX_FRAMETYPE_UNKNOWN;
+            assert(0);
     }
 }
 
@@ -1842,8 +1843,6 @@ void   MFXVideoDECODEVC1::FillMFXDataOutputSurface(mfxFrameSurface1 *surface)
     {
         m_ext_dur += GetMfxTimeStamp((mfxF64)0.5*surface->Info.FrameRateExtD/surface->Info.FrameRateExtN);
     }
-
-    SetFrameType(m_InternMediaDataOut, *surface);
 }
 
 mfxStatus   MFXVideoDECODEVC1::FillOutputSurface(mfxFrameSurface1 *surface, UMC::FrameMemID memID)
@@ -1923,6 +1922,9 @@ mfxStatus   MFXVideoDECODEVC1::FillOutputSurface(mfxFrameSurface1 *surface)
                 surface->Info.PicStruct |= MFX_PICSTRUCT_FIELD_REPEATED;
         }
     }
+
+    SetFrameType(m_pVC1VideoDecoder->m_pStore->GetLastDS()->m_pContext->m_picLayerHeader->PTYPE, *surface);
+
     return MFX_ERR_NONE;
 }
 
