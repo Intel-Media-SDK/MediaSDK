@@ -311,11 +311,11 @@ namespace MPEG2EncoderHW
         {
             Close();
         }
-        mfxStatus Init(mfxVideoParam* par);
+        mfxStatus Init(mfxVideoParamEx_MPEG2* pMpeg2Par);
 
-        inline mfxStatus Reset(mfxVideoParam* par)
+        inline mfxStatus Reset(mfxVideoParamEx_MPEG2* pMpeg2Par)
         {
-            return Init(par);
+            return Init(pMpeg2Par);
         }
         void Close ();
 

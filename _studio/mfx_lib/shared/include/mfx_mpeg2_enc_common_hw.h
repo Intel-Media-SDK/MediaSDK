@@ -76,6 +76,7 @@
         bool                    bAddDisplayExt;
         bool                    bMbqpMode;
         bool                    bDisablePanicMode;
+        bool                    bCqpHrdMode;
     };
 
 namespace MfxHwMpeg2Encode

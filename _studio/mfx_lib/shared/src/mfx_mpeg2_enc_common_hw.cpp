@@ -188,8 +188,11 @@ mfxStatus ExecuteBuffers::Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId, 
 
         mfxU32 multiplier = MFX_MAX(par->mfxVideoParams.mfx.BRCParamMultiplier, 1);
 
-        m_sps.bit_rate = (par->mfxVideoParams.mfx.RateControlMethod != MFX_RATECONTROL_CQP) ?
-                                                            par->mfxVideoParams.mfx.TargetKbps * multiplier : 0;
+        if ((par->mfxVideoParams.mfx.RateControlMethod != MFX_RATECONTROL_CQP) ||
+           (par->bCqpHrdMode == true))
+        {
+            m_sps.bit_rate = par->mfxVideoParams.mfx.TargetKbps * multiplier;
+        }
         m_sps.vbv_buffer_size =((par->mfxVideoParams.mfx.BufferSizeInKB * multiplier) >> 1);
         m_sps.low_delay = 0;
         m_sps.ChromaFormat = (UCHAR)par->mfxVideoParams.mfx.FrameInfo.ChromaFormat;

@@ -32,7 +32,7 @@ using namespace MPEG2EncoderHW;
 
 
 static 
-mfxStatus RunSeqHeader(mfxVideoParam *par, mfxU8* pBuffer, mfxU16 maxLen, mfxU16 &len)
+mfxStatus RunSeqHeader(mfxVideoParam *par, mfxU8* pBuffer, mfxU16 maxLen, mfxU16 &len, bool bCqpHrdMode)
 {
     MFX_CHECK_NULL_PTR2(par, pBuffer);
     MFX_CHECK(maxLen - len >= HLEN,MFX_ERR_NOT_ENOUGH_BUFFER);
@@ -51,8 +51,7 @@ mfxStatus RunSeqHeader(mfxVideoParam *par, mfxU8* pBuffer, mfxU16 maxLen, mfxU16
     
     mfxU32 bitrate      = 0;
     mfxU32 buffer_size  = 0;
-
-    if (par->mfx.RateControlMethod != MFX_RATECONTROL_CQP) 
+    if ((par->mfx.RateControlMethod != MFX_RATECONTROL_CQP)||(bCqpHrdMode == true))
     {
         bitrate      = (par->mfx.TargetKbps * 5 + 1)>>1;
         buffer_size  =  par->mfx.BufferSizeInKB>>1;   
@@ -227,12 +226,12 @@ mfxStatus FullEncode::ResetImpl()
     if (!m_pBRC)
     {
         m_pBRC = new MPEG2BRC_HW (m_pCore);
-        sts = m_pBRC->Init(&paramsEx->mfxVideoParams);
+        sts = m_pBRC->Init(paramsEx);
         MFX_CHECK_STS(sts);  
     }
     else
     {
-        sts = m_pBRC->Reset(&paramsEx->mfxVideoParams);
+        sts = m_pBRC->Reset(paramsEx);
         MFX_CHECK_STS(sts);  
     }
 
@@ -312,8 +311,11 @@ mfxStatus FullEncode::GetVideoParam(mfxVideoParam *par)
 
     if (mfxExtCodingOptionSPSPPS* ext = MPEG2EncoderHW::GetExtCodingOptionsSPSPPS(par->ExtParam, par->NumExtParam))
     {
+        mfxVideoParamEx_MPEG2* paramsEx = m_pController->getVideoParamsEx();
+        bool CqpHrdMode = paramsEx->bCqpHrdMode;
         mfxU16 len = 0;
-        sts = RunSeqHeader(par, ext->SPSBuffer, ext->SPSBufSize,len);
+
+        sts = RunSeqHeader(par, ext->SPSBuffer, ext->SPSBufSize, len, CqpHrdMode);
         MFX_CHECK_STS(sts);
         ext->SPSBufSize = len;
         ext->PPSBufSize = 0; // pps is n/a for mpeg2

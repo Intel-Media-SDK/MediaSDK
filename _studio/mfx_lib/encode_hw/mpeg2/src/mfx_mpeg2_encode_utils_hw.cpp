@@ -1309,6 +1309,16 @@ namespace MPEG2EncoderHW
             }
         }
 
+        if (m_VideoParamsEx.mfxVideoParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
+        {
+            if (m_VideoParamsEx.mfxVideoParams.mfx.BufferSizeInKB != 0)
+            {
+                // Mpeg2 encode is set as CQP mode while the BufferSizeInKB is not 0
+                // It is identified as the CqpHrdMode, need decorate the brc parameter in SPS.
+                m_VideoParamsEx.bCqpHrdMode = true;
+            }
+        }
+
         if (extOpt3 && extOpt3->BRCPanicMode == MFX_CODINGOPTION_OFF)
         {
             // MPEG2 BRC panic mode disabling currently only supported on Linux and only valid for non-CQP modes
@@ -1850,11 +1860,12 @@ namespace MPEG2EncoderHW
 
         return quant_value;
     }
-    mfxStatus MPEG2BRC_HW::Init(mfxVideoParam* par)
+    mfxStatus MPEG2BRC_HW::Init(mfxVideoParamEx_MPEG2* pMpeg2Par)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MPEG2BRC_HW::Init");
         mfxStatus   sts = MFX_ERR_NONE;
 
+        mfxVideoParam* par = &(pMpeg2Par->mfxVideoParams);
         m_bConstantQuant = (par->mfx.RateControlMethod == MFX_RATECONTROL_CQP)? 1:0;
         m_bLimitedMode   = 0;
 
@@ -1880,8 +1891,16 @@ namespace MPEG2EncoderHW
             MFX_CHECK_UMC_STS (ret);
 
             mfxU32 bufferSizeInKB = ((brcParams.maxFrameSize + 999)/1000);
-            par->mfx.BRCParamMultiplier = (mfxU16)((bufferSizeInKB + 0x10000) / 0x10000);
-            par->mfx.BufferSizeInKB = (mfxU16)(bufferSizeInKB / par->mfx.BRCParamMultiplier);
+            if (pMpeg2Par->bCqpHrdMode == false)
+            {
+                par->mfx.BRCParamMultiplier = (mfxU16)((bufferSizeInKB + 0x10000) / 0x10000);
+                par->mfx.BufferSizeInKB = (mfxU16)(bufferSizeInKB / par->mfx.BRCParamMultiplier);
+            }
+            else
+            {
+                //Set the TargetKbps and BufferSizeInKB from the application.
+                par->mfx.BRCParamMultiplier = (mfxU16)((par->mfx.BufferSizeInKB + 0x10000) / 0x10000);
+            }
         }
         else
         {
