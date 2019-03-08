@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -81,8 +81,8 @@ mfxStatus FRCAdvancedChecker::Init(mfxVideoParam *par, mfxU32 asyncDeep)
 
     m_videoParam = *par;
 
-    m_minDeltaTime = std::min((__UINT64) (m_videoParam.vpp.In.FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_videoParam.vpp.In.FrameRateExtN),
-        (__UINT64) (m_videoParam.vpp.Out.FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_videoParam.vpp.Out.FrameRateExtN));
+    m_minDeltaTime = std::min(uint64_t(m_videoParam.vpp.In.FrameRateExtD  * MFX_TIME_STAMP_FREQUENCY) / (2 * m_videoParam.vpp.In.FrameRateExtN),
+                              uint64_t(m_videoParam.vpp.Out.FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_videoParam.vpp.Out.FrameRateExtN));
 
     return MFX_ERR_NONE;
 
