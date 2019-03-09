@@ -234,6 +234,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -nobref       Do not use B-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("  -bpyr         Enable B pyramid\n"));
     msdk_printf(MSDK_STRING("  -gpb:<on,off>          - Enable or disable Generalized P/B frames\n"));
+    msdk_printf(MSDK_STRING("  -trows <rows>          - Number of rows for tiled encoding\n"));
+    msdk_printf(MSDK_STRING("  -tcols <cols>          - Number of columns for tiled encoding\n"));
     msdk_printf(MSDK_STRING("  -CodecProfile          - Specifies codec profile\n"));
     msdk_printf(MSDK_STRING("  -CodecLevel            - Specifies codec level\n"));
     msdk_printf(MSDK_STRING("  -GopOptFlag:closed     - Closed gop\n"));
@@ -1326,6 +1328,26 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-trows")))
+        {
+            VAL_CHECK(i + 1 == argc, i, argv[i]);
+            i++;
+            if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.nEncTileRows))
+            {
+                PrintError(MSDK_STRING("Encoding tile row count \"%s\" is invalid"), argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-tcols")))
+        {
+            VAL_CHECK(i + 1 == argc, i, argv[i]);
+            i++;
+            if (MFX_ERR_NONE != msdk_opt_read(argv[i], InputParams.nEncTileCols))
+            {
+                PrintError(MSDK_STRING("Encoding tile column count \"%s\" is invalid"), argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-CodecLevel")))
         {
             VAL_CHECK(i + 1 == argc, i, argv[i]);
@@ -2249,6 +2271,13 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     {
         PrintError(MSDK_STRING("-o::raw option can be used with NV12, RGB4 and YUY2 color formats only.\n"));
         return MFX_ERR_UNSUPPORTED;
+    }
+
+    if((InputParams.nEncTileRows || InputParams.nEncTileCols) && (InputParams.EncodeId != MFX_CODEC_VP9))
+    {
+        msdk_printf(MSDK_STRING("WARNING: -trows and -tcols are only supported for VP9 encoder, these parameters will be ignored.\n"));
+        InputParams.nEncTileRows = 0;
+        InputParams.nEncTileCols = 0;
     }
 
     return MFX_ERR_NONE;

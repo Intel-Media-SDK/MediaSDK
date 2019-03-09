@@ -174,6 +174,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     MSDK_ZERO_MEMORY(m_CodingOption2);
     MSDK_ZERO_MEMORY(m_CodingOption3);
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
+    MSDK_ZERO_MEMORY(m_ExtVP9Param);
 #if MFX_VERSION >= 1022
     MSDK_ZERO_MEMORY(m_decPostProcessing);
     m_decPostProcessing.Header.BufferId = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
@@ -188,6 +189,9 @@ CTranscodingPipeline::CTranscodingPipeline():
 
     m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
     m_ExtHEVCParam.Header.BufferSz = sizeof(mfxExtHEVCParam);
+
+    m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
+    m_ExtVP9Param.Header.BufferSz = sizeof(mfxExtVP9Param);
 
 #if (MFX_VERSION >= 1024)
     MSDK_ZERO_MEMORY(m_ExtBRC);
@@ -2516,6 +2520,18 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_mfxEncParams.IOPattern = MFX_IOPATTERN_IN_OPAQUE_MEMORY;
     else
         m_mfxEncParams.IOPattern = InPatternFromParent;
+
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
+    m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
+
+    if (m_ExtVP9Param.NumTileRows
+        && m_ExtVP9Param.NumTileColumns
+        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+    {
+        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
+    }
+#endif
 
     // we don't specify profile and level and let the encoder choose those basing on parameters
     // we must specify profile only for MVC codec

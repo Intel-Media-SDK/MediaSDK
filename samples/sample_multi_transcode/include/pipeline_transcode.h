@@ -203,6 +203,9 @@ namespace TranscodingSample
         mfxU16 nDstWidth;  // destination picture width, specified if resizing required
         mfxU16 nDstHeight; // destination picture height, specified if resizing required
 
+        mfxU16 nEncTileRows; // number of rows for encoding tiling
+        mfxU16 nEncTileCols; // number of columns for encoding tiling
+
         bool bEnableDeinterlacing;
         mfxU16 DeinterlacingMode;
         int DenoiseLevel;
@@ -793,6 +796,8 @@ namespace TranscodingSample
 
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
+        // VP9
+        mfxExtVP9Param           m_ExtVP9Param;
 
 #if (MFX_VERSION >= 1024)
         mfxExtBRC                m_ExtBRC;
