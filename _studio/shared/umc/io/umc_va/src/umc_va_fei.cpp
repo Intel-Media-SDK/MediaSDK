@@ -272,10 +272,10 @@ namespace UMC
             VABufferID id = m_streamOutBuffer->GetID();
 
             VAStatus vaSts = vaUnmapBuffer(m_dpy, id);
-            MFX_CHECK(vaSts != VA_STATUS_SUCCESS, UMC_ERR_FAILED);
+            MFX_CHECK(vaSts == VA_STATUS_SUCCESS, UMC_ERR_FAILED);
 
             mfxStatus sts = CheckAndDestroyVAbuffer(m_dpy, id);
-            MFX_CHECK(sts != MFX_ERR_NONE, UMC_ERR_FAILED);
+            MFX_CHECK(sts == MFX_ERR_NONE, UMC_ERR_FAILED);
 
             UMC_DELETE(m_streamOutBuffer);
         }
