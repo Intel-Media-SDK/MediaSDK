@@ -215,12 +215,12 @@ static mfxStatus ReallocImpl(VADisplay* vaDisp, vaapiMemIdInt *vaapi_mid, mfxFra
     if (MFX_FOURCC_P8 == vaapi_mid->m_fourcc)
     {
         mfxStatus sts = CheckAndDestroyVAbuffer(vaDisp, surfaces[0]);
-        MFX_CHECK(sts != MFX_ERR_NONE, MFX_ERR_MEMORY_ALLOC);
+        MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_MEMORY_ALLOC);
     }
     else
     {
         va_res = vaDestroySurfaces(vaDisp, surfaces, 1);
-        MFX_CHECK(va_res != VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
+        MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
     }
 
     *vaapi_mid->m_surface = VA_INVALID_ID;
