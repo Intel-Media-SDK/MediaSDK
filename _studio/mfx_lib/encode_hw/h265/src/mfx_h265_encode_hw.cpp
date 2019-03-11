@@ -427,7 +427,9 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par
 
     (void)SetLowpowerDefault(tmp);
 
-    sts = QueryHwCaps(core, GetGUID(tmp), caps);
+    sts = QueryHwCaps(core, GetGUID(tmp), caps,
+            tmp.m_ext.HEVCParam.PicWidthInLumaSamples,
+            tmp.m_ext.HEVCParam.PicHeightInLumaSamples);
     MFX_CHECK_STS(sts);
 
     MfxHwH265Encode::CheckVideoParam(tmp, caps);
@@ -508,7 +510,9 @@ mfxStatus MFXVideoENCODEH265_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVi
 
         mfxStatus lpsts = SetLowpowerDefault(tmp);
 
-        sts = QueryHwCaps(core, GetGUID(tmp), caps);
+        sts = QueryHwCaps(core, GetGUID(tmp), caps,
+                tmp.m_ext.HEVCParam.PicWidthInLumaSamples,
+                tmp.m_ext.HEVCParam.PicHeightInLumaSamples);
         MFX_CHECK_STS(sts);
 
         mfxExtCodingOptionSPSPPS* pSPSPPS = ExtBuffer::Get(*in);
