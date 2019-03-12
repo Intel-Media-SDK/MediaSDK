@@ -957,17 +957,14 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.YUV422ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV422 ? 1 : 0;
     m_caps.YUV444ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV444 ? 1 : 0;
 
-    if ((attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != 0))
-        m_caps.MaxPicWidth = attrs[idx_map[VAConfigAttribMaxPictureWidth] ].value;
-    else
-        m_caps.MaxPicWidth = 1920;
+    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK_COND(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value && attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value);
+    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value >= m_width, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value >= m_height, MFX_ERR_UNSUPPORTED);
+    m_caps.MaxPicWidth  = attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value;
+    m_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
 
-    if ((attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != 0))
-        m_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
-    else
-        m_caps.MaxPicHeight = 1088;
 
     m_caps.SliceStructure = 4;
     m_caps.SliceByteSizeCtrl = 1; //It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
