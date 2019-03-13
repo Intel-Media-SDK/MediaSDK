@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1284,6 +1284,7 @@ mfxStatus VAAPIVideoCORE::IsGuidSupported(const GUID guid,
 
     MFX_CHECK(m_Display, MFX_ERR_DEVICE_FAILED);
 
+#if VA_CHECK_VERSION(1, 2, 0)
     VaGuidMapper mapper(guid);
     VAProfile req_profile = mapper.profile;
     VAEntrypoint req_entrypoint = mapper.entrypoint;
@@ -1335,6 +1336,39 @@ mfxStatus VAAPIVideoCORE::IsGuidSupported(const GUID guid,
     MFX_CHECK(attr[1].value >= par->mfx.FrameInfo.Height, MFX_ERR_UNSUPPORTED);
 
     return MFX_ERR_NONE;
+#else
+    (void)guid;
+
+    switch (par->mfx.CodecId)
+    {
+    case MFX_CODEC_VC1:
+    case MFX_CODEC_AVC:
+    case MFX_CODEC_VP9:
+        break;
+    case MFX_CODEC_HEVC:
+        MFX_CHECK(m_HWType >= MFX_HW_HSW, MFX_WRN_PARTIAL_ACCELERATION);
+        MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_WRN_PARTIAL_ACCELERATION);
+        break;
+    case MFX_CODEC_MPEG2: //MPEG2 decoder doesn't support resolution bigger than 2K
+        MFX_CHECK(par->mfx.FrameInfo.Width <= 2048 && par->mfx.FrameInfo.Height <= 2048, MFX_WRN_PARTIAL_ACCELERATION);
+        break;
+    case MFX_CODEC_JPEG:
+        MFX_CHECK(par->mfx.FrameInfo.Width <= 8192 && par->mfx.FrameInfo.Height <= 8192, MFX_WRN_PARTIAL_ACCELERATION);
+        break;
+    case MFX_CODEC_VP8:
+        MFX_CHECK(m_HWType >= MFX_HW_BDW, MFX_ERR_UNSUPPORTED);
+        break;
+    default:
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    MFX_CHECK(MFX_CODEC_JPEG == par->mfx.CodecId || MFX_CODEC_HEVC == par->mfx.CodecId ||
+        (par->mfx.FrameInfo.Width <= 4096 && par->mfx.FrameInfo.Height <= 4096),
+        MFX_WRN_PARTIAL_ACCELERATION
+    );
+
+    return MFX_ERR_NONE;
+#endif
 }
 
 void* VAAPIVideoCORE::QueryCoreInterface(const MFX_GUID &guid)
