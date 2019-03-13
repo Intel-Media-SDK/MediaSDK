@@ -574,9 +574,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfx
     mfxStatus sts = MFX_VP9_Utility::DecodeHeader(core, bs, par);
     MFX_CHECK_STS(sts);
 
-    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
-        par->mfx.FrameInfo.Shift = 1;
-
     return sts;
 }
 
@@ -747,16 +744,6 @@ mfxStatus VideoDECODEVP9_HW::GetVideoParam(mfxVideoParam *par)
     par->mfx.FrameInfo.AspectRatioW = m_vInitPar.mfx.FrameInfo.AspectRatioW;
 
     return MFX_ERR_NONE;
-}
-
-void VideoDECODEVP9_HW::UpdateVideoParam(mfxVideoParam *par, VP9DecoderFrame const & frameInfo)
-{
-    VM_ASSERT(par);
-
-    MFX_VP9_Utility::FillVideoParam(m_core, frameInfo, par);
-
-    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
-        par->mfx.FrameInfo.Shift = 1;
 }
 
 mfxStatus VideoDECODEVP9_HW::GetDecodeStat(mfxDecodeStat *pStat)
@@ -1075,7 +1062,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     sts = DecodeFrameHeader(bs, frameInfo);
     MFX_CHECK_STS(sts);
 
-    UpdateVideoParam(&m_vPar, frameInfo);
+    MFX_VP9_Utility::FillVideoParam(m_core->GetPlatformType(), frameInfo, m_vPar);
 
     // check resize
     if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width || m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
