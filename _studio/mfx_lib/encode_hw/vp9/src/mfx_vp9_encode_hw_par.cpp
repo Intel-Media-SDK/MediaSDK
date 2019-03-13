@@ -186,7 +186,7 @@ inline void SetOrCopy(mfxExtVP9Param *pDst, mfxExtVP9Param const *pSrc = 0, bool
     SET_OR_COPY_PAR(QIndexDeltaChromaAC);
     SET_OR_COPY_PAR(QIndexDeltaChromaDC);
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
     SET_OR_COPY_PAR(NumTileRows);
     SET_OR_COPY_PAR(NumTileColumns);
 #endif
@@ -1469,7 +1469,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         changed = true;
     }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
     mfxU16& rows = extPar.NumTileRows;
     mfxU16& cols = extPar.NumTileColumns;
     if (rows * cols  > 1 && caps.TileSupport == 0)
@@ -1542,7 +1542,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         rows = cols = 1;
         unsupported = true;
     }
-#endif // MFX_VERSION >= MFX_VERSION_NEXT
+#endif // MFX_VERSION >= 1029
 
     return GetCheckStatus(changed, unsupported);
 }
@@ -1732,10 +1732,10 @@ mfxStatus SetDefaults(
     SetDefault(fi.BitDepthChroma, 8);
 #endif // MFX_VERSION >= 1027
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
     SetDefault(extPar.NumTileColumns, (extPar.FrameWidth + MAX_TILE_WIDTH - 1) / MAX_TILE_WIDTH);
     SetDefault(extPar.NumTileRows, 1);
-#endif // (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif // (MFX_VERSION >= 1029)
 
     // ext buffers
     // TODO: uncomment when buffer mfxExtVP9CodingOption will be added to API

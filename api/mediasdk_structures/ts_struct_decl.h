@@ -1255,6 +1255,18 @@ STRUCT(mfxExtVP9Param,
     FIELD_T(mfxU16      , NumTileRows)
     FIELD_T(mfxU16      , NumTileColumns)
 )
+#elif (MFX_VERSION >= 1029)
+STRUCT(mfxExtVP9Param,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16      , FrameWidth)
+    FIELD_T(mfxU16      , FrameHeight)
+    FIELD_T(mfxU16      , WriteIVFHeaders)
+    FIELD_T(mfxI16      , QIndexDeltaLumaDC)
+    FIELD_T(mfxI16      , QIndexDeltaChromaAC)
+    FIELD_T(mfxI16      , QIndexDeltaChromaDC)
+    FIELD_T(mfxU16      , NumTileRows)
+    FIELD_T(mfxU16      , NumTileColumns)
+)
 #elif (MFX_VERSION >= 1026)
 STRUCT(mfxExtVP9Param,
     FIELD_S(mfxExtBuffer, Header)

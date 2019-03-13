@@ -2521,7 +2521,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     else
         m_mfxEncParams.IOPattern = InPatternFromParent;
 
-#if MFX_VERSION >= MFX_VERSION_NEXT
+#if MFX_VERSION >= 1029
     m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
     m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
 
