@@ -469,7 +469,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
         // dynamic scaling and tiles don't work together
         if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&

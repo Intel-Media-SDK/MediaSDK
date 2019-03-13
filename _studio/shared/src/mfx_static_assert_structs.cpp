@@ -1218,7 +1218,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaLumaDC             ,26   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaChromaAC           ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaChromaDC           ,30   )
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,NumTileRows                   ,32   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,NumTileColumns                ,34   )
 #endif
@@ -1858,7 +1858,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaLumaDC             ,26   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaChromaAC           ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,QIndexDeltaChromaDC           ,30   )
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,NumTileRows                   ,32   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9Param                     ,NumTileColumns                ,34   )
 #endif
