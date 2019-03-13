@@ -400,6 +400,8 @@ mfxU32 Str2FourCC( msdk_char* strInput )
     else if (0 == msdk_stricmp(strInput, MSDK_STRING("i420")))
     {
         fourcc = MFX_FOURCC_I420;
+    } else if (0 == msdk_stricmp(strInput, MSDK_STRING("ayuv"))) {
+        fourcc = MFX_FOURCC_AYUV;
     }
 
     return fourcc;
