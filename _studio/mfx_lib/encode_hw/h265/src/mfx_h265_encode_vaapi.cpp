@@ -1246,15 +1246,14 @@ void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
 {
 
     //16x32 only: driver limitation
-    m_width        = (picWidthInLumaSamples   + 31) / 32;
-    m_height       = (picHeightInLumaSamples  + 31) / 32;
-    m_pitch  = (((picWidthInLumaSamples + 31) >> 5) + 63) &~ 63;
-    m_h_aligned = (((picHeightInLumaSamples + 31) >> 5) + 3) &~ 3;
+    m_width        = (picWidthInLumaSamples  + 31) / 32;
+    m_height       = (picHeightInLumaSamples + 31) / 32;
+    m_pitch        = mfx::align_value<mfxU32>(m_width, 64);
+    m_h_aligned    = mfx::align_value<mfxU32>(m_height, 4);
     m_block_width  = 32;
     m_block_height = 32;
     m_buffer.resize(m_pitch * m_h_aligned);
     Zero(m_buffer);
-
 }
 
 bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
