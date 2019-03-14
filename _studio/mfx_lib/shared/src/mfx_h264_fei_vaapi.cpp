@@ -171,12 +171,9 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
      * Actually this is obligation to attach statistics buffers for I- frame/field
      * For P- frame/field only one MVout buffer maybe attached */
 
-    mfxU32 currNumMbsW = ((m_videoParam.mfx.FrameInfo.Width  + 15) >> 4) << 4;
-    mfxU32 currNumMbsH = ((m_videoParam.mfx.FrameInfo.Height + 15) >> 4) << 4;
-
-    /* Interlaced case requires 32 height alignment */
-    if (MFX_PICSTRUCT_PROGRESSIVE != m_videoParam.mfx.FrameInfo.PicStruct)
-        currNumMbsH = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
+    mfxU32 currNumMbsW = mfx::align_value<mfxU32>(m_videoParam.mfx.FrameInfo.Width, 16);
+    mfxU32 currNumMbsH = mfx::align_value<mfxU32>(m_videoParam.mfx.FrameInfo.Height,
+                            MFX_PICSTRUCT_PROGRESSIVE == m_videoParam.mfx.FrameInfo.PicStruct ? 16 : 32);
 
     mfxU32 currNumMbs = (currNumMbsW * currNumMbsH) >> 8;
     mfxU32 currNumMbs_first_buff = currNumMbs;
@@ -1306,9 +1303,9 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     /* Need to allocated coded buffer: this is does not used by ENC actually */
     if (VA_INVALID_ID == m_codedBufferId)
     {
-        int width32  = ((m_videoParam.mfx.FrameInfo.Width  + 31) >> 5) << 5;
-        int height32 = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
-        int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16)); //from libva spec
+        int aligned_width  = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Width,  32);
+        int aligned_height = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Height, 32);
+        int codedbuf_size = static_cast<int>((aligned_width * aligned_height) * 400LL / (16 * 16)); //from libva spec
 
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
@@ -2162,9 +2159,9 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     /* Need to allocated coded buffer */
     if (VA_INVALID_ID == m_codedBufferId[feiFieldId])
     {
-        int width32  = ((m_videoParam.mfx.FrameInfo.Width  + 31) >> 5) << 5;
-        int height32 = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
-        int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16));
+        int aligned_width  = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Width,  32);
+        int aligned_height = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Height, 32);
+        int codedbuf_size = static_cast<int>((aligned_width * aligned_height) * 400LL / (16 * 16));
 
         // To workaround an issue with VA coded bufer overflow due to IPCM violation.
         // TODO: consider removing it once IPCM issue is fixed.
