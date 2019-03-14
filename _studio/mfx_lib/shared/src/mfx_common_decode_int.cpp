@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -268,8 +268,8 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
     par->mfx.CodecProfile = mfxU16(si->profile);
     par->mfx.CodecLevel   = mfxU16(si->level);
 
-    par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(si->clip_info.height, 16);
-    par->mfx.FrameInfo.Width  = UMC::align_value<mfxU16>(si->clip_info.width,  16);
+    par->mfx.FrameInfo.Height = mfx::align_value<mfxU16>(si->clip_info.height, 16);
+    par->mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(si->clip_info.width,  16);
 
     par->mfx.FrameInfo.CropX  = par->mfx.FrameInfo.CropY = 0;
     par->mfx.FrameInfo.CropH  = mfxU16(si->disp_clip_info.height);

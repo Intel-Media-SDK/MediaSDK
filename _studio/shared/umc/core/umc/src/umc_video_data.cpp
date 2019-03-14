@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,7 @@
 
 #include "umc_video_data.h"
 #include "vm_debug.h"
+#include "mfx_utils.h"
 
 namespace UMC
 {
@@ -293,7 +294,7 @@ Status VideoData::SetColorFormat(ColorFormat cFormat)
             align *= pFormat->m_PlaneFormatInfo[i].m_iAlignMult;
         }
         m_pPlaneData[i].m_nPitch =
-            align_value<size_t>(m_pPlaneData[i].m_ippSize.width * bpp, align);
+            mfx::align_value<size_t>(m_pPlaneData[i].m_ippSize.width * bpp, align);
         m_pPlaneData[i].m_nMemSize = m_pPlaneData[i].m_nPitch * m_pPlaneData[i].m_ippSize.height;
     }
     // special case, can't be completely covered by format table

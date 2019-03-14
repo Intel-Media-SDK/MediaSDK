@@ -145,6 +145,12 @@ constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
 {
     return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }
+
+template<class T> inline
+T align_value(size_t value, size_t alignment = 16)
+{
+    return static_cast<T> ((value + (alignment - 1)) & ~(alignment - 1));
+}
 }
 
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field

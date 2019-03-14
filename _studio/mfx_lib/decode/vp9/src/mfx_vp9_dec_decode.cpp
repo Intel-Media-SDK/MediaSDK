@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -203,8 +203,8 @@ void FillVideoParam(eMFXPlatform platform, UMC_VP9_DECODER::VP9DecoderFrame cons
     params.mfx.FrameInfo.CropW = static_cast<mfxU16>(frame.width);
     params.mfx.FrameInfo.CropH = static_cast<mfxU16>(frame.height);
 
-    params.mfx.FrameInfo.Width  = UMC::align_value<mfxU16>(params.mfx.FrameInfo.CropW, 16);
-    params.mfx.FrameInfo.Height = UMC::align_value<mfxU16>(params.mfx.FrameInfo.CropH, 16);
+    params.mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(params.mfx.FrameInfo.CropW, 16);
+    params.mfx.FrameInfo.Height = mfx::align_value<mfxU16>(params.mfx.FrameInfo.CropH, 16);
 
     if (!frame.subsamplingX && !frame.subsamplingY)
         params.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;

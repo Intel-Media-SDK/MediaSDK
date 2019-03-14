@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -416,8 +416,8 @@ namespace UMC_MPEG2_DECODER
         par.mfx.FrameInfo.CropW = seq.horizontal_size_value;
         par.mfx.FrameInfo.CropH = seq.vertical_size_value;
 
-        par.mfx.FrameInfo.Width = UMC::align_value<mfxU16>(par.mfx.FrameInfo.CropW, 16);
-        par.mfx.FrameInfo.Height = UMC::align_value<mfxU16>(par.mfx.FrameInfo.CropH, (MFX_PICSTRUCT_PROGRESSIVE == par.mfx.FrameInfo.PicStruct) ? 16 : 32);
+        par.mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(par.mfx.FrameInfo.CropW, 16);
+        par.mfx.FrameInfo.Height = mfx::align_value<mfxU16>(par.mfx.FrameInfo.CropH, (MFX_PICSTRUCT_PROGRESSIVE == par.mfx.FrameInfo.PicStruct) ? 16 : 32);
 
         par.mfx.FrameInfo.BitDepthLuma   = 8;
         par.mfx.FrameInfo.BitDepthChroma = 8;

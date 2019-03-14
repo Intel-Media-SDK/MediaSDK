@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -61,41 +61,41 @@ namespace UMC
             void s_new(T*** pObj, uint32_t size)
         {
             int32_t size_T = (int32_t)(sizeof(pObj)*size);
-            if (m_iRemSize - align_value<int32_t>(size_T) < 0)
+            if (m_iRemSize - mfx::align_value<int32_t>(size_T) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
                 *pObj = new(m_pBuf)T*[size];
-                m_pBuf += align_value<int32_t>(size_T);
-                m_iRemSize -= align_value<int32_t>(size_T);
+                m_pBuf     += mfx::align_value<int32_t>(size_T);
+                m_iRemSize -= mfx::align_value<int32_t>(size_T);
             }
         };
         template <class T>
         void s_new_one(T** pObj, uint32_t size)
         {
             int32_t size_T = (int32_t)(sizeof(T)*size);
-            if (m_iRemSize - align_value<int32_t>(size_T) < 0)
+            if (m_iRemSize - mfx::align_value<int32_t>(size_T) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
                 *pObj = new(m_pBuf)T[size];
-                m_pBuf += align_value<int32_t>(size_T);
-                m_iRemSize -= align_value<int32_t>(size_T);
+                m_pBuf     += mfx::align_value<int32_t>(size_T);
+                m_iRemSize -= mfx::align_value<int32_t>(size_T);
             }
         };
         template <class T>
             void s_new(T** pObj, uint32_t size)
         {
             int32_t size_T = sizeof(T);
-            if ((m_iRemSize - align_value<int32_t>(size_T)*((int32_t)size)) < 0)
+            if ((m_iRemSize - mfx::align_value<int32_t>(size_T)*((int32_t)size)) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
                 for(uint32_t i = 0; i < size; i++)
                 {
                     pObj[i] = new(m_pBuf)(T);
-                    m_pBuf += align_value<int32_t>(size_T);
-                    m_iRemSize -= align_value<int32_t>(size_T);
+                    m_pBuf     += mfx::align_value<int32_t>(size_T);
+                    m_iRemSize -= mfx::align_value<int32_t>(size_T);
                 }
             }
 
@@ -108,15 +108,15 @@ namespace UMC
                        Arg*   pArg)
         {
             int32_t size_T = sizeof(T);
-            if ((m_iRemSize - align_value<int32_t>(size_T)*((int32_t)size)) < 0)
+            if ((m_iRemSize - mfx::align_value<int32_t>(size_T)*((int32_t)size)) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
                 for(uint32_t i = 0; i < size; i++)
                 {
                     pObj[i] = new(m_pBuf)(T)(pArg);
-                    m_pBuf += align_value<int32_t>(size_T);
-                    m_iRemSize -= align_value<int32_t>(size_T);
+                    m_pBuf     += mfx::align_value<int32_t>(size_T);
+                    m_iRemSize -= mfx::align_value<int32_t>(size_T);
                 }
             }
 
@@ -126,13 +126,13 @@ namespace UMC
             void s_new(T** pObj)
         {
             int32_t size_T = sizeof(T);
-            if ((m_iRemSize - align_value<int32_t>(size_T)) < 0)
+            if ((m_iRemSize - mfx::align_value<int32_t>(size_T)) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
                 *pObj = new(m_pBuf)(T);
-                m_pBuf += align_value<int32_t>(size_T);
-                m_iRemSize -= align_value<int32_t>(size_T);
+                m_pBuf     += mfx::align_value<int32_t>(size_T);
+                m_iRemSize -= mfx::align_value<int32_t>(size_T);
             }
         }
         template <class T>
@@ -140,13 +140,13 @@ namespace UMC
         {
             uint8_t* pRet;
             int32_t size_T = sizeof(T);
-            if ((m_iRemSize - align_value<int32_t>(size_T)) < 0)
+            if ((m_iRemSize - mfx::align_value<int32_t>(size_T)) < 0)
                 throw VC1Exceptions::vc1_exception(VC1Exceptions::mem_allocation_er);
             else
             {
                 pRet = m_pBuf;
-                m_pBuf += align_value<int32_t>(size_T);
-                m_iRemSize -= align_value<int32_t>(size_T);
+                m_pBuf     += mfx::align_value<int32_t>(size_T);
+                m_iRemSize -= mfx::align_value<int32_t>(size_T);
                 return pRet;
             }
         }
