@@ -127,13 +127,13 @@ uint32_t VC1VideoDecoderHW::CalculateHeapSize()
 {
     uint32_t Size = 0;
 
-    Size += align_value<uint32_t>(sizeof(VC1TaskStore));
+    Size += mfx::align_value<uint32_t>(sizeof(VC1TaskStore));
     if (!m_va)
-        Size += align_value<uint32_t>(sizeof(Frame)*(2*m_iMaxFramesInProcessing + 2*VC1NUMREFFRAMES));
+        Size += mfx::align_value<uint32_t>(sizeof(Frame)*(2*m_iMaxFramesInProcessing + 2*VC1NUMREFFRAMES));
     else
-        Size += align_value<uint32_t>(sizeof(Frame)*(m_SurfaceNum));
+        Size += mfx::align_value<uint32_t>(sizeof(Frame)*(m_SurfaceNum));
 
-    Size += align_value<uint32_t>(sizeof(MediaDataEx));
+    Size += mfx::align_value<uint32_t>(sizeof(MediaDataEx));
     return Size;
 }
 

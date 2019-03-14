@@ -569,8 +569,8 @@ mfxStatus VideoDECODEMJPEG::QueryIOSurfInternal(VideoCORE *core, mfxVideoParam *
         std::swap(request->Info.CropY, request->Info.CropX);
     }
 
-    request->Info.Width = UMC::align_value<mfxU16>(request->Info.Width, 0x10);
-    request->Info.Height = UMC::align_value<mfxU16>(request->Info.Height,
+    request->Info.Width  = mfx::align_value<mfxU16>(request->Info.Width, 0x10);
+    request->Info.Height = mfx::align_value<mfxU16>(request->Info.Height,
         (request->Info.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x10 : 0x20);
 
     if (MFX_PLATFORM_SOFTWARE == platform)
@@ -1186,9 +1186,8 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
             sts = MFX_ERR_UNSUPPORTED;
         }
 
-        out->mfx.FrameInfo.Width = UMC::align_value<mfxU16>(in->mfx.FrameInfo.Width, 0x10);
-
-        out->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(in->mfx.FrameInfo.Height,
+        out->mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(in->mfx.FrameInfo.Width, 0x10);
+        out->mfx.FrameInfo.Height = mfx::align_value<mfxU16>(in->mfx.FrameInfo.Height,
             (in->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) ? 0x10 : 0x20);
 
         if (in->mfx.FrameInfo.CropX <= out->mfx.FrameInfo.Width)

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -693,14 +693,6 @@ namespace UMC
         // pointer types from/to integral types.
         return (T) ((((uint8_t *) pv - (uint8_t *) 0) + (lAlignValue - 1)) &
                     ~(lAlignValue - 1));
-    }
-
-    // template to align value
-    template<class T> inline
-    T align_value(size_t nValue, size_t lAlignValue = DEFAULT_ALIGN_VALUE)
-    {
-        return static_cast<T> ((nValue + (lAlignValue - 1)) &
-                               ~(lAlignValue - 1));
     }
 
     // template to get minimum value
