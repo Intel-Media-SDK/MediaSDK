@@ -34,7 +34,7 @@
 struct vaapiMemIdInt
 {
     VASurfaceID* m_surface;
-    VAImage m_image;
+    VAImage      m_image;
     unsigned int m_fourcc;
 };
 
@@ -44,11 +44,11 @@ namespace mfxDefaultAllocatorVAAPI
     mfxStatus AllocFramesHW(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
     mfxStatus LockFrameHW(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr);
     mfxStatus GetHDLHW(mfxHDL pthis, mfxMemId mid, mfxHDL *handle);
-    mfxStatus UnlockFrameHW(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0);
+    mfxStatus UnlockFrameHW(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr = nullptr);
     mfxStatus FreeFramesHW(mfxHDL pthis, mfxFrameAllocResponse *response);
     mfxStatus ReallocFrameHW(mfxHDL pthis, mfxFrameSurface1 *surf, VASurfaceID *va_surf);
 
-    mfxStatus SetFrameData(const VAImage &va_image, mfxU32 mfx_fourcc, mfxU8* pBuffer, mfxFrameData*  ptr);
+    mfxStatus SetFrameData(const VAImage &va_image, mfxU32 mfx_fourcc, mfxU8* p_buffer, mfxFrameData* ptr);
 
     class mfxWideHWFrameAllocator : public  mfxBaseWideFrameAllocator
     {
@@ -56,7 +56,7 @@ namespace mfxDefaultAllocatorVAAPI
         mfxWideHWFrameAllocator(mfxU16 type, mfxHDL handle);
         virtual ~mfxWideHWFrameAllocator(void){};
 
-        VADisplay* pVADisplay;
+        VADisplay* m_pVADisplay;
 
         mfxU32 m_DecId;
 
