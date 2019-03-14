@@ -135,6 +135,7 @@ struct sInputParams
     mfxU16 nQPB;
 
     mfxU16 nGPB;
+    mfxU16 nTransformSkip;
     ExtBRCType nExtBRC;
     mfxU16 nAdaptiveMaxFrameSize;
 
