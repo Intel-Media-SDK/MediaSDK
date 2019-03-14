@@ -118,6 +118,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-ir_qp_delta]           - QP difference for inserted intra MBs. This is signed value in [-51, 51] range\n"));
     msdk_printf(MSDK_STRING("   [-ir_cycle_dist]         - Distance between the beginnings of the intra-refresh cycles in frames\n"));
     msdk_printf(MSDK_STRING("   [-gpb:<on,off>]          - Turn this option OFF to make HEVC encoder use regular P-frames instead of GPB\n"));
+    msdk_printf(MSDK_STRING("   [-TransformSkip:<on,off>]- Turn this option ON to enable transformskip\n"));
     msdk_printf(MSDK_STRING("   [-ppyr:<on,off>]         - Turn this option ON to enable P-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("   [-num_slice]             - number of slices in each video frame. 0 by default.\n"));
     msdk_printf(MSDK_STRING("                              If num_slice equals zero, the encoder may choose any slice partitioning allowed by the codec standard.\n"));
@@ -788,6 +789,14 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-gpb:off")))
         {
             pParams->nGPB = MFX_CODINGOPTION_OFF;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-TransformSkip:on")))
+        {
+            pParams->nTransformSkip = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-TransformSkip:off")))
+        {
+            pParams->nTransformSkip = MFX_CODINGOPTION_OFF;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ppyr:on")))
         {
