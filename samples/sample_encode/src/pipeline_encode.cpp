@@ -602,7 +602,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
         || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
         || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality || pInParams->WinBRCSize
-        || pInParams->WinBRCMaxAvgKbps)
+        || pInParams->WinBRCMaxAvgKbps || pInParams->nTransformSkip)
     {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
@@ -610,6 +610,9 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
             std::fill(m_CodingOption3.NumRefActiveP,   m_CodingOption3.NumRefActiveP + 8,   pInParams->nNumRefActiveP);
             std::fill(m_CodingOption3.NumRefActiveBL0, m_CodingOption3.NumRefActiveBL0 + 8, pInParams->nNumRefActiveBL0);
             std::fill(m_CodingOption3.NumRefActiveBL1, m_CodingOption3.NumRefActiveBL1 + 8, pInParams->nNumRefActiveBL1);
+            #if (MFX_VERSION >= 1026)
+                m_CodingOption3.TransformSkip = pInParams->nTransformSkip;
+            #endif
         }
 
         m_CodingOption3.WeightedPred   = pInParams->WeightedPred;
