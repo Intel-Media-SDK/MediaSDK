@@ -453,20 +453,10 @@ mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrame
 mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Init");
-    m_initFrameWidth   = 16 * ((pExecuteBuffers->m_sps.FrameWidth + 15) >> 4);
 
-    if (pExecuteBuffers->m_sps.progressive_sequence)
-    {
-        m_initFrameHeight  = 16 * ((pExecuteBuffers->m_sps.FrameHeight + 15) >> 4);
-    }
-    else
-    {
-        m_initFrameHeight  = 32 * ((pExecuteBuffers->m_sps.FrameHeight + 31) >> 5);
-    }
-
-
-    //m_initFrameWidth   = pExecuteBuffers->m_sps.FrameWidth;
-    //m_initFrameHeight  = pExecuteBuffers->m_sps.FrameHeight;
+    m_initFrameWidth  = mfx::align_value<mfxU16>(pExecuteBuffers->m_sps.FrameWidth, 16);
+    m_initFrameHeight = mfx::align_value<mfxU16>(pExecuteBuffers->m_sps.FrameHeight,
+                            pExecuteBuffers->m_sps.progressive_sequence ? 16 : 32);
 
     //memset (&m_rawFrames, 0, sizeof(mfxRawFrames));
 
@@ -592,10 +582,10 @@ mfxStatus VAAPIEncoder::CreateContext(ExecuteBuffers* pExecuteBuffers, mfxU32 nu
 
     if (pExecuteBuffers->m_mbqp_data)
     {
-        m_mbqpDataBuffer.resize(((m_initFrameWidth / 16 + 63) & ~63) * ((m_initFrameHeight / 16 + 7) & ~7));
+        m_mbqpDataBuffer.resize(mfx::align_value<mfxU32>(m_initFrameWidth / 16, 64) * mfx::align_value<mfxU32>(m_initFrameHeight / 16, 8));
 
 //             if (IsOn(extOpt3->MBDisableSkipMap))
-//                 m_mb_noskip_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+//                 m_mb_noskip_buffer.resize(mfx::align_value<mfxU32>(m_width / 16, 64) * mfx::align_value<mfxU32>(m_height / 16, 8)
     }
 
     return MFX_ERR_NONE;
@@ -1067,8 +1057,8 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
     }
 
     //width(64byte alignment) height(8byte alignment)
-    mfxU32 bufW = ((width_in_mbs*4 + 63) & ~63);
-    mfxU32 bufH = ((height_in_mbs + 7) & ~7);
+    mfxU32 bufW = mfx::align_value<mfxU32>(width_in_mbs * 4, 64);
+    mfxU32 bufH = mfx::align_value<mfxU32>(height_in_mbs,     8);
 
     if (   mbqp && numMB >= static_cast<mfxU32>(width_in_mbs * height_in_mbs)
         && m_mbqpDataBuffer.size()*4 >= (bufW* bufH))
