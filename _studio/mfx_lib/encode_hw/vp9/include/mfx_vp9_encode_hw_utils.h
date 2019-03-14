@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -435,6 +435,9 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
     public:
         MfxFrameAllocResponse();
 
+        MfxFrameAllocResponse(MfxFrameAllocResponse const &) = delete;
+        MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &) = delete;
+
         ~MfxFrameAllocResponse();
 
         mfxStatus Alloc(
@@ -446,8 +449,6 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
         mfxFrameInfo               m_info;
 
     private:
-        MfxFrameAllocResponse(MfxFrameAllocResponse const &);
-
         VideoCORE* m_pCore;
         mfxU16      m_numFrameActualReturnedByAllocFrames;
 
