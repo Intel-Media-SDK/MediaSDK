@@ -891,14 +891,14 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         idx_map[ attr_types[i] ] = i;
     }
 
-    VAParameters vaParams;
-    try { vaParams = GUID2VAParam.at(guid); }
-    catch (std::out_of_range&) { return MFX_ERR_DEVICE_FAILED; }
+    auto it = GUID2VAParam.find(guid);
+    MFX_CHECK(it != std::end(GUID2VAParam), MFX_ERR_DEVICE_FAILED);
+    VAParameters vaParams = it->second;
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           vaParams.profile,
                           vaParams.entrypoint,
-                          Begin(attrs), attrs.size());
+                          attrs.data(), attrs.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 #if MFX_VERSION >= 1022
@@ -1010,7 +1010,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
 mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 {
-    if (0 == m_reconQueue.size())
+    if (m_reconQueue.empty())
     {
     /* We need to pass reconstructed surfaces wheh call vaCreateContext().
      * Here we don't have this info.
@@ -1026,9 +1026,9 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     std::vector<VAEntrypoint> pEntrypoints(numEntrypoints);
 
-    VAParameters vaParams;
-    try { vaParams = GUID2VAParam.at(GetGUID(par)); }
-    catch (std::out_of_range&) { return MFX_ERR_DEVICE_FAILED; }
+    auto it = GUID2VAParam.find(GetGUID(par));
+    MFX_CHECK(it != std::end(GUID2VAParam), MFX_ERR_DEVICE_FAILED);
+    VAParameters vaParams = it->second;
 
     std::vector<VAProfile> profile_list(vaMaxNumProfiles(m_vaDisplay), VAProfileNone);
     mfxI32 num_profiles = 0;
@@ -1105,7 +1105,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
             m_width,
             m_height,
             flag,
-            &*reconSurf.begin(),
+            reconSurf.data(),
             reconSurf.size(),
             &m_vaContextEncode);
     }
