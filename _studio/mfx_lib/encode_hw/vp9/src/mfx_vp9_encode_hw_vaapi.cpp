@@ -920,7 +920,7 @@ mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequ
         constexpr mfxU16 blockSize = 16;
         request.Info.FourCC = MFX_FOURCC_VP9_SEGMAP;
         // requirement from driver: seg map width has to be 64 aligned for buffer creation
-        request.Info.Width  = AlignValue(frameWidth / blockSize, 64);
+        request.Info.Width  = mfx::align2_value(frameWidth / blockSize, 64);
         request.Info.Height = frameHeight / blockSize;
     }
 
