@@ -1922,7 +1922,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
 
     if (m_nFrames == m_output_count)
     {
-        if (!sts)
+        if (sts != MFX_ERR_NONE)
             msdk_printf(MSDK_STRING("[WARNING] Decoder returned error %s that could be compensated during next iterations of decoding process.\
                                     But requested amount of frames is already successfully decoded, so whole process is finished successfully."),
                         StatusToString(sts).c_str());
