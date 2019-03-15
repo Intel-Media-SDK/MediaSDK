@@ -908,6 +908,8 @@ namespace MfxHwVideoProcessing
             mfxFrameSurface1 *pInputSurface,
             mfxFrameSurface1 *pOutputSurface);
 
+        bool UseCopyPassThrough(const DdiTask *pTask) const;
+
         mfxStatus PreWorkOutSurface(ExtSurface & output);
         mfxStatus PreWorkInputSurface(std::vector<ExtSurface> & surfQueue);
 
