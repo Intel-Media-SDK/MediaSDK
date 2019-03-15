@@ -26,6 +26,25 @@
 
 namespace MfxHwVP9Encode
 {
+bool CheckTriStateOption(mfxU16 & opt);
+
+void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
+{
+    CheckTriStateOption(lowpower);
+
+    if (lowpower == MFX_CODINGOPTION_UNKNOWN)
+    {
+#if (MFX_VERSION >= 1027)
+        if (platform >= MFX_HW_ICL)
+            lowpower = MFX_CODINGOPTION_ON;
+        else
+#else
+        std::ignore = platform;
+#endif
+            lowpower = MFX_CODINGOPTION_OFF;
+    }
+}
+
 mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::Query");
@@ -37,18 +56,24 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVid
     }
     else
     {
+        eMFXHWType platform = core->GetHWType();
+
         // check attached buffers (all are supported by encoder, no duplications, etc.)
         mfxStatus sts = CheckExtBufferHeaders(in->NumExtParam, in->ExtParam);
         MFX_CHECK_STS(sts);
         sts = CheckExtBufferHeaders(out->NumExtParam, out->ExtParam);
         MFX_CHECK_STS(sts);
 
-        VP9MfxVideoParam toValidate = *in;
+        VP9MfxVideoParam toValidate(*in);
+        SetDefaultsForProfileAndFrameInfo(toValidate);
+        SetDefaultForLowpower(toValidate.mfx.LowPower, platform);
 
         // get HW caps from driver
         ENCODE_CAPS_VP9 caps = {};
-        sts = QueryCaps(core, caps, GetGuid(toValidate), in->mfx.FrameInfo.Width, in->mfx.FrameInfo.Height);
+        sts = QueryCaps(core, caps, GetGuid(toValidate), toValidate.mfx.FrameInfo.Width, toValidate.mfx.FrameInfo.Height);
         MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
+
+        toValidate = *in;
 
         // validate input parameters
         sts = CheckParameters(toValidate, caps);
@@ -97,21 +122,23 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
     mfxStatus sts = CheckExtBufferHeaders(par->NumExtParam, par->ExtParam);
     MFX_CHECK_STS(sts);
 
+    eMFXHWType platform = core->GetHWType();
+
     mfxU32 inPattern = par->IOPattern & MFX_IOPATTERN_IN_MASK;
     MFX_CHECK(inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY ||
         inPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
         inPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    VP9MfxVideoParam toValidate = *par;
+    VP9MfxVideoParam toValidate(*par);
+
+    SetDefaultsForProfileAndFrameInfo(toValidate);
+    SetDefaultForLowpower(toValidate.mfx.LowPower, platform);
 
     // get HW caps from driver
     ENCODE_CAPS_VP9 caps = {};
+    sts = QueryCaps(core, caps, GetGuid(toValidate), toValidate.mfx.FrameInfo.Width, toValidate.mfx.FrameInfo.Height);
+    MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
 
-    sts = QueryCaps(core, caps, GetGuid(toValidate), par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height);
-    if (sts != MFX_ERR_NONE)
-    {
-        return MFX_ERR_UNSUPPORTED;
-    }
 
     // get validated and properly initialized set of parameters
     CheckParameters(toValidate, caps);
@@ -203,11 +230,18 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     m_video = *par;
 
+    eMFXHWType platform = m_pCore->GetHWType();
+
     m_ddi.reset(CreatePlatformVp9Encoder(m_pCore));
     MFX_CHECK(m_ddi.get() != 0, MFX_ERR_UNSUPPORTED);
 
-    sts = m_ddi->CreateAuxilliaryDevice(m_pCore, GetGuid(m_video),
-        m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.Height);
+    VP9MfxVideoParam toGetGuid(m_video);
+
+    SetDefaultsForProfileAndFrameInfo(toGetGuid);
+    SetDefaultForLowpower(toGetGuid.mfx.LowPower, platform);
+
+    sts = m_ddi->CreateAuxilliaryDevice(m_pCore, GetGuid(toGetGuid),
+        toGetGuid.mfx.FrameInfo.Width, toGetGuid.mfx.FrameInfo.Height);
     MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 

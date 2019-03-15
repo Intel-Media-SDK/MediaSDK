@@ -1608,8 +1608,7 @@ inline mfxU16 GetMinProfile(mfxU16 depth, mfxU16 format)
         (format > MFX_CHROMAFORMAT_YUV420);
 }
 
-#if (MFX_VERSION >= 1027)
-void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
+void SetDefaultsForProfileAndFrameInfo(VP9MfxVideoParam& par)
 {
     mfxFrameInfo& fi = par.mfx.FrameInfo;
 
@@ -1617,14 +1616,17 @@ void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
     SetDefault(fi.BitDepthLuma, GetBitDepth(fi.FourCC));
     SetDefault(fi.BitDepthChroma, GetBitDepth(fi.FourCC));
 
+#if (MFX_VERSION >= 1027)
     mfxExtCodingOption3 &opt3 = GetExtBufferRef(par);
     SetDefault(opt3.TargetChromaFormatPlus1, fi.ChromaFormat + 1);
     SetDefault(opt3.TargetBitDepthLuma, fi.BitDepthLuma);
     SetDefault(opt3.TargetBitDepthChroma, fi.BitDepthChroma);
 
     SetDefault(par.mfx.CodecProfile, GetMinProfile(opt3.TargetBitDepthLuma, opt3.TargetChromaFormatPlus1 - 1));
-}
+#else //MFX_VERSION >= 1027
+    SetDefault(par.mfx.CodecProfile, MFX_PROFILE_VP9_0);
 #endif //MFX_VERSION >= 1027
+}
 
 #define DEFAULT_GOP_SIZE 0xffff
 #define DEFAULT_FRAME_RATE 30
@@ -1721,14 +1723,7 @@ mfxStatus SetDefaults(
     SetDefault(fi.PicStruct, MFX_PICSTRUCT_PROGRESSIVE);
 
     // profile, chroma format, bit depth
-#if (MFX_VERSION >= 1027)
-    SetDefailtsForProfileAndFrameInfo(par);
-#else // MFX_VERSION >= 1027
-    SetDefault(par.mfx.CodecProfile, MFX_PROFILE_VP9_0);
-    SetDefault(fi.ChromaFormat, MFX_CHROMAFORMAT_YUV420);
-    SetDefault(fi.BitDepthLuma, 8);
-    SetDefault(fi.BitDepthChroma, 8);
-#endif // MFX_VERSION >= 1027
+    SetDefaultsForProfileAndFrameInfo(par);
 
 #if (MFX_VERSION >= 1029)
     SetDefault(extPar.NumTileColumns, (extPar.FrameWidth + MAX_TILE_WIDTH - 1) / MAX_TILE_WIDTH);
