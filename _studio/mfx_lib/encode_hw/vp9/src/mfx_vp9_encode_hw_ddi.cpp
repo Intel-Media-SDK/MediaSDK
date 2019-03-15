@@ -26,13 +26,8 @@
 namespace MfxHwVP9Encode
 {
 
-    GUID GetGuid(VP9MfxVideoParam  par)
+    GUID GetGuid(VP9MfxVideoParam const & par)
     {
-        if (par.mfx.CodecProfile == 0)
-        {
-            SetDefailtsForProfileAndFrameInfo(par);
-        }
-
         // Currently we don't support LP=OFF
         // so it is mapped to GUID_NULL
         // it will cause Query/Init fails with Unsupported
