@@ -812,8 +812,8 @@ VAAPIVideoCORE::GetVAService(
 
 } // mfxStatus VAAPIVideoCORE::GetVAService(...)
 
-mfxStatus
-VAAPIVideoCORE::SetCmCopyStatus(bool enable)
+void
+VAAPIVideoCORE::SetCmCopy(bool enable)
 {
     m_bCmCopyAllowed = enable;
     if (!enable)
@@ -824,7 +824,6 @@ VAAPIVideoCORE::SetCmCopyStatus(bool enable)
         }
         m_bCmCopy = false;
     }
-    return MFX_ERR_NONE;
 } // mfxStatus VAAPIVideoCORE::SetCmCopyStatus(...)
 
 mfxStatus
