@@ -121,13 +121,6 @@ bool LumaIsNull(const mfxFrameSurface1 * surf)
 #define SAFE_RELEASE(PTR)   { if (PTR) { PTR->Release(); PTR = NULL; } }
 #endif
 
-/// Align integral T @value to power of two @alignment
-template<class T> inline T AlignValue(T value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    return static_cast<T>((value + alignment - 1) & ~(alignment - 1));
-}
-
 namespace mfx
 {
 // TODO: switch to std::clamp when C++17 support will be enabled
