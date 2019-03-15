@@ -2670,9 +2670,6 @@ void SetDefaults(
         if (!par.BufferSizeInKB)
             par.BufferSizeInKB = Min(maxBuf, mfxU32(rawBits / 8000));
 
-        if (par.m_ext.CO2.MBBRC == MFX_CODINGOPTION_UNKNOWN)
-            par.m_ext.CO2.MBBRC = MFX_CODINGOPTION_OFF;
-
     }
     else if (   par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
     {
@@ -2704,8 +2701,6 @@ void SetDefaults(
         }
         if (!par.InitialDelayInKB)
             par.InitialDelayInKB = par.BufferSizeInKB / 2;
-        if (par.m_ext.CO2.MBBRC == MFX_CODINGOPTION_UNKNOWN)
-            par.m_ext.CO2.MBBRC = (mfxU16)(par.isSWBRC()? MFX_CODINGOPTION_OFF: MFX_CODINGOPTION_ON);
     }
     else if(par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
@@ -2747,6 +2742,10 @@ void SetDefaults(
 
     if (CO3.LowDelayBRC == MFX_CODINGOPTION_UNKNOWN)
         CO3.LowDelayBRC = MFX_CODINGOPTION_OFF;
+
+    if (par.m_ext.CO2.MBBRC == MFX_CODINGOPTION_UNKNOWN &&
+        (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC() || IsOn(par.mfx.LowPower)))
+        par.m_ext.CO2.MBBRC = MFX_CODINGOPTION_OFF; // disable MBBRC for those cases. For other cases, MBBRC can be on or off at the driver's discretion.
 
     if (CO3.LowDelayBRC == MFX_CODINGOPTION_ON && !CO2.MaxFrameSize && par.mfx.FrameInfo.FrameRateExtN && par.mfx.FrameInfo.FrameRateExtD) {
 
