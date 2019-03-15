@@ -312,8 +312,8 @@ UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool
     par->mfx.FrameInfo.Width = (mfxU16) (seq->pic_width_in_luma_samples);
     par->mfx.FrameInfo.Height = (mfxU16) (seq->pic_height_in_luma_samples);
 
-    par->mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(par->mfx.FrameInfo.Width,  16);
-    par->mfx.FrameInfo.Height = mfx::align_value<mfxU16>(par->mfx.FrameInfo.Height, 16);
+    par->mfx.FrameInfo.Width  = mfx::align2_value(par->mfx.FrameInfo.Width,  16);
+    par->mfx.FrameInfo.Height = mfx::align2_value(par->mfx.FrameInfo.Height, 16);
 
     par->mfx.FrameInfo.BitDepthLuma = (mfxU16) (seq->bit_depth_luma);
     par->mfx.FrameInfo.BitDepthChroma = (mfxU16) (seq->bit_depth_chroma);

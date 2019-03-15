@@ -426,7 +426,7 @@ void PackerVA::CreateSliceDataBuffer(H264DecoderFrameInfo * pSliceInfo)
         size += NalUnitSize;
     }
 
-    uint32_t const AlignedNalUnitSize = mfx::align_value<uint32_t>(size, 128);
+    uint32_t const AlignedNalUnitSize = mfx::align2_value<uint32_t>(size, 128);
 
     UMCVACompBuffer* compBuf;
     m_va->GetCompBuffer(VASliceDataBufferType, &compBuf, AlignedNalUnitSize);

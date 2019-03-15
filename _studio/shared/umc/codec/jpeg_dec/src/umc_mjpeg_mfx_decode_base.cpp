@@ -100,8 +100,8 @@ Status MJPEGVideoDecoderBaseMFX::Close(void)
 
 void MJPEGVideoDecoderBaseMFX::AdjustFrameSize(mfxSize & size)
 {
-    size.width  = mfx::align_value<uint32_t>(size.width, 16);
-    size.height = mfx::align_value<uint32_t>(size.height, m_interleaved ? 32 : 16);
+    size.width  = mfx::align2_value<uint32_t>(size.width, 16);
+    size.height = mfx::align2_value<uint32_t>(size.height, m_interleaved ? 32 : 16);
 }
 
 ChromaType MJPEGVideoDecoderBaseMFX::GetChromaType()
@@ -213,8 +213,8 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
     par->mfx.FrameInfo.CropH = (mfxU16) (m_frameDims.height);
     par->mfx.FrameInfo.CropW = (mfxU16) (m_frameDims.width);
 
-    par->mfx.FrameInfo.CropW = mfx::align_value<mfxU16>(par->mfx.FrameInfo.CropW, 2);
-    par->mfx.FrameInfo.CropH = mfx::align_value<mfxU16>(par->mfx.FrameInfo.CropH, 2);
+    par->mfx.FrameInfo.CropW = mfx::align2_value(par->mfx.FrameInfo.CropW, 2);
+    par->mfx.FrameInfo.CropH = mfx::align2_value(par->mfx.FrameInfo.CropH, 2);
 
     par->mfx.FrameInfo.PicStruct = (mfxU8)(m_interleaved ? MFX_PICSTRUCT_FIELD_TFF : MFX_PICSTRUCT_PROGRESSIVE);
     par->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;

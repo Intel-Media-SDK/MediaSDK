@@ -171,8 +171,8 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
      * Actually this is obligation to attach statistics buffers for I- frame/field
      * For P- frame/field only one MVout buffer maybe attached */
 
-    mfxU32 currNumMbsW = mfx::align_value<mfxU32>(m_videoParam.mfx.FrameInfo.Width, 16);
-    mfxU32 currNumMbsH = mfx::align_value<mfxU32>(m_videoParam.mfx.FrameInfo.Height,
+    mfxU32 currNumMbsW = mfx::align2_value(m_videoParam.mfx.FrameInfo.Width, 16);
+    mfxU32 currNumMbsH = mfx::align2_value(m_videoParam.mfx.FrameInfo.Height,
                             MFX_PICSTRUCT_PROGRESSIVE == m_videoParam.mfx.FrameInfo.PicStruct ? 16 : 32);
 
     mfxU32 currNumMbs = (currNumMbsW * currNumMbsH) >> 8;
@@ -1303,8 +1303,8 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     /* Need to allocated coded buffer: this is does not used by ENC actually */
     if (VA_INVALID_ID == m_codedBufferId)
     {
-        int aligned_width  = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Width,  32);
-        int aligned_height = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Height, 32);
+        int aligned_width  = mfx::align2_value(m_videoParam.mfx.FrameInfo.Width,  32);
+        int aligned_height = mfx::align2_value(m_videoParam.mfx.FrameInfo.Height, 32);
         int codedbuf_size = static_cast<int>((aligned_width * aligned_height) * 400LL / (16 * 16)); //from libva spec
 
         vaSts = vaCreateBuffer(m_vaDisplay,
@@ -2159,8 +2159,8 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     /* Need to allocated coded buffer */
     if (VA_INVALID_ID == m_codedBufferId[feiFieldId])
     {
-        int aligned_width  = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Width,  32);
-        int aligned_height = mfx::align_value<int>(m_videoParam.mfx.FrameInfo.Height, 32);
+        int aligned_width  = mfx::align2_value(m_videoParam.mfx.FrameInfo.Width,  32);
+        int aligned_height = mfx::align2_value(m_videoParam.mfx.FrameInfo.Height, 32);
         int codedbuf_size = static_cast<int>((aligned_width * aligned_height) * 400LL / (16 * 16));
 
         // To workaround an issue with VA coded bufer overflow due to IPCM violation.
