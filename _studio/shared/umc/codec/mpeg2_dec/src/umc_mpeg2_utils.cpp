@@ -416,8 +416,8 @@ namespace UMC_MPEG2_DECODER
         par.mfx.FrameInfo.CropW = seq.horizontal_size_value;
         par.mfx.FrameInfo.CropH = seq.vertical_size_value;
 
-        par.mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(par.mfx.FrameInfo.CropW, 16);
-        par.mfx.FrameInfo.Height = mfx::align_value<mfxU16>(par.mfx.FrameInfo.CropH, (MFX_PICSTRUCT_PROGRESSIVE == par.mfx.FrameInfo.PicStruct) ? 16 : 32);
+        par.mfx.FrameInfo.Width  = mfx::align2_value(par.mfx.FrameInfo.CropW, 16);
+        par.mfx.FrameInfo.Height = mfx::align2_value(par.mfx.FrameInfo.CropH, (MFX_PICSTRUCT_PROGRESSIVE == par.mfx.FrameInfo.PicStruct) ? 16 : 32);
 
         par.mfx.FrameInfo.BitDepthLuma   = 8;
         par.mfx.FrameInfo.BitDepthChroma = 8;

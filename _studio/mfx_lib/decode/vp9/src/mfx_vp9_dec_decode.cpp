@@ -203,8 +203,8 @@ void FillVideoParam(eMFXPlatform platform, UMC_VP9_DECODER::VP9DecoderFrame cons
     params.mfx.FrameInfo.CropW = static_cast<mfxU16>(frame.width);
     params.mfx.FrameInfo.CropH = static_cast<mfxU16>(frame.height);
 
-    params.mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(params.mfx.FrameInfo.CropW, 16);
-    params.mfx.FrameInfo.Height = mfx::align_value<mfxU16>(params.mfx.FrameInfo.CropH, 16);
+    params.mfx.FrameInfo.Width  = mfx::align2_value(params.mfx.FrameInfo.CropW, 16);
+    params.mfx.FrameInfo.Height = mfx::align2_value(params.mfx.FrameInfo.CropH, 16);
 
     if (!frame.subsamplingX && !frame.subsamplingY)
         params.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;

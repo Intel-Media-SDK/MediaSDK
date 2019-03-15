@@ -268,8 +268,8 @@ void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const* si, mfxVideoParam* par)
     par->mfx.CodecProfile = mfxU16(si->profile);
     par->mfx.CodecLevel   = mfxU16(si->level);
 
-    par->mfx.FrameInfo.Height = mfx::align_value<mfxU16>(si->clip_info.height, 16);
-    par->mfx.FrameInfo.Width  = mfx::align_value<mfxU16>(si->clip_info.width,  16);
+    par->mfx.FrameInfo.Height = mfx::align2_value(si->clip_info.height, 16);
+    par->mfx.FrameInfo.Width  = mfx::align2_value(si->clip_info.width,  16);
 
     par->mfx.FrameInfo.CropX  = par->mfx.FrameInfo.CropY = 0;
     par->mfx.FrameInfo.CropH  = mfxU16(si->disp_clip_info.height);

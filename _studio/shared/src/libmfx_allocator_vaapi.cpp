@@ -361,8 +361,8 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
             }
             else
             {
-                int aligned_width  = mfx::align_value<int>(request->Info.Width,  32);
-                int aligned_height = mfx::align_value<int>(request->Info.Height, 32);
+                int aligned_width  = mfx::align2_value(request->Info.Width,  32);
+                int aligned_height = mfx::align2_value(request->Info.Height, 32);
                 codedbuf_size = static_cast<mfxU32>((aligned_width * aligned_height) * 400LL / (16 * 16));
                 codedbuf_num = 1;
 
