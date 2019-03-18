@@ -238,6 +238,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -nobref       Do not use B-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("  -bpyr         Enable B pyramid\n"));
     msdk_printf(MSDK_STRING("  -gpb:<on,off>          - Enable or disable Generalized P/B frames\n"));
+    msdk_printf(MSDK_STRING("  -TransformSkip:<on,off>- Enable or disable TransformSkip\n"));
     msdk_printf(MSDK_STRING("  -trows <rows>          - Number of rows for tiled encoding\n"));
     msdk_printf(MSDK_STRING("  -tcols <cols>          - Number of columns for tiled encoding\n"));
     msdk_printf(MSDK_STRING("  -CodecProfile          - Specifies codec profile\n"));
@@ -1432,6 +1433,14 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-gpb:on")))
         {
             InputParams.GPB = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-TransformSkip:on")))
+        {
+            InputParams.nTransformSkip = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-TransformSkip:off")))
+        {
+            InputParams.nTransformSkip = MFX_CODINGOPTION_OFF;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-gpb:off")))
         {
