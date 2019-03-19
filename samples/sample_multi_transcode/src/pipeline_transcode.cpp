@@ -2529,14 +2529,20 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_mfxEncParams.IOPattern = InPatternFromParent;
 
 #if MFX_VERSION >= 1029
-    m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
-    m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
-
-    if (m_ExtVP9Param.NumTileRows
-        && m_ExtVP9Param.NumTileColumns
-        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+    if (pInParams->nEncTileRows && pInParams->nEncTileCols)
     {
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
+        if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+        {
+            m_ExtHEVCTiles.NumTileRows    = pInParams->nEncTileRows;
+            m_ExtHEVCTiles.NumTileColumns = pInParams->nEncTileCols;
+            m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCTiles);
+        }
+        else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+        {
+            m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
+            m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
+            m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
+        }
     }
 #endif
 

@@ -797,6 +797,7 @@ namespace TranscodingSample
 
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
+        mfxExtHEVCTiles          m_ExtHEVCTiles;
         // VP9
         mfxExtVP9Param           m_ExtVP9Param;
 
