@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -115,11 +115,10 @@ public:
 
 
 protected:
-    VideoVppJpegD3D9 *m_pCc;
-    // True if we need special VPP color conversion after decoding
-    bool   m_needVpp;
     // Decoder's array
     std::unique_ptr<UMC::MJPEGVideoDecoderMFX_HW> m_pMJPEGVideoDecoder;
+    // True if we need special VPP color conversion after decoding
+    bool   m_needVpp;
 
     // Number of pictures collected
     mfxU32 m_numPic;

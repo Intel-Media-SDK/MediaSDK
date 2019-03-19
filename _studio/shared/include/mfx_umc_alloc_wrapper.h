@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
 #define _MFX_ALLOC_WRAPPER_H_
 
 #include <vector>
+#include <memory> // unique_ptr
 
 #include "mfx_common.h"
 #include "umc_memory_allocator.h"
@@ -226,6 +227,7 @@ class VideoVppJpegD3D9;
 
 class mfx_UMC_FrameAllocator_D3D_Converter : public mfx_UMC_FrameAllocator_D3D
 {
+    std::unique_ptr<VideoVppJpegD3D9> m_pCc;
 public:
     virtual UMC::Status InitMfx(UMC::FrameAllocatorParams *pParams, 
                                 VideoCORE* mfxCore, 
@@ -234,6 +236,9 @@ public:
                                 mfxFrameAllocResponse *response, 
                                 bool isUseExternalFrames,
                                 bool isSWplatform);
+
+    // suppose that Close() calls Reset(), so override only Reset()
+    virtual UMC::Status Reset() override;
 
     typedef struct
     {
@@ -244,8 +249,8 @@ public:
 
     void SetJPEGInfo(JPEG_Info * jpegInfo);
 
-    mfxStatus StartPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, VideoVppJpegD3D9 **pCc, mfxU16 *taskId, bool isOpaq);
-    mfxStatus CheckPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, VideoVppJpegD3D9 **pCc, mfxU16 taskId);
+    mfxStatus StartPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, mfxU16 *taskId, bool isOpaq);
+    mfxStatus CheckPreparingToOutput(mfxFrameSurface1 *surface_work, UMC::FrameData* in, const mfxVideoParam * par, mfxU16 taskId);
 
 protected:
 
