@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -52,12 +52,18 @@ enum  {
     MFX_IMPL_HARDWARE3    = 0x0006,  /* Hardware accelerated implementation (3rd device) */
     MFX_IMPL_HARDWARE4    = 0x0007,  /* Hardware accelerated implementation (4th device) */
     MFX_IMPL_RUNTIME      = 0x0008,
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_IMPL_SINGLE_THREAD= 0x0009,
+#endif
     MFX_IMPL_VIA_ANY      = 0x0100,
     MFX_IMPL_VIA_D3D9     = 0x0200,
     MFX_IMPL_VIA_D3D11    = 0x0300,
     MFX_IMPL_VIA_VAAPI    = 0x0400,
 
     MFX_IMPL_AUDIO                     = 0x8000,
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_IMPL_EXTERNAL_THREADING        = 0x10000,
+#endif
 
     MFX_IMPL_UNSUPPORTED  = 0x0000  /* One of the MFXQueryIMPL returns */
 };
