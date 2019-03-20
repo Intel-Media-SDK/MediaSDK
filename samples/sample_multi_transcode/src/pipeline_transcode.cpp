@@ -174,6 +174,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     MSDK_ZERO_MEMORY(m_CodingOption2);
     MSDK_ZERO_MEMORY(m_CodingOption3);
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
+    MSDK_ZERO_MEMORY(m_ExtHEVCTiles);
     MSDK_ZERO_MEMORY(m_ExtVP9Param);
 #if MFX_VERSION >= 1022
     MSDK_ZERO_MEMORY(m_decPostProcessing);
