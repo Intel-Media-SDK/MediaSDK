@@ -294,7 +294,7 @@ Status VideoData::SetColorFormat(ColorFormat cFormat)
             align *= pFormat->m_PlaneFormatInfo[i].m_iAlignMult;
         }
         m_pPlaneData[i].m_nPitch =
-            mfx::align2_value<size_t>(m_pPlaneData[i].m_ippSize.width * bpp, align);
+            mfx::align2_value(m_pPlaneData[i].m_ippSize.width * bpp, align);
         m_pPlaneData[i].m_nMemSize = m_pPlaneData[i].m_nPitch * m_pPlaneData[i].m_ippSize.height;
     }
     // special case, can't be completely covered by format table
