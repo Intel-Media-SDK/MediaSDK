@@ -2529,7 +2529,6 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     else
         m_mfxEncParams.IOPattern = InPatternFromParent;
 
-#if MFX_VERSION >= 1029
     if (pInParams->nEncTileRows && pInParams->nEncTileCols)
     {
         if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
@@ -2538,14 +2537,15 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
             m_ExtHEVCTiles.NumTileColumns = pInParams->nEncTileCols;
             m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCTiles);
         }
+#if MFX_VERSION >= 1029
         else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
         {
             m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
             m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
             m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
         }
-    }
 #endif
+    }
 
     // we don't specify profile and level and let the encoder choose those basing on parameters
     // we must specify profile only for MVC codec
