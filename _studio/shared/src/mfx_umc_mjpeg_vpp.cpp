@@ -136,7 +136,22 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::InitMfx(UMC::FrameAllocatorPar
 
     m_pCc.reset(new VideoVppJpegD3D9(m_pCore, isD3DToSys, params->IOPattern & MFX_IOPATTERN_OUT_OPAQUE_MEMORY));
 
-    mfxStatus mfxSts = m_pCc->Init(params);
+    mfxStatus mfxSts;
+    if (params->mfx.Rotation == MFX_ROTATION_90 || params->mfx.Rotation == MFX_ROTATION_270)
+    {
+        mfxVideoParam localParams = *params;
+
+        // Frame allocation is possible inside VideoVppJpegD3D9::Init().
+        // Those frames must have width/height of target image, so the swapping.
+        std::swap(localParams.mfx.FrameInfo.Width, localParams.mfx.FrameInfo.Height);
+        std::swap(localParams.mfx.FrameInfo.CropW, localParams.mfx.FrameInfo.CropH);
+
+        mfxSts = m_pCc->Init(&localParams);
+    }
+    else
+    {
+        mfxSts = m_pCc->Init(params);
+    }
     MFX_CHECK_STS( mfxSts );
 
     return UMC::UMC_OK;
