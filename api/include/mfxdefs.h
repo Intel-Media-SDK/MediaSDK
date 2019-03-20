@@ -65,8 +65,13 @@ typedef short               mfxI16;
 typedef unsigned short      mfxU16;
 typedef unsigned int        mfxU32;
 typedef int                 mfxI32;
+#if defined( _WIN32 ) || defined ( _WIN64 )
+typedef unsigned long       mfxUL32;
+typedef long                mfxL32;
+#else
 typedef unsigned int        mfxUL32;
 typedef int                 mfxL32;
+#endif
 typedef float               mfxF32;
 typedef double              mfxF64;
 typedef __UINT64            mfxU64;

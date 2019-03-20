@@ -63,6 +63,10 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 
 Media SDK test and sample applications may require additional software packages (for example, X Server, Wayland, LibDRM, etc.) to be functional.
 
+**Operating System:** Windows **(experimental)**
+
+Requires Microsoft Visual Studio 2015 or newer for building.
+
 # How to build
 
 ## Build steps
