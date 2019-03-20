@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2938,7 +2938,7 @@ void SetDefaults(
 
 #if (MFX_VERSION >= 1026)
     if (!CO3.TransformSkip)
-        CO3.TransformSkip = MFX_CODINGOPTION_OFF;
+        CO3.TransformSkip = (mfxU16)((par.m_platform < MFX_HW_ICL) ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
 
     if (!par.m_ext.HEVCParam.SampleAdaptiveOffset)
         par.m_ext.HEVCParam.SampleAdaptiveOffset = isSAOSupported(par) ? (MFX_SAO_ENABLE_LUMA | MFX_SAO_ENABLE_CHROMA) : MFX_SAO_DISABLE;
