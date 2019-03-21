@@ -80,6 +80,7 @@ cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF 
 # following BUILD_TOOLS option declaration assures that.
 cmake_dependent_option(BUILD_TOOLS "Build tools?" "${BUILD_ALL}" "BUILD_SAMPLES" OFF)
 option(BUILD_TESTS "Build tests?" "${BUILD_ALL}")
+option(USE_SYSTEM_GTEST "Use system installed gtest?" OFF)
 
 include( ${BUILDER_ROOT}/FindOpenCL.cmake )
 include( ${BUILDER_ROOT}/FindFunctions.cmake )
@@ -91,22 +92,24 @@ include( ${BUILDER_ROOT}/FindITT.cmake )
 include( ${BUILDER_ROOT}/ConfTargets.cmake )
 
 if (BUILD_TESTS)
-  # Our intent is to use gtest for building, we do not want to install it.
-  # To achieve that we need to force set INSTALL_GTEST=OFF otherwise
-  # according to cmake rules it will be overwritten by option() default
-  # which might be ON.
-  set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
+  if (NOT USE_SYSTEM_GTEST)
+    # Our intent is to use gtest for building, we do not want to install it.
+    # To achieve that we need to force set INSTALL_GTEST=OFF otherwise
+    # according to cmake rules it will be overwritten by option() default
+    # which might be ON.
+    set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
 
-  add_subdirectory(${CMAKE_HOME_DIRECTORY}/googletest)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/googletest)
 
-  # For some Linux distro versions there is an unused-result warning
-  # generated inside the Gtest code at a call to fwrite. Since Gtest sets -Werror
-  # internally the only way to make it compile without modifying its source is to disable the
-  # unused-result warnings for Gtest/Gmock only.
-  target_compile_options (gtest PRIVATE "-Wno-unused-result")
-  target_compile_options (gmock PRIVATE "-Wno-unused-result")
-  target_compile_options (gtest_main PRIVATE "-Wno-unused-result")
-  target_compile_options (gmock_main PRIVATE "-Wno-unused-result")
+    # For some Linux distro versions there is an unused-result warning
+    # generated inside the Gtest code at a call to fwrite. Since Gtest sets -Werror
+    # internally the only way to make it compile without modifying its source is to disable the
+    # unused-result warnings for Gtest/Gmock only.
+    target_compile_options (gtest PRIVATE "-Wno-unused-result")
+    target_compile_options (gmock PRIVATE "-Wno-unused-result")
+    target_compile_options (gtest_main PRIVATE "-Wno-unused-result")
+    target_compile_options (gmock_main PRIVATE "-Wno-unused-result")
+  endif()
 
   enable_testing()
 endif()
