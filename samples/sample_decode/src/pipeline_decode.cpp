@@ -382,7 +382,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
             }
             if(sts==MFX_ERR_UNSUPPORTED)
             {
-                msdk_printf(isDefaultPlugin ?
+                msdk_printf(MSDK_STRING("%s"), isDefaultPlugin ?
                     MSDK_STRING("Default plugin cannot be loaded (possibly you have to define plugin explicitly)\n")
                     : MSDK_STRING("Explicitly specified plugin cannot be loaded.\n"));
             }
