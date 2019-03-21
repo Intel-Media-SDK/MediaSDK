@@ -59,4 +59,23 @@ add_test(NAME run_mfx_dispatch_test
   COMMAND ./mfx_dispatch_test
   WORKING_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
 
-set_property(TEST run_mfx_dispatch_test PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE}")
+set(LIBRARY_PATH "${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE}")
+
+# If we build against embedded copy of gtest/gmock, we need to make sure that
+# we load those .so libraries which we built and avoid system libraries which
+# also might present. Hence, we explicitly set LD_LIBRARY_PATH per target
+# properties.
+if(TARGET gtest)
+  get_target_property(type gtest TYPE)
+  if(type STREQUAL "SHARED_LIBRARY")
+    set(LIBRARY_PATH "${LIBRARY_PATH}:$<TARGET_FILE_DIR:gtest>")
+  endif()
+endif()
+if(TARGET gmock)
+  get_target_property(type gmock TYPE)
+  if(type STREQUAL "SHARED_LIBRARY")
+    set(LIBRARY_PATH "${LIBRARY_PATH}:$<TARGET_FILE_DIR:gmock>")
+  endif()
+endif()
+
+set_property(TEST run_mfx_dispatch_test PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${LIBRARY_PATH}")
