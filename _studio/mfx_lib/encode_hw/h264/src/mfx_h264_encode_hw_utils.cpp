@@ -1512,8 +1512,8 @@ mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
     mfxF64 qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
     mfxU8  qp_new    = QStep2QpCeil(qstep_new);
 
-    if (qp_new < 51 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new + 1]) / 2)
-        qp_new++;
+    if (qp_new > 0 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new - 1]) / 2)
+        --qp_new;
 
     return qp_new;
 }
