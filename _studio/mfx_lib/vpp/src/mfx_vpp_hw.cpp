@@ -5188,6 +5188,8 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                 case MFX_FOURCC_RGB4:
                 case MFX_FOURCC_BGR4:
                     return make_back_color_argb(8, extComp->R, extComp->G, extComp->B);
+                case MFX_FOURCC_A2RGB10:
+                    return make_back_color_argb(10, extComp->R, extComp->G, extComp->B);
                 default:
                     break;
             }
@@ -5218,6 +5220,8 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
         case MFX_FOURCC_RGBP:
 #endif
             return make_def_back_color_argb(8);
+        case MFX_FOURCC_A2RGB10:
+            return make_def_back_color_argb(10);
         default:
             break;
     }
