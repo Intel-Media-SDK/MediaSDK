@@ -175,7 +175,6 @@ CTranscodingPipeline::CTranscodingPipeline():
     MSDK_ZERO_MEMORY(m_CodingOption3);
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
     MSDK_ZERO_MEMORY(m_ExtHEVCTiles);
-    MSDK_ZERO_MEMORY(m_ExtVP9Param);
 #if MFX_VERSION >= 1022
     MSDK_ZERO_MEMORY(m_decPostProcessing);
     m_decPostProcessing.Header.BufferId = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
@@ -194,8 +193,11 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_ExtHEVCTiles.Header.BufferId = MFX_EXTBUFF_HEVC_TILES;
     m_ExtHEVCTiles.Header.BufferSz = sizeof(mfxExtHEVCTiles);
 
+#if (MFX_VERSION >= 1026)
+    MSDK_ZERO_MEMORY(m_ExtVP9Param);
     m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
     m_ExtVP9Param.Header.BufferSz = sizeof(mfxExtVP9Param);
+#endif
 
 #if (MFX_VERSION >= 1024)
     MSDK_ZERO_MEMORY(m_ExtBRC);

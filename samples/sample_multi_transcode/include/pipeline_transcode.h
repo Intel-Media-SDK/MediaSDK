@@ -818,8 +818,10 @@ namespace TranscodingSample
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
         mfxExtHEVCTiles          m_ExtHEVCTiles;
+#if (MFX_VERSION >= 1026)
         // VP9
         mfxExtVP9Param           m_ExtVP9Param;
+#endif
 
 #if (MFX_VERSION >= 1024)
         mfxExtBRC                m_ExtBRC;
