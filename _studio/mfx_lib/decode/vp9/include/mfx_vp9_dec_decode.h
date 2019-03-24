@@ -36,7 +36,7 @@
 namespace MFX_VP9_Utility
 {
     mfxStatus DecodeHeader(VideoCORE * /*core*/, mfxBitstream *bs, mfxVideoParam *params);
-    mfxStatus FillVideoParam(VideoCORE* /*core*/, UMC_VP9_DECODER::VP9DecoderFrame const&, mfxVideoParam* params);
+    void FillVideoParam(eMFXPlatform platform, UMC_VP9_DECODER::VP9DecoderFrame const& frame, mfxVideoParam &params);
 };
 
 #endif // #if defined(MFX_ENABLE_VP9_VIDEO_DECODE) || defined(MFX_ENABLE_VP9_VIDEO_DECODE_HW)

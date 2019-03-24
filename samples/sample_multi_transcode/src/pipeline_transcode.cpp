@@ -174,6 +174,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     MSDK_ZERO_MEMORY(m_CodingOption2);
     MSDK_ZERO_MEMORY(m_CodingOption3);
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
+    MSDK_ZERO_MEMORY(m_ExtHEVCTiles);
     MSDK_ZERO_MEMORY(m_ExtVP9Param);
 #if MFX_VERSION >= 1022
     MSDK_ZERO_MEMORY(m_decPostProcessing);
@@ -189,6 +190,9 @@ CTranscodingPipeline::CTranscodingPipeline():
 
     m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
     m_ExtHEVCParam.Header.BufferSz = sizeof(mfxExtHEVCParam);
+
+    m_ExtHEVCTiles.Header.BufferId = MFX_EXTBUFF_HEVC_TILES;
+    m_ExtHEVCTiles.Header.BufferSz = sizeof(mfxExtHEVCTiles);
 
     m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
     m_ExtVP9Param.Header.BufferSz = sizeof(mfxExtVP9Param);
@@ -2528,17 +2532,23 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     else
         m_mfxEncParams.IOPattern = InPatternFromParent;
 
-#if MFX_VERSION >= 1029
-    m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
-    m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
-
-    if (m_ExtVP9Param.NumTileRows
-        && m_ExtVP9Param.NumTileColumns
-        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+    if (pInParams->nEncTileRows && pInParams->nEncTileCols)
     {
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
-    }
+        if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+        {
+            m_ExtHEVCTiles.NumTileRows    = pInParams->nEncTileRows;
+            m_ExtHEVCTiles.NumTileColumns = pInParams->nEncTileCols;
+            m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCTiles);
+        }
+#if MFX_VERSION >= 1029
+        else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+        {
+            m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
+            m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
+            m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
+        }
 #endif
+    }
 
     // we don't specify profile and level and let the encoder choose those basing on parameters
     // we must specify profile only for MVC codec

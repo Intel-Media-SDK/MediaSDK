@@ -2273,9 +2273,10 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if((InputParams.nEncTileRows || InputParams.nEncTileCols) && (InputParams.EncodeId != MFX_CODEC_VP9))
+    if((InputParams.nEncTileRows || InputParams.nEncTileCols) && (InputParams.EncodeId != MFX_CODEC_VP9) &&
+        (InputParams.EncodeId != MFX_CODEC_HEVC))
     {
-        msdk_printf(MSDK_STRING("WARNING: -trows and -tcols are only supported for VP9 encoder, these parameters will be ignored.\n"));
+        msdk_printf(MSDK_STRING("WARNING: -trows and -tcols are only supported for VP9 and HEVC encoder, these parameters will be ignored.\n"));
         InputParams.nEncTileRows = 0;
         InputParams.nEncTileCols = 0;
     }
