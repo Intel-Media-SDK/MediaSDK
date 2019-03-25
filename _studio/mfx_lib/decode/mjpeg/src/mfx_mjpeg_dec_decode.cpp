@@ -1052,8 +1052,7 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
                 return true;
         }
     }
-
-    if (core->GetHWType() == MFX_HW_BDW || core->GetHWType() == MFX_HW_SCL)
+    else if (core->GetHWType() == MFX_HW_BDW || core->GetHWType() == MFX_HW_SCL)
     {
         if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
             par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_MONOCHROME)
@@ -1066,18 +1065,12 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
             par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444)
             return true;
 
-        if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
-            par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420 &&
-            par->mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4 &&
-            (par->mfx.FrameInfo.Width > 4096 || par->mfx.FrameInfo.Height > 4096))
-            return true;
-
         if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
             par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 &&
             par->mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4)
             return true;
     }
-    if (core->GetHWType() == MFX_HW_VLV)
+    else if (core->GetHWType() == MFX_HW_VLV)
     {
         if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB) return true;
     }
