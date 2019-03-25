@@ -24,6 +24,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <memory>
 
 #include "libmfx_allocator_vaapi.h"
 #include "mfx_utils.h"
@@ -277,8 +278,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
     mfxStatus mfx_res = MFX_ERR_NONE;
     VAStatus  va_res  = VA_STATUS_SUCCESS;
     unsigned int va_fourcc = 0;
-    VASurfaceID* surfaces = NULL;
-    vaapiMemIdInt *vaapi_mids = NULL, *vaapi_mid = NULL;
+    vaapiMemIdInt *vaapi_mid = NULL;
     mfxU32 fourcc = request->Info.FourCC;
     mfxU16 surfaces_num = request->NumFrameSuggested, numAllocated = 0, i = 0;
     bool bCreateSrfSucceeded = false;
@@ -321,12 +321,8 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
     }
 
     // allocate frames in cycle
-    surfaces = (VASurfaceID*)calloc(surfaces_num, sizeof(VASurfaceID));
-    vaapi_mids = (vaapiMemIdInt*)calloc(surfaces_num, sizeof(vaapiMemIdInt));
-    if ((NULL == surfaces) || (NULL == vaapi_mids))
-    {
-        mfx_res = MFX_ERR_MEMORY_ALLOC;
-    }
+    std::unique_ptr<VASurfaceID[]>   surfaces(new VASurfaceID[surfaces_num]());
+    std::unique_ptr<vaapiMemIdInt[]> vaapi_mids(new vaapiMemIdInt[surfaces_num]());
 
     if (MFX_ERR_NONE == mfx_res)
     {
@@ -339,7 +335,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
             va_res = vaCreateSurfaces(pSelf->pVADisplay,
                                 format,
                                 request->Info.Width, request->Info.Height,
-                                surfaces,
+                                surfaces.get(),
                                 surfaces_num,
                                 attrib.data(),
                                 attrib.size());
@@ -411,7 +407,7 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
         {
             if (bCreateSrfSucceeded)
             {
-                va_res = vaDestroySurfaces(pSelf->pVADisplay, surfaces, surfaces_num);
+                va_res = vaDestroySurfaces(pSelf->pVADisplay, surfaces.get(), surfaces_num);
                 MFX_CHECK(VA_STATUS_SUCCESS == va_res, MFX_ERR_DEVICE_FAILED);
             }
         }
@@ -423,9 +419,11 @@ mfxDefaultAllocatorVAAPI::AllocFramesHW(
                 MFX_CHECK_STS(mfx_res);
             }
         }
-        if (vaapi_mids) { free(vaapi_mids); vaapi_mids = NULL; }
-        if (surfaces) { free(surfaces); surfaces = NULL; }
     }
+
+    surfaces.release();
+    vaapi_mids.release();
+
     return mfx_res;
 }
 
@@ -454,7 +452,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::FreeFramesHW(
                 MFX_CHECK_STS(sts);
             }
         }
-        free(vaapi_mids);
+        delete [] vaapi_mids;
         response->mids = NULL;
 
         if (!isBufferMemory)
@@ -463,7 +461,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::FreeFramesHW(
             MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
 
-        free(surfaces);
+        delete [] surfaces;
     }
     response->NumFrameActual = 0;
 
