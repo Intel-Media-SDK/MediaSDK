@@ -1790,8 +1790,7 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
 
                     mfxU32 length = (header.bit_length + 7) / 8;
 
-                    assert(mfxU32(bsDataStart + m_width*m_height - bsDataEnd) > length);
-                    assert(header.has_emulation_bytes);
+                    assert(header.has_emulation_bytes == 0);
                     MFX_CHECK_WITH_ASSERT(mfxU32(bsDataStart + m_width*m_height - bsDataEnd) > length, MFX_ERR_NOT_ENOUGH_BUFFER);
                     mfxU8* bsEnd = bsDataStart + m_width*m_height;
                     bsDataEnd += AddEmulationPreventionAndCopy((mfxU8*)pData, length, bsDataEnd, bsEnd, !header.has_emulation_bytes);
