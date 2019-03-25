@@ -5214,6 +5214,9 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
             return make_def_back_color_yuv(10);
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
             return make_def_back_color_argb(8);
         default:
             break;
