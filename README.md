@@ -51,7 +51,10 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 
 # System requirements
 
-**Operating System:** Linux , Windows (not all features are supported in Windows build - see Known Limitations for details)
+**Operating System:**
+* Linux x86-64 fully supported
+* Linux x86 only build
+* Windows (not all features are supported in Windows build - see Known Limitations for details)
 
 **Software:**
 * [LibVA](https://github.com/intel/libva)
