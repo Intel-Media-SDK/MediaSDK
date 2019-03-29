@@ -109,14 +109,20 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 10)
     {
         rec.FourCC = MFX_FOURCC_Y410;
-        rec.Width /= 2;
-        rec.Height *= 3;
+        /* Pitch = 4*W for Y410 format
+           Pitch need to align on 256
+           So, width aligment is 256/4 = 64 */
+        rec.Width = (mfxU16)mfx::align2_value(rec.Width, 256/4);
+        rec.Height = (mfxU16)mfx::align2_value(rec.Height * 3 / 2, 8);
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 8)
     {
         rec.FourCC = MFX_FOURCC_AYUV;
-        rec.Width /= 4;
-        rec.Height *= 3;
+        /* Pitch = 4*W for AYUV format
+           Pitch need to align on 512
+           So, width aligment is 512/4 = 128 */
+        rec.Width = (mfxU16)mfx::align2_value(rec.Width, 512 / 4);
+        rec.Height = (mfxU16)mfx::align2_value(rec.Height *3/4, 8);
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 10)
     {
