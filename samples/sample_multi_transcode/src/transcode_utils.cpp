@@ -279,7 +279,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -FRC::INTERP  Enables FRC filter with Frame Interpolation algorithm\n"));
     msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210   Forces encoder input to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2   Forces decoder output to use provided chroma mode\n"));
-    msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provide d\n"));
+    msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided\n"));
     msdk_printf(MSDK_STRING("  -angle 180    Enables 180 degrees picture rotation user module before encoding\n"));
     msdk_printf(MSDK_STRING("  -opencl       Uses implementation of rotation plugin (enabled with -angle option) through Intel(R) OpenCL\n"));
     msdk_printf(MSDK_STRING("  -w            Destination picture width, invokes VPP resize\n"));
