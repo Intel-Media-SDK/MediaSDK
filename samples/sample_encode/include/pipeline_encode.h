@@ -157,6 +157,8 @@ struct sInputParams
     mfxU16 BufferSizeInKB;
     mfxU16 InitialDelayInKB;
     mfxU16 GopOptFlag;
+    mfxU16 AdaptiveI;
+    mfxU16 AdaptiveB;
     mfxU32 nMaxFrameSize;
 
     mfxU16 WinBRCSize;

@@ -131,6 +131,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-CodecLevel]            - specifies codec level\n"));
     msdk_printf(MSDK_STRING("   [-GopOptFlag:closed]     - closed gop\n"));
     msdk_printf(MSDK_STRING("   [-GopOptFlag:strict]     - strict gop\n"));
+    msdk_printf(MSDK_STRING("   [-AdaptiveI:<on,off>]    - Turn Adaptive I frames on/off\n"));
+    msdk_printf(MSDK_STRING("   [-AdaptiveB:<on,off>]    - Turn Adaptive B frames on/off\n"));
     msdk_printf(MSDK_STRING("   [-InitialDelayInKB]      - the decoder starts decoding after the buffer reaches the initial size InitialDelayInKB, \
                             which is equivalent to reaching an initial delay of InitialDelayInKB*8000/TargetKbps ms\n"));
     msdk_printf(MSDK_STRING("   [-BufferSizeInKB ]       - represents the maximum possible size of any compressed frames\n"));
@@ -556,6 +558,22 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-GopOptFlag:strict")))
         {
             pParams->GopOptFlag = MFX_GOP_STRICT;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AdaptiveI:on")))
+        {
+            pParams->AdaptiveI = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AdaptiveI:off")))
+        {
+            pParams->AdaptiveI = MFX_CODINGOPTION_OFF;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AdaptiveB:on")))
+        {
+            pParams->AdaptiveB = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AdaptiveB:off")))
+        {
+            pParams->AdaptiveB = MFX_CODINGOPTION_OFF;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-InitialDelayInKB")))
         {

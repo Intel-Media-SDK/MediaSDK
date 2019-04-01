@@ -593,7 +593,8 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     // configure the depth of the look ahead BRC if specified in command line
     if (pInParams->nLADepth || pInParams->nMaxSliceSize || pInParams->nMaxFrameSize || pInParams->nBRefType ||
         (pInParams->nExtBRC && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC)) ||
-        pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta )
+        pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta ||
+        pInParams->AdaptiveI || pInParams->AdaptiveB)
     {
         m_CodingOption2.LookAheadDepth = pInParams->nLADepth;
         m_CodingOption2.MaxSliceSize   = pInParams->nMaxSliceSize;
@@ -612,6 +613,8 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_CodingOption2.IntRefType = pInParams->IntRefType;
         m_CodingOption2.IntRefCycleSize = pInParams->IntRefCycleSize;
         m_CodingOption2.IntRefQPDelta = pInParams->IntRefQPDelta;
+        m_CodingOption2.AdaptiveI = pInParams->AdaptiveI;
+        m_CodingOption2.AdaptiveB = pInParams->AdaptiveB;
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption2);
     }
 
