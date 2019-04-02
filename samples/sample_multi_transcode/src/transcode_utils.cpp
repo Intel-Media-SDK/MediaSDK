@@ -258,7 +258,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -qpb          Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
 #endif
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
-    msdk_printf(MSDK_STRING("  -qsv-ff       Enable QSV-FF mode\n"));
+    msdk_printf(MSDK_STRING("  -qsv-ff       Enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("                Set Regions of Interest for each frame from <roi-file-name>\n"));
