@@ -215,8 +215,8 @@ public:
         m_maxWinBits(maxBitPerFrame*windowSize),
         m_maxWinBitsLim(0),
         m_avgBitPerFrame(IPP_MIN(avgBitPerFrame, maxBitPerFrame)),
-        m_currPosInWindow(0),
-        m_lastFrameOrder(0)
+        m_currPosInWindow(windowSize-1),
+        m_lastFrameOrder(mfxU32(-1))
 
     {
         windowSize = windowSize > 0 ? windowSize : 1; // kw
@@ -263,7 +263,7 @@ public:
     }
     mfxU32 GetMaxFrameSize(bool bPanic, bool bSH, mfxU32 recode)
     {
-        mfxU32 winBits = GetLastFrameBits(GetWindowSize() - 1, recode < 1);
+        mfxU32 winBits = GetLastFrameBits(GetWindowSize() - 1, !bPanic);
 
         mfxU32 maxWinBitsLim = m_maxWinBitsLim;
         if (bSH)
@@ -273,7 +273,7 @@ public:
         maxWinBitsLim = IPP_MIN(maxWinBitsLim + recode*GetStep()/2, m_maxWinBits);
 
         mfxU32 maxFrameSize = winBits >= m_maxWinBitsLim ?
-            m_maxWinBits  - winBits:
+            mfxU32(std::max<mfxI32>((mfxI32)m_maxWinBits  - (mfxI32)winBits, 1)):
             maxWinBitsLim - winBits;
 
 
