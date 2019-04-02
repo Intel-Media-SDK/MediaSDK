@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1105,16 +1105,16 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
                    taskForExecute->m_sh.temporal_mvp_enabled_flag = 0; // WA
                }
             }
-
-            if (IsFrameToSkip(*taskForExecute,  m_rec, m_vpar.isSWBRC()))
+            bool toSkip = IsFrameToSkip(*taskForExecute, m_rec, m_vpar.isSWBRC());
+            if (toSkip)
             {
                 sts = CodeAsSkipFrame(*m_core,m_vpar,*taskForExecute, m_rawSkip, m_rec);
                 MFX_CHECK_STS(sts);
             }
-            sts = GetNativeHandleToRawSurface(*m_core, m_vpar, *taskForExecute, surfaceHDL);
+            sts = GetNativeHandleToRawSurface(*m_core, m_vpar, *taskForExecute, toSkip, surfaceHDL);
             MFX_CHECK_STS(sts);
 
-            if (!IsFrameToSkip(*taskForExecute,  m_rec, m_vpar.isSWBRC()))
+            if (!toSkip)
             {
                 sts = CopyRawSurfaceToVideoMemory(*m_core, m_vpar, *taskForExecute);
                 MFX_CHECK_STS(sts);
