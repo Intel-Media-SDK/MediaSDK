@@ -74,7 +74,7 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
         return VA_FOURCC_RGB565;
-#endif // MFX_ENABLE_FOURCC_RGB565
+#endif
     case MFX_FOURCC_RGB4:
         return VA_FOURCC_ARGB;
     case MFX_FOURCC_BGR4:
@@ -179,7 +179,9 @@ static bool isFourCCSupported(unsigned int va_fourcc)
         case VA_FOURCC_P208:
         case VA_FOURCC_P010:
         case VA_FOURCC_AYUV:
+#if defined (MFX_ENABLE_FOURCC_RGB565)
         case VA_FOURCC_RGB565:
+#endif
 #if (MFX_VERSION >= 1027)
         case VA_FOURCC_Y210:
         case VA_FOURCC_Y410:
@@ -527,7 +529,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         else return MFX_ERR_LOCK_MEMORY;
         break;
 
-#endif // MFX_ENABLE_FOURCC_RGB565
+#endif
     case VA_FOURCC_ARGB:
         if (mfx_fourcc == MFX_FOURCC_RGB4)
         {
