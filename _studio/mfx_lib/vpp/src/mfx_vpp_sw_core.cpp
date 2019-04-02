@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1058,6 +1058,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         {
             if ( (out->vpp.Out.Width & 15 ) != 0 )
             {
+                out->vpp.Out.Width = 0;
                 mfxSts = MFX_ERR_UNSUPPORTED;
             }
         }
