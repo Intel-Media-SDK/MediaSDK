@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017-2018, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -206,10 +206,10 @@ mfxStatus CEncodingPipeline::CreateAllocator()
     // create VAAPI allocator
     m_pMFXAllocator.reset(new vaapiFrameAllocator);
 
-    std::auto_ptr<vaapiAllocatorParams> p_vaapiAllocParams(new vaapiAllocatorParams);
+    std::unique_ptr<vaapiAllocatorParams> p_vaapiAllocParams(new vaapiAllocatorParams);
 
     p_vaapiAllocParams->m_dpy = (VADisplay)hdl;
-    m_pMFXAllocatorParams = p_vaapiAllocParams;
+    m_pMFXAllocatorParams = std::move(p_vaapiAllocParams);
 
     // Call SetAllocator to pass external allocator to MediaSDK
     sts = m_mfxSession.SetFrameAllocator(m_pMFXAllocator.get());
@@ -527,7 +527,7 @@ MfxVideoParamsWrapper GetEncodeParams(const sInputParams& user_pars, const mfxFr
 
 IYUVSource* CEncodingPipeline::CreateYUVSource()
 {
-    std::auto_ptr<IYUVSource> pSource;
+    std::unique_ptr<IYUVSource> pSource;
 
     if (m_inParams.input.DecodeId)
     {
@@ -574,7 +574,7 @@ IPreENC* CEncodingPipeline::CreatePreENC(mfxFrameInfo& in_fi)
     if (!pExtBufInit) throw mfxError(MFX_ERR_NOT_INITIALIZED, "Failed to attach mfxExtFeiParam");
     pExtBufInit->Func = MFX_FEI_FUNCTION_PREENC;
 
-    std::auto_ptr<IPreENC> pPreENC;
+    std::unique_ptr<IPreENC> pPreENC;
 
     if (0 == msdk_strlen(m_inParams.mvpInFile))
     {
@@ -611,7 +611,7 @@ FEI_Encode* CEncodingPipeline::CreateEncode(mfxFrameInfo& in_fi)
     sts = m_pParamChecker->Query(pars);
     CHECK_STS_AND_RETURN(sts, "m_pParamChecker->Query failed", NULL);
 
-    std::auto_ptr<PredictorsRepaking> pRepacker;
+    std::unique_ptr<PredictorsRepaking> pRepacker;
 
     if (m_inParams.bPREENC || (0 != msdk_strlen(m_inParams.mvpInFile) && m_inParams.bFormattedMVPin))
     {

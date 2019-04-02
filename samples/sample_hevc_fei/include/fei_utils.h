@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -154,14 +154,14 @@ protected:
     mfxStatus InitDecParams(MfxVideoParamsWrapper & par);
 
 protected:
-    CSmplBitstreamReader           m_FileReader;
-    mfxBitstream                   m_Bitstream;
+    CSmplBitstreamReader             m_FileReader;
+    mfxBitstream                     m_Bitstream;
 
-    MFXVideoSession*               m_session;
-    std::auto_ptr<MFXVideoDECODE>  m_DEC;
-    MfxVideoParamsWrapper          m_par;
+    MFXVideoSession*                 m_session;
+    std::unique_ptr<MFXVideoDECODE>  m_DEC;
+    MfxVideoParamsWrapper            m_par;
 
-    mfxSyncPoint                   m_LastSyncp;
+    mfxSyncPoint                     m_LastSyncp;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(Decoder);
@@ -195,17 +195,17 @@ protected:
     mfxStatus VPPOneFrame(mfxFrameSurface1* pSurfaceIn, mfxFrameSurface1** pSurfaceOut);
 
 protected:
-    std::auto_ptr<IYUVSource>   m_pTarget;
-    MFXVideoSession *           m_parentSession;
+    std::unique_ptr<IYUVSource>   m_pTarget;
+    MFXVideoSession *             m_parentSession;
 
-    SurfacesPool                m_InSurfacePool;
+    SurfacesPool                  m_InSurfacePool;
 
-    MFXVideoSession             m_session;
-    std::auto_ptr<MFXVideoVPP>  m_VPP;
-    MfxVideoParamsWrapper       m_par;
+    MFXVideoSession               m_session;
+    std::unique_ptr<MFXVideoVPP>  m_VPP;
+    MfxVideoParamsWrapper         m_par;
 
-    mfxFrameSurface1 *          m_pInSurface;
-    mfxSyncPoint                m_LastSyncp;
+    mfxFrameSurface1 *            m_pInSurface;
+    mfxSyncPoint                  m_LastSyncp;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(FieldSplitter);
@@ -305,9 +305,9 @@ public:
     }
 
 private:
-    MFXVideoSession  m_session;
-    std::auto_ptr<MFXPlugin>        m_plugin;
-    std::auto_ptr<MFXVideoENCODE>   m_encode;
+    MFXVideoSession                  m_session;
+    std::unique_ptr<MFXPlugin>       m_plugin;
+    std::unique_ptr<MFXVideoENCODE>  m_encode;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(HEVCEncodeParamsChecker);
