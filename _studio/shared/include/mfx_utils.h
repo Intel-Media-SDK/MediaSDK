@@ -31,6 +31,10 @@
 
 #include <cassert>
 
+#if defined(MFX_VA_LINUX)
+#include <va/va.h>
+#endif
+
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
 #else
@@ -117,13 +121,6 @@ bool LumaIsNull(const mfxFrameSurface1 * surf)
 #define SAFE_RELEASE(PTR)   { if (PTR) { PTR->Release(); PTR = NULL; } }
 #endif
 
-/// Align integral T @value to power of two @alignment
-template<class T> inline T AlignValue(T value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    return static_cast<T>((value + alignment - 1) & ~(alignment - 1));
-}
-
 namespace mfx
 {
 // TODO: switch to std::clamp when C++17 support will be enabled
@@ -141,9 +138,32 @@ constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
 {
     return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
 }
+
+// Aligns value to next power of two
+template<class T> inline
+T align2_value(T value, size_t alignment = 16)
+{
+    assert((alignment & (alignment - 1)) == 0);
+    return static_cast<T> ((value + (alignment - 1)) & ~(alignment - 1));
+}
 }
 
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field
 #define MFX_COPY_ARRAY_FIELD(Array) std::copy(std::begin(buf_src.Array), std::end(buf_src.Array), std::begin(buf_dst.Array))
+
+#if defined(MFX_VA_LINUX)
+inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_id)
+{
+    if (buffer_id != VA_INVALID_ID)
+    {
+        VAStatus vaSts = vaDestroyBuffer(display, buffer_id);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        buffer_id = VA_INVALID_ID;
+    }
+
+    return MFX_ERR_NONE;
+}
+#endif
 
 #endif // __MFXUTILS_H__

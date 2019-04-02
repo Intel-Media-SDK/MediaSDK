@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -863,7 +863,7 @@ int main(int argc, msdk_char *argv[])
                     extBuffPtrStorage.push_back((mfxExtBuffer *)&m_ProcAmpData[pOutSurf]);
                     m_extBuffPtrStorageForOutputSurf[pOutSurf] = extBuffPtrStorage;
                     pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
-                    pOutSurf->Data.NumExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
+                    pOutSurf->Data.NumExtParam = (mfxU16)m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
                 nOutFrames++;
 #endif
@@ -1050,7 +1050,7 @@ int main(int argc, msdk_char *argv[])
                     extBuffPtrStorage.push_back((mfxExtBuffer *)&m_ProcAmpData[pOutSurf]);
                     m_extBuffPtrStorageForOutputSurf[pOutSurf] = extBuffPtrStorage;
                     pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
-                    pOutSurf->Data.NumExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
+                    pOutSurf->Data.NumExtParam = (mfxU16)m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
                 nOutFrames++;
 #endif

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -79,9 +79,10 @@ enum
     VC1_P_FRAME = 1,
     VC1_B_FRAME = 2,
     VC1_BI_FRAME= 3,
-    VC1_SKIPPED_FRAME = 4
+    VC1_SKIPPED_FRAME = 0x4
 };
-#define VC1_IS_REFERENCE(value) ((value < VC1_B_FRAME)||(value == VC1_SKIPPED_FRAME))
+#define VC1_IS_SKIPPED(value) ((value & VC1_SKIPPED_FRAME) == VC1_SKIPPED_FRAME)
+#define VC1_IS_REFERENCE(value) ((value < VC1_B_FRAME)||VC1_IS_SKIPPED(value))
 #define VC1_IS_NOT_PRED(value) ((value == VC1_I_FRAME)||(value == VC1_BI_FRAME))
 #define VC1_IS_PRED(value) ((value == VC1_P_FRAME)||(value == VC1_B_FRAME))
 

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -25,8 +25,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <functional>
 #include "mfxvideo.h"
 #include <memory>
-
-class MSDKMutex;
+#include <mutex>
 
 struct mfxAllocatorParams
 {
@@ -67,7 +66,6 @@ private:
 // request type contains either FROM_ENCODE or FROM_VPPIN
 
 // This class does not allocate any actual memory
-class MSDKMutex;
 
 class BaseFrameAllocator: public MFXFrameAllocator
 {
@@ -81,7 +79,7 @@ public:
     virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response);
 
 protected:
-    std::unique_ptr<MSDKMutex> mtx;
+    std::mutex mtx;
     typedef std::list<mfxFrameAllocResponse>::iterator Iter;
     static const mfxU32 MEMTYPE_FROM_MASK = MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_FROM_DECODE | \
                                             MFX_MEMTYPE_FROM_VPPIN | MFX_MEMTYPE_FROM_VPPOUT | \
@@ -176,42 +174,6 @@ protected:
     virtual mfxStatus ReleaseResponse(mfxFrameAllocResponse *response) = 0;
     // allocates memory
     virtual mfxStatus AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response) = 0;
-
-    template <class T>
-    class safe_array
-    {
-    public:
-        safe_array(T *ptr = 0):m_ptr(ptr)
-        { // construct from object pointer
-        };
-        ~safe_array()
-        {
-            reset(0);
-        }
-        T* get()
-        { // return wrapped pointer
-            return m_ptr;
-        }
-        T* release()
-        { // return wrapped pointer and give up ownership
-            T* ptr = m_ptr;
-            m_ptr = 0;
-            return ptr;
-        }
-        void reset(T* ptr)
-        { // destroy designated object and store new pointer
-            if (m_ptr)
-            {
-                delete[] m_ptr;
-            }
-            m_ptr = ptr;
-        }
-    protected:
-        T* m_ptr; // the wrapped object pointer
-    private:
-        safe_array(const safe_array& );
-        safe_array& operator=(const safe_array& );
-    };
 };
 
 class MFXBufferAllocator : public mfxBufferAllocator

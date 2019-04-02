@@ -147,8 +147,8 @@ void SetReconInfo(VP9MfxVideoParam const & par, mfxFrameInfo& fi)
     mfxU16 format = opt3.TargetChromaFormatPlus1 - 1;
     mfxU16 depth = opt3.TargetBitDepthLuma;
 
-    fi.Width = AlignValue(fi.Width, 64);
-    fi.Height = AlignValue(fi.Height, 64);
+    fi.Width  = mfx::align2_value(fi.Width,  64);
+    fi.Height = mfx::align2_value(fi.Height, 64);
 
     if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_10)
     {
@@ -469,7 +469,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
         // dynamic scaling and tiles don't work together
         if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&

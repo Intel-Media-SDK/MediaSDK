@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -50,9 +50,9 @@ bool VC1FrameDescriptor::Init(uint32_t         DescriporID,
     if (!m_pContext)
     {
         uint8_t* ptr = NULL;
-        ptr += align_value<uint32_t>(sizeof(VC1Context));
-        ptr += align_value<uint32_t>(sizeof(VC1PictureLayerHeader)*VC1_MAX_SLICE_NUM);
-        ptr += align_value<uint32_t>((HeightMB*seqLayerHeader->MaxWidthMB*VC1_MAX_BITPANE_CHUNCKS));
+        ptr += mfx::align2_value(sizeof(VC1Context));
+        ptr += mfx::align2_value(sizeof(VC1PictureLayerHeader)*VC1_MAX_SLICE_NUM);
+        ptr += mfx::align2_value((HeightMB*seqLayerHeader->MaxWidthMB*VC1_MAX_BITPANE_CHUNCKS));
 
         // Need to replace with MFX allocator
         if (m_pMemoryAllocator->Alloc(&m_iMemContextID,
@@ -66,11 +66,11 @@ bool VC1FrameDescriptor::Init(uint32_t         DescriporID,
         m_pContext->bp_round_count = -1;
         ptr = (uint8_t*)m_pContext;
 
-        ptr += align_value<uint32_t>(sizeof(VC1Context));
+        ptr += mfx::align2_value(sizeof(VC1Context));
         m_pContext->m_picLayerHeader = (VC1PictureLayerHeader*)ptr;
         m_pContext->m_InitPicLayer = m_pContext->m_picLayerHeader;
 
-        ptr += align_value<uint32_t>((sizeof(VC1PictureLayerHeader)*VC1_MAX_SLICE_NUM));
+        ptr += mfx::align2_value((sizeof(VC1PictureLayerHeader)*VC1_MAX_SLICE_NUM));
         m_pContext->m_pBitplane.m_databits = ptr;
 
     }
@@ -264,7 +264,12 @@ Status VC1FrameDescriptor::SetPictureIndices(uint32_t PTYPE, bool& skip)
         m_pContext->m_frmBuff.m_iDisplayIndex = m_pContext->m_frmBuff.m_iCurrIndex;
         m_pContext->m_frmBuff.m_pFrames[m_pContext->m_frmBuff.m_iCurrIndex].corrupted= 0;
         break;
-    case VC1_SKIPPED_FRAME:
+    default:
+        break;
+    }
+
+    if (VC1_IS_SKIPPED(PTYPE))
+    {
         m_pContext->m_frmBuff.m_iCurrIndex = m_pContext->m_frmBuff.m_iNextIndex =  m_pContext->m_frmBuff.m_iDisplayIndex = m_pStore->GetNextIndex();
         if (-1 == m_pContext->m_frmBuff.m_iCurrIndex)
             m_pContext->m_frmBuff.m_iCurrIndex = m_pStore->GetPrevIndex();
@@ -278,16 +283,12 @@ Status VC1FrameDescriptor::SetPictureIndices(uint32_t PTYPE, bool& skip)
         m_pContext->m_frmBuff.m_iPrevIndex = m_pStore->GetPrevIndex();
         CheckIdx = m_pStore->LockSurface(&m_pContext->m_frmBuff.m_iToSkipCoping, true);
         m_pContext->m_frmBuff.m_pFrames[m_pContext->m_frmBuff.m_iCurrIndex].corrupted= 0;
-
-        break;
-    default:
-        break;
-    }
+     }
         
     if (-1 == CheckIdx)
         return VC1_FAIL;
 
-    if ((VC1_P_FRAME == PTYPE) || (VC1_SKIPPED_FRAME == PTYPE))
+    if ((VC1_P_FRAME == PTYPE) || (VC1_IS_SKIPPED(PTYPE)))
     {
         if (m_pContext->m_frmBuff.m_iPrevIndex == -1)
             return UMC_ERR_NOT_ENOUGH_DATA;

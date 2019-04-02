@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -310,14 +310,14 @@ Status VC1VideoDecoder::ContextAllocation(uint32_t mbWidth,uint32_t mbHeight)
     {
 
         uint8_t* ptr = NULL;
-        ptr += align_value<uint32_t>(sizeof(VC1Context));
-        ptr += align_value<uint32_t>(sizeof(VC1VLCTables));
-        ptr += align_value<uint32_t>(sizeof(int16_t)*mbHeight*mbWidth*2*2);
-        ptr += align_value<uint32_t>(mbHeight*mbWidth);
-        ptr += align_value<uint32_t>(sizeof(VC1TSHeap));
+        ptr += mfx::align2_value(sizeof(VC1Context));
+        ptr += mfx::align2_value(sizeof(VC1VLCTables));
+        ptr += mfx::align2_value(sizeof(int16_t)*mbHeight*mbWidth*2*2);
+        ptr += mfx::align2_value(mbHeight*mbWidth);
+        ptr += mfx::align2_value(sizeof(VC1TSHeap));
         if(m_stCodes == NULL)
         {
-            ptr += align_value<uint32_t>(START_CODE_NUMBER*2*sizeof(uint32_t)+sizeof(MediaDataEx::_MediaDataEx));
+            ptr += mfx::align2_value(START_CODE_NUMBER*2*sizeof(uint32_t)+sizeof(MediaDataEx::_MediaDataEx));
         }
 
         // Need to replace with MFX allocator
@@ -331,18 +331,18 @@ Status VC1VideoDecoder::ContextAllocation(uint32_t mbWidth,uint32_t mbHeight)
         memset(m_pContext,0,(size_t)ptr);
         ptr = (uint8_t*)m_pContext;
 
-        ptr += align_value<uint32_t>(sizeof(VC1Context));
+        ptr += mfx::align2_value(sizeof(VC1Context));
         m_pContext->m_vlcTbl = (VC1VLCTables*)ptr;
 
-        ptr += align_value<uint32_t>(sizeof(VC1VLCTables));
-        ptr += align_value<uint32_t>(sizeof(int16_t)*mbHeight*mbWidth*2*2);
+        ptr += mfx::align2_value(sizeof(VC1VLCTables));
+        ptr += mfx::align2_value(sizeof(int16_t)*mbHeight*mbWidth*2*2);
 
-        ptr +=  align_value<uint32_t>(mbHeight*mbWidth);
+        ptr +=  mfx::align2_value(mbHeight*mbWidth);
         m_pHeap = (VC1TSHeap*)ptr;
 
         if(m_stCodes == NULL)
         {
-            ptr += align_value<uint32_t>(sizeof(VC1TSHeap));
+            ptr += mfx::align2_value(sizeof(VC1TSHeap));
             m_stCodes = (MediaDataEx::_MediaDataEx *)(ptr);
 
 
@@ -382,7 +382,7 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
         {
             // copy data to self buffer
             MFX_INTERNAL_CPY(m_dataBuffer, pBStream + *pOffsets, UnitSize);
-            SwapData(m_dataBuffer, align_value<uint32_t>(UnitSize));
+            SwapData(m_dataBuffer, mfx::align2_value(UnitSize));
             m_pContext->m_bitstream.pBitstream = (uint32_t*)m_dataBuffer + 1; //skip start code
         }
         readSize += UnitSize;
@@ -401,11 +401,11 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
             alignment = (context.m_seqLayerHeader.INTERLACE)?32:16;
 
 
-            if (align_value<uint32_t>(2*(context.m_seqLayerHeader.MAX_CODED_WIDTH+1)) > align_value<uint32_t>(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_WIDTH+1)))
+            if (mfx::align2_value(2*(context.m_seqLayerHeader.MAX_CODED_WIDTH+1)) > mfx::align2_value(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_WIDTH+1)))
                 return UMC_ERR_INVALID_PARAMS;
             if (context.m_seqLayerHeader.INTERLACE != m_pInitContext.m_seqLayerHeader.INTERLACE )
                 return UMC_ERR_INVALID_PARAMS;
-            if (align_value<uint32_t>(2*(context.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment) > align_value<uint32_t>(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment))
+            if (mfx::align2_value(2*(context.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment) > mfx::align2_value(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment))
                 return UMC_ERR_INVALID_PARAMS;
             // start codes are applicable for advanced profile only
             if (context.m_seqLayerHeader.PROFILE != VC1_PROFILE_ADVANCED)
@@ -420,8 +420,8 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
             {
                 *m_pContext = context;
 
-                if (align_value<uint32_t>(2*(context.m_seqLayerHeader.MAX_CODED_WIDTH+1)) != align_value<uint32_t>(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_WIDTH+1))
-                   || align_value<uint32_t>(2*(context.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment) != align_value<uint32_t>(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment))
+                if (mfx::align2_value(2*(context.m_seqLayerHeader.MAX_CODED_WIDTH+1)) != mfx::align2_value(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_WIDTH+1))
+                   || mfx::align2_value(2*(context.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment) != mfx::align2_value(2*(m_pInitContext.m_seqLayerHeader.MAX_CODED_HEIGHT+1),alignment))
                 {
                     m_pStore->SetNewSHParams(m_pContext);
                     umcRes = UMC_NTF_NEW_RESOLUTION;
@@ -467,7 +467,7 @@ Status VC1VideoDecoder::StartCodesProcessing(uint8_t*   pBStream,
                 (uint8_t*)m_frameData->GetDataPointer() + *pOffsets,
                 UnitSize);
             //use own buffer
-            SwapData(m_dataBuffer, align_value<uint32_t>(UnitSize));
+            SwapData(m_dataBuffer, mfx::align2_value(UnitSize));
             m_pContext->m_pBufferStart = m_dataBuffer; //skip start code
         }
         else
@@ -1305,7 +1305,7 @@ void VC1VideoDecoder::SetCorrupted(UMC::VC1FrameDescriptor *pCurrDescriptor, mfx
     }
     mfxU32 Ptype = pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE;
 
-    if (VC1_IS_PRED(Ptype) || VC1_SKIPPED_FRAME == Ptype)
+    if (VC1_IS_PRED(Ptype) || VC1_IS_SKIPPED(Ptype))
     {
         if (pCurrDescriptor->m_pContext->m_frmBuff.m_iPrevIndex > -1)
         {
@@ -1331,10 +1331,22 @@ bool VC1VideoDecoder::IsFrameSkipped()
     UMC::VC1FrameDescriptor *pCurrDescriptor = m_pStore->GetFirstDS();
     if (pCurrDescriptor)
     {
-        return (pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME);
+        return (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE));
     }
     else
         return false;
+}
+
+bool VC1VideoDecoder::IsLastFrameSkipped()
+{
+    UMC::VC1FrameDescriptor *pCurrDescriptor = m_pStore->GetLastDS();
+    if (pCurrDescriptor)
+    {
+        return (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE));
+    }
+    else
+        return false;
+
 }
 
 FrameMemID  VC1VideoDecoder::GetDisplayIndex(bool isDecodeOrder, bool )
@@ -1353,7 +1365,7 @@ FrameMemID  VC1VideoDecoder::GetDisplayIndex(bool isDecodeOrder, bool )
 
         if (VC1_IS_REFERENCE(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))
         {
-            if (VC1_SKIPPED_FRAME == pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE)
+            if (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))
                 return m_pStore->GetIdx(pCurrDescriptor->m_pContext->m_frmBuff.m_iRangeMapIndex);
             else
                 return m_pStore->GetIdx(pCurrDescriptor->m_pContext->m_frmBuff.m_iRangeMapIndexPrev);
@@ -1378,7 +1390,7 @@ FrameMemID  VC1VideoDecoder::GetLastDisplayIndex()
         m_bLastFrameNeedDisplay = false;
 
         if ((!VC1_IS_REFERENCE(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE)) ||
-            (pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME))
+            (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE)))
             dispIndex = pCurrDescriptor->m_pContext->m_frmBuff.m_iNextIndex;
         else
             dispIndex = pCurrDescriptor->m_pContext->m_frmBuff.m_iCurrIndex;
@@ -1435,7 +1447,7 @@ UMC::FrameMemID VC1VideoDecoder::GetSkippedIndex(UMC::VC1FrameDescriptor *desc, 
     UMC::VC1FrameDescriptor *pCurrDescriptor = desc;
     if (!pCurrDescriptor)
         return -1;
-    if (VC1_SKIPPED_FRAME != pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE)
+    if (!VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))
         return -1;
     if (isIn)
     {
@@ -1482,7 +1494,7 @@ FrameMemID VC1VideoDecoder::GetFrameOrder(bool isLast, bool isSamePolar, uint32_
             {
                 idx = rmap ? pCurrDescriptor->m_pContext->m_frmBuff.m_iRangeMapIndexPrev : pCurrDescriptor->m_pContext->m_frmBuff.m_iPrevIndex;
 
-                if (VC1_SKIPPED_FRAME == pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE)
+                if (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))
                 {
                     if (isSamePolar)
                         idx = pCurrDescriptor->m_pContext->m_frmBuff.m_iToSkipCoping;

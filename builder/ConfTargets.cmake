@@ -49,7 +49,13 @@ if (ENABLE_STAT)
 endif()
 
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )
-option( MFX_ENABLE_SW_FALLBACK "Enabled software fallback for codecs?" ON )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  option( MFX_ENABLE_SW_FALLBACK "Enabled software fallback for codecs?" ON )
+else ()
+  # disable SW fallback on ia32 by default (no ipp p8 yet)
+  option( MFX_ENABLE_SW_FALLBACK "Enabled software fallback for codecs?" OFF )
+endif()
+
 
 cmake_dependent_option(
   BUILD_KERNELS "Rebuild kernels (shaders)?" OFF

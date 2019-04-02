@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -28,6 +28,51 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <string>
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+
+#include <tchar.h>
+
+#define MSDK_STRING(x) _T(x)
+#define MSDK_CHAR(x) _T(x)
+
+#ifdef __cplusplus
+typedef std::basic_string<TCHAR> msdk_tstring;
+#endif
+typedef TCHAR msdk_char;
+
+#define msdk_printf   _tprintf
+#define msdk_fprintf  _ftprintf
+#define msdk_sprintf  _stprintf_s // to be removed
+#define msdk_vprintf  _vtprintf
+#define msdk_strlen   _tcslen
+#define msdk_strcmp   _tcscmp
+#define msdk_stricmp  _tcsicmp
+#define msdk_strncmp  _tcsnicmp
+#define msdk_strstr   _tcsstr
+#define msdk_atoi     _ttoi
+#define msdk_strtol   _tcstol
+#define msdk_strtod   _tcstod
+#define msdk_strchr   _tcschr
+#define msdk_strnlen(str,lenmax) strnlen_s(str,lenmax)
+#define msdk_sscanf _stscanf_s
+#define msdk_itoa_decimal(value, str) _itot_s(value,str,10)
+
+// msdk_strcopy is intended to be used with 2 parmeters, i.e. msdk_strcopy(dst, src)
+// for _tcscpy_s that's possible if DST is declared as: TCHAR DST[n];
+#define msdk_strcopy _tcscpy_s
+#define msdk_strncopy_s _tcsncpy_s
+
+#define MSDK_MEMCPY_BITSTREAM(bitstream, offset, src, count) memcpy_s((bitstream).Data + (offset), (bitstream).MaxLength - (offset), (src), (count))
+
+#define MSDK_MEMCPY_BUF(bufptr, offset, maxsize, src, count) memcpy_s((bufptr)+ (offset), (maxsize) - (offset), (src), (count))
+
+#define MSDK_MEMCPY_VAR(dstVarName, src, count) memcpy_s(&(dstVarName), sizeof(dstVarName), (src), (count))
+
+#define MSDK_MEMCPY(dst, src, count) memcpy_s(dst, (count), (src), (count))
+
+
+
+#else // #if defined(_WIN32) || defined(_WIN64)
 
 #define MSDK_STRING(x)  x
 #define MSDK_CHAR(x) x
@@ -67,5 +112,6 @@ typedef char msdk_char;
 
 #define MSDK_MEMCPY(dst, src, count) memcpy(dst, (src), (count))
 
+#endif // #if defined(_WIN32) || defined(_WIN64)
 
 #endif //__STRING_DEFS_H__

@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2018-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,6 @@ mfx_include_dirs()
 set( VP9_Encoder_HW_GUID "ce44ef6f1a6d2246b412bb38d6e45182" )
 
 # Plugin version info
-set( VP9E_HW_PRODUCT_NAME "Intel(R) Media SDK" )
-set( VP9E_HW_DESCRIPTION "Intel(R) Media SDK VP9 Hardware Encode plugin - Compatibility Stub" )
-
 if( NOT DEFINED ENV{MFX_VP9_VERSION} )
   set( vp9_version 0.0.000.0000 )
 else()
@@ -48,12 +45,11 @@ set( LIBS "" )
 set( defs "" )
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp9/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../mfx_lib/shared/include )
 list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_encode_plugin.cpp )
 
 set( USE_STRICT_NAME TRUE )
 set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_STUDIO_ROOT}/mfx_lib/plugin/libmfxsw_plugin.map" )
-set( defs "${defs} -DMFX_PLUGIN_PRODUCT_NAME=\"\\\"${VP9E_HW_PRODUCT_NAME}\"\\\"" )
-set( defs "${defs} -DMFX_FILE_DESCRIPTION=\"\\\"${VP9E_HW_DESCRIPTION}\"\\\"" )
 set( defs "${defs} ${version_defs}" )
 gen_plugins_cfg( "VP9_Encoder_HW" ${VP9_Encoder_HW_GUID} ${plugin_name} "02" "VP9" )
 make_library( ${plugin_name} hw shared )

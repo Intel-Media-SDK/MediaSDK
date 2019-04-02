@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -127,13 +127,13 @@ uint32_t VC1VideoDecoderHW::CalculateHeapSize()
 {
     uint32_t Size = 0;
 
-    Size += align_value<uint32_t>(sizeof(VC1TaskStore));
+    Size += mfx::align2_value(sizeof(VC1TaskStore));
     if (!m_va)
-        Size += align_value<uint32_t>(sizeof(Frame)*(2*m_iMaxFramesInProcessing + 2*VC1NUMREFFRAMES));
+        Size += mfx::align2_value(sizeof(Frame)*(2*m_iMaxFramesInProcessing + 2*VC1NUMREFFRAMES));
     else
-        Size += align_value<uint32_t>(sizeof(Frame)*(m_SurfaceNum));
+        Size += mfx::align2_value(sizeof(Frame)*(m_SurfaceNum));
 
-    Size += align_value<uint32_t>(sizeof(MediaDataEx));
+    Size += mfx::align2_value(sizeof(MediaDataEx));
     return Size;
 }
 
@@ -364,7 +364,7 @@ Status VC1VideoDecoderHW::FillAndExecute(MediaData* in)
     pPackDescriptorChild->m_bIsFieldAbsent = false;
 
 
-    if ((pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE != VC1_SKIPPED_FRAME) &&
+    if ((!VC1_IS_SKIPPED(pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE)) &&
         (VC1_PROFILE_ADVANCED == m_pContext->m_seqLayerHeader.PROFILE))
     {
         GetStartCodes_HW(in, stShift);
@@ -389,7 +389,7 @@ Status VC1VideoDecoderHW::FillAndExecute(MediaData* in)
         if (mem_allocation_er == e_type)
             return UMC_ERR_NOT_ENOUGH_BUFFER;
     }
-    if (pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE != VC1_SKIPPED_FRAME)
+    if (!VC1_IS_SKIPPED(pPackDescriptorChild->m_pContext->m_picLayerHeader->PTYPE))
     {
         if (UMC_OK != m_va->EndFrame())
             throw VC1Exceptions::vc1_exception(VC1Exceptions::internal_pipeline_error);
@@ -437,7 +437,7 @@ FrameMemID  VC1VideoDecoderHW::ProcessQueuesForNextFrame(bool& isSkip, mfxU16& C
     if (pCurrDescriptor)
     {
         SetCorrupted(pCurrDescriptor, Corrupted);
-        if (pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE == VC1_SKIPPED_FRAME)
+        if (VC1_IS_SKIPPED(pCurrDescriptor->m_pContext->m_picLayerHeader->PTYPE))
         {
             isSkip = true;
             if (!pCurrDescriptor->isDescriptorValid())

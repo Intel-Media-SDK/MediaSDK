@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -129,6 +129,10 @@ bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
 #endif
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
+
         return true;
     }
     return false;
@@ -3221,6 +3225,13 @@ mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1
 
         mfxI64 verticalPitch = (mfxI64)(pDst->Data.UV - pDst->Data.Y);
         verticalPitch = (verticalPitch % dstPitch)? 0 : verticalPitch / dstPitch;
+#ifdef MFX_ENABLE_RGBP
+        if (pDst->Info.FourCC == MFX_FOURCC_RGBP)
+        {
+            verticalPitch = (mfxI64)(pDst->Data.G - pDst->Data.B);
+            verticalPitch = (verticalPitch % dstPitch)? 0 : verticalPitch / dstPitch;
+        }
+#endif
 
         if (isNeedShift(pSrc, pDst) && CM_ALIGNED(dstPtr) && CM_SUPPORTED_COPY_SIZE(roi) && verticalPitch >= pDst->Info.Height && verticalPitch <= 16384)
         {

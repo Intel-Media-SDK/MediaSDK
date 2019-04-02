@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -17,6 +17,10 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 #include "sample_defs.h"
+
+#ifndef MFX_VERSION
+#error MFX_VERSION not defined
+#endif
 
 #if (MFX_VERSION >= 1024)
 #include "mfxbrc.h"

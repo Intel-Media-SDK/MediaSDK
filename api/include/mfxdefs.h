@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 #define __MFXDEFS_H__
 
 #define MFX_VERSION_MAJOR 1
-#define MFX_VERSION_MINOR 28
+#define MFX_VERSION_MINOR 29
 
 // MFX_VERSION_NEXT is always +1 from last public release
 // may be enforced by MFX_VERSION_USE_LATEST define
@@ -54,8 +54,13 @@ extern "C"
   #define __INT64   long long
   #define __UINT64  unsigned long long
 
-    #define MFX_CDECL
-    #define MFX_STDCALL
+#ifdef _WIN32
+  #define MFX_CDECL __cdecl
+  #define MFX_STDCALL __stdcall
+#else
+  #define MFX_CDECL
+  #define MFX_STDCALL
+#endif /* _WIN32 */
 
 #define MFX_INFINITE 0xFFFFFFFF
 
@@ -65,8 +70,13 @@ typedef short               mfxI16;
 typedef unsigned short      mfxU16;
 typedef unsigned int        mfxU32;
 typedef int                 mfxI32;
+#if defined( _WIN32 ) || defined ( _WIN64 )
+typedef unsigned long       mfxUL32;
+typedef long                mfxL32;
+#else
 typedef unsigned int        mfxUL32;
 typedef int                 mfxL32;
+#endif
 typedef float               mfxF32;
 typedef double              mfxF64;
 typedef __UINT64            mfxU64;

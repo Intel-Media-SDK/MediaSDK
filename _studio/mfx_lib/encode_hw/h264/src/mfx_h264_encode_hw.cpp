@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1015,7 +1015,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     {
         const mfxU32 hrdBufSize = m_video.calcParam.bufferSizeInKB * 1000;
         if (hrdBufSize > static_cast<mfxU32>(request.Info.Width * request.Info.Height))
-            request.Info.Height = AlignValue<mfxU16>(static_cast<mfxU16>(hrdBufSize / request.Info.Width), 16);
+            request.Info.Height = mfx::align2_value(static_cast<mfxU16>(hrdBufSize / request.Info.Width), 16);
     }
 
     //limit bs size to 4095*nMBs + slice_hdr_size * nSlice
@@ -1029,7 +1029,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         const mfxU32 maxBufSize = MAX_MB_SIZE * nMBs + SLICE_BUFFER_SIZE * maxNumSlices;
 
         if (maxBufSize > static_cast<mfxU32>(request.Info.Width * request.Info.Height))
-            request.Info.Height = AlignValue<mfxU16>(static_cast<mfxU16>(maxBufSize / request.Info.Width), 16);
+            request.Info.Height = mfx::align2_value(static_cast<mfxU16>(maxBufSize / request.Info.Width), 16);
     }
 
 
@@ -3461,7 +3461,7 @@ mfxStatus ImplementationAvc::UpdateBitstream(
         bsSizeActual = bsSizeAvail;
         if (m_video.Protected)
         {
-            bsSizeToCopy = AlignValue(bsSizeToCopy - 15, 16);
+            bsSizeToCopy = mfx::align2_value(bsSizeToCopy - 15, 16);
             bsSizeActual = MFX_MIN(bsSizeActual, bsSizeToCopy);
         }
     }

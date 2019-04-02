@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -418,7 +418,7 @@ mfxStatus SetQualityParams(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
     VABufferID & qualityParams_id,
-    mfxEncodeCtrl const * pCtrl)
+    DdiTask const * pTask)
 {
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -491,13 +491,11 @@ mfxStatus SetQualityParams(
         quality_param->UltraHMEDisable = !!extOptFEI->DisableUltraHME;
     }
 
-    if (pCtrl)
+    if (pTask)
     {
-        mfxExtCodingOption2 const * extOpt2rt  = GetExtBuffer(*pCtrl);
-        mfxExtCodingOption3 const * extOpt3rt  = GetExtBuffer(*pCtrl);
+        mfxExtCodingOption3 const * extOpt3rt  = GetExtBuffer(pTask->m_ctrl);
 
-        if (extOpt2rt)
-            quality_param->useRawPicForRef = IsOn(extOpt2rt->UseRawRef);
+        quality_param->useRawPicForRef = pTask->m_isUseRawRef;
 
         if (extOpt3rt)
         {
@@ -1770,10 +1768,10 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if (extOpt3)
     {
         if (IsOn(extOpt3->EnableMBQP))
-            m_mbqp_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mbqp_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
 
         if (IsOn(extOpt3->MBDisableSkipMap))
-            m_mb_noskip_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mb_noskip_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
     }
 
     return MFX_ERR_NONE;
@@ -1819,10 +1817,10 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
     if (extOpt3)
     {
         if (IsOn(extOpt3->EnableMBQP))
-            m_mbqp_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mbqp_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
 
         if (IsOn(extOpt3->MBDisableSkipMap))
-            m_mb_noskip_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mb_noskip_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
     }
     /* Destroy existing FEI buffers
      * For next Execute() call new buffer sets will re-allocated */
@@ -2141,7 +2139,7 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MVP)");
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncFEIMVPredictorBufferType,
+                    VAEncFEIMVPredictorBufferType,
                     sizeof(VAEncFEIMVPredictorH264)*mvpred->NumMBAlloc,
                     1, //limitation from driver, num elements should be 1
                     mvpred->MB,
@@ -2154,7 +2152,7 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer (MBctrl)");
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncFEIMBControlBufferType,
+                    VAEncFEIMBControlBufferType,
                     sizeof(VAEncFEIMBControlH264)*mbctrl->NumMBAlloc,
                     1, //limitation from driver, num elements should be 1
                     mbctrl->MB,
@@ -2168,7 +2166,7 @@ mfxStatus VAAPIEncoder::Execute(
 #if MFX_VERSION >= 1023
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncQPBufferType,
+                    VAEncQPBufferType,
                     sizeof(VAEncQPBufferH264)*mbqp->NumMBAlloc,
                     1, //limitation from driver, num elements should be 1
                     mbqp->MB,
@@ -2176,7 +2174,7 @@ mfxStatus VAAPIEncoder::Execute(
 #else
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncQPBufferType,
+                    VAEncQPBufferType,
                     sizeof (VAEncQPBufferH264)*mbqp->NumQPAlloc,
                     1, //limitation from driver, num elements should be 1
                     mbqp->QP,
@@ -2213,7 +2211,7 @@ mfxStatus VAAPIEncoder::Execute(
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
-                            (VABufferType)VAEncFEIDistortionBufferType,
+                            VAEncFEIDistortionBufferType,
                             vaFeiMBStatBufSize,
                             1, //limitation from driver, num elements should be 1
                             NULL, //should be mapped later
@@ -2252,7 +2250,7 @@ mfxStatus VAAPIEncoder::Execute(
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
-                            (VABufferType)VAEncFEIMVBufferType,
+                            VAEncFEIMVBufferType,
                             vaFeiMVOutBufSize,
                             1, //limitation from driver, num elements should be 1
                             NULL, //should be mapped later
@@ -2278,7 +2276,7 @@ mfxStatus VAAPIEncoder::Execute(
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateBuffer");
                     vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextEncode,
-                            (VABufferType)VAEncFEIMBCodeBufferType,
+                            VAEncFEIMBCodeBufferType,
                             vaFeiMCODEOutBufSize,
                             1, //limitation from driver, num elements should be 1
                             NULL, //should be mapped later
@@ -2780,8 +2778,8 @@ mfxStatus VAAPIEncoder::Execute(
         mfxU32 mbW = m_sps.picture_width_in_mbs;
         mfxU32 mbH = m_sps.picture_height_in_mbs / (2 - !task.m_fieldPicFlag);
         //width(64byte alignment) height(8byte alignment)
-        mfxU32 bufW = ((mbW + 63) & ~63);
-        mfxU32 bufH = ((mbH + 7) & ~7);
+        mfxU32 bufW = mfx::align2_value(mbW, 64);
+        mfxU32 bufH = mfx::align2_value(mbH, 8);
         mfxU32 fieldOffset = (mfxU32)fieldId * (mbH * mbW) * (mfxU32)!!task.m_fieldPicFlag;
 
         if (mbqp && mbqp->QP && mbqp->NumQPAlloc >= mbW * m_sps.picture_height_in_mbs
@@ -2798,9 +2796,9 @@ mfxStatus VAAPIEncoder::Execute(
             // LibVA expect full buffer size w/o interlace adjustments
             vaSts = vaCreateBuffer(m_vaDisplay,
                 m_vaContextEncode,
-                (VABufferType)VAEncQPBufferType,
+                VAEncQPBufferType,
                 bufW * sizeof(VAEncQPBufferH264),
-                ((m_sps.picture_height_in_mbs + 7) & ~7),
+                mfx::align2_value(m_sps.picture_height_in_mbs, 8),
                 &m_mbqp_buffer[0],
                 &m_mbqpBufferId);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
@@ -2814,8 +2812,8 @@ mfxStatus VAAPIEncoder::Execute(
         mfxU32 mbW = m_sps.picture_width_in_mbs;
         mfxU32 mbH = m_sps.picture_height_in_mbs / (2 - !task.m_fieldPicFlag);
         //width(64byte alignment) height(8byte alignment)
-        mfxU32 bufW = ((mbW + 63) & ~63);
-        mfxU32 bufH = ((mbH + 7) & ~7);
+        mfxU32 bufW = mfx::align2_value(mbW, 64);
+        mfxU32 bufH = mfx::align2_value(mbH, 8);
         mfxU32 fieldOffset = (mfxU32)fieldId * (mbH * mbW) * (mfxU32)!!task.m_fieldPicFlag;
 
         if (   m_mb_noskip_buffer.size() >= (bufW * bufH)
@@ -2831,7 +2829,7 @@ mfxStatus VAAPIEncoder::Execute(
 
             vaSts = vaCreateBuffer(m_vaDisplay,
                     m_vaContextEncode,
-                    (VABufferType)VAEncMacroblockDisableSkipMapBufferType,
+                    VAEncMacroblockDisableSkipMapBufferType,
                     (bufW * bufH),
                     1,
                     &m_mb_noskip_buffer[0],
@@ -2854,7 +2852,7 @@ mfxStatus VAAPIEncoder::Execute(
     if (ctrlOpt2 || ctrlOpt3)
     {
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(m_videoParam, m_vaDisplay,
-                                                               m_vaContextEncode, m_qualityParamsId, &task.m_ctrl), MFX_ERR_DEVICE_FAILED);
+                                                               m_vaContextEncode, m_qualityParamsId, &task), MFX_ERR_DEVICE_FAILED);
     }
     if (VA_INVALID_ID != m_qualityParamsId) configBuffers.push_back(m_qualityParamsId);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -53,8 +53,19 @@ typedef struct {
 
 typedef struct {
     mfxI32 QpY;             // Frame-level Luma QP
+#if (MFX_VERSION >= 1029)
+    mfxU32 InitialCpbRemovalDelay;
+    mfxU32 InitialCpbRemovalOffset;
+    mfxU32 reserved1[7];
+    mfxU32 MaxFrameSize;    // Max frame size in bytes (used for rePak)
+    mfxU8  DeltaQP[8];      // deltaQP[i] is adding to QP value while i-rePak
+    mfxU16 MaxNumRepak;     // Max number of rePak to provide MaxFrameSize (from 0 to 8)
+    mfxU16 NumExtParam;
+    mfxExtBuffer** ExtParam;   // extension buffer list
+#else
     mfxU32 reserved1[13];
     mfxHDL reserved2;
+#endif
 } mfxBRCFrameCtrl;
 
 /* BRCStatus */

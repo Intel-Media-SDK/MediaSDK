@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,6 +23,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/thread_defs.h"
 #include <map>
 #include <tuple>
+#include <mutex>
 #include "plugin_rotate.h"
 
 // disable "unreferenced formal parameter" warning -
@@ -33,7 +34,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 typedef  std::tuple<mfxMemId, mfxHDL> UniqueMid;
 std::map<UniqueMid, int> mappingResourceManager;
 
-MSDKMutex mapping_mutex;
+std::mutex mapping_mutex;
 
 #define SWAP_BYTES(a, b) {mfxU8 tmp; tmp = a; a = b; b = tmp;}
 
@@ -420,8 +421,7 @@ mfxStatus Processor::LockFrame(mfxFrameSurface1 *frame)
     MSDK_CHECK_POINTER(frame, MFX_ERR_NULL_PTR);
     mfxStatus sts = MFX_ERR_NONE;
 
-    /* mutex locker */
-    AutomaticMutex locker(mapping_mutex);
+    std::lock_guard<std::mutex> locker(mapping_mutex);
 
     // MemId=0, that is surface was created without allocator
     // No neeed in lock/unlock
@@ -448,8 +448,7 @@ mfxStatus Processor::UnlockFrame(mfxFrameSurface1 *frame)
     MSDK_CHECK_POINTER(frame, MFX_ERR_NULL_PTR);
     mfxStatus sts = MFX_ERR_NONE;
 
-    /* mutex locker */
-    AutomaticMutex locker(mapping_mutex);
+    std::lock_guard<std::mutex> locker(mapping_mutex);
 
     // MemId=0, that is surface was created without allocator
     // No neeed in lock/unlock

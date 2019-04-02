@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -368,8 +368,8 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
 
     frameParam.allowHighPrecisionMV = 1;
 
-    mfxU16 alignedWidth = AlignValue(frameParam.width, 8); // align to Mode Info block size (8 pixels)
-    mfxU16 alignedHeight = AlignValue(frameParam.height, 8); // align to Mode Info block size (8 pixels)
+    mfxU16 alignedWidth  = mfx::align2_value(frameParam.width,  8); // align to Mode Info block size (8 pixels)
+    mfxU16 alignedHeight = mfx::align2_value(frameParam.height, 8); // align to Mode Info block size (8 pixels)
 
     frameParam.modeInfoRows = alignedHeight >> 3;
     frameParam.modeInfoCols = alignedWidth >> 3;
@@ -404,10 +404,10 @@ mfxStatus SetFramesParams(VP9MfxVideoParam const &par,
             frameParam.refreshFrameContext = false;
         }
     }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1029)
     frameParam.log2TileRows = static_cast<mfxU8>(CeilLog2(extPar.NumTileRows));
     frameParam.log2TileCols = static_cast<mfxU8>(CeilLog2(extPar.NumTileColumns));
-#endif // (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif // (MFX_VERSION >= 1029)
 
     return MFX_ERR_NONE;
 }

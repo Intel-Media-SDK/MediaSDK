@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -24,6 +24,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <string>
 #include <sstream>
 #include <vector>
+#include <map>
+#include <stdexcept>
+#include <mutex>
 
 #include "mfxstructures.h"
 #include "mfxvideo.h"
@@ -36,7 +39,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/time_defs.h"
 #include "vm/atomic_defs.h"
 #include "vm/thread_defs.h"
-#include <map>
 
 #include "sample_types.h"
 
@@ -46,9 +48,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "avc_headers.h"
 #include "avc_nal_spl.h"
 
-#ifdef ENABLE_MCTF
-#include  <stdexcept>
-#endif
 
 // A macro to disallow the copy constructor and operator= functions
 // This should be used in the private: declarations for a class
@@ -101,9 +100,15 @@ enum
     MFX_FOURCC_YUV444       = MFX_MAKEFOURCC('4','4','4','P'),
 #if (MFX_VERSION <= 1027)
     MFX_FOURCC_RGBP         = MFX_MAKEFOURCC('R','G','B','P'),
-#else
 #endif
     MFX_FOURCC_I420         = MFX_MAKEFOURCC('I','4','2','0')
+};
+
+enum ExtBRCType {
+    EXTBRC_DEFAULT,
+    EXTBRC_OFF,
+    EXTBRC_ON,
+    EXTBRC_IMPLICIT
 };
 
 bool IsDecodeCodecSupported(mfxU32 codecFormat);
@@ -489,6 +494,7 @@ mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* p
 mfxF64 CalculateFrameRate(mfxU32 nFrameRateExtN, mfxU32 nFrameRateExtD);
 mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
+void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 mfxStatus InitMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize);
 
 //performs copy to end if possible, also move data to buffer begin if necessary
@@ -699,13 +705,22 @@ template<typename T>
 template<size_t S>
     mfxStatus msdk_opt_read(const msdk_char* string, msdk_char (&value)[S])
     {
+        if (!S)
+        {
+            return MFX_ERR_UNKNOWN;
+        }
         value[0]=0;
+    #if defined(_WIN32) || defined(_WIN64)
+        value[S - 1] = 0;
+        return (0 == _tcsncpy_s(value, string,S-1))? MFX_ERR_NONE: MFX_ERR_UNKNOWN;
+    #else
         if (strlen(string) < S) {
             strncpy(value, string, S-1);
             value[S - 1] = 0;
             return MFX_ERR_NONE;
         }
         return MFX_ERR_UNKNOWN;
+    #endif
     }
 
 template<typename T>
@@ -766,11 +781,11 @@ ParamT * GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = 
 {
     // map <pointer, busy-status>
     static std::map<ParamT*, bool> mfxFrameParamPool;
-    static MSDKMutex ExclusiveAccess;
+    static std::mutex ExclusiveAccess;
+
     typedef typename std::map<ParamT*, bool>::iterator map_iter;
 
-
-    AutomaticMutex guard(ExclusiveAccess);
+    std::lock_guard<std::mutex> guard(ExclusiveAccess);
     if (!pmfxSurface && !DeallocateAll)
         return NULL;
     if (DeallocateAll)

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1058,9 +1058,9 @@ namespace
         57.018, 64.000, 71.838, 80.635, 90.510, 101.594, 114.035, 128.000, 143.675, 161.270, 181.019, 203.187, 228.070
     };
 
-    mfxU8 QStep2QpCeil(mfxF64 qstep) // QSTEP[qp] > qstep, may return qp=52
+    mfxU8 QStep2QpCeil(mfxF64 qstep) // QSTEP[qp] > qstep
     {
-        return mfxU8(std::lower_bound(QSTEP, QSTEP + 52, qstep) - QSTEP);
+        return std::min<mfxU8>(mfxU8(std::lower_bound(QSTEP, QSTEP + 52, qstep) - QSTEP), 51);
     }
 }
 
@@ -1512,8 +1512,8 @@ mfxU8 GetNewQP(mfxU32 size, mfxU32 targeSize, mfxU8 curQP)
     mfxF64 qstep_new = qstep * pow((mfxF64)size / targeSize, 0.8);
     mfxU8  qp_new    = QStep2QpCeil(qstep_new);
 
-    if (qp_new < 51 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new + 1]) / 2)
-        qp_new++;
+    if (qp_new > 0 && qstep_new >(QSTEP[qp_new] + QSTEP[qp_new - 1]) / 2)
+        --qp_new;
 
     return qp_new;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -64,11 +64,7 @@ msdk_printf(MSDK_STRING("   [-scrY  y]                  - cropY  of src video (d
 msdk_printf(MSDK_STRING("   [-scrW  w]                  - cropW  of src video (def: width)\n"));
 msdk_printf(MSDK_STRING("   [-scrH  h]                  - cropH  of src video (def: height)\n"));
 msdk_printf(MSDK_STRING("   [-sf   frameRate]           - frame rate of src video (def: 30.0)\n"));
-#if MFX_VERSION >= MFX_VERSION_NEXT
-msdk_printf(MSDK_STRING("   [-scc  format]              - format (FourCC) of src video (def: nv12. support i420|nv12|yv12|yuy2|rgb565|rgb3|rgb4|imc3|yuv400|yuv411|yuv422h|yuv422v|yuv444|uyvy|ayuv|p010)\n"));
-#else
-msdk_printf(MSDK_STRING("   [-scc  format]              - format (FourCC) of src video (def: nv12. support i420|nv12|yv12|yuy2|rgb565|rgb3|rgb4|imc3|yuv400|yuv411|yuv422h|yuv422v|yuv444|uyvy|ayuv)\n"));
-#endif
+msdk_printf(MSDK_STRING("   [-scc  format]              - format (FourCC) of src video (def: nv12. support i420|nv12|yv12|yuy2|rgb565|rgb3|rgb4|imc3|yuv400|yuv411|yuv422h|yuv422v|yuv444|uyvy|ayuv|p010|y210|y410)\n"));
 msdk_printf(MSDK_STRING("   [-sbitshift 0|1]            - shift data to right or keep it the same way as in Microsoft's P010\n"));
 msdk_printf(MSDK_STRING("   [-sbitdepthluma value]      - shift luma channel to right to \"16 - value\" bytes\n"));
 msdk_printf(MSDK_STRING("   [-sbitdepthchroma value]    - shift chroma channel to right to \"16 - value\" bytes\n"));
@@ -87,7 +83,11 @@ msdk_printf(MSDK_STRING("   [-dcrY  y]                  - cropY  of dst video (d
 msdk_printf(MSDK_STRING("   [-dcrW  w]                  - cropW  of dst video (def: width)\n"));
 msdk_printf(MSDK_STRING("   [-dcrH  h]                  - cropH  of dst video (def: height)\n"));
 msdk_printf(MSDK_STRING("   [-df  frameRate]            - frame rate of dst video (def: 30.0)\n"));
-msdk_printf(MSDK_STRING("   [-dcc format]               - format (FourCC) of dst video (def: nv12. support i420|nv12|yuy2|rgb4|rgbp|yv12|ayuv)\n"));
+#if (MFX_VERSION >= 1027)
+msdk_printf(MSDK_STRING("   [-dcc format]               - format (FourCC) of dst video (def: nv12. support i420|nv12|yuy2|rgb4|rgbp|yv12|ayuv|a2rgb10|y210|y410)\n"));
+#else
+msdk_printf(MSDK_STRING("   [-dcc format]               - format (FourCC) of dst video (def: nv12. support i420|nv12|yuy2|rgb4|rgbp|yv12|ayuv|a2rgb10)\n"));
+#endif
 msdk_printf(MSDK_STRING("   [-dbitshift 0|1]            - shift data to right or keep it the same way as in Microsoft's P010\n"));
 msdk_printf(MSDK_STRING("   [-dbitdepthluma value]      - shift luma channel to left to \"16 - value\" bytes\n"));
 msdk_printf(MSDK_STRING("   [-dbitdepthchroma value]    - shift chroma channel to left to \"16 - value\" bytes\n"));
@@ -169,7 +169,12 @@ msdk_printf(MSDK_STRING("   [-deinterlace (type)] - enable deinterlace algorithm
 msdk_printf(MSDK_STRING("                         type is tff (default) or bff \n"));
 
 msdk_printf(MSDK_STRING("   [-rotate (angle)]   - enable rotation. Supported angles: 0, 90, 180, 270.\n"));
-msdk_printf(MSDK_STRING("   [-scaling_mode (mode)] - specify type of scaling to be used for resize.\n"));
+
+msdk_printf(MSDK_STRING("   [-scaling_mode (mode)] - specify type of scaling to be used for resize\n"));
+msdk_printf(MSDK_STRING("                            0 - default\n"));
+msdk_printf(MSDK_STRING("                            1 - low power mode\n"));
+msdk_printf(MSDK_STRING("                            2 - quality mode\n\n"));
+
 msdk_printf(MSDK_STRING("   [-denoise (level)]  - enable denoise algorithm. Level is optional \n"));
 msdk_printf(MSDK_STRING("                         range of  noise level is [0, 100]\n"));
 #if MFX_VERSION >= 1025
@@ -341,10 +346,12 @@ mfxU32 Str2FourCC( msdk_char* strInput )
     {
         fourcc = MFX_FOURCC_RGB4;
     }
+#if !(defined(_WIN32) || defined(_WIN64))
     else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("rgbp")) )
     {
         fourcc = MFX_FOURCC_RGBP;
     }
+#endif
     else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("yuy2")) )
     {
         fourcc = MFX_FOURCC_YUY2;
@@ -400,6 +407,8 @@ mfxU32 Str2FourCC( msdk_char* strInput )
     else if (0 == msdk_stricmp(strInput, MSDK_STRING("i420")))
     {
         fourcc = MFX_FOURCC_I420;
+    } else if (0 == msdk_stricmp(strInput, MSDK_STRING("ayuv"))) {
+        fourcc = MFX_FOURCC_AYUV;
     }
 
     return fourcc;

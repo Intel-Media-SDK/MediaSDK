@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -22,6 +22,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 /* ************************************************************************* */
 
+#if defined(_WIN32) || defined(_WIN64)
+#define D3D_SURFACES_SUPPORT
+#endif // #if defined(_WIN32) || defined(_WIN64)
 
 #ifdef D3D_SURFACES_SUPPORT
 #pragma warning(disable : 4201)

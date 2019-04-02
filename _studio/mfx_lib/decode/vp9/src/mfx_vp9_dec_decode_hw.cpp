@@ -294,10 +294,7 @@ VideoDECODEVP9_HW::VideoDECODEVP9_HW(VideoCORE *p_core, mfxStatus *sts)
       m_completedList(),
       m_firstSizes(),
       m_bs(),
-      m_baseQIndex(0),
-      m_y_dc_delta_q(0),
-      m_uv_dc_delta_q(0),
-      m_uv_ac_delta_q(0)
+      m_baseQIndex(0)
 {
     memset(&m_sizesOfRefFrame, 0, sizeof(m_sizesOfRefFrame));
     memset(&m_frameInfo.ref_frame_map, VP9_INVALID_REF_FRAME, sizeof(m_frameInfo.ref_frame_map)); // TODO: move to another place
@@ -577,9 +574,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfx
     mfxStatus sts = MFX_VP9_Utility::DecodeHeader(core, bs, par);
     MFX_CHECK_STS(sts);
 
-    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
-        par->mfx.FrameInfo.Shift = 1;
-
     return sts;
 }
 
@@ -750,16 +744,6 @@ mfxStatus VideoDECODEVP9_HW::GetVideoParam(mfxVideoParam *par)
     par->mfx.FrameInfo.AspectRatioW = m_vInitPar.mfx.FrameInfo.AspectRatioW;
 
     return MFX_ERR_NONE;
-}
-
-void VideoDECODEVP9_HW::UpdateVideoParam(mfxVideoParam *par, VP9DecoderFrame const & frameInfo)
-{
-    VM_ASSERT(par);
-
-    MFX_VP9_Utility::FillVideoParam(m_core, frameInfo, par);
-
-    if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
-        par->mfx.FrameInfo.Shift = 1;
 }
 
 mfxStatus VideoDECODEVP9_HW::GetDecodeStat(mfxDecodeStat *pStat)
@@ -1078,7 +1062,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
     sts = DecodeFrameHeader(bs, frameInfo);
     MFX_CHECK_STS(sts);
 
-    UpdateVideoParam(&m_vPar, frameInfo);
+    MFX_VP9_Utility::FillVideoParam(m_core->GetPlatformType(), frameInfo, m_vPar);
 
     // check resize
     if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width || m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
@@ -1097,10 +1081,14 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         if (m_vPar.mfx.FrameInfo.Width > m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height > m_vInitPar.mfx.FrameInfo.Height)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
+// this check is not needed if re-allocation of internal surface function is implemented 
+// (currently only in VAAPI linux)
+#ifndef MFX_VA_LINUX
         if (KEY_FRAME == frameInfo.frameType &&
             (m_vPar.mfx.FrameInfo.Width != m_vInitPar.mfx.FrameInfo.Width || m_vPar.mfx.FrameInfo.Height != m_vInitPar.mfx.FrameInfo.Height) &&
             1 != m_index)
             return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
+#endif
     }
 
     //update frame info
@@ -1364,9 +1352,9 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
         //setup_quantization()
         {
             info.baseQIndex = bsReader.GetBits(QINDEX_BITS);
-            mfxI32 old_y_dc_delta_q = m_y_dc_delta_q;
-            mfxI32 old_uv_dc_delta_q = m_uv_dc_delta_q;
-            mfxI32 old_uv_ac_delta_q = m_uv_ac_delta_q;
+            mfxI32 old_y_dc_delta_q = info.y_dc_delta_q;
+            mfxI32 old_uv_dc_delta_q = info.uv_dc_delta_q;
+            mfxI32 old_uv_ac_delta_q = info.uv_ac_delta_q;
 
             if (bsReader.GetBit())
             {
@@ -1391,10 +1379,6 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
             }
             else
                 info.uv_ac_delta_q = 0;
-
-            m_y_dc_delta_q = info.y_dc_delta_q;
-            m_uv_dc_delta_q = info.uv_dc_delta_q;
-            m_uv_ac_delta_q = info.uv_ac_delta_q;
 
             if (old_y_dc_delta_q  != info.y_dc_delta_q  ||
                 old_uv_dc_delta_q != info.uv_dc_delta_q ||

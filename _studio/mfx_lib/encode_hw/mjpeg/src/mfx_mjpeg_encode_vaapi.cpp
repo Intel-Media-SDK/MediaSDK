@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -438,7 +438,8 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Enc vaUnmapBuffer");
-                    vaUnmapBuffer( m_vaDisplay, codedBuffer );
+                    vaSts = vaUnmapBuffer( m_vaDisplay, codedBuffer );
+                    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
                 }
 
                 return MFX_ERR_NONE;
@@ -488,39 +489,51 @@ mfxStatus VAAPIEncoder::UpdateBitstream(
     return sts;
 }
 
-mfxStatus VAAPIEncoder::DestroyBuffers() {
-    MFX_DESTROY_VABUFFER(m_qmBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_htBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_scanBufferId, m_vaDisplay);
-    MFX_DESTROY_VABUFFER(m_ppsBufferId, m_vaDisplay);
+mfxStatus VAAPIEncoder::DestroyBuffers()
+{
+
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qmBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_htBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_scanBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_ppsBufferId);
+    std::ignore = MFX_STS_TRACE(sts);
+
     for (size_t index = 0; index < m_appBufferIds.size(); index++)
     {
-        MFX_DESTROY_VABUFFER(m_appBufferIds[index], m_vaDisplay);
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_appBufferIds[index]);
+        std::ignore = MFX_STS_TRACE(sts);
     }
     m_appBufferIds.clear();
+
     return MFX_ERR_NONE;
 }
 
 mfxStatus VAAPIEncoder::Destroy()
 {
-    mfxStatus sts = MFX_ERR_NONE;
-
     m_bsQueue.clear();
     m_feedbackCache.clear();
     DestroyBuffers();
 
     if( m_vaContextEncode )
     {
-        vaDestroyContext( m_vaDisplay, m_vaContextEncode );
+        VAStatus vaSts = vaDestroyContext( m_vaDisplay, m_vaContextEncode );
+        std::ignore = MFX_STS_TRACE(vaSts);
         m_vaContextEncode = 0;
     }
 
     if( m_vaConfig )
     {
-        vaDestroyConfig( m_vaDisplay, m_vaConfig );
+        VAStatus vaSts = vaDestroyConfig( m_vaDisplay, m_vaConfig );
+        std::ignore = MFX_STS_TRACE(vaSts);
         m_vaConfig = 0;
     }
-    return sts;
+    return MFX_ERR_NONE;
 }
 
 #endif // #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA_LINUX)

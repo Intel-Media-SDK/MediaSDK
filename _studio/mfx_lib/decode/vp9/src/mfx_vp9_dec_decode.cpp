@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-    MFX_CHECK_NULL_PTR2(bs, params);
+    MFX_CHECK_NULL_PTR3(core, bs, params);
 
     sts = CheckBitstream(bs);
     MFX_CHECK_STS(sts);
@@ -185,78 +185,77 @@ mfxStatus DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfxVideoParam* params)
         return MFX_ERR_MORE_DATA;
     }
 
-    FillVideoParam(core, frame, params);
+    FillVideoParam(core->GetPlatformType(), frame, *params);
 
     return MFX_ERR_NONE;
 }
 
-mfxStatus FillVideoParam(VideoCORE* core, UMC_VP9_DECODER::VP9DecoderFrame const& frame, mfxVideoParam* params)
+void FillVideoParam(eMFXPlatform platform, UMC_VP9_DECODER::VP9DecoderFrame const& frame, mfxVideoParam &params)
 {
-    MFX_CHECK_NULL_PTR2(core, params);
+    params.mfx.CodecProfile = mfxU16(frame.profile + 1);
 
-    params->mfx.CodecProfile = mfxU16(frame.profile + 1);
+    params.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+    params.mfx.FrameInfo.AspectRatioW = 1;
+    params.mfx.FrameInfo.AspectRatioH = 1;
 
-    params->mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
-    params->mfx.FrameInfo.AspectRatioW = 1;
-    params->mfx.FrameInfo.AspectRatioH = 1;
+    params.mfx.FrameInfo.CropX = 0;
+    params.mfx.FrameInfo.CropY = 0;
+    params.mfx.FrameInfo.CropW = static_cast<mfxU16>(frame.width);
+    params.mfx.FrameInfo.CropH = static_cast<mfxU16>(frame.height);
 
-    params->mfx.FrameInfo.CropX = 0;
-    params->mfx.FrameInfo.CropY = 0;
-    params->mfx.FrameInfo.CropW = static_cast<mfxU16>(frame.width);
-    params->mfx.FrameInfo.CropH = static_cast<mfxU16>(frame.height);
-
-    params->mfx.FrameInfo.Width  = UMC::align_value<mfxU16>(params->mfx.FrameInfo.CropW, 16);
-    params->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(params->mfx.FrameInfo.CropH, 16);
+    params.mfx.FrameInfo.Width  = mfx::align2_value(params.mfx.FrameInfo.CropW, 16);
+    params.mfx.FrameInfo.Height = mfx::align2_value(params.mfx.FrameInfo.CropH, 16);
 
     if (!frame.subsamplingX && !frame.subsamplingY)
-        params->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
+        params.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
     //else if (!subsampling_x && subsampling_y)
-    //    params->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV440;
+    //    params.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV440;
     else if (frame.subsamplingX && !frame.subsamplingY)
-        params->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
+        params.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
     else if (frame.subsamplingX && frame.subsamplingY)
-        params->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+        params.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
 
     switch (frame.bit_depth)
     {
         case  8:
-            params->mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
-            if (MFX_CHROMAFORMAT_YUV444 == params->mfx.FrameInfo.ChromaFormat)
-                params->mfx.FrameInfo.FourCC = MFX_FOURCC_AYUV;
-            else if (MFX_CHROMAFORMAT_YUV422 == params->mfx.FrameInfo.ChromaFormat)
-                params->mfx.FrameInfo.FourCC = MFX_FOURCC_YUY2;
-            params->mfx.FrameInfo.BitDepthLuma   = 8;
-            params->mfx.FrameInfo.BitDepthChroma = 8;
-            params->mfx.FrameInfo.Shift = 0;
+            params.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
+            if (MFX_CHROMAFORMAT_YUV444 == params.mfx.FrameInfo.ChromaFormat)
+                params.mfx.FrameInfo.FourCC = MFX_FOURCC_AYUV;
+            else if (MFX_CHROMAFORMAT_YUV422 == params.mfx.FrameInfo.ChromaFormat)
+                params.mfx.FrameInfo.FourCC = MFX_FOURCC_YUY2;
+            params.mfx.FrameInfo.BitDepthLuma   = 8;
+            params.mfx.FrameInfo.BitDepthChroma = 8;
+            params.mfx.FrameInfo.Shift = 0;
             break;
 
         case 10:
-            params->mfx.FrameInfo.FourCC = MFX_FOURCC_P010;
+            params.mfx.FrameInfo.FourCC = MFX_FOURCC_P010;
 #if (MFX_VERSION >= 1027)
-            if (MFX_CHROMAFORMAT_YUV444 == params->mfx.FrameInfo.ChromaFormat)
-                params->mfx.FrameInfo.FourCC = MFX_FOURCC_Y410;
-            else if (MFX_CHROMAFORMAT_YUV422 == params->mfx.FrameInfo.ChromaFormat)
-                params->mfx.FrameInfo.FourCC = MFX_FOURCC_Y210;
+            if (MFX_CHROMAFORMAT_YUV444 == params.mfx.FrameInfo.ChromaFormat)
+                params.mfx.FrameInfo.FourCC = MFX_FOURCC_Y410;
+            else if (MFX_CHROMAFORMAT_YUV422 == params.mfx.FrameInfo.ChromaFormat)
+                params.mfx.FrameInfo.FourCC = MFX_FOURCC_Y210;
 #endif
-            params->mfx.FrameInfo.BitDepthLuma   = 10;
-            params->mfx.FrameInfo.BitDepthChroma = 10;
+            params.mfx.FrameInfo.BitDepthLuma   = 10;
+            params.mfx.FrameInfo.BitDepthChroma = 10;
             break;
 
         case 12:
-            params->mfx.FrameInfo.FourCC = 0;
-            params->mfx.FrameInfo.BitDepthLuma   = 12;
-            params->mfx.FrameInfo.BitDepthChroma = 12;
+            params.mfx.FrameInfo.FourCC = 0;
+            params.mfx.FrameInfo.BitDepthLuma   = 12;
+            params.mfx.FrameInfo.BitDepthChroma = 12;
             break;
     }
 
-    if (core->GetPlatformType() == MFX_PLATFORM_HARDWARE)
+    if (platform == MFX_PLATFORM_HARDWARE)
     {
-        if (   params->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-        )
-            params->mfx.FrameInfo.Shift = 1;
-    }
+        params.mfx.FrameInfo.Shift = 0;
 
-    return MFX_ERR_NONE;
+        if (params.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
+        {
+            params.mfx.FrameInfo.Shift = 1;
+        }
+    }
 }
 
 } //MFX_VP9_Utility

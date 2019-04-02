@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -784,8 +784,16 @@ namespace
 
         if (hwCaps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc && IsOn(extOpt3.AdaptiveMaxFrameSize))
         {
-            extOpt3.AdaptiveMaxFrameSize = 0;
+            extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
             unsupported = true;
+        }
+
+        if (hwCaps.UserMaxFrameSizeSupport == 1 && !IsEnabledSwBrc &&
+            (extOpt3.MaxFrameSizeP == 0 || IsOn(par.mfx.LowPower)) &&
+            IsOn(extOpt3.AdaptiveMaxFrameSize))
+        {
+            extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
+            changed = true;
         }
 #endif
         return unsupported ? MFX_ERR_UNSUPPORTED : (changed ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE);
@@ -3409,8 +3417,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (extOpt2->LookAheadDS > MFX_LOOKAHEAD_DS_OFF)
     {
-        par.calcParam.widthLa = AlignValue<mfxU16>((par.mfx.FrameInfo.Width / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
-        par.calcParam.heightLa = AlignValue<mfxU16>((par.mfx.FrameInfo.Height / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
+        par.calcParam.widthLa  = mfx::align2_value((par.mfx.FrameInfo.Width  / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
+        par.calcParam.heightLa = mfx::align2_value((par.mfx.FrameInfo.Height / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
     } else
     {
         par.calcParam.widthLa = par.mfx.FrameInfo.Width;
@@ -3756,12 +3764,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         unsupported = true;
     else if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         changed = true;
-
-    if (extOpt2->MaxFrameSize == 0 && extOpt3->MaxFrameSizeI == 0 && extOpt3->LowDelayBRC == MFX_CODINGOPTION_ON)
-    {
-        extOpt3->LowDelayBRC = 0;
-        changed = true;
-    }
 
     if (IsOn(extOpt2->ExtBRC) && par.mfx.RateControlMethod != 0 && par.mfx.RateControlMethod !=MFX_RATECONTROL_CBR && par.mfx.RateControlMethod !=MFX_RATECONTROL_VBR)
     {
@@ -6026,8 +6028,18 @@ void MfxHwH264Encode::SetDefaults(
         extOpt2->MaxFrameSize == 0)
     {
         extOpt2->MaxFrameSize = std::max(extOpt3->MaxFrameSizeI, extOpt3->MaxFrameSizeP);
-        extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize :
-            std::min(GetMaxFrameSize(par), GetFirstMaxFrameSize(par));
+
+        if (extOpt3->LowDelayBRC == MFX_CODINGOPTION_ON)
+        {
+            mfxU32 avgFrameSizeInBytes = mfxU32((par.mfx.MaxKbps ? par.mfx.MaxKbps : par.mfx.TargetKbps) /
+                (mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD) * (1000 / 8));
+            extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize : avgFrameSizeInBytes;
+        }
+        else
+        {
+            extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize :
+                std::min(GetMaxFrameSize(par), GetFirstMaxFrameSize(par));
+        }
     }
 
 #if MFX_VERSION >= 1023
@@ -7000,19 +7012,19 @@ mfxU8 MfxHwH264Encode::ConvertMfxFrameType2SliceType(mfxU8 type)
 
 mfxU32 SliceDivider::GetFirstMbInSlice() const
 {
-    assert(m_currSliceFirstMbRow * m_numMbInRow < 0x100000000);
+    assert(m_currSliceFirstMbRow * m_numMbInRow < 0x10000000);
     return m_currSliceFirstMbRow * m_numMbInRow;
 }
 
 mfxU32 SliceDivider::GetNumMbInSlice() const
 {
-    assert(m_currSliceNumMbRow * m_numMbInRow < 0x100000000);
+    assert(m_currSliceNumMbRow * m_numMbInRow < 0x10000000);
     return m_currSliceNumMbRow * m_numMbInRow;
 }
 
 mfxU32 SliceDivider::GetNumSlice() const
 {
-    assert(0 < m_numSlice && m_numSlice < 0x100000000);
+    assert(0 < m_numSlice && m_numSlice < 0x10000000);
     return m_numSlice;
 }
 
@@ -8984,10 +8996,13 @@ std::vector<ENCODE_PACKEDHEADER_DATA> const & HeaderPacker::PackSlices(
         m_numMbPerSlice = 0;
     }
 
-    m_packedSlices.resize(numSlices);
-    if (m_sliceBuffer.size() < (numSlices * maxSliceHeaderSize))
+    if (numSlices)
     {
-        m_sliceBuffer.resize(numSlices * maxSliceHeaderSize);
+        m_packedSlices.resize(numSlices);
+        if (m_sliceBuffer.size() < (numSlices * maxSliceHeaderSize))
+        {
+            m_sliceBuffer.resize(numSlices * maxSliceHeaderSize);
+        }
     }
     Zero(m_sliceBuffer);
     Zero(m_packedSlices);

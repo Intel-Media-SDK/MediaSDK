@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "vm/so_defs.h"
 #include <dlfcn.h>
@@ -39,3 +40,4 @@ void msdk_so_free(msdk_so_handle handle)
     dlclose(handle);
 }
 
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

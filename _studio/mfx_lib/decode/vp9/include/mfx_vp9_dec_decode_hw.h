@@ -75,8 +75,6 @@ protected:
     mfxStatus DecodeFrameHeader(mfxBitstream *in, UMC_VP9_DECODER::VP9DecoderFrame & info);
     mfxStatus PackHeaders(mfxBitstream *bs, UMC_VP9_DECODER::VP9DecoderFrame const & info);
 
-    void UpdateVideoParam(mfxVideoParam *par, UMC_VP9_DECODER::VP9DecoderFrame const & frameInfo);
-
     mfxFrameSurface1 * GetOriginalSurface(mfxFrameSurface1 *);
     mfxStatus GetOutputSurface(mfxFrameSurface1 **, mfxFrameSurface1 *, UMC::FrameMemID);
 
@@ -144,9 +142,6 @@ private:
     mfxBitstream m_bs;
 
     mfxI32 m_baseQIndex;
-    mfxI32 m_y_dc_delta_q;
-    mfxI32 m_uv_dc_delta_q;
-    mfxI32 m_uv_ac_delta_q;
 };
 
 #endif // _MFX_VP9_DECODE_HW_H_

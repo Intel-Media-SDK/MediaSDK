@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,11 @@ extern "C"
 {
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+    #define MSDK_PLUGIN_API(ret_type) __declspec(dllexport) ret_type MFX_CDECL
+#else
     #define MSDK_PLUGIN_API(ret_type) ret_type MFX_CDECL
+#endif
 
 MSDK_PLUGIN_API(MFXDecoderPlugin*) mfxCreateDecoderPlugin() {
     if (!g_PluginModule.CreateDecoderPlugin) {

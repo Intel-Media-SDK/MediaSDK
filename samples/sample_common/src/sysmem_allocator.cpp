@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -143,11 +143,13 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->R = ptr->B + 2;
         ptr->Pitch = 3 * Width2;
         break;
+#if !(defined(_WIN32) || defined(_WIN64))
     case MFX_FOURCC_RGBP:
         ptr->G = ptr->B + Width2 * Height2;
         ptr->R = ptr->B + Width2 * Height2 * 2;
         ptr->Pitch = Width2;
         break;
+#endif
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_A2RGB10:
         ptr->G = ptr->B + 1;
@@ -176,6 +178,19 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->A = ptr->V + 3;
         ptr->Pitch = 4 * Width2;
         break;
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+        ptr->Y16 = (mfxU16 *)ptr->B;
+        ptr->U16 = ptr->Y16 + 1;
+        ptr->V16 = ptr->Y16 + 3;
+        //4 words per macropixel -> 2 words per pixel -> 4 bytes per pixel
+        ptr->Pitch = 4 * Width2;
+        break;
+    case MFX_FOURCC_Y410:
+        ptr->U = ptr->V = ptr->A = ptr->Y;
+        ptr->Pitch = 4 * Width2;
+        break;
+#endif
 
     default:
         return MFX_ERR_UNSUPPORTED;
@@ -252,12 +267,17 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
         nbytes = 2*Width2*Height2;
         break;
 #endif
+#if !(defined(_WIN32) || defined(_WIN64))
     case MFX_FOURCC_RGBP:
+#endif
     case MFX_FOURCC_RGB3:
         nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2;
         break;
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_AYUV:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y410:
+#endif
         nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2 + Width2*Height2;
         break;
     case MFX_FOURCC_UYVY:
@@ -275,6 +295,9 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
         nbytes = Width2*Height2*4; // 4 bytes per pixel
         break;
     case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+#endif
         nbytes = Width2*Height2 + (Width2>>1)*(Height2) + (Width2>>1)*(Height2);
         nbytes *= 2; // 16bits
         break;
@@ -284,28 +307,29 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
         return MFX_ERR_UNSUPPORTED;
     }
 
-    safe_array<mfxMemId> mids(new mfxMemId[request->NumFrameSuggested]);
-    if (!mids.get())
-        return MFX_ERR_MEMORY_ALLOC;
+    std::unique_ptr<mfxMemId[]> mids(new mfxMemId[request->NumFrameSuggested]);
 
     // allocate frames
     for (numAllocated = 0; numAllocated < request->NumFrameSuggested; numAllocated ++)
     {
         mfxStatus sts = m_pBufferAllocator->Alloc(m_pBufferAllocator->pthis,
-            nbytes + MSDK_ALIGN32(sizeof(sFrame)), request->Type, &(mids.get()[numAllocated]));
+            nbytes + MSDK_ALIGN32(sizeof(sFrame)), request->Type, &(mids[numAllocated]));
 
         if (MFX_ERR_NONE != sts)
             break;
 
         sFrame *fs;
-        sts = m_pBufferAllocator->Lock(m_pBufferAllocator->pthis, mids.get()[numAllocated], (mfxU8 **)&fs);
+        sts = m_pBufferAllocator->Lock(m_pBufferAllocator->pthis, mids[numAllocated], (mfxU8 **)&fs);
 
         if (MFX_ERR_NONE != sts)
             break;
 
         fs->id = ID_FRAME;
         fs->info = request->Info;
-        m_pBufferAllocator->Unlock(m_pBufferAllocator->pthis, mids.get()[numAllocated]);
+        sts = m_pBufferAllocator->Unlock(m_pBufferAllocator->pthis, mids[numAllocated]);
+
+        if (MFX_ERR_NONE != sts)
+            break;
     }
 
     // check the number of allocated frames

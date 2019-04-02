@@ -25,7 +25,7 @@
 //defining module template for decoder plugin
 #include "mfx_plugin_module.h"
 
-#include "plugin_version_linux.h"
+#include "mediasdk_version.h"
 
 PluginModuleTemplate g_PluginModule = {
     NULL,

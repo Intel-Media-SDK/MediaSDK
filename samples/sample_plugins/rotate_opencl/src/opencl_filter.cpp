@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -353,12 +353,16 @@ std::string getPathToExe()
     const size_t module_length = 1024;
     char module_name[module_length];
 
+#if defined(_WIN32) || defined(_WIN64)
+    GetModuleFileNameA(0, module_name, module_length);
+#else
     char id[module_length];
     sprintf(id, "/proc/%d/exe", getpid());
     ssize_t count = readlink(id, module_name, module_length-1);
     if (count == -1)
         return std::string("");
     module_name[count] = '\0';
+#endif
 
     std::string exePath(module_name);
     return exePath.substr(0, exePath.find_last_of("\\/") + 1);

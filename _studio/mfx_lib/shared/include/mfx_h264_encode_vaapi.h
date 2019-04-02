@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -39,28 +39,6 @@
 #include "mfx_h264_encode_interface.h"
 #include "mfx_h264_encode_hw_utils.h"
 
-#define MFX_DESTROY_VABUFFER(vaBufferId, vaDisplay)    \
-do {                                               \
-    if ( vaBufferId != VA_INVALID_ID)              \
-    {                                              \
-        vaDestroyBuffer(vaDisplay, vaBufferId);    \
-        vaBufferId = VA_INVALID_ID;                \
-    }                                              \
-} while (0)
-
-inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_id)
-{
-    if (buffer_id != VA_INVALID_ID)
-    {
-        VAStatus vaSts = vaDestroyBuffer(display, buffer_id);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-        buffer_id = VA_INVALID_ID;
-    }
-
-    return MFX_ERR_NONE;
-}
-
 uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl);
 
 VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type);
@@ -76,7 +54,7 @@ mfxStatus SetQualityParams(
     VADisplay    vaDisplay,
     VAContextID  vaContextEncode,
     VABufferID & qualityParams_id,
-    mfxEncodeCtrl const * pCtrl = 0);
+    MfxHwH264Encode::DdiTask const * pTask = nullptr);
 
 mfxStatus SetQualityLevel(
     MfxHwH264Encode::MfxVideoParam const & par,

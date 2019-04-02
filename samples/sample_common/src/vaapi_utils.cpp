@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -372,7 +372,7 @@ VAStatus CLibVA::AcquireVASurface(
     }
 
     AcquireCtx* ctx;
-    unsigned long handle=0;
+    uintptr_t handle=0;
     VAStatus va_res;
     VASurfaceAttrib attribs[2];
     VASurfaceAttribExternalBuffers extsrf;
