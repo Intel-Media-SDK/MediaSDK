@@ -30,6 +30,7 @@
     <ProjectGuid>{E90AE63E-F219-4389-A955-26E78BD1BD9A}</ProjectGuid>
     <RootNamespace>sample_plugin_opencl</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

@@ -30,6 +30,7 @@
     <ProjectGuid>{A812C44D-0255-4796-9042-BCAE99963E7D}</ProjectGuid>
     <RootNamespace>sample_camera</RootNamespace>
     <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
