@@ -88,12 +88,12 @@ protected:
     mfxU32                  m_nFrameIndex; // index of processed frame
     mfxU32                  m_nFrameLimit; // limit number of frames to proceed
 
-    MFXVideoSession     m_mfxSession;
-    MFXVideoVPP*        m_pmfxVPP;
-    mfxVideoParam       m_mfxVideoParams;
-    std::auto_ptr<MFXVideoUSER>  m_pUserModule;
-    std::auto_ptr<MFXPlugin> m_pCamera_plugin;
-    mfxPluginUID        m_UID_Camera;
+    MFXVideoSession                m_mfxSession;
+    MFXVideoVPP*                   m_pmfxVPP;
+    mfxVideoParam                  m_mfxVideoParams;
+    std::unique_ptr<MFXVideoUSER>  m_pUserModule;
+    std::unique_ptr<MFXPlugin>     m_pCamera_plugin;
+    mfxPluginUID                   m_UID_Camera;
 
     mfxExtCamVignetteCorrection   m_Vignette;
     mfxExtCamBayerDenoise         m_Denoise;

@@ -979,13 +979,12 @@ mfxStatus CCameraPipeline::Init(sInputParams *pParams)
 template <typename Buffer>
 mfxStatus CCameraPipeline::AllocateExtBuffer()
 {
-    std::auto_ptr<Buffer> pExtBuffer (new Buffer());
-    if (!pExtBuffer.get())
-        return MFX_ERR_MEMORY_ALLOC;
+    std::unique_ptr<Buffer> pExtBuffer (new Buffer());
 
     init_ext_buffer(*pExtBuffer);
 
-    m_ExtBuffers.push_back(reinterpret_cast<mfxExtBuffer*>(pExtBuffer.release()));
+    m_ExtBuffers.push_back(reinterpret_cast<mfxExtBuffer*>(pExtBuffer.get()));
+    pExtBuffer.release();
 
     return MFX_ERR_NONE;
 }

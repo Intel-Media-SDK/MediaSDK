@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017-2018, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -71,7 +71,7 @@ private:
     std::string           m_dstFileName;
     CSmplBitstreamWriter  m_FileWriter; // bitstream writer
 
-    std::auto_ptr<PredictorsRepaking> m_repacker;
+    std::unique_ptr<PredictorsRepaking> m_repacker;
 
     mfxExtFeiHevcEncFrameCtrl m_defFrameCtrl;     // contain default and user-specified options per frame
     PerFrameTypeCtrl          m_ctrlPerFrameType; // contain default and user-specified options per frame type
@@ -83,15 +83,15 @@ private:
     mfxStatus SetCtrlParams(const HevcTask& task); // for encoded order
     mfxStatus ResetExtBuffers(const MfxVideoParamsWrapper & videoParams);
 
-    std::string m_repackCtrlFileName;
-    std::auto_ptr<FileHandler> m_pFile_repack_ctrl;
+    std::string                  m_repackCtrlFileName;
+    std::unique_ptr<FileHandler> m_pFile_repack_ctrl;
 
-    std::string m_repackStatFileName;
-    std::auto_ptr<FileHandler> m_pFile_repack_stat;
+    std::string                  m_repackStatFileName;
+    std::unique_ptr<FileHandler> m_pFile_repack_stat;
 
     /* For I/O operations with extension buffers */
-    std::string m_mvpInFileName;
-    std::auto_ptr<FileHandler> m_pFile_MVP_in;
+    std::string                  m_mvpInFileName;
+    std::unique_ptr<FileHandler> m_pFile_MVP_in;
 
     DISALLOW_COPY_AND_ASSIGN(FEI_Encode);
 };

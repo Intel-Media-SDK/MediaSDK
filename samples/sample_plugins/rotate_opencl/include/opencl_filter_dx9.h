@@ -40,7 +40,7 @@ protected: // functions
     virtual bool EnqueueAcquireSurfaces(cl_mem* surfaces, int nSurfaces);
     virtual bool EnqueueReleaseSurfaces(cl_mem* surfaces, int nSurfaces);
 protected: // variables
-    std::auto_ptr<SafeD3DDeviceManager> m_SafeD3DDeviceManager;
+    std::unique_ptr<SafeD3DDeviceManager> m_SafeD3DDeviceManager;
 
     HANDLE              m_hSharedSurfaces[c_shared_surfaces_num]; // d3d9 surface shared handles
     IDirect3DSurface9*  m_pSharedSurfaces[c_shared_surfaces_num];
