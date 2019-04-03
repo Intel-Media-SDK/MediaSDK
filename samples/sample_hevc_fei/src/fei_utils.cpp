@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -554,7 +554,7 @@ mfxStatus FieldSplitter::GetFrame(mfxFrameSurface1* & pOutSrf)
 
 void FieldSplitter::Close()
 {
-    return m_pTarget->Close();
+    m_pTarget->Close();
 }
 
 mfxStatus FieldSplitter::ResetIOState()
