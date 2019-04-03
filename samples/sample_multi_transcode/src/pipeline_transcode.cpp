@@ -2674,13 +2674,6 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_CodingOption3.GPB = pInParams->GPB;
         addCodingOpt3 = true;
     }
-#if (MFX_VERSION >= 1026)
-    if (pInParams->nTransformSkip)
-    {
-        m_CodingOption3.TransformSkip = pInParams->nTransformSkip;
-        addCodingOpt3 = true;
-    }
-#endif
 
     if (pInParams->bDisableQPOffset)
     {
