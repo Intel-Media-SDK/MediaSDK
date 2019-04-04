@@ -330,6 +330,46 @@ static mfxStatus SetMaxFrameSize(
     return MFX_ERR_NONE;
 }
 
+static mfxStatus SetMultiPassFrameSize( DdiTask const & task,
+    mfxU32       /*fieldId*/,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & frameSizeBuf_id)
+{
+    VAEncMiscParameterBuffer *misc_param;
+    VAEncMiscParameterBufferMultiPassFrameSize *p_multiPassFrameSize;
+
+    mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, frameSizeBuf_id);
+    MFX_CHECK_STS(mfxSts);
+
+    VAStatus vaSts = vaCreateBuffer(vaDisplay,
+        vaContextEncode,
+        VAEncMiscParameterBufferType,
+        sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterBufferMultiPassFrameSize),
+        1,
+        NULL,
+        &frameSizeBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+        vaSts = vaMapBuffer(vaDisplay, frameSizeBuf_id, (void **)&misc_param);
+    }
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    misc_param->type = VAEncMiscParameterTypeMultiPassFrameSize;
+    p_multiPassFrameSize = (VAEncMiscParameterBufferMultiPassFrameSize *)misc_param->data;
+
+    p_multiPassFrameSize->max_frame_size = task.m_brcFrameCtrl.MaxFrameSize;
+    p_multiPassFrameSize->num_passes = task.m_brcFrameCtrl.MaxNumRepak;
+    p_multiPassFrameSize->delta_qp = (unsigned char *)task.m_brcFrameCtrl.DeltaQP;
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        vaSts = vaUnmapBuffer(vaDisplay, frameSizeBuf_id);
+    }
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    return MFX_ERR_NONE;
+}
+
 #if !defined(ANDROID)
 static mfxStatus SetTrellisQuantization(
     mfxU32       trellis,
@@ -1219,6 +1259,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_frameRateId(VA_INVALID_ID)
     , m_qualityLevelId(VA_INVALID_ID)
     , m_maxFrameSizeId(VA_INVALID_ID)
+    , m_multiPassFrameSizeId(VA_INVALID_ID)
     , m_quantizationId(VA_INVALID_ID)
     , m_rirId(VA_INVALID_ID)
     , m_qualityParamsId(VA_INVALID_ID)
@@ -2737,6 +2778,12 @@ mfxStatus VAAPIEncoder::Execute(
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetMaxFrameSize(m_userMaxFrameSize, m_vaDisplay,
                                                           m_vaContextEncode, m_maxFrameSizeId), MFX_ERR_DEVICE_FAILED);
     configBuffers.push_back(m_maxFrameSizeId);
+    if (task.m_brcFrameCtrl.MaxNumRepak && task.m_brcFrameCtrl.MaxFrameSize)
+    {
+        mfxSts = SetMultiPassFrameSize(task, fieldId, m_vaDisplay, m_vaContextEncode, m_multiPassFrameSizeId);
+        MFX_CHECK_WITH_ASSERT(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+        configBuffers.push_back(m_multiPassFrameSizeId);
+    }
 
 #if !defined(ANDROID)
 /*
@@ -3291,6 +3338,8 @@ mfxStatus VAAPIEncoder::Destroy()
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qualityLevelId);
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_maxFrameSizeId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_multiPassFrameSizeId);
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_quantizationId);
     MFX_CHECK_STS(mfxSts);
