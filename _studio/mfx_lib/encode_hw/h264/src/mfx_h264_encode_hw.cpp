@@ -1938,9 +1938,7 @@ void ImplementationAvc::BrcPreEnc(
     for (size_t i = 0; i < m_tmpVmeData.size(); ++i, ++j)
         m_tmpVmeData[i] = j->m_vmeData;
 
-    BRCFrameParams par;
-    InitFrameParams(par, &task);
-    m_brc.PreEnc(par, m_tmpVmeData);
+    m_brc.PreEnc(task.m_brcFrameParams, m_tmpVmeData);
 }
 using namespace ns_asc;
 mfxStatus ImplementationAvc::SCD_Put_Frame(DdiTask & task)
@@ -2235,6 +2233,20 @@ mfxU32 GetMaxFrameSize(DdiTask const & task, MfxVideoParam const &video, Hrd con
     return (maxFrameSize_hrd && maxFrameSize) ?
         std::min(maxFrameSize_hrd,maxFrameSize):
         std::max(maxFrameSize_hrd,maxFrameSize);
+}
+inline void GetHRDParamFromBRC(DdiTask  & task, mfxU32 &initCpbRemoval, mfxU32 &initCpbRemovalOffset)
+{
+    if (task.m_brcFrameCtrl.InitialCpbRemovalDelay ||
+        task.m_brcFrameCtrl.InitialCpbRemovalOffset)
+    {
+        initCpbRemoval = task.m_brcFrameCtrl.InitialCpbRemovalDelay;
+        initCpbRemovalOffset = task.m_brcFrameCtrl.InitialCpbRemovalOffset;
+    }
+}
+inline void UpdateBRCParams(DdiTask  & task)
+{
+    task.m_cqpValue[0] = task.m_cqpValue[1] = (mfxU8)task.m_brcFrameCtrl.QpY;
+    GetHRDParamFromBRC(task, task.m_initCpbRemoval, task.m_initCpbRemovalOffset);
 }
 
 void ImplementationAvc::PreserveTimeStamp(mfxU64 timeStamp)
@@ -2700,6 +2712,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
         if (m_enabledSwBrc)
         {
+            task->InitBRCParams();
+
             if (bIntRateControlLA(m_video.mfx.RateControlMethod))
                 BrcPreEnc(*task);
             else if (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT)
@@ -2711,7 +2725,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                       return Error(sts);
             }
 
-            BRCFrameParams par;
             task->m_frcmplx = 0;
 
             if (IsExtBrcSceneChangeSupported(m_video)
@@ -2722,9 +2735,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                      return Error(sts);
             }
 
-            InitFrameParams(par, &(*task));
-
-            task->m_cqpValue[0] = task->m_cqpValue[1] = m_brc.GetQp(par);
+            m_brc.GetQp(task->m_brcFrameParams, task->m_brcFrameCtrl);
+            UpdateBRCParams(*task);
 
             if ((m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
             {
@@ -2850,14 +2862,21 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 //printf("Real frameSize %d, repack %d\n", bsDataLength, task->m_repack);
                 bool bRecoding = false;
                 //CpbRemovalDelay can be incorrect if previous frames were recorded in async mode
-                if ((task->GetFrameType() & MFX_FRAMETYPE_IDR) &&
-                     ( task->m_initCpbRemoval != hrd.GetInitCpbRemovalDelay() ||
-                    task->m_initCpbRemovalOffset != hrd.GetInitCpbRemovalDelayOffset()))
+                if (task->GetFrameType() & MFX_FRAMETYPE_IDR)
                 {
-                    task->m_initCpbRemoval = hrd.GetInitCpbRemovalDelay();
-                    task->m_initCpbRemovalOffset = hrd.GetInitCpbRemovalDelayOffset();
-                    bRecoding = true;
-                    task->m_repackForBsDataLength++ ;
+                    mfxU32 removalDelay = hrd.GetInitCpbRemovalDelay();
+                    mfxU32 delayOffset = hrd.GetInitCpbRemovalDelayOffset();
+
+                    m_brc.GetQp(task->m_brcFrameParams, task->m_brcFrameCtrl); // to update hrd params
+                    GetHRDParamFromBRC(*task, removalDelay, delayOffset);
+
+                    if (task->m_initCpbRemoval != removalDelay ||
+                        task->m_initCpbRemovalOffset != delayOffset)
+                    {
+                        task->m_initCpbRemoval = removalDelay;
+                        task->m_initCpbRemovalOffset = delayOffset;
+                        bRecoding = true;
+                    }
                 }
                 if (extOpt2.MaxSliceSize)
                 {
@@ -2929,14 +2948,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         task->m_cqpValue[1]= task->m_cqpValue[0];
                         // printf("Recoding 0: frame %d, qp %d\n", task->m_frameOrder, task->m_cqpValue[0]);
                         bRecoding = true;
-                        task->m_repackForBsDataLength++;
                 }
                 if (!bRecoding)
                 {
-                    BRCFrameParams par;
-                    InitFrameParams(par, &(*task));
-                    par.NumRecode = extOpt2.MaxSliceSize ? 0 : (par.NumRecode - task->m_repackForBsDataLength);
-                    mfxU32 res = m_brc.Report(par, bsDataLength, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_cqpValue[0]);
+                    task->m_brcFrameParams.CodedFrameSize = bsDataLength;
+                    mfxU32 res = m_brc.Report(task->m_brcFrameParams, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_brcFrameCtrl);
                     MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
                     if ((res != 0) && (!extOpt2.MaxSliceSize))
                     {
@@ -2944,6 +2960,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         {
                             return MFX_ERR_UNDEFINED_BEHAVIOR;
                         }
+                        task->m_brcFrameParams.NumRecode++;
                         if ((task->m_cqpValue[0] ==  51 || (res & UMC::BRC_NOT_ENOUGH_BUFFER)) && (res & UMC::BRC_ERR_BIG_FRAME ))
                         {
                             task->m_panicMode = 1;
@@ -2955,18 +2972,18 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         }
                         else if (((res & UMC::BRC_NOT_ENOUGH_BUFFER) || (task->m_repack >2))&& (res & UMC::BRC_ERR_SMALL_FRAME ))
                         {
-                            par.NumRecode ++;
                             task->m_minFrameSize = m_brc.GetMinFrameSize()/8;
-                            m_brc.Report(par, m_brc.GetMinFrameSize()/8, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_cqpValue[0]);
 
+                            task->m_brcFrameParams.CodedFrameSize = task->m_minFrameSize;
+                            m_brc.Report(task->m_brcFrameParams, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_brcFrameCtrl);
                             bRecoding = false; //Padding is in update bitstream
                         }
                         else
                         {
-                            task->m_cqpValue[0]= task->m_cqpValue[1]= m_brc.GetQpForRecode(par, task->m_cqpValue[0]);
-                             bRecoding = true;
+                            m_brc.GetQpForRecode(task->m_brcFrameParams, task->m_brcFrameCtrl);
+                            UpdateBRCParams(*task);
+                            bRecoding = true;
                         }
-
                     }
                 }
                 if (bRecoding)
@@ -2989,12 +3006,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         }
                         if (!extOpt2.MaxSliceSize)
                         {
-                            if (nextTask->m_cqpValue[0]<  51)
-                            {
-                                nextTask->m_cqpValue[0] = nextTask->m_cqpValue[0] + 1;
-                                nextTask->m_cqpValue[1] = nextTask->m_cqpValue[0];
-                            }
-                       }
+                            m_brc.GetQpForRecode(nextTask->m_brcFrameParams, nextTask->m_brcFrameCtrl);
+                            UpdateBRCParams(*nextTask);
+                            bRecoding = true;
+                        }
                         curTask = nextTask;
                     }
                     // restart  encoded task
@@ -3002,12 +3017,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     do
                     {
                         if (m_enabledSwBrc && (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)) {
-                            if (nextTask != task)
-                            {
-                                BRCFrameParams par;
-                                InitFrameParams(par, &(*nextTask));
-                                nextTask->m_cqpValue[0] = nextTask->m_cqpValue[1] = m_brc.GetQp(par);
-                            }
                             if (nextTask->m_longTermFrameIdx != NO_INDEX_U8 && nextTask->m_LtrOrder == m_LtrOrder) {
                                 m_LtrQp = nextTask->m_cqpValue[0];
                             }
