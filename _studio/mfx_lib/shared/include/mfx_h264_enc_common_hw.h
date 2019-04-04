@@ -1435,7 +1435,6 @@ namespace MfxHwH264Encode
         case MFX_LOOKAHEAD_DS_4x :
             return 4;
         default:
-            assert(0);
             return LookAheadDS;
         }
     }
