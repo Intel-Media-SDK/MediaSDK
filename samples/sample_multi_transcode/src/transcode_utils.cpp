@@ -2386,11 +2386,11 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
 #endif
        )
     {
-        msdk_printf(MSDK_STRING("WARNING: -trows and -tcols are only supported for"
+        msdk_printf(MSDK_STRING("WARNING: -trows and -tcols are only supported for")
 #if (MFX_VERSION >= 1029)
-                                " VP9 and"
+                    MSDK_STRING(" VP9 and")
 #endif
-                                " HEVC encoder, these parameters will be ignored.\n"));
+                    MSDK_STRING(" HEVC encoder, these parameters will be ignored.\n"));
         InputParams.nEncTileRows = 0;
         InputParams.nEncTileCols = 0;
     }
