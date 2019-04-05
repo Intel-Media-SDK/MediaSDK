@@ -20,7 +20,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfx_samples_config.h"
 #include <algorithm>
 
-#if defined(WIN32) || defined(WIN64)
+#if defined(_WIN32) || defined(_WIN64)
 
 //prefast singnature used in combaseapi.h
 #ifndef _PREFAST_
