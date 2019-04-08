@@ -272,6 +272,30 @@ typedef struct {
     { 0x3EA3, MFX_HW_CFL, MFX_GT2 },
     { 0x3EA4, MFX_HW_CFL, MFX_GT1 },
 
+
+    /* CML GT1 */
+    { 0x9b21, MFX_HW_CFL, MFX_GT1 },
+    { 0x9baa, MFX_HW_CFL, MFX_GT1 },
+    { 0x9bab, MFX_HW_CFL, MFX_GT1 },
+    { 0x9bac, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba0, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba5, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba8, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba4, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba2, MFX_HW_CFL, MFX_GT1 },
+
+    /* CML GT2 */
+    { 0x9b41, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bca, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bcb, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bcc, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc0, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc5, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc8, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc4, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc2, MFX_HW_CFL, MFX_GT2 },
+
+
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
     { 0x5A52, MFX_HW_CNL, MFX_GT2 },
