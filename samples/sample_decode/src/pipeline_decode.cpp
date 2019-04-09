@@ -758,8 +758,14 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         }
     }
 
-    // Only shifted P010 is supported now
-    if (m_memType != SYSTEM_MEMORY &&
+    // specify memory type
+    if (!m_bVppIsUsed)
+        m_mfxVideoParams.IOPattern = (mfxU16)(m_memType != SYSTEM_MEMORY ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
+    else
+        m_mfxVideoParams.IOPattern = (mfxU16)(pParams->bUseHWLib ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
+
+    // Only shifted P010 is supported now for video memory
+    if (m_mfxVideoParams.IOPattern != MFX_IOPATTERN_OUT_SYSTEM_MEMORY &&
         (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
         || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
@@ -846,12 +852,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     {
         numViews = 1;
     }
-
-    // specify memory type
-    if (!m_bVppIsUsed)
-        m_mfxVideoParams.IOPattern = (mfxU16)(m_memType != SYSTEM_MEMORY ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
-    else
-        m_mfxVideoParams.IOPattern = (mfxU16)(pParams->bUseHWLib ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
     m_mfxVideoParams.AsyncDepth = pParams->nAsyncDepth;
 
