@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 #include "sample_defs.h"
+#include "algorithm"
 
 #ifndef MFX_VERSION
 #error MFX_VERSION not defined
