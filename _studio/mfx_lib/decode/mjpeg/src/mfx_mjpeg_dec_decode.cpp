@@ -1630,38 +1630,6 @@ mfxU32 VideoDECODEMJPEGBase_HW::AdjustFrameAllocRequest(mfxFrameAllocRequest *re
     // set FourCC
     AdjustFourCC(&request->Info, info, hwType, vaType, &needVpp);
 
-    // WA for rotation of unaligned images
-    mfxU16 mcuWidth;
-    mfxU16 mcuHeight;
-    mfxU16 paddingWidth;
-    mfxU16 paddingHeight;
-
-    switch(info->JPEGChromaFormat)
-    {
-    case MFX_CHROMAFORMAT_YUV411:
-        mcuWidth  = 32;
-        mcuHeight = 8;
-        break;
-    case MFX_CHROMAFORMAT_YUV420:
-        mcuWidth  = 16;
-        mcuHeight = 16;
-        break;
-    case MFX_CHROMAFORMAT_YUV422H:
-        mcuWidth  = 16;
-        mcuHeight = 8;
-        break;
-    case MFX_CHROMAFORMAT_YUV422V:
-        mcuWidth  = 8;
-        mcuHeight = 16;
-        break;
-    case MFX_CHROMAFORMAT_YUV400:
-    case MFX_CHROMAFORMAT_YUV444:
-    default:
-        mcuWidth  = 8;
-        mcuHeight = 8;
-        break;
-    }
-
     if(info->Rotation == MFX_ROTATION_90 || info->Rotation == MFX_ROTATION_180 || info->Rotation == MFX_ROTATION_270)
     {
         needVpp = true;
@@ -1673,31 +1641,6 @@ mfxU32 VideoDECODEMJPEGBase_HW::AdjustFrameAllocRequest(mfxFrameAllocRequest *re
         std::swap(request->Info.AspectRatioH, request->Info.AspectRatioW);
         std::swap(request->Info.CropH, request->Info.CropW);
         std::swap(request->Info.CropY, request->Info.CropX);
-    }
-
-
-    if(info->Rotation == MFX_ROTATION_90 || info->Rotation == MFX_ROTATION_270)
-        std::swap(mcuWidth, mcuHeight);
-
-    paddingWidth = (mfxU16)((2<<16) - request->Info.CropW) % mcuWidth;
-    paddingHeight = (mfxU16)((2<<16) - request->Info.CropH) % mcuHeight;
-
-    switch(info->Rotation)
-    {
-    case MFX_ROTATION_90:
-        request->Info.CropX = paddingWidth;
-        request->Info.CropW = request->Info.CropW + paddingWidth;
-        break;
-    case MFX_ROTATION_180:
-        request->Info.CropX = paddingWidth;
-        request->Info.CropW = request->Info.CropW + paddingWidth;
-        request->Info.CropY = paddingHeight;
-        request->Info.CropH = request->Info.CropH + paddingHeight;
-        break;
-    case MFX_ROTATION_270:
-        request->Info.CropY = paddingHeight;
-        request->Info.CropH = request->Info.CropH + paddingHeight;
-        break;
     }
 
     m_needVpp = needVpp;
