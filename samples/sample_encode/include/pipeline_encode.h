@@ -128,6 +128,14 @@ struct sInputParams
     mfxU16 nQPI;
     mfxU16 nQPP;
     mfxU16 nQPB;
+    mfxU16 nAvcTemp;
+    mfxU16 nBaseLayerPID;
+    mfxU16 nAvcTemporalLayers[8];
+    mfxU16 nSPSId;
+    mfxU16 nPPSId;
+    mfxU16 nPicTimingSEI;
+    mfxU16 nNalHrdConformance;
+    mfxU16 nVuiNalHrdParameters;
 
     mfxU16 nGPB;
     mfxU16 nTransformSkip;
@@ -411,6 +419,8 @@ protected:
 
     // Set up video signal information
     mfxExtVideoSignalInfo m_VideoSignalInfo;
+    mfxExtAvcTemporalLayers m_AvcTemporalLayers;
+    mfxExtCodingOptionSPSPPS m_CodingOptionSPSPPS;
 
 #if (MFX_VERSION >= 1024)
     mfxExtBRC           m_ExtBRC;

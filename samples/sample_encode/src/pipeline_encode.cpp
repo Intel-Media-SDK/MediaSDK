@@ -585,10 +585,20 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_CodingOption.ViewOutput = MFX_CODINGOPTION_ON;
         bCodingOption = true;
     }
+
+    if (pInParams->nPicTimingSEI || pInParams->nNalHrdConformance || pInParams->nVuiNalHrdParameters)
+    {
+		m_CodingOption.PicTimingSEI = pInParams->nPicTimingSEI;
+		m_CodingOption.NalHrdConformance = pInParams->nNalHrdConformance;
+		m_CodingOption.VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
+                bCodingOption = true;
+    }
+
     if (bCodingOption)
     {
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
     }
+
 
     // configure the depth of the look ahead BRC if specified in command line
     if (pInParams->nLADepth || pInParams->nMaxSliceSize || pInParams->nMaxFrameSize || pInParams->nBRefType ||
@@ -671,6 +681,30 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 #endif
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
+
+        if (pInParams->nAvcTemp)
+	{
+		if (pInParams->CodecId == MFX_CODEC_HEVC)
+		{
+			m_AvcTemporalLayers.BaseLayerPID = pInParams->nBaseLayerPID;
+			for (int i = 0; i < 8; i++)
+			{
+				m_AvcTemporalLayers.Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
+		   	}
+		        m_EncExtParams.push_back((mfxExtBuffer *)&m_AvcTemporalLayers);
+                }
+	}
+
+	if (pInParams->nSPSId || pInParams->nPPSId)
+	{
+		if (pInParams->CodecId == MFX_CODEC_HEVC)
+		{
+			m_CodingOptionSPSPPS.SPSId = pInParams->nSPSId;
+			m_CodingOptionSPSPPS.PPSId = pInParams->nPPSId;
+		}
+	        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOptionSPSPPS);
+	}
+
 
     if (m_ExtHEVCTiles.NumTileRows
         && m_ExtHEVCTiles.NumTileColumns
@@ -1185,6 +1219,14 @@ CEncodingPipeline::CEncodingPipeline()
     MSDK_ZERO_MEMORY(m_CodingOption3);
     m_CodingOption3.Header.BufferId = MFX_EXTBUFF_CODING_OPTION3;
     m_CodingOption3.Header.BufferSz = sizeof(m_CodingOption3);
+
+    MSDK_ZERO_MEMORY(m_AvcTemporalLayers);
+    m_AvcTemporalLayers.Header.BufferId = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS;
+    m_AvcTemporalLayers.Header.BufferSz = sizeof(m_AvcTemporalLayers);
+
+    MSDK_ZERO_MEMORY(m_CodingOptionSPSPPS);
+    m_CodingOptionSPSPPS.Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
+    m_CodingOptionSPSPPS.Header.BufferSz = sizeof(m_CodingOptionSPSPPS);
 
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
     m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
