@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,17 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "mfx_common.h"
-
-
 #ifndef __LIBMFX_CORE__HW_H__
 #define __LIBMFX_CORE__HW_H__
 
-#include "umc_va_base.h"
+#if defined(MFX_VA)
 
-mfxU32 ChooseProfile(mfxVideoParam * param, eMFXHWType hwType);
+#include "mfx_common.h"
+
+mfxU32 ChooseProfile(mfxVideoParam const*, eMFXHWType);
 bool IsHwMvcEncSupported();
 
+#endif //MFX_VA
+
 #endif
-
-
