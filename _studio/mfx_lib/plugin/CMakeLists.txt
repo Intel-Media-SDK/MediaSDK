@@ -86,6 +86,7 @@ list( APPEND plugin_common_sources
   ${prefix}/libmfx_core.cpp
   ${prefix}/libmfx_core_factory.cpp
   ${prefix}/libmfx_core_vaapi.cpp
+  ${prefix}/libmfx_core_hw.cpp
   ${prefix}/mfx_umc_alloc_wrapper.cpp
   ${MSDK_LIB_ROOT}/cmrt_cross_platform/src/cmrt_cross_platform.cpp
 )
