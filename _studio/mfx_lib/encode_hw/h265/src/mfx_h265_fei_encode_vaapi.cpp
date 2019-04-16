@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@ namespace MfxHwH265FeiEncode
 
         VAConfigAttrib attr = {};
 
-        attr.type = (VAConfigAttribType) VAConfigAttribFEIFunctionType;
+        attr.type = VAConfigAttribFEIFunctionType;
         attrib.push_back(attr);
 
         return MFX_ERR_NONE;
@@ -51,7 +51,7 @@ namespace MfxHwH265FeiEncode
         mfxU32 i = 0;
         for (; i < attrib.size(); ++i)
         {
-            if (attrib[i].type == (VAConfigAttribType) VAConfigAttribFEIFunctionType)
+            if (attrib[i].type == VAConfigAttribFEIFunctionType)
                 break;
         }
         MFX_CHECK(i < attrib.size(), MFX_ERR_DEVICE_FAILED);

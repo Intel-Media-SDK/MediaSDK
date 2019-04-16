@@ -451,7 +451,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             va_attributes[nattr].value = VA_DEC_SLICE_MODE_NORMAL;
             nattr++;
 
-            va_attributes[nattr++].type = (VAConfigAttribType)VAConfigAttribDecProcessing;
+            va_attributes[nattr++].type = VAConfigAttribDecProcessing;
 
             va_attributes[nattr++].type = VAConfigAttribEncryption;
 

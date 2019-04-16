@@ -1635,7 +1635,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCPAK) || defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
     else
     {
-        entryPoint = (VAEntrypoint)VAEntrypointFEI;
+        entryPoint = VAEntrypointFEI;
     }
 #endif
 
@@ -1651,7 +1651,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCPAK) || defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
     if ( m_isENCPAK )
     {
-        attrib[2].type = (VAConfigAttribType)VAConfigAttribFEIFunctionType;
+        attrib[2].type = VAConfigAttribFEIFunctionType;
         numAttrib++;
     }
 #endif
