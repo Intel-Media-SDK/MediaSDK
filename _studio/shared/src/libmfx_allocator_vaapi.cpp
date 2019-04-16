@@ -129,6 +129,11 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
             attrib[0].value.value.i  = VA_FOURCC_P208;
             format                   = VA_FOURCC_P208;
             break;
+#if VA_CHECK_VERSION(1,2,0)
+        case MFX_FOURCC_P010:
+            format = VA_RT_FORMAT_YUV420_10;
+            break;
+#endif
         case MFX_FOURCC_NV12:
             format = VA_RT_FORMAT_YUV420;
             break;
