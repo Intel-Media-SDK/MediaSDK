@@ -11,7 +11,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL_HW) \
-    -Wall -Werror
+    -Wall -Werror -Wno-implicit-fallthrough
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
 
