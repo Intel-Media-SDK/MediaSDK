@@ -761,8 +761,9 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     if (m_memType != SYSTEM_MEMORY &&
         (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
-        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210)
+        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
 #endif
+        )
     ) 
     {
         m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
