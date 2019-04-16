@@ -532,13 +532,14 @@ namespace UMC
         ptr->transform_fields.bits.transform_ac_codingset_idx2 = pContext->m_picLayerHeader->TRANSACFRM2;
         ptr->transform_fields.bits.intra_transform_dc_table = pContext->m_picLayerHeader->TRANSDCTAB;
 
-        switch (pContext->m_picLayerHeader->PTYPE)
+        if (pContext->m_picLayerHeader->PTYPE == VC1_B_FRAME)
         {
-        case VC1_B_FRAME:
             ptr->backward_reference_picture = va->GetSurfaceID(pContext->m_frmBuff.m_iNextIndex);
-        case VC1_P_FRAME:
             ptr->forward_reference_picture =  va->GetSurfaceID(pContext->m_frmBuff.m_iPrevIndex);
-            break;
+        }
+        else if (pContext->m_picLayerHeader->PTYPE == VC1_P_FRAME)
+        {
+            ptr->forward_reference_picture =  va->GetSurfaceID(pContext->m_frmBuff.m_iPrevIndex);
         }
     }
     void  VC1PackerLVA::VC1PackOneSlice (VC1Context* /*pContext*/,
