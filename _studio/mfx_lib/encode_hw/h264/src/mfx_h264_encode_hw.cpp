@@ -2236,12 +2236,18 @@ mfxU32 GetMaxFrameSize(DdiTask const & task, MfxVideoParam const &video, Hrd con
 }
 inline void GetHRDParamFromBRC(DdiTask  & task, mfxU32 &initCpbRemoval, mfxU32 &initCpbRemovalOffset)
 {
+    (void)task;
+    (void)initCpbRemoval;
+    (void)initCpbRemovalOffset;
+
+#if (MFX_VERSION >= 1029)
     if (task.m_brcFrameCtrl.InitialCpbRemovalDelay ||
         task.m_brcFrameCtrl.InitialCpbRemovalOffset)
     {
         initCpbRemoval = task.m_brcFrameCtrl.InitialCpbRemovalDelay;
         initCpbRemovalOffset = task.m_brcFrameCtrl.InitialCpbRemovalOffset;
     }
+#endif
 }
 inline void UpdateBRCParams(DdiTask  & task)
 {

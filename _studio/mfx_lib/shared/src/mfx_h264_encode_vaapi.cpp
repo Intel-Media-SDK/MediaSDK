@@ -330,6 +330,7 @@ static mfxStatus SetMaxFrameSize(
     return MFX_ERR_NONE;
 }
 
+#if VA_CHECK_VERSION(1,3,0)
 static mfxStatus SetMultiPassFrameSize( DdiTask const & task,
     mfxU32       /*fieldId*/,
     VADisplay    vaDisplay,
@@ -369,6 +370,7 @@ static mfxStatus SetMultiPassFrameSize( DdiTask const & task,
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     return MFX_ERR_NONE;
 }
+#endif
 
 #if !defined(ANDROID)
 static mfxStatus SetTrellisQuantization(
@@ -2778,12 +2780,14 @@ mfxStatus VAAPIEncoder::Execute(
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetMaxFrameSize(m_userMaxFrameSize, m_vaDisplay,
                                                           m_vaContextEncode, m_maxFrameSizeId), MFX_ERR_DEVICE_FAILED);
     configBuffers.push_back(m_maxFrameSizeId);
+#if VA_CHECK_VERSION(1,3,0)
     if (task.m_brcFrameCtrl.MaxNumRepak && task.m_brcFrameCtrl.MaxFrameSize)
     {
         mfxSts = SetMultiPassFrameSize(task, fieldId, m_vaDisplay, m_vaContextEncode, m_multiPassFrameSizeId);
         MFX_CHECK_WITH_ASSERT(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
         configBuffers.push_back(m_multiPassFrameSizeId);
     }
+#endif
 
 #if !defined(ANDROID)
 /*
