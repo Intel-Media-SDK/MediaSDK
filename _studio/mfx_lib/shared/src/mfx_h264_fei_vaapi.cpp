@@ -127,11 +127,11 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
     //check attributes of the configuration
     VAConfigAttrib attrib[2];
     //attrib[0].type = VAConfigAttribRTFormat;
-    attrib[0].type = (VAConfigAttribType)VAConfigAttribStats;
+    attrib[0].type = VAConfigAttribStats;
 
     vaSts = vaGetConfigAttributes(m_vaDisplay,
             VAProfileNone,
-            (VAEntrypoint)VAEntrypointStats,
+            VAEntrypointStats,
             &attrib[0], 1);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -144,7 +144,7 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
     vaSts = vaCreateConfig(
             m_vaDisplay,
             VAProfileNone,
-            (VAEntrypoint)VAEntrypointStats,
+            VAEntrypointStats,
             &attrib[0],
             1,
             &m_vaConfig); //don't configure stat attribs
@@ -869,11 +869,12 @@ mfxStatus VAAPIFEIENCEncoder::CreateENCAccelerationService(MfxVideoParam const &
     /* find out the format for the render target, and rate control mode */
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
-    attrib[2].type = (VAConfigAttribType)VAConfigAttribFEIFunctionType;
-    attrib[3].type = (VAConfigAttribType)VAConfigAttribFEIMVPredictors;
-    vaSts = vaGetConfigAttributes(m_vaDisplay, profile,
-                                    (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4);
+    attrib[2].type = VAConfigAttribFEIFunctionType;
+    attrib[3].type = VAConfigAttribFEIMVPredictors;
+
+    vaSts = vaGetConfigAttributes(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
     /* not find desired YUV420 RT format */
     MFX_CHECK(attrib[0].value & VA_RT_FORMAT_YUV420, MFX_ERR_DEVICE_FAILED);
 
@@ -888,8 +889,7 @@ mfxStatus VAAPIFEIENCEncoder::CreateENCAccelerationService(MfxVideoParam const &
     attrib[2].value = VA_FEI_FUNCTION_ENC;
     attrib[3].value = 1; /* set 0 MV Predictor */
 
-    vaSts = vaCreateConfig(m_vaDisplay, profile,
-                                (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
+    vaSts = vaCreateConfig(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     std::vector<VASurfaceID> rawSurf;
@@ -1800,10 +1800,10 @@ mfxStatus VAAPIFEIPAKEncoder::CreatePAKAccelerationService(MfxVideoParam const &
     /* find out the format for the render target, and rate control mode */
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
-    attrib[2].type = (VAConfigAttribType)VAConfigAttribFEIFunctionType;
-    attrib[3].type = (VAConfigAttribType)VAConfigAttribFEIMVPredictors;
-    vaSts = vaGetConfigAttributes(m_vaDisplay, profile,
-                                    (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4);
+    attrib[2].type = VAConfigAttribFEIFunctionType;
+    attrib[3].type = VAConfigAttribFEIMVPredictors;
+
+    vaSts = vaGetConfigAttributes(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     /* not find desired YUV420 RT format */
@@ -1821,8 +1821,7 @@ mfxStatus VAAPIFEIPAKEncoder::CreatePAKAccelerationService(MfxVideoParam const &
     attrib[2].value = VA_FEI_FUNCTION_PAK;
     attrib[3].value = 1; /* set 0 MV Predictor */
 
-    vaSts = vaCreateConfig(m_vaDisplay, profile,
-                                (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
+    vaSts = vaCreateConfig(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     std::vector<VASurfaceID> rawSurf;

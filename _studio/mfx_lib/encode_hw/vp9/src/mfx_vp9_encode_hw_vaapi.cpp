@@ -805,7 +805,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     attrib[1].type = VAConfigAttribRateControl;
     vaSts = vaGetConfigAttributes(m_vaDisplay,
                           va_profile,
-                          (VAEntrypoint)VAEntrypointEncSliceLP,
+                          VAEntrypointEncSliceLP,
                           &attrib[0], 2);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -824,7 +824,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
     vaSts = vaCreateConfig(
         m_vaDisplay,
         va_profile,
-        (VAEntrypoint)VAEntrypointEncSliceLP,
+        VAEntrypointEncSliceLP,
         attrib,
         2,
         &m_vaConfig);
