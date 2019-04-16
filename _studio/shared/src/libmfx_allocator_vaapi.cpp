@@ -625,6 +625,8 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
             ptr->Y = pBuffer;
         }
         else return MFX_ERR_LOCK_MEMORY;
+        break;
+
     default:
         return MFX_ERR_LOCK_MEMORY;
 
