@@ -424,6 +424,20 @@ VAAPIVideoCORE::GetHandle(
     MFX_CHECK_NULL_PTR1(handle);
     UMC::AutomaticUMCMutex guard(m_guard);
 
+#if defined (MFX_ENABLE_CPLIB)
+    if (MFX_HANDLE_VA_CONTEXT_ID == (mfxU32)type )
+    {
+        if (m_VAContextHandle != (mfxHDL)VA_INVALID_ID)
+        {
+            *handle = m_VAContextHandle;
+            return MFX_ERR_NONE;
+        }
+        // not exist handle yet
+        else
+            return MFX_ERR_NOT_FOUND;
+    }
+    else
+#endif
         return CommonCORE::GetHandle(type, handle);
 
 } // mfxStatus VAAPIVideoCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
@@ -439,6 +453,24 @@ VAAPIVideoCORE::SetHandle(
     {
         switch ((mfxU32)type)
         {
+#if defined (MFX_ENABLE_CPLIB)
+        case MFX_HANDLE_VA_CONFIG_ID:
+            // if device manager already set
+            if (m_VAConfigHandle != (mfxHDL)VA_INVALID_ID)
+                return MFX_ERR_UNDEFINED_BEHAVIOR;
+            // set external handle
+            m_VAConfigHandle = hdl;
+            m_KeepVAState = true;
+            break;
+        case MFX_HANDLE_VA_CONTEXT_ID:
+            // if device manager already set
+            if (m_VAContextHandle != (mfxHDL)VA_INVALID_ID)
+                return MFX_ERR_UNDEFINED_BEHAVIOR;
+            // set external handle
+            m_VAContextHandle = hdl;
+            m_KeepVAState = true;
+            break;
+#endif
         default:
             mfxStatus sts = CommonCORE::SetHandle(type, hdl);
             MFX_CHECK_STS(sts);

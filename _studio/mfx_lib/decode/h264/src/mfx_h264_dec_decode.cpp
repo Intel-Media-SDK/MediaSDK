@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2017-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,6 +34,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h264_va_supplier.h"
+#include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
 
 
@@ -967,6 +968,10 @@ mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType
         dpbSize = par->mfx.MaxDecFrameBuffering;
 
     mfxU32 numMin = dpbSize + 1 + asyncDepth;
+
+    if (IS_PROTECTION_CENC(par->Protected))
+        numMin += 2;
+
     if (platform != MFX_PLATFORM_SOFTWARE && useDelayedDisplay) // equals if (m_useDelayedDisplay) - workaround
         numMin += NUMBER_OF_ADDITIONAL_FRAMES;
     numMin *= CalculateRequiredView(par);
@@ -1197,6 +1202,13 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
 #if defined (MFX_VA_LINUX)
+    if (bs && IS_PROTECTION_ANY(m_vPar.Protected))
+    {
+        if (!m_va->GetProtectedVA() || !(bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME))
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+        m_va->GetProtectedVA()->SetBitstream(bs);
+    }
 
     if (m_va->GetVideoProcessingVA())
     {
