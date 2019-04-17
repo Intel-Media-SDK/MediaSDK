@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1410,6 +1410,7 @@ namespace MfxHwH264Encode
         bool                            m_emulPrev;                 // insert emualtion prevention bytes when possible (sps/pps/sei/aud)
         bool                            m_isMVC;
         bool                            m_longStartCodes;
+        bool                            m_isLowPower;
 
         ENCODE_PACKEDHEADER_DATA                m_packedAud;
         std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedSps;

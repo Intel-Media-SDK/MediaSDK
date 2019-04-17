@@ -8926,6 +8926,8 @@ void HeaderPacker::Init(
     m_hwCaps = hwCaps;
 
     m_longStartCodes = IsOn(extDdi.LongStartCodes) && !IsOn(par.mfx.LowPower);
+
+    m_isLowPower = IsOn(par.mfx.LowPower);
 }
 
 void HeaderPacker::ResizeSlices(mfxU32 num)
@@ -9149,7 +9151,7 @@ mfxU32 HeaderPacker::WriteSlice(
         (mfxU32)m_packedSlices.size(),
         sps.picWidthInMbsMinus1 + 1,
         picHeightInMBs,
-        m_hwCaps.SliceLevelRateCtrl);
+        m_isLowPower);
 
     mfxU32 firstMbInSlice = 0;
     for (mfxU32 i = 0; i <= sliceId; i++, divider.Next())
