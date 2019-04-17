@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -193,7 +193,6 @@ mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSu
 
     if (repackctrl)
     {
-        MFX_CHECK(!EncFrameCtrl->PerCuQp, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(repackctrl->NumPasses <= 8, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
