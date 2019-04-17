@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h264_dec_debug.h"
+#include "mfxpcp.h"
 
 #include "mfx_enc_common.h"
 
@@ -522,6 +523,8 @@ eMFXPlatform MFX_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par)
         break;
     }
 
+    if (IS_PROTECTION_CENC(par->Protected))
+        name = DXVA_Intel_Decode_Elementary_Stream_AVC;
 
     if (MFX_ERR_NONE != core->IsGuidSupported(name, par) &&
         platform != MFX_PLATFORM_SOFTWARE)
@@ -1212,7 +1215,28 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
         if (stsExt < MFX_ERR_NONE)
             sts = MFX_ERR_UNSUPPORTED;
 
+        if (in->Protected)
+        {
+            out->Protected = in->Protected;
 
+            if (type == MFX_HW_UNKNOWN)
+            {
+                sts = MFX_ERR_UNSUPPORTED;
+                out->Protected = 0;
+            }
+
+            if (!IS_PROTECTION_ANY(in->Protected))
+            {
+                sts = MFX_ERR_UNSUPPORTED;
+                out->Protected = 0;
+            }
+
+            if (!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
+            {
+                out->IOPattern = 0;
+                sts = MFX_ERR_UNSUPPORTED;
+            }
+        }
 
         mfxExtMVCSeqDesc * mvcPointsIn = (mfxExtMVCSeqDesc *)GetExtendedBuffer(in->ExtParam, in->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
         mfxExtMVCSeqDesc * mvcPointsOut = (mfxExtMVCSeqDesc *)GetExtendedBuffer(out->ExtParam, out->NumExtParam, MFX_EXTBUFF_MVC_SEQ_DESC);
@@ -1471,10 +1495,16 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
     return sts;
 }
 
-bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType /* type */)
+bool MFX_Utility::CheckVideoParam(mfxVideoParam *in, eMFXHWType type)
 {
     if (!in)
         return false;
+
+    if (in->Protected)
+    {
+        if (type == MFX_HW_UNKNOWN || !IS_PROTECTION_ANY(in->Protected))
+            return false;
+    }
 
     if (MFX_CODEC_AVC != in->mfx.CodecId)
         return false;

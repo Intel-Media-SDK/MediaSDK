@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
 #include "vm_sys_info.h"
 
 #include "umc_h265_va_supplier.h"
+#include "umc_va_linux_protected.h"
 
 using namespace UMC_HEVC_DECODER;
 
@@ -1001,6 +1002,13 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
     sts = MFX_ERR_UNDEFINED_BEHAVIOR;
 
+    if (bs && IS_PROTECTION_ANY(m_vPar.Protected))
+    {
+        if (!m_va->GetProtectedVA() || !(bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME))
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+        m_va->GetProtectedVA()->SetBitstream(bs);
+    }
 
     try
     {

@@ -29,6 +29,7 @@
 #endif
 
 #include "umc_h265_tables.h"
+#include "umc_va_linux_protected.h"
 #include "mfx_ext_buffers.h"
 
 using namespace UMC;
@@ -76,10 +77,22 @@ namespace UMC_HEVC_DECODER
         g_sigLastScanCG32x32
     };
 
+#if defined(MFX_ENABLE_CPLIB)
+    extern Packer * CreatePackerCENC(VideoAccelerator*);
+#endif
 
 Packer * Packer::CreatePacker(VideoAccelerator * va)
 {
-    return new PackerVA{va};
+    Packer * packer = 0;
+
+#ifdef MFX_ENABLE_CPLIB
+    if (va->GetProtectedVA() && IS_PROTECTION_CENC(va->GetProtectedVA()->GetProtected()))
+        packer = CreatePackerCENC(va);
+    else
+#endif
+    packer = new PackerVA(va);
+
+    return packer;
 }
 
 Packer::Packer(VideoAccelerator * va)

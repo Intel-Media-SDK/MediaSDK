@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,8 @@ DEFINE_GUID_VA(DXVA2_INTEL_LOWPOWERENCODE_AVC,              VAProfileH264High,  
 
 /* H.264/AVC VLD */
 DEFINE_GUID_VA(sDXVA2_ModeH264_VLD_NoFGT,                   VAProfileH264High,      VAEntrypointVLD);
+
+DEFINE_GUID_VA(DXVA_Intel_Decode_Elementary_Stream_AVC,     VAProfileH264High,      VAEntrypointVLD);
 
 /* H.265 VLD */
 DEFINE_GUID_VA(DXVA_ModeHEVC_VLD_Main,                      VAProfileHEVCMain,      VAEntrypointVLD);
