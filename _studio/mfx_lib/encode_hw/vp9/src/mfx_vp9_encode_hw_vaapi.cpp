@@ -1280,7 +1280,6 @@ mfxStatus VAAPIEncoder::QueryStatus(
     {
         UMC::AutomaticUMCMutex guard(m_guard);
         m_feedbackCache.erase( m_feedbackCache.begin() + indxSurf );
-        guard.Unlock();
     }
     surfSts = VASurfaceReady;
 
