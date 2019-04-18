@@ -268,6 +268,14 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -roi_qpmap    Use QP map to emulate ROI for CQP mode\n"));
     msdk_printf(MSDK_STRING("  -extmbqp      Use external MBQP map\n"));
 #endif //MFX_VERSION >= 1022
+    msdk_printf(MSDK_STRING("  -AvcTemporalLayers [array:Layer.Scale]    Configures the temporal layers hierarchy\n"));
+    msdk_printf(MSDK_STRING("  -BaseLayerPID <pid>                       Sets priority ID for the base layer\n"));
+    msdk_printf(MSDK_STRING("  -SPSId <pid>                              Sets sequence parameter set ID\n"));
+    msdk_printf(MSDK_STRING("  -PPSId <pid>                              Sets picture parameter set ID\n"));
+    msdk_printf(MSDK_STRING("  -PicTimingSEI:<on,off>                    Enables or disables picture timing SEI\n"));
+    msdk_printf(MSDK_STRING("  -NalHrdConformance:<on,off>               Enables or disables picture HRD conformance\n"));
+    msdk_printf(MSDK_STRING("  -VuiNalHrdParameters:<on,off>             Enables or disables NAL HRD parameters in VUI header\n"));
+
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (vpp options):\n"));
     msdk_printf(MSDK_STRING("  -deinterlace             Forces VPP to deinterlace input stream\n"));
@@ -681,9 +689,34 @@ mfxStatus CmdProcessor::ParseParFile(FILE *parFile)
 
 } //mfxStatus CmdProcessor::ParseParFile(FILE *parFile)
 
-mfxStatus CmdProcessor::TokenizeLine(msdk_char *pLine, mfxU32 length)
+// calculate length of string literal, including leading and trailing "
+// pTempLine = start of string (must begin with ")
+// length = remaining characters in pTempLine
+// returns length of string, or 0 if error
+mfxU32 CmdProcessor::GetStringLength(msdk_char *pTempLine, mfxU32 length)
 {
     mfxU32 i;
+
+    // error - no leading " found
+    if (pTempLine[0] != '\"')
+        return 0;
+    
+    for (i = 1; i < length; i++)
+    {
+        if (pTempLine[i] == '\"')
+            break;
+    }
+    
+    // error - no closing " found
+    if (i == length)
+        return 0;
+
+    return i + 1;
+}
+
+mfxStatus CmdProcessor::TokenizeLine(msdk_char *pLine, mfxU32 length)
+{
+    mfxU32 i, strArgLen;
     const mfxU8 maxArgNum = 255;
     msdk_char *argv[maxArgNum+1];
     mfxU32 argc = 0;
@@ -708,6 +741,23 @@ mfxStatus CmdProcessor::TokenizeLine(msdk_char *pLine, mfxU32 length)
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+
+        if (*pTempLine == '\"' )
+        {
+            strArgLen = GetStringLength(pTempLine, length - i);
+            if (!strArgLen)
+            {
+                PrintError(MSDK_STRING("Error parsing string literal"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+
+            // remove leading and trailing ", bump pointer ahead to next argument
+            pTempLine[0] = ' ';
+            pTempLine[strArgLen-1] = ' ';
+            pTempLine += strArgLen;
+            i += strArgLen;
+        }
+
         if (*pTempLine == ' ' || *pTempLine == '\r' || *pTempLine == '\n')
         {
             *pTempLine = 0;
@@ -1048,10 +1098,95 @@ void ParseMCTFParams(msdk_char* strInput[], mfxU32 nArgNum, mfxU32& curArg, sInp
 }
 #endif
 
+// return values:
+//   0 if argv[i] is processed successfully (MFX_ERR_NONE)
+// < 1 if argv[i] is processed and generates an error OR argv[i] is not processed (no match)
+mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, TranscodingSample::sInputParams& InputParams)
+{
+    if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AvcTemporalLayers")))
+    {
+        InputParams.nAvcTemp = 1;
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        mfxU16 arr[8] = { 0,0,0,0,0,0,0,0 };
+        int j, k;
+        k = msdk_sscanf(argv[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
+        if (k != 8)
+        {
+            PrintError(argv[0], MSDK_STRING("Invalid number of layers for AvcTemporalLayers"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+
+        for (j = 0; j < 8; j++)
+        {
+            InputParams.nAvcTemporalLayers[j] = arr[j];
+        }
+        i += 1;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-BaseLayerPID")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nBaseLayerPID))
+        {
+            PrintError(argv[0], MSDK_STRING("BaseLayerPID is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-SPSId")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nSPSId))
+        {
+            PrintError(argv[0], MSDK_STRING("SPSId is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-PPSId")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nPPSId))
+        {
+            PrintError(argv[0], MSDK_STRING("PPSId is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-PicTimingSEI:on")))
+    {
+        InputParams.nPicTimingSEI = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-PicTimingSEI:off")))
+    {
+        InputParams.nPicTimingSEI = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-NalHrdConformance:on")))
+    {
+        InputParams.nNalHrdConformance = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-NalHrdConformance:off")))
+    {
+        InputParams.nNalHrdConformance = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-VuiNalHrdParameters:on")))
+    {
+        InputParams.nVuiNalHrdParameters = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-VuiNalHrdParameters:off")))
+    {
+        InputParams.nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
+    }
+    else
+    {
+        // no matching argument was found
+        return MFX_ERR_NOT_FOUND;
+    }
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
 {
     mfxStatus sts = MFX_ERR_NONE;
     mfxStatus stsExtBuf = MFX_ERR_NONE;
+    mfxStatus stsAddlParams = MFX_ERR_NONE;
     mfxU32 skipped = 0;
 
     // save original cmd line for debug purpose
@@ -2138,8 +2273,21 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
 #endif
         else
         {
-            PrintError(MSDK_STRING("Invalid input argument number %d %s"), i, argv[i]);
-            return MFX_ERR_UNSUPPORTED;
+            // WA for compiler error C1061 (too many chained else-if clauses)
+            // ParseAdditionalParams returns:
+            //    0  if argv[i] is processed successfully by this function
+            //  < 1  if argv[i] is processed and generates an error
+            //          OR
+            //       if argv[i] was not processed (did not match any switches)
+            stsAddlParams = ParseAdditionalParams(argv, argc, i, InputParams);
+
+            // either unrecognized parameter, or parse error with recognized parameter
+            if (stsAddlParams)
+            {
+                if (stsAddlParams == MFX_ERR_NOT_FOUND)
+                    PrintError(MSDK_STRING("Invalid input argument number %d %s"), i, argv[i]);
+                return MFX_ERR_UNSUPPORTED;
+            }
         }
     }
 

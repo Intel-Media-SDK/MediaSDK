@@ -65,6 +65,7 @@ namespace TranscodingSample
     protected:
         mfxStatus ParseParFile(FILE* file);
         mfxStatus TokenizeLine(msdk_char *pLine, mfxU32 length);
+        mfxU32    GetStringLength(msdk_char *pTempLine, mfxU32 length);
 
 #if MFX_VERSION >= 1022
         static bool isspace(char a);
