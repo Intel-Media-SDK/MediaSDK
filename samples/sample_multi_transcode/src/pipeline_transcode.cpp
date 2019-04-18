@@ -171,6 +171,9 @@ CTranscodingPipeline::CTranscodingPipeline():
     MSDK_ZERO_MEMORY(m_PluginOpaqueAlloc);
     MSDK_ZERO_MEMORY(m_PreEncOpaqueAlloc);
     MSDK_ZERO_MEMORY(m_ExtLAControl);
+    MSDK_ZERO_MEMORY(m_AvcTemporalLayers);
+    MSDK_ZERO_MEMORY(m_CodingOptionSPSPPS);
+    MSDK_ZERO_MEMORY(m_CodingOption);
     MSDK_ZERO_MEMORY(m_CodingOption2);
     MSDK_ZERO_MEMORY(m_CodingOption3);
     MSDK_ZERO_MEMORY(m_ExtHEVCParam);
@@ -242,6 +245,15 @@ CTranscodingPipeline::CTranscodingPipeline():
 #if MFX_VERSION >= 1024
     m_VppCompParams.NumTiles = 0;
 #endif
+    m_AvcTemporalLayers.Header.BufferId = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS;
+    m_AvcTemporalLayers.Header.BufferSz = sizeof(m_AvcTemporalLayers);
+
+    m_CodingOptionSPSPPS.Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
+    m_CodingOptionSPSPPS.Header.BufferSz = sizeof(m_CodingOptionSPSPPS);
+
+    m_CodingOption.Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
+    m_CodingOption.Header.BufferSz = sizeof(m_CodingOption);
+
     m_CodingOption2.Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
     m_CodingOption2.Header.BufferSz = sizeof(m_CodingOption2);
 
@@ -2571,6 +2583,37 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
             m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
         }
 #endif
+    }
+
+    if (pInParams->nAvcTemp)
+    {
+        if (pInParams->EncodeId == MFX_CODEC_HEVC)
+        {
+            m_AvcTemporalLayers.BaseLayerPID = pInParams->nBaseLayerPID;
+            for (int i = 0; i < 8; i++)
+            {
+                m_AvcTemporalLayers.Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
+            }
+            m_EncExtParams.push_back((mfxExtBuffer *)&m_AvcTemporalLayers);
+        }
+    }
+
+    if (pInParams->nSPSId || pInParams->nPPSId)
+    {
+        if (pInParams->EncodeId == MFX_CODEC_HEVC)
+        {
+            m_CodingOptionSPSPPS.SPSId = pInParams->nSPSId;
+            m_CodingOptionSPSPPS.PPSId = pInParams->nPPSId;
+        }
+        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOptionSPSPPS);
+    }
+
+    if (pInParams->nPicTimingSEI || pInParams->nNalHrdConformance || pInParams->nVuiNalHrdParameters)
+    {
+        m_CodingOption.PicTimingSEI = pInParams->nPicTimingSEI;
+        m_CodingOption.NalHrdConformance = pInParams->nNalHrdConformance;
+        m_CodingOption.VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
+        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
     }
 
     // we don't specify profile and level and let the encoder choose those basing on parameters

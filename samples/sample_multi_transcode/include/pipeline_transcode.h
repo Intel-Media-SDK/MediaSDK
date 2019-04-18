@@ -279,6 +279,15 @@ namespace TranscodingSample
         mfxU16 nQPB;
         bool bDisableQPOffset;
 
+        mfxU16 nAvcTemp;
+        mfxU16 nBaseLayerPID;
+        mfxU16 nAvcTemporalLayers[8];
+        mfxU16 nSPSId;
+        mfxU16 nPPSId;
+        mfxU16 nPicTimingSEI;
+        mfxU16 nNalHrdConformance;
+        mfxU16 nVuiNalHrdParameters;
+
         bool bOpenCL;
         mfxU16 reserved[4];
 
@@ -809,6 +818,10 @@ namespace TranscodingSample
 #if MFX_VERSION >= 1022
         mfxExtDecVideoProcessing m_decPostProcessing;
 #endif //MFX_VERSION >= 1022
+
+        mfxExtAvcTemporalLayers  m_AvcTemporalLayers;
+        mfxExtCodingOptionSPSPPS m_CodingOptionSPSPPS;
+        mfxExtCodingOption       m_CodingOption;
 
         mfxExtLAControl          m_ExtLAControl;
         // for setting MaxSliceSize
