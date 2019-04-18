@@ -92,7 +92,7 @@ namespace MfxHwVP9Encode
 
     mfxStatus FillPpsBuffer(
         Task const & task,
-        mfxVideoParam const & par,
+        mfxVideoParam const & /*par*/,
         VAEncPictureParameterBufferVP9 & pps,
         std::vector<ExtVASurface> const & reconQueue,
         BitOffsets const &offsets)
@@ -257,7 +257,7 @@ namespace MfxHwVP9Encode
 
     mfxStatus FillSegMap(
         Task const & task,
-        mfxVideoParam const & par,
+        mfxVideoParam const & /*par*/,
         VideoCORE *    pCore,
         VAEncMiscParameterTypeVP9PerSegmantParam & segPar)
     {
@@ -995,12 +995,9 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
 } // mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
 
 
-mfxStatus VAAPIEncoder::Register(mfxMemId memId, D3DDDIFORMAT type)
+mfxStatus VAAPIEncoder::Register(mfxMemId /*memId*/, D3DDDIFORMAT /*type*/)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Register");
-    memId;
-    type;
-
     return MFX_ERR_UNSUPPORTED;
 
 } // mfxStatus VAAPIEncoder::Register(mfxMemId memId, D3DDDIFORMAT type)
