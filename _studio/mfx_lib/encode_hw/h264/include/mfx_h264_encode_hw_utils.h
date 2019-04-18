@@ -1052,6 +1052,12 @@ namespace MfxHwH264Encode
                 m_brcFrameParams.PyramidLayer = (mfxU16)m_LowDelayPyramidLayer;
             m_brcFrameParams.picStruct = GetPicStructForEncode();
         }
+        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
+        {
+            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
+                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
+                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
+        }
 
         mfxEncodeCtrl   m_ctrl;
         DdiTask *       m_pushed;         // task which was pushed to queue when this task was chosen for encoding
@@ -2052,6 +2058,7 @@ namespace MfxHwH264Encode
         UMC::Mutex          m_listMutex;
         DdiTask             m_lastTask;
         mfxU32              m_stagesToGo;
+        mfxU32              m_bDeferredFrame;
 
         mfxU32      m_fieldCounter;
         mfxStatus   m_1stFieldStatus;
