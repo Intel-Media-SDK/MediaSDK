@@ -1035,6 +1035,12 @@ namespace MfxHwH264Encode
 
             return false;
         }
+        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
+        {
+            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
+                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
+                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
+        }
 
         inline void InitBRCParams()
         {
@@ -2052,6 +2058,7 @@ namespace MfxHwH264Encode
         UMC::Mutex          m_listMutex;
         DdiTask             m_lastTask;
         mfxU32              m_stagesToGo;
+        mfxU32              m_bDeferredFrame;
 
         mfxU32      m_fieldCounter;
         mfxStatus   m_1stFieldStatus;
