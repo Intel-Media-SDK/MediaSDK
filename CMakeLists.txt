@@ -187,6 +187,7 @@ message("  CMAKE_INSTALL_FULL_DATADIR              : ${CMAKE_INSTALL_FULL_DATADI
 message("Enable:")
 message("  ENABLE_OPENCL                           : ${ENABLE_OPENCL}")
 if( CMAKE_SYSTEM_NAME MATCHES Linux )
+  message("  ENABLE_X11                              : ${ENABLE_X11}")
   message("  ENABLE_X11_DRI3                         : ${ENABLE_X11_DRI3}")
   message("  ENABLE_WAYLAND                          : ${ENABLE_WAYLAND}")
 endif()
