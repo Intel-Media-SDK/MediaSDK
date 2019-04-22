@@ -2610,7 +2610,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         }
     }
 
-    if (m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_ENCODE)
+    if ((m_stagesToGo & AsyncRoutineEmulator::STG_BIT_START_ENCODE) || m_bDeferredFrame)
     {
         bool bParallelEncPak = (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CQP && m_video.mfx.GopRefDist > 2 && m_video.AsyncDepth > 2);
 
@@ -2623,7 +2623,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         for (mfxU32 i = 0; i < numEncCall; i++)
         {   
             DdiTaskIter task = FindFrameToStartEncode(m_video, m_lookaheadFinished.begin(), m_lookaheadFinished.end());
-            assert(task != m_lookaheadFinished.end());
+            if (task == m_lookaheadFinished.end())
+                break;
 
             if (task->isSEIHRDParam(extOpt, extOpt2) && (!m_encoding.empty()))
             {
