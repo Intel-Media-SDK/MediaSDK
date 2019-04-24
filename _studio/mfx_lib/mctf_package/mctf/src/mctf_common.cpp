@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1420,8 +1420,6 @@ mfxI32 CMC::MCTF_RUN_TASK_NA(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = device->CreateQueue(queue);
-    MCTF_CHECK_CM_ERR(res, res);
     res = queue->Enqueue(task, e);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
@@ -1452,10 +1450,6 @@ mfxI32 CMC::MCTF_RUN_TASK(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = device->CreateQueue(queue);
-    MCTF_CHECK_CM_ERR(res, res);
-    /*res = queue->Enqueue(task, e);
-    MCTF_CHECK_CM_ERR(res, res);*/
     return res;
 }
 
@@ -1495,8 +1489,6 @@ mfxI32 CMC::MCTF_RUN_DOUBLE_TASK(
     MCTF_CHECK_CM_ERR(res, res);
     res = task->AddKernel(mcKernel);
     MCTF_CHECK_CM_ERR(res, res);
-    /*res = device->CreateQueue(queue);
-    MCTF_CHECK_CM_ERR(res, res);*/
     res = queue->Enqueue(task, e);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
@@ -1526,8 +1518,6 @@ mfxI32 CMC::MCTF_RUN_MCTASK(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = device->CreateQueue(queue);
-    MCTF_CHECK_CM_ERR(res, res);
     res = queue->Enqueue(task, e, threadSpaceMC2);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
@@ -1556,8 +1546,6 @@ mfxI32 CMC::MCTF_RUN_TASK(
         MCTF_CHECK_CM_ERR(res, res);
     }
     res = task->AddKernel(kernel);
-    MCTF_CHECK_CM_ERR(res, res);
-    res = device->CreateQueue(queue);
     MCTF_CHECK_CM_ERR(res, res);
     res = queue->Enqueue(task, e, tS);
     MCTF_CHECK_CM_ERR(res, res);
