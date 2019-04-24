@@ -189,10 +189,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-d]                            - Device video node (eg: /dev/video0)\n"));
     msdk_printf(MSDK_STRING("   [-p]                            - Mipi Port number (eg: Port 0)\n"));
     msdk_printf(MSDK_STRING("   [-m]                            - Mipi Mode Configuration [PREVIEW/CONTINUOUS/STILL/VIDEO]\n"));
-    msdk_printf(MSDK_STRING("   [-uyvy]                        - Input Raw format types V4L2 Encode\n"));
+    msdk_printf(MSDK_STRING("   [-UYVY]                        - Input Raw format types V4L2 Encode\n"));
     msdk_printf(MSDK_STRING("   [-YUY2]                        - Input Raw format types V4L2 Encode\n"));
     msdk_printf(MSDK_STRING("   [-i::v4l2]                        - To enable v4l2 option\n"));
-    msdk_printf(MSDK_STRING("Example: %s h264|mpeg2|mvc -i::v4l2 -o OutputEncodedFile -w width -h height -d /dev/video0 -uyvy -m preview -p 0\n"), strAppName);
+    msdk_printf(MSDK_STRING("Example: %s h264|mpeg2|mvc -i::v4l2 -o OutputEncodedFile -w width -h height -d /dev/video0 -UYVY -m preview -p 0\n"), strAppName);
 #endif
     msdk_printf(MSDK_STRING("   [-viewoutput] - instruct the MVC encoder to output each view in separate bitstream buffer. Depending on the number of -o options behaves as follows:\n"));
     msdk_printf(MSDK_STRING("                   1: two views are encoded in single file\n"));
@@ -385,10 +385,8 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-yuy2")))
         {
-#if defined (ENABLE_V4L2_SUPPORT)
-            pParams->v4l2Format = YUY2;
-#endif
             pParams->FileInputFourCC = MFX_FOURCC_YUY2;
+            pParams->EncodeFourCC = MFX_FOURCC_YUY2;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-nv12")))
         {
@@ -408,11 +406,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->FileInputFourCC = MFX_FOURCC_AYUV;
             pParams->EncodeFourCC = MFX_FOURCC_AYUV;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-yuy2")))
-        {
-            pParams->FileInputFourCC = MFX_FOURCC_YUY2;
-            pParams->EncodeFourCC = MFX_FOURCC_YUY2;
         }
 #if (MFX_VERSION >= 1027)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-y210")))
@@ -1168,7 +1161,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-uyvy")))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-YUY2")))
+        {
+            pParams->v4l2Format = YUY2;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-UYVY")))
         {
             pParams->v4l2Format = UYVY;
 
