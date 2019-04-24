@@ -119,13 +119,13 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-ir_cycle_dist]         - Distance between the beginnings of the intra-refresh cycles in frames\n"));
     msdk_printf(MSDK_STRING("   [-gpb:<on,off>]          - Turn this option OFF to make HEVC encoder use regular P-frames instead of GPB\n"));
     msdk_printf(MSDK_STRING("   [-TransformSkip:<on,off>]- Turn this option ON to enable transformskip\n"));
-    msdk_printf(MSDK_STRING("  -AvcTemporalLayers [array:Layer.Scale]    Configures the temporal layers hierarchy\n")); 
-    msdk_printf(MSDK_STRING("  -BaseLayerPID <pid>                       Sets priority ID for the base layer\n")); 
+    msdk_printf(MSDK_STRING("  -AvcTemporalLayers [array:Layer.Scale]    Configures the temporal layers hierarchy\n"));
+    msdk_printf(MSDK_STRING("  -BaseLayerPID <pid>                       Sets priority ID for the base layer\n"));
     msdk_printf(MSDK_STRING("  -SPSId <pid>                              Sets sequence parameter set ID\n"));
     msdk_printf(MSDK_STRING("  -PPSId <pid>                              Sets picture parameter set ID\n"));
-    msdk_printf(MSDK_STRING("  -PicTimingSEI:<on,off>                    Enables or disables picture timing SEI\n")); 
-    msdk_printf(MSDK_STRING("  -NalHrdConformance:<on,off>               Enables or disables picture HRD conformance\n")); 
-    msdk_printf(MSDK_STRING("  -VuiNalHrdParameters:<on,off>             Enables or disables NAL HRD parameters in VUI header\n"));  
+    msdk_printf(MSDK_STRING("  -PicTimingSEI:<on,off>                    Enables or disables picture timing SEI\n"));
+    msdk_printf(MSDK_STRING("  -NalHrdConformance:<on,off>               Enables or disables picture HRD conformance\n"));
+    msdk_printf(MSDK_STRING("  -VuiNalHrdParameters:<on,off>             Enables or disables NAL HRD parameters in VUI header\n"));
     msdk_printf(MSDK_STRING("   [-ppyr:<on,off>]         - Turn this option ON to enable P-pyramid (by default the decision is made by library)\n"));
     msdk_printf(MSDK_STRING("   [-num_slice]             - number of slices in each video frame. 0 by default.\n"));
     msdk_printf(MSDK_STRING("                              If num_slice equals zero, the encoder may choose any slice partitioning allowed by the codec standard.\n"));
@@ -210,77 +210,77 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
 
 mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, sInputParams* pParams)
 {
-		if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AvcTemporalLayers")))
-		{
-			pParams->nAvcTemp = 1;
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			mfxU16 arr[8] = { 0,0,0,0,0,0,0,0 };
-			int j, k;
-			k = msdk_sscanf(strInput[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
-			for (j = 0; j < 8; j++)
-			{
-				pParams->nAvcTemporalLayers[j] = arr[j];
-			}
-			i += 1;
-		}
+    if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AvcTemporalLayers")))
+    {
+        pParams->nAvcTemp = 1;
+        VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+        mfxU16 arr[8] = { 0,0,0,0,0,0,0,0 };
+        int j, k;
+        k = msdk_sscanf(strInput[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
+        for (j = 0; j < 8; j++)
+        {
+            pParams->nAvcTemporalLayers[j] = arr[j];
+        }
+        i += 1;
+    }
 
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BaseLayerPID")))
-		{
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nBaseLayerPID))
-			{
-				PrintHelp(strInput[0], MSDK_STRING("BaseLayerPID is invalid"));
-				return MFX_ERR_UNSUPPORTED;
-			}
-		}
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BaseLayerPID")))
+    {
+        VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nBaseLayerPID))
+        {
+            PrintHelp(strInput[0], MSDK_STRING("BaseLayerPID is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
 
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-SPSId")))
-		{
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nSPSId))
-			{
-				PrintHelp(strInput[0], MSDK_STRING("SPSId is invalid"));
-				return MFX_ERR_UNSUPPORTED;
-			}
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PPSId")))
-		{
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nPPSId))
-			{
-				PrintHelp(strInput[0], MSDK_STRING("PPSId is invalid"));
-				return MFX_ERR_UNSUPPORTED;
-			}
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:on")))
-		{
-			pParams->nPicTimingSEI = MFX_CODINGOPTION_ON;
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:off")))
-		{
-			pParams->nPicTimingSEI = MFX_CODINGOPTION_OFF;
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:on")))
-		{
-			pParams->nNalHrdConformance = MFX_CODINGOPTION_ON;
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:off")))
-		{
-			pParams->nNalHrdConformance = MFX_CODINGOPTION_OFF;
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:on")))
-		{
-			pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_ON;
-		}
-		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:off")))
-		{
-			pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
-		}
-                else
-                {
-                        return MFX_ERR_NOT_FOUND;
-                }
-  return MFX_ERR_NONE;
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-SPSId")))
+    {
+        VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nSPSId))
+        {
+            PrintHelp(strInput[0], MSDK_STRING("SPSId is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PPSId")))
+    {
+                    VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+                    if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nPPSId))
+                    {
+                        PrintHelp(strInput[0], MSDK_STRING("PPSId is invalid"));
+                        return MFX_ERR_UNSUPPORTED;
+                    }
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:on")))
+    {
+        pParams->nPicTimingSEI = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:off")))
+    {
+        pParams->nPicTimingSEI = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:on")))
+    {
+        pParams->nNalHrdConformance = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:off")))
+    {
+        pParams->nNalHrdConformance = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:on")))
+    {
+        pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:off")))
+    {
+        pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
+    }
+    else
+    {
+        return MFX_ERR_NOT_FOUND;
+    }
+    return MFX_ERR_NONE;
 }
 
 
