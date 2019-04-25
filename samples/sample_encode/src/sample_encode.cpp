@@ -208,6 +208,82 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("\n"));
 }
 
+mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, sInputParams* pParams)
+{
+		if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AvcTemporalLayers")))
+		{
+			pParams->nAvcTemp = 1;
+			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+			mfxU16 arr[8] = { 0,0,0,0,0,0,0,0 };
+			int j, k;
+			k = msdk_sscanf(strInput[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
+			for (j = 0; j < 8; j++)
+			{
+				pParams->nAvcTemporalLayers[j] = arr[j];
+			}
+			i += 1;
+		}
+
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BaseLayerPID")))
+		{
+			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nBaseLayerPID))
+			{
+				PrintHelp(strInput[0], MSDK_STRING("BaseLayerPID is invalid"));
+				return MFX_ERR_UNSUPPORTED;
+			}
+		}
+
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-SPSId")))
+		{
+			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nSPSId))
+			{
+				PrintHelp(strInput[0], MSDK_STRING("SPSId is invalid"));
+				return MFX_ERR_UNSUPPORTED;
+			}
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PPSId")))
+		{
+			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nPPSId))
+			{
+				PrintHelp(strInput[0], MSDK_STRING("PPSId is invalid"));
+				return MFX_ERR_UNSUPPORTED;
+			}
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:on")))
+		{
+			pParams->nPicTimingSEI = MFX_CODINGOPTION_ON;
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:off")))
+		{
+			pParams->nPicTimingSEI = MFX_CODINGOPTION_OFF;
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:on")))
+		{
+			pParams->nNalHrdConformance = MFX_CODINGOPTION_ON;
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:off")))
+		{
+			pParams->nNalHrdConformance = MFX_CODINGOPTION_OFF;
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:on")))
+		{
+			pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_ON;
+		}
+		else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:off")))
+		{
+			pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
+		}
+                else
+                {
+                        return MFX_ERR_NOT_FOUND;
+                }
+  return MFX_ERR_NONE;
+}
+
+
 mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* pParams)
 {
 
@@ -834,72 +910,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->nTransformSkip = MFX_CODINGOPTION_OFF;
         }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-AvcTemporalLayers")))
-		{
-			pParams->nAvcTemp = 1; 
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			mfxU16 arr[8] = { 0,0,0,0,0,0,0,0 };
-			int j,k;
-		        k = msdk_sscanf(strInput[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
-			for (j = 0; j < 8; j++)
-			{
-				pParams->nAvcTemporalLayers[j] = arr[j];
-			}
-			i += 1;
-		}
-
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BaseLayerPID")))
-	        {
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nBaseLayerPID))
-			{
-				PrintHelp(strInput[0], MSDK_STRING("BaseLayerPID is invalid"));
-				return MFX_ERR_UNSUPPORTED;
-			}
-		}
-
-	else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-SPSId")))
-                {
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nSPSId))
-			{
-				PrintHelp(strInput[0], MSDK_STRING("SPSId is invalid"));
-				return MFX_ERR_UNSUPPORTED;
-			}
-		}
-	else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PPSId")))
-		{
-			VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-			if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nPPSId))
-			{
-				PrintHelp(strInput[0], MSDK_STRING("PPSId is invalid"));
-				return MFX_ERR_UNSUPPORTED;
-			}
-		}
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:on")))
-	{
-            pParams->nPicTimingSEI = MFX_CODINGOPTION_ON;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-PicTimingSEI:off")))
-        {
-            pParams->nPicTimingSEI = MFX_CODINGOPTION_OFF;
-        }
-	else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:on")))
-        {
-            pParams->nNalHrdConformance = MFX_CODINGOPTION_ON;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-NalHrdConformance:off")))
-        {
-            pParams->nNalHrdConformance = MFX_CODINGOPTION_OFF;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:on")))
-        {
-            pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_ON;
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:off")))
-        {
-            pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
-        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ppyr:on")))
         {
             pParams->nPRefType = MFX_P_REF_PYRAMID;
@@ -1209,9 +1219,13 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else
         {
-            msdk_printf(MSDK_STRING("Unknown option: %s\n"), strInput[i]);
-            PrintHelp(strInput[0], NULL);
-            return MFX_ERR_UNSUPPORTED;
+            mfxStatus sts = ParseAdditionalParams(strInput, nArgNum, i, pParams);
+            if (sts < MFX_ERR_NONE)
+            {
+                msdk_printf(MSDK_STRING("Unknown option: %s\n"), strInput[i]);
+                PrintHelp(strInput[0], NULL);
+                return MFX_ERR_UNSUPPORTED;
+            }
         }
     }
 
@@ -1439,7 +1453,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
 
     return MFX_ERR_NONE;
 }
-
 
 void ModifyParamsUsingPresets(sInputParams& params)
 {
