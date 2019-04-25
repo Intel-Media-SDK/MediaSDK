@@ -1654,10 +1654,6 @@ mfxStatus SetDefaults(
         SetDefault(par.mfx.RateControlMethod, MFX_RATECONTROL_CBR);
     }
 
-    if (IsBufferBasedBRC(par.mfx.RateControlMethod))
-    {
-        SetDefault(par.m_initialDelayInKb, par.m_bufferSizeInKb / 2);
-    }
     if (IsBitrateBasedBRC(par.mfx.RateControlMethod))
     {
         if (par.m_numLayers)
@@ -1691,6 +1687,10 @@ mfxStatus SetDefaults(
     }
 
     SetDefault(par.m_bufferSizeInKb, GetDefaultBufferSize(par));
+    if (IsBufferBasedBRC(par.mfx.RateControlMethod))
+    {
+        SetDefault(par.m_initialDelayInKb, par.m_bufferSizeInKb / 2);
+    }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
