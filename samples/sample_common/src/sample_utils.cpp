@@ -83,6 +83,7 @@ mfxStatus CSmplYUVReader::Init(std::list<msdk_string> inputs, mfxU32 ColorFormat
         MFX_FOURCC_YV12 != ColorFormat &&
         MFX_FOURCC_I420 != ColorFormat &&
         MFX_FOURCC_YUY2 != ColorFormat &&
+        MFX_FOURCC_UYVY != ColorFormat &&
         MFX_FOURCC_RGB4 != ColorFormat &&
         MFX_FOURCC_BGR4 != ColorFormat &&
         MFX_FOURCC_P010 != ColorFormat &&
@@ -185,6 +186,7 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
     mfxU32 nBytesPerPixel = (pInfo.FourCC == MFX_FOURCC_P010 || pInfo.FourCC == MFX_FOURCC_P210 ) ? 2 : 1;
 
     if (   MFX_FOURCC_YUY2 == pInfo.FourCC
+        || MFX_FOURCC_UYVY == pInfo.FourCC
         || MFX_FOURCC_RGB4 == pInfo.FourCC
         || MFX_FOURCC_BGR4 == pInfo.FourCC
         || MFX_FOURCC_AYUV == pInfo.FourCC
@@ -216,8 +218,11 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
             }
             break;
         case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_UYVY:
             pitch = pData.Pitch;
-            ptr = pData.Y + pInfo.CropX*2 + pInfo.CropY * pData.Pitch;
+            ptr = m_ColorFormat == MFX_FOURCC_YUY2?
+                  pData.Y + pInfo.CropX*2 + pInfo.CropY * pData.Pitch
+                : pData.U + pInfo.CropX   + pInfo.CropY * pData.Pitch;
 
             for(i = 0; i < h; i++)
             {
@@ -428,6 +433,10 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
         default:
             return MFX_ERR_UNSUPPORTED;
         }
+    }
+    else
+    {
+        return MFX_ERR_UNSUPPORTED;
     }
 
     return MFX_ERR_NONE;
@@ -2491,6 +2500,7 @@ mfxU16 FourCCToChroma(mfxU32 fourCC)
     case MFX_FOURCC_Y210:
 #endif
     case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_UYVY:
         return MFX_CHROMAFORMAT_YUV422;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:
