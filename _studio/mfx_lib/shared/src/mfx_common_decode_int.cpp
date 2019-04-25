@@ -143,6 +143,9 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVi
     case MFX_FOURCC_YUY2:
         umcVideoParams->color_format = UMC::YUY2;
         break;
+    case MFX_FOURCC_UYVY:
+        umcVideoParams->color_format = UMC::UYVY;
+        break;
     case MFX_FOURCC_YV12:
         umcVideoParams->color_format = UMC::YV12;
         break;
@@ -347,6 +350,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_UYVY:
         bitDepth = 8;
         break;
 
