@@ -315,6 +315,9 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl, bool bSWBRC)
         case MFX_RATECONTROL_VBR:    return VA_RC_VBR | VA_RC_MB;
         case MFX_RATECONTROL_ICQ:    return VA_RC_ICQ | VA_RC_MB;
         case MFX_RATECONTROL_VCM:    return VA_RC_VCM | VA_RC_MB;
+#ifdef MFX_ENABLE_QVBR
+        case MFX_RATECONTROL_QVBR:   return VA_RC_QVBR | VA_RC_MB;
+#endif
         default: assert(!"Unsupported RateControl"); return 0;
     }
 }
@@ -925,6 +928,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.VCMBitRateControl =
         attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_VCM ? 1 : 0; //Video conference mode
+#ifdef MFX_ENABLE_QVBR
+    m_caps.QVBRBRCSupport = attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_QVBR ? 1 : 0;
+#endif
+
     m_caps.RollingIntraRefresh =
             (attrs[idx_map[VAConfigAttribEncIntraRefresh]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
     m_caps.UserMaxFrameSizeSupport = 1;
