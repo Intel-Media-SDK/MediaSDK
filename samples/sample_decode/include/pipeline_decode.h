@@ -241,9 +241,7 @@ protected: // functions
     virtual mfxStatus DeliverOutput(mfxFrameSurface1* frame);
     virtual void PrintPerFrameStat(bool force = false);
 
-    virtual mfxStatus DeliverLoop(void);
-
-    static unsigned int MFX_STDCALL DeliverThreadFunc(void* ctx);
+    virtual void DeliverLoop();
 
 protected: // variables
     CSmplYUVWriter          m_FileWriter;

@@ -28,6 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <ctime>
 #include <algorithm>
+#include <thread>
 #include "pipeline_decode.h"
 #include "sysmem_allocator.h"
 
@@ -1533,10 +1534,8 @@ mfxStatus CDecodingPipeline::DeliverOutput(mfxFrameSurface1* frame)
     return res;
 }
 
-mfxStatus CDecodingPipeline::DeliverLoop(void)
+void CDecodingPipeline::DeliverLoop(void)
 {
-    mfxStatus res = MFX_ERR_NONE;
-
     while (!m_bStopDeliverLoop) {
         m_pDeliverOutputSemaphore->Wait();
         if (m_bStopDeliverLoop) {
@@ -1559,17 +1558,7 @@ mfxStatus CDecodingPipeline::DeliverLoop(void)
         msdk_atomic_inc32(&m_output_count);
         m_pDeliveredEvent->Signal();
     }
-    return res;
-}
-
-unsigned int MFX_STDCALL CDecodingPipeline::DeliverThreadFunc(void* ctx)
-{
-    CDecodingPipeline* pipeline = (CDecodingPipeline*)ctx;
-
-    mfxStatus sts;
-    sts = pipeline->DeliverLoop();
-
-    return 0;
+    return;
 }
 
 void CDecodingPipeline::PrintPerFrameStat(bool force)
@@ -1659,8 +1648,8 @@ mfxStatus CDecodingPipeline::RunDecoding()
     mfxStatus           sts = MFX_ERR_NONE;
     bool                bErrIncompatibleVideoParams = false;
     CTimeInterval<>     decodeTimer(m_bIsCompleteFrame);
-    time_t start_time = time(0);
-    MSDKThread * pDeliverThread = NULL;
+    time_t              start_time = time(0);
+    std::thread         deliverThread;
 #if (MFX_VERSION >= 1025)
     mfxExtDecodeErrorReport *pDecodeErrorReport = NULL;
 #endif
@@ -1668,13 +1657,8 @@ mfxStatus CDecodingPipeline::RunDecoding()
     if (m_eWorkMode == MODE_RENDERING) {
         m_pDeliverOutputSemaphore = new MSDKSemaphore(sts);
         m_pDeliveredEvent = new MSDKEvent(sts, false, false);
-        pDeliverThread = new MSDKThread(sts, DeliverThreadFunc, this);
-        if (!pDeliverThread || !m_pDeliverOutputSemaphore || !m_pDeliveredEvent) {
-            MSDK_SAFE_DELETE(pDeliverThread);
-            MSDK_SAFE_DELETE(m_pDeliverOutputSemaphore);
-            MSDK_SAFE_DELETE(m_pDeliveredEvent);
-            return MFX_ERR_MEMORY_ALLOC;
-        }
+
+        deliverThread = std::thread (&CDecodingPipeline::DeliverLoop, this);
     }
 
     while (((sts == MFX_ERR_NONE) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) && (m_nFrames > m_output_count))
@@ -1794,7 +1778,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
                 if (pBitstream && MFX_ERR_MORE_DATA == sts && pBitstream->MaxLength == pBitstream->DataLength)
                 {
                     mfxStatus stsExt = ExtendMfxBitstream(pBitstream, pBitstream->MaxLength * 2);
-                    MSDK_CHECK_STATUS_SAFE(stsExt, "ExtendMfxBitstream failed", MSDK_SAFE_DELETE(pDeliverThread));
+                    MSDK_CHECK_STATUS(stsExt, "ExtendMfxBitstream failed");
                 }
 
                 if (MFX_WRN_DEVICE_BUSY == sts) {
@@ -1966,13 +1950,13 @@ mfxStatus CDecodingPipeline::RunDecoding()
     if (m_eWorkMode == MODE_RENDERING) {
         m_bStopDeliverLoop = true;
         m_pDeliverOutputSemaphore->Post();
-        if (pDeliverThread)
-            pDeliverThread->Wait();
+
+        if (deliverThread.joinable())
+            deliverThread.join();
     }
 
     MSDK_SAFE_DELETE(m_pDeliverOutputSemaphore);
     MSDK_SAFE_DELETE(m_pDeliveredEvent);
-    MSDK_SAFE_DELETE(pDeliverThread);
 
     // exit in case of other errors
     MSDK_CHECK_STATUS(sts, "Unexpected error!!");
