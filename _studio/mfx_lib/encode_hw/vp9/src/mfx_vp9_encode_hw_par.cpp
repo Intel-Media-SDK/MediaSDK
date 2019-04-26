@@ -728,10 +728,8 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
         unsupported = true;
     }
 
-    // for Gen10 driver supports only 16x16 granularity for segmentation map
-    // but every 32x32 block of seg map should contain equal segment ids because of HW limitation
-    // so segment map is accepted from application in terms of 32x32 or 64x64 blocks
-    if (seg.SegmentIdBlockSize && seg.SegmentIdBlockSize < MFX_VP9_SEGMENT_ID_BLOCK_SIZE_32x32)
+    // currently only 64x64 block size for segmentation map supported (HW limitation)
+    if (seg.SegmentIdBlockSize && seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64)
     {
         seg.SegmentIdBlockSize = 0;
         unsupported = true;
