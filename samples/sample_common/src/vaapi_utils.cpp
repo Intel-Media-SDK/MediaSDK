@@ -161,7 +161,7 @@ VA_DRMProxy::~VA_DRMProxy()
 #if defined(X11_DRI3_SUPPORT)
 XCB_Dri3_Proxy::XCB_Dri3_Proxy()
     : lib("libxcb-dri3.so.0")
-    , SIMPLE_LOADER_FUNCTION(xcb_dri3_pixmap_from_buffer)
+    , SIMPLE_LOADER_FUNCTION(xcb_dri3_pixmap_from_buffer_checked)
 {
 }
 
@@ -173,6 +173,7 @@ Xcb_Proxy::Xcb_Proxy()
     , SIMPLE_LOADER_FUNCTION(xcb_generate_id)
     , SIMPLE_LOADER_FUNCTION(xcb_free_pixmap)
     , SIMPLE_LOADER_FUNCTION(xcb_flush)
+    , SIMPLE_LOADER_FUNCTION(xcb_request_check)
 {
 }
 
@@ -190,7 +191,7 @@ X11_Xcb_Proxy::~X11_Xcb_Proxy()
 
 Xcbpresent_Proxy::Xcbpresent_Proxy()
     : lib("libxcb-present.so.0")
-    , SIMPLE_LOADER_FUNCTION(xcb_present_pixmap)
+    , SIMPLE_LOADER_FUNCTION(xcb_present_pixmap_checked)
 {
 }
 

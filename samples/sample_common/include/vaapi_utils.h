@@ -352,10 +352,12 @@ namespace MfxLoader
                                     uint8_t,
                                     uint8_t,
                                     int32_t);
+        typedef xcb_dri3_pixmap_from_buffer_type xcb_dri3_pixmap_from_buffer_checked_type;
+
         XCB_Dri3_Proxy();
         ~XCB_Dri3_Proxy();
 
-        const xcb_dri3_pixmap_from_buffer_type  xcb_dri3_pixmap_from_buffer;
+        const xcb_dri3_pixmap_from_buffer_checked_type  xcb_dri3_pixmap_from_buffer_checked;
     };
 
     class Xcb_Proxy
@@ -367,13 +369,15 @@ namespace MfxLoader
         typedef uint32_t (*xcb_generate_id_type) (xcb_connection_t *);
         typedef xcb_void_cookie_t (*xcb_free_pixmap_type) (xcb_connection_t *, xcb_pixmap_t);
         typedef int (*xcb_flush_type)(xcb_connection_t *);
+        typedef xcb_generic_error_t* (*xcb_request_check_type)(xcb_connection_t *c, xcb_void_cookie_t cookie);
 
         Xcb_Proxy();
         ~Xcb_Proxy();
 
-        const xcb_generate_id_type      xcb_generate_id;
-        const xcb_free_pixmap_type  xcb_free_pixmap;
-        const xcb_flush_type        xcb_flush;
+        const xcb_generate_id_type   xcb_generate_id;
+        const xcb_free_pixmap_type   xcb_free_pixmap;
+        const xcb_flush_type         xcb_flush;
+        const xcb_request_check_type xcb_request_check;
     };
 
     class X11_Xcb_Proxy
@@ -413,10 +417,12 @@ namespace MfxLoader
                                     uint64_t,
                                     uint32_t,
                                     const xcb_present_notify_t *);
+        typedef xcb_present_pixmap_type xcb_present_pixmap_checked_type;
+
         Xcbpresent_Proxy();
         ~Xcbpresent_Proxy();
 
-        const xcb_present_pixmap_type   xcb_present_pixmap;
+        const xcb_present_pixmap_checked_type xcb_present_pixmap_checked;
     };
 
 #endif // X11_DRI3_SUPPORT

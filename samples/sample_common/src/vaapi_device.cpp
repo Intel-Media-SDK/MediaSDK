@@ -261,33 +261,47 @@ mfxStatus CVAAPIDeviceX11::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllo
         bo = drmintellib.drm_intel_bo_gem_create_from_prime(m_bufmgr, memId->m_buffer_info.handle, size);
         if (!bo) {
             msdk_printf(MSDK_STRING("Failed to create buffer object\n"));
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            return MFX_ERR_MEMORY_ALLOC;
         }
 
         drmintellib.drm_intel_bo_gem_export_to_prime(bo, &fd);
-        if (!fd){
+        if (!fd) {
             msdk_printf(MSDK_STRING("Invalid fd\n"));
-            return MFX_ERR_NOT_INITIALIZED;
+            return MFX_ERR_INVALID_HANDLE;
         }
 
         xcb_pixmap_t pixmap = xcblib.xcb_generate_id(m_xcbconn);
-        dri3lib.xcb_dri3_pixmap_from_buffer(m_xcbconn, pixmap, root, size, width, height, stride, depth, bpp, fd);
+        xcb_void_cookie_t cookie;
+        xcb_generic_error_t *error;
 
-        xcbpresentlib.xcb_present_pixmap(m_xcbconn,
-                *window, pixmap,
-                0,
-                0,
-                0,
-                0,
-                0,
-                None,
-                None,
-                None,
-                XCB_PRESENT_OPTION_NONE,
-                0,
-                0,
-                0,
-                0, NULL);
+        cookie = dri3lib.xcb_dri3_pixmap_from_buffer_checked(m_xcbconn, pixmap, root, size, width, height, stride, depth, bpp, fd);
+        if ((error = xcblib.xcb_request_check(m_xcbconn, cookie))) {
+            msdk_printf(MSDK_STRING("Failed to create xcb pixmap from the %s surface: try another color format (e.g. RGB4)\n"),
+                ColorFormatToStr(pSurface->Info.FourCC));
+            free(error);
+            return MFX_ERR_INVALID_HANDLE;
+        }
+
+        cookie = xcbpresentlib.xcb_present_pixmap_checked(m_xcbconn,
+            *window, pixmap,
+            0,
+            0,
+            0,
+            0,
+            0,
+            None,
+            None,
+            None,
+            XCB_PRESENT_OPTION_NONE,
+            0,
+            0,
+            0,
+            0, NULL);
+        if ((error = xcblib.xcb_request_check(m_xcbconn, cookie))) {
+            msdk_printf(MSDK_STRING("Failed to present pixmap\n"));
+            free(error);
+            return MFX_ERR_UNKNOWN;
+        }
 
         xcblib.xcb_free_pixmap(m_xcbconn, pixmap);
         xcblib.xcb_flush(m_xcbconn);
