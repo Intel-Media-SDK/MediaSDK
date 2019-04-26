@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@
 #ifndef GUID_TYPE_DEFINED
 
 #include <string.h>
+#include <algorithm>
 
 typedef struct {
 
@@ -57,7 +58,11 @@ typedef struct {
 
 static inline int operator==(const GUID & guidOne, const GUID & guidOther)
 {
-    return !memcmp(&guidOne, &guidOther, sizeof(GUID));
+    return
+        guidOne.Data1 == guidOther.Data1 &&
+        guidOne.Data2 == guidOther.Data2 &&
+        guidOne.Data3 == guidOther.Data3 &&
+        std::equal(guidOne.Data4, guidOne.Data4 + sizeof(guidOne.Data4), guidOther.Data4);
 }
 
 #define GUID_TYPE_DEFINED
