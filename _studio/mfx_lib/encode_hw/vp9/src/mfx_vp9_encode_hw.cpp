@@ -329,7 +329,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     sts = m_ddi->Register(m_segmentMaps.GetFrameAllocReponse(), D3DDDIFMT_INTELENCODE_MBSEGMENTMAP);
     MFX_CHECK_STS(sts);
 
-    mfxU16 blockSize = MapIdToBlockSize(MFX_VP9_SEGMENT_ID_BLOCK_SIZE_32x32);
+    mfxU16 blockSize = MapIdToBlockSize(MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64);
     // allocate enough space for segmentation map for lowest supported segment block size and highest supported resolution
     mfxU16 wInBlocks = (static_cast<mfxU16>(caps.MaxPicWidth) + blockSize - 1) / blockSize;
     mfxU16 hInBlocks = (static_cast<mfxU16>(caps.MaxPicHeight) + blockSize - 1) / blockSize;
