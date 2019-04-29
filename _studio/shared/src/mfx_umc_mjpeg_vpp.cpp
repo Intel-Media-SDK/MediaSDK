@@ -163,6 +163,22 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::Reset()
     return mfx_UMC_FrameAllocator_D3D::Reset();
 }
 
+mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::FindSurfaceByMemId(UMC::FrameData* in, bool isOpaq,
+                                                                   const mfxHDLPair &hdlPair,
+                                                                   // output param
+                                                                   mfxFrameSurface1 &surface)
+{
+    UMC::FrameMemID index = in->GetFrameMID();
+    mfxMemId memInter = m_frameDataInternal.GetSurface(index).Data.MemId;
+    mfxMemId memId = isOpaq?(memInter):(m_pCore->MapIdx(memInter));
+
+    // if memid of in is same as memid of surface_work, StartPreparingToOutput() must not be called
+    MFX_CHECK_WITH_ASSERT(!hdlPair.first || hdlPair.first != memId, MFX_ERR_UNSUPPORTED);
+
+    surface = m_frameDataInternal.GetSurface(index);
+    return MFX_ERR_NONE;
+}
+
 mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameSurface1 *surface_work,
                                                                        UMC::FrameData* in,
                                                                        const mfxVideoParam *par,
@@ -187,16 +203,11 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
         MFX_CHECK_STS(sts);
     }
 
-    if(par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE)
+    // for interlaced case, [0] is top and [1] is bottom; for progressive only [0] is used
+    mfxFrameSurface1 srcSurface[2];
+    for (int i = 0; i < 1 + (surface_work->Info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE); ++i)
     {
-        UMC::FrameMemID index = in->GetFrameMID();
-        mfxMemId memInter = m_frameDataInternal.GetSurface(index).Data.MemId;
-        mfxMemId memId = isOpaq?(memInter):(m_pCore->MapIdx(memInter));
-
-        // if memid of in is same as memid of surface_work, this method must not be called
-        MFX_CHECK_WITH_ASSERT(!hdlPair.first || hdlPair.first != memId, MFX_ERR_UNSUPPORTED);
-
-        mfxFrameSurface1 srcSurface = m_frameDataInternal.GetSurface(index);
+        MFX_SAFE_CALL( FindSurfaceByMemId(&in[i], isOpaq, hdlPair, srcSurface[i]) );
 
         /* JPEG standard does not support crops as it is done in AVC, so:
            - CropX and CropY are always 0,
@@ -207,49 +218,22 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
         */
         if (par->mfx.Rotation == MFX_ROTATION_0 || par->mfx.Rotation == MFX_ROTATION_180)
         {
-            srcSurface.Info.CropW = surface_work->Info.CropW;
-            srcSurface.Info.CropH = surface_work->Info.CropH;
+            srcSurface[i].Info.CropW = surface_work->Info.CropW;
+            srcSurface[i].Info.CropH = surface_work->Info.CropH;
         }
         else
         {
-            srcSurface.Info.CropW = surface_work->Info.CropH;
-            srcSurface.Info.CropH = surface_work->Info.CropW;
+            srcSurface[i].Info.CropW = surface_work->Info.CropH;
+            srcSurface[i].Info.CropH = surface_work->Info.CropW;
         }
-        return m_pCc->BeginHwJpegProcessing(&srcSurface, surface_work, taskId);
-    }
-    else
-    {
-        UMC::FrameMemID indexTop = in[0].GetFrameMID();
-        UMC::FrameMemID indexBottom = in[1].GetFrameMID();
-
-        // Opaque for interlaced content currently is unsupported
-        mfxMemId memInter = m_frameDataInternal.GetSurface(indexTop).Data.MemId;
-        mfxMemId memId = isOpaq?(memInter):(m_pCore->MapIdx(memInter));
-
-        // if memid of in is same as memid of surface_work, this must not be called
-        MFX_CHECK_WITH_ASSERT(!hdlPair.first || hdlPair.first != memId, MFX_ERR_UNSUPPORTED);
-
-        mfxFrameSurface1 srcSurfTop, srcSurfBottom;
-
-        srcSurfTop = m_frameDataInternal.GetSurface(indexTop);
-        srcSurfBottom = m_frameDataInternal.GetSurface(indexBottom);
-
-        if (par->mfx.Rotation == MFX_ROTATION_0 || par->mfx.Rotation == MFX_ROTATION_180)
+        if (surface_work->Info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
         {
-            srcSurfTop.Info.CropW = surface_work->Info.CropW;
-            srcSurfTop.Info.CropH = surface_work->Info.CropH / 2;
-            srcSurfBottom.Info.CropW = surface_work->Info.CropW;
-            srcSurfBottom.Info.CropH = surface_work->Info.CropH / 2;
+            srcSurface[i].Info.CropH /= 2;
         }
-        else
-        {
-            srcSurfTop.Info.CropW = surface_work->Info.CropH;
-            srcSurfTop.Info.CropH = surface_work->Info.CropW / 2;
-            srcSurfBottom.Info.CropW = surface_work->Info.CropH;
-            srcSurfBottom.Info.CropH = surface_work->Info.CropW / 2;
-        }
-        return m_pCc->BeginHwJpegProcessing(&srcSurfTop, &srcSurfBottom, surface_work, taskId);
     }
+    return par->mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE?
+        m_pCc->BeginHwJpegProcessing(&srcSurface[0], surface_work, taskId) :
+        m_pCc->BeginHwJpegProcessing(&srcSurface[0], &srcSurface[1], surface_work, taskId);
 }
 
 mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::CheckPreparingToOutput(mfxFrameSurface1 *surface_work,
