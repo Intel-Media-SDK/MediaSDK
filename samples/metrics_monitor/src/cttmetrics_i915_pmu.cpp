@@ -82,6 +82,16 @@ enum drm_i915_pmu_engine_sample {
 
 #define I915_PMU_LAST I915_PMU_REQUESTED_FREQUENCY
 
+static bool is_engine_config(uint64_t config)
+{
+    return config < __I915_PMU_OTHER(0);
+}
+
+static int get_engine_id(uint64_t config)
+{
+    return config & 0xffff0;
+}
+
 static inline int
 perf_event_open(struct perf_event_attr *attr,
     pid_t pid,
@@ -157,14 +167,25 @@ struct metric {
     } end;
 };
 
+#define I915_ENGINE_SAMPLE_COUNT (I915_SAMPLE_SEMA + 1)
+
+struct metrics_group {
+     metric metrics[I915_ENGINE_SAMPLE_COUNT]; /* 0 - I915_SAMPLE_BUSY/Global PMU, 1 - I915_SAMPLE_WAIT, 2 - I915_SAMPLE_SEMA */
+     uint64_t num_metrics;
+};
+
 struct pmu_metrics {
     int fd;
     int read_format;
     uint64_t num_metrics;
-    struct metric* metrics;
+    uint64_t num_groups;
+    struct metrics_group* groups;
 };
 
-static int perf_init(struct pmu_metrics *pm, int num_configs, int* configs)
+/* Order of metrics in configs[] is important:
+  - don't mix samples of different engines;
+  - don't mix global metrics and engine metrics; */
+static int perf_init(struct pmu_metrics *pm, int num_configs, int configs[])
 {
     int i, res;
 
@@ -173,19 +194,47 @@ static int perf_init(struct pmu_metrics *pm, int num_configs, int* configs)
     pm->read_format =
         PERF_FORMAT_TOTAL_TIME_ENABLED |
         PERF_FORMAT_GROUP;
-    pm->metrics = (struct metric*)calloc(num_configs, sizeof(struct metric));
-    if (!pm->metrics)
+    pm->groups = (struct metrics_group*)calloc(num_configs, sizeof(struct metrics_group));
+    if (!pm->groups)
         return -1;
 
+    if (!num_configs)
+        return -1;
+
+    pm->num_groups = 0;
+
+    int prev_config_id = is_engine_config(configs[0]) ? get_engine_id(configs[0]) : configs[0];
+
+    /* Code block below will put per engine configs in the same groups,
+     * all global metrics in their own groups */
     for (i = 0; i < num_configs; ++i) {
+        int config_id = is_engine_config(configs[i]) ? get_engine_id(configs[i]) : configs[i];
+        if (prev_config_id != config_id) {
+            pm->num_groups++;
+            prev_config_id = config_id;
+        }
+
         if (pm->fd < 0)
             res = pm->fd = perf_i915_open(configs[i], -1, pm->read_format);
         else
             res = perf_i915_open(configs[i], pm->fd, pm->read_format);
         if (res >= 0) {
-            pm->metrics[pm->num_metrics++].config = configs[i];
+            if (is_engine_config(configs[i])) {
+                int sample_type = I915_PMU_SAMPLE_MASK & configs[i];
+                pm->groups[pm->num_groups].num_metrics++;
+                pm->groups[pm->num_groups].metrics[sample_type].config = configs[i];
+            }
+            else {
+                pm->groups[pm->num_groups].num_metrics = 1;
+                pm->groups[pm->num_groups].metrics[0].config = configs[i]; // For global, let's use metrics[0] field
+            }
+
+            pm->num_metrics++;
         }
     }
+
+    if (res >= 0)
+        pm->num_groups++; /* For last config in the list */
 
     return 0;
 }
@@ -193,7 +242,7 @@ static int perf_init(struct pmu_metrics *pm, int num_configs, int* configs)
 static void perf_close(struct pmu_metrics *pm)
 {
     if (pm->fd != -1 ) { close(pm->fd); pm->fd = -1; }
-    if (pm->metrics) { free(pm->metrics); pm->metrics= NULL; }
+    if (pm->groups) { free(pm->groups); pm->groups= NULL; }
 }
 
 /* see 'man 2 perf_event_open' */
@@ -227,11 +276,13 @@ static int perf_read(struct pmu_metrics *pm)
     if (pm->num_metrics != data.nr_values)
         return -1;
 
-    for (uint64_t i = 0; i < data.nr_values; ++i) {
-        pm->metrics[i].start.value = pm->metrics[i].end.value;
-        pm->metrics[i].start.time = pm->metrics[i].end.time;
-        pm->metrics[i].end.value = data.values[i].value;
-        pm->metrics[i].end.time = data.time_enabled;
+    for (uint64_t i = 0, k = 0; i < pm->num_groups; ++i) {
+        for (uint64_t j = 0; j < pm->groups[i].num_metrics; ++j) {
+            pm->groups[i].metrics[j].start.value = pm->groups[i].metrics[j].end.value;
+            pm->groups[i].metrics[j].start.time = pm->groups[i].metrics[j].end.time;
+            pm->groups[i].metrics[j].end.value = data.values[k++].value;
+            pm->groups[i].metrics[j].end.time = data.time_enabled;
+        }
     }
 
     return 0;
@@ -267,12 +318,19 @@ static i915_pmu_collector_ctx_t g_ctx = {
 extern "C"
 cttStatus CTTMetrics_PMU_Init()
 {
+    /* When adding new condigs, don't mix metrics from different groups!*/
     int configs[] = {
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_RENDER, 0),
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 0),
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 1),
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_COPY, 0),
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0),
+        /* Render engine metrics */
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_RENDER, 0), /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_RENDER, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_RENDER, 0),*/
+        /* VDBOX metrics */
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 0),  /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO, 0),*/
+        /* 2nd VDBOX metrics */
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 1),  /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO, 1), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO, 1),*/
+        /* Blitter metrics */
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_COPY, 0),   /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_COPY, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_COPY, 0),*/
+        /* VEBOX metrics */
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0), /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0),*/
+        /* Global metrics */
         I915_PMU_ACTUAL_FREQUENCY,
     };
     int num_configs = sizeof(configs)/sizeof(configs[0]);
@@ -288,9 +346,9 @@ cttStatus CTTMetrics_PMU_Init()
         return status;
 
     if (0 == perf_init(&g_ctx.pm, num_configs, configs)) {
-        for (unsigned int i=0; i < g_ctx.pm.num_metrics; ++i) {
+        for (unsigned int i = 0; i < g_ctx.pm.num_groups; ++i) {
             g_ctx.pm_idx_map[g_ctx.metrics_count] = i;
-            switch (g_ctx.pm.metrics[i].config) {
+            switch (g_ctx.pm.groups[i].metrics[0].config) {
                 case I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_RENDER, 0):
                     g_ctx.metrics[g_ctx.metrics_count++] = CTT_USAGE_RENDER;
                     break;
@@ -441,35 +499,36 @@ cttStatus CTTMetrics_PMU_GetValue(unsigned int count, float* out_metric_values)
 
     unsigned int metric_idx, pm_metric_idx;
     double value;
-    bool read_pm = true;
 
-    if (g_ctx.pm.num_metrics && 0 != perf_read(&g_ctx.pm))
+    if (g_ctx.pm.num_groups && 0 != perf_read(&g_ctx.pm))
         return CTT_ERR_DRIVER_NO_INSTRUMENTATION;
 
     usleep(g_ctx.sample_period_us);
 
-    if (g_ctx.pm.num_metrics && 0 != perf_read(&g_ctx.pm))
+    if (g_ctx.pm.num_groups && 0 != perf_read(&g_ctx.pm))
         return CTT_ERR_DRIVER_NO_INSTRUMENTATION;
 
-    // we need to read metric values only once
-    read_pm = false;
+    metrics_group* group = NULL;
 
     for (unsigned int i = 0; i < count; ++i) {
         metric_idx = g_ctx.user_idx_map[i];
 
         if (g_ctx.metrics_count != metric_idx) {
             pm_metric_idx = g_ctx.pm_idx_map[metric_idx];
-            value = perf_elapsed(&g_ctx.pm.metrics[pm_metric_idx]);
+            group = &g_ctx.pm.groups[pm_metric_idx];
+
+            value = perf_elapsed(&group->metrics[I915_SAMPLE_BUSY]);
             if (g_ctx.metrics[metric_idx] == CTT_AVG_GT_FREQ) {
                 value *= 1000000000; // to compensate time in ns
             }
             else {
                 value *= 100; // we need %
             }
-            value /= (double)perf_elapsed_time(&g_ctx.pm.metrics[pm_metric_idx]);
+            value /= (double)perf_elapsed_time(&group->metrics[I915_SAMPLE_BUSY]);
         } else {
             value = 0.0; // not subscribed/unavailable metrics are always idle
         }
+
         out_metric_values[i] = value;
     }
 
