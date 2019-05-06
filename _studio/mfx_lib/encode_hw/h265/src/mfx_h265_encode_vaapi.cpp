@@ -313,8 +313,8 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl, bool bSWBRC)
         case MFX_RATECONTROL_LA_EXT: return VA_RC_CQP;
         case MFX_RATECONTROL_CBR:    return VA_RC_CBR | VA_RC_MB;
         case MFX_RATECONTROL_VBR:    return VA_RC_VBR | VA_RC_MB;
-        case MFX_RATECONTROL_ICQ:    return VA_RC_ICQ | VA_RC_MB;
-        case MFX_RATECONTROL_VCM:    return VA_RC_VCM | VA_RC_MB;
+        case MFX_RATECONTROL_ICQ:    return VA_RC_ICQ;
+        case MFX_RATECONTROL_VCM:    return VA_RC_VCM;
 #ifdef MFX_ENABLE_QVBR
         case MFX_RATECONTROL_QVBR:   return VA_RC_QVBR | VA_RC_MB;
 #endif
