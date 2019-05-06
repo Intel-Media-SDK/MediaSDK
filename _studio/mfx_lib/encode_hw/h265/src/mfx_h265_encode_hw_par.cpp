@@ -1905,10 +1905,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         , (mfxU32)MFX_RATECONTROL_AVBR
         , (mfxU32)MFX_RATECONTROL_CQP
         , (mfxU32)MFX_RATECONTROL_LA_EXT
-#ifndef MFX_VA_LINUX
         , (mfxU32)MFX_RATECONTROL_ICQ
         , caps.VCMBitRateControl ? MFX_RATECONTROL_VCM : 0
-#endif
         , caps.QVBRBRCSupport ? MFX_RATECONTROL_QVBR : 0
         );
 
