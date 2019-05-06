@@ -935,7 +935,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.RollingIntraRefresh =
             (attrs[idx_map[VAConfigAttribEncIntraRefresh]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
     m_caps.UserMaxFrameSizeSupport = 1;
-    m_caps.MBBRCSupport            = 1;
+    m_caps.MBBRCSupport            = attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_MB ? 1 : 0;
     m_caps.MbQpDataSupport         = 1;
     m_caps.TUSupport               = 73;
 
