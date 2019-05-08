@@ -2417,8 +2417,9 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,DownScaleFactor               ,12   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,BPyramid                      ,14   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,NumOutStream                  ,62   )
-        //MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,OutStream[0].Width            ,64   )
-        //MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,OutStream[0].Height           ,66   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,OutStream                     ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl::mfxStream         ,Width                         ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl::mfxStream         ,Height                        ,2    )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,Width                         ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,Height                        ,2    )
@@ -2444,8 +2445,9 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,DownScaleFactor               ,12   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,BPyramid                      ,14   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,NumOutStream                  ,62   )
-        //MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,OutStream[0].Width            ,64   )
-        //MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,OutStream[0].Height           ,66   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl                    ,OutStream                     ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl::mfxStream         ,Width                         ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtLAControl::mfxStream         ,Height                        ,2    )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,Width                         ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxLAFrameInfo                     ,Height                        ,2    )
