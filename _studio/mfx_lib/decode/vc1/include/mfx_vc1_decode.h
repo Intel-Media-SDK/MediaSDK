@@ -35,7 +35,7 @@
 
 #include "mfx_umc_alloc_wrapper.h"
 #include "umc_vc1_spl_frame_constr.h"
-#include "umc_mutex.h"
+#include <mutex>
 #include "mfx_task.h"
 #include "mfx_critical_error_handler.h"
 
@@ -222,7 +222,7 @@ protected:
     mfxU32                           m_BufOffset;
 
     // to synchronize async and sync parts
-    UMC::Mutex                       m_guard;
+    std::recursive_mutex             m_guard;
 
 
     mfxU32                           m_ProcessedFrames;
