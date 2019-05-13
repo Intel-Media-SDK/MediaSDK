@@ -29,7 +29,7 @@
 #include "mfx_umc_alloc_wrapper.h"
 #include "mfx_task.h"
 #include "mfx_critical_error_handler.h"
-#include "umc_mutex.h"
+#include <mutex>
 #include "umc_vp9_dec_defs.h"
 #include "umc_vp9_frame.h"
 #include <list>
@@ -92,7 +92,7 @@ private:
     mfxU16                  m_frameOrder;
     mfxU32                  m_statusReportFeedbackNumber;
 
-    UMC::Mutex              m_mGuard;
+    std::mutex              m_mGuard;
 
     bool                    m_adaptiveMode;
     mfxU32                  m_index;

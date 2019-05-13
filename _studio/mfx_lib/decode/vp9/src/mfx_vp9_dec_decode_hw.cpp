@@ -320,7 +320,7 @@ static bool CheckVP9BitDepthRestriction(mfxFrameInfo *info)
 
 mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (m_isInit)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -449,7 +449,7 @@ mfxStatus VideoDECODEVP9_HW::Init(mfxVideoParam *par)
 
 mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -525,7 +525,7 @@ mfxStatus VideoDECODEVP9_HW::Reset(mfxVideoParam *par)
 
 mfxStatus VideoDECODEVP9_HW::Close()
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -724,7 +724,7 @@ mfxStatus VideoDECODEVP9_HW::QueryIOSurf(VideoCORE *p_core, mfxVideoParam *p_vid
 
 mfxStatus VideoDECODEVP9_HW::GetVideoParam(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -777,7 +777,7 @@ mfxStatus VideoDECODEVP9_HW::GetOutputSurface(mfxFrameSurface1 **surface_out, mf
 
 mfxStatus VideoDECODEVP9_HW::GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64 *pTimeStamp)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -789,7 +789,7 @@ mfxStatus VideoDECODEVP9_HW::GetUserData(mfxU8 *pUserData, mfxU32 *pSize, mfxU64
 
 mfxStatus VideoDECODEVP9_HW::GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -801,7 +801,7 @@ mfxStatus VideoDECODEVP9_HW::GetPayload(mfxU64 *pTimeStamp, mfxPayload *pPayload
 
 mfxStatus VideoDECODEVP9_HW::SetSkipMode(mfxSkipMode /*mode*/)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -841,7 +841,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
 
     if (data.copyFromFrame != UMC::FRAME_MID_INVALID)
     {
-        UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+        std::lock_guard<std::mutex> guard(decoder.m_mGuard);
 
         mfxFrameSurface1 surfaceDst = *data.surface_work;
         surfaceDst.Info.Width = (surfaceDst.Info.CropW + 15) & ~0x0f;
@@ -899,7 +899,7 @@ mfxStatus MFX_CDECL VP9DECODERoutine(void *p_state, void * /* pp_param */, mfxU3
         }
     }
 
-    UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+    std::lock_guard<std::mutex> guard(decoder.m_mGuard);
 
     if (data.currFrameId != -1)
         decoder.m_FrameAllocator->DecreaseReference(data.currFrameId);
@@ -986,7 +986,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
 
 mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *surface_work, mfxFrameSurface1 **surface_out, MFX_ENTRY_POINT * p_entry_point)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     mfxStatus sts = MFX_ERR_NONE;
 
