@@ -142,9 +142,9 @@ void TaskBrokerSingleThreadDXVA::Reset()
 
 void TaskBrokerSingleThreadDXVA::Start()
 {
-    AutomaticUMCMutex guard(m_mGuard);
-
     TaskBroker::Start();
+
+    std::lock_guard<std::mutex> guard(m_mGuard);
     m_completedQueue.clear();
 
     H264_DXVA_SegmentDecoder * dxva_sd = static_cast<H264_DXVA_SegmentDecoder *>(m_pTaskSupplier->m_pSegmentDecoder[0]);
@@ -216,7 +216,7 @@ bool TaskBrokerSingleThreadDXVA::CheckCachedFeedbackAndComplete(H264DecoderFrame
 
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::unique_lock<std::mutex> guard(m_mGuard);
 
     if (!m_useDXVAStatusReporting)
         return false;
@@ -236,12 +236,12 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
         uint16_t surfCorruption = 0;
         if (!skip)
         {
-            m_mGuard.Unlock();
+            m_mGuard.unlock();
 
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
             sts = dxva_sd->GetPacker()->SyncTask(au->m_pFrame, &surfCorruption);
 
-            m_mGuard.Lock();
+            m_mGuard.lock();
         }
         //we should complete frame even we got an error
         //this allows to return the error from [RunDecoding]

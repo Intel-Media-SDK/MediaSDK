@@ -207,7 +207,7 @@ bool MFXTaskSupplier::CheckDecoding(H264DecoderFrame * outputFrame)
     if (!outputFrame->IsDecodingCompleted())
         return false;
 
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     int32_t count = 0;
     int32_t notDecoded = 0;

@@ -59,7 +59,7 @@ bool TaskBroker::Init(int32_t iConsumerNumber)
 
 void TaskBroker::Reset()
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
     m_FirstAU = 0;
     m_IsShouldQuit = true;
 
@@ -77,21 +77,6 @@ void TaskBroker::Release()
     return &m_localResourses;
 }*/
 
-void TaskBroker::Lock()
-{
-    m_mGuard.Lock();
-    /*if ((m_mGuard.TryLock() != UMC_OK))
-    {
-        lock_failed++;
-        m_mGuard.Lock();
-    }*/
-}
-
-void TaskBroker::Unlock()
-{
-    m_mGuard.Unlock();
-}
-
 bool TaskBroker::AddFrameToDecoding(H264DecoderFrame * frame)
 {
     if (!frame || frame->IsDecodingStarted())
@@ -101,7 +86,7 @@ bool TaskBroker::AddFrameToDecoding(H264DecoderFrame * frame)
     if (!((status == H264DecoderFrameInfo::STATUS_FILLED) || (status == H264DecoderFrameInfo::STATUS_STARTED)))
         return false;
 
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
 
     m_decodingQueue.push_back(frame);
@@ -226,7 +211,7 @@ void TaskBroker::SwitchCurrentAU()
 
 void TaskBroker::Start()
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     FrameQueue::iterator iter = m_decodingQueue.begin();
 
@@ -412,7 +397,7 @@ void TaskBroker::AddPerformedTask(H264Task *)
 
 bool TaskBroker::IsEnoughForStartDecoding(bool )
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     InitAUs();
     return m_FirstAU != 0;

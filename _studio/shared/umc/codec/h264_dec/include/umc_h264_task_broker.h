@@ -63,9 +63,6 @@ public:
 
     virtual void Start();
 
-    void Lock();
-    void Unlock();
-
     TaskSupplier * m_pTaskSupplier;
 
 protected:
@@ -91,7 +88,7 @@ protected:
     FrameQueue m_decodingQueue;
     FrameQueue m_completedQueue;
 
-    Mutex m_mGuard;
+    std::mutex m_mGuard;
 };
 
 } // namespace UMC

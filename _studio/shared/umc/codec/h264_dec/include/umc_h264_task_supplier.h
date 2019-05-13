@@ -659,7 +659,7 @@ protected:
 
     bool m_isInitialized;
 
-    Mutex m_mGuard;
+    std::mutex m_mGuard;
 
 private:
     TaskSupplier & operator = (TaskSupplier &)

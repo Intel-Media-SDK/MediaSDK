@@ -219,7 +219,7 @@ Status VATaskSupplier::DecodeHeaders(NalUnit *nalUnit)
 
 H264DecoderFrame *VATaskSupplier::GetFreeFrame(const H264Slice * pSlice)
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
     ViewItem &view = GetView(pSlice->GetSliceHeader()->nal_ext.mvc.view_id);
 
     H264DecoderFrame *pFrame = 0;

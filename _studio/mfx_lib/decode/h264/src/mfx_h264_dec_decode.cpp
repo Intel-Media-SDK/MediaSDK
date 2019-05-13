@@ -247,7 +247,7 @@ VideoDECODEH264::~VideoDECODEH264(void)
 
 mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (m_isInit)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -538,7 +538,7 @@ mfxStatus VideoDECODEH264::SetTargetViewList(mfxVideoParam *par)
 
 mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -621,7 +621,7 @@ mfxStatus VideoDECODEH264::Reset(mfxVideoParam *par)
 
 mfxStatus VideoDECODEH264::Close(void)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit || !m_pH264VideoDecoder.get())
         return MFX_ERR_NOT_INITIALIZED;
@@ -667,7 +667,7 @@ mfxStatus VideoDECODEH264::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPar
 
 mfxStatus VideoDECODEH264::GetVideoParam(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -995,7 +995,7 @@ mfxStatus VideoDECODEH264::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType
 
 mfxStatus VideoDECODEH264::GetDecodeStat(mfxDecodeStat *stat)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -1058,7 +1058,7 @@ mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
             sts = m_pH264VideoDecoder->RunThread(threadNumber);
         }
 
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
         if (sts == MFX_TASK_BUSY && !m_pH264VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true))
             m_globalTask = false;
 
@@ -1068,7 +1068,7 @@ mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
     UMC::H264DecoderFrame * pFrame = 0;
     bool isDecoded;
     {
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
 
         if (!info->surface_work)
             return MFX_TASK_DONE;
@@ -1094,7 +1094,7 @@ mfxStatus VideoDECODEH264::RunThread(ThreadTaskInfo* info, mfxU32 threadNumber)
     }
 
     {
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
         if (!info->surface_work)
             return MFX_TASK_DONE;
 
@@ -1126,7 +1126,7 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs,
                                               mfxFrameSurface1 **surface_out,
                                               MFX_ENTRY_POINT *pEntryPoint)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     mfxStatus mfxSts = DecodeFrameCheck(bs, surface_work, surface_out);
 
@@ -1631,7 +1631,7 @@ mfxStatus VideoDECODEH264::DecodeFrame(mfxFrameSurface1 *surface_out, UMC::H264D
 
     mfxStatus sts = m_FrameAllocator->PrepareToOutput(surface_out, index, &m_vPar, m_isOpaq);
 
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
     pFrame->setWasDisplayed();
     return sts;
 }
@@ -1675,7 +1675,7 @@ mfxStatus VideoDECODEH264::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts)
 
 mfxStatus VideoDECODEH264::GetPayload( mfxU64 *ts, mfxPayload *payload )
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -1740,7 +1740,7 @@ UMC::H264DecoderFrame * VideoDECODEH264::GetFrameToDisplay(bool force)
 
 mfxStatus VideoDECODEH264::SetSkipMode(mfxSkipMode mode)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
