@@ -30,6 +30,7 @@
 #include "mfxmvc.h"
 #include "mfxvp8.h"
 #include "mfxvideo.h"
+#include "mfxbrc.h"
 
 
 /* .cpp instead of .h to avoid changing of include files dependencies graph
@@ -488,6 +489,20 @@
     #endif
 #endif //defined (__MFXVP8_H__)
 
+//mfxbrc.h
+#if defined (__MFXBRC_H__)
+    #if defined(LINUX64)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameParam             ,128  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameCtrl              ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameStatus            ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtBRC                    ,192  )
+    #elif defined(LINUX32)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameParam             ,124  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameCtrl              ,60   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxBRCFrameStatus            ,60   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtBRC                    ,128  )
+    #endif
+#endif //defined (__MFXBRC_H__)
 
 // Offsets
 //mfxastructures.h
@@ -2944,5 +2959,80 @@
     #endif
 #endif //defined (__MFXVP8_H__)
 
+//mfxbrc.h
+#if defined (__MFXBRC_H__)
+    #if defined(LINUX64)
+#if (MFX_VERSION >= 1026)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,SceneChange                   ,92   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,LongTerm                      ,94   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,FrameCmplx                    ,96   )
+#endif
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,EncodedOrder                  ,100  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,DisplayOrder                  ,104  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,CodedFrameSize                ,108  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,FrameType                     ,112  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,PyramidLayer                  ,114  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,NumRecode                     ,116  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,NumExtParam                   ,118  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,ExtParam                      ,120  )
 
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,QpY                           ,0    )
+#if (MFX_VERSION >= 1029)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,InitialCpbRemovalDelay        ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,InitialCpbRemovalOffset       ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,MaxFrameSize                  ,40   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,DeltaQP                       ,44   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,MaxNumRepak                   ,52   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,NumExtParam                   ,54   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,ExtParam                      ,56   )
+#endif
 
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameStatus                  ,MinFrameSize                  ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameStatus                  ,BRCStatus                     ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,pthis                         ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Init                          ,72   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Reset                         ,80   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Close                         ,88   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,GetFrameCtrl                  ,96   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Update                        ,104  )
+
+    #elif defined(LINUX32)
+#if (MFX_VERSION >= 1026)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,SceneChange                   ,92   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,LongTerm                      ,94   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,FrameCmplx                    ,96   )
+#endif
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,EncodedOrder                  ,100  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,DisplayOrder                  ,104  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,CodedFrameSize                ,108  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,FrameType                     ,112  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,PyramidLayer                  ,114  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,NumRecode                     ,116  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,NumExtParam                   ,118  )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameParam                   ,ExtParam                      ,120  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,QpY                           ,0    )
+#if (MFX_VERSION >= 1029)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,InitialCpbRemovalDelay        ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,InitialCpbRemovalOffset       ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,MaxFrameSize                  ,40   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,DeltaQP                       ,44   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,MaxNumRepak                   ,52   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,NumExtParam                   ,54   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameCtrl                    ,ExtParam                      ,56   )
+#endif
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameStatus                  ,MinFrameSize                  ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxBRCFrameStatus                  ,BRCStatus                     ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,pthis                         ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Init                          ,68   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Reset                         ,72   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Close                         ,76   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,GetFrameCtrl                  ,80   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Update                        ,84   )
+    #endif
+#endif //defined (__MFXBRC_H__)
