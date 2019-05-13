@@ -32,6 +32,7 @@
 #include "mfxvp9.h"
 #include "mfxvideo.h"
 #include "mfxbrc.h"
+#include "mfxpcp.h"
 
 
 /* .cpp instead of .h to avoid changing of include files dependencies graph
@@ -517,6 +518,19 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtBRC                    ,128  )
     #endif
 #endif //defined (__MFXBRC_H__)
+
+//mfxpcp.h
+#if defined (__MFXPCP_H__)
+    #if defined(LINUX64)
+#if MFX_VERSION >= 1030
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCencParam              ,72   )
+#endif
+    #elif defined(LINUX32)
+#if MFX_VERSION >= 1030
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCencParam              ,72   )
+#endif
+    #endif
+#endif //defined (__MFXPCP_H__)
 
 // Offsets
 //mfxastructures.h
@@ -3067,3 +3081,18 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBRC                          ,Update                        ,84   )
     #endif
 #endif //defined (__MFXBRC_H__)
+
+//mfxpcp.h
+#if defined (__MFXPCP_H__)
+    #if defined(LINUX64)
+#if (MFX_VERSION >= 1030)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCencParam                    ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCencParam                    ,StatusReportIndex             ,8    )
+#endif
+    #elif defined(LINUX32)
+#if (MFX_VERSION >= 1030)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCencParam                    ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCencParam                    ,StatusReportIndex             ,8    )
+#endif
+    #endif
+#endif //defined (__MFXPCP_H__)
