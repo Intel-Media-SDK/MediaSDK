@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -230,7 +230,7 @@ typedef struct tagENCODE_CAPS
             UINT    NoFrameCropping             : 1;
             UINT    FrameLevelRateCtrl          : 1;
             UINT    HeaderInsertion             : 1;
-            UINT    RawReconRefToggle           : 1; // doesn't shpport change reference frame (original vs. recon) at a per frame basis.
+            UINT    RawReconRefToggle           : 1; // doesn't support change reference frame (original vs. recon) at a per frame basis.
             UINT    NoPAFF                      : 1; // doesn't support change frame/field coding at per frame basis.
             UINT    NoInterlacedField           : 1;
             UINT    BRCReset                    : 1;
@@ -306,7 +306,9 @@ typedef struct tagENCODE_CAPS
             UINT    DDRStreamingBufferSupport     : 1;
             UINT    LowDelayBRCSupport            : 1; // eFrameSizeTolerance_ExtremelyLow (Low delay) supported
             UINT    AVBRBRCSupport                : 1;
-            UINT                            : 11;
+            UINT    CBRSupport                    : 1;
+            UINT    VBRSupport                    : 1;
+            UINT                                  : 9;
         };
         UINT      CodingLimits2;
     };
@@ -976,6 +978,6 @@ enum
     ENCODE_QUERY_STATUS_ID                  = 0x121
 };
 
-#endif /* __MFX_H264_ENCODE_STRUCT_VAAPI__H */
 #endif /* MFX_VA_LINUX */
+#endif /* __MFX_H264_ENCODE_STRUCT_VAAPI__H */
 /* EOF */

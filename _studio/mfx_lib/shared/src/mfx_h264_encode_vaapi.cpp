@@ -1462,6 +1462,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
                           Begin(attrs), attrs.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
+    m_caps.CBRSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_CBR) ? 1 : 0;
+    m_caps.VBRSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VBR) ? 1 : 0;
     m_caps.VCMBitrateControl =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VCM) ? 1 : 0; //Video conference mode
     m_caps.ICQBRCSupport =
