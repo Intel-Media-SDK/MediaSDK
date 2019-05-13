@@ -29,6 +29,7 @@
 #include "mfxla.h"
 #include "mfxmvc.h"
 #include "mfxvp8.h"
+#include "mfxvp9.h"
 #include "mfxvideo.h"
 #include "mfxbrc.h"
 
@@ -488,6 +489,19 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVP8CodingOption        ,516  )
     #endif
 #endif //defined (__MFXVP8_H__)
+
+//mfxvp9.h
+#if defined (__MFXVP9_H__)
+    #if defined(LINUX64)
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVP9DecodedFrameInfo    ,128  )
+#endif
+    #elif defined(LINUX32)
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVP9DecodedFrameInfo    ,128  )
+#endif
+    #endif
+#endif //defined (__MFXVP9_H__)
 
 //mfxbrc.h
 #if defined (__MFXBRC_H__)
@@ -2958,6 +2972,23 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP8CodingOption              ,NumFramesForIVFHeader         ,64   )
     #endif
 #endif //defined (__MFXVP8_H__)
+
+//mfxvp9.h
+#if defined (__MFXVP9_H__)
+    #if defined(LINUX64)
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9DecodedFrameInfo          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9DecodedFrameInfo          ,DisplayWidth                  ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9DecodedFrameInfo          ,DisplayHeight                 ,10   )
+#endif
+    #elif defined(LINUX32)
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9DecodedFrameInfo          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9DecodedFrameInfo          ,DisplayWidth                  ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVP9DecodedFrameInfo          ,DisplayHeight                 ,10   )
+#endif
+    #endif
+#endif //defined (__MFXVP9_H__)
 
 //mfxbrc.h
 #if defined (__MFXBRC_H__)
