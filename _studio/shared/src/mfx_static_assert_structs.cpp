@@ -25,6 +25,7 @@
 #include "mfxenc.h"
 #include "mfxpak.h"
 #include "mfxfei.h"
+#include "mfxfeihevc.h"
 #include "mfxjpeg.h"
 #include "mfxla.h"
 #include "mfxmvc.h"
@@ -159,6 +160,49 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiParam             ,128)
     #endif
 #endif //defined (__MFXFEI_H__)
+
+//mfxfeihevc.h
+#if defined (__MFXFEIHEVC_H__)
+    #if defined(LINUX64)
+#if (MFX_VERSION >= 1027)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncFrameCtrl    ,256)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcEncMVPredictors    ,40 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncMVPredictors ,136)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncQP           ,40 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcEncCtuCtrl         ,16 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncCtuCtrl      ,136)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcRepackCtrl      ,40 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcRepackStat      ,128)
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcPakCtuRecordV0     ,16 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcPakCtuRecordV0  ,136)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcPakCuRecordV0      ,56 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcPakCuRecordV0   ,136)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcDistortionCtu      ,8  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcDistortion      ,40 )
+#endif
+#endif
+    #elif defined(LINUX32)
+#if (MFX_VERSION >= 1027)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncFrameCtrl    ,256)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcEncMVPredictors    ,40 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncMVPredictors ,132)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncQP           ,36 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcEncCtuCtrl         ,16 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcEncCtuCtrl      ,132)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcRepackCtrl      ,40 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcRepackStat      ,128)
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcPakCtuRecordV0     ,16 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcPakCtuRecordV0  ,132)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcPakCuRecordV0      ,56 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcPakCuRecordV0   ,132)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFeiHevcDistortionCtu      ,8  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtFeiHevcDistortion      ,36 )
+#endif
+#endif
+    #endif
+#endif //defined (__MFXFEIHEVC_H__)
 
 //mfxpak.h
 #if defined (__MFXPAK_H__)
@@ -2819,6 +2863,163 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiParam                     ,SingleFieldProcessing         ,12   )
     #endif
 #endif //defined (__MFXFEI_H__)
+
+//mfxfeihevc.h
+#if defined (__MFXFEIHEVC_H__)
+    #if defined(LINUX64)
+#if (MFX_VERSION >= 1027)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,SearchPath                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,LenSP                         ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,RefWidth                      ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,RefHeight                     ,14   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,SearchWindow                  ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,NumMvPredictors               ,18   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,MultiPred                     ,22   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,SubPelMode                    ,26   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,AdaptiveSearch                ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,MVPredictor                   ,30   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,PerCuQp                       ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,PerCtuInput                   ,34   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,ForceCtuSplit                 ,36   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,NumFramePartitions            ,38   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,FastIntraMode                 ,40   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcEncMVPredictors          ,RefIdx                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcEncMVPredictors          ,MV                            ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Data                          ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,MaxFrameSize                  ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,NumPasses                     ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,DeltaQP                       ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackStat            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackStat            ,NumPasses                     ,8    )
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,MVs                           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,MVs[0].x                      ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,MVs[0].y                      ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,RefIdx                        ,40   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,TuSize                        ,44   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcDistortionCtu            ,BestDistortion                ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcDistortionCtu            ,ColocatedCtuDistortion        ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Data                          ,32   )
+#endif
+#endif
+    #elif defined(LINUX32)
+#if (MFX_VERSION >= 1027)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,SearchPath                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,LenSP                         ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,RefWidth                      ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,RefHeight                     ,14   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,SearchWindow                  ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,NumMvPredictors               ,18   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,MultiPred                     ,22   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,SubPelMode                    ,26   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,AdaptiveSearch                ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,MVPredictor                   ,30   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,PerCuQp                       ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,PerCtuInput                   ,34   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,ForceCtuSplit                 ,36   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,NumFramePartitions            ,38   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncFrameCtrl          ,FastIntraMode                 ,40   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcEncMVPredictors          ,RefIdx                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcEncMVPredictors          ,MV                            ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncMVPredictors       ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncQP                 ,Data                          ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcEncCtuCtrl            ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,MaxFrameSize                  ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,NumPasses                     ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackCtrl            ,DeltaQP                       ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackStat            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcRepackStat            ,NumPasses                     ,8    )
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCtuRecordV0        ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,MVs                           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,MVs[0].x                      ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,MVs[0].y                      ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,RefIdx                        ,40   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcPakCuRecordV0            ,TuSize                        ,44   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcPakCuRecordV0         ,Data                          ,128  )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcDistortionCtu            ,BestDistortion                ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFeiHevcDistortionCtu            ,ColocatedCtuDistortion        ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,VaBufferID                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Pitch                         ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Height                        ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtFeiHevcDistortion            ,Data                          ,32   )
+#endif
+#endif
+    #endif
+#endif //defined (__MFXFEIHEVC_H__)
 
 //mfxjpeg.h
 #if defined (__MFX_JPEG_H__)
