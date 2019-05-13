@@ -34,7 +34,7 @@
 
 #include "mfx_task.h"
 
-#include "umc_mutex.h"
+#include <mutex>
 
 #include "mfx_vp8_dec_decode_vp8_defs.h"
 #include "mfx_vp8_dec_decode_common.h"
@@ -268,7 +268,7 @@ private:
     std::unique_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
     UMC::VideoAccelerator *m_p_video_accelerator;
 
-    UMC::Mutex              m_mGuard;
+    std::mutex              m_mGuard;
 };
 
 #endif // _MFX_VP8_DECODE_HW_H_
