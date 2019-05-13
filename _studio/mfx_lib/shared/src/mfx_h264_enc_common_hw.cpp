@@ -3880,6 +3880,20 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (!CheckRange(par.mfx.QPB, 0, 51)) changed = true;
     }
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
+        hwCaps.CBRSupport == 0)
+    {
+        par.mfx.RateControlMethod = 0;
+        unsupported = true;
+    }
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR &&
+        hwCaps.VBRSupport == 0)
+    {
+        par.mfx.RateControlMethod = 0;
+        unsupported = true;
+    }
+
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ &&
         hwCaps.ICQBRCSupport == 0)
     {
