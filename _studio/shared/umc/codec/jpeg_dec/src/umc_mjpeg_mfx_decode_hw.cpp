@@ -78,7 +78,7 @@ Status MJPEGVideoDecoderMFX_HW::Reset(void)
 {
     m_statusReportFeedbackCounter = 1;
     {
-        AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         m_cachedReadyTaskIndex.clear();
         m_cachedCorruptedTaskIndex.clear();
@@ -91,7 +91,7 @@ Status MJPEGVideoDecoderMFX_HW::Reset(void)
 Status MJPEGVideoDecoderMFX_HW::Close(void)
 {
     {
-        AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         m_cachedReadyTaskIndex.clear();
         m_cachedCorruptedTaskIndex.clear();
@@ -147,7 +147,7 @@ mfxStatus MJPEGVideoDecoderMFX_HW::CheckStatusReportNumber(uint32_t statusReport
     std::set<mfxU32>::iterator iteratorSubmitted;
     std::set<mfxU32>::iterator iteratorCorrupted;
 
-    AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
     iteratorReady = find(m_cachedReadyTaskIndex.begin(), m_cachedReadyTaskIndex.end(), statusReportFeedbackNumber);
     iteratorSubmitted = find(m_submittedTaskIndex.begin(), m_submittedTaskIndex.end(), statusReportFeedbackNumber);
     if (m_cachedReadyTaskIndex.end() == iteratorReady){
@@ -366,7 +366,7 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
     if (sts != UMC_OK)
         return sts;
     {
-        AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         m_submittedTaskIndex.insert(m_statusReportFeedbackCounter);
     }
     /////////////////////////////////////////////////////////////////////////////////////////

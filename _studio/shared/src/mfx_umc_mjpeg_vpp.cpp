@@ -84,7 +84,7 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::InitMfx(UMC::FrameAllocatorPar
                                                           bool isUseExternalFrames,
                                                           bool isSWplatform)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     m_isSWDecode = isSWplatform;
 
@@ -176,7 +176,7 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
                                                                        mfxU16 *taskId,
                                                                        bool isOpaq)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxStatus sts = MFX_ERR_NONE;
     bool isD3DToSys = false;
@@ -311,7 +311,7 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::CheckPreparingToOutput(mfxFrameS
                                                                        VideoVppJpegD3D9 **pCc,
                                                                        mfxU16 taskId)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::recursive_mutex> guard(m_guard);
 
     mfxStatus sts = (*pCc)->QueryTaskRoutine(taskId);
     if (sts == MFX_TASK_BUSY)
@@ -327,9 +327,9 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::CheckPreparingToOutput(mfxFrameS
 
         mfxFrameSurface1 src = m_frameDataInternal.GetSurface(index);
         //Performance issue. We need to unlock mutex to let decoding thread run async.
-        guard.Unlock();
+        guard.unlock();
         sts = (*pCc)->EndHwJpegProcessing(&src, surface_work);
-        guard.Lock();
+        guard.lock();
         if (sts < MFX_ERR_NONE)
             return sts;
 
@@ -350,9 +350,9 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::CheckPreparingToOutput(mfxFrameS
         srcBottom = m_frameDataInternal.GetSurface(indexBottom);
 
         //Performance issue. We need to unlock mutex to let decoding thread run async.
-        guard.Unlock();
+        guard.unlock();
         sts = (*pCc)->EndHwJpegProcessing(&srcTop, &srcBottom, surface_work);
-        guard.Lock();
+        guard.lock();
         if (sts < MFX_ERR_NONE)
             return sts;
 

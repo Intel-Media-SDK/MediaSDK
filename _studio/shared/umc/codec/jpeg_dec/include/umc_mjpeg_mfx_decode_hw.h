@@ -114,7 +114,7 @@ protected:
 
     uint32_t m_fourCC;
 
-    Mutex m_guard;
+    std::mutex m_guard;
     std::set<mfxU32> m_submittedTaskIndex;
     std::set<mfxU32> m_cachedReadyTaskIndex;
     std::set<mfxU32> m_cachedCorruptedTaskIndex;

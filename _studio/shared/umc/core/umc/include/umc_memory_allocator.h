@@ -24,7 +24,7 @@
 #include "umc_defs.h"
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
-#include "umc_mutex.h"
+#include <mutex>
 
 #define MID_INVALID 0
 
@@ -80,7 +80,7 @@ public:
     virtual Status DeallocateMem(MemID MID) = 0;
 
 protected:
-    Mutex m_guard;
+    std::mutex m_guard;
 
 private:
     // Declare private copy constructor to avoid accidental assignment

@@ -24,7 +24,7 @@
 #include "umc_defs.h"
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
-#include "umc_mutex.h"
+#include <mutex>
 
 #define FMID_INVALID 0
 
@@ -92,7 +92,7 @@ public:
     virtual Status DecreaseReference(FrameMemID MID) = 0;
 
 protected:
-    Mutex m_guard;
+    std::recursive_mutex m_guard;
 
 private:
     // Declare private copy constructor to avoid accidental assignment
