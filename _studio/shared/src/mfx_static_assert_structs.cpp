@@ -34,6 +34,7 @@
 #include "mfxbrc.h"
 #include "mfxpcp.h"
 #include "mfxsc.h"
+#include "mfxscd.h"
 
 
 /* .cpp instead of .h to avoid changing of include files dependencies graph
@@ -541,6 +542,15 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtScreenCaptureParam     ,64   )
     #endif
 #endif //defined (__MFXSC_H__)
+
+//mfxscd.h
+#if defined (__MFXSCD_H__)
+    #if defined(LINUX64)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtSCD                    ,64   )
+    #elif defined(LINUX32)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtSCD                    ,64   )
+    #endif
+#endif //defined (__MFXSCD_H__)
 
 // Offsets
 //mfxastructures.h
@@ -3115,11 +3125,20 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtScreenCaptureParam           ,EnableDirtyRect               ,12   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtScreenCaptureParam           ,EnableCursorCapture           ,14   )
     #elif defined(LINUX32)
-#if (MFX_VERSION >= 1030)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtScreenCaptureParam           ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtScreenCaptureParam           ,DisplayIndex                  ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtScreenCaptureParam           ,EnableDirtyRect               ,12   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtScreenCaptureParam           ,EnableCursorCapture           ,14   )
-#endif
     #endif
 #endif //defined (__MFXSC_H__)
+
+//mfxscd.h
+#if defined (__MFXSCD_H__)
+    #if defined(LINUX64)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,Header                                       ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,SceneType                                    ,8    )
+    #elif defined(LINUX32)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,Header                                       ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,SceneType                                    ,8    )
+    #endif
+#endif //defined (__MFXSCD_H__)
