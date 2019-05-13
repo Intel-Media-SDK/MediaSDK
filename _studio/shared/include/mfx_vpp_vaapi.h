@@ -156,7 +156,7 @@ namespace MfxHwVideoProcessing
 
         std::vector<ExtVASurface> m_feedbackCache;
 
-        UMC::Mutex m_guard;
+        std::mutex m_guard;
 
         mfxStatus Init( _mfxPlatformAccelerationService* pVADisplay, mfxVideoParam *pParams);
 

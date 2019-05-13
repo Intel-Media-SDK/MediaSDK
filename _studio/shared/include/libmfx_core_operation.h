@@ -23,7 +23,7 @@
 
 #include <vector>
 #include <vm_interlocked.h>
-#include <umc_mutex.h>
+#include <mutex>
 
 class VideoCORE;
 
@@ -40,7 +40,7 @@ public:
 
     mfxStatus AddCore(VideoCORE* pCore)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         if (m_Cores.size() == 0xFFFF)
             return MFX_ERR_MEMORY_ALLOC;
@@ -54,7 +54,7 @@ public:
 
     void RemoveCore(VideoCORE* pCore)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
         for (;it != m_Cores.end();it++)
         {
@@ -69,7 +69,7 @@ public:
     // functor to run fuction from child cores
     bool  IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, mfxFrameAllocResponse *response)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         bool sts;
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
 
@@ -85,7 +85,7 @@ public:
     // functor to run fuction from child cores
     bool CheckOpaqRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         bool sts;
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
 
@@ -102,7 +102,7 @@ public:
     template <typename func, typename arg, typename arg2>
     mfxStatus DoFrameOperation(func functor, arg par, arg2 out)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         mfxStatus sts;
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
 
@@ -120,7 +120,7 @@ public:
     template <typename func, typename arg>
     mfxStatus DoCoreOperation(func functor, arg par)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         mfxStatus sts;
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
 
@@ -138,7 +138,7 @@ public:
     template <typename obj, typename func, typename arg>
     void* QueryGUID(func functor, arg par)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
 
         for (;it != m_Cores.end();it++)
@@ -155,7 +155,7 @@ public:
     template <typename func, typename arg>
     mfxFrameSurface1* GetSurface(func functor, arg par)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         mfxFrameSurface1* pSurf;
         std::vector<VideoCORE*>::iterator it = m_Cores.begin();
         for (;it != m_Cores.end();it++)
@@ -211,7 +211,7 @@ private:
     // Reference counters
     mfxU32 m_refCounter;
 
-    UMC::Mutex m_guard;
+    std::mutex m_guard;
 
     mfxU32     m_CoreCounter;
 
