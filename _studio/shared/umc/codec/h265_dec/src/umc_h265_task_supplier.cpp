@@ -939,7 +939,7 @@ UMC::Status TaskSupplier_H265::GetInfo(UMC::VideoDecoderParams *lpInfo)
 // Search DPB for a frame which may be reused
 H265DecoderFrame *TaskSupplier_H265::GetFreeFrame()
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
     H265DecoderFrame *pFrame = 0;
 
     ViewItem_H265 *pView = GetView();
@@ -2525,7 +2525,7 @@ void TaskSupplier_H265::DPBUpdate(const H265Slice * slice)
 // Find a decoder frame instance with specified surface ID
 H265DecoderFrame * TaskSupplier_H265::FindSurface(UMC::FrameMemID id)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     H265DecoderFrame *pFrame = GetView()->pDPB->head();
     for (; pFrame; pFrame = pFrame->future())
@@ -2589,7 +2589,7 @@ UMC::Status TaskSupplier_H265::GetUserData(UMC::MediaData * pUD)
 
 bool TaskSupplier_H265::IsShouldSuspendDisplay()
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (m_iThreadNum <= 1)
         return true;

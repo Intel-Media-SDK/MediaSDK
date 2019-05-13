@@ -78,11 +78,6 @@ public:
     // Check whether frame is prepared
     virtual bool PrepareFrame(H265DecoderFrame * pFrame);
 
-    // Lock synchronization mutex
-    void Lock();
-    // Unlock synchronization mutex
-    void Unlock();
-
     TaskSupplier_H265 * m_pTaskSupplier;
 
 protected:
@@ -117,7 +112,7 @@ protected:
     FrameQueue m_decodingQueue;
     FrameQueue m_completedQueue;
 
-    UMC::Mutex m_mGuard;
+    std::mutex m_mGuard;
 };
 
 

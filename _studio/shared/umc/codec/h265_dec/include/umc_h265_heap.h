@@ -25,7 +25,7 @@
 #define __UMC_H265_HEAP_H
 
 #include <memory>
-#include "umc_mutex.h"
+#include <mutex>
 #include "umc_h265_dec_defs.h"
 #include "umc_media_data.h"
 
@@ -174,7 +174,7 @@ public:
 
     Item * GetItemForAllocation(size_t size, bool typed = false)
     {
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
 
         if (!m_pFirstFree)
         {
@@ -247,7 +247,7 @@ public:
         if (!obj)
             return;
 
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
         Item * item = (Item *) ((uint8_t*)obj - sizeof(Item));
 
         // check
@@ -281,7 +281,7 @@ public:
 
     void Release()
     {
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
 
         while (m_pFirstFree)
         {
@@ -294,7 +294,7 @@ public:
 private:
 
     Item * m_pFirstFree;
-    UMC::Mutex m_mGuard;
+    std::mutex m_mGuard;
 };
 
 //*********************************************************************************************/

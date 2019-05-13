@@ -179,7 +179,7 @@ VideoDECODEH265::~VideoDECODEH265(void)
 mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::Init");
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (m_isInit)
         return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -387,7 +387,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
 // Reset decoder with new parameters
 mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -460,7 +460,7 @@ mfxStatus VideoDECODEH265::Reset(mfxVideoParam *par)
 mfxStatus VideoDECODEH265::Close(void)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoDECODEH265::Close");
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit || !m_pH265VideoDecoder.get())
         return MFX_ERR_NOT_INITIALIZED;
@@ -509,7 +509,7 @@ mfxStatus VideoDECODEH265::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPar
 // MediaSDK DECODE_GetVideoParam API function
 mfxStatus VideoDECODEH265::GetVideoParam(mfxVideoParam *par)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -777,7 +777,7 @@ mfxStatus VideoDECODEH265::QueryIOSurfInternal(eMFXPlatform platform, eMFXHWType
 // MediaSDK DECODE_GetDecodeStat API function
 mfxStatus VideoDECODEH265::GetDecodeStat(mfxDecodeStat *stat)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -839,7 +839,7 @@ mfxStatus VideoDECODEH265::RunThread(void * params, mfxU32 threadNumber)
             sts = m_pH265VideoDecoder->RunThread(threadNumber);
         }
 
-        UMC::AutomaticUMCMutex guard(m_mGuardRunThread);
+        std::lock_guard<std::mutex> guard(m_mGuardRunThread);
 
         if (sts == MFX_TASK_BUSY && !m_pH265VideoDecoder->GetTaskBroker()->IsEnoughForStartDecoding(true))
             m_globalTask = false;
@@ -850,7 +850,7 @@ mfxStatus VideoDECODEH265::RunThread(void * params, mfxU32 threadNumber)
 
     bool isDecoded;
     {
-        UMC::AutomaticUMCMutex guard(m_mGuardRunThread);
+        std::lock_guard<std::mutex> guard(m_mGuardRunThread);
 
         if (!info->surface_work)
             return MFX_TASK_DONE;
@@ -864,7 +864,7 @@ mfxStatus VideoDECODEH265::RunThread(void * params, mfxU32 threadNumber)
     }
 
     {
-        UMC::AutomaticUMCMutex guard(m_mGuardRunThread);
+        std::lock_guard<std::mutex> guard(m_mGuardRunThread);
         if (!info->surface_work)
             return MFX_TASK_DONE;
 
@@ -897,7 +897,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
                                               mfxFrameSurface1 **surface_out,
                                               MFX_ENTRY_POINT *pEntryPoint)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     mfxStatus mfxSts = DecodeFrameCheck(bs, surface_work, surface_out);
 
@@ -911,7 +911,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs,
         }
         else
         {
-            UMC::AutomaticUMCMutex mGuard(m_mGuardRunThread);
+            std::lock_guard<std::mutex> guard(m_mGuardRunThread);
 
             H265DBPList *dpb = m_pH265VideoDecoder->GetDPBList();
             if (!dpb)
@@ -1394,7 +1394,7 @@ mfxStatus VideoDECODEH265::GetUserData(mfxU8 *ud, mfxU32 *sz, mfxU64 *ts)
 // Returns stored SEI messages
 mfxStatus VideoDECODEH265::GetPayload( mfxU64 *ts, mfxPayload *payload )
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;
@@ -1449,7 +1449,7 @@ H265DecoderFrame * VideoDECODEH265::GetFrameToDisplay_H265(bool force)
 // MediaSDK DECODE_SetSkipMode API function
 mfxStatus VideoDECODEH265::SetSkipMode(mfxSkipMode mode)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     if (!m_isInit)
         return MFX_ERR_NOT_INITIALIZED;

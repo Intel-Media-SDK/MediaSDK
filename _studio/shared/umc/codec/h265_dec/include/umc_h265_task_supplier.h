@@ -470,7 +470,7 @@ protected:
 
     bool m_isInitialized;
 
-    UMC::Mutex m_mGuard;
+    std::mutex m_mGuard;
 
 private:
     // Decode video parameters set NAL unit

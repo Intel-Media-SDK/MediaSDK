@@ -183,7 +183,7 @@ bool MFXTaskSupplier_H265::CheckDecoding(bool should_additional_check, H265Decod
         int32_t maxReadyUID = outputFrame->m_UID;
         uint32_t inDisplayStage = 0;
 
-        UMC::AutomaticUMCMutex guard(m_mGuard);
+        std::lock_guard<std::mutex> guard(m_mGuard);
 
         for (H265DecoderFrame * pTmp = view.pDPB->head(); pTmp; pTmp = pTmp->future())
         {
