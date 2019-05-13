@@ -35,6 +35,7 @@
 #include "mfxpcp.h"
 #include "mfxsc.h"
 #include "mfxscd.h"
+#include "mfxcamera.h"
 
 
 /* .cpp instead of .h to avoid changing of include files dependencies graph
@@ -551,6 +552,49 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtSCD                    ,64   )
     #endif
 #endif //defined (__MFXSCD_H__)
+
+//mfxcamera.h
+
+    #if defined(LINUX64)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamGammaCorrection        ,4144 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamWhiteBalance           ,80   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamTotalColorControl      ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamCscYuvRgb              ,128  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamHotPixelRemoval        ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamBlackLevelCorrection   ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCamVignetteCorrectionElement ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCamVignetteCorrectionParam   ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamVignetteCorrection     ,56   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamBayerDenoise           ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamColorCorrection3x3     ,96   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamPadding                ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamPipeControl            ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCamFwdGammaSegment           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamFwdGamma               ,56   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamLensGeomDistCorrection ,128  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCam3DLutEntry                ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCam3DLut                  ,40   )
+    #elif defined(LINUX32)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamGammaCorrection        ,4144 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamWhiteBalance           ,80   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamTotalColorControl      ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamCscYuvRgb              ,128  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamHotPixelRemoval        ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamBlackLevelCorrection   ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCamVignetteCorrectionElement ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCamVignetteCorrectionParam   ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamVignetteCorrection     ,56   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamBayerDenoise           ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamColorCorrection3x3     ,96   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamPadding                ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamPipeControl            ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCamFwdGammaSegment           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamFwdGamma               ,56   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCamLensGeomDistCorrection ,128  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxCam3DLutEntry                ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtCam3DLut                  ,40   )
+    #endif
+
 
 // Offsets
 //mfxastructures.h
@@ -3135,10 +3179,177 @@
 //mfxscd.h
 #if defined (__MFXSCD_H__)
     #if defined(LINUX64)
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,Header                                       ,0    )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,SceneType                                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD                          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD                          ,SceneType                     ,8    )
     #elif defined(LINUX32)
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,Header                                       ,0    )
-        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD           ,SceneType                                    ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD                          ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtSCD                          ,SceneType                     ,8    )
     #endif
 #endif //defined (__MFXSCD_H__)
+
+//mfxscd.h
+    #if defined(LINUX64)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,Mode                          ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,GammaValue                    ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,NumPoints                     ,30   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,GammaPoint                    ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,GammaCorrected                ,2080 )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,R                             ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,G                             ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,B                             ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,C                             ,14   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,M                             ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,Y                             ,18   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,PreOffset                     ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,Matrix                        ,20   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,PostOffset                    ,56   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamHotPixelRemoval           ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamHotPixelRemoval           ,PixelThresholdDifference      ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamHotPixelRemoval           ,PixelCountThreshold           ,10   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,R                             ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,G0                            ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,B                             ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,G1                            ,14   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionElement    ,integer                       ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionElement    ,mantissa                      ,1    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,R                             ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,G0                            ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,B                             ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,G1                            ,6    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Width                         ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Height                        ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Pitch                         ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,CorrectionMap                 ,48   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBayerDenoise              ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBayerDenoise              ,Threshold                     ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamColorCorrection3x3        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamColorCorrection3x3        ,CCM                           ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Top                           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Bottom                        ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Left                          ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Right                         ,14   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPipeControl               ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPipeControl               ,RawFormat                     ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Pixel                         ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Red                           ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Green                         ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Blue                          ,6    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamFwdGamma                  ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamFwdGamma                  ,NumSegments                   ,46   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamFwdGamma                  ,Segment                       ,48   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,a                             ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,b                             ,20   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,c                             ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,d                             ,44   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCam3DLutEntry                   ,R                             ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCam3DLutEntry                   ,G                             ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCam3DLutEntry                   ,B                             ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Size                          ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Table                         ,32   )
+    #elif defined(LINUX32)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,Mode                          ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,GammaValue                    ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,NumPoints                     ,30   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,GammaPoint                    ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,GammaCorrected                ,2080 )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,R                             ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,G                             ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,B                             ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,C                             ,14   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,M                             ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamTotalColorControl         ,Y                             ,18   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,PreOffset                     ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,Matrix                        ,20   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamCscYuvRgb                 ,PostOffset                    ,56   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamHotPixelRemoval           ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamHotPixelRemoval           ,PixelThresholdDifference      ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamHotPixelRemoval           ,PixelCountThreshold           ,10   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,R                             ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,G0                            ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,B                             ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBlackLevelCorrection      ,G1                            ,14   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionElement    ,integer                       ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionElement    ,mantissa                      ,1    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,R                             ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,G0                            ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,B                             ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamVignetteCorrectionParam      ,G1                            ,6    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Width                         ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Height                        ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,Pitch                         ,16   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamVignetteCorrection        ,CorrectionMap                 ,48   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBayerDenoise              ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamBayerDenoise              ,Threshold                     ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamColorCorrection3x3        ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamColorCorrection3x3        ,CCM                           ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Top                           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Bottom                        ,10   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Left                          ,12   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPadding                   ,Right                         ,14   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPipeControl               ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamPipeControl               ,RawFormat                     ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Pixel                         ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Red                           ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Green                         ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCamFwdGammaSegment              ,Blue                          ,6    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamFwdGamma                  ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamFwdGamma                  ,NumSegments                   ,46   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamFwdGamma                  ,Segment                       ,48   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,a                             ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,b                             ,20   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,c                             ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamLensGeomDistCorrection    ,d                             ,44   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCam3DLutEntry                   ,R                             ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCam3DLutEntry                   ,G                             ,2    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxCam3DLutEntry                   ,B                             ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Size                          ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Table                         ,32   )
+    #endif
