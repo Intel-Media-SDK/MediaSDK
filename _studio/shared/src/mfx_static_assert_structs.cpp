@@ -3388,7 +3388,8 @@
     #endif
 #endif //defined (__MFXSCD_H__)
 
-//mfxscd.h
+//mfxcamera.h
+#if defined (__MFXCAMERA_H__)
     #if defined(LINUX64)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCamGammaCorrection           ,Mode                          ,8    )
@@ -3554,3 +3555,4 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Size                          ,28   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtCam3DLut                     ,Table                         ,32   )
     #endif
+#endif // defined (__MFXCAMERA_H__)
