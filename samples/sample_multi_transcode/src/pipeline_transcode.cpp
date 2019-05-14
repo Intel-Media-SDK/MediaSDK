@@ -30,6 +30,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfx_itt_trace.h"
 #include <algorithm>
 #include <cstring>
+#include <assert.h>
 
 #include "plugin_loader.h"
 #include "parameters_dumper.h"
@@ -2965,7 +2966,7 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
     return MFX_ERR_NONE;
 }
 
- mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
+mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
 {
     MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
     m_mfxVppParams.AsyncDepth = m_AsyncDepth;
@@ -3058,6 +3059,24 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
     {
         m_mfxVppParams.vpp.Out.FourCC = pInParams->EncoderFourCC;
         m_mfxVppParams.vpp.Out.ChromaFormat = FourCCToChroma(pInParams->EncoderFourCC);
+
+        // set bit depth according to FourCC, it must be not inherited from m_mfxVppParams.vpp.In
+        switch (m_mfxVppParams.vpp.Out.FourCC)
+        {
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_NV16:
+            m_mfxVppParams.vpp.Out.BitDepthLuma = m_mfxVppParams.vpp.Out.BitDepthChroma = 8;
+            break;
+        case MFX_FOURCC_P010:
+        case MFX_FOURCC_P210:
+            m_mfxVppParams.vpp.Out.BitDepthLuma = m_mfxVppParams.vpp.Out.BitDepthChroma = 10;
+            break;
+        default:
+            assert(0);
+            MSDK_CHECK_STATUS(MFX_ERR_UNSUPPORTED, "Unexpected encoder FourCC");
+        }
     }
 
     /* VPP Comp Init */
