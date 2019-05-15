@@ -428,19 +428,10 @@ void PackerVA::PackSliceParams(H265Slice const* pSlice, size_t sliceNum, bool is
         picParamsExt = (VAPictureParameterBufferHEVCExtension*)m_va->GetCompBuffer(VAPictureParameterBufferType);
         if (!picParamsExt)
             throw h265_exception(UMC_ERR_FAILED);
-        picParams = &picParamsExt->base;
-        if (!picParams)
-            throw h265_exception(UMC_ERR_FAILED);
 
         sliceParamsExt = (VASliceParameterBufferHEVCExtension*)m_va->GetCompBuffer(VASliceParameterBufferType, &compBuf);
 
         if (!sliceParamsExt)
-            throw h265_exception(UMC_ERR_FAILED);
-        sliceParams = &sliceParamsExt->base;
-        if (!sliceParams)
-            throw h265_exception(UMC_ERR_FAILED);
-        sliceParamsRExt = &sliceParamsExt->rext;
-        if (!sliceParamsRExt)
             throw h265_exception(UMC_ERR_FAILED);
 
         if (m_va->IsLongSliceControl())
@@ -453,6 +444,18 @@ void PackerVA::PackSliceParams(H265Slice const* pSlice, size_t sliceNum, bool is
             sliceParamsExt = (VASliceParameterBufferHEVCExtension*)((VASliceParameterBufferBase*)sliceParamsExt + sliceNum);
             memset(sliceParamsExt, 0, sizeof(VASliceParameterBufferHEVCExtension));
         }
+
+        picParams = &picParamsExt->base;
+        if (!picParams)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        sliceParams = &sliceParamsExt->base;
+        if (!sliceParams)
+            throw h265_exception(UMC_ERR_FAILED);
+
+        sliceParamsRExt = &sliceParamsExt->rext;
+        if (!sliceParamsRExt)
+            throw h265_exception(UMC_ERR_FAILED);
     }
     else
 #endif
