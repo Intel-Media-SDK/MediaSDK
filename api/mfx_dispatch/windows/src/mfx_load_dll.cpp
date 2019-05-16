@@ -25,8 +25,6 @@
 #include <string.h>
 #include <windows.h>
 
-#if !defined(_DEBUG)
-
 #if defined(_WIN64)
 const
 wchar_t * const defaultDLLName[2] = {L"libmfxhw64.dll",
@@ -52,37 +50,6 @@ wchar_t  * const defaultPluginDLLName[2] = {L"mfxplugin32_hw.dll",
                                             L"mfxplugin32_sw.dll"};
 
 #endif // (defined(_WIN64))
-
-#else // defined(_DEBUG)
-
-#if defined(_WIN64)
-const
-wchar_t * const defaultDLLName[2] = {L"libmfxhw64_d.dll",
-                                     L"libmfxsw64_d.dll"};
-const
-wchar_t * const defaultAudioDLLName[2] = {L"libmfxaudiosw64_d.dll",
-                                          L"libmfxaudiosw64_d.dll"};
-
-const 
-wchar_t  * const defaultPluginDLLName[2] = {L"mfxplugin64_hw_d.dll",
-                                            L"mfxplugin64_sw_d.dll"};
-
-#elif defined(WIN32)
-const
-wchar_t * const defaultDLLName[2] = {L"libmfxhw32_d.dll",
-                                     L"libmfxsw32_d.dll"};
-
-
-const
-wchar_t * const defaultAudioDLLName[2] = {L"libmfxaudiosw32_d.dll",
-                                          L"libmfxaudiosw32_d.dll"};
-
-const 
-wchar_t  * const defaultPluginDLLName[2] = {L"mfxplugin32_hw_d.dll",
-                                            L"mfxplugin32_sw_d.dll"};
-#endif // (defined(_WIN64))
-
-#endif // !defined(_DEBUG)
 
 namespace MFX
 {
