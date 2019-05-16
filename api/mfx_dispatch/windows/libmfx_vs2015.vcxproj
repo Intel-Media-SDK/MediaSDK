@@ -79,13 +79,13 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
-    <OutDir>..\..\..\..\build\win_$(Platform)\lib\</OutDir>
-    <IntDir>$(OutDir)..\objs\$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>..\..\..\..\build\win_$(Platform)\$(Configuration)\lib\</OutDir>
+    <IntDir>$(OutDir)..\objs\$(ProjectName)\</IntDir>
     <IncludePath>$(MINIDDK_ROOT)\Include\um;$(MINIDDK_ROOT)\Include\shared;$(IncludePath)</IncludePath>
     <LibraryPath>$(MINIDDK_ROOT)\Lib\win8\um\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <TargetName>$(ProjectName)_d</TargetName>
+    <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <TargetName>$(ProjectName)</TargetName>
@@ -120,8 +120,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectName)_d</TargetName>
-    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectName)_d</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectName)</TargetName>
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectName)</TargetName>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
     <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
