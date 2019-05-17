@@ -93,6 +93,7 @@ Media SDK depends on a number of packages which are identified and checked for t
 | ------ | ------ | ----------- |
 | API | master\|latest\|major.minor | Build mediasdk library with specified API. 'latest' will enable experimental features. 'master' will configure the most recent available published API (default: master). |
 | ENABLE_OPENCL | ON\|OFF | Enable OpenCL dependent code to be built (default: ON) |
+| ENABLE_X11 | ON\|OFF | Enable X11 dependent code to be built (default: OFF) |
 | ENABLE_X11_DRI3 | ON\|OFF | Enable X11 DRI3 dependent code to be built (default: OFF) |
 | ENABLE_WAYLAND | ON\|OFF | Enable Wayland dependent code to be built (default: OFF) |
 | ENABLE_ITT | ON\|OFF | Enable ITT (VTune) instrumentation support (default: OFF) |
