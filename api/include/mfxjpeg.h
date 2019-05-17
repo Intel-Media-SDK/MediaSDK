@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -67,6 +67,7 @@ enum {
     MFX_CHROMAFORMAT_JPEG_SAMPLING = 6
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -75,7 +76,9 @@ typedef struct {
 
     mfxU16    Qm[4][64];
 } mfxExtJPEGQuantTables;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -93,6 +96,7 @@ typedef struct {
         mfxU8   Values[162];
     } ACTables[4];
 } mfxExtJPEGHuffmanTables;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } // extern "C"
