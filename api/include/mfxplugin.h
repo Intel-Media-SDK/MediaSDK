@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,11 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU8  Data[16];
 } mfxPluginUID;
+MFX_PACK_END()
 
 static const mfxPluginUID  MFX_PLUGINID_HEVCD_SW        = {{0x15, 0xdd, 0x93, 0x68, 0x25, 0xad, 0x47, 0x5e, 0xa3, 0x4e, 0x35, 0xf3, 0xf5, 0x42, 0x17, 0xa6}};
 static const mfxPluginUID  MFX_PLUGINID_HEVCD_HW        = {{0x33, 0xa6, 0x1c, 0x0b, 0x4c, 0x27, 0x45, 0x4c, 0xa8, 0xd8, 0x5d, 0xde, 0x75, 0x7c, 0x6f, 0x8e}};
@@ -68,6 +70,7 @@ typedef enum {
     MFX_THREADPOLICY_PARALLEL  = 1
 } mfxThreadPolicy;
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct mfxPluginParam {
     mfxU32          reserved[6];
     mfxU16          reserved1;
@@ -79,14 +82,18 @@ typedef struct mfxPluginParam {
     mfxThreadPolicy ThreadPolicy;
     mfxU32          MaxThreadNum;
 } mfxPluginParam;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct mfxCoreParam{
     mfxU32     reserved[13];
     mfxIMPL    Impl;
     mfxVersion Version;
     mfxU32     NumWorkingThread;
 } mfxCoreParam;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct mfxCoreInterface {
     mfxHDL pthis;
 
@@ -113,7 +120,9 @@ typedef struct mfxCoreInterface {
 
     mfxHDL reserved4[1];
 } mfxCoreInterface;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 /* video codec plugin extension */
 typedef struct _mfxENCInput mfxENCInput;
 typedef struct _mfxENCOutput mfxENCOutput;
@@ -139,7 +148,9 @@ typedef struct mfxVideoCodecPlugin{
     mfxHDL reserved1[3];
     mfxU32 reserved2[8];
 } mfxVideoCodecPlugin;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct mfxAudioCodecPlugin{
     mfxStatus (MFX_CDECL *Query)(mfxHDL pthis, mfxAudioParam *in, mfxAudioParam *out);
     mfxStatus (MFX_CDECL *QueryIOSize)(mfxHDL pthis, mfxAudioParam *par, mfxAudioAllocRequest *request);
@@ -157,7 +168,9 @@ typedef struct mfxAudioCodecPlugin{
     mfxHDL reserved1[6];
     mfxU32 reserved2[8];
 } mfxAudioCodecPlugin;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct mfxPlugin{
     mfxHDL pthis;
 
@@ -177,7 +190,7 @@ typedef struct mfxPlugin{
 
     mfxHDL reserved[8];
 } mfxPlugin;
-
+MFX_PACK_END()
 
 
 mfxStatus MFX_CDECL MFXVideoUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par);
