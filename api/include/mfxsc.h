@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@ enum
     MFX_EXTBUFF_SCREEN_CAPTURE_PARAM = MFX_MAKEFOURCC('S','C','P','A')
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct
 {
     mfxExtBuffer    Header;
@@ -42,6 +43,7 @@ typedef struct
     mfxU16          EnableCursorCapture;
     mfxU16          reserved[24];
 } mfxExtScreenCaptureParam;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } // extern "C"
