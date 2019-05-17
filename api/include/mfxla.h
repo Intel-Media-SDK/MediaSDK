@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,13 @@ extern "C"
 #endif /* __cplusplus */
 
 
-enum 
+enum
 {
     MFX_EXTBUFF_LOOKAHEAD_CTRL  =   MFX_MAKEFOURCC('L','A','C','T'),
     MFX_EXTBUFF_LOOKAHEAD_STAT  =   MFX_MAKEFOURCC('L','A','S','T'),
 };
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct
 {
     mfxExtBuffer    Header;
@@ -44,7 +44,7 @@ typedef struct
     mfxU16  BPyramid;
 
     mfxU16  reserved1[23];
-    
+
     mfxU16  NumOutStream;
     struct  mfxStream{
         mfxU16  Width;
@@ -52,7 +52,9 @@ typedef struct
         mfxU16  reserved2[14];
     } OutStream[16];
 }mfxExtLAControl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 typedef struct
 {
     mfxU16  Width;
@@ -69,8 +71,10 @@ typedef struct
     mfxU16  reserved[23];
 
     mfxU64 EstimatedRate[52];
-}mfxLAFrameInfo; 
+}mfxLAFrameInfo;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct  {
     mfxExtBuffer    Header;
 
@@ -79,11 +83,12 @@ typedef struct  {
     mfxU16  NumAlloc; //number of allocated mfxLAFrameInfo structures
     mfxU16  NumStream; //number of resolutions
     mfxU16  NumFrame; //number of frames for each resolution
-    mfxLAFrameInfo   *FrameStat; //frame statistics 
+    mfxLAFrameInfo   *FrameStat; //frame statistics
 
     mfxFrameSurface1 *OutSurface; //reordered surface
 
 } mfxExtLAFrameStatistics;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } // extern "C"
