@@ -22,7 +22,8 @@
 #include "mfxstructures.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif /* __cplusplus */
 
 #if MFX_VERSION >= 1030
@@ -37,12 +38,14 @@ enum {
     MFX_EXTBUFF_CENC_PARAM          = MFX_MAKEFOURCC('C','E','N','P')
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct _mfxExtCencParam{
     mfxExtBuffer Header;
 
     mfxU32 StatusReportIndex;
     mfxU32 reserved[15];
 } mfxExtCencParam;
+MFX_PACK_END()
 #endif
 
 #ifdef __cplusplus
