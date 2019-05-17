@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -93,6 +93,7 @@ enum
     MFX_AUDIO_AAC_JOINT_STEREO=    3
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32                CodecId;
     mfxU16                CodecProfile;
@@ -119,7 +120,9 @@ typedef struct {
         };
     };
 } mfxAudioInfoMFX;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxU16  AsyncDepth;
     mfxU16  Protected;
@@ -129,13 +132,17 @@ typedef struct {
     mfxExtBuffer**    ExtParam;
     mfxU16            NumExtParam;
 } mfxAudioParam;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32  SuggestedInputSize;
     mfxU32  SuggestedOutputSize;
     mfxU32  reserved[6];
 } mfxAudioAllocRequest;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 typedef struct {
     mfxU64  TimeStamp; /* 1/90KHz */
     mfxU16  Locked;
@@ -152,6 +159,7 @@ typedef struct {
     mfxU32  NumExtParam;
     mfxExtBuffer **ExtParam;
 } mfxAudioFrame;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 }
