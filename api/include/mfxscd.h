@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -44,12 +44,14 @@ enum {
     MFX_SCD_SCENE_NEW_PICTURE = MFX_SCD_SCENE_NEW_FIELD_1 | MFX_SCD_SCENE_NEW_FIELD_2
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
 
     mfxU16 SceneType;
     mfxU16 reserved[27];
 } mfxExtSCD;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } // extern "C"
