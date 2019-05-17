@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ extern "C"
 
 #if (MFX_VERSION >= 1027)
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
 
@@ -52,8 +53,9 @@ typedef struct {
 
     mfxU16  reserved0[107];
 } mfxExtFeiHevcEncFrameCtrl;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     struct {
         mfxU8   RefL0 : 4;
@@ -65,7 +67,9 @@ typedef struct {
 
     mfxI16Pair MV[4][2]; /* first index is predictor number, second is 0 for L0 and 1 for L1 */
 } mfxFeiHevcEncMVPredictors;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
@@ -75,8 +79,9 @@ typedef struct {
 
     mfxFeiHevcEncMVPredictors *Data;
 } mfxExtFeiHevcEncMVPredictors;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
@@ -86,8 +91,9 @@ typedef struct {
 
     mfxU8    *Data;
 } mfxExtFeiHevcEncQP;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32  ForceToIntra    : 1;
     mfxU32  ForceToInter    : 1;
@@ -95,8 +101,9 @@ typedef struct {
 
     mfxU32  reserved1[3];
 } mfxFeiHevcEncCtuCtrl;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer Header;
     mfxU32  VaBufferID;
@@ -106,7 +113,9 @@ typedef struct {
 
     mfxFeiHevcEncCtuCtrl *Data;
 } mfxExtFeiHevcEncCtuCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32      MaxFrameSize; /* in bytes */
@@ -114,14 +123,18 @@ typedef struct {
     mfxU16      reserved[8];
     mfxU8       DeltaQP[8];   /* list of delta QPs, only positive values */
 } mfxExtFeiHevcRepackCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32          NumPasses;
     mfxU16          reserved[58];
 } mfxExtFeiHevcRepackStat;
+MFX_PACK_END()
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct  {
     /* DWORD 0 */
     mfxU32    reserved0;
@@ -146,8 +159,9 @@ typedef struct  {
     /* DWORD 3 */
     mfxU32    reserved3;
 } mfxFeiHevcPakCtuRecordV0;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
@@ -157,8 +171,9 @@ typedef struct {
 
     mfxFeiHevcPakCtuRecordV0 *Data;
 } mfxExtFeiHevcPakCtuRecordV0;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct  {
     /* DWORD 0 */
     mfxU32    CuSize               : 2;
@@ -215,8 +230,9 @@ typedef struct  {
     mfxU32    TransformSkipU       : 16;
     mfxU32    TransformSkipV       : 16;
 } mfxFeiHevcPakCuRecordV0;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
@@ -226,14 +242,16 @@ typedef struct {
 
     mfxFeiHevcPakCuRecordV0 *Data;
 } mfxExtFeiHevcPakCuRecordV0;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32        BestDistortion;
     mfxU32        ColocatedCtuDistortion;
 } mfxFeiHevcDistortionCtu;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
@@ -243,6 +261,7 @@ typedef struct {
 
     mfxFeiHevcDistortionCtu *Data;
 } mfxExtFeiHevcDistortion;
+MFX_PACK_END()
 #endif
 
 
