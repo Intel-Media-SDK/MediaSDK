@@ -32,6 +32,7 @@ enum {
     MFX_EXTBUFF_BRC = MFX_MAKEFOURCC('E','B','R','C')
 };
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
 #if (MFX_VERSION >= 1026)
     mfxU32 reserved[23];
@@ -50,7 +51,9 @@ typedef struct {
     mfxU16 NumExtParam;
     mfxExtBuffer** ExtParam;
 } mfxBRCFrameParam;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxI32 QpY;             // Frame-level Luma QP
 #if (MFX_VERSION >= 1029)
@@ -67,6 +70,7 @@ typedef struct {
     mfxHDL reserved2;
 #endif
 } mfxBRCFrameCtrl;
+MFX_PACK_END()
 
 /* BRCStatus */
 enum {
@@ -77,16 +81,19 @@ enum {
     MFX_BRC_PANIC_SMALL_FRAME = 4  // Coded frame is too small, no further recoding possible - required padding to MinFrameSize
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32 MinFrameSize;    // Size in bytes, coded frame must be padded to when Status = MFX_BRC_PANIC_SMALL_FRAME
     mfxU16 BRCStatus;       // See BRCStatus enumerator
     mfxU16 reserved[25];
     mfxHDL reserved1;
 } mfxBRCFrameStatus;
+MFX_PACK_END()
 
 /* Structure contains set of callbacks to perform external bit-rate control.
 Can be attached to mfxVideoParam structure during encoder initialization.
 Turn mfxExtCodingOption2::ExtBRC option ON to make encoder use external BRC instead of native one. */
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer Header;
 
@@ -112,6 +119,7 @@ typedef struct {
 
     mfxHDL reserved1[10];
 } mfxExtBRC;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } // extern "C"
