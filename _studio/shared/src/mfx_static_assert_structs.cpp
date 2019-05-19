@@ -45,8 +45,8 @@
 /*  VC's IntelliSense calculates sizeof(object*) wrongly and marks several expressions by red lines. This is IntelliSense bug not ours*/
 
 #define MSDK_STATIC_ASSERT(COND, MSG)  static_assert(COND, MSG);
-#define MSDK_STATIC_ASSERT_STRUCT_SIZE(STRUCT, SIZE) MSDK_STATIC_ASSERT(sizeof(STRUCT) == SIZE, "size_of_"#STRUCT"_is_fixed");
-#define MSDK_STATIC_ASSERT_STRUCT_OFFSET(STRUCT, FIELD, OFFSET) MSDK_STATIC_ASSERT(offsetof(STRUCT, FIELD) == OFFSET,"offset_of_"#FIELD"_of_"#STRUCT"_is_fixed");
+#define MSDK_STATIC_ASSERT_STRUCT_SIZE(STRUCT, SIZE) MSDK_STATIC_ASSERT(sizeof(STRUCT) == SIZE, "struct size violation: sizeof "#STRUCT" was fixed to "#SIZE);
+#define MSDK_STATIC_ASSERT_STRUCT_OFFSET(STRUCT, FIELD, OFFSET) MSDK_STATIC_ASSERT(offsetof(STRUCT, FIELD) == OFFSET, "struct's field offset violation: offsetof "#STRUCT"::"#FIELD" was fixed to "#OFFSET);
 //mfxastructures.h
 #if defined (__MFXASTRUCTURES_H__)
     #if defined(LINUX64)
