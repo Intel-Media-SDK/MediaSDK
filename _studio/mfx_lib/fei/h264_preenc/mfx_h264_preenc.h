@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -73,7 +73,7 @@ private:
     std::list <mfxFrameSurface1*>                 m_SurfacesForOutput;
 
     std::unique_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
-    ENCODE_CAPS                                   m_caps;
+    MFX_ENCODE_CAPS                               m_caps;
 
     MfxHwH264Encode::MfxVideoParam                m_video;
     MfxHwH264Encode::PreAllocatedVector           m_sei;

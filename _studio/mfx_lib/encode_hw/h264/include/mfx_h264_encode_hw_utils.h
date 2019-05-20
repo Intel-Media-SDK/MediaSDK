@@ -305,7 +305,7 @@ namespace MfxHwH264Encode
         DdiTask const &       task);
 
     bool isBitstreamUpdateRequired(MfxVideoParam const & video,
-        ENCODE_CAPS caps,
+        MFX_ENCODE_CAPS caps,
         eMFXHWType platform);
     // Helper which checks number of allocated frames and auto-free.
 
@@ -406,13 +406,13 @@ namespace MfxHwH264Encode
 
     // add hwType param
     mfxStatus CheckEncodeFrameParam(
-        MfxVideoParam const & video,
-        mfxEncodeCtrl *       ctrl,
-        mfxFrameSurface1 *    surface,
-        mfxBitstream *        bs,
-        bool                  isExternalFrameAllocator,
-        ENCODE_CAPS const &   caps,
-        eMFXHWType            hwType = MFX_HW_UNKNOWN);
+        MfxVideoParam const &      video,
+        mfxEncodeCtrl *            ctrl,
+        mfxFrameSurface1 *         surface,
+        mfxBitstream *             bs,
+        bool                       isExternalFrameAllocator,
+        MFX_ENCODE_CAPS const &    caps,
+        eMFXHWType                 hwType = MFX_HW_UNKNOWN);
 
     template<typename T> void Clear(std::vector<T> & v)
     {
@@ -2095,7 +2095,7 @@ namespace MfxHwH264Encode
         MfxFrameAllocResponse   m_opaqResponse;     // Response for opaq
         MfxFrameAllocResponse   m_histogram;
 
-        ENCODE_CAPS             m_caps;
+        MFX_ENCODE_CAPS         m_caps;
         mfxStatus               m_failedStatus;
         mfxU32                  m_inputFrameType;
         mfxU32                  m_NumSlices;
@@ -2553,8 +2553,8 @@ namespace MfxHwH264Encode
         mfxU32                frameOrderInGop,
         mfxEncodeCtrl const * ctrl,
         mfxU16                intraStripeWidthInMBs,
-        SliceDivider &  divider,
-        ENCODE_CAPS     caps);
+        SliceDivider &        divider,
+        MFX_ENCODE_CAPS       caps);
 
     mfxStatus UpdateIntraRefreshWithoutIDR(
         MfxVideoParam const & oldPar,
@@ -2563,8 +2563,8 @@ namespace MfxHwH264Encode
         mfxI64                oldStartFrame,
         mfxI64 &              updatedStartFrame,
         mfxU16 &              updatedStripeWidthInMBs,
-        SliceDivider &  divider,
-        ENCODE_CAPS     caps);
+        SliceDivider &        divider,
+        MFX_ENCODE_CAPS       caps);
 
     BiFrameLocation GetBiFrameLocation(
         MfxVideoParam const & video,
@@ -2598,10 +2598,10 @@ namespace MfxHwH264Encode
         bool                  optimize);
 
     void ConfigureTask(
-        DdiTask &             task,
-        DdiTask const &       prevTask,
-        MfxVideoParam const & video,
-        ENCODE_CAPS const &   caps);
+        DdiTask &                 task,
+        DdiTask const &           prevTask,
+        MfxVideoParam const &     video,
+        MFX_ENCODE_CAPS const &   caps);
 
     mfxStatus GetNativeHandleToRawSurface(
         VideoCORE &           core,
