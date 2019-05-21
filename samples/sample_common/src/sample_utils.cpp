@@ -2466,24 +2466,29 @@ mfxStatus CH264FrameReader::PrepareNextFrame(mfxBitstream *in, mfxBitstream **ou
     return sts;
 }
 
-
-// 1 ms provides better result in range [0..5] ms
-#define DEVICE_WAIT_TIME 1
-
-// This function either performs synchronization using provided syncpoint, or just waits for predefined time if syncpoint is already 0 (this usually happens if syncpoint was already processed)
-void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint,mfxStatus& currentStatus)
+// This function either performs synchronization using provided syncpoint,
+// or just waits for predefined time if no available syncpoint
+void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint, mfxStatus& currentStatus)
 {
-    // Wait 1ms will be probably enough to device release
-    if (syncPoint) {
-        mfxStatus stsSync = session.SyncOperation(syncPoint, DEVICE_WAIT_TIME);
-        if (MFX_ERR_NONE == stsSync) {
-            // retire completed sync point (otherwise we may start active polling)
+    if (syncPoint)
+    {
+        mfxStatus stsSync = session.SyncOperation(syncPoint, MSDK_WAIT_INTERVAL);
+        if (MFX_ERR_NONE == stsSync)
+        {
+            // Retire completed sync point (otherwise we may start active polling)
             syncPoint = NULL;
-        } else if (stsSync < 0) {
-            currentStatus = stsSync;
+            currentStatus = MFX_ERR_NONE;
         }
-    } else {
-        MSDK_SLEEP(DEVICE_WAIT_TIME);
+        else
+        {
+            MSDK_TRACE_ERROR(MSDK_STRING("WaitForDeviceToBecomeFree: SyncOperation failed, sts = ") << stsSync);
+            currentStatus = MFX_ERR_ABORTED;
+        }
+    }
+    else
+    {
+        MSDK_SLEEP(1);
+        currentStatus = MFX_ERR_NONE;
     }
 }
 
