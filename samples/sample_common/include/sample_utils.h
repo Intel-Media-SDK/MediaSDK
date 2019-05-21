@@ -733,7 +733,7 @@ mfxStatus StrFormatToCodecFormatFourCC(msdk_char* strInput, mfxU32 &codecFormat)
 msdk_string StatusToString(mfxStatus sts);
 mfxI32 getMonitorType(msdk_char* str);
 
-void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint,mfxStatus& currentStatus);
+void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint, mfxStatus& currentStatus);
 
 mfxU16 FourCCToChroma(mfxU32 fourCC);
 
