@@ -13,4 +13,4 @@ list( APPEND LIBS sample_common)
 set(DEPENDENCIES libmfx dl pthread)
 make_library(sample_rotate_plugin none shared )
 
-install( TARGETS ${target} LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} )
+install( TARGETS ${target} LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} COMPONENT runtime )

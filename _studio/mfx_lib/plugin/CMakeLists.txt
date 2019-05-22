@@ -187,7 +187,7 @@ if( DEFINED H264LA_ENCODER_GUID )
   set( defs "${defs} ${version_defs}" )
   gen_plugins_cfg("H264la_Encoder" ${H264LA_ENCODER_GUID} ${plugin_name} "04" "AVC")
   make_library( ${plugin_name} hw shared)
-  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
+  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} COMPONENT runtime )
 endif()
 
 ###############################################################################
@@ -232,7 +232,7 @@ if( DEFINED HEVC_DECODER_HW_GUID )
   set( defs "${defs} ${version_defs}" )
   gen_plugins_cfg("HEVC_Decoder_HW" ${HEVC_DECODER_HW_GUID} ${plugin_name} "01" "HEVC")
   make_library( ${plugin_name} hw shared)
-  install( TARGETS ${plugin_name} ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
+  install( TARGETS ${plugin_name} ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} COMPONENT runtime )
 endif()
 
 ###############################################################################
@@ -278,7 +278,7 @@ if( DEFINED VP8_DECODER_HW_GUID )
   set( defs "${defs} ${version_defs}" )
   gen_plugins_cfg( "VP8_Decoder_HW" ${VP8_DECODER_HW_GUID} ${plugin_name} "01" "VP8" )
   make_library( ${plugin_name} hw shared)
-  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
+  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} COMPONENT runtime )
 endif()
 
 # =============================================================================
@@ -326,5 +326,5 @@ if( DEFINED VP9_DECODER_HW_GUID )
   set( defs "${defs} ${version_defs}" )
   gen_plugins_cfg( "VP9_Decoder_HW" ${VP9_DECODER_HW_GUID} ${plugin_name} "01" "VP9" )
   make_library( ${plugin_name} hw shared)
-  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
+  install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} COMPONENT runtime )
 endif()

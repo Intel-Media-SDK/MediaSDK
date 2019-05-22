@@ -222,8 +222,8 @@ get_mfx_version(mfx_version_major mfx_version_minor)
 set_target_properties(${mfxlibname} PROPERTIES   VERSION ${mfx_version_major}.${mfx_version_minor})
 set_target_properties(${mfxlibname} PROPERTIES SOVERSION ${mfx_version_major})
 
-install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR})
+install(TARGETS ${mfxlibname} LIBRARY DESTINATION ${MFX_MODULES_DIR} COMPONENT runtime )
 
 set( PKG_CONFIG_FNAME "${CMAKE_LIB_DIR}/${CMAKE_BUILD_TYPE}/lib${mfxlibname}.pc")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/pkg-config.pc.cmake" ${PKG_CONFIG_FNAME} @ONLY)
-install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig )
+install( FILES ${PKG_CONFIG_FNAME} DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT devel )

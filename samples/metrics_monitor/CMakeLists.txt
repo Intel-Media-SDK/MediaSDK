@@ -12,7 +12,7 @@ list( APPEND sources ${srcs})
 make_library( cttmetrics none shared )
 make_library( cttmetrics_static none static )
 
-install( TARGETS cttmetrics LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+install( TARGETS cttmetrics LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} COMPONENT runtime )
 
 # metrics_monitor sample
 
@@ -24,7 +24,7 @@ list( APPEND LIBS cttmetrics)
 
 make_executable( metrics_monitor none )
 
-install( TARGETS metrics_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+install( TARGETS metrics_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} COMPONENT runtime )
 
 # test_monitor
 

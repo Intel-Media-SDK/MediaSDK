@@ -202,3 +202,13 @@ message("  BUILD_TESTS                             : ${BUILD_TESTS}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("  BUILD_KERNELS                           : ${BUILD_KERNELS}")
 message("*****************************************************************************")
+
+set(CPACK_COMPONENTS_ALL runtime devel)
+set(CPACK_GENERATOR "RPM")
+set(CPACK_PACKAGE_NAME "intel-mediasdk")
+set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
+set(CPACK_RPM_runtime_FILE_NAME "${CPACK_PACKAGE_NAME}-runtime.${API_VERSION}.${CMAKE_SYSTEM_PROCESSOR}.rpm")
+set(CPACK_RPM_devel_FILE_NAME "${CPACK_PACKAGE_NAME}-devel.${API_VERSION}.${CMAKE_SYSTEM_PROCESSOR}.rpm")
+set(CPACK_RPM_COMPONENT_INSTALL "ON")
+include(CPack)
+

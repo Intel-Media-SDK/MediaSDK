@@ -12,4 +12,4 @@ set(DEPENDENCIES  libva libdrm wayland-client)
 
 make_library(mfx_wayland none shared )
 
-install( TARGETS ${target} LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} )
+install( TARGETS ${target} LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_LIB_DIR} COMPONENT runtime )

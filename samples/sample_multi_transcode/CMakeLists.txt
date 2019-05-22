@@ -13,4 +13,4 @@ set(DEPENDENCIES itt libmfx dl pthread)
 
 make_executable( shortname universal )
 
-install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+install( TARGETS ${target} RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} COMPONENT runtime )

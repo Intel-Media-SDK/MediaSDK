@@ -53,4 +53,4 @@ set( MFX_LDFLAGS "${MFX_ORIG_LDFLAGS} -Wl,--version-script=${MSDK_STUDIO_ROOT}/m
 set( defs "${defs} ${version_defs}" )
 gen_plugins_cfg( "VP9_Encoder_HW" ${VP9_Encoder_HW_GUID} ${plugin_name} "02" "VP9" )
 make_library( ${plugin_name} hw shared )
-install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} )
+install( TARGETS ${plugin_name} LIBRARY DESTINATION ${MFX_PLUGINS_DIR} COMPONENT runtime )

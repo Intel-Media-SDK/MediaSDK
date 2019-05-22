@@ -11,5 +11,5 @@ set(DEPENDENCIES pthread)
 
 make_executable( shortname universal )
 
-install( TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+install( TARGETS ${target} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT runtime )
 set( defs "" )
