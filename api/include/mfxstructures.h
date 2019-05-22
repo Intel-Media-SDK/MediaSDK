@@ -1787,8 +1787,8 @@ typedef struct {
 
 /* ScalingMatrixType */
 enum {
-    MFX_SCALING_MATRIX_SPS = 0,
-    MFX_SCALING_MATRIX_PPS = 1
+    MFX_SCALING_MATRIX_SPS = 1,
+    MFX_SCALING_MATRIX_PPS = 2
 };
 
 typedef struct {
