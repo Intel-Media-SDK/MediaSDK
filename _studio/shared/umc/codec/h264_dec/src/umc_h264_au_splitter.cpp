@@ -40,9 +40,16 @@ SeiPayloadArray::SeiPayloadArray()
 SeiPayloadArray::SeiPayloadArray(const SeiPayloadArray & payloads)
 {
     size_t count = payloads.GetPayloadCount();
-    for (size_t i = 0; i < count; i++)
+    if (count == 0)
     {
-        AddPayload(payloads.GetPayload(i));
+        SeiPayloadArray();
+    }
+    else
+    {
+        for (size_t i = 0; i < count; i++)
+        {
+            AddPayload(payloads.GetPayload(i));
+        }
     }
 }
 
