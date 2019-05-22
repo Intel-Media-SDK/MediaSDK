@@ -40,10 +40,33 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <time.h>
 #include <unistd.h>
 #include <i915_drm.h>
+#include <xf86drm.h>
+
+static bool has_param(int fd, int param)
+{
+    drm_i915_getparam_t gp;
+    int tmp = 0;
+
+    memset(&gp, 0, sizeof(gp));
+    gp.value = &tmp;
+    gp.param = param;
+
+    if (drmIoctl(fd, DRM_IOCTL_I915_GETPARAM, &gp))
+    {
+        return false;
+    }
+
+    return tmp > 0;
+}
 
 static bool is_engine_config(uint64_t config)
 {
     return config < __I915_PMU_OTHER(0);
+}
+
+static uint8_t get_engine_sample(uint64_t config)
+{
+    return config & I915_PMU_SAMPLE_MASK;
 }
 
 static int get_engine_id(uint64_t config)
@@ -141,59 +164,82 @@ struct pmu_metrics {
     struct metrics_group* groups;
 };
 
+struct i915_pmu_collector_ctx_t
+{
+    bool initialized;
+    unsigned int sample_period_us;
+    unsigned int metrics_count;
+
+    unsigned int user_idx_map[CTT_MAX_METRIC_COUNT];
+    unsigned int pm_idx_map[CTT_MAX_METRIC_COUNT];
+    cttMetric metrics[CTT_MAX_METRIC_COUNT];
+
+    pmu_metrics pm;
+
+    int gem_fd;
+    bool has_semaphores;
+    bool has_preemption;
+};
+
 /* Order of metrics in configs[] is important:
   - don't mix samples of different engines;
   - don't mix global metrics and engine metrics; */
-static int perf_init(struct pmu_metrics *pm, int num_configs, int configs[])
+static int perf_init(struct i915_pmu_collector_ctx_t *ctx, int num_configs, int configs[])
 {
     int i, res;
 
-    memset(pm, 0, sizeof(struct pmu_metrics));
-    pm->fd = -1;
-    pm->read_format =
+    memset(&ctx->pm, 0, sizeof(struct pmu_metrics));
+    ctx->pm.fd = -1;
+    ctx->pm.read_format =
         PERF_FORMAT_TOTAL_TIME_ENABLED |
         PERF_FORMAT_GROUP;
-    pm->groups = (struct metrics_group*)calloc(num_configs, sizeof(struct metrics_group));
-    if (!pm->groups)
+    ctx->pm.groups = (struct metrics_group*)calloc(num_configs, sizeof(struct metrics_group));
+    if (!ctx->pm.groups)
         return -1;
 
     if (!num_configs)
         return -1;
 
-    pm->num_groups = 0;
+    ctx->pm.num_groups = 0;
 
     int prev_config_id = is_engine_config(configs[0]) ? get_engine_id(configs[0]) : configs[0];
 
     /* Code block below will put per engine configs in the same groups,
      * all global metrics in their own groups */
     for (i = 0; i < num_configs; ++i) {
+
+        bool is_sema_or_wait_config = is_engine_config(configs[i]) && (I915_SAMPLE_BUSY != get_engine_sample(configs[i]));
+        /* Skip SEMA/WAIT configs if semaphores are not enabled in i915 scheduler or they're enabled but preemption is missing */
+        if (is_sema_or_wait_config && (!ctx->has_semaphores || !ctx->has_preemption))
+            continue;
+        
         int config_id = is_engine_config(configs[i]) ? get_engine_id(configs[i]) : configs[i];
         if (prev_config_id != config_id) {
-            pm->num_groups++;
+            ctx->pm.num_groups++;
             prev_config_id = config_id;
         }
 
-        if (pm->fd < 0)
-            res = pm->fd = perf_i915_open(configs[i], -1, pm->read_format);
+        if (ctx->pm.fd < 0)
+            res = ctx->pm.fd = perf_i915_open(configs[i], -1, ctx->pm.read_format);
         else
-            res = perf_i915_open(configs[i], pm->fd, pm->read_format);
+            res = perf_i915_open(configs[i], ctx->pm.fd, ctx->pm.read_format);
         if (res >= 0) {
             if (is_engine_config(configs[i])) {
                 int sample_type = I915_PMU_SAMPLE_MASK & configs[i];
-                pm->groups[pm->num_groups].num_metrics++;
-                pm->groups[pm->num_groups].metrics[sample_type].config = configs[i];
+                ctx->pm.groups[ctx->pm.num_groups].num_metrics++;
+                ctx->pm.groups[ctx->pm.num_groups].metrics[sample_type].config = configs[i];
             }
             else {
-                pm->groups[pm->num_groups].num_metrics = 1;
-                pm->groups[pm->num_groups].metrics[0].config = configs[i]; // For global, let's use metrics[0] field
+                ctx->pm.groups[ctx->pm.num_groups].num_metrics = 1;
+                ctx->pm.groups[ctx->pm.num_groups].metrics[0].config = configs[i]; // For global, let's use metrics[0] field
             }
 
-            pm->num_metrics++;
+            ctx->pm.num_metrics++;
         }
     }
 
     if (res >= 0)
-        pm->num_groups++; /* For last config in the list */
+        ctx->pm.num_groups++; /* For last config in the list */
 
     return 0;
 }
@@ -257,19 +303,6 @@ static uint64_t perf_elapsed_time(struct metric* m)
     return m->end.time - m->start.time;
 }
 
-struct i915_pmu_collector_ctx_t
-{
-    bool initialized;
-    unsigned int sample_period_us;
-    unsigned int metrics_count;
-
-    unsigned int user_idx_map[CTT_MAX_METRIC_COUNT];
-    unsigned int pm_idx_map[CTT_MAX_METRIC_COUNT];
-    cttMetric metrics[CTT_MAX_METRIC_COUNT];
-
-    pmu_metrics pm;
-};
-
 static i915_pmu_collector_ctx_t g_ctx = {
     .initialized  = false,
 };
@@ -280,15 +313,25 @@ cttStatus CTTMetrics_PMU_Init()
     /* When adding new condigs, don't mix metrics from different groups!*/
     int configs[] = {
         /* Render engine metrics */
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_RENDER, 0), /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_RENDER, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_RENDER, 0),*/
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_RENDER, 0),
+        I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_RENDER, 0),
+        I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_RENDER, 0),
         /* VDBOX metrics */
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 0),  /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO, 0),*/
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 0),
+        I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO, 0),
+        I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO, 0),
         /* 2nd VDBOX metrics */
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 1),  /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO, 1), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO, 1),*/
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO, 1),
+        I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO, 1),
+        I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO, 1),
         /* Blitter metrics */
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_COPY, 0),   /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_COPY, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_COPY, 0),*/
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_COPY, 0),
+        I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_COPY, 0),
+        I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_COPY, 0),
         /* VEBOX metrics */
-        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0), /*I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0), I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0),*/
+        I915_PMU_ENGINE_BUSY(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0),
+        I915_PMU_ENGINE_WAIT(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0),
+        I915_PMU_ENGINE_SEMA(I915_ENGINE_CLASS_VIDEO_ENHANCE, 0),
         /* Global metrics */
         I915_PMU_ACTUAL_FREQUENCY,
     };
@@ -304,7 +347,14 @@ cttStatus CTTMetrics_PMU_Init()
     if (CTT_ERR_NONE != status)
         return status;
 
-    if (0 == perf_init(&g_ctx.pm, num_configs, configs)) {
+    g_ctx.gem_fd = drmOpenWithType("i915", NULL, DRM_NODE_RENDER);
+    if (g_ctx.gem_fd >= 0) {
+        g_ctx.has_semaphores = has_param(g_ctx.gem_fd, I915_PARAM_HAS_SEMAPHORES);
+        g_ctx.has_preemption = has_param(g_ctx.gem_fd, I915_SCHEDULER_CAP_PREEMPTION);
+    } else
+        return CTT_ERR_DRIVER_NOT_FOUND;
+
+    if (0 == perf_init(&g_ctx, num_configs, configs)) {
         for (unsigned int i = 0; i < g_ctx.pm.num_groups; ++i) {
             g_ctx.pm_idx_map[g_ctx.metrics_count] = i;
             switch (g_ctx.pm.groups[i].metrics[0].config) {
@@ -350,6 +400,9 @@ void CTTMetrics_PMU_Close()
 
     if (g_ctx.pm.fd != -1) {
         perf_close(&g_ctx.pm);
+    }
+    if (g_ctx.gem_fd != -1) {
+        close(g_ctx.gem_fd);
     }
     memset(&g_ctx, 0, sizeof(g_ctx));
     g_ctx.initialized = false;
@@ -458,6 +511,7 @@ cttStatus CTTMetrics_PMU_GetValue(unsigned int count, float* out_metric_values)
 
     unsigned int metric_idx, pm_metric_idx;
     double value;
+    double time;
 
     if (g_ctx.pm.num_groups && 0 != perf_read(&g_ctx.pm))
         return CTT_ERR_DRIVER_NO_INSTRUMENTATION;
@@ -477,13 +531,35 @@ cttStatus CTTMetrics_PMU_GetValue(unsigned int count, float* out_metric_values)
             group = &g_ctx.pm.groups[pm_metric_idx];
 
             value = perf_elapsed(&group->metrics[I915_SAMPLE_BUSY]);
+            time = (double)perf_elapsed_time(&group->metrics[I915_SAMPLE_BUSY]);
+
+            double value_sema = 0, value_wait = 0;
+            double time_sema = 0, time_wait = 0;
+            bool is_sema_and_wait_available = is_engine_config(group->metrics[I915_SAMPLE_BUSY].config) && (3 == group->num_metrics);
+
+            if (is_sema_and_wait_available) {
+                value_sema = perf_elapsed(&group->metrics[I915_SAMPLE_SEMA]);
+                time_sema = (double)perf_elapsed_time(&group->metrics[I915_SAMPLE_SEMA]);
+
+                value_wait = perf_elapsed(&group->metrics[I915_SAMPLE_WAIT]);
+                time_wait = (double)perf_elapsed_time(&group->metrics[I915_SAMPLE_WAIT]);
+            }
+
             if (g_ctx.metrics[metric_idx] == CTT_AVG_GT_FREQ) {
                 value *= 1000000000; // to compensate time in ns
             }
             else {
                 value *= 100; // we need %
+                value_sema *= 100;
+                value_wait *= 100;
             }
-            value /= (double)perf_elapsed_time(&group->metrics[I915_SAMPLE_BUSY]);
+
+            value /= time;
+            if (is_sema_and_wait_available) {
+                value_sema /= time_sema;
+                value_wait /= time_wait;
+                value -= value_sema + value_wait; // Substract sema and wait from busy metric
+            }
         } else {
             value = 0.0; // not subscribed/unavailable metrics are always idle
         }
