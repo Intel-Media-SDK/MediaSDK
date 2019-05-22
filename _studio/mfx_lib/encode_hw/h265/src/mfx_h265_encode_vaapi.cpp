@@ -1008,6 +1008,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.MaxNumOfROI = 0;
     }
 
+    m_caps.IntraRefreshBlockUnitSize = 2;
+
 
     return MFX_ERR_NONE;
 }
