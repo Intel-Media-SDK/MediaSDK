@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -355,46 +355,48 @@ static mfxU16 CheckLookAheadDependency(mfxU16 dep, mfxU16 /*tu*/)
     if (dep != 0) return dep;
     return 10;
 }
-static void InitHWCaps(tagENCODE_CAPS &hwCaps)
+static void InitHWCaps(MFX_ENCODE_CAPS &hwCaps)
 {
-    memset (&hwCaps, 0, sizeof(tagENCODE_CAPS));
+    memset (&hwCaps, 0, sizeof(MFX_ENCODE_CAPS));
+    hwCaps.ddi_caps.CodingLimitSet=1;
+    hwCaps.ddi_caps.NoFieldFrame=1;
+    hwCaps.ddi_caps.NoGapInFrameCount=1;
+    hwCaps.ddi_caps.NoGapInPicOrder=1;
+    hwCaps.ddi_caps.NoUnpairedField=1;
+    hwCaps.ddi_caps.BitDepth8Only=1;
+    hwCaps.ddi_caps.ConsecutiveMBs=1;
+    hwCaps.ddi_caps.SliceStructure=4;
+    hwCaps.ddi_caps.NoWeightedPred=1;
+    hwCaps.ddi_caps.ClosedGopOnly=1;
+    hwCaps.ddi_caps.NoFrameCropping=1;
+    hwCaps.ddi_caps.FrameLevelRateCtrl=1;
+    hwCaps.ddi_caps.RawReconRefToggle=1;
+    hwCaps.ddi_caps.BRCReset=1; 
+    hwCaps.ddi_caps.RollingIntraRefresh=1;
+    hwCaps.ddi_caps.UserMaxFrameSizeSupport = 1;
+    hwCaps.ddi_caps.VCMBitrateControl=1;
+    hwCaps.ddi_caps.NoESS=1;
+    hwCaps.ddi_caps.Color420Only=1;
+    hwCaps.ddi_caps.ICQBRCSupport=1;
+    hwCaps.ddi_caps.EncFunc=1;
+    hwCaps.ddi_caps.EncodeFunc=1;
 
-    hwCaps.CodingLimitSet=1;
-    hwCaps.NoFieldFrame=1;
-    hwCaps.NoGapInFrameCount=1;
-    hwCaps.NoGapInPicOrder=1;
-    hwCaps.NoUnpairedField=1;
-    hwCaps.BitDepth8Only=1;
-    hwCaps.ConsecutiveMBs=1;
-    hwCaps.SliceStructure=4;
-    hwCaps.NoWeightedPred=1;
-    hwCaps.ClosedGopOnly=1;
-    hwCaps.NoFrameCropping=1;
-    hwCaps.FrameLevelRateCtrl=1;
-    hwCaps.RawReconRefToggle=1;
-    hwCaps.BRCReset=1; 
-    hwCaps.RollingIntraRefresh=1;
-    hwCaps.UserMaxFrameSizeSupport = 1;
-    hwCaps.VCMBitrateControl=1;    
-    hwCaps.NoESS=1;
-    hwCaps.Color420Only=1;
-    hwCaps.ICQBRCSupport=1;
-    hwCaps.EncFunc=1;
-    hwCaps.EncodeFunc=1;
-    
-    hwCaps.MaxPicWidth=4096;
-    hwCaps.MaxPicHeight=4096;
-    hwCaps.MaxNum_Reference=8;
-    hwCaps.MaxNum_SPS_id=32; 
-    hwCaps.MaxNum_PPS_id=255 ;
-    hwCaps.MaxNum_Reference1=2 ;
-    hwCaps.MBBRCSupport=1; 
-    hwCaps.MaxNumOfROI=4 ;
-    
-    hwCaps.SkipFrame=1;
-    hwCaps.MbQpDataSupport=1;
-    hwCaps.QVBRBRCSupport=1;
-    
+    hwCaps.ddi_caps.MaxPicWidth=4096;
+    hwCaps.ddi_caps.MaxPicHeight=4096;
+    hwCaps.ddi_caps.MaxNum_Reference=8;
+    hwCaps.ddi_caps.MaxNum_SPS_id=32;
+    hwCaps.ddi_caps.MaxNum_PPS_id=255 ;
+    hwCaps.ddi_caps.MaxNum_Reference1=2 ;
+    hwCaps.ddi_caps.MBBRCSupport=1; 
+    hwCaps.ddi_caps.MaxNumOfROI=4 ;
+
+    hwCaps.ddi_caps.SkipFrame=1;
+    hwCaps.ddi_caps.MbQpDataSupport=1;
+    hwCaps.ddi_caps.QVBRBRCSupport=1;
+
+    hwCaps.CQPSupport=1;
+    hwCaps.VBRSupport=1;
+    hwCaps.CBRSupport=1;
 }
 
 mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
@@ -448,7 +450,7 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
         MFX_CHECK_STS (InitEncoderParameters(par, &par_enc));    
         m_video = par_enc;
     
-         ENCODE_CAPS hwCaps = {};
+         MFX_ENCODE_CAPS hwCaps = {};
         //MfxHwH264Encode::QueryHwCaps(m_core, hwCaps, MSDK_Private_Guid_Encode_AVC_Query);
         InitHWCaps(hwCaps);
         sts = MfxHwH264Encode::CheckVideoParam(m_video, hwCaps, m_core->IsExternalFrameAllocator(), m_core->GetHWType());

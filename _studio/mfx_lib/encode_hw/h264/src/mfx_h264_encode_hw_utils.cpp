@@ -217,7 +217,7 @@ namespace MfxHwH264Encode
     }
 
     bool isBitstreamUpdateRequired(MfxVideoParam const & video,
-        ENCODE_CAPS caps,
+        MFX_ENCODE_CAPS caps,
         eMFXHWType )
     {
         if(video.Protected)
@@ -230,7 +230,7 @@ namespace MfxHwH264Encode
             return video.calcParam.numTemporalLayer > 0;
         else if(extOpt2.MaxSliceSize)
             return true;
-        else if(caps.HeaderInsertion == 1)
+        else if(caps.ddi_caps.HeaderInsertion == 1)
             return true;
         return false;
     }
@@ -2910,13 +2910,13 @@ void MfxHwH264Encode::ReleaseResource(
 
 
 mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
-    MfxVideoParam const & video,
-    mfxEncodeCtrl *       ctrl,
-    mfxFrameSurface1 *    surface,
-    mfxBitstream *        bs,
-    bool                  isExternalFrameAllocator,
-    ENCODE_CAPS const &   caps,
-    eMFXHWType            hwType)
+    MfxVideoParam const &     video,
+    mfxEncodeCtrl *           ctrl,
+    mfxFrameSurface1 *        surface,
+    mfxBitstream *            bs,
+    bool                      isExternalFrameAllocator,
+    MFX_ENCODE_CAPS const &   caps,
+    eMFXHWType                hwType)
 {
     mfxStatus checkSts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(bs);

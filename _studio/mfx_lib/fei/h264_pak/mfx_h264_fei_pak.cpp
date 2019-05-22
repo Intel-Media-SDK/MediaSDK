@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -264,7 +264,7 @@ mfxStatus VideoPAK_PAK::QueryIOSurf(VideoCORE *core , mfxVideoParam *par, mfxFra
         par->AsyncDepth == 1,
         MFX_ERR_INVALID_VIDEO_PARAM);
 
-    ENCODE_CAPS hwCaps {};
+    MFX_ENCODE_CAPS hwCaps {};
     mfxStatus sts = QueryHwCaps(core, hwCaps, par);
     MFX_CHECK_STS(sts);
 

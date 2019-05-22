@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -314,6 +314,15 @@ typedef struct tagENCODE_CAPS
     UCHAR    MaxNum_WeightedPredL1;
 } ENCODE_CAPS;
 
+// We cannot modify ENCODE_CAPS structure, but need to add new features
+struct MFX_ENCODE_CAPS
+{
+    ENCODE_CAPS ddi_caps;
+    //bitrate control capabilities provided by MSDK
+    bool CQPSupport;
+    bool CBRSupport;
+    bool VBRSupport;
+};
 
 // this enumeration is used to define the block size for intra prediction. they
 // are used as bit flags to control what block size will be checked for intra

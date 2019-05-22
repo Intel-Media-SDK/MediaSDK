@@ -104,7 +104,7 @@ namespace MfxHwH264Encode
         std::vector<ExtVASurface> const & reconQueue);
 
     void UpdateSlice(
-        ENCODE_CAPS const &                         hwCaps,
+        MFX_ENCODE_CAPS const &                     hwCaps,
         DdiTask const &                             task,
         mfxU32                                      fieldId,
         VAEncSequenceParameterBufferH264 const     & sps,
@@ -165,7 +165,7 @@ namespace MfxHwH264Encode
 
         virtual
         mfxStatus QueryEncodeCaps(
-            ENCODE_CAPS& caps);
+            MFX_ENCODE_CAPS& caps);
 
         virtual
         mfxStatus QueryMbPerSec(
@@ -270,7 +270,7 @@ namespace MfxHwH264Encode
         mfxU32 m_height;
         mfxU32 m_userMaxFrameSize;  // current MaxFrameSize from user.
         mfxU32 m_mbbrc;
-        ENCODE_CAPS m_caps;
+        MFX_ENCODE_CAPS m_caps;
 /*
  * Current RollingIntraRefresh state, as it came through the task state and passing to DDI in PPS
  * for Windows we keep it here to send update by VAMapBuffer as happened.
