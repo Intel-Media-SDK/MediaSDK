@@ -3361,7 +3361,8 @@ mfxU8 GetSHNUT(Task const & task, bool RAPIntra)
 IntraRefreshState GetIntraRefreshState(
     MfxVideoParam const & video,
     mfxU32                frameOrderInGopDispOrder,
-    mfxEncodeCtrl const * ctrl)
+    mfxEncodeCtrl const * ctrl,
+    ENCODE_CAPS_HEVC const& caps)
 {
     IntraRefreshState state={};
     const mfxExtCodingOption2*   extOpt2Init = &(video.m_ext.CO2);
@@ -3393,9 +3394,9 @@ IntraRefreshState GetIntraRefreshState(
     if (idxInActualRefreshCycle < 0)
         return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
 
-    state.refrType = extOpt2Init->IntRefType;
-    state.IntraSize = intraStripeWidthInMBs;
-    state.IntraLocation = (mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs;
+    state.refrType      = extOpt2Init->IntRefType;
+    state.IntraSize     = intraStripeWidthInMBs                                     << (3 - caps.IntraRefreshBlockUnitSize);
+    state.IntraLocation = ((mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs) << (3 - caps.IntraRefreshBlockUnitSize);
     // set QP for Intra macroblocks within refreshing line
     state.IntRefQPDelta = extOpt2Init->IntRefQPDelta;
     if (ctrl)
@@ -3534,7 +3535,8 @@ void ConfigureTask(
         task.m_IRState = GetIntraRefreshState(
             par,
             baseLayerOrder ++,
-            &(task.m_ctrl));
+            &(task.m_ctrl),
+            caps);
     }
 
      mfxU32 needRecoveryPointSei = (par.m_ext.CO.RecoveryPointSEI == MFX_CODINGOPTION_ON &&
