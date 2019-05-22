@@ -381,6 +381,7 @@ mfxStatus SetRateControl(
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
     VAEncMiscParameterRateControl *rate_param;
+    mfxExtCodingOption3 const & extOpt3 = par.m_ext.CO3;
 
     mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, rateParamBuf_id);
     MFX_CHECK_STS(sts);
@@ -417,6 +418,10 @@ mfxStatus SetRateControl(
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
         rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
+#ifdef MFX_ENABLE_QVBR
+    else if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
+        rate_param->quality_factor = extOpt3.QVBRQuality;
+#endif
 
     rate_param->initial_qp = par.m_pps.init_qp_minus26 + 26;
 
