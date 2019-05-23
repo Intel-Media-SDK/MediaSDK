@@ -129,6 +129,9 @@ namespace UMC_HEVC_DECODER
         for(; index < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures(); index++)
                 pocList[numRefPicSetStCurrBefore + numRefPicSetStCurrAfter++] = picParam->CurrPic.pic_order_cnt + rps->getDeltaPOC(index);
 
+        if(!(supplier->GetDPBList()))
+            throw h265_exception(UMC_ERR_FAILED);
+
         for(; index < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures() + rps->getNumberOfLongtermPictures(); index++)
         {
             int32_t poc = rps->getPOC(index);
