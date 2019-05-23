@@ -1,6 +1,6 @@
 /***********************************************************************************
 
-Copyright (C) 2018 Intel Corporation.  All rights reserved.
+Copyright (C) 2018-2019 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -39,48 +39,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
-
-enum drm_i915_gem_engine_class {
-    I915_ENGINE_CLASS_RENDER        = 0,
-    I915_ENGINE_CLASS_COPY          = 1,
-    I915_ENGINE_CLASS_VIDEO         = 2,
-    I915_ENGINE_CLASS_VIDEO_ENHANCE = 3,
-
-    I915_ENGINE_CLASS_INVALID       = -1
-};
-
-enum drm_i915_pmu_engine_sample {
-    I915_SAMPLE_BUSY = 0,
-    I915_SAMPLE_WAIT = 1,
-    I915_SAMPLE_SEMA = 2
-};
-
-#define I915_PMU_SAMPLE_BITS (4)
-#define I915_PMU_SAMPLE_MASK (0xf)
-#define I915_PMU_SAMPLE_INSTANCE_BITS (8)
-#define I915_PMU_CLASS_SHIFT \
-    (I915_PMU_SAMPLE_BITS + I915_PMU_SAMPLE_INSTANCE_BITS)
-
-#define __I915_PMU_ENGINE(class, instance, sample) \
-    ((class) << I915_PMU_CLASS_SHIFT | \
-    (instance) << I915_PMU_SAMPLE_BITS | \
-    (sample))
-
-#define I915_PMU_ENGINE_BUSY(class, instance) \
-    __I915_PMU_ENGINE(class, instance, I915_SAMPLE_BUSY)
-
-#define I915_PMU_ENGINE_WAIT(class, instance) \
-    __I915_PMU_ENGINE(class, instance, I915_SAMPLE_WAIT)
-
-#define I915_PMU_ENGINE_SEMA(class, instance) \
-    __I915_PMU_ENGINE(class, instance, I915_SAMPLE_SEMA)
-
-#define __I915_PMU_OTHER(x) (__I915_PMU_ENGINE(0xff, 0xff, 0xf) + 1 + (x))
-
-#define I915_PMU_ACTUAL_FREQUENCY	__I915_PMU_OTHER(0)
-#define I915_PMU_REQUESTED_FREQUENCY	__I915_PMU_OTHER(1)
-
-#define I915_PMU_LAST I915_PMU_REQUESTED_FREQUENCY
+#include <i915_drm.h>
 
 static bool is_engine_config(uint64_t config)
 {

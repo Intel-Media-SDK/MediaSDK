@@ -1,34 +1,41 @@
 # metrics_monitor library
 
-include_directories (
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/
-)
+pkg_check_modules(PKG_LIBDRM libdrm>=2.4.92)
 
-set( sources "" )
+if( PKG_LIBDRM_FOUND)
 
-file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" )
-list( APPEND sources ${srcs})
+    include_directories (
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    )
 
-make_library( cttmetrics none shared )
-make_library( cttmetrics_static none static )
+    set( sources "" )
 
-install( TARGETS cttmetrics LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+    file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp" )
+    list( APPEND sources ${srcs})
 
-# metrics_monitor sample
+    set(DEPENDENCIES libdrm )
 
-set( sources "" )
+    make_library( cttmetrics none shared )
+    make_library( cttmetrics_static none static )
 
-file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/sample/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND LIBS cttmetrics)
+    install( TARGETS cttmetrics LIBRARY DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
 
-make_executable( metrics_monitor none )
+    # metrics_monitor sample
 
-install( TARGETS metrics_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+    set( sources "" )
+
+    file( GLOB_RECURSE srcs "${CMAKE_CURRENT_SOURCE_DIR}/sample/*.cpp" )
+    list( APPEND sources ${srcs})
+    list( APPEND LIBS cttmetrics)
+
+    make_executable( metrics_monitor none )
+
+    install( TARGETS metrics_monitor RUNTIME DESTINATION ${MFX_SAMPLES_INSTALL_BIN_DIR} )
+
+endif()
 
 # test_monitor
 
-pkg_check_modules(PKG_LIBDRM    libdrm)
 pkg_check_modules(PKG_PCIACCESS pciaccess)
 
 if( PKG_LIBDRM_FOUND AND
