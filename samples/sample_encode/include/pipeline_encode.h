@@ -199,6 +199,7 @@ struct sInputParams
 
     EPresetModes PresetMode;
     bool shouldPrintPresets;
+    bool DisablePresets;
 
 #if defined (ENABLE_V4L2_SUPPORT)
     msdk_char DeviceName[MSDK_MAX_FILENAME_LEN];

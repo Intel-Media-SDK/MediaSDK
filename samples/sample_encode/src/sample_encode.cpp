@@ -173,7 +173,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
 #endif
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
     msdk_printf(MSDK_STRING("   [-preset <default,dss,conference,gaming>] - Use particular preset for encoding parameters\n"));
-    msdk_printf(MSDK_STRING("   [-pp] - Print preset parameters\n"));    msdk_printf(MSDK_STRING("\nExample: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
+    msdk_printf(MSDK_STRING("   [-pp] - Print preset parameters\n"));
+    msdk_printf(MSDK_STRING("   [-disable_presets] - Do not use presets\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d] - work with d3d surfaces\n"));
     msdk_printf(MSDK_STRING("   [-d3d11] - work with d3d11 surfaces\n"));
@@ -992,6 +993,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->shouldPrintPresets = true;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-disable_presets")))
+        {
+            pParams->DisablePresets = true;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-preset")))
         {
             msdk_char presetName[MSDK_MAX_FILENAME_LEN];
@@ -1541,7 +1546,10 @@ int main(int argc, char *argv[])
 
     // Parsing Input stream workign with presets
     sts = ParseInputString(argv, (mfxU8)argc, &Params);
-    ModifyParamsUsingPresets(Params);
+    if (!Params.DisablePresets)
+    {
+        ModifyParamsUsingPresets(Params);
+    }
 
     MSDK_CHECK_PARSE_RESULT(sts, MFX_ERR_NONE, 1);
 
