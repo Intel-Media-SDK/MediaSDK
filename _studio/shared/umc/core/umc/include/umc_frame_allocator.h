@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 #include "umc_structures.h"
 #include "umc_dynamic_cast.h"
 #include "umc_mutex.h"
+#include <mutex>
 
 #define FMID_INVALID 0
 
@@ -92,7 +93,7 @@ public:
     virtual Status DecreaseReference(FrameMemID MID) = 0;
 
 protected:
-    Mutex m_guard;
+    std::recursive_mutex m_guard;
 
 private:
     // Declare private copy constructor to avoid accidental assignment

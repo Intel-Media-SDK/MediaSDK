@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ mfx_UMC_MemAllocator::~mfx_UMC_MemAllocator()
 
 UMC::Status mfx_UMC_MemAllocator::InitMem(UMC::MemoryAllocatorParams *, VideoCORE* mfxCore)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     UMC::Status Sts = UMC::UMC_OK;
     if(!mfxCore)
@@ -48,7 +48,7 @@ UMC::Status mfx_UMC_MemAllocator::InitMem(UMC::MemoryAllocatorParams *, VideoCOR
 
 UMC::Status mfx_UMC_MemAllocator::Close()
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     UMC::Status sts = UMC::UMC_OK;
     m_pCore = 0;
@@ -57,7 +57,7 @@ UMC::Status mfx_UMC_MemAllocator::Close()
 
 UMC::Status mfx_UMC_MemAllocator::Alloc(UMC::MemID *pNewMemID, size_t Size, uint32_t , uint32_t )
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     mfxMemId memId;
     mfxStatus Sts = m_pCore->AllocBuffer((mfxU32)Size, /*MFX_MEMTYPE_PERSISTENT_MEMORY*/ MFX_MEMTYPE_SYSTEM_MEMORY, &memId);
@@ -68,7 +68,7 @@ UMC::Status mfx_UMC_MemAllocator::Alloc(UMC::MemID *pNewMemID, size_t Size, uint
 
 void* mfx_UMC_MemAllocator::Lock(UMC::MemID MID)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     mfxStatus Sts = MFX_ERR_NONE;
 
@@ -82,7 +82,7 @@ void* mfx_UMC_MemAllocator::Lock(UMC::MemID MID)
 
 UMC::Status mfx_UMC_MemAllocator::Unlock(UMC::MemID MID)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     UMC::Status sts = UMC::UMC_OK;
     m_pCore->UnlockBuffer((mfxHDL)(MID - 1));
@@ -91,7 +91,7 @@ UMC::Status mfx_UMC_MemAllocator::Unlock(UMC::MemID MID)
 
 UMC::Status mfx_UMC_MemAllocator::Free(UMC::MemID MID)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     m_pCore->FreeBuffer((mfxHDL)(MID - 1));
     return UMC::UMC_OK;
@@ -249,7 +249,7 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
                                             bool isUseExternalFrames,
                                             bool isSWplatform)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     m_isSWDecode = isSWplatform;
 
@@ -355,9 +355,10 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
 
 UMC::Status mfx_UMC_FrameAllocator::Close()
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
-
     Reset();
+
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
+
     m_frameDataInternal.Close();
     m_extSurfaces.clear();
     return UMC::UMC_OK;
@@ -375,7 +376,7 @@ void mfx_UMC_FrameAllocator::SetExternalFramesResponse(mfxFrameAllocResponse *re
 
 UMC::Status mfx_UMC_FrameAllocator::Reset()
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     m_curIndex = -1;
     mfxStatus sts = MFX_ERR_NONE;
@@ -414,13 +415,13 @@ UMC::Status mfx_UMC_FrameAllocator::GetFrameHandle(UMC::FrameMemID memId, void *
 
 UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC::VideoDataInfo * info, uint32_t a_flags)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
-
     mfxStatus sts = MFX_ERR_NONE;
     if (!pNewMemID)
         return UMC::UMC_ERR_NULL_PTR;
 
     mfxI32 index = FindFreeSurface();
+
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     if (index == -1)
     {
         *pNewMemID = UMC::FRAME_MID_INVALID;
@@ -502,7 +503,7 @@ UMC::Status mfx_UMC_FrameAllocator::Alloc(UMC::FrameMemID *pNewMemID, const UMC:
 
 const UMC::FrameData* mfx_UMC_FrameAllocator::Lock(UMC::FrameMemID mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxU32 index = (mfxU32)mid;
     if (!m_frameDataInternal.IsValidMID(index))
@@ -607,7 +608,7 @@ const UMC::FrameData* mfx_UMC_FrameAllocator::Lock(UMC::FrameMemID mid)
 
 UMC::Status mfx_UMC_FrameAllocator::Unlock(UMC::FrameMemID mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxU32 index = (mfxU32)mid;
     if (!m_frameDataInternal.IsValidMID(index))
@@ -631,7 +632,7 @@ UMC::Status mfx_UMC_FrameAllocator::Unlock(UMC::FrameMemID mid)
 
 UMC::Status mfx_UMC_FrameAllocator::IncreaseReference(UMC::FrameMemID mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxU32 index = (mfxU32)mid;
     if (!m_frameDataInternal.IsValidMID(index))
@@ -644,7 +645,7 @@ UMC::Status mfx_UMC_FrameAllocator::IncreaseReference(UMC::FrameMemID mid)
 
 UMC::Status mfx_UMC_FrameAllocator::DecreaseReference(UMC::FrameMemID mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxU32 index = (mfxU32)mid;
     if (!m_frameDataInternal.IsValidMID(index))
@@ -661,7 +662,7 @@ UMC::Status mfx_UMC_FrameAllocator::DecreaseReference(UMC::FrameMemID mid)
 
 UMC::Status mfx_UMC_FrameAllocator::Free(UMC::FrameMemID mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxStatus sts = MFX_ERR_NONE;
     mfxU32 index = (mfxU32)mid;
@@ -688,7 +689,7 @@ UMC::Status mfx_UMC_FrameAllocator::Free(UMC::FrameMemID mid)
 
 mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, bool isOpaq)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     if (surf->Data.Locked)
         return MFX_ERR_MORE_SURFACE;
@@ -807,7 +808,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
 
 mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxI32 index = -1;
 
@@ -863,7 +864,7 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
 
 mfxI32 mfx_UMC_FrameAllocator::FindSurface(mfxFrameSurface1 *surf, bool isOpaq)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     if (!surf)
         return -1;
@@ -897,7 +898,7 @@ mfxI32 mfx_UMC_FrameAllocator::FindSurface(mfxFrameSurface1 *surf, bool isOpaq)
 
 mfxI32 mfx_UMC_FrameAllocator::FindFreeSurface()
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     if ((m_IsUseExternalFrames) || (m_sfcVideoPostProcessing))
     {
@@ -920,7 +921,7 @@ mfxI32 mfx_UMC_FrameAllocator::FindFreeSurface()
 
 mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetInternalSurface(UMC::FrameMemID index)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     if (m_IsUseExternalFrames)
     {
@@ -939,7 +940,7 @@ mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetInternalSurface(UMC::FrameMemID in
 
 mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetSurfaceByIndex(UMC::FrameMemID index)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     if (index < 0)
         return 0;
@@ -957,7 +958,7 @@ void mfx_UMC_FrameAllocator::SetSfcPostProcessingFlag(bool flagToSet)
 
 mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetSurface(UMC::FrameMemID index, mfxFrameSurface1 *surface, const mfxVideoParam * videoPar)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     if (!surface || !videoPar || 0 > index)
         return 0;
@@ -982,7 +983,7 @@ mfxFrameSurface1 * mfx_UMC_FrameAllocator::GetSurface(UMC::FrameMemID index, mfx
 
 mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *, bool isOpaq)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::recursive_mutex> guard(m_guard);
 
     mfxStatus sts;
     mfxU16 dstMemType = isOpaq?(MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET):(MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET);
@@ -1049,12 +1050,12 @@ mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work
     surface.Info.Shift = m_IsUseExternalFrames ? m_extSurfaces[index].FrameSurface->Info.Shift : m_frameDataInternal.GetSurface(index).Info.Shift;
 
     //Performance issue. We need to unlock mutex to let decoding thread run async.
-    guard.Unlock();
+    guard.unlock();
     sts = m_pCore->DoFastCopyWrapper(surface_work,
                                      dstMemType,
                                      &surface,
                                      MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
-    guard.Lock();
+    guard.lock();
 
     MFX_CHECK_STS(sts);
 
@@ -1078,7 +1079,7 @@ mfxStatus mfx_UMC_FrameAllocator::PrepareToOutput(mfxFrameSurface1 *surface_work
 // we should copy to external SW surface
 mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surface_work, UMC::FrameMemID index, const mfxVideoParam *,bool isOpaq)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::recursive_mutex> guard(m_guard);
 
     mfxStatus sts = MFX_ERR_NONE;
     mfxMemId memInternal = m_frameDataInternal.GetSurface(index).Data.MemId;
@@ -1104,14 +1105,14 @@ mfxStatus   mfx_UMC_FrameAllocator_D3D::PrepareToOutput(mfxFrameSurface1 *surfac
             surface.Data.Y = 0;
             surface.Data.MemId = idx;
             //Performance issue. We need to unlock mutex to let decoding thread run async.
-            guard.Unlock();
+            guard.unlock();
             sts = m_pCore->DoFastCopyWrapper(surface_work,
                                              MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY,
                                              &surface,
 
                                              MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET
                                              );
-            guard.Lock();
+            guard.lock();
             MFX_CHECK_STS(sts);
         }
 
