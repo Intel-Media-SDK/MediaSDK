@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -501,7 +501,7 @@ mfxStatus FullEncode::QueryFrame(sExtTask2 *pExtTask)
 
     if (sts != MFX_WRN_DEVICE_BUSY)
     {
-        UMC::AutomaticUMCMutex lock(m_guard);
+        std::lock_guard<std::mutex> lock(m_guard);
         pIntTask->m_taskStatus = NOT_STARTED;
         pIntTask->m_Frames.ReleaseFrames(m_pCore);
         m_pController->FinishFrame(bs->DataLength - dataLen);
@@ -603,7 +603,7 @@ mfxStatus FullEncode::EncodeFrameCheck(
 
     pExtTask->m_nInternalTask = nIntTask;
     {
-        UMC::AutomaticUMCMutex lock(m_guard);
+        std::lock_guard<std::mutex> lock(m_guard);
         pIntTask->m_taskStatus = ENC_STARTED;
     }
 

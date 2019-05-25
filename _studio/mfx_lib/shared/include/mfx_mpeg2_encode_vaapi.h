@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@
 
 #include "mfx_mpeg2_enc_common_hw.h"
 #include "mfx_mpeg2_encode_interface.h"
-#include "umc_mutex.h"
+#include <mutex>
 
 
 namespace MfxHwMpeg2Encode
@@ -164,7 +164,7 @@ namespace MfxHwMpeg2Encode
         mfxRecFrames                        m_recFrames;
         mfxRawFrames                        m_rawFrames;
 
-        UMC::Mutex                          m_guard;
+        std::mutex                          m_guard;
 
     }; // class VAAPIEncoder
 

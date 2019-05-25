@@ -1318,7 +1318,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         ExtVASurface currentFeedback = {
             *(VASurfaceID*)pExecuteBuffers->m_pSurface,
             pExecuteBuffers->m_pps.StatusReportFeedbackNumber,
@@ -1578,7 +1578,7 @@ mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBits
     mfxU32 indxSurf;
     mfxU32 bitstreamSize = 0;
 
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     for (indxSurf = 0; indxSurf < m_feedback.size(); indxSurf++)
     {
