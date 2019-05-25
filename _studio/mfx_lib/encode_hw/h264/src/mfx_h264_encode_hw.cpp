@@ -1643,7 +1643,7 @@ mfxStatus ImplementationAvc::GetFrameParam(mfxFrameParam *par)
 mfxStatus ImplementationAvc::GetEncodeStat(mfxEncodeStat *stat)
 {
     MFX_CHECK_NULL_PTR1(stat);
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     *stat = m_stat;
     return MFX_ERR_NONE;
 }
@@ -1672,7 +1672,7 @@ void ImplementationAvc::OnNewFrame()
 {
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_ACCEPT_FRAME;
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     m_reordering.splice(m_reordering.end(), m_incoming, m_incoming.begin());
 }
 
@@ -1680,7 +1680,7 @@ void ImplementationAvc::SubmitScd()
 {
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_ACCEPT_FRAME;
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     m_ScDetectionStarted.splice(m_ScDetectionStarted.end(), m_incoming, m_incoming.begin());
 }
 
@@ -1688,7 +1688,7 @@ void ImplementationAvc::OnScdQueried()
 {
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_START_SCD;
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     m_ScDetectionFinished.splice(m_ScDetectionFinished.end(), m_ScDetectionStarted, m_ScDetectionStarted.begin());
 }
 
@@ -1696,7 +1696,7 @@ void ImplementationAvc::OnScdFinished()
 {
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_WAIT_SCD;
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     m_reordering.splice(m_reordering.end(), m_ScDetectionFinished, m_ScDetectionFinished.begin());
 }
 
@@ -1874,7 +1874,7 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
     mfxU32 numBits = 8 * (task->m_bsDataLength[0] + task->m_bsDataLength[1]);
     *task = DdiTask();
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     m_stat.NumBit += numBits;
     m_stat.NumCachedFrame--;
@@ -2308,7 +2308,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 
     if (m_stagesToGo == 0)
     {
-        UMC::AutomaticUMCMutex guard(m_listMutex);
+        std::lock_guard<std::mutex> guard(m_listMutex);
         m_stagesToGo = m_emulatorForAsyncPart.Go(!m_incoming.empty());
     }
 
@@ -3107,7 +3107,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             if (task->m_fieldCounter == 2)
             {
                 OnEncodingQueried(task);
-                UMC::AutomaticUMCMutex guard(m_listMutex);
+                std::lock_guard<std::mutex> guard(m_listMutex);
                 m_listOfPairsForFieldOutputMode.pop_front();
                 m_listOfPairsForFieldOutputMode.pop_front();
             }
@@ -3205,7 +3205,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheck(
             if (sts == MFX_WRN_DEVICE_BUSY || sts < MFX_ERR_NONE)
                 return sts;
 
-            UMC::AutomaticUMCMutex guard(m_listMutex);
+            std::lock_guard<std::mutex> guard(m_listMutex);
             m_listOfPairsForFieldOutputMode.push_back(std::make_pair(bs, 0));
             entryPoints->pParam = &m_listOfPairsForFieldOutputMode.back();
 
@@ -3219,7 +3219,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheck(
 
             *reordered_surface = surface;
 
-            UMC::AutomaticUMCMutex guard(m_listMutex);
+            std::lock_guard<std::mutex> guard(m_listMutex);
             m_listOfPairsForFieldOutputMode.push_back(std::make_pair(bs, 1));
             entryPoints[0].pState               = this;
             entryPoints[0].pParam               = &m_listOfPairsForFieldOutputMode.back();
@@ -3279,7 +3279,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
     }
 
     {
-        UMC::AutomaticUMCMutex guard(m_listMutex);
+        std::lock_guard<std::mutex> guard(m_listMutex);
         if (m_free.empty())
             return MFX_WRN_DEVICE_BUSY;
     }
@@ -3304,7 +3304,7 @@ mfxStatus ImplementationAvc::EncodeFrameCheckNormalWay(
         if (ctrl == 0)
             ctrl = &defaultCtrl;
 
-        UMC::AutomaticUMCMutex guard(m_listMutex);
+        std::lock_guard<std::mutex> guard(m_listMutex);
 
         m_free.front().m_yuv  = surface;
         m_free.front().m_ctrl = *ctrl;

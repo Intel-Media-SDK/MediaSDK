@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -290,7 +290,7 @@ private:
     mfxI32                                      m_numLastB;
     std::list<MfxEncLA::sLAInputTask>           m_syncTasks;
     std::list<MfxEncLA::sLADdiTask>             m_VMETasks;
-    UMC::Mutex                                  m_listMutex;
+    std::mutex                                  m_listMutex;
     MfxEncLA::sLASyncContext                    m_LASyncContext;
     MfxEncLA::sLAAsyncContext                   m_LAAsyncContext;
     MfxEncLA::VMERefList                        m_VMERefList;

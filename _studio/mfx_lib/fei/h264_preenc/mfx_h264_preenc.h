@@ -84,7 +84,7 @@ private:
     std::list<MfxHwH264Encode::DdiTask>           m_free;
     std::list<MfxHwH264Encode::DdiTask>           m_incoming;
     std::list<MfxHwH264Encode::DdiTask>           m_encoding;
-    UMC::Mutex                                    m_listMutex;
+    std::mutex                                    m_listMutex;
 
     mfxU32                                        m_inputFrameType;
     eMFXHWType                                    m_currentPlatform;

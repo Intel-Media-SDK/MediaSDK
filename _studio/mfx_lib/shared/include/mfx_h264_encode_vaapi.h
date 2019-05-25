@@ -25,7 +25,7 @@
 
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined (MFX_VA_LINUX)
 
-#include "umc_mutex.h"
+#include <mutex>
 
 #include <va/va.h>
 #include <va/va_enc_h264.h>
@@ -284,7 +284,7 @@ namespace MfxHwH264Encode
 
         static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 29 + 5; //added FEI buffers
 
-        UMC::Mutex m_guard;
+        std::mutex m_guard;
         HeaderPacker m_headerPacker;
 
         // SkipFlag

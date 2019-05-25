@@ -3079,7 +3079,7 @@ mfxStatus VAAPIEncoder::Execute(
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback;
         currentFeedback.number  = task.m_statusReportNumber[fieldId];
@@ -3126,7 +3126,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     mfxU32 indxSurf;
     ExtVASurface currentFeedback;
 
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::mutex> guard(m_guard);
 
     for( indxSurf = 0; indxSurf < m_feedbackCache.size(); indxSurf++ )
     {
@@ -3170,7 +3170,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     VAStatus vaSts = VA_STATUS_SUCCESS;
 
     m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
-    guard.Unlock();
+    guard.unlock();
 
     VACodedBufferSegment *codedBufferSegment = 0;
     {

@@ -838,7 +838,7 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
                     mfxU32 &numEntryPoints)
 {
     MFX_CHECK( m_bInit, MFX_ERR_UNDEFINED_BEHAVIOR);
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     mfxStatus sts = MFX_ERR_NONE;
 
     MFX_CHECK_NULL_PTR1(output);
@@ -1254,7 +1254,7 @@ mfxStatus VideoENC_LA::SubmitFrameLA(mfxFrameSurface1 *pInSurface)
     }
 
     {
-        UMC::AutomaticUMCMutex guard(m_listMutex);
+        std::lock_guard<std::mutex> guard(m_listMutex);
         MFX_CHECK(m_syncTasks.size() > 0, MFX_ERR_UNDEFINED_BEHAVIOR);
         currTask = m_syncTasks.front();
         MFX_CHECK(inputSurface == currTask.InputFrame.pFrame, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1332,7 +1332,7 @@ mfxStatus VideoENC_LA::SubmitFrameLA(mfxFrameSurface1 *pInSurface)
         task->m_event = m_cmCtx->RunVme(*task, 26);
         m_LAAsyncContext.numInputFrames++;
         {
-            UMC::AutomaticUMCMutex guard(m_listMutex);
+            std::lock_guard<std::mutex> guard(m_listMutex);
             m_syncTasks.pop_front();
             m_VMETasks.push_back(*task);
         }
@@ -1374,7 +1374,7 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
         sLADdiTask*             task  = &currDDILATask;
         
         {
-            UMC::AutomaticUMCMutex guard(m_listMutex);
+            std::lock_guard<std::mutex> guard(m_listMutex);
             currDDILATask = m_VMETasks.front();
         }
 
@@ -1383,7 +1383,7 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
             return sts;
 
         {
-            UMC::AutomaticUMCMutex guard(m_listMutex);
+            std::lock_guard<std::mutex> guard(m_listMutex);
             m_VMETasks.pop_front();
         }
 

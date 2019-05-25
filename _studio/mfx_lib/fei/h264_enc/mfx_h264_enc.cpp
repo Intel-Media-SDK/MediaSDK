@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -166,7 +166,7 @@ mfxStatus VideoENC_ENC::QueryStatus(DdiTask& task)
     m_core->DecreaseReference(&input->InSurface->Data);
     m_core->DecreaseReference(&output->OutSurface->Data);
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     //move that task to free tasks from m_incoming
     std::list<DdiTask>::iterator it = std::find(m_incoming.begin(), m_incoming.end(), task);
     MFX_CHECK(it != m_incoming.end(), MFX_ERR_NOT_FOUND);
@@ -345,7 +345,7 @@ mfxStatus VideoENC_ENC::Reset(mfxVideoParam *par)
     // 2) application explicitly asked about starting new sequence
     if (isIdrRequired || IsOn(extResetOpt->StartNewSequence))
     {
-        UMC::AutomaticUMCMutex guard(m_listMutex);
+        std::lock_guard<std::mutex> guard(m_listMutex);
         m_free.splice(m_free.end(), m_incoming);
 
         for (DdiTaskIter i = m_free.begin(); i != m_free.end(); ++i)
@@ -475,7 +475,7 @@ mfxStatus VideoENC_ENC::RunFrameVmeENCCheck(
 
     // Configure new task
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     m_free.front().m_yuv         = input->InSurface;
     //m_free.front().m_ctrl      = 0;

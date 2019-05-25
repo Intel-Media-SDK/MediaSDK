@@ -27,7 +27,6 @@
 #include <mfx_brc_common.h>
 
 #include "mfx_h264_encode_struct_vaapi.h"
-#include "umc_mutex.h"
 #include "umc_event.h"
 #include "umc_h264_brc.h"
 #include "mfx_h264_enc_common_hw.h"
@@ -2055,7 +2054,7 @@ namespace MfxHwH264Encode
         std::list<DdiTask>  m_histWait;
         std::list<DdiTask>  m_encoding;
         std::list<mfxU64>   m_timeStamps;
-        UMC::Mutex          m_listMutex;
+        std::mutex          m_listMutex;
         DdiTask             m_lastTask;
         mfxU32              m_stagesToGo;
         mfxU32              m_bDeferredFrame;

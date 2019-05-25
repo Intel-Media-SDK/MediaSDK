@@ -629,7 +629,7 @@ mfxStatus VideoENC_PREENC::QueryStatus(DdiTask& task)
 
     m_core->DecreaseReference(&task.m_yuv->Data);
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     //move that task to free tasks from m_incoming
     std::list<DdiTask>::iterator it = std::find(m_incoming.begin(), m_incoming.end(), task);
     MFX_CHECK(it != m_incoming.end(), MFX_ERR_NOT_FOUND);
@@ -991,7 +991,7 @@ mfxStatus VideoENC_PREENC::RunFrameVmeENCCheck(
 
     }
 
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     m_free.front().m_yuv          = input->InSurface;
     //m_free.front().m_ctrl = 0;

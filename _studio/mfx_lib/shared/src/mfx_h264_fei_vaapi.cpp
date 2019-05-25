@@ -608,7 +608,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback;
         currentFeedback.number  = task.m_statusReportNumber[feiFieldId];
@@ -655,7 +655,7 @@ mfxStatus VAAPIFEIPREENCEncoder::QueryStatus(
 
     mfxU32 indxSurf, feiFieldId = task.m_fid[fieldId];
 
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     for (indxSurf = 0; indxSurf < m_statFeedbackCache.size(); indxSurf++)
     {
@@ -1506,7 +1506,7 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback;
         currentFeedback.number    = task.m_statusReportNumber[feiFieldId];
@@ -1571,7 +1571,7 @@ mfxStatus VAAPIFEIENCEncoder::QueryStatus(
 
     mfxU32 feiFieldId = task.m_fid[fieldId];
 
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     for (indxSurf = 0; indxSurf < m_statFeedbackCache.size(); indxSurf++)
     {
@@ -2390,7 +2390,7 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback;
         currentFeedback.number    = task.m_statusReportNumber[feiFieldId];
@@ -2459,7 +2459,7 @@ mfxStatus VAAPIFEIPAKEncoder::QueryStatus(
 
     mfxU32 indxSurf, feiFieldId = task.m_fid[fieldId];
 
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     for (indxSurf = 0; indxSurf < m_statFeedbackCache.size(); ++indxSurf)
     {
