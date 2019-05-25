@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -71,7 +71,7 @@ bool TaskBroker_H265::Init(int32_t iConsumerNumber)
 // Reset to default values, stop all activity
 void TaskBroker_H265::Reset()
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::recursive_mutex> guard(m_mGuard);
     m_FirstAU = 0;
     m_IsShouldQuit = true;
 
@@ -83,18 +83,6 @@ void TaskBroker_H265::Reset()
 void TaskBroker_H265::Release()
 {
     Reset();
-}
-
-// Lock synchronization mutex
-void TaskBroker_H265::Lock()
-{
-    m_mGuard.Lock();
-}
-
-// Uncock synchronization mutex
-void TaskBroker_H265::Unlock()
-{
-    m_mGuard.Unlock();
 }
 
 // Check whether frame is prepared
@@ -124,7 +112,7 @@ bool TaskBroker_H265::AddFrameToDecoding(H265DecoderFrame * frame)
     if (!frame || frame->IsDecodingStarted() || !IsExistTasks(frame))
         return false;
 
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::recursive_mutex> guard(m_mGuard);
 
 
     m_decodingQueue.push_back(frame);
@@ -227,7 +215,7 @@ void TaskBroker_H265::SwitchCurrentAU()
 // Wakes up working threads to start working on new tasks
 void TaskBroker_H265::Start()
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::recursive_mutex> guard(m_mGuard);
 
     FrameQueue::iterator iter = m_decodingQueue.begin();
 
@@ -385,7 +373,7 @@ bool TaskBroker_H265::IsFrameCompleted(H265DecoderFrame * pFrame) const
 // Tries to find a new task for asynchronous processing
 bool TaskBroker_H265::GetNextTask(H265Task *pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::recursive_mutex> guard(m_mGuard);
 
 
     bool res = GetNextTaskInternal(pTask);
@@ -421,7 +409,7 @@ int32_t TaskBroker_H265::GetNumberOfTasks(void)
 // Returns whether enough bitstream data is evailable to start an asynchronous task
 bool TaskBroker_H265::IsEnoughForStartDecoding(bool )
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::recursive_mutex> guard(m_mGuard);
 
     InitAUs();
     return m_FirstAU != 0;

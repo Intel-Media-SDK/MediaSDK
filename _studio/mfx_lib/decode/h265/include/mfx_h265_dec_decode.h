@@ -30,7 +30,7 @@
 #include "umc_video_decoder.h"
 #include "mfx_umc_alloc_wrapper.h"
 
-#include "umc_mutex.h"
+#include <mutex>
 #include <queue>
 #include <list>
 #include <memory>
@@ -147,8 +147,8 @@ protected:
     mfxDecodeStat m_stat;
     eMFXPlatform m_platform;
 
-    UMC::Mutex m_mGuard;
-    UMC::Mutex m_mGuardRunThread;
+    std::mutex m_mGuard;
+    std::mutex m_mGuardRunThread;
     bool m_useDelayedDisplay;
 
     UMC::VideoAccelerator * m_va;

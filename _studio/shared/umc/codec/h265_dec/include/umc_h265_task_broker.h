@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -78,11 +78,6 @@ public:
     // Check whether frame is prepared
     virtual bool PrepareFrame(H265DecoderFrame * pFrame);
 
-    // Lock synchronization mutex
-    void Lock();
-    // Unlock synchronization mutex
-    void Unlock();
-
     TaskSupplier_H265 * m_pTaskSupplier;
 
 protected:
@@ -117,7 +112,7 @@ protected:
     FrameQueue m_decodingQueue;
     FrameQueue m_completedQueue;
 
-    UMC::Mutex m_mGuard;
+    std::recursive_mutex m_mGuard;
 };
 
 
