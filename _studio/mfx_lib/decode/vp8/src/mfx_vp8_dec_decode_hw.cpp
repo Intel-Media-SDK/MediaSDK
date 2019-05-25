@@ -618,7 +618,7 @@ mfxStatus MFX_CDECL VP8DECODERoutine(void *p_state, void * /*pp_param*/, mfxU32 
     }
 
 
-    UMC::AutomaticUMCMutex guard(decoder.m_mGuard);
+    std::lock_guard<std::mutex> guard(decoder.m_mGuard);
 
     decoder.m_memIdReadyToFree.push_back(data.memId);
 
@@ -640,7 +640,7 @@ static mfxStatus VP8CompleteProc(void *, void * /*pp_param*/, mfxStatus)
 
 mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurface1 *p_surface_work, mfxFrameSurface1 **pp_surface_out, MFX_ENTRY_POINT * p_entry_point)
 {
-    UMC::AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VideoDECODEVP8_HW::DecodeFrameCheck");
     mfxStatus sts = MFX_ERR_NONE;

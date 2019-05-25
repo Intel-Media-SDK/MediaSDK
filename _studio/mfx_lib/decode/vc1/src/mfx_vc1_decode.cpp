@@ -763,7 +763,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
         }
         if (bs == &m_sbs)
         {
-            UMC::AutomaticUMCMutex guard(m_guard);
+            std::lock_guard<std::recursive_mutex> guard(m_guard);
             bs = NULL;
             if (MFX_ERR_MORE_DATA == MFXSts)
                 return ReturnLastFrame(surface_work, surface_disp);
@@ -2032,7 +2032,7 @@ mfxStatus MFXVideoDECODEVC1::RunThread(mfxFrameSurface1 *surface_work,
                 return sts;
         }
 
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::recursive_mutex> guard(m_guard);
         
         // for HW only sequence processing
         if (m_WaitedTask != taskID)
@@ -2066,7 +2066,7 @@ mfxStatus MFXVideoDECODEVC1::DecodeFrameCheck(mfxBitstream *bs,
                                               mfxFrameSurface1 **surface_out,
                                               MFX_ENTRY_POINT *pEntryPoint)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     // To be checked 
 
     mfxStatus mfxSts = DecodeFrameCheck(bs, surface_work, surface_out);

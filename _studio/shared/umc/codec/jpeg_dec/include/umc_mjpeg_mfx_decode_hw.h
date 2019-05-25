@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -114,7 +114,7 @@ protected:
 
     uint32_t m_fourCC;
 
-    Mutex m_guard;
+    std::mutex m_guard;
     std::set<mfxU32> m_submittedTaskIndex;
     std::set<mfxU32> m_cachedReadyTaskIndex;
     std::set<mfxU32> m_cachedCorruptedTaskIndex;

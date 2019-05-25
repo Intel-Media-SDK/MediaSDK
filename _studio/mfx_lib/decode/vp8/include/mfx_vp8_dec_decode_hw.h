@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,7 @@
 
 #include "mfx_task.h"
 
-#include "umc_mutex.h"
+#include <mutex>
 
 #include "mfx_vp8_dec_decode_vp8_defs.h"
 #include "mfx_vp8_dec_decode_common.h"
@@ -268,7 +268,7 @@ private:
     std::unique_ptr<mfx_UMC_FrameAllocator> m_p_frame_allocator;
     UMC::VideoAccelerator *m_p_video_accelerator;
 
-    UMC::Mutex              m_mGuard;
+    std::mutex              m_mGuard;
 };
 
 #endif // _MFX_VP8_DECODE_HW_H_
