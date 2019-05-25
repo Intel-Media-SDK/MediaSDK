@@ -1269,7 +1269,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     // (3) info needed for sync operation
     //-------------------------------------------------------
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback; // {surface & number_of_task}
         currentFeedback.surface = *outputSurface;
@@ -1668,7 +1668,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
     // (3) info needed for sync operation
     //-------------------------------------------------------
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback; // {surface & number_of_task}
         currentFeedback.surface = *outputSurface;
@@ -2210,7 +2210,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
     // (3) info needed for sync operation
     //-------------------------------------------------------
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback; // {surface & number_of_task}
         currentFeedback.surface = *outputSurface;
@@ -2240,7 +2240,7 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
     // (1) find params (sutface & number) are required by feedbackNumber
     //-----------------------------------------------
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         for (indxSurf = 0; indxSurf < m_feedbackCache.size(); indxSurf++)
         {

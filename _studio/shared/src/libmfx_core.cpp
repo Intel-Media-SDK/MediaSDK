@@ -82,22 +82,22 @@ mfxStatus CommonCORE::API_1_19_Adapter::QueryPlatform(mfxPlatform* platform)
 
 mfxStatus CommonCORE::AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxHDL *mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Alloc)(m_bufferAllocator.bufferAllocator.pthis,nbytes, type, mid);
 }
 mfxStatus CommonCORE::LockBuffer(mfxHDL mid, mfxU8 **ptr)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Lock)(m_bufferAllocator.bufferAllocator.pthis, mid, ptr);
 }
 mfxStatus CommonCORE::UnlockBuffer(mfxHDL mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Unlock)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
 mfxStatus CommonCORE::FreeBuffer(mfxHDL mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Free)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
 // DEPRECATED
@@ -159,7 +159,7 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response, bool )
 {
     MFX::AutoTimer timer("CommonCORE::AllocFrames");
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     mfxStatus sts = MFX_ERR_NONE;
     try
     {
@@ -242,7 +242,7 @@ mfxStatus CommonCORE::DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrame
 }
 mfxStatus CommonCORE::LockFrame(mfxHDL mid, mfxFrameData *ptr)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     MFX::AutoTimer timer("CommonCORE::LockFrame");
     try
     {
@@ -290,7 +290,7 @@ mfxStatus CommonCORE::GetFrameHDL(mfxHDL mid, mfxHDL* handle, bool ExtendedSearc
 }
 mfxStatus CommonCORE::UnlockFrame(mfxHDL mid, mfxFrameData *ptr)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     try
     {
@@ -313,7 +313,7 @@ mfxStatus CommonCORE::FreeFrames(mfxFrameAllocResponse *response, bool ExtendedS
     if (m_RefCtrTbl.size())
     {
         {
-            UMC::AutomaticUMCMutex guard(m_guard);
+            std::lock_guard<std::recursive_mutex> guard(m_guard);
             RefCtrTbl::iterator ref_it;
             for (ref_it = m_RefCtrTbl.begin(); ref_it != m_RefCtrTbl.end(); ref_it++)
             {
@@ -388,7 +388,7 @@ mfxStatus CommonCORE::FreeFrames(mfxFrameAllocResponse *response, bool ExtendedS
 }
 mfxStatus CommonCORE::InternalFreeFrames(mfxFrameAllocResponse *response)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     try
     {
         MFX_CHECK_NULL_PTR1(response);
@@ -460,7 +460,7 @@ mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool E
     try
     {
         {
-            UMC::AutomaticUMCMutex guard(m_guard);
+            std::lock_guard<std::recursive_mutex> guard(m_guard);
 
             // if exist opaque surface - take a look in them (internal surfaces)
             if (m_OpqTbl.size())
@@ -527,7 +527,7 @@ mfxStatus  CommonCORE::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool
     try
     {
         {
-            UMC::AutomaticUMCMutex guard(m_guard);
+            std::lock_guard<std::recursive_mutex> guard(m_guard);
             // if exist opaque surface - take a look in them (internal surfaces)
             if (m_OpqTbl.size())
             {
@@ -559,7 +559,7 @@ mfxStatus  CommonCORE::UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool
 }
 mfxMemId CommonCORE::MapIdx(mfxMemId mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     if (0 == mid)
         return 0;
 
@@ -576,7 +576,7 @@ mfxFrameSurface1* CommonCORE::GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bo
         return 0;
 
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::recursive_mutex> guard(m_guard);
         OpqTbl::iterator oqp_it;
         oqp_it = m_OpqTbl.find(pOpqSurface);
         if (m_OpqTbl.end() != oqp_it)
@@ -595,7 +595,7 @@ mfxFrameSurface1* CommonCORE::GetOpaqSurface(mfxMemId mid, bool ExtendedSearch)
         return 0;
 
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::recursive_mutex> guard(m_guard);
         OpqTbl_MemId::iterator opq_it = m_OpqTbl_MemId.find(mid);
         if (m_OpqTbl_MemId.end() != opq_it) {
             return opq_it->second;
@@ -609,7 +609,7 @@ mfxFrameSurface1* CommonCORE::GetOpaqSurface(mfxMemId mid, bool ExtendedSearch)
 }
 mfxStatus CommonCORE::FreeMidArray(mfxFrameAllocator* pAlloc, mfxFrameAllocResponse *response)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     MemIDMap::iterator it = m_RespMidQ.find(response->mids);
     if (m_RespMidQ.end() == it)
         return MFX_ERR_INVALID_HANDLE;
@@ -705,7 +705,7 @@ void CommonCORE::Close()
 mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
 {
     MFX_CHECK_NULL_PTR1(handle);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
 #if defined(LINUX32) || defined(LINUX64) || defined(MFX_VA_LINUX)
     if (MFX_HANDLE_VA_DISPLAY == type )
@@ -728,7 +728,7 @@ mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
 mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL hdl)
 {
     MFX_CHECK_NULL_PTR1(hdl);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     // Need to call at once
     switch ((mfxU32)type)
@@ -789,7 +789,7 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
 
 mfxStatus CommonCORE::SetBufferAllocator(mfxBufferAllocator *allocator)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     if (!allocator)
         return MFX_ERR_NONE;
 
@@ -804,7 +804,7 @@ mfxStatus CommonCORE::SetBufferAllocator(mfxBufferAllocator *allocator)
 }
 mfxFrameAllocator* CommonCORE::GetAllocatorAndMid(mfxMemId& mid)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     CorrespTbl::iterator ctbl_it = m_CTbl.find(mid);
     if (m_CTbl.end() == ctbl_it)
         return 0;
@@ -853,7 +853,7 @@ mfxBaseWideFrameAllocator* CommonCORE::GetAllocatorByReq(mfxU16 type) const
 }
 mfxStatus CommonCORE::SetFrameAllocator(mfxFrameAllocator *allocator)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     if (!allocator)
         return MFX_ERR_NONE;
 
@@ -873,7 +873,7 @@ mfxStatus CommonCORE::SetFrameAllocator(mfxFrameAllocator *allocator)
 mfxStatus CommonCORE::IncreasePureReference(mfxU16& Locked)
 {
     //MFX_CHECK_NULL_PTR1(ptr);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     if (Locked > 65534)
     {
         return MFX_ERR_LOCK_MEMORY;
@@ -889,7 +889,7 @@ mfxStatus CommonCORE::IncreasePureReference(mfxU16& Locked)
 mfxStatus CommonCORE::DecreasePureReference(mfxU16& Locked)
 {
     //MFX_CHECK_NULL_PTR1(ptr);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     if (Locked < 1)
     {
         return MFX_ERR_LOCK_MEMORY;
@@ -918,7 +918,7 @@ mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
     else
     {
         {
-            UMC::AutomaticUMCMutex guard(m_guard);
+            std::lock_guard<std::recursive_mutex> guard(m_guard);
             // Opaque surface syncronization
             if (m_bIsOpaqMode)
             {
@@ -958,7 +958,7 @@ mfxStatus CommonCORE::DecreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
     else
     {
         {
-            UMC::AutomaticUMCMutex guard(m_guard);
+            std::lock_guard<std::recursive_mutex> guard(m_guard);
             // Opaque surface syncronization
             if (m_bIsOpaqMode)
             {
@@ -1150,7 +1150,7 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
 
 mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     mfxStatus sts;
     if (!dst || !src)
         return MFX_ERR_NULL_PTR;
@@ -1510,7 +1510,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
 mfxStatus CommonCORE::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
     // up mutex
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
     mfxStatus sts;
 
@@ -1711,7 +1711,7 @@ bool CommonCORE::IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface,
         return false;
 
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::recursive_mutex> guard(m_guard);
 
         mfxU32 i = 0;
         OpqTbl::iterator oqp_it;

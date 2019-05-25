@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -156,7 +156,7 @@ namespace MfxHwVideoProcessing
 
         std::vector<ExtVASurface> m_feedbackCache;
 
-        UMC::Mutex m_guard;
+        std::mutex m_guard;
 
         mfxStatus Init( _mfxPlatformAccelerationService* pVADisplay, mfxVideoParam *pParams);
 

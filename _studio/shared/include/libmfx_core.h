@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 
 #include <map>
 
-#include "umc_mutex.h"
+#include <mutex>
 #include "libmfx_allocator.h"
 #include "mfxvideo.h"
 #include "mfxvideo++int.h"
@@ -256,7 +256,7 @@ protected:
 
     std::unique_ptr<FastCopy>                  m_pFastCopy;
     bool m_bUseExtManager;
-    UMC::Mutex m_guard;
+    std::recursive_mutex m_guard;
 
     bool        m_bIsOpaqMode;
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
 #pragma warning(disable: 4201)
 #endif
 
-#include "umc_mutex.h"
+#include <mutex>
 
 #include <algorithm>
 #include <set>
@@ -325,7 +325,7 @@ protected:
     /* It needs to destroy buffers and surfaces in strict order */
     std::vector<CmSurface2D*> m_surfacesInCreationOrder;
     std::vector<CmBufferUP*>  m_buffersInCreationOrder;
-    UMC::Mutex m_guard;
+    std::mutex m_guard;
 
     CmSurface2D * CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 height, bool isSecondMode,
                                     std::map<void *, CmSurface2D *> & tableCmRelations,

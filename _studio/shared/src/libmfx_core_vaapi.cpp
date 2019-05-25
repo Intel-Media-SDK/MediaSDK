@@ -426,7 +426,7 @@ VAAPIVideoCORE::GetHandle(
     mfxHDL *handle)
 {
     MFX_CHECK_NULL_PTR1(handle);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
 
 #if defined (MFX_ENABLE_CPLIB)
     if (MFX_HANDLE_VA_CONTEXT_ID == (mfxU32)type )
@@ -452,7 +452,7 @@ VAAPIVideoCORE::SetHandle(
     mfxHDL hdl)
 {
     MFX_CHECK_NULL_PTR1(hdl);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     try
     {
         switch ((mfxU32)type)
@@ -517,7 +517,7 @@ VAAPIVideoCORE::AllocFrames(
     mfxFrameAllocResponse* response,
     bool isNeedCopy)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::recursive_mutex> guard(m_guard);
     try
     {
         MFX_CHECK_NULL_PTR2(request, response);

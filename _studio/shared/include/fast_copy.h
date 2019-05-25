@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 #include "mfx_trace.h"
 #include "mfxdefs.h"
 #include <algorithm>
-#include "umc_mutex.h"
+#include <mutex>
 
 enum
 {
@@ -244,8 +244,8 @@ public:
         /* The purpose of mutex here is to make the Copy() atomic.
          * Without it CPU utilization grows dramatically due to cache trashing.
          */
-        static UMC::Mutex mutex; // This is thread-safe since C++11
-        UMC::AutomaticUMCMutex guard(mutex);
+        static std::mutex mutex; // This is thread-safe since C++11
+        std::lock_guard<std::mutex> guard(mutex);
 
         mfxCopyRect<mfxU8>(pSrc, srcPitch, pDst, dstPitch, roi, flag);
 

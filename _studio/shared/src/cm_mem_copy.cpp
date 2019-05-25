@@ -210,7 +210,7 @@ SurfaceIndex * CmCopyWrapper::CreateUpBuffer(mfxU8 *pDst, mfxU32 memSize,
 
     if (tableSysRelations.end() == it)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         cmSts = m_pCmDevice->CreateBufferUP(memSize, pDst, pCmUserBuffer);
         CHECK_CM_STATUS_RET_NULL(cmSts, MFX_ERR_DEVICE_FAILED);
 
@@ -2649,7 +2649,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
 
 mfxStatus CmCopyWrapper::ReleaseCmSurfaces(void)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::lock_guard<std::mutex> guard(m_guard);
 
     if (m_pCmDevice) {
         for (std::vector<CmBufferUP*>::reverse_iterator item = m_buffersInCreationOrder.rbegin(); item != m_buffersInCreationOrder.rend(); ++item) {
@@ -2730,7 +2730,7 @@ CmSurface2D * CmCopyWrapper::CreateCmSurface2D(void *pSrc, mfxU32 width, mfxU32 
 
     if (tableCmRelations.end() == it)
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         if (true == isSecondMode)
         {
 
