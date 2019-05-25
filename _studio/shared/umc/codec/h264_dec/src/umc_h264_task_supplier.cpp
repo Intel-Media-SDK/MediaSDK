@@ -4081,7 +4081,7 @@ void TaskSupplier::DBPUpdate(H264DecoderFrame * pFrame, int32_t field)
 
 H264DecoderFrame * TaskSupplier::FindSurface(FrameMemID id)
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::mutex> guard(m_mGuard);
 
     ViewList::iterator iter = m_views.begin();
     ViewList::iterator iter_end = m_views.end();

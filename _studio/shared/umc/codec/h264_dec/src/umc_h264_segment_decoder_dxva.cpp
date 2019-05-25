@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -142,7 +142,7 @@ void TaskBrokerSingleThreadDXVA::Reset()
 
 void TaskBrokerSingleThreadDXVA::Start()
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::lock_guard<std::recursive_mutex> guard(m_mGuard);
 
     TaskBroker::Start();
     m_completedQueue.clear();
@@ -216,7 +216,7 @@ bool TaskBrokerSingleThreadDXVA::CheckCachedFeedbackAndComplete(H264DecoderFrame
 
 bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
 {
-    AutomaticUMCMutex guard(m_mGuard);
+    std::unique_lock<std::recursive_mutex> guard(m_mGuard);
 
     if (!m_useDXVAStatusReporting)
         return false;
@@ -236,12 +236,12 @@ bool TaskBrokerSingleThreadDXVA::GetNextTaskInternal(H264Task *)
         uint16_t surfCorruption = 0;
         if (!skip)
         {
-            m_mGuard.Unlock();
+            m_mGuard.unlock();
 
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Dec vaSyncSurface");
             sts = dxva_sd->GetPacker()->SyncTask(au->m_pFrame, &surfCorruption);
 
-            m_mGuard.Lock();
+            m_mGuard.lock();
         }
         //we should complete frame even we got an error
         //this allows to return the error from [RunDecoding]

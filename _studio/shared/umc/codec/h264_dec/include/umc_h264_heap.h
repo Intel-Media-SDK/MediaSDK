@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 #define __UMC_H264_HEAP_H
 
 #include <memory>
-#include "umc_mutex.h"
+#include <mutex>
 #include "umc_h264_dec_defs_dec.h"
 #include "umc_media_data.h"
 

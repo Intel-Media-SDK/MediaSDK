@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -63,9 +63,6 @@ public:
 
     virtual void Start();
 
-    void Lock();
-    void Unlock();
-
     TaskSupplier * m_pTaskSupplier;
 
 protected:
@@ -91,7 +88,7 @@ protected:
     FrameQueue m_decodingQueue;
     FrameQueue m_completedQueue;
 
-    Mutex m_mGuard;
+    std::recursive_mutex m_mGuard;
 };
 
 } // namespace UMC
