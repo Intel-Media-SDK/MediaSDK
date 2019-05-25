@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -498,14 +498,14 @@ TaskManager::TaskManager()
 
 TaskManager::~TaskManager()
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     Close();
 }
 
 mfxStatus TaskManager::Init(mfxU32 maxTaskNum)
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     if (maxTaskNum > 0 &&
         maxTaskNum < JPEG_DDITASK_MAX_NUM)
@@ -530,7 +530,7 @@ mfxStatus TaskManager::Init(mfxU32 maxTaskNum)
 
 mfxStatus TaskManager::Reset()
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     if (m_pTaskList)
     {
@@ -573,7 +573,7 @@ mfxStatus TaskManager::Close()
 
 mfxStatus TaskManager::AssignTask(DdiTask *& newTask)
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     if (m_pTaskList)
     {
@@ -602,7 +602,7 @@ mfxStatus TaskManager::AssignTask(DdiTask *& newTask)
 
 mfxStatus TaskManager::RemoveTask(DdiTask & task)
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     if (m_pTaskList)
     {

@@ -348,7 +348,7 @@ mfxStatus VAAPIEncoder::Execute(DdiTask &task, mfxHDL surface)
     vaSts = vaEndPicture(m_vaDisplay, m_vaContextEncode);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback = {VA_INVALID_ID, 0, 0, 0};
         currentFeedback.number  = task.m_statusReportNumber;
@@ -370,7 +370,7 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
     mfxU32 waitIdxBs;
     mfxU32 waitSize;
     mfxU32 indxSurf;
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::mutex> guard(m_guard);
 
     for( indxSurf = 0; indxSurf < m_feedbackCache.size(); indxSurf++ )
     {
@@ -406,7 +406,7 @@ mfxStatus VAAPIEncoder::QueryStatus(DdiTask & task)
 
 
         m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
-        guard.Unlock();
+        guard.unlock();
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_SCHED, "Enc vaSyncSurface");

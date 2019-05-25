@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <va/va.h>
 #include <va/va_enc_jpeg.h>
-#include "umc_mutex.h"
+#include <mutex>
 
 #include "mfx_ext_buffers.h"
 
@@ -105,7 +105,7 @@ namespace MfxHwMJpegEncode
         VAContextID       m_vaContextEncode;
         VAConfigID        m_vaConfig;
 
-        UMC::Mutex        m_guard;
+        std::mutex        m_guard;
         std::vector<ExtVASurface> m_feedbackCache;
         std::vector<ExtVASurface> m_bsQueue;
 
