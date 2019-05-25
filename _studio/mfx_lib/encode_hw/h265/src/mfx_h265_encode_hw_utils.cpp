@@ -2566,7 +2566,7 @@ void TaskManager::Reset(bool bFieldMode, mfxU32 numTask, mfxU16 resetHeaders)
 
 Task* TaskManager::New()
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     Task* pTask = nullptr;
 
     if (!m_free.empty())
@@ -2581,7 +2581,7 @@ Task* TaskManager::New()
 }
 Task* TaskManager::GetNewTask()
 {
-   UMC::AutomaticUMCMutex guard(m_listMutex);
+   std::lock_guard<std::mutex> guard(m_listMutex);
 
     for (TaskList::iterator it = m_reordering.begin(); it != m_reordering.end(); it ++)
     {
@@ -2594,7 +2594,7 @@ Task* TaskManager::GetNewTask()
 }
 Task* TaskManager::Reorder(MfxVideoParam const & par, DpbArray const & dpb, bool flush)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     TaskList::iterator begin = m_reordering.begin();
     TaskList::iterator end   = m_reordering.begin();
@@ -2627,7 +2627,7 @@ Task* TaskManager::Reorder(MfxVideoParam const & par, DpbArray const & dpb, bool
 
 void TaskManager::Submit(Task* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     for (TaskList::iterator it = m_reordering.begin(); it != m_reordering.end(); it ++)
     {
@@ -2641,7 +2641,7 @@ void TaskManager::Submit(Task* pTask)
 }
 Task* TaskManager::GetTaskForSubmit(bool bRealTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     for (TaskList::iterator it = m_encoding.begin(); it != m_encoding.end(); it ++)
     {
         if (it->m_surf || (!bRealTask))
@@ -2653,7 +2653,7 @@ Task* TaskManager::GetTaskForSubmit(bool bRealTask)
 }
 mfxStatus TaskManager::PutTasksForRecode(Task* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     TaskList::iterator it_from = m_querying.begin();
     TaskList::iterator it_where =m_encoding.begin();
@@ -2668,7 +2668,7 @@ mfxStatus TaskManager::PutTasksForRecode(Task* pTask)
 }
 void TaskManager::SubmitForQuery(Task* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     for (TaskList::iterator it = m_encoding.begin(); it != m_encoding.end(); it ++)
     {
@@ -2682,7 +2682,7 @@ void TaskManager::SubmitForQuery(Task* pTask)
 }
 bool TaskManager::isSubmittedForQuery(Task* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     for (TaskList::iterator it = m_querying.begin(); it != m_querying.end(); it ++)
     {
@@ -2695,7 +2695,7 @@ bool TaskManager::isSubmittedForQuery(Task* pTask)
 }
 Task* TaskManager::GetTaskForQuery()
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
     if (m_querying.size() > 0)
     {
         return &(*m_querying.begin());
@@ -2705,7 +2705,7 @@ Task* TaskManager::GetTaskForQuery()
 
 void TaskManager::Ready(Task* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     for (TaskList::iterator it = m_querying.begin(); it != m_querying.end(); it ++)
     {
@@ -2719,7 +2719,7 @@ void TaskManager::Ready(Task* pTask)
 }
 void TaskManager::SkipTask(Task* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_listMutex);
+    std::lock_guard<std::mutex> guard(m_listMutex);
 
     for (TaskList::iterator it = m_reordering.begin(); it != m_reordering.end(); it ++)
     {

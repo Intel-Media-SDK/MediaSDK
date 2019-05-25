@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -89,7 +89,7 @@ mfxStatus VMEBrc::SetFrameVMEData(const mfxExtLAFrameStatistics *pLaOut, mfxU32 
     mfxU32 numLaFrames = pLaOut->NumFrame;
     mfxU32 k = height*width >> 7;
 
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     while(resNum < pLaOut->NumStream) 
     {
@@ -220,7 +220,7 @@ void VMEBrc::PreEnc(mfxU32 /*frameType*/, std::vector<VmeData *> const & /*vmeDa
 
 mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LookAheadBrc2::Report");
     //printf("VMEBrc::Report order %d\n", picOrder);
@@ -275,7 +275,7 @@ mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userData
 
 mfxI32 VMEBrc::GetQP(MfxVideoParam & /*video*/, Task &task )
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VMEBrc::GetQp");
 

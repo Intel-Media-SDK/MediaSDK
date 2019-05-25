@@ -28,7 +28,7 @@
 #include "mfx_h265_encode_hw_set.h"
 #include "mfx_ext_buffers.h"
 #include "mfxplugin++.h"
-#include "umc_mutex.h"
+#include <mutex>
 #include "mfxla.h"
 
 #include "mfxbrc.h"
@@ -917,7 +917,7 @@ private:
     TaskList   m_reordering;
     TaskList   m_encoding;
     TaskList   m_querying;
-    UMC::Mutex m_listMutex;
+    std::mutex m_listMutex;
     mfxU16     m_resetHeaders;
 };
 

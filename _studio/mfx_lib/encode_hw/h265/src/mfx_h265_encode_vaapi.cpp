@@ -1827,7 +1827,7 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
 
         ExtVASurface currentFeedback;
         currentFeedback.number  = task.m_statusReportNumber;
@@ -1853,7 +1853,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
     mfxU32 indxSurf;
     mfxU32 waitSize(0);
 
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::mutex> guard(m_guard);
 
     for (indxSurf = 0; indxSurf < m_feedbackCache.size(); ++indxSurf)
     {
@@ -1892,7 +1892,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
         VASurfaceStatus surfSts = VASurfaceSkipped;
 
         m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
-        guard.Unlock();
+        guard.unlock();
 
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");

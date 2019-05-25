@@ -24,7 +24,7 @@
 
 #include "mfx_common.h"
 
-#include "umc_mutex.h"
+#include <mutex>
 
 #include <va/va.h>
 #include <va/va_enc_hevc.h>
@@ -295,7 +295,7 @@ mfxStatus SetSkipFrame(
 
         static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 26 + 5;
 
-        UMC::Mutex m_guard;
+        std::mutex m_guard;
         HeaderPacker m_headerPacker;
     };
 }
