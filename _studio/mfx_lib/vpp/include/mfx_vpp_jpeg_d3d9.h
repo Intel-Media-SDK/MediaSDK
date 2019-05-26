@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 
 #include "umc_va_base.h"
 #include "mfx_vpp_interface.h"
-#include "umc_mutex.h"
+#include <mutex>
 
 #include <memory>
 #include <algorithm>
@@ -60,7 +60,7 @@ protected:
     mfxI32 m_rotation;
     std::vector<mfxFrameSurface1>  m_surfaces;
     mfxFrameAllocResponse m_response;
-    UMC::Mutex m_guard;
+    std::mutex m_guard;
 
     std::map<mfxMemId, mfxI32> AssocIdx;
 

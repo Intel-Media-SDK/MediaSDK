@@ -1237,7 +1237,7 @@ mfxStatus TaskManager::AssignTask(
     DdiTask*& pTask,
     mfxStatus& intSts)
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
     // no state machine in VPP, so transition to previous state isn't possible.
     // it is the simplest way to resolve issue with MFX_WRN_DEVICE_BUSY, but performance could be affected
@@ -1421,7 +1421,7 @@ mfxStatus TaskManager::AssignTask(
 
 mfxStatus TaskManager::CompleteTask(DdiTask* pTask)
 {
-    UMC::AutomaticUMCMutex guard(m_mutex);
+    std::lock_guard<std::mutex> guard(m_mutex);
 
 #ifdef MFX_ENABLE_MCTF
     if (pTask->output.pSurf != pTask->outputForApp.pSurf && pTask->outputForApp.pSurf)
@@ -2991,7 +2991,7 @@ mfxStatus VideoVPPHW::VppFrameCheck(
                                     MFX_ENTRY_POINT pEntryPoint[],
                                     mfxU32 &numEntryPoints)
 {
-    UMC::AutomaticUMCMutex guard(m_guard);
+    std::unique_lock<std::mutex> guard(m_guard);
 
     mfxStatus sts;
     mfxStatus intSts = MFX_ERR_NONE;
@@ -3024,7 +3024,7 @@ mfxStatus VideoVPPHW::VppFrameCheck(
             MFX_SAFE_CALL(m_pMCTFilter->MCTF_GetEmptySurface(&pWorkOutSurf));
             if (!pWorkOutSurf) 
             {
-                guard.Unlock();
+                guard.unlock();
                 mfxU32 iters(0);
                 const mfxU32 MAX_ITER = 1000;
                 while (!pWorkOutSurf && ++iters < MAX_ITER)
@@ -3034,7 +3034,7 @@ mfxStatus VideoVPPHW::VppFrameCheck(
                 }
                 if (MAX_ITER == iters)
                     return MFX_ERR_NOT_ENOUGH_BUFFER;
-                guard.Lock();
+                guard.lock();
             }
 
             // store a pointer to surface inside MCTF
@@ -4404,7 +4404,7 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
     VideoVPPHW *pHwVpp = (VideoVPPHW *) pState;
     DdiTask *pTask     = (DdiTask*) pParam;
 
-    UMC::AutomaticUMCMutex guard(pHwVpp->m_guard);
+    std::unique_lock<std::mutex> guard(pHwVpp->m_guard);
 
     mfxU32 currentTaskIdx = pTask->taskIndex;
 
@@ -4470,13 +4470,13 @@ mfxStatus VideoVPPHW::QueryTaskRoutine(void *pState, void *pParam, mfxU32 thread
 
     if (pTask->bMCTF && pHwVpp->m_pMCTFilter)
     {
-        guard.Unlock();
+        guard.unlock();
         bool bMctfReadyToReturn(false);
         sts = SubmitToMctf(pState, pParam, &bMctfReadyToReturn);
         MFX_CHECK_STS(sts);
         sts = QueryFromMctf(pState, pParam, bMctfReadyToReturn);
         MFX_CHECK_STS(sts);
-        guard.Lock();
+        guard.lock();
 
         // it might be empty if MCTF works with delay and it is finalizing the stream;
         // in this case no locked internal surfaces

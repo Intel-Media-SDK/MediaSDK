@@ -29,7 +29,7 @@
 #include <set>
 #include <math.h>
 
-#include "umc_mutex.h"
+#include <mutex>
 #include "mfx_vpp_interface.h"
 #include "mfx_vpp_defs.h"
 
@@ -825,7 +825,7 @@ namespace MfxHwVideoProcessing
         CpuFrc  m_cpuFrc;
         ResMngr m_resMngr;
 
-        UMC::Mutex m_mutex;
+        std::mutex m_mutex;
 
 #ifdef MFX_ENABLE_MCTF
         mfxU32  m_MCTFSurfacesInQueue;
@@ -949,7 +949,7 @@ namespace MfxHwVideoProcessing
         MfxFrameAllocResponse   m_internalVidSurf[2];
 
         VideoCORE *m_pCore;
-        UMC::Mutex m_guard;
+        std::mutex m_guard;
         WorkloadMode m_workloadMode;
 
         mfxU16 m_IOPattern;
