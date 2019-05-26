@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@
 
 #include <mfx_log.h>
 
-#include <umc_mutex.h>
+#include <mutex>
 #include <umc_automatic_mutex.h>
 
 #if defined(LINUX32) || defined(LINUX64)
@@ -41,8 +41,6 @@ typedef bool BOOL;
 #endif
 
 #include <stdio.h>
-
-using namespace UMC;
 
 // static section of the file
 namespace
@@ -154,7 +152,7 @@ public:
 
     void AddString(const char *pStr, size_t strLen)
     {
-        AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         char cStr[32];
         size_t callNumLen;
 
@@ -282,7 +280,7 @@ protected:
     }
 
     // Log guard
-    Mutex m_guard;
+    std::mutex m_guard;
 
     // Output file
 #if defined(LINUX32) || defined(LINUX64)
