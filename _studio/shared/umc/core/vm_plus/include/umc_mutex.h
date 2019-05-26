@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,28 +38,6 @@ public:
 private: // functions
     Mutex(const Mutex&);
     Mutex& operator=(const Mutex&);
-};
-
-class AutomaticUMCMutex : public MfxAutoMutex
-{
-public:
-    // Constructor
-    AutomaticUMCMutex(UMC::Mutex &mutex)
-        : MfxAutoMutex(mutex)
-    {
-    }
-
-private: // functions
-    // Preventing copy constructor and operator=
-    AutomaticUMCMutex(const AutomaticUMCMutex&);
-    AutomaticUMCMutex& operator=(const AutomaticUMCMutex&);
-    // The following overloading 'new' operators prohibit
-    // creating the object on the heap which is inefficient from
-    // performance/memory point of view
-    void* operator new(size_t);
-    void* operator new(size_t, void*);
-    void* operator new[](size_t);
-    void* operator new[](size_t, void*);
 };
 
 } // namespace UMC
