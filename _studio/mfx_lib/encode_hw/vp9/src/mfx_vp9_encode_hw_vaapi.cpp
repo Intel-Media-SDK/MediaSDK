@@ -1206,7 +1206,7 @@ mfxStatus VAAPIEncoder::Execute(
     //------------------------------------------------------------------
     // put to cache
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         ExtVASurface currentFeedback;
         currentFeedback.surface = *inputSurface;
         currentFeedback.number = task.m_frameOrder;
@@ -1239,7 +1239,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     mfxStatus sts = MFX_ERR_NONE;
 
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         for( indxSurf = 0; indxSurf < m_feedbackCache.size(); indxSurf++ )
         {
             ExtVASurface currentFeedback = m_feedbackCache[ indxSurf ];
@@ -1275,7 +1275,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     {
-        UMC::AutomaticUMCMutex guard(m_guard);
+        std::lock_guard<std::mutex> guard(m_guard);
         m_feedbackCache.erase( m_feedbackCache.begin() + indxSurf );
     }
     surfSts = VASurfaceReady;

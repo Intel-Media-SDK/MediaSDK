@@ -22,6 +22,7 @@
 
 
 #include "mfx_vp9_encode_hw_ddi.h"
+#include <mutex>
 
 namespace MfxHwVP9Encode
 {
@@ -174,7 +175,7 @@ namespace MfxHwVP9Encode
         ENCODE_CAPS_VP9 m_caps;
         eMFXHWType m_platform;
 
-        UMC::Mutex                      m_guard;
+        std::mutex                      m_guard;
     };
 #endif // (MFX_VA_LINUX)
 } // MfxHwVP9Encode

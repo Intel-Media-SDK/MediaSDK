@@ -549,7 +549,7 @@ mfxStatus MFXVideoENCODEVP9_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFrameS
     mfxStatus bufferingSts = MFX_ERR_NONE;
 
     {
-        UMC::AutomaticUMCMutex guard(m_taskMutex);
+        std::lock_guard<std::mutex> guard(m_taskMutex);
 
         mfxStatus sts = RemoveObsoleteParameters();
         MFX_CHECK_STS(sts);
@@ -791,7 +791,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
             IncreaseRef(newFrame.m_pRecFrame);
 
             {
-                UMC::AutomaticUMCMutex guard(m_taskMutex);
+                std::lock_guard<std::mutex> guard(m_taskMutex);
                 m_submitted.splice(m_submitted.end(), m_accepted, m_accepted.begin());
             }
 
@@ -827,7 +827,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mf
         MFX_CHECK_STS(sts);
 
         {
-            UMC::AutomaticUMCMutex guard(m_taskMutex);
+            std::lock_guard<std::mutex> guard(m_taskMutex);
             m_outs.pop();
             sts = FreeTask(m_pCore, frameToGet);
             MFX_CHECK_STS(sts);
