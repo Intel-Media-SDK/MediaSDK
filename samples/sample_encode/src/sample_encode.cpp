@@ -174,7 +174,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
     msdk_printf(MSDK_STRING("   [-preset <default,dss,conference,gaming>] - Use particular preset for encoding parameters\n"));
     msdk_printf(MSDK_STRING("   [-pp] - Print preset parameters\n"));
-    msdk_printf(MSDK_STRING("   [-disable_presets] - Do not use presets\n"));
+    msdk_printf(MSDK_STRING("   [-disable_presets] - Do not use presets (default is false)\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d] - work with d3d surfaces\n"));
     msdk_printf(MSDK_STRING("   [-d3d11] - work with d3d11 surfaces\n"));
