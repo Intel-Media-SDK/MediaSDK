@@ -74,6 +74,10 @@ static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     case MFX_FOURCC_RGBP:
         return VA_FOURCC_RGBP;
 #endif
+#ifndef ANDROID
+    case MFX_FOURCC_A2RGB10:
+        return VA_FOURCC_A2R10G10B10;
+#endif
     case MFX_FOURCC_P8:
         return VA_FOURCC_P208;
     case MFX_FOURCC_UYVY:
@@ -176,6 +180,9 @@ static inline bool isFourCCSupported(unsigned int va_fourcc)
         case VA_FOURCC_AYUV:
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case VA_FOURCC_RGB565:
+#endif
+#ifndef ANDROID
+        case VA_FOURCC_A2R10G10B10:
 #endif
 #if (MFX_VERSION >= 1027)
         case VA_FOURCC_Y210:
