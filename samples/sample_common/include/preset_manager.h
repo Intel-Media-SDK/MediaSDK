@@ -26,6 +26,7 @@ enum EPresetModes
     PRESET_DSS,
     PRESET_CONF,
     PRESET_GAMING,
+    PRESET_NONE,
     PRESET_MAX_MODES
 };
 
