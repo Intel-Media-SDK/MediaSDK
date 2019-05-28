@@ -1403,7 +1403,7 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
         // setup_tile_info()
         {
             const mfxI32 alignedWidth = AlignPowerOfTwo(info.width, MI_SIZE_LOG2);
-            int minLog2TileColumns, maxLog2TileColumns, maxOnes;
+            int minLog2TileColumns = 0, maxLog2TileColumns = 0, maxOnes;
             mfxU32 miCols = alignedWidth >> MI_SIZE_LOG2;
             GetTileNBits(miCols, minLog2TileColumns, maxLog2TileColumns);
 
