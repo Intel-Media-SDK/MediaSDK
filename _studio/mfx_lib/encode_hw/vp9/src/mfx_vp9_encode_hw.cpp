@@ -153,20 +153,14 @@ void SetReconInfo(VP9MfxVideoParam const & par, mfxFrameInfo& fi)
     if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_10)
     {
         fi.FourCC = MFX_FOURCC_Y410;
-        /* Pitch = 4*W for Y410 format
-           Pitch need to align on 256
-           So, width aligment is 256/4 = 64 */
-        fi.Width = (mfxU16)mfx::align2_value(fi.Width, 256 / 4);
-        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 2, 8);
+        fi.Width = fi.Width / 2;
+        fi.Height = fi.Height * 3;
     }
     else if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_8)
     {
         fi.FourCC = MFX_FOURCC_AYUV;
-        /* Pitch = 4*W for AYUV format
-           Pitch need to align on 512
-           So, width aligment is 512/4 = 128 */
-        fi.Width = (mfxU16)mfx::align2_value(fi.Width, 512 / 4);
-        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 4, 8);
+        fi.Width = fi.Width / 4;
+        fi.Height = fi.Height * 3;
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_10)
     {
