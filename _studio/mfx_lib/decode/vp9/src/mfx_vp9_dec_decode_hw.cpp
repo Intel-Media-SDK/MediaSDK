@@ -35,6 +35,7 @@
 #include "mfx_vpx_dec_common.h"
 #include <libmfx_core_vaapi.h>
 
+#define MFX_ERR_INVALID_STREAM ((mfxStatus)UMC::UMC_ERR_INVALID_STREAM)
 
 using namespace UMC_VP9_DECODER;
 
@@ -533,6 +534,10 @@ mfxStatus VideoDECODEVP9_HW::DecodeHeader(VideoCORE* core, mfxBitstream* bs, mfx
     MFX_CHECK_NULL_PTR1(par);
 
     mfxStatus sts = MFX_VP9_Utility::DecodeHeader(core, bs, par);
+
+    if (MFX_ERR_MORE_DATA == sts)
+        return sts;
+
     MFX_CHECK_STS(sts);
 
     return sts;
@@ -1012,6 +1017,10 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     VP9DecoderFrame frameInfo = m_frameInfo;
     sts = DecodeFrameHeader(bs, frameInfo);
+
+    if (sts == MFX_ERR_INVALID_STREAM)
+        return MFX_ERR_MORE_DATA;
+
     MFX_CHECK_STS(sts);
 
     MFX_VP9_Utility::FillVideoParam(m_core->GetPlatformType(), frameInfo, m_vPar);
@@ -1184,14 +1193,15 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
         VP9Bitstream bsReader(in->Data + in->DataOffset, in->DataOffset + in->DataLength);
 
         if (VP9_FRAME_MARKER != bsReader.GetBits(2))
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
+            return MFX_ERR_INVALID_STREAM;
 
         info.profile = bsReader.GetBit();
         info.profile |= bsReader.GetBit() << 1;
         if (info.profile > 2)
             info.profile += bsReader.GetBit();
 
-        MFX_CHECK(info.profile < 4, MFX_ERR_UNDEFINED_BEHAVIOR);
+        if (info.profile >= 4)
+            return MFX_ERR_INVALID_STREAM;
 
         info.show_existing_frame = bsReader.GetBit();
         if (info.show_existing_frame)
@@ -1209,13 +1219,16 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
 
         if (KEY_FRAME == info.frameType)
         {
-            MFX_CHECK(CheckSyncCode(&bsReader), MFX_ERR_UNDEFINED_BEHAVIOR);
+            if (!CheckSyncCode(&bsReader))
+                return MFX_ERR_INVALID_STREAM;
 
             try
             { GetBitDepthAndColorSpace(&bsReader, &info); }
             catch (vp9_exception const& e)
             {
                 UMC::Status status = e.GetStatus();
+                if (status == UMC::UMC_ERR_INVALID_STREAM)
+                    return MFX_ERR_INVALID_STREAM;
                 MFX_CHECK(status == UMC::UMC_OK, MFX_ERR_UNDEFINED_BEHAVIOR);
             }
 
@@ -1235,7 +1248,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
 
             if (info.intraOnly)
             {
-                MFX_CHECK(CheckSyncCode(&bsReader), MFX_ERR_UNDEFINED_BEHAVIOR);
+                if (!CheckSyncCode(&bsReader))
+                    return MFX_ERR_INVALID_STREAM;
 
                 try
                 {
@@ -1247,6 +1261,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
                 catch (vp9_exception const& e)
                 {
                     UMC::Status status = e.GetStatus();
+                    if (status == UMC::UMC_ERR_INVALID_STREAM)
+                        return MFX_ERR_INVALID_STREAM;
                     MFX_CHECK(status == UMC::UMC_OK, MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
 
@@ -1418,7 +1434,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameHeader(mfxBitstream *in, VP9DecoderFrame
         }
 
         info.firstPartitionSize = bsReader.GetBits(16);
-        MFX_CHECK(0 != info.firstPartitionSize, MFX_ERR_UNSUPPORTED);
+        if (0 == info.firstPartitionSize)
+            return MFX_ERR_INVALID_STREAM;
 
         info.frameHeaderLength = uint32_t(bsReader.BitsDecoded() / 8 + (bsReader.BitsDecoded() % 8 > 0));
         info.frameDataSize = in->DataLength;
