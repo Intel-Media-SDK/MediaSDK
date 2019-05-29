@@ -186,7 +186,7 @@ struct i915_pmu_collector_ctx_t
   - don't mix global metrics and engine metrics; */
 static int perf_init(struct i915_pmu_collector_ctx_t *ctx, int num_configs, int configs[])
 {
-    int i, res;
+    int i, res = -1;
 
     memset(&ctx->pm, 0, sizeof(struct pmu_metrics));
     ctx->pm.fd = -1;
