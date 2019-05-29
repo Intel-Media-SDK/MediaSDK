@@ -1765,6 +1765,7 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
         codedBuffer = m_bsQueue[idxBs].surface;
         {
            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+           MFX_CHECK(codedBuffer <= VABufferTypeMax, MFX_ERR_UNSUPPORTED);
            vaSts = vaMapBuffer(
               m_vaDisplay,
               codedBuffer,
@@ -1787,10 +1788,12 @@ mfxStatus VAAPIEncoder::Execute(Task const & task, mfxHDLPair pair)
             for (int i = 0; i < num_buffers; i += 2)
             {
                 void *pBufferHeader;
+                MFX_CHECK(buf_id[i] <= VABufferTypeMax, MFX_ERR_UNSUPPORTED);
                 vaSts = vaMapBuffer(m_vaDisplay, buf_id[i], &pBufferHeader);
                 MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
                 void *pData;
+                MFX_CHECK(buf_id[i + 1] <= VABufferTypeMax, MFX_ERR_UNSUPPORTED);
                 vaSts = vaMapBuffer(m_vaDisplay, buf_id[i + 1], &pData);
                 MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -1909,6 +1912,7 @@ mfxStatus VAAPIEncoder::QueryStatus(Task & task)
 
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+                    MFX_CHECK(codedBuffer <= VABufferTypeMax, MFX_ERR_UNSUPPORTED);
                     vaSts = vaMapBuffer(
                         m_vaDisplay,
                         codedBuffer,
