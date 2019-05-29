@@ -227,7 +227,7 @@ mfxStatus SetSkipFrame(
 
         virtual
         mfxStatus QueryEncodeCaps(
-            ENCODE_CAPS_HEVC& caps);
+            MFX_ENCODE_CAPS_HEVC& caps);
 
         virtual
         mfxStatus QueryStatus(Task & task);
@@ -288,7 +288,7 @@ mfxStatus SetSkipFrame(
 
         mfxU32 m_width;
         mfxU32 m_height;
-        ENCODE_CAPS_HEVC m_caps;
+        MFX_ENCODE_CAPS_HEVC m_caps;
 
         CUQPMap    m_cuqpMap;
         std::vector<VAEncROI> m_arrayVAEncROI;

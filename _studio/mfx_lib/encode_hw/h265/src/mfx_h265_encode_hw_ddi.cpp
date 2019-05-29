@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -83,58 +83,58 @@ DriverEncoder* CreatePlatformH265Encoder(VideoCORE* core, ENCODER_TYPE type)
 }
 
 // this function is aimed to workaround all CAPS reporting problems in mainline driver
-mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, VideoCORE* core)
+mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(core);
-    if (!caps.BitDepth8Only && !caps.MaxEncodedBitDepth)
-        caps.MaxEncodedBitDepth = 1;
-    if (!caps.Color420Only && !(caps.YUV444ReconSupport || caps.YUV422ReconSupport))
-        caps.YUV444ReconSupport = 1;
-    if (!caps.Color420Only && !(caps.YUV422ReconSupport))   // VPG: caps are not correct now
-        caps.YUV422ReconSupport = 1;
+    if (!caps.ddi_caps.BitDepth8Only && !caps.ddi_caps.MaxEncodedBitDepth)
+        caps.ddi_caps.MaxEncodedBitDepth = 1;
+    if (!caps.ddi_caps.Color420Only && !(caps.ddi_caps.YUV444ReconSupport || caps.ddi_caps.YUV422ReconSupport))
+        caps.ddi_caps.YUV444ReconSupport = 1;
+    if (!caps.ddi_caps.Color420Only && !(caps.ddi_caps.YUV422ReconSupport))   // VPG: caps are not correct now
+        caps.ddi_caps.YUV422ReconSupport = 1;
 #if (MFX_VERSION >= 1025)
     eMFXHWType platform = core->GetHWType();
 
     if (platform < MFX_HW_CNL)
     {   // not set until CNL now
-        caps.LCUSizeSupported = 0b10;   // 32x32 lcu is only supported
-        caps.BlockSize = 0b10; // 32x32
+        caps.ddi_caps.LCUSizeSupported = 0b10;   // 32x32 lcu is only supported
+        caps.ddi_caps.BlockSize = 0b10; // 32x32
     }
 
     if (platform < MFX_HW_ICL)
-        caps.NegativeQPSupport = 0;
+        caps.ddi_caps.NegativeQPSupport = 0;
     else
-        caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
+        caps.ddi_caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
 
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
     if (platform >= MFX_HW_ICL)
     {
-        if (caps.NoWeightedPred)
-            caps.NoWeightedPred = 0;
+        if (caps.ddi_caps.NoWeightedPred)
+            caps.ddi_caps.NoWeightedPred = 0;
 
-        caps.LumaWeightedPred = 1;
-        caps.ChromaWeightedPred = 1;
+        caps.ddi_caps.LumaWeightedPred = 1;
+        caps.ddi_caps.ChromaWeightedPred = 1;
 
-        if (!caps.MaxNum_WeightedPredL0)
-            caps.MaxNum_WeightedPredL0 = 3;
-        if (!caps.MaxNum_WeightedPredL1)
-            caps.MaxNum_WeightedPredL1 = 3;
+        if (!caps.ddi_caps.MaxNum_WeightedPredL0)
+            caps.ddi_caps.MaxNum_WeightedPredL0 = 3;
+        if (!caps.ddi_caps.MaxNum_WeightedPredL1)
+            caps.ddi_caps.MaxNum_WeightedPredL1 = 3;
 
         //caps.SliceLevelWeightedPred;
     }
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 #else
-    if (!caps.LCUSizeSupported)
-        caps.LCUSizeSupported = 2;
-    caps.BlockSize = 2; // 32x32
+    if (!caps.ddi_caps.LCUSizeSupported)
+        caps.ddi_caps.LCUSizeSupported = 2;
+    caps.ddi_caps.BlockSize = 2; // 32x32
     (void)core;
 #endif
 
     return sts;
 }
 
-mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, ENCODE_CAPS_HEVC & caps, mfxU32 width, mfxU32 height)
+mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, MFX_ENCODE_CAPS_HEVC & caps, mfxU32 width, mfxU32 height)
 {
     std::unique_ptr<DriverEncoder> ddi;
 
@@ -153,7 +153,7 @@ mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, ENCODE_CAPS_HEVC & caps, mfxU3
 
 mfxStatus CheckHeaders(
     MfxVideoParam const & par,
-    ENCODE_CAPS_HEVC const & caps)
+    MFX_ENCODE_CAPS_HEVC const & caps)
 {
     MFX_CHECK_COND(
            par.m_sps.log2_min_luma_coding_block_size_minus3 == 0
@@ -178,11 +178,11 @@ mfxStatus CheckHeaders(
 
 #if (MFX_VERSION >= 1027)
     MFX_CHECK_COND(
-      !(   (!caps.YUV444ReconSupport && (par.m_sps.chroma_format_idc == 3))
-        || (!caps.YUV422ReconSupport && (par.m_sps.chroma_format_idc == 2))
-        || (caps.Color420Only && (par.m_sps.chroma_format_idc != 1))));
+      !(   (!caps.ddi_caps.YUV444ReconSupport && (par.m_sps.chroma_format_idc == 3))
+        || (!caps.ddi_caps.YUV422ReconSupport && (par.m_sps.chroma_format_idc == 2))
+        || (caps.ddi_caps.Color420Only && (par.m_sps.chroma_format_idc != 1))));
 
-    MFX_CHECK_COND(caps.NumScalablePipesMinus1 == 0 || par.m_pps.num_tile_columns_minus1 <= caps.NumScalablePipesMinus1);
+    MFX_CHECK_COND(caps.ddi_caps.NumScalablePipesMinus1 == 0 || par.m_pps.num_tile_columns_minus1 <= caps.ddi_caps.NumScalablePipesMinus1);
 
     if (par.m_pps.tiles_enabled_flag)
     {
@@ -193,16 +193,16 @@ mfxStatus CheckHeaders(
 #endif
 
     MFX_CHECK_COND(
-      !(   par.m_sps.pic_width_in_luma_samples > caps.MaxPicWidth
-        || par.m_sps.pic_height_in_luma_samples > caps.MaxPicHeight
-        || (UINT)(((par.m_pps.num_tile_columns_minus1 + 1) * (par.m_pps.num_tile_rows_minus1 + 1)) > 1) > caps.TileSupport));
+      !(   par.m_sps.pic_width_in_luma_samples > caps.ddi_caps.MaxPicWidth
+        || par.m_sps.pic_height_in_luma_samples > caps.ddi_caps.MaxPicHeight
+        || (UINT)(((par.m_pps.num_tile_columns_minus1 + 1) * (par.m_pps.num_tile_rows_minus1 + 1)) > 1) > caps.ddi_caps.TileSupport));
 
     MFX_CHECK_COND(
-      !(   (caps.MaxEncodedBitDepth == 0 || caps.BitDepth8Only)
+      !(   (caps.ddi_caps.MaxEncodedBitDepth == 0 || caps.ddi_caps.BitDepth8Only)
         && (par.m_sps.bit_depth_luma_minus8 != 0 || par.m_sps.bit_depth_chroma_minus8 != 0)));
 
     MFX_CHECK_COND(
-      !(   (caps.MaxEncodedBitDepth == 2 || caps.MaxEncodedBitDepth == 1 || !caps.BitDepth8Only)
+      !(   (caps.ddi_caps.MaxEncodedBitDepth == 2 || caps.ddi_caps.MaxEncodedBitDepth == 1 || !caps.ddi_caps.BitDepth8Only)
         && ( !(par.m_sps.bit_depth_luma_minus8 == 0
             || par.m_sps.bit_depth_luma_minus8 == 2
             || par.m_sps.bit_depth_luma_minus8 == 4)
@@ -211,7 +211,7 @@ mfxStatus CheckHeaders(
             || par.m_sps.bit_depth_chroma_minus8 == 4))));
 
     MFX_CHECK_COND(
-      !(   caps.MaxEncodedBitDepth == 2
+      !(   caps.ddi_caps.MaxEncodedBitDepth == 2
         && ( !(par.m_sps.bit_depth_luma_minus8 == 0
             || par.m_sps.bit_depth_luma_minus8 == 2
             || par.m_sps.bit_depth_luma_minus8 == 4)
@@ -220,7 +220,7 @@ mfxStatus CheckHeaders(
             || par.m_sps.bit_depth_chroma_minus8 == 4))));
 
     MFX_CHECK_COND(
-      !(   caps.MaxEncodedBitDepth == 3
+      !(   caps.ddi_caps.MaxEncodedBitDepth == 3
         && ( !(par.m_sps.bit_depth_luma_minus8 == 0
             || par.m_sps.bit_depth_luma_minus8 == 2
             || par.m_sps.bit_depth_luma_minus8 == 4

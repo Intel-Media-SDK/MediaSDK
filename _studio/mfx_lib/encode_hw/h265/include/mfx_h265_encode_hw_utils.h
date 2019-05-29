@@ -822,7 +822,7 @@ public:
 
     mfxStatus FillPar(mfxVideoParam& par, bool query = false);
 
-    mfxStatus GetSliceHeader(Task const & task, Task const & prevTask, ENCODE_CAPS_HEVC const & caps, Slice & s) const;
+    mfxStatus GetSliceHeader(Task const & task, Task const & prevTask, MFX_ENCODE_CAPS_HEVC const & caps, Slice & s) const;
 
     mfxStatus GetExtBuffers(mfxVideoParam& par, bool query = false);
     bool CheckExtBufferParam();
@@ -999,11 +999,11 @@ bool isLTR(
     mfxI32 poc);
 
 void ConfigureTask(
-    Task &                   task,
-    Task const &             prevTask,
-    MfxVideoParam const &    video,
-    ENCODE_CAPS_HEVC const & caps,
-    mfxU32 &                 baseLayerOrder);
+    Task &                       task,
+    Task const &                 prevTask,
+    MfxVideoParam const &        video,
+    MFX_ENCODE_CAPS_HEVC const & caps,
+    mfxU32 &                     baseLayerOrder);
 
 mfxI64 CalcDTSFromPTS(
     mfxFrameInfo const & info,
@@ -1035,10 +1035,10 @@ mfxStatus CopyRawSurfaceToVideoMemory(
     Task const &          task);
 
 IntraRefreshState GetIntraRefreshState(
-    MfxVideoParam const & video,
-    mfxU32                frameOrderInGopDispOrder,
-    mfxEncodeCtrl const * ctrl,
-    ENCODE_CAPS_HEVC const& caps);
+    MfxVideoParam const &       video,
+    mfxU32                      frameOrderInGopDispOrder,
+    mfxEncodeCtrl const *       ctrl,
+    MFX_ENCODE_CAPS_HEVC const& caps);
 
 mfxU8 GetNumReorderFrames(
     mfxU32 BFrameRate,

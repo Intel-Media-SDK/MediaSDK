@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -112,3 +112,13 @@ typedef struct tagENCODE_CAPS_HEVC
     UINT     reserved32bits3;
 } ENCODE_CAPS_HEVC;
 
+//We cannot modify original struct, but we need to add new checks.
+struct MFX_ENCODE_CAPS_HEVC
+{
+    ENCODE_CAPS_HEVC ddi_caps;
+    //brc caps provided by msdk
+    bool CQPSupport;
+    bool CBRSupport;
+    bool VBRSupport;
+    bool ICQSupport;
+};

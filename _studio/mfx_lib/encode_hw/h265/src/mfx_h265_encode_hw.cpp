@@ -29,8 +29,8 @@ namespace MfxHwH265Encode
 {
 
 mfxStatus CheckInputParam(mfxVideoParam *inPar, mfxVideoParam *outPar = NULL);
-mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
-void      SetDefaults    (MfxVideoParam & par, ENCODE_CAPS_HEVC const & hwCaps);
+mfxStatus CheckVideoParam(MfxVideoParam & par, MFX_ENCODE_CAPS_HEVC const & caps, bool bInit = false);
+void      SetDefaults    (MfxVideoParam & par, MFX_ENCODE_CAPS_HEVC const & hwCaps);
 void      InheritDefaultValues(MfxVideoParam const & parInit, MfxVideoParam &  parReset);
 bool      CheckTriStateOption(mfxU16 & opt);
 
@@ -409,7 +409,7 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par
 
     MfxVideoParam tmp(*par, platform);
 
-    ENCODE_CAPS_HEVC caps = {};
+    MFX_ENCODE_CAPS_HEVC caps = {};
 
     switch (par->IOPattern & MFX_IOPATTERN_IN_MASK)
     {
@@ -502,7 +502,7 @@ mfxStatus MFXVideoENCODEH265_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVi
 
         MfxVideoParam tmp(*in, platform);
 
-        ENCODE_CAPS_HEVC caps = {};
+        MFX_ENCODE_CAPS_HEVC caps = {};
         mfxExtEncoderCapability * enc_cap = ExtBuffer::Get(*in);
 
         if (enc_cap)
@@ -625,7 +625,7 @@ mfxStatus    MFXVideoENCODEH265_HW::WaitingForAsyncTasks(bool bResetTasks)
 }
 
 
-mfxStatus  MFXVideoENCODEH265_HW::CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit /*= false*/)
+mfxStatus  MFXVideoENCODEH265_HW::CheckVideoParam(MfxVideoParam & par, MFX_ENCODE_CAPS_HEVC const & caps, bool bInit /*= false*/)
 {
     mfxStatus sts = ExtraCheckVideoParam(par, caps, bInit);
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
