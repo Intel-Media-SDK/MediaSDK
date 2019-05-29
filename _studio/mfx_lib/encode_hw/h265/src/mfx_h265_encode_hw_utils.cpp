@@ -2073,7 +2073,7 @@ bool isForcedDeltaPocMsbPresent(
     return false;
 }
 
-mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask, ENCODE_CAPS_HEVC const & caps, Slice & s) const
+mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask, MFX_ENCODE_CAPS_HEVC const & caps, Slice & s) const
 {
     bool  isP   = !!(task.m_frameType & MFX_FRAMETYPE_P);
     bool  isB   = !!(task.m_frameType & MFX_FRAMETYPE_B);
@@ -2329,21 +2329,21 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             {
                 mfxU16 sz[2] =
                 {
-                    Min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.MaxNum_WeightedPredL0),
-                    Min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.MaxNum_WeightedPredL1)
+                    Min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL0),
+                    Min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL1)
                 };
 
                 for (mfxU16 l = 0; l < 2; l++)
                 {
                     for (mfxU16 i = 0; i < sz[l]; i++)
                     {
-                        if (pwt->LumaWeightFlag[l][i] && caps.LumaWeightedPred)
+                        if (pwt->LumaWeightFlag[l][i] && caps.ddi_caps.LumaWeightedPred)
                         {
                             s.pwt[l][i][Y][W] = pwt->Weights[l][i][Y][W];
                             s.pwt[l][i][Y][O] = pwt->Weights[l][i][Y][O];
                         }
 
-                        if (pwt->ChromaWeightFlag[l][i] && caps.ChromaWeightedPred)
+                        if (pwt->ChromaWeightFlag[l][i] && caps.ddi_caps.ChromaWeightedPred)
                         {
                             s.pwt[l][i][Cb][W] = pwt->Weights[l][i][Cb][W];
                             s.pwt[l][i][Cb][O] = pwt->Weights[l][i][Cb][O];
@@ -3359,10 +3359,10 @@ mfxU8 GetSHNUT(Task const & task, bool RAPIntra)
 }
 
 IntraRefreshState GetIntraRefreshState(
-    MfxVideoParam const & video,
-    mfxU32                frameOrderInGopDispOrder,
-    mfxEncodeCtrl const * ctrl,
-    ENCODE_CAPS_HEVC const& caps)
+    MfxVideoParam const &       video,
+    mfxU32                      frameOrderInGopDispOrder,
+    mfxEncodeCtrl const *       ctrl,
+    MFX_ENCODE_CAPS_HEVC const& caps)
 {
     IntraRefreshState state={};
     const mfxExtCodingOption2*   extOpt2Init = &(video.m_ext.CO2);
@@ -3395,8 +3395,8 @@ IntraRefreshState GetIntraRefreshState(
         return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
 
     state.refrType      = extOpt2Init->IntRefType;
-    state.IntraSize     = intraStripeWidthInMBs                                     << (3 - caps.IntraRefreshBlockUnitSize);
-    state.IntraLocation = ((mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs) << (3 - caps.IntraRefreshBlockUnitSize);
+    state.IntraSize     = intraStripeWidthInMBs                                     << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
+    state.IntraLocation = ((mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs) << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
     // set QP for Intra macroblocks within refreshing line
     state.IntRefQPDelta = extOpt2Init->IntRefQPDelta;
     if (ctrl)
@@ -3410,10 +3410,10 @@ IntraRefreshState GetIntraRefreshState(
 }
 
 void ConfigureTask(
-    Task &                   task,
-    Task const &             prevTask,
-    MfxVideoParam const &    par,
-    ENCODE_CAPS_HEVC const & caps,
+    Task &                       task,
+    Task const &                 prevTask,
+    MfxVideoParam const &        par,
+    MFX_ENCODE_CAPS_HEVC const & caps,
     mfxU32 &baseLayerOrder)
 {
     const bool isI    = !!(task.m_frameType & MFX_FRAMETYPE_I);
@@ -3469,7 +3469,7 @@ void ConfigureTask(
     if (rtRoi && rtRoi->NumROI)
     {
         bool bTryROIViaMBQP;
-        mfxStatus sts = CheckAndFixRoi(par, caps, rtRoi, bTryROIViaMBQP);
+        mfxStatus sts = CheckAndFixRoi(par, caps.ddi_caps, rtRoi, bTryROIViaMBQP);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM  || (bTryROIViaMBQP && !par.bROIViaMBQP))
             parRoi = 0;
         else
@@ -3511,7 +3511,7 @@ void ConfigureTask(
 
     if (rtDirtyRect && rtDirtyRect->NumRect)
     {
-        mfxStatus sts = CheckAndFixDirtyRect(caps, par, rtDirtyRect);
+        mfxStatus sts = CheckAndFixDirtyRect(caps.ddi_caps, par, rtDirtyRect);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM)
             parDirtyRect = 0;
         else

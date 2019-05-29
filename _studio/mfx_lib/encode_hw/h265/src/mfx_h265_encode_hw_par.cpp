@@ -1493,7 +1493,7 @@ mfxStatus CheckInputParam(mfxVideoParam *inPar, mfxVideoParam *outPar)
     return sts;
 }
 
-mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, bool bInit = false)
+mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps, bool bInit = false)
 {
     mfxStatus sts = MFX_ERR_NONE;
     mfxU32 invalid = 0, changed = 0;
@@ -1523,7 +1523,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 #if (MFX_VERSION >= 1025)
     if (par.m_ext.DDI.LCUSize != 0)
     {
-        if (CheckLCUSize(caps.LCUSizeSupported, par.m_ext.DDI.LCUSize))
+        if (CheckLCUSize(caps.ddi_caps.LCUSizeSupported, par.m_ext.DDI.LCUSize))
         {
             par.LCUSize = par.m_ext.DDI.LCUSize;
         }
@@ -1534,7 +1534,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 #if (MFX_VERSION >= 1026)
     if (par.m_ext.HEVCParam.LCUSize != 0)
     {
-        if (CheckLCUSize(caps.LCUSizeSupported, par.m_ext.HEVCParam.LCUSize))
+        if (CheckLCUSize(caps.ddi_caps.LCUSizeSupported, par.m_ext.HEVCParam.LCUSize))
         {
             par.LCUSize = par.m_ext.HEVCParam.LCUSize;
         }
@@ -1551,10 +1551,10 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 #endif // MFX_VERSION >= 1026
 #endif // MFX_VERSION >= 1025
     if (!par.LCUSize)
-        par.LCUSize = GetDefaultLCUSize(par, caps); //  that a local copy of actual value;
+        par.LCUSize = GetDefaultLCUSize(par, caps.ddi_caps); //  that a local copy of actual value;
 
 #if (MFX_VERSION >= 1027)
-    mfxU16 maxBitDepth = GetMaxBitDepth(par, caps.MaxEncodedBitDepth);
+    mfxU16 maxBitDepth = GetMaxBitDepth(par, caps.ddi_caps.MaxEncodedBitDepth);
     mfxU16 maxChroma = GetMaxChroma(par);
 
     invalid += CheckOption(par.mfx.FrameInfo.FourCC
@@ -1662,7 +1662,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         maxQP += 6 * (CO3.TargetBitDepthLuma - 8);
         // negative QP for CQP VME only;
         // remove "IsOn(par.mfx.LowPower)" when caps.NegativeQPSupport is correctly set in driver
-        if ((caps.NegativeQPSupport == 0) || IsOn(par.mfx.LowPower) || (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP))
+        if ((caps.ddi_caps.NegativeQPSupport == 0) || IsOn(par.mfx.LowPower) || (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP))
             minQP += 6 * (CO3.TargetBitDepthLuma - 8);
     }
 
@@ -1686,13 +1686,13 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         break;
     }
 
-    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && !caps.YUV444ReconSupport)
+    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && !caps.ddi_caps.YUV444ReconSupport)
     {
         CO3.TargetChromaFormatPlus1 = 1 + MFX_CHROMAFORMAT_YUV420;
         invalid++;
     }
 
-    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && !caps.YUV422ReconSupport)
+    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && !caps.ddi_caps.YUV422ReconSupport)
     {
         CO3.TargetChromaFormatPlus1 = 1 + MFX_CHROMAFORMAT_YUV420;
         invalid++;
@@ -1750,7 +1750,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         invalid++;
     }
 #else
-    if (caps.BitDepth8Only == 0) // 10-bit supported
+    if (caps.ddi_caps.BitDepth8Only == 0) // 10-bit supported
     {
         // For 10 bit encode we need adjust min/max QP
         mfxU16 BitDepthLuma = par.mfx.FrameInfo.BitDepthLuma;
@@ -1815,8 +1815,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         changed += CheckMin(par.mfx.FrameInfo.Height, Align(par.mfx.FrameInfo.Height, surfAlignH));
     }
 
-    invalid += CheckMax(par.mfx.FrameInfo.Width, caps.MaxPicWidth);
-    invalid += CheckMax(par.mfx.FrameInfo.Height, caps.MaxPicHeight);
+    invalid += CheckMax(par.mfx.FrameInfo.Width, caps.ddi_caps.MaxPicWidth);
+    invalid += CheckMax(par.mfx.FrameInfo.Height, caps.ddi_caps.MaxPicHeight);
 
     invalid += CheckMax(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.mfx.FrameInfo.Width);
     invalid += CheckMax(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.mfx.FrameInfo.Height);
@@ -1839,7 +1839,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     }
 #endif
 
-    if (!caps.TileSupport)
+    if (!caps.ddi_caps.TileSupport)
     {
         MaxTileColumns = 1;
         MaxTileRows    = 1;
@@ -1850,7 +1850,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         mfxU32 minTileHeight = MIN_TILE_SIZE_HEIGHT;
 
         // min 2x2 lcu is supported on VDEnc
-        if (caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower))
+        if (caps.ddi_caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower))
             minTileHeight *= 2;
 
         mfxU16 nCol = (mfxU16)CeilDiv(par.m_ext.HEVCParam.PicWidthInLumaSamples, minTileWidth);
@@ -1859,8 +1859,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         changed += CheckMax(par.m_ext.HEVCTiles.NumTileColumns, nCol);
         changed += CheckMax(par.m_ext.HEVCTiles.NumTileRows, nRow);
 
-        if (caps.NumScalablePipesMinus1 > 0) {
-            MaxTileColumns = (mfxU16)caps.NumScalablePipesMinus1 + 1;
+        if (caps.ddi_caps.NumScalablePipesMinus1 > 0) {
+            MaxTileColumns = (mfxU16)caps.ddi_caps.NumScalablePipesMinus1 + 1;
         }
         else if ((par.m_platform == MFX_HW_ICL || par.m_platform == MFX_HW_ICL_LP) && IsOn(par.mfx.LowPower) && par.m_ext.HEVCTiles.NumTileColumns > 1 && par.m_ext.HEVCTiles.NumTileRows > 1) {
             // for ICL VDEnc only 1xN or Nx1 configurations are allowed for single pipe
@@ -1874,10 +1874,10 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
     changed += CheckMax(par.mfx.TargetUsage, (mfxU32)MFX_TARGETUSAGE_BEST_SPEED);
 
-    if (par.mfx.TargetUsage && caps.TUSupport)
-        changed += CheckTU(caps.TUSupport, par.mfx.TargetUsage);
+    if (par.mfx.TargetUsage && caps.ddi_caps.TUSupport)
+        changed += CheckTU(caps.ddi_caps.TUSupport, par.mfx.TargetUsage);
 
-    changed += CheckMax(par.mfx.GopRefDist, (caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? Max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
+    changed += CheckMax(par.mfx.GopRefDist, (caps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? Max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
     invalid += CheckOption(par.Protected
         , 0);
@@ -1900,14 +1900,14 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
     invalid += CheckOption(par.mfx.RateControlMethod
         , 0
-        , (mfxU32)MFX_RATECONTROL_CBR
-        , (mfxU32)MFX_RATECONTROL_VBR
+        , caps.CBRSupport ? MFX_RATECONTROL_CBR : 0
+        , caps.VBRSupport ? MFX_RATECONTROL_VBR : 0
         , (mfxU32)MFX_RATECONTROL_AVBR
-        , (mfxU32)MFX_RATECONTROL_CQP
+        , caps.CQPSupport ? MFX_RATECONTROL_CQP : 0
         , (mfxU32)MFX_RATECONTROL_LA_EXT
-        , (mfxU32)MFX_RATECONTROL_ICQ
-        , caps.VCMBitRateControl ? MFX_RATECONTROL_VCM : 0
-        , caps.QVBRBRCSupport ? MFX_RATECONTROL_QVBR : 0
+        , caps.ICQSupport ? MFX_RATECONTROL_ICQ : 0
+        , caps.ddi_caps.VCMBitRateControl ? MFX_RATECONTROL_VCM : 0
+        , caps.ddi_caps.QVBRBRCSupport ? MFX_RATECONTROL_QVBR : 0
         );
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ)
@@ -1927,7 +1927,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 
     changed += CheckTriStateOption(par.m_ext.CO2.MBBRC);
 
-    if (caps.MBBRCSupport == 0 || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP ||par.isSWBRC())
+    if (caps.ddi_caps.MBBRCSupport == 0 || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP ||par.isSWBRC())
         changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_OFF, 0);
     else
         changed += CheckOption(par.m_ext.CO2.MBBRC, (mfxU32)MFX_CODINGOPTION_ON, (mfxU32)MFX_CODINGOPTION_OFF, 0);
@@ -2120,7 +2120,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         changed += CheckRange(par.m_ext.CO2.NumMbPerSlice, minNumMbPerSlice, nLCU / nTile);
     }
 
-    changed += CheckOption(par.mfx.NumSlice, MakeSlices(par, caps.SliceStructure), 0);
+    changed += CheckOption(par.mfx.NumSlice, MakeSlices(par, caps.ddi_caps.SliceStructure), 0);
 
 
     if (   par.m_ext.CO2.BRefType == MFX_B_REF_PYRAMID
@@ -2189,7 +2189,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckRangeDflt(par.m_ext.CO2.IntRefQPDelta, -51, 51, 0);
     invalid += CheckMax(par.m_ext.CO2.IntRefType, 2);
 
-    if (caps.RollingIntraRefresh == 0)
+    if (caps.ddi_caps.RollingIntraRefresh == 0)
     {
         invalid += CheckOption(par.m_ext.CO2.IntRefType, 0);
         invalid += CheckOption(par.m_ext.CO2.IntRefCycleSize, 0);
@@ -2268,7 +2268,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
         changed ++;
     }
 
-    if (caps.SliceByteSizeCtrl == 0)
+    if (caps.ddi_caps.SliceByteSizeCtrl == 0)
         invalid += CheckOption(CO2.MaxSliceSize, 0);
 
 
@@ -2286,8 +2286,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     //check Active Reference
 
     {
-        mfxU16 maxForward  = Min<mfxU16>(caps.MaxNum_Reference0, maxDPB - 1);
-        mfxU16 maxBackward = Min<mfxU16>(caps.MaxNum_Reference1, maxDPB - 1);
+        mfxU16 maxForward  = Min<mfxU16>(caps.ddi_caps.MaxNum_Reference0, maxDPB - 1);
+        mfxU16 maxBackward = Min<mfxU16>(caps.ddi_caps.MaxNum_Reference1, maxDPB - 1);
 
 #if (MFX_VERSION >= 1025)
         if (par.m_platform >= MFX_HW_CNL)
@@ -2326,7 +2326,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 #ifdef MFX_ENABLE_HEVCE_ROI
     if (ROI->NumROI) {   // !!! if ENCODE_BLOCKQPDATA is provided NumROI is assumed to be 0
         mfxU16 NumROI = ROI->NumROI;
-        sts = CheckAndFixRoi(par, caps, ROI, par.bROIViaMBQP);
+        sts = CheckAndFixRoi(par, caps.ddi_caps, ROI, par.bROIViaMBQP);
         if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM) {
             changed++;
         } else if (sts != MFX_ERR_NONE || ROI->NumROI != NumROI) {
@@ -2339,7 +2339,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
 #ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
     if (DirtyRect->NumRect) {
         mfxU16 NumRect = DirtyRect->NumRect;
-        sts = CheckAndFixDirtyRect(caps, par, DirtyRect);
+        sts = CheckAndFixDirtyRect(caps.ddi_caps, par, DirtyRect);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM || DirtyRect->NumRect != NumRect) {
             invalid++;
         }
@@ -2357,7 +2357,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     {
         if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && !par.isSWBRC())
             changed += CheckOption(CO3.EnableMBQP, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON);
-        else if (caps.MbQpDataSupport == 0)
+        else if (caps.ddi_caps.MbQpDataSupport == 0)
         {
 #ifdef MFX_ENABLE_HEVCE_ROI
             if (par.bROIViaMBQP)
@@ -2439,15 +2439,15 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     changed += CheckOption(CO3.WeightedPred
         , (mfxU16)MFX_WEIGHTED_PRED_UNKNOWN
         , (mfxU16)MFX_WEIGHTED_PRED_DEFAULT
-        , caps.NoWeightedPred ? 0 : MFX_WEIGHTED_PRED_EXPLICIT);
+        , caps.ddi_caps.NoWeightedPred ? 0 : MFX_WEIGHTED_PRED_EXPLICIT);
 
     changed += CheckOption(CO3.WeightedBiPred
         , (mfxU16)MFX_WEIGHTED_PRED_UNKNOWN
         , (mfxU16)MFX_WEIGHTED_PRED_DEFAULT
-        , caps.NoWeightedPred ? 0 : MFX_WEIGHTED_PRED_EXPLICIT);
+        , caps.ddi_caps.NoWeightedPred ? 0 : MFX_WEIGHTED_PRED_EXPLICIT);
 
 #if defined(MFX_ENABLE_HEVCE_FADE_DETECTION)
-    if (caps.NoWeightedPred || par.m_platform < MFX_HW_ICL)
+    if (caps.ddi_caps.NoWeightedPred || par.m_platform < MFX_HW_ICL)
     {
         changed += CheckOption(CO3.FadeDetection
             , (mfxU16)MFX_CODINGOPTION_UNKNOWN
@@ -2497,8 +2497,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, ENCODE_CAPS_HEVC const & caps, boo
     Default value for LowPower is setting up in function SetLowpowerDefault
 */
 void SetDefaults(
-    MfxVideoParam &          par,
-    ENCODE_CAPS_HEVC const & hwCaps)
+    MfxVideoParam &              par,
+    MFX_ENCODE_CAPS_HEVC const & hwCaps)
 {
     mfxU64 rawBits = (mfxU64)par.m_ext.HEVCParam.PicWidthInLumaSamples * par.m_ext.HEVCParam.PicHeightInLumaSamples * 3 / 2 * 8;
     mfxF64 maxFR   = 300.;
@@ -2543,7 +2543,7 @@ void SetDefaults(
         CO3.TargetChromaFormatPlus1 = GetMaxChroma(par);
 
     if (!CO3.TargetBitDepthLuma)
-        CO3.TargetBitDepthLuma = GetMaxBitDepth(par, hwCaps.MaxEncodedBitDepth);
+        CO3.TargetBitDepthLuma = GetMaxBitDepth(par, hwCaps.ddi_caps.MaxEncodedBitDepth);
 
     rawBits = (mfxU64)GetRawBytes(
           par.m_ext.HEVCParam.PicWidthInLumaSamples
@@ -2588,8 +2588,8 @@ void SetDefaults(
     if (!par.mfx.TargetUsage)
         par.mfx.TargetUsage = 4;
 
-    if (hwCaps.TUSupport)
-        CheckTU(hwCaps.TUSupport, par.mfx.TargetUsage);
+    if (hwCaps.ddi_caps.TUSupport)
+        CheckTU(hwCaps.ddi_caps.TUSupport, par.mfx.TargetUsage);
 
     if (!par.m_ext.HEVCTiles.NumTileColumns)
         par.m_ext.HEVCTiles.NumTileColumns = 1;
@@ -2599,7 +2599,7 @@ void SetDefaults(
 
     if (!par.mfx.NumSlice || !par.m_slice.size())
     {
-        MakeSlices(par, hwCaps.SliceStructure);
+        MakeSlices(par, hwCaps.ddi_caps.SliceStructure);
         par.mfx.NumSlice = (mfxU16)par.m_slice.size();
     }
 
@@ -2724,7 +2724,7 @@ void SetDefaults(
 
     if (!par.mfx.GopRefDist)
     {
-        if (par.isTL() || hwCaps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
+        if (par.isTL() || hwCaps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
             par.mfx.GopRefDist = 1; // in case of correct SliceIPOnly using of IsOn(par.mfx.LowPower) is not necessary
         else
             par.mfx.GopRefDist = Min<mfxU16>(par.mfx.GopPicSize - 1, (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()) ? 8 : 4);
@@ -2781,14 +2781,14 @@ void SetDefaults(
 
         if (!RefActiveP)
             RefActiveP = (par.mfx.TargetUsage == 7) ? 1 :
-                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.MaxNum_Reference0, par.mfx.NumRefFrame) : hwCaps.MaxNum_Reference0;
+                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference0, par.mfx.NumRefFrame) : hwCaps.ddi_caps.MaxNum_Reference0;
 
         if (!RefActiveBL0)
             RefActiveBL0 = RefActiveP;
 
         if (!RefActiveBL1)
             RefActiveBL1 = (par.mfx.TargetUsage == 7) ? 1 :
-                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.MaxNum_Reference1, par.mfx.NumRefFrame) : hwCaps.MaxNum_Reference1;
+                par.mfx.NumRefFrame ? Min<mfxU16>(hwCaps.ddi_caps.MaxNum_Reference1, par.mfx.NumRefFrame) : hwCaps.ddi_caps.MaxNum_Reference1;
 
 #if (MFX_VERSION >= 1025)
         if (par.m_platform >= MFX_HW_CNL)
