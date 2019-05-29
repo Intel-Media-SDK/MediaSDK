@@ -34,17 +34,6 @@ void      SetDefaults    (MfxVideoParam & par, MFX_ENCODE_CAPS_HEVC const & hwCa
 void      InheritDefaultValues(MfxVideoParam const & parInit, MfxVideoParam &  parReset);
 bool      CheckTriStateOption(mfxU16 & opt);
 
-
-inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
-{
-    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
-
-    mfxStatus sts_max = (std::max)(sts1, sts2),
-              sts_min = (std::min)(sts1, sts2);
-
-    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
-}
-
 mfxU16 MaxRec(MfxVideoParam const & par)
 {
     return par.AsyncDepth + par.mfx.NumRefFrame + ((par.AsyncDepth > 1)? 1: 0);

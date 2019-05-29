@@ -218,6 +218,16 @@ inline bool IsOff(mfxU32 opt)
     return opt == MFX_CODINGOPTION_OFF;
 }
 
+inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+{
+    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
+
+    mfxStatus sts_max = (std::max)(sts1, sts2),
+              sts_min = (std::min)(sts1, sts2);
+
+    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
+}
+
 class MfxFrameAllocResponse : public mfxFrameAllocResponse
 {
 public:

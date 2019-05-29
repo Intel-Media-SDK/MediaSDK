@@ -925,10 +925,32 @@ mfxU16 GetMaxNumRef(MfxVideoParam &par, bool bForward)
 
 #endif // (MFX_VERSION >= 1025)
 
+#if defined (MFX_ENABLE_HEVCE_ROI) || defined (MFX_ENABLE_HEVCE_DIRTY_RECT)
+mfxStatus CheckAndFixRect(RectData *rect, MfxVideoParam const & par, ENCODE_CAPS_HEVC const & caps) {
+    mfxU32 changed = 0;
+
+    mfxU32 blockSize = 1 << (caps.BlockSize + 3);
+    changed += CheckRange(rect->Left,   0u, mfxU32(par.mfx.FrameInfo.Width));
+    changed += CheckRange(rect->Right,  0u, mfxU32(par.mfx.FrameInfo.Width));
+    changed += CheckRange(rect->Top,    0u, mfxU32(par.mfx.FrameInfo.Height));
+    changed += CheckRange(rect->Bottom, 0u, mfxU32(par.mfx.FrameInfo.Height));
+    // align to BlockSize size
+    changed += AlignDown(rect->Left, blockSize);
+    changed += AlignDown(rect->Top,  blockSize);
+    changed += AlignUp(rect->Right,  blockSize);
+    changed += AlignUp(rect->Bottom, blockSize);
+
+    if (changed)
+        return MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+
+    return MFX_ERR_NONE;
+}
+#endif
+
 #ifdef MFX_ENABLE_HEVCE_ROI
 mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & caps, mfxExtEncoderROI *ROI, bool &bROIViaMBQP)
 {
-    mfxStatus sts = MFX_ERR_NONE;
+    mfxStatus sts = MFX_ERR_NONE, rsts = MFX_ERR_NONE;
     mfxU32 changed = 0, invalid = 0;
 
     bROIViaMBQP = false;
@@ -975,41 +997,31 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
     for (mfxU16 i = 0; i < ROI->NumROI; i++)
     {
         // check that rectangle dimensions don't conflict with each other and don't exceed frame size
-        RoiData *roi = (RoiData *)&(ROI->ROI[i]);
+        RectData *rect = (RectData *)&(ROI->ROI[i]);
+
+        rsts = CheckAndFixRect(rect, par, caps);
 
         // Elimination of invalid rects
-        // It's because of the impossibility to "explain" such no-action areas to the driver
-        if (roi->Left >= roi->Right || roi->Top >= roi->Bottom) {
+        // Driver requirement
+        if (ROI->ROI[i].Left >= ROI->ROI[i].Right || ROI->ROI[i].Top >= ROI->ROI[i].Bottom) {
             ROI->NumROI--;
             for (mfxU16 j = i; j < ROI->NumROI; j++)
                 ROI->ROI[j] = ROI->ROI[j + 1];
+            changed++;
             i--;
             continue;
         }
 
-        changed += CheckRange(roi->Left, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
-        changed += CheckRange(roi->Right, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
-        changed += CheckRange(roi->Top, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
-        changed += CheckRange(roi->Bottom, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
-
-        // align to BlockSize size
-        mfxU32 blkSize = 1 << (caps.BlockSize + 3);
-
-        changed += AlignDown(roi->Left, blkSize);
-        changed += AlignDown(roi->Top, blkSize);
-        changed += AlignUp(roi->Right, blkSize);
-        changed += AlignUp(roi->Bottom, blkSize);
-
         if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
-            invalid += CheckRange(roi->Priority, -51, 51);
+            invalid += CheckRange(ROI->ROI[i].Priority, -51, 51);
         } else if (par.mfx.RateControlMethod) {
 #if MFX_VERSION > 1021
             if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
-                invalid += CheckRange(roi->Priority, -51, 51);
+                invalid += CheckRange(ROI->ROI[i].Priority, -51, 51);
             else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
-                invalid += CheckRange(roi->Priority, -3, 3);
+                invalid += CheckRange(ROI->ROI[i].Priority, -3, 3);
 #else
-        invalid += CheckRange(roi->Priority, -3, 3);
+        invalid += CheckRange(ROI->ROI[i].Priority, -3, 3);
 #endif // MFX_VERSION > 1021
         }
     }
@@ -1019,7 +1031,7 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
     if (invalid)
         sts = MFX_ERR_INVALID_VIDEO_PARAM;
 
-    return sts;
+    return GetWorstSts(sts, rsts);
 }
 
 #endif // MFX_ENABLE_HEVCE_ROI
@@ -1027,7 +1039,7 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
 #ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
 mfxStatus CheckAndFixDirtyRect(ENCODE_CAPS_HEVC const & caps, MfxVideoParam const & par, mfxExtDirtyRect *DirtyRect)
 {
-    mfxStatus sts = MFX_ERR_NONE;
+    mfxStatus sts = MFX_ERR_NONE, rsts = MFX_ERR_NONE;
     mfxU32 changed = 0, invalid = 0;
 
     if (caps.DirtyRectSupport == 0)
@@ -1043,29 +1055,25 @@ mfxStatus CheckAndFixDirtyRect(ENCODE_CAPS_HEVC const & caps, MfxVideoParam cons
         // check that rectangle dimensions don't conflict with each other and don't exceed frame size
         RectData *rect = (RectData *)&(DirtyRect->Rect[i]);
 
+        rsts = CheckAndFixRect(rect, par, caps);
+
         // Elimination of invalid rects
-        // It's because of the impossibility to "explain" such no-action areas to the driver
+        // Driver requirement
         if (rect->Left >= rect->Right || rect->Top >= rect->Bottom) {
             DirtyRect->NumRect--;
             for (mfxU16 j = i; j < DirtyRect->NumRect; j++)
                 DirtyRect->Rect[j] = DirtyRect->Rect[j + 1];
             i--;
+            changed++;
             continue;
         }
-
-        changed += CheckRange(rect->Left, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
-        changed += CheckRange(rect->Right, mfxU32(0), mfxU32(par.mfx.FrameInfo.Width));
-        changed += CheckRange(rect->Top, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
-        changed += CheckRange(rect->Bottom, mfxU32(0), mfxU32(par.mfx.FrameInfo.Height));
-
     }
-
     if (changed)
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
     if (invalid)
         sts = MFX_ERR_INVALID_VIDEO_PARAM;
 
-    return sts;
+    return GetWorstSts(sts, rsts);
 }
 
 #endif // MFX_ENABLE_HEVCE_DIRTY_RECT
@@ -2325,30 +2333,24 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
 #ifdef MFX_ENABLE_HEVCE_ROI
     if (ROI->NumROI) {   // !!! if ENCODE_BLOCKQPDATA is provided NumROI is assumed to be 0
-        mfxU16 NumROI = ROI->NumROI;
         sts = CheckAndFixRoi(par, caps.ddi_caps, ROI, par.bROIViaMBQP);
-        if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM) {
-            changed++;
-        } else if (sts != MFX_ERR_NONE || ROI->NumROI != NumROI) {
-            ROI->NumROI = 0;
+        if (sts < MFX_ERR_NONE) {
             invalid++;
+        }
+        else if (sts > MFX_ERR_NONE) {
+            changed++;
         }
     }
 #endif // MFX_ENABLE_HEVCE_ROI
 
 #ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
     if (DirtyRect->NumRect) {
-        mfxU16 NumRect = DirtyRect->NumRect;
         sts = CheckAndFixDirtyRect(caps.ddi_caps, par, DirtyRect);
-        if (sts == MFX_ERR_INVALID_VIDEO_PARAM || DirtyRect->NumRect != NumRect) {
+        if (sts < MFX_ERR_NONE) {
             invalid++;
         }
-        else if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM) {
+        else if (sts > MFX_ERR_NONE) {
             changed++;
-        }
-        else if (sts != MFX_ERR_NONE) {
-            if (bInit) invalid++;
-            else changed++;
         }
     }
 #endif // MFX_ENABLE_HEVCE_DIRTY_RECT
