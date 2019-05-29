@@ -482,7 +482,7 @@ static inline bool is_sw_fallback_supported(mfxU32 codec_id, VideoCORE* core)
 {
     MFX_CHECK(core, false);
 
-    bool fei;
+    bool fei = false;
     std::tie(std::ignore, fei) = check_fei(core);
 
     auto handler = codecId2Handlers.find(CodecKey(codec_id, fei));
