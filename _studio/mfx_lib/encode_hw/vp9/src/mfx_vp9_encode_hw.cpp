@@ -960,12 +960,7 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     mfxU32   bsSizeAvail   = task.m_pBitsteam->MaxLength - task.m_pBitsteam->DataOffset - task.m_pBitsteam->DataLength;
     mfxU8 *  bsData        = task.m_pBitsteam->Data + task.m_pBitsteam->DataOffset + task.m_pBitsteam->DataLength;
 
-    assert(bsSizeToCopy <= bsSizeAvail);
-
-    if (bsSizeToCopy > bsSizeAvail)
-    {
-        bsSizeToCopy = bsSizeAvail;
-    }
+    MFX_CHECK(bsSizeToCopy <= bsSizeAvail, MFX_ERR_NOT_ENOUGH_BUFFER);
 
     // Avoid segfaults on very high bitrates
     if (bsSizeToCopy > m_maxBsSize)
