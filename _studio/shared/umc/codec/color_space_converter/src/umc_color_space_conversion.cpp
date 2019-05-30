@@ -41,51 +41,51 @@ static void ConvertImage_16s8u_C1R(const int16_t *pSrc,
                                   uint8_t    *pDst,
                                   int32_t   iDstStride,
                                   mfxSize size);
-static int cc_BGRAToBGR(const uint8_t *pSrc,
+static IppStatus cc_BGRAToBGR(const uint8_t *pSrc,
                               int32_t   iSrcStride,
                               uint8_t    *pDst,
                               int32_t   iDstStride,
                               mfxSize srcSize);
-static int cc_BGRToBGRA(const uint8_t *pSrc,
+static IppStatus cc_BGRToBGRA(const uint8_t *pSrc,
                               int32_t   iSrcStride,
                               uint8_t    *pDst,
                               int32_t   iDstStride,
                               mfxSize srcSize);
-static int cc_BGR555ToBGR(const uint16_t *pSrc,
+static IppStatus cc_BGR555ToBGR(const uint16_t *pSrc,
                                 int32_t   iSrcStride,
                                 uint8_t    *pDst,
                                 int32_t   iDstStride,
                                 mfxSize srcSize);
-static int cc_BGR565ToBGR(const uint16_t *pSrc,
+static IppStatus cc_BGR565ToBGR(const uint16_t *pSrc,
                                 int32_t   iSrcStride,
                                 uint8_t    *pDst,
                                 int32_t   iDstStride,
                                 mfxSize srcSize);
-static int cc_Y41P_to_I420(const uint8_t *pSrc,
+static IppStatus cc_Y41P_to_I420(const uint8_t *pSrc,
                                  int32_t   iSrcStride,
                                  uint8_t    **pDst,
                                  int32_t   *iDstStride,
                                  mfxSize srcSize);
-static int cc_I420_to_Y41P(const uint8_t **pSrc,
+static IppStatus cc_I420_to_Y41P(const uint8_t **pSrc,
                                  int32_t   *iSrcStride,
                                  uint8_t    *pDst,
                                  int32_t   iDstStride,
                                  mfxSize srcSize);
 
-static int cc_YUV411_to_YUV420(const uint8_t *pSrc[3],
+static IppStatus cc_YUV411_to_YUV420(const uint8_t *pSrc[3],
                                      int32_t   iSrcStride[3],
                                      uint8_t    *pDst[3],
                                      int32_t   iDstStride[3],
                                      mfxSize srcSize);
 
-static int cc_RGB3_to_NV12(const uint8_t *pSrc,
+static IppStatus cc_RGB3_to_NV12(const uint8_t *pSrc,
                        int32_t   iSrcStride,
                        uint8_t* pDst[2],
                        int32_t dstStep[2],
                        mfxSize srcSize,
                        uint8_t isInterlace);
 
-static int cc_RGB4_to_NV12(const uint8_t *pSrc,
+static IppStatus cc_RGB4_to_NV12(const uint8_t *pSrc,
                        int32_t   iSrcStride,
                        uint8_t* pDst[2],
                        int32_t dstStep[2],
@@ -442,7 +442,7 @@ static void ConvertImage_16s8u_C1R(const int16_t *pSrc,
   }
 }
 
-int cc_BGRAToBGR(const uint8_t *pSrc,
+IppStatus cc_BGRAToBGR(const uint8_t *pSrc,
                        int32_t   iSrcStride,
                        uint8_t    *pDst,
                        int32_t   iDstStride,
@@ -462,7 +462,7 @@ int cc_BGRAToBGR(const uint8_t *pSrc,
   return ippStsNoErr;
 }
 
-int cc_BGRToBGRA(const uint8_t *pSrc,
+IppStatus cc_BGRToBGRA(const uint8_t *pSrc,
                        int32_t   iSrcStride,
                        uint8_t    *pDst,
                        int32_t   iDstStride,
@@ -483,7 +483,7 @@ int cc_BGRToBGRA(const uint8_t *pSrc,
   return ippStsNoErr;
 }
 
-int cc_BGR555ToBGR(const uint16_t *pSrc,
+IppStatus cc_BGR555ToBGR(const uint16_t *pSrc,
                          int32_t   iSrcStride,
                          uint8_t    *pDst,
                          int32_t   iDstStride,
@@ -506,7 +506,7 @@ int cc_BGR555ToBGR(const uint16_t *pSrc,
   return ippStsNoErr;
 }
 
-int cc_BGR565ToBGR(const uint16_t *pSrc,
+IppStatus cc_BGR565ToBGR(const uint16_t *pSrc,
                          int32_t   iSrcStride,
                          uint8_t    *pDst,
                          int32_t   iDstStride,
@@ -528,7 +528,7 @@ int cc_BGR565ToBGR(const uint16_t *pSrc,
   return ippStsNoErr;
 }
 
-int cc_Y41P_to_I420(const uint8_t *pSrc,
+IppStatus cc_Y41P_to_I420(const uint8_t *pSrc,
                           int32_t   iSrcStride,
                           uint8_t    **pDst,
                           int32_t   *iDstStride,
@@ -582,10 +582,10 @@ int cc_Y41P_to_I420(const uint8_t *pSrc,
       V += V_stride;
     }
   }
-  return (int)0;
+  return ippStsNoErr;
 }
 
-int cc_I420_to_Y41P(const uint8_t **pSrc,
+IppStatus cc_I420_to_Y41P(const uint8_t **pSrc,
                           int32_t   *iSrcStride,
                           uint8_t    *pDst,
                           int32_t   iDstStride,
@@ -633,11 +633,11 @@ int cc_I420_to_Y41P(const uint8_t **pSrc,
       V += V_stride;
     }
   }
-  return (int)0;
+  return ippStsNoErr;
 }
 
 
-int cc_YUV411_to_YUV420(const uint8_t *pSrc[3],
+IppStatus cc_YUV411_to_YUV420(const uint8_t *pSrc[3],
                           int32_t   pSrcStep[3],
                           uint8_t    *pDst[3],
                           int32_t   pDstStep[3],
@@ -650,7 +650,7 @@ int cc_YUV411_to_YUV420(const uint8_t *pSrc[3],
     int  height ;
     const uint8_t* srcu;
     const uint8_t* srcv;
-    int sts = ippStsNoErr;
+    IppStatus sts = ippStsNoErr;
 
     uint8_t* dstu;
     uint8_t* dstv;
@@ -702,9 +702,9 @@ int cc_YUV411_to_YUV420(const uint8_t *pSrc[3],
 #define kry6  0x00005e35
 #define kry7  0x0000122d
 
-static int ownBGRToYCbCr420_8u_AC4P2R(const uint8_t* pSrc, int srcStep, uint8_t* pDst[2],int dstStep[2], mfxSize roiSize )
+static IppStatus ownBGRToYCbCr420_8u_AC4P2R(const uint8_t* pSrc, int srcStep, uint8_t* pDst[2],int dstStep[2], mfxSize roiSize )
 {
-  int sts = ippStsNoErr;
+  IppStatus sts = ippStsNoErr;
   int h,w;
   int dstStepY = dstStep[0];
   int width2  = roiSize.width  & ~1;
@@ -750,14 +750,14 @@ static int ownBGRToYCbCr420_8u_AC4P2R(const uint8_t* pSrc, int srcStep, uint8_t*
 
 } // int  ownBGRToYCbCr420_8u_AC4P3R( ... )
 
-static int cc_RGB4_to_NV12(const uint8_t *pSrc,
+static IppStatus cc_RGB4_to_NV12(const uint8_t *pSrc,
                        int32_t   iSrcStride,
                        uint8_t* pDst[2],
                        int32_t dstStep[2],
                        mfxSize srcSize,
                        uint8_t isInterlace)
 {
-  int sts = ippStsNoErr;
+  IppStatus sts = ippStsNoErr;
   // alpha channel is ignore due to d3d issue
 
   if (!isInterlace)
@@ -786,7 +786,7 @@ static int cc_RGB4_to_NV12(const uint8_t *pSrc,
 } // int cc_RGB4_to_NV12( mfxFrameData* inData,  mfxFrameInfo* inInfo, ... )
 
 static
-int  ownBGRToYCbCr420_8u_C3P2R( const uint8_t* pSrc, int32_t srcStep, uint8_t* pDst[2],int32_t dstStep[2], mfxSize roiSize )
+IppStatus  ownBGRToYCbCr420_8u_C3P2R( const uint8_t* pSrc, int32_t srcStep, uint8_t* pDst[2],int32_t dstStep[2], mfxSize roiSize )
 {
   int32_t h,w;
   int32_t dstStepY = dstStep[0];
@@ -795,7 +795,7 @@ int  ownBGRToYCbCr420_8u_C3P2R( const uint8_t* pSrc, int32_t srcStep, uint8_t* p
   uint8_t* pDstU = pDst[1];
   uint8_t* pDstV = pDstU + 1;
 
-  int sts = ippStsNoErr;
+  IppStatus sts = ippStsNoErr;
 
   for( h = 0; h < height2; h++ ){
     const uint8_t* src;
@@ -839,14 +839,14 @@ int  ownBGRToYCbCr420_8u_C3P2R( const uint8_t* pSrc, int32_t srcStep, uint8_t* p
 
 } // int  ownBGRToYCbCr420_8u_C3P2R( const mfxU8* pSrc, mfxI32 srcStep, ...)
 
-static int cc_RGB3_to_NV12(const uint8_t *pSrc,
+static IppStatus cc_RGB3_to_NV12(const uint8_t *pSrc,
                        int32_t   iSrcStride,
                        uint8_t* pDst[2],
                        int32_t dstStep[2],
                        mfxSize srcSize,
                        uint8_t isInterlace)
 {
-  int sts = ippStsNoErr;
+  IppStatus sts = ippStsNoErr;
 
   if (!isInterlace)
   {
