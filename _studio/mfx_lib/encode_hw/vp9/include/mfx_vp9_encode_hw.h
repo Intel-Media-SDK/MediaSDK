@@ -39,6 +39,7 @@ public:
     MFXVideoENCODEVP9_HW(VideoCORE *core, mfxStatus *status)
         : m_bStartIVFSequence(false)
         , m_maxBsSize(0)
+        , m_pCore(core)
         , m_initialized(false)
         , m_frameArrivalOrder(0)
         , m_drainState(false)
@@ -55,9 +56,6 @@ public:
         ZeroExtBuffer(m_prevSegment);
 
         Zero(m_prevFrameParam);
-
-        if (core)
-            m_pCore = core;
 
         if (status)
             *status = MFX_ERR_NONE;
