@@ -776,7 +776,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         mfxU16 i = 0;
         mfxExtVP9TemporalLayers const & tl = GetExtBufferRef(par);
 
-        if (par.m_numLayers > 0)
+        if (par.m_numLayers > 0 && par.m_numLayers < 8)
         {
             mfxU32 maxScale = tl.Layer[par.m_numLayers - 1].FrameRateScale;
             for (; i < par.m_numLayers; i++)
@@ -792,7 +792,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
     // this is demand by kernel processing logic
     inline bool IsNeedDisableRefreshForFrameTS(VP9MfxVideoParam const & par, mfxU32 frameOrderInGop)
     {
-        if (par.m_numLayers > 1 && frameOrderInGop >= 2)
+        if (par.m_numLayers > 1 && frameOrderInGop >= 2 && par.m_numLayers < 8)
         {
             mfxExtVP9TemporalLayers const & tl = GetExtBufferRef(par);
             mfxU32 maxScale = tl.Layer[par.m_numLayers - 1].FrameRateScale;
