@@ -223,7 +223,7 @@ static mfxStatus ReallocImpl(VADisplay* va_disp, vaapiMemIdInt *vaapi_mid, mfxFr
                             vaapi_mid->m_surface,
                             1,
                             attrib.data(), attrib.size());
-    MFX_CHECK(va_res != VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
+    MFX_CHECK(va_res == VA_STATUS_SUCCESS, MFX_ERR_MEMORY_ALLOC);
 
     // Update fourcc of reallocated element. VAid was updated automatically
     vaapi_mid->m_fourcc = surf->Info.FourCC;
