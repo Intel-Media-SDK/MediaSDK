@@ -1332,8 +1332,8 @@ mfxStatus VAAPIEncoder::Destroy()
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_ppsBufferId);
     std::ignore = MFX_STS_TRACE(sts);
 
-    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_segMapBufferId);
-    std::ignore = MFX_STS_TRACE(sts);
+    // m_segMapBufferId buffer is allocated through internal allocator and will be destroyed there
+    m_segMapBufferId = VA_INVALID_ID;
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_segParBufferId);
     std::ignore = MFX_STS_TRACE(sts);
