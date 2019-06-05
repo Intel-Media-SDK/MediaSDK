@@ -50,6 +50,45 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+/* In preprocessor syntax # symbol has stringize meaning,
+   so to expand some macro to preprocessor pragma we need to use
+   special compiler dependent construction */
+
+#if defined(_MSC_VER)
+    #define MFX_PRAGMA_IMPL(x) __pragma(x)
+#else
+    #define MFX_PRAGMA_IMPL(x) _Pragma(#x)
+#endif
+
+#define MFX_PACK_BEGIN_X(x) MFX_PRAGMA_IMPL(pack(push, x))
+#define MFX_PACK_END()      MFX_PRAGMA_IMPL(pack(pop))
+
+/* The general rule for alignment is following:
+   - structures with pointers have 4/8 bytes alignment on 32/64 bit systems
+   - structures with fields of type mfxU64/mfxF64 (unsigned long long / double)
+     have alignment 8 bytes on 64 bit and 32 bit Windows, on Linux alignment is 4 bytes
+   - all the rest structures are 4 bytes aligned
+   - there are several exceptions: some structs which had 4-byte alignment were extended
+     with pointer / long type fields; such structs have 4-byte alignment to keep binary
+     compatibility with previously release API */
+
+#define MFX_PACK_BEGIN_USUAL_STRUCT()        MFX_PACK_BEGIN_X(4)
+
+/* 64-bit LP64 data model */
+#if defined(_WIN64) || defined(__LP64__)
+    #define MFX_PACK_BEGIN_STRUCT_W_PTR()    MFX_PACK_BEGIN_X(8)
+    #define MFX_PACK_BEGIN_STRUCT_W_L_TYPE() MFX_PACK_BEGIN_X(8)
+/* 32-bit ILP32 data model Windows (Intel architecture) */
+#elif defined(_WIN32) || defined(_M_IX86) && !defined(__linux__)
+    #define MFX_PACK_BEGIN_STRUCT_W_PTR()    MFX_PACK_BEGIN_X(4)
+    #define MFX_PACK_BEGIN_STRUCT_W_L_TYPE() MFX_PACK_BEGIN_X(8)
+/* 32-bit ILP32 data model Linux */
+#elif defined(__ILP32__)
+    #define MFX_PACK_BEGIN_STRUCT_W_PTR()    MFX_PACK_BEGIN_X(4)
+    #define MFX_PACK_BEGIN_STRUCT_W_L_TYPE() MFX_PACK_BEGIN_X(4)
+#else
+    #error Unknown packing
+#endif
 
   #define __INT64   long long
   #define __UINT64  unsigned long long
