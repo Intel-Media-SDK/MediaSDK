@@ -648,16 +648,16 @@ namespace ExtBuffer
     {
         if (!Construct<mfxVideoParam, mfxExtHEVCParam>(par, buf, pBuffers, numbuffers))
         {
-            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width, codedPicAlignment);
-            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
+            buf.PicWidthInLumaSamples  = align2_value(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width,  codedPicAlignment);
+            buf.PicHeightInLumaSamples = align2_value(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
             return false;
         }
         if (buf.PicWidthInLumaSamples == 0)
-            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX) : par.mfx.FrameInfo.Width, codedPicAlignment);
+            buf.PicWidthInLumaSamples  = align2_value(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width,  codedPicAlignment);
 
         if (buf.PicHeightInLumaSamples == 0)
-            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
+            buf.PicHeightInLumaSamples = align2_value(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
         return true;
     }
@@ -1378,8 +1378,8 @@ void MfxVideoParam::SyncHeadersToMfxParam()
     m_ext.HEVCParam.PicWidthInLumaSamples  = (mfxU16)m_sps.pic_width_in_luma_samples;
     m_ext.HEVCParam.PicHeightInLumaSamples = (mfxU16)m_sps.pic_height_in_luma_samples;
 
-    fi.Width = Align(m_ext.HEVCParam.PicWidthInLumaSamples, HW_SURF_ALIGN_W);
-    fi.Height = Align(m_ext.HEVCParam.PicHeightInLumaSamples, HW_SURF_ALIGN_H);
+    fi.Width  = align2_value(m_ext.HEVCParam.PicWidthInLumaSamples,  HW_SURF_ALIGN_W);
+    fi.Height = align2_value(m_ext.HEVCParam.PicHeightInLumaSamples, HW_SURF_ALIGN_H);
 
     fi.CropX = 0;
     fi.CropY = 0;

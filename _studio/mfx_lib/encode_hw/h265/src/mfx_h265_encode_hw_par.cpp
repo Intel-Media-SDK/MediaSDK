@@ -1814,13 +1814,13 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     if (bInit)
     {
-        invalid += CheckMin(par.mfx.FrameInfo.Width,  Align(par.mfx.FrameInfo.Width,  surfAlignW));
-        invalid += CheckMin(par.mfx.FrameInfo.Height, Align(par.mfx.FrameInfo.Height, surfAlignH));
+        invalid += CheckMin(par.mfx.FrameInfo.Width,  mfx::align2_value(par.mfx.FrameInfo.Width,  surfAlignW));
+        invalid += CheckMin(par.mfx.FrameInfo.Height, mfx::align2_value(par.mfx.FrameInfo.Height, surfAlignH));
     }
     else
     {
-        changed += CheckMin(par.mfx.FrameInfo.Width,  Align(par.mfx.FrameInfo.Width,  surfAlignW));
-        changed += CheckMin(par.mfx.FrameInfo.Height, Align(par.mfx.FrameInfo.Height, surfAlignH));
+        changed += CheckMin(par.mfx.FrameInfo.Width,  mfx::align2_value(par.mfx.FrameInfo.Width,  surfAlignW));
+        changed += CheckMin(par.mfx.FrameInfo.Height, mfx::align2_value(par.mfx.FrameInfo.Height, surfAlignH));
     }
 
     invalid += CheckMax(par.mfx.FrameInfo.Width, caps.ddi_caps.MaxPicWidth);
@@ -1829,8 +1829,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     invalid += CheckMax(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.mfx.FrameInfo.Width);
     invalid += CheckMax(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.mfx.FrameInfo.Height);
 
-    changed += CheckMin(par.m_ext.HEVCParam.PicWidthInLumaSamples, Align(par.m_ext.HEVCParam.PicWidthInLumaSamples, par.CodedPicAlignment));
-    changed += CheckMin(par.m_ext.HEVCParam.PicHeightInLumaSamples, Align(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.CodedPicAlignment));
+    changed += CheckMin(par.m_ext.HEVCParam.PicWidthInLumaSamples,  mfx::align2_value(par.m_ext.HEVCParam.PicWidthInLumaSamples,  par.CodedPicAlignment));
+    changed += CheckMin(par.m_ext.HEVCParam.PicHeightInLumaSamples, mfx::align2_value(par.m_ext.HEVCParam.PicHeightInLumaSamples, par.CodedPicAlignment));
 
 #if (MFX_VERSION < 1027)
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN || par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAINSP)
