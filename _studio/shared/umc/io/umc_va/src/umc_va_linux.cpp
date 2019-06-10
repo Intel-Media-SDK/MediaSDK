@@ -183,10 +183,10 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         break;
 #if (MFX_VERSION >= 1027)
     case UMC::VA_H265| UMC::VA_PROFILE_422 | UMC::VA_PROFILE_REXT:
-        va_profile = VAProfileHEVCMain422_10;
+        if (profile < 1) va_profile = VAProfileHEVCMain422_10;
         break;
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT:
-        va_profile = VAProfileHEVCMain444;
+        if (profile < 1) va_profile = VAProfileHEVCMain444;
         break;
 #endif
     case UMC::VA_H265 | UMC::VA_PROFILE_10:
@@ -196,10 +196,10 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_422 | UMC::VA_PROFILE_10:
-        va_profile = VAProfileHEVCMain422_10;
+        if (profile < 1) va_profile = VAProfileHEVCMain422_10;
         break;
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
-        va_profile = VAProfileHEVCMain444_10;
+        if (profile < 1) va_profile = VAProfileHEVCMain444_10;
         break;
 #endif
     case UMC::VA_VC1:
