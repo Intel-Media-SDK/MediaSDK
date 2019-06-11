@@ -229,7 +229,8 @@ class mfx_UMC_FrameAllocator_D3D_Converter : public mfx_UMC_FrameAllocator_D3D
 {
     std::unique_ptr<VideoVppJpegD3D9> m_pCc;
 
-    mfxStatus FindSurfaceByMemId(UMC::FrameData* in, bool isOpaq, const mfxHDLPair &hdlPair,
+    mfxStatus InitVideoVppJpegD3D9(const mfxVideoParam *params);
+    mfxStatus FindSurfaceByMemId(const UMC::FrameData* in, bool isOpaq, const mfxHDLPair &hdlPair,
                                  // output param
                                  mfxFrameSurface1 &surface);
 public:
