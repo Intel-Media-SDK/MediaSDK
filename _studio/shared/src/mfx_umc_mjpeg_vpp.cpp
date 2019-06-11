@@ -119,7 +119,17 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::InitMfx(UMC::FrameAllocatorPar
 
     mfxCore->SetWrapper(this);
 
-    // init m_pCc
+    return UMC::UMC_OK;
+}
+
+UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::Reset()
+{
+    m_pCc.reset();
+    return mfx_UMC_FrameAllocator_D3D::Reset();
+}
+
+mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::InitVideoVppJpegD3D9(const mfxVideoParam *params)
+{
     bool isD3DToSys = false;
 
     if(params->IOPattern & MFX_IOPATTERN_OUT_SYSTEM_MEMORY)
@@ -153,21 +163,16 @@ UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::InitMfx(UMC::FrameAllocatorPar
         mfxSts = m_pCc->Init(params);
     }
     MFX_CHECK_STS( mfxSts );
-
-    return UMC::UMC_OK;
+    return mfxSts;
 }
 
-UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::Reset()
-{
-    m_pCc.reset();
-    return mfx_UMC_FrameAllocator_D3D::Reset();
-}
-
-mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::FindSurfaceByMemId(UMC::FrameData* in, bool isOpaq,
+mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::FindSurfaceByMemId(const UMC::FrameData* in, bool isOpaq,
                                                                    const mfxHDLPair &hdlPair,
                                                                    // output param
                                                                    mfxFrameSurface1 &surface)
 {
+    MFX_CHECK_NULL_PTR1(in);
+
     UMC::FrameMemID index = in->GetFrameMID();
     mfxMemId memInter = m_frameDataInternal.GetSurface(index).Data.MemId;
     mfxMemId memId = isOpaq?(memInter):(m_pCore->MapIdx(memInter));
@@ -187,6 +192,11 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
 {
     UMC::AutomaticUMCMutex guard(m_guard);
     mfxStatus sts = MFX_ERR_NONE;
+
+    if (!m_pCc)
+    {
+        MFX_SAFE_CALL( InitVideoVppJpegD3D9(par) );
+    }
 
     mfxHDLPair hdlPair;
     if(isOpaq)
