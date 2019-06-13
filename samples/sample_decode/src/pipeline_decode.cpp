@@ -765,7 +765,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
 #endif
         )
-    ) 
+    )
     {
         m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
     }
@@ -776,16 +776,28 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     {
 
         if ( (m_mfxVideoParams.mfx.FrameInfo.CropW != pParams->Width && pParams->Width) ||
-            (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height && pParams->Height) )
+            (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height && pParams->Height)||
+            (pParams->videoType == MFX_CODEC_JPEG && pParams->fourcc == MFX_FOURCC_RGB4 &&
+             m_mfxVideoParams.mfx.JPEGColorFormat != m_mfxVideoParams.mfx.FrameInfo.ChromaFormat))
         {
             /* By default VPP used for resize */
             m_bVppIsUsed = true;
             /* But... lets try to use decoder's post processing */
             if ( ((MODE_DECODER_POSTPROC_AUTO == pParams->nDecoderPostProcessing) ||
                   (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing)) &&
-                 (MFX_CODEC_AVC == m_mfxVideoParams.mfx.CodecId) && /* Only for AVC */
+                 (MFX_CODEC_AVC == m_mfxVideoParams.mfx.CodecId ||
+                  MFX_CODEC_JPEG == m_mfxVideoParams.mfx.CodecId) && /* Only for AVC and JPEG */
                  (MFX_PICSTRUCT_PROGRESSIVE == m_mfxVideoParams.mfx.FrameInfo.PicStruct)) /* ...And only for progressive!*/
             {   /* it is possible to use decoder's post-processing */
+
+                // JPEG only suppoted w/o resize, so use W/H from DecodeHeader(), if they are not set
+                if (MFX_CODEC_JPEG == m_mfxVideoParams.mfx.CodecId &&
+                    (!pParams->Width || !pParams->Height))
+                {
+                    pParams->Width  = m_mfxVideoParams.mfx.FrameInfo.CropW;
+                    pParams->Height = m_mfxVideoParams.mfx.FrameInfo.CropH;
+                }
+
                 m_bVppIsUsed = false;
                 m_DecoderPostProcessing.In.CropX = 0;
                 m_DecoderPostProcessing.In.CropY = 0;
@@ -808,7 +820,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
             /* POSTPROC_FORCE */
             if (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing)
             {
-               if ((MFX_CODEC_AVC != m_mfxVideoParams.mfx.CodecId) ||
+              if ( (MFX_CODEC_AVC != m_mfxVideoParams.mfx.CodecId && MFX_CODEC_JPEG != m_mfxVideoParams.mfx.CodecId) ||
                    (MFX_PICSTRUCT_PROGRESSIVE != m_mfxVideoParams.mfx.FrameInfo.PicStruct))
                {
                    /* it is impossible to use decoder's post-processing */

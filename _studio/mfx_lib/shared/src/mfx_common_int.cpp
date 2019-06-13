@@ -517,6 +517,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 
 
     static const mfxU32 g_decoderSupportedExtBuffersMJPEG[] = {MFX_EXTBUFF_JPEG_HUFFMAN,
+                                                               MFX_EXTBUFF_DEC_VIDEO_PROCESSING,
                                                                MFX_EXTBUFF_JPEG_QT};
 
     const mfxU32 *supported_buffers = 0;
