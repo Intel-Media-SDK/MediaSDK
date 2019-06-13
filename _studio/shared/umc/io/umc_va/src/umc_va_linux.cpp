@@ -478,7 +478,9 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
         if (UMC_OK == umcRes && pParams->m_needVideoProcessingVA)
         {
-            if (va_attributes[2].value == VA_DEC_PROCESSING_NONE)
+            // for VAProfileJPEGBaseline current driver doesn't report
+            // VAConfigAttribDecProcessing status correctly
+            if (va_attributes[2].value == VA_DEC_PROCESSING_NONE && va_profile != VAProfileJPEGBaseline)
                 umcRes = UMC_ERR_FAILED;
             else
                 attribsNumber++;

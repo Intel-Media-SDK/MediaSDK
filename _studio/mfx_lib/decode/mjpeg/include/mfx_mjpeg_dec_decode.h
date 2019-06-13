@@ -107,9 +107,9 @@ public:
     virtual mfxStatus AllocateFrameData(UMC::FrameData *&data);
     virtual mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out);
 
-    mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType);
+    mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool usePostProcessing);
 
-    static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool *needVpp);
+    static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, const mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool usePostProc, bool *needVpp);
 
     static mfxStatus CheckVPPCaps(VideoCORE * core, mfxVideoParam * par);
 
