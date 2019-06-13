@@ -14,6 +14,9 @@
 MFX_CFLAGS := -DANDROID
 
 # Android version preference:
+ifneq ($(filter 10 10.% Q ,$(PLATFORM_VERSION)),)
+  MFX_ANDROID_VERSION:= MFX_Q
+endif
 ifneq ($(filter 9 9.% P ,$(PLATFORM_VERSION)),)
   MFX_ANDROID_VERSION:= MFX_P
 endif
