@@ -3323,6 +3323,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
+    if ((par.mfx.CodecProfile != MFX_PROFILE_UNKNOWN) && (par.mfx.CodecProfile != MFX_PROFILE_AVC_HIGH)
+        && IsOn(extDdi->Transform8x8Mode))
+    {
+        unsupported = true;
+        extDdi->Transform8x8Mode = MFX_CODINGOPTION_UNKNOWN;
+    }
+
     if (par.calcParam.cqpHrdMode)
     {
         if (IsOn(extOpt->RecoveryPointSEI))
@@ -6275,7 +6282,8 @@ void MfxHwH264Encode::SetDefaults(
         extPps->moreRbspData                          =
             !IsAvcBaseProfile(par.mfx.CodecProfile) &&
             par.mfx.CodecProfile != MFX_PROFILE_AVC_MAIN;
-        extPps->transform8x8ModeFlag                  = extOpt->IntraPredBlockSize > MFX_BLOCKSIZE_MIN_16X16;
+        extPps->transform8x8ModeFlag                  = extDdi->Transform8x8Mode == MFX_CODINGOPTION_UNKNOWN ?
+            extOpt->IntraPredBlockSize > MFX_BLOCKSIZE_MIN_16X16 : IsOn(extDdi->Transform8x8Mode);
         extPps->picScalingMatrixPresentFlag           = 0;
         extPps->secondChromaQpIndexOffset             = 0;
     }
