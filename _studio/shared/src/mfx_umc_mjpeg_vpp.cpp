@@ -215,7 +215,7 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
 
     // for interlaced case, [0] is top and [1] is bottom; for progressive only [0] is used
     mfxFrameSurface1 srcSurface[2];
-    for (int i = 0; i < 1 + (surface_work->Info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE); ++i)
+    for (int i = 0; i < 1 + (par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE); ++i)
     {
         MFX_SAFE_CALL( FindSurfaceByMemId(&in[i], isOpaq, hdlPair, srcSurface[i]) );
 
@@ -236,7 +236,7 @@ mfxStatus mfx_UMC_FrameAllocator_D3D_Converter::StartPreparingToOutput(mfxFrameS
             srcSurface[i].Info.CropW = surface_work->Info.CropH;
             srcSurface[i].Info.CropH = surface_work->Info.CropW;
         }
-        if (surface_work->Info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
+        if (par->mfx.FrameInfo.PicStruct != MFX_PICSTRUCT_PROGRESSIVE)
         {
             srcSurface[i].Info.CropH /= 2;
         }
