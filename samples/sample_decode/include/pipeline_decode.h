@@ -244,9 +244,9 @@ protected: // functions
     virtual void DeliverLoop();
 
 protected: // variables
-    CSmplYUVWriter          m_FileWriter;
+    CSmplYUVWriter                         m_FileWriter;
     std::unique_ptr<CSmplBitstreamReader>  m_FileReader;
-    mfxBitstream            m_mfxBS; // contains encoded data
+    mfxBitstreamWrapper                    m_mfxBS; // contains encoded data
     mfxU64 totalBytesProcessed;
 
     MFXVideoSession         m_mfxSession;

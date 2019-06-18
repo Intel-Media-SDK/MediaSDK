@@ -60,12 +60,12 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 CDecodingPipeline::CDecodingPipeline()
+    : m_mfxBS(8 * 1024 * 1024)
 {
     m_nFrames=0;
     m_export_mode=0;
     m_bVppFullColorRange=false;
     m_bVppIsUsed = false;
-    MSDK_ZERO_MEMORY(m_mfxBS);
 
     m_pmfxDEC = NULL;
     m_pmfxVPP = NULL;
@@ -358,10 +358,6 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     // set video type in parameters
     m_mfxVideoParams.mfx.CodecId = pParams->videoType;
 
-    // prepare bit stream
-    sts = InitMfxBitstream(&m_mfxBS, 8 * 1024 * 1024);
-    MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
-
     if (CheckVersion(&version, MSDK_FEATURE_PLUGIN_API)) {
         /* Here we actually define the following codec initialization scheme:
         *  1. If plugin path or guid is specified: we load user-defined plugin (example: VP8 sample decoder plugin)
@@ -516,7 +512,6 @@ void CDecodingPipeline::Close()
 #if D3D_SURFACES_SUPPORT
     m_d3dRender.Close();
 #endif
-    WipeMfxBitstream(&m_mfxBS);
     MSDK_SAFE_DELETE(m_pmfxDEC);
     MSDK_SAFE_DELETE(m_pmfxVPP);
 
@@ -654,8 +649,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         {
             if (m_mfxBS.MaxLength == m_mfxBS.DataLength)
             {
-                sts = ExtendMfxBitstream(&m_mfxBS, m_mfxBS.MaxLength * 2);
-                MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+                m_mfxBS.Extend(m_mfxBS.MaxLength * 2);
             }
             // read a portion of data
             totalBytesProcessed += m_mfxBS.DataOffset;
