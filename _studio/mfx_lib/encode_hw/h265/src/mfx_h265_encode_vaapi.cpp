@@ -890,7 +890,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribEncParallelRateControl,
         VAConfigAttribEncMaxRefFrames,
         VAConfigAttribEncSliceStructure,
-        VAConfigAttribEncROI
+        VAConfigAttribEncROI,
+        VAConfigAttribEncTileSupport
     };
     std::vector<VAConfigAttrib> attrs;
 
@@ -1022,6 +1023,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     }
 
     m_caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
+    m_caps.ddi_caps.TileSupport = (attrs[idx_map[VAConfigAttribEncTileSupport]].value == 1);
 
 
     return MFX_ERR_NONE;
