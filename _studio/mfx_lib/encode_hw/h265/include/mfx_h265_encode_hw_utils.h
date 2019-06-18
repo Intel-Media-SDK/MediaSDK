@@ -325,7 +325,7 @@ struct RoiData{
     mfxU32  Right;
     mfxU32  Bottom;
 
-    mfxI16  Priority;
+    mfxI16  DeltaQP;
 };
 
 struct Task : DpbFrame

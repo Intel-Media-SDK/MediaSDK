@@ -3494,23 +3494,15 @@ void ConfigureTask(
     task.m_numRoi = 0;
     if (parRoi && parRoi->NumROI && !par.bROIViaMBQP)
     {
-        for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
+         for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
         {
             task.m_roi[i] = {parRoi->ROI[i].Left,  parRoi->ROI[i].Top,
-                             parRoi->ROI[i].Right, parRoi->ROI[i].Bottom, parRoi->ROI[i].Priority};
+                             parRoi->ROI[i].Right, parRoi->ROI[i].Bottom,
+                            (mfxI16)((parRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * parRoi->ROI[i].DeltaQP) };
             task.m_numRoi ++;
         }
-#if MFX_VERSION > 1021
-        task.m_bPriorityToDQPpar = (par.isSWBRC() && task.m_roiMode == MFX_ROI_MODE_PRIORITY);
-        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
-        {
-            task.m_roiMode = parRoi->ROIMode;
-        }
-        else
-        {
-            task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
-        }
-#endif // MFX_VERSION > 1021
+
+        task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
     }
 
 #else

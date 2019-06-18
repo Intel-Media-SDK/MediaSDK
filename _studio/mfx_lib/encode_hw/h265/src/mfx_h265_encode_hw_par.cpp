@@ -981,10 +981,8 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
     else
     {
 #if MFX_VERSION > 1021
-        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
+        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA || ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
             invalid += (caps.ROIDeltaQPSupport == 0);
-        else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
-            invalid += (caps.ROIBRCPriorityLevelSupport == 0);
         else
             invalid++;
 #endif // MFX_VERSION > 1021
