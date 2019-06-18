@@ -2202,47 +2202,27 @@ void MfxHwH264Encode::ConfigureTask(
             numRoi = caps.ddi_caps.MaxNumOfROI;
         }
 
-#if MFX_VERSION > 1021
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
-        {
-            task.m_roiMode = pRoi->ROIMode;
-        }
-        else
-        {
-            task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
-        }
-
         if (pRoi->ROIMode != MFX_ROI_MODE_QP_DELTA && pRoi->ROIMode != MFX_ROI_MODE_PRIORITY)
         {
             numRoi = 0;
         }
 
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-            pRoi->ROIMode == MFX_ROI_MODE_QP_DELTA && caps.ddi_caps.ROIBRCDeltaQPLevelSupport == 0)
+        if (caps.ddi_caps.ROIBRCDeltaQPLevelSupport == 0)
         {
             numRoi = 0;
         }
-
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-            pRoi->ROIMode == MFX_ROI_MODE_PRIORITY && caps.ddi_caps.ROIBRCPriorityLevelSupport == 0)
-        {
-            numRoi = 0;
-        }
-#endif // MFX_VERSION > 1021
 
         for (mfxU16 i = 0; i < numRoi; i ++)
         {
             if (extRoiRuntime)
             {
                 mfxRoiDesc task_roi = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, pRoi->ROI[i].Priority};
+                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
+                                       (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
 
                 // check runtime ROI
-#if MFX_VERSION > 1021
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoiRuntime->ROIMode);
-#else
-                mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, 0);
-#endif // MFX_VERSION > 1021
+
                 if (sts != MFX_ERR_UNSUPPORTED) {
                     task.m_roi[task.m_numRoi] = task_roi;
                     task.m_numRoi++;
@@ -2251,10 +2231,12 @@ void MfxHwH264Encode::ConfigureTask(
             else
             {
                 task.m_roi[task.m_numRoi] = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, pRoi->ROI[i].Priority};
+                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
+                                             (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
                 task.m_numRoi ++;
             }
         }
+        task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
     }
 
     mfxExtDirtyRect const * pDirtyRect = extDirtyRectRuntime ? extDirtyRectRuntime : extDirtyRect;

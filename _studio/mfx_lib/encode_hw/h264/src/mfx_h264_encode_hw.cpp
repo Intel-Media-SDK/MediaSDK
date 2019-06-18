@@ -333,13 +333,13 @@ mfxStatus ImplementationAvc::Query(
         {
             extRoi->NumROI          = 1;
 #if MFX_VERSION > 1021
-            extRoi->ROIMode         = MFX_ROI_MODE_PRIORITY;
+            extRoi->ROIMode         = MFX_ROI_MODE_QP_DELTA;
 #endif // MFX_VERSION > 1021
             extRoi->ROI[0].Left     = 1;
             extRoi->ROI[0].Right    = 1;
             extRoi->ROI[0].Top      = 1;
             extRoi->ROI[0].Bottom   = 1;
-            extRoi->ROI[0].Priority = 1;
+            extRoi->ROI[0].DeltaQP = 1;
         }
         if (mfxExtEncoderCapability * extCap = GetExtBuffer(*out))
         {

@@ -408,7 +408,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFr
                     mfxU32 y = i*drBlkH;
                     if (x >= roi->ROI[n].Left  &&  x < roi->ROI[n].Right  && y >= roi->ROI[n].Top && y < roi->ROI[n].Bottom)
                     {
-                        diff = (task.m_bPriorityToDQPpar? (-1) : 1) * roi->ROI[n].Priority;
+                        diff = (task.m_roiMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * roi->ROI[n].Priority;
                         break;
                     }
 
