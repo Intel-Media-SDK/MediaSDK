@@ -228,7 +228,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
 
     eMFXHWType platform = m_core->GetHWType();
     m_vpar = MfxVideoParam(*par, platform);
-
+m_vpar.m_ext.CO2.ExtBRC = MFX_CODINGOPTION_ON;
     mfxStatus lpsts = SetLowpowerDefault(m_vpar);
 
     m_ddi.reset( CreateHWh265Encoder(m_core, ddiType) );
