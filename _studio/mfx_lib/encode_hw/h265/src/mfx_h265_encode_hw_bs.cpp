@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2017-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -2373,6 +2373,23 @@ void HeaderPacker::PackSEIPayload(
     bs.PutTrailingBits(true);
 }
 
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+void HeaderPacker::PackSEIPayload(BitstreamWriter& bs, mfxExtMasteringDisplayColourVolume const & DisplayColour) {
+    for (int i = 0; i < 3; i++) {
+        bs.PutBits(16, DisplayColour.DisplayPrimariesX[i]);
+        bs.PutBits(16, DisplayColour.DisplayPrimariesY[i]);
+    }
+    bs.PutBits(16, DisplayColour.WhitePointX);
+    bs.PutBits(16, DisplayColour.WhitePointY);
+    bs.PutBits(32, DisplayColour.MaxDisplayMasteringLuminance);
+    bs.PutBits(32, DisplayColour.MinDisplayMasteringLuminance);
+}
+
+void HeaderPacker::PackSEIPayload(BitstreamWriter& bs, mfxExtContentLightLevelInfo const & LightLevel) {
+    bs.PutBits(16, LightLevel.MaxContentLightLevel);
+    bs.PutBits(16, LightLevel.MaxPicAverageLightLevel);
+}
+#endif
 
 void HeaderPacker::PackSEIPayload(
     BitstreamWriter& bs,
@@ -2474,6 +2491,47 @@ mfxStatus HeaderPacker::ResetPPS(MfxVideoParam const & par)
     return sts;
 }
 
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+void PackMasteringDisplayColourVolumePayload(BitstreamWriter& rbsp, MfxVideoParam const & par, Task const & task) {
+    mfxExtMasteringDisplayColourVolume* pExtDisplayColour = ExtBuffer::Get(task.m_ctrl);
+    if (!pExtDisplayColour)
+        pExtDisplayColour = (mfxExtMasteringDisplayColourVolume*) &par.m_ext.DisplayColour;
+
+    mfxU32 size = CeilDiv(rbsp.GetOffset(), 8);
+    mfxU8* pl = rbsp.GetStart() + size; // payload start
+
+    rbsp.PutBits(8, 137);    //payload type
+    rbsp.PutBits(8, 0xff); //place for payload  size
+    size += 2;
+
+    HeaderPacker::PackSEIPayload(rbsp, *pExtDisplayColour);
+
+    size = CeilDiv(rbsp.GetOffset(), 8) - size;
+
+    assert(size < 256);
+    pl[1] = (mfxU8)size; //payload size
+}
+
+void PackContentLightLevelInfoPayload(BitstreamWriter& rbsp, MfxVideoParam const & par, Task const & task) {
+    mfxExtContentLightLevelInfo* pExtLightLevel = ExtBuffer::Get(task.m_ctrl);
+    if (!pExtLightLevel)
+        pExtLightLevel = (mfxExtContentLightLevelInfo*)&par.m_ext.LightLevel;
+
+    mfxU32 size = CeilDiv(rbsp.GetOffset(), 8);
+    mfxU8* pl = rbsp.GetStart() + size; // payload start
+
+    rbsp.PutBits(8, 144);    //payload type
+    rbsp.PutBits(8, 0xff); //place for payload  size
+    size += 2;
+
+    HeaderPacker::PackSEIPayload(rbsp, *pExtLightLevel);
+
+    size = CeilDiv(rbsp.GetOffset(), 8) - size;
+
+    assert(size < 256);
+    pl[1] = (mfxU8)size; //payload size
+}
+#endif
 
 void PackBPPayload(BitstreamWriter& rbsp, MfxVideoParam const & par, Task const & task)
 {
@@ -2635,6 +2693,9 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
     mfxPayload BPSEI = {}, PTSEI = {};
     bool insertBP = false, insertPT = false;
 
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+    bool insertLightLevel = false, insertDisplayColour = false;
+#endif
 
     if (task.m_ctrl.Payload != nullptr)
     {
@@ -2695,7 +2756,7 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
 
         rbsp.Reset();
     }
-    
+
     plIt = std::find_if(prefixPL.begin(), prefixPL.end(), PLTypeEq(1));
     insertPT = plIt != prefixPL.end();
 
@@ -2793,6 +2854,21 @@ void HeaderPacker::GetPrefixSEI(Task const & task, mfxU8*& buf, mfxU32& sizeInBy
         rbsp.PutTrailingBits(true);
     }
 
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+    plIt = std::find_if(prefixPL.begin(), prefixPL.end(), PLTypeEq(137));
+    insertDisplayColour = plIt != prefixPL.end();
+    if ((task.m_insertHeaders & INSERT_DCVSEI) && !insertDisplayColour)
+    {
+        PackMasteringDisplayColourVolumePayload(rbsp, *m_par, task);
+    }
+
+    plIt = std::find_if(prefixPL.begin(), prefixPL.end(), PLTypeEq(144));
+    insertLightLevel = plIt != prefixPL.end();
+    if ((task.m_insertHeaders & INSERT_LLISEI) && !insertLightLevel)
+    {
+        PackContentLightLevelInfoPayload(rbsp, *m_par, task);
+    }
+#endif
     rbsp.PutTrailingBits();
 
 

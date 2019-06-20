@@ -1,15 +1,15 @@
 // Copyright (c) 2018-2019 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -432,6 +432,10 @@ namespace ExtBuffer
          MFX_EXTBUFF_MBQP,
          MFX_EXTBUFF_ENCODER_ROI,
          MFX_EXTBUFF_DIRTY_RECTANGLES,
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+         MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME,
+         MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO,
+#endif
          MFX_EXTBUFF_ENCODED_FRAME_INFO
     };
 
@@ -458,9 +462,13 @@ namespace ExtBuffer
         EXTBUF(mfxExtDirtyRect,             MFX_EXTBUFF_DIRTY_RECTANGLES);
         EXTBUF(mfxExtBRC,                   MFX_EXTBUFF_BRC);
         EXTBUF(mfxExtMBQP,                  MFX_EXTBUFF_MBQP);
-#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#ifdef MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
         EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
-#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#endif
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+        EXTBUF(mfxExtMasteringDisplayColourVolume, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
+        EXTBUF(mfxExtContentLightLevelInfo, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
+#endif
         EXTBUF(mfxExtAVCEncodedFrameInfo, MFX_EXTBUFF_ENCODED_FRAME_INFO);
 
     #undef EXTBUF
@@ -792,6 +800,10 @@ public:
         mfxExtBRC                   extBRC;
         mfxExtEncoderROI            ROI;
         mfxExtDirtyRect             DirtyRect;
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+        mfxExtMasteringDisplayColourVolume   DisplayColour;
+        mfxExtContentLightLevelInfo LightLevel;
+#endif
         mfxExtEncoderResetOption   ResetOpt;
         mfxExtBuffer *              m_extParam[SIZE_OF_ARRAY(ExtBuffer::allowed_buffers)];
     } m_ext;
