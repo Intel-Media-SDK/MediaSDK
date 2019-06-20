@@ -181,6 +181,30 @@ mfxStatus SetSkipFrame(
 
             void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples);
     };
+
+    class GUIDhash
+    {
+    public:
+        size_t operator()(const GUID &guid) const
+        {
+            return guid.GetHashCode();
+        }
+    };
+
+    struct VAParameters
+    {
+        VAParameters():
+            profile(VAProfileNone), entrypoint(static_cast<VAEntrypoint>(0))
+        {}
+
+        VAParameters(VAProfile p, VAEntrypoint e) :
+            profile(p), entrypoint(e)
+        {}
+
+        VAProfile profile;
+        VAEntrypoint entrypoint;
+    };
+
     class VAAPIEncoder : public DriverEncoder, protected DDIHeaderPacker, protected VABuffersHandler
     {
     public:
@@ -241,17 +265,6 @@ mfxStatus SetSkipFrame(
             return DDIHeaderPacker::PackHeader(task, nut);
         }
 
-        virtual
-        VAEntrypoint GetVAEntryPoint()
-        {
-#if (MFX_VERSION >= 1025)
-            return (IsOn(m_videoParam.mfx.LowPower) && m_videoParam.m_platform >= MFX_HW_CNL) ?
-                    VAEntrypointEncSliceLP : VAEntrypointEncSlice;
-#else
-            return VAEntrypointEncSlice;
-#endif
-        }
-
     protected:
         virtual
         mfxStatus ConfigureExtraVAattribs(std::vector<VAConfigAttrib> & /* attrib */)
@@ -264,6 +277,8 @@ mfxStatus SetSkipFrame(
         {
             return MFX_ERR_NONE;
         }
+
+        virtual VAParameters GetVaParams(const GUID & guid);
 
         VAAPIEncoder(const VAAPIEncoder&);
         VAAPIEncoder& operator=(const VAAPIEncoder&);

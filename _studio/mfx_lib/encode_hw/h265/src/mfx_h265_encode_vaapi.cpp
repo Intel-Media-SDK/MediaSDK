@@ -37,29 +37,6 @@
 namespace MfxHwH265Encode
 {
 
-struct VAParameters
-{
-    VAParameters():
-        profile(VAProfileNone), entrypoint(VAEntrypointEncSlice)
-    {}
-
-    VAParameters(VAProfile p, VAEntrypoint e) :
-        profile(p), entrypoint(e)
-    {}
-
-    VAProfile profile;
-    VAEntrypoint entrypoint;
-};
-
-class GUIDhash
-{
-public:
-    size_t operator()(const GUID &guid) const
-    {
-        return guid.GetHashCode();
-    }
-};
-
 static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAParam = {
     { DXVA2_Intel_Encode_HEVC_Main,                   VAParameters(VAProfileHEVCMain,       VAEntrypointEncSlice)},
     { DXVA2_Intel_Encode_HEVC_Main10,                 VAParameters(VAProfileHEVCMain10,     VAEntrypointEncSlice)},
@@ -856,8 +833,16 @@ void VAAPIEncoder::FillSps(
 
 static VAConfigAttrib createVAConfigAttrib(VAConfigAttribType type, unsigned int value)
 {
-    VAConfigAttrib tmp = {type, value};
-    return tmp;
+    return {type, value};
+}
+
+VAParameters VAAPIEncoder::GetVaParams(const GUID & guid)
+{
+    auto it = GUID2VAParam.find(guid);
+    if (it != std::end(GUID2VAParam))
+        return it->second;
+    else
+        return {VAProfileNone, static_cast<VAEntrypoint>(0)};
 }
 
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
@@ -900,9 +885,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         idx_map[ attr_types[i] ] = i;
     }
 
-    auto it = GUID2VAParam.find(guid);
-    MFX_CHECK(it != std::end(GUID2VAParam), MFX_ERR_DEVICE_FAILED);
-    VAParameters vaParams = it->second;
+    VAParameters vaParams = GetVaParams(guid);
 
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
                           vaParams.profile,
@@ -1047,9 +1030,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     std::vector<VAEntrypoint> pEntrypoints(numEntrypoints);
 
-    auto it = GUID2VAParam.find(GetGUID(par));
-    MFX_CHECK(it != std::end(GUID2VAParam), MFX_ERR_DEVICE_FAILED);
-    VAParameters vaParams = it->second;
+    VAParameters vaParams = GetVaParams(GetGUID(par));
 
     std::vector<VAProfile> profile_list(vaMaxNumProfiles(m_vaDisplay), VAProfileNone);
     mfxI32 num_profiles = 0;
