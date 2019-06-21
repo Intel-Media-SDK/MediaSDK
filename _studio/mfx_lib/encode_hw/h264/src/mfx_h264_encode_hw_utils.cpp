@@ -2031,7 +2031,7 @@ mfxU32 Hrd::GetInitCpbRemovalDelay() const
         return 0;
 
     double delay = MFX_MAX(0.0, m_trn_cur - m_taf_prv);
-    mfxU32 initialCpbRemovalDelay = mfxU32(90000 * delay + 0.5);
+    mfxU32 initialCpbRemovalDelay = mfxU32(90000 * delay);
 
     return initialCpbRemovalDelay == 0
         ? 1 // should not be equal to 0
