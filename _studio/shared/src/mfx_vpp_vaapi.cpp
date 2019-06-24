@@ -421,6 +421,12 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     }
 #endif
 
+    if ((m_pipelineCaps.mirror_flags & VA_MIRROR_HORIZONTAL) &&
+        (m_pipelineCaps.mirror_flags & VA_MIRROR_VERTICAL))
+    {
+        caps.uMirroring = 1;
+    }
+
     if (m_pipelineCaps.max_output_width && m_pipelineCaps.max_output_height)
     {
         caps.uMaxWidth = m_pipelineCaps.max_output_width;
@@ -485,7 +491,6 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         }
     }
 
-    caps.uMirroring = 1;
     caps.uScaling = 1;
 
     return MFX_ERR_NONE;
@@ -1038,6 +1043,22 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     }
 #endif
+
+    /*
+     * Execute mirroring for MIRROR_WO_EXEC only because MSDK will do
+     * copy-with-mirror for others.
+     */
+    if (pParams->mirroringPosition == MIRROR_WO_EXEC) {
+        switch (pParams->mirroring) {
+        case MFX_MIRRORING_HORIZONTAL:
+            m_pipelineParam[0].mirror_state = VA_MIRROR_HORIZONTAL;
+            break;
+
+        case MFX_MIRRORING_VERTICAL:
+            m_pipelineParam[0].mirror_state = VA_MIRROR_VERTICAL;
+            break;
+        }
+    }
 
     // source cropping
     mfxFrameInfo *inInfo = &(pRefSurf->frameInfo);
