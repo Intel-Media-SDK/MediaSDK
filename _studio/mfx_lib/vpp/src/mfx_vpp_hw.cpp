@@ -177,6 +177,7 @@ mfxStatus CheckIOMode(mfxVideoParam *par, VideoVPPHW::IOMode mode);
 mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, bool bCorrectionEnable = false);
 mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2);
 mfxStatus ConfigureExecuteParams(
+    VideoCORE* core,
     mfxVideoParam & videoParam, // [IN]
     mfxVppCaps & caps,          // [IN]
 
@@ -2090,7 +2091,7 @@ mfxStatus VideoVPPHW::Query(VideoCORE *core, mfxVideoParam *par)
     MFX_CHECK_STS(sts);
 
     config.m_IOPattern = 0;
-    sts = ConfigureExecuteParams(params, caps, executeParams, config);
+    sts = ConfigureExecuteParams(core, params, caps, executeParams, config);
 
     return sts;
 }
@@ -2187,6 +2188,7 @@ mfxStatus  VideoVPPHW::Init(
 
     m_config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(
+        m_pCore,
         m_params,
         caps,
         m_executeParams,
@@ -2645,6 +2647,7 @@ mfxStatus VideoVPPHW::QueryIOSurf(
     Config  config = {};
 
     sts = ConfigureExecuteParams(
+        core,
         *par,
         caps,
         executeParams,
@@ -2749,6 +2752,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 
     m_config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(
+        m_pCore,
         m_params,
         caps,
         m_executeParams,
@@ -4010,7 +4014,8 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         return sts;
     }
 
-    if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_WO_EXEC == m_executeParams.mirroringPosition)
+    if (m_pCore->GetVAType() != MFX_HW_VAAPI &&
+        MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_WO_EXEC == m_executeParams.mirroringPosition)
     {
         /* Temporal solution for mirroring that makes nothing but mirroring
          * TODO: merge mirroring into pipeline
@@ -5237,6 +5242,7 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
 // Do internal configuration
 //---------------------------------------------------------
 mfxStatus ConfigureExecuteParams(
+    VideoCORE* core,
     mfxVideoParam & videoParam, // [IN]
     mfxVppCaps & caps,          // [IN]
     mfxExecuteParams & executeParams, // [OUT]
@@ -5528,11 +5534,9 @@ mfxStatus ConfigureExecuteParams(
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_MIRRORING)
                         {
                             mfxExtVPPMirroring *extMirroring = (mfxExtVPPMirroring*) videoParam.ExtParam[i];
-                            if (extMirroring->Type != MFX_MIRRORING_DISABLED && extMirroring->Type != MFX_MIRRORING_HORIZONTAL)
+                            if (extMirroring->Type != MFX_MIRRORING_DISABLED && extMirroring->Type != MFX_MIRRORING_HORIZONTAL
+                                && ((core->GetVAType() != MFX_HW_VAAPI) || (extMirroring->Type != MFX_MIRRORING_VERTICAL)))
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
-
-                            if (videoParam.vpp.In.FourCC != MFX_FOURCC_NV12 || videoParam.vpp.Out.FourCC != MFX_FOURCC_NV12)
-                                return MFX_ERR_INVALID_VIDEO_PARAM; // Only NV12 as in/out supported by mirroring now
 
                             if (videoParam.vpp.In.CropX || videoParam.vpp.In.CropY || videoParam.vpp.Out.CropX || videoParam.vpp.Out.CropY)
                                 return MFX_ERR_INVALID_VIDEO_PARAM; // mirroring does not support crop X and Y
@@ -5547,8 +5551,9 @@ mfxStatus ConfigureExecuteParams(
                             case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
                                 executeParams.mirroringPosition = MIRROR_WO_EXEC;
 
-                                if (videoParam.vpp.In.Width != videoParam.vpp.Out.Width || videoParam.vpp.In.Height != videoParam.vpp.Out.Height)
-                                    return MFX_ERR_INVALID_VIDEO_PARAM; // d3d->d3d mirroring does not support resize
+                                if ((core->GetVAType() != MFX_HW_VAAPI) &&
+                                    (videoParam.vpp.In.Width != videoParam.vpp.Out.Width || videoParam.vpp.In.Height != videoParam.vpp.Out.Height))
+                                    return MFX_ERR_INVALID_VIDEO_PARAM; // d3d->d3d mirroring supports resize with VAAPI only
 
                                 if (pipelineList.size() > 2) // if pipeline contains resize, mirroring and other
                                     bIsFilterSkipped = true; // VPP skips other filters
@@ -5570,6 +5575,18 @@ mfxStatus ConfigureExecuteParams(
                             default:
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
                             }
+
+                            if ((videoParam.vpp.In.FourCC != MFX_FOURCC_NV12 || videoParam.vpp.Out.FourCC != MFX_FOURCC_NV12)
+                                /* mirroring with MIRROR_WO_EXEC on Linux may support other formats */
+                                && ((core->GetVAType() != MFX_HW_VAAPI) || (executeParams.mirroringPosition != MIRROR_WO_EXEC))
+                                )
+                                return MFX_ERR_INVALID_VIDEO_PARAM;
+
+                            /* Make sure MFX_MIRRORING_VERTICAL works with MIRROR_WO_EXEC only for VAAPI */
+                            if ((core->GetVAType() == MFX_HW_VAAPI) &&
+                                (executeParams.mirroringPosition != MIRROR_WO_EXEC &&
+                                extMirroring->Type == MFX_MIRRORING_VERTICAL))
+                                return MFX_ERR_INVALID_VIDEO_PARAM;
                         }
                     }
                 }
