@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ extern "C"
 {
 #endif /* __cplusplus */
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -57,7 +58,9 @@ typedef struct {
     mfxFrameSurface1 *RefFrame[2];
     mfxU16    reserved[28];
 } mfxExtFeiPreEncCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -68,7 +71,9 @@ typedef struct {
         mfxI16Pair MV[2]; /* 0 for L0 and 1 for L1 */
     } *MB;
 } mfxExtFeiPreEncMVPredictors;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -77,9 +82,11 @@ typedef struct {
 
     mfxU8    *MB;
 } mfxExtFeiEncQP;
+MFX_PACK_END()
 
 /* PreENC output */
 /* Layout is exactly the same as mfxExtFeiEncMVs, this buffer may be removed in future */
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -90,7 +97,9 @@ typedef struct {
         mfxI16Pair MV[16][2];
     } *MB;
 } mfxExtFeiPreEncMV;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -118,8 +127,10 @@ typedef struct {
         mfxU32  PixelAverage8x8[4];
     } *MB;
 } mfxExtFeiPreEncMBStat;
+MFX_PACK_END()
 
 /* 1  ENC_PAK input */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -146,7 +157,9 @@ typedef struct {
     mfxU16    ColocatedMbDistortion;
     mfxU16    reserved[38];
 } mfxExtFeiEncFrameCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -162,7 +175,9 @@ typedef struct {
         mfxI16Pair MV[4][2]; /* first index is predictor number, second is 0 for L0 and 1 for L1 */
     } *MB;
 } mfxExtFeiEncMVPredictors;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -190,7 +205,7 @@ typedef struct {
         mfxU32    MaxSizeInWord    : 8;
     } *MB;
 } mfxExtFeiEncMBCtrl;
-
+MFX_PACK_END()
 
 /* 1 ENC_PAK output */
 /* Buffer holds 32 MVs per MB. MVs are located in zigzag scan order.
@@ -206,6 +221,7 @@ For example, MV for right top 4x4 sub block is stored in 5-th element of the arr
 || 10 | 11 || 14 | 15 ||
 ========================
 */
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -216,7 +232,9 @@ typedef struct {
         mfxI16Pair MV[16][2]; /* first index is block (4x4 pixels) number, second is 0 for L0 and 1 for L1 */
     } *MB;
 } mfxExtFeiEncMV;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -232,11 +250,13 @@ typedef struct {
         mfxU32  reserved1[2];
     } *MB;
 } mfxExtFeiEncMBStat;
+MFX_PACK_END()
 
 enum {
     MFX_PAK_OBJECT_HEADER = 0x7149000A
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     /* dword 0-2 */
     mfxU32    Header;  /* MFX_PAK_OBJECT_HEADER */
@@ -307,7 +327,9 @@ typedef struct {
 
     mfxU32     reserved2[5];
 }mfxFeiPakMBCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -316,7 +338,9 @@ typedef struct {
 
     mfxFeiPakMBCtrl *MB;
 } mfxExtFeiPakMBCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32      MaxFrameSize; /* in bytes */
@@ -324,17 +348,21 @@ typedef struct {
     mfxU16      reserved[8];
     mfxU8       DeltaQP[8];   /* list of delta QPs, only positive values */
 } mfxExtFeiRepackCtrl;
+MFX_PACK_END()
 
 #if (MFX_VERSION >= 1025)
 /* FEI repack status */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32          NumPasses;
     mfxU16          reserved[58];
 } mfxExtFeiRepackStat;
+MFX_PACK_END()
 #endif
 
 /* 1 decode stream out */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     /* dword 0 */
     mfxU32    InterMbMode         : 2;
@@ -402,7 +430,9 @@ typedef struct {
     /* dword 8-15 */
     mfxI16Pair MV[4][2]; /* L0 - 0, L1 - 1 */
 }mfxFeiDecStreamOutMBCtrl;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
@@ -413,8 +443,10 @@ typedef struct {
 
     mfxFeiDecStreamOutMBCtrl *MB;
 } mfxExtFeiDecStreamOut;
+MFX_PACK_END()
 
 /* SPS, PPS, Slice Header */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -424,7 +456,9 @@ typedef struct {
     mfxU16    Log2MaxPicOrderCntLsb;
     mfxU16    reserved[121];
 } mfxExtFeiSPS;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -449,7 +483,9 @@ typedef struct {
         mfxU16    reserved[3];
     } DpbBefore[16], DpbAfter[16];
 } mfxExtFeiPPS;
+MFX_PACK_END()
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -482,8 +518,9 @@ typedef struct {
 
     } *Slice;
 }mfxExtFeiSliceHeader;
+MFX_PACK_END()
 
-
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
 
@@ -493,7 +530,7 @@ typedef struct {
 
     mfxU16     reserved[57];
 } mfxExtFeiCodingOption;
-
+MFX_PACK_END()
 
 /* 1 functions */
 typedef enum {
@@ -529,13 +566,14 @@ enum {
 };
 
 /* should be attached to mfxVideoParam during initialization to indicate FEI function */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer    Header;
     mfxFeiFunction  Func;
     mfxU16  SingleFieldProcessing;
     mfxU16 reserved[57];
 } mfxExtFeiParam;
-
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } /* extern "C" */

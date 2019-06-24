@@ -56,7 +56,7 @@ mfxStatus CheckAndFixCtrl(VP9MfxVideoParam const & video,
 
 mfxStatus CheckBitstream(VP9MfxVideoParam const & video, mfxBitstream * bs);
 
-void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par);
+void SetDefaultsForProfileAndFrameInfo(VP9MfxVideoParam& par);
 
 bool CheckAndFixQIndexDelta(mfxI16& qIndexDelta, mfxU16 qIndex);
 } // MfxHwVP9Encode

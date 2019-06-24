@@ -28,9 +28,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/file_defs.h"
 #include "vm/time_defs.h"
 
-#define _MSDK_API (MFX_VERSION_MAJOR*256+MFX_VERSION_MINOR)
-#define MSDK_API(M,MM) (M*256+MM)
-
 // Run-time HSBC
 // the condition below must be changed to MFX_VERSION >= 1027 after API is promoted to 1.27
 #if (MFX_VERSION >= MFX_VERSION_NEXT)

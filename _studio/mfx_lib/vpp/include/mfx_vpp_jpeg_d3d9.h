@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,9 +30,7 @@
 #include "mfx_vpp_interface.h"
 #include "umc_mutex.h"
 
-#include <memory>
-#include <algorithm>
-#include <set>
+#include <map>
 
 class VideoVppJpegD3D9 
 {

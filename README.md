@@ -68,7 +68,7 @@ Media SDK test and sample applications may require additional software packages 
 
 **Operating System:** Windows **(experimental)**
 
-Requires Microsoft Visual Studio 2015 or newer for building.
+Requires Microsoft Visual Studio 2017 for building.
 
 # How to build
 

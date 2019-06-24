@@ -132,6 +132,7 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/libmfx_allocator.cpp
     ${prefix}/libmfx_allocator_vaapi.cpp
     ${prefix}/libmfx_core.cpp
+    ${prefix}/libmfx_core_hw.cpp
     ${prefix}/libmfx_core_factory.cpp
     ${prefix}/libmfx_core_vaapi.cpp
     ${prefix}/mfx_umc_alloc_wrapper.cpp

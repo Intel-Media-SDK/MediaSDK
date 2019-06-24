@@ -4,23 +4,23 @@
 CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 
 # h264d:
-/_studio/mfx_lib/dec/h264/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/decode/h264/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/h264_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/dec/h264/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/mfx_lib/decode/h264/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/h264_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
 
 
 # h264e:
-/_studio/mfx_lib/enc/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
-/_studio/mfx_lib/enc_hw/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
-/_studio/mfx_lib/encode_hw/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
-/_studio/mfx_lib/encode/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
-/_studio/shared/umc/codec/h264_enc/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
-/_studio/mfx_lib/pak/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
-/_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com
+/_studio/mfx_lib/enc/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
+/_studio/mfx_lib/enc_hw/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
+/_studio/mfx_lib/encode_hw/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
+/_studio/mfx_lib/encode/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
+/_studio/shared/umc/codec/h264_enc/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
+/_studio/mfx_lib/pak/h264/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
+/_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com andrey.larionov@intel.com evgeniy.starov@intel.com stanislav.efremov@intel.com timofei.a.kulakov@intel.com georgy.krivoruchko@intel.com olga.a.kasatkina@intel.com evgeniy.starov@intel.com
 
 # mpeg2d:
-/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
 
 # mpeg2e:
 /_studio/mfx_lib/enc/mpeg2/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com
@@ -32,22 +32,22 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com
 
 # vc1:
-/_studio/mfx_lib/decode/vc1/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/enc/vc1/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/encode/vc1/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_enc/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/vc1/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/vc1_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/mfx_lib/enc/vc1/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/mfx_lib/encode/vc1/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/vc1_enc/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
 
 
 # hevcd:
-/_studio/mfx_lib/decode/h265/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/h265_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/h265/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/h265_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
 
 # hevce:
-/_studio/hevce_hw/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com evgeniy.starov@intel.com sergey.a.osipov@intel.com timofei.a.kulakov@intel.com
-/_studio/mfx_lib/encode_hw/h265/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com evgeniy.starov@intel.com sergey.a.osipov@intel.com timofei.a.kulakov@intel.com
+/_studio/hevce_hw/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com evgeniy.starov@intel.com sergey.a.osipov@intel.com timofei.a.kulakov@intel.com olga.tsiruleva@intel.com
+/_studio/mfx_lib/encode_hw/h265/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com evgeniy.starov@intel.com sergey.a.osipov@intel.com timofei.a.kulakov@intel.com olga.tsiruleva@intel.com
 
 # mjpegd:
 /_studio/mfx_lib/decode/mjpeg/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com dmitry.brazhkin@intel.com andrey.larionov@intel.com dmitry.gurulev@intel.com
@@ -61,23 +61,23 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/jpeg_enc/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com dmitry.brazhkin@intel.com
 
 # vp8d:
-/_studio/mfx_lib/decode/vp8/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vp8_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/vp8/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/vp8_dec/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
 
 # vp9d:
-/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
-/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
-/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
-/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
+/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
+/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin sergey.solodkov@intel.com alexei.leonenko@intel.com dmitry.gurulev@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com
 
 # vp9e:
-/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
-_studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com
+/_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com anastasiia.sokolova@intel.com
+_studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com alexei.leonenko@intel.com stanislav.efremov@intel.com ekaterina.shiryaeva.alexandrovna@intel.com dmitryx.malishev@intel.com mikhailx.aksenov@intel.com anastasiia.sokolova@intel.com
 
 # vpp:
 /_studio/mfx_lib/vpp/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com roman.bykadorov@intel.com andrey.larionov@intel.com tuyet.trang.lam@intel.com alexandra.tyugina@intel.com natalia.domnina@intel.com fedor.zharinov@intel.com
 /_studio/shared/umc/codec/color_space_converter/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com roman.bykadorov@intel.com andrey.larionov@intel.com tuyet.trang.lam@intel.com alexandra.tyugina@intel.com natalia.domnina@intel.com fedor.zharinov@intel.com
-/_studio/shared/umc/codec/scene_analyzer/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com roman.bykadorov@intel.com andrey.larionov@intel.com tuyet.trang.lam@intel.com
+/_studio/shared/umc/codec/scene_analyzer/ @Intel-Media-SDK/mediasdk-admin dmitry.ermilov@intel.com oleg.nabiullin@intel.com roman.bykadorov@intel.com andrey.larionov@intel.com tuyet.trang.lam@intel.com fedor.zharinov@intel.com alexandra.tyugina@intel.com
 
 # tests:
 /tests/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshnikov@intel.com
@@ -96,12 +96,12 @@ _studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshni
 /samples/ @Intel-Media-SDK/mediasdk-admin jon.recker@intel.com timofei.a.kulakov@intel.com
 
 # core:
-/_studio/mfx_lib/shared/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
-/_studio/shared/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
-/_studio/shared/umc/core/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
-/_studio/shared/umc/io/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
-/_studio/mfx_lib/cmrt_cross_platform/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
-/_studio/mfx_lib/scheduler/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com artem.shaporenko@intel.com
+/_studio/mfx_lib/shared/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/shared/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/shared/umc/core/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/shared/umc/io/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/cmrt_cross_platform/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com
+/_studio/mfx_lib/scheduler/ @Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com dmitry.v.rogozhkin@intel.com
 
 # android:
 /android/ @Intel-Media-SDK/mediasdk-admin olga.a.kasatkina@intel.com dmitry.brazhkin@intel.com
@@ -113,4 +113,4 @@ _studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin alexey.s.kokoshni
 
 # plugin:
 /_studio/mfx_lib/plugin/
-@Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com artem.shaporenko@intel.com oleg.nabiullin@intel.com
+@Intel-Media-SDK/mediasdk-admin vasily.aristarkhov@intel.com oleg.nabiullin@intel.com

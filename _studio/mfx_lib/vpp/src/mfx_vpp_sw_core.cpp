@@ -57,7 +57,10 @@ VideoVPPBase* CreateAndInitVPPImpl(mfxVideoParam *par, VideoCORE *core, mfxStatu
             return 0;
         }
 
-        if(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == *mfxSts || MFX_WRN_FILTER_SKIPPED == *mfxSts || MFX_ERR_NONE == *mfxSts)
+        if(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == *mfxSts ||
+            MFX_WRN_FILTER_SKIPPED == *mfxSts ||
+            MFX_WRN_PARTIAL_ACCELERATION == *mfxSts ||
+            MFX_ERR_NONE == *mfxSts)
         {
             return vpp;
         }
@@ -929,6 +932,9 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
              out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
              out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
              out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
+#if defined(MFX_VA_LINUX)
+             out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
+#endif
              out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
 #if (MFX_VERSION >= 1027)
              out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
@@ -1082,8 +1088,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         mfxSts = CheckPlatformLimitations(core, *out, bCorrectionEnable);
         //-------------------------------------------------
 
-        mfxStatus   hwQuerySts = MFX_ERR_NONE,
-                    swQuerySts = MFX_ERR_NONE;
+        mfxStatus   hwQuerySts = MFX_ERR_NONE;
 
         if(MFX_PLATFORM_HARDWARE == core->GetPlatformType())
         {
@@ -1110,13 +1115,12 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
                 hwQuerySts = MFX_WRN_PARTIAL_ACCELERATION;
             }
         }
+        else
+        {
+            MFX_RETURN(MFX_ERR_UNSUPPORTED);
+        }
 
-        MFX_CHECK_STS(MFX_ERR_UNSUPPORTED);
-
-        if (hwQuerySts != MFX_ERR_NONE)
-            return hwQuerySts;
-        if (swQuerySts != MFX_ERR_NONE)
-            return swQuerySts;
+        MFX_CHECK_STS(hwQuerySts);
 
         return mfxSts;
     }//else

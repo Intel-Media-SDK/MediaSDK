@@ -2203,7 +2203,14 @@ void MfxHwH264Encode::ConfigureTask(
         }
 
 #if MFX_VERSION > 1021
-        task.m_roiMode = pRoi->ROIMode;
+        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+        {
+            task.m_roiMode = pRoi->ROIMode;
+        }
+        else
+        {
+            task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
+        }
 
         if (pRoi->ROIMode != MFX_ROI_MODE_QP_DELTA && pRoi->ROIMode != MFX_ROI_MODE_PRIORITY)
         {

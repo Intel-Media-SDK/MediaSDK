@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -108,7 +108,7 @@ const GUID GuidTable[3][3][3] =
         }
     }
 };
-mfxStatus HardcodeCaps(ENCODE_CAPS_HEVC& caps, VideoCORE* pCore);
+mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* pCore);
 
 class DriverEncoder;
 
@@ -119,8 +119,8 @@ typedef enum tagENCODER_TYPE
 } ENCODER_TYPE;
 
 DriverEncoder* CreatePlatformH265Encoder(VideoCORE* core, ENCODER_TYPE type = ENCODER_DEFAULT);
-mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, ENCODE_CAPS_HEVC & caps, mfxU32 width, mfxU32 height);
-mfxStatus CheckHeaders(MfxVideoParam const & par, ENCODE_CAPS_HEVC const & caps);
+mfxStatus QueryHwCaps(VideoCORE* core, GUID guid, MFX_ENCODE_CAPS_HEVC & caps, mfxU32 width, mfxU32 height);
+mfxStatus CheckHeaders(MfxVideoParam const & par, MFX_ENCODE_CAPS_HEVC const & caps);
 
 mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFrameInfo &CUQPFrameInfo);
 
@@ -168,7 +168,7 @@ public:
 
     virtual
     mfxStatus QueryEncodeCaps(
-        ENCODE_CAPS_HEVC & caps) = 0;
+        MFX_ENCODE_CAPS_HEVC & caps) = 0;
 
 
     virtual

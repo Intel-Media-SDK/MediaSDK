@@ -75,11 +75,7 @@ template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0,
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
 template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
 template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
-template<class T> inline T Align(T value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    return T((value + alignment - 1) & ~(alignment - 1));
-}
+
 template<class T> bool AlignDown(T& value, mfxU32 alignment)
 {
     assert((alignment & (alignment - 1)) == 0); // should be 2^n
@@ -216,6 +212,16 @@ inline bool IsOn(mfxU32 opt)
 inline bool IsOff(mfxU32 opt)
 {
     return opt == MFX_CODINGOPTION_OFF;
+}
+
+inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+{
+    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
+
+    mfxStatus sts_max = (std::max)(sts1, sts2),
+              sts_min = (std::min)(sts1, sts2);
+
+    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
 }
 
 class MfxFrameAllocResponse : public mfxFrameAllocResponse
@@ -834,7 +840,7 @@ public:
 
     mfxStatus FillPar(mfxVideoParam& par, bool query = false);
 
-    mfxStatus GetSliceHeader(Task const & task, Task const & prevTask, ENCODE_CAPS_HEVC const & caps, Slice & s) const;
+    mfxStatus GetSliceHeader(Task const & task, Task const & prevTask, MFX_ENCODE_CAPS_HEVC const & caps, Slice & s) const;
 
     mfxStatus GetExtBuffers(mfxVideoParam& par, bool query = false);
     bool CheckExtBufferParam();
@@ -1011,11 +1017,11 @@ bool isLTR(
     mfxI32 poc);
 
 void ConfigureTask(
-    Task &                   task,
-    Task const &             prevTask,
-    MfxVideoParam const &    video,
-    ENCODE_CAPS_HEVC const & caps,
-    mfxU32 &                 baseLayerOrder);
+    Task &                       task,
+    Task const &                 prevTask,
+    MfxVideoParam const &        video,
+    MFX_ENCODE_CAPS_HEVC const & caps,
+    mfxU32 &                     baseLayerOrder);
 
 mfxI64 CalcDTSFromPTS(
     mfxFrameInfo const & info,
@@ -1047,10 +1053,10 @@ mfxStatus CopyRawSurfaceToVideoMemory(
     Task const &          task);
 
 IntraRefreshState GetIntraRefreshState(
-    MfxVideoParam const & video,
-    mfxU32                frameOrderInGopDispOrder,
-    mfxEncodeCtrl const * ctrl,
-    ENCODE_CAPS_HEVC const& caps);
+    MfxVideoParam const &       video,
+    mfxU32                      frameOrderInGopDispOrder,
+    mfxEncodeCtrl const *       ctrl,
+    MFX_ENCODE_CAPS_HEVC const& caps);
 
 mfxU8 GetNumReorderFrames(
     mfxU32 BFrameRate,

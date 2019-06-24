@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,8 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-typedef struct _mfxENCInput mfxENCInput;
-struct _mfxENCInput{
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct _mfxENCInput{
     mfxU32  reserved[32];
 
     mfxFrameSurface1 *InSurface;
@@ -40,16 +40,19 @@ struct _mfxENCInput{
 
     mfxU16  NumExtParam;
     mfxExtBuffer    **ExtParam;
-} ;
-typedef struct _mfxENCOutput mfxENCOutput;
-struct _mfxENCOutput{
+} mfxENCInput;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct _mfxENCOutput{
     mfxU32  reserved[32];
 
     mfxFrameSurface1 *OutSurface;
 
     mfxU16  NumExtParam;
     mfxExtBuffer    **ExtParam;
-} ;
+} mfxENCOutput;
+MFX_PACK_END()
 
 
 mfxStatus MFX_CDECL MFXVideoENC_Query(mfxSession session, mfxVideoParam *in, mfxVideoParam *out);

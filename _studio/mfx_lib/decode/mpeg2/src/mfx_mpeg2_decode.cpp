@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include "mfx_umc_alloc_wrapper.h"
 #include "libmfx_core_hw.h"
 
+#include "umc_va_base.h"
 #include "umc_mpeg2_utils.h"
 #include "umc_mpeg2_decoder_va.h"
 
