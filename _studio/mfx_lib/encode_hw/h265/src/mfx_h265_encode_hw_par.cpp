@@ -2258,11 +2258,11 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     if (CheckOption(par.m_ext.VSI.VideoFullRange, 0, 1))                  changed +=1;
     if (CheckOption(par.m_ext.VSI.ColourDescriptionPresent, 0, 1))        changed +=1;
 
-#if defined(LINUX32) || defined(LINUX64)
-    changed += CheckOption(CO3.GPB, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON, (mfxU16)MFX_CODINGOPTION_OFF);
-#else
-    changed += CheckOption(CO3.GPB, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON);
-#endif
+    if (caps.PSliceSupport)
+        changed += CheckOption(CO3.GPB, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON, (mfxU16)MFX_CODINGOPTION_OFF);
+    else
+        changed += CheckOption(CO3.GPB, (mfxU16)MFX_CODINGOPTION_UNKNOWN, (mfxU16)MFX_CODINGOPTION_ON);
+
     changed += CheckTriStateOption(par.m_ext.CO.AUDelimiter);
     changed += CheckTriStateOption(CO2.RepeatPPS);
     changed += CheckTriStateOption(CO3.EnableQPOffset);

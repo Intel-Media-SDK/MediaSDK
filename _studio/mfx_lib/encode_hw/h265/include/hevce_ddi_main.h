@@ -121,4 +121,6 @@ struct MFX_ENCODE_CAPS_HEVC
     bool CBRSupport;
     bool VBRSupport;
     bool ICQSupport;
+
+    bool PSliceSupport;
 };

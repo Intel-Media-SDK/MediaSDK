@@ -217,8 +217,7 @@ mfxStatus SetSkipFrame(
         mfxStatus CreateAuxilliaryDevice(
             VideoCORE * core,
             GUID       guid,
-            mfxU32     width,
-            mfxU32     height);
+            MfxVideoParam const & par);
 
         virtual
         mfxStatus CreateAccelerationService(
