@@ -848,8 +848,7 @@ VAParameters VAAPIEncoder::GetVaParams(const GUID & guid)
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VideoCORE * core,
     GUID guid,
-    mfxU32 width,
-    mfxU32 height)
+    MfxVideoParam const & par)
 {
     MFX_CHECK_WITH_ASSERT(core != 0, MFX_ERR_NULL_PTR);
     m_core = core;
@@ -857,8 +856,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     mfxStatus sts = core->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL*)&m_vaDisplay);
     MFX_CHECK_STS(sts);
 
-    m_width  = width;
-    m_height = height;
+    m_width  = par.m_ext.HEVCParam.PicWidthInLumaSamples;
+    m_height = par.m_ext.HEVCParam.PicHeightInLumaSamples;
 
     memset(&m_caps, 0, sizeof(m_caps));
 
@@ -1008,6 +1007,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
     m_caps.ddi_caps.TileSupport = (attrs[idx_map[VAConfigAttribEncTileSupport]].value == 1);
 
+    m_caps.PSliceSupport = IsOn(par.mfx.LowPower) ? 0 : 1;
 
     return MFX_ERR_NONE;
 }
