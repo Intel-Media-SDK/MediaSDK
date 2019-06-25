@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,7 @@ namespace MfxHwH265FeiEncode
 
         static mfxStatus CreateByDispatcher(mfxPluginUID guid, mfxPlugin* mfxPlg)
         {
-            if (memcmp(&guid, &MFX_PLUGINID_HEVC_FEI_ENCODE, sizeof(mfxPluginUID)))
+            if (guid != MFX_PLUGINID_HEVC_FEI_ENCODE)
             {
                 return MFX_ERR_NOT_FOUND;
             }
