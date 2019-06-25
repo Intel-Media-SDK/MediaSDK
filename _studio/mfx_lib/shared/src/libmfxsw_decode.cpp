@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -533,7 +533,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
                 {
                     session->m_plgDec.get()->GetPlugin(plugin);
                     MFX_CHECK_STS(plugin.GetPluginParam(plugin.pthis, &par));
-                    if (!memcmp(&MFX_PLUGINID_HEVCD_SW, &par.PluginUID, sizeof(MFX_PLUGINID_HEVCD_SW)))
+                    if (MFX_PLUGINID_HEVCD_SW == par.PluginUID)
                     {
                         task.pDst[0] = 0;
                     }
