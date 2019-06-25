@@ -128,9 +128,12 @@ FullEncode::FullEncode(VideoCORE *core, mfxStatus *sts)
     m_nFrameTasks = 0;
 
     m_pBRC = 0;
+    m_pExtBRC = 0;
+
     m_nCurrTask   = 0;
     m_pExtTasks    = 0;
     m_runtimeErr = MFX_ERR_NONE;
+    m_bSWBRC = false;
 
     *sts = (core ? MFX_ERR_NONE : MFX_ERR_NULL_PTR);
 }
@@ -223,17 +226,28 @@ mfxStatus FullEncode::ResetImpl()
     MFX_CHECK_STS(sts);  
 
     paramsEx->pRecFramesResponse_hw = m_pFrameStore->GetFrameAllocResponse();
-    
-    if (!m_pBRC)
+ 
+    mfxExtCodingOption2 * extOpt2 = (mfxExtCodingOption2 *)GetExtendedBuffer(paramsEx->mfxVideoParams.ExtParam, paramsEx->mfxVideoParams.NumExtParam, MFX_EXTBUFF_CODING_OPTION2);
+    m_bSWBRC = (extOpt2->ExtBRC == MFX_CODINGOPTION_ON) && (paramsEx->mfxVideoParams.mfx.RateControlMethod == MFX_RATECONTROL_CBR || paramsEx->mfxVideoParams.mfx.RateControlMethod == MFX_RATECONTROL_VBR);
+
+    if (m_bSWBRC == false)
     {
-        m_pBRC = new MPEG2BRC_HW (m_pCore);
-        sts = m_pBRC->Init(&paramsEx->mfxVideoParams);
-        MFX_CHECK_STS(sts);  
+        if (!m_pBRC)
+        {
+            m_pBRC = new MPEG2BRC_HW (m_pCore);
+            sts = m_pBRC->Init(&paramsEx->mfxVideoParams);
+            MFX_CHECK_STS(sts);  
+        }
+        else
+        {
+            sts = m_pBRC->Reset(&paramsEx->mfxVideoParams);
+            MFX_CHECK_STS(sts);  
+        }
     }
     else
     {
-        sts = m_pBRC->Reset(&paramsEx->mfxVideoParams);
-        MFX_CHECK_STS(sts);  
+        //initialize the external BRC.
+        m_pExtBRC = (mfxExtBRC *)GetExtBuffer(paramsEx->mfxVideoParams.ExtParam, paramsEx->mfxVideoParams.NumExtParam, MFX_EXTBUFF_BRC);
     }
 
     if (!m_pENCODE)
@@ -290,11 +304,26 @@ mfxStatus FullEncode::Close(void)
         delete m_pExtTasks;
         m_pExtTasks = 0;
     }
-    if(m_pBRC)
+
+    if (m_bSWBRC == false)
     {
-        m_pBRC->Close();
-        delete m_pBRC;
+        if(m_pBRC)
+        {
+            m_pBRC->Close();
+            delete m_pBRC;
+        }
     }
+    else
+    {
+        //Close the external BRC.
+        if (m_pExtBRC)
+        {
+            m_pExtBRC->Close(m_pExtBRC->pthis);
+            m_pExtBRC = 0;
+        }
+    }
+    m_bSWBRC = false;
+
     m_UDBuff.Close();
 
     return MFX_ERR_NONE;
@@ -440,28 +469,42 @@ mfxStatus FullEncode::SubmitFrame(sExtTask2 *pExtTask)
         mfxU8  qp = 0;
         mfxU8 * mbqpdata = 0;
         mfxU32 mbqpNumMB = 0;
-        if (bConstQuant)
+
+        if (m_bSWBRC == false)
         {
-            m_pBRC->SetQuant(pInternalParams->QP, pInternalParams->FrameType);
-            m_pBRC->SetQuantDCPredAndDelay(&pIntTask->m_FrameParams,&qp);
-
-            if (pParams->bMbqpMode)
+            if (bConstQuant)
             {
-                const mfxExtMBQP *mbqp = (mfxExtMBQP *)GetExtBuffer(pInternalParams->ExtParam, pInternalParams->NumExtParam, MFX_EXTBUFF_MBQP);
-                
-                mfxU32 wMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropW + 15) / 16;
-                mfxU32 hMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropH + 15) / 16;
+                m_pBRC->SetQuant(pInternalParams->QP, pInternalParams->FrameType);
+                m_pBRC->SetQuantDCPredAndDelay(&pIntTask->m_FrameParams,&qp);
 
-                bool isMBQP = mbqp && mbqp->QP && mbqp->NumQPAlloc >= wMB * hMB;
-
-                if (isMBQP)
+                if (pParams->bMbqpMode)
                 {
-                    mbqpdata = mbqp->QP;
-                    mbqpNumMB = wMB * hMB;
+                    const mfxExtMBQP *mbqp = (mfxExtMBQP *)GetExtBuffer(pInternalParams->ExtParam, pInternalParams->NumExtParam, MFX_EXTBUFF_MBQP);
+                
+                    mfxU32 wMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropW + 15) / 16;
+                    mfxU32 hMB = (pParams->mfxVideoParams.mfx.FrameInfo.CropH + 15) / 16;
+
+                    bool isMBQP = mbqp && mbqp->QP && mbqp->NumQPAlloc >= wMB * hMB;
+
+                    if (isMBQP)
+                    {
+                        mbqpdata = mbqp->QP;
+                        mbqpNumMB = wMB * hMB;
+                    }
                 }
             }
         }
-
+        else
+        {
+            // If isExtBRC, get qp from external BRC.
+            if (m_pExtBRC)
+            {
+                mfxBRCFrameParam frame_par={};
+                mfxBRCFrameCtrl  frame_ctrl={};
+                m_pExtBRC->GetFrameCtrl(m_pExtBRC->pthis,&frame_par, &frame_ctrl);
+                qp = frame_ctrl.QpY;
+            }
+        }
 
         MFX_CHECK_STS (m_UDBuff.AddUserData(pInternalParams));
 

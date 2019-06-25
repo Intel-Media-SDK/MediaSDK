@@ -398,6 +398,7 @@ public:
         ControllerBase*                  m_pController;
         MFXVideoENCODEMPEG2_HW_DDI*      m_pENCODE;  
         MPEG2BRC_HW*                     m_pBRC;
+        mfxExtBRC*                       m_pExtBRC;
 
         FrameStore*                      m_pFrameStore;
         EncodeFrameTask*                 m_pFrameTasks;
@@ -405,6 +406,7 @@ public:
         mfxU32                           m_nCurrTask;
         UserDataBuffer                   m_UDBuff;
         mfxStatus                        m_runtimeErr;
+        bool                             m_bSWBRC;
     };
 }
 
