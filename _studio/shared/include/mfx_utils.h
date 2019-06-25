@@ -24,6 +24,7 @@
 #include "mfx_config.h"
 
 #include "mfxstructures.h"
+#include "mfxplugin.h"
 
 #include "umc_structures.h"
 #include "mfx_trace.h"
@@ -173,5 +174,15 @@ inline mfxStatus CheckAndDestroyVAbuffer(VADisplay display, VABufferID & buffer_
     return MFX_ERR_NONE;
 }
 #endif
+
+static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
+{
+    return std::equal(l.Data, l.Data + 16, r.Data);
+}
+
+static inline bool operator!=(mfxPluginUID const& l, mfxPluginUID const& r)
+{
+    return !(l == r);
+}
 
 #endif // __MFXUTILS_H__
