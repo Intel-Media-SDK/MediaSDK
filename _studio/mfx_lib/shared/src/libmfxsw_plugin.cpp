@@ -228,11 +228,8 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
             return MFX_ERR_NONE;
         }
 #endif
-        for (auto& uid : NativePlugins)
-        {
-            if (!memcmp(&uid, &pluginParam.PluginUID, sizeof(uid)))
-                return MFX_ERR_NONE; //do nothing
-        }
+        if (std::find(std::begin(NativePlugins), std::end(NativePlugins), pluginParam.PluginUID) != std::end(NativePlugins))
+            return MFX_ERR_NONE; //do nothing
 
         // create a new plugin's instance
         pluginPtr.reset(CreateUSERSpecificClass(type));
