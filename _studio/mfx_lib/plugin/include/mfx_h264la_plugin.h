@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include "mfxplugin++.h"
 #include "mfxvideo++int.h"
 #include "mfxenc.h"
+#include "mfx_utils.h"
 
 
 #if defined( AS_H264LA_PLUGIN )
@@ -82,7 +83,7 @@ public:
         return new MFXH264LAPlugin(false);
     }
     static mfxStatus CreateByDispatcher(mfxPluginUID guid, mfxPlugin* mfxPlg) {
-        if (memcmp(& guid , &MFX_PLUGINID_H264LA_HW, sizeof(mfxPluginUID))) {
+        if (guid != MFX_PLUGINID_H264LA_HW) {
             return MFX_ERR_NOT_FOUND;
         }
         MFXH264LAPlugin* tmp_pplg = 0;
