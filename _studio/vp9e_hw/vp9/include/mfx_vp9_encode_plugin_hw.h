@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ public:
         {
             return MFX_ERR_NULL_PTR;
         }
-        if (memcmp(&guid, &MFX_PLUGINID_VP9E_HW, sizeof(mfxPluginUID)))
+        if (guid != MFX_PLUGINID_VP9E_HW)
         {
             return MFX_ERR_NOT_FOUND;
         }
