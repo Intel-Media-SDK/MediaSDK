@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,9 +38,9 @@ typedef struct {
     unsigned char  Data4[8];
 } GUID;
 
-static int operator==(const GUID & guidOne, const GUID & guidOther)
+static int operator==(const GUID & l, const GUID & r)
 {
-    return !memcmp(&guidOne, &guidOther, sizeof(GUID));
+    return MFX_EQ_FIELD(Data1) && MFX_EQ_FIELD(Data2) && MFX_EQ_FIELD(Data3) && MFX_EQ_ARRAY(Data4, 8);
 }
 
 #define GUID_TYPE_DEFINED
