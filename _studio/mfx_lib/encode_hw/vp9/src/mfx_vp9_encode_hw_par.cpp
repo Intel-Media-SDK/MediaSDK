@@ -609,7 +609,7 @@ bool CheckAndFixQIndexDelta(mfxI16& qIndexDelta, mfxU16 qIndex)
     return Clamp(qIndexDelta, minQIdxDelta, maxQIdxDelta);
 }
 
-mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 const & caps, mfxU16 QP)
+mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 const & caps, mfxU16 QP, mfxEncodeCtrl *ctrl_par = nullptr)
 {
     Bool changed = false;
     mfxU16& features = segPar.FeatureEnabled;
@@ -631,6 +631,21 @@ mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 cons
         if (false == CheckAndFixQIndexDelta(segPar.QIndexDelta, QP))
         {
             changed = true;
+        }
+
+        // if delta Q index value is OK, but Q index value + global QP + frame QP delta is out of valid range - clamp Q index delta
+        if (ctrl_par)
+        {
+            mfxExtVP9Param* pExtParRuntime = GetExtBuffer(*ctrl_par);
+            if (pExtParRuntime)
+            {
+                if (!CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaLumaDC) ||
+                    !CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaChromaAC) ||
+                    !CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaChromaDC))
+                {
+                    changed = true;
+                }
+            }
         }
     }
 
@@ -753,7 +768,7 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
 
     for (mfxU16 i = 0; i < seg.NumSegments; i++)
     {
-        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par.QPI);
+        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par.QPI, ctrl_par);
         if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             changed = true;
@@ -2000,6 +2015,15 @@ mfxStatus CheckAndFixCtrl(
             sts = RemoveExtBuffer(ctrl, MFX_EXTBUFF_VP9_SEGMENTATION);
             MFX_CHECK(sts >= MFX_ERR_NONE, checkSts);
         }
+    }
+
+    mfxExtVP9Segmentation* seg_video = GetExtBuffer(video);
+    if (seg_video)
+    {
+        const mfxExtVP9Param& extParSeg = GetExtBufferRef(video);
+        mfxInfoMFX video_par = video.mfx;
+        mfxStatus sts = CheckSegmentationParam(*seg_video, extParSeg.FrameWidth, extParSeg.FrameHeight, caps, video_par, &ctrl);
+        MFX_CHECK_STS(sts);
     }
 
     return checkSts;
