@@ -6069,6 +6069,11 @@ void MfxHwH264Encode::SetDefaults(
         extOpt3->AdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
 #endif
 
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+    if (extOpt3->RepartitionCheckEnable == MFX_CODINGOPTION_UNKNOWN)
+        extOpt3->RepartitionCheckEnable = MFX_CODINGOPTION_ADAPTIVE;
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
+
     par.ApplyDefaultsToMvcSeqDesc();
 
 
