@@ -896,29 +896,12 @@ inline mfxU16 MapIdToBlockSize(mfxU16 id)
 
 inline bool CompareSegmentMaps(mfxExtVP9Segmentation const & first, mfxExtVP9Segmentation const & second)
 {
-    bool equal = false;
+    if (!first.SegmentId || !second.SegmentId ||
+        first.SegmentIdBlockSize != second.SegmentIdBlockSize ||
+        !first.NumSegmentIdAlloc || !second.NumSegmentIdAlloc)
+        return false;
 
-    if (first.SegmentId && second.SegmentId &&
-        first.SegmentIdBlockSize == second.SegmentIdBlockSize &&
-        first.NumSegmentIdAlloc && second.NumSegmentIdAlloc)
-    {
-        if (first.NumSegmentIdAlloc >= second.NumSegmentIdAlloc)
-        {
-            if (0 == memcmp(first.SegmentId, second.SegmentId, first.NumSegmentIdAlloc))
-            {
-                equal = true;
-            }
-        }
-        else
-        {
-            if (0 == memcmp(first.SegmentId, second.SegmentId, second.NumSegmentIdAlloc))
-            {
-                equal = true;
-            }
-        }
-    }
-
-    return equal;
+    return std::equal(first.SegmentId, first.SegmentId + std::min(first.NumSegmentIdAlloc, second.NumSegmentIdAlloc), second.SegmentId);
 }
 
 inline bool CompareSegmentParams(mfxExtVP9Segmentation const & first, mfxExtVP9Segmentation const & second)
