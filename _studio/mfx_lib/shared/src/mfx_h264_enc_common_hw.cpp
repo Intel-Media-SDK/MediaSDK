@@ -3681,7 +3681,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     par.mfx.RateControlMethod != MFX_RATECONTROL_AVBR &&
                     par.calcParam.initialDelayInKB != 0)
                 {
-                    if (par.calcParam.initialDelayInKB > par.calcParam.bufferSizeInKB)
+                    if (par.calcParam.initialDelayInKB >= par.calcParam.bufferSizeInKB)
                     {
                         changed = true;
                         par.calcParam.initialDelayInKB = par.calcParam.bufferSizeInKB / 2;
