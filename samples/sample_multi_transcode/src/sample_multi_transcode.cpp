@@ -583,21 +583,24 @@ mfxStatus Launcher::ProcessResult()
 
     for (mfxU32 i = 0; i < m_pThreadContextArray.size(); i++)
     {
-        mfxStatus _sts = m_pThreadContextArray[i]->transcodingSts;
+        mfxStatus transcodingSts = m_pThreadContextArray[i]->transcodingSts;
+        mfxF64 workTime = m_pThreadContextArray[i]->working_time;
+        mfxU32 framesNum = m_pThreadContextArray[i]->numTransFrames;
 
         if (!FinalSts)
-            FinalSts = _sts;
+            FinalSts = transcodingSts;
 
-        msdk_string SessionStsStr = _sts ? msdk_string(MSDK_STRING("FAILED"))
+        msdk_string SessionStsStr = transcodingSts ? msdk_string(MSDK_STRING("FAILED"))
             : msdk_string((MSDK_STRING("PASSED")));
 
         msdk_stringstream ss;
         ss << MSDK_STRING("*** session ") << i
            << MSDK_STRING(" [") << m_pThreadContextArray[i]->pPipeline->GetSessionText()
            << MSDK_STRING("] ") << SessionStsStr <<MSDK_STRING(" (")
-           << StatusToString(_sts) << MSDK_STRING(") ")
-           << m_pThreadContextArray[i]->working_time << MSDK_STRING(" sec, ")
-           << m_pThreadContextArray[i]->numTransFrames << MSDK_STRING(" frames")
+           << StatusToString(transcodingSts) << MSDK_STRING(") ")
+           << workTime << MSDK_STRING(" sec, ")
+           << framesNum << MSDK_STRING(" frames, ") 
+           << std::fixed << std::setprecision(3) << framesNum / workTime << MSDK_STRING(" fps")
            << std::endl
            << m_parser.GetLine(i) << std::endl << std::endl;
 
