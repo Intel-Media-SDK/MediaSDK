@@ -46,7 +46,7 @@ namespace MfxHwH264Encode
 {
     const mfxU32 NUM_CLOCK_TS[9] = { 1, 1, 1, 2, 2, 3, 3, 2, 3 };
 
-    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par)
+    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps)
     {
         mfxU16 numFrameMin = 0;
 
@@ -92,7 +92,7 @@ namespace MfxHwH264Encode
                 if (par.mfx.EncodedOrder)
                     numFrameMin += par.mfx.GopRefDist - 1;
 
-                if (extOpt2 && extOpt2->MaxSliceSize != 0 && par.mfx.LowPower != MFX_CODINGOPTION_ON)
+                if (extOpt2 && extOpt2->MaxSliceSize != 0 && !IsDriverSliceSizeControlEnabled(par, hwCaps))
                     numFrameMin++;
                 if (extOpt3 && IsOn(extOpt3->FadeDetection))
                     numFrameMin++;
@@ -4232,11 +4232,11 @@ mfxU32 MfxHwH264Encode::CalcBiWeight(
         : biWeight;
 }
 
-BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video)
+BrcIface * MfxHwH264Encode::CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CAPS const & hwCaps)
 {
     mfxExtCodingOption2 const & ext = GetExtBufferRef(video);
 
-    if (ext.MaxSliceSize && video.mfx.LowPower != MFX_CODINGOPTION_ON)
+    if (ext.MaxSliceSize && !IsDriverSliceSizeControlEnabled(video, hwCaps))
         return new UmcBrc;
 
     switch (video.mfx.RateControlMethod)

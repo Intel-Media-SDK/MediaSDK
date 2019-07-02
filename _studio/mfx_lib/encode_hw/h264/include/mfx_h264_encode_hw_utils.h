@@ -79,7 +79,7 @@ namespace MfxHwH264Encode
         MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME;
 
 
-    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par);
+    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps);
 
     enum
     {
@@ -1305,7 +1305,7 @@ namespace MfxHwH264Encode
         virtual mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics*, mfxU32 , mfxU32 ) {return MFX_ERR_NONE;}
     };
 
-    BrcIface * CreateBrc(MfxVideoParam const & video);
+    BrcIface * CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CAPS const & hwCaps);
 
     class Brc : public BrcIface
     {
