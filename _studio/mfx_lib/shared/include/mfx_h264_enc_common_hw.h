@@ -931,6 +931,11 @@ namespace MfxHwH264Encode
         return GetPayloadLayout(fp.AVC.FieldPicFlag, fp.AVC.SecondFieldPicFlag);
     }
 
+    inline bool IsDriverSliceSizeControlEnabled(const MfxVideoParam & par, MFX_ENCODE_CAPS const & hwCaps)
+    {
+        return IsOn(par.mfx.LowPower) && hwCaps.ddi_caps.SliceLevelRateCtrl;
+    }
+
     mfxU8 ConvertFrameTypeMfx2Ddi(mfxU32 type);
 
     mfxU8 ConvertMfxFrameType2SliceType(mfxU8 type);
