@@ -1525,9 +1525,12 @@ mfxStatus CDecodingPipeline::DeliverOutput(mfxFrameSurface1* frame)
             res = m_hwdev->RenderFrame(frame, m_pGeneralAllocator);
 #endif
 
-            while( m_delayTicks && (m_startTick + m_delayTicks > msdk_time_get_tick()) )
+            msdk_tick current_tick = msdk_time_get_tick();
+            while( m_delayTicks && (m_startTick + m_delayTicks > current_tick) )
             {
-                MSDK_SLEEP(0);
+                msdk_tick left_tick = m_startTick + m_delayTicks - current_tick;
+                MSDK_SLEEP( (left_tick *1000) / msdk_time_get_frequency());
+                current_tick = msdk_time_get_tick();
             };
             m_startTick=msdk_time_get_tick();
         }
