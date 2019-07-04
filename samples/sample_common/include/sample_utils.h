@@ -544,9 +544,6 @@ private:
 };
 
 mfxStatus InitMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize);
-
-//performs copy to end if possible, also move data to buffer begin if necessary
-//shifts offset pointer in source bitstream in success case
 mfxStatus MoveMfxBitstream(mfxBitstream *pTarget, mfxBitstream *pSrc, mfxU32 nBytesToCopy);
 mfxStatus ExtendMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize);
 void WipeMfxBitstream(mfxBitstream* pBitstream);
@@ -821,7 +818,7 @@ private:
 // if nothing with MFX_EXTBUFF_MCTF_CONTROL is attached yet, a new buffer is created and stored in internal
 // list, then cleaned and a pointer is returned to a caller;
 // finally, if DeallocateAll is true, internal pool is traverserd and for each entry delete is called;
-// Alternative is to implement own allocator which for internal list which will clean everything; 
+// Alternative is to implement own allocator which for internal list which will clean everything;
 // not implemented yet for simpicity reasons.
 template<class ParamT, mfxU32 ParamName>
 //mfxExtMctfControl* GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = false)

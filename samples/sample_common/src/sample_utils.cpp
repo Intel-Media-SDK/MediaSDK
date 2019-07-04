@@ -1644,51 +1644,7 @@ mfxU32 GCD(mfxU32 a, mfxU32 b)
     return b1;
 }
 
-mfxStatus DARtoPAR(mfxU32 darw, mfxU32 darh, mfxU32 w, mfxU32 h, mfxU16 *pparw, mfxU16 *pparh)
-{
-    MSDK_CHECK_POINTER(pparw, MFX_ERR_NULL_PTR);
-    MSDK_CHECK_POINTER(pparh, MFX_ERR_NULL_PTR);
-    MSDK_CHECK_ERROR(darw, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MSDK_CHECK_ERROR(darh, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MSDK_CHECK_ERROR(w, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MSDK_CHECK_ERROR(h, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    mfxU16 reduced_w = 0, reduced_h = 0;
-    mfxU32 gcd = GCD(w, h);
-
-    // divide by greatest common divisor to fit into mfxU16
-    reduced_w =  (mfxU16) (w / gcd);
-    reduced_h =  (mfxU16) (h / gcd);
-
-    // for mpeg2 we need to set exact values for par (standard supports only dar 4:3, 16:9, 221:100 or par 1:1)
-    if (darw * 3 == darh * 4)
-    {
-        *pparw = 4 * reduced_h;
-        *pparh = 3 * reduced_w;
-    }
-    else if (darw * 9 == darh * 16)
-    {
-        *pparw = 16 * reduced_h;
-        *pparh = 9 * reduced_w;
-    }
-    else if (darw * 100 == darh * 221)
-    {
-        *pparw = 221 * reduced_h;
-        *pparh = 100 * reduced_w;
-    }
-    else if (darw * reduced_h == darh * reduced_w)
-    {
-        *pparw = 1;
-        *pparh = 1;
-    }
-    else
-    {
-        *pparw = (mfxU16)((mfxF64)(darw * reduced_h) / (darh * reduced_w) * 1000);
-        *pparh = 1000;
-    }
-
-    return MFX_ERR_NONE;
-}
 
 std::basic_string<msdk_char> FormMVCFileName(const msdk_char *strFileNamePattern, const mfxU32 numView)
 {

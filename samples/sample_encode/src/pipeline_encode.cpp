@@ -288,7 +288,6 @@ sTask::sTask()
     , pWriter(NULL)
     , extBufs(NULL)
 {
-    MSDK_ZERO_MEMORY(mfxBS);
 }
 
 mfxStatus sTask::Init(mfxU32 nBufferSize, CSmplBitstreamWriter *pwriter)
@@ -300,15 +299,13 @@ mfxStatus sTask::Init(mfxU32 nBufferSize, CSmplBitstreamWriter *pwriter)
     mfxStatus sts = Reset();
     MSDK_CHECK_STATUS(sts, "Reset failed");
 
-    sts = InitMfxBitstream(&mfxBS, nBufferSize);
-    MSDK_CHECK_STATUS_SAFE(sts, "InitMfxBitstream failed", WipeMfxBitstream(&mfxBS));
+    mfxBS.Extend(nBufferSize);
 
     return sts;
 }
 
 mfxStatus sTask::Close()
 {
-    WipeMfxBitstream(&mfxBS);
     EncSyncP = 0;
     DependentVppTasks.clear();
 
@@ -1941,9 +1938,8 @@ mfxStatus CEncodingPipeline::AllocExtBuffers(sInputParams *pInParams)
 
     return sts;
 }
-mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstream* pBS)
+mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper& bs)
 {
-    MSDK_CHECK_POINTER(pBS, MFX_ERR_NULL_PTR);
     MSDK_CHECK_POINTER(GetFirstEncoder(), MFX_ERR_NOT_INITIALIZED);
 
     mfxVideoParam par;
@@ -1953,9 +1949,7 @@ mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstream* pBS)
     mfxStatus sts = GetFirstEncoder()->GetVideoParam(&par);
     MSDK_CHECK_STATUS(sts, "GetFirstEncoder failed");
 
-    // reallocate bigger buffer for output
-    sts = ExtendMfxBitstream(pBS, par.mfx.BufferSizeInKB * 1000);
-    MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(pBS));
+    bs.Extend(par.mfx.BufferSizeInKB * 1000);
 
     return MFX_ERR_NONE;
 }
@@ -2190,7 +2184,7 @@ mfxStatus CEncodingPipeline::Run()
             }
             else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
             {
-                sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                 MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
             }
             else
@@ -2276,7 +2270,7 @@ mfxStatus CEncodingPipeline::Run()
                 }
                 else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
                 {
-                    sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                    sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                     MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
                 }
                 else
@@ -2320,7 +2314,7 @@ mfxStatus CEncodingPipeline::Run()
             }
             else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
             {
-                sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                 MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
             }
             else
