@@ -399,7 +399,7 @@ mfxStatus CUserPipeline::Run()
             }
             else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
             {
-                sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                 MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
             }
             else
@@ -440,7 +440,7 @@ mfxStatus CUserPipeline::Run()
             }
             else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
             {
-                sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                 MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
             }
             else
