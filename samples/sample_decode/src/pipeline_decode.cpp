@@ -543,7 +543,7 @@ mfxStatus CDecodingPipeline::CreateRenderingWindow(sInputParams *pParams)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
-#if D3D_SURFACES_SUPPORT    
+#if D3D_SURFACES_SUPPORT
     sWindowParams windowParams;
 
     windowParams.lpWindowName = pParams->bWallNoTitle ? NULL : MSDK_STRING("sample_decode");
@@ -1529,7 +1529,8 @@ mfxStatus CDecodingPipeline::DeliverOutput(mfxFrameSurface1* frame)
             while( m_delayTicks && (m_startTick + m_delayTicks > current_tick) )
             {
                 msdk_tick left_tick = m_startTick + m_delayTicks - current_tick;
-                MSDK_SLEEP( (left_tick *1000) / msdk_time_get_frequency());
+                uint32_t sleepTime = (uint32_t)(left_tick * 1000 / msdk_time_get_frequency());
+                MSDK_SLEEP(sleepTime);
                 current_tick = msdk_time_get_tick();
             };
             m_startTick=msdk_time_get_tick();
@@ -1749,11 +1750,11 @@ mfxStatus CDecodingPipeline::RunDecoding()
                 continue;
             }
 
-            if (!m_pCurrentFreeOutputSurface) 
+            if (!m_pCurrentFreeOutputSurface)
             {
                 m_pCurrentFreeOutputSurface = GetFreeOutputSurface();
             }
-            if (!m_pCurrentFreeOutputSurface) 
+            if (!m_pCurrentFreeOutputSurface)
             {
                 sts = MFX_ERR_NOT_FOUND;
                 break;
@@ -1767,7 +1768,7 @@ mfxStatus CDecodingPipeline::RunDecoding()
         }
 
         if ((MFX_ERR_NONE == sts) || (MFX_ERR_MORE_DATA == sts) || (MFX_ERR_MORE_SURFACE == sts)) {
-            if (m_bIsCompleteFrame) 
+            if (m_bIsCompleteFrame)
             {
                 m_pCurrentFreeSurface->submit = m_timer_overall.Sync();
             }
@@ -1897,11 +1898,11 @@ mfxStatus CDecodingPipeline::RunDecoding()
                     } while (MFX_WRN_DEVICE_BUSY == sts);
 
                     // process errors
-                    if (MFX_ERR_MORE_DATA == sts) 
+                    if (MFX_ERR_MORE_DATA == sts)
                     { // will never happen actually
                         continue;
                     }
-                    else if (MFX_ERR_NONE != sts) 
+                    else if (MFX_ERR_NONE != sts)
                     {
                         MSDK_PRINT_RET_MSG(sts, "RunFrameVPPAsync failed");
                         break;
