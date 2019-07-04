@@ -2097,7 +2097,7 @@ mfxStatus ImplementationAvc::Prd_LTR_Operation(DdiTask & task)
     return MFX_ERR_NONE;
 }
 
-mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU16 &raca128)
+mfxStatus ImplementationAvc::CalculateFrameCmplx(DdiTask const &task, mfxU32 &raca128)
 {
     mfxFrameSurface1 *pSurfI = nullptr;
     pSurfI = m_core->GetNativeSurface(task.m_yuv);
@@ -2699,12 +2699,10 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         return Error(sts);
                 }
 
-                task->m_frcmplx = 0;
-
                 if (IsExtBrcSceneChangeSupported(m_video)
                     && (task->GetFrameType() & MFX_FRAMETYPE_I) && (task->m_encOrder == 0 || m_video.mfx.GopPicSize != 1))
                 {
-                    mfxStatus sts = CalculateFrameCmplx(*task, task->m_frcmplx);
+                    mfxStatus sts = CalculateFrameCmplx(*task, task->m_brcFrameParams.FrameCmplx);
                     if (sts != MFX_ERR_NONE)
                         return Error(sts);
                 }
