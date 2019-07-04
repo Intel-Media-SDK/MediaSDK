@@ -72,7 +72,7 @@ FEI_Encode::~FEI_Encode()
     }
     catch(mfxError& ex)
     {
-        msdk_printf("Exception raised in FEI Encode destructor sts = %d, msg = %s\n", ex.GetStatus(), ex.GetMessage().c_str());
+        msdk_printf("Exception raised in FEI Encode destructor sts = %d, msg = %s\n", ex.GetStatus(), ex.what());
     }
     catch(...)
     {
@@ -178,7 +178,7 @@ mfxStatus FEI_Encode::ResetExtBuffers(const MfxVideoParamsWrapper & videoParams)
     }
     catch (mfxError& ex)
     {
-        MSDK_CHECK_STATUS(ex.GetStatus(), ex.GetMessage());
+        MSDK_CHECK_STATUS(ex.GetStatus(), ex.what());
     }
     catch(...)
     {

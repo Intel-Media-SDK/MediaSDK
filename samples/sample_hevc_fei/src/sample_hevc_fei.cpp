@@ -881,7 +881,7 @@ int main(int argc, char *argv[])
     }
     catch(mfxError& ex)
     {
-        msdk_printf("\n%s!\n", ex.GetMessage().c_str());
+        msdk_printf("\n%s!\n", ex.what());
         return ex.GetStatus();
     }
     catch(std::exception& ex)

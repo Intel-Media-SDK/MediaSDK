@@ -108,7 +108,7 @@ mfxStatus CEncodingPipeline::Init()
     }
     catch (mfxError& ex)
     {
-        MSDK_CHECK_STATUS(ex.GetStatus(), ex.GetMessage());
+        MSDK_CHECK_STATUS(ex.GetStatus(), ex.what());
     }
     catch(std::exception& ex)
     {

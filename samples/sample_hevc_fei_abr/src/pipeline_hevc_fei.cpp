@@ -168,7 +168,7 @@ mfxStatus CFeiTranscodingPipeline::Init()
     }
     catch (mfxError& ex)
     {
-        MSDK_CHECK_STATUS(ex.GetStatus(), ex.GetMessage());
+        MSDK_CHECK_STATUS(ex.GetStatus(), ex.what());
     }
     catch(std::exception& ex)
     {
@@ -318,7 +318,7 @@ mfxStatus CFeiTranscodingPipeline::CreateBufferAllocator(mfxU32 w, mfxU32 h)
     }
     catch (mfxError& ex)
     {
-        MSDK_CHECK_STATUS(ex.GetStatus(), ex.GetMessage());
+        MSDK_CHECK_STATUS(ex.GetStatus(), ex.what());
     }
     catch(...)
     {
@@ -436,7 +436,7 @@ mfxStatus CFeiTranscodingPipeline::AllocBuffers()
     }
     catch (mfxError& ex)
     {
-        MSDK_CHECK_STATUS(ex.GetStatus(), ex.GetMessage());
+        MSDK_CHECK_STATUS(ex.GetStatus(), ex.what());
     }
     catch(...)
     {
