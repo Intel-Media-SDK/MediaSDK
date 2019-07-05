@@ -641,7 +641,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
     {
         // number of input surfaces is same for VIDEO and SYSTEM memory
         // because so far encoder doesn't support LookAhead and B-frames
-        return video.AsyncDepth;
+        return video.AsyncDepth + ((video.AsyncDepth > 1)? 1: 0);
     }
 
     class Task
