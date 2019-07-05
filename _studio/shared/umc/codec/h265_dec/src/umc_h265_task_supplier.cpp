@@ -1689,7 +1689,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
     }
 
     if (m_checkCRAInsideResetProcess && !pSource)
-        return UMC::UMC_ERR_FAILED;
+        return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 
     size_t moveToSpsOffset = m_checkCRAInsideResetProcess ? pSource->GetDataSize() : 0;
 
