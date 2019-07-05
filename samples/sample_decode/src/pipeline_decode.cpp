@@ -777,8 +777,14 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
 
         if ( (m_mfxVideoParams.mfx.FrameInfo.CropW != pParams->Width && pParams->Width) ||
             (m_mfxVideoParams.mfx.FrameInfo.CropH != pParams->Height && pParams->Height)||
-            (pParams->videoType == MFX_CODEC_JPEG && pParams->fourcc == MFX_FOURCC_RGB4 &&
-             m_mfxVideoParams.mfx.JPEGColorFormat != m_mfxVideoParams.mfx.FrameInfo.ChromaFormat))
+            (pParams->nDecoderPostProcessing && pParams->videoType == MFX_CODEC_JPEG &&
+             pParams->fourcc == MFX_FOURCC_RGB4 &&
+             // No need to use decoder's post processing for decoding of JPEG with RGB 4:4:4
+             // to MFX_FOURCC_RGB4, because this decoding is done in one step
+             // In every other case, color conversion is requred, so try decoder's post processing.
+             !(m_mfxVideoParams.mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
+               m_mfxVideoParams.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV444)
+                ))
         {
             /* By default VPP used for resize */
             m_bVppIsUsed = true;
@@ -818,18 +824,14 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
                 msdk_printf(MSDK_STRING("Decoder's post-processing is used for resizing\n") );
             }
             /* POSTPROC_FORCE */
-            if (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing)
+            if (MODE_DECODER_POSTPROC_FORCE == pParams->nDecoderPostProcessing && m_bVppIsUsed)
             {
-              if ( (MFX_CODEC_AVC != m_mfxVideoParams.mfx.CodecId && MFX_CODEC_JPEG != m_mfxVideoParams.mfx.CodecId) ||
-                   (MFX_PICSTRUCT_PROGRESSIVE != m_mfxVideoParams.mfx.FrameInfo.PicStruct))
-               {
-                   /* it is impossible to use decoder's post-processing */
-                   msdk_printf(MSDK_STRING("ERROR: decoder postprocessing (-dec_postproc forced) cannot resize this stream!\n") );
-                   return MFX_ERR_UNSUPPORTED;
-               }
+                /* it is impossible to use decoder's post-processing */
+                msdk_printf(MSDK_STRING("ERROR: decoder postprocessing (-dec_postproc forced) cannot be used for this stream!\n") );
+                return MFX_ERR_UNSUPPORTED;
             }
             if ((m_bVppIsUsed) && (MODE_DECODER_POSTPROC_AUTO == pParams->nDecoderPostProcessing))
-                msdk_printf(MSDK_STRING("Decoder post-processing is unsupported for this stream, VPP is used for resizing\n") );
+                msdk_printf(MSDK_STRING("Decoder post-processing is unsupported for this stream, VPP is used\n") );
         }
     }
 #endif //MFX_VERSION >= 1022
