@@ -383,14 +383,10 @@ namespace TranscodingSample
 
     struct ExtendedBS
     {
-        ExtendedBS(): IsFree(true), Syncp(NULL), pCtrl(NULL)
-        {
-            MSDK_ZERO_MEMORY(Bitstream);
-        };
-        bool IsFree;
-        mfxBitstream Bitstream;
-        mfxSyncPoint Syncp;
-        PreEncAuxBuffer* pCtrl;
+        bool IsFree = true;
+        mfxBitstreamWrapper Bitstream;
+        mfxSyncPoint Syncp = nullptr;
+        PreEncAuxBuffer* pCtrl = nullptr;
     };
 
     class CIOStat : public CTimeStatistics
@@ -497,8 +493,6 @@ namespace TranscodingSample
         }
         virtual ~ExtendedBSStore()
         {
-            for (mfxU32 i=0; i < m_pExtBS.size(); i++)
-                MSDK_SAFE_DELETE_ARRAY(m_pExtBS[i].Bitstream.Data);
             m_pExtBS.clear();
 
         }
@@ -595,9 +589,9 @@ namespace TranscodingSample
         virtual mfxStatus SetReader(std::unique_ptr<CSmplBitstreamReader>& reader);
         virtual mfxStatus SetReader(std::unique_ptr<CSmplYUVReader>& reader);
         virtual mfxStatus SetWriter(std::unique_ptr<CSmplBitstreamWriter>& writer);
-        virtual mfxStatus GetInputBitstream(mfxBitstream **pBitstream);
+        virtual mfxStatus GetInputBitstream(mfxBitstreamWrapper **pBitstream);
         virtual mfxStatus GetInputFrame(mfxFrameSurface1 *pSurface);
-        virtual mfxStatus ProcessOutputBitstream(mfxBitstream* pBitstream);
+        virtual mfxStatus ProcessOutputBitstream(mfxBitstreamWrapper* pBitstream);
         virtual mfxStatus ResetInput();
         virtual mfxStatus ResetOutput();
 
@@ -606,7 +600,7 @@ namespace TranscodingSample
         std::unique_ptr<CSmplYUVReader> m_pYUVFileReader;
         // for performance options can be zero
         std::unique_ptr<CSmplBitstreamWriter> m_pFileWriter;
-        mfxBitstream m_Bitstream;
+        mfxBitstreamWrapper m_Bitstream;
     private:
         DISALLOW_COPY_AND_ASSIGN(FileBitstreamProcessor);
     };
@@ -661,7 +655,7 @@ namespace TranscodingSample
         virtual mfxStatus DecodeOneFrame(ExtendedSurface *pExtSurface);
         virtual mfxStatus DecodeLastFrame(ExtendedSurface *pExtSurface);
         virtual mfxStatus VPPOneFrame(ExtendedSurface *pSurfaceIn, ExtendedSurface *pExtSurface);
-        virtual mfxStatus EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstream *pBS);
+        virtual mfxStatus EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstreamWrapper *pBS);
         virtual mfxStatus PreEncOneFrame(ExtendedSurface *pInSurface, ExtendedSurface *pOutSurface);
 
         virtual mfxStatus DecodePreInit(sInputParams *pParams);
@@ -712,15 +706,15 @@ namespace TranscodingSample
         void FreeVppDoNotUse();
         void FreeMVCSeqDesc();
 
-        mfxStatus AllocateSufficientBuffer(mfxBitstream* pBS);
+        mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper* pBS);
         mfxStatus PutBS();
 
         mfxStatus DumpSurface2File(mfxFrameSurface1* pSurface);
-        mfxStatus Surface2BS(ExtendedSurface* pSurf,mfxBitstream* pBS, mfxU32 fourCC);
-        mfxStatus NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
-        mfxStatus NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstream* pBS);
-        mfxStatus RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
-        mfxStatus YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
+        mfxStatus Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWrapper* pBS, mfxU32 fourCC);
+        mfxStatus NV12toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS);
+        mfxStatus NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstreamWrapper* pBS);
+        mfxStatus RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS);
+        mfxStatus YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS);
 
         void NoMoreFramesSignal();
         mfxStatus AddLaStreams(mfxU16 width, mfxU16 height);
@@ -736,7 +730,7 @@ namespace TranscodingSample
         mfxStatus   SetAllocatorAndHandleIfRequired();
         mfxStatus   LoadGenericPlugin();
 
-        mfxBitstream        *m_pmfxBS;  // contains encoded input data
+        mfxBitstreamWrapper *m_pmfxBS;  // contains encoded input data
 
         mfxVersion m_Version; // real API version with which library is initialized
 
