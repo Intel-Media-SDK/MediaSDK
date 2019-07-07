@@ -115,6 +115,53 @@ bool IsDecodeCodecSupported(mfxU32 codecFormat);
 bool IsEncodeCodecSupported(mfxU32 codecFormat);
 bool IsPluginCodecSupported(mfxU32 codecFormat);
 
+class mfxBitstreamWrapper : public mfxBitstream
+{
+public:
+    mfxBitstreamWrapper()
+        : mfxBitstream()
+    {}
+
+    mfxBitstreamWrapper(mfxU32 n_bytes)
+        : mfxBitstream()
+    {
+        Extend(n_bytes);
+    }
+
+    mfxBitstreamWrapper(const mfxBitstreamWrapper & bs_wrapper)
+        : mfxBitstream(bs_wrapper)
+        , m_data(bs_wrapper.m_data)
+    {
+        Data = m_data.data();
+    }
+
+    mfxBitstreamWrapper& operator=(mfxBitstreamWrapper const& bs_wrapper)
+    {
+        mfxBitstreamWrapper tmp(bs_wrapper);
+
+        *this = std::move(tmp);
+
+        return *this;
+    }
+
+    mfxBitstreamWrapper(mfxBitstreamWrapper && bs_wrapper)             = default;
+    mfxBitstreamWrapper & operator= (mfxBitstreamWrapper&& bs_wrapper) = default;
+    ~mfxBitstreamWrapper()                                             = default;
+
+    void Extend(mfxU32 n_bytes)
+    {
+        if (MaxLength >= n_bytes)
+            return;
+
+        m_data.resize(n_bytes);
+
+        Data      = m_data.data();
+        MaxLength = n_bytes;
+    }
+private:
+    std::vector<mfxU8> m_data;
+};
+
 class CSmplYUVReader
 {
 public :
@@ -210,7 +257,7 @@ public:
 private:
     mfxBitstream *m_processedBS;
     // input bit stream
-    std::unique_ptr<mfxBitstream>  m_originalBS;
+    mfxBitstreamWrapper m_originalBS;
 
     mfxStatus PrepareNextFrame(mfxBitstream *in, mfxBitstream **out);
 
@@ -495,53 +542,6 @@ mfxF64 CalculateFrameRate(mfxU32 nFrameRateExtN, mfxU32 nFrameRateExtD);
 mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
-
-class mfxBitstreamWrapper : public mfxBitstream
-{
-public:
-    mfxBitstreamWrapper()
-        : mfxBitstream()
-    {}
-
-    mfxBitstreamWrapper(mfxU32 n_bytes)
-        : mfxBitstream()
-    {
-        Extend(n_bytes);
-    }
-
-    mfxBitstreamWrapper(const mfxBitstreamWrapper & bs_wrapper)
-        : mfxBitstream(bs_wrapper)
-        , m_data(bs_wrapper.m_data)
-    {
-        Data = m_data.data();
-    }
-
-    mfxBitstreamWrapper& operator=(mfxBitstreamWrapper const& bs_wrapper)
-    {
-        mfxBitstreamWrapper tmp(bs_wrapper);
-
-        *this = std::move(tmp);
-
-        return *this;
-    }
-
-    mfxBitstreamWrapper(mfxBitstreamWrapper && bs_wrapper)             = default;
-    mfxBitstreamWrapper & operator= (mfxBitstreamWrapper&& bs_wrapper) = default;
-    ~mfxBitstreamWrapper()                                             = default;
-
-    void Extend(mfxU32 n_bytes)
-    {
-        if (MaxLength >= n_bytes)
-            return;
-
-        m_data.resize(n_bytes);
-
-        Data      = m_data.data();
-        MaxLength = n_bytes;
-    }
-private:
-    std::vector<mfxU8> m_data;
-};
 
 mfxStatus InitMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize);
 mfxStatus MoveMfxBitstream(mfxBitstream *pTarget, mfxBitstream *pSrc, mfxU32 nBytesToCopy);
