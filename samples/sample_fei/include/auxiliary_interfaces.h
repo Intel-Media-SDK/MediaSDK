@@ -66,7 +66,7 @@ public:
     mfxU32               m_allocId;
     mfxVideoParam        m_videoParams;
     AppConfig*           m_pAppConfig;
-    mfxBitstream         m_mfxBS;
+    mfxBitstreamWrapper  m_mfxBS;
     mfxSyncPoint         m_SyncPoint;
     CSmplBitstreamReader m_BSReader;
     ExtSurfPool*         m_pSurfPool;

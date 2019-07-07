@@ -220,7 +220,6 @@ MFX_DecodeInterface::MFX_DecodeInterface(MFXVideoSession* session, mfxU32 allocI
     , m_bEndOfFile(false)
     , m_DecStremout_out(NULL)
 {
-    MSDK_ZERO_MEMORY(m_mfxBS);
     MSDK_ZERO_MEMORY(m_videoParams);
 
     m_InitExtParams.reserve(1);
@@ -241,8 +240,6 @@ MFX_DecodeInterface::~MFX_DecodeInterface()
         }
     }
     m_InitExtParams.clear();
-
-    WipeMfxBitstream(&m_mfxBS);
 
     SAFE_FCLOSE(m_DecStremout_out);
 
@@ -296,8 +293,7 @@ mfxStatus MFX_DecodeInterface::FillParameters()
     sts = m_BSReader.Init(m_pAppConfig->strSrcFile);
     MSDK_CHECK_STATUS(sts, "m_BSReader.Init failed");
 
-    sts = InitMfxBitstream(&m_mfxBS, 1024 * 1024);
-    MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
+    m_mfxBS.Extend(1024 * 1024);
 
     // read a portion of data for DecodeHeader function
     sts = m_BSReader.ReadNextFrame(&m_mfxBS);
@@ -316,8 +312,7 @@ mfxStatus MFX_DecodeInterface::FillParameters()
         {
             if (m_mfxBS.MaxLength == m_mfxBS.DataLength)
             {
-                sts = ExtendMfxBitstream(&m_mfxBS, m_mfxBS.MaxLength * 2);
-                MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+                m_mfxBS.Extend(m_mfxBS.MaxLength * 2);
             }
 
             // read a portion of data for DecodeHeader function
