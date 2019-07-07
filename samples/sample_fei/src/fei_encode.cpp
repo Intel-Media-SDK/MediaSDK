@@ -42,7 +42,6 @@ FEI_EncodeInterface::FEI_EncodeInterface(MFXVideoSession* session, mfxU32 allocI
     , m_pRepackStat_out(NULL)
 #endif
 {
-    MSDK_ZERO_MEMORY(m_mfxBS);
     MSDK_ZERO_MEMORY(m_videoParams);
     MSDK_ZERO_MEMORY(m_encodeControl);
     m_encodeControl.FrameType = MFX_FRAMETYPE_UNKNOWN;
@@ -111,8 +110,6 @@ FEI_EncodeInterface::~FEI_EncodeInterface()
     }
     MSDK_SAFE_DELETE_ARRAY(pSlices);
     m_InitExtParams.clear();
-
-    WipeMfxBitstream(&m_mfxBS);
 
     SAFE_FCLOSE(m_pMvPred_in);
     SAFE_FCLOSE(m_pENC_MBCtrl_in);
@@ -376,9 +373,7 @@ mfxStatus FEI_EncodeInterface::FillParameters()
         }
     }
 
-    mfxU32 nEncodedDataBufferSize = m_videoParams.mfx.FrameInfo.Width * m_videoParams.mfx.FrameInfo.Height * 4;
-    sts = InitMfxBitstream(&m_mfxBS, nEncodedDataBufferSize);
-    MSDK_CHECK_STATUS_SAFE(sts, "InitMfxBitstream failed", WipeMfxBitstream(&m_mfxBS));
+    m_mfxBS.Extend(m_videoParams.mfx.FrameInfo.Width * m_videoParams.mfx.FrameInfo.Height * 4);
 
     if (m_pRepackCtrl_in == NULL && m_pAppConfig->repackctrlFile != NULL)
     {
@@ -678,9 +673,7 @@ mfxStatus FEI_EncodeInterface::AllocateSufficientBuffer()
     mfxStatus sts = m_pmfxENCODE->GetVideoParam(&par);
     MSDK_CHECK_STATUS(sts, "m_pmfxENCODE->GetVideoParam failed");
 
-    // reallocate bigger buffer for output
-    sts = ExtendMfxBitstream(&m_mfxBS, par.mfx.BufferSizeInKB * 1000);
-    MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(&m_mfxBS));
+    m_mfxBS.Extend(par.mfx.BufferSizeInKB * 1000);
 
     return sts;
 }
