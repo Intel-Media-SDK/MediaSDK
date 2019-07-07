@@ -36,7 +36,6 @@ FEI_Encode::FEI_Encode(MFXVideoSession* session, MfxVideoParamsWrapper& par,
 
     m_working_queue.Start();
 
-    MSDK_ZERO_MEMORY(m_bitstream);
 }
 
 FEI_Encode::~FEI_Encode()
@@ -44,8 +43,7 @@ FEI_Encode::~FEI_Encode()
     m_working_queue.Stop();
 
     m_mfxENCODE.Close();
-    m_pmfxSession = NULL;
-    WipeMfxBitstream(&m_bitstream);
+    m_pmfxSession = nullptr;
 }
 
 mfxStatus FEI_Encode::PreInit()
@@ -54,9 +52,7 @@ mfxStatus FEI_Encode::PreInit()
     mfxStatus sts = Query();
     MSDK_CHECK_STATUS(sts, "FEI Encode Query failed");
 
-    mfxU32 nEncodedDataBufferSize = m_videoParams.mfx.FrameInfo.Width * m_videoParams.mfx.FrameInfo.Height * 4;
-    sts = InitMfxBitstream(&m_bitstream, nEncodedDataBufferSize);
-    MSDK_CHECK_STATUS_SAFE(sts, "InitMfxBitstream failed", WipeMfxBitstream(&m_bitstream));
+    m_bitstream.Extend(m_videoParams.mfx.FrameInfo.Width * m_videoParams.mfx.FrameInfo.Height * 4);
 
     // add FEI frame ctrl with default values
     mfxExtFeiHevcEncFrameCtrl* ctrl = m_encodeCtrl.AddExtBuffer<mfxExtFeiHevcEncFrameCtrl>();
@@ -314,9 +310,7 @@ mfxStatus FEI_Encode::AllocateSufficientBuffer()
     mfxStatus sts = m_mfxENCODE.GetVideoParam(&m_videoParams);
     MSDK_CHECK_STATUS(sts, "FEI Encode GetVideoParam failed");
 
-    // reallocate bigger buffer for output
-    sts = ExtendMfxBitstream(&m_bitstream, m_videoParams.mfx.BufferSizeInKB * 1000);
-    MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(&m_bitstream));
+    m_bitstream.Extend(m_videoParams.mfx.BufferSizeInKB * 1000);
 
     return sts;
 }
