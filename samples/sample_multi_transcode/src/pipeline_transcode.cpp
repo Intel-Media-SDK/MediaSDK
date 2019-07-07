@@ -818,7 +818,7 @@ mfxStatus CTranscodingPipeline::VPPOneFrame(ExtendedSurface *pSurfaceIn, Extende
 
 } // mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
 
-mfxStatus CTranscodingPipeline::EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstream *pBS)
+mfxStatus CTranscodingPipeline::EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstreamWrapper *pBS)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -2087,7 +2087,7 @@ mfxStatus CTranscodingPipeline::DumpSurface2File(mfxFrameSurface1* pSurf)
 } // mfxStatus CTranscodingPipeline::DumpSurface2File(ExtendedSurface* pSurf)
 
 
-mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstream* pBS, mfxU32 fourCC)
+mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWrapper* pBS, mfxU32 fourCC)
 {
     mfxStatus       sts = MFX_ERR_MORE_DATA;
     // get result coded stream
@@ -2132,14 +2132,13 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstream* 
     return sts;
 }
 
-mfxStatus CTranscodingPipeline::NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstream* pBS)
+mfxStatus CTranscodingPipeline::NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstreamWrapper* pBS)
 {
     mfxFrameInfo& info = pSurface->Info;
     mfxFrameData& data = pSurface->Data;
     if ((int)pBS->MaxLength - (int)pBS->DataLength < (int)(info.CropH*info.CropW * 3 / 2))
     {
-        mfxStatus sts = ExtendMfxBitstream(pBS, pBS->DataLength + (int)(info.CropH*info.CropW * 3 / 2));
-        MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+        pBS->Extend(pBS->DataLength + (int)(info.CropH*info.CropW * 3 / 2));
     }
 
     for (mfxU16 i = 0; i < info.CropH; i++)
@@ -2166,14 +2165,13 @@ mfxStatus CTranscodingPipeline::NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBi
     return MFX_ERR_NONE;
 }
 
-mfxStatus CTranscodingPipeline::NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS)
+mfxStatus CTranscodingPipeline::NV12toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS)
 {
     mfxFrameInfo& info = pSurface->Info;
     mfxFrameData& data = pSurface->Data;
-    if((int)pBS->MaxLength-(int)pBS->DataLength < (int)(info.CropH*info.CropW*3/2))
+    if ((int)pBS->MaxLength-(int)pBS->DataLength < (int)(info.CropH*info.CropW*3/2))
     {
-        mfxStatus sts = ExtendMfxBitstream(pBS, pBS->DataLength+(int)(info.CropH*info.CropW*3/2));
-        MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+        pBS->Extend(pBS->DataLength+(int)(info.CropH*info.CropW*3/2));
     }
 
     for (mfxU16 i = 0; i < info.CropH; i++)
@@ -2191,14 +2189,13 @@ mfxStatus CTranscodingPipeline::NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream
     return MFX_ERR_NONE;
 }
 
-mfxStatus CTranscodingPipeline::RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS)
+mfxStatus CTranscodingPipeline::RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS)
 {
     mfxFrameInfo& info = pSurface->Info;
     mfxFrameData& data = pSurface->Data;
-    if((int)pBS->MaxLength-(int)pBS->DataLength < (int)(info.CropH*info.CropW*4))
+    if( (int)pBS->MaxLength-(int)pBS->DataLength < (int)(info.CropH*info.CropW*4))
     {
-        mfxStatus sts = ExtendMfxBitstream(pBS, pBS->DataLength+(int)(info.CropH*info.CropW*4));
-        MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+        pBS->Extend(pBS->DataLength+(int)(info.CropH*info.CropW*4));
     }
 
     for (mfxU16 i = 0; i < info.CropH; i++)
@@ -2210,14 +2207,13 @@ mfxStatus CTranscodingPipeline::RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstream
     return MFX_ERR_NONE;
 }
 
-mfxStatus CTranscodingPipeline::YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS)
+mfxStatus CTranscodingPipeline::YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS)
 {
     mfxFrameInfo& info = pSurface->Info;
     mfxFrameData& data = pSurface->Data;
     if((int)pBS->MaxLength-(int)pBS->DataLength < (int)(info.CropH*info.CropW*4))
     {
-        mfxStatus sts = ExtendMfxBitstream(pBS, pBS->DataLength+(int)(info.CropH*info.CropW*4));
-        MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+        pBS->Extend(pBS->DataLength+(int)(info.CropH*info.CropW*4));
     }
 
     for (mfxU16 i = 0; i < info.CropH; i++)
@@ -2316,8 +2312,7 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
             {
                 if (m_pmfxBS->MaxLength == m_pmfxBS->DataLength)
                 {
-                    sts = ExtendMfxBitstream(m_pmfxBS, m_pmfxBS->MaxLength * 2);
-                    MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+                    m_pmfxBS->Extend(m_pmfxBS->MaxLength * 2);
                 }
 
                 // read a portion of data for DecodeHeader function
@@ -3615,8 +3610,9 @@ void CTranscodingPipeline::FreeFrames()
     for (i = 0; i < m_pSurfaceDecPool.size(); i++)
     {
 #ifdef ENABLE_MCTF
-        if (m_pSurfaceDecPool[i]->Data.ExtParam) {
-            delete[]m_pSurfaceDecPool[i]->Data.ExtParam;
+        if (m_pSurfaceDecPool[i]->Data.ExtParam)
+        {
+            delete[] m_pSurfaceDecPool[i]->Data.ExtParam;
             m_pSurfaceDecPool[i]->Data.ExtParam = NULL;
         }
 #endif
@@ -4550,7 +4546,7 @@ void CTranscodingPipeline::FreeVppDoNotUse()
     MSDK_SAFE_DELETE_ARRAY(m_VppDoNotUse.AlgList);
 }
 
-mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstream* pBS)
+mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper* pBS)
 {
     MSDK_CHECK_POINTER(pBS, MFX_ERR_NULL_PTR);
 
@@ -4581,11 +4577,10 @@ mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstream* pBS)
             : 2 * pBS->MaxLength;
     }
 
-    sts = ExtendMfxBitstream(pBS, new_size);
-    MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(pBS));
+    pBS->Extend(new_size);
 
     return MFX_ERR_NONE;
-} // CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstream* pBS)
+} // CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper* pBS)
 
 mfxStatus CTranscodingPipeline::Join(MFXVideoSession *pChildSession)
 {
@@ -4767,9 +4762,8 @@ void SafetySurfaceBuffer::CancelBuffering()
 
 FileBitstreamProcessor::FileBitstreamProcessor()
 {
-    MSDK_ZERO_MEMORY(m_Bitstream);
     m_Bitstream.TimeStamp=(mfxU64)-1;
-} // FileBitstreamProcessor::FileBitstreamProcessor()
+}
 
 FileBitstreamProcessor::~FileBitstreamProcessor()
 {
@@ -4777,8 +4771,7 @@ FileBitstreamProcessor::~FileBitstreamProcessor()
         m_pFileReader->Close();
     if (m_pFileWriter.get())
         m_pFileWriter->Close();
-    WipeMfxBitstream(&m_Bitstream);
-} // FileBitstreamProcessor::~FileBitstreamProcessor()
+}
 
 mfxStatus FileBitstreamProcessor::SetReader(std::unique_ptr<CSmplYUVReader>& reader)
 {
@@ -4790,8 +4783,7 @@ mfxStatus FileBitstreamProcessor::SetReader(std::unique_ptr<CSmplYUVReader>& rea
 mfxStatus FileBitstreamProcessor::SetReader(std::unique_ptr<CSmplBitstreamReader>& reader)
 {
     m_pFileReader = std::move(reader);
-    mfxStatus sts = InitMfxBitstream(&m_Bitstream, 1024 * 1024);
-    MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
+    m_Bitstream.Extend(1024 * 1024);
 
     return MFX_ERR_NONE;
 }
@@ -4803,7 +4795,7 @@ mfxStatus FileBitstreamProcessor::SetWriter(std::unique_ptr<CSmplBitstreamWriter
     return MFX_ERR_NONE;
 }
 
-mfxStatus FileBitstreamProcessor::GetInputBitstream(mfxBitstream **pBitstream)
+mfxStatus FileBitstreamProcessor::GetInputBitstream(mfxBitstreamWrapper **pBitstream)
 {
     if (!m_pFileReader.get())
     {
@@ -4817,7 +4809,7 @@ mfxStatus FileBitstreamProcessor::GetInputBitstream(mfxBitstream **pBitstream)
     }
     return sts;
 
-} //  FileBitstreamProcessor::GetInputBitstream(mfxBitstream* pBitstream)
+}
 
 mfxStatus FileBitstreamProcessor::GetInputFrame(mfxFrameSurface1 * pSurface)
 {
@@ -4829,14 +4821,14 @@ mfxStatus FileBitstreamProcessor::GetInputFrame(mfxFrameSurface1 * pSurface)
     return m_pYUVFileReader->LoadNextFrame(pSurface);
 }
 
-mfxStatus FileBitstreamProcessor::ProcessOutputBitstream(mfxBitstream* pBitstream)
+mfxStatus FileBitstreamProcessor::ProcessOutputBitstream(mfxBitstreamWrapper* pBitstream)
 {
     if (m_pFileWriter.get())
         return m_pFileWriter->WriteNextFrame(pBitstream, false);
     else
         return MFX_ERR_NONE;
 
-} // mfxStatus FileBitstreamProcessor::ProcessOutputBitstream(mfxBitstream* pBitstream)
+}
 
 mfxStatus FileBitstreamProcessor::ResetInput()
 {
@@ -4880,8 +4872,8 @@ void CTranscodingPipeline::ModifyParamsUsingPresets(sInputParams& params, mfxF64
         params.bEnableExtLA = true;
         params.nRateControlMethod = 0;
         if(params.shouldPrintPresets)
-        { 
-            msdk_printf(MSDK_STRING("RateControlMethod: ExtLA\n")); 
+        {
+            msdk_printf(MSDK_STRING("RateControlMethod: ExtLA\n"));
         }
     }
     else
