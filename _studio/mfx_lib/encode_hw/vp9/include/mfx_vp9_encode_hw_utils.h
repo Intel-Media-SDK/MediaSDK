@@ -31,6 +31,14 @@
 #include "mfx_enc_common.h"
 #include "assert.h"
 
+static inline bool operator==(mfxVP9SegmentParam const& l, mfxVP9SegmentParam const& r)
+{
+    return MFX_EQ_FIELD(FeatureEnabled)
+        && MFX_EQ_FIELD(QIndexDelta)
+        && MFX_EQ_FIELD(LoopFilterLevelDelta)
+        && MFX_EQ_FIELD(ReferenceFrame);
+}
+
 namespace MfxHwVP9Encode
 {
 
@@ -906,28 +914,11 @@ inline bool CompareSegmentMaps(mfxExtVP9Segmentation const & first, mfxExtVP9Seg
 
 inline bool CompareSegmentParams(mfxExtVP9Segmentation const & first, mfxExtVP9Segmentation const & second)
 {
-    bool equal = false;
+    if (first.NumSegments != second.NumSegments)
+        return false;
 
-    if (first.NumSegments == second.NumSegments)
-    {
-        mfxU8 equalParams = 0;
-        for (mfxU8 i = 0; i < first.NumSegments; i++)
-        {
-            if (0 == memcmp(&first.Segment[i], &second.Segment[i], sizeof(mfxVP9SegmentParam)))
-            {
-                equalParams++;
-            }
-        }
-
-        if (equalParams == first.NumSegments)
-        {
-            equal = true;
-        }
-    }
-
-    return equal;
+    return std::equal(first.Segment, first.Segment + first.NumSegments, second.Segment);
 }
-
 
 inline void CopySegmentationBuffer(mfxExtVP9Segmentation & dst, mfxExtVP9Segmentation const & src)
 {
