@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -239,6 +239,13 @@ namespace MfxHwVideoProcessing
             bool   enabled;
             mfxU16 TransferMatrix;
             mfxU16 NominalRange;
+
+            bool operator!=(const SignalInfo & other) const
+            {
+                return enabled        != other.enabled
+                    && TransferMatrix != other.TransferMatrix
+                    && NominalRange   != other.NominalRange;
+            }
         };
 
     public:
@@ -349,7 +356,7 @@ namespace MfxHwVideoProcessing
 #endif
                 )
                     return false;
-                if (memcmp(&VideoSignalInfoIn, &VideoSignalInfoOut, sizeof(SignalInfo)))
+                if (VideoSignalInfoIn != VideoSignalInfoOut)
                     return false;
                 return true;
             };
