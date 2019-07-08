@@ -1869,6 +1869,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
         if (caps.ddi_caps.NumScalablePipesMinus1 > 0) {
             MaxTileColumns = (mfxU16)caps.ddi_caps.NumScalablePipesMinus1 + 1;
+            changed += CheckMax(par.m_ext.HEVCTiles.NumTileColumns, MaxTileColumns);
         }
         else if ((par.m_platform == MFX_HW_ICL || par.m_platform == MFX_HW_ICL_LP) && IsOn(par.mfx.LowPower) && par.m_ext.HEVCTiles.NumTileColumns > 1 && par.m_ext.HEVCTiles.NumTileRows > 1) {
             // for ICL VDEnc only 1xN or Nx1 configurations are allowed for single pipe
