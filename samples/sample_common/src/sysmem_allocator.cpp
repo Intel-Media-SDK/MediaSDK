@@ -150,6 +150,7 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->Pitch = Width2;
         break;
 #endif
+    case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_A2RGB10:
         ptr->G = ptr->B + 1;
@@ -274,6 +275,7 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
         nbytes = Width2*Height2 + Width2*Height2 + Width2*Height2;
         break;
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
     case MFX_FOURCC_AYUV:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:

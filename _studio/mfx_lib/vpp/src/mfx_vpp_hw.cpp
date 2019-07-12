@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <assert.h>
 #include <limits>
+#include <stdexcept>
 #include "math.h"
 
 #include "libmfx_core.h"
@@ -38,6 +39,7 @@
 #include "mfx_task.h"
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_hw.h"
+#include "mfx_vpp_support_table.h"
 
 #ifdef MFX_VA_LINUX
 #include "libmfx_core_vaapi.h"
@@ -182,7 +184,7 @@ mfxStatus ConfigureExecuteParams(
     mfxVppCaps & caps,          // [IN]
 
     mfxExecuteParams & executeParams,// [OUT]
-    Config & config);           // [OUT]
+    Config & config);
 
 
 mfxStatus CopyFrameDataBothFields(
@@ -190,6 +192,12 @@ mfxStatus CopyFrameDataBothFields(
         mfxFrameData /*const*/ & dst,
         mfxFrameData /*const*/ & src,
         mfxFrameInfo const & info);
+
+PlatformGen GetPlatformGen(eMFXHWType type);
+mfxStatus CheckFilterSupport(PlatformGen platformGen,
+        VPPFilter vppFilter,
+        VPPSupportTableFourCC inFourCC,
+        VPPSupportTableFourCC outFourCC);
 
 ////////////////////////////////////////////////////////////////////////////////////
 // CpuFRC
@@ -2193,7 +2201,10 @@ mfxStatus  VideoVPPHW::Init(
         caps,
         m_executeParams,
         m_config);
-
+    if (MFX_ERR_UNSUPPORTED == sts)
+    {
+        sts = MFX_ERR_INVALID_VIDEO_PARAM;
+    }
     if( MFX_WRN_FILTER_SKIPPED == sts )
     {
         bIsFilterSkipped = true;
@@ -4723,9 +4734,11 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
             if (extDI->Mode == MFX_DEINTERLACING_ADVANCED_SCD &&
                 par->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
-                par->vpp.Out.FourCC != MFX_FOURCC_YV12)
+                par->vpp.Out.FourCC != MFX_FOURCC_YV12 &&
+                par->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
+                par->vpp.Out.FourCC != MFX_FOURCC_P010)
             {
-                // SCD kernels support only planar 8-bit formats
+                // SCD kernels support only planar 8-bit formats and 10-bit p010 on ICL+
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
 #endif
@@ -4851,7 +4864,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
     /* 5. Check fourcc */
     if ( !(caps->mFormatSupport[par->vpp.In.FourCC] & MFX_FORMAT_SUPPORT_INPUT) || !(caps->mFormatSupport[par->vpp.Out.FourCC] & MFX_FORMAT_SUPPORT_OUTPUT) )
-        sts = GetWorstSts(sts, MFX_WRN_PARTIAL_ACCELERATION);
+        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
     /* 6. BitDepthLuma and BitDepthChroma should be configured for p010 format */
     if (MFX_FOURCC_P010 == par->vpp.In.FourCC
@@ -4893,8 +4906,9 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     }
 
 
-    /* 8. Check unsupported filters on RGB */
-    if( par->vpp.In.FourCC == MFX_FOURCC_RGB4)
+    /* 8. Check unsupported filters on ARGB */
+    if( par->vpp.In.FourCC == MFX_FOURCC_RGB4
+        || par->vpp.In.FourCC == MFX_FOURCC_BGR4)
     {
         std::vector<mfxU32> pipelineList;
         mfxStatus internalSts = GetPipelineList( par, pipelineList, true );
@@ -4903,10 +4917,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         mfxU32  len   = (mfxU32)pipelineList.size();
         mfxU32* pList = (len > 0) ? (mfxU32*)&pipelineList[0] : NULL;
 
-        if(IsFilterFound(pList, len, MFX_EXTBUFF_VPP_DENOISE)            ||
-           IsFilterFound(pList, len, MFX_EXTBUFF_VPP_DETAIL)             ||
-           IsFilterFound(pList, len, MFX_EXTBUFF_VPP_PROCAMP)            ||
-           IsFilterFound(pList, len, MFX_EXTBUFF_VPP_SCENE_CHANGE)       ||
+        if(IsFilterFound(pList, len, MFX_EXTBUFF_VPP_SCENE_CHANGE)       ||
            IsFilterFound(pList, len, MFX_EXTBUFF_VPP_IMAGE_STABILIZATION) )
         {
             sts = GetWorstSts(sts, MFX_WRN_FILTER_SKIPPED);
@@ -5196,6 +5207,12 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                 case MFX_FOURCC_P210:
                     return make_back_color_yuv(10, extComp->Y, extComp->U, extComp->V);
                 case MFX_FOURCC_RGB4:
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+                case MFX_FOURCC_RGB565:
+#endif
+#ifdef MFX_ENABLE_RGBP
+                case MFX_FOURCC_RGBP:
+#endif
                 case MFX_FOURCC_BGR4:
                     return make_back_color_argb(8, extComp->R, extComp->G, extComp->B);
                 case MFX_FOURCC_A2RGB10:
@@ -5224,11 +5241,11 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
 #endif
         case MFX_FOURCC_P210:
             return make_def_back_color_yuv(10);
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+        case MFX_FOURCC_RGB565:
+#endif
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
-#ifdef MFX_ENABLE_RGBP
-        case MFX_FOURCC_RGBP:
-#endif
             return make_def_back_color_argb(8);
         case MFX_FOURCC_A2RGB10:
             return make_def_back_color_argb(10);
@@ -5247,7 +5264,7 @@ mfxStatus ConfigureExecuteParams(
     mfxVideoParam & videoParam, // [IN]
     mfxVppCaps & caps,          // [IN]
     mfxExecuteParams & executeParams, // [OUT]
-    Config & config)                  // [OUT]
+    Config & config)
 {
     //----------------------------------------------
     std::vector<mfxU32> pipelineList;
@@ -5256,7 +5273,6 @@ mfxStatus ConfigureExecuteParams(
 
     mfxF64 inDNRatio = 0, outDNRatio = 0;
     bool bIsFilterSkipped = false;
-
     // default
     config.m_extConfig.frcRational[VPP_IN].FrameRateExtN = videoParam.vpp.In.FrameRateExtN;
     config.m_extConfig.frcRational[VPP_IN].FrameRateExtD = videoParam.vpp.In.FrameRateExtD;
@@ -5269,37 +5285,47 @@ mfxStatus ConfigureExecuteParams(
     executeParams.iBackgroundColor = get_background_color(videoParam);
 
     //-----------------------------------------------------
-    for (mfxU32 j = 0; j < pipelineList.size(); j += 1)
+    try
     {
-        mfxU32 curFilterId = pipelineList[j];
-
-        switch(curFilterId)
+        PlatformGen platformGen = GetPlatformGen(core->GetHWType());
+        VPPSupportTableFourCC inFourCC = MFXFourCC2VPPSupportTableFourCC.at(videoParam.vpp.In.FourCC);
+        VPPSupportTableFourCC outFourCC = MFXFourCC2VPPSupportTableFourCC.at(videoParam.vpp.Out.FourCC);
+        for (mfxU32 j = 0; j < pipelineList.size(); j += 1)
         {
+            mfxU32 curFilterId = pipelineList[j];
+            switch (curFilterId)
+            {
             case MFX_EXTBUFF_VPP_DEINTERLACING:
             case MFX_EXTBUFF_VPP_DI:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    DEINTERLACING, // MFX_EXTBUFF_VPP_DI is internal name of of VPP smart filters
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 /* this function also take into account is DI ext buffer present or does not */
-                executeParams.iDeinterlacingAlgorithm = GetDeinterlaceMode( videoParam, caps );
+                executeParams.iDeinterlacingAlgorithm = GetDeinterlaceMode(videoParam, caps);
                 if (0 == executeParams.iDeinterlacingAlgorithm)
                 {
                     /* Tragically case,
                      * Something wrong. User requested DI but MSDK can't do it */
                     return MFX_ERR_UNKNOWN;
                 }
-                if(MFX_DEINTERLACING_ADVANCED     == executeParams.iDeinterlacingAlgorithm
+                if (MFX_DEINTERLACING_ADVANCED == executeParams.iDeinterlacingAlgorithm
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-                || MFX_DEINTERLACING_ADVANCED_SCD == executeParams.iDeinterlacingAlgorithm
+                    || MFX_DEINTERLACING_ADVANCED_SCD == executeParams.iDeinterlacingAlgorithm
 #endif
-                )
+                    )
                 {
                     // use motion adaptive ADI with reference frame (quality)
                     config.m_bRefFrameEnable = true;
                     config.m_extConfig.customRateData.fwdRefCount = 0;
                     config.m_extConfig.customRateData.bkwdRefCount = 1; /* ref frame */
-                    config.m_extConfig.customRateData.inputFramesOrFieldPerCycle= 1;
-                    config.m_extConfig.customRateData.outputIndexCountPerCycle  = 1;
-                    config.m_surfCount[VPP_IN]  = MFX_MAX(2, config.m_surfCount[VPP_IN]);
-                    config.m_surfCount[VPP_OUT]  = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
+                    config.m_extConfig.customRateData.inputFramesOrFieldPerCycle = 1;
+                    config.m_extConfig.customRateData.outputIndexCountPerCycle = 1;
+                    config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                    config.m_surfCount[VPP_OUT] = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
                     config.m_extConfig.mode = IS_REFERENCES;
                 }
                 else if (MFX_DEINTERLACING_ADVANCED_NOREF == executeParams.iDeinterlacingAlgorithm)
@@ -5308,10 +5334,10 @@ mfxStatus ConfigureExecuteParams(
                     config.m_bRefFrameEnable = false;
                     config.m_extConfig.customRateData.fwdRefCount = 0;
                     config.m_extConfig.customRateData.bkwdRefCount = 0; /* ref frame */
-                    config.m_extConfig.customRateData.inputFramesOrFieldPerCycle= 1;
-                    config.m_extConfig.customRateData.outputIndexCountPerCycle  = 1;
-                    config.m_surfCount[VPP_IN]  = MFX_MAX(2, config.m_surfCount[VPP_IN]);
-                    config.m_surfCount[VPP_OUT]  = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
+                    config.m_extConfig.customRateData.inputFramesOrFieldPerCycle = 1;
+                    config.m_extConfig.customRateData.outputIndexCountPerCycle = 1;
+                    config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                    config.m_surfCount[VPP_OUT] = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
                     config.m_extConfig.mode = 0;
                 }
                 else if (0 == executeParams.iDeinterlacingAlgorithm)
@@ -5325,8 +5351,14 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_VPP_DI_WEAVE:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    DEINTERLACING,  // MFX_EXTBUFF_VPP_DI_WEAVE is internal name of of VPP smart filters
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 /* this function also take into account is DI ext buffer present or does not */
-                executeParams.iDeinterlacingAlgorithm = GetDeinterlaceMode( videoParam, caps );
+                executeParams.iDeinterlacingAlgorithm = GetDeinterlaceMode(videoParam, caps);
                 if (0 == executeParams.iDeinterlacingAlgorithm)
                 {
                     /* Tragically case,
@@ -5336,16 +5368,16 @@ mfxStatus ConfigureExecuteParams(
 
                 config.m_bWeave = true;
                 executeParams.bFieldWeaving = true;
-                if(MFX_DEINTERLACING_FIELD_WEAVING == executeParams.iDeinterlacingAlgorithm)
+                if (MFX_DEINTERLACING_FIELD_WEAVING == executeParams.iDeinterlacingAlgorithm)
                 {
                     // use motion adaptive ADI with reference frame (quality)
                     config.m_bRefFrameEnable = true;
-                    config.m_extConfig.customRateData.fwdRefCount  = 0;
+                    config.m_extConfig.customRateData.fwdRefCount = 0;
                     config.m_extConfig.customRateData.bkwdRefCount = 1; /* ref frame */
-                    config.m_extConfig.customRateData.inputFramesOrFieldPerCycle= 1;
-                    config.m_extConfig.customRateData.outputIndexCountPerCycle  = 1;
-                    config.m_surfCount[VPP_IN]   = MFX_MAX(2, config.m_surfCount[VPP_IN]);
-                    config.m_surfCount[VPP_OUT]  = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
+                    config.m_extConfig.customRateData.inputFramesOrFieldPerCycle = 1;
+                    config.m_extConfig.customRateData.outputIndexCountPerCycle = 1;
+                    config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                    config.m_surfCount[VPP_OUT] = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
                     config.m_extConfig.mode = IS_REFERENCES;
                 }
                 else
@@ -5359,8 +5391,14 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_VPP_DI_30i60p:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    DEINTERLACING, // MFX_EXTBUFF_VPP_DI_30i60p is internal name of of VPP smart filters
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 /* this function also take into account is DI ext buffer present or does not */
-                executeParams.iDeinterlacingAlgorithm = GetDeinterlaceMode( videoParam, caps );
+                executeParams.iDeinterlacingAlgorithm = GetDeinterlaceMode(videoParam, caps);
                 if (0 == executeParams.iDeinterlacingAlgorithm)
                 {
                     /* Tragically case,
@@ -5369,25 +5407,25 @@ mfxStatus ConfigureExecuteParams(
                 }
 
                 config.m_bMode30i60pEnable = true;
-                if(MFX_DEINTERLACING_ADVANCED     == executeParams.iDeinterlacingAlgorithm
+                if (MFX_DEINTERLACING_ADVANCED == executeParams.iDeinterlacingAlgorithm
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
-                || MFX_DEINTERLACING_ADVANCED_SCD == executeParams.iDeinterlacingAlgorithm
+                    || MFX_DEINTERLACING_ADVANCED_SCD == executeParams.iDeinterlacingAlgorithm
 #endif
-                )
+                    )
                 {
                     // use motion adaptive ADI with reference frame (quality)
                     config.m_bRefFrameEnable = true;
                     config.m_extConfig.customRateData.bkwdRefCount = 1;
-                    config.m_surfCount[VPP_IN]  = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                    config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
                     config.m_surfCount[VPP_OUT] = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
                     executeParams.bFMDEnable = true;
                     executeParams.bDeinterlace30i60p = true;
                 }
-                else if(MFX_DEINTERLACING_BOB == executeParams.iDeinterlacingAlgorithm)
+                else if (MFX_DEINTERLACING_BOB == executeParams.iDeinterlacingAlgorithm)
                 {
                     // use ADI with spatial info, no reference frame (speed)
                     config.m_bRefFrameEnable = false;
-                    config.m_surfCount[VPP_IN]  = MFX_MAX(1, config.m_surfCount[VPP_IN]);
+                    config.m_surfCount[VPP_IN] = MFX_MAX(1, config.m_surfCount[VPP_IN]);
                     config.m_surfCount[VPP_OUT] = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
                     executeParams.bFMDEnable = false;
                     executeParams.bDeinterlace30i60p = true;
@@ -5397,7 +5435,7 @@ mfxStatus ConfigureExecuteParams(
                     // use ADI with spatial info, no reference frame (speed)
                     executeParams.iDeinterlacingAlgorithm = MFX_DEINTERLACING_ADVANCED_NOREF;
                     config.m_bRefFrameEnable = false;
-                    config.m_surfCount[VPP_IN]  = MFX_MAX(1, config.m_surfCount[VPP_IN]);
+                    config.m_surfCount[VPP_IN] = MFX_MAX(1, config.m_surfCount[VPP_IN]);
                     config.m_surfCount[VPP_OUT] = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
                     executeParams.bFMDEnable = false;
                     executeParams.bDeinterlace30i60p = true;
@@ -5413,6 +5451,12 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_VPP_DENOISE:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 if (caps.uDenoiseFilter)
                 {
                     executeParams.bDenoiseAutoAdjust = TRUE;
@@ -5421,9 +5465,9 @@ mfxStatus ConfigureExecuteParams(
                     {
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_DENOISE)
                         {
-                            mfxExtVPPDenoise *extDenoise= (mfxExtVPPDenoise*) videoParam.ExtParam[i];
+                            mfxExtVPPDenoise *extDenoise = (mfxExtVPPDenoise*)videoParam.ExtParam[i];
 
-                            executeParams.denoiseFactor = MapDNFactor(extDenoise->DenoiseFactor );
+                            executeParams.denoiseFactor = MapDNFactor(extDenoise->DenoiseFactor);
                             executeParams.denoiseFactorOriginal = extDenoise->DenoiseFactor;
                             executeParams.bDenoiseAutoAdjust = FALSE;
                         }
@@ -5438,22 +5482,28 @@ mfxStatus ConfigureExecuteParams(
             }
             case MFX_EXTBUFF_VPP_ROTATION:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 if (caps.uRotation)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_ROTATION)
                         {
-                            mfxExtVPPRotation *extRotate = (mfxExtVPPRotation*) videoParam.ExtParam[i];
+                            mfxExtVPPRotation *extRotate = (mfxExtVPPRotation*)videoParam.ExtParam[i];
 
-                            if ( (MFX_ANGLE_0   != extRotate->Angle) &&
-                                 (MFX_ANGLE_90  != extRotate->Angle) &&
-                                 (MFX_ANGLE_180 != extRotate->Angle) &&
-                                 (MFX_ANGLE_270 != extRotate->Angle) )
+                            if ((MFX_ANGLE_0 != extRotate->Angle) &&
+                                (MFX_ANGLE_90 != extRotate->Angle) &&
+                                (MFX_ANGLE_180 != extRotate->Angle) &&
+                                (MFX_ANGLE_270 != extRotate->Angle))
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
 
-                            if ( ( MFX_PICSTRUCT_FIELD_TFF & videoParam.vpp.Out.PicStruct ) ||
-                                 ( MFX_PICSTRUCT_FIELD_BFF & videoParam.vpp.Out.PicStruct ) )
+                            if ((MFX_PICSTRUCT_FIELD_TFF & videoParam.vpp.Out.PicStruct) ||
+                                (MFX_PICSTRUCT_FIELD_BFF & videoParam.vpp.Out.PicStruct))
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
 
                             executeParams.rotation = extRotate->Angle;
@@ -5469,13 +5519,19 @@ mfxStatus ConfigureExecuteParams(
             }
             case MFX_EXTBUFF_VPP_SCALING:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 if (caps.uScaling)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_SCALING)
                         {
-                            mfxExtVPPScaling *extScaling = (mfxExtVPPScaling*) videoParam.ExtParam[i];
+                            mfxExtVPPScaling *extScaling = (mfxExtVPPScaling*)videoParam.ExtParam[i];
                             executeParams.scalingMode = extScaling->ScalingMode;
                         }
                     }
@@ -5490,7 +5546,13 @@ mfxStatus ConfigureExecuteParams(
 #if (MFX_VERSION >= 1025)
             case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
-                if (caps.uChromaSiting )
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
+                if (caps.uChromaSiting)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
@@ -5528,6 +5590,12 @@ mfxStatus ConfigureExecuteParams(
 #endif // #ifndef MFX_FUTURE_FEATURE_DISABLE
             case MFX_EXTBUFF_VPP_MIRRORING:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 if (caps.uMirroring)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
@@ -5546,8 +5614,8 @@ mfxStatus ConfigureExecuteParams(
 
                             switch (videoParam.IOPattern)
                             {
-                            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
-                            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
+                            case MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
+                            case MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
                             case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
                             case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
                                 executeParams.mirroringPosition = MIRROR_WO_EXEC;
@@ -5564,14 +5632,14 @@ mfxStatus ConfigureExecuteParams(
                             case MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
                                 executeParams.mirroringPosition = MIRROR_INPUT;
                                 break;
-                            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_SYSTEM_MEMORY:
+                            case MFX_IOPATTERN_IN_VIDEO_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY:
                             case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY:
                                 executeParams.mirroringPosition = MIRROR_OUTPUT;
                                 break;
                             case MFX_IOPATTERN_IN_SYSTEM_MEMORY | MFX_IOPATTERN_OUT_SYSTEM_MEMORY:
                                 executeParams.mirroringPosition = (videoParam.vpp.In.Width * videoParam.vpp.In.Height < videoParam.vpp.Out.Width * videoParam.vpp.Out.Height)
-                                                                ? MIRROR_INPUT
-                                                                : MIRROR_OUTPUT;
+                                    ? MIRROR_INPUT
+                                    : MIRROR_OUTPUT;
                                 break;
                             default:
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
@@ -5600,7 +5668,13 @@ mfxStatus ConfigureExecuteParams(
             }
             case MFX_EXTBUFF_VPP_DETAIL:
             {
-                if(caps.uDetailFilter)
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
+                if (caps.uDetailFilter)
                 {
                     executeParams.bDetailAutoAdjust = TRUE;
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
@@ -5608,7 +5682,7 @@ mfxStatus ConfigureExecuteParams(
                         executeParams.detailFactor = 32;// default
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_DETAIL)
                         {
-                            mfxExtVPPDetail *extDetail = (mfxExtVPPDetail*) videoParam.ExtParam[i];
+                            mfxExtVPPDetail *extDetail = (mfxExtVPPDetail*)videoParam.ExtParam[i];
                             executeParams.detailFactor = MapDNFactor(extDetail->DetailFactor);
                             executeParams.detailFactorOriginal = extDetail->DetailFactor;
                         }
@@ -5625,18 +5699,24 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_VPP_PROCAMP:
             {
-                if(caps.uProcampFilter)
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
+                if (caps.uProcampFilter)
                 {
                     for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                     {
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_PROCAMP)
                         {
-                            mfxExtVPPProcAmp *extProcAmp = (mfxExtVPPProcAmp*) videoParam.ExtParam[i];
+                            mfxExtVPPProcAmp *extProcAmp = (mfxExtVPPProcAmp*)videoParam.ExtParam[i];
 
                             executeParams.Brightness = extProcAmp->Brightness;
                             executeParams.Saturation = extProcAmp->Saturation;
-                            executeParams.Hue        = extProcAmp->Hue;
-                            executeParams.Contrast   = extProcAmp->Contrast;
+                            executeParams.Hue = extProcAmp->Hue;
+                            executeParams.Contrast = extProcAmp->Contrast;
                             executeParams.bEnableProcAmp = true;
                         }
                     }
@@ -5651,6 +5731,11 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_VPP_RESIZE:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    SCALING,  // MFX_EXTBUFF_VPP_RESIZE is internal name of of VPP smart filters
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
                 break;// make sense for SW_VPP only
             }
 
@@ -5676,19 +5761,25 @@ mfxStatus ConfigureExecuteParams(
                 config.m_extConfig.frcRational[VPP_OUT].FrameRateExtN = videoParam.vpp.Out.FrameRateExtN;
                 config.m_extConfig.frcRational[VPP_OUT].FrameRateExtD = videoParam.vpp.Out.FrameRateExtD;
 
-                config.m_surfCount[VPP_IN]  = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
                 config.m_surfCount[VPP_OUT] = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
                 executeParams.frcModeOrig = static_cast<mfxU16>(GetMFXFrcMode(videoParam));
 
 
-                inDNRatio = (mfxF64) videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
-                outDNRatio = (mfxF64) videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
+                inDNRatio = (mfxF64)videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
+                outDNRatio = (mfxF64)videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
 
                 break;
             }
 
             case MFX_EXTBUFF_VPP_ITC:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    DEINTERLACING,  // MFX_EXTBUFF_VPP_ITC is internal name of of VPP smart filters
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 // simulating inverse telecine by simple frame skipping and bob deinterlacing
                 config.m_extConfig.mode = FRC_ENABLED | FRC_STANDARD;
 
@@ -5697,11 +5788,11 @@ mfxStatus ConfigureExecuteParams(
                 config.m_extConfig.frcRational[VPP_OUT].FrameRateExtN = videoParam.vpp.Out.FrameRateExtN;
                 config.m_extConfig.frcRational[VPP_OUT].FrameRateExtD = videoParam.vpp.Out.FrameRateExtD;
 
-                inDNRatio  = (mfxF64) videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
-                outDNRatio = (mfxF64) videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
+                inDNRatio = (mfxF64)videoParam.vpp.In.FrameRateExtD / videoParam.vpp.In.FrameRateExtN;
+                outDNRatio = (mfxF64)videoParam.vpp.Out.FrameRateExtD / videoParam.vpp.Out.FrameRateExtN;
 
                 executeParams.iDeinterlacingAlgorithm = MFX_DEINTERLACING_BOB;
-                config.m_surfCount[VPP_IN]  = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
                 config.m_surfCount[VPP_OUT] = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
 
                 break;
@@ -5710,12 +5801,18 @@ mfxStatus ConfigureExecuteParams(
 
             case MFX_EXTBUFF_VPP_COMPOSITE:
             {
+                mfxStatus support_status = CheckFilterSupport(platformGen,
+                    VPPExtBuf2VPPSupportTableFilter.at(curFilterId),
+                    inFourCC,
+                    outFourCC);
+                MFX_CHECK_STS(support_status);
+
                 mfxU32 StreamCount = 0;
                 for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
                 {
                     if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_COMPOSITE)
                     {
-                        mfxExtVPPComposite* extComp = (mfxExtVPPComposite*) videoParam.ExtParam[i];
+                        mfxExtVPPComposite* extComp = (mfxExtVPPComposite*)videoParam.ExtParam[i];
                         StreamCount = extComp->NumInputStream;
 
                         if (!executeParams.dstRects.empty())
@@ -5750,7 +5847,7 @@ mfxStatus ConfigureExecuteParams(
                                 rec.GlobalAlphaEnable = extComp->InputStream[cnt].GlobalAlphaEnable;
                                 rec.GlobalAlpha = extComp->InputStream[cnt].GlobalAlpha;
                             }
-                            if (extComp->InputStream[cnt].LumaKeyEnable !=0)
+                            if (extComp->InputStream[cnt].LumaKeyEnable != 0)
                             {
                                 rec.LumaKeyEnable = extComp->InputStream[cnt].LumaKeyEnable;
                                 rec.LumaKeyMin = extComp->InputStream[cnt].LumaKeyMin;
@@ -5758,19 +5855,19 @@ mfxStatus ConfigureExecuteParams(
                             }
                             if (extComp->InputStream[cnt].PixelAlphaEnable != 0)
                                 rec.PixelAlphaEnable = 1;
-                            executeParams.dstRects[cnt]= rec ;
+                            executeParams.dstRects[cnt] = rec;
                         }
                     }
                 }
 
-                config.m_surfCount[VPP_IN]  = (mfxU16)MFX_MAX(StreamCount, config.m_surfCount[VPP_IN]);
+                config.m_surfCount[VPP_IN] = (mfxU16)MFX_MAX(StreamCount, config.m_surfCount[VPP_IN]);
                 config.m_surfCount[VPP_OUT] = (mfxU16)MFX_MAX(1, config.m_surfCount[VPP_OUT]);
 
                 config.m_extConfig.mode = COMPOSITE;
                 config.m_extConfig.customRateData.bkwdRefCount = 0;
-                config.m_extConfig.customRateData.fwdRefCount  = StreamCount-1; // count only secondary streams
-                config.m_extConfig.customRateData.inputFramesOrFieldPerCycle= StreamCount;
-                config.m_extConfig.customRateData.outputIndexCountPerCycle  = 1;
+                config.m_extConfig.customRateData.fwdRefCount = StreamCount - 1; // count only secondary streams
+                config.m_extConfig.customRateData.inputFramesOrFieldPerCycle = StreamCount;
+                config.m_extConfig.customRateData.outputIndexCountPerCycle = 1;
 
                 config.m_multiBlt = false; // not applicable for Linux
 
@@ -5790,19 +5887,19 @@ mfxStatus ConfigureExecuteParams(
                     std::vector< cRect<mfxU32> > rects;
                     rects.reserve(refCount);
 
-                    for(mfxU32 i = 0; i < refCount+1; i++)
+                    for (mfxU32 i = 0; i < refCount + 1; i++)
                     {
-                            mfxI32 x1 = mid((mfxU32)0, executeParams.dstRects[i].DstX, tCropW);
-                            mfxI32 y1 = mid((mfxU32)0, executeParams.dstRects[i].DstY, tCropH);
-                            mfxI32 x2 = mid((mfxU32)0, executeParams.dstRects[i].DstX + executeParams.dstRects[i].DstW, tCropW);
-                            mfxI32 y2 = mid((mfxU32)0, executeParams.dstRects[i].DstY + executeParams.dstRects[i].DstH, tCropW);
+                        mfxI32 x1 = mid((mfxU32)0, executeParams.dstRects[i].DstX, tCropW);
+                        mfxI32 y1 = mid((mfxU32)0, executeParams.dstRects[i].DstY, tCropH);
+                        mfxI32 x2 = mid((mfxU32)0, executeParams.dstRects[i].DstX + executeParams.dstRects[i].DstW, tCropW);
+                        mfxI32 y2 = mid((mfxU32)0, executeParams.dstRects[i].DstY + executeParams.dstRects[i].DstH, tCropW);
 
-                            t_rect = cRect<mfxU32>(x1, y1, x2, y2, 0, i);
-                            if (t_rect.area() > 0)
-                                    rects.push_back(t_rect);
+                        t_rect = cRect<mfxU32>(x1, y1, x2, y2, 0, i);
+                        if (t_rect.area() > 0)
+                            rects.push_back(t_rect);
                     }
 
-                    if(get_total_area(rects) == tCropW*tCropH)
+                    if (get_total_area(rects) == tCropW * tCropH)
                         executeParams.bBackgroundRequired = false;
                 } // if (executeParams.iTilesNum4Comp > 0)
 
@@ -5818,7 +5915,7 @@ mfxStatus ConfigureExecuteParams(
                 {
                     if (videoParam.ExtParam[jj]->BufferId == MFX_EXTBUFF_VPP_FIELD_PROCESSING)
                     {
-                        mfxExtVPPFieldProcessing* extFP = (mfxExtVPPFieldProcessing*) videoParam.ExtParam[jj];
+                        mfxExtVPPFieldProcessing* extFP = (mfxExtVPPFieldProcessing*)videoParam.ExtParam[jj];
 
                         if (extFP->Mode == MFX_VPP_COPY_FRAME)
                         {
@@ -5827,7 +5924,7 @@ mfxStatus ConfigureExecuteParams(
 
                         if (extFP->Mode == MFX_VPP_COPY_FIELD)
                         {
-                            if(extFP->InField ==  MFX_PICSTRUCT_FIELD_TFF)
+                            if (extFP->InField == MFX_PICSTRUCT_FIELD_TFF)
                             {
                                 executeParams.iFieldProcessingMode = (extFP->OutField == MFX_PICSTRUCT_FIELD_TFF) ? TFF2TFF : TFF2BFF;
                             }
@@ -5846,11 +5943,12 @@ mfxStatus ConfigureExecuteParams(
             } //case MFX_EXTBUFF_VPP_FIELD_PROCESSING:
 
             case MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
+                //ccf
                 for (mfxU32 jj = 0; jj < videoParam.NumExtParam; jj++)
                 {
                     if (videoParam.ExtParam[jj]->BufferId == MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO)
                     {
-                        mfxExtVPPVideoSignalInfo* extVSI = (mfxExtVPPVideoSignalInfo*) videoParam.ExtParam[jj];
+                        mfxExtVPPVideoSignalInfo* extVSI = (mfxExtVPPVideoSignalInfo*)videoParam.ExtParam[jj];
                         MFX_CHECK_NULL_PTR1(extVSI);
 
                         /* Check params */
@@ -5883,13 +5981,13 @@ mfxStatus ConfigureExecuteParams(
                         }
 
                         /* Params look good */
-                        executeParams.VideoSignalInfoIn.NominalRange    = extVSI->In.NominalRange;
-                        executeParams.VideoSignalInfoIn.TransferMatrix  = extVSI->In.TransferMatrix;
-                        executeParams.VideoSignalInfoIn.enabled         = true;
+                        executeParams.VideoSignalInfoIn.NominalRange = extVSI->In.NominalRange;
+                        executeParams.VideoSignalInfoIn.TransferMatrix = extVSI->In.TransferMatrix;
+                        executeParams.VideoSignalInfoIn.enabled = true;
 
-                        executeParams.VideoSignalInfoOut.NominalRange   = extVSI->Out.NominalRange;
+                        executeParams.VideoSignalInfoOut.NominalRange = extVSI->Out.NominalRange;
                         executeParams.VideoSignalInfoOut.TransferMatrix = extVSI->Out.TransferMatrix;
-                        executeParams.VideoSignalInfoOut.enabled        = true;
+                        executeParams.VideoSignalInfoOut.enabled = true;
                         break;
                     }
                 }
@@ -5916,12 +6014,12 @@ mfxStatus ConfigureExecuteParams(
 
                 config.m_bWeave = true;
                 config.m_extConfig.customRateData.bkwdRefCount = 1;
-                config.m_extConfig.customRateData.fwdRefCount  = 0;
+                config.m_extConfig.customRateData.fwdRefCount = 0;
                 config.m_extConfig.customRateData.inputFramesOrFieldPerCycle = 2;
-                config.m_extConfig.customRateData.outputIndexCountPerCycle   = 1;
+                config.m_extConfig.customRateData.outputIndexCountPerCycle = 1;
 
-                config.m_surfCount[VPP_IN]   = MFX_MAX(2, config.m_surfCount[VPP_IN]);
-                config.m_surfCount[VPP_OUT]  = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
+                config.m_surfCount[VPP_IN] = MFX_MAX(2, config.m_surfCount[VPP_IN]);
+                config.m_surfCount[VPP_OUT] = MFX_MAX(1, config.m_surfCount[VPP_OUT]);
                 config.m_extConfig.mode = IS_REFERENCES;
                 // kernel uses "0"  as a "valid" data, but HW_VPP doesn't.
                 // To prevent an issue we increment here and decrement before kernel call.
@@ -5948,12 +6046,12 @@ mfxStatus ConfigureExecuteParams(
                 }
 
                 config.m_extConfig.customRateData.bkwdRefCount = 0;
-                config.m_extConfig.customRateData.fwdRefCount  = 0;
+                config.m_extConfig.customRateData.fwdRefCount = 0;
                 config.m_extConfig.customRateData.inputFramesOrFieldPerCycle = 1;
-                config.m_extConfig.customRateData.outputIndexCountPerCycle   = 2;
+                config.m_extConfig.customRateData.outputIndexCountPerCycle = 2;
 
-                config.m_surfCount[VPP_IN]   = MFX_MAX(1, config.m_surfCount[VPP_IN]);
-                config.m_surfCount[VPP_OUT]  = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
+                config.m_surfCount[VPP_IN] = MFX_MAX(1, config.m_surfCount[VPP_IN]);
+                config.m_surfCount[VPP_OUT] = MFX_MAX(2, config.m_surfCount[VPP_OUT]);
                 config.m_extConfig.mode = IS_REFERENCES;
                 // kernel uses "0"  as a "valid" data, but HW_VPP doesn't.
                 // To prevent an issue we increment here and decrement before kernel call.
@@ -5972,7 +6070,7 @@ mfxStatus ConfigureExecuteParams(
                     if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_MCTF)
                     {
                         mfxExtVppMctf *extMCTF = (mfxExtVppMctf*)videoParam.ExtParam[i];
-                        //  if number of min requred frames for MCTF is 2, but async-depth == 1, 
+                        //  if number of min requred frames for MCTF is 2, but async-depth == 1,
                         // should we increase number of input / output surfaces to prevent hangs?
                         executeParams.MctfFilterStrength = extMCTF->FilterStrength;
                         //switch below must work in case MFX_ENABLE_MCTF_EXT is not defined;
@@ -6032,8 +6130,13 @@ mfxStatus ConfigureExecuteParams(
                 bIsFilterSkipped = true;
                 break;
             }
-        }//switch(curFilterId)
-    } // for (mfxU32 i = 0; i < filtersNum; i += 1)
+            }//switch(curFilterId)
+        }// for (mfxU32 i = 0; i < filtersNum; i += 1)
+    }
+    catch (const std::out_of_range & ex)
+    {
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM); // didn't find input, output FourCC or VPPFilter in VPPSupportTableFourCC
+    }
     //-----------------------------------------------------
 
     // disabling filters
@@ -6570,6 +6673,23 @@ mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 
     return (it1 < it2) ? *it1 : *it2;
 } // mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+
+PlatformGen GetPlatformGen(eMFXHWType type)
+{
+    if (type < MFX_HW_SCL)
+        return GEN6;
+    if (type < MFX_HW_ICL)
+        return GEN9;
+    return GEN11;
+}
+
+mfxStatus CheckFilterSupport(PlatformGen platformGen,
+        VPPFilter vppFilter,
+        VPPSupportTableFourCC inFourCC,
+        VPPSupportTableFourCC outFourCC)
+{
+    return VPPSupportTable[platformGen][vppFilter][inFourCC][outFourCC];
+}
 
 #endif // MFX_ENABLE_VPP
 /* EOF */

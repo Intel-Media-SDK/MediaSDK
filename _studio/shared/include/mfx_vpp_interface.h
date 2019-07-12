@@ -65,37 +65,6 @@
 
 namespace MfxHwVideoProcessing
 {
-    const mfxU32 g_TABLE_SUPPORTED_FOURCC [] =
-    {
-        MFX_FOURCC_NV12      ,
-        MFX_FOURCC_YV12      ,
-        MFX_FOURCC_NV16      ,
-        MFX_FOURCC_YUY2      ,
-        MFX_FOURCC_RGB3      ,
-        MFX_FOURCC_RGB4      ,
-#if defined (MFX_ENABLE_FOURCC_RGB565)
-        MFX_FOURCC_RGB565    ,
-#endif
-#ifdef MFX_ENABLE_RGBP
-        MFX_FOURCC_RGBP      ,
-#endif
-        MFX_FOURCC_P8        ,
-        MFX_FOURCC_P8_TEXTURE,
-        MFX_FOURCC_P010      ,
-        MFX_FOURCC_P210      ,
-        MFX_FOURCC_BGR4      ,
-        MFX_FOURCC_A2RGB10   ,
-        MFX_FOURCC_ARGB16    ,
-        MFX_FOURCC_R16       ,
-        MFX_FOURCC_AYUV      ,
-        MFX_FOURCC_AYUV_RGB4 ,
-        MFX_FOURCC_UYVY
-#if (MFX_VERSION >= 1027)
-        , MFX_FOURCC_Y210
-        , MFX_FOURCC_Y410
-#endif
-    };
-
     typedef enum mfxFormatSupport {
         MFX_FORMAT_SUPPORT_INPUT   = 1,
         MFX_FORMAT_SUPPORT_OUTPUT  = 2

@@ -916,48 +916,22 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
 
         } // if (in->ExtParam && out->ExtParam && (in->NumExtParam == out->NumExtParam) )
 
-        if ( out->vpp.In.FourCC  != MFX_FOURCC_P010 &&
-             out->vpp.In.FourCC  != MFX_FOURCC_P210 &&
-             out->vpp.Out.FourCC == MFX_FOURCC_A2RGB10 ){
-            if( out->vpp.In.FourCC )
-            {
-                out->vpp.In.FourCC = 0;
-                mfxSts = MFX_ERR_UNSUPPORTED;
-            }
-        }
-
-        if ( out->vpp.In.FourCC  == MFX_FOURCC_P010 &&
-             out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10 &&
-             out->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
-             out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
-             out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
-             out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
-#if defined(MFX_VA_LINUX)
-             out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
-#endif
-             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
-#if (MFX_VERSION >= 1027)
-             out->vpp.Out.FourCC != MFX_FOURCC_Y210 &&
-             out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
-#endif
-             out->vpp.Out.FourCC != MFX_FOURCC_RGB4){
-            if( out->vpp.In.FourCC )
-            {
-                out->vpp.In.FourCC = 0;
-                mfxSts = MFX_ERR_UNSUPPORTED;
-            }
-        }
-
         /* [IN VPP] data */
-        if( out->vpp.In.FourCC != MFX_FOURCC_YV12 &&
+        if (out->vpp.In.FourCC != MFX_FOURCC_YV12 &&
             out->vpp.In.FourCC != MFX_FOURCC_NV12 &&
             out->vpp.In.FourCC != MFX_FOURCC_YUY2 &&
 #if defined (MFX_ENABLE_FOURCC_RGB565)
             out->vpp.In.FourCC != MFX_FOURCC_RGB565 &&
 #endif // MFX_ENABLE_FOURCC_RGB565
             out->vpp.In.FourCC != MFX_FOURCC_RGB4 &&
+            out->vpp.In.FourCC != MFX_FOURCC_BGR4 &&
             out->vpp.In.FourCC != MFX_FOURCC_P010 &&
+#ifdef MFX_ENABLE_RGBP
+            out->vpp.In.FourCC != MFX_FOURCC_RGBP &&
+#endif
+#if defined(MFX_VA_LINUX)
             out->vpp.In.FourCC != MFX_FOURCC_UYVY &&
+#endif
             out->vpp.In.FourCC != MFX_FOURCC_P210 &&
 #if (MFX_VERSION >= 1027)
             out->vpp.In.FourCC != MFX_FOURCC_Y210 &&
@@ -965,7 +939,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
 #endif
             out->vpp.In.FourCC != MFX_FOURCC_AYUV)
         {
-            if( out->vpp.In.FourCC )
+            if (out->vpp.In.FourCC)
             {
                 out->vpp.In.FourCC = 0;
                 mfxSts = MFX_ERR_UNSUPPORTED;
@@ -1016,13 +990,16 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         }
 
         /* [OUT VPP] data */
-        if( out->vpp.Out.FourCC != MFX_FOURCC_YV12 &&
+        if (out->vpp.Out.FourCC != MFX_FOURCC_YV12 &&
             out->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
             out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
             out->vpp.Out.FourCC != MFX_FOURCC_RGB4 &&
+            out->vpp.Out.FourCC != MFX_FOURCC_BGR4 &&
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+            out->vpp.Out.FourCC != MFX_FOURCC_RGB565 &&
+#endif
+#if defined(MFX_VA_LINUX)
             out->vpp.Out.FourCC != MFX_FOURCC_UYVY &&
-#ifdef MFX_ENABLE_RGBP
-            out->vpp.Out.FourCC != MFX_FOURCC_RGBP &&
 #endif
             out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
             out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
@@ -1031,7 +1008,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             out->vpp.Out.FourCC != MFX_FOURCC_Y410 &&
 #endif
             out->vpp.Out.FourCC != MFX_FOURCC_AYUV &&
-            out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10 )
+            out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10)
         {
             out->vpp.Out.FourCC = 0;
             mfxSts = MFX_ERR_UNSUPPORTED;

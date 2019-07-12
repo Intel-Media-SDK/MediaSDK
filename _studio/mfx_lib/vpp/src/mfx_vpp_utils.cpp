@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -936,7 +936,10 @@ mfxStatus GetPipelineList(
     /* ************************************************************************** */
     /* [1] the filter chain first based on input and output mismatch formats only */
     /* ************************************************************************** */
-    if( (MFX_FOURCC_RGB4 != par->In.FourCC) || (MFX_FOURCC_RGB4 != par->Out.FourCC) )
+    if( (MFX_FOURCC_RGB4 != par->In.FourCC)
+        || (MFX_FOURCC_BGR4 != par->In.FourCC )
+        || (MFX_FOURCC_RGB4 != par->Out.FourCC)
+        || (MFX_FOURCC_BGR4 != par->Out.FourCC))
     {
         switch (par->In.FourCC)
         {
@@ -974,6 +977,7 @@ mfxStatus GetPipelineList(
                 pipelineList.push_back(MFX_EXTBUFF_VPP_CSC);
                 break;
             case MFX_FOURCC_RGB4:
+            case MFX_FOURCC_BGR4:
                 pipelineList.push_back(MFX_EXTBUFF_VPP_CSC_OUT_RGB4);
                 break;
             }
@@ -982,6 +986,7 @@ mfxStatus GetPipelineList(
             switch (par->Out.FourCC)
             {
             case MFX_FOURCC_RGB4:
+            case MFX_FOURCC_BGR4:
                 pipelineList.push_back(MFX_EXTBUFF_VPP_CSC_OUT_RGB4);
                 break;
             }
@@ -1317,48 +1322,38 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
     /* FourCC */
     switch (info->FourCC)
     {
-        case MFX_FOURCC_NV12:
-#if defined (MFX_ENABLE_FOURCC_RGB565)
-        case MFX_FOURCC_RGB565:
-#endif // MFX_ENABLE_FOURCC_RGB565
-        case MFX_FOURCC_RGB4:
-        case MFX_FOURCC_P010:
-        case MFX_FOURCC_P210:
-        case MFX_FOURCC_NV16:
-        case MFX_FOURCC_YUY2:
-        case MFX_FOURCC_AYUV:
 #if defined(MFX_VA_LINUX)
-        // UYVY is supported on Linux only
-        case MFX_FOURCC_UYVY:
+    case MFX_FOURCC_UYVY:
+        MFX_CHECK((VPP_IN == request) && (platform >= MFX_HW_ICL), MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
 #endif
-            break;
+    case MFX_FOURCC_A2RGB10:
+        MFX_CHECK(VPP_OUT == request, MFX_ERR_INVALID_VIDEO_PARAM);
+    case MFX_FOURCC_AYUV:
 #if (MFX_VERSION >= 1027)
-        case MFX_FOURCC_Y210:
-        case MFX_FOURCC_Y410:
-            MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
-            break;
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y410:
 #endif
-        case MFX_FOURCC_IMC3:
-        case MFX_FOURCC_YV12:
-        case MFX_FOURCC_YUV400:
-        case MFX_FOURCC_YUV411:
-        case MFX_FOURCC_YUV422H:
-        case MFX_FOURCC_YUV422V:
-        case MFX_FOURCC_YUV444:
-            if (VPP_OUT == request)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
-            break;
+        MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
 #ifdef MFX_ENABLE_RGBP
-        case MFX_FOURCC_RGBP:
+    case MFX_FOURCC_RGBP:
+        MFX_CHECK(VPP_IN == request, MFX_ERR_INVALID_VIDEO_PARAM);
 #endif
-        case MFX_FOURCC_A2RGB10:
-            // 10bit RGB supported as output format only
-            if (VPP_IN == request)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
-
-            break;
-        default:
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+    case MFX_FOURCC_P010:
+        MFX_CHECK(platform >= MFX_HW_SCL, MFX_ERR_INVALID_VIDEO_PARAM);
+        break;
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_YV12:
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+#endif
+        break;
+    default:
+        MFX_RETURN(MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     /* Picture Size */

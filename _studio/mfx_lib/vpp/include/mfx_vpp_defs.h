@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +96,8 @@
 #define VPP_ALIGN32(X) (((mfxU32)((X)+31)) & (~ (mfxU32)31))
 
 // names of VPP smart filters. internal using only
-enum {
+enum
+{
     MFX_EXTBUFF_VPP_CSC               =   MFX_MAKEFOURCC('C','S','C','F'),//COLOR SPACE CONVERSION FILTER
     MFX_EXTBUFF_VPP_RESIZE            =   MFX_MAKEFOURCC('R','S','Z','F'),
     MFX_EXTBUFF_VPP_DI                =   MFX_MAKEFOURCC('S','D','I','F'),//STANDARD DEINTERLACE FILTER (60i->30p)
@@ -114,25 +115,26 @@ enum {
     MFX_EXTBUFF_VPP_LSHIFT_OUT      =   MFX_MAKEFOURCC('L','S','F','O'),
 };
 
-typedef enum {
+enum mfxRequestType
+{
     MFX_REQUEST_FROM_VPP_CHECK    = 0x0001,
     MFX_REQUEST_FROM_VPP_PROCESS = 0x0002
+};
 
-} mfxRequestType;
-
-enum {
+enum
+{
     VPP_IN  = 0x00,
     VPP_OUT = 0x01
 };
 
-typedef enum {
+enum PicStructMode
+{
     PASS_THROUGH_PICSTRUCT_MODE   = 0x0001,
     DYNAMIC_DI_PICSTRUCT_MODE     = 0x0004,
     ERR_PICSTRUCT_MODE            = 0x0000
+};
 
-} PicStructMode;
-
-typedef enum
+enum mfxGamutMode
 {
     // gamut compression
     GAMUT_COMPRESS_BASE_MODE     = 1,
@@ -146,16 +148,16 @@ typedef enum
 
     // invalid mode
     GAMUT_INVALID_MODE  = 100
+};
 
-} mfxGamutMode;
 
-
-typedef enum
+enum MirroringPositions
 {
     MIRROR_INPUT   = 0x0001,
     MIRROR_OUTPUT  = 0x0002,
     MIRROR_WO_EXEC = 0x0004
-} MirroringPositions;
+};
+
 
 #endif // __MFX_VPP_DEFS_H
 #endif // MFX_ENABLE_VPP

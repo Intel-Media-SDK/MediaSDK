@@ -25,6 +25,7 @@
 
 #include <math.h>
 #include "mfx_vpp_defs.h"
+#include "mfx_vpp_support_table.h"
 #include "mfx_vpp_vaapi.h"
 #include "mfx_utils.h"
 #include "libmfx_core_vaapi.h"
@@ -440,51 +441,73 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 
     caps.uFieldWeavingControl = 1;
 
+    VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(m_core);
+    MFX_CHECK_NULL_PTR1(hwCore);
+    eMFXHWType hwType = hwCore->GetHWType();
+
     // [FourCC]
     // should be changed by libva support
-    for (auto fourcc : g_TABLE_SUPPORTED_FOURCC)
+    for (auto fourcc : MFXFourCC2VPPSupportTableFourCC)
     {
         // Mark supported input
-        switch(fourcc)
+        switch(fourcc.first)
         {
-        case MFX_FOURCC_NV12:
-        case MFX_FOURCC_YV12:
-        case MFX_FOURCC_YUY2:
+#if defined(MFX_VA_LINUX)
         case MFX_FOURCC_UYVY:
-        case MFX_FOURCC_RGB4:
-#if defined (MFX_ENABLE_FOURCC_RGB565)
-        case MFX_FOURCC_RGB565:
 #endif
-#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
+#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
 #endif
+            if (hwType < MFX_HW_ICL)
+                break;
         case MFX_FOURCC_P010:
-            caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_INPUT;
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
+            if (hwType < MFX_HW_SCL)
+                break;
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YV12:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+        case MFX_FOURCC_RGB565:
+#endif
+            caps.mFormatSupport[fourcc.first] |= MFX_FORMAT_SUPPORT_INPUT;
             break;
         default:
             break;
         }
 
         // Mark supported output
-        switch(fourcc)
+        switch(fourcc.first)
         {
-        case MFX_FOURCC_NV12:
-        case MFX_FOURCC_YUY2:
-        case MFX_FOURCC_RGB4:
+#if defined(MFX_VA_LINUX)
         case MFX_FOURCC_UYVY:
-#if (MFX_VERSION >= 1027)
+#endif
         case MFX_FOURCC_AYUV:
+#if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
 #endif
-#ifdef MFX_ENABLE_RGBP
-        case MFX_FOURCC_RGBP:
-#endif
-        case MFX_FOURCC_P010:
         case MFX_FOURCC_A2RGB10:
-            caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_OUTPUT;
+            if (hwType < MFX_HW_ICL)
+                break;
+        case MFX_FOURCC_P010:
+            if (hwType < MFX_HW_SCL)
+                break;
+        case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YV12:
+        case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+        case MFX_FOURCC_RGB565:
+#endif
+            caps.mFormatSupport[fourcc.first] |= MFX_FORMAT_SUPPORT_OUTPUT;
             break;
         default:
             break;
@@ -1088,6 +1111,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     switch (refFourcc)
     {
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
@@ -1108,6 +1132,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
     switch (targetFourcc)
     {
     case MFX_FOURCC_RGB4:
+    case MFX_FOURCC_BGR4:
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
@@ -1491,6 +1516,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
         switch (refFourcc)
         {
             case MFX_FOURCC_RGB4:
+            case MFX_FOURCC_BGR4:
                 m_pipelineParam[i].surface_color_standard = VAProcColorStandardNone;
                 break;
             case MFX_FOURCC_NV12:
@@ -1503,6 +1529,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
         switch (targetFourcc)
         {
             case MFX_FOURCC_RGB4:
+            case MFX_FOURCC_BGR4:
                 m_pipelineParam[i].output_color_standard = VAProcColorStandardNone;
                 break;
             case MFX_FOURCC_NV12:
@@ -1745,7 +1772,8 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         unsigned int rt_format;
 
         // default format is NV12
-        if (inInfo->FourCC == MFX_FOURCC_RGB4)
+        if (inInfo->FourCC == MFX_FOURCC_RGB4
+            || inInfo->FourCC == MFX_FOURCC_BGR4)
         {
             attrib.value.value.i = VA_FOURCC_ARGB;
             rt_format = VA_RT_FORMAT_RGB32;
@@ -1916,6 +1944,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         switch (refFourcc)
         {
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
             m_pipelineParam[refIdx].surface_color_standard = VAProcColorStandardNone;
             break;
         case MFX_FOURCC_NV12:
@@ -1928,6 +1957,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         switch (targetFourcc)
         {
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
             m_pipelineParam[refIdx].output_color_standard = VAProcColorStandardNone;
             break;
         case MFX_FOURCC_NV12:
@@ -2061,6 +2091,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             switch (pParams->targetSurface.frameInfo.FourCC)
             {
             case MFX_FOURCC_RGB4:
+            case MFX_FOURCC_BGR4:
                 m_pipelineParamComp[uBeginPictureCounter].surface_color_standard = VAProcColorStandardNone;
                 break;
             case MFX_FOURCC_NV12:
@@ -2097,6 +2128,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
         switch (refFourcc)
         {
         case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
             m_pipelineParam[refIdx].surface_color_standard = VAProcColorStandardNone;
             break;
         case MFX_FOURCC_NV12:
