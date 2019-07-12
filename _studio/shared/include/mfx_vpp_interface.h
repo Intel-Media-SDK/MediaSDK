@@ -243,8 +243,8 @@ namespace MfxHwVideoProcessing
             bool operator!=(const SignalInfo & other) const
             {
                 return enabled        != other.enabled
-                    && TransferMatrix != other.TransferMatrix
-                    && NominalRange   != other.NominalRange;
+                    || TransferMatrix != other.TransferMatrix
+                    || NominalRange   != other.NominalRange;
             }
         };
 
