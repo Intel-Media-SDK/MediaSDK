@@ -3317,7 +3317,9 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
                     dstTempSurface.Data.MemId = &dstHandle;
 
                     mfxI64 verticalPitch = (mfxI64)(srcTempSurface.Data.UV - srcTempSurface.Data.Y);
-                    verticalPitch = (verticalPitch % srcTempSurface.Data.Pitch)? 0 : verticalPitch / srcTempSurface.Data.Pitch;
+                    // offset beetween Y and UV must be align to pitch
+                    MFX_CHECK(!(verticalPitch % srcTempSurface.Data.Pitch), MFX_ERR_UNSUPPORTED);
+                    verticalPitch /= srcTempSurface.Data.Pitch;
                     mfxU32 srcPitch = srcTempSurface.Data.PitchLow + ((mfxU32)srcTempSurface.Data.PitchHigh << 16);
 
                     sts = m_pCmCopy->CopyMirrorSystemToVideoMemory(dstHandle.first, 0, srcTempSurface.Data.Y, srcPitch, (mfxU32)verticalPitch, roi, MFX_FOURCC_NV12);
@@ -3466,7 +3468,9 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
             }
 
             mfxI64 verticalPitch = (mfxI64)dstTempSurface.Data.UV - (mfxI64)dstTempSurface.Data.Y;
-            verticalPitch = (verticalPitch % dstTempSurface.Data.Pitch)? 0 : verticalPitch / dstTempSurface.Data.Pitch;
+            // offset beetween Y and UV must be align to pitch
+            MFX_CHECK(!(verticalPitch % dstTempSurface.Data.Pitch), MFX_ERR_UNSUPPORTED);
+            verticalPitch /= dstTempSurface.Data.Pitch;
             mfxU32 dstPitch = dstTempSurface.Data.PitchLow + ((mfxU32)dstTempSurface.Data.PitchHigh << 16);
 
             sts = m_pCmCopy->CopyMirrorVideoToSystemMemory(dstTempSurface.Data.Y, dstPitch, (mfxU32)verticalPitch, srcHandle.first, 0, roi, MFX_FOURCC_NV12);
