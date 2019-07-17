@@ -1017,7 +1017,10 @@ mfxStatus CDecodingPipeline::CreateHWDevice()
 
 mfxStatus CDecodingPipeline::ResetDevice()
 {
-    return m_hwdev->Reset();
+    if (m_hwdev)
+        return m_hwdev->Reset();
+
+    return CreateHWDevice();
 }
 
 mfxStatus CDecodingPipeline::AllocFrames()
