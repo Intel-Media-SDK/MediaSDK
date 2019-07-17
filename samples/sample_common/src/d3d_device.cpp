@@ -246,27 +246,29 @@ mfxStatus CD3D9Device::Reset()
     HRESULT hr = NO_ERROR;
     MSDK_CHECK_POINTER(m_pD3DD9, MFX_ERR_NULL_PTR);
 
-    if (m_D3DPP.Windowed)
+    if (m_D3DPP.hDeviceWindow)
     {
         RECT r;
-        GetClientRect((HWND)m_D3DPP.hDeviceWindow, &r);
+        hr = GetClientRect((HWND)m_D3DPP.hDeviceWindow, &r);
+        if (FAILED(hr))
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+
         int x = GetSystemMetrics(SM_CXSCREEN);
         int y = GetSystemMetrics(SM_CYSCREEN);
         m_D3DPP.BackBufferWidth  = std::min<LONG>(r.right - r.left, x);
         m_D3DPP.BackBufferHeight = std::min<LONG>(r.bottom - r.top, y);
+
+        // Reset will change the parameters, so use a copy instead.
+        D3DPRESENT_PARAMETERS d3dpp = m_D3DPP;
+        hr = m_pD3DD9->ResetEx(&d3dpp, NULL);
+        if (FAILED(hr))
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
     else
     {
         m_D3DPP.BackBufferWidth  = GetSystemMetrics(SM_CXSCREEN);
         m_D3DPP.BackBufferHeight = GetSystemMetrics(SM_CYSCREEN);
     }
-
-    // Reset will change the parameters, so use a copy instead.
-    D3DPRESENT_PARAMETERS d3dpp = m_D3DPP;
-    hr = m_pD3DD9->ResetEx(&d3dpp, NULL);
-
-    if (FAILED(hr))
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
 
     hr = m_pDeviceManager9->ResetDevice(m_pD3DD9, m_resetToken);
     if (FAILED(hr))
