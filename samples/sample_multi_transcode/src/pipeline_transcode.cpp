@@ -1169,30 +1169,6 @@ mfxStatus CTranscodingPipeline::Decode()
             MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "PreEnc: SyncOperation failed");
         }
 
-        size_t i = 0;
-        // Do not exceed buffer length (it should be not longer than AsyncDepth after adding newly processed surface)
-        while(pNextBuffer->GetLength()>=m_AsyncDepth)
-        {
-            {
-                std::unique_lock<std::mutex> lock(m_mStopSession);
-                if (m_bForceStop)
-                {
-                    lock.unlock();
-                    // add surfaces in queue for all sinks
-                    NoMoreFramesSignal();
-                    return MFX_WRN_VALUE_NOT_CHANGED;
-                }
-            }
-
-            pNextBuffer->WaitForSurfaceRelease(MSDK_SURFACE_WAIT_INTERVAL / 1000);
-
-            if (++i > 1000)
-            {
-                msdk_printf(MSDK_STRING("ERROR: timed out waiting surface release by downstream component\n"));
-                return MFX_ERR_NOT_FOUND;
-            }
-        }
-
         // add surfaces in queue for all sinks
         pNextBuffer->AddSurface(PreEncExtSurface);
         /* one of key parts for N_to_1 mode:
