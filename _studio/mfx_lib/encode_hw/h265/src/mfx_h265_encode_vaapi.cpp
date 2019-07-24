@@ -890,6 +890,11 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
                           vaParams.profile,
                           vaParams.entrypoint,
                           attrs.data(), attrs.size());
+
+    MFX_CHECK(!(VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT == vaSts ||
+                VA_STATUS_ERROR_UNSUPPORTED_PROFILE    == vaSts),
+                MFX_ERR_UNSUPPORTED);
+
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 #if MFX_VERSION >= 1022
