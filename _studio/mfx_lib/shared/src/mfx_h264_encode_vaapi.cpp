@@ -1460,6 +1460,11 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
                           ConvertProfileTypeMFX2VAAPI(m_videoParam.mfx.CodecProfile),
                           entrypoint,
                           Begin(attrs), attrs.size());
+
+    MFX_CHECK(!(VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT == vaSts ||
+                VA_STATUS_ERROR_UNSUPPORTED_PROFILE    == vaSts),
+                MFX_ERR_UNSUPPORTED);
+
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 
