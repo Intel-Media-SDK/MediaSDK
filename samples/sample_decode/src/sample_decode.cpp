@@ -681,7 +681,7 @@ int _tmain(int argc, TCHAR *argv[])
 int main(int argc, char *argv[])
 #endif
 {
-    sInputParams        Params;   // input parameters from command line
+    sInputParams        Params = {};   // input parameters from command line
     CDecodingPipeline   Pipeline; // pipeline for decoding, includes input file reader, decoder and output file writer
 
     mfxStatus sts = MFX_ERR_NONE; // return value check
