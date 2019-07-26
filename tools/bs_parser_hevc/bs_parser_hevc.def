@@ -1,0 +1,13 @@
+LIBRARY    "bs_parser_hevc"
+EXPORTS
+    BS_HEVC2_Init
+    BS_HEVC2_OpenFile
+    BS_HEVC2_SetBuffer
+    BS_HEVC2_ParseNextAU
+    BS_HEVC2_Close
+    BS_HEVC2_SetTraceLevel
+    BS_HEVC2_Lock
+    BS_HEVC2_Unlock
+    BS_HEVC2_GetOffset
+    BS_HEVC2_Sync
+    BS_HEVC2_GetAsyncDepth
