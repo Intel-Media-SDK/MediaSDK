@@ -606,6 +606,19 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         }
         if (MFX_ERR_MORE_DATA == sts)
         {
+            /* The next calling of m_FileReader->ReadNextFrame will set
+             * pBS->DataFlag to 0 at first and return MFX_ERR_MORE_DATA
+             * if EOS in input stream has been reached. The next calling
+             * of m_pmfxDEC->DecodeHeader will return MFX_ERR_MORE_DATA
+             * again, which will result in looping forever. So checking
+             * whether EOS has been reached before m_FileReader->ReadNextFrame
+             * may work-around the looping forever issue.
+             *
+             * TODO: introduce early exit in ReadNextFrame if EOS is detected.
+             */
+            if (m_mfxBS.DataFlag & MFX_BITSTREAM_EOS)
+                break;
+
             if (m_mfxBS.MaxLength == m_mfxBS.DataLength)
             {
                 m_mfxBS.Extend(m_mfxBS.MaxLength * 2);
