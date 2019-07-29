@@ -1310,53 +1310,6 @@ mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
     return idx;
 }
 
-mfxStatus InitMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize)
-{
-    //check input params
-    MSDK_CHECK_POINTER(pBitstream, MFX_ERR_NULL_PTR);
-    MSDK_CHECK_ERROR(nSize, 0, MFX_ERR_NOT_INITIALIZED);
-
-    //prepare pBitstream
-    WipeMfxBitstream(pBitstream);
-
-    //prepare buffer
-    pBitstream->Data = new mfxU8[nSize];
-    MSDK_CHECK_POINTER(pBitstream->Data, MFX_ERR_MEMORY_ALLOC);
-
-    pBitstream->MaxLength = nSize;
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus ExtendMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize)
-{
-    MSDK_CHECK_POINTER(pBitstream, MFX_ERR_NULL_PTR);
-
-    MSDK_CHECK_ERROR(nSize <= pBitstream->MaxLength, true, MFX_ERR_UNSUPPORTED);
-
-    mfxU8* pData = new mfxU8[nSize];
-    MSDK_CHECK_POINTER(pData, MFX_ERR_MEMORY_ALLOC);
-
-    memmove(pData, pBitstream->Data + pBitstream->DataOffset, pBitstream->DataLength);
-
-    WipeMfxBitstream(pBitstream);
-
-    pBitstream->Data       = pData;
-    pBitstream->DataOffset = 0;
-    pBitstream->MaxLength  = nSize;
-
-    return MFX_ERR_NONE;
-}
-
-void WipeMfxBitstream(mfxBitstream* pBitstream)
-{
-    if(pBitstream)
-    {
-        //free allocated memory
-        MSDK_SAFE_DELETE_ARRAY(pBitstream->Data);
-    }
-}
-
 std::basic_string<msdk_char> CodecIdToStr(mfxU32 nFourCC)
 {
     std::basic_string<msdk_char> fcc;

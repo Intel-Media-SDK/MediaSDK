@@ -37,6 +37,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxbrc.h"
 #include "mfxfei.h"
 #include "mfxfeihevc.h"
+#include "mfxmvc.h"
 
 #include "vm/strings_defs.h"
 #include "vm/file_defs.h"
@@ -79,13 +80,6 @@ public:
     no_copy() {}
 };
 
-struct DeletePtr {
-    template <class T> T* operator () (T* p) const {
-        delete p;
-        return 0;
-    }
-};
-
 enum {
     CODEC_VP8 = MFX_MAKEFOURCC('V','P','8',' '),
     CODEC_MVC = MFX_MAKEFOURCC('M','V','C',' '),
@@ -119,21 +113,318 @@ bool IsDecodeCodecSupported(mfxU32 codecFormat);
 bool IsEncodeCodecSupported(mfxU32 codecFormat);
 bool IsPluginCodecSupported(mfxU32 codecFormat);
 
-class mfxBitstreamWrapper : public mfxBitstream
+// class is used as custom exception
+class mfxError : public std::runtime_error
 {
 public:
+    mfxError(mfxStatus status = MFX_ERR_UNKNOWN, std::string msg = "")
+        : runtime_error(msg)
+        , m_Status(status)
+    {}
+
+    mfxStatus GetStatus() const
+    { return m_Status; }
+
+private:
+    mfxStatus m_Status;
+};
+
+//declare used extension buffers
+template<class T>
+struct mfx_ext_buffer_id{
+    enum {id = 0};
+};
+template<>struct mfx_ext_buffer_id<mfxExtCodingOption>{
+    enum {id = MFX_EXTBUFF_CODING_OPTION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtCodingOption2>{
+    enum {id = MFX_EXTBUFF_CODING_OPTION2};
+};
+template<>struct mfx_ext_buffer_id<mfxExtCodingOption3>{
+    enum {id = MFX_EXTBUFF_CODING_OPTION3};
+};
+template<>struct mfx_ext_buffer_id<mfxExtAvcTemporalLayers>{
+    enum {id = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtAVCRefListCtrl>{
+    enum {id = MFX_EXTBUFF_AVC_REFLIST_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtThreadsParam>{
+    enum {id = MFX_EXTBUFF_THREADS_PARAM};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiParam> {
+    enum { id = MFX_EXTBUFF_FEI_PARAM };
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncCtrl> {
+    enum { id = MFX_EXTBUFF_FEI_PREENC_CTRL };
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncMV>{
+    enum {id = MFX_EXTBUFF_FEI_PREENC_MV};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncMBStat>{
+    enum {id = MFX_EXTBUFF_FEI_PREENC_MB};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncFrameCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncMVPredictors>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncQP>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_QP};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncCtuCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCRefLists>{
+    enum {id = MFX_EXTBUFF_HEVC_REFLISTS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackCtrl>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackStat>{
+    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_STAT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtBRC> {
+    enum {id = MFX_EXTBUFF_BRC};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCParam> {
+    enum {id = MFX_EXTBUFF_HEVC_PARAM};
+};
+template<>struct mfx_ext_buffer_id<mfxExtDecVideoProcessing> {
+    enum {id = MFX_EXTBUFF_DEC_VIDEO_PROCESSING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtDecodeErrorReport> {
+    enum {id = MFX_EXTBUFF_DECODE_ERROR_REPORT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtMVCSeqDesc> {
+    enum {id = MFX_EXTBUFF_MVC_SEQ_DESC};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPDoNotUse> {
+    enum {id = MFX_EXTBUFF_VPP_DONOTUSE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPDeinterlacing> {
+    enum {id = MFX_EXTBUFF_VPP_DEINTERLACING};
+};
+
+//helper function to initialize mfx ext buffer structure
+template <class T>
+void init_ext_buffer(T & ext_buffer)
+{
+    memset(&ext_buffer, 0, sizeof(ext_buffer));
+    reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferId = mfx_ext_buffer_id<T>::id;
+    reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferSz = sizeof(ext_buffer);
+}
+
+/** ExtBufHolder is an utility class which
+ *  provide interface for mfxExtBuffer objects management in any mfx structure (e.g. mfxVideoParam)
+ */
+template<typename T>
+class ExtBufHolder : public T
+{
+public:
+    ExtBufHolder() : T()
+    {
+    }
+
+    ~ExtBufHolder() // only buffers allocated by wrapper can be released
+    {
+        for (auto it = m_ext_buf.begin(); it != m_ext_buf.end(); it++ )
+        {
+            delete [] (mfxU8*)(*it);
+        }
+    }
+
+    ExtBufHolder(const ExtBufHolder& ref)
+    {
+        *this = ref; // call to operator=
+    }
+
+    ExtBufHolder& operator=(const ExtBufHolder& ref)
+    {
+        const T* src_base = &ref;
+        return operator=(*src_base);
+    }
+
+    ExtBufHolder(const T& ref)
+    {
+        *this = ref; // call to operator=
+    }
+
+    ExtBufHolder& operator=(const T& ref)
+    {
+        // copy content of main structure type T
+        T* dst_base = this;
+        const T* src_base = &ref;
+        *dst_base = *src_base;
+
+        //remove all existing extension buffers
+        ClearBuffers();
+
+        //reproduce list of extension buffers and copy its content
+        m_ext_buf.reserve(ref.NumExtParam);
+        for (size_t i = 0; i < ref.NumExtParam; ++i)
+        {
+            const mfxExtBuffer* src_buf = ref.ExtParam[i];
+            if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
+            if (!IsCopyAllowed(src_buf->BufferId)) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Copying buffer with pointers not allowed");
+
+            mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz);
+            if (!dst_buf) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Can't allocate destination buffer");
+            // copy buffer content w/o restoring its type
+            memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
+        }
+
+        return *this;
+    }
+
+    ExtBufHolder(ExtBufHolder &&)             = default;
+    ExtBufHolder & operator= (ExtBufHolder&&) = default;
+
+    template<typename TB>
+    TB* AddExtBuffer()
+    {
+        mfxExtBuffer* b = AddExtBuffer(mfx_ext_buffer_id<TB>::id, sizeof(TB));
+        return (TB*)b;
+    }
+
+    void RemoveExtBuffer(mfxU32 id)
+    {
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        if (it != m_ext_buf.end())
+        {
+            delete [] (mfxU8*)(*it);
+            m_ext_buf.erase(it);
+            RefreshBuffers();
+        }
+    }
+
+    template <typename TB>
+    TB* GetExtBuffer()
+    {
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(mfx_ext_buffer_id<TB>::id));
+        return it != m_ext_buf.end() ? (TB*)*it : nullptr;
+    }
+
+    template <typename TB>
+    operator TB*()
+    {
+        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
+    }
+
+    template <typename TB>
+    operator TB*() const
+    {
+        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
+    }
+
+private:
+
+    mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size)
+    {
+        if (!size || !id)
+            return nullptr;
+
+        // Limitation: only one ExtBuffer instance can be stored
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        if (it == m_ext_buf.end())
+        {
+            mfxExtBuffer* buf = (mfxExtBuffer*)new mfxU8[size];
+            memset(buf, 0, size);
+            m_ext_buf.push_back(buf);
+
+            mfxExtBuffer& ext_buf = *buf;
+            ext_buf.BufferId = id;
+            ext_buf.BufferSz = size;
+            RefreshBuffers();
+
+            return m_ext_buf.back();
+        }
+
+        return *it;
+    }
+
+    mfxExtBuffer* GetExtBuffer(mfxU32 id) const
+    {
+        const auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        return it != m_ext_buf.end() ? *it : nullptr;
+    }
+
+    void RefreshBuffers()
+    {
+        this->NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
+        this->ExtParam    = this->NumExtParam ? m_ext_buf.data() : nullptr;
+    }
+
+    void ClearBuffers()
+    {
+        if (m_ext_buf.size())
+        {
+            for (auto it = m_ext_buf.begin(); it != m_ext_buf.end(); it++ )
+            {
+                delete [] (mfxU8*)(*it);
+            }
+            m_ext_buf.clear();
+        }
+        RefreshBuffers();
+    }
+
+    bool IsCopyAllowed(mfxU32 id)
+    {
+        static const mfxU32 allowed[] = {
+            MFX_EXTBUFF_CODING_OPTION,
+            MFX_EXTBUFF_CODING_OPTION2,
+            MFX_EXTBUFF_CODING_OPTION3,
+            MFX_EXTBUFF_FEI_PARAM,
+            MFX_EXTBUFF_BRC,
+            MFX_EXTBUFF_HEVC_PARAM,
+        };
+
+        auto it = std::find_if(std::begin(allowed), std::end(allowed),
+                               [&id](const mfxU32 allowed_id)
+                               {
+                                   return allowed_id == id;
+                               });
+        return it != std::end(allowed);
+    }
+
+    struct CmpExtBufById
+    {
+        mfxU32 id;
+
+        CmpExtBufById(mfxU32 _id)
+            : id(_id)
+        { };
+
+        bool operator () (mfxExtBuffer* b)
+        {
+            return  (b && b->BufferId == id);
+        };
+    };
+
+    std::vector<mfxExtBuffer*> m_ext_buf;
+};
+
+typedef ExtBufHolder<mfxVideoParam> MfxVideoParamsWrapper;
+typedef ExtBufHolder<mfxEncodeCtrl> mfxEncodeCtrlWrap;
+typedef ExtBufHolder<mfxInitParam>  mfxInitParamlWrap;
+
+class mfxBitstreamWrapper : public ExtBufHolder<mfxBitstream>
+{
+    typedef ExtBufHolder<mfxBitstream> base;
+public:
     mfxBitstreamWrapper()
-        : mfxBitstream()
+        : base()
     {}
 
     mfxBitstreamWrapper(mfxU32 n_bytes)
-        : mfxBitstream()
+        : base()
     {
         Extend(n_bytes);
     }
 
     mfxBitstreamWrapper(const mfxBitstreamWrapper & bs_wrapper)
-        : mfxBitstream(bs_wrapper)
+        : base(bs_wrapper)
         , m_data(bs_wrapper.m_data)
     {
         Data = m_data.data();
@@ -547,11 +838,6 @@ mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 
-mfxStatus InitMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize);
-mfxStatus MoveMfxBitstream(mfxBitstream *pTarget, mfxBitstream *pSrc, mfxU32 nBytesToCopy);
-mfxStatus ExtendMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize);
-void WipeMfxBitstream(mfxBitstream* pBitstream);
-
 mfxU16 CalculateDefaultBitrate(mfxU32 nCodecId, mfxU32 nTargetUsage, mfxU32 nWidth, mfxU32 nHeight, mfxF64 dFrameRate);
 
 //serialization fnc set
@@ -586,291 +872,8 @@ private:
     DISALLOW_COPY_AND_ASSIGN(PartiallyLinearFNC);
 };
 
-// function for conversion of display aspect ratio to pixel aspect ratio
-mfxStatus DARtoPAR(mfxU32 darw, mfxU32 darh, mfxU32 w, mfxU32 h, mfxU16 *pparw, mfxU16 *pparh);
-
 // function for getting a pointer to a specific external buffer from the array
 mfxExtBuffer* GetExtBuffer(mfxExtBuffer** ebuffers, mfxU32 nbuffers, mfxU32 BufferId);
-
-// class is used as custom exception
-class mfxError : public std::runtime_error
-{
-public:
-    mfxError(mfxStatus status = MFX_ERR_UNKNOWN, std::string msg = "")
-        : runtime_error(msg)
-        , m_Status(status)
-    {}
-
-    mfxStatus GetStatus() const
-    { return m_Status; }
-
-private:
-    mfxStatus m_Status;
-};
-
-//declare used extension buffers
-template<class T>
-struct mfx_ext_buffer_id{
-    enum {id = 0};
-};
-template<>struct mfx_ext_buffer_id<mfxExtCodingOption>{
-    enum {id = MFX_EXTBUFF_CODING_OPTION};
-};
-template<>struct mfx_ext_buffer_id<mfxExtCodingOption2>{
-    enum {id = MFX_EXTBUFF_CODING_OPTION2};
-};
-template<>struct mfx_ext_buffer_id<mfxExtCodingOption3>{
-    enum {id = MFX_EXTBUFF_CODING_OPTION3};
-};
-template<>struct mfx_ext_buffer_id<mfxExtAvcTemporalLayers>{
-    enum {id = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS};
-};
-template<>struct mfx_ext_buffer_id<mfxExtAVCRefListCtrl>{
-    enum {id = MFX_EXTBUFF_AVC_REFLIST_CTRL};
-};
-template<>struct mfx_ext_buffer_id<mfxExtThreadsParam>{
-    enum {id = MFX_EXTBUFF_THREADS_PARAM};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiParam> {
-    enum { id = MFX_EXTBUFF_FEI_PARAM };
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncCtrl> {
-    enum { id = MFX_EXTBUFF_FEI_PREENC_CTRL };
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncMV>{
-    enum {id = MFX_EXTBUFF_FEI_PREENC_MV};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncMBStat>{
-    enum {id = MFX_EXTBUFF_FEI_PREENC_MB};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncFrameCtrl>{
-    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_CTRL};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncMVPredictors>{
-    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncQP>{
-    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_QP};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiHevcEncCtuCtrl>{
-    enum {id = MFX_EXTBUFF_HEVCFEI_ENC_CTU_CTRL};
-};
-template<>struct mfx_ext_buffer_id<mfxExtHEVCRefLists>{
-    enum {id = MFX_EXTBUFF_HEVC_REFLISTS};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackCtrl>{
-    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_CTRL};
-};
-template<>struct mfx_ext_buffer_id<mfxExtFeiHevcRepackStat>{
-    enum {id = MFX_EXTBUFF_HEVCFEI_REPACK_STAT};
-};
-template<>struct mfx_ext_buffer_id<mfxExtBRC> {
-    enum {id = MFX_EXTBUFF_BRC};
-};
-template<>struct mfx_ext_buffer_id<mfxExtHEVCParam> {
-    enum {id = MFX_EXTBUFF_HEVC_PARAM};
-};
-
-//helper function to initialize mfx ext buffer structure
-template <class T>
-void init_ext_buffer(T & ext_buffer)
-{
-    memset(&ext_buffer, 0, sizeof(ext_buffer));
-    reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferId = mfx_ext_buffer_id<T>::id;
-    reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferSz = sizeof(ext_buffer);
-}
-
-/** ExtBufHolder is an utility class which
- *  provide interface for mfxExtBuffer objects management in any mfx structure (e.g. mfxVideoParam)
- */
-template<typename T>
-class ExtBufHolder : public T
-{
-public:
-    ExtBufHolder() : T()
-    {
-    }
-
-    ~ExtBufHolder() // only buffers allocated by wrapper can be released
-    {
-        for (auto it = m_ext_buf.begin(); it != m_ext_buf.end(); it++ )
-        {
-            delete [] (mfxU8*)(*it);
-        }
-    }
-
-    ExtBufHolder(const ExtBufHolder& ref)
-    {
-        *this = ref; // call to operator=
-    }
-
-    ExtBufHolder& operator=(const ExtBufHolder& ref)
-    {
-        const T* src_base = &ref;
-        return operator=(*src_base);
-    }
-
-    ExtBufHolder(const T& ref)
-    {
-        *this = ref; // call to operator=
-    }
-
-    ExtBufHolder& operator=(const T& ref)
-    {
-        // copy content of main structure type T
-        T* dst_base = this;
-        const T* src_base = &ref;
-        Copy(*dst_base, *src_base);
-
-        //remove all existing extension buffers
-        ClearBuffers();
-
-        //reproduce list of extension buffers and copy its content
-        m_ext_buf.reserve(ref.NumExtParam);
-        for (size_t i = 0; i < ref.NumExtParam; ++i)
-        {
-            const mfxExtBuffer* src_buf = ref.ExtParam[i];
-            if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
-            if (!IsCopyAllowed(src_buf->BufferId)) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Copying buffer with pointers not allowed");
-
-            mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz);
-            if (!dst_buf) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Can't allocate destination buffer");
-            // copy buffer content w/o restoring its type
-            memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
-        }
-
-        return *this;
-    }
-
-    ExtBufHolder(ExtBufHolder &&)             = default;
-    ExtBufHolder & operator= (ExtBufHolder&&) = default;
-
-    template<typename TB>
-    TB* AddExtBuffer()
-    {
-        mfxExtBuffer* b = AddExtBuffer(mfx_ext_buffer_id<TB>::id, sizeof(TB));
-        return (TB*)b;
-    }
-
-    void RemoveExtBuffer(mfxU32 id)
-    {
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
-        if (it != m_ext_buf.end())
-        {
-            delete [] (mfxU8*)(*it);
-            m_ext_buf.erase(it);
-            RefreshBuffers();
-        }
-    }
-
-    template <typename TB>
-    TB* GetExtBuffer()
-    {
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(mfx_ext_buffer_id<TB>::id));
-        return it != m_ext_buf.end() ? (TB*)*it : nullptr;
-    }
-
-    template <typename TB>
-    operator TB*()
-    {
-        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
-    }
-
-    template <typename TB>
-    operator TB*() const
-    {
-        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
-    }
-
-private:
-
-    mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size)
-    {
-        if (!size || !id)
-            return nullptr;
-
-        // Limitation: only one ExtBuffer instance can be stored
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
-        if (it == m_ext_buf.end())
-        {
-            mfxExtBuffer* buf = (mfxExtBuffer*)new mfxU8[size];
-            memset(buf, 0, size);
-            m_ext_buf.push_back(buf);
-
-            mfxExtBuffer& ext_buf = *buf;
-            ext_buf.BufferId = id;
-            ext_buf.BufferSz = size;
-            RefreshBuffers();
-
-            return m_ext_buf.back();
-        }
-
-        return *it;
-    }
-
-    mfxExtBuffer* GetExtBuffer(mfxU32 id) const
-    {
-        const auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
-        return it != m_ext_buf.end() ? *it : nullptr;
-    }
-
-    void RefreshBuffers()
-    {
-        this->NumExtParam = (mfxU32)m_ext_buf.size();
-        this->ExtParam    = this->NumExtParam ? m_ext_buf.data() : nullptr;
-    }
-
-    void ClearBuffers()
-    {
-        if (m_ext_buf.size())
-        {
-            for (auto it = m_ext_buf.begin(); it != m_ext_buf.end(); it++ )
-            {
-                delete [] (mfxU8*)(*it);
-            }
-            m_ext_buf.clear();
-        }
-        RefreshBuffers();
-    }
-
-    bool IsCopyAllowed(mfxU32 id)
-    {
-        static const mfxU32 allowed[] = {
-            MFX_EXTBUFF_CODING_OPTION,
-            MFX_EXTBUFF_CODING_OPTION2,
-            MFX_EXTBUFF_CODING_OPTION3,
-            MFX_EXTBUFF_FEI_PARAM,
-            MFX_EXTBUFF_BRC,
-            MFX_EXTBUFF_HEVC_PARAM,
-        };
-
-        auto it = std::find_if(std::begin(allowed), std::end(allowed),
-                               [&id](const mfxU32 allowed_id)
-                               {
-                                   return allowed_id == id;
-                               });
-        return it != std::end(allowed);
-    }
-
-    struct CmpExtBufById
-    {
-        mfxU32 id;
-
-        CmpExtBufById(mfxU32 _id)
-            : id(_id)
-        { };
-
-        bool operator () (mfxExtBuffer* b)
-        {
-            return  (b && b->BufferId == id);
-        };
-    };
-
-    std::vector<mfxExtBuffer*> m_ext_buf;
-};
-
-typedef ExtBufHolder<mfxVideoParam> MfxVideoParamsWrapper;
-typedef ExtBufHolder<mfxEncodeCtrl> mfxEncodeCtrlWrap;
 
 // returns false if buf length is insufficient, otherwise
 // skips step bytes in buf with specified length and returns true
