@@ -182,8 +182,6 @@ mfxStatus CheckHeaders(
         || (!caps.ddi_caps.YUV422ReconSupport && (par.m_sps.chroma_format_idc == 2))
         || (caps.ddi_caps.Color420Only && (par.m_sps.chroma_format_idc != 1))));
 
-    MFX_CHECK_COND(caps.ddi_caps.NumScalablePipesMinus1 == 0 || par.m_pps.num_tile_columns_minus1 <= caps.ddi_caps.NumScalablePipesMinus1);
-
     if (par.m_pps.tiles_enabled_flag)
     {
         MFX_CHECK_COND(par.m_pps.loop_filter_across_tiles_enabled_flag);
