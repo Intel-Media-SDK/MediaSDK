@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 Intel Corporation
+// Copyright (c) 2009-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -879,6 +879,7 @@ void CmContext::Setup(
         m_program = ReadProgram(m_device, genx_simple_me_gen11, SizeOf(genx_simple_me_gen11));
         m_programHist = ReadProgram(m_device, genx_histogram_gen11, SizeOf(genx_histogram_gen11));
         break;
+    case MFX_HW_EHL:
     case MFX_HW_ICL_LP:
         m_program = ReadProgram(m_device, genx_simple_me_gen11lp, SizeOf(genx_simple_me_gen11lp));
         m_programHist = ReadProgram(m_device, genx_histogram_gen11lp, SizeOf(genx_histogram_gen11lp));

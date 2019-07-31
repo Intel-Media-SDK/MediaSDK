@@ -780,6 +780,7 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
 #if (MFX_VERSION >= 1027)
     case MFX_HW_ICL    :
     case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;     break;
+    case MFX_HW_EHL    : platform->CodeName = MFX_PLATFORM_ELKHARTLAKE; break;
 #endif
     default:             platform->CodeName = MFX_PLATFORM_UNKNOWN;     break;
     }
