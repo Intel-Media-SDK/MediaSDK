@@ -2991,15 +2991,16 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
+    // if input frame rate is unreasonable, fix it to a feasible value (30.0)
     if ((par.mfx.FrameInfo.FrameRateExtN == 0) !=
         (par.mfx.FrameInfo.FrameRateExtD == 0))
     {
         if (extBits->SPSBuffer && !IsOff(extOpt3->TimingInfoPresent))
             return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
-        unsupported = true;
-        par.mfx.FrameInfo.FrameRateExtN = 0;
-        par.mfx.FrameInfo.FrameRateExtD = 0;
+        changed = true;
+        par.mfx.FrameInfo.FrameRateExtN = 30;
+        par.mfx.FrameInfo.FrameRateExtD = 1;
     }
 
     if (!IsOff(extOpt3->TimingInfoPresent) &&
