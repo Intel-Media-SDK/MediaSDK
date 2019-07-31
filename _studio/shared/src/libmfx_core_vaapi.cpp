@@ -321,7 +321,14 @@ typedef struct {
     { 0x8A5B, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A5C, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A5D, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 }  // GT05, but 1 ok in this context
+    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },  // GT05, but 1 ok in this context
+
+    /* EHL */
+    { 0x4500, MFX_HW_EHL, MFX_GT2 },
+    { 0x4541, MFX_HW_EHL, MFX_GT2 },
+    { 0x4551, MFX_HW_EHL, MFX_GT2 },
+    { 0x4569, MFX_HW_EHL, MFX_GT2 },
+    { 0x4571, MFX_HW_EHL, MFX_GT2 },
  };
 
 /* END: IOCTLs definitions */

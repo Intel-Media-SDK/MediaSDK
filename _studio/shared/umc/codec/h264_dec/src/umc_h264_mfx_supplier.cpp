@@ -516,10 +516,11 @@ eMFXPlatform MFX_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par)
     case MFX_HW_CNL:
     case MFX_HW_ICL:
     case MFX_HW_ICL_LP:
+    case MFX_HW_EHL:
         name = sDXVA2_ModeH264_VLD_NoFGT;
         break;
     default:
-            name = sDXVA2_ModeH264_VLD_NoFGT;
+        name = sDXVA2_ModeH264_VLD_NoFGT;
         break;
     }
 
