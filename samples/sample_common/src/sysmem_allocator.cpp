@@ -392,10 +392,19 @@ mfxStatus SysMemBufferAllocator::AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxMemI
         return MFX_ERR_UNSUPPORTED;
 
     mfxU32 header_size = MSDK_ALIGN32(sizeof(sBuffer));
-    mfxU8 *buffer_ptr = (mfxU8 *)calloc(header_size + nbytes + 32, 1);
+
+//MSVS still has no aligned_alloc support, because
+//it incompatible with their implementation of free()
+#if defined (LINUX32) || defined (LINUX64)
+    mfxU8 *buffer_ptr = (mfxU8 *)aligned_alloc(sysconf(_SC_PAGESIZE), header_size + nbytes + 32);
+#else
+    mfxU8 *buffer_ptr = (mfxU8 *)malloc(header_size + nbytes + 32);
+#endif
 
     if (!buffer_ptr)
         return MFX_ERR_MEMORY_ALLOC;
+
+    memset(buffer_ptr, 0, header_size + nbytes);
 
     sBuffer *bs = (sBuffer *)buffer_ptr;
     bs->id = ID_BUFFER;
