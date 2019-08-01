@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2017-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,6 +24,9 @@
 
 #include "mfx_utils.h"
 #include "mfx_common.h"
+#if defined (MFX_VA_LINUX)
+#include "unistd.h"
+#endif
 
 #define ALIGN32(X) (((mfxU32)((X)+31)) & (~ (mfxU32)31))
 #define ID_BUFFER MFX_MAKEFOURCC('B','U','F','F')
@@ -41,7 +44,14 @@ mfxStatus mfxDefaultAllocator::AllocBuffer(mfxHDL pthis, mfxU32 nbytes, mfxU16 t
     if(!mid)
         return MFX_ERR_NULL_PTR;
     mfxU32 header_size = ALIGN32(sizeof(BufferStruct));
-    mfxU8 *buffer_ptr=(mfxU8 *)malloc(header_size + nbytes + DEFAULT_ALIGNMENT_SIZE);
+
+//MSVS still has no aligned_alloc support, because
+//it incompatible with their implementation of free()
+#if defined (MFX_VA_LINUX)
+    mfxU8 *buffer_ptr = (mfxU8 *)aligned_alloc(sysconf(_SC_PAGESIZE), header_size + nbytes + DEFAULT_ALIGNMENT_SIZE);
+#else
+    mfxU8 *buffer_ptr = (mfxU8 *)malloc(header_size + nbytes + DEFAULT_ALIGNMENT_SIZE);
+#endif
 
     if (!buffer_ptr)
         return MFX_ERR_MEMORY_ALLOC;
