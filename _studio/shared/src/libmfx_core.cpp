@@ -175,7 +175,7 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
         }
 
         // external allocator
-        if (m_bSetExtFrameAlloc)
+        if (m_bSetExtFrameAlloc && !(request->Type & MFX_MEMTYPE_INTERNAL_FRAME))
         {
             sts = (*m_FrameAllocator.frameAllocator.Alloc)(m_FrameAllocator.frameAllocator.pthis, &temp_request, response);
 

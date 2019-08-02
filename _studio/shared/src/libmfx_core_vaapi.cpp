@@ -571,16 +571,6 @@ VAAPIVideoCORE::AllocFrames(
             // external allocator
             if (m_bSetExtFrameAlloc && request->Info.FourCC != MFX_FOURCC_P8)
             {
-                // Default allocator should be used if D3D manager is not set and internal D3D buffers are required
-                if (!m_Display && request->Type & MFX_MEMTYPE_INTERNAL_FRAME)
-                {
-                    m_bUseExtAllocForHWFrames = false;
-                    sts = DefaultAllocFrames(request, response);
-                    MFX_CHECK_STS(sts);
-
-                    return TraceFrames(request, response, sts);
-                }
-
                 sts = (*m_FrameAllocator.frameAllocator.Alloc)(m_FrameAllocator.frameAllocator.pthis, &temp_request, response);
 
                 // if external allocator cannot allocate d3d frames - use default memory allocator
