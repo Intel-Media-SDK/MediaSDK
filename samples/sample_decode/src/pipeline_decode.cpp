@@ -576,14 +576,11 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
             PrintDecodeErrorReport(errorReport);
         }
         else
-        {
-        // parse bit stream and fill mfx params
-        sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
-        }
-#else
-        // parse bit stream and fill mfx params
-        sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
 #endif
+        {
+            // parse bit stream and fill mfx params
+            sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
+        }
 
         if (!sts)
         {
@@ -613,12 +610,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
             // read a portion of data
             totalBytesProcessed += m_mfxBS.DataOffset;
             sts = m_FileReader->ReadNextFrame(&m_mfxBS);
-            if (MFX_ERR_MORE_DATA == sts &&
-                !(m_mfxBS.DataFlag & MFX_BITSTREAM_EOS))
-            {
-                m_mfxBS.DataFlag |= MFX_BITSTREAM_EOS;
-                sts = MFX_ERR_NONE;
-            }
             MSDK_CHECK_STATUS(sts, "m_FileReader->ReadNextFrame failed");
 
             continue;

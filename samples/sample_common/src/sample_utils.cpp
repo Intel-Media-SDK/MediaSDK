@@ -622,6 +622,12 @@ mfxStatus CSmplBitstreamReader::Init(const msdk_char *strFileName)
     return MFX_ERR_NONE;
 }
 
+#define CHECK_SET_EOS(pBitstream)                  \
+    if (feof(m_fSource))                           \
+    {                                              \
+        pBitstream->DataFlag |= MFX_BITSTREAM_EOS; \
+    }
+
 mfxStatus CSmplBitstreamReader::ReadNextFrame(mfxBitstream *pBS)
 {
     if (!m_bInited)
@@ -629,11 +635,15 @@ mfxStatus CSmplBitstreamReader::ReadNextFrame(mfxBitstream *pBS)
 
     MSDK_CHECK_POINTER(pBS, MFX_ERR_NULL_PTR);
 
-    mfxU32 nBytesRead = 0;
+    // Not enough memory to read new chunk of data
+    if (pBS->MaxLength == pBS->DataLength)
+        return MFX_ERR_NOT_ENOUGH_BUFFER;
 
     memmove(pBS->Data, pBS->Data + pBS->DataOffset, pBS->DataLength);
     pBS->DataOffset = 0;
-    nBytesRead = (mfxU32)fread(pBS->Data + pBS->DataLength, 1, pBS->MaxLength - pBS->DataLength, m_fSource);
+    mfxU32 nBytesRead = (mfxU32)fread(pBS->Data + pBS->DataLength, 1, pBS->MaxLength - pBS->DataLength, m_fSource);
+
+    CHECK_SET_EOS(pBS);
 
     if (0 == nBytesRead)
     {
@@ -739,14 +749,19 @@ mfxStatus CIVFFrameReader::ReadNextFrame(mfxBitstream *pBS)
 
     // read frame size
     READ_BYTES(&nBytesInFrame, sizeof(nBytesInFrame));
+    CHECK_SET_EOS(pBS);
+
     // read time stamp
     READ_BYTES(&nTimeStamp, sizeof(nTimeStamp));
+    CHECK_SET_EOS(pBS);
+
     //check if bitstream has enough space to hold the frame
     if (nBytesInFrame > pBS->MaxLength - pBS->DataLength - pBS->DataOffset)
         return MFX_ERR_NOT_ENOUGH_BUFFER;
 
     // read frame data
     READ_BYTES(pBS->Data + pBS->DataOffset + pBS->DataLength, nBytesInFrame);
+    CHECK_SET_EOS(pBS);
     pBS->DataLength += nBytesInFrame;
 
     // it is application's responsibility to make sure the bitstream contains a single complete frame and nothing else
