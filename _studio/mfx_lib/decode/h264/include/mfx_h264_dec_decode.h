@@ -21,6 +21,9 @@
 #include <mfxcommon.h>
 #include "mfx_common.h"
 
+//hello msdk
+//new updates for change
+
 #if defined (MFX_ENABLE_H264_VIDEO_DECODE)
 
 #include "umc_defs.h"
