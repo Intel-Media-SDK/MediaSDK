@@ -45,6 +45,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "version.h"
 
+#include <algorithm>
+
 #ifndef MFX_VERSION
 #error MFX_VERSION not defined
 #endif
@@ -420,17 +422,17 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.CodecId                 = pInParams->CodecId;
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.mfx.RateControlMethod       = pInParams->nRateControlMethod;
-    m_mfxEncParams.mfx.GopRefDist = pInParams->nGopRefDist;
-    m_mfxEncParams.mfx.GopPicSize = pInParams->nGopPicSize;
-    m_mfxEncParams.mfx.NumRefFrame = pInParams->nNumRefFrame;
-    m_mfxEncParams.mfx.IdrInterval = pInParams->nIdrInterval;
+    m_mfxEncParams.mfx.GopRefDist              = pInParams->nGopRefDist;
+    m_mfxEncParams.mfx.GopPicSize              = pInParams->nGopPicSize;
+    m_mfxEncParams.mfx.NumRefFrame             = pInParams->nNumRefFrame;
+    m_mfxEncParams.mfx.IdrInterval             = pInParams->nIdrInterval;
 
-    m_mfxEncParams.mfx.CodecProfile = pInParams->CodecProfile;
-    m_mfxEncParams.mfx.CodecLevel = pInParams->CodecLevel;
-    m_mfxEncParams.mfx.MaxKbps = pInParams->MaxKbps;
-    m_mfxEncParams.mfx.InitialDelayInKB = pInParams->InitialDelayInKB;
-    m_mfxEncParams.mfx.GopOptFlag = pInParams->GopOptFlag;
-    m_mfxEncParams.mfx.BufferSizeInKB = pInParams->BufferSizeInKB;
+    m_mfxEncParams.mfx.CodecProfile            = pInParams->CodecProfile;
+    m_mfxEncParams.mfx.CodecLevel              = pInParams->CodecLevel;
+    m_mfxEncParams.mfx.MaxKbps                 = pInParams->MaxKbps;
+    m_mfxEncParams.mfx.InitialDelayInKB        = pInParams->InitialDelayInKB;
+    m_mfxEncParams.mfx.GopOptFlag              = pInParams->GopOptFlag;
+    m_mfxEncParams.mfx.BufferSizeInKB          = pInParams->BufferSizeInKB;
 
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
@@ -478,7 +480,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.FourCC       = pInParams->EncodeFourCC;
     m_mfxEncParams.mfx.FrameInfo.ChromaFormat = FourCCToChroma(pInParams->EncodeFourCC);
     m_mfxEncParams.mfx.FrameInfo.PicStruct    = pInParams->nPicStruct;
-    m_mfxEncParams.mfx.FrameInfo.Shift = pInParams->shouldUseShifted10BitEnc;
+    m_mfxEncParams.mfx.FrameInfo.Shift        = pInParams->shouldUseShifted10BitEnc;
 
     // width must be a multiple of 16
     // height must be a multiple of 16 in case of frame picture and a multiple of 32 in case of field picture
@@ -525,7 +527,7 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
                 Char2Hex(pInParams->uSEI[index * 2 + 1]);
             uuid.push_back(bt);
         }
-        index = 32; //32 charactors for uuid
+        index = 32; //32 characters for uuid
 
         if(msdk_strlen(pInParams->uSEI) > index)
         {
@@ -1268,11 +1270,180 @@ mfxStatus CEncodingPipeline::InitFileWriters(sInputParams *pParams)
     return sts;
 }
 
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+mfxU16 FourCcBitDepth(mfxU32 fourCC)
+{
+    switch (fourCC)
+    {
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_NV16:
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_AYUV:
+        return 8;
+        break;
+
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y210:
+    case MFX_FOURCC_Y410:
+#endif
+        return 10;
+        break;
+
+#ifdef PRE_SI_TARGET_PLATFORM_GEN12
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_Y416:
+        return 12;
+        break;
+#endif
+    default:
+        return 0;
+    }
+}
+
+mfxU32 CEncodingPipeline::GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params)
+{
+    if (adapters.NumActual == 0 || !adapters.Adapters)
+        return 0;
+
+    if (params.bPrefferdGfx)
+    {
+        // Find dGfx adapter in list and return it's index
+
+        auto idx = std::find_if(adapters.Adapters, adapters.Adapters + adapters.NumActual,
+            [](const mfxAdapterInfo info)
+        {
+            return info.Platform.MediaAdapterType == mfxMediaAdapterType::MFX_MEDIA_DISCRETE;
+        });
+
+        // No dGfx in list
+        if (idx == adapters.Adapters + adapters.NumActual)
+        {
+            msdk_printf(MSDK_STRING("Warning: No dGfx detected on machine. Will pick another adapter\n"));
+            return 0;
+        }
+
+        return static_cast<mfxU32>(std::distance(adapters.Adapters, idx));
+    }
+
+    if (params.bPrefferiGfx)
+    {
+        // Find iGfx adapter in list and return it's index
+
+        auto idx = std::find_if(adapters.Adapters, adapters.Adapters + adapters.NumActual,
+            [](const mfxAdapterInfo info)
+        {
+            return info.Platform.MediaAdapterType == mfxMediaAdapterType::MFX_MEDIA_INTEGRATED;
+        });
+
+        // No iGfx in list
+        if (idx == adapters.Adapters + adapters.NumActual)
+        {
+            msdk_printf(MSDK_STRING("Warning: No iGfx detected on machine. Will pick another adapter\n"));
+            return 0;
+        }
+
+        return static_cast<mfxU32>(std::distance(adapters.Adapters, idx));
+    }
+
+    // Other ways return 0, i.e. best suitable detected by dispatcher
+    return 0;
+}
+#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+
+mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl)
+{
+    if (!params.bUseHWLib)
+    {
+        impl = MFX_IMPL_SOFTWARE;
+        return MFX_ERR_NONE;
+    }
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxU32 num_adapters_available;
+
+    mfxStatus sts = MFXQueryAdaptersNumber(&num_adapters_available);
+    MSDK_CHECK_STATUS(sts, "MFXQueryAdaptersNumber failed");
+
+    mfxComponentInfo interface_request = { mfxComponentType::MFX_COMPONENT_ENCODE };
+    mfxU16 Shift    = params.IsSourceMSB || (params.memType != SYSTEM_MEMORY && AreGuidsEqual(params.pluginParams.pluginGuid, MFX_PLUGINID_HEVCE_HW)) || params.CodecId == MFX_CODEC_VP9;
+    mfxU16 Height   = (MFX_PICSTRUCT_PROGRESSIVE == m_mfxEncParams.mfx.FrameInfo.PicStruct) ? MSDK_ALIGN16(params.nDstHeight) : MSDK_ALIGN32(params.nDstHeight);
+    mfxU16 LowPower = mfxU16(params.enableQSVFF ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_UNKNOWN);
+    mfxU16 BitDepth = FourCcBitDepth(params.EncodeFourCC);
+
+    interface_request.Requirements                              = {};
+    interface_request.Requirements.mfx.LowPower                 = LowPower;
+    interface_request.Requirements.mfx.TargetUsage              = params.nTargetUsage;
+    interface_request.Requirements.mfx.CodecId                  = params.CodecId;
+    interface_request.Requirements.mfx.CodecProfile             = params.CodecProfile;
+    interface_request.Requirements.mfx.CodecLevel               = params.CodecLevel;
+    interface_request.Requirements.mfx.FrameInfo.BitDepthLuma   = BitDepth;
+    interface_request.Requirements.mfx.FrameInfo.BitDepthChroma = BitDepth;
+    interface_request.Requirements.mfx.FrameInfo.Shift          = Shift;
+    interface_request.Requirements.mfx.FrameInfo.FourCC         = params.EncodeFourCC;
+    interface_request.Requirements.mfx.FrameInfo.Width          = MSDK_ALIGN16(params.nDstWidth);
+    interface_request.Requirements.mfx.FrameInfo.Height         = Height;
+    interface_request.Requirements.mfx.FrameInfo.PicStruct      = params.nPicStruct;
+    interface_request.Requirements.mfx.FrameInfo.ChromaFormat   = FourCCToChroma(params.EncodeFourCC);
+
+    // JPEG encoder settings overlap with other encoders settings in mfxInfoMFX structure
+    if (MFX_CODEC_JPEG == params.CodecId)
+    {
+        interface_request.Requirements.mfx.Interleaved     = 1;
+        interface_request.Requirements.mfx.Quality         = params.nQuality;
+        interface_request.Requirements.mfx.RestartInterval = 0;
+        MSDK_ZERO_MEMORY(interface_request.Requirements.mfx.reserved5);
+    }
+
+    std::vector<mfxAdapterInfo> displays_data(num_adapters_available);
+    mfxAdaptersInfo adapters = { displays_data.data(), mfxU32(displays_data.size()), 0u };
+
+    sts = MFXQueryAdapters(&interface_request, &adapters);
+    if (sts == MFX_ERR_NOT_FOUND)
+    {
+        msdk_printf(MSDK_STRING("ERROR: No suitable adapters found for this workload\n"));
+    }
+    MSDK_CHECK_STATUS(sts, "MFXQueryAdapters failed");
+
+    mfxU32 idx = GetPreferredAdapterNum(adapters, params);
+    switch (adapters.Adapters[idx].Number)
+    {
+    case 0:
+        impl = MFX_IMPL_HARDWARE;
+        break;
+    case 1:
+        impl = MFX_IMPL_HARDWARE2;
+        break;
+    case 2:
+        impl = MFX_IMPL_HARDWARE3;
+        break;
+    case 3:
+        impl = MFX_IMPL_HARDWARE4;
+        break;
+
+    default:
+        // try searching on all display adapters
+        impl = MFX_IMPL_HARDWARE_ANY;
+        break;
+    }
+#else
+    // Library should pick first available compatible adapter during InitEx call with MFX_IMPL_HARDWARE_ANY
+    impl = MFX_IMPL_HARDWARE_ANY;
+#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+
+    // If d3d11 surfaces are used ask the library to run acceleration through D3D11
+    // feature may be unsupported due to OS or MSDK API version
+    if (D3D11_MEMORY == params.memType)
+        impl |= MFX_IMPL_VIA_D3D11;
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 {
     MSDK_CHECK_POINTER(pParams, MFX_ERR_NULL_PTR);
-
-    mfxStatus sts = MFX_ERR_NONE;
 
 #if defined ENABLE_V4L2_SUPPORT
     isV4L2InputEnabled = pParams->isV4L2InputEnabled;
@@ -1294,25 +1465,10 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     initPar.GPUCopy = pParams->gpuCopy;
     m_bSingleTexture = pParams->bSingleTexture;
 
-    // Init session
-    if (pParams->bUseHWLib) {
-        // try searching on all display adapters
-        initPar.Implementation = MFX_IMPL_HARDWARE_ANY;
+    mfxStatus sts = GetImpl(*pParams, initPar.Implementation);
+    MSDK_CHECK_STATUS(sts, "GetImpl failed");
 
-        // if d3d11 surfaces are used ask the library to run acceleration through D3D11
-        // feature may be unsupported due to OS or MSDK API version
-        if (D3D11_MEMORY == pParams->memType)
-            initPar.Implementation |= MFX_IMPL_VIA_D3D11;
-
-        // Library should pick first available compatible adapter during InitEx call with MFX_IMPL_HARDWARE_ANY
-        sts = m_mfxSession.InitEx(initPar);
-    }
-    else
-    {
-        initPar.Implementation = MFX_IMPL_SOFTWARE;
-        sts = m_mfxSession.InitEx(initPar);
-    }
-
+    sts = m_mfxSession.InitEx(initPar);
     MSDK_CHECK_STATUS(sts, "m_mfxSession.InitEx failed");
 
     mfxVersion version;
