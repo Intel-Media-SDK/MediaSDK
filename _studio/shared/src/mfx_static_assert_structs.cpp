@@ -757,6 +757,9 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,CodeName                      ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,DeviceId                      ,2    )
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,MediaAdapterType              ,4    )
+#endif
     #elif defined(LINUX32)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBuffer                       ,BufferId                      ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtBuffer                       ,BufferSz                      ,4    )
@@ -792,6 +795,9 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,CodeName                      ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,DeviceId                      ,2    )
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,MediaAdapterType              ,4    )
+#endif
     #endif
 #endif //defined (__MFXCOMMON_H__)
 
