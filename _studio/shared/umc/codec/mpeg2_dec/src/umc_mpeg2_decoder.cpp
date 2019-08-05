@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1042,6 +1042,18 @@ namespace UMC_MPEG2_DECODER
             if (m_params.lFlags & UMC::FLAG_VDEC_TELECINE_PTS)
             {
                 m_localFrameTime += (m_localDeltaFrameTime / 2);
+            }
+            break;
+        case DPS_FRAME_DOUBLING:
+            if (m_params.lFlags & UMC::FLAG_VDEC_TELECINE_PTS)
+            {
+                m_localFrameTime += m_localDeltaFrameTime;
+            }
+            break;
+        case DPS_FRAME_TRIPLING:
+            if (m_params.lFlags & UMC::FLAG_VDEC_TELECINE_PTS)
+            {
+                m_localFrameTime += (m_localDeltaFrameTime * 2);
             }
             break;
         default:
