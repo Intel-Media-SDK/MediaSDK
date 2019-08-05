@@ -26,6 +26,13 @@
 
 #include <string.h>
 #include <windows.h>
+
+#include "mfx_dxva2_device.h"
+#include "mfxvideo++.h"
+#include "mfx_vector.h"
+#include "mfxadapter.h"
+#include <algorithm>
+
 #pragma warning(disable:4355)
 
 MFX_DISP_HANDLE::MFX_DISP_HANDLE(const mfxVersion requiredVersion) :
@@ -318,3 +325,292 @@ mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
     return mfxRes;
 
 } // mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+static mfxStatus InitDummySession(mfxU32 adapter_n, MFXVideoSession & dummy_session)
+{
+    mfxInitParam initPar;
+    memset(&initPar, 0, sizeof(initPar));
+
+    initPar.Version.Major = 1;
+    initPar.Version.Minor = 0;
+
+    switch (adapter_n)
+    {
+    case 0:
+        initPar.Implementation = MFX_IMPL_HARDWARE;
+        break;
+    case 1:
+        initPar.Implementation = MFX_IMPL_HARDWARE2;
+        break;
+    case 2:
+        initPar.Implementation = MFX_IMPL_HARDWARE3;
+        break;
+    case 3:
+        initPar.Implementation = MFX_IMPL_HARDWARE4;
+        break;
+
+    default:
+        // try searching on all display adapters
+        initPar.Implementation = MFX_IMPL_HARDWARE_ANY;
+        break;
+    }
+
+    initPar.Implementation |= MFX_IMPL_VIA_D3D11;
+
+    return dummy_session.InitEx(initPar);
+}
+
+static inline bool is_iGPU(const mfxAdapterInfo& adapter_info)
+{
+    return adapter_info.Platform.MediaAdapterType == MFX_MEDIA_INTEGRATED;
+}
+
+static inline bool is_dGPU(const mfxAdapterInfo& adapter_info)
+{
+    return adapter_info.Platform.MediaAdapterType == MFX_MEDIA_DISCRETE;
+}
+
+// This function implies that iGPU has higher priority
+static inline mfxI32 iGPU_priority(const void* ll, const void* rr)
+{
+    const mfxAdapterInfo& l = *(reinterpret_cast<const mfxAdapterInfo*>(ll));
+    const mfxAdapterInfo& r = *(reinterpret_cast<const mfxAdapterInfo*>(rr));
+
+    if (is_iGPU(l) && is_iGPU(r) || is_dGPU(l) && is_dGPU(r))
+        return 0;
+
+    if (is_iGPU(l) && is_dGPU(r))
+        return -1;
+
+    // The only combination left is_dGPU(l) && is_iGPU(r))
+    return 1;
+}
+
+
+static void RearrangeInPriorityOrder(const mfxComponentInfo & info, MFX::MFXVector<mfxAdapterInfo> & vec)
+{
+    {
+        // Move iGPU to top priority
+        qsort(vec.data(), vec.size(), sizeof(mfxAdapterInfo), &iGPU_priority);
+    }
+}
+
+static mfxStatus PrepareAdaptersInfo(const mfxComponentInfo * info, MFX::MFXVector<mfxAdapterInfo> & vec, mfxAdaptersInfo& adapters)
+{
+    // No suitable adapters on system to handle user's workload
+    if (vec.empty())
+    {
+        adapters.NumActual = 0;
+        return MFX_ERR_NOT_FOUND;
+    }
+
+    if (info)
+    {
+        RearrangeInPriorityOrder(*info, vec);
+    }
+
+    mfxU32 num_to_copy = (std::min)(mfxU32(vec.size()), adapters.NumAlloc);
+    for (mfxU32 i = 0; i < num_to_copy; ++i)
+    {
+        adapters.Adapters[i] = vec[i];
+    }
+
+    adapters.NumActual = num_to_copy;
+
+    if (vec.size() > adapters.NumAlloc)
+    {
+        return MFX_WRN_OUT_OF_RANGE;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+static inline bool QueryAdapterInfo(mfxU32 adapter_n, mfxU32& VendorID, mfxU32& DeviceID)
+{
+    MFX::DXVA2Device dxvaDevice;
+
+    if (!dxvaDevice.InitD3D9(adapter_n) && !dxvaDevice.InitDXGI1(adapter_n))
+        return false;
+
+    VendorID = dxvaDevice.GetVendorID();
+    DeviceID = dxvaDevice.GetDeviceID();
+
+    return true;
+}
+
+mfxStatus MFXQueryAdaptersDecode(mfxBitstream* bitstream, mfxU32 codec_id, mfxAdaptersInfo* adapters)
+{
+    if (!adapters || !bitstream)
+        return MFX_ERR_NULL_PTR;
+
+    MFX::MFXVector<mfxAdapterInfo> obtained_info;
+
+    mfxU32 adapter_n = 0, VendorID, DeviceID;
+
+    mfxComponentInfo input_info;
+    memset(&input_info, 0, sizeof(input_info));
+    input_info.Type                     = mfxComponentType::MFX_COMPONENT_DECODE;
+    input_info.Requirements.mfx.CodecId = codec_id;
+
+    for(;;)
+    {
+        if (!QueryAdapterInfo(adapter_n, VendorID, DeviceID))
+            break;
+
+        ++adapter_n;
+
+        if (VendorID != INTEL_VENDOR_ID)
+            continue;
+
+        // Check if requested capabilities are supported
+        MFXVideoSession dummy_session;
+
+        mfxStatus sts = InitDummySession(adapter_n - 1, dummy_session);
+        if (sts != MFX_ERR_NONE)
+        {
+            return sts;
+        }
+
+        mfxVideoParam stream_params, out;
+        memset(&out, 0, sizeof(out));
+        memset(&stream_params, 0, sizeof(stream_params));
+        out.mfx.CodecId = stream_params.mfx.CodecId = codec_id;
+
+        sts = MFXVideoDECODE_DecodeHeader(dummy_session.operator mfxSession(), bitstream, &stream_params);
+
+        if (sts == MFX_ERR_UNSUPPORTED) // Unsupported CodecId, try another adapter
+            continue;
+
+        if (sts != MFX_ERR_NONE)
+        {
+            return sts;
+        }
+
+        sts = MFXVideoDECODE_Query(dummy_session.operator mfxSession(), &stream_params, &out);
+
+        if (sts != MFX_ERR_NONE) // skip MFX_ERR_UNSUPPORTED as well as MFX_WRN_INCOMPATIBLE_VIDEO_PARAM
+            continue;
+
+        mfxAdapterInfo info;
+        memset(&info, 0, sizeof(info));
+        sts = MFXVideoCORE_QueryPlatform(dummy_session.operator mfxSession(), &info.Platform);
+
+        if (sts != MFX_ERR_NONE)
+        {
+            return sts;
+        }
+
+        //info.Platform.DeviceId = DeviceID;
+        info.Number = adapter_n - 1;
+
+        obtained_info.push_back(info);
+    }
+
+    return PrepareAdaptersInfo(&input_info, obtained_info, *adapters);
+}
+
+mfxStatus MFXQueryAdapters(mfxComponentInfo* input_info, mfxAdaptersInfo* adapters)
+{
+    if (!adapters)
+        return MFX_ERR_NULL_PTR;
+
+    MFX::MFXVector<mfxAdapterInfo> obtained_info;
+    //obtained_info.reserve(adapters->NumAdaptersAlloc);
+
+    mfxU32 adapter_n = 0, VendorID, DeviceID;
+
+    for (;;)
+    {
+        if (!QueryAdapterInfo(adapter_n, VendorID, DeviceID))
+            break;
+
+        ++adapter_n;
+
+        if (VendorID != INTEL_VENDOR_ID)
+            continue;
+
+        // Check if requested capabilities are supported
+        MFXVideoSession dummy_session;
+
+        mfxStatus sts = InitDummySession(adapter_n - 1, dummy_session);
+        if (sts != MFX_ERR_NONE)
+        {
+            return sts;
+        }
+
+        // If input_info is NULL just return all Intel adapters and information about them
+        if (input_info)
+        {
+            mfxVideoParam out;
+            memset(&out, 0, sizeof(out));
+
+            switch (input_info->Type)
+            {
+            case mfxComponentType::MFX_COMPONENT_ENCODE:
+                {
+                    out.mfx.CodecId = input_info->Requirements.mfx.CodecId;
+
+                    sts = MFXVideoENCODE_Query(dummy_session.operator mfxSession(), &input_info->Requirements, &out);
+                }
+                break;
+            case mfxComponentType::MFX_COMPONENT_DECODE:
+                {
+                    out.mfx.CodecId = input_info->Requirements.mfx.CodecId;
+
+                    sts = MFXVideoDECODE_Query(dummy_session.operator mfxSession(), &input_info->Requirements, &out);
+                }
+                break;
+            case mfxComponentType::MFX_COMPONENT_VPP:
+                {
+                    sts = MFXVideoVPP_Query(dummy_session.operator mfxSession(), &input_info->Requirements, &out);
+                }
+                break;
+            default:
+                sts = MFX_ERR_UNSUPPORTED;
+            }
+        }
+
+        if (sts != MFX_ERR_NONE) // skip MFX_ERR_UNSUPPORTED as well as MFX_WRN_INCOMPATIBLE_VIDEO_PARAM
+            continue;
+
+        mfxAdapterInfo info;
+        memset(&info, 0, sizeof(info));
+        sts = MFXVideoCORE_QueryPlatform(dummy_session.operator mfxSession(), &info.Platform);
+
+        if (sts != MFX_ERR_NONE)
+        {
+            return sts;
+        }
+
+        //info.Platform.DeviceId = DeviceID;
+        info.Number = adapter_n - 1;
+
+        obtained_info.push_back(info);
+    }
+
+    return PrepareAdaptersInfo(input_info, obtained_info, *adapters);
+}
+
+mfxStatus MFXQueryAdaptersNumber(mfxU32* num_adapters)
+{
+    if (!num_adapters)
+        return MFX_ERR_NULL_PTR;
+
+    mfxU32 intel_adapter_count = 0, VendorID, DeviceID;
+
+    for (mfxU32 cur_adapter = 0; ; ++cur_adapter)
+    {
+        if (!QueryAdapterInfo(cur_adapter, VendorID, DeviceID))
+            break;
+
+        if (VendorID == INTEL_VENDOR_ID)
+            ++intel_adapter_count;
+    }
+
+    *num_adapters = intel_adapter_count;
+
+    return MFX_ERR_NONE;
+}
+
+#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
