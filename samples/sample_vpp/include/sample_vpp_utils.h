@@ -175,6 +175,12 @@ struct sInputParams
     //bool   bd3dAlloc;
     mfxU16   IOPattern;
     mfxIMPL  ImpLib;
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+    bool bPrefferdGfx;
+    bool bPrefferiGfx;
+#endif
+
     mfxU16   asyncNum;
     mfxU32   vaType;
 
@@ -287,6 +293,10 @@ struct sInputParams
         rtSaturation = {};
         rtBrightness = {};
         rtContrast = {};
+#endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+        bPrefferdGfx = false;
+        bPrefferiGfx = false;
 #endif
     }
 };

@@ -48,6 +48,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "plugin_loader.h"
 #include "general_allocator.h"
 
+#if defined(_WIN64) || defined(_WIN32)
+#include "mfxadapter.h"
+#endif
+
 #ifndef MFX_VERSION
 #error MFX_VERSION not defined
 #endif
@@ -122,6 +126,11 @@ struct sInputParams
 #if defined(LIBVA_SUPPORT)
     mfxI32  libvaBackend;
 #endif // defined(MFX_LIBVA_SUPPORT)
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+    bool bPrefferdGfx;
+    bool bPrefferiGfx;
+#endif
 
     msdk_char     strSrcFile[MSDK_MAX_FILENAME_LEN];
     msdk_char     strDstFile[MSDK_MAX_FILENAME_LEN];
@@ -198,6 +207,10 @@ public:
 #endif
 
 protected: // functions
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);
+#endif
+    mfxStatus GetImpl(const sInputParams & params, mfxIMPL & impl);
     virtual mfxStatus CreateRenderingWindow(sInputParams *pParams);
     virtual mfxStatus InitMfxParams(sInputParams *pParams);
 

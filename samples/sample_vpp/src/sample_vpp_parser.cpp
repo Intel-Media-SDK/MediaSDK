@@ -43,14 +43,18 @@ msdk_printf(MSDK_STRING("Usage: %s [Options] -i InputFile -o OutputFile\n"), str
 
 msdk_printf(MSDK_STRING("Options: \n"));
 msdk_printf(MSDK_STRING("   [-lib  type]        - type of used library. sw, hw (def: sw)\n\n"));
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+msdk_printf(MSDK_STRING("   [-dGfx]             - preffer processing on dGfx (by default system decides)\n"));
+msdk_printf(MSDK_STRING("   [-iGfx]             - preffer processing on iGfx (by default system decides)\n"));
+#endif
 #if defined(D3D_SURFACES_SUPPORT)
-msdk_printf(MSDK_STRING("   [-d3d]                - use d3d9 surfaces\n\n"));
+msdk_printf(MSDK_STRING("   [-d3d]              - use d3d9 surfaces\n\n"));
 #endif
 #if MFX_D3D11_SUPPORT
-msdk_printf(MSDK_STRING("   [-d3d11]              - use d3d11 surfaces\n\n"));
+msdk_printf(MSDK_STRING("   [-d3d11]            - use d3d11 surfaces\n\n"));
 #endif
 #ifdef LIBVA_SUPPORT
-msdk_printf(MSDK_STRING("   [-vaapi]                - work with vaapi surfaces\n\n"));
+msdk_printf(MSDK_STRING("   [-vaapi]            - work with vaapi surfaces\n\n"));
 #endif
 msdk_printf(MSDK_STRING("   [-plugin_guid GUID]\n"));
 msdk_printf(MSDK_STRING("   [-p GUID]           - use VPP plug-in with specified GUID\n\n"));
@@ -1694,6 +1698,16 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                     pParams->ImpLib = MFX_IMPL_HARDWARE;
                 }
             }
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dGfx")))
+            {
+                pParams->bPrefferdGfx = true;
+            }
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-iGfx")))
+            {
+                pParams->bPrefferiGfx = true;
+            }
+#endif
 #if defined(D3D_SURFACES_SUPPORT)
             else if( 0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")) )
             {
@@ -1874,6 +1888,13 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
         pParams->IOPattern = MFX_IOPATTERN_IN_SYSTEM_MEMORY|MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
     }
 
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+    if (pParams->bPrefferdGfx && pParams->bPrefferiGfx)
+    {
+        msdk_printf(MSDK_STRING("Warning: both dGfx and iGfx flags set. iGfx will be preffered"));
+        pParams->bPrefferdGfx = false;
+    }
+#endif
 
     // Align values of luma and chroma bit depth if only one of them set by user
     AdjustBitDepth(*pParams);
