@@ -751,6 +751,8 @@ mfxStatus VideoDECODEMPEG2::GetPayload( mfxU64 *ts, mfxPayload *payload)
 
     const auto msg = payloads->GetPayloadMessage();
 
+    static const mfxU16 USER_DATA_START_CODE = 0x000001B2;
+
     if (msg)
     {
         if (payload->BufSize < msg->msg_size)
@@ -761,7 +763,7 @@ mfxStatus VideoDECODEMPEG2::GetPayload( mfxU64 *ts, mfxPayload *payload)
         std::copy(msg->data, msg->data + msg->msg_size, payload->Data);
 
         payload->NumBit = (mfxU32)(msg->msg_size * 8);
-        payload->Type = UMC_MPEG2_DECODER::USER_DATA;
+        payload->Type = USER_DATA_START_CODE;
     }
     else
     {
