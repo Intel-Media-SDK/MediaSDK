@@ -759,31 +759,39 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
     if (!m_hdl && MFX_HW_VAAPI == GetVAType())
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    platform->MediaAdapterType = MFX_MEDIA_INTEGRATED;
+#endif
+
     eMFXHWType type = GetHWType();
 
     switch (type)
     {
-    case MFX_HW_SNB    : platform->CodeName = MFX_PLATFORM_SANDYBRIDGE; break;
-    case MFX_HW_IVB    : platform->CodeName = MFX_PLATFORM_IVYBRIDGE;   break;
+    case MFX_HW_SNB    : platform->CodeName = MFX_PLATFORM_SANDYBRIDGE;   break;
+    case MFX_HW_IVB    : platform->CodeName = MFX_PLATFORM_IVYBRIDGE;     break;
     case MFX_HW_HSW    :
-    case MFX_HW_HSW_ULT: platform->CodeName = MFX_PLATFORM_HASWELL;     break;
-    case MFX_HW_VLV    : platform->CodeName = MFX_PLATFORM_BAYTRAIL;    break;
-    case MFX_HW_BDW    : platform->CodeName = MFX_PLATFORM_BROADWELL;   break;
-    case MFX_HW_CHT    : platform->CodeName = MFX_PLATFORM_CHERRYTRAIL; break;
-    case MFX_HW_SCL    : platform->CodeName = MFX_PLATFORM_SKYLAKE;     break;
-    case MFX_HW_APL    : platform->CodeName = MFX_PLATFORM_APOLLOLAKE;  break;
-    case MFX_HW_KBL    : platform->CodeName = MFX_PLATFORM_KABYLAKE;    break;
+    case MFX_HW_HSW_ULT: platform->CodeName = MFX_PLATFORM_HASWELL;       break;
+    case MFX_HW_VLV    : platform->CodeName = MFX_PLATFORM_BAYTRAIL;      break;
+    case MFX_HW_BDW    : platform->CodeName = MFX_PLATFORM_BROADWELL;     break;
+    case MFX_HW_CHT    : platform->CodeName = MFX_PLATFORM_CHERRYTRAIL;   break;
+    case MFX_HW_SCL    : platform->CodeName = MFX_PLATFORM_SKYLAKE;       break;
+    case MFX_HW_APL    : platform->CodeName = MFX_PLATFORM_APOLLOLAKE;    break;
+    case MFX_HW_KBL    : platform->CodeName = MFX_PLATFORM_KABYLAKE;      break;
 #if (MFX_VERSION >= 1025)
-    case MFX_HW_GLK    : platform->CodeName = MFX_PLATFORM_GEMINILAKE;  break;
-    case MFX_HW_CFL    : platform->CodeName = MFX_PLATFORM_COFFEELAKE;  break;
-    case MFX_HW_CNL    : platform->CodeName = MFX_PLATFORM_CANNONLAKE;  break;
+    case MFX_HW_GLK    : platform->CodeName = MFX_PLATFORM_GEMINILAKE;    break;
+    case MFX_HW_CFL    : platform->CodeName = MFX_PLATFORM_COFFEELAKE;    break;
+    case MFX_HW_CNL    : platform->CodeName = MFX_PLATFORM_CANNONLAKE;    break;
 #endif
 #if (MFX_VERSION >= 1027)
     case MFX_HW_ICL    :
-    case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;     break;
+    case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;       break;
     case MFX_HW_EHL    : platform->CodeName = MFX_PLATFORM_ELKHARTLAKE; break;
 #endif
-    default:             platform->CodeName = MFX_PLATFORM_UNKNOWN;     break;
+    default:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+                         platform->MediaAdapterType = MFX_MEDIA_UNKNOWN;
+#endif
+                         platform->CodeName = MFX_PLATFORM_UNKNOWN;       break;
     }
 
     platform->DeviceId = m_deviceId;

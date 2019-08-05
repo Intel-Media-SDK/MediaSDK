@@ -5657,7 +5657,8 @@ The SDK API 1.16 adds `GPUCopy` field.
 typedef struct {
     mfxU16 CodeName;
     mfxU16 DeviceId;
-    mfxU16 reserved[14];
+    mfxU16 MediaAdapterType;
+    mfxU16 reserved[13];
 } mfxPlatform;
 ```
 
@@ -5671,11 +5672,14 @@ The `mfxPlatform` structure contains information about hardware platform.
 --- | ---
 `CodeName` | Intel® microarchitecture code name. See the [PlatformCodeName](#PlatformCodeName) enumerator for a list of possible values.
 `DeviceId` | Unique identifier of graphics device.
+`MediaAdapterType` | Description of Intel Gen Graphics adapter type. See the [mfxMediaAdapterType](#mfxMediaAdapterType) enumerator for a list of possible values.
 
 **Change History**
 
 This structure is available since SDK API 1.19.
 Starting with SDK API **TBD** `DeviceId` field is properly filled.
+
+The SDK API **TBD** adds `MediaAdapterType` field.
 
 ## <a id='mfxPayload'>mfxPayload</a>
 
@@ -8764,6 +8768,24 @@ SDK API 1.25 adds `MFX_PLATFORM_GEMINILAKE`, `MFX_PLATFORM_COFFEELAKE` and `MFX_
 SDK API 1.27 adds `MFX_PLATFORM_ICELAKE`.
 
 SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PLATFORM_TIGERLAKE`.
+
+## <a id='mfxMediaAdapterType'>mfxMediaAdapterType</a>
+
+**Description**
+
+The `mfxMediaAdapterType` enumerator itemizes types of Intel Gen Graphics adapters.
+
+**Name/Description**
+
+| | |
+--- | ---
+`MFX_MEDIA_UNKNOWN`     | Unknown type.
+`MFX_MEDIA_INTEGRATED`  | Integrated Intel Gen Graphics adapter.
+`MFX_MEDIA_DISCRETE`    | Discrete Intel Gen Graphics adapter.
+
+**Change History**
+
+This enumerator is available since SDK API **TBD**.
 
 ## <a id='PayloadCtrlFlags'>PayloadCtrlFlags</a>
 
