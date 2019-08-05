@@ -585,10 +585,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (pInParams->nPicTimingSEI || pInParams->nNalHrdConformance || pInParams->nVuiNalHrdParameters)
     {
-		m_CodingOption.PicTimingSEI = pInParams->nPicTimingSEI;
-		m_CodingOption.NalHrdConformance = pInParams->nNalHrdConformance;
-		m_CodingOption.VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
-                bCodingOption = true;
+        m_CodingOption.PicTimingSEI        = pInParams->nPicTimingSEI;
+        m_CodingOption.NalHrdConformance   = pInParams->nNalHrdConformance;
+        m_CodingOption.VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
+        bCodingOption = true;
     }
 
     if (bCodingOption)
@@ -679,28 +679,28 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
 
-        if (pInParams->nAvcTemp)
-	{
-		if (pInParams->CodecId == MFX_CODEC_HEVC)
-		{
-			m_AvcTemporalLayers.BaseLayerPID = pInParams->nBaseLayerPID;
-			for (int i = 0; i < 8; i++)
-			{
-				m_AvcTemporalLayers.Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
-		   	}
-		        m_EncExtParams.push_back((mfxExtBuffer *)&m_AvcTemporalLayers);
-                }
-	}
+    if (pInParams->nAvcTemp)
+    {
+        if (pInParams->CodecId == MFX_CODEC_HEVC)
+        {
+            m_AvcTemporalLayers.BaseLayerPID = pInParams->nBaseLayerPID;
+            for (int i = 0; i < 8; i++)
+            {
+                m_AvcTemporalLayers.Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
+            }
+            m_EncExtParams.push_back((mfxExtBuffer *)&m_AvcTemporalLayers);
+        }
+    }
 
-	if (pInParams->nSPSId || pInParams->nPPSId)
-	{
-		if (pInParams->CodecId == MFX_CODEC_HEVC)
-		{
-			m_CodingOptionSPSPPS.SPSId = pInParams->nSPSId;
-			m_CodingOptionSPSPPS.PPSId = pInParams->nPPSId;
-		}
-	        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOptionSPSPPS);
-	}
+    if (pInParams->nSPSId || pInParams->nPPSId)
+    {
+        if (pInParams->CodecId == MFX_CODEC_HEVC)
+        {
+            m_CodingOptionSPSPPS.SPSId = pInParams->nSPSId;
+            m_CodingOptionSPSPPS.PPSId = pInParams->nPPSId;
+        }
+        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOptionSPSPPS);
+    }
 
 
     if (m_ExtHEVCTiles.NumTileRows
