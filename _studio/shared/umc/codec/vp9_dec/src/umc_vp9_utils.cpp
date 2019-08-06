@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -282,10 +282,9 @@ namespace UMC_VP9_DECODER
         else
         {
             const int32_t data = GetSegData(seg, segmentId, UMC_VP9_DECODER::SEG_LVL_ALT_Q);
-            return
-                 seg.absDelta == SEGMENT_ABSDATA ?
-                 data :  // Abs value
-                 clamp(baseQIndex + data, 0, MAXQ);  // Delta value
+            const int32_t seg_qindex =
+                seg.absDelta == SEGMENT_ABSDATA ? data : baseQIndex + data;
+            return clamp(seg_qindex, 0, MAXQ);
         }
     }
 
