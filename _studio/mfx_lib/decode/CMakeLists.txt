@@ -22,17 +22,14 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 mfx_include_dirs()
 
-list( APPEND Decoders h264 h265 mpeg2 vp8 vp9 mjpeg vc1 )
+list( APPEND Decoders h264 h265 mpeg2 vp8 vp9 vc1 )
 foreach( dir ${Decoders} )
   include_directories( ${MSDK_LIB_ROOT}/decode/${dir}/include )
   include_directories( ${MSDK_UMC_ROOT}/codec/${dir}_dec/include )
 endforeach()
 include_directories( ${MSDK_LIB_ROOT}/vpp/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_dec/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_enc/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/vc1_common/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
 
 set( sources.plus "" )
 
@@ -61,22 +58,6 @@ set( defs "" )
 file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
 list( APPEND sources ${srcs})
 make_library( jpeg_common none static )
-
-### JPEG Encoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/jpeg_enc/src" )
-set( sources "" )
-set( defs "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-make_library( jpeg_enc none static )
-
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/jpeg_dec/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/src/mfx_mjpeg_dec_decode.cpp)
-make_library( jpeg_dec hw static )
 
 ### MPEG2 Decoder
 set( SRC_DIR "${MSDK_UMC_ROOT}/codec/mpeg2_dec/src" )
@@ -127,11 +108,3 @@ list( APPEND sources
 	${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_hw.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_utils.cpp )
 make_library( vp9_dec hw static )
-
-### color space converter
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/color_space_converter/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-make_library( color_space_converter hw static )

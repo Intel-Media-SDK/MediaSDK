@@ -49,6 +49,12 @@ list( APPEND sources ${srcs} )
 make_library( vm_plus none static )
 ### UMC vm plus
 
+add_subdirectory( ${CURRENT_SRC_ROOT}/codec/jpeg_dec )
+if( MFX_ENABLE_SW_FALLBACK )
+  add_subdirectory( ${CURRENT_SRC_ROOT}/codec/color_space_converter )
+  add_subdirectory( ${CURRENT_SRC_ROOT}/codec/jpeg_enc )
+endif()
+
 ### UMC VA
 set( sources "" )
 file( GLOB_RECURSE srcs "${CURRENT_SRC_ROOT}/io/umc_va/src/*.c" "${CURRENT_SRC_ROOT}/io/umc_va/src/*.cpp" )
