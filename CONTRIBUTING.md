@@ -5,6 +5,7 @@ Please note that review and merge might take some time at this point.
 Intel Media SDK is licensed under MIT license. By contributing to the project, you agree to the license and copyright terms therein and release your contribution under these terms.
 
 Steps:
+ - Please follow guidelines (see doc/Coding_guidelines.md) in your code
  - Validate that your changes don't break a build. See [build instruction](./README.md#how-to-build)
  - Pass [testing](#testing)
  - Wait while your patchset is reviewed and tested by our internal validation cycle
