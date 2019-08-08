@@ -47,6 +47,7 @@
 #include "mfx_ext_buffers.h"
 
 using namespace MfxEncLA;
+using MfxHwH264Encode::IsOn;
 
 static mfxU16 GetGopSize(mfxVideoParam *par)
 {
@@ -54,10 +55,14 @@ static mfxU16 GetGopSize(mfxVideoParam *par)
 }
 static mfxU16 GetRefDist(mfxVideoParam *par)
 {
-    mfxExtLAControl *pControl = (mfxExtLAControl *) GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_LOOKAHEAD_CTRL);
     mfxU16 GopSize = GetGopSize(par);
-    mfxU16 refDist = par->mfx.GopRefDist == 0 ? ((pControl && pControl->BPyramid == MFX_CODINGOPTION_ON) ? 8 : 3) : par->mfx.GopRefDist;
-    return refDist <= GopSize ? refDist: GopSize;
+    mfxU16 refDist = par->mfx.GopRefDist;
+    if (refDist == 0)
+    {
+        mfxExtLAControl *pControl = (mfxExtLAControl *)GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_LOOKAHEAD_CTRL);
+        refDist = IsOn(par->mfx.LowPower) ? 1 : ((pControl && IsOn(pControl->BPyramid)) ? 8 : 3);
+    }
+    return (std::min)(refDist, GopSize);
 }
 static mfxU16 GetAsyncDeph(mfxVideoParam *par)
 {
