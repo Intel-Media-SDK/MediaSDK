@@ -59,6 +59,10 @@ add_test(NAME run_mfx_dispatch_test
   COMMAND ./mfx_dispatch_test
   WORKING_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
 
+set_property(GLOBAL APPEND PROPERTY
+  UNIT_TEST_SUITES "mfx_dispatch_test"
+)
+
 set(LIBRARY_PATH "${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE}")
 
 # If we build against embedded copy of gtest/gmock, we need to make sure that

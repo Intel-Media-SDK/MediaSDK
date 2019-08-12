@@ -22,3 +22,18 @@ if (BUILD_DISPATCHER)
   add_subdirectory(suites/mfx_dispatch/linux)
 endif()
 
+# If some test suite wants to run during build-time
+# it have to register itself via 'set_property', e.g.
+## set_property(GLOBAL APPEND PROPERTY UNIT_TEST_SUITES "my_test_suite_target_name")
+get_property(UNIT_TEST_SUITES GLOBAL PROPERTY UNIT_TEST_SUITES)
+
+add_custom_target( test_suites
+  ALL
+  DEPENDS ${UNIT_TEST_SUITES}
+)
+
+add_custom_command(TARGET test_suites
+  COMMENT "Run tests"
+  POST_BUILD
+  COMMAND ctest ARGS --output-on-failure
+)
