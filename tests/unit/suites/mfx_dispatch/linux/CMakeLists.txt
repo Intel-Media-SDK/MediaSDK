@@ -50,7 +50,7 @@ add_executable(mfx_dispatch_test
 
 target_link_libraries( mfx_dispatch_test mfx gtest gmock pthread )
 
-target_include_directories( mfx_dispatch_test PUBLIC ../../../api/mfx_dispatch/linux )
+target_include_directories( mfx_dispatch_test PRIVATE ${MFX_API_HOME}/mfx_dispatch/linux )
 
 set_target_properties(mfx_dispatch_test PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BIN_DIR}/${CMAKE_BUILD_TYPE})
