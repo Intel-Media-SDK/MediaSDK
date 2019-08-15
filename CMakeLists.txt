@@ -99,7 +99,7 @@ if (BUILD_TESTS)
     # which might be ON.
     set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
 
-    add_subdirectory(${CMAKE_HOME_DIRECTORY}/googletest)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/googletest)
 
     # For some Linux distro versions there is an unused-result warning
     # generated inside the Gtest code at a call to fwrite. Since Gtest sets -Werror
