@@ -2269,6 +2269,48 @@ MFX_PACK_END()
 
 #endif
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+/* Multi-adapters Querying structs */
+typedef enum
+{
+    MFX_COMPONENT_ENCODE = 1,
+    MFX_COMPONENT_DECODE = 2,
+    MFX_COMPONENT_VPP    = 3
+} mfxComponentType;
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct
+{
+    mfxComponentType Type;
+    mfxVideoParam    Requirements;
+
+    mfxU16           reserved[4];
+} mfxComponentInfo;
+MFX_PACK_END()
+
+/* Adapter description */
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct
+{
+    mfxPlatform Platform;
+    mfxU32      Number;
+
+    mfxU16      reserved[14];
+} mfxAdapterInfo;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct
+{
+    mfxAdapterInfo * Adapters;
+    mfxU32           NumAlloc;
+    mfxU32           NumActual;
+
+    mfxU16           reserved[4];
+} mfxAdaptersInfo;
+MFX_PACK_END()
+
+#endif
 #ifdef __cplusplus
 } // extern "C"
 #endif
