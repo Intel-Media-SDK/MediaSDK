@@ -397,11 +397,16 @@
 #if (MFX_VERSION >= 1025)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMultiFrameParam        ,128  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMultiFrameControl      ,128  )
-        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxEncodedUnitInfo           ,32  )
-        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncodedUnitsInfo       ,64  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxEncodedUnitInfo           ,32   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncodedUnitsInfo       ,64   )
 #endif
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64   )
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxComponentInfo             ,224  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,24   )
 #endif
     #elif defined(LINUX32)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxFrameId                   ,8   )
@@ -512,6 +517,11 @@
 #endif
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64  )
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxComponentInfo             ,208 )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64  )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,20  )
 #endif
     #endif
 #endif //defined (__MFXSTRUCTURES_H__)
@@ -1550,6 +1560,17 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,MVPrecision                   ,20   )
 #endif
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Type                          ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Requirements                  ,8    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdapterInfo                     ,Platform                      ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdapterInfo                     ,Number                        ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,Adapters                      ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumAlloc                      ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumActual                     ,12   )
+#endif
     #elif defined(LINUX32)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameId                         ,TemporalId                    ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxFrameId                         ,PriorityId                    ,2    )
@@ -2279,6 +2300,17 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,TemporalMode                  ,18   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,MVPrecision                   ,20   )
 #endif
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Type                          ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Requirements                  ,4    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdapterInfo                     ,Platform                      ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdapterInfo                     ,Number                        ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,Adapters                      ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumAlloc                      ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumActual                     ,8    )
 #endif
     #endif
 #endif //defined (__MFXSTRUCTURES_H__)
