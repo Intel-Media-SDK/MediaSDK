@@ -20,118 +20,161 @@
 
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
-mfx_include_dirs()
+mfx_include_dirs( )
 
-list( APPEND Decoders h264 h265 mpeg2 vp8 vp9 mjpeg vc1 )
-foreach( dir ${Decoders} )
-  include_directories( ${MSDK_LIB_ROOT}/decode/${dir}/include )
-  include_directories( ${MSDK_UMC_ROOT}/codec/${dir}_dec/include )
-endforeach()
-include_directories( ${MSDK_LIB_ROOT}/vpp/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_dec/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_enc/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/vc1_common/include )
-include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
+set(UMC_CODECS ${CMAKE_CURRENT_SOURCE_DIR}/../../shared/umc/codec/)
+
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h264/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/h265/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mpeg2/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vc1/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp8/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp9/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../vpp/include )
+
+include_directories( ${UMC_CODECS}/h265_dec/include )
+include_directories( ${UMC_CODECS}/h264_dec/include )
+include_directories( ${UMC_CODECS}/mpeg2_dec/include )
+include_directories( ${UMC_CODECS}/vp9_dec/include )
+include_directories( ${UMC_CODECS}/vc1_dec/include )
+include_directories( ${UMC_CODECS}/jpeg_dec/include )
+include_directories( ${UMC_CODECS}/vc1_common/include )
+include_directories( ${UMC_CODECS}/color_space_converter/include )
+include_directories( ${UMC_CODECS}/jpeg_common/include )
+
+set(sources "")
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/h264/src/mfx_h264_dec_decode.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_au_splitter.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_dec_bitstream_headers.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_dec_debug.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_dec_defs_yuv.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_dec_mfx.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_dec_slice_decoder_decode_pic.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_frame.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_frame_list.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_heap.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_mfx_supplier.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_nal_spl.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_segment_decoder_dxva.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_slice_decoding.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_task_broker.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_task_supplier.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_va_packer.cpp
+    ${UMC_CODECS}/h264_dec/src/umc_h264_va_supplier.cpp
+    )
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/h265/src/mfx_h265_dec_decode.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_au_splitter.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_bitstream_headers.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_debug.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_frame.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_frame_info.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_frame_list.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_heap.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_mfx_supplier.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_nal_spl.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_scaling_list.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_segment_decoder_dxva.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_sei.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_slice_decoding.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_tables.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_task_broker.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_task_supplier.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_va_supplier.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_yuv.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_mfx_utils.cpp
+    )
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/src/mfx_mjpeg_dec_decode.cpp
+    ${UMC_CODECS}/jpeg_common/src/bitstreamin.cpp
+    ${UMC_CODECS}/jpeg_common/src/bitstreamout.cpp
+    ${UMC_CODECS}/jpeg_common/src/colorcomp.cpp
+    ${UMC_CODECS}/jpeg_common/src/jpegbase.cpp
+    ${UMC_CODECS}/jpeg_common/src/membuffin.cpp
+    ${UMC_CODECS}/jpeg_common/src/membuffout.cpp
+    ${UMC_CODECS}/jpeg_dec/src/dechtbl.cpp
+    ${UMC_CODECS}/jpeg_dec/src/decqtbl.cpp
+    ${UMC_CODECS}/jpeg_dec/src/jpegdec.cpp
+    ${UMC_CODECS}/jpeg_dec/src/jpegdec_base.cpp
+    ${UMC_CODECS}/jpeg_dec/src/mfx_mjpeg_task.cpp
+    ${UMC_CODECS}/jpeg_dec/src/umc_jpeg_frame_constructor.cpp
+    ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode.cpp
+    ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_base.cpp
+    ${UMC_CODECS}/jpeg_dec/src/umc_mjpeg_mfx_decode_hw.cpp
+    )
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/mpeg2/src/mfx_mpeg2_decode.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_bitstream.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_decoder.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_decoder_va.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_frame.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_slice.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_splitter.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_utils.cpp
+    ${UMC_CODECS}/mpeg2_dec/src/umc_mpeg2_va_packer.cpp
+    )
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/vc1/src/mfx_vc1_decode.cpp
+    ${UMC_CODECS}/vc1_common/src/umc_vc1_common.cpp
+    ${UMC_CODECS}/vc1_common/src/umc_vc1_common_tables.cpp
+    ${UMC_CODECS}/vc1_common/src/umc_vc1_common_tables_adv.cpp
+    ${UMC_CODECS}/vc1_common/src/umc_vc1_spl_frame_constr.cpp
+    ${UMC_CODECS}/vc1_common/src/umc_vc1_spl_tbl.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_huffman.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_bitplane.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_bpic.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_bpic_adv.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_frame_descr.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_frame_va.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_ipic.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_ipic_adv.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_pic_com.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_pic_com_adv.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_ppic.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_ppic_adv.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_seq.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_skipping.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_task_store.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_dec_vopdq.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_video_decoder.cpp
+    ${UMC_CODECS}/vc1_dec/src/umc_vc1_video_decoder_hw.cpp
+    )
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_common.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw_vaapi.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_tables.cpp
+    )
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_hw.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_utils.cpp
+    ${UMC_CODECS}/vp9_dec/src/umc_vp9_bitstream.cpp
+    ${UMC_CODECS}/vp9_dec/src/umc_vp9_utils.cpp
+    ${UMC_CODECS}/vp9_dec/src/umc_vp9_va_packer.cpp
+    )
+
+if( MFX_ENABLE_SW_FALLBACK )
+    list(APPEND sources
+        ${UMC_CODECS}/color_space_converter/src/umc_video_processing.cpp
+        ${UMC_CODECS}/color_space_converter/src/umc_color_space_conversion.cpp
+        ${UMC_CODECS}/color_space_converter/src/umc_deinterlacing.cpp
+        )
+endif()
 
 set( sources.plus "" )
 
-### H264 Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/h264_dec/src" )
 set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/h264/src/mfx_h264_dec_decode.cpp)
-make_library( h264_dec hw static )
 
-### H265 Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/h265_dec/src" )
+make_library( decode hw static )
 set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/h265/src/mfx_h265_dec_decode.cpp)
-make_library( h265_dec hw static )
 
-### JPEG Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/jpeg_common/src" )
-set( sources "" )
-set( defs "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-make_library( jpeg_common none static )
-
-### JPEG Encoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/jpeg_enc/src" )
-set( sources "" )
-set( defs "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-make_library( jpeg_enc none static )
-
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/jpeg_dec/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/src/mfx_mjpeg_dec_decode.cpp)
-make_library( jpeg_dec hw static )
-
-### MPEG2 Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/mpeg2_dec/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/mpeg2/src/mfx_mpeg2_decode.cpp)
-make_library( mpeg2_dec hw static )
-
-### VC1 Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/vc1_dec/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/vc1/src/mfx_vc1_decode.cpp)
-make_library( vc1_dec hw static )
-
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/vc1_common/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-make_library( vc1_common none static )
-
-### VP8 Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/vp8_dec/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources 
-	${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_common.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_hw_vaapi.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/vp8/src/mfx_vp8_dec_decode_tables.cpp )
-make_library( vp8_dec hw static )
-
-### VP9 Decoder
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/vp9_dec/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-list( APPEND sources 
-	${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_hw.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/vp9/src/mfx_vp9_dec_decode_utils.cpp )
-make_library( vp9_dec hw static )
-
-### color space converter
-set( SRC_DIR "${MSDK_UMC_ROOT}/codec/color_space_converter/src" )
-set( defs "" )
-set( sources "" )
-file( GLOB_RECURSE srcs "${SRC_DIR}/*.c" "${SRC_DIR}/*.cpp" )
-list( APPEND sources ${srcs})
-make_library( color_space_converter hw static )

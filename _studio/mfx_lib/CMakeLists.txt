@@ -174,7 +174,7 @@ else()
 endif()
 
 if( MFX_ENABLE_SW_FALLBACK )
-  set(SW_FALLBACK_LIBS "jpeg_enc;color_space_converter_hw;ipp;encode")
+  set(SW_FALLBACK_LIBS "encode_sw;ipp;encode")
 else()
   set(SW_FALLBACK_LIBS "")
 endif()
@@ -182,21 +182,13 @@ endif()
 set( LIBS "" )
 list( APPEND LIBS
   bitrate_control
-  h264_dec_hw
-  h265_dec_hw
-  jpeg_common
-  jpeg_dec_hw
   ${SW_FALLBACK_LIBS}
-  mpeg2_dec_hw
-  vc1_common
-  vc1_dec_hw
-  vp8_dec_hw
-  vp9_dec_hw
   umc
   vm
   vm_plus
   umc_va_hw
   cmrt_cross_platform_hw
+  decode_hw
   encode_hw
   h264_la
   ${GENX_LIB}
