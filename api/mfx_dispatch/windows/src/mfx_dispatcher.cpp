@@ -60,7 +60,7 @@ mfxStatus MFX_DISP_HANDLE::Close(void)
     mfxRes = UnLoadSelectedDLL();
 
     // the library wasn't unloaded
-    if (MFX_ERR_NONE == mfxRes)
+    if (MFX_ERR_NONE != mfxRes)
     {
         implType = MFX_LIB_SOFTWARE;
         impl = MFX_IMPL_SOFTWARE;
