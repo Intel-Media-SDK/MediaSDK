@@ -653,10 +653,15 @@ namespace ExtBuffer
 
             return false;
         }
-        if (buf.PicWidthInLumaSamples == 0)
-            buf.PicWidthInLumaSamples  = align2_value(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width,  codedPicAlignment);
 
-        if (buf.PicHeightInLumaSamples == 0)
+        bool needUpdate = false;
+        if (buf.PicWidthInLumaSamples > par.mfx.FrameInfo.Width || buf.PicHeightInLumaSamples > par.mfx.FrameInfo.Height)
+            needUpdate = true;
+
+        if (buf.PicWidthInLumaSamples == 0 || needUpdate)
+            buf.PicWidthInLumaSamples = align2_value(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width,  codedPicAlignment);
+
+        if (buf.PicHeightInLumaSamples == 0 || needUpdate)
             buf.PicHeightInLumaSamples = align2_value(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
         return true;
