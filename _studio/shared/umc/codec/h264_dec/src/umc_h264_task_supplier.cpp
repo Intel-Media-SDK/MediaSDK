@@ -1090,7 +1090,25 @@ ViewItem & MVC_Extension::AllocateAndInitializeView(H264Slice * slice)
     }
     ViewItem * view = FindView(slice->GetSliceHeader()->nal_ext.mvc.view_id);
     if (view)
+    {
+        const UMC_H264_DECODER::H264SliceHeader *slice_hdr = slice->GetSliceHeader();
+
+        if (!slice_hdr->IdrPicFlag)
+            return *view;
+
+        H264SeqParamSet *pSps = const_cast<H264SeqParamSet*>(slice->m_pSeqParamSet);
+        int32_t dpbsize = CalculateDPBSize(m_level_idc ? m_level_idc : pSps->level_idc,
+                                           pSps->frame_width_in_mbs * 16,
+                                           pSps->frame_height_in_mbs * 16,
+                                           pSps->num_ref_frames);
+
+        dpbsize = pSps->vui.max_dec_frame_buffering ? pSps->vui.max_dec_frame_buffering : dpbsize;
+
+        if (dpbsize != view->GetDPBList(0)->GetDPBSize())
+            view->SetDPBSize(const_cast<H264SeqParamSet*>(slice->m_pSeqParamSet), m_level_idc);
+
         return *view;
+    }
 
     Status umcRes = AllocateView(slice->GetSliceHeader()->nal_ext.mvc.view_id);
     if (UMC_OK != umcRes)
