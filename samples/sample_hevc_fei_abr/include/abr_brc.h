@@ -387,11 +387,6 @@ public:
     {
     }
 
-    LA_BRC(LA_BRC const&)            = delete;
-    LA_BRC(LA_BRC &&)                = default;
-    LA_BRC& operator=(LA_BRC const&) = delete;
-    LA_BRC& operator=(LA_BRC &&)     = default;
-
     ~LA_BRC() {}
 
     virtual void PreEnc(FrameStatData& /*statData*/) override;

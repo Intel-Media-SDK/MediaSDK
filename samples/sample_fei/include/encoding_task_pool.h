@@ -418,6 +418,7 @@ public:
 
     void ShowDpbInfo(iTask *task, int frame_order)
     {
+#if _DEBUG
         mdprintf(stderr, "\n\n--------------Show DPB Info of frame %d-------\n", frame_order);
         mfxU32 numOfFields = task->m_fieldPicFlag ? 2 : 1;
         for (mfxU32 j = 0; j < numOfFields; j++) {
@@ -441,6 +442,7 @@ public:
             //}
             mdprintf(stderr, "\n-------------------------------------------\n");
         }
+#endif
     }
 };
 

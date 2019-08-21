@@ -22,9 +22,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <vector>
 #include <list>
-#pragma warning(disable : 4201)
 #include <memory>
-#pragma warning(default : 4201)
 
 #include "abstract_splitter.h"
 

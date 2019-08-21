@@ -41,10 +41,8 @@ public:
         Close();
     }
 
-    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(VideoCORE* /*core*/, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT) override
+    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(VideoCORE* /*core*/, MfxHwH265Encode::ENCODER_TYPE /* type */ = MfxHwH265Encode::ENCODER_DEFAULT) override
     {
-        type;
-
         return new VAAPIh265FeiEncoder;
     }
 
