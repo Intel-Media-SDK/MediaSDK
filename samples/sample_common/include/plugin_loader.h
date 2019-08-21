@@ -119,7 +119,6 @@ public:
         , m_session()
         , m_uid()
     {
-        len; pluginName;
         mfxStatus sts = MFX_ERR_NONE;
         msdk_stringstream strStream;
 
@@ -217,23 +216,19 @@ public:
     bool IsOk() {
         return m_session != 0;
     }
-    virtual mfxStatus PluginInit( mfxCoreInterface *core ) {
-        core;
+    virtual mfxStatus PluginInit( mfxCoreInterface * /*core*/ ) {
         return MFX_ERR_NULL_PTR;
     }
     virtual mfxStatus PluginClose() {
         return MFX_ERR_NULL_PTR;
     }
-    virtual mfxStatus GetPluginParam( mfxPluginParam *par ) {
-        par;
+    virtual mfxStatus GetPluginParam( mfxPluginParam * /*par*/ ) {
         return MFX_ERR_NULL_PTR;
     }
-    virtual mfxStatus Execute( mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a ) {
-        task; uid_p; uid_a;
+    virtual mfxStatus Execute( mfxThreadTask /*task*/, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/ ) {
         return MFX_ERR_NULL_PTR;
     }
-    virtual mfxStatus FreeResources( mfxThreadTask task, mfxStatus sts ) {
-        task; sts;
+    virtual mfxStatus FreeResources( mfxThreadTask /*task*/, mfxStatus /*sts*/ ) {
         return MFX_ERR_NULL_PTR;
     }
     virtual void Release() {
@@ -241,8 +236,7 @@ public:
     virtual mfxStatus Close() {
         return MFX_ERR_NULL_PTR;
     }
-    virtual mfxStatus SetAuxParams( void* auxParam, int auxParamSize ) {
-        auxParam; auxParamSize;
+    virtual mfxStatus SetAuxParams( void* /*auxParam*/, int /*auxParamSize*/ ) {
         return MFX_ERR_NULL_PTR;
     }
 };

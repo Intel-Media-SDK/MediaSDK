@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -184,16 +184,16 @@ public:
 
 #define BS2_TRO
 #define BS2_SET(val, var) { var = (val); }
-#define BS2_TRACE(val, var) {(val);}
-#define BS2_TRACE_STR(str) {(str);}
+#define BS2_TRACE(val, var) {std::ignore = (val);}
+#define BS2_TRACE_STR(str) {std::ignore = (str);}
 #define BS2_SET_ARR_F(val, var, sz, split, format) \
     { for (Bs32u _i = 0; _i < (Bs32u)(sz); _i++) (var)[_i] = (val); }
 #define BS2_TRACE_ARR_VF(val, var, sz, split, format) \
-    { for (Bs32u _i = 0; _i < (Bs32u)(sz); _i++) (val); }
-#define BS2_TRACE_MDARR(type, arr, dim, split, split2, format) {(arr);}
+    { for (Bs32u _i = 0; _i < (Bs32u)(sz); _i++) std::ignore = (val); }
+#define BS2_TRACE_MDARR(type, arr, dim, split, split2, format) {std::ignore = (arr);}
 #define BS2_SET_ARR_M(val, var, sz, split, format, map) BS2_SET_ARR_F(val, var, sz, split, format)
 #define BS2_SETM(val, var, map) BS2_SET(val, var)
-#define BS2_TRACE_BIN(pval, off, sz, var) { (pval); }
+#define BS2_TRACE_BIN(pval, off, sz, var) { std::ignore = (pval); }
 
 #endif
 

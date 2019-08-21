@@ -182,10 +182,9 @@ T tune(const T& val, const T1& lower, const T1& default_val)
     return val;
 }
 
-#define STATIC_ASSERT(ASSERTION, MESSAGE) char MESSAGE[(ASSERTION) ? 1 : -1]; MESSAGE
 template<class T, class U> inline void Copy(T & dst, U const & src)
 {
-    STATIC_ASSERT(sizeof(T) == sizeof(U), copy_objects_of_different_size);
+    static_assert(sizeof(T) == sizeof(U), "copy objects of different size");
     MSDK_MEMCPY(&dst, &src, sizeof(dst));
 }
 
@@ -199,7 +198,7 @@ template<class T> inline T Clip3(T min, T max, T x) { return std::min(std::max(m
 
 inline mfxU32 align(const mfxU32 val, const mfxU32 alignment)
 {
-    STATIC_ASSERT(!(val == 0) && !(val & (val - 1)), is_power_of_2);
+    assert((alignment != 0) && ((alignment & (alignment - 1)) == 0));
     return (val + alignment - 1) & ~(alignment - 1);
 }
 

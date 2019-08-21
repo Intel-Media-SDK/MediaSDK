@@ -315,7 +315,7 @@ namespace MfxLoader
         typedef int (*XDestroyWindow_type)(Display*, Window);
         typedef int (*XResizeWindow_type)(Display *, Window, unsigned int, unsigned int);
 #if defined(X11_DRI3_SUPPORT)
-        typedef Status (*XGetGeometry_type)(register Display *, Drawable, Window *,
+        typedef Status (*XGetGeometry_type)(Display *, Drawable, Window *,
                             int *, int *, unsigned int *, unsigned int *,
                             unsigned int *, unsigned int *);
 #endif // X11_DRI3_SUPPORT
