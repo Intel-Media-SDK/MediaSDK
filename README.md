@@ -36,9 +36,9 @@ See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 To get copy of Media SDK documentation use Git* with [LFS](https://git-lfs.github.com/) support.
 
 Please find full documentation under the `doc/` folder. Key documents:
-* [Media SDK Developer Reference](./doc/mediasdk-man.pdf)
+* [Media SDK Developer Reference](./doc/mediasdk-man.md)
 * [Media SDK Developer Reference Extensions for User-Defined Functions](./doc/mediasdkusr-man.pdf)
-* [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.pdf)
+* [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.md)
 
 Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for the detailed setting and building instructions, runtime tips and other information.
 
