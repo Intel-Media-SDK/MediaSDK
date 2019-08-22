@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -34,16 +34,16 @@ private:
     FEI_EncodeInterface& operator= (const FEI_EncodeInterface& other_encode); // forbidden
 
 public:
-    MFXVideoSession*  m_pmfxSession;
-    MFXVideoENCODE*   m_pmfxENCODE;
-    mfxEncodeCtrl     m_encodeControl;
-    mfxVideoParam     m_videoParams;
-    mfxU32            m_allocId;
-    bufList*          m_pExtBuffers;
-    AppConfig*        m_pAppConfig;
-    mfxBitstream      m_mfxBS;
-    mfxSyncPoint      m_SyncPoint;
-    bool              m_bSingleFieldMode;
+    MFXVideoSession*    m_pmfxSession;
+    MFXVideoENCODE*     m_pmfxENCODE;
+    mfxEncodeCtrl       m_encodeControl;
+    mfxVideoParam       m_videoParams;
+    mfxU32              m_allocId;
+    bufList*            m_pExtBuffers;
+    AppConfig*          m_pAppConfig;
+    mfxBitstreamWrapper m_mfxBS;
+    mfxSyncPoint        m_SyncPoint;
+    bool                m_bSingleFieldMode;
 
     /* Bitstream writer */
     CSmplBitstreamWriter m_FileWriter;

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -107,19 +107,18 @@ public:
     virtual mfxStatus AllocateFrameData(UMC::FrameData *&data);
     virtual mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out);
 
-    mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType);
+    mfxU32 AdjustFrameAllocRequest(mfxFrameAllocRequest *request, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool usePostProcessing);
 
-    static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool *needVpp);
+    static void AdjustFourCC(mfxFrameInfo *requestFrameInfo, const mfxInfoMFX *info, eMFXHWType hwType, eMFXVAType vaType, bool usePostProc, bool *needVpp);
 
     static mfxStatus CheckVPPCaps(VideoCORE * core, mfxVideoParam * par);
 
 
 protected:
-    VideoVppJpegD3D9 *m_pCc;
-    // True if we need special VPP color conversion after decoding
-    bool   m_needVpp;
     // Decoder's array
     std::unique_ptr<UMC::MJPEGVideoDecoderMFX_HW> m_pMJPEGVideoDecoder;
+    // True if we need special VPP color conversion after decoding
+    bool   m_needVpp;
 
     // Number of pictures collected
     mfxU32 m_numPic;

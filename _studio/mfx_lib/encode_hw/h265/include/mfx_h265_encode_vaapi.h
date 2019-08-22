@@ -181,6 +181,30 @@ mfxStatus SetSkipFrame(
 
             void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples);
     };
+
+    class GUIDhash
+    {
+    public:
+        size_t operator()(const GUID &guid) const
+        {
+            return guid.GetHashCode();
+        }
+    };
+
+    struct VAParameters
+    {
+        VAParameters():
+            profile(VAProfileNone), entrypoint(static_cast<VAEntrypoint>(0))
+        {}
+
+        VAParameters(VAProfile p, VAEntrypoint e) :
+            profile(p), entrypoint(e)
+        {}
+
+        VAProfile profile;
+        VAEntrypoint entrypoint;
+    };
+
     class VAAPIEncoder : public DriverEncoder, protected DDIHeaderPacker, protected VABuffersHandler
     {
     public:
@@ -193,8 +217,7 @@ mfxStatus SetSkipFrame(
         mfxStatus CreateAuxilliaryDevice(
             VideoCORE * core,
             GUID       guid,
-            mfxU32     width,
-            mfxU32     height);
+            MfxVideoParam const & par);
 
         virtual
         mfxStatus CreateAccelerationService(
@@ -227,7 +250,7 @@ mfxStatus SetSkipFrame(
 
         virtual
         mfxStatus QueryEncodeCaps(
-            ENCODE_CAPS_HEVC& caps);
+            MFX_ENCODE_CAPS_HEVC& caps);
 
         virtual
         mfxStatus QueryStatus(Task & task);
@@ -239,17 +262,6 @@ mfxStatus SetSkipFrame(
         ENCODE_PACKEDHEADER_DATA* PackHeader(Task const & task, mfxU32 nut)
         {
             return DDIHeaderPacker::PackHeader(task, nut);
-        }
-
-        virtual
-        VAEntrypoint GetVAEntryPoint()
-        {
-#if (MFX_VERSION >= 1025)
-            return (IsOn(m_videoParam.mfx.LowPower) && m_videoParam.m_platform >= MFX_HW_CNL) ?
-                    VAEntrypointEncSliceLP : VAEntrypointEncSlice;
-#else
-            return VAEntrypointEncSlice;
-#endif
         }
 
     protected:
@@ -264,6 +276,8 @@ mfxStatus SetSkipFrame(
         {
             return MFX_ERR_NONE;
         }
+
+        virtual VAParameters GetVaParams(const GUID & guid);
 
         VAAPIEncoder(const VAAPIEncoder&);
         VAAPIEncoder& operator=(const VAAPIEncoder&);
@@ -288,7 +302,7 @@ mfxStatus SetSkipFrame(
 
         mfxU32 m_width;
         mfxU32 m_height;
-        ENCODE_CAPS_HEVC m_caps;
+        MFX_ENCODE_CAPS_HEVC m_caps;
 
         CUQPMap    m_cuqpMap;
         std::vector<VAEncROI> m_arrayVAEncROI;

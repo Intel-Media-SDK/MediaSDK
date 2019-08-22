@@ -131,8 +131,7 @@ mfxStatus Decoder::PreInit()
     sts = m_FileReader.Init(m_inPars.strSrcFile);
     MSDK_CHECK_STATUS(sts, "Can't open input file");
 
-    sts = InitMfxBitstream(&m_Bitstream, 1024 * 1024);
-    MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
+    m_Bitstream.Extend(1024 * 1024);
 
     m_DEC.reset(new MFXVideoDECODE(*m_session));
 
@@ -242,8 +241,7 @@ mfxStatus Decoder::InitDecParams(MfxVideoParamsWrapper & par)
         {
             if (m_Bitstream.MaxLength == m_Bitstream.DataLength)
             {
-                sts = ExtendMfxBitstream(&m_Bitstream, m_Bitstream.MaxLength * 2);
-                MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+                m_Bitstream.Extend(m_Bitstream.MaxLength * 2);
             }
 
             sts = m_FileReader.ReadNextFrame(&m_Bitstream);

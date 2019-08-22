@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -23,6 +23,23 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxdefs.h"
 #include "mfx_itt_trace.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+
+#include <windows.h>
+
+#define MSDK_SLEEP(msec) Sleep(msec)
+
+#define MSDK_USLEEP(usec) \
+{ \
+    LARGE_INTEGER due; \
+    due.QuadPart = -(10*(int)usec); \
+    HANDLE t = CreateWaitableTimer(NULL, TRUE, NULL); \
+    SetWaitableTimer(t, &due, 0, NULL, NULL, 0); \
+    WaitForSingleObject(t, INFINITE); \
+    CloseHandle(t); \
+}
+
+#else // #if defined(_WIN32) || defined(_WIN64)
 
 #include <unistd.h>
 
@@ -38,6 +55,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
     usleep(usec); \
   } while(0)
 
+#endif // #if defined(_WIN32) || defined(_WIN64)
 
 #define MSDK_GET_TIME(T,S,F) ((mfxF64)((T)-(S))/(mfxF64)(F))
 

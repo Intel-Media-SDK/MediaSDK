@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -126,7 +126,6 @@ FEI_EncPakInterface::FEI_EncPakInterface(MFXVideoSession* session, iTaskPool* ta
     , m_pMV_out(NULL)
     , m_pMBcode_out(NULL)
 {
-    MSDK_ZERO_MEMORY(m_mfxBS);
     MSDK_ZERO_MEMORY(m_videoParams_ENC);
     MSDK_ZERO_MEMORY(m_videoParams_PAK);
 
@@ -208,8 +207,6 @@ FEI_EncPakInterface::~FEI_EncPakInterface()
         }
     }
     m_InitExtParams_PAK.clear();
-
-    WipeMfxBitstream(&m_mfxBS);
 
     SAFE_FCLOSE(m_pMvPred_in);
     SAFE_FCLOSE(m_pENC_MBCtrl_in);
@@ -553,9 +550,7 @@ mfxStatus FEI_EncPakInterface::FillParameters()
         m_videoParams_PAK.NumExtParam = (mfxU16)m_InitExtParams_PAK.size();
     }
 
-    mfxU32 nEncodedDataBufferSize = m_videoParams_ENC.mfx.FrameInfo.Width * m_videoParams_ENC.mfx.FrameInfo.Height * 4;
-    sts = InitMfxBitstream(&m_mfxBS, nEncodedDataBufferSize);
-    MSDK_CHECK_STATUS_SAFE(sts, "InitMfxBitstream failed", WipeMfxBitstream(&m_mfxBS));
+    m_mfxBS.Extend(m_videoParams_ENC.mfx.FrameInfo.Width * m_videoParams_ENC.mfx.FrameInfo.Height * 4);
 
     /* Init filepointers if some input buffers are specified */
 
@@ -1014,7 +1009,7 @@ mfxStatus FEI_EncPakInterface::InitFrameParams(iTask* eTask)
             }
         }
     }
-#endif // MSDK_API >= 1023
+#endif // MFX_VERSION >= 1023
 
     return sts;
 }
@@ -1029,9 +1024,7 @@ mfxStatus FEI_EncPakInterface::AllocateSufficientBuffer()
     mfxStatus sts = m_pmfxPAK->GetVideoParam(&par);
     MSDK_CHECK_STATUS(sts, "m_pmfxPAK->GetVideoParam failed");
 
-    // reallocate bigger buffer for output
-    sts = ExtendMfxBitstream(&m_mfxBS, par.mfx.BufferSizeInKB * 1000);
-    MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(&m_mfxBS));
+    m_mfxBS.Extend(par.mfx.BufferSizeInKB * 1000);
 
     return sts;
 }

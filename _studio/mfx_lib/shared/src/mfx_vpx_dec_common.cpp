@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -180,12 +180,12 @@ namespace MFX_VPX_Utility
             if (!p_in->mfx.FrameInfo.ChromaFormat && !(!p_in->mfx.FrameInfo.FourCC && !p_in->mfx.FrameInfo.ChromaFormat))
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= GetMaxWidth(codecId))
+            if (p_in->mfx.FrameInfo.Width % 16 == 0)
                 p_out->mfx.FrameInfo.Width = p_in->mfx.FrameInfo.Width;
             else
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= GetMaxHeight(codecId))
+            if (p_in->mfx.FrameInfo.Height % 16 == 0)
                 p_out->mfx.FrameInfo.Height = p_in->mfx.FrameInfo.Height;
             else
                 sts = MFX_ERR_UNSUPPORTED;

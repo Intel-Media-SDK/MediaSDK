@@ -22,10 +22,15 @@
 
 #include "umc_defs.h"
 #include "umc_va_linux.h"
+#include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
 #include "mfx_trace.h"
 #include "umc_frame_allocator.h"
 #include "mfxstructures.h"
+
+#if defined(MFX_ENABLE_CPLIB)
+#include "mfx_cenc.h"
+#endif
 
 #define UMC_VA_NUM_OF_COMP_BUFFERS       8
 #define UMC_VA_DECODE_STREAM_OUT_ENABLE  2
@@ -178,10 +183,10 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         break;
 #if (MFX_VERSION >= 1027)
     case UMC::VA_H265| UMC::VA_PROFILE_422 | UMC::VA_PROFILE_REXT:
-        va_profile = VAProfileHEVCMain422_10;
+        if (profile < 1) va_profile = VAProfileHEVCMain422_10;
         break;
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT:
-        va_profile = VAProfileHEVCMain444;
+        if (profile < 1) va_profile = VAProfileHEVCMain444;
         break;
 #endif
     case UMC::VA_H265 | UMC::VA_PROFILE_10:
@@ -191,10 +196,10 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
     case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_422 | UMC::VA_PROFILE_10:
-        va_profile = VAProfileHEVCMain422_10;
+        if (profile < 1) va_profile = VAProfileHEVCMain422_10;
         break;
     case UMC::VA_H265| UMC::VA_PROFILE_444 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10:
-        va_profile = VAProfileHEVCMain444_10;
+        if (profile < 1) va_profile = VAProfileHEVCMain444_10;
         break;
 #endif
     case UMC::VA_VC1:
@@ -321,6 +326,10 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
         m_allocator         = pParams->m_allocator;
         m_FrameState        = lvaBeforeBegin;
 
+        if (IS_PROTECTION_ANY(pParams->m_protectedVA))
+        {
+            m_protectedVA = new ProtectedVA(pParams->m_protectedVA);
+        }
 
         if (pParams->m_needVideoProcessingVA)
         {
@@ -451,7 +460,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             va_attributes[nattr].value = VA_DEC_SLICE_MODE_NORMAL;
             nattr++;
 
-            va_attributes[nattr++].type = (VAConfigAttribType)VAConfigAttribDecProcessing;
+            va_attributes[nattr++].type = VAConfigAttribDecProcessing;
 
             va_attributes[nattr++].type = VAConfigAttribEncryption;
 
@@ -469,12 +478,34 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 
         if (UMC_OK == umcRes && pParams->m_needVideoProcessingVA)
         {
-            if (va_attributes[2].value == VA_DEC_PROCESSING_NONE)
+            // for VAProfileJPEGBaseline current driver doesn't report
+            // VAConfigAttribDecProcessing status correctly
+            if (va_attributes[2].value == VA_DEC_PROCESSING_NONE && va_profile != VAProfileJPEGBaseline)
                 umcRes = UMC_ERR_FAILED;
             else
                 attribsNumber++;
         }
 
+#ifdef MFX_ENABLE_CPLIB
+        if (UMC_OK == umcRes && m_protectedVA && IS_PROTECTION_CENC(m_protectedVA->GetProtected()))
+        {
+            va_attributes[attribsNumber].type = VAConfigAttribEncryption;
+            if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_CLASSIC)
+            {
+                if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CBC)
+                    va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CBC;
+            }
+            else if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_GOOGLE_DASH)
+            {
+                if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH)
+                    va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH;
+            }
+            else
+                umcRes = UMC_ERR_FAILED;
+
+            attribsNumber++;
+        }
+#endif
 
         if (UMC_OK == umcRes)
         {
@@ -560,6 +591,8 @@ Status LinuxVideoAccelerator::Close(void)
         m_dpy = NULL;
     }
 
+    delete m_protectedVA;
+    m_protectedVA = nullptr;
 
     delete m_videoProcessingVA;
     m_videoProcessingVA = 0;

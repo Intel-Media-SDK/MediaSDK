@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -177,6 +177,7 @@ mfxStatus CheckIOMode(mfxVideoParam *par, VideoVPPHW::IOMode mode);
 mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, bool bCorrectionEnable = false);
 mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2);
 mfxStatus ConfigureExecuteParams(
+    VideoCORE* core,
     mfxVideoParam & videoParam, // [IN]
     mfxVppCaps & caps,          // [IN]
 
@@ -2090,7 +2091,7 @@ mfxStatus VideoVPPHW::Query(VideoCORE *core, mfxVideoParam *par)
     MFX_CHECK_STS(sts);
 
     config.m_IOPattern = 0;
-    sts = ConfigureExecuteParams(params, caps, executeParams, config);
+    sts = ConfigureExecuteParams(core, params, caps, executeParams, config);
 
     return sts;
 }
@@ -2187,6 +2188,7 @@ mfxStatus  VideoVPPHW::Init(
 
     m_config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(
+        m_pCore,
         m_params,
         caps,
         m_executeParams,
@@ -2290,6 +2292,7 @@ mfxStatus  VideoVPPHW::Init(
             case MFX_HW_ICL:
                 res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen11,sizeof(genx_fcopy_gen11),m_pCmProgram,"nojitter");
                 break;
+            case MFX_HW_EHL:
             case MFX_HW_ICL_LP:
                 res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen11lp,sizeof(genx_fcopy_gen11lp),m_pCmProgram,"nojitter");
                 break;
@@ -2645,6 +2648,7 @@ mfxStatus VideoVPPHW::QueryIOSurf(
     Config  config = {};
 
     sts = ConfigureExecuteParams(
+        core,
         *par,
         caps,
         executeParams,
@@ -2749,6 +2753,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
 
     m_config.m_IOPattern = 0;
     sts = ConfigureExecuteParams(
+        m_pCore,
         m_params,
         caps,
         m_executeParams,
@@ -2962,6 +2967,28 @@ mfxStatus VideoVPPHW::Close()
 } // mfxStatus VideoVPPHW::Close()
 
 
+bool VideoVPPHW::UseCopyPassThrough(const DdiTask *pTask) const
+{
+    if (!m_config.m_bCopyPassThroughEnable
+        || IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf))
+    {
+        return false;
+    }
+
+    if (m_pCore->GetVAType() != MFX_HW_VAAPI || m_ioMode != D3D_TO_D3D)
+    {
+        return true;
+    }
+
+    // Under VAAPI for D3D_TO_D3D either CM copy or VPP pipeline are preferred by
+    // performance reasons. So, before enabling CopyPassThrough for a task we check
+    // for CM availability to do fallback to VPP if there is no CM.
+    // This can't be done in ConfigureExecuteParams() because CmCopy status is set later.
+    const VAAPIVideoCORE *vaapiCore = dynamic_cast<VAAPIVideoCORE*>(m_pCore);
+    MFX_CHECK_WITH_ASSERT(vaapiCore, false);
+    return vaapiCore->CmCopy();
+}
+
 mfxStatus VideoVPPHW::VppFrameCheck(
                                     mfxFrameSurface1 *input,
                                     mfxFrameSurface1 *output,
@@ -3115,9 +3142,11 @@ mfxStatus VideoVPPHW::VppFrameCheck(
 #endif
     MFX_CHECK_STS(sts);
 
+    bool useCopyPassThrough = UseCopyPassThrough(pTask);
+
     if (VPP_SYNC_WORKLOAD == m_workloadMode)
     {
-        pTask->bRunTimeCopyPassThrough = (true == m_config.m_bCopyPassThroughEnable && false == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf));
+        pTask->bRunTimeCopyPassThrough = useCopyPassThrough;
 
         // submit task
         SyncTaskSubmission(pTask);
@@ -3136,8 +3165,7 @@ mfxStatus VideoVPPHW::VppFrameCheck(
     }
     else
     {
-        if (false == m_config.m_bCopyPassThroughEnable ||
-            (true == m_config.m_bCopyPassThroughEnable && true == IsRoiDifferent(pTask->input.pSurf, pTask->output.pSurf)))
+        if (!useCopyPassThrough)
         {
             pTask->bRunTimeCopyPassThrough = false;
 
@@ -3294,7 +3322,9 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
                     dstTempSurface.Data.MemId = &dstHandle;
 
                     mfxI64 verticalPitch = (mfxI64)(srcTempSurface.Data.UV - srcTempSurface.Data.Y);
-                    verticalPitch = (verticalPitch % srcTempSurface.Data.Pitch)? 0 : verticalPitch / srcTempSurface.Data.Pitch;
+                    // offset beetween Y and UV must be align to pitch
+                    MFX_CHECK(!(verticalPitch % srcTempSurface.Data.Pitch), MFX_ERR_UNSUPPORTED);
+                    verticalPitch /= srcTempSurface.Data.Pitch;
                     mfxU32 srcPitch = srcTempSurface.Data.PitchLow + ((mfxU32)srcTempSurface.Data.PitchHigh << 16);
 
                     sts = m_pCmCopy->CopyMirrorSystemToVideoMemory(dstHandle.first, 0, srcTempSurface.Data.Y, srcPitch, (mfxU32)verticalPitch, roi, MFX_FOURCC_NV12);
@@ -3443,7 +3473,9 @@ mfxStatus VideoVPPHW::PostWorkOutSurfaceCopy(ExtSurface & output)
             }
 
             mfxI64 verticalPitch = (mfxI64)dstTempSurface.Data.UV - (mfxI64)dstTempSurface.Data.Y;
-            verticalPitch = (verticalPitch % dstTempSurface.Data.Pitch)? 0 : verticalPitch / dstTempSurface.Data.Pitch;
+            // offset beetween Y and UV must be align to pitch
+            MFX_CHECK(!(verticalPitch % dstTempSurface.Data.Pitch), MFX_ERR_UNSUPPORTED);
+            verticalPitch /= dstTempSurface.Data.Pitch;
             mfxU32 dstPitch = dstTempSurface.Data.PitchLow + ((mfxU32)dstTempSurface.Data.PitchHigh << 16);
 
             sts = m_pCmCopy->CopyMirrorVideoToSystemMemory(dstTempSurface.Data.Y, dstPitch, (mfxU32)verticalPitch, srcHandle.first, 0, roi, MFX_FOURCC_NV12);
@@ -3983,7 +4015,8 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
         return sts;
     }
 
-    if (MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_WO_EXEC == m_executeParams.mirroringPosition)
+    if (m_pCore->GetVAType() != MFX_HW_VAAPI &&
+        MFX_MIRRORING_HORIZONTAL == m_executeParams.mirroring && MIRROR_WO_EXEC == m_executeParams.mirroringPosition)
     {
         /* Temporal solution for mirroring that makes nothing but mirroring
          * TODO: merge mirroring into pipeline
@@ -5165,6 +5198,8 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                 case MFX_FOURCC_RGB4:
                 case MFX_FOURCC_BGR4:
                     return make_back_color_argb(8, extComp->R, extComp->G, extComp->B);
+                case MFX_FOURCC_A2RGB10:
+                    return make_back_color_argb(10, extComp->R, extComp->G, extComp->B);
                 default:
                     break;
             }
@@ -5191,7 +5226,12 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
             return make_def_back_color_yuv(10);
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
+#ifdef MFX_ENABLE_RGBP
+        case MFX_FOURCC_RGBP:
+#endif
             return make_def_back_color_argb(8);
+        case MFX_FOURCC_A2RGB10:
+            return make_def_back_color_argb(10);
         default:
             break;
     }
@@ -5203,6 +5243,7 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
 // Do internal configuration
 //---------------------------------------------------------
 mfxStatus ConfigureExecuteParams(
+    VideoCORE* core,
     mfxVideoParam & videoParam, // [IN]
     mfxVppCaps & caps,          // [IN]
     mfxExecuteParams & executeParams, // [OUT]
@@ -5494,11 +5535,9 @@ mfxStatus ConfigureExecuteParams(
                         if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_MIRRORING)
                         {
                             mfxExtVPPMirroring *extMirroring = (mfxExtVPPMirroring*) videoParam.ExtParam[i];
-                            if (extMirroring->Type != MFX_MIRRORING_DISABLED && extMirroring->Type != MFX_MIRRORING_HORIZONTAL)
+                            if (extMirroring->Type != MFX_MIRRORING_DISABLED && extMirroring->Type != MFX_MIRRORING_HORIZONTAL
+                                && ((core->GetVAType() != MFX_HW_VAAPI) || (extMirroring->Type != MFX_MIRRORING_VERTICAL)))
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
-
-                            if (videoParam.vpp.In.FourCC != MFX_FOURCC_NV12 || videoParam.vpp.Out.FourCC != MFX_FOURCC_NV12)
-                                return MFX_ERR_INVALID_VIDEO_PARAM; // Only NV12 as in/out supported by mirroring now
 
                             if (videoParam.vpp.In.CropX || videoParam.vpp.In.CropY || videoParam.vpp.Out.CropX || videoParam.vpp.Out.CropY)
                                 return MFX_ERR_INVALID_VIDEO_PARAM; // mirroring does not support crop X and Y
@@ -5513,8 +5552,9 @@ mfxStatus ConfigureExecuteParams(
                             case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
                                 executeParams.mirroringPosition = MIRROR_WO_EXEC;
 
-                                if (videoParam.vpp.In.Width != videoParam.vpp.Out.Width || videoParam.vpp.In.Height != videoParam.vpp.Out.Height)
-                                    return MFX_ERR_INVALID_VIDEO_PARAM; // d3d->d3d mirroring does not support resize
+                                if ((core->GetVAType() != MFX_HW_VAAPI) &&
+                                    (videoParam.vpp.In.Width != videoParam.vpp.Out.Width || videoParam.vpp.In.Height != videoParam.vpp.Out.Height))
+                                    return MFX_ERR_INVALID_VIDEO_PARAM; // d3d->d3d mirroring supports resize with VAAPI only
 
                                 if (pipelineList.size() > 2) // if pipeline contains resize, mirroring and other
                                     bIsFilterSkipped = true; // VPP skips other filters
@@ -5536,6 +5576,18 @@ mfxStatus ConfigureExecuteParams(
                             default:
                                 return MFX_ERR_INVALID_VIDEO_PARAM;
                             }
+
+                            if ((videoParam.vpp.In.FourCC != MFX_FOURCC_NV12 || videoParam.vpp.Out.FourCC != MFX_FOURCC_NV12)
+                                /* mirroring with MIRROR_WO_EXEC on Linux may support other formats */
+                                && ((core->GetVAType() != MFX_HW_VAAPI) || (executeParams.mirroringPosition != MIRROR_WO_EXEC))
+                                )
+                                return MFX_ERR_INVALID_VIDEO_PARAM;
+
+                            /* Make sure MFX_MIRRORING_VERTICAL works with MIRROR_WO_EXEC only for VAAPI */
+                            if ((core->GetVAType() == MFX_HW_VAAPI) &&
+                                (executeParams.mirroringPosition != MIRROR_WO_EXEC &&
+                                extMirroring->Type == MFX_MIRRORING_VERTICAL))
+                                return MFX_ERR_INVALID_VIDEO_PARAM;
                         }
                     }
                 }
@@ -6104,7 +6156,6 @@ mfxStatus ConfigureExecuteParams(
         executeParams.bSceneDetectionEnable = false;
     }
 
-#if defined(WIN64) || defined (WIN32)
     if ( (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo))) &&
          executeParams.IsDoNothing() )
     {
@@ -6115,7 +6166,6 @@ mfxStatus ConfigureExecuteParams(
         config.m_bCopyPassThroughEnable = false;// after Reset() parameters may be changed,
                                             // flag should be disabled
     }
-#endif//m_bCopyPassThroughEnable == false for another OS
 
     if (inDNRatio == outDNRatio && !executeParams.bVarianceEnable && !executeParams.bComposite &&
             !(config.m_extConfig.mode == IS_REFERENCES) )

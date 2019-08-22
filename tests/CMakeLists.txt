@@ -18,6 +18,4 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-if (BUILD_DISPATCHER)
-  add_subdirectory(mfx_dispatch/linux)
-endif()
+add_subdirectory(unit)

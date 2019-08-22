@@ -609,7 +609,7 @@ bool CheckAndFixQIndexDelta(mfxI16& qIndexDelta, mfxU16 qIndex)
     return Clamp(qIndexDelta, minQIdxDelta, maxQIdxDelta);
 }
 
-mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 const & caps, mfxU16 QP)
+mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 const & caps, mfxU16 QP, mfxEncodeCtrl *ctrl_par = nullptr)
 {
     Bool changed = false;
     mfxU16& features = segPar.FeatureEnabled;
@@ -631,6 +631,21 @@ mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 cons
         if (false == CheckAndFixQIndexDelta(segPar.QIndexDelta, QP))
         {
             changed = true;
+        }
+
+        // if delta Q index value is OK, but Q index value + global QP + frame QP delta is out of valid range - clamp Q index delta
+        if (ctrl_par)
+        {
+            mfxExtVP9Param* pExtParRuntime = GetExtBuffer(*ctrl_par);
+            if (pExtParRuntime)
+            {
+                if (!CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaLumaDC) ||
+                    !CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaChromaAC) ||
+                    !CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaChromaDC))
+                {
+                    changed = true;
+                }
+            }
         }
     }
 
@@ -728,10 +743,8 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
         unsupported = true;
     }
 
-    // for Gen10 driver supports only 16x16 granularity for segmentation map
-    // but every 32x32 block of seg map should contain equal segment ids because of HW limitation
-    // so segment map is accepted from application in terms of 32x32 or 64x64 blocks
-    if (seg.SegmentIdBlockSize && seg.SegmentIdBlockSize < MFX_VP9_SEGMENT_ID_BLOCK_SIZE_32x32)
+    // currently only 64x64 block size for segmentation map supported (HW limitation)
+    if (seg.SegmentIdBlockSize && seg.SegmentIdBlockSize != MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64)
     {
         seg.SegmentIdBlockSize = 0;
         unsupported = true;
@@ -755,7 +768,7 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
 
     for (mfxU16 i = 0; i < seg.NumSegments; i++)
     {
-        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par.QPI);
+        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par.QPI, ctrl_par);
         if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             changed = true;
@@ -1610,8 +1623,7 @@ inline mfxU16 GetMinProfile(mfxU16 depth, mfxU16 format)
         (format > MFX_CHROMAFORMAT_YUV420);
 }
 
-#if (MFX_VERSION >= 1027)
-void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
+void SetDefaultsForProfileAndFrameInfo(VP9MfxVideoParam& par)
 {
     mfxFrameInfo& fi = par.mfx.FrameInfo;
 
@@ -1619,14 +1631,17 @@ void SetDefailtsForProfileAndFrameInfo(VP9MfxVideoParam& par)
     SetDefault(fi.BitDepthLuma, GetBitDepth(fi.FourCC));
     SetDefault(fi.BitDepthChroma, GetBitDepth(fi.FourCC));
 
+#if (MFX_VERSION >= 1027)
     mfxExtCodingOption3 &opt3 = GetExtBufferRef(par);
     SetDefault(opt3.TargetChromaFormatPlus1, fi.ChromaFormat + 1);
     SetDefault(opt3.TargetBitDepthLuma, fi.BitDepthLuma);
     SetDefault(opt3.TargetBitDepthChroma, fi.BitDepthChroma);
 
     SetDefault(par.mfx.CodecProfile, GetMinProfile(opt3.TargetBitDepthLuma, opt3.TargetChromaFormatPlus1 - 1));
-}
+#else //MFX_VERSION >= 1027
+    SetDefault(par.mfx.CodecProfile, MFX_PROFILE_VP9_0);
 #endif //MFX_VERSION >= 1027
+}
 
 #define DEFAULT_GOP_SIZE 0xffff
 #define DEFAULT_FRAME_RATE 30
@@ -1654,10 +1669,6 @@ mfxStatus SetDefaults(
         SetDefault(par.mfx.RateControlMethod, MFX_RATECONTROL_CBR);
     }
 
-    if (IsBufferBasedBRC(par.mfx.RateControlMethod))
-    {
-        SetDefault(par.m_initialDelayInKb, par.m_bufferSizeInKb / 2);
-    }
     if (IsBitrateBasedBRC(par.mfx.RateControlMethod))
     {
         if (par.m_numLayers)
@@ -1691,6 +1702,10 @@ mfxStatus SetDefaults(
     }
 
     SetDefault(par.m_bufferSizeInKb, GetDefaultBufferSize(par));
+    if (IsBufferBasedBRC(par.mfx.RateControlMethod))
+    {
+        SetDefault(par.m_initialDelayInKb, par.m_bufferSizeInKb / 2);
+    }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
@@ -1723,14 +1738,7 @@ mfxStatus SetDefaults(
     SetDefault(fi.PicStruct, MFX_PICSTRUCT_PROGRESSIVE);
 
     // profile, chroma format, bit depth
-#if (MFX_VERSION >= 1027)
-    SetDefailtsForProfileAndFrameInfo(par);
-#else // MFX_VERSION >= 1027
-    SetDefault(par.mfx.CodecProfile, MFX_PROFILE_VP9_0);
-    SetDefault(fi.ChromaFormat, MFX_CHROMAFORMAT_YUV420);
-    SetDefault(fi.BitDepthLuma, 8);
-    SetDefault(fi.BitDepthChroma, 8);
-#endif // MFX_VERSION >= 1027
+    SetDefaultsForProfileAndFrameInfo(par);
 
 #if (MFX_VERSION >= 1029)
     SetDefault(extPar.NumTileColumns, (extPar.FrameWidth + MAX_TILE_WIDTH - 1) / MAX_TILE_WIDTH);
@@ -2007,6 +2015,15 @@ mfxStatus CheckAndFixCtrl(
             sts = RemoveExtBuffer(ctrl, MFX_EXTBUFF_VP9_SEGMENTATION);
             MFX_CHECK(sts >= MFX_ERR_NONE, checkSts);
         }
+    }
+
+    mfxExtVP9Segmentation* seg_video = GetExtBuffer(video);
+    if (seg_video)
+    {
+        const mfxExtVP9Param& extParSeg = GetExtBufferRef(video);
+        mfxInfoMFX video_par = video.mfx;
+        mfxStatus sts = CheckSegmentationParam(*seg_video, extParSeg.FrameWidth, extParSeg.FrameHeight, caps, video_par, &ctrl);
+        MFX_CHECK_STS(sts);
     }
 
     return checkSts;

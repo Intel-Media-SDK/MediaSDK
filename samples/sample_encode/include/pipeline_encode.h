@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -42,6 +42,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "plugin_loader.h"
 
+#include "preset_manager.h"
+
 #if defined (ENABLE_V4L2_SUPPORT)
 #include "v4l2_util.h"
 #endif
@@ -69,13 +71,6 @@ enum MemType {
     SYSTEM_MEMORY = 0x00,
     D3D9_MEMORY   = 0x01,
     D3D11_MEMORY  = 0x02,
-};
-
-enum ExtBRCType {
-    EXTBRC_DEFAULT,
-    EXTBRC_OFF,
-    EXTBRC_ON,
-    EXTBRC_IMPLICIT
 };
 
 struct sInputParams
@@ -133,6 +128,14 @@ struct sInputParams
     mfxU16 nQPI;
     mfxU16 nQPP;
     mfxU16 nQPB;
+    mfxU16 nAvcTemp;
+    mfxU16 nBaseLayerPID;
+    mfxU16 nAvcTemporalLayers[8];
+    mfxU16 nSPSId;
+    mfxU16 nPPSId;
+    mfxU16 nPicTimingSEI;
+    mfxU16 nNalHrdConformance;
+    mfxU16 nVuiNalHrdParameters;
 
     mfxU16 nGPB;
     mfxU16 nTransformSkip;
@@ -145,6 +148,8 @@ struct sInputParams
     mfxU16 TransferMatrix;
 
     bool enableQSVFF;
+
+    bool bSoftRobustFlag;
 
     mfxU32 nTimeout;
     mfxU16 nMemBuf;
@@ -160,6 +165,8 @@ struct sInputParams
     mfxU16 BufferSizeInKB;
     mfxU16 InitialDelayInKB;
     mfxU16 GopOptFlag;
+    mfxU16 AdaptiveI;
+    mfxU16 AdaptiveB;
     mfxU32 nMaxFrameSize;
 
     mfxU16 WinBRCSize;
@@ -182,11 +189,16 @@ struct sInputParams
     bool shouldUseShifted10BitVPP;
     bool IsSourceMSB;
 
+    bool bSingleTexture;
+
 #if (MFX_VERSION >= 1027)
     msdk_char *RoundingOffsetFile;
 #endif
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];
+
+    EPresetModes PresetMode;
+    bool shouldPrintPresets;
 
 #if defined (ENABLE_V4L2_SUPPORT)
     msdk_char DeviceName[MSDK_MAX_FILENAME_LEN];
@@ -194,6 +206,11 @@ struct sInputParams
     enum V4L2PixelFormat v4l2Format;
     int MipiPort;
     enum AtomISPMode MipiMode;
+#endif
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    mfxI16 DeblockingAlphaTcOffset;
+    mfxI16 DeblockingBetaOffset;
 #endif
 
 };
@@ -281,7 +298,7 @@ struct bufList
 
 struct sTask
 {
-    mfxBitstream mfxBS;
+    mfxBitstreamWrapper mfxBS;
     mfxSyncPoint EncSyncP;
     std::list<mfxSyncPoint> DependentVppTasks;
     CSmplBitstreamWriter *pWriter;
@@ -307,10 +324,14 @@ public:
     virtual CTimeStatistics& GetOverallStatistics() { return m_statOverall;}
     virtual CTimeStatistics& GetFileStatistics() { return m_statFile;}
     virtual void Close();
+    virtual void SetGpuHangRecoveryFlag();
+    virtual void ClearTasks();
 protected:
     sTask* m_pTasks;
     mfxU32 m_nPoolSize;
     mfxU32 m_nTaskBufferStart;
+
+    bool m_bGpuHangRecovery;
 
     MFXVideoSession* m_pmfxSession;
 
@@ -391,12 +412,15 @@ protected:
     mfxExtCodingOption2 m_CodingOption2;
     // HEVC
     mfxExtHEVCParam m_ExtHEVCParam;
+    mfxExtHEVCTiles m_ExtHEVCTiles;
     mfxExtCodingOption3 m_CodingOption3;
     // VP9
     mfxExtVP9Param m_ExtVP9Param;
 
     // Set up video signal information
     mfxExtVideoSignalInfo m_VideoSignalInfo;
+    mfxExtAvcTemporalLayers m_AvcTemporalLayers;
+    mfxExtCodingOptionSPSPPS m_CodingOptionSPSPPS;
 
 #if (MFX_VERSION >= 1024)
     mfxExtBRC           m_ExtBRC;
@@ -410,11 +434,12 @@ protected:
 
     CHWDevice *m_hwdev;
 
+    bool isV4L2InputEnabled;
     bufList m_encExtBufs;
 #if (MFX_VERSION >= 1027)
     FILE* m_round_in;
 #endif
-    bool isV4L2InputEnabled;
+    bool m_bSoftRobustFlag;
 
     mfxU32 m_nTimeout;
 
@@ -425,6 +450,7 @@ protected:
     bool   m_bTimeOutExceed;
 
     bool   m_bIsFieldSplitting;
+    bool   m_bSingleTexture;
 
     mfxEncodeCtrl m_encCtrl;
 
@@ -452,7 +478,7 @@ protected:
     virtual mfxStatus AllocFrames();
     virtual void DeleteFrames();
 
-    virtual mfxStatus AllocateSufficientBuffer(mfxBitstream* pBS);
+    virtual mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper& bs);
     virtual mfxStatus FillBuffers();
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurf);
 

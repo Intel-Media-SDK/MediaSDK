@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include <new> // std::bad_alloc
 #include <stdio.h> // setrlimit
@@ -26,32 +27,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "vm/thread_defs.h"
 #include "sample_utils.h"
-
-MSDKMutex::MSDKMutex(void)
-{
-    int res = pthread_mutex_init(&m_mutex, NULL);
-    if (res) throw std::bad_alloc();
-}
-
-MSDKMutex::~MSDKMutex(void)
-{
-    pthread_mutex_destroy(&m_mutex);
-}
-
-mfxStatus MSDKMutex::Lock(void)
-{
-    return (pthread_mutex_lock(&m_mutex))? MFX_ERR_UNKNOWN: MFX_ERR_NONE;
-}
-
-mfxStatus MSDKMutex::Unlock(void)
-{
-    return (pthread_mutex_unlock(&m_mutex))? MFX_ERR_UNKNOWN: MFX_ERR_NONE;
-}
-
-int MSDKMutex::Try(void)
-{
-    return (pthread_mutex_trylock(&m_mutex))? 0: 1;
-}
 
 /* ****************************************************************************** */
 
@@ -315,3 +290,4 @@ mfxU32 msdk_get_current_pid()
     return syscall(SYS_getpid);
 }
 
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

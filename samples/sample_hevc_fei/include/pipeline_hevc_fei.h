@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -48,24 +48,24 @@ private:
                                       shouldn't be modified during processing to not lose
                                       initial settings */
 
-    mfxIMPL                                m_impl;
-    std::auto_ptr<CHWDevice>               m_pHWdev;
+    mfxIMPL                                  m_impl;
+    std::unique_ptr<CHWDevice>               m_pHWdev;
 
-    std::auto_ptr<mfxAllocatorParams>      m_pMFXAllocatorParams;
-    std::auto_ptr<MFXFrameAllocator>       m_pMFXAllocator;
+    std::unique_ptr<mfxAllocatorParams>      m_pMFXAllocatorParams;
+    std::unique_ptr<MFXFrameAllocator>       m_pMFXAllocator;
 
-    MFXVideoSession                        m_mfxSession;
-    std::auto_ptr<MFXPlugin>               m_pDecoderPlugin;
-    std::auto_ptr<MFXPlugin>               m_pHEVCePlugin;
+    MFXVideoSession                          m_mfxSession;
+    std::unique_ptr<MFXPlugin>               m_pDecoderPlugin;
+    std::unique_ptr<MFXPlugin>               m_pHEVCePlugin;
 
-    SurfacesPool                           m_EncSurfPool;
+    SurfacesPool                             m_EncSurfPool;
 
-    std::auto_ptr<IYUVSource>              m_pYUVSource; // source of raw YUV data for encoder (e.g. YUV file reader, decoder, etc)
-    std::auto_ptr<EncodeOrderControl>      m_pOrderCtrl;
-    std::auto_ptr<IPreENC>                 m_pFEI_PreENC;
-    std::auto_ptr<FEI_Encode>              m_pFEI_Encode;
+    std::unique_ptr<IYUVSource>              m_pYUVSource; // source of raw YUV data for encoder (e.g. YUV file reader, decoder, etc)
+    std::unique_ptr<EncodeOrderControl>      m_pOrderCtrl;
+    std::unique_ptr<IPreENC>                 m_pFEI_PreENC;
+    std::unique_ptr<FEI_Encode>              m_pFEI_Encode;
 
-    std::auto_ptr<HEVCEncodeParamsChecker> m_pParamChecker;
+    std::unique_ptr<HEVCEncodeParamsChecker> m_pParamChecker;
 
 private:
     mfxStatus LoadFEIPlugin();

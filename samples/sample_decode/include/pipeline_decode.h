@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -96,6 +96,7 @@ struct sInputParams
     mfxU16  nAsyncDepth; // asyncronous queue
     mfxU16  nTimeout; // timeout in seconds
     mfxU16  gpuCopy; // GPU Copy mode (three-state option)
+    bool    bSoftRobustFlag;
     mfxU16  nThreadsNum;
     mfxI32  SchedulingType;
     mfxI32  Priority;
@@ -126,14 +127,6 @@ struct sInputParams
     msdk_char     strDstFile[MSDK_MAX_FILENAME_LEN];
     sPluginParams pluginParams;
 
-    sInputParams()
-    {
-        MSDK_ZERO_MEMORY(*this);
-    }
-};
-
-template<>struct mfx_ext_buffer_id<mfxExtMVCSeqDesc>{
-    enum {id = MFX_EXTBUFF_MVC_SEQ_DESC};
 };
 
 struct CPipelineStatistics
@@ -180,7 +173,6 @@ public:
     virtual mfxStatus ResetDevice();
 
     void SetMultiView();
-    void SetExtBuffersFlag()       { m_bIsExtBuffers = true; }
     virtual void PrintInfo();
     mfxU64 GetTotalBytesProcessed() { return totalBytesProcessed + m_mfxBS.DataOffset; }
 
@@ -209,18 +201,12 @@ protected: // functions
     virtual mfxStatus CreateRenderingWindow(sInputParams *pParams);
     virtual mfxStatus InitMfxParams(sInputParams *pParams);
 
-    // function for allocating a specific external buffer
-    template <typename Buffer>
-    mfxStatus AllocateExtBuffer();
-    virtual void DeleteExtBuffers();
-
     virtual mfxStatus AllocateExtMVCBuffers();
+
     virtual void    DeallocateExtMVCBuffers();
 
-    virtual void AttachExtParam();
-
     virtual mfxStatus InitVppParams();
-    virtual mfxStatus AllocAndInitVppFilters();
+    virtual mfxStatus InitVppFilters();
     virtual bool IsVppRequired(sInputParams *pParams);
 
     virtual mfxStatus CreateAllocator();
@@ -240,33 +226,22 @@ protected: // functions
     virtual mfxStatus DeliverOutput(mfxFrameSurface1* frame);
     virtual void PrintPerFrameStat(bool force = false);
 
-    virtual mfxStatus DeliverLoop(void);
-
-    static unsigned int MFX_STDCALL DeliverThreadFunc(void* ctx);
+    virtual void DeliverLoop();
 
 protected: // variables
-    CSmplYUVWriter          m_FileWriter;
+    CSmplYUVWriter                         m_FileWriter;
     std::unique_ptr<CSmplBitstreamReader>  m_FileReader;
-    mfxBitstream            m_mfxBS; // contains encoded data
+    mfxBitstreamWrapper                    m_mfxBS; // contains encoded data
     mfxU64 totalBytesProcessed;
 
     MFXVideoSession         m_mfxSession;
     mfxIMPL                 m_impl;
     MFXVideoDECODE*         m_pmfxDEC;
     MFXVideoVPP*            m_pmfxVPP;
-    mfxVideoParam           m_mfxVideoParams;
-    mfxVideoParam           m_mfxVppVideoParams;
+    MfxVideoParamsWrapper   m_mfxVideoParams;
+    MfxVideoParamsWrapper   m_mfxVppVideoParams;
     std::unique_ptr<MFXVideoUSER>  m_pUserModule;
     std::unique_ptr<MFXPlugin> m_pPlugin;
-    std::vector<mfxExtBuffer *> m_ExtBuffers;
-    std::vector<mfxExtBuffer *> m_ExtBuffersMfxBS;
-#if MFX_VERSION >= 1022
-    mfxExtDecVideoProcessing m_DecoderPostProcessing;
-#endif //MFX_VERSION >= 1022
-
-#if (MFX_VERSION >= 1025)
-    mfxExtDecodeErrorReport m_DecodeErrorReport;
-#endif
 
     GeneralAllocator*       m_pGeneralAllocator;
     mfxAllocatorParams*     m_pmfxAllocatorParams;
@@ -288,7 +263,6 @@ protected: // variables
 
     eWorkMode               m_eWorkMode; // work mode for the pipeline
     bool                    m_bIsMVC; // enables MVC mode (need to support several files as an output)
-    bool                    m_bIsExtBuffers; // indicates if external buffers were allocated
     bool                    m_bIsVideoWall; // indicates special mode: decoding will be done in a loop
     bool                    m_bIsCompleteFrame;
     mfxU32                  m_fourcc; // color format of vpp out, i420 by default
@@ -305,14 +279,11 @@ protected: // variables
     mfxU16                  m_diMode;
     bool                    m_bVppIsUsed;
     bool                    m_bVppFullColorRange;
+    bool                    m_bSoftRobustFlag;
     std::vector<msdk_tick>  m_vLatency;
 
     msdk_tick               m_startTick;
     msdk_tick               m_delayTicks;
-
-    mfxExtVPPDoNotUse       m_VppDoNotUse;      // for disabling VPP algorithms
-    mfxExtVPPDeinterlacing  m_VppDeinterlacing;
-    std::vector<mfxExtBuffer*> m_VppExtParams;
 
     mfxExtVPPVideoSignalInfo m_VppVideoSignalInfo;
     std::vector<mfxExtBuffer*> m_VppSurfaceExtParams;

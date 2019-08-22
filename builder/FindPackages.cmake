@@ -489,17 +489,26 @@ if( Linux )
   pkg_check_modules(PKG_LIBVA_DRM REQUIRED libva-drm>=0.33)
 
   # optional:
-  pkg_check_modules( PKG_X11       x11 )
-  pkg_check_modules( PKG_LIBVA_X11 libva-x11>=0.33 )
   pkg_check_modules( PKG_MFX       libmfx>=1.28 )
 
-  if ( PKG_X11_FOUND AND PKG_LIBVA_X11_FOUND )
-    set( ENABLE_X11 true )
-    if( ENABLE_X11_DRI3 )
-      pkg_check_modules(PKG_XCB REQUIRED xcb xcb-dri3 x11-xcb xcb-present)
+  if ( ENABLE_X11 OR NOT DEFINED ENABLE_X11)
+    if ( ENABLE_X11 )
+      set(X11_REQUIRED REQUIRED)
     endif()
-  else()
-    message( STATUS "x11 modules not found (optional). Samples will be built without x11 support" )
+
+    pkg_check_modules( PKG_X11       ${X11_REQUIRED} x11 )
+    pkg_check_modules( PKG_LIBVA_X11 ${X11_REQUIRED} libva-x11>=0.33 )
+
+    if ( PKG_X11_FOUND AND PKG_LIBVA_X11_FOUND )
+      set( ENABLE_X11 ON )
+    else()
+      set( ENABLE_X11 OFF )
+      message( STATUS "x11 modules not found (optional). Samples will be built without x11 support" )
+    endif()
+  endif()
+
+  if( ENABLE_X11_DRI3 )
+    pkg_check_modules(PKG_XCB REQUIRED xcb xcb-dri3 x11-xcb xcb-present)
   endif()
 
   if( ENABLE_WAYLAND )

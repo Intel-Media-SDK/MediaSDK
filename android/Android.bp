@@ -5,11 +5,11 @@ cc_library_headers {
         "soong_libmfx_api_headers"
     ],
 
-    export_include_dirs = [
+    export_include_dirs: [
         "include"
     ],
 
-    export_header_lib_headers = [
+    export_header_lib_headers: [
         "soong_libmfx_api_headers"
     ],
 

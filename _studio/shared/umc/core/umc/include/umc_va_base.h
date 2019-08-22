@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -188,6 +188,7 @@ public:
         m_Profile(UNKNOWN),
         m_Platform(VA_UNKNOWN_PLATFORM),
         m_HWPlatform(MFX_HW_UNKNOWN),
+        m_protectedVA(nullptr),
         m_videoProcessingVA(0),
         m_allocator(0),
         m_bH264ShortSlice(false),
@@ -232,6 +233,7 @@ public:
     /* TODO: is used on Linux only? On Linux there are isues with signed/unsigned return value. */
     virtual int32_t GetSurfaceID(int32_t idx) { return idx; }
 
+    virtual ProtectedVA * GetProtectedVA() {return m_protectedVA;}
     virtual VideoProcessingVA * GetVideoProcessingVA() {return m_videoProcessingVA;}
 
     bool IsLongSliceControl() const { return (!m_bH264ShortSlice); };
@@ -249,6 +251,7 @@ public:
     eMFXHWType                  m_HWPlatform;
 
 protected:
+    ProtectedVA       *  m_protectedVA;
     VideoProcessingVA *  m_videoProcessingVA;
     FrameAllocator    *  m_allocator;
 

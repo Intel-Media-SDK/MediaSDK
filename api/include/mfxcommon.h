@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,10 +33,12 @@ extern "C"
 #define MFX_MAKEFOURCC(A,B,C,D)    ((((int)A))+(((int)B)<<8)+(((int)C)<<16)+(((int)D)<<24))
 
 /* Extended Configuration Header Structure */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU32  BufferId;
     mfxU32  BufferSz;
 } mfxExtBuffer;
+MFX_PACK_END()
 
 /* Library initialization and deinitialization */
 typedef mfxI32 mfxIMPL;
@@ -52,17 +54,24 @@ enum  {
     MFX_IMPL_HARDWARE3    = 0x0006,  /* Hardware accelerated implementation (3rd device) */
     MFX_IMPL_HARDWARE4    = 0x0007,  /* Hardware accelerated implementation (4th device) */
     MFX_IMPL_RUNTIME      = 0x0008,
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_IMPL_SINGLE_THREAD= 0x0009,
+#endif
     MFX_IMPL_VIA_ANY      = 0x0100,
     MFX_IMPL_VIA_D3D9     = 0x0200,
     MFX_IMPL_VIA_D3D11    = 0x0300,
     MFX_IMPL_VIA_VAAPI    = 0x0400,
 
     MFX_IMPL_AUDIO                     = 0x8000,
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_IMPL_EXTERNAL_THREADING        = 0x10000,
+#endif
 
     MFX_IMPL_UNSUPPORTED  = 0x0000  /* One of the MFXQueryIMPL returns */
 };
 
 /* Version Info */
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef union {
     struct {
         mfxU16  Minor;
@@ -70,6 +79,7 @@ typedef union {
     };
     mfxU32  Version;
 } mfxVersion;
+MFX_PACK_END()
 
 /* session priority */
 typedef enum
@@ -81,6 +91,7 @@ typedef enum
 } mfxPriority;
 
 typedef struct _mfxEncryptedData mfxEncryptedData;
+MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 typedef struct {
      union {
         struct {
@@ -90,7 +101,7 @@ typedef struct {
         };
          mfxU32  reserved[6];
      };
-    mfxI64  DecodeTimeStamp; 
+    mfxI64  DecodeTimeStamp;
     mfxU64  TimeStamp;
     mfxU8*  Data;
     mfxU32  DataOffset;
@@ -102,6 +113,7 @@ typedef struct {
     mfxU16  DataFlag;
     mfxU16  reserved2;
 } mfxBitstream;
+MFX_PACK_END()
 
 typedef struct _mfxSyncPoint *mfxSyncPoint;
 
@@ -112,6 +124,7 @@ enum {
     MFX_GPUCOPY_OFF     = 2
 };
 
+MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxIMPL     Implementation;
     mfxVersion  Version;
@@ -126,11 +139,13 @@ typedef struct {
     mfxU16      GPUCopy;
     mfxU16      reserved[21];
 } mfxInitParam;
+MFX_PACK_END()
 
 enum {
     MFX_EXTBUFF_THREADS_PARAM = MFX_MAKEFOURCC('T','H','D','P')
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
 
@@ -139,6 +154,7 @@ typedef struct {
     mfxI32       Priority;
     mfxU16       reserved[55];
 } mfxExtThreadsParam;
+MFX_PACK_END()
 
 /* PlatformCodeName */
 enum {
@@ -158,15 +174,18 @@ enum {
     MFX_PLATFORM_CANNONLAKE     = 20,
 #endif
 #if (MFX_VERSION >= 1027)
-    MFX_PLATFORM_ICELAKE = 30,
+    MFX_PLATFORM_ICELAKE        = 30,
 #endif
+    MFX_PLATFORM_ELKHARTLAKE    = 33,
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU16 CodeName;
     mfxU16 DeviceId;
     mfxU16 reserved[14];
 } mfxPlatform;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 }

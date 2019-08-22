@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 #include "umc_mjpeg_mfx_decode_base.h"
 #include "membuffin.h"
 #include "umc_jpeg_frame_constructor.h"
+#include "mfx_utils.h"
 
 namespace UMC
 {
@@ -99,8 +100,8 @@ Status MJPEGVideoDecoderBaseMFX::Close(void)
 
 void MJPEGVideoDecoderBaseMFX::AdjustFrameSize(mfxSize & size)
 {
-    size.width = align_value<uint32_t>(size.width, 16);
-    size.height = align_value<uint32_t>(size.height, m_interleaved ? 32 : 16);
+    size.width  = mfx::align2_value(size.width, 16);
+    size.height = mfx::align2_value(size.height, m_interleaved ? 32 : 16);
 }
 
 ChromaType MJPEGVideoDecoderBaseMFX::GetChromaType()
@@ -212,8 +213,8 @@ Status MJPEGVideoDecoderBaseMFX::FillVideoParam(mfxVideoParam *par, bool /*full*
     par->mfx.FrameInfo.CropH = (mfxU16) (m_frameDims.height);
     par->mfx.FrameInfo.CropW = (mfxU16) (m_frameDims.width);
 
-    par->mfx.FrameInfo.CropW = UMC::align_value<mfxU16>(par->mfx.FrameInfo.CropW, 2);
-    par->mfx.FrameInfo.CropH = UMC::align_value<mfxU16>(par->mfx.FrameInfo.CropH, 2);
+    par->mfx.FrameInfo.CropW = mfx::align2_value(par->mfx.FrameInfo.CropW, 2);
+    par->mfx.FrameInfo.CropH = mfx::align2_value(par->mfx.FrameInfo.CropH, 2);
 
     par->mfx.FrameInfo.PicStruct = (mfxU8)(m_interleaved ? MFX_PICSTRUCT_FIELD_TFF : MFX_PICSTRUCT_PROGRESSIVE);
     par->mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV420;

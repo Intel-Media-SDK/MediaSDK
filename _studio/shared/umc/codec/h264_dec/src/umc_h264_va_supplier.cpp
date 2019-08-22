@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2017-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,6 +40,8 @@
 #include "umc_h264_notify.h"
 
 #include "mfxfei.h"
+
+#include "umc_va_linux_protected.h"
 
 namespace UMC
 {
@@ -126,6 +128,13 @@ Status VATaskSupplier::Init(VideoDecoderParams *pInit)
 
     H264VideoDecoderParams *initH264 = DynamicCast<H264VideoDecoderParams> (pInit);
     m_DPBSizeEx = m_iThreadNum + (initH264 ? initH264->m_bufferedFrames : 0);
+
+    if (m_va &&
+        m_va->GetProtectedVA() &&
+        IS_PROTECTION_CENC(m_va->GetProtectedVA()->GetProtected()))
+    {
+        m_DPBSizeEx += 2;
+    }
 
     m_sei_messages = new SEI_Storer();
     m_sei_messages->Init();

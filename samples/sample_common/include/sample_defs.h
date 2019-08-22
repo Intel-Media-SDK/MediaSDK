@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -28,9 +28,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/file_defs.h"
 #include "vm/time_defs.h"
 
-#define _MSDK_API (MFX_VERSION_MAJOR*256+MFX_VERSION_MINOR)
-#define MSDK_API(M,MM) (M*256+MM)
-
 // Run-time HSBC
 // the condition below must be changed to MFX_VERSION >= 1027 after API is promoted to 1.27
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
@@ -39,7 +36,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #if (MFX_VERSION >= 1026)
 #define ENABLE_MCTF
+#if defined(MFX_VERSION_NEXT) && (MFX_VERSION >= MFX_VERSION_NEXT)
+//---MCTF, extended interface
 #undef ENABLE_MCTF_EXT
+#endif
 enum {MCTF_BITRATE_MULTIPLIER = 100000};
 #endif
 
@@ -115,7 +115,7 @@ enum LibVABackend
 #define MSDK_DEC_WAIT_INTERVAL 300000
 #define MSDK_ENC_WAIT_INTERVAL 300000
 #define MSDK_VPP_WAIT_INTERVAL 300000
-#define MSDK_SURFACE_WAIT_INTERVAL 20000
+#define MSDK_SURFACE_WAIT_INTERVAL 300000
 #define MSDK_DEVICE_FREE_WAIT_INTERVAL 30000
 #define MSDK_WAIT_INTERVAL MSDK_DEC_WAIT_INTERVAL+3*MSDK_VPP_WAIT_INTERVAL+MSDK_ENC_WAIT_INTERVAL // an estimate for the longest pipeline we have in samples
 

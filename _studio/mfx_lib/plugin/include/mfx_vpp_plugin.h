@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -85,7 +85,7 @@ public:
         return new MFXVPP_Plugin(false);
     }
     static mfxStatus CreateByDispatcher(mfxPluginUID guid, mfxPlugin* mfxPlg) {
-        if (memcmp(& guid , &g_VPP_PluginGuid, sizeof(mfxPluginUID))) {
+        if (guid != g_VPP_PluginGuid) {
             return MFX_ERR_NOT_FOUND;
         }
         MFXVPP_Plugin* tmp_pplg = 0;

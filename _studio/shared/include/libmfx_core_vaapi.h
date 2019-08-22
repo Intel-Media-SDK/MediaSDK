@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -121,9 +121,10 @@ public:
         CMEnabledCoreAdapter(VAAPIVideoCORE *pVAAPICore): m_pVAAPICore(pVAAPICore)
         {
         };
-        virtual mfxStatus SetCmCopyStatus(bool enable)
+        virtual mfxStatus SetCmCopyStatus(bool enable) override
         {
-            return m_pVAAPICore->SetCmCopyStatus(enable);
+            m_pVAAPICore->SetCmCopy(enable);
+            return MFX_ERR_NONE;
         };
     protected:
         VAAPIVideoCORE *m_pVAAPICore;
@@ -175,7 +176,9 @@ public:
     mfxStatus              GetVAService(VADisplay *pVADisplay);
 
     // this function should not be virtual
-    mfxStatus SetCmCopyStatus(bool enable);
+    void SetCmCopy(bool enable);
+
+    bool CmCopy() const { return m_bCmCopy; }
 
 protected:
     VAAPIVideoCORE(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = NULL);

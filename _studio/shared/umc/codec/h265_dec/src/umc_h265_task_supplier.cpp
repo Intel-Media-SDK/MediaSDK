@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -468,12 +468,12 @@ SEI_Storer_H265::SEI_Message* SEI_Storer_H265::AddMessage(UMC::MediaDataEx *nalU
     size_t freeSlot = 0;
     //move empty (not used) payloads to the end of sequence
     std::vector<SEI_Message>::iterator
-        end = std::remove_if(m_payloads.begin(), m_payloads.end(), std::mem_fun_ref(&SEI_Message::empty));
+        end = std::remove_if(m_payloads.begin(), m_payloads.end(), std::mem_fn(&SEI_Message::empty));
     if (end != m_payloads.end())
     {
         //since the state of elements after new logical end is unspecified
         //we have to clear (mark as not used) them
-        std::for_each(end, m_payloads.end(), std::mem_fun_ref(&SEI_Message::clear));
+        std::for_each(end, m_payloads.end(), std::mem_fn(&SEI_Message::clear));
         freeSlot = std::distance(m_payloads.begin(), end);
     }
     else

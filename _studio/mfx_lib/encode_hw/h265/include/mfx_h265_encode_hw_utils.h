@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -75,11 +75,7 @@ template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0,
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
 template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
 template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
-template<class T> inline T Align(T value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    return T((value + alignment - 1) & ~(alignment - 1));
-}
+
 template<class T> bool AlignDown(T& value, mfxU32 alignment)
 {
     assert((alignment & (alignment - 1)) == 0); // should be 2^n
@@ -218,6 +214,16 @@ inline bool IsOff(mfxU32 opt)
     return opt == MFX_CODINGOPTION_OFF;
 }
 
+inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
+{
+    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
+
+    mfxStatus sts_max = (std::max)(sts1, sts2),
+              sts_min = (std::min)(sts1, sts2);
+
+    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
+}
+
 class MfxFrameAllocResponse : public mfxFrameAllocResponse
 {
 public:
@@ -319,7 +325,7 @@ struct RoiData{
     mfxU32  Right;
     mfxU32  Bottom;
 
-    mfxI16  Priority;
+    mfxI16  DeltaQP;
 };
 
 struct Task : DpbFrame
@@ -426,6 +432,10 @@ namespace ExtBuffer
          MFX_EXTBUFF_MBQP,
          MFX_EXTBUFF_ENCODER_ROI,
          MFX_EXTBUFF_DIRTY_RECTANGLES,
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+         MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME,
+         MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO,
+#endif
          MFX_EXTBUFF_ENCODED_FRAME_INFO
     };
 
@@ -452,9 +462,13 @@ namespace ExtBuffer
         EXTBUF(mfxExtDirtyRect,             MFX_EXTBUFF_DIRTY_RECTANGLES);
         EXTBUF(mfxExtBRC,                   MFX_EXTBUFF_BRC);
         EXTBUF(mfxExtMBQP,                  MFX_EXTBUFF_MBQP);
-#if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#ifdef MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
         EXTBUF(mfxExtPredWeightTable,       MFX_EXTBUFF_PRED_WEIGHT_TABLE);
-#endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
+#endif
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+        EXTBUF(mfxExtMasteringDisplayColourVolume, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
+        EXTBUF(mfxExtContentLightLevelInfo, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
+#endif
         EXTBUF(mfxExtAVCEncodedFrameInfo, MFX_EXTBUFF_ENCODED_FRAME_INFO);
 
     #undef EXTBUF
@@ -786,6 +800,10 @@ public:
         mfxExtBRC                   extBRC;
         mfxExtEncoderROI            ROI;
         mfxExtDirtyRect             DirtyRect;
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+        mfxExtMasteringDisplayColourVolume   DisplayColour;
+        mfxExtContentLightLevelInfo LightLevel;
+#endif
         mfxExtEncoderResetOption   ResetOpt;
         mfxExtBuffer *              m_extParam[SIZE_OF_ARRAY(ExtBuffer::allowed_buffers)];
     } m_ext;
@@ -822,7 +840,7 @@ public:
 
     mfxStatus FillPar(mfxVideoParam& par, bool query = false);
 
-    mfxStatus GetSliceHeader(Task const & task, Task const & prevTask, ENCODE_CAPS_HEVC const & caps, Slice & s) const;
+    mfxStatus GetSliceHeader(Task const & task, Task const & prevTask, MFX_ENCODE_CAPS_HEVC const & caps, Slice & s) const;
 
     mfxStatus GetExtBuffers(mfxVideoParam& par, bool query = false);
     bool CheckExtBufferParam();
@@ -999,11 +1017,11 @@ bool isLTR(
     mfxI32 poc);
 
 void ConfigureTask(
-    Task &                   task,
-    Task const &             prevTask,
-    MfxVideoParam const &    video,
-    ENCODE_CAPS_HEVC const & caps,
-    mfxU32 &                 baseLayerOrder);
+    Task &                       task,
+    Task const &                 prevTask,
+    MfxVideoParam const &        video,
+    MFX_ENCODE_CAPS_HEVC const & caps,
+    mfxU32 &                     baseLayerOrder);
 
 mfxI64 CalcDTSFromPTS(
     mfxFrameInfo const & info,
@@ -1026,6 +1044,7 @@ mfxStatus GetNativeHandleToRawSurface(
     VideoCORE &    core,
     MfxVideoParam const & video,
     Task const &          task,
+    bool                  toSkip,
     mfxHDLPair &          handle);
 
 mfxStatus CopyRawSurfaceToVideoMemory(
@@ -1034,9 +1053,10 @@ mfxStatus CopyRawSurfaceToVideoMemory(
     Task const &          task);
 
 IntraRefreshState GetIntraRefreshState(
-    MfxVideoParam const & video,
-    mfxU32                frameOrderInGopDispOrder,
-    mfxEncodeCtrl const * ctrl);
+    MfxVideoParam const &       video,
+    mfxU32                      frameOrderInGopDispOrder,
+    mfxEncodeCtrl const *       ctrl,
+    MFX_ENCODE_CAPS_HEVC const& caps);
 
 mfxU8 GetNumReorderFrames(
     mfxU32 BFrameRate,

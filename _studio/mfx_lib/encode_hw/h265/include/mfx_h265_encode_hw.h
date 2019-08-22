@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2017-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -78,6 +78,11 @@ public:
     virtual mfxStatus GetEncodeStat(mfxEncodeStat * /*stat*/)
     {
         return MFX_ERR_UNSUPPORTED;
+    }
+
+    virtual mfxTaskThreadingPolicy GetThreadingPolicy(void)
+    {
+        return MFX_TASK_THREADING_INTRA;
     }
 
     virtual mfxStatus EncodeFrameCheck(mfxEncodeCtrl * /*ctrl*/, mfxFrameSurface1 * /*surface*/, mfxBitstream * /*bs*/, mfxFrameSurface1 ** /*reordered_surface*/, mfxEncodeInternalParams * /*pInternalParams*/)
@@ -155,10 +160,10 @@ protected:
         return CreatePlatformH265Encoder(core, type);
     }
 
-    mfxStatus CheckVideoParam(MfxVideoParam & par, ENCODE_CAPS_HEVC const & caps, bool bInit = false);
+    mfxStatus CheckVideoParam(MfxVideoParam & par, MFX_ENCODE_CAPS_HEVC const & caps, bool bInit = false);
     mfxStatus Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a);
 
-    virtual mfxStatus ExtraCheckVideoParam(MfxVideoParam & /*par*/, ENCODE_CAPS_HEVC const & /*caps*/, bool /*bInit = false*/)
+    virtual mfxStatus ExtraCheckVideoParam(MfxVideoParam & /*par*/, MFX_ENCODE_CAPS_HEVC const & /*caps*/, bool /*bInit = false*/)
     {
         return MFX_ERR_NONE;
     }
@@ -180,7 +185,7 @@ protected:
     std::unique_ptr<DriverEncoder>  m_ddi;
     VideoCORE                      *m_core;
     MfxVideoParam                   m_vpar;
-    ENCODE_CAPS_HEVC                m_caps;
+    MFX_ENCODE_CAPS_HEVC            m_caps;
 
     MfxFrameAllocResponse           m_raw;
     MfxFrameAllocResponse           m_rawSkip;

@@ -141,7 +141,6 @@ mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSu
 
     if (repackctrl)
     {
-        MFX_CHECK(!EncFrameCtrl->PerCuQp, MFX_ERR_INVALID_VIDEO_PARAM);
         MFX_CHECK(repackctrl->NumPasses <= 8, MFX_ERR_INVALID_VIDEO_PARAM);
     }
 

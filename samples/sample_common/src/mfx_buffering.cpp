@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -28,13 +28,13 @@ CBuffering::CBuffering():
     m_OutputSurfacesNumber(0),
     m_pSurfaces(NULL),
     m_pVppSurfaces(NULL),
-    m_FreeSurfacesPool(&m_Mutex),
-    m_FreeVppSurfacesPool(&m_Mutex),
-    m_UsedSurfacesPool(&m_Mutex),
-    m_UsedVppSurfacesPool(&m_Mutex),
+    m_FreeSurfacesPool(m_Mutex),
+    m_FreeVppSurfacesPool(m_Mutex),
+    m_UsedSurfacesPool(m_Mutex),
+    m_UsedVppSurfacesPool(m_Mutex),
     m_pFreeOutputSurfaces(NULL),
-    m_OutputSurfacesPool(&m_Mutex),
-    m_DeliveredSurfacesPool(&m_Mutex)
+    m_OutputSurfacesPool(m_Mutex),
+    m_DeliveredSurfacesPool(m_Mutex)
 {
 }
 
@@ -88,7 +88,7 @@ CBuffering::AllocVppBuffers(mfxU32 VppSurfaceNumber)
 void
 CBuffering::AllocOutputBuffer()
 {
-    AutomaticMutex lock(m_Mutex);
+    std::lock_guard<std::mutex> lock(m_Mutex);
 
     m_pFreeOutputSurfaces = (msdkOutputSurface*)calloc(1, sizeof(msdkOutputSurface));
 }
@@ -124,6 +124,8 @@ CBuffering::FreeBuffers()
     m_UsedSurfacesPool.m_pSurfacesTail = NULL;
     m_UsedVppSurfacesPool.m_pSurfacesHead = NULL;
     m_UsedVppSurfacesPool.m_pSurfacesTail = NULL;
+    m_OutputSurfacesPool.m_pSurfacesHead = NULL;
+    m_OutputSurfacesPool.m_pSurfacesTail = NULL;
 
     m_FreeSurfacesPool.m_pSurfaces = NULL;
     m_FreeVppSurfacesPool.m_pSurfaces = NULL;
@@ -160,7 +162,7 @@ CBuffering::ResetVppBuffers()
 void
 CBuffering::SyncFrameSurfaces()
 {
-    AutomaticMutex lock(m_Mutex);
+    std::lock_guard<std::mutex> lock(m_Mutex);
     msdkFrameSurface *prev;
     msdkFrameSurface *next;
     prev = next = NULL;
@@ -183,7 +185,7 @@ CBuffering::SyncFrameSurfaces()
 void
 CBuffering::SyncVppFrameSurfaces()
 {
-    AutomaticMutex lock(m_Mutex);
+    std::lock_guard<std::mutex> lock(m_Mutex);
     msdkFrameSurface *prev;
     msdkFrameSurface *next;
     prev = next = NULL;

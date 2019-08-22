@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -93,7 +93,7 @@ private:
 
     std::unique_ptr<MfxHwH264Encode::DriverEncoder> m_ddi;
     std::vector<mfxU32>                           m_recFrameOrder; // !!! HACK !!!
-    ENCODE_CAPS                                   m_caps;
+    MFX_ENCODE_CAPS                               m_caps;
 
     MfxHwH264Encode::MfxVideoParam                m_video;
     MfxHwH264Encode::MfxVideoParam                m_videoInit; // m_video may change by Reset, m_videoInit doesn't change

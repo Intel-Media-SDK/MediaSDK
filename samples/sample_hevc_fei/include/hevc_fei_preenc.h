@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -114,8 +114,8 @@ private:
     mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB m_default_MVMB;
 
     /* For I/O operations with extension buffers */
-    std::auto_ptr<FileHandler> m_pFile_MV_out;
-    std::auto_ptr<FileHandler> m_pFile_MBstat_out;
+    std::unique_ptr<FileHandler> m_pFile_MV_out;
+    std::unique_ptr<FileHandler> m_pFile_MBstat_out;
 
     bool m_isMVoutFormatted;
     mfxU32 m_processedFrames;
@@ -145,12 +145,12 @@ private:
     MfxVideoParamsWrapper CreateVppDSParams(mfxFrameInfo in_fi);
 
 private:
-    std::auto_ptr<IPreENC>  m_preenc;
-    MFXVideoSession*        m_parentSession;
+    std::unique_ptr<IPreENC>  m_preenc;
+    MFXVideoSession*          m_parentSession;
 
-    mfxU16                  m_ds_factor;
-    MFXVideoSession         m_vpp_session;
-    std::auto_ptr<MFX_VPP>  m_VPP;
+    mfxU16                    m_ds_factor;
+    MFXVideoSession           m_vpp_session;
+    std::unique_ptr<MFX_VPP>  m_VPP;
 
     SurfacesPool            m_DsSurfacePool;
 

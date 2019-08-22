@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 #include "umc_h265_nal_spl.h"
 
 #include "mfx_common_decode_int.h"
-
+#include "mfxpcp.h"
 
 #include <functional>
 #include <algorithm>
@@ -312,8 +312,8 @@ UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool
     par->mfx.FrameInfo.Width = (mfxU16) (seq->pic_width_in_luma_samples);
     par->mfx.FrameInfo.Height = (mfxU16) (seq->pic_height_in_luma_samples);
 
-    par->mfx.FrameInfo.Width = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Width, 16);
-    par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Height, 16);
+    par->mfx.FrameInfo.Width  = mfx::align2_value(par->mfx.FrameInfo.Width,  16);
+    par->mfx.FrameInfo.Height = mfx::align2_value(par->mfx.FrameInfo.Height, 16);
 
     par->mfx.FrameInfo.BitDepthLuma = (mfxU16) (seq->bit_depth_luma);
     par->mfx.FrameInfo.BitDepthChroma = (mfxU16) (seq->bit_depth_chroma);
@@ -866,6 +866,28 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
         if (stsExt < MFX_ERR_NONE)
             sts = MFX_ERR_UNSUPPORTED;
 
+        if (in->Protected)
+        {
+            out->Protected = in->Protected;
+
+            if (type == MFX_HW_UNKNOWN)
+            {
+                sts = MFX_ERR_UNSUPPORTED;
+                out->Protected = 0;
+            }
+
+            if (!IS_PROTECTION_ANY(in->Protected))
+            {
+                sts = MFX_ERR_UNSUPPORTED;
+                out->Protected = 0;
+            }
+
+            if (!(in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
+            {
+                out->IOPattern = 0;
+                sts = MFX_ERR_UNSUPPORTED;
+            }
+        }
 
         if (GetPlatform_H265(core, out) != core->GetPlatformType() && sts == MFX_ERR_NONE)
         {
@@ -922,10 +944,16 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
 }
 
 // Validate input parameters
-bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType /* type */)
+bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
 {
     if (!in)
         return false;
+
+    if (in->Protected)
+    {
+        if (type == MFX_HW_UNKNOWN || !IS_PROTECTION_ANY(in->Protected))
+            return false;
+    }
 
     if (MFX_CODEC_HEVC != in->mfx.CodecId)
         return false;

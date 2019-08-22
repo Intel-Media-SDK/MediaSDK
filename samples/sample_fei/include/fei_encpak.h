@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -34,19 +34,19 @@ private:
     FEI_EncPakInterface& operator= (const FEI_EncPakInterface& other_encpak); // forbidden
 
 public:
-    MFXVideoSession*  m_pmfxSession;
-    MFXVideoENC*      m_pmfxENC;
-    MFXVideoPAK*      m_pmfxPAK;
-    iTaskPool*        m_inputTasks;
-    mfxVideoParam     m_videoParams_ENC;
-    mfxVideoParam     m_videoParams_PAK;
-    mfxU32            m_allocId;
-    bufList*          m_pExtBuffers;
-    AppConfig*        m_pAppConfig;
-    mfxBitstream      m_mfxBS;
-    mfxSyncPoint      m_SyncPoint;
-    bool              m_bSingleFieldMode;
-    RefInfo           m_RefInfo;
+    MFXVideoSession*    m_pmfxSession;
+    MFXVideoENC*        m_pmfxENC;
+    MFXVideoPAK*        m_pmfxPAK;
+    iTaskPool*          m_inputTasks;
+    mfxVideoParam       m_videoParams_ENC;
+    mfxVideoParam       m_videoParams_PAK;
+    mfxU32              m_allocId;
+    bufList*            m_pExtBuffers;
+    AppConfig*          m_pAppConfig;
+    mfxBitstreamWrapper m_mfxBS;
+    mfxSyncPoint        m_SyncPoint;
+    bool                m_bSingleFieldMode;
+    RefInfo             m_RefInfo;
     MFXFrameAllocator* m_pMFXAllocator;
 
     /* Bitstream writer */

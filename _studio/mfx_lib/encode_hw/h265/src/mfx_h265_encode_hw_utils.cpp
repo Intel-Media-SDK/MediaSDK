@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -586,6 +586,7 @@ mfxStatus GetNativeHandleToRawSurface(
     VideoCORE &    core,
     MfxVideoParam const & video,
     Task const &          task,
+    bool                  toSkip,
     mfxHDLPair &          handle)
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -596,7 +597,8 @@ mfxStatus GetNativeHandleToRawSurface(
     mfxHDL * nativeHandle = &handle.first;
 
     if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
+        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY))
+        || toSkip)
         sts = core.GetFrameHDL(task.m_midRaw, nativeHandle);
     else if (video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
         sts = core.GetExternalFrameHDL(surface->Data.MemId, nativeHandle);
@@ -646,16 +648,16 @@ namespace ExtBuffer
     {
         if (!Construct<mfxVideoParam, mfxExtHEVCParam>(par, buf, pBuffers, numbuffers))
         {
-            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width, codedPicAlignment);
-            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
+            buf.PicWidthInLumaSamples  = align2_value(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width,  codedPicAlignment);
+            buf.PicHeightInLumaSamples = align2_value(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
             return false;
         }
         if (buf.PicWidthInLumaSamples == 0)
-            buf.PicWidthInLumaSamples  = Align(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX) : par.mfx.FrameInfo.Width, codedPicAlignment);
+            buf.PicWidthInLumaSamples  = align2_value(par.mfx.FrameInfo.CropW > 0 ? (mfxU16)(par.mfx.FrameInfo.CropW + par.mfx.FrameInfo.CropX)  : par.mfx.FrameInfo.Width,  codedPicAlignment);
 
         if (buf.PicHeightInLumaSamples == 0)
-            buf.PicHeightInLumaSamples = Align(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
+            buf.PicHeightInLumaSamples = align2_value(par.mfx.FrameInfo.CropH > 0 ? (mfxU16)(par.mfx.FrameInfo.CropH + par.mfx.FrameInfo.CropY)  : par.mfx.FrameInfo.Height, codedPicAlignment);
 
         return true;
     }
@@ -847,6 +849,10 @@ void MfxVideoParam::Construct(mfxVideoParam const & par)
     ExtBuffer::Construct(par, m_ext.extBRC, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.ROI, m_ext.m_extParam, base.NumExtParam);
     ExtBuffer::Construct(par, m_ext.DirtyRect, m_ext.m_extParam, base.NumExtParam);
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+    ExtBuffer::Construct(par, m_ext.DisplayColour, m_ext.m_extParam, base.NumExtParam);
+    ExtBuffer::Construct(par, m_ext.LightLevel, m_ext.m_extParam, base.NumExtParam);
+#endif
 }
 
 mfxStatus MfxVideoParam::FillPar(mfxVideoParam& par, bool query)
@@ -884,6 +890,10 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
     ExtBuffer::Set(par, m_ext.extBRC);
 #ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
     ExtBuffer::Set(par, m_ext.DirtyRect);
+#endif
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+    ExtBuffer::Set(par, m_ext.DisplayColour);
+    ExtBuffer::Set(par, m_ext.LightLevel);
 #endif
     mfxExtCodingOptionSPSPPS * pSPSPPS = ExtBuffer::Get(par);
     if (pSPSPPS && !query)
@@ -951,6 +961,10 @@ bool MfxVideoParam::CheckExtBufferParam()
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.AVCTL, true);
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.VSI, true);
     bUnsupported += ExtBuffer::CheckBufferParams(m_ext.extBRC, true);
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+    bUnsupported += ExtBuffer::CheckBufferParams(m_ext.DisplayColour, true);
+    bUnsupported += ExtBuffer::CheckBufferParams(m_ext.LightLevel, true);
+#endif
     return !!bUnsupported;
 }
 
@@ -1376,8 +1390,8 @@ void MfxVideoParam::SyncHeadersToMfxParam()
     m_ext.HEVCParam.PicWidthInLumaSamples  = (mfxU16)m_sps.pic_width_in_luma_samples;
     m_ext.HEVCParam.PicHeightInLumaSamples = (mfxU16)m_sps.pic_height_in_luma_samples;
 
-    fi.Width = Align(m_ext.HEVCParam.PicWidthInLumaSamples, HW_SURF_ALIGN_W);
-    fi.Height = Align(m_ext.HEVCParam.PicHeightInLumaSamples, HW_SURF_ALIGN_H);
+    fi.Width  = align2_value(m_ext.HEVCParam.PicWidthInLumaSamples,  HW_SURF_ALIGN_W);
+    fi.Height = align2_value(m_ext.HEVCParam.PicHeightInLumaSamples, HW_SURF_ALIGN_H);
 
     fi.CropX = 0;
     fi.CropY = 0;
@@ -2071,7 +2085,7 @@ bool isForcedDeltaPocMsbPresent(
     return false;
 }
 
-mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask, ENCODE_CAPS_HEVC const & caps, Slice & s) const
+mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask, MFX_ENCODE_CAPS_HEVC const & caps, Slice & s) const
 {
     bool  isP   = !!(task.m_frameType & MFX_FRAMETYPE_P);
     bool  isB   = !!(task.m_frameType & MFX_FRAMETYPE_B);
@@ -2327,21 +2341,21 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             {
                 mfxU16 sz[2] =
                 {
-                    Min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.MaxNum_WeightedPredL0),
-                    Min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.MaxNum_WeightedPredL1)
+                    Min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL0),
+                    Min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL1)
                 };
 
                 for (mfxU16 l = 0; l < 2; l++)
                 {
                     for (mfxU16 i = 0; i < sz[l]; i++)
                     {
-                        if (pwt->LumaWeightFlag[l][i] && caps.LumaWeightedPred)
+                        if (pwt->LumaWeightFlag[l][i] && caps.ddi_caps.LumaWeightedPred)
                         {
                             s.pwt[l][i][Y][W] = pwt->Weights[l][i][Y][W];
                             s.pwt[l][i][Y][O] = pwt->Weights[l][i][Y][O];
                         }
 
-                        if (pwt->ChromaWeightFlag[l][i] && caps.ChromaWeightedPred)
+                        if (pwt->ChromaWeightFlag[l][i] && caps.ddi_caps.ChromaWeightedPred)
                         {
                             s.pwt[l][i][Cb][W] = pwt->Weights[l][i][Cb][W];
                             s.pwt[l][i][Cb][O] = pwt->Weights[l][i][Cb][O];
@@ -3357,9 +3371,10 @@ mfxU8 GetSHNUT(Task const & task, bool RAPIntra)
 }
 
 IntraRefreshState GetIntraRefreshState(
-    MfxVideoParam const & video,
-    mfxU32                frameOrderInGopDispOrder,
-    mfxEncodeCtrl const * ctrl)
+    MfxVideoParam const &       video,
+    mfxU32                      frameOrderInGopDispOrder,
+    mfxEncodeCtrl const *       ctrl,
+    MFX_ENCODE_CAPS_HEVC const& caps)
 {
     IntraRefreshState state={};
     const mfxExtCodingOption2*   extOpt2Init = &(video.m_ext.CO2);
@@ -3391,9 +3406,9 @@ IntraRefreshState GetIntraRefreshState(
     if (idxInActualRefreshCycle < 0)
         return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
 
-    state.refrType = extOpt2Init->IntRefType;
-    state.IntraSize = intraStripeWidthInMBs;
-    state.IntraLocation = (mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs;
+    state.refrType      = extOpt2Init->IntRefType;
+    state.IntraSize     = intraStripeWidthInMBs                                     << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
+    state.IntraLocation = ((mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs) << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
     // set QP for Intra macroblocks within refreshing line
     state.IntRefQPDelta = extOpt2Init->IntRefQPDelta;
     if (ctrl)
@@ -3407,10 +3422,10 @@ IntraRefreshState GetIntraRefreshState(
 }
 
 void ConfigureTask(
-    Task &                   task,
-    Task const &             prevTask,
-    MfxVideoParam const &    par,
-    ENCODE_CAPS_HEVC const & caps,
+    Task &                       task,
+    Task const &                 prevTask,
+    MfxVideoParam const &        par,
+    MFX_ENCODE_CAPS_HEVC const & caps,
     mfxU32 &baseLayerOrder)
 {
     const bool isI    = !!(task.m_frameType & MFX_FRAMETYPE_I);
@@ -3466,7 +3481,7 @@ void ConfigureTask(
     if (rtRoi && rtRoi->NumROI)
     {
         bool bTryROIViaMBQP;
-        mfxStatus sts = CheckAndFixRoi(par, caps, rtRoi, bTryROIViaMBQP);
+        mfxStatus sts = CheckAndFixRoi(par, caps.ddi_caps, rtRoi, bTryROIViaMBQP);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM  || (bTryROIViaMBQP && !par.bROIViaMBQP))
             parRoi = 0;
         else
@@ -3479,28 +3494,45 @@ void ConfigureTask(
     task.m_numRoi = 0;
     if (parRoi && parRoi->NumROI && !par.bROIViaMBQP)
     {
-        for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
+         for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
         {
             task.m_roi[i] = {parRoi->ROI[i].Left,  parRoi->ROI[i].Top,
-                             parRoi->ROI[i].Right, parRoi->ROI[i].Bottom, parRoi->ROI[i].Priority};
+                             parRoi->ROI[i].Right, parRoi->ROI[i].Bottom,
+                            (mfxI16)((parRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * parRoi->ROI[i].DeltaQP) };
             task.m_numRoi ++;
         }
-#if MFX_VERSION > 1021
-        task.m_bPriorityToDQPpar = (par.isSWBRC() && task.m_roiMode == MFX_ROI_MODE_PRIORITY);
-        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
-        {
-            task.m_roiMode = parRoi->ROIMode;
-        }
-        else
-        {
-            task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
-        }
-#endif // MFX_VERSION > 1021
+
+        task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
     }
 
 #else
     (void)caps;
 #endif // MFX_ENABLE_HEVCE_ROI
+#ifdef MFX_ENABLE_HEVCE_HDR_SEI
+    mfxExtMasteringDisplayColourVolume* rtDisplayColour = ExtBuffer::Get(task.m_ctrl);
+    mfxExtMasteringDisplayColourVolume const * parDisplayColour = &par.m_ext.DisplayColour;
+    if (rtDisplayColour)
+    {
+        task.m_insertHeaders |= INSERT_DCVSEI;
+    }
+    else if (parDisplayColour)
+    {
+        if (parDisplayColour->InsertPayloadToggle == MFX_PAYLOAD_IDR && isIDR)
+            task.m_insertHeaders |= INSERT_DCVSEI;
+    }
+
+    mfxExtContentLightLevelInfo* rtLightLevel = ExtBuffer::Get(task.m_ctrl);
+    mfxExtContentLightLevelInfo const * parLightLevel = &par.m_ext.LightLevel;
+    if (rtLightLevel)
+    {
+        task.m_insertHeaders |= INSERT_LLISEI;
+    }
+    else if (parLightLevel)
+    {
+        if (parLightLevel->InsertPayloadToggle == MFX_PAYLOAD_IDR && isIDR)
+            task.m_insertHeaders |= INSERT_LLISEI;
+    }
+#endif
 #ifdef MFX_ENABLE_HEVCE_DIRTY_RECT
     // DirtyRect
     mfxExtDirtyRect const * parDirtyRect = &par.m_ext.DirtyRect;
@@ -3508,7 +3540,7 @@ void ConfigureTask(
 
     if (rtDirtyRect && rtDirtyRect->NumRect)
     {
-        mfxStatus sts = CheckAndFixDirtyRect(caps, par, rtDirtyRect);
+        mfxStatus sts = CheckAndFixDirtyRect(caps.ddi_caps, par, rtDirtyRect);
         if (sts == MFX_ERR_INVALID_VIDEO_PARAM)
             parDirtyRect = 0;
         else
@@ -3532,7 +3564,8 @@ void ConfigureTask(
         task.m_IRState = GetIntraRefreshState(
             par,
             baseLayerOrder ++,
-            &(task.m_ctrl));
+            &(task.m_ctrl),
+            caps);
     }
 
      mfxU32 needRecoveryPointSei = (par.m_ext.CO.RecoveryPointSEI == MFX_CODINGOPTION_ON &&
@@ -3754,7 +3787,7 @@ mfxStatus CodeAsSkipFrame(     VideoCORE &            core,
     }
     else
     {
-        mfxU8 ind = task.m_refPicList[0][0] ;
+        mfxU8 ind = ((task.m_frameType & MFX_FRAMETYPE_B) && (!task.m_ldb) && task.m_numRefActive[1]!=0) ? task.m_refPicList[1][0] : task.m_refPicList[0][0];
         MFX_CHECK(ind < 15, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         DpbFrame& refFrame = task.m_dpb[0][ind];
@@ -3769,7 +3802,8 @@ mfxStatus CodeAsSkipFrame(     VideoCORE &            core,
         sts = core.DoFastCopyWrapper(&surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
         MFX_CHECK_STS(sts);
 
-        //poolRec.SetFlag(refFrame.m_idxRec, 1);
+        if (ind!=0)
+            poolRec.SetFlag(refFrame.m_idxRec, 1);
 
     }
     poolRec.SetFlag(task.m_idxRec, 1);

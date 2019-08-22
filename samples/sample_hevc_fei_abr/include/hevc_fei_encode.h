@@ -108,7 +108,7 @@ private:
     MfxVideoParamsWrapper m_videoParams;
     mfxEncodeCtrlWrap     m_encodeCtrl;
 
-    mfxBitstream          m_bitstream;
+    mfxBitstreamWrapper   m_bitstream;
     mfxSyncPoint          m_syncPoint;
 
     std::string           m_dstFileName;

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -21,6 +21,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define __MFX_BUFFERING_H__
 
 #include <stdio.h>
+#include <mutex>
 
 #include "mfxstructures.h"
 
@@ -51,7 +52,7 @@ struct msdkOutputSurface
  * normal circumstances. Macro should be used where check in release mode is not
  * desirable and atually needed.
  */
-    #define MSDK_SELF_CHECK(C)
+#define MSDK_SELF_CHECK(C)
 
 class CBuffering;
 
@@ -60,9 +61,9 @@ class msdkFreeSurfacesPool
 {
     friend class CBuffering;
 public:
-    msdkFreeSurfacesPool(MSDKMutex* mutex):
+    msdkFreeSurfacesPool(std::mutex & mutex):
         m_pSurfaces(NULL),
-        m_pMutex(mutex) {}
+        m_rMutex(mutex) {}
 
     ~msdkFreeSurfacesPool() {
         m_pSurfaces = NULL;
@@ -74,7 +75,7 @@ public:
      * will be actually used we have good chance to avoid actual allocation of the surface memory.
      */
     inline void AddSurface(msdkFrameSurface* surface) {
-        AutomaticMutex lock(*m_pMutex);
+        std::lock_guard<std::mutex> lock(m_rMutex);
         AddSurfaceUnsafe(surface);
     }
     /** \brief The function gets the next free surface from the free surfaces array.
@@ -82,7 +83,7 @@ public:
      * @note Surface is detached from the free surfaces array.
      */
     inline msdkFrameSurface* GetSurface() {
-        AutomaticMutex lock(*m_pMutex);
+        std::lock_guard<std::mutex> lock(m_rMutex);
         return GetSurfaceUnsafe();
     }
 
@@ -114,7 +115,7 @@ private:
 
 protected:
     msdkFrameSurface* m_pSurfaces;
-    MSDKMutex* m_pMutex;
+    std::mutex &      m_rMutex;
 
 private:
     msdkFreeSurfacesPool(const msdkFreeSurfacesPool&);
@@ -126,10 +127,10 @@ class msdkUsedSurfacesPool
 {
     friend class CBuffering;
 public:
-    msdkUsedSurfacesPool(MSDKMutex* mutex):
+    msdkUsedSurfacesPool(std::mutex & mutex):
         m_pSurfacesHead(NULL),
         m_pSurfacesTail(NULL),
-        m_pMutex(mutex) {}
+        m_rMutex(mutex) {}
 
     ~msdkUsedSurfacesPool() {
         m_pSurfacesHead = NULL;
@@ -145,7 +146,7 @@ public:
      * head.
      */
     inline void AddSurface(msdkFrameSurface* surface) {
-        AutomaticMutex lock(*m_pMutex);
+        std::lock_guard<std::mutex> lock(m_rMutex);
         AddSurfaceUnsafe(surface);
     }
 
@@ -155,7 +156,7 @@ public:
      */
 
     inline void DetachSurface(msdkFrameSurface* surface) {
-        AutomaticMutex lock(*m_pMutex);
+        std::lock_guard<std::mutex> lock(m_rMutex);
         DetachSurfaceUnsafe(surface);
     }
 
@@ -204,7 +205,7 @@ private:
 protected:
     msdkFrameSurface* m_pSurfacesHead; // oldest surface
     msdkFrameSurface* m_pSurfacesTail; // youngest surface
-    MSDKMutex* m_pMutex;
+    std::mutex & m_rMutex;
 
 private:
     msdkUsedSurfacesPool(const msdkUsedSurfacesPool&);
@@ -216,11 +217,11 @@ class msdkOutputSurfacesPool
 {
     friend class CBuffering;
 public:
-    msdkOutputSurfacesPool(MSDKMutex* mutex):
+    msdkOutputSurfacesPool(std::mutex & mutex):
         m_pSurfacesHead(NULL),
         m_pSurfacesTail(NULL),
         m_SurfacesCount(0),
-        m_pMutex(mutex) {}
+        m_rMutex(mutex) {}
 
     ~msdkOutputSurfacesPool() {
         m_pSurfacesHead = NULL;
@@ -228,11 +229,11 @@ public:
     }
 
     inline void AddSurface(msdkOutputSurface* surface) {
-        AutomaticMutex lock(*m_pMutex);
+        std::lock_guard<std::mutex> lock(m_rMutex);
         AddSurfaceUnsafe(surface);
     }
     inline msdkOutputSurface* GetSurface() {
-        AutomaticMutex lock(*m_pMutex);
+        std::lock_guard<std::mutex> lock(m_rMutex);
         return GetSurfaceUnsafe();
     }
 
@@ -276,7 +277,7 @@ protected:
     msdkOutputSurface*      m_pSurfacesHead; // oldest surface
     msdkOutputSurface*      m_pSurfacesTail; // youngest surface
     mfxU32                  m_SurfacesCount;
-    MSDKMutex*              m_pMutex;
+    std::mutex &            m_rMutex;
 
 private:
     msdkOutputSurfacesPool(const msdkOutputSurfacesPool&);
@@ -326,18 +327,18 @@ protected: // functions
         m_pFreeOutputSurfaces->next = head;
     }
     inline void AddFreeOutputSurface(msdkOutputSurface* surface) {
-        AutomaticMutex lock(m_Mutex);
+        std::lock_guard<std::mutex> lock(m_Mutex);
         AddFreeOutputSurfaceUnsafe(surface);
     }
 
-    inline msdkOutputSurface* GetFreeOutputSurfaceUnsafe()
+    inline msdkOutputSurface* GetFreeOutputSurfaceUnsafe(std::unique_lock<std::mutex> & lock)
     {
         msdkOutputSurface* surface = NULL;
 
         if (!m_pFreeOutputSurfaces) {
-            m_Mutex.Unlock();
+            lock.unlock();
             AllocOutputBuffer();
-            m_Mutex.Lock();
+            lock.lock();
         }
         if (m_pFreeOutputSurfaces) {
             surface = m_pFreeOutputSurfaces;
@@ -348,8 +349,8 @@ protected: // functions
         return surface;
     }
     inline msdkOutputSurface* GetFreeOutputSurface() {
-        AutomaticMutex lock(m_Mutex);
-        return GetFreeOutputSurfaceUnsafe();
+        std::unique_lock<std::mutex> lock(m_Mutex);
+        return GetFreeOutputSurfaceUnsafe(lock);
     }
 
     /** \brief Function returns surface data to the corresponding buffers.
@@ -373,7 +374,7 @@ protected: // variables
     mfxU32                  m_OutputSurfacesNumber;
     msdkFrameSurface*       m_pSurfaces;
     msdkFrameSurface*       m_pVppSurfaces;
-    MSDKMutex               m_Mutex;
+    std::mutex              m_Mutex;
 
     // LIFO list of frame surfaces
     msdkFreeSurfacesPool    m_FreeSurfacesPool;

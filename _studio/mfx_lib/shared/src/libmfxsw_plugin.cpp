@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -215,7 +215,7 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
         mfxRes = par->GetPluginParam(par->pthis, &pluginParam);
         MFX_CHECK_STS(mfxRes);
 #if defined (MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
-        if (!memcmp(&MFX_PLUGINID_HEVC_FEI_ENCODE, &pluginParam.PluginUID, sizeof(MFX_PLUGINID_HEVC_FEI_ENCODE)))
+        if (MFX_PLUGINID_HEVC_FEI_ENCODE == pluginParam.PluginUID)
         {
             //WA!! to keep backward compatibility with FEI plugin, need to save it's registration
             //so able to select between HEVC FEI and regular HEVC encode
@@ -228,11 +228,8 @@ mfxStatus MFXVideoUSER_Register(mfxSession session, mfxU32 type,
             return MFX_ERR_NONE;
         }
 #endif
-        for (auto& uid : NativePlugins)
-        {
-            if (!memcmp(&uid, &pluginParam.PluginUID, sizeof(uid)))
-                return MFX_ERR_NONE; //do nothing
-        }
+        if (std::find(std::begin(NativePlugins), std::end(NativePlugins), pluginParam.PluginUID) != std::end(NativePlugins))
+            return MFX_ERR_NONE; //do nothing
 
         // create a new plugin's instance
         pluginPtr.reset(CreateUSERSpecificClass(type));

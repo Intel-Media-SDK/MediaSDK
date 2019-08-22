@@ -40,7 +40,6 @@ FEI_Encode::FEI_Encode(MFXVideoSession* session, mfxHDL hdl,
     , m_mvpInFileName(mvpInFile)
 {
     m_encodeCtrl.FrameType = MFX_FRAMETYPE_UNKNOWN;
-    MSDK_ZERO_MEMORY(m_bitstream);
 
     m_repacker.reset(repacker);
 }
@@ -50,7 +49,6 @@ FEI_Encode::~FEI_Encode()
     msdk_printf(MSDK_STRING("\nEncode processed %u frames\n"), m_processedFrames);
     m_mfxENCODE.Close();
     m_pmfxSession = NULL;
-    WipeMfxBitstream(&m_bitstream);
 
     try
     {
@@ -74,7 +72,7 @@ FEI_Encode::~FEI_Encode()
     }
     catch(mfxError& ex)
     {
-        msdk_printf("Exception raised in FEI Encode destructor sts = %d, msg = %s\n", ex.GetStatus(), ex.GetMessage().c_str());
+        msdk_printf("Exception raised in FEI Encode destructor sts = %d, msg = %s\n", ex.GetStatus(), ex.what());
     }
     catch(...)
     {
@@ -89,9 +87,7 @@ mfxStatus FEI_Encode::PreInit()
     mfxStatus sts = Query();
     MSDK_CHECK_STATUS(sts, "FEI Encode Query failed");
 
-    mfxU32 nEncodedDataBufferSize = m_videoParams.mfx.FrameInfo.Width * m_videoParams.mfx.FrameInfo.Height * 4;
-    sts = InitMfxBitstream(&m_bitstream, nEncodedDataBufferSize);
-    MSDK_CHECK_STATUS_SAFE(sts, "InitMfxBitstream failed", WipeMfxBitstream(&m_bitstream));
+    m_bitstream.Extend(m_videoParams.mfx.FrameInfo.Width * m_videoParams.mfx.FrameInfo.Height * 4);
 
     // add FEI frame ctrl with default values
     mfxExtFeiHevcEncFrameCtrl* ctrl = m_encodeCtrl.AddExtBuffer<mfxExtFeiHevcEncFrameCtrl>();
@@ -182,7 +178,7 @@ mfxStatus FEI_Encode::ResetExtBuffers(const MfxVideoParamsWrapper & videoParams)
     }
     catch (mfxError& ex)
     {
-        MSDK_CHECK_STATUS(ex.GetStatus(), ex.GetMessage());
+        MSDK_CHECK_STATUS(ex.GetStatus(), ex.what());
     }
     catch(...)
     {
@@ -487,9 +483,7 @@ mfxStatus FEI_Encode::AllocateSufficientBuffer()
     mfxStatus sts = m_mfxENCODE.GetVideoParam(&m_videoParams);
     MSDK_CHECK_STATUS(sts, "FEI Encode GetVideoParam failed");
 
-    // reallocate bigger buffer for output
-    sts = ExtendMfxBitstream(&m_bitstream, m_videoParams.mfx.BufferSizeInKB * 1000);
-    MSDK_CHECK_STATUS_SAFE(sts, "ExtendMfxBitstream failed", WipeMfxBitstream(&m_bitstream));
+    m_bitstream.Extend(m_videoParams.mfx.BufferSizeInKB * 1000);
 
     return sts;
 }

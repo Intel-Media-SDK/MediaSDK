@@ -26,6 +26,25 @@
 
 namespace MfxHwVP9Encode
 {
+bool CheckTriStateOption(mfxU16 & opt);
+
+void SetDefaultForLowpower(mfxU16 & lowpower, eMFXHWType platform)
+{
+    CheckTriStateOption(lowpower);
+
+    if (lowpower == MFX_CODINGOPTION_UNKNOWN)
+    {
+#if (MFX_VERSION >= 1027)
+        if (platform >= MFX_HW_ICL)
+            lowpower = MFX_CODINGOPTION_ON;
+        else
+#else
+        std::ignore = platform;
+#endif
+            lowpower = MFX_CODINGOPTION_OFF;
+    }
+}
+
 mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_DEFAULT, "MFXVideoENCODEVP9_HW::Query");
@@ -37,18 +56,24 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVid
     }
     else
     {
+        eMFXHWType platform = core->GetHWType();
+
         // check attached buffers (all are supported by encoder, no duplications, etc.)
         mfxStatus sts = CheckExtBufferHeaders(in->NumExtParam, in->ExtParam);
         MFX_CHECK_STS(sts);
         sts = CheckExtBufferHeaders(out->NumExtParam, out->ExtParam);
         MFX_CHECK_STS(sts);
 
-        VP9MfxVideoParam toValidate = *in;
+        VP9MfxVideoParam toValidate(*in);
+        SetDefaultsForProfileAndFrameInfo(toValidate);
+        SetDefaultForLowpower(toValidate.mfx.LowPower, platform);
 
         // get HW caps from driver
         ENCODE_CAPS_VP9 caps = {};
-        sts = QueryCaps(core, caps, GetGuid(toValidate), in->mfx.FrameInfo.Width, in->mfx.FrameInfo.Height);
+        sts = QueryCaps(core, caps, GetGuid(toValidate), toValidate.mfx.FrameInfo.Width, toValidate.mfx.FrameInfo.Height);
         MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
+
+        toValidate = *in;
 
         // validate input parameters
         sts = CheckParameters(toValidate, caps);
@@ -97,21 +122,23 @@ mfxStatus MFXVideoENCODEVP9_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par,
     mfxStatus sts = CheckExtBufferHeaders(par->NumExtParam, par->ExtParam);
     MFX_CHECK_STS(sts);
 
+    eMFXHWType platform = core->GetHWType();
+
     mfxU32 inPattern = par->IOPattern & MFX_IOPATTERN_IN_MASK;
     MFX_CHECK(inPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY ||
         inPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
         inPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    VP9MfxVideoParam toValidate = *par;
+    VP9MfxVideoParam toValidate(*par);
+
+    SetDefaultsForProfileAndFrameInfo(toValidate);
+    SetDefaultForLowpower(toValidate.mfx.LowPower, platform);
 
     // get HW caps from driver
     ENCODE_CAPS_VP9 caps = {};
+    sts = QueryCaps(core, caps, GetGuid(toValidate), toValidate.mfx.FrameInfo.Width, toValidate.mfx.FrameInfo.Height);
+    MFX_CHECK(MFX_ERR_NONE == sts, MFX_ERR_UNSUPPORTED);
 
-    sts = QueryCaps(core, caps, GetGuid(toValidate), par->mfx.FrameInfo.Width, par->mfx.FrameInfo.Height);
-    if (sts != MFX_ERR_NONE)
-    {
-        return MFX_ERR_UNSUPPORTED;
-    }
 
     // get validated and properly initialized set of parameters
     CheckParameters(toValidate, caps);
@@ -147,20 +174,26 @@ void SetReconInfo(VP9MfxVideoParam const & par, mfxFrameInfo& fi)
     mfxU16 format = opt3.TargetChromaFormatPlus1 - 1;
     mfxU16 depth = opt3.TargetBitDepthLuma;
 
-    fi.Width = AlignValue(fi.Width, 64);
-    fi.Height = AlignValue(fi.Height, 64);
+    fi.Width  = mfx::align2_value(fi.Width,  64);
+    fi.Height = mfx::align2_value(fi.Height, 64);
 
     if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_10)
     {
         fi.FourCC = MFX_FOURCC_Y410;
-        fi.Width = fi.Width / 2;
-        fi.Height = fi.Height * 3;
+        /* Pitch = 4*W for Y410 format
+           Pitch need to align on 256
+           So, width aligment is 256/4 = 64 */
+        fi.Width = (mfxU16)mfx::align2_value(fi.Width, 256 / 4);
+        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 2, 8);
     }
     else if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_8)
     {
         fi.FourCC = MFX_FOURCC_AYUV;
-        fi.Width = fi.Width / 4;
-        fi.Height = fi.Height * 3;
+        /* Pitch = 4*W for AYUV format
+           Pitch need to align on 512
+           So, width aligment is 512/4 = 128 */
+        fi.Width = (mfxU16)mfx::align2_value(fi.Width, 512 / 4);
+        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 4, 8);
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_10)
     {
@@ -197,11 +230,18 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
 
     m_video = *par;
 
+    eMFXHWType platform = m_pCore->GetHWType();
+
     m_ddi.reset(CreatePlatformVp9Encoder(m_pCore));
     MFX_CHECK(m_ddi.get() != 0, MFX_ERR_UNSUPPORTED);
 
-    sts = m_ddi->CreateAuxilliaryDevice(m_pCore, GetGuid(m_video),
-        m_video.mfx.FrameInfo.Width, m_video.mfx.FrameInfo.Height);
+    VP9MfxVideoParam toGetGuid(m_video);
+
+    SetDefaultsForProfileAndFrameInfo(toGetGuid);
+    SetDefaultForLowpower(toGetGuid.mfx.LowPower, platform);
+
+    sts = m_ddi->CreateAuxilliaryDevice(m_pCore, GetGuid(toGetGuid),
+        toGetGuid.mfx.FrameInfo.Width, toGetGuid.mfx.FrameInfo.Height);
     MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
 
@@ -329,7 +369,7 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     sts = m_ddi->Register(m_segmentMaps.GetFrameAllocReponse(), D3DDDIFMT_INTELENCODE_MBSEGMENTMAP);
     MFX_CHECK_STS(sts);
 
-    mfxU16 blockSize = MapIdToBlockSize(MFX_VP9_SEGMENT_ID_BLOCK_SIZE_32x32);
+    mfxU16 blockSize = MapIdToBlockSize(MFX_VP9_SEGMENT_ID_BLOCK_SIZE_64x64);
     // allocate enough space for segmentation map for lowest supported segment block size and highest supported resolution
     mfxU16 wInBlocks = (static_cast<mfxU16>(caps.MaxPicWidth) + blockSize - 1) / blockSize;
     mfxU16 hInBlocks = (static_cast<mfxU16>(caps.MaxPicHeight) + blockSize - 1) / blockSize;
@@ -960,12 +1000,7 @@ mfxStatus MFXVideoENCODEVP9_HW::UpdateBitstream(
     mfxU32   bsSizeAvail   = task.m_pBitsteam->MaxLength - task.m_pBitsteam->DataOffset - task.m_pBitsteam->DataLength;
     mfxU8 *  bsData        = task.m_pBitsteam->Data + task.m_pBitsteam->DataOffset + task.m_pBitsteam->DataLength;
 
-    assert(bsSizeToCopy <= bsSizeAvail);
-
-    if (bsSizeToCopy > bsSizeAvail)
-    {
-        bsSizeToCopy = bsSizeAvail;
-    }
+    MFX_CHECK(bsSizeToCopy <= bsSizeAvail, MFX_ERR_NOT_ENOUGH_BUFFER);
 
     // Avoid segfaults on very high bitrates
     if (bsSizeToCopy > m_maxBsSize)

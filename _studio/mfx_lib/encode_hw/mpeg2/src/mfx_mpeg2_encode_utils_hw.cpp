@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1178,24 +1178,20 @@ namespace MPEG2EncoderHW
         {
             bInvalid = true;
         }
-        if ((pFrameInfo->Width  & 15) !=0)
+        if ((pFrameInfo->Width & 15) != 0)
             return MFX_ERR_INVALID_VIDEO_PARAM;
 
-        pFrameInfo->Width = pFrameInfo->CropW ? ((pFrameInfo->CropW + 15)/16)*16 : pFrameInfo->Width;
+        if (pFrameInfo->CropW)
+            pFrameInfo->Width = mfx::align2_value(pFrameInfo->CropW, 16);
 
-        if (bProgressiveSequence)
-        {
-            if ((pFrameInfo->Height  & 15) !=0)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
-            pFrameInfo->Height = pFrameInfo->CropH ? ((pFrameInfo->CropH + 15)/16)*16 : pFrameInfo->Height;
+        mfxU32 heightAlignment = bProgressiveSequence ? 16 : 32;
 
-        }
-        else
-        {
-            if ((pFrameInfo->Height  & 31) !=0)
-                return MFX_ERR_INVALID_VIDEO_PARAM;
-            pFrameInfo->Height = pFrameInfo->CropH ? ((pFrameInfo->CropH + 31)/32)*32 : pFrameInfo->Height;
-        }
+        if ((pFrameInfo->Height & (heightAlignment - 1)) != 0)
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+
+        if (pFrameInfo->CropH)
+            pFrameInfo->Height = mfx::align2_value(pFrameInfo->CropH, heightAlignment);
+
         if (m_bInitialized == false)
         {
             m_InitWidth  = pFrameInfo->Width;

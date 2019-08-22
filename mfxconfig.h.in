@@ -22,6 +22,7 @@
 #cmakedefine MFX_ENABLE_SW_FALLBACK
 #cmakedefine MFX_ENABLE_MCTF
 #cmakedefine MFX_ENABLE_ASC
+#cmakedefine MFX_ENABLE_CPLIB
 
 #cmakedefine MFX_ENABLE_USER_DECODE
 #cmakedefine MFX_ENABLE_USER_ENCODE

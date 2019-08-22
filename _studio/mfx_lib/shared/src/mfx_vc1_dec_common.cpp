@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -463,14 +463,14 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
             {
                 // sizes should be align on 16 or 32 in case of fields
                 // !!!!!!!!!!!!!!!!!!!!!TBD. What is aligh in case of fields
-                par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Height, 16);
-                par->mfx.FrameInfo.Width = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Width , 16);
+                par->mfx.FrameInfo.Height = mfx::align2_value(par->mfx.FrameInfo.Height, 16);
+                par->mfx.FrameInfo.Width  = mfx::align2_value(par->mfx.FrameInfo.Width,  16);
             }
             else
             {
                 // sizes should be align on 16 or 32 in case of fields
-                par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Height, 32);
-                par->mfx.FrameInfo.Width = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Width, 16);
+                par->mfx.FrameInfo.Height = mfx::align2_value(par->mfx.FrameInfo.Height, 32);
+                par->mfx.FrameInfo.Width  = mfx::align2_value(par->mfx.FrameInfo.Width,  16);
             }
 
 
@@ -649,8 +649,8 @@ mfxStatus MFXVC1DecCommon::ParseSeqHeader(mfxBitstream *bs,
         par->mfx.FrameInfo.CropW = par->mfx.FrameInfo.Width;
 
         // sizes should be aligned
-        par->mfx.FrameInfo.Height = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Height, 16);
-        par->mfx.FrameInfo.Width  = UMC::align_value<mfxU16>(par->mfx.FrameInfo.Width , 16);
+        par->mfx.FrameInfo.Height = mfx::align2_value(par->mfx.FrameInfo.Height, 16);
+        par->mfx.FrameInfo.Width  = mfx::align2_value(par->mfx.FrameInfo.Width,  16);
 
 
 

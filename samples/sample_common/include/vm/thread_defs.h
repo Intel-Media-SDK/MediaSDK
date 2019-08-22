@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -25,16 +25,32 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 typedef unsigned int (MFX_STDCALL * msdk_thread_callback)(void*);
 
+#if defined(_WIN32) || defined(_WIN64)
+
+#include <windows.h>
+#include <process.h>
+
+struct msdkSemaphoreHandle
+{
+    void* m_semaphore;
+};
+
+struct msdkEventHandle
+{
+    void* m_event;
+};
+
+struct msdkThreadHandle
+{
+    void* m_thread;
+};
+
+#else // #if defined(_WIN32) || defined(_WIN64)
 
 #include <pthread.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-
-struct msdkMutexHandle
-{
-    pthread_mutex_t m_mutex;
-};
 
 struct msdkSemaphoreHandle
 {
@@ -79,39 +95,7 @@ struct msdkThreadHandle
     pthread_t m_thread;
 };
 
-
-class MSDKMutex: public msdkMutexHandle
-{
-public:
-    MSDKMutex(void);
-    ~MSDKMutex(void);
-
-    mfxStatus Lock(void);
-    mfxStatus Unlock(void);
-    int Try(void);
-
-private:
-    MSDKMutex(const MSDKMutex&);
-    void operator=(const MSDKMutex&);
-};
-
-class AutomaticMutex
-{
-public:
-    AutomaticMutex(MSDKMutex& mutex);
-    ~AutomaticMutex(void);
-
-private:
-    mfxStatus Lock(void);
-    mfxStatus Unlock(void);
-
-    MSDKMutex& m_rMutex;
-    bool m_bLocked;
-
-private:
-    AutomaticMutex(const AutomaticMutex&);
-    void operator=(const AutomaticMutex&);
-};
+#endif // #if defined(_WIN32) || defined(_WIN64)
 
 class MSDKSemaphore: public msdkSemaphoreHandle
 {
@@ -153,7 +137,9 @@ public:
     mfxStatus TimedWait(mfxU32 msec);
     mfxStatus GetExitCode();
 
+#if !defined(_WIN32) && !defined(_WIN64)
     friend void* msdk_thread_start(void* arg);
+#endif
 
 private:
     MSDKThread(const MSDKThread&);

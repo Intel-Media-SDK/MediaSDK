@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,6 +20,7 @@
 
 #include "mfx_common_int.h"
 #include "mfx_ext_buffers.h"
+#include "mfxpcp.h"
 #include "mfxfei.h"
 #include "mfx_utils.h"
 
@@ -240,6 +241,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
         if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420 && info->ChromaFormat != MFX_CHROMAFORMAT_YUV422 &&
             info->ChromaFormat != MFX_CHROMAFORMAT_YUV400)
             return MFX_ERR_INVALID_VIDEO_PARAM;
+        break;
     case MFX_CODEC_HEVC:
     case MFX_CODEC_VP9:
         if (info->ChromaFormat != MFX_CHROMAFORMAT_YUV420
@@ -316,7 +318,8 @@ mfxStatus CheckVideoParamCommon(mfxVideoParam *in, eMFXHWType type)
 
     if (in->Protected)
     {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        if (type == MFX_HW_UNKNOWN || !IS_PROTECTION_ANY(in->Protected))
+            return MFX_ERR_INVALID_VIDEO_PARAM;
     }
 
     switch (in->mfx.CodecId)
@@ -381,12 +384,6 @@ mfxStatus CheckVideoParamDecoders(mfxVideoParam *in, bool IsExternalFrameAllocat
 
     if (!IsExternalFrameAllocator && (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
         return MFX_ERR_INVALID_VIDEO_PARAM;
-
-    if (in->Protected)
-    {
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-    }
-
 
     sts = CheckDecodersExtendedBuffers(in);
     if (sts < MFX_ERR_NONE)
@@ -520,6 +517,7 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
 
 
     static const mfxU32 g_decoderSupportedExtBuffersMJPEG[] = {MFX_EXTBUFF_JPEG_HUFFMAN,
+                                                               MFX_EXTBUFF_DEC_VIDEO_PROCESSING,
                                                                MFX_EXTBUFF_JPEG_QT};
 
     const mfxU32 *supported_buffers = 0;

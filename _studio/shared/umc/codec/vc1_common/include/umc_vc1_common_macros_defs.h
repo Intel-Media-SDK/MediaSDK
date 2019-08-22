@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,6 @@
 
 #define VC1_SIGN(x) ((x<0)?-1:(x>0?1:0))
 #define VC1_LUT_SET(value,lut) (lut[value])
-//#define align_value<uint32_t>(x) ((x&3)?((x&0xFFFFFFFC) + 4):x)
 
 namespace UMC
 {

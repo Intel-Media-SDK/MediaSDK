@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -83,6 +83,7 @@ mfxStatus CSmplYUVReader::Init(std::list<msdk_string> inputs, mfxU32 ColorFormat
         MFX_FOURCC_YV12 != ColorFormat &&
         MFX_FOURCC_I420 != ColorFormat &&
         MFX_FOURCC_YUY2 != ColorFormat &&
+        MFX_FOURCC_UYVY != ColorFormat &&
         MFX_FOURCC_RGB4 != ColorFormat &&
         MFX_FOURCC_BGR4 != ColorFormat &&
         MFX_FOURCC_P010 != ColorFormat &&
@@ -98,7 +99,8 @@ mfxStatus CSmplYUVReader::Init(std::list<msdk_string> inputs, mfxU32 ColorFormat
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if(MFX_FOURCC_P010 == ColorFormat || MFX_FOURCC_P210 == ColorFormat
+    if (   MFX_FOURCC_P010 == ColorFormat
+        || MFX_FOURCC_P210 == ColorFormat
 #if (MFX_VERSION >= 1027)
         || MFX_FOURCC_Y210 == ColorFormat
 #endif
@@ -184,6 +186,7 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
     mfxU32 nBytesPerPixel = (pInfo.FourCC == MFX_FOURCC_P010 || pInfo.FourCC == MFX_FOURCC_P210 ) ? 2 : 1;
 
     if (   MFX_FOURCC_YUY2 == pInfo.FourCC
+        || MFX_FOURCC_UYVY == pInfo.FourCC
         || MFX_FOURCC_RGB4 == pInfo.FourCC
         || MFX_FOURCC_BGR4 == pInfo.FourCC
         || MFX_FOURCC_AYUV == pInfo.FourCC
@@ -215,8 +218,11 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
             }
             break;
         case MFX_FOURCC_YUY2:
+        case MFX_FOURCC_UYVY:
             pitch = pData.Pitch;
-            ptr = pData.Y + pInfo.CropX*2 + pInfo.CropY * pData.Pitch;
+            ptr = m_ColorFormat == MFX_FOURCC_YUY2?
+                  pData.Y + pInfo.CropX*2 + pInfo.CropY * pData.Pitch
+                : pData.U + pInfo.CropX   + pInfo.CropY * pData.Pitch;
 
             for(i = 0; i < h; i++)
             {
@@ -427,6 +433,10 @@ mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
         default:
             return MFX_ERR_UNSUPPORTED;
         }
+    }
+    else
+    {
+        return MFX_ERR_UNSUPPORTED;
     }
 
     return MFX_ERR_NONE;
@@ -845,7 +855,9 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     mfxU32 i, h, w;
     mfxU32 vid = pInfo.FrameId.ViewId;
 
-    // Temporary buffer to convert MS-P010 to P010
+    mfxU32 shiftSizeLuma   = 16 - pInfo.BitDepthLuma;
+    mfxU32 shiftSizeChroma = 16 - pInfo.BitDepthChroma;
+    // Temporary buffer to convert MS to no-MS format
     std::vector<mfxU16> tmp;
 
     if (!m_bIsMultiView)
@@ -873,17 +885,21 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         break;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216: // Luma and chroma will be filled below
+#endif
     {
         for (i = 0; i < pInfo.CropH; i++)
         {
             mfxU8* pBuffer = ((mfxU8*)pData.Y) + (pInfo.CropY * pData.Pitch + pInfo.CropX * 4) + i * pData.Pitch;
             if (pInfo.Shift)
             {
+                // Bits will be shifted to the lower position
                 tmp.resize(pInfo.CropW * 2);
 
                 for (int idx = 0; idx < pInfo.CropW*2; idx++)
                 {
-                    tmp[idx] = ((mfxU16*)pBuffer)[idx] >> 6;
+                    tmp[idx] = ((mfxU16*)pBuffer)[idx] >> shiftSizeLuma;
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
@@ -900,13 +916,11 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         return MFX_ERR_NONE;
     }
     break;
-
-    case MFX_FOURCC_Y410:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    case MFX_FOURCC_Y216:
 #endif
+#if (MFX_VERSION >= 1027)
+    case MFX_FOURCC_Y410: // Luma and chroma will be filled below
     {
-        mfxU8* pBuffer = pInfo.FourCC == MFX_FOURCC_Y410 ? (mfxU8*)pData.Y410 : (mfxU8*)pData.Y;
+        mfxU8* pBuffer = (mfxU8*)pData.Y410;
         for (i = 0; i < pInfo.CropH; i++)
         {
             MSDK_CHECK_NOT_EQUAL(
@@ -925,12 +939,13 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
             mfxU16* shortPtr = (mfxU16*)(pData.Y + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch);
             if (pInfo.Shift)
             {
-                // Convert MS-P010 to P010 and write
+                // Convert MS-P*1* to P*1* and write
+                // Bits will be shifted to the lower position
                 tmp.resize(pData.Pitch);
 
                 for (int idx = 0; idx < pInfo.CropW; idx++)
                 {
-                    tmp[idx] = shortPtr[idx] >> 6;
+                    tmp[idx] = shortPtr[idx] >> shiftSizeLuma;
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
@@ -990,19 +1005,20 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
     {
-        mfxU32 height = pInfo.FourCC == MFX_FOURCC_P010 ? (mfxU32)pInfo.CropH / 2 : (mfxU32)pInfo.CropH;
+        mfxU32 height = pInfo.FourCC == MFX_FOURCC_P210 ? (mfxU32)pInfo.CropH : (mfxU32)pInfo.CropH / 2;
 
         for (i = 0; i < height; i++)
         {
             mfxU16* shortPtr = (mfxU16*)(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX*2) + i * pData.Pitch);
             if (pInfo.Shift)
             {
-                // Convert MS-P010 to P010 and write
+                // Convert MS-P*1* to P*1* and write
+                // Bits will be shifted to the lower position
                 tmp.resize(pData.Pitch);
 
                 for (int idx = 0; idx < pInfo.CropW; idx++)
                 {
-                    tmp[idx] = shortPtr[idx] >> 6;
+                    tmp[idx] = shortPtr[idx] >> shiftSizeChroma;
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
@@ -1252,6 +1268,17 @@ mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
     return MSDK_INVALID_SURF_IDX;
 }
 
+void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
+{
+    if (pSurfacesPool)
+    {
+        for (mfxU16 i = 0; i < nPoolSize; i++)
+        {
+            pSurfacesPool[i].Data.Locked = 0;
+        }
+    }
+}
+
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
 {
     mfxU32 SleepInterval = 10; // milliseconds
@@ -1281,53 +1308,6 @@ mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
     }
 
     return idx;
-}
-
-mfxStatus InitMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize)
-{
-    //check input params
-    MSDK_CHECK_POINTER(pBitstream, MFX_ERR_NULL_PTR);
-    MSDK_CHECK_ERROR(nSize, 0, MFX_ERR_NOT_INITIALIZED);
-
-    //prepare pBitstream
-    WipeMfxBitstream(pBitstream);
-
-    //prepare buffer
-    pBitstream->Data = new mfxU8[nSize];
-    MSDK_CHECK_POINTER(pBitstream->Data, MFX_ERR_MEMORY_ALLOC);
-
-    pBitstream->MaxLength = nSize;
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus ExtendMfxBitstream(mfxBitstream* pBitstream, mfxU32 nSize)
-{
-    MSDK_CHECK_POINTER(pBitstream, MFX_ERR_NULL_PTR);
-
-    MSDK_CHECK_ERROR(nSize <= pBitstream->MaxLength, true, MFX_ERR_UNSUPPORTED);
-
-    mfxU8* pData = new mfxU8[nSize];
-    MSDK_CHECK_POINTER(pData, MFX_ERR_MEMORY_ALLOC);
-
-    memmove(pData, pBitstream->Data + pBitstream->DataOffset, pBitstream->DataLength);
-
-    WipeMfxBitstream(pBitstream);
-
-    pBitstream->Data       = pData;
-    pBitstream->DataOffset = 0;
-    pBitstream->MaxLength  = nSize;
-
-    return MFX_ERR_NONE;
-}
-
-void WipeMfxBitstream(mfxBitstream* pBitstream)
-{
-    if(pBitstream)
-    {
-        //free allocated memory
-        MSDK_SAFE_DELETE_ARRAY(pBitstream->Data);
-    }
 }
 
 std::basic_string<msdk_char> CodecIdToStr(mfxU32 nFourCC)
@@ -1449,6 +1429,15 @@ mfxU16 CalculateDefaultBitrate(mfxU32 nCodecId, mfxU32 nTargetUsage, mfxU32 nWid
 
     switch (nCodecId)
     {
+    case MFX_CODEC_HEVC :
+    {
+        fnc.AddPair(0, 0);
+        fnc.AddPair(25344, 225/1.3);
+        fnc.AddPair(101376, 1000/1.3);
+        fnc.AddPair(414720, 4000/1.3);
+        fnc.AddPair(2058240, 5000/1.3);
+        break;
+    }
     case MFX_CODEC_AVC :
         {
             fnc.AddPair(0, 0);
@@ -1608,51 +1597,7 @@ mfxU32 GCD(mfxU32 a, mfxU32 b)
     return b1;
 }
 
-mfxStatus DARtoPAR(mfxU32 darw, mfxU32 darh, mfxU32 w, mfxU32 h, mfxU16 *pparw, mfxU16 *pparh)
-{
-    MSDK_CHECK_POINTER(pparw, MFX_ERR_NULL_PTR);
-    MSDK_CHECK_POINTER(pparh, MFX_ERR_NULL_PTR);
-    MSDK_CHECK_ERROR(darw, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MSDK_CHECK_ERROR(darh, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MSDK_CHECK_ERROR(w, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
-    MSDK_CHECK_ERROR(h, 0, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    mfxU16 reduced_w = 0, reduced_h = 0;
-    mfxU32 gcd = GCD(w, h);
-
-    // divide by greatest common divisor to fit into mfxU16
-    reduced_w =  (mfxU16) (w / gcd);
-    reduced_h =  (mfxU16) (h / gcd);
-
-    // for mpeg2 we need to set exact values for par (standard supports only dar 4:3, 16:9, 221:100 or par 1:1)
-    if (darw * 3 == darh * 4)
-    {
-        *pparw = 4 * reduced_h;
-        *pparh = 3 * reduced_w;
-    }
-    else if (darw * 9 == darh * 16)
-    {
-        *pparw = 16 * reduced_h;
-        *pparh = 9 * reduced_w;
-    }
-    else if (darw * 100 == darh * 221)
-    {
-        *pparw = 221 * reduced_h;
-        *pparh = 100 * reduced_w;
-    }
-    else if (darw * reduced_h == darh * reduced_w)
-    {
-        *pparw = 1;
-        *pparh = 1;
-    }
-    else
-    {
-        *pparw = (mfxU16)((mfxF64)(darw * reduced_h) / (darh * reduced_w) * 1000);
-        *pparh = 1000;
-    }
-
-    return MFX_ERR_NONE;
-}
 
 std::basic_string<msdk_char> FormMVCFileName(const msdk_char *strFileNamePattern, const mfxU32 numView)
 {
@@ -2293,7 +2238,6 @@ CH264FrameReader::~CH264FrameReader()
 
 void CH264FrameReader::Close()
 {
-    WipeMfxBitstream(m_originalBS.get());
     CSmplBitstreamReader::Close();
 
     if (NULL != m_plainBuffer)
@@ -2315,10 +2259,7 @@ mfxStatus CH264FrameReader::Init(const msdk_char *strFileName)
     m_isEndOfStream = false;
     m_processedBS = NULL;
 
-    m_originalBS.reset(new mfxBitstream());
-    sts = InitMfxBitstream(m_originalBS.get(), 1024 * 1024);
-    if (sts != MFX_ERR_NONE)
-        return sts;
+    m_originalBS.Extend(1024 * 1024);
 
     m_pNALSplitter.reset(new ProtectedLibrary::AVC_Spl());
 
@@ -2334,9 +2275,9 @@ mfxStatus CH264FrameReader::ReadNextFrame(mfxBitstream *pBS)
     mfxStatus sts = MFX_ERR_NONE;
     pBS->DataFlag = MFX_BITSTREAM_COMPLETE_FRAME;
     //read bit stream from source
-    while (!m_originalBS->DataLength)
+    while (!m_originalBS.DataLength)
     {
-        sts = CSmplBitstreamReader::ReadNextFrame(m_originalBS.get());
+        sts = CSmplBitstreamReader::ReadNextFrame(&m_originalBS);
         if (sts != MFX_ERR_NONE && sts != MFX_ERR_MORE_DATA)
             return sts;
         if (sts == MFX_ERR_MORE_DATA)
@@ -2348,7 +2289,7 @@ mfxStatus CH264FrameReader::ReadNextFrame(mfxBitstream *pBS)
 
     do
     {
-        sts = PrepareNextFrame(m_isEndOfStream ? NULL : m_originalBS.get(), &m_processedBS);
+        sts = PrepareNextFrame(m_isEndOfStream ? NULL : &m_originalBS, &m_processedBS);
 
         if (sts == MFX_ERR_MORE_DATA)
         {
@@ -2357,7 +2298,7 @@ mfxStatus CH264FrameReader::ReadNextFrame(mfxBitstream *pBS)
                 break;
             }
 
-            sts = CSmplBitstreamReader::ReadNextFrame(m_originalBS.get());
+            sts = CSmplBitstreamReader::ReadNextFrame(&m_originalBS);
             if (sts == MFX_ERR_MORE_DATA)
                 m_isEndOfStream = true;
             continue;
@@ -2430,24 +2371,29 @@ mfxStatus CH264FrameReader::PrepareNextFrame(mfxBitstream *in, mfxBitstream **ou
     return sts;
 }
 
-
-// 1 ms provides better result in range [0..5] ms
-#define DEVICE_WAIT_TIME 1
-
-// This function either performs synchronization using provided syncpoint, or just waits for predefined time if syncpoint is already 0 (this usually happens if syncpoint was already processed)
-void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint,mfxStatus& currentStatus)
+// This function either performs synchronization using provided syncpoint,
+// or just waits for predefined time if no available syncpoint
+void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint, mfxStatus& currentStatus)
 {
-    // Wait 1ms will be probably enough to device release
-    if (syncPoint) {
-        mfxStatus stsSync = session.SyncOperation(syncPoint, DEVICE_WAIT_TIME);
-        if (MFX_ERR_NONE == stsSync) {
-            // retire completed sync point (otherwise we may start active polling)
+    if (syncPoint)
+    {
+        mfxStatus stsSync = session.SyncOperation(syncPoint, MSDK_WAIT_INTERVAL);
+        if (MFX_ERR_NONE == stsSync)
+        {
+            // Retire completed sync point (otherwise we may start active polling)
             syncPoint = NULL;
-        } else if (stsSync < 0) {
-            currentStatus = stsSync;
+            currentStatus = MFX_ERR_NONE;
         }
-    } else {
-        MSDK_SLEEP(DEVICE_WAIT_TIME);
+        else
+        {
+            MSDK_TRACE_ERROR(MSDK_STRING("WaitForDeviceToBecomeFree: SyncOperation failed, sts = ") << stsSync);
+            currentStatus = MFX_ERR_ABORTED;
+        }
+    }
+    else
+    {
+        MSDK_SLEEP(1);
+        currentStatus = MFX_ERR_NONE;
     }
 }
 
@@ -2464,6 +2410,7 @@ mfxU16 FourCCToChroma(mfxU32 fourCC)
     case MFX_FOURCC_Y210:
 #endif
     case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_UYVY:
         return MFX_CHROMAFORMAT_YUV422;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -215,8 +215,7 @@ mfxStatus Decoder::PreInit()
     sts = m_FileReader.Init(m_inPars.strSrcFile);
     MSDK_CHECK_STATUS(sts, "Can't open input file");
 
-    sts = InitMfxBitstream(&m_Bitstream, 1024 * 1024);
-    MSDK_CHECK_STATUS(sts, "InitMfxBitstream failed");
+    m_Bitstream.Extend(1024 * 1024);
 
     m_DEC.reset(new MFXVideoDECODE(*m_session));
 
@@ -332,8 +331,7 @@ mfxStatus Decoder::InitDecParams(MfxVideoParamsWrapper & par)
         {
             if (m_Bitstream.MaxLength == m_Bitstream.DataLength)
             {
-                sts = ExtendMfxBitstream(&m_Bitstream, m_Bitstream.MaxLength * 2);
-                MSDK_CHECK_STATUS(sts, "ExtendMfxBitstream failed");
+                m_Bitstream.Extend(m_Bitstream.MaxLength * 2);
             }
 
             sts = m_FileReader.ReadNextFrame(&m_Bitstream);
@@ -554,7 +552,7 @@ mfxStatus FieldSplitter::GetFrame(mfxFrameSurface1* & pOutSrf)
 
 void FieldSplitter::Close()
 {
-    return m_pTarget->Close();
+    m_pTarget->Close();
 }
 
 mfxStatus FieldSplitter::ResetIOState()
@@ -633,8 +631,7 @@ mfxStatus MFX_VPP::ProcessFrame(mfxFrameSurface1* pInSurf, mfxFrameSurface1* & p
 
     for (;;)
     {
-        mfxSyncPoint syncp;
-        MSDK_ZERO_MEMORY(syncp);
+        mfxSyncPoint syncp = nullptr;
 
         pOutSurf = m_pOutSurfPool->GetFreeSurface();
         MSDK_CHECK_POINTER(pOutSurf, MFX_ERR_MEMORY_ALLOC);

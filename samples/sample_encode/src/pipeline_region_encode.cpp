@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -609,7 +609,7 @@ mfxStatus CRegionEncodingPipeline::Run()
                 }
                 else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
                 {
-                    sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                    sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                     MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
                     continue;
                 }
@@ -665,7 +665,7 @@ mfxStatus CRegionEncodingPipeline::Run()
                 }
                 else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
                 {
-                    sts = AllocateSufficientBuffer(&pCurrentTask->mfxBS);
+                    sts = AllocateSufficientBuffer(pCurrentTask->mfxBS);
                     MSDK_CHECK_STATUS(sts, "AllocateSufficientBuffer failed");
                     continue;
                 }

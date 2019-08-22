@@ -3,7 +3,7 @@ LOCAL_PATH:= $(MFX_HOME)/_studio
 # =============================================================================
 
 MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8 vp9
-MFX_LOCAL_ENCODERS := h265 h264 mjpeg
+MFX_LOCAL_ENCODERS := h265 h264 mjpeg vp9
 
 # Setting subdirectories to march thru
 MFX_LOCAL_DIRS := \
@@ -164,6 +164,7 @@ MFX_LIB_SHARED_FILES_2 := $(addprefix shared/src/, \
     libmfx_allocator.cpp \
     libmfx_allocator_vaapi.cpp \
     libmfx_core.cpp \
+    libmfx_core_hw.cpp \
     libmfx_core_factory.cpp \
     libmfx_core_vaapi.cpp \
     mfx_umc_alloc_wrapper.cpp \

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -79,7 +79,7 @@ namespace MfxHwH264Encode
         MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME;
 
 
-    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par);
+    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps);
 
     enum
     {
@@ -305,7 +305,7 @@ namespace MfxHwH264Encode
         DdiTask const &       task);
 
     bool isBitstreamUpdateRequired(MfxVideoParam const & video,
-        ENCODE_CAPS caps,
+        MFX_ENCODE_CAPS caps,
         eMFXHWType platform);
     // Helper which checks number of allocated frames and auto-free.
 
@@ -406,13 +406,13 @@ namespace MfxHwH264Encode
 
     // add hwType param
     mfxStatus CheckEncodeFrameParam(
-        MfxVideoParam const & video,
-        mfxEncodeCtrl *       ctrl,
-        mfxFrameSurface1 *    surface,
-        mfxBitstream *        bs,
-        bool                  isExternalFrameAllocator,
-        ENCODE_CAPS const &   caps,
-        eMFXHWType            hwType = MFX_HW_UNKNOWN);
+        MfxVideoParam const &      video,
+        mfxEncodeCtrl *            ctrl,
+        mfxFrameSurface1 *         surface,
+        mfxBitstream *             bs,
+        bool                       isExternalFrameAllocator,
+        MFX_ENCODE_CAPS const &    caps,
+        eMFXHWType                 hwType = MFX_HW_UNKNOWN);
 
     template<typename T> void Clear(std::vector<T> & v)
     {
@@ -853,6 +853,10 @@ namespace MfxHwH264Encode
         mfxU32 cost;
     };
 
+    struct BRCFrameParams : mfxBRCFrameParam
+    {
+        mfxU16 picStruct;
+    };
 
     class DdiTask : public Reconstruct
     {
@@ -861,7 +865,6 @@ namespace MfxHwH264Encode
             : Reconstruct()
             , m_pushed(0)
             , m_type(0, 0)
-            , m_frcmplx(0)
             , m_dpb()
             , m_internalListCtrlPresent(false)
             , m_internalListCtrlHasPriority(true)
@@ -917,7 +920,6 @@ namespace MfxHwH264Encode
             , m_notProtected(false)
             , m_nextLayerTask(0)
             , m_repack(0)
-            , m_repackForBsDataLength(0)
             , m_fractionalQP(0)
             , m_midRaw(MID_INVALID)
             , m_midRec(MID_INVALID)
@@ -985,6 +987,8 @@ namespace MfxHwH264Encode
             Zero(m_handleRaw);
             Zero(m_fid);
             Zero(m_pwt);
+            Zero(m_brcFrameParams);
+            Zero(m_brcFrameCtrl);
             m_FrameName[0] = 0;
 #ifndef MFX_AVC_ENCODING_UNIT_DISABLE
             m_collectUnitsInfo = false;
@@ -1030,11 +1034,32 @@ namespace MfxHwH264Encode
 
             return false;
         }
+        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
+        {
+            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
+                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
+                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
+        }
+
+        inline void InitBRCParams()
+        {
+            Zero(m_brcFrameParams);
+            Zero(m_brcFrameCtrl);
+
+            m_brcFrameParams.FrameType = m_type[m_fid[0]];
+            m_brcFrameParams.DisplayOrder = m_frameOrder;
+            m_brcFrameParams.EncodedOrder = m_encOrder;
+            m_brcFrameParams.PyramidLayer = (mfxU16)m_loc.level;
+            m_brcFrameParams.LongTerm = (m_longTermFrameIdx != NO_INDEX_U8) ? 1 : 0;
+            m_brcFrameParams.SceneChange = (mfxU16)m_SceneChange;
+            if (!m_brcFrameParams.PyramidLayer && (m_type[m_fid[0]] & MFX_FRAMETYPE_P) && m_LowDelayPyramidLayer)
+                m_brcFrameParams.PyramidLayer = (mfxU16)m_LowDelayPyramidLayer;
+            m_brcFrameParams.picStruct = GetPicStructForEncode();
+        }
 
         mfxEncodeCtrl   m_ctrl;
         DdiTask *       m_pushed;         // task which was pushed to queue when this task was chosen for encoding
         Pair<mfxU8>     m_type;           // encoding type (one for each field)
-        mfxU16          m_frcmplx;        // Frame complexity
 
         // all info about references
         // everything is in pair because task is a per-frame object
@@ -1119,7 +1144,6 @@ namespace MfxHwH264Encode
         bool m_notProtected;             // Driver returns not protected data
         DdiTask const * m_nextLayerTask; // set to 0 if no nextLayerResolutionChange
         mfxU32  m_repack;
-        mfxU16  m_repackForBsDataLength;
         mfxI32  m_fractionalQP; //if m_fractionalQP > 0 set it value in QM matrices
 
         mfxMemId        m_midRaw;       // self-allocated input surface (when app gives input frames in system memory)
@@ -1209,6 +1233,9 @@ namespace MfxHwH264Encode
         CmSurface2DUP *m_wsGpuImage;
         SurfaceIndex  *m_wsIdxGpuImage;
         mfxU8         *m_Yscd;
+
+        BRCFrameParams  m_brcFrameParams;
+        mfxBRCFrameCtrl m_brcFrameCtrl;
     };
 
     typedef std::list<DdiTask>::iterator DdiTaskIter;
@@ -1256,28 +1283,6 @@ namespace MfxHwH264Encode
         mfxF64 sumxy;
         mfxF64 sumxx;
     };
-    struct BRCFrameParams: mfxBRCFrameParam
-    {
-        mfxU16 picStruct;
-    };
-    inline void InitFrameParams(BRCFrameParams &par, const DdiTask *task)
-    {
-        memset(&par,0,sizeof(par));
-        par.FrameType = task->m_type[task->m_fid[0]];
-        par.picStruct = task->GetPicStructForEncode();
-        par.DisplayOrder = task->m_frameOrder;
-        par.EncodedOrder = task->m_encOrder;
-        par.PyramidLayer = (mfxU16)task->m_loc.level;
-        par.NumRecode = (mfxU16)task->m_repack;
-#if (MFX_VERSION >= 1026)
-        par.FrameCmplx   = task->m_frcmplx;
-        par.LongTerm     = (task->m_longTermFrameIdx != NO_INDEX_U8) ? 1 : 0;
-        par.SceneChange  = (mfxU16) task->m_SceneChange;
-        if (!par.PyramidLayer && (task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_P) && task->m_LowDelayPyramidLayer)
-            par.PyramidLayer = (mfxU16) task->m_LowDelayPyramidLayer;
-        par.CodedFrameSize = task->m_bsDataLength[0] + task->m_bsDataLength[1];
-#endif
-    }
 
     class BrcIface
     {
@@ -1287,17 +1292,17 @@ namespace MfxHwH264Encode
         virtual mfxStatus Reset(MfxVideoParam  & video) = 0;
         virtual void Close() = 0;
         virtual void PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData) = 0;
-        virtual mfxU8 GetQp(const BRCFrameParams& par) = 0;
-        virtual mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP) = 0;
+        virtual void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl) = 0;
+        virtual void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl) = 0;
         virtual mfxF32 GetFractionalQp(const BRCFrameParams& par) = 0;
-        virtual void SetQp(const BRCFrameParams& par, mfxU32 qp) = 0;
-        virtual mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxU32 qp) = 0;
+        virtual void SetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl) = 0;
+        virtual mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl) = 0;
         virtual mfxU32 GetMinFrameSize() = 0;
 
         virtual mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics*, mfxU32 , mfxU32 ) {return MFX_ERR_NONE;}
     };
 
-    BrcIface * CreateBrc(MfxVideoParam const & video);
+    BrcIface * CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CAPS const & hwCaps);
 
     class Brc : public BrcIface
     {
@@ -1329,25 +1334,25 @@ namespace MfxHwH264Encode
         {
             m_impl->PreEnc(par, vmeData);
         }
-        mfxU8 GetQp(const BRCFrameParams& par)
+        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         {
-            return m_impl->GetQp(par);
+            m_impl->GetQp(par, frameCtrl);
         }
-        mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP)
+        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         {
-            return m_impl->GetQpForRecode(par, curQP);
+            m_impl->GetQpForRecode(par, frameCtrl);
         }
         mfxF32 GetFractionalQp(const BRCFrameParams& par)
         {
             return m_impl->GetFractionalQp(par);
         }
-        void SetQp(const BRCFrameParams& par, mfxU32 qp)
+        void SetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         {
-            m_impl->SetQp(par, qp);
+            m_impl->SetQp(par, frameCtrl);
         }
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxU32 qp)
+        mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl)
         {
-            return m_impl->Report(par, dataLength, userDataLength, maxFrameSize, qp);
+            return m_impl->Report(par, userDataLength, maxFrameSize, frameCtrl);
         }
         mfxU32 GetMinFrameSize()
         {
@@ -1370,16 +1375,16 @@ namespace MfxHwH264Encode
         mfxStatus Reset(MfxVideoParam  & ) { return MFX_ERR_NONE; };
         void Close();
 
-        mfxU8 GetQp(const BRCFrameParams& par);
-        mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP);
+        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
+        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
 
         mfxF32 GetFractionalQp(const BRCFrameParams& par);
 
-        void SetQp(const BRCFrameParams& par, mfxU32 qp);
+        void SetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
 
         void PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData);
 
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxU32 qp);
+        mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl);
 
         mfxU32 GetMinFrameSize();
 
@@ -1400,18 +1405,17 @@ namespace MfxHwH264Encode
 
         void Close();
 
-        mfxU8 GetQp(const BRCFrameParams& par);
-        mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP);
+        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
+        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
         mfxF32 GetFractionalQp(const BRCFrameParams& ) { assert(0); return 26.0f; }
 
 
         void PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData);
 
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxU32 qp);
+        mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl);
 
         mfxU32 GetMinFrameSize() { return 0; }
-        void  SetQp(const BRCFrameParams& par, mfxU32 qp);
-
+        void  SetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
 
     public:
         struct LaFrameData
@@ -1465,16 +1469,16 @@ namespace MfxHwH264Encode
         mfxStatus Reset(MfxVideoParam  & ) { return MFX_ERR_NONE; }
         void Close();
 
-        mfxU8 GetQp(const BRCFrameParams& par);
-        mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 curQP);
+        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
+        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
 
         mfxF32 GetFractionalQp(const BRCFrameParams& ) { assert(0); return 26.0f; }
 
-        void SetQp(const BRCFrameParams& , mfxU32 ) { assert(0); }
+        void SetQp(const BRCFrameParams& , mfxBRCFrameCtrl & ) { assert(0); }
 
         void PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData);
 
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength,  mfxU32 maxFrameSize, mfxU32 qp);
+        mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl);
 
         mfxU32 GetMinFrameSize() { return 0; }
 
@@ -1533,15 +1537,15 @@ namespace MfxHwH264Encode
 
         void Close() {}
 
-        mfxU8 GetQp(const BRCFrameParams& par);
-        mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 /*curQP */);
+        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
+        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl);
         mfxF32 GetFractionalQp(const BRCFrameParams& /*par*/) { assert(0); return 26.0f; }
 
-        void SetQp(const BRCFrameParams& /*par*/, mfxU32 /*qp*/) { assert(0); }
+        void SetQp(const BRCFrameParams& /*par*/, mfxBRCFrameCtrl & /*frameCtrl*/) { assert(0); }
 
         void PreEnc(const BRCFrameParams& par, std::vector<VmeData *> const & vmeData);
 
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxU32 qp);
+        mfxU32 Report(const BRCFrameParams& par, mfxU32 userDataLength, mfxU32 maxFrameSize, mfxBRCFrameCtrl &frameCtrl);
 
         mfxU32 GetMinFrameSize() { return 0; }
 
@@ -1564,7 +1568,7 @@ namespace MfxHwH264Encode
             m_pBRC(0)
         {
             memset(&m_BRCLocal,0, sizeof(m_BRCLocal));
-        }    
+        }
         virtual ~H264SWBRC()
         {
             Close();
@@ -1575,7 +1579,7 @@ namespace MfxHwH264Encode
         {
             mfxStatus sts = MFX_ERR_NONE;
             mfxExtBRC * extBRC = GetExtBuffer(video);
-            
+
 
             if (extBRC->pthis)
             {
@@ -1596,20 +1600,14 @@ namespace MfxHwH264Encode
         }
         mfxStatus  Reset(MfxVideoParam &video )
         {
-            return m_pBRC->Reset(m_pBRC->pthis,&video);    
+            return m_pBRC->Reset(m_pBRC->pthis,&video);
         }
-        mfxU32 Report(const BRCFrameParams& par, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*maxFrameSize*/, mfxU32 qp)
+        mfxU32 Report(const BRCFrameParams& par, mfxU32 /*userDataLength*/, mfxU32 /*maxFrameSize*/, mfxBRCFrameCtrl &frameCtrl)
         {
-            mfxBRCFrameParam frame_par={};
-            mfxBRCFrameCtrl  frame_ctrl={};
             mfxBRCFrameStatus frame_sts = {};
-        
-            frame_par  = *((mfxBRCFrameParam *)&par);
-            frame_ctrl.QpY = qp;
-            frame_par.CodedFrameSize = dataLength;  // Size of frame in bytes after encoding
+            mfxBRCFrameParam frame_par = *((mfxBRCFrameParam*)&par);
 
-
-            mfxStatus sts = m_pBRC->Update(m_pBRC->pthis,&frame_par, &frame_ctrl, &frame_sts);
+            mfxStatus sts = m_pBRC->Update(m_pBRC->pthis,&frame_par, &frameCtrl, &frame_sts);
             MFX_CHECK(sts == MFX_ERR_NONE, (mfxU32)UMC::BRC_ERROR); // BRC_ERROR
 
             m_minSize = frame_sts.MinFrameSize;
@@ -1618,38 +1616,35 @@ namespace MfxHwH264Encode
             {
             case ::MFX_BRC_OK:
                 return  UMC::BRC_OK;
-            case ::MFX_BRC_BIG_FRAME: 
+            case ::MFX_BRC_BIG_FRAME:
                 return UMC::BRC_ERR_BIG_FRAME;
-            case ::MFX_BRC_SMALL_FRAME: 
+            case ::MFX_BRC_SMALL_FRAME:
                 return UMC::BRC_ERR_SMALL_FRAME;
-            case ::MFX_BRC_PANIC_BIG_FRAME: 
+            case ::MFX_BRC_PANIC_BIG_FRAME:
                 return UMC::BRC_ERR_BIG_FRAME |  UMC::BRC_NOT_ENOUGH_BUFFER;
-            case ::MFX_BRC_PANIC_SMALL_FRAME:  
+            case ::MFX_BRC_PANIC_SMALL_FRAME:
                 return UMC::BRC_ERR_SMALL_FRAME| UMC::BRC_NOT_ENOUGH_BUFFER;
             }
-            return MFX_BRC_OK;    
+            return MFX_BRC_OK;
         }
-        mfxU8  GetQp(const BRCFrameParams& par)
+        void GetQp(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
         {
-            mfxBRCFrameParam frame_par={};
-            mfxBRCFrameCtrl  frame_ctrl={};
+            mfxBRCFrameParam frame_par = *((mfxBRCFrameParam*)&par);
+            m_pBRC->GetFrameCtrl(m_pBRC->pthis,&frame_par, &frameCtrl);
+            frameCtrl.QpY = (mfxU8)mfx::clamp(frameCtrl.QpY, 1, 51);
+        }
+        void GetQpForRecode(const BRCFrameParams& par, mfxBRCFrameCtrl &frameCtrl)
+        {
+            GetQp(par, frameCtrl);
+        }
 
-            frame_par = *((mfxBRCFrameParam*)&par);
-            m_pBRC->GetFrameCtrl(m_pBRC->pthis,&frame_par, &frame_ctrl);
-            return (mfxU8)mfx::clamp(frame_ctrl.QpY, 1, 51);
-        }
-        mfxU8 GetQpForRecode(const BRCFrameParams& par, mfxU8 /*curQP */)
-        {
-            return GetQp(par);
-        }
-        
-        void   SetQp(const BRCFrameParams& /*par*/,  mfxU32 /*qp*/)
+        void   SetQp(const BRCFrameParams& /*par*/, mfxBRCFrameCtrl &/*frameCtrl*/)
         {
         }
         mfxU32 GetMinFrameSize()
         {
             return m_minSize;
-    
+
         }
         mfxF32 GetFractionalQp(const BRCFrameParams& /*par*/) { assert(0); return 26.0f; }
 
@@ -1949,7 +1944,7 @@ namespace MfxHwH264Encode
             DdiTask & newTask);
         mfxStatus CalculateFrameCmplx(
             DdiTask const &task,
-            mfxU16 &raca128);
+            mfxU32 &raca128);
         mfxStatus Prd_LTR_Operation(
             DdiTask & task);
         void      AssignFrameTypes(
@@ -2060,6 +2055,7 @@ namespace MfxHwH264Encode
         UMC::Mutex          m_listMutex;
         DdiTask             m_lastTask;
         mfxU32              m_stagesToGo;
+        mfxU32              m_bDeferredFrame;
 
         mfxU32      m_fieldCounter;
         mfxStatus   m_1stFieldStatus;
@@ -2096,7 +2092,7 @@ namespace MfxHwH264Encode
         MfxFrameAllocResponse   m_opaqResponse;     // Response for opaq
         MfxFrameAllocResponse   m_histogram;
 
-        ENCODE_CAPS             m_caps;
+        MFX_ENCODE_CAPS         m_caps;
         mfxStatus               m_failedStatus;
         mfxU32                  m_inputFrameType;
         mfxU32                  m_NumSlices;
@@ -2554,8 +2550,8 @@ namespace MfxHwH264Encode
         mfxU32                frameOrderInGop,
         mfxEncodeCtrl const * ctrl,
         mfxU16                intraStripeWidthInMBs,
-        SliceDivider &  divider,
-        ENCODE_CAPS     caps);
+        SliceDivider &        divider,
+        MFX_ENCODE_CAPS       caps);
 
     mfxStatus UpdateIntraRefreshWithoutIDR(
         MfxVideoParam const & oldPar,
@@ -2564,8 +2560,8 @@ namespace MfxHwH264Encode
         mfxI64                oldStartFrame,
         mfxI64 &              updatedStartFrame,
         mfxU16 &              updatedStripeWidthInMBs,
-        SliceDivider &  divider,
-        ENCODE_CAPS     caps);
+        SliceDivider &        divider,
+        MFX_ENCODE_CAPS       caps);
 
     BiFrameLocation GetBiFrameLocation(
         MfxVideoParam const & video,
@@ -2599,10 +2595,10 @@ namespace MfxHwH264Encode
         bool                  optimize);
 
     void ConfigureTask(
-        DdiTask &             task,
-        DdiTask const &       prevTask,
-        MfxVideoParam const & video,
-        ENCODE_CAPS const &   caps);
+        DdiTask &                 task,
+        DdiTask const &           prevTask,
+        MfxVideoParam const &     video,
+        MFX_ENCODE_CAPS const &   caps);
 
     mfxStatus GetNativeHandleToRawSurface(
         VideoCORE &           core,

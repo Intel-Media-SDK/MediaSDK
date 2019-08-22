@@ -1,26 +1,33 @@
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
-list( APPEND vdirs
-  mjpeg
-  )
-list( APPEND cdirs
-  jpeg_enc color_space_converter
-  )
 mfx_include_dirs( )
-foreach( dir ${vdirs} )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/${dir}/include )
-endforeach()
 
-foreach( dir ${cdirs} )
-  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../../shared/umc/codec/${dir}/include )
-endforeach( )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/include )
 
-set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
+set( defs "" )
 set( sources "" )
 set( sources.plus "" )
-foreach( dir ${vdirs} )
-  file( GLOB_RECURSE srcs "${dir}/src/*.c" "${dir}/src/*.cpp" )
-  list( APPEND sources ${srcs})
-endforeach()
+
+list( APPEND sources
+    mjpeg/src/mfx_mjpeg_encode.cpp
+    )
 make_library( encode none static )
 set( defs "" )
+
+if( MFX_ENABLE_SW_FALLBACK )
+  ### JPEG Encoder
+  include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )
+  include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_enc/include )
+  include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
+
+  set( sources "" )
+  set( defs "" )
+  list( APPEND sources
+      ${MSDK_UMC_ROOT}/codec/jpeg_enc/src/enchtbl.cpp
+      ${MSDK_UMC_ROOT}/codec/jpeg_enc/src/encqtbl.cpp
+      ${MSDK_UMC_ROOT}/codec/jpeg_enc/src/jpegenc.cpp
+      ${MSDK_UMC_ROOT}/codec/jpeg_enc/src/jpegencrst.cpp
+      ${MSDK_UMC_ROOT}/codec/jpeg_enc/src/umc_mjpeg_video_encoder.cpp
+      )
+  make_library( encode sw static )
+endif()

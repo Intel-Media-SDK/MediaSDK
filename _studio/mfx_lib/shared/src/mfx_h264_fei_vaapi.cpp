@@ -127,11 +127,11 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
     //check attributes of the configuration
     VAConfigAttrib attrib[2];
     //attrib[0].type = VAConfigAttribRTFormat;
-    attrib[0].type = (VAConfigAttribType)VAConfigAttribStats;
+    attrib[0].type = VAConfigAttribStats;
 
     vaSts = vaGetConfigAttributes(m_vaDisplay,
             VAProfileNone,
-            (VAEntrypoint)VAEntrypointStats,
+            VAEntrypointStats,
             &attrib[0], 1);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
@@ -144,7 +144,7 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
     vaSts = vaCreateConfig(
             m_vaDisplay,
             VAProfileNone,
-            (VAEntrypoint)VAEntrypointStats,
+            VAEntrypointStats,
             &attrib[0],
             1,
             &m_vaConfig); //don't configure stat attribs
@@ -171,12 +171,9 @@ mfxStatus VAAPIFEIPREENCEncoder::CreatePREENCAccelerationService(MfxVideoParam c
      * Actually this is obligation to attach statistics buffers for I- frame/field
      * For P- frame/field only one MVout buffer maybe attached */
 
-    mfxU32 currNumMbsW = ((m_videoParam.mfx.FrameInfo.Width  + 15) >> 4) << 4;
-    mfxU32 currNumMbsH = ((m_videoParam.mfx.FrameInfo.Height + 15) >> 4) << 4;
-
-    /* Interlaced case requires 32 height alignment */
-    if (MFX_PICSTRUCT_PROGRESSIVE != m_videoParam.mfx.FrameInfo.PicStruct)
-        currNumMbsH = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
+    mfxU32 currNumMbsW = mfx::align2_value(m_videoParam.mfx.FrameInfo.Width, 16);
+    mfxU32 currNumMbsH = mfx::align2_value(m_videoParam.mfx.FrameInfo.Height,
+                            MFX_PICSTRUCT_PROGRESSIVE == m_videoParam.mfx.FrameInfo.PicStruct ? 16 : 32);
 
     mfxU32 currNumMbs = (currNumMbsW * currNumMbsH) >> 8;
     mfxU32 currNumMbs_first_buff = currNumMbs;
@@ -818,7 +815,7 @@ mfxStatus VAAPIFEIENCEncoder::Reset(MfxVideoParam const & par)
 
     FillConstPartOfPps(par, m_pps);
 
-    if (m_caps.HeaderInsertion == 0)
+    if (m_caps.ddi_caps.HeaderInsertion == 0)
         m_headerPacker.Init(par, m_caps);
 
     return MFX_ERR_NONE;
@@ -872,11 +869,12 @@ mfxStatus VAAPIFEIENCEncoder::CreateENCAccelerationService(MfxVideoParam const &
     /* find out the format for the render target, and rate control mode */
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
-    attrib[2].type = (VAConfigAttribType)VAConfigAttribFEIFunctionType;
-    attrib[3].type = (VAConfigAttribType)VAConfigAttribFEIMVPredictors;
-    vaSts = vaGetConfigAttributes(m_vaDisplay, profile,
-                                    (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4);
+    attrib[2].type = VAConfigAttribFEIFunctionType;
+    attrib[3].type = VAConfigAttribFEIMVPredictors;
+
+    vaSts = vaGetConfigAttributes(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
     /* not find desired YUV420 RT format */
     MFX_CHECK(attrib[0].value & VA_RT_FORMAT_YUV420, MFX_ERR_DEVICE_FAILED);
 
@@ -891,8 +889,7 @@ mfxStatus VAAPIFEIENCEncoder::CreateENCAccelerationService(MfxVideoParam const &
     attrib[2].value = VA_FEI_FUNCTION_ENC;
     attrib[3].value = 1; /* set 0 MV Predictor */
 
-    vaSts = vaCreateConfig(m_vaDisplay, profile,
-                                (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
+    vaSts = vaCreateConfig(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     std::vector<VASurfaceID> rawSurf;
@@ -948,7 +945,7 @@ mfxStatus VAAPIFEIENCEncoder::CreateENCAccelerationService(MfxVideoParam const &
     SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateId);
     FillConstPartOfPps(par, m_pps);
 
-    if (m_caps.HeaderInsertion == 0)
+    if (m_caps.ddi_caps.HeaderInsertion == 0)
         m_headerPacker.Init(par, m_caps);
 
     return MFX_ERR_NONE;
@@ -1306,9 +1303,9 @@ mfxStatus VAAPIFEIENCEncoder::Execute(
     /* Need to allocated coded buffer: this is does not used by ENC actually */
     if (VA_INVALID_ID == m_codedBufferId)
     {
-        int width32  = ((m_videoParam.mfx.FrameInfo.Width  + 31) >> 5) << 5;
-        int height32 = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
-        int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16)); //from libva spec
+        int aligned_width  = mfx::align2_value(m_videoParam.mfx.FrameInfo.Width,  32);
+        int aligned_height = mfx::align2_value(m_videoParam.mfx.FrameInfo.Height, 32);
+        int codedbuf_size = static_cast<int>((aligned_width * aligned_height) * 400LL / (16 * 16)); //from libva spec
 
         vaSts = vaCreateBuffer(m_vaDisplay,
                                 m_vaContextEncode,
@@ -1750,7 +1747,7 @@ mfxStatus VAAPIFEIPAKEncoder::Reset(MfxVideoParam const & par)
 
     FillConstPartOfPps(par, m_pps);
 
-    if (m_caps.HeaderInsertion == 0)
+    if (m_caps.ddi_caps.HeaderInsertion == 0)
         m_headerPacker.Init(par, m_caps);
 
     return MFX_ERR_NONE;
@@ -1803,10 +1800,10 @@ mfxStatus VAAPIFEIPAKEncoder::CreatePAKAccelerationService(MfxVideoParam const &
     /* find out the format for the render target, and rate control mode */
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
-    attrib[2].type = (VAConfigAttribType)VAConfigAttribFEIFunctionType;
-    attrib[3].type = (VAConfigAttribType)VAConfigAttribFEIMVPredictors;
-    vaSts = vaGetConfigAttributes(m_vaDisplay, profile,
-                                    (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4);
+    attrib[2].type = VAConfigAttribFEIFunctionType;
+    attrib[3].type = VAConfigAttribFEIMVPredictors;
+
+    vaSts = vaGetConfigAttributes(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     /* not find desired YUV420 RT format */
@@ -1824,8 +1821,7 @@ mfxStatus VAAPIFEIPAKEncoder::CreatePAKAccelerationService(MfxVideoParam const &
     attrib[2].value = VA_FEI_FUNCTION_PAK;
     attrib[3].value = 1; /* set 0 MV Predictor */
 
-    vaSts = vaCreateConfig(m_vaDisplay, profile,
-                                (VAEntrypoint)VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
+    vaSts = vaCreateConfig(m_vaDisplay, profile, VAEntrypointFEI, &attrib[0], 4, &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     std::vector<VASurfaceID> rawSurf;
@@ -1874,7 +1870,7 @@ mfxStatus VAAPIFEIPAKEncoder::CreatePAKAccelerationService(MfxVideoParam const &
     SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateId);
     FillConstPartOfPps(par, m_pps);
 
-    if (m_caps.HeaderInsertion == 0)
+    if (m_caps.ddi_caps.HeaderInsertion == 0)
         m_headerPacker.Init(par, m_caps);
 
     return MFX_ERR_NONE;
@@ -2162,9 +2158,9 @@ mfxStatus VAAPIFEIPAKEncoder::Execute(
     /* Need to allocated coded buffer */
     if (VA_INVALID_ID == m_codedBufferId[feiFieldId])
     {
-        int width32  = ((m_videoParam.mfx.FrameInfo.Width  + 31) >> 5) << 5;
-        int height32 = ((m_videoParam.mfx.FrameInfo.Height + 31) >> 5) << 5;
-        int codedbuf_size = static_cast<int>((width32 * height32) * 400LL / (16 * 16));
+        int aligned_width  = mfx::align2_value(m_videoParam.mfx.FrameInfo.Width,  32);
+        int aligned_height = mfx::align2_value(m_videoParam.mfx.FrameInfo.Height, 32);
+        int codedbuf_size = static_cast<int>((aligned_width * aligned_height) * 400LL / (16 * 16));
 
         // To workaround an issue with VA coded bufer overflow due to IPCM violation.
         // TODO: consider removing it once IPCM issue is fixed.

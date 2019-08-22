@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -478,6 +478,19 @@ std::pair<bool, bool> check_fei(VideoCORE* core)
     return std::pair<bool,bool>(true, *feiEnabled);
 }
 
+static inline bool is_sw_fallback_supported(mfxU32 codec_id, VideoCORE* core)
+{
+    MFX_CHECK(core, false);
+
+    bool fei;
+    std::tie(std::ignore, fei) = check_fei(core);
+
+    auto handler = codecId2Handlers.find(CodecKey(codec_id, fei));
+    MFX_CHECK(handler != std::end(codecId2Handlers), false);
+
+    return handler->second.fallback.ctor != nullptr;
+}
+
 template<>
 VideoENCODE* _mfxSession::Create<VideoENCODE>(mfxVideoParam& par)
 {
@@ -575,7 +588,7 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
     // handle error(s)
     catch(...)
     {
-        mfxRes = MFX_ERR_NULL_PTR;
+        mfxRes = MFX_ERR_UNKNOWN;
     }
     if (MFX_PLATFORM_HARDWARE == session->m_currentPlatform &&
         !bIsHWENCSupport &&
@@ -648,13 +661,13 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             handler = codecId2Handlers.find(CodecKey(par->mfx.CodecId, fei));
         }
 
-        mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_UNSUPPORTED
+        mfxRes = handler == codecId2Handlers.end() ? MFX_ERR_INVALID_VIDEO_PARAM
             : (handler->second.primary.queryIOSurf)(session, par, request);
 
         if (MFX_WRN_PARTIAL_ACCELERATION == mfxRes)
         {
             assert(handler != codecId2Handlers.end());
-            mfxRes = !handler->second.fallback.queryIOSurf ? MFX_ERR_UNSUPPORTED
+            mfxRes = !handler->second.fallback.queryIOSurf ? MFX_ERR_INVALID_VIDEO_PARAM
                 : (handler->second.fallback.queryIOSurf)(session, par, request);
         }
         else
@@ -665,7 +678,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     // handle error(s)
     catch(...)
     {
-        mfxRes = MFX_ERR_NULL_PTR;
+        mfxRes = MFX_ERR_UNKNOWN;
     }
 
     if (MFX_PLATFORM_HARDWARE == session->m_currentPlatform &&
@@ -675,7 +688,7 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
 #if defined(MFX_ENABLE_SW_FALLBACK)
         mfxRes = MFX_WRN_PARTIAL_ACCELERATION;
 #else
-        mfxRes = MFX_ERR_UNSUPPORTED;
+        mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
 #endif
     }
 
@@ -705,6 +718,12 @@ mfxStatus MFXVideoENCODE_Init(mfxSession session, mfxVideoParam *par)
         }
 
         mfxRes = session->m_pENCODE->Init(par);
+
+        if (mfxRes == MFX_WRN_PARTIAL_ACCELERATION && !is_sw_fallback_supported(par->mfx.CodecId, session->m_pCORE.get()))
+        {
+            // If appropriate SW fallback doesn't exist - convert status
+            mfxRes = MFX_ERR_INVALID_VIDEO_PARAM;
+        }
     }
     // handle error(s)
     catch(...)
@@ -723,16 +742,12 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
 
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
 
-    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session,               MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pENCODE,    MFX_ERR_NOT_INITIALIZED);
 
     try
     {
-        if (!session->m_pENCODE)
-        {
-            return MFX_ERR_NOT_INITIALIZED;
-        }
-
         // wait until all tasks are processed
         session->m_pScheduler->WaitForTaskCompletion(session->m_pENCODE.get());
 

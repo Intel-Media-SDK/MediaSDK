@@ -167,14 +167,14 @@ void FillBrcStructures(
 
 mfxStatus SetRateControl(
     MfxVideoParam const & par,
-    mfxU32       mbbrc,
-    mfxU8        minQP,
-    mfxU8        maxQP,
-    VADisplay    vaDisplay,
-    VAContextID  vaContextEncode,
-    VABufferID & rateParamBuf_id,
-    bool         isBrcResetRequired,
-    ENCODE_CAPS & caps)
+    mfxU32            mbbrc,
+    mfxU8             minQP,
+    mfxU8             maxQP,
+    VADisplay         vaDisplay,
+    VAContextID       vaContextEncode,
+    VABufferID &      rateParamBuf_id,
+    bool              isBrcResetRequired,
+    MFX_ENCODE_CAPS & caps)
 {
     VAStatus vaSts;
     VAEncMiscParameterBuffer *misc_param;
@@ -232,7 +232,7 @@ mfxStatus SetRateControl(
     }
 
     // Activate frame tolerance sliding window mode
-    if (extOpt3.WinBRCSize && caps.FrameSizeToleranceSupport)
+    if (extOpt3.WinBRCSize && caps.ddi_caps.FrameSizeToleranceSupport)
     {
         rate_param->rc_flags.bits.frame_tolerance_mode = eFrameSizeTolerance_Low;
     }
@@ -329,6 +329,48 @@ static mfxStatus SetMaxFrameSize(
 
     return MFX_ERR_NONE;
 }
+
+#if VA_CHECK_VERSION(1,3,0)
+static mfxStatus SetMultiPassFrameSize( DdiTask const & task,
+    mfxU32       /*fieldId*/,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & frameSizeBuf_id)
+{
+    VAEncMiscParameterBuffer *misc_param;
+    VAEncMiscParameterBufferMultiPassFrameSize *p_multiPassFrameSize;
+
+    mfxStatus mfxSts = CheckAndDestroyVAbuffer(vaDisplay, frameSizeBuf_id);
+    MFX_CHECK_STS(mfxSts);
+
+    VAStatus vaSts = vaCreateBuffer(vaDisplay,
+        vaContextEncode,
+        VAEncMiscParameterBufferType,
+        sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterBufferMultiPassFrameSize),
+        1,
+        NULL,
+        &frameSizeBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
+        vaSts = vaMapBuffer(vaDisplay, frameSizeBuf_id, (void **)&misc_param);
+    }
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    misc_param->type = VAEncMiscParameterTypeMultiPassFrameSize;
+    p_multiPassFrameSize = (VAEncMiscParameterBufferMultiPassFrameSize *)misc_param->data;
+
+    p_multiPassFrameSize->max_frame_size = task.m_brcFrameCtrl.MaxFrameSize;
+    p_multiPassFrameSize->num_passes = task.m_brcFrameCtrl.MaxNumRepak;
+    p_multiPassFrameSize->delta_qp = (unsigned char *)task.m_brcFrameCtrl.DeltaQP;
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");
+        vaSts = vaUnmapBuffer(vaDisplay, frameSizeBuf_id);
+    }
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    return MFX_ERR_NONE;
+}
+#endif
 
 #if !defined(ANDROID)
 static mfxStatus SetTrellisQuantization(
@@ -862,7 +904,7 @@ void UpdatePPS(
 } // void UpdatePPS(...)
 
 void FillPWT(
-    ENCODE_CAPS const &                         hwCaps,
+    MFX_ENCODE_CAPS const &                         hwCaps,
     VAEncPictureParameterBufferH264 const &     pps,
     mfxExtPredWeightTable const &               pwt,
     VAEncSliceParameterBufferH264 &             slice)
@@ -877,8 +919,8 @@ void FillPWT(
           (pps.pic_fields.bits.weighted_bipred_idc == 1 && slice.slice_type % 5 == SLICE_TYPE_B)))
         return;
 
-    iNumRefL0 = hwCaps.MaxNum_WeightedPredL0 < slice.num_ref_idx_l0_active_minus1 + 1 ? hwCaps.MaxNum_WeightedPredL0 : slice.num_ref_idx_l0_active_minus1 + 1;
-    iNumRefL1 = hwCaps.MaxNum_WeightedPredL1 < slice.num_ref_idx_l1_active_minus1 + 1 ? hwCaps.MaxNum_WeightedPredL1 : slice.num_ref_idx_l1_active_minus1 + 1;
+    iNumRefL0 = hwCaps.ddi_caps.MaxNum_WeightedPredL0 < slice.num_ref_idx_l0_active_minus1 + 1 ? hwCaps.ddi_caps.MaxNum_WeightedPredL0 : slice.num_ref_idx_l0_active_minus1 + 1;
+    iNumRefL1 = hwCaps.ddi_caps.MaxNum_WeightedPredL1 < slice.num_ref_idx_l1_active_minus1 + 1 ? hwCaps.ddi_caps.MaxNum_WeightedPredL1 : slice.num_ref_idx_l1_active_minus1 + 1;
 
     // initialize
     Zero(slice.luma_log2_weight_denom);
@@ -899,7 +941,7 @@ void FillPWT(
     slice.luma_log2_weight_denom = (mfxU8)pwt.LumaLog2WeightDenom;
     slice.chroma_log2_weight_denom = (mfxU8)pwt.ChromaLog2WeightDenom;
 
-    if (hwCaps.LumaWeightedPred)
+    if (hwCaps.ddi_caps.LumaWeightedPred)
     {
         // Set Luma L0
         if ((slice.slice_type % 5) == SLICE_TYPE_P || (slice.slice_type % 5) == SLICE_TYPE_B)
@@ -940,7 +982,7 @@ void FillPWT(
         }
     }
 
-    if (hwCaps.ChromaWeightedPred)
+    if (hwCaps.ddi_caps.ChromaWeightedPred)
     {
         // Set Chroma L0
         if ((slice.slice_type % 5) == SLICE_TYPE_P || (slice.slice_type % 5) == SLICE_TYPE_B)
@@ -991,7 +1033,7 @@ void FillPWT(
 }
 
     void UpdateSlice(
-        ENCODE_CAPS const &                         hwCaps,
+        MFX_ENCODE_CAPS const &                     hwCaps,
         DdiTask const &                             task,
         mfxU32                                      fieldId,
         VAEncSequenceParameterBufferH264 const     & sps,
@@ -1019,7 +1061,7 @@ void FillPWT(
             pPWT = &task.m_pwt[fieldId];
 
         SliceDivider divider = MakeSliceDivider(
-            hwCaps.SliceStructure,
+            hwCaps.ddi_caps.SliceStructure,
             task.m_numMbPerSlice,
             numSlice,
             sps.picture_width_in_mbs,
@@ -1096,7 +1138,7 @@ void FillPWT(
 } // namespace MfxHwH264Encode
 
 void UpdateSliceSizeLimited(
-    ENCODE_CAPS const &                         hwCaps,
+    MFX_ENCODE_CAPS const &                     hwCaps,
     DdiTask const &                             task,
     mfxU32                                      fieldId,
     VAEncSequenceParameterBufferH264 const     & /* sps */,
@@ -1219,6 +1261,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_frameRateId(VA_INVALID_ID)
     , m_qualityLevelId(VA_INVALID_ID)
     , m_maxFrameSizeId(VA_INVALID_ID)
+    , m_multiPassFrameSizeId(VA_INVALID_ID)
     , m_quantizationId(VA_INVALID_ID)
     , m_rirId(VA_INVALID_ID)
     , m_qualityParamsId(VA_INVALID_ID)
@@ -1371,14 +1414,14 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         MFX_CHECK_STS(mfxSts);
         eMFXHWType platform = hwcore->GetHWType();
         if (MFX_HW_APL == platform || MFX_HW_CFL == platform)
-            m_caps.FrameSizeToleranceSupport = 1;
+            m_caps.ddi_caps.FrameSizeToleranceSupport = 1;
     }
 
     m_width  = width;
     m_height = height;
 
-    m_caps.BRCReset        = 1; // no bitrate resolution control
-    m_caps.HeaderInsertion = 0; // we will provide headers (SPS, PPS) in binary format to the driver
+    m_caps.ddi_caps.BRCReset        = 1; // no bitrate resolution control
+    m_caps.ddi_caps.HeaderInsertion = 0; // we will provide headers (SPS, PPS) in binary format to the driver
 
     std::map<VAConfigAttribType, int> idx_map;
     VAConfigAttribType attr_types[] = {
@@ -1417,56 +1460,68 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
                           ConvertProfileTypeMFX2VAAPI(m_videoParam.mfx.CodecProfile),
                           entrypoint,
                           Begin(attrs), attrs.size());
+
+    MFX_CHECK(!(VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT == vaSts ||
+                VA_STATUS_ERROR_UNSUPPORTED_PROFILE    == vaSts),
+                MFX_ERR_UNSUPPORTED);
+
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    m_caps.VCMBitrateControl =
+
+    m_caps.CQPSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_CQP) ? 1 : 0;
+    m_caps.CBRSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_CBR) ? 1 : 0;
+    m_caps.VBRSupport =
+        (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VBR) ? 1 : 0;
+    m_caps.ddi_caps.VCMBitrateControl =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_VCM) ? 1 : 0; //Video conference mode
-    m_caps.ICQBRCSupport =
+    m_caps.ddi_caps.ICQBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_ICQ) ? 1 : 0;
 #ifdef MFX_ENABLE_QVBR
-    m_caps.QVBRBRCSupport =
+    m_caps.ddi_caps.QVBRBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_QVBR) ? 1 : 0;
 #endif
 #if VA_CHECK_VERSION(1,3,0)
-    m_caps.AVBRBRCSupport =
+    m_caps.ddi_caps.AVBRBRCSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_AVBR) ? 1 : 0;
 #endif
-    m_caps.TrelisQuantization =
+    m_caps.ddi_caps.TrelisQuantization =
         (attrs[idx_map[VAConfigAttribEncQuantization]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0;
-    m_caps.vaTrellisQuantization =
+    m_caps.ddi_caps.vaTrellisQuantization =
         attrs[idx_map[VAConfigAttribEncQuantization]].value;
-    m_caps.RollingIntraRefresh =
+    m_caps.ddi_caps.RollingIntraRefresh =
         (attrs[idx_map[VAConfigAttribEncIntraRefresh]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
-    m_caps.vaRollingIntraRefresh =
+    m_caps.ddi_caps.vaRollingIntraRefresh =
         attrs[idx_map[VAConfigAttribEncIntraRefresh]].value;
-    m_caps.SkipFrame =
+    m_caps.ddi_caps.SkipFrame =
         (attrs[idx_map[VAConfigAttribEncSkipFrame]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
 #if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
-    m_caps.RoundingOffset =
+    m_caps.ddi_caps.RoundingOffset =
         (attrs[idx_map[VAConfigAttribCustomRoundingControl]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
 #endif
 
-    m_caps.UserMaxFrameSizeSupport = 1;
-    m_caps.MBBRCSupport            = 1;
-    m_caps.MbQpDataSupport         = 1;
-    m_caps.NoWeightedPred          = 0;
-    m_caps.LumaWeightedPred        = 1;
-    m_caps.ChromaWeightedPred      = 1;
-    m_caps.MaxNum_WeightedPredL0   = 4;
-    m_caps.MaxNum_WeightedPredL1   = 2;
-    m_caps.Color420Only            = 1;
+    m_caps.ddi_caps.UserMaxFrameSizeSupport = 1;
+    m_caps.ddi_caps.MBBRCSupport            = 1;
+    m_caps.ddi_caps.MbQpDataSupport         = 1;
+    m_caps.ddi_caps.NoWeightedPred          = 0;
+    m_caps.ddi_caps.LumaWeightedPred        = 1;
+    m_caps.ddi_caps.ChromaWeightedPred      = 1;
+    m_caps.ddi_caps.MaxNum_WeightedPredL0   = 4;
+    m_caps.ddi_caps.MaxNum_WeightedPredL1   = 2;
+    m_caps.ddi_caps.Color420Only            = 1;
 
     if ((attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != VA_ATTRIB_NOT_SUPPORTED) &&
         (attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != 0))
-        m_caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth]].value;
+        m_caps.ddi_caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth]].value;
     else
-        m_caps.MaxPicWidth = 1920;
+        m_caps.ddi_caps.MaxPicWidth = 1920;
 
     if ((attrs[idx_map[VAConfigAttribMaxPictureHeight]].value != VA_ATTRIB_NOT_SUPPORTED) &&
         (attrs[idx_map[VAConfigAttribMaxPictureHeight]].value != 0))
-        m_caps.MaxPicHeight = attrs[idx_map[VAConfigAttribMaxPictureHeight]].value;
+        m_caps.ddi_caps.MaxPicHeight = attrs[idx_map[VAConfigAttribMaxPictureHeight]].value;
     else
-        m_caps.MaxPicHeight = 1088;
+        m_caps.ddi_caps.MaxPicHeight = 1088;
 
     if (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
@@ -1474,29 +1529,29 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         // (2) indication of support for max slice size feature
         const unsigned int sliceCapabilities = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
         const unsigned int sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
-        m_caps.SliceStructure =
+        m_caps.ddi_caps.SliceStructure =
             ConvertSliceStructureVAAPIToMFX(sliceStructure);
     }
     else
     {
         const eMFXHWType hwtype = m_core->GetHWType();
-        m_caps.SliceStructure = (hwtype != MFX_HW_VLV && hwtype >= MFX_HW_HSW) ? 4 : 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw;
+        m_caps.ddi_caps.SliceStructure = (hwtype != MFX_HW_VLV && hwtype >= MFX_HW_HSW) ? 4 : 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw;
     }                                                                                   // 3 - SliceDividerBluRay; 4 - arbitrary slice size in MBs; the other - SliceDividerOneSlice
 
     if (attrs[idx_map[VAConfigAttribEncInterlaced]].value != VA_ATTRIB_NOT_SUPPORTED)
-        m_caps.NoInterlacedField = attrs[idx_map[VAConfigAttribEncInterlaced]].value;
+        m_caps.ddi_caps.NoInterlacedField = attrs[idx_map[VAConfigAttribEncInterlaced]].value;
     else
-        m_caps.NoInterlacedField = 0;
+        m_caps.ddi_caps.NoInterlacedField = 0;
 
     if (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
-        m_caps.MaxNum_Reference  =  attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value & 0xffff;
-        m_caps.MaxNum_Reference1 = (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value >>16) & 0xffff;
+        m_caps.ddi_caps.MaxNum_Reference  =  attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value & 0xffff;
+        m_caps.ddi_caps.MaxNum_Reference1 = (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value >>16) & 0xffff;
     }
     else
     {
-        m_caps.MaxNum_Reference  = 1;
-        m_caps.MaxNum_Reference1 = 1;
+        m_caps.ddi_caps.MaxNum_Reference  = 1;
+        m_caps.ddi_caps.MaxNum_Reference1 = 1;
     }
 
     if (attrs[idx_map[VAConfigAttribEncROI]].value != VA_ATTRIB_NOT_SUPPORTED)
@@ -1504,13 +1559,13 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribValEncROI *VaEncROIValPtr = reinterpret_cast<VAConfigAttribValEncROI *>(&attrs[idx_map[VAConfigAttribEncROI]].value);
         assert(VaEncROIValPtr->bits.num_roi_regions < 32);
 
-        m_caps.MaxNumOfROI                = VaEncROIValPtr->bits.num_roi_regions;
-        m_caps.ROIBRCPriorityLevelSupport = VaEncROIValPtr->bits.roi_rc_priority_support;
-        m_caps.ROIBRCDeltaQPLevelSupport  = VaEncROIValPtr->bits.roi_rc_qp_delta_support;
+        m_caps.ddi_caps.MaxNumOfROI                = VaEncROIValPtr->bits.num_roi_regions;
+        m_caps.ddi_caps.ROIBRCPriorityLevelSupport = VaEncROIValPtr->bits.roi_rc_priority_support;
+        m_caps.ddi_caps.ROIBRCDeltaQPLevelSupport  = VaEncROIValPtr->bits.roi_rc_qp_delta_support;
     }
     else
     {
-        m_caps.MaxNumOfROI = 0;
+        m_caps.ddi_caps.MaxNumOfROI = 0;
     }
 
     return MFX_ERR_NONE;
@@ -1592,7 +1647,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCPAK) || defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
     else
     {
-        entryPoint = (VAEntrypoint)VAEntrypointFEI;
+        entryPoint = VAEntrypointFEI;
     }
 #endif
 
@@ -1608,7 +1663,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCPAK) || defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
     if ( m_isENCPAK )
     {
-        attrib[2].type = (VAConfigAttribType)VAConfigAttribFEIFunctionType;
+        attrib[2].type = VAConfigAttribFEIFunctionType;
         numAttrib++;
     }
 #endif
@@ -1752,7 +1807,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     FillConstPartOfPps(par, m_pps);
 
-    if (m_caps.HeaderInsertion == 0)
+    if (m_caps.ddi_caps.HeaderInsertion == 0)
     {
         m_headerPacker.Init(par, m_caps);
 
@@ -1768,10 +1823,10 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if (extOpt3)
     {
         if (IsOn(extOpt3->EnableMBQP))
-            m_mbqp_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mbqp_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
 
         if (IsOn(extOpt3->MBDisableSkipMap))
-            m_mb_noskip_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mb_noskip_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
     }
 
     return MFX_ERR_NONE;
@@ -1811,16 +1866,16 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
 
     FillConstPartOfPps(par, m_pps);
 
-    if (m_caps.HeaderInsertion == 0)
+    if (m_caps.ddi_caps.HeaderInsertion == 0)
         m_headerPacker.Init(par, m_caps);
 
     if (extOpt3)
     {
         if (IsOn(extOpt3->EnableMBQP))
-            m_mbqp_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mbqp_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
 
         if (IsOn(extOpt3->MBDisableSkipMap))
-            m_mb_noskip_buffer.resize(((m_width / 16 + 63) & ~63) * ((m_height / 16 + 7) & ~7));
+            m_mb_noskip_buffer.resize(mfx::align2_value(m_width / 16, 64) * mfx::align2_value(m_height / 16, 8));
     }
     /* Destroy existing FEI buffers
      * For next Execute() call new buffer sets will re-allocated */
@@ -1869,14 +1924,14 @@ mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT /*type*/, mfxFrameAlloc
 } // mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequest& request)
 
 
-mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS& caps)
+mfxStatus VAAPIEncoder::QueryEncodeCaps(MFX_ENCODE_CAPS& caps)
 {
 
     caps = m_caps;
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS& caps)
+} // mfxStatus VAAPIEncoder::QueryEncodeCaps(MFX_ENCODE_CAPS& caps)
 
 mfxStatus VAAPIEncoder::QueryMbPerSec(mfxVideoParam const & par, mfxU32 (&mbPerSec)[16])
 {
@@ -2425,7 +2480,7 @@ mfxStatus VAAPIEncoder::Execute(
         }
     }
 
-    if (m_caps.HeaderInsertion == 1 && skipFlag == NO_SKIP)
+    if (m_caps.ddi_caps.HeaderInsertion == 1 && skipFlag == NO_SKIP)
     {
         // SEI
         if (sei.Size() > 0)
@@ -2737,6 +2792,14 @@ mfxStatus VAAPIEncoder::Execute(
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetMaxFrameSize(m_userMaxFrameSize, m_vaDisplay,
                                                           m_vaContextEncode, m_maxFrameSizeId), MFX_ERR_DEVICE_FAILED);
     configBuffers.push_back(m_maxFrameSizeId);
+#if VA_CHECK_VERSION(1,3,0)
+    if (task.m_brcFrameCtrl.MaxNumRepak && task.m_brcFrameCtrl.MaxFrameSize)
+    {
+        mfxSts = SetMultiPassFrameSize(task, fieldId, m_vaDisplay, m_vaContextEncode, m_multiPassFrameSizeId);
+        MFX_CHECK_WITH_ASSERT(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+        configBuffers.push_back(m_multiPassFrameSizeId);
+    }
+#endif
 
 #if !defined(ANDROID)
 /*
@@ -2778,8 +2841,8 @@ mfxStatus VAAPIEncoder::Execute(
         mfxU32 mbW = m_sps.picture_width_in_mbs;
         mfxU32 mbH = m_sps.picture_height_in_mbs / (2 - !task.m_fieldPicFlag);
         //width(64byte alignment) height(8byte alignment)
-        mfxU32 bufW = ((mbW + 63) & ~63);
-        mfxU32 bufH = ((mbH + 7) & ~7);
+        mfxU32 bufW = mfx::align2_value(mbW, 64);
+        mfxU32 bufH = mfx::align2_value(mbH, 8);
         mfxU32 fieldOffset = (mfxU32)fieldId * (mbH * mbW) * (mfxU32)!!task.m_fieldPicFlag;
 
         if (mbqp && mbqp->QP && mbqp->NumQPAlloc >= mbW * m_sps.picture_height_in_mbs
@@ -2798,7 +2861,7 @@ mfxStatus VAAPIEncoder::Execute(
                 m_vaContextEncode,
                 VAEncQPBufferType,
                 bufW * sizeof(VAEncQPBufferH264),
-                ((m_sps.picture_height_in_mbs + 7) & ~7),
+                mfx::align2_value(m_sps.picture_height_in_mbs, 8),
                 &m_mbqp_buffer[0],
                 &m_mbqpBufferId);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
@@ -2812,8 +2875,8 @@ mfxStatus VAAPIEncoder::Execute(
         mfxU32 mbW = m_sps.picture_width_in_mbs;
         mfxU32 mbH = m_sps.picture_height_in_mbs / (2 - !task.m_fieldPicFlag);
         //width(64byte alignment) height(8byte alignment)
-        mfxU32 bufW = ((mbW + 63) & ~63);
-        mfxU32 bufH = ((mbH + 7) & ~7);
+        mfxU32 bufW = mfx::align2_value(mbW, 64);
+        mfxU32 bufH = mfx::align2_value(mbH, 8);
         mfxU32 fieldOffset = (mfxU32)fieldId * (mbH * mbW) * (mfxU32)!!task.m_fieldPicFlag;
 
         if (   m_mb_noskip_buffer.size() >= (bufW * bufH)
@@ -2841,7 +2904,7 @@ mfxStatus VAAPIEncoder::Execute(
     }
 
 #if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
-    if (m_caps.RoundingOffset && ctrlRoundingOffset)
+    if (m_caps.ddi_caps.RoundingOffset && ctrlRoundingOffset)
     {
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRoundingOffset(m_vaDisplay, m_vaContextEncode, *ctrlRoundingOffset, m_roundingOffsetId), MFX_ERR_DEVICE_FAILED);
 
@@ -3291,6 +3354,8 @@ mfxStatus VAAPIEncoder::Destroy()
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qualityLevelId);
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_maxFrameSizeId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_multiPassFrameSizeId);
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_quantizationId);
     MFX_CHECK_STS(mfxSts);

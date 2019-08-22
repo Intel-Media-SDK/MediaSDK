@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -177,16 +177,16 @@ namespace UMC
 
     uint32_t VC1TaskStore::CalculateHeapSize()
     {
-        uint32_t Size = align_value<uint32_t>(sizeof(VC1FrameDescriptor*)*(m_iNumFramesProcessing));
+        uint32_t Size = mfx::align2_value(sizeof(VC1FrameDescriptor*)*(m_iNumFramesProcessing));
 
         for (uint32_t counter = 0; counter < m_iNumFramesProcessing; counter++)
         {
                 if (pMainVC1Decoder->m_va)
                 {
-                    Size += align_value<uint32_t>(sizeof(VC1FrameDescriptorVA_Linux<VC1PackerLVA>));
+                    Size += mfx::align2_value(sizeof(VC1FrameDescriptorVA_Linux<VC1PackerLVA>));
                 }
                 else
-                    Size += align_value<uint32_t>(sizeof(VC1FrameDescriptor));
+                    Size += mfx::align2_value(sizeof(VC1FrameDescriptor));
         }
 
         return Size;

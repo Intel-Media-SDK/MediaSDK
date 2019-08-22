@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2017-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -17,6 +17,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
+#include <unordered_map>
 
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
@@ -27,6 +29,19 @@ using namespace MfxHwH265Encode;
 
 namespace MfxHwH265FeiEncode
 {
+
+static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAFEIParam = {
+    { DXVA2_Intel_Encode_HEVC_Main,                   VAParameters(VAProfileHEVCMain,       VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main10,                 VAParameters(VAProfileHEVCMain10,     VAEntrypointFEI)},
+#if VA_CHECK_VERSION(1,2,0)
+    { DXVA2_Intel_Encode_HEVC_Main422,                VAParameters(VAProfileHEVCMain422_10, VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main422_10,             VAParameters(VAProfileHEVCMain422_10, VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main444,                VAParameters(VAProfileHEVCMain444,    VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main444_10,             VAParameters(VAProfileHEVCMain444_10, VAEntrypointFEI)},
+#endif
+};
+
+
     VAAPIh265FeiEncoder::VAAPIh265FeiEncoder()
         : VAAPIEncoder()
     {}
@@ -40,7 +55,7 @@ namespace MfxHwH265FeiEncode
 
         VAConfigAttrib attr = {};
 
-        attr.type = (VAConfigAttribType) VAConfigAttribFEIFunctionType;
+        attr.type = VAConfigAttribFEIFunctionType;
         attrib.push_back(attr);
 
         return MFX_ERR_NONE;
@@ -51,7 +66,7 @@ namespace MfxHwH265FeiEncode
         mfxU32 i = 0;
         for (; i < attrib.size(); ++i)
         {
-            if (attrib[i].type == (VAConfigAttribType) VAConfigAttribFEIFunctionType)
+            if (attrib[i].type == VAConfigAttribFEIFunctionType)
                 break;
         }
         MFX_CHECK(i < attrib.size(), MFX_ERR_DEVICE_FAILED);
@@ -61,6 +76,15 @@ namespace MfxHwH265FeiEncode
         attrib[i].value = VA_FEI_FUNCTION_ENC_PAK;
 
         return MFX_ERR_NONE;
+    }
+
+    MfxHwH265Encode::VAParameters VAAPIh265FeiEncoder::GetVaParams(const GUID & guid)
+    {
+        auto it = GUID2VAFEIParam.find(guid);
+        if (it != std::end(GUID2VAFEIParam))
+            return it->second;
+        else
+            return {VAProfileNone, static_cast<VAEntrypoint>(0)};
     }
 
     mfxStatus VAAPIh265FeiEncoder::PreSubmitExtraStage(Task const & task)

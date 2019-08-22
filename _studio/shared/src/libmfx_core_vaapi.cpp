@@ -32,6 +32,7 @@
 #include "mfx_common_decode_int.h"
 #include "mfx_enc_common.h"
 #include "mfxfei.h"
+#include "libmfx_core_hw.h"
 #include "umc_va_fei.h"
 
 #include "cm_mem_copy.h"
@@ -272,6 +273,30 @@ typedef struct {
     { 0x3EA3, MFX_HW_CFL, MFX_GT2 },
     { 0x3EA4, MFX_HW_CFL, MFX_GT1 },
 
+
+    /* CML GT1 */
+    { 0x9b21, MFX_HW_CFL, MFX_GT1 },
+    { 0x9baa, MFX_HW_CFL, MFX_GT1 },
+    { 0x9bab, MFX_HW_CFL, MFX_GT1 },
+    { 0x9bac, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba0, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba5, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba8, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba4, MFX_HW_CFL, MFX_GT1 },
+    { 0x9ba2, MFX_HW_CFL, MFX_GT1 },
+
+    /* CML GT2 */
+    { 0x9b41, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bca, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bcb, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bcc, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc0, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc5, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc8, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc4, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc2, MFX_HW_CFL, MFX_GT2 },
+
+
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
     { 0x5A52, MFX_HW_CNL, MFX_GT2 },
@@ -283,16 +308,27 @@ typedef struct {
     { 0x5A49, MFX_HW_CNL, MFX_GT2 },
 
     /* ICL LP */
+    { 0xFF05, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A50, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A51, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A5C, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A5D, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A52, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A5A, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A5B, MFX_HW_ICL_LP, MFX_GT2 },
-    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 }
+    { 0x8A53, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A56, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A57, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A58, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A59, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A5A, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A5B, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A5C, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A5D, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },  // GT05, but 1 ok in this context
 
+    /* EHL */
+    { 0x4500, MFX_HW_EHL, MFX_GT2 },
+    { 0x4541, MFX_HW_EHL, MFX_GT2 },
+    { 0x4551, MFX_HW_EHL, MFX_GT2 },
+    { 0x4569, MFX_HW_EHL, MFX_GT2 },
+    { 0x4571, MFX_HW_EHL, MFX_GT2 },
  };
 
 /* END: IOCTLs definitions */
@@ -400,6 +436,20 @@ VAAPIVideoCORE::GetHandle(
     MFX_CHECK_NULL_PTR1(handle);
     UMC::AutomaticUMCMutex guard(m_guard);
 
+#if defined (MFX_ENABLE_CPLIB)
+    if (MFX_HANDLE_VA_CONTEXT_ID == (mfxU32)type )
+    {
+        if (m_VAContextHandle != (mfxHDL)VA_INVALID_ID)
+        {
+            *handle = m_VAContextHandle;
+            return MFX_ERR_NONE;
+        }
+        // not exist handle yet
+        else
+            return MFX_ERR_NOT_FOUND;
+    }
+    else
+#endif
         return CommonCORE::GetHandle(type, handle);
 
 } // mfxStatus VAAPIVideoCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
@@ -415,6 +465,24 @@ VAAPIVideoCORE::SetHandle(
     {
         switch ((mfxU32)type)
         {
+#if defined (MFX_ENABLE_CPLIB)
+        case MFX_HANDLE_VA_CONFIG_ID:
+            // if device manager already set
+            if (m_VAConfigHandle != (mfxHDL)VA_INVALID_ID)
+                return MFX_ERR_UNDEFINED_BEHAVIOR;
+            // set external handle
+            m_VAConfigHandle = hdl;
+            m_KeepVAState = true;
+            break;
+        case MFX_HANDLE_VA_CONTEXT_ID:
+            // if device manager already set
+            if (m_VAContextHandle != (mfxHDL)VA_INVALID_ID)
+                return MFX_ERR_UNDEFINED_BEHAVIOR;
+            // set external handle
+            m_VAContextHandle = hdl;
+            m_KeepVAState = true;
+            break;
+#endif
         default:
             mfxStatus sts = CommonCORE::SetHandle(type, hdl);
             MFX_CHECK_STS(sts);
@@ -656,68 +724,8 @@ VAAPIVideoCORE::CreateVA(
         !(request->Type & MFX_MEMTYPE_DXVA2_DECODER_TARGET))
         return MFX_ERR_NONE;
 
-    int profile = UMC::VA_VLD;
-
-    // video accelerator is needed for decoders only
-    switch (param->mfx.CodecId)
-    {
-    case MFX_CODEC_VC1:
-        profile |= VA_VC1;
-        break;
-    case MFX_CODEC_MPEG2:
-        profile |= VA_MPEG2;
-        break;
-    case MFX_CODEC_AVC:
-        profile |= VA_H264;
-        break;
-    case MFX_CODEC_HEVC:
-        profile |= VA_H265;
-        if (MFX_PROFILE_HEVC_REXT == param->mfx.CodecProfile)
-        {
-            profile |= VA_PROFILE_REXT;
-        }
-        if (param->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-            || param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-            || param->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410
-#endif
-        )
-        {
-            profile |= VA_PROFILE_10;
-        }
-
-        if (MFX_CHROMAFORMAT_YUV422 == param->mfx.FrameInfo.ChromaFormat)
-            profile |= (VA_PROFILE_422 | VA_PROFILE_REXT);
-        else if (MFX_CHROMAFORMAT_YUV444 == param->mfx.FrameInfo.ChromaFormat)
-            profile |= (VA_PROFILE_444 |VA_PROFILE_REXT);
-
-        break;
-    case MFX_CODEC_VP8:
-        profile |= VA_VP8;
-        break;
-    case MFX_CODEC_VP9:
-        profile |= VA_VP9;
-        switch (param->mfx.FrameInfo.FourCC)
-        {
-        case MFX_FOURCC_P010:
-            profile |= VA_PROFILE_10;
-            break;
-        case MFX_FOURCC_AYUV:
-            profile |= VA_PROFILE_444;
-            break;
-#if (MFX_VERSION >= 1027)
-        case MFX_FOURCC_Y410:
-            profile |= VA_PROFILE_10 | VA_PROFILE_444;
-            break;
-#endif
-        }
-        break;
-    case MFX_CODEC_JPEG:
-        profile |= VA_JPEG;
-        break;
-    default:
-        return MFX_ERR_UNSUPPORTED;
-    }
+    auto const profile = ChooseProfile(param, GetHWType());
+    MFX_CHECK(profile != UMC::UNKNOWN, MFX_ERR_UNSUPPORTED);
 
     bool init_render_targets =
 #if defined(ANDROID)
@@ -812,8 +820,8 @@ VAAPIVideoCORE::GetVAService(
 
 } // mfxStatus VAAPIVideoCORE::GetVAService(...)
 
-mfxStatus
-VAAPIVideoCORE::SetCmCopyStatus(bool enable)
+void
+VAAPIVideoCORE::SetCmCopy(bool enable)
 {
     m_bCmCopyAllowed = enable;
     if (!enable)
@@ -824,7 +832,6 @@ VAAPIVideoCORE::SetCmCopyStatus(bool enable)
         }
         m_bCmCopy = false;
     }
-    return MFX_ERR_NONE;
 } // mfxStatus VAAPIVideoCORE::SetCmCopyStatus(...)
 
 mfxStatus

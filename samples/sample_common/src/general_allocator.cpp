@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -21,8 +21,13 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "general_allocator.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "d3d_allocator.h"
+#include "d3d11_allocator.h"
+#else
 #include <stdarg.h>
 #include "vaapi_allocator.h"
+#endif
 
 #include "sysmem_allocator.h"
 
@@ -40,6 +45,16 @@ mfxStatus GeneralAllocator::Init(mfxAllocatorParams *pParams)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
+#if defined(_WIN32) || defined(_WIN64)
+    D3DAllocatorParams *d3dAllocParams = dynamic_cast<D3DAllocatorParams*>(pParams);
+    if (d3dAllocParams)
+        m_D3DAllocator.reset(new D3DFrameAllocator);
+#if MFX_D3D11_SUPPORT
+    D3D11AllocatorParams *d3d11AllocParams = dynamic_cast<D3D11AllocatorParams*>(pParams);
+    if (d3d11AllocParams)
+        m_D3DAllocator.reset(new D3D11FrameAllocator);
+#endif
+#endif
 
 #ifdef LIBVA_SUPPORT
     vaapiAllocatorParams *vaapiAllocParams = dynamic_cast<vaapiAllocatorParams*>(pParams);

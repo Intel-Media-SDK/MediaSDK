@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -725,7 +725,7 @@ namespace
         return mfxU32(384 * GetMaxMbps(par) / frameRate / GetMinCr(par.mfx.CodecLevel));
     }
 
-    mfxStatus CheckMaxFrameSize(MfxVideoParam & par, ENCODE_CAPS const & hwCaps)
+    mfxStatus CheckMaxFrameSize(MfxVideoParam & par, MFX_ENCODE_CAPS const & hwCaps)
     {
         mfxExtCodingOption2 & extOpt2 = GetExtBufferRef(par);
         mfxExtCodingOption3 & extOpt3 = GetExtBufferRef(par);
@@ -739,7 +739,7 @@ namespace
         bool IsEnabledSwBrc = bRateControlLA(par.mfx.RateControlMethod) || (IsOn(extOpt2.ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
         if ((par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) || // max frame size supported only for VBR based methods
-            (hwCaps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc))
+            (hwCaps.ddi_caps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc))
         {
             if (extOpt2.MaxFrameSize != 0 || extOpt3.MaxFrameSizeI != 0 || extOpt3.MaxFrameSizeP != 0)
                 changed = true;
@@ -782,13 +782,13 @@ namespace
 #if MFX_VERSION >= 1023
         if (!CheckTriStateOption(extOpt3.AdaptiveMaxFrameSize)) changed = true;
 
-        if (hwCaps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc && IsOn(extOpt3.AdaptiveMaxFrameSize))
+        if (hwCaps.ddi_caps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc && IsOn(extOpt3.AdaptiveMaxFrameSize))
         {
             extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
             unsupported = true;
         }
 
-        if (hwCaps.UserMaxFrameSizeSupport == 1 && !IsEnabledSwBrc &&
+        if (hwCaps.ddi_caps.UserMaxFrameSizeSupport == 1 && !IsEnabledSwBrc &&
             (extOpt3.MaxFrameSizeP == 0 || IsOn(par.mfx.LowPower)) &&
             IsOn(extOpt3.AdaptiveMaxFrameSize))
         {
@@ -1429,7 +1429,7 @@ MFX_ERR_DEVICE_FAILED  failed to create DDIEncoder/AuxilliaryDevice of
     requestcaps call fails
 MFX_ERR_NONE - if no errors
 */
-mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, ENCODE_CAPS & hwCaps, mfxVideoParam * par)
+mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, MFX_ENCODE_CAPS & hwCaps, mfxVideoParam * par)
 {
     GUID guid = MSDK_Private_Guid_Encode_AVC_Query;
     if(IsOn(par->mfx.LowPower))
@@ -1445,7 +1445,7 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, ENCODE_CAPS & hwCaps, mf
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     else
     {
-        if (pEncodeCaps->GetHWCaps<ENCODE_CAPS>(guid, &hwCaps) == MFX_ERR_NONE)
+        if (pEncodeCaps->GetHWCaps<MFX_ENCODE_CAPS>(guid, &hwCaps) == MFX_ERR_NONE)
             return MFX_ERR_NONE;
     }
     std::unique_ptr<DriverEncoder> ddi;
@@ -1461,7 +1461,7 @@ mfxStatus MfxHwH264Encode::QueryHwCaps(VideoCORE* core, ENCODE_CAPS & hwCaps, mf
     sts = ddi->QueryEncodeCaps(hwCaps);
     MFX_CHECK_STS(sts);
 
-    return pEncodeCaps->SetHWCaps<ENCODE_CAPS>(guid, &hwCaps);
+    return pEncodeCaps->SetHWCaps<MFX_ENCODE_CAPS>(guid, &hwCaps);
 }
 
 mfxStatus MfxHwH264Encode::QueryMbProcRate(VideoCORE* core, mfxVideoParam const & par, mfxU32 (&mbPerSec)[16], const mfxVideoParam * in)
@@ -1931,13 +1931,13 @@ mfxStatus MfxHwH264Encode::CheckForAllowedH264SpecViolations(
 }
 
 mfxStatus MfxHwH264Encode::CheckVideoParam(
-    MfxVideoParam &     par,
-    ENCODE_CAPS const & hwCaps,
-    bool                setExtAlloc,
-    eMFXHWType          platform,
-    eMFXVAType          vaType,
-    eMFXGTConfig        config,
-    bool                bInit)
+    MfxVideoParam &         par,
+    MFX_ENCODE_CAPS const & hwCaps,
+    bool                    setExtAlloc,
+    eMFXHWType              platform,
+    eMFXVAType              vaType,
+    eMFXGTConfig            config,
+    bool                    bInit)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "MfxHwH264Encode::CheckVideoParam");
     mfxStatus checkSts = MFX_ERR_NONE;
@@ -2060,7 +2060,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
     {
         mfxExtOpaqueSurfaceAlloc & extOpaq = GetExtBufferRef(par);
 
-        mfxU32 numFrameMin = CalcNumFrameMin(par);
+        mfxU32 numFrameMin = CalcNumFrameMin(par, hwCaps);
 
         MFX_CHECK(extOpaq.In.NumSurface >= numFrameMin, MFX_ERR_INVALID_VIDEO_PARAM);
     }
@@ -2258,18 +2258,14 @@ mfxStatus MfxHwH264Encode::CheckAndFixRoiQueryLike(
     {
         if (!CheckRangeDflt(roi->ROIValue, -51, 51, 0))
             checkSts = MFX_ERR_UNSUPPORTED;
-    } else if (par.mfx.RateControlMethod)
+    }
+    else
     {
-#if MFX_VERSION > 1021
         if (roiMode == MFX_ROI_MODE_QP_DELTA && !CheckRangeDflt(roi->ROIValue, -51, 51, 0))
             checkSts = MFX_ERR_UNSUPPORTED;
 
-        if (roiMode == MFX_ROI_MODE_PRIORITY && !CheckRangeDflt(roi->ROIValue, -3, 3, 0))
+        else if (roiMode == MFX_ROI_MODE_PRIORITY && !CheckRangeDflt(roi->ROIValue, -3, 3, 0))
             checkSts = MFX_ERR_UNSUPPORTED;
-#else
-        if (!CheckRangeDflt(roi->ROIValue, -3, 3, 0))
-            checkSts = MFX_ERR_UNSUPPORTED;
-#endif // MFX_VERSION > 1021
     }
 
     return checkSts;
@@ -2293,11 +2289,11 @@ mfxStatus MfxHwH264Encode::CheckAndFixMovingRectQueryLike(
 //typedef bool Bool;
 
 mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
-    MfxVideoParam &     par,
-    ENCODE_CAPS const & hwCaps,
-    eMFXHWType          platform,
-    eMFXVAType          vaType,
-    eMFXGTConfig        config)
+    MfxVideoParam &         par,
+    MFX_ENCODE_CAPS const & hwCaps,
+    eMFXHWType              platform,
+    eMFXVAType              vaType,
+    eMFXGTConfig            config)
 {
     Bool unsupported(false);
     Bool changed(false);
@@ -2329,11 +2325,11 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     bool sliceRowAlligned = true;
 
     // check HW capabilities
-    if (par.mfx.FrameInfo.Width  > hwCaps.MaxPicWidth ||
-        par.mfx.FrameInfo.Height > hwCaps.MaxPicHeight)
+    if (par.mfx.FrameInfo.Width  > hwCaps.ddi_caps.MaxPicWidth ||
+        par.mfx.FrameInfo.Height > hwCaps.ddi_caps.MaxPicHeight)
         return Error(MFX_WRN_PARTIAL_ACCELERATION);
 
-    if ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1 )!= MFX_PICSTRUCT_PROGRESSIVE && hwCaps.NoInterlacedField){
+    if ((par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PART1 )!= MFX_PICSTRUCT_PROGRESSIVE && hwCaps.ddi_caps.NoInterlacedField){
         if(par.mfx.LowPower == MFX_CODINGOPTION_ON)
         {
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
@@ -2343,8 +2339,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             return Error(MFX_WRN_PARTIAL_ACCELERATION);
     }
 
-    if (hwCaps.MaxNum_TemporalLayer != 0 &&
-        hwCaps.MaxNum_TemporalLayer < par.calcParam.numTemporalLayer)
+    if (hwCaps.ddi_caps.MaxNum_TemporalLayer != 0 &&
+        hwCaps.ddi_caps.MaxNum_TemporalLayer < par.calcParam.numTemporalLayer)
         return Error(MFX_WRN_PARTIAL_ACCELERATION);
 
     if (!CheckTriStateOption(par.mfx.LowPower)) changed = true;
@@ -2385,7 +2381,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
-    if (par.mfx.GopRefDist > 1 && hwCaps.SliceIPOnly)
+    if (par.mfx.GopRefDist > 1 && hwCaps.ddi_caps.SliceIPOnly)
     {
         changed = true;
         par.mfx.GopRefDist = 1;
@@ -2484,18 +2480,14 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.RateControlMethod = 0;
     }
 
+    bool laEnabled = true;
     if (platform > MFX_HW_ICL_LP)
     {
+        laEnabled = false;
         if (bRateControlLA(par.mfx.RateControlMethod))
         {
             unsupported = true;
             par.mfx.RateControlMethod = 0;
-        }
-
-        if (extOpt2->MaxSliceSize && !(IsOn(par.mfx.LowPower) && hwCaps.SliceLevelRateCtrl))
-        {
-            changed = true;
-            extOpt2->MaxSliceSize = 0;
         }
 
         if (IsOn(extOpt3->FadeDetection))
@@ -2504,6 +2496,15 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             extOpt3->FadeDetection = MFX_CODINGOPTION_OFF;
         }
     }
+
+    if (extOpt2->MaxSliceSize &&
+        !(IsDriverSliceSizeControlEnabled(par, hwCaps) ||  // driver slice control condition
+        (hwCaps.ddi_caps.SliceStructure == 4 && laEnabled)))  // sw slice control condition
+        {
+            changed = true;
+            extOpt2->MaxSliceSize = 0;
+        }
+
 
     if (bRateControlLA(par.mfx.RateControlMethod) && IsOn(extOpt->CAVLC))
     {
@@ -2518,7 +2519,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             changed = true;
             par.mfx.GopRefDist = 1;
         }
-        if (par.mfx.RateControlMethod != MFX_RATECONTROL_LA && !(IsOn(par.mfx.LowPower) && hwCaps.SliceLevelRateCtrl))
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_LA &&
+            !IsDriverSliceSizeControlEnabled(par, hwCaps))
         {
             par.mfx.RateControlMethod = MFX_RATECONTROL_LA;
             changed = true;
@@ -2705,9 +2707,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         mfxU16 widthInMbs  = par.mfx.FrameInfo.Width / 16;
         mfxU16 heightInMbs = par.mfx.FrameInfo.Height / 16 / (fieldCoding ? 2 : 1);
 
-        if (   (hwCaps.SliceStructure == 0)
-            || (hwCaps.SliceStructure  < 4 && (extOpt2->NumMbPerSlice % (par.mfx.FrameInfo.Width >> 4)))
-            || (hwCaps.SliceStructure == 1 && ((extOpt2->NumMbPerSlice / widthInMbs) & ((extOpt2->NumMbPerSlice / widthInMbs) - 1)))
+        if (   (hwCaps.ddi_caps.SliceStructure == 0)
+            || (hwCaps.ddi_caps.SliceStructure  < 4 && (extOpt2->NumMbPerSlice % (par.mfx.FrameInfo.Width >> 4)))
+            || (hwCaps.ddi_caps.SliceStructure == 1 && ((extOpt2->NumMbPerSlice / widthInMbs) & ((extOpt2->NumMbPerSlice / widthInMbs) - 1)))
             || (widthInMbs * heightInMbs) < extOpt2->NumMbPerSlice)
         {
             extOpt2->NumMbPerSlice = 0;
@@ -2759,7 +2761,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.SliceLevelRateCtrl)?4:hwCaps.SliceStructure,
+            (hwCaps.ddi_caps.SliceLevelRateCtrl)?4:hwCaps.ddi_caps.SliceStructure,
             extOpt2->NumMbPerSlice,
             par.mfx.NumSlice,
             par.mfx.FrameInfo.Width / 16,
@@ -2793,7 +2795,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.SliceLevelRateCtrl)?4:hwCaps.SliceStructure,
+            (hwCaps.ddi_caps.SliceLevelRateCtrl)?4:hwCaps.ddi_caps.SliceStructure,
             extOpt2->NumMbPerSlice,
             extOpt3->NumSliceI,
             par.mfx.FrameInfo.Width / 16,
@@ -2819,7 +2821,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.SliceLevelRateCtrl)?4:hwCaps.SliceStructure,
+            (hwCaps.ddi_caps.SliceLevelRateCtrl)?4:hwCaps.ddi_caps.SliceStructure,
             extOpt2->NumMbPerSlice,
             extOpt3->NumSliceP,
             par.mfx.FrameInfo.Width / 16,
@@ -2851,7 +2853,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         bool fieldCoding = (par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
 
         SliceDivider divider = MakeSliceDivider(
-            (hwCaps.SliceLevelRateCtrl)?4:hwCaps.SliceStructure,
+            (hwCaps.ddi_caps.SliceLevelRateCtrl)?4:hwCaps.ddi_caps.SliceStructure,
             extOpt2->NumMbPerSlice,
             extOpt3->NumSliceB,
             par.mfx.FrameInfo.Width / 16,
@@ -2880,7 +2882,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_NV12 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_BGR4 &&
-        par.mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2)
+        par.mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2 &&
+        par.mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV)
     {
         unsupported = true;
         par.mfx.FrameInfo.FourCC = 0;
@@ -2907,6 +2910,16 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
     }
 
+    if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV &&
+        par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+    {
+        if (extBits->SPSBuffer)
+            return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
+        changed = true;
+        par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
+    }
+
     if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_BGR4) &&
         par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
     {
@@ -2917,7 +2930,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV444;
     }
 
-    if (hwCaps.Color420Only &&
+    if (hwCaps.ddi_caps.Color420Only &&
         (par.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV422 ||
          par.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV444))
     {
@@ -3056,7 +3069,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     if (par.mfx.NumRefFrame != 0)
     {
         if ((par.mfx.NumRefFrame & 1) &&
-            (hwCaps.HeaderInsertion) &&
+            (hwCaps.ddi_caps.HeaderInsertion) &&
             (par.Protected || !IsOff(extOpt->NalHrdConformance)))
         {
             // when driver writes headers it can write only even values of num_ref_frames
@@ -3214,7 +3227,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
     }
 
-    if (hwCaps.MBBRCSupport == 0 && hwCaps.ICQBRCSupport == 0 && IsOn(extOpt2->MBBRC))
+    if (hwCaps.ddi_caps.MBBRCSupport == 0 && hwCaps.ddi_caps.ICQBRCSupport == 0 && IsOn(extOpt2->MBBRC))
     {
         changed = true;
         extOpt2->MBBRC = MFX_CODINGOPTION_OFF;
@@ -3291,7 +3304,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 
     if ((IsOff(extOpt->CAVLC)) &&
-        (IsAvcBaseProfile(par.mfx.CodecProfile) || hwCaps.NoCabacSupport))
+        (IsAvcBaseProfile(par.mfx.CodecProfile) || hwCaps.ddi_caps.NoCabacSupport))
     {
         if (extBits->SPSBuffer)
             return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -3310,6 +3323,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             changed = true;
             extOpt->IntraPredBlockSize = MFX_BLOCKSIZE_MIN_16X16;
         }
+    }
+
+    if ((par.mfx.CodecProfile != MFX_PROFILE_UNKNOWN) && (par.mfx.CodecProfile != MFX_PROFILE_AVC_HIGH)
+        && IsOn(extDdi->Transform8x8Mode))
+    {
+        unsupported = true;
+        extDdi->Transform8x8Mode = MFX_CODINGOPTION_UNKNOWN;
     }
 
     if (par.calcParam.cqpHrdMode)
@@ -3409,6 +3429,12 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.RateControlMethod = 0;
     }
 
+    if (extOpt2->LookAheadDS > MFX_LOOKAHEAD_DS_4x)
+    {
+        extOpt2->LookAheadDS = MFX_LOOKAHEAD_DS_4x;
+        changed = true;
+    }
+
     if (extOpt2->LookAheadDS == MFX_LOOKAHEAD_DS_4x)
     {
         extOpt2->LookAheadDS = MFX_LOOKAHEAD_DS_2x;
@@ -3417,8 +3443,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (extOpt2->LookAheadDS > MFX_LOOKAHEAD_DS_OFF)
     {
-        par.calcParam.widthLa = AlignValue<mfxU16>((par.mfx.FrameInfo.Width / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
-        par.calcParam.heightLa = AlignValue<mfxU16>((par.mfx.FrameInfo.Height / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
+        par.calcParam.widthLa  = mfx::align2_value((par.mfx.FrameInfo.Width  / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
+        par.calcParam.heightLa = mfx::align2_value((par.mfx.FrameInfo.Height / LaDSenumToFactor(extOpt2->LookAheadDS)), 16);
     } else
     {
         par.calcParam.widthLa = par.mfx.FrameInfo.Width;
@@ -3655,7 +3681,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
                     par.mfx.RateControlMethod != MFX_RATECONTROL_AVBR &&
                     par.calcParam.initialDelayInKB != 0)
                 {
-                    if (par.calcParam.initialDelayInKB > par.calcParam.bufferSizeInKB)
+                    if (par.calcParam.initialDelayInKB >= par.calcParam.bufferSizeInKB)
                     {
                         changed = true;
                         par.calcParam.initialDelayInKB = par.calcParam.bufferSizeInKB / 2;
@@ -3863,29 +3889,50 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         if (!CheckRange(par.mfx.QPB, 0, 51)) changed = true;
     }
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
+        hwCaps.CBRSupport == 0)
+    {
+        par.mfx.RateControlMethod = 0;
+        unsupported = true;
+    }
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR &&
+        hwCaps.VBRSupport == 0)
+    {
+        par.mfx.RateControlMethod = 0;
+        unsupported = true;
+    }
+
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP &&
+        hwCaps.CQPSupport == 0)
+    {
+        par.mfx.RateControlMethod = 0;
+        unsupported = true;
+    }
+
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_ICQ &&
-        hwCaps.ICQBRCSupport == 0)
+        hwCaps.ddi_caps.ICQBRCSupport == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
     }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_VCM &&
-        hwCaps.VCMBitrateControl == 0)
+        hwCaps.ddi_caps.VCMBitrateControl == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
     }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR &&
-        hwCaps.QVBRBRCSupport == 0)
+        hwCaps.ddi_caps.QVBRBRCSupport == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
     }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR &&
-        hwCaps.AVBRBRCSupport == 0)
+        hwCaps.ddi_caps.AVBRBRCSupport == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
@@ -4117,7 +4164,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 
 
-    if (extOpt2->IntRefType > 3 || (extOpt2->IntRefType && hwCaps.RollingIntraRefresh == 0))
+    if (extOpt2->IntRefType > 3 || (extOpt2->IntRefType && hwCaps.ddi_caps.RollingIntraRefresh == 0))
     {
         extOpt2->IntRefType = 0;
         unsupported = true;
@@ -4283,55 +4330,36 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         }
     }
 
-#if MFX_VERSION > 1021
+
     if (extRoi->NumROI && extRoi->ROIMode != MFX_ROI_MODE_QP_DELTA && extRoi->ROIMode != MFX_ROI_MODE_PRIORITY)
     {
         unsupported = true;
         extRoi->NumROI = 0;
     }
 
-    if (extRoi->NumROI && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-        extRoi->ROIMode == MFX_ROI_MODE_QP_DELTA && hwCaps.ROIBRCDeltaQPLevelSupport == 0)
+    if (extRoi->NumROI && hwCaps.ddi_caps.ROIBRCDeltaQPLevelSupport == 0)
     {
         unsupported = true;
         extRoi->NumROI = 0;
     }
 
-    if (extRoi->NumROI && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-        extRoi->ROIMode == MFX_ROI_MODE_PRIORITY && hwCaps.ROIBRCPriorityLevelSupport == 0)
-    {
-        unsupported = true;
-        extRoi->NumROI = 0;
-    }
-#else
-    if (extRoi->NumROI && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-        hwCaps.ROIBRCPriorityLevelSupport == 0)
-    {
-        unsupported = true;
-        extRoi->NumROI = 0;
-    }
-#endif // MFX_VERSION > 1021
 
     if (extRoi->NumROI)
     {
-        if (extRoi->NumROI > hwCaps.MaxNumOfROI)
+        if (extRoi->NumROI > hwCaps.ddi_caps.MaxNumOfROI)
         {
-            if (hwCaps.MaxNumOfROI == 0)
+            if (hwCaps.ddi_caps.MaxNumOfROI == 0)
                 unsupported = true;
             else
                 changed = true;
 
-            extRoi->NumROI = hwCaps.MaxNumOfROI;
+            extRoi->NumROI = hwCaps.ddi_caps.MaxNumOfROI;
         }
     }
 
     for (mfxU16 i = 0; i < extRoi->NumROI; i++)
     {
-#if MFX_VERSION > 1021
         sts = CheckAndFixRoiQueryLike(par, (mfxRoiDesc*)(&(extRoi->ROI[i])), extRoi->ROIMode);
-#else
-        sts = CheckAndFixRoiQueryLike(par, (mfxRoiDesc*)(&(extRoi->ROI[i])), 0);
-#endif // MFX_VERSION > 1021
         if (sts < MFX_ERR_NONE)
             unsupported = true;
         else if (sts != MFX_ERR_NONE)
@@ -4344,7 +4372,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extDirtyRect->NumRect = MFX_MAX_DIRTY_RECT_COUNT;
     }
 
-    if (extDirtyRect->NumRect && hwCaps.DirtyRectSupport == 0)
+    if (extDirtyRect->NumRect && hwCaps.ddi_caps.DirtyRectSupport == 0)
     {
         unsupported = true;
         extDirtyRect->NumRect = 0;
@@ -4365,7 +4393,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extMoveRect->NumRect = MFX_MAX_MOVE_RECT_COUNT;
     }
 
-    if (extMoveRect->NumRect && hwCaps.MoveRectSupport == 0)
+    if (extMoveRect->NumRect && hwCaps.ddi_caps.MoveRectSupport == 0)
     {
         unsupported = true;
         extMoveRect->NumRect = 0;
@@ -4385,7 +4413,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         mfxU16 maxLuma[2] = {0};
         mfxU16 maxChroma[2] = {0};
         bool out_of_caps = false;
-        if (0 == hwCaps.NoWeightedPred)
+        if (0 == hwCaps.ddi_caps.NoWeightedPred)
         {
 // On linux, WP is FEI specific feature. So when legay encoder calls Query(), do not
 // enable the flag of this capability.
@@ -4393,15 +4421,15 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             if (isENCPAK)
             {
 #endif
-            if (hwCaps.LumaWeightedPred)
+            if (hwCaps.ddi_caps.LumaWeightedPred)
             {
-                maxLuma[0] = std::min<mfxU16>(hwCaps.MaxNum_WeightedPredL0, 32);
-                maxLuma[1] = std::min<mfxU16>(hwCaps.MaxNum_WeightedPredL1, 32);
+                maxLuma[0] = std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_WeightedPredL0, 32);
+                maxLuma[1] = std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_WeightedPredL1, 32);
             }
-            if (hwCaps.ChromaWeightedPred)
+            if (hwCaps.ddi_caps.ChromaWeightedPred)
             {
-                maxChroma[0] = std::min<mfxU16>(hwCaps.MaxNum_WeightedPredL0, 32);
-                maxChroma[1] = std::min<mfxU16>(hwCaps.MaxNum_WeightedPredL1, 32);
+                maxChroma[0] = std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_WeightedPredL0, 32);
+                maxChroma[1] = std::min<mfxU16>(hwCaps.ddi_caps.MaxNum_WeightedPredL1, 32);
             }
 #if defined (MFX_VA_LINUX)
             }
@@ -4449,7 +4477,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckRangeDflt(extOpt2->SkipFrame, 0, 3, 0)) changed = true;
 
-    if ( extOpt2->SkipFrame && hwCaps.SkipFrame == 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
+    if ( extOpt2->SkipFrame && hwCaps.ddi_caps.SkipFrame == 0 && par.mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
         extOpt2->SkipFrame = 0;
         changed = true;
@@ -4568,7 +4596,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckTriStateOption(extOpt3->EnableMBQP)) changed = true;
 
-    if (IsOn(extOpt3->EnableMBQP) && !(hwCaps.MbQpDataSupport && par.mfx.RateControlMethod == MFX_RATECONTROL_CQP))
+    if (IsOn(extOpt3->EnableMBQP) && !(hwCaps.ddi_caps.MbQpDataSupport && par.mfx.RateControlMethod == MFX_RATECONTROL_CQP))
     {
         extOpt3->EnableMBQP = MFX_CODINGOPTION_OFF;
         changed = true;
@@ -4628,7 +4656,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
             (mfxU16)MFX_WEIGHTED_PRED_DEFAULT))
             changed = true;
 
-    if (    hwCaps.NoWeightedPred
+    if (    hwCaps.ddi_caps.NoWeightedPred
         && (extOpt3->WeightedPred == MFX_WEIGHTED_PRED_EXPLICIT
         || extOpt3->WeightedBiPred == MFX_WEIGHTED_PRED_EXPLICIT))
     {
@@ -5278,12 +5306,12 @@ bool IsHRDBasedBRCMethod(mfxU16  RateControlMethod)
 
 
 void MfxHwH264Encode::SetDefaults(
-    MfxVideoParam &     par,
-    ENCODE_CAPS const & hwCaps,
-    bool                setExtAlloc,
-    eMFXHWType          platform,
-    eMFXVAType          vaType,
-    eMFXGTConfig        config)
+    MfxVideoParam &         par,
+    MFX_ENCODE_CAPS const & hwCaps,
+    bool                    setExtAlloc,
+    eMFXHWType              platform,
+    eMFXVAType              vaType,
+    eMFXGTConfig            config)
 {
     mfxExtCodingOption *       extOpt  = GetExtBuffer(par);
     mfxExtCodingOption2 *      extOpt2 = GetExtBuffer(par);
@@ -5330,7 +5358,7 @@ void MfxHwH264Encode::SetDefaults(
             par.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
         if (par.AsyncDepth == 0)
             par.AsyncDepth = 1;
-        if (par.mfx.LowPower != MFX_CODINGOPTION_ON)
+        if (!IsDriverSliceSizeControlEnabled(par, hwCaps))
         {
             if (par.mfx.RateControlMethod == 0)
                 par.mfx.RateControlMethod = MFX_RATECONTROL_LA;
@@ -5423,7 +5451,7 @@ void MfxHwH264Encode::SetDefaults(
         if (IsAvcBaseProfile(par.mfx.CodecProfile) ||
             par.mfx.CodecProfile == MFX_PROFILE_AVC_CONSTRAINED_HIGH ||
             (par.calcParam.numTemporalLayer > 0 && par.calcParam.tempScalabilityMode) ||
-            hwCaps.SliceIPOnly)
+            hwCaps.ddi_caps.SliceIPOnly)
         {
             par.mfx.GopRefDist = 1;
         }
@@ -5647,7 +5675,7 @@ void MfxHwH264Encode::SetDefaults(
             : mfxU16(MFX_CODINGOPTION_OFF);
 
     if (extOpt->CAVLC == MFX_CODINGOPTION_UNKNOWN)
-        extOpt->CAVLC = (IsAvcBaseProfile(par.mfx.CodecProfile) || hwCaps.NoCabacSupport)
+        extOpt->CAVLC = (IsAvcBaseProfile(par.mfx.CodecProfile) || hwCaps.ddi_caps.NoCabacSupport)
             ? mfxU16(MFX_CODINGOPTION_ON)
             : mfxU16(MFX_CODINGOPTION_OFF);
 
@@ -5736,7 +5764,7 @@ void MfxHwH264Encode::SetDefaults(
     {
         mfxU16 const nrfMin             = (par.mfx.GopRefDist > 1 ? 2 : 1);
         mfxU16 const nrfDefault         = MFX_MAX(nrfMin, GetDefaultNumRefFrames(par.mfx.TargetUsage));
-        mfxU16 const nrfMaxByCaps       = MFX_MIN(MFX_MAX(1, hwCaps.MaxNum_Reference), 8) * 2;
+        mfxU16 const nrfMaxByCaps       = MFX_MIN(MFX_MAX(1, hwCaps.ddi_caps.MaxNum_Reference), 8) * 2;
         mfxU16 const nrfMaxByLevel      = GetMaxNumRefFrame(par);
         mfxU16 const nrfMinForPyramid   = GetMinNumRefFrameForPyramid(par);
         mfxU16 const nrfMinForTemporal  = mfxU16(nrfMin + par.calcParam.numTemporalLayer - 1);
@@ -5755,7 +5783,7 @@ void MfxHwH264Encode::SetDefaults(
 
         if (IsOn(par.mfx.LowPower))
         {
-            par.mfx.NumRefFrame = MFX_MIN(hwCaps.MaxNum_Reference, par.mfx.NumRefFrame);
+            par.mfx.NumRefFrame = MFX_MIN(hwCaps.ddi_caps.MaxNum_Reference, par.mfx.NumRefFrame);
         }
     }
 
@@ -6022,7 +6050,7 @@ void MfxHwH264Encode::SetDefaults(
     bool IsEnabledSwBrc = false;
     IsEnabledSwBrc = bRateControlLA(par.mfx.RateControlMethod) || (IsOn(extOpt2->ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
-    if ((hwCaps.UserMaxFrameSizeSupport != 0 || IsEnabledSwBrc) &&
+    if ((hwCaps.ddi_caps.UserMaxFrameSizeSupport != 0 || IsEnabledSwBrc) &&
         (par.mfx.RateControlMethod != MFX_RATECONTROL_CBR &&
          par.mfx.RateControlMethod != MFX_RATECONTROL_CQP) &&
         extOpt2->MaxFrameSize == 0)
@@ -6046,6 +6074,11 @@ void MfxHwH264Encode::SetDefaults(
     if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN)
         extOpt3->AdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
 #endif
+
+#ifdef MFX_ENABLE_H264_REPARTITION_CHECK
+    if (extOpt3->RepartitionCheckEnable == MFX_CODINGOPTION_UNKNOWN)
+        extOpt3->RepartitionCheckEnable = MFX_CODINGOPTION_ADAPTIVE;
+#endif // MFX_ENABLE_H264_REPARTITION_CHECK
 
     par.ApplyDefaultsToMvcSeqDesc();
 
@@ -6237,7 +6270,8 @@ void MfxHwH264Encode::SetDefaults(
         extPps->moreRbspData                          =
             !IsAvcBaseProfile(par.mfx.CodecProfile) &&
             par.mfx.CodecProfile != MFX_PROFILE_AVC_MAIN;
-        extPps->transform8x8ModeFlag                  = extOpt->IntraPredBlockSize > MFX_BLOCKSIZE_MIN_16X16;
+        extPps->transform8x8ModeFlag                  = extDdi->Transform8x8Mode == MFX_CODINGOPTION_UNKNOWN ?
+            extOpt->IntraPredBlockSize > MFX_BLOCKSIZE_MIN_16X16 : IsOn(extDdi->Transform8x8Mode);
         extPps->picScalingMatrixPresentFlag           = 0;
         extPps->secondChromaQpIndexOffset             = 0;
     }
@@ -6328,12 +6362,12 @@ mfxStatus MfxHwH264Encode::CheckPayloads(
 }
 
 mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
-    MfxVideoParam const & video,
-    mfxEncodeCtrl       * ctrl,
-    mfxFrameSurface1    * surface,
-    mfxBitstream        * bs,
-    ENCODE_CAPS   const & caps,
-    eMFXHWType            platform)
+    MfxVideoParam const     & video,
+    mfxEncodeCtrl           * ctrl,
+    mfxFrameSurface1        * surface,
+    mfxBitstream            * bs,
+    MFX_ENCODE_CAPS   const & caps,
+    eMFXHWType                platform)
 {
     MFX_CHECK_NULL_PTR3(ctrl, surface, bs);
     mfxStatus checkSts = MFX_ERR_NONE;
@@ -6529,7 +6563,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
         // the difference that ConfigureTask doesn't copy bad arg to DdiTask
         // CheckRunTimeExtBuffers just reports MFX_WRN_INCOMPATIBLE_VIDEO_PARAM for the same args
 
-        mfxU16 const MaxNumOfROI = caps.MaxNumOfROI;
+        mfxU16 const MaxNumOfROI = caps.ddi_caps.MaxNumOfROI;
         mfxU16 actualNumRoi = extRoi->NumROI;
         if (extRoi->NumROI)
         {
@@ -6538,27 +6572,18 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
                 checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
                 actualNumRoi = MaxNumOfROI;
             }
-#if MFX_VERSION > 1021
+
             if (extRoi->ROIMode != MFX_ROI_MODE_QP_DELTA && extRoi->ROIMode != MFX_ROI_MODE_PRIORITY)
             {
                 checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
                 actualNumRoi = 0;
             }
 
-            if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-                extRoi->ROIMode == MFX_ROI_MODE_QP_DELTA && caps.ROIBRCDeltaQPLevelSupport == 0)
+            if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP && caps.ddi_caps.ROIBRCDeltaQPLevelSupport == 0)
             {
                 checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
                 actualNumRoi = 0;
             }
-
-            if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-                extRoi->ROIMode == MFX_ROI_MODE_PRIORITY && caps.ROIBRCPriorityLevelSupport == 0)
-            {
-                checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-                actualNumRoi = 0;
-            }
-#endif // MFX_VERSION > 1021
         }
 
         for (mfxU16 i = 0; i < actualNumRoi; i++)
@@ -6567,11 +6592,7 @@ mfxStatus MfxHwH264Encode::CheckRunTimeExtBuffers(
                                        extRoi->ROI[i].Right, extRoi->ROI[i].Bottom, extRoi->ROI[i].Priority};
 
                 // check runtime ROI
-#if MFX_VERSION > 1021
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoi->ROIMode);
-#else
-                mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, 0);
-#endif // MFX_VERSION > 1021
                 if (sts != MFX_ERR_NONE)
                 {
                     checkSts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
@@ -8843,9 +8864,9 @@ namespace
 };
 
 void HeaderPacker::Init(
-    MfxVideoParam const & par,
-    ENCODE_CAPS const &   hwCaps,
-    bool                  emulPrev)
+    MfxVideoParam const &     par,
+    MFX_ENCODE_CAPS const &   hwCaps,
+    bool                      emulPrev)
 {
     mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(par);
     mfxExtSpsHeader const       & extSps  = GetExtBufferRef(par);
@@ -8920,6 +8941,8 @@ void HeaderPacker::Init(
     m_hwCaps = hwCaps;
 
     m_longStartCodes = IsOn(extDdi.LongStartCodes) && !IsOn(par.mfx.LowPower);
+
+    m_isLowPower = IsOn(par.mfx.LowPower);
 }
 
 void HeaderPacker::ResizeSlices(mfxU32 num)
@@ -9039,11 +9062,11 @@ std::vector<ENCODE_PACKEDHEADER_DATA> const & HeaderPacker::PackSlices(
 }
 
 void WritePredWeightTable(
-    OutputBitstream &   obs,
-    ENCODE_CAPS const & hwCaps,
-    DdiTask const &     task,
-    mfxU32              fieldId,
-    mfxU32              chromaArrayType)
+    OutputBitstream &       obs,
+    MFX_ENCODE_CAPS const & hwCaps,
+    DdiTask const &         task,
+    mfxU32                  fieldId,
+    mfxU32                  chromaArrayType)
 {
     // Transform field parity to field number before buffer request (PWT attached according to field order, not parity)
     // However in case of FEI single field mode, only one buffer is attached.
@@ -9061,7 +9084,7 @@ void WritePredWeightTable(
         MFX_MAX(1, task.m_list0[fieldId].Size()),
         MFX_MAX(1, task.m_list1[fieldId].Size())
     };
-    mfxU32 maxWeights[2] = { hwCaps.MaxNum_WeightedPredL0, hwCaps.MaxNum_WeightedPredL1 };
+    mfxU32 maxWeights[2] = { hwCaps.ddi_caps.MaxNum_WeightedPredL0, hwCaps.ddi_caps.MaxNum_WeightedPredL1 };
     bool present;
 
     obs.PutUe(pPWT->LumaLog2WeightDenom);
@@ -9073,7 +9096,7 @@ void WritePredWeightTable(
     {
         for (mfxU32 i = 0; i < nRef[lx]; i++)
         {
-            present = !!pPWT->LumaWeightFlag[lx][i] && hwCaps.LumaWeightedPred;
+            present = !!pPWT->LumaWeightFlag[lx][i] && hwCaps.ddi_caps.LumaWeightedPred;
 
             if (i < maxWeights[lx])
             {
@@ -9092,7 +9115,7 @@ void WritePredWeightTable(
 
             if (chromaArrayType != 0)
             {
-                present = !!pPWT->ChromaWeightFlag[lx][i] && hwCaps.ChromaWeightedPred;
+                present = !!pPWT->ChromaWeightFlag[lx][i] && hwCaps.ddi_caps.ChromaWeightedPred;
 
                 if (i < maxWeights[lx])
                 {
@@ -9138,12 +9161,12 @@ mfxU32 HeaderPacker::WriteSlice(
     mfxU32 picHeightInMBs      = (sps.picHeightInMapUnitsMinus1 + 1) * picHeightMultiplier;
 
     SliceDivider divider = MakeSliceDivider(
-        m_hwCaps.SliceStructure,
+        m_hwCaps.ddi_caps.SliceStructure,
         m_numMbPerSlice,
         (mfxU32)m_packedSlices.size(),
         sps.picWidthInMbsMinus1 + 1,
         picHeightInMBs,
-        m_hwCaps.SliceLevelRateCtrl);
+        m_isLowPower);
 
     mfxU32 firstMbInSlice = 0;
     for (mfxU32 i = 0; i <= sliceId; i++, divider.Next())

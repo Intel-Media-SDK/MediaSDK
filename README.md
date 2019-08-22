@@ -1,13 +1,13 @@
 # Intel® Media SDK
-Intel® Media SDK provides an API to access hardware-accelerated video decode, encode and filtering on Intel® platforms with integrated graphics.
+Intel® Media SDK provides a plain C API to access hardware-accelerated video decode, encode and filtering on Intel® Gen graphics hardware platforms. Implementation written in C++ 11 with parts in C-for-Media (CM).
 
-**Supported video encoders**: HEVC, AVC, MPEG-2, JPEG  
-**Supported Video decoders**: HEVC, AVC, VP8, MPEG-2, VC1, JPEG  
+**Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9  
+**Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG  
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition
 
-# Important note
-The current version of Intel Media SDK is compatible with the open source [Intel Media Driver for VAAPI](https://github.com/intel/media-driver).
+# Dependencies
 Intel Media SDK depends on [LibVA](https://github.com/01org/libva/). 
+This version of Intel Media SDK is compatible with the open source [Intel Media Driver for VAAPI](https://github.com/intel/media-driver).
 
 # FAQ
 You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
@@ -51,7 +51,10 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 
 # System requirements
 
-**Operating System:** Linux
+**Operating System:**
+* Linux x86-64 fully supported
+* Linux x86 only build
+* Windows (not all features are supported in Windows build - see Known Limitations for details)
 
 **Software:**
 * [LibVA](https://github.com/intel/libva)
@@ -62,6 +65,10 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 **Hardware:** Intel platforms supported by the [Intel Media Driver for VAAPI](https://github.com/intel/media-driver)
 
 Media SDK test and sample applications may require additional software packages (for example, X Server, Wayland, LibDRM, etc.) to be functional.
+
+**Operating System:** Windows **(experimental)**
+
+Requires Microsoft Visual Studio 2017 for building.
 
 # How to build
 
@@ -95,7 +102,10 @@ Media SDK depends on a number of packages which are identified and checked for t
 | BUILD_RUNTIME | ON\|OFF | Build mediasdk runtime, library and plugins (default: ON) |
 | BUILD_SAMPLES | ON\|OFF | Build samples (default: ON) |
 | BUILD_TESTS | ON\|OFF | Build unit tests (default: OFF) |
+| USE_SYSTEM_GTEST | ON\|OFF | Use system gtest version instead of bundled (default: OFF) |
 | BUILD_TOOLS | ON\|OFF | Build tools (default: OFF) |
+| MFX_ENABLE_KERNELS | ON\|OFF | Build mediasdk with [media shaders](https://github.com/Intel-Media-SDK/MediaSDK/wiki/Media-SDK-Shaders-(EU-Kernels)) support (default: ON) |
+
 
 The following cmake settings can be used to adjust search path locations for some components Media SDK build may depend on:
 
@@ -110,7 +120,7 @@ Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for ad
 
 To enable the Instrumentation and Tracing Technology (ITT) API you need to:
 * Either install [Intel® VTune™ Amplifier](https://software.intel.com/en-us/intel-vtune-amplifier-xe)
-* Or manually build an open source version (see [GitHub](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) for details
+* Or manually build an open source version (see [IntelSEAPI](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) for details)
 
 and configure Media SDK with the -DENABLE_ITT=ON. In case of VTune it will be searched in the default location (/opt/intel/vtune_amplifier). You can adjust ITT search path with either CMAKE_ITT_HOME or CMAKE_VTUNE_HOME.
 
@@ -118,6 +128,8 @@ Once Media SDK was built with ITT support, enable it in a runtime creating per-u
 ```sh
 Output=0x10
 ```
+# Known limitations
+Windows build contains only samples and dispatcher library. MediaSDK library DLL is provided with Windows GFX driver.
 
 # Recommendations
 

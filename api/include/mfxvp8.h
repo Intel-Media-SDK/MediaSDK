@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,7 @@ enum {
     MFX_EXTBUFF_VP8_CODING_OPTION =   MFX_MAKEFOURCC('V','P','8','E'),
 };
 
+MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct { 
     mfxExtBuffer    Header;
 
@@ -60,6 +61,7 @@ typedef struct {
     mfxU32   NumFramesForIVFHeader;
     mfxU16   reserved[223];
 } mfxExtVP8CodingOption;
+MFX_PACK_END()
 
 #ifdef __cplusplus
 } // extern "C"

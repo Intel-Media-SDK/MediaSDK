@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,13 @@
 #define __ASG_HEVC_TEST_PROCESSOR_H__
 
 #include "mfxvideo.h"
+#include "sample_defs.h"
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
 
 #include <fstream>
 
 #include "sample_utils.h"
-#include "sample_defs.h"
 #include "base_allocator.h"
 
 #include "inputparameters.h"

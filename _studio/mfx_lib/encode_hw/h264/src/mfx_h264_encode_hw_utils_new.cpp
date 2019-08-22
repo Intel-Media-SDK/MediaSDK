@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1771,8 +1771,8 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
     mfxU32                frameOrderInGopDispOrder,
     mfxEncodeCtrl const * ctrl,
     mfxU16                intraStripeWidthInMBs,
-    SliceDivider &  divider,
-    ENCODE_CAPS     caps)
+    SliceDivider &        divider,
+    MFX_ENCODE_CAPS       caps)
 {
     IntraRefreshState state;
     mfxExtCodingOption2 & extOpt2Init = GetExtBufferRef(video);
@@ -1797,7 +1797,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             // reset divider on I frames
             bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
             divider = MakeSliceDivider(
-                (caps.SliceLevelRateCtrl) ? 4 : caps.SliceStructure,
+                (caps.ddi_caps.SliceLevelRateCtrl) ? 4 : caps.ddi_caps.SliceStructure,
                 extOpt2Init.NumMbPerSlice,
                 extOpt3Init.NumSliceP,
                 video.mfx.FrameInfo.Width / 16,
@@ -1824,7 +1824,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             {
                 bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
                 divider = MakeSliceDivider(
-                    (caps.SliceLevelRateCtrl) ? 4 : caps.SliceStructure,
+                    (caps.ddi_caps.SliceLevelRateCtrl) ? 4 : caps.ddi_caps.SliceStructure,
                     extOpt2Init.NumMbPerSlice,
                     extOpt3Init.NumSliceP,
                     video.mfx.FrameInfo.Width / 16,
@@ -1869,8 +1869,8 @@ mfxStatus MfxHwH264Encode::UpdateIntraRefreshWithoutIDR(
     mfxI64                oldStartFrame,
     mfxI64 &              updatedStartFrame,
     mfxU16 &              updatedStripeWidthInMBs,
-    SliceDivider &  divider,
-    ENCODE_CAPS     caps)
+    SliceDivider &        divider,
+    MFX_ENCODE_CAPS       caps)
 {
     MFX_CHECK_WITH_ASSERT((oldPar.mfx.FrameInfo.Width == newPar.mfx.FrameInfo.Width) && (oldPar.mfx.FrameInfo.Height == newPar.mfx.FrameInfo.Height), MFX_ERR_UNDEFINED_BEHAVIOR);
     mfxExtCodingOption2 & extOpt2Old = GetExtBufferRef(oldPar);
@@ -2066,10 +2066,10 @@ BiFrameLocation MfxHwH264Encode::GetBiFrameLocation(
 }
 
 void MfxHwH264Encode::ConfigureTask(
-    DdiTask &             task,
-    DdiTask const &       prevTask,
-    MfxVideoParam const & video,
-    ENCODE_CAPS const &   caps)
+    DdiTask &                 task,
+    DdiTask const &           prevTask,
+    MfxVideoParam const &     video,
+    MFX_ENCODE_CAPS const &   caps)
 {
     mfxExtCodingOption const &      extOpt         = GetExtBufferRef(video);
     mfxExtCodingOption2 const &     extOpt2        = GetExtBufferRef(video);
@@ -2197,45 +2197,32 @@ void MfxHwH264Encode::ConfigureTask(
         mfxU16 numRoi = pRoi->NumROI <= task.m_roi.Capacity() ? pRoi->NumROI : (mfxU16)task.m_roi.Capacity();
 
 
-        if (numRoi > caps.MaxNumOfROI)
+        if (numRoi > caps.ddi_caps.MaxNumOfROI)
         {
-            numRoi = caps.MaxNumOfROI;
+            numRoi = caps.ddi_caps.MaxNumOfROI;
         }
-
-#if MFX_VERSION > 1021
-        task.m_roiMode = pRoi->ROIMode;
 
         if (pRoi->ROIMode != MFX_ROI_MODE_QP_DELTA && pRoi->ROIMode != MFX_ROI_MODE_PRIORITY)
         {
             numRoi = 0;
         }
 
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-            pRoi->ROIMode == MFX_ROI_MODE_QP_DELTA && caps.ROIBRCDeltaQPLevelSupport == 0)
+        if (caps.ddi_caps.ROIBRCDeltaQPLevelSupport == 0)
         {
             numRoi = 0;
         }
-
-        if (video.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
-            pRoi->ROIMode == MFX_ROI_MODE_PRIORITY && caps.ROIBRCPriorityLevelSupport == 0)
-        {
-            numRoi = 0;
-        }
-#endif // MFX_VERSION > 1021
 
         for (mfxU16 i = 0; i < numRoi; i ++)
         {
             if (extRoiRuntime)
             {
                 mfxRoiDesc task_roi = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, pRoi->ROI[i].Priority};
+                                       pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
+                                       (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
 
                 // check runtime ROI
-#if MFX_VERSION > 1021
                 mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, extRoiRuntime->ROIMode);
-#else
-                mfxStatus sts = CheckAndFixRoiQueryLike(video, &task_roi, 0);
-#endif // MFX_VERSION > 1021
+
                 if (sts != MFX_ERR_UNSUPPORTED) {
                     task.m_roi[task.m_numRoi] = task_roi;
                     task.m_numRoi++;
@@ -2244,10 +2231,12 @@ void MfxHwH264Encode::ConfigureTask(
             else
             {
                 task.m_roi[task.m_numRoi] = {pRoi->ROI[i].Left,  pRoi->ROI[i].Top,
-                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom, pRoi->ROI[i].Priority};
+                                             pRoi->ROI[i].Right, pRoi->ROI[i].Bottom,
+                                             (mfxI16)((pRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * pRoi->ROI[i].DeltaQP) };
                 task.m_numRoi ++;
             }
         }
+        task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
     }
 
     mfxExtDirtyRect const * pDirtyRect = extDirtyRectRuntime ? extDirtyRectRuntime : extDirtyRect;

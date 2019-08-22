@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -672,9 +672,9 @@ namespace MfxHwH264Encode
         const eMFXHWType& platfrom);
 
     mfxStatus QueryHwCaps(
-        VideoCORE *     core,
-        ENCODE_CAPS & hwCaps,
-        mfxVideoParam * par);
+        VideoCORE *       core,
+        MFX_ENCODE_CAPS & hwCaps,
+        mfxVideoParam *   par);
 
     mfxStatus QueryMbProcRate(
         VideoCORE* core,
@@ -745,23 +745,23 @@ namespace MfxHwH264Encode
 
 
     mfxStatus CheckVideoParam(
-        MfxVideoParam &     par,
-        ENCODE_CAPS const & hwCaps,
-        bool                setExtAlloc,
-        eMFXHWType          platform = MFX_HW_UNKNOWN,
-        eMFXVAType          vaType = MFX_HW_NO,
-        eMFXGTConfig        config = MFX_GT_UNKNOWN,
-        bool                bInit = false);
+        MfxVideoParam &         par,
+        MFX_ENCODE_CAPS const & hwCaps,
+        bool                    setExtAlloc,
+        eMFXHWType              platform = MFX_HW_UNKNOWN,
+        eMFXVAType              vaType = MFX_HW_NO,
+        eMFXGTConfig            config = MFX_GT_UNKNOWN,
+        bool                    bInit = false);
 
     mfxStatus CheckVideoParamFEI(
         MfxVideoParam &     par);
 
     mfxStatus CheckVideoParamQueryLike(
-        MfxVideoParam &     par,
-        ENCODE_CAPS const & hwCaps,
-        eMFXHWType          platform = MFX_HW_UNKNOWN,
-        eMFXVAType          vaType = MFX_HW_NO,
-        eMFXGTConfig        config = MFX_GT_UNKNOWN);
+        MfxVideoParam &         par,
+        MFX_ENCODE_CAPS const & hwCaps,
+        eMFXHWType              platform = MFX_HW_UNKNOWN,
+        eMFXVAType              vaType = MFX_HW_NO,
+        eMFXGTConfig            config = MFX_GT_UNKNOWN);
 
     mfxStatus CheckVideoParamMvcQueryLike(MfxVideoParam &     par);
 
@@ -770,12 +770,12 @@ namespace MfxHwH264Encode
     mfxStatus CheckAndFixMVCSeqDesc(mfxExtMVCSeqDesc * mvcSeqDesc, bool isViewOutput);
 
     void SetDefaults(
-        MfxVideoParam &     par,
-        ENCODE_CAPS const & hwCaps,
-        bool                setExtAlloc,
-        eMFXHWType          platform = MFX_HW_UNKNOWN,
-        eMFXVAType          vaType = MFX_HW_NO,
-        eMFXGTConfig        config = MFX_GT_UNKNOWN);
+        MfxVideoParam &         par,
+        MFX_ENCODE_CAPS const & hwCaps,
+        bool                    setExtAlloc,
+        eMFXHWType              platform = MFX_HW_UNKNOWN,
+        eMFXVAType              vaType = MFX_HW_NO,
+        eMFXGTConfig            config = MFX_GT_UNKNOWN);
 
     void InheritDefaultValues(
         MfxVideoParam const & parInit,
@@ -791,7 +791,7 @@ namespace MfxHwH264Encode
         mfxEncodeCtrl *       ctrl,
         mfxFrameSurface1 *    surface,
         mfxBitstream *        bs,
-        ENCODE_CAPS const &   caps,
+        MFX_ENCODE_CAPS const &   caps,
         eMFXHWType            platform = MFX_HW_UNKNOWN);
 
     mfxStatus CheckFEIRunTimeExtBuffersContent(
@@ -929,6 +929,11 @@ namespace MfxHwH264Encode
     inline mfxU8 GetPayloadLayout(const mfxFrameParam& fp)
     {
         return GetPayloadLayout(fp.AVC.FieldPicFlag, fp.AVC.SecondFieldPicFlag);
+    }
+
+    inline bool IsDriverSliceSizeControlEnabled(const MfxVideoParam & par, MFX_ENCODE_CAPS const & hwCaps)
+    {
+        return IsOn(par.mfx.LowPower) && hwCaps.ddi_caps.SliceLevelRateCtrl;
     }
 
     mfxU8 ConvertFrameTypeMfx2Ddi(mfxU32 type);
@@ -1344,9 +1349,9 @@ namespace MfxHwH264Encode
     {
     public:
         void Init(
-            MfxVideoParam const & par,
-            ENCODE_CAPS const &   hwCaps,
-            bool                  emulPrev = true); // insert emualtion prevention bytes when possible (sps/pps/sei/aud)
+            MfxVideoParam const &     par,
+            MFX_ENCODE_CAPS const &   hwCaps,
+            bool                      emulPrev = true); // insert emualtion prevention bytes when possible (sps/pps/sei/aud)
 
         std::vector<ENCODE_PACKEDHEADER_DATA> const & PackSlices(
             DdiTask const & task,
@@ -1398,7 +1403,7 @@ namespace MfxHwH264Encode
         // for header packing
         std::vector<mfxExtSpsHeader>    m_sps;
         std::vector<mfxExtPpsHeader>    m_pps;
-        ENCODE_CAPS                     m_hwCaps;
+        MFX_ENCODE_CAPS                 m_hwCaps;
         mfxU8                           m_spsIdx[8][16];            // for lookup by did & qid
         mfxU8                           m_ppsIdx[8][16];            // for lookup by did & qid
         mfxU8                           m_refDqId[8];               // for lookup by did
@@ -1410,6 +1415,7 @@ namespace MfxHwH264Encode
         bool                            m_emulPrev;                 // insert emualtion prevention bytes when possible (sps/pps/sei/aud)
         bool                            m_isMVC;
         bool                            m_longStartCodes;
+        bool                            m_isLowPower;
 
         ENCODE_PACKEDHEADER_DATA                m_packedAud;
         std::vector<ENCODE_PACKEDHEADER_DATA>   m_packedSps;

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include "mfx_umc_alloc_wrapper.h"
 #include "libmfx_core_hw.h"
 
+#include "umc_va_base.h"
 #include "umc_mpeg2_utils.h"
 #include "umc_mpeg2_decoder_va.h"
 
@@ -750,6 +751,8 @@ mfxStatus VideoDECODEMPEG2::GetPayload( mfxU64 *ts, mfxPayload *payload)
 
     const auto msg = payloads->GetPayloadMessage();
 
+    static const mfxU16 USER_DATA_START_CODE = 0x000001B2;
+
     if (msg)
     {
         if (payload->BufSize < msg->msg_size)
@@ -760,7 +763,7 @@ mfxStatus VideoDECODEMPEG2::GetPayload( mfxU64 *ts, mfxPayload *payload)
         std::copy(msg->data, msg->data + msg->msg_size, payload->Data);
 
         payload->NumBit = (mfxU32)(msg->msg_size * 8);
-        payload->Type = UMC_MPEG2_DECODER::USER_DATA;
+        payload->Type = USER_DATA_START_CODE;
     }
     else
     {

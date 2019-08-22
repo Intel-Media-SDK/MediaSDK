@@ -52,6 +52,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "plugin_loader.h"
 #include "sample_defs.h"
 #include "plugin_utils.h"
+#include "preset_manager.h"
 
 #if (MFX_VERSION >= 1024)
 #include "brc_routines.h"
@@ -184,6 +185,7 @@ namespace TranscodingSample
         bool   bIsPerf;   // special performance mode. Use pre-allocated bitstreams, output
         mfxU16 nThreadsNum; // number of internal session threads number
         bool bRobustFlag;   // Robust transcoding mode. Allows auto-recovery after hardware errors
+        bool bSoftRobustFlag;
 
         mfxU32 EncodeId; // type of output coded video
         mfxU32 DecodeId; // type of input coded video
@@ -197,6 +199,7 @@ namespace TranscodingSample
         mfxU16 nTargetUsage;
         mfxF64 dDecoderFrameRateOverride;
         mfxF64 dEncoderFrameRateOverride;
+        mfxU16 EncoderPicstructOverride;
         mfxF64 dVPPOutFramerate;
         mfxU16 nBitRate;
         mfxU16 nBitRateMultiplier;
@@ -236,6 +239,7 @@ namespace TranscodingSample
         mfxU16 nBRefType;
         mfxU16 RepartitionCheckMode;
         mfxU16 GPB;
+        mfxU16 nTransformSkip;
 
         mfxU16 CodecLevel;
         mfxU16 CodecProfile;
@@ -275,6 +279,15 @@ namespace TranscodingSample
         mfxU16 nQPB;
         bool bDisableQPOffset;
 
+        mfxU16 nAvcTemp;
+        mfxU16 nBaseLayerPID;
+        mfxU16 nAvcTemporalLayers[8];
+        mfxU16 nSPSId;
+        mfxU16 nPPSId;
+        mfxU16 nPicTimingSEI;
+        mfxU16 nNalHrdConformance;
+        mfxU16 nVuiNalHrdParameters;
+
         bool bOpenCL;
         mfxU16 reserved[4];
 
@@ -305,6 +318,16 @@ namespace TranscodingSample
 
         ExtBRCType nExtBRC;
 
+        mfxU16 nAdaptiveMaxFrameSize;
+        mfxU16 LowDelayBRC;
+
+        mfxU16 IntRefType;
+        mfxU16 IntRefCycleSize;
+        mfxU16 IntRefQPDelta;
+        mfxU16 IntRefCycleDist;
+
+        mfxU32 nMaxFrameSize;
+
 #if (MFX_VERSION >= 1025)
         mfxU16 numMFEFrames;
         mfxU16 MFMode;
@@ -322,6 +345,9 @@ namespace TranscodingSample
 #endif // defined(MFX_LIBVA_SUPPORT)
 
         CHWDevice             *m_hwdev;
+
+        EPresetModes PresetMode;
+        bool shouldPrintPresets;
     };
 
     struct sInputParams: public __sInputParams
@@ -357,14 +383,10 @@ namespace TranscodingSample
 
     struct ExtendedBS
     {
-        ExtendedBS(): IsFree(true), Syncp(NULL), pCtrl(NULL)
-        {
-            MSDK_ZERO_MEMORY(Bitstream);
-        };
-        bool IsFree;
-        mfxBitstream Bitstream;
-        mfxSyncPoint Syncp;
-        PreEncAuxBuffer* pCtrl;
+        bool IsFree = true;
+        mfxBitstreamWrapper Bitstream;
+        mfxSyncPoint Syncp = nullptr;
+        PreEncAuxBuffer* pCtrl = nullptr;
     };
 
     class CIOStat : public CTimeStatistics
@@ -471,8 +493,6 @@ namespace TranscodingSample
         }
         virtual ~ExtendedBSStore()
         {
-            for (mfxU32 i=0; i < m_pExtBS.size(); i++)
-                MSDK_SAFE_DELETE_ARRAY(m_pExtBS[i].Bitstream.Data);
             m_pExtBS.clear();
 
         }
@@ -569,9 +589,9 @@ namespace TranscodingSample
         virtual mfxStatus SetReader(std::unique_ptr<CSmplBitstreamReader>& reader);
         virtual mfxStatus SetReader(std::unique_ptr<CSmplYUVReader>& reader);
         virtual mfxStatus SetWriter(std::unique_ptr<CSmplBitstreamWriter>& writer);
-        virtual mfxStatus GetInputBitstream(mfxBitstream **pBitstream);
+        virtual mfxStatus GetInputBitstream(mfxBitstreamWrapper **pBitstream);
         virtual mfxStatus GetInputFrame(mfxFrameSurface1 *pSurface);
-        virtual mfxStatus ProcessOutputBitstream(mfxBitstream* pBitstream);
+        virtual mfxStatus ProcessOutputBitstream(mfxBitstreamWrapper* pBitstream);
         virtual mfxStatus ResetInput();
         virtual mfxStatus ResetOutput();
 
@@ -580,7 +600,7 @@ namespace TranscodingSample
         std::unique_ptr<CSmplYUVReader> m_pYUVFileReader;
         // for performance options can be zero
         std::unique_ptr<CSmplBitstreamWriter> m_pFileWriter;
-        mfxBitstream m_Bitstream;
+        mfxBitstreamWrapper m_Bitstream;
     private:
         DISALLOW_COPY_AND_ASSIGN(FileBitstreamProcessor);
     };
@@ -635,7 +655,7 @@ namespace TranscodingSample
         virtual mfxStatus DecodeOneFrame(ExtendedSurface *pExtSurface);
         virtual mfxStatus DecodeLastFrame(ExtendedSurface *pExtSurface);
         virtual mfxStatus VPPOneFrame(ExtendedSurface *pSurfaceIn, ExtendedSurface *pExtSurface);
-        virtual mfxStatus EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstream *pBS);
+        virtual mfxStatus EncodeOneFrame(ExtendedSurface *pExtSurface, mfxBitstreamWrapper *pBS);
         virtual mfxStatus PreEncOneFrame(ExtendedSurface *pInSurface, ExtendedSurface *pOutSurface);
 
         virtual mfxStatus DecodePreInit(sInputParams *pParams);
@@ -647,6 +667,8 @@ namespace TranscodingSample
         mfxExtOpaqueSurfaceAlloc GetDecOpaqueAlloc() const { return m_pmfxVPP.get() ? m_VppOpaqueAlloc: m_DecOpaqueAlloc; };
 
         mfxExtMVCSeqDesc GetDecMVCSeqDesc() const {return m_MVCSeqDesc;}
+
+        static void ModifyParamsUsingPresets(sInputParams& params, mfxF64 fps, mfxU32 width, mfxU32 height);
 
         // alloc frames for all component
         mfxStatus AllocFrames(mfxFrameAllocRequest  *pRequest, bool isDecAlloc);
@@ -675,6 +697,8 @@ namespace TranscodingSample
         mfxStatus InitPluginMfxParams(sInputParams *pInParams);
         mfxStatus InitPreEncMfxParams(sInputParams *pInParams);
 
+        void FillFrameInfoForEncoding(mfxFrameInfo& info, sInputParams *pInParams);
+
         mfxStatus AllocAndInitVppDoNotUse(sInputParams *pInParams);
         mfxStatus AllocMVCSeqDesc();
         mfxStatus InitOpaqueAllocBuffers();
@@ -682,15 +706,15 @@ namespace TranscodingSample
         void FreeVppDoNotUse();
         void FreeMVCSeqDesc();
 
-        mfxStatus AllocateSufficientBuffer(mfxBitstream* pBS);
+        mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper* pBS);
         mfxStatus PutBS();
 
         mfxStatus DumpSurface2File(mfxFrameSurface1* pSurface);
-        mfxStatus Surface2BS(ExtendedSurface* pSurf,mfxBitstream* pBS, mfxU32 fourCC);
-        mfxStatus NV12toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
-        mfxStatus NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstream* pBS);
-        mfxStatus RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
-        mfxStatus YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstream* pBS);
+        mfxStatus Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWrapper* pBS, mfxU32 fourCC);
+        mfxStatus NV12toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS);
+        mfxStatus NV12asI420toBS(mfxFrameSurface1* pSurface, mfxBitstreamWrapper* pBS);
+        mfxStatus RGB4toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS);
+        mfxStatus YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstreamWrapper* pBS);
 
         void NoMoreFramesSignal();
         mfxStatus AddLaStreams(mfxU16 width, mfxU16 height);
@@ -706,7 +730,7 @@ namespace TranscodingSample
         mfxStatus   SetAllocatorAndHandleIfRequired();
         mfxStatus   LoadGenericPlugin();
 
-        mfxBitstream        *m_pmfxBS;  // contains encoded input data
+        mfxBitstreamWrapper *m_pmfxBS;  // contains encoded input data
 
         mfxVersion m_Version; // real API version with which library is initialized
 
@@ -789,6 +813,10 @@ namespace TranscodingSample
         mfxExtDecVideoProcessing m_decPostProcessing;
 #endif //MFX_VERSION >= 1022
 
+        mfxExtAvcTemporalLayers  m_AvcTemporalLayers;
+        mfxExtCodingOptionSPSPPS m_CodingOptionSPSPPS;
+        mfxExtCodingOption       m_CodingOption;
+
         mfxExtLAControl          m_ExtLAControl;
         // for setting MaxSliceSize
         mfxExtCodingOption2      m_CodingOption2;
@@ -797,8 +825,11 @@ namespace TranscodingSample
 
         // HEVC
         mfxExtHEVCParam          m_ExtHEVCParam;
+        mfxExtHEVCTiles          m_ExtHEVCTiles;
+#if (MFX_VERSION >= 1026)
         // VP9
         mfxExtVP9Param           m_ExtVP9Param;
+#endif
 
 #if (MFX_VERSION >= 1024)
         mfxExtBRC                m_ExtBRC;
@@ -850,6 +881,7 @@ namespace TranscodingSample
         std::mutex      m_mReset;
         std::mutex      m_mStopSession;
         bool            m_bRobustFlag;
+        bool            m_bSoftGpuHangRecovery;
 
         bool isHEVCSW;
 

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2018, Intel Corporation
+Copyright (c) 2005-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -66,7 +66,7 @@ public:
     mfxU32               m_allocId;
     mfxVideoParam        m_videoParams;
     AppConfig*           m_pAppConfig;
-    mfxBitstream         m_mfxBS;
+    mfxBitstreamWrapper  m_mfxBS;
     mfxSyncPoint         m_SyncPoint;
     CSmplBitstreamReader m_BSReader;
     ExtSurfPool*         m_pSurfPool;
