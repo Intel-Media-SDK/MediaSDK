@@ -2819,7 +2819,7 @@ mfxStatus VAAPIEncoder::Execute(
  /*
  *   RollingIntraRefresh
  */
-    if (memcmp(&task.m_IRState, &m_RIRState, sizeof(m_RIRState)))
+    if (!(task.m_IRState == m_RIRState))
     {
         m_RIRState = task.m_IRState;
         MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetRollingIntraRefresh(m_RIRState, m_vaDisplay,
