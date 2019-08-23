@@ -189,7 +189,7 @@ mfxStatus BaseFrameAllocator::FreeFrames(mfxFrameAllocResponse *response)
 
     // check whether response is an external decoder response
     std::list<UniqueResponse>::iterator i =
-        std::find_if( m_ExtResponses.begin(), m_ExtResponses.end(), std::bind1st(IsSame(), *response));
+        std::find_if( m_ExtResponses.begin(), m_ExtResponses.end(), std::bind(IsSame(), *response, std::placeholders::_1));
 
     if (i != m_ExtResponses.end())
     {
@@ -203,7 +203,7 @@ mfxStatus BaseFrameAllocator::FreeFrames(mfxFrameAllocResponse *response)
 
     // if not found so far, then search in internal responses
     std::list<mfxFrameAllocResponse>::iterator i2 =
-        std::find_if(m_responses.begin(), m_responses.end(), std::bind1st(IsSame(), *response));
+        std::find_if(m_responses.begin(), m_responses.end(), std::bind(IsSame(), *response, std::placeholders::_1));
 
     if (i2 != m_responses.end())
     {
