@@ -3758,7 +3758,7 @@ The application can attach this extended buffer to the [mfxVideoParam](#mfxVideo
 `IntRefQPDelta` | Specifies QP difference for inserted intra MBs. This is signed value in [-51, 51] range. This parameter is valid during initialization and runtime.
 `MaxFrameSize` | Specify maximum encoded frame size in byte. This parameter is used in VBR based bitrate control modes and ignored in others. The SDK encoder tries to keep frame size below specified limit but minor overshoots are possible to preserve visual quality. This parameter is valid during initialization and runtime. It is recommended to set MaxFrameSize to 5x-10x target frame size (`(TargetKbps*1000)/(8* FrameRateExtN/FrameRateExtD)`) for I frames and 2x-4x target frame size for P frames.
 `MaxSliceSize` | Specify maximum slice size in bytes. If this parameter is specified other controls over number of slices are ignored.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
-`BitrateLimit` | Turn off this flag to remove bitrate limitations imposed by the SDK encoder. This flag is intended for special usage models and usually the application should not set it. Setting this flag may lead to violation of HRD conformance and severe visual artifacts. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. The default value is ON, i.e. bitrate is limitted. This parameter is valid only during initialization.
+`BitrateLimit` | Turn off this flag to remove bitrate limitations imposed by the SDK encoder. This flag is intended for special usage models and usually the application should not set it. Setting this flag may lead to violation of HRD conformance and severe visual artifacts. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. The default value is ON, i.e. bitrate is limited. This parameter is valid only during initialization.
 `MBBRC` | Setting this flag enables macroblock level bitrate control that generally improves subjective visual quality. Enabling this flag may have negative impact on performance and objective visual quality metric. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. The default value depends on target usage settings.
 `ExtBRC` | Turn ON this option to enable [external BRC](#mfxExtBRC). See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
 `LookAheadDepth` | Specifies the depth of look ahead rate control algorithm. It is the number of frames that SDK encoder analyzes before encoding. Valid value range is from 10 to 100 inclusive. To instruct the SDK encoder to use the default value the application should zero this field.
@@ -3936,7 +3936,7 @@ The application can attach this extended buffer to the [mfxVideoParam](#mfxVideo
 `ExtBrcAdaptiveLTR` | Turn OFF to prevent Adaptive marking of Long Term Reference Frames when using [ExtBRC](#External_Bit_Rate_Control). When ON and using [ExtBRC](#External_Bit_Rate_Control), encoders will mark, modify, or remove LTR frames based on encoding parameters and content properties. The application must set each input frame's [mfxFrameData](#mfxFrameData)**::FrameOrder** for correct operation of LTR.
 `TargetChromaFormatPlus1` | Minus 1 specifies target encoding chroma format (see [ChromaFormatIdc](#ChromaFormatIdc) enumerator). May differ from source one. `TargetChromaFormatPlus1 = 0` mean default target chroma format which is equal to source ([mfxVideoParam::](#mfxVideoParam)[mfx::](#mfxInfoMFX)[FrameInfo::](#mfxFrameInfo)`ChromaFormat + 1`), except RGB4 source format.<br>In case of RGB4 source format default target chroma format is 4:2:0 (instead of 4:4:4) for the purpose of backward compatibility.
 `TargetBitDepthLuma` | Target encoding bit-depth for luma samples. May differ from source one. `0` mean default target bit-depth which is equal to source ([mfxVideoParam::](#mfxVideoParam)[mfx::](#mfxInfoMFX)[FrameInfo::](#mfxFrameInfo)`BitDepthLuma`).
-`TargetBitDepthChroma` | Target encoding bit-depth for chroma samples. May differ from source one. `0` mean default target bit-depthwhich is equal to source ([mfxVideoParam::](#mfxVideoParam)[mfx::](#mfxInfoMFX)[FrameInfo::](#mfxFrameInfo)`BitDepthChroma`).
+`TargetBitDepthChroma` | Target encoding bit-depth for chroma samples. May differ from source one. `0` mean default target bit-depth which is equal to source ([mfxVideoParam::](#mfxVideoParam)[mfx::](#mfxInfoMFX)[FrameInfo::](#mfxFrameInfo)`BitDepthChroma`).
 
 
 **Change History**
@@ -3993,7 +3993,7 @@ Attach this structure as part of the extended buffers to configure the SDK encod
 
 For H.264, `SPSBuffer` and `PPSBuffer` must point to valid bitstreams that contain the sequence parameter set and picture parameter set, respectively. For MPEG-2, `SPSBuffer` must point to valid bitstreams that contain the sequence header followed by any sequence header extension. The `PPSBuffer` pointer is ignored. The SDK encoder imports parameters from these buffers. If the encoder does not support the specified parameters, the encoder does not initialize and returns the status code [MFX_ERR_INCOMPATIBLE_VIDEO_PARAM](#mfxStatus).
 
-Check with the [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function for the support of this multiple segemnt encoding feature. If this feature is not supported, the query returns [MFX_ERR_UNSUPPORTED](#mfxStatus).
+Check with the [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function for the support of this multiple segment encoding feature. If this feature is not supported, the query returns [MFX_ERR_UNSUPPORTED](#mfxStatus).
 
 **Members**
 
@@ -4666,7 +4666,7 @@ typedef struct {
 
 **Description**
 
-The `mfxExtEncoderCapability` structure is used to retrive SDK encoder capability. See description of mode 4 of the [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function for details how to use this structure.
+The `mfxExtEncoderCapability` structure is used to retrieve SDK encoder capability. See description of mode 4 of the [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function for details how to use this structure.
 
 Not all implementations of the SDK encoder support this extended buffer. The application has to use query mode 1 to determine if such functionality is supported. To do so, the application has to attach this extended buffer to [mfxVideoParam](#mfxVideoParam) structure and call [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function.  If function returns MFX_ERR_NONE then such functionality is supported.
 
@@ -7817,7 +7817,7 @@ The `ExtendedBufferID` enumerator itemizes and defines identifiers (`BufferId`) 
 `MFX_EXTBUFF_CODING_OPTION2` | This extended buffer defines additional encoding controls. See the [mfxExtCodingOption2](#mfxExtCodingOption2) structure for details. The application can attach this buffer to the  structure for encoding initialization.
 `MFX_EXTBUFF_CODING_OPTION3` | This extended buffer defines additional encoding controls. See the [mfxExtCodingOption3](#mfxExtCodingOption3) structure for details. The application can attach this buffer to the  structure for encoding initialization.
 `MFX_EXTBUFF_ENCODED_FRAME_INFO` | This extended buffer is used by the SDK encoder to report additional information about encoded picture. See the [mfxExtAVCEncodedFrameInfo](#mfxExtAVCEncodedFrameInfo) structure for details. The application can attach this buffer to the [mfxBitstream](#mfxBitstream) structure before calling [MFXVideoENCODE_EncodeFrameAsync](#MFXVideoENCODE_EncodeFrameAsync) function.
-`MFX_EXTBUFF_ENCODER_CAPABILITY` | This extended buffer is used to retrive SDK encoder capability. See the [mfxExtEncoderCapability](#mfxExtEncoderCapability) structure for details. The application can attach this buffer to the [mfxVideoParam](#mfxVideoParam) structure before calling [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function.
+`MFX_EXTBUFF_ENCODER_CAPABILITY` | This extended buffer is used to retrieve SDK encoder capability. See the [mfxExtEncoderCapability](#mfxExtEncoderCapability) structure for details. The application can attach this buffer to the [mfxVideoParam](#mfxVideoParam) structure before calling [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function.
 `MFX_EXTBUFF_ENCODER_RESET_OPTION` | This extended buffer is used to control encoder reset behavior and also to query possible encoder reset outcome. See the [mfxExtEncoderResetOption](#mfxExtEncoderResetOption) structure for details. The application can attach this buffer to the [mfxVideoParam](#mfxVideoParam) structure before calling [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) or [MFXVideoENCODE_Reset](#MFXVideoENCODE_Reset) functions.
 `MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION` | This extended buffer defines opaque surface allocation information. See the [mfxExtOpaqueSurfaceAlloc](#mfxExtOpaqueSurfaceAlloc) structure for details. The application can attach this buffer to decoding, encoding, or video processing initialization.
 `MFX_EXTBUFF_PICTURE_TIMING_SEI` | This extended buffer configures the H.264 picture timing SEI message. See the  [mfxExtPictureTimingSEI](#mfxExtPictureTimingSEI) structure for details. The application can attach this buffer to the [mfxVideoParam](#mfxVideoParam) structure for encoding initialization, or the [mfxEncodeCtrl](#mfxEncodeCtrl) structure for per-frame encoding configuration.
@@ -7915,7 +7915,7 @@ See additional change history in the structure definitions.
 
 **Description**
 
-The `ExtMemBufferType` enumeratorspecifies the buffer type. It is a bit-ORed value of the following.
+The `ExtMemBufferType` enumerator specifies the buffer type. It is a bit-ORed value of the following.
 
 **Name/Description**
 
@@ -8256,7 +8256,7 @@ Configuration related errors or warnings
 --- | ---
 `MFX_ERR_UNSUPPORTED` | Unsupported configurations, parameters, or features
 `MFX_ERR_INVALID_VIDEO_PARAM` | Invalid video parameters detected. **Init** and **Reset** functions return this status code to indicate either that mandated input parameters are unspecified, or the functions failed to correct them.
-`MFX_ERR_INCOMPATIBLE_VIDEO_PARAM` | Incompatible video parameters detected. If a **Reset** function returns this status code, a component—decoder, encoder or video preprocessor—cannot process the specified configuration with existing structures and frame buffers. If the function [MFXVideoDECODE_DecodeFrameAsync](#MFXVideoDECODE_DecodeFrameAsync) returnsthis status code, the bitstream contains an incompatible video parameter configuration that the decoder cannot follow.
+`MFX_ERR_INCOMPATIBLE_VIDEO_PARAM` | Incompatible video parameters detected. If a **Reset** function returns this status code, a component—decoder, encoder or video preprocessor—cannot process the specified configuration with existing structures and frame buffers. If the function [MFXVideoDECODE_DecodeFrameAsync](#MFXVideoDECODE_DecodeFrameAsync) returns this status code, the bitstream contains an incompatible video parameter configuration that the decoder cannot follow.
 `MFX_WRN_VIDEO_PARAM_CHANGED` | The decoder detected a new sequence header in the bitstream. Video parameters may have changed.
 `MFX_WRN_VALUE_NOT_CHANGED` | The parameter has been clipped to its value range.
 `MFX_WRN_OUT_OF_RANGE` | The parameter is out of valid value range.
@@ -8883,7 +8883,7 @@ This enumerator is available since SDK API 1.25.
 
 **Description**
 
-The `SampleAdaptiveOffset` enumerator uses bit-ORed values to itemize correspoding HEVC encoding feature.
+The `SampleAdaptiveOffset` enumerator uses bit-ORed values to itemize corresponding HEVC encoding feature.
 
 **Name/Description**
 
@@ -8931,7 +8931,7 @@ The `MFMode` enumerator defines multi-frame submission mode.
 `MFX_MF_DEFAULT`  | The SDK decides if multi-frame submission is enabled or disabled based on parameters, target encoder, platform, implementation, etc.
 `MFX_MF_DISABLED` | Explicitly disables multi-frame submission.
 `MFX_MF_AUTO`     | The SDK controls multi-frame submission based on timeout management and decides amount of frames to be combined, by default timeout is calculated based on requirement to reach particular output rate equal to framerate.
-`MFX_MF_MANUAL`   | Applicaiton manages multi-frame submission, number of frames can be maximum for platform and decided by Application. The SDK will always wait for [mfxExtMultiFrameControl](#mfxExtMultiFrameControl)`::MaxNumFrames` to submit frames or until application specify [mfxExtMultiFrameControl](#mfxExtMultiFrameControl)`::Flush` with one of frames
+`MFX_MF_MANUAL`   | Application manages multi-frame submission, number of frames can be maximum for platform and decided by Application. The SDK will always wait for [mfxExtMultiFrameControl](#mfxExtMultiFrameControl)`::MaxNumFrames` to submit frames or until application specify [mfxExtMultiFrameControl](#mfxExtMultiFrameControl)`::Flush` with one of frames
 
 **Change History**
 
@@ -9191,7 +9191,7 @@ The SDK encoder may change some of the initialization parameters provided by the
 
 ### <a id='Dynamic_scaling'>Dynamic reference frame scaling</a>
 
-VP9 standard allows to change resolution without insertion of key-frame. It's possible because of native built-in capability of VP9 decoder to upscale and downscale reference frames to match resolution of frame which is being encoded. By default SDK VP9 encoder inserts key-frame when application does [Dynamic Resolution Change](#Dynamic_resolution_change). In this case first frame with new resolution is encoded using Inter prediction from scaled reference frame of previous resolution. Dynamic scaling has following limitation coming from VP9 specification: resolution of any active reference frame cannot exceed 2x resolution of current frame, and can't be smaller than 1/16 of current frame resolution. In case of dynamic scaling SDK VP9 encoder always uses single active reference frame for first frame after resolution change. So SDK VP9 encoder has following limitation for dynamic resolution change: new resolution shouln't exceed 16x and be below than 1/2 of current resolution.
+VP9 standard allows to change resolution without insertion of key-frame. It's possible because of native built-in capability of VP9 decoder to upscale and downscale reference frames to match resolution of frame which is being encoded. By default SDK VP9 encoder inserts key-frame when application does [Dynamic Resolution Change](#Dynamic_resolution_change). In this case first frame with new resolution is encoded using Inter prediction from scaled reference frame of previous resolution. Dynamic scaling has following limitation coming from VP9 specification: resolution of any active reference frame cannot exceed 2x resolution of current frame, and can't be smaller than 1/16 of current frame resolution. In case of dynamic scaling SDK VP9 encoder always uses single active reference frame for first frame after resolution change. So SDK VP9 encoder has following limitation for dynamic resolution change: new resolution shouldn't exceed 16x and be below than 1/2 of current resolution.
 
 Application may force insertion of key-frame at the place of resolution change by invoking [encoder reset](#MFXVideoENCODE_Reset) with [mfxExtEncoderResetOption](#mfxExtEncoderResetOption)`::StartNewSequence` set to `MFX_CODINGOPTION_ON`. In case of inserted key-frame above limitations for new resolution are not in force.
 
