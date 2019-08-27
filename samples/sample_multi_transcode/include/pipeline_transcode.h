@@ -179,6 +179,11 @@ namespace TranscodingSample
         mfxPriority  priority;
         // common parameters
         mfxIMPL libType;  // Type of used mediaSDK library
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+        //Adapter type
+        bool bPrefferiGfx;
+        bool bPrefferdGfx;
+#endif
         bool   bIsPerf;   // special performance mode. Use pre-allocated bitstreams, output
         mfxU16 nThreadsNum; // number of internal session threads number
         bool bRobustFlag;   // Robust transcoding mode. Allows auto-recovery after hardware errors
@@ -643,6 +648,13 @@ namespace TranscodingSample
 
             return ss.str();
         }
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+        //Adapter type
+        void SetPrefferiGfx(bool prefferiGfx) { bPrefferiGfx = prefferiGfx; };
+        void SetPrefferdGfx(bool prefferdGfx) { bPrefferdGfx = prefferdGfx; };
+        bool IsPrefferiGfx() { return bPrefferiGfx; };
+        bool IsPrefferdGfx() { return bPrefferdGfx; };
+#endif
     protected:
         virtual mfxStatus CheckRequiredAPIVersion(mfxVersion& version, sInputParams *pParams);
 
@@ -892,6 +904,11 @@ namespace TranscodingSample
 
 #ifdef  ENABLE_MCTF
         sMctfRunTimeParams   m_MctfRTParams;
+#endif
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+        //Adapter type
+        bool bPrefferiGfx;
+        bool bPrefferdGfx;
 #endif
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);
