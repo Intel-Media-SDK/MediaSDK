@@ -95,6 +95,11 @@ sInputParams::sInputParams() : __sInputParams()
 #endif
     priority = MFX_PRIORITY_NORMAL;
     libType = MFX_IMPL_SOFTWARE;
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+    //Adapter type
+    bPrefferiGfx = false;
+    bPrefferdGfx = false;
+#endif
     MaxFrameNumber = MFX_INFINITE;
     pVppCompDstRects = NULL;
     m_hwdev = NULL;
