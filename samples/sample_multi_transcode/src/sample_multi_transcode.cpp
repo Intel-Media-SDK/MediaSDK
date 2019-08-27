@@ -181,12 +181,17 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
                 MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
                 hdl = pVAAPIParams->m_dpy =(VADisplay)va_dpy;
 
-                mfxHDL whdl = NULL;
-                mfxHandleType hdlw_t = (mfxHandleType)HANDLE_WAYLAND_DRIVER;
-                Wayland *wld;
-                sts = m_hwdev->GetHandle(hdlw_t, &whdl);
-                MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-                wld = (Wayland*)whdl;
+                CVAAPIDeviceWayland* w_dev = dynamic_cast<CVAAPIDeviceWayland*>(m_hwdev.get());
+                if (!w_dev)
+                {
+                    MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+                }
+                Wayland *wld = w_dev->GetWaylandHandle();
+                if (!wld)
+                {
+                    MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+                }
+
                 wld->SetRenderWinPos(params.nRenderWinX, params.nRenderWinY);
                 wld->SetPerfMode(params.bPerfMode);
 

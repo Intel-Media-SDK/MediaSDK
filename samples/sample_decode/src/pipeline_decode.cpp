@@ -950,13 +950,19 @@ mfxStatus CDecodingPipeline::CreateHWDevice()
     MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
 
 #if defined(LIBVA_WAYLAND_SUPPORT)
-    if (m_eWorkMode == MODE_RENDERING && m_libvaBackend == MFX_LIBVA_WAYLAND) {
-        mfxHDL hdl = NULL;
-        mfxHandleType hdlw_t = (mfxHandleType)HANDLE_WAYLAND_DRIVER;
-        Wayland *wld;
-        sts = m_hwdev->GetHandle(hdlw_t, &hdl);
-        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        wld = (Wayland*)hdl;
+    if (m_eWorkMode == MODE_RENDERING && m_libvaBackend == MFX_LIBVA_WAYLAND)
+    {
+        CVAAPIDeviceWayland* w_dev = dynamic_cast<CVAAPIDeviceWayland*>(m_hwdev);
+        if (!w_dev)
+        {
+            MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+        }
+        Wayland *wld = w_dev->GetWaylandHandle();
+        if (!wld)
+        {
+            MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+        }
+
         wld->SetRenderWinPos(m_nRenderWinX, m_nRenderWinY);
         wld->SetPerfMode(m_bPerfMode);
     }
