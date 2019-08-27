@@ -130,8 +130,6 @@ private:
 
 class Wayland;
 
-#define HANDLE_WAYLAND_DRIVER   (MFX_HANDLE_VA_DISPLAY << 4)
-
 class CVAAPIDeviceWayland : public CHWDevice
 {
 public:
@@ -155,11 +153,9 @@ public:
         if((MFX_HANDLE_VA_DISPLAY == type) && (NULL != pHdl)) {
             *pHdl = m_DRMLibVA.GetVADisplay();
             return MFX_ERR_NONE;
-        } else if((HANDLE_WAYLAND_DRIVER  == type) && (NULL != m_Wayland)) {
-            *pHdl = m_Wayland;
-            return MFX_ERR_NONE;
-    }
-    return MFX_ERR_UNSUPPORTED;
+        }
+
+        return MFX_ERR_UNSUPPORTED;
     }
     virtual mfxStatus RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllocator * pmfxAlloc);
     virtual void UpdateTitle(double fps) { }
@@ -169,6 +165,10 @@ public:
         m_isMondelloInputEnabled = isMondelloInputEnabled;
     }
 
+    Wayland * GetWaylandHandle()
+    {
+        return m_Wayland;
+    }
 protected:
     DRMLibVA m_DRMLibVA;
     MfxLoader::VA_WaylandClientProxy  m_WaylandClient;
