@@ -3657,14 +3657,14 @@ void ConfigureTask(
     if (isB)
     {
         mfxI32 layer = par.isBPyramid() ? clamp<mfxI32>(task.m_level - 1, 0, 7) : 0;
-        task.m_numRefActive[0] = (mfxU8)CO3.NumRefActiveBL0[layer];
+        task.m_numRefActive[0] = std::max<mfxU8>((mfxU8)CO3.NumRefActiveBL0[layer], (task.m_secondField ? 2 : 1));
         task.m_numRefActive[1] = (mfxU8)CO3.NumRefActiveBL1[layer];
     }
     if (isP)
     {
         mfxI32 layer = PLayer(task.m_poc - prevTask.m_lastIPoc, par);
-        task.m_numRefActive[0] = (mfxU8)CO3.NumRefActiveP[layer];
-        task.m_numRefActive[1] = (mfxU8)Min(CO3.NumRefActiveP[layer], par.m_ext.DDI.NumActiveRefBL1);
+        task.m_numRefActive[0] = std::max<mfxU8>((mfxU8)CO3.NumRefActiveP[layer], (task.m_secondField ? 2 : 1));
+        task.m_numRefActive[1] = std::min(CO3.NumRefActiveP[layer], par.m_ext.DDI.NumActiveRefBL1);
     }
 
     if (!isI)
