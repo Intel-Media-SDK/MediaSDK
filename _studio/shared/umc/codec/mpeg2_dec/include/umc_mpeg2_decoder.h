@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -188,6 +188,7 @@ namespace UMC_MPEG2_DECODER
         // Action on new picture
         virtual bool OnNewPicture(); // returns true on full frame
         virtual UMC::Status CompletePicture(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
+        bool IsFieldOfCurrentFrame() const;
 
         // DPB update
         virtual void UpdateDPB(MPEG2DecoderFrame&, uint8_t);
