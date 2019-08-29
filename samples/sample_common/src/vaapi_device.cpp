@@ -353,7 +353,7 @@ mfxStatus CVAAPIDeviceWayland::Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapt
 
 mfxStatus CVAAPIDeviceWayland::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllocator * /*pmfxAlloc*/)
 {
-    uint32_t drm_format = 0;
+    uint32_t drm_format = pSurface->Info.FourCC;
     int offsets[3], pitches[3];
     mfxStatus mfx_res = MFX_ERR_NONE;
     vaapiMemId * memId = NULL;
