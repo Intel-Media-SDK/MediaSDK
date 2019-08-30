@@ -121,6 +121,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -?            Print this help and exit\n"));
     msdk_printf(MSDK_STRING("  -p <file-name>\n"));
     msdk_printf(MSDK_STRING("                Collect performance statistics in specified file\n"));
+    msdk_printf(MSDK_STRING("  -dump <file-name>\n"));
+    msdk_printf(MSDK_STRING("                Dump MSDK components configuration in specified text file\n"));
     msdk_printf(MSDK_STRING("  -timeout <seconds>\n"));
     msdk_printf(MSDK_STRING("                Set time to run transcoding in seconds\n"));
     msdk_printf(MSDK_STRING("  -greedy \n"));
