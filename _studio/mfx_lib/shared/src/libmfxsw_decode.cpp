@@ -549,16 +549,19 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
             MFX_CHECK_STS(mfxAddRes);
         }
 
-        if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+        // return pointer to synchronization point
+        if (MFX_ERR_NONE                  == mfxRes ||
+           (MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes &&    syncPoint != NULL) ||
+           (MFX_WRN_VIDEO_PARAM_CHANGED   == mfxRes && *surface_out != NULL))
+        {
+            *syncp = syncPoint;
+        }
+
+        if (MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
         {
             mfxRes = MFX_WRN_DEVICE_BUSY;
         }
 
-        // return pointer to synchronization point
-        if (MFX_ERR_NONE == mfxRes || (mfxRes == MFX_WRN_VIDEO_PARAM_CHANGED && *surface_out != NULL))
-        {
-            *syncp = syncPoint;
-        }
     }
     // handle error(s)
     catch(...)
