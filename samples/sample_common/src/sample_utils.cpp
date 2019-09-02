@@ -1213,6 +1213,109 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
     return MFX_ERR_NONE;
 }
 
+QPFileReader::QPFileReader()
+{
+    m_nframes = 0;
+    m_cur_frame_num = 0;
+}
+
+QPFileReaderStatus QPFileReader::Read(const msdk_string &strFileName, mfxU32 codecid)
+{
+    msdk_fstream ifs;
+    ifs.open(strFileName, msdk_fstream::in);
+
+    if (ifs.is_open())
+    {
+        QPFileReaderFrameInfo frame_info;
+        msdk_string frame_type{};
+
+        if (!(ifs >> m_nframes))
+            return QPFILEREADER_WRONG_FILE;
+
+        m_frame_info.reserve(m_nframes);
+
+        if (codecid == MFX_CODEC_AVC)
+        {
+            while (ifs >> frame_info.display_order_num && ifs >> frame_info.QP && ifs >> frame_type)
+            {
+                if (frame_type == MSDK_STRING("IDR_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_REF;
+                else if (frame_type == MSDK_STRING("P_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
+                else if (frame_type == MSDK_STRING("B"))
+                    frame_info.frame_type = MFX_FRAMETYPE_B;
+                else if (frame_type == MSDK_STRING("B_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_B | MFX_FRAMETYPE_REF;
+                else
+                    return QPFILEREADER_WRONG_FILE;
+                m_frame_info.push_back(frame_info);
+            }
+        }
+        else if (codecid == MFX_CODEC_HEVC)
+        {
+            while (ifs >> frame_info.display_order_num && ifs >> frame_info.QP && ifs >> frame_type)
+            {
+                if (frame_type == MSDK_STRING("IDR_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+                else if (frame_type == MSDK_STRING("I_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+                else if (frame_type == MSDK_STRING("P_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
+                else if (frame_type == MSDK_STRING("P"))
+                    frame_info.frame_type = MFX_FRAMETYPE_P;
+                else if (frame_type == MSDK_STRING("B_REF"))
+                    frame_info.frame_type = MFX_FRAMETYPE_B | MFX_FRAMETYPE_REF;
+                else if (frame_type == MSDK_STRING("B"))
+                    frame_info.frame_type = MFX_FRAMETYPE_B;
+                else
+                    return QPFILEREADER_WRONG_FILE;
+                m_frame_info.push_back(frame_info);
+            }
+        }
+        else return QPFILEREADER_CODEC_UNSUPPORTED;
+
+        if (m_frame_info.size() < m_nframes)
+            return QPFILEREADER_WRONG_FILE;
+
+        for (const QPFileReaderFrameInfo &finfo : m_frame_info)
+            if (finfo.QP < 1 || finfo.QP > 51)
+                return QPFILEREADER_QP_OUT_OF_RANGE;
+    }
+    else return QPFILEREADER_FILE_NOT_OPEN;
+
+    return QPFILEREADER_ERR_NONE;
+}
+
+mfxU32 QPFileReader::getCurrentEncodedOrder()
+{
+    return m_cur_frame_num;
+}
+
+mfxU32 QPFileReader::getCurrentDisplayOrder()
+{
+    return m_frame_info[m_cur_frame_num].display_order_num;
+}
+
+mfxU16 QPFileReader::getCurrentQP()
+{
+    return m_frame_info[m_cur_frame_num].QP;
+}
+
+mfxU16 QPFileReader::getCurrentFrameType()
+{
+    return m_frame_info[m_cur_frame_num].frame_type;
+}
+
+void QPFileReader::NextFrame()
+{
+    ++m_cur_frame_num;
+}
+
+mfxU32 QPFileReader::getFramesNum()
+{
+    return m_nframes;
+}
+
 mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD)
 {
     MSDK_CHECK_POINTER(pnFrameRateExtN, MFX_ERR_NULL_PTR);
@@ -1308,6 +1411,69 @@ mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
     }
 
     return idx;
+}
+
+mfxU16 GetFreeSurfaceIndexEO(mfxFrameSurface1 *pSurfacesPool, mfxU16 nPoolSize)
+{
+    if (pSurfacesPool)
+    {
+        for (mfxU16 i = 0; i < nPoolSize; i++)
+        {
+            if (0 == pSurfacesPool[i].Data.Locked &&
+                pSurfacesPool[i].Data.FrameOrder == (std::numeric_limits<mfxU32>::max)())
+            {
+                return i;
+            }
+        }
+    }
+
+    return MSDK_INVALID_SURF_IDX;
+}
+
+mfxU16 GetFreeSurfaceEO(mfxFrameSurface1 *pSurfacesPool, mfxU16 nPoolSize)
+{
+    mfxU32 SleepInterval = 10; // milliseconds
+
+    mfxU16 idx = MSDK_INVALID_SURF_IDX;
+
+    CTimer t;
+    t.Start();
+    //wait if there's no free surface
+    do
+    {
+        idx = GetFreeSurfaceIndexEO(pSurfacesPool, nPoolSize);
+
+        if (MSDK_INVALID_SURF_IDX != idx)
+        {
+            break;
+        }
+        else
+        {
+            MSDK_SLEEP(SleepInterval);
+        }
+
+    } while (t.GetTime() < MSDK_SURFACE_WAIT_INTERVAL / 1000);
+
+    if (idx == MSDK_INVALID_SURF_IDX)
+    {
+        msdk_printf(MSDK_STRING("ERROR: No free surfaces in pool (during long period)\n"));
+    }
+
+    return idx;
+}
+
+void UpdateUnlockedSurfacesList(std::list<mfxFrameSurface1 *> &surf_lock_list)
+{
+    if (!surf_lock_list.empty())
+    {
+        std::list<mfxFrameSurface1 *>::iterator it = surf_lock_list.begin();
+        while ((it = std::find_if(surf_lock_list.begin(), surf_lock_list.end(),
+                                  [](mfxFrameSurface1 *surf) { return 0 == surf->Data.Locked; })) != surf_lock_list.end())
+        {
+            (*it)->Data.FrameOrder = (std::numeric_limits<mfxU32>::max)();
+            surf_lock_list.erase(it);
+        }
+    }
 }
 
 std::basic_string<msdk_char> CodecIdToStr(mfxU32 nFourCC)

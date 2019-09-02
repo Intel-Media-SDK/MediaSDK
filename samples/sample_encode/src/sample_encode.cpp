@@ -159,6 +159,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-membuf]                - size of memory buffer in frames\n"));
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
+    msdk_printf(MSDK_STRING("   [-encodedOrder]          - use encoded order, should use with -qpfile <filepath> \n"));
+    msdk_printf(MSDK_STRING("   [-qpfile <filepath>]     - if specified, the encoder will take frame parameters (frame number, QP, frame type) from text file, should use with -encodedOrder. \n"));
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
     msdk_printf(MSDK_STRING("                              the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled\n"));
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
@@ -303,6 +305,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->FileInputFourCC = MFX_FOURCC_I420;
     pParams->EncodeFourCC = MFX_FOURCC_NV12;
     pParams->nPRefType = MFX_P_REF_DEFAULT;
+    pParams->UseEncodedOrder = false;
 #if (MFX_VERSION >= 1027)
     pParams->RoundingOffsetFile = NULL;
 #endif
@@ -581,14 +584,26 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             }
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mfs")))
-       {
+        {
             VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMaxFrameSize))
             {
                 PrintHelp(strInput[0], MSDK_STRING("MaxFrameSize is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
-       }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-encodedOrder")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+            pParams->UseEncodedOrder = true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qpfile")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+            MSDK_CHECK_ERROR(msdk_strlen(strInput[i+1]), 0, MFX_ERR_NOT_INITIALIZED);
+            pParams->strQPFilePath = strInput[++i];
+        }
+
 #if D3D_SURFACES_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")))
         {

@@ -106,6 +106,8 @@ struct sInputParams
     mfxU16 nEncTileRows; // number of rows for encoding tiling
     mfxU16 nEncTileCols; // number of columns for encoding tiling
 
+    msdk_string strQPFilePath;
+
     MemType memType;
     bool bUseHWLib; // true if application wants to use HW MSDK library
 
@@ -150,6 +152,8 @@ struct sInputParams
     bool enableQSVFF;
 
     bool bSoftRobustFlag;
+
+    bool UseEncodedOrder;
 
     mfxU32 nTimeout;
     mfxU16 nMemBuf;
@@ -374,6 +378,7 @@ protected:
     std::pair<CSmplBitstreamWriter *,CSmplBitstreamWriter *> m_FileWriters;
     CSmplYUVReader m_FileReader;
     CEncTaskPool m_TaskPool;
+    QPFileReader m_QPFileReader;
 
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
@@ -431,6 +436,8 @@ protected:
     std::vector<mfxExtBuffer*> m_EncExtParams;
 
     std::vector<mfxPayload*> m_UserDataUnregSEI;
+
+    std::vector<mfxEncodeCtrl> m_EncodeCtrls;
 
     CHWDevice *m_hwdev;
 

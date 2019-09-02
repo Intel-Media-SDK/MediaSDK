@@ -28,6 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <stdexcept>
 #include <mutex>
 #include <algorithm>
+#include <limits>
 
 #include "mfxstructures.h"
 #include "mfxvideo.h"
@@ -107,6 +108,15 @@ enum ExtBRCType {
     EXTBRC_OFF,
     EXTBRC_ON,
     EXTBRC_IMPLICIT
+};
+
+enum QPFileReaderStatus
+{
+    QPFILEREADER_ERR_NONE,
+    QPFILEREADER_CODEC_UNSUPPORTED,
+    QPFILEREADER_FILE_NOT_OPEN,
+    QPFILEREADER_WRONG_FILE,
+    QPFILEREADER_QP_OUT_OF_RANGE
 };
 
 bool IsDecodeCodecSupported(mfxU32 codecFormat);
@@ -632,6 +642,35 @@ protected:
     bool      m_bJoined;
 };
 
+// QPFileReader reads QP per frame, frame type and display order frame number
+// in encoding order from external text file (for encoding in encoding order)
+
+struct QPFileReaderFrameInfo
+{
+    mfxU32 display_order_num;
+    mfxU16 QP;
+    mfxU16 frame_type;
+};
+
+class QPFileReader
+{
+public:
+    QPFileReader();
+
+    QPFileReaderStatus Read(const msdk_string& strFileName, mfxU32 codecid);
+
+    mfxU32 getCurrentEncodedOrder();
+    mfxU32 getCurrentDisplayOrder();
+    mfxU16 getCurrentQP();
+    mfxU16 getCurrentFrameType();
+    mfxU32 getFramesNum();
+    void NextFrame();
+private:
+    mfxU32                                  m_nframes;
+    mfxU32                                  m_cur_frame_num;
+    std::vector<QPFileReaderFrameInfo>      m_frame_info;
+};
+
 //timeinterval calculation helper
 
 template <int tag = 0>
@@ -836,6 +875,13 @@ mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* p
 mfxF64 CalculateFrameRate(mfxU32 nFrameRateExtN, mfxU32 nFrameRateExtD);
 mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
+// for encoding order
+mfxU16 GetFreeSurfaceIndexEO(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
+mfxU16 GetFreeSurfaceEO(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
+// function for update FrameOrder (set max mfxU32) for unlocked surfaces (for encoded order)
+void UpdateUnlockedSurfacesList(std::list<mfxFrameSurface1*>& surf_lock_list);
+
+
 void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 
 mfxU16 CalculateDefaultBitrate(mfxU32 nCodecId, mfxU32 nTargetUsage, mfxU32 nWidth, mfxU32 nHeight, mfxF64 dFrameRate);
