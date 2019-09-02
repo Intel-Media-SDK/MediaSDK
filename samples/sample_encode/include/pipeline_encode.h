@@ -110,6 +110,8 @@ struct sInputParams
     mfxU16 nEncTileRows; // number of rows for encoding tiling
     mfxU16 nEncTileCols; // number of columns for encoding tiling
 
+    msdk_string strQPFilePath;
+
     MemType memType;
     bool bUseHWLib; // true if application wants to use HW MSDK library
 #if defined(LINUX32) || defined(LINUX64)
@@ -161,6 +163,8 @@ struct sInputParams
     bool enableQSVFF;
 
     bool bSoftRobustFlag;
+
+    bool QPFileMode;
 
     mfxU32 nTimeout;
     mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
@@ -304,6 +308,7 @@ protected:
     std::pair<CSmplBitstreamWriter *,CSmplBitstreamWriter *> m_FileWriters;
     CSmplYUVReader m_FileReader;
     CEncTaskPool   m_TaskPool;
+    QPFile::Reader m_QPFileReader;
 
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
@@ -330,6 +335,8 @@ protected:
     mfxFrameAllocResponse m_EncResponse;  // memory allocation response for encoder
     mfxFrameAllocResponse m_VppResponse;  // memory allocation response for vpp
 
+    std::vector<mfxEncodeCtrlWrap> m_EncCtrls; // controls array for encoder input
+
     mfxU32 m_nNumView;
     mfxU32 m_nFramesToProcess; // number of frames to process
 
@@ -340,6 +347,8 @@ protected:
     std::vector<mfxPayload*> m_UserDataUnregSEI;
 
     CHWDevice *m_hwdev;
+
+    bool m_bQPFileMode;
 
     bool isV4L2InputEnabled;
 #if (MFX_VERSION >= 1027)
@@ -390,6 +399,7 @@ protected:
     virtual mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper& bs);
     virtual mfxStatus FillBuffers();
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurf);
+    virtual void LoadNextControl(mfxEncodeCtrlWrap*& pCtrl, mfxU32 encSurfIdx);
 
     virtual mfxStatus GetFreeTask(sTask **ppTask);
     virtual MFXVideoSession& GetFirstSession(){return m_mfxSession;}

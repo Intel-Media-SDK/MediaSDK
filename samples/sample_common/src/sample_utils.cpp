@@ -21,7 +21,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <math.h>
 #include <iostream>
-#include <fstream>
 #include <algorithm>
 #include <map>
 
@@ -66,6 +65,29 @@ mfxStatus CopyBitstream2(mfxBitstream *dest, mfxBitstream *src)
     return MFX_ERR_NONE;
 }
 
+mfxStatus GetFrameLength(mfxU16 width, mfxU16 height, mfxU32 ColorFormat, mfxU32 &length)
+{
+    switch (ColorFormat)
+    {
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_I420:
+        length = 3 * width * height / 2;
+        break;
+    case MFX_FOURCC_YUY2:
+        length = 2 * width * height;
+        break;
+    case MFX_FOURCC_RGB4:
+        length = 4 * width * height;
+        break;
+    case MFX_FOURCC_P010:
+        length = 3 * width * height;
+        break;
+    default:
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    return MFX_ERR_NONE;
+}
 
 CSmplYUVReader::CSmplYUVReader()
 {
@@ -150,6 +172,23 @@ void CSmplYUVReader::Reset()
     {
         fseek(m_files[i], 0, SEEK_SET);
     }
+}
+
+mfxStatus CSmplYUVReader::SkipNframesFromBeginning(mfxU16 w, mfxU16 h, mfxU32 viewId, mfxU32 nframes)
+{
+    // change file position for read from beginning to "frameLength * nframes".
+    mfxU32 frameLength;
+
+    if (MFX_ERR_NONE != GetFrameLength(w, h, m_ColorFormat, frameLength))
+    {
+        msdk_printf(MSDK_STRING("Input color format %s is unsupported in qpfile mode\n"), ColorFormatToStr(m_ColorFormat));
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    if (0 != fseek(m_files[viewId], frameLength * nframes, SEEK_SET))
+        return MFX_ERR_MORE_DATA;
+
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CSmplYUVReader::LoadNextFrame(mfxFrameSurface1* pSurface)
@@ -1269,6 +1308,75 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
 
     return MFX_ERR_NONE;
 }
+
+void QPFile::Reader::ResetState()
+{
+    ResetState(READER_ERR_NOT_INITIALIZED);
+}
+
+void QPFile::Reader::ResetState(ReaderStatus set_sts)
+{
+    m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+    m_nFrames     = std::numeric_limits<mfxU32>::max();
+    m_ReaderSts   = set_sts;
+    m_FrameVals.clear();
+}
+
+mfxStatus QPFile::Reader::Read(const msdk_string& strFileName, mfxU32 codecid)
+{
+    m_ReaderSts   = READER_ERR_NONE;
+    m_CurFrameNum = 0;
+
+    if (codecid != MFX_CODEC_AVC && codecid != MFX_CODEC_HEVC)
+    {
+        ResetState(READER_ERR_CODEC_UNSUPPORTED);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+    
+    std::ifstream ifs(strFileName, msdk_fstream::in);
+    if (!ifs.is_open())
+    {
+        ResetState(READER_ERR_FILE_NOT_OPEN);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+
+    FrameInfo   frameInfo{};
+    std::string line;
+    std::getline(ifs, line);
+    m_nFrames = std::stoi(line); // number of frames at first line
+
+    m_FrameVals.reserve(m_nFrames);
+
+    while (QPFile::get_line(ifs, line))
+    {
+        frameInfo.displayOrder = QPFile::ReadDisplayOrder(line);
+        frameInfo.QP = QPFile::ReadQP(line);
+        frameInfo.frameType = QPFile::ReadFrameType(line);
+        if ( frameInfo.displayOrder > m_nFrames ||
+                frameInfo.QP > 51 ||
+                frameInfo.frameType == MFX_FRAMETYPE_UNKNOWN )
+        {
+            ResetState(READER_ERR_INCORRECT_FILE);
+            return MFX_ERR_NOT_INITIALIZED;
+        }
+        m_FrameVals.push_back(frameInfo);
+    }
+    if (m_FrameVals.size() < m_nFrames)
+    {
+        ResetState(READER_ERR_INCORRECT_FILE);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+std::string QPFile::Reader::GetErrorMessage() const   { return ReaderStatusToString(m_ReaderSts); }
+mfxU32 QPFile::Reader::GetCurrentEncodedOrder() const { return m_CurFrameNum; }
+mfxU32 QPFile::Reader::GetCurrentDisplayOrder() const { return m_FrameVals.at(m_CurFrameNum).displayOrder; }
+mfxU16 QPFile::Reader::GetCurrentQP() const           { return m_FrameVals.at(m_CurFrameNum).QP; }
+mfxU16 QPFile::Reader::GetCurrentFrameType() const    { return m_FrameVals.at(m_CurFrameNum).frameType; }
+mfxU32 QPFile::Reader::GetFramesNum() const           { return m_nFrames; }
+void   QPFile::Reader::NextFrame()                    { ++m_CurFrameNum; }
 
 mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD)
 {

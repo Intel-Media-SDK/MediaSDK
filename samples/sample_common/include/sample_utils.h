@@ -28,6 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <stdexcept>
 #include <mutex>
 #include <algorithm>
+#include <fstream>
 
 #include "mfxstructures.h"
 #include "mfxvideo.h"
@@ -109,6 +110,107 @@ enum ExtBRCType {
     EXTBRC_ON,
     EXTBRC_IMPLICIT
 };
+
+namespace QPFile {
+
+    enum ReaderStatus
+    {
+        READER_ERR_NONE,
+        READER_ERR_NOT_INITIALIZED,
+        READER_ERR_CODEC_UNSUPPORTED,
+        READER_ERR_FILE_NOT_OPEN,
+        READER_ERR_INCORRECT_FILE
+    };
+
+    struct FrameInfo
+    {
+        mfxU32 displayOrder;
+        mfxU16 QP;
+        mfxU16 frameType;
+    };
+
+    // QPFile::Reader reads QP and frame type per frame in encoding order
+    // from external text file (for encoding in qpfile mode)
+    class Reader
+    {
+    public:
+        mfxStatus Read(const msdk_string& strFileName, mfxU32 codecid);
+        void ResetState();
+
+        mfxU32 GetCurrentEncodedOrder() const;
+        mfxU32 GetCurrentDisplayOrder() const;
+        mfxU16 GetCurrentQP() const;
+        mfxU16 GetCurrentFrameType() const;
+        mfxU32 GetFramesNum() const;
+        void NextFrame();
+        std::string GetErrorMessage() const;
+
+    private:
+        void ResetState(ReaderStatus set_sts);
+
+        ReaderStatus            m_ReaderSts   = READER_ERR_NOT_INITIALIZED;
+        mfxU32                  m_nFrames     = std::numeric_limits<mfxU32>::max();
+        mfxU32                  m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+        std::vector<FrameInfo>  m_FrameVals {};
+    };
+
+    inline bool get_line(std::ifstream& ifs, std::string& line)
+    {
+        std::getline(ifs, line, '\n');
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+        return !ifs.fail();
+    }
+    inline size_t find_nth(const std::string& str, size_t pos, const std::string& needle, mfxU32 nth)
+    {
+        size_t found_pos = str.find(needle, pos);
+        for(; nth != 0 && std::string::npos != found_pos; --nth)
+            found_pos = str.find(needle, found_pos + 1);
+        return found_pos;
+    }
+    inline mfxU16 StringToFrameType(std::string str)
+    {
+        if ("IDR_REF" == str) return MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_REF;
+        else if ("I_REF" == str) return MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+        else if ("P_REF" == str) return MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
+        else if ("P" == str) return MFX_FRAMETYPE_P;
+        else if ("B_REF" == str) return MFX_FRAMETYPE_B | MFX_FRAMETYPE_REF;
+        else if ("B" == str) return MFX_FRAMETYPE_B;
+        else return MFX_FRAMETYPE_UNKNOWN;
+    }
+    inline std::string ReaderStatusToString(ReaderStatus sts)
+    {
+        switch (sts)
+        {
+        case READER_ERR_NOT_INITIALIZED:
+            return std::string("reader not initialized (qpfile has not yet read the file)\n");
+        case READER_ERR_FILE_NOT_OPEN:
+            return std::string("failed to open file contains frame parameters (check provided path in -qpfile <path>)\n");
+        case READER_ERR_INCORRECT_FILE:
+            return std::string("incorrect file with frame parameters\n");
+        case READER_ERR_CODEC_UNSUPPORTED:
+            return std::string("codecs, except h264 and h265, are not supported\n");
+        default:
+            return std::string();
+        }
+    }
+    inline mfxU32 ReadDisplayOrder(const std::string& line)
+    {
+        return std::stoi(line.substr(0, find_nth(line, 0, ",", 0)));
+    }
+    inline mfxU16 ReadQP(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ",", 0) + 1;
+        return static_cast<mfxU16>(std::stoi(line.substr(pos, find_nth(line, 0, ",", 1) - pos)));
+    }
+    inline mfxU16 ReadFrameType(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ",", 1) + 1;
+        return StringToFrameType(line.substr(pos, line.length() - pos));
+    }
+}
+
+mfxStatus GetFrameLength(mfxU16 width, mfxU16 height, mfxU32 ColorFormat, mfxU32 &length);
 
 bool IsDecodeCodecSupported(mfxU32 codecFormat);
 bool IsEncodeCodecSupported(mfxU32 codecFormat);
@@ -677,6 +779,7 @@ public :
 
     virtual void Close();
     virtual mfxStatus Init(std::list<msdk_string> inputs, mfxU32 ColorFormat, bool shouldShiftP010=false);
+    virtual mfxStatus SkipNframesFromBeginning(mfxU16 w, mfxU16 h, mfxU32 viewId, mfxU32 nframes);
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurface);
     virtual void Reset();
     mfxU32 m_ColorFormat; // color format of input YUV data, YUV420 or NV12
