@@ -857,7 +857,7 @@ namespace UMC_MPEG2_DECODER
         const auto newPicExtHdr = *m_currHeaders.picExtHdr.get();
 
         // this is a workaround (and actually not by spec) to handle invalid streams where an II or IP pair has different temporal_reference
-        if (m_currFrame->frameType != MPEG2_I_PICTURE)
+        if (m_currFrame->frameType != MPEG2_I_PICTURE || m_currFrame->currFieldIndex != 0)
         {
             if (picHdr.temporal_reference != newPicHdr.temporal_reference)  // 6.3.9
                 return false;
