@@ -903,6 +903,32 @@ namespace UMC_MPEG2_DECODER
         return false;
     }
 
+    void MPEG2Decoder::EliminateSliceErrors(MPEG2DecoderFrame& frame, uint8_t fieldIndex)
+    {
+        MPEG2DecoderFrameInfo & frameInfo = *frame.GetAU(fieldIndex);
+        size_t sliceCount = frameInfo.GetSliceCount();
+
+        for (size_t sliceNum = 0; sliceNum < sliceCount; sliceNum++)
+        {
+            auto slice = frameInfo.GetSlice(sliceNum);
+            auto sliceHeader = slice->GetSliceHeader();
+
+            // Slice may cover just a part of a row (not full row), this is indicated by macroblockAddressIncrement
+            // Looping over slices, we heed to check if next slice has macroblockAddressIncrement > 0,
+            // this means that we need to recalculate numberMBsInSlice for previous slice
+            if (sliceNum > 0 && sliceHeader.macroblockAddressIncrement > 0)
+            {
+                auto prevSlice = frameInfo.GetSlice(sliceNum - 1); //take previous
+                auto& prevSliceHeader = prevSlice->GetSliceHeader();
+
+                // Check if this parts are located at the same row
+                if (sliceHeader.slice_vertical_position == prevSliceHeader.slice_vertical_position)
+                    prevSliceHeader.numberMBsInSlice = sliceHeader.macroblockAddressIncrement - prevSliceHeader.macroblockAddressIncrement;
+            }
+        }
+        return;
+    }
+
     UMC::Status MPEG2Decoder::CompletePicture(MPEG2DecoderFrame& frame, uint8_t fieldIndex)
     {
         frame.StartDecoding();
@@ -922,7 +948,18 @@ namespace UMC_MPEG2_DECODER
             return UMC::UMC_OK;
         }
 
-        Submit(frame, fieldIndex);
+        size_t sliceCount = frameInfo.GetSliceCount();
+
+        if (sliceCount)
+        {
+            EliminateSliceErrors(frame, fieldIndex);
+            Submit(frame, fieldIndex);
+        }
+        else
+        {
+            if (((info.IsField() && fieldIndex) || !info.IsField()))
+                frame.OnDecodingCompleted();
+        }
 
         return UMC::UMC_OK;
     }
