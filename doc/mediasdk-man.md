@@ -2187,16 +2187,24 @@ This function initiates execution of an asynchronous function not already starte
 | | |
 --- | ---
 `MFX_ERR_NONE` | The function completed successfully.
+`MFX_ERR_NONE_PARTIAL_OUTPUT` | The function completed successfully, bitstream contains a portion of the encoded frame according to required granularity.
 `MFX_WRN_IN_EXECUTION` | The specified asynchronous function is in execution.
 `MFX_ERR_ABORTED` | The specified asynchronous function aborted due to data dependency on a previous asynchronous function that did not complete.
 
 **Change History**
 
 This function is available since SDK API 1.0.
+Return code MFX_ERR_NONE_PARTIAL_OUTPUT is introduced in SDK API TBD.
 
 **Remarks**
 
 See status codes for specific asynchronous functions.
+
+In partial output mode, enabled during encoder initialization [mfxExtPartialBitstreamParam](#mfxExtPartialBitstreamParam) or reset, application is expected to call SyncOperation with the same sync point repeatedly until it receives the MFX_ERR_NONE or some error;
+when MFX_ERR_NONE_PARTIAL_OUTPUT code is returned, new portion of the encoded frame is appended to the last bitstream portion located at DataOffset and increment a DataLength size accoding to new portion size in the associated [mfxBitstream](#mfxBitstream) buffer.
+Finally, when MFX_ERR_NONE returned the bitstream buffer contains full bitstream for encoded frame with DataLengh equal to it length. 
+Any processing on app level of the partial result returned in bitstream buffer must be finished before next SyncOperation call.
+
 
 ## MFXVideoENCODE
 
@@ -7872,6 +7880,37 @@ This structure is used to pass decryption status report index for Common Encrypt
 
 This structure is available since SDK API 1.30.
 
+## <a id='mfxExtPartialBitstreamParam'>mfxExtPartialBitstreamParam</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          BlockSize;        /* output block granulatiry for Granularity = MFX_PARTIAL_BITSTREAM_BLOCK */
+    mfxU16          Granularity;      /* granulatiry of the partial bitstream: slice/block/any */
+    mfxU16          reserved[8];
+} mfxExtPartialBitstreamParam;
+```
+
+**Description**
+
+This structure is used by an encoder to output parts of bitstream as soon as they ready. The application can attach this extended buffer to the [mfxVideoParam](#mfxVideoParam) structure at init time.
+If this option is turned ON (Granularity != MFX_PARTIAL_BITSTREAM_NONE), then encoder can output bitstream by part based with required granularity. <br>
+<br>This parameter is valid only during initialization and reset. Absence of this buffer means default or previously configured bitstream output behavior.<br>
+<br>Not all codecs and SDK implementations support this feature. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
+
+**Members**
+
+| | |
+--- | ---
+`Granularity` | Granulatiry of the partial bitstream: slice/block/any, all types of granularity state in [PartialBitstreamOutput](#PartialBitstreamOutput) enum
+`BlockSize`   | Output block granulatiry for PartialBitstreamGranularity, valid only for [MFX_PARTIAL_BITSTREAM_BLOCK](#PartialBitstreamOutput)
+
+**Change History**
+
+This structure is available since SDK API **TBD**.
+
 # Enumerator Reference
 
 ## <a id='BitstreamDataFlag'>BitstreamDataFlag</a>
@@ -8591,6 +8630,12 @@ Hardware device related errors or warnings
 `MFX_WRN_PARTIAL_ACCELERATION` | The hardware does not support the specified configuration. Encoding, decoding, or video processing may be partially accelerated. Only SDK HW implementation may return this status code.
 `MFX_ERR_GPU_HANG` | Hardware device operation failure caused by GPU hang.
 
+Special status codes
+
+| | |
+--- | ---
+`MFX_ERR_NONE_PARTIAL_OUTPUT` | Frame encoding is not finished, but bitstream contains partial bistream block 
+
 **Change History**
 
 This enumerator is available since SDK API 1.0.
@@ -8600,6 +8645,8 @@ SDK API 1.3 added the `MFX_ERR_MORE_BITSTREAM` return status.
 SDK API 1.6 added the `MFX_WRN_FILTER_SKIPPED` return status.
 
 SDK API 1.19 added `MFX_ERR_GPU_HANG` and `MFX_ERR_REALLOC_SURFACE`.
+
+SDK API TBD added `MFX_ERR_NONE_PARTIAL_OUTPUT`
 
 ## <a id='PicStruct'>PicStruct</a>
 
@@ -9338,6 +9385,25 @@ The `mfxComponentType` enumerator describes type of workload passed to [MFXQuery
 **Change History**
 
 This enumerator is available since SDK API **TBD**.
+## <a id='PartialBitstreamOutput'>PartialBitstreamOutput</a>
+
+**Description**
+
+The `PartialBitstreamOutput` enumerator indicates flags of partial bitstream output type. 
+
+**Name/Description**
+
+| | |
+--- | ---
+`MFX_PARTIAL_BITSTREAM_NONE`  | Don't use partial output
+`MFX_PARTIAL_BITSTREAM_SLICE` | Partial bitstream output will be aligned to slice granularity  
+`MFX_PARTIAL_BITSTREAM_BLOCK` | Partial bitstream output will be aligned to user-defined block size granularity
+`MFX_PARTIAL_BITSTREAM_ANY` | Partial bitstream output will return any coded data available at the end of SyncOperation timeout
+
+**Change History**
+
+This enumerator is available since SDK API **TBD**.
+
 # Appendices
 
 ## <a id='Appendix_A'>Appendix A: Configuration Parameter Constraints</a>
