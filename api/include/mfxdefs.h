@@ -181,6 +181,11 @@ typedef enum
     MFX_WRN_FILTER_SKIPPED              = 10,   /* one of requested filters has been skipped */
     MFX_WRN_INCOMPATIBLE_AUDIO_PARAM    = 11,   /* incompatible audio parameters */
 
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    /* low-delay partial output */
+    MFX_ERR_NONE_PARTIAL_OUTPUT         = 12,   /* frame is not ready, but bitstream contains partial output */
+#endif
+
     /* threading statuses */
     MFX_TASK_DONE = MFX_ERR_NONE,               /* task has been completed */
     MFX_TASK_WORKING                    = 8,    /* there is some more work to do */
