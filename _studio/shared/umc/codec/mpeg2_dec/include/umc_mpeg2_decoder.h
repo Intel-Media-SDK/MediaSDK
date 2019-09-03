@@ -187,6 +187,7 @@ namespace UMC_MPEG2_DECODER
 
         // Action on new picture
         virtual bool OnNewPicture(); // returns true on full frame
+        virtual void EliminateSliceErrors(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
         virtual UMC::Status CompletePicture(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
         bool IsFieldOfCurrentFrame() const;
 
