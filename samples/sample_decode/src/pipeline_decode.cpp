@@ -737,7 +737,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
              pParams->fourcc == MFX_FOURCC_RGB4 &&
              // No need to use decoder's post processing for decoding of JPEG with RGB 4:4:4
              // to MFX_FOURCC_RGB4, because this decoding is done in one step
-             // In every other case, color conversion is requred, so try decoder's post processing.
+             // In every other case, color conversion is required, so try decoder's post processing.
              !(m_mfxVideoParams.mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
                m_mfxVideoParams.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV444)
                 ))
