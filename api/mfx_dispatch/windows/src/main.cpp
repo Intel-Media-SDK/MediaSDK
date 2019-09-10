@@ -30,6 +30,10 @@
 #include "mfx_library_iterator.h"
 #include "mfx_critical_section.h"
 
+#if defined(MEDIASDK_UWP_DISPATCHER)
+#include "mfx_driver_store_loader.h"
+#endif
+
 #include <string.h> /* for memset on Linux */
 
 #include <stdlib.h> /* for qsort on Linux */
@@ -102,6 +106,8 @@ namespace
 } // namespace
 
 using namespace MFX;
+
+#if !defined(MEDIASDK_UWP_DISPATCHER)
 
 //
 // Implement DLL exposed functions. MFXInit and MFXClose have to do
@@ -193,7 +199,12 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     {
         return MFX_ERR_NULL_PTR;
     }
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if (((MFX_IMPL_AUTO > implMethod) || (MFX_IMPL_SINGLE_THREAD < implMethod)) && !(par.Implementation & MFX_IMPL_AUDIO))
+#else
     if (((MFX_IMPL_AUTO > implMethod) || (MFX_IMPL_RUNTIME < implMethod)) && !(par.Implementation & MFX_IMPL_AUDIO))
+#endif
     {
         return MFX_ERR_UNSUPPORTED;
     }
@@ -777,7 +788,109 @@ mfxStatus MFXAudioUSER_UnLoad(mfxSession session, const mfxPluginUID *uid)
 
     return bDestroyed ? MFX_ERR_NONE : MFX_ERR_NOT_FOUND;
 }
+#else // relates to !defined (MEDIASDK_UWP_DISPATCHER), i.e. #else part as if MEDIASDK_UWP_DISPATCHER defined
 
+static mfxModuleHandle hModule;
+
+// for the UWP_DISPATCHER purposes implementation of MFXinitEx is calling
+// InitialiseMediaSession() implemented in intel_gfx_api.dll
+mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
+{
+    HRESULT hr = S_OK;
+
+#if defined(MEDIASDK_ARM_LOADER)
+    hr = E_NOTIMPL;
+#else
+    wchar_t IntelGFXAPIdllName[MFX_MAX_DLL_PATH] = { 0 };
+
+    DriverStoreLoader dsLoader;
+    if (!dsLoader.GetDriverStorePath(IntelGFXAPIdllName, sizeof(IntelGFXAPIdllName)))
+    {
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    size_t pathLen = wcslen(IntelGFXAPIdllName);
+    mfx_get_default_intel_gfx_api_dll_name(IntelGFXAPIdllName + pathLen, sizeof(IntelGFXAPIdllName) / sizeof(IntelGFXAPIdllName[0]) - pathLen);
+    DISPATCHER_LOG_INFO((("loading %S\n"), IntelGFXAPIdllName));
+
+    hModule = MFX::mfx_dll_load(IntelGFXAPIdllName);
+    if (!hModule)
+    {
+        DISPATCHER_LOG_ERROR("Can't load intel_gfx_api\n");
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    mfxFunctionPointer pFunc = (mfxFunctionPointer)mfx_dll_get_addr(hModule, "InitialiseMediaSession");
+    if (!pFunc)
+    {
+        DISPATCHER_LOG_ERROR("Can't find required API function: InitialiseMediaSession\n");
+        return MFX_ERR_UNSUPPORTED;
+    }
+    hr = (*(HRESULT(APIENTRY *) (HANDLE*, LPVOID, LPVOID)) pFunc) ((HANDLE*)session, &par, NULL);
+#endif
+
+    return (hr == S_OK) ? MFX_ERR_NONE : (mfxStatus)hr;
+}
+
+// for the UWP_DISPATCHER purposes implementation of MFXClose is calling
+// DisposeMediaSession() implemented in intel_gfx_api.dll
+mfxStatus MFXClose(mfxSession session)
+{
+    if (NULL == session) {
+        return MFX_ERR_INVALID_HANDLE;
+    }
+
+    HRESULT hr = S_OK;
+
+#if defined(MEDIASDK_ARM_LOADER)
+    hr = E_NOTIMPL;
+#else
+    if (hModule)
+    {
+        mfxFunctionPointer pFunc = (mfxFunctionPointer)mfx_dll_get_addr(hModule, "DisposeMediaSession");
+        if (!pFunc)
+        {
+            DISPATCHER_LOG_ERROR("Can't find required API function: DisposeMediaSession\n");
+            return MFX_ERR_INVALID_HANDLE;
+        }
+        hr = (*(HRESULT(APIENTRY *) (HANDLE)) pFunc) ((HANDLE)session);
+    }
+    else
+        return MFX_ERR_INVALID_HANDLE;
+#endif
+
+    session = (mfxSession)NULL;
+    return (hr == S_OK) ? MFX_ERR_NONE : mfxStatus(hr);
+}
+
+#undef FUNCTION
+#define FUNCTION(return_value, func_name, formal_param_list, actual_param_list) \
+    return_value func_name formal_param_list \
+{ \
+    mfxStatus mfxRes = MFX_ERR_INVALID_HANDLE; \
+\
+    _mfxSession *pHandle = (_mfxSession *) session; \
+\
+    /* get the function's address and make a call */ \
+    if (pHandle) \
+{ \
+    mfxFunctionPointer pFunc = pHandle->callPlugInsTable[e##func_name]; \
+    if (pFunc) \
+{ \
+    /* pass down the call */ \
+    mfxRes = (*(mfxStatus (MFX_CDECL  *) formal_param_list) pFunc) actual_param_list; \
+} \
+} \
+    return mfxRes; \
+}
+
+FUNCTION(mfxStatus, MFXVideoUSER_Load, (mfxSession session, const mfxPluginUID *uid, mfxU32 version), (session, uid, version))
+FUNCTION(mfxStatus, MFXVideoUSER_LoadByPath, (mfxSession session, const mfxPluginUID *uid, mfxU32 version, const mfxChar *path, mfxU32 len), (session, uid, version, path, len))
+FUNCTION(mfxStatus, MFXVideoUSER_UnLoad, (mfxSession session, const mfxPluginUID *uid), (session, uid))
+FUNCTION(mfxStatus, MFXAudioUSER_Load, (mfxSession session, const mfxPluginUID *uid, mfxU32 version), (session, uid, version))
+FUNCTION(mfxStatus, MFXAudioUSER_UnLoad, (mfxSession session, const mfxPluginUID *uid), (session, uid))
+
+#endif //!defined(MEDIASDK_UWP_DISPATCHER)
 
 mfxStatus MFXJoinSession(mfxSession session, mfxSession child_session)
 {

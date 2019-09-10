@@ -24,7 +24,9 @@
 
 #include <mfxvideo.h>
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
 #include "mfx_win_reg_key.h"
+#endif
 
 #include "mfx_dispatcher.h"
 
@@ -91,7 +93,9 @@ protected:
     wchar_t m_SubKeyName[MFX_MAX_REGISTRY_KEY_NAME];            // registry subkey for selected module loaded
     int    m_StorageID;
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     WinRegKey m_baseRegKey;                                     // (WinRegKey) main registry key
+#endif
 
     mfxU32 m_lastLibIndex;                                      // (mfxU32) index of previously returned library
     mfxU32 m_lastLibMerit;                                      // (mfxU32) merit of previously returned library

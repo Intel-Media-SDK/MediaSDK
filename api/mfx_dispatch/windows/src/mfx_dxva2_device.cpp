@@ -95,6 +95,7 @@ void DXDevice::LoadDLLModule(const wchar_t *pModuleName)
     // unload the module if it is required
     UnloadDLLModule();
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     DWORD prevErrorMode = 0;
     // set the silent error mode
 #if (_WIN32_WINNT >= 0x0600)
@@ -102,16 +103,19 @@ void DXDevice::LoadDLLModule(const wchar_t *pModuleName)
 #else
     prevErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
 #endif
+#endif // !defined(MEDIASDK_UWP_DISPATCHER)
 
     // load specified library
     m_hModule = LoadLibraryExW(pModuleName, NULL, 0);
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     // set the previous error mode
 #if (_WIN32_WINNT >= 0x0600)
     SetThreadErrorMode(prevErrorMode, NULL);
 #else
     SetErrorMode(prevErrorMode);
 #endif
+#endif // !defined(MEDIASDK_UWP_DISPATCHER)
 
 } // void LoadDLLModule(const wchar_t *pModuleName)
 
