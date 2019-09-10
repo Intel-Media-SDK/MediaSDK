@@ -122,7 +122,9 @@ mfxStatus SelectImplementationType(const mfxU32 adapterNum, mfxIMPL *pImplInterf
 }
 
 MFXLibraryIterator::MFXLibraryIterator(void)
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     : m_baseRegKey()
+#endif
 {
     m_implType = MFX_LIB_PSEUDO;
     m_implInterface = MFX_IMPL_UNSUPPORTED;
@@ -228,10 +230,12 @@ mfxStatus MFXLibraryIterator::Init(eMfxImplType implType, mfxIMPL implInterface,
     m_StorageID = storageID;
     m_lastLibIndex = 0;
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     if (storageID == MFX_CURRENT_USER_KEY || storageID == MFX_LOCAL_MACHINE_KEY)
     {
         return InitRegistry(implType, implInterface, adapterNum, storageID);
     }
+#endif
 
     wchar_t  sCurrentModulePath[msdk_disp_path_len];
 
@@ -245,6 +249,7 @@ mfxStatus MFXLibraryIterator::Init(eMfxImplType implType, mfxIMPL implInterface,
 
 mfxStatus MFXLibraryIterator::InitRegistry(eMfxImplType implType, mfxIMPL implInterface, const mfxU32 adapterNum, int storageID)
 {
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     HKEY rootHKey;
     bool bRes;
 
@@ -280,6 +285,14 @@ mfxStatus MFXLibraryIterator::InitRegistry(eMfxImplType implType, mfxIMPL implIn
         rootDispPath))
 
     return MFX_ERR_NONE;
+#else
+    (void) storageID;
+    (void) adapterNum;
+    (void) implInterface;
+    (void) implType;
+    return MFX_ERR_UNSUPPORTED;
+#endif // #if !defined(MEDIASDK_UWP_DISPATCHER)
+
 } // mfxStatus MFXLibraryIterator::InitRegistry(eMfxImplType implType, mfxIMPL implInterface, const mfxU32 adapterNum, int storageID)
 
 mfxStatus MFXLibraryIterator::InitFolder(eMfxImplType implType, mfxIMPL implInterface, const mfxU32 adapterNum, const wchar_t * path, const int storageID)
@@ -349,6 +362,7 @@ mfxStatus MFXLibraryIterator::SelectDLLVersion(wchar_t *pPath
         return MFX_ERR_NONE;
     }
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
     wchar_t libPath[MFX_MAX_DLL_PATH] = L"";
     DWORD libIndex = 0;
     DWORD libMerit = 0;
@@ -521,6 +535,8 @@ mfxStatus MFXLibraryIterator::SelectDLLVersion(wchar_t *pPath
     m_lastLibIndex = libIndex;
     m_lastLibMerit = libMerit;
     m_bIsSubKeyValid = true;
+
+#endif
 
     return MFX_ERR_NONE;
 

@@ -67,6 +67,8 @@ namespace
     #define alignStr() "%-14S"
 }
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
+
 MFX::MFXPluginsInHive::MFXPluginsInHive(int mfxStorageID, const wchar_t *msdkLibSubKey, mfxVersion currentAPIVersion)
     : MFXPluginStorageBase(currentAPIVersion)
 {
@@ -441,6 +443,8 @@ bool MFX::MFXPluginsInFS::ParseKVPair( wchar_t * key, wchar_t* value, PluginDesc
 
     return true;
 }
+
+#endif //#if !defined(MEDIASDK_UWP_DISPATCHER)
 
 MFX::MFXDefaultPlugins::MFXDefaultPlugins(mfxVersion currentAPIVersion, MFX_DISP_HANDLE * hdl, int implType)
     : MFXPluginStorageBase(currentAPIVersion)
