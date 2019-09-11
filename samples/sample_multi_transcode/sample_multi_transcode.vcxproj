@@ -181,13 +181,11 @@
     <ClCompile Include="src\pipeline_transcode.cpp" />
     <ClCompile Include="src\sample_multi_transcode.cpp" />
     <ClCompile Include="src\transcode_utils.cpp" />
-    <ClCompile Include="src\vpp_ext_buffers_storage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\pipeline_transcode.h" />
     <ClInclude Include="include\sample_multi_transcode.h" />
     <ClInclude Include="include\transcode_utils.h" />
-    <ClInclude Include="include\vpp_ext_buffers_storage.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\sample_common\sample_common.vcxproj">

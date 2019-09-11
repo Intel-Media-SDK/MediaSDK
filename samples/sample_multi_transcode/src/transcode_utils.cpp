@@ -1184,6 +1184,147 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
     return MFX_ERR_NONE;
 }
 
+mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, TranscodingSample::sInputParams* params, mfxU32& skipped)
+{
+    if (0 == msdk_strcmp(argv[index], MSDK_STRING("-denoise")))
+    {
+        VAL_CHECK(index+1 == argc, index, argv[index]);
+        index++;
+        if (MFX_ERR_NONE != msdk_opt_read(argv[index], params->DenoiseLevel) || !(params->DenoiseLevel>=0 && params->DenoiseLevel<=100))
+        {
+            PrintError(NULL, MSDK_STRING("-denoise \"%s\" is invalid"), argv[index]);
+            return MFX_ERR_UNSUPPORTED;
+        }
+        skipped+=2;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-detail")))
+    {
+        VAL_CHECK(index+1 == argc, index, argv[index]);
+        index++;
+        if (MFX_ERR_NONE != msdk_opt_read(argv[index], params->DetailLevel) || !(params->DetailLevel>=0 && params->DetailLevel<=100))
+        {
+            PrintError(NULL, MSDK_STRING("-detail \"%s\" is invalid"), argv[index]);
+            return MFX_ERR_UNSUPPORTED;
+        }
+        skipped+=2;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-FRC::PT")))
+    {
+        params->FRCAlgorithm=MFX_FRCALGM_PRESERVE_TIMESTAMP;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-FRC::DT")))
+    {
+        params->FRCAlgorithm=MFX_FRCALGM_DISTRIBUTED_TIMESTAMP;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-FRC::INTERP")))
+    {
+        params->FRCAlgorithm=MFX_FRCALGM_FRAME_INTERPOLATION;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-deinterlace")))
+    {
+        params->bEnableDeinterlacing = true;
+        params->DeinterlacingMode=0;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-deinterlace::ADI")))
+    {
+        params->bEnableDeinterlacing = true;
+        params->DeinterlacingMode=MFX_DEINTERLACING_ADVANCED;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-deinterlace::ADI_SCD")))
+    {
+        params->bEnableDeinterlacing = true;
+        params->DeinterlacingMode=MFX_DEINTERLACING_ADVANCED_SCD;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-deinterlace::BOB")))
+    {
+        params->bEnableDeinterlacing = true;
+        params->DeinterlacingMode=MFX_DEINTERLACING_BOB;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-deinterlace::ADI_NO_REF")))
+    {
+        params->bEnableDeinterlacing = true;
+        params->DeinterlacingMode=MFX_DEINTERLACING_ADVANCED_NOREF;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::rgb4")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_RGB4;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::yuy2")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_YUY2;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::nv12")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_NV12;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::nv16")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_NV16;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::p010")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_P010;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::p210")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_P210;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::rgb4")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_RGB4;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::yuy2")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_YUY2;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::nv12")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_NV12;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-field_processing")) )
+    {
+        VAL_CHECK(index+1 == argc, index, argv[index]);
+        index++;
+        if (0 == msdk_strcmp(argv[index], MSDK_STRING("t2t")) )
+            params->fieldProcessingMode = FC_T2T;
+        else if (0 == msdk_strcmp(argv[index], MSDK_STRING("t2b")) )
+            params->fieldProcessingMode = FC_T2B;
+        else if (0 == msdk_strcmp(argv[index], MSDK_STRING("b2t")) )
+            params->fieldProcessingMode = FC_B2T;
+        else if (0 == msdk_strcmp(argv[index], MSDK_STRING("b2b")) )
+            params->fieldProcessingMode = FC_B2B;
+        else if (0 == msdk_strcmp(argv[index], MSDK_STRING("fr2fr")) )
+            params->fieldProcessingMode = FC_FR2FR;
+        else
+        {
+            PrintError(NULL, MSDK_STRING("-field_processing \"%s\" is invalid"), argv[index]);
+            return MFX_ERR_UNSUPPORTED;
+        }
+        return MFX_ERR_NONE;
+    }
+
+    return MFX_ERR_MORE_DATA;
+}
+
 mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -2259,10 +2400,9 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
                 return MFX_ERR_UNSUPPORTED;
             }
         }
-        else if((stsExtBuf = CVPPExtBuffersStorage::ParseCmdLine(argv,argc,i,&InputParams,skipped))
-            !=MFX_ERR_MORE_DATA)
+        else if ((stsExtBuf = ParseVPPCmdLine(argv,argc,i,&InputParams,skipped)) !=MFX_ERR_MORE_DATA)
         {
-            if(stsExtBuf==MFX_ERR_UNSUPPORTED)
+            if (stsExtBuf==MFX_ERR_UNSUPPORTED)
             {
                 return MFX_ERR_UNSUPPORTED;
             }

@@ -38,6 +38,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxfei.h"
 #include "mfxfeihevc.h"
 #include "mfxmvc.h"
+#include "mfxla.h"
 
 #include "vm/strings_defs.h"
 #include "vm/file_defs.h"
@@ -131,9 +132,8 @@ private:
 
 //declare used extension buffers
 template<class T>
-struct mfx_ext_buffer_id{
-    enum {id = 0};
-};
+struct mfx_ext_buffer_id{};
+
 template<>struct mfx_ext_buffer_id<mfxExtCodingOption>{
     enum {id = MFX_EXTBUFF_CODING_OPTION};
 };
@@ -153,10 +153,10 @@ template<>struct mfx_ext_buffer_id<mfxExtThreadsParam>{
     enum {id = MFX_EXTBUFF_THREADS_PARAM};
 };
 template<>struct mfx_ext_buffer_id<mfxExtFeiParam> {
-    enum { id = MFX_EXTBUFF_FEI_PARAM };
+    enum {id = MFX_EXTBUFF_FEI_PARAM};
 };
 template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncCtrl> {
-    enum { id = MFX_EXTBUFF_FEI_PREENC_CTRL };
+    enum {id = MFX_EXTBUFF_FEI_PREENC_CTRL};
 };
 template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncMV>{
     enum {id = MFX_EXTBUFF_FEI_PREENC_MV};
@@ -203,11 +203,44 @@ template<>struct mfx_ext_buffer_id<mfxExtMVCSeqDesc> {
 template<>struct mfx_ext_buffer_id<mfxExtVPPDoNotUse> {
     enum {id = MFX_EXTBUFF_VPP_DONOTUSE};
 };
+template<>struct mfx_ext_buffer_id<mfxExtVPPDoUse> {
+    enum {id = MFX_EXTBUFF_VPP_DOUSE};
+};
 template<>struct mfx_ext_buffer_id<mfxExtVPPDeinterlacing> {
     enum {id = MFX_EXTBUFF_VPP_DEINTERLACING};
 };
 template<>struct mfx_ext_buffer_id<mfxExtCodingOptionSPSPPS> {
     enum {id = MFX_EXTBUFF_CODING_OPTION_SPSPPS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtOpaqueSurfaceAlloc> {
+    enum {id = MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVppMctf> {
+    enum {id = MFX_EXTBUFF_VPP_MCTF};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPComposite> {
+    enum {id = MFX_EXTBUFF_VPP_COMPOSITE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPFieldProcessing> {
+    enum {id = MFX_EXTBUFF_VPP_FIELD_PROCESSING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPDetail> {
+    enum {id = MFX_EXTBUFF_VPP_DETAIL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPDenoise> {
+    enum {id = MFX_EXTBUFF_VPP_DENOISE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPFrameRateConversion> {
+    enum {id = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtLAControl> {
+    enum {id = MFX_EXTBUFF_LOOKAHEAD_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtMultiFrameControl> {
+    enum {id = MFX_EXTBUFF_MULTI_FRAME_CONTROL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtMultiFrameParam> {
+    enum {id = MFX_EXTBUFF_MULTI_FRAME_PARAM};
 };
 template<>struct mfx_ext_buffer_id<mfxExtHEVCTiles> {
     enum {id = MFX_EXTBUFF_HEVC_TILES};
@@ -225,7 +258,7 @@ template<>struct mfx_ext_buffer_id<mfxExtAVCRoundingOffset> {
     enum {id = MFX_EXTBUFF_AVC_ROUNDING_OFFSET};
 };
 
-constexpr uint16_t max_num_ext_buffers = 24 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
+constexpr uint16_t max_num_ext_buffers = 38 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
 
 //helper function to initialize mfx ext buffer structure
 template <class T>

@@ -110,7 +110,7 @@ sInputParams::sInputParams() : __sInputParams()
 #if MFX_VERSION >= 1022
     bDecoderPostProcessing = false;
     bROIasQPMAP = false;
-#endif //MFX_VERSION >= 1022
+#endif
 }
 
 CTranscodingPipeline::CTranscodingPipeline():
@@ -149,78 +149,10 @@ CTranscodingPipeline::CTranscodingPipeline():
     shouldUseGreedyFormula(false),
     m_nRotationAngle(0)
 {
-    MSDK_ZERO_MEMORY(m_mfxDecParams);
-    MSDK_ZERO_MEMORY(m_mfxVppParams);
-    MSDK_ZERO_MEMORY(m_mfxEncParams);
-    MSDK_ZERO_MEMORY(m_mfxPluginParams);
     MSDK_ZERO_MEMORY(m_RotateParam);
-    MSDK_ZERO_MEMORY(m_mfxPreEncParams);
-
-    MSDK_ZERO_MEMORY(m_threadsPar);
-    MSDK_ZERO_MEMORY(m_initPar);
-
     MSDK_ZERO_MEMORY(m_mfxDecResponse);
     MSDK_ZERO_MEMORY(m_mfxEncResponse);
-
     MSDK_ZERO_MEMORY(m_Request);
-
-    MSDK_ZERO_MEMORY(m_VppDoNotUse);
-    MSDK_ZERO_MEMORY(m_MVCSeqDesc);
-    MSDK_ZERO_MEMORY(m_EncOpaqueAlloc);
-    MSDK_ZERO_MEMORY(m_VppOpaqueAlloc);
-    MSDK_ZERO_MEMORY(m_DecOpaqueAlloc);
-    MSDK_ZERO_MEMORY(m_PluginOpaqueAlloc);
-    MSDK_ZERO_MEMORY(m_PreEncOpaqueAlloc);
-    MSDK_ZERO_MEMORY(m_ExtLAControl);
-    MSDK_ZERO_MEMORY(m_AvcTemporalLayers);
-    MSDK_ZERO_MEMORY(m_CodingOptionSPSPPS);
-    MSDK_ZERO_MEMORY(m_CodingOption);
-    MSDK_ZERO_MEMORY(m_CodingOption2);
-    MSDK_ZERO_MEMORY(m_CodingOption3);
-    MSDK_ZERO_MEMORY(m_ExtHEVCParam);
-    MSDK_ZERO_MEMORY(m_ExtHEVCTiles);
-#if MFX_VERSION >= 1022
-    MSDK_ZERO_MEMORY(m_decPostProcessing);
-    m_decPostProcessing.Header.BufferId = MFX_EXTBUFF_DEC_VIDEO_PROCESSING;
-    m_decPostProcessing.Header.BufferSz = sizeof(mfxExtDecVideoProcessing);
-#endif //MFX_VERSION >= 1022
-
-    m_MVCSeqDesc.Header.BufferId = MFX_EXTBUFF_MVC_SEQ_DESC;
-    m_MVCSeqDesc.Header.BufferSz = sizeof(mfxExtMVCSeqDesc);
-
-    m_VppDoNotUse.Header.BufferId = MFX_EXTBUFF_VPP_DONOTUSE;
-    m_VppDoNotUse.Header.BufferSz = sizeof(mfxExtVPPDoNotUse);
-
-    m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
-    m_ExtHEVCParam.Header.BufferSz = sizeof(mfxExtHEVCParam);
-
-    m_ExtHEVCTiles.Header.BufferId = MFX_EXTBUFF_HEVC_TILES;
-    m_ExtHEVCTiles.Header.BufferSz = sizeof(mfxExtHEVCTiles);
-
-#if (MFX_VERSION >= 1026)
-    MSDK_ZERO_MEMORY(m_ExtVP9Param);
-    m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
-    m_ExtVP9Param.Header.BufferSz = sizeof(mfxExtVP9Param);
-#endif
-
-#if (MFX_VERSION >= 1024)
-    MSDK_ZERO_MEMORY(m_ExtBRC);
-    m_ExtBRC.Header.BufferId = MFX_EXTBUFF_BRC;
-    m_ExtBRC.Header.BufferSz = sizeof(m_ExtBRC);
-#endif
-
-#if (MFX_VERSION >= 1025)
-
-    MSDK_ZERO_MEMORY(m_ExtMFEParam);
-    MSDK_ZERO_MEMORY(m_ExtMFEControl);
-
-    m_ExtMFEControl.Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_CONTROL;
-    m_ExtMFEControl.Header.BufferSz = sizeof(mfxExtMultiFrameControl);
-
-    m_ExtMFEParam.Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_PARAM;
-    m_ExtMFEParam.Header.BufferSz = sizeof(mfxExtMultiFrameParam);
-
-#endif
 
 #if MFX_VERSION >= 1022
     m_bUseQPMap = 0;
@@ -231,37 +163,6 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_QPforP = 0;
     m_nSubmittedFramesNum = 0;
 #endif //MFX_VERSION >= 1022
-
-    m_EncOpaqueAlloc.Header.BufferId = m_VppOpaqueAlloc.Header.BufferId =
-        m_DecOpaqueAlloc.Header.BufferId = m_PluginOpaqueAlloc.Header.BufferId =
-        m_PreEncOpaqueAlloc.Header.BufferId =
-        MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION;
-    m_EncOpaqueAlloc.Header.BufferSz = m_VppOpaqueAlloc.Header.BufferSz =
-        m_DecOpaqueAlloc.Header.BufferSz = m_PluginOpaqueAlloc.Header.BufferSz =
-        m_PreEncOpaqueAlloc.Header.BufferSz =
-        sizeof(mfxExtOpaqueSurfaceAlloc);
-
-    m_VppCompParams.InputStream = NULL;
-    m_VppCompParams.NumInputStream = 0;
-#if MFX_VERSION >= 1024
-    m_VppCompParams.NumTiles = 0;
-#endif
-    m_AvcTemporalLayers.Header.BufferId = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS;
-    m_AvcTemporalLayers.Header.BufferSz = sizeof(m_AvcTemporalLayers);
-
-    m_CodingOptionSPSPPS.Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
-    m_CodingOptionSPSPPS.Header.BufferSz = sizeof(m_CodingOptionSPSPPS);
-
-    m_CodingOption.Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
-    m_CodingOption.Header.BufferSz = sizeof(m_CodingOption);
-
-    m_CodingOption2.Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
-    m_CodingOption2.Header.BufferSz = sizeof(m_CodingOption2);
-
-    m_CodingOption3.Header.BufferId = MFX_EXTBUFF_CODING_OPTION3;
-    m_CodingOption3.Header.BufferSz = sizeof(m_CodingOption3);
-
-    m_VppCompParams.InputStream = NULL;
 
     inputStatistics.SetDirection(MSDK_STRING("Input"));
     outputStatistics.SetDirection(MSDK_STRING("Output"));
@@ -386,7 +287,8 @@ mfxStatus CTranscodingPipeline::DecodePreInit(sInputParams *pParams)
     else
     {
         m_mfxDecParams = m_pParentPipeline->GetDecodeParam();
-        m_MVCSeqDesc = m_pParentPipeline->GetDecMVCSeqDesc();
+        auto mvc = m_mfxDecParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        *mvc = m_pParentPipeline->GetDecMVCSeqDesc();
         m_bOwnMVCSeqDescMemory = false;
     }
 
@@ -2204,42 +2106,27 @@ mfxStatus CTranscodingPipeline::YUY2toBS(mfxFrameSurface1* pSurface,mfxBitstream
 
 mfxStatus CTranscodingPipeline::AllocMVCSeqDesc()
 {
-    mfxU32 i;
+    auto mvc = m_mfxDecParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+    mvc->View = new mfxMVCViewDependency[mvc->NumView];
+    mvc->NumViewAlloc = mvc->NumView;
 
-    m_MVCSeqDesc.View = new mfxMVCViewDependency[m_MVCSeqDesc.NumView];
-    MSDK_CHECK_POINTER(m_MVCSeqDesc.View, MFX_ERR_MEMORY_ALLOC);
-    for (i = 0; i < m_MVCSeqDesc.NumView; ++i)
-    {
-        MSDK_ZERO_MEMORY(m_MVCSeqDesc.View[i]);
-    }
-    m_MVCSeqDesc.NumViewAlloc = m_MVCSeqDesc.NumView;
+    mvc->ViewId = new mfxU16[mvc->NumViewId];
+    mvc->NumViewIdAlloc = mvc->NumViewId;
 
-    m_MVCSeqDesc.ViewId = new mfxU16[m_MVCSeqDesc.NumViewId];
-    MSDK_CHECK_POINTER(m_MVCSeqDesc.ViewId, MFX_ERR_MEMORY_ALLOC);
-    for (i = 0; i < m_MVCSeqDesc.NumViewId; ++i)
-    {
-        MSDK_ZERO_MEMORY(m_MVCSeqDesc.ViewId[i]);
-    }
-    m_MVCSeqDesc.NumViewIdAlloc = m_MVCSeqDesc.NumViewId;
-
-    m_MVCSeqDesc.OP = new mfxMVCOperationPoint[m_MVCSeqDesc.NumOP];
-    MSDK_CHECK_POINTER(m_MVCSeqDesc.OP, MFX_ERR_MEMORY_ALLOC);
-    for (i = 0; i < m_MVCSeqDesc.NumOP; ++i)
-    {
-        MSDK_ZERO_MEMORY(m_MVCSeqDesc.OP[i]);
-    }
-    m_MVCSeqDesc.NumOPAlloc = m_MVCSeqDesc.NumOP;
+    mvc->OP = new mfxMVCOperationPoint[mvc->NumOP];
+    mvc->NumOPAlloc = mvc->NumOP;
 
     return MFX_ERR_NONE;
 }
 
 void CTranscodingPipeline::FreeMVCSeqDesc()
 {
-    if (m_bOwnMVCSeqDescMemory)
+    mfxExtMVCSeqDesc* mvc = m_mfxDecParams;
+    if (m_bOwnMVCSeqDescMemory && mvc)
     {
-        MSDK_SAFE_DELETE_ARRAY(m_MVCSeqDesc.View);
-        MSDK_SAFE_DELETE_ARRAY(m_MVCSeqDesc.ViewId);
-        MSDK_SAFE_DELETE_ARRAY(m_MVCSeqDesc.OP);
+        MSDK_SAFE_DELETE_ARRAY(mvc->View);
+        MSDK_SAFE_DELETE_ARRAY(mvc->ViewId);
+        MSDK_SAFE_DELETE_ARRAY(mvc->OP);
     }
 }
 
@@ -2252,20 +2139,13 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
 
     // configure and attach external parameters
     if (m_bUseOpaqueMemory)
-        m_DecExtParams.push_back((mfxExtBuffer *)&m_DecOpaqueAlloc);
+        m_mfxDecParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
 
     if (pInParams->bIsMVC)
-        m_DecExtParams.push_back((mfxExtBuffer *)&m_MVCSeqDesc);
-
-    if (!m_DecExtParams.empty())
-    {
-        m_mfxDecParams.ExtParam = &m_DecExtParams[0]; // vector is stored linearly in memory
-        m_mfxDecParams.NumExtParam = (mfxU16)m_DecExtParams.size();
-    }
+        m_mfxDecParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
     if (!m_bUseOverlay)
     {
-
         // read a portion of data for DecodeHeader function
         sts = m_pBSProcessor->GetInputBitstream(&m_pmfxBS);
         if (MFX_ERR_MORE_DATA == sts)
@@ -2382,23 +2262,20 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
         (MFX_CODEC_AVC == m_mfxDecParams.mfx.CodecId) && /* Only for AVC */
         (MFX_PICSTRUCT_PROGRESSIVE == m_mfxDecParams.mfx.FrameInfo.PicStruct)) /* ...And only for progressive!*/
     {
-        m_decPostProcessing.In.CropX = 0;
-        m_decPostProcessing.In.CropY = 0;
-        m_decPostProcessing.In.CropW = m_mfxDecParams.mfx.FrameInfo.CropW;
-        m_decPostProcessing.In.CropH = m_mfxDecParams.mfx.FrameInfo.CropH;
+        auto decPostProc = m_mfxEncParams.AddExtBuffer<mfxExtDecVideoProcessing>();
+        decPostProc->In.CropX = 0;
+        decPostProc->In.CropY = 0;
+        decPostProc->In.CropW = m_mfxDecParams.mfx.FrameInfo.CropW;
+        decPostProc->In.CropH = m_mfxDecParams.mfx.FrameInfo.CropH;
 
-        m_decPostProcessing.Out.FourCC = m_mfxDecParams.mfx.FrameInfo.FourCC;
-        m_decPostProcessing.Out.ChromaFormat = m_mfxDecParams.mfx.FrameInfo.ChromaFormat;
-        m_decPostProcessing.Out.Width = MSDK_ALIGN16(pInParams->nVppCompDstW);
-        m_decPostProcessing.Out.Height = MSDK_ALIGN16(pInParams->nVppCompDstH);
-        m_decPostProcessing.Out.CropX = 0;
-        m_decPostProcessing.Out.CropY = 0;
-        m_decPostProcessing.Out.CropW = pInParams->nVppCompDstW;
-        m_decPostProcessing.Out.CropH = pInParams->nVppCompDstH;
-
-        m_DecExtParams.push_back((mfxExtBuffer *)&m_decPostProcessing);
-        m_mfxDecParams.ExtParam = &m_DecExtParams[0]; // vector is stored linearly in memory
-        m_mfxDecParams.NumExtParam = (mfxU16)m_DecExtParams.size();
+        decPostProc->Out.FourCC = m_mfxDecParams.mfx.FrameInfo.FourCC;
+        decPostProc->Out.ChromaFormat = m_mfxDecParams.mfx.FrameInfo.ChromaFormat;
+        decPostProc->Out.Width = MSDK_ALIGN16(pInParams->nVppCompDstW);
+        decPostProc->Out.Height = MSDK_ALIGN16(pInParams->nVppCompDstH);
+        decPostProc->Out.CropX = 0;
+        decPostProc->Out.CropY = 0;
+        decPostProc->Out.CropW = pInParams->nVppCompDstW;
+        decPostProc->Out.CropH = pInParams->nVppCompDstH;
     }
 #endif //MFX_VERSION >= 1022
     return MFX_ERR_NONE;
@@ -2414,7 +2291,7 @@ void CTranscodingPipeline::FillFrameInfoForEncoding(mfxFrameInfo& info, sInputPa
     }
     else if (m_bIsPlugin)
     {
-        MSDK_MEMCPY_VAR(info, &m_mfxPluginParams.vpp.Out, sizeof(mfxFrameInfo));
+        info = m_mfxPluginParams.vpp.Out;
     }
     else
     {
@@ -2435,7 +2312,7 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
 {
     MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
 
-    FillFrameInfoForEncoding(m_mfxEncParams.mfx.FrameInfo,pInParams);
+    FillFrameInfoForEncoding(m_mfxEncParams.mfx.FrameInfo, pInParams);
 
     MSDK_CHECK_ERROR(m_mfxEncParams.mfx.FrameInfo.FrameRateExtN * m_mfxEncParams.mfx.FrameInfo.FrameRateExtD,
         0, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -2447,16 +2324,15 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
 #if (MFX_VERSION >= 1025)
     if(pInParams->numMFEFrames || pInParams->MFMode)
     {
-        m_ExtMFEParam.MaxNumFrames = pInParams->numMFEFrames;
-        m_ExtMFEParam.MFMode = pInParams->MFMode;
-
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtMFEParam);
+        auto mfePar = m_mfxEncParams.AddExtBuffer<mfxExtMultiFrameParam>();
+        mfePar->MaxNumFrames = pInParams->numMFEFrames;
+        mfePar->MFMode = pInParams->MFMode;
     }
 
     if(pInParams->mfeTimeout)
     {
-        m_ExtMFEControl.Timeout = pInParams->mfeTimeout;
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtMFEControl);
+        auto mfeCtrl = m_mfxEncParams.AddExtBuffer<mfxExtMultiFrameControl>();
+        mfeCtrl->Timeout = pInParams->mfeTimeout;
     }
 #endif
     if (m_pParentPipeline && m_pParentPipeline->m_pmfxPreENC.get())
@@ -2513,17 +2389,17 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
            !((m_mfxEncParams.mfx.FrameInfo.CropH & 15 ) ^ 8 ) ) &&
              (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC) )
     {
-        m_ExtHEVCParam.PicWidthInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropW;
-        m_ExtHEVCParam.PicHeightInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropH;
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCParam);
+        auto hevcPar = m_mfxEncParams.AddExtBuffer<mfxExtHEVCParam>();
+        hevcPar->PicWidthInLumaSamples  = m_mfxEncParams.mfx.FrameInfo.CropW;
+        hevcPar->PicHeightInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropH;
     }
 #if (MFX_VERSION >= 1024)
     // This is for explicit extbrc only. In case of implicit (built-into-library) version - we don't need this extended buffer
     if (pInParams->nExtBRC == EXTBRC_ON &&
         (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC))
     {
-        HEVCExtBRC::Create(m_ExtBRC);
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_ExtBRC);
+        auto extbrc = m_mfxEncParams.AddExtBuffer<mfxExtBRC>();
+        HEVCExtBRC::Create(*extbrc);
     }
 #endif
 
@@ -2543,16 +2419,16 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     {
         if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
         {
-            m_ExtHEVCTiles.NumTileRows    = pInParams->nEncTileRows;
-            m_ExtHEVCTiles.NumTileColumns = pInParams->nEncTileCols;
-            m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCTiles);
+            auto tiles = m_mfxEncParams.AddExtBuffer<mfxExtHEVCTiles>();
+            tiles->NumTileRows    = pInParams->nEncTileRows;
+            tiles->NumTileColumns = pInParams->nEncTileCols;
         }
 #if MFX_VERSION >= 1029
         else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
         {
-            m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
-            m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
-            m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
+            auto vp9par = m_mfxEncParams.AddExtBuffer<mfxExtVP9Param>();
+            vp9par->NumTileRows    = pInParams->nEncTileRows;
+            vp9par->NumTileColumns = pInParams->nEncTileCols;
         }
 #endif
     }
@@ -2561,12 +2437,12 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     {
         if (pInParams->EncodeId == MFX_CODEC_HEVC)
         {
-            m_AvcTemporalLayers.BaseLayerPID = pInParams->nBaseLayerPID;
+            auto tl = m_mfxEncParams.AddExtBuffer<mfxExtAvcTemporalLayers>();
+            tl->BaseLayerPID = pInParams->nBaseLayerPID;
             for (int i = 0; i < 8; i++)
             {
-                m_AvcTemporalLayers.Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
+                tl->Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
             }
-            m_EncExtParams.push_back((mfxExtBuffer *)&m_AvcTemporalLayers);
         }
     }
 
@@ -2574,18 +2450,18 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     {
         if (pInParams->EncodeId == MFX_CODEC_HEVC)
         {
-            m_CodingOptionSPSPPS.SPSId = pInParams->nSPSId;
-            m_CodingOptionSPSPPS.PPSId = pInParams->nPPSId;
+            auto spspps = m_mfxEncParams.AddExtBuffer<mfxExtCodingOptionSPSPPS>();
+            spspps->SPSId = pInParams->nSPSId;
+            spspps->PPSId = pInParams->nPPSId;
         }
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOptionSPSPPS);
     }
 
     if (pInParams->nPicTimingSEI || pInParams->nNalHrdConformance || pInParams->nVuiNalHrdParameters)
     {
-        m_CodingOption.PicTimingSEI = pInParams->nPicTimingSEI;
-        m_CodingOption.NalHrdConformance = pInParams->nNalHrdConformance;
-        m_CodingOption.VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
+        auto co = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption>();
+        co->PicTimingSEI = pInParams->nPicTimingSEI;
+        co->NalHrdConformance = pInParams->nNalHrdConformance;
+        co->VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
     }
 
     // we don't specify profile and level and let the encoder choose those basing on parameters
@@ -2609,38 +2485,36 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         || (pInParams->nExtBRC && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC)) ||
         pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta || pInParams->nMaxFrameSize)
     {
-        m_CodingOption2.LookAheadDepth = pInParams->nLADepth;
-        m_CodingOption2.MaxSliceSize = pInParams->nMaxSliceSize;
-        m_CodingOption2.MaxFrameSize = pInParams->nMaxFrameSize;
-        m_CodingOption2.BRefType = pInParams->nBRefType;
+        auto co2 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption2>();
+        co2->LookAheadDepth = pInParams->nLADepth;
+        co2->MaxSliceSize = pInParams->nMaxSliceSize;
+        co2->MaxFrameSize = pInParams->nMaxFrameSize;
+        co2->BRefType = pInParams->nBRefType;
 
-        m_CodingOption2.IntRefType = pInParams->IntRefType;
-        m_CodingOption2.IntRefCycleSize = pInParams->IntRefCycleSize;
-        m_CodingOption2.IntRefQPDelta = pInParams->IntRefQPDelta;
+        co2->IntRefType = pInParams->IntRefType;
+        co2->IntRefCycleSize = pInParams->IntRefCycleSize;
+        co2->IntRefQPDelta = pInParams->IntRefQPDelta;
 
         if (pInParams->nExtBRC != EXTBRC_DEFAULT && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC))
         {
-            m_CodingOption2.ExtBRC =(mfxU16)(pInParams->nExtBRC == EXTBRC_OFF ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
+            co2->ExtBRC =(mfxU16)(pInParams->nExtBRC == EXTBRC_OFF ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
         }
         else
         {
-            m_CodingOption2.ExtBRC = 0;
+            co2->ExtBRC = MFX_CODINGOPTION_UNKNOWN;
         }
-
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption2);
     }
-
-    bool addCodingOpt3 = false;
 
     if (pInParams->WinBRCMaxAvgKbps || pInParams->WinBRCSize)
     {
-        m_CodingOption3.WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
-        m_CodingOption3.WinBRCSize = pInParams->WinBRCSize;
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
+        co3->WinBRCSize = pInParams->WinBRCSize;
     }
 #if MFX_VERSION >= 1022
     if (pInParams->bROIasQPMAP || pInParams->bExtMBQP)
     {
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
         switch(m_mfxEncParams.mfx.CodecId)
         {
         case MFX_CODEC_AVC:
@@ -2648,8 +2522,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
             // For AVC codec QP map should define QP value for every 16x16 sub-block of a frame
             m_QPmapWidth = (m_mfxEncParams.mfx.FrameInfo.Width + 15) >> 4;
             m_QPmapHeight = (m_mfxEncParams.mfx.FrameInfo.Height + 15) >> 4;
-            m_CodingOption3.EnableMBQP = MFX_CODINGOPTION_ON;
-            addCodingOpt3 = true;
+            co3->EnableMBQP = MFX_CODINGOPTION_ON;
             break;
         default:
             m_QPmapWidth = 0;
@@ -2663,61 +2536,52 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         pInParams->IntRefCycleDist ||
         pInParams->nAdaptiveMaxFrameSize || pInParams->LowDelayBRC)
     {
-        m_CodingOption3.WeightedPred = pInParams->WeightedPred;
-        m_CodingOption3.WeightedBiPred = pInParams->WeightedBiPred;
-        m_CodingOption3.LowDelayBRC = pInParams->LowDelayBRC;
-        m_CodingOption3.IntRefCycleDist = pInParams->IntRefCycleDist;
-        m_CodingOption3.AdaptiveMaxFrameSize = pInParams->nAdaptiveMaxFrameSize;
-
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->WeightedPred = pInParams->WeightedPred;
+        co3->WeightedBiPred = pInParams->WeightedBiPred;
+        co3->LowDelayBRC = pInParams->LowDelayBRC;
+        co3->IntRefCycleDist = pInParams->IntRefCycleDist;
+        co3->AdaptiveMaxFrameSize = pInParams->nAdaptiveMaxFrameSize;
     }
 #if (MFX_VERSION >= 1026)
     if (pInParams->ExtBrcAdaptiveLTR)
     {
-        m_CodingOption3.ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
     }
 #endif
 #if MFX_VERSION >= 1023
     if (pInParams->RepartitionCheckMode)
     {
-        m_CodingOption3.RepartitionCheckEnable = pInParams->RepartitionCheckMode;
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->RepartitionCheckEnable = pInParams->RepartitionCheckMode;
     }
 #endif
 
     if (pInParams->GPB)
     {
-        m_CodingOption3.GPB = pInParams->GPB;
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->GPB = pInParams->GPB;
     }
 #if (MFX_VERSION >= 1026)
     if (pInParams->nTransformSkip)
     {
-        m_CodingOption3.TransformSkip = pInParams->nTransformSkip;
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->TransformSkip = pInParams->nTransformSkip;
     }
 #endif
     if (pInParams->bDisableQPOffset)
     {
-        m_CodingOption3.EnableQPOffset = MFX_CODINGOPTION_OFF;
-        addCodingOpt3 = true;
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->EnableQPOffset = MFX_CODINGOPTION_OFF;
     }
-
-    if (addCodingOpt3)
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
 
     if (m_bUseOpaqueMemory)
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_EncOpaqueAlloc);
+        m_mfxEncParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
 
     if (pInParams->bIsMVC)
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_MVCSeqDesc);
+        m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
-    if (!m_EncExtParams.empty())
-    {
-        m_mfxEncParams.ExtParam = &m_EncExtParams[0]; // vector is stored linearly in memory
-        m_mfxEncParams.NumExtParam = (mfxU16)m_EncExtParams.size();
-    }
     if (m_pParentPipeline)
     {
         m_pParentPipeline->AddLaStreams(m_mfxEncParams.mfx.FrameInfo.Width,m_mfxEncParams.mfx.FrameInfo.Height);
@@ -2778,7 +2642,7 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
 
 mfxStatus CTranscodingPipeline::CorrectPreEncAuxPool(mfxU32 num_frames_in_pool)
 {
-    if (!m_pmfxPreENC.get()) return MFX_ERR_NONE;
+    if (!m_pmfxPreENC) return MFX_ERR_NONE;
 
     if (m_pPreEncAuxPool.size() < num_frames_in_pool)
     {
@@ -2789,11 +2653,13 @@ mfxStatus CTranscodingPipeline::CorrectPreEncAuxPool(mfxU32 num_frames_in_pool)
 
 mfxStatus CTranscodingPipeline::AllocPreEncAuxPool()
 {
-    if (!m_pmfxPreENC.get()) return MFX_ERR_NONE;
+    if (!m_pmfxPreENC)
+        return MFX_ERR_NONE;
 
-    mfxU16 num_resolutions = m_ExtLAControl.NumOutStream;
+    auto laCtrl = m_mfxPreEncParams.AddExtBuffer<mfxExtLAControl>();
+    mfxU16 num_resolutions = laCtrl->NumOutStream;
     int buff_size = sizeof(mfxExtLAFrameStatistics) +
-        sizeof(mfxLAFrameInfo)*num_resolutions*m_ExtLAControl.LookAheadDepth;
+        sizeof(mfxLAFrameInfo)*num_resolutions*laCtrl->LookAheadDepth;
 
     for (size_t i = 0; i < m_pPreEncAuxPool.size(); i++)
     {
@@ -2811,7 +2677,7 @@ mfxStatus CTranscodingPipeline::AllocPreEncAuxPool()
         pExtBuffer = (mfxExtLAFrameStatistics*) pBuff;
         pExtBuffer->Header.BufferId = MFX_EXTBUFF_LOOKAHEAD_STAT;
         pExtBuffer->Header.BufferSz = buff_size;
-        pExtBuffer->NumAlloc = num_resolutions*m_ExtLAControl.LookAheadDepth;
+        pExtBuffer->NumAlloc = num_resolutions*laCtrl->LookAheadDepth;
         pExtBuffer->FrameStat = (mfxLAFrameInfo *)(pBuff + sizeof(mfxExtLAFrameStatistics));
 
         m_pPreEncAuxPool[i].encOutput.NumExtParam = 1;
@@ -2885,14 +2751,12 @@ mfxStatus CTranscodingPipeline::InitPreEncMfxParams(sInputParams *pInParams)
 
     // configure and attach external parameters
     if (m_bUseOpaqueMemory)
-        m_PreEncExtParams.push_back((mfxExtBuffer *)&m_PreEncOpaqueAlloc);
+        m_mfxPreEncParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
 
-    MSDK_ZERO_MEMORY(m_ExtLAControl);
-    m_ExtLAControl.Header.BufferId = MFX_EXTBUFF_LOOKAHEAD_CTRL;
-    m_ExtLAControl.Header.BufferSz = sizeof(m_ExtLAControl);
-    m_ExtLAControl.LookAheadDepth = pInParams->nLADepth? pInParams->nLADepth : 40;
-    m_ExtLAControl.NumOutStream = 0;
-    m_ExtLAControl.BPyramid = (mfxU16)(pInParams->bEnableBPyramid ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
+    auto laCtrl = m_mfxPreEncParams.AddExtBuffer<mfxExtLAControl>();
+    laCtrl->LookAheadDepth = pInParams->nLADepth? pInParams->nLADepth : 40;
+    laCtrl->NumOutStream = 0;
+    laCtrl->BPyramid = (mfxU16)(pInParams->bEnableBPyramid ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
 
     m_mfxPreEncParams.mfx.GopPicSize = pInParams->GopPicSize ? pInParams->GopPicSize : 1500;
 
@@ -2906,13 +2770,6 @@ mfxStatus CTranscodingPipeline::InitPreEncMfxParams(sInputParams *pInParams)
         m_mfxPreEncParams.mfx.TargetUsage = pInParams->nTargetUsage;
     }
 
-    m_PreEncExtParams.push_back((mfxExtBuffer *)&m_ExtLAControl);
-
-    if (!m_PreEncExtParams.empty())
-    {
-        m_mfxPreEncParams.ExtParam = &m_PreEncExtParams[0]; // vector is stored linearly in memory
-        m_mfxPreEncParams.NumExtParam = (mfxU16)m_PreEncExtParams.size();
-    }
     return MFX_ERR_NONE;
 }
 
@@ -2920,19 +2777,20 @@ mfxStatus CTranscodingPipeline::AddLaStreams(mfxU16 width, mfxU16 height)
 {
     if (m_pmfxPreENC.get() != NULL)
     {
-        mfxU32 num = m_ExtLAControl.NumOutStream;
+        auto laCtrl = m_mfxPreEncParams.AddExtBuffer<mfxExtLAControl>();
+        mfxU32 num = laCtrl->NumOutStream;
         m_numEncoders ++;
         for (mfxU32 i = 0; i < num; i++)
         {
-            if (m_ExtLAControl.OutStream[i].Width  == width && m_ExtLAControl.OutStream[i].Height == height)
+            if (laCtrl->OutStream[i].Width  == width && laCtrl->OutStream[i].Height == height)
                 return MFX_ERR_NONE;
         }
-        if ((sizeof(m_ExtLAControl.OutStream) / sizeof(m_ExtLAControl.OutStream[0])) < (num + 1))
+        if ((sizeof(laCtrl->OutStream) / sizeof(laCtrl->OutStream[0])) < (num + 1))
             return MFX_ERR_UNSUPPORTED;
 
-        m_ExtLAControl.OutStream[num].Width  = width;
-        m_ExtLAControl.OutStream[num].Height = height;
-        m_ExtLAControl.NumOutStream = (mfxU16)num + 1;
+        laCtrl->OutStream[num].Width  = width;
+        laCtrl->OutStream[num].Height = height;
+        laCtrl->NumOutStream = (mfxU16)num + 1;
     }
     return MFX_ERR_NONE;
 }
@@ -3020,10 +2878,6 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     // configure and attach external parameters
     mfxStatus sts = AllocAndInitVppDoNotUse(pInParams);
     MSDK_CHECK_STATUS(sts, "AllocAndInitVppDoNotUse failed");
-    if(m_VppDoNotUse.NumAlg)
-    {
-        m_VppExtParamsStorage.ExtBuffers.push_back((mfxExtBuffer *)&m_VppDoNotUse);
-    }
 
     //--- Setting output FourCC type (input type is taken from m_mfxDecParams)
     if (pInParams->EncoderFourCC)
@@ -3051,17 +2905,15 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     }
 
     /* VPP Comp Init */
-    if (((pInParams->eModeExt == VppComp) || (pInParams->eModeExt == VppCompOnly)) &&
-        (pInParams->numSurf4Comp != 0))
+    if (((pInParams->eModeExt == VppComp) || (pInParams->eModeExt == VppCompOnly)) && (pInParams->numSurf4Comp != 0))
     {
         if(m_nVPPCompEnable != VppCompOnlyEncode)
             m_nVPPCompEnable = pInParams->eModeExt;
-        m_VppCompParams.Header.BufferId = MFX_EXTBUFF_VPP_COMPOSITE;
-        m_VppCompParams.Header.BufferSz = sizeof(mfxExtVPPComposite);
-        m_VppCompParams.NumInputStream = (mfxU16)pInParams->numSurf4Comp;
-        m_VppCompParams.InputStream = (mfxVPPCompInputStream *)malloc(sizeof(mfxVPPCompInputStream)*
-            m_VppCompParams.NumInputStream);
-        MSDK_CHECK_POINTER(m_VppCompParams.InputStream,MFX_ERR_NULL_PTR);
+
+        auto vppCompPar = m_mfxVppParams.AddExtBuffer<mfxExtVPPComposite>();
+        vppCompPar->NumInputStream = (mfxU16)pInParams->numSurf4Comp;
+        vppCompPar->InputStream = (mfxVPPCompInputStream *)malloc( sizeof(mfxVPPCompInputStream)* vppCompPar->NumInputStream );
+        MSDK_CHECK_POINTER(vppCompPar->InputStream, MFX_ERR_NULL_PTR);
 
         // stream params
         /* if input streams in NV12 format background color should be in YUV format too
@@ -3072,9 +2924,9 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
         {
         case MFX_FOURCC_RGB4:
             /* back color in RGB */
-            m_VppCompParams.R = 0x00;
-            m_VppCompParams.G = 0x00;
-            m_VppCompParams.B = 0x00;
+            vppCompPar->R = 0x00;
+            vppCompPar->G = 0x00;
+            vppCompPar->B = 0x00;
             break;
         case MFX_FOURCC_NV12:
         case MFX_FOURCC_P010:
@@ -3083,50 +2935,118 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
         case MFX_FOURCC_YUY2:
         default:
             /* back color in YUV */
-            m_VppCompParams.Y = 0x10;
-            m_VppCompParams.U = 0x80;
-            m_VppCompParams.V = 0x80;
+            vppCompPar->Y = 0x10;
+            vppCompPar->U = 0x80;
+            vppCompPar->V = 0x80;
             break;
         }
 
 #if MFX_VERSION >= 1024
-        m_VppCompParams.NumTiles = pInParams->numTiles4Comp;
+        vppCompPar->NumTiles = pInParams->numTiles4Comp;
 #endif
 
-        MSDK_CHECK_POINTER(pInParams->pVppCompDstRects,MFX_ERR_NULL_PTR);
+        MSDK_CHECK_POINTER(pInParams->pVppCompDstRects, MFX_ERR_NULL_PTR);
         for (mfxU32 i = 0; i < pInParams->numSurf4Comp; i++)
         {
-            m_VppCompParams.InputStream[i].DstX = pInParams->pVppCompDstRects[i].DstX;
-            m_VppCompParams.InputStream[i].DstY = pInParams->pVppCompDstRects[i].DstY;
-            m_VppCompParams.InputStream[i].DstW = pInParams->pVppCompDstRects[i].DstW;
-            m_VppCompParams.InputStream[i].DstH = pInParams->pVppCompDstRects[i].DstH;
+            vppCompPar->InputStream[i].DstX = pInParams->pVppCompDstRects[i].DstX;
+            vppCompPar->InputStream[i].DstY = pInParams->pVppCompDstRects[i].DstY;
+            vppCompPar->InputStream[i].DstW = pInParams->pVppCompDstRects[i].DstW;
+            vppCompPar->InputStream[i].DstH = pInParams->pVppCompDstRects[i].DstH;
 #if MFX_VERSION >= 1024
-            m_VppCompParams.InputStream[i].TileId = pInParams->pVppCompDstRects[i].TileId;
+            vppCompPar->InputStream[i].TileId = pInParams->pVppCompDstRects[i].TileId;
 #endif
-            m_VppCompParams.InputStream[i].GlobalAlpha = 0;
-            m_VppCompParams.InputStream[i].GlobalAlphaEnable = 0;
-            m_VppCompParams.InputStream[i].PixelAlphaEnable = 0;
+            vppCompPar->InputStream[i].GlobalAlpha = 0;
+            vppCompPar->InputStream[i].GlobalAlphaEnable = 0;
+            vppCompPar->InputStream[i].PixelAlphaEnable = 0;
 
-            m_VppCompParams.InputStream[i].LumaKeyEnable = 0;
-            m_VppCompParams.InputStream[i].LumaKeyMin = 0;
-            m_VppCompParams.InputStream[i].LumaKeyMax = 0;
+            vppCompPar->InputStream[i].LumaKeyEnable = 0;
+            vppCompPar->InputStream[i].LumaKeyMin = 0;
+            vppCompPar->InputStream[i].LumaKeyMax = 0;
         }
-
-        m_VppExtParamsStorage.ExtBuffers.push_back((mfxExtBuffer *)&m_VppCompParams);
-    } // if ( ((pInParams->eModeExt == VppComp) || (pInParams->eModeExt == VppCompOnly)) &&
+    }
 
     if (m_bUseOpaqueMemory)
-        m_VppExtParamsStorage.ExtBuffers.push_back((mfxExtBuffer *)&m_VppOpaqueAlloc);
+        m_mfxVppParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
+
     if (pInParams->bIsMVC)
-        m_VppExtParamsStorage.ExtBuffers.push_back((mfxExtBuffer *)&m_MVCSeqDesc);
+        m_mfxVppParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
-    // Initializing m_VppExtParamsStorage here, to put all extra filters (created in Init function) to the end of buffer
-    m_VppExtParamsStorage.Init(pInParams);
+    mfxU32 enhFilterCount = 0;
 
-    // Adding
+#ifdef ENABLE_MCTF
+    if (VPP_FILTER_ENABLED_CONFIGURED == pInParams->mctfParam.mode)
+    {
+        auto mctf = m_mfxVppParams.AddExtBuffer<mfxExtVppMctf>();
+        mctf->FilterStrength = pInParams->mctfParam.params.FilterStrength;
+        // If an external file is given & at least 1 value is given, use it
+        if (!pInParams->mctfParam.rtParams.Empty() && pInParams->mctfParam.rtParams.GetCurParam())
+        {
+            mctf->FilterStrength = pInParams->mctfParam.rtParams.GetCurParam()->FilterStrength;
+        }
+#if defined ENABLE_MCTF_EXT
+        mctf->Overlap = pInParams->mctfParam.pInParams.Overlap;
+        mctf->TemporalMode = pInParams->mctfParam.params.TemporalMode;
+        mctf->MVPrecision = pInParams->mctfParam.params.MVPrecision;
+        mctf->BitsPerPixelx100k = pInParams->mctfParam.params.BitsPerPixelx100k;
+        mctf->Deblocking = pInParams->mctfParam.params.Deblocking;
+#endif
+    }
+    else if (VPP_FILTER_ENABLED_DEFAULT == pInParams->mctfParam.mode)
+    {
+        // MCTF enabling through do-use list:
+        m_tabDoUseAlg[enhFilterCount++] = MFX_EXTBUFF_VPP_MCTF;
+    }
+#endif //ENABLE_MCTF
 
-    m_mfxVppParams.ExtParam = &m_VppExtParamsStorage.ExtBuffers[0]; // vector is stored linearly in memory
-    m_mfxVppParams.NumExtParam = (mfxU16)m_VppExtParamsStorage.ExtBuffers.size();
+    if (pInParams->DenoiseLevel != -1)
+    {
+        auto denoise = m_mfxVppParams.AddExtBuffer<mfxExtVPPDenoise>();
+        denoise->DenoiseFactor = (mfxU16)pInParams->DenoiseLevel;
+    }
+
+    if (pInParams->DetailLevel != -1)
+    {
+        auto detail = m_mfxVppParams.AddExtBuffer<mfxExtVPPDetail>();
+        detail->DetailFactor = (mfxU16)pInParams->DetailLevel;
+    }
+
+    if (pInParams->FRCAlgorithm)
+    {
+        auto frc = m_mfxVppParams.AddExtBuffer<mfxExtVPPFrameRateConversion>();
+        frc->Algorithm = pInParams->FRCAlgorithm;
+    }
+
+    if (pInParams->bEnableDeinterlacing && pInParams->DeinterlacingMode)
+    {
+        auto di = m_mfxVppParams.AddExtBuffer<mfxExtVPPDeinterlacing>();
+        di->Mode = pInParams->DeinterlacingMode;
+    }
+
+    //--- Field Copy Mode
+    if (pInParams->fieldProcessingMode)
+    {
+        auto fieldProc = m_mfxVppParams.AddExtBuffer<mfxExtVPPFieldProcessing>();
+
+        //--- To check first is we do copy frame of field
+        fieldProc->Mode = (mfxU16) (pInParams->fieldProcessingMode==FC_FR2FR ?
+            MFX_VPP_COPY_FRAME :
+            MFX_VPP_COPY_FIELD);
+
+        fieldProc->InField = (mfxU16) ((pInParams->fieldProcessingMode==FC_T2T || pInParams->fieldProcessingMode==FC_T2B) ?
+            MFX_PICSTRUCT_FIELD_TFF :
+            MFX_PICSTRUCT_FIELD_BFF);
+
+        fieldProc->OutField = (mfxU16) ((pInParams->fieldProcessingMode== FC_T2T || pInParams->fieldProcessingMode==FC_B2T) ?
+            MFX_PICSTRUCT_FIELD_TFF :
+            MFX_PICSTRUCT_FIELD_BFF);
+    }
+
+    if (enhFilterCount)
+    {
+        auto doUse = m_mfxVppParams.AddExtBuffer<mfxExtVPPDoUse>();
+        doUse->NumAlg = enhFilterCount;
+        doUse->AlgList = m_tabDoUseAlg;
+    }
 
 #ifdef ENABLE_MCTF
     // would it be more efficienct to get a pointer?
@@ -3172,13 +3092,7 @@ mfxStatus CTranscodingPipeline::InitPluginMfxParams(sInputParams *pInParams)
 
     // configure and attach external parameters
     if (m_bUseOpaqueMemory)
-        m_PluginExtParams.push_back((mfxExtBuffer *)&m_PluginOpaqueAlloc);
-
-    if (!m_PluginExtParams.empty())
-    {
-        m_mfxPluginParams.ExtParam = &m_PluginExtParams[0]; // vector is stored linearly in memory
-        m_mfxPluginParams.NumExtParam = (mfxU16)m_PluginExtParams.size();
-    }
+        m_mfxPluginParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
 
     return MFX_ERR_NONE;
 
@@ -3492,7 +3406,7 @@ mfxStatus CTranscodingPipeline::CalculateNumberOfReqFrames(mfxFrameAllocRequest 
 
     return MFX_ERR_NONE;
 }
-void CTranscodingPipeline::CorrectNumberOfAllocatedFrames(mfxFrameAllocRequest  *pNewReq)
+void CTranscodingPipeline::CorrectNumberOfAllocatedFrames(mfxFrameAllocRequest *pNewReq)
 {
     if(shouldUseGreedyFormula)
     {
@@ -3524,57 +3438,63 @@ void CTranscodingPipeline::CorrectNumberOfAllocatedFrames(mfxFrameAllocRequest  
 
 mfxStatus CTranscodingPipeline::InitOpaqueAllocBuffers()
 {
+    auto decOpaq = m_mfxDecParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
+    auto vppOpaq = m_mfxVppParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
+    auto encOpaq = m_mfxEncParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
+    auto plgOpaq = m_mfxPluginParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
+    auto preencOpaq = m_mfxPreEncParams.AddExtBuffer<mfxExtOpaqueSurfaceAlloc>();
+
     if (m_pmfxDEC.get() ||
-        (m_bUseOpaqueMemory && (m_nVPPCompEnable==VppComp || m_nVPPCompEnable==VppCompOnly || m_nVPPCompEnable==VppCompOnlyEncode) && m_pSurfaceDecPool.size()))
+        ((m_nVPPCompEnable == VppComp || m_nVPPCompEnable == VppCompOnly || m_nVPPCompEnable == VppCompOnlyEncode) && m_pSurfaceDecPool.size()))
     {
-        m_DecOpaqueAlloc.Out.Surfaces = &m_pSurfaceDecPool[0]; // vestor is stored linearly in memory
-        m_DecOpaqueAlloc.Out.NumSurface = (mfxU16)m_pSurfaceDecPool.size();
+        decOpaq->Out.Surfaces = &m_pSurfaceDecPool[0];
+        decOpaq->Out.NumSurface = (mfxU16)m_pSurfaceDecPool.size();
+
         if (m_DecSurfaceType & MFX_MEMTYPE_FROM_VPPOUT)
-            m_DecOpaqueAlloc.Out.Type = (mfxU16)(MFX_MEMTYPE_BASE(m_DecSurfaceType) | MFX_MEMTYPE_FROM_VPPOUT);
+            decOpaq->Out.Type = (mfxU16)(MFX_MEMTYPE_BASE(m_DecSurfaceType) | MFX_MEMTYPE_FROM_VPPOUT);
         else
-            m_DecOpaqueAlloc.Out.Type = (mfxU16)(MFX_MEMTYPE_BASE(m_DecSurfaceType) | MFX_MEMTYPE_FROM_DECODE);
+            decOpaq->Out.Type = (mfxU16)(MFX_MEMTYPE_BASE(m_DecSurfaceType) | MFX_MEMTYPE_FROM_DECODE);
     }
     else
     {
-        // if no decoder in the pipeline we need to query m_DecOpaqueAlloc structure from parent sink pipeline
-        m_DecOpaqueAlloc = m_pParentPipeline->GetDecOpaqueAlloc();
+        // if no decoder in the pipeline we need to query OpaqueAlloc structure from parent sink pipeline
+        *decOpaq = m_pParentPipeline->GetDecOpaqueAlloc();
     }
 
     if (m_pmfxVPP.get())
     {
-        m_EncOpaqueAlloc.In.Surfaces = &m_pSurfaceEncPool[0];
-        m_EncOpaqueAlloc.In.NumSurface = (mfxU16)m_pSurfaceEncPool.size();
-        m_EncOpaqueAlloc.In.Type = (mfxU16)(MFX_MEMTYPE_BASE(m_EncSurfaceType) | MFX_MEMTYPE_FROM_ENCODE);
+        encOpaq->In.Surfaces = &m_pSurfaceEncPool[0];
+        encOpaq->In.NumSurface = (mfxU16)m_pSurfaceEncPool.size();
+        encOpaq->In.Type = (mfxU16)(MFX_MEMTYPE_BASE(m_EncSurfaceType) | MFX_MEMTYPE_FROM_ENCODE);
 
         // decode will be connected with either VPP or Plugin
         if (m_bIsVpp)
         {
-            m_VppOpaqueAlloc.In = m_DecOpaqueAlloc.Out;
+            vppOpaq->In = decOpaq->Out;
         }
         else if (m_bIsPlugin)
         {
-            m_PluginOpaqueAlloc.In = m_DecOpaqueAlloc.Out;
+            plgOpaq->In = decOpaq->Out;
         }
         else
             return MFX_ERR_UNSUPPORTED;
 
         // encode will be connected with either Plugin or VPP
         if (m_bIsPlugin)
-            m_PluginOpaqueAlloc.Out = m_EncOpaqueAlloc.In;
+            plgOpaq->Out = encOpaq->In;
         else if (m_bIsVpp)
-            m_VppOpaqueAlloc.Out = m_EncOpaqueAlloc.In;
+            vppOpaq->Out = encOpaq->In;
         else
             return MFX_ERR_UNSUPPORTED;
     }
     else if (m_pmfxENC.get() || m_pmfxPreENC.get())
     {
-        m_EncOpaqueAlloc.In = m_DecOpaqueAlloc.Out;
+        encOpaq->In = decOpaq->Out;
     }
     if (m_pmfxPreENC.get())
     {
-        m_PreEncOpaqueAlloc.In = m_EncOpaqueAlloc.In;
+        preencOpaq->In = encOpaq->In;
     }
-
 
     return MFX_ERR_NONE;
 }
@@ -3716,7 +3636,6 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
         {
 #if defined(_WIN32) || defined(_WIN64)
             m_hwdev4Rendering = new CDecodeD3DRender;
-
             m_hwdev4Rendering->SetHWDevice(pParams->m_hwdev);
 
             sWindowParams RenderParam;
@@ -3766,25 +3685,15 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 
     m_pBuffer = pBuffer;
 
-    mfxExtBuffer* extBufs[1];
-
     // we set version to 1.0 and later we will query actual version of the library which will got leaded
     m_initPar.Version.Major = 1;
     m_initPar.Version.Minor = 0;
     m_initPar.Implementation = pParams->libType;
 
-    init_ext_buffer(m_threadsPar);
-
-    bool needInitExtPar = false;
-
-    if (pParams->nThreadsNum) {
-        m_threadsPar.NumThread = pParams->nThreadsNum;
-        needInitExtPar = true;
-    }
-    if (needInitExtPar) {
-        extBufs[0] = (mfxExtBuffer*)&m_threadsPar;
-        m_initPar.ExtParam = extBufs;
-        m_initPar.NumExtParam = 1;
+    if (pParams->nThreadsNum)
+    {
+        auto threadsPar = m_initPar.AddExtBuffer<mfxExtThreadsParam>();
+        threadsPar->NumThread = pParams->nThreadsNum;
     }
 
     //--- GPU Copy settings
@@ -4269,13 +4178,9 @@ void CTranscodingPipeline::Close()
     FreeMVCSeqDesc();
     FreePreEncAuxPool();
 
-    if (m_VppCompParams.InputStream != NULL)
-        free(m_VppCompParams.InputStream);
-
-    m_EncExtParams.clear();
-    m_DecExtParams.clear();
-    m_VppExtParamsStorage.Clear();
-    m_PreEncExtParams.clear();
+    mfxExtVPPComposite* vppCompPar = m_mfxVppParams;
+    if (vppCompPar && vppCompPar->InputStream)
+        free(vppCompPar->InputStream);
 
     if (m_bIsJoinSession)
     {
@@ -4499,27 +4404,30 @@ mfxStatus CTranscodingPipeline::Reset()
 mfxStatus CTranscodingPipeline::AllocAndInitVppDoNotUse(sInputParams *pInParams)
 {
     std::vector<mfxU32> filtersDisabled;
-    if(pInParams->DenoiseLevel==-1)
+    if (pInParams->DenoiseLevel == -1)
     {
         filtersDisabled.push_back(MFX_EXTBUFF_VPP_DENOISE); // turn off denoising (on by default)
     }
     filtersDisabled.push_back(MFX_EXTBUFF_VPP_SCENE_ANALYSIS); // turn off scene analysis (on by default)
 
-    m_VppDoNotUse.NumAlg = (mfxU32)filtersDisabled.size();
+    if (filtersDisabled.size())
+    {
+        auto doNotUse = m_mfxVppParams.AddExtBuffer<mfxExtVPPDoNotUse>();
+        delete[] doNotUse->AlgList;
 
-    if(m_VppDoNotUse.AlgList)
-        delete[] m_VppDoNotUse.AlgList;
-    m_VppDoNotUse.AlgList = new mfxU32 [m_VppDoNotUse.NumAlg];
-    MSDK_CHECK_POINTER(m_VppDoNotUse.AlgList,  MFX_ERR_MEMORY_ALLOC);
-    MSDK_MEMCPY(m_VppDoNotUse.AlgList,&filtersDisabled[0],sizeof(mfxU32)*filtersDisabled.size());
+        doNotUse->NumAlg = (mfxU32)filtersDisabled.size();
+        doNotUse->AlgList = new mfxU32 [doNotUse->NumAlg];
+        MSDK_MEMCPY(doNotUse->AlgList, filtersDisabled.data(), sizeof(mfxU32)*filtersDisabled.size());
+    }
 
     return MFX_ERR_NONE;
-
 } // CTranscodingPipeline::AllocAndInitVppDoNotUse()
 
 void CTranscodingPipeline::FreeVppDoNotUse()
 {
-    MSDK_SAFE_DELETE_ARRAY(m_VppDoNotUse.AlgList);
+    mfxExtVPPDoNotUse* doNotUse = m_mfxVppParams;
+    if (doNotUse)
+        MSDK_SAFE_DELETE_ARRAY(doNotUse->AlgList);
 }
 
 mfxStatus CTranscodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper* pBS)
