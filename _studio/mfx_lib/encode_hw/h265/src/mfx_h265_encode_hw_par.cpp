@@ -623,6 +623,8 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
         par.m_slice[i].SegmentAddress = TsToRs[par.m_slice[i].SegmentAddress];
     }
 
+    assert(par.m_slice.size() <= MAX_SLICES);
+
     return (mfxU16)par.m_slice.size();
 }
 

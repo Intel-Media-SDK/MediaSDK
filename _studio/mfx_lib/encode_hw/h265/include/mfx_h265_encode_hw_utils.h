@@ -163,7 +163,7 @@ constexpr mfxU8    IDX_INVALID           = 0xff;
 constexpr mfxU8    HW_SURF_ALIGN_W       = 16;
 constexpr mfxU8    HW_SURF_ALIGN_H       = 16;
 
-constexpr mfxU8    MAX_SLICES            = 200; // WA for driver issue regarding CNL and older platforms
+constexpr mfxU16   MAX_SLICES            = 600; // conforms to level 6 limits
 constexpr mfxU8    DEFAULT_LTR_INTERVAL  = 16;
 constexpr mfxU8    DEFAULT_PPYR_INTERVAL = 3;
 
