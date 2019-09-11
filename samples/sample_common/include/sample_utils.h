@@ -281,6 +281,7 @@ public:
     ExtBufHolder(ExtBufHolder &&)             = default;
     ExtBufHolder & operator= (ExtBufHolder&&) = default;
 
+    // Always returns a valid pointer or throws an exception
     template<typename TB>
     TB* AddExtBuffer()
     {
@@ -323,7 +324,7 @@ private:
     mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size)
     {
         if (!size || !id)
-            return nullptr;
+            throw mfxError(MFX_ERR_NULL_PTR, "AddExtBuffer: wrong size or id!");
 
         // Limitation: only one ExtBuffer instance can be stored
         auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
