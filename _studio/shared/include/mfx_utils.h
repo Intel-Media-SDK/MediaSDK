@@ -191,4 +191,19 @@ static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
 
 MFX_DECL_OPERATOR_NOT_EQ(mfxPluginUID)
 
+inline bool IsOn(mfxU32 opt)
+{
+    return opt == MFX_CODINGOPTION_ON;
+}
+
+inline bool IsOff(mfxU32 opt)
+{
+    return opt == MFX_CODINGOPTION_OFF;
+}
+
+inline bool IsAdapt(mfxU32 opt)
+{
+    return opt == MFX_CODINGOPTION_ADAPTIVE;
+}
+
 #endif // __MFXUTILS_H__

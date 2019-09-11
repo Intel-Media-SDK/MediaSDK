@@ -305,16 +305,6 @@ mfxStatus SetSupportedParameters(mfxVideoParam & par)
     return MFX_ERR_NONE;
 }
 
-inline bool IsOn(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_ON;
-}
-
-inline bool IsOff(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_OFF;
-}
-
 struct Bool
 {
     Bool(bool initValue) : value(initValue) {};
