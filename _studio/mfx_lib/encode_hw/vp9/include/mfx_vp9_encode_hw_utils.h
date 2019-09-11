@@ -273,16 +273,6 @@ enum // identifies memory type at encoder input w/o any details
     inline mfxU32 CeilLog2(mfxU32 x) { mfxU32 l = 0; while (x > (1U << l)) l++; return l; }
     inline mfxU32 FloorLog2(mfxU32 x) { mfxU32 l = 0; while (x >= (1U << (l + 1))) l++; return l; }
 
-    inline bool IsOn(mfxU16 opt)
-    {
-        return opt == MFX_CODINGOPTION_ON;
-    }
-
-    inline bool IsOff(mfxU16 opt)
-    {
-        return opt == MFX_CODINGOPTION_OFF;
-    }
-
     template<class T> struct ExtBufTypeToId {};
 
 #define BIND_EXTBUF_TYPE_TO_ID(TYPE, ID) template<> struct ExtBufTypeToId<TYPE> { enum { id = ID }; }

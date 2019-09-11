@@ -204,16 +204,6 @@ enum
     INSERT_SEI = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI)
 };
 
-inline bool IsOn(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_ON;
-}
-
-inline bool IsOff(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_OFF;
-}
-
 inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
     // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
