@@ -1781,7 +1781,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
 #if defined(LIBVA_DRM_SUPPORT)
         else if (0 == msdk_strncmp(argv[i], MSDK_STRING("-rdrm"), 5))
         {
-            InputParams.libvaBackend = MFX_LIBVA_DRM_MODESET;
             InputParams.monitorType = getMonitorType(&argv[i][5]);
             if (argv[i][5]) {
                 if (argv[i][5] != '-') {

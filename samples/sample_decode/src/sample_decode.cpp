@@ -258,7 +258,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->memType = D3D9_MEMORY;
             pParams->mode = MODE_RENDERING;
-            pParams->libvaBackend = MFX_LIBVA_DRM_MODESET;
             if (strInput[i][5]) {
                 if (strInput[i][5] != '-') {
                     PrintHelp(strInput[0], MSDK_STRING("unsupported monitor type"));
