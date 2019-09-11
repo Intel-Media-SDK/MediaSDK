@@ -1675,8 +1675,9 @@ namespace MPEG2EncoderHW
             {
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             }
-            bWarning = bWarning || (!m_InputSurfaces.CheckInputFrame(&surface->Info));
 
+            MFX_CHECK(surface->Info.Width >= m_VideoParamsEx.mfxVideoParams.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
+            MFX_CHECK(surface->Info.Height >= m_VideoParamsEx.mfxVideoParams.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
             MFX_CHECK(surface->Info.FourCC == MFX_FOURCC_NV12, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             if (surface->Data.Y)
