@@ -93,21 +93,21 @@ MFXVideoVPPPlugin::~MFXVideoVPPPlugin(void)
 }
 
 // per-component methods currently not implemented, you can add your own implementation if needed
-mfxStatus MFXVideoVPPPlugin::Query(mfxVideoParam *in, mfxVideoParam *out, mfxU8 component_idx)
+mfxStatus MFXVideoVPPPlugin::Query(mfxVideoParam *in, mfxVideoParam *out) { return QueryMulti(in, out); }
+mfxStatus MFXVideoVPPPlugin::QueryMulti(mfxVideoParam* /*in*/, mfxVideoParam* /*out*/, mfxU8 /*component_idx*/)
 {
-    in;out;component_idx;
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus MFXVideoVPPPlugin::GetVideoParam(mfxVideoParam *par, mfxU8 component_idx)
+mfxStatus MFXVideoVPPPlugin::GetVideoParam(mfxVideoParam *par) { return GetVideoParamMulti(par); }
+mfxStatus MFXVideoVPPPlugin::GetVideoParamMulti(mfxVideoParam* /*par*/, mfxU8 /*component_idx*/)
 {
-    par;component_idx;
     return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus MFXVideoVPPPlugin::GetVPPStat(mfxVPPStat *stat, mfxU8 component_idx)
+mfxStatus MFXVideoVPPPlugin::GetVPPStat(mfxVPPStat *stat) { return GetVPPStatMulti(stat); }
+mfxStatus MFXVideoVPPPlugin::GetVPPStatMulti(mfxVPPStat* /*stat*/, mfxU8 /*component_idx*/)
 {
-    stat;component_idx;
     return MFX_ERR_UNSUPPORTED;
 }
 
@@ -274,7 +274,8 @@ mfxStatus MFXVideoVPPPlugin::AllocateFrames(mfxVideoParam *par, mfxVideoParam *p
     return sts;
 }
 
-mfxStatus MFXVideoVPPPlugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1, mfxVideoParam *par2)
+mfxStatus MFXVideoVPPPlugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request) { return QueryIOSurfMulti(par, request); }
+mfxStatus MFXVideoVPPPlugin::QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1, mfxVideoParam *par2)
 {
     MSDK_CHECK_POINTER(par, MFX_ERR_NULL_PTR);
 
@@ -372,7 +373,8 @@ mfxStatus MFXVideoVPPPlugin::QueryIOSurf(mfxVideoParam *par, mfxFrameAllocReques
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFXVideoVPPPlugin::Init(mfxVideoParam *par, mfxVideoParam *par1, mfxVideoParam *par2)
+mfxStatus MFXVideoVPPPlugin::Init(mfxVideoParam *par) { return InitMulti(par); } 
+mfxStatus MFXVideoVPPPlugin::InitMulti(mfxVideoParam *par, mfxVideoParam *par1, mfxVideoParam *par2)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -425,9 +427,9 @@ mfxStatus MFXVideoVPPPlugin::Init(mfxVideoParam *par, mfxVideoParam *par1, mfxVi
     return MFX_ERR_NONE;
 }
 
-mfxStatus MFXVideoVPPPlugin::Reset(mfxVideoParam *par, mfxVideoParam *par1, mfxVideoParam *par2)
+mfxStatus MFXVideoVPPPlugin::Reset(mfxVideoParam *par) { return ResetMulti(par); }
+mfxStatus MFXVideoVPPPlugin::ResetMulti(mfxVideoParam* /*par*/, mfxVideoParam* /*par1*/, mfxVideoParam* /*par2*/)
 {
-    par;par1;par2;
     return MFX_ERR_UNSUPPORTED;
 }
 
