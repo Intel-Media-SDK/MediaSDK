@@ -97,8 +97,6 @@ protected:
     mfxI64 m_timeAll;
     CResourcesPool m_resources;
 
-    mfxExtHEVCRegion m_HEVCRegion;
-
     virtual mfxStatus InitMfxEncParams(sInputParams *pParams);
 
     virtual mfxStatus CreateAllocator();

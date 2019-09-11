@@ -206,6 +206,22 @@ template<>struct mfx_ext_buffer_id<mfxExtVPPDoNotUse> {
 template<>struct mfx_ext_buffer_id<mfxExtVPPDeinterlacing> {
     enum {id = MFX_EXTBUFF_VPP_DEINTERLACING};
 };
+template<>struct mfx_ext_buffer_id<mfxExtCodingOptionSPSPPS> {
+    enum {id = MFX_EXTBUFF_CODING_OPTION_SPSPPS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCTiles> {
+    enum {id = MFX_EXTBUFF_HEVC_TILES};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVP9Param> {
+    enum {id = MFX_EXTBUFF_VP9_PARAM};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVideoSignalInfo> {
+    enum {id = MFX_EXTBUFF_VIDEO_SIGNAL_INFO};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCRegion> {
+    enum {id = MFX_EXTBUFF_HEVC_REGION};
+};
+
 
 //helper function to initialize mfx ext buffer structure
 template <class T>
@@ -379,6 +395,7 @@ private:
             MFX_EXTBUFF_FEI_PARAM,
             MFX_EXTBUFF_BRC,
             MFX_EXTBUFF_HEVC_PARAM,
+            MFX_EXTBUFF_VP9_PARAM,
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),

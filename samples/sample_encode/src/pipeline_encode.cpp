@@ -334,7 +334,7 @@ mfxStatus sTask::Reset()
     return MFX_ERR_NONE;
 }
 
-mfxStatus CEncodingPipeline::AllocAndInitMVCSeqDesc()
+mfxStatus CEncodingPipeline::AllocateExtMVCBuffers()
 {
     // a simple example of mfxExtMVCSeqDesc structure filling
     // actually equal to the "Default dependency mode" - when the structure fields are left 0,
@@ -342,80 +342,92 @@ mfxStatus CEncodingPipeline::AllocAndInitMVCSeqDesc()
 
     mfxU32 i;
 
+    auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+
     // mfxMVCViewDependency array
-    m_MVCSeqDesc.NumView = m_nNumView;
-    m_MVCSeqDesc.NumViewAlloc = m_nNumView;
-    m_MVCSeqDesc.View = new mfxMVCViewDependency[m_MVCSeqDesc.NumViewAlloc];
-    MSDK_CHECK_POINTER(m_MVCSeqDesc.View, MFX_ERR_MEMORY_ALLOC);
-    for (i = 0; i < m_MVCSeqDesc.NumViewAlloc; ++i)
+    mvcBuffer->NumView = m_nNumView;
+    mvcBuffer->NumViewAlloc = m_nNumView;
+    mvcBuffer->View = new mfxMVCViewDependency[mvcBuffer->NumViewAlloc];
+
+    for (i = 0; i < mvcBuffer->NumViewAlloc; ++i)
     {
-        MSDK_ZERO_MEMORY(m_MVCSeqDesc.View[i]);
-        m_MVCSeqDesc.View[i].ViewId = (mfxU16) i; // set view number as view id
+        mvcBuffer->View[i] = {};
+        mvcBuffer->View[i].ViewId = (mfxU16) i; // set view number as view id
     }
 
     // set up dependency for second view
-    m_MVCSeqDesc.View[1].NumAnchorRefsL0 = 1;
-    m_MVCSeqDesc.View[1].AnchorRefL0[0] = 0;     // ViewId 0 - base view
+    mvcBuffer->View[1].NumAnchorRefsL0 = 1;
+    mvcBuffer->View[1].AnchorRefL0[0] = 0;     // ViewId 0 - base view
 
-    m_MVCSeqDesc.View[1].NumNonAnchorRefsL0 = 1;
-    m_MVCSeqDesc.View[1].NonAnchorRefL0[0] = 0;  // ViewId 0 - base view
+    mvcBuffer->View[1].NumNonAnchorRefsL0 = 1;
+    mvcBuffer->View[1].NonAnchorRefL0[0] = 0;  // ViewId 0 - base view
 
     // viewId array
-    m_MVCSeqDesc.NumViewId = m_nNumView;
-    m_MVCSeqDesc.NumViewIdAlloc = m_nNumView;
-    m_MVCSeqDesc.ViewId = new mfxU16[m_MVCSeqDesc.NumViewIdAlloc];
-    MSDK_CHECK_POINTER(m_MVCSeqDesc.ViewId, MFX_ERR_MEMORY_ALLOC);
-    for (i = 0; i < m_MVCSeqDesc.NumViewIdAlloc; ++i)
+    mvcBuffer->NumViewId = m_nNumView;
+    mvcBuffer->NumViewIdAlloc = m_nNumView;
+    mvcBuffer->ViewId = new mfxU16[mvcBuffer->NumViewIdAlloc];
+
+    for (i = 0; i < mvcBuffer->NumViewIdAlloc; ++i)
     {
-        m_MVCSeqDesc.ViewId[i] = (mfxU16) i;
+        mvcBuffer->ViewId[i] = (mfxU16) i;
     }
 
     // create a single operation point containing all views
-    m_MVCSeqDesc.NumOP = 1;
-    m_MVCSeqDesc.NumOPAlloc = 1;
-    m_MVCSeqDesc.OP = new mfxMVCOperationPoint[m_MVCSeqDesc.NumOPAlloc];
-    MSDK_CHECK_POINTER(m_MVCSeqDesc.OP, MFX_ERR_MEMORY_ALLOC);
-    for (i = 0; i < m_MVCSeqDesc.NumOPAlloc; ++i)
+    mvcBuffer->NumOP = 1;
+    mvcBuffer->NumOPAlloc = 1;
+    mvcBuffer->OP = new mfxMVCOperationPoint[mvcBuffer->NumOPAlloc];
+
+    for (i = 0; i < mvcBuffer->NumOPAlloc; ++i)
     {
-        MSDK_ZERO_MEMORY(m_MVCSeqDesc.OP[i]);
-        m_MVCSeqDesc.OP[i].NumViews = (mfxU16) m_nNumView;
-        m_MVCSeqDesc.OP[i].NumTargetViews = (mfxU16) m_nNumView;
-        m_MVCSeqDesc.OP[i].TargetViewId = m_MVCSeqDesc.ViewId; // points to mfxExtMVCSeqDesc::ViewId
+        mvcBuffer->OP[i] = {};
+        mvcBuffer->OP[i].NumViews = (mfxU16) m_nNumView;
+        mvcBuffer->OP[i].NumTargetViews = (mfxU16) m_nNumView;
+        mvcBuffer->OP[i].TargetViewId = mvcBuffer->ViewId; // points to mfxExtMVCSeqDesc::ViewId
     }
 
     return MFX_ERR_NONE;
 }
 
-mfxStatus CEncodingPipeline::AllocAndInitVppDoNotUse()
+mfxStatus CEncodingPipeline::InitVppFilters()
 {
-    m_VppDoNotUse.NumAlg = 4;
+    auto vppExtParams = m_mfxVppParams.AddExtBuffer<mfxExtVPPDoNotUse>();
 
-    if(m_VppDoNotUse.AlgList)
-        delete[] m_VppDoNotUse.AlgList;
-    m_VppDoNotUse.AlgList = new mfxU32 [m_VppDoNotUse.NumAlg];
-    MSDK_CHECK_POINTER(m_VppDoNotUse.AlgList,  MFX_ERR_MEMORY_ALLOC);
+    vppExtParams->NumAlg = 4;
 
-    m_VppDoNotUse.AlgList[0] = MFX_EXTBUFF_VPP_DENOISE; // turn off denoising (on by default)
-    m_VppDoNotUse.AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // turn off scene analysis (on by default)
-    m_VppDoNotUse.AlgList[2] = MFX_EXTBUFF_VPP_DETAIL; // turn off detail enhancement (on by default)
-    m_VppDoNotUse.AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP; // turn off processing amplified (on by default)
+    if(vppExtParams->AlgList)
+        delete[] vppExtParams->AlgList;
+    vppExtParams->AlgList = new mfxU32 [vppExtParams->NumAlg];
+
+    vppExtParams->AlgList[0] = MFX_EXTBUFF_VPP_DENOISE; // turn off denoising (on by default)
+    vppExtParams->AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // turn off scene analysis (on by default)
+    vppExtParams->AlgList[2] = MFX_EXTBUFF_VPP_DETAIL; // turn off detail enhancement (on by default)
+    vppExtParams->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP; // turn off processing amplified (on by default)
+
+    if(MVC_ENABLED & m_MVCflags)
+        m_mfxVppParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
     return MFX_ERR_NONE;
 
-} // CEncodingPipeline::AllocAndInitVppDoNotUse()
+} // CEncodingPipeline::InitVppFilters()
 
-void CEncodingPipeline::FreeMVCSeqDesc()
+void CEncodingPipeline::FreeVppFilters()
 {
-    MSDK_SAFE_DELETE_ARRAY(m_MVCSeqDesc.View);
-    MSDK_SAFE_DELETE_ARRAY(m_MVCSeqDesc.ViewId);
-    MSDK_SAFE_DELETE_ARRAY(m_MVCSeqDesc.OP);
+    auto vppExtParams = m_mfxVppParams.GetExtBuffer<mfxExtVPPDoNotUse>();
+    if(vppExtParams)
+        MSDK_SAFE_DELETE_ARRAY(vppExtParams->AlgList);
 }
 
-void CEncodingPipeline::FreeVppDoNotUse()
+void CEncodingPipeline::DeallocateExtMVCBuffers()
 {
-    MSDK_SAFE_DELETE_ARRAY(m_VppDoNotUse.AlgList);
-}
+    auto mvcBuffer = m_mfxEncParams.GetExtBuffer<mfxExtMVCSeqDesc>();
+    if(mvcBuffer)
+    {
+        MSDK_SAFE_DELETE_ARRAY(mvcBuffer->View);
+        MSDK_SAFE_DELETE_ARRAY(mvcBuffer->ViewId);
+        MSDK_SAFE_DELETE_ARRAY(mvcBuffer->OP);
+    }
 
+}
 mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 {
     m_mfxEncParams.mfx.CodecId                 = pInParams->CodecId;
@@ -492,15 +504,23 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.CropW = pInParams->nDstWidth;
     m_mfxEncParams.mfx.FrameInfo.CropH = pInParams->nDstHeight;
 
-    m_ExtHEVCTiles.NumTileRows = pInParams->nEncTileRows;
-    m_ExtHEVCTiles.NumTileColumns = pInParams->nEncTileCols;
-
+if(pInParams->nEncTileRows && pInParams->nEncTileCols)
+{
+    if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+    {
+        auto hevcTiles = m_mfxEncParams.AddExtBuffer<mfxExtHEVCTiles>();
+        hevcTiles->NumTileRows = pInParams->nEncTileRows;
+        hevcTiles->NumTileColumns = pInParams->nEncTileCols;
+    }
 #if MFX_VERSION >= MFX_VERSION_NEXT
-    m_ExtVP9Param.NumTileRows    = pInParams->nEncTileRows;
-    m_ExtVP9Param.NumTileColumns = pInParams->nEncTileCols;
+    else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+    {
+        auto vp9Param = m_mfxEncParams.AddExtBuffer<mfxExtVP9Param>();
+        vp9Param->NumTileRows    = pInParams->nEncTileRows;
+        vp9Param->NumTileColumns = pInParams->nEncTileCols;
+    }
 #endif
-
-    bool bCodingOption = false;
+}
     if(*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC ||
                 pInParams->CodecId == MFX_CODEC_HEVC))
     {
@@ -562,7 +582,6 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
         m_encCtrl.Payload = m_UserDataUnregSEI.data();
         m_encCtrl.NumPayload = (mfxU16)m_UserDataUnregSEI.size();
-        bCodingOption = true;
     }
 
     // we don't specify profile and level and let the encoder choose those basing on parameters
@@ -574,26 +593,23 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     // configure and attach external parameters
     if (MVC_ENABLED & pInParams->MVC_flags)
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_MVCSeqDesc);
+    {
+        m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+    }
 
     if (MVC_VIEWOUTPUT & pInParams->MVC_flags)
     {
+        auto codingOption = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption>();
         // ViewOuput option requested
-        m_CodingOption.ViewOutput = MFX_CODINGOPTION_ON;
-        bCodingOption = true;
+        codingOption->ViewOutput = MFX_CODINGOPTION_ON;
     }
 
     if (pInParams->nPicTimingSEI || pInParams->nNalHrdConformance || pInParams->nVuiNalHrdParameters)
     {
-        m_CodingOption.PicTimingSEI        = pInParams->nPicTimingSEI;
-        m_CodingOption.NalHrdConformance   = pInParams->nNalHrdConformance;
-        m_CodingOption.VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
-        bCodingOption = true;
-    }
-
-    if (bCodingOption)
-    {
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption);
+        auto codingOption = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption>();
+        codingOption->PicTimingSEI        = pInParams->nPicTimingSEI;
+        codingOption->NalHrdConformance   = pInParams->nNalHrdConformance;
+        codingOption->VuiNalHrdParameters = pInParams->nVuiNalHrdParameters;
     }
 
 
@@ -603,34 +619,35 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta ||
         pInParams->AdaptiveI || pInParams->AdaptiveB)
     {
-        m_CodingOption2.LookAheadDepth = pInParams->nLADepth;
-        m_CodingOption2.MaxSliceSize   = pInParams->nMaxSliceSize;
-        m_CodingOption2.MaxFrameSize = pInParams->nMaxFrameSize;
-        m_CodingOption2.BRefType = pInParams->nBRefType;
+        auto codingOption2 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption2>();
+
+        codingOption2->LookAheadDepth = pInParams->nLADepth;
+        codingOption2->MaxSliceSize   = pInParams->nMaxSliceSize;
+        codingOption2->MaxFrameSize = pInParams->nMaxFrameSize;
+        codingOption2->BRefType = pInParams->nBRefType;
 
         if (pInParams->nExtBRC != EXTBRC_DEFAULT && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC))
         {
-            m_CodingOption2.ExtBRC = (mfxU16)(pInParams->nExtBRC == EXTBRC_OFF ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
+            codingOption2->ExtBRC = (mfxU16)(pInParams->nExtBRC == EXTBRC_OFF ? MFX_CODINGOPTION_OFF : MFX_CODINGOPTION_ON);
         }
         else
         {
-            m_CodingOption2.ExtBRC = 0;
+            codingOption2->ExtBRC = 0;
         }
 
-        m_CodingOption2.IntRefType = pInParams->IntRefType;
-        m_CodingOption2.IntRefCycleSize = pInParams->IntRefCycleSize;
-        m_CodingOption2.IntRefQPDelta = pInParams->IntRefQPDelta;
-        m_CodingOption2.AdaptiveI = pInParams->AdaptiveI;
-        m_CodingOption2.AdaptiveB = pInParams->AdaptiveB;
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption2);
+        codingOption2->IntRefType = pInParams->IntRefType;
+        codingOption2->IntRefCycleSize = pInParams->IntRefCycleSize;
+        codingOption2->IntRefQPDelta = pInParams->IntRefQPDelta;
+        codingOption2->AdaptiveI = pInParams->AdaptiveI;
+        codingOption2->AdaptiveB = pInParams->AdaptiveB;
     }
 
 #if (MFX_VERSION >= 1024)
     // This is for explicit extbrc only. In case of implicit (built-into-library) version - we don't need this extended buffer
     if (pInParams->nExtBRC == EXTBRC_ON && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC))
     {
-       HEVCExtBRC::Create(m_ExtBRC);
-       m_EncExtParams.push_back((mfxExtBuffer *)&m_ExtBRC);
+        auto extBRC = m_mfxEncParams.AddExtBuffer<mfxExtBRC>();
+        HEVCExtBRC::Create(*extBRC);
     }
 #endif
 
@@ -642,53 +659,55 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
         || pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset
 #endif
-        || pInParams->WinBRCMaxAvgKbps || pInParams->nTransformSkip)    {
+        || pInParams->WinBRCMaxAvgKbps || pInParams->nTransformSkip)
+    {
+        auto codingOption3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
-            m_CodingOption3.GPB = pInParams->nGPB;
-            std::fill(m_CodingOption3.NumRefActiveP,   m_CodingOption3.NumRefActiveP + 8,   pInParams->nNumRefActiveP);
-            std::fill(m_CodingOption3.NumRefActiveBL0, m_CodingOption3.NumRefActiveBL0 + 8, pInParams->nNumRefActiveBL0);
-            std::fill(m_CodingOption3.NumRefActiveBL1, m_CodingOption3.NumRefActiveBL1 + 8, pInParams->nNumRefActiveBL1);
+            codingOption3->GPB = pInParams->nGPB;
+            std::fill(codingOption3->NumRefActiveP,   codingOption3->NumRefActiveP + 8,   pInParams->nNumRefActiveP);
+            std::fill(codingOption3->NumRefActiveBL0, codingOption3->NumRefActiveBL0 + 8, pInParams->nNumRefActiveBL0);
+            std::fill(codingOption3->NumRefActiveBL1, codingOption3->NumRefActiveBL1 + 8, pInParams->nNumRefActiveBL1);
             #if (MFX_VERSION >= 1026)
-                m_CodingOption3.TransformSkip = pInParams->nTransformSkip;
+                codingOption3->TransformSkip = pInParams->nTransformSkip;
             #endif
         }
 
-        m_CodingOption3.WeightedPred   = pInParams->WeightedPred;
-        m_CodingOption3.WeightedBiPred = pInParams->WeightedBiPred;
+        codingOption3->WeightedPred   = pInParams->WeightedPred;
+        codingOption3->WeightedBiPred = pInParams->WeightedBiPred;
 #if (MFX_VERSION >= 1023)
-        m_CodingOption3.LowDelayBRC    = pInParams->LowDelayBRC;
+        codingOption3->LowDelayBRC    = pInParams->LowDelayBRC;
 #endif
-        m_CodingOption3.PRefType       = pInParams->nPRefType;
-        m_CodingOption3.IntRefCycleDist= pInParams->IntRefCycleDist;
-        m_CodingOption3.AdaptiveMaxFrameSize = pInParams->nAdaptiveMaxFrameSize;
-        m_CodingOption3.QVBRQuality    = pInParams->QVBRQuality;
+        codingOption3->PRefType       = pInParams->nPRefType;
+        codingOption3->IntRefCycleDist= pInParams->IntRefCycleDist;
+        codingOption3->AdaptiveMaxFrameSize = pInParams->nAdaptiveMaxFrameSize;
+        codingOption3->QVBRQuality    = pInParams->QVBRQuality;
 #if (MFX_VERSION >= 1026)
-        m_CodingOption3.ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
+        codingOption3->ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
 #endif
-        m_CodingOption3.WinBRCSize = pInParams->WinBRCSize;
-        m_CodingOption3.WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
+        codingOption3->WinBRCSize = pInParams->WinBRCSize;
+        codingOption3->WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
         if (pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset)
         {
-            m_CodingOption3.DeblockingAlphaTcOffset = pInParams->DeblockingAlphaTcOffset;
-            m_CodingOption3.DeblockingBetaOffset = pInParams->DeblockingBetaOffset;
+            codingOption3->DeblockingAlphaTcOffset = pInParams->DeblockingAlphaTcOffset;
+            codingOption3->DeblockingBetaOffset = pInParams->DeblockingBetaOffset;
         }
 #endif
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOption3);
     }
 
     if (pInParams->nAvcTemp)
     {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
-            m_AvcTemporalLayers.BaseLayerPID = pInParams->nBaseLayerPID;
+            auto avcTemporalLayers = m_mfxEncParams.AddExtBuffer<mfxExtAvcTemporalLayers>();
+
+            avcTemporalLayers->BaseLayerPID = pInParams->nBaseLayerPID;
             for (int i = 0; i < 8; i++)
             {
-                m_AvcTemporalLayers.Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
+                avcTemporalLayers->Layer[i].Scale = pInParams->nAvcTemporalLayers[i];
             }
-            m_EncExtParams.push_back((mfxExtBuffer *)&m_AvcTemporalLayers);
         }
     }
 
@@ -696,18 +715,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     {
         if (pInParams->CodecId == MFX_CODEC_HEVC)
         {
-            m_CodingOptionSPSPPS.SPSId = pInParams->nSPSId;
-            m_CodingOptionSPSPPS.PPSId = pInParams->nPPSId;
+            auto codingOptionSPSPPS = m_mfxEncParams.AddExtBuffer<mfxExtCodingOptionSPSPPS>();
+            codingOptionSPSPPS->SPSId = pInParams->nSPSId;
+            codingOptionSPSPPS->PPSId = pInParams->nPPSId;
         }
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_CodingOptionSPSPPS);
-    }
-
-
-    if (m_ExtHEVCTiles.NumTileRows
-        && m_ExtHEVCTiles.NumTileColumns
-        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
-    {
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCTiles);
     }
 
     // In case of HEVC when height and/or width divided with 8 but not divided with 16
@@ -716,31 +727,16 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         !((m_mfxEncParams.mfx.FrameInfo.CropH & 15 ) ^ 8 ) ) &&
         (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC) && !m_bIsFieldSplitting)
     {
-        m_ExtHEVCParam.PicWidthInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropW;
-        m_ExtHEVCParam.PicHeightInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropH;
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtHEVCParam);
+        auto encHEVCParam = m_mfxEncParams.AddExtBuffer<mfxExtHEVCParam>();
+        encHEVCParam->PicWidthInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropW;
+        encHEVCParam->PicHeightInLumaSamples = m_mfxEncParams.mfx.FrameInfo.CropH;
     }
-
-#if MFX_VERSION >= 1029
-    if (m_ExtVP9Param.NumTileRows
-        && m_ExtVP9Param.NumTileColumns
-        && m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
-    {
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_ExtVP9Param);
-    }
-#endif
 
     if (pInParams->TransferMatrix)
     {
-        m_VideoSignalInfo.ColourDescriptionPresent = 1;
-        m_VideoSignalInfo.MatrixCoefficients = pInParams->TransferMatrix;
-        m_EncExtParams.push_back((mfxExtBuffer*)&m_VideoSignalInfo);
-    }
-
-    if (!m_EncExtParams.empty())
-    {
-        m_mfxEncParams.ExtParam = &m_EncExtParams[0]; // vector is stored linearly in memory
-        m_mfxEncParams.NumExtParam = (mfxU16)m_EncExtParams.size();
+        auto videoSignalInfo = m_mfxEncParams.AddExtBuffer<mfxExtVideoSignalInfo>();
+        videoSignalInfo->ColourDescriptionPresent = 1;
+        videoSignalInfo->MatrixCoefficients = pInParams->TransferMatrix;
     }
 
     // JPEG encoder settings overlap with other encoders settings in mfxInfoMFX structure
@@ -825,14 +821,7 @@ mfxStatus CEncodingPipeline::InitMfxVppParams(sInputParams *pInParams)
         MSDK_ALIGN16(pInParams->nDstHeight) : MSDK_ALIGN32(pInParams->nDstHeight);
 
     // configure and attach external parameters
-    AllocAndInitVppDoNotUse();
-    m_VppExtParams.push_back((mfxExtBuffer *)&m_VppDoNotUse);
-
-    if (MVC_ENABLED & pInParams->MVC_flags)
-        m_VppExtParams.push_back((mfxExtBuffer *)&m_MVCSeqDesc);
-
-    m_mfxVppParams.ExtParam = &m_VppExtParams[0]; // vector is stored linearly in memory
-    m_mfxVppParams.NumExtParam = (mfxU16)m_VppExtParams.size();
+    InitVppFilters();
 
     m_mfxVppParams.AsyncDepth = pInParams->nAsyncDepth;
 
@@ -1197,63 +1186,11 @@ CEncodingPipeline::CEncodingPipeline()
 
     m_FileWriters.first = m_FileWriters.second = NULL;
 
-    MSDK_ZERO_MEMORY(m_MVCSeqDesc);
-    m_MVCSeqDesc.Header.BufferId = MFX_EXTBUFF_MVC_SEQ_DESC;
-    m_MVCSeqDesc.Header.BufferSz = sizeof(m_MVCSeqDesc);
-
-    MSDK_ZERO_MEMORY(m_VppDoNotUse);
-    m_VppDoNotUse.Header.BufferId = MFX_EXTBUFF_VPP_DONOTUSE;
-    m_VppDoNotUse.Header.BufferSz = sizeof(m_VppDoNotUse);
-
-    MSDK_ZERO_MEMORY(m_CodingOption);
-    m_CodingOption.Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
-    m_CodingOption.Header.BufferSz = sizeof(m_CodingOption);
-
-    MSDK_ZERO_MEMORY(m_CodingOption2);
-    m_CodingOption2.Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
-    m_CodingOption2.Header.BufferSz = sizeof(m_CodingOption2);
-
-    MSDK_ZERO_MEMORY(m_CodingOption3);
-    m_CodingOption3.Header.BufferId = MFX_EXTBUFF_CODING_OPTION3;
-    m_CodingOption3.Header.BufferSz = sizeof(m_CodingOption3);
-
-    MSDK_ZERO_MEMORY(m_AvcTemporalLayers);
-    m_AvcTemporalLayers.Header.BufferId = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS;
-    m_AvcTemporalLayers.Header.BufferSz = sizeof(m_AvcTemporalLayers);
-
-    MSDK_ZERO_MEMORY(m_CodingOptionSPSPPS);
-    m_CodingOptionSPSPPS.Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
-    m_CodingOptionSPSPPS.Header.BufferSz = sizeof(m_CodingOptionSPSPPS);
-
-    MSDK_ZERO_MEMORY(m_ExtHEVCParam);
-    m_ExtHEVCParam.Header.BufferId = MFX_EXTBUFF_HEVC_PARAM;
-    m_ExtHEVCParam.Header.BufferSz = sizeof(m_ExtHEVCParam);
-
-    MSDK_ZERO_MEMORY(m_ExtHEVCTiles);
-    m_ExtHEVCTiles.Header.BufferId = MFX_EXTBUFF_HEVC_TILES;
-    m_ExtHEVCTiles.Header.BufferSz = sizeof(m_ExtHEVCTiles);
-
-    MSDK_ZERO_MEMORY(m_ExtVP9Param);
-    m_ExtVP9Param.Header.BufferId = MFX_EXTBUFF_VP9_PARAM;
-    m_ExtVP9Param.Header.BufferSz = sizeof(m_ExtVP9Param);
-
-    MSDK_ZERO_MEMORY(m_VideoSignalInfo);
-    m_VideoSignalInfo.Header.BufferId = MFX_EXTBUFF_VIDEO_SIGNAL_INFO;
-    m_VideoSignalInfo.Header.BufferSz = sizeof(m_VideoSignalInfo);
-
-#if (MFX_VERSION >= 1024)
-    MSDK_ZERO_MEMORY(m_ExtBRC);
-    m_ExtBRC.Header.BufferId = MFX_EXTBUFF_BRC;
-    m_ExtBRC.Header.BufferSz = sizeof(m_ExtBRC);
-#endif
     m_hwdev = NULL;
 
 #if (MFX_VERSION >= 1027)
     m_round_in = NULL;
 #endif
-
-    MSDK_ZERO_MEMORY(m_mfxEncParams);
-    MSDK_ZERO_MEMORY(m_mfxVppParams);
 
     MSDK_ZERO_MEMORY(m_EncResponse);
     MSDK_ZERO_MEMORY(m_VppResponse);
@@ -1367,10 +1304,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     m_nTimeout = pParams->nTimeout;
 
-    mfxInitParam initPar;
-    mfxVersion version;     // real API version with which library is initialized
-
-    MSDK_ZERO_MEMORY(initPar);
+    mfxInitParamlWrap initPar;
 
     // we set version to 1.0 and later we will query actual version of the library which will got leaded
     initPar.Version.Major = 1;
@@ -1400,6 +1334,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     MSDK_CHECK_STATUS(sts, "m_mfxSession.InitEx failed");
 
+    mfxVersion version;
     sts = MFXQueryVersion(m_mfxSession, &version); // get real API version of the loaded library
     MSDK_CHECK_STATUS(sts, "MFXQueryVersion failed");
 
@@ -1561,8 +1496,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // MVC specific options
     if (MVC_ENABLED & m_MVCflags)
     {
-        sts = AllocAndInitMVCSeqDesc();
-        MSDK_CHECK_STATUS(sts, "AllocAndInitMVCSeqDesc failed");
+        sts = AllocateExtMVCBuffers();
+        MSDK_CHECK_STATUS(sts, "AllocateExtMVCBuffers failed");
     }
 
     sts = ResetMFXComponents(pParams);
@@ -1732,12 +1667,13 @@ void CEncodingPipeline::Close()
     MSDK_SAFE_DELETE(m_pmfxVPP);
 
 #if (MFX_VERSION >= 1024)
-    HEVCExtBRC::Destroy(m_ExtBRC);
+    auto extBRC = m_mfxEncParams.GetExtBuffer<mfxExtBRC>();
+    if (extBRC)
+        HEVCExtBRC::Destroy(*extBRC);
 #endif
 
-
-    FreeMVCSeqDesc();
-    FreeVppDoNotUse();
+    DeallocateExtMVCBuffers();
+    FreeVppFilters();
 
     DeleteFrames();
 
