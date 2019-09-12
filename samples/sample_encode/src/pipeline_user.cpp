@@ -383,9 +383,10 @@ mfxStatus CUserPipeline::Run()
 
         for (;;)
         {
-            InsertIDR(m_bInsertIDR);
-            sts = m_pmfxENC->EncodeFrameAsync(&m_encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+            InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
             m_bInsertIDR = false;
+
+            sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
             if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
             {
@@ -424,9 +425,10 @@ mfxStatus CUserPipeline::Run()
 
         for (;;)
         {
-            InsertIDR(m_bInsertIDR);
-            sts = m_pmfxENC->EncodeFrameAsync(&m_encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+            InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
             m_bInsertIDR = false;
+
+            sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
             if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
             {

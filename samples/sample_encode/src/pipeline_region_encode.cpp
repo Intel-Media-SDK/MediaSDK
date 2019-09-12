@@ -581,9 +581,12 @@ mfxStatus CRegionEncodingPipeline::Run()
             {
                 timeCurStart = time_get_tick();
                 // at this point surface for encoder contains a frame from a file
-                InsertIDR(m_bInsertIDR);
-                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&m_encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
+                InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
                 m_bInsertIDR = false;
+
+                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
 
                 if ((sts != MFX_ERR_NOT_ENOUGH_BUFFER) && m_nMemBuffer)
                 {
@@ -642,9 +645,12 @@ mfxStatus CRegionEncodingPipeline::Run()
             for (;;)
             {
                 timeCurStart = time_get_tick();
-                InsertIDR(m_bInsertIDR);
-                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&m_encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
+                InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
                 m_bInsertIDR = false;
+
+                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
 
                 if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
                 {

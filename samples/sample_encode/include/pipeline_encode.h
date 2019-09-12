@@ -215,94 +215,13 @@ struct sInputParams
 
 };
 
-struct bufSet
-{
-    mfxU16 m_nFields;
-    std::vector<mfxExtBuffer *> buffers;
-
-    bufSet(mfxU16 n_fields = 1)
-    : m_nFields(n_fields)
-    {}
-
-    ~bufSet() { Destroy();}
-
-    void Destroy()
-    {
-        for (mfxU16 i = 0; i < buffers.size(); /*i++*/)
-        {
-            switch (buffers[i]->BufferId)
-            {
-#if (MFX_VERSION >= 1027)
-                case MFX_EXTBUFF_AVC_ROUNDING_OFFSET:
-                {
-                    mfxExtAVCRoundingOffset* roundingOffset = reinterpret_cast<mfxExtAVCRoundingOffset*>(buffers[i]);
-                    MSDK_SAFE_DELETE_ARRAY(roundingOffset);
-                    i += m_nFields;
-                }
-                break;
-#endif
-                default:
-                    ++i;
-                    break;
-            }
-        }
-
-        buffers.clear();
-    }
-};
-
-struct bufList
-{
-    std::vector<std::unique_ptr<bufSet>> buf_list;
-    mfxU16 m_nBufListStart;
-
-    bufList()
-    : m_nBufListStart(0)
-    {}
-
-    ~bufList() { Clear(); }
-
-    void AddSet(std::unique_ptr<bufSet> && set) { buf_list.push_back(std::move(set)); }
-
-    bool Empty() { return buf_list.empty(); }
-
-    void Clear()
-    {
-        for (std::vector<std::unique_ptr<bufSet>>::iterator it = buf_list.begin(); it != buf_list.end(); ++it)
-        {
-            if (*it)
-            {
-                (*it)->Destroy();
-            }
-        }
-
-        buf_list.clear();
-    }
-
-    bufSet* GetFreeSet()
-    {
-        bufSet *pBufSet = NULL;
-        if (m_nBufListStart < buf_list.size())
-        {
-            pBufSet = (buf_list[m_nBufListStart]).get();
-
-            m_nBufListStart += 1;
-            m_nBufListStart = m_nBufListStart % (buf_list.size());
-
-            return pBufSet;
-        }
-
-        return NULL;
-    }
-};
-
 struct sTask
 {
     mfxBitstreamWrapper mfxBS;
+    mfxEncodeCtrlWrap encCtrl;
     mfxSyncPoint EncSyncP;
     std::list<mfxSyncPoint> DependentVppTasks;
     CSmplBitstreamWriter *pWriter;
-    bufSet* extBufs;
 
     sTask();
     mfxStatus WriteBitstream();
@@ -360,9 +279,9 @@ public:
     mfxStatus CaptureStartV4L2Pipeline();
     void CaptureStopV4L2Pipeline();
 
-    void InsertIDR(bool bIsNextFrameIDR);
+    static void InsertIDR(mfxEncodeCtrl & ctrl, bool forceIDR);
 
-    virtual mfxStatus AllocExtBuffers(sInputParams *pInParams);
+    virtual mfxStatus OpenRoundingOffsetFile(sInputParams *pInParams);
     mfxStatus InitEncFrameParams(sTask* pTask);
 
 #if defined (ENABLE_V4L2_SUPPORT)
@@ -408,7 +327,6 @@ protected:
     CHWDevice *m_hwdev;
 
     bool isV4L2InputEnabled;
-    bufList m_encExtBufs;
 #if (MFX_VERSION >= 1027)
     FILE* m_round_in;
 #endif
@@ -424,8 +342,6 @@ protected:
 
     bool   m_bIsFieldSplitting;
     bool   m_bSingleTexture;
-
-    mfxEncodeCtrl m_encCtrl;
 
     CTimeStatisticsReal m_statOverall;
     CTimeStatisticsReal m_statFile;
