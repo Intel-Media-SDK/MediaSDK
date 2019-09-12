@@ -114,11 +114,11 @@ namespace UMC_MPEG2_DECODER
     public:
 
         /* UMC::VideoDecoder interface */
-        UMC::Status ResetSkipCount()
+        UMC::Status ResetSkipCount() override
         { return UMC::UMC_ERR_NOT_IMPLEMENTED; }
-        UMC::Status SkipVideoFrame(int32_t)
+        UMC::Status SkipVideoFrame(int32_t) override
         { return UMC::UMC_ERR_NOT_IMPLEMENTED; }
-        uint32_t GetNumOfSkippedFrames()
+        uint32_t GetNumOfSkippedFrames() override
         { return 0; }
 
     public:
