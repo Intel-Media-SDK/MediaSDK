@@ -221,7 +221,9 @@ template<>struct mfx_ext_buffer_id<mfxExtVideoSignalInfo> {
 template<>struct mfx_ext_buffer_id<mfxExtHEVCRegion> {
     enum {id = MFX_EXTBUFF_HEVC_REGION};
 };
-
+template<>struct mfx_ext_buffer_id<mfxExtAVCRoundingOffset> {
+    enum {id = MFX_EXTBUFF_AVC_ROUNDING_OFFSET};
+};
 
 constexpr uint16_t max_num_ext_buffers = 24 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
 
