@@ -1038,45 +1038,6 @@ mfxStatus VideoENC_PREENC::RunFrameVmeENCCheck(
     return MFX_ERR_NONE;
 }
 
-static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &  core,
-                                        MfxVideoParam const & video,
-                                        mfxFrameSurface1 *  src_sys,
-                                        mfxMemId            dst_d3d,
-                                        mfxHDL&             handle)
-{
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "FEI:PeENC::CopyRawSurfaceToVideoMemory");
-    mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
-
-    mfxFrameData d3dSurf {};
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
-    {
-        mfxFrameData sysSurf = src_sys->Data;
-        d3dSurf.MemId = dst_d3d;
-
-        FrameLocker lock2(&core, sysSurf, true);
-
-        MFX_CHECK_NULL_PTR1(sysSurf.Y)
-        {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Copy input (sys->d3d)");
-            MFX_CHECK_STS(CopyFrameDataBothFields(&core, d3dSurf, sysSurf, video.mfx.FrameInfo));
-        }
-
-        MFX_CHECK_STS(lock2.Unlock());
-    }
-    else
-    {
-        d3dSurf.MemId =  src_sys->Data.MemId;
-    }
-
-    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-       MFX_CHECK_STS(core.GetExternalFrameHDL(d3dSurf.MemId, &handle))
-    else
-       MFX_CHECK_STS(core.GetFrameHDL(d3dSurf.MemId, &handle));
-
-    return MFX_ERR_NONE;
-}
-
 
 mfxStatus VideoENC_PREENC::Close(void)
 {

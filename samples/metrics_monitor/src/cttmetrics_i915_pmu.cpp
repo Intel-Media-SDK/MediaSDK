@@ -94,12 +94,6 @@ perf_event_open(struct perf_event_attr *attr,
     return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
-static uint64_t elapsed_ns(const struct timespec *start, const struct timespec *end)
-{
-    return ((end->tv_sec - start->tv_sec)*1e9 +
-        (end->tv_nsec - start->tv_nsec));
-}
-
 static uint64_t i915_type_id(void)
 {
     char buf[1024];
