@@ -35,10 +35,26 @@ See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
 To get copy of Media SDK documentation use Git* with [LFS](https://git-lfs.github.com/) support.
 
-Please find full documentation under the `doc/` folder. Key documents:
-* [Media SDK Developer Reference](./doc/mediasdk-man.md)
-* [Media SDK Developer Reference Extensions for User-Defined Functions](./doc/mediasdkusr-man.pdf)
-* [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.md)
+Please find full documentation under the [./doc](./doc) folder. Key documents:
+* [Media SDK Manual](./doc/mediasdk-man.md)
+* Additional Per-Codec Manuals:
+  * [Media SDK JPEG Manual](./doc/mediasdkjpeg-man.md)
+  * [Media SDK VP8 Manual](./doc/mediasdkvp8-man.md)
+* Advanced Topics:
+  * [Media SDK User Plugins Manual](./doc/mediasdkusr-man.md)
+  * [Media SDK FEI Manual](./doc/mediasdkfei-man.md)
+  * [Media SDK HEVC FEI Manual](./doc/mediasdkhevcfei-man.md)
+  * [MFE Overview](./doc/MFE-Overview.md)
+  * [HEVC FEI Overview](./doc/HEVC_FEI_overview.pdf)
+
+Generic samples information is available in [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.md)
+
+Linux Samples Readme Documents:
+* [Sample Multi Transcode](./doc/samples/readme-multi-transcode_linux.md)
+* [Sample Decode](./doc/samples/readme-decode_linux.md)
+* [Sample Encode](./doc/samples/readme-encode_linux.md)
+* [Sample VPP](./doc/samples/readme-vpp_linux.md)
+* [Metrics Monitor](./doc/samples/readme-metrics_monitor_linux.pdf)
 
 Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for the detailed setting and building instructions, runtime tips and other information.
 
