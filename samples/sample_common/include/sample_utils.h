@@ -207,6 +207,8 @@ template<>struct mfx_ext_buffer_id<mfxExtVPPDeinterlacing> {
     enum {id = MFX_EXTBUFF_VPP_DEINTERLACING};
 };
 
+constexpr uint16_t max_num_ext_buffers = 24 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
+
 //helper function to initialize mfx ext buffer structure
 template <class T>
 void init_ext_buffer(T & ext_buffer)
@@ -215,6 +217,12 @@ void init_ext_buffer(T & ext_buffer)
     reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferId = mfx_ext_buffer_id<T>::id;
     reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferSz = sizeof(ext_buffer);
 }
+
+template <typename T>
+struct IsPairedMfxExtBuffer : std::false_type {};
+
+template <>
+struct IsPairedMfxExtBuffer<mfxExtAVCRoundingOffset> : std::true_type {};
 
 /** ExtBufHolder is an utility class which
  *  provide interface for mfxExtBuffer objects management in any mfx structure (e.g. mfxVideoParam)
@@ -225,6 +233,7 @@ class ExtBufHolder : public T
 public:
     ExtBufHolder() : T()
     {
+        m_ext_buf.reserve(max_num_ext_buffers);
     }
 
     ~ExtBufHolder() // only buffers allocated by wrapper can be released
@@ -237,6 +246,7 @@ public:
 
     ExtBufHolder(const ExtBufHolder& ref)
     {
+        m_ext_buf.reserve(max_num_ext_buffers);
         *this = ref; // call to operator=
     }
 
@@ -262,14 +272,14 @@ public:
         ClearBuffers();
 
         //reproduce list of extension buffers and copy its content
-        m_ext_buf.reserve(ref.NumExtParam);
         for (size_t i = 0; i < ref.NumExtParam; ++i)
         {
             const mfxExtBuffer* src_buf = ref.ExtParam[i];
             if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
             if (!IsCopyAllowed(src_buf->BufferId)) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Copying buffer with pointers not allowed");
 
-            mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz);
+            // 'false' below is because here we just copy extBuffer's one by one
+            mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz, false);
             if (!dst_buf) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Can't allocate destination buffer");
             // copy buffer content w/o restoring its type
             memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
@@ -285,69 +295,96 @@ public:
     template<typename TB>
     TB* AddExtBuffer()
     {
-        mfxExtBuffer* b = AddExtBuffer(mfx_ext_buffer_id<TB>::id, sizeof(TB));
+        mfxExtBuffer* b = AddExtBuffer(mfx_ext_buffer_id<TB>::id, sizeof(TB), IsPairedMfxExtBuffer<TB>::value);
         return (TB*)b;
     }
 
-    void RemoveExtBuffer(mfxU32 id)
+    template<typename TB>
+    void RemoveExtBuffer()
     {
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(mfx_ext_buffer_id<TB>::id));
         if (it != m_ext_buf.end())
         {
             delete [] (mfxU8*)(*it);
-            m_ext_buf.erase(it);
+            it = m_ext_buf.erase(it);
+
+            if (IsPairedMfxExtBuffer<TB>::value)
+            {
+                if (it == m_ext_buf.end() || it->BufferId != mfx_ext_buffer_id<TB>::id)
+                    throw mfxError(MFX_ERR_NULL_PTR, "RemoveExtBuffer: ExtBuffer's parity has been broken");
+
+                delete [] (mfxU8*)(*it);
+                m_ext_buf.erase(it);
+            }
+
             RefreshBuffers();
         }
     }
 
     template <typename TB>
-    TB* GetExtBuffer()
+    TB* GetExtBuffer(uint32_t fieldId = 0) const
     {
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(mfx_ext_buffer_id<TB>::id));
-        return it != m_ext_buf.end() ? (TB*)*it : nullptr;
+        return (TB*)FindExtBuffer(mfx_ext_buffer_id<TB>::id, fieldId);
     }
 
     template <typename TB>
     operator TB*()
     {
-        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
+        return (TB*)FindExtBuffer(mfx_ext_buffer_id<TB>::id, 0);
     }
 
     template <typename TB>
     operator TB*() const
     {
-        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
+        return (TB*)FindExtBuffer(mfx_ext_buffer_id<TB>::id, 0);
     }
 
 private:
 
-    mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size)
+    mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size, bool isPairedExtBuffer)
     {
         if (!size || !id)
             throw mfxError(MFX_ERR_NULL_PTR, "AddExtBuffer: wrong size or id!");
 
-        // Limitation: only one ExtBuffer instance can be stored
         auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
         if (it == m_ext_buf.end())
         {
-            mfxExtBuffer* buf = (mfxExtBuffer*)new mfxU8[size];
+            auto buf = (mfxExtBuffer*)new mfxU8[size];
             memset(buf, 0, size);
             m_ext_buf.push_back(buf);
 
-            mfxExtBuffer& ext_buf = *buf;
-            ext_buf.BufferId = id;
-            ext_buf.BufferSz = size;
-            RefreshBuffers();
+            buf->BufferId = id;
+            buf->BufferSz = size;
 
+            if (isPairedExtBuffer)
+            {
+                // Allocate the other mfxExtBuffer _right_after_ the first one ...
+                buf = (mfxExtBuffer*)new mfxU8[size];
+                memset(buf, 0, size);
+                m_ext_buf.push_back(buf);
+
+                buf->BufferId = id;
+                buf->BufferSz = size;
+
+                RefreshBuffers();
+                return m_ext_buf[m_ext_buf.size() - 2]; // ... and return a pointer to the first one
+            }
+
+            RefreshBuffers();
             return m_ext_buf.back();
         }
 
         return *it;
     }
 
-    mfxExtBuffer* GetExtBuffer(mfxU32 id) const
+    mfxExtBuffer* FindExtBuffer(mfxU32 id, uint32_t fieldId) const
     {
-        const auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        if (fieldId && it != m_ext_buf.end())
+        {
+            ++it;
+            return it != m_ext_buf.end() ? *it : nullptr;
+        }
         return it != m_ext_buf.end() ? *it : nullptr;
     }
 
