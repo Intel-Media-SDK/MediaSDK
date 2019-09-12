@@ -240,7 +240,7 @@ public:
                                 const mfxFrameAllocRequest *request, 
                                 mfxFrameAllocResponse *response, 
                                 bool isUseExternalFrames,
-                                bool isSWplatform);
+                                bool isSWplatform) override;
 
     // suppose that Close() calls Reset(), so override only Reset()
     virtual UMC::Status Reset() override;
