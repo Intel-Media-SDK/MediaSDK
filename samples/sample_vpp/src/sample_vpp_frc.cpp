@@ -72,10 +72,8 @@ mfxStatus FRCChecker::Init(mfxVideoParam *par, mfxU32 asyncDeep)
     return MFX_ERR_NONE;
 }
 
-bool FRCChecker::PutInputFrameAndCheck(mfxFrameSurface1* pSurface)
+bool FRCChecker::PutInputFrameAndCheck(mfxFrameSurface1* /*pSurface*/)
 {
-    pSurface;
-
     // not enough frames for checking
 
     // We need to check only if fr in > fr out
@@ -115,9 +113,8 @@ bool FRCChecker::PutInputFrameAndCheck(mfxFrameSurface1* pSurface)
     return true;
 }
 
-bool  FRCChecker::PutOutputFrameAndCheck(mfxFrameSurface1* pSurface)
+bool  FRCChecker::PutOutputFrameAndCheck(mfxFrameSurface1* /*pSurface*/)
 {
-    pSurface;
 
 
     if (m_FramePeriod_Out < m_FramePeriod_In)

@@ -909,7 +909,7 @@ namespace
         eMFXHWType platform, mfxFeiFunction func, int slices, bool extSurfUsed,
         eMFXGTConfig config, mfxU16 brcMethod)
     {
-        targetUsage;//no specific check for TU now, can be added later
+        std::ignore = targetUsage;//no specific check for TU now, can be added later
         if (platform <= MFX_HW_BDW)//no MFE support prior to SKL.
             return 1;
         // ICQ is unsupported for MFE now, QVBR and VCM are low latency usage rate controls, MFE is not suitable for low latency usages
