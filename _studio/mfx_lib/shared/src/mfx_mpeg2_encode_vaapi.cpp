@@ -106,23 +106,6 @@ namespace
         return *pSurface;
     }
 
-    unsigned short CalculateAspectRatio(int width, int height)
-    {
-        unsigned short ret = 1;
-        double rate;
-        rate = ((double) width) / ((double)height);
-        if(rate > 2.3)
-            ret = 0xf;
-        else if(rate > 2.2)
-            ret = 4;
-        else if(rate > 1.70)
-            ret = 3;
-        else if(rate > 1.2)
-            ret = 2;
-        else if(rate > 0.9)
-            ret = 1;
-        return ret & 0xf;
-    }
 
     /*int mpeg2enc_time_code(VAEncSequenceParameterBufferMPEG2 *seq_param, int num_frames)
     {
@@ -176,7 +159,6 @@ namespace
         } else
           assert(!"Unknown FrameRateCode appeared.");
 
-        //sps.aspect_ratio_information = CalculateAspectRatio(sps.picture_width, sps.picture_height);
         sps.aspect_ratio_information = winSps.AspectRatio;
         // sps.vbv_buffer_size = winSps.vbv_buffer_size; // B = 16 * 1024 * vbv_buffer_size
 
@@ -261,8 +243,7 @@ namespace
     {
         assert(pExecuteBuffers);
         const ENCODE_SET_PICTURE_PARAMETERS_MPEG2 & winPps = pExecuteBuffers->m_pps;
-        const ENCODE_SET_SEQUENCE_PARAMETERS_MPEG2 & winSps = pExecuteBuffers->m_sps;
-
+        
         pps.picture_type = ConvertCodingTypeMFX2VAAPI(winPps.picture_coding_type);
         pps.temporal_reference = winPps.temporal_reference;
         pps.vbv_delay = winPps.vbv_delay;
@@ -700,7 +681,6 @@ mfxStatus VAAPIEncoder::RegisterRefFrames (const mfxFrameAllocResponse* pRespons
     m_recFrames.resize(pResponse->NumFrameActual);
 
     mfxStatus sts;
-    ExtVASurface extSurf;
     VASurfaceID *pSurface = NULL;
 
 
@@ -726,7 +706,6 @@ mfxStatus VAAPIEncoder::RegisterRefFrames (const mfxFrameAllocResponse* pRespons
 mfxI32 VAAPIEncoder::GetRecFrameIndex (mfxMemId memID)
 {
     mfxStatus sts;
-    ExtVASurface extSurf;
     VASurfaceID *pSurface = NULL;
     sts = m_core->GetFrameHDL(memID, (mfxHDL *)&pSurface);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == sts, -1);
@@ -745,7 +724,6 @@ mfxI32 VAAPIEncoder::GetRawFrameIndex (mfxMemId memID, bool bAddFrames)
 {
     assert(0);
     mfxStatus sts;
-    ExtVASurface extSurf;
     VASurfaceID *pSurface = NULL;
     sts = m_core->GetFrameHDL(memID, (mfxHDL *)&pSurface);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == sts, -1);
@@ -1042,7 +1020,7 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
 {
     VAStatus vaSts;
 
-    int i, width_in_mbs, height_in_mbs;
+    int width_in_mbs, height_in_mbs;
 
     //    assert(m_vaPpsBuf.picture_coding_extension.bits.q_scale_type == 0);
 
