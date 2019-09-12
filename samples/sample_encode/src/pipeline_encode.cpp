@@ -53,25 +53,13 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 msdk_tick time_get_tick(void)
 {
     return msdk_time_get_tick();
-    /*
-    LARGE_INTEGER t1;
-
-    QueryPerformanceCounter(&t1);
-    return t1.QuadPart;*/
-
-} /* vm_tick vm_time_get_tick(void) */
+}
 
 /* obtain the clock resolution */
 msdk_tick time_get_frequency(void)
 {
     return msdk_time_get_frequency();
-    /*
-    LARGE_INTEGER t1;
-
-    QueryPerformanceFrequency(&t1);
-    return t1.QuadPart;*/
-
-} /* vm_tick vm_time_get_frequency(void) */
+}
 
 CEncTaskPool::CEncTaskPool()
 {
@@ -85,6 +73,12 @@ CEncTaskPool::CEncTaskPool()
 CEncTaskPool::~CEncTaskPool()
 {
     Close();
+}
+
+sTask::sTask()
+    : EncSyncP(0)
+    , pWriter(NULL)
+{
 }
 
 mfxStatus CEncTaskPool::Init(MFXVideoSession* pmfxSession, CSmplBitstreamWriter* pWriter, mfxU32 nPoolSize, mfxU32 nBufferSize, CSmplBitstreamWriter *pOtherWriter)
@@ -281,13 +275,6 @@ void CEncTaskPool::ClearTasks()
         m_pTasks[i].Reset();
     }
     m_nTaskBufferStart = 0;
-}
-
-sTask::sTask()
-    : EncSyncP(0)
-    , pWriter(NULL)
-    , extBufs(NULL)
-{
 }
 
 mfxStatus sTask::Init(mfxU32 nBufferSize, CSmplBitstreamWriter *pwriter)
@@ -504,27 +491,26 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.CropW = pInParams->nDstWidth;
     m_mfxEncParams.mfx.FrameInfo.CropH = pInParams->nDstHeight;
 
-if(pInParams->nEncTileRows && pInParams->nEncTileCols)
-{
-    if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+    if (pInParams->nEncTileRows && pInParams->nEncTileCols)
     {
-        auto hevcTiles = m_mfxEncParams.AddExtBuffer<mfxExtHEVCTiles>();
-        hevcTiles->NumTileRows = pInParams->nEncTileRows;
-        hevcTiles->NumTileColumns = pInParams->nEncTileCols;
-    }
+        if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+        {
+            auto hevcTiles = m_mfxEncParams.AddExtBuffer<mfxExtHEVCTiles>();
+            hevcTiles->NumTileRows = pInParams->nEncTileRows;
+            hevcTiles->NumTileColumns = pInParams->nEncTileCols;
+        }
 #if MFX_VERSION >= MFX_VERSION_NEXT
-    else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
-    {
-        auto vp9Param = m_mfxEncParams.AddExtBuffer<mfxExtVP9Param>();
-        vp9Param->NumTileRows    = pInParams->nEncTileRows;
-        vp9Param->NumTileColumns = pInParams->nEncTileCols;
-    }
+        else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
+        {
+            auto vp9Param = m_mfxEncParams.AddExtBuffer<mfxExtVP9Param>();
+            vp9Param->NumTileRows    = pInParams->nEncTileRows;
+            vp9Param->NumTileColumns = pInParams->nEncTileCols;
+        }
 #endif
-}
-    if(*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC ||
-                pInParams->CodecId == MFX_CODEC_HEVC))
+    }
+    if (*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC || pInParams->CodecId == MFX_CODEC_HEVC))
     {
-        mfxPayload* pl = new mfxPayload;
+        auto pl = new mfxPayload;
         mfxU16 size = 0;
         std::vector<mfxU8> data;
         std::vector<mfxU8> uuid;
@@ -572,16 +558,13 @@ if(pInParams->nEncTileRows && pInParams->nEncTileCols)
         pl->Type    = type;
 
         mfxU8* p = pl->Data;
-        memcpy(p, &data[0], calc_size);
+        memcpy(p, data.data(), calc_size);
         p += calc_size;
-        memcpy(p, &uuid[0], uuid.size());
+        memcpy(p, uuid.data(), uuid.size());
         p += uuid.size();
         memcpy(p, msg.c_str(), msg.length());
 
         m_UserDataUnregSEI.push_back(pl);
-
-        m_encCtrl.Payload = m_UserDataUnregSEI.data();
-        m_encCtrl.NumPayload = (mfxU16)m_UserDataUnregSEI.size();
     }
 
     // we don't specify profile and level and let the encoder choose those basing on parameters
@@ -1189,13 +1172,11 @@ CEncodingPipeline::CEncodingPipeline()
     m_hwdev = NULL;
 
 #if (MFX_VERSION >= 1027)
-    m_round_in = NULL;
+    m_round_in = nullptr;
 #endif
 
     MSDK_ZERO_MEMORY(m_EncResponse);
     MSDK_ZERO_MEMORY(m_VppResponse);
-
-    MSDK_ZERO_MEMORY(m_encCtrl);
 
     isV4L2InputEnabled = false;
 
@@ -1503,9 +1484,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     sts = ResetMFXComponents(pParams);
     MSDK_CHECK_STATUS(sts, "ResetMFXComponents failed");
 
-    sts = AllocExtBuffers(pParams);
-    MSDK_CHECK_STATUS(sts, "Alloc extend buffer failed");
-
+    sts = OpenRoundingOffsetFile(pParams);
+    MSDK_CHECK_STATUS(sts, "Failed to open file");
 
     InitV4L2Pipeline(pParams);
 
@@ -1582,61 +1562,38 @@ void CEncodingPipeline::CaptureStopV4L2Pipeline()
 #endif
 }
 
-void CEncodingPipeline::InsertIDR(bool bIsNextFrameIDR)
+void CEncodingPipeline::InsertIDR(mfxEncodeCtrl & ctrl, bool forceIDR)
 {
-    if (bIsNextFrameIDR)
-    {
-        m_encCtrl.FrameType = MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_REF;
-    }
-    else
-    {
-        m_encCtrl.FrameType = MFX_FRAMETYPE_UNKNOWN;
-    }
+    ctrl.FrameType = forceIDR ? MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_REF : MFX_FRAMETYPE_UNKNOWN;
 }
 
 mfxStatus CEncodingPipeline::InitEncFrameParams(sTask* pTask)
 {
     MSDK_CHECK_POINTER(pTask, MFX_ERR_NULL_PTR);
 
-    mfxStatus sts = MFX_ERR_NONE;
-
-    if (m_encExtBufs.Empty()) return sts;
-
-    pTask->extBufs = m_encExtBufs.GetFreeSet();
-    MSDK_CHECK_POINTER(pTask->extBufs, MFX_ERR_NULL_PTR);
-
-    for (std::vector<mfxExtBuffer*>::iterator it = pTask->extBufs->buffers.begin();
-            it != pTask->extBufs->buffers.end(); ++it)
+    mfxEncodeCtrlWrap & ctrl = pTask->encCtrl;
+    if (m_round_in)
     {
-        switch ((*it)->BufferId)
+        ctrl.AddExtBuffer<mfxExtAVCRoundingOffset>();
+
+        auto numFields = m_mfxEncParams.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE ? 1 : 2;
+
+        for (auto fieldId = 0; fieldId < numFields; ++fieldId)
         {
-#if (MFX_VERSION >= 1027)
-            case MFX_EXTBUFF_AVC_ROUNDING_OFFSET:
-                if (m_round_in)
-                {
-                    mfxExtAVCRoundingOffset *pAVCRoundingOffset = reinterpret_cast<mfxExtAVCRoundingOffset*>(*it);
+            auto ro = ctrl.GetExtBuffer<mfxExtAVCRoundingOffset>(fieldId);
+            MSDK_CHECK_POINTER(ro, MFX_ERR_NULL_PTR);
 
-                    SAFE_FREAD(&pAVCRoundingOffset->EnableRoundingIntra, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
-                    SAFE_FREAD(&pAVCRoundingOffset->RoundingOffsetIntra, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
-                    SAFE_FREAD(&pAVCRoundingOffset->EnableRoundingInter, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
-                    SAFE_FREAD(&pAVCRoundingOffset->RoundingOffsetInter, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
-                }
-                break;
-#endif
-
-            default:
-                msdk_printf(MSDK_STRING("Unsupported extension buffer, ignored\n"));
-                break;
+            SAFE_FREAD(&ro->EnableRoundingIntra, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&ro->RoundingOffsetIntra, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&ro->EnableRoundingInter, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
+            SAFE_FREAD(&ro->RoundingOffsetInter, sizeof(mfxU16), 1, m_round_in, MFX_ERR_MORE_DATA);
         }
     }
 
-    if(!pTask->extBufs->buffers.empty())
-    {
-        m_encCtrl.NumExtParam = (mfxU16)(pTask->extBufs->buffers.size());
-        m_encCtrl.ExtParam    = pTask->extBufs->buffers.data();
-    }
+    ctrl.Payload = m_UserDataUnregSEI.data();
+    ctrl.NumPayload = (mfxU16)m_UserDataUnregSEI.size();
 
-    return sts;
+    return MFX_ERR_NONE;
 }
 
 void CEncodingPipeline::Close()
@@ -1650,18 +1607,8 @@ void CEncodingPipeline::Close()
 #endif
     }
 
-    if (m_UserDataUnregSEI.size() > 0)
-    {
-        for (std::vector<mfxPayload*>::iterator it = m_UserDataUnregSEI.begin();it!= m_UserDataUnregSEI.end();it++)
-        {
-            if (*it)
-            {
-                delete[](*it)->Data;
-            }
-            delete (*it);
-        }
-        m_UserDataUnregSEI.clear();
-    }
+    std::for_each(m_UserDataUnregSEI.begin(), m_UserDataUnregSEI.end(), [](mfxPayload* payload) { delete[] payload->Data; delete payload; });
+    m_UserDataUnregSEI.clear();
 
     MSDK_SAFE_DELETE(m_pmfxENC);
     MSDK_SAFE_DELETE(m_pmfxVPP);
@@ -1689,12 +1636,9 @@ void CEncodingPipeline::Close()
     if(m_round_in)
     {
         fclose(m_round_in);
-        m_round_in = NULL;
+        m_round_in = nullptr;
     }
 #endif
-
-    m_encExtBufs.Clear();
-
     // allocator if used as external for MediaSDK must be deleted after SDK components
     DeleteAllocator();
 }
@@ -1814,17 +1758,17 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
     return MFX_ERR_NONE;
 }
 
-mfxStatus CEncodingPipeline::AllocExtBuffers(sInputParams *pInParams)
+mfxStatus CEncodingPipeline::OpenRoundingOffsetFile(sInputParams *pInParams)
 {
     MSDK_CHECK_POINTER(pInParams, MFX_ERR_NULL_PTR);
-    mfxStatus sts = MFX_ERR_NONE;
 
 #if (MFX_VERSION >= 1027)
     bool enableRoundingOffset = pInParams->RoundingOffsetFile && pInParams->CodecId == MFX_CODEC_AVC;
-    if (enableRoundingOffset && m_round_in == NULL)
+    if (enableRoundingOffset && m_round_in == nullptr)
     {
         MSDK_FOPEN(m_round_in, pInParams->RoundingOffsetFile, MSDK_CHAR("rb"));
-        if (m_round_in == NULL) {
+        if (m_round_in == nullptr)
+        {
             msdk_printf(MSDK_STRING("ERROR: Can't open file %s\n"), pInParams->RoundingOffsetFile);
             return MFX_ERR_UNSUPPORTED;
         }
@@ -1833,46 +1777,11 @@ mfxStatus CEncodingPipeline::AllocExtBuffers(sInputParams *pInParams)
     }
     else
     {
-        return sts;
-    }
-
-    std::unique_ptr<bufSet> tmpForInit;
-    mfxU16  numOfFields  = pInParams->nPicStruct != MFX_PICSTRUCT_PROGRESSIVE ? 2 : 1;
-    mfxU16  numOfBuffers = pInParams->nGopRefDist * 2 + pInParams->nAsyncDepth + pInParams->nNumRefFrame + 1;
-
-    for (int k = 0; k < numOfBuffers; k++)
-    {
-        mfxExtAVCRoundingOffset* pAvcRoundingOffset = NULL;
-        for (mfxU16 fieldId = 0; fieldId < numOfFields; fieldId++)
-        {
-            // for rounding offset configuration
-            if(enableRoundingOffset)
-            {
-                if(fieldId == 0){
-                    pAvcRoundingOffset = new mfxExtAVCRoundingOffset[numOfFields];
-                    MSDK_CHECK_POINTER(pAvcRoundingOffset, MFX_ERR_MEMORY_ALLOC);
-                }
-
-                MSDK_ZERO_MEMORY(pAvcRoundingOffset[fieldId]);
-                pAvcRoundingOffset[fieldId].Header.BufferId = MFX_EXTBUFF_AVC_ROUNDING_OFFSET;
-                pAvcRoundingOffset[fieldId].Header.BufferSz = sizeof(mfxExtAVCRoundingOffset);
-            }
-        }
-
-        tmpForInit.reset(new bufSet(numOfFields));
-        if(enableRoundingOffset)
-        {
-            for (mfxU16 fieldId = 0; fieldId < numOfFields; fieldId++)
-            {
-                tmpForInit->buffers.push_back(reinterpret_cast<mfxExtBuffer*>(&pAvcRoundingOffset[fieldId]));
-            }
-        }
-
-        m_encExtBufs.AddSet(std::move(tmpForInit));
+        return MFX_ERR_NONE;
     }
 #endif
 
-    return sts;
+    return MFX_ERR_NONE;
 }
 mfxStatus CEncodingPipeline::AllocateSufficientBuffer(mfxBitstreamWrapper& bs)
 {
@@ -1963,6 +1872,7 @@ mfxStatus CEncodingPipeline::Run()
         msdk_printf(MSDK_STRING("Press Ctrl+C to terminate this application\n"));
     }
 #endif
+
     // main loop, preprocessing and encoding
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
@@ -2094,14 +2004,15 @@ mfxStatus CEncodingPipeline::Run()
 
         for (;;)
         {
-            InsertIDR(m_bInsertIDR);
+            InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
+            m_bInsertIDR = false;
 
             sts = InitEncFrameParams(pCurrentTask);
             MSDK_CHECK_STATUS(sts, "ENCODE: InitEncFrameParams failed");
 
             // at this point surface for encoder contains either a frame from file or a frame processed by vpp
-            sts = m_pmfxENC->EncodeFrameAsync(&m_encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
-            m_bInsertIDR = false;
+            sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
 
             if (m_nMemBuffer)
             {
@@ -2190,9 +2101,10 @@ mfxStatus CEncodingPipeline::Run()
 
             for (;;)
             {
-                InsertIDR(m_bInsertIDR);
-                sts = m_pmfxENC->EncodeFrameAsync(&m_encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+                InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
                 m_bInsertIDR = false;
+
+                sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
                 if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
                 {
@@ -2234,9 +2146,10 @@ mfxStatus CEncodingPipeline::Run()
 
         for (;;)
         {
-            InsertIDR(m_bInsertIDR);
-            sts = m_pmfxENC->EncodeFrameAsync(&m_encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+            InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
             m_bInsertIDR = false;
+
+            sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
             if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
             {
