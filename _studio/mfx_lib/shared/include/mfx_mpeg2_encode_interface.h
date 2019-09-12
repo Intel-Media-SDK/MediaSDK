@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,10 +49,9 @@ namespace MfxHwMpeg2Encode
             : m_bEncryptionMode (false)
         {
         }
-        void Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId)
+        void Init(const mfxVideoParamEx_MPEG2* /*par*/, mfxU32 /*funcId*/)
         {
             m_bEncryptionMode = false;
-            par;funcId;
 
         }
     };
