@@ -183,7 +183,10 @@ void CParametersDumper::SerializeExtensionBuffer(msdk_ostream& sstr,msdk_string 
             mfxExtJPEGQuantTables& info = *(mfxExtJPEGQuantTables*)pExtBuffer;
             SERIALIZE_INFO_ARRAY(reserved);
             SERIALIZE_INFO(NumTable);
-            SERIALIZE_INFO_ARRAY(Qm[4]);
+            SERIALIZE_INFO_ARRAY(Qm[0]);
+            SERIALIZE_INFO_ARRAY(Qm[1]);
+            SERIALIZE_INFO_ARRAY(Qm[2]);
+            SERIALIZE_INFO_ARRAY(Qm[3]);
         }
         break;
     case MFX_EXTBUFF_JPEG_HUFFMAN:
