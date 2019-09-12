@@ -125,28 +125,10 @@ inline mfxI16 get4Median(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB* preencMB, mfxI1
     return (tmpBuf[1] + tmpBuf[2]) / 2;
 }
 
+
 /* repackPreenc2Enc passes only one predictor (median of provided preenc MVs) because we dont have distortions to choose 4 best possible */
 
-static mfxStatus repackPreenc2Enc(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB *preencMVoutMB, mfxExtFeiEncMVPredictors::mfxExtFeiEncMVPredictorsMB *EncMVPredMB, mfxU32 NumMB, mfxI16 *tmpBuf)
-{
-    MSDK_ZERO_ARRAY(EncMVPredMB, NumMB);
-    for (mfxU32 i = 0; i<NumMB; i++)
-    {
-        //only one ref is used for now
-        for (int j = 0; j < 4; j++){
-            EncMVPredMB[i].RefIdx[j].RefL0 = 0;
-            EncMVPredMB[i].RefIdx[j].RefL1 = 0;
-        }
-
-        //use only first subblock component of MV
-        for (int j = 0; j < 2; j++){
-            EncMVPredMB[i].MV[0][j].x = get16Median(preencMVoutMB + i, tmpBuf, 0, j);
-            EncMVPredMB[i].MV[0][j].y = get16Median(preencMVoutMB + i, tmpBuf, 1, j);
-        }
-    } // for(mfxU32 i=0; i<NumMBAlloc; i++)
-
-    return MFX_ERR_NONE;
-}
+mfxStatus repackPreenc2Enc(mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB *preencMVoutMB, mfxExtFeiEncMVPredictors::mfxExtFeiEncMVPredictorsMB *EncMVPredMB, mfxU32 NumMB, mfxI16 *tmpBuf);
 
 static inline bool compareDistortion(MVP_elem frst, MVP_elem scnd)
 {
@@ -166,46 +148,8 @@ static inline bool compareDistortion(MVP_elem frst, MVP_elem scnd)
     MB_idx        - offset of MB being processed
 */
 
-static mfxStatus GetBestSetsByDistortion(std::list<PreEncOutput>& preenc_output,
+mfxStatus GetBestSetsByDistortion(std::list<PreEncOutput>& preenc_output,
     BestMVset & BestSet,
-    mfxU32 nPred[2], mfxU32 fieldId, mfxU32 MB_idx)
-{
-    mfxStatus sts = MFX_ERR_NONE;
-
-    // clear previous data
-    BestSet.Clear();
-
-    mfxExtFeiPreEncMV*     mvs    = NULL;
-    mfxExtFeiPreEncMBStat* mbdata = NULL;
-
-    for (std::list<PreEncOutput>::iterator it = preenc_output.begin(); it != preenc_output.end(); ++it)
-    {
-        mvs = reinterpret_cast<mfxExtFeiPreEncMV*> ((*it).output_bufs->PB_bufs.out.getBufById(MFX_EXTBUFF_FEI_PREENC_MV, fieldId));
-        MSDK_CHECK_POINTER(mvs, MFX_ERR_NULL_PTR);
-
-        mbdata = reinterpret_cast<mfxExtFeiPreEncMBStat*> ((*it).output_bufs->PB_bufs.out.getBufById(MFX_EXTBUFF_FEI_PREENC_MB, fieldId));
-        MSDK_CHECK_POINTER(mbdata, MFX_ERR_NULL_PTR);
-
-        /* Store all necessary info about current reference MB: pointer to MVs; reference index; distortion*/
-        BestSet.bestL0.push_back(MVP_elem(&mvs->MB[MB_idx], (*it).refIdx[fieldId][0], mbdata->MB[MB_idx].Inter[0].BestDistortion));
-
-        if (nPred[1])
-        {
-            BestSet.bestL1.push_back(MVP_elem(&mvs->MB[MB_idx], (*it).refIdx[fieldId][1], mbdata->MB[MB_idx].Inter[1].BestDistortion));
-        }
-    }
-
-    /* find nPred best predictors by distortion */
-    std::sort(BestSet.bestL0.begin(), BestSet.bestL0.end(), compareDistortion);
-    BestSet.bestL0.resize(nPred[0]);
-
-    if (nPred[1])
-    {
-        std::sort(BestSet.bestL1.begin(), BestSet.bestL1.end(), compareDistortion);
-        BestSet.bestL1.resize(nPred[1]);
-    }
-
-    return sts;
-}
+    mfxU32 nPred[2], mfxU32 fieldId, mfxU32 MB_idx);
 
 #endif // __SAMPLE_FEI_PRED_REPACKING_H__
