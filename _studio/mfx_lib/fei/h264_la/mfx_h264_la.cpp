@@ -757,7 +757,8 @@ mfxFrameSurface1 * VideoENC_LA::GetFrameToVME()
         return 0;
 }
 
-
+//SubmitFrameLARoutine and QueryFrameLARoutine may be needed if we use a double entry point
+#if 0
 static mfxStatus SubmitFrameLARoutine(void *pState, void * pParam, mfxU32 /*threadNumber*/, mfxU32 /*callNumber*/)
 {
     mfxStatus tskRes;
@@ -787,6 +788,8 @@ static mfxStatus QueryFrameLARoutine(void *pState, void *pParam, mfxU32 /*thread
     return tskRes;
 
 } // mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 threadNumber, mfxU32 callNumber)
+#endif
+
 static mfxStatus RunFrameVPPRoutine(void *pState, void *pParam, mfxU32 /*threadNumber*/, mfxU32 /*callNumber*/)
 {
     mfxStatus sts = MFX_ERR_NONE;
