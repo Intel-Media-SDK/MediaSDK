@@ -408,7 +408,6 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
     VAStatus  va_res  = VA_STATUS_SUCCESS;
     vaapiMemId* vaapi_mid = (vaapiMemId*)mid;
     mfxU8* pBuffer = 0;
-    VASurfaceAttrib attrib;
 
     if (!vaapi_mid || !(vaapi_mid->m_surface)) return MFX_ERR_INVALID_HANDLE;
 
