@@ -182,7 +182,6 @@ drmRenderer::drmRenderer(int fd, mfxI32 monitorType)
 {
     bool res = false;
     uint32_t connectorType = getConnectorType(monitorType);
-    uint32_t i;
 
     if (monitorType == MFX_MONITOR_AUTO) {
       connectorType = DRM_MODE_CONNECTOR_Unknown;

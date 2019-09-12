@@ -343,7 +343,6 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
 
     //find output buffers
     mfxExtFeiPreEncMV           * mvsOut    = GetExtBufferFEI(out, feiFieldId);
-    mfxExtFeiPreEncMBStat       * mbstatOut = GetExtBufferFEI(out, feiFieldId);
 
     //find input buffers
     mfxExtFeiPreEncCtrl         * feiCtrl   = GetExtBufferFEI(in,  feiFieldId);
@@ -355,7 +354,7 @@ mfxStatus VAAPIFEIPREENCEncoder::Execute(
     memset(&statParams, 0, sizeof(VAStatsStatisticsParameterH264));
 
     statParams.adaptive_search           = feiCtrl->AdaptiveSearch;
-    statParams.disable_statistics_output = /*(mbstatOut == NULL) ||*/ feiCtrl->DisableStatisticsOutput;
+    statParams.disable_statistics_output = feiCtrl->DisableStatisticsOutput;
     /* There is a limitation from driver for now:
      * MSDK need to provide stat buffers for I- frame.
      * MSDK always attach statistic buffer for PreEnc right now

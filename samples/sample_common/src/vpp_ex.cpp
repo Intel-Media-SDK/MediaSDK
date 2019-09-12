@@ -24,8 +24,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vpp_ex.h"
 #include "vm/atomic_defs.h"
 
-static const mfxU32 MFX_TIME_STAMP_FREQUENCY = 90000;
-
 
 MFXVideoVPPEx::MFXVideoVPPEx(mfxSession session) :
 MFXVideoVPP(session)

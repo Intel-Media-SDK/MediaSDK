@@ -90,8 +90,6 @@ namespace MPEG2EncoderHW
     }
     mfxStatus ApplyTargetUsage (mfxVideoParamEx_MPEG2* par)
     {
-        static mfxU16 ranges [8] = {64,64,64,64,64,64,64,64};
-
         if (par->mfxVideoParams.mfx.CodecProfile == MFX_PROFILE_MPEG2_SIMPLE)
         {
             par->mfxVideoParams.mfx.GopRefDist = 1;

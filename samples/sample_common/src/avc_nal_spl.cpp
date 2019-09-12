@@ -39,8 +39,6 @@ mfxU64 GetMfxTimeStamp(mfxF64 ts)
     return ts < 0.0 ? MFX_TIME_STAMP_INVALID : (mfxU64)(ts * MFX_TIME_STAMP_FREQUENCY + .5);
 }
 
-static mfxU8 start_code_prefix[] = {0, 0, 0, 1};
-
 enum
 {
     AVC_NAL_UNITTYPE_BITS_MASK  = 0x1f
