@@ -327,7 +327,11 @@ public:
         {
             const mfxExtBuffer* src_buf = ref.ExtParam[i];
             if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
-            if (!IsCopyAllowed(src_buf->BufferId)) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Copying buffer with pointers not allowed");
+            if (!IsCopyAllowed(src_buf->BufferId))
+            {
+                auto msg = "Deep copy of '" + Fourcc2Str(src_buf->BufferId) + "' extBuffer is not allowed";
+                throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, msg);
+            }
 
             // 'false' below is because here we just copy extBuffer's one by one
             mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz, false);
@@ -468,6 +472,7 @@ private:
             MFX_EXTBUFF_BRC,
             MFX_EXTBUFF_HEVC_PARAM,
             MFX_EXTBUFF_VP9_PARAM,
+            MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),
@@ -491,6 +496,16 @@ private:
             return  (b && b->BufferId == id);
         };
     };
+
+    static std::string Fourcc2Str(mfxU32 fourcc)
+    {
+        std::string s;
+        for (size_t i = 0; i < 4; i++)
+        {
+            s.push_back(*(i + (char*)&fourcc));
+        }
+        return s;
+    }
 
     std::vector<mfxExtBuffer*> m_ext_buf;
 };
@@ -936,7 +951,6 @@ mfxU16 StrToTargetUsage(msdk_string strInput);
 const msdk_char* TargetUsageToStr(mfxU16 tu);
 const msdk_char* ColorFormatToStr(mfxU32 format);
 const msdk_char* MfxStatusToStr(mfxStatus sts);
-
 
 // sets bitstream->PicStruct parsing first APP0 marker in bitstream
 mfxStatus MJPEG_AVI_ParsePicStruct(mfxBitstream *bitstream);
