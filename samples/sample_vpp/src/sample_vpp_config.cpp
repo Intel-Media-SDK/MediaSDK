@@ -25,18 +25,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* pResources, mfxU32 paramID )
 {
-    mfxVideoParam*   pVppParam = pResources->pVppParams;
-    mfxU32  enhFilterCount = 0;
-
-    // [0] common tuning params
-    pVppParam->NumExtParam = 0;
-    // to simplify logic
-    pVppParam->ExtParam = (mfxExtBuffer**)pResources->pExtBuf;
-
-    pResources->extDoUse.Header.BufferId = MFX_EXTBUFF_VPP_DOUSE;
-    pResources->extDoUse.Header.BufferSz = sizeof(mfxExtVPPDoUse);
-    pResources->extDoUse.NumAlg = 0;
-    pResources->extDoUse.AlgList = NULL;
+    MfxVideoParamsWrapper*   pVppParam = pResources->pVppParams;
+    mfxU32 enhFilterCount = 0;
 
     // [1] video enhancement algorithms can be enabled with default parameters
     if (VPP_FILTER_DISABLED != pParams->denoiseParam[paramID].mode)
@@ -77,122 +67,94 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
 
     if (enhFilterCount > 0)
     {
-        pResources->extDoUse.NumAlg = enhFilterCount;
-        pResources->extDoUse.AlgList = pResources->tabDoUseAlg;
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->extDoUse);
+        auto doUse = pVppParam->AddExtBuffer<mfxExtVPPDoUse>();
+        doUse->NumAlg = enhFilterCount;
+        doUse->AlgList = pResources->tabDoUseAlg;
     }
 
     // [2] video enhancement algorithms can be configured
     if (VPP_FILTER_ENABLED_CONFIGURED == pParams->denoiseParam[paramID].mode)
     {
-        pResources->denoiseConfig.Header.BufferId = MFX_EXTBUFF_VPP_DENOISE;
-        pResources->denoiseConfig.Header.BufferSz = sizeof(mfxExtVPPDenoise);
-
-        pResources->denoiseConfig.DenoiseFactor = pParams->denoiseParam[paramID].factor;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->denoiseConfig);
+        auto denoiseConfig           = pVppParam->AddExtBuffer<mfxExtVPPDenoise>();
+        denoiseConfig->DenoiseFactor = pParams->denoiseParam[paramID].factor;
     }
 #ifdef ENABLE_MCTF
     if (VPP_FILTER_ENABLED_CONFIGURED == pParams->mctfParam[paramID].mode)
     {
-        pResources->mctfConfig.Header.BufferId = MFX_EXTBUFF_VPP_MCTF;
-        pResources->mctfConfig.Header.BufferSz = sizeof(mfxExtVppMctf);
-        pResources->mctfConfig.FilterStrength = pParams->mctfParam[paramID].params.FilterStrength;
+        auto mctfConfig               = pVppParam->AddExtBuffer<mfxExtVppMctf>();
+        mctfConfig->FilterStrength    = pParams->mctfParam[paramID].params.FilterStrength;
 #if defined (ENABLE_MCTF_EXT)
-        pResources->mctfConfig.Overlap = pParams->mctfParam[paramID].params.Overlap;
-        pResources->mctfConfig.TemporalMode = pParams->mctfParam[paramID].params.TemporalMode;
-        pResources->mctfConfig.MVPrecision = pParams->mctfParam[paramID].params.MVPrecision;
-        pResources->mctfConfig.BitsPerPixelx100k = pParams->mctfParam[paramID].params.BitsPerPixelx100k;
-        pResources->mctfConfig.Deblocking = pParams->mctfParam[paramID].params.Deblocking;
+        mctfConfig->Overlap           = pParams->mctfParam[paramID].params.Overlap;
+        mctfConfig->TemporalMode      = pParams->mctfParam[paramID].params.TemporalMode;
+        mctfConfig->MVPrecision       = pParams->mctfParam[paramID].params.MVPrecision;
+        mctfConfig->BitsPerPixelx100k = pParams->mctfParam[paramID].params.BitsPerPixelx100k;
+        mctfConfig->Deblocking        = pParams->mctfParam[paramID].params.Deblocking;
 #endif
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->mctfConfig);
         //enable the filter
     }
 #endif
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->frcParam[paramID].mode )
     {
-        pResources->frcConfig.Header.BufferId = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION;
-        pResources->frcConfig.Header.BufferSz = sizeof(mfxExtVPPFrameRateConversion);
-
-        pResources->frcConfig.Algorithm   = (mfxU16)pParams->frcParam[paramID].algorithm;//MFX_FRCALGM_DISTRIBUTED_TIMESTAMP;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->frcConfig);
+        auto frcConfig       = pVppParam->AddExtBuffer<mfxExtVPPFrameRateConversion>();
+        frcConfig->Algorithm = (mfxU16)pParams->frcParam[paramID].algorithm;//MFX_FRCALGM_DISTRIBUTED_TIMESTAMP;
     }
 
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->videoSignalInfoParam[paramID].mode )
     {
-        pResources->videoSignalInfoConfig = pParams->videoSignalInfoParam[paramID];
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->videoSignalInfoConfig);
+        auto videoSignalInfoConfig = pVppParam->AddExtBuffer<mfxExtVPPVideoSignalInfo>();
+        videoSignalInfoConfig->In  = pParams->videoSignalInfoParam[paramID].In;
+        videoSignalInfoConfig->Out  = pParams->videoSignalInfoParam[paramID].Out;
+        videoSignalInfoConfig->NominalRange  = pParams->videoSignalInfoParam[paramID].NominalRange;
+        videoSignalInfoConfig->TransferMatrix  = pParams->videoSignalInfoParam[paramID].TransferMatrix;
     }
 
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->mirroringParam[paramID].mode )
     {
-        pResources->mirroringConfig = pParams->mirroringParam[paramID];
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->mirroringConfig);
+        auto mirroringConfig  = pVppParam->AddExtBuffer<mfxExtVPPMirroring>();
+        mirroringConfig->Type = pParams->mirroringParam[paramID].Type;
     }
 
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->colorfillParam[paramID].mode )
     {
-        pResources->colorfillConfig = pParams->colorfillParam[paramID];
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = &(pResources->colorfillConfig.Header);
-
+        auto colorfillConfig = pVppParam->AddExtBuffer<mfxExtVPPColorFill>();
+        colorfillConfig      = &pParams->colorfillParam[paramID];
     }
 
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->procampParam[paramID].mode )
     {
-        pResources->procampConfig.Header.BufferId = MFX_EXTBUFF_VPP_PROCAMP;
-        pResources->procampConfig.Header.BufferSz = sizeof(mfxExtVPPProcAmp);
-
-        pResources->procampConfig.Hue        = pParams->procampParam[paramID].hue;
-        pResources->procampConfig.Saturation = pParams->procampParam[paramID].saturation;
-        pResources->procampConfig.Contrast   = pParams->procampParam[paramID].contrast;
-        pResources->procampConfig.Brightness = pParams->procampParam[paramID].brightness;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->procampConfig);
+        auto procampConfig        = pVppParam->AddExtBuffer<mfxExtVPPProcAmp>();
+        procampConfig->Hue        = pParams->procampParam[paramID].hue;
+        procampConfig->Saturation = pParams->procampParam[paramID].saturation;
+        procampConfig->Contrast   = pParams->procampParam[paramID].contrast;
+        procampConfig->Brightness = pParams->procampParam[paramID].brightness;
     }
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->detailParam[paramID].mode )
     {
-        pResources->detailConfig.Header.BufferId = MFX_EXTBUFF_VPP_DETAIL;
-        pResources->detailConfig.Header.BufferSz = sizeof(mfxExtVPPDetail);
-
-        pResources->detailConfig.DetailFactor   = pParams->detailParam[paramID].factor;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->detailConfig);
+        auto detailConfig = pVppParam->AddExtBuffer<mfxExtVPPDetail>();
+        detailConfig->DetailFactor   = pParams->detailParam[paramID].factor;
     }
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->deinterlaceParam[paramID].mode )
     {
-        pResources->deinterlaceConfig.Header.BufferId = MFX_EXTBUFF_VPP_DEINTERLACING;
-        pResources->deinterlaceConfig.Header.BufferSz = sizeof(mfxExtVPPDeinterlacing);
-        pResources->deinterlaceConfig.Mode = pParams->deinterlaceParam[paramID].algorithm;
-        pResources->deinterlaceConfig.TelecinePattern  = pParams->deinterlaceParam[paramID].tc_pattern;
-        pResources->deinterlaceConfig.TelecineLocation = pParams->deinterlaceParam[paramID].tc_pos;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->deinterlaceConfig);
+        auto deinterlaceConfig              = pVppParam->AddExtBuffer<mfxExtVPPDeinterlacing>();
+        deinterlaceConfig->Mode             = pParams->deinterlaceParam[paramID].algorithm;
+        deinterlaceConfig->TelecinePattern  = pParams->deinterlaceParam[paramID].tc_pattern;
+        deinterlaceConfig->TelecineLocation = pParams->deinterlaceParam[paramID].tc_pos;
     }
     if( 0 != pParams->rotate[paramID] )
     {
-        pResources->rotationConfig.Header.BufferId = MFX_EXTBUFF_VPP_ROTATION;
-        pResources->rotationConfig.Header.BufferSz = sizeof(mfxExtVPPRotation);
-        pResources->rotationConfig.Angle           = pParams->rotate[paramID];
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->rotationConfig);
+        auto rotationConfig   = pVppParam->AddExtBuffer<mfxExtVPPRotation>();
+        rotationConfig->Angle = pParams->rotate[paramID];
     }
     if( pParams->bScaling )
     {
-        pResources->scalingConfig.Header.BufferId = MFX_EXTBUFF_VPP_SCALING;
-        pResources->scalingConfig.Header.BufferSz = sizeof(mfxExtVPPScaling);
-        pResources->scalingConfig.ScalingMode     = pParams->scalingMode;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->scalingConfig);
+        auto scalingConfig         = pVppParam->AddExtBuffer<mfxExtVPPScaling>();
+        scalingConfig->ScalingMode = pParams->scalingMode;
     }
 #if MFX_VERSION >= 1025
     if (pParams->bChromaSiting)
     {
-        pResources->chromaSitingConfig.Header.BufferId = MFX_EXTBUFF_VPP_COLOR_CONVERSION;
-        pResources->chromaSitingConfig.Header.BufferSz = sizeof(mfxExtColorConversion);
-        pResources->chromaSitingConfig.ChromaSiting = pParams->uChromaSiting;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->chromaSitingConfig);
+        auto chromaSitingConfig          = pVppParam->AddExtBuffer<mfxExtColorConversion>();
+        chromaSitingConfig->ChromaSiting = pParams->uChromaSiting;
     }
 #endif
     //if( VPP_FILTER_ENABLED_CONFIGURED == pParams->gamutParam.mode )
@@ -243,72 +205,56 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
     //}
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->istabParam[paramID].mode )
     {
-        pResources->istabConfig.Header.BufferId = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION;
-        pResources->istabConfig.Header.BufferSz = sizeof(mfxExtVPPImageStab);
-        pResources->istabConfig.Mode            = pParams->istabParam[paramID].istabMode;
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->istabConfig);
+        auto istabConfig  = pVppParam->AddExtBuffer<mfxExtVPPImageStab>();
+        istabConfig->Mode = pParams->istabParam[paramID].istabMode;
     }
 
     // ----------------------------------------------------
     // MVC
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->multiViewParam[paramID].mode )
     {
-        pResources->multiViewConfig.Header.BufferId = MFX_EXTBUFF_MVC_SEQ_DESC;
-        pResources->multiViewConfig.Header.BufferSz = sizeof(mfxExtMVCSeqDesc);
-
-        pResources->multiViewConfig.NumView = pParams->multiViewParam[paramID].viewCount;
-        pResources->multiViewConfig.View    = new mfxMVCViewDependency [ pParams->multiViewParam[paramID].viewCount ];
+        auto multiViewConfig     = pVppParam->AddExtBuffer<mfxExtMVCSeqDesc>();
+        multiViewConfig->NumView = pParams->multiViewParam[paramID].viewCount;
+        multiViewConfig->View    = new mfxMVCViewDependency [ pParams->multiViewParam[paramID].viewCount ];
 
         ViewGenerator viewGenerator( pParams->multiViewParam[paramID].viewCount );
 
         for( mfxU16 viewIndx = 0; viewIndx < pParams->multiViewParam[paramID].viewCount; viewIndx++ )
         {
-            pResources->multiViewConfig.View[viewIndx].ViewId = viewGenerator.GetNextViewID();
+            multiViewConfig->View[viewIndx].ViewId = viewGenerator.GetNextViewID();
         }
-
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->multiViewConfig);
     }
 
     // Composition
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->compositionParam.mode )
     {
-        pResources->compositeConfig.Header.BufferId = MFX_EXTBUFF_VPP_COMPOSITE;
-        pResources->compositeConfig.Header.BufferSz = sizeof(mfxExtVPPComposite);
-        pResources->compositeConfig.NumInputStream  = pParams->numStreams;
-        pResources->compositeConfig.InputStream     = new mfxVPPCompInputStream[pResources->compositeConfig.NumInputStream];
-        memset(pResources->compositeConfig.InputStream, 0, sizeof(mfxVPPCompInputStream) * pResources->compositeConfig.NumInputStream);
+        auto compositeConfig             = pVppParam->AddExtBuffer<mfxExtVPPComposite>();
+        compositeConfig->NumInputStream  = pParams->numStreams;
+        compositeConfig->InputStream     = new mfxVPPCompInputStream[compositeConfig->NumInputStream]();
 
-        for (int i = 0; i < pResources->compositeConfig.NumInputStream; i++)
+        for (int i = 0; i < compositeConfig->NumInputStream; i++)
         {
-            pResources->compositeConfig.InputStream[i].DstX = pParams->compositionParam.streamInfo[i].compStream.DstX;
-            pResources->compositeConfig.InputStream[i].DstY = pParams->compositionParam.streamInfo[i].compStream.DstY;
-            pResources->compositeConfig.InputStream[i].DstW = pParams->compositionParam.streamInfo[i].compStream.DstW;
-            pResources->compositeConfig.InputStream[i].DstH = pParams->compositionParam.streamInfo[i].compStream.DstH;
+            compositeConfig->InputStream[i].DstX = pParams->compositionParam.streamInfo[i].compStream.DstX;
+            compositeConfig->InputStream[i].DstY = pParams->compositionParam.streamInfo[i].compStream.DstY;
+            compositeConfig->InputStream[i].DstW = pParams->compositionParam.streamInfo[i].compStream.DstW;
+            compositeConfig->InputStream[i].DstH = pParams->compositionParam.streamInfo[i].compStream.DstH;
             if (pParams->compositionParam.streamInfo[i].compStream.GlobalAlphaEnable != 0 )
             {
-                pResources->compositeConfig.InputStream[i].GlobalAlphaEnable = pParams->compositionParam.streamInfo[i].compStream.GlobalAlphaEnable;
-                pResources->compositeConfig.InputStream[i].GlobalAlpha = pParams->compositionParam.streamInfo[i].compStream.GlobalAlpha;
+                compositeConfig->InputStream[i].GlobalAlphaEnable = pParams->compositionParam.streamInfo[i].compStream.GlobalAlphaEnable;
+                compositeConfig->InputStream[i].GlobalAlpha = pParams->compositionParam.streamInfo[i].compStream.GlobalAlpha;
             }
             if (pParams->compositionParam.streamInfo[i].compStream.LumaKeyEnable != 0 )
             {
-                pResources->compositeConfig.InputStream[i].LumaKeyEnable = pParams->compositionParam.streamInfo[i].compStream.LumaKeyEnable;
-                pResources->compositeConfig.InputStream[i].LumaKeyMin = pParams->compositionParam.streamInfo[i].compStream.LumaKeyMin;
-                pResources->compositeConfig.InputStream[i].LumaKeyMax = pParams->compositionParam.streamInfo[i].compStream.LumaKeyMax;
+                compositeConfig->InputStream[i].LumaKeyEnable = pParams->compositionParam.streamInfo[i].compStream.LumaKeyEnable;
+                compositeConfig->InputStream[i].LumaKeyMin = pParams->compositionParam.streamInfo[i].compStream.LumaKeyMin;
+                compositeConfig->InputStream[i].LumaKeyMax = pParams->compositionParam.streamInfo[i].compStream.LumaKeyMax;
             }
             if (pParams->compositionParam.streamInfo[i].compStream.PixelAlphaEnable != 0 )
             {
-                pResources->compositeConfig.InputStream[i].PixelAlphaEnable = pParams->compositionParam.streamInfo[i].compStream.PixelAlphaEnable;
+                compositeConfig->InputStream[i].PixelAlphaEnable = pParams->compositionParam.streamInfo[i].compStream.PixelAlphaEnable;
             }
-        } // for (int i = 0; i < pResources->compositeConfig.NumInputStream; i++)
+        } // for (int i = 0; i < compositeConfig->NumInputStream; i++)
 
-        pVppParam->ExtParam[pVppParam->NumExtParam++] = (mfxExtBuffer*)&(pResources->compositeConfig);
-    }
-
-    // confirm configuration
-    if( 0 == pVppParam->NumExtParam )
-    {
-        pVppParam->ExtParam = NULL;
     }
 
     return MFX_ERR_NONE;

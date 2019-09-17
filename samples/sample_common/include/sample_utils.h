@@ -227,9 +227,6 @@ template<>struct mfx_ext_buffer_id<mfxExtVPPFieldProcessing> {
 template<>struct mfx_ext_buffer_id<mfxExtVPPDetail> {
     enum {id = MFX_EXTBUFF_VPP_DETAIL};
 };
-template<>struct mfx_ext_buffer_id<mfxExtVPPDenoise> {
-    enum {id = MFX_EXTBUFF_VPP_DENOISE};
-};
 template<>struct mfx_ext_buffer_id<mfxExtVPPFrameRateConversion> {
     enum {id = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION};
 };
@@ -257,8 +254,35 @@ template<>struct mfx_ext_buffer_id<mfxExtHEVCRegion> {
 template<>struct mfx_ext_buffer_id<mfxExtAVCRoundingOffset> {
     enum {id = MFX_EXTBUFF_AVC_ROUNDING_OFFSET};
 };
+template<>struct mfx_ext_buffer_id<mfxExtVPPDenoise> {
+    enum {id = MFX_EXTBUFF_VPP_DENOISE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPProcAmp> {
+    enum {id = MFX_EXTBUFF_VPP_PROCAMP};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPImageStab> {
+    enum {id = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPVideoSignalInfo> {
+    enum {id = MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPMirroring> {
+    enum {id = MFX_EXTBUFF_VPP_MIRRORING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPColorFill> {
+    enum {id = MFX_EXTBUFF_VPP_COLORFILL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPRotation> {
+    enum {id = MFX_EXTBUFF_VPP_ROTATION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPScaling> {
+    enum {id = MFX_EXTBUFF_VPP_SCALING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtColorConversion> {
+    enum {id = MFX_EXTBUFF_VPP_COLOR_CONVERSION};
+};
 
-constexpr uint16_t max_num_ext_buffers = 38 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
+constexpr uint16_t max_num_ext_buffers = 49 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
 
 //helper function to initialize mfx ext buffer structure
 template <class T>
