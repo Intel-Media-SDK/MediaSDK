@@ -335,7 +335,6 @@ public:
 
             // 'false' below is because here we just copy extBuffer's one by one
             mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz, false);
-            if (!dst_buf) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Can't allocate destination buffer");
             // copy buffer content w/o restoring its type
             memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
         }
@@ -365,7 +364,7 @@ public:
 
             if (IsPairedMfxExtBuffer<TB>::value)
             {
-                if (it == m_ext_buf.end() || it->BufferId != mfx_ext_buffer_id<TB>::id)
+                if (it == m_ext_buf.end() || (*it)->BufferId != mfx_ext_buffer_id<TB>::id)
                     throw mfxError(MFX_ERR_NULL_PTR, "RemoveExtBuffer: ExtBuffer's parity has been broken");
 
                 delete [] (mfxU8*)(*it);
@@ -510,9 +509,17 @@ private:
     std::vector<mfxExtBuffer*> m_ext_buf;
 };
 
-typedef ExtBufHolder<mfxVideoParam> MfxVideoParamsWrapper;
-typedef ExtBufHolder<mfxEncodeCtrl> mfxEncodeCtrlWrap;
-typedef ExtBufHolder<mfxInitParam>  mfxInitParamlWrap;
+template <>
+inline void ExtBufHolder<mfxFrameSurface1>::RefreshBuffers()
+{
+    this->Data.NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
+    this->Data.ExtParam    = this->Data.NumExtParam ? m_ext_buf.data() : nullptr;
+}
+
+using MfxVideoParamsWrapper = ExtBufHolder<mfxVideoParam>;
+using mfxEncodeCtrlWrap     = ExtBufHolder<mfxEncodeCtrl>;
+using mfxInitParamlWrap     = ExtBufHolder<mfxInitParam>;
+using mfxFrameSurfaceWrap   = ExtBufHolder<mfxFrameSurface1>;
 
 class mfxBitstreamWrapper : public ExtBufHolder<mfxBitstream>
 {
