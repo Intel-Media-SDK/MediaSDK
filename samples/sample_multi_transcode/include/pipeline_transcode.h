@@ -80,7 +80,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 #ifdef ENABLE_MCTF
-const mfxU16  MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE = 2;
 const mfxU16  MCTF_MID_FILTER_STRENGTH = 10;
 const mfxF64  MCTF_LOSSLESS_BPP = 0.0;
 #endif
