@@ -430,7 +430,7 @@ mfxStatus CreateFrameProcessor(sFrameProcessor* pProcessor, mfxVideoParam* pPara
         sts = pProcessor->mfxSession.Init(impl, &version);
     else
     {
-        mfxInitParam initParams;
+        mfxInitParamlWrap initParams;
         initParams.ExternalThreads = 0;
         initParams.GPUCopy         = pInParams->GPUCopyValue;
         initParams.Implementation  = impl;
@@ -767,12 +767,11 @@ void WipeMemoryAllocator(sMemoryAllocator* pAllocator)
 
 void WipeConfigParam( sAppResources* pResources )
 {
-
-    if( pResources->multiViewConfig.View )
+    auto multiViewConfig = pResources->pVppParams->GetExtBuffer<mfxExtMVCSeqDesc>();
+    if (multiViewConfig)
     {
-        delete [] pResources->multiViewConfig.View;
+        delete [] multiViewConfig->View;
     }
-
 } // void WipeConfigParam( sAppResources* pResources )
 
 
@@ -804,10 +803,11 @@ void WipeResources(sAppResources* pResources)
         pResources->pDstFileWriters = NULL;
     }
 
-    if(pResources->compositeConfig.InputStream)
+    auto compositeConfig = pResources->pVppParams->GetExtBuffer<mfxExtVPPComposite>();
+    if(compositeConfig)
     {
-        delete[] pResources->compositeConfig.InputStream;
-        pResources->compositeConfig.InputStream=NULL;
+        delete[] compositeConfig->InputStream;
+        compositeConfig->InputStream=nullptr;
     }
 
     WipeConfigParam( pResources );
