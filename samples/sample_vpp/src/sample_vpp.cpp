@@ -288,8 +288,8 @@ int main(int argc, msdk_char *argv[])
     sFrameProcessor     frameProcessor;
     sMemoryAllocator    allocator{};
 
-    sInputParams        Params;
-    mfxVideoParam       mfxParamsVideo;
+    sInputParams          Params;
+    MfxVideoParamsWrapper mfxParamsVideo;
 
     // to prevent incorrect read/write of image in case of CropW/H != width/height
     mfxFrameInfo        realFrameInfoIn[MAX_INPUT_STREAMS]; // Inputs+output
