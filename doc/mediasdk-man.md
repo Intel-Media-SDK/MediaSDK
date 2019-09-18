@@ -5670,11 +5670,12 @@ The `mfxPlatform` structure contains information about hardware platform.
 | | |
 --- | ---
 `CodeName` | Intel® microarchitecture code name. See the [PlatformCodeName](#PlatformCodeName) enumerator for a list of possible values.
-`DeviceId` | Reserved.
+`DeviceId` | Unique identifier of graphics device.
 
 **Change History**
 
 This structure is available since SDK API 1.19.
+Starting with SDK API **TBD** `DeviceId` field is properly filled.
 
 ## <a id='mfxPayload'>mfxPayload</a>
 
