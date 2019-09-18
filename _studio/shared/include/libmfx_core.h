@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -271,6 +271,8 @@ protected:
 
     API_1_19_Adapter m_API_1_19;
 
+
+    mfxU16      m_deviceId;
 private:
     // Forbid the assignment operator
     CommonCORE & operator = (const CommonCORE &);

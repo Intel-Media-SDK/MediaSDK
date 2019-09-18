@@ -493,9 +493,10 @@ VAAPIVideoCORE::SetHandle(
             * and can call ioctl() to kernel mode driver,
             * to get device ID and find out platform type
             */
-            mfx_device_item devItem= getDeviceItem(m_Display);
-            m_HWType = devItem.platform;
+            mfx_device_item devItem = getDeviceItem(m_Display);
+            m_HWType   = devItem.platform;
             m_GTConfig = devItem.config;
+            m_deviceId = mfxU16(devItem.device_id);
         }
         return MFX_ERR_NONE;
     }
