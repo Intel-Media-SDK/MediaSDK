@@ -1021,6 +1021,39 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
 
 } // mfxStatus vppParseResetPar( ... )
 
+void AdjustBitDepth (sInputParams & params)
+{
+    if (params.frameInfoIn[0].BitDepthLuma != 0 || params.frameInfoIn[0].BitDepthChroma != 0)
+    {
+        if (params.frameInfoIn[0].BitDepthLuma == 0)
+        {
+            params.frameInfoIn[0].BitDepthLuma = params.frameInfoIn[0].BitDepthChroma;
+            msdk_printf(MSDK_STRING("Warning: input BitDepthLuma was defaulted to value which was set to BitDepthChroma (%d)."), params.frameInfoIn[0].BitDepthLuma);
+        }
+
+        if (params.frameInfoIn[0].BitDepthChroma == 0)
+        {
+            params.frameInfoIn[0].BitDepthChroma = params.frameInfoIn[0].BitDepthLuma;
+            msdk_printf(MSDK_STRING("Warning: input BitDepthChroma was defaulted to value which was set to BitDepthLuma (%d)."), params.frameInfoIn[0].BitDepthChroma);
+        }
+    }
+
+    if (params.frameInfoOut[0].BitDepthLuma != 0 || params.frameInfoOut[0].BitDepthChroma != 0)
+    {
+        if (params.frameInfoOut[0].BitDepthLuma == 0)
+        {
+            params.frameInfoOut[0].BitDepthLuma = params.frameInfoOut[0].BitDepthChroma;
+            msdk_printf(MSDK_STRING("Warning: output BitDepthLuma was defaulted to value which was set to BitDepthChroma (%d)."), params.frameInfoOut[0].BitDepthLuma);
+        }
+
+        if (params.frameInfoOut[0].BitDepthChroma == 0)
+        {
+            params.frameInfoOut[0].BitDepthChroma = params.frameInfoOut[0].BitDepthLuma;
+            msdk_printf(MSDK_STRING("Warning: output BitDepthChroma was defaulted to value which was set to BitDepthLuma (%d)."), params.frameInfoOut[0].BitDepthChroma);
+        }
+    }
+}
+
 mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* pParams, sFiltersParam* pDefaultFiltersParam)
 {
     MSDK_CHECK_POINTER(pParams,  MFX_ERR_NULL_PTR);
@@ -1842,14 +1875,16 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
     }
 
 
+    // Align values of luma and chroma bit depth if only one of them set by user
+    AdjustBitDepth(*pParams);
 
-return MFX_ERR_NONE;
+    return MFX_ERR_NONE;
 
 } // mfxStatus vppParseInputString( ... )
 
 bool CheckInputParams(msdk_char* strInput[], sInputParams* pParams )
 {
-    // Setting  default width and height if it was omitted. For composition case parameters should be define explicitely
+    // Setting  default width and height if it was omitted. For composition case parameters should be define explicitly
     if (pParams->frameInfoOut[0].nWidth == 0)
     {
         if (pParams->compositionParam.mode == VPP_FILTER_ENABLED_CONFIGURED)
