@@ -669,7 +669,8 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     m_bIsOpaqMode(false),
     m_CoreId(0),
     m_pWrp(NULL),
-    m_API_1_19(this)
+    m_API_1_19(this),
+    m_deviceId(0)
 {
     m_bufferAllocator.bufferAllocator.pthis = &m_bufferAllocator;
     CheckTimingLog();
@@ -784,6 +785,8 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
 #endif
     default:             platform->CodeName = MFX_PLATFORM_UNKNOWN;     break;
     }
+
+    platform->DeviceId = m_deviceId;
 
     return MFX_ERR_NONE;
 } // mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
