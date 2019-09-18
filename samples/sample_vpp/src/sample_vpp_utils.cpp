@@ -504,12 +504,6 @@ mfxStatus InitSurfaces(
     nFrames = response.NumFrameActual;
     pSurfaces = new mfxFrameSurface1 [nFrames];
 
-#ifdef ENABLE_MCTF
-    if (isInput)
-    {
-        pAllocator->pExtBuffersStorageSurfaceIn[streamIndex].resize(nFrames * MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE);
-    }
-#endif
 
     for (i = 0; i < nFrames; i++)
     {
@@ -517,13 +511,6 @@ mfxStatus InitSurfaces(
         pSurfaces[i].Info = pRequest->Info;
 
         pSurfaces[i].Data.MemId = response.mids[i];
-#ifdef ENABLE_MCTF
-        if (isInput)
-        {
-            pSurfaces[i].Data.ExtParam = &(pAllocator->pExtBuffersStorageSurfaceIn[streamIndex].at(i * MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE));
-            pSurfaces[i].Data.NumExtParam = 0;
-        }
-#endif
     }
 
     return sts;
