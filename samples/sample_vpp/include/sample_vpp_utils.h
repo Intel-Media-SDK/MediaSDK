@@ -89,7 +89,6 @@ enum
     ALLOC_IMPL_VIA_VAAPI    = 4
 };
 #ifdef ENABLE_MCTF
-const mfxU16  MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE = 2;
 const mfxU16  MCTF_MID_FILTER_STRENGTH = 10;
 const mfxF64  MCTF_AUTO_BPP = 0.0;
 const mfxF64  MCTF_LOSSLESS_BPP = 0.0;
@@ -308,8 +307,6 @@ struct sMemoryAllocator
     mfxAllocatorParams* pAllocatorParams;
     bool                bUsedAsExternalAllocator;
 
-    // storage for ext-buffers pointers assosiated with input surfaces;
-    std::vector<mfxExtBuffer*> pExtBuffersStorageSurfaceIn[MAX_INPUT_STREAMS];
     mfxFrameSurface1*     pSurfacesIn[MAX_INPUT_STREAMS]; // SINGLE_IN/OUT/MULTIPLE_INs
     mfxFrameSurface1*     pSurfacesOut;
     mfxFrameAllocResponse responseIn[MAX_INPUT_STREAMS];  // SINGLE_IN/OUT/MULTIPLE_INs
