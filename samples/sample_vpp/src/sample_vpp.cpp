@@ -332,7 +332,7 @@ int main(int argc, msdk_char *argv[])
     sDetailParam              defaultDetailParam          = { 1,  VPP_FILTER_DISABLED };
     sDenoiseParam             defaultDenoiseParam         = { 1,  VPP_FILTER_DISABLED };
 #ifdef ENABLE_MCTF
-        sMCTFParam                defaultMctfParam;
+    sMCTFParam                defaultMctfParam;
     defaultMctfParam.mode = VPP_FILTER_DISABLED;
     defaultMctfParam.params.FilterStrength = 0;
 #ifdef ENABLE_MCTF_EXT
@@ -646,10 +646,6 @@ int main(int argc, msdk_char *argv[])
 
         while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts || bDoNotUpdateIn )
         {
-#ifdef ENABLE_MCTF
-            bool bAttachMctfBuffer = false;
-            mfxExtVppMctf* MctfRTParams=NULL;
-#endif
             mfxU16 viewID = 0;
             mfxU16 viewIndx = 0;
 
@@ -716,20 +712,6 @@ int main(int argc, msdk_char *argv[])
                 (Params.use_extapi ? &pWorkSurf : &pOutSurf));
             MSDK_BREAK_ON_ERROR(sts);
 
-#ifdef ENABLE_MCTF
-            if (bAttachMctfBuffer)
-            {
-                // get a new (or existing) Mctf control buffer.
-                MctfRTParams = GetMctfParamBuffer<mfxExtVppMctf, MFX_EXTBUFF_VPP_MCTF>(pInSurf[nInStreamInd]);
-                WipeOutExtParams(pInSurf[nInStreamInd], true, MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE);
-            }
-            else
-            {
-                if (pInSurf[nInStreamInd])
-                    pInSurf[nInStreamInd]->Data.NumExtParam = 0;
-            }
-#endif
-
             if( bROITest[VPP_IN] )
             {
                 inROIGenerator.SetROI(  &(pInSurf[nInStreamInd]->Info) );
@@ -764,39 +746,6 @@ int main(int argc, msdk_char *argv[])
             }
             else
             {
-#ifdef ENABLE_MCTF
-                if (bAttachMctfBuffer && MctfRTParams)
-                {
-                    // attach control MCTF buffer to pInSurf[nInStreamInd]
-                    // need to update this info somehow. 
-                    // suppose bitrate & deblock control is going to be passed:
-                    MctfRTParams->FilterStrength = MCTF_MID_FILTER_STRENGTH;
-#if defined (ENABLE_MCTF_EXT)
-                    MctfRTParams->BitsPerPixelx100k = mfxU32(MCTF_AUTO_BPP * MCTF_BITRATE_MULTIPLIER);
-                    MctfRTParams->Deblocking = MFX_CODINGOPTION_OFF;
-                    MctfRTParams->TemporalMode = MCTF_TEMPORAL_2REF_MODE;
-#endif
-
-                    if (pInSurf[nInStreamInd]->Data.NumExtParam >= MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE) {
-                        msdk_printf(MSDK_STRING("the extended buffer is not created; nothing can be attached; exit.\n"));
-                        sts = MFX_ERR_UNDEFINED_BEHAVIOR;
-                        MSDK_BREAK_ON_ERROR(sts);
-                    }
-                    else
-                        pInSurf[nInStreamInd]->Data.ExtParam[pInSurf[nInStreamInd]->Data.NumExtParam++] = reinterpret_cast<mfxExtBuffer*>(MctfRTParams);
-                }
-                else
-                {
-                    if (!MctfRTParams && bAttachMctfBuffer)
-                    {
-                        msdk_printf(MSDK_STRING("the extended buffer is not created; nothing will be attached\n"));
-                        sts = MFX_ERR_UNDEFINED_BEHAVIOR;
-                        MSDK_BREAK_ON_ERROR(sts);
-                    }
-
-                }
-#endif
-
 #ifdef ENABLE_VPP_RUNTIME_HSBC
                 mfxExtVPPProcAmp procAmp;
                 // set default values for ProcAmp filters
@@ -1112,10 +1061,6 @@ int main(int argc, msdk_char *argv[])
     WipeResources(&Resources);
     WipeParams(&Params);
 
-#ifdef ENABLE_MCTF
-    //deallocate the internal pool
-    GetMctfParamBuffer<mfxExtVppMctf, MFX_EXTBUFF_VPP_MCTF>((mfxFrameSurface1*)NULL, true);
-#endif
     return 0; /* OK */
 
 } // int _tmain(int argc, msdk_char *argv[])
