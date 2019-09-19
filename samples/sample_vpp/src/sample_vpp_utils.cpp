@@ -496,20 +496,17 @@ mfxStatus InitSurfaces(
     mfxU16    nFrames, i;
 
     mfxFrameAllocResponse& response = isInput ? pAllocator->responseIn[streamIndex] : pAllocator->responseOut;
-    mfxFrameSurface1*& pSurfaces = isInput ? pAllocator->pSurfacesIn[streamIndex] : pAllocator->pSurfacesOut;
+    mfxFrameSurfaceWrap*& pSurfaces = isInput ? pAllocator->pSurfacesIn[streamIndex] : pAllocator->pSurfacesOut;
 
     sts = pAllocator->pMfxAllocator->Alloc(pAllocator->pMfxAllocator->pthis, pRequest, &response);
     MSDK_CHECK_STATUS_SAFE(sts, "pAllocator->pMfxAllocator->Alloc failed", {WipeMemoryAllocator(pAllocator);});
 
     nFrames = response.NumFrameActual;
-    pSurfaces = new mfxFrameSurface1 [nFrames];
-
+    pSurfaces = new mfxFrameSurfaceWrap [nFrames];
 
     for (i = 0; i < nFrames; i++)
     {
-        memset(&(pSurfaces[i]), 0, sizeof(mfxFrameSurface1));
         pSurfaces[i].Info = pRequest->Info;
-
         pSurfaces[i].Data.MemId = response.mids[i];
     }
 
@@ -1320,7 +1317,7 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
 }
 
 
-mfxStatus CRawVideoReader::GetNextInputFrame(sMemoryAllocator* pAllocator, mfxFrameInfo* pInfo, mfxFrameSurface1** pSurface, mfxU16 streamIndex)
+mfxStatus CRawVideoReader::GetNextInputFrame(sMemoryAllocator* pAllocator, mfxFrameInfo* pInfo, mfxFrameSurfaceWrap** pSurface, mfxU16 streamIndex)
 {
     mfxStatus sts;
     if (!m_isPerfMode)
@@ -1328,7 +1325,7 @@ mfxStatus CRawVideoReader::GetNextInputFrame(sMemoryAllocator* pAllocator, mfxFr
         sts = GetFreeSurface(pAllocator->pSurfacesIn[streamIndex], pAllocator->responseIn[streamIndex].NumFrameActual, pSurface);
         MSDK_CHECK_STATUS(sts,"GetFreeSurface failed");
 
-        mfxFrameSurface1* pCurSurf = *pSurface;
+        mfxFrameSurfaceWrap* pCurSurf = *pSurface;
         if (pCurSurf->Data.MemId || pAllocator->bUsedAsExternalAllocator)
         {
             // get YUV pointers
@@ -1361,7 +1358,7 @@ mfxStatus CRawVideoReader::GetNextInputFrame(sMemoryAllocator* pAllocator, mfxFr
  }
 
 
-mfxStatus  CRawVideoReader::GetPreAllocFrame(mfxFrameSurface1 **pSurface)
+mfxStatus  CRawVideoReader::GetPreAllocFrame(mfxFrameSurfaceWrap **pSurface)
 {
     if (m_it == m_SurfacesList.end())
     {
@@ -1389,7 +1386,7 @@ mfxStatus  CRawVideoReader::PreAllocateFrameChunk(mfxVideoParam* pVideoParam,
     mfxStatus sts;
     mfxFrameAllocRequest  request;
     mfxFrameAllocResponse response;
-    mfxFrameSurface1      surface;
+    mfxFrameSurfaceWrap      surface;
     m_isPerfMode = true;
     m_Repeat = pParams->numRepeat;
     request.Info = pVideoParam->vpp.In;
@@ -1464,7 +1461,7 @@ void CRawVideoWriter::Close()
 mfxStatus CRawVideoWriter::PutNextFrame(
     sMemoryAllocator* pAllocator,
     mfxFrameInfo* pInfo,
-    mfxFrameSurface1* pSurface)
+    mfxFrameSurfaceWrap* pSurface)
 {
     mfxStatus sts;
     if (m_fDst)
@@ -1990,7 +1987,7 @@ mfxStatus GeneralWriter::Init(
 mfxStatus  GeneralWriter::PutNextFrame(
     sMemoryAllocator* pAllocator,
     mfxFrameInfo* pInfo,
-    mfxFrameSurface1* pSurface)
+    mfxFrameSurfaceWrap* pSurface)
 {
     mfxU32 did = (m_svcMode) ? pSurface->Info.FrameId.DependencyId : 0;//aya: for MVC we have 1 out file only
 
@@ -2001,7 +1998,7 @@ mfxStatus  GeneralWriter::PutNextFrame(
 
 /* ******************************************************************* */
 
-mfxStatus UpdateSurfacePool(mfxFrameInfo SurfacesInfo, mfxU16 nPoolSize, mfxFrameSurface1* pSurface)
+mfxStatus UpdateSurfacePool(mfxFrameInfo SurfacesInfo, mfxU16 nPoolSize, mfxFrameSurfaceWrap* pSurface)
 {
     MSDK_CHECK_POINTER(pSurface,     MFX_ERR_NULL_PTR);
     if (pSurface)
@@ -2014,7 +2011,7 @@ mfxStatus UpdateSurfacePool(mfxFrameInfo SurfacesInfo, mfxU16 nPoolSize, mfxFram
     return MFX_ERR_NONE;
 }
 
-mfxStatus GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize, mfxFrameSurface1** ppSurface)
+mfxStatus GetFreeSurface(mfxFrameSurfaceWrap* pSurfacesPool, mfxU16 nPoolSize, mfxFrameSurfaceWrap** ppSurface)
 {
     MSDK_CHECK_POINTER(pSurfacesPool, MFX_ERR_NULL_PTR);
     MSDK_CHECK_POINTER(ppSurface,     MFX_ERR_NULL_PTR);
