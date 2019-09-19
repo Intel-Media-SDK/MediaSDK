@@ -213,7 +213,7 @@ struct sInputParams
         bool   isEnabled;
         mfxU32 interval;
         mfxF64 value1;
-        mfxF64 value2;        
+        mfxF64 value2;
     } sRtProcAmpParam;
 
     sRtProcAmpParam rtHue;
@@ -307,12 +307,12 @@ struct sMemoryAllocator
     mfxAllocatorParams* pAllocatorParams;
     bool                bUsedAsExternalAllocator;
 
-    mfxFrameSurface1*     pSurfacesIn[MAX_INPUT_STREAMS]; // SINGLE_IN/OUT/MULTIPLE_INs
-    mfxFrameSurface1*     pSurfacesOut;
+    mfxFrameSurfaceWrap*     pSurfacesIn[MAX_INPUT_STREAMS]; // SINGLE_IN/OUT/MULTIPLE_INs
+    mfxFrameSurfaceWrap*     pSurfacesOut;
     mfxFrameAllocResponse responseIn[MAX_INPUT_STREAMS];  // SINGLE_IN/OUT/MULTIPLE_INs
     mfxFrameAllocResponse responseOut;
 
-    mfxFrameSurface1*     pSvcSurfaces[8]; //output surfaces per layer
+    mfxFrameSurfaceWrap*     pSvcSurfaces[8]; //output surfaces per layer
     mfxFrameAllocResponse svcResponse[8];     //per layer
 
     CHWDevice* pDevice;
@@ -355,7 +355,7 @@ public :
     mfxStatus  GetNextInputFrame(
         sMemoryAllocator* pAllocator,
         mfxFrameInfo* pInfo,
-        mfxFrameSurface1** pSurface,
+        mfxFrameSurfaceWrap** pSurface,
         mfxU16 streamIndex);
 
     mfxStatus  LoadNextFrame(
@@ -363,11 +363,11 @@ public :
         mfxFrameInfo* pInfo);
 
 private:
-    mfxStatus  GetPreAllocFrame(mfxFrameSurface1 **pSurface);
+    mfxStatus  GetPreAllocFrame(mfxFrameSurfaceWrap **pSurface);
 
     FILE*       m_fSrc;
-    std::list<mfxFrameSurface1>::iterator m_it;
-    std::list<mfxFrameSurface1>           m_SurfacesList;
+    std::list<mfxFrameSurfaceWrap>::iterator m_it;
+    std::list<mfxFrameSurfaceWrap>        m_SurfacesList;
     bool                                  m_isPerfMode;
     mfxU16                                m_Repeat;
 
@@ -392,7 +392,7 @@ public :
     mfxStatus  PutNextFrame(
         sMemoryAllocator* pAllocator,
         mfxFrameInfo* pInfo,
-        mfxFrameSurface1* pSurface);
+        mfxFrameSurfaceWrap* pSurface);
 
 private:
     mfxStatus  WriteFrame(
@@ -423,7 +423,7 @@ public :
     mfxStatus  PutNextFrame(
         sMemoryAllocator* pAllocator,
         mfxFrameInfo* pInfo,
-        mfxFrameSurface1* pSurface);
+        mfxFrameSurfaceWrap* pSurface);
 
 private:
     std::unique_ptr<CRawVideoWriter> m_ofile[8];
@@ -437,10 +437,10 @@ class SurfaceVPPStore
 public:
     struct SurfVPPExt
     {
-        SurfVPPExt(mfxFrameSurface1* pSurf = 0, mfxExtVppAuxData* pExt = 0):pSurface(pSurf),pExtVpp(pExt)
+        SurfVPPExt(mfxFrameSurfaceWrap* pSurf = nullptr, mfxExtVppAuxData* pExt = nullptr):pSurface(pSurf),pExtVpp(pExt)
         {
         };
-        mfxFrameSurface1* pSurface;
+        mfxFrameSurfaceWrap* pSurface;
         mfxExtVppAuxData* pExtVpp;
 
     };
@@ -501,11 +501,11 @@ mfxStatus InitResources(
 void WipeResources(sAppResources* pResources);
 void WipeParams(sInputParams* pParams);
 
-mfxStatus UpdateSurfacePool(mfxFrameInfo SurfacesInfo, mfxU16 nPoolSize, mfxFrameSurface1* pSurface);
+mfxStatus UpdateSurfacePool(mfxFrameInfo SurfacesInfo, mfxU16 nPoolSize, mfxFrameSurfaceWrap* pSurface);
 mfxStatus GetFreeSurface(
-    mfxFrameSurface1* pSurfacesPool,
+    mfxFrameSurfaceWrap* pSurfacesPool,
     mfxU16 nPoolSize,
-    mfxFrameSurface1** ppSurface);
+    mfxFrameSurfaceWrap** ppSurface);
 
 const msdk_char* IOpattern2Str(
     mfxU32 IOpattern);

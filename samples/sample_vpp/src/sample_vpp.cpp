@@ -17,11 +17,6 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
-#ifdef ENABLE_VPP_RUNTIME_HSBC
-#include <vector>
-#include <map>
-#endif
-
 #include "sample_vpp_utils.h"
 #include "sample_vpp_pts.h"
 #include "sample_vpp_roi.h"
@@ -195,7 +190,7 @@ mfxStatus OutputProcessFrame(
     mfxU32 paramID)
 {
     mfxStatus sts;
-    mfxFrameSurface1*   pProcessedSurface;
+    mfxFrameSurfaceWrap*   pProcessedSurface;
 
     for(;!Resources.pSurfStore->m_SyncPoints.empty();Resources.pSurfStore->m_SyncPoints.pop_front())
     {
@@ -296,9 +291,9 @@ int main(int argc, msdk_char *argv[])
     mfxFrameInfo        realFrameInfoOut;
     sAppResources       Resources;
 
-    mfxFrameSurface1*   pInSurf[MAX_INPUT_STREAMS]={0};
-    mfxFrameSurface1*   pOutSurf = NULL;
-    mfxFrameSurface1*   pWorkSurf = NULL;
+    mfxFrameSurfaceWrap*   pInSurf[MAX_INPUT_STREAMS]={};
+    mfxFrameSurfaceWrap*   pOutSurf = nullptr;
+    mfxFrameSurfaceWrap*   pWorkSurf = nullptr;
 
     mfxSyncPoint        syncPoint;
 
@@ -315,12 +310,8 @@ int main(int argc, msdk_char *argv[])
     bool               bROITest[2] = {false, false};
 
 #ifdef ENABLE_VPP_RUNTIME_HSBC
-    /* a vector of procamp ext buffers for each frame */
-    std::map<void*, mfxExtVPPProcAmp>            m_ProcAmpData;
-    /* a storage of pointers to extended buffers for each frame*/
-    std::map<void*, std::vector<mfxExtBuffer*> > m_extBuffPtrStorageForOutputSurf;
     /* a counter of output frames*/
-    mfxU32                                       nOutFrames = 0;
+    mfxU32             nOutFrames = 0;
 #endif
 
     //mfxU16              argbSurfaceIndex = 0xffff;
@@ -587,14 +578,12 @@ int main(int argc, msdk_char *argv[])
     // pre-multi-view preparation
     bool bMultiView   = (VPP_FILTER_ENABLED_CONFIGURED == Params.multiViewParam[0].mode) ? true : false;
     vector<bool> bMultipleOutStore(Params.multiViewParam[0].viewCount, false);
-    mfxFrameSurface1* viewSurfaceStore[MULTI_VIEW_COUNT_MAX];
+    mfxFrameSurfaceWrap* viewSurfaceStore[MULTI_VIEW_COUNT_MAX];
 
     ViewGenerator  viewGenerator( Params.multiViewParam[0].viewCount );
 
     if( bMultiView )
     {
-        memset(viewSurfaceStore, 0, Params.multiViewParam[0].viewCount * sizeof( mfxFrameSurface1* ));
-
         if( bFrameNumLimit )
         {
             Params.numFrames *= Params.multiViewParam[0].viewCount;
@@ -723,11 +712,12 @@ int main(int argc, msdk_char *argv[])
 
             if ( Params.use_extapi )
             {
+                mfxFrameSurface1 * out_surface = nullptr;
                 sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                     pInSurf[nInStreamInd],
                     pWorkSurf,
                     //pExtData,
-                    &pOutSurf,
+                    &out_surface,
                     &syncPoint);
 
                 while(MFX_WRN_DEVICE_BUSY == sts)
@@ -737,34 +727,32 @@ int main(int argc, msdk_char *argv[])
                         pInSurf[nInStreamInd],
                         pWorkSurf,
                         //pExtData,
-                        &pOutSurf,
+                        &out_surface,
                         &syncPoint);
                 }
-
+                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(pOutSurf);
                 if(MFX_ERR_MORE_DATA != sts)
                     bDoNotUpdateIn = true;
             }
             else
             {
 #ifdef ENABLE_VPP_RUNTIME_HSBC
-                mfxExtVPPProcAmp procAmp;
+                auto procAmp = pOutSurf->AddExtBuffer<mfxExtVPPProcAmp>();
                 // set default values for ProcAmp filters
-                procAmp.Header.BufferId = MFX_EXTBUFF_VPP_PROCAMP;
-                procAmp.Header.BufferSz = sizeof(mfxExtVPPProcAmp);
-                procAmp.Brightness = 0.0F;
-                procAmp.Contrast   = 1.0F;
-                procAmp.Hue        = 0.0F;
-                procAmp.Saturation = 1.0F;
+                procAmp->Brightness = 0.0F;
+                procAmp->Contrast   = 1.0F;
+                procAmp->Hue        = 0.0F;
+                procAmp->Saturation = 1.0F;
 
                 if (Params.rtHue.isEnabled)
                 {
                     if((nOutFrames / Params.rtHue.interval & 0x1) == 0)
                     {
-                        procAmp.Hue = Params.rtHue.value1;
+                        procAmp->Hue = Params.rtHue.value1;
                     }
                     else
                     {
-                        procAmp.Hue = Params.rtHue.value2;
+                        procAmp->Hue = Params.rtHue.value2;
                     }
                 }
 
@@ -772,11 +760,11 @@ int main(int argc, msdk_char *argv[])
                 {
                     if((nOutFrames / Params.rtSaturation.interval & 0x1) == 0)
                     {
-                        procAmp.Saturation = Params.rtSaturation.value1;
+                        procAmp->Saturation = Params.rtSaturation.value1;
                     }
                     else
                     {
-                        procAmp.Saturation = Params.rtSaturation.value2;
+                        procAmp->Saturation = Params.rtSaturation.value2;
                     }
                 }
 
@@ -784,11 +772,11 @@ int main(int argc, msdk_char *argv[])
                 {
                     if((nOutFrames / Params.rtBrightness.interval & 0x1) == 0)
                     {
-                        procAmp.Brightness = Params.rtBrightness.value1;
+                        procAmp->Brightness = Params.rtBrightness.value1;
                     }
                     else
                     {
-                        procAmp.Brightness = Params.rtBrightness.value2;
+                        procAmp->Brightness = Params.rtBrightness.value2;
                     }
                 }
 
@@ -796,23 +784,12 @@ int main(int argc, msdk_char *argv[])
                 {
                     if((nOutFrames / Params.rtContrast.interval & 0x1) == 0)
                     {
-                        procAmp.Contrast = Params.rtContrast.value1;
+                        procAmp->Contrast = Params.rtContrast.value1;
                     }
                     else
                     {
-                        procAmp.Contrast = Params.rtContrast.value2;
+                        procAmp->Contrast = Params.rtContrast.value2;
                     }
-                }
-
-                if (Params.rtHue.isEnabled || Params.rtSaturation.isEnabled ||
-                    Params.rtBrightness.isEnabled || Params.rtContrast.isEnabled)
-                {
-                    m_ProcAmpData[pOutSurf] = procAmp;
-                    std::vector<mfxExtBuffer*> extBuffPtrStorage;
-                    extBuffPtrStorage.push_back((mfxExtBuffer *)&m_ProcAmpData[pOutSurf]);
-                    m_extBuffPtrStorageForOutputSurf[pOutSurf] = extBuffPtrStorage;
-                    pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
-                    pOutSurf->Data.NumExtParam = (mfxU16)m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
                 nOutFrames++;
 #endif
@@ -916,10 +893,11 @@ int main(int argc, msdk_char *argv[])
 
             if ( Params.use_extapi )
             {
+                mfxFrameSurface1 * out_surface = nullptr;
                 sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                     NULL,
                     pWorkSurf,
-                    &pOutSurf,
+                    &out_surface,
                     &syncPoint );
                 while(MFX_WRN_DEVICE_BUSY == sts)
                 {
@@ -927,31 +905,30 @@ int main(int argc, msdk_char *argv[])
                     sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                         NULL,
                         pWorkSurf,
-                        &pOutSurf,
+                        &out_surface,
                         &syncPoint );
                 }
+                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(pOutSurf);
             }
             else
             {
 #ifdef ENABLE_VPP_RUNTIME_HSBC
-                mfxExtVPPProcAmp procAmp;
+                auto procAmp = pOutSurf->AddExtBuffer<mfxExtVPPProcAmp>();
                 // set default values for ProcAmp filters
-                procAmp.Header.BufferId = MFX_EXTBUFF_VPP_PROCAMP;
-                procAmp.Header.BufferSz = sizeof(mfxExtVPPProcAmp);
-                procAmp.Brightness = 0.0F;
-                procAmp.Contrast   = 1.0F;
-                procAmp.Hue        = 0.0F;
-                procAmp.Saturation = 1.0F;
+                procAmp->Brightness = 0.0F;
+                procAmp->Contrast   = 1.0F;
+                procAmp->Hue        = 0.0F;
+                procAmp->Saturation = 1.0F;
 
                 if (Params.rtHue.isEnabled)
                 {
                     if((nOutFrames / Params.rtHue.interval & 0x1) == 0)
                     {
-                        procAmp.Hue = Params.rtHue.value1;
+                        procAmp->Hue = Params.rtHue.value1;
                     }
                     else
                     {
-                        procAmp.Hue = Params.rtHue.value2;
+                        procAmp->Hue = Params.rtHue.value2;
                     }
                 }
 
@@ -959,11 +936,11 @@ int main(int argc, msdk_char *argv[])
                 {
                     if((nOutFrames / Params.rtSaturation.interval & 0x1) == 0)
                     {
-                        procAmp.Saturation = Params.rtSaturation.value1;
+                        procAmp->Saturation = Params.rtSaturation.value1;
                     }
                     else
                     {
-                        procAmp.Saturation = Params.rtSaturation.value2;
+                        procAmp->Saturation = Params.rtSaturation.value2;
                     }
                 }
 
@@ -971,11 +948,11 @@ int main(int argc, msdk_char *argv[])
                 {
                     if((nOutFrames / Params.rtBrightness.interval & 0x1) == 0)
                     {
-                        procAmp.Brightness = Params.rtBrightness.value1;
+                        procAmp->Brightness = Params.rtBrightness.value1;
                     }
                     else
                     {
-                        procAmp.Brightness = Params.rtBrightness.value2;
+                        procAmp->Brightness = Params.rtBrightness.value2;
                     }
                 }
 
@@ -983,23 +960,12 @@ int main(int argc, msdk_char *argv[])
                 {
                     if((nOutFrames / Params.rtContrast.interval & 0x1) == 0)
                     {
-                        procAmp.Contrast = Params.rtContrast.value1;
+                        procAmp->Contrast = Params.rtContrast.value1;
                     }
                     else
                     {
-                        procAmp.Contrast = Params.rtContrast.value2;
+                        procAmp->Contrast = Params.rtContrast.value2;
                     }
-                }
-
-                if (Params.rtHue.isEnabled || Params.rtSaturation.isEnabled ||
-                    Params.rtBrightness.isEnabled || Params.rtContrast.isEnabled)
-                {
-                    m_ProcAmpData[pOutSurf] = procAmp;
-                    std::vector<mfxExtBuffer*> extBuffPtrStorage;
-                    extBuffPtrStorage.push_back((mfxExtBuffer *)&m_ProcAmpData[pOutSurf]);
-                    m_extBuffPtrStorageForOutputSurf[pOutSurf] = extBuffPtrStorage;
-                    pOutSurf->Data.ExtParam = m_extBuffPtrStorageForOutputSurf[pOutSurf].data();
-                    pOutSurf->Data.NumExtParam = (mfxU16)m_extBuffPtrStorageForOutputSurf[pOutSurf].size();
                 }
                 nOutFrames++;
 #endif
