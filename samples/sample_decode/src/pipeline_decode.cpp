@@ -51,7 +51,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "version.h"
 
-#pragma warning(disable : 4100)
 
 #define __SYNC_WA // avoid sync issue on Media SDK side
 

@@ -26,9 +26,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <mutex>
 #include "plugin_rotate.h"
 
-// disable "unreferenced formal parameter" warning -
-// not all formal parameters of interface functions will be used by sample plugin
-#pragma warning(disable : 4100)
 
 // map<tuple<memid, session id>, lock count>
 typedef  std::tuple<mfxMemId, mfxHDL> UniqueMid;
@@ -164,7 +161,7 @@ mfxStatus Rotate::Submit(const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfx
     return MFX_ERR_NONE;
 }
 
-mfxStatus Rotate::Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a)
+mfxStatus Rotate::Execute(mfxThreadTask task, mfxU32 /*uid_p*/, mfxU32 uid_a)
 {
     MSDK_CHECK_ERROR(m_bInited, false, MFX_ERR_NOT_INITIALIZED);
 
@@ -189,7 +186,7 @@ mfxStatus Rotate::Execute(mfxThreadTask task, mfxU32 uid_p, mfxU32 uid_a)
     return sts;
 }
 
-mfxStatus Rotate::FreeResources(mfxThreadTask task, mfxStatus sts)
+mfxStatus Rotate::FreeResources(mfxThreadTask task, mfxStatus /*sts*/)
 {
     MSDK_CHECK_ERROR(m_bInited, false, MFX_ERR_NOT_INITIALIZED);
 
@@ -267,7 +264,7 @@ mfxStatus Rotate::Init(mfxVideoParam *mfxParam)
     return MFX_ERR_NONE;
 }
 
-mfxStatus Rotate::SetAuxParams(void* auxParam, int auxParamSize)
+mfxStatus Rotate::SetAuxParams(void* auxParam, int /*auxParamSize*/)
 {
     RotateParam *pRotatePar = (RotateParam *)auxParam;
     MSDK_CHECK_POINTER(pRotatePar, MFX_ERR_NULL_PTR);
@@ -354,7 +351,7 @@ mfxU32 Rotate::FindFreeTaskIdx()
     return i;
 }
 
-mfxStatus Rotate::CheckParam(mfxVideoParam *mfxParam, RotateParam *pRotatePar)
+mfxStatus Rotate::CheckParam(mfxVideoParam *mfxParam, RotateParam* /*pRotatePar*/)
 {
     MSDK_CHECK_POINTER(mfxParam, MFX_ERR_NULL_PTR);
 
