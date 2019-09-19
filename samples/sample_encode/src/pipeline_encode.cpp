@@ -1659,7 +1659,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     return MFX_ERR_NONE;
 }
 
-void CEncodingPipeline::InitV4L2Pipeline(sInputParams *pParams)
+void CEncodingPipeline::InitV4L2Pipeline(sInputParams* /*pParams*/)
 {
 #if defined (ENABLE_V4L2_SUPPORT)
     if (isV4L2InputEnabled)

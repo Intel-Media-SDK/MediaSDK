@@ -33,7 +33,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 struct D3DAllocatorParams;
 
+#ifdef _MSC_VER
 #pragma warning(disable: 4127) // constant expression
+#endif
 
 #ifndef MFX_VERSION
 #error MFX_VERSION not defined
