@@ -300,7 +300,7 @@ namespace UMC_MPEG2_DECODER
         uint32_t height_in_MBs = mfx::align2_value<uint32_t>(slice.GetSeqHeader().vertical_size_value, 16) / 16u;
 
         // invalid slice - skipping it
-        if (slice.sliceHeader.slice_vertical_position >= height_in_MBs)
+        if (slice.sliceHeader.slice_vertical_position > height_in_MBs)
             throw mpeg2_exception(UMC::UMC_ERR_INVALID_PARAMS);
 
         slice.sliceHeader.numberMBsInSlice = width_in_MBs - slice.sliceHeader.macroblockAddressIncrement;
