@@ -299,6 +299,32 @@ struct IsPairedMfxExtBuffer : std::false_type {};
 template <>
 struct IsPairedMfxExtBuffer<mfxExtAVCRoundingOffset> : std::true_type {};
 
+template <typename R>
+struct ExtParamAccessor
+{
+private:
+    using mfxExtBufferDoublePtr = mfxExtBuffer**;
+public:
+    mfxU16& NumExtParam;
+    mfxExtBufferDoublePtr& ExtParam;
+    ExtParamAccessor(const R& r):
+        NumExtParam(const_cast<mfxU16&>(r.NumExtParam)),
+        ExtParam(const_cast<mfxExtBufferDoublePtr&>(r.ExtParam)) {}
+};
+
+template <>
+struct ExtParamAccessor<mfxFrameSurface1>
+{
+private:
+    using mfxExtBufferDoublePtr = mfxExtBuffer**;
+public:
+    mfxU16& NumExtParam;
+    mfxExtBufferDoublePtr& ExtParam;
+    ExtParamAccessor(const mfxFrameSurface1& r):
+        NumExtParam(const_cast<mfxU16&>(r.Data.NumExtParam)),
+        ExtParam(const_cast<mfxExtBufferDoublePtr&>(r.Data.ExtParam)) {}
+};
+
 /** ExtBufHolder is an utility class which
  *  provide interface for mfxExtBuffer objects management in any mfx structure (e.g. mfxVideoParam)
  */
@@ -346,10 +372,12 @@ public:
         //remove all existing extension buffers
         ClearBuffers();
 
+        const auto ref_ = ExtParamAccessor<T>(ref);
+
         //reproduce list of extension buffers and copy its content
-        for (size_t i = 0; i < ref.NumExtParam; ++i)
+        for (size_t i = 0; i < ref_.NumExtParam; ++i)
         {
-            const mfxExtBuffer* src_buf = ref.ExtParam[i];
+            const auto src_buf = ref_.ExtParam[i];
             if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
             if (!IsCopyAllowed(src_buf->BufferId))
             {
@@ -358,7 +386,7 @@ public:
             }
 
             // 'false' below is because here we just copy extBuffer's one by one
-            mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz, false);
+            auto dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz, false);
             // copy buffer content w/o restoring its type
             memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
         }
@@ -468,8 +496,9 @@ private:
 
     void RefreshBuffers()
     {
-        this->NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
-        this->ExtParam    = this->NumExtParam ? m_ext_buf.data() : nullptr;
+        auto this_ = ExtParamAccessor<T>(*this);
+        this_.NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
+        this_.ExtParam    = this_.NumExtParam ? m_ext_buf.data() : nullptr;
     }
 
     void ClearBuffers()
@@ -532,13 +561,6 @@ private:
 
     std::vector<mfxExtBuffer*> m_ext_buf;
 };
-
-template <>
-inline void ExtBufHolder<mfxFrameSurface1>::RefreshBuffers()
-{
-    this->Data.NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
-    this->Data.ExtParam    = this->Data.NumExtParam ? m_ext_buf.data() : nullptr;
-}
 
 using MfxVideoParamsWrapper = ExtBufHolder<mfxVideoParam>;
 using mfxEncodeCtrlWrap     = ExtBufHolder<mfxEncodeCtrl>;
