@@ -134,7 +134,6 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_bEncodeEnable(true),
     m_nVPPCompEnable(0),
     m_bUseOpaqueMemory(false),
-    m_LastDecSyncPoint(0),
     m_pBuffer(NULL),
     m_pParentPipeline(NULL),
     m_bIsInit(false),
@@ -529,15 +528,11 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
         inputStatistics.StartTimeMeasurement();
     }
 
-    CTimer DevBusyTimer;
-    DevBusyTimer.Start();
+    CTimer devBusyTimer;
+    devBusyTimer.Start();
     while (MFX_ERR_MORE_DATA == sts || MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE < sts)
     {
-        if (MFX_WRN_DEVICE_BUSY == sts)
-        {
-            WaitForDeviceToBecomeFree(*m_pmfxSession,m_LastDecSyncPoint,sts);
-        }
-        else if (MFX_ERR_MORE_DATA == sts)
+        if (MFX_ERR_MORE_DATA == sts)
         {
             sts = m_pBSProcessor->GetInputBitstream(&m_pmfxBS); // read more data to input bit stream
             MSDK_BREAK_ON_ERROR(sts);
@@ -561,17 +556,20 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
 
         sts = m_pmfxDEC->DecodeFrameAsync(m_pmfxBS, pmfxSurface, &pExtSurface->pSurface, &pExtSurface->Syncp);
 
-        if ( (MFX_WRN_DEVICE_BUSY == sts) &&
-             (DevBusyTimer.GetTime() > MSDK_DEVICE_FREE_WAIT_INTERVAL/1000) )
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            msdk_printf(MSDK_STRING("ERROR: Decoder device busy (during long period)\n"));
-            return MFX_ERR_DEVICE_FAILED;
+            MSDK_CHECK_POINTER(pExtSurface->Syncp,  MFX_ERR_UNDEFINED_BEHAVIOR);
+            if (devBusyTimer.GetTime() > MSDK_DEVICE_FREE_WAIT_INTERVAL/1000)
+            {
+                msdk_printf(MSDK_STRING("ERROR: Decoder device busy (during long period)\n"));
+                return MFX_ERR_DEVICE_FAILED;
+            }
+
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, pExtSurface->Syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
 
-        if (sts==MFX_ERR_NONE)
-        {
-            m_LastDecSyncPoint = pExtSurface->Syncp;
-        }
         // ignore warnings if output is available,
         if (MFX_ERR_NONE < sts && pExtSurface->Syncp)
         {
@@ -603,26 +601,28 @@ mfxStatus CTranscodingPipeline::DecodeLastFrame(ExtendedSurface *pExtSurface)
         inputStatistics.StartTimeMeasurement();
     }
 
-    CTimer DevBusyTimer;
-    DevBusyTimer.Start();
+    CTimer devBusyTimer;
+    devBusyTimer.Start();
     // retrieve the buffered decoded frames
     while (MFX_ERR_MORE_SURFACE == sts || MFX_WRN_DEVICE_BUSY == sts)
     {
-        if (MFX_WRN_DEVICE_BUSY == sts)
-        {
-            WaitForDeviceToBecomeFree(*m_pmfxSession,m_LastDecSyncPoint,sts);
-        }
-
         // find new working surface
         pmfxSurface = GetFreeSurface(true, MSDK_SURFACE_WAIT_INTERVAL);
         MSDK_CHECK_POINTER_SAFE(pmfxSurface, MFX_ERR_MEMORY_ALLOC, msdk_printf(MSDK_STRING("ERROR: No free surfaces in decoder pool (during long period)\n"))); // return an error if a free surface wasn't found
         sts = m_pmfxDEC->DecodeFrameAsync(NULL, pmfxSurface, &pExtSurface->pSurface, &pExtSurface->Syncp);
 
-        if ( (MFX_WRN_DEVICE_BUSY == sts) &&
-             (DevBusyTimer.GetTime() > MSDK_DEVICE_FREE_WAIT_INTERVAL/1000) )
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            msdk_printf(MSDK_STRING("ERROR: Decoder device busy (during long period)\n"));
-            return MFX_ERR_DEVICE_FAILED;
+            MSDK_CHECK_POINTER(pExtSurface->Syncp,  MFX_ERR_UNDEFINED_BEHAVIOR);
+            if (devBusyTimer.GetTime() > MSDK_DEVICE_FREE_WAIT_INTERVAL/1000)
+            {
+                msdk_printf(MSDK_STRING("ERROR: Decoder device busy (during long period)\n"));
+                return MFX_ERR_DEVICE_FAILED;
+            }
+
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, pExtSurface->Syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
     }
 
@@ -680,12 +680,14 @@ mfxStatus CTranscodingPipeline::VPPOneFrame(ExtendedSurface *pSurfaceIn, Extende
     {
         sts = m_pmfxVPP->RunFrameVPPAsync(pSurfaceIn->pSurface, out_surface, NULL, &pExtSurface->Syncp);
 
-        if (MFX_ERR_NONE < sts && !pExtSurface->Syncp) // repeat the call if warning and no output
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            if (MFX_WRN_DEVICE_BUSY == sts)
-                MSDK_SLEEP(1); // wait if device is busy
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, pExtSurface->Syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
-        else if (MFX_ERR_NONE < sts && pExtSurface->Syncp)
+
+        if (MFX_ERR_NONE < sts && pExtSurface->Syncp)
         {
             sts = MFX_ERR_NONE; // ignore warnings if output is available
             break;
@@ -714,12 +716,14 @@ mfxStatus CTranscodingPipeline::EncodeOneFrame(ExtendedSurface *pExtSurface, mfx
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp
         sts = m_pmfxENC->EncodeFrameAsync(pExtSurface->pEncCtrl, pExtSurface->pSurface, pBS, &pExtSurface->Syncp);
 
-        if (MFX_ERR_NONE < sts && !pExtSurface->Syncp) // repeat the call if warning and no output
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            if (MFX_WRN_DEVICE_BUSY == sts)
-                MSDK_SLEEP(TIME_TO_SLEEP); // wait if device is busy
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, pExtSurface->Syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
-        else if (MFX_ERR_NONE < sts && pExtSurface->Syncp)
+
+        if (MFX_ERR_NONE < sts && pExtSurface->Syncp)
         {
             sts = MFX_ERR_NONE; // ignore warnings if output is available
             break;
@@ -760,14 +764,16 @@ mfxStatus CTranscodingPipeline::PreEncOneFrame(ExtendedSurface *pInSurface, Exte
     {
         pAux->encInput.InSurface = pInSurface->pSurface;
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp
-        sts = m_pmfxPreENC->ProcessFrameAsync(&pAux->encInput, &pAux->encOutput, &pOutSurface->Syncp );
+        sts = m_pmfxPreENC->ProcessFrameAsync(&pAux->encInput, &pAux->encOutput, &pOutSurface->Syncp);
 
-        if (MFX_ERR_NONE < sts && !pOutSurface->Syncp) // repeat the call if warning and no output
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            if (MFX_WRN_DEVICE_BUSY == sts)
-                MSDK_SLEEP(TIME_TO_SLEEP); // wait if device is busy
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, pOutSurface->Syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
-        else if (MFX_ERR_NONE <= sts && pOutSurface->Syncp)
+
+        if (MFX_ERR_NONE <= sts && pOutSurface->Syncp)
         {
             LockPreEncAuxBuffer(pAux);
             pOutSurface->pAuxCtrl = pAux;

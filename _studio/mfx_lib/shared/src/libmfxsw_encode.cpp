@@ -611,14 +611,14 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             {
                 std::string result = mfx_reflect::CompareStructsToString(reflection.Access(in), reflection.Access(out));
                 MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, result.c_str())
-            }  
+            }
         }
         catch (const std::exception& e)
         {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, e.what());
         }
-        catch (...) 
-        { 
+        catch (...)
+        {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, "Unknown exception was caught while comparing In and Out VideoParams.");
         }
     }
@@ -815,138 +815,151 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
 
     try
     {
-        mfxSyncPoint syncPoint = NULL;
-        mfxFrameSurface1 *reordered_surface = NULL;
-        mfxEncodeInternalParams internal_params;
-        MFX_ENTRY_POINT entryPoints[MFX_NUM_ENTRY_POINTS];
-        mfxU32 numEntryPoints = MFX_NUM_ENTRY_POINTS;
-
-        memset(&entryPoints, 0, sizeof(entryPoints));
-        mfxRes = session->m_pENCODE->EncodeFrameCheck(ctrl,
-                                                      surface,
-                                                      bs,
-                                                      &reordered_surface,
-                                                      &internal_params,
-                                                      entryPoints,
-                                                      numEntryPoints);
-        // source data is OK, go forward
-        if ((MFX_ERR_NONE == mfxRes) ||
-            (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes) ||
-            (MFX_WRN_OUT_OF_RANGE == mfxRes) ||
-            // WHAT IS IT??? IT SHOULD BE REMOVED
-            ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ||
-            (MFX_ERR_MORE_BITSTREAM == mfxRes))
+        do
         {
-            // prepare the obsolete kind of task.
-            // it is obsolete and must be removed.
-            if (NULL == entryPoints[0].pRoutine)
+            mfxSyncPoint syncPoint = NULL;
+            mfxFrameSurface1 *reordered_surface = NULL;
+            mfxEncodeInternalParams internal_params;
+            MFX_ENTRY_POINT entryPoints[MFX_NUM_ENTRY_POINTS];
+            mfxU32 numEntryPoints = MFX_NUM_ENTRY_POINTS;
+
+            memset(&entryPoints, 0, sizeof(entryPoints));
+            mfxRes = session->m_pENCODE->EncodeFrameCheck(ctrl,
+                                                        surface,
+                                                        bs,
+                                                        &reordered_surface,
+                                                        &internal_params,
+                                                        entryPoints,
+                                                        numEntryPoints);
+            // source data is OK, go forward
+            if ((MFX_ERR_NONE == mfxRes) ||
+                (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes) ||
+                (MFX_WRN_OUT_OF_RANGE == mfxRes) ||
+                // WHAT IS IT??? IT SHOULD BE REMOVED
+                ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ||
+                (MFX_ERR_MORE_BITSTREAM == mfxRes))
             {
-                MFX_TASK task;
+                // prepare the obsolete kind of task.
+                // it is obsolete and must be removed.
+                if (NULL == entryPoints[0].pRoutine)
+                {
+                    MFX_TASK task;
 
-                memset(&task, 0, sizeof(task));
-                // BEGIN OF OBSOLETE PART
-                task.bObsoleteTask = true;
-                task.obsolete_params.encode.internal_params = internal_params;
-                // fill task info
-                task.pOwner = session->m_pENCODE.get();
-                task.entryPoint.pRoutine = &MFXVideoENCODELegacyRoutine;
-                task.entryPoint.pState = session->m_pENCODE.get();
-                task.entryPoint.requiredNumThreads = 1;
+                    memset(&task, 0, sizeof(task));
+                    // BEGIN OF OBSOLETE PART
+                    task.bObsoleteTask = true;
+                    task.obsolete_params.encode.internal_params = internal_params;
+                    // fill task info
+                    task.pOwner = session->m_pENCODE.get();
+                    task.entryPoint.pRoutine = &MFXVideoENCODELegacyRoutine;
+                    task.entryPoint.pState = session->m_pENCODE.get();
+                    task.entryPoint.requiredNumThreads = 1;
 
-                // fill legacy parameters
-                task.obsolete_params.encode.ctrl = ctrl;
-                task.obsolete_params.encode.surface = reordered_surface;
-                task.obsolete_params.encode.bs = bs;
-                // END OF OBSOLETE PART
+                    // fill legacy parameters
+                    task.obsolete_params.encode.ctrl = ctrl;
+                    task.obsolete_params.encode.surface = reordered_surface;
+                    task.obsolete_params.encode.bs = bs;
+                    // END OF OBSOLETE PART
 
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = surface;
-                task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0: bs;
+                    task.priority = session->m_priority;
+                    task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
+                    // fill dependencies
+                    task.pSrc[0] = surface;
+                    task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0: bs;
 
-                task.pSrc[1] = bs;
-                task.pSrc[2] = ctrl ? ctrl->ExtParam : 0;
+                    task.pSrc[1] = bs;
+                    task.pSrc[2] = ctrl ? ctrl->ExtParam : 0;
 
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
-#endif // MFX_TRACE_ENABLE
+    #ifdef MFX_TRACE_ENABLE
+                    task.nParentId = MFX_AUTO_TRACE_GETID();
+                    task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
+    #endif // MFX_TRACE_ENABLE
 
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                    // register input and call the task
+                    MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                }
+                else if (1 == numEntryPoints)
+                {
+                    MFX_TASK task;
+
+                    memset(&task, 0, sizeof(task));
+                    task.pOwner = session->m_pENCODE.get();
+                    task.entryPoint = entryPoints[0];
+                    task.priority = session->m_priority;
+                    task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
+                    // fill dependencies
+                    task.pSrc[0] = surface;
+                    task.pSrc[1] =  bs;
+                    task.pSrc[2] = ctrl ? ctrl->ExtParam : 0;
+                    task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0 : bs;
+
+
+    #ifdef MFX_TRACE_ENABLE
+                    task.nParentId = MFX_AUTO_TRACE_GETID();
+                    task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
+    #endif
+                    // register input and call the task
+                    MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                }
+                else
+                {
+                    MFX_TASK task;
+
+                    memset(&task, 0, sizeof(task));
+                    task.pOwner = session->m_pENCODE.get();
+                    task.entryPoint = entryPoints[0];
+                    task.priority = session->m_priority;
+                    task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
+                    // fill dependencies
+                    task.pSrc[0] = surface;
+                    task.pSrc[1] = ctrl ? ctrl->ExtParam : 0;
+                    task.pDst[0] = entryPoints[0].pParam;
+
+    #ifdef MFX_TRACE_ENABLE
+                    task.nParentId = MFX_AUTO_TRACE_GETID();
+                    task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
+    #endif
+                    // register input and call the task
+                    MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+
+                    memset(&task, 0, sizeof(task));
+                    task.pOwner = session->m_pENCODE.get();
+                    task.entryPoint = entryPoints[1];
+                    task.priority = session->m_priority;
+                    task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
+                    // fill dependencies
+                    task.pSrc[0] = entryPoints[0].pParam;
+                    task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0: bs;
+
+    #ifdef MFX_TRACE_ENABLE
+                    task.nParentId = MFX_AUTO_TRACE_GETID();
+                    task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE2;
+    #endif
+                    // register input and call the task
+                    MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                }
+
+                // IT SHOULD BE REMOVED
+                if ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
+                {
+                    mfxRes = MFX_ERR_MORE_DATA;
+                    syncPoint = NULL;
+                }
             }
-            else if (1 == numEntryPoints)
+            else if (MFX_WRN_DEVICE_BUSY == mfxRes)
             {
-                MFX_TASK task;
+                mfxStatus mfxFindRes = session->m_pScheduler->FindOldestActiveSyncPoint(session->m_pENCODE.get(), &syncPoint);
+                // If we can't find any active SyncPoint's it means that next call to MFXVideoDECODE_DecodeFrameAsync should already accept a task.
+                // Let's repeat the call right here instead of making application do it.
+                if (MFX_ERR_NOT_FOUND == mfxFindRes)
+                        continue;
 
-                memset(&task, 0, sizeof(task));
-                task.pOwner = session->m_pENCODE.get();
-                task.entryPoint = entryPoints[0];
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = surface;
-                task.pSrc[1] =  bs;
-                task.pSrc[2] = ctrl ? ctrl->ExtParam : 0;
-                task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0 : bs;
-
-
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
-#endif
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
-            }
-            else
-            {
-                MFX_TASK task;
-
-                memset(&task, 0, sizeof(task));
-                task.pOwner = session->m_pENCODE.get();
-                task.entryPoint = entryPoints[0];
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = surface;
-                task.pSrc[1] = ctrl ? ctrl->ExtParam : 0;
-                task.pDst[0] = entryPoints[0].pParam;
-
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE;
-#endif
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
-
-                memset(&task, 0, sizeof(task));
-                task.pOwner = session->m_pENCODE.get();
-                task.entryPoint = entryPoints[1];
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pENCODE->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = entryPoints[0].pParam;
-                task.pDst[0] = ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes) ? 0: bs;
-
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_ENCODE2;
-#endif
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                MFX_CHECK_STS(mfxFindRes);
             }
 
-            // IT SHOULD BE REMOVED
-            if ((mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes)
-            {
-                mfxRes = MFX_ERR_MORE_DATA;
-                syncPoint = NULL;
-            }
-        }
-
-        // return pointer to synchronization point
-        *syncp = syncPoint;
+            // return pointer to synchronization point
+            *syncp = syncPoint;
+        } while (false);
     }
     // handle error(s)
     catch(...)

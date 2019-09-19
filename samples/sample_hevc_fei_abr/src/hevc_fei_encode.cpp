@@ -153,12 +153,10 @@ mfxStatus FEI_Encode::EncodeFrame(mfxFrameSurface1* pSurf)
         sts = m_mfxENCODE.EncodeFrameAsync(&m_encodeCtrl, pSurf, &m_bitstream, &m_syncPoint);
         MSDK_CHECK_WRN(sts, "FEI EncodeFrameAsync");
 
-        if (MFX_ERR_NONE < sts && !m_syncPoint) // repeat the call if warning and no output
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            if (MFX_WRN_DEVICE_BUSY == sts)
-            {
-                WaitForDeviceToBecomeFree(*m_pmfxSession, m_syncPoint, sts);
-            }
+            auto sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_syncPoint);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
             continue;
         }
 

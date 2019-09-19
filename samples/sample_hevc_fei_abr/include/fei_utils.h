@@ -104,7 +104,6 @@ public:
     Decoder(const SourceFrameInfo& inPars, SurfacesPool* sp, MFXVideoSession* session)
         : IYUVSource(inPars, sp)
         , m_session(session)
-        , m_LastSyncp(0)
     {
         m_Bitstream.TimeStamp=(mfxU64)-1;
     }
@@ -131,8 +130,6 @@ protected:
     MFXVideoSession*               m_session;
     std::unique_ptr<MFXVideoDECODE>  m_DEC;
     MfxVideoParamsWrapper          m_par;
-
-    mfxSyncPoint                   m_LastSyncp;
 
 private:
     DISALLOW_COPY_AND_ASSIGN(Decoder);

@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -143,6 +143,10 @@ public:
     // Add a new task to the scheduler. Threads start processing task immediately.
     virtual
     mfxStatus AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoint);
+
+    // Find the oldest active syncPoint for a specified owner
+    virtual
+    mfxStatus FindOldestActiveSyncPoint(const void *pOwner, mfxSyncPoint *pSyncPoint);
 
     // Make synchronization, wait until task is done.
     virtual
@@ -347,7 +351,7 @@ protected:
     bool m_bQuit;
     volatile
     bool m_bQuitWakeUpThread;
-    
+
     // Threads contexts
     MFX_SCHEDULER_THREAD_CONTEXT *m_pThreadCtx;
 

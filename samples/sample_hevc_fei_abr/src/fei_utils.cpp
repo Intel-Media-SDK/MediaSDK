@@ -173,11 +173,7 @@ mfxStatus Decoder::GetFrame(mfxFrameSurface1* & outSrf)
 
     while (MFX_ERR_MORE_DATA == sts || MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE < sts)
     {
-        if (MFX_WRN_DEVICE_BUSY == sts)
-        {
-            WaitForDeviceToBecomeFree(*m_session, m_LastSyncp, sts);
-        }
-        else if (MFX_ERR_MORE_DATA == sts)
+        if (MFX_ERR_MORE_DATA == sts)
         {
             sts = m_FileReader.ReadNextFrame(&m_Bitstream);
             if (MFX_ERR_MORE_DATA == sts)
@@ -195,13 +191,14 @@ mfxStatus Decoder::GetFrame(mfxFrameSurface1* & outSrf)
 
         sts = m_DEC->DecodeFrameAsync(bEOS ? NULL : &m_Bitstream, workSrf, &outSrf, &syncp);
 
+        if (MFX_WRN_DEVICE_BUSY == sts)
+        {
+            sts = WaitOnWrnDeviceBusy(*m_session, syncp);
+            continue;
+        }
+
         if (bEOS && MFX_ERR_MORE_DATA == sts)
             break;
-
-        if (MFX_ERR_NONE == sts)
-        {
-            m_LastSyncp = syncp;
-        }
 
         if (syncp && MFX_ERR_NONE < sts)
         {

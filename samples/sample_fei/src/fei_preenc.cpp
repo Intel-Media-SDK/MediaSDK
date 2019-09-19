@@ -523,15 +523,14 @@ mfxStatus FEI_PreencInterface::DownSampleInput(iTask* eTask)
         sts = m_pmfxDS->RunFrameVPPAsync(eTask->ENC_in.InSurface, eTask->PREENC_in.InSurface, NULL, &m_SyncPoint);
         MSDK_CHECK_WRN(sts, "WRN during RunFrameVPPAsync");
 
-        if (MFX_ERR_NONE < sts && !m_SyncPoint)
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            // Repeat the call if warning and no output
-
-            if (MFX_WRN_DEVICE_BUSY == sts){
-                WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-            }
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
-        else if (MFX_ERR_NONE < sts && m_SyncPoint)
+
+        if (MFX_ERR_NONE < sts && m_SyncPoint)
         {
             sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
             MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "VPP: SyncOperation failed");
@@ -817,16 +816,14 @@ mfxStatus FEI_PreencInterface::ProcessMultiPreenc(iTask* eTask)
                 sts = m_pmfxPREENC->ProcessFrameAsync(&eTask->PREENC_in, &eTask->PREENC_out, &m_SyncPoint);
                 MSDK_CHECK_WRN(sts, "WRN during ProcessFrameAsync");
 
-                if (MFX_ERR_NONE < sts && !m_SyncPoint)
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    // Repeat the call if warning and no output
-
-                    if (MFX_WRN_DEVICE_BUSY == sts)
-                    {
-                        WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-                    }
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && m_SyncPoint)
+
+                if (MFX_ERR_NONE < sts && m_SyncPoint)
                 {
                     sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
                     MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "FEI PreENC: SyncOperation failed");

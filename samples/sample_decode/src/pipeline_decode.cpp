@@ -1831,22 +1831,10 @@ mfxStatus CDecodingPipeline::RunDecoding()
                     m_mfxBS.Extend(pBitstream->MaxLength * 2);
                 }
 
-                if (MFX_WRN_DEVICE_BUSY == sts) {
-                    if (m_bIsCompleteFrame) {
-                        //in low latency mode device busy leads to increasing of latency
-                        //msdk_printf(MSDK_STRING("Warning : latency increased due to MFX_WRN_DEVICE_BUSY\n"));
-                    }
-                    mfxStatus _sts = SyncOutputSurface(MSDK_DEC_WAIT_INTERVAL);
-                    // note: everything except MFX_ERR_NONE are errors at this point
-                    if (MFX_ERR_NONE == _sts) {
-                        sts = MFX_WRN_DEVICE_BUSY;
-                    } else {
-                        sts = _sts;
-                        if (MFX_ERR_MORE_DATA == sts) {
-                            // we can't receive MFX_ERR_MORE_DATA and have no output - that's a bug
-                            sts = MFX_WRN_DEVICE_BUSY;//MFX_ERR_NOT_FOUND;
-                        }
-                    }
+                if (MFX_WRN_DEVICE_BUSY == sts)
+                {
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, m_pCurrentFreeOutputSurface->syncp);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
                 }
             } while (MFX_WRN_DEVICE_BUSY == sts);
 
@@ -1933,7 +1921,8 @@ mfxStatus CDecodingPipeline::RunDecoding()
 
                         if (MFX_WRN_DEVICE_BUSY == sts)
                         {
-                            MSDK_SLEEP(1); // just wait and then repeat the same call to RunFrameVPPAsync
+                            mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, m_pCurrentFreeOutputSurface->syncp);
+                            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
                         }
                     } while (MFX_WRN_DEVICE_BUSY == sts);
 

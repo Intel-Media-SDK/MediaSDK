@@ -1067,15 +1067,14 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
                 sts = m_pmfxENC->ProcessFrameAsync(&eTask->ENC_in, &eTask->ENC_out, &m_SyncPoint);
                 MSDK_CHECK_WRN(sts, "WRN during ProcessFrameAsync");
 
-                if (MFX_ERR_NONE < sts && !m_SyncPoint)
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    // Repeat the call if warning and no output
-
-                    if (MFX_WRN_DEVICE_BUSY == sts){
-                        WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-                    }
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && m_SyncPoint)
+
+                if (MFX_ERR_NONE < sts && m_SyncPoint)
                 {
                     sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
                     MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "FEI ENC: SyncOperation failed");
@@ -1133,15 +1132,14 @@ mfxStatus FEI_EncPakInterface::EncPakOneFrame(iTask* eTask)
                 sts = m_pmfxPAK->ProcessFrameAsync(&eTask->PAK_in, &eTask->PAK_out, &m_SyncPoint);
                 MSDK_CHECK_WRN(sts, "WRN during ProcessFrameAsync");
 
-                if (MFX_ERR_NONE < sts && !m_SyncPoint)
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    // Repeat the call if warning and no output
-
-                    if (MFX_WRN_DEVICE_BUSY == sts){
-                        WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-                    }
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && m_SyncPoint)
+
+                if (MFX_ERR_NONE < sts && m_SyncPoint)
                 {
                     // Ignore warnings if output is available
                     sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);

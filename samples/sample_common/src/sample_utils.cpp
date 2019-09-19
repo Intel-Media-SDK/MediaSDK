@@ -2386,30 +2386,22 @@ mfxStatus CH264FrameReader::PrepareNextFrame(mfxBitstream *in, mfxBitstream **ou
     return sts;
 }
 
-// This function either performs synchronization using provided syncpoint,
-// or just waits for predefined time if no available syncpoint
-void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint, mfxStatus& currentStatus)
+// This function performs synchronization using provided syncpoint
+mfxStatus WaitOnWrnDeviceBusy(MFXVideoSession& session, mfxSyncPoint& syncPoint)
 {
     if (syncPoint)
     {
-        mfxStatus stsSync = session.SyncOperation(syncPoint, MSDK_WAIT_INTERVAL);
-        if (MFX_ERR_NONE == stsSync)
-        {
-            // Retire completed sync point (otherwise we may start active polling)
-            syncPoint = NULL;
-            currentStatus = MFX_ERR_NONE;
-        }
-        else
-        {
-            MSDK_TRACE_ERROR(MSDK_STRING("WaitForDeviceToBecomeFree: SyncOperation failed, sts = ") << stsSync);
-            currentStatus = MFX_ERR_ABORTED;
-        }
+        mfxStatus sts = session.SyncOperation(syncPoint, MSDK_WAIT_INTERVAL);
+        syncPoint = nullptr;
+        MSDK_CHECK_STATUS(sts, "WaitForDeviceToBecomeFree: SyncOperation failed");
     }
     else
     {
-        MSDK_SLEEP(1);
-        currentStatus = MFX_ERR_NONE;
+        MSDK_TRACE_ERROR(MSDK_STRING("WaitForDeviceToBecomeFree: zero syncPoint"));
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
+
+    return MFX_ERR_NONE;
 }
 
 mfxU16 FourCCToChroma(mfxU32 fourCC)

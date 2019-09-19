@@ -683,5 +683,50 @@ mfxStatus mfxSchedulerCore::DoWork()
 } // mfxStatus mfxSchedulerCore::DoWork()
 
 
+mfxStatus mfxSchedulerCore::FindOldestActiveSyncPoint(const void *pOwner, mfxSyncPoint *pSyncPoint)
+{
+    if (nullptr == pOwner || nullptr == pSyncPoint)
+    {
+        return MFX_ERR_NULL_PTR;
+    }
 
+    mfxTaskHandle handle;
+    handle.handle = 0;
+
+    mfxU32 priority;
+    // enter protected section
+    {
+        std::lock_guard<std::mutex> guard(m_guard);
+
+        for (priority = 0; priority < MFX_PRIORITY_NUMBER; priority += 1)
+        {
+            int type;
+
+            for (type = MFX_TYPE_HARDWARE; type <= MFX_TYPE_SOFTWARE; type += 1)
+            {
+                MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
+
+                // run over the tasks with particular priority
+                while (pTask)
+                {
+                    // return the syncPoint associated with the oldest working task which belongs to the provided owner
+                    if ((pTask->param.task.pOwner == pOwner) &&
+                        (MFX_ERR_NONE != pTask->opRes))
+                    {
+                        handle.taskID = pTask->taskID;
+                        handle.jobID = pTask->jobID;
+                        *pSyncPoint = (mfxSyncPoint) handle.handle;
+
+                        return MFX_ERR_NONE;
+                    }
+
+                    // advance the task pointer
+                    pTask = pTask->pNext;
+                }
+            }
+        }
+    }
+
+    return MFX_ERR_NOT_FOUND;
+}
 

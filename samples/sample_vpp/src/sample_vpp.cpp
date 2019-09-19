@@ -713,24 +713,24 @@ int main(int argc, msdk_char *argv[])
             if ( Params.use_extapi )
             {
                 mfxFrameSurface1 * out_surface = nullptr;
-                sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
-                    pInSurf[nInStreamInd],
-                    pWorkSurf,
-                    //pExtData,
-                    &out_surface,
-                    &syncPoint);
-
-                while(MFX_WRN_DEVICE_BUSY == sts)
+                for (;;)
                 {
-                    MSDK_SLEEP(500);
                     sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                         pInSurf[nInStreamInd],
                         pWorkSurf,
                         //pExtData,
                         &out_surface,
                         &syncPoint);
+
+                    if (MFX_WRN_DEVICE_BUSY == sts)
+                    {
+                        mfxStatus sts1 = WaitOnWrnDeviceBusy(Resources.pProcessor->mfxSession, syncPoint);
+                        MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                        continue;
+                    }
+                    break;
                 }
-                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(pOutSurf);
+                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(out_surface);
                 if(MFX_ERR_MORE_DATA != sts)
                     bDoNotUpdateIn = true;
             }
@@ -894,21 +894,24 @@ int main(int argc, msdk_char *argv[])
             if ( Params.use_extapi )
             {
                 mfxFrameSurface1 * out_surface = nullptr;
-                sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
-                    NULL,
-                    pWorkSurf,
-                    &out_surface,
-                    &syncPoint );
-                while(MFX_WRN_DEVICE_BUSY == sts)
+                for (;;)
                 {
-                    MSDK_SLEEP(500);
                     sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                         NULL,
                         pWorkSurf,
                         &out_surface,
                         &syncPoint );
+
+                    if (MFX_WRN_DEVICE_BUSY == sts)
+                    {
+                        mfxStatus sts1 = WaitOnWrnDeviceBusy(Resources.pProcessor->mfxSession, syncPoint);
+                        MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                        continue;
+                    }
+
+                    break;
                 }
-                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(pOutSurf);
+                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(out_surface);
             }
             else
             {

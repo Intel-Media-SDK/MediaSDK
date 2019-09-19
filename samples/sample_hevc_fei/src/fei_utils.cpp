@@ -263,11 +263,7 @@ mfxStatus Decoder::GetFrame(mfxFrameSurface1* & outSrf)
 
     while (MFX_ERR_MORE_DATA == sts || MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE < sts)
     {
-        if (MFX_WRN_DEVICE_BUSY == sts)
-        {
-            WaitForDeviceToBecomeFree(*m_session, m_LastSyncp, sts);
-        }
-        else if (MFX_ERR_MORE_DATA == sts)
+        if (MFX_ERR_MORE_DATA == sts)
         {
             sts = m_FileReader.ReadNextFrame(&m_Bitstream);
             if (MFX_ERR_MORE_DATA == sts)
@@ -285,13 +281,15 @@ mfxStatus Decoder::GetFrame(mfxFrameSurface1* & outSrf)
 
         sts = m_DEC->DecodeFrameAsync(bEOS ? NULL : &m_Bitstream, workSrf, &outSrf, &syncp);
 
+        if (MFX_WRN_DEVICE_BUSY == sts)
+        {
+            auto sts1 = WaitOnWrnDeviceBusy(*m_session, syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
+        }
+
         if (bEOS && MFX_ERR_MORE_DATA == sts)
             break;
-
-        if (MFX_ERR_NONE == sts)
-        {
-            m_LastSyncp = syncp;
-        }
 
         if (syncp && MFX_ERR_NONE < sts)
         {
@@ -489,10 +487,12 @@ mfxStatus FieldSplitter::VPPOneFrame(mfxFrameSurface1* pSurfaceIn, mfxFrameSurfa
 
         if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            WaitForDeviceToBecomeFree(m_session, syncp, sts);
+            auto sts1 = WaitOnWrnDeviceBusy(m_session, syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
             continue;
         }
-        else if (MFX_ERR_NONE == sts || MFX_ERR_MORE_SURFACE == sts)
+
+        if (MFX_ERR_NONE == sts || MFX_ERR_MORE_SURFACE == sts)
         {
             break;
         }
@@ -639,12 +639,10 @@ mfxStatus MFX_VPP::ProcessFrame(mfxFrameSurface1* pInSurf, mfxFrameSurface1* & p
         sts = m_mfxVPP.RunFrameVPPAsync(pInSurf, pOutSurf, NULL, &syncp);
         MSDK_CHECK_WRN(sts, "VPP RunFrameVPPAsync");
 
-        if (MFX_ERR_NONE < sts && !syncp) // repeat the call if warning and no output
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            if (MFX_WRN_DEVICE_BUSY == sts)
-            {
-                WaitForDeviceToBecomeFree(*m_pmfxSession, syncp, sts);
-            }
+            auto sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, syncp);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
             continue;
         }
 

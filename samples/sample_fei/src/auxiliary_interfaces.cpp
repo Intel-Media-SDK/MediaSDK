@@ -174,15 +174,14 @@ mfxStatus MFX_VppInterface::VPPoneFrame(mfxFrameSurface1* pSurf_in, mfxFrameSurf
         sts = m_pmfxVPP->RunFrameVPPAsync(pSurf_in, pSurf_out, NULL, &m_SyncPoint);
         MSDK_CHECK_WRN(sts, "WRN during RunFrameVPPAsync");
 
-        if (MFX_ERR_NONE < sts && !m_SyncPoint)
+        if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            // Repeat the call if warning and no output
-
-            if (MFX_WRN_DEVICE_BUSY == sts){
-                WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-            }
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            continue;
         }
-        else if (MFX_ERR_NONE < sts && m_SyncPoint)
+
+        if (MFX_ERR_NONE < sts && m_SyncPoint)
         {
             sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
             MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "VPP: SyncOperation failed");
@@ -393,15 +392,7 @@ mfxStatus MFX_DecodeInterface::GetOneFrame(mfxFrameSurface1* & pSurf)
         }
         MSDK_CHECK_WRN(sts, "WRN during Decode<One|Last>Frame");
 
-        if (MFX_ERR_NONE < sts && !m_SyncPoint)
-        {
-            // Repeat the call if warning and no output
-
-            if (MFX_WRN_DEVICE_BUSY == sts){
-                WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-            }
-        }
-        else if (MFX_ERR_NONE < sts && m_SyncPoint)
+        if (MFX_ERR_NONE < sts && m_SyncPoint)
         {
             sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
             MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "Decode: SyncOperation failed");
@@ -456,7 +447,10 @@ mfxStatus MFX_DecodeInterface::DecodeOneFrame(mfxFrameSurface1 * & pSurf_out)
         switch (sts)
         {
         case MFX_WRN_DEVICE_BUSY:
-            WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+            {
+                mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+                MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+            }
             break;
 
         case MFX_ERR_MORE_DATA:
@@ -476,9 +470,8 @@ mfxStatus MFX_DecodeInterface::DecodeOneFrame(mfxFrameSurface1 * & pSurf_out)
 
         sts = m_pmfxDECODE->DecodeFrameAsync(&m_mfxBS, pDecSurf, &pSurf_out, &m_SyncPoint);
 
-        if (MFX_ERR_NONE < sts && m_SyncPoint)
+        if (MFX_ERR_NONE == sts && m_SyncPoint)
         {
-            // Ignore warnings if output is available
             break;
         }
 
@@ -499,7 +492,8 @@ mfxStatus MFX_DecodeInterface::DecodeLastFrame(mfxFrameSurface1 * & pSurf_out)
     {
         if (MFX_WRN_DEVICE_BUSY == sts)
         {
-            WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
+            mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+            MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
         }
         // find free surface for decoder input
         pDecSurf = m_pSurfPool->GetFreeSurface_FEI();

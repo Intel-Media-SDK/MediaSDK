@@ -303,6 +303,7 @@ mfxStatus sTask::Close()
 
 mfxStatus sTask::WriteBitstream()
 {
+	//printf("WriteBitstream Length %d\n", mfxBS.DataLength);
     if (pWriter)
         return pWriter->WriteNextFrame(&mfxBS);
     else
@@ -889,7 +890,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
         return MFX_ERR_MEMORY_ALLOC;
 
     // The number of surfaces shared by vpp output and encode input.
-    nEncSurfNum = EncRequest.NumFrameSuggested;
+    nEncSurfNum = EncRequest.NumFrameSuggested + 5;
 
     if (m_pmfxVPP)
     {
@@ -1902,7 +1903,7 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
     }
 
     mfxU32 nEncodedDataBufferSize = m_mfxEncParams.mfx.FrameInfo.Width * m_mfxEncParams.mfx.FrameInfo.Height * 4;
-    sts = m_TaskPool.Init(&m_mfxSession, m_FileWriters.first, m_mfxEncParams.AsyncDepth, nEncodedDataBufferSize, m_FileWriters.second);
+    sts = m_TaskPool.Init(&m_mfxSession, m_FileWriters.first, 45, nEncodedDataBufferSize, m_FileWriters.second);
     MSDK_CHECK_STATUS(sts, "m_TaskPool.Init failed");
 
     if (m_bSoftRobustFlag)
@@ -2115,17 +2116,20 @@ mfxStatus CEncodingPipeline::Run()
                                                   &m_pEncSurfaces[nEncSurfIdx],
                     NULL, &VppSyncPoint);
 
+                if (MFX_WRN_DEVICE_BUSY == sts)
+                {
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, VppSyncPoint);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
+                }
+
                 if (m_nMemBuffer)
                 {
                    // increment buffer index
                    nVppSurfIdx++;
                 }
-                if (MFX_ERR_NONE < sts && !VppSyncPoint) // repeat the call if warning and no output
-                {
-                    if (MFX_WRN_DEVICE_BUSY == sts)
-                        MSDK_SLEEP(1); // wait if device is busy
-                }
-                else if (MFX_ERR_NONE < sts && VppSyncPoint)
+
+                if (MFX_ERR_NONE < sts && VppSyncPoint)
                 {
                     sts = MFX_ERR_NONE; // ignore warnings if output is available
                     break;
@@ -2169,18 +2173,20 @@ mfxStatus CEncodingPipeline::Run()
             // at this point surface for encoder contains either a frame from file or a frame processed by vpp
             sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
+            if (MFX_WRN_DEVICE_BUSY == sts)
+            {
+                mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                continue;
+            }
 
             if (m_nMemBuffer)
             {
                 // increment buffer index
                 nEncSurfIdx++;
             }
-            if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
-            {
-                if (MFX_WRN_DEVICE_BUSY == sts)
-                    MSDK_SLEEP(1); // wait if device is busy
-            }
-            else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+
+            if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
             {
                 sts = MFX_ERR_NONE; // ignore warnings if output is available
                 break;
@@ -2221,12 +2227,14 @@ mfxStatus CEncodingPipeline::Run()
             {
                 sts = m_pmfxVPP->RunFrameVPPAsync(NULL, &m_pEncSurfaces[nEncSurfIdx], NULL, &VppSyncPoint);
 
-                if (MFX_ERR_NONE < sts && !VppSyncPoint) // repeat the call if warning and no output
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    if (MFX_WRN_DEVICE_BUSY == sts)
-                        MSDK_SLEEP(1); // wait if device is busy
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, VppSyncPoint);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && VppSyncPoint)
+
+                if (MFX_ERR_NONE < sts && VppSyncPoint)
                 {
                     sts = MFX_ERR_NONE; // ignore warnings if output is available
                     break;
@@ -2262,12 +2270,14 @@ mfxStatus CEncodingPipeline::Run()
 
                 sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
-                if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    if (MFX_WRN_DEVICE_BUSY == sts)
-                        MSDK_SLEEP(1); // wait if device is busy
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+
+                if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
                 {
                     sts = MFX_ERR_NONE; // ignore warnings if output is available
                     break;
@@ -2307,12 +2317,14 @@ mfxStatus CEncodingPipeline::Run()
 
             sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
-            if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
-            {
                 if (MFX_WRN_DEVICE_BUSY == sts)
-                    MSDK_SLEEP(1); // wait if device is busy
-            }
-            else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+                {
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
+                }
+
+            if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
             {
                 sts = MFX_ERR_NONE; // ignore warnings if output is available
                 break;

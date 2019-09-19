@@ -491,74 +491,88 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
-    MFX_CHECK(session->m_pDECODE.get(), MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(session->m_pDECODE, MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK_NULL_PTR1(syncp);
     MFX_CHECK_NULL_PTR1(surface_out);
 
     try
     {
-        mfxSyncPoint syncPoint = NULL;
-        MFX_TASK task;
-
-        // Wait for the bit stream
-        mfxRes = session->m_pScheduler->WaitForDependencyResolved(bs);
-        MFX_CHECK_STS(mfxRes);
-
-        // reset the sync point
-        *syncp = NULL;
-        *surface_out = NULL;
-
-        memset(&task, 0, sizeof(MFX_TASK));
-        mfxRes = session->m_pDECODE->DecodeFrameCheck(bs, surface_work, surface_out, &task.entryPoint);
-        MFX_CHECK(mfxRes >= 0 || MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes), mfxRes);
-
-        // source data is OK, go forward
-        if (task.entryPoint.pRoutine)
+        do
         {
-            mfxStatus mfxAddRes;
+            mfxSyncPoint syncPoint = NULL;
+            MFX_TASK task;
 
-            task.pOwner = session->m_pDECODE.get();
-            task.priority = session->m_priority;
-            task.threadingPolicy = session->m_pDECODE->GetThreadingPolicy();
-            // fill dependencies
-            task.pSrc[0] = *surface_out;
-            task.pDst[0] = *surface_out;
-            // this is wa to remove external task dependency for HEVC SW decode plugin.
-            // need only because SW HEVC decode is pseudo
+            // Wait for the bit stream
+            mfxRes = session->m_pScheduler->WaitForDependencyResolved(bs);
+            MFX_CHECK_STS(mfxRes);
+
+            // reset the sync point
+            *syncp = NULL;
+            *surface_out = NULL;
+
+            memset(&task, 0, sizeof(MFX_TASK));
+            mfxRes = session->m_pDECODE->DecodeFrameCheck(bs, surface_work, surface_out, &task.entryPoint);
+            MFX_CHECK(mfxRes >= 0 || MFX_ERR_MORE_DATA_SUBMIT_TASK == mfxRes, mfxRes);
+
+            // source data is OK, go forward
+            if (task.entryPoint.pRoutine)
             {
-                mfxPlugin plugin;
-                mfxPluginParam par;
-                if (session->m_plgDec.get())
+                mfxStatus mfxAddRes;
+
+                task.pOwner = session->m_pDECODE.get();
+                task.priority = session->m_priority;
+                task.threadingPolicy = session->m_pDECODE->GetThreadingPolicy();
+                // fill dependencies
+                task.pSrc[0] = *surface_out;
+                task.pDst[0] = *surface_out;
+                // this is wa to remove external task dependency for HEVC SW decode plugin.
+                // need only because SW HEVC decode is pseudo
                 {
-                    session->m_plgDec.get()->GetPlugin(plugin);
-                    MFX_CHECK_STS(plugin.GetPluginParam(plugin.pthis, &par));
-                    if (MFX_PLUGINID_HEVCD_SW == par.PluginUID)
+                    mfxPlugin plugin;
+                    mfxPluginParam par;
+                    if (session->m_plgDec)
                     {
-                        task.pDst[0] = 0;
+                        session->m_plgDec->GetPlugin(plugin);
+                        MFX_CHECK_STS(plugin.GetPluginParam(plugin.pthis, &par));
+                        if (MFX_PLUGINID_HEVCD_SW == par.PluginUID)
+                        {
+                            task.pDst[0] = 0;
+                        }
                     }
                 }
+
+    #ifdef MFX_TRACE_ENABLE
+                task.nParentId = MFX_AUTO_TRACE_GETID();
+                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_DECODE;
+    #endif
+
+                // register input and call the task
+                mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
+                MFX_CHECK_STS(mfxAddRes);
             }
 
-#ifdef MFX_TRACE_ENABLE
-            task.nParentId = MFX_AUTO_TRACE_GETID();
-            task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_DECODE;
-#endif
+            if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+            {
+                mfxRes = MFX_WRN_DEVICE_BUSY;
+            }
 
-            // register input and call the task
-            mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
-            MFX_CHECK_STS(mfxAddRes);
-        }
+            if (MFX_WRN_DEVICE_BUSY == mfxRes)
+            {
+                mfxStatus mfxFindRes = session->m_pScheduler->FindOldestActiveSyncPoint(session->m_pDECODE.get(), &syncPoint);
+                // If we can't find any active SyncPoint's it means that next call to MFXVideoDECODE_DecodeFrameAsync should already accept a task.
+                // Let's repeat the call right here instead of making application do it.
+                if (MFX_ERR_NOT_FOUND == mfxFindRes)
+                     continue;
 
-        if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
-        {
-            mfxRes = MFX_WRN_DEVICE_BUSY;
-        }
+                MFX_CHECK_STS(mfxFindRes);
+            }
 
-        // return pointer to synchronization point
-        if (MFX_ERR_NONE == mfxRes || (mfxRes == MFX_WRN_VIDEO_PARAM_CHANGED && *surface_out != NULL))
-        {
-            *syncp = syncPoint;
-        }
+            // return pointer to synchronization point
+            if (MFX_ERR_NONE == mfxRes || (mfxRes == MFX_WRN_VIDEO_PARAM_CHANGED && *surface_out != NULL) || (MFX_WRN_DEVICE_BUSY == mfxRes && syncPoint))
+            {
+                *syncp = syncPoint;
+            }
+        } while (false);
     }
     // handle error(s)
     catch(...)

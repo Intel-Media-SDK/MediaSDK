@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2019 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -56,21 +56,21 @@ namespace
             switch(type)
             {
             case MFX_PLUGINTYPE_VIDEO_DECODE :
-                _ptr = &_session->m_plgDec; 
+                _ptr = &_session->m_plgDec;
                 _isNeedCodec = false;
                 _isNeedDeCoder = true;
                 _isNeedVPP = false;
                 _isNeedEnc = false;
                 break;
             case MFX_PLUGINTYPE_VIDEO_ENCODE:
-                _ptr =&_session->m_plgEnc; 
+                _ptr =&_session->m_plgEnc;
                 _isNeedCodec = true;
                 _isNeedDeCoder = false;
                 _isNeedVPP = false;
                 _isNeedEnc = false;
                 break;
             case MFX_PLUGINTYPE_VIDEO_VPP :
-                _ptr = &_session->m_plgVPP; 
+                _ptr = &_session->m_plgVPP;
                 _isNeedCodec = false;
                 _isNeedDeCoder = false;
                 _isNeedVPP = true;
@@ -89,7 +89,7 @@ namespace
                     MFXIPtr<MFXISession_1_10> newSession(versionedSession->QueryInterface(MFXISession_1_10_GUID));
                     if (newSession)
                     {
-                        _ptr = &newSession->GetPreEncPlugin(); 
+                        _ptr = &newSession->GetPreEncPlugin();
                         _isNeedCodec = false;
                         _isNeedDeCoder = false;
                         _isNeedVPP = false;
@@ -102,13 +102,13 @@ namespace
                 }
                 break;
             case MFX_PLUGINTYPE_VIDEO_GENERAL :
-                _ptr = &_session->m_plgGen; 
+                _ptr = &_session->m_plgGen;
                 _isNeedCodec = false;
                 _isNeedDeCoder = false;
                 _isNeedVPP = false;
                 _isNeedEnc = false;
                 break;
-            default : 
+            default :
                 //unknown plugin type
                 throw MFX_ERR_UNDEFINED_BEHAVIOR;
             }
@@ -126,7 +126,7 @@ namespace
         {
             return _isNeedEnc ;
         }
- 
+
         bool isNeedEncoder()const
         {
             return _isNeedCodec ;
@@ -139,7 +139,7 @@ namespace
         {
             return _isNeedVPP;
         }
-    };      
+    };
 
 
 
@@ -277,7 +277,7 @@ mfxStatus MFXVideoUSER_GetPlugin(mfxSession session, mfxU32 type, mfxPlugin *par
     // check error(s)
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK_NULL_PTR1(par);
-    
+
     try
     {
         SessionPtr sessionPtr(session, type);
@@ -326,7 +326,7 @@ mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type)
 
         // deinitialize the plugin
         mfxRes = registeredPlg->PluginClose();
-        
+
         // delete the plugin's instance
         registeredPlg.reset();
         //delete corresponding codec instance
@@ -371,46 +371,61 @@ mfxStatus MFXVideoUSER_ProcessFrameAsync(mfxSession session,
     MFX_CHECK(session->m_plgGen.get(), MFX_ERR_NOT_INITIALIZED);
     MFX_CHECK(syncp, MFX_ERR_NULL_PTR);
     MFX_CHECK(in_num <= MFX_TASK_NUM_DEPENDENCIES && out_num <= MFX_TASK_NUM_DEPENDENCIES, MFX_ERR_UNSUPPORTED);
+
     try
     {
-        //generic plugin function
-        std::unique_ptr<VideoCodecUSER> & registeredPlg = SessionPtr(session).plugin();
-
-        mfxSyncPoint syncPoint = NULL;
-        MFX_TASK task;
-
-        memset(&task, 0, sizeof(MFX_TASK));
-        mfxRes = registeredPlg->Check(in, in_num, out, out_num, &task.entryPoint);
-        // source data is OK, go forward
-        if (MFX_ERR_NONE == mfxRes)
+        do
         {
-            mfxU32 i;
+            //generic plugin function
+            std::unique_ptr<VideoCodecUSER> & registeredPlg = SessionPtr(session).plugin();
 
-            task.pOwner = registeredPlg.get();
-            task.priority = session->m_priority;
-            task.threadingPolicy = registeredPlg->GetThreadingPolicy();
-            // fill dependencies
-            for (i = 0; i < in_num; i += 1)
+            mfxSyncPoint syncPoint = NULL;
+            MFX_TASK task;
+
+            memset(&task, 0, sizeof(MFX_TASK));
+            mfxRes = registeredPlg->Check(in, in_num, out, out_num, &task.entryPoint);
+            // source data is OK, go forward
+            if (MFX_ERR_NONE == mfxRes)
             {
-                task.pSrc[i] = in[i];
+                mfxU32 i;
+
+                task.pOwner = registeredPlg.get();
+                task.priority = session->m_priority;
+                task.threadingPolicy = registeredPlg->GetThreadingPolicy();
+                // fill dependencies
+                for (i = 0; i < in_num; i += 1)
+                {
+                    task.pSrc[i] = in[i];
+                }
+                for (i = 0; i < out_num; i += 1)
+                {
+                    task.pDst[i] = out[i];
+                }
+
+                // register input and call the task
+                mfxRes = session->m_pScheduler->AddTask(task, &syncPoint);
             }
-            for (i = 0; i < out_num; i += 1)
+            else if (MFX_WRN_DEVICE_BUSY == mfxRes)
             {
-                task.pDst[i] = out[i];
+                mfxStatus mfxFindRes = session->m_pScheduler->FindOldestActiveSyncPoint(registeredPlg.get(), &syncPoint);
+                // If we can't find any active SyncPoint's it means that next call to MFXVideoDECODE_DecodeFrameAsync should already accept a task.
+                // Let's repeat the call right here instead of making application do it.
+                if (MFX_ERR_NOT_FOUND == mfxFindRes)
+                        continue;
+
+                MFX_CHECK_STS(mfxFindRes);
             }
 
-            // register input and call the task
-            mfxRes = session->m_pScheduler->AddTask(task, &syncPoint);
-        }
-
-        // return pointer to synchronization point
-        *syncp = syncPoint;
+            // return pointer to synchronization point
+            *syncp = syncPoint;
+        } while (false);
     }
     catch(...)
     {
         // set the default error value
         mfxRes = MFX_ERR_UNKNOWN;
     }
+
 
     return mfxRes;
 

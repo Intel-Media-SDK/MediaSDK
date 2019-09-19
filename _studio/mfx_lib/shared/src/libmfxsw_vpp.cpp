@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -262,176 +262,189 @@ mfxStatus MFXVideoVPP_RunFrameVPPAsync(mfxSession session, mfxFrameSurface1 *in,
 
     try
     {
-#ifdef MFX_ENABLE_USER_VPP
-      if (session->m_plgVPP.get())
-      {
-          MFX_TASK task;
-          mfxSyncPoint syncPoint = NULL;
-          *syncp = NULL;
-          memset(&task, 0, sizeof(MFX_TASK));
-
-          mfxRes = session->m_plgVPP->VPPFrameCheck(in, out, aux, &task.entryPoint);
-
-          if (task.entryPoint.pRoutine)
-          {
-              mfxStatus mfxAddRes;
-
-              task.pOwner = session->m_plgVPP.get();
-              task.priority = session->m_priority;
-              task.threadingPolicy = session->m_plgVPP->GetThreadingPolicy();
-              // fill dependencies
-              task.pSrc[0] = in;
-              task.pDst[0] = out;
-              if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
-                task.pDst[0] = NULL;
-
-              #ifdef MFX_TRACE_ENABLE
-              task.nParentId = MFX_AUTO_TRACE_GETID();
-              task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
-              #endif
-
-              // register input and call the task
-              mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
-              if (MFX_ERR_NONE != mfxAddRes)
-              {
-                  return mfxAddRes;
-              }
-              *syncp = syncPoint;
-          }
-      }
-      else
-      {
-#endif
-        mfxSyncPoint syncPoint = NULL;
-        MFX_ENTRY_POINT entryPoints[MFX_NUM_ENTRY_POINTS];
-        mfxU32 numEntryPoints = MFX_NUM_ENTRY_POINTS;
-
-        memset(&entryPoints, 0, sizeof(entryPoints));
-        mfxRes = session->m_pVPP->VppFrameCheck(in, out, aux, entryPoints, numEntryPoints);
-        // source data is OK, go forward
-        if ((MFX_ERR_NONE == mfxRes) ||
-            (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes)) ||
-            (MFX_ERR_MORE_SURFACE == mfxRes) ||
-            (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes))
+        do
         {
-            // prepare the absolete kind of task.
-            // it is absolete and must be removed.
-            if (NULL == entryPoints[0].pRoutine)
+#ifdef MFX_ENABLE_USER_VPP
+            if (session->m_plgVPP.get())
             {
                 MFX_TASK task;
+                mfxSyncPoint syncPoint = NULL;
+                *syncp = NULL;
+                memset(&task, 0, sizeof(MFX_TASK));
 
-                memset(&task, 0, sizeof(task));
-                // BEGIN OF OBSOLETE PART
-                task.bObsoleteTask = true;
-                // fill task info
-                task.pOwner = session->m_pVPP.get();
-                task.entryPoint.pRoutine = &MFXVideoVPPLegacyRoutine;
-                task.entryPoint.pState = session->m_pVPP.get();
-                task.entryPoint.requiredNumThreads = 1;
+                mfxRes = session->m_plgVPP->VPPFrameCheck(in, out, aux, &task.entryPoint);
 
-                // fill legacy parameters
-                task.obsolete_params.vpp.in = in;
-                task.obsolete_params.vpp.out = out;
-                task.obsolete_params.vpp.aux = aux;
-                // END OF OBSOLETE PART
+                if (task.entryPoint.pRoutine)
+                {
+                    mfxStatus mfxAddRes;
 
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = in;
-                task.pDst[0] = out;
+                    task.pOwner = session->m_plgVPP.get();
+                    task.priority = session->m_priority;
+                    task.threadingPolicy = session->m_plgVPP->GetThreadingPolicy();
+                    // fill dependencies
+                    task.pSrc[0] = in;
+                    task.pDst[0] = out;
+                    if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                        task.pDst[0] = NULL;
 
-                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
-                    task.pDst[0] = NULL;
+                    #ifdef MFX_TRACE_ENABLE
+                    task.nParentId = MFX_AUTO_TRACE_GETID();
+                    task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
+                    #endif
 
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
-#endif // MFX_TRACE_ENABLE
-
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
-            }
-            else if (1 == numEntryPoints)
-            {
-                MFX_TASK task;
-
-                memset(&task, 0, sizeof(task));
-                task.pOwner = session->m_pVPP.get();
-                task.entryPoint = entryPoints[0];
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = in;
-                task.pDst[0] = out;
-                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
-                    task.pDst[0] = NULL;
-
-
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
-#endif
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                    // register input and call the task
+                    mfxAddRes = session->m_pScheduler->AddTask(task, &syncPoint);
+                    if (MFX_ERR_NONE != mfxAddRes)
+                    {
+                        return mfxAddRes;
+                    }
+                    *syncp = syncPoint;
+                }
             }
             else
             {
-                MFX_TASK task;
+#endif
+                mfxSyncPoint syncPoint = NULL;
+                MFX_ENTRY_POINT entryPoints[MFX_NUM_ENTRY_POINTS];
+                mfxU32 numEntryPoints = MFX_NUM_ENTRY_POINTS;
 
-                memset(&task, 0, sizeof(task));
-                task.pOwner = session->m_pVPP.get();
-                task.entryPoint = entryPoints[0];
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
-                // fill dependencies
-                task.pSrc[0] = in;
-                task.pDst[0] = entryPoints[0].pParam;
+                memset(&entryPoints, 0, sizeof(entryPoints));
+                mfxRes = session->m_pVPP->VppFrameCheck(in, out, aux, entryPoints, numEntryPoints);
+                // source data is OK, go forward
+                if ((MFX_ERR_NONE == mfxRes) ||
+                    (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes)) ||
+                    (MFX_ERR_MORE_SURFACE == mfxRes) ||
+                    (MFX_WRN_INCOMPATIBLE_VIDEO_PARAM == mfxRes))
+                {
+                    // prepare the absolete kind of task.
+                    // it is absolete and must be removed.
+                    if (NULL == entryPoints[0].pRoutine)
+                    {
+                        MFX_TASK task;
+
+                        memset(&task, 0, sizeof(task));
+                        // BEGIN OF OBSOLETE PART
+                        task.bObsoleteTask = true;
+                        // fill task info
+                        task.pOwner = session->m_pVPP.get();
+                        task.entryPoint.pRoutine = &MFXVideoVPPLegacyRoutine;
+                        task.entryPoint.pState = session->m_pVPP.get();
+                        task.entryPoint.requiredNumThreads = 1;
+
+                        // fill legacy parameters
+                        task.obsolete_params.vpp.in = in;
+                        task.obsolete_params.vpp.out = out;
+                        task.obsolete_params.vpp.aux = aux;
+                        // END OF OBSOLETE PART
+
+                        task.priority = session->m_priority;
+                        task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
+                        // fill dependencies
+                        task.pSrc[0] = in;
+                        task.pDst[0] = out;
+
+                        if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                            task.pDst[0] = NULL;
+
+#ifdef MFX_TRACE_ENABLE
+                        task.nParentId = MFX_AUTO_TRACE_GETID();
+                        task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
+#endif // MFX_TRACE_ENABLE
+
+                        // register input and call the task
+                        MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                    }
+                    else if (1 == numEntryPoints)
+                    {
+                        MFX_TASK task;
+
+                        memset(&task, 0, sizeof(task));
+                        task.pOwner = session->m_pVPP.get();
+                        task.entryPoint = entryPoints[0];
+                        task.priority = session->m_priority;
+                        task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
+                        // fill dependencies
+                        task.pSrc[0] = in;
+                        task.pDst[0] = out;
+                        if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                            task.pDst[0] = NULL;
 
 
 #ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
+                        task.nParentId = MFX_AUTO_TRACE_GETID();
+                        task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
 #endif
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                        // register input and call the task
+                        MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                    }
+                    else
+                    {
+                        MFX_TASK task;
 
-                memset(&task, 0, sizeof(task));
-                task.pOwner = session->m_pVPP.get();
-                task.entryPoint = entryPoints[1];
-                task.priority = session->m_priority;
-                task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
+                        memset(&task, 0, sizeof(task));
+                        task.pOwner = session->m_pVPP.get();
+                        task.entryPoint = entryPoints[0];
+                        task.priority = session->m_priority;
+                        task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
+                        // fill dependencies
+                        task.pSrc[0] = in;
+                        task.pDst[0] = entryPoints[0].pParam;
 
-                // fill dependencies
-                task.pSrc[0] = entryPoints[0].pParam;
-                task.pDst[0] = out;
-                task.pDst[1] = aux;
-                if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+
+#ifdef MFX_TRACE_ENABLE
+                        task.nParentId = MFX_AUTO_TRACE_GETID();
+                        task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP;
+#endif
+                        // register input and call the task
+                        MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+
+                        memset(&task, 0, sizeof(task));
+                        task.pOwner = session->m_pVPP.get();
+                        task.entryPoint = entryPoints[1];
+                        task.priority = session->m_priority;
+                        task.threadingPolicy = session->m_pVPP->GetThreadingPolicy();
+
+                        // fill dependencies
+                        task.pSrc[0] = entryPoints[0].pParam;
+                        task.pDst[0] = out;
+                        task.pDst[1] = aux;
+                        if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                        {
+                            task.pDst[0] = NULL;
+                            task.pDst[1] = NULL;
+                        }
+
+#ifdef MFX_TRACE_ENABLE
+                        task.nParentId = MFX_AUTO_TRACE_GETID();
+                        task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP2;
+#endif
+                        // register input and call the task
+                        MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
+                    }
+
+                    if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
+                    {
+                        mfxRes = MFX_ERR_MORE_DATA;
+                        syncPoint = NULL;
+                    }
+                }
+                else if (MFX_WRN_DEVICE_BUSY == mfxRes)
                 {
-                    task.pDst[0] = NULL;
-                    task.pDst[1] = NULL;
+                    mfxStatus mfxFindRes = session->m_pScheduler->FindOldestActiveSyncPoint(session->m_pVPP.get(), &syncPoint);
+                    // If we can't find any active SyncPoint's it means that next call to MFXVideoDECODE_DecodeFrameAsync should already accept a task.
+                    // Let's repeat the call right here instead of making application do it.
+                    if (MFX_ERR_NOT_FOUND == mfxFindRes)
+                        continue;
+
+                    MFX_CHECK_STS(mfxFindRes);
                 }
 
-#ifdef MFX_TRACE_ENABLE
-                task.nParentId = MFX_AUTO_TRACE_GETID();
-                task.nTaskId = MFX::CreateUniqId() + MFX_TRACE_ID_VPP2;
-#endif
-                // register input and call the task
-                MFX_CHECK_STS(session->m_pScheduler->AddTask(task, &syncPoint));
-            }
-
-            if (MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes))
-            {
-                mfxRes = MFX_ERR_MORE_DATA;
-                syncPoint = NULL;
-            }
-        }
-
-        // return pointer to synchronization point
-        *syncp = syncPoint;
+                // return pointer to synchronization point
+                *syncp = syncPoint;
 #ifdef MFX_ENABLE_USER_VPP
-      }
+            }
 #endif
+        } while (false);
     }
     // handle error(s)
     catch(...)

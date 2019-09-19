@@ -365,12 +365,12 @@ mfxStatus CUserPipeline::Run()
 
             if (MFX_WRN_DEVICE_BUSY == sts)
             {
-                MSDK_SLEEP(1); // just wait and then repeat the same call
+                mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, RotateSyncPoint);
+                MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                continue;
             }
-            else
-            {
-                break;
-            }
+
+            break;
         }
         MSDK_BREAK_ON_ERROR(sts);
 
@@ -388,12 +388,14 @@ mfxStatus CUserPipeline::Run()
 
             sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
-            if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
+            if (MFX_WRN_DEVICE_BUSY == sts)
             {
-                if (MFX_WRN_DEVICE_BUSY == sts)
-                    MSDK_SLEEP(1); // wait if device is busy
+                mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                continue;
             }
-            else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+
+            if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
             {
                 sts = MFX_ERR_NONE; // ignore warnings if output is available
                 break;
@@ -430,12 +432,14 @@ mfxStatus CUserPipeline::Run()
 
             sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
-            if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
+            if (MFX_WRN_DEVICE_BUSY == sts)
             {
-                if (MFX_WRN_DEVICE_BUSY == sts)
-                    MSDK_SLEEP(1); // wait if device is busy
+                mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                continue;
             }
-            else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+
+            if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
             {
                 sts = MFX_ERR_NONE; // ignore warnings if output is available
                 break;

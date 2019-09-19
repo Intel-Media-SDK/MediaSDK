@@ -724,14 +724,14 @@ mfxStatus FEI_EncodeInterface::EncodeOneFrame(iTask* eTask)
             sts = m_pmfxENCODE->EncodeFrameAsync(&m_encodeControl, encodeSurface, &m_mfxBS, &m_SyncPoint);
             MSDK_CHECK_WRN(sts, "WRN during EncodeFrameAsync");
 
-            if (MFX_ERR_NONE < sts && !m_SyncPoint) // repeat the call if warning and no output
+            if (MFX_WRN_DEVICE_BUSY == sts)
             {
-                if (MFX_WRN_DEVICE_BUSY == sts)
-                {
-                    WaitForDeviceToBecomeFree(*m_pmfxSession, m_SyncPoint, sts);
-                }
+                mfxStatus sts1 = WaitOnWrnDeviceBusy(*m_pmfxSession, m_SyncPoint);
+                MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                continue;
             }
-            else if (MFX_ERR_NONE < sts && m_SyncPoint)
+
+            if (MFX_ERR_NONE < sts && m_SyncPoint)
             {
                 sts = m_pmfxSession->SyncOperation(m_SyncPoint, MSDK_WAIT_INTERVAL);
                 MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "FEI ENCODE: SyncOperation failed");

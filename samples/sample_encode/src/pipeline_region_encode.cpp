@@ -593,12 +593,14 @@ mfxStatus CRegionEncodingPipeline::Run()
                     nEncSurfIdx++;
                 }
 
-                if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    if (MFX_WRN_DEVICE_BUSY == sts)
-                        MSDK_SLEEP(1); // wait if device is busy
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+
+                if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
                 {
                     sts = MFX_ERR_NONE; // ignore warnings if output is available
                     break;
@@ -651,13 +653,14 @@ mfxStatus CRegionEncodingPipeline::Run()
 
                 sts = m_resources[regId].pEncoder->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
-
-                if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
+                if (MFX_WRN_DEVICE_BUSY == sts)
                 {
-                    if (MFX_WRN_DEVICE_BUSY == sts)
-                        MSDK_SLEEP(1); // wait if device is busy
+                    mfxStatus sts1 = WaitOnWrnDeviceBusy(m_mfxSession, pCurrentTask->EncSyncP);
+                    MSDK_CHECK_STATUS(sts1, "WaitOnWrnDeviceBusy failed");
+                    continue;
                 }
-                else if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
+
+                if (MFX_ERR_NONE < sts && pCurrentTask->EncSyncP)
                 {
                     sts = MFX_ERR_NONE; // ignore warnings if output is available
                     break;

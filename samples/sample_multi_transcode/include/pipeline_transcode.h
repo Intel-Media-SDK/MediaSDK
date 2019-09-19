@@ -827,8 +827,6 @@ namespace TranscodingSample
 
         bool           m_bUseOpaqueMemory; // indicates if opaque memory is used in the pipeline
 
-        mfxSyncPoint   m_LastDecSyncPoint;
-
         SafetySurfaceBuffer   *m_pBuffer;
         CTranscodingPipeline  *m_pParentPipeline;
 
