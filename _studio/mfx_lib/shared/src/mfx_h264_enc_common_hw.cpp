@@ -47,8 +47,6 @@ using namespace MfxHwH264Encode;
 const mfxU32 DEFAULT_CPB_IN_SECONDS = 2000;          //  BufferSizeInBits = DEFAULT_CPB_IN_SECONDS * MaxKbps
 const mfxU32 MAX_BITRATE_RATIO = mfxU32(1.5 * 1000); //  MaxBps = MAX_BITRATE_RATIO * TargetKbps;
 
-const mfxU32 MIN_LOOKAHEAD_DEPTH = 10;
-
 const mfxU32 DEFAULT_ASYNC_DEPTH_TO_WA_D3D9_128_SURFACE_LIMIT = 10; //  Use this value in case of d3d9 and when par.AsyncDepth parameter is set to a very big value
 
 namespace
@@ -2558,12 +2556,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
     else if (extOpt2->LookAheadDepth > 0)
     {
-        if (extOpt2->LookAheadDepth < MIN_LOOKAHEAD_DEPTH)
-        {
-            changed = true;
-            extOpt2->LookAheadDepth = MIN_LOOKAHEAD_DEPTH;
-        }
-
         if (!bRateControlLA(par.mfx.RateControlMethod))
         {
             changed = true;
@@ -5709,9 +5701,17 @@ void MfxHwH264Encode::SetDefaults(
 
     }
     if (extDdi->LookAheadDependency == 0)
-        extDdi->LookAheadDependency = (bIntRateControlLA(par.mfx.RateControlMethod) && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_ICQ)
-            ? std::min<mfxU16>(10, extOpt2->LookAheadDepth / 4)
-            : extOpt2->LookAheadDepth;
+    {
+        if (bIntRateControlLA(par.mfx.RateControlMethod) && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_ICQ)
+        {
+            extDdi->LookAheadDependency = std::min<mfxU16>(10, extOpt2->LookAheadDepth / 4);
+            extDdi->LookAheadDependency = mfx::clamp<mfxU16>(extDdi->LookAheadDependency, std::min<mfxU16>(par.mfx.GopRefDist + 1, extOpt2->LookAheadDepth * 2 / 3), (extOpt2->LookAheadDepth * 2 / 3));
+        }
+        else
+        {
+            extDdi->LookAheadDependency = extOpt2->LookAheadDepth;
+        }
+    }
 
     if (extOpt2->LookAheadDS == MFX_LOOKAHEAD_DS_UNKNOWN) // default: use LA 2X for TU3-7 and LA 1X for TU1-2
     {

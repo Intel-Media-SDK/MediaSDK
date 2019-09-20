@@ -228,7 +228,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -mss maxSliceSize \n"));
     msdk_printf(MSDK_STRING("                Maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -l option.\n"));
     msdk_printf(MSDK_STRING("  -la           Use the look ahead bitrate control algorithm (LA BRC) for H.264 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
-    msdk_printf(MSDK_STRING("  -lad depth    Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100]. \n"));
+    msdk_printf(MSDK_STRING("  -lad depth    Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [1,100]. \n"));
     msdk_printf(MSDK_STRING("                May be 1 in the case when -mss option is specified \n"));
     msdk_printf(MSDK_STRING("  -la_ext       Use external LA plugin (compatible with h264 & hevc encoders)\n"));
     msdk_printf(MSDK_STRING("  -vbr          Variable bitrate control\n"));
@@ -2608,13 +2608,14 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (InputParams.nLADepth && (InputParams.nLADepth < 10))
+    if ( (InputParams.nRateControlMethod == MFX_RATECONTROL_LA ||
+        InputParams.nRateControlMethod == MFX_RATECONTROL_LA_EXT ||
+        InputParams.nRateControlMethod == MFX_RATECONTROL_LA_ICQ ||
+        InputParams.nRateControlMethod == MFX_RATECONTROL_LA_HRD) &&
+        (!InputParams.nLADepth || InputParams.nLADepth > 100) )
     {
-        if ((InputParams.nLADepth != 1) || (!InputParams.nMaxSliceSize))
-        {
-            PrintError(MSDK_STRING("Unsupported value of -lad parameter, must be >= 10, or 1 in case of -mss option!"));
-            return MFX_ERR_UNSUPPORTED;
-        }
+        PrintError(MSDK_STRING("Unsupported value of -lad parameter, must be in range [1,100]"));
+        return MFX_ERR_UNSUPPORTED;
     }
 
     if ((InputParams.nMaxSliceSize) && !(InputParams.libType & MFX_IMPL_HARDWARE_ANY))

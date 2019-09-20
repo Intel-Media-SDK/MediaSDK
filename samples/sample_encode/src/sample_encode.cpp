@@ -87,7 +87,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
     msdk_printf(MSDK_STRING("           if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
-    msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100].\n"));
+    msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [1,100].\n"));
     msdk_printf(MSDK_STRING("            may be 1 in the case when -mss option is specified \n"));
     msdk_printf(MSDK_STRING("            if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
     msdk_printf(MSDK_STRING("   [-dstw width] - destination picture width, invokes VPP resizing\n"));
@@ -1411,13 +1411,14 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (pParams->nLADepth && (pParams->nLADepth < 10))
+    if ( (pParams->nRateControlMethod == MFX_RATECONTROL_LA ||
+        pParams->nRateControlMethod == MFX_RATECONTROL_LA_EXT ||
+        pParams->nRateControlMethod == MFX_RATECONTROL_LA_ICQ ||
+        pParams->nRateControlMethod == MFX_RATECONTROL_LA_HRD) &&
+        (!pParams->nLADepth || pParams->nLADepth > 100) )
     {
-        if ((pParams->nLADepth != 1) || (!pParams->nMaxSliceSize))
-        {
-            PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be >= 10, or 1 in case of -mss option!"));
-            return MFX_ERR_UNSUPPORTED;
-        }
+        PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be in range [1,100]"));
+        return MFX_ERR_UNSUPPORTED;
     }
 
     if (pParams->nNumRefActiveP || pParams->nNumRefActiveBL0 || pParams->nNumRefActiveBL1)

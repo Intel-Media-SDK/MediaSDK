@@ -1401,7 +1401,47 @@ namespace MfxHwH264Encode
         mfxU32 m_lookAhead;
     };
 
+    class Hrd
+    {
+    public:
+        Hrd();
 
+        void Setup(MfxVideoParam const & par);
+
+        void Reset(MfxVideoParam const & par);
+
+        void RemoveAccessUnit(
+            mfxU32 size,
+            mfxU32 interlace,
+            mfxU32 bufferingPeriod);
+
+        mfxU32 GetInitCpbRemovalDelay() const;
+
+        mfxU32 GetInitCpbRemovalDelayOffset() const;
+        mfxU32 GetMaxFrameSize(mfxU32 bufferingPeriod) const;
+
+    private:
+        mfxU32 m_bitrate;
+        mfxU32 m_rcMethod;
+        mfxU32 m_hrdIn90k;  // size of hrd buffer in 90kHz units
+
+        double m_tick;      // clock tick
+        double m_trn_cur;   // nominal removal time
+        double m_taf_prv;   // final arrival time of prev unit
+
+        bool m_bIsHrdRequired;
+    };
+
+    struct sLAThresholds
+    {
+        mfxU32 minFramesForClassicLA; // number of frames is needed for classic LA, if lookAhead < minFramesForClassicLA -> short LA
+        mfxU32 minFramesForStat;      // number of frames at the start of stream which must be analyzed with fixed rate 
+        mfxU32 minCostCalcPeriod;     // minimum number of frames to calulate  cost. costCalcPeriod >= lookAhead,  costCalcPeriod < rateCalcPeriod
+        mfxF64 maxRateRatioLocal;     // maximum allowed ratio = realRate/initialRate, real rate is calculated per costCalcPeriod
+        mfxF64 minRateRatioLocal;     // minimum allowed ratio = realRate/initialRate, real rate is calculated per costCalcPeriod
+        mfxF64 maxAvgRateRatio;       // maximum allowed ratio = avgRate/initialRate, avg rate is calculated per rateCalcPeriod
+        mfxF64 minAvgRateRatio;       // minimum allowed ratio = avgRate/initialRate, avg rate is calculated per rateCalcPeriod 
+    };
 
     class LookAheadBrc2 : public BrcIface
     {
@@ -1440,14 +1480,14 @@ namespace MfxHwH264Encode
         };
 
     protected:
+        sLAThresholds m_thresholds;
         mfxU32  m_lookAhead;
         mfxU32  m_lookAheadDep;
         mfxU16  m_LaScaleFactor;
         mfxU32  m_strength;
         mfxU32  m_totNumMb;
         mfxF64  m_initTargetRate;
-        mfxF64  m_targetRateMin;
-        mfxF64  m_targetRateMax;
+        mfxF64  m_currRate;
         mfxU32  m_framesBehind;
         mfxF64  m_bitsBehind;
         mfxI32  m_curBaseQp;
@@ -1460,12 +1500,20 @@ namespace MfxHwH264Encode
         mfxU16  m_skipped;
         mfxU8  m_QPMin[3]; // for I, P and B
         mfxU8  m_QPMax[3]; // for I, P and B
-        mfxU32 m_maxFrameSize;
+        mfxU32 m_MaxframeSize[3];
+        mfxU32 m_maxFrameSizeForRec;
+        mfxU32 m_rateCalcPeriod;
+        mfxU32 m_costCalcPeriod;
 
-        AVGBitrate* m_AvgBitrate;
+        AVGBitrate* m_AvgBitrate; //sliding window
+        std::unique_ptr<Hrd>  m_hrd;
 
         std::vector<LaFrameData>    m_laData;
+        std::vector<LaFrameData>    m_laDataStat;
         Regression<20>              m_rateCoeffHistory[52];
+
+        void ClearStat(mfxU32 frameOrder);
+        void SaveStat(mfxU32 frameOrder);
     };
 
     class VMEBrc : public BrcIface
@@ -1669,36 +1717,6 @@ namespace MfxHwH264Encode
         mfxExtBRC   m_BRCLocal;
 
 };
-    class Hrd
-    {
-    public:
-        Hrd();
-
-        void Setup(MfxVideoParam const & par);
-
-        void Reset(MfxVideoParam const & par);
-
-        void RemoveAccessUnit(
-            mfxU32 size,
-            mfxU32 interlace,
-            mfxU32 bufferingPeriod);
-
-        mfxU32 GetInitCpbRemovalDelay() const;
-
-        mfxU32 GetInitCpbRemovalDelayOffset() const;
-        mfxU32 GetMaxFrameSize(mfxU32 bufferingPeriod) const;
-
-    private:
-        mfxU32 m_bitrate;
-        mfxU32 m_rcMethod;
-        mfxU32 m_hrdIn90k;  // size of hrd buffer in 90kHz units
-
-        double m_tick;      // clock tick
-        double m_trn_cur;   // nominal removal time
-        double m_taf_prv;   // final arrival time of prev unit
-
-        bool m_bIsHrdRequired;
-    };
 
     class DdiTask2ndField
     {

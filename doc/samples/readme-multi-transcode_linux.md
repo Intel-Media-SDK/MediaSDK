@@ -103,7 +103,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |-l <numSlices\>|  Number of slices for encoder; default value 0|
 |-mss <maxSliceSize\>|Maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -l option.|
 |-la|Use the look ahead bitrate control algorithm (LA BRC) for H.264 encoder. Supported only with -hw option on 4th Generation Intel Core processors.|
-| -lad <depth\>|Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100].<br>May be 1 in the case when -mss option is specified|
+| -lad <depth\>|Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range[1,100].<br>May be 1 in the case when -mss option is specified|
 |  -la_ext| Use external LA plugin (compatible with h264 & hevc encoders)|
 |-vbr| Variable bitrate control|
 | -hrd <KBytes\> |Maximum possible size of any compressed frames|
