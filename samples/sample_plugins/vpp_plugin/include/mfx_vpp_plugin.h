@@ -53,22 +53,22 @@ public:
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported
     // QueryIOSurf must be called prior to Init to create topology
     mfxStatus QueryIOSurf(mfxVideoParam *par, mfxFrameAllocRequest *request) override;
-    mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus QueryIOSurfMulti(mfxVideoParam *par, mfxFrameAllocRequest request[2], mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL);
 
     // par1 != null enables first VPP (before Plugin), par2 != null enables second VPP (after Plugin); pipeline Plugin-VPP is not unsupported; topology must be the same as in QueryIOSurf
     mfxStatus Init(mfxVideoParam *par) override;
-    mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus InitMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL);
     mfxStatus RunFrameVPPAsync(mfxFrameSurface1 *in, mfxFrameSurface1 *out, mfxExtVppAuxData *aux, mfxSyncPoint *syncp) override;
     mfxStatus Reset(mfxVideoParam *par) override;
-    mfxStatus ResetMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL) override;
+    mfxStatus ResetMulti(mfxVideoParam *par, mfxVideoParam *par1 = NULL, mfxVideoParam *par2 = NULL);
     mfxStatus Close(void) override;
 
     mfxStatus Query(mfxVideoParam *in, mfxVideoParam *out) override;
-    mfxStatus QueryMulti(mfxVideoParam *in, mfxVideoParam *out, mfxU8 component_idx = 0) override;
+    mfxStatus QueryMulti(mfxVideoParam *in, mfxVideoParam *out, mfxU8 component_idx = 0);
     mfxStatus GetVideoParam(mfxVideoParam *par) override;
-    mfxStatus GetVideoParamMulti(mfxVideoParam *par, mfxU8 component_idx = 0) override;
+    mfxStatus GetVideoParamMulti(mfxVideoParam *par, mfxU8 component_idx = 0);
     mfxStatus GetVPPStat(mfxVPPStat *stat) override;
-    mfxStatus GetVPPStatMulti(mfxVPPStat *stat, mfxU8 component_idx = 0) override;
+    mfxStatus GetVPPStatMulti(mfxVPPStat *stat, mfxU8 component_idx = 0);
 
 protected:
     mfxFrameAllocator   m_FrameAllocator;

@@ -3308,25 +3308,16 @@ mfxStatus CTranscodingPipeline::CalculateNumberOfReqFrames(mfxFrameAllocRequest 
         mfxFrameAllocRequest VppRequest[2];
 
         MSDK_ZERO_MEMORY(VppRequest);
-        if (m_bIsPlugin && m_bIsVpp)
+        if (m_bIsPlugin)
         {
-            sts = m_pmfxVPP.get()->QueryIOSurfMulti(&m_mfxPluginParams, &(VppRequest[0]), &m_mfxVppParams);
-            if (!CheckAsyncDepth(VppRequest[0], m_mfxPluginParams.AsyncDepth) ||
-                !CheckAsyncDepth(VppRequest[1], m_mfxPluginParams.AsyncDepth) ||
-                !CheckAsyncDepth(VppRequest[0], m_mfxVppParams.AsyncDepth) ||
-                !CheckAsyncDepth(VppRequest[1], m_mfxVppParams.AsyncDepth))
-                return MFX_ERR_MEMORY_ALLOC;
-        }
-        else if (m_bIsPlugin)
-        {
-            sts = m_pmfxVPP.get()->QueryIOSurf(&m_mfxPluginParams, &(VppRequest[0]));
+            sts = m_pmfxVPP->QueryIOSurf(&m_mfxPluginParams, &(VppRequest[0]));
             if (!CheckAsyncDepth(VppRequest[0], m_mfxPluginParams.AsyncDepth) ||
                 !CheckAsyncDepth(VppRequest[1], m_mfxPluginParams.AsyncDepth))
                 return MFX_ERR_MEMORY_ALLOC;
         }
         else
         {
-            sts = m_pmfxVPP.get()->QueryIOSurf(&m_mfxVppParams, &(VppRequest[0]));
+            sts = m_pmfxVPP->QueryIOSurf(&m_mfxVppParams, &(VppRequest[0]));
             if (!CheckAsyncDepth(VppRequest[0], m_mfxVppParams.AsyncDepth) ||
                 !CheckAsyncDepth(VppRequest[1], m_mfxVppParams.AsyncDepth))
                 return MFX_ERR_MEMORY_ALLOC;
@@ -3775,9 +3766,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     // Init VPP
     if (m_pmfxVPP.get())
     {
-        if (m_bIsPlugin && m_bIsVpp)
-            sts = m_pmfxVPP->InitMulti(&m_mfxPluginParams, &m_mfxVppParams);
-        else if (m_bIsPlugin)
+        if (m_bIsPlugin)
             sts = m_pmfxVPP->Init(&m_mfxPluginParams);
         else
             sts = m_pmfxVPP->Init(&m_mfxVppParams);
@@ -3886,9 +3875,7 @@ mfxStatus CTranscodingPipeline::CompleteInit()
     // Init vpp
     if (m_pmfxVPP.get())
     {
-        if (m_bIsPlugin && m_bIsVpp)
-            sts = m_pmfxVPP->InitMulti(&m_mfxPluginParams, &m_mfxVppParams);
-        else if (m_bIsPlugin)
+        if (m_bIsPlugin)
             sts = m_pmfxVPP->Init(&m_mfxPluginParams);
         else
             sts = m_pmfxVPP->Init(&m_mfxVppParams);
@@ -4315,10 +4302,10 @@ mfxStatus CTranscodingPipeline::Reset()
         if (m_bIsPlugin && m_bIsVpp)
         {
             mfxFrameAllocRequest request[2] = { };
-            sts = m_pmfxVPP->QueryIOSurfMulti(&m_mfxPluginParams, request, &m_mfxVppParams);
+            sts = m_pmfxVPP->QueryIOSurf(&m_mfxPluginParams, request);
             MSDK_CHECK_STATUS(sts, "m_pmfxVPP->QueryIOSurf failed");
 
-            sts = m_pmfxVPP->InitMulti(&m_mfxPluginParams, &m_mfxVppParams);
+            sts = m_pmfxVPP->Init(&m_mfxPluginParams);
         }
         else if (m_bIsPlugin)
             sts = m_pmfxVPP->Init(&m_mfxPluginParams);
