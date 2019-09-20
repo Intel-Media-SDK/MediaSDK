@@ -975,6 +975,7 @@ namespace MfxHwH264Encode
             , m_userTimeout(false)
 #endif
             , m_hwType(MFX_HW_UNKNOWN)
+            , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
             , m_LowDelayPyramidLayer(0)
             , m_frameLtrOff(1)
@@ -1227,6 +1228,7 @@ namespace MfxHwH264Encode
         bool m_collectUnitsInfo;
         mutable std::vector<mfxEncodedUnitInfo> m_headersCache[2]; //Headers for every field
 #endif
+        mfxU32 m_TCBRCTargetFrameSize;
         mfxU32 m_SceneChange;
         mfxU32 m_LowDelayPyramidLayer;
         mfxU32 m_frameLtrOff;

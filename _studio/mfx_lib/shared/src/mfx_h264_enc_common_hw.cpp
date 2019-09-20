@@ -751,7 +751,10 @@ namespace
                 par.mfx.FrameInfo.FrameRateExtN != 0 && par.mfx.FrameInfo.FrameRateExtD != 0)
             {
                 mfxF64 frameRate = mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD;
-                mfxU32 avgFrameSizeInBytes = mfxU32(par.calcParam.targetKbps / frameRate * (1000 / 8));
+                mfxU32 avgFrameSizeInBytes = par.calcParam.TCBRCTargetFrameSize ? 
+                    par.calcParam.TCBRCTargetFrameSize :
+                    mfxU32(par.calcParam.targetKbps * 1000 / frameRate / 8);
+
                 if ((extOpt2.MaxFrameSize < avgFrameSizeInBytes) && (extOpt2.MaxFrameSize != 0))
                 {
                     changed = true;
@@ -5117,10 +5120,36 @@ mfxStatus MfxHwH264Encode::CheckAndFixMVCSeqDesc(mfxExtMVCSeqDesc * mvcSeqDesc, 
 void MfxHwH264Encode::InheritDefaultValues(
     MfxVideoParam const & parInit,
     MfxVideoParam &       parReset,
+    MFX_ENCODE_CAPS const & hwCaps,
     mfxVideoParam const * parResetIn)
 {
+    mfxExtCodingOption const &  extOptInit      = GetExtBufferRef(parInit);
+    mfxExtCodingOption *        extOptReset     = GetExtBuffer(parReset);
+    mfxExtCodingOption3 const & extOpt3Init     = GetExtBufferRef(parInit);
+    mfxExtCodingOption3 *       extOpt3Reset    = GetExtBuffer(parReset);
+    mfxExtCodingOption2 const & extOpt2Init     = GetExtBufferRef(parInit);
+    mfxExtCodingOption2 *       extOpt2Reset    = GetExtBuffer(parReset);
+
+    mfxU32 TCBRCTargetFrameSize = 0;
+
+    InheritOption(extOptInit.NalHrdConformance,         extOptReset->NalHrdConformance);
+    InheritOption(extOpt3Init.LowDelayBRC,              extOpt3Reset->LowDelayBRC);
+    InheritOption(parInit.mfx.RateControlMethod,        parReset.mfx.RateControlMethod);
+    InheritOption(parInit.mfx.FrameInfo.FrameRateExtN,  parReset.mfx.FrameInfo.FrameRateExtN);
+    InheritOption(parInit.mfx.FrameInfo.FrameRateExtD,  parReset.mfx.FrameInfo.FrameRateExtD);
+    InheritOption(parInit.mfx.BRCParamMultiplier,       parReset.mfx.BRCParamMultiplier);
+
+    if (IsTCBRC(parReset, hwCaps))
+    {
+        // old bitrate is used in TCBRC case
+        TCBRCTargetFrameSize = GetAvgFrameSizeInBytes(parReset, false);
+        if (extOpt2Reset->MaxFrameSize == 0 && parReset.mfx.MaxKbps != 0)
+            extOpt2Reset->MaxFrameSize = GetAvgFrameSizeInBytes(parReset, true);
+        parReset.mfx.TargetKbps = 0;
+        parReset.mfx.MaxKbps    = 0;
+    }
+
     InheritOption(parInit.AsyncDepth,             parReset.AsyncDepth);
-    InheritOption(parInit.mfx.BRCParamMultiplier, parReset.mfx.BRCParamMultiplier);
     InheritOption(parInit.mfx.CodecId,            parReset.mfx.CodecId);
     InheritOption(parInit.mfx.CodecProfile,       parReset.mfx.CodecProfile);
     InheritOption(parInit.mfx.CodecLevel,         parReset.mfx.CodecLevel);
@@ -5130,7 +5159,6 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(parInit.mfx.GopRefDist,         parReset.mfx.GopRefDist);
     InheritOption(parInit.mfx.GopOptFlag,         parReset.mfx.GopOptFlag);
     InheritOption(parInit.mfx.IdrInterval,        parReset.mfx.IdrInterval);
-    InheritOption(parInit.mfx.RateControlMethod,  parReset.mfx.RateControlMethod);
     InheritOption(parInit.mfx.BufferSizeInKB,     parReset.mfx.BufferSizeInKB);
     InheritOption(parInit.mfx.NumSlice,           parReset.mfx.NumSlice);
     InheritOption(parInit.mfx.NumRefFrame,        parReset.mfx.NumRefFrame);
@@ -5183,13 +5211,8 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(parInit.mfx.FrameInfo.CropY,          parReset.mfx.FrameInfo.CropY);
     InheritOption(parInit.mfx.FrameInfo.CropW,          parReset.mfx.FrameInfo.CropW);
     InheritOption(parInit.mfx.FrameInfo.CropH,          parReset.mfx.FrameInfo.CropH);
-    InheritOption(parInit.mfx.FrameInfo.FrameRateExtN,  parReset.mfx.FrameInfo.FrameRateExtN);
-    InheritOption(parInit.mfx.FrameInfo.FrameRateExtD,  parReset.mfx.FrameInfo.FrameRateExtD);
     InheritOption(parInit.mfx.FrameInfo.AspectRatioW,   parReset.mfx.FrameInfo.AspectRatioW);
     InheritOption(parInit.mfx.FrameInfo.AspectRatioH,   parReset.mfx.FrameInfo.AspectRatioH);
-
-    mfxExtCodingOption const & extOptInit   = GetExtBufferRef(parInit);
-    mfxExtCodingOption *       extOptReset  = GetExtBuffer(parReset);
 
     InheritOption(extOptInit.RateDistortionOpt,     extOptReset->RateDistortionOpt);
     InheritOption(extOptInit.MECostType,            extOptReset->MECostType);
@@ -5199,7 +5222,6 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(extOptInit.EndOfSequence,         extOptReset->EndOfSequence);
     InheritOption(extOptInit.FramePicture,          extOptReset->FramePicture);
     InheritOption(extOptInit.CAVLC,                 extOptReset->CAVLC);
-    InheritOption(extOptInit.NalHrdConformance,     extOptReset->NalHrdConformance);
     InheritOption(extOptInit.SingleSeiNalUnit,      extOptReset->SingleSeiNalUnit);
     InheritOption(extOptInit.VuiVclHrdParameters,   extOptReset->VuiVclHrdParameters);
     InheritOption(extOptInit.RefPicListReordering,  extOptReset->RefPicListReordering);
@@ -5215,9 +5237,6 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(extOptInit.PicTimingSEI,          extOptReset->PicTimingSEI);
     InheritOption(extOptInit.VuiNalHrdParameters,   extOptReset->VuiNalHrdParameters);
 
-    mfxExtCodingOption2 const & extOpt2Init  = GetExtBufferRef(parInit);
-    mfxExtCodingOption2 *       extOpt2Reset = GetExtBuffer(parReset);
-
     if (!parResetIn || !(mfxExtCodingOption2 const *)GetExtBuffer(*parResetIn)) //user should be able to disable IntraRefresh via Reset()
     {
         InheritOption(extOpt2Init.IntRefType,      extOpt2Reset->IntRefType);
@@ -5227,9 +5246,6 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(extOpt2Init.SkipFrame,       extOpt2Reset->SkipFrame);
 
     InheritOption(extOpt2Init.ExtBRC,  extOpt2Reset->ExtBRC);
-
-    mfxExtCodingOption3 const & extOpt3Init  = GetExtBufferRef(parInit);
-    mfxExtCodingOption3 *       extOpt3Reset = GetExtBuffer(parReset);
 
     InheritOption(extOpt3Init.NumSliceI, extOpt3Reset->NumSliceI);
     InheritOption(extOpt3Init.NumSliceP, extOpt3Reset->NumSliceP);
@@ -5264,6 +5280,7 @@ void MfxHwH264Encode::InheritDefaultValues(
 
 
     parReset.SyncVideoToCalculableParam();
+    parReset.calcParam.TCBRCTargetFrameSize = TCBRCTargetFrameSize;
 
     // not inherited:
     // InheritOption(parInit.mfx.FrameInfo.PicStruct,      parReset.mfx.FrameInfo.PicStruct);
@@ -6050,6 +6067,11 @@ void MfxHwH264Encode::SetDefaults(
     bool IsEnabledSwBrc = false;
     IsEnabledSwBrc = bRateControlLA(par.mfx.RateControlMethod) || (IsOn(extOpt2->ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR));
 
+    if (par.calcParam.TCBRCTargetFrameSize == 0)
+    {
+        par.calcParam.TCBRCTargetFrameSize = IsTCBRC(par, hwCaps) ? GetAvgFrameSizeInBytes(par, false) : 0;
+    }
+
     if ((hwCaps.ddi_caps.UserMaxFrameSizeSupport != 0 || IsEnabledSwBrc) &&
         (par.mfx.RateControlMethod != MFX_RATECONTROL_CBR &&
          par.mfx.RateControlMethod != MFX_RATECONTROL_CQP) &&
@@ -6057,15 +6079,10 @@ void MfxHwH264Encode::SetDefaults(
     {
         extOpt2->MaxFrameSize = std::max(extOpt3->MaxFrameSizeI, extOpt3->MaxFrameSizeP);
 
-        if (extOpt3->LowDelayBRC == MFX_CODINGOPTION_ON)
+        if (!extOpt2->MaxFrameSize)
         {
-            mfxU32 avgFrameSizeInBytes = mfxU32((par.mfx.MaxKbps ? par.mfx.MaxKbps : par.mfx.TargetKbps) /
-                (mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD) * (1000 / 8));
-            extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize : avgFrameSizeInBytes;
-        }
-        else
-        {
-            extOpt2->MaxFrameSize = extOpt2->MaxFrameSize ? extOpt2->MaxFrameSize :
+            extOpt2->MaxFrameSize = (IsOn(extOpt3->LowDelayBRC)) ?
+                GetAvgFrameSizeInBytes(par, true):
                 std::min(GetMaxFrameSize(par), GetFirstMaxFrameSize(par));
         }
     }
@@ -7009,11 +7026,11 @@ mfxU8 MfxHwH264Encode::ConvertFrameTypeMfx2Ddi(mfxU32 type)
     }
 }
 
-ENCODE_FRAME_SIZE_TOLERANCE MfxHwH264Encode::ConvertLowDelayBRCMfx2Ddi(mfxU16 type)
+ENCODE_FRAME_SIZE_TOLERANCE MfxHwH264Encode::ConvertLowDelayBRCMfx2Ddi(mfxU16 type, bool bTCBRC)
 {
     switch (type) {
         case MFX_CODINGOPTION_ON:
-            return eFrameSizeTolerance_ExtremelyLow;
+            return bTCBRC ? eFrameSizeTolerance_Normal : eFrameSizeTolerance_ExtremelyLow;
         default:
             return eFrameSizeTolerance_Normal;
     }
