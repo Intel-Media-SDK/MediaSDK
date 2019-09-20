@@ -30,10 +30,12 @@ set( SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src" )
 # Optimized for processors with Intel SSE4.2
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set( defs "-D_Y8 -D_ARCH_EM64T" )
+  set( ipp_defs "-D_Y8 -D_ARCH_EM64T" )
 else ()
-  set( defs "-D_P8 -D_ARCH_IA32" )
+  set( ipp_defs "-D_P8 -D_ARCH_IA32" )
 endif()
+set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ipp_defs}" )
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ipp_defs}" )
 
 set( sources "" )
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -43,6 +45,8 @@ else()
 endif()
 
 list( APPEND sources ${srcs})
-enable_language(C ASM)
+enable_language( C ASM )
+set( CMAKE_ASM_EXTENSIONS OFF )
 set( CMAKE_ASM_SOURCE_FILE_EXTENSIONS s )
 make_library( ipp none static )
+
