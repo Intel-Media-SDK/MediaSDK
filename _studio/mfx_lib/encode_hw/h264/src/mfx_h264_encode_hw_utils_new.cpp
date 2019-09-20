@@ -2415,6 +2415,7 @@ void MfxHwH264Encode::ConfigureTask(
     task.m_collectUnitsInfo = IsOn(extOpt3.EncodedUnitsInfo);
 #endif
 
+    task.m_TCBRCTargetFrameSize = video.calcParam.TCBRCTargetFrameSize;
 }
 
 
