@@ -611,14 +611,14 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             {
                 std::string result = mfx_reflect::CompareStructsToString(reflection.Access(in), reflection.Access(out));
                 MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, result.c_str())
-            }  
+            }
         }
         catch (const std::exception& e)
         {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, e.what());
         }
-        catch (...) 
-        { 
+        catch (...)
+        {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, "Unknown exception was caught while comparing In and Out VideoParams.");
         }
     }
@@ -749,7 +749,7 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
     try
     {
         // wait until all tasks are processed
-        session->m_pScheduler->WaitForTaskCompletion(session->m_pENCODE.get());
+        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get());
 
         mfxRes = session->m_pENCODE->Close();
         // delete the codec's instance if not plugin

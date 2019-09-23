@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2019 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -91,12 +91,12 @@ mfxStatus mfxCOREMapOpaqueSurface(mfxHDL pthis, mfxU32  num, mfxU32  type, mfxFr
     CommonCORE *pCore = (CommonCORE *)session->m_pCORE->QueryCoreInterface(MFXIVideoCORE_GUID);
     if (!pCore)
         return MFX_ERR_INVALID_HANDLE;
-    
+
     try
     {
         if (!op_surf)
             return MFX_ERR_MEMORY_ALLOC;
-        
+
         if (!*op_surf)
             return MFX_ERR_MEMORY_ALLOC;
 
@@ -227,7 +227,7 @@ mfxStatus mfxCOREGetOpaqueSurface(mfxHDL pthis, mfxFrameSurface1 *surf, mfxFrame
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
-    
+
     try
     {
         *op_surf = session->m_pCORE->GetOpaqSurface(surf->Data.MemId);
@@ -379,10 +379,10 @@ mfxStatus mfxDefLockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr)
 
     if (pCore->IsExternalFrameAllocator())
     {
-        return pCore->LockExternalFrame(mid,ptr); 
+        return pCore->LockExternalFrame(mid,ptr);
     }
 
-    return pCore->LockFrame(mid,ptr); 
+    return pCore->LockFrame(mid,ptr);
 
 
 } // mfxStatus mfxDefLockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr)
@@ -401,13 +401,13 @@ mfxStatus mfxDefUnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0)
 {
     MFX_CHECK_NULL_PTR1(pthis);
     VideoCORE *pCore = (VideoCORE*)pthis;
-    
+
     if (pCore->IsExternalFrameAllocator())
     {
         return pCore->UnlockExternalFrame(mid, ptr);
     }
-    
-    return pCore->UnlockFrame(mid, ptr); 
+
+    return pCore->UnlockFrame(mid, ptr);
 
 } // mfxStatus mfxDefUnlockFrame(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr=0)
 mfxStatus mfxDefFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
@@ -415,7 +415,7 @@ mfxStatus mfxDefFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
     MFX_CHECK_NULL_PTR1(pthis);
     VideoCORE *pCore = (VideoCORE*)pthis;
     mfxFrameAllocator* pExtAlloc = (mfxFrameAllocator*)pCore->QueryCoreInterface(MFXIEXTERNALLOC_GUID);
-    return pExtAlloc?pExtAlloc->Free(pExtAlloc->pthis,response):pCore->FreeFrames(response); 
+    return pExtAlloc?pExtAlloc->Free(pExtAlloc->pthis,response):pCore->FreeFrames(response);
 
 } // mfxStatus mfxDefFreeFrames(mfxHDL pthis, mfxFrameAllocResponse *response)
 
@@ -518,23 +518,23 @@ void _mfxSession::Cleanup(void)
     if (m_pScheduler)
     {
         if (m_plgGen.get())
-            m_pScheduler->WaitForTaskCompletion(m_plgGen.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_plgGen.get());
         if (m_plgDec.get())
-            m_pScheduler->WaitForTaskCompletion(m_plgDec.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_plgDec.get());
         if (m_pDECODE.get())
-            m_pScheduler->WaitForTaskCompletion(m_pDECODE.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_pDECODE.get());
         if (m_plgVPP.get())
-            m_pScheduler->WaitForTaskCompletion(m_plgVPP.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_plgVPP.get());
         if (m_pVPP.get())
-            m_pScheduler->WaitForTaskCompletion(m_pVPP.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_pVPP.get());
         if (m_pENC.get())
-            m_pScheduler->WaitForTaskCompletion(m_pENC.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_pENC.get());
         if (m_pPAK.get())
-            m_pScheduler->WaitForTaskCompletion(m_pPAK.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_pPAK.get());
         if (m_plgEnc.get())
-            m_pScheduler->WaitForTaskCompletion(m_plgEnc.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_plgEnc.get());
         if (m_pENCODE.get())
-            m_pScheduler->WaitForTaskCompletion(m_pENCODE.get());
+            m_pScheduler->WaitForAllTasksCompletion(m_pENCODE.get());
     }
 
     // unregister plugin before closing
@@ -616,7 +616,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     case MFX_IMPL_VIA_D3D11:
         m_implInterface = MFX_IMPL_VIA_D3D11;
         break;
-#endif        
+#endif
 
         // unknown hardware interface
     default:
@@ -640,7 +640,7 @@ mfxStatus _mfxSession::Init(mfxIMPL implInterface, mfxVersion *ver)
     {
         m_pCORE.reset(FactoryCORE::CreateCORE(MFX_HW_VAAPI, m_adapterNum, maxNumThreads, this));
     }
-    
+
 #endif
 
     // initialize the core interface
@@ -696,13 +696,13 @@ mfxStatus _mfxSession::ReleaseScheduler(void)
 {
     if(m_pScheduler)
         m_pScheduler->Release();
-    
+
     if(m_pSchedulerAllocated)
         m_pSchedulerAllocated->Release();
 
     m_pScheduler = nullptr;
     m_pSchedulerAllocated = nullptr;
-    
+
     return MFX_ERR_NONE;
 
 } // mfxStatus _mfxSession::RestoreScheduler(void)
@@ -815,7 +815,7 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
     case MFX_IMPL_VIA_D3D11:
         m_implInterface = MFX_IMPL_VIA_D3D11;
         break;
-#endif        
+#endif
 
     // unknown hardware interface
     default:
