@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -369,37 +369,22 @@ mfxStatus mfxSchedulerCore::WrapUpTask(MFX_CALL_INFO &callInfo,
 
 void mfxSchedulerCore::ResetWaitingTasks(const void *pOwner)
 {
-    mfxU32 priority;
-
-    for (priority = 0; priority < MFX_PRIORITY_NUMBER; priority += 1)
-    {
-        int type;
-
-        for (type = MFX_TYPE_HARDWARE; type <= MFX_TYPE_SOFTWARE; type += 1)
+    ForEachTask(
+        [pOwner](MFX_SCHEDULER_TASK* task)
         {
-            MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
-
-            // run over the tasks with particular priority
-            while (pTask)
+            // reset the 'waiting' flag
+            if ((task->param.task.pOwner == pOwner) &&
+                (MFX_TASK_NEED_CONTINUE == task->curStatus))
             {
-                // reset the 'waiting' flag
-                if ((pTask->param.task.pOwner == pOwner) &&
-                    (MFX_TASK_NEED_CONTINUE == pTask->curStatus))
-                {
-                    // resetting 'waiting' flag should help waking up permanent tasks
-                    pTask->param.bWaiting = false;
+                // resetting 'waiting' flag should help waking up permanent tasks
+                task->param.bWaiting = false;
 
-                    // set new time of the last call processed to avoid overwriting
-                    // 'waiting' status flag.
-                    pTask->param.timing.timeLastCallProcessed = pTask->param.timing.timeLastCallIssued + 1;
-                }
-
-                // advance the task pointer
-                pTask = pTask->pNext;
+                // set new time of the last call processed to avoid overwriting
+                // 'waiting' status flag.
+                task->param.timing.timeLastCallProcessed = task->param.timing.timeLastCallIssued + 1;
             }
         }
-    }
-
+    );
 } // void mfxSchedulerCore::ResetWaitingTasks(const void *pOwner)
 
 void mfxSchedulerCore::OnDependencyResolved(MFX_SCHEDULER_TASK *pTask)

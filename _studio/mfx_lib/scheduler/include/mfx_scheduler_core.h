@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,6 +25,7 @@
 
 #include <mfx_scheduler_core_thread.h>
 #include <mfx_scheduler_core_handle.h>
+#include <mfx_scheduler_core_task.h>
 
 #include <mfx_task.h>
 
@@ -152,9 +153,9 @@ public:
     virtual
     mfxStatus WaitForDependencyResolved(const void *pDependency);
 
-    // Wait until task(s) of specified owner become complete or unattended
+    // Wait until all tasks of specified owner become complete or unattended
     virtual
-    mfxStatus WaitForTaskCompletion(const void *pOwner);
+    mfxStatus WaitForAllTasksCompletion(const void *pOwner);
 
     // Reset 'waiting' status for tasks of specified owner
     virtual
@@ -312,6 +313,38 @@ protected:
     inline MFX_SCHEDULER_THREAD_CONTEXT* GetThreadCtx(mfxU32 thread_id)
     { return &m_pThreadCtx[thread_id]; }
 
+    // Invokes functor 'bool F(MFX_SCHEDULER_TASK*)' for every valid task that returns 'true' to continue iteration or 'false' to stop it.
+    template <typename F>
+    void ForEachTaskWhile(F&& f)
+    {
+        MFX_SCHEDULER_TASK *task;
+        for (int priority = MFX_PRIORITY_HIGH; priority >= MFX_PRIORITY_LOW; priority -= 1)
+        {
+            for (int type = MFX_TYPE_HARDWARE; type <= MFX_TYPE_SOFTWARE; type += 1)
+            {
+                task = m_pTasks[priority][type];
+
+                // run over the tasks with particular priority
+                while (task)
+                {
+                    if (false == std::forward<F>(f)(task))
+                        return;
+                    // advance the task pointer
+                    task = task->pNext;
+                }
+            }
+        }
+    }
+
+    // Invokes functor 'void F(MFX_SCHEDULER_TASK*)' for every valid task
+    template <typename F>
+    void ForEachTask(F&& f) {
+
+        ForEachTaskWhile(
+            [&f] (MFX_SCHEDULER_TASK *task)
+            { std::forward<F>(f)(task); return true; }
+        );
+    }
 
     // Scheduler's initialization parameters
     MFX_SCHEDULER_PARAM2 m_param;
@@ -347,7 +380,7 @@ protected:
     bool m_bQuit;
     volatile
     bool m_bQuitWakeUpThread;
-    
+
     // Threads contexts
     MFX_SCHEDULER_THREAD_CONTEXT *m_pThreadCtx;
 
