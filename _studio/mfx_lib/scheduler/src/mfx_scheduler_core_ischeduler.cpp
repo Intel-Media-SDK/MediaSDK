@@ -29,6 +29,7 @@
 
 #include <functional>
 #include <cassert>
+#include <list>
 
 enum
 {
@@ -340,10 +341,8 @@ mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 
 } // mfxStatus mfxSchedulerCore::WaitForDependencyResolved(const void *pDependency)
 
-mfxStatus mfxSchedulerCore::WaitForTaskCompletion(const void *pOwner)
+mfxStatus mfxSchedulerCore::WaitForAllTasksCompletion(const void *pOwner)
 {
-    mfxTaskHandle waitHandle;
-
     // check error(s)
     if (0 == m_param.numberOfThreads)
     {
@@ -362,63 +361,48 @@ mfxStatus mfxSchedulerCore::WaitForTaskCompletion(const void *pOwner)
         WakeUpThreads();
     }
 
+    std::list<mfxTaskHandle> tasks;
 
-    do
     {
-        // reset waiting handle
-        waitHandle.handle = 0;
+        std::lock_guard<std::mutex> guard(m_guard);
 
-        // enter protected section.
-        // make searching in a separate code block,
-        // to avoid dead-locks with other threads.
-        {
-            std::lock_guard<std::mutex> guard(m_guard);
-            int priority;
-
-            priority = MFX_PRIORITY_HIGH;
-            do
+        ForEachTask(
+            [&pOwner, &tasks](MFX_SCHEDULER_TASK* task)
             {
-                int type;
-
-                for (type = MFX_TYPE_HARDWARE; type <= MFX_TYPE_SOFTWARE; type += 1)
+                //make a list of all 'active' tasks of given owner
+                if ((task->param.task.pOwner == pOwner) && (MFX_WRN_IN_EXECUTION == task->opRes))
                 {
-                    const MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
+                    mfxTaskHandle waitHandle;
+                    waitHandle.taskID = task->taskID;
+                    waitHandle.jobID = task->jobID;
 
-                    // look through tasks list. Find the specified object.
-                    while (pTask)
-                    {
-                        // the task with equal ID has been found.
-                        if ((pTask->param.task.pOwner == pOwner) &&
-                            (MFX_WRN_IN_EXECUTION == pTask->opRes))
-                        {
-                            // create wait handle to make waiting more precise
-                            waitHandle.taskID = pTask->taskID;
-                            waitHandle.jobID = pTask->jobID;
-                            break;
-                        }
-
-                        // get the next task
-                        pTask = pTask->pNext;
-                    }
+                    tasks.emplace_back(waitHandle);
                 }
+            }
+        );
+    }
 
-            } while ((0 == waitHandle.handle) && (--priority >= MFX_PRIORITY_LOW));
+    auto handle = tasks.begin();
+    while (!tasks.empty())
+    {
+        if (tasks.end() == handle)
+            handle = tasks.begin();
 
-            // leave the protected section
-        }
-
-        // wait for a while :-)
-        // for a while and infinite - diffrent things )
-        if (waitHandle.handle)
+        // wait for a while
+        // for a while and infinite are different things
+        if (MFX_WRN_IN_EXECUTION == Synchronize(*handle, MFX_TIME_TO_WAIT)) // Still working
         {
-            Synchronize(waitHandle, MFX_TIME_TO_WAIT);
+            handle++;
         }
-
-    } while (waitHandle.handle);
+        else // Done or failed
+        {
+            handle = tasks.erase(handle);
+        }
+    }
 
     return MFX_ERR_NONE;
 
-} // mfxStatus mfxSchedulerCore::WaitForTaskCompletion(const void *pOwner)
+} // mfxStatus mfxSchedulerCore::WaitForAllTasksCompletion(const void *pOwner)
 
 mfxStatus mfxSchedulerCore::ResetWaitingStatus(const void *pOwner)
 {
