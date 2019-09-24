@@ -730,7 +730,7 @@ int main(int argc, msdk_char *argv[])
                         &out_surface,
                         &syncPoint);
                 }
-                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(pOutSurf);
+                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(out_surface);
                 if(MFX_ERR_MORE_DATA != sts)
                     bDoNotUpdateIn = true;
             }
@@ -908,7 +908,7 @@ int main(int argc, msdk_char *argv[])
                         &out_surface,
                         &syncPoint );
                 }
-                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(pOutSurf);
+                pOutSurf = static_cast<mfxFrameSurfaceWrap*>(out_surface);
             }
             else
             {
