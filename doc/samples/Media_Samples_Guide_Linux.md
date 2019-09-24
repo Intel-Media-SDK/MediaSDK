@@ -17,7 +17,7 @@ These samples demonstrate how to use the Intel Media SDK API.
     * Weighted Prediction options are added
   * Chroma siting option is added to sample_vpp.
   * New measurements using -stat option
-  * Target MSDK API version is 1.28
+  * Target MSDK API version is 1.30
 
 
 ## Package contents
@@ -107,8 +107,7 @@ By default samples are built as part of building the SDK.
 Samples build can be disabled by adding -DBUILD_SAMPLES=OFF to cmake command line.
 
  
-After build binaries are in \<build folder\> __bin/release
-
+After build binaries are in \<build folder\> \__bin/release
 
 
 ## License

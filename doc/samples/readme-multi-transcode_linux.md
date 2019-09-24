@@ -4,7 +4,7 @@
 
 ## Overview
 
-**Multi-Transcoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\)
+**Multi-Transcoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\)
 
 It demonstrates how to use **SDK** API to create a console application that performs the transcoding \(decoding and encoding\) of a video stream from one compressed video format to another, with optional video processing \(resizing\) of uncompressed video prior to encoding. The application supports multiple input and output streams meaning it can execute multiple transcoding sessions concurrently.
 
@@ -27,19 +27,19 @@ The sample is able to work with**HEVC Decoder & Encoder** \(hereinafter referred
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 
 
@@ -53,7 +53,7 @@ or: `sample_multi_transcode [options] -par ParFile`
 |Option|Description|
 |---|---|
 | -? |           Print this help and exit|
-|  -p <file-name\>| Collect performance statistics in specified file|
+|  -p <file-name\> | Collect performance statistics in specified file|
  | -timeout <seconds\>|  Set time to run transcoding in seconds|
   |-greedy|Use greedy formula to calculate number of surfaces|
 
