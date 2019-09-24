@@ -1267,22 +1267,6 @@ mfxF64 CalculateFrameRate(mfxU32 nFrameRateExtN, mfxU32 nFrameRateExtD)
         return 0;
 }
 
-mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
-{
-    if (pSurfacesPool)
-    {
-        for (mfxU16 i = 0; i < nPoolSize; i++)
-        {
-            if (0 == pSurfacesPool[i].Data.Locked)
-            {
-                return i;
-            }
-        }
-    }
-
-    return MSDK_INVALID_SURF_IDX;
-}
-
 void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize)
 {
     if (pSurfacesPool)
