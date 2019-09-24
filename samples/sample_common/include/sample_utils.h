@@ -992,7 +992,26 @@ private:
 
 mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD);
 mfxF64 CalculateFrameRate(mfxU32 nFrameRateExtN, mfxU32 nFrameRateExtD);
-mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
+
+template <class T>
+mfxU16 GetFreeSurfaceIndex(T* pSurfacesPool, mfxU16 nPoolSize)
+{
+    constexpr mfxU16 MSDK_INVALID_SURF_IDX = 0xffff;
+
+    if (pSurfacesPool)
+    {
+        for (mfxU16 i = 0; i < nPoolSize; i++)
+        {
+            if (0 == pSurfacesPool[i].Data.Locked)
+            {
+                return i;
+            }
+        }
+    }
+
+    return MSDK_INVALID_SURF_IDX;
+}
+
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 
