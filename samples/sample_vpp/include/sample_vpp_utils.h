@@ -489,7 +489,7 @@ void PrintInfo(
 void PrintDllInfo();
 
 mfxStatus InitParamsVPP(
-    mfxVideoParam* pMFXParams,
+    MfxVideoParamsWrapper* pMFXParams,
     sInputParams* pInParams,
     mfxU32 paramID);
 
