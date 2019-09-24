@@ -1016,7 +1016,6 @@ The SDK ensures that all filters necessary to convert input format to output one
 `MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION` | [mfxExtVPPFrameRateConversion](#mfxExtVPPFrameRateConversion)
 `MFX_EXTBUFF_VPP_IMAGE_STABILIZATION`   | [mfxExtVPPImageStab](#mfxExtVPPImageStab)
 `MFX_EXTBUFF_VPP_PICSTRUCT_DETECTION`   | none
-`MFX_EXTBUFF_VPP_PROCAMP`               | [mfxExtVPPProcAmp](#mfxExtVPPProcAmp)
 `MFX_EXTBUFF_VPP_FIELD_PROCESSING`      | [mfxExtVPPFieldProcessing](#mfxExtVPPFieldProcessing)
 
 Example 5 shows how to configure the SDK video processing.
@@ -3928,9 +3927,6 @@ The application can attach this extended buffer to the [mfxVideoParam](#mfxVideo
 `EnableMBForceIntra` | Turn ON this option to enable usage of [mfxExtMBForceIntra](#mfxExtMBForceIntra) for AVC encoder. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. This parameter is valid only during initialization.
 `AdaptiveMaxFrameSize` | If this option is ON, BRC may decide a larger P or B frame size than what [MaxFrameSizeP](#MaxFrameSizeP) dictates when the scene change is detected. It may benefit the video quality.
 `RepartitionCheckEnable` | Controls AVC encoder attempts to predict from small partitions. Default value allows encoder to choose preferred mode, `MFX_CODINGOPTION_ON` forces encoder to favor quality, `MFX_CODINGOPTION_OFF` forces encoder to favor performance.
-`QuantScaleType` | For MPEG2 specifies mapping between quantiser_scale_code and quantiser_scale (see [QuantScaleType](#QuantScaleType) enum).
-`IntraVLCFormat` | For MPEG2 specifies which table shall be used for coding of DCT coefficients of intra macroblocks (see [IntraVLCFormat](#IntraVLCFormat) enum).
-`ScanType` | For MPEG2 specifies transform coefficients scan pattern (see [ScanType](#ScanType) enum).
 `EncodedUnitsInfo` | Turn this option ON to make encoded units info available in [mfxExtEncodedUnitsInfo](#mfxExtEncodedUnitsInfo).
 `EnableNalUnitType` | If this option is turned ON, then HEVC encoder uses NAL unit type provided by application in [mfxEncodeCtrl](#mfxEncodeCtrl)**::MfxNalUnitType** field. <br><br>This parameter is valid only during initialization.<br><br>Not all codecs and SDK implementations support this value. Use [Query](#MFXVideoENCODE_Query) function to check if this feature is supported.
 `ExtBrcAdaptiveLTR` | Turn OFF to prevent Adaptive marking of Long Term Reference Frames when using [ExtBRC](#External_Bit_Rate_Control). When ON and using [ExtBRC](#External_Bit_Rate_Control), encoders will mark, modify, or remove LTR frames based on encoding parameters and content properties. The application must set each input frame's [mfxFrameData](#mfxFrameData)**::FrameOrder** for correct operation of LTR.
@@ -3968,8 +3964,6 @@ The SDK API 1.25 adds `EnableNalUnitType` field.
 The SDK API 1.26 adds `TransformSkip`, `ExtBrcAdaptiveLTR` fields.
 
 The SDK API 1.27 adds `TargetChromaFormatPlus1`, `TargetBitDepthLuma` and `TargetBitDepthChroma` fields.
-
-The SDK API **TBD** adds `QuantScaleType`, `IntraVLCFormat`, `ScanType` fields.
 
 ## <a id='mfxExtCodingOptionSPSPPS'>mfxExtCodingOptionSPSPPS</a>
 
@@ -4255,12 +4249,7 @@ enum {
 typedef struct {
     mfxExtBuffer Header;
     mfxU16       FilterStrength;
-    mfxU16       Overlap;            /* tri-state option */
-    mfxU32       BitsPerPixelx100k;
-    mfxU16       Deblocking;         /* tri-state option */
-    mfxU16       TemporalMode;
-    mfxU16       MVPrecision;
-    mfxU16       reserved[21];
+    mfxU16       reserved[27];
 } mfxExtVppMctf;
 ```
 
@@ -4274,18 +4263,10 @@ typedef struct {
 --- | ---
 `Header.BufferId`   | Must be [MFX_EXTBUFF_VPP_MCTF](#ExtendedBufferID)
 `FilterStrength`    | 0..20 value (inclusive) to indicate the filter-strength of MCTF. A strength of MCTF process controls degree of possible changes of pixel values eligible for MCTF; the bigger the strength the larger the change is; it is a dimensionless quantity, values 1..20 inclusively imply strength; value 0 stands for AUTO mode and is valid during initialization or reset only; if invalid value is given, it is fixed to default value which is 0. If this field is 1..20 inclusive, MCTF operates in fixed-strength mode with the given strength of MCTF process. At runtime, value 0 and values greater than 20 are ignored.
-`Overlap`           | Turn off or turn on overlap during motion estimation/compensation. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option.
-`BitsPerPixelx100k` | Carries information of a compressed bitstream which is a result of an encoding process followed after MCTF (if any); actual average number of bits spent per pixel in the compressed bitstream is derived as BitsPerPixelx100k divided by 100000.0. MCTF process may use this information as an additional hint to optimize filtering process for particular encoding applied afterwards.
-`Deblocking`        | Turn off or turn on deblocking filter within MCTF process. See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option.
-`TemporalMode`      | See the `MCTFTemporalMode` enumerator for values of this option. These modes are all different both in terms of quality improvements and performance; in general, 4-reference filtering provides highest quality while 1-reference filtering provides highest speed; spatial filtering process is essentially different as it does not use any processing between frames; thus it provides lowerest memory footprint.
-`MVPrecision`       | Determines how precise motion compensation process is. See the `MVPrecision` enumerator for values of this option; integer and quarter-pixel are supported.
 
 **Change History**
 
 This structure is available since SDK API 1.26.
-
-The SDK API **TBD** adds `Overlap`, `BitsPerPixelx100k`, `Deblocking`, `TemporalMode` and `MVPrecision` fields.
-
 
 ## <a id='mfxExtVPPDetail'>mfxExtVPPDetail</a>
 
@@ -6891,8 +6872,7 @@ typedef struct {
 
     mfxU16  WriteIVFHeaders;        /* tri-state option */
 
-    mfxI16  LoopFilterRefDelta[4];
-    mfxI16  LoopFilterModeDelta[2];
+    mfxI16  reserved1[6];
 
     mfxI16  QIndexDeltaLumaDC;
     mfxI16  QIndexDeltaChromaAC;
@@ -6916,8 +6896,6 @@ Attached to the [mfxVideoParam](#mfxVideoParam) structure extends it with VP9-sp
 `FrameWidth`            | Width of the coded frame in pixels.
 `FrameHeight`           | Height of the coded frame in pixels.
 `WriteIVFHeaders`       | Turn this option ON to make encoder insert IVF container headers to output stream. NumFrame field of IVF sequence header will be zero, it’s responsibility of application to update it with correct value.<br>See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option.
-`LoopFilterRefDelta[4]` | Contains the adjustment needed for the filter level based on the chosen reference frame, see [VP9ReferenceFrame](#VP9ReferenceFrame) enum for array idx.
-`LoopFilterModeDelta[2]`| Contains the adjustment needed for the filter level based on the chosen mode.
 `QIndexDeltaLumaDC`,<br>`QIndexDeltaChromaAC`,<br>`QIndexDeltaChromaDC` | Specifies an offset for a particular quantization parameter.
 `NumTileRows`           | Number of tile rows. Should be power of two. Maximum number of tile rows is 4 (per VP9 specification). In addition maximum supported number of tile rows may depend on underlying hardware platform. Use [Query](#MFXVideoENCODE_Query) function to check if particular pair of values (NumTileRows, NumTileColumns) is supported. In VP9 tile rows have dependencies and cannot be encoded/decoded in parallel. So tile rows are always encoded by the SDK in serial mode (one-by-one).
 `NumTileColumns`        | Number of tile columns. Should be power of two. Restricted with maximum and minimum tile width in luma pixels defined in VP9 specification (4096 and 256 respectively). In addition maximum supported number of tile columns may depend on underlying hardware platform. Use [Query](#MFXVideoENCODE_Query) function to check if particular pair of values (NumTileRows, NumTileColumns) is supported. In VP9 tile columns don't have dependencies and can be encoded/decoded in parallel. So tile columns can be encoded by the SDK in both parallel and serial modes. Parallel mode is automatically utilized by the SDK when NumTileColumns exceeds 1 and doesn't exceed number of tile coding engines on the platform. In other cases serial mode is used. Parallel mode is capable to encode more than 1 tile row (within limitations provided by VP9 specification and particular platform). Serial mode supports only tile grids 1xN and Nx1.
@@ -6926,8 +6904,6 @@ Attached to the [mfxVideoParam](#mfxVideoParam) structure extends it with VP9-sp
 
 This structure is available since SDK API 1.26.
 The SDK API 1.29 adds `NumTileRows` and `NumTileColumns` fields.
-
-The SDK API **TBD** adds `LoopFilterRefDelta`,`LoopFilterModeDelta` and `DynamicScaling` fields.
 
 ## <a id='mfxExtVP9Segmentation'>mfxExtVP9Segmentation</a>
 
@@ -7680,7 +7656,7 @@ The `CodecProfile` enumerator itemizes codec profiles for all codecs.
 `MFX_PROFILE_AVC_CONSTRAINT_SET0`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET1`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET2`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET3`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET4`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET5` | Combined with H.264 profile these flags impose additional constrains. See H.264 specification for the list of constrains.
 `MFX_PROFILE_MPEG2_SIMPLE`,<br>`MFX_PROFILE_MPEG2_MAIN`,<br>`MFX_PROFILE_MPEG2_HIGH` | MPEG-2 profiles
 `MFX_PROFILE_VC1_SIMPLE`,<br>`MFX_PROFILE_VC1_MAIN`,<br>`MFX_PROFILE_VC1_ADVANCED`,<br> | VC-1 profiles
-`MFX_PROFILE_HEVC_MAIN`,<br>`MFX_PROFILE_HEVC_MAIN10`,<br>`MFX_PROFILE_HEVC_MAINSP`,<br>`MFX_PROFILE_HEVC_REXT`,<br>`MFX_PROFILE_HEVC_SCC`,<br> | HEVC profiles
+`MFX_PROFILE_HEVC_MAIN`,<br>`MFX_PROFILE_HEVC_MAIN10`,<br>`MFX_PROFILE_HEVC_MAINSP`,<br>`MFX_PROFILE_HEVC_REXT`,<br> | HEVC profiles
 `MFX_PROFILE_VP9_0`,<br>`MFX_PROFILE_VP9_1`,<br>`MFX_PROFILE_VP9_2`,<br>`MFX_PROFILE_VP9_3` | VP9 profiles
 
 **Change History**
@@ -7697,8 +7673,6 @@ SDK API 1.8 added HEVC profile definitions.
 SDK API 1.16 adds `MFX_PROFILE_HEVC_REXT.`
 
 SDK API 1.19 added VP9 profile definitions.
-
-SDK API **TBD** adds `MFX_PROFILE_HEVC_SCC.`
 
 ## <a id='CodingOptionValue'>CodingOptionValue</a>
 
@@ -7741,7 +7715,6 @@ The `ColorFourCC` enumerator itemizes color formats.
 `MFX_FOURCC_P8` | Internal SDK color format. The application should use one of the functions below to create such surface, depending on Direct3D version.<br><br>Direct3D9<br><br>IDirectXVideoDecoderService::CreateSurface()<br><br>Direct3D11<br><br>ID3D11Device::CreateBuffer()
 `MFX_FOURCC_P8_TEXTURE` | Internal SDK color format. The application should use one of the functions below to create such surface, depending on Direct3D version.<br><br>Direct3D9<br><br>IDirectXVideoDecoderService::CreateSurface()<br><br>Direct3D11<br><br>ID3D11Device::CreateTexture2D()
 `MFX_FOURCC_P010` | P010 color format. This is 10 bit per sample format with similar to NV12 layout.<br><br>This format should be mapped to DXGI_FORMAT_P010.
-`MFX_FOURCC_P016` | P016 color format. This is 16 bit per sample format with similar to NV12 layout.<br><br>This format should be mapped to DXGI_FORMAT_P016.
 `MFX_FOURCC_P210` | 10 bit per sample 4:2:2 color format with similar to NV12 layout
 `MFX_FOURCC_BGR4` | ABGR color format. It is similar to MFX_FOURCC_RGB4 but with interchanged R and B channels. ‘A’ is 8 MSBs, then 8 bits for ‘B’ channel, then ‘G’ and ‘R’ channels.
 `MFX_FOURCC_A2RGB10` | 10 bits ARGB color format packed in 32 bits. ‘A’ channel is two MSBs, then ‘R’, then ‘G’ and then ‘B’ channels.<br><br>This format should be mapped to DXGI_FORMAT_R10G10B10A2_UNORM or D3DFMT_A2R10G10B10.
@@ -7752,9 +7725,7 @@ The `ColorFourCC` enumerator itemizes color formats.
 `MFX_FOURCC_AYUV_RGB4` | RGB4 stored in AYUV surface.<br><br>This format should be mapped to DXGI_FORMAT_AYUV.
 `MFX_FOURCC_UYVY` | UYVY color planes. Same as YUY2 except the byte order is reversed.
 `MFX_FOURCC_Y210` | 10 bit per sample 4:2:2 packed color format with similar to YUY2 layout.<br><br>This format should be mapped to DXGI_FORMAT_Y210.
-`MFX_FOURCC_Y216` | 16 bit per sample 4:2:2 packed color format with similar to YUY2 layout.<br><br>This format should be mapped to DXGI_FORMAT_Y216.
 `MFX_FOURCC_Y410` | 10 bit per sample 4:4:4 packed color format<br><br>This format should be mapped to DXGI_FORMAT_Y410.
-`MFX_FOURCC_Y416` | 16 bit per sample 4:4:4 packed color format<br><br>This format should be mapped to DXGI_FORMAT_Y416.
 **Change History**
 
 This enumerator is available since SDK API 1.0.
@@ -7772,8 +7743,6 @@ The SDK API 1.17 adds `MFX_FOURCC_ABGR16`, `MFX_FOURCC_AYUV`, `MFX_FOURCC_AYUV_R
 The SDK API 1.27 adds `MFX_FOURCC_Y210` and `MFX_FOURCC_Y410`.
 
 The SDK API 1.28 adds `MFX_FOURCC_RGB565` and `MFX_FOURCC_RGBP`.
-
-The SDK API **TBD** adds `MFX_FOURCC_P016`, `MFX_FOURCC_Y216` and `MFX_FOURCC_Y416`.
 
 ## <a id='Corruption'>Corruption</a>
 
@@ -7867,7 +7836,6 @@ The `ExtendedBufferID` enumerator itemizes and defines identifiers (`BufferId`) 
 `MFX_EXTBUFF_MULTI_FRAME_CONTROL` | This extended buffer allow to manage multi-frame submission in runtime.
 `MFX_EXTBUFF_ENCODED_UNITS_INFO` | See the [mfxExtEncodedUnitsInfo](#mfxExtEncodedUnitsInfo) structure for details.
 `MFX_EXTBUFF_VPP_COLOR_CONVERSION` | See the [mfxExtColorConversion](#mfxExtColorConversion) structure for details.
-`MFX_EXTBUFF_TASK_DEPENDENCY` | See the [Alternative Dependencies](#Alternative_Dependencies) chapter for details.
 `MFX_EXTBUFF_VPP_MCTF` | This video processing algorithm identifier is used to enable MCTF via [mfxExtVPPDoUse](#mfxExtVPPDoUse) and together with `mfxExtVppMctf` | See the [mfxExtVppMctf](#mfxExtVppMctf) chapter for details.
 
 **Change History**
@@ -7906,8 +7874,6 @@ SDK API 1.26 adds `MFX_EXTBUFF_VP9_PARAM`, `MFX_EXTBUFF_VP9_SEGMENTATION`, `MFX_
 SDK API 1.27 adds `MFX_EXTBUFF_AVC_ROUNDING_OFFSET`.
 
 SDK API 1.30 adds `MFX_EXTBUFF_CENC_PARAM`.
-
-SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration.
 
 See additional change history in the structure definitions.
 
@@ -8100,7 +8066,6 @@ The `mfxHandleType` enumerator itemizes system handle types that SDK implementat
 `MFX_HANDLE_ENCODE_CONTEXT` | Pointer to VAContextID interface. It represents encoder context.
 `MFX_HANDLE_VA_CONFIG_ID` | Pointer to VAConfigID interface. It represents external VA config for Common Encryption usage model.
 `MFX_HANDLE_VA_CONTEXT_ID` | Pointer to VAContextID interface. It represents external VA context for Common Encryption usage model.
-`MFX_HANDLE_CM_DEVICE`      | Pointer to `CmDevice` interface ( [Intel® C for media](https://github.com/01org/cmrt) ).
 
 **Change History**
 
@@ -8111,8 +8076,6 @@ SDK API 1.4 added `MFX_HANDLE_D3D11_DEVICE` definition.
 SDK API 1.8 added `MFX_HANDLE_VA_DISPLAY` and `MFX_HANDLE_ENCODE_CONTEXT` definitions.
 
 SDK API 1.30 added `MFX_HANDLE_VA_CONFIG_ID` and `MFX_HANDLE_VA_CONTEXT_ID` definitions.
-
-SDK API **TBD** added `MFX_HANDLE_CM_DEVICE` definition.
 
 ## <a id='mfxIMPL'>mfxIMPL</a>
 
@@ -8749,9 +8712,6 @@ The `PlatformCodeName` enumerator itemizes Intel® microarchitecture code names.
 `MFX_PLATFORM_COFFEELAKE`   | Coffee Lake
 `MFX_PLATFORM_CANNONLAKE`   | Cannon Lake
 `MFX_PLATFORM_ICELAKE`      | Ice Lake
-`MFX_PLATFORM_LAKEFIELD`    | Lakefield
-`MFX_PLATFORM_JASPERLAKE`   | Jasper lake
-`MFX_PLATFORM_TIGERLAKE`    | Tiger Lake
 
 **Change History**
 
@@ -8761,8 +8721,6 @@ SDK API 1.22 adds `MFX_PLATFORM_APOLLOLAKE`, and `MFX_PLATFORM_KABYLAKE`.
 SDK API 1.25 adds `MFX_PLATFORM_GEMINILAKE`, `MFX_PLATFORM_COFFEELAKE` and `MFX_PLATFORM_CANNONLAKE`.
 
 SDK API 1.27 adds `MFX_PLATFORM_ICELAKE`.
-
-SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PLATFORM_TIGERLAKE`.
 
 ## <a id='PayloadCtrlFlags'>PayloadCtrlFlags</a>
 

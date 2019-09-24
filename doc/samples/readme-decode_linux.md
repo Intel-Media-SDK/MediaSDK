@@ -3,7 +3,7 @@
 
 ## Overview
 
-**Decoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\).
+**Decoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\).
 
 It demonstrates how to use the **SDK** API to create a sample console application that performs decoding of various video compression formats.
 

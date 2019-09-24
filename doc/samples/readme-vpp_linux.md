@@ -4,7 +4,7 @@
 
 ## Overview
 
-**VPP Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\).
+**VPP Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\).
 
 It demonstrates how to use the **SDK** API to create a simple console application that performs video processing of raw video sequences.
 
@@ -19,19 +19,19 @@ It demonstrates how to use the **SDK** API to create a simple console applicatio
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 Usage: `./sample_vpp [Options] -i InputFile -o OutputFile`
 ### Options
