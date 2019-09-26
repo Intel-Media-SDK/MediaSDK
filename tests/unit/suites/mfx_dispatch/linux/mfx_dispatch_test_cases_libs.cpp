@@ -242,8 +242,6 @@ TEST_F(DispatcherLibsTest, ShouldFailIfImplNotSupportedByLib)
     ver = {{MFX_VERSION_MINOR, MFX_VERSION_MAJOR}};
     mock.emulated_api_version = ver;
 
-    mfxVersion nullversion = {{0}};
-
     EXPECT_CALL(mock, dlopen).Times(AtLeast(1)).WillRepeatedly(Return(MOCK_DLOPEN_HANDLE));
     EXPECT_CALL(mock, dlsym).Times(AtLeast(1)).WillRepeatedly(Invoke(&mock, &MockCallObj::EmulateAPI));
     EXPECT_CALL(mock, MFXInitEx).Times(AtLeast(1)).WillRepeatedly(DoAll(SetArgPointee<1>(MOCK_SESSION_HANDLE), Return(MFX_ERR_NONE)));
