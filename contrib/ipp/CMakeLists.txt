@@ -46,7 +46,6 @@ endif()
 
 list( APPEND sources ${srcs})
 enable_language( C ASM )
-set( CMAKE_ASM_EXTENSIONS OFF )
 set( CMAKE_ASM_SOURCE_FILE_EXTENSIONS s )
 make_library( ipp none static )
 
