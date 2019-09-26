@@ -34,8 +34,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "opencl_filter_va.h"
 #endif
 
-// msvc ignores throw function specifications used in cl.hpp
-#pragma warning(disable : 4290)
 #define __CL_ENABLE_EXCEPTIONS
 
 //#define _interlockedbittestandset      fake_set
