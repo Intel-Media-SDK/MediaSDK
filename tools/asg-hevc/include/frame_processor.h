@@ -149,8 +149,6 @@ private:
     mfxU8 GetDefaultWeightedPredSample(mfxI32 predSampleLX);
     mfxU8 GetDefaultWeightedPredSample(mfxI32 predSampleL0, mfxI32 predSampleL1);
 
-    mfxU8  m_FrameType = MFX_FRAMETYPE_UNKNOWN; // MFX_FRAMETYPE of current frame
-
     mfxU32 m_Height      = 0; // in pixels
     mfxU32 m_Width       = 0;
     mfxU32 m_HeightInCTU = 0; // in CTUs
