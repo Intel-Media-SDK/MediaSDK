@@ -552,6 +552,10 @@ cttStatus CTTMetrics_PMU_GetValue(unsigned int count, float* out_metric_values)
             if (is_sema_and_wait_available) {
                 value_sema /= time_sema;
                 value_wait /= time_wait;
+                // due to sampling nature of sema counter, very frequently we get (sema value) > (busy value)
+                // and there is no other decisions besides of clamping sema to busy
+                value_sema = (value_sema > value) ? value : value_sema;
+
                 value -= value_sema + value_wait; // Substract sema and wait from busy metric
             }
         } else {
