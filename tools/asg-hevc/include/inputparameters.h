@@ -164,7 +164,6 @@ public:
 
     mfxU16 m_PicStruct       = MFX_PICSTRUCT_PROGRESSIVE;
     mfxU16 m_BRefType        = MFX_B_REF_OFF;
-    mfxU16 m_PRefType        = MFX_P_REF_SIMPLE;
     mfxU16 m_GopOptFlag      = 0;
     mfxU16 m_GopSize         = 1;
     mfxU16 m_RefDist         = 1;

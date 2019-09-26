@@ -58,7 +58,6 @@ public:
     FrameReorder(const InputParams & params) :
         m_nMaxFrames(params.m_numFrames),
         m_BRefType(params.m_BRefType),
-        m_PRefType(params.m_PRefType),
         m_GopOptFlag(params.m_GopOptFlag),
         m_NumRef(params.m_NumRef),
         m_UseGPB(params.m_UseGPB),
@@ -76,7 +75,6 @@ public:
 private:
     mfxU32 m_nMaxFrames;
     mfxU16 m_BRefType;
-    mfxU16 m_PRefType;
     mfxU16 m_GopOptFlag;
     mfxU16 m_NumRef;
     bool   m_UseGPB;
