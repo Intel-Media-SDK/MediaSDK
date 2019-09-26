@@ -54,7 +54,7 @@ Linux Samples Readme Documents:
 * [Sample Decode](./doc/samples/readme-decode_linux.md)
 * [Sample Encode](./doc/samples/readme-encode_linux.md)
 * [Sample VPP](./doc/samples/readme-vpp_linux.md)
-* [Metrics Monitor](./doc/samples/readme-metrics_monitor_linux.pdf)
+* [Metrics Monitor](./doc/samples/readme-metrics_monitor_linux.md)
 
 Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for the detailed setting and building instructions, runtime tips and other information.
 
