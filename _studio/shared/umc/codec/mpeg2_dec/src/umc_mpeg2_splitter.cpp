@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -57,8 +57,8 @@ namespace UMC_MPEG2_DECODER
 
     RawUnit RawHeaderIterator::FindUnit(UMC::MediaData* in)
     {
-        uint8_t* begin = (uint8_t*) in->GetDataPointer();
-        uint8_t* end   = begin + in->GetDataSize();
+        const auto begin = (uint8_t*) in->GetDataPointer();
+        const auto end   = begin + in->GetDataSize();
         uint32_t readSize = 0;
         RawUnit unit;
 
@@ -72,7 +72,7 @@ namespace UMC_MPEG2_DECODER
         // We have a cached (an uncompleted) unit and got new piece of bitstream data
         if (m_cache.size())
         {
-            uint8_t* unitStart = FindStartCode(begin, end); // Check if new data have any start codes
+            const auto unitStart = FindStartCode(begin, end); // Check if new data have any start codes
             if (unitStart) // Start code was found. Need to close the cached unit
             {
                 readSize = unitStart - begin; // Data before found startcode is the end of the cached unit
@@ -83,8 +83,14 @@ namespace UMC_MPEG2_DECODER
             }
             else // start code wasn't found
             {
-                readSize = end - begin;
-                m_cache.insert(m_cache.end(), (uint8_t *)begin, (uint8_t *)end); // Load the whole data to the cache
+                // Consume all data from buffer except last 1 or 2 bytes if they have zero values (considering [... 0x0 0x0] [0x1 ...] sequence).
+                // These two bytes are to prevent start code chopping between two separate FindRawUnit() calls.
+                // An exception from this is 'MFX_BITSTREAM_COMPLETE_FRAME' case.
+                const size_t len = end - begin;
+                const uint32_t numZerosAtEnd = ((len > 0) && (0 == end[-1])) ? 1 + ((len > 1) && (0 == end[-2])) : 0;
+                const uint32_t numBytesToLeave = !(m_source->GetFlags() & UMC::MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME) ? 0 : numZerosAtEnd;
+                readSize = end - begin - numBytesToLeave;
+                m_cache.insert(m_cache.end(), begin, end - numBytesToLeave); // Load almost the whole data (without trailing bytes if any) to the cache
             }
 
             in->MoveDataPointer(readSize);
@@ -101,8 +107,9 @@ namespace UMC_MPEG2_DECODER
             // Consume all data from buffer except last 1 or 2 bytes if they have zero values (considering [... 0x0 0x0] [0x1 ...] sequence).
             // These two bytes are to prevent start code chopping between two separate FindRawUnit() calls.
             // An exception from this is 'MFX_BITSTREAM_COMPLETE_FRAME' case.
-            uint32_t numZerosAtEnd = (0 == end[-1]) ? 1 + (0 == end[-2]) : 0;
-            uint32_t numBytesToLeave = !(m_source->GetFlags() & UMC::MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME) ? 0 : numZerosAtEnd;
+            const size_t len = end - begin;
+            const uint32_t numZerosAtEnd = ((len > 0) && (0 == end[-1])) ? 1 + ((len > 1) && (0 == end[-2])) : 0;
+            const uint32_t numBytesToLeave = !(m_source->GetFlags() & UMC::MediaData::FLAG_VIDEO_DATA_NOT_FULL_FRAME) ? 0 : numZerosAtEnd;
             readSize = end - begin - numBytesToLeave;
             m_cache.insert(m_cache.end(), tmpUnit.begin, end - numBytesToLeave); // But save to the cache only since start code
             m_pts = in->GetTime();
