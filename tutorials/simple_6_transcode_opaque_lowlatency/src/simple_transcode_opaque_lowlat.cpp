@@ -584,7 +584,7 @@ int main(int argc, char** argv)
 
         // Store all frame latencies in vector
         for (std::unordered_map < mfxU64, mfxTime >::iterator it = decInTimeMap.begin(); it != decInTimeMap.end(); ++it) {
-            int tsKey = (*it).first;
+			const mfxU64 tsKey = (*it).first;
             mfxTime startTime = (*it).second;
             mfxTime endTime = encOutTimeMap[tsKey];
             double frameLatency = TimeDiffMsec(endTime, startTime);

@@ -27,5 +27,7 @@
 
 #define MSDK_FOPEN(FH, FN, M)           { FH=fopen(FN,M); }
 #define MSDK_SLEEP(X)                   { usleep(1000*(X)); }
+#define msdk_sscanf sscanf
+#define msdk_strcopy strcpy
 
 typedef timespec mfxTime;
