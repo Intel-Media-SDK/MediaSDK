@@ -1132,8 +1132,8 @@ void FillPWT(
 
             slice[i].direct_spatial_mv_pred_flag = 1;
 
-            slice[i].num_ref_idx_l0_active_minus1 = mfxU8(MFX_MAX(1, task.m_list0[fieldId].Size()) - 1);
-            slice[i].num_ref_idx_l1_active_minus1 = mfxU8(MFX_MAX(1, task.m_list1[fieldId].Size()) - 1);
+            slice[i].num_ref_idx_l0_active_minus1 = std::max<mfxU8>(1, task.m_list0[fieldId].Size()) - 1;
+            slice[i].num_ref_idx_l1_active_minus1 = std::max<mfxU8>(1, task.m_list1[fieldId].Size()) - 1;
             slice[i].num_ref_idx_active_override_flag   =
                         slice[i].num_ref_idx_l0_active_minus1 != pps.num_ref_idx_l0_active_minus1 ||
                         slice[i].num_ref_idx_l1_active_minus1 != pps.num_ref_idx_l1_active_minus1;
@@ -1235,8 +1235,8 @@ void UpdateSliceSizeLimited(
 
         slice[i].direct_spatial_mv_pred_flag = 1;
 
-        slice[i].num_ref_idx_l0_active_minus1 = mfxU8(MFX_MAX(1, task.m_list0[fieldId].Size()) - 1);
-        slice[i].num_ref_idx_l1_active_minus1 = mfxU8(MFX_MAX(1, task.m_list1[fieldId].Size()) - 1);
+        slice[i].num_ref_idx_l0_active_minus1 = std::max<mfxU8>(1, task.m_list0[fieldId].Size()) - 1;
+        slice[i].num_ref_idx_l1_active_minus1 = std::max<mfxU8>(1, task.m_list1[fieldId].Size()) - 1;
         slice[i].num_ref_idx_active_override_flag   =
                     slice[i].num_ref_idx_l0_active_minus1 != pps.num_ref_idx_l0_active_minus1 ||
                     slice[i].num_ref_idx_l1_active_minus1 != pps.num_ref_idx_l1_active_minus1;
