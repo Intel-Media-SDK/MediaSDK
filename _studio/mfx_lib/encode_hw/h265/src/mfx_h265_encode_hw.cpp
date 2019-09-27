@@ -1282,7 +1282,7 @@ mfxStatus  MFXVideoENCODEH265_HW::FreeTask(Task &task)
     }
     if (task.m_midCUQp)
     {
-        ReleaseResource(m_bs,  task.m_midCUQp);
+        ReleaseResource(m_CuQp,  task.m_midCUQp);
         task.m_midCUQp = 0;
     }
 
