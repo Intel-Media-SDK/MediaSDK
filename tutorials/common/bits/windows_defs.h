@@ -24,5 +24,7 @@
 
 #define MSDK_FOPEN(FH, FN, M)           { fopen_s(&FH, FN, M); }
 #define MSDK_SLEEP(X)                   { Sleep(X); }
+#define msdk_sscanf sscanf_s
+#define msdk_strcopy strcpy_s
 
 typedef LARGE_INTEGER mfxTime;
