@@ -79,10 +79,9 @@ IDXGIAdapter* GetIntelDeviceAdapterHandle(mfxSession session)
 }
 
 // Create HW device context
-mfxStatus CreateHWDevice(mfxSession session, mfxHDL* deviceHandle, HWND hWnd, bool bCreateSharedHandles)
+mfxStatus CreateHWDevice(mfxSession session, mfxHDL* deviceHandle, HWND /*hWnd*/, bool /*bCreateSharedHandles*/)
 {
-    //Note: not using bCreateSharedHandles for DX11 -- for API consistency only
-    hWnd; // Window handle not required by DX11 since we do not showcase rendering.
+    // Window handle not required by DX11 since we do not showcase rendering.
 
     HRESULT hres = S_OK;
 
@@ -144,12 +143,12 @@ CComPtr<ID3D11DeviceContext> GetHWDeviceContext()
     return g_pD3D11Ctx;
 }
 
-void ClearYUVSurfaceD3D(mfxMemId memId)
+void ClearYUVSurfaceD3D(mfxMemId /*memId*/)
 {
     // TBD
 }
 
-void ClearRGBSurfaceD3D(mfxMemId memId)
+void ClearRGBSurfaceD3D(mfxMemId /*memId*/)
 {
     // TBD
 }

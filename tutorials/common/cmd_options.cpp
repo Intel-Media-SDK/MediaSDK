@@ -22,6 +22,12 @@
 #include <string.h>
 #include "cmd_options.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "bits/windows_defs.h"
+#elif defined(__linux__)
+#include "bits/linux_defs.h"
+#endif
+
 static const char* version =
     "Intel(r) Media SDK Tutorials";
 
@@ -62,7 +68,7 @@ void PrintHelp(CmdOptions* cmd_options)
     }
 }
 
-void ParseOptions(int argc, char** argv, CmdOptions* cmd_options)
+void ParseOptions(int argc, char* argv[], CmdOptions* cmd_options)
 {
     int i;
 
@@ -88,7 +94,7 @@ void ParseOptions(int argc, char** argv, CmdOptions* cmd_options)
                 printf("error: no argument for -g option given\n");
                 exit(-1);
             }
-            if ((2 != sscanf(argv[i], "%dx%d", &width, &height)) || (width <= 0) || (height <= 0)) {
+            if ((2 != msdk_sscanf(argv[i], "%dx%d", &width, &height)) || (width <= 0) || (height <= 0)) {
                 printf("error: incorrect argument for -g option given\n");
                 exit(-1);
             }
@@ -112,7 +118,7 @@ void ParseOptions(int argc, char** argv, CmdOptions* cmd_options)
                 printf("error: no argument for -f option given\n");
                 exit(-1);
             }
-            if ((2 != sscanf(argv[i], "%d/%d", &frN, &frD)) || (frN <= 0) || (frD <= 0)) {
+            if ((2 != msdk_sscanf(argv[i], "%d/%d", &frN, &frD)) || (frN <= 0) || (frD <= 0)) {
                 printf("error: incorrect argument for -f option given\n");
                 exit(-1);
             }
@@ -132,7 +138,7 @@ void ParseOptions(int argc, char** argv, CmdOptions* cmd_options)
     }
     if (i < argc) {
         if (strlen(argv[i]) < MSDK_MAX_PATH) {
-            strcpy(cmd_options->values.SourceName, argv[i]);
+            msdk_strcopy(cmd_options->values.SourceName, argv[i]);
         } else {
             printf("error: source file name is too long\n");
             exit(-1);
@@ -141,7 +147,7 @@ void ParseOptions(int argc, char** argv, CmdOptions* cmd_options)
     }
     if (i < argc) {
         if (strlen(argv[i]) < MSDK_MAX_PATH) {
-            strcpy(cmd_options->values.SinkName, argv[i]);
+            msdk_strcopy(cmd_options->values.SinkName, argv[i]);
         } else {
             printf("error: destination file name is too long\n");
             exit(-1);

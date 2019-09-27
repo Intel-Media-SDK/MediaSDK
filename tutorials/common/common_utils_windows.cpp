@@ -67,6 +67,9 @@ mfxStatus Initialize(mfxIMPL impl, mfxVersion ver, MFXVideoSession* pSession, mf
         sts = pSession->SetFrameAllocator(pmfxAllocator);
         MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
     }
+#else
+    (void)bCreateSharedHandles;
+    (void)pmfxAllocator;
 #endif
 
     return sts;
@@ -98,6 +101,8 @@ void ClearYUVSurfaceVMem(mfxMemId memId)
 {
 #if defined(DX9_D3D) || defined(DX11_D3D)
     ClearYUVSurfaceD3D(memId);
+#else
+    (void)memId;
 #endif
 }
 
@@ -105,6 +110,8 @@ void ClearRGBSurfaceVMem(mfxMemId memId)
 {
 #if defined(DX9_D3D) || defined(DX11_D3D)
     ClearRGBSurfaceD3D(memId);
+#else
+    (void)memId;
 #endif
 }
 
