@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ public:
     explicit MFXBaseUSER(mfxSession session = NULL)
         : m_session(session){}
 
-    virtual ~MFXBaseUSER() {};
+    virtual ~MFXBaseUSER() {}
 
     virtual mfxStatus Register(mfxU32 type, const mfxPlugin *par) = 0;
     virtual mfxStatus Unregister(mfxU32 type) = 0;
@@ -99,7 +99,7 @@ public:
 //common interface part for every plugin: decoder/encoder and generic
 struct MFXPlugin
 {
-    virtual ~MFXPlugin() {};
+    virtual ~MFXPlugin() {}
     //init function always required for any transform or codec plugins, for codec plugins it maps to callback from MediaSDK
     //for generic plugin application should call it
     //MediaSDK mfxPlugin API mapping
