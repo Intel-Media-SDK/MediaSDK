@@ -18,9 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "common_vaapi.h"
+#include <sys/ioctl.h>
+#include <drm/drm_fourcc.h>
+#include <map>
 
-#include<map>
+#include "common_vaapi.h"
 
 struct sharedResponse {
     mfxFrameAllocResponse mfxResponse;
@@ -76,7 +78,45 @@ mfxStatus va_to_mfx_status(VAStatus va_res)
 VADisplay m_va_dpy = NULL;
 // gfx card file descriptor
 int m_fd = -1;
-// decoder surfaces chain shared between app and MSDK
+
+constexpr uint32_t DRI_MAX_NODES_NUM = 16;
+constexpr uint32_t DRI_RENDER_START_INDEX = 128;
+constexpr  uint32_t DRM_DRIVER_NAME_LEN = 4;
+const char* DRM_INTEL_DRIVER_NAME = "i915";
+const char* DRI_PATH = "/dev/dri/";
+const char* DRI_NODE_RENDER = "renderD";
+
+int get_drm_driver_name(int fd, char *name, int name_size)
+{
+    drm_version_t version = {};
+    version.name_len = name_size;
+    version.name = name;
+    return ioctl(fd, DRM_IOWR(0, drm_version), &version);
+}
+
+int open_intel_adapter()
+{
+    std::string adapterPath = DRI_PATH;
+    adapterPath += DRI_NODE_RENDER;
+
+    char driverName[DRM_DRIVER_NAME_LEN + 1] = {};
+    mfxU32 nodeIndex = DRI_RENDER_START_INDEX;
+
+    for (mfxU32 i = 0; i < DRI_MAX_NODES_NUM; ++i) {
+        std::string curAdapterPath = adapterPath + std::to_string(nodeIndex + i);
+
+        int fd = open(curAdapterPath.c_str(), O_RDWR);
+        if (fd < 0) continue;
+
+        if (!get_drm_driver_name(fd, driverName, DRM_DRIVER_NAME_LEN) &&
+            !strcmp(driverName, DRM_INTEL_DRIVER_NAME)) {
+            return fd;
+        }
+        close(fd);
+    }
+
+    return -1;
+}
 
 mfxStatus CreateVAEnvDRM(mfxHDL* displayHandle)
 {
@@ -84,7 +124,7 @@ mfxStatus CreateVAEnvDRM(mfxHDL* displayHandle)
     mfxStatus sts = MFX_ERR_NONE;
     int major_version = 0, minor_version = 0;
 
-    m_fd = open("/dev/dri/card0", O_RDWR);
+    m_fd = open_intel_adapter();
 
     if (m_fd < 0)
         sts = MFX_ERR_NOT_INITIALIZED;
