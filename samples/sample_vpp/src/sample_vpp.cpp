@@ -713,23 +713,16 @@ int main(int argc, msdk_char *argv[])
             if ( Params.use_extapi )
             {
                 mfxFrameSurface1 * out_surface = nullptr;
-                sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
-                    pInSurf[nInStreamInd],
-                    pWorkSurf,
-                    //pExtData,
-                    &out_surface,
-                    &syncPoint);
-
-                while(MFX_WRN_DEVICE_BUSY == sts)
+                do
                 {
-                    MSDK_SLEEP(500);
                     sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                         pInSurf[nInStreamInd],
                         pWorkSurf,
                         //pExtData,
                         &out_surface,
                         &syncPoint);
-                }
+                } while (MFX_WRN_DEVICE_BUSY == sts);
+
                 pOutSurf = static_cast<mfxFrameSurfaceWrap*>(out_surface);
                 if(MFX_ERR_MORE_DATA != sts)
                     bDoNotUpdateIn = true;
@@ -894,20 +887,15 @@ int main(int argc, msdk_char *argv[])
             if ( Params.use_extapi )
             {
                 mfxFrameSurface1 * out_surface = nullptr;
-                sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
-                    NULL,
-                    pWorkSurf,
-                    &out_surface,
-                    &syncPoint );
-                while(MFX_WRN_DEVICE_BUSY == sts)
+                do
                 {
-                    MSDK_SLEEP(500);
                     sts = frameProcessor.pmfxVPP->RunFrameVPPAsyncEx(
                         NULL,
                         pWorkSurf,
                         &out_surface,
                         &syncPoint );
-                }
+                } while (MFX_WRN_DEVICE_BUSY == sts);
+
                 pOutSurf = static_cast<mfxFrameSurfaceWrap*>(out_surface);
             }
             else
