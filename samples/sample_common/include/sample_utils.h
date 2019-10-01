@@ -281,8 +281,41 @@ template<>struct mfx_ext_buffer_id<mfxExtVPPScaling> {
 template<>struct mfx_ext_buffer_id<mfxExtColorConversion> {
     enum {id = MFX_EXTBUFF_VPP_COLOR_CONVERSION};
 };
+template<>struct mfx_ext_buffer_id<mfxExtPredWeightTable> {
+    enum {id = MFX_EXTBUFF_PRED_WEIGHT_TABLE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiSliceHeader> {
+    enum {id = MFX_EXTBUFF_FEI_SLICE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncFrameCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMVPredictors> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MV_PRED};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiRepackCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMBCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MB};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncQP> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_QP};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMBStat> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MB_STAT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMV> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MV};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPakMBCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_PAK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiRepackStat> {
+    enum {id = MFX_EXTBUFF_FEI_REPACK_STAT};
+};
 
-constexpr uint16_t max_num_ext_buffers = 49 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
+constexpr uint16_t max_num_ext_buffers = 60 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
 
 //helper function to initialize mfx ext buffer structure
 template <class T>
@@ -293,11 +326,20 @@ void init_ext_buffer(T & ext_buffer)
     reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferSz = sizeof(ext_buffer);
 }
 
-template <typename T>
-struct IsPairedMfxExtBuffer : std::false_type {};
-
-template <>
-struct IsPairedMfxExtBuffer<mfxExtAVCRoundingOffset> : std::true_type {};
+template <typename T> struct IsPairedMfxExtBuffer                 : std::false_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtAVCRefListCtrl>     : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtAVCRoundingOffset>  : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtPredWeightTable>    : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiSliceHeader>     : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncFrameCtrl>    : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMVPredictors> : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiRepackCtrl>      : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMBCtrl>       : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncQP>           : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMBStat>       : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMV>           : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiPakMBCtrl>       : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiRepackStat>      : std::true_type {};
 
 template <typename R>
 struct ExtParamAccessor
