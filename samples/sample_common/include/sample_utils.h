@@ -284,6 +284,9 @@ template<>struct mfx_ext_buffer_id<mfxExtColorConversion> {
 template<>struct mfx_ext_buffer_id<mfxExtPredWeightTable> {
     enum {id = MFX_EXTBUFF_PRED_WEIGHT_TABLE};
 };
+template<>struct mfx_ext_buffer_id<mfxExtFeiDecStreamOut> {
+    enum {id = MFX_EXTBUFF_FEI_DEC_STREAM_OUT};
+};
 template<>struct mfx_ext_buffer_id<mfxExtFeiSliceHeader> {
     enum {id = MFX_EXTBUFF_FEI_SLICE};
 };
@@ -314,8 +317,14 @@ template<>struct mfx_ext_buffer_id<mfxExtFeiPakMBCtrl> {
 template<>struct mfx_ext_buffer_id<mfxExtFeiRepackStat> {
     enum {id = MFX_EXTBUFF_FEI_REPACK_STAT};
 };
+template<>struct mfx_ext_buffer_id<mfxExtFeiSPS> {
+    enum {id = MFX_EXTBUFF_FEI_SPS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPPS > {
+    enum {id = MFX_EXTBUFF_FEI_PPS};
+};
 
-constexpr uint16_t max_num_ext_buffers = 60 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
+constexpr uint16_t max_num_ext_buffers = 63 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
 
 //helper function to initialize mfx ext buffer structure
 template <class T>
@@ -567,6 +576,8 @@ private:
             MFX_EXTBUFF_HEVC_PARAM,
             MFX_EXTBUFF_VP9_PARAM,
             MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
+            MFX_EXTBUFF_FEI_PPS,
+            MFX_EXTBUFF_FEI_SPS,
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),

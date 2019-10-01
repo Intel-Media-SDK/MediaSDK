@@ -504,13 +504,13 @@ struct AppConfig
     msdk_char* weightsFile;
 
     struct{
-        mfxVideoParam* pEncodeVideoParam;
-        mfxVideoParam* pPreencVideoParam;
-        mfxVideoParam* pEncVideoParam;
-        mfxVideoParam* pPakVideoParam;
-        mfxVideoParam* pDecodeVideoParam;
-        mfxVideoParam* pVppVideoParam;
-        mfxVideoParam* pDownSampleVideoParam;
+        MfxVideoParamsWrapper* pEncodeVideoParam;
+        MfxVideoParamsWrapper* pPreencVideoParam;
+        MfxVideoParamsWrapper* pEncVideoParam;
+        MfxVideoParamsWrapper* pPakVideoParam;
+        MfxVideoParamsWrapper* pDecodeVideoParam;
+        MfxVideoParamsWrapper* pVppVideoParam;
+        MfxVideoParamsWrapper* pDownSampleVideoParam;
 
         bool   mixedPicstructs; // Indicates whether stream contains mixed picstructs
 

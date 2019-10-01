@@ -34,20 +34,20 @@ private:
     FEI_EncPakInterface& operator= (const FEI_EncPakInterface& other_encpak); // forbidden
 
 public:
-    MFXVideoSession*    m_pmfxSession;
-    MFXVideoENC*        m_pmfxENC;
-    MFXVideoPAK*        m_pmfxPAK;
-    iTaskPool*          m_inputTasks;
-    mfxVideoParam       m_videoParams_ENC;
-    mfxVideoParam       m_videoParams_PAK;
-    mfxU32              m_allocId;
-    bufList*            m_pExtBuffers;
-    AppConfig*          m_pAppConfig;
-    mfxBitstreamWrapper m_mfxBS;
-    mfxSyncPoint        m_SyncPoint;
-    bool                m_bSingleFieldMode;
-    RefInfo             m_RefInfo;
-    MFXFrameAllocator* m_pMFXAllocator;
+    MFXVideoSession*      m_pmfxSession;
+    MFXVideoENC*          m_pmfxENC;
+    MFXVideoPAK*          m_pmfxPAK;
+    iTaskPool*            m_inputTasks;
+    MfxVideoParamsWrapper m_videoParams_ENC;
+    MfxVideoParamsWrapper m_videoParams_PAK;
+    mfxU32                m_allocId;
+    bufList*              m_pExtBuffers;
+    AppConfig*            m_pAppConfig;
+    mfxBitstreamWrapper   m_mfxBS;
+    mfxSyncPoint          m_SyncPoint;
+    bool                  m_bSingleFieldMode;
+    RefInfo               m_RefInfo;
+    MFXFrameAllocator*    m_pMFXAllocator;
 
     /* Bitstream writer */
     CSmplBitstreamWriter m_FileWriter;
@@ -64,8 +64,6 @@ public:
     FILE* m_pMV_out;
     FILE* m_pMBcode_out;
 
-    std::vector<mfxExtBuffer*> m_InitExtParams_ENC, m_InitExtParams_PAK;
-
     /* Temporary memory to speed up computations */
     std::vector<mfxI16> m_tmpForMedian;
     std::vector<mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB> m_tmpForReading;
@@ -79,7 +77,7 @@ public:
     mfxStatus Close();
     mfxStatus Reset(mfxU16 width = 0, mfxU16 height = 0, mfxU16 crop_w = 0, mfxU16 crop_h = 0);
     mfxStatus QueryIOSurf(mfxFrameAllocRequest* request);
-    mfxVideoParam* GetCommonVideoParams();
+    MfxVideoParamsWrapper* GetCommonVideoParams();
     mfxStatus UpdateVideoParam();
 
     void GetRefInfo(mfxU16 & picStruct,
