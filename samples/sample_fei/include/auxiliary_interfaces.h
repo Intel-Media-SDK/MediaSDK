@@ -33,14 +33,12 @@ private:
     MFX_VppInterface& operator= (const MFX_VppInterface& other_vpp); // forbidden
 
 public:
-    MFXVideoSession* m_pmfxSession;
-    MFXVideoVPP*     m_pmfxVPP;
-    mfxU32           m_allocId;
-    mfxVideoParam    m_videoParams;
-    AppConfig*       m_pAppConfig;
-    mfxSyncPoint     m_SyncPoint;
-
-    std::vector<mfxExtBuffer*> m_InitExtParams;
+    MFXVideoSession*      m_pmfxSession;
+    MFXVideoVPP*          m_pmfxVPP;
+    mfxU32                m_allocId;
+    MfxVideoParamsWrapper m_videoParams;
+    AppConfig*            m_pAppConfig;
+    mfxSyncPoint          m_SyncPoint;
 
     MFX_VppInterface(MFXVideoSession* session, mfxU32 allocId, AppConfig* config);
     ~MFX_VppInterface();
@@ -48,7 +46,7 @@ public:
     mfxStatus Init();
     mfxStatus Close();
     mfxStatus Reset(mfxU16 width = 0, mfxU16 height = 0, mfxU16 crop_w = 0, mfxU16 crop_h = 0);
-    mfxVideoParam* GetCommonVideoParams();
+    MfxVideoParamsWrapper* GetCommonVideoParams();
     mfxStatus QueryIOSurf(mfxFrameAllocRequest* request);
     mfxStatus FillParameters();
     mfxStatus VPPoneFrame(mfxFrameSurface1* pSurf_in, mfxFrameSurface1* pSurf_out);
@@ -61,19 +59,18 @@ private:
     MFX_DecodeInterface& operator= (const MFX_DecodeInterface& other_decode); // forbidden
 
 public:
-    MFXVideoSession*     m_pmfxSession;
-    MFXVideoDECODE*      m_pmfxDECODE;
-    mfxU32               m_allocId;
-    mfxVideoParam        m_videoParams;
-    AppConfig*           m_pAppConfig;
-    mfxBitstreamWrapper  m_mfxBS;
-    mfxSyncPoint         m_SyncPoint;
-    CSmplBitstreamReader m_BSReader;
-    ExtSurfPool*         m_pSurfPool;
-    bool                 m_bEndOfFile;
-    FILE*                m_DecStremout_out;
+    MFXVideoSession*      m_pmfxSession;
+    MFXVideoDECODE*       m_pmfxDECODE;
+    mfxU32                m_allocId;
+    MfxVideoParamsWrapper m_videoParams;
+    AppConfig*            m_pAppConfig;
+    mfxBitstreamWrapper   m_mfxBS;
+    mfxSyncPoint          m_SyncPoint;
+    CSmplBitstreamReader  m_BSReader;
+    ExtSurfPool*          m_pSurfPool;
+    bool                  m_bEndOfFile;
+    FILE*                 m_DecStremout_out;
 
-    std::vector<mfxExtBuffer*> m_InitExtParams;
 
     MFX_DecodeInterface(MFXVideoSession* session, mfxU32 allocId, AppConfig* config, ExtSurfPool* surf_pool);
     ~MFX_DecodeInterface();
@@ -82,7 +79,7 @@ public:
     mfxStatus Close();
     mfxStatus Reset();
     mfxStatus QueryIOSurf(mfxFrameAllocRequest* request);
-    mfxVideoParam* GetCommonVideoParams();
+    MfxVideoParamsWrapper* GetCommonVideoParams();
     mfxStatus UpdateVideoParam();
     mfxStatus FillParameters();
     mfxStatus GetOneFrame(mfxFrameSurface1* & pSurf);

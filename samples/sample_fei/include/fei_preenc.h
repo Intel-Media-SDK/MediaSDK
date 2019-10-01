@@ -34,23 +34,23 @@ private:
     FEI_PreencInterface& operator= (const FEI_PreencInterface& other_preenc); // forbidden
 
 public:
-    MFXVideoSession* m_pmfxSession;
-    MFXVideoENC*     m_pmfxPREENC;
-    MFXVideoVPP*     m_pmfxDS;
-    iTaskPool*       m_inputTasks;
-    mfxU32           m_allocId;
-    mfxVideoParam    m_videoParams;
-    mfxVideoParam    m_DSParams;
-    mfxVideoParam    m_FullResParams; // This parameter emulates mfxVideoParams of full-res surfaces (required for proper surfaces allocation for pipeline: YUV->VPP->DS->PreENC)
-    bufList*         m_pExtBuffers;
-    bufList*         m_pEncExtBuffers;
-    AppConfig*       m_pAppConfig;
-    mfxSyncPoint     m_SyncPoint;
-    bool             m_bSingleFieldMode;
-    mfxU8            m_DSstrength;
+    MFXVideoSession*      m_pmfxSession;
+    MFXVideoENC*          m_pmfxPREENC;
+    MFXVideoVPP*          m_pmfxDS;
+    iTaskPool*            m_inputTasks;
+    mfxU32                m_allocId;
+    MfxVideoParamsWrapper m_videoParams;
+    MfxVideoParamsWrapper m_DSParams;
+    MfxVideoParamsWrapper m_FullResParams; // This parameter emulates MfxVideoParamsWrappers of full-res surfaces (required for proper surfaces allocation for pipeline: YUV->VPP->DS->PreENC)
+    bufList*              m_pExtBuffers;
+    bufList*              m_pEncExtBuffers;
+    AppConfig*            m_pAppConfig;
+    mfxSyncPoint          m_SyncPoint;
+    bool                  m_bSingleFieldMode;
+    mfxU8                 m_DSstrength;
 
-    bool             m_bMVout;
-    bool             m_bMBStatout;
+    bool                  m_bMVout;
+    bool                  m_bMBStatout;
 
     mfxExtFeiPreEncMV::mfxExtFeiPreEncMVMB m_tmpMVMB;
 
@@ -59,9 +59,6 @@ public:
     FILE* m_pMbQP_in;
     FILE* m_pMBstat_out;
     FILE* m_pMV_out;
-
-    std::vector<mfxExtBuffer*> m_InitExtParams;
-    std::vector<mfxExtBuffer*> m_DSExtParams;
 
     /* Temporary memory to speed up computations */
     std::vector<mfxI16> m_tmpForMedian;
@@ -73,7 +70,7 @@ public:
     mfxStatus Close();
     mfxStatus Reset(mfxU16 width = 0, mfxU16 height = 0, mfxU16 crop_w = 0, mfxU16 crop_h = 0);
     mfxStatus QueryIOSurf(mfxFrameAllocRequest ds_request[2]);
-    mfxVideoParam* GetCommonVideoParams();
+    MfxVideoParamsWrapper* GetCommonVideoParams();
     mfxStatus UpdateVideoParam();
 
     void GetRefInfo(mfxU16 & picStruct,
