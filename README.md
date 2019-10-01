@@ -17,6 +17,7 @@ You can find answers for the most frequently asked questions [here](https://soft
   * [License](#license)
   * [How to contribute](#how-to-contribute)
   * [Documentation](#documentation)
+  * [Tutorials](#tutorials)
   * [Products which use Media SDK](#products-which-use-media-sdk)
   * [System requirements](#system-requirements)
   * [How to build](#how-to-build)
@@ -60,7 +61,8 @@ Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for th
 
 You may also wish to visit Intel Media Server Studio [support page](https://software.intel.com/en-us/intel-media-server-studio-support/documentation) for additional documentation.
 
-# Tutorials:
+# Tutorials
+
 * [Tutorials Overview](./doc/tutorials/mediasdk-tutorials-readme.md)
 * [Tutorials Command Line Reference](./doc/tutorials/mediasdk-tutorials-cmd-reference.md)
 

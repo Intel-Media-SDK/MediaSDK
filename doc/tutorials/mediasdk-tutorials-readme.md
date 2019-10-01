@@ -79,20 +79,19 @@ This quick-start tutorial illustrates how to use Intel® Media SDK by stepping f
 
 For simplicity and uniformity the tutorial focuses on the H.264 (AVC) video codec. Other codecs supported by Intel® Media SDK can be utilized in a similar way, often by a single configuration parameter. This unified approach can save significant development time and is a major advantage to working with Media SDK.
 
-Detailed comments explain the behavior of the code. You are encouraged to read and experiment. For a deeper understanding of the SDK and details on specific parameters, please refer to the Media SDK reference manual as well as the users guide. The set of samples packaged with the SDK showcase many more parameters and scenarios and are a valuable reference as well.
+Detailed comments explain the behavior of the code. You are encouraged to read and experiment. For a deeper understanding of the SDK and details on specific parameters, please refer to [*SDK API Reference Manual*](../mediasdk-man.md). The set of samples packaged with the SDK showcases many more parameters and scenarios and are a valuable reference as well.
 
-All tutorial samples are self-contained unless otherwise noted. For Linux* makefiles are provided. For Windows* each tutorial has a Microsoft Visual Studio* 2012 solution and project. To reduce redundancy and improve readability common code segments are located in the ‘common’ folder. These are tied to functions not directly related to Intel® Media SDK functionality, such as read/write of bit streams and raw frames. The ‘common’ folder also contains OS-specific device handling and surface allocation implementations.
+All tutorial samples are self-contained unless otherwise noted. To reduce redundancy and improve readability common code segments are located in the ‘common’ folder. These are tied to functions not directly related to Intel® Media SDK functionality, such as read/write of bit streams and raw frames. The ‘common’ folder also contains OS-specific device handling and surface allocation implementations.
 
-The tutorial samples were developed and tested using recent versions of Intel® Media SDK
-for Windows and Linux. For questions, or to report issues with the tutorial samples presented in this article, please use the Intel® Media SDK Forum.
+The tutorial samples were developed and tested using recent versions of Intel® Media SDK for Windows and Linux. For questions, or to report issues with the tutorial samples presented in this article, please use [*MediaSDK GitHub*](https://github.com/Intel-Media-SDK/MediaSDK/issues).
 
 ## Windows specific notes
 
  - Please note, some Windows tutorials also require installation of Microsoft Windows SDK*.
- - Since the introduction of Microsoft Window 8, Media SDK can now also be used with DirectX 11 devices and surfaces. Media SDK relies on features in DirectX 11.1, and can therefore not be used on Microsoft Windows 7. If target application must run on Microsoft Windows 7 then Media SDK DirectX9 capabilities should be used instead. DirectX 11 example solutions/projects are created using Microsoft Visual Studio 2012 to ensure DirectX 11.1 environment support.
+ - Since the introduction of Microsoft Window 8, Media SDK can now also be used with DirectX 11 devices and surfaces. Media SDK relies on features in DirectX 11.1, and therefore can't be used on Microsoft Windows 7. If target application must run on Microsoft Windows 7 then Media SDK DirectX9 capabilities should be used instead.
 
 ## How to obtain input content
-The tutorial assumes that the user has proper content to play with. Such content can be acquired from many sources on the web. One example is the Peach open movie project "Big Buck Bunny", which can be downloaded from http://www.bigbuckbunny.org. The video elementary stream must be extracted before using. This can be done using ffmpeg with:
+The tutorial assumes that the user has proper content to play with. Such content can be acquired from many sources on the web. One example is the Peach open movie project "Big Buck Bunny", which can be downloaded from [*here*](https://peach.blender.org/download/). The video elementary stream must be extracted before using. This can be done using ffmpeg with:
 
     ffmpeg \
     -i big_buck_bunny_1080p_h264.mov \
@@ -125,7 +124,7 @@ Tutorials are devided into few sections:
 | simple_3_encode_vmem_async | Adds asynchronous operation to previous example, resulting in further improved performance |
 | simple_4_vpp_resize_denoise | Showcases video frame processing (VPP) using system memory surfaces. Highlights frame resize and denoise filter processing |
 | simple_4_vpp_resize_denoise_vmem |  Adds use of video memory surfaces for improved VPP performance |
-| simple_5_transcode_|  Transcodes (decode+encode) AVC stream to another AVC stream using system  memory surfaces|
+| simple_5_transcode |  Transcodes (decode+encode) AVC stream to another AVC stream using system memory surfaces|
 | simple_5_transcode_opaque | Same as previous sample but uses the Intel® Media SDK opaque memory feature. The opaque memory type hides surface allocation specifics and allows the SDK to select  the best type for the execution in HW or SW |
 | simple_5_transcode_opaque_async | Adds asynchronous operation to the transcode pipeline  implementation, resulting in further improved performance |
 | simple_5_transcode_vmem | Same as "simple_5_transcode" sample but uses video memory surfaces instead. While opaque surfaces use video memory internally, application-level video memory  allocation is required to integrate components not in Media SDK. |
@@ -142,40 +141,37 @@ This tutorial sample showcases a very simple "hello world" type Intel® Media SD
 The sample shows how to initialize an Intel® Media SDK session (MFXVideoSession) using the target selection option "MFX IMPL AUTO ANY", which is recommended as a default setting since it is appropriate for nearly all cases.
 **Initialization Differences Between Windows and Linux**
 There are not many differences between Media SDK for Windows and for Linux, but initialization showcases some of the main ones. Please note that the main function is the same for all operating systems but there is some OS specific code in the common directory.
+
 **Windows**
 The Windows releases contain software and hardware implementations. MFX IMPL AUTO ANY implies the session will be initialized to use HW acceleration (regardless in which adapter the Intel HD Graphics device resides) if available on the processor. If HW acceleration is not available, the Intel® Media SDK defaults to SW implementation.
 
 In the "initialize" function (called from main), associating a display handle with the session is not necessary except when using video memory surfaces.
 
 **Linux**
-The Linux server release does NOT include a software implementation. MFX IMPL AUTO ANY will attempt to start the session with hardware acceleration. If the hardware implementation cannot be found initialization is not successful.
+The Linux releases do NOT include a software implementation. MFX IMPL AUTO ANY will attempt to start the session with hardware acceleration. If the hardware implementation cannot be found initialization is not successful.
 
-In the "initialize" function (called from main), associating a display handle with the session is ALWAYS necessary for Linux.
+In the "initialize" function (called from main), associating a display handle with the session is ALWAYS necessary for Linux. Please refer to [*Working with VA API Applications*](../mediasdk-man.md#working-with-va-api-applications) section for more details.
 
 **Session queries (all OS)**
-After initialization, the session is queried to determine the actual target (via QueryIMPL) that was selected. For Windows this could be HW or SW, though HW will be chosen if your processor and driver support accelerated media processing. For Linux the implementation can only be HW. The highest supported API version is  returned via QueryVersion.
+After initialization, the session is queried to determine the actual target (via QueryIMPL) that was selected. For Windows this could be HW or SW, though HW will be chosen if your processor and driver support accelerated media processing. For Linux the implementation can only be HW. The highest supported API version is returned via QueryVersion.
 
 # Tutorial Section 2: Decode
 ## simple_2_decode
 This Intel® Media SDK tutorial sample illustrates the most simplistic way of implementing HW decode using system memory surfaces.
 
-Note: In this and many of the following tutorials Intel GPA is an ideal tool to analyze and identify potential performance bottlenecks. More details will be added on using Intel GPA soon.
-
 The basic goal of this example is to illustrate why asynchronous operation using video memory surfaces is necessary. While it is simpler to use system memory synchronously, as in this example, this introduces unnecessary bottlenecks:
 
-Surfaces must be copied from GPU to CPU. While this must happen in any case for decode which writes frames to disk, buffering is not as efficient in this scenario. For a single decode (or possibly even several) gaps in the processing pipeline cannot easily be filled. Since the GPU is not in constant use it may fall out of turbo mode. Based on the above analysis we should be able to improve the performance of the workload by using video memory surfaces instead of system memory surfaces. The next tutorial sample will explore such scenario.
+Surfaces must be copied from video memory to system memory. While this must happen in any case for decode which writes frames to disk, buffering is not as efficient in this scenario. For a single decode (or possibly even several), stalls in the processing pipeline can't be filled easily. Since the GPU is not in constant use it may fall out of turbo mode. Based on the above analysis we should be able to improve the performance of the workload by using video memory surfaces instead of system memory surfaces. The next tutorial sample will explore such scenario.
 
 ## simple_2_decode_vmem
 This Intel® Media SDK tutorial sample operates in the same way as the previous "sample_2_decode" sample except that it uses video memory surfaces instead of system memory surfaces.
 
-Video surfaces are required to enable allocation on the GPU. These are implemented in DirectX for Windows and VAAPI for Linux. Device creation, adapter detection and surface management can be found in the tutorial "common" folder.
-
-Video memory surfaces allow greater efficiency by avoiding explicit copies. Further improvement may be  achieved by making the decode pipeline asynchronous. Well explore this approach further when we discuss encoding workloads in the following tutorial sections. Improved GPU utilization can also be achieved by executing several decode workloads concurrently.
+Video memory surfaces allow greater efficiency by avoiding explicit copies. Further improvement may be achieved by making the decode pipeline asynchronous. We'll explore this approach further when we discuss encoding workloads in the following tutorial sections. Improved GPU utilization can also be achieved by executing several decode workloads concurrently.
 
 Additional details for Windows developers:
 Since the introduction of Microsoft Windows* 8, Intel® Media SDK can be used with DirectX11 devices and surfaces. Note that Intel® Media SDK relies on the features part of DirectX 11.1, and can therefore not be used on Microsoft Windows 7. If your target application must run on Microsoft Windows 7, use the DirectX 9 path via Intel® Media SDK.
 
-Tutorial samples illustrating use of D3D surfaces (such as in this sample) have two Microsoft Visual Studio* solution/project (sln/prj) files. sln/prj for DirectX9 usage created using Microsoft Visual Studio 2010 and sln/prj for DirectX11 usage created using Microsoft Visual Studio 2012. Microsoft Visual Studio* 2012 is used for DirectX11 to ensure full DirectX 11.1 environment support.
+Tutorial samples illustrating use of D3D surfaces (such as in this sample) have two Microsoft Visual Studio solution/project (sln/prj) files - for DirectX9 and DirectX11 usages.
 
 # Tutorial Section 3: Encode
 ## simple_3_encode
@@ -257,7 +253,7 @@ sample except for that it uses D3D surfaces instead of system memory surfaces.
 
 Like the "simple_2_decode" tutorial sample this sample supports both Microsoft DirectX* 9 and DirectX* 11 for Windows and VAAPI for Linux. For more details on this topic please refer to "simple_2_decode" sample description.
 
-The use of GPU memory surfaces leads to improved performance. In essence the behavior of this workload is the same as for "simple_5_transcode_opaque" (when executed on a processor that supports HW acceleration). However, since the application manages video memory these surfaces are available to integrate with components that are not in the standard Intel® Media SDK decode -> process -> encode pipeline.
+The use of surfaces in video memory leads to improved performance. In essence the behavior of this workload is the same as for "simple_5_transcode_opaque" (when executed on a processor that supports HW acceleration). However, since the application manages video memory these surfaces are available to integrate with components that are not in the standard Intel® Media SDK decode -> process -> encode pipeline.
 
 # Tutorial Section 6: Advanced Media SDK
 ##  How to create low latency pipelines and how to benchmark latency
