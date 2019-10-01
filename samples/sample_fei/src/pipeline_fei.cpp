@@ -210,20 +210,13 @@ mfxStatus CEncodingPipeline::Init(mfxSession parentSession)
     //BRC for PAK only
     if (m_appCfg.bOnlyPAK && m_appCfg.RateControlMethod == MFX_RATECONTROL_VBR)
     {
-        //prepare mfxVideoParam for BRC
-        mfxVideoParam tmp = *m_appCfg.PipelineCfg.pPakVideoParam;
+        //prepare MfxVideoParamsWrapper for BRC
+        MfxVideoParamsWrapper tmp = *m_appCfg.PipelineCfg.pPakVideoParam;
         tmp.mfx.RateControlMethod = m_appCfg.RateControlMethod;
         tmp.mfx.TargetKbps        = m_appCfg.TargetKbps;
 
-        mfxExtCodingOption CO;
-        MSDK_ZERO_MEMORY(CO);
-        CO.Header.BufferId = MFX_EXTBUFF_CODING_OPTION;
-        CO.Header.BufferSz = sizeof(mfxExtCodingOption);
-        CO.NalHrdConformance = MFX_CODINGOPTION_OFF;
-
-        mfxExtBuffer *ext = &CO.Header;
-        tmp.ExtParam    = &ext; //ignore all other buffers
-        tmp.NumExtParam = 1;
+        auto co = tmp.AddExtBuffer<mfxExtCodingOption>();
+        co->NalHrdConformance = MFX_CODINGOPTION_OFF;
 
         sts = m_BRC.Init(&tmp);
         MSDK_CHECK_STATUS(sts, "BRC initialization failed");

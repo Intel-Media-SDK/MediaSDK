@@ -30,29 +30,18 @@ MFX_VppInterface::MFX_VppInterface(MFXVideoSession* session, mfxU32 allocId, App
     , m_pAppConfig(config)
     , m_SyncPoint(0)
 {
-    MSDK_ZERO_MEMORY(m_videoParams);
-
-    m_InitExtParams.reserve(1);
 }
 
 MFX_VppInterface::~MFX_VppInterface()
 {
     MSDK_SAFE_DELETE(m_pmfxVPP);
-
-    for (mfxU32 i = 0; i < m_InitExtParams.size(); ++i)
+    auto vppDoNotUse = m_videoParams.GetExtBuffer<mfxExtVPPDoNotUse>();
+    if(vppDoNotUse)
     {
-        switch (m_InitExtParams[i]->BufferId)
-        {
-        case MFX_EXTBUFF_VPP_DONOTUSE:
-            mfxExtVPPDoNotUse* ptr = reinterpret_cast<mfxExtVPPDoNotUse*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE_ARRAY(ptr->AlgList);
-            MSDK_SAFE_DELETE(ptr);
-            break;
-        }
+        MSDK_SAFE_DELETE_ARRAY(vppDoNotUse->AlgList);
     }
-    m_InitExtParams.clear();
 
-    m_pAppConfig->PipelineCfg.pVppVideoParam = NULL;
+    m_pAppConfig->PipelineCfg.pVppVideoParam = nullptr;
 }
 
 mfxStatus MFX_VppInterface::Init()
@@ -65,7 +54,7 @@ mfxStatus MFX_VppInterface::Close()
     return m_pmfxVPP->Close();
 }
 
-mfxVideoParam* MFX_VppInterface::GetCommonVideoParams()
+MfxVideoParamsWrapper* MFX_VppInterface::GetCommonVideoParams()
 {
     return &m_videoParams;
 }
@@ -145,21 +134,15 @@ mfxStatus MFX_VppInterface::FillParameters()
 
 
     // configure and attach external parameters
-    mfxExtVPPDoNotUse* m_VppDoNotUse = new mfxExtVPPDoNotUse;
-    MSDK_ZERO_MEMORY(*m_VppDoNotUse);
-    m_VppDoNotUse->Header.BufferId = MFX_EXTBUFF_VPP_DONOTUSE;
-    m_VppDoNotUse->Header.BufferSz = sizeof(mfxExtVPPDoNotUse);
-    m_VppDoNotUse->NumAlg = 4;
+    auto vppDoNotUse = m_videoParams.AddExtBuffer<mfxExtVPPDoNotUse>();
 
-    m_VppDoNotUse->AlgList = new mfxU32[m_VppDoNotUse->NumAlg];
-    m_VppDoNotUse->AlgList[0] = MFX_EXTBUFF_VPP_DENOISE;        // turn off denoising (on by default)
-    m_VppDoNotUse->AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // turn off scene analysis (on by default)
-    m_VppDoNotUse->AlgList[2] = MFX_EXTBUFF_VPP_DETAIL;         // turn off detail enhancement (on by default)
-    m_VppDoNotUse->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP;        // turn off processing amplified (on by default)
-    m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(m_VppDoNotUse));
+    vppDoNotUse->NumAlg     = 4;
+    vppDoNotUse->AlgList    = new mfxU32[vppDoNotUse->NumAlg];
+    vppDoNotUse->AlgList[0] = MFX_EXTBUFF_VPP_DENOISE;        // turn off denoising (on by default)
+    vppDoNotUse->AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // turn off scene analysis (on by default)
+    vppDoNotUse->AlgList[2] = MFX_EXTBUFF_VPP_DETAIL;         // turn off detail enhancement (on by default)
+    vppDoNotUse->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP;        // turn off processing amplified (on by default)
 
-    m_videoParams.ExtParam    = &m_InitExtParams[0]; // vector is stored linearly in memory
-    m_videoParams.NumExtParam = (mfxU16)m_InitExtParams.size();
 
     return sts;
 }
@@ -220,30 +203,15 @@ MFX_DecodeInterface::MFX_DecodeInterface(MFXVideoSession* session, mfxU32 allocI
     , m_bEndOfFile(false)
     , m_DecStremout_out(NULL)
 {
-    MSDK_ZERO_MEMORY(m_videoParams);
-
-    m_InitExtParams.reserve(1);
 }
 
 MFX_DecodeInterface::~MFX_DecodeInterface()
 {
     MSDK_SAFE_DELETE(m_pmfxDECODE);
 
-    for (mfxU32 i = 0; i < m_InitExtParams.size(); ++i)
-    {
-        switch (m_InitExtParams[i]->BufferId)
-        {
-        case MFX_EXTBUFF_FEI_PARAM:
-            mfxExtFeiParam* ptr = reinterpret_cast<mfxExtFeiParam*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-            break;
-        }
-    }
-    m_InitExtParams.clear();
-
     SAFE_FCLOSE(m_DecStremout_out);
 
-    m_pAppConfig->PipelineCfg.pDecodeVideoParam = NULL;
+    m_pAppConfig->PipelineCfg.pDecodeVideoParam = nullptr;
 }
 
 mfxStatus MFX_DecodeInterface::Init()
@@ -266,7 +234,7 @@ mfxStatus MFX_DecodeInterface::QueryIOSurf(mfxFrameAllocRequest* request)
     return m_pmfxDECODE->QueryIOSurf(&m_videoParams, request);
 }
 
-mfxVideoParam* MFX_DecodeInterface::GetCommonVideoParams()
+MfxVideoParamsWrapper* MFX_DecodeInterface::GetCommonVideoParams()
 {
     return &m_videoParams;
 }
@@ -345,17 +313,9 @@ mfxStatus MFX_DecodeInterface::FillParameters()
 
     if (m_pAppConfig->bDECODESTREAMOUT)
     {
-        mfxExtFeiParam* decStreamoutParams = new mfxExtFeiParam;
-        MSDK_ZERO_MEMORY(*decStreamoutParams);
-        decStreamoutParams->Header.BufferId = MFX_EXTBUFF_FEI_PARAM;
-        decStreamoutParams->Header.BufferSz = sizeof(mfxExtFeiParam);
+        auto decStreamoutParams = m_videoParams.AddExtBuffer<mfxExtFeiParam>();
         decStreamoutParams->Func = MFX_FEI_FUNCTION_DEC;
         decStreamoutParams->SingleFieldProcessing = MFX_CODINGOPTION_OFF;
-
-        m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer*>(decStreamoutParams));
-
-        m_videoParams.NumExtParam = (mfxU16)m_InitExtParams.size();
-        m_videoParams.ExtParam = &m_InitExtParams[0];
     }
 
     if (m_pAppConfig->decodestreamoutFile)
@@ -516,19 +476,15 @@ mfxStatus MFX_DecodeInterface::FlushOutput(mfxFrameSurface1* pSurf)
 
     mfxStatus sts = MFX_ERR_NONE;
 
-    for (int i = 0; i < pSurf->Data.NumExtParam; ++i)
-        if (pSurf->Data.ExtParam[i]->BufferId == MFX_EXTBUFF_FEI_DEC_STREAM_OUT)
+    auto decodeStreamout = m_videoParams.GetExtBuffer<mfxExtFeiDecStreamOut>();
+    if (decodeStreamout)
+    {
+        if (m_DecStremout_out)
         {
-            mfxExtFeiDecStreamOut* decodeStreamout = reinterpret_cast<mfxExtFeiDecStreamOut*>(pSurf->Data.ExtParam[i]);
-            MSDK_CHECK_POINTER(decodeStreamout, MFX_ERR_NULL_PTR);
-
-            if (m_DecStremout_out)
-            {
-                /* NOTE: streamout holds data for both fields in MB array (first NumMBAlloc for first field data, second NumMBAlloc for second field) */
-                SAFE_FWRITE(decodeStreamout->MB, sizeof(mfxFeiDecStreamOutMBCtrl)*decodeStreamout->NumMBAlloc, 1, m_DecStremout_out, MFX_ERR_MORE_DATA);
-            }
-            break;
+            /* NOTE: streamout holds data for both fields in MB array (first NumMBAlloc for first field data, second NumMBAlloc for second field) */
+            SAFE_FWRITE(decodeStreamout->MB, sizeof(mfxFeiDecStreamOutMBCtrl)*decodeStreamout->NumMBAlloc, 1, m_DecStremout_out, MFX_ERR_MORE_DATA);
         }
+    }
 
     return sts;
 }

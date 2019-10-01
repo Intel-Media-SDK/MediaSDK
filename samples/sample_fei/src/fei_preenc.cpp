@@ -42,13 +42,6 @@ FEI_PreencInterface::FEI_PreencInterface(MFXVideoSession* session, iTaskPool* ta
     , m_pMBstat_out(NULL)
     , m_pMV_out(NULL)
 {
-    MSDK_ZERO_MEMORY(m_videoParams);
-    MSDK_ZERO_MEMORY(m_DSParams);
-    MSDK_ZERO_MEMORY(m_FullResParams);
-
-    m_InitExtParams.reserve(1);
-    m_DSExtParams.reserve(1);
-
     if (m_pAppConfig->bENCODE || m_pAppConfig->bOnlyENC || m_pAppConfig->bENCPAK)
     {
         m_tmpForMedian.resize(16);
@@ -70,38 +63,17 @@ FEI_PreencInterface::~FEI_PreencInterface()
     MSDK_SAFE_DELETE(m_pmfxPREENC);
     MSDK_SAFE_DELETE(m_pmfxDS);
 
-    for (mfxU32 i = 0; i < m_InitExtParams.size(); ++i)
-    {
-        switch (m_InitExtParams[i]->BufferId)
-        {
-        case MFX_EXTBUFF_FEI_PARAM:
-            mfxExtFeiParam* ptr = reinterpret_cast<mfxExtFeiParam*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-            break;
-        }
-    }
-    m_InitExtParams.clear();
-
-    for (mfxU32 i = 0; i < m_DSExtParams.size(); ++i)
-    {
-        switch (m_DSExtParams[i]->BufferId)
-        {
-        case MFX_EXTBUFF_VPP_DONOTUSE:
-            mfxExtVPPDoNotUse* ptr = reinterpret_cast<mfxExtVPPDoNotUse*>(m_DSExtParams[i]);
-            MSDK_SAFE_DELETE_ARRAY(ptr->AlgList);
-            MSDK_SAFE_DELETE(ptr);
-            break;
-        }
-    }
-    m_DSExtParams.clear();
+    auto vppDoNotUse = m_DSParams.GetExtBuffer<mfxExtVPPDoNotUse>();
+    if(vppDoNotUse)
+        MSDK_SAFE_DELETE_ARRAY(vppDoNotUse->AlgList);
 
     SAFE_FCLOSE(m_pMvPred_in);
     SAFE_FCLOSE(m_pMbQP_in);
     SAFE_FCLOSE(m_pMBstat_out);
     SAFE_FCLOSE(m_pMV_out);
 
-    m_pAppConfig->PipelineCfg.pDownSampleVideoParam = NULL;
-    m_pAppConfig->PipelineCfg.pPreencVideoParam     = NULL;
+    m_pAppConfig->PipelineCfg.pDownSampleVideoParam = nullptr;
+    m_pAppConfig->PipelineCfg.pPreencVideoParam     = nullptr;
 }
 
 mfxStatus FEI_PreencInterface::Init()
@@ -167,7 +139,7 @@ mfxStatus FEI_PreencInterface::QueryIOSurf(mfxFrameAllocRequest ds_request[2])
 In DS case PreENC videoParam correspondes to downsampled frames which are used
 by PreENC only, the following interfaces expects full resolution frames.
 */
-mfxVideoParam* FEI_PreencInterface::GetCommonVideoParams()
+MfxVideoParamsWrapper* FEI_PreencInterface::GetCommonVideoParams()
 {
     return &m_FullResParams;
 }
@@ -208,21 +180,9 @@ void FEI_PreencInterface::GetRefInfo(
     gopOptFlag  = m_videoParams.mfx.GopOptFlag;
     idrInterval = m_videoParams.mfx.IdrInterval;
 
-    for (mfxU32 i = 0; i < m_InitExtParams.size(); ++i)
-    {
-        switch (m_InitExtParams[i]->BufferId)
-        {
-            case MFX_EXTBUFF_FEI_PARAM:
-            {
-                mfxExtFeiParam* ptr = reinterpret_cast<mfxExtFeiParam*>(m_InitExtParams[i]);
-                m_bSingleFieldMode = bSigleFieldProcessing = ptr->SingleFieldProcessing == MFX_CODINGOPTION_ON;
-            }
-            break;
-
-            default:
-                break;
-        }
-    }
+    auto feiParam = m_videoParams.GetExtBuffer<mfxExtFeiParam>();
+    if (feiParam)
+        m_bSingleFieldMode = bSigleFieldProcessing = feiParam->SingleFieldProcessing == MFX_CODINGOPTION_ON;
 }
 
 mfxStatus FEI_PreencInterface::FillDSVideoParams()
@@ -285,21 +245,13 @@ mfxStatus FEI_PreencInterface::FillDSVideoParams()
 
 
     // configure and attach external parameters
-    mfxExtVPPDoNotUse* m_VppDoNotUse = new mfxExtVPPDoNotUse;
-    MSDK_ZERO_MEMORY(*m_VppDoNotUse);
-    m_VppDoNotUse->Header.BufferId = MFX_EXTBUFF_VPP_DONOTUSE;
-    m_VppDoNotUse->Header.BufferSz = sizeof(mfxExtVPPDoNotUse);
-    m_VppDoNotUse->NumAlg = 4;
-
-    m_VppDoNotUse->AlgList    = new mfxU32[m_VppDoNotUse->NumAlg];
-    m_VppDoNotUse->AlgList[0] = MFX_EXTBUFF_VPP_DENOISE;        // turn off denoising (on by default)
-    m_VppDoNotUse->AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // turn off scene analysis (on by default)
-    m_VppDoNotUse->AlgList[2] = MFX_EXTBUFF_VPP_DETAIL;         // turn off detail enhancement (on by default)
-    m_VppDoNotUse->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP;        // turn off processing amplified (on by default)
-    m_DSExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(m_VppDoNotUse));
-
-    m_DSParams.ExtParam    = m_DSExtParams.data();
-    m_DSParams.NumExtParam = (mfxU16)m_DSExtParams.size();
+    auto vppDoNotUse= m_DSParams.AddExtBuffer<mfxExtVPPDoNotUse>();
+    vppDoNotUse->NumAlg     = 4;
+    vppDoNotUse->AlgList    = new mfxU32[vppDoNotUse->NumAlg];
+    vppDoNotUse->AlgList[0] = MFX_EXTBUFF_VPP_DENOISE;        // turn off denoising (on by default)
+    vppDoNotUse->AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS; // turn off scene analysis (on by default)
+    vppDoNotUse->AlgList[2] = MFX_EXTBUFF_VPP_DETAIL;         // turn off detail enhancement (on by default)
+    vppDoNotUse->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP;        // turn off processing amplified (on by default)
 
     return sts;
 }
@@ -392,28 +344,20 @@ mfxStatus FEI_PreencInterface::FillParameters()
     m_videoParams.mfx.NumRefFrame = (std::max)(m_pAppConfig->numRef,    mfxU16(1));
     m_videoParams.mfx.NumSlice    = (std::max)(m_pAppConfig->numSlices, mfxU16(1));
 
-    MSDK_MEMCPY_VAR(m_FullResParams, &m_videoParams, sizeof(mfxVideoParam));
+    m_FullResParams = m_videoParams;
+
     if (m_pmfxDS)
     {
         MSDK_MEMCPY_VAR(m_FullResParams.mfx.FrameInfo, &m_DSParams.vpp.In, sizeof(mfxFrameInfo));
     }
 
     /* Create extension buffer to Init FEI PREENC */
-    mfxExtFeiParam* pExtBufInit = new mfxExtFeiParam;
-    MSDK_ZERO_MEMORY(*pExtBufInit);
 
-    pExtBufInit->Header.BufferId = MFX_EXTBUFF_FEI_PARAM;
-    pExtBufInit->Header.BufferSz = sizeof(mfxExtFeiParam);
-    pExtBufInit->Func            = MFX_FEI_FUNCTION_PREENC;
+    auto bufInit = m_videoParams.AddExtBuffer<mfxExtFeiParam>();
 
-    pExtBufInit->SingleFieldProcessing = mfxU16(m_bSingleFieldMode ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
-    m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pExtBufInit));
+    bufInit->Func            = MFX_FEI_FUNCTION_PREENC;
 
-    if (!m_InitExtParams.empty())
-    {
-        m_videoParams.ExtParam    = &m_InitExtParams[0]; // vector is stored linearly in memory
-        m_videoParams.NumExtParam = (mfxU16)m_InitExtParams.size();
-    }
+    bufInit->SingleFieldProcessing = mfxU16(m_bSingleFieldMode ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
 
     if (m_pMvPred_in == NULL && m_pAppConfig->mvinFile)
     {
