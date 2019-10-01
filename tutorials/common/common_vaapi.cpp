@@ -19,7 +19,8 @@
 // SOFTWARE.
 
 #include <sys/ioctl.h>
-#include <drm/drm_fourcc.h>
+#include <drm.h>
+#include <drm_fourcc.h>
 #include <map>
 
 #include "common_vaapi.h"
