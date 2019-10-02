@@ -499,10 +499,6 @@ namespace UMC_MPEG2_DECODER
             }
         }
 
-
-        // Frame time stamp
-        m_currFrame->dFrameTime = slice->source.GetTime();
-
         const auto picExt = *m_currHeaders.picExtHdr;
         uint32_t fieldIndex = m_currFrame->GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
         MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU(fieldIndex);
@@ -724,13 +720,15 @@ namespace UMC_MPEG2_DECODER
     }
 
     // Initialize just allocated frame with parameters
-    void InitFreeFrame(MPEG2DecoderFrame& frame,
-                       const MPEG2SequenceHeader& seq, const MPEG2SequenceExtension& seqExt,
-                       const MPEG2PictureHeader& pic, const MPEG2PictureCodingExtension& picExt,
-                       const UMC::sVideoStreamInfo& info)
+    void InitFreeFrame(MPEG2DecoderFrame& frame, const MPEG2Slice& slice, const UMC::sVideoStreamInfo& info)
     {
+        auto seq    = slice.GetSeqHeader();
+        auto seqExt = slice.GetSeqExtHeader();
+        auto pic    = slice.GetPicHeader();
+        auto picExt = slice.GetPicExtHeader();
 
-        frame.frameType = (FrameType)pic.picture_coding_type;
+        frame.frameType  = (FrameType)pic.picture_coding_type;
+        frame.dFrameTime = slice.source.GetTime();
         frame.isProgressiveSequence = seqExt.progressive_sequence;
         frame.isProgressiveFrame    = picExt.progressive_frame;
 
@@ -804,12 +802,7 @@ namespace UMC_MPEG2_DECODER
         if (!frame)
             return nullptr;
 
-        const auto seq    = slice->GetSeqHeader();
-        const auto seqExt = slice->GetSeqExtHeader();
-        const auto pic    = slice->GetPicHeader();
-        const auto picExt = slice->GetPicExtHeader();
-
-        InitFreeFrame(*frame, seq, seqExt, pic, picExt, m_params.info);
+        InitFreeFrame(*frame, *slice, m_params.info);
 
         frame->group = m_currHeaders.group;
 
