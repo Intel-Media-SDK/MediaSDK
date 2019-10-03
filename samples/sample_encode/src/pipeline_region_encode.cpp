@@ -401,7 +401,7 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
 
     // set memory type
     m_memType = pParams->memType;
-    m_nMemBuffer = pParams->nMemBuf;
+    m_nPerfOpt = pParams->nPerfOpt;
     m_nTimeout = pParams->nTimeout;
 
     // If output isn't specified work in performance mode and do not insert idr
@@ -531,9 +531,9 @@ mfxStatus CRegionEncodingPipeline::Run()
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
         // find free surface for encoder input
-        if (m_nMemBuffer)
+        if (m_nPerfOpt)
         {
-            nEncSurfIdx %= m_nMemBuffer;
+            nEncSurfIdx %= m_nPerfOpt;
         }
         else
         {
@@ -588,7 +588,7 @@ mfxStatus CRegionEncodingPipeline::Run()
                 sts = m_resources[regId].pEncoder->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
 
-                if ((sts != MFX_ERR_NOT_ENOUGH_BUFFER) && m_nMemBuffer)
+                if ((sts != MFX_ERR_NOT_ENOUGH_BUFFER) && m_nPerfOpt)
                 {
                     nEncSurfIdx++;
                 }

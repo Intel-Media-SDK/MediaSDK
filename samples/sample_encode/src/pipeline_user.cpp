@@ -68,7 +68,7 @@ mfxStatus CUserPipeline::AllocFrames()
     nEncSurfNum = EncRequest.NumFrameSuggested;
 
     // The number of surfaces for plugin input - so that plugin can work at async depth = m_nAsyncDepth
-    nRotateSurfNum = MSDK_MAX(m_mfxEncParams.AsyncDepth, m_nMemBuffer);
+    nRotateSurfNum = MSDK_MAX(m_mfxEncParams.AsyncDepth, m_nPerfOpt);
 
     // If surfaces are shared by 2 components, c1 and c2. NumSurf = c1_out + c2_in - AsyncDepth + 1
     nEncSurfNum += nRotateSurfNum - m_mfxEncParams.AsyncDepth + 1;
@@ -185,7 +185,7 @@ mfxStatus CUserPipeline::Init(sInputParams *pParams)
 
     // set memory type
     m_memType = pParams->memType;
-    m_nMemBuffer = pParams->nMemBuf;
+    m_nPerfOpt = pParams->nPerfOpt;
     m_nTimeout = pParams->nTimeout;
     m_bCutOutput = !pParams->bUncut;
 
@@ -334,9 +334,9 @@ mfxStatus CUserPipeline::Run()
         sts = GetFreeTask(&pCurrentTask);
         MSDK_BREAK_ON_ERROR(sts);
 
-        if (m_nMemBuffer)
+        if (m_nPerfOpt)
         {
-            nRotateSurfIdx = m_nFramesRead % m_nMemBuffer;
+            nRotateSurfIdx = m_nFramesRead % m_nPerfOpt;
         }
         else
         {
@@ -476,9 +476,9 @@ mfxStatus CUserPipeline::Run()
 
 mfxStatus CUserPipeline::FillBuffers()
 {
-    if (m_nMemBuffer)
+    if (m_nPerfOpt)
     {
-        for (mfxU32 i = 0; i < m_nMemBuffer; i++)
+        for (mfxU32 i = 0; i < m_nPerfOpt; i++)
         {
             mfxFrameSurface1* surface = &m_pPluginSurfaces[i];
 

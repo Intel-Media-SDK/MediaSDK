@@ -882,7 +882,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
 
     if (!m_pmfxVPP)
     {
-        EncRequest.NumFrameMin = EncRequest.NumFrameSuggested = MSDK_MAX(EncRequest.NumFrameSuggested, m_nMemBuffer);
+        EncRequest.NumFrameMin = EncRequest.NumFrameSuggested = MSDK_MAX(EncRequest.NumFrameSuggested, m_nPerfOpt);
     }
 
     if (EncRequest.NumFrameSuggested < m_mfxEncParams.AsyncDepth)
@@ -901,7 +901,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
         sts = m_pmfxVPP->QueryIOSurf(&m_mfxVppParams, VppRequest);
         MSDK_CHECK_STATUS(sts, "m_pmfxVPP->QueryIOSurf failed");
 
-        VppRequest[0].NumFrameMin = VppRequest[0].NumFrameSuggested = MSDK_MAX(VppRequest[0].NumFrameSuggested, m_nMemBuffer);
+        VppRequest[0].NumFrameMin = VppRequest[0].NumFrameSuggested = MSDK_MAX(VppRequest[0].NumFrameSuggested, m_nPerfOpt);
         // The number of surfaces for vpp input - so that vpp can work at async depth = m_nAsyncDepth
         nVppSurfNum = VppRequest[0].NumFrameSuggested;
         // If surfaces are shared by 2 components, c1 and c2. NumSurf = c1_out + c2_in - AsyncDepth + 1
@@ -1157,7 +1157,7 @@ CEncodingPipeline::CEncodingPipeline()
     m_pVppSurfaces = NULL;
     m_InputFourCC = 0;
 
-    m_nMemBuffer = 0;
+    m_nPerfOpt = 0;
     m_nTimeout = 0;
 
     m_nFramesRead = 0;
@@ -1616,7 +1616,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     // set memory type
     m_memType = pParams->memType;
-    m_nMemBuffer = pParams->nMemBuf;
+    m_nPerfOpt = pParams->nPerfOpt;
 
     m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
@@ -1817,9 +1817,9 @@ void CEncodingPipeline::FreeFileWriters()
 
 mfxStatus CEncodingPipeline::FillBuffers()
 {
-    if (m_nMemBuffer)
+    if (m_nPerfOpt)
     {
-        for (mfxU32 i = 0; i < m_nMemBuffer; i++)
+        for (mfxU32 i = 0; i < m_nPerfOpt; i++)
         {
             mfxFrameSurface1* surface = m_pmfxVPP ? &m_pVppSurfaces[i] : &m_pEncSurfaces[i];
 
@@ -2048,9 +2048,9 @@ mfxStatus CEncodingPipeline::Run()
         MSDK_BREAK_ON_ERROR(sts);
 
         // find free surface for encoder input
-        if (m_nMemBuffer && !m_pmfxVPP)
+        if (m_nPerfOpt && !m_pmfxVPP)
         {
-            nEncSurfIdx %= m_nMemBuffer;
+            nEncSurfIdx %= m_nPerfOpt;
         }
         else
         {
@@ -2073,9 +2073,9 @@ mfxStatus CEncodingPipeline::Run()
                         nVppSurfIdx = v4l2Pipeline.GetOffQ();
                     }
 #else
-                    if (m_nMemBuffer)
+                    if (m_nPerfOpt)
                     {
-                        nVppSurfIdx = nVppSurfIdx % m_nMemBuffer;
+                        nVppSurfIdx = nVppSurfIdx % m_nPerfOpt;
                     }
                     else
                     {
@@ -2115,7 +2115,7 @@ mfxStatus CEncodingPipeline::Run()
                                                   &m_pEncSurfaces[nEncSurfIdx],
                     NULL, &VppSyncPoint);
 
-                if (m_nMemBuffer)
+                if (m_nPerfOpt)
                 {
                    // increment buffer index
                    nVppSurfIdx++;
@@ -2170,7 +2170,7 @@ mfxStatus CEncodingPipeline::Run()
             sts = m_pmfxENC->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
 
 
-            if (m_nMemBuffer)
+            if (m_nPerfOpt)
             {
                 // increment buffer index
                 nEncSurfIdx++;
@@ -2369,18 +2369,18 @@ mfxStatus CEncodingPipeline::LoadNextFrame(mfxFrameSurface1* pSurf)
 
     m_bTimeOutExceed = (m_nTimeout < m_statOverall.GetDeltaTime()) ? true : false;
 
-    if (m_nMemBuffer)
+    if (m_nPerfOpt)
     {
-        // memoty buffer mode. No file reading required
-        bool bMemBufExceed = !(m_nFramesRead % m_nMemBuffer) && m_nFramesRead;
-        if (m_bTimeOutExceed && bMemBufExceed )
+        // memory buffer mode. No file reading required
+        bool bPerfOptExceed = !(m_nFramesRead % m_nPerfOpt) && m_nFramesRead;
+        if (m_nPerfOpt == m_nFramesRead && m_nFramesToProcess == 0)
         {
             sts = MFX_ERR_MORE_DATA;
-        }
-        else if (bMemBufExceed)
-        {
-            // Rewrite outupt file and insert idr frame
             m_bFileWriterReset = m_bCutOutput;
+        }
+        else if (bPerfOptExceed)
+        {
+            // insert idr frame
             m_bInsertIDR = m_bCutOutput;
         }
     }

@@ -161,7 +161,7 @@ struct sInputParams
     bool bSoftRobustFlag;
 
     mfxU32 nTimeout;
-    mfxU16 nMemBuf;
+    mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
 
     mfxU16 nNumSlice;
     bool UseRegionEncode;
@@ -320,7 +320,7 @@ protected:
     MFXFrameAllocator* m_pMFXAllocator;
     mfxAllocatorParams* m_pmfxAllocatorParams;
     MemType m_memType;
-    mfxU16 m_nMemBuffer;
+    mfxU16 m_nPerfOpt; // size of pre-load buffer which used for loop encode
     bool m_bExternalAlloc; // use memory allocator as external for Media SDK
 
     mfxFrameSurface1* m_pEncSurfaces; // frames array for encoder input (vpp output)
