@@ -476,15 +476,19 @@ mfxStatus MFX_DecodeInterface::FlushOutput(mfxFrameSurface1* pSurf)
 
     mfxStatus sts = MFX_ERR_NONE;
 
-    auto decodeStreamout = m_videoParams.GetExtBuffer<mfxExtFeiDecStreamOut>();
-    if (decodeStreamout)
-    {
-        if (m_DecStremout_out)
+    for (int i = 0; i < pSurf->Data.NumExtParam; ++i)
+        if (pSurf->Data.ExtParam[i]->BufferId == MFX_EXTBUFF_FEI_DEC_STREAM_OUT)
         {
-            /* NOTE: streamout holds data for both fields in MB array (first NumMBAlloc for first field data, second NumMBAlloc for second field) */
-            SAFE_FWRITE(decodeStreamout->MB, sizeof(mfxFeiDecStreamOutMBCtrl)*decodeStreamout->NumMBAlloc, 1, m_DecStremout_out, MFX_ERR_MORE_DATA);
+            mfxExtFeiDecStreamOut* decodeStreamout = reinterpret_cast<mfxExtFeiDecStreamOut*>(pSurf->Data.ExtParam[i]);
+            MSDK_CHECK_POINTER(decodeStreamout, MFX_ERR_NULL_PTR);
+
+            if (m_DecStremout_out)
+            {
+                /* NOTE: streamout holds data for both fields in MB array (first NumMBAlloc for first field data, second NumMBAlloc for second field) */
+                SAFE_FWRITE(decodeStreamout->MB, sizeof(mfxFeiDecStreamOutMBCtrl)*decodeStreamout->NumMBAlloc, 1, m_DecStremout_out, MFX_ERR_MORE_DATA);
+            }
+            break;
         }
-    }
 
     return sts;
 }
