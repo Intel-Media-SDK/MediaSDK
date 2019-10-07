@@ -163,6 +163,8 @@ struct sInputParams
     mfxU32 nTimeout;
     mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
 
+    mfxU32 nSyncOpTimeout; // SyncOperation timeout in msec
+
     mfxU16 nNumSlice;
     bool UseRegionEncode;
 
@@ -247,7 +249,7 @@ public:
 
     virtual mfxStatus Init(MFXVideoSession* pmfxSession, CSmplBitstreamWriter* pWriter, mfxU32 nPoolSize, mfxU32 nBufferSize, CSmplBitstreamWriter *pOtherWriter = NULL);
     virtual mfxStatus GetFreeTask(sTask **ppTask);
-    virtual mfxStatus SynchronizeFirstTask();
+    virtual mfxStatus SynchronizeFirstTask(mfxU32 syncOpTimeout);
 
     virtual CTimeStatistics& GetOverallStatistics() { return m_statOverall;}
     virtual CTimeStatistics& GetFileStatistics() { return m_statFile;}
@@ -342,6 +344,8 @@ protected:
     bool m_bSoftRobustFlag;
 
     mfxU32 m_nTimeout;
+
+    mfxU32 m_nSyncOpTimeout; // SyncOperation timeout in msec
 
     bool   m_bFileWriterReset;
     mfxU32 m_nFramesRead;

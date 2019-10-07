@@ -54,6 +54,8 @@ protected:
     mfxVideoParam                   m_pluginVideoParams;
     RotateParam                     m_RotateParams;
 
+    mfxU32                  m_nSyncOpTimeout; // SyncOperation timeout in msec
+
     virtual mfxStatus InitRotateParam(sInputParams *pParams);
     virtual mfxStatus AllocFrames();
     virtual void DeleteFrames();

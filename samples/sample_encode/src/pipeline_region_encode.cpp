@@ -48,9 +48,9 @@ mfxStatus CResourcesPool::GetFreeTask(int resourceNum,sTask **ppTask)
     if (MFX_ERR_NOT_FOUND == sts)
     {
         // We should syncrhonize every first task in all task pools to write regions (slices) into destination in correct order
-        for(int i=0; i < size; i++)
+        for(int i=0; i < m_size; i++)
         {
-            sts = m_resources[i].TaskPool.SynchronizeFirstTask();
+            sts = m_resources[i].TaskPool.SynchronizeFirstTask(m_nSyncOpTimeout);
             MSDK_CHECK_STATUS(sts, "m_resources[i].TaskPool.SynchronizeFirstTask failed");
         }
 
@@ -61,11 +61,12 @@ mfxStatus CResourcesPool::GetFreeTask(int resourceNum,sTask **ppTask)
     return sts;
 }
 
-mfxStatus CResourcesPool::Init(int sz,mfxIMPL impl, mfxVersion *pVer)
+mfxStatus CResourcesPool::Init(int sz, mfxIMPL impl, mfxVersion *pVer, mfxU32 nSyncOpTimeout)
 {
     MSDK_CHECK_NOT_EQUAL(m_resources, NULL , MFX_ERR_INVALID_HANDLE);
-    this->size= sz;
+    m_size= sz;
     m_resources = new CMSDKResource[sz];
+    m_nSyncOpTimeout = nSyncOpTimeout;
     for (int i = 0; i < sz; i++)
     {
         mfxStatus sts = m_resources[i].Session.Init(impl, pVer);
@@ -76,7 +77,7 @@ mfxStatus CResourcesPool::Init(int sz,mfxIMPL impl, mfxVersion *pVer)
 
 mfxStatus CResourcesPool::InitTaskPools(CSmplBitstreamWriter* pWriter, mfxU32 nPoolSize, mfxU32 nBufferSize, CSmplBitstreamWriter *pOtherWriter)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < m_size; i++)
     {
         mfxStatus sts = m_resources[i].TaskPool.Init(&m_resources[i].Session,pWriter,nPoolSize,nBufferSize,pOtherWriter);
         MSDK_CHECK_STATUS(sts, "m_resources[i].TaskPool.Init failed");
@@ -86,7 +87,7 @@ mfxStatus CResourcesPool::InitTaskPools(CSmplBitstreamWriter* pWriter, mfxU32 nP
 
 mfxStatus CResourcesPool::CreateEncoders()
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < m_size; i++)
     {
         MFXVideoENCODE* pEnc = new MFXVideoENCODE(m_resources[i].Session);
         MSDK_CHECK_POINTER(pEnc, MFX_ERR_MEMORY_ALLOC);
@@ -97,7 +98,7 @@ mfxStatus CResourcesPool::CreateEncoders()
 
 mfxStatus CResourcesPool::CreatePlugins(mfxPluginUID pluginGUID, mfxChar* pluginPath)
 {
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < m_size; i++)
     {
         MFXPlugin* pPlugin = pluginPath ?
             LoadPlugin(MFX_PLUGINTYPE_VIDEO_ENCODE, m_resources[i].Session, pluginGUID, 1, pluginPath, (mfxU32)msdk_strnlen(pluginPath,1024)):
@@ -114,7 +115,7 @@ mfxStatus CResourcesPool::CreatePlugins(mfxPluginUID pluginGUID, mfxChar* plugin
 
 void CResourcesPool::CloseAndDeleteEverything()
 {
-    for(int i = 0; i < size; i++)
+    for(int i = 0; i < m_size; i++)
     {
         m_resources[i].TaskPool.Close();
         MSDK_SAFE_DELETE(m_resources[i].pEncoder);
@@ -338,7 +339,8 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
         return MFX_ERR_UNSUPPORTED;
     }
     else {
-        sts = m_resources.Init(pParams->nNumSlice,MFX_IMPL_SOFTWARE, &min_version);
+        sts = m_resources.Init(pParams->nNumSlice, MFX_IMPL_SOFTWARE, &min_version,
+                               pParams->nSyncOpTimeout);
         MSDK_CHECK_STATUS(sts, "m_resources.Init failed");
     }
 

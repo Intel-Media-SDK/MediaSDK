@@ -123,7 +123,7 @@ mfxStatus CEncTaskPool::Init(MFXVideoSession* pmfxSession, CSmplBitstreamWriter*
     return MFX_ERR_NONE;
 }
 
-mfxStatus CEncTaskPool::SynchronizeFirstTask()
+mfxStatus CEncTaskPool::SynchronizeFirstTask(mfxU32 syncOpTimeout)
 {
     m_statOverall.StartTimeMeasurement();
     MSDK_CHECK_POINTER(m_pTasks, MFX_ERR_NOT_INITIALIZED);
@@ -135,7 +135,7 @@ mfxStatus CEncTaskPool::SynchronizeFirstTask()
     // non-null sync point indicates that task is in execution
     if (NULL != m_pTasks[m_nTaskBufferStart].EncSyncP)
     {
-        sts = m_pmfxSession->SyncOperation(m_pTasks[m_nTaskBufferStart].EncSyncP, MSDK_WAIT_INTERVAL);
+        sts = m_pmfxSession->SyncOperation(m_pTasks[m_nTaskBufferStart].EncSyncP, syncOpTimeout);
         if (sts == MFX_ERR_GPU_HANG && m_bGpuHangRecovery)
         {
             bGpuHang = true;
@@ -1160,6 +1160,8 @@ CEncodingPipeline::CEncodingPipeline()
     m_nPerfOpt = 0;
     m_nTimeout = 0;
 
+    m_nSyncOpTimeout = 0;
+
     m_nFramesRead = 0;
     m_bFileWriterReset = false;
 
@@ -1456,6 +1458,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     m_nTimeout = pParams->nTimeout;
 
+    m_nSyncOpTimeout = pParams->nSyncOpTimeout? pParams->nSyncOpTimeout : MSDK_WAIT_INTERVAL;
     mfxInitParamlWrap initPar;
 
     // we set version to 1.0 and later we will query actual version of the library which will got leaded
@@ -1975,7 +1978,7 @@ mfxStatus CEncodingPipeline::GetFreeTask(sTask **ppTask)
     sts = m_TaskPool.GetFreeTask(ppTask);
     if (MFX_ERR_NOT_FOUND == sts)
     {
-        sts = m_TaskPool.SynchronizeFirstTask();
+        sts = m_TaskPool.SynchronizeFirstTask(m_nSyncOpTimeout);
         if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_TaskPool.ClearTasks();
@@ -2339,7 +2342,7 @@ mfxStatus CEncodingPipeline::Run()
     // synchronize all tasks that are left in task pool
     while (MFX_ERR_NONE == sts)
     {
-        sts = m_TaskPool.SynchronizeFirstTask();
+        sts = m_TaskPool.SynchronizeFirstTask(m_nSyncOpTimeout);
         if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_bInsertIDR = true;

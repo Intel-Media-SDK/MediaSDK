@@ -161,6 +161,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-WeightedBiPred:default|implicit ] - enables weighted bi-prediction mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]               - encoding in cycle not less than specific time in seconds\n"));
     msdk_printf(MSDK_STRING("   [-perf_opt n]            - sets number of prefetched frames. In performance mode app preallocates buffer and load first n frames\n"));
+    msdk_printf(MSDK_STRING("   [-SyncOpTimeout]         - SyncOperation timeout in milliseconds\n"));
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
@@ -727,6 +728,16 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nTimeout))
             {
                 PrintHelp(strInput[0], MSDK_STRING("Timeout is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-SyncOpTimeout")))
+        {
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nSyncOpTimeout))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("SyncOpTimeout is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
