@@ -2370,14 +2370,10 @@ mfxStatus CEncodingPipeline::LoadNextFrame(mfxFrameSurface1* pSurf)
     if (m_nPerfOpt)
     {
         // memory buffer mode. No file reading required
-        bool bPerfOptExceed = !(m_nFramesRead % m_nPerfOpt) && m_nFramesRead;
-        if (m_nPerfOpt == m_nFramesRead && m_nFramesToProcess == 0)
+        bool bPerfOptExceed = m_nTimeout ? m_bTimeOutExceed : false;
+        if ((m_nPerfOpt == m_nFramesRead && m_nFramesToProcess == 0) || bPerfOptExceed)
         {
             sts = MFX_ERR_MORE_DATA;
-            m_bFileWriterReset = m_bCutOutput;
-        }
-        else if (bPerfOptExceed)
-        {
             // insert idr frame
             m_bInsertIDR = m_bCutOutput;
         }
