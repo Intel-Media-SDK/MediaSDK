@@ -35,6 +35,8 @@ GUID GetGUID(MfxVideoParam const & par)
 {
     GUID guid = DXVA2_Intel_Encode_HEVC_Main;
 
+    mfxU16 cFamily = IsOn(par.mfx.LowPower);
+
     mfxU16 bdId = 0, cfId = 0;
 
 #if (MFX_VERSION >= 1027)
@@ -45,6 +47,10 @@ GUID GetGUID(MfxVideoParam const & par)
 
     if (par.m_platform && par.m_platform < MFX_HW_ICL)
         cfId = 0; // platforms below ICL do not support Main422/Main444 profile, using Main instead.
+    else if (par.m_platform && par.m_platform == MFX_HW_ICL_LP
+            && !cFamily
+            && cfId > 1)
+        cfId = 1; // ICL does not support Main444 profile without VDEnc
 #else
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.mfx.FrameInfo.BitDepthLuma == 10 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
         bdId = 1;
@@ -53,9 +59,6 @@ GUID GetGUID(MfxVideoParam const & par)
 #endif
     if (par.m_platform && par.m_platform < MFX_HW_KBL)
         bdId = 0;
-
-    mfxU16 cFamily = IsOn(par.mfx.LowPower);
-
 
     guid = GuidTable[cFamily][bdId] [cfId];
     DDITracer::TraceGUID(guid, stdout);
