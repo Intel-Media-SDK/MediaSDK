@@ -115,6 +115,29 @@ Feel free to improve this document. Bring more examples and rules. But please tr
       // will become
       ((++i) > (j) ? (++i) : j) // twice incremented, it is an unwanted side effect
       ```
+    - If macro contains ```if``` statements, it should be put in new local scope with ```{}``` to prevent unexpected behavior in nested ```if``` / ```else``` constructions.
+
+      Example:
+      ```
+      #define MFX_CHECK_UMC_ALLOC(err) if (err != true) {return MFX_ERR_MEMORY_ALLOC;}
+      ...
+      if (report_errors)
+        MFX_CHECK_UMC_ALLOC(ret_sts);
+      else
+        ret_sts = ERR_NONE; // After macro expansion this 'else' corresponds to 'if (err != true)' and not to 'if (report_errors)'.
+                            // This is undesirable side effect.
+      ```
+
+      Fix:
+      ```
+      #define MFX_CHECK_UMC_ALLOC(err) { if (err != true) {return MFX_ERR_MEMORY_ALLOC;} }
+      ...
+      if (report_errors)
+        MFX_CHECK_UMC_ALLOC(ret_sts);
+      else
+        ret_sts = ERR_NONE; // No problems now
+      ```
+
     - Use ```MFX_CHECK``` / ```MFX_RETURN``` / ```MFX_CHECK_STS``` macro for ```mfxStatus``` checks. It allows to turn on tracing.
 
       Hint: Treat these macros like an ```assert``` -  expression have to be evaluated to true and no action is taken in that case, otherwise error is returned.
