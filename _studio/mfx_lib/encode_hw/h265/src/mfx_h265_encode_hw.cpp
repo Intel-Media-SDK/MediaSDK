@@ -240,7 +240,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
         encoder_guid,
         m_vpar);
 
-    MFX_CHECK(sts != MFX_ERR_INVALID_VIDEO_PARAM, sts);
+    MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM); // MFX_ERR_UNSUPPORTED is unavailable for Init
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
 
     sts = m_ddi->QueryEncodeCaps(m_caps);
@@ -274,6 +274,8 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
     m_hrd.Init(m_vpar.m_sps, m_vpar.InitialDelayInKB);
 
     sts = m_ddi->CreateAccelerationService(m_vpar);
+
+    MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM); // MFX_ERR_UNSUPPORTED is unavailable for Init
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
 
     mfxFrameAllocRequest request = {};
