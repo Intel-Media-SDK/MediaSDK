@@ -73,6 +73,12 @@ ifeq ($(MFX_ENABLE_ITT_TRACES),true)
   MFX_CFLAGS += -DMFX_TRACE_ENABLE_ITT
 endif
 
+# Enable feature with output decoded frames without latency regarding
+# SPS.VUI.max_num_reorder_frames
+ifeq ($(ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT),)
+    ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT:= true
+endif
+
 ifeq ($(ENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT),true)
   MFX_CFLAGS += -DENABLE_MAX_NUM_REORDER_FRAMES_OUTPUT
 endif
