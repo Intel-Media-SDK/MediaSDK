@@ -5003,13 +5003,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamMvcQueryLike(MfxVideoParam & par)
 mfxStatus MfxHwH264Encode::CheckMVCSeqDescQueryLike(mfxExtMVCSeqDesc * mvcSeqDesc)
 {
     bool unsupported = false;
-    if (mvcSeqDesc->NumView > 0 && (mvcSeqDesc->NumView > 2 || mvcSeqDesc->NumView < 2))
+    if (mvcSeqDesc->NumView > 0 && mvcSeqDesc->NumView != 2)
     {
         unsupported = true;
         mvcSeqDesc->NumView = 0;
     }
 
-    if (mvcSeqDesc->NumOP > 0 && mvcSeqDesc->NumOP > 1024)
+    if (mvcSeqDesc->NumOP > 1024)
     {
         unsupported = true;
         mvcSeqDesc->NumOP = 0;
