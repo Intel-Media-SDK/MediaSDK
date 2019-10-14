@@ -873,7 +873,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
 
                                 if(MFX_EXTBUFF_VPP_COMPOSITE == extDoUseIn->AlgList[algIdx])
                                 {
-                                    mfxSts = MFX_ERR_INVALID_VIDEO_PARAM;
+                                    mfxSts = MFX_ERR_UNSUPPORTED;
                                     continue; // stop working with ExtParam[i]
                                 }
 
@@ -1112,7 +1112,9 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
             }
             else
             {
-                hwQuerySts = MFX_WRN_PARTIAL_ACCELERATION;
+                // doesn't support sw fallback now so return MFX_ERR_UNSUPPORTED
+                // will return MFX_WRN_PARTIAL_ACCELERATION after enabling sw fallback
+                hwQuerySts = MFX_ERR_UNSUPPORTED;
             }
         }
         else
@@ -1313,6 +1315,10 @@ mfxStatus VideoVPP_HW::InternalInit(mfxVideoParam *par)
     {
         bIsFilterSkipped = true;
         sts = MFX_ERR_NONE;
+    }
+    if (MFX_WRN_PARTIAL_ACCELERATION == sts) // doesn't support sw fallback
+    {
+        sts = MFX_ERR_INVALID_VIDEO_PARAM;
     }
     if (MFX_ERR_NONE != sts)
     {

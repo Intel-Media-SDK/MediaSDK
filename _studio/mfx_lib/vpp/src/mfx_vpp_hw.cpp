@@ -4668,7 +4668,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
        (par->vpp.In.CropH  == 1) ||
        (par->vpp.Out.CropW == 1) ||
        (par->vpp.Out.CropH == 1)){
-        sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
     }
 #endif
 
@@ -4688,7 +4688,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             if (extFP->Mode != MFX_VPP_COPY_FRAME && extFP->Mode != MFX_VPP_COPY_FIELD)
             {
                 // Unsupported mode
-                sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
 
             if (extFP->Mode == MFX_VPP_COPY_FIELD)
@@ -4697,7 +4697,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                  || (extFP->OutField != MFX_PICSTRUCT_FIELD_TFF && extFP->OutField != MFX_PICSTRUCT_FIELD_BFF) )
                 {
                     // Copy field needs specific type of interlace
-                    sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                 }
             }
             break;
@@ -4743,7 +4743,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
                 if(MFX_EXTBUFF_VPP_COMPOSITE == extDoUse->AlgList[algIdx])
                 {
-                    sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                     continue; // stop working with ExtParam[i]
                 }
 
@@ -4760,7 +4760,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
 
                 if(MFX_EXTBUFF_VPP_SCENE_ANALYSIS == extDoUse->AlgList[algIdx])
                 {
-                    sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                     continue; // stop working with ExtParam[i]
                 }
             }
@@ -4771,7 +4771,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             mfxExtVPPComposite* extComp = (mfxExtVPPComposite*)data;
             MFX_CHECK_NULL_PTR1(extComp);
             if (extComp->NumInputStream > MAX_NUM_OF_VPP_COMPOSITE_STREAMS)
-                sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             if (MFX_HW_D3D9 == core->GetVAType() && extComp->NumInputStream)
             {
                 // AlphaBlending & LumaKey filters are not supported at first sub-stream on DX9, DX9 can't process more than 8 channels
@@ -4780,7 +4780,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                     extComp->InputStream[0].PixelAlphaEnable ||
                     (extComp->NumInputStream > MAX_STREAMS_PER_TILE))
                 {
-                    sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                 }
             }
 
@@ -4792,7 +4792,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
     /* 2. p010 video memory should be shifted */
     if ((MFX_FOURCC_P010 == par->vpp.In.FourCC  && 0 == par->vpp.In.Shift  && par->IOPattern & MFX_IOPATTERN_IN_VIDEO_MEMORY) ||
         (MFX_FOURCC_P010 == par->vpp.Out.FourCC && 0 == par->vpp.Out.Shift && par->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY))
-        sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+        sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
 
     /* 3. Check single field cases */
@@ -4809,10 +4809,10 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             (IsFilterFound(pList, len, MFX_EXTBUFF_VPP_RESIZE) &&
              len > 2) ) // there is another filter except implicit RESIZE
         {
-            sts = (MFX_ERR_INVALID_VIDEO_PARAM < sts) ? MFX_ERR_INVALID_VIDEO_PARAM : sts;
+            sts = (MFX_ERR_UNSUPPORTED < sts) ? MFX_ERR_UNSUPPORTED : sts;
         }
 
-        // VPP SyncTaskSubmission returns MFX_ERR_INVALID_VIDEO_PARAM when output picstructure has no parity
+        // VPP SyncTaskSubmission returns MFX_ERR_UNSUPPORTED when output picstructure has no parity
         if (!(par->vpp.Out.PicStruct & (MFX_PICSTRUCT_FIELD_BFF | MFX_PICSTRUCT_FIELD_TFF)) && !(par->vpp.Out.PicStruct == MFX_PICSTRUCT_UNKNOWN))
         {
             sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
@@ -4831,14 +4831,14 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         // Input can not be progressive
         if (!(par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_TFF) && !(par->vpp.In.PicStruct & MFX_PICSTRUCT_FIELD_BFF) && !(par->vpp.In.PicStruct == MFX_PICSTRUCT_UNKNOWN))
         {
-            sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+            sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
         }
 
         if (!IsFilterFound(pList, len, MFX_EXTBUFF_VPP_FIELD_SPLITTING) || // FIELD_SPLITTING filter must be there
             (IsFilterFound(pList, len, MFX_EXTBUFF_VPP_RESIZE)                &&
              len > 2) ) // there are other filters except implicit RESIZE
         {
-            sts = (MFX_ERR_INVALID_VIDEO_PARAM < sts) ? MFX_ERR_INVALID_VIDEO_PARAM : sts;
+            sts = (MFX_ERR_UNSUPPORTED < sts) ? MFX_ERR_UNSUPPORTED : sts;
         }
     }
 
@@ -4930,7 +4930,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         {
             if (IsFilterFound(pList, len, MFX_EXTBUFF_VPP_MCTF))
             {
-                sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
         }
 
@@ -4952,7 +4952,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 }
 #endif
                 if (bHasFrameDelay)
-                    sts = GetWorstSts(sts, MFX_ERR_INVALID_VIDEO_PARAM);
+                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
         }
     }
