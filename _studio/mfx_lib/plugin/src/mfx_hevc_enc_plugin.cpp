@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -93,10 +93,9 @@ mfxStatus MFXHEVCEncoderPlugin::PluginInit(mfxCoreInterface *core)
 
 mfxStatus MFXHEVCEncoderPlugin::PluginClose()
 {
-    if (m_encoder) {
-        delete m_encoder;
-        m_encoder = NULL;
-    }
+    delete m_encoder;
+    m_encoder = nullptr;
+
     if (m_createdByDispatcher) {
         delete this;
     }
