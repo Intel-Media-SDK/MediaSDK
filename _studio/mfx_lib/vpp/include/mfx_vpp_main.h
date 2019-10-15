@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -116,8 +116,6 @@ private:
                 nativeSurface->Data.FrameOrder = surface->Data.FrameOrder;
                 nativeSurface->Data.TimeStamp = surface->Data.TimeStamp;
                 nativeSurface->Info = surface->Info;
-                nativeSurface->Data.ExtParam = surface->Data.ExtParam;
-                nativeSurface->Data.NumExtParam = surface->Data.NumExtParam;
             }
 
             return nativeSurface;
