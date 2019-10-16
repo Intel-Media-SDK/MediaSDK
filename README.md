@@ -102,7 +102,7 @@ git clone https://github.com/Intel-Media-SDK/MediaSDK msdk
 cd msdk
 ```
 
-To configure and build Media SDK install cmake version 2.8.5 or later and run the following commands:
+To configure and build Media SDK install cmake version 3.6 or later and run the following commands:
 ```sh
 mkdir build && cd build
 cmake ..
