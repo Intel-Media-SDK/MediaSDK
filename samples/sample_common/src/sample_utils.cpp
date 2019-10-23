@@ -858,6 +858,56 @@ void CSmplYUVWriter::Close()
     m_bInited = false;
 }
 
+mfxStatus GetChromaSize(const mfxFrameInfo & pInfo, mfxU32 & ChromaW, mfxU32 & ChromaH)
+{
+    switch (pInfo.FourCC)
+    {
+    case MFX_FOURCC_YV12:
+    {
+        ChromaW = (pInfo.CropW + 1) / 2;
+        ChromaH = (pInfo.CropH + 1) / 2;
+        break;
+    }
+    case MFX_FOURCC_NV12:
+    {
+        ChromaW = pInfo.CropW;
+        ChromaH = (pInfo.CropH + 1) / 2;
+        break;
+    }
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P210:
+    {
+        ChromaW = pInfo.CropW;
+        ChromaH = pInfo.FourCC == MFX_FOURCC_P210 ? (mfxU32)pInfo.CropH : (mfxU32)(pInfo.CropH + 1) / 2;
+        break;
+    }
+
+    case MFX_FOURCC_RGB4:
+    case 100: //DXGI_FORMAT_AYUV
+    case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_A2RGB10:
+    {
+        if (pInfo.CropH > 0 && pInfo.CropW > 0)
+        {
+            ChromaW = pInfo.FourCC == MFX_FOURCC_YUY2 ? (pInfo.CropW + 1) / 2 : pInfo.CropW;
+            ChromaH = pInfo.CropH;
+        }
+        else
+        {
+            ChromaW = pInfo.FourCC == MFX_FOURCC_YUY2 ? (pInfo.Width + 1) / 2 : pInfo.Width;
+            ChromaH = pInfo.Height;
+        }
+        break;
+    }
+
+    default:
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    return MFX_ERR_NONE;
+}
+
 mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
 {
     MSDK_CHECK_ERROR(m_bInited, false, MFX_ERR_NOT_INITIALIZED);
@@ -866,7 +916,7 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     mfxFrameInfo &pInfo = pSurface->Info;
     mfxFrameData &pData = pSurface->Data;
 
-    mfxU32 i, h, w;
+    mfxU32 i;
     mfxU32 vid = pInfo.FrameId.ViewId;
 
     mfxU32 shiftSizeLuma   = 16 - pInfo.BitDepthLuma;
@@ -885,6 +935,10 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     }
 
     FILE* dstFile = m_bIsMultiView ? m_fDestMVC[vid] : m_fDest;
+
+    mfxU32 ChromaW, ChromaH;
+    if (MFX_ERR_NONE != GetChromaSize(pInfo, ChromaW, ChromaH))
+        return MFX_ERR_UNSUPPORTED;
 
     switch (pInfo.FourCC)
     {
@@ -992,26 +1046,26 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     {
     case MFX_FOURCC_YV12:
     {
-        for (i = 0; i < (mfxU32)pInfo.CropH / 2; i++)
+        for (i = 0; i < ChromaH; i++)
         {
             MSDK_CHECK_NOT_EQUAL(
-                fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2) + i * pData.Pitch, 1, pInfo.CropW, dstFile),
+                fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2) + i * pData.Pitch, 1, ChromaW, dstFile),
                 (mfxU32)pInfo.CropW / 2, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
-        for (i = 0; i < (mfxU32)pInfo.CropH / 2; i++)
+        for (i = 0; i < ChromaH; i++)
         {
             MSDK_CHECK_NOT_EQUAL(
-                fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2) + i * pData.Pitch / 2, 1, pInfo.CropW / 2, dstFile),
+                fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2) + i * pData.Pitch / 2, 1, ChromaW, dstFile),
                 (mfxU32)pInfo.CropW / 2, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         break;
     }
     case MFX_FOURCC_NV12:
     {
-        for (i = 0; i < (mfxU32)pInfo.CropH / 2; i++)
+        for (i = 0; i < ChromaH; i++)
         {
             MSDK_CHECK_NOT_EQUAL(
-                fwrite(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch, 1, pInfo.CropW, dstFile),
+                fwrite(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch, 1, ChromaW, dstFile),
                 pInfo.CropW, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         break;
@@ -1019,9 +1073,7 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
     {
-        mfxU32 height = pInfo.FourCC == MFX_FOURCC_P210 ? (mfxU32)pInfo.CropH : (mfxU32)pInfo.CropH / 2;
-
-        for (i = 0; i < height; i++)
+        for (i = 0; i < ChromaH; i++)
         {
             mfxU16* shortPtr = (mfxU16*)(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX*2) + i * pData.Pitch);
             if (pInfo.Shift)
@@ -1030,20 +1082,20 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
                 // Bits will be shifted to the lower position
                 tmp.resize(pData.Pitch);
 
-                for (int idx = 0; idx < pInfo.CropW; idx++)
+                for (mfxU32 idx = 0; idx < ChromaW; idx++)
                 {
                     tmp[idx] = shortPtr[idx] >> shiftSizeChroma;
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
-                    fwrite(&tmp[0], 1, (mfxU32)pInfo.CropW * 2, dstFile),
+                    fwrite(&tmp[0], 1, ChromaW * 2, dstFile),
                     (mfxU32)pInfo.CropW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             }
             else
             {
                 MSDK_CHECK_NOT_EQUAL(
-                    fwrite(shortPtr, 1, (mfxU32)pInfo.CropW * 2, dstFile),
+                    fwrite(shortPtr, 1, ChromaW * 2, dstFile),
                     (mfxU32)pInfo.CropW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
             }
         }
@@ -1058,23 +1110,12 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     {
         mfxU8* ptr;
 
-        if (pInfo.CropH > 0 && pInfo.CropW > 0)
-        {
-            w = pInfo.FourCC==MFX_FOURCC_YUY2 ? pInfo.CropW/2 : pInfo.CropW;
-            h = pInfo.CropH;
-        }
-        else
-        {
-            w = pInfo.FourCC == MFX_FOURCC_YUY2 ? pInfo.Width / 2 : pInfo.Width;
-            h = pInfo.Height;
-        }
-
         ptr = std::min({pData.R, pData.G, pData.B});
         ptr = ptr + pInfo.CropX + pInfo.CropY * pData.Pitch;
 
-        for (i = 0; i < h; i++)
+        for (i = 0; i < ChromaH; i++)
         {
-            MSDK_CHECK_NOT_EQUAL(fwrite(ptr + i * pData.Pitch, 1, 4 * w, dstFile), 4 * w, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MSDK_CHECK_NOT_EQUAL(fwrite(ptr + i * pData.Pitch, 1, 4 * ChromaW, dstFile), 4 * ChromaW, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         fflush(dstFile);
         break;
@@ -1095,7 +1136,7 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
     mfxFrameInfo &pInfo = pSurface->Info;
     mfxFrameData &pData = pSurface->Data;
 
-    mfxU32 i, j, h, w;
+    mfxU32 i, j;
     mfxU32 vid = pInfo.FrameId.ViewId;
 
     if (!m_bIsMultiView)
@@ -1107,6 +1148,10 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
         MSDK_CHECK_POINTER(m_fDestMVC, MFX_ERR_NULL_PTR);
         MSDK_CHECK_POINTER(m_fDestMVC[vid], MFX_ERR_NULL_PTR);
     }
+
+    mfxU32 ChromaW, ChromaH;
+    if (MFX_ERR_NONE != GetChromaSize(pInfo, ChromaW, ChromaH))
+        return MFX_ERR_UNSUPPORTED;
 
     // Write Y
     switch (pInfo.FourCC)
@@ -1143,33 +1188,33 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
     {
         case MFX_FOURCC_YV12:
         {
-            for (i = 0; i < (mfxU32) pInfo.CropH/2; i++)
+            for (i = 0; i < ChromaH; i++)
             {
                 if (!m_bIsMultiView)
                 {
                     MSDK_CHECK_NOT_EQUAL(
-                        fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, pInfo.CropW/2, m_fDest),
+                        fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, ChromaW, m_fDest),
                         (mfxU32)pInfo.CropW/2, MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
                 else
                 {
                     MSDK_CHECK_NOT_EQUAL(
-                        fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, pInfo.CropW/2, m_fDestMVC[vid]),
+                        fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, ChromaW, m_fDestMVC[vid]),
                         (mfxU32)pInfo.CropW/2, MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
             }
-            for (i = 0; i < (mfxU32)pInfo.CropH/2; i++)
+            for (i = 0; i < ChromaH; i++)
             {
                 if (!m_bIsMultiView)
                 {
                     MSDK_CHECK_NOT_EQUAL(
-                        fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, pInfo.CropW/2, m_fDest),
+                        fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, ChromaW, m_fDest),
                         (mfxU32)pInfo.CropW/2, MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
                 else
                 {
                     MSDK_CHECK_NOT_EQUAL(
-                        fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, pInfo.CropW/2, m_fDestMVC[vid]),
+                        fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2)+ i * pData.Pitch / 2, 1, ChromaW, m_fDestMVC[vid]),
                         (mfxU32)pInfo.CropW/2, MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
             }
@@ -1177,11 +1222,9 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
         }
         case MFX_FOURCC_NV12:
         {
-            h = pInfo.CropH / 2;
-            w = pInfo.CropW;
-            for (i = 0; i < h; i++)
+            for (i = 0; i < ChromaH; i++)
             {
-                for (j = 0; j < w; j += 2)
+                for (j = 0; j < ChromaW; j += 2)
                 {
                     if (!m_bIsMultiView)
                     {
@@ -1197,9 +1240,9 @@ mfxStatus CSmplYUVWriter::WriteNextFrameI420(mfxFrameSurface1 *pSurface)
                     }
                 }
             }
-            for (i = 0; i < h; i++)
+            for (i = 0; i < ChromaH; i++)
             {
-                for (j = 1; j < w; j += 2)
+                for (j = 1; j < ChromaW; j += 2)
                 {
                     if (!m_bIsMultiView)
                     {
