@@ -40,6 +40,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 static msdk_string GetMSDKSampleVersion()
 {
     msdk_stringstream ss;
-    ss << "19.3.0";
+    ss << "19.3.1";
     return ss.str();
 }
