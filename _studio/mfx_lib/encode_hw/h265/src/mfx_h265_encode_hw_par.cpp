@@ -1110,6 +1110,7 @@ void InheritDefaultValues(
     InheritOption(parInit.mfx.BufferSizeInKB,     parReset.mfx.BufferSizeInKB);
     InheritOption(parInit.mfx.NumSlice,           parReset.mfx.NumSlice);
     InheritOption(parInit.mfx.NumRefFrame,        parReset.mfx.NumRefFrame);
+    InheritOption(parInit.mfx.LowPower,           parReset.mfx.LowPower);
 
     if (parInit.mfx.RateControlMethod == MFX_RATECONTROL_CBR && parReset.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
     {
