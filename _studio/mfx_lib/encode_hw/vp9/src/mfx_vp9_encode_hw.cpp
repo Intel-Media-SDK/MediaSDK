@@ -908,11 +908,8 @@ mfxStatus MFXVideoENCODEVP9_HW::Close()
     sts = m_segmentMaps.Release();
     MFX_CHECK_STS(sts);
 
-    if (m_prevSegment.SegmentId)
-    {
-        delete m_prevSegment.SegmentId;
-        m_prevSegment.SegmentId = 0;
-    }
+    delete[] m_prevSegment.SegmentId;
+    m_prevSegment.SegmentId = nullptr;
 
     m_initialized = false;
 
