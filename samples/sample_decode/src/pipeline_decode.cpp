@@ -1238,6 +1238,7 @@ mfxStatus CDecodingPipeline::AllocFrames()
     {
         // initating each frame:
         MSDK_MEMCPY_VAR(m_pSurfaces[i].frame.Info, &(Request.Info), sizeof(mfxFrameInfo));
+        m_pSurfaces[i].frame.Data.MemType = Request.Type;
         if (m_bExternalAlloc) {
             m_pSurfaces[i].frame.Data.MemId = m_mfxResponse.mids[i];
             if (m_bVppFullColorRange)
@@ -1245,10 +1246,6 @@ mfxStatus CDecodingPipeline::AllocFrames()
                 m_pSurfaces[i].frame.Data.ExtParam = &m_VppSurfaceExtParams[0];
                 m_pSurfaces[i].frame.Data.NumExtParam = (mfxU16)m_VppSurfaceExtParams.size();
             }
-        }
-        else {
-            sts = m_pGeneralAllocator->Lock(m_pGeneralAllocator->pthis, m_mfxResponse.mids[i], &(m_pSurfaces[i].frame.Data));
-            MSDK_CHECK_STATUS(sts, "m_pGeneralAllocator->Lock failed");
         }
     }
 
@@ -1261,12 +1258,6 @@ mfxStatus CDecodingPipeline::AllocFrames()
             {
                 m_pVppSurfaces[i].frame.Data.ExtParam = &m_VppSurfaceExtParams[0];
                 m_pVppSurfaces[i].frame.Data.NumExtParam = (mfxU16)m_VppSurfaceExtParams.size();
-            }
-        }
-        else {
-            sts = m_pGeneralAllocator->Lock(m_pGeneralAllocator->pthis, m_mfxVppResponse.mids[i], &(m_pVppSurfaces[i].frame.Data));
-            if (MFX_ERR_NONE != sts) {
-                return sts;
             }
         }
     }
@@ -1386,13 +1377,9 @@ mfxStatus CDecodingPipeline::CreateAllocator()
             MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
         }
 #endif
-        // create system memory allocator
-        //m_pGeneralAllocator = new SysMemFrameAllocator;
-        //MSDK_CHECK_POINTER(m_pGeneralAllocator, MFX_ERR_MEMORY_ALLOC);
-
-        /* In case of system memory we demonstrate "no external allocator" usage model.
-        We don't call SetAllocator, MediaSDK uses internal allocator.
-        We use system memory allocator simply as a memory manager for application*/
+        sts = m_mfxSession.SetFrameAllocator(m_pGeneralAllocator);
+        MSDK_CHECK_STATUS(sts, "m_mfxSession.SetFrameAllocator failed");
+        m_bExternalAlloc = true;
     }
 
     // initialize memory allocator
