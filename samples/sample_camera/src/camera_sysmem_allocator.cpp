@@ -206,6 +206,12 @@ mfxStatus CamSysMemFrameAllocator::CheckRequestType(mfxFrameAllocRequest *reques
         return MFX_ERR_UNSUPPORTED;
 }
 
+mfxStatus CamSysMemFrameAllocator::ReallocImpl(mfxMemId /*mid*/, const mfxFrameInfo* /*info*/, mfxU16 /*memType*/, mfxMemId* /*midOut*/)
+{
+    //TODO: Need add implementation in the future.
+    return MFX_ERR_UNSUPPORTED;
+}
+
 mfxStatus CamSysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     if (!m_pBufferAllocator)

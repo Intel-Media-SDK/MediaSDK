@@ -106,6 +106,11 @@ mfxStatus BaseFrameAllocator::CheckRequestType(mfxFrameAllocRequest *request)
         return MFX_ERR_UNSUPPORTED;
 }
 
+mfxStatus BaseFrameAllocator::ReallocFrame(mfxMemId midIn, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut)
+{
+    return ReallocImpl(midIn, info, memType, midOut);
+}
+
 mfxStatus BaseFrameAllocator::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     if (0 == request || 0 == response || 0 == request->NumFrameSuggested)

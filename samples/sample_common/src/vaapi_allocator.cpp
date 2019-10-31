@@ -141,6 +141,111 @@ mfxStatus vaapiFrameAllocator::Close()
     return BaseFrameAllocator::Close();
 }
 
+static mfxStatus GetVAFourcc(mfxU32 fourcc, unsigned int &va_fourcc)
+{
+    // VP8 hybrid driver has weird requirements for allocation of surfaces/buffers for VP8 encoding
+    // to comply with them additional logic is required to support regular and VP8 hybrid allocation pathes
+    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
+    va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
+    if (!va_fourcc || ((VA_FOURCC_NV12 != va_fourcc) &&
+        (VA_FOURCC_YV12 != va_fourcc) &&
+        (VA_FOURCC_YUY2 != va_fourcc) &&
+        (VA_FOURCC_ARGB != va_fourcc) &&
+        (VA_FOURCC_ABGR != va_fourcc) &&
+        (VA_FOURCC_P208 != va_fourcc) &&
+        (VA_FOURCC_P010 != va_fourcc) &&
+        (VA_FOURCC_YUY2 != va_fourcc) &&
+#if (MFX_VERSION >= 1027)
+        (VA_FOURCC_Y210 != va_fourcc) &&
+        (VA_FOURCC_Y410 != va_fourcc) &&
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        (VA_FOURCC_P016 != va_fourcc) &&
+        (VA_FOURCC_Y216 != va_fourcc) &&
+        (VA_FOURCC_Y416 != va_fourcc) &&
+#endif
+        (VA_FOURCC_AYUV != va_fourcc)))
+    {
+        return MFX_ERR_MEMORY_ALLOC;
+    }
+
+    return MFX_ERR_NONE;
+}
+
+mfxStatus vaapiFrameAllocator::ReallocImpl(mfxMemId mid, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut)
+{
+    if (!info || !midOut) return MFX_ERR_NULL_PTR;
+
+    mfxStatus mfx_res = MFX_ERR_NONE;
+    VAStatus  va_res = VA_STATUS_SUCCESS;
+    unsigned int va_fourcc = 0;
+    mfxU32 fourcc = info->FourCC;
+
+    mfx_res = GetVAFourcc(fourcc, va_fourcc);
+    if (MFX_ERR_NONE != mfx_res)
+        return mfx_res;
+
+    mfxU32 Width = info->Width;
+    mfxU32 Height = info->Height;
+
+    if (VA_FOURCC_P208 == va_fourcc)
+        return MFX_ERR_UNSUPPORTED;
+
+    VASurfaceID surfaces[1];
+    VASurfaceAttrib attrib[2];
+    vaapiMemId *vaapiMid = (vaapiMemId *)mid;
+    surfaces[0] = *vaapiMid->m_surface;
+    m_libva->vaDestroySurfaces(m_dpy, surfaces, 1);
+
+    unsigned int format;
+    int attrCnt = 0;
+
+    attrib[attrCnt].type = VASurfaceAttribPixelFormat;
+    attrib[attrCnt].flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attrib[attrCnt].value.type = VAGenericValueTypeInteger;
+    attrib[attrCnt++].value.value.i = va_fourcc;
+    format = va_fourcc;
+
+    if ((fourcc == MFX_FOURCC_VP8_NV12) ||
+        ((MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET & memType)
+            && ((fourcc == MFX_FOURCC_RGB4) || (fourcc == MFX_FOURCC_BGR4))))
+    {
+        /*
+            *  special configuration for NV12 surf allocation for VP8 hybrid encoder and
+            *  RGB32 for JPEG is required
+            */
+        attrib[attrCnt].type = (VASurfaceAttribType)VASurfaceAttribUsageHint;
+        attrib[attrCnt].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        attrib[attrCnt].value.type = VAGenericValueTypeInteger;
+        attrib[attrCnt++].value.value.i = VA_SURFACE_ATTRIB_USAGE_HINT_ENCODER;
+    }
+    else if (fourcc == MFX_FOURCC_VP8_MBDATA)
+    {
+        // special configuration for MB data surf allocation for VP8 hybrid encoder is required
+        attrib[0].value.value.i = VA_FOURCC_P208;
+        format = VA_FOURCC_P208;
+    }
+    else if (va_fourcc == VA_FOURCC_NV12)
+    {
+        format = VA_RT_FORMAT_YUV420;
+    }
+
+    va_res = m_libva->vaCreateSurfaces(m_dpy,
+        format,
+        Width, Height,
+        surfaces,
+        1,
+        &attrib[0], attrCnt);
+
+    *vaapiMid->m_surface = surfaces[0];
+    vaapiMid->m_fourcc = fourcc;
+    *midOut = mid;
+
+    mfx_res = va_to_mfx_status(va_res);
+
+    return mfx_res;
+}
+
 mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     mfxStatus mfx_res = MFX_ERR_NONE;
@@ -155,32 +260,10 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
 
     memset(response, 0, sizeof(mfxFrameAllocResponse));
 
-    // VP8 hybrid driver has weird requirements for allocation of surfaces/buffers for VP8 encoding
-    // to comply with them additional logic is required to support regular and VP8 hybrid allocation pathes
-    mfxU32 mfx_fourcc = ConvertVP8FourccToMfxFourcc(fourcc);
-    va_fourcc = ConvertMfxFourccToVAFormat(mfx_fourcc);
-    if (!va_fourcc || ((VA_FOURCC_NV12   != va_fourcc) &&
-                       (VA_FOURCC_YV12   != va_fourcc) &&
-                       (VA_FOURCC_YUY2   != va_fourcc) &&
-                       (VA_FOURCC_UYVY   != va_fourcc) &&
-#if (MFX_VERSION >= 1028)
-                       (VA_FOURCC_RGB565 != va_fourcc) &&
-#endif
-                       (VA_FOURCC_ARGB   != va_fourcc) &&
-                       (VA_FOURCC_ABGR   != va_fourcc) &&
-                       (VA_FOURCC_RGBP   != va_fourcc) &&
-                       (VA_FOURCC_P208   != va_fourcc) &&
-                       (VA_FOURCC_P010   != va_fourcc) &&
+    mfx_res = GetVAFourcc(fourcc, va_fourcc);
+    if (MFX_ERR_NONE != mfx_res)
+        return mfx_res;
 
-#if (MFX_VERSION >= 1027)
-                       (VA_FOURCC_Y210 != va_fourcc)   &&
-                       (VA_FOURCC_Y410 != va_fourcc)   &&
-#endif
-                       (VA_FOURCC_AYUV != va_fourcc) ))
-    {
-        msdk_printf(MSDK_STRING("VAAPI Allocator: invalid fourcc is provided (%#X), exitting\n"),va_fourcc);
-        return MFX_ERR_MEMORY_ALLOC;
-    }
     if (!surfaces_num)
     {
         return MFX_ERR_MEMORY_ALLOC;

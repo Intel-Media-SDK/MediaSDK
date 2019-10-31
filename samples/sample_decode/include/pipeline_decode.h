@@ -241,6 +241,8 @@ protected: // functions
 
     virtual void DeliverLoop();
 
+    virtual mfxStatus ReallocCurrentSurface(const mfxFrameInfo & info);
+
 protected: // variables
     CSmplYUVWriter                         m_FileWriter;
     std::unique_ptr<CSmplBitstreamReader>  m_FileReader;
