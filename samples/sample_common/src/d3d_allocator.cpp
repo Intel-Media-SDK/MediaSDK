@@ -317,6 +317,15 @@ mfxStatus D3DFrameAllocator::ReleaseResponse(mfxFrameAllocResponse *response)
     return sts;
 }
 
+mfxStatus D3DFrameAllocator::ReallocImpl(mfxMemId /*mid*/, const mfxFrameInfo *info, mfxU16 /*memType*/, mfxMemId *midOut)
+{
+    if (!info || !midOut)
+      return MFX_ERR_NULL_PTR;
+
+    //TODO: Need add implementation in the future.
+    return MFX_ERR_UNSUPPORTED;
+}
+
 mfxStatus D3DFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     HRESULT hr;

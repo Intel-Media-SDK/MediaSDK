@@ -98,6 +98,7 @@ protected:
     virtual mfxStatus CheckRequestType(mfxFrameAllocRequest *request);
     virtual mfxStatus ReleaseResponse(mfxFrameAllocResponse *response);
     virtual mfxStatus AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
+    virtual mfxStatus ReallocImpl(mfxMemId midIn, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut);
 
     VADisplay m_dpy;
     MfxLoader::VA_Proxy * m_libva;

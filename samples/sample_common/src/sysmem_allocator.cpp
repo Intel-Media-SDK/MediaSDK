@@ -241,18 +241,22 @@ mfxStatus SysMemFrameAllocator::CheckRequestType(mfxFrameAllocRequest *request)
         return MFX_ERR_UNSUPPORTED;
 }
 
-mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
+mfxMemId *SysMemFrameAllocator::GetMidHolder(mfxMemId mid)
 {
-    if (!m_pBufferAllocator)
-        return MFX_ERR_NOT_INITIALIZED;
+    for (auto resp : m_vResp)
+    {
+        mfxMemId *it = std::find(resp->mids, resp->mids + resp->NumFrameActual, mid);
+        if (it != resp->mids + resp->NumFrameActual)
+            return it;
+    }
+    return nullptr;
+}
 
-    mfxU32 numAllocated = 0;
+static mfxU32 GetSurfaceSize(mfxU32 FourCC, mfxU32 Width2, mfxU32 Height2)
+{
+    mfxU32 nbytes = 0;
 
-    mfxU32 Width2 = MSDK_ALIGN32(request->Info.Width);
-    mfxU32 Height2 = MSDK_ALIGN32(request->Info.Height);
-    mfxU32 nbytes;
-
-    switch (request->Info.FourCC)
+    switch (FourCC)
     {
     case MFX_FOURCC_YV12:
     case MFX_FOURCC_NV12:
@@ -303,8 +307,61 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
 
 
     default:
-        return MFX_ERR_UNSUPPORTED;
+        break;
     }
+
+    return nbytes;
+}
+
+mfxStatus SysMemFrameAllocator::ReallocImpl(mfxMemId mid, const mfxFrameInfo *info, mfxU16 /*memType*/, mfxMemId *midOut)
+{
+    if (!info || !midOut)
+        return MFX_ERR_NULL_PTR;
+
+    if (!m_pBufferAllocator)
+        return MFX_ERR_NOT_INITIALIZED;
+
+    mfxU32 nbytes = GetSurfaceSize(info->FourCC, MSDK_ALIGN32(info->Width), MSDK_ALIGN32(info->Height));
+    if(!nbytes)
+        return MFX_ERR_UNSUPPORTED;
+
+    // pointer to the record in m_mids structure
+    mfxMemId *pmid = GetMidHolder(mid);
+    if (!pmid)
+        return MFX_ERR_MEMORY_ALLOC;
+
+    mfxStatus sts = m_pBufferAllocator->Free(m_pBufferAllocator->pthis, *pmid);
+    if (MFX_ERR_NONE != sts)
+        return sts;
+
+    sts = m_pBufferAllocator->Alloc(m_pBufferAllocator->pthis,
+        MSDK_ALIGN32(nbytes) + MSDK_ALIGN32(sizeof(sFrame)), MFX_MEMTYPE_SYSTEM_MEMORY, pmid);
+    if (MFX_ERR_NONE != sts)
+        return sts;
+
+    sFrame *fs;
+    sts = m_pBufferAllocator->Lock(m_pBufferAllocator->pthis, *pmid, (mfxU8 **)&fs);
+    if (MFX_ERR_NONE != sts)
+        return sts;
+
+    fs->id = ID_FRAME;
+    fs->info = *info;
+    m_pBufferAllocator->Unlock(m_pBufferAllocator->pthis, *pmid);
+
+    *midOut = *pmid;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
+{
+    if (!m_pBufferAllocator)
+        return MFX_ERR_NOT_INITIALIZED;
+
+    mfxU32 numAllocated = 0;
+
+    mfxU32 nbytes = GetSurfaceSize(request->Info.FourCC, MSDK_ALIGN32(request->Info.Width), MSDK_ALIGN32(request->Info.Height));
+    if(!nbytes)
+        return MFX_ERR_UNSUPPORTED;
 
     std::unique_ptr<mfxMemId[]> mids(new mfxMemId[request->NumFrameSuggested]);
 
@@ -340,6 +397,7 @@ mfxStatus SysMemFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFram
     response->NumFrameActual = (mfxU16) numAllocated;
     response->mids = mids.release();
 
+    m_vResp.push_back(response);
     return MFX_ERR_NONE;
 }
 
@@ -366,6 +424,7 @@ mfxStatus SysMemFrameAllocator::ReleaseResponse(mfxFrameAllocResponse *response)
         }
     }
 
+    m_vResp.erase(std::remove(m_vResp.begin(), m_vResp.end(), response), m_vResp.end());
     delete [] response->mids;
     response->mids = 0;
 

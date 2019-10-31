@@ -120,6 +120,25 @@ mfxStatus GeneralAllocator::ReleaseResponse(mfxFrameAllocResponse *response)
     else
         return m_SYSAllocator.get()->Free(m_SYSAllocator.get(), response);
 }
+
+mfxStatus GeneralAllocator::ReallocImpl(mfxMemId mid, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut)
+{
+    if (!info || !midOut) return MFX_ERR_NULL_PTR;
+
+    mfxStatus sts;
+    if ((memType & MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET || memType & MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET) && m_D3DAllocator.get())
+    {
+        sts = m_D3DAllocator.get()->ReallocFrame(mid, info, memType, midOut);
+        MSDK_CHECK_NOT_EQUAL(MFX_ERR_NONE, sts, sts);
+    }
+    else
+    {
+        sts = m_SYSAllocator.get()->ReallocFrame(mid, info, memType, midOut);
+        MSDK_CHECK_NOT_EQUAL(MFX_ERR_NONE, sts, sts);
+    }
+    return sts;
+}
+
 mfxStatus GeneralAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     mfxStatus sts;
