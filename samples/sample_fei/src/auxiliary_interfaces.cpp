@@ -503,6 +503,7 @@ mfxStatus MFX_DecodeInterface::ResetState()
     // prepare bit stream
     m_mfxBS.DataOffset = 0;
     m_mfxBS.DataLength = 0;
+    m_mfxBS.DataFlag   = 0;
 
     sts = m_BSReader.Init(m_pAppConfig->strSrcFile);
     MSDK_CHECK_STATUS(sts, "m_BSReader.Init failed");
