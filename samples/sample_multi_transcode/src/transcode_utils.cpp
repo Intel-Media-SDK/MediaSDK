@@ -348,6 +348,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("Examples:\n"));
     msdk_printf(MSDK_STRING("  sample_multi_transcode -i::mpeg2 in.mpeg2 -o::h264 out.h264\n"));
     msdk_printf(MSDK_STRING("  sample_multi_transcode -i::mvc in.mvc -o::mvc out.mvc -w 320 -h 240\n"));
+    msdk_printf(MSDK_STRING("\n"));
+    msdk_printf(MSDK_STRING("For more information on HOWTO usage of sample_multi_transcode, refer to readme document available at https://github.com/Intel-Media-SDK/MediaSDK/blob/master/doc/samples/readme-multi-transcode_linux.md\n"));
 }
 
 void TranscodingSample::PrintInfo(mfxU32 session_number, sInputParams* pParams, mfxVersion *pVer)
