@@ -293,6 +293,12 @@ set -o::h265 /path/to/so/encoder_plugin.so
 
 ## Known Limitations
 
+-   To use lookahead for HEVC encode, we need to have h264 LA plugin and the HEVC HW encode plugin, run in separate sessions. Following par file is an example of lookahead bitrate for HEVC encode:
+    ```
+    -i::h265 input.h265 -o::sink  -hw -async 1 -la -la_ext -bpyr -dist 8 -join
+    -i::source -o::h265 output.h265 -u 4 -hw -b 500 -async 1 -bpyr -dist 8 -join
+    ```
+
 -   Configurations <multiple joined inter-session transcoding where one of the encoders is MPEG2\> are not supported when sample application uses platform-specific **SDK** implementation on systems with Intel® HD Graphics 3000/2000 and 4000/2500. Application can exit with error or hang. An example of a corresponding par file is given below:
 
     ```
