@@ -74,7 +74,7 @@ The following command-line switches are optional:
   | [-num_active_BL0 numRefs] | number of maximum allowed references for B frames in L0 (for HEVC only)|
  |  [-num_active_BL1 numRefs] | number of maximum allowed references for B frames in L1 (for HEVC only)|
   | [-la] | use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used) <br> for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors <br>if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used.
- |[-lad depth] | depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range[1,100]. <br>may be 1 in the case when -mss option is specified <br>if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algorithm will be used.|
+ |[-lad depth] | depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100].<br>If `depth` is `0` then the encoder forces the value to Max(10, 2\*`GopRefDist`) for LA_ICQ, and to Max(40, 2\*`GopRefDist`) otherwise.<br>If `depth` is in range [1,100] then the encoder forces the value to Max(2\*`GopRefDist`,2\*`NumRefFrame`,`depth`).<br>may be 1 in the case when -mss option is specified <br>if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algorithm will be used.|
  |  [-dstw width] | destination picture width, invokes VPP resizing|
   | [-dsth height] | destination picture height, invokes VPP resizing|
   | [-hw] | use platform specific SDK implementation (default)|
