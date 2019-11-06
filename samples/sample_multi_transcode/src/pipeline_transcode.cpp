@@ -585,7 +585,7 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
 
     } //while processing
 
-    // HEVC SW requires additional sychronization
+    // HEVC SW requires additional synchronization
     if( MFX_ERR_NONE == sts && isHEVCSW)
     {
         sts = m_pmfxSession->SyncOperation(pExtSurface->Syncp, MSDK_WAIT_INTERVAL);
@@ -631,7 +631,7 @@ mfxStatus CTranscodingPipeline::DecodeLastFrame(ExtendedSurface *pExtSurface)
         }
     }
 
-    // HEVC SW requires additional sychronization
+    // HEVC SW requires additional synchronization
     if( MFX_ERR_NONE == sts && isHEVCSW)
     {
         sts = m_pmfxSession->SyncOperation(pExtSurface->Syncp,  MSDK_WAIT_INTERVAL);
@@ -4672,6 +4672,9 @@ mfxStatus FileBitstreamProcessor::ResetInput()
     if (m_pFileReader.get())
     {
         m_pFileReader->Reset();
+
+        // Reset input bitstream state
+        m_Bitstream.DataFlag = 0;
     }
     if (m_pYUVFileReader.get())
     {

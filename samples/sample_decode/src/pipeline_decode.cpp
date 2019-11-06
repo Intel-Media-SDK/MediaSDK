@@ -1746,6 +1746,10 @@ mfxStatus CDecodingPipeline::RunDecoding()
                 {
                     m_FileReader->Reset();
                     m_bResetFileWriter = true;
+
+                    // Reset bitstream state
+                    pBitstream->DataFlag = 0;
+
                     continue;
                 }
 
