@@ -493,6 +493,12 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 
     caps.uScaling = 1;
 
+    eMFXPlatform platform = m_core->GetPlatformType();
+    if (platform == MFX_PLATFORM_HARDWARE)
+    {
+        caps.uChromaSiting = m_core->GetHWType() >= MFX_HW_SCL ? 1 : 0;
+    }
+
     return MFX_ERR_NONE;
 
 } // mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
@@ -1237,6 +1243,41 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     }
 
+#if (MFX_VERSION >= 1025)
+        uint8_t& chromaSitingMode = m_pipelineParam[0].input_color_properties.chroma_sample_location;
+        chromaSitingMode = VA_CHROMA_SITING_UNKNOWN;
+
+        switch (pParams->chromaSiting)
+        {
+        case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_TOP:
+            //Option A : Chroma samples are aligned horizontally and vertically with multiples of the luma samples
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_TOP;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_CENTER:
+            //Option AB : Chroma samples are vertically centered between, but horizontally aligned with luma samples.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_CENTER;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_BOTTOM:
+            //Option B : Chroma samples are horizontally aligned and vertically 1 pixel offset to the bottom.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_BOTTOM;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_CENTER:
+            //Option ABCD : Chroma samples are centered between luma samples both horizontally and vertically.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_CENTER;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_TOP:
+            //Option AC : Chroma samples are vertically aligned with, and horizontally centered between luma
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_TOP;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_BOTTOM:
+            //Option BD : Chroma samples are horizontally 0.5 pixel offset to the right and vertically 1 pixel offset to the bottom.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_BOTTOM;
+            break;
+        case MFX_CHROMA_SITING_UNKNOWN:
+        default:
+            break;
+        }
+#endif
     vaSts = vaCreateBuffer(m_vaDisplay,
                         m_vaContextVPP,
                         VAProcPipelineParameterBufferType,
