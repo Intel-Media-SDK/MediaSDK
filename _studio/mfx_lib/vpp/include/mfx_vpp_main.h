@@ -118,8 +118,6 @@ private:
                 nativeSurface->Data.FrameOrder = surface->Data.FrameOrder;
                 nativeSurface->Data.TimeStamp = surface->Data.TimeStamp;
                 nativeSurface->Info = surface->Info;
-                nativeSurface->Data.ExtParam = surface->Data.ExtParam;
-                nativeSurface->Data.NumExtParam = surface->Data.NumExtParam;
             }
 
             return nativeSurface;
