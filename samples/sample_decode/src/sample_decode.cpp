@@ -67,6 +67,12 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-dGfx]                   - preffer processing on dGfx (by default system decides)\n"));
     msdk_printf(MSDK_STRING("   [-iGfx]                   - preffer processing on iGfx (by default system decides)\n"));
 #endif
+#if defined(LINUX32) || defined(LINUX64)
+    msdk_printf(MSDK_STRING("   [-device /path/to/device] - set graphics device for processing\n"));
+    msdk_printf(MSDK_STRING("                                 For example: '-device /dev/dri/card0'\n"));
+    msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
+    msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("JPEG Chroma Type:\n"));
     msdk_printf(MSDK_STRING("   [-jpeg_rgb] - RGB Chroma Type\n"));
@@ -419,6 +425,22 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->bSoftRobustFlag = true;
         }
+#if (defined(LINUX32) || defined(LINUX64))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-device")))
+        {
+            if (!pParams->strDevicePath.empty())
+            {
+                msdk_printf(MSDK_STRING("error: you can specify only one device\n"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if(i + 1 >= nArgNum)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -device key"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            pParams->strDevicePath = strInput[++i];
+        }
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dGfx")))
         {
