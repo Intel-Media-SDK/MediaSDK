@@ -699,7 +699,7 @@ mfxStatus InitMemoryAllocator(
         else if ((pInParams->ImpLib & IMPL_VIA_MASK) == MFX_IMPL_VIA_VAAPI)
         {
 #ifdef LIBVA_SUPPORT
-            pAllocator->pDevice = CreateVAAPIDevice();
+            pAllocator->pDevice = CreateVAAPIDevice(pInParams->strDevicePath);
             MSDK_CHECK_POINTER(pAllocator->pDevice, MFX_ERR_NULL_PTR);
 
             sts = pAllocator->pDevice->Init(0, 1, MSDKAdapter::GetNumber(pProcessor->mfxSession));
@@ -729,7 +729,7 @@ mfxStatus InitMemoryAllocator(
 
         if(MFX_IMPL_HARDWARE == MFX_IMPL_BASETYPE(impl))
         {
-            pAllocator->pDevice = CreateVAAPIDevice();
+            pAllocator->pDevice = CreateVAAPIDevice(pInParams->strDevicePath);
             if (!pAllocator->pDevice) sts = MFX_ERR_MEMORY_ALLOC;
             MSDK_CHECK_STATUS_SAFE(sts, "pAllocator->pDevice creation failed", WipeMemoryAllocator(pAllocator));
 
