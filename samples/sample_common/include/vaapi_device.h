@@ -26,14 +26,14 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vaapi_utils_android.h"
 #endif
 
-CHWDevice* CreateVAAPIDevice(int type = MFX_LIBVA_DRM);
+CHWDevice* CreateVAAPIDevice(const std::string& devicePath = "", int type = MFX_LIBVA_DRM);
 
 #if defined(LIBVA_DRM_SUPPORT)
 /** VAAPI DRM implementation. */
 class CVAAPIDeviceDRM : public CHWDevice
 {
 public:
-    CVAAPIDeviceDRM(int type);
+    CVAAPIDeviceDRM(const std::string& devicePath, int type);
     virtual ~CVAAPIDeviceDRM(void);
 
     virtual mfxStatus Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapterNum);
