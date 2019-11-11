@@ -179,6 +179,9 @@ namespace TranscodingSample
         mfxPriority  priority;
         // common parameters
         mfxIMPL libType;  // Type of used mediaSDK library
+#if defined(LINUX32) || defined(LINUX64)
+        std::string strDevicePath;
+#endif
 #if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
         //Adapter type
         bool bPrefferiGfx;

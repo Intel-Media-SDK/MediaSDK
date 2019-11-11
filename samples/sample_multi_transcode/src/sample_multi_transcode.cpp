@@ -213,7 +213,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             libvaBackend = params.libvaBackend;
 
             /* Rendering case */
-            m_hwdev.reset(CreateVAAPIDevice("", params.libvaBackend));
+            m_hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath, params.libvaBackend));
             if(!m_hwdev.get()) {
                 msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
                 return MFX_ERR_DEVICE_FAILED;
@@ -259,7 +259,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         }
         else /* NO RENDERING*/
         {
-            m_hwdev.reset(CreateVAAPIDevice());
+            m_hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath));
             if(!m_hwdev.get()) {
                 msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
                 return MFX_ERR_DEVICE_FAILED;
