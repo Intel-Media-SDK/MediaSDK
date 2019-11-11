@@ -200,10 +200,10 @@ bool IsNeedSPSInvalidate(const H265SeqParamSet *old_sps, const H265SeqParamSet *
     //if (new_sps->no_output_of_prior_pics_flag)
       //  return true;
 
-    if (old_sps->pic_width_in_luma_samples != new_sps->pic_width_in_luma_samples)
+    if (mfx::align2_value(old_sps->pic_width_in_luma_samples, 16) != mfx::align2_value(new_sps->pic_width_in_luma_samples, 16))
         return true;
 
-    if (old_sps->pic_height_in_luma_samples != new_sps->pic_height_in_luma_samples)
+    if (mfx::align2_value(old_sps->pic_height_in_luma_samples, 16) != mfx::align2_value(new_sps->pic_height_in_luma_samples, 16))
         return true;
 
     if (old_sps->bit_depth_luma != new_sps->bit_depth_luma)
