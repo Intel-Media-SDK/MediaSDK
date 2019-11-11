@@ -465,7 +465,7 @@ private:
     DISALLOW_COPY_AND_ASSIGN(CLibVA);
 };
 
-CLibVA* CreateLibVA(int type = MFX_LIBVA_DRM);
+CLibVA* CreateLibVA(const std::string& devicePath = "", int type = MFX_LIBVA_DRM);
 
 VAStatus AcquireVASurface(void** ctx, VADisplay dpy1, VASurfaceID srf1, VADisplay dpy2, VASurfaceID* srf2);
 void ReleaseVASurface(void* actx, VADisplay dpy1, VASurfaceID srf1, VADisplay dpy2, VASurfaceID srf2);

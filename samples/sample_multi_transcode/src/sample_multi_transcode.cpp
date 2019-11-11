@@ -213,7 +213,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             libvaBackend = params.libvaBackend;
 
             /* Rendering case */
-            m_hwdev.reset(CreateVAAPIDevice(params.libvaBackend));
+            m_hwdev.reset(CreateVAAPIDevice("", params.libvaBackend));
             if(!m_hwdev.get()) {
                 msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
                 return MFX_ERR_DEVICE_FAILED;
@@ -678,7 +678,7 @@ mfxStatus Launcher::ProcessResult()
            << MSDK_STRING("] ") << SessionStsStr <<MSDK_STRING(" (")
            << StatusToString(transcodingSts) << MSDK_STRING(") ")
            << workTime << MSDK_STRING(" sec, ")
-           << framesNum << MSDK_STRING(" frames, ") 
+           << framesNum << MSDK_STRING(" frames, ")
            << std::fixed << std::setprecision(3) << framesNum / workTime << MSDK_STRING(" fps")
            << std::endl
            << m_parser.GetLine(i) << std::endl << std::endl;

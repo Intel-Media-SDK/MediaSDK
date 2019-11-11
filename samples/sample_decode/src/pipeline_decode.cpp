@@ -1054,7 +1054,7 @@ mfxStatus CDecodingPipeline::CreateHWDevice()
         m_d3dRender.SetHWDevice(m_hwdev);
 #elif LIBVA_SUPPORT
     mfxStatus sts = MFX_ERR_NONE;
-    m_hwdev = CreateVAAPIDevice(m_libvaBackend);
+    m_hwdev = CreateVAAPIDevice("", m_libvaBackend);
 
     if (NULL == m_hwdev) {
         return MFX_ERR_MEMORY_ALLOC;
