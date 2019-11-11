@@ -337,6 +337,10 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         m_vppOutHeight = pParams->Height;
 
 
+#if defined(LINUX32) || defined(LINUX64)
+    m_strDevicePath = pParams->strDevicePath;
+#endif
+
     m_memType = pParams->memType;
 
     m_nMaxFps = pParams->nMaxFPS;
@@ -384,7 +388,6 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     {
         m_bVppFullColorRange = pParams->bUseFullColorRange;
     }
-
 
     sts = GetImpl(*pParams, initPar.Implementation);
     MSDK_CHECK_STATUS(sts, "GetImpl failed");
@@ -1054,7 +1057,7 @@ mfxStatus CDecodingPipeline::CreateHWDevice()
         m_d3dRender.SetHWDevice(m_hwdev);
 #elif LIBVA_SUPPORT
     mfxStatus sts = MFX_ERR_NONE;
-    m_hwdev = CreateVAAPIDevice("", m_libvaBackend);
+    m_hwdev = CreateVAAPIDevice(m_strDevicePath, m_libvaBackend);
 
     if (NULL == m_hwdev) {
         return MFX_ERR_MEMORY_ALLOC;

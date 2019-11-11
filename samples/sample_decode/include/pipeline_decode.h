@@ -127,6 +127,9 @@ struct sInputParams
     mfxI32  libvaBackend;
 #endif // defined(MFX_LIBVA_SUPPORT)
 
+#if defined(LINUX32) || defined(LINUX64)
+    std::string strDevicePath;
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
     bool bPrefferdGfx;
     bool bPrefferiGfx;
@@ -303,6 +306,9 @@ protected: // variables
     mfxExtVPPVideoSignalInfo m_VppVideoSignalInfo;
     std::vector<mfxExtBuffer*> m_VppSurfaceExtParams;
 
+#if defined(LINUX32) || defined(LINUX64)
+    std::string              m_strDevicePath; //path to device for processing
+#endif
     CHWDevice               *m_hwdev;
 #if D3D_SURFACES_SUPPORT
     CDecodeD3DRender         m_d3dRender;
