@@ -42,24 +42,30 @@ void vppPrintHelp(const msdk_char *strAppName, const msdk_char *strErrorMessage)
 msdk_printf(MSDK_STRING("Usage: %s [Options] -i InputFile -o OutputFile\n"), strAppName);
 
 msdk_printf(MSDK_STRING("Options: \n"));
-msdk_printf(MSDK_STRING("   [-lib  type]        - type of used library. sw, hw (def: sw)\n\n"));
+msdk_printf(MSDK_STRING("   [-lib  type]                - type of used library. sw, hw (def: sw)\n\n"));
+#if defined(LINUX32) || defined(LINUX64)
+msdk_printf(MSDK_STRING("   [-device /path/to/device]   - set graphics device for processing\n"));
+msdk_printf(MSDK_STRING("                                  For example: '-device /dev/dri/card0'\n"));
+msdk_printf(MSDK_STRING("                                               '-device /dev/dri/renderD128'\n"));
+msdk_printf(MSDK_STRING("                                  If not specified, defaults to the first Intel device found on the system\n\n"));
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
-msdk_printf(MSDK_STRING("   [-dGfx]             - preffer processing on dGfx (by default system decides)\n"));
-msdk_printf(MSDK_STRING("   [-iGfx]             - preffer processing on iGfx (by default system decides)\n"));
+msdk_printf(MSDK_STRING("   [-dGfx]                     - preffer processing on dGfx (by default system decides)\n"));
+msdk_printf(MSDK_STRING("   [-iGfx]                     - preffer processing on iGfx (by default system decides)\n"));
 #endif
 #if defined(D3D_SURFACES_SUPPORT)
-msdk_printf(MSDK_STRING("   [-d3d]              - use d3d9 surfaces\n\n"));
+msdk_printf(MSDK_STRING("   [-d3d]                      - use d3d9 surfaces\n\n"));
 #endif
 #if MFX_D3D11_SUPPORT
-msdk_printf(MSDK_STRING("   [-d3d11]            - use d3d11 surfaces\n\n"));
+msdk_printf(MSDK_STRING("   [-d3d11]                    - use d3d11 surfaces\n\n"));
 #endif
 #ifdef LIBVA_SUPPORT
-msdk_printf(MSDK_STRING("   [-vaapi]            - work with vaapi surfaces\n\n"));
+msdk_printf(MSDK_STRING("   [-vaapi]                    - work with vaapi surfaces\n\n"));
 #endif
 msdk_printf(MSDK_STRING("   [-plugin_guid GUID]\n"));
-msdk_printf(MSDK_STRING("   [-p GUID]           - use VPP plug-in with specified GUID\n\n"));
-msdk_printf(MSDK_STRING("   [-extapi]           - use RunFrameVPPAsyncEx instead of RunFrameVPPAsync. Need for PTIR.\n\n"));
-msdk_printf(MSDK_STRING("   [-gpu_copy]         - Specify GPU copy mode. This option triggers using of InitEX instead of Init.\n\n"));
+msdk_printf(MSDK_STRING("   [-p GUID]                   - use VPP plug-in with specified GUID\n\n"));
+msdk_printf(MSDK_STRING("   [-extapi]                   - use RunFrameVPPAsyncEx instead of RunFrameVPPAsync. Need for PTIR.\n\n"));
+msdk_printf(MSDK_STRING("   [-gpu_copy]                 - Specify GPU copy mode. This option triggers using of InitEX instead of Init.\n\n"));
 
 msdk_printf(MSDK_STRING("   [-sw   width]               - width  of src video (def: 352)\n"));
 msdk_printf(MSDK_STRING("   [-sh   height]              - height of src video (def: 288)\n"));
@@ -491,7 +497,7 @@ msdk_char* ParseArgn(msdk_char* pIn, mfxU32 argn, msdk_char separator) {
     }
 };
 
-template <typename T> 
+template <typename T>
 void ArgConvert(msdk_char* pIn, mfxU32 argn, const msdk_char* pattern, T* pArg, T ArgDefault, mfxU32& NumOfGoodConverts) {
     msdk_char* pargs = ParseArgn(pIn, argn, msdk_char(':'));
     if (pargs) {
@@ -1698,6 +1704,17 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                     pParams->ImpLib = MFX_IMPL_HARDWARE;
                 }
             }
+#if (defined(LINUX32) || defined(LINUX64))
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-device")))
+            {
+                if (!pParams->strDevicePath.empty()){
+                    msdk_printf(MSDK_STRING("error: you can specify only one device\n"));
+                    return MFX_ERR_UNSUPPORTED;
+                }
+                VAL_CHECK(i+1 == nArgNum);
+                pParams->strDevicePath = strInput[++i];
+            }
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dGfx")))
             {
@@ -1790,7 +1807,7 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 VAL_CHECK(1 + i == nArgNum);
                 i++;
                 msdk_strncopy_s(pParams->strPlgGuid, MSDK_MAX_FILENAME_LEN, strInput[i],MSDK_MAX_FILENAME_LEN-1);
-                pParams->strPlgGuid[MSDK_MAX_FILENAME_LEN - 1] = 0; 
+                pParams->strPlgGuid[MSDK_MAX_FILENAME_LEN - 1] = 0;
                 pParams->need_plugin = true;
             }
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-extapi")) )
