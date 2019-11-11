@@ -112,7 +112,9 @@ struct sInputParams
 
     MemType memType;
     bool bUseHWLib; // true if application wants to use HW MSDK library
-
+#if defined(LINUX32) || defined(LINUX64)
+    std::string strDevicePath;
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
     bool bPrefferdGfx;
     bool bPrefferiGfx;
@@ -330,6 +332,10 @@ protected:
 
     mfxU32 m_nNumView;
     mfxU32 m_nFramesToProcess; // number of frames to process
+
+#if defined(LINUX32) || defined(LINUX64)
+    std::string m_strDevicePath; //path to device for processing
+#endif
 
     std::vector<mfxPayload*> m_UserDataUnregSEI;
 

@@ -834,7 +834,7 @@ mfxStatus CEncodingPipeline::CreateHWDevice()
     MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
 
 #elif LIBVA_SUPPORT
-    m_hwdev = CreateVAAPIDevice();
+    m_hwdev = CreateVAAPIDevice(m_strDevicePath);
     if (NULL == m_hwdev)
     {
         return MFX_ERR_MEMORY_ALLOC;
@@ -1455,7 +1455,9 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     m_InputFourCC = (pParams->FileInputFourCC == MFX_FOURCC_I420) ? MFX_FOURCC_NV12 : pParams->FileInputFourCC;
 
     m_nTimeout = pParams->nTimeout;
-
+#if defined(LINUX32) || defined(LINUX64)
+    m_strDevicePath = pParams->strDevicePath;
+#endif
     mfxInitParamlWrap initPar;
 
     // we set version to 1.0 and later we will query actual version of the library which will got leaded
