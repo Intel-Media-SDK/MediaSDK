@@ -61,6 +61,12 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   <codecid>=h265|vp9                - in-box Media SDK plugins (may require separate downloading and installation)\n"));
     msdk_printf(MSDK_STRING("   If codecid is jpeg, -q option is mandatory.)\n"));
     msdk_printf(MSDK_STRING("Options: \n"));
+#if defined(LINUX32) || defined(LINUX64)
+    msdk_printf(MSDK_STRING("   [-device /path/to/device] - set graphics device for processing\n"));
+    msdk_printf(MSDK_STRING("                                 For example: '-device /dev/dri/card0'\n"));
+    msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
+    msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
     msdk_printf(MSDK_STRING("   [-dGfx] - preffer processing on dGfx (by default system decides)\n"));
     msdk_printf(MSDK_STRING("   [-iGfx] - preffer processing on iGfx (by default system decides)\n"));
@@ -361,6 +367,18 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+#if (defined(LINUX32) || defined(LINUX64))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-device")))
+        {
+            if (!pParams->strDevicePath.empty())
+            {
+                msdk_printf(MSDK_STRING("error: you can specify only one device\n"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            pParams->strDevicePath = strInput[++i];
+        }
+#endif
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dGfx")))
         {
