@@ -199,11 +199,17 @@ mfxStatus LoadRawRGBFrame(mfxFrameSurface1* pSurface, FILE* fSource)
 
 mfxStatus WriteBitStreamFrame(mfxBitstream* pMfxBitstream, FILE* fSink)
 {
-    mfxU32 nBytesWritten =
-        (mfxU32) fwrite(pMfxBitstream->Data + pMfxBitstream->DataOffset, 1,
-                        pMfxBitstream->DataLength, fSink);
-    if (nBytesWritten != pMfxBitstream->DataLength)
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    if (!pMfxBitstream)
+       return MFX_ERR_NULL_PTR;
+
+    if (fSink) {
+        mfxU32 nBytesWritten =
+            (mfxU32) fwrite(pMfxBitstream->Data + pMfxBitstream->DataOffset, 1,
+                            pMfxBitstream->DataLength, fSink);
+
+        if (nBytesWritten != pMfxBitstream->DataLength)
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
 
     pMfxBitstream->DataLength = 0;
 
