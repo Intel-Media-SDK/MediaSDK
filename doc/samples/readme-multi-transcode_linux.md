@@ -87,7 +87,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -fps <frames per second\>|  Transcoding frame rate limit|
   |-pe | Set encoding plugin for this particular session.<br>This setting overrides plugin settings defined by SET clause.|
 |  -pd|  Set decoding plugin for this particular session.<br> This setting overrides plugin settings defined by SET clause.<br>Supported values: hevcd_sw, hevcd_hw, hevce_sw, hevce_gacc, hevce_hw, vp8d_hw, vp8e_hw, vp9d_hw, vp9e_hw, camera_hw, capture_hw, h264_la_hw, ptir_hw, hevce_fei_hw<br>Direct GUID number can be used as well|
-
+ |[-device /path/to/device] | Set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
 #### Pipeline description (encoding options):
 
 |Option|Description|
@@ -271,7 +271,7 @@ sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad4
 HW library+SW decoder+GACC encoder:
 
 ```
-sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe e5400a06c74d41f5b12d430bbaa23d0b  
+sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe e5400a06c74d41f5b12d430bbaa23d0b
 ```
 
 Multiple intra-session transcoding with the same SW HEVC plugin is used in both cases:
