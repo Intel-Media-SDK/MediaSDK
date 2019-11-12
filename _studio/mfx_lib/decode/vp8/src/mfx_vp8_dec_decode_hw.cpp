@@ -843,7 +843,7 @@ mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurfac
     p_entry_point->pState = routineData;
     p_entry_point->requiredNumThreads = 1;
 
-    return show_frame ? MFX_ERR_NONE : MFX_ERR_MORE_DATA;
+    return show_frame ? MFX_ERR_NONE : MFX_ERR_MORE_DATA_SUBMIT_TASK;
 
 } // mfxStatus VideoDECODEVP8_HW::DecodeFrameCheck(mfxBitstream *p_bs, mfxFrameSurface1 *p_surface_work, mfxFrameSurface1 **pp_surface_out, MFX_ENTRY_POINT *p_entry_point)
 
