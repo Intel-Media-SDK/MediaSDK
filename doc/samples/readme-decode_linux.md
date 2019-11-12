@@ -61,6 +61,7 @@ The following command-line switches are optional:
    |[-di bob/adi] | enable deinterlacing BOB/ADI|
  |  [-d]| enable decode error report|
    |[-jpeg_rgb] |RGB Chroma Type|
+   |[-device /path/to/device]| set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
 |Output format parameters:||
  |  [-i420] | pipeline output format: NV12, output file format: I420|
   | [-nv12] | pipeline output format: NV12, output file format: NV12|

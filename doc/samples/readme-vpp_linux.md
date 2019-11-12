@@ -40,6 +40,7 @@ Usage: `./sample_vpp [Options] -i InputFile -o OutputFile`
 |---|---|
  |[-lib  type]| type of used library. sw, hw (def: sw)|
 |   [-vaapi] | work with vaapi surfaces|
+|   [-device /path/to/device] | set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
 |   [-plugin_guid GUID]|use VPP plug-in with specified GUID|
 |   [-p GUID]| use VPP plug-in with specified GUID|
 | [-extapi]| use RunFrameVPPAsyncEx instead of RunFrameVPPAsync. Need for PTIR.|

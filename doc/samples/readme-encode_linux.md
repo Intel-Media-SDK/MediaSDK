@@ -64,6 +64,7 @@ The following command-line switches are optional:
  |  [-idr_interval size]| idr interval, default 0 means every I is an IDR, 1 means every other I frame is an IDR etc|
 |   [-f frameRate] | video frame rate (frames per second)|
  |  [-n number] | number of frames to process|
+ |[-device /path/to/device] | set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
   | [-b bitRate] | encoded bit rate (Kbits per second), valid for H.264, H.265, MPEG2 and MVC encoders|
   | [-u usage] | target usage, valid for H.265, H.264, H.265, MPEG2 and MVC encoders. <br>Expected values: <br>veryslow (quality), slower, slow, medium (balanced), fast, faster, veryfast (speed)|
   | [-q quality] | mandatory quality parameter for JPEG encoder. In range [1,100]. 100 is the best quality.|
