@@ -177,6 +177,7 @@ enum {
     MFX_PLATFORM_ICELAKE        = 30,
 #endif
     MFX_PLATFORM_ELKHARTLAKE    = 33,
+    MFX_PLATFORM_TIGERLAKE      = 40,
 };
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
