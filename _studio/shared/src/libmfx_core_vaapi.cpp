@@ -329,7 +329,17 @@ typedef struct {
     { 0x4551, MFX_HW_EHL, MFX_GT2 },
     { 0x4569, MFX_HW_EHL, MFX_GT2 },
     { 0x4571, MFX_HW_EHL, MFX_GT2 },
- };
+
+    /* TGL */
+    { 0x9A40, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A49, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A59, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A60, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A68, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A70, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A78, MFX_HW_TGL_LP, MFX_GT2 },
+
+};
 
 /* END: IOCTLs definitions */
 

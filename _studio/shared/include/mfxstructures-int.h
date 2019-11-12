@@ -70,6 +70,7 @@ enum eMFXHWType
     MFX_HW_ICL_LP    = MFX_HW_ICL + 1,
 
     MFX_HW_EHL       = 0x1500002,
+    MFX_HW_TGL_LP    = 0x1600000
 };
 
 enum eMFXGTConfig
