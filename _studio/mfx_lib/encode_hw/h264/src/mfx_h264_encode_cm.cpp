@@ -37,10 +37,12 @@
 #include "genx_simple_me_gen10_isa.h"
 #include "genx_simple_me_gen11_isa.h"
 #include "genx_simple_me_gen11lp_isa.h"
+#include "genx_simple_me_gen12lp_isa.h"
 #include "genx_histogram_gen9_isa.h"
 #include "genx_histogram_gen10_isa.h"
 #include "genx_histogram_gen11_isa.h"
 #include "genx_histogram_gen11lp_isa.h"
+#include "genx_histogram_gen12lp_isa.h"
 
 
 namespace MfxHwH264EncodeHW
@@ -883,6 +885,10 @@ void CmContext::Setup(
     case MFX_HW_ICL_LP:
         m_program = ReadProgram(m_device, genx_simple_me_gen11lp, SizeOf(genx_simple_me_gen11lp));
         m_programHist = ReadProgram(m_device, genx_histogram_gen11lp, SizeOf(genx_histogram_gen11lp));
+        break;
+    case MFX_HW_TGL_LP:
+        m_program = ReadProgram(m_device, genx_simple_me_gen12lp, SizeOf(genx_simple_me_gen12lp));
+        m_programHist = ReadProgram(m_device, genx_histogram_gen12lp, SizeOf(genx_histogram_gen12lp));
         break;
 #endif
     default:

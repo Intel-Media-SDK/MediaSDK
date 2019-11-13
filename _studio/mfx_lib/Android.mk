@@ -35,10 +35,12 @@ MFX_LOCAL_SRC_FILES_HW += $(addprefix mfx_lib/genx/h264_encode/isa/, \
     genx_simple_me_gen10_isa.cpp \
     genx_simple_me_gen11_isa.cpp \
     genx_simple_me_gen11lp_isa.cpp \
+    genx_simple_me_gen12lp_isa.cpp \
     genx_histogram_gen9_isa.cpp \
     genx_histogram_gen10_isa.cpp \
     genx_histogram_gen11_isa.cpp \
-    genx_histogram_gen11lp_isa.cpp)
+    genx_histogram_gen11lp_isa.cpp \
+    genx_histogram_gen12lp_isa.cpp)
 
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
@@ -113,35 +115,41 @@ MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/asc/isa/, \
     genx_scd_gen9_isa.cpp \
     genx_scd_gen10_isa.cpp \
     genx_scd_gen11_isa.cpp \
-    genx_scd_gen11lp_isa.cpp)
+    genx_scd_gen11lp_isa.cpp \
+    genx_scd_gen12lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/copy_kernels/isa/, \
     genx_copy_kernel_gen8_isa.cpp \
     genx_copy_kernel_gen9_isa.cpp \
     genx_copy_kernel_gen10_isa.cpp \
     genx_copy_kernel_gen11_isa.cpp \
-    genx_copy_kernel_gen11lp_isa.cpp)
+    genx_copy_kernel_gen11lp_isa.cpp \
+    genx_copy_kernel_gen12lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/field_copy/isa/, \
     genx_fcopy_gen8_isa.cpp \
     genx_fcopy_gen9_isa.cpp \
     genx_fcopy_gen10_isa.cpp \
     genx_fcopy_gen11_isa.cpp \
-    genx_fcopy_gen11lp_isa.cpp)
+    genx_fcopy_gen11lp_isa.cpp \
+    genx_fcopy_gen12lp_isa.cpp)
 
 MFX_SHARED_FILES_HW += $(addprefix mfx_lib/genx/mctf/isa/, \
     genx_me_gen8_isa.cpp \
     genx_me_gen9_isa.cpp \
     genx_me_gen11_isa.cpp \
     genx_me_gen11lp_isa.cpp \
+    genx_me_gen12lp_isa.cpp \
     genx_mc_gen8_isa.cpp \
     genx_mc_gen9_isa.cpp \
     genx_mc_gen11_isa.cpp \
     genx_mc_gen11lp_isa.cpp \
+    genx_mc_gen12lp_isa.cpp \
     genx_sd_gen8_isa.cpp \
     genx_sd_gen9_isa.cpp \
     genx_sd_gen11_isa.cpp \
-    genx_sd_gen11lp_isa.cpp)
+    genx_sd_gen11lp_isa.cpp \
+    genx_sd_gen12lp_isa.cpp)
 
 MFX_LIB_SHARED_FILES_1 := $(addprefix mfx_lib/shared/src/, \
     libmfxsw.cpp \

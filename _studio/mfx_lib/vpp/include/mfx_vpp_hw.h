@@ -43,6 +43,7 @@
  #include "genx_fcopy_gen10_isa.h"
  #include "genx_fcopy_gen11_isa.h"
  #include "genx_fcopy_gen11lp_isa.h"
+ #include "genx_fcopy_gen12lp_isa.h"
 
 #ifdef MFX_ENABLE_MCTF
 #include "mctf_common.h"
