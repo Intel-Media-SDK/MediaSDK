@@ -67,14 +67,14 @@ int main(int argc, char** argv)
 
     bEnableOutput = (options.values.SinkName[0] != '\0');
 
-    FILE* fSource;
-    MSDK_FOPEN(fSource, options.values.SourceName, "rb");
+    // Open input H.264 elementary stream (ES) file
+    fileUniPtr fSource(OpenFile(options.values.SourceName, "rb"), &CloseFile);
     MSDK_CHECK_POINTER(fSource, MFX_ERR_NULL_PTR);
 
     // Create output elementary stream (ES) H.264 file
-    FILE* fSink = NULL;
+    fileUniPtr fSink(nullptr, &CloseFile);
     if (bEnableOutput) {
-        MSDK_FOPEN(fSink, options.values.SinkName, "wb");
+        fSink.reset(OpenFile(options.values.SinkName, "wb"));
         MSDK_CHECK_POINTER(fSink, MFX_ERR_NULL_PTR);
     }
 
@@ -103,13 +103,14 @@ int main(int argc, char** argv)
     mfxBitstream mfxBS;
     memset(&mfxBS, 0, sizeof(mfxBS));
     mfxBS.MaxLength = 1024 * 1024;
-    mfxBS.Data = new mfxU8[mfxBS.MaxLength];
-    MSDK_CHECK_POINTER(mfxBS.Data, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxU8> bstData(mfxBS.MaxLength);
+    mfxBS.Data = bstData.data();
+
 
     // Read a chunk of data from stream file into bit stream buffer
     // - Parse bit stream, searching for header and fill video parameters structure
     // - Abort if bit stream header is not found in the first bit stream buffer chunk
-    sts = ReadBitStreamData(&mfxBS, fSource);
+    sts = ReadBitStreamData(&mfxBS, fSource.get());
     MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
     sts = mfxDEC.DecodeHeader(&mfxBS, &mfxDecParams);
@@ -164,18 +165,17 @@ int main(int argc, char** argv)
     mfxU16 height = (mfxU16) MSDK_ALIGN32(EncRequest.Info.Height);
     mfxU8 bitsPerPixel = 12;        // NV12 format is a 12 bits per pixel format
     mfxU32 surfaceSize = width * height * bitsPerPixel / 8;
-    mfxU8* surfaceBuffers = (mfxU8*) new mfxU8[surfaceSize * nSurfNum];
+    std::vector<mfxU8> surfaceBuffersData(surfaceSize * nSurfNum);
+    mfxU8* surfaceBuffers = surfaceBuffersData.data();
 
-    mfxFrameSurface1** pSurfaces = new mfxFrameSurface1 *[nSurfNum];
-    MSDK_CHECK_POINTER(pSurfaces, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pSurfaces(nSurfNum);
     for (int i = 0; i < nSurfNum; i++) {
-        pSurfaces[i] = new mfxFrameSurface1;
-        memset(pSurfaces[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pSurfaces[i]->Info), &(mfxEncParams.mfx.FrameInfo), sizeof(mfxFrameInfo));
-        pSurfaces[i]->Data.Y = &surfaceBuffers[surfaceSize * i];
-        pSurfaces[i]->Data.U = pSurfaces[i]->Data.Y + width * height;
-        pSurfaces[i]->Data.V = pSurfaces[i]->Data.U + 1;
-        pSurfaces[i]->Data.Pitch = width;
+        memset(&pSurfaces[i], 0, sizeof(mfxFrameSurface1));
+        pSurfaces[i].Info = mfxEncParams.mfx.FrameInfo;
+        pSurfaces[i].Data.Y = &surfaceBuffers[surfaceSize * i];
+        pSurfaces[i].Data.U = pSurfaces[i].Data.Y + width * height;
+        pSurfaces[i].Data.V = pSurfaces[i].Data.U + 1;
+        pSurfaces[i].Data.Pitch = width;
     }
 
     // Initialize the Media SDK decoder
@@ -199,8 +199,9 @@ int main(int argc, char** argv)
     mfxBitstream mfxEncBS;
     memset(&mfxEncBS, 0, sizeof(mfxEncBS));
     mfxEncBS.MaxLength = par.mfx.BufferSizeInKB * 1000;
-    mfxEncBS.Data = new mfxU8[mfxEncBS.MaxLength];
-    MSDK_CHECK_POINTER(mfxEncBS.Data, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxU8> bstEncData(mfxEncBS.MaxLength);
+    mfxEncBS.Data = bstEncData.data();
+
 
     // ===================================
     // Start transcoding the frames
@@ -222,16 +223,16 @@ int main(int argc, char** argv)
             MSDK_SLEEP(1);  // just wait and then repeat the same call to DecodeFrameAsync
 
         if (MFX_ERR_MORE_DATA == sts) {
-            sts = ReadBitStreamData(&mfxBS, fSource);       // Read more data to input bit stream
+            sts = ReadBitStreamData(&mfxBS, fSource.get());       // Read more data to input bit stream
             MSDK_BREAK_ON_ERROR(sts);
         }
 
         if (MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE == sts) {
-            nIndex = GetFreeSurfaceIndex(pSurfaces, nSurfNum);      // Find free frame surface
+            nIndex = GetFreeSurfaceIndex(pSurfaces);      // Find free frame surface
             MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex, MFX_ERR_MEMORY_ALLOC);
         }
         // Decode a frame asychronously (returns immediately)
-        sts = mfxDEC.DecodeFrameAsync(&mfxBS, pSurfaces[nIndex], &pmfxOutSurface, &syncpD);
+        sts = mfxDEC.DecodeFrameAsync(&mfxBS, &pSurfaces[nIndex], &pmfxOutSurface, &syncpD);
 
         // Ignore warnings if output is available,
         // if no output and no action required just repeat the DecodeFrameAsync call
@@ -266,7 +267,7 @@ int main(int argc, char** argv)
                 sts = session.SyncOperation(syncpE, 60000);     // Synchronize. Wait until frame processing is ready
                 MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-                sts = WriteBitStreamFrame(&mfxEncBS, fSink);
+                sts = WriteBitStreamFrame(&mfxEncBS, fSink.get());
                 MSDK_BREAK_ON_ERROR(sts);
 
                 ++nFrame;
@@ -289,11 +290,11 @@ int main(int argc, char** argv)
         if (MFX_WRN_DEVICE_BUSY == sts)
             MSDK_SLEEP(1);
 
-        nIndex = GetFreeSurfaceIndex(pSurfaces, nSurfNum);      // Find free frame surface
+        nIndex = GetFreeSurfaceIndex(pSurfaces);      // Find free frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex, MFX_ERR_MEMORY_ALLOC);
 
         // Decode a frame asychronously (returns immediately)
-        sts = mfxDEC.DecodeFrameAsync(NULL, pSurfaces[nIndex], &pmfxOutSurface, &syncpD);
+        sts = mfxDEC.DecodeFrameAsync(NULL, &pSurfaces[nIndex], &pmfxOutSurface, &syncpD);
 
         // Ignore warnings if output is available,
         // if no output and no action required just repeat the DecodeFrameAsync call
@@ -328,7 +329,7 @@ int main(int argc, char** argv)
                 sts = session.SyncOperation(syncpE, 60000);     // Synchronize. Wait until frame processing is ready
                 MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-                sts = WriteBitStreamFrame(&mfxEncBS, fSink);
+                sts = WriteBitStreamFrame(&mfxEncBS, fSink.get());
                 MSDK_BREAK_ON_ERROR(sts);
 
                 ++nFrame;
@@ -366,7 +367,7 @@ int main(int argc, char** argv)
             sts = session.SyncOperation(syncpE, 60000);     // Synchronize. Wait until frame processing is ready
             MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            sts = WriteBitStreamFrame(&mfxEncBS, fSink);
+            sts = WriteBitStreamFrame(&mfxEncBS, fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             ++nFrame;
@@ -394,16 +395,6 @@ int main(int argc, char** argv)
     mfxENC.Close();
     mfxDEC.Close();
     // session closed automatically on destruction
-
-    for (int i = 0; i < nSurfNum; i++)
-        delete pSurfaces[i];
-    MSDK_SAFE_DELETE_ARRAY(pSurfaces);
-    MSDK_SAFE_DELETE_ARRAY(surfaceBuffers);
-    MSDK_SAFE_DELETE_ARRAY(mfxBS.Data);
-    MSDK_SAFE_DELETE_ARRAY(mfxEncBS.Data);
-
-    fclose(fSource);
-    if (fSink) fclose(fSink);
 
     Release();
 

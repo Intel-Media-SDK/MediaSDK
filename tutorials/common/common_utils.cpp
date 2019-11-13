@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include "common_utils.h"
+#include <algorithm>
 
 // =================================================================
 // Utility functions, not directly tied to Intel Media SDK functionality
@@ -93,6 +94,19 @@ void PrintErrString(int err,const char* filestr,int line)
     default:
         printf("\nError code %d,\t%s\t%d\n\n", err, filestr, line);
     }
+}
+
+FILE* OpenFile(const char* fileName, const char* mode)
+{
+    FILE* openFile = nullptr;
+    MSDK_FOPEN(openFile, fileName, mode);
+    return openFile;
+}
+
+void CloseFile(FILE* fHdl)
+{
+    if(fHdl)
+        fclose(fHdl);
 }
 
 mfxStatus ReadPlaneData(mfxU16 w, mfxU16 h, mfxU8* buf, mfxU8* ptr,
@@ -298,6 +312,17 @@ int GetFreeSurfaceIndex(mfxFrameSurface1** pSurfacesPool, mfxU16 nPoolSize)
             if (0 == pSurfacesPool[i]->Data.Locked)
                 return i;
     return MFX_ERR_NOT_FOUND;
+}
+
+int GetFreeSurfaceIndex(const std::vector<mfxFrameSurface1>& pSurfacesPool)
+{
+    auto it = std::find_if(pSurfacesPool.begin(), pSurfacesPool.end(), [](const mfxFrameSurface1& surface) {
+                        return 0 == surface.Data.Locked;
+                    });
+
+    if(it == pSurfacesPool.end())
+        return MFX_ERR_NOT_FOUND;
+    else return it - pSurfacesPool.begin();
 }
 
 char mfxFrameTypeString(mfxU16 FrameType)
