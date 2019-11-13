@@ -21,6 +21,8 @@
 #pragma once
 
 #include <stdio.h>
+#include <memory>
+#include <vector>
 
 #include "mfxvideo++.h"
 
@@ -64,12 +66,15 @@ mfxStatus simple_gethdl(mfxHDL pthis, mfxMemId mid, mfxHDL* handle);
 mfxStatus simple_free(mfxHDL pthis, mfxFrameAllocResponse* response);
 
 
-
 // =================================================================
 // Utility functions, not directly tied to Media SDK functionality
 //
 
 void PrintErrString(int err,const char* filestr,int line);
+FILE* OpenFile(const char* fileName, const char* mode);
+void CloseFile(FILE* fHdl);
+
+using fileUniPtr = std::unique_ptr<FILE, decltype(&CloseFile)>;
 
 // LoadRawFrame: Reads raw frame from YUV file (YV12) into NV12 surface
 // - YV12 is a more common format for for YUV files than NV12 (therefore the conversion during read and write)
@@ -94,6 +99,7 @@ void ClearRGBSurfaceVMem(mfxMemId memId);
 
 // Get free raw frame surface
 int GetFreeSurfaceIndex(mfxFrameSurface1** pSurfacesPool, mfxU16 nPoolSize);
+int GetFreeSurfaceIndex(const std::vector<mfxFrameSurface1>& pSurfacesPool);
 
 // For use with asynchronous task management
 typedef struct {

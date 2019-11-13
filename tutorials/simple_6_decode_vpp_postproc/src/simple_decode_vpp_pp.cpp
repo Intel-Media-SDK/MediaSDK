@@ -59,14 +59,13 @@ int main(int argc, char** argv)
 
     bEnableOutput = (options.values.SinkName[0] != '\0');
     // Open input H.264 elementary stream (ES) file
-    FILE* fSource;
-    MSDK_FOPEN(fSource, options.values.SourceName, "rb");
+    fileUniPtr fSource(OpenFile(options.values.SourceName, "rb"), &CloseFile);
     MSDK_CHECK_POINTER(fSource, MFX_ERR_NULL_PTR);
 
     // Create output YUV file
-    FILE* fSink = NULL;
+    fileUniPtr fSink(nullptr, &CloseFile);
     if (bEnableOutput) {
-        MSDK_FOPEN(fSink, options.values.SinkName, "wb");
+        fSink.reset(OpenFile(options.values.SinkName, "wb"));
         MSDK_CHECK_POINTER(fSink, MFX_ERR_NULL_PTR);
     }
 
@@ -96,13 +95,14 @@ int main(int argc, char** argv)
     mfxBitstream mfxBS;
     memset(&mfxBS, 0, sizeof(mfxBS));
     mfxBS.MaxLength = 1024 * 1024;
-    mfxBS.Data = new mfxU8[mfxBS.MaxLength];
-    MSDK_CHECK_POINTER(mfxBS.Data, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxU8> bstData(mfxBS.MaxLength);
+    mfxBS.Data = bstData.data();
+
 
     // Read a chunk of data from stream file into bit stream buffer
     // - Parse bit stream, searching for header and fill video parameters structure
     // - Abort if bit stream header is not found in the first bit stream buffer chunk
-    sts = ReadBitStreamData(&mfxBS, fSource);
+    sts = ReadBitStreamData(&mfxBS, fSource.get());
     MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
     sts = mfxDEC.DecodeHeader(&mfxBS, &mfxVideoParams);
@@ -175,18 +175,17 @@ int main(int argc, char** argv)
     mfxU16 height = (mfxU16) MSDK_ALIGN32(DecRequest.Info.Height);
     mfxU8 bitsPerPixel = 12;        // NV12 format is a 12 bits per pixel format
     mfxU32 surfaceSize = width * height * bitsPerPixel / 8;
-    mfxU8* surfaceBuffers = (mfxU8*) new mfxU8[surfaceSize * nSurfNumDecVPP];
+    std::vector<mfxU8> surfaceBuffersData(surfaceSize * nSurfNumDecVPP);
+    mfxU8* surfaceBuffers = surfaceBuffersData.data();
 
-    mfxFrameSurface1** pmfxSurfaces = new mfxFrameSurface1 *[nSurfNumDecVPP];
-    MSDK_CHECK_POINTER(pmfxSurfaces, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pmfxSurfaces(nSurfNumDecVPP);
     for (int i = 0; i < nSurfNumDecVPP; i++) {
-        pmfxSurfaces[i] = new mfxFrameSurface1;
-        memset(pmfxSurfaces[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pmfxSurfaces[i]->Info), &(mfxVideoParams.mfx.FrameInfo), sizeof(mfxFrameInfo));
-        pmfxSurfaces[i]->Data.Y = &surfaceBuffers[surfaceSize * i];
-        pmfxSurfaces[i]->Data.U = pmfxSurfaces[i]->Data.Y + width * height;
-        pmfxSurfaces[i]->Data.V = pmfxSurfaces[i]->Data.U + 1;
-        pmfxSurfaces[i]->Data.Pitch = width;
+        memset(&pmfxSurfaces[i], 0, sizeof(mfxFrameSurface1));
+        pmfxSurfaces[i].Info = mfxVideoParams.mfx.FrameInfo;
+        pmfxSurfaces[i].Data.Y = &surfaceBuffers[surfaceSize * i];
+        pmfxSurfaces[i].Data.U = pmfxSurfaces[i].Data.Y + width * height;
+        pmfxSurfaces[i].Data.V = pmfxSurfaces[i].Data.U + 1;
+        pmfxSurfaces[i].Data.Pitch = width;
     }
 
     // Allocate surfaces for VPP Out
@@ -196,18 +195,17 @@ int main(int argc, char** argv)
     height = (mfxU16) MSDK_ALIGN32(VPPRequest[1].Info.Height);
     bitsPerPixel = 12;      // NV12 format is a 12 bits per pixel format
     surfaceSize = width * height * bitsPerPixel / 8;
-    mfxU8* surfaceBuffers2 = (mfxU8*) new mfxU8[surfaceSize * nSurfNumVPPOut];
+    std::vector<mfxU8> surfaceBuffersData2(surfaceSize * nSurfNumVPPOut);
+    mfxU8* surfaceBuffers2 = surfaceBuffersData2.data();
 
-    mfxFrameSurface1** pmfxSurfaces2 = new mfxFrameSurface1 *[nSurfNumVPPOut];
-    MSDK_CHECK_POINTER(pmfxSurfaces2, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pmfxSurfaces2(nSurfNumVPPOut);
     for (int i = 0; i < nSurfNumVPPOut; i++) {
-        pmfxSurfaces2[i] = new mfxFrameSurface1;
-        memset(pmfxSurfaces2[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pmfxSurfaces2[i]->Info), &(VPPParams.vpp.Out), sizeof(mfxFrameInfo));
-        pmfxSurfaces2[i]->Data.Y = &surfaceBuffers[surfaceSize * i];
-        pmfxSurfaces2[i]->Data.U = pmfxSurfaces2[i]->Data.Y + width * height;
-        pmfxSurfaces2[i]->Data.V = pmfxSurfaces2[i]->Data.U + 1;
-        pmfxSurfaces2[i]->Data.Pitch = width;
+        memset(&pmfxSurfaces2[i], 0, sizeof(mfxFrameSurface1));
+        pmfxSurfaces2[i].Info = VPPParams.vpp.Out;
+        pmfxSurfaces2[i].Data.Y = &surfaceBuffers2[surfaceSize * i];
+        pmfxSurfaces2[i].Data.U = pmfxSurfaces2[i].Data.Y + width * height;
+        pmfxSurfaces2[i].Data.V = pmfxSurfaces2[i].Data.U + 1;
+        pmfxSurfaces2[i].Data.Pitch = width;
     }
 
     // Initialize the Media SDK decoder
@@ -241,16 +239,16 @@ int main(int argc, char** argv)
             MSDK_SLEEP(1);  // Wait if device is busy, then repeat the same call to DecodeFrameAsync
 
         if (MFX_ERR_MORE_DATA == sts) {
-            sts = ReadBitStreamData(&mfxBS, fSource);       // Read more data into input bit stream
+            sts = ReadBitStreamData(&mfxBS, fSource.get());       // Read more data into input bit stream
             MSDK_BREAK_ON_ERROR(sts);
         }
 
         if (MFX_ERR_MORE_SURFACE == sts || MFX_ERR_NONE == sts) {
-            nIndex = GetFreeSurfaceIndex(pmfxSurfaces, nSurfNumDecVPP);     // Find free frame surface
+            nIndex = GetFreeSurfaceIndex(pmfxSurfaces);     // Find free frame surface
             MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex, MFX_ERR_MEMORY_ALLOC);
         }
         // Decode a frame asychronously (returns immediately)
-        sts = mfxDEC.DecodeFrameAsync(&mfxBS, pmfxSurfaces[nIndex], &pmfxOutSurface, &syncpD);
+        sts = mfxDEC.DecodeFrameAsync(&mfxBS, &pmfxSurfaces[nIndex], &pmfxOutSurface, &syncpD);
 
         // Ignore warnings if output is available,
         // if no output and no action required just repeat the DecodeFrameAsync call
@@ -258,12 +256,12 @@ int main(int argc, char** argv)
             sts = MFX_ERR_NONE;
 
         if (MFX_ERR_NONE == sts) {
-            nIndex2 = GetFreeSurfaceIndex(pmfxSurfaces2, nSurfNumVPPOut);   // Find free frame surface
+            nIndex2 = GetFreeSurfaceIndex(pmfxSurfaces2);   // Find free frame surface
             MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex2, MFX_ERR_MEMORY_ALLOC);
 
             for (;;) {
                 // Process a frame asychronously (returns immediately)
-                sts = mfxVPP.RunFrameVPPAsync(pmfxOutSurface, pmfxSurfaces2[nIndex2], NULL, &syncpV);
+                sts = mfxVPP.RunFrameVPPAsync(pmfxOutSurface, &pmfxSurfaces2[nIndex2], NULL, &syncpV);
 
                 if (MFX_ERR_NONE < sts && !syncpV) {    // repeat the call if warning and no output
                     if (MFX_WRN_DEVICE_BUSY == sts)
@@ -292,7 +290,7 @@ int main(int argc, char** argv)
         if (MFX_ERR_NONE == sts) {
             ++nFrame;
             if (bEnableOutput) {
-                sts = WriteRawFrame(pmfxSurfaces2[nIndex2], fSink);
+                sts = WriteRawFrame(&pmfxSurfaces2[nIndex2], fSink.get());
                 MSDK_BREAK_ON_ERROR(sts);
 
                 printf("Frame number: %d\r", nFrame);
@@ -311,11 +309,11 @@ int main(int argc, char** argv)
         if (MFX_WRN_DEVICE_BUSY == sts)
             MSDK_SLEEP(1);  // Wait if device is busy, then repeat the same call to DecodeFrameAsync
 
-        nIndex = GetFreeSurfaceIndex(pmfxSurfaces, nSurfNumDecVPP);     // Find free frame surface
+        nIndex = GetFreeSurfaceIndex(pmfxSurfaces);     // Find free frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex, MFX_ERR_MEMORY_ALLOC);
 
         // Decode a frame asychronously (returns immediately)
-        sts = mfxDEC.DecodeFrameAsync(NULL, pmfxSurfaces[nIndex], &pmfxOutSurface, &syncpD);
+        sts = mfxDEC.DecodeFrameAsync(NULL, &pmfxSurfaces[nIndex], &pmfxOutSurface, &syncpD);
 
         // Ignore warnings if output is available,
         // if no output and no action required just repeat the DecodeFrameAsync call
@@ -323,12 +321,12 @@ int main(int argc, char** argv)
             sts = MFX_ERR_NONE;
 
         if (MFX_ERR_NONE == sts) {
-            nIndex2 = GetFreeSurfaceIndex(pmfxSurfaces2, nSurfNumVPPOut);   // Find free frame surface
+            nIndex2 = GetFreeSurfaceIndex(pmfxSurfaces2);   // Find free frame surface
             MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex2, MFX_ERR_MEMORY_ALLOC);
 
             for (;;) {
                 // Process a frame asychronously (returns immediately)
-                sts = mfxVPP.RunFrameVPPAsync(pmfxOutSurface, pmfxSurfaces2[nIndex2], NULL, &syncpV);
+                sts = mfxVPP.RunFrameVPPAsync(pmfxOutSurface, &pmfxSurfaces2[nIndex2], NULL, &syncpV);
 
                 if (MFX_ERR_NONE < sts && !syncpV) {    // repeat the call if warning and no output
                     if (MFX_WRN_DEVICE_BUSY == sts)
@@ -357,7 +355,7 @@ int main(int argc, char** argv)
         if (MFX_ERR_NONE == sts) {
             ++nFrame;
             if (bEnableOutput) {
-                sts = WriteRawFrame(pmfxSurfaces2[nIndex2], fSink);
+                sts = WriteRawFrame(&pmfxSurfaces2[nIndex2], fSink.get());
                 MSDK_BREAK_ON_ERROR(sts);
 
                 printf("Frame number: %d\r", nFrame);
@@ -373,11 +371,11 @@ int main(int argc, char** argv)
     // Stage 3: Retrieve the buffered VPP frames
     //
     while (MFX_ERR_NONE <= sts) {
-        nIndex2 = GetFreeSurfaceIndex(pmfxSurfaces2, nSurfNumVPPOut);   // Find free frame surface
+        nIndex2 = GetFreeSurfaceIndex(pmfxSurfaces2);   // Find free frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nIndex2, MFX_ERR_MEMORY_ALLOC);
 
         // Process a frame asychronously (returns immediately)
-        sts = mfxVPP.RunFrameVPPAsync(NULL, pmfxSurfaces2[nIndex2], NULL, &syncpV);
+        sts = mfxVPP.RunFrameVPPAsync(NULL, &pmfxSurfaces2[nIndex2], NULL, &syncpV);
         MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_SURFACE);
         MSDK_BREAK_ON_ERROR(sts);
 
@@ -386,7 +384,7 @@ int main(int argc, char** argv)
 
         ++nFrame;
         if (bEnableOutput) {
-            sts = WriteRawFrame(pmfxSurfaces2[nIndex2], fSink);
+            sts = WriteRawFrame(&pmfxSurfaces2[nIndex2], fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             printf("Frame number: %d\r", nFrame);
@@ -410,19 +408,6 @@ int main(int argc, char** argv)
     mfxDEC.Close();
     mfxVPP.Close();
     // session closed automatically on destruction
-
-    for (int i = 0; i < nSurfNumDecVPP; i++)
-        delete pmfxSurfaces[i];
-    for (int i = 0; i < nSurfNumVPPOut; i++)
-        delete pmfxSurfaces2[i];
-    MSDK_SAFE_DELETE_ARRAY(pmfxSurfaces);
-    MSDK_SAFE_DELETE_ARRAY(pmfxSurfaces2);
-    MSDK_SAFE_DELETE_ARRAY(surfaceBuffers);
-    MSDK_SAFE_DELETE_ARRAY(surfaceBuffers2);
-    MSDK_SAFE_DELETE_ARRAY(mfxBS.Data);
-
-    fclose(fSource);
-    if (fSink) fclose(fSink);
 
     Release();
 

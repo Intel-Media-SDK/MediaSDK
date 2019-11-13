@@ -70,16 +70,15 @@ int main(int argc, char** argv)
     bEnableInput = (options.values.SourceName[0] != '\0');
     bEnableOutput = (options.values.SinkName[0] != '\0');
     // Open input YV12 YUV file
-    FILE* fSource = NULL;
+    fileUniPtr fSource(nullptr, &CloseFile);
     if (bEnableInput) {
-        MSDK_FOPEN(fSource, options.values.SourceName, "rb");
+        fSource.reset(OpenFile(options.values.SourceName, "rb"));
         MSDK_CHECK_POINTER(fSource, MFX_ERR_NULL_PTR);
     }
-
     // Create output elementary stream (ES) H.264 file
-    FILE* fSink = NULL;
+    fileUniPtr fSink(nullptr, &CloseFile);
     if (bEnableOutput) {
-        MSDK_FOPEN(fSink, options.values.SinkName, "wb");
+        fSink.reset(OpenFile(options.values.SinkName, "wb"));
         MSDK_CHECK_POINTER(fSink, MFX_ERR_NULL_PTR);
     }
 
@@ -153,21 +152,20 @@ int main(int argc, char** argv)
     mfxU16 height = (mfxU16) MSDK_ALIGN32(EncRequest.Info.Height);
     mfxU8 bitsPerPixel = 12;        // NV12 format is a 12 bits per pixel format
     mfxU32 surfaceSize = width * height * bitsPerPixel / 8;
-    mfxU8* surfaceBuffers = (mfxU8*) new mfxU8[surfaceSize * nEncSurfNum];
+    std::vector<mfxU8> surfaceBuffersData(surfaceSize * nEncSurfNum);
+    mfxU8* surfaceBuffers = surfaceBuffersData.data();
 
     // Allocate surface headers (mfxFrameSurface1) for encoder
-    mfxFrameSurface1** pEncSurfaces = new mfxFrameSurface1 *[nEncSurfNum];
-    MSDK_CHECK_POINTER(pEncSurfaces, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pEncSurfaces(nEncSurfNum);
     for (int i = 0; i < nEncSurfNum; i++) {
-        pEncSurfaces[i] = new mfxFrameSurface1;
-        memset(pEncSurfaces[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pEncSurfaces[i]->Info), &(mfxEncParams.mfx.FrameInfo), sizeof(mfxFrameInfo));
-        pEncSurfaces[i]->Data.Y = &surfaceBuffers[surfaceSize * i];
-        pEncSurfaces[i]->Data.U = pEncSurfaces[i]->Data.Y + width * height;
-        pEncSurfaces[i]->Data.V = pEncSurfaces[i]->Data.U + 1;
-        pEncSurfaces[i]->Data.Pitch = width;
+        memset(&pEncSurfaces[i], 0, sizeof(mfxFrameSurface1));
+        pEncSurfaces[i].Info = mfxEncParams.mfx.FrameInfo;
+        pEncSurfaces[i].Data.Y = &surfaceBuffers[surfaceSize * i];
+        pEncSurfaces[i].Data.U = pEncSurfaces[i].Data.Y + width * height;
+        pEncSurfaces[i].Data.V = pEncSurfaces[i].Data.U + 1;
+        pEncSurfaces[i].Data.Pitch = width;
         if (!bEnableInput) {
-            ClearYUVSurfaceSysMem(pEncSurfaces[i], width, height);
+            ClearYUVSurfaceSysMem(&pEncSurfaces[i], width, height);
         }
     }
 
@@ -187,8 +185,9 @@ int main(int argc, char** argv)
     mfxBitstream mfxBS;
     memset(&mfxBS, 0, sizeof(mfxBS));
     mfxBS.MaxLength = par.mfx.BufferSizeInKB * 1000;
-    mfxBS.Data = new mfxU8[mfxBS.MaxLength];
-    MSDK_CHECK_POINTER(mfxBS.Data, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxU8> bstData(mfxBS.MaxLength);
+    mfxBS.Data = bstData.data();
+
 
     // ===================================
     // Start encoding the frames
@@ -205,15 +204,15 @@ int main(int argc, char** argv)
     // Stage 1: Main encoding loop
     //
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts) {
-        nEncSurfIdx = GetFreeSurfaceIndex(pEncSurfaces, nEncSurfNum);   // Find free frame surface
+        nEncSurfIdx = GetFreeSurfaceIndex(pEncSurfaces);   // Find free frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nEncSurfIdx, MFX_ERR_MEMORY_ALLOC);
 
-        sts = LoadRawFrame(pEncSurfaces[nEncSurfIdx], fSource);
+        sts = LoadRawFrame(&pEncSurfaces[nEncSurfIdx], fSource.get());
         MSDK_BREAK_ON_ERROR(sts);
 
         for (;;) {
             // Encode a frame asychronously (returns immediately)
-            sts = mfxENC.EncodeFrameAsync(NULL, pEncSurfaces[nEncSurfIdx], &mfxBS, &syncp);
+            sts = mfxENC.EncodeFrameAsync(NULL, &pEncSurfaces[nEncSurfIdx], &mfxBS, &syncp);
 
             if (MFX_ERR_NONE < sts && !syncp) {     // Repeat the call if warning and no output
                 if (MFX_WRN_DEVICE_BUSY == sts)
@@ -232,7 +231,7 @@ int main(int argc, char** argv)
             sts = session.SyncOperation(syncp, 60000);      // Synchronize. Wait until encoded frame is ready
             MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            sts = WriteBitStreamFrame(&mfxBS, fSink);
+            sts = WriteBitStreamFrame(&mfxBS, fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             ++nFrame;
@@ -269,7 +268,7 @@ int main(int argc, char** argv)
             sts = session.SyncOperation(syncp, 60000);      // Synchronize. Wait until encoded frame is ready
             MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            sts = WriteBitStreamFrame(&mfxBS, fSink);
+            sts = WriteBitStreamFrame(&mfxBS, fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             ++nFrame;
@@ -296,16 +295,6 @@ int main(int argc, char** argv)
 
     mfxENC.Close();
     // session closed automatically on destruction
-
-    for (int i = 0; i < nEncSurfNum; i++)
-        delete pEncSurfaces[i];
-    MSDK_SAFE_DELETE_ARRAY(pEncSurfaces);
-    MSDK_SAFE_DELETE_ARRAY(mfxBS.Data);
-
-    MSDK_SAFE_DELETE_ARRAY(surfaceBuffers);
-
-    if (fSource) fclose(fSource);
-    if (fSink) fclose(fSink);
 
     Release();
 

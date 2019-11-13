@@ -63,16 +63,15 @@ int main(int argc, char** argv)
     bEnableInput = (options.values.SourceName[0] != '\0');
     bEnableOutput = (options.values.SinkName[0] != '\0');
     // Open input YV12 YUV file
-    FILE* fSource = NULL;
+    fileUniPtr fSource(nullptr, &CloseFile);
     if (bEnableInput) {
-        MSDK_FOPEN(fSource, options.values.SourceName, "rb");
+        fSource.reset(OpenFile(options.values.SourceName, "rb"));
         MSDK_CHECK_POINTER(fSource, MFX_ERR_NULL_PTR);
     }
-
     // Create output YUV file
-    FILE* fSink = NULL;
+    fileUniPtr fSink(nullptr, &CloseFile);
     if (bEnableOutput) {
-        MSDK_FOPEN(fSink, options.values.SinkName, "wb");
+        fSink.reset(OpenFile(options.values.SinkName, "wb"));
         MSDK_CHECK_POINTER(fSink, MFX_ERR_NULL_PTR);
     }
 
@@ -156,25 +155,21 @@ int main(int argc, char** argv)
     mfxU16 nVPPSurfNumOut = mfxResponseOut.NumFrameActual;
 
     // Allocate surface headers (mfxFrameSurface1) for VPP
-    mfxFrameSurface1** pVPPSurfacesIn = new mfxFrameSurface1 *[nVPPSurfNumIn];
-    MSDK_CHECK_POINTER(pVPPSurfacesIn, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pVPPSurfacesIn(nVPPSurfNumIn);
     for (int i = 0; i < nVPPSurfNumIn; i++) {
-        pVPPSurfacesIn[i] = new mfxFrameSurface1;
-        memset(pVPPSurfacesIn[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pVPPSurfacesIn[i]->Info), &(VPPParams.vpp.In), sizeof(mfxFrameInfo));
-        pVPPSurfacesIn[i]->Data.MemId = mfxResponseIn.mids[i];  // MID (memory id) represent one D3D NV12 surface
+        memset(&pVPPSurfacesIn[i], 0, sizeof(mfxFrameSurface1));
+        pVPPSurfacesIn[i].Info = VPPParams.vpp.In;
+        pVPPSurfacesIn[i].Data.MemId = mfxResponseIn.mids[i];  // MID (memory id) represent one D3D NV12 surface
         if (!bEnableInput) {
-            ClearYUVSurfaceVMem(pVPPSurfacesIn[i]->Data.MemId);
+            ClearYUVSurfaceVMem(pVPPSurfacesIn[i].Data.MemId);
         }
     }
 
-    mfxFrameSurface1** pVPPSurfacesOut = new mfxFrameSurface1 *[nVPPSurfNumOut];
-    MSDK_CHECK_POINTER(pVPPSurfacesOut, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pVPPSurfacesOut(nVPPSurfNumOut);
     for (int i = 0; i < nVPPSurfNumOut; i++) {
-        pVPPSurfacesOut[i] = new mfxFrameSurface1;
-        memset(pVPPSurfacesOut[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pVPPSurfacesOut[i]->Info), &(VPPParams.vpp.Out), sizeof(mfxFrameInfo));
-        pVPPSurfacesOut[i]->Data.MemId = mfxResponseOut.mids[i];    // MID (memory id) represent one D3D NV12 surface
+        memset(&pVPPSurfacesOut[i], 0, sizeof(mfxFrameSurface1));
+        pVPPSurfacesOut[i].Info = VPPParams.vpp.Out;
+        pVPPSurfacesOut[i].Data.MemId = mfxResponseOut.mids[i];    // MID (memory id) represent one D3D NV12 surface
     }
 
     // Initialize extended buffer for frame processing
@@ -223,25 +218,25 @@ int main(int argc, char** argv)
     // Stage 1: Main processing loop
     //
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts) {
-        nSurfIdxIn = GetFreeSurfaceIndex(pVPPSurfacesIn, nVPPSurfNumIn);        // Find free input frame surface
+        nSurfIdxIn = GetFreeSurfaceIndex(pVPPSurfacesIn);        // Find free input frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nSurfIdxIn, MFX_ERR_MEMORY_ALLOC);
 
         // Surface locking required when read/write video surfaces
-        sts = mfxAllocator.Lock(mfxAllocator.pthis, pVPPSurfacesIn[nSurfIdxIn]->Data.MemId, &(pVPPSurfacesIn[nSurfIdxIn]->Data));
+        sts = mfxAllocator.Lock(mfxAllocator.pthis, pVPPSurfacesIn[nSurfIdxIn].Data.MemId, &(pVPPSurfacesIn[nSurfIdxIn].Data));
         MSDK_BREAK_ON_ERROR(sts);
 
-        sts = LoadRawFrame(pVPPSurfacesIn[nSurfIdxIn], fSource);        // Load frame from file into surface
+        sts = LoadRawFrame(&pVPPSurfacesIn[nSurfIdxIn], fSource.get());        // Load frame from file into surface
         MSDK_BREAK_ON_ERROR(sts);
 
-        sts = mfxAllocator.Unlock(mfxAllocator.pthis, pVPPSurfacesIn[nSurfIdxIn]->Data.MemId, &(pVPPSurfacesIn[nSurfIdxIn]->Data));
+        sts = mfxAllocator.Unlock(mfxAllocator.pthis, pVPPSurfacesIn[nSurfIdxIn].Data.MemId, &(pVPPSurfacesIn[nSurfIdxIn].Data));
         MSDK_BREAK_ON_ERROR(sts);
 
-        nSurfIdxOut = GetFreeSurfaceIndex(pVPPSurfacesOut, nVPPSurfNumOut);     // Find free output frame surface
+        nSurfIdxOut = GetFreeSurfaceIndex(pVPPSurfacesOut);     // Find free output frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nSurfIdxOut, MFX_ERR_MEMORY_ALLOC);
 
         for (;;) {
             // Process a frame asychronously (returns immediately)
-            sts = mfxVPP.RunFrameVPPAsync(pVPPSurfacesIn[nSurfIdxIn], pVPPSurfacesOut[nSurfIdxOut], NULL, &syncp);
+            sts = mfxVPP.RunFrameVPPAsync(&pVPPSurfacesIn[nSurfIdxIn], &pVPPSurfacesOut[nSurfIdxOut], NULL, &syncp);
             if (MFX_WRN_DEVICE_BUSY == sts) {
                 MSDK_SLEEP(1);  // Wait if device is busy, then repeat the same call
             } else
@@ -262,13 +257,13 @@ int main(int argc, char** argv)
         ++nFrame;
         if (bEnableOutput) {
             // Surface locking required when read/write video surfaces
-            sts = mfxAllocator.Lock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut]->Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut]->Data));
+            sts = mfxAllocator.Lock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut].Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut].Data));
             MSDK_BREAK_ON_ERROR(sts);
 
-            sts = WriteRawFrame(pVPPSurfacesOut[nSurfIdxOut], fSink);
+            sts = WriteRawFrame(&pVPPSurfacesOut[nSurfIdxOut], fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
-            sts = mfxAllocator.Unlock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut]->Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut]->Data));
+            sts = mfxAllocator.Unlock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut].Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut].Data));
             MSDK_BREAK_ON_ERROR(sts);
 
             printf("Frame number: %d\r", nFrame);
@@ -284,12 +279,12 @@ int main(int argc, char** argv)
     // Stage 2: Retrieve the buffered VPP frames
     //
     while (MFX_ERR_NONE <= sts) {
-        nSurfIdxOut = GetFreeSurfaceIndex(pVPPSurfacesOut, nVPPSurfNumOut);     // Find free frame surface
+        nSurfIdxOut = GetFreeSurfaceIndex(pVPPSurfacesOut);     // Find free frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nSurfIdxOut, MFX_ERR_MEMORY_ALLOC);
 
         for (;;) {
             // Process a frame asychronously (returns immediately)
-            sts = mfxVPP.RunFrameVPPAsync(NULL, pVPPSurfacesOut[nSurfIdxOut], NULL, &syncp);
+            sts = mfxVPP.RunFrameVPPAsync(NULL, &pVPPSurfacesOut[nSurfIdxOut], NULL, &syncp);
             if (MFX_WRN_DEVICE_BUSY == sts) {
                 MSDK_SLEEP(1);  // Wait if device is busy, then repeat the same call
             } else
@@ -305,13 +300,13 @@ int main(int argc, char** argv)
         ++nFrame;
         if (bEnableOutput) {
             // Surface locking required when read/write video surfaces
-            sts = mfxAllocator.Lock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut]->Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut]->Data));
+            sts = mfxAllocator.Lock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut].Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut].Data));
             MSDK_BREAK_ON_ERROR(sts);
 
-            sts = WriteRawFrame(pVPPSurfacesOut[nSurfIdxOut], fSink);
+            sts = WriteRawFrame(&pVPPSurfacesOut[nSurfIdxOut], fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
-            sts = mfxAllocator.Unlock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut]->Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut]->Data));
+            sts = mfxAllocator.Unlock(mfxAllocator.pthis, pVPPSurfacesOut[nSurfIdxOut].Data.MemId, &(pVPPSurfacesOut[nSurfIdxOut].Data));
             MSDK_BREAK_ON_ERROR(sts);
 
             printf("Frame number: %d\r", nFrame);
@@ -336,18 +331,8 @@ int main(int argc, char** argv)
     mfxVPP.Close();
     //session closed automatically on destruction
 
-    for (int i = 0; i < nVPPSurfNumIn; i++)
-        delete pVPPSurfacesIn[i];
-    MSDK_SAFE_DELETE_ARRAY(pVPPSurfacesIn);
-    for (int i = 0; i < nVPPSurfNumOut; i++)
-        delete pVPPSurfacesOut[i];
-    MSDK_SAFE_DELETE_ARRAY(pVPPSurfacesOut);
-
     mfxAllocator.Free(mfxAllocator.pthis, &mfxResponseIn);
     mfxAllocator.Free(mfxAllocator.pthis, &mfxResponseOut);
-
-    if (fSource) fclose(fSource);
-    if (fSink) fclose(fSink);
 
     Release();
 

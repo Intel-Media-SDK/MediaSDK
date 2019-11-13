@@ -70,16 +70,16 @@ int main(int argc, char** argv)
     bEnableInput = (options.values.SourceName[0] != '\0');
     bEnableOutput = (options.values.SinkName[0] != '\0');
     // Open input YV12 YUV file
-    FILE* fSource = NULL;
+    fileUniPtr fSource(nullptr, &CloseFile);
     if (bEnableInput) {
-        MSDK_FOPEN(fSource, options.values.SourceName, "rb");
+        fSource.reset(OpenFile(options.values.SourceName, "rb"));
         MSDK_CHECK_POINTER(fSource, MFX_ERR_NULL_PTR);
     }
 
     // Create output elementary stream (ES) H.264 file
-    FILE* fSink = NULL;
+    fileUniPtr fSink(nullptr, &CloseFile);
     if (bEnableOutput) {
-        MSDK_FOPEN(fSink, options.values.SinkName, "wb");
+        fSink.reset(OpenFile(options.values.SinkName, "wb"));
         MSDK_CHECK_POINTER(fSink, MFX_ERR_NULL_PTR);
     }
 
@@ -198,34 +198,31 @@ int main(int argc, char** argv)
     MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
     // Allocate surface headers (mfxFrameSurface1) for VPPIn
-    mfxFrameSurface1** pmfxSurfacesVPPIn = new mfxFrameSurface1 *[nSurfNumVPPIn];
-    MSDK_CHECK_POINTER(pmfxSurfacesVPPIn, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pmfxSurfacesVPPIn(nSurfNumVPPIn);
     for (int i = 0; i < nSurfNumVPPIn; i++) {
-        pmfxSurfacesVPPIn[i] = new mfxFrameSurface1;
-        memset(pmfxSurfacesVPPIn[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pmfxSurfacesVPPIn[i]->Info), &(VPPParams.vpp.In), sizeof(mfxFrameInfo));
-        pmfxSurfacesVPPIn[i]->Data.MemId = mfxResponseVPPIn.mids[i];
+        memset(&pmfxSurfacesVPPIn[i], 0, sizeof(mfxFrameSurface1));
+        pmfxSurfacesVPPIn[i].Info = VPPParams.vpp.In;
+        pmfxSurfacesVPPIn[i].Data.MemId = mfxResponseVPPIn.mids[i];
         if (bEnableInput) {
-            ClearRGBSurfaceVMem(pmfxSurfacesVPPIn[i]->Data.MemId);
+            ClearRGBSurfaceVMem(pmfxSurfacesVPPIn[i].Data.MemId);
         }
     }
 
-    mfxFrameSurface1** pVPPSurfacesVPPOutEnc = new mfxFrameSurface1 *[nSurfNumVPPOutEnc];
-    MSDK_CHECK_POINTER(pVPPSurfacesVPPOutEnc, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxFrameSurface1> pVPPSurfacesVPPOutEnc(nSurfNumVPPOutEnc);
     for (int i = 0; i < nSurfNumVPPOutEnc; i++) {
-        pVPPSurfacesVPPOutEnc[i] = new mfxFrameSurface1;
-        memset(pVPPSurfacesVPPOutEnc[i], 0, sizeof(mfxFrameSurface1));
-        memcpy(&(pVPPSurfacesVPPOutEnc[i]->Info), &(VPPParams.vpp.Out), sizeof(mfxFrameInfo));
-        pVPPSurfacesVPPOutEnc[i]->Data.MemId = mfxResponseVPPOutEnc.mids[i];
+        memset(&pVPPSurfacesVPPOutEnc[i], 0, sizeof(mfxFrameSurface1));
+        pVPPSurfacesVPPOutEnc[i].Info = VPPParams.vpp.Out;
+        pVPPSurfacesVPPOutEnc[i].Data.MemId = mfxResponseVPPOutEnc.mids[i];
     }
 
     // Disable default VPP operations
     mfxExtVPPDoNotUse extDoNotUse;
+    mfxU32 tabDoNotUseAlgo[4];
     memset(&extDoNotUse, 0, sizeof(mfxExtVPPDoNotUse));
     extDoNotUse.Header.BufferId = MFX_EXTBUFF_VPP_DONOTUSE;
     extDoNotUse.Header.BufferSz = sizeof(mfxExtVPPDoNotUse);
     extDoNotUse.NumAlg = 4;
-    extDoNotUse.AlgList = new mfxU32[extDoNotUse.NumAlg];
+    extDoNotUse.AlgList = tabDoNotUseAlgo;
     MSDK_CHECK_POINTER(extDoNotUse.AlgList, MFX_ERR_MEMORY_ALLOC);
     extDoNotUse.AlgList[0] = MFX_EXTBUFF_VPP_DENOISE;       // turn off denoising (on by default)
     extDoNotUse.AlgList[1] = MFX_EXTBUFF_VPP_SCENE_ANALYSIS;        // turn off scene analysis (on by default)
@@ -259,8 +256,9 @@ int main(int argc, char** argv)
     mfxBitstream mfxBS;
     memset(&mfxBS, 0, sizeof(mfxBS));
     mfxBS.MaxLength = par.mfx.BufferSizeInKB * 1000;
-    mfxBS.Data = new mfxU8[mfxBS.MaxLength];
-    MSDK_CHECK_POINTER(mfxBS.Data, MFX_ERR_MEMORY_ALLOC);
+    std::vector<mfxU8> bstData(mfxBS.MaxLength);
+    mfxBS.Data = bstData.data();
+
 
     // ===================================
     // Start processing frames
@@ -278,25 +276,25 @@ int main(int argc, char** argv)
     // Stage 1: Main VPP/encoding loop
     //
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts) {
-        nVPPSurfIdx = GetFreeSurfaceIndex(pmfxSurfacesVPPIn, nSurfNumVPPIn);    // Find free input frame surface
+        nVPPSurfIdx = GetFreeSurfaceIndex(pmfxSurfacesVPPIn);    // Find free input frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nVPPSurfIdx, MFX_ERR_MEMORY_ALLOC);
 
         // Surface locking required when read/write video surfaces
-        sts = mfxAllocator.Lock(mfxAllocator.pthis, pmfxSurfacesVPPIn[nVPPSurfIdx]->Data.MemId, &(pmfxSurfacesVPPIn[nVPPSurfIdx]->Data));
+        sts = mfxAllocator.Lock(mfxAllocator.pthis, pmfxSurfacesVPPIn[nVPPSurfIdx].Data.MemId, &(pmfxSurfacesVPPIn[nVPPSurfIdx].Data));
         MSDK_BREAK_ON_ERROR(sts);
 
-        sts = LoadRawRGBFrame(pmfxSurfacesVPPIn[nVPPSurfIdx], fSource);  // Load frame from file into surface
+        sts = LoadRawRGBFrame(&pmfxSurfacesVPPIn[nVPPSurfIdx], fSource.get());  // Load frame from file into surface
         MSDK_BREAK_ON_ERROR(sts);
 
-        sts = mfxAllocator.Unlock(mfxAllocator.pthis, pmfxSurfacesVPPIn[nVPPSurfIdx]->Data.MemId, &(pmfxSurfacesVPPIn[nVPPSurfIdx]->Data));
+        sts = mfxAllocator.Unlock(mfxAllocator.pthis, pmfxSurfacesVPPIn[nVPPSurfIdx].Data.MemId, &(pmfxSurfacesVPPIn[nVPPSurfIdx].Data));
         MSDK_BREAK_ON_ERROR(sts);
 
-        nEncSurfIdx = GetFreeSurfaceIndex(pVPPSurfacesVPPOutEnc, nSurfNumVPPOutEnc);    // Find free output frame surface
+        nEncSurfIdx = GetFreeSurfaceIndex(pVPPSurfacesVPPOutEnc);    // Find free output frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nEncSurfIdx, MFX_ERR_MEMORY_ALLOC);
 
         for (;;) {
             // Process a frame asychronously (returns immediately)
-            sts = mfxVPP.RunFrameVPPAsync(pmfxSurfacesVPPIn[nVPPSurfIdx], pVPPSurfacesVPPOutEnc[nEncSurfIdx], NULL, &syncpVPP);
+            sts = mfxVPP.RunFrameVPPAsync(&pmfxSurfacesVPPIn[nVPPSurfIdx], &pVPPSurfacesVPPOutEnc[nEncSurfIdx], NULL, &syncpVPP);
             if (MFX_WRN_DEVICE_BUSY == sts) {
                 MSDK_SLEEP(1);  // Wait if device is busy, then repeat the same call
             } else
@@ -313,7 +311,7 @@ int main(int argc, char** argv)
 
         for (;;) {
             // Encode a frame asychronously (returns immediately)
-            sts = mfxENC.EncodeFrameAsync(NULL, pVPPSurfacesVPPOutEnc[nEncSurfIdx], &mfxBS, &syncpEnc);
+            sts = mfxENC.EncodeFrameAsync(NULL, &pVPPSurfacesVPPOutEnc[nEncSurfIdx], &mfxBS, &syncpEnc);
 
             if (MFX_ERR_NONE < sts && !syncpEnc) {  // Repeat the call if warning and no output
                 if (MFX_WRN_DEVICE_BUSY == sts)
@@ -332,7 +330,7 @@ int main(int argc, char** argv)
             sts = session.SyncOperation(syncpEnc, 60000);   // Synchronize. Wait until encoded frame is ready
             MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            sts = WriteBitStreamFrame(&mfxBS, fSink);
+            sts = WriteBitStreamFrame(&mfxBS, fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             ++nFrame;
@@ -350,12 +348,12 @@ int main(int argc, char** argv)
     // Stage 2: Retrieve the buffered VPP frames
     //
     while (MFX_ERR_NONE <= sts) {
-        nEncSurfIdx = GetFreeSurfaceIndex(pVPPSurfacesVPPOutEnc, nSurfNumVPPOutEnc);    // Find free output frame surface
+        nEncSurfIdx = GetFreeSurfaceIndex(pVPPSurfacesVPPOutEnc);    // Find free output frame surface
         MSDK_CHECK_ERROR(MFX_ERR_NOT_FOUND, nEncSurfIdx, MFX_ERR_MEMORY_ALLOC);
 
         for (;;) {
             // Process a frame asychronously (returns immediately)
-            sts = mfxVPP.RunFrameVPPAsync(NULL, pVPPSurfacesVPPOutEnc[nEncSurfIdx], NULL, &syncpVPP);
+            sts = mfxVPP.RunFrameVPPAsync(NULL, &pVPPSurfacesVPPOutEnc[nEncSurfIdx], NULL, &syncpVPP);
             if (MFX_WRN_DEVICE_BUSY == sts) {
                 MSDK_SLEEP(1);  // Wait if device is busy, then repeat the same call
             } else
@@ -366,7 +364,7 @@ int main(int argc, char** argv)
 
         for (;;) {
             // Encode a frame asychronously (returns immediately)
-            sts = mfxENC.EncodeFrameAsync(NULL, pVPPSurfacesVPPOutEnc[nEncSurfIdx], &mfxBS, &syncpEnc);
+            sts = mfxENC.EncodeFrameAsync(NULL, &pVPPSurfacesVPPOutEnc[nEncSurfIdx], &mfxBS, &syncpEnc);
 
             if (MFX_ERR_NONE < sts && !syncpEnc) {  // Repeat the call if warning and no output
                 if (MFX_WRN_DEVICE_BUSY == sts)
@@ -385,7 +383,7 @@ int main(int argc, char** argv)
             sts = session.SyncOperation(syncpEnc, 60000);   // Synchronize. Wait until encoded frame is ready
             MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            sts = WriteBitStreamFrame(&mfxBS, fSink);
+            sts = WriteBitStreamFrame(&mfxBS, fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             ++nFrame;
@@ -421,7 +419,7 @@ int main(int argc, char** argv)
             sts = session.SyncOperation(syncpEnc, 60000);   // Synchronize. Wait until encoded frame is ready
             MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);
 
-            sts = WriteBitStreamFrame(&mfxBS, fSink);
+            sts = WriteBitStreamFrame(&mfxBS, fSink.get());
             MSDK_BREAK_ON_ERROR(sts);
 
             ++nFrame;
@@ -449,20 +447,8 @@ int main(int argc, char** argv)
     mfxVPP.Close();
     // session closed automatically on destruction
 
-    for (int i = 0; i < nSurfNumVPPIn; i++)
-        delete pmfxSurfacesVPPIn[i];
-    MSDK_SAFE_DELETE_ARRAY(pmfxSurfacesVPPIn);
-    for (int i = 0; i < nSurfNumVPPOutEnc; i++)
-        delete pVPPSurfacesVPPOutEnc[i];
-    MSDK_SAFE_DELETE_ARRAY(pVPPSurfacesVPPOutEnc);
-    MSDK_SAFE_DELETE_ARRAY(mfxBS.Data);
-    MSDK_SAFE_DELETE_ARRAY(extDoNotUse.AlgList);
-
     mfxAllocator.Free(mfxAllocator.pthis, &mfxResponseVPPIn);
     mfxAllocator.Free(mfxAllocator.pthis, &mfxResponseVPPOutEnc);
-
-    if (fSource) fclose(fSource);
-    if (fSink) fclose(fSink);
 
     Release();
 
