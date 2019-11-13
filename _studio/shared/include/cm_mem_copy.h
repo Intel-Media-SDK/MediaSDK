@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +29,7 @@
 #include "genx_copy_kernel_gen10_isa.h"
 #include "genx_copy_kernel_gen11_isa.h"
 #include "genx_copy_kernel_gen11lp_isa.h"
+#include "genx_copy_kernel_gen12lp_isa.h"
 #endif
 
 #ifdef _MSVC_LANG
