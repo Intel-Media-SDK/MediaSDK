@@ -97,11 +97,13 @@ int open_intel_adapter(const std::string& devicePath, int type)
     char driverName[MFX_DRM_DRIVER_NAME_LEN + 1] = {};
     if (!get_drm_driver_name(fd, driverName, MFX_DRM_DRIVER_NAME_LEN) &&
         !strcmp(driverName, MFX_DRM_INTEL_DRIVER_NAME)) {
-            msdk_printf(MSDK_STRING("Specified device is not Intel one\n"));
             return fd;
     }
-
-    return -1;
+    else {
+        close(fd);
+        msdk_printf(MSDK_STRING("Specified device is not Intel one\n"));
+        return -1;
+    }
 }
 
 DRMLibVA::DRMLibVA(const std::string& devicePath, int type)
