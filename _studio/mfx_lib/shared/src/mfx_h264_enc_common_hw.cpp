@@ -982,38 +982,47 @@ namespace
                                         bool isLowPower,
                                         const mfxFrameInfo& info)
     {
-        if (platform == MFX_HW_IVB || platform == MFX_HW_VLV)
-            return 1;
-        else if (!isLowPower)
+        if (platform <= MFX_HW_IVB || platform == MFX_HW_VLV)
         {
-            if((info.Width < 3840 && info.Height < 2160) ||
-               (info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE))
+            return 1;
+        }
+
+        constexpr mfxU16 DEFAULT_BY_TU[][8] = {
+        { 0, 8, 6, 4, 3, 2, 1, 1 }, // VME progressive < 4k or interlaced (platform <= MFX_HW_HSW_ULT)
+        { 0, 8, 6, 3, 3, 3, 1, 1 }, // VME progressive < 4k or interlaced (platform > MFX_HW_HSW_ULT)
+        { 0, 4, 4, 4, 3, 2, 1, 1 }, // VME progressive >= 4k (platform <= MFX_HW_HSW_ULT)
+        { 0, 4, 4, 3, 3, 3, 1, 1 }, // VME progressive >= 4k (platform > MFX_HW_HSW_ULT)
+        { 0, 3, 3, 2, 2, 2, 1, 1 }  // VDEnc
+        };
+
+        if (!isLowPower)
+        {
+            if ((info.Width < 3840 && info.Height < 2160) ||
+                (info.PicStruct != MFX_PICSTRUCT_PROGRESSIVE))
             {
-                mfxU16 const DEFAULT_BY_TU[] = { 0, 8, 6, 4, 3, 2, 1, 1 };
-                return DEFAULT_BY_TU[targetUsage];
+                return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
             }
             else //progressive >= 4K
             {
-                mfxU16 const DEFAULT_BY_TU[] = { 0, 4, 4, 4, 3, 2, 1, 1 };
-                return DEFAULT_BY_TU[targetUsage];
+                return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 3 : 2][targetUsage];
             }
         }
         else
         {
-            mfxU16 const DEFAULT_BY_TU[] = { 0, 3, 3, 2, 2, 2, 1, 1 };
-            return DEFAULT_BY_TU[targetUsage];
+            return DEFAULT_BY_TU[4][targetUsage];
         }
     }
 
     mfxU16 GetDefaultMaxNumRefActiveBL0(mfxU32 targetUsage, eMFXHWType platform)
     {
-        if (platform == MFX_HW_IVB || platform == MFX_HW_VLV)
-            return 1;
-        else
+        if (platform <= MFX_HW_IVB || platform == MFX_HW_VLV)
         {
-            mfxU16 const DEFAULT_BY_TU[] = { 0, 4, 4, 3, 2, 2, 1, 1 };
-            return DEFAULT_BY_TU[targetUsage];
+            return 1;
         }
+        constexpr mfxU16 DEFAULT_BY_TU[][8] = { { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
+                                                { 0, 4, 4, 2, 2, 2, 1, 1 }
+        };
+        return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
     }
 
     mfxU16 GetDefaultNumRefActiveBL1(const mfxU32 targetUsage,
@@ -1023,7 +1032,7 @@ namespace
         if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) &&
             picStruct != MFX_PICSTRUCT_PROGRESSIVE)
         {
-            mfxU16 const DEFAULT_BY_TU[] = { 0, 2, 1, 1, 1, 1, 1, 1 };
+            constexpr mfxU16 DEFAULT_BY_TU[] = { 0, 2, 2, 2, 2, 2, 1, 1 };
             return DEFAULT_BY_TU[targetUsage];
         }
         else
