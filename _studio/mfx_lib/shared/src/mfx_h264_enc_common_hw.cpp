@@ -5124,16 +5124,16 @@ void MfxHwH264Encode::InheritDefaultValues(
     mfxVideoParam const * parResetIn)
 {
     mfxExtCodingOption const &  extOptInit      = GetExtBufferRef(parInit);
-    mfxExtCodingOption *        extOptReset     = GetExtBuffer(parReset);
+    mfxExtCodingOption &        extOptReset     = GetExtBufferRef(parReset);
     mfxExtCodingOption3 const & extOpt3Init     = GetExtBufferRef(parInit);
-    mfxExtCodingOption3 *       extOpt3Reset    = GetExtBuffer(parReset);
+    mfxExtCodingOption3 &       extOpt3Reset    = GetExtBufferRef(parReset);
     mfxExtCodingOption2 const & extOpt2Init     = GetExtBufferRef(parInit);
-    mfxExtCodingOption2 *       extOpt2Reset    = GetExtBuffer(parReset);
+    mfxExtCodingOption2 &       extOpt2Reset    = GetExtBufferRef(parReset);
 
     mfxU32 TCBRCTargetFrameSize = 0;
 
-    InheritOption(extOptInit.NalHrdConformance,         extOptReset->NalHrdConformance);
-    InheritOption(extOpt3Init.LowDelayBRC,              extOpt3Reset->LowDelayBRC);
+    InheritOption(extOptInit.NalHrdConformance,         extOptReset.NalHrdConformance);
+    InheritOption(extOpt3Init.LowDelayBRC,              extOpt3Reset.LowDelayBRC);
     InheritOption(parInit.mfx.RateControlMethod,        parReset.mfx.RateControlMethod);
     InheritOption(parInit.mfx.FrameInfo.FrameRateExtN,  parReset.mfx.FrameInfo.FrameRateExtN);
     InheritOption(parInit.mfx.FrameInfo.FrameRateExtD,  parReset.mfx.FrameInfo.FrameRateExtD);
@@ -5143,8 +5143,8 @@ void MfxHwH264Encode::InheritDefaultValues(
     {
         // old bitrate is used in TCBRC case
         TCBRCTargetFrameSize = GetAvgFrameSizeInBytes(parReset, false);
-        if (extOpt2Reset->MaxFrameSize == 0 && parReset.mfx.MaxKbps != 0)
-            extOpt2Reset->MaxFrameSize = GetAvgFrameSizeInBytes(parReset, true);
+        if (extOpt2Reset.MaxFrameSize == 0 && parReset.mfx.MaxKbps != 0)
+            extOpt2Reset.MaxFrameSize = GetAvgFrameSizeInBytes(parReset, true);
         parReset.mfx.TargetKbps = 0;
         parReset.mfx.MaxKbps    = 0;
     }
@@ -5191,9 +5191,7 @@ void MfxHwH264Encode::InheritDefaultValues(
     }
 
     if (parInit.mfx.RateControlMethod == MFX_RATECONTROL_ICQ && parReset.mfx.RateControlMethod == MFX_RATECONTROL_LA_ICQ)
-    {
         InheritOption(parInit.mfx.ICQQuality, parReset.mfx.ICQQuality);
-    }
 
     if (parInit.mfx.RateControlMethod == MFX_RATECONTROL_VCM && parReset.mfx.RateControlMethod == MFX_RATECONTROL_VCM)
     {
@@ -5214,53 +5212,51 @@ void MfxHwH264Encode::InheritDefaultValues(
     InheritOption(parInit.mfx.FrameInfo.AspectRatioW,   parReset.mfx.FrameInfo.AspectRatioW);
     InheritOption(parInit.mfx.FrameInfo.AspectRatioH,   parReset.mfx.FrameInfo.AspectRatioH);
 
-    InheritOption(extOptInit.RateDistortionOpt,     extOptReset->RateDistortionOpt);
-    InheritOption(extOptInit.MECostType,            extOptReset->MECostType);
-    InheritOption(extOptInit.MESearchType,          extOptReset->MESearchType);
-    InheritOption(extOptInit.MVSearchWindow.x,      extOptReset->MVSearchWindow.x);
-    InheritOption(extOptInit.MVSearchWindow.y,      extOptReset->MVSearchWindow.y);
-    InheritOption(extOptInit.EndOfSequence,         extOptReset->EndOfSequence);
-    InheritOption(extOptInit.FramePicture,          extOptReset->FramePicture);
-    InheritOption(extOptInit.CAVLC,                 extOptReset->CAVLC);
-    InheritOption(extOptInit.SingleSeiNalUnit,      extOptReset->SingleSeiNalUnit);
-    InheritOption(extOptInit.VuiVclHrdParameters,   extOptReset->VuiVclHrdParameters);
-    InheritOption(extOptInit.RefPicListReordering,  extOptReset->RefPicListReordering);
-    InheritOption(extOptInit.ResetRefList,          extOptReset->ResetRefList);
-    InheritOption(extOptInit.RefPicMarkRep,         extOptReset->RefPicMarkRep);
-    InheritOption(extOptInit.FieldOutput,           extOptReset->FieldOutput);
-    InheritOption(extOptInit.IntraPredBlockSize,    extOptReset->IntraPredBlockSize);
-    InheritOption(extOptInit.InterPredBlockSize,    extOptReset->InterPredBlockSize);
-    InheritOption(extOptInit.MVPrecision,           extOptReset->MVPrecision);
-    InheritOption(extOptInit.MaxDecFrameBuffering,  extOptReset->MaxDecFrameBuffering);
-    InheritOption(extOptInit.AUDelimiter,           extOptReset->AUDelimiter);
-    InheritOption(extOptInit.EndOfStream,           extOptReset->EndOfStream);
-    InheritOption(extOptInit.PicTimingSEI,          extOptReset->PicTimingSEI);
-    InheritOption(extOptInit.VuiNalHrdParameters,   extOptReset->VuiNalHrdParameters);
+    InheritOption(extOptInit.RateDistortionOpt,     extOptReset.RateDistortionOpt);
+    InheritOption(extOptInit.MECostType,            extOptReset.MECostType);
+    InheritOption(extOptInit.MESearchType,          extOptReset.MESearchType);
+    InheritOption(extOptInit.MVSearchWindow.x,      extOptReset.MVSearchWindow.x);
+    InheritOption(extOptInit.MVSearchWindow.y,      extOptReset.MVSearchWindow.y);
+    InheritOption(extOptInit.EndOfSequence,         extOptReset.EndOfSequence);
+    InheritOption(extOptInit.FramePicture,          extOptReset.FramePicture);
+    InheritOption(extOptInit.CAVLC,                 extOptReset.CAVLC);
+    InheritOption(extOptInit.SingleSeiNalUnit,      extOptReset.SingleSeiNalUnit);
+    InheritOption(extOptInit.VuiVclHrdParameters,   extOptReset.VuiVclHrdParameters);
+    InheritOption(extOptInit.RefPicListReordering,  extOptReset.RefPicListReordering);
+    InheritOption(extOptInit.ResetRefList,          extOptReset.ResetRefList);
+    InheritOption(extOptInit.RefPicMarkRep,         extOptReset.RefPicMarkRep);
+    InheritOption(extOptInit.FieldOutput,           extOptReset.FieldOutput);
+    InheritOption(extOptInit.IntraPredBlockSize,    extOptReset.IntraPredBlockSize);
+    InheritOption(extOptInit.InterPredBlockSize,    extOptReset.InterPredBlockSize);
+    InheritOption(extOptInit.MVPrecision,           extOptReset.MVPrecision);
+    InheritOption(extOptInit.MaxDecFrameBuffering,  extOptReset.MaxDecFrameBuffering);
+    InheritOption(extOptInit.AUDelimiter,           extOptReset.AUDelimiter);
+    InheritOption(extOptInit.EndOfStream,           extOptReset.EndOfStream);
+    InheritOption(extOptInit.PicTimingSEI,          extOptReset.PicTimingSEI);
+    InheritOption(extOptInit.VuiNalHrdParameters,   extOptReset.VuiNalHrdParameters);
 
     if (!parResetIn || !(mfxExtCodingOption2 const *)GetExtBuffer(*parResetIn)) //user should be able to disable IntraRefresh via Reset()
     {
-        InheritOption(extOpt2Init.IntRefType,      extOpt2Reset->IntRefType);
-        InheritOption(extOpt2Init.IntRefCycleSize, extOpt2Reset->IntRefCycleSize);
+        InheritOption(extOpt2Init.IntRefType,      extOpt2Reset.IntRefType);
+        InheritOption(extOpt2Init.IntRefCycleSize, extOpt2Reset.IntRefCycleSize);
     }
-    InheritOption(extOpt2Init.DisableVUI,      extOpt2Reset->DisableVUI);
-    InheritOption(extOpt2Init.SkipFrame,       extOpt2Reset->SkipFrame);
+    InheritOption(extOpt2Init.DisableVUI,      extOpt2Reset.DisableVUI);
+    InheritOption(extOpt2Init.SkipFrame,       extOpt2Reset.SkipFrame);
 
-    InheritOption(extOpt2Init.ExtBRC,  extOpt2Reset->ExtBRC);
+    InheritOption(extOpt2Init.ExtBRC,  extOpt2Reset.ExtBRC);
 
-    InheritOption(extOpt3Init.NumSliceI, extOpt3Reset->NumSliceI);
-    InheritOption(extOpt3Init.NumSliceP, extOpt3Reset->NumSliceP);
-    InheritOption(extOpt3Init.NumSliceB, extOpt3Reset->NumSliceB);
+    InheritOption(extOpt3Init.NumSliceI, extOpt3Reset.NumSliceI);
+    InheritOption(extOpt3Init.NumSliceP, extOpt3Reset.NumSliceP);
+    InheritOption(extOpt3Init.NumSliceB, extOpt3Reset.NumSliceB);
     if (!parResetIn || !(mfxExtCodingOption3 const *)GetExtBuffer(*parResetIn))
-    {
-        InheritOption(extOpt3Init.IntRefCycleDist, extOpt3Reset->IntRefCycleDist);
-    }
+        InheritOption(extOpt3Init.IntRefCycleDist, extOpt3Reset.IntRefCycleDist);
 
     if (parInit.mfx.RateControlMethod == MFX_RATECONTROL_QVBR && parReset.mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
     {
         InheritOption(parInit.mfx.InitialDelayInKB, parReset.mfx.InitialDelayInKB);
         InheritOption(parInit.mfx.TargetKbps,       parReset.mfx.TargetKbps);
         InheritOption(parInit.mfx.MaxKbps,          parReset.mfx.MaxKbps);
-        InheritOption(extOpt3Init.QVBRQuality,      extOpt3Reset->QVBRQuality);
+        InheritOption(extOpt3Init.QVBRQuality,      extOpt3Reset.QVBRQuality);
     }
 
 
