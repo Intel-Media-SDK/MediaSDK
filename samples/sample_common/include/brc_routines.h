@@ -249,8 +249,10 @@ public:
             }
             else
             {
-                if (recode)
-                    m_maxWinBitsLim = mfx::clamp((GetLastFrameBits(windowSize, false) + GetStep())/2, m_maxWinBitsLim, m_maxWinBits);
+                if (recode) 
+                {
+                    m_maxWinBitsLim = mfx::clamp(GetLastFrameBits(windowSize, false) + GetStep()/2, m_maxWinBitsLim, m_maxWinBits);
+                }
                 else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
                     (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1, false) + sizeInBits)))
                    m_maxWinBitsLim -= GetStep();
