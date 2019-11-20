@@ -694,6 +694,8 @@ JERRCODE CJPEGEncoder::SetParams(
   }
   else
   {
+    if (m_jpeg_ncomp > MAX_HUFF_TABLES)
+      return JPEG_ERR_PARAMS;
     for(c = 0; c < m_jpeg_ncomp; c++)
     {
       jerr = m_dctbl[c].Create();
