@@ -248,6 +248,10 @@ typedef struct {
     { 0x593B, MFX_HW_KBL, MFX_GT4 }, // HALO GT4
     { 0x593D, MFX_HW_KBL, MFX_GT4 }, // WRK GT4
 
+    /* GLK */
+    { 0x3184, MFX_HW_GLK, MFX_GT1 },
+    { 0x3185, MFX_HW_GLK, MFX_GT1 },
+
     /* CFL */
     { 0x3E90, MFX_HW_CFL, MFX_GT1 },
     { 0x3E91, MFX_HW_CFL, MFX_GT2 },
