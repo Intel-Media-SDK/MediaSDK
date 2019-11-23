@@ -38,6 +38,9 @@ static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAFEIParam = 
     { DXVA2_Intel_Encode_HEVC_Main422_10,             VAParameters(VAProfileHEVCMain422_10, VAEntrypointFEI)},
     { DXVA2_Intel_Encode_HEVC_Main444,                VAParameters(VAProfileHEVCMain444,    VAEntrypointFEI)},
     { DXVA2_Intel_Encode_HEVC_Main444_10,             VAParameters(VAProfileHEVCMain444_10, VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main12,                 VAParameters(VAProfileHEVCMain12,     VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main422_12,             VAParameters(VAProfileHEVCMain422_12, VAEntrypointFEI)},
+    { DXVA2_Intel_Encode_HEVC_Main444_12,             VAParameters(VAProfileHEVCMain444_12, VAEntrypointFEI)}
 #endif
 };
 

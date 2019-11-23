@@ -113,6 +113,9 @@ bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
     case MFX_FOURCC_YV12:
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_P210:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+#endif
         return false;
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
@@ -129,6 +132,10 @@ bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_Y416:
+#endif
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
@@ -144,6 +151,9 @@ bool CmCopyWrapper::isNV12LikeFormat(mfxU32 format)
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_P010:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+#endif
         return true;
     }
     return false;
@@ -168,7 +178,13 @@ int CmCopyWrapper::getSizePerPixel(mfxU32 format)
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y210:
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216:
+#endif
         return 4;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y416:
+#endif
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
         return 8;
@@ -191,6 +207,11 @@ bool CmCopyWrapper::isNeedShift(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
     case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_Y416:
 #endif
         return shift;
     }
@@ -1709,6 +1730,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
     UINT            height_stride_in_rows   = heightStride;
     UINT            AddedShiftLeftOffset    = 0;
     UINT            byte_per_pixel           = (format==MFX_FOURCC_P010
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        || format == MFX_FOURCC_P016
+#endif
         )?2:1;
     size_t          pLinearAddress          = (size_t)pSysMem;
     size_t          pLinearAddressAligned   = 0;
@@ -2065,6 +2089,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
     UINT            stride_in_dwords        = 0;
     UINT            height_stride_in_rows   = heightStride;
     UINT            byte_per_pixel          = (format==MFX_FOURCC_P010
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        || format == MFX_FOURCC_P016
+#endif
         )?2:1;
     UINT            AddedShiftLeftOffset    = 0;
     size_t          pLinearAddress          = (size_t)pSysMem;

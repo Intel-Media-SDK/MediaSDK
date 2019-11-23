@@ -40,9 +40,13 @@ GUID GetGUID(MfxVideoParam const & par)
 #if (MFX_VERSION >= 1027)
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.m_ext.CO3.TargetBitDepthLuma == 10)
         bdId = 1;
+    if (par.m_ext.CO3.TargetBitDepthLuma == 12)
+        bdId = 2;
 
     cfId = mfx::clamp<mfxU16>(par.m_ext.CO3.TargetChromaFormatPlus1 - 1, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) - MFX_CHROMAFORMAT_YUV420;
 
+    if (par.m_platform && par.m_platform < MFX_HW_ICL)
+        cfId = 0; // platforms below ICL do not support Main422/Main444 profile, using Main instead.
 #else
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.mfx.FrameInfo.BitDepthLuma == 10 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
         bdId = 1;
@@ -80,7 +84,7 @@ DriverEncoder* CreatePlatformH265Encoder(VideoCORE* core, ENCODER_TYPE type)
 }
 
 // this function is aimed to workaround all CAPS reporting problems in mainline driver
-mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
+mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoParam const &par)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(core);
@@ -103,6 +107,8 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
         caps.ddi_caps.NegativeQPSupport = 0;
     else
         caps.ddi_caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
+		
+    caps.PSliceSupport = (IsOn(par.mfx.LowPower) || platform > MFX_HW_ICL) ? 0 : 1;
 
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
     if (platform >= MFX_HW_ICL)
@@ -125,6 +131,36 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
     if (!caps.ddi_caps.LCUSizeSupported)
         caps.ddi_caps.LCUSizeSupported = 2;
     caps.ddi_caps.BlockSize = 2; // 32x32
+    // align with Windows for Gen12+
+    if (platform >= MFX_HW_TGL_LP)
+    {   // taken from  Windows TGLLP (temporarily)
+        caps.ddi_caps.CodingLimitSet = 1; // = 0 now but should be always set to 1 according to DDI (what about Linux ???)
+        caps.ddi_caps.Color420Only = 0;  // = 1 now
+        caps.ddi_caps.YUV422ReconSupport = 1; // = 0 now
+        caps.ddi_caps.SliceIPBOnly = 1;  // = 0 now (SliceIP is also 0)cz
+        caps.ddi_caps.NoWeightedPred = 0; // = 1 now
+        caps.ddi_caps.NoMinorMVs = 1;  // = 0 now
+        caps.ddi_caps.RawReconRefToggle = 1;  // = 0 now
+        caps.ddi_caps.NoInterlacedField = 1;  // = 0 now
+//        caps.RollingIntraRefresh = 0;  // = 1 now
+//        caps.VCMBitRateControl = 0;  // = 1 now
+        caps.ddi_caps.ParallelBRC = 1;  // = 0 now
+        caps.ddi_caps.LumaWeightedPred = 1; // = 0 now
+        caps.ddi_caps.ChromaWeightedPred = 0; // = 0 now
+        caps.ddi_caps.MaxEncodedBitDepth = 2;  // = 1 now (8/10b only)
+        caps.ddi_caps.MaxPicWidth = 16384;  // = 8192 now
+        caps.ddi_caps.MaxPicHeight = 16384;  // = 8192 now
+        caps.ddi_caps.MaxNumOfROI = 16;  // = 0 now
+        caps.ddi_caps.ROIDeltaQPSupport = 1;  // = 0 now
+        caps.ddi_caps.BlockSize = 1;  // = 0 now (set to 16x16 like in Win)
+        caps.ddi_caps.SliceLevelReportSupport = 1;  // = 0 now
+        caps.ddi_caps.FrameSizeToleranceSupport = 1;  // = 0 now
+        caps.ddi_caps.NumScalablePipesMinus1 = 1;  // = 0 now
+        caps.ddi_caps.MaxNum_WeightedPredL0 = 4; // = 0 now
+        caps.ddi_caps.MaxNum_WeightedPredL1 = 2; // = 0 now
+        caps.ddi_caps.TileSupport = 1;
+        caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
+    }
     (void)core;
 #endif
 

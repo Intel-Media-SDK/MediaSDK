@@ -1309,7 +1309,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
         return 10;
         break;
 
-#ifdef PRE_SI_TARGET_PLATFORM_GEN12
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:

@@ -394,6 +394,11 @@ mfxStatus MfxFrameAllocResponse::Alloc(
             || (tmp.Info.FourCC == MFX_FOURCC_Y210)
             || (tmp.Info.FourCC == MFX_FOURCC_Y410)
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            || (tmp.Info.FourCC == MFX_FOURCC_P016)
+            || (tmp.Info.FourCC == MFX_FOURCC_Y216)
+            || (tmp.Info.FourCC == MFX_FOURCC_Y416)
+#endif
             )
             tmp.Type &= ~MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
 
@@ -671,6 +676,9 @@ namespace ExtBuffer
         {
             if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
                 buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
+            else if (IsOn(par.mfx.LowPower) && (par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_YUY2))
+                // use 420 as default target format when source is 422 for VDEnc
+                buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1;
             else
                 buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
             buf.TargetBitDepthLuma      = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
@@ -683,6 +691,9 @@ namespace ExtBuffer
         {
             if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
                 buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
+            else if (IsOn(par.mfx.LowPower) && (par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_YUY2))
+                // use 420 as default target format when source is 422 for VDEnc
+                buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1;
             else
                 buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
         }

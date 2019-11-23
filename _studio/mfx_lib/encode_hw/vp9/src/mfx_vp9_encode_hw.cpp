@@ -418,6 +418,8 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
     MFX_CHECK_STS(sts);
     MFX_CHECK(par->IOPattern == m_video.IOPattern, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
+    eMFXHWType platform = m_pCore->GetHWType();
+
     VP9MfxVideoParam parBeforeReset = m_video;
     VP9MfxVideoParam parAfterReset = *par;
 
@@ -514,6 +516,14 @@ mfxStatus MFXVideoENCODEVP9_HW::Reset(mfxVideoParam *par)
         if ((extParAfter.FrameWidth != extParBefore.FrameWidth ||
             extParAfter.FrameHeight != extParBefore.FrameHeight) &&
             (extParAfter.NumTileRows > 1 || extParAfter.NumTileColumns > 1))
+        {
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+        }
+
+        // Tile switching is unsupported by driver for Gen11+
+        if (platform > MFX_HW_ICL_LP &&
+            (extParBefore.NumTileColumns > 1 || extParBefore.NumTileRows > 1) &&
+            extParAfter.NumTileColumns == 1 && extParAfter.NumTileRows == 1)
         {
             return MFX_ERR_INVALID_VIDEO_PARAM;
         }
