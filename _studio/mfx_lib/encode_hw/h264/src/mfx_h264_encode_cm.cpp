@@ -867,6 +867,7 @@ void CmContext::Setup(
     case MFX_HW_SCL:
     case MFX_HW_APL:
     case MFX_HW_KBL:
+    case MFX_HW_GLK:
     case MFX_HW_CFL:
         m_program = ReadProgram(m_device, genx_simple_me_gen9, SizeOf(genx_simple_me_gen9));
         m_programHist = ReadProgram(m_device, genx_histogram_gen9, SizeOf(genx_histogram_gen9));
