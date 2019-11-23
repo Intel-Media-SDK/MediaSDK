@@ -1,5 +1,5 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2008-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -42,6 +42,7 @@ mfxStatus ConvertUMCStatusToMfx(UMC::Status status);
 void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo* umcVideoParams);
 void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoDecoderParams* umcVideoParams);
 
+UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32);
 mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat);
 void ConvertUMCParamsToMFX(UMC::VideoStreamInfo const*, mfxVideoParam*);
 void ConvertUMCParamsToMFX(UMC::VideoDecoderParams const*, mfxVideoParam*);

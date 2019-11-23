@@ -94,6 +94,11 @@ namespace MfxHwVideoProcessing
         , MFX_FOURCC_Y210
         , MFX_FOURCC_Y410
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        , MFX_FOURCC_P016
+        , MFX_FOURCC_Y216
+        , MFX_FOURCC_Y416
+#endif
     };
 
     typedef enum mfxFormatSupport {

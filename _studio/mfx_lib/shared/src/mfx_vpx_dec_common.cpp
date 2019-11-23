@@ -109,6 +109,10 @@ namespace MFX_VPX_Utility
 #if (MFX_VERSION >= 1027)
             case MFX_FOURCC_Y410:
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            case MFX_FOURCC_P016:
+            case MFX_FOURCC_Y416:
+#endif
                 p_out->mfx.FrameInfo.FourCC = p_in->mfx.FrameInfo.FourCC;
                 break;
             default:
@@ -138,6 +142,10 @@ namespace MFX_VPX_Utility
                   //|| (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV422)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y410 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+#endif
                     )
                 {
                     p_out->mfx.FrameInfo.FourCC = 0;
@@ -150,13 +158,12 @@ namespace MFX_VPX_Utility
 
             p_out->mfx.FrameInfo.BitDepthLuma   = p_in->mfx.FrameInfo.BitDepthLuma;
             p_out->mfx.FrameInfo.BitDepthChroma = p_in->mfx.FrameInfo.BitDepthChroma;
-            p_out->mfx.FrameInfo.Shift          = p_in->mfx.FrameInfo.Shift;
 
-            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 ||
-                 p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
-                 ((p_in->mfx.FrameInfo.BitDepthLuma   != 0 && p_in->mfx.FrameInfo.BitDepthLuma   != 8) ||
-                  (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 8) ||
-                  p_in->mfx.FrameInfo.Shift))
+            if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12
+                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
+               ((p_in->mfx.FrameInfo.BitDepthLuma   != 0 && p_in->mfx.FrameInfo.BitDepthLuma   != 8) ||
+                (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 8) ||
+                    p_in->mfx.FrameInfo.Shift))
             {
                 p_out->mfx.FrameInfo.BitDepthLuma = 0;
                 p_out->mfx.FrameInfo.BitDepthChroma = 0;
@@ -176,16 +183,28 @@ namespace MFX_VPX_Utility
                 p_out->mfx.FrameInfo.Shift = 0;
                 sts = MFX_ERR_UNSUPPORTED;
             }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            if ((  p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
+                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416) &&
+                ((p_in->mfx.FrameInfo.BitDepthLuma != 0 && p_in->mfx.FrameInfo.BitDepthLuma != 12) ||
+                 (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 12)))
+            {
+                p_out->mfx.FrameInfo.BitDepthLuma = 0;
+                p_out->mfx.FrameInfo.BitDepthChroma = 0;
+                p_out->mfx.FrameInfo.Shift = 0;
+                sts = MFX_ERR_UNSUPPORTED;
+            }
+#endif
 
             if (!p_in->mfx.FrameInfo.ChromaFormat && !(!p_in->mfx.FrameInfo.FourCC && !p_in->mfx.FrameInfo.ChromaFormat))
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Width % 16 == 0)
+            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= GetMaxWidth(codecId))
                 p_out->mfx.FrameInfo.Width = p_in->mfx.FrameInfo.Width;
             else
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Height % 16 == 0)
+            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= GetMaxHeight(codecId))
                 p_out->mfx.FrameInfo.Height = p_in->mfx.FrameInfo.Height;
             else
                 sts = MFX_ERR_UNSUPPORTED;
@@ -326,6 +345,11 @@ namespace MFX_VPX_Utility
                 //&& p_in->mfx.FrameInfo.FourCC != MFX_FOURCC_Y210
                 && !(frameInfo.FourCC == MFX_FOURCC_Y410 && hwtype >= MFX_HW_ICL)
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+                && frameInfo.FourCC != MFX_FOURCC_P016
+                && frameInfo.FourCC != MFX_FOURCC_Y416
+#endif
+
             )
                 return false;
 
@@ -347,6 +371,10 @@ namespace MFX_VPX_Utility
                     || (frameInfo.FourCC == MFX_FOURCC_P010 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
 #if (MFX_VERSION >= 1027)
                     || (frameInfo.FourCC == MFX_FOURCC_Y410 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+                   || (frameInfo.FourCC == MFX_FOURCC_P016 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
+                   || (frameInfo.FourCC == MFX_FOURCC_Y416 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
 #endif
                     )
                     return false;

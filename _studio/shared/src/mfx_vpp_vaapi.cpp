@@ -455,10 +455,18 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:
 #endif
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y216:
+        case MFX_FOURCC_Y416:
 #endif
         case MFX_FOURCC_P010:
             caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_INPUT;
@@ -481,6 +489,11 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #endif
 #ifdef MFX_ENABLE_RGBP
         case MFX_FOURCC_RGBP:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y216:
+        case MFX_FOURCC_Y416:
 #endif
         case MFX_FOURCC_P010:
         case MFX_FOURCC_A2RGB10:

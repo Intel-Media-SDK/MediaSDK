@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,8 +35,7 @@ mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSu
 
     eMFXHWType platform = m_core->GetHWType();
 
-    bool isSKL = platform == MFX_HW_SCL;
-
+    bool isSKL = platform == MFX_HW_SCL, isICLplus = platform >= MFX_HW_ICL;
 
     // mfxExtFeiHevcEncFrameCtrl is a mandatory buffer
     mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl = reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(GetBufById(ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
@@ -46,9 +45,9 @@ mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSu
     MFX_CHECK(EncFrameCtrl->NumMvPredictors[0] <= 4, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(EncFrameCtrl->NumMvPredictors[1] <= 4, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    MFX_CHECK(EncFrameCtrl->MultiPred[0]       <= 1,
+    MFX_CHECK(EncFrameCtrl->MultiPred[0]       <= (isICLplus ? 2 : 1),
                                                      MFX_ERR_INVALID_VIDEO_PARAM);
-    MFX_CHECK(EncFrameCtrl->MultiPred[1]       <= 1,
+    MFX_CHECK(EncFrameCtrl->MultiPred[1]       <= (isICLplus ? 2 : 1),
                                                      MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(EncFrameCtrl->SubPelMode         <= 3 &&
               EncFrameCtrl->SubPelMode         != 2, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -56,6 +55,7 @@ mfxStatus H265FeiEncode_HW::ExtraParametersCheck(mfxEncodeCtrl *ctrl, mfxFrameSu
     MFX_CHECK(EncFrameCtrl->MVPredictor == 0
           ||  EncFrameCtrl->MVPredictor == 1
           ||  EncFrameCtrl->MVPredictor == 2
+          || (EncFrameCtrl->MVPredictor == 3 && isICLplus)
           ||  EncFrameCtrl->MVPredictor == 7,        MFX_ERR_INVALID_VIDEO_PARAM);
 
     MFX_CHECK(EncFrameCtrl->ForceCtuSplit <= (isSKL ? 1: 0), MFX_ERR_INVALID_VIDEO_PARAM);
