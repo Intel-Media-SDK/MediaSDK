@@ -528,7 +528,7 @@ CHWDevice* CreateVAAPIDevice(const std::string& devicePath, int type)
 #elif defined(LIBVA_ANDROID_SUPPORT)
 
 static AndroidLibVA g_LibVA;
-CHWDevice* CreateVAAPIDevice(int type)
+CHWDevice* CreateVAAPIDevice(const std::string& devicePath, int type)
 {
     return new CVAAPIDeviceAndroid(&g_LibVA);
 }
