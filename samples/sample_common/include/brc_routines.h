@@ -43,12 +43,28 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define MFX_CHECK_STS(sts) MFX_CHECK(sts == MFX_ERR_NONE, sts)
 
 
+/*
+NalHrdConformance | VuiNalHrdParameters   |  Result
+--------------------------------------------------------------
+    off                  any                => MFX_BRC_NO_HRD
+    default              off                => MFX_BRC_NO_HRD
+    on                   off                => MFX_BRC_HRD_WEAK
+    on (or default)      on (or default)    => MFX_BRC_HRD_STRONG
+--------------------------------------------------------------
+*/
+enum : mfxU16
+{
+    MFX_BRC_NO_HRD = 0,
+    MFX_BRC_HRD_WEAK,  // IF HRD CALCULATION IS REQUIRED, BUT NOT WRITTEN TO THE STREAM
+    MFX_BRC_HRD_STRONG
+};
+
 class cBRCParams
 {
 public:
     mfxU16 rateControlMethod; // CBR or VBR
 
-    mfxU16 bHRDConformance;  // is HRD compliance  needed
+    mfxU16 HRDConformance;   // is HRD compliance  needed
     mfxU16 bRec;             // is Recoding possible
     mfxU16 bPanic;           // is Panic mode possible
 
@@ -97,7 +113,7 @@ public:
 public:
     cBRCParams():
         rateControlMethod(0),
-        bHRDConformance(0),
+        HRDConformance(MFX_BRC_NO_HRD),
         bRec(0),
         bPanic(0),
         bufferSizeInBytes(0),
