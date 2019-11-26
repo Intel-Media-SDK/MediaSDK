@@ -1318,10 +1318,6 @@ mfxStatus ImplementationAvc::ProcessAndCheckNewParameters(
         m_video.calcParam.targetKbps != newPar.calcParam.targetKbps ||
         m_video.calcParam.maxKbps    != newPar.calcParam.maxKbps;
 
-    if (brcReset && IsOn(extOptNew.NalHrdConformance) &&
-        m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR)
-        return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
-
     MFX_CHECK(
         IsAvcProfile(newPar.mfx.CodecProfile)                                   &&
         m_video.AsyncDepth                 == newPar.AsyncDepth                 &&
