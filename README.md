@@ -47,6 +47,7 @@ Please find full documentation under the [./doc](./doc) folder. Key documents:
   * [Media SDK HEVC FEI Manual](./doc/mediasdkhevcfei-man.md)
   * [MFE Overview](./doc/MFE-Overview.md)
   * [HEVC FEI Overview](./doc/HEVC_FEI_overview.pdf)
+  * [Interlace content support in HEVC encoder](./doc/mediasdk_hevc_interlace_whitepaper.md)
 
 Generic samples information is available in [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.md)
 
