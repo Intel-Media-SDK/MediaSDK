@@ -52,7 +52,7 @@ void PrintHelp(CmdOptions* cmd_options)
         printf("  -hw           Load HW Media SDK Library implementation\n");
     }
     if (cmd_options->ctx.options & OPTION_GEOMETRY) {
-        printf("  -g WxH        Mandatory. Set input video geometry, i.e. width and height\n");
+        printf("  -g WxHx10        Mandatory. Set input video geometry, i.e. width and height, '10' means 10bit color(optional).\n");
     }
     if (cmd_options->ctx.options & OPTION_BITRATE) {
         printf("  -b bitrate    Mandatory. Set bitrate with which data should be encoded, in kbps.\n");
@@ -75,6 +75,16 @@ void ParseOptions(int argc, char* argv[], CmdOptions* cmd_options)
     if (!cmd_options->ctx.program) {
         cmd_options->ctx.program = argv[0];
     }
+
+    //If the program don't need the arguments, it will not parse the arguments, hence we must print the help message.
+    if (argc <= 1) {
+        PrintHelp(cmd_options);
+        exit(-1);
+    }
+
+    //This flag only required by the HEVC 10bit examples.
+    cmd_options->values.c10bit = false;
+
     for (i = 1; i < argc; ++i) {
         if (!strcmp(argv[i], "--help")) {
             PrintHelp(cmd_options);
@@ -89,17 +99,22 @@ void ParseOptions(int argc, char* argv[], CmdOptions* cmd_options)
         } else if ((cmd_options->ctx.options & OPTION_IMPL) && !strcmp(argv[i], "-auto")) {
             cmd_options->values.impl = MFX_IMPL_AUTO;
         } else if ((cmd_options->ctx.options & OPTION_GEOMETRY) && !strcmp(argv[i], "-g")) {
-            int width = 0, height = 0;
+            int width = 0, height = 0, bits = 0 , r = 0;
             if (++i >= argc) {
                 printf("error: no argument for -g option given\n");
                 exit(-1);
             }
-            if ((2 != msdk_sscanf(argv[i], "%dx%d", &width, &height)) || (width <= 0) || (height <= 0)) {
-                printf("error: incorrect argument for -g option given\n");
-                exit(-1);
+            r = msdk_sscanf(argv[i], "%dx%dx%d", &width, &height, &bits);
+            if (2 != r || (width <= 0) || (height <= 0)) {
+                if (r == 3 && bits != 10) {
+                    printf("error: incorrect argument for -g option given\n");
+                    exit(-1);
+                }
             }
             cmd_options->values.Width = (mfxU16)width;
             cmd_options->values.Height = (mfxU16)height;
+            if (r == 3)
+                cmd_options->values.c10bit = true;
         } else if ((cmd_options->ctx.options & OPTION_BITRATE) && !strcmp(argv[i], "-b")) {
             int bitrate = 0;
             if (++i >= argc) {

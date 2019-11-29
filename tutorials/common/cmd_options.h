@@ -68,6 +68,7 @@ struct CmdOptionsValues {
     mfxU16 FrameRateD;
 
     bool MeasureLatency; // OPTION_MEASURE_LATENCY
+    bool c10bit; // The flag for HEVC 10bit processing
 };
 
 struct CmdOptions {
