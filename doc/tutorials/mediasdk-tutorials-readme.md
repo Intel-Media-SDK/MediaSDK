@@ -46,6 +46,7 @@ Notice revision #20110804
   - [Tutorials Samples Index](#tutorials-samples-index)
 - [Tutorial Section 1](#tutorial-section-1)
   - [Hello World](#Hello-World)
+  - [simple_7_codec](#simple_7_codec)
 - [Tutorial Section 2: Decode](#tutorial-section-2-decode)
   - [simple_2_decode](#simple_2_decode)
   - [simple_2_decode_vmem](#simple_2_decode_vmem)
@@ -119,9 +120,11 @@ Tutorials are devided into few sections:
 | simple_1_session | Sets up Intel® Media SDK session and perform queries to determine selected implementation and which API version is used |
 | simple_2_decode  | Decodes AVC stream into YUV file using system memory surfaces, showcasing simple synchronous decode pipeline flow |
 | simple_2_decode_vmem | Adds use of video memory surfaces for improved decode performance |
+| simple_2_decode_hevc10  | Decodes HEVC 10bit stream into YUV file using system memory surfaces, showcasing simple synchronous decode pipeline flow |
 | simple_3_encode | Encodes YUV frames from file into AVC stream using surfaces in system memory, showcasing simple synchronous encode pipeline flow |
 | simple_3_encode_vmem | Adds use of video memory surfaces for improved encode performance |
 | simple_3_encode_vmem_async | Adds asynchronous operation to previous example, resulting in further improved performance |
+| simple_3_encode_hevc10 | Encodes YUV 10 bit frames from file into HEVC stream using surfaces in system memory, showcasing simple synchronous encode pipeline flow |
 | simple_4_vpp_resize_denoise | Showcases video frame processing (VPP) using system memory surfaces. Highlights frame resize and denoise filter processing |
 | simple_4_vpp_resize_denoise_vmem |  Adds use of video memory surfaces for improved VPP performance |
 | simple_5_transcode |  Transcodes (decode+encode) AVC stream to another AVC stream using system memory surfaces|
@@ -129,10 +132,11 @@ Tutorials are devided into few sections:
 | simple_5_transcode_opaque_async | Adds asynchronous operation to the transcode pipeline  implementation, resulting in further improved performance |
 | simple_5_transcode_vmem | Same as "simple_5_transcode" sample but uses video memory surfaces instead. While opaque surfaces use video memory internally, application-level video memory  allocation is required to integrate components not in Media SDK. |
 | simple_5_transcode_opaque_async vppresize | Same as "simple_5_transcode_opaque_async" sample but pipeline includes VPP resize. |
-| simple 6 decode vpp postproc | Similar to the simple_2_decode sample but adds VPP post-processing capabilities to showcase resize and ProcAmp |
-| simple 6 encode vmem lowlatency | Similar to the simple_3_encode_vmem sample with additional code to illustrate how to configure an encode pipeline for low latency and how to measure latency |
-| simple 6 transcode opaque lowlatency | Similar to the simple_5_transcode_opaque sample with  additional code to illustrate how to configure a transcode pipeline for low latency and how to measure latency |
-| simple 6 encode vmem vpp preproc | Similar to the simple 3_encode_vmem sample but adds VPP preprocessing capabilities to show frame color conversion from RGB32(4) to NV12
+| simple_6_decode_vpp_postproc | Similar to the simple_2_decode sample but adds VPP post-processing capabilities to showcase resize and ProcAmp |
+| simple_6_encode_vmem_lowlatency | Similar to the simple_3_encode_vmem sample with additional code to illustrate how to configure an encode pipeline for low latency and how to measure latency |
+| simple_6_transcode_opaque_lowlatency | Similar to the simple_5_transcode_opaque sample with  additional code to illustrate how to configure a transcode pipeline for low latency and how to measure latency |
+| simple_6_encode_vmem_vpp_preproc | Similar to the simple 3_encode_vmem sample but adds VPP preprocessing capabilities to show frame color conversion from RGB32(4) to NV12 |
+| simple_7_encode |  Sets up Intel® Media SDK session and perform queries to determine device capabilities |
 
 # Tutorial Section 1
 ## Hello World
@@ -155,6 +159,9 @@ In the "initialize" function (called from main), associating a display handle wi
 **Session queries (all OS)**
 After initialization, the session is queried to determine the actual target (via QueryIMPL) that was selected. For Windows this could be HW or SW, though HW will be chosen if your processor and driver support accelerated media processing. For Linux the implementation can only be HW. The highest supported API version is returned via QueryVersion.
 
+## simple_7_codec
+This tutorial sample showcases Intel® Media SDK features via call Query functions: ``MFXVideoDECODE_Query``, ``MFXVideoENCODE_Query``, ``MFXVideoVPP_Query``. Since this tutorial check all supported coded, it will configure a set of the video parameters for each codec by the predefined filling function. Each filling function will try the maximum resolutions, user might change the resolution based on his platform
+
 # Tutorial Section 2: Decode
 ## simple_2_decode
 This Intel® Media SDK tutorial sample illustrates the most simplistic way of implementing HW decode using system memory surfaces.
@@ -164,7 +171,7 @@ The basic goal of this example is to illustrate why asynchronous operation using
 Surfaces must be copied from video memory to system memory. While this must happen in any case for decode which writes frames to disk, buffering is not as efficient in this scenario. For a single decode (or possibly even several), stalls in the processing pipeline can't be filled easily. Since the GPU is not in constant use it may fall out of turbo mode. Based on the above analysis we should be able to improve the performance of the workload by using video memory surfaces instead of system memory surfaces. The next tutorial sample will explore such scenario.
 
 ## simple_2_decode_vmem
-This Intel® Media SDK tutorial sample operates in the same way as the previous "sample_2_decode" sample except that it uses video memory surfaces instead of system memory surfaces.
+This Intel® Media SDK tutorial sample operates in the same way as the previous "simple_2_decode" sample except that it uses video memory surfaces instead of system memory surfaces.
 
 Video memory surfaces allow greater efficiency by avoiding explicit copies. Further improvement may be achieved by making the decode pipeline asynchronous. We'll explore this approach further when we discuss encoding workloads in the following tutorial sections. Improved GPU utilization can also be achieved by executing several decode workloads concurrently.
 
@@ -172,6 +179,10 @@ Additional details for Windows developers:
 Since the introduction of Microsoft Windows* 8, Intel® Media SDK can be used with DirectX11 devices and surfaces. Note that Intel® Media SDK relies on the features part of DirectX 11.1, and can therefore not be used on Microsoft Windows 7. If your target application must run on Microsoft Windows 7, use the DirectX 9 path via Intel® Media SDK.
 
 Tutorial samples illustrating use of D3D surfaces (such as in this sample) have two Microsoft Visual Studio solution/project (sln/prj) files - for DirectX9 and DirectX11 usages.
+
+## simple_2_decode_hevc10
+This Intel® Media SDK tutorial sample operates in the same way as the "simple_2_decode" sample except that it decode H.265 10 bit stream.
+
 
 # Tutorial Section 3: Encode
 ## simple_3_encode
@@ -196,6 +207,9 @@ For more details on implementing with video memory please refer to "simple_2_dec
 This example achieves efficient operation with video memory surfaces and asynchronous implementation, minimizing gaps in the GPU pipeline. Decode and encode operations are optimally scheduled internally by Media SDK so that fixed function hardware is fully utilized with many operations occurring simultaneously. As an added benefit of fully utilizing the GPU, this will cause it to remain in turbo mode1 providing a further boost to performance.
 
 Marginal throughput improvements may be achieved by executing several encode workloads concurrently.
+
+## simple_3_encode_hevc10
+This Intel® Media SDK tutorial sample operates in the same way as the "simple_3_encode" sample except that it encode H.265 10 bit stream.
 
 # Tutorial Section 4: VPP
 ## simple_4_vpp_resize_denoise

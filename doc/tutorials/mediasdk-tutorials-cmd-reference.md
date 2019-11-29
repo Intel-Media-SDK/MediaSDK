@@ -41,12 +41,15 @@ Notice revision #20110804
 - [General considerations](#general-considerations)
 - [Basic tutorials](#basic-tutorials)
   - [simple_1_session](#simple-1-session)
+  - [simple_7_codec](#simple_7_codec)
 - [Decoding tutorials](#decoding-tutorials)
   - [simple_2_decode](#simple_2_decode)
+  - [simple_2_decode_hevc10](#simple_2_decode_hevc10)
   - [simple_2_decode_vmem](#simple_2_decode_vmem)
   - [simple_6_decode_vpp_postproc](#simple_6_decode_vpp_postproc)
 - [Encoding tutorials](#encoding-tutorials)
   - [simple_3_encode](#simple_3_encode)
+  - [simple_3_encode_hevc10](#simple_3_encode_hevc10)
   - [simple_3_encode_vmem](#simple_3_encode_vmem)
   - [simple_3_encode_vmem_async](#simple_3_encode_vmem_async)
   - [simple_6_encode_vmem_lowlatency](simple_6_encode_vmem_lowlatency)
@@ -78,8 +81,18 @@ Configuration parameters are: input/output streams, bitrate/framerate to encode.
 
 # Basic tutorials
 ## simple_1_session
-**simple_session *[-sw | -hw | -auto]***
-Tutorial initializes Intel Media SDK session of a specified type. If *-auto* is specified (the default) Media SDK dispatcher will automatically select library implementation to use. If *-hw* is specified HW implementation will be used, *-sw* - SW one. Depending on Media SDK distribution different implementations may present. Options to adjust session type are applicable for all other tutorials descried in this reference.
+**simple_1_session *[-sw | -hw | -auto]***
+Tutorial initializes Intel Media SDK session of a specified type. If *-auto* is specified (the default) Media SDK dispatcher will automatically select library implementation to use. If *-hw* is specified HW implementation will be used, *-sw* - SW one. Depending on Media SDK distribution different implementations may present. Options to adjust session type are applicable for all other tutorials described in this reference.
+
+| Option | Description |
+| ------:| -----------:|
+| -sw | Loads SW Media SDK Library implementation |
+| -hw | Loads HW Media SDK Library implementation |
+| -auto | Automatically choses Media SDK library implementation |
+
+## simple_7_codec
+**simple_7_codec *[-sw | -hw | -auto]***
+Tutorial showcases MSDK features via call Query functions. The tutorial can be run with the *-hw*, *-sw*, *-auto* or no options, it will report the capability for each codec. Since this tutorial checks all supported coded, it will configure a set of the video parameters for each codec by the predefined filling function. Each filling function will try the maximum resolutions, user might change the resolution based on his platform.
 
 | Option | Description |
 | ------:| -----------:|
@@ -103,8 +116,22 @@ Tutorial demonstrates how to decode given raw video stream (input-file) of H.264
 | ------:| -----------:|
 | input-file | Mandatory argument. Sets incoming input bitstream to process. Input data should be in raw H.264 format. |
 | output-file | Optional argument. Sets uncompressed video file to write output data. If file will not be specified, tutorial will work in the performance mode: it will process data, but will not produce any output. |
+## simple_2_decode_hevc10
+**simple_2_decode_hevc10 *[-sw | -hw | -auto] input-file [ output-file ]***
+Tutorial demonstrates how to decode given raw video stream (input-file) of H.265 format. If output-file is specified, decoded YUV will be written into it. If the output-file is omitted, tutorial can be used to estimate constructed pipeline’s performance. Decoder is configured to produce decoded data in the system memory.
 
-## simple_2_decode-vmem
+| Option | Description |
+| ------:| -----------:|
+| -sw | Loads SW Media SDK Library implementation |
+| -hw | Loads HW Media SDK Library implementation |
+| -auto | Automatically choses Media SDK library implementation |
+
+| Argument | Description |
+| ------:| -----------:|
+| input-file | Mandatory argument. Sets incoming input bitstream to process. Input data should be in raw H.265 format. |
+| output-file | Optional argument. Sets uncompressed video file to write output data. If file will not be specified, tutorial will work in the performance mode: it will process data, but will not produce any output. |
+
+## simple_2_decode_vmem
 **simple_decode_vmem *[-sw | -hw | -auto] input-file [ output-file ]***
 Tutorial demonstrates how to decode given raw video stream (input-file) of H.264 format. If output-file was  specified, decoded YUV will be written into it. If the output-file is omitted, tutorial can be used to estimate  constructed pipeline’s performance. Decoder is configured to produce decoded data in the video memory.
 
@@ -153,9 +180,9 @@ Tutorial demonstrates how to encode given YUV video stream (input-file) in H.264
 | input-file | Optional argument. Sets incoming input file containing uncompressed video. If file will not be specified, tutorial will work in the performance mode: input will be simulated by producing empty input frames filled with some color |
 | output-file | Optional argument. Sets raw H.264 video file to write output data. If file will not be specified, tutorial will work in the performance mode: it will process data, but will not produce any output. |
 
-## simple_3_encode_vmem
-**simple_encode_vmem *[-sw | -hw | -auto] -g WxH -b bitrate -f framerate [ input-file ] [ output-file ]***
-Tutorial demonstrates how to encode given YUV video stream (input-file) in H.264 format. If output-file was specified, encoded bitstream will be written into it. If the input-file and output-file are omitted, tutorial can be used to estimate constructed pipeline’s performance (to some degree). Encoder is configured to receive input data from video memory.
+## simple_3_encode_hevc10
+**simple_3_encode_hevc10 *[-sw | -hw | -auto] -g WxH -b bitrate -f framerate [ input-file ] [ output-file ]***
+Tutorial demonstrates how to encode given p010 YUV video stream (input-file) in H.265 format. If output-file is specified, encoded bitstream will be written into it. If the input-file and output-file are omitted, tutorial can be used to estimate constructed pipeline’s performance (to some degree). Encoder is configured to receive input  data from system memory.
 
 | Option | Description |
 | ------:| -----------:|
@@ -163,6 +190,24 @@ Tutorial demonstrates how to encode given YUV video stream (input-file) in H.264
 | -hw | Loads HW Media SDK Library implementation |
 | -auto | Automatically choses Media SDK library implementation |
 | -g WxH | Mandatory option. Sets input video geometry, i.e. width and height. Example: -g 1920x1080. |
+| -b bitrate | Mandatory option. Sets bitrate with which data should be encoded, in KBits-per-second. Example: -b 5000 to encode data at 5Mbit. |
+| -f framerate | Mandatory option. Sets framerate with which data should be encoded in the form -f nominator/denominator. Example: -f 30/1. |
+
+| Argument | Description |
+| ------:| -----------:|
+| input-file | Optional argument. Sets incoming input file containing uncompressed video. If file is not be specified, tutorial will work in the performance mode: input will be simulated by producing empty input frames filled with some color |
+| output-file | Optional argument. Sets raw H.265 video file to write output data. If file is not be specified, tutorial will work in the performance mode: it will process data, but will not produce any output. |
+
+## simple_3_encode_vmem
+**simple_encode_vmem *[-sw | -hw | -auto] -g WxHx10 -b bitrate -f framerate [ input-file ] [ output-file ]***
+Tutorial demonstrates how to encode given YUV video stream (input-file) in H.264 format. If output-file was specified, encoded bitstream will be written into it. If the input-file and output-file are omitted, tutorial can be used to estimate constructed pipeline’s performance (to some degree). Encoder is configured to receive input data from video memory.
+
+| Option | Description |
+| ------:| -----------:|
+| -sw | Loads SW Media SDK Library implementation |
+| -hw | Loads HW Media SDK Library implementation |
+| -auto | Automatically choses Media SDK library implementation |
+| -g WxHx10 | Mandatory option. Sets input video geometry, i.e. width, height, bitdepth. Example: -g 1920x1080x10. |
 | -b bitrate | Mandatory option. Sets bitrate with which data should be encoded, in KBits-per-second. Example: -b 5000 to encode data at 5Mbit. |
 | -f framerate | Mandatory option. Sets framerate with which data should be encoded in the form -f nominator/denominator. Example: -f 30/1. |
 
