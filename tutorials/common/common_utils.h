@@ -25,6 +25,9 @@
 #include <vector>
 
 #include "mfxvideo++.h"
+#include "mfxjpeg.h"
+#include "mfxvp8.h"
+#include "mfxplugin.h"
 
 // =================================================================
 // OS-specific definitions of types, macro, etc...
@@ -65,6 +68,17 @@ mfxStatus simple_unlock(mfxHDL pthis, mfxMemId mid, mfxFrameData* ptr);
 mfxStatus simple_gethdl(mfxHDL pthis, mfxMemId mid, mfxHDL* handle);
 mfxStatus simple_free(mfxHDL pthis, mfxFrameAllocResponse* response);
 
+typedef mfxI32 msdkComponentType;
+enum
+{
+    MSDK_VDECODE = 0x0001,
+    MSDK_VENCODE = 0x0002,
+    MSDK_VPP = 0x0004,
+    MSDK_VENC = 0x0008,
+};
+
+static const mfxPluginUID MSDK_PLUGINGUID_NULL = { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
+
 
 // =================================================================
 // Utility functions, not directly tied to Media SDK functionality
@@ -81,12 +95,17 @@ using fileUniPtr = std::unique_ptr<FILE, decltype(&CloseFile)>;
 // - For the simulation case (fSource = NULL), the surface is filled with default image data
 // LoadRawRGBFrame: Reads raw RGB32 frames from file into RGB32 surface
 // - For the simulation case (fSource = NULL), the surface is filled with default image data
-
 mfxStatus LoadRawFrame(mfxFrameSurface1* pSurface, FILE* fSource);
+
+// Read raw YUV (P010) from file to a YUV (P010) surface
+mfxStatus LoadRaw10BitFrame(mfxFrameSurface1* pSurface, FILE* fSource);
 mfxStatus LoadRawRGBFrame(mfxFrameSurface1* pSurface, FILE* fSource);
 
 // Write raw YUV (NV12) surface to YUV (YV12) file
 mfxStatus WriteRawFrame(mfxFrameSurface1* pSurface, FILE* fSink);
+
+// Write raw YUV (P010) surface to YUV (YVP010) file
+mfxStatus WriteRaw10BitFrame(mfxFrameSurface1* pSurface, FILE* fSink);
 
 // Write bit stream data for frame to file
 mfxStatus WriteBitStreamFrame(mfxBitstream* pMfxBitstream, FILE* fSink);
@@ -123,3 +142,17 @@ void mfxGetTime(mfxTime* timestamp);
 
 //void mfxInitTime();  might need this for Windows
 double TimeDiffMsec(mfxTime tfinish, mfxTime tstart);
+#if defined(_WIN32) || defined(_WIN64)
+//This is the utility to show the current processor id of the platform.
+void showCPUInfo();
+#endif
+//This function is to check the UID return value after retrieving the UID for the current plugin
+bool AreGuidsEqual(const mfxPluginUID& guid1, const mfxPluginUID& guid2);
+
+//This function is convert UID to string
+char* ConvertGuidToString(const mfxPluginUID& guid);
+
+//This function to get the UID of the video plug-in
+const mfxPluginUID & msdkGetPluginUID(mfxIMPL impl, msdkComponentType type, mfxU32 uCodecid);
+
+mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD);
