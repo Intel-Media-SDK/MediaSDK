@@ -983,11 +983,11 @@ namespace
         }
 
         constexpr mfxU16 DEFAULT_BY_TU[][8] = {
-        { 0, 8, 6, 4, 3, 2, 1, 1 }, // VME progressive < 4k or interlaced (platform <= MFX_HW_HSW_ULT)
-        { 0, 8, 6, 3, 3, 3, 1, 1 }, // VME progressive < 4k or interlaced (platform > MFX_HW_HSW_ULT)
-        { 0, 4, 4, 4, 3, 2, 1, 1 }, // VME progressive >= 4k (platform <= MFX_HW_HSW_ULT)
-        { 0, 4, 4, 3, 3, 3, 1, 1 }, // VME progressive >= 4k (platform > MFX_HW_HSW_ULT)
-        { 0, 3, 3, 2, 2, 2, 1, 1 }  // VDEnc
+            { 0, 8, 6, 4, 3, 2, 1, 1 }, // VME progressive < 4k or interlaced (platform <= MFX_HW_HSW_ULT)
+            { 0, 8, 6, 3, 3, 3, 1, 1 }, // VME progressive < 4k or interlaced (platform > MFX_HW_HSW_ULT)
+            { 0, 4, 4, 4, 3, 2, 1, 1 }, // VME progressive >= 4k (platform <= MFX_HW_HSW_ULT)
+            { 0, 4, 4, 3, 3, 3, 1, 1 }, // VME progressive >= 4k (platform > MFX_HW_HSW_ULT)
+            { 0, 3, 3, 2, 2, 2, 1, 1 }  // VDEnc
         };
 
         if (!isLowPower)
@@ -1014,8 +1014,9 @@ namespace
         {
             return 1;
         }
-        constexpr mfxU16 DEFAULT_BY_TU[][8] = { { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
-                                                { 0, 4, 4, 2, 2, 2, 1, 1 }
+        constexpr mfxU16 DEFAULT_BY_TU[][8] = {
+            { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
+            { 0, 4, 4, 2, 2, 2, 1, 1 }
         };
         return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
     }
