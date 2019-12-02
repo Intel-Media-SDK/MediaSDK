@@ -105,7 +105,7 @@ typedef struct tagENCODE_CAPS_VP9
 
     class DriverEncoder;
 
-    mfxStatus QueryCaps(VideoCORE * pCore, ENCODE_CAPS_VP9 & caps, GUID guid, mfxU32 width, mfxU32 height);
+    mfxStatus QueryCaps(VideoCORE * pCore, ENCODE_CAPS_VP9 & caps, GUID guid, VP9MfxVideoParam const & par);
 
     DriverEncoder* CreatePlatformVp9Encoder(VideoCORE * pCore);
 
@@ -117,9 +117,8 @@ typedef struct tagENCODE_CAPS_VP9
 
         virtual mfxStatus CreateAuxilliaryDevice(
                         VideoCORE * pCore,
-                        GUID               guid,
-                        mfxU32             width,
-                        mfxU32             height) = 0;
+                        GUID        guid,
+                        VP9MfxVideoParam const & par) = 0;
 
         virtual
         mfxStatus CreateAccelerationService(
@@ -172,6 +171,7 @@ typedef struct tagENCODE_CAPS_VP9
 
     struct BitOffsets
     {
+        mfxU16 BitOffsetUncompressedHeader;
         mfxU16 BitOffsetForLFRefDelta;
         mfxU16 BitOffsetForLFModeDelta;
         mfxU16 BitOffsetForLFLevel;

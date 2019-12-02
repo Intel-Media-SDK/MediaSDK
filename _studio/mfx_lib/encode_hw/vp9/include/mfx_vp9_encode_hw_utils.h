@@ -440,7 +440,8 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
 
         mfxStatus Alloc(
             VideoCORE* pCore,
-            mfxFrameAllocRequest & req);
+            mfxFrameAllocRequest & req,
+            bool isCopyRequired);
 
         mfxStatus Release();
 
@@ -521,10 +522,12 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         VP9MfxVideoParam();
         VP9MfxVideoParam(VP9MfxVideoParam const &);
         VP9MfxVideoParam(mfxVideoParam const &);
+        VP9MfxVideoParam(mfxVideoParam const & par, eMFXHWType const & platform);
 
         VP9MfxVideoParam & operator = (VP9MfxVideoParam const &);
         VP9MfxVideoParam & operator = (mfxVideoParam const &);
 
+        eMFXHWType m_platform;
         mfxU16 m_inMemType;
         mfxU32 m_targetKbps;
         mfxU32 m_maxKbps;
@@ -598,7 +601,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         std::vector<mfxFrameSurface1>   m_surfaces;
     public:
         InternalFrames() {}
-        mfxStatus Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq);
+        mfxStatus Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq, bool isCopyRequired);
         sFrameEx * GetFreeFrame();
         mfxStatus  GetFrame(mfxU32 numFrame, sFrameEx * &Frame);
         mfxStatus Release();
