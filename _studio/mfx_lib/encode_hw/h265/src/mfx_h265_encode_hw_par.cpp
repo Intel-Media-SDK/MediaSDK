@@ -1375,6 +1375,9 @@ mfxU16 GetMaxChroma(MfxVideoParam const & par)
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_P010:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+#endif
         c = std::min<mfxU16>(c, MFX_CHROMAFORMAT_YUV420);
         break;
 
@@ -1383,6 +1386,9 @@ mfxU16 GetMaxChroma(MfxVideoParam const & par)
     case MFX_FOURCC_Y210:
 #endif
     case MFX_FOURCC_P210:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y216:
+#endif
         c = std::min<mfxU16>(c, MFX_CHROMAFORMAT_YUV422);
         break;
     case MFX_FOURCC_A2RGB10:
@@ -1390,6 +1396,9 @@ mfxU16 GetMaxChroma(MfxVideoParam const & par)
     case MFX_FOURCC_AYUV:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_Y416:
 #endif
     default:
         break;
@@ -1415,6 +1424,12 @@ mfxU16 GetMaxBitDepth(mfxU32 FourCC)
     case MFX_FOURCC_Y410:
 #endif
         return 10;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_Y416:
+        return 12;
+#endif
     default:
         break;
     }
@@ -1581,6 +1596,11 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
         , (mfxU32)MFX_FOURCC_YUY2
         , (mfxU32)MFX_FOURCC_P010
         , (mfxU32)MFX_FOURCC_A2RGB10
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        , (mfxU32)MFX_FOURCC_P016
+        , (mfxU32)MFX_FOURCC_Y216
+        , (mfxU32)MFX_FOURCC_Y416
+#endif
     );
 
     if (IsOn(par.mfx.LowPower)) {   // 422 target is not supported on VDENC
@@ -1627,6 +1647,23 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
         invalid += CheckOption(par.mfx.FrameInfo.BitDepthLuma, 8, 0);
         invalid += CheckOption(par.mfx.FrameInfo.BitDepthChroma, 8, 0);
         break;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case MFX_FOURCC_P016:
+        invalid += CheckOption(par.mfx.FrameInfo.ChromaFormat, (mfxU16)MFX_CHROMAFORMAT_YUV420);
+        invalid += CheckOption(par.mfx.FrameInfo.BitDepthLuma, 12, 0);
+        invalid += CheckOption(par.mfx.FrameInfo.BitDepthChroma, 12, 0);
+        break;
+    case MFX_FOURCC_Y216:
+        invalid += CheckOption(par.mfx.FrameInfo.ChromaFormat, (mfxU16)MFX_CHROMAFORMAT_YUV422);
+        invalid += CheckOption(par.mfx.FrameInfo.BitDepthLuma, 12, 0);
+        invalid += CheckOption(par.mfx.FrameInfo.BitDepthChroma, 12, 0);
+        break;
+    case MFX_FOURCC_Y416:
+        invalid += CheckOption(par.mfx.FrameInfo.ChromaFormat, (mfxU16)MFX_CHROMAFORMAT_YUV444);
+        invalid += CheckOption(par.mfx.FrameInfo.BitDepthLuma, 12, 0);
+        invalid += CheckOption(par.mfx.FrameInfo.BitDepthChroma, 12, 0);
+        break;
+#endif
     default:
         par.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
         invalid++;
@@ -1637,6 +1674,12 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     switch (maxBitDepth)
     {
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case 12:
+        invalid += CheckOption(CO3.TargetBitDepthLuma, 12/*, 10, 8*/, 0);
+        invalid += CheckOption(CO3.TargetBitDepthChroma, 12/*, 10, 8*/, 0);
+        break;
+#endif
     case 10:
         invalid += CheckOption(CO3.TargetBitDepthLuma, 10, 8, 0);
         invalid += CheckOption(CO3.TargetBitDepthChroma, 10, 8, 0);
@@ -1650,6 +1693,15 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     switch (CO3.TargetBitDepthLuma)
     {
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case 12:
+        invalid += CheckOption(CO3.TargetBitDepthChroma, 12/*, 10, 8*/, 0);
+        invalid += CheckOption(par.mfx.CodecProfile
+            , (mfxU16)MFX_PROFILE_HEVC_REXT
+            , 0
+            );
+        break;
+#endif
     case 10:
         invalid += CheckOption(CO3.TargetBitDepthChroma, 10, 8, 0);
         invalid += CheckOption(par.mfx.CodecProfile
@@ -1758,6 +1810,26 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
             , (mfxU32)MFX_FOURCC_YUY2, (mfxU32)MFX_FOURCC_P210, (mfxU32)MFX_FOURCC_Y210
             , (mfxU32)MFX_FOURCC_AYUV, (mfxU32)MFX_FOURCC_Y410, (mfxU32)MFX_FOURCC_A2RGB10);
     }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 12)
+    {   //In: 444x12
+        invalid += CheckOption(par.mfx.FrameInfo.FourCC
+            , (mfxU32)MFX_FOURCC_Y416);
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 12)
+    {   //In: 422x12, 444x12
+        invalid += CheckOption(par.mfx.FrameInfo.FourCC
+            , (mfxU32)MFX_FOURCC_Y216
+            , (mfxU32)MFX_FOURCC_Y416);
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 12)
+    {   //In: 420x12, 422x12, 444x12
+        invalid += CheckOption(par.mfx.FrameInfo.FourCC
+            , (mfxU32)MFX_FOURCC_P016
+            , (mfxU32)MFX_FOURCC_Y216
+            , (mfxU32)MFX_FOURCC_Y416);
+    }
+#endif
     else
     {
         assert(!"undefined target format");
@@ -1889,8 +1961,16 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     if (par.mfx.TargetUsage && caps.ddi_caps.TUSupport)
         changed += CheckTU(caps.ddi_caps.TUSupport, par.mfx.TargetUsage);
 
-    changed += CheckMax(par.mfx.GopRefDist, (caps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? std::max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
+    changed += CheckMax(par.mfx.GopRefDist, caps.ddi_caps.SliceIPOnly ? 1 : (par.mfx.GopPicSize ? std::max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    // RAB are not supported on VDENC TU7
+    if (IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 7) && (par.mfx.GopRefDist > 1))
+    {
+        par.mfx.GopRefDist = 1;
+        changed++;
+    }
+#endif
     invalid += CheckOption(par.Protected
         , 0);
 
@@ -2021,6 +2101,10 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210) && isInVideoMem(par))
             changed += CheckMin(par.mfx.FrameInfo.Shift, 1);
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_P016) && isInVideoMem(par))
+            changed += CheckMin(par.mfx.FrameInfo.Shift, 1);
+#endif
 
     if (par.mfx.FrameInfo.FrameRateExtN && par.mfx.FrameInfo.FrameRateExtD) // FR <= 300
     {
@@ -2136,6 +2220,23 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     changed += CheckOption(par.mfx.NumSlice, MakeSlices(par, caps.ddi_caps.SliceStructure), 0);
 
+    if (par.m_ext.CO2.NumMbPerSlice != 0)
+    {
+        for (std::vector<MfxHwH265Encode::MfxVideoParam::SliceInfo>::iterator it = par.m_slice.begin(); it != par.m_slice.end(); ++it)
+        {
+            if ((it != par.m_slice.end() - 1) && (par.m_slice.size() > 1))
+            {
+                changed += CheckOption(par.m_ext.CO2.NumMbPerSlice, it->NumLCU); //check all except last slice
+            }
+            else
+            {
+                changed += CheckMin(par.m_ext.CO2.NumMbPerSlice, it->NumLCU); //last slice is less or equal previous slices
+            }
+        }
+    }
+
+    if (par.isTL())
+        changed += CheckOption(par.mfx.GopRefDist, 1, 0);
 
     if (   par.m_ext.CO2.BRefType == MFX_B_REF_PYRAMID
            && par.mfx.GopRefDist > 0
@@ -2195,9 +2296,6 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
             }
             prev = i;
         }
-
-        if (par.isTL())
-            changed += CheckOption(par.mfx.GopRefDist, 1, 0);
     }
 
     changed += CheckRangeDflt(par.m_ext.CO2.IntRefQPDelta, -51, 51, 0);
@@ -2733,7 +2831,12 @@ void SetDefaults(
 
     if (!par.mfx.GopRefDist)
     {
-        if (par.isTL() || hwCaps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
+        if (par.isTL() || hwCaps.ddi_caps.SliceIPOnly || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            // RAB are not supported on VDENC TU7
+            || (IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 7))
+#endif
+           )
             par.mfx.GopRefDist = 1; // in case of correct SliceIPOnly using of IsOn(par.mfx.LowPower) is not necessary
         else
             par.mfx.GopRefDist = std::min<mfxU16>(par.mfx.GopPicSize - 1, (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()) ? 8 : 4);

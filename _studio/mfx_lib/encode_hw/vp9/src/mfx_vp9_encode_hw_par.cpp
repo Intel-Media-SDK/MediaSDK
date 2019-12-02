@@ -599,46 +599,47 @@ bool CheckAndFixQIndexDelta(mfxI16& qIndexDelta, mfxU16 qIndex)
     return Clamp(qIndexDelta, minQIdxDelta, maxQIdxDelta);
 }
 
-mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 const & caps, mfxU16 QP, mfxEncodeCtrl *ctrl_par = nullptr)
+mfxStatus CheckPerSegmentParams(mfxVP9SegmentParam& segPar, ENCODE_CAPS_VP9 const & caps, mfxInfoMFX &video_par, mfxEncodeCtrl *ctrl_par = nullptr)
 {
     Bool changed = false;
     mfxU16& features = segPar.FeatureEnabled;
 
-    // check QIndex feature
-    if (false == CheckFeature(features, &segPar.QIndexDelta, FEAT_QIDX, caps))
-    {
-        changed = true;
-    }
-
-    // if delta Q index value is out of valid range - just ignore it
-    if (false == CheckRangeDflt(segPar.QIndexDelta, -MAX_Q_INDEX, MAX_Q_INDEX, 0))
-    {
-        changed = true;
-    }
-    else
-    {
-        // if delta Q index value is OK, but Q index value + delta is out of valid range - clamp Q index delta
-        if (false == CheckAndFixQIndexDelta(segPar.QIndexDelta, QP))
+    if (video_par.RateControlMethod == MFX_RATECONTROL_CQP) {
+        // check QIndex feature
+        if (false == CheckFeature(features, &segPar.QIndexDelta, FEAT_QIDX, caps))
         {
             changed = true;
         }
 
-        // if delta Q index value is OK, but Q index value + global QP + frame QP delta is out of valid range - clamp Q index delta
-        if (ctrl_par)
+        // if delta Q index value is out of valid range - just ignore it
+        if (false == CheckRangeDflt(segPar.QIndexDelta, -MAX_Q_INDEX, MAX_Q_INDEX, 0))
         {
-            mfxExtVP9Param* pExtParRuntime = GetExtBuffer(*ctrl_par);
-            if (pExtParRuntime)
+            changed = true;
+        }
+        else
+        {
+            // if delta Q index value is OK, but Q index value + delta is out of valid range - clamp Q index delta
+            if (false == CheckAndFixQIndexDelta(segPar.QIndexDelta, video_par.QPI))
             {
-                if (!CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaLumaDC) ||
-                    !CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaChromaAC) ||
-                    !CheckAndFixQIndexDelta(segPar.QIndexDelta, QP + pExtParRuntime->QIndexDeltaChromaDC))
+                changed = true;
+            }
+
+            // if delta Q index value is OK, but Q index value + global QP + frame QP delta is out of valid range - clamp Q index delta
+            if (ctrl_par)
+            {
+                mfxExtVP9Param* pExtParRuntime = GetExtBuffer(*ctrl_par);
+                if (pExtParRuntime)
                 {
-                    changed = true;
+                    if (!CheckAndFixQIndexDelta(segPar.QIndexDelta, video_par.QPI + pExtParRuntime->QIndexDeltaLumaDC) ||
+                        !CheckAndFixQIndexDelta(segPar.QIndexDelta, video_par.QPI + pExtParRuntime->QIndexDeltaChromaAC) ||
+                        !CheckAndFixQIndexDelta(segPar.QIndexDelta, video_par.QPI + pExtParRuntime->QIndexDeltaChromaDC))
+                    {
+                        changed = true;
+                    }
                 }
             }
         }
     }
-
 
     // check LF Level feature
     if (false == CheckFeature(features, &segPar.LoopFilterLevelDelta, FEAT_LF_LVL, caps))
@@ -713,10 +714,12 @@ inline void ConvertStatusToBools(Bool& changed, Bool& unsupported, mfxStatus sts
 }
 
 // if called with only video_par - assumed stream init, if both video_par and ctrl_par - assumed on-frame checking
-mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, mfxU32 frameHeight, ENCODE_CAPS_VP9 const & caps, mfxInfoMFX &video_par, mfxEncodeCtrl *ctrl_par = nullptr)
+mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, mfxU32 frameHeight, ENCODE_CAPS_VP9 const & caps, VP9MfxVideoParam const &par, mfxEncodeCtrl *ctrl_par = nullptr)
 {
     Bool changed = false;
     Bool unsupported = false;
+
+    mfxInfoMFX video_par = par.mfx;
 
     if ((seg.NumSegments != 0 || true == AnyMandatorySegMapParam(seg)) && caps.ForcedSegmentationSupport == 0)
     {
@@ -758,7 +761,7 @@ mfxStatus CheckSegmentationParam(mfxExtVP9Segmentation& seg, mfxU32 frameWidth, 
 
     for (mfxU16 i = 0; i < seg.NumSegments; i++)
     {
-        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par.QPI, ctrl_par);
+        mfxStatus sts = CheckPerSegmentParams(seg.Segment[i], caps, video_par, ctrl_par);
         if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
         {
             changed = true;
@@ -1020,9 +1023,14 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
         unsupported = true;
     }
 
-    if (fi.Width > caps.MaxPicWidth || fi.Height > caps.MaxPicHeight)
+    if (fi.Width > caps.MaxPicWidth)
     {
         fi.Width = 0;
+        unsupported = true;
+    }
+
+    if (fi.Height > caps.MaxPicHeight)
+    {
         fi.Height = 0;
         unsupported = true;
     }
@@ -1372,6 +1380,20 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
          unsupported = true;
      }
 
+     if (extPar.FrameHeight &&
+         extPar.FrameHeight > caps.MaxPicHeight)
+     {
+         extPar.FrameHeight = 0;
+         unsupported = true;
+     }
+
+     if (extPar.FrameWidth &&
+         extPar.FrameWidth > caps.MaxPicWidth)
+     {
+         extPar.FrameWidth = 0;
+         unsupported = true;
+     }
+
      if (extPar.FrameWidth && fi.Width &&
          extPar.FrameWidth > fi.Width)
      {
@@ -1462,7 +1484,7 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
 
     mfxExtVP9Segmentation& seg = GetExtBufferRef(par);
 
-    mfxStatus segSts = CheckSegmentationParam(seg, width, height, caps, par.mfx);
+    mfxStatus segSts = CheckSegmentationParam(seg, width, height, caps, par);
     ConvertStatusToBools(changed, unsupported, segSts);
 
     if (IsOn(opt2.MBBRC) && seg.NumSegments)
@@ -1968,9 +1990,7 @@ mfxStatus CheckAndFixCtrl(
         {
             const mfxExtVP9Param& extPar = GetExtBufferRef(video);
 
-            mfxInfoMFX video_par_tmp = video.mfx;
-
-            sts = CheckSegmentationParam(*seg, extPar.FrameWidth, extPar.FrameHeight, caps, video_par_tmp, &ctrl);
+            sts = CheckSegmentationParam(*seg, extPar.FrameWidth, extPar.FrameHeight, caps, video, &ctrl);
             if (sts == MFX_ERR_UNSUPPORTED ||
                 (true == AnyMandatorySegMapParam(*seg) && false == AllMandatorySegMapParams(*seg)) ||
                 IsOn(opt2.MBBRC))
@@ -2011,8 +2031,7 @@ mfxStatus CheckAndFixCtrl(
     if (seg_video)
     {
         const mfxExtVP9Param& extParSeg = GetExtBufferRef(video);
-        mfxInfoMFX video_par = video.mfx;
-        mfxStatus sts = CheckSegmentationParam(*seg_video, extParSeg.FrameWidth, extParSeg.FrameHeight, caps, video_par, &ctrl);
+        mfxStatus sts = CheckSegmentationParam(*seg_video, extParSeg.FrameWidth, extParSeg.FrameHeight, caps, video, &ctrl);
         MFX_CHECK_STS(sts);
     }
 
