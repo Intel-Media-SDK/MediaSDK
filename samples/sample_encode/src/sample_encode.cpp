@@ -1433,9 +1433,9 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     //    return MFX_ERR_UNSUPPORTED;
     //}
 
-    if ((pParams->nMaxSliceSize) && (pParams->CodecId != MFX_CODEC_AVC))
+    if ((pParams->nMaxSliceSize) && (pParams->CodecId != MFX_CODEC_AVC) && (pParams->CodecId != MFX_CODEC_HEVC))
     {
-        PrintHelp(strInput[0], MSDK_STRING("MaxSliceSize option is supported only with H.264 encoder!"));
+        PrintHelp(strInput[0], MSDK_STRING("MaxSliceSize option is supported only with H.264 and H.265(HEVC) encoder!"));
         return MFX_ERR_UNSUPPORTED;
     }
 

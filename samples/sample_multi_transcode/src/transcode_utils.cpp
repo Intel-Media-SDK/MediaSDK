@@ -2647,9 +2647,9 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     {
         PrintError(MSDK_STRING("-mss and -l options are not compatible!"));
     }
-    if ((InputParams.nMaxSliceSize) && (InputParams.EncodeId != MFX_CODEC_AVC))
+    if ((InputParams.nMaxSliceSize) && (InputParams.EncodeId != MFX_CODEC_AVC) && (InputParams.EncodeId != MFX_CODEC_HEVC))
     {
-        PrintError(MSDK_STRING("MaxSliceSize option is supported only with H.264 encoder!"));
+        PrintError(MSDK_STRING("MaxSliceSize option is supported only with H.264 and H.265(HEVC) encoder!"));
         return MFX_ERR_UNSUPPORTED;
     }
 
