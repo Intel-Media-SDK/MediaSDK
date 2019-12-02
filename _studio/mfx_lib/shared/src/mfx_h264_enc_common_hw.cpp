@@ -244,6 +244,11 @@ namespace
             ;
     }
 
+    bool hasSupportVME(eMFXHWType platform)
+    {
+        return platform <= MFX_HW_TGL_LP;
+    }
+
     inline mfxU16 GetMaxSupportedLevel()
     {
         return MFX_LEVEL_AVC_52;
@@ -751,7 +756,7 @@ namespace
                 par.mfx.FrameInfo.FrameRateExtN != 0 && par.mfx.FrameInfo.FrameRateExtD != 0)
             {
                 mfxF64 frameRate = mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD;
-                mfxU32 avgFrameSizeInBytes = par.calcParam.TCBRCTargetFrameSize ? 
+                mfxU32 avgFrameSizeInBytes = par.calcParam.TCBRCTargetFrameSize ?
                     par.calcParam.TCBRCTargetFrameSize :
                     mfxU32(par.calcParam.targetKbps * 1000 / frameRate / 8);
 
@@ -2482,7 +2487,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 
     bool laEnabled = true;
-    if (platform > MFX_HW_ICL_LP)
+    // LA and FD supports only with VME
+    if (!hasSupportVME(platform))
     {
         laEnabled = false;
         if (bRateControlLA(par.mfx.RateControlMethod))
