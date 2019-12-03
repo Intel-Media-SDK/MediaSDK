@@ -158,6 +158,7 @@ namespace MFX_VPX_Utility
 
             p_out->mfx.FrameInfo.BitDepthLuma   = p_in->mfx.FrameInfo.BitDepthLuma;
             p_out->mfx.FrameInfo.BitDepthChroma = p_in->mfx.FrameInfo.BitDepthChroma;
+            p_out->mfx.FrameInfo.Shift          = p_in->mfx.FrameInfo.Shift;
 
             if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12
                 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
