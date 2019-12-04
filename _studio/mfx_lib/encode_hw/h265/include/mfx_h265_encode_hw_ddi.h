@@ -93,7 +93,7 @@ const GUID GuidTable[3][3][3] =
         },
         // BitDepthLuma = 12
         {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
             /*420*/ DXVA2_Intel_Encode_HEVC_Main12,
             /*422*/ DXVA2_Intel_Encode_HEVC_Main422_12,
             /*444*/ DXVA2_Intel_Encode_HEVC_Main444_12

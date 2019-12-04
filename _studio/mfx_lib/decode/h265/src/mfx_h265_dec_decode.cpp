@@ -118,7 +118,7 @@ UMC::Status FillParam(VideoCORE *core, MFXTaskSupplier_H265 * decoder, mfxVideoP
 #if (MFX_VERSION >= 1027)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
@@ -297,7 +297,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     #if (MFX_VERSION >= 1027)
                 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
     #endif
-    #if (MFX_VERSION >= MFX_VERSION_NEXT)
+    #if (MFX_VERSION >= 1031)
                 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
                 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
                 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416

@@ -126,7 +126,7 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 10)
     {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         if (par.m_platform >= MFX_HW_TGL_LP)
         {
             rec.FourCC = MFX_FOURCC_Y216;
@@ -149,7 +149,7 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
     {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         if (par.m_platform >= MFX_HW_TGL_LP)
         {
             rec.FourCC = MFX_FOURCC_NV12;
@@ -165,7 +165,7 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     {
         rec.FourCC = MFX_FOURCC_NV12;
     }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 12)
     {
         rec.FourCC = MFX_FOURCC_Y416;
@@ -222,7 +222,7 @@ mfxStatus SetLowpowerDefault(MfxVideoParam& par)
         return sts;
     }
 #endif // MFX_VERSION >= 1025
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     if ((par.m_platform == MFX_HW_EHL)
         && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
     {
@@ -480,7 +480,7 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par
     request->Info = tmp.mfx.FrameInfo;
 #if (MFX_VERSION >= 1027)
     request->Info.Shift = (tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
                            tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_P016 ||
                            tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_Y216 ||
                            tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 ||

@@ -195,7 +195,7 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
         case MFX_FOURCC_NV12:    return UMC::NV12;
         case MFX_FOURCC_YV12:    return UMC::YV12;
         case MFX_FOURCC_P010:    return UMC::P010;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:    return UMC::P016;
 #endif
 
@@ -207,7 +207,7 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
         case MFX_FOURCC_Y210:    return UMC::Y210;
         case MFX_FOURCC_Y410:    return UMC::Y410;
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_Y216:    return UMC::Y216;
         case MFX_FOURCC_Y416:    return UMC::Y416;
 #endif
@@ -244,7 +244,7 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
         case UMC::Y210:    return MFX_FOURCC_Y210;
         case UMC::Y410:    return MFX_FOURCC_Y410;
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         case UMC::P016:    return MFX_FOURCC_P016;
         case UMC::Y216:    return MFX_FOURCC_Y216;
         case UMC::Y416:    return MFX_FOURCC_Y416;
@@ -375,7 +375,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
         bitDepth = 10;
         break;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
