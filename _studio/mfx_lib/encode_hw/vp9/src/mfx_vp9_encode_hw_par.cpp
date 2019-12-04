@@ -1922,9 +1922,6 @@ mfxStatus CheckSurface(
     MFX_CHECK(surface.Info.Width <= initWidth, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(surface.Info.Height <= initHeight, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    mfxU32 pitch = (surface.Data.PitchHigh << 16) + surface.Data.PitchLow;
-    MFX_CHECK(pitch < 0x8000, MFX_ERR_UNDEFINED_BEHAVIOR);
-
     return MFX_ERR_NONE;
 }
 
