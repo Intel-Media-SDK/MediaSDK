@@ -231,9 +231,6 @@ mfxTraceU32 MFXTrace_Init()
 #if defined(MFX_TRACE_ENABLE_STAT)
     g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
 #endif
-#if defined(MFX_TRACE_ENABLE_STAT)
-    g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
-#endif
 #if defined(MFX_TRACE_ENABLE_ITT)
     g_OutputMode |= MFX_TRACE_OUTPUT_ITT;
 #endif
