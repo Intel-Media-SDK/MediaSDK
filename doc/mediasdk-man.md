@@ -1,7 +1,7 @@
 ![](./pic/intel_logo.png)
 <br><br><br>
 # **Media SDK Developer Reference**
-## Media SDK API Version 1.30
+## Media SDK API Version 1.31
 
 <div style="page-break-before:always" />
 
@@ -8120,7 +8120,7 @@ The SDK API 1.27 adds `MFX_FOURCC_Y210` and `MFX_FOURCC_Y410`.
 
 The SDK API 1.28 adds `MFX_FOURCC_RGB565` and `MFX_FOURCC_RGBP`.
 
-The SDK API **TBD** adds `MFX_FOURCC_P016`, `MFX_FOURCC_Y216` and `MFX_FOURCC_Y416`.
+The SDK API 1.31 adds `MFX_FOURCC_P016`, `MFX_FOURCC_Y216` and `MFX_FOURCC_Y416`.
 
 ## <a id='Corruption'>Corruption</a>
 
@@ -9105,7 +9105,8 @@ The `PlatformCodeName` enumerator itemizes Intel® microarchitecture code names.
 `MFX_PLATFORM_CANNONLAKE`   | Cannon Lake
 `MFX_PLATFORM_ICELAKE`      | Ice Lake
 `MFX_PLATFORM_LAKEFIELD`    | Lakefield
-`MFX_PLATFORM_JASPERLAKE`   | Jasper lake
+`MFX_PLATFORM_JASPERLAKE`   | Jasper Lake
+`MFX_PLATFORM_ELKHARTLAKE`  | Elkhart Lake
 `MFX_PLATFORM_TIGERLAKE`    | Tiger Lake
 
 **Change History**
@@ -9117,7 +9118,9 @@ SDK API 1.25 adds `MFX_PLATFORM_GEMINILAKE`, `MFX_PLATFORM_COFFEELAKE` and `MFX_
 
 SDK API 1.27 adds `MFX_PLATFORM_ICELAKE`.
 
-SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PLATFORM_TIGERLAKE`.
+SDK API 1.31 adds `MFX_PLATFORM_ELKHARTLAKE`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PLATFORM_TIGERLAKE`.
+
+SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`.
 
 ## <a id='mfxMediaAdapterType'>mfxMediaAdapterType</a>
 

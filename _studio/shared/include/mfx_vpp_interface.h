@@ -94,7 +94,7 @@ namespace MfxHwVideoProcessing
         , MFX_FOURCC_Y210
         , MFX_FOURCC_Y410
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         , MFX_FOURCC_P016
         , MFX_FOURCC_Y216
         , MFX_FOURCC_Y416

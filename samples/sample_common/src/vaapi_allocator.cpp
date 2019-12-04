@@ -159,7 +159,7 @@ static mfxStatus GetVAFourcc(mfxU32 fourcc, unsigned int &va_fourcc)
         (VA_FOURCC_Y210 != va_fourcc) &&
         (VA_FOURCC_Y410 != va_fourcc) &&
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         (VA_FOURCC_P016 != va_fourcc) &&
         (VA_FOURCC_Y216 != va_fourcc) &&
         (VA_FOURCC_Y416 != va_fourcc) &&

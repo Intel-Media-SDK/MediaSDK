@@ -2703,7 +2703,7 @@ mfxStatus VideoVPPHW::Reset(mfxVideoParam *par)
             par->vpp.Out.FourCC  == MFX_FOURCC_Y410))
             return MFX_ERR_INVALID_VIDEO_PARAM;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         if (type < MFX_HW_TGL_LP &&
            (par->vpp.In.FourCC   == MFX_FOURCC_P016 ||
             par->vpp.In.FourCC   == MFX_FOURCC_Y216 ||
@@ -4904,7 +4904,7 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         }
     }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     if (   par->vpp.In.FourCC == MFX_FOURCC_P016
         || par->vpp.In.FourCC == MFX_FOURCC_Y216
         || par->vpp.In.FourCC == MFX_FOURCC_Y416
@@ -5247,12 +5247,12 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
                     return make_back_color_argb(8, extComp->R, extComp->G, extComp->B);
                 case MFX_FOURCC_A2RGB10:
                     return make_back_color_argb(10, extComp->R, extComp->G, extComp->B);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
                 case MFX_FOURCC_P016:
                 case MFX_FOURCC_Y216:
                 case MFX_FOURCC_Y416:
                     return make_back_color_yuv(videoParam.vpp.Out.BitDepthLuma ? videoParam.vpp.Out.BitDepthLuma : 16, extComp->Y, extComp->U, extComp->V);
-#endif // (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif
                 default:
                     break;
             }
@@ -5285,12 +5285,12 @@ mfxU64 get_background_color(const mfxVideoParam & videoParam)
             return make_def_back_color_argb(8);
         case MFX_FOURCC_A2RGB10:
             return make_def_back_color_argb(10);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         case MFX_FOURCC_P016:
         case MFX_FOURCC_Y216:
         case MFX_FOURCC_Y416:
             return make_def_back_color_yuv(videoParam.vpp.Out.BitDepthLuma ? videoParam.vpp.Out.BitDepthLuma : 16);
-#endif // (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif
         default:
             break;
     }
@@ -5840,7 +5840,7 @@ mfxStatus ConfigureExecuteParams(
                         {
                             executeParams.iBackgroundColor = make_back_color_yuv(10, extComp->Y, extComp->U, extComp->V);
                         }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
                         if (targetFourCC == MFX_FOURCC_P016 ||
                             targetFourCC == MFX_FOURCC_Y216 ||
                             targetFourCC == MFX_FOURCC_Y416)

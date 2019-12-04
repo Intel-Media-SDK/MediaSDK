@@ -1290,7 +1290,7 @@ mfxStatus CEncodingPipeline::InitFileWriters(sInputParams *pParams)
     return sts;
 }
 
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
 mfxU16 FourCcBitDepth(mfxU32 fourCC)
 {
     switch (fourCC)
@@ -1311,7 +1311,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
         return 10;
         break;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
     case MFX_FOURCC_Y216:
     case MFX_FOURCC_Y416:
@@ -1322,7 +1322,9 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
         return 0;
     }
 }
+#endif
 
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
 mfxU32 CEncodingPipeline::GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params)
 {
     if (adapters.NumActual == 0 || !adapters.Adapters)
@@ -1371,7 +1373,7 @@ mfxU32 CEncodingPipeline::GetPreferredAdapterNum(const mfxAdaptersInfo & adapter
     // Other ways return 0, i.e. best suitable detected by dispatcher
     return 0;
 }
-#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
 
 mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl)
 {
