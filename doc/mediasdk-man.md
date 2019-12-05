@@ -1621,7 +1621,7 @@ This function returns number of Intel Gen Graphics adapters. It can be used befo
 
 **Change History**
 
-This function is available since SDK API **TBD**.
+This function is available since SDK API 1.31.
 
 ### <a id='MFXQueryAdapters'>MFXQueryAdapters</a>
 
@@ -1651,7 +1651,7 @@ This function returns list of adapters suitable to handle workload `input_info`.
 
 **Change History**
 
-This function is available since SDK API **TBD**.
+This function is available since SDK API 1.31.
 
 ### <a id='MFXQueryAdaptersDecode'>MFXQueryAdaptersDecode</a>
 
@@ -1682,7 +1682,7 @@ This function returns list of adapters suitable to decode input `bitstream`. The
 
 **Change History**
 
-This function is available since SDK API **TBD**.
+This function is available since SDK API 1.31.
 
 ### <a id='MFXCloneSession'>MFXCloneSession</a>
 
@@ -5899,9 +5899,9 @@ The `mfxPlatform` structure contains information about hardware platform.
 **Change History**
 
 This structure is available since SDK API 1.19.
-Starting with SDK API **TBD** `DeviceId` field is properly filled.
+Starting with SDK API 1.31 `DeviceId` field is properly filled.
 
-The SDK API **TBD** adds `MediaAdapterType` field.
+The SDK API 1.31 adds `MediaAdapterType` field.
 
 ## <a id='mfxPayload'>mfxPayload</a>
 
@@ -6049,7 +6049,7 @@ The `mfxComponentInfo` structure contains wokload description, which is accepted
 
 **Change History**
 
-This structure is available since SDK API **TBD**.
+This structure is available since SDK API 1.31.
 
 ## <a id='mfxAdapterInfo'>mfxAdapterInfo</a>
 
@@ -6078,7 +6078,7 @@ The `mfxAdapterInfo` structure contains description of Intel Gen Graphics adapte
 
 **Change History**
 
-This structure is available since SDK API **TBD**.
+This structure is available since SDK API 1.31.
 
 ## <a id='mfxAdaptersInfo'>mfxAdaptersInfo</a>
 
@@ -6109,7 +6109,7 @@ The `mfxAdaptersInfo` structure contains description of all Intel Gen Graphics a
 
 **Change History**
 
-This structure is available since SDK API **TBD**.
+This structure is available since SDK API 1.31.
 
 ## <a id='mfxVPPStat'>mfxVPPStat</a>
 
@@ -9138,7 +9138,7 @@ The `mfxMediaAdapterType` enumerator itemizes types of Intel Gen Graphics adapte
 
 **Change History**
 
-This enumerator is available since SDK API **TBD**.
+This enumerator is available since SDK API 1.31.
 
 ## <a id='PayloadCtrlFlags'>PayloadCtrlFlags</a>
 
@@ -9387,7 +9387,8 @@ The `mfxComponentType` enumerator describes type of workload passed to [MFXQuery
 
 **Change History**
 
-This enumerator is available since SDK API **TBD**.
+This enumerator is available since SDK API 1.31.
+
 ## <a id='PartialBitstreamOutput'>PartialBitstreamOutput</a>
 
 **Description**

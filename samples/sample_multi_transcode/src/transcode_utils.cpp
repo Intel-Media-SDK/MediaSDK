@@ -145,7 +145,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                                           '-device /dev/dri/renderD128'\n"));
     msdk_printf(MSDK_STRING("                              If not specified, defaults to the first Intel device found on the system\n"));
 #endif
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     msdk_printf(MSDK_STRING("   [-dGfx] - preffer processing on dGfx (by default system decides)\n"));
     msdk_printf(MSDK_STRING("   [-iGfx] - preffer processing on iGfx (by default system decides)\n"));
 #endif
@@ -1187,6 +1187,16 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
     {
         InputParams.nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
     }
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-iGfx")))
+    {
+        InputParams.bPrefferiGfx = true;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-dGfx")))
+    {
+        InputParams.bPrefferdGfx = true;
+    }
+#endif
     else
     {
         // no matching argument was found
@@ -1515,16 +1525,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
 
             VAL_CHECK(i+1 == argc, i, argv[i]);
             InputParams.strDevicePath = argv[++i];
-        }
-#endif
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
-        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-iGfx")))
-        {
-            InputParams.bPrefferiGfx = true;
-        }
-        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-dGfx")))
-        {
-            InputParams.bPrefferdGfx = true;
         }
 #endif
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-sys")))
@@ -2731,7 +2731,7 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
         InputParams.nEncTileCols = 0;
     }
 
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
     if (InputParams.bPrefferiGfx && InputParams.bPrefferdGfx)
     {
         msdk_printf(MSDK_STRING("WARNING: both dGfx and iGfx flags set. iGfx will be preffered\n"));
