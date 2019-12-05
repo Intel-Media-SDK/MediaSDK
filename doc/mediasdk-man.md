@@ -2194,7 +2194,7 @@ This function initiates execution of an asynchronous function not already starte
 **Change History**
 
 This function is available since SDK API 1.0.
-Return code MFX_ERR_NONE_PARTIAL_OUTPUT is introduced in SDK API TBD.
+Return code MFX_ERR_NONE_PARTIAL_OUTPUT is introduced in SDK API 1.31.
 
 **Remarks**
 
@@ -7909,7 +7909,7 @@ If this option is turned ON (Granularity != MFX_PARTIAL_BITSTREAM_NONE), then en
 
 **Change History**
 
-This structure is available since SDK API **TBD**.
+This structure is available since SDK API 1.31.
 
 # Enumerator Reference
 
@@ -8646,7 +8646,7 @@ SDK API 1.6 added the `MFX_WRN_FILTER_SKIPPED` return status.
 
 SDK API 1.19 added `MFX_ERR_GPU_HANG` and `MFX_ERR_REALLOC_SURFACE`.
 
-SDK API TBD added `MFX_ERR_NONE_PARTIAL_OUTPUT`
+SDK API 1.31 added `MFX_ERR_NONE_PARTIAL_OUTPUT`.
 
 ## <a id='PicStruct'>PicStruct</a>
 
@@ -9406,7 +9406,7 @@ The `PartialBitstreamOutput` enumerator indicates flags of partial bitstream out
 
 **Change History**
 
-This enumerator is available since SDK API **TBD**.
+This enumerator is available since SDK API 1.31.
 
 # Appendices
 

@@ -409,7 +409,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,24   )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtPartialBitstreamParam  ,32   )
 #endif
     #elif defined(LINUX32)
@@ -527,7 +527,7 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,20  )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtPartialBitstreamParam  ,32  )
 #endif
     #endif
@@ -1578,7 +1578,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumAlloc                      ,8    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumActual                     ,12   )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtPartialBitstreamParam        ,Header                          ,0  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtPartialBitstreamParam        ,BlockSize                       ,8  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtPartialBitstreamParam        ,Granularity                    ,12  )
@@ -2324,7 +2324,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumAlloc                      ,4    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAdaptersInfo                    ,NumActual                     ,8    )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtPartialBitstreamParam        ,Header                          ,0  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtPartialBitstreamParam        ,BlockSize                       ,8  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtPartialBitstreamParam        ,Granularity                    ,12  )
