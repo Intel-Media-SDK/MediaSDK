@@ -26,7 +26,8 @@ namespace MfxHwVP9Encode
 {
 
 VP9MfxVideoParam::VP9MfxVideoParam()
-    : m_inMemType(INPUT_VIDEO_MEMORY)
+    : m_platform(MFX_HW_UNKNOWN)
+    , m_inMemType(INPUT_VIDEO_MEMORY)
     , m_targetKbps(0)
     , m_maxKbps(0)
     , m_bufferSizeInKb(0)
