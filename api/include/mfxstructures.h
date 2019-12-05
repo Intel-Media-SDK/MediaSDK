@@ -926,6 +926,8 @@ enum {
     MFX_EXTBUFF_AVC_SCALING_MATRIX              = MFX_MAKEFOURCC('A','V','S','M'),
     MFX_EXTBUFF_MPEG2_QUANT_MATRIX              = MFX_MAKEFOURCC('M','2','Q','M'),
     MFX_EXTBUFF_TASK_DEPENDENCY                 = MFX_MAKEFOURCC('S','Y','N','C'),
+#endif
+#if (MFX_VERSION >= 1031)
     MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM         = MFX_MAKEFOURCC('P','B','O','P'),
 #endif
 };
@@ -2313,7 +2315,7 @@ MFX_PACK_END()
 
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
 /* PartialBitstreamOutput */
 enum {
     MFX_PARTIAL_BITSTREAM_NONE    = 0,     /* Don't use partial output */
