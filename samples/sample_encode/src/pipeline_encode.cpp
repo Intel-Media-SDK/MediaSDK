@@ -1324,7 +1324,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
 }
 #endif
 
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
 mfxU32 CEncodingPipeline::GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params)
 {
     if (adapters.NumActual == 0 || !adapters.Adapters)
@@ -1383,7 +1383,7 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
         return MFX_ERR_NONE;
     }
 
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     mfxU32 num_adapters_available;
 
     mfxStatus sts = MFXQueryAdaptersNumber(&num_adapters_available);
@@ -1453,7 +1453,7 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
 #else
     // Library should pick first available compatible adapter during InitEx call with MFX_IMPL_HARDWARE_ANY
     impl = MFX_IMPL_HARDWARE_ANY;
-#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
 
     // If d3d11 surfaces are used ask the library to run acceleration through D3D11
     // feature may be unsupported due to OS or MSDK API version

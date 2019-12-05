@@ -329,7 +329,7 @@ mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
 
 } // mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
 
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
 static mfxStatus InitDummySession(mfxU32 adapter_n, MFXVideoSession & dummy_session)
 {
     mfxInitParam initPar;
@@ -616,4 +616,4 @@ mfxStatus MFXQueryAdaptersNumber(mfxU32* num_adapters)
     return MFX_ERR_NONE;
 }
 
-#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#endif // (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)

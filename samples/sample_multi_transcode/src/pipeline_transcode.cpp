@@ -95,7 +95,7 @@ sInputParams::sInputParams() : __sInputParams()
 #endif
     priority = MFX_PRIORITY_NORMAL;
     libType = MFX_IMPL_SOFTWARE;
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
     //Adapter type
     bPrefferiGfx = false;
     bPrefferdGfx = false;

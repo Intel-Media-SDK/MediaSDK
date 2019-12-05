@@ -2270,7 +2270,7 @@ MFX_PACK_END()
 
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
 /* Multi-adapters Querying structs */
 typedef enum
 {

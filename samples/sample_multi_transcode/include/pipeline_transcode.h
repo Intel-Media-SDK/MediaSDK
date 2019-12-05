@@ -182,7 +182,7 @@ namespace TranscodingSample
 #if defined(LINUX32) || defined(LINUX64)
         std::string strDevicePath;
 #endif
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
         //Adapter type
         bool bPrefferiGfx;
         bool bPrefferdGfx;
@@ -651,7 +651,7 @@ namespace TranscodingSample
 
             return ss.str();
         }
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
         //Adapter type
         void SetPrefferiGfx(bool prefferiGfx) { bPrefferiGfx = prefferiGfx; };
         void SetPrefferdGfx(bool prefferdGfx) { bPrefferdGfx = prefferdGfx; };
@@ -908,7 +908,7 @@ namespace TranscodingSample
 #ifdef  ENABLE_MCTF
         sMctfRunTimeParams   m_MctfRTParams;
 #endif
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
         //Adapter type
         bool bPrefferiGfx;
         bool bPrefferdGfx;

@@ -37,6 +37,7 @@
 #include "mfxsc.h"
 #include "mfxscd.h"
 #include "mfxcamera.h"
+#include "mfxadapter.h"
 
 
 /* .cpp instead of .h to avoid changing of include files dependencies graph
@@ -403,7 +404,7 @@
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64   )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxComponentInfo             ,224  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,24   )
@@ -521,7 +522,7 @@
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64  )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxComponentInfo             ,208 )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdapterInfo               ,64  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAdaptersInfo              ,20  )
@@ -773,7 +774,7 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,CodeName                      ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,DeviceId                      ,2    )
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,MediaAdapterType              ,4    )
 #endif
     #elif defined(LINUX32)
@@ -811,7 +812,7 @@
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,CodeName                      ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,DeviceId                      ,2    )
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxPlatform                        ,MediaAdapterType              ,4    )
 #endif
     #endif
@@ -1566,7 +1567,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,MVPrecision                   ,20   )
 #endif
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Type                          ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Requirements                  ,8    )
 
@@ -2312,7 +2313,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,MVPrecision                   ,20   )
 #endif
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Type                          ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxComponentInfo                   ,Requirements                  ,4    )
 

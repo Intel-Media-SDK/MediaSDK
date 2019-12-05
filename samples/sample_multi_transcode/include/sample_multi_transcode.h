@@ -21,7 +21,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define __SAMPLE_MULTI_TRANSCODE_H__
 
 #include "mfxdefs.h"
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
 #include "mfxadapter.h"
 #endif
 
@@ -59,7 +59,7 @@ namespace TranscodingSample
         virtual mfxStatus ProcessResult();
 
     protected:
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
         mfxStatus QueryAdapters();
         void      ForceImplForSession(mfxU32 idxSession);
         mfxStatus CheckAndFixAdapterDependency(mfxU32 idxSession, CTranscodingPipeline * pParentPipeline);
@@ -95,7 +95,7 @@ namespace TranscodingSample
     private:
         DISALLOW_COPY_AND_ASSIGN(Launcher);
 
-#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
         std::vector<mfxAdapterInfo> m_DisplaysData;
         mfxAdaptersInfo             m_Adapters;
 #endif

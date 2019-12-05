@@ -117,7 +117,7 @@ struct sInputParams
 #if defined(LINUX32) || defined(LINUX64)
     std::string strDevicePath;
 #endif
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     bool bPrefferdGfx;
     bool bPrefferiGfx;
 #endif
@@ -370,7 +370,7 @@ protected:
     CTimeStatisticsReal m_statOverall;
     CTimeStatisticsReal m_statFile;
 
-#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);
 #endif
     mfxStatus GetImpl(const sInputParams & params, mfxIMPL & impl);
