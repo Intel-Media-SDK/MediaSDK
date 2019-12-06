@@ -1416,6 +1416,14 @@ mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWTy
 {
     mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) == false ? MFX_WRN_INCOMPATIBLE_VIDEO_PARAM : MFX_ERR_NONE;
     (void)platfrom; // fix wrn for non Gen11 build
+#if (MFX_VERSION >= 1031)
+    if ((platfrom == MFX_HW_JSL || platfrom == MFX_HW_EHL)
+        && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+    {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
+        return sts;
+    }
+#endif
 
     if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
         par.mfx.LowPower = MFX_CODINGOPTION_OFF;

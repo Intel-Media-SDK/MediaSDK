@@ -516,7 +516,10 @@ eMFXPlatform MFX_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par)
     case MFX_HW_CNL:
     case MFX_HW_ICL:
     case MFX_HW_ICL_LP:
+#if (MFX_VERSION >= 1031)	
+    case MFX_HW_JSL:
     case MFX_HW_EHL:
+#endif
         name = sDXVA2_ModeH264_VLD_NoFGT;
         break;
     default:
