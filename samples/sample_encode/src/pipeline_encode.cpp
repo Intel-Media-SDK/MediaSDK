@@ -1410,6 +1410,16 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
     interface_request.Requirements.mfx.FrameInfo.PicStruct      = params.nPicStruct;
     interface_request.Requirements.mfx.FrameInfo.ChromaFormat   = FourCCToChroma(params.EncodeFourCC);
 
+    /* Note! IOPattern is mandatory according to MSDK manual! */
+    if (D3D9_MEMORY == params.memType || D3D11_MEMORY == params.memType)
+    {
+        interface_request.Requirements.IOPattern = MFX_IOPATTERN_IN_VIDEO_MEMORY;
+    }
+    else
+    {
+        interface_request.Requirements.IOPattern = MFX_IOPATTERN_IN_SYSTEM_MEMORY;
+    }
+
     // JPEG encoder settings overlap with other encoders settings in mfxInfoMFX structure
     if (MFX_CODEC_JPEG == params.CodecId)
     {
