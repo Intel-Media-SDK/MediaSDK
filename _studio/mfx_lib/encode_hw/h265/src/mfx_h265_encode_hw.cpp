@@ -223,7 +223,7 @@ mfxStatus SetLowpowerDefault(MfxVideoParam& par)
     }
 #endif // MFX_VERSION >= 1025
 #if (MFX_VERSION >= 1031)
-    if ((par.m_platform == MFX_HW_EHL)
+    if ((par.m_platform == MFX_HW_JSL || par.m_platform == MFX_HW_EHL)
         && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
     {
         par.mfx.LowPower = MFX_CODINGOPTION_ON;
