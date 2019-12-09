@@ -408,7 +408,7 @@ VAAPIVideoCORE::VAAPIVideoCORE(
           , m_KeepVAState(false)
           , m_adapterNum(adapterNum)
           , m_bUseExtAllocForHWFrames(false)
-          , m_HWType(MFX_HW_IVB)
+          , m_HWType(MFX_HW_UNKNOWN)
           , m_GTConfig(MFX_GT_UNKNOWN)
 #if !defined(ANDROID)
           , m_bCmCopy(false)
@@ -507,7 +507,8 @@ VAAPIVideoCORE::SetHandle(
             * and can call ioctl() to kernel mode driver,
             * to get device ID and find out platform type
             */
-            mfx_device_item devItem = getDeviceItem(m_Display);
+            const auto devItem = getDeviceItem(m_Display);
+            MFX_CHECK_WITH_ASSERT(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_UNDEFINED_BEHAVIOR);
             m_HWType   = devItem.platform;
             m_GTConfig = devItem.config;
             m_deviceId = mfxU16(devItem.device_id);
