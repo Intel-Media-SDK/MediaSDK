@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2019 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -987,6 +987,16 @@ enum
     MBDATA_LAYOUT_ID                        = 0x109,
     ENCODE_INSERT_DATA_ID                   = 0x120,
     ENCODE_QUERY_STATUS_ID                  = 0x121
+};
+
+// Slice structure
+enum
+{
+    SLICE_STRUCT_ONESLICE           = 0,    // Once slice for the whole frame
+    SLICE_STRUCT_POW2ROWS           = 1,    // Slices are power of 2 number of rows, all slices the same
+    SLICE_STRUCT_ROWSLICE           = 2,    // Slices are any number of rows, all slices the same
+    SLICE_STRUCT_ARBITRARYROWSLICE  = 3,    // Slices are any number of rows, slices can be different
+    SLICE_STRUCT_ARBITRARYMBSLICE   = 4     // Slices are any number of MBs, slices can be different
 };
 
 #endif /* __MFX_H264_ENCODE_STRUCT_VAAPI__H */

@@ -90,20 +90,20 @@ VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type)
 
 } // VAProfile ConvertProfileTypeMFX2VAAPI(mfxU8 type)
 
-mfxU8 ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
+static mfxU8 ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
 {
     switch (structure)
     {
         case VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS:
-            return 1;
+            return SLICE_STRUCT_POW2ROWS;
         case VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS:
-            return 2;
+            return SLICE_STRUCT_ROWSLICE;
         case VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS:
-            return 3;
+            return SLICE_STRUCT_ARBITRARYROWSLICE;
         case VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS:
-            return 4;
+            return SLICE_STRUCT_ARBITRARYMBSLICE;
         default:
-            return 0;
+            return SLICE_STRUCT_ONESLICE;
     }
 }
 
@@ -1550,18 +1550,19 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     if (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED)
     {
-        // Attribute for VAConfigAttribEncSliceStructure includes both (1) information about supported slice structure and
+        // Attribute for VAConfigAttribEncSliceStructure includes both:
+        // (1) information about supported slice structure and
         // (2) indication of support for max slice size feature
         const unsigned int sliceCapabilities = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
         const unsigned int sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
-        m_caps.ddi_caps.SliceStructure =
-            ConvertSliceStructureVAAPIToMFX(sliceStructure);
+        m_caps.ddi_caps.SliceStructure = ConvertSliceStructureVAAPIToMFX(sliceStructure);
+        m_caps.ddi_caps.SliceLevelRateCtrl = sliceCapabilities & VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
     }
     else
     {
         const eMFXHWType hwtype = m_core->GetHWType();
-        m_caps.ddi_caps.SliceStructure = (hwtype != MFX_HW_VLV && hwtype >= MFX_HW_HSW) ? 4 : 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw;
-    }                                                                                   // 3 - SliceDividerBluRay; 4 - arbitrary slice size in MBs; the other - SliceDividerOneSlice
+        m_caps.ddi_caps.SliceStructure = (hwtype != MFX_HW_VLV && hwtype >= MFX_HW_HSW) ? SLICE_STRUCT_ARBITRARYMBSLICE : SLICE_STRUCT_POW2ROWS;
+    }
 
     if (attrs[idx_map[VAConfigAttribEncInterlaced]].value != VA_ATTRIB_NOT_SUPPORTED)
         m_caps.ddi_caps.NoInterlacedField = attrs[idx_map[VAConfigAttribEncInterlaced]].value;

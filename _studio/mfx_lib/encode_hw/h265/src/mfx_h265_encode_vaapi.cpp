@@ -302,6 +302,23 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl, bool bSWBRC)
     }
 }
 
+static mfxU8 ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
+{
+    switch (structure)
+    {
+        case VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS:
+            return SLICE_STRUCT_POW2ROWS;
+        case VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS:
+            return SLICE_STRUCT_ROWSLICE;
+        case VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS:
+            return SLICE_STRUCT_ARBITRARYROWSLICE;
+        case VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS:
+            return SLICE_STRUCT_ARBITRARYMBSLICE;
+        default:
+            return SLICE_STRUCT_ONESLICE;
+    }
+}
+
 mfxStatus SetHRD(
     MfxVideoParam const & par,
     VADisplay    vaDisplay,
@@ -976,9 +993,18 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.MaxPicWidth  = attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value;
     m_caps.ddi_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
 
-
-    m_caps.ddi_caps.SliceStructure = 4;
-    m_caps.ddi_caps.SliceByteSizeCtrl = 1; //It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
+    if (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED)
+    {
+        // Attribute for VAConfigAttribEncSliceStructure includes both:
+        // (1) information about supported slice structure and
+        // (2) indication of support for max slice size feature
+        const unsigned int sliceCapabilities = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
+        const unsigned int sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
+        m_caps.ddi_caps.SliceStructure = ConvertSliceStructureVAAPIToMFX(sliceStructure);
+        // It means that GPU may further split the slice region that
+        // slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize)
+        m_caps.ddi_caps.SliceByteSizeCtrl = sliceCapabilities & VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
+    }
 
     if (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value != VA_ATTRIB_NOT_SUPPORTED)
     {

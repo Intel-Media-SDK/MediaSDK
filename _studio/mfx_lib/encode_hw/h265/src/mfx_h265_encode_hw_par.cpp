@@ -371,23 +371,23 @@ mfxU16 AddTileSlices(
     if (par.m_ext.CO2.NumMbPerSlice != 0)
         nLcuPerSlice = par.m_ext.CO2.NumMbPerSlice;
 
-    if (SliceStructure == 0)
+    if (SliceStructure == SLICE_STRUCT_ONESLICE)
     {
         nSlice = 1;
         nLcuPerSlice = nLCU;
     }
-    else if (SliceStructure == 2 && par.m_ext.CO2.NumMbPerSlice != 0)
+    else if (SliceStructure == SLICE_STRUCT_ROWSLICE && par.m_ext.CO2.NumMbPerSlice != 0)
     {
         //in case of NumMbPerSlice != 0 need to check alignment
         //if it's value is not aligned, warning will be generated in CheckVideoParam() after MakeSlices() call
         nLcuPerSlice = CeilDiv(par.m_ext.CO2.NumMbPerSlice, nCol) * nCol;
     }
-    else if (SliceStructure < 4)
+    else if (SliceStructure < SLICE_STRUCT_ARBITRARYMBSLICE)
     {
         nSlice = std::min(nSlice, nRow);
         mfxU32 nRowsPerSlice = CeilDiv(nRow, nSlice);
 
-        if (SliceStructure == 1)
+        if (SliceStructure == SLICE_STRUCT_POW2ROWS)
         {
             mfxU32 r0 = nRowsPerSlice;
             mfxU32 r1 = nRowsPerSlice;
@@ -415,7 +415,7 @@ mfxU16 AddTileSlices(
     }
 
     par.m_slice.resize(nSlicePrev + nSlice);
-    if (SliceStructure == 2) {
+    if (SliceStructure == SLICE_STRUCT_ROWSLICE) {
         mfxU32 i = nSlicePrev;
         for (; i < par.m_slice.size(); i++)
         {
@@ -504,7 +504,7 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
 
     if (par.m_platform >= MFX_HW_ICL && IsOn(par.mfx.LowPower)) {
         if (nTile == 1)
-            SliceStructure = 2;
+            SliceStructure = SLICE_STRUCT_ROWSLICE;
     }
 #endif // MFX_VERSION >= 1027
 
@@ -512,7 +512,7 @@ mfxU16 MakeSlices(MfxVideoParam& par, mfxU32 SliceStructure)
     if (par.m_ext.CO2.NumMbPerSlice != 0)
         nSlice = CeilDiv(nLCU / nTile, par.m_ext.CO2.NumMbPerSlice) * nTile;
 
-    if (SliceStructure == 0)
+    if (SliceStructure == SLICE_STRUCT_ONESLICE)
         nSlice = 1;
 
     if (nSlice > 1)
@@ -2239,7 +2239,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
             || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
     {
         if (par.mfx.EncodedOrder
-         && par.mfx.NumRefFrame > 2 
+         && par.mfx.NumRefFrame > 2
          && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)
         {
             par.bNonStandardReord = true;  // let's allow this mode in encoding order (may be special B pyr is used)
@@ -2255,7 +2255,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     {
         if (par.mfx.EncodedOrder && par.isField() && par.mfx.NumRefFrame > 1 && par.mfx.NumRefFrame < 4)
         {
-            par.bNonStandardReord = true;  // let's allow this mode in encoding order 
+            par.bNonStandardReord = true;  // let's allow this mode in encoding order
         }
         else
         {

@@ -661,7 +661,7 @@ namespace
         return -1;
     }
 
-    inline mfxU16 GetMaxNumRefActiveBL1(const mfxU32& targetUsage, 
+    inline mfxU16 GetMaxNumRefActiveBL1(const mfxU32& targetUsage,
                                         const bool& isField)
     {
         if (isField)
@@ -725,7 +725,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
             : extDdi.NumActiveRefBL0;
 
         mfxExtAVCRefListCtrl * ctrl = GetExtBuffer(task.m_ctrl);
-        
+
         if (advCtrl && isField)
         {
             // check ref list control structure for interlaced case
@@ -892,16 +892,16 @@ void MfxHwH264Encode::ModifyRefPicLists(
                                 std::swap(*l, *r);
                 }
             }
-            
+
             if (video.calcParam.numTemporalLayer == 0 && (task.m_type[0] & MFX_FRAMETYPE_P) && task.m_internalListCtrlRefModLTR)
             {
                 mfxU8 * begin = list0.Begin();
                 mfxU8 * end = list0.End();
                 mfxU8 * ltr = 0;
                 for (; begin != end; ++begin)
-                    if (dpb[*begin & 127].m_longterm) 
+                    if (dpb[*begin & 127].m_longterm)
                             break;
-                
+
                 ltr = begin;
                 begin = list0.Begin();
                 if (ltr != end && ltr != begin)
@@ -1215,7 +1215,7 @@ namespace
 
         if ((type & MFX_FRAMETYPE_REF) == 0)
             return; // non-reference frames don't change dpb
-        
+
         mfxExtAVCRefListCtrl const * ext_ctrl = GetExtBuffer(task.m_ctrl);
         mfxExtAVCRefListCtrl const * ctrl = (task.m_internalListCtrlPresent && (task.m_internalListCtrlHasPriority || !ext_ctrl))
             ? &task.m_internalListCtrl
@@ -1281,7 +1281,7 @@ namespace
                 for (mfxU32 i = 0; i < 16 && ctrl->RejectedRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
                 {
                     DpbFrame * ref = currDpb.End();
-                    if (!useInternalFrameOrder) 
+                    if (!useInternalFrameOrder)
                     {
                         ref = std::find_if(
                             currDpb.Begin(),
@@ -1576,7 +1576,7 @@ namespace
                 task.m_LtrOrder = task.m_frameOrder;
             }
             else if ((task.m_type[0] & MFX_FRAMETYPE_REF) && task.m_frameLtrOff == 0 && task.m_frameLtrReassign != 1 && numActiveRefL0 > 1
-                && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2)) 
+                && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2))
             {
                 DpbFrame const * ltr = 0;
                 DpbFrame const * i = task.m_dpb[0].Begin();
@@ -1637,9 +1637,9 @@ namespace
                         task.m_internalListCtrlHasPriority = false;
                         task.m_LtrOrder = task.m_RefOrder;
                         task.m_LtrQp    = task.m_RefQp;
-                        
-                        if (numActiveRefL0 > 1 && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2) 
-                            && ref->m_frameOrder != p->m_frameOrder) 
+
+                        if (numActiveRefL0 > 1 && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2)
+                            && ref->m_frameOrder != p->m_frameOrder)
                         {
                             task.m_internalListCtrlRefModLTR = true;
                         }
@@ -1696,7 +1696,7 @@ DdiTaskIter MfxHwH264Encode::ReorderFrame(
     DdiTaskIter prev = top;
     if(prev != end && prev != begin){            //special case for custom IDR frame
         --prev;                                  //we just change previous B-frame to P-frame
-        if((top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR 
+        if((top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR
             || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_I) && closeGopForSceneChange && top->m_SceneChange)  // Also Do it for scene change I frame
             || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_P) && closeGopForSceneChange && top->m_SceneChange)) // Also Do it for scene change B-> P frame
             && prev->GetFrameType() & MFX_FRAMETYPE_B && !gopStrict)
@@ -1797,7 +1797,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             // reset divider on I frames
             bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
             divider = MakeSliceDivider(
-                (caps.ddi_caps.SliceLevelRateCtrl) ? 4 : caps.ddi_caps.SliceStructure,
+                (caps.ddi_caps.SliceLevelRateCtrl) ? SLICE_STRUCT_ARBITRARYMBSLICE : caps.ddi_caps.SliceStructure,
                 extOpt2Init.NumMbPerSlice,
                 extOpt3Init.NumSliceP,
                 video.mfx.FrameInfo.Width / 16,
@@ -1812,7 +1812,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
 
         state.IntraSize = ((USHORT)divider.GetNumMbInSlice() / (video.mfx.FrameInfo.Width >> 4));
         state.IntraLocation = ((USHORT)divider.GetFirstMbInSlice() / (video.mfx.FrameInfo.Width >> 4));
-        
+
         if ((state.IntraLocation == 0) && (!state.firstFrameInCycle))
         {
             state.IntraSize = 0; // no refresh between cycles
@@ -1824,7 +1824,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             {
                 bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
                 divider = MakeSliceDivider(
-                    (caps.ddi_caps.SliceLevelRateCtrl) ? 4 : caps.ddi_caps.SliceStructure,
+                    (caps.ddi_caps.SliceLevelRateCtrl) ? SLICE_STRUCT_ARBITRARYMBSLICE : caps.ddi_caps.SliceStructure,
                     extOpt2Init.NumMbPerSlice,
                     extOpt3Init.NumSliceP,
                     video.mfx.FrameInfo.Width / 16,
