@@ -148,8 +148,8 @@ typedef struct {
 
     /* BDW */
     /*GT3: */
-    { 0x162D, MFX_HW_BDW, MFX_GT3},
-    { 0x162A, MFX_HW_BDW, MFX_GT3},
+    { 0x162D, MFX_HW_BDW, MFX_GT3 },
+    { 0x162A, MFX_HW_BDW, MFX_GT3 },
     /*GT2: */
     { 0x161D, MFX_HW_BDW, MFX_GT2 },
     { 0x161A, MFX_HW_BDW, MFX_GT2 },
@@ -159,10 +159,17 @@ typedef struct {
     /* BDW-ULT */
     /* (16x2 - ULT, 16x6 - ULT, 16xB - Iris, 16xE - ULX) */
     /*GT3: */
-    { 0x162E, MFX_HW_BDW, MFX_GT3},
-    { 0x162B, MFX_HW_BDW, MFX_GT3},
-    { 0x1626, MFX_HW_BDW, MFX_GT3},
-    { 0x1622, MFX_HW_BDW, MFX_GT3},
+    { 0x162E, MFX_HW_BDW, MFX_GT3 },
+    { 0x162B, MFX_HW_BDW, MFX_GT3 },
+    { 0x1626, MFX_HW_BDW, MFX_GT3 },
+    { 0x1622, MFX_HW_BDW, MFX_GT3 },
+    { 0x1636, MFX_HW_BDW, MFX_GT3 }, /* ULT */
+    { 0x163B, MFX_HW_BDW, MFX_GT3 }, /* Iris */
+    { 0x163E, MFX_HW_BDW, MFX_GT3 }, /* ULX */
+    { 0x1632, MFX_HW_BDW, MFX_GT3 }, /* ULT */
+    { 0x163A, MFX_HW_BDW, MFX_GT3 }, /* Server */
+    { 0x163D, MFX_HW_BDW, MFX_GT3 }, /* Workstation */
+
     /* GT2: */
     { 0x161E, MFX_HW_BDW, MFX_GT2 },
     { 0x161B, MFX_HW_BDW, MFX_GT2 },
@@ -218,6 +225,7 @@ typedef struct {
     { 0x0A86, MFX_HW_APL, MFX_GT1 },
     { 0x0A87, MFX_HW_APL, MFX_GT1 },
     { 0x1A84, MFX_HW_APL, MFX_GT1 },
+    { 0x1A85, MFX_HW_APL, MFX_GT1 },
     { 0x5A84, MFX_HW_APL, MFX_GT1 },
     { 0x5A85, MFX_HW_APL, MFX_GT1 },
 
@@ -235,6 +243,7 @@ typedef struct {
     { 0x5917, MFX_HW_KBL, MFX_GT2 }, // ULT GT2 R
     { 0x591A, MFX_HW_KBL, MFX_GT2 }, // SERV GT2
     { 0x591B, MFX_HW_KBL, MFX_GT2 }, // HALO GT2
+    { 0x591C, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
     { 0x591D, MFX_HW_KBL, MFX_GT2 }, // WRK GT2
     { 0x591E, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
     { 0x5921, MFX_HW_KBL, MFX_GT2 }, // ULT GT2F
@@ -247,6 +256,7 @@ typedef struct {
     { 0x593A, MFX_HW_KBL, MFX_GT4 }, // SERV GT4
     { 0x593B, MFX_HW_KBL, MFX_GT4 }, // HALO GT4
     { 0x593D, MFX_HW_KBL, MFX_GT4 }, // WRK GT4
+    { 0x87C0, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
 
     /* GLK */
     { 0x3184, MFX_HW_GLK, MFX_GT1 },
@@ -269,6 +279,7 @@ typedef struct {
     { 0x3EA7, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA8, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA9, MFX_HW_CFL, MFX_GT2 },
+    { 0x87CA, MFX_HW_CFL, MFX_GT2 },
 
     /* WHL */
     { 0x3EA0, MFX_HW_CFL, MFX_GT2 },
@@ -299,16 +310,25 @@ typedef struct {
     { 0x9bc8, MFX_HW_CFL, MFX_GT2 },
     { 0x9bc4, MFX_HW_CFL, MFX_GT2 },
     { 0x9bc2, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc6, MFX_HW_CFL, MFX_GT2 },
+    { 0x9be6, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bf6, MFX_HW_CFL, MFX_GT2 },
 
 
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
     { 0x5A52, MFX_HW_CNL, MFX_GT2 },
     { 0x5A5A, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A40, MFX_HW_CNL, MFX_GT2 },
     { 0x5A42, MFX_HW_CNL, MFX_GT2 },
     { 0x5A4A, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A4C, MFX_HW_CNL, MFX_GT1 },
+    { 0x5A50, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A54, MFX_HW_CNL, MFX_GT1 },
     { 0x5A59, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A5C, MFX_HW_CNL, MFX_GT1 },
     { 0x5A41, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A44, MFX_HW_CNL, MFX_GT1 },
     { 0x5A49, MFX_HW_CNL, MFX_GT2 },
 
     /* ICL LP */
@@ -317,6 +337,7 @@ typedef struct {
     { 0x8A51, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A52, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A53, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A54, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A56, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A57, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A58, MFX_HW_ICL_LP, MFX_GT1 },
@@ -325,6 +346,7 @@ typedef struct {
     { 0x8A5B, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A5C, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A5D, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },  // GT05, but 1 ok in this context
 
     /* JSL */
