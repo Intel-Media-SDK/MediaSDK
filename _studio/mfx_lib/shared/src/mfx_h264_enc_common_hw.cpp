@@ -3941,7 +3941,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR &&
-        hwCaps.ddi_caps.AVBRBRCSupport == 0)
+        hwCaps.AVBRSupport == 0)
     {
         par.mfx.RateControlMethod = 0;
         unsupported = true;
@@ -7617,8 +7617,7 @@ void MfxVideoParam::SyncVideoToCalculableParam()
             calcParam.mvcPerViewPar.bufferSizeInKB   = calcParam.bufferSizeInKB / extMvc->NumView;
             if (mfx.RateControlMethod != MFX_RATECONTROL_CQP
                 && mfx.RateControlMethod != MFX_RATECONTROL_ICQ
-                && mfx.RateControlMethod != MFX_RATECONTROL_LA_ICQ
-                && mfx.RateControlMethod != MFX_RATECONTROL_AVBR)
+                && mfx.RateControlMethod != MFX_RATECONTROL_LA_ICQ)
             {
                 calcParam.mvcPerViewPar.initialDelayInKB = calcParam.initialDelayInKB / extMvc->NumView;
                 calcParam.mvcPerViewPar.targetKbps       = calcParam.targetKbps / extMvc->NumView;

@@ -1508,7 +1508,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_QVBR) ? 1 : 0;
 #endif
 #if VA_CHECK_VERSION(1,3,0)
-    m_caps.ddi_caps.AVBRBRCSupport =
+    m_caps.AVBRSupport =
         (attrs[idx_map[VAConfigAttribRateControl]].value & VA_RC_AVBR) ? 1 : 0;
 #endif
     m_caps.ddi_caps.TrelisQuantization =
