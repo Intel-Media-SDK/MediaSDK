@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2018-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -81,6 +81,7 @@ include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_pak )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_enc )
+include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc )
 foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
