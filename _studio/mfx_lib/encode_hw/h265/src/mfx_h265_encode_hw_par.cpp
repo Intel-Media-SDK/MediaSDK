@@ -958,6 +958,7 @@ mfxStatus CheckAndFixRect(RectData *rect, MfxVideoParam const & par, ENCODE_CAPS
 #ifdef MFX_ENABLE_HEVCE_ROI
 mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & caps, mfxExtEncoderROI *ROI, bool &bROIViaMBQP)
 {
+    MFX_CHECK(ROI, MFX_ERR_INVALID_VIDEO_PARAM);
     mfxStatus sts = MFX_ERR_NONE, rsts = MFX_ERR_NONE;
     mfxU32 changed = 0, invalid = 0;
 
@@ -990,10 +991,14 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
     else
     {
 #if MFX_VERSION > 1021
-        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA || ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
-            invalid += (caps.ROIDeltaQPSupport == 0);
-        else
+        if (!caps.ROIDeltaQPSupport && !caps.ROIBRCPriorityLevelSupport)
+        {
             invalid++;
+        }
+        if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA && !caps.ROIDeltaQPSupport)
+        {
+            invalid++;
+        }
 #endif // MFX_VERSION > 1021
     }
 
@@ -1020,18 +1025,34 @@ mfxStatus CheckAndFixRoi(MfxVideoParam  const & par, ENCODE_CAPS_HEVC const & ca
         }
 
         if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP) {
-            invalid += CheckRange(ROI->ROI[i].Priority, -51, 51);
+            invalid += CheckRange(ROI->ROI[i].DeltaQP, -51, 51);
         } else if (par.mfx.RateControlMethod) {
 #if MFX_VERSION > 1021
             if (ROI->ROIMode == MFX_ROI_MODE_QP_DELTA)
-                invalid += CheckRange(ROI->ROI[i].Priority, -51, 51);
+                invalid += CheckRange(ROI->ROI[i].DeltaQP, -51, 51);
             else if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY)
                 invalid += CheckRange(ROI->ROI[i].Priority, -3, 3);
 #else
         invalid += CheckRange(ROI->ROI[i].Priority, -3, 3);
 #endif // MFX_VERSION > 1021
         }
+
+#if MFX_VERSION > 1021
+        if (ROI->ROIMode == MFX_ROI_MODE_PRIORITY && !caps.ROIBRCPriorityLevelSupport) {
+            // Priority mode is not supported. Convert it to delta QP mode
+            ROI->ROI[i].DeltaQP = (mfxI16)(-1 * par.m_ext.ROI.ROI[i].Priority);
+        }
+#endif
     }
+
+#if MFX_VERSION > 1021
+    if (ROI->NumROI && ROI->ROIMode == MFX_ROI_MODE_PRIORITY && !caps.ROIBRCPriorityLevelSupport)
+    {
+        // Priority mode is not supported. Convert it to delta QP mode
+        ROI->ROIMode = MFX_ROI_MODE_QP_DELTA;
+        changed++;
+    }
+#endif
 
     if (changed)
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;

@@ -3505,15 +3505,15 @@ void ConfigureTask(
     task.m_numRoi = 0;
     if (parRoi && parRoi->NumROI && !par.bROIViaMBQP)
     {
-         for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
+        for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
         {
             task.m_roi[i] = {parRoi->ROI[i].Left,  parRoi->ROI[i].Top,
                              parRoi->ROI[i].Right, parRoi->ROI[i].Bottom,
-                            (mfxI16)((parRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * parRoi->ROI[i].DeltaQP) };
-            task.m_numRoi ++;
+                             parRoi->ROI[i].DeltaQP};
         }
 
-        task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
+        task.m_numRoi = parRoi->NumROI;
+        task.m_roiMode = parRoi->ROIMode;
     }
 
 #else
