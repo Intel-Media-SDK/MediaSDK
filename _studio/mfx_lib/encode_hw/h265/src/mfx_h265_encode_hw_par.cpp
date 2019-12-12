@@ -1556,6 +1556,8 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     mfxU16 maxDPB  = 16;
     mfxU16 minQP   = (IsOn(par.mfx.LowPower) && !par.isSWBRC()) ? 10 : 1;   // 10 is min QP for VDENC
     mfxU16 maxQP   = 51;
+    mfxU16 surfAlignW = HW_SURF_ALIGN_W;
+    mfxU16 surfAlignH = HW_SURF_ALIGN_H;
     mfxU16 MaxTileColumns = MAX_NUM_TILE_COLUMNS;
     mfxU16 MaxTileRows    = MAX_NUM_TILE_ROWS;
 
@@ -1913,13 +1915,13 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     if (bInit)
     {
-        invalid += CheckMin(par.mfx.FrameInfo.Width,  mfx::align2_value(par.mfx.FrameInfo.Width, par.CodedPicAlignment));
-        invalid += CheckMin(par.mfx.FrameInfo.Height, mfx::align2_value(par.mfx.FrameInfo.Height, par.CodedPicAlignment));
+        invalid += CheckMin(par.mfx.FrameInfo.Width,  mfx::align2_value(par.mfx.FrameInfo.Width, surfAlignW));
+        invalid += CheckMin(par.mfx.FrameInfo.Height, mfx::align2_value(par.mfx.FrameInfo.Height, surfAlignH));
     }
     else
     {
-        changed += CheckMin(par.mfx.FrameInfo.Width,  mfx::align2_value(par.mfx.FrameInfo.Width,  par.CodedPicAlignment));
-        changed += CheckMin(par.mfx.FrameInfo.Height, mfx::align2_value(par.mfx.FrameInfo.Height, par.CodedPicAlignment));
+        changed += CheckMin(par.mfx.FrameInfo.Width,  mfx::align2_value(par.mfx.FrameInfo.Width,  surfAlignW));
+        changed += CheckMin(par.mfx.FrameInfo.Height, mfx::align2_value(par.mfx.FrameInfo.Height, surfAlignH));
     }
 
     invalid += CheckMax(par.mfx.FrameInfo.Width, caps.ddi_caps.MaxPicWidth);
