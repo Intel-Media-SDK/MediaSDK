@@ -48,6 +48,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(VideoCORE& core)
     : m_core(core)
     , m_runtimeErr(MFX_ERR_NONE)
 {
+    printf("You are using Refactored HEVCE!\n");
 }
 
 void MFXVideoENCODEH265_HW::InternalInitFeatures(
