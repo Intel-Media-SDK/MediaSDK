@@ -163,7 +163,7 @@ void MFXLibraryIterator::Release(void)
 
 DECLSPEC_NOINLINE HMODULE GetThisDllModuleHandle()
 {
-  HMODULE hDll = HMODULE(-1);
+  HMODULE hDll = NULL;
 
   GetModuleHandleExW( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                       GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -184,14 +184,11 @@ bool GetImplPath(int storageID, wchar_t* sImplPath)
         break;
     case MFX_PATH_MSDK_FOLDER:
         hModule = GetThisDllModuleHandle();
+        HMODULE exeModule = GetModuleHandleW(NULL);
         //It should works only if Dispatcher is linked with Dynamic Linked Library
-        if (hModule != HMODULE(-1) && GetProcAddress(hModule, "DllMain") == NULL)
+        if (!hModule || !exeModule || hModule == exeModule)
             return false;
         break;
-    }
-
-    if(hModule == HMODULE(-1)) {
-        return false;
     }
 
     DWORD nSize = 0;
