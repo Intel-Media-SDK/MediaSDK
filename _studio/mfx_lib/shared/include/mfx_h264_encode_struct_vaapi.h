@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -309,7 +309,9 @@ typedef struct tagENCODE_CAPS
             UINT    TCBRCSupport                  : 1;
             UINT    HRDConformanceSupport         : 1;
             UINT    PollingModeSupport            : 1;
-            UINT                                  : 5;
+            UINT    LookAheadBRCSupport          : 1;
+            UINT    QpAdjustmentSupport           : 1;
+            UINT                                  : 4;
         };
         UINT      CodingLimits2;
     };
@@ -733,7 +735,8 @@ typedef struct tagENCODE_SET_PICTURE_PARAMETERS_H264
             UINT        bDisableSubMBPartition                   : 1;
             UINT        bEmulationByteInsertion                  : 1;
             UINT        bEnableRollingIntraRefresh               : 2;
-            UINT        bReserved                                : 21;
+            UINT        bEnableQpAdjustment                       : 1;
+            UINT        bReserved                                : 20;
 
         };
         BOOL    UserFlags;

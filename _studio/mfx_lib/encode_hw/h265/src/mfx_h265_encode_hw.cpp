@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -63,6 +63,8 @@ mfxU32 GetBsSize(mfxFrameInfo& info)
 mfxU32 GetMinBsSize(MfxVideoParam const & par)
 {
     mfxU32 size = par.mfx.FrameInfo.Width * par.mfx.FrameInfo.Height;
+    if (par.m_ext.HEVCParam.PicHeightInLumaSamples && par.m_ext.HEVCParam.PicWidthInLumaSamples)
+        size = par.m_ext.HEVCParam.PicHeightInLumaSamples * par.m_ext.HEVCParam.PicWidthInLumaSamples;
 
     mfxF64 k = 2.0;
 #if (MFX_VERSION >= 1027)
@@ -973,6 +975,13 @@ mfxStatus  MFXVideoENCODEH265_HW::EncodeFrameSubmit(mfxEncodeCtrl *ctrl, mfxFram
 
     return sts;
 }
+inline void InitBRCParams(Task &task)
+{
+    task.m_brcFrameParams.EncodedOrder = task.m_eo;                 // Frame number in a sequence of reordered frames starting from encoder Init()
+    task.m_brcFrameParams.DisplayOrder = task.m_poc;                // Frame number in a sequence of frames in display order starting from last IDR
+    task.m_brcFrameParams.FrameType = task.m_frameType;             // See FrameType enumerator
+    task.m_brcFrameParams.PyramidLayer = (mfxU16)task.m_level + ((task.m_secondField) ? 1 : 0);      // B-pyramid or P-pyramid layer, frame belongs to
+}
 
 mfxStatus MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
 {
@@ -1064,6 +1073,7 @@ mfxStatus MFXVideoENCODEH265_HW::PrepareTask(Task& input_task)
         MFX_CHECK(task->m_midRec && task->m_midBs, MFX_ERR_UNDEFINED_BEHAVIOR);
 
         ConfigureTask(*task, m_lastTask, m_vpar, m_caps, m_baseLayerOrder);
+        InitBRCParams(*task);
 
         m_lastTask = *task;
         m_task.Submit(task);
@@ -1105,6 +1115,24 @@ void SetEncFrameInfo(MfxVideoParam &m_vpar,
     }
 }
 
+inline mfxI8 GetMinQP(MfxVideoParam &vpar)
+{
+    return (mfxI8)((IsOn(vpar.mfx.LowPower) || (vpar.m_platform >= MFX_HW_KBL
+#if (MFX_VERSION >= 1025)
+        && vpar.m_platform < MFX_HW_CNL
+#endif
+        )) ? 0 : -6* vpar.m_sps.bit_depth_luma_minus8);
+}
+
+inline void SetHRDParams(Task & task, HRD & hrd)
+{
+    if (task.m_brcFrameCtrl.InitialCpbRemovalDelay == 0 &&
+        task.m_brcFrameCtrl.InitialCpbRemovalOffset == 0)
+    {
+        task.m_brcFrameCtrl.InitialCpbRemovalDelay = hrd.GetInitCpbRemovalDelay(task);
+        task.m_brcFrameCtrl.InitialCpbRemovalOffset = hrd.GetInitCpbRemovalDelayOffset();
+    }
+}
 mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*uid_p*/, mfxU32 /*uid_a*/)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
@@ -1121,38 +1149,34 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
 
     while (Task* taskForExecute = m_task.GetTaskForSubmit(true))
     {
-        if ((taskForExecute->m_insertHeaders & INSERT_BPSEI) && m_task.GetTaskForQuery())
+        if ((taskForExecute->m_insertHeaders & INSERT_BPSEI || IsFrameToSkip(*taskForExecute, m_rec, m_vpar.isSWBRC())) && m_task.GetTaskForQuery())
             break; // sync is needed
 
         if (taskForExecute->m_surf)
         {
             mfxHDLPair surfaceHDL = {};
 
-            if (taskForExecute->m_recode == 0)
+            if (taskForExecute->m_brcFrameParams.NumRecode == 0)
                 taskForExecute->m_cpb_removal_delay = (taskForExecute->m_eo == 0) ? 0 : (taskForExecute->m_eo - m_prevBPEO);
 
-            if (taskForExecute->m_insertHeaders & INSERT_BPSEI)
-            {
-                taskForExecute->m_initial_cpb_removal_delay = m_hrd.GetInitCpbRemovalDelay(*taskForExecute);
-                taskForExecute->m_initial_cpb_removal_offset = m_hrd.GetInitCpbRemovalDelayOffset();
-                m_prevBPEO = taskForExecute->m_eo;
-            }
+
             if (m_brc)
             {
-               if (IsOn(m_vpar.mfx.LowPower) || (m_vpar.m_platform >= MFX_HW_KBL
-#if (MFX_VERSION >= 1025)
-                   && m_vpar.m_platform < MFX_HW_CNL
-#endif
-                   ))
-                   taskForExecute->m_qpY = (mfxI8)mfx::clamp(m_brc->GetQP(m_vpar, *taskForExecute), 0, 51);  //driver limitation
-               else
-                   taskForExecute->m_qpY = (mfxI8)mfx::clamp(m_brc->GetQP(m_vpar, *taskForExecute), -6 * m_vpar.m_sps.bit_depth_luma_minus8, 51);
-
+               sts = m_brc-> GetFrameCtrl(*taskForExecute);
+               MFX_CHECK_STS(sts);
+               taskForExecute->m_qpY = mfx::clamp<mfxI8>(taskForExecute->m_qpY, GetMinQP(m_vpar) , 51);
                taskForExecute->m_sh.slice_qp_delta = mfxI8(taskForExecute->m_qpY - (m_vpar.m_pps.init_qp_minus26 + 26));
-               if (taskForExecute->m_recode && m_vpar.AsyncDepth > 1)
+               if (taskForExecute->m_brcFrameParams.NumRecode && m_vpar.AsyncDepth > 1)
                {
                    taskForExecute->m_sh.temporal_mvp_enabled_flag = 0; // WA
                }
+            }
+
+            if (taskForExecute->m_insertHeaders & INSERT_BPSEI)
+            {
+                SetHRDParams(*taskForExecute, m_hrd);
+
+                m_prevBPEO = taskForExecute->m_eo;
             }
             bool toSkip = IsFrameToSkip(*taskForExecute, m_rec, m_vpar.isSWBRC());
             if (toSkip)
@@ -1205,7 +1229,7 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
 
         if (m_brc)
         {
-            brcStatus = m_brc->PostPackFrame(m_vpar,*taskForQuery, (taskForQuery->m_bsDataLength + SEI_len)*8,0,taskForQuery->m_recode);
+            brcStatus = m_brc->PostPackFrame(m_vpar,*taskForQuery, (taskForQuery->m_bsDataLength + SEI_len)*8,0,taskForQuery->m_brcFrameParams.NumRecode);
             //printf("m_brc->PostPackFrame poc %d, qp %d, len %d, type %d, status %d\n", taskForQuery->m_poc,taskForQuery->m_qpY, taskForQuery->m_bsDataLength,taskForQuery->m_codingType, brcStatus);
             if (brcStatus != MFX_BRC_OK)
             {
@@ -1218,7 +1242,7 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
                     //padding is needed
                     m_brc->GetMinMaxFrameSize(&minSize, &maxSize);
                    taskForQuery->m_minFrameSize = (mfxU32) ((minSize + 7) >> 3);
-                   brcStatus = m_brc->PostPackFrame(m_vpar,*taskForQuery, taskForQuery->m_minFrameSize<<3,0,++taskForQuery->m_recode);
+                   brcStatus = m_brc->PostPackFrame(m_vpar,*taskForQuery, taskForQuery->m_minFrameSize<<3,0,++taskForQuery->m_brcFrameParams.NumRecode);
                    MFX_CHECK(brcStatus != MFX_BRC_ERROR,  MFX_ERR_UNDEFINED_BEHAVIOR);
                 }
                 else
@@ -1229,7 +1253,7 @@ mfxStatus  MFXVideoENCODEH265_HW::Execute(mfxThreadTask thread_task, mfxU32 /*ui
                         //skip frame
                         taskForQuery->m_bSkipped = true;
                     }
-                    taskForQuery->m_recode++;
+                    taskForQuery->m_brcFrameParams.NumRecode++;
                     sts = m_task.PutTasksForRecode(taskForQuery); //return task in execute pool
                     MFX_CHECK_STS(sts);
 

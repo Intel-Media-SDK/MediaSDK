@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -308,6 +308,11 @@ namespace MfxHwH264Encode
         MFX_ENCODE_CAPS caps,
         eMFXHWType platform);
     // Helper which checks number of allocated frames and auto-free.
+    enum
+    {
+        H264_FRAME_FLAG_SKIPPED = 1,
+        H264_FRAME_FLAG_READY = 2
+    };
 
     class MfxFrameAllocResponse : public mfxFrameAllocResponse
     {
@@ -361,6 +366,9 @@ namespace MfxHwH264Encode
 
         mfxU32 Locked(mfxU32 idx) const;
 
+        void   ClearFlag(mfxU32 idx);
+        void   SetFlag(mfxU32 idx, mfxU32 flag);
+        mfxU32 GetFlag(mfxU32 idx) const;
     private:
         MfxFrameAllocResponse(MfxFrameAllocResponse const &);
         MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &);
@@ -379,6 +387,7 @@ namespace MfxHwH264Encode
         std::vector<mfxFrameAllocResponse> m_responseQueue;
         std::vector<mfxMemId>              m_mids;
         std::vector<mfxU32>                m_locked;
+        std::vector<mfxU32>                m_flag;
         std::vector<void *>                m_sysmems;
     };
 
@@ -957,7 +966,8 @@ namespace MfxHwH264Encode
             , m_midMBQP(MID_INVALID)
             , m_isMBQP(false)
             , m_isUseRawRef(false)
-
+            , m_isSkipped (false)
+            , m_toRecode (false)
             , m_isMBControl(false)
             , m_midMBControl(MID_INVALID)
             , m_idxMBControl(NO_INDEX)
@@ -1043,13 +1053,6 @@ namespace MfxHwH264Encode
 
             return false;
         }
-        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
-        {
-            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
-                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
-                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
-        }
-
         inline void InitBRCParams()
         {
             Zero(m_brcFrameParams);
@@ -1064,6 +1067,12 @@ namespace MfxHwH264Encode
             if (!m_brcFrameParams.PyramidLayer && (m_type[m_fid[0]] & MFX_FRAMETYPE_P) && m_LowDelayPyramidLayer)
                 m_brcFrameParams.PyramidLayer = (mfxU16)m_LowDelayPyramidLayer;
             m_brcFrameParams.picStruct = GetPicStructForEncode();
+        }
+        inline bool isSEIHRDParam(mfxExtCodingOption const & extOpt, mfxExtCodingOption2 const & extOpt2)
+        {
+            return (((GetFrameType() & MFX_FRAMETYPE_IDR) ||
+                ((GetFrameType() & MFX_FRAMETYPE_I) && (extOpt2.BufferingPeriodSEI == MFX_BPSEI_IFRAME))) &&
+                (IsOn(extOpt.VuiNalHrdParameters) || IsOn(extOpt.VuiVclHrdParameters)));
         }
 
         mfxEncodeCtrl   m_ctrl;
@@ -1198,6 +1207,8 @@ namespace MfxHwH264Encode
         mfxMemId m_midMBQP;
         bool     m_isMBQP;
         bool     m_isUseRawRef;
+        bool     m_isSkipped;
+        bool     m_toRecode;
 
         bool     m_isMBControl;
         mfxMemId m_midMBControl;
@@ -1997,6 +2008,9 @@ namespace MfxHwH264Encode
         mfxStatus AsyncRoutine(
             mfxBitstream * bs);
 
+        mfxStatus CheckSliceSize(DdiTask &task, bool &bToRecode);
+        mfxStatus CheckBufferSize(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength, mfxBitstream * bs);
+        mfxStatus CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength);
         void OnNewFrame();
         void SubmitScd();
         void OnScdQueried();
@@ -2634,10 +2648,12 @@ namespace MfxHwH264Encode
         DdiTask const &       task,
         mfxHDLPair &          handle);
 
+    bool IsFrameToSkip(DdiTask&  task, MfxFrameAllocResponse & poolRec, std::vector<mfxU32> fo, bool bSWBRC);
     mfxStatus CodeAsSkipFrame(  VideoCORE&            core,
                                 MfxVideoParam const & video,
                                 DdiTask&       task,
-                                MfxFrameAllocResponse & pool);
+                                MfxFrameAllocResponse & pool,
+                                MfxFrameAllocResponse & poolRec);
     mfxStatus CopyRawSurfaceToVideoMemory(
         VideoCORE &           core,
         MfxVideoParam const & video,

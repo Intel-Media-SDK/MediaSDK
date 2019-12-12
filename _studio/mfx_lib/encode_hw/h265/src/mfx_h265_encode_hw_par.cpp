@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2833,7 +2833,7 @@ void SetDefaults(
             par.BufferSizeInKB = std::max(par.BufferSizeInKB, par.InitialDelayInKB);
         }
         if (!par.InitialDelayInKB)
-            par.InitialDelayInKB = par.BufferSizeInKB / 2;
+            par.InitialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && par.isSWBRC()) ? (3* par.BufferSizeInKB / 4) : (par.BufferSizeInKB / 2);
     }
     else if(par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {

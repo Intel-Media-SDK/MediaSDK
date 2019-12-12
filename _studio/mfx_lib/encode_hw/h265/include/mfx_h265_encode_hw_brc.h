@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -144,8 +144,7 @@ public:
     virtual mfxStatus Reset(MfxVideoParam &video, mfxI32 enableRecode = 1) = 0;
     virtual mfxStatus Close() = 0;
     virtual void PreEnc(mfxU32 frameType, std::vector<VmeData *> const & vmeData, mfxU32 encOrder) = 0;    
-    virtual mfxI32 GetQP(MfxVideoParam &video, Task &task)=0;
-    virtual mfxStatus SetQP(mfxI32 qp, mfxU16 frameType, bool bLowDelay) = 0;
+    virtual mfxStatus  GetFrameCtrl(Task &task) =0;
     virtual mfxBRCStatus   PostPackFrame(MfxVideoParam &video, Task &task, mfxI32 bitsEncodedFrame, mfxI32 overheadBits, mfxI32 recode = 0) =0;
     virtual mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics*, mfxU32 , mfxU32 ) = 0;
     virtual void GetMinMaxFrameSize(mfxI32 *minFrameSizeInBits, mfxI32 *maxFrameSizeInBits) = 0;
@@ -168,15 +167,14 @@ public:
     }
 
     mfxStatus Close() {  return MFX_ERR_NONE;}
-        
-    mfxI32 GetQP(MfxVideoParam &video, Task &task);
-    mfxStatus SetQP(mfxI32 /* qp */, mfxU16 /* frameType */,  bool /*bLowDelay*/) { return MFX_ERR_NONE;  }
+
+    mfxStatus  GetFrameCtrl(Task &task);
 
     void PreEnc(mfxU32 frameType, std::vector<VmeData *> const & vmeData, mfxU32 encOrder);
 
     mfxBRCStatus   PostPackFrame(MfxVideoParam & /*video*/, Task &task, mfxI32 bitsEncodedFrame, mfxI32 /*overheadBits*/, mfxI32 /*recode = 0*/)
     {
-        Report(task.m_frameType, bitsEncodedFrame >> 3, 0, 0, task.m_eo, 0, 0); 
+        Report(task.m_frameType, bitsEncodedFrame >> 3, 0, 0, task.m_eo, 0, task.m_brcFrameCtrl.QpY);
         return MFX_ERR_NONE;    
     }
     bool IsVMEBRC()  {return true;}
@@ -271,17 +269,11 @@ public:
     }
     virtual mfxBRCStatus PostPackFrame(MfxVideoParam &, Task &task, mfxI32 bitsEncodedFrame, mfxI32 , mfxI32 )
     {
-        mfxBRCFrameParam frame_par={};
-        mfxBRCFrameCtrl  frame_ctrl={};
         mfxBRCFrameStatus frame_sts = {};
-        
-
-        frame_ctrl.QpY = task.m_qpY;
-        InitFramePar(task,frame_par);
-        frame_par.CodedFrameSize = bitsEncodedFrame/8;  // Size of frame in bytes after encoding
+        task.m_brcFrameParams.CodedFrameSize = bitsEncodedFrame/8;  // Size of frame in bytes after encoding
 
 
-        mfxStatus sts = m_pBRC->Update(m_pBRC->pthis,&frame_par, &frame_ctrl, &frame_sts);
+        mfxStatus sts = m_pBRC->Update(m_pBRC->pthis,&task.m_brcFrameParams, &task.m_brcFrameCtrl, &frame_sts);
         MFX_CHECK(sts == MFX_ERR_NONE, MFX_BRC_ERROR);
 
         m_minSize = frame_sts.MinFrameSize;
@@ -301,20 +293,16 @@ public:
         }
         return MFX_BRC_OK;    
     }
-    virtual mfxI32      GetQP(MfxVideoParam &, Task &task)
+    mfxStatus  GetFrameCtrl(Task &task)
     {
-        mfxBRCFrameParam frame_par={};
-        mfxBRCFrameCtrl  frame_ctrl={};
 
-        InitFramePar(task,frame_par);
-        m_pBRC->GetFrameCtrl(m_pBRC->pthis,&frame_par, &frame_ctrl);
-        return frame_ctrl.QpY;    
+        mfxStatus sts = m_pBRC->GetFrameCtrl(m_pBRC->pthis,&task.m_brcFrameParams, &task.m_brcFrameCtrl);
+        MFX_CHECK_STS(sts);
+        task.m_qpY = (mfxI8)task.m_brcFrameCtrl.QpY;
+        return sts;
+
     }
-    virtual mfxStatus   SetQP(mfxI32 , uint16_t , bool )
-    {
-        return MFX_ERR_NONE;    
-    }
-    //virtual mfxStatus   GetInitialCPBRemovalDelay(mfxU32 *initial_cpb_removal_delay, mfxI32 recode = 0);
+
     virtual void        GetMinMaxFrameSize(mfxI32 *minFrameSizeInBits, mfxI32 *)
     {
         *minFrameSizeInBits = m_minSize;
@@ -341,7 +329,7 @@ protected:
         frame_par.DisplayOrder = task.m_poc;    // Frame number in a sequence of frames in display order starting from last IDR
         frame_par.FrameType = task.m_frameType;       // See FrameType enumerator
         frame_par.PyramidLayer = (mfxU16)task.m_level;    // B-pyramid or P-pyramid layer, frame belongs to
-        frame_par.NumRecode = (mfxU16)task.m_recode;       // Number of recodings performed for this frame
+        frame_par.NumRecode = 0;       // Number of recodings performed for this frame
         if (task.m_secondField)
             frame_par.PyramidLayer = frame_par.PyramidLayer +1;    
     }

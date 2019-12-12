@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2847,6 +2847,8 @@ mfxStatus MfxFrameAllocResponse::Alloc(
         return MFX_ERR_MEMORY_ALLOC;
 
     m_locked.resize(req.NumFrameMin, 0);
+    m_flag.resize(req.NumFrameMin, 0);
+    std::fill(m_flag.begin(), m_flag.end(), 0);
 
     m_core = core;
     m_cmDevice = 0;
@@ -2894,6 +2896,9 @@ mfxStatus MfxFrameAllocResponse::AllocCmBuffers(
 
     m_mids.resize(req.NumFrameMin, 0);
     m_locked.resize(req.NumFrameMin, 0);
+    m_flag.resize(req.NumFrameMin, 0);
+    std::fill(m_flag.begin(), m_flag.end(), 0);
+
     for (int i = 0; i < req.NumFrameMin; i++)
         m_mids[i] = CreateBuffer(device, size);
 
@@ -2917,6 +2922,9 @@ mfxStatus MfxFrameAllocResponse::AllocCmSurfaces(
 
     m_mids.resize(req.NumFrameMin, 0);
     m_locked.resize(req.NumFrameMin, 0);
+    m_flag.resize(req.NumFrameMin, 0);
+    std::fill(m_flag.begin(), m_flag.end(), 0);
+
     for (int i = 0; i < req.NumFrameMin; i++)
         m_mids[i] = CreateSurface(device, req.Info.Width, req.Info.Height, req.Info.FourCC);
 
@@ -2941,6 +2949,8 @@ mfxStatus MfxFrameAllocResponse::AllocCmSurfacesUP(
     m_mids.resize(req.NumFrameMin, 0);
     m_locked.resize(req.NumFrameMin, 0);
     m_sysmems.resize(req.NumFrameMin, 0);
+    m_flag.resize(req.NumFrameMin, 0);
+    std::fill(m_flag.begin(), m_flag.end(), 0);
 
     for (int i = 0; i < req.NumFrameMin; i++) {
         m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
@@ -2967,6 +2977,8 @@ mfxStatus MfxFrameAllocResponse::AllocFrames(
 
     m_locked.resize(req.NumFrameMin, 0);
     m_sysmems.resize(req.NumFrameMin, 0);
+    m_flag.resize(req.NumFrameMin, 0);
+    std::fill(m_flag.begin(), m_flag.end(), 0);
 
     for (int i = 0; i < req.NumFrameMin; i++) {
         m_sysmems[i] = CM_ALIGNED_MALLOC(size, 0x1000);
@@ -3000,6 +3012,8 @@ mfxStatus MfxFrameAllocResponse::AllocCmBuffersUp(
     m_mids.resize(req.NumFrameMin, 0);
     m_locked.resize(req.NumFrameMin, 0);
     m_sysmems.resize(req.NumFrameMin, 0);
+    m_flag.resize(req.NumFrameMin, 0);
+    std::fill(m_flag.begin(), m_flag.end(), 0);
 
     for (int i = 0; i < req.NumFrameMin; i++)
     {
@@ -3022,6 +3036,31 @@ mfxU32 MfxFrameAllocResponse::Lock(mfxU32 idx)
         return 0;
     assert(m_locked[idx] < 0xffffffff);
     return ++m_locked[idx];
+}
+void MfxFrameAllocResponse::ClearFlag(mfxU32 idx)
+{
+    assert(idx < m_flag.size());
+    if (idx < m_flag.size())
+    {
+        m_flag[idx] = 0;
+    }
+}
+void MfxFrameAllocResponse::SetFlag(mfxU32 idx, mfxU32 flag)
+{
+    assert(idx < m_flag.size());
+    if (idx < m_flag.size())
+    {
+        m_flag[idx] |= flag;
+    }
+}
+mfxU32 MfxFrameAllocResponse::GetFlag(mfxU32 idx) const
+{
+    assert(idx < m_flag.size());
+    if (idx < m_flag.size())
+    {
+        return m_flag[idx];
+    }
+    return 0;
 }
 
 void MfxFrameAllocResponse::Unlock()
@@ -3064,6 +3103,7 @@ mfxMemId MfxHwH264Encode::AcquireResource(
     if (index > pool.NumFrameActual)
         return MID_INVALID;
     pool.Lock(index);
+    pool.ClearFlag(index);
     return pool.mids[index];
 }
 
@@ -3081,6 +3121,7 @@ mfxHDLPair MfxHwH264Encode::AcquireResourceUp(
     if (index > pool.NumFrameActual)
         return p;
     pool.Lock(index);
+    pool.ClearFlag(index);
     p.first  = pool.mids[index];
     p.second = pool.GetSysmemBuffer(index);
     return p;

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -53,19 +53,21 @@ namespace VmeBrcWrapper
     {
         MFX_CHECK_NULL_PTR3(pthis, par, ctrl);
 
-        //only EncodedOrder is really used by VMEBrc::GetQP
-        MfxHwH265Encode::MfxVideoParam fakePar;
+        //only EncodedOrder is really used by VMEBrc::GetFrameCtrl
         MfxHwH265Encode::Task task;
         task.m_eo = par->EncodedOrder;
 
-        ctrl->QpY = ((TBRC*)pthis)->GetQP(fakePar, task);
+        auto sts = ((TBRC*)pthis)->GetFrameCtrl(task);
 
-        return MFX_ERR_NONE;
+        ctrl->QpY = task.m_qpY;
+
+        return sts;
     }
-    static mfxStatus Update(mfxHDL pthis, mfxBRCFrameParam* par, mfxBRCFrameCtrl*, mfxBRCFrameStatus* status)
+    static mfxStatus Update(mfxHDL pthis, mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status)
     {
         MFX_CHECK_NULL_PTR3(pthis, par, status);
-        ((TBRC*)pthis)->Report(par->FrameType, par->CodedFrameSize, 0, 0, par->EncodedOrder, 0, 0);
+        MFX_CHECK_NULL_PTR1(ctrl);
+        ((TBRC*)pthis)->Report(par->FrameType, par->CodedFrameSize, 0, 0, par->EncodedOrder, 0, mfxU32(ctrl->QpY));
 
         status->BRCStatus = MFX_BRC_OK;
 

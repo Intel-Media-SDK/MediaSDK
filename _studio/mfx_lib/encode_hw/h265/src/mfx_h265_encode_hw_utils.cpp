@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -3828,14 +3828,17 @@ mfxStatus CodeAsSkipFrame(     VideoCORE &            core,
         mfxFrameSurface1 surfSrc = { {0,}, video.mfx.FrameInfo, src };
         mfxFrameSurface1 surfDst = { {0,}, video.mfx.FrameInfo, dst };
 
-        sts = core.DoFastCopyWrapper(&surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
-        MFX_CHECK_STS(sts);
+        if ((poolRec.GetFlag(refFrame.m_idxRec) & H265_FRAME_FLAG_READY) != 0)
+        {
+            sts = core.DoFastCopyWrapper(&surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
+            MFX_CHECK_STS(sts);
 
-        if (ind!=0)
-            poolRec.SetFlag(refFrame.m_idxRec, 1);
+            if (ind != 0)
+                poolRec.SetFlag(refFrame.m_idxRec, H265_FRAME_FLAG_SKIPPED);
+        }
 
     }
-    poolRec.SetFlag(task.m_idxRec, 1);
+    poolRec.SetFlag(task.m_idxRec, H265_FRAME_FLAG_SKIPPED);
 
 
     return sts;

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -218,7 +218,7 @@ void VMEBrc::PreEnc(mfxU32 /*frameType*/, std::vector<VmeData *> const & /*vmeDa
 }
 
 
-mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32 /* qp */)
+mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userDataLength*/, mfxU32 /*repack*/, mfxU32  picOrder, mfxU32 /* maxFrameSize */, mfxU32  qp )
 {
     UMC::AutomaticUMCMutex guard(m_mutex);
 
@@ -250,37 +250,39 @@ mfxU32 VMEBrc::Report(mfxU32 /*frameType*/, mfxU32 dataLength, mfxU32 /*userData
     if (start != m_laData.end())
     {
         //mfxU32 level = (*start).layer < 8 ? (*start).layer : 7;
-        mfxI32 curQp = (*start).qp;
-        mfxF64 oldCoeff = m_rateCoeffHistory[curQp].GetCoeff();
+        mfxF64 oldCoeff = m_rateCoeffHistory[qp].GetCoeff();
         mfxF64 y = std::max(0.0, realRatePerMb);
-        mfxF64 x = (*start).estRate[curQp];
-        mfxF64 minY = NORM_EST_RATE * INIT_RATE_COEFF_VME[curQp] * MIN_RATE_COEFF_CHANGE;
-        mfxF64 maxY = NORM_EST_RATE * INIT_RATE_COEFF_VME[curQp] * MAX_RATE_COEFF_CHANGE;
+        mfxF64 x = (*start).estRate[qp];
+        mfxF64 minY = NORM_EST_RATE * INIT_RATE_COEFF_VME[qp] * MIN_RATE_COEFF_CHANGE;
+        mfxF64 maxY = NORM_EST_RATE * INIT_RATE_COEFF_VME[qp] * MAX_RATE_COEFF_CHANGE;
         y = mfx::clamp(y / x * NORM_EST_RATE, minY, maxY); 
-        m_rateCoeffHistory[curQp].Add(NORM_EST_RATE, y);
+        m_rateCoeffHistory[qp].Add(NORM_EST_RATE, y);
         //mfxF64 ratio = m_rateCoeffHistory[curQp].GetCoeff() / oldCoeff;
         mfxF64 ratio = y / (oldCoeff*NORM_EST_RATE);
         //printf("oldCoeff %f, new %f, ratio %f\n",oldCoeff, y, ratio);
         for (mfxI32 i = -m_qpUpdateRange; i <= m_qpUpdateRange; i++)
-            if (i != 0 && curQp + i >= 0 && curQp + i < 52)
+            if (i != 0 && qp + i >= 0 && qp + i < 52)
             {
                 mfxF64 r = ((ratio - 1.0) * (1.0 - ((mfxF64)abs(i))/((mfxF64)m_qpUpdateRange + 1.0)) + 1.0);
-                m_rateCoeffHistory[curQp + i].Add(NORM_EST_RATE,
-                    NORM_EST_RATE * m_rateCoeffHistory[curQp + i].GetCoeff() * r);
+                m_rateCoeffHistory[qp + i].Add(NORM_EST_RATE,
+                    NORM_EST_RATE * m_rateCoeffHistory[qp + i].GetCoeff() * r);
             }
         (*start).bNotUsed = 1;
     }
     return 0;
 }
 
-mfxI32 VMEBrc::GetQP(MfxVideoParam & /*video*/, Task &task )
+mfxStatus  VMEBrc::GetFrameCtrl(Task &task)
 {
     UMC::AutomaticUMCMutex guard(m_mutex);
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "VMEBrc::GetQp");
 
     if (!m_laData.size())
-        return 26;
+    {
+        task.m_qpY = 26;
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
 
     mfxF64 totalEstRate[52] = {}; 
 
@@ -368,7 +370,9 @@ mfxI32 VMEBrc::GetQP(MfxVideoParam & /*video*/, Task &task )
     }
     (*start).qp = m_curQp;
 
-    return mfxU8(m_curQp);
+    task.m_qpY =  (mfxI8)(m_curQp);
+
+    return MFX_ERR_NONE;
 }
 BrcIface * CreateBrc(MfxVideoParam &video)
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1661,6 +1661,11 @@ mfxStatus ImplementationAvc::GetVideoParam(mfxVideoParam *par)
 
     par->ExtParam    = ExtParam;
     par->NumExtParam = NumExtParam;
+    mfxExtCodingOption3 & extOpt3 = GetExtBufferRef(m_video);
+    if (m_video.calcParam.TCBRCTargetFrameSize != 0 && IsOn(extOpt3.LowDelayBRC))
+        par->mfx.TargetKbps = (mfxU16)roundl(m_video.calcParam.TCBRCTargetFrameSize / 1000.0 * 8.0
+                              / std::max<mfxU32>(par->mfx.BRCParamMultiplier, 1)
+                              * (mfxF64(par->mfx.FrameInfo.FrameRateExtN) / par->mfx.FrameInfo.FrameRateExtD));
 
     return MFX_ERR_NONE;
 }
@@ -2292,6 +2297,116 @@ inline void UpdateBRCParams(DdiTask  & task)
     GetHRDParamFromBRC(task, task.m_initCpbRemoval, task.m_initCpbRemovalOffset);
 }
 
+mfxStatus ImplementationAvc::CheckSliceSize(DdiTask &task, bool &bToRecode)
+{
+    mfxU32   bsSizeAvail = mfxU32(m_tmpBsBuf.size());
+    mfxU8    *pBS = m_tmpBsBuf.data();
+    mfxStatus sts = MFX_ERR_NONE;
+    mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(m_video);
+
+    bToRecode = false;
+
+    MFX_CHECK(task.m_fieldPicFlag == 0, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    if ((sts = CopyBitstream(*m_core, m_video, task, task.m_fid[0], pBS, bsSizeAvail)) != MFX_ERR_NONE)
+        return Error(sts);
+
+    sts = UpdateSliceInfo(pBS, pBS + task.m_bsDataLength[task.m_fid[0]], extOpt2.MaxSliceSize, task, bToRecode);
+    if (sts != MFX_ERR_NONE)
+        return Error(sts);
+
+    if (bToRecode)
+    {
+        if (task.m_repack == 0)
+        {
+            sts = CorrectSliceInfo(task, 70, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
+            if (sts != MFX_ERR_NONE && sts != MFX_ERR_UNDEFINED_BEHAVIOR)
+                return Error(sts);
+            if (sts == MFX_ERR_UNDEFINED_BEHAVIOR)
+                task.m_repack = 1;
+        }
+        if (task.m_repack > 0)
+        {
+            if (task.m_repack > 5 && task.m_SliceInfo.size() > 255)
+            {
+                sts = CorrectSliceInfo(task, 70, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
+                if (sts != MFX_ERR_NONE && sts != MFX_ERR_UNDEFINED_BEHAVIOR)
+                    return Error(sts);
+            }
+            else
+            {
+                size_t old_slice_size = task.m_SliceInfo.size();
+                sts = CorrectSliceInfoForsed(task, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
+                if (sts != MFX_ERR_NONE)
+                    return Error(sts);
+                if (old_slice_size == task.m_SliceInfo.size() && task.m_repack < 4)
+                    task.m_repack = 4;
+            }
+        }
+        if (task.m_repack >= 4)
+        {
+            if (task.m_cqpValue[0] < 51)
+            {
+                task.m_cqpValue[0] = task.m_cqpValue[0] + 1 + (mfxU8)(task.m_repack - 4);
+                if (task.m_cqpValue[0] > 51)
+                    task.m_cqpValue[0] = 51;
+                task.m_cqpValue[1] = task.m_cqpValue[0];
+            }
+            else if (task.m_SliceInfo.size() > 255)
+                return MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
+    }
+    return sts;
+}
+mfxStatus ImplementationAvc::CheckBufferSize(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength, mfxBitstream * bs)
+{
+    if ((bsDataLength > (bs->MaxLength - bs->DataOffset - bs->DataLength)))
+    {
+        if (task.m_cqpValue[0] == 51)
+            return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
+        task.m_cqpValue[0] = task.m_cqpValue[0] + 1;
+        task.m_cqpValue[1] = task.m_cqpValue[0];
+        // printf("Recoding 0: frame %d, qp %d\n", task->m_frameOrder, task->m_cqpValue[0]);
+        bToRecode = true;
+    }
+    return MFX_ERR_NONE;
+}
+mfxStatus ImplementationAvc::CheckBRCStatus(DdiTask &task, bool &bToRecode, mfxU32 bsDataLength)
+{
+    mfxExtCodingOption2    const & extOpt2 = GetExtBufferRef(m_video);
+    task.m_brcFrameParams.CodedFrameSize = bsDataLength;
+    mfxU32 res = m_brc.Report(task.m_brcFrameParams, 0, GetMaxFrameSize(task, m_video, m_hrd), task.m_brcFrameCtrl);
+    MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
+    if ((res != 0) && (!extOpt2.MaxSliceSize))
+    {
+        if (task.m_panicMode)
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+
+        task.m_brcFrameParams.NumRecode++;
+        if ((task.m_cqpValue[0] == 51 || (res & UMC::BRC_NOT_ENOUGH_BUFFER)) && (res & UMC::BRC_ERR_BIG_FRAME))
+        {
+            task.m_panicMode = 1;
+            task.m_repack = 100;
+            task.m_isSkipped = true;
+            bToRecode = true;
+        }
+        else if (((res & UMC::BRC_NOT_ENOUGH_BUFFER) || (task.m_repack > 2)) && (res & UMC::BRC_ERR_SMALL_FRAME))
+        {
+            task.m_minFrameSize = m_brc.GetMinFrameSize() / 8;
+            task.m_brcFrameParams.CodedFrameSize = task.m_minFrameSize;
+            res = m_brc.Report(task.m_brcFrameParams, 0, m_hrd.GetMaxFrameSize((task.m_type[task.m_fid[0]] & MFX_FRAMETYPE_IDR)), task.m_brcFrameCtrl);
+            MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
+            bToRecode = false; //Padding is in update bitstream
+        }
+        else
+        {
+            m_brc.GetQpForRecode(task.m_brcFrameParams, task.m_brcFrameCtrl);
+            UpdateBRCParams(task);
+            bToRecode = true;
+        }
+    }
+    return MFX_ERR_NONE;
+}
 void ImplementationAvc::PreserveTimeStamp(mfxU64 timeStamp)
 {
     // insert the unknown time stamp in the list end.
@@ -2661,7 +2776,8 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
             if (task == m_lookaheadFinished.end())
                 break;
 
-            if (task->isSEIHRDParam(extOpt, extOpt2) && (!m_encoding.empty()))
+            bool toSkip = IsFrameToSkip(*task, m_rec, m_recFrameOrder, m_enabledSwBrc);
+            if ((task->isSEIHRDParam(extOpt, extOpt2) || toSkip) && (!m_encoding.empty()))
             {
                 // wait until all previously submitted encoding tasks are finished
                 m_bDeferredFrame ++;
@@ -2816,6 +2932,12 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 }
             }
 #endif
+            if (toSkip)
+            {
+                mfxStatus sts = CodeAsSkipFrame(*m_core, m_video, *task, m_rawSkip, m_rec);
+                if (sts != MFX_ERR_NONE)
+                    return Error(sts);
+            }
 
             for (mfxU32 f = 0; f <= task->m_fieldPicFlag; f++)
             {
@@ -2896,8 +3018,6 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::WAIT_ENCODE");
         DdiTaskIter task = FindFrameToWaitEncode(m_encoding.begin(), m_encoding.end());
-        mfxU8*      pBuff[2] ={0,0};
-        Hrd hrd = m_hrd;
 
         mfxStatus sts = MFX_ERR_NONE;
         if (m_enabledSwBrc)
@@ -2912,120 +3032,34 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     bsDataLength += task->m_bsDataLength[task->m_fid[f]];
                 }
                 //printf("Real frameSize %d, repack %d\n", bsDataLength, task->m_repack);
-                bool bRecoding = false;
-                if (extOpt2.MaxSliceSize)
+                bool bRecoding = task->m_toRecode;
+                if (!bRecoding && extOpt2.MaxSliceSize)
                 {
-                    mfxU32   bsSizeAvail = mfxU32(m_tmpBsBuf.size());
-                    mfxU8    *pBS = &m_tmpBsBuf[0];
-
-
-                    for (mfxU32 f = 0; f <= 0 /*task->m_fieldPicFlag */; f++)
-                    {
-                        if ((sts = CopyBitstream(*m_core, m_video,*task, task->m_fid[f], pBS, bsSizeAvail)) != MFX_ERR_NONE)
-                            return Error(sts);
-
-                        sts = UpdateSliceInfo(pBS, pBS + task->m_bsDataLength[task->m_fid[f]], extOpt2.MaxSliceSize, *task, bRecoding);
-                        if (sts != MFX_ERR_NONE)
-                            return Error(sts);
-
-                        if (bRecoding)
-                        {
-                           if (task->m_repack == 0)
-                           {
-                               sts = CorrectSliceInfo(*task, 70, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
-                               if (sts != MFX_ERR_NONE && sts != MFX_ERR_UNDEFINED_BEHAVIOR)
-                                    return Error(sts);
-                               if (sts == MFX_ERR_UNDEFINED_BEHAVIOR)
-                                   task->m_repack = 1;
-                           }
-                           if (task->m_repack > 0)
-                           {
-                               if (task->m_repack > 5 && task->m_SliceInfo.size() > 255)
-                               {
-                                  sts = CorrectSliceInfo(*task, 70, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
-                                  if (sts != MFX_ERR_NONE && sts != MFX_ERR_UNDEFINED_BEHAVIOR)
-                                      return Error(sts);
-                               }
-                               else
-                               {
-                                   size_t old_slice_size = task->m_SliceInfo.size();
-                                   sts = CorrectSliceInfoForsed(*task, m_video.calcParam.widthLa, m_video.calcParam.heightLa);
-                                   if (sts != MFX_ERR_NONE)
-                                        return Error(sts);
-                                   if (old_slice_size == task->m_SliceInfo.size() && task->m_repack <4)
-                                       task->m_repack = 4;
-                               }
-                           }
-                           if (task->m_repack >=4)
-                           {
-                               if (task->m_cqpValue[0] < 51)
-                               {
-                                    task->m_cqpValue[0] = task->m_cqpValue[0] + 1 + (mfxU8)(task->m_repack - 4);
-                                    if (task->m_cqpValue[0] > 51)
-                                        task->m_cqpValue[0] = 51;
-                                    task->m_cqpValue[1] = task->m_cqpValue[0];
-                               }
-                               else if ( task->m_SliceInfo.size() > 255)
-                                   return MFX_ERR_UNDEFINED_BEHAVIOR;
-                           }
-                        }
-
-                        pBuff[f] = pBS;
-                        pBS += task->m_bsDataLength[task->m_fid[f]];
-                        bsSizeAvail -= task->m_bsDataLength[task->m_fid[f]];
-                    }
-                } // extOpt2->MaxSliceSize
-                if (!bRecoding && (bsDataLength > (bs->MaxLength - bs->DataOffset - bs->DataLength)))
-                {
-                        if (task->m_cqpValue[0] ==  51)
-                            return Error(MFX_ERR_UNDEFINED_BEHAVIOR);
-                        task->m_cqpValue[0]= task->m_cqpValue[0] + 1;
-                        task->m_cqpValue[1]= task->m_cqpValue[0];
-                        // printf("Recoding 0: frame %d, qp %d\n", task->m_frameOrder, task->m_cqpValue[0]);
-                        bRecoding = true;
+                    sts = CheckSliceSize(*task, bRecoding);
+                    if (sts != MFX_ERR_NONE)
+                        return Error(sts);
                 }
                 if (!bRecoding)
                 {
-                    task->m_brcFrameParams.CodedFrameSize = bsDataLength;
-                    mfxU32 res = m_brc.Report(task->m_brcFrameParams, 0, GetMaxFrameSize(*task, m_video, hrd), task->m_brcFrameCtrl);
-                    MFX_CHECK((mfxI32)res != UMC::BRC_ERROR, MFX_ERR_UNDEFINED_BEHAVIOR);
-                    if ((res != 0) && (!extOpt2.MaxSliceSize))
-                    {
-                        if (task->m_panicMode)
-                        {
-                            return MFX_ERR_UNDEFINED_BEHAVIOR;
-                        }
-                        task->m_brcFrameParams.NumRecode++;
-                        if ((task->m_cqpValue[0] ==  51 || (res & UMC::BRC_NOT_ENOUGH_BUFFER)) && (res & UMC::BRC_ERR_BIG_FRAME ))
-                        {
-                            task->m_panicMode = 1;
-                            task->m_repack = 100;
-                            sts = CodeAsSkipFrame(*m_core,m_video,*task, m_rawSkip);
-                            if (sts != MFX_ERR_NONE)
-                               return Error(sts);
-                            bRecoding = true;
-                        }
-                        else if (((res & UMC::BRC_NOT_ENOUGH_BUFFER) || (task->m_repack >2))&& (res & UMC::BRC_ERR_SMALL_FRAME ))
-                        {
-                            task->m_minFrameSize = m_brc.GetMinFrameSize()/8;
-
-                            task->m_brcFrameParams.CodedFrameSize = task->m_minFrameSize;
-                            m_brc.Report(task->m_brcFrameParams, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_brcFrameCtrl);
-                            bRecoding = false; //Padding is in update bitstream
-                        }
-                        else
-                        {
-                            m_brc.GetQpForRecode(task->m_brcFrameParams, task->m_brcFrameCtrl);
-                            UpdateBRCParams(*task);
-                            bRecoding = true;
-                        }
-                    }
+                    sts = CheckBufferSize(*task, bRecoding, bsDataLength, bs);
+                    if (sts != MFX_ERR_NONE)
+                        return Error(sts);
+                }
+                if (!bRecoding)
+                {
+                     if (IsOn(extOpt2.MBBRC))
+                        task->m_brcFrameCtrl.QpY = task->m_cqpValue[0];
+                    sts = CheckBRCStatus(*task, bRecoding, bsDataLength);
+                    if (sts != MFX_ERR_NONE)
+                        return Error(sts);
                 }
                 if (bRecoding)
                 {
 
                     DdiTaskIter curTask = task;
                     DdiTaskIter nextTask;
+
+                    task->m_toRecode = false;
 
                     // wait for next tasks
                     while ((nextTask = FindFrameToWaitEncodeNext(m_encoding.begin(), m_encoding.end(), curTask)) != curTask)
@@ -3044,43 +3078,54 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                             m_brc.GetQpForRecode(nextTask->m_brcFrameParams, nextTask->m_brcFrameCtrl);
                             UpdateBRCParams(*nextTask);
                             bRecoding = true;
-                        }
+                       }
                         curTask = nextTask;
                     }
                     // restart  encoded task
                     nextTask = curTask = task;
                     do
                     {
-                        if (m_enabledSwBrc && (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR)) {
+                        if (m_enabledSwBrc && (m_video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || m_video.mfx.RateControlMethod == MFX_RATECONTROL_VBR))
+                        {
                             if (nextTask->m_longTermFrameIdx != NO_INDEX_U8 && nextTask->m_LtrOrder == m_LtrOrder) {
                                 m_LtrQp = nextTask->m_cqpValue[0];
                             }
-                            if (nextTask->m_type[0] & MFX_FRAMETYPE_REF) {
+                            if (nextTask->m_type[0] & MFX_FRAMETYPE_REF)
+                            {
                                 m_RefQp = nextTask->m_cqpValue[0];
                                 m_RefOrder = nextTask->m_frameOrder;
                             }
                         }
                         curTask = nextTask;
                         curTask->m_bsDataLength[0] = curTask->m_bsDataLength[1] = 0;
-
+                        bool toSkip = IsFrameToSkip(*curTask, m_rec, m_recFrameOrder, m_enabledSwBrc);
+                        if (toSkip)
+                        {
+                            sts = CodeAsSkipFrame(*m_core, m_video, *curTask, m_rawSkip, m_rec);
+                            if (sts == MFX_WRN_DEVICE_BUSY)
+                            {
+                                curTask->m_toRecode = true;
+                            }
+                            else if (sts != MFX_ERR_NONE)
+                                return Error(sts);
+                        }
                         for (mfxU32 f = 0; f <= curTask->m_fieldPicFlag; f++)
                         {
                             PrepareSeiMessageBuffer(m_video, *curTask, curTask->m_fid[f], m_sei);
-                            while ((sts =  m_ddi->Execute(curTask->m_handleRaw, *curTask, curTask->m_fid[f], m_sei)) == MFX_TASK_BUSY)
+                            while ((sts = m_ddi->Execute(curTask->m_handleRaw, *curTask, curTask->m_fid[f], m_sei)) == MFX_TASK_BUSY)
                             {
                                 vm_time_sleep(0);
                             }
-                            if ( sts != MFX_ERR_NONE)
+                            if (sts != MFX_ERR_NONE)
                                 return Error(sts);
                         }
-                    } while ((nextTask = FindFrameToWaitEncodeNext(m_encoding.begin(), m_encoding.end(), curTask)) != curTask) ;
+                    } while ((nextTask = FindFrameToWaitEncodeNext(m_encoding.begin(), m_encoding.end(), curTask)) != curTask);
 
                     continue;
                 }
-
-
                 break;
             }
+            m_rec.SetFlag(task->m_idxRecon, H264_FRAME_FLAG_READY);
             task->m_bs = bs;
             for (mfxU32 f = 0; f <= task->m_fieldPicFlag; f++)
             {

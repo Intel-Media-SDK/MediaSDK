@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -3245,11 +3245,14 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
         par.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
     }
-
-    if (hwCaps.ddi_caps.MBBRCSupport == 0 && hwCaps.ddi_caps.ICQBRCSupport == 0 && IsOn(extOpt2->MBBRC))
+    if (IsOn(extOpt2->MBBRC))
     {
-        changed = true;
-        extOpt2->MBBRC = MFX_CODINGOPTION_OFF;
+        if ((isSWBRC(par) && hwCaps.ddi_caps.QpAdjustmentSupport == 0) ||
+            (!isSWBRC(par) && (hwCaps.ddi_caps.MBBRCSupport == 0 && hwCaps.ddi_caps.ICQBRCSupport == 0)))
+        {
+            changed = true;
+            extOpt2->MBBRC = MFX_CODINGOPTION_OFF;
+        }
     }
 
     if (extOpt2->BRefType > 2)
@@ -5332,6 +5335,13 @@ bool IsHRDBasedBRCMethod(mfxU16  RateControlMethod)
             RateControlMethod != MFX_RATECONTROL_ICQ &&
             RateControlMethod != MFX_RATECONTROL_LA && RateControlMethod != MFX_RATECONTROL_LA_ICQ;
 }
+bool MfxHwH264Encode::isSWBRC(MfxVideoParam const & par)
+{
+    mfxExtCodingOption2       &extOpt2 = GetExtBufferRef(par);
+    return (bRateControlLA(par.mfx.RateControlMethod) || 
+        (IsOn(extOpt2.ExtBRC) && 
+         (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)));
+}
 
 
 void MfxHwH264Encode::SetDefaults(
@@ -6044,7 +6054,9 @@ void MfxHwH264Encode::SetDefaults(
 
         if (par.calcParam.initialDelayInKB == 0 && IsHRDBasedBRCMethod(par.mfx.RateControlMethod))
         {
-            par.calcParam.initialDelayInKB = par.calcParam.bufferSizeInKB / 2;
+            par.calcParam.initialDelayInKB = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR && isSWBRC(par)) ?
+                3*par.calcParam.bufferSizeInKB / 4:
+                par.calcParam.bufferSizeInKB / 2;
             par.calcParam.mvcPerViewPar.initialDelayInKB = par.calcParam.mvcPerViewPar.bufferSizeInKB / 2;
         }
     }
