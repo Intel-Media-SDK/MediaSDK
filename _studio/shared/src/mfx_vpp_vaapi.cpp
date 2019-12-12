@@ -1290,6 +1290,7 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         default:
             break;
         }
+        m_pipelineParam[0].output_color_properties.chroma_sample_location = chromaSitingMode;
 #endif
     vaSts = vaCreateBuffer(m_vaDisplay,
                         m_vaContextVPP,
