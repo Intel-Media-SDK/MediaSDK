@@ -116,7 +116,7 @@ namespace ExtBuffer
                 memset(p, 0, sz);
                 *(mfxExtBuffer*)p = { id, sz };
 
-                return m_eb.emplace(id, p);
+                return m_eb.emplace(id, std::unique_ptr<mfxU8[]>(p));
             }
             else if (bReset)
             {
