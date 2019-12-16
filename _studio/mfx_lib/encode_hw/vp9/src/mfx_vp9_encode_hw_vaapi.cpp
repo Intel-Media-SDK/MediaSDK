@@ -622,11 +622,17 @@ void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
     {
         caps.Color420Only = 0;
         caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
-        caps.NumScalablePipesMinus1 = 0; // TODO: for now driver doesn't support multiple pipes scalability
+        caps.NumScalablePipesMinus1 = 0;
     }
+#if (MFX_VERSION >= 1031)
+    if (platform >= MFX_HW_TGL_LP)
+    {
+        caps.NumScalablePipesMinus1 = 3;
+    }
+#endif
 #else
     std::ignore = platform;
-#endif
+#endif // (MFX_VERSION >= 1027)
 
     caps.ForcedSegmentationSupport = 1;
     caps.AutoSegmentationSupport = 1;
