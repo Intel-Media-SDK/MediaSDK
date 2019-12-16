@@ -55,8 +55,8 @@ protected:
             MFX_CHECK(!bSet, MFX_ERR_NONE);
 
             defaults.CheckSAO.Push([](
-                Gen11::Defaults::TCheckAndFix::TExt
-                , const Gen11::Defaults::Param& defPar
+                Gen9::Defaults::TCheckAndFix::TExt
+                , const Gen9::Defaults::Param& defPar
                 , mfxVideoParam& par)
             {
                 mfxExtHEVCParam* pHEVC = ExtBuffer::Get(par);

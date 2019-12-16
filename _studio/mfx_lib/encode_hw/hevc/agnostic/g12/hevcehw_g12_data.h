@@ -23,19 +23,19 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_g11_data.h"
+#include "hevcehw_g9_data.h"
 
 namespace HEVCEHW
 {
 namespace Gen12
 {
-    using Gen11::Defaults;
-    using Gen11::FrameBaseInfo;
-    using Gen11::Task;
+    using Gen9::Defaults;
+    using Gen9::FrameBaseInfo;
+    using Gen9::Task;
 
     enum eFeatureId
     {
-        FEATURE_REXT = Gen11::eFeatureId::NUM_FEATURES
+        FEATURE_REXT = Gen9::eFeatureId::NUM_FEATURES
         , FEATURE_CAPS
         , FEATURE_SAO
         , FEATURE_QP_MODULATION
@@ -43,9 +43,9 @@ namespace Gen12
     };
 
     struct Glob
-        : Gen11::Glob
+        : Gen9::Glob
     {
-        static const StorageR::TKey _KD = __LINE__ + 1 - Gen11::Glob::NUM_KEYS;
+        static const StorageR::TKey _KD = __LINE__ + 1 - Gen9::Glob::NUM_KEYS;
         static const StorageR::TKey ReservedKey12_0 = __LINE__ - _KD;
         static const StorageR::TKey ReservedKey12_1 = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;

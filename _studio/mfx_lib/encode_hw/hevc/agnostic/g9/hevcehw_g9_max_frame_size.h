@@ -24,35 +24,42 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_g9_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
-{
-class Caps
-    : public FeatureBase
-{
-public:
+    namespace Gen9
+    {
+        class MaxFrameSize
+            : public FeatureBase
+        {
+        public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
+        DECL_BLOCK(CheckAndFix)\
+        DECL_BLOCK(SetDefaults)\
+        DECL_BLOCK(Init)\
+        DECL_BLOCK(Reset)\
+        DECL_BLOCK(PatchDDITask)
+#define DECL_FEATURE_NAME "G9_MaxFrameSize"
 #include "hevcehw_decl_blocks.h"
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+            MaxFrameSize(mfxU32 FeatureId)
+                : FeatureBase(FeatureId)
+            {}
 
-protected:
+        protected:
+            virtual void SetSupported(ParamSupport& par) override;
+            virtual void SetInherited(ParamInheritance& par) override;
+            virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override {};
+            virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
+            virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+            virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
+            virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override {};
 
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+            bool m_bPatchNextDDITask = false;
+        };
 
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
-};
-
-} //Gen12
+    } //Gen9
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

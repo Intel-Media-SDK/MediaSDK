@@ -24,35 +24,46 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_g9_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Gen9
 {
-class Caps
-    : public FeatureBase
-{
-public:
+    class Interlace
+        : public FeatureBase
+    {
+    public:
 #define DECL_BLOCK_LIST\
+    DECL_BLOCK(CheckPicStruct)\
     DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
+    DECL_BLOCK(SetReorder)\
+    DECL_BLOCK(PatchRawInfo)\
+    DECL_BLOCK(PrepareTask)\
+    DECL_BLOCK(InsertPTSEI)\
+    DECL_BLOCK(PatchDDITask)\
+    DECL_BLOCK(QueryIOSurf)
+#define DECL_FEATURE_NAME "G9_Interlace"
 #include "hevcehw_decl_blocks.h"
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+        Interlace(mfxU32 FeatureId)
+            : FeatureBase(FeatureId)
+        {}
 
-protected:
+    protected:
+        virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+        virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+        virtual void QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push) override;
+        virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
+        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
 
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+        static bool IsField(mfxU16 PicStruct) { return  !!(PicStruct & MFX_PICSTRUCT_FIELD_SINGLE); }
+        static bool IsBFF(mfxU16 PicStruct) { return !!(PicStruct & MFX_PICSTRUCT_FIELD_BFF); }
 
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
-};
+        std::array<mfxU8, 32> m_buf;
+    };
 
-} //Gen12
+} //Gen9
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

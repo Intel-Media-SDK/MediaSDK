@@ -36,8 +36,8 @@ void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         MFX_CHECK(!bSet, MFX_ERR_NONE);
 
         defaults.GetMaxNumRef.Push([](
-            Gen11::Defaults::TChain<std::tuple<mfxU16, mfxU16>>::TExt
-            , const Gen11::Defaults::Param& dpar)
+            Gen9::Defaults::TChain<std::tuple<mfxU16, mfxU16>>::TExt
+            , const Gen9::Defaults::Param& dpar)
         {
             const mfxU16 nRef[3][2][7] =
             {

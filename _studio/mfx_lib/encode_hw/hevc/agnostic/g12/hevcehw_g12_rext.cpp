@@ -22,7 +22,7 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && (MFX_VERSION >= 1031)
 
 #include "hevcehw_g12_rext.h"
-#include "hevcehw_g11_legacy.h"
+#include "hevcehw_g9_legacy.h"
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Gen12;
@@ -39,9 +39,9 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     Push(BLK_SetRecInfo
         , [](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
-        MFX_CHECK(!local.Contains(Gen11::Tmp::RecInfo::Key), MFX_ERR_NONE);
+        MFX_CHECK(!local.Contains(Gen9::Tmp::RecInfo::Key), MFX_ERR_NONE);
 
-        auto& par = Gen11::Glob::VideoParam::Get(strg);
+        auto& par = Gen9::Glob::VideoParam::Get(strg);
         mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
         bool bG12SpecificRec =
@@ -105,7 +105,7 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
         rec.BitDepthChroma = CO3.TargetBitDepthChroma;
 
-        local.Insert(Gen11::Tmp::RecInfo::Key, std::move(pRI));
+        local.Insert(Gen9::Tmp::RecInfo::Key, std::move(pRI));
 
         return MFX_ERR_NONE;
     });
@@ -129,7 +129,7 @@ mfxStatus RExt::SetGuid(mfxVideoParam& par, StorageRW& strg)
 
     MFX_CHECK(pGUID, MFX_ERR_NONE);
 
-    Gen11::Glob::GUID::GetOrConstruct(strg) = *pGUID;
+    Gen9::Glob::GUID::GetOrConstruct(strg) = *pGUID;
 
     return MFX_ERR_NONE;
 }
@@ -144,8 +144,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         MFX_CHECK(!bSet, MFX_ERR_NONE);
 
         defaults.CheckFourCC.Push(
-            [](Gen11::Defaults::TCheckAndFix::TExt prev
-                , const Gen11::Defaults::Param& dpar
+            [](Gen9::Defaults::TCheckAndFix::TExt prev
+                , const Gen9::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
             MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
@@ -153,8 +153,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         });
 
         defaults.CheckInputFormatByFourCC.Push(
-            [](Gen11::Defaults::TCheckAndFix::TExt prev
-                , const Gen11::Defaults::Param& dpar
+            [](Gen9::Defaults::TCheckAndFix::TExt prev
+                , const Gen9::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
             MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
@@ -173,8 +173,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         });
 
         defaults.CheckTargetBitDepth.Push(
-            [](Gen11::Defaults::TCheckAndFix::TExt prev
-                , const Gen11::Defaults::Param& dpar
+            [](Gen9::Defaults::TCheckAndFix::TExt prev
+                , const Gen9::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
             mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
@@ -191,8 +191,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         });
 
         defaults.CheckFourCCByTargetFormat.Push(
-            [](Gen11::Defaults::TCheckAndFix::TExt prev
-                , const Gen11::Defaults::Param& dpar
+            [](Gen9::Defaults::TCheckAndFix::TExt prev
+                , const Gen9::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
             MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
@@ -214,8 +214,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         });
 
         defaults.CheckProfile.Push(
-            [](Gen11::Defaults::TCheckAndFix::TExt prev
-                , const Gen11::Defaults::Param& dpar
+            [](Gen9::Defaults::TCheckAndFix::TExt prev
+                , const Gen9::Defaults::Param& dpar
                 , mfxVideoParam& par)
         {
             MFX_CHECK(IsRextFourCC(par.mfx.FrameInfo.FourCC), prev(dpar, par));
@@ -227,8 +227,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         });
 
         defaults.GetMaxChromaByFourCC.Push(
-            [](Gen11::Defaults::TChain<mfxU16>::TExt prev
-                , const Gen11::Defaults::Param& dpar)
+            [](Gen9::Defaults::TChain<mfxU16>::TExt prev
+                , const Gen9::Defaults::Param& dpar)
         {
             MFX_CHECK(IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC), prev(dpar));
             auto fcc = dpar.mvp.mfx.FrameInfo.FourCC;
@@ -239,8 +239,8 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         });
 
         defaults.GetMaxBitDepthByFourCC.Push(
-            [](Gen11::Defaults::TChain<mfxU16>::TExt prev
-                , const Gen11::Defaults::Param& dpar)
+            [](Gen9::Defaults::TChain<mfxU16>::TExt prev
+                , const Gen9::Defaults::Param& dpar)
         {
             MFX_CHECK(IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC), prev(dpar));
             return mfxU16(12);
@@ -266,7 +266,7 @@ void RExt::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         , [](const mfxVideoParam&, mfxVideoParam& out, StorageW&) -> mfxStatus
     {
         auto& fi = out.mfx.FrameInfo;
-        bool bVideoMem = Gen11::Legacy::IsInVideoMem(out, ExtBuffer::Get(out));
+        bool bVideoMem = Gen9::Legacy::IsInVideoMem(out, ExtBuffer::Get(out));
 
         bool bNeedShift =
             (bVideoMem && !fi.Shift)
@@ -283,7 +283,7 @@ void RExt::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     Push(BLK_HardcodeCaps
         , [](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
     {
-        Gen11::Glob::EncodeCaps::Get(strg).MaxEncodedBitDepth = 2;
+        Gen9::Glob::EncodeCaps::Get(strg).MaxEncodedBitDepth = 2;
         return MFX_ERR_NONE;
     });
 }
