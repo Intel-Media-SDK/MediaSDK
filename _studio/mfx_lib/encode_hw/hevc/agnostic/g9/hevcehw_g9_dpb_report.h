@@ -21,38 +21,34 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && (MFX_VERSION >= MFX_VERSION_NEXT)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_g9_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
-{
-class Caps
-    : public FeatureBase
-{
-public:
+    namespace Gen9
+    {
+        class DPBReport
+            : public FeatureBase
+        {
+        public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
+        DECL_BLOCK(Report)
+#define DECL_FEATURE_NAME "G9_DPBReport"
 #include "hevcehw_decl_blocks.h"
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+            DPBReport(mfxU32 FeatureId)
+                : FeatureBase(FeatureId)
+            {}
 
-protected:
+        protected:
+            virtual void SetSupported(ParamSupport& par) override;
+            virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
+        };
 
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
-};
-
-} //Gen12
+    } //Gen9
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

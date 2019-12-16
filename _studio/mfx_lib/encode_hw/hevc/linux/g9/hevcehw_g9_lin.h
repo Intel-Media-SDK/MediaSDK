@@ -21,38 +21,30 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
 
-#include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_g9.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Linux
 {
-class Caps
-    : public FeatureBase
+namespace Gen9
 {
-public:
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
-#include "hevcehw_decl_blocks.h"
+    class MFXVideoENCODEH265_HW
+        : public HEVCEHW::Gen9::MFXVideoENCODEH265_HW
+    {
+    public:
+        MFXVideoENCODEH265_HW(
+            VideoCORE& core
+            , mfxStatus& status
+            , eFeatureMode mode = eFeatureMode::INIT);
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+        virtual mfxStatus Init(mfxVideoParam *par) override;
+    };
 
-protected:
-
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
-};
-
-} //Gen12
-} //namespace HEVCEHW
+} //Gen9
+} //Linux
+}// namespace HEVCEHW
 
 #endif

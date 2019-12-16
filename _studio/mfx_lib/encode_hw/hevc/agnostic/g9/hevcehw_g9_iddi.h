@@ -24,35 +24,40 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Gen9
 {
-class Caps
-    : public FeatureBase
+
+class IDDI
+    : public virtual FeatureBase
 {
 public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
+    DECL_BLOCK(SetCallChains) \
+    DECL_BLOCK(QueryCaps)     \
+    DECL_BLOCK(CreateDevice)  \
+    DECL_BLOCK(CreateService) \
+    DECL_BLOCK(Register)      \
+    DECL_BLOCK(Reset)      \
+    DECL_BLOCK(SubmitTask)    \
+    DECL_BLOCK(QueryTask)
+#define DECL_FEATURE_NAME "G9_IDDI"
 #include "hevcehw_decl_blocks.h"
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+    IDDI(mfxU32 /*FeatureId*/) {}
 
 protected:
-
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
+    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override = 0;
+    virtual void InitExternal(const FeatureBlocks& blocks, TPushIE Push) override = 0;
+    virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override = 0;
+    virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override = 0;
+    virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override = 0;
+    virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override = 0;
 };
 
-} //Gen12
+} //Gen9
 } //namespace HEVCEHW
 
 #endif

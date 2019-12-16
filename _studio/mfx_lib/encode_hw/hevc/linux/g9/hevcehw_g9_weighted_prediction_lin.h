@@ -21,38 +21,30 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
-
-#include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION) && defined (MFX_VA_LINUX)
+#include "hevcehw_g9_weighted_prediction.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Linux
 {
-class Caps
-    : public FeatureBase
+namespace Gen9
 {
-public:
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
-#include "hevcehw_decl_blocks.h"
+    class WeightPred
+        : public HEVCEHW::Gen9::WeightPred
+    {
+    public:
+        WeightPred(mfxU32 FeatureId)
+            : HEVCEHW::Gen9::WeightPred(FeatureId)
+        {}
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+    protected:
 
-protected:
+        void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
+    };
 
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
-};
-
-} //Gen12
+} //Gen11Win
+} //Linux
 } //namespace HEVCEHW
 
 #endif

@@ -23,36 +23,30 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Gen9
 {
-class Caps
-    : public FeatureBase
-{
-public:
-#define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
-#include "hevcehw_decl_blocks.h"
+    mfxU16 GetMaxDpbSizeByLevel(mfxVideoParam const & par, mfxU32 PicSizeInSamplesY);
+    mfxU32 GetMaxKbpsByLevel(mfxVideoParam const & par);
+    mfxF64 GetMaxFrByLevel(mfxVideoParam const & par, mfxU32 PicSizeInSamplesY);
+    mfxU32 GetMaxCpbInKBByLevel(mfxVideoParam const & par);
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+    mfxU16 GetMinLevel(
+        mfxU32 frN
+        , mfxU32 frD
+        , mfxU16 PicWidthInLumaSamples
+        , mfxU16 PicHeightInLumaSamples
+        , mfxU16 MinRef
+        , mfxU16 NumTileColumns
+        , mfxU16 NumTileRows
+        , mfxU32 NumSlice
+        , mfxU32 BufferSizeInKB
+        , mfxU32 MaxKbps
+        , mfxU16 StartLevel);
 
-protected:
-
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-
-    virtual void SetSpecificCaps(Gen9::EncodeCapsHevc& /*caps*/) {};
-};
-
-} //Gen12
+} //Gen9
 } //namespace HEVCEHW
 
 #endif

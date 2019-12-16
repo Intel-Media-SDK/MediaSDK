@@ -60,15 +60,16 @@ namespace HEVCEHW
 };
 
 #if defined(MFX_ENABLE_HEVCEHW_REFACTORING_LIN_SKL) && defined(MFX_VA_LINUX)
-    #include "hevcehw_g11_lin.h"
-    namespace HEVCEHWDisp { namespace SKL { using namespace HEVCEHW::Linux::Gen11; }; };
+    #include "hevcehw_g9_lin.h"
+    namespace HEVCEHWDisp { namespace SKL { using namespace HEVCEHW::Linux::Gen9; }; };
 #else
     namespace HEVCEHWDisp { namespace SKL { using namespace HEVCEHW::LegacyFallback; }; };
 #endif
 
 #if defined(MFX_ENABLE_HEVCEHW_REFACTORING_LIN_ICL) && defined(MFX_VA_LINUX)
-    #include "hevcehw_g11_lin.h"
-    namespace HEVCEHWDisp { namespace ICL { using namespace HEVCEHW::Linux::Gen11; }; };
+    // There is no gen9/gen11 separation in code - use Gen9 code-pass for ICL as well
+    #include "hevcehw_g9_lin.h"
+    namespace HEVCEHWDisp { namespace ICL { using namespace HEVCEHW::Linux::Gen9; }; };
 #else
     namespace HEVCEHWDisp { namespace ICL { using namespace HEVCEHW::LegacyFallback; }; };
 #endif

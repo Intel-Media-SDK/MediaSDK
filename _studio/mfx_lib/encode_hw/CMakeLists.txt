@@ -30,10 +30,10 @@ endforeach()
 
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic )
-include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic/g11 )
+include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic/g9 )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic/g12 )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/linux )
-include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/linux/g11 )
+include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/linux/g9 )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/linux/g12 )
 include_directories( ${MSDK_LIB_ROOT}/shared/include)
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
@@ -69,33 +69,33 @@ endforeach()
 list( APPEND sources
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
-    hevc/agnostic/g11/hevcehw_g11.cpp
-    hevc/agnostic/g11/hevcehw_g11_alloc.cpp
-    hevc/agnostic/g11/hevcehw_g11_constraints.cpp
-    hevc/agnostic/g11/hevcehw_g11_dirty_rect.cpp
-    hevc/agnostic/g11/hevcehw_g11_dpb_report.cpp
-    hevc/agnostic/g11/hevcehw_g11_encoded_frame_info.cpp
-    hevc/agnostic/g11/hevcehw_g11_ext_brc.cpp
-    hevc/agnostic/g11/hevcehw_g11_hdr_sei.cpp
-    hevc/agnostic/g11/hevcehw_g11_hrd.cpp
-    hevc/agnostic/g11/hevcehw_g11_interlace.cpp
-    hevc/agnostic/g11/hevcehw_g11_legacy.cpp
-    hevc/agnostic/g11/hevcehw_g11_legacy_defaults.cpp
-    hevc/agnostic/g11/hevcehw_g11_max_frame_size.cpp
-    hevc/agnostic/g11/hevcehw_g11_packer.cpp
-    hevc/agnostic/g11/hevcehw_g11_parser.cpp
-    hevc/agnostic/g11/hevcehw_g11_roi.cpp
-    hevc/agnostic/g11/hevcehw_g11_task.cpp
-    hevc/agnostic/g11/hevcehw_g11_weighted_prediction.cpp
+    hevc/agnostic/g9/hevcehw_g9.cpp
+    hevc/agnostic/g9/hevcehw_g9_alloc.cpp
+    hevc/agnostic/g9/hevcehw_g9_constraints.cpp
+    hevc/agnostic/g9/hevcehw_g9_dirty_rect.cpp
+    hevc/agnostic/g9/hevcehw_g9_dpb_report.cpp
+    hevc/agnostic/g9/hevcehw_g9_encoded_frame_info.cpp
+    hevc/agnostic/g9/hevcehw_g9_ext_brc.cpp
+    hevc/agnostic/g9/hevcehw_g9_hdr_sei.cpp
+    hevc/agnostic/g9/hevcehw_g9_hrd.cpp
+    hevc/agnostic/g9/hevcehw_g9_interlace.cpp
+    hevc/agnostic/g9/hevcehw_g9_legacy.cpp
+    hevc/agnostic/g9/hevcehw_g9_legacy_defaults.cpp
+    hevc/agnostic/g9/hevcehw_g9_max_frame_size.cpp
+    hevc/agnostic/g9/hevcehw_g9_packer.cpp
+    hevc/agnostic/g9/hevcehw_g9_parser.cpp
+    hevc/agnostic/g9/hevcehw_g9_roi.cpp
+    hevc/agnostic/g9/hevcehw_g9_task.cpp
+    hevc/agnostic/g9/hevcehw_g9_weighted_prediction.cpp
     hevc/agnostic/g12/hevcehw_g12_caps.cpp
     hevc/agnostic/g12/hevcehw_g12_rext.cpp
-    hevc/linux/g11/hevcehw_g11_fei_lin.cpp
-    hevc/linux/g11/hevcehw_g11_interlace_lin.cpp
-    hevc/linux/g11/hevcehw_g11_lin.cpp
-    hevc/linux/g11/hevcehw_g11_roi_lin.cpp
-    hevc/linux/g11/hevcehw_g11_va_lin.cpp
-    hevc/linux/g11/hevcehw_g11_va_packer_lin.cpp
-    hevc/linux/g11/hevcehw_g11_weighted_prediction_lin.cpp
+    hevc/linux/g9/hevcehw_g9_fei_lin.cpp
+    hevc/linux/g9/hevcehw_g9_interlace_lin.cpp
+    hevc/linux/g9/hevcehw_g9_lin.cpp
+    hevc/linux/g9/hevcehw_g9_roi_lin.cpp
+    hevc/linux/g9/hevcehw_g9_va_lin.cpp
+    hevc/linux/g9/hevcehw_g9_va_packer_lin.cpp
+    hevc/linux/g9/hevcehw_g9_weighted_prediction_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
     hevc/linux/g12/hevcehw_g12_rext_lin.cpp
 )
