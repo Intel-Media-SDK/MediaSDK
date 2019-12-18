@@ -1,25 +1,24 @@
-set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
-
-mfx_include_dirs( )
-
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/include )
-
-set( defs "" )
-set( sources "" )
-set( sources.plus "" )
-
-list( APPEND sources
-    mjpeg/src/mfx_mjpeg_encode.cpp
-    )
-make_library( encode none static )
-set( defs "" )
-
 if( MFX_ENABLE_SW_FALLBACK )
-  ### JPEG Encoder
+  set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
+
+  mfx_include_dirs( )
+
+  include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/include )
   include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )
   include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_enc/include )
   include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
 
+  set( defs "" )
+  set( sources "" )
+  set( sources.plus "" )
+
+  list( APPEND sources
+      mjpeg/src/mfx_mjpeg_encode.cpp
+      )
+  make_library( encode none static )
+  set( defs "" )
+
+  ### JPEG Encoder
   set( sources "" )
   set( defs "" )
   list( APPEND sources
