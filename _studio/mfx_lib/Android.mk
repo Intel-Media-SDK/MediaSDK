@@ -3,7 +3,7 @@ LOCAL_PATH:= $(MFX_HOME)/_studio
 # =============================================================================
 
 MFX_LOCAL_DECODERS := h265 h264 mpeg2 vc1 mjpeg vp8 vp9
-MFX_LOCAL_ENCODERS := h265 h264 mjpeg vp9
+MFX_LOCAL_ENCODERS := h265 h264 mjpeg vp9 hevc
 
 # Setting subdirectories to march thru
 MFX_LOCAL_DIRS := \
@@ -18,6 +18,22 @@ MFX_LOCAL_DIRS_HW := \
     $(addprefix encode_hw/, $(MFX_LOCAL_ENCODERS)) \
     mctf_package/mctf \
     cmrt_cross_platform
+
+MFX_LOCAL_ENCODE_HW_DIRS := \
+    hevc \
+    hevc/linux \
+    hevc/linux/g11 \
+    hevc/embargo \
+    hevc/embargo/linux \
+    hevc/embargo/linux/g11 \
+    hevc/embargo/linux/g11lkf \
+    hevc/embargo/linux/g12 \
+    hevc/embargo/agnostic \
+    hevc/embargo/agnostic/g11 \
+    hevc/embargo/agnostic/g11lkf \
+    hevc/embargo/agnostic/g12 \
+    hevc/agnostic \
+    hevc/agnostic/g11
 
 MFX_LOCAL_SRC_FILES := \
     $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/src/*.cpp)))
@@ -42,6 +58,8 @@ MFX_LOCAL_SRC_FILES_HW += $(addprefix mfx_lib/genx/h264_encode/isa/, \
     genx_histogram_gen11lp_isa.cpp \
     genx_histogram_gen12lp_isa.cpp)
 
+MFX_LOCAL_SRC_FILES_HW += $(patsubst $(LOCAL_PATH)/%, %, $(foreach dir, $(MFX_LOCAL_ENCODE_HW_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/encode_hw/$(dir)/*.cpp)))
+
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
 
@@ -57,7 +75,9 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/mfx_lib/genx/copy_kernels/isa \
     $(MFX_HOME)/_studio/mfx_lib/genx/mctf/isa \
     $(MFX_HOME)/_studio/mfx_lib/genx/asc/isa \
-    $(MFX_HOME)/_studio/shared/asc/include
+    $(MFX_HOME)/_studio/shared/asc/include \
+    $(MFX_HOME)/_studio/shared/include \
+    $(foreach dir, $(MFX_LOCAL_ENCODE_HW_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/encode_hw/$(dir)))
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libmfx_lib_merged_hw \
