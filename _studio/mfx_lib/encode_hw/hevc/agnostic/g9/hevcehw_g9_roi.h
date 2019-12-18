@@ -58,6 +58,11 @@ protected:
     virtual void SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push) override;
     virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
 
+    mfxStatus CheckAndFixROI(
+        ENCODE_CAPS_HEVC const & caps
+        , mfxVideoParam const & par
+        , mfxExtEncoderROI& roi);
+
     bool m_bViaCuQp = false;
 };
 

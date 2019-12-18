@@ -54,7 +54,7 @@ static mfxStatus CheckAndFixRect(
     return MFX_ERR_NONE;
 }
 
-static mfxStatus CheckAndFixROI(
+mfxStatus ROI::CheckAndFixROI(
     ENCODE_CAPS_HEVC const & caps
     , mfxVideoParam const & par
     , mfxExtEncoderROI& roi)
@@ -71,7 +71,6 @@ static mfxStatus CheckAndFixROI(
     if (!bForcedQPMode)
     {
         invalid += !(roi.ROIMode != MFX_ROI_MODE_QP_DELTA || caps.ROIDeltaQPSupport);
-        invalid += !(roi.ROIMode != MFX_ROI_MODE_PRIORITY || caps.ROIBRCPriorityLevelSupport);
         roi.ROIMode *= !invalid;
     }
 
@@ -98,6 +97,12 @@ static mfxStatus CheckAndFixROI(
         rsts = GetWorstSts(rsts, CheckAndFixRect(rect, par, caps));
         invalid += CheckMinOrZero(rect.Priority, minVal);
         invalid += CheckMaxOrZero(rect.Priority, maxVal);
+
+        if (roi.ROIMode == MFX_ROI_MODE_PRIORITY && !caps.ROIBRCPriorityLevelSupport)
+        {
+            // Priority mode is not supported. Convert it to delta QP mode
+            roi.ROI->DeltaQP = (mfxI16)(-1 * roi.ROI->Priority);
+        }
     });
 
     auto IsInvalidRect = [](const ROI::RectData& rect)
@@ -106,6 +111,13 @@ static mfxStatus CheckAndFixROI(
     };
     mfxU16 numValidROI = mfxU16(std::remove_if(roi.ROI, roi.ROI + roi.NumROI, IsInvalidRect) - roi.ROI);
     changed += CheckMaxOrClip(roi.NumROI, numValidROI);
+
+    if (roi.NumROI && roi.ROIMode == MFX_ROI_MODE_PRIORITY && !caps.ROIBRCPriorityLevelSupport)
+    {
+        // Priority mode is not supported. Convert it to delta QP mode
+        roi.ROIMode = MFX_ROI_MODE_QP_DELTA;
+        changed++;
+    }
 
     sts = GetWorstSts(
         mfxStatus(MFX_WRN_INCOMPATIBLE_VIDEO_PARAM * !!changed)
@@ -144,7 +156,7 @@ void ROI::SetSupported(ParamSupport& blocks)
 void ROI::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 {
     Push(BLK_CheckAndFix
-        , [](const mfxVideoParam& /*in*/, mfxVideoParam& par, StorageW& global) -> mfxStatus
+        , [this](const mfxVideoParam& /*in*/, mfxVideoParam& par, StorageW& global) -> mfxStatus
     {
         mfxExtEncoderROI* pROI = ExtBuffer::Get(par);
         MFX_CHECK(pROI && pROI->NumROI, MFX_ERR_NONE);

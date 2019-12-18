@@ -36,7 +36,7 @@ void Linux::Gen9::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         if (m_bViaCuQp)
         {
-            vaPacker.FillCUQPData.Push([](
+            vaPacker.FillCUQPData.Push([this](
                 VAPacker::CallChains::TFillCUQPData::TExt prev
                 , const StorageR& global
                 , const StorageR& s_task
@@ -44,7 +44,14 @@ void Linux::Gen9::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             {
                 bool  bRes = prev(global, s_task, qpMap);
                 auto& task = Task::Common::Get(s_task);
-                auto& roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
+                auto roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
+
+                if (roi.NumROI)
+                {
+                    auto& caps = Glob::EncodeCaps::Get(global);
+                    auto& par = Glob::VideoParam::Get(global);
+                    CheckAndFixROI(caps, par, roi);
+                }
 
                 bool bFillQPMap =
                     !bRes
@@ -56,7 +63,6 @@ void Linux::Gen9::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
                 if (bFillQPMap)
                 {
-                    mfxI32 dQPMult = 1 - 2 * (roi.ROIMode == MFX_ROI_MODE_PRIORITY);
                     mfxU32 x = 0, y = 0;
                     auto IsXYInRect = [&](const RectData& r)
                     {
@@ -73,7 +79,7 @@ void Linux::Gen9::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
                         ++x;
 
                         if (pRect != pEnd)
-                            return mfxI8(task.QpY + dQPMult * pRect->DeltaQP);
+                            return mfxI8(task.QpY + pRect->DeltaQP);
 
                         return mfxI8(task.QpY);
                     };
@@ -102,22 +108,29 @@ void Linux::Gen9::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
                 , const StorageR& s_task
                 , std::list<std::vector<mfxU8>>& data)
             {
-                auto& roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
+                auto roi = GetRTExtBuffer<mfxExtEncoderROI>(global, s_task);
                 bool bNeedROI = !!roi.NumROI;
+
+                if (bNeedROI)
+                {
+                    auto& caps = Glob::EncodeCaps::Get(global);
+                    auto& par = Glob::VideoParam::Get(global);
+                    CheckAndFixROI(caps, par, roi);
+                    bNeedROI = !!roi.NumROI;
+                }
 
                 if (bNeedROI)
                 {
                     auto& vaROI = AddVaMisc<VAEncMiscParameterBufferROI>(VAEncMiscParameterTypeROI, data);
 
-                    mfxI32 dQPMult      = 1 - 2 * (roi.ROIMode == MFX_ROI_MODE_PRIORITY);
-                    auto   MakeVAEncROI = [dQPMult](const RectData& rect)
+                    auto   MakeVAEncROI = [](const RectData& rect)
                     {
                         VAEncROI roi = {};
                         roi.roi_rectangle.x      = rect.Left;
                         roi.roi_rectangle.y      = rect.Top;
                         roi.roi_rectangle.width  = rect.Right - rect.Left;
                         roi.roi_rectangle.height = rect.Bottom - rect.Top;
-                        roi.roi_value            = int8_t(dQPMult * rect.DeltaQP);
+                        roi.roi_value            = int8_t(rect.DeltaQP);
                         return roi;
                     };
 
