@@ -969,16 +969,19 @@ namespace Gen9
     {
         bool operator()(const GUID& l, const GUID& r) const
         {
-            if (l == r)
-                return false;
-            bool bLess = l.Data1 < r.Data1;
-            bool bEQ   = l.Data1 == r.Data1;
-            bLess |= bEQ && l.Data2 < r.Data2;
-            bEQ   |= l.Data2 == r.Data2;
-            bLess |= bEQ && l.Data3 < r.Data3;
-            bEQ   |= l.Data3 == r.Data3;
-            bLess |= bEQ && (memcmp(l.Data4, r.Data4, sizeof(l.Data4)) < 0);
-            return bLess;
+            bool bEQ = true;
+            bool bLT = l.Data1 < r.Data1;
+
+            bEQ &= l.Data1 == r.Data1;
+            bLT |= bEQ && l.Data2 < r.Data2;
+
+            bEQ &= l.Data2 == r.Data2;
+            bLT |= bEQ && l.Data3 < r.Data3;
+
+            bEQ &= l.Data3 == r.Data3;
+            bLT |= bEQ && std::lexicographical_compare(l.Data4, std::end(l.Data4), r.Data4, std::end(r.Data4));
+
+            return bLT;
         }
     };
 
