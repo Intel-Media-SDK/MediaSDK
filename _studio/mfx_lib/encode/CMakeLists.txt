@@ -3,6 +3,8 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 mfx_include_dirs( )
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mjpeg/include )
+include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_enc/include )
+include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
 
 set( defs "" )
 set( sources "" )
@@ -17,8 +19,6 @@ set( defs "" )
 if( MFX_ENABLE_SW_FALLBACK )
   ### JPEG Encoder
   include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_common/include )
-  include_directories( ${MSDK_UMC_ROOT}/codec/jpeg_enc/include )
-  include_directories( ${MSDK_UMC_ROOT}/codec/color_space_converter/include )
 
   set( sources "" )
   set( defs "" )
