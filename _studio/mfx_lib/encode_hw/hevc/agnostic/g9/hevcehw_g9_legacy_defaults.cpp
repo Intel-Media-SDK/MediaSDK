@@ -1546,10 +1546,18 @@ public:
                 + bLessLCUs * (nLcuPerSlice * nSlice - nLCU);
 
             mfxI32 delta       = (1 - 2 * bLessLCUs) * nLCUMult;
-            mfxU32 step        = !!(nSlice % nLCULeft) + nSlice / nLCULeft;
+            mfxU32 step        = nSlice / nLCULeft;
             auto   slStepBegin = MakeStepIter(slBegin, step);
             auto   slStepEnd   = MakeStepIter(slEnd, step);
-            auto   ModNumLCU   = [delta](SliceInfo& si) { si.NumLCU += delta; };
+            auto   ModNumLCU   = [&delta](SliceInfo& si) { si.NumLCU += delta; };
+
+            std::for_each(slStepBegin, slStepEnd, ModNumLCU);
+
+            nLCULeft    = (mfxU32)std::max(0, int(nSlice / step - nLCULeft));
+            step        = ((nSlice / step) / std::max(1u, nLCULeft)) * step;
+            delta      *= -1;
+            slStepBegin = MakeStepIter(slBegin, step);
+            slStepEnd   = std::next(slStepBegin, nLCULeft);
 
             std::for_each(slStepBegin, slStepEnd, ModNumLCU);
         }
