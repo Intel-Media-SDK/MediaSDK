@@ -4278,7 +4278,8 @@ mfxStatus Legacy::CheckIOPattern(mfxVideoParam & par)
     bool check_result = Check<mfxU16
                             , MFX_IOPATTERN_IN_VIDEO_MEMORY
                             , MFX_IOPATTERN_IN_SYSTEM_MEMORY
-                            , MFX_IOPATTERN_IN_OPAQUE_MEMORY>
+                            , MFX_IOPATTERN_IN_OPAQUE_MEMORY
+                            , 0>
                             (par.IOPattern);
 
     MFX_CHECK(!check_result, MFX_ERR_INVALID_VIDEO_PARAM);
