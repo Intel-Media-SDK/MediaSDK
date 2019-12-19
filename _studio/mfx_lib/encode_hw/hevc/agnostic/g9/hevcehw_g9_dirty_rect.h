@@ -54,7 +54,7 @@ namespace Gen9
         virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
         virtual void AllocTask(const FeatureBlocks& /*blocks*/, TPushAT Push) override;
         virtual void PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push) override;
-        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override {};
+        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST /*Push*/) override {};
 
         bool SkipRectangle(const RectData& rect)
         {

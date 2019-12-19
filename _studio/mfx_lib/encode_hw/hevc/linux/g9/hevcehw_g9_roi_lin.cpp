@@ -30,7 +30,7 @@ using namespace HEVCEHW::Gen9;
 void Linux::Gen9::ROI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 {
     Push(BLK_SetCallChains
-        , [this](StorageRW& global, StorageRW& local) -> mfxStatus
+        , [this](StorageRW& global, StorageRW& /*local*/) -> mfxStatus
     {
         auto& vaPacker = VAPacker::CC::Get(global);
 

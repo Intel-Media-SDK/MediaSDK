@@ -74,7 +74,7 @@ mfxStatus DDI_VA::CallVaDefault(const DDIExecParam& ep)
     return MFX_ERR_NONE;
 }
 
-void DDI_VA::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
+void DDI_VA::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 {
     Push(BLK_SetCallChains
         , [this](const mfxVideoParam&, mfxVideoParam& /*par*/, StorageRW& strg) -> mfxStatus

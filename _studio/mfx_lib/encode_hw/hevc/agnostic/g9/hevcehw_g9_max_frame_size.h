@@ -50,11 +50,11 @@ namespace HEVCEHW
         protected:
             virtual void SetSupported(ParamSupport& par) override;
             virtual void SetInherited(ParamInheritance& par) override;
-            virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override {};
+            virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII /*Push*/) override {};
             virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
             virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
             virtual void SetDefaults(const FeatureBlocks& blocks, TPushSD Push) override;
-            virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override {};
+            virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST /*Push*/) override {};
 
             bool m_bPatchNextDDITask = false;
         };
