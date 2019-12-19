@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1292,6 +1292,24 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         }
         m_pipelineParam[0].output_color_properties.chroma_sample_location = chromaSitingMode;
 #endif
+
+if (pParams->mirroringExt)
+{
+    // First priority is HW fixed function scaling engine. If it can't work, revert to AVS
+    // Starting from ATS there is only HW fixed function scaling engine due to AVS removal
+    m_pipelineParam[0].filter_flags = VA_FILTER_SCALING_DEFAULT;
+
+    switch (pParams->mirroring)
+    {
+    case MFX_MIRRORING_VERTICAL:
+        m_pipelineParam[0].mirror_state = VA_MIRROR_VERTICAL;
+        break;
+    case MFX_MIRRORING_HORIZONTAL:
+        m_pipelineParam[0].mirror_state = VA_MIRROR_HORIZONTAL;
+        break;
+    }
+}
+
     vaSts = vaCreateBuffer(m_vaDisplay,
                         m_vaContextVPP,
                         VAProcPipelineParameterBufferType,
@@ -1816,6 +1834,16 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             attrib.value.value.i = VA_FOURCC_P010; // We're going to flood fill this surface, so let's use most common 10-bit format
             rt_format = VA_RT_FORMAT_YUV420;
         }
+#if (MFX_VERSION >= 1031)
+        else if(inInfo->FourCC == MFX_FOURCC_P016
+                || inInfo->FourCC == MFX_FOURCC_Y216
+                || inInfo->FourCC == MFX_FOURCC_Y416
+            )
+        {
+            attrib.value.value.i = VA_FOURCC_P016; // We're going to flood fill this surface, so let's use most common 10-bit format
+            rt_format = VA_RT_FORMAT_YUV420_10BPP;
+        }
+#endif
         else
         {
             attrib.value.value.i = VA_FOURCC_NV12;
@@ -1887,11 +1915,30 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
             }
 
-            if (imagePrimarySurface.format.fourcc == VA_FOURCC_P010)
+            if (imagePrimarySurface.format.fourcc == VA_FOURCC_P010
+#if (MFX_VERSION >= 1031)
+                || imagePrimarySurface.format.fourcc == VA_FOURCC_P016
+#endif
+            )
             {
-                uint32_t Y = (uint32_t)((pParams->iBackgroundColor >> 26) & 0xffC0);
-                uint32_t U = (uint32_t)((pParams->iBackgroundColor >> 10) & 0xffC0);
-                uint32_t V = (uint32_t)((pParams->iBackgroundColor <<  6) & 0xffC0);
+                uint32_t Y=0;
+                uint32_t U=0;
+                uint32_t V=0;
+                if(imagePrimarySurface.format.fourcc == VA_FOURCC_P010 )
+                {
+                    Y = (uint32_t)((pParams->iBackgroundColor >> 26) & 0xffC0);
+                    U = (uint32_t)((pParams->iBackgroundColor >> 10) & 0xffC0);
+                    V = (uint32_t)((pParams->iBackgroundColor <<  6) & 0xffC0);
+                }
+#if (MFX_VERSION >= 1031)
+                else
+                {
+                    // 12 bit depth is used for these CCs
+                    Y = (uint32_t)((pParams->iBackgroundColor >> 28) & 0xfff0);
+                    U = (uint32_t)((pParams->iBackgroundColor >> 12) & 0xfff0);
+                    V = (uint32_t)((pParams->iBackgroundColor <<  4) & 0xfff0);
+                }
+#endif
 
                 uint16_t valueY = (uint16_t)Y;
                 uint32_t valueUV = (int32_t)((V << 16) + U); // Keep in mind that short is stored in memory using little-endian notation

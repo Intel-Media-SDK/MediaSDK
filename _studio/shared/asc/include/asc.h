@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -244,9 +244,9 @@ private:
     mfxStatus CopyFrameSurface(mfxHDL frameHDL);
     void Reset_ASCCmDevice();
     void Set_ASCCmDevice();
-    bool Query_ASCCmDevice();
     ASC_API mfxStatus SetInterlaceMode(ASCFTS interlaceMode);
 public:
+    bool Query_ASCCmDevice();
     ASC_API mfxStatus Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 PicStruct, CmDevice* pCmDevice);
     ASC_API void Close();
     ASC_API bool IsASCinitialized();
