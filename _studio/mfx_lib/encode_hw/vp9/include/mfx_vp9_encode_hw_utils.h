@@ -68,12 +68,11 @@ constexpr auto MAX_NUM_TEMP_LAYERS_SUPPORTED = 4;
 constexpr auto MAX_UPSCALE_RATIO = 16;
 constexpr auto MAX_DOWNSCALE_RATIO = 2;
 
+constexpr auto MIN_TILE_HEIGHT = 128;
 constexpr auto MIN_TILE_WIDTH = 256;
 constexpr auto MAX_TILE_WIDTH = 4096;
 constexpr auto MAX_NUM_TILE_ROWS = 4;
 constexpr auto MAX_NUM_TILES = 16;
-
-constexpr auto SB_SIZE = 64;
 
 const mfxU16 segmentSkipMask = 0xf0;
 const mfxU16 segmentRefMask = 0x0f;
