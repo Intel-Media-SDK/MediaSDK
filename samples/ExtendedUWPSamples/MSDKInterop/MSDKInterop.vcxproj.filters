@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="vm">
+      <UniqueIdentifier>{06b1e177-73b2-4866-b485-52c3b9151823}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extras">
+      <UniqueIdentifier>{a5cffd54-2b66-49b2-8dc9-0d266d5f185f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="base_allocator.cpp" />
+    <ClCompile Include="d3d11_allocator.cpp" />
+    <ClCompile Include="d3d11_device.cpp" />
+    <ClCompile Include="DecodingPipeline.cpp" />
+    <ClCompile Include="SimpleBitstreamReader.cpp" />
+    <ClCompile Include="SurfacesPool.cpp" />
+    <ClCompile Include="Thread11.cpp" />
+    <ClCompile Include="DecoderInterop.cpp" />
+    <ClCompile Include="SysMemAllocator.cpp" />
+    <ClCompile Include="EncoderInterop.cpp" />
+    <ClCompile Include="EncodingPipeline.cpp" />
+    <ClCompile Include="StreamWriter.cpp" />
+    <ClCompile Include="SimpleYUVReader.cpp" />
+    <ClCompile Include="extras\FFMPEGBitstreamWriter.cpp">
+      <Filter>extras</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="base_allocator.h" />
+    <ClInclude Include="d3d11_allocator.h" />
+    <ClInclude Include="d3d11_device.h" />
+    <ClInclude Include="DecodingPipeline.h" />
+    <ClInclude Include="hw_device.h" />
+    <ClInclude Include="mfx_itt_trace.h" />
+    <ClInclude Include="MfxFrameSurfaceExt.h" />
+    <ClInclude Include="MSDKHandle.h" />
+    <ClInclude Include="MSDKTime.h" />
+    <ClInclude Include="sample_defs.h" />
+    <ClInclude Include="sample_types.h" />
+    <ClInclude Include="simplebitstreamreader.h" />
+    <ClInclude Include="surfacespool.h" />
+    <ClInclude Include="Thread11.h" />
+    <ClInclude Include="vm\atomic_defs.h">
+      <Filter>vm</Filter>
+    </ClInclude>
+    <ClInclude Include="vm\file_defs.h">
+      <Filter>vm</Filter>
+    </ClInclude>
+    <ClInclude Include="vm\so_defs.h">
+      <Filter>vm</Filter>
+    </ClInclude>
+    <ClInclude Include="vm\strings_defs.h">
+      <Filter>vm</Filter>
+    </ClInclude>
+    <ClInclude Include="vm\thread_defs.h">
+      <Filter>vm</Filter>
+    </ClInclude>
+    <ClInclude Include="vm\time_defs.h">
+      <Filter>vm</Filter>
+    </ClInclude>
+    <ClInclude Include="DecoderInterop.h" />
+    <ClInclude Include="SysMemAllocator.h" />
+    <ClInclude Include="EncoderInterop.h" />
+    <ClInclude Include="EncodingPipeline.h" />
+    <ClInclude Include="StreamWriter.h" />
+    <ClInclude Include="SimpleYUVReader.h" />
+    <ClInclude Include="extras\FFMPEGBitstreamWriter.h">
+      <Filter>extras</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

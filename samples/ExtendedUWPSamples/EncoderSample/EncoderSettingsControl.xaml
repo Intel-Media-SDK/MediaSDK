@@ -1,0 +1,108 @@
+﻿<UserControl
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:EncoderSample"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:System="using:System"
+    x:Class="EncoderSample.EncoderSettingsControl"
+    mc:Ignorable="d">
+
+    <Grid x:Name="MainGrid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="125"/>
+            <ColumnDefinition Width="155"/>
+            <ColumnDefinition Width="130"/>
+            <ColumnDefinition Width="200*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="40"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock HorizontalAlignment="Left" Margin="0,5,0,0" Text="Target Usage" Grid.Row="0" Grid.Column="0" />
+        <ComboBox x:Name="cmbTU" Width="150" SelectedIndex="1" Grid.Row="0" Grid.Column="1">
+            <x:String>Quality (1)</x:String>
+            <x:String>Balanced (4)</x:String>
+            <x:String>Speed (7)</x:String>
+        </ComboBox>
+        <TextBlock Name ="lblCodec" HorizontalAlignment="Right" Margin="0,5,10,0" Grid.Row="0" Grid.Column="3" Text="Codec: AVC"/>
+
+        <TextBlock HorizontalAlignment="Left" Margin="0,5,0,0" Text="Bitrate Control" Grid.Row="1" Grid.Column="0" />
+        <ComboBox x:Name="cmbBRC" Width="150" SelectedIndex="1" SelectionChanged="cmbBRC_SelectionChanged" Grid.Row="1" Grid.Column="1" Margin="0,6,0,0">
+            <ComboBoxItem Content="CBR" Tag="1"/>
+            <ComboBoxItem Content="VBR" Tag="2"/>
+            <ComboBoxItem Content="QVBR" Tag="14"/>
+            <ComboBoxItem x:Name="cmbiLookAhead"  Content="LookAhead" Tag="8"/>
+            <ComboBoxItem Content="CQP" Tag="3"/>
+        </ComboBox>
+
+        <Grid Name="QVBRBlock" Visibility="Collapsed" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2">
+            <TextBlock HorizontalAlignment="Left" Margin="70,5,5,0" Text="Quality"/>
+            <local:NumEditControl x:Name="txtQuality" HorizontalAlignment="Left" Margin="130,0,0,7" Width="150" Text="22" MinValue="1" MaxValue="51" NoDefault="true"/>
+            </Grid>
+        <Grid Name="CQPBlock" Visibility="Collapsed" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2">
+            <TextBlock HorizontalAlignment="Left" Margin="5,5,5,0" Text="QPI"/>
+            <local:NumEditControl x:Name="txtQPI" HorizontalAlignment="Left" Margin="35,0,0,7" Width="60" MinValue="1" MaxValue="51" PlaceholderText="Def"/>
+            <TextBlock HorizontalAlignment="Left" Margin="105,5,5,0" Text="QPP"/>
+            <local:NumEditControl x:Name="txtQPP" HorizontalAlignment="Left" Margin="140,0,0,7" Width="60" MinValue="1" MaxValue="51" PlaceholderText="Def"/>
+            <TextBlock HorizontalAlignment="Left" Margin="210,5,5,0" Text="QPB"/>
+            <local:NumEditControl x:Name="txtQPB" HorizontalAlignment="Left" Margin="245,0,0,7" Width="60" MinValue="1" MaxValue="51" PlaceholderText="Def"/>
+        </Grid>
+        <Grid Name="LABlock" Visibility="Collapsed" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2">
+            <TextBlock HorizontalAlignment="Left" Margin="60,5,5,0" Text="LA Depth"/>
+            <local:NumEditControl x:Name="txtLAD" HorizontalAlignment="Left" Margin="130,0,0,7" Width="150"  MinValue="10" MaxValue="100" />
+        </Grid>
+
+        
+        <TextBlock x:Name="lblBitrate" HorizontalAlignment="Left" Margin="0,5,0,0" Text="Bitrate (Kbps)" Grid.Row="2" Grid.Column="0"/>
+        <local:NumEditControl x:Name="txtBitrate" HorizontalAlignment="Left"  Margin="0,0,0,7" Width="150" PlaceholderText="Auto If Empty" Grid.Row="2" Grid.Column="1"  MinValue="0" MaxValue="65535" />
+        <TextBlock x:Name="lblMaxKbps" HorizontalAlignment="Left" Margin="60,5,0,0" Text="Max Kbps" Grid.Row="2" Grid.Column="2"/>
+        <local:NumEditControl x:Name="txtMaxKbps" HorizontalAlignment="Left" Margin="0,0,0,7" Width="150" MinValue="0" MaxValue="65535" Grid.Row="2" Grid.Column="3"/>
+
+        <TextBlock x:Name ="lblLowDelayBRC" HorizontalAlignment="Left" Margin="0,5,0,0" Text="Low Delay BRC" Grid.Row="3" Grid.Column="0" />
+        <CheckBox x:Name ="chkLowDelayBRC" VerticalAlignment="Top" Grid.Row="3" Grid.Column="1"/>
+
+        <TextBlock HorizontalAlignment="Left" Margin="0,5,0,0" Text="Max Frame Size" Grid.Row="4" Grid.Column="0"/>
+        <local:NumEditControl x:Name="txtMaxFrameSize" HorizontalAlignment="Left"  Margin="0,0,0,7" Width="150" Grid.Row="4" Grid.Column="1"  MinValue="0"/>
+
+        <TextBlock HorizontalAlignment="Left" Margin="0,5,0,0" Text="GOP Ref Distance" Grid.Row="5" Grid.Column="0"/>
+        <local:NumEditControl x:Name="txtGOPRefDist" HorizontalAlignment="Left" Margin="0,0,0,7" Width="150" Grid.Row="5" Grid.Column="1"  MinValue="0" MaxValue="65535" />
+
+        <TextBlock x:Name="lblWinBRCSize" HorizontalAlignment="Left" Margin="0,5,0,0" Text="Win BRC Size" Grid.Row="6" Grid.Column="0"/>
+        <local:NumEditControl x:Name="txtWinBRCSize" HorizontalAlignment="Left" Margin="0,0,0,7" Width="150" Grid.Row="6" Grid.Column="1"  MinValue="0" MaxValue="65535" PlaceholderText="Disabled"/>
+        <TextBlock x:Name="lblWinBRCMaxAvgKbps" HorizontalAlignment="Left" Margin="8,5,0,0" Text="Win BRC Max Avg" Grid.Row="6" Grid.Column="2"/>
+        <local:NumEditControl x:Name="txtWinBRCMaxAvgKbps" HorizontalAlignment="Left" Margin="0,0,0,7" Width="150" Grid.Row="6" Grid.Column="3"  MinValue="0" MaxValue="65535" />
+
+        <TextBlock HorizontalAlignment="Left" Margin="0,5,0,0" Text="Number of Slices" Grid.Row="7" Grid.Column="0"/>
+        <local:NumEditControl x:Name="txtNumSlice" HorizontalAlignment="Left" Margin="0,0,0,7" Width="150" Grid.Row="7" Grid.Column="1"  MinValue="0" MaxValue="65535" />
+        <TextBlock HorizontalAlignment="Left" Margin="34,5,0,0" Text="Max Slice Size" Grid.Row="7" Grid.Column="2"/>
+        <local:NumEditControl x:Name="txtMaxSliceSize" HorizontalAlignment="Left" Margin="0,0,0,7" Width="150" Grid.Row="7" Grid.Column="3"  MinValue="0"/>
+
+        <TextBlock HorizontalAlignment="Left" Margin="0,5,0,0" Text="Intra Refresh" Grid.Row="8" Grid.Column="0"/>
+        <ComboBox x:Name="cmbIntraRefreshType" Width="150" SelectedIndex="0" Grid.Row="8" Grid.Column="1" SelectionChanged="cmbIntraRefreshType_SelectionChanged">
+            <x:String>No Refresh</x:String>
+            <x:String>Vertical</x:String>
+            <x:String>Horizontal</x:String>
+            <x:String>Slice</x:String>
+        </ComboBox>
+        <Grid Name="IRBlock" Visibility="Collapsed" Grid.Row="8" Grid.Column="2" Grid.ColumnSpan="2">
+            <TextBlock HorizontalAlignment="Left" Margin="5,5,5,0" Text="Distance"/>
+            <local:NumEditControl x:Name="txtIRDist" HorizontalAlignment="Left" Margin="70,0,0,7" Width="80" Text="0" MinValue="0" MaxValue="65535" NoDefault="True"/>
+            <TextBlock HorizontalAlignment="Left" Margin="160,5,5,0" Text="Cycle"/>
+            <local:NumEditControl x:Name="txtIRCycle" HorizontalAlignment="Left" Margin="200,0,0,7" Width="80" Text="2" MinValue="2" MaxValue="65535" NoDefault="True"/>
+        </Grid>
+
+        <!-- more page content -->
+
+
+    </Grid>
+</UserControl>
