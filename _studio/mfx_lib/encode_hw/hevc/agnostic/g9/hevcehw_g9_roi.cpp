@@ -107,6 +107,10 @@ mfxStatus ROI::CheckAndFixROI(
 
     auto IsInvalidRect = [](const ROI::RectData& rect)
     {
+        if (rect.Top == 0 && rect.Left == 0 && rect.Right == 0 && rect.Bottom == 0)
+        {
+            return false;
+        }
         return ((rect.Left >= rect.Right) || (rect.Top >= rect.Bottom));
     };
     mfxU16 numValidROI = mfxU16(std::remove_if(roi.ROI, roi.ROI + roi.NumROI, IsInvalidRect) - roi.ROI);
