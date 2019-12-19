@@ -4,7 +4,7 @@
 
 ## Overview
 
-**Multi-Transcoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\)
+**Multi-Transcoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\)
 
 It demonstrates how to use **SDK** API to create a console application that performs the transcoding \(decoding and encoding\) of a video stream from one compressed video format to another, with optional video processing \(resizing\) of uncompressed video prior to encoding. The application supports multiple input and output streams meaning it can execute multiple transcoding sessions concurrently.
 
@@ -27,19 +27,19 @@ The sample is able to work with**HEVC Decoder & Encoder** \(hereinafter referred
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 
 
@@ -53,8 +53,8 @@ or: `sample_multi_transcode [options] -par ParFile`
 |Option|Description|
 |---|---|
 | -? |           Print this help and exit|
-|  -p <file-name\>| Collect performance statistics in specified file|
- | -timeout <seconds\>|  Set time to run transcoding in seconds|
+|  -p <file-name>| Collect performance statistics in specified file|
+ | -timeout <seconds>|  Set time to run transcoding in seconds|
   |-greedy|Use greedy formula to calculate number of surfaces|
 
 #### ParFile format:
@@ -68,9 +68,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 
 |Option|Description|
 |---|---|
- |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9 <file-name\>| Set input file and decoder type|
+ |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9 <file-name>| Set input file and decoder type|
   |-i::rgb4_frame | Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).|
- | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|raw <file-name\>|  Set output file and encoder type|
+ | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|raw <file-name>|  Set output file and encoder type|
  | -sw\|-hw\|-hw_d3d11| SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11<br>-sw - software|
  | -mfe_frames| <N> maximum number of frames to be combined in multi-frame encode pipeline               0 - default for platform will be used|
   |-mfe_mode 0\|1\|2\|3| multi-frame encode operation mode - should be the same for all sessions<br>0, MFE operates as DEFAULT mode, decided by SDK if MFE enabled<br>1, MFE is disabled<br>2, MFE operates as AUTO mode<br>3, MFE operates as MANUAL mode|
@@ -130,7 +130,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
   |-qpb| Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
 | -DisableQPOffset| Disable QP adjustment for GOP pyramid-level frames|
  |-qsv-ff| Enable QSV-FF mode|
-|  -roi_file <roi-file-name\>| Set Regions of Interest for each frame from <roi-file-name\>|
+|  -roi_file <roi-file-name>| Set Regions of Interest for each frame from <roi-file-name>|
 |-roi_qpmap|Use QP map to emulate ROI for CQP mode|
 |  -extmbqp| Use external MBQP map|
 
@@ -169,7 +169,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -vpp_comp_src_h| Width of this stream in composed stream (should be used in decoder session)|
 | -vpp_comp_src_w| Width of this stream in composed stream (should be used in decoder session)|
 | -vpp_comp_tile_id| Tile_id for current channel of composition (should be used in decoder session)|
-  |-vpp_comp_dump <file-name\>|  Dump of VPP Composition's output into file. Valid if with -vpp_comp* options|
+  |-vpp_comp_dump <file-name>|  Dump of VPP Composition's output into file. Valid if with -vpp_comp* options|
   |-vpp_comp_dump <null_render\>| Disabling rendering after VPP Composition. This is for performance measurements|
   |-dec_postproc |Resize after decoder using direct pipe (should be used in decoder session)|
 | -single_texture_d3d11|  single texture mode for d3d11 allocator|
@@ -226,13 +226,13 @@ Single intra-session MVC transcoding:
 -i::mvc input.mvc -async 10 -o::mvc output.mvc –n 100 –w 320 –h 240 –f 30 –b 2000 –u speed
 ```
 
-Please, also pay attention on “Running the Software” section of `<install-folder>/Media_Samples_Guide.pdf` document where you will find important notes on backend specific usage \(drm and x11\).
+Please, also pay attention on “Running the Software” section of [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md) document where you will find important notes on backend specific usage \(drm and x11\).
 
 ## ROI file format description
 
 **Tips**
 
-1.  To achieve maximum throughput use `–async` \>= 5 and the –join option when running several transcoding pipelines.
+1.  To achieve maximum throughput use `–async` >= 5 and the –join option when running several transcoding pipelines.
 2.  If you need only one transcoding session you can avoid creating a par file and pass the arguments of this session to the application using command line. E.g.:
 
 ```
@@ -253,25 +253,25 @@ HEVC codec is implemented as a plugin unlike codecs such as MPEG2 and AVC. There
 At the example below multi-transcoding sample runs HW library with HW decode and encode plugins:
 
 ```
-sample_multi_transcode.exe -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320
+sample_multi_transcode -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320
 ```
 
 The following command line loads SW lib and SW plugins:
 
 ```
-sample_multi_transcode.exe -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320 -sw
+sample_multi_transcode -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320 -sw
 ```
 
 This is an example how to use HW library with SW plugins:
 
 ```
-sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe 2fca99749fdb49aeb121a5b63ef568f7
+sample_multi_transcode -i::h265 ../content/test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe 2fca99749fdb49aeb121a5b63ef568f7
 ```
 
 HW library+SW decoder+GACC encoder:
 
 ```
-sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe e5400a06c74d41f5b12d430bbaa23d0b
+sample_multi_transcode -i::h265 ../content/test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe e5400a06c74d41f5b12d430bbaa23d0b
 ```
 
 Multiple intra-session transcoding with the same SW HEVC plugin is used in both cases:
