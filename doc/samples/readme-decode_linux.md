@@ -3,7 +3,7 @@
 
 ## Overview
 
-**Decoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\).
+**Decoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\).
 
 It demonstrates how to use the **SDK** API to create a sample console application that performs decoding of various video compression formats.
 
@@ -24,19 +24,19 @@ The sample is able to work with **HEVC Decoder & Encoder** \(hereinafter referre
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 The executable file requires the following command-line switches to function properly:
 
