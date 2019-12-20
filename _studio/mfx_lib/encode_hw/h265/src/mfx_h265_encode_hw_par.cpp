@@ -1988,6 +1988,13 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     changed += CheckMax(par.mfx.GopRefDist, (caps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? std::max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
+    // RAB are not supported on VDENC TU7
+    if (IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 7) && (par.mfx.GopRefDist > 1))
+    {
+        par.mfx.GopRefDist = 1;
+        changed++;
+    }
+
     invalid += CheckOption(par.Protected
         , 0);
 
