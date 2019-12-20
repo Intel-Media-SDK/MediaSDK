@@ -938,10 +938,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.ddi_caps.RollingIntraRefresh =
             (attrs[idx_map[VAConfigAttribEncIntraRefresh]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
-    m_caps.ddi_caps.UserMaxFrameSizeSupport = 1;
     m_caps.ddi_caps.MBBRCSupport            = attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_MB ? 1 : 0;
-    m_caps.ddi_caps.MbQpDataSupport         = 1;
-    m_caps.ddi_caps.TUSupport               = 73;
 
 #if VA_CHECK_VERSION(1,2,0)
     if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420_12)
@@ -975,10 +972,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value >= m_height, MFX_ERR_UNSUPPORTED);
     m_caps.ddi_caps.MaxPicWidth  = attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value;
     m_caps.ddi_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
-
-
-    m_caps.ddi_caps.SliceStructure = 4;
-    m_caps.ddi_caps.SliceByteSizeCtrl = 1; //It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
 
     if (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value != VA_ATTRIB_NOT_SUPPORTED)
     {
@@ -1015,7 +1008,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
     m_caps.ddi_caps.TileSupport = (attrs[idx_map[VAConfigAttribEncTileSupport]].value == 1);
 
-    m_caps.PSliceSupport = IsOn(par.mfx.LowPower) ? 0 : 1;
+    sts = HardcodeCaps(m_caps, core, par);
+    MFX_CHECK_STS(sts);
 
     return MFX_ERR_NONE;
 }
