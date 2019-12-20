@@ -911,23 +911,25 @@ bool CheckLCUSize(mfxU32 LCUSizeSupported, mfxU16& LCUSize)
 
 mfxU16 GetMaxNumRef(MfxVideoParam &par, bool bForward)
 {
-    switch (par.m_platform)
-    {
-    case MFX_HW_CNL:
-    case MFX_HW_ICL:
-    case MFX_HW_ICL_LP:
-    default:
-        if (IsOn(par.mfx.LowPower)) {   // VDENC
-            //2 references support by VDEnc HW and 3rd one picked via StreamIn interface
-            mfxU16 maxNumRefsL0L1[7] = { 3, 3, 2, 2, 2, 1, 1 };
-            return maxNumRefsL0L1[par.mfx.TargetUsage - 1];
-        } else {   // VME
-            //HW limitation to suport only 2 forward references Max, enabled only at High quality TUs L0 Can be more, but 4 references can cover any cases
-            mfxU16 maxNumRefsL0[7] = { 4, 4, 4, 4, 4, 1, 1 };
-            mfxU16 maxNumRefsL1[7] = { 2, 2, 1, 1, 1, 1, 1 };
-            return  bForward ? maxNumRefsL0[par.mfx.TargetUsage - 1] : maxNumRefsL1[par.mfx.TargetUsage - 1];
-        }
-        break;
+    if (par.mfx.TargetUsage < 1 || par.mfx.TargetUsage > 7)
+        return 0;
+
+    if (IsOff(par.mfx.LowPower)) {
+        // VME
+        mfxU16 maxNumRefsL0[7] = { 4, 4, 3, 3, 3, 1, 1 };
+        mfxU16 maxNumRefsL1[7] = { 2, 2, 1, 1, 1, 1, 1 };
+        return  bForward ? maxNumRefsL0[par.mfx.TargetUsage - 1] : maxNumRefsL1[par.mfx.TargetUsage - 1];
+    }
+
+    // VDENC
+    if (par.mfx.GopRefDist <= 1) { // LowDelay B (P)
+        mfxU16 maxNumRefsL0L1[7] = { 3, 3, 2, 2, 2, 1, 1 };
+        return maxNumRefsL0L1[par.mfx.TargetUsage - 1];
+    }
+    else { // RA B (neither ICL nor CNL here)
+        mfxU16 maxNumRefsL0[7] = { 2, 2, 1, 1, 1, 1, 1 };
+        mfxU16 maxNumRefsL1[7] = { 1, 1, 1, 1, 1, 1, 1 };
+        return  bForward ? maxNumRefsL0[par.mfx.TargetUsage - 1] : maxNumRefsL1[par.mfx.TargetUsage - 1];
     }
 }
 
