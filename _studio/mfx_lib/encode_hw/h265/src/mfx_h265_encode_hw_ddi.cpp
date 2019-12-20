@@ -94,7 +94,7 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.YUV444ReconSupport = 1;
     if (!caps.ddi_caps.Color420Only && !(caps.ddi_caps.YUV422ReconSupport))   // VPG: caps are not correct now
         caps.ddi_caps.YUV422ReconSupport = 1;
-#if (MFX_VERSION >= 1025)
+
     eMFXHWType platform = core->GetHWType();
 
     if (platform < MFX_HW_CNL)
@@ -127,7 +127,6 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         //caps.SliceLevelWeightedPred;
     }
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
-#else
     if (!caps.ddi_caps.LCUSizeSupported)
         caps.ddi_caps.LCUSizeSupported = 2;
     caps.ddi_caps.BlockSize = 2; // 32x32
@@ -160,9 +159,19 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.MaxNum_WeightedPredL1 = 2; // = 0 now
         caps.ddi_caps.TileSupport = 1;
         caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
+
+        caps.ddi_caps.MaxNumDeltaQP = 0;
+        caps.ddi_caps.DirtyRectSupport = 1;
+        caps.ddi_caps.RGBEncodingSupport = 0;
+        caps.ddi_caps.MaxNumOfDirtyRect = 4;
+
+        caps.ddi_caps.UserMaxFrameSizeSupport = 1;
+        caps.ddi_caps.MbQpDataSupport = 1;
+        caps.ddi_caps.TUSupport = 73;
+        caps.ddi_caps.SliceStructure = 4;
+        caps.ddi_caps.SliceByteSizeCtrl = 1; ///It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
     }
     (void)core;
-#endif
 
     return sts;
 }
