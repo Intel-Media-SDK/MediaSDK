@@ -1899,11 +1899,11 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
 
 #if (MFX_VERSION >= 1025)
     if ((m_platform >= MFX_HW_CNL))
-    {
-        if (IsOn(mfx.LowPower))
+    {   // according to spec only 3 and 0 are supported
+        if (LCUSize == 64)
             m_pps.diff_cu_qp_delta_depth = 3;
         else
-            m_pps.diff_cu_qp_delta_depth = 2;
+            m_pps.diff_cu_qp_delta_depth = 0;
     }
 #endif
 
