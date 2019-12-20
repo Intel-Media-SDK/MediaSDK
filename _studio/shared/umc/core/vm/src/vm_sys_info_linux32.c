@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,11 +21,7 @@
 #if defined(LINUX32)
 
 #include "vm_sys_info.h"
-#include <time.h>
-#include <sys/utsname.h>
 #include <unistd.h>
-
-#include <sys/sysinfo.h>
 
 uint32_t vm_sys_info_get_cpu_num(void)
 {
