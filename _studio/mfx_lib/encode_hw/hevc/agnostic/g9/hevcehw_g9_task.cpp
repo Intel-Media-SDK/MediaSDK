@@ -279,6 +279,8 @@ void TaskManager::ResetState(const FeatureBlocks& blocks, TPushRS Push)
         {
             CancelTasks(Glob::RealState::Get(global), FeatureBlocks::BQ<FT>::Get(blocks));
             m_nTasksInExecution = 0;
+            m_nPicBuffered      = 0;
+            m_nRecodeTasks      = 0;
         }
 
         return MFX_ERR_NONE;
