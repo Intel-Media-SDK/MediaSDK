@@ -117,13 +117,13 @@ namespace Gen9
     protected:
         TaskCommonPar m_prevTask;
         mfxU32
-            m_frameOrder
-            , m_lastIDR
-            , m_baseLayerOrder
-            , m_forceHeaders = 0;
+            m_frameOrder        = mfxU32(-1)
+            , m_lastIDR         = 0
+            , m_baseLayerOrder  = 0
+            , m_forceHeaders    = 0;
         mfxU16
-            m_CUQPBlkW
-            , m_CUQPBlkH;
+            m_CUQPBlkW          = 0
+            , m_CUQPBlkH        = 0;
         std::function<std::tuple<mfxU16, mfxU16>(const mfxVideoParam&)> m_GetMaxRef;
         std::unique_ptr<Defaults::Param> m_pQWCDefaults;
         NotNull<Defaults*> m_pQNCDefaults;
