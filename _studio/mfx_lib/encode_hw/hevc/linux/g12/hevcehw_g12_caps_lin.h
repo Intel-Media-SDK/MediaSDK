@@ -67,6 +67,7 @@ protected:
         caps.HRDConformanceSupport      = 1;
         caps.TileSupport                = 1;
         caps.YUV422ReconSupport         = 1;
+        caps.YUV444ReconSupport         = 1;
         caps.IntraRefreshBlockUnitSize  = 2;
     }
 };

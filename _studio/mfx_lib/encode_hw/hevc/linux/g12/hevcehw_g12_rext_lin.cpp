@@ -28,8 +28,10 @@ using namespace HEVCEHW;
 using namespace HEVCEHW::Gen12;
 using namespace HEVCEHW::Linux;
 
-void Linux::Gen12::RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
+void Linux::Gen12::RExt::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 {
+    HEVCEHW::Gen12::RExt::Query1NoCaps(blocks, Push);
+
     Push(BLK_SetGUID
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
