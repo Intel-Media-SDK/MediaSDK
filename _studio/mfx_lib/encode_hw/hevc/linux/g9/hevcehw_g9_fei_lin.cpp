@@ -249,6 +249,8 @@ void FEI::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push)
         mfxExtFeiHevcRepackCtrl* repackctrl =
             reinterpret_cast<mfxExtFeiHevcRepackCtrl*>(ExtBuffer::Get(task.ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
 
+        MFX_CHECK(EncFrameCtrl, MFX_ERR_INVALID_VIDEO_PARAM);
+
         bool bRepackPPS = false;
 
         // repackctrl or PerCuQp is disabled, so insert PPS and turn the flag off.

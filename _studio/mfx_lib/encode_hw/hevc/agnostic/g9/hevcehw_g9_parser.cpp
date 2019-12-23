@@ -757,7 +757,7 @@ const mfxU8 AspectRatioByIdc[][2] =
     {  2,  1},
 };
 
-mfxStatus Parser::SpsToMFX(const SPS& sps, mfxVideoParam par)
+mfxStatus Parser::SpsToMFX(const SPS& sps, mfxVideoParam& par)
 {
     mfxExtHEVCParam* pHEVCParam = ExtBuffer::Get(par);
     mfxExtCodingOption* pCO = ExtBuffer::Get(par);
@@ -859,7 +859,7 @@ mfxStatus Parser::SpsToMFX(const SPS& sps, mfxVideoParam par)
     return MFX_ERR_NONE;
 }
 
-mfxStatus Parser::PpsToMFX(const PPS& pps, mfxVideoParam par)
+mfxStatus Parser::PpsToMFX(const PPS& pps, mfxVideoParam& par)
 {
     mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
 
@@ -873,12 +873,13 @@ mfxStatus Parser::PpsToMFX(const PPS& pps, mfxVideoParam par)
             : (mfxU16)MFX_CODINGOPTION_OFF);
     }
 
-    mfxExtHEVCTiles* pTiles = ExtBuffer::Get(par);
+    mfxExtHEVCTiles* pTiles    = ExtBuffer::Get(par);
+    bool             bSetTiles = pps.tiles_enabled_flag && pTiles;
 
-    if (pps.tiles_enabled_flag)
+    if (bSetTiles)
     {
         pTiles->NumTileColumns = pps.num_tile_columns_minus1 + 1;
-        pTiles->NumTileRows = pps.num_tile_rows_minus1 + 1;
+        pTiles->NumTileRows    = pps.num_tile_rows_minus1 + 1;
     }
 
     return MFX_ERR_NONE;

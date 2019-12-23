@@ -1930,9 +1930,12 @@ mfxStatus Packer::Reset(
     , const std::vector<SliceInfo>& si
     , PackedHeaders& ph)
 {
-    mfxStatus sts = MFX_ERR_NONE;
-    auto pESBegin = m_es.data();
-    auto pESEnd = pESBegin + m_es.size();
+    MFX_CHECK(m_es.data(), MFX_ERR_UNKNOWN);
+    MFX_CHECK(m_rbsp.data(), MFX_ERR_UNKNOWN);
+
+    mfxStatus       sts      = MFX_ERR_NONE;
+    auto            pESBegin = m_es.data();
+    auto            pESEnd   = pESBegin + m_es.size();
     BitstreamWriter rbsp(m_rbsp.data(), (mfxU32)m_rbsp.size());
 
     for (mfxU8 i = 0; i < 3; i++)

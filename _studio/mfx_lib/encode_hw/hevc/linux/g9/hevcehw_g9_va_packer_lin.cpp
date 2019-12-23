@@ -381,7 +381,7 @@ static bool FillCUQPDataVA(
     mfxU32 inputW = CeilDiv(HEVCParam.PicWidthInLumaSamples, inBlkSize);
     mfxU32 inputH = CeilDiv(HEVCParam.PicHeightInLumaSamples, inBlkSize);
 
-    bool bInvalid = !mbqp->QP || (mbqp->NumQPAlloc < inputW * inputH);
+    bool bInvalid = !mbqp || !mbqp->QP || (mbqp->NumQPAlloc < inputW * inputH);
     if (bInvalid)
         return false;
 

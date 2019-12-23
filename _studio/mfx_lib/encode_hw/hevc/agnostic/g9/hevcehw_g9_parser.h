@@ -85,8 +85,8 @@ namespace Gen9
         mfxStatus ParseSPS(BitstreamReader& bs, SPS & sps);
         mfxStatus ParsePPS(BitstreamReader& bs, PPS & pps);
 
-        mfxStatus SpsToMFX(const SPS& sps, mfxVideoParam par);
-        mfxStatus PpsToMFX(const PPS& pps, mfxVideoParam par);
+        mfxStatus SpsToMFX(const SPS& sps, mfxVideoParam& par);
+        mfxStatus PpsToMFX(const PPS& pps, mfxVideoParam& par);
     };
 
 } //Gen9
