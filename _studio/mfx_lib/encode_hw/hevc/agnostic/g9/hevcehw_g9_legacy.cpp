@@ -831,7 +831,7 @@ void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
 
         strg.Insert(Glob::VideoParam::Key, std::move(pTmpPar));
 
-        return sts;
+        return MFX_ERR_NONE;
     });
 
     Push(BLK_SetDefaults
