@@ -3406,20 +3406,36 @@ IntraRefreshState GetIntraRefreshState(
     if (frameOrderInRefreshPeriod >= extOpt2Init->IntRefCycleSize)
         return state; // for current refresh period refresh cycle is already passed
 
-    mfxU32 refreshDimension = extOpt2Init->IntRefType == HORIZ_REFRESH ? CeilDiv(video.m_ext.HEVCParam.PicHeightInLumaSamples, video.LCUSize) : CeilDiv(video.m_ext.HEVCParam.PicWidthInLumaSamples, video.LCUSize);
-    mfxU16 intraStripeWidthInMBs = (mfxU16)((refreshDimension + video.m_ext.CO2.IntRefCycleSize - 1) / video.m_ext.CO2.IntRefCycleSize);
+    mfxU32 IRBlockSize = 1 << (3 + caps.ddi_caps.IntraRefreshBlockUnitSize);
+    // refreshing parts (stripes) in frame
+    mfxU32 refreshDimension = extOpt2Init->IntRefType == HORIZ_REFRESH ?
+        CeilDiv(video.m_ext.HEVCParam.PicHeightInLumaSamples, IRBlockSize) :
+        CeilDiv(video.m_ext.HEVCParam.PicWidthInLumaSamples, IRBlockSize);
 
-    // check if Intra refresh required for current frame
-    mfxU32 numFramesWithoutRefresh = extOpt2Init->IntRefCycleSize - (refreshDimension + intraStripeWidthInMBs - 1) / intraStripeWidthInMBs;
-    mfxU32 idxInRefreshCycle = frameOrderInRefreshPeriod;
-    state.firstFrameInCycle = (idxInRefreshCycle == 0);
-    mfxI32 idxInActualRefreshCycle = idxInRefreshCycle - numFramesWithoutRefresh;
-    if (idxInActualRefreshCycle < 0)
-        return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
+    // In most cases number of refresh stripes is no aligned with number of frames for refresh.
+    // In head frames are refreshed min stripes (can be 0), in tail min+1
+    // min * head + (min+1) * tail == min * frames + tail == refreshDimension
+    mfxU32 frames = extOpt2Init->IntRefCycleSize; // frames to commit full refresh
+    mfxU32 minStr = refreshDimension / frames;    // minimal refreshed stripes
+    mfxU32 tail = refreshDimension % frames;      // tail frames have minStr+1 stripes
+    mfxU32 head = frames - tail;                  // head frames with minStr stripes
 
-    state.refrType      = extOpt2Init->IntRefType;
-    state.IntraSize     = intraStripeWidthInMBs                                     << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
-    state.IntraLocation = ((mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs) << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
+    if (frameOrderInRefreshPeriod < head) // min, can be 0
+    {
+        if (!minStr)
+            return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
+        state.IntraSize = (mfxU16)minStr;
+        state.IntraLocation = (mfxU16)(frameOrderInRefreshPeriod * minStr);
+    }
+    else
+    {
+        state.IntraSize = (mfxU16)(minStr + 1);
+        state.IntraLocation = (mfxU16)(frameOrderInRefreshPeriod * minStr + (frameOrderInRefreshPeriod - head));
+    }
+
+    state.firstFrameInCycle = (frameOrderInRefreshPeriod == 0);
+    state.refrType = extOpt2Init->IntRefType;
+
     // set QP for Intra macroblocks within refreshing line
     state.IntRefQPDelta = extOpt2Init->IntRefQPDelta;
     if (ctrl)
