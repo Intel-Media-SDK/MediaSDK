@@ -137,6 +137,7 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.Color420Only = 0;  // = 1 now
         caps.ddi_caps.YUV422ReconSupport = 1; // = 0 now
         caps.ddi_caps.SliceIPBOnly = 1;  // = 0 now (SliceIP is also 0)cz
+        caps.ddi_caps.SliceIPOnly = IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 7);
         caps.ddi_caps.NoWeightedPred = 0; // = 1 now
         caps.ddi_caps.NoMinorMVs = 1;  // = 0 now
         caps.ddi_caps.RawReconRefToggle = 1;  // = 0 now
@@ -170,6 +171,10 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.TUSupport = 73;
         caps.ddi_caps.SliceStructure = 4;
         caps.ddi_caps.SliceByteSizeCtrl = 1; ///It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
+    }
+    else
+    {
+        caps.ddi_caps.SliceIPOnly = IsOn(par.mfx.LowPower);
     }
     (void)core;
 
