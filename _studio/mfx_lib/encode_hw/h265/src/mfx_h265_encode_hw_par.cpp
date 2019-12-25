@@ -2186,6 +2186,12 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
             changed += CheckRange(par.mfx.QPP, minQP, maxQP);
         if (par.mfx.QPB)
             changed += CheckRange(par.mfx.QPB, minQP, maxQP);
+
+        if ((par.mfx.QPI == 0) && (par.mfx.QPP || par.mfx.QPB))
+        {
+            par.mfx.QPP = par.mfx.QPB = 0;
+            changed++;
+        }
     }
 
     if (par.BufferSizeInKB != 0)
