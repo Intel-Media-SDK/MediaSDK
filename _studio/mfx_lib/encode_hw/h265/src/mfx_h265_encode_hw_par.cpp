@@ -1988,14 +1988,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     if (par.mfx.TargetUsage && caps.ddi_caps.TUSupport)
         changed += CheckTU(caps.ddi_caps.TUSupport, par.mfx.TargetUsage);
 
-    changed += CheckMax(par.mfx.GopRefDist, (caps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower)) ? 1 : (par.mfx.GopPicSize ? std::max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
-
-    // RAB are not supported on VDENC TU7
-    if (IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 7) && (par.mfx.GopRefDist > 1))
-    {
-        par.mfx.GopRefDist = 1;
-        changed++;
-    }
+    changed += CheckMax(par.mfx.GopRefDist, caps.ddi_caps.SliceIPOnly ? 1 : (par.mfx.GopPicSize ? std::max(1, par.mfx.GopPicSize - 1) : 0xFFFF));
 
     invalid += CheckOption(par.Protected
         , 0);
@@ -2860,8 +2853,8 @@ void SetDefaults(
 
     if (!par.mfx.GopRefDist)
     {
-        if (par.isTL() || hwCaps.ddi_caps.SliceIPOnly || IsOn(par.mfx.LowPower) || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
-            par.mfx.GopRefDist = 1; // in case of correct SliceIPOnly using of IsOn(par.mfx.LowPower) is not necessary
+        if (par.isTL() || hwCaps.ddi_caps.SliceIPOnly || par.mfx.GopPicSize < 3 || par.mfx.NumRefFrame == 1)
+            par.mfx.GopRefDist = 1;
         else
             par.mfx.GopRefDist = std::min<mfxU16>(par.mfx.GopPicSize - 1, (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || par.isSWBRC()) ? 8 : 4);
     }
