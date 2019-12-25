@@ -1656,7 +1656,8 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
                 {
                     mfxI32 layer = PLayer(cur->m_poc - lastIPoc, *this);
                     nRef[0] = (mfxU8)CO3.NumRefActiveP[layer];
-                    nRef[1] = (mfxU8)std::min(CO3.NumRefActiveP[layer], m_ext.DDI.NumActiveRefBL1);
+                    // on VDENC for LDB frames L1 must be completely identical to L0
+                    nRef[1] = (mfxU8)(IsOn(mfx.LowPower) ? CO3.NumRefActiveP[layer] : std::min(CO3.NumRefActiveP[layer], m_ext.DDI.NumActiveRefBL1));
                 }
 
                 ConstructRPL(*this, dpb, !!(cur->m_frameType & MFX_FRAMETYPE_B), cur->m_poc, cur->m_tid, cur->m_level, cur->m_secondField, isBFF()? !cur->m_secondField : cur->m_secondField, rpl, nRef);
@@ -3675,7 +3676,8 @@ void ConfigureTask(
     {
         mfxI32 layer = PLayer(task.m_poc - prevTask.m_lastIPoc, par);
         task.m_numRefActive[0] = std::max<mfxU8>((mfxU8)CO3.NumRefActiveP[layer], (task.m_secondField ? 2 : 1));
-        task.m_numRefActive[1] = std::min(CO3.NumRefActiveP[layer], par.m_ext.DDI.NumActiveRefBL1);
+        // on VDENC for LDB frames L1 must be completely identical to L0
+        task.m_numRefActive[1] = (IsOn(par.mfx.LowPower) ? task.m_numRefActive[0] : (mfxU8)std::min(CO3.NumRefActiveP[layer], par.m_ext.DDI.NumActiveRefBL1));
     }
 
     if (!isI)
