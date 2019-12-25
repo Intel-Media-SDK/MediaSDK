@@ -37,6 +37,8 @@
 #include <va/va.h>
 #endif
 
+#define MFX_DEBUG_TRACE
+
 #ifndef MFX_DEBUG_TRACE
 #define MFX_STS_TRACE(sts) sts
 #else

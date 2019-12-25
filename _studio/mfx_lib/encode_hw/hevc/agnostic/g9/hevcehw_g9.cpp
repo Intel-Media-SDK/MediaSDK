@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,6 +48,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(VideoCORE& core)
     : m_core(core)
     , m_runtimeErr(MFX_ERR_NONE)
 {
+    printf("You are using Refactored HEVCE!\n");
 }
 
 void MFXVideoENCODEH265_HW::InternalInitFeatures(
