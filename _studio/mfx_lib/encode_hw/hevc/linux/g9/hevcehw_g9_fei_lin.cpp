@@ -284,73 +284,76 @@ inline mfxU32 GetVaBufferID(TBase* pBase, mfxU32 ID, bool bSearch = true)
     return pEB->VaBufferID;
 }
 
-void FEI::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
-{
-    Push(BLK_SetTaskVaParam
-        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
-    {
-        auto& task = Task::Common::Get(s_task);
-
-        mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl =
-            reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(ExtBuffer::Get(task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
-        MFX_CHECK(EncFrameCtrl, MFX_ERR_UNDEFINED_BEHAVIOR);
-
-        m_pVaFrameCtrl->function                           = VA_FEI_FUNCTION_ENC_PAK;
-        m_pVaFrameCtrl->search_path                        = EncFrameCtrl->SearchPath;
-        m_pVaFrameCtrl->len_sp                             = EncFrameCtrl->LenSP;
-        m_pVaFrameCtrl->ref_width                          = EncFrameCtrl->RefWidth;
-        m_pVaFrameCtrl->ref_height                         = EncFrameCtrl->RefHeight;
-        m_pVaFrameCtrl->search_window                      = EncFrameCtrl->SearchWindow;
-        m_pVaFrameCtrl->num_mv_predictors_l0               = mfxU16(!!EncFrameCtrl->MVPredictor * EncFrameCtrl->NumMvPredictors[0]);
-        m_pVaFrameCtrl->num_mv_predictors_l1               = mfxU16(!!EncFrameCtrl->MVPredictor * EncFrameCtrl->NumMvPredictors[1]);
-        m_pVaFrameCtrl->multi_pred_l0                      = EncFrameCtrl->MultiPred[0];
-        m_pVaFrameCtrl->multi_pred_l1                      = EncFrameCtrl->MultiPred[1];
-        m_pVaFrameCtrl->sub_pel_mode                       = EncFrameCtrl->SubPelMode;
-        m_pVaFrameCtrl->adaptive_search                    = EncFrameCtrl->AdaptiveSearch;
-        m_pVaFrameCtrl->mv_predictor_input                 = EncFrameCtrl->MVPredictor;
-        m_pVaFrameCtrl->per_block_qp                       = EncFrameCtrl->PerCuQp;
-        m_pVaFrameCtrl->per_ctb_input                      = EncFrameCtrl->PerCtuInput;
-        m_pVaFrameCtrl->force_lcu_split                    = EncFrameCtrl->ForceCtuSplit;
-        m_pVaFrameCtrl->num_concurrent_enc_frame_partition = EncFrameCtrl->NumFramePartitions;
-        m_pVaFrameCtrl->fast_intra_mode                    = EncFrameCtrl->FastIntraMode;
-
-        // Input buffers
-        m_pVaFrameCtrl->mv_predictor =
-            GetVaBufferID<mfxExtFeiHevcEncMVPredictors>(&task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED, !!EncFrameCtrl->MVPredictor);
-        m_pVaFrameCtrl->qp =
-            GetVaBufferID<mfxExtFeiHevcEncQP>(&task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_QP, !!EncFrameCtrl->PerCuQp);
-        m_pVaFrameCtrl->ctb_ctrl =
-            GetVaBufferID<mfxExtFeiHevcEncCtuCtrl>(&task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_QP, !!EncFrameCtrl->PerCtuInput);
-
-        auto* repackctrl = reinterpret_cast<mfxExtFeiHevcRepackCtrl*>(ExtBuffer::Get(task.ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
-        if (repackctrl)
-        {
-            m_pVaFrameCtrl->max_frame_size  = repackctrl->MaxFrameSize;
-            m_pVaFrameCtrl->num_passes      = repackctrl->NumPasses;
-            m_pVaFrameCtrl->delta_qp        = repackctrl->DeltaQP;
-        }
-
-        // Output buffers
-#if MFX_VERSION >= MFX_VERSION_NEXT
-        m_pVaFrameCtrl->ctb_cmd    = GetVaBufferID<mfxExtFeiHevcPakCtuRecordV0>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC);
-        m_pVaFrameCtrl->cu_record  = GetVaBufferID<mfxExtFeiHevcPakCuRecordV0>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_PAK_CU_REC);
-        m_pVaFrameCtrl->distortion = GetVaBufferID<mfxExtFeiHevcDistortion>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_ENC_DIST);
-#else
-        m_pVaFrameCtrl->ctb_cmd    = VA_INVALID_ID;
-        m_pVaFrameCtrl->cu_record  = VA_INVALID_ID;
-        m_pVaFrameCtrl->distortion = VA_INVALID_ID;
-#endif
-
-        return MFX_ERR_NONE;
-    });
-}
-
-void FEI::InitAlloc(const FeatureBlocks& blocks, TPushIA Push)
+void FEI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 {
     Push(BLK_SetFeedbackCallChain
-        , [this](StorageRW& strg, StorageRW& /*local*/) -> mfxStatus
+        , [](StorageRW& strg, StorageRW& /*local*/) -> mfxStatus
     {
         auto& cc = VAPacker::CC::Get(strg);
+
+        cc.AddPerPicMiscData[VAEncMiscParameterTypeFEIFrameControl].Push([](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& /*global*/
+            , const StorageR& s_task
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            auto& task = Task::Common::Get(s_task);
+
+            mfxExtFeiHevcEncFrameCtrl* EncFrameCtrl =
+                reinterpret_cast<mfxExtFeiHevcEncFrameCtrl*>(ExtBuffer::Get(task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_CTRL));
+            ThrowIf(!EncFrameCtrl, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            auto& efctrl      = *EncFrameCtrl;
+            auto& vaFrameCtrl = AddVaMisc<VAEncMiscParameterFEIFrameControlHEVC>(VAEncMiscParameterTypeFEIFrameControl, data);
+
+            vaFrameCtrl.function                           = VA_FEI_FUNCTION_ENC_PAK;
+            vaFrameCtrl.search_path                        = efctrl.SearchPath;
+            vaFrameCtrl.len_sp                             = efctrl.LenSP;
+            vaFrameCtrl.ref_width                          = efctrl.RefWidth;
+            vaFrameCtrl.ref_height                         = efctrl.RefHeight;
+            vaFrameCtrl.search_window                      = efctrl.SearchWindow;
+            vaFrameCtrl.num_mv_predictors_l0               = mfxU16(!!efctrl.MVPredictor * efctrl.NumMvPredictors[0]);
+            vaFrameCtrl.num_mv_predictors_l1               = mfxU16(!!efctrl.MVPredictor * efctrl.NumMvPredictors[1]);
+            vaFrameCtrl.multi_pred_l0                      = efctrl.MultiPred[0];
+            vaFrameCtrl.multi_pred_l1                      = efctrl.MultiPred[1];
+            vaFrameCtrl.sub_pel_mode                       = efctrl.SubPelMode;
+            vaFrameCtrl.adaptive_search                    = efctrl.AdaptiveSearch;
+            vaFrameCtrl.mv_predictor_input                 = efctrl.MVPredictor;
+            vaFrameCtrl.per_block_qp                       = efctrl.PerCuQp;
+            vaFrameCtrl.per_ctb_input                      = efctrl.PerCtuInput;
+            vaFrameCtrl.force_lcu_split                    = efctrl.ForceCtuSplit;
+            vaFrameCtrl.num_concurrent_enc_frame_partition = efctrl.NumFramePartitions;
+            vaFrameCtrl.fast_intra_mode                    = efctrl.FastIntraMode;
+
+            // Input buffers
+            vaFrameCtrl.mv_predictor =
+                GetVaBufferID<mfxExtFeiHevcEncMVPredictors>(&task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_MV_PRED, !!efctrl.MVPredictor);
+            vaFrameCtrl.qp =
+                GetVaBufferID<mfxExtFeiHevcEncQP>(&task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_QP, !!efctrl.PerCuQp);
+            vaFrameCtrl.ctb_ctrl =
+                GetVaBufferID<mfxExtFeiHevcEncCtuCtrl>(&task.ctrl, MFX_EXTBUFF_HEVCFEI_ENC_QP, !!efctrl.PerCtuInput);
+
+            auto repackctrl = reinterpret_cast<mfxExtFeiHevcRepackCtrl*>(ExtBuffer::Get(task.ctrl, MFX_EXTBUFF_HEVCFEI_REPACK_CTRL));
+            if (repackctrl)
+            {
+                vaFrameCtrl.max_frame_size  = repackctrl->MaxFrameSize;
+                vaFrameCtrl.num_passes      = repackctrl->NumPasses;
+                vaFrameCtrl.delta_qp        = repackctrl->DeltaQP;
+            }
+
+            // Output buffers
+#if MFX_VERSION >= MFX_VERSION_NEXT
+            vaFrameCtrl.ctb_cmd    = GetVaBufferID<mfxExtFeiHevcPakCtuRecordV0>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC);
+            vaFrameCtrl.cu_record  = GetVaBufferID<mfxExtFeiHevcPakCuRecordV0>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_PAK_CU_REC);
+            vaFrameCtrl.distortion = GetVaBufferID<mfxExtFeiHevcDistortion>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_ENC_DIST);
+#else
+            vaFrameCtrl.ctb_cmd    = VA_INVALID_ID;
+            vaFrameCtrl.cu_record  = VA_INVALID_ID;
+            vaFrameCtrl.distortion = VA_INVALID_ID;
+#endif
+
+            return true;
+        });
 
         cc.ReadFeedback.Push([](
             VAPacker::CallChains::TReadFeedback::TExt prev
@@ -386,9 +389,6 @@ void FEI::InitAlloc(const FeatureBlocks& blocks, TPushIA Push)
 
             return prev(global, s_task, fb);
         });
-
-        m_pVaFrameCtrl = &AddVaMisc<VAEncMiscParameterFEIFrameControlHEVC>(
-            VAEncMiscParameterTypeFEIFrameControl, m_vaMiscData);
 
         return MFX_ERR_NONE;
     });

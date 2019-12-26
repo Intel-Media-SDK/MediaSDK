@@ -41,6 +41,7 @@ namespace Gen9
             , eFeatureMode mode = eFeatureMode::INIT);
 
         virtual mfxStatus Init(mfxVideoParam *par) override;
+        virtual ImplBase* ApplyMode(mfxU32 mode) override;
     };
 
 } //Gen9

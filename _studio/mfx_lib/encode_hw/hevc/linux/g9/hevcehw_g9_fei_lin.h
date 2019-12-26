@@ -60,14 +60,11 @@ protected:
     virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
     virtual void FrameSubmit(const FeatureBlocks& blocks, TPushFS Push) override;
     virtual void PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push) override;
-    virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
     virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
 
     mfxU32 m_lastIDR     = 0;
     mfxI32 m_prevIPoc    = 0;
     mfxU32 m_frameOrder  = 0;
-    std::list<std::vector<mfxU8>>           m_vaMiscData;
-    VAEncMiscParameterFEIFrameControlHEVC*  m_pVaFrameCtrl = nullptr;
 };
 
 } //Gen9

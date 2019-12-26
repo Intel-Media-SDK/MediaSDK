@@ -258,6 +258,22 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+#if defined(MFX_ENABLE_HEVCEHW_REFACTORING_FEI)
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    if (core && mfxRes)
+                        return HEVCEHW::Create(*core, *mfxRes, true);
+                    return nullptr;
+                },
+                // .query =
+                [](mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
+                { return HEVCEHW::Query(session->m_pCORE.get(), in, out, true); },
+                // .queryIOSurf =
+                [](mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return HEVCEHW::QueryIOSurf(session->m_pCORE.get(), par, request, true); }
+#else
                 // .ctor =
                 [](VideoCORE* core, mfxStatus* mfxRes)
                 -> VideoENCODE*
@@ -268,6 +284,7 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+#endif //defined(MFX_ENABLE_HEVCEHW_REFACTORING_FEI)
             }
         }
     },

@@ -46,6 +46,7 @@
 #include "hevcehw_g9_roi_lin.h"
 #endif
 #include "hevcehw_g9_max_frame_size.h"
+#include "hevcehw_g9_fei_lin.h"
 #include <algorithm>
 
 using namespace HEVCEHW;
@@ -103,6 +104,26 @@ Linux::Gen9::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
         qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_ROI, ROI::BLK_SetCallChains }));
     }
 #endif
+}
+
+ImplBase* Linux::Gen9::MFXVideoENCODEH265_HW::ApplyMode(mfxU32 mode)
+{
+    bool bInitFEI = (mode == IMPL_MODE_FEI) && !FindFeature<FEI>(FEATURE_FEI);
+
+    if (bInitFEI)
+    {
+        mfxU32 featureMode =
+              (QUERY0        * !BQ<BQ_Query0>::Get(*this).empty())
+            + (QUERY1        * !BQ<BQ_Query1NoCaps>::Get(*this).empty())
+            + (QUERY_IO_SURF * !BQ<BQ_QueryIOSurf>::Get(*this).empty())
+            + (INIT          * !BQ<BQ_InitAlloc>::Get(*this).empty())
+            + (RUNTIME       * !BQ<BQ_SubmitTask>::Get(*this).empty());
+
+        m_features.emplace_back(new FEI(FEATURE_FEI));
+        m_features.back()->Init(featureMode, *this);
+    }
+
+    return this;
 }
 
 mfxStatus Linux::Gen9::MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)

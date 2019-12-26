@@ -1329,6 +1329,7 @@ namespace Gen9
         , FEATURE_WEIGHTPRED
         , FEATURE_QMATRIX
         , FEATURE_UNITS_INFO
+        , FEATURE_FEI
         , NUM_FEATURES
     };
 

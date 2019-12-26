@@ -24,11 +24,42 @@
 #include "hevcehw_disp.h"
 #include "hevcehw_base.h"
 #include "mfx_h265_encode_hw.h"
+#include "mfx_h265_fei_encode_hw.h"
 
 namespace HEVCEHW
 {
     namespace LegacyFallback
     {
+#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+        class FEI
+            : public MfxHwH265FeiEncode::H265FeiEncode_HW
+            , public ImplBase
+        {
+        public:
+            FEI(
+                VideoCORE* core
+                , mfxStatus& status
+                , eFeatureMode)
+                : MfxHwH265FeiEncode::H265FeiEncode_HW(core, &status)
+            {
+            }
+            virtual mfxStatus InternalQuery(
+                VideoCORE& core
+                , mfxVideoParam *in
+                , mfxVideoParam& out) override
+            {
+                return MfxHwH265FeiEncode::H265FeiEncode_HW::Query(&core, in, &out);
+            }
+            virtual mfxStatus InternalQueryIOSurf(
+                VideoCORE& core
+                , mfxVideoParam& par
+                , mfxFrameAllocRequest& request) override
+            {
+                return MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(&core, &par, &request);
+            }
+        };
+#endif //defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+
         class MFXVideoENCODEH265_HW
             : public MfxHwH265Encode::MFXVideoENCODEH265_HW
             , public ImplBase
@@ -54,6 +85,24 @@ namespace HEVCEHW
                 , mfxFrameAllocRequest& request) override
             {
                 return MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(&core, &par, &request);
+            }
+
+            virtual ImplBase* ApplyMode(mfxU32 mode) override
+            {
+#if defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+                if (mode == IMPL_MODE_FEI && !dynamic_cast<FEI*>(this))
+                {
+                    mfxStatus sts = MFX_ERR_NONE;
+                    auto pFEI = new FEI(m_core, sts, eFeatureMode(0));
+
+                    delete this;
+
+                    return pFEI;
+                }
+#else
+                std::ignore = mode;
+#endif //defined(MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE)
+                return this;
             }
         };
     };
@@ -99,7 +148,8 @@ static ImplBase* CreateSpecific(
 
 VideoENCODE* Create(
     VideoCORE& core
-    , mfxStatus& status)
+    , mfxStatus& status
+    , bool bFEI)
 {
     auto hw = core.GetHWType();
 
@@ -109,13 +159,21 @@ VideoENCODE* Create(
         return nullptr;
     }
 
-    return CreateSpecific(hw, core, status, eFeatureMode::INIT);
+    auto p = CreateSpecific(hw, core, status, eFeatureMode::INIT);
+
+    if (p && bFEI)
+    {
+        p = p->ApplyMode(IMPL_MODE_FEI);
+    }
+
+    return p;
 }
 
 mfxStatus QueryIOSurf(
     VideoCORE *core
     , mfxVideoParam *par
-    , mfxFrameAllocRequest *request)
+    , mfxFrameAllocRequest *request
+    , bool bFEI)
 {
     MFX_CHECK_NULL_PTR3(core, par, request);
 
@@ -130,13 +188,17 @@ mfxStatus QueryIOSurf(
     MFX_CHECK_STS(sts);
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
+    impl.reset(impl.release()->ApplyMode(bFEI * IMPL_MODE_FEI));
+    MFX_CHECK(impl, MFX_ERR_UNKNOWN);
+
     return impl->InternalQueryIOSurf(*core, *par, *request);
 }
 
 mfxStatus Query(
     VideoCORE *core
     , mfxVideoParam *in
-    , mfxVideoParam *out)
+    , mfxVideoParam *out
+    , bool bFEI)
 {
     MFX_CHECK_NULL_PTR2(core, out);
 
@@ -149,6 +211,9 @@ mfxStatus Query(
     std::unique_ptr<ImplBase> impl(CreateSpecific(hw, *core, sts, in ? eFeatureMode::QUERY1 : eFeatureMode::QUERY0));
 
     MFX_CHECK_STS(sts);
+    MFX_CHECK(impl, MFX_ERR_UNKNOWN);
+
+    impl.reset(impl.release()->ApplyMode(bFEI * IMPL_MODE_FEI));
     MFX_CHECK(impl, MFX_ERR_UNKNOWN);
 
     return impl->InternalQuery(*core, in, *out);
