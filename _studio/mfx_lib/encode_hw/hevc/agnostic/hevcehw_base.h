@@ -93,6 +93,12 @@ protected:
     virtual void SetTraceName(std::string&& /*name*/) {}
 };
 
+enum eImplMode
+{
+    IMPL_MODE_DEFAULT = 0
+    , IMPL_MODE_FEI
+};
+
 class ImplBase
     : virtual public VideoENCODE
 {
@@ -106,6 +112,11 @@ public:
         VideoCORE& core
         , mfxVideoParam& par
         , mfxFrameAllocRequest& request) = 0;
+
+    virtual ImplBase* ApplyMode(mfxU32 /*mode*/)
+    {
+        return this;
+    }
 };
 
 }; //namespace HEVCEHW

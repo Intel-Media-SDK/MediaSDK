@@ -141,13 +141,24 @@ namespace Gen9
         }
 
         template<class T>
-        T& GetFeature(mfxU32 id)
+        T* FindFeature(mfxU32 id)
         {
             using TRFeature = decltype(m_features.front());
             auto it = std::find_if(m_features.begin(), m_features.end()
                 , [id](TRFeature pFeature) { return pFeature->GetID() == id; });
-            ThrowAssert(it == m_features.end(), "Feature not found");
-            return dynamic_cast<T&>(*it->get());
+            if (it == m_features.end())
+            {
+                return nullptr;
+            }
+            return dynamic_cast<T*>(it->get());
+        }
+
+        template<class T>
+        T& GetFeature(mfxU32 id)
+        {
+            T* pFeature = FindFeature<T>(id);
+            ThrowAssert(!pFeature, "Feature not found");
+            return *pFeature;
         }
     };
 

@@ -29,17 +29,20 @@ namespace HEVCEHW
 {
     VideoENCODE* Create(
         VideoCORE& core
-        , mfxStatus& status);
+        , mfxStatus& status
+        , bool bFEI = false);
 
     mfxStatus QueryIOSurf(
         VideoCORE *core
         , mfxVideoParam *par
-        , mfxFrameAllocRequest *request);
+        , mfxFrameAllocRequest *request
+        , bool bFEI = false);
 
     mfxStatus Query(
         VideoCORE *core
         , mfxVideoParam *in
-        , mfxVideoParam *out);
+        , mfxVideoParam *out
+        , bool bFEI = false);
 }
 
 #endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

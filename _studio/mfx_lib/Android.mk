@@ -66,6 +66,7 @@ MFX_LOCAL_SRC_FILES_HW += \
     mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_caps.cpp \
     mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_rext.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_interlace_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_fei_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_roi_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_va_lin.cpp \
