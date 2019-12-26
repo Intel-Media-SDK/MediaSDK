@@ -51,8 +51,6 @@ protected:
         caps.NoInterlacedField          = 1;
         caps.ParallelBRC                = 1;
         caps.MaxEncodedBitDepth         = 2;
-        caps.MaxPicWidth                = 16384;
-        caps.MaxPicHeight               = 16384;
         caps.MaxNumOfROI                = 16;
         caps.ROIDeltaQPSupport          = 1;
         caps.BlockSize                  = 1;

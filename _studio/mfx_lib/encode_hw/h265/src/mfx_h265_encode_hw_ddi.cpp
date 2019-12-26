@@ -148,8 +148,6 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.LumaWeightedPred = 1; // = 0 now
         caps.ddi_caps.ChromaWeightedPred = 0; // = 0 now
         caps.ddi_caps.MaxEncodedBitDepth = 2;  // = 1 now (8/10b only)
-        caps.ddi_caps.MaxPicWidth = 16384;  // = 8192 now
-        caps.ddi_caps.MaxPicHeight = 16384;  // = 8192 now
         caps.ddi_caps.MaxNumOfROI = 16;  // = 0 now
         caps.ddi_caps.ROIDeltaQPSupport = 1;  // = 0 now
         caps.ddi_caps.BlockSize = 1;  // = 0 now (set to 16x16 like in Win)
