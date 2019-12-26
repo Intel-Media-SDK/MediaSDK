@@ -106,6 +106,9 @@ bool CheckGUID(VideoCORE * core, eMFXHWType type, mfxVideoParam const* param)
         case MFX_PROFILE_HEVC_REXT:
         case MFX_PROFILE_HEVC_MAINSP:
         case MFX_PROFILE_HEVC_MAIN10:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case MFX_PROFILE_HEVC_SCC:
+#endif
             return true;
     }
 
@@ -158,14 +161,25 @@ mfxU16 QueryMaxProfile(eMFXHWType type)
     else if (type < MFX_HW_TGL_LP)
         return MFX_PROFILE_HEVC_REXT;
     else
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        return MFX_PROFILE_HEVC_SCC;
+#else
         return MFX_PROFILE_HEVC_REXT;
+#endif
 }
 
 inline
 bool CheckChromaFormat(mfxU16 profile, mfxU16 format)
 {
     VM_ASSERT(profile != MFX_PROFILE_UNKNOWN);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    VM_ASSERT(
+        !(profile >  MFX_PROFILE_HEVC_REXT) ||
+        profile == MFX_PROFILE_HEVC_SCC
+    );
+#else
     VM_ASSERT(!(profile >  MFX_PROFILE_HEVC_REXT));
+#endif
 
     if (format > MFX_CHROMAFORMAT_YUV444)
         return false;
@@ -182,6 +196,9 @@ bool CheckChromaFormat(mfxU16 profile, mfxU16 format)
 
         { MFX_PROFILE_HEVC_REXT,   {                      -1, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV422, MFX_CHROMAFORMAT_YUV444 } },
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        { MFX_PROFILE_HEVC_SCC,    {                      -1, MFX_CHROMAFORMAT_YUV420,                      -1, MFX_CHROMAFORMAT_YUV444 } },
+#endif
     };
 
     supported_t const
@@ -199,7 +216,14 @@ inline
 bool CheckBitDepth(mfxU16 profile, mfxU16 bit_depth)
 {
     VM_ASSERT(profile != MFX_PROFILE_UNKNOWN);
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    VM_ASSERT(
+        !(profile >  MFX_PROFILE_HEVC_REXT) ||
+        profile == MFX_PROFILE_HEVC_SCC
+    );
+#else
     VM_ASSERT(!(profile >  MFX_PROFILE_HEVC_REXT));
+#endif
 
     struct minmax_t
     {
@@ -211,6 +235,9 @@ bool CheckBitDepth(mfxU16 profile, mfxU16 bit_depth)
         { MFX_PROFILE_HEVC_MAIN10, 8, 10 },
         { MFX_PROFILE_HEVC_MAINSP, 8,  8 },
         { MFX_PROFILE_HEVC_REXT,   8, 12 }, //(12b max for Gen12)
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        { MFX_PROFILE_HEVC_SCC,    8, 10 }, //(10b max for Gen12)
+#endif
     };
 
     minmax_t const
@@ -235,7 +262,8 @@ mfxU32 CalculateFourcc(mfxU16 codecProfile, mfxFrameInfo const* frameInfo)
     //Main10 - [4:2:0], [8, 10] bit
     //Extent - [4:2:0, 4:2:2, 4:4:4], [8, 10, 12, 16]
 
-    if (codecProfile > MFX_PROFILE_HEVC_REXT)
+    if (codecProfile > MFX_PROFILE_HEVC_REXT &&
+        codecProfile != H265_PROFILE_SCC)
         return 0;
 
     if (!CheckChromaFormat(codecProfile, frameInfo->ChromaFormat))
@@ -1014,6 +1042,9 @@ bool CheckVideoParam_H265(mfxVideoParam *in, eMFXHWType type)
         in->mfx.CodecProfile != MFX_PROFILE_HEVC_MAIN10 &&
         in->mfx.CodecProfile != MFX_PROFILE_HEVC_MAINSP &&
         in->mfx.CodecProfile != MFX_PROFILE_HEVC_REXT
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        && in->mfx.CodecProfile != MFX_PROFILE_HEVC_SCC
+#endif
         )
         return false;
 

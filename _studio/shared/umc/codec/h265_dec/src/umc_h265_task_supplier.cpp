@@ -2627,7 +2627,11 @@ int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t 
 
         uint32_t MaxLumaPs = lumaPsArray[index];
         uint32_t const maxDpbPicBuf =
+#ifndef MFX_VA
+            profile_idc != H265_PROFILE_SCC ? 6 : 7;
+#else
             6;//HW handles second version of current reference (twoVersionsOfCurrDecPicFlag) itself
+#endif
 
         uint32_t PicSizeInSamplesY = width * height;
 
