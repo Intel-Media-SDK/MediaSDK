@@ -377,7 +377,7 @@ namespace MfxHwVP9Encode
         mfxU8 maxLog2TileCols = 1;
         mfxU8 ones;
 
-        const mfxU8 sb64Cols = (mfx::align2_value(framePar.modeInfoCols, 1 << MI_BLOCK_SIZE_LOG2)) >> MI_BLOCK_SIZE_LOG2;
+        const mfxU16 sb64Cols = (mfx::align2_value(framePar.modeInfoCols, 1 << MI_BLOCK_SIZE_LOG2)) >> MI_BLOCK_SIZE_LOG2;
         while ((MAX_TILE_WIDTH_B64 << minLog2TileCols) < sb64Cols)
         {
             minLog2TileCols ++;
