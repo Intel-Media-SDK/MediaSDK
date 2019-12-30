@@ -2173,18 +2173,9 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
-        if (par.mfx.QPI)
-            changed += CheckRange(par.mfx.QPI, minQP, maxQP);
-        if (par.mfx.QPP)
-            changed += CheckRange(par.mfx.QPP, minQP, maxQP);
-        if (par.mfx.QPB)
-            changed += CheckRange(par.mfx.QPB, minQP, maxQP);
-
-        if ((par.mfx.QPI == 0) && (par.mfx.QPP || par.mfx.QPB))
-        {
-            par.mfx.QPP = par.mfx.QPB = 0;
-            changed++;
-        }
+        changed += CheckRangeDflt(par.mfx.QPI, minQP, maxQP, 0);
+        changed += CheckRangeDflt(par.mfx.QPP, minQP, maxQP, 0);
+        changed += CheckRangeDflt(par.mfx.QPB, minQP, maxQP, 0);
     }
 
     if (par.BufferSizeInKB != 0)
@@ -2273,7 +2264,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
             || (par.mfx.NumRefFrame && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)))
     {
         if (par.mfx.EncodedOrder
-         && par.mfx.NumRefFrame > 2 
+         && par.mfx.NumRefFrame > 2
          && minRefForPyramid(par.mfx.GopRefDist, par.isField()) > par.mfx.NumRefFrame)
         {
             par.bNonStandardReord = true;  // let's allow this mode in encoding order (may be special B pyr is used)
@@ -2289,7 +2280,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
     {
         if (par.mfx.EncodedOrder && par.isField() && par.mfx.NumRefFrame > 1 && par.mfx.NumRefFrame < 4)
         {
-            par.bNonStandardReord = true;  // let's allow this mode in encoding order 
+            par.bNonStandardReord = true;  // let's allow this mode in encoding order
         }
         else
         {

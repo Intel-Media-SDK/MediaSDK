@@ -4160,11 +4160,11 @@ mfxStatus Legacy::CheckBRC(
 
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
-        changed += par.mfx.QPI && CheckMinOrClip<mfxU16>(par.mfx.QPI, minQP);
+        changed += CheckMinOrClip<mfxU16>(par.mfx.QPI, minQP);
         changed += CheckMaxOrClip<mfxU16>(par.mfx.QPI, maxQP);
-        changed += par.mfx.QPP && CheckMinOrClip<mfxU16>(par.mfx.QPP, minQP);
+        changed += CheckMinOrClip<mfxU16>(par.mfx.QPP, minQP);
         changed += CheckMaxOrClip<mfxU16>(par.mfx.QPP, maxQP);
-        changed += par.mfx.QPB && CheckMinOrClip<mfxU16>(par.mfx.QPB, minQP);
+        changed += CheckMinOrClip<mfxU16>(par.mfx.QPB, minQP);
         changed += CheckMaxOrClip<mfxU16>(par.mfx.QPB, maxQP);
 
         changed += !par.mfx.QPI && (par.mfx.QPP || par.mfx.QPB);
