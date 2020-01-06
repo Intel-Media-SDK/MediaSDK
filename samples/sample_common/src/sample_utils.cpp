@@ -909,14 +909,14 @@ mfxStatus GetChromaSize(const mfxFrameInfo & pInfo, mfxU32 & ChromaW, mfxU32 & C
     }
     case MFX_FOURCC_NV12:
     {
-        ChromaW = pInfo.CropW;
+        ChromaW = (pInfo.CropW % 2) ? (pInfo.CropW + 1) : pInfo.CropW;
         ChromaH = (pInfo.CropH + 1) / 2;
         break;
     }
     case MFX_FOURCC_P010:
     case MFX_FOURCC_P210:
     {
-        ChromaW = pInfo.CropW;
+        ChromaW = (pInfo.CropW % 2) ? (pInfo.CropW + 1) : pInfo.CropW;
         ChromaH = pInfo.FourCC == MFX_FOURCC_P210 ? (mfxU32)pInfo.CropH : (mfxU32)(pInfo.CropH + 1) / 2;
         break;
     }
@@ -1089,13 +1089,13 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         {
             MSDK_CHECK_NOT_EQUAL(
                 fwrite(pData.V + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2) + i * pData.Pitch, 1, ChromaW, dstFile),
-                (mfxU32)pInfo.CropW / 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+                ChromaW, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         for (i = 0; i < ChromaH; i++)
         {
             MSDK_CHECK_NOT_EQUAL(
                 fwrite(pData.U + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX / 2) + i * pData.Pitch / 2, 1, ChromaW, dstFile),
-                (mfxU32)pInfo.CropW / 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+                ChromaW, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         break;
     }
@@ -1105,7 +1105,7 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         {
             MSDK_CHECK_NOT_EQUAL(
                 fwrite(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch, 1, ChromaW, dstFile),
-                pInfo.CropW, MFX_ERR_UNDEFINED_BEHAVIOR);
+                ChromaW, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         break;
     }
@@ -1128,14 +1128,14 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
 
                 MSDK_CHECK_NOT_EQUAL(
                     fwrite(&tmp[0], 1, ChromaW * 2, dstFile),
-                    (mfxU32)pInfo.CropW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+                    (mfxU32)ChromaW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             }
             else
             {
                 MSDK_CHECK_NOT_EQUAL(
                     fwrite(shortPtr, 1, ChromaW * 2, dstFile),
-                    (mfxU32)pInfo.CropW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+                    ChromaW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
             }
         }
         break;
