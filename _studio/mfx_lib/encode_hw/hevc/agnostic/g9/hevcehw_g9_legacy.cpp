@@ -2726,34 +2726,27 @@ void Legacy::InitDPB(
 
     if (pLCtrl)
     {
-        std::list<mfxU16> rejectIDX;
-
-        auto rejectedEnd = std::find_if(
-            pLCtrl->RejectedRefList
-            , pLCtrl->RejectedRefList + Size(pLCtrl->RejectedRefList)
-            , [](const TLCtrlRLE& ref)
-        {
-            return ref.FrameOrder == mfxU32(MFX_FRAMEORDER_UNKNOWN);
-        });
+        std::list<mfxU32> rejectIDX;
 
         std::transform(
-            pLCtrl->RejectedRefList
-            , rejectedEnd
+            std::begin(pLCtrl->RejectedRefList)
+            , std::end(pLCtrl->RejectedRefList)
             , std::back_inserter(rejectIDX)
             , [&](const TLCtrlRLE& lt)
         {
             mfxU16 idx = GetDPBIdxByFO(dpb, lt.FrameOrder);
-            idx += !dpb[idx].isLTR * MAX_DPB_SIZE;
-            return std::min<mfxU16>(idx, MAX_DPB_SIZE);
+            bool bInvalid = (idx >= MAX_DPB_SIZE) || !dpb[idx].isLTR;
+            return std::max(lt.FrameOrder, mfxU32(bInvalid * MFX_FRAMEORDER_UNKNOWN));
         });
 
         rejectIDX.sort();
-        rejectIDX.remove(mfxU16(MAX_DPB_SIZE));
+        rejectIDX.unique();
+        rejectIDX.remove(mfxU32(MFX_FRAMEORDER_UNKNOWN));
 
         std::for_each(rejectIDX.begin(), rejectIDX.end()
-            , [&](mfxU16 idx)
+            , [&](mfxU32 fo)
         {
-            Remove(dpb, idx);
+            Remove(dpb, GetDPBIdxByFO(dpb, fo));
         });
     }
 }
@@ -2820,6 +2813,7 @@ mfxU16 Legacy::UpdateDPB(
 
         markLTR.sort();
         markLTR.remove(mfxU16(MAX_DPB_SIZE));
+        markLTR.unique();
 
         std::for_each(markLTR.begin(), markLTR.end()
             , [&](mfxU16 idx)
