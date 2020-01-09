@@ -1309,22 +1309,33 @@ public:
         pIdxListEnd = std::remove_if(IdxList, pIdxListEnd
             , [&](mfxU8 ref) { return ref >= MAX_DPB_SIZE; });
 
-        mfxU8* pRplEnd[2] = { RPL[0] + l0, RPL[1] + l1 };
+        mfxU8 tmpRPL[2][MAX_DPB_SIZE + 2] = {};
+        mfxU8* pRplEnd[2] = { tmpRPL[0] + l0, tmpRPL[1] + l1 };
+
+        std::fill(std::next(tmpRPL[0], MAX_DPB_SIZE), std::end(tmpRPL[0]), IDX_INVALID);
+        std::fill(std::next(tmpRPL[1], MAX_DPB_SIZE), std::end(tmpRPL[1]), IDX_INVALID);
+
+        std::copy(std::begin(RPL[0]), std::end(RPL[0]), std::begin(tmpRPL[0]));
+        std::copy(std::begin(RPL[1]), std::end(RPL[1]), std::begin(tmpRPL[1]));
 
         std::for_each(IdxList, pIdxListEnd
             , [&](mfxU8 ref)
         {
             bool lx = DPB[ref].POC > cur.POC;
-            pRplEnd[lx] = std::remove(RPL[lx], pRplEnd[lx], ref);
-            Insert(RPL[lx], pref[lx]++, ref);
+            pRplEnd[lx] = std::remove(tmpRPL[lx], pRplEnd[lx], ref);
+
+            Insert(tmpRPL[lx], pref[lx]++, ref);
             ++pRplEnd[lx];
         });
 
-        l0 = std::min<mfxU8>((mfxU8)maxL0, mfxU8(RPL[0] - pRplEnd[0]));
-        l1 = std::min<mfxU8>((mfxU8)maxL1, mfxU8(RPL[1] - pRplEnd[1]));
+        l0 = std::min<mfxU8>((mfxU8)maxL0, mfxU8(tmpRPL[0] - pRplEnd[0]));
+        l1 = std::min<mfxU8>((mfxU8)maxL1, mfxU8(tmpRPL[1] - pRplEnd[1]));
 
-        Remove(RPL[0], l0, Size(RPL[0]) - l0);
-        Remove(RPL[1], l1, Size(RPL[1]) - l1);
+        std::fill(std::next(RPL[0], l0), std::end(RPL[0]), IDX_INVALID);
+        std::fill(std::next(RPL[1], l1), std::end(RPL[1]), IDX_INVALID);
+
+        std::copy_n(tmpRPL[0], l0, RPL[0]);
+        std::copy_n(tmpRPL[1], l1, RPL[1]);
 
         bool bDefaultL0 = (l0 == 0);
         RPL[0][l0 += bDefaultL0] *= !bDefaultL0;
