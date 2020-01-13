@@ -107,7 +107,7 @@ By default samples are built as part of building the SDK.
 Samples build can be disabled by adding -DBUILD_SAMPLES=OFF to cmake command line.
 
  
-After build binaries are in \<build folder\> __bin/release
+After build binaries are in \<build folder\> \__bin/release
 
 
 
