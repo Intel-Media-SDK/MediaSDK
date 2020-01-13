@@ -3952,13 +3952,19 @@ mfxStatus Legacy::CheckSlices(
 
     std::vector<SliceInfo> slices;
 
-    changed += CheckOrZero(par.mfx.NumSlice, defPar.base.GetSlices(defPar, slices), 0);
+    auto supportedNslices = defPar.base.GetSlices(defPar, slices);
+    if (par.mfx.NumSlice)
+    {
+        changed += CheckRangeOrSetDefault(par.mfx.NumSlice, supportedNslices, supportedNslices, supportedNslices);
+    }
 
     if (bCheckNMB)
     {
         auto itMaxSlice = std::max_element(slices.begin(), slices.end()
             , [](SliceInfo a, SliceInfo b){ return a.NumLCU < b.NumLCU; });
-        changed += CheckMinOrClip(pCO2->NumMbPerSlice, itMaxSlice->NumLCU);
+
+        if (itMaxSlice != std::end(slices))
+            changed += CheckMinOrClip(pCO2->NumMbPerSlice, itMaxSlice->NumLCU);
     }
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
