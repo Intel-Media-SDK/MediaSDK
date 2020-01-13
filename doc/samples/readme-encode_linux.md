@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Encoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\).
+**Encoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\).
 
 It demonstrates how to use the **SDK** API to create a simple console application that performs preprocessing and encoding of an uncompressed video stream according to a specific video compression standard. Also the sample shows how to integrate user-defined functions for video processing \(on example of picture rotation plug-in\) into **SDK** encoding pipeline.
 
@@ -23,21 +23,21 @@ The sample is able to work with**HEVC Decoder & Encoder** \(hereinafter referred
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 To enable V4L2 option during compilation, set --enable-v4l2=yes option while running `build.pl`
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 
 

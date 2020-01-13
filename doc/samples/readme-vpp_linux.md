@@ -4,7 +4,7 @@
 
 ## Overview
 
-**VPP Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\).
+**VPP Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\).
 
 It demonstrates how to use the **SDK** API to create a simple console application that performs video processing of raw video sequences.
 
@@ -19,19 +19,19 @@ It demonstrates how to use the **SDK** API to create a simple console applicatio
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.pdf.`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 Usage: `./sample_vpp [Options] -i InputFile -o OutputFile`
 ### Options
@@ -143,10 +143,10 @@ Usage: `./sample_vpp [Options] -i InputFile -o OutputFile`
 |   [-chroma_siting (vmode hmode)] | specify chroma siting mode for VPP color conversion, allowed values: vtop\|vcen\|vbot hleft\|hcen|
 |  -mctf [Strength]|Strength is an optional value; it is in range [0...20] <br>value 0 makes MCTF operates in auto mode;<br>values [1...20] makes MCTF operates with fixed-strength mode;<br>In fixed-strength mode, MCTF strength can be adjusted at framelevel;<br>If no Strength is given, MCTF operates in auto mode.|
 |   [-detail  (level)] | enable detail enhancement algorithm. Level is optional range of detail level is [0, 100]|
-|   [-pa_hue hue]| procamp hue property. range [-180.0, 180.0] (def: 0.0)|
-|   [-pa_sat  saturation] | procamp saturation property. range [   0.0,  10.0] (def: 1.0)|
-|   [-pa_con  contrast]| procamp contrast property.    range [   0.0,  10.0] (def: 1.0)|
-|   [-pa_bri  brightness]| procamp brightness property.  range [-100.0, 100.0] (def: 0.0)|
+|   [-pa_hue hue]| procamp hue property. range [-180.0, 180.0] \(def: 0.0\)|
+|   [-pa_sat  saturation] | procamp saturation property. range [   0.0,  10.0] \(def: 1.0\)|
+|   [-pa_con  contrast]| procamp contrast property.    range [   0.0,  10.0] \(def: 1.0\)|
+|   [-pa_bri  brightness]| procamp brightness property.  range [-100.0, 100.0] \(def: 0.0\)|
 |   [-gamut:compression]  | enable gamut compression algorithm (xvYCC->sRGB)|
 |   [-gamut:bt709]| enable BT.709 matrix transform (RGB->YUV conversion)(def: BT.601)|
 |   [-frc:advanced]| enable advanced FRC algorithm (based on PTS)|
@@ -158,9 +158,9 @@ Usage: `./sample_vpp [Options] -i InputFile -o OutputFile`
 |   [-tcc:magenta]| enable color saturation algorithm (M component)|
 |   [-tcc:yellow]|enable color saturation algorithm (Y component)|
 |   [-ace]| enable auto contrast enhancement algorithm|
-|   [-ste (level)] | enable Skin Tone Enhancement algorithm.  Level is optional range of ste level is [0, 9] (def: 4)|
-|   [-istab (mode)] |enable Image Stabilization algorithm.  Mode is optional mode of istab can be [1, 2] (def: 2) where: 1 means upscale mode, 2 means cropping mode|
- |  [-view:count value]|enable Multi View preprocessing. range of views [1, 1024] (def: 1) |
+|   [-ste (level)] | enable Skin Tone Enhancement algorithm.  Level is optional range of ste level is [0, 9] \(def: 4\)|
+|   [-istab (mode)] |enable Image Stabilization algorithm.  Mode is optional mode of istab can be [1, 2] \(def: 2\) where: 1 means upscale mode, 2 means cropping mode|
+ |  [-view:count value]|enable Multi View preprocessing. range of views [1, 1024] \(def: 1\) |
 | id-layerId, width/height-resolution||
 |   [-ssitm (id)]| specify YUV<->RGB transfer matrix for input surface.|
 |   [-dsitm (id)]| specify YUV<->RGB transfer matrix for output surface.|
