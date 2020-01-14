@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -4839,8 +4839,8 @@ mfxStatus Legacy::GetSliceHeader(
 
     SetDefault(pCO3, &CO3);
 
-    s.beta_offset_div2 = mfxI8(pCO3->DeblockingBetaOffset * 0.5 * !s.deblocking_filter_disabled_flag);
-    s.tc_offset_div2   = mfxI8(pCO3->DeblockingAlphaTcOffset * 0.5 * !s.deblocking_filter_disabled_flag);
+    s.beta_offset_div2 = mfxI8(mfx::clamp(mfxI32(pCO3->DeblockingBetaOffset),    -12, 12) * 0.5 * !s.deblocking_filter_disabled_flag);
+    s.tc_offset_div2   = mfxI8(mfx::clamp(mfxI32(pCO3->DeblockingAlphaTcOffset), -12, 12) * 0.5 * !s.deblocking_filter_disabled_flag);
 
     s.deblocking_filter_override_flag |=
         !s.deblocking_filter_disabled_flag
