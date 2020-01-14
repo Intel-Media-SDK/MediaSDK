@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -357,7 +357,7 @@ VAAPIEncoder::~VAAPIEncoder()
     Close();
 }
 
-mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
+mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileType)
 {
     MFX_CHECK_NULL_PTR1(m_core);
 
@@ -389,9 +389,60 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
     caps.NoInterlacedField = 0; // Enable interlaced encoding
     caps.SliceStructure    = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
 
+    std::map<VAConfigAttribType, size_t> idx_map;
+    VAConfigAttribType attr_types[] = {
+        VAConfigAttribMaxPictureHeight,
+        VAConfigAttribMaxPictureWidth,
+        VAConfigAttribEncSkipFrame,
+        VAConfigAttribEncMaxRefFrames,
+        VAConfigAttribEncSliceStructure
+    };
+
+    std::vector<VAConfigAttrib> attrs;
+    attrs.reserve(sizeof(attr_types) / sizeof(attr_types[0]));
+
+    for (size_t i=0; i < sizeof(attr_types)/sizeof(attr_types[0]); ++i)
+    {
+        attrs.emplace_back(VAConfigAttrib{attr_types[i], 0});
+        idx_map[ attr_types[i] ] = i;
+    }
+
+    VAEntrypoint entrypoint = VAEntrypointEncSlice;
+
+    if(codecProfileType == MFX_PROFILE_UNKNOWN)
+        codecProfileType = MFX_PROFILE_MPEG2_MAIN;
+
+    VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          ConvertProfileTypeMFX2VAAPI(codecProfileType),
+                          entrypoint,
+                          attrs.data(), attrs.size());
+
+    MFX_CHECK(!(VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT == vaSts ||
+                VA_STATUS_ERROR_UNSUPPORTED_PROFILE    == vaSts),
+                MFX_ERR_UNSUPPORTED);
+
+    if ((attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != 0))
+        caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth]].value;
+
+    if ((attrs[idx_map[VAConfigAttribMaxPictureHeight]].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[idx_map[VAConfigAttribMaxPictureHeight]].value != 0))
+        caps.MaxPicHeight = attrs[idx_map[VAConfigAttribMaxPictureHeight]].value;
+
+    if ((attrs[idx_map[VAConfigAttribEncSkipFrame]].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[idx_map[VAConfigAttribEncSkipFrame]].value != 0))
+        caps.SkipFrame  = attrs[idx_map[VAConfigAttribEncSkipFrame]].value;
+
+    if ((attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != 0))
+        caps.MaxNum_Reference  = attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value;
+
+    if ((attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED) &&
+        (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != 0))
+        caps.SliceStructure  = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
 
     return MFX_ERR_NONE;
-} // mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
+}
 
 mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId)
 {

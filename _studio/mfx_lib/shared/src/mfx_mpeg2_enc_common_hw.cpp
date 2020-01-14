@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ typedef struct tagENCODE_QUERY_STATUS_DATA_tmp
 
 using namespace MfxHwMpeg2Encode;
 
-mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps)
+mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps, mfxU8 codecProfileType)
 {
     EncodeHWCaps* pEncodeCaps = QueryCoreInterface<EncodeHWCaps>(pCore);
     if (!pEncodeCaps)
@@ -62,7 +62,7 @@ mfxStatus MfxHwMpeg2Encode::QueryHwCaps(VideoCORE* pCore, ENCODE_CAPS & hwCaps)
     ddi.reset( CreatePlatformMpeg2Encoder(pCore) );
     if(ddi.get() == NULL)
         return MFX_ERR_NULL_PTR;
-    mfxStatus sts = ddi.get()->QueryEncodeCaps(hwCaps);
+    mfxStatus sts = ddi->QueryEncodeCaps(hwCaps, codecProfileType);
     MFX_CHECK_STS(sts);
 
     return pEncodeCaps->SetHWCaps<ENCODE_CAPS>(DXVA2_Intel_Encode_MPEG2, &hwCaps);

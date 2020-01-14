@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,7 @@ namespace MfxHwMpeg2Encode
         ~VAAPIEncoder();
 
         virtual
-        mfxStatus QueryEncodeCaps(ENCODE_CAPS & caps);
+        mfxStatus QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileType);
 
         virtual
         mfxStatus Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId);
@@ -165,7 +165,6 @@ namespace MfxHwMpeg2Encode
         mfxRawFrames                        m_rawFrames;
 
         UMC::Mutex                          m_guard;
-
     }; // class VAAPIEncoder
 
 
