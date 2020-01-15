@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -610,6 +610,8 @@ void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
         EncodeCapsHevc fakeCaps;
         Defaults::Param defPar(out, fakeCaps, core.GetHWType(), defaults);
         fakeCaps.MaxEncodedBitDepth = (defPar.hw >= MFX_HW_KBL);
+        fakeCaps.YUV422ReconSupport = (defPar.hw >= MFX_HW_ICL) && !IsOn(out.mfx.LowPower);
+        fakeCaps.YUV444ReconSupport = (defPar.hw >= MFX_HW_ICL) && IsOn(out.mfx.LowPower);
 
         MFX_CHECK(defaults.GetGUID(defPar, *pGUID), MFX_ERR_NONE);
         strg.Insert(Glob::GUID::Key, std::move(pGUID));

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -446,6 +446,8 @@ public:
             fcc == MFX_FOURCC_YUY2
             || fcc == MFX_FOURCC_Y210
             || fcc == MFX_FOURCC_P210;
+        bMax422 &= !bMax420;
+
         bool bMax444 = !(bMax422 || bMax420);
 
         return mfxU16(
@@ -491,26 +493,33 @@ public:
         , const Defaults::Param& par)
     {
         const mfxExtHEVCParam* pHEVC = ExtBuffer::Get(par.mvp);
-        mfxU32 profile = par.mvp.mfx.CodecProfile;
-        bool bCheckConstraints = profile >= MFX_PROFILE_HEVC_REXT && pHEVC;
-        bool bMax420 =
+        mfxU32 profile               = par.mvp.mfx.CodecProfile;
+        mfxU16 maxBy4CC              = par.base.GetMaxChromaByFourCC(par);
+        bool   bCheckConstraints     = profile >= MFX_PROFILE_HEVC_REXT && pHEVC;
+        bool   bMax420 =
             profile == MFX_PROFILE_HEVC_MAIN
             || profile == MFX_PROFILE_HEVC_MAINSP
             || profile == MFX_PROFILE_HEVC_MAIN10
-            || (bCheckConstraints && (pHEVC->GeneralConstraintFlags & MFX_HEVC_CONSTR_REXT_MAX_420CHROMA));
+            || (bCheckConstraints && (pHEVC->GeneralConstraintFlags & MFX_HEVC_CONSTR_REXT_MAX_420CHROMA))
+            || !(par.caps.YUV422ReconSupport || par.caps.YUV444ReconSupport)
+            || maxBy4CC == MFX_CHROMAFORMAT_YUV420;
 
         bool bMax422 =
-            (bCheckConstraints && (pHEVC->GeneralConstraintFlags & MFX_HEVC_CONSTR_REXT_MAX_422CHROMA));
+            ((bCheckConstraints && (pHEVC->GeneralConstraintFlags & MFX_HEVC_CONSTR_REXT_MAX_422CHROMA))
+                || maxBy4CC == MFX_CHROMAFORMAT_YUV422)
+            && (par.caps.YUV422ReconSupport && maxBy4CC >= MFX_CHROMAFORMAT_YUV422);
         bMax422 &= !bMax420;
 
-        bool bMax444 = !(bMax422 || bMax420);
+        bool bMax444 = !(bMax422 || bMax420) && (par.caps.YUV444ReconSupport && maxBy4CC == MFX_CHROMAFORMAT_YUV444);
+
+        bMax420 |= !(bMax422 || bMax444);
 
         mfxU16 maxCf = mfxU16(
             bMax420 * MFX_CHROMAFORMAT_YUV420
             + bMax422 * MFX_CHROMAFORMAT_YUV422
             + bMax444 * MFX_CHROMAFORMAT_YUV444);
 
-        return std::min<mfxU16>(maxCf, par.base.GetMaxChromaByFourCC(par));
+        return maxCf;
     }
 
     static mfxU16 TargetBitDepthLuma(
@@ -2390,7 +2399,7 @@ public:
         return MFX_ERR_NONE;
     }
 
-    static const std::map<mfxU32, std::array<mfxU16, 2>> FourCCPar;
+    static const std::map<mfxU32, std::array<mfxU32, 3>> FourCCPar;
 
     static mfxStatus FourCC(
         Defaults::TCheckAndFix::TExt
@@ -2401,10 +2410,8 @@ public:
         auto& FourCC    = par.mfx.FrameInfo.FourCC;
         auto  it        = FourCCPar.find(FourCC);
         bool  bInvalid  = (it == FourCCPar.end());
-        bool  bRGB      = (FourCC == MFX_FOURCC_A2RGB10 || FourCC == MFX_FOURCC_RGB4);
 
-        bInvalid = bInvalid || (it->second[0] == MFX_CHROMAFORMAT_YUV422 && !dpar.caps.YUV422ReconSupport);
-        bInvalid = bInvalid || (it->second[0] == MFX_CHROMAFORMAT_YUV444 && !(bRGB || dpar.caps.YUV444ReconSupport));
+        bInvalid = bInvalid || (it->second[2] > mfxU32(dpar.hw));
         bInvalid = bInvalid || (it->second[1] > BdMap[dpar.caps.MaxEncodedBitDepth & 3]);
 
         FourCC *= !bInvalid;
@@ -2427,9 +2434,9 @@ public:
         itFourCCPar = FourCCPar.find(par.mfx.FrameInfo.FourCC);
         assert(itFourCCPar != FourCCPar.end());
 
-        invalid += CheckOrZero(par.mfx.FrameInfo.ChromaFormat, itFourCCPar->second[0]);
-        invalid += CheckOrZero(par.mfx.FrameInfo.BitDepthLuma, itFourCCPar->second[1], 0);
-        invalid += CheckOrZero(par.mfx.FrameInfo.BitDepthChroma, itFourCCPar->second[1], 0);
+        invalid += CheckOrZero(par.mfx.FrameInfo.ChromaFormat,   mfxU16(itFourCCPar->second[0]));
+        invalid += CheckOrZero(par.mfx.FrameInfo.BitDepthLuma,   mfxU16(itFourCCPar->second[1]), 0);
+        invalid += CheckOrZero(par.mfx.FrameInfo.BitDepthChroma, mfxU16(itFourCCPar->second[1]), 0);
 
         MFX_CHECK(!invalid, MFX_ERR_UNSUPPORTED);
         return MFX_ERR_NONE;
@@ -2689,17 +2696,17 @@ public:
 
 };
 
-const std::map<mfxU32, std::array<mfxU16, 2>> CheckAndFix::FourCCPar =
+const std::map<mfxU32, std::array<mfxU32, 3>> CheckAndFix::FourCCPar =
 {
-    {mfxU32(MFX_FOURCC_AYUV),       {mfxU16(MFX_CHROMAFORMAT_YUV444), 8}}
-    , {mfxU32(MFX_FOURCC_RGB4),     {mfxU16(MFX_CHROMAFORMAT_YUV444), 8}}
-    , {mfxU32(MFX_FOURCC_A2RGB10),  {mfxU16(MFX_CHROMAFORMAT_YUV444), 10}}
-    , {mfxU32(MFX_FOURCC_Y410),     {mfxU16(MFX_CHROMAFORMAT_YUV444), 10}}
-    , {mfxU32(MFX_FOURCC_P210),     {mfxU16(MFX_CHROMAFORMAT_YUV422), 10}}
-    , {mfxU32(MFX_FOURCC_Y210),     {mfxU16(MFX_CHROMAFORMAT_YUV422), 10}}
-    , {mfxU32(MFX_FOURCC_YUY2),     {mfxU16(MFX_CHROMAFORMAT_YUV422), 8}}
-    , {mfxU32(MFX_FOURCC_P010),     {mfxU16(MFX_CHROMAFORMAT_YUV420), 10}}
-    , {mfxU32(MFX_FOURCC_NV12),     {mfxU16(MFX_CHROMAFORMAT_YUV420), 8}}
+    {mfxU32(MFX_FOURCC_AYUV),       {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_ICL) }}
+    , {mfxU32(MFX_FOURCC_RGB4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_SCL) }}
+    , {mfxU32(MFX_FOURCC_A2RGB10),  {mfxU32(MFX_CHROMAFORMAT_YUV444), 10, mfxU32(MFX_HW_ICL) }}
+    , {mfxU32(MFX_FOURCC_Y410),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 10, mfxU32(MFX_HW_ICL) }}
+    , {mfxU32(MFX_FOURCC_P210),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 10, mfxU32(MFX_HW_ICL) }}
+    , {mfxU32(MFX_FOURCC_Y210),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 10, mfxU32(MFX_HW_ICL) }}
+    , {mfxU32(MFX_FOURCC_YUY2),     {mfxU32(MFX_CHROMAFORMAT_YUV422), 8,  mfxU32(MFX_HW_ICL) }}
+    , {mfxU32(MFX_FOURCC_P010),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 10, mfxU32(MFX_HW_KBL) }}
+    , {mfxU32(MFX_FOURCC_NV12),     {mfxU32(MFX_CHROMAFORMAT_YUV420), 8,  mfxU32(MFX_HW_SCL) }}
 };
 
 void Legacy::PushDefaults(Defaults& df)
