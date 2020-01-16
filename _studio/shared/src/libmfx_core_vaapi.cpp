@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -612,54 +612,35 @@ VAAPIVideoCORE::AllocFrames(
         } else
         {
             // external allocator
-            if (m_bSetExtFrameAlloc && request->Info.FourCC != MFX_FOURCC_P8)
+            if (m_bSetExtFrameAlloc &&
+                request->Info.FourCC != MFX_FOURCC_P8 &&
+                (request->Type & MFX_MEMTYPE_EXTERNAL_FRAME))
             {
+                // make 'fake' Alloc call to retrieve memId's of surfaces already allocated by app.
                 sts = (*m_FrameAllocator.frameAllocator.Alloc)(m_FrameAllocator.frameAllocator.pthis, &temp_request, response);
 
-                // if external allocator cannot allocate d3d frames - use default memory allocator
-                if (MFX_ERR_UNSUPPORTED == sts || MFX_ERR_MEMORY_ALLOC == sts)
-                {
-                    // Default Allocator is used for internal memory allocation only
-                    if (request->Type & MFX_MEMTYPE_EXTERNAL_FRAME)
-                        return sts;
-                    m_bUseExtAllocForHWFrames = false;
-                    sts = DefaultAllocFrames(request, response);
-                    MFX_CHECK_STS(sts);
+                m_bUseExtAllocForHWFrames = false;
+                MFX_CHECK_STS(sts);
 
-                    return TraceFrames(request, response, sts);
-                }
                 // let's create video accelerator
-                else if (MFX_ERR_NONE == sts)
+                // Checking for unsupported mode - external allocator exist but Device handle doesn't set
+                MFX_CHECK(m_Display, MFX_ERR_UNSUPPORTED)
+
+                if (response->NumFrameActual < request->NumFrameMin)
                 {
-                    // Checking for unsupported mode - external allocator exist but Device handle doesn't set
-                    if (!m_Display)
-                        return MFX_ERR_UNSUPPORTED;
-
-                    if (response->NumFrameActual < request->NumFrameMin)
-                    {
-                        (*m_FrameAllocator.frameAllocator.Free)(m_FrameAllocator.frameAllocator.pthis, response);
-                        return MFX_ERR_MEMORY_ALLOC;
-                    }
-
-                    m_bUseExtAllocForHWFrames = true;
-                    sts = ProcessRenderTargets(request, response, &m_FrameAllocator);
-                    MFX_CHECK_STS(sts);
-
-                    return TraceFrames(request, response, sts);
+                    (*m_FrameAllocator.frameAllocator.Free)(m_FrameAllocator.frameAllocator.pthis, response);
+                    MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
                 }
-                // error situation
-                else
-                {
-                    m_bUseExtAllocForHWFrames = false;
-                    return sts;
-                }
+
+                m_bUseExtAllocForHWFrames = true;
+                sts = ProcessRenderTargets(request, response, &m_FrameAllocator);
+                MFX_CHECK_STS(sts);
+
+                return TraceFrames(request, response, sts);
             }
             else
             {
                 // Default Allocator is used for internal memory allocation and all coded buffers allocation
-                if (request->Type & MFX_MEMTYPE_EXTERNAL_FRAME)
-                    return MFX_ERR_MEMORY_ALLOC;
-
                 m_bUseExtAllocForHWFrames = false;
                 sts = DefaultAllocFrames(request, response);
                 MFX_CHECK_STS(sts);
