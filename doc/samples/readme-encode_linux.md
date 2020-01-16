@@ -96,7 +96,8 @@ The following command-line switches are optional:
   | [-qpp]  | constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
  |  [-qpb] | constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
  |  [-round_offset_in file]  | use this file to set per frame inter/intra rounding offset(for AVC only)|
-  | [-qsv-ff]  |     Enable QSV-FF mode|
+  | [-qsv-ff]  |     Enable QSV-FF mode (deprecated)|
+  | [-lowpower:<on,off>]  |     Turn this optiont ON to enable QSV-FF mode|
  |  [-ir_type]   | Intra refresh type. 0 - no refresh, 1 - vertical refresh, 2 - horizontal refresh, 3 - slice refresh|
   | [-ir_cycle_size] | Number of pictures within refresh cycle starting from 2|
   | [-ir_qp_delta]  | QP difference for inserted intra MBs. This is signed value in [-51, 51] range|

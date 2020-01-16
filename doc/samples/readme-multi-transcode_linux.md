@@ -129,7 +129,8 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
  | -qpp |Constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
   |-qpb| Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
 | -DisableQPOffset| Disable QP adjustment for GOP pyramid-level frames|
- |-qsv-ff| Enable QSV-FF mode|
+ |-qsv-ff| Enable QSV-FF mode (deprecated)|
+ |-lowpower:<on,off>| Turn this option ON to enable QSV-FF mode|
 |  -roi_file <roi-file-name>| Set Regions of Interest for each frame from <roi-file-name>|
 |-roi_qpmap|Use QP map to emulate ROI for CQP mode|
 |  -extmbqp| Use external MBQP map|
