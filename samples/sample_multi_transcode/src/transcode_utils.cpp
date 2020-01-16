@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -273,7 +273,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -qpb          Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
 #endif
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
-    msdk_printf(MSDK_STRING("  -qsv-ff       Enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
+    msdk_printf(MSDK_STRING("  -lowpower:<on,off>       Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("                Set Regions of Interest for each frame from <roi-file-name>\n"));
@@ -1162,6 +1162,14 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
             PrintError(argv[0], MSDK_STRING("PPSId is invalid"));
             return MFX_ERR_UNSUPPORTED;
         }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-lowpower:on")))
+    {
+        InputParams.enableQSVFF=true;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-lowpower:off")))
+    {
+        InputParams.enableQSVFF=false;
     }
     else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-PicTimingSEI:on")))
     {
@@ -2655,7 +2663,7 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
 
     if(InputParams.enableQSVFF && InputParams.eMode == Sink)
     {
-        msdk_printf(MSDK_STRING("WARNING: -qsv-ff option is not valid for decoder-only sessions, this parameter will be ignored.\n"));
+        msdk_printf(MSDK_STRING("WARNING: -lowpower(-qsv-ff) option is not valid for decoder-only sessions, this parameter will be ignored.\n"));
     }
 
     std::map<mfxU32, sPluginParams>::iterator it;
