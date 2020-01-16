@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -892,25 +892,25 @@ void MfxHwH264Encode::ModifyRefPicLists(
                                 std::swap(*l, *r);
                 }
             }
-            
+
             if (video.calcParam.numTemporalLayer == 0 && (task.m_type[0] & MFX_FRAMETYPE_P) && task.m_internalListCtrlRefModLTR)
             {
                 mfxU8 * begin = list0.Begin();
                 mfxU8 * end = list0.End();
                 mfxU8 * ltr = 0;
                 for (; begin != end; ++begin)
-                    if (dpb[*begin & 127].m_longterm) 
+                    if (dpb[*begin & 127].m_longterm)
                             break;
-                
+
                 ltr = begin;
                 begin = list0.Begin();
                 if (ltr != end && ltr != begin)
                     std::rotate(++begin, ltr, ltr + 1);
             }
 
-            // as driver have fixed arbitrary reference field polarity limitation on PV4 on BDW and SCL, so no need
+            // as driver have fixed arbitrary reference field polarity support starting BDW, so no need
             // to WA to adjust the reflist order
-            bool isHwSupportArbiRef = ((task.m_hwType == MFX_HW_SCL) || (task.m_hwType == MFX_HW_BDW));
+            bool isHwSupportArbiRef = (task.m_hwType >= MFX_HW_BDW);
 
             if (isField && (isIPFieldPair == false) && (isHwSupportArbiRef == false))
             {
