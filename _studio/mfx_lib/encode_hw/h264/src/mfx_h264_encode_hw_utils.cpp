@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -3119,8 +3119,8 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
     mfxStatus checkSts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(bs);
 
-    // remove arbitrary reference field polarity limitation on BDW and SCL
-    bool isHwSupportArbRef =  ((hwType == MFX_HW_SCL) || (hwType == MFX_HW_BDW));
+    // arbitrary reference field polarity is supported starting BDW
+    bool isHwSupportArbRef =  (hwType >= MFX_HW_BDW);
 
     if(IsOn(video.mfx.LowPower) && ctrl){
         //LowPower can't encode low QPs
