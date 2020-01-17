@@ -43,7 +43,6 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_brc_common.cpp
     ${prefix}/mfx_common_decode_int.cpp
     ${prefix}/mfx_common_int.cpp
-    ${prefix}/mfx_enc_common.cpp
     ${prefix}/mfx_critical_error_handler.cpp
     ${prefix}/mfx_vpx_dec_common.cpp
   )
@@ -55,6 +54,7 @@ append_property( mfx_common COMPILE_FLAGS " -DMFX_RT" )
 
 foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   list( APPEND sources
+    ${prefix}/mfx_enc_common.cpp
     ${prefix}/mfx_ddi_enc_dump.cpp
     ${prefix}/mfx_h264_enc_common_hw.cpp
     ${prefix}/mfx_h264_encode_vaapi.cpp
