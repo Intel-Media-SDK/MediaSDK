@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -359,6 +359,8 @@ private:
     t_MCTF_LOAD     pMCTF_LOAD_func;
     t_MCTF_SPDEN    pMCTF_SpDen_func;
 
+    eMFXHWType
+        mctf_HWType;
     CmDevice
         * device;
     CmQueue
@@ -623,6 +625,11 @@ private:
     );
     mfxU8  SetOverlapOp();
     mfxU8  SetOverlapOp_half();
+    mfxI32 MCTF_Enqueue(
+        CmTask* taskInt,
+        CmEvent* & eInt,
+        const CmThreadSpace* tSInt = 0
+    );    
     mfxI32 MCTF_RUN_TASK_NA(
         CmKernel * kernel,
         bool       reset,
