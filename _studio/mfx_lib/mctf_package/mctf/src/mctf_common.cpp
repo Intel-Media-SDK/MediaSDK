@@ -628,11 +628,12 @@ mfxStatus CMC::MCTF_SET_ENV(
     if (!device)
         return MFX_ERR_NOT_INITIALIZED;
 
+    mctf_HWType = core->GetHWType();
     hwSize = 4;
     res = device->GetCaps(CAP_GPU_PLATFORM, hwSize, &hwType);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
-    if(core->GetHWType() >= MFX_HW_ICL)
+    if(mctf_HWType >= MFX_HW_ICL)
         res = device->CreateQueueEx(queue, CM_VME_QUEUE_CREATE_OPTION);
     else
         res = device->CreateQueue(queue);
@@ -1402,6 +1403,24 @@ mfxI32 CMC::MCTF_SET_KERNELDe(
     return res;
 }
 
+mfxI32 CMC::MCTF_Enqueue(
+    CmTask* taskInt,
+    CmEvent* & eInt,
+    const CmThreadSpace* tSInt
+)
+{
+    mfxI32
+        ret = CM_FAILURE;
+        switch (mctf_HWType){
+        case MFX_HW_ICL:
+            ret = queue->EnqueueFast(taskInt, eInt, tSInt);
+            break;
+        default:
+            ret = queue->Enqueue(taskInt, eInt, tSInt);
+        }
+    return ret;
+}
+
 mfxI32 CMC::MCTF_RUN_TASK_NA(
     CmKernel * kernel,
     bool       reset,
@@ -1429,7 +1448,7 @@ mfxI32 CMC::MCTF_RUN_TASK_NA(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = queue->Enqueue(task, e);
+    res = MCTF_Enqueue(task, e);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
 }
@@ -1498,7 +1517,7 @@ mfxI32 CMC::MCTF_RUN_DOUBLE_TASK(
     MCTF_CHECK_CM_ERR(res, res);
     res = task->AddKernel(mcKernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = queue->Enqueue(task, e);
+    res = MCTF_Enqueue(task, e);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
 }
@@ -1527,7 +1546,7 @@ mfxI32 CMC::MCTF_RUN_MCTASK(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = queue->Enqueue(task, e, threadSpaceMC2);
+    res = MCTF_Enqueue(task, e, threadSpaceMC2);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
 }
@@ -1556,7 +1575,7 @@ mfxI32 CMC::MCTF_RUN_TASK(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
-    res = queue->Enqueue(task, e, tS);
+    res = MCTF_Enqueue(task, e, tS);
     MCTF_CHECK_CM_ERR(res, res);
     res = device->DestroyThreadSpace(tS);
     return res;
@@ -1711,7 +1730,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
 
     if (pMCTF_NOA_func)
     {
-        res = queue->Enqueue(task, e);
+        res = MCTF_Enqueue(task, e);
         MCTF_CHECK_CM_ERR(res, res);
         res = e->WaitForTaskFinished();
         MCTF_CHECK_CM_ERR(res, res);
@@ -2541,7 +2560,7 @@ mfxI32 CMC::MCTF_RUN_Denoise(mfxU16 srcNum)
     threadSpace = 0;
     res = MCTF_RUN_TASK(kernelMcDen, task != 0);
     MCTF_CHECK_CM_ERR(res, res);
-    res = queue->Enqueue(task, e);
+    res = MCTF_Enqueue(task, e);
     MCTF_CHECK_CM_ERR(res, res);
 
     if (tsWidthFull > CM_MAX_THREADSPACE_WIDTH_FOR_MW)
@@ -2559,7 +2578,7 @@ mfxI32 CMC::MCTF_RUN_Denoise(mfxU16 srcNum)
         // the rest of frame TS
         res = MCTF_RUN_TASK(kernelMcDen, task != 0);
         MCTF_CHECK_CM_ERR(res, res);
-        res = queue->Enqueue(task, e);
+        res = MCTF_Enqueue(task, e);
         MCTF_CHECK_CM_ERR(res, res);
     }
     res = e->WaitForTaskFinished();
