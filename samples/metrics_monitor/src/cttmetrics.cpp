@@ -1,6 +1,6 @@
 /***********************************************************************************
 
-Copyright (C) 2014-2018 Intel Corporation.  All rights reserved.
+Copyright (C) 2014-2020 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -34,7 +34,7 @@ File Name: cttmetrics.cpp
 
 struct CttMetricsCollector
 {
-    cttStatus (*Init)();
+    cttStatus (*Init)(const char *device);
     void (*Close)();
     cttStatus (*SetSamplePeriod)(unsigned int in_period);
     cttStatus (*SetSampleCount)(unsigned int in_num);
@@ -45,7 +45,7 @@ struct CttMetricsCollector
 };
 
 extern "C" {
-    cttStatus CTTMetrics_Custom_Init();
+    cttStatus CTTMetrics_Custom_Init(const char *device);
     void CTTMetrics_Custom_Close();
     cttStatus CTTMetrics_Custom_SetSamplePeriod(unsigned int in_period);
     cttStatus CTTMetrics_Custom_SetSampleCount(unsigned int in_num);
@@ -56,7 +56,7 @@ extern "C" {
 }
 
 extern "C" {
-    cttStatus CTTMetrics_PMU_Init();
+    cttStatus CTTMetrics_PMU_Init(const char *device);
     void CTTMetrics_PMU_Close();
     cttStatus CTTMetrics_PMU_SetSamplePeriod(unsigned int in_period);
     cttStatus CTTMetrics_PMU_SetSampleCount(unsigned int in_num);
@@ -100,7 +100,7 @@ static CttMetricsCollector g_Collectors[] =
 static CttMetricsCollector* g_SelectedCollector = NULL;
 
 extern "C"
-cttStatus CTTMetrics_Init()
+cttStatus CTTMetrics_Init(const char *device)
 {
     cttStatus status = CTT_ERR_DRIVER_NO_INSTRUMENTATION;
 
@@ -108,7 +108,7 @@ cttStatus CTTMetrics_Init()
         return CTT_ERR_ALREADY_INITIALIZED;
 
     for (size_t i=0; i < sizeof(g_Collectors)/sizeof(g_Collectors[0]); ++i) {
-        status = g_Collectors[i].Init();
+        status = g_Collectors[i].Init(device);
         if (status == CTT_ERR_NONE) {
             g_SelectedCollector = &g_Collectors[i];
             break;
