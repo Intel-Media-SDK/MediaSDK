@@ -715,8 +715,11 @@ public:
             return std::make_tuple(QPI, QPP, QPB);
 
         auto maxQP = par.base.GetMaxQPMFX(par);
+        auto minQP = par.base.GetMinQPMFX(par);
 
-        SetDefault(QPI, std::max<mfxU16>(par.base.GetMinQPMFX(par), (maxQP + 1) / 2));
+        SetDefault(QPI, mfxU16(std::max<mfxI32>(QPP - 2, minQP) * !!QPP));
+        SetDefault(QPI, mfxU16(std::max<mfxI32>(QPB - 4, minQP) * !!QPB));
+        SetDefault(QPI, std::max<mfxU16>(minQP, (maxQP + 1) / 2));
         SetDefault(QPP, std::min<mfxU16>(QPI + 2, maxQP));
         SetDefault(QPB, std::min<mfxU16>(QPP + 2, maxQP));
 
