@@ -1,6 +1,6 @@
 /***********************************************************************************
 
-Copyright (C) 2014-2018 Intel Corporation.  All rights reserved.
+Copyright (C) 2014-2020 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -355,12 +355,16 @@ cttStatus CTTMetrics_Custom_GetMetricInfo(unsigned int count, cttMetric* out_met
 }
 
 extern "C"
-cttStatus CTTMetrics_Custom_Init()
+cttStatus CTTMetrics_Custom_Init(const char *device)
 {
     cttStatus status = CTT_ERR_NONE;
 
     if (true == s_bInitialized)
         return CTT_ERR_ALREADY_INITIALIZED;
+
+    // Only PMU path supports device specification
+    if (device)
+        return CTT_ERR_UNSUPPORTED;
 
     // check root priveledges
     if (0 != getuid())

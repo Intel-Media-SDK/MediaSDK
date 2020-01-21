@@ -1,6 +1,6 @@
 /***********************************************************************************
 
-Copyright (C) 2014-2018 Intel Corporation.  All rights reserved.
+Copyright (C) 2014-2020 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -76,7 +76,7 @@ unsigned translateCttToDRMEngineName(cttMetric metric, int gem_fd)
 
 void getAndCheckAvailableMetrics(unsigned int* count, cttMetric* out_metric_ids)
 {
-    EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+    EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetMetricCount(count));
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_GetMetricInfo(*count, out_metric_ids));
 
@@ -173,7 +173,7 @@ TEST(cttMetricsRobustness, singleMetricReport)
 
     for (unsigned int i915_metric_num = 0;i915_metric_num < i915_metric_cnt;i915_metric_num++)
     {
-        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
         EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(test_metric_cnt, &metric_all_ids[i915_metric_num]));
 
         for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
@@ -209,7 +209,7 @@ TEST(cttMetricsRobustness, allMetricReport)
     float metric_values[i915_metric_cnt];
     memset(metric_values, 0, (size_t)i915_metric_cnt * sizeof(float));
 
-    EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+    EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
     EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(i915_metric_cnt, metric_all_ids));
 
     for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
@@ -258,7 +258,7 @@ TEST(cttMetricsRobustness, fewMetricReport)
                 test_metric_values[0] = metric_all_ids[i];
                 test_metric_values[1] = metric_all_ids[j];
 
-                EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+                EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
                 EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(test_metric_cnt, test_metric_values));
 
                 for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
@@ -297,7 +297,7 @@ TEST(cttMetricsRobustness, setSampleCount)
 
     while (num_samples < limit)
     {
-        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
 
         sts = CTTMetrics_SetSampleCount(num_samples);
 
@@ -329,7 +329,7 @@ TEST(cttMetricsRobustness, setSamplePeriod)
 
     while (period_ms < limit)
     {
-        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
 
         sts = CTTMetrics_SetSamplePeriod(period_ms);
 
@@ -375,7 +375,7 @@ TEST(cttMetricsFrequencyReport, setAndCheckFrequency)
         int gem_fd = open(I915_DRI_DIR, O_RDWR);
         if (gem_fd >= 0)
         {
-            EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+            EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
             EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(test_metric_cnt, metrics_ids));
 
             for (unsigned int repeat = 0;repeat < num_repeats;repeat++)
@@ -436,7 +436,7 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnSingleEngine)
     {
         if (metric_all_ids[i915_metric_num] == CTT_AVG_GT_FREQ) continue;
 
-        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+        EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
         EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(test_metric_cnt, &metric_all_ids[i915_metric_num]));
 
         int gem_fd = open(I915_DRI_DIR, O_RDWR);
@@ -497,7 +497,7 @@ TEST(cttMetricsEngineLoadReport, setAndCheckFullLoadOnFewEngines)
             test_metric_values[0] = metric_all_ids[i];
             test_metric_values[1] = metric_all_ids[j];
 
-            EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init());
+            EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Init(NULL));
             EXPECT_EQ(CTT_ERR_NONE, CTTMetrics_Subscribe(test_metric_cnt, test_metric_values));
 
             int gem_fd = open(I915_DRI_DIR, O_RDWR);

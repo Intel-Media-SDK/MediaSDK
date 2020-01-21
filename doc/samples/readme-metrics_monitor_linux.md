@@ -1,12 +1,16 @@
 
 
-# Metrics Monitor (v1.1.2) Reference Manual
+# Metrics Monitor (v2.0.0) Reference Manual
 
 ## Overview
 
 Metrics Monitor is a user space shared library for Linux which provides applications access to a number of metrics from the GPU kernel mode driver to aid in understanding the state of the Intel GPU for Media workloads.
 
 ## What’s New
+
+### Version 2.0.0:
+* Extended CTTMetrics_Init with optional gfx device.
+* Enabled PMU events subscription according to device handle
 
 ### Version 1.1.2:
 * Support i915 PMU API to query metrics.
@@ -53,13 +57,21 @@ Also make sure, that libpciaccess-devel have the latest version.
 
 ## Running the software
 
-To run the Metrics Monitor sample application change to root, set the path to the `cttmetrics.so` library thru `$LD_LOAD_LIBRARY` environment variable and run the application:
+To run the Metrics Monitor sample application change to root, set the path to the `cttmetrics.so` library through `$LD_LOAD_LIBRARY` environment variable and run the application:
 ```
 $ sudo su
 $ export LD_LIBRARY_PATH=<metrics_lib_path>:$LD_LIBRARY_PATH
 $ ./metrics_monitor
 ```
-To run the Metrics Monitor test application change to root, set the path to the `cttmetrics.so` library thru `$LD_LOAD_LIBRARY` environment variable and run the application:
+metrics_monitor provides a few optional command line arguments:
+| Option | Description |
+|--|--|
+| -h | Show this help text |
+| -s | Number of metric samples to collect during sampling period(valid range 1..1000, default 100). |
+| -p | Sampling period in milliseconds(valid range 10..1000, default 500) |
+| -d | Path to gfx device (like /dev/dri/card* or /dev/dri/renderD*). If device is not set, the tool uses i915 render node device with smallest number." |
+
+To run the Metrics Monitor test application change to root, set the path to the `cttmetrics.so` library through `$LD_LOAD_LIBRARY` environment variable and run the application:
 ```
 $ sudo su
 $ export LD_LIBRARY_PATH=<metrics_lib_path>:$LD_LIBRARY_PATH
@@ -162,7 +174,10 @@ This section describes the Metrics Monitor API.
 * **CTTMetrics_Init**
 
 	**Syntax**<br>
-	`cttStatus CTTMetrics_Init();`
+	`cttStatus CTTMetrics_Init(const char *device);`
+
+    **Parameters**<br>
+    `device` - If not NULL, the function uses provided gfx device for initialization. If NULL, the function uses render node device with smaller number.
 
 	**Description**<br>
 	This function initializes media metrics library.
@@ -174,28 +189,28 @@ This section describes the Metrics Monitor API.
 
 	**Syntax**<br>
 	`cttStatus CTTMetrics_GetMetricCount(unsigned int* out_count);`
-	
+
 	**Parameters**<br>
 	`out_count` - Number of metrics available.
-	
+
 	**Description**<br>
 	This functions returns the number of available metrics. Must be called after `CTTMetrics_Init()`.
-	
+
 	**Return Status**<br>
 	`MFX_ERR_NONE` - Number of available metrics returned successfully.
 
 * **CTTMetrics_GetMetricInfo**
-	
+
 	**Syntax**<br>
 	`cttStatus CTTMetrics_GetMetricInfo(unsigned int count, cttMetric* out_metric_ids);`
-	
+
 	**Parameters**<br>
 	`count` - Number of elements in the out_metric_ids.<br>
 	`out_metric_ids` - Output array of available metric IDs. Must be allocated and de-allocated by app.
-	
+
 	**Description**<br>
 	This function returns IDs of available metrics. Must be called after `CTTMetrics_Init()`.
-	
+
 	**Return Status**<br>
 	`MFX_ERR_NONE` - Metrics IDs returned succesfully.
 
@@ -216,7 +231,7 @@ This section describes the Metrics Monitor API.
 
 * **CTTMetrics_SetSampleCount**
 
-	**Syntax**<br>	
+	**Syntax**<br>
 	`cttStatus CTTMetrics_SetSampleCount(unsigned int in_num);`
 
 	**Parameters**<br>
@@ -229,16 +244,16 @@ This section describes the Metrics Monitor API.
 	`MFX_ERR_NONE` - Number of samples set successfully.
 
 * **CTTMetrics_SetSamplePeriod**
-	
+
 	**Syntax**<br>
 	`cttStatus CTTMetrics_SetSamplePeriod(unsigned int in_period);`
-	
+
 	**Parameters**<br>
 	`in_period` - Sampling period in milliseconds.
-	
+
 	**Description**<br>
 	Sets the sampling period in milliseconds to collect metric samples. Default = 500. Valid range 10..1000. Must be called after `CTTMetrics_Init()`.
-	
+
 	**Return Status**<br>
 	`MFX_ERR_NONE` - Sampling period set successfully.
 
@@ -251,19 +266,19 @@ This section describes the Metrics Monitor API.
 	Close media metrics library and stops metrics collection.
 
 * **CTTMetrics_GetValue**
-	
+
 	**Syntax**<br>
 	`cttStatus CTTMetrics_GetValue(unsigned int count, float* out_metric_values);`
-	
-	**Parameters**<br>	
+
+	**Parameters**<br>
 	`count` - Number of metric values to receive.<br>
 	`out_metric_values` - Output array of metric values (floats). Must be allocated and de-allocated by app. `out_metric_values[i]` corresponds to `in_metric_ids[i]` in `CTTMetrics_Subscribe()`.
-	
+
 	**Description**<br>
 	This function returns metric values. Number of values equals to `count` - number of
 	metric ids in `CTTMetrics_Subscribe()`.
-	
-	**Return Status**<br>	
+
+	**Return Status**<br>
 	`CTT_ERR_NONE` - Metric values received succesfully.
 
 ## Appendix – A (version 1.1.1 notes)
