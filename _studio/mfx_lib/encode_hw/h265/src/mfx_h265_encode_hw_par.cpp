@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2179,12 +2179,6 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
             changed += CheckRange(par.mfx.QPP, minQP, maxQP);
         if (par.mfx.QPB)
             changed += CheckRange(par.mfx.QPB, minQP, maxQP);
-
-        if ((par.mfx.QPI == 0) && (par.mfx.QPP || par.mfx.QPB))
-        {
-            par.mfx.QPP = par.mfx.QPB = 0;
-            changed++;
-        }
     }
 
     if (par.BufferSizeInKB != 0)
@@ -2794,7 +2788,11 @@ void SetDefaults(
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
         if (!par.mfx.QPI)
-            par.mfx.QPI = 26;
+            par.mfx.QPI = mfxU16(std::max<mfxI32>(par.mfx.QPP - 2, minQP) * !!par.mfx.QPP);
+        if (!par.mfx.QPI)
+            par.mfx.QPI = mfxU16(std::max<mfxI32>(par.mfx.QPB - 4, minQP) * !!par.mfx.QPB);
+        if (!par.mfx.QPI)
+            par.mfx.QPI = std::max<mfxU16>(minQP, (maxQP + 1) / 2);
         if (!par.mfx.QPP)
             par.mfx.QPP = std::min<mfxU16>(par.mfx.QPI + 2, maxQP);
         if (!par.mfx.QPB)
