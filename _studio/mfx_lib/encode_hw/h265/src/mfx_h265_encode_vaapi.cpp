@@ -968,8 +968,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK_COND(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value && attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value);
-    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value >= m_width, MFX_ERR_UNSUPPORTED);
-    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value >= m_height, MFX_ERR_UNSUPPORTED);
     m_caps.ddi_caps.MaxPicWidth  = attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value;
     m_caps.ddi_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
 

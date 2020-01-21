@@ -555,10 +555,11 @@ mfxStatus DDI_VA::CreateAuxilliaryDevice(
     m_caps.YUV422ReconSupport = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV422);
     m_caps.YUV444ReconSupport = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV444);
 
-    m_caps.MaxPicWidth = AV(VAConfigAttribMaxPictureWidth) & ~VA_ATTRIB_NOT_SUPPORTED;
-    SetDefault(m_caps.MaxPicWidth, 1920u);
-    m_caps.MaxPicHeight = AV(VAConfigAttribMaxPictureHeight) & ~VA_ATTRIB_NOT_SUPPORTED;
-    SetDefault(m_caps.MaxPicHeight, 1088u);
+    MFX_CHECK(AV(VAConfigAttribMaxPictureWidth) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(AV(VAConfigAttribMaxPictureHeight) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
+    MFX_CHECK_COND(AV(VAConfigAttribMaxPictureWidth) && AV(VAConfigAttribMaxPictureHeight));
+    m_caps.MaxPicWidth = AV(VAConfigAttribMaxPictureWidth);
+    m_caps.MaxPicHeight = AV(VAConfigAttribMaxPictureHeight);
 
     if (AV(VAConfigAttribEncMaxRefFrames) != VA_ATTRIB_NOT_SUPPORTED)
     {
