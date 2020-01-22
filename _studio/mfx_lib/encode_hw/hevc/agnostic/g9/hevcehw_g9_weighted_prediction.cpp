@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,7 @@ void WeightPred::SetSupported(ParamSupport& blocks)
 void WeightPred::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 {
     Push(BLK_CheckAndFix
-        , [this](const mfxVideoParam& /*in*/, mfxVideoParam& par, StorageW& global) -> mfxStatus
+        , [](const mfxVideoParam& /*in*/, mfxVideoParam& par, StorageW& global) -> mfxStatus
     {
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
         MFX_CHECK(pCO3, MFX_ERR_NONE);
@@ -81,7 +81,7 @@ void WeightPred::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 void WeightPred::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 {
     Push(BLK_SetDefaults
-        , [this](mfxVideoParam& par, StorageW& /*strg*/, StorageRW&)
+        , [](mfxVideoParam& par, StorageW& /*strg*/, StorageRW&)
     {
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
         MFX_CHECK(pCO3, MFX_ERR_NONE);
@@ -99,7 +99,7 @@ void WeightPred::SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push)
 void WeightPred::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 {
     Push(BLK_SetPPS
-        , [this](StorageRW& strg, StorageRW&) -> mfxStatus
+        , [](StorageRW& strg, StorageRW&) -> mfxStatus
     {
         auto& par = Glob::VideoParam::Get(strg);
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
@@ -191,7 +191,7 @@ void WeightPred::PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Pu
 
         CopyLxPWT(0, std::min<mfxU16>(ssh.num_ref_idx_l0_active_minus1 + 1, caps.MaxNum_WeightedPredL0));
         CopyLxPWT(1, std::min<mfxU16>(ssh.num_ref_idx_l1_active_minus1 + 1, caps.MaxNum_WeightedPredL1));
-        
+
         bool bForceSameWeights =
             task.isLDB
             && std::equal(
