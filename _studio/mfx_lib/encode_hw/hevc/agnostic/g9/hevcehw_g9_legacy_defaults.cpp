@@ -2573,23 +2573,31 @@ public:
 
     static mfxStatus WinBRC(
         Defaults::TCheckAndFix::TExt
-        , const Defaults::Param&
+        , const Defaults::Param& dpar
         , mfxVideoParam& par)
     {
         mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
-        MFX_CHECK(pCO3, MFX_ERR_NONE);
+        MFX_CHECK(pCO3 && (pCO3->WinBRCSize || pCO3->WinBRCMaxAvgKbps), MFX_ERR_NONE);
 
-        mfxU32 changed = 0;
-        bool   bSWBRC  = Legacy::IsSWBRC(par, ExtBuffer::Get(par));
-        
-        changed +=
-            (par.mfx.RateControlMethod != MFX_RATECONTROL_VBR || !bSWBRC)
-            && (   CheckOrZero<mfxU16, 0>(pCO3->WinBRCSize)
-                || CheckOrZero<mfxU16, 0>(pCO3->WinBRCMaxAvgKbps));
+        mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
+        bool   bExtBRC      = pCO2 && IsOn(pCO2->ExtBRC);
+        bool   bVBR         = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
+        bool   bUnsupported = bVBR && bExtBRC && pCO3->WinBRCMaxAvgKbps && (pCO3->WinBRCMaxAvgKbps < TargetKbps(par.mfx));
+        mfxU32 changed      = !bVBR || bUnsupported;
 
-        changed +=
-            (pCO3->WinBRCSize > 0 || pCO3->WinBRCMaxAvgKbps > 0)
-            && CheckMinOrClip(pCO3->WinBRCMaxAvgKbps, par.mfx.TargetKbps);
+        pCO3->WinBRCSize       *= !changed;
+        pCO3->WinBRCMaxAvgKbps *= !changed;
+
+        MFX_CHECK(!bUnsupported, MFX_ERR_UNSUPPORTED);
+        MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
+        MFX_CHECK(bVBR && !bExtBRC, MFX_ERR_NONE);
+
+        auto   fr      = dpar.base.GetFrameRate(dpar);
+        mfxU16 fps     = mfxU16(CeilDiv(std::get<0>(fr), std::get<1>(fr)));
+        auto   maxKbps = dpar.base.GetMaxKbps(dpar);
+
+        changed += pCO3->WinBRCSize && SetIf(pCO3->WinBRCSize, pCO3->WinBRCSize != fps, fps);
+        changed += pCO3->WinBRCMaxAvgKbps && SetIf(pCO3->WinBRCMaxAvgKbps, pCO3->WinBRCMaxAvgKbps != maxKbps, maxKbps);
 
         MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         return MFX_ERR_NONE;
