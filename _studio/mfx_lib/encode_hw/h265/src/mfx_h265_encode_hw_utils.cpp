@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2377,7 +2377,11 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
                     }
 
                     if (task.m_ldb && Equal(task.m_refPicList[0], task.m_refPicList[1]))
-                        Copy(s.pwt[1], s.pwt[0]);
+                    {
+                        mfxU8 *src = reinterpret_cast<mfxU8*> (&s.pwt[0]);
+                        mfxU8 *dst = reinterpret_cast<mfxU8*> (&s.pwt[1]);
+                        std::copy(src, src + sizeof(s.pwt[0]), dst);
+                    }
                 }
             }
         }

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,10 +28,10 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Gen9;
 
-void Linux::Gen9::WeightPred::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) 
+void Linux::Gen9::WeightPred::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 {
     Push(BLK_PatchDDITask
-            , [this](StorageW& global, StorageW& s_task) -> mfxStatus
+            , [](StorageW& global, StorageW& s_task) -> mfxStatus
     {
         auto& esSlice = Task::SSH::Get(s_task);
         auto& ddiPar  = Glob::DDI_SubmitParam::Get(global);
