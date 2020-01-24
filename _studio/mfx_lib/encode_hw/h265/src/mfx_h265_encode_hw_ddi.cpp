@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -107,7 +107,13 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.NegativeQPSupport = 0;
     else
         caps.ddi_caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
-		
+
+    caps.ddi_caps.UserMaxFrameSizeSupport = 1;
+    caps.ddi_caps.MbQpDataSupport = 1;
+    caps.ddi_caps.TUSupport = 73;
+    caps.ddi_caps.SliceStructure = 4;
+    //GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
+    caps.ddi_caps.SliceByteSizeCtrl = 1;
     caps.PSliceSupport = (IsOn(par.mfx.LowPower) || platform > MFX_HW_ICL) ? 0 : 1;
 
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
@@ -163,12 +169,6 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoPara
         caps.ddi_caps.DirtyRectSupport = 1;
         caps.ddi_caps.RGBEncodingSupport = 0;
         caps.ddi_caps.MaxNumOfDirtyRect = 4;
-
-        caps.ddi_caps.UserMaxFrameSizeSupport = 1;
-        caps.ddi_caps.MbQpDataSupport = 1;
-        caps.ddi_caps.TUSupport = 73;
-        caps.ddi_caps.SliceStructure = 4;
-        caps.ddi_caps.SliceByteSizeCtrl = 1; ///It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
     }
     else
     {

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -54,6 +54,8 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         caps.MbQpDataSupport            = 1;
         caps.TUSupport                  = 73;
         caps.SliceStructure             = 4;
+        // GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit(MaxSliceSize).
+        caps.SliceByteSizeCtrl          = 1;
 
         caps.MaxEncodedBitDepth |= (!caps.BitDepth8Only);
         caps.YUV444ReconSupport |= (!caps.Color420Only && IsOn(par.mfx.LowPower));
