@@ -1251,6 +1251,12 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             , req.Info.Height);
         MFX_CHECK_STS(sts);
 
+        // need LCU aligned width for the buffer for proper averaging
+        const mfxExtHEVCParam& hpar = ExtBuffer::Get(par);
+        mfxU16 numVal = mfxU16(hpar.LCUSize / m_CUQPBlkW);
+        if (numVal > 1)
+            req.Info.Width = (req.Info.Width + (numVal - 1)) & ~(numVal - 1);
+
         std::unique_ptr<IAllocation> pAlloc(Tmp::MakeAlloc::Get(local)(core));
         sts = pAlloc->Alloc(req, true);
         MFX_CHECK_STS(sts);
@@ -1805,7 +1811,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
     {
         auto& task = Task::Common::Get(s_task);
 
-        MFX_CHECK(task.CUQP.Mid && !task.bCUQPMap, MFX_ERR_NONE);
+        MFX_CHECK(task.CUQP.Mid && task.bCUQPMap, MFX_ERR_NONE);
 
         mfxExtMBQP *mbqp = ExtBuffer::Get(task.ctrl);
         auto& par = Glob::VideoParam::Get(global);
@@ -1823,8 +1829,11 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 
         MFX_CHECK(mbqp && mbqp->NumQPAlloc, MFX_ERR_NONE);
 
+        // CUQPFrameInfo.Width is LCU aligned, so compute unaligned
+        mfxU32 unalignedWidth = (par.mfx.FrameInfo.Width + drBlkW - 1) / drBlkW;
         bool bInvalid =
-            (mbqp->NumQPAlloc * inBlkSize * inBlkSize) < (drBlkW * drBlkH * CUQPFrameInfo.Width * CUQPFrameInfo.Height);
+            (mbqp->NumQPAlloc * inBlkSize * inBlkSize) < (drBlkW * drBlkH * unalignedWidth * CUQPFrameInfo.Height);
+        bInvalid &= (drBlkW < inBlkSize || drBlkH < inBlkSize); // needs changing filling loop
 
         task.bCUQPMap &= !bInvalid;
         MFX_CHECK(!bInvalid, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
@@ -1839,7 +1848,10 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         std::for_each(itSrcRow, std::next(itSrcRow, CUQPFrameInfo.Height)
             , [&](mfxU8& rSrcRowBegin)
         {
-            std::copy_n(MakeStepIter(&rSrcRowBegin, stepSrcRow), CUQPFrameInfo.Width, &*itDstRow++);
+            std::copy_n(MakeStepIter(&rSrcRowBegin, stepSrcRow), unalignedWidth, &*itDstRow);
+            // fill till EO LCU aligned width
+            auto ItLastPos = MakeStepIter(&*itDstRow++ + unalignedWidth - 1);
+            std::fill_n(std::next(ItLastPos), CUQPFrameInfo.Width - unalignedWidth, *ItLastPos);
         });
 
         return MFX_ERR_NONE;
