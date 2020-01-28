@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -179,7 +179,7 @@ mfxStatus SetSkipFrame(
             m_block_width(0),
             m_block_height(0) {}
 
-            void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples);
+        void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize); // block width/height = 8 << blockSize
     };
 
     class GUIDhash

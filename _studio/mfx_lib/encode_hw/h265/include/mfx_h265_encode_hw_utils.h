@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -317,7 +317,7 @@ struct Task : DpbFrame
     Slice             m_sh                            = {};
 
     mfxU32            m_idxBs                         = IDX_INVALID;
-    mfxU8             m_idxCUQp                       = IDX_INVALID;
+    mfxU32            m_idxCUQp                       = IDX_INVALID;
     bool              m_bCUQPMap                      = false;
 
     mfxU8             m_refPicList[2][MAX_DPB_SIZE]   = {};

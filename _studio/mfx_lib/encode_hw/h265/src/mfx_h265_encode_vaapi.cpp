@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1147,7 +1147,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     if (par.bMBQPInput || par.bROIViaMBQP)
     {
-        m_cuqpMap.Init (par.m_ext.HEVCParam.PicWidthInLumaSamples, par.m_ext.HEVCParam.PicHeightInLumaSamples);
+        m_cuqpMap.Init (par.m_ext.HEVCParam.PicWidthInLumaSamples, par.m_ext.HEVCParam.PicHeightInLumaSamples, m_caps.ddi_caps.BlockSize);
     }
 
     return MFX_ERR_NONE;
@@ -1248,17 +1248,17 @@ bool operator!=(const ENCODE_ENC_CTRL_CAPS& l, const ENCODE_ENC_CTRL_CAPS& r)
     return !(l == r);
 }
 
-
-void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
+// block width/height = 8 << blockSize
+void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
 {
-
-    //16x32 only: driver limitation
-    m_width        = (picWidthInLumaSamples  + 31) / 32;
-    m_height       = (picHeightInLumaSamples + 31) / 32;
+    //16 or 32 : driver limitation
+    mfxU32 blkSz   = 8 << blockSize;
+    m_width        = (picWidthInLumaSamples  + blkSz - 1) / blkSz;
+    m_height       = (picHeightInLumaSamples + blkSz - 1) / blkSz;
     m_pitch        = mfx::align2_value(m_width, 64);
     m_h_aligned    = mfx::align2_value(m_height, 4);
-    m_block_width  = 32;
-    m_block_height = 32;
+    m_block_width  = blkSz;
+    m_block_height = blkSz;
     m_buffer.resize(m_pitch * m_h_aligned);
     Zero(m_buffer);
 }
@@ -1274,13 +1274,13 @@ bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
     mfxExtEncoderROI* roi = ExtBuffer::Get(task.m_ctrl);
 #endif
 
-    if (cuqpMap.m_width == 0 ||  cuqpMap.m_height == 0 ||
-        cuqpMap.m_block_width == 0 ||  cuqpMap.m_block_height == 0)
+    if (cuqpMap.m_width == 0 || cuqpMap.m_height == 0 ||
+        cuqpMap.m_block_width == 0 || cuqpMap.m_block_height == 0)
     return false;
 
-    mfxU32 drBlkW  = cuqpMap.m_block_width;  // block size of driver
-    mfxU32 drBlkH  = cuqpMap.m_block_height;  // block size of driver
-    mfxU16 inBlkSize = 16;                    //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+    mfxU32 drBlkW = cuqpMap.m_block_width;  // block size of driver
+    mfxU32 drBlkH = cuqpMap.m_block_height; // block size of driver
+    mfxU16 inBlkSize = 16; //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
 
     mfxU32 inputW = (par.m_ext.HEVCParam.PicWidthInLumaSamples   + inBlkSize - 1)/ inBlkSize;
     mfxU32 inputH = (par.m_ext.HEVCParam.PicHeightInLumaSamples  + inBlkSize - 1)/ inBlkSize;
@@ -1291,15 +1291,13 @@ bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
         {
             return  false;
         }
-        for (mfxU32 i = 0; i < cuqpMap.m_height; i++)
+        // Fill complete buffer, because of LCU based averaging
+        for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
         {
-            for (mfxU32 j = 0; j < cuqpMap.m_width; j++)
+            for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
             {
-                mfxU32 y = i* drBlkH/inBlkSize;
-                mfxU32 x = j* drBlkW/inBlkSize;
-
-                y = (y < inputH)? y:inputH;
-                x = (x < inputW)? x:inputW;
+                mfxU32 y = std::min(i * drBlkH/inBlkSize, inputH - 1);
+                mfxU32 x = std::min(j * drBlkW/inBlkSize, inputW - 1);
 
                 cuqpMap.m_buffer[i * cuqpMap.m_pitch + j] = mbqp->QP[y * inputW + x];
             }
