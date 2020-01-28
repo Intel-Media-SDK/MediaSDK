@@ -432,7 +432,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFr
         for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++) {
             for (mfxU32 j = 0; j < CUQPFrameInfo.Width; j++)
                 lock.Y[i * lock.Pitch + j] = mbqp->QP[i*drBlkH / inBlkSize * pitch_MBQP + j * drBlkW / inBlkSize];
-            for (mfxU32 j = CUQPFrameInfo.Width; j < lock.Pitch; j++) // hevc averages to LCU size
+            for (mfxU32 j = CUQPFrameInfo.Width; j < lock.Pitch; j++) // Fill all LCU blocks: HW hevc averages QP 
                 lock.Y[i * lock.Pitch + j] = lock.Y[i * lock.Pitch + CUQPFrameInfo.Width - 1];
         }
     }
