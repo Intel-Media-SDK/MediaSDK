@@ -2331,10 +2331,13 @@ mfxStatus  VideoVPPHW::Init(
     }
 #endif
 
-    /* Starting with TGL we call driver instead of kernel, but only with d3d11 */
-    bool hwMirrorIsUsed = m_pCore->GetHWType() >= MFX_HW_TGL_LP && (m_pCore->GetVAType() == MFX_HW_D3D11 || m_pCore->GetVAType() == MFX_HW_VAAPI);
+    /* Starting from TGL, there is support for HW mirroring, but only with d3d11.
+       On platforms prior to TGL we use driver kernel for Linux with d3d_to_d3d
+       and msdk kernel for other cases*/
+    bool msdkMirrorIsUsed = (m_pCore->GetHWType() < MFX_HW_TGL_LP && !(m_pCore->GetVAType() == MFX_HW_VAAPI && m_ioMode == D3D_TO_D3D)) ||
+                             m_pCore->GetVAType() == MFX_HW_D3D9;
 
-    if (m_executeParams.mirroring && !hwMirrorIsUsed && !m_pCmCopy)
+    if (m_executeParams.mirroring && msdkMirrorIsUsed && !m_pCmCopy)
     {
         m_pCmCopy = QueryCoreInterface<CmCopyWrapper>(m_pCore, MFXICORECMCOPYWRAPPER_GUID);
         if ( m_pCmCopy )
@@ -4750,15 +4753,34 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
         case MFX_EXTBUFF_VPP_MIRRORING:
         {
             mfxExtVPPMirroring* extMir = (mfxExtVPPMirroring*)data;
-            // SW mirroring supports only horizontal mode
             bool isOnlyHorizontalMirroringSupported = true;
+            bool isOnlyVideoMemory = false;
 
-            if (core->GetHWType() >= MFX_HW_TGL_LP && core->GetVAType() != MFX_HW_D3D9)
-                // Starting with TGL, mirroring performs through driver
-                // Driver supports horizontal and vertical modes
+            switch (par->IOPattern)
+            {
+            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
+            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
+            case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
+            case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
+            {
+                isOnlyVideoMemory = true;
+                break;
+            }
+            default:
+                break;
+            }
+
+            // On Linux with d3d_to_d3d memory type, mirroring performs through driver kernel
+            // There is support for both modes
+            if (isOnlyVideoMemory && core->GetVAType() == MFX_HW_VAAPI)
                 isOnlyHorizontalMirroringSupported = false;
 
-            // Only SW mirroring has these limitations, HW mirroring supports all SFC formats
+            // Starting from TGL, mirroring performs through driver
+            // Driver supports horizontal and vertical modes
+            if (core->GetHWType() >= MFX_HW_TGL_LP && core->GetVAType() != MFX_HW_D3D9)
+                isOnlyHorizontalMirroringSupported = false;
+
+            // Only SW mirroring has these limitations
             if (isOnlyHorizontalMirroringSupported && (par->vpp.In.FourCC != MFX_FOURCC_NV12 || par->vpp.Out.FourCC != MFX_FOURCC_NV12))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
@@ -4769,26 +4791,14 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
             if (extMir->Type < 0 || (extMir->Type==MFX_MIRRORING_VERTICAL && isOnlyHorizontalMirroringSupported))
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
-            switch (par->IOPattern)
-            {
-            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
-            case MFX_IOPATTERN_IN_VIDEO_MEMORY  | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
-            case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_VIDEO_MEMORY:
-            case MFX_IOPATTERN_IN_OPAQUE_MEMORY | MFX_IOPATTERN_OUT_OPAQUE_MEMORY:
-            {
-                // SW d3d->d3d mirroring does not support resize
-                if (isOnlyHorizontalMirroringSupported && (par->vpp.In.Width != par->vpp.Out.Width || par->vpp.In.Height != par->vpp.Out.Height))
-                    sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            // SW d3d->d3d mirroring does not support resize
+            if (isOnlyHorizontalMirroringSupported && isOnlyVideoMemory &&
+               (par->vpp.In.Width != par->vpp.Out.Width || par->vpp.In.Height != par->vpp.Out.Height))
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
 
-                // If pipeline contains resize, SW mirroring and other, VPP skips other filters
-                if (isOnlyHorizontalMirroringSupported && pLen > 2)
-                    sts = GetWorstSts(sts, MFX_WRN_FILTER_SKIPPED);
-
-                break;
-            }
-            default:
-                break;
-            }
+            // If pipeline contains resize, SW mirroring and other, VPP skips other filters
+            if (isOnlyHorizontalMirroringSupported && isOnlyVideoMemory && pLen > 2)
+                sts = GetWorstSts(sts, MFX_WRN_FILTER_SKIPPED);
 
             break;
         }
