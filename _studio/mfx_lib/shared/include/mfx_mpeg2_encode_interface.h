@@ -149,7 +149,7 @@ namespace MfxHwMpeg2Encode
     public:
         virtual ~DriverEncoder(){}
 
-        virtual mfxStatus QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileType) = 0;
+        virtual void QueryEncodeCaps(ENCODE_CAPS & caps) = 0;
         virtual mfxStatus Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId) = 0;
         virtual mfxStatus CreateContext(ExecuteBuffers* /*pExecuteBuffers*/, mfxU32 /*numRefFrames*/, mfxU32 /*funcId*/) { return MFX_ERR_NONE; }
 
@@ -166,6 +166,8 @@ namespace MfxHwMpeg2Encode
         virtual mfxStatus FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt) = 0;
 
         virtual mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) = 0;
+
+        virtual mfxStatus CreateAuxilliaryDevice(mfxU16 codecProfile) = 0;
     };
 
     DriverEncoder* CreatePlatformMpeg2Encoder( VideoCORE* core );
