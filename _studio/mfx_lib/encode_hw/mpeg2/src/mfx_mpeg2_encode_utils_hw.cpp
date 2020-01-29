@@ -46,11 +46,11 @@ namespace MPEG2EncoderHW
     {
         ENCODE_CAPS hwCaps {};
 
-        mfxU8 CodecProfileType = par->mfx.CodecProfile;
-
-        mfxStatus sts = MfxHwMpeg2Encode::QueryHwCaps(core, hwCaps, CodecProfileType);
-        if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+        mfxU16 codecProfile = MFX_PROFILE_MPEG2_MAIN;
+        if (par->mfx.CodecProfile != MFX_PROFILE_UNKNOWN)
+            codecProfile = par->mfx.CodecProfile;
+        mfxStatus sts = MfxHwMpeg2Encode::QueryHwCaps(core, hwCaps, codecProfile);
+        MFX_CHECK_STS(sts);
 
         if (par->mfx.FrameInfo.Width  > hwCaps.MaxPicWidth ||
             par->mfx.FrameInfo.Height > hwCaps.MaxPicHeight)

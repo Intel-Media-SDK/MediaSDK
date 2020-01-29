@@ -55,7 +55,7 @@ namespace MfxHwMpeg2Encode
         ~VAAPIEncoder();
 
         virtual
-        mfxStatus QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileType);
+        void QueryEncodeCaps(ENCODE_CAPS & caps);
 
         virtual
         mfxStatus Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId);
@@ -83,6 +83,9 @@ namespace MfxHwMpeg2Encode
 
         virtual
         mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers);
+
+        virtual 
+        mfxStatus CreateAuxilliaryDevice(mfxU16 codecProfile);
 
     private:
         struct VAEncQpBufferMPEG2 {
@@ -165,6 +168,7 @@ namespace MfxHwMpeg2Encode
         mfxRawFrames                        m_rawFrames;
 
         UMC::Mutex                          m_guard;
+        ENCODE_CAPS                         m_caps;
     }; // class VAAPIEncoder
 
 

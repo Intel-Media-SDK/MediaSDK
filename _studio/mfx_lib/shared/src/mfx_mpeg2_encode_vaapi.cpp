@@ -345,6 +345,7 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
     , m_initFrameWidth(0)
     , m_initFrameHeight(0)
     , m_layout()
+    , m_caps()
 {
     std::fill_n(m_sliceParamBufferId, sizeof(m_sliceParamBufferId)/sizeof(m_sliceParamBufferId[0]), VA_INVALID_ID);
 
@@ -357,7 +358,12 @@ VAAPIEncoder::~VAAPIEncoder()
     Close();
 }
 
-mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileType)
+inline bool CheckAttribValue(mfxU32 value)
+{
+    return (value != VA_ATTRIB_NOT_SUPPORTED) && (value != 0);
+}
+
+mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(mfxU16 codecProfile)
 {
     MFX_CHECK_NULL_PTR1(m_core);
 
@@ -370,24 +376,21 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileTy
         MFX_CHECK_STS(mfxSts);
     }
 
-    // m_width  = width;
-    // m_height = height;
+    memset(&m_caps, 0, sizeof(m_caps));
 
-    memset(&caps, 0, sizeof(caps));
+    m_caps.EncodeFunc        = 1;
+    m_caps.BRCReset          = 1; // No bitrate resolution control
+    m_caps.VCMBitrateControl = 0; // Video conference mode
+    m_caps.HeaderInsertion   = 0; // We will provide headers (SPS, PPS) in binary format to the driver
+    m_caps.MbQpDataSupport   = 1;
+    m_caps.SkipFrame         = 1;
 
-    caps.EncodeFunc        = 1;
-    caps.BRCReset          = 1; // No bitrate resolution control
-    caps.VCMBitrateControl = 0; // Video conference mode
-    caps.HeaderInsertion   = 0; // We will provide headers (SPS, PPS) in binary format to the driver
-    caps.MbQpDataSupport   = 1;
-    caps.SkipFrame         = 1;
-
-    caps.SliceIPBOnly      = 1;
-    caps.MaxNum_Reference  = 1;
-    caps.MaxPicWidth       = 1920;
-    caps.MaxPicHeight      = 1088;
-    caps.NoInterlacedField = 0; // Enable interlaced encoding
-    caps.SliceStructure    = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
+    m_caps.SliceIPBOnly      = 1;
+    m_caps.MaxNum_Reference  = 1;
+    m_caps.MaxPicWidth       = 1920;
+    m_caps.MaxPicHeight      = 1088;
+    m_caps.NoInterlacedField = 0; // Enable interlaced encoding
+    m_caps.SliceStructure    = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
 
     std::map<VAConfigAttribType, size_t> idx_map;
     VAConfigAttribType attr_types[] = {
@@ -409,11 +412,8 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileTy
 
     VAEntrypoint entrypoint = VAEntrypointEncSlice;
 
-    if(codecProfileType == MFX_PROFILE_UNKNOWN)
-        codecProfileType = MFX_PROFILE_MPEG2_MAIN;
-
     VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          ConvertProfileTypeMFX2VAAPI(codecProfileType),
+                          ConvertProfileTypeMFX2VAAPI(codecProfile),
                           entrypoint,
                           attrs.data(), attrs.size());
 
@@ -421,27 +421,28 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps, mfxU8 codecProfileTy
                 VA_STATUS_ERROR_UNSUPPORTED_PROFILE    == vaSts),
                 MFX_ERR_UNSUPPORTED);
 
-    if ((attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != 0))
-        caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth]].value;
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribMaxPictureWidth]].value))
+        m_caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth]].value;
 
-    if ((attrs[idx_map[VAConfigAttribMaxPictureHeight]].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[idx_map[VAConfigAttribMaxPictureHeight]].value != 0))
-        caps.MaxPicHeight = attrs[idx_map[VAConfigAttribMaxPictureHeight]].value;
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribMaxPictureHeight]].value))
+        m_caps.MaxPicHeight = attrs[idx_map[VAConfigAttribMaxPictureHeight]].value;
 
-    if ((attrs[idx_map[VAConfigAttribEncSkipFrame]].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[idx_map[VAConfigAttribEncSkipFrame]].value != 0))
-        caps.SkipFrame  = attrs[idx_map[VAConfigAttribEncSkipFrame]].value;
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncSkipFrame]].value))
+        m_caps.SkipFrame  = attrs[idx_map[VAConfigAttribEncSkipFrame]].value;
 
-    if ((attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value != 0))
-        caps.MaxNum_Reference  = attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value;
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value))
+        m_caps.MaxNum_Reference  = attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value;
 
-    if ((attrs[idx_map[VAConfigAttribEncSliceStructure]].value != VA_ATTRIB_NOT_SUPPORTED) &&
-        (attrs[idx_map[VAConfigAttribEncSliceStructure]].value != 0))
-        caps.SliceStructure  = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncSliceStructure]].value))
+        m_caps.SliceStructure  = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
 
     return MFX_ERR_NONE;
+}
+
+
+void VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
+{
+    caps = m_caps;
 }
 
 mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId)
