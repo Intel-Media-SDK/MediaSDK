@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2019 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -244,6 +244,10 @@ class FileSink
     friend class DSSingleTone<FileSink>;
 public:
     virtual void Write(int level, int opcode, const char * msg, va_list argptr);
+    FileSink()
+        : m_hdl(NULL)
+    {
+    }
     ~FileSink()
     {
         if (NULL != m_hdl)
