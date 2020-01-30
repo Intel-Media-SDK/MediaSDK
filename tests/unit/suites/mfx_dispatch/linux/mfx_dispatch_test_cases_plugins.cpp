@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -114,6 +114,7 @@ TEST_F(DispatcherPluginsTest, ShouldFailIfPluginHasNoSymbols)
     EXPECT_CALL(mock, CreatePlugin(plugin.PluginUID, _)).Times(0);
     EXPECT_CALL(mock, GetPluginParam(mock.m_mock_plugin.pthis, _)).Times(0);
     EXPECT_CALL(mock, MFXVideoUSER_Register(MOCK_SESSION_HANDLE, plugin.Type, _)).Times(0);
+    EXPECT_CALL(mock, dlclose).Times(1);
 
     mfxStatus sts = MFXVideoUSER_Load(session, &plugin.PluginUID, 0);
     ASSERT_EQ(sts, MFX_ERR_NOT_FOUND);
@@ -139,6 +140,7 @@ TEST_F(DispatcherPluginsTest, ShouldFailIfPluginIsNotCreated)
     EXPECT_CALL(mock, CreatePlugin(plugin.PluginUID, _)).Times(1);
     EXPECT_CALL(mock, GetPluginParam(mock.m_mock_plugin.pthis, _)).Times(0);
     EXPECT_CALL(mock, MFXVideoUSER_Register(MOCK_SESSION_HANDLE, plugin.Type, _)).Times(0);
+    EXPECT_CALL(mock, dlclose).Times(1);
 
     mfxStatus sts = MFXVideoUSER_Load(session, &plugin.PluginUID, 0);
     ASSERT_EQ(sts, MFX_ERR_UNSUPPORTED);
@@ -164,6 +166,7 @@ TEST_F(DispatcherPluginsTest, ShouldFailIfUnknownPluginParams)
     EXPECT_CALL(mock, CreatePlugin(plugin.PluginUID, _)).Times(1).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnMockPlugin));
     EXPECT_CALL(mock, GetPluginParam(mock.m_mock_plugin.pthis, _)).Times(1);
     EXPECT_CALL(mock, MFXVideoUSER_Register(MOCK_SESSION_HANDLE, plugin.Type, _)).Times(0);
+    EXPECT_CALL(mock, dlclose).Times(1);
 
     mfxStatus sts = MFXVideoUSER_Load(session, &plugin.PluginUID, 0);
     ASSERT_EQ(sts, MFX_ERR_UNSUPPORTED);
@@ -189,6 +192,7 @@ TEST_F(DispatcherPluginsTest, ShouldFailIfRegisterFailed)
     EXPECT_CALL(mock, CreatePlugin(plugin.PluginUID, _)).Times(1).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnMockPlugin));
     EXPECT_CALL(mock, GetPluginParam(mock.m_mock_plugin.pthis, _)).Times(1).WillRepeatedly(DoAll(SetArgPointee<1>(plugin), Return(MFX_ERR_NONE)));
     EXPECT_CALL(mock, MFXVideoUSER_Register(MOCK_SESSION_HANDLE, plugin.Type, _)).Times(1);
+    EXPECT_CALL(mock, dlclose).Times(1);
 
     mfxStatus sts = MFXVideoUSER_Load(session, &plugin.PluginUID, 0);
     ASSERT_EQ(sts, MFX_ERR_UNSUPPORTED);
