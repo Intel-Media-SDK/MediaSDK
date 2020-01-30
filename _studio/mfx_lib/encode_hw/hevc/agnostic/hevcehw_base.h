@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,24 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
+#include "mfxvideo.h"
+#include "mfxla.h"
+#include "mfxbrc.h"
+#include "mfx_ext_buffers.h"
+#include "mfxvideo++int.h"
+#include "mfx_utils_extbuf.h"
 #include "feature_blocks/mfx_feature_blocks_init_macros.h"
 #include "feature_blocks/mfx_feature_blocks_base.h"
 #include "hevcehw_utils.h"
-#include "hevcehw_extbuf.h"
-#include "mfxvideo++int.h"
 
 namespace HEVCEHW
 {
 using namespace MfxFeatureBlocks;
+
+namespace ExtBuffer
+{
+    using namespace MfxExtBuffer;
+};
 
 class BlockTracer
     : public ID
