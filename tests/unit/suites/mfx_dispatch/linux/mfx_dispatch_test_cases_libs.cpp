@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,7 @@ TEST_F(DispatcherLibsTest, ShouldSucceedForSeeminglyGoodMockLibrary)
     EXPECT_CALL(mock, MFXInitEx).Times(1).WillRepeatedly(DoAll(SetArgPointee<1>(MOCK_SESSION_HANDLE), Return(MFX_ERR_NONE)));
     EXPECT_CALL(mock, MFXQueryIMPL).Times(1).WillRepeatedly(Return(MFX_ERR_NONE));
     EXPECT_CALL(mock, MFXQueryVersion).Times(1).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnEmulatedVersion));
+    EXPECT_CALL(mock, dlclose).Times(1);
 
     mfxStatus sts = MFXInit(impl, &ver, &session);
     ASSERT_EQ(sts, MFX_ERR_NONE);
@@ -191,6 +192,7 @@ TEST_F(DispatcherLibsTest, ShouldFailIfLibCannotMfxInitEx)
     EXPECT_CALL(mock, dlopen).Times(AtLeast(1)).WillRepeatedly(Return(MOCK_DLOPEN_HANDLE));
     EXPECT_CALL(mock, dlsym).Times(AtLeast(1)).WillRepeatedly(Invoke(&mock, &MockCallObj::EmulateAPI));
     EXPECT_CALL(mock, MFXInitEx).Times(AtLeast(1)).WillRepeatedly(Return(MFX_ERR_UNSUPPORTED));
+    EXPECT_CALL(mock, MFXClose).Times(AtLeast(1));
     EXPECT_CALL(mock, dlclose).Times(AtLeast(1));
 
     mfxStatus sts = MFXInit(impl, &ver, &session);
@@ -266,6 +268,7 @@ TEST_F(DispatcherLibsTest, ShouldSucceedIfFirstLibBadSecondLibGood)
     EXPECT_CALL(mock, MFXInitEx).Times(AtLeast(1)).WillRepeatedly(DoAll(SetArgPointee<1>(MOCK_SESSION_HANDLE), Return(MFX_ERR_NONE)));
     EXPECT_CALL(mock, MFXQueryIMPL).Times(AtLeast(1)).WillRepeatedly(Return(MFX_ERR_NONE));
     EXPECT_CALL(mock, MFXQueryVersion).Times(AtLeast(1)).WillRepeatedly(Invoke(&mock, &MockCallObj::ReturnEmulatedVersion));
+    EXPECT_CALL(mock, dlclose).Times(1);
 
     mfxStatus sts = MFXInit(impl, &ver, &session);
     EXPECT_EQ(sts, MFX_ERR_NONE);
