@@ -231,6 +231,34 @@ Please, also pay attention on “Running the Software” section of [`<install-f
 
 ## ROI file format description
 
+ROI file has the following format:
+```
+roi_count_frame_1;
+    roi1_left1; roi1_top1; roi1_right1; roi1_bottom1; roi1_dqp1;
+    roi2_left1; roi2_top1; roi2_right1; roi2_bottom1; roi2_dqp1;
+roi_count_frame_2;
+    roi1_left2; roi1_top2; roi1_right2; roi1_bottom2; roi1_dqp2;
+    roi2_left2; roi2_top2; roi2_right2; roi2_bottom2; roi2_dqp2;
+roi_count_frame_n;
+    roi1_leftn; roi1_topn; roi1_rightn; roi1_bottomn; roi1_dqpn;
+    roi2_leftn; roi2_topn; roi2_rightn; roi2_bottomn; roi2_dqpn;
+    ...
+```
+
+Values are separated by semicolons. Each entry starts with a count that represents the ROI information for a single frame. The count indicates the number of (5 entry) ROI descriptions provided for the frame (up to 256 ROIs).
+
+Example: a ROI file for a two frame stream where the first frame has two ROIs with -8 and 5 delta QP values, and the second frame includes three ROIs with -8, 8, and -4 delta QP values:
+
+```
+2;
+    1104;592;1216;928;-8;
+    1200;544;1504;848; 5;
+3;
+    1088;576;1200;912;-8;
+    1200;528;1488;832; 8;
+    944; 400;1264;512;-4;
+```
+
 **Tips**
 
 1.  To achieve maximum throughput use `–async` >= 5 and the –join option when running several transcoding pipelines.
