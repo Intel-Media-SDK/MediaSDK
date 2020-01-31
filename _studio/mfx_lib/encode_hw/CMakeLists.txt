@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2019 Intel Corporation
+# Copyright (c) 2018-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,7 @@ foreach( dir ${Encoders} )
   include_directories( ${MSDK_LIB_ROOT}/encode_hw/${dir}/include )
 endforeach()
 
+include_directories( ${MSDK_LIB_ROOT}/encode_hw/shared )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic/g9 )
@@ -67,6 +68,7 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
 endforeach()
 
 list( APPEND sources
+    shared/ehw_resources_pool.cpp
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
     hevc/agnostic/g9/hevcehw_g9.cpp

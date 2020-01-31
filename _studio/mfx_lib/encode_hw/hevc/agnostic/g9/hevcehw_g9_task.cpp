@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ void TaskManager::InitAlloc(const FeatureBlocks& blocks, TPushIA Push)
 
         m_nPicBuffered       = 0;
         m_bufferSize         = !par.mfx.EncodedOrder * (rdrBuf + (par.AsyncDepth > 1));
-        m_maxParallelSubmits = std::min<mfxU16>(2, Glob::AllocBS::Get(strg).Response().NumFrameActual);
+        m_maxParallelSubmits = std::min<mfxU16>(2, Glob::AllocBS::Get(strg).GetResponse().NumFrameActual);
         m_nTasksInExecution  = 0;
 
         return sts;

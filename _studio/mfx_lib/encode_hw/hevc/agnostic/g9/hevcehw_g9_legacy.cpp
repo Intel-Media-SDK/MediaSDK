@@ -1372,7 +1372,7 @@ void Legacy::Reset(const FeatureBlocks& blocks, TPushR Push)
         MFX_CHECK(parOld.IOPattern                  == parNew.IOPattern,                    MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
 
         MFX_CHECK(local.Contains(Tmp::RecInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
-        auto& recOld = Glob::AllocRec::Get(init).Info();
+        auto  recOld = Glob::AllocRec::Get(init).GetInfo();
         auto& recNew = Tmp::RecInfo::Get(local).Info;
         MFX_CHECK(recOld.Width  >= recNew.Width,  MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         MFX_CHECK(recOld.Height >= recNew.Height, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -1469,14 +1469,14 @@ void Legacy::ResetState(const FeatureBlocks& blocks, TPushRS Push)
 
         MFX_CHECK(hint.Flags & RF_IDR_REQUIRED, MFX_ERR_NONE);
 
-        Glob::AllocRec::Get(real).Unlock();
-        Glob::AllocBS::Get(real).Unlock();
+        Glob::AllocRec::Get(real).UnlockAll();
+        Glob::AllocBS::Get(real).UnlockAll();
 
         if (real.Contains(Glob::AllocMBQP::Key))
-            Glob::AllocMBQP::Get(real).Unlock();
+            Glob::AllocMBQP::Get(real).UnlockAll();
 
         if (real.Contains(Glob::AllocRaw::Key))
-            Glob::AllocRaw::Get(real).Unlock();
+            Glob::AllocRaw::Get(real).UnlockAll();
 
         ResetState();
 
@@ -1720,7 +1720,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         mfxFrameSurface1 surfDst = {};
 
         surfSrc.Info = par.mfx.FrameInfo;
-        surfDst.Info = allocRec.Info();
+        surfDst.Info = allocRec.GetInfo();
 
         MFX_CHECK(!memcmp(&surfSrc.Info, &surfDst.Info, sizeof(mfxFrameInfo)), MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(idx < MAX_DPB_SIZE, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -1817,7 +1817,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         mfxExtMBQP *mbqp = ExtBuffer::Get(task.ctrl);
         auto& par = Glob::VideoParam::Get(global);
         auto& core = Glob::VideoCore::Get(global);
-        auto& CUQPFrameInfo = Glob::AllocMBQP::Get(global).Info();
+        auto CUQPFrameInfo = Glob::AllocMBQP::Get(global).GetInfo();
 
         MFX_CHECK(CUQPFrameInfo.Width && CUQPFrameInfo.Height, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(m_CUQPBlkW && m_CUQPBlkH, MFX_ERR_UNDEFINED_BEHAVIOR);

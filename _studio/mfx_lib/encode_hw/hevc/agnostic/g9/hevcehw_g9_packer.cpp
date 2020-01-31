@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2109,7 +2109,7 @@ void Packer::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         {
             FrameLocker bsData(Glob::VideoCore::Get(global), task.BS.Mid);
             auto& ph                = Glob::PackedHeaders::Get(global);
-            auto& bsInfo            = Glob::AllocBS::Get(global).Info();
+            auto  bsInfo            = Glob::AllocBS::Get(global).GetInfo();
             auto& ssh               = Task::SSH::Get(s_task);
             mfxU32 BsBytesAvailable = bsInfo.Width * bsInfo.Height;
             mfxStatus sts           = MFX_ERR_NONE;

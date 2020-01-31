@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 
 #include "hevcehw_base.h"
 #include "hevcehw_ddi.h"
+#include "ehw_resources_pool.h"
 #include <vector>
 
 namespace HEVCEHW
@@ -580,46 +581,46 @@ namespace Gen9
         mfxU16 nuh_temporal_id_plus1 : 3;
     };
 
-    struct Resource
-    {
-        mfxU8    Idx = IDX_INVALID;
-        mfxMemId Mid = nullptr;
-    };
+    using Resource = MfxEncodeHW::ResPool::Resource;
 
-    class IAllocation
+    struct IAllocation
         : public Storable
     {
-    public:
-        virtual ~IAllocation() {}
+        using TAlloc = CallChain<mfxStatus, const mfxFrameAllocRequest&, bool /*isCopyRequired*/>;
+        TAlloc Alloc;
 
-        virtual
-        mfxStatus Alloc(
-             mfxFrameAllocRequest & req
-            , bool isCopyRequired) = 0;
+        using TAllocOpaque = CallChain<mfxStatus
+            , const mfxFrameInfo &
+            , mfxU16 /*type*/
+            , mfxFrameSurface1 ** /*surfaces*/
+            , mfxU16 /*numSurface*/>;
+        TAllocOpaque AllocOpaque;
 
-        virtual
-        mfxStatus AllocOpaque(
-            const mfxFrameInfo & info
-            , mfxU16 type
-            , mfxFrameSurface1 **surfaces
-            , mfxU16 numSurface) = 0;
+        using TGetResponse = CallChain<mfxFrameAllocResponse>;
+        TGetResponse GetResponse;
 
-        virtual
-        const mfxFrameAllocResponse& Response() const = 0;
+        using TGetInfo = CallChain<mfxFrameInfo>;
+        TGetInfo GetInfo;
 
-        virtual
-        const mfxFrameInfo& Info() const = 0;
+        using TAcquire = CallChain<Resource>;
+        TAcquire Acquire;
 
-        virtual
-        Resource Acquire() = 0;
+        using TRelease = CallChain<void, mfxU32 /*idx*/>;
+        TRelease Release;
 
-        virtual
-        void Release(mfxU32 idx) = 0;
+        using TClearFlag = CallChain<void, mfxU32 /*idx*/>;
+        TClearFlag ClearFlag;
 
-        virtual void   ClearFlag(mfxU32 idx) = 0;
-        virtual void   SetFlag(mfxU32 idx, mfxU32 flag) = 0;
-        virtual mfxU32 GetFlag(mfxU32 idx) = 0;
-        virtual void Unlock() = 0;
+        using TSetFlag = CallChain<void, mfxU32 /*idx*/, mfxU32 /*flag*/>;
+        TSetFlag SetFlag;
+
+        using TGetFlag = CallChain<mfxU32, mfxU32 /*idx*/>;
+        TGetFlag GetFlag;
+
+        using TUnlockAll = CallChain<void>;
+        TUnlockAll UnlockAll;
+
+        std::unique_ptr<Storable> m_pthis;
     };
 
     class IBsReader

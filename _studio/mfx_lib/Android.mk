@@ -73,7 +73,8 @@ MFX_LOCAL_SRC_FILES_HW += \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_va_packer_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_weighted_prediction_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_rext_lin.cpp
+    mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_rext_lin.cpp \
+    mfx_lib/encode_hw/shared/ehw_resources_pool.cpp
 
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))
@@ -97,7 +98,8 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/agnostic/g12 \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux/g9 \
-    $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux/g12
+    $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux/g12 \
+    $(MFX_HOME)/_studio/mfx_lib/encode_hw/shared
 
 MFX_LOCAL_STATIC_LIBRARIES_HW := \
     libmfx_lib_merged_hw \
