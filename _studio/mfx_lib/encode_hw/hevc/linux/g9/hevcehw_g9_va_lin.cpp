@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -288,7 +288,7 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             ThrowIf(!!sts, sts);
             return *pSurface;
         };
-        auto& recResponse = Glob::AllocRec::Get(strg).Response();
+        auto recResponse = Glob::AllocRec::Get(strg).GetResponse();
 
         std::vector<VASurfaceID> rec(recResponse.NumFrameActual, VA_INVALID_SURFACE);
 

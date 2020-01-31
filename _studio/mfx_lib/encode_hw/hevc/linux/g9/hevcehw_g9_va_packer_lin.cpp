@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -453,8 +453,8 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             ThrowIf(!!sts, sts);
             return *pSurface;
         };
-        auto& recResponse = Glob::AllocRec::Get(strg).Response();
-        auto& bsResponse = Glob::AllocBS::Get(strg).Response();
+        auto recResponse = Glob::AllocRec::Get(strg).GetResponse();
+        auto bsResponse  = Glob::AllocBS::Get(strg).GetResponse();
 
         m_rec.resize(recResponse.NumFrameActual, VA_INVALID_SURFACE);
         m_bs.resize(bsResponse.NumFrameActual, VA_INVALID_SURFACE);
@@ -490,7 +490,7 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         xPar.Resource.Num = mfxU32(m_bs.size());
         resources.push_back(xPar);
 
-        m_feedback.resize(Glob::AllocBS::Get(strg).Response().NumFrameActual);
+        m_feedback.resize(Glob::AllocBS::Get(strg).GetResponse().NumFrameActual);
 
         Glob::DDI_SubmitParam::GetOrConstruct(strg);
         auto& fb = Glob::DDI_Feedback::GetOrConstruct(strg);
@@ -519,7 +519,7 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
                 , StorageW& s_task
                 , const VACodedBufferSegment& fb)
         {
-            auto& bsInfo = Glob::AllocBS::Get(global).Info();
+            auto bsInfo = Glob::AllocBS::Get(global).GetInfo();
 
             MFX_CHECK(!(fb.status & VA_CODED_BUF_STATUS_BAD_BITSTREAM), MFX_ERR_GPU_HANG);
             MFX_CHECK(fb.buf && fb.size, MFX_ERR_DEVICE_FAILED);

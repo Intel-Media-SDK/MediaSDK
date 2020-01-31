@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,86 +25,12 @@
 
 #include "hevcehw_base.h"
 #include "hevcehw_g9_data.h"
-#include "mfxstructures.h"
-#include <vector>
+#include "ehw_resources_pool.h"
 
 namespace HEVCEHW
 {
 namespace Gen9
 {
-
-class MfxFrameAllocResponse
-    : public mfxFrameAllocResponse
-    , public IAllocation
-{
-public:
-    MfxFrameAllocResponse(VideoCORE& core);
-
-    ~MfxFrameAllocResponse();
-
-    virtual
-    mfxStatus Alloc(
-         mfxFrameAllocRequest & req
-        , bool isCopyRequired) override;
-
-    virtual
-    mfxStatus AllocOpaque(
-        const mfxFrameInfo & info
-        , mfxU16 type
-        , mfxFrameSurface1 **surfaces
-        , mfxU16 numSurface) override;
-
-    virtual
-    const mfxFrameAllocResponse& Response() const override
-    {
-        return *this;
-    }
-
-    virtual
-    const mfxFrameInfo& Info() const override
-    {
-        return m_info;
-    }
-
-    virtual
-    Resource Acquire() override;
-
-    virtual
-    void Release(mfxU32 idx) override
-    {
-        Unlock(idx);
-    }
-
-    virtual void   ClearFlag(mfxU32 idx) override;
-    virtual void   SetFlag(mfxU32 idx, mfxU32 flag) override;
-    virtual mfxU32 GetFlag(mfxU32 idx) override;
-    virtual void   Unlock() override;
-
-    mfxU32  Lock(mfxU32 idx);
-    mfxU32  Unlock(mfxU32 idx);
-    mfxU32  Locked(mfxU32 idx) const;
-
-    virtual void Free();
-
-    bool isExternal() { return m_isExternal; };
-
-
-    mfxFrameInfo m_info = {};
-
-protected:
-    MfxFrameAllocResponse(MfxFrameAllocResponse const &) = delete;
-    MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &) = delete;
-
-    VideoCORE& m_core;
-    mfxU16 m_numFrameActualReturnedByAllocFrames = 0;
-
-    std::vector<mfxFrameAllocResponse> m_responseQueue;
-    std::vector<mfxMemId>              m_mids;
-    std::vector<mfxU32>                m_locked;
-    std::vector<mfxU32>                m_flag;
-    bool m_isExternal = true;
-    bool m_isOpaque   = false;
-};
 
 class Allocator
     : public FeatureBase
@@ -121,6 +47,8 @@ public:
 
 protected:
     virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
+
+    static IAllocation* MakeAlloc(std::unique_ptr<MfxEncodeHW::ResPool>&&);
 };
 
 } //Gen9

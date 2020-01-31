@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,52 @@
 using namespace HEVCEHW;
 using namespace HEVCEHW::Gen9;
 
+template<typename TR, typename ...TArgs>
+inline typename CallChain<TR, TArgs...>::TInt
+WrapCC(TR(MfxEncodeHW::ResPool::*pfn)(TArgs...), MfxEncodeHW::ResPool* pAlloc)
+{
+    return [=](typename CallChain<TR, TArgs...>::TExt, TArgs ...arg)
+    {
+        return (pAlloc->*pfn)(arg...);
+    };
+}
+
+template<typename TR, typename ...TArgs>
+inline typename CallChain<TR, TArgs...>::TInt
+WrapCC(TR(MfxEncodeHW::ResPool::*pfn)(TArgs...) const, const MfxEncodeHW::ResPool* pAlloc)
+{
+    return [=](typename CallChain<TR, TArgs...>::TExt, TArgs ...arg)
+    {
+        return (pAlloc->*pfn)(arg...);
+    };
+}
+
+IAllocation* Allocator::MakeAlloc(std::unique_ptr<MfxEncodeHW::ResPool>&& upAlloc)
+{
+    std::unique_ptr<IAllocation> pIAlloc(new IAllocation);
+
+    bool bInvalid = !(pIAlloc && upAlloc);
+    if (bInvalid)
+        return nullptr;
+
+    auto pAlloc = upAlloc.release();
+    pIAlloc->m_pthis.reset(pAlloc);
+
+#define WRAP_CC(X) pIAlloc->X.Push(WrapCC(&MfxEncodeHW::ResPool::X, pAlloc))
+    WRAP_CC(Alloc);
+    WRAP_CC(AllocOpaque);
+    WRAP_CC(GetResponse);
+    WRAP_CC(GetInfo);
+    WRAP_CC(Release);
+    WRAP_CC(ClearFlag);
+    WRAP_CC(SetFlag);
+    WRAP_CC(GetFlag);
+    WRAP_CC(UnlockAll);
+    WRAP_CC(Acquire);
+
+    return pIAlloc.release();
+}
+
 void Allocator::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 {
     Push(BLK_Init
@@ -33,7 +79,7 @@ void Allocator::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
     {
         auto CreateAllocator = [](VideoCORE& core) -> IAllocation*
         {
-            return new MfxFrameAllocResponse(core);
+            return MakeAlloc(std::unique_ptr<MfxEncodeHW::ResPool>(new MfxEncodeHW::ResPool(core)));
         };
 
         local.Insert(Tmp::MakeAlloc::Key, new Tmp::MakeAlloc::TRef(CreateAllocator));
@@ -41,152 +87,5 @@ void Allocator::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         return MFX_ERR_NONE;
     });
 }
-
-MfxFrameAllocResponse::MfxFrameAllocResponse(VideoCORE& core)
-    : mfxFrameAllocResponse({})
-    , m_core(core)
-{
-}
-
-MfxFrameAllocResponse::~MfxFrameAllocResponse()
-{
-    Free();
-}
-
-Resource MfxFrameAllocResponse::Acquire()
-{
-    Resource res;
-    res.Idx = mfxU8(std::find(m_locked.begin(), m_locked.end(), 0u) - m_locked.begin());
-
-    if (res.Idx >= NumFrameActual)
-    {
-        res.Idx = IDX_INVALID;
-        return res;
-    }
-
-    Lock(res.Idx);
-    ClearFlag(res.Idx);
-    res.Mid = mids[res.Idx];
-
-    return res;
-}
-
-void MfxFrameAllocResponse::Free()
-{
-
-    if (mids)
-    {
-        NumFrameActual = m_numFrameActualReturnedByAllocFrames;
-        m_core.FreeFrames(this);
-        mids = 0;
-    }
-}
-
-mfxStatus MfxFrameAllocResponse::Alloc(
-    mfxFrameAllocRequest & req,
-    bool                   /*isCopyRequired*/)
-{
-    mfxFrameAllocResponse & response = *this;
-
-    req.NumFrameSuggested = req.NumFrameMin;
-
-    mfxStatus sts = m_core.AllocFrames(&req, &response);
-    MFX_CHECK_STS(sts);
-
-    MFX_CHECK(NumFrameActual >= req.NumFrameMin, MFX_ERR_MEMORY_ALLOC);
-
-    m_locked.resize(req.NumFrameMin, 0);
-    std::fill(m_locked.begin(), m_locked.end(), 0);
-
-    m_flag.resize(req.NumFrameMin, 0);
-    std::fill(m_flag.begin(), m_flag.end(), 0);
-
-    m_numFrameActualReturnedByAllocFrames = NumFrameActual;
-    NumFrameActual = req.NumFrameMin;
-    m_info = req.Info;
-    m_isExternal = false;
-    m_isOpaque = false;
-
-    return MFX_ERR_NONE;
-}
-
-mfxStatus MfxFrameAllocResponse::AllocOpaque(
-    const mfxFrameInfo & info
-    , mfxU16 type
-    , mfxFrameSurface1 **surfaces
-    , mfxU16 numSurface)
-{
-    mfxFrameAllocResponse & response = *this;
-    mfxFrameAllocRequest req = {};
-
-    req.Info        = info;
-    req.NumFrameMin = req.NumFrameSuggested = numSurface;
-    req.Type        = type;
-
-    mfxStatus sts = m_core.AllocFrames(&req, &response, surfaces, numSurface);
-    MFX_CHECK_STS(sts);
-    MFX_CHECK(NumFrameActual >= numSurface, MFX_ERR_MEMORY_ALLOC);
-
-    m_info = info;
-    m_numFrameActualReturnedByAllocFrames = NumFrameActual;
-    NumFrameActual = req.NumFrameMin;
-    m_isOpaque = true;
-
-    return sts;
-}
-
-mfxU32 MfxFrameAllocResponse::Lock(mfxU32 idx)
-{
-    if (idx >= m_locked.size())
-        return 0;
-    assert(m_locked[idx] < 0xffffffff);
-    return ++m_locked[idx];
-}
-
-void MfxFrameAllocResponse::ClearFlag(mfxU32 idx)
-{
-   assert (idx < m_flag.size());
-   if (idx < m_flag.size())
-   {
-        m_flag[idx] = 0;
-   }
-}
-void MfxFrameAllocResponse::SetFlag(mfxU32 idx, mfxU32 flag)
-{
-   assert (idx < m_flag.size());
-   if (idx < m_flag.size())
-   {
-        m_flag[idx] |= flag;
-   }
-}
-mfxU32 MfxFrameAllocResponse::GetFlag (mfxU32 idx)
-{
-   assert (idx < m_flag.size());
-   if (idx < m_flag.size())
-   {
-        return m_flag[idx];
-   }
-   return 0;
-}
-
-void MfxFrameAllocResponse::Unlock()
-{
-    std::fill(m_locked.begin(), m_locked.end(), 0);
-    std::fill(m_flag.begin(), m_flag.end(), 0);
-}
-
-mfxU32 MfxFrameAllocResponse::Unlock(mfxU32 idx)
-{
-    if (idx >= m_locked.size())
-        return mfxU32(-1);
-    assert(m_locked[idx] > 0);
-    return --m_locked[idx];
-}
-
-mfxU32 MfxFrameAllocResponse::Locked(mfxU32 idx) const
-{
-    return (idx < m_locked.size()) ? m_locked[idx] : 1;
-}
-
 
 #endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
