@@ -74,16 +74,16 @@ namespace TranscodingSample
         // command line parser
         CmdProcessor m_parser;
         // threads contexts to process playlist
-        std::vector<ThreadTranscodeContext*> m_pThreadContextArray;
+        std::vector<std::unique_ptr<ThreadTranscodeContext>> m_pThreadContextArray;
         // allocator for each session
-        std::vector<GeneralAllocator*>       m_pAllocArray;
+        std::vector<std::unique_ptr<GeneralAllocator>>       m_pAllocArray;
         // input parameters for each session
         std::vector<sInputParams>            m_InputParamsArray;
         // safety buffers
         // needed for heterogeneous pipeline
-        std::vector<SafetySurfaceBuffer*>    m_pBufferArray;
+        std::vector<std::unique_ptr<SafetySurfaceBuffer>>    m_pBufferArray;
 
-        std::vector<FileBitstreamProcessor*> m_pExtBSProcArray;
+        std::vector<std::unique_ptr<FileBitstreamProcessor>> m_pExtBSProcArray;
         std::unique_ptr<mfxAllocatorParams>    m_pAllocParam;
         std::unique_ptr<CHWDevice>             m_hwdev;
         msdk_tick                            m_StartTime;
