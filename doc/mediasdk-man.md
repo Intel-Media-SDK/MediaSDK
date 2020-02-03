@@ -2073,11 +2073,11 @@ This function obtains system handles previously set by the [MFXVideoCORE_SetHand
 --- | ---
 `MFX_ERR_NONE` | The function completed successfully.
 `MFX_ERR_NOT_FOUND` | Specified handle type not found.
+`MFX_ERR_INVALID_HANDLE` | Specified handle type is invalid.
 
 **Change History**
 
-This function is available since SDK API 1.0.
-
+This function is available since SDK API 1.0. SDK API 1.30 added new return status, `MFX_ERR_INVALID_HANDLE` 
 ### <a id='MFXVideoCORE_SetBufferAllocator'>MFXVideoCORE_SetBufferAllocator</a>
 
 **Syntax**
