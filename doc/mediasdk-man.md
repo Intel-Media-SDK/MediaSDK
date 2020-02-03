@@ -2077,7 +2077,7 @@ This function obtains system handles previously set by the [MFXVideoCORE_SetHand
 
 **Change History**
 
-This function is available since SDK API 1.0. SDK API 1.30 added new return status, `MFX_ERR_INVALID_HANDLE` 
+This function is available since SDK API 1.0. SDK API 1.30 added new return status, `MFX_ERR_INVALID_HANDLE`. 
 ### <a id='MFXVideoCORE_SetBufferAllocator'>MFXVideoCORE_SetBufferAllocator</a>
 
 **Syntax**
