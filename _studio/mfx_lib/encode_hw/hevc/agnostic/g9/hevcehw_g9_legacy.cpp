@@ -30,6 +30,7 @@
 #include <exception>
 #include <numeric>
 #include <set>
+#include <cmath>
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Gen9;
@@ -4108,7 +4109,7 @@ bool CheckBufferSizeInKB(
         mfxU32 frN, frD;
 
         std::tie(frN, frD) = defPar.base.GetFrameRate(defPar);
-        mfxU32 avgFS = Ceil((mfxF64)TargetKbps(par.mfx) * frD / frN / 8);
+        mfxU32 avgFS = mfxU32(std::ceil((mfxF64)TargetKbps(par.mfx) * frD / frN / 8));
 
         if (BufferSizeInKB(par.mfx) < avgFS * 2 + 1)
         {

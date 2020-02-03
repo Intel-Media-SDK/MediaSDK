@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 #include "hevcehw_g9_constraints.h"
 #include <algorithm>
 #include <math.h>
+#include <cmath>
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Gen9;
@@ -175,7 +176,7 @@ mfxU16 HEVCEHW::Gen9::GetMinLevel(
 
     mfxU32 CpbBrNalFactor    = 1100;
     mfxU32 PicSizeInSamplesY = (mfxU32)PicWidthInLumaSamples * PicHeightInLumaSamples;
-    mfxU32 LumaSr            = Ceil(mfxF64(PicSizeInSamplesY) * frN / frD);
+    mfxU32 LumaSr            = mfxU32(std::ceil(mfxF64(PicSizeInSamplesY) * frN / frD));
 
     mfxU16 lidx = LevelIdx(StartLevel);
     mfxU16 tidx = TierIdx(StartLevel);
