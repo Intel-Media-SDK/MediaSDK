@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -164,7 +164,7 @@ VABufferID DDI_VA::CreateVABuffer(
             , pData
             , &id);
         ThrowIf(!!sts, MFX_ERR_DEVICE_FAILED);
-        
+
         return id;
     }
 
@@ -411,7 +411,7 @@ void DDI_VA::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
                , (int)m_perPicPar.size());
            MFX_CHECK_STS(sts);
        }
-       
+
        {
            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaRenderPicture");
 
@@ -550,10 +550,10 @@ mfxStatus DDI_VA::CreateAuxilliaryDevice(
           !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420_12) * 2
         , !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV420_10));
 
-    m_caps.Color420Only = !(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444));
-    m_caps.BitDepth8Only = !(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12));
+    m_caps.Color420Only = 0;//!(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444));
+    m_caps.BitDepth8Only = 0;//!(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12));
     m_caps.YUV422ReconSupport = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV422);
-    m_caps.YUV444ReconSupport = !!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV444);
+    m_caps.YUV444ReconSupport = 1;//!!(AV(VAConfigAttribRTFormat) & VA_RT_FORMAT_YUV444);
 
     MFX_CHECK(AV(VAConfigAttribMaxPictureWidth) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(AV(VAConfigAttribMaxPictureHeight) != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);

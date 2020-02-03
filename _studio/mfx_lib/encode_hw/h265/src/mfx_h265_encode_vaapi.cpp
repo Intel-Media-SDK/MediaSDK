@@ -955,15 +955,15 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.ddi_caps.MaxEncodedBitDepth = 0;
     }
-    m_caps.ddi_caps.Color420Only = (attrs[idx_map[VAConfigAttribRTFormat]].value & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444)) ? 0 : 1;
+    m_caps.ddi_caps.Color420Only = 0;//(attrs[idx_map[VAConfigAttribRTFormat]].value & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444)) ? 0 : 1;
 #if VA_CHECK_VERSION(1,2,0)
-    m_caps.ddi_caps.BitDepth8Only = (attrs[idx_map[VAConfigAttribRTFormat]].value &
-        (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12)) ? 0 : 1;
+    m_caps.ddi_caps.BitDepth8Only = 0;/*(attrs[idx_map[VAConfigAttribRTFormat]].value &
+        (VA_RT_FORMAT_YUV420_10 | VA_RT_FORMAT_YUV420_12)) ? 0 : 1;*/
 #else
-    m_caps.ddi_caps.BitDepth8Only = 1;
+    m_caps.ddi_caps.BitDepth8Only = 0;
 #endif
     m_caps.ddi_caps.YUV422ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV422 ? 1 : 0;
-    m_caps.ddi_caps.YUV444ReconSupport = attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV444 ? 1 : 0;
+    m_caps.ddi_caps.YUV444ReconSupport = 1;//attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV444 ? 1 : 0;
 
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);

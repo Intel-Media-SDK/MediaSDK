@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1534,7 +1534,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.ChromaWeightedPred      = 1;
     m_caps.ddi_caps.MaxNum_WeightedPredL0   = 4;
     m_caps.ddi_caps.MaxNum_WeightedPredL1   = 2;
-    m_caps.ddi_caps.Color420Only            = 1;
+    m_caps.ddi_caps.Color420Only            = 0;
 
     if ((attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != VA_ATTRIB_NOT_SUPPORTED) &&
         (attrs[idx_map[VAConfigAttribMaxPictureWidth]].value != 0))
