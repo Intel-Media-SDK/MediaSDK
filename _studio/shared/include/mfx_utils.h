@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@
 #include "mfx_timing.h"
 
 #include <cassert>
+#include <cstddef>
 
 #if defined(MFX_VA_LINUX)
 #include <va/va.h>
@@ -156,6 +157,337 @@ T align2_value(T value, size_t alignment = 16)
 {
     assert((alignment & (alignment - 1)) == 0);
     return static_cast<T> ((value + (alignment - 1)) & ~(alignment - 1));
+}
+template <class T>
+constexpr size_t Size(const T& c)
+{
+    return (size_t)c.size();
+}
+
+template <class T, size_t N>
+constexpr size_t Size(const T(&)[N])
+{
+    return N;
+}
+
+inline mfxU32 CeilLog2(mfxU32 x)
+{
+    mfxU32 l = 0;
+    while (x > (1U << l))
+        ++l;
+    return l;
+}
+
+template <class F>
+struct ReturnType;
+
+template <typename TRes, typename... TArgs>
+struct ReturnType<TRes(*const)(TArgs...)>
+{
+    using type = TRes;
+};
+
+template <typename TRes, typename... TArgs>
+inline std::tuple<TArgs...> TupleArgs(TRes(*)(TArgs...))
+{
+    return std::tuple<TArgs...>();
+}
+
+template<int ...>
+struct IntSeq
+{};
+
+template<int N, int ...S>
+struct MakeIntSeq
+    : MakeIntSeq<N - 1, N - 1, S...>
+{};
+
+template<int ...S>
+struct MakeIntSeq<0, S...>
+{
+    using type = IntSeq<S...>;
+};
+
+template<typename TFunc, typename TTuple, int ...S >
+inline typename ReturnType<typename std::remove_reference<TFunc>::type>::type
+    CallWithTupleArgsInt(TFunc&& fn, TTuple&& t, IntSeq<S...>)
+{
+    return fn(std::get<S>(t) ...);
+}
+
+template<typename TFunc, typename TTuple>
+inline typename ReturnType<typename std::remove_reference<TFunc>::type>::type
+    CallWithTupleArgs(TFunc&& fn, TTuple&& t)
+{
+    return CallWithTupleArgsInt(
+        std::forward<TFunc>(fn)
+        , std::forward<TTuple>(t)
+        , typename MakeIntSeq<std::tuple_size<typename std::remove_reference<TTuple>::type>::value>::type());
+}
+
+template<class T>
+class IterStepWrapper
+    : public std::iterator_traits<T>
+{
+public:
+    using iterator_category = std::forward_iterator_tag;
+    using iterator_type = IterStepWrapper;
+    using reference = typename std::iterator_traits<T>::reference;
+    using pointer = typename std::iterator_traits<T>::pointer;
+
+    IterStepWrapper(T ptr, ptrdiff_t step = 1)
+        : m_ptr(ptr)
+        , m_step(step)
+    {}
+    iterator_type& operator++()
+    {
+        std::advance(m_ptr, m_step);
+        return *this;
+    }
+    iterator_type operator++(int)
+    {
+        auto i = *this;
+        ++(*this);
+        return i;
+    }
+    reference operator*() { return *m_ptr; }
+    pointer operator->() { return m_ptr; }
+    bool operator==(const iterator_type& other)
+    {
+        return
+            m_ptr == other.m_ptr
+            || abs(std::distance(m_ptr, other.m_ptr)) < std::max(abs(m_step), abs(other.m_step));
+    }
+    bool operator!=(const iterator_type& other)
+    {
+        return !((*this) == other);
+    }
+private:
+    T m_ptr;
+    ptrdiff_t m_step;
+};
+
+template <class T>
+inline IterStepWrapper<T> MakeStepIter(T ptr, ptrdiff_t step = 1)
+{
+    return IterStepWrapper<T>(ptr, step);
+}
+
+namespace options //MSDK API options verification utilities
+{
+    //Each Check... function return true if verification failed, false otherwise
+    template <class T>
+    inline bool Check(const T&)
+    {
+        return true;
+    }
+
+    template <class T, T val, T... other>
+    inline bool Check(const T & opt)
+    {
+        if (opt == val)
+            return false;
+        return Check<T, other...>(opt);
+    }
+
+    template <class T, T val>
+    inline bool CheckGE(T opt)
+    {
+        return !(opt >= val);
+    }
+
+    template <class T, class... U>
+    inline bool Check(T & opt, T next, U... other)
+    {
+        if (opt == next)
+            return false;
+        return Check(opt, other...);
+    }
+
+    template <class T>
+    inline bool CheckOrZero(T& opt)
+    {
+        opt = T(0);
+        return true;
+    }
+
+    template <class T, T val, T... other>
+    inline bool CheckOrZero(T & opt)
+    {
+        if (opt == val)
+            return false;
+        return CheckOrZero<T, other...>(opt);
+    }
+
+    template <class T, class... U>
+    inline bool CheckOrZero(T & opt, T next, U... other)
+    {
+        if (opt == next)
+            return false;
+        return CheckOrZero(opt, (T)other...);
+    }
+
+    template <class T, class U>
+    inline bool CheckMaxOrZero(T & opt, U max)
+    {
+        if (opt <= max)
+            return false;
+        opt = 0;
+        return true;
+    }
+
+    template <class T, class U>
+    inline bool CheckMinOrZero(T & opt, U min)
+    {
+        if (opt >= min)
+            return false;
+        opt = 0;
+        return true;
+    }
+
+    template <class T, class U>
+    inline bool CheckMaxOrClip(T & opt, U max)
+    {
+        if (opt <= max)
+            return false;
+        opt = T(max);
+        return true;
+    }
+
+    template <class T, class U>
+    inline bool CheckMinOrClip(T & opt, U min)
+    {
+        if (opt >= min)
+            return false;
+        opt = T(min);
+        return true;
+    }
+
+    template <class T>
+    inline bool CheckRangeOrSetDefault(T & opt, T min, T max, T dflt)
+    {
+        if (opt >= min && opt <= max)
+            return false;
+        opt = dflt;
+        return true;
+    }
+
+    inline bool CheckTriState(mfxU16 opt)
+    {
+        return Check<mfxU16
+            , MFX_CODINGOPTION_UNKNOWN
+            , MFX_CODINGOPTION_ON
+            , MFX_CODINGOPTION_OFF>(opt);
+    }
+
+    inline bool CheckTriStateOrZero(mfxU16& opt)
+    {
+        return CheckOrZero<mfxU16
+            , MFX_CODINGOPTION_UNKNOWN
+            , MFX_CODINGOPTION_ON
+            , MFX_CODINGOPTION_OFF>(opt);
+    }
+
+    template<class TVal, class TArg, typename std::enable_if<!std::is_constructible<TVal, TArg>::value, int>::type = 0>
+    inline TVal GetOrCall(TArg val) { return val(); }
+
+    template<class TVal, class TArg, typename = typename std::enable_if<std::is_constructible<TVal, TArg>::value>::type>
+    inline TVal GetOrCall(TArg val) { return TVal(val); }
+
+    template<typename T, typename TF>
+    inline bool SetDefault(T& opt, TF get_dflt)
+    {
+        if (opt)
+            return false;
+        opt = GetOrCall<T>(get_dflt);
+        return true;
+    }
+
+    template<typename T, typename TF>
+    inline bool SetIf(T& opt, bool bSet, TF get)
+    {
+        if (!bSet)
+            return false;
+        opt = GetOrCall<T>(get);
+        return true;
+    }
+
+    template<class T, class TF, class... TA>
+    inline bool SetIf(T& opt, bool bSet, TF&& get, TA&&... arg)
+    {
+        if (!bSet)
+            return false;
+        opt = get(std::forward<TA>(arg)...);
+        return true;
+    }
+
+    template <class T>
+    inline bool InheritOption(T optInit, T & optReset)
+    {
+        if (optReset == 0)
+        {
+            optReset = optInit;
+            return true;
+        }
+        return false;
+    }
+
+    template<class TSrcIt, class TDstIt>
+    TDstIt InheritOptions(TSrcIt initFirst, TSrcIt initLast, TDstIt resetFirst)
+    {
+        while (initFirst != initLast)
+        {
+            InheritOption(*initFirst++, *resetFirst++);
+        }
+        return resetFirst;
+    }
+
+    inline mfxU16 Bool2CO(bool bOptON)
+    {
+        return mfxU16(MFX_CODINGOPTION_OFF - !!bOptON * MFX_CODINGOPTION_ON);
+    }
+
+    template<class T>
+    inline bool AlignDown(T& value, mfxU32 alignment)
+    {
+        assert((alignment & (alignment - 1)) == 0); // should be 2^n
+        if (!(value & (alignment - 1))) return false;
+        value = value & ~(alignment - 1);
+        return true;
+    }
+
+    template<class T>
+    inline bool AlignUp(T& value, mfxU32 alignment)
+    {
+        assert((alignment & (alignment - 1)) == 0); // should be 2^n
+        if (!(value & (alignment - 1))) return false;
+        value = (value + alignment - 1) & ~(alignment - 1);
+        return true;
+    }
+
+    namespace frametype
+    {
+        inline bool IsIdr(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_IDR);
+        }
+        inline bool IsI(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_I);
+        }
+        inline bool IsB(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_B);
+        }
+        inline bool IsP(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_P);
+        }
+        inline bool IsRef(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_REF);
+        }
+    }
 }
 }
 
