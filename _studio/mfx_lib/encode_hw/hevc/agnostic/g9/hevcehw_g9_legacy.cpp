@@ -548,6 +548,16 @@ void Legacy::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
 
         PushDefaults(defaults);
 
+        VideoCORE * pCore = &Glob::VideoCore::Get(strg);
+        defaults.RunFastCopyWrapper.Push([pCore](Defaults::TRunFastCopyWrapper::TExt
+            , mfxFrameSurface1 &surfDst
+            , mfxU16 dstMemType
+            , mfxFrameSurface1 &surfSrc
+            , mfxU16 srcMemType) -> mfxStatus
+            {
+                return pCore->DoFastCopyWrapper(&surfDst, dstMemType, &surfSrc, srcMemType);
+            });
+
         bSet = true;
 
         m_pQNCDefaults = &defaults;
@@ -1773,13 +1783,14 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
     });
 
     Push(BLK_CopySysToRaw
-        , [](
+        , [this](
             StorageW& global
             , StorageW& s_task)->mfxStatus
     {
         auto& par = Glob::VideoParam::Get(global);
         const mfxExtOpaqueSurfaceAlloc& opaq = ExtBuffer::Get(par);
         auto& task = Task::Common::Get(s_task);
+        auto dflts = GetRTDefaults(global);
 
         MFX_CHECK(
             !(task.bSkip
@@ -1787,8 +1798,6 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             || (    par.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY
                  && !(opaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
             , MFX_ERR_NONE);
-
-        auto& core = Glob::VideoCore::Get(global);
 
         mfxFrameSurface1 surfSrc = { {}, par.mfx.FrameInfo, task.pSurfReal->Data };
         mfxFrameSurface1 surfDst = { {}, par.mfx.FrameInfo, {} };
@@ -1798,11 +1807,11 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             surfDst.Info.FourCC == MFX_FOURCC_P010
             || surfDst.Info.FourCC == MFX_FOURCC_Y210; // convert to native shift in core.CopyFrame() if required
 
-        return core.DoFastCopyWrapper(
-            &surfDst
-            , MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE
-            , &surfSrc
-            , MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+        return  dflts.base.RunFastCopyWrapper(
+            surfDst,
+            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
+            surfSrc,
+            MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
     });
 
     Push(BLK_FillCUQPSurf

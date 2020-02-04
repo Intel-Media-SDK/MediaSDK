@@ -1276,6 +1276,15 @@ namespace Gen9
             , mfxU32>;             //prevFrameOrder
         TGetFrameOrder GetFrameOrder;
 
+        using TRunFastCopyWrapper = CallChain<
+            mfxStatus
+            , mfxFrameSurface1 & /* surfDst */
+            , mfxU16 /* dstMemType */
+            , mfxFrameSurface1 & /* surfSrc */
+            , mfxU16 /* srcMemType */
+        >;
+        TRunFastCopyWrapper RunFastCopyWrapper;
+
         //for Query w/o caps:
         using TPreCheck = CallChain<mfxStatus, const mfxVideoParam&>;
         TPreCheck PreCheckCodecId;
