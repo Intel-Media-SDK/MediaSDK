@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 #include "umc_va_base.h"
 #if defined (MFX_ENABLE_CPLIB)
 
-#include "umc_h265_va_packer.h"
+#include "umc_h265_va_packer_vaapi.h"
 #include "umc_h265_task_supplier.h"
 #include "umc_va_linux_protected.h"
 
@@ -34,17 +34,21 @@
 
 using namespace UMC;
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#define PACKER_VAAPI G12::PackerVAAPI
+#else
+#define PACKER_VAAPI G11::PackerVAAPI
+#endif
 namespace UMC_HEVC_DECODER
 {
 
     class PackerVA_CENC
-        : public PackerVA
+        : public PACKER_VAAPI
     {
-
     public:
 
         PackerVA_CENC(VideoAccelerator * va)
-            : PackerVA(va)
+            : PACKER_VAAPI(va)
         {}
 
     private:
@@ -129,14 +133,10 @@ namespace UMC_HEVC_DECODER
         for(; index < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures(); index++)
                 pocList[numRefPicSetStCurrBefore + numRefPicSetStCurrAfter++] = picParam->CurrPic.pic_order_cnt + rps->getDeltaPOC(index);
 
-        H265DBPList* dpbList = supplier->GetDPBList();
-        if(!(dpbList))
-            throw h265_exception(UMC_ERR_FAILED);
-
         for(; index < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures() + rps->getNumberOfLongtermPictures(); index++)
         {
             int32_t poc = rps->getPOC(index);
-            H265DecoderFrame *pFrm = dpbList->findLongTermRefPic(pCurrentFrame, poc, pSeqParamSet->log2_max_pic_order_cnt_lsb, !rps->getCheckLTMSBPresent(index));
+            H265DecoderFrame *pFrm = supplier->GetDPBList()->findLongTermRefPic(pCurrentFrame, poc, pSeqParamSet->log2_max_pic_order_cnt_lsb, !rps->getCheckLTMSBPresent(index));
 
             if (pFrm)
             {
