@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -62,9 +62,12 @@ void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             CheckRangeOrSetDefault<mfxU16>(tu, 1, 7, 4);
             --tu;
 
+            /* Same way like on Gen9 or Gen11 platforms */
+            mfxU16 numRefFrame = dpar.mvp.mfx.NumRefFrame + !dpar.mvp.mfx.NumRefFrame * 16;
+
             return std::make_tuple(
-                std::min<mfxU16>(nRef[idx][0][tu], dpar.caps.MaxNum_Reference0)
-                , std::min<mfxU16>(nRef[idx][1][tu], dpar.caps.MaxNum_Reference1));
+                std::min<mfxU16>(nRef[idx][0][tu], std::min<mfxU16>(dpar.caps.MaxNum_Reference0, numRefFrame))
+                , std::min<mfxU16>(nRef[idx][1][tu], std::min<mfxU16>(dpar.caps.MaxNum_Reference1, numRefFrame)));
         });
 
         bSet = true;
