@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1274,6 +1274,15 @@ namespace Gen9
             , const StorageR&      //task
             , mfxU32>;             //prevFrameOrder
         TGetFrameOrder GetFrameOrder;
+
+        using TRunFastCopyWrapper = CallChain<
+            mfxStatus
+            , mfxFrameSurface1 & /* surfDst */
+            , mfxU16 /* dstMemType */
+            , mfxFrameSurface1 & /* surfSrc */
+            , mfxU16 /* srcMemType */
+        >;
+        TRunFastCopyWrapper RunFastCopyWrapper;
 
         //for Query w/o caps:
         using TPreCheck = CallChain<mfxStatus, const mfxVideoParam&>;

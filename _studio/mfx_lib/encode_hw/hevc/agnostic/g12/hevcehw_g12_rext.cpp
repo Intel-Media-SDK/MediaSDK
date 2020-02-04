@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -245,6 +245,25 @@ void RExt::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             MFX_CHECK(IsRextFourCC(dpar.mvp.mfx.FrameInfo.FourCC), prev(dpar));
             return mfxU16(12);
         });
+
+        defaults.RunFastCopyWrapper.Push(
+            [](Gen9::Defaults::TRunFastCopyWrapper::TExt prev
+                , mfxFrameSurface1 &surfDst
+                , mfxU16 dstMemType
+                , mfxFrameSurface1 &surfSrc
+                , mfxU16 srcMemType)
+            {
+                // convert to native shift in core.CopyFrame() if required
+                surfDst.Info.Shift |=
+                    surfDst.Info.FourCC == MFX_FOURCC_P016
+                    || surfDst.Info.FourCC == MFX_FOURCC_Y216;
+
+                return prev(
+                     surfDst
+                    , dstMemType
+                    , surfSrc
+                    , srcMemType);
+            });
 
         bSet = true;
 
