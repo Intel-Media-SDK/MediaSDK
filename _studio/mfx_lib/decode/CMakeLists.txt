@@ -85,6 +85,7 @@ list(APPEND sources
     ${UMC_CODECS}/h265_dec/src/umc_h265_task_broker.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_task_supplier.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer.cpp
+    ${UMC_CODECS}/h265_dec/src/umc_h265_va_packer_vaapi.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_va_supplier.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_yuv.cpp
     ${UMC_CODECS}/h265_dec/src/umc_h265_mfx_utils.cpp
