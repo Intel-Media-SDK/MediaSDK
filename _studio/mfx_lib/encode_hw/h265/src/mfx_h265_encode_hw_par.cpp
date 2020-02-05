@@ -2553,9 +2553,9 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
                     }
                 }
             }
-            else if (!par.MaxKbps)
+            else
             {
-                changed++;
+                changed += CheckOption(CO3.WinBRCMaxAvgKbps, par.MaxKbps);
             }
         }
         else if (par.TargetKbps && CO3.WinBRCMaxAvgKbps && CO3.WinBRCMaxAvgKbps < par.TargetKbps) // ExtBRC is on
