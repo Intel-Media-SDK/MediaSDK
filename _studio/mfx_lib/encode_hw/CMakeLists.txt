@@ -69,6 +69,7 @@ endforeach()
 
 list( APPEND sources
     shared/ehw_resources_pool.cpp
+    shared/ehw_task_manager.cpp
     hevc/hevcehw_disp.cpp
     hevc/agnostic/hevcehw_base.cpp
     hevc/agnostic/g9/hevcehw_g9.cpp
