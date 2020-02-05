@@ -2597,7 +2597,7 @@ public:
         auto   maxKbps = dpar.base.GetMaxKbps(dpar);
 
         changed += pCO3->WinBRCSize && SetIf(pCO3->WinBRCSize, pCO3->WinBRCSize != fps, fps);
-        changed += pCO3->WinBRCMaxAvgKbps && SetIf(pCO3->WinBRCMaxAvgKbps, pCO3->WinBRCMaxAvgKbps != maxKbps, maxKbps);
+        changed += SetIf(pCO3->WinBRCMaxAvgKbps, pCO3->WinBRCMaxAvgKbps != maxKbps, maxKbps);
 
         MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         return MFX_ERR_NONE;
