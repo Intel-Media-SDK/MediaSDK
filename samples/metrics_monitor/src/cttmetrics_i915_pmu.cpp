@@ -147,6 +147,9 @@ static const char *i915_perf_device(int i915, char *buf, long unsigned int bufle
 
 static uint64_t i915_type_id(const char *device)
 {
+    if (!device)
+        return 0;
+
     char buf[120];
     snprintf(buf, sizeof(buf), "/sys/bus/event_source/devices/%s/type", device);
 
