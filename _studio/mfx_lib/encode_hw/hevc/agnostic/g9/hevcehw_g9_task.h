@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,7 @@
 
 #include "hevcehw_base.h"
 #include "hevcehw_g9_data.h"
-#include <mutex>
-#include <condition_variable>
+#include "ehw_task_manager.h"
 
 namespace HEVCEHW
 {
@@ -35,6 +34,7 @@ namespace Gen9
 
     class TaskManager
         : public FeatureBase
+        , protected MfxEncodeHW::TaskManager
     {
     public:
 #define DECL_BLOCK_LIST\
@@ -51,18 +51,15 @@ namespace Gen9
 
         TaskManager(mfxU32 id)
             : FeatureBase(id)
-            , m_stages(NUM_STAGES)
-        {}
+        {
+        }
 
     protected:
-        std::vector<std::list<StorageRW>> m_stages;
-        std::mutex m_mtx, m_closeMtx;
-        std::condition_variable m_cv;
-        mfxU16 m_nPicBuffered       = 0;
-        mfxU16 m_bufferSize         = 0;
-        mfxU16 m_maxParallelSubmits = 0;
-        mfxU16 m_nTasksInExecution  = 0;
-        mfxU16 m_nRecodeTasks       = 0;
+        NotNull<const Glob::VideoParam::TRef*> m_pPar;
+        NotNull<Glob::Reorder::TRef*> m_pReorder;
+        NotNull<const FeatureBlocks*> m_pBlocks;
+        NotNull<StorageW*> m_pGlob;
+        NotNull<StorageRW*> m_pFrameCheckLocal;
 
         virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
         virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
@@ -70,40 +67,37 @@ namespace Gen9
         virtual void AsyncRoutine(const FeatureBlocks& blocks, TPushAR Push) override;
         virtual void Close(const FeatureBlocks& blocks, TPushCLS Push) override;
 
-        void CancelTasks(StorageW& global, const FeatureBlocks::BQ<FT>::TQueue& qFreeTask);
+        virtual mfxU32 GetNumTask() const override;
+        virtual mfxU16 GetBufferSize() const override;
+        virtual mfxU16 GetMaxParallelSubmits() const override;
+        virtual void SetActiveTask(StorageW& task) override;
+        virtual bool IsInputTask(const StorageR& task) const override;
+        virtual mfxU32 GetStage(const StorageR& task) const override;
+        virtual void SetStage(StorageW& task, mfxU32 stage) const override;
+        virtual bool IsReorderBypass() const override;
+        virtual TTaskIt GetNextTaskToEncode(TTaskIt begin, TTaskIt end, bool bFlush) override;
+        virtual bool IsForceSync(const StorageR& task) const override;
+        virtual mfxBitstream* GetBS(const StorageR& task) const override;
+        virtual void SetBS(StorageW& task, mfxBitstream* pBS) const override;
+        virtual bool GetRecode(const StorageR& task) const override;
+        virtual void SetRecode(StorageW& task, bool bRecode) const override;
+        virtual mfxU32 GetBsDataLength(const StorageR& task) const override;
+        virtual void SetBsDataLength(StorageW& task, mfxU32 len) const override;
+        virtual void AddNumRecode(StorageW& task, mfxU16 n) const override;
+        virtual mfxStatus RunQueueTaskAlloc(StorageRW& task) override;
 
-        static TTaskIt FirstTask(TTaskIt begin, TTaskIt) { return begin; }
-        static TTaskIt EndTask(TTaskIt, TTaskIt end) { return end; }
-        static TTaskIt CheckTask(TTaskIt b, TTaskIt e, std::function<bool(StorageR&)> cond)
-        {
-            while (b != e && !cond(*b))
-                b++;
-            return b;
-        }
-
-        using TFnGetTask = std::function<TTaskIt(TTaskIt, TTaskIt)>;
-
-        static TFnGetTask SimpleCheck(std::function<bool(StorageR&)> cond)
-        {
-            using namespace std::placeholders;
-            return std::bind(CheckTask, _1, _2, cond);
-        }
-        static TFnGetTask FixedTask(const StorageR& task)
-        {
-            auto pTask = &task;
-            return SimpleCheck([pTask](StorageR& b) { return &b == pTask; });
-        }
-
-        using FeatureBase::Reset;
-        //blocking
-        mfxStatus Reset(mfxU32 numTask);
-        //non-blocking
-        StorageRW* MoveTask(
-            mfxU16 from
-            , mfxU16 to
-            , TFnGetTask which = FirstTask
-            , TFnGetTask where = EndTask);
-        StorageRW* GetTask(mfxU16 stage, TFnGetTask which = FirstTask);
+        virtual mfxStatus RunQueueTaskInit(
+            mfxEncodeCtrl* pCtrl
+            , mfxFrameSurface1* pSurf
+            , mfxBitstream* pBs
+            , StorageW& task) override;
+        virtual mfxStatus RunQueueTaskPreReorder(StorageW& task) override;
+        virtual mfxStatus RunQueueTaskPostReorder(StorageW& task) override;
+        virtual mfxStatus RunQueueTaskSubmit(StorageW& task) override;
+        virtual bool RunQueueTaskQuery(
+            StorageW& task
+            , std::function<bool(const mfxStatus&)> stopAt) override;
+        virtual mfxStatus RunQueueTaskFree(StorageW& task) override;
     };
 
 } //Gen9
