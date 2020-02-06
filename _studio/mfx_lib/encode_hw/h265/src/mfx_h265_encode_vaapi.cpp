@@ -386,11 +386,21 @@ mfxStatus SetRateControl(
     if (   par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT)
     {
-        rate_param->bits_per_second = par.MaxKbps * 1000;
-        if(par.MaxKbps)
-            rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.TargetKbps / (mfxF64)par.MaxKbps);
-        if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
-        rate_param->window_size     = par.mfx.Convergence * 100;
+        if (par.m_ext.CO3.WinBRCSize)
+        {
+            rate_param->rc_flags.bits.frame_tolerance_mode = 1; //sliding window
+            rate_param->window_size = 1000;
+            rate_param->bits_per_second = par.m_ext.CO3.WinBRCMaxAvgKbps * 1000;
+            rate_param->target_percentage = (mfxU32)(100.0 * (mfxF64)par.TargetKbps / (mfxF64)par.m_ext.CO3.WinBRCMaxAvgKbps);
+        }
+        else
+        {
+            rate_param->bits_per_second = par.MaxKbps * 1000;
+            if(par.MaxKbps)
+                rate_param->target_percentage = (mfxU32)(100.0 * (mfxF64)par.TargetKbps / (mfxF64)par.MaxKbps);
+            if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+                rate_param->window_size     = par.mfx.Convergence * 100;
+        }
         rate_param->rc_flags.bits.reset = isBrcResetRequired;
 
         rate_param->rc_flags.bits.enable_parallel_brc = 0;

@@ -267,6 +267,13 @@ void AddVaMiscRC(
 
 #ifdef MFX_ENABLE_QVBR
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    if (CO3.WinBRCSize)
+    {
+        rc.rc_flags.bits.frame_tolerance_mode = 1; //sliding window
+        rc.window_size = 1000;
+        rc.bits_per_second = CO3.WinBRCMaxAvgKbps * 1000;
+        rc.target_percentage = uint32_t(100.0 * (mfxF64)TargetKbps(par.mfx) / (mfxF64)CO3.WinBRCMaxAvgKbps);
+    }
 
     rc.quality_factor = uint32_t((par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR) * CO3.QVBRQuality);
 #endif
