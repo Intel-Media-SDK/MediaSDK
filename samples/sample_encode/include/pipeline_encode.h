@@ -184,6 +184,8 @@ struct sInputParams
     mfxU16 AdaptiveB;
     mfxU32 nMaxFrameSize;
 
+    mfxU16 BitrateLimit;
+
     mfxU16 WinBRCSize;
     mfxU16 WinBRCMaxAvgKbps;
 

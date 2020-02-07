@@ -233,6 +233,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -l numSlices  Number of slices for encoder; default value 0 \n"));
     msdk_printf(MSDK_STRING("  -mss maxSliceSize \n"));
     msdk_printf(MSDK_STRING("                Maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -l option.\n"));
+    msdk_printf(MSDK_STRING("  -BitrateLimit:<on,off>\n"));
+    msdk_printf(MSDK_STRING("                Turn this flag ON to set bitrate limitations imposed by the SDK encoder. Off by default.\n"));
     msdk_printf(MSDK_STRING("  -la           Use the look ahead bitrate control algorithm (LA BRC) for H.264 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
     msdk_printf(MSDK_STRING("  -lad depth    Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100] (0 - default: auto-select by mediasdk library). \n"));
     msdk_printf(MSDK_STRING("                May be 1 in the case when -mss option is specified \n"));
@@ -1194,6 +1196,14 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
     else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-VuiNalHrdParameters:off")))
     {
         InputParams.nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-BitrateLimit:on")))
+    {
+        InputParams.BitrateLimit = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-BitrateLimit:off")))
+    {
+        InputParams.BitrateLimit = MFX_CODINGOPTION_OFF;
     }
 #if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
     else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-iGfx")))
@@ -2659,6 +2669,11 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
     {
         PrintError(MSDK_STRING("MaxSliceSize option is supported only with H.264 and H.265(HEVC) encoder!"));
         return MFX_ERR_UNSUPPORTED;
+    }
+
+    if(InputParams.BitrateLimit == MFX_CODINGOPTION_UNKNOWN)
+    {
+        InputParams.BitrateLimit = MFX_CODINGOPTION_OFF;
     }
 
     if(InputParams.enableQSVFF && InputParams.eMode == Sink)
