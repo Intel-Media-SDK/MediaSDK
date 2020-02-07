@@ -333,6 +333,8 @@ namespace TranscodingSample
 
         mfxU32 nMaxFrameSize;
 
+        mfxU16 BitrateLimit;
+
 #if (MFX_VERSION >= 1025)
         mfxU16 numMFEFrames;
         mfxU16 MFMode;
