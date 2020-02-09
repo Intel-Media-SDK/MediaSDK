@@ -366,6 +366,7 @@ void H265Slice::CopyFromBaseSlice(const H265Slice * s)
     m_SliceHeader.slice_loop_filter_across_slices_enabled_flag  = slice->slice_loop_filter_across_slices_enabled_flag;
     m_SliceHeader.slice_temporal_mvp_enabled_flag                = slice->slice_temporal_mvp_enabled_flag;
     m_SliceHeader.max_num_merge_cand               = slice->max_num_merge_cand;
+    m_SliceHeader.use_integer_mv_flag = slice->use_integer_mv_flag;
 
     m_SliceHeader.cu_chroma_qp_offset_enabled_flag = slice->cu_chroma_qp_offset_enabled_flag;
 
