@@ -897,14 +897,14 @@ UMC::Status H265HeadersBitstream::GetSequenceParamSet(H265SeqParamSet *pcSPS)
                                 pcSPS->m_paletteInitializers[i * pcSPS->sps_num_palette_predictor_initializer + j] = GetBits(num_bits);
                             }
                     }
-
-                    pcSPS->motion_vector_resolution_control_idc = GetBits(2);
-                    if (pcSPS->motion_vector_resolution_control_idc == 3)
-                        //value of 3 for motion_vector_resolution_control_idc is reserved for future use by spec.
-                        throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
-
-                    pcSPS->intra_boundary_filtering_disabled_flag = Get1Bit();
                 }
+
+                pcSPS->motion_vector_resolution_control_idc = GetBits(2);
+                if (pcSPS->motion_vector_resolution_control_idc == 3)
+                    //value of 3 for motion_vector_resolution_control_idc is reserved for future use by spec.
+                    throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
+
+                pcSPS->intra_boundary_filtering_disabled_flag = Get1Bit();
             }
         }
 
