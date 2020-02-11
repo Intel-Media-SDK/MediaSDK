@@ -542,6 +542,10 @@ namespace ExtBuffer
 #if (MFX_VERSION >= 1025)
         MFX_COPY_FIELD(EnableNalUnitType);
 #endif
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        MFX_COPY_FIELD(DeblockingAlphaTcOffset);
+        MFX_COPY_FIELD(DeblockingBetaOffset);
+#endif
         MFX_COPY_FIELD(LowDelayBRC);
     }
 
