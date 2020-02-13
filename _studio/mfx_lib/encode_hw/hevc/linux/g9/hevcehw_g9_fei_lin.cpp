@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -57,7 +57,7 @@ void FEI::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         {
             MFX_CHECK(ep.Function == DDI_VA::VAFID_GetConfigAttributes, prev(ep));
 
-            using TArgs = decltype(TupleArgs(vaGetConfigAttributes));
+            using TArgs = TupleArgs<decltype(vaGetConfigAttributes)>::type;
             ThrowAssert(!ep.In.pData || ep.In.Size != sizeof(TArgs), "Invalid arguments for VAFID_GetConfigAttributes");
 
             TArgs& args         = *(TArgs*)ep.In.pData;

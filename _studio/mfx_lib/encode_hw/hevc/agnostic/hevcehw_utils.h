@@ -33,20 +33,24 @@
 #include <assert.h>
 #include "feature_blocks/mfx_feature_blocks_utils.h"
 
-namespace mfx
-{
-template <typename TRes, typename... TArgs>
-struct ReturnType<const std::function<TRes(TArgs...)>>
-{
-    using type = TRes;
-};
-}
 namespace HEVCEHW
 {
 using namespace MfxFeatureBlocks;
 using namespace mfx;
 using namespace mfx::options;
 using namespace mfx::options::frametype;
+
+template <class T>
+constexpr size_t Size(const T& c)
+{
+    return mfx::size(c);
+}
+
+template <class T, size_t N>
+constexpr size_t Size(const T(&a)[N])
+{
+    return mfx::size(a);
+}
 
 template <class T>
 class NotNull
