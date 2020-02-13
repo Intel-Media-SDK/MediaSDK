@@ -788,7 +788,7 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 va_num_elements = size/sizeof(VASliceParameterBufferHEVC);
 #if (MFX_VERSION >= 1027)
                 if ((m_Profile & VA_PROFILE_REXT)
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1032)
                     || (m_Profile & VA_PROFILE_SCC)
 #endif
                    )

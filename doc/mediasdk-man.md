@@ -1,7 +1,7 @@
 ![](./pic/intel_logo.png)
 <br><br><br>
 # **Media SDK Developer Reference**
-## Media SDK API Version 1.31
+## Media SDK API Version 1.32
 
 <div style="page-break-before:always" />
 
@@ -25,7 +25,7 @@ Intel and the Intel logo are trademarks or registered trademarks of Intel Corpor
 
 \*Other names and brands may be claimed as the property of others.
 
-Copyright © 2007-2019, Intel Corporation. All Rights reserved.
+Copyright © 2007-2020, Intel Corporation. All Rights reserved.
 <div style="page-break-before:always" /> 
 
 **Optimization Notice**
@@ -8034,18 +8034,18 @@ The `CodecProfile` enumerator itemizes codec profiles for all codecs.
 
 This enumerator is available since SDK API 1.0.
 
-SDK API 1.3 adds `MFX_PROFILE_AVC_EXTENDED.`
+SDK API 1.3 adds `MFX_PROFILE_AVC_EXTENDED`.
 
 SDK API 1.4 adds `MFX_PROFILE_AVC_CONSTRAINED_BASELINE, MFX_PROFILE_AVC_CONSTRAINED_HIGH,
-MFX_PROFILE_AVC_PROGRESSIVE_HIGH` and six constrained flags `MFX_PROFILE_AVC_CONSTRAINT_SET.`
+MFX_PROFILE_AVC_PROGRESSIVE_HIGH` and six constrained flags `MFX_PROFILE_AVC_CONSTRAINT_SET`.
 
 SDK API 1.8 added HEVC profile definitions.
 
-SDK API 1.16 adds `MFX_PROFILE_HEVC_REXT.`
+SDK API 1.16 adds `MFX_PROFILE_HEVC_REXT`.
 
 SDK API 1.19 added VP9 profile definitions.
 
-SDK API **TBD** adds `MFX_PROFILE_HEVC_SCC.`
+SDK API 1.32 adds `MFX_PROFILE_HEVC_SCC`.
 
 ## <a id='CodingOptionValue'>CodingOptionValue</a>
 
