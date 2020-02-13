@@ -2344,6 +2344,21 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
         m_mfxEncParams.mfx.QPP = pInParams->nQPP;
         m_mfxEncParams.mfx.QPB = pInParams->nQPB;
     }
+    else if (pInParams->nRateControlMethod == MFX_RATECONTROL_AVBR)
+    {
+        m_mfxEncParams.mfx.Accuracy = pInParams->Accuracy;
+        m_mfxEncParams.mfx.Convergence = pInParams->Convergence;
+    }
+    else if (pInParams->nRateControlMethod == MFX_RATECONTROL_QVBR)
+    {
+        auto codingOption3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        codingOption3->QVBRQuality = pInParams->QVBRQuality;
+        codingOption3->WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
+    }
+    else if (pInParams->nRateControlMethod == MFX_RATECONTROL_ICQ)
+    {
+        m_mfxEncParams.mfx.ICQQuality = pInParams->ICQQuality;
+    }
 
     if(pInParams->enableQSVFF)
     {
