@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -79,8 +79,8 @@ public:
     template <typename TFn>
     static TDdiExec CallDefault(TFn fn)
     {
-        using TArgs = decltype(TupleArgs(fn));
-        return [fn](const DDIExecParam& par) { return CallWithTupleArgs(fn, Deref<TArgs>(par.In)); };
+        using TArgs = typename mfx::TupleArgs<TFn>::type;
+        return [fn](const DDIExecParam& par) { return mfx::apply(fn, Deref<TArgs>(par.In)); };
     }
 
     template <typename... TArgs>

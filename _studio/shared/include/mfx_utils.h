@@ -158,14 +158,15 @@ T align2_value(T value, size_t alignment = 16)
     assert((alignment & (alignment - 1)) == 0);
     return static_cast<T> ((value + (alignment - 1)) & ~(alignment - 1));
 }
+
 template <class T>
-constexpr size_t Size(const T& c)
+constexpr size_t size(const T& c)
 {
     return (size_t)c.size();
 }
 
 template <class T, size_t N>
-constexpr size_t Size(const T(&)[N])
+constexpr size_t size(const T(&)[N])
 {
     return N;
 }
@@ -179,50 +180,70 @@ inline mfxU32 CeilLog2(mfxU32 x)
 }
 
 template <class F>
-struct ReturnType;
+struct TupleArgs;
 
 template <typename TRes, typename... TArgs>
-struct ReturnType<TRes(*const)(TArgs...)>
+struct TupleArgs<TRes(TArgs...)>
+{
+    using type = std::tuple<TArgs...>;
+};
+template <typename TRes, typename... TArgs>
+struct TupleArgs<TRes(*)(TArgs...)>
+{
+    using type = std::tuple<TArgs...>;
+};
+
+template<class T, T... args>
+struct integer_sequence
+{
+    using value_type = T;
+    static size_t size() { return (sizeof...(args)); }
+};
+
+template<size_t... args>
+using index_sequence = mfx::integer_sequence<size_t, args...>;
+
+template<size_t N, size_t ...S>
+struct make_index_sequence_impl
+    : make_index_sequence_impl<N - 1, N - 1, S...>
+{};
+
+template<size_t ...S>
+struct make_index_sequence_impl<0, S...>
+{
+    using type = index_sequence<S...>;
+};
+
+template <class F>
+struct result_of;
+
+template <typename TRes, typename... TArgs>
+struct result_of<TRes(TArgs...)> : std::result_of<TRes(TArgs...)> {};
+
+template <typename TRes, typename... TArgs>
+struct result_of<TRes(*const&)(TArgs...)>
 {
     using type = TRes;
 };
 
-template <typename TRes, typename... TArgs>
-inline std::tuple<TArgs...> TupleArgs(TRes(*)(TArgs...))
-{
-    return std::tuple<TArgs...>();
-}
+template<size_t S>
+using make_index_sequence = typename make_index_sequence_impl<S>::type;
 
-template<int ...>
-struct IntSeq
-{};
-
-template<int N, int ...S>
-struct MakeIntSeq
-    : MakeIntSeq<N - 1, N - 1, S...>
-{};
-
-template<int ...S>
-struct MakeIntSeq<0, S...>
-{
-    using type = IntSeq<S...>;
-};
-
-template<typename TFunc, typename TTuple, int ...S >
-inline typename ReturnType<typename std::remove_reference<TFunc>::type>::type
-    CallWithTupleArgsInt(TFunc&& fn, TTuple&& t, IntSeq<S...>)
+template<typename TFunc, typename TTuple, size_t ...S >
+inline typename mfx::result_of<TFunc>::type
+    apply_impl(TFunc&& fn, TTuple&& t, mfx::index_sequence<S...>)
 {
     return fn(std::get<S>(t) ...);
 }
 
 template<typename TFunc, typename TTuple>
-inline typename ReturnType<typename std::remove_reference<TFunc>::type>::type
-    CallWithTupleArgs(TFunc&& fn, TTuple&& t)
+inline typename mfx::result_of<TFunc>::type
+    apply(TFunc&& fn, TTuple&& t)
 {
-    return CallWithTupleArgsInt(
+    return apply_impl(
         std::forward<TFunc>(fn)
         , std::forward<TTuple>(t)
-        , typename MakeIntSeq<std::tuple_size<typename std::remove_reference<TTuple>::type>::value>::type());
+        , typename mfx::make_index_sequence<std::tuple_size<typename std::remove_reference<TTuple>::type>::value>());
 }
 
 template<class T>
