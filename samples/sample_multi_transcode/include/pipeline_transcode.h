@@ -283,6 +283,10 @@ namespace TranscodingSample
         mfxU16 nQPP;
         mfxU16 nQPB;
         bool bDisableQPOffset;
+        mfxU16 QVBRQuality;
+        mfxU16 ICQQuality;
+        mfxU16 Convergence;
+        mfxU16 Accuracy;
 
         mfxU16 nAvcTemp;
         mfxU16 nBaseLayerPID;
