@@ -826,6 +826,21 @@ void Legacy::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
 void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
 {
+    Push(BLK_CheckIOPattern
+        , [](const mfxVideoParam& par, mfxFrameAllocRequest&, StorageRW&) -> mfxStatus
+    {
+        bool check_result = Check<mfxU16
+            , MFX_IOPATTERN_IN_VIDEO_MEMORY
+            , MFX_IOPATTERN_IN_SYSTEM_MEMORY
+            , MFX_IOPATTERN_IN_OPAQUE_MEMORY
+            >
+            (par.IOPattern);
+
+        MFX_CHECK(!check_result, MFX_ERR_INVALID_VIDEO_PARAM);
+
+        return MFX_ERR_NONE;
+    });
+    
     Push(BLK_CheckVideoParam
         , [&blocks](const mfxVideoParam& par, mfxFrameAllocRequest&, StorageRW& strg) -> mfxStatus
     {
