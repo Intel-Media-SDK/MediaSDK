@@ -238,6 +238,15 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("                May be 1 in the case when -mss option is specified \n"));
     msdk_printf(MSDK_STRING("  -la_ext       Use external LA plugin (compatible with h264 & hevc encoders)\n"));
     msdk_printf(MSDK_STRING("  -vbr          Variable bitrate control\n"));
+    msdk_printf(MSDK_STRING("  -avbr         Average variable bitrate control\n"));
+    msdk_printf(MSDK_STRING("  -convergence <number>\n"));
+    msdk_printf(MSDK_STRING("                Bitrate convergence period for AVBR, in the unit of 100 frames\n"));
+    msdk_printf(MSDK_STRING("  -accuracy <number>\n"));
+    msdk_printf(MSDK_STRING("                Bitrate accuracy for AVBR. Value is specified in the unit of tenth of percent\n"));
+    msdk_printf(MSDK_STRING("  -qvbr <quality>\n"));
+    msdk_printf(MSDK_STRING("                Quality-defined variable bitrate control, quality is a value in range [1..51], where 1 corresponds to the best quality\n"));
+    msdk_printf(MSDK_STRING("  -icq <quality>\n"));
+    msdk_printf(MSDK_STRING("                Intelligent constant quality bitrate control, quality is a value in range [1..51], where 1 corresponds to the best quality\n"));
     msdk_printf(MSDK_STRING("  -cbr          Constant bitrate control\n"));
     msdk_printf(MSDK_STRING("  -hrd <KBytes> Maximum possible size of any compressed frames \n"));
     msdk_printf(MSDK_STRING("  -wb <Kbits per second>\n"));
@@ -1205,6 +1214,48 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
         InputParams.bPrefferdGfx = true;
     }
 #endif
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-avbr")))
+    {
+        InputParams.nRateControlMethod = MFX_RATECONTROL_AVBR;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-convergence")))
+    {
+        VAL_CHECK(i+1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.Convergence))
+        {
+            PrintError(argv[0], MSDK_STRING("Convergence param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-accuracy")))
+    {
+        VAL_CHECK(i+1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.Accuracy))
+        {
+            PrintError(argv[0], MSDK_STRING("Accuracy param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-qvbr")))
+    {
+        InputParams.nRateControlMethod = MFX_RATECONTROL_QVBR;
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.QVBRQuality))
+        {
+            PrintError(argv[0], MSDK_STRING("QVBRQuality param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-icq")))
+    {
+        InputParams.nRateControlMethod = MFX_RATECONTROL_ICQ;
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.ICQQuality))
+        {
+            PrintError(argv[0], MSDK_STRING("ICQQuality param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
     else
     {
         // no matching argument was found
