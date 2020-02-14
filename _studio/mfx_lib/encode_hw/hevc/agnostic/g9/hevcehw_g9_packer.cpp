@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1845,6 +1845,8 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
     {
         auto ph = make_unique<MakeStorable<PackedHeaders>>(PackedHeaders{});
 
+        m_pGlob = &global;
+
         mfxStatus sts = Reset(
             Glob::VPS::Get(global)
             , Glob::SPS::Get(global)
@@ -1865,7 +1867,6 @@ void Packer::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         spspps.PPSBufSize = mfxU16(CeilDiv(ph->PPS.BitLen, 8u));
 
         global.Insert(Glob::PackedHeaders::Key, std::move(ph));
-        m_pGlob = &global;
 
         return MFX_ERR_NONE;
     });
