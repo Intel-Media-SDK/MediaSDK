@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -80,7 +80,7 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
                 , const Defaults::Param& par)
         {
             mfxU16 k = 1 + IsField(par.mvp.mfx.FrameInfo.PicStruct);
-            return std::max<mfxU16>(DEFAULT_PPYR_INTERVAL * k, prev(par));
+            return mfxU16(prev(par) * k);
         });
 
         defaults.GetNumRefNoPyramid.Push(

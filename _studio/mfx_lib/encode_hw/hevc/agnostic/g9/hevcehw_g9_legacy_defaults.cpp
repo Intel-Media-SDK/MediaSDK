@@ -247,7 +247,7 @@ public:
         mfxU16 NumRefActiveP[8];
         par.base.GetNumRefActive(par, &NumRefActiveP, nullptr, nullptr);
         mfxU16 RefActiveP = *std::max_element(NumRefActiveP, NumRefActiveP + Size(NumRefActiveP));
-        return std::max<mfxU16>(DEFAULT_PPYR_INTERVAL, RefActiveP);
+        return std::min<mfxU16>(DEFAULT_PPYR_INTERVAL, RefActiveP);
     }
 
     static mfxU16 NumRefNoPyramid(
