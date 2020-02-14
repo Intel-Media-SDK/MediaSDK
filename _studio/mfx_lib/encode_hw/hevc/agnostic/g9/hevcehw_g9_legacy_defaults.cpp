@@ -1251,6 +1251,8 @@ public:
             bGT |= bEQ && Closer(a, b);
             return bGT;
         };
+        auto POCGreater = [](const DpbFrame* a, const DpbFrame* b) { return a->POC > b->POC; };
+        bool bAvoidL0Reorder = par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP && IsOff(CO3.EnableQPOffset);
 
         if (L0.empty())
         {
@@ -1269,6 +1271,12 @@ public:
 
         L0.resize(l0);
         L1.resize(l1);
+
+        if (bAvoidL0Reorder)
+        {
+            L0.sort(POCGreater);
+        }
+        L1.sort(POCGreater);
 
         std::transform(L0.begin(), L0.end(), RPL[0]
             , [&](const DpbFrame* x) { return mfxU8(x - dpbBegin); });
