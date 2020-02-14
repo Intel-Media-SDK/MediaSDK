@@ -1525,7 +1525,7 @@ public:
         {
             nSlice = std::min<mfxU32>(nSlice, nRow);
             mfxU32 nRowsPerSlice = CeilDiv(nRow, nSlice);
-            bool   bAddSlice     = (SliceStructure != Pow2Rows) && (nRowsPerSlice * nSlice) > nRow;
+            bool   bAddSlice     = (SliceStructure != Pow2Rows) && (nRowsPerSlice * (nSlice - 1)) >= nRow;
 
             nSlice        += bAddSlice;
             nRowsPerSlice -= bAddSlice;
