@@ -693,6 +693,7 @@ mfxStatus DDI_VA::CreateAccelerationService(
     MFX_CHECK_STS(sts);
 
     // Encoder create
+    const mfxExtHEVCParam& HEVC = ExtBuffer::Get(par);
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaCreateContext");
         sts = CallVA(
@@ -700,8 +701,8 @@ mfxStatus DDI_VA::CreateAccelerationService(
             , VAFID_CreateContext
             , m_vaDisplay
             , m_vaConfig
-            , (int)par.mfx.FrameInfo.Width
-            , (int)par.mfx.FrameInfo.Height
+            , (int)HEVC.PicWidthInLumaSamples
+            , (int)HEVC.PicHeightInLumaSamples
             , (int)VA_PROGRESSIVE
             , pRec
             , nRec
