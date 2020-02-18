@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -334,7 +334,10 @@ public:
             m_extParam,
             m_numExtParam,
             ExtBufTypeToId<typename GetPointedType<T*>::Type>::id);
-        assert(p);
+        if(!p)
+        {
+            throw MFX_ERR_NULL_PTR;
+        }
         return *(reinterpret_cast<T*>(p));
     }
 
@@ -376,7 +379,10 @@ public:
                 m_basicParam,
                 m_basicNum,
                 ExtBufTypeToId<typename GetPointedType<T*>::Type>::id);
-            assert(p);
+            if(!p)
+            {
+                throw MFX_ERR_NULL_PTR;
+            }
             return *(reinterpret_cast<T*>(p));
         }
     }
