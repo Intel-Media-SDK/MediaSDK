@@ -156,7 +156,8 @@ UMC::Status DecReferencePictureMarking_H265::UpdateRefPicMarking(ViewItem_H265 &
                     }
                     else
                     {
-                        if ((pTmp->m_PicOrderCnt % (1 << pSlice->GetSeqParam()->log2_max_pic_order_cnt_lsb)) == rps->getPOC(i) % (1 << pSlice->GetSeqParam()->log2_max_pic_order_cnt_lsb))
+                        int const MaxPicOrderCntLsb = 1 << pSlice->GetSeqParam()->log2_max_pic_order_cnt_lsb;
+                        if ((pTmp->m_PicOrderCnt & (MaxPicOrderCntLsb - 1)) == (rps->getPOC(i) & (MaxPicOrderCntLsb - 1)))
                         {
                             isReferenced = true;
                             pTmp->SetisLongTermRef(true);
