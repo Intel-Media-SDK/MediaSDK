@@ -201,6 +201,12 @@ public:
 
     // For dependent slice copy data from another slice
     void CopyFromBaseSlice(const H265Slice * slice);
+
+    uint32_t getTileColumnWidth(uint32_t col) const;
+    uint32_t getTileRowHeight(uint32_t row) const;
+
+    uint32_t getTileXIdx() const;
+    uint32_t getTileYIdx() const;
 };
 
 // Check whether two slices are from the same picture. HEVC spec 7.4.2.4.5
