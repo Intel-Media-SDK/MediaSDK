@@ -289,6 +289,103 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
 
 } // bool H265Slice::DecodeSliceHeader(bool bFullInitialization)
 
+// Get tile column CTB width
+uint32_t H265Slice::getTileColumnWidth(uint32_t col) const
+{
+    uint32_t tileColumnWidth = 0;
+    uint32_t lcuSize = 1 << m_pSeqParamSet->log2_max_luma_coding_block_size;
+    uint32_t widthInLcu = (m_pSeqParamSet->pic_width_in_luma_samples + lcuSize - 1) / lcuSize;
+
+    if (m_pPicParamSet->uniform_spacing_flag)
+    {
+        tileColumnWidth = ((col + 1) * widthInLcu) / m_pPicParamSet->num_tile_columns -
+            (col * widthInLcu) / m_pPicParamSet->num_tile_columns;
+    }
+    else
+    {
+        if (col == (m_pPicParamSet->num_tile_columns - 1))
+        {
+            for (uint32_t i = 0; i < (m_pPicParamSet->num_tile_columns - 1); i++)
+            {
+                tileColumnWidth += m_pPicParamSet->column_width[i];
+            }
+            tileColumnWidth = widthInLcu - tileColumnWidth;
+        }
+        else
+        {
+            tileColumnWidth = m_pPicParamSet->column_width[col];
+        }
+    }
+    return tileColumnWidth;
+}
+
+// Get tile row CTB height
+uint32_t H265Slice::getTileRowHeight(uint32_t row) const
+{
+    uint32_t tileRowHeight = 0;
+    uint32_t lcuSize = 1 << m_pSeqParamSet->log2_max_luma_coding_block_size;
+    uint32_t heightInLcu = (m_pSeqParamSet->pic_height_in_luma_samples + lcuSize - 1) / lcuSize;
+
+    if (m_pPicParamSet->uniform_spacing_flag)
+    {
+        tileRowHeight = ((row + 1) * heightInLcu) / m_pPicParamSet->num_tile_rows -
+            (row * heightInLcu) / m_pPicParamSet->num_tile_rows;
+    }
+    else
+    {
+        if (row == (m_pPicParamSet->num_tile_rows - 1))
+        {
+            for (uint32_t i = 0; i < (m_pPicParamSet->num_tile_rows - 1); i++)
+            {
+                tileRowHeight += m_pPicParamSet->row_height[i];
+            }
+            tileRowHeight = heightInLcu - tileRowHeight;
+        }
+        else
+        {
+            tileRowHeight = m_pPicParamSet->row_height[row];
+        }
+    }
+    return tileRowHeight;
+}
+
+// Get tile XIdx
+uint32_t H265Slice::getTileXIdx() const
+{
+    uint32_t i;
+    uint32_t lcuOffset = 0;
+    uint32_t lcuSize = 1 << m_pSeqParamSet->log2_max_luma_coding_block_size;
+    uint32_t widthInLcu = (m_pSeqParamSet->pic_width_in_luma_samples + lcuSize - 1) / lcuSize;
+    uint32_t lcuColumnOffset = m_SliceHeader.slice_segment_address % widthInLcu;
+
+    for (i = 0; i < (m_pPicParamSet->num_tile_columns-1); i++)
+    {
+        int tileColumnWidth = getTileColumnWidth(i);
+        if (lcuColumnOffset >= lcuOffset && lcuColumnOffset < lcuOffset + tileColumnWidth)
+            break;
+        lcuOffset += tileColumnWidth;
+    }
+    return i;
+}
+
+// Get tile YIdx
+uint32_t H265Slice::getTileYIdx() const
+{
+    uint32_t i;
+    uint32_t lcuOffset = 0;
+    uint32_t lcuSize = 1 << m_pSeqParamSet->log2_max_luma_coding_block_size;
+    uint32_t widthInLcu = (m_pSeqParamSet->pic_width_in_luma_samples + lcuSize - 1) / lcuSize;
+    uint32_t lcuRowOffset = m_SliceHeader.slice_segment_address / widthInLcu;
+
+    for (i = 0; i < (m_pPicParamSet->num_tile_rows - 1); i++)
+    {
+        int tileRowHeight = getTileRowHeight(i);
+        if (lcuRowOffset >= lcuOffset && lcuRowOffset < lcuOffset + tileRowHeight)
+            break;
+        lcuOffset += tileRowHeight;
+    }
+    return i;
+}
 
 // Returns number of used references in RPS
 int H265Slice::getNumRpsCurrTempList() const
@@ -343,11 +440,14 @@ void H265Slice::CopyFromBaseSlice(const H265Slice * s)
         m_SliceHeader.m_numRefIdx[i]     = slice->m_numRefIdx[i];
     }
 
-    m_SliceHeader.m_CheckLDC            = slice->m_CheckLDC;
-    m_SliceHeader.slice_type            = slice->slice_type;
-    m_SliceHeader.slice_qp_delta        = slice->slice_qp_delta;
-    m_SliceHeader.slice_cb_qp_offset    = slice->slice_cb_qp_offset;
-    m_SliceHeader.slice_cr_qp_offset    = slice->slice_cr_qp_offset;
+    m_SliceHeader.m_CheckLDC             = slice->m_CheckLDC;
+    m_SliceHeader.slice_type             = slice->slice_type;
+    m_SliceHeader.slice_qp_delta         = slice->slice_qp_delta;
+    m_SliceHeader.slice_cb_qp_offset     = slice->slice_cb_qp_offset;
+    m_SliceHeader.slice_cr_qp_offset     = slice->slice_cr_qp_offset;
+    m_SliceHeader.slice_act_y_qp_offset  = slice->slice_act_y_qp_offset;
+    m_SliceHeader.slice_act_cb_qp_offset = slice->slice_act_cb_qp_offset;
+    m_SliceHeader.slice_act_cr_qp_offset = slice->slice_act_cr_qp_offset;
 
     m_SliceHeader.m_rps                     = slice->m_rps;
     m_SliceHeader.collocated_from_l0_flag   = slice->collocated_from_l0_flag;
