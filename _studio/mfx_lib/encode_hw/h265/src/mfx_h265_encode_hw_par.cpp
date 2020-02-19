@@ -2548,8 +2548,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
                     }
                     else
                     {
-                        par.MaxKbps = CO3.WinBRCMaxAvgKbps;
-                        changed++;
+                        changed += CheckOption(par.MaxKbps, par.TargetKbps);
                     }
                 }
             }

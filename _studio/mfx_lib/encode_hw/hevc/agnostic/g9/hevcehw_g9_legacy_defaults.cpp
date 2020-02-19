@@ -2590,7 +2590,7 @@ public:
         mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
         bool   bExtBRC      = pCO2 && IsOn(pCO2->ExtBRC);
         bool   bVBR         = (par.mfx.RateControlMethod == MFX_RATECONTROL_VBR || par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
-        bool   bUnsupported = bVBR && bExtBRC && pCO3->WinBRCMaxAvgKbps && (pCO3->WinBRCMaxAvgKbps < TargetKbps(par.mfx));
+        bool   bUnsupported = bVBR && pCO3->WinBRCMaxAvgKbps && (pCO3->WinBRCMaxAvgKbps < TargetKbps(par.mfx));
         mfxU32 changed      = !bVBR || bUnsupported;
 
         pCO3->WinBRCSize       *= !changed;
