@@ -1927,6 +1927,33 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
     m_Headers.m_SeqParams.SetCurrentID(pps->pps_seq_parameter_set_id);
     m_Headers.m_PicParams.SetCurrentID(pps->pps_pic_parameter_set_id);
 
+    // calculate max entrypoints number
+    H265SeqParamSet const* sps = pSlice->GetSeqParam();
+    if (pps->entropy_coding_sync_enabled_flag)
+    {
+        int NumOfMaxEntryPoints = 0;
+        int PicHeightInCtbsY = sps->HeightInCU;
+
+        if (pps->tiles_enabled_flag == 0)
+            NumOfMaxEntryPoints = PicHeightInCtbsY;
+        else
+            NumOfMaxEntryPoints = PicHeightInCtbsY * (pps->num_tile_columns);
+
+        //reallocate memory for slice header
+        if (NumOfMaxEntryPoints > 512)
+        {
+            vm_string_printf(VM_STRING("Re-allocate buffer for slice header!\n"));
+
+            //offset_len_minus1[0-31], assume maximum 31[4 bytes]
+            int newsize = 1024 + NumOfMaxEntryPoints * 4 + DEFAULT_NU_TAIL_SIZE;
+            pSlice->m_source.Allocate(newsize);
+
+            //swap buffer again, since buffer is small at first time
+            memCopy.SetData(nalUnit);
+            swapper->SwapMemory(&pSlice->m_source, &memCopy, &removed_offsets);
+        }
+    }
+
     pSlice->m_pCurrentFrame = NULL;
 
     memory_leak_preventing.ClearNotification();

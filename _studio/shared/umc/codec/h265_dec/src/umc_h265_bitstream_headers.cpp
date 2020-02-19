@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1964,6 +1964,11 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         sliceHdr->num_entry_point_offsets = GetVLCElementU();
 
         uint32_t PicHeightInCtbsY = sps->HeightInCU;
+
+        if (sliceHdr->num_entry_point_offsets > 440)
+        {
+            vm_string_printf(VM_STRING("slice has more than 440 offsets:%d\n"), sliceHdr->num_entry_point_offsets);
+        }
 
         if (!pps->tiles_enabled_flag && pps->entropy_coding_sync_enabled_flag && sliceHdr->num_entry_point_offsets > PicHeightInCtbsY)
             throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
