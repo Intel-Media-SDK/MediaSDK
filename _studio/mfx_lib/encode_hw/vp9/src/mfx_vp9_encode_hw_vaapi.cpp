@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -573,6 +573,12 @@ VAAPIEncoder::VAAPIEncoder()
 , m_vaDisplay(NULL)
 , m_vaContextEncode(VA_INVALID_ID)
 , m_vaConfig(VA_INVALID_ID)
+, m_sps()
+, m_pps()
+, m_tempLayers()
+, m_vaBrcPar()
+, m_vaFrameRate()
+, m_seqParam()
 , m_spsBufferId(VA_INVALID_ID)
 , m_ppsBufferId(VA_INVALID_ID)
 , m_segMapBufferId(VA_INVALID_ID)
@@ -586,6 +592,7 @@ VAAPIEncoder::VAAPIEncoder()
 , m_width(0)
 , m_height(0)
 , m_isBrcResetRequired(false)
+, m_caps()
 , m_platform()
 {
 } // VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
