@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,13 +35,13 @@ void Linux::Gen12::RExt::Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push)
     Push(BLK_SetGUID
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
-        //don't change GUID in Reset
-        MFX_CHECK(!strg.Contains(Glob::RealState::Key), MFX_ERR_NONE);
-
         auto& g2va = Glob::GuidToVa::GetOrConstruct(strg);
         g2va[DXVA2_Intel_Encode_HEVC_Main12]     = { VAProfileHEVCMain12,     VAEntrypointEncSlice };
         g2va[DXVA2_Intel_Encode_HEVC_Main422_12] = { VAProfileHEVCMain422_12, VAEntrypointEncSlice };
         g2va[DXVA2_Intel_Encode_HEVC_Main444_12] = { VAProfileHEVCMain444_12, VAEntrypointEncSlice };
+
+        //don't change GUID in Reset
+        MFX_CHECK(!strg.Contains(Glob::RealState::Key), MFX_ERR_NONE);
 
         return SetGuid(par, strg);
     });
