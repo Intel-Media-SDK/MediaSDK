@@ -32,7 +32,6 @@ namespace msdk_analyzer
     class EtlToTextConverter
     {
         uint m_percentage;
-        public event ConversionStatusUpdated ConversionUpdated;
         ConversionStatus m_status;
         string m_etlfilename;
         string m_textfilename;
