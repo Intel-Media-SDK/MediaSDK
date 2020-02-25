@@ -135,7 +135,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>%(AdditionalDependencies); ..\..\..\build\win_Win32\bin\mfx_dispatch_trace_lib_mbcs.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies); ..\..\..\build\win_Win32\lib\mfx_dispatch_trace_lib_mbcs.lib</AdditionalDependencies>
       <ModuleDefinitionFile>mfx-tracer.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -154,7 +154,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(MEDIASDK_ROOT)\ipp\ipp80gold\windows\ia32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>%(AdditionalDependencies);..\..\..\build\win_$(Platform)\bin\mfx_dispatch_trace_lib_mbcs.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);..\..\..\build\win_$(Platform)\lib\mfx_dispatch_trace_lib_mbcs.lib</AdditionalDependencies>
       <ModuleDefinitionFile>mfx-tracer.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
