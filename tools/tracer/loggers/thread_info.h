@@ -37,7 +37,6 @@ public:
         #else
             return (long)syscall(SYS_gettid);
         #endif
-        return -1;
     };
 
     static long GetProcessId()
@@ -47,7 +46,6 @@ public:
         #else
             return (long)getpid();
         #endif
-        return -1;
     }
 };
 
