@@ -129,7 +129,6 @@ DWORD Reg(HKEY key, TCHAR* dll_name, TCHAR* analyzer_key, TCHAR* install_dir, TC
    mfxU32 deviceID = bSoftwareDevice ? 0 : device.GetDeviceID();
    mfxU32 vendorID = bSoftwareDevice ? 0 : device.GetVendorID();
 
-   TCHAR adapter_number[6];
 
 
    HKEY key2;
