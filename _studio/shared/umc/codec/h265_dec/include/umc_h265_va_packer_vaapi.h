@@ -127,14 +127,11 @@ namespace UMC_HEVC_DECODER
             total += size + 3;
         }
 
-        auto const aligned_size = mfx::align2_value<size_t>(total, 128);
         UMC::UMCVACompBuffer* buffer = nullptr;
-        auto ptr = reinterpret_cast<char*>(va->GetCompBuffer(VASliceDataBufferType, &buffer, aligned_size));
+        auto ptr = reinterpret_cast<char*>(va->GetCompBuffer(VASliceDataBufferType, &buffer, total));
         if (!ptr)
             throw h265_exception(UMC::UMC_ERR_FAILED);
 
-        //zero buffer tail (alignement)
-        std::fill(ptr + total, ptr + aligned_size, 0);
         buffer->SetDataSize(0);
     }
 
