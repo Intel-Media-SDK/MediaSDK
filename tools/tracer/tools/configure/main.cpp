@@ -163,5 +163,4 @@ int main(int argc, char *argv[])
         cerr << string("exception: ") + ex.what() + "\n";
         return -2;
     }
-        return 0;
 }

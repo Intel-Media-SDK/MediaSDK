@@ -289,7 +289,6 @@ mfxStatus MFXClose(mfxSession session)
         std::cerr << "Exception: " << e.what() << '\n';
         return MFX_ERR_ABORTED;
     }
-    return MFX_ERR_NOT_FOUND;
 }
 
 mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
