@@ -78,8 +78,8 @@ namespace UMC_HEVC_DECODER
             {
                     pp->ReferenceFrames[count].pic_order_cnt = frame->m_PicOrderCnt;
                     pp->ReferenceFrames[count].picture_id = va->GetSurfaceID(frame->GetFrameMID());
-                    pp->ReferenceFrames[count].flags = SHORT_TERM_REFERENCE | VA_PICTURE_HEVC_RPS_ST_CURR_BEFORE;
-                    numRefPicSetStCurr++;
+                    pp->ReferenceFrames[count].flags = VA_PICTURE_HEVC_LONG_TERM_REFERENCE;
+                    count++;
             }
 
             for (size_t n = count+numRefPicSetStCurr; n < sizeof(pp->ReferenceFrames) / sizeof(pp->ReferenceFrames[0]); n++)
