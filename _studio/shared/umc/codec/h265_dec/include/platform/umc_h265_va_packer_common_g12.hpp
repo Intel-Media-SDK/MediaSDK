@@ -45,29 +45,48 @@ namespace UMC_HEVC_DECODER
         }
 
         inline
-        uint32_t GetEntryPointOffsetStep(H265Slice const* slice)
+        uint32_t GetEntryPointOffsetStep(H265Slice const* slice, uint32_t tileYIdx)
         {
-            assert(slice);
-
-            auto pps = slice->GetPicParam();
-            assert(pps);
+            H265PicParamSet const* pps = slice->GetPicParam();
+            VM_ASSERT(pps);
 
             if (!pps->tiles_enabled_flag || !pps->entropy_coding_sync_enabled_flag)
                 return 1;
 
-            auto sh = slice->GetSliceHeader();
-            assert(sh);
-
-            //[m_TileIdx] has size of WidthInLCU * HeightInLCU + 1
-            //value of [SliceHeader :: slice_segment_address] is checked during bitstream parsing
-            assert(sh->slice_segment_address < pps->m_TileIdx.size());
-            auto const tile = pps->m_TileIdx[sh->slice_segment_address];
-
-            auto const row = tile / pps->num_tile_columns;
-            if (!(row < pps->row_height.size()))
+            if (!(tileYIdx < pps->row_height.size()))
                 throw h265_exception(UMC::UMC_ERR_FAILED);
 
-            return pps->row_height[row];
+            return slice->getTileRowHeight(tileYIdx);
+        }
+
+        inline
+        uint32_t GetEntryPointOffsetNum(H265Slice const* slice)
+        {
+            H265PicParamSet const* pps = slice->GetPicParam();
+            assert(pps);
+            //H265SliceHeader const* sh = slice->GetSliceHeader();
+            //VM_ASSERT(sh);
+
+            uint32_t count = 0;
+            uint32_t tileXIdx = slice->getTileXIdx();
+            uint32_t tileYIdx = slice->getTileYIdx();
+            uint32_t step = 0;
+
+            step = GetEntryPointOffsetStep(slice, tileYIdx);
+            for (uint32_t idx = 1; idx < slice->getTileLocationCount(); idx++)
+            {
+                if (0 == --step)
+                {
+                    count++;
+                    if (++tileXIdx > (pps->num_tile_columns - 1))
+                    {
+                        tileXIdx = 0;
+                        tileYIdx++;
+                    }
+                    step = GetEntryPointOffsetStep(slice, tileYIdx);
+                }
+            }
+            return count;
         }
 
         /* Return number (pair.first) of entry point offsets and
@@ -100,16 +119,12 @@ namespace UMC_HEVC_DECODER
                 if (s == slice)
                     break;
 
-                auto sh = s->GetSliceHeader();
-                assert(sh);
-
-                auto const step = GetEntryPointOffsetStep(slice);
-                offset += sh->num_entry_point_offsets / step;
+                offset += GetEntryPointOffsetNum(s);;
             }
 
             return std::make_pair(
                 static_cast<uint16_t>(offset),
-                static_cast<uint16_t>(sh->num_entry_point_offsets / GetEntryPointOffsetStep(slice))
+                static_cast<uint16_t>(GetEntryPointOffsetNum(slice))
             );
         }
 
@@ -125,7 +140,15 @@ namespace UMC_HEVC_DECODER
                 auto slice = fi->GetSlice(i);
                 assert(slice);
 
-                auto const step = GetEntryPointOffsetStep(slice);
+                H265PicParamSet const* pps = slice->GetPicParam();
+
+                if (!pps->tiles_enabled_flag || !pps->entropy_coding_sync_enabled_flag)
+                  return;
+
+                uint32_t tileXIdx = slice->getTileXIdx();
+                uint32_t tileYIdx = slice->getTileYIdx();
+
+                auto step = GetEntryPointOffsetStep(slice, tileYIdx);
 
                 //'m_tileByteLocation' contains absolute offsets, but we have to pass relative ones just as they are in a bitstream
                 //NOTE: send only entry points for tiles
@@ -139,6 +162,14 @@ namespace UMC_HEVC_DECODER
                     if (begin > end)
                         //provided buffer for entry points is too small
                         throw h265_exception(UMC::UMC_ERR_FAILED);
+
+                    if (++tileXIdx > (pps->num_tile_columns - 1))
+                    {
+                        tileXIdx = 0;
+                        tileYIdx++;
+                    }
+
+                    step = GetEntryPointOffsetStep(slice, tileYIdx);
                 }
             }
         }
