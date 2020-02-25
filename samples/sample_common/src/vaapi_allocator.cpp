@@ -67,6 +67,14 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     case MFX_FOURCC_Y410:
         return VA_FOURCC_Y410;
 #endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+        return VA_FOURCC_P016;
+    case MFX_FOURCC_Y216:
+        return VA_FOURCC_Y216;
+    case MFX_FOURCC_Y416:
+        return VA_FOURCC_Y416;
+#endif
     default:
         assert(!"unsupported fourcc");
         return 0;
@@ -627,6 +635,9 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                 else return MFX_ERR_LOCK_MEMORY;
                 break;
             case VA_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+            case VA_FOURCC_P016:
+#endif
                 if (mfx_fourcc != vaapi_mid->m_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
                 {
@@ -647,6 +658,9 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                 break;
 #if (MFX_VERSION >= 1027)
             case VA_FOURCC_Y210:
+#if (MFX_VERSION >= 1031)
+            case VA_FOURCC_Y216:
+#endif
                 if (mfx_fourcc != vaapi_mid->m_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
                 {
@@ -663,6 +677,18 @@ mfxStatus vaapiFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                     ptr->Y = 0;
                     ptr->V = 0;
                     ptr->A = 0;
+                }
+                break;
+#endif
+#if (MFX_VERSION >= 1031)
+            case VA_FOURCC_Y416:
+                if (mfx_fourcc != vaapi_mid->m_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
+
+                {
+                    ptr->U16 = (mfxU16 *) (pBuffer + vaapi_mid->m_image.offsets[0]);
+                    ptr->Y16 = ptr->U16 + 1;
+                    ptr->V16 = ptr->Y16 + 1;
+                    ptr->A   = (mfxU8 *)(ptr->V16 + 1);
                 }
                 break;
 #endif
