@@ -107,7 +107,7 @@ The following command-line switches are optional:
   | [-num_slice] | number of slices in each video frame. 0 by default. If num_slice equals zero, the encoder may choose any slice partitioning allowed by the codec standard.|
    |[-mss] |maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -num_slice option.|
   | [-mfs]|maximum frame size in bytes. Supported only with h264 and hevc codec for VBR mode.|
-  | [-BitrateLimit:<on,off>] | Modifies bitrate to be in the range imposed by the SDK encoder. Setting this flag off may lead to violation of HRD conformance. The default value is OFF, i.e. bitrate is not limited.|
+  | [-BitrateLimit:<on,off>] | Modifies bitrate to be in the range imposed by the SDK encoder. Setting this flag off may lead to violation of HRD conformance. The default value is OFF, i.e. bitrate is not limited. It works with AVC only.|
   | [-re]      |enable region encode mode. Works only with h265 encoder|
   | [-CodecProfile] | specifies codec profile|
  |  [-CodecLevel]   | specifies codec level|
