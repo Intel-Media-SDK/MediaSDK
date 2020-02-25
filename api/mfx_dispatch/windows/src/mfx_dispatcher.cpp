@@ -393,6 +393,7 @@ static inline mfxI32 iGPU_priority(const void* ll, const void* rr)
 
 static void RearrangeInPriorityOrder(const mfxComponentInfo & info, MFX::MFXVector<mfxAdapterInfo> & vec)
 {
+	(void)info;
     {
         // Move iGPU to top priority
         qsort(vec.data(), vec.size(), sizeof(mfxAdapterInfo), &iGPU_priority);
