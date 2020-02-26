@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -108,14 +108,14 @@ namespace HEVCEHW
     };
 };
 
-#if defined(MFX_ENABLE_HEVCEHW_REFACTORING_LIN_GEN9) && defined(MFX_VA_LINUX)
+#if defined(MFX_VA_LINUX)
     #include "hevcehw_g9_lin.h"
     namespace HEVCEHWDisp { namespace Gen9 { using namespace HEVCEHW::Linux::Gen9; }; };
 #else
     namespace HEVCEHWDisp { namespace Gen9 { using namespace HEVCEHW::LegacyFallback; }; };
 #endif
 
-#if defined(MFX_ENABLE_HEVCEHW_REFACTORING_LIN_GEN11) && defined(MFX_VA_LINUX)
+#if defined(MFX_VA_LINUX)
     // There is no gen9/gen11 separation in code - use Gen9 code-pass for ICL as well
     #include "hevcehw_g9_lin.h"
     namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::Linux::Gen9; }; };
@@ -123,7 +123,7 @@ namespace HEVCEHW
     namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::LegacyFallback; }; };
 #endif
 
-#if defined(MFX_ENABLE_HEVCEHW_REFACTORING_LIN_TGL) && defined(MFX_VA_LINUX)
+#if defined(MFX_VA_LINUX)
     #include "hevcehw_g12_lin.h"
     namespace HEVCEHWDisp { namespace TGL { using namespace HEVCEHW::Linux::Gen12; }; };
 #else
