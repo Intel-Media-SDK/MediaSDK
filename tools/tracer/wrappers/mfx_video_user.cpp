@@ -1467,5 +1467,5 @@ mfxStatus MFXVideoUSER_GetPlugin(mfxSession session, mfxU32 type, mfxPlugin *par
     }
 }
 
-mfxStatus  MFXAudioUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par) { session; type; par; return MFX_ERR_NONE; }
-mfxStatus  MFXAudioUSER_Unregister(mfxSession session, mfxU32 type) { session; type; return MFX_ERR_NONE; }
+mfxStatus  MFXAudioUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par) { (void)session; (void)type; (void)par; return MFX_ERR_NONE; }
+mfxStatus  MFXAudioUSER_Unregister(mfxSession session, mfxU32 type) { (void)session; (void)type; return MFX_ERR_NONE; }
