@@ -49,8 +49,8 @@ map<string, map<string, string> > ConfigManager::ParceConfig(string config_path)
             getline(_file, inistr);
 
             //delete tabs and spaces
-            unsigned int firstQuote = inistr.find("\"");
-            unsigned int secondQuote = inistr.find_last_of("\"");
+            std::string::size_type firstQuote = inistr.find("\"");
+            std::string::size_type secondQuote = inistr.find_last_of("\"");
             std::string firstPart="";
             std::string secondPart="";
             std::string quotePart="";
