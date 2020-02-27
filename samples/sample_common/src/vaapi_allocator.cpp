@@ -164,6 +164,7 @@ static mfxStatus GetVAFourcc(mfxU32 fourcc, unsigned int &va_fourcc)
         (VA_FOURCC_P208 != va_fourcc) &&
         (VA_FOURCC_P010 != va_fourcc) &&
         (VA_FOURCC_YUY2 != va_fourcc) &&
+        (VA_FOURCC_UYVY != va_fourcc) &&
 #if (MFX_VERSION >= 1027)
         (VA_FOURCC_Y210 != va_fourcc) &&
         (VA_FOURCC_Y410 != va_fourcc) &&
@@ -293,7 +294,7 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
         if( VA_FOURCC_P208 != va_fourcc )
         {
             unsigned int format;
-            VASurfaceAttrib attrib[2];
+            VASurfaceAttrib attrib[3];
             int attrCnt = 0;
 
             attrib[attrCnt].type          = VASurfaceAttribPixelFormat;
@@ -332,7 +333,25 @@ mfxStatus vaapiFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrame
             {
                 format = VA_RT_FORMAT_RGBP;
             }
+#ifdef ENABLE_V4L2_SUPPORT
+            if ((m_export_mode & vaapiAllocatorParams::PRIME) && (format == VA_RT_FORMAT_YUV422))
+            {
+                VASurfaceAttribExternalBuffers buffer_desc{};
+                buffer_desc.pixel_format        = va_fourcc;
+                buffer_desc.width               = request->Info.Width;
+                buffer_desc.height              = request->Info.Height;
 
+                attrib[attrCnt].type            = VASurfaceAttribMemoryType;
+                attrib[attrCnt].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[attrCnt].value.type      = VAGenericValueTypeInteger;
+                attrib[attrCnt++].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_VA;
+
+                attrib[attrCnt].type            = (VASurfaceAttribType)VASurfaceAttribExternalBufferDescriptor;
+                attrib[attrCnt].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+                attrib[attrCnt].value.type      = VAGenericValueTypePointer;
+                attrib[attrCnt++].value.value.p = &buffer_desc;
+            }
+#endif
             va_res = m_libva->vaCreateSurfaces(m_dpy,
                                     format,
                                     request->Info.Width, request->Info.Height,

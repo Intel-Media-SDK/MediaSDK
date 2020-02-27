@@ -291,11 +291,11 @@ public:
 
     void SetNumView(mfxU32 numViews) { m_nNumView = numViews; }
     virtual void  PrintInfo();
-
+#if defined (ENABLE_V4L2_SUPPORT)
     void InitV4L2Pipeline(sInputParams *pParams);
     mfxStatus CaptureStartV4L2Pipeline();
     void CaptureStopV4L2Pipeline();
-
+#endif
     static void InsertIDR(mfxEncodeCtrl & ctrl, bool forceIDR);
 
     virtual mfxStatus OpenRoundingOffsetFile(sInputParams *pInParams);

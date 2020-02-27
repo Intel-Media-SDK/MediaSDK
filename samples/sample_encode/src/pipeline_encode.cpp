@@ -1206,9 +1206,9 @@ CEncodingPipeline::CEncodingPipeline()
 
     MSDK_ZERO_MEMORY(m_EncResponse);
     MSDK_ZERO_MEMORY(m_VppResponse);
-
+#ifdef ENABLE_V4L2_SUPPORT
     isV4L2InputEnabled = false;
-
+#endif
     m_nFramesToProcess = 0;
     m_bCutOutput = false;
     m_bTimeOutExceed = false;
@@ -1591,9 +1591,14 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
 
     // create preprocessor if resizing was requested from command line
     // or if different FourCC is set
+    // or if V4L2 enabled
     if (pParams->nWidth != pParams->nDstWidth ||
         pParams->nHeight != pParams->nDstHeight ||
-        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC )
+        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC
+#ifdef ENABLE_V4L2_SUPPORT
+        || isV4L2InputEnabled
+#endif
+        )
 
     {
         bVpp = true;
@@ -1686,8 +1691,9 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     sts = OpenRoundingOffsetFile(pParams);
     MSDK_CHECK_STATUS(sts, "Failed to open file");
 
+#if defined (ENABLE_V4L2_SUPPORT)
     InitV4L2Pipeline(pParams);
-
+#endif
     m_nFramesToProcess = pParams->nNumFrames;
 
     // If output isn't specified work in performance mode and do not insert idr
@@ -1702,9 +1708,9 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     return MFX_ERR_NONE;
 }
 
-void CEncodingPipeline::InitV4L2Pipeline(sInputParams* /*pParams*/)
-{
 #if defined (ENABLE_V4L2_SUPPORT)
+void CEncodingPipeline::InitV4L2Pipeline(sInputParams* pParams)
+{
     if (isV4L2InputEnabled)
     {
         int i;
@@ -1726,12 +1732,11 @@ void CEncodingPipeline::InitV4L2Pipeline(sInputParams* /*pParams*/)
             v4l2Pipeline.V4L2QueueBuffer(&buffers[i]);
         }
     }
-#endif
 }
+
 
 mfxStatus CEncodingPipeline::CaptureStartV4L2Pipeline()
 {
-#if defined (ENABLE_V4L2_SUPPORT)
     if (isV4L2InputEnabled)
     {
         v4l2Pipeline.V4L2StartCapture();
@@ -1746,20 +1751,18 @@ mfxStatus CEncodingPipeline::CaptureStartV4L2Pipeline()
         }
     }
 
-#endif
     return MFX_ERR_NONE;
 }
 
 void CEncodingPipeline::CaptureStopV4L2Pipeline()
 {
-#if defined (ENABLE_V4L2_SUPPORT)
     if (isV4L2InputEnabled)
     {
         pthread_join(m_PollThread, NULL);
         v4l2Pipeline.V4L2StopCapture();
     }
-#endif
 }
+#endif
 
 void CEncodingPipeline::InsertIDR(mfxEncodeCtrl & ctrl, bool forceIDR)
 {
@@ -2414,9 +2417,10 @@ mfxStatus CEncodingPipeline::LoadNextFrame(mfxFrameSurface1* pSurf)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
+#ifdef ENABLE_V4L2_SUPPORT
     if (isV4L2InputEnabled)
         return MFX_ERR_NONE;
-
+#endif
     m_bTimeOutExceed = (m_nTimeout < m_statOverall.GetDeltaTime()) ? true : false;
 
     if (m_nPerfOpt)

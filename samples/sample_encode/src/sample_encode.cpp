@@ -204,7 +204,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-UYVY]                        - Input Raw format types V4L2 Encode\n"));
     msdk_printf(MSDK_STRING("   [-YUY2]                        - Input Raw format types V4L2 Encode\n"));
     msdk_printf(MSDK_STRING("   [-i::v4l2]                        - To enable v4l2 option\n"));
-    msdk_printf(MSDK_STRING("Example: %s h264|mpeg2|mvc -i::v4l2 -o OutputEncodedFile -w width -h height -d /dev/video0 -UYVY -m preview -p 0\n"), strAppName);
+    msdk_printf(MSDK_STRING("Example: %s h264|mpeg2|mvc -i::v4l2 -o OutputEncodedFile -w width -h height -d /dev/video0 -UYVY -m preview -p 0 -vaapi\n"), strAppName);
 #endif
     msdk_printf(MSDK_STRING("   [-viewoutput] - instruct the MVC encoder to output each view in separate bitstream buffer. Depending on the number of -o options behaves as follows:\n"));
     msdk_printf(MSDK_STRING("                   1: two views are encoded in single file\n"));
@@ -310,7 +310,9 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
 
     // default implementation
     pParams->bUseHWLib = true;
+#ifdef ENABLE_V4L2_SUPPORT
     pParams->isV4L2InputEnabled = false;
+#endif
     pParams->nNumFrames = 0;
     pParams->FileInputFourCC = MFX_FOURCC_I420;
     pParams->EncodeFourCC = MFX_FOURCC_NV12;
@@ -1312,11 +1314,21 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             PrintHelp(strInput[0], MSDK_STRING("NO input v4l2 format\n"));
             return MFX_ERR_UNSUPPORTED;
         }
+
+        if (pParams->memType != D3D9_MEMORY)
+        {
+            PrintHelp(strInput[0], MSDK_STRING("v4l2 is supported only with -vaapi option\n"));
+            return MFX_ERR_UNSUPPORTED;
+        }
     }
 #endif
 
     // check if all mandatory parameters were set
-    if (!pParams->InputFiles.size() && !pParams->isV4L2InputEnabled)
+    if (!pParams->InputFiles.size()
+#ifdef ENABLE_V4L2_SUPPORT
+        && !pParams->isV4L2InputEnabled
+#endif
+    )
     {
         PrintHelp(strInput[0], MSDK_STRING("Source file name not found"));
         return MFX_ERR_UNSUPPORTED;
@@ -1340,8 +1352,11 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     }
 
     if (MFX_CODEC_JPEG != pParams->CodecId && MFX_CODEC_HEVC != pParams->CodecId &&
-        pParams->FileInputFourCC == MFX_FOURCC_YUY2 &&
-        !pParams->isV4L2InputEnabled)
+        pParams->FileInputFourCC == MFX_FOURCC_YUY2
+#ifdef ENABLE_V4L2_SUPPORT
+        && !pParams->isV4L2InputEnabled
+#endif
+)
     {
         PrintHelp(strInput[0], MSDK_STRING("-yuy2 option is supported only for JPEG or HEVC encoder"));
         return MFX_ERR_UNSUPPORTED;
@@ -1630,12 +1645,13 @@ int main(int argc, char *argv[])
 
     msdk_printf(MSDK_STRING("Processing started\n"));
 
+#ifdef ENABLE_V4L2_SUPPORT
     if (pPipeline->CaptureStartV4L2Pipeline() != MFX_ERR_NONE)
     {
         msdk_printf(MSDK_STRING("V4l2 failure terminating the program\n"));
         return 0;
     }
-
+#endif
     for (;;)
     {
         sts = pPipeline->Run();
@@ -1657,8 +1673,9 @@ int main(int argc, char *argv[])
         }
     }
 
+#ifdef ENABLE_V4L2_SUPPORT
     pPipeline->CaptureStopV4L2Pipeline();
-
+#endif
     pPipeline->Close();
 
     msdk_printf(MSDK_STRING("\nProcessing finished\n"));
