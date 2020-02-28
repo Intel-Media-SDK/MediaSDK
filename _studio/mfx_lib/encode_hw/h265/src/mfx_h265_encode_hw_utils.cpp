@@ -2418,6 +2418,9 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
      if ( ext2 && ext2->DisableDeblockingIdc != m_ext.CO2.DisableDeblockingIdc && m_pps.deblocking_filter_override_enabled_flag)
      {
         s.deblocking_filter_disabled_flag = !!ext2->DisableDeblockingIdc;
+#if MFX_VERSION < MFX_VERSION_NEXT
+        s.deblocking_filter_override_flag = (s.deblocking_filter_disabled_flag != m_pps.deblocking_filter_disabled_flag);
+#endif
         if (s.deblocking_filter_disabled_flag != m_pps.deblocking_filter_disabled_flag)
         {
             s.beta_offset_div2 = 0;
@@ -2432,9 +2435,8 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
          s.beta_offset_div2 = mfxI8(ext3->DeblockingBetaOffset / 2);
          s.tc_offset_div2 = mfxI8(ext3->DeblockingAlphaTcOffset / 2);
      }
-#endif
     s.deblocking_filter_override_flag = s.deblocking_filter_disabled_flag || s.beta_offset_div2 || s.tc_offset_div2;
-
+#endif
     s.loop_filter_across_slices_enabled_flag = m_pps.loop_filter_across_slices_enabled_flag;
 
     if (m_pps.tiles_enabled_flag || m_pps.entropy_coding_sync_enabled_flag)
