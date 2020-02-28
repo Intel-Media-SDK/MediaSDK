@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1020,8 +1020,14 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     MFX_VP9_Utility::FillVideoParam(m_core->GetPlatformType(), frameInfo, m_vPar);
 
+    // check bit depth change
+    MFX_CHECK((m_vPar.mfx.FrameInfo.BitDepthLuma == surface_work->Info.BitDepthLuma &&
+                m_vPar.mfx.FrameInfo.BitDepthChroma == surface_work->Info.BitDepthChroma),
+                MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
+
     // check resize
-    if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width || m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
+    if (m_vPar.mfx.FrameInfo.Width > surface_work->Info.Width ||
+        m_vPar.mfx.FrameInfo.Height > surface_work->Info.Height)
     {
         MFX_CHECK(m_adaptiveMode, MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
         return MFX_ERR_REALLOC_SURFACE;
