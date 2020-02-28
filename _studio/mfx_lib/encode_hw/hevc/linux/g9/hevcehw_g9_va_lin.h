@@ -28,7 +28,7 @@
 #include "hevcehw_ddi.h"
 #include "hevcehw_g9_data.h"
 #include "hevcehw_g9_iddi.h"
-#include "va/va.h"
+#include "ehw_device_vaapi.h"
 
 namespace HEVCEHW
 {
@@ -39,60 +39,17 @@ namespace Gen9
 using namespace HEVCEHW::Gen9;
 
 class DDI_VA
-    : public virtual FeatureBase
-    , protected IDDI
+    : public IDDI
+    , public MfxEncodeHW::DeviceVAAPI
 {
 public:
     DDI_VA(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-        , IDDI(FeatureId)
+        : IDDI(FeatureId)
     {
         SetTraceName("G9_DDI_VA");
     }
 
-    ~DDI_VA();
-
     static VAGUID MapGUID(StorageR& strg, const GUID& guid);
-
-    enum VAFID
-    {
-        VAFID_CreateConfig = 1
-        , VAFID_DestroyConfig
-        , VAFID_CreateContext
-        , VAFID_DestroyContext
-        , VAFID_GetConfigAttributes
-        , VAFID_QueryConfigEntrypoints
-        , VAFID_QueryConfigProfiles
-        , VAFID_CreateBuffer
-        , VAFID_MapBuffer
-        , VAFID_UnmapBuffer
-        , VAFID_DestroyBuffer
-        , VAFID_BeginPicture
-        , VAFID_RenderPicture
-        , VAFID_EndPicture
-        , VAFID_SyncSurface
-    };
-
-    using TDdiExec = std::function<VAStatus(const DDIExecParam&)>;
-    using TDdiExecMfx = std::function<mfxStatus(const DDIExecParam&)>;
-
-    template <typename TFn>
-    static TDdiExec CallDefault(TFn fn)
-    {
-        using TArgs = typename mfx::TupleArgs<TFn>::type;
-        return [fn](const DDIExecParam& par) { return mfx::apply(fn, Deref<TArgs>(par.In)); };
-    }
-
-    template <typename... TArgs>
-    static mfxStatus CallVA(TDdiExecMfx& fn, VAFID id, TArgs... args)
-    {
-        DDIExecParam xPar;
-        auto         tpl = std::make_tuple(args...);
-        xPar.Function = mfxU32(id);
-        xPar.In.pData = &tpl;
-        xPar.In.Size  = sizeof(tpl);
-        return fn(xPar);
-    }
 
 protected:
     virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
@@ -103,60 +60,20 @@ protected:
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
 
-    mfxStatus CreateAuxilliaryDevice(
-        VideoCORE&  core
-        , VAProfile profile
-        , VAEntrypoint entrypoint);
-
-    mfxStatus CreateAccelerationService(
-        const mfxVideoParam & par
-        , VASurfaceID* pRec
-        , int nRec);
-
-    VABufferID CreateVABuffer(
-        VABufferType type
-        , void* pData
-        , mfxU32 size
-        , mfxU32 num);
-
     mfxStatus CreateVABuffers(
         const std::list<DDIExecParam>& par
         , std::vector<VABufferID>& pool);
 
     mfxStatus DestroyVABuffers(std::vector<VABufferID>& pool);
 
-    mfxStatus CallVaDefault(const DDIExecParam& ep);
+    using MfxEncodeHW::DeviceVAAPI::QueryCaps;
+    mfxStatus QueryCaps();
+    uint32_t  ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC);
 
-    VideoCORE*                  m_pCore            = nullptr;
-    VAProfile                   m_profile          = VAProfileNone;
-    VAEntrypoint                m_entrypoint       = VAEntrypointEncSlice;
-    VADisplay                   m_vaDisplay        = nullptr;
-    VAContextID                 m_vaContextEncode  = VA_INVALID_ID;
-    VAConfigID                  m_vaConfig         = VA_INVALID_ID;
-    EncodeCapsHevc              m_caps;
-    std::vector<VABufferID>     m_perSeqPar;
-    std::vector<VABufferID>     m_perPicPar;
-    std::vector<VABufferID>     m_bs;
-    TDdiExecMfx                 m_callVa;
-    std::map<VAFID, TDdiExec>   m_ddiExec =
-    {
-        {VAFID_CreateConfig,              CallDefault(&vaCreateConfig)}
-        , {VAFID_DestroyConfig,           CallDefault(&vaDestroyConfig)}
-        , {VAFID_CreateContext,           CallDefault(&vaCreateContext)}
-        , {VAFID_DestroyContext,          CallDefault(&vaDestroyContext)}
-        , {VAFID_GetConfigAttributes,     CallDefault(&vaGetConfigAttributes)}
-        , {VAFID_QueryConfigEntrypoints,  CallDefault(&vaQueryConfigEntrypoints)}
-        , {VAFID_QueryConfigProfiles,     CallDefault(&vaQueryConfigProfiles)}
-        , {VAFID_GetConfigAttributes,     CallDefault(&vaGetConfigAttributes)}
-        , {VAFID_CreateBuffer,            CallDefault(&vaCreateBuffer)}
-        , {VAFID_MapBuffer,               CallDefault(&vaMapBuffer)}
-        , {VAFID_UnmapBuffer,             CallDefault(&vaUnmapBuffer)}
-        , {VAFID_DestroyBuffer,           CallDefault(&vaDestroyBuffer)}
-        , {VAFID_BeginPicture,            CallDefault(&vaBeginPicture)}
-        , {VAFID_RenderPicture,           CallDefault(&vaRenderPicture)}
-        , {VAFID_EndPicture,              CallDefault(&vaEndPicture)}
-        , {VAFID_SyncSurface,             CallDefault(&vaSyncSurface)}
-    };
+    EncodeCapsHevc          m_caps;
+    std::vector<VABufferID> m_perSeqPar;
+    std::vector<VABufferID> m_perPicPar;
+    std::vector<VABufferID> m_bs;
 };
 
 } //Gen9

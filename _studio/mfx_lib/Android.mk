@@ -75,7 +75,9 @@ MFX_LOCAL_SRC_FILES_HW += \
     mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_rext_lin.cpp \
     mfx_lib/encode_hw/shared/ehw_resources_pool.cpp \
-    mfx_lib/encode_hw/shared/ehw_task_manager.cpp
+    mfx_lib/encode_hw/shared/ehw_task_manager.cpp \
+    mfx_lib/encode_hw/shared/ehw_device_vaapi.cpp \
+    mfx_lib/encode_hw/shared/ehw_utils_vaapi.cpp
 
 MFX_LOCAL_INCLUDES := \
     $(foreach dir, $(MFX_LOCAL_DIRS), $(wildcard $(LOCAL_PATH)/mfx_lib/$(dir)/include))

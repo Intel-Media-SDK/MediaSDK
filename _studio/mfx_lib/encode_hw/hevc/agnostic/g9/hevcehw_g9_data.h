@@ -26,6 +26,7 @@
 #include "hevcehw_base.h"
 #include "hevcehw_ddi.h"
 #include "ehw_resources_pool.h"
+#include "ehw_device.h"
 #include <vector>
 
 namespace HEVCEHW
@@ -889,14 +890,7 @@ namespace Gen9
         , NUM_PACK_INFO
     };
 
-    struct PackedData
-    {
-        mfxU8* pData;
-        mfxU32 BitLen;
-        bool   bHasEP;
-        bool   bLongSC;
-        std::map<mfxU32, mfxU32> PackInfo;
-    };
+    using MfxEncodeHW::PackedData;
 
     struct PackedHeaders
     {
@@ -909,16 +903,7 @@ namespace Gen9
         std::vector<PackedData> SSH;
     };
 
-    struct DDIExecParam
-    {
-        mfxU32 Function = 0;
-        struct Param
-        {
-            void*  pData = nullptr;
-            mfxU32 Size = 0;
-            mfxU32 Num  = 0;
-        } In, Out, Resource;
-    };
+    using MfxEncodeHW::DDIExecParam;
 
     template<class T>
     inline T& Deref(const DDIExecParam::Param& par, mfxU32 idx = 0)
@@ -930,13 +915,7 @@ namespace Gen9
         return *((T*)par.pData);
     }
 
-    struct DDIFeedbackParam
-        : DDIExecParam
-    {
-        bool bNotReady;
-        std::function<const void*(mfxU32)> Get;
-        std::function<mfxStatus(mfxU32)> Update;
-    };
+    using DDIFeedbackParam = MfxEncodeHW::DDIFeedback;
 
     struct BsDataInfo
     {
