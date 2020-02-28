@@ -432,18 +432,15 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
 
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
+        auto& bsInfo    = Glob::AllocBS::Get(strg);
 
-        std::for_each(m_vaPerSeqMiscData.begin(), m_vaPerSeqMiscData.end()
-            , [&](decltype(*m_vaPerSeqMiscData.begin()) data)
-        {
-            DDIExecParam par = {};
-            par.Function = VAEncMiscParameterBufferType;
-            par.In.pData = data.data();
-            par.In.Size  = (mfxU32)data.size();
-            par.In.Num   = 1;
+        SetMaxBs(bsInfo.GetInfo().Width * bsInfo.GetInfo().Height);
 
-            vaInitPar.push_back(par);
-        });
+        std::transform(
+            m_vaPerSeqMiscData.begin()
+            , m_vaPerSeqMiscData.end()
+            , std::back_inserter(vaInitPar)
+            , PackVaMiscPar);
 
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
@@ -453,88 +450,37 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             m_qpMap.Init(HEVCPar.PicWidthInLumaSamples, HEVCPar.PicHeightInLumaSamples);
         }
 
-        auto MidToVA = [&core](mfxMemId mid)
-        {
-            VASurfaceID *pSurface = nullptr;
-            mfxStatus sts = core.GetFrameHDL(mid, (mfxHDL*)&pSurface);
-            ThrowIf(!!sts, sts);
-            return *pSurface;
-        };
-        auto recResponse = Glob::AllocRec::Get(strg).GetResponse();
-        auto bsResponse  = Glob::AllocBS::Get(strg).GetResponse();
-
-        m_rec.resize(recResponse.NumFrameActual, VA_INVALID_SURFACE);
-        m_bs.resize(bsResponse.NumFrameActual, VA_INVALID_SURFACE);
-
-        mfxStatus sts = Catch(
-            MFX_ERR_NONE
-            , std::transform<mfxMemId*, VASurfaceID*, std::function<VASurfaceID(mfxMemId)>>
-            , recResponse.mids
-            , recResponse.mids + recResponse.NumFrameActual
-            , m_rec.data()
-            , MidToVA);
+        mfxStatus sts = Register(core, Glob::AllocRec::Get(strg).GetResponse(), RES_REF);
         MFX_CHECK_STS(sts);
 
-        sts = Catch(
-            MFX_ERR_NONE
-            , std::transform<mfxMemId*, VASurfaceID*, std::function<VASurfaceID(mfxMemId)>>
-            , bsResponse.mids
-            , bsResponse.mids + bsResponse.NumFrameActual
-            , m_bs.data()
-            , MidToVA);
-        MFX_CHECK_STS(sts);
+        sts = Register(core, bsInfo.GetResponse(), RES_BS);
+        MFX_CHECK_STS(sts)
 
         auto& resources = Glob::DDI_Resources::GetOrConstruct(strg);
-        DDIExecParam xPar = {};
+        DDIExecParam xPar;
+
         xPar.Function = MFX_FOURCC_NV12;
-        xPar.Resource.pData = m_rec.data();
-        xPar.Resource.Size = sizeof(VASurfaceID);
-        xPar.Resource.Num = mfxU32(m_rec.size());
-        resources.push_back(xPar);
-        xPar.Function = MFX_FOURCC_P8;
-        xPar.Resource.pData = m_bs.data();
-        xPar.Resource.Size = sizeof(VABufferID);
-        xPar.Resource.Num = mfxU32(m_bs.size());
+        PackResources(xPar.Resource, RES_REF);
         resources.push_back(xPar);
 
-        m_feedback.resize(Glob::AllocBS::Get(strg).GetResponse().NumFrameActual);
+        xPar.Function = MFX_FOURCC_P8;
+        PackResources(xPar.Resource, RES_BS);
+        resources.push_back(xPar);
+
+        InitFeedback(bsInfo.GetResponse().NumFrameActual);
+
+        GetFeedbackInterface(Glob::DDI_Feedback::GetOrConstruct(strg));
 
         Glob::DDI_SubmitParam::GetOrConstruct(strg);
-        auto& fb = Glob::DDI_Feedback::GetOrConstruct(strg);
-        fb.Out.pData = &m_feedbackTmp;
-        fb.Out.Size = sizeof(VACodedBufferSegment);
-        fb.Out.Num = 1;
-        fb.Get = [this](mfxU32 id) -> void*
-        {
-            if (!FeedbackReady(id))
-                return nullptr;
-            return &m_feedback.at(FeedbackIDWrap(id));
-        };
-        fb.Update = [this](mfxU32 id)
-        {
-            MFX_CHECK(!FeedbackReady(id), MFX_ERR_UNDEFINED_BEHAVIOR);
-            m_feedback[FeedbackIDWrap(id)] = m_feedbackTmp;
-            m_feedbackTmp = {};
-            FeedbackReady(id) = true;
-            return MFX_ERR_NONE;
-        };
 
         auto& cc = CC::GetOrConstruct(strg);
-        cc.ReadFeedback.Push([](
+        cc.ReadFeedback.Push([this](
                 CallChains::TReadFeedback::TExt
-                , const StorageR& global
+                , const StorageR& /*global*/
                 , StorageW& s_task
                 , const VACodedBufferSegment& fb)
         {
-            auto bsInfo = Glob::AllocBS::Get(global).GetInfo();
-
-            MFX_CHECK(!(fb.status & VA_CODED_BUF_STATUS_BAD_BITSTREAM), MFX_ERR_GPU_HANG);
-            MFX_CHECK(fb.buf && fb.size, MFX_ERR_DEVICE_FAILED);
-            MFX_CHECK(mfxU32(bsInfo.Width * bsInfo.Height) >= fb.size, MFX_ERR_DEVICE_FAILED);
-
-            Task::Common::Get(s_task).BsDataLength = fb.size;
-
-            return MFX_ERR_NONE;
+            return ReadFeedback(fb, Task::Common::Get(s_task).BsDataLength);
         });
         cc.FillCUQPData.Push([](
             CallChains::TFillCUQPData::TExt
@@ -593,17 +539,11 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
         vaInitPar.clear();
 
-        std::for_each(m_vaPerSeqMiscData.begin(), m_vaPerSeqMiscData.end()
-            , [&](decltype(*m_vaPerSeqMiscData.begin()) data)
-        {
-            DDIExecParam par = {};
-            par.Function = VAEncMiscParameterBufferType;
-            par.In.pData = data.data();
-            par.In.Size = (mfxU32)data.size();
-            par.In.Num = 1;
-
-            vaInitPar.push_back(par);
-        });
+        std::transform(
+            m_vaPerSeqMiscData.begin()
+            , m_vaPerSeqMiscData.end()
+            , std::back_inserter(vaInitPar)
+            , PackVaMiscPar);
 
         return MFX_ERR_NONE;
     });
@@ -724,38 +664,6 @@ void UpdateSlices(
     });
 }
 
-bool AddPackedHeaderIf(
-    bool cond
-    , const PackedData pd
-    , std::list<VAEncPackedHeaderParameterBuffer>& vaPhs
-    , std::list<DDIExecParam>& par
-    , uint32_t type = VAEncPackedHeaderRawData)
-{
-    if (!cond)
-        return false;
-
-    VAEncPackedHeaderParameterBuffer vaPh = {};
-    vaPh.type                = type;
-    vaPh.bit_length          = pd.BitLen;
-    vaPh.has_emulation_bytes = pd.bHasEP;
-    vaPhs.push_back(vaPh);
-
-    DDIExecParam xPar;
-    xPar.Function = VAEncPackedHeaderParameterBufferType;
-    xPar.In.pData = &vaPhs.back();
-    xPar.In.Size  = sizeof(VAEncPackedHeaderParameterBuffer);
-    xPar.In.Num   = 1;
-    par.push_back(xPar);
-
-    xPar.Function = VAEncPackedHeaderDataBufferType;
-    xPar.In.pData = pd.pData;
-    xPar.In.Size  = pd.BitLen / 8;
-    xPar.In.Num   = 1;
-    par.push_back(xPar);
-
-    return true;
-}
-
 void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 {
     Push(BLK_SubmitTask
@@ -780,79 +688,66 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             InitPPS(Glob::VideoParam::Get(global), Glob::PPS::Get(global), m_pps);
         }
 
-        UpdatePPS(task, sh, m_rec, m_pps);
+        UpdatePPS(task, sh, GetResources(RES_REF), m_pps);
         UpdateSlices(task, sh, m_pps, m_slices);
 
-        MFX_CHECK(task.BS.Idx < m_bs.size(), MFX_ERR_UNKNOWN);
-        m_pps.coded_buf = m_bs.at(task.BS.Idx);
+        m_pps.coded_buf = GetResources(RES_BS).at(task.BS.Idx);
 
         auto& cc  = CC::Get(global);
         auto& par = Glob::DDI_SubmitParam::Get(global);
         par.clear();
-
-        auto AddBuffer = [&](VABufferType type, void* pData, mfxU32 size, mfxU32 num = 1)
-        {
-            DDIExecParam xPar = {};
-            xPar.Function = type;
-            xPar.In.pData = pData;
-            xPar.In.Size  = size;
-            xPar.In.Num   = num;
-            par.push_back(xPar);
-        };
-        auto AddMiscBuffer = [&](std::vector<mfxU8>& misc)
-        {
-            AddBuffer(VAEncMiscParameterBufferType, misc.data(), (mfxU32)misc.size());
-        };
         
-        AddBuffer(VAEncSequenceParameterBufferType, &m_sps, sizeof(m_sps));
-        AddBuffer(VAEncPictureParameterBufferType, &m_pps, sizeof(m_pps));
+        par.push_back(PackVaBuffer(VAEncSequenceParameterBufferType, m_sps));
+        par.push_back(PackVaBuffer(VAEncPictureParameterBufferType, m_pps));
 
-        std::for_each(m_slices.begin(), m_slices.end()
-            , [&](VAEncSliceParameterBufferHEVC& s)
-        {
-            AddBuffer(VAEncSliceParameterBufferType, &s, sizeof(s));
-        });
+        std::transform(m_slices.begin(), m_slices.end(), std::back_inserter(par)
+            , [&](VAEncSliceParameterBufferHEVC& s) { return PackVaBuffer(VAEncSliceParameterBufferType, s); });
 
         if (cc.FillCUQPData(global, s_task, m_qpMap))
         {
-            AddBuffer(
+            par.push_back(PackVaBuffer(
                 VAEncQPBufferType
                 , m_qpMap.m_buffer.data()
                 , m_qpMap.m_pitch
-                , m_qpMap.m_h_aligned);
+                , m_qpMap.m_h_aligned));
         }
 
         m_vaPerPicMiscData.clear();
         m_vaPackedHeaders.clear();
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_AUD)
-            , ph.AUD[mfx::clamp<mfxU8>(task.CodingType, 1, 3) - 1], m_vaPackedHeaders, par);
+            , ph.AUD[mfx::clamp<mfxU8>(task.CodingType, 1, 3) - 1], par);
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_VPS)
-            , ph.VPS, m_vaPackedHeaders, par, VAEncPackedHeaderHEVC_VPS);
+            , ph.VPS, par, VAEncPackedHeaderHEVC_VPS);
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_SPS)
-            , ph.SPS, m_vaPackedHeaders, par, VAEncPackedHeaderHEVC_SPS);
+            , ph.SPS, par, VAEncPackedHeaderHEVC_SPS);
 
         AddPackedHeaderIf(!!(task.InsertHeaders & INSERT_PPS)
-            , ph.PPS, m_vaPackedHeaders, par, VAEncPackedHeaderHEVC_PPS);
+            , ph.PPS, par, VAEncPackedHeaderHEVC_PPS);
 
         AddPackedHeaderIf((!!(task.InsertHeaders & INSERT_SEI) || task.ctrl.NumPayload) && ph.PrefixSEI.BitLen
-            , ph.PrefixSEI, m_vaPackedHeaders, par/*, VAEncPackedHeaderHEVC_SEI*/);
+            , ph.PrefixSEI, par/*, VAEncPackedHeaderHEVC_SEI*/);
 
         std::for_each(
             ph.SSH.begin()
             , ph.SSH.begin() + std::min<size_t>(m_slices.size(), ph.SSH.size())
             , [&](PackedData& pd)
         {
-            AddPackedHeaderIf(true, pd, m_vaPackedHeaders, par, VAEncPackedHeaderHEVC_Slice);
+            AddPackedHeaderIf(true, pd, par, VAEncPackedHeaderHEVC_Slice);
         });
 
         for (auto& AddMisc : cc.AddPerPicMiscData)
         {
             if (AddMisc.second(global, s_task, m_vaPerPicMiscData))
-                AddMiscBuffer(m_vaPerPicMiscData.back());
+            {
+                auto& misc = m_vaPerPicMiscData.back();
+                par.push_back(PackVaBuffer(VAEncMiscParameterBufferType, misc.data(), (mfxU32)misc.size()));
+            }
         }
+
+        SetFeedback(task.StatusReportId, *(VASurfaceID*)task.HDLRaw.first, GetResources(RES_BS).at(task.BS.Idx));
 
         m_numSkipFrames  = 0;
         m_sizeSkipFrames = 0;
@@ -864,24 +759,25 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
 void VAPacker::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 {
     Push(BLK_QueryTask
-        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
+        , [](StorageW& global, StorageW& s_task) -> mfxStatus
     {
-        MFX_CHECK(!Glob::DDI_Feedback::Get(global).bNotReady, MFX_TASK_BUSY);
+        auto& fb = Glob::DDI_Feedback::Get(global);
+        MFX_CHECK(!fb.bNotReady, MFX_TASK_BUSY);
 
         auto& task = Task::Common::Get(s_task);
 
         if (!(task.SkipCMD & SKIPCMD_NeedDriverCall))
             return MFX_ERR_NONE;
 
-        MFX_CHECK(FeedbackReady(task.StatusReportId), MFX_TASK_BUSY);
+        auto pFB = fb.Get(task.StatusReportId);
+        MFX_CHECK(pFB, MFX_TASK_BUSY);
 
-        auto& fb    = m_feedback.at(FeedbackIDWrap(task.StatusReportId));
         auto& rtErr = Glob::RTErr::Get(global);
 
-        auto sts = CC::Get(global).ReadFeedback(global, s_task, fb);
+        auto sts = CC::Get(global).ReadFeedback(global, s_task, *(const VACodedBufferSegment*)pFB);
         SetIf(rtErr, sts < MFX_ERR_NONE, sts);
 
-        FeedbackReady(task.StatusReportId) = false;
+        fb.Remove(task.StatusReportId);
 
         return sts;
     });

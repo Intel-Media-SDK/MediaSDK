@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 
 #include "hevcehw_g9_data.h"
 #include "hevcehw_g9_iddi_packer.h"
+#include "ehw_utils_vaapi.h"
 #include "va/va.h"
 
 namespace HEVCEHW
@@ -36,19 +37,7 @@ namespace Linux
 namespace Gen9
 {
 using namespace HEVCEHW::Gen9;
-
-template<class T>
-T& AddVaMisc(
-    VAEncMiscParameterType type
-    , std::list<std::vector<mfxU8>>& buf)
-{
-    const size_t szH = sizeof(VAEncMiscParameterBuffer);
-    const size_t szB = sizeof(T);
-    buf.push_back(std::vector<mfxU8>(szH + szB, 0));
-    auto pMisc = (VAEncMiscParameterBuffer*)buf.back().data();
-    pMisc->type = type;
-    return *(T*)(buf.back().data() + szH);
-}
+using namespace MfxEncodeHW;
 
 class CUQPMap
 {
@@ -76,6 +65,7 @@ public:
 class VAPacker
     : public virtual FeatureBase
     , protected IDDIPacker
+    , protected VAAPIParPacker
 {
 public:
     VAPacker(mfxU32 FeatureId)
@@ -116,24 +106,14 @@ protected:
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;
 
-
-    inline mfxU32 FeedbackIDWrap(mfxU32 id) { return (id % m_feedback.size()); }
-    inline bool& FeedbackReady(mfxU32 id) { return m_fbReady[FeedbackIDWrap(id)]; }
-
     VAEncSequenceParameterBufferHEVC            m_sps;
     VAEncPictureParameterBufferHEVC             m_pps;
     std::vector<VAEncSliceParameterBufferHEVC>  m_slices;
-    std::vector<VASurfaceID>                    m_rec;
-    std::vector<VABufferID>                     m_bs;
-    std::vector<VACodedBufferSegment>           m_feedback;
-    VACodedBufferSegment                        m_feedbackTmp = {};
-    std::map<mfxU32, bool>                      m_fbReady;
-    std::list<std::vector<mfxU8>>               m_vaPerSeqMiscData;
-    std::list<std::vector<mfxU8>>               m_vaPerPicMiscData;
-    std::list<VAEncPackedHeaderParameterBuffer> m_vaPackedHeaders;
     CUQPMap                                     m_qpMap;
     mfxU32                                      m_numSkipFrames = 0;
     mfxU32                                      m_sizeSkipFrames = 0;
+    std::list<std::vector<mfxU8>>               m_vaPerSeqMiscData;
+    std::list<std::vector<mfxU8>>               m_vaPerPicMiscData;
 };
 
 } //Gen9
