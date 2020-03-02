@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -944,7 +944,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         }
     }
     mfxExtCodingOption3 & extOpt3 = GetExtBufferRef(m_video);
-
     bool bPanicModeSupport = (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA) || (m_video.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD) || IsOn(extOpt2.ExtBRC);
     if (m_raw.NumFrameActual == 0 && bPanicModeSupport )
     {
@@ -1166,22 +1165,6 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     // initialization of parameters for Intra refresh
     if (extOpt2.IntRefType)
     {
-        if (extOpt2.IntRefCycleSize == 1)
-        {
-            if (extOpt2.IntRefType == MFX_REFRESH_SLICE)
-            {
-                extOpt2.IntRefCycleSize = extOpt3.NumSliceP;
-            }
-            else
-            {
-                // set intra refresh cycle to 1 sec
-                extOpt2.IntRefCycleSize =
-                    (mfxU16)((m_video.mfx.FrameInfo.FrameRateExtN + m_video.mfx.FrameInfo.FrameRateExtD - 1) /
-                             m_video.mfx.FrameInfo.FrameRateExtD);
-            }
-            checkStatus = MFX_WRN_VIDEO_PARAM_CHANGED;
-        }
-
         if (extOpt2.IntRefType == MFX_REFRESH_SLICE)
         {
             m_intraStripeWidthInMBs = 0;
@@ -1422,25 +1405,6 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
 
     mfxExtCodingOption3 & extOpt3New = GetExtBufferRef(newPar);
     mfxExtCodingOption3 & extOpt3Old = GetExtBufferRef(m_video);
-
-    if (extOpt2New.IntRefType && extOpt2New.IntRefCycleSize == 1)
-    {
-        if (extOpt2New.IntRefType == MFX_REFRESH_SLICE)
-        {
-            extOpt2New.IntRefCycleSize = extOpt3New.NumSliceP;
-        }
-        else
-        {
-            // set intra refresh cycle to 1 sec
-            extOpt2New.IntRefCycleSize =
-                (mfxU16)((newPar.mfx.FrameInfo.FrameRateExtN + newPar.mfx.FrameInfo.FrameRateExtD - 1) /
-                         newPar.mfx.FrameInfo.FrameRateExtD);
-        }
-        mfxExtCodingOption2 & extOpt2Par = GetExtBufferRef(*par);
-        extOpt2Par.IntRefCycleSize = extOpt2New.IntRefCycleSize;
-        checkStatus = MFX_WRN_VIDEO_PARAM_CHANGED;
-    }
-
     if (extOpt3New.NumSliceP != extOpt3Old.NumSliceP
         || ((extOpt2New.IntRefType != extOpt2Old.IntRefType) && (extOpt2New.IntRefType != 0))) // reset slice divider
     {
