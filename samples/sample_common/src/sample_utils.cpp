@@ -923,7 +923,6 @@ mfxStatus GetChromaSize(const mfxFrameInfo & pInfo, mfxU32 & ChromaW, mfxU32 & C
     }
 
     case MFX_FOURCC_RGB4:
-    case 100: //DXGI_FORMAT_AYUV
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_A2RGB10:
@@ -1105,7 +1104,6 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         break;
     }
     case MFX_FOURCC_RGB4:
-    case 100: //DXGI_FORMAT_AYUV
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_A2RGB10:
     case MFX_FOURCC_YUY2:
@@ -1179,7 +1177,6 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     }
 
     case MFX_FOURCC_RGB4:
-    case 100: //DXGI_FORMAT_AYUV
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_A2RGB10:
