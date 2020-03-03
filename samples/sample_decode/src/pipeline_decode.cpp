@@ -389,6 +389,20 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         m_bVppFullColorRange = pParams->bUseFullColorRange;
     }
 
+    m_bVppIsUsed = IsVppRequired(pParams);
+    if (m_bVppIsUsed)
+        m_bDecOutSysmem = pParams->bUseHWLib ? false : true;
+    else
+        m_bDecOutSysmem = pParams->memType == SYSTEM_MEMORY;
+
+    m_eWorkMode = pParams->mode;
+
+    m_monitorType = pParams->monitorType;
+    // create device and allocator
+#if defined(LIBVA_SUPPORT)
+    m_libvaBackend = pParams->libvaBackend;
+#endif // defined(MFX_LIBVA_SUPPORT)
+
     sts = GetImpl(*pParams, initPar.Implementation);
     MSDK_CHECK_STATUS(sts, "GetImpl failed");
 
@@ -401,6 +415,30 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     sts = m_mfxSession.QueryIMPL(&m_impl); // get actual library implementation
     MSDK_CHECK_STATUS(sts, "m_mfxSession.QueryIMPL failed");
+
+    bool isDeviceRequired = false;
+    mfxHandleType hdl_t;
+#if D3D_SURFACES_SUPPORT
+    isDeviceRequired = m_memType != SYSTEM_MEMORY || !m_bDecOutSysmem;
+    hdl_t =
+#if MFX_D3D11_SUPPORT
+        D3D11_MEMORY == m_memType ? MFX_HANDLE_D3D11_DEVICE :
+#endif // #if MFX_D3D11_SUPPORT
+        MFX_HANDLE_D3D9_DEVICE_MANAGER;
+#elif LIBVA_SUPPORT
+    isDeviceRequired = true; // on Linux MediaSDK doesn't create device internally
+    hdl_t = MFX_HANDLE_VA_DISPLAY;
+#endif
+    if (isDeviceRequired)
+    {
+        sts = CreateHWDevice();
+        MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
+        mfxHDL hdl = NULL;
+        sts = m_hwdev->GetHandle(hdl_t, &hdl);
+        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
+        sts = m_mfxSession.SetHandle(hdl_t, hdl);
+        MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
+    }
 
     if (pParams->bIsMVC && !CheckVersion(&version, MSDK_FEATURE_MVC)) {
         msdk_printf(MSDK_STRING("error: MVC is not supported in the %d.%d API version\n"),
@@ -492,17 +530,11 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     MSDK_CHECK_STATUS(sts, "InitMfxParams failed");
 
     if (m_bVppIsUsed)
-        m_bDecOutSysmem = pParams->bUseHWLib ? false : true;
-    else
-        m_bDecOutSysmem = pParams->memType == SYSTEM_MEMORY;
-
-    if (m_bVppIsUsed)
     {
         m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
         if (!m_pmfxVPP) return MFX_ERR_MEMORY_ALLOC;
     }
 
-    m_eWorkMode = pParams->mode;
     if (m_eWorkMode == MODE_FILE_DUMP) {
         // prepare YUV file writer
         sts = m_FileWriter.Init(pParams->strDstFile, pParams->numViews);
@@ -512,11 +544,6 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         return MFX_ERR_UNSUPPORTED;
     }
 
-    m_monitorType = pParams->monitorType;
-    // create device and allocator
-#if defined(LIBVA_SUPPORT)
-    m_libvaBackend = pParams->libvaBackend;
-#endif // defined(MFX_LIBVA_SUPPORT)
 
     sts = CreateAllocator();
     MSDK_CHECK_STATUS(sts, "CreateAllocator failed");
@@ -706,11 +733,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
         {
             // parse bit stream and fill mfx params
             sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
-        }
-
-        if (!sts)
-        {
-            m_bVppIsUsed = IsVppRequired(pParams);
         }
 
         if (!sts &&
@@ -1308,10 +1330,6 @@ mfxStatus CDecodingPipeline::CreateAllocator()
     if (m_memType != SYSTEM_MEMORY || !m_bDecOutSysmem)
     {
 #if D3D_SURFACES_SUPPORT
-        sts = CreateHWDevice();
-        MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
-
-        // provide device manager to MediaSDK
         mfxHDL hdl = NULL;
         mfxHandleType hdl_t =
 #if MFX_D3D11_SUPPORT
@@ -1321,8 +1339,6 @@ mfxStatus CDecodingPipeline::CreateAllocator()
 
         sts = m_hwdev->GetHandle(hdl_t, &hdl);
         MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        sts = m_mfxSession.SetHandle(hdl_t, hdl);
-        MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
 
         // create D3D allocator
 #if MFX_D3D11_SUPPORT
@@ -1352,17 +1368,9 @@ mfxStatus CDecodingPipeline::CreateAllocator()
 
         m_bExternalAlloc = true;
 #elif LIBVA_SUPPORT
-        sts = CreateHWDevice();
-        MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
-        /* It's possible to skip failed result here and switch to SW implementation,
-           but we don't process this way */
-
-        // provide device manager to MediaSDK
         VADisplay va_dpy = NULL;
         sts = m_hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL *)&va_dpy);
         MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        sts = m_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, va_dpy);
-        MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
 
         vaapiAllocatorParams *p_vaapiAllocParams = new vaapiAllocatorParams;
         MSDK_CHECK_POINTER(p_vaapiAllocParams, MFX_ERR_MEMORY_ALLOC);
@@ -1397,22 +1405,6 @@ mfxStatus CDecodingPipeline::CreateAllocator()
     }
     else
     {
-#ifdef LIBVA_SUPPORT
-        //in case of system memory allocator we also have to pass MFX_HANDLE_VA_DISPLAY to HW library
-
-        if(MFX_IMPL_HARDWARE == MFX_IMPL_BASETYPE(m_impl))
-        {
-            sts = CreateHWDevice();
-            MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
-
-            // provide device manager to MediaSDK
-            VADisplay va_dpy = NULL;
-            sts = m_hwdev->GetHandle(MFX_HANDLE_VA_DISPLAY, (mfxHDL *)&va_dpy);
-            MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-            sts = m_mfxSession.SetHandle(MFX_HANDLE_VA_DISPLAY, va_dpy);
-            MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
-        }
-#endif
         sts = m_mfxSession.SetFrameAllocator(m_pGeneralAllocator);
         MSDK_CHECK_STATUS(sts, "m_mfxSession.SetFrameAllocator failed");
         m_bExternalAlloc = true;
