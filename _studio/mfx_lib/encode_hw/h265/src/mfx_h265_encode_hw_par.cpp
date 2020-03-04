@@ -1085,6 +1085,8 @@ mfxStatus CheckAndFixDirtyRect(ENCODE_CAPS_HEVC const & caps, MfxVideoParam cons
     {
         // check that rectangle dimensions don't conflict with each other and don't exceed frame size
         RectData *rect = (RectData *)&(DirtyRect->Rect[i]);
+        // Dirty rectangle (0, 0, 0, 0) is a valid dirty rectangle and means that frame is not changed.
+        if (rect->Left==0 && rect->Right==0 && rect->Top==0 && rect->Bottom==0) continue;
 
         rsts = CheckAndFixRect(rect, par, caps);
 

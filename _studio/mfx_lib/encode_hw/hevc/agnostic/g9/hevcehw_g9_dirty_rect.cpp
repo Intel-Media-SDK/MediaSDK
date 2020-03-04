@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -74,10 +74,12 @@ mfxStatus CheckAndFixDirtyRect(
 
     auto IsInvalidRect = [](const DirtyRect::RectData& rect)
     {
+        // Dirty rectangle (0, 0, 0, 0) is a valid dirty rectangle and means that frame is not changed.
+        if (rect.Left==0 && rect.Right==0 && rect.Top==0 && rect.Bottom==0) return false;
         return ((rect.Left >= rect.Right) || (rect.Top >= rect.Bottom));
     };
     mfxU16 numValidRect = mfxU16(std::remove_if(dr.Rect, dr.Rect + dr.NumRect, IsInvalidRect) - dr.Rect);
-    changed += CheckMinOrClip(dr.NumRect, numValidRect);
+    changed += CheckMaxOrClip(dr.NumRect, numValidRect);
 
     if (changed)
         sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
