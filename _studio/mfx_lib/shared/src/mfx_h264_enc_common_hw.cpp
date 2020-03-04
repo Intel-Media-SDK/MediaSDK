@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -4742,6 +4742,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
     }
     if (extOpt2->IntRefType && (mfeParam.MaxNumFrames > 1 || (!mfeParam.MaxNumFrames && mfeParam.MFMode >= MFX_MF_AUTO)))
     {
+        mfeParam.MaxNumFrames = 1;
+        changed = true;
+    }
+    // MFE+ROI encoding in non CQP mode produces gpu hang. This case is temporary disabled.
+    if (extRoi->NumROI && (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP) && (mfeParam.MaxNumFrames > 1 || (!mfeParam.MaxNumFrames && mfeParam.MFMode >= MFX_MF_AUTO)))
+    {
+        mfeParam.MFMode = MFX_MF_DISABLED;
         mfeParam.MaxNumFrames = 1;
         changed = true;
     }
