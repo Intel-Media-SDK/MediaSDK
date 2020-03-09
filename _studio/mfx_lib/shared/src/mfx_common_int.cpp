@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -550,7 +550,8 @@ mfxStatus CheckDecodersExtendedBuffers(mfxVideoParam const* par)
                                                                MFX_EXTBUFF_FEI_PARAM};
 
     static const mfxU32 g_decoderSupportedExtBuffersHEVC[]  = {
-                                                               MFX_EXTBUFF_HEVC_PARAM
+                                                               MFX_EXTBUFF_HEVC_PARAM,
+	                                                         MFX_EXTBUFF_DEC_VIDEO_PROCESSING
                                                                };
 
     static const mfxU32 g_decoderSupportedExtBuffersVC1[]   = {MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
