@@ -26,6 +26,7 @@
 #include "umc_va_linux.h"
 #include "umc_h265_va_packer_vaapi.h"
 #include "umc_h265_task_supplier.h"
+#include "umc_va_video_processing.h"
 
 #include <va/va_dec_hevc.h>
 
@@ -98,7 +99,23 @@ namespace UMC_HEVC_DECODER
             }
         }
     }
+    void PackerVAAPI::PackProcessingInfo(H265DecoderFrameInfo * sliceInfo)
+    {
+        UMC::VideoProcessingVA *vpVA = m_va->GetVideoProcessingVA();
+        if (!vpVA)
+            throw h265_exception(UMC::UMC_ERR_FAILED);
 
+        UMC::UMCVACompBuffer *pipelineVABuf;
+        auto* pipelineBuf = reinterpret_cast<VAProcPipelineParameterBuffer *>(m_va->GetCompBuffer(VAProcPipelineParameterBufferType, &pipelineVABuf, sizeof(VAProcPipelineParameterBuffer)));
+        if (!pipelineBuf)
+            throw h265_exception(UMC::UMC_ERR_FAILED);
+        pipelineVABuf->SetDataSize(sizeof(VAProcPipelineParameterBuffer));
+
+        MFX_INTERNAL_CPY(pipelineBuf, &vpVA->m_pipelineParams, sizeof(VAProcPipelineParameterBuffer));
+
+        pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
+        pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
+    }
     void PackerVAAPI::PackAU(H265DecoderFrame const* frame, TaskSupplier_H265 * supplier)
     {
         auto fi = frame->GetAU();
@@ -129,7 +146,11 @@ namespace UMC_HEVC_DECODER
 
         for (size_t n = 0; n < count; n++)
             PackSliceParams(fi->GetSlice(int32_t(n)), n, n == count - 1);
-
+		
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        if (m_va->GetVideoProcessingVA())
+            PackProcessingInfo(fi);
+#endif
         auto s = m_va->Execute();
         if (s != UMC::UMC_OK)
             throw h265_exception(s);
