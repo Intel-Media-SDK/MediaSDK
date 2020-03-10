@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019 - 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -512,12 +512,17 @@ mfxStatus _simple_free(mfxHDL pthis, mfxFrameAllocResponse* response)
     mfxU32 i = 0;
     bool isBitstreamMemory = false;
     bool actualFreeMemory = false;
+
     if (0 == memcmp(response, &(allocDecodeResponses[pthis].mfxResponse),
                     sizeof(*response))) {
+        // Decode free response handling
         allocDecodeResponses[pthis].refCount--;
         if (0 == allocDecodeResponses[pthis].refCount)
             actualFreeMemory = true;
-    }; // else actualFreeMemory = true;
+    } else {
+        // Encode and VPP free response handling
+        actualFreeMemory = true;
+    }
 
     if (actualFreeMemory) {
         if (response->mids) {
