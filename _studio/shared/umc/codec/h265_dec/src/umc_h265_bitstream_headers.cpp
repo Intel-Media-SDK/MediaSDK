@@ -1310,6 +1310,7 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
     wpScalingParam* wp;
     SliceType       eSliceType  = sliceHdr->slice_type;
     int32_t         iNbRef      = (eSliceType == B_SLICE ) ? (2) : (1);
+    int32_t         iPresent    = 0;
 
     sliceHdr->luma_log2_weight_denom = GetVLCElementU(); // used in HW decoder
     if (sliceHdr->luma_log2_weight_denom > 7)
@@ -1340,7 +1341,16 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
             wp[1].log2_weight_denom = sliceHdr->chroma_log2_weight_denom;
             wp[2].log2_weight_denom = sliceHdr->chroma_log2_weight_denom;
 
-            wp[0].present_flag = Get1Bit(); // luma_weight_lX_flag
+            if (sliceHdr->m_RefPOCList[eRefPicList][iRefIdx] == sliceHdr->m_poc)
+            {
+                iPresent = 0;
+            }
+            else
+            {
+                iPresent = Get1Bit();
+            }
+
+            wp[0].present_flag = (iPresent == 1); // luma_weight_lX_flag
             uTotalSignalledWeightFlags += wp[0].present_flag;
         }
 
@@ -1349,7 +1359,17 @@ void H265HeadersBitstream::xParsePredWeightTable(const H265SeqParamSet *sps, H26
             for (int32_t iRefIdx=0 ; iRefIdx < sliceHdr->m_numRefIdx[eRefPicList] ; iRefIdx++ )
             {
                 wp = sliceHdr->pred_weight_table[eRefPicList][iRefIdx];
-                wp[1].present_flag = wp[2].present_flag = Get1Bit(); // chroma_weight_lX_flag
+                
+                if (sliceHdr->m_RefPOCList[eRefPicList][iRefIdx] == sliceHdr->m_poc)
+                {
+                    iPresent = 0;
+                }
+                else
+                {
+                    iPresent = Get1Bit();
+                }
+
+                wp[1].present_flag = wp[2].present_flag = (iPresent == 1); // chroma_weight_lX_flag
                 uTotalSignalledWeightFlags += 2*wp[1].present_flag;
             }
         }
@@ -1447,7 +1467,7 @@ UMC::Status H265HeadersBitstream::GetSliceHeaderPart1(H265SliceHeader * sliceHdr
 }
 
 // Parse remaining of slice header after GetSliceHeaderPart1
-void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet *sps, const H265PicParamSet *pps)
+void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet *sps, const H265PicParamSet *pps, PocDecoding *pocDecoding)
 {
     if (!pSlice || !pps || !sps)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -1524,6 +1544,7 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         if (sliceHdr->IdrPicFlag)
         {
             sliceHdr->slice_pic_order_cnt_lsb = 0;
+            sliceHdr->m_poc = 0;
             ReferencePictureSet* rps = pSlice->getRPS();
             rps->num_negative_pics = 0;
             rps->num_positive_pics = 0;
@@ -1533,6 +1554,34 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
         else
         {
             sliceHdr->slice_pic_order_cnt_lsb = GetBits(sps->log2_max_pic_order_cnt_lsb);
+
+            int32_t PicOrderCntMsb;
+            int32_t slice_pic_order_cnt_lsb = sliceHdr->slice_pic_order_cnt_lsb;
+            int32_t MaxPicOrderCntLsb = 1 << sps->log2_max_pic_order_cnt_lsb;
+            int32_t prevPicOrderCntLsb = pocDecoding->prevPocPicOrderCntLsb;
+            int32_t prevPicOrderCntMsb = pocDecoding->prevPicOrderCntMsb;
+
+            if ((slice_pic_order_cnt_lsb < prevPicOrderCntLsb) && ((prevPicOrderCntLsb - slice_pic_order_cnt_lsb) >= (MaxPicOrderCntLsb / 2)))
+            {
+                PicOrderCntMsb = prevPicOrderCntMsb + MaxPicOrderCntLsb;
+            }
+            else if ((slice_pic_order_cnt_lsb > prevPicOrderCntLsb) && ((slice_pic_order_cnt_lsb - prevPicOrderCntLsb) > (MaxPicOrderCntLsb / 2)))
+            {
+                PicOrderCntMsb = prevPicOrderCntMsb - MaxPicOrderCntLsb;
+            }
+            else
+            {
+                PicOrderCntMsb = prevPicOrderCntMsb;
+            }
+
+            if (sliceHdr->nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_LP || sliceHdr->nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_RADL ||
+                sliceHdr->nal_unit_type == NAL_UT_CODED_SLICE_BLA_N_LP)
+            { // For BLA picture types, POCmsb is set to 0.
+
+                PicOrderCntMsb = 0;
+            }
+
+            sliceHdr->m_poc = PicOrderCntMsb + slice_pic_order_cnt_lsb;
 
             sliceHdr->short_term_ref_pic_set_sps_flag = Get1Bit();
             if (!sliceHdr->short_term_ref_pic_set_sps_flag) // short term ref pic is signalled
@@ -1836,7 +1885,12 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
             }
         }
 
-        if ( (pps->weighted_pred_flag && sliceHdr->slice_type == P_SLICE) || (pps->weighted_bipred_flag && sliceHdr->slice_type == B_SLICE) )
+        if (sliceHdr->slice_type != I_SLICE)
+        {
+            pSlice->setRefPOCListSliceHeader();
+        }
+
+        if ((pps->weighted_pred_flag && sliceHdr->slice_type == P_SLICE) || (pps->weighted_bipred_flag && sliceHdr->slice_type == B_SLICE))
         {
             xParsePredWeightTable(sps, sliceHdr);
         }
@@ -2028,7 +2082,7 @@ void H265HeadersBitstream::decodeSlice(H265Slice *pSlice, const H265SeqParamSet 
 }
 
 // Parse full slice header
-UMC::Status H265HeadersBitstream::GetSliceHeaderFull(H265Slice *rpcSlice, const H265SeqParamSet *sps, const H265PicParamSet *pps)
+UMC::Status H265HeadersBitstream::GetSliceHeaderFull(H265Slice *rpcSlice, const H265SeqParamSet *sps, const H265PicParamSet *pps, PocDecoding *pocDecoding)
 {
     if (!rpcSlice)
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
@@ -2036,7 +2090,7 @@ UMC::Status H265HeadersBitstream::GetSliceHeaderFull(H265Slice *rpcSlice, const 
     UMC::Status sts = GetSliceHeaderPart1(rpcSlice->GetSliceHeader());
     if (UMC::UMC_OK != sts)
         return sts;
-    decodeSlice(rpcSlice, sps, pps);
+    decodeSlice(rpcSlice, sps, pps, pocDecoding);
 
     if (CheckBSLeft())
         throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
