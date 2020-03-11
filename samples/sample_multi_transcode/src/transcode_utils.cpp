@@ -1407,6 +1407,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     InputParams.libType = MFX_IMPL_HARDWARE_ANY;
     InputParams.bUseOpaqueMemory = true;
     InputParams.eModeExt = Native;
+    InputParams.nBRefType = MFX_B_REF_PYRAMID;
 
     for (mfxU32 i = 0; i < argc; i++)
     {

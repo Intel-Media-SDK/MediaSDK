@@ -317,6 +317,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->nPRefType = MFX_P_REF_DEFAULT;
     pParams->QPFileMode = false;
     pParams->BitrateLimit = MFX_CODINGOPTION_OFF;
+    pParams->nBRefType = MFX_B_REF_PYRAMID;
 #if (MFX_VERSION >= 1027)
     pParams->RoundingOffsetFile = NULL;
 #endif
