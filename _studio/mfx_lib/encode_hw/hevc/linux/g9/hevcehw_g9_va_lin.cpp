@@ -508,6 +508,7 @@ mfxStatus DDI_VA::CreateAuxilliaryDevice(
         , VAConfigAttribEncSliceStructure
         , VAConfigAttribEncROI
         , VAConfigAttribEncTileSupport
+        , VAConfigAttribEncDirtyRect
     };
     std::vector<VAConfigAttrib> attrs;
     auto AV = [&](VAConfigAttribType t) { return attrs[idx_map[t]].value; };
@@ -584,6 +585,14 @@ mfxStatus DDI_VA::CreateAuxilliaryDevice(
         m_caps.ROIBRCPriorityLevelSupport   = roi.bits.roi_rc_priority_support;
         m_caps.ROIDeltaQPSupport            = roi.bits.roi_rc_qp_delta_support;
     }
+
+    if (AV(VAConfigAttribEncDirtyRect) != VA_ATTRIB_NOT_SUPPORTED &&
+        AV(VAConfigAttribEncDirtyRect) != 0)
+    {
+        m_caps.DirtyRectSupport = 1;
+        m_caps.MaxNumOfDirtyRect = mfxU16(AV(VAConfigAttribEncDirtyRect));
+    }
+
 
     m_caps.TileSupport = (AV(VAConfigAttribEncTileSupport) == 1);
 
