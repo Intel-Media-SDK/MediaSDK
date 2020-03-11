@@ -454,7 +454,7 @@ mfxStatus CTranscodingPipeline::EncodePreInit(sInputParams *pParams)
 
             if (sts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
             {
-                if (co2->BitrateLimit != MFX_CODINGOPTION_OFF && initialTargetKbps != m_mfxEncParams.mfx.TargetKbps)
+                if (co2 && co2->BitrateLimit != MFX_CODINGOPTION_OFF && initialTargetKbps != m_mfxEncParams.mfx.TargetKbps)
                 {
                     msdk_printf(MSDK_STRING("[WARNING] -BitrateLimit:on, target bitrate was changed\n"));
                 }
@@ -2472,7 +2472,8 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     }
 
     // configure and attach external parameters
-    if (pInParams->bLABRC || pInParams->nMaxSliceSize || pInParams->nBRefType || pInParams->BitrateLimit
+    if (pInParams->bLABRC || pInParams->nMaxSliceSize || pInParams->nBRefType
+        || (pInParams->BitrateLimit && pInParams->EncodeId == MFX_CODEC_AVC)
         || (pInParams->nExtBRC && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC)) ||
         pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta || pInParams->nMaxFrameSize)
     {

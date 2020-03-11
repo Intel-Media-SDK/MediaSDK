@@ -607,9 +607,10 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     // configure the depth of the look ahead BRC if specified in command line
     if (pInParams->nLADepth || pInParams->nMaxSliceSize || pInParams->nMaxFrameSize || pInParams->nBRefType ||
+        (pInParams->BitrateLimit && pInParams->CodecId == MFX_CODEC_AVC) ||
         (pInParams->nExtBRC && (pInParams->CodecId == MFX_CODEC_HEVC || pInParams->CodecId == MFX_CODEC_AVC)) ||
         pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta ||
-        pInParams->BitrateLimit || pInParams->AdaptiveI || pInParams->AdaptiveB)
+        pInParams->AdaptiveI || pInParams->AdaptiveB)
     {
         auto codingOption2 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption2>();
 
@@ -884,7 +885,7 @@ mfxStatus CEncodingPipeline::AllocFrames()
     sts = GetFirstEncoder()->Query(&m_mfxEncParams, &m_mfxEncParams);
     MSDK_CHECK_STATUS(sts, "Query (for encoder) failed");
 
-    if (co2->BitrateLimit != MFX_CODINGOPTION_OFF && initialTargetKbps != m_mfxEncParams.mfx.TargetKbps)
+    if (co2 && co2->BitrateLimit != MFX_CODINGOPTION_OFF && initialTargetKbps != m_mfxEncParams.mfx.TargetKbps)
     {
         msdk_printf(MSDK_STRING("WARNING: -BitrateLimit:on, target bitrate was changed from %d kbps to %d kbps.\n"), initialTargetKbps, m_mfxEncParams.mfx.TargetKbps);
     }

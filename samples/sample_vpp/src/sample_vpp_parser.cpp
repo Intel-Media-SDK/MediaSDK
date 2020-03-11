@@ -414,6 +414,16 @@ mfxU32 Str2FourCC( msdk_char* strInput )
     {
         fourcc = MFX_FOURCC_UYVY;
     }
+#if (MFX_VERSION >= 1027)
+    else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("y210")) )
+    {
+        fourcc = MFX_FOURCC_Y210;
+    }
+    else if ( 0 == msdk_stricmp(strInput, MSDK_STRING("y410")) )
+    {
+        fourcc = MFX_FOURCC_Y410;
+    }
+#endif
     else if (0 == msdk_stricmp(strInput, MSDK_STRING("i420")))
     {
         fourcc = MFX_FOURCC_I420;
@@ -1638,6 +1648,11 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 //    pParams->frameInfoIn[0].FourCC = MFX_FOURCC_YV12; // I420 input is implemented using YV12 internally
                 //}
 
+                if(!pParams->frameInfoIn[0].FourCC)
+                {
+                    vppPrintHelp(strInput[0], MSDK_STRING("Invalid -scc format\n"));
+                    return MFX_ERR_UNSUPPORTED;
+                }
             }
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dcc")))
             {
@@ -1649,6 +1664,12 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 {
                     pParams->forcedOutputFourcc = pParams->frameInfoOut[0].FourCC;
                     pParams->frameInfoOut[0].FourCC = MFX_FOURCC_NV12; // I420 output is implemented using NV12 internally
+                }
+
+                if(!pParams->frameInfoOut[0].FourCC)
+                {
+                    vppPrintHelp(strInput[0], MSDK_STRING("Invalid -dcc format\n"));
+                    return MFX_ERR_UNSUPPORTED;
                 }
             }
             else if(0 == msdk_strcmp(strInput[i], MSDK_STRING("-dbitshift")))
