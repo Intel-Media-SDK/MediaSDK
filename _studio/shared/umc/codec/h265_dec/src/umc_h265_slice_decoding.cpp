@@ -298,13 +298,19 @@ int H265Slice::getNumRpsCurrTempList() const
   if (GetSliceHeader()->slice_type != I_SLICE)
   {
       const ReferencePictureSet *rps = getRPS();
+      bool intra_block_copy_flag = (GetPicParam()->pps_curr_pic_ref_enabled_flag != 0);
 
-      for(uint32_t i=0;i < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures() + rps->getNumberOfLongtermPictures();i++)
+      for (uint32_t i=0;i < rps->getNumberOfNegativePictures() + rps->getNumberOfPositivePictures() + rps->getNumberOfLongtermPictures();i++)
       {
-        if(rps->getUsed(i))
-        {
+          if (rps->getUsed(i))
+          {
+              numRpsCurrTempList++;
+          }
+      }
+
+      if (intra_block_copy_flag)
+      {
           numRpsCurrTempList++;
-        }
       }
   }
 
