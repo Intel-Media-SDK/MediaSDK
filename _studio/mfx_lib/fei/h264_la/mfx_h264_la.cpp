@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1949,6 +1949,8 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "QueryVme");
 
+    MFX_CHECK_NULL_PTR1(e);
+
     INT status = e->WaitForTaskFinished();
     if (status == CM_EXCEED_MAX_TIMEOUT)
         return MFX_ERR_GPU_HANG;
@@ -1957,6 +1959,8 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
 
     MfxHwH264Encode::LAOutObject * cmMb = (MfxHwH264Encode::LAOutObject *)task.m_cmMbSys;
     MfxHwH264Encode::VmeData *      cur  = task.m_Curr.VmeData;
+
+    MFX_CHECK_NULL_PTR2(cmMb, cur);
 
     { MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "Compensate costs");
     MfxHwH264Encode::mfxVMEUNIIn const & costs = SelectCosts(task.m_TaskInfo.InputFrame.frameType);
