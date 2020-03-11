@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1257,6 +1257,12 @@ struct H265SliceHeader
 
     ReferencePictureSet m_rps;
     RefPicListModification m_RefPicListModification;
+    int32_t m_poc;
+    uint32_t m_numPicStCurr0;
+    uint32_t m_numPicStCurr1;
+    uint32_t m_numPicLtCurr;
+    int32_t m_RpsPOCCurrList0[MAX_NUM_REF_PICS + 1];
+    int32_t m_RefPOCList[2][MAX_NUM_REF_PICS + 1];
 
     // flag equal 1 means that the slice belong to IDR or anchor access unit
     uint32_t IdrPicFlag;

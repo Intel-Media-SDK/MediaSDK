@@ -132,7 +132,7 @@ UMC::Status DecReferencePictureMarking_H265::UpdateRefPicMarking(ViewItem_H265 &
                 int32_t count = rps->getNumberOfPositivePictures() + rps->getNumberOfNegativePictures();
                 for(i = 0; i < count; i++)
                 {
-                    if (!pTmp->isLongTermRef() && pTmp->m_PicOrderCnt == pSlice->GetSliceHeader()->slice_pic_order_cnt_lsb + rps->getDeltaPOC(i))
+                    if (!pTmp->isLongTermRef() && pTmp->m_PicOrderCnt == pSlice->GetSliceHeader()->m_poc + rps->getDeltaPOC(i))
                     {
                         isReferenced = true;
                         pTmp->SetisShortTermRef(true);
@@ -170,7 +170,7 @@ UMC::Status DecReferencePictureMarking_H265::UpdateRefPicMarking(ViewItem_H265 &
 
             // mark the picture as "unused for reference" if it is not in
             // the Reference Picture Set
-            if(pTmp->m_PicOrderCnt != pSlice->GetSliceHeader()->slice_pic_order_cnt_lsb && !isReferenced)
+            if(pTmp->m_PicOrderCnt != pSlice->GetSliceHeader()->m_poc && !isReferenced)
             {
                 pTmp->SetisShortTermRef(false);
                 pTmp->SetisLongTermRef(false);
@@ -179,7 +179,7 @@ UMC::Status DecReferencePictureMarking_H265::UpdateRefPicMarking(ViewItem_H265 &
             // WA: To fix incorrect stream having same (as incoming slice) POC in DPB
             // Mark a older frame having similar POCs within DPBList as unused reference frame if similar mutiple POCs are found
             // within the DPBList. This is to prevent the DPBList from max out with unused reference frame kept as reference picture.
-            else if(pTmp->m_PicOrderCnt == pSlice->GetSliceHeader()->slice_pic_order_cnt_lsb && !isReferenced && pTmp->isShortTermRef())
+            else if(pTmp->m_PicOrderCnt == pSlice->GetSliceHeader()->m_poc && !isReferenced && pTmp->isShortTermRef())
             {
                 pTmp->SetisShortTermRef(false);
                 pTmp->SetisLongTermRef(false);
@@ -2123,7 +2123,7 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
 
         if (NoRaslOutputFlag)
         {
-            m_RA_POC = pSlice->m_SliceHeader.slice_pic_order_cnt_lsb;
+            m_RA_POC = pSlice->m_SliceHeader.m_poc;
         }
 
         m_IRAPType = pSlice->m_SliceHeader.nal_unit_type;
@@ -2161,10 +2161,10 @@ bool TaskSupplier_H265::IsSkipForCRAorBLA(const H265Slice *pSlice)
 {
     if (NoRaslOutputFlag)
     {
-        if (pSlice->m_SliceHeader.slice_pic_order_cnt_lsb == m_RA_POC)
+        if (pSlice->m_SliceHeader.m_poc == m_RA_POC)
             return false;
 
-        if (pSlice->m_SliceHeader.slice_pic_order_cnt_lsb < m_RA_POC &&
+        if (pSlice->m_SliceHeader.m_poc < m_RA_POC &&
             (pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_RASL_R || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_RASL_N))
         {
             return true;
@@ -2526,7 +2526,7 @@ void TaskSupplier_H265::InitFrameCounter(H265DecoderFrame * pFrame, const H265Sl
         view.pDPB->IncreaseRefPicListResetCount(pFrame);
     }
 
-    pFrame->setPicOrderCnt(sliceHeader->slice_pic_order_cnt_lsb);
+    pFrame->setPicOrderCnt(sliceHeader->m_poc);
 
     DEBUG_PRINT((VM_STRING("Init frame %s\n"), GetFrameInfoString(pFrame)));
 

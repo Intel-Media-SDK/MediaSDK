@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -300,11 +300,11 @@ public:
     int32_t ParseSEI(const HeaderSet<H265SeqParamSet> & sps, int32_t current_sps, H265SEIPayLoad *spl);
 
     // Parse remaining of slice header after GetSliceHeaderPart1
-    void decodeSlice(H265Slice *, const H265SeqParamSet *, const H265PicParamSet *);
+    void decodeSlice(H265Slice *, const H265SeqParamSet *, const H265PicParamSet *, PocDecoding *);
     // Parse slice header part which contains PPS ID
     UMC::Status GetSliceHeaderPart1(H265SliceHeader * sliceHdr);
     // Parse full slice header
-    UMC::Status GetSliceHeaderFull(H265Slice *, const H265SeqParamSet *, const H265PicParamSet *);
+    UMC::Status GetSliceHeaderFull(H265Slice *, const H265SeqParamSet *, const H265PicParamSet *, PocDecoding *);
 
     // Parse scaling list information in SPS or PPS
     void parseScalingList(H265ScalingList *);
