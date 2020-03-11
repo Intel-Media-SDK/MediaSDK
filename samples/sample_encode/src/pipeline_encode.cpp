@@ -1917,8 +1917,10 @@ mfxStatus CEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
         msdk_printf(MSDK_STRING("WARNING: partial acceleration\n"));
         MSDK_IGNORE_MFX_STS(sts, MFX_WRN_PARTIAL_ACCELERATION);
     }
-
     MSDK_CHECK_STATUS(sts, "m_pmfxENC->Init failed");
+
+    sts = m_pmfxENC->GetVideoParam(&m_mfxEncParams);
+    MSDK_CHECK_STATUS(sts, "m_pmfxENC->GetVideoParam failed");
 
     if (m_bIsFieldSplitting)
     {
