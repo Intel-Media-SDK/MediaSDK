@@ -926,6 +926,8 @@ mfxStatus GetChromaSize(const mfxFrameInfo & pInfo, mfxU32 & ChromaW, mfxU32 & C
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_A2RGB10:
+    case MFX_FOURCC_Y410:
+    case MFX_FOURCC_Y416:
     {
         if (pInfo.CropH > 0 && pInfo.CropW > 0)
         {
