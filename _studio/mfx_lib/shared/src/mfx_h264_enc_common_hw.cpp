@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -2524,9 +2524,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (extOpt2->MaxSliceSize &&
         !(IsDriverSliceSizeControlEnabled(par, hwCaps) ||  // driver slice control condition
-        (hwCaps.ddi_caps.SliceStructure == 4 && laEnabled)))  // sw slice control condition
+          (hwCaps.ddi_caps.SliceStructure == 4 && laEnabled)))  // sw slice control condition
         {
-            changed = true;
+            unsupported = true;
             extOpt2->MaxSliceSize = 0;
         }
 
