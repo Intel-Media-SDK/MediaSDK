@@ -70,16 +70,14 @@ namespace UMC_HEVC_DECODER
             uint8_t const numComps = sps->chroma_format_idc ? 3 : 1;
             if (pps->pps_palette_predictor_initializer_present_flag)
             {
-                assert(!pps->m_paletteInitializers.empty());
-                assert( pps->pps_num_palette_predictor_initializer == pps->m_paletteInitializers.size());
+                assert(pps->pps_num_palette_predictor_initializer * numComps == pps->m_paletteInitializers.size());
 
                 count   = pps->pps_num_palette_predictor_initializer;
                 palette = pps->m_paletteInitializers.data();
             }
             else if (sps->sps_palette_predictor_initializer_present_flag)
             {
-                assert(!sps->m_paletteInitializers.empty());
-                assert( sps->sps_num_palette_predictor_initializer == sps->m_paletteInitializers.size());
+                assert(sps->sps_num_palette_predictor_initializer * numComps == sps->m_paletteInitializers.size());
 
                 count   = sps->sps_num_palette_predictor_initializer;
                 palette = sps->m_paletteInitializers.data();
