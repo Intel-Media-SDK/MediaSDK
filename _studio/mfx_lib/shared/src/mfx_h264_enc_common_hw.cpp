@@ -2524,9 +2524,9 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (extOpt2->MaxSliceSize &&
         !(IsDriverSliceSizeControlEnabled(par, hwCaps) ||  // driver slice control condition
-        (hwCaps.ddi_caps.SliceStructure == 4 && laEnabled)))  // sw slice control condition
+          (hwCaps.ddi_caps.SliceStructure == 4 && laEnabled)))  // sw slice control condition
         {
-            changed = true;
+            unsupported = true;
             extOpt2->MaxSliceSize = 0;
         }
 
