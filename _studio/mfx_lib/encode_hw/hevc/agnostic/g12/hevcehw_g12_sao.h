@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ protected:
                     , mfxU16(!bNoSAO * MFX_SAO_ENABLE_CHROMA)
                     , mfxU16(!bNoSAO * (MFX_SAO_ENABLE_LUMA | MFX_SAO_ENABLE_CHROMA)));
 
-                MFX_CHECK(!bChanged, MFX_ERR_UNSUPPORTED);
+                MFX_CHECK(!bChanged, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
                 return MFX_ERR_NONE;
             });
 
