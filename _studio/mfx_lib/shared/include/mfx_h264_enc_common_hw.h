@@ -606,6 +606,7 @@ namespace MfxHwH264Encode
             mfxU16 widthLa;
             mfxU16 heightLa;
             mfxU32 TCBRCTargetFrameSize;
+            mfxU32 PPyrInterval;
         } calcParam;
     };
 

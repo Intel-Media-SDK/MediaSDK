@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,6 +49,7 @@
 #define MFX_ARRAY_SIZE(ARR) (sizeof(ARR)/sizeof(ARR[0]))
 const int MFX_MAX_DIRTY_RECT_COUNT = MFX_ARRAY_SIZE(mfxExtDirtyRect::Rect);
 const int MFX_MAX_MOVE_RECT_COUNT = MFX_ARRAY_SIZE(mfxExtMoveRect::Rect);
+const int DEFAULT_PPYR_INTERVAL = 3;
 
 
 namespace MfxHwH264Encode
@@ -291,9 +292,17 @@ namespace MfxHwH264Encode
         mfxExtCodingOptionDDI const * extDdi,
         mfxU8                         frameType);
 
-    mfxU8 GetQpValue(
+    mfxU8 GetPFrameLevel(
+        mfxU32 i,
+        mfxU32 num);
+
+    mfxU8 PLayer(
         MfxVideoParam const & par,
-        mfxEncodeCtrl const & ctrl,
+        mfxU32                order);
+
+    mfxU8 GetQpValue(
+        DdiTask const &       task,
+        MfxVideoParam const & par,
         mfxU32                frameType);
 
     PairU16 GetPicStruct(

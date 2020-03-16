@@ -263,29 +263,83 @@ namespace MfxHwH264Encode
         return true;
     }
 
+    mfxU8 GetPFrameLevel(mfxU32 i, mfxU32 num)
+    {
+        if (i == 0 || i >= num) return 0;
+        mfxU32 level = 1;
+        mfxU32 begin = 0;
+        mfxU32 end = num;
+        mfxU32 t = (begin + end + 1) / 2;
+
+        while (t != i)
+        {
+            level++;
+            if (i > t)
+                begin = t;
+            else
+                end = t;
+            t = (begin + end + 1) / 2;
+        }
+        return (mfxU8)level;
+    }
+
+    mfxU8 PLayer(MfxVideoParam const & par, mfxU32 order)
+    {
+        return std::min<mfxU8>(7, GetPFrameLevel(order % par.calcParam.PPyrInterval, par.calcParam.PPyrInterval));
+    }
+
     mfxU8 GetQpValue(
+        DdiTask const &       task,
         MfxVideoParam const & par,
-        mfxEncodeCtrl const & ctrl,
         mfxU32                frameType)
     {
+        const mfxExtCodingOption2& CO2 = GetExtBufferRef(par);
+        const mfxExtCodingOption3& CO3 = GetExtBufferRef(par);
+        const mfxU8 minQP = 1;
+        const mfxU8 maxQP = 51;
+        mfxU8 QP = 0;
+
         if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP /*||
             par.mfx.RateControlMethod == MFX_RATECONTROL_VCM && (frameType & MFX_FRAMETYPE_I)*/)
         {
-            if (ctrl.QP > 0)
+            if (task.m_ctrl.QP > 0)
             {
-                if (IsOn(par.mfx.LowPower) && ctrl.QP < 10)
+                if (IsOn(par.mfx.LowPower) && task.m_ctrl.QP < 10)
                     return 10;
                 // get per frame qp
-                return std::min<mfxU8>(ctrl.QP, 51);
+                return std::min<mfxU8>(task.m_ctrl.QP, 51);
             }
             else
             {
+                bool bUseQPOffset =
+                    (frameType & MFX_FRAMETYPE_B && CO2.BRefType == MFX_B_REF_PYRAMID)
+                    || (frameType & MFX_FRAMETYPE_P && CO3.PRefType == MFX_P_REF_PYRAMID);
+
                 // get per stream qp
                 switch (frameType & MFX_FRAMETYPE_IPB)
                 {
-                case MFX_FRAMETYPE_I: return mfxU8(par.mfx.QPI);
-                case MFX_FRAMETYPE_P: return mfxU8(par.mfx.QPP);
-                case MFX_FRAMETYPE_B: return mfxU8(par.mfx.QPB);
+                case MFX_FRAMETYPE_I:
+                    return mfxU8(par.mfx.QPI);
+                case MFX_FRAMETYPE_P:
+                    QP = mfxU8(par.mfx.QPP);
+                    if (par.calcParam.numTemporalLayer > 1)
+                    {
+                        QP = (mfxU8)mfx::clamp<mfxI32>(CO3.QPOffset[task.m_tid] + QP, minQP, maxQP);
+                    }
+                    else if (bUseQPOffset)
+                    {
+                        QP = (mfxU8)mfx::clamp<mfxI32>(
+                            CO3.QPOffset[PLayer(par, task.m_encOrder - task.m_encOrderI)] + QP, minQP, maxQP);
+                    }
+                    return QP;
+                case MFX_FRAMETYPE_B:
+                    QP = mfxU8(par.mfx.QPB);
+                    if (bUseQPOffset)
+                    {
+                        QP = (mfxU8)mfx::clamp<mfxI32>(
+                            CO3.QPOffset[mfx::clamp<mfxI32>(task.m_loc.level - 1, 0, 7)] + QP, minQP, maxQP);
+                    }
+                    return QP;
                 default: assert(!"bad frame type (GetQpValue)"); return 0xff;
                 }
             }
