@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2019 Intel Corporation
+# Copyright (c) 2018-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,19 +25,13 @@ mfx_include_dirs()
 set( VP9_Encoder_HW_GUID "ce44ef6f1a6d2246b412bb38d6e45182" )
 
 # Plugin version info
-if( NOT DEFINED ENV{MFX_VP9_VERSION} )
-  set( vp9_version 0.0.000.0000 )
-else()
-  set( vp9_version $ENV{MFX_VP9_VERSION} )
-endif()
-
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set( plugin_name mfx_vp9e_hw64 )
 else()
   set( plugin_name mfx_vp9e_hw32 )
 endif()
 
-set_file_and_product_version( ${vp9_version} version_defs )
+set_file_and_product_version( ${MEDIA_VERSION_STR} version_defs )
 
 set( sources "" )
 set( sources.plus "" )

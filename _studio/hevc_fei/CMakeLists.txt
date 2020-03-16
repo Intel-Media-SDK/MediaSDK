@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,20 +27,13 @@ else()
 
   set(HEVC_FEI_Encoder_HW_GUID "5418a70666f94d5cb4f7b1caee86339b")
 
-  # Plugin version info
-  if( NOT DEFINED ENV{MFX_HEVC_VERSION} )
-    set( hevc_version 0.0.000.0000 )
-  else( )
-    set( hevc_version $ENV{MFX_HEVC_VERSION} )
-  endif( )
-
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set( plugin_name mfx_hevc_fei_hw64 )
   else()
     set( plugin_name mfx_hevc_fei_hw32 )
   endif()
 
-  set_file_and_product_version( ${hevc_version} version_defs )
+  set_file_and_product_version( ${MEDIA_VERSION_STR} version_defs )
 
   set( sources "" )
   set( sources.plus "" )
