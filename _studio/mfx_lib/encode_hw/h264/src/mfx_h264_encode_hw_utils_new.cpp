@@ -2315,8 +2315,8 @@ void MfxHwH264Encode::ConfigureTask(
         task.m_nalRefIdc[sfid] = task.m_reference[sfid] ? 2 : 0;
     }
 
-    task.m_cqpValue[0] = GetQpValue(video, task.m_ctrl, task.m_type[0]);
-    task.m_cqpValue[1] = GetQpValue(video, task.m_ctrl, task.m_type[1]);
+    task.m_cqpValue[0] = GetQpValue(task, video, task.m_type[0]);
+    task.m_cqpValue[1] = GetQpValue(task, video, task.m_type[1]);
 
     task.m_statusReportNumber[0] = 2 * task.m_encOrder;
     task.m_statusReportNumber[1] = 2 * task.m_encOrder + 1;

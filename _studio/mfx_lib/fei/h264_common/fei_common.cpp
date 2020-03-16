@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -172,8 +172,8 @@ void MfxH264FEIcommon::ConfigureTaskFEI(
         task.m_nalRefIdc[sfid] = task.m_reference[sfid] ? 2 : 0;
     }
 
-    task.m_cqpValue[0] = GetQpValue(video, task.m_ctrl, task.m_type[0]);
-    task.m_cqpValue[1] = GetQpValue(video, task.m_ctrl, task.m_type[1]);
+    task.m_cqpValue[0] = GetQpValue(task, video, task.m_type[0]);
+    task.m_cqpValue[1] = GetQpValue(task, video, task.m_type[1]);
 
 #if MFX_VERSION >= 1023
 
