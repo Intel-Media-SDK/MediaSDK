@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2019 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,17 @@
 # SOFTWARE.
 
 cmake_minimum_required( VERSION 3.6 )
-project( mediasdk )
+
+cmake_policy(SET CMP0048 NEW) # version handled by project()
+
+
+# Througout this project MFX_VERSION refers to uAPI version and MEDIA_VERSION refers to product version
+set(MEDIA_VERSION 20.1)
+set(MEDIA_VERSION_STR "${MEDIA_VERSION}.pre${MEDIA_VERSION_EXTRA}" CACHE STRING "" FORCE)
+
+project(mfx1
+  VERSION ${MEDIA_VERSION}
+  LANGUAGES CXX C ASM)
 
 include(CMakeDependentOption)
 
