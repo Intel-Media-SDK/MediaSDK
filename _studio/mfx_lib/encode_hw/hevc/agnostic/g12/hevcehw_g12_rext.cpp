@@ -39,8 +39,6 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     Push(BLK_SetRecInfo
         , [](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
-        MFX_CHECK(!local.Contains(Gen9::Tmp::RecInfo::Key), MFX_ERR_NONE);
-
         auto& par = Gen9::Glob::VideoParam::Get(strg);
         mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
@@ -51,6 +49,8 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
                     || CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422)));
 
         MFX_CHECK(bG12SpecificRec, MFX_ERR_NONE);
+
+        local.Erase(Gen9::Tmp::RecInfo::Key);
 
         const std::map<mfxU16, std::function<void(mfxFrameInfo&, mfxU16&)>> mUpdateRecInfo =
         {
