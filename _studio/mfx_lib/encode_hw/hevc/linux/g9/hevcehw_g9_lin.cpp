@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 #include "hevcehw_g9_alloc.h"
 #include "hevcehw_g9_task.h"
 #include "hevcehw_g9_ext_brc.h"
-#include "hevcehw_g9_dirty_rect.h"
+#include "hevcehw_g9_dirty_rect_lin.h"
 #if !defined(MFX_EXT_DPB_HEVC_DISABLE) && (MFX_VERSION >= MFX_VERSION_NEXT)
 #include "hevcehw_g9_dpb_report.h"
 #endif
@@ -97,13 +97,14 @@ Linux::Gen9::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 
     InternalInitFeatures(status, mode);
 
-#if defined(MFX_ENABLE_HEVCE_ROI)
     if (mode & INIT)
     {
         auto& qIA = BQ<BQ_InitAlloc>::Get(*this);
+        qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_DIRTY_RECT, DirtyRect::BLK_SetCallChains }));
+#if defined(MFX_ENABLE_HEVCE_ROI)
         qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_ROI, ROI::BLK_SetCallChains }));
-    }
 #endif
+    }
 }
 
 ImplBase* Linux::Gen9::MFXVideoENCODEH265_HW::ApplyMode(mfxU32 mode)
