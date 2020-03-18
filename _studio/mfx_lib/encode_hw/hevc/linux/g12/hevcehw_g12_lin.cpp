@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -88,6 +88,11 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
             qwc
             , { HEVCEHW::Gen9::FEATURE_DDI_PACKER, HEVCEHW::Gen9::IDDIPacker::BLK_HardcodeCaps }
             , { FEATURE_CAPS, Caps::BLK_HardcodeCaps });
+
+        FeatureBlocks::Reorder(
+            qwc
+            , { FEATURE_REXT, RExt::BLK_HardcodeCaps }
+            , { HEVCEHW::Gen9::FEATURE_DDI_PACKER, HEVCEHW::Gen9::IDDIPacker::BLK_HardcodeCaps });
     }
 
     status = MFX_ERR_NONE;
