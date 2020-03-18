@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,7 @@ namespace Gen9
 #define DECL_BLOCK_LIST\
         DECL_BLOCK(AllocTask)\
         DECL_BLOCK(CheckAndFix)\
+        DECL_BLOCK(SetCallChains)\
         DECL_BLOCK(ConfigureTask)\
         DECL_BLOCK(PatchDDITask)
 #define DECL_FEATURE_NAME "G9_DirtyRect"
