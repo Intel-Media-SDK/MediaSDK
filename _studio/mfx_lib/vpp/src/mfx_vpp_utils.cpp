@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1325,6 +1325,7 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
     switch (info->FourCC)
     {
         case MFX_FOURCC_NV12:
+        case MFX_FOURCC_YV12:
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:
 #endif // MFX_ENABLE_FOURCC_RGB565
@@ -1354,7 +1355,6 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
             break;
 #endif
         case MFX_FOURCC_IMC3:
-        case MFX_FOURCC_YV12:
         case MFX_FOURCC_YUV400:
         case MFX_FOURCC_YUV411:
         case MFX_FOURCC_YUV422H:
