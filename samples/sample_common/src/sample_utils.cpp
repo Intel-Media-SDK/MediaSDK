@@ -739,11 +739,8 @@ CIVFFrameReader::CIVFFrameReader()
         return MFX_ERR_MORE_DATA;\
 }\
 
-mfxStatus CIVFFrameReader::Init(const msdk_char *strFileName)
+mfxStatus CIVFFrameReader::ReadHeader()
 {
-    mfxStatus sts = CSmplBitstreamReader::Init(strFileName);
-    MSDK_CHECK_STATUS(sts, "CSmplBitstreamReader::Init failed");
-
     // read and skip IVF header
     READ_BYTES(&m_hdr.dkif, sizeof(m_hdr.dkif));
     READ_BYTES(&m_hdr.version, sizeof(m_hdr.version));
@@ -756,6 +753,22 @@ mfxStatus CIVFFrameReader::Init(const msdk_char *strFileName)
     READ_BYTES(&m_hdr.num_frames, sizeof(m_hdr.num_frames));
     READ_BYTES(&m_hdr.unused, sizeof(m_hdr.unused));
     MSDK_CHECK_NOT_EQUAL(fseek(m_fSource, m_hdr.header_len, SEEK_SET), 0, MFX_ERR_UNSUPPORTED);
+    return MFX_ERR_NONE;
+}
+
+void CIVFFrameReader::Reset()
+{
+    CSmplBitstreamReader::Reset();
+    std::ignore = ReadHeader();
+}
+
+mfxStatus CIVFFrameReader::Init(const msdk_char *strFileName)
+{
+    mfxStatus sts = CSmplBitstreamReader::Init(strFileName);
+    MSDK_CHECK_STATUS(sts, "CSmplBitstreamReader::Init failed");
+
+    sts = ReadHeader();
+    MSDK_CHECK_STATUS(sts, "CIVFFrameReader::ReadHeader failed");
 
     // check header
     MSDK_CHECK_NOT_EQUAL(MFX_MAKEFOURCC('D','K','I','F'), m_hdr.dkif, MFX_ERR_UNSUPPORTED);
