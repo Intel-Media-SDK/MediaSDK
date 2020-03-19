@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,7 @@ static bool IsVideoParamExtBufferIdSupported(mfxU32 id)
         id == MFX_EXTBUFF_FEI_PARAM;
 }
 
+
 static mfxStatus CheckExtBufferId(mfxVideoParam const & par)
 {
     for (mfxU32 i = 0; i < par.NumExtParam; ++i)
@@ -89,7 +90,6 @@ static mfxStatus AsyncRoutine(void * state, void * param, mfxU32, mfxU32)
     VideoENC_ENC & impl = *(VideoENC_ENC *)state;
     return  impl.RunFrameVmeENC(NULL, NULL);
 }
-
 
 mfxStatus VideoENC_ENC::RunFrameVmeENC(mfxENCInput *in, mfxENCOutput *out)
 {
@@ -405,7 +405,7 @@ mfxStatus VideoENC_ENC::ProcessAndCheckNewParameters(
 {
     MFX_CHECK_NULL_PTR1(newParIn);
 
-    InheritDefaultValues(m_video, newPar, newParIn);
+    InheritDefaultValues(m_video, newPar, m_caps, newParIn);
 
     mfxStatus checkStatus = CheckVideoParam(newPar, m_caps, m_core->IsExternalFrameAllocator(), m_currentPlatform, m_currentVaType);
     MFX_CHECK(checkStatus != MFX_WRN_PARTIAL_ACCELERATION, MFX_ERR_INVALID_VIDEO_PARAM);
@@ -641,48 +641,6 @@ mfxStatus VideoENC_ENC::RunFrameVmeENCCheck(
     pEntryPoints[1].pParam               = &m_incoming.front();
 
     numEntryPoints = 2;
-
-    return MFX_ERR_NONE;
-}
-
-static mfxStatus CopyRawSurfaceToVideoMemory(VideoCORE &    core,
-                                        MfxVideoParam const & video,
-                                        mfxFrameSurface1 *  src_sys,
-                                        mfxMemId            dst_d3d,
-                                        mfxHDL&             handle)
-{
-    MFX_CHECK_NULL_PTR1(src_sys);
-
-    mfxExtOpaqueSurfaceAlloc const * extOpaq = GetExtBuffer(video);
-    MFX_CHECK(extOpaq, MFX_ERR_NOT_FOUND);
-
-    mfxFrameData d3dSurf {};
-
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
-        (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
-    {
-        mfxFrameData sysSurf = src_sys->Data;
-        d3dSurf.MemId = dst_d3d;
-
-        FrameLocker lock2(&core, sysSurf, true);
-
-        MFX_CHECK_NULL_PTR1(sysSurf.Y)
-        {
-            MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Copy input (sys->d3d)");
-            MFX_CHECK_STS(CopyFrameDataBothFields(&core, d3dSurf, sysSurf, video.mfx.FrameInfo));
-        }
-
-        MFX_CHECK_STS(lock2.Unlock());
-    }
-    else
-    {
-        d3dSurf.MemId =  src_sys->Data.MemId;
-    }
-
-    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-       MFX_CHECK_STS(core.GetExternalFrameHDL(d3dSurf.MemId, &handle))
-    else
-       MFX_CHECK_STS(core.GetFrameHDL(d3dSurf.MemId, &handle));
 
     return MFX_ERR_NONE;
 }

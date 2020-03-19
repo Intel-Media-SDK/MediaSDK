@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1127,8 +1127,8 @@ comp_id_match:
   du_height = (JPEG_LOSSLESS == m_jpeg_mode) ? 1 : 8;
 
   // MCU dimensions
-  m_curr_scan->mcuWidth  = du_width  * MFX_MAX(scan_max_hsampling,1);
-  m_curr_scan->mcuHeight = du_height * MFX_MAX(scan_max_vsampling,1);
+  m_curr_scan->mcuWidth  = du_width  * std::max(scan_max_hsampling, 1);
+  m_curr_scan->mcuHeight = du_height * std::max(scan_max_vsampling, 1);
 
   // num of MCUs in whole scan
   m_curr_scan->numxMCU = (m_jpeg_width  + (m_curr_scan->mcuWidth * m_curr_scan->min_h_factor  - 1)) 

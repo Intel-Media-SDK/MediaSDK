@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2019 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -19,7 +19,17 @@
 # SOFTWARE.
 
 cmake_minimum_required( VERSION 3.6 )
-project( mediasdk )
+
+cmake_policy(SET CMP0048 NEW) # version handled by project()
+
+
+# Througout this project MFX_VERSION refers to uAPI version and MEDIA_VERSION refers to product version
+set(MEDIA_VERSION 20.1)
+set(MEDIA_VERSION_STR "${MEDIA_VERSION}.pre${MEDIA_VERSION_EXTRA}" CACHE STRING "" FORCE)
+
+project(mfx1
+  VERSION ${MEDIA_VERSION}
+  LANGUAGES CXX C ASM)
 
 include(CMakeDependentOption)
 
@@ -37,7 +47,7 @@ if( NOT DEFINED CMAKE_MFX_HOME )
   set( CMAKE_MFX_HOME "${CMAKE_HOME_DIRECTORY}/api" )
 endif()
 
-if(NOT DEFINED $ENV{MFX_HOME} )
+if(NOT DEFINED ENV{MFX_HOME} )
   set( MFX_HOME ${CMAKE_HOME_DIRECTORY} )
 else()
   set( MFX_HOME $ENV{MFX_HOME} )
@@ -76,6 +86,7 @@ option( BUILD_ALL "Build all the targets?" OFF )
 option( BUILD_RUNTIME "Build mediasdk runtime (library, plugins, etc.)?" ON )
 option( BUILD_DISPATCHER "Build dispatcher?" ON )
 cmake_dependent_option(BUILD_SAMPLES "Build samples?" ON "BUILD_DISPATCHER" OFF )
+cmake_dependent_option(BUILD_TUTORIALS "Build tutorials?" ON "BUILD_DISPATCHER" OFF )
 # Tools depend on samples (sample_common) and can't be built without it. The
 # following BUILD_TOOLS option declaration assures that.
 cmake_dependent_option(BUILD_TOOLS "Build tools?" "${BUILD_ALL}" "BUILD_SAMPLES" OFF)
@@ -99,7 +110,7 @@ if (BUILD_TESTS)
     # which might be ON.
     set(INSTALL_GTEST OFF CACHE BOOL "Do _not_ install gtest" FORCE)
 
-    add_subdirectory(${CMAKE_HOME_DIRECTORY}/googletest)
+    add_subdirectory(${CMAKE_HOME_DIRECTORY}/contrib/googletest)
 
     # For some Linux distro versions there is an unused-result warning
     # generated inside the Gtest code at a call to fwrite. Since Gtest sets -Werror
@@ -125,6 +136,10 @@ endif()
 
 if (BUILD_SAMPLES)
   add_subdirectory(${CMAKE_HOME_DIRECTORY}/samples)
+endif()
+
+if (BUILD_TUTORIALS)
+  add_subdirectory(${CMAKE_HOME_DIRECTORY}/tutorials)
 endif()
 
 if (BUILD_RUNTIME)
@@ -198,6 +213,7 @@ message("Build:")
 message("  BUILD_RUNTIME                           : ${BUILD_RUNTIME}")
 message("  BUILD_DISPATCHER                        : ${BUILD_DISPATCHER}")
 message("  BUILD_SAMPLES                           : ${BUILD_SAMPLES}")
+message("  BUILD_TUTORIALS                         : ${BUILD_TUTORIALS}")
 message("  BUILD_TESTS                             : ${BUILD_TESTS}")
 message("  BUILD_TOOLS                             : ${BUILD_TOOLS}")
 message("  BUILD_KERNELS                           : ${BUILD_KERNELS}")

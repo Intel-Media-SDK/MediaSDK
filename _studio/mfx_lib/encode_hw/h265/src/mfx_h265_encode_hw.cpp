@@ -126,9 +126,20 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 10)
     {
-        rec.FourCC = MFX_FOURCC_Y210;
-        rec.Width /= 2;
-        rec.Height *= 2;
+#if (MFX_VERSION >= 1031)
+        if (par.m_platform >= MFX_HW_TGL_LP)
+        {
+            rec.FourCC = MFX_FOURCC_Y216;
+            rec.Width /= 2;
+            rec.Height *= 2;
+        }
+        else
+#endif
+        {
+            rec.FourCC = MFX_FOURCC_Y210;
+            rec.Width /= 2;
+            rec.Height *= 2;
+        }
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 8)
     {
@@ -138,13 +149,41 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
     {
-        rec.FourCC = MFX_FOURCC_NV12;
-        rec.Width  = mfx::align2_value(rec.Width, 32) * 2;
+#if (MFX_VERSION >= 1031)
+        if (par.m_platform >= MFX_HW_TGL_LP)
+        {
+            rec.FourCC = MFX_FOURCC_NV12;
+            rec.Width  = mfx::align2_value(rec.Width, 32) * 2;
+        }
+        else
+#endif
+        {
+            rec.FourCC = MFX_FOURCC_P010;
+        }
     }
     else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 8)
     {
         rec.FourCC = MFX_FOURCC_NV12;
     }
+#if (MFX_VERSION >= 1031)
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 12)
+    {
+        rec.FourCC = MFX_FOURCC_Y416;
+        rec.Width = (mfxU16)mfx::align2_value(rec.Width, 256 / 4);
+        rec.Height = (mfxU16)mfx::align2_value(rec.Height * 3 / 2, 8);
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422) && CO3.TargetBitDepthLuma == 12)
+    {
+        rec.FourCC = MFX_FOURCC_Y216;
+        rec.Width /= 2;
+        rec.Height *= 2;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 12)
+    {
+        rec.FourCC = MFX_FOURCC_NV12;
+        rec.Width  = mfx::align2_value(rec.Width, 32) * 2;
+    }
+#endif
     else
     {
         assert(!"undefined target format");
@@ -163,6 +202,7 @@ bool GetRecInfo(const MfxVideoParam& par, mfxFrameInfo& rec)
     Setting default value for LowPower option.
     By default LowPower is OFF (using DualPipe)
     For CNL: if no B-frames found and LowPower is Unknown then LowPower is ON
+    For JSL/EHL: use LowPower by default i.e. if LowPower is Unknown then LowPower is ON
 
     Return value:
     MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
@@ -182,6 +222,14 @@ mfxStatus SetLowpowerDefault(MfxVideoParam& par)
         return sts;
     }
 #endif // MFX_VERSION >= 1025
+#if (MFX_VERSION >= 1031)
+    if ((par.m_platform == MFX_HW_JSL || par.m_platform == MFX_HW_EHL)
+        && par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
+    {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
+        return sts;
+    }
+#endif
     if (par.mfx.LowPower == MFX_CODINGOPTION_UNKNOWN)
         par.mfx.LowPower = MFX_CODINGOPTION_OFF;
 
@@ -240,7 +288,7 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
         encoder_guid,
         m_vpar);
 
-    MFX_CHECK(sts != MFX_ERR_INVALID_VIDEO_PARAM, sts);
+    MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM); // MFX_ERR_UNSUPPORTED is unavailable for Init
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
 
     sts = m_ddi->QueryEncodeCaps(m_caps);
@@ -274,6 +322,8 @@ mfxStatus MFXVideoENCODEH265_HW::InitImpl(mfxVideoParam *par)
     m_hrd.Init(m_vpar.m_sps, m_vpar.InitialDelayInKB);
 
     sts = m_ddi->CreateAccelerationService(m_vpar);
+
+    MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM); // MFX_ERR_UNSUPPORTED is unavailable for Init
     MFX_CHECK(MFX_SUCCEEDED(sts), MFX_ERR_DEVICE_FAILED);
 
     mfxFrameAllocRequest request = {};
@@ -430,6 +480,11 @@ mfxStatus MFXVideoENCODEH265_HW::QueryIOSurf(VideoCORE *core, mfxVideoParam *par
     request->Info = tmp.mfx.FrameInfo;
 #if (MFX_VERSION >= 1027)
     request->Info.Shift = (tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_P010 ||
+#if (MFX_VERSION >= 1031)
+                           tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_P016 ||
+                           tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_Y216 ||
+                           tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_Y416 ||
+#endif
                            tmp.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210) ? 1: 0;
 #else
     request->Info.Shift = tmp.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10? 1: 0;
@@ -1282,7 +1337,7 @@ mfxStatus  MFXVideoENCODEH265_HW::FreeTask(Task &task)
     }
     if (task.m_midCUQp)
     {
-        ReleaseResource(m_bs,  task.m_midCUQp);
+        ReleaseResource(m_CuQp,  task.m_midCUQp);
         task.m_midCUQp = 0;
     }
 

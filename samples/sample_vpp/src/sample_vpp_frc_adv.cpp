@@ -74,11 +74,8 @@ FRCAdvancedChecker::FRCAdvancedChecker()
 } // FRCAdvancedChecker::FRCAdvancedChecker()
 
 
-mfxStatus FRCAdvancedChecker::Init(mfxVideoParam *par, mfxU32 asyncDeep)
+mfxStatus FRCAdvancedChecker::Init(mfxVideoParam *par, mfxU32 /*asyncDeep*/)
 {
-    par;
-    asyncDeep;
-
     m_videoParam = *par;
 
     m_minDeltaTime = std::min(uint64_t(m_videoParam.vpp.In.FrameRateExtD  * MFX_TIME_STAMP_FREQUENCY) / (2 * m_videoParam.vpp.In.FrameRateExtN),

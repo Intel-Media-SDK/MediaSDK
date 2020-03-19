@@ -25,6 +25,7 @@
 #include "mfxplugin.h"
 #include "mfx_dispatcher_log.h"
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
 namespace MFX {
 
 template<class T> struct RegKey{};
@@ -98,4 +99,6 @@ inline bool QueryKey<bool>(WinRegKey & key, const wchar_t *pValueName, bool &dat
 
 
 } // namespace MFX
-#endif
+#endif // #if !defined(MEDIASDK_UWP_DISPATCHER)
+
+#endif // __MFX_WIN_REG_KEY_H

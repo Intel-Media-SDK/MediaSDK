@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -78,7 +78,7 @@ void H264DecYUVBufferPadded::Init(const VideoDataInfo *info)
     if (info->GetNumPlanes() == 0)
         throw h264_exception(UMC_ERR_NULL_PTR);
 
-    m_bpp = MFX_MAX(info->GetPlaneBitDepth(0), info->GetPlaneBitDepth(1));
+    m_bpp = std::max(info->GetPlaneBitDepth(0), info->GetPlaneBitDepth(1));
 
     m_color_format = info->GetColorFormat();
     m_chroma_format = GetH264ColorFormat(info->GetColorFormat());
@@ -112,7 +112,7 @@ void H264DecYUVBufferPadded::allocate(const FrameData * frameData, const VideoDa
         m_frameData.m_locked = true;
 
     m_color_format = info->GetColorFormat();
-    m_bpp = MFX_MAX(info->GetPlaneBitDepth(0), info->GetPlaneBitDepth(1));
+    m_bpp = std::max(info->GetPlaneBitDepth(0), info->GetPlaneBitDepth(1));
 
     m_chroma_format = GetH264ColorFormat(info->GetColorFormat());
 

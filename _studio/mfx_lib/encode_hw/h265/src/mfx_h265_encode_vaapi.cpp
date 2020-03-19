@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,9 @@ static const std::unordered_map<GUID, VAParameters, GUIDhash> GUID2VAParam = {
     { DXVA2_Intel_LowpowerEncode_HEVC_Main422_10,     VAParameters(VAProfileHEVCMain422_10, VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main444,        VAParameters(VAProfileHEVCMain444,    VAEntrypointEncSliceLP)},
     { DXVA2_Intel_LowpowerEncode_HEVC_Main444_10,     VAParameters(VAProfileHEVCMain444_10, VAEntrypointEncSliceLP)},
+    { DXVA2_Intel_Encode_HEVC_Main12,                 VAParameters(VAProfileHEVCMain12,     VAEntrypointEncSlice)},
+    { DXVA2_Intel_Encode_HEVC_Main422_12,             VAParameters(VAProfileHEVCMain422_12, VAEntrypointEncSlice)},
+    { DXVA2_Intel_Encode_HEVC_Main444_12,             VAParameters(VAProfileHEVCMain444_12, VAEntrypointEncSlice)},
 #endif
 };
 
@@ -383,11 +386,21 @@ mfxStatus SetRateControl(
     if (   par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ && par.mfx.RateControlMethod != MFX_RATECONTROL_LA_EXT)
     {
-        rate_param->bits_per_second = par.MaxKbps * 1000;
-        if(par.MaxKbps)
-            rate_param->target_percentage = (unsigned int)(100.0 * (mfxF64)par.TargetKbps / (mfxF64)par.MaxKbps);
-        if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
-        rate_param->window_size     = par.mfx.Convergence * 100;
+        if (par.m_ext.CO3.WinBRCSize)
+        {
+            rate_param->rc_flags.bits.frame_tolerance_mode = 1; //sliding window
+            rate_param->window_size = 1000;
+            rate_param->bits_per_second = par.m_ext.CO3.WinBRCMaxAvgKbps * 1000;
+            rate_param->target_percentage = (mfxU32)(100.0 * (mfxF64)par.TargetKbps / (mfxF64)par.m_ext.CO3.WinBRCMaxAvgKbps);
+        }
+        else
+        {
+            rate_param->bits_per_second = par.MaxKbps * 1000;
+            if(par.MaxKbps)
+                rate_param->target_percentage = (mfxU32)(100.0 * (mfxF64)par.TargetKbps / (mfxF64)par.MaxKbps);
+            if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
+                rate_param->window_size     = par.mfx.Convergence * 100;
+        }
         rate_param->rc_flags.bits.reset = isBrcResetRequired;
 
         rate_param->rc_flags.bits.enable_parallel_brc = 0;
@@ -935,10 +948,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.ddi_caps.RollingIntraRefresh =
             (attrs[idx_map[VAConfigAttribEncIntraRefresh]].value & (~VA_ATTRIB_NOT_SUPPORTED)) ? 1 : 0 ;
-    m_caps.ddi_caps.UserMaxFrameSizeSupport = 1;
     m_caps.ddi_caps.MBBRCSupport            = attrs[ idx_map[VAConfigAttribRateControl] ].value & VA_RC_MB ? 1 : 0;
-    m_caps.ddi_caps.MbQpDataSupport         = 1;
-    m_caps.ddi_caps.TUSupport               = 73;
 
 #if VA_CHECK_VERSION(1,2,0)
     if(attrs[idx_map[VAConfigAttribRTFormat]].value & VA_RT_FORMAT_YUV420_12)
@@ -968,14 +978,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value != VA_ATTRIB_NOT_SUPPORTED, MFX_ERR_UNSUPPORTED);
     MFX_CHECK_COND(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value && attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value);
-    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value >= m_width, MFX_ERR_UNSUPPORTED);
-    MFX_CHECK(attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value >= m_height, MFX_ERR_UNSUPPORTED);
     m_caps.ddi_caps.MaxPicWidth  = attrs[ idx_map[VAConfigAttribMaxPictureWidth] ].value;
     m_caps.ddi_caps.MaxPicHeight = attrs[ idx_map[VAConfigAttribMaxPictureHeight] ].value;
-
-
-    m_caps.ddi_caps.SliceStructure = 4;
-    m_caps.ddi_caps.SliceByteSizeCtrl = 1; //It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
 
     if (attrs[ idx_map[VAConfigAttribEncMaxRefFrames] ].value != VA_ATTRIB_NOT_SUPPORTED)
     {
@@ -1012,7 +1016,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
     m_caps.ddi_caps.TileSupport = (attrs[idx_map[VAConfigAttribEncTileSupport]].value == 1);
 
-    m_caps.PSliceSupport = IsOn(par.mfx.LowPower) ? 0 : 1;
+    sts = HardcodeCaps(m_caps, core, par);
+    MFX_CHECK_STS(sts);
 
     return MFX_ERR_NONE;
 }
@@ -1071,6 +1076,11 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
                           vaParams.profile,
                           vaParams.entrypoint,
                           attrib.data(), (mfxI32)attrib.size());
+
+    MFX_CHECK(!(VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT == vaSts ||
+                VA_STATUS_ERROR_UNSUPPORTED_PROFILE == vaSts),
+                MFX_ERR_UNSUPPORTED);
+
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     if (   (attrib[0].value & VA_RT_FORMAT_YUV420) == 0
@@ -1147,7 +1157,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     if (par.bMBQPInput || par.bROIViaMBQP)
     {
-        m_cuqpMap.Init (par.m_ext.HEVCParam.PicWidthInLumaSamples, par.m_ext.HEVCParam.PicHeightInLumaSamples);
+        m_cuqpMap.Init (par.m_ext.HEVCParam.PicWidthInLumaSamples, par.m_ext.HEVCParam.PicHeightInLumaSamples, m_caps.ddi_caps.BlockSize);
     }
 
     return MFX_ERR_NONE;
@@ -1248,17 +1258,17 @@ bool operator!=(const ENCODE_ENC_CTRL_CAPS& l, const ENCODE_ENC_CTRL_CAPS& r)
     return !(l == r);
 }
 
-
-void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
+// block width/height = 8 << blockSize
+void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
 {
-
-    //16x32 only: driver limitation
-    m_width        = (picWidthInLumaSamples  + 31) / 32;
-    m_height       = (picHeightInLumaSamples + 31) / 32;
+    //16 or 32 : driver limitation
+    mfxU32 blkSz   = 8 << blockSize;
+    m_width        = (picWidthInLumaSamples  + blkSz - 1) / blkSz;
+    m_height       = (picHeightInLumaSamples + blkSz - 1) / blkSz;
     m_pitch        = mfx::align2_value(m_width, 64);
     m_h_aligned    = mfx::align2_value(m_height, 4);
-    m_block_width  = 32;
-    m_block_height = 32;
+    m_block_width  = blkSz;
+    m_block_height = blkSz;
     m_buffer.resize(m_pitch * m_h_aligned);
     Zero(m_buffer);
 }
@@ -1274,13 +1284,13 @@ bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
     mfxExtEncoderROI* roi = ExtBuffer::Get(task.m_ctrl);
 #endif
 
-    if (cuqpMap.m_width == 0 ||  cuqpMap.m_height == 0 ||
-        cuqpMap.m_block_width == 0 ||  cuqpMap.m_block_height == 0)
+    if (cuqpMap.m_width == 0 || cuqpMap.m_height == 0 ||
+        cuqpMap.m_block_width == 0 || cuqpMap.m_block_height == 0)
     return false;
 
-    mfxU32 drBlkW  = cuqpMap.m_block_width;  // block size of driver
-    mfxU32 drBlkH  = cuqpMap.m_block_height;  // block size of driver
-    mfxU16 inBlkSize = 16;                    //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
+    mfxU32 drBlkW = cuqpMap.m_block_width;  // block size of driver
+    mfxU32 drBlkH = cuqpMap.m_block_height; // block size of driver
+    mfxU16 inBlkSize = 16; //mbqp->BlockSize ? mbqp->BlockSize : 16;  //input block size
 
     mfxU32 inputW = (par.m_ext.HEVCParam.PicWidthInLumaSamples   + inBlkSize - 1)/ inBlkSize;
     mfxU32 inputH = (par.m_ext.HEVCParam.PicHeightInLumaSamples  + inBlkSize - 1)/ inBlkSize;
@@ -1291,15 +1301,13 @@ bool FillCUQPDataVA(Task const & task, MfxVideoParam &par, CUQPMap& cuqpMap)
         {
             return  false;
         }
-        for (mfxU32 i = 0; i < cuqpMap.m_height; i++)
+        // Fill complete buffer, because of LCU based averaging
+        for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
         {
-            for (mfxU32 j = 0; j < cuqpMap.m_width; j++)
+            for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
             {
-                mfxU32 y = i* drBlkH/inBlkSize;
-                mfxU32 x = j* drBlkW/inBlkSize;
-
-                y = (y < inputH)? y:inputH;
-                x = (x < inputW)? x:inputW;
+                mfxU32 y = std::min(i * drBlkH/inBlkSize, inputH - 1);
+                mfxU32 x = std::min(j * drBlkW/inBlkSize, inputW - 1);
 
                 cuqpMap.m_buffer[i * cuqpMap.m_pitch + j] = mbqp->QP[y * inputW + x];
             }

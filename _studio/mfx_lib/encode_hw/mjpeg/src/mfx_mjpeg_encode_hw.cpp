@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -516,7 +516,7 @@ mfxStatus MFXVideoENCODEMJPEG_HW::QueryIOSurf(VideoCORE * core, mfxVideoParam *p
             ? MFX_MEMTYPE_OPAQUE_FRAME
             : MFX_MEMTYPE_EXTERNAL_FRAME;
     }
-    request->NumFrameSuggested = MFX_MAX( request->NumFrameMin,par->AsyncDepth);
+    request->NumFrameSuggested = std::max(request->NumFrameMin, par->AsyncDepth);
 
     return MFX_ERR_NONE;
 }
@@ -699,8 +699,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::Init(mfxVideoParam *par)
             doubleBytesPerPx = 8;
             break;
     }
-    request.Info.Width  = MFX_MAX(request.Info.Width,  m_vParam.mfx.FrameInfo.Width);
-    request.Info.Height = MFX_MAX(request.Info.Height, m_vParam.mfx.FrameInfo.Height * doubleBytesPerPx / 2);
+    request.Info.Width  = std::max        (request.Info.Width,  m_vParam.mfx.FrameInfo.Width);
+    request.Info.Height = std::max<mfxU16>(request.Info.Height, m_vParam.mfx.FrameInfo.Height * doubleBytesPerPx / 2);
 
     sts = m_bitstream.Alloc(m_pCore, request);
     MFX_CHECK(
@@ -1031,8 +1031,8 @@ mfxStatus MFXVideoENCODEMJPEG_HW::CheckEncodeFrameParam(
             MFX_CHECK(surface->Data.Y != 0 || isExternalFrameAllocator, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
 
-        if (surface->Info.Width != m_vParam.mfx.FrameInfo.Width || surface->Info.Height != m_vParam.mfx.FrameInfo.Height)
-            sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
+        MFX_CHECK(surface->Info.Width >= m_vParam.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(surface->Info.Height >= m_vParam.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
     }
     else
     {

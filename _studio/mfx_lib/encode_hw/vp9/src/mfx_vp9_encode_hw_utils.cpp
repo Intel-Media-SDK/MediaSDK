@@ -26,7 +26,8 @@ namespace MfxHwVP9Encode
 {
 
 VP9MfxVideoParam::VP9MfxVideoParam()
-    : m_inMemType(INPUT_VIDEO_MEMORY)
+    : m_platform(MFX_HW_UNKNOWN)
+    , m_inMemType(INPUT_VIDEO_MEMORY)
     , m_targetKbps(0)
     , m_maxKbps(0)
     , m_bufferSizeInKb(0)
@@ -56,8 +57,15 @@ VP9MfxVideoParam::VP9MfxVideoParam(mfxVideoParam const & par)
     Construct(par);
 }
 
+VP9MfxVideoParam::VP9MfxVideoParam(mfxVideoParam const & par, eMFXHWType const & platform)
+{
+    m_platform = platform;
+    Construct(par);
+}
+
 VP9MfxVideoParam& VP9MfxVideoParam::operator=(VP9MfxVideoParam const & par)
 {
+    m_platform = par.m_platform;
     Construct(par);
 
     return *this;
@@ -83,7 +91,7 @@ void VP9MfxVideoParam::CalculateInternalParams()
     }
 
     m_targetKbps = m_maxKbps = m_bufferSizeInKb = m_initialDelayInKb = 0;
-    mfxU16 mult = MFX_MAX(mfx.BRCParamMultiplier, 1);
+    mfxU16 mult = std::max<mfxU16>(mfx.BRCParamMultiplier, 1);
 
     //"RateControlMethod == 0" always maps to CBR or VBR depending on TargetKbps and MaxKbps
     if (IsBitrateBasedBRC(mfx.RateControlMethod) || mfx.RateControlMethod == 0)
@@ -116,20 +124,20 @@ void VP9MfxVideoParam::SyncInternalParamToExternal()
 
     if (IsBitrateBasedBRC(mfx.RateControlMethod))
     {
-        maxBrcVal32 = MFX_MAX(m_maxKbps, MFX_MAX(maxBrcVal32, m_targetKbps));
+        maxBrcVal32 = std::max({m_maxKbps, maxBrcVal32, m_targetKbps});
 
         if (IsBufferBasedBRC(mfx.RateControlMethod))
         {
-            maxBrcVal32 = MFX_MAX(maxBrcVal32, m_initialDelayInKb);
+            maxBrcVal32 = std::max(maxBrcVal32, m_initialDelayInKb);
         }
 
         for (mfxU16 i = 0; i < MAX_NUM_TEMP_LAYERS; i++)
         {
-            maxBrcVal32 = MFX_MAX(maxBrcVal32, m_layerParam[i].targetKbps);
+            maxBrcVal32 = std::max(maxBrcVal32, m_layerParam[i].targetKbps);
         }
     }
 
-    mfxU16 mult = MFX_MAX(mfx.BRCParamMultiplier, 1);
+    mfxU16 mult = std::max<mfxU16>(mfx.BRCParamMultiplier, 1);
 
     if (maxBrcVal32)
     {
@@ -570,7 +578,8 @@ MfxFrameAllocResponse::~MfxFrameAllocResponse()
 
 mfxStatus MfxFrameAllocResponse::Alloc(
     VideoCORE*     pCore,
-    mfxFrameAllocRequest & req)
+    mfxFrameAllocRequest & req,
+    bool isCopyRequired)
 {
     req.NumFrameSuggested = req.NumFrameMin; // no need in 2 different NumFrames
 
@@ -584,7 +593,7 @@ mfxStatus MfxFrameAllocResponse::Alloc(
 
         for (int i = 0; i < req.NumFrameMin; i++)
         {
-            mfxStatus sts = pCore->AllocFrames(&tmp, &m_responseQueue[i]);
+            mfxStatus sts = pCore->AllocFrames(&tmp, &m_responseQueue[i], isCopyRequired);
             MFX_CHECK_STS(sts);
 
             m_mids[i] = m_responseQueue[i].mids[0];
@@ -595,7 +604,7 @@ mfxStatus MfxFrameAllocResponse::Alloc(
     }
     else
     {
-        mfxStatus sts = pCore->AllocFrames(&req, this);
+        mfxStatus sts = pCore->AllocFrames(&req, this, isCopyRequired);
         MFX_CHECK_STS(sts);
     }
 
@@ -699,7 +708,7 @@ mfxStatus ExternalFrames::GetFrame(mfxFrameSurface1 *pInFrame, sFrameEx *&pOutFr
 //---------------------------------------------------------
 // service class: InternalFrames
 //---------------------------------------------------------
-mfxStatus InternalFrames::Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq)
+mfxStatus InternalFrames::Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq, bool isCopyRequired)
 {
     MFX_CHECK_NULL_PTR2 (pCore, pAllocReq);
     mfxU32 nFrames = pAllocReq->NumFrameMin;
@@ -712,7 +721,7 @@ mfxStatus InternalFrames::Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq
     //printf("internal frames init %d (request)\n", req.NumFrameSuggested);
 
     mfxStatus sts = MFX_ERR_NONE;
-    sts = m_response.Alloc(pCore, *pAllocReq);
+    sts = m_response.Alloc(pCore, *pAllocReq, isCopyRequired);
     MFX_CHECK_STS(sts);
 
     //printf("internal frames init %d (%d) [%d](response)\n", m_response.NumFrameActual,Num(),nFrames);

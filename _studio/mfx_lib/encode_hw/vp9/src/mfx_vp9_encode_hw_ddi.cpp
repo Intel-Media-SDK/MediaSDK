@@ -57,14 +57,14 @@ namespace MfxHwVP9Encode
         }
     }
 
-    mfxStatus QueryCaps(VideoCORE* pCore, ENCODE_CAPS_VP9 & caps, GUID guid, mfxU32 width, mfxU32 height)
+    mfxStatus QueryCaps(VideoCORE* pCore, ENCODE_CAPS_VP9 & caps, GUID guid, VP9MfxVideoParam const & par)
     {
         std::unique_ptr<DriverEncoder> ddi;
 
         ddi.reset(CreatePlatformVp9Encoder(pCore));
         MFX_CHECK(ddi.get() != NULL, MFX_WRN_PARTIAL_ACCELERATION);
 
-        mfxStatus sts = ddi.get()->CreateAuxilliaryDevice(pCore, guid, width, height);
+        mfxStatus sts = ddi.get()->CreateAuxilliaryDevice(pCore, guid, par);
         MFX_CHECK_STS(sts);
 
         sts = ddi.get()->QueryEncodeCaps(caps);
@@ -183,6 +183,8 @@ namespace MfxHwVP9Encode
         VP9FrameLevelParam const &framePar = task.m_frameParam;
 
         Zero(offsets);
+
+        offsets.BitOffsetUncompressedHeader = (mfxU16)localBuf.bitOffset;
 
         WriteLiteral(localBuf, VP9_FRAME_MARKER, 2);
 
@@ -375,7 +377,7 @@ namespace MfxHwVP9Encode
         mfxU8 maxLog2TileCols = 1;
         mfxU8 ones;
 
-        const mfxU8 sb64Cols = (mfx::align2_value(framePar.modeInfoCols, 1 << MI_BLOCK_SIZE_LOG2)) >> MI_BLOCK_SIZE_LOG2;
+        const mfxU16 sb64Cols = (mfx::align2_value(framePar.modeInfoCols, 1 << MI_BLOCK_SIZE_LOG2)) >> MI_BLOCK_SIZE_LOG2;
         while ((MAX_TILE_WIDTH_B64 << minLog2TileCols) < sb64Cols)
         {
             minLog2TileCols ++;

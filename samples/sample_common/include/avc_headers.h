@@ -49,11 +49,7 @@ public:
             m_header.resize(id + 1);
         }
 
-        if (m_header[id])
-        {
-            delete m_header[id];
-            m_header[id]=0;
-        }
+        delete m_header[id];
 
         m_header[id] = new T();
         *(m_header[id]) = *hdr;

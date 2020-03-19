@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@
 #include "mfx_timing.h"
 
 #include <cassert>
+#include <cstddef>
 
 #if defined(MFX_VA_LINUX)
 #include <va/va.h>
@@ -56,6 +57,8 @@ static inline T mfx_print_err(T sts, const char *file, int line, const char *fun
 #define MFX_RETURN(sts)         { return MFX_STS_TRACE(sts); }
 #define MFX_CHECK(EXPR, ERR)    { if (!(EXPR)) MFX_RETURN(ERR); }
 
+#define MFX_CHECK_NO_RET(EXPR, STS, ERR){ if (!(EXPR)) { std::ignore = MFX_STS_TRACE(ERR); STS = ERR; } }
+
 #define MFX_CHECK_STS(sts)              MFX_CHECK(MFX_SUCCEEDED(sts), sts)
 #define MFX_SAFE_CALL(FUNC)             { mfxStatus _sts = FUNC; MFX_CHECK_STS(_sts); }
 #define MFX_CHECK_NULL_PTR1(pointer)    MFX_CHECK(pointer, MFX_ERR_NULL_PTR)
@@ -65,8 +68,8 @@ static inline T mfx_print_err(T sts, const char *file, int line, const char *fun
 #define MFX_CHECK_COND(cond)            MFX_CHECK(cond, MFX_ERR_UNSUPPORTED)
 #define MFX_CHECK_INIT(InitFlag)        MFX_CHECK(InitFlag, MFX_ERR_MORE_DATA)
 
-#define MFX_CHECK_UMC_ALLOC(err) if (err != true) {return MFX_ERR_MEMORY_ALLOC;}
-#define MFX_CHECK_EXBUF_INDEX(index) if (index == -1) {return MFX_ERR_MEMORY_ALLOC;}
+#define MFX_CHECK_UMC_ALLOC(err)     { if (err != true) {return MFX_ERR_MEMORY_ALLOC;} }
+#define MFX_CHECK_EXBUF_INDEX(index) { if (index == -1) {return MFX_ERR_MEMORY_ALLOC;} }
 
 #define MFX_CHECK_WITH_ASSERT(EXPR, ERR) {assert(EXPR); MFX_CHECK(EXPR,ERR); }
 
@@ -75,7 +78,7 @@ static const mfxU64 MFX_TIME_STAMP_INVALID = (mfxU64)-1; // will go to mfxdefs.h
 static const mfxU32 NO_INDEX = 0xffffffff;
 static const mfxU8  NO_INDEX_U8 = 0xff;
 static const mfxU16 NO_INDEX_U16 = 0xffff;
-#define MFX_CHECK_UMC_STS(err) if (err != static_cast<int>(UMC::UMC_OK)) {return ConvertStatusUmc2Mfx(err);}
+#define MFX_CHECK_UMC_STS(err)  { if (err != static_cast<int>(UMC::UMC_OK)) {return ConvertStatusUmc2Mfx(err);} }
 
 inline
 mfxStatus ConvertStatusUmc2Mfx(UMC::Status umcStatus)
@@ -155,6 +158,358 @@ T align2_value(T value, size_t alignment = 16)
     assert((alignment & (alignment - 1)) == 0);
     return static_cast<T> ((value + (alignment - 1)) & ~(alignment - 1));
 }
+
+template <class T>
+constexpr size_t size(const T& c)
+{
+    return (size_t)c.size();
+}
+
+template <class T, size_t N>
+constexpr size_t size(const T(&)[N])
+{
+    return N;
+}
+
+inline mfxU32 CeilLog2(mfxU32 x)
+{
+    mfxU32 l = 0;
+    while (x > (1U << l))
+        ++l;
+    return l;
+}
+
+template <class F>
+struct TupleArgs;
+
+template <typename TRes, typename... TArgs>
+struct TupleArgs<TRes(TArgs...)>
+{
+    using type = std::tuple<TArgs...>;
+};
+template <typename TRes, typename... TArgs>
+struct TupleArgs<TRes(*)(TArgs...)>
+{
+    using type = std::tuple<TArgs...>;
+};
+
+template<class T, T... args>
+struct integer_sequence
+{
+    using value_type = T;
+    static size_t size() { return (sizeof...(args)); }
+};
+
+template<size_t... args>
+using index_sequence = mfx::integer_sequence<size_t, args...>;
+
+template<size_t N, size_t ...S>
+struct make_index_sequence_impl
+    : make_index_sequence_impl<N - 1, N - 1, S...>
+{};
+
+template<size_t ...S>
+struct make_index_sequence_impl<0, S...>
+{
+    using type = index_sequence<S...>;
+};
+
+template <class F>
+struct result_of;
+
+template <typename TRes, typename... TArgs>
+struct result_of<TRes(TArgs...)> : std::result_of<TRes(TArgs...)> {};
+
+template <typename TRes, typename... TArgs>
+struct result_of<TRes(*const&)(TArgs...)>
+{
+    using type = TRes;
+};
+
+template<size_t S>
+using make_index_sequence = typename make_index_sequence_impl<S>::type;
+
+template<typename TFunc, typename TTuple, size_t ...S >
+inline typename mfx::result_of<TFunc>::type
+    apply_impl(TFunc&& fn, TTuple&& t, mfx::index_sequence<S...>)
+{
+    return fn(std::get<S>(t) ...);
+}
+
+template<typename TFunc, typename TTuple>
+inline typename mfx::result_of<TFunc>::type
+    apply(TFunc&& fn, TTuple&& t)
+{
+    return apply_impl(
+        std::forward<TFunc>(fn)
+        , std::forward<TTuple>(t)
+        , typename mfx::make_index_sequence<std::tuple_size<typename std::remove_reference<TTuple>::type>::value>());
+}
+
+template<class T>
+class IterStepWrapper
+    : public std::iterator_traits<T>
+{
+public:
+    using iterator_category = std::forward_iterator_tag;
+    using iterator_type = IterStepWrapper;
+    using reference = typename std::iterator_traits<T>::reference;
+    using pointer = typename std::iterator_traits<T>::pointer;
+
+    IterStepWrapper(T ptr, ptrdiff_t step = 1)
+        : m_ptr(ptr)
+        , m_step(step)
+    {}
+    iterator_type& operator++()
+    {
+        std::advance(m_ptr, m_step);
+        return *this;
+    }
+    iterator_type operator++(int)
+    {
+        auto i = *this;
+        ++(*this);
+        return i;
+    }
+    reference operator*() { return *m_ptr; }
+    pointer operator->() { return m_ptr; }
+    bool operator==(const iterator_type& other)
+    {
+        return
+            m_ptr == other.m_ptr
+            || abs(std::distance(m_ptr, other.m_ptr)) < std::max(abs(m_step), abs(other.m_step));
+    }
+    bool operator!=(const iterator_type& other)
+    {
+        return !((*this) == other);
+    }
+private:
+    T m_ptr;
+    ptrdiff_t m_step;
+};
+
+template <class T>
+inline IterStepWrapper<T> MakeStepIter(T ptr, ptrdiff_t step = 1)
+{
+    return IterStepWrapper<T>(ptr, step);
+}
+
+namespace options //MSDK API options verification utilities
+{
+    //Each Check... function return true if verification failed, false otherwise
+    template <class T>
+    inline bool Check(const T&)
+    {
+        return true;
+    }
+
+    template <class T, T val, T... other>
+    inline bool Check(const T & opt)
+    {
+        if (opt == val)
+            return false;
+        return Check<T, other...>(opt);
+    }
+
+    template <class T, T val>
+    inline bool CheckGE(T opt)
+    {
+        return !(opt >= val);
+    }
+
+    template <class T, class... U>
+    inline bool Check(T & opt, T next, U... other)
+    {
+        if (opt == next)
+            return false;
+        return Check(opt, other...);
+    }
+
+    template <class T>
+    inline bool CheckOrZero(T& opt)
+    {
+        opt = T(0);
+        return true;
+    }
+
+    template <class T, T val, T... other>
+    inline bool CheckOrZero(T & opt)
+    {
+        if (opt == val)
+            return false;
+        return CheckOrZero<T, other...>(opt);
+    }
+
+    template <class T, class... U>
+    inline bool CheckOrZero(T & opt, T next, U... other)
+    {
+        if (opt == next)
+            return false;
+        return CheckOrZero(opt, (T)other...);
+    }
+
+    template <class T, class U>
+    inline bool CheckMaxOrZero(T & opt, U max)
+    {
+        if (opt <= max)
+            return false;
+        opt = 0;
+        return true;
+    }
+
+    template <class T, class U>
+    inline bool CheckMinOrZero(T & opt, U min)
+    {
+        if (opt >= min)
+            return false;
+        opt = 0;
+        return true;
+    }
+
+    template <class T, class U>
+    inline bool CheckMaxOrClip(T & opt, U max)
+    {
+        if (opt <= max)
+            return false;
+        opt = T(max);
+        return true;
+    }
+
+    template <class T, class U>
+    inline bool CheckMinOrClip(T & opt, U min)
+    {
+        if (opt >= min)
+            return false;
+        opt = T(min);
+        return true;
+    }
+
+    template <class T>
+    inline bool CheckRangeOrSetDefault(T & opt, T min, T max, T dflt)
+    {
+        if (opt >= min && opt <= max)
+            return false;
+        opt = dflt;
+        return true;
+    }
+
+    inline bool CheckTriState(mfxU16 opt)
+    {
+        return Check<mfxU16
+            , MFX_CODINGOPTION_UNKNOWN
+            , MFX_CODINGOPTION_ON
+            , MFX_CODINGOPTION_OFF>(opt);
+    }
+
+    inline bool CheckTriStateOrZero(mfxU16& opt)
+    {
+        return CheckOrZero<mfxU16
+            , MFX_CODINGOPTION_UNKNOWN
+            , MFX_CODINGOPTION_ON
+            , MFX_CODINGOPTION_OFF>(opt);
+    }
+
+    template<class TVal, class TArg, typename std::enable_if<!std::is_constructible<TVal, TArg>::value, int>::type = 0>
+    inline TVal GetOrCall(TArg val) { return val(); }
+
+    template<class TVal, class TArg, typename = typename std::enable_if<std::is_constructible<TVal, TArg>::value>::type>
+    inline TVal GetOrCall(TArg val) { return TVal(val); }
+
+    template<typename T, typename TF>
+    inline bool SetDefault(T& opt, TF get_dflt)
+    {
+        if (opt)
+            return false;
+        opt = GetOrCall<T>(get_dflt);
+        return true;
+    }
+
+    template<typename T, typename TF>
+    inline bool SetIf(T& opt, bool bSet, TF get)
+    {
+        if (!bSet)
+            return false;
+        opt = GetOrCall<T>(get);
+        return true;
+    }
+
+    template<class T, class TF, class... TA>
+    inline bool SetIf(T& opt, bool bSet, TF&& get, TA&&... arg)
+    {
+        if (!bSet)
+            return false;
+        opt = get(std::forward<TA>(arg)...);
+        return true;
+    }
+
+    template <class T>
+    inline bool InheritOption(T optInit, T & optReset)
+    {
+        if (optReset == 0)
+        {
+            optReset = optInit;
+            return true;
+        }
+        return false;
+    }
+
+    template<class TSrcIt, class TDstIt>
+    TDstIt InheritOptions(TSrcIt initFirst, TSrcIt initLast, TDstIt resetFirst)
+    {
+        while (initFirst != initLast)
+        {
+            InheritOption(*initFirst++, *resetFirst++);
+        }
+        return resetFirst;
+    }
+
+    inline mfxU16 Bool2CO(bool bOptON)
+    {
+        return mfxU16(MFX_CODINGOPTION_OFF - !!bOptON * MFX_CODINGOPTION_ON);
+    }
+
+    template<class T>
+    inline bool AlignDown(T& value, mfxU32 alignment)
+    {
+        assert((alignment & (alignment - 1)) == 0); // should be 2^n
+        if (!(value & (alignment - 1))) return false;
+        value = value & ~(alignment - 1);
+        return true;
+    }
+
+    template<class T>
+    inline bool AlignUp(T& value, mfxU32 alignment)
+    {
+        assert((alignment & (alignment - 1)) == 0); // should be 2^n
+        if (!(value & (alignment - 1))) return false;
+        value = (value + alignment - 1) & ~(alignment - 1);
+        return true;
+    }
+
+    namespace frametype
+    {
+        inline bool IsIdr(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_IDR);
+        }
+        inline bool IsI(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_I);
+        }
+        inline bool IsB(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_B);
+        }
+        inline bool IsP(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_P);
+        }
+        inline bool IsRef(mfxU32 type)
+        {
+            return !!(type & MFX_FRAMETYPE_REF);
+        }
+    }
+}
 }
 
 #define MFX_COPY_FIELD(Field)       buf_dst.Field = buf_src.Field
@@ -190,5 +545,20 @@ static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
 }
 
 MFX_DECL_OPERATOR_NOT_EQ(mfxPluginUID)
+
+inline bool IsOn(mfxU32 opt)
+{
+    return opt == MFX_CODINGOPTION_ON;
+}
+
+inline bool IsOff(mfxU32 opt)
+{
+    return opt == MFX_CODINGOPTION_OFF;
+}
+
+inline bool IsAdapt(mfxU32 opt)
+{
+    return opt == MFX_CODINGOPTION_ADAPTIVE;
+}
 
 #endif // __MFXUTILS_H__

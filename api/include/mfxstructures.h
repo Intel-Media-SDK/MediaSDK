@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -104,7 +104,7 @@ enum {
     MFX_FOURCC_P8           = 41,                                /*  D3DFMT_P8   */
     MFX_FOURCC_P8_TEXTURE   = MFX_MAKEFOURCC('P','8','M','B'),
     MFX_FOURCC_P010         = MFX_MAKEFOURCC('P','0','1','0'),
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     MFX_FOURCC_P016         = MFX_MAKEFOURCC('P','0','1','6'),
 #endif
     MFX_FOURCC_P210         = MFX_MAKEFOURCC('P','2','1','0'),
@@ -120,7 +120,7 @@ enum {
     MFX_FOURCC_Y210         = MFX_MAKEFOURCC('Y','2','1','0'),
     MFX_FOURCC_Y410         = MFX_MAKEFOURCC('Y','4','1','0'),
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     MFX_FOURCC_Y216         = MFX_MAKEFOURCC('Y','2','1','6'),
     MFX_FOURCC_Y416         = MFX_MAKEFOURCC('Y','4','1','6'),
 #endif
@@ -470,6 +470,9 @@ enum {
     MFX_PROFILE_HEVC_MAIN10           =2,
     MFX_PROFILE_HEVC_MAINSP           =3,
     MFX_PROFILE_HEVC_REXT             =4,
+#if (MFX_VERSION >= 1032)
+    MFX_PROFILE_HEVC_SCC              =9,
+#endif
 
     MFX_LEVEL_HEVC_1   = 10,
     MFX_LEVEL_HEVC_2   = 20,
@@ -926,6 +929,9 @@ enum {
     MFX_EXTBUFF_AVC_SCALING_MATRIX              = MFX_MAKEFOURCC('A','V','S','M'),
     MFX_EXTBUFF_MPEG2_QUANT_MATRIX              = MFX_MAKEFOURCC('M','2','Q','M'),
     MFX_EXTBUFF_TASK_DEPENDENCY                 = MFX_MAKEFOURCC('S','Y','N','C'),
+#endif
+#if (MFX_VERSION >= 1031)
+    MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM         = MFX_MAKEFOURCC('P','B','O','P'),
 #endif
 };
 
@@ -2267,6 +2273,68 @@ typedef struct {
 } mfxExtVppMctf;
 MFX_PACK_END()
 
+#endif
+
+#if (MFX_VERSION >= 1031)
+/* Multi-adapters Querying structs */
+typedef enum
+{
+    MFX_COMPONENT_ENCODE = 1,
+    MFX_COMPONENT_DECODE = 2,
+    MFX_COMPONENT_VPP    = 3
+} mfxComponentType;
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct
+{
+    mfxComponentType Type;
+    mfxVideoParam    Requirements;
+
+    mfxU16           reserved[4];
+} mfxComponentInfo;
+MFX_PACK_END()
+
+/* Adapter description */
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct
+{
+    mfxPlatform Platform;
+    mfxU32      Number;
+
+    mfxU16      reserved[14];
+} mfxAdapterInfo;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+typedef struct
+{
+    mfxAdapterInfo * Adapters;
+    mfxU32           NumAlloc;
+    mfxU32           NumActual;
+
+    mfxU16           reserved[4];
+} mfxAdaptersInfo;
+MFX_PACK_END()
+
+#endif
+
+#if (MFX_VERSION >= 1031)
+/* PartialBitstreamOutput */
+enum {
+    MFX_PARTIAL_BITSTREAM_NONE    = 0,     /* Don't use partial output */
+    MFX_PARTIAL_BITSTREAM_SLICE   = 1,     /* Partial bitstream output will be aligned to slice granularity */
+    MFX_PARTIAL_BITSTREAM_BLOCK   = 2,     /* Partial bitstream output will be aligned to user-defined block size granularity */
+    MFX_PARTIAL_BITSTREAM_ANY     = 3      /* Partial bitstream output will be return any coded data avilable at the end of SyncOperation timeout */
+};
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          BlockSize;        /* output block granulatiry for Granularity = MFX_PARTIAL_BITSTREAM_BLOCK */
+    mfxU16          Granularity;      /* granulatiry of the partial bitstream: slice/block/any */
+    mfxU16          reserved[8];
+} mfxExtPartialBitstreamParam;
+MFX_PACK_END()
 #endif
 
 #ifdef __cplusplus

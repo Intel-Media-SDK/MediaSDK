@@ -81,6 +81,8 @@ namespace MFX {
         }
     };
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
+
     //populated from registry
     class MFXPluginsInHive : public MFXPluginStorageBase
     {
@@ -99,6 +101,8 @@ namespace MFX {
         bool ParseFile(FILE * f, PluginDescriptionRecord & des);
         bool ParseKVPair( wchar_t *key, wchar_t * value, PluginDescriptionRecord & des);
     };
+
+#endif //#if !defined(MEDIASDK_UWP_DISPATCHER)
 
     //plugins are loaded from FS close to Runtime library
     class MFXDefaultPlugins : public MFXPluginStorageBase

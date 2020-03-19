@@ -1,4 +1,4 @@
-# Copyright (c) 2018 Intel Corporation
+# Copyright (c) 2018-2019 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -43,7 +43,6 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
     ${prefix}/mfx_brc_common.cpp
     ${prefix}/mfx_common_decode_int.cpp
     ${prefix}/mfx_common_int.cpp
-    ${prefix}/mfx_enc_common.cpp
     ${prefix}/mfx_critical_error_handler.cpp
     ${prefix}/mfx_vpx_dec_common.cpp
   )
@@ -55,6 +54,7 @@ append_property( mfx_common COMPILE_FLAGS " -DMFX_RT" )
 
 foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   list( APPEND sources
+    ${prefix}/mfx_enc_common.cpp
     ${prefix}/mfx_ddi_enc_dump.cpp
     ${prefix}/mfx_h264_enc_common_hw.cpp
     ${prefix}/mfx_h264_encode_vaapi.cpp
@@ -81,6 +81,7 @@ include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_preenc )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_pak )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_enc )
+include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc )
 foreach( dir ${mdirs} )
   include_directories( ${MSDK_LIB_ROOT}/${dir}/include )
 endforeach()
@@ -174,7 +175,7 @@ else()
 endif()
 
 if( MFX_ENABLE_SW_FALLBACK )
-  set(SW_FALLBACK_LIBS "jpeg_enc;color_space_converter_hw;ipp;encode")
+  set(SW_FALLBACK_LIBS "encode_sw;ipp;encode")
 else()
   set(SW_FALLBACK_LIBS "")
 endif()
@@ -182,21 +183,13 @@ endif()
 set( LIBS "" )
 list( APPEND LIBS
   bitrate_control
-  h264_dec_hw
-  h265_dec_hw
-  jpeg_common
-  jpeg_dec_hw
   ${SW_FALLBACK_LIBS}
-  mpeg2_dec_hw
-  vc1_common
-  vc1_dec_hw
-  vp8_dec_hw
-  vp9_dec_hw
   umc
   vm
   vm_plus
   umc_va_hw
   cmrt_cross_platform_hw
+  decode_hw
   encode_hw
   h264_la
   ${GENX_LIB}

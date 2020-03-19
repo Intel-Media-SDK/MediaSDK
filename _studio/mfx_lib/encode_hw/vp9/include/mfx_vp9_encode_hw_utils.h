@@ -68,12 +68,11 @@ constexpr auto MAX_NUM_TEMP_LAYERS_SUPPORTED = 4;
 constexpr auto MAX_UPSCALE_RATIO = 16;
 constexpr auto MAX_DOWNSCALE_RATIO = 2;
 
+constexpr auto MIN_TILE_HEIGHT = 128;
 constexpr auto MIN_TILE_WIDTH = 256;
 constexpr auto MAX_TILE_WIDTH = 4096;
 constexpr auto MAX_NUM_TILE_ROWS = 4;
 constexpr auto MAX_NUM_TILES = 16;
-
-constexpr auto SB_SIZE = 64;
 
 const mfxU16 segmentSkipMask = 0xf0;
 const mfxU16 segmentRefMask = 0x0f;
@@ -273,16 +272,6 @@ enum // identifies memory type at encoder input w/o any details
     inline mfxU32 CeilLog2(mfxU32 x) { mfxU32 l = 0; while (x > (1U << l)) l++; return l; }
     inline mfxU32 FloorLog2(mfxU32 x) { mfxU32 l = 0; while (x >= (1U << (l + 1))) l++; return l; }
 
-    inline bool IsOn(mfxU16 opt)
-    {
-        return opt == MFX_CODINGOPTION_ON;
-    }
-
-    inline bool IsOff(mfxU16 opt)
-    {
-        return opt == MFX_CODINGOPTION_OFF;
-    }
-
     template<class T> struct ExtBufTypeToId {};
 
 #define BIND_EXTBUF_TYPE_TO_ID(TYPE, ID) template<> struct ExtBufTypeToId<TYPE> { enum { id = ID }; }
@@ -450,7 +439,8 @@ template <typename T> mfxStatus RemoveExtBuffer(T & par, mfxU32 id)
 
         mfxStatus Alloc(
             VideoCORE* pCore,
-            mfxFrameAllocRequest & req);
+            mfxFrameAllocRequest & req,
+            bool isCopyRequired);
 
         mfxStatus Release();
 
@@ -531,10 +521,12 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         VP9MfxVideoParam();
         VP9MfxVideoParam(VP9MfxVideoParam const &);
         VP9MfxVideoParam(mfxVideoParam const &);
+        VP9MfxVideoParam(mfxVideoParam const & par, eMFXHWType const & platform);
 
         VP9MfxVideoParam & operator = (VP9MfxVideoParam const &);
         VP9MfxVideoParam & operator = (mfxVideoParam const &);
 
+        eMFXHWType m_platform;
         mfxU16 m_inMemType;
         mfxU32 m_targetKbps;
         mfxU32 m_maxKbps;
@@ -608,7 +600,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         std::vector<mfxFrameSurface1>   m_surfaces;
     public:
         InternalFrames() {}
-        mfxStatus Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq);
+        mfxStatus Init(VideoCORE *pCore, mfxFrameAllocRequest *pAllocReq, bool isCopyRequired);
         sFrameEx * GetFreeFrame();
         mfxStatus  GetFrame(mfxU32 numFrame, sFrameEx * &Frame);
         mfxStatus Release();

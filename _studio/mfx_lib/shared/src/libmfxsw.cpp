@@ -199,10 +199,7 @@ mfxStatus MFXClose(mfxSession session)
     mfxStatus mfxRes = MFX_ERR_NONE;
 
     // check error(s)
-    if (0 == session)
-    {
-        return MFX_ERR_INVALID_HANDLE;
-    }
+    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
 
     try
     {
@@ -214,22 +211,16 @@ mfxStatus MFXClose(mfxSession session)
 
         // parent session can't be closed,
         // because there is no way to let children know about parent's death.
-        
+
         // child session should be uncoupled from the parent before closing.
         if (session->IsChildSession())
         {
             mfxRes = MFXDisjoinSession(session);
-            if (MFX_ERR_NONE != mfxRes)
-            {
-                return mfxRes;
-            }
+            MFX_CHECK_STS(mfxRes);
         }
 
-        if (session->IsParentSession())
-        {
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
-        }
-        
+        MFX_CHECK(!session->IsParentSession(), MFX_ERR_UNDEFINED_BEHAVIOR);
+
         // deallocate the object
 #if defined(MFX_USE_VERSIONED_SESSION)
         _mfxSession_1_10 *newSession  = (_mfxSession_1_10 *)session;
@@ -247,6 +238,7 @@ mfxStatus MFXClose(mfxSession session)
 #if defined(MFX_TRACE_ENABLE)
     MFX_TRACE_CLOSE();
 #endif
+    MFX_CHECK_STS(mfxRes);
     return mfxRes;
 
 } // mfxStatus MFXClose(mfxHDL session)

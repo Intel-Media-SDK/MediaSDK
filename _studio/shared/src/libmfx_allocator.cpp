@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -180,6 +180,9 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         nbytes=Pitch*Height2 + (Pitch>>1)*(Height2>>1) + (Pitch>>1)*(Height2>>1);
         break;
     case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+#endif
         Pitch=ALIGN32(request->Info.Width*2);
         nbytes=Pitch*Height2 + (Pitch>>1)*(Height2>>1) + (Pitch>>1)*(Height2>>1);
         break;
@@ -210,6 +213,8 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_AYUV:
+        nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
+        break;
     case MFX_FOURCC_A2RGB10:
         nbytes = Pitch*Height2 + Pitch*Height2 + Pitch*Height2 + Pitch*Height2;
         break;
@@ -235,6 +240,9 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
             return MFX_ERR_UNSUPPORTED;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+#endif
         Pitch=ALIGN32(request->Info.Width*2);
         nbytes=Pitch*Height2 + (Pitch>>1)*(Height2) + (Pitch>>1)*(Height2);
         break;
@@ -245,6 +253,12 @@ mfxStatus mfxDefaultAllocator::AllocFrames(mfxHDL pthis, mfxFrameAllocRequest *r
         break;
 #endif
 
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y416:
+        Pitch=ALIGN32(request->Info.Width*8);
+        nbytes=Pitch*Height2;
+        break;
+#endif
 
     default:
         return MFX_ERR_UNSUPPORTED;
@@ -310,6 +324,9 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
         ptr->V = ptr->U + 1;
         break;
     case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+#endif
         ptr->PitchHigh=0;
         ptr->PitchLow=(mfxU16)ALIGN32(fs->info.Width*2);
         ptr->Y = sptr;
@@ -400,6 +417,9 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
         break;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+#endif
         ptr->PitchHigh = (mfxU16)((4 * ALIGN32(fs->info.Width)) / (1 << 16));
         ptr->PitchLow  = (mfxU16)((4 * ALIGN32(fs->info.Width)) % (1 << 16));
         ptr->Y16 = (mfxU16*)sptr;
@@ -415,6 +435,16 @@ mfxStatus mfxDefaultAllocator::LockFrame(mfxHDL pthis, mfxHDL mid, mfxFrameData 
         break;
 #endif
 
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y416:
+        ptr->PitchHigh = (mfxU16)(8 * ALIGN32(fs->info.Width) / (1 << 16));
+        ptr->PitchLow  = (mfxU16)(8 * ALIGN32(fs->info.Width) % (1 << 16));
+        ptr->U16 = (mfxU16*)sptr;
+        ptr->Y16 = ptr->U16 + 1;
+        ptr->V16 = ptr->Y16 + 1;
+        ptr->A   = (mfxU8 *)(ptr->V16 + 1);
+        break;
+#endif
 
     default:
         return MFX_ERR_UNSUPPORTED;

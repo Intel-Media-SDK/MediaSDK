@@ -40,6 +40,11 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define D3DFMT_Y210 (D3DFORMAT)MAKEFOURCC('Y','2','1','0')
 #define D3DFMT_Y410 (D3DFORMAT)MAKEFOURCC('Y','4','1','0')
 #endif
+#if (MFX_VERSION >= 1031)
+#define D3DFMT_P016 (D3DFORMAT)MAKEFOURCC('P','0','1','6')
+#define D3DFMT_Y216 (D3DFORMAT)MAKEFOURCC('Y','2','1','6')
+#define D3DFMT_Y416 (D3DFORMAT)MAKEFOURCC('Y','4','1','6')
+#endif
 
 #define MFX_FOURCC_IMC3 (MFX_MAKEFOURCC('I','M','C','3')) // This line should be moved into mfxstructures.h in new API version
 
@@ -72,6 +77,14 @@ D3DFORMAT ConvertMfxFourccToD3dFormat(mfxU32 fourcc)
         return D3DFMT_Y210;
     case MFX_FOURCC_Y410:
         return D3DFMT_Y410;
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+        return D3DFMT_P016;
+    case MFX_FOURCC_Y216:
+        return D3DFMT_Y216;
+    case MFX_FOURCC_Y416:
+        return D3DFMT_Y416;
 #endif
     case MFX_FOURCC_A2RGB10:
         return D3DFMT_A2R10G10B10;
@@ -158,6 +171,12 @@ mfxStatus D3DFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
 #if (MFX_VERSION >= 1027)
         && desc.Format != D3DFMT_Y210
 #endif
+#if (MFX_VERSION >= 1031)
+        && desc.Format != D3DFMT_P016
+        && desc.Format != D3DFMT_Y216
+        && desc.Format != D3DFMT_Y410
+        && desc.Format != D3DFMT_Y416
+#endif
         )
         return MFX_ERR_LOCK_MEMORY;
 
@@ -171,6 +190,9 @@ mfxStatus D3DFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
     {
     case D3DFMT_NV12:
     case D3DFMT_P010:
+#if (MFX_VERSION >= 1031)
+    case D3DFMT_P016:
+#endif
         ptr->Pitch = (mfxU16)locked.Pitch;
         ptr->Y = (mfxU8 *)locked.pBits;
         ptr->U = (mfxU8 *)locked.pBits + desc.Height * locked.Pitch;
@@ -229,6 +251,16 @@ mfxStatus D3DFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         ptr->Y = ptr->V + 2;
         ptr->A = ptr->V + 3;
         break;
+#if (MFX_VERSION >= 1031)
+    case D3DFMT_Y416:
+        ptr->Pitch = (mfxU16)locked.Pitch;
+        ptr->U16 = (mfxU16*)locked.pBits;
+        ptr->Y16 = ptr->U16 + 1;
+        ptr->V16 = ptr->Y16 + 1;
+        ptr->A   = (mfxU8 *)(ptr->V16 + 1);
+        break;
+    case D3DFMT_Y216:
+#endif
 #if (MFX_VERSION >= 1027)
     case D3DFMT_Y210:
         ptr->Pitch = (mfxU16)locked.Pitch;
@@ -315,6 +347,15 @@ mfxStatus D3DFrameAllocator::ReleaseResponse(mfxFrameAllocResponse *response)
     }
 
     return sts;
+}
+
+mfxStatus D3DFrameAllocator::ReallocImpl(mfxMemId /*mid*/, const mfxFrameInfo *info, mfxU16 /*memType*/, mfxMemId *midOut)
+{
+    if (!info || !midOut)
+      return MFX_ERR_NULL_PTR;
+
+    //TODO: Need add implementation in the future.
+    return MFX_ERR_UNSUPPORTED;
 }
 
 mfxStatus D3DFrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)

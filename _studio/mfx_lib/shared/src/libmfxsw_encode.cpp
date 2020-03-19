@@ -53,7 +53,11 @@
 #endif
 
 #if defined (MFX_ENABLE_H265_VIDEO_ENCODE)
+#if defined(MFX_ENABLE_HEVCEHW_REFACTORING)
+#include "hevcehw_disp.h"
+#else
 #include "mfx_h265_encode_hw.h"
+#endif
 #endif
 
 #if defined (MFX_ENABLE_VP9_VIDEO_ENCODE)
@@ -254,6 +258,22 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+#if defined(MFX_ENABLE_HEVCEHW_REFACTORING_FEI)
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    if (core && mfxRes)
+                        return HEVCEHW::Create(*core, *mfxRes, true);
+                    return nullptr;
+                },
+                // .query =
+                [](mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
+                { return HEVCEHW::Query(session->m_pCORE.get(), in, out, true); },
+                // .queryIOSurf =
+                [](mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return HEVCEHW::QueryIOSurf(session->m_pCORE.get(), par, request, true); }
+#else
                 // .ctor =
                 [](VideoCORE* core, mfxStatus* mfxRes)
                 -> VideoENCODE*
@@ -264,6 +284,7 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MfxHwH265FeiEncode::H265FeiEncode_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+#endif //defined(MFX_ENABLE_HEVCEHW_REFACTORING_FEI)
             }
         }
     },
@@ -278,6 +299,22 @@ static const CodecId2Handlers codecId2Handlers =
         {
             // .primary =
             {
+#if defined(MFX_ENABLE_HEVCEHW_REFACTORING)
+                // .ctor =
+                [](VideoCORE* core, mfxStatus* mfxRes)
+                -> VideoENCODE*
+                {
+                    if (core && mfxRes)
+                        return HEVCEHW::Create(*core, *mfxRes);
+                    return nullptr;
+                },
+                // .query =
+                [](mfxSession session, mfxVideoParam *in, mfxVideoParam *out)
+                { return HEVCEHW::Query(session->m_pCORE.get(), in, out); },
+                // .queryIOSurf =
+                [](mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest *request)
+                { return HEVCEHW::QueryIOSurf(session->m_pCORE.get(), par, request); }
+#else // defined(MFX_ENABLE_HEVCEHW_REFACTORING)
                 // .ctor =
                 [](VideoCORE* core, mfxStatus* mfxRes)
                 -> VideoENCODE*
@@ -288,6 +325,7 @@ static const CodecId2Handlers codecId2Handlers =
                 // .queryIOSurf =
                 [](mfxSession s, mfxVideoParam *par, mfxFrameAllocRequest *request)
                 { return MfxHwH265Encode::MFXVideoENCODEH265_HW::QueryIOSurf(s->m_pCORE.get(), par, request); }
+#endif // defined(MFX_ENABLE_HEVCEHW_REFACTORING)
             },
             // .fallback =
             {
@@ -611,14 +649,14 @@ mfxStatus MFXVideoENCODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             {
                 std::string result = mfx_reflect::CompareStructsToString(reflection.Access(in), reflection.Access(out));
                 MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, result.c_str())
-            }  
+            }
         }
         catch (const std::exception& e)
         {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, e.what());
         }
-        catch (...) 
-        { 
+        catch (...)
+        {
             MFX_LTRACE_MSG(MFX_TRACE_LEVEL_INTERNAL, "Unknown exception was caught while comparing In and Out VideoParams.");
         }
     }
@@ -749,7 +787,7 @@ mfxStatus MFXVideoENCODE_Close(mfxSession session)
     try
     {
         // wait until all tasks are processed
-        session->m_pScheduler->WaitForTaskCompletion(session->m_pENCODE.get());
+        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pENCODE.get());
 
         mfxRes = session->m_pENCODE->Close();
         // delete the codec's instance if not plugin

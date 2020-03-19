@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -73,9 +73,9 @@
     #define MFX_ENABLE_HEVCE_INTERLACE
     #define MFX_ENABLE_HEVCE_ROI
     #define MFX_ENABLE_HEVCE_HDR_SEI
+    #define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
+    #define MFX_ENABLE_HEVCE_FADE_DETECTION
     //#define MFX_ENABLE_HEVCE_DIRTY_RECT
-    //#define MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION
-    //#define MFX_ENABLE_HEVCE_FADE_DETECTION
 #endif
 
 #if defined(MFX_ENABLE_VP9_VIDEO_ENCODE)
@@ -113,6 +113,10 @@
     #define MFX_ENABLE_FOURCC_RGB565
 #endif
 
+#if MFX_VERSION >= 1031
+    #define MFX_ENABLE_PARTIAL_BITSTREAM_OUTPUT
+#endif
+
 #if defined(MFX_VA_LINUX)
     #if VA_CHECK_VERSION(1,3,0)
         #define MFX_ENABLE_QVBR
@@ -120,5 +124,7 @@
 #endif
 
 #define CMAPIUPDATE
+
+#define MFX_ENABLE_HEVCEHW_REFACTORING
 
 #endif // _MFX_CONFIG_H_

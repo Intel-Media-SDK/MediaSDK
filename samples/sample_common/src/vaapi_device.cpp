@@ -416,8 +416,8 @@ CHWDevice* CreateVAAPIDevice(void)
 
 #if defined(LIBVA_DRM_SUPPORT)
 
-CVAAPIDeviceDRM::CVAAPIDeviceDRM(int type)
-    : m_DRMLibVA(type)
+CVAAPIDeviceDRM::CVAAPIDeviceDRM(const std::string& devicePath, int type)
+    : m_DRMLibVA(devicePath, type)
     , m_rndr(NULL)
 {
 }
@@ -458,7 +458,7 @@ mfxStatus CVAAPIDeviceDRM::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllo
 
 #if defined(LIBVA_DRM_SUPPORT) || defined(LIBVA_X11_SUPPORT) || defined (LIBVA_WAYLAND_SUPPORT)
 
-CHWDevice* CreateVAAPIDevice(int type)
+CHWDevice* CreateVAAPIDevice(const std::string& devicePath, int type)
 {
     CHWDevice * device = NULL;
 
@@ -469,7 +469,7 @@ CHWDevice* CreateVAAPIDevice(int type)
 #if defined(LIBVA_DRM_SUPPORT)
         try
         {
-            device = new CVAAPIDeviceDRM(type);
+            device = new CVAAPIDeviceDRM(devicePath, type);
         }
         catch (std::exception&)
         {
@@ -511,7 +511,7 @@ CHWDevice* CreateVAAPIDevice(int type)
         {
             try
             {
-                device = new CVAAPIDeviceDRM(type);
+                device = new CVAAPIDeviceDRM(devicePath, type);
             }
             catch (std::exception&)
             {
@@ -528,7 +528,7 @@ CHWDevice* CreateVAAPIDevice(int type)
 #elif defined(LIBVA_ANDROID_SUPPORT)
 
 static AndroidLibVA g_LibVA;
-CHWDevice* CreateVAAPIDevice(int type)
+CHWDevice* CreateVAAPIDevice(const std::string& devicePath, int type)
 {
     return new CVAAPIDeviceAndroid(&g_LibVA);
 }

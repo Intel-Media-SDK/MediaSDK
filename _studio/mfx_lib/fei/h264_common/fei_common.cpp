@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -640,6 +640,25 @@ bool MfxH264FEIcommon::FirstFieldProcessingDone(T* inParams, const DdiTask & tas
     return task.m_disableDeblockingIdc[0].empty() != task.m_disableDeblockingIdc[1].empty();
 #endif
 } // bool MfxH264FEIcommon::FirstFieldProcessingDone(T* inParams, DdiTask & task)
+
+mfxStatus MfxH264FEIcommon::Change_DPB(
+        MfxHwH264Encode::ArrayDpbFrame & dpb,
+        mfxMemId                 const * mids,
+        std::vector<mfxU32>      const & fo)
+    {
+        std::vector<mfxU32>::const_iterator it;
+        for (mfxU32 i = 0; i < dpb.Size(); ++i)
+        {
+            it = std::find(fo.begin(), fo.end(), dpb[i].m_frameOrder);
+            MFX_CHECK_WITH_ASSERT(it != fo.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+            // Index of reconstruct surface
+            dpb[i].m_frameIdx = mfxU32(std::distance(fo.begin(), it));
+            dpb[i].m_midRec   = 0; // mids[dpb[i].m_frameIdx];
+        }
+
+        return MFX_ERR_NONE;
+    }    
 
 mfxStatus MfxH264FEIcommon::CheckInitExtBuffers(const MfxVideoParam & owned_video, const mfxVideoParam & passed_video)
 {

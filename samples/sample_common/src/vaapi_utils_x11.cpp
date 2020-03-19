@@ -32,104 +32,99 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 X11LibVA::X11LibVA(void)
     : CLibVA(MFX_LIBVA_X11)
     , m_display(0)
+    , m_configID(VA_INVALID_ID)
     , m_contextID(VA_INVALID_ID)
 {
-    VAStatus va_res = VA_STATUS_SUCCESS;
-    mfxStatus sts = MFX_ERR_NONE;
-    int major_version = 0, minor_version = 0;
     char* currentDisplay = getenv("DISPLAY");
 
-    try
+    m_display = (currentDisplay)?
+        m_x11lib.XOpenDisplay(currentDisplay) :
+        m_x11lib.XOpenDisplay(VAAPI_X_DEFAULT_DISPLAY);
+
+    if (!m_display)
     {
-        if (currentDisplay)
-            m_display = m_x11lib.XOpenDisplay(currentDisplay);
-        else
-            m_display = m_x11lib.XOpenDisplay(VAAPI_X_DEFAULT_DISPLAY);
+        msdk_printf(MSDK_STRING("Failed to open X Display: try to check/set DISPLAY environment variable.\n"));
+        throw std::bad_alloc();
+    }
 
-        if (NULL == m_display) sts = MFX_ERR_NOT_INITIALIZED;
+    m_va_dpy = m_vax11lib.vaGetDisplay(m_display);
+    if (!m_va_dpy)
+    {
+        m_x11lib.XCloseDisplay(m_display);
+        msdk_printf(MSDK_STRING("Failed to get VA Display\n"));
+        throw std::bad_alloc();
+    }
 
-        if (MFX_ERR_NONE == sts)
-        {
-            m_va_dpy = m_vax11lib.vaGetDisplay(m_display);
+    int major_version = 0, minor_version = 0;
+    VAStatus sts = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
 
-            if (!m_va_dpy)
-            {
-                sts = MFX_ERR_NULL_PTR;
-            }
-        }
+    if (VA_STATUS_SUCCESS != sts)
+    {
+        m_x11lib.XCloseDisplay(m_display);
+        msdk_printf(MSDK_STRING("Failed to initialize VAAPI: %d\n"), sts);
+        throw std::bad_alloc();
+    }
+
 #if !defined(X11_DRI3_SUPPORT)
-        if (MFX_ERR_NONE == sts)
-        {
-            va_res = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
-            sts = va_to_mfx_status(va_res);
-        }
-        if (MFX_ERR_NONE == sts)
-        {
-            VAStatus        va_res        = VA_STATUS_SUCCESS;
-            VAConfigID      vpp_config_id = VA_INVALID_ID;
-            VAConfigAttrib  cfgAttrib;
-
-            cfgAttrib.type = VAConfigAttribRTFormat;
-            m_libva.vaGetConfigAttributes(m_va_dpy,
-                                          VAProfileNone,
-                                          VAEntrypointVideoProc,
-                                          &cfgAttrib,
-                                          1);
-
-            va_res = m_libva.vaCreateConfig(m_va_dpy,
-                                            VAProfileNone,
-                                            VAEntrypointVideoProc,
-                                            &cfgAttrib,
-                                            1,
-                                            &vpp_config_id);
-
-            /* Create a context for VPP pipe */
-            va_res = m_libva.vaCreateContext(m_va_dpy,
-                                             vpp_config_id,
-                                             0,
-                                             0,
-                                             VA_PROGRESSIVE,
-                                             0,
-                                             0,
-                                             &m_contextID);
-        }
-#else
-        if (MFX_ERR_NONE == sts)
-        {
-            va_res = m_libva.vaInitialize(m_va_dpy, &major_version, &minor_version);
-            sts = va_to_mfx_status(va_res);
-        }
-#endif // X11_DRI3_SUPPORT
-        if (MFX_ERR_NONE != sts)
-        {
-            m_x11lib.XCloseDisplay(m_display);
-        }
-    }
-    catch(std::exception& )
+    VAConfigAttrib cfgAttrib{};
+    if (VA_STATUS_SUCCESS == sts)
     {
-        sts = MFX_ERR_NOT_INITIALIZED;
+        cfgAttrib.type = VAConfigAttribRTFormat;
+        sts = m_libva.vaGetConfigAttributes(
+            m_va_dpy,
+            VAProfileNone, VAEntrypointVideoProc,
+            &cfgAttrib, 1);
     }
-
-    if (MFX_ERR_NONE != sts) throw std::bad_alloc();
+    if (VA_STATUS_SUCCESS == sts)
+    {
+        sts = m_libva.vaCreateConfig(
+            m_va_dpy,
+            VAProfileNone, VAEntrypointVideoProc,
+            &cfgAttrib, 1,
+            &m_configID);
+    }
+    if (VA_STATUS_SUCCESS == sts)
+    {
+        sts = m_libva.vaCreateContext(
+            m_va_dpy,
+            m_configID, 0, 0, VA_PROGRESSIVE, 0, 0,
+            &m_contextID);
+    }
+    if (VA_STATUS_SUCCESS != sts)
+    {
+        Close();
+        msdk_printf(MSDK_STRING("Failed to initialize VP: %d\n"), sts);
+        throw std::bad_alloc();
+    }
+#endif // X11_DRI3_SUPPORT
 }
 
 X11LibVA::~X11LibVA(void)
 {
-    //release context
+    Close();
+}
+
+void X11LibVA::Close()
+{
+    VAStatus sts;
+
     if (m_contextID != VA_INVALID_ID)
     {
-        m_libva.vaDestroyContext(m_va_dpy, m_contextID);
-        m_contextID = VA_INVALID_ID;
+        sts = m_libva.vaDestroyContext(m_va_dpy, m_contextID);
+        if (sts != VA_STATUS_SUCCESS)
+            msdk_printf(MSDK_STRING("Failed to destroy VA context: %d\n"), sts);
     }
+    if (m_configID != VA_INVALID_ID)
+    {
+        sts = m_libva.vaDestroyConfig(m_va_dpy, m_configID);
+        if (sts != VA_STATUS_SUCCESS)
+            msdk_printf(MSDK_STRING("Failed to destroy VA config: %d\n"), sts);
+    }
+    sts = m_libva.vaTerminate(m_va_dpy);
+    if (sts != VA_STATUS_SUCCESS)
+        msdk_printf(MSDK_STRING("Failed to close VAAPI library: %d\n"), sts);
 
-    if (m_va_dpy)
-    {
-        m_libva.vaTerminate(m_va_dpy);
-    }
-    if (m_display)
-    {
-        m_x11lib.XCloseDisplay(m_display);
-    }
+    m_x11lib.XCloseDisplay(m_display);
 }
 
 #endif // #if defined(LIBVA_X11_SUPPORT)

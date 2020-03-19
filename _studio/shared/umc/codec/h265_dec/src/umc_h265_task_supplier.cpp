@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1454,7 +1454,7 @@ void TaskSupplier_H265::PostProcessDisplayFrame(H265DecoderFrame *pFrame)
 
     DEBUG_PRINT((VM_STRING("Outputted %s, pppp - %d\n"), GetFrameInfoString(pFrame), pppp++));
 
-    m_maxUIDWhenWasDisplayed = MFX_MAX(m_maxUIDWhenWasDisplayed, pFrame->m_maxUIDWhenWasDisplayed);
+    m_maxUIDWhenWasDisplayed = std::max(m_maxUIDWhenWasDisplayed, pFrame->m_maxUIDWhenWasDisplayed);
 }
 
 // Find a next frame ready to be output from decoder
@@ -1689,7 +1689,7 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
     }
 
     if (m_checkCRAInsideResetProcess && !pSource)
-        return UMC::UMC_ERR_FAILED;
+        return UMC::UMC_ERR_NOT_ENOUGH_DATA;
 
     size_t moveToSpsOffset = m_checkCRAInsideResetProcess ? pSource->GetDataSize() : 0;
 
@@ -1970,7 +1970,7 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
     uint32_t currOffset = sliceHdr->m_HeaderBitstreamOffset;
     uint32_t currOffsetWithEmul = currOffset;
 
-    size_t headersEmuls = 0;
+    uint32_t headersEmuls = 0;
     for (; headersEmuls < removed_offsets.size(); headersEmuls++)
     {
         if (removed_offsets[headersEmuls] < currOffsetWithEmul)
@@ -1978,6 +1978,8 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
         else
             break;
     }
+
+    pSlice->m_NumEmuPrevnBytesInSliceHdr = headersEmuls;
 
     // Update entry points
     size_t offsets = removed_offsets.size();
@@ -2009,8 +2011,6 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
                 offsets -= removed_bytes;
                 removed_bytes = 0;
             }
-            else
-                pSlice->m_tileByteLocation[tile] = pSlice->m_tileByteLocation[tile] - removed_bytes;
         }
     }
 
@@ -2109,7 +2109,7 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
         {
             if (pCurr->isDisplayable() && !pCurr->wasOutputted())
             {
-                minRefPicResetCount = MFX_MIN(minRefPicResetCount, pCurr->RefPicListResetCount());
+                minRefPicResetCount = std::min(minRefPicResetCount, pCurr->RefPicListResetCount());
             }
         }
 
@@ -2362,7 +2362,7 @@ UMC::Status TaskSupplier_H265::InitFreeFrame(H265DecoderFrame * pFrame, const H2
     bit_depth_luma = (uint8_t) pSeqParam->bit_depth_luma;
     bit_depth_chroma = (uint8_t) pSeqParam->bit_depth_chroma;
 
-    int32_t bit_depth = MFX_MAX(bit_depth_luma, bit_depth_chroma);
+    int32_t bit_depth = std::max(bit_depth_luma, bit_depth_chroma);
 
 //    int32_t iMBWidth = pSeqParam->frame_width_in_mbs;
     //int32_t iCUWidth = pSeqParam->WidthInCU;
@@ -2431,7 +2431,7 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
                                     pSlice->GetSeqParam()->sps_max_dec_pic_buffering[pSlice->GetSliceHeader()->nuh_temporal_id] :
                                     view.dpbSize;
 
-    view.sps_max_num_reorder_pics = MFX_MIN(pSlice->GetSeqParam()->sps_max_num_reorder_pics[HighestTid], view.sps_max_dec_pic_buffering);
+    view.sps_max_num_reorder_pics = std::min(pSlice->GetSeqParam()->sps_max_num_reorder_pics[HighestTid], view.sps_max_dec_pic_buffering);
 
     DPBUpdate(pSlice);
 
@@ -2627,16 +2627,20 @@ int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t 
 
         uint32_t MaxLumaPs = lumaPsArray[index];
         uint32_t const maxDpbPicBuf =
+#ifndef MFX_VA
+            profile_idc != H265_PROFILE_SCC ? 6 : 7;
+#else
             6;//HW handles second version of current reference (twoVersionsOfCurrDecPicFlag) itself
+#endif
 
         uint32_t PicSizeInSamplesY = width * height;
 
         if (PicSizeInSamplesY  <=  (MaxLumaPs  >>  2 ))
-            MaxDpbSize = MFX_MIN(4 * maxDpbPicBuf, 16);
+            MaxDpbSize = std::min(4 * maxDpbPicBuf, 16u);
         else if (PicSizeInSamplesY  <=  (MaxLumaPs  >>  1 ))
-            MaxDpbSize = MFX_MIN(2 * maxDpbPicBuf, 16);
+            MaxDpbSize = std::min(2 * maxDpbPicBuf, 16u);
         else if (PicSizeInSamplesY  <=  ((3 * MaxLumaPs)  >>  2 ))
-            MaxDpbSize = MFX_MIN((4 * maxDpbPicBuf) / 3, 16);
+            MaxDpbSize = std::min((4 * maxDpbPicBuf) / 3, 16u);
         else
             MaxDpbSize = maxDpbPicBuf;
 

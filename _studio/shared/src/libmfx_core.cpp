@@ -175,7 +175,7 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
         }
 
         // external allocator
-        if (m_bSetExtFrameAlloc)
+        if (m_bSetExtFrameAlloc && !(request->Type & MFX_MEMTYPE_INTERNAL_FRAME))
         {
             sts = (*m_FrameAllocator.frameAllocator.Alloc)(m_FrameAllocator.frameAllocator.pthis, &temp_request, response);
 
@@ -669,7 +669,8 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     m_bIsOpaqMode(false),
     m_CoreId(0),
     m_pWrp(NULL),
-    m_API_1_19(this)
+    m_API_1_19(this),
+    m_deviceId(0)
 {
     m_bufferAllocator.bufferAllocator.pthis = &m_bufferAllocator;
     CheckTimingLog();
@@ -758,31 +759,47 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
     if (!m_hdl && MFX_HW_VAAPI == GetVAType())
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
+#if (MFX_VERSION >= 1031)
+    platform->MediaAdapterType = MFX_MEDIA_INTEGRATED;
+#endif
+
     eMFXHWType type = GetHWType();
 
     switch (type)
     {
-    case MFX_HW_SNB    : platform->CodeName = MFX_PLATFORM_SANDYBRIDGE; break;
-    case MFX_HW_IVB    : platform->CodeName = MFX_PLATFORM_IVYBRIDGE;   break;
+    case MFX_HW_SNB    : platform->CodeName = MFX_PLATFORM_SANDYBRIDGE;   break;
+    case MFX_HW_IVB    : platform->CodeName = MFX_PLATFORM_IVYBRIDGE;     break;
     case MFX_HW_HSW    :
-    case MFX_HW_HSW_ULT: platform->CodeName = MFX_PLATFORM_HASWELL;     break;
-    case MFX_HW_VLV    : platform->CodeName = MFX_PLATFORM_BAYTRAIL;    break;
-    case MFX_HW_BDW    : platform->CodeName = MFX_PLATFORM_BROADWELL;   break;
-    case MFX_HW_CHT    : platform->CodeName = MFX_PLATFORM_CHERRYTRAIL; break;
-    case MFX_HW_SCL    : platform->CodeName = MFX_PLATFORM_SKYLAKE;     break;
-    case MFX_HW_APL    : platform->CodeName = MFX_PLATFORM_APOLLOLAKE;  break;
-    case MFX_HW_KBL    : platform->CodeName = MFX_PLATFORM_KABYLAKE;    break;
+    case MFX_HW_HSW_ULT: platform->CodeName = MFX_PLATFORM_HASWELL;       break;
+    case MFX_HW_VLV    : platform->CodeName = MFX_PLATFORM_BAYTRAIL;      break;
+    case MFX_HW_BDW    : platform->CodeName = MFX_PLATFORM_BROADWELL;     break;
+    case MFX_HW_CHT    : platform->CodeName = MFX_PLATFORM_CHERRYTRAIL;   break;
+    case MFX_HW_SCL    : platform->CodeName = MFX_PLATFORM_SKYLAKE;       break;
+    case MFX_HW_APL    : platform->CodeName = MFX_PLATFORM_APOLLOLAKE;    break;
+    case MFX_HW_KBL    : platform->CodeName = MFX_PLATFORM_KABYLAKE;      break;
 #if (MFX_VERSION >= 1025)
-    case MFX_HW_GLK    : platform->CodeName = MFX_PLATFORM_GEMINILAKE;  break;
-    case MFX_HW_CFL    : platform->CodeName = MFX_PLATFORM_COFFEELAKE;  break;
-    case MFX_HW_CNL    : platform->CodeName = MFX_PLATFORM_CANNONLAKE;  break;
+    case MFX_HW_GLK    : platform->CodeName = MFX_PLATFORM_GEMINILAKE;    break;
+    case MFX_HW_CFL    : platform->CodeName = MFX_PLATFORM_COFFEELAKE;    break;
+    case MFX_HW_CNL    : platform->CodeName = MFX_PLATFORM_CANNONLAKE;    break;
 #endif
 #if (MFX_VERSION >= 1027)
     case MFX_HW_ICL    :
-    case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;     break;
+    case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;       break;
 #endif
-    default:             platform->CodeName = MFX_PLATFORM_UNKNOWN;     break;
+#if (MFX_VERSION >= 1031)
+    case MFX_HW_JSL    : platform->CodeName = MFX_PLATFORM_JASPERLAKE;    break;
+    case MFX_HW_EHL    : platform->CodeName = MFX_PLATFORM_ELKHARTLAKE;   break;
+    case MFX_HW_TGL_LP : platform->CodeName = MFX_PLATFORM_TIGERLAKE;     break;
+
+#endif
+    default:
+#if (MFX_VERSION >= 1031)
+                         platform->MediaAdapterType = MFX_MEDIA_UNKNOWN;
+#endif
+                         platform->CodeName = MFX_PLATFORM_UNKNOWN;       break;
     }
+
+    platform->DeviceId = m_deviceId;
 
     return MFX_ERR_NONE;
 } // mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
@@ -1154,7 +1171,7 @@ mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
     mfxStatus sts;
     if (!dst || !src)
         return MFX_ERR_NULL_PTR;
-    mfxSize roi = { MFX_MIN(src->Info.Width, dst->Info.Width), MFX_MIN(src->Info.Height, dst->Info.Height) };
+    mfxSize roi = { std::min(src->Info.Width, dst->Info.Width), std::min(src->Info.Height, dst->Info.Height) };
     if (!roi.width || !roi.height)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
@@ -1261,7 +1278,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
 {
     mfxStatus sts;
 
-    mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     // check that region of interest is valid
     if (0 == roi.width || 0 == roi.height)
@@ -1275,7 +1292,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
     switch (pDst->Info.FourCC)
     {
     case MFX_FOURCC_P010:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
 #endif
 
@@ -1385,8 +1402,8 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
 
     case MFX_FOURCC_RGB3:
         {
-            mfxU8* ptrSrc = MFX_MIN(MFX_MIN(pSrc->Data.R, pSrc->Data.G), pSrc->Data.B);
-            mfxU8* ptrDst = MFX_MIN(MFX_MIN(pDst->Data.R, pDst->Data.G), pDst->Data.B);
+            mfxU8* ptrSrc = std::min({pSrc->Data.R, pSrc->Data.G, pSrc->Data.B});
+            mfxU8* ptrDst = std::min({pDst->Data.R, pDst->Data.G, pDst->Data.B});
 
             roi.width *= 3;
 
@@ -1418,7 +1435,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
 
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
 #endif
         MFX_CHECK_NULL_PTR1(pSrc->Data.Y);
@@ -1459,7 +1476,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
     }
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y416:
         MFX_CHECK_NULL_PTR1(pSrc->Data.U16);
 
@@ -1475,8 +1492,8 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_A2RGB10:
         {
-            mfxU8* ptrSrc = MFX_MIN(MFX_MIN(pSrc->Data.R, pSrc->Data.G), pSrc->Data.B);
-            mfxU8* ptrDst = MFX_MIN( MFX_MIN(pDst->Data.R, pDst->Data.G), pDst->Data.B );
+            mfxU8* ptrSrc = std::min({pSrc->Data.R, pSrc->Data.G, pSrc->Data.B});
+            mfxU8* ptrDst = std::min({pDst->Data.R, pDst->Data.G, pDst->Data.B});
 
             roi.width *= 4;
 
@@ -1487,8 +1504,8 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int c
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
         {
-            mfxU8* ptrSrc = MFX_MIN(MFX_MIN(pSrc->Data.R, pSrc->Data.G), pSrc->Data.B);
-            mfxU8* ptrDst = MFX_MIN( MFX_MIN(pDst->Data.R, pDst->Data.G), pDst->Data.B );
+            mfxU8* ptrSrc = std::min({pSrc->Data.R, pSrc->Data.G, pSrc->Data.B});
+            mfxU8* ptrDst = std::min({pDst->Data.R, pDst->Data.G, pDst->Data.B});
 
             roi.width *= 8;
 

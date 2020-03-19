@@ -556,7 +556,7 @@ static bool IsSameVideoParam(mfxVideoParam *newPar, mfxVideoParam *oldPar)
         return false;
     }
 
-    int32_t asyncDepth = MFX_MIN(newPar->AsyncDepth, MFX_MAX_ASYNC_DEPTH_VALUE);
+    int32_t asyncDepth = std::min<int32_t>(newPar->AsyncDepth, MFX_MAX_ASYNC_DEPTH_VALUE);
     if (asyncDepth != oldPar->AsyncDepth)
     {
         return false;
@@ -915,6 +915,10 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo const &currInfo, mfxFrameInfo &info
         case MFX_FOURCC_Y410:
 #endif
             break;
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y416:
+#endif
         case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_Y210:

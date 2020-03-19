@@ -43,12 +43,28 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define MFX_CHECK_STS(sts) MFX_CHECK(sts == MFX_ERR_NONE, sts)
 
 
+/*
+NalHrdConformance | VuiNalHrdParameters   |  Result
+--------------------------------------------------------------
+    off                  any                => MFX_BRC_NO_HRD
+    default              off                => MFX_BRC_NO_HRD
+    on                   off                => MFX_BRC_HRD_WEAK
+    on (or default)      on (or default)    => MFX_BRC_HRD_STRONG
+--------------------------------------------------------------
+*/
+enum : mfxU16
+{
+    MFX_BRC_NO_HRD = 0,
+    MFX_BRC_HRD_WEAK,  // IF HRD CALCULATION IS REQUIRED, BUT NOT WRITTEN TO THE STREAM
+    MFX_BRC_HRD_STRONG
+};
+
 class cBRCParams
 {
 public:
     mfxU16 rateControlMethod; // CBR or VBR
 
-    mfxU16 bHRDConformance;  // is HRD compliance  needed
+    mfxU16 HRDConformance;   // is HRD compliance  needed
     mfxU16 bRec;             // is Recoding possible
     mfxU16 bPanic;           // is Panic mode possible
 
@@ -97,7 +113,7 @@ public:
 public:
     cBRCParams():
         rateControlMethod(0),
-        bHRDConformance(0),
+        HRDConformance(MFX_BRC_NO_HRD),
         bRec(0),
         bPanic(0),
         bufferSizeInBytes(0),
@@ -179,9 +195,6 @@ private:
 
 };
 
-#define IPP_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#define IPP_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-
 struct BRC_Ctx
 {
     mfxI32 QuantI;  //currect qp for intra frames
@@ -215,7 +228,7 @@ public:
     AVGBitrate(mfxU32 windowSize, mfxU32 maxBitPerFrame, mfxU32 avgBitPerFrame) :
         m_maxWinBits(maxBitPerFrame*windowSize),
         m_maxWinBitsLim(0),
-        m_avgBitPerFrame(IPP_MIN(avgBitPerFrame, maxBitPerFrame)),
+        m_avgBitPerFrame(std::min(avgBitPerFrame, maxBitPerFrame)),
         m_currPosInWindow(windowSize-1),
         m_lastFrameOrder(mfxU32(-1))
 
@@ -248,12 +261,14 @@ public:
         {
             if (bPanic || bSH)
             {
-                m_maxWinBitsLim = IPP_MAX(IPP_MIN( (GetLastFrameBits(windowSize, false) + m_maxWinBits)/2, m_maxWinBits), GetMaxWinBitsLim());
+                m_maxWinBitsLim = mfx::clamp((GetLastFrameBits(windowSize, false) + m_maxWinBits)/2, GetMaxWinBitsLim(), m_maxWinBits);
             }
             else
             {
-                if (recode)
-                    m_maxWinBitsLim = IPP_MIN(IPP_MAX(GetLastFrameBits(windowSize,false) + GetStep()/2, m_maxWinBitsLim), m_maxWinBits);
+                if (recode) 
+                {
+                    m_maxWinBitsLim = mfx::clamp(GetLastFrameBits(windowSize, false) + GetStep()/2, m_maxWinBitsLim, m_maxWinBits);
+                }
                 else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
                     (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1, false) + sizeInBits)))
                    m_maxWinBitsLim -= GetStep();
@@ -271,7 +286,7 @@ public:
             maxWinBitsLim =  (m_maxWinBits + m_maxWinBitsLim)/2;
         if (bPanic)
             maxWinBitsLim = m_maxWinBits;
-        maxWinBitsLim = IPP_MIN(maxWinBitsLim + recode*GetStep()/2, m_maxWinBits);
+        maxWinBitsLim = std::min(maxWinBitsLim + recode*GetStep()/2, m_maxWinBits);
 
         mfxU32 maxFrameSize = winBits >= m_maxWinBitsLim ?
             mfxU32(std::max<mfxI32>((mfxI32)m_maxWinBits  - (mfxI32)winBits, 1)):
@@ -304,9 +319,9 @@ protected:
         numFrames = numFrames < m_slidingWindow.size() ? numFrames : (mfxU32)m_slidingWindow.size();
         for (mfxU32 i = 0; i < numFrames; i++)
         {
-			mfxU32 frame_size = m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
-			if (bCheckSkip && (frame_size < m_avgBitPerFrame / 3))
-				frame_size = m_avgBitPerFrame / 3;
+            mfxU32 frame_size = m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
+            if (bCheckSkip && (frame_size < m_avgBitPerFrame / 3))
+                frame_size = m_avgBitPerFrame / 3;
             size += frame_size;
             //printf("GetLastFrames: %d) %d sum %d\n",i,m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ], size);
         }
@@ -324,8 +339,7 @@ protected:
 
 
 };
-#undef IPP_MAX
-#undef IPP_MIN
+
 class ExtBRC
 {
 private:

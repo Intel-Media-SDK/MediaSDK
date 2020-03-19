@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -97,6 +97,17 @@ VAEntrypoint umc_to_va_entrypoint(uint32_t umc_entrypoint)
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_444:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_422:
     case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_10 | UMC::VA_PROFILE_444:
+#if (MFX_VERSION >= 1031)
+    case UMC::VA_VLD |                        UMC::VA_PROFILE_12:
+    case UMC::VA_VLD |                        UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
+    case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12:
+    case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_422:
+    case UMC::VA_VLD | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
+    case UMC::VA_VLD | UMC::VA_PROFILE_SCC:
+    case UMC::VA_VLD | UMC::VA_PROFILE_SCC  | UMC::VA_PROFILE_10:
+    case UMC::VA_VLD | UMC::VA_PROFILE_SCC  | UMC::VA_PROFILE_444:
+    case UMC::VA_VLD | UMC::VA_PROFILE_SCC  | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
+#endif
         va_entrypoint = VAEntrypointVLD;
         break;
     default:
@@ -202,6 +213,26 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
         if (profile < 1) va_profile = VAProfileHEVCMain444_10;
         break;
 #endif
+#if (MFX_VERSION >= 1031)
+    case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12:
+    case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_422:
+        if (profile < 1) va_profile = VAProfileHEVCMain422_12;
+        break;
+    case UMC::VA_H265 | UMC::VA_PROFILE_REXT | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
+        if (profile < 1) va_profile = VAProfileHEVCMain444_12;
+        break;
+    case UMC::VA_H265 | UMC::VA_PROFILE_SCC:
+        if (profile < 1) va_profile = VAProfileHEVCSccMain;
+        break;
+    case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_10:
+        if (profile < 1) va_profile = VAProfileHEVCSccMain10;
+        break;
+    case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_444:
+    case UMC::VA_H265 | UMC::VA_PROFILE_SCC | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
+        if (profile < 1) va_profile = VAProfileHEVCSccMain444;
+        break;
+#endif
+
     case UMC::VA_VC1:
         if (profile < UMC_ARRAY_SIZE(g_VC1Profiles)) va_profile = g_VC1Profiles[profile];
         break;
@@ -216,6 +247,13 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_VP9 | UMC::VA_PROFILE_444 | UMC::VA_PROFILE_10:
         if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
         break;
+#if (MFX_VERSION >= 1031)
+    case UMC::VA_VP9 | UMC::VA_PROFILE_12:
+    case UMC::VA_VP9 | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
+        if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
+        break;
+
+#endif
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
         break;
@@ -749,7 +787,11 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 va_size         = sizeof(VASliceParameterBufferHEVC);
                 va_num_elements = size/sizeof(VASliceParameterBufferHEVC);
 #if (MFX_VERSION >= 1027)
-                if (m_Profile &VA_PROFILE_REXT)
+                if ((m_Profile & VA_PROFILE_REXT)
+#if (MFX_VERSION >= 1032)
+                    || (m_Profile & VA_PROFILE_SCC)
+#endif
+                   )
                 {
                     va_size         = sizeof(VASliceParameterBufferHEVCExtension);
                     va_num_elements = size/sizeof(VASliceParameterBufferHEVCExtension);

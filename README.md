@@ -1,12 +1,12 @@
 # Intel® Media SDK
 Intel® Media SDK provides a plain C API to access hardware-accelerated video decode, encode and filtering on Intel® Gen graphics hardware platforms. Implementation written in C++ 11 with parts in C-for-Media (CM).
 
-**Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9  
-**Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG  
+**Supported video encoders**: HEVC, AVC, MPEG-2, JPEG, VP9
+**Supported video decoders**: HEVC, AVC, VP8, VP9, MPEG-2, VC1, JPEG
 **Supported video pre-processing filters**: Color Conversion, Deinterlace, Denoise, Resize, Rotate, Composition
 
 # Dependencies
-Intel Media SDK depends on [LibVA](https://github.com/01org/libva/). 
+Intel Media SDK depends on [LibVA](https://github.com/01org/libva/).
 This version of Intel Media SDK is compatible with the open source [Intel Media Driver for VAAPI](https://github.com/intel/media-driver).
 
 # FAQ
@@ -17,6 +17,7 @@ You can find answers for the most frequently asked questions [here](https://soft
   * [License](#license)
   * [How to contribute](#how-to-contribute)
   * [Documentation](#documentation)
+  * [Tutorials](#tutorials)
   * [Products which use Media SDK](#products-which-use-media-sdk)
   * [System requirements](#system-requirements)
   * [How to build](#how-to-build)
@@ -35,14 +36,36 @@ See [CONTRIBUTING](./CONTRIBUTING.md) for details. Thank you!
 
 To get copy of Media SDK documentation use Git* with [LFS](https://git-lfs.github.com/) support.
 
-Please find full documentation under the `doc/` folder. Key documents:
-* [Media SDK Developer Reference](./doc/mediasdk-man.pdf)
-* [Media SDK Developer Reference Extensions for User-Defined Functions](./doc/mediasdkusr-man.pdf)
-* [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.pdf)
+Please find full documentation under the [./doc](./doc) folder. Key documents:
+* [Media SDK Manual](./doc/mediasdk-man.md)
+* Additional Per-Codec Manuals:
+  * [Media SDK JPEG Manual](./doc/mediasdkjpeg-man.md)
+  * [Media SDK VP8 Manual](./doc/mediasdkvp8-man.md)
+* Advanced Topics:
+  * [Media SDK User Plugins Manual](./doc/mediasdkusr-man.md)
+  * [Media SDK FEI Manual](./doc/mediasdkfei-man.md)
+  * [Media SDK HEVC FEI Manual](./doc/mediasdkhevcfei-man.md)
+  * [MFE Overview](./doc/MFE-Overview.md)
+  * [HEVC FEI Overview](./doc/HEVC_FEI_overview.pdf)
+  * [Interlace content support in HEVC encoder](./doc/mediasdk_hevc_interlace_whitepaper.md)
+
+Generic samples information is available in [Media Samples Guide](./doc/samples/Media_Samples_Guide_Linux.md)
+
+Linux Samples Readme Documents:
+* [Sample Multi Transcode](./doc/samples/readme-multi-transcode_linux.md)
+* [Sample Decode](./doc/samples/readme-decode_linux.md)
+* [Sample Encode](./doc/samples/readme-encode_linux.md)
+* [Sample VPP](./doc/samples/readme-vpp_linux.md)
+* [Metrics Monitor](./doc/samples/readme-metrics_monitor_linux.md)
 
 Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for the detailed setting and building instructions, runtime tips and other information.
 
 You may also wish to visit Intel Media Server Studio [support page](https://software.intel.com/en-us/intel-media-server-studio-support/documentation) for additional documentation.
+
+# Tutorials
+
+* [Tutorials Overview](./doc/tutorials/mediasdk-tutorials-readme.md)
+* [Tutorials Command Line Reference](./doc/tutorials/mediasdk-tutorials-cmd-reference.md)
 
 # Products which use Media SDK
 
@@ -80,7 +103,7 @@ git clone https://github.com/Intel-Media-SDK/MediaSDK msdk
 cd msdk
 ```
 
-To configure and build Media SDK install cmake version 2.8.5 or later and run the following commands:
+To configure and build Media SDK install cmake version 3.6 or later and run the following commands:
 ```sh
 mkdir build && cd build
 cmake ..

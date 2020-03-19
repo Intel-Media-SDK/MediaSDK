@@ -90,6 +90,14 @@ static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
     case MFX_FOURCC_Y410:
         return VA_FOURCC_Y410;
 #endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+        return VA_FOURCC_P016;
+    case MFX_FOURCC_Y216:
+        return VA_FOURCC_Y216;
+    case MFX_FOURCC_Y416:
+        return VA_FOURCC_Y416;
+#endif
     default:
         VM_ASSERT(!"unsupported fourcc");
         return 0;
@@ -187,6 +195,11 @@ static inline bool isFourCCSupported(unsigned int va_fourcc)
 #if (MFX_VERSION >= 1027)
         case VA_FOURCC_Y210:
         case VA_FOURCC_Y410:
+#endif
+#if (MFX_VERSION >= 1031)
+        case VA_FOURCC_P016:
+        case VA_FOURCC_Y216:
+        case VA_FOURCC_Y416:
 #endif
             return true;
         default:
@@ -498,7 +511,11 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
             ptr->R = ptr->B + 2;
             ptr->A = ptr->B + 3;
         }
-        else if (mfx_fourcc == MFX_FOURCC_A2RGB10)
+        else return MFX_ERR_LOCK_MEMORY;
+        break;
+#ifndef ANDROID
+    case VA_FOURCC_A2R10G10B10:
+        if (mfx_fourcc == MFX_FOURCC_A2RGB10)
         {
             ptr->B = p_buffer + va_image.offsets[0];
             ptr->G = ptr->B;
@@ -507,6 +524,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         else return MFX_ERR_LOCK_MEMORY;
         break;
+#endif
 #ifdef MFX_ENABLE_RGBP
     case VA_FOURCC_RGBP:
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
@@ -538,6 +556,9 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 
     case VA_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+    case VA_FOURCC_P016:
+#endif
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
         {
@@ -560,6 +581,9 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
 
 #if (MFX_VERSION >= 1027)
     case VA_FOURCC_Y210:
+#if (MFX_VERSION >= 1031)
+    case VA_FOURCC_Y216:
+#endif
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
         {
@@ -579,6 +603,19 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 #endif
 
+#if (MFX_VERSION >= 1031)
+    case VA_FOURCC_Y416:
+        if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
+
+        {
+            ptr->U16 = (mfxU16 *) (p_buffer + va_image.offsets[0]);
+            ptr->Y16 = ptr->U16 + 1;
+            ptr->V16 = ptr->Y16 + 1;
+            ptr->A   = (mfxU8 *)(ptr->V16 + 1);
+        }
+        break;
+
+#endif
     case MFX_FOURCC_VP8_SEGMAP:
         if (mfx_fourcc == MFX_FOURCC_P8)
         {

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -157,7 +157,7 @@ mfxU8 PLayer(
 {
     if (par.isLowDelay())
     {
-        return Min<mfxU8>(7, GetPFrameLevel((order / (par.isField() ? 2 : 1)) % par.PPyrInterval, par.PPyrInterval));
+        return std::min<mfxU8>(7, GetPFrameLevel((order / (par.isField() ? 2 : 1)) % par.PPyrInterval, par.PPyrInterval));
     }
 
     return 0;
@@ -393,6 +393,11 @@ mfxStatus MfxFrameAllocResponse::Alloc(
 #if (MFX_VERSION >= 1027)
             || (tmp.Info.FourCC == MFX_FOURCC_Y210)
             || (tmp.Info.FourCC == MFX_FOURCC_Y410)
+#endif
+#if (MFX_VERSION >= 1031)
+            || (tmp.Info.FourCC == MFX_FOURCC_P016)
+            || (tmp.Info.FourCC == MFX_FOURCC_Y216)
+            || (tmp.Info.FourCC == MFX_FOURCC_Y416)
 #endif
             )
             tmp.Type &= ~MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET;
@@ -671,10 +676,13 @@ namespace ExtBuffer
         {
             if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
                 buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
+            else if (IsOn(par.mfx.LowPower) && (par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_YUY2))
+                // use 420 as default target format when source is 422 for VDEnc
+                buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1;
             else
                 buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
             buf.TargetBitDepthLuma      = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
-            buf.TargetBitDepthChroma    = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
+            buf.TargetBitDepthChroma    = std::min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
 
             return false;
         }
@@ -683,13 +691,16 @@ namespace ExtBuffer
         {
             if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_RGB4)
                 buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1; //For RGB4 use illogical default 420 for backward compatibility
+            else if (IsOn(par.mfx.LowPower) && (par.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_YUY2))
+                // use 420 as default target format when source is 422 for VDEnc
+                buf.TargetChromaFormatPlus1 = MFX_CHROMAFORMAT_YUV420 + 1;
             else
                 buf.TargetChromaFormatPlus1 = clamp<mfxU16>(par.mfx.FrameInfo.ChromaFormat, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) + 1;
         }
         if (!buf.TargetBitDepthLuma)
             buf.TargetBitDepthLuma = CorrectBitDepth(par.mfx.FrameInfo.BitDepthLuma, par.mfx.FrameInfo.FourCC);
         if (!buf.TargetBitDepthChroma)
-            buf.TargetBitDepthChroma = Min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
+            buf.TargetBitDepthChroma = std::min(CorrectBitDepth(par.mfx.FrameInfo.BitDepthChroma, par.mfx.FrameInfo.FourCC), buf.TargetBitDepthLuma);
 
         return true;
     }
@@ -970,11 +981,11 @@ bool MfxVideoParam::CheckExtBufferParam()
 
 void MfxVideoParam::SyncVideoToCalculableParam()
 {
-    mfxU32 multiplier = Max<mfxU32>(mfx.BRCParamMultiplier, 1);
+    mfxU32 multiplier = std::max<mfxU32>(mfx.BRCParamMultiplier, 1);
 
     BufferSizeInKB = mfx.BufferSizeInKB * multiplier;
     LTRInterval    = 0;
-    PPyrInterval = (mfx.NumRefFrame >0) ? Min<mfxU32> (DEFAULT_PPYR_INTERVAL, mfx.NumRefFrame) : DEFAULT_PPYR_INTERVAL;
+    PPyrInterval   = (mfx.NumRefFrame >0) ? std::min<mfxU32> (DEFAULT_PPYR_INTERVAL, mfx.NumRefFrame) : DEFAULT_PPYR_INTERVAL;
 
     if (mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
@@ -1007,10 +1018,10 @@ void MfxVideoParam::SyncCalculableToVideoParam()
 
     if (mfx.RateControlMethod != MFX_RATECONTROL_CQP)
     {
-        maxVal32 = Max(maxVal32, TargetKbps);
+        maxVal32 = std::max(maxVal32, TargetKbps);
 
         if (mfx.RateControlMethod != MFX_RATECONTROL_AVBR)
-            maxVal32 = Max(maxVal32, Max(MaxKbps, InitialDelayInKB));
+            maxVal32 = std::max({maxVal32, MaxKbps, InitialDelayInKB});
     }
 
     mfx.BRCParamMultiplier = mfxU16((maxVal32 + 0x10000) / 0x10000);
@@ -1531,7 +1542,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     }
 
     slo.max_dec_pic_buffering_minus1    = mfx.NumRefFrame;
-    slo.max_num_reorder_pics            = Min(GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord), slo.max_dec_pic_buffering_minus1);
+    slo.max_num_reorder_pics            = std::min(GetNumReorderFrames(mfx.GopRefDist - 1, isBPyramid(),isField(), bFieldReord), slo.max_dec_pic_buffering_minus1);
     slo.max_latency_increase_plus1      = 0;
 
     Zero(m_sps);
@@ -1552,11 +1563,11 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_sps.pic_height_in_luma_samples        = m_ext.HEVCParam.PicHeightInLumaSamples;
     m_sps.conformance_window_flag           = 0;
 #if (MFX_VERSION >= 1027)
-    m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)m_ext.CO3.TargetBitDepthLuma - 8);
-    m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)m_ext.CO3.TargetBitDepthChroma - 8);
+    m_sps.bit_depth_luma_minus8             = std::max<mfxI32>(0, m_ext.CO3.TargetBitDepthLuma   - 8);
+    m_sps.bit_depth_chroma_minus8           = std::max<mfxI32>(0, m_ext.CO3.TargetBitDepthChroma - 8);
 #else
-    m_sps.bit_depth_luma_minus8             = Max(0, (mfxI32)mfx.FrameInfo.BitDepthLuma - 8);
-    m_sps.bit_depth_chroma_minus8           = Max(0, (mfxI32)mfx.FrameInfo.BitDepthChroma - 8);
+    m_sps.bit_depth_luma_minus8             = std::max<mfxI32>(0, mfx.FrameInfo.BitDepthLuma   - 8);
+    m_sps.bit_depth_chroma_minus8           = std::max<mfxI32>(0, mfx.FrameInfo.BitDepthChroma - 8);
 #endif
     m_sps.log2_max_pic_order_cnt_lsb_minus4 = (mfxU8)clamp<mfxI32>(CeilLog2(mfx.GopRefDist*(isField() ? 2 : 1) + slo.max_dec_pic_buffering_minus1) - 1, 0, 12);
 
@@ -1596,7 +1607,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
         mfxU8 rpl[2][MAX_DPB_SIZE] = {};
         mfxU8 nRef[2] = {};
         STRPS rps;
-        mfxI32 STDist = Min<mfxI32>(mfx.GopPicSize, 128);
+        mfxI32 STDist = std::min<mfxI32>(mfx.GopPicSize, 128);
         bool moreLTR = !!LTRInterval;
         mfxI32 lastIPoc = 0;
 
@@ -1645,7 +1656,8 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
                 {
                     mfxI32 layer = PLayer(cur->m_poc - lastIPoc, *this);
                     nRef[0] = (mfxU8)CO3.NumRefActiveP[layer];
-                    nRef[1] = (mfxU8)Min(CO3.NumRefActiveP[layer], m_ext.DDI.NumActiveRefBL1);
+                    // on VDENC for LDB frames L1 must be completely identical to L0
+                    nRef[1] = (mfxU8)(IsOn(mfx.LowPower) ? CO3.NumRefActiveP[layer] : std::min(CO3.NumRefActiveP[layer], m_ext.DDI.NumActiveRefBL1));
                 }
 
                 ConstructRPL(*this, dpb, !!(cur->m_frameType & MFX_FRAMETYPE_B), cur->m_poc, cur->m_tid, cur->m_level, cur->m_secondField, isBFF()? !cur->m_secondField : cur->m_secondField, rpl, nRef);
@@ -1863,7 +1875,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_pps.num_extra_slice_header_bits           = 0;
     m_pps.sign_data_hiding_enabled_flag         = 0;
     m_pps.cabac_init_present_flag               = 0;
-    m_pps.num_ref_idx_l0_default_active_minus1  = Max(m_ext.DDI.NumActiveRefP, m_ext.DDI.NumActiveRefBL0) -1;
+    m_pps.num_ref_idx_l0_default_active_minus1  = std::max(m_ext.DDI.NumActiveRefP, m_ext.DDI.NumActiveRefBL0) -1;
     m_pps.num_ref_idx_l1_default_active_minus1  = m_ext.DDI.NumActiveRefBL1 -1;
     m_pps.init_qp_minus26                       = 0;
     m_pps.constrained_intra_pred_flag           = 0;
@@ -1888,11 +1900,11 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
 
 #if (MFX_VERSION >= 1025)
     if ((m_platform >= MFX_HW_CNL))
-    {
-        if (IsOn(mfx.LowPower))
+    {   // according to spec only 3 and 0 are supported
+        if (LCUSize == 64)
             m_pps.diff_cu_qp_delta_depth = 3;
         else
-            m_pps.diff_cu_qp_delta_depth = 2;
+            m_pps.diff_cu_qp_delta_depth = 0;
     }
 #endif
 
@@ -1931,8 +1943,8 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     {
         mfxU16 nCol   = (mfxU16)CeilDiv(m_ext.HEVCParam.PicWidthInLumaSamples,  LCUSize);
         mfxU16 nRow   = (mfxU16)CeilDiv(m_ext.HEVCParam.PicHeightInLumaSamples, LCUSize);
-        mfxU16 nTCol  = Max<mfxU16>(m_ext.HEVCTiles.NumTileColumns, 1);
-        mfxU16 nTRow  = Max<mfxU16>(m_ext.HEVCTiles.NumTileRows, 1);
+        mfxU16 nTCol  = std::max<mfxU16>(m_ext.HEVCTiles.NumTileColumns, 1);
+        mfxU16 nTRow  = std::max<mfxU16>(m_ext.HEVCTiles.NumTileRows,    1);
 
         m_pps.tiles_enabled_flag        = 1;
         m_pps.uniform_spacing_flag      = 1;
@@ -1958,6 +1970,13 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_pps.deblocking_filter_control_present_flag  = 1;
     m_pps.deblocking_filter_disabled_flag = !!m_ext.CO2.DisableDeblockingIdc;
     m_pps.deblocking_filter_override_enabled_flag = 1; // to disable deblocking per frame
+#if MFX_VERSION >= MFX_VERSION_NEXT
+    if (!m_pps.deblocking_filter_disabled_flag)
+    {
+        m_pps.beta_offset_div2 = mfxI8(m_ext.CO3.DeblockingBetaOffset / 2);
+        m_pps.tc_offset_div2 = mfxI8(m_ext.CO3.DeblockingAlphaTcOffset / 2);
+    }
+#endif
 
     m_pps.scaling_list_data_present_flag              = 0;
     m_pps.lists_modification_present_flag             = 1;
@@ -2245,8 +2264,8 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             mfxI32 RPLTempX[2][16] = {}; // default ref. list without modifications
             mfxU16 NumRpsCurrTempListX[2] =
             {
-                Max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[0]),
-                Max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[1])
+                std::max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[0]),
+                std::max<mfxU16>(nSTR[0] + nSTR[1] + nLTR, task.m_numRefActive[1])
             };
 
             for (j = 0; j < 2; j ++)
@@ -2341,8 +2360,8 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
             {
                 mfxU16 sz[2] =
                 {
-                    Min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL0),
-                    Min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL1)
+                    std::min<mfxU16>(s.num_ref_idx_l0_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL0),
+                    std::min<mfxU16>(s.num_ref_idx_l1_active_minus1 + 1, caps.ddi_caps.MaxNum_WeightedPredL1)
                 };
 
                 for (mfxU16 l = 0; l < 2; l++)
@@ -2365,7 +2384,11 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
                     }
 
                     if (task.m_ldb && Equal(task.m_refPicList[0], task.m_refPicList[1]))
-                        Copy(s.pwt[1], s.pwt[0]);
+                    {
+                        mfxU8 *src = reinterpret_cast<mfxU8*> (&s.pwt[0]);
+                        mfxU8 *dst = reinterpret_cast<mfxU8*> (&s.pwt[1]);
+                        std::copy(src, src + sizeof(s.pwt[0]), dst);
+                    }
                 }
             }
         }
@@ -2395,15 +2418,25 @@ mfxStatus MfxVideoParam::GetSliceHeader(Task const & task, Task const & prevTask
      if ( ext2 && ext2->DisableDeblockingIdc != m_ext.CO2.DisableDeblockingIdc && m_pps.deblocking_filter_override_enabled_flag)
      {
         s.deblocking_filter_disabled_flag = !!ext2->DisableDeblockingIdc;
+#if MFX_VERSION < MFX_VERSION_NEXT
         s.deblocking_filter_override_flag = (s.deblocking_filter_disabled_flag != m_pps.deblocking_filter_disabled_flag);
-
-        if (s.deblocking_filter_override_flag)
+#endif
+        if (s.deblocking_filter_disabled_flag != m_pps.deblocking_filter_disabled_flag)
         {
             s.beta_offset_div2 = 0;
             s.tc_offset_div2 = 0;
         }
      }
-
+#if MFX_VERSION >= MFX_VERSION_NEXT
+     mfxExtCodingOption3 *ext3 = ExtBuffer::Get(task.m_ctrl);
+     if (ext3 && (ext3->DeblockingAlphaTcOffset != m_ext.CO3.DeblockingAlphaTcOffset || ext3->DeblockingBetaOffset != m_ext.CO3.DeblockingBetaOffset)
+              && m_pps.deblocking_filter_override_enabled_flag && !s.deblocking_filter_disabled_flag)
+     {
+         s.beta_offset_div2 = mfxI8(ext3->DeblockingBetaOffset / 2);
+         s.tc_offset_div2 = mfxI8(ext3->DeblockingAlphaTcOffset / 2);
+     }
+    s.deblocking_filter_override_flag = s.deblocking_filter_disabled_flag || s.beta_offset_div2 || s.tc_offset_div2;
+#endif
     s.loop_filter_across_slices_enabled_flag = m_pps.loop_filter_across_slices_enabled_flag;
 
     if (m_pps.tiles_enabled_flag || m_pps.entropy_coding_sync_enabled_flag)
@@ -2503,7 +2536,7 @@ void HRD::Update(mfxU32 sizeInbits, const Task &pic)
             // (C-6)
             : auNominalRemovalTime - m_cpbSize90k;
         // (C-4)
-        initArrivalTime = Max(m_prevAuFinalArrivalTime, initArrivalEarliestTime * m_bitrate);
+        initArrivalTime = std::max(m_prevAuFinalArrivalTime, initArrivalEarliestTime * m_bitrate);
     }
     // (C-8)
     mfxF64 auFinalArrivalTime = initArrivalTime + (mfxF64)sizeInbits * 90000;
@@ -2546,7 +2579,7 @@ mfxU32 HRD::GetInitCpbRemovalDelay(const Task &pic)
             // (C-19)
             ? (mfxU32)(deltaTime90k)
             // (C-18)
-            : (mfxU32)Min(deltaTime90k, m_cpbSize90k);
+            : (mfxU32)std::min(deltaTime90k, m_cpbSize90k);
     }
 
     return (mfxU32)m_initCpbRemovalDelay;
@@ -3173,10 +3206,10 @@ void ConstructRPL(
         mfxU16 pref[2] = {};
 
         if (pLCtrl->NumRefIdxL0Active)
-            MaxRef[0] = Min(pLCtrl->NumRefIdxL0Active, MaxRef[0]);
+            MaxRef[0] = std::min(pLCtrl->NumRefIdxL0Active, MaxRef[0]);
 
         if (pLCtrl->NumRefIdxL1Active)
-            MaxRef[1] = Min(pLCtrl->NumRefIdxL1Active, MaxRef[1]);
+            MaxRef[1] = std::min(pLCtrl->NumRefIdxL1Active, MaxRef[1]);
 
         for (mfxU16 i = 0; i < 16 && pLCtrl->RejectedRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
         {
@@ -3242,7 +3275,7 @@ void ConstructRPL(
     {
         l1 = 0; //ignore l1 != l0 in pExtLists for LDB (unsupported by HW)
 
-        for (mfxU16 i = 0; i < Min<mfxU16>(l0, NumRefLX[1]); i ++)
+        for (mfxU16 i = 0; i < std::min<mfxU16>(l0, NumRefLX[1]); i ++)
             RPL[1][l1++] = RPL[0][i];
         //for (mfxI16 i = l0 - 1; i >= 0 && l1 < NumRefLX[1]; i --)
         //    RPL[1][l1++] = RPL[0][i];
@@ -3395,20 +3428,36 @@ IntraRefreshState GetIntraRefreshState(
     if (frameOrderInRefreshPeriod >= extOpt2Init->IntRefCycleSize)
         return state; // for current refresh period refresh cycle is already passed
 
-    mfxU32 refreshDimension = extOpt2Init->IntRefType == HORIZ_REFRESH ? CeilDiv(video.m_ext.HEVCParam.PicHeightInLumaSamples, video.LCUSize) : CeilDiv(video.m_ext.HEVCParam.PicWidthInLumaSamples, video.LCUSize);
-    mfxU16 intraStripeWidthInMBs = (mfxU16)((refreshDimension + video.m_ext.CO2.IntRefCycleSize - 1) / video.m_ext.CO2.IntRefCycleSize);
+    mfxU32 IRBlockSize = 1 << (3 + caps.ddi_caps.IntraRefreshBlockUnitSize);
+    // refreshing parts (stripes) in frame
+    mfxU32 refreshDimension = extOpt2Init->IntRefType == HORIZ_REFRESH ?
+        CeilDiv(video.m_ext.HEVCParam.PicHeightInLumaSamples, IRBlockSize) :
+        CeilDiv(video.m_ext.HEVCParam.PicWidthInLumaSamples, IRBlockSize);
 
-    // check if Intra refresh required for current frame
-    mfxU32 numFramesWithoutRefresh = extOpt2Init->IntRefCycleSize - (refreshDimension + intraStripeWidthInMBs - 1) / intraStripeWidthInMBs;
-    mfxU32 idxInRefreshCycle = frameOrderInRefreshPeriod;
-    state.firstFrameInCycle = (idxInRefreshCycle == 0);
-    mfxI32 idxInActualRefreshCycle = idxInRefreshCycle - numFramesWithoutRefresh;
-    if (idxInActualRefreshCycle < 0)
-        return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
+    // In most cases number of refresh stripes is no aligned with number of frames for refresh.
+    // In head frames are refreshed min stripes (can be 0), in tail min+1
+    // min * head + (min+1) * tail == min * frames + tail == refreshDimension
+    mfxU32 frames = extOpt2Init->IntRefCycleSize; // frames to commit full refresh
+    mfxU32 minStr = refreshDimension / frames;    // minimal refreshed stripes
+    mfxU32 tail = refreshDimension % frames;      // tail frames have minStr+1 stripes
+    mfxU32 head = frames - tail;                  // head frames with minStr stripes
 
-    state.refrType      = extOpt2Init->IntRefType;
-    state.IntraSize     = intraStripeWidthInMBs                                     << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
-    state.IntraLocation = ((mfxU16)idxInActualRefreshCycle * intraStripeWidthInMBs) << (3 - caps.ddi_caps.IntraRefreshBlockUnitSize);
+    if (frameOrderInRefreshPeriod < head) // min, can be 0
+    {
+        if (!minStr)
+            return state; // actual refresh isn't started yet within current refresh cycle, no Intra column/row required for current frame
+        state.IntraSize = (mfxU16)minStr;
+        state.IntraLocation = (mfxU16)(frameOrderInRefreshPeriod * minStr);
+    }
+    else
+    {
+        state.IntraSize = (mfxU16)(minStr + 1);
+        state.IntraLocation = (mfxU16)(frameOrderInRefreshPeriod * minStr + (frameOrderInRefreshPeriod - head));
+    }
+
+    state.firstFrameInCycle = (frameOrderInRefreshPeriod == 0);
+    state.refrType = extOpt2Init->IntRefType;
+
     // set QP for Intra macroblocks within refreshing line
     state.IntRefQPDelta = extOpt2Init->IntRefQPDelta;
     if (ctrl)
@@ -3494,15 +3543,15 @@ void ConfigureTask(
     task.m_numRoi = 0;
     if (parRoi && parRoi->NumROI && !par.bROIViaMBQP)
     {
-         for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
+        for (mfxU16 i = 0; i < parRoi->NumROI; i ++)
         {
             task.m_roi[i] = {parRoi->ROI[i].Left,  parRoi->ROI[i].Top,
                              parRoi->ROI[i].Right, parRoi->ROI[i].Bottom,
-                            (mfxI16)((parRoi->ROIMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * parRoi->ROI[i].DeltaQP) };
-            task.m_numRoi ++;
+                             parRoi->ROI[i].DeltaQP};
         }
 
-        task.m_roiMode = MFX_ROI_MODE_QP_DELTA;
+        task.m_numRoi = parRoi->NumROI;
+        task.m_roiMode = parRoi->ROIMode;
     }
 
 #else
@@ -3657,14 +3706,15 @@ void ConfigureTask(
     if (isB)
     {
         mfxI32 layer = par.isBPyramid() ? clamp<mfxI32>(task.m_level - 1, 0, 7) : 0;
-        task.m_numRefActive[0] = (mfxU8)CO3.NumRefActiveBL0[layer];
+        task.m_numRefActive[0] = std::max<mfxU8>((mfxU8)CO3.NumRefActiveBL0[layer], (task.m_secondField ? 2 : 1));
         task.m_numRefActive[1] = (mfxU8)CO3.NumRefActiveBL1[layer];
     }
     if (isP)
     {
         mfxI32 layer = PLayer(task.m_poc - prevTask.m_lastIPoc, par);
-        task.m_numRefActive[0] = (mfxU8)CO3.NumRefActiveP[layer];
-        task.m_numRefActive[1] = (mfxU8)Min(CO3.NumRefActiveP[layer], par.m_ext.DDI.NumActiveRefBL1);
+        task.m_numRefActive[0] = std::max<mfxU8>((mfxU8)CO3.NumRefActiveP[layer], (task.m_secondField ? 2 : 1));
+        // on VDENC for LDB frames L1 must be completely identical to L0
+        task.m_numRefActive[1] = (IsOn(par.mfx.LowPower) ? task.m_numRefActive[0] : (mfxU8)std::min(CO3.NumRefActiveP[layer], par.m_ext.DDI.NumActiveRefBL1));
     }
 
     if (!isI)

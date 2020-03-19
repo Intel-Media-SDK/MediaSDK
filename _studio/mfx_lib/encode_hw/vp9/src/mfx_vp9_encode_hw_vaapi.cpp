@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -573,6 +573,12 @@ VAAPIEncoder::VAAPIEncoder()
 , m_vaDisplay(NULL)
 , m_vaContextEncode(VA_INVALID_ID)
 , m_vaConfig(VA_INVALID_ID)
+, m_sps()
+, m_pps()
+, m_tempLayers()
+, m_vaBrcPar()
+, m_vaFrameRate()
+, m_seqParam()
 , m_spsBufferId(VA_INVALID_ID)
 , m_ppsBufferId(VA_INVALID_ID)
 , m_segMapBufferId(VA_INVALID_ID)
@@ -586,6 +592,7 @@ VAAPIEncoder::VAAPIEncoder()
 , m_width(0)
 , m_height(0)
 , m_isBrcResetRequired(false)
+, m_caps()
 , m_platform()
 {
 } // VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
@@ -622,11 +629,17 @@ void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
     {
         caps.Color420Only = 0;
         caps.MaxEncodedBitDepth = 1; //0: 8bit, 1: 8 and 10 bit;
-        caps.NumScalablePipesMinus1 = 0; // TODO: for now driver doesn't support multiple pipes scalability
+        caps.NumScalablePipesMinus1 = 0;
     }
+#if (MFX_VERSION >= 1031)
+    if (platform >= MFX_HW_TGL_LP)
+    {
+        caps.NumScalablePipesMinus1 = 3;
+    }
+#endif
 #else
     std::ignore = platform;
-#endif
+#endif // (MFX_VERSION >= 1027)
 
     caps.ForcedSegmentationSupport = 1;
     caps.AutoSegmentationSupport = 1;
@@ -641,8 +654,7 @@ void HardcodeCaps(ENCODE_CAPS_VP9& caps, eMFXHWType platform)
 mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     VideoCORE* pCore,
     GUID guid,
-    mfxU32 width,
-    mfxU32 height)
+    VP9MfxVideoParam const & par)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "CreateAuxilliaryDevice");
 
@@ -654,8 +666,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_platform = m_pmfxCore->GetHWType();
 
-    m_width  = width;
-    m_height = height;
+    m_width  = par.mfx.FrameInfo.Width;
+    m_height = par.mfx.FrameInfo.Height;
 
     memset(&m_caps, 0, sizeof(m_caps));
 
@@ -758,7 +770,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     return MFX_ERR_NONE;
 
-} // mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(VideoCORE* core, GUID guid, mfxU32 width, mfxU32 height)
+} // mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(VideoCORE* core, GUID guid, VP9MfxVideoParam const & par)
 
 mfxStatus VAAPIEncoder::CreateAccelerationService(VP9MfxVideoParam const & par)
 {
@@ -1026,6 +1038,7 @@ mfxStatus VAAPIEncoder::Execute(
     Zero(m_frameHeaderBuf);
 
     mfxU16 bytesWritten = PrepareFrameHeader(*task.m_pParam, pBuf, (mfxU32)m_frameHeaderBuf.size(), task, m_seqParam, offsets);
+    MFX_CHECK(bytesWritten != 0, MFX_ERR_MORE_DATA);
 
     // update params
     FillPpsBuffer(task, m_video, m_pps, m_reconQueue, offsets);

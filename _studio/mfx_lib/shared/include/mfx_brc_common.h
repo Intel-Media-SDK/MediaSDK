@@ -41,7 +41,7 @@ public:
     AVGBitrate(mfxU32 windowSize, mfxU32 maxBitPerFrame, mfxU32 avgBitPerFrame, bool bLA = false):
         m_maxWinBits(maxBitPerFrame*windowSize),
         m_maxWinBitsLim(0),
-        m_avgBitPerFrame(MFX_MIN(avgBitPerFrame, maxBitPerFrame)),
+        m_avgBitPerFrame(std::min(avgBitPerFrame, maxBitPerFrame)),
         m_currPosInWindow(windowSize-1),
         m_lastFrameOrder(mfxU32(-1)),
         m_bLA(bLA)
@@ -75,12 +75,12 @@ public:
         {
             if (bPanic || bSH)
             {
-                m_maxWinBitsLim = MFX_MAX(MFX_MIN((GetLastFrameBits(windowSize,false) + m_maxWinBits) / 2, m_maxWinBits), GetMaxWinBitsLim());
+                m_maxWinBitsLim = mfx::clamp((GetLastFrameBits(windowSize,false) + m_maxWinBits) / 2, GetMaxWinBitsLim(), m_maxWinBits);
             }
             else
             {
                 if (recode)
-                    m_maxWinBitsLim = MFX_MIN(MFX_MAX(GetLastFrameBits(windowSize,false) + GetStep() / 2, m_maxWinBitsLim), m_maxWinBits);
+                    m_maxWinBitsLim = mfx::clamp(GetLastFrameBits(windowSize,false) + GetStep() / 2, m_maxWinBitsLim, m_maxWinBits);
                 else if ((m_maxWinBitsLim > GetMaxWinBitsLim() + GetStep()) &&
                     (m_maxWinBitsLim - GetStep() > (GetLastFrameBits(windowSize - 1,false) + sizeInBits)))
                     m_maxWinBitsLim -= GetStep();
@@ -97,7 +97,7 @@ public:
             maxWinBitsLim = (m_maxWinBits + m_maxWinBitsLim) / 2;
         if (bPanic)
             maxWinBitsLim = m_maxWinBits;
-        maxWinBitsLim = MFX_MIN(maxWinBitsLim + recode*GetStep() / 2, m_maxWinBits);
+        maxWinBitsLim = std::min(maxWinBitsLim + recode*GetStep() / 2, m_maxWinBits);
 
         mfxU32 maxFrameSize = winBits >= m_maxWinBitsLim ?
             (mfxU32)(std::max<mfxI32>((mfxI32)m_maxWinBits - (mfxI32)winBits, 1)) :
@@ -111,7 +111,7 @@ public:
     }
     mfxI32 GetBudget(mfxU32 numFrames)
     {
-        numFrames = MFX_MIN((mfxU32)m_slidingWindow.size(), numFrames);
+        numFrames = std::min<mfxU32>(m_slidingWindow.size(), numFrames);
         return ((mfxI32)m_maxWinBitsLim - (mfxI32)GetLastFrameBits((mfxU32)m_slidingWindow.size() - numFrames, true));
     }
 
@@ -160,6 +160,21 @@ protected:
 #define MAX_RACA 361.0
 #define RACA_SCALE 128.0
 
+/*
+NalHrdConformance | VuiNalHrdParameters   |  Result
+--------------------------------------------------------------
+    off                  any                => MFX_BRC_NO_HRD
+    default              off                => MFX_BRC_NO_HRD
+    on                   off                => MFX_BRC_HRD_WEAK
+    on (or default)      on (or default)    => MFX_BRC_HRD_STRONG
+--------------------------------------------------------------
+*/
+enum : mfxU16
+{
+    MFX_BRC_NO_HRD = 0,
+    MFX_BRC_HRD_WEAK,  // IF HRD CALCULATION IS REQUIRED, BUT NOT WRITTEN TO THE STREAM
+    MFX_BRC_HRD_STRONG
+};
 
 namespace MfxHwH265EncodeBRC
 {
@@ -168,7 +183,7 @@ class cBRCParams
 public:
     mfxU16 rateControlMethod; // CBR or VBR
 
-    mfxU16 bHRDConformance;  // is HRD compliance  needed
+    mfxU16 HRDConformance;   // is HRD compliance  needed
     mfxU16 bRec;             // is Recoding possible
     mfxU16 bPanic;           // is Panic mode possible
 
@@ -228,7 +243,7 @@ public:
 public:
     cBRCParams() :
         rateControlMethod(0),
-        bHRDConformance(0),
+        HRDConformance(MFX_BRC_NO_HRD),
         bRec(0),
         bPanic(0),
         bufferSizeInBytes(0),

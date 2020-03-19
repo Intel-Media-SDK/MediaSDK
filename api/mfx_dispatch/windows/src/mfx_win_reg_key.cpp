@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#if !defined(MEDIASDK_UWP_DISPATCHER)
 #include "mfx_win_reg_key.h"
 #include "mfx_dispatcher_log.h"
 
@@ -212,3 +213,5 @@ bool WinRegKey::QueryInfo(LPDWORD lpcSubkeys)
 } //bool QueryInfo(LPDWORD lpcSubkeys);
 
 } // namespace MFX
+
+#endif // #if !defined(MEDIASDK_UWP_DISPATCHER)

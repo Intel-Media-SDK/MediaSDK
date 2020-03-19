@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2007-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,11 +46,14 @@
 #define MFX_BUILD_INFO "no build info"
 #endif
 
+#if !defined(MEDIA_VERSION_STR)
+#error Build system should define MEDIA_VERSION_STR.
+#endif
 
 const char* g_MfxProductName     = "mediasdk_product_name: Intel(R) Media SDK";
-const char* g_MfxCopyright       = "mediasdk_copyright: Copyright(c) 2007-2019 Intel Corporation";
+const char* g_MfxCopyright       = "mediasdk_copyright: Copyright(c) 2007-2020 Intel Corporation";
 const char* g_MfxApiVersion      = "mediasdk_api_version: " MFX_API_VERSION;
-const char* g_MfxVersion         = "mediasdk_version: master";
+const char* g_MfxVersion         = "mediasdk_version: " MEDIA_VERSION_STR;
 const char* g_MfxGitCommit       = "mediasdk_git_commit: " MFX_GIT_COMMIT;
 const char* g_MfxBuildInfo       = "mediasdk_build_info: " MFX_BUILD_INFO;
 const char* g_MfxLibvaVersion    = "mediasdk_libva_version: " VA_VERSION_S;

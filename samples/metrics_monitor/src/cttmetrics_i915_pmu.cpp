@@ -1,6 +1,6 @@
 /***********************************************************************************
 
-Copyright (C) 2018-2019 Intel Corporation.  All rights reserved.
+Copyright (C) 2018-2020 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -37,6 +37,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/sysmacros.h>
 #include <time.h>
 #include <unistd.h>
 #include <i915_drm.h>
@@ -94,38 +95,84 @@ perf_event_open(struct perf_event_attr *attr,
     return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
-static uint64_t elapsed_ns(const struct timespec *start, const struct timespec *end)
+static char *bus_address(int i915, char *path, int pathlen)
 {
-    return ((end->tv_sec - start->tv_sec)*1e9 +
-        (end->tv_nsec - start->tv_nsec));
+    struct stat st = {};
+    if (fstat(i915, &st) || !S_ISCHR(st.st_mode))
+        return NULL;
+
+    snprintf(path, pathlen, "/sys/dev/char/%d:%d",
+         major(st.st_rdev), minor(st.st_rdev));
+
+    int len = -1;
+    int dir = open(path, O_RDONLY);
+    if (dir != -1) {
+        len = readlinkat(dir, "device", path, pathlen - 1);
+        close(dir);
+    }
+    if (len < 0)
+        return NULL;
+
+    path[len] = '\0';
+
+    /* strip off the relative path */
+    char * s = strrchr(path, '/');
+    if (s)
+        memmove(path, s + 1, len - (s - path) + 1);
+
+    return path;
 }
 
-static uint64_t i915_type_id(void)
+static const char *i915_perf_device(int i915, char *buf, long unsigned int buflen)
 {
-    char buf[1024];
-    int fd, n;
+    static const char * prefix = "i915_";
+    const long unsigned int plen = strlen(prefix);
 
-    fd = open("/sys/bus/event_source/devices/i915/type", 0);
-    if (fd < 0) {
-        n = -1;
-    } else {
-        n = read(fd, buf, sizeof(buf)-1);
-        close(fd);
-    }
-    if (n < 0)
+    if (!buf || buflen < plen)
+        return NULL;
+
+    memcpy(buf, prefix, plen);
+
+    if (!bus_address(i915, buf + plen, buflen - plen) ||
+        strcmp(buf + plen, "0000:00:02.0") == 0) /* legacy name for igfx */
+        buf[plen - 1] = '\0';
+
+    /* Convert all colons in the address to '_' */
+    for (char *s = buf; *s; s++)
+        if (*s == ':')
+            *s = '_';
+
+    return buf;
+}
+
+static uint64_t i915_type_id(const char *device)
+{
+    if (!device)
         return 0;
 
-    buf[n] = '\0';
-    return strtoull(buf, 0, 0);
+    char buf[120];
+    snprintf(buf, sizeof(buf), "/sys/bus/event_source/devices/%s/type", device);
+
+    int fd = open(buf, O_RDONLY);
+    if (fd < 0)
+        return 0;
+
+    ssize_t ret = read(fd, buf, sizeof(buf) - 1);
+    close(fd);
+    if (ret < 1)
+        return 0;
+
+    buf[ret] = '\0';
+
+    return strtoull(buf, NULL, 0);
 }
 
-static int perf_i915_open(int config, int group, int read_format)
+static int perf_i915_open(int gem_fd, int config, int group, int read_format)
 {
-    struct perf_event_attr attr;
+    char buf[80];
 
-    memset(&attr, 0, sizeof (attr));
-
-    attr.type = i915_type_id();
+    struct perf_event_attr attr = {};
+    attr.type = i915_type_id(i915_perf_device(gem_fd, buf, sizeof(buf)));
     if (attr.type == 0)
         return -ENOENT;
     attr.config = config;
@@ -212,7 +259,7 @@ static int perf_init(struct i915_pmu_collector_ctx_t *ctx, int num_configs, int 
         /* Skip SEMA/WAIT configs if semaphores are not enabled in i915 scheduler or they're enabled but preemption is missing */
         if (is_sema_or_wait_config && (!ctx->has_semaphores || !ctx->has_preemption))
             continue;
-        
+
         int config_id = is_engine_config(configs[i]) ? get_engine_id(configs[i]) : configs[i];
         if (prev_config_id != config_id) {
             ctx->pm.num_groups++;
@@ -220,9 +267,9 @@ static int perf_init(struct i915_pmu_collector_ctx_t *ctx, int num_configs, int 
         }
 
         if (ctx->pm.fd < 0)
-            res = ctx->pm.fd = perf_i915_open(configs[i], -1, ctx->pm.read_format);
+            res = ctx->pm.fd = perf_i915_open(ctx->gem_fd, configs[i], -1, ctx->pm.read_format);
         else
-            res = perf_i915_open(configs[i], ctx->pm.fd, ctx->pm.read_format);
+            res = perf_i915_open(ctx->gem_fd, configs[i], ctx->pm.fd, ctx->pm.read_format);
         if (res >= 0) {
             if (is_engine_config(configs[i])) {
                 int sample_type = I915_PMU_SAMPLE_MASK & configs[i];
@@ -308,7 +355,7 @@ static i915_pmu_collector_ctx_t g_ctx = {
 };
 
 extern "C"
-cttStatus CTTMetrics_PMU_Init()
+cttStatus CTTMetrics_PMU_Init(const char *device)
 {
     /* When adding new condigs, don't mix metrics from different groups!*/
     int configs[] = {
@@ -343,11 +390,8 @@ cttStatus CTTMetrics_PMU_Init()
     memset(&g_ctx, 0, sizeof(g_ctx));
     g_ctx.sample_period_us = 500*1000;
 
-    cttStatus status = discover_path_to_gpu();
-    if (CTT_ERR_NONE != status)
-        return status;
+    g_ctx.gem_fd = device ? open(device, O_RDWR) : drmOpenWithType("i915", NULL, DRM_NODE_RENDER);
 
-    g_ctx.gem_fd = drmOpenWithType("i915", NULL, DRM_NODE_RENDER);
     if (g_ctx.gem_fd >= 0) {
         g_ctx.has_semaphores = has_param(g_ctx.gem_fd, I915_PARAM_HAS_SEMAPHORES);
         g_ctx.has_preemption = has_param(g_ctx.gem_fd, I915_SCHEDULER_CAP_PREEMPTION);
@@ -383,13 +427,11 @@ cttStatus CTTMetrics_PMU_Init()
     }
 
     if (!g_ctx.metrics_count) {
-        status = CTT_ERR_DRIVER_NO_INSTRUMENTATION;
+        return CTT_ERR_DRIVER_NO_INSTRUMENTATION;
     } else {
-        status = CTT_ERR_NONE;
         g_ctx.initialized = true;
+        return CTT_ERR_NONE;
     }
-
-    return status;
 }
 
 extern "C"
@@ -558,6 +600,10 @@ cttStatus CTTMetrics_PMU_GetValue(unsigned int count, float* out_metric_values)
             if (is_sema_and_wait_available) {
                 value_sema /= time_sema;
                 value_wait /= time_wait;
+                // due to sampling nature of sema counter, very frequently we get (sema value) > (busy value)
+                // and there is no other decisions besides of clamping sema to busy
+                value_sema = (value_sema > value) ? value : value_sema;
+
                 value -= value_sema + value_wait; // Substract sema and wait from busy metric
             }
         } else {

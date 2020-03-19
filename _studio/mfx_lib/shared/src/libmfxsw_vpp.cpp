@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -197,7 +197,7 @@ mfxStatus MFXVideoVPP_Close(mfxSession session)
         }
 
         // wait until all tasks are processed
-        session->m_pScheduler->WaitForTaskCompletion(session->m_pVPP.get());
+        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pVPP.get());
 
         mfxRes = session->m_pVPP->Close();
         // delete the codec's instance if not plugin

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 #define __MFXDEFS_H__
 
 #define MFX_VERSION_MAJOR 1
-#define MFX_VERSION_MINOR 30
+#define MFX_VERSION_MINOR 32
 
 // MFX_VERSION_NEXT is always +1 from last public release
 // may be enforced by MFX_VERSION_USE_LATEST define
@@ -180,6 +180,11 @@ typedef enum
     MFX_WRN_OUT_OF_RANGE                = 7,    /* the value is out of valid range */
     MFX_WRN_FILTER_SKIPPED              = 10,   /* one of requested filters has been skipped */
     MFX_WRN_INCOMPATIBLE_AUDIO_PARAM    = 11,   /* incompatible audio parameters */
+
+#if MFX_VERSION >= 1031
+    /* low-delay partial output */
+    MFX_ERR_NONE_PARTIAL_OUTPUT         = 12,   /* frame is not ready, but bitstream contains partial output */
+#endif
 
     /* threading statuses */
     MFX_TASK_DONE = MFX_ERR_NONE,               /* task has been completed */

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -706,9 +706,9 @@ Status MPEG2BRC::PreEncFrameFallBack(FrameType frameType, int32_t recode)
     q2--;
 
   if (rc_dev > 0) {
-    q2 = MFX_MAX(q0,q2);
+    q2 = std::max(q0,q2);
   } else {
-    q2 = MFX_MIN(q0,q2);
+    q2 = std::min(q0,q2);
   }
   // this call is used to accept small changes in value, which are mapped to the same code
   // changeQuant bothers about changing scale code if value changes

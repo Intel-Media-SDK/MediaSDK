@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -275,7 +275,7 @@ bool IsPictureTheSame(H264Slice *pSliceOne, H264Slice *pSliceTwo)
         return false;
 
     if ((pOne->nal_ref_idc != pTwo->nal_ref_idc) &&
-        (0 == MFX_MIN(pOne->nal_ref_idc, pTwo->nal_ref_idc)))
+        (0 == std::min(pOne->nal_ref_idc, pTwo->nal_ref_idc)))
         return false;
 
     if (0 == pSliceTwo->GetSeqParam()->pic_order_cnt_type)

@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Encoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\).
+**Encoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\).
 
 It demonstrates how to use the **SDK** API to create a simple console application that performs preprocessing and encoding of an uncompressed video stream according to a specific video compression standard. Also the sample shows how to integrate user-defined functions for video processing \(on example of picture rotation plug-in\) into **SDK** encoding pipeline.
 
@@ -23,21 +23,21 @@ The sample is able to work with**HEVC Decoder & Encoder** \(hereinafter referred
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 To enable V4L2 option during compilation, set --enable-v4l2=yes option while running `build.pl`
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 
 
@@ -64,6 +64,7 @@ The following command-line switches are optional:
  |  [-idr_interval size]| idr interval, default 0 means every I is an IDR, 1 means every other I frame is an IDR etc|
 |   [-f frameRate] | video frame rate (frames per second)|
  |  [-n number] | number of frames to process|
+ |[-device /path/to/device] | set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
   | [-b bitRate] | encoded bit rate (Kbits per second), valid for H.264, H.265, MPEG2 and MVC encoders|
   | [-u usage] | target usage, valid for H.265, H.264, H.265, MPEG2 and MVC encoders. <br>Expected values: <br>veryslow (quality), slower, slow, medium (balanced), fast, faster, veryfast (speed)|
   | [-q quality] | mandatory quality parameter for JPEG encoder. In range [1,100]. 100 is the best quality.|
@@ -74,7 +75,7 @@ The following command-line switches are optional:
   | [-num_active_BL0 numRefs] | number of maximum allowed references for B frames in L0 (for HEVC only)|
  |  [-num_active_BL1 numRefs] | number of maximum allowed references for B frames in L1 (for HEVC only)|
   | [-la] | use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used) <br> for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors <br>if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used.
- |[-lad depth] | depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100]. <br>may be 1 in the case when -mss option is specified <br>if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algorithm will be used.|
+ |[-lad depth] | depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100].<br>If `depth` is `0` then the encoder forces the value to Max(10, 2\*`GopRefDist`) for LA_ICQ, and to Max(40, 2\*`GopRefDist`) otherwise.<br>If `depth` is in range [1,100] then the encoder forces the value to Max(2\*`GopRefDist`,2\*`NumRefFrame`,`depth`).<br>may be 1 in the case when -mss option is specified <br>if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algorithm will be used.|
  |  [-dstw width] | destination picture width, invokes VPP resizing|
   | [-dsth height] | destination picture height, invokes VPP resizing|
   | [-hw] | use platform specific SDK implementation (default)|
@@ -95,7 +96,8 @@ The following command-line switches are optional:
   | [-qpp]  | constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
  |  [-qpb] | constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
  |  [-round_offset_in file]  | use this file to set per frame inter/intra rounding offset(for AVC only)|
-  | [-qsv-ff]  |     Enable QSV-FF mode|
+  | [-qsv-ff]  |     Enable QSV-FF mode (deprecated)|
+  | [-lowpower:<on,off>]  |     Turn this optiont ON to enable QSV-FF mode|
  |  [-ir_type]   | Intra refresh type. 0 - no refresh, 1 - vertical refresh, 2 - horizontal refresh, 3 - slice refresh|
   | [-ir_cycle_size] | Number of pictures within refresh cycle starting from 2|
   | [-ir_qp_delta]  | QP difference for inserted intra MBs. This is signed value in [-51, 51] range|
@@ -105,6 +107,7 @@ The following command-line switches are optional:
   | [-num_slice] | number of slices in each video frame. 0 by default. If num_slice equals zero, the encoder may choose any slice partitioning allowed by the codec standard.|
    |[-mss] |maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -num_slice option.|
   | [-mfs]|maximum frame size in bytes. Supported only with h264 and hevc codec for VBR mode.|
+  | [-BitrateLimit:<on,off>] | Modifies bitrate to be in the range imposed by the SDK encoder. Setting this flag off may lead to violation of HRD conformance. The default value is OFF, i.e. bitrate is not limited. It works with AVC only.|
   | [-re]      |enable region encode mode. Works only with h265 encoder|
   | [-CodecProfile] | specifies codec profile|
  |  [-CodecLevel]   | specifies codec level|

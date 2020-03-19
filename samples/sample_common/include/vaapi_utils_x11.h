@@ -46,6 +46,7 @@ public:
 
 protected:
     Display* m_display;
+    VAConfigID  m_configID;
     VAContextID m_contextID;
     MfxLoader::XLib_Proxy   m_x11lib;
     MfxLoader::VA_X11Proxy  m_vax11lib;
@@ -59,6 +60,8 @@ protected:
 #endif // X11_DRI3_SUPPORT
 
 private:
+    void Close();
+
     DISALLOW_COPY_AND_ASSIGN(X11LibVA);
 };
 

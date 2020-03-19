@@ -499,10 +499,6 @@ namespace UMC_MPEG2_DECODER
             }
         }
 
-
-        // Frame time stamp
-        m_currFrame->dFrameTime = slice->source.GetTime();
-
         const auto picExt = *m_currHeaders.picExtHdr;
         uint32_t fieldIndex = m_currFrame->GetNumberByParity(picExt.picture_structure == BOTTOM_FLD_PICTURE);
         MPEG2DecoderFrameInfo & info = *m_currFrame->GetAU(fieldIndex);
@@ -724,13 +720,15 @@ namespace UMC_MPEG2_DECODER
     }
 
     // Initialize just allocated frame with parameters
-    void InitFreeFrame(MPEG2DecoderFrame& frame,
-                       const MPEG2SequenceHeader& seq, const MPEG2SequenceExtension& seqExt,
-                       const MPEG2PictureHeader& pic, const MPEG2PictureCodingExtension& picExt,
-                       const UMC::sVideoStreamInfo& info)
+    void InitFreeFrame(MPEG2DecoderFrame& frame, const MPEG2Slice& slice, const UMC::sVideoStreamInfo& info)
     {
+        auto seq    = slice.GetSeqHeader();
+        auto seqExt = slice.GetSeqExtHeader();
+        auto pic    = slice.GetPicHeader();
+        auto picExt = slice.GetPicExtHeader();
 
-        frame.frameType = (FrameType)pic.picture_coding_type;
+        frame.frameType  = (FrameType)pic.picture_coding_type;
+        frame.dFrameTime = slice.source.GetTime();
         frame.isProgressiveSequence = seqExt.progressive_sequence;
         frame.isProgressiveFrame    = picExt.progressive_frame;
 
@@ -804,12 +802,7 @@ namespace UMC_MPEG2_DECODER
         if (!frame)
             return nullptr;
 
-        const auto seq    = slice->GetSeqHeader();
-        const auto seqExt = slice->GetSeqExtHeader();
-        const auto pic    = slice->GetPicHeader();
-        const auto picExt = slice->GetPicExtHeader();
-
-        InitFreeFrame(*frame, seq, seqExt, pic, picExt, m_params.info);
+        InitFreeFrame(*frame, *slice, m_params.info);
 
         frame->group = m_currHeaders.group;
 
@@ -848,12 +841,20 @@ namespace UMC_MPEG2_DECODER
         return frame;
     }
 
-    static
-    bool IsFieldOfOneFrame(const MPEG2PictureHeader& picHdr, const MPEG2PictureCodingExtension& picExtHdr,
-                           const MPEG2PictureHeader & newPictureHdr, const MPEG2PictureCodingExtension& newPicExtHdr)
+    bool MPEG2Decoder::IsFieldOfCurrentFrame() const
     {
-        if (picHdr.temporal_reference != newPictureHdr.temporal_reference)  // 6.3.9
-            return false;
+        const auto firstFrameSlice = m_currFrame->GetAU(0)->GetSlice(0);
+        const auto picHdr = firstFrameSlice->GetPicHeader();
+        const auto picExtHdr = firstFrameSlice->GetPicExtHeader();
+        const auto newPicHdr = *m_currHeaders.picHdr.get();
+        const auto newPicExtHdr = *m_currHeaders.picExtHdr.get();
+
+        // this is a workaround (and actually not by spec) to handle invalid streams where an II or IP pair has different temporal_reference
+        if (m_currFrame->frameType != MPEG2_I_PICTURE || m_currFrame->currFieldIndex != 0)
+        {
+            if (picHdr.temporal_reference != newPicHdr.temporal_reference)  // 6.3.9
+                return false;
+        }
 
         if (picExtHdr.picture_structure == newPicExtHdr.picture_structure) // the same type fields
             return false;
@@ -874,12 +875,9 @@ namespace UMC_MPEG2_DECODER
             return true; // Full frame
         }
 
-        // field picture
-        const auto firstFrameSlice = m_currFrame->GetAU(0)->GetSlice(0);
-        const auto newPicHdr = *m_currHeaders.picHdr.get();
         const auto newPicExtHdr = *m_currHeaders.picExtHdr.get();
 
-        if (IsFieldOfOneFrame(firstFrameSlice->GetPicHeader(), firstFrameSlice->GetPicExtHeader(), newPicHdr, newPicExtHdr))
+        if (IsFieldOfCurrentFrame())
         {
             CompletePicture(*m_currFrame, m_currFrame->currFieldIndex); // complete the first field of the current frame
 
@@ -896,6 +894,32 @@ namespace UMC_MPEG2_DECODER
         }
 
         return false;
+    }
+
+    void MPEG2Decoder::EliminateSliceErrors(MPEG2DecoderFrame& frame, uint8_t fieldIndex)
+    {
+        MPEG2DecoderFrameInfo & frameInfo = *frame.GetAU(fieldIndex);
+        size_t sliceCount = frameInfo.GetSliceCount();
+
+        for (size_t sliceNum = 0; sliceNum < sliceCount; sliceNum++)
+        {
+            auto slice = frameInfo.GetSlice(sliceNum);
+            auto sliceHeader = slice->GetSliceHeader();
+
+            // Slice may cover just a part of a row (not full row), this is indicated by macroblockAddressIncrement
+            // Looping over slices, we heed to check if next slice has macroblockAddressIncrement > 0,
+            // this means that we need to recalculate numberMBsInSlice for previous slice
+            if (sliceNum > 0 && sliceHeader.macroblockAddressIncrement > 0)
+            {
+                auto prevSlice = frameInfo.GetSlice(sliceNum - 1); //take previous
+                auto& prevSliceHeader = prevSlice->GetSliceHeader();
+
+                // Check if this parts are located at the same row
+                if (sliceHeader.slice_vertical_position == prevSliceHeader.slice_vertical_position)
+                    prevSliceHeader.numberMBsInSlice = sliceHeader.macroblockAddressIncrement - prevSliceHeader.macroblockAddressIncrement;
+            }
+        }
+        return;
     }
 
     UMC::Status MPEG2Decoder::CompletePicture(MPEG2DecoderFrame& frame, uint8_t fieldIndex)
@@ -917,7 +941,18 @@ namespace UMC_MPEG2_DECODER
             return UMC::UMC_OK;
         }
 
-        Submit(frame, fieldIndex);
+        size_t sliceCount = frameInfo.GetSliceCount();
+
+        if (sliceCount)
+        {
+            EliminateSliceErrors(frame, fieldIndex);
+            Submit(frame, fieldIndex);
+        }
+        else
+        {
+            if (((info.IsField() && fieldIndex) || !info.IsField()))
+                frame.OnDecodingCompleted();
+        }
 
         return UMC::UMC_OK;
     }

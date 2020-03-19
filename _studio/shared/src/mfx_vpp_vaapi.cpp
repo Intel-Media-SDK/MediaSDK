@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -455,10 +455,18 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #if defined (MFX_ENABLE_FOURCC_RGB565)
         case MFX_FOURCC_RGB565:
 #endif
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+#endif
 #if (MFX_VERSION >= 1027)
         case MFX_FOURCC_AYUV:
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
+#endif
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y216:
+        case MFX_FOURCC_Y416:
 #endif
         case MFX_FOURCC_P010:
             caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_INPUT;
@@ -482,6 +490,11 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
 #ifdef MFX_ENABLE_RGBP
         case MFX_FOURCC_RGBP:
 #endif
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y216:
+        case MFX_FOURCC_Y416:
+#endif
         case MFX_FOURCC_P010:
         case MFX_FOURCC_A2RGB10:
             caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_OUTPUT;
@@ -492,6 +505,12 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     }
 
     caps.uScaling = 1;
+
+    eMFXPlatform platform = m_core->GetPlatformType();
+    if (platform == MFX_PLATFORM_HARDWARE)
+    {
+        caps.uChromaSiting = m_core->GetHWType() >= MFX_HW_SCL ? 1 : 0;
+    }
 
     return MFX_ERR_NONE;
 
@@ -1237,6 +1256,60 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         break;
     }
 
+#if (MFX_VERSION >= 1025)
+        uint8_t& chromaSitingMode = m_pipelineParam[0].input_color_properties.chroma_sample_location;
+        chromaSitingMode = VA_CHROMA_SITING_UNKNOWN;
+
+        switch (pParams->chromaSiting)
+        {
+        case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_TOP:
+            //Option A : Chroma samples are aligned horizontally and vertically with multiples of the luma samples
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_TOP;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_CENTER:
+            //Option AB : Chroma samples are vertically centered between, but horizontally aligned with luma samples.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_CENTER;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_LEFT | MFX_CHROMA_SITING_VERTICAL_BOTTOM:
+            //Option B : Chroma samples are horizontally aligned and vertically 1 pixel offset to the bottom.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_LEFT | VA_CHROMA_SITING_VERTICAL_BOTTOM;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_CENTER:
+            //Option ABCD : Chroma samples are centered between luma samples both horizontally and vertically.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_CENTER;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_TOP:
+            //Option AC : Chroma samples are vertically aligned with, and horizontally centered between luma
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_TOP;
+            break;
+        case MFX_CHROMA_SITING_HORIZONTAL_CENTER | MFX_CHROMA_SITING_VERTICAL_BOTTOM:
+            //Option BD : Chroma samples are horizontally 0.5 pixel offset to the right and vertically 1 pixel offset to the bottom.
+            chromaSitingMode = VA_CHROMA_SITING_HORIZONTAL_CENTER | VA_CHROMA_SITING_VERTICAL_BOTTOM;
+            break;
+        case MFX_CHROMA_SITING_UNKNOWN:
+        default:
+            break;
+        }
+        m_pipelineParam[0].output_color_properties.chroma_sample_location = chromaSitingMode;
+#endif
+
+if (pParams->mirroringExt)
+{
+    // First priority is HW fixed function scaling engine. If it can't work, revert to AVS
+    // Starting from ATS there is only HW fixed function scaling engine due to AVS removal
+    m_pipelineParam[0].filter_flags = VA_FILTER_SCALING_DEFAULT;
+
+    switch (pParams->mirroring)
+    {
+    case MFX_MIRRORING_VERTICAL:
+        m_pipelineParam[0].mirror_state = VA_MIRROR_VERTICAL;
+        break;
+    case MFX_MIRRORING_HORIZONTAL:
+        m_pipelineParam[0].mirror_state = VA_MIRROR_HORIZONTAL;
+        break;
+    }
+}
+
     vaSts = vaCreateBuffer(m_vaDisplay,
                         m_vaContextVPP,
                         VAProcPipelineParameterBufferType,
@@ -1761,6 +1834,16 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
             attrib.value.value.i = VA_FOURCC_P010; // We're going to flood fill this surface, so let's use most common 10-bit format
             rt_format = VA_RT_FORMAT_YUV420;
         }
+#if (MFX_VERSION >= 1031)
+        else if(inInfo->FourCC == MFX_FOURCC_P016
+                || inInfo->FourCC == MFX_FOURCC_Y216
+                || inInfo->FourCC == MFX_FOURCC_Y416
+            )
+        {
+            attrib.value.value.i = VA_FOURCC_P016; // We're going to flood fill this surface, so let's use most common 10-bit format
+            rt_format = VA_RT_FORMAT_YUV420_10BPP;
+        }
+#endif
         else
         {
             attrib.value.value.i = VA_FOURCC_NV12;
@@ -1832,11 +1915,30 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition(mfxExecuteParams *pParams)
                 MFX_CHECK(setPlaneSts, MFX_ERR_DEVICE_FAILED);
             }
 
-            if (imagePrimarySurface.format.fourcc == VA_FOURCC_P010)
+            if (imagePrimarySurface.format.fourcc == VA_FOURCC_P010
+#if (MFX_VERSION >= 1031)
+                || imagePrimarySurface.format.fourcc == VA_FOURCC_P016
+#endif
+            )
             {
-                uint32_t Y = (uint32_t)((pParams->iBackgroundColor >> 26) & 0xffC0);
-                uint32_t U = (uint32_t)((pParams->iBackgroundColor >> 10) & 0xffC0);
-                uint32_t V = (uint32_t)((pParams->iBackgroundColor <<  6) & 0xffC0);
+                uint32_t Y=0;
+                uint32_t U=0;
+                uint32_t V=0;
+                if(imagePrimarySurface.format.fourcc == VA_FOURCC_P010 )
+                {
+                    Y = (uint32_t)((pParams->iBackgroundColor >> 26) & 0xffC0);
+                    U = (uint32_t)((pParams->iBackgroundColor >> 10) & 0xffC0);
+                    V = (uint32_t)((pParams->iBackgroundColor <<  6) & 0xffC0);
+                }
+#if (MFX_VERSION >= 1031)
+                else
+                {
+                    // 12 bit depth is used for these CCs
+                    Y = (uint32_t)((pParams->iBackgroundColor >> 28) & 0xfff0);
+                    U = (uint32_t)((pParams->iBackgroundColor >> 12) & 0xfff0);
+                    V = (uint32_t)((pParams->iBackgroundColor <<  4) & 0xfff0);
+                }
+#endif
 
                 uint16_t valueY = (uint16_t)Y;
                 uint32_t valueUV = (int32_t)((V << 16) + U); // Keep in mind that short is stored in memory using little-endian notation

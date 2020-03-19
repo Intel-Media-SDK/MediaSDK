@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2019 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,51 +35,26 @@ if( Linux OR Darwin )
   endif()
 
   include( GNUInstallDirs )
-
-  add_definitions(-DUNIX)
-
+  set( common_flags "${common_flags} -DUNIX")
   if( Linux )
-    add_definitions(-D__USE_LARGEFILE64 -D_FILE_OFFSET_BITS=64)
+    set( common_flags "${common_flags} -D__USE_LARGEFILE64" )
+    set( common_flags "${common_flags} -D_FILE_OFFSET_BITS=64" )
 
-    add_definitions(-DLINUX)
-    add_definitions(-DLINUX32)
+    set( common_flags "${common_flags} -DLINUX" )
+    set( common_flags "${common_flags} -DLINUX32" )
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      add_definitions(-DLINUX64)
+      set( common_flags "${common_flags} -DLINUX64" )
     endif()
   endif()
 
   if( Darwin )
-    add_definitions(-DOSX)
-    add_definitions(-DOSX32)
+    set( common_flags "${common_flags} -DOSX" )
+    set( common_flags "${common_flags} -DOSX32" )
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      add_definitions(-DOSX64)
+      set( common_flags "${common_flags} -DOSX64" )
     endif()
-  endif()
-
-  # Potential source of confusion here. Environment $MFX_VERSION translates to product name (strings libmfxhw64.so | grep mediasdk),
-  # but macro definition MFX_VERSION should contain API version i.e. 1025 for API 1.25
-  if( NOT DEFINED ENV{MFX_VERSION} )
-    set( version 0.0.000.0000 )
-  else()
-    set( version $ENV{MFX_VERSION} )
-  endif()
-
-  if( Linux OR Darwin )
-    execute_process(
-      COMMAND echo
-      COMMAND cut -f 1 -d.
-      COMMAND date "+.%-y.%-m.%-d"
-      OUTPUT_VARIABLE cur_date
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      )
-    string( SUBSTRING ${version} 0 1 ver )
-
-    set( git_commit "" )
-    git_describe( git_commit )
-
-    add_definitions( -DMSDK_BUILD=\"$ENV{BUILD_NUMBER}\")
   endif()
 
   if (CMAKE_C_COMPILER MATCHES icc)
@@ -87,12 +62,12 @@ if( Linux OR Darwin )
   else()
     set(no_warnings "-Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-unused")
   endif()
-
+ 
   set(c_warnings "-Wall -Wformat -Wformat-security")
   set(cxx_warnings "${c_warnings} -Wnon-virtual-dtor")
 
-  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${c_warnings} ${no_warnings}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${cxx_warnings} ${no_warnings}")
+  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -pipe -fPIC ${c_warnings} ${no_warnings} ${common_flags}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fPIC ${cxx_warnings} ${no_warnings} ${common_flags}")
   append("-fPIE -pie" CMAKE_EXE_LINKER_FLAGS)
 
   # CACHE + FORCE should be used only here to make sure that this parameters applied globally
@@ -105,7 +80,7 @@ if( Linux OR Darwin )
 
   if ( Darwin )
     if (CMAKE_C_COMPILER MATCHES clang)
-       set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -v -std=c++11 -stdlib=libc++")
+       set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -v -std=c++11 -stdlib=libc++ ${common_flags}")
     endif()
   endif()
 
@@ -230,7 +205,17 @@ if(UNIX AND MFX_GLIBC)
   set( BUILD_INFO "${BUILD_INFO} | ${MFX_GLIBC}")
 endif()
 
-git_describe( git_commit )
-add_definitions( -DMFX_BUILD_INFO=\"${BUILD_INFO}\" )
-add_definitions( -DMFX_API_VERSION=\"${API_VER_MODIF}\" )
-add_definitions( -DMFX_GIT_COMMIT=\"${git_commit}\" )
+set( git_dir "${PROJECT_SOURCE_DIR}/.git" )
+if( IS_DIRECTORY ${git_dir} )
+  git_describe( git_commit )
+else()
+  set(git_commit "hashsum unknown")
+endif()
+
+set( version_flags "${version_flags} -DMFX_BUILD_INFO=\"\\\"${BUILD_INFO}\\\"\"" )
+set( version_flags "${version_flags} -DMFX_API_VERSION=\"\\\"${API_VER_MODIF}\\\"\"" )
+set( version_flags "${version_flags} -DMFX_GIT_COMMIT=\"\\\"${git_commit}\\\"\"" )
+set( version_flags "${version_flags} -DMEDIA_VERSION_STR=\"\\\"${MEDIA_VERSION_STR}\\\"\"" )
+
+set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${version_flags}" )
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${version_flags}" )

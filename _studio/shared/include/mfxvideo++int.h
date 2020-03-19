@@ -35,26 +35,27 @@
 
 #ifndef GUID_TYPE_DEFINED
 
-#include <string.h>
+#include <string>
 #include <algorithm>
+#include <functional>
+#include <sstream>
 
-typedef struct {
-
+struct GUID
+{
     size_t GetHashCode() const
     {
-        size_t hash = 0;
-        for (unsigned short i = 0; i < sizeof(*this) / (sizeof(size_t)); ++i)
-        {
-            hash |= i%2? *(reinterpret_cast<const size_t * >(this) + i) : (hash & *(reinterpret_cast<const size_t * >(this) + i));
-        }
-        return hash;
+        std::stringstream ss;
+        ss << Data1 << Data2 << Data3
+           // Pass Data4 element-wise to allow zeroes in GUID
+           << Data4[0] << Data4[1] << Data4[2] << Data4[3] << Data4[4] << Data4[5] << Data4[6] << Data4[7];
+        return std::hash<std::string>()(ss.str());
     }
 
     unsigned long  Data1;
     unsigned short Data2;
     unsigned short Data3;
     unsigned char  Data4[8];
-} GUID;
+};
 
 static inline int operator==(const GUID & guidOne, const GUID & guidOther)
 {

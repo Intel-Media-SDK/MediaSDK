@@ -28,6 +28,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <stdexcept>
 #include <mutex>
 #include <algorithm>
+#include <fstream>
 
 #include "mfxstructures.h"
 #include "mfxvideo.h"
@@ -38,6 +39,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "mfxfei.h"
 #include "mfxfeihevc.h"
 #include "mfxmvc.h"
+#include "mfxla.h"
 
 #include "vm/strings_defs.h"
 #include "vm/file_defs.h"
@@ -109,6 +111,107 @@ enum ExtBRCType {
     EXTBRC_IMPLICIT
 };
 
+namespace QPFile {
+
+    enum ReaderStatus
+    {
+        READER_ERR_NONE,
+        READER_ERR_NOT_INITIALIZED,
+        READER_ERR_CODEC_UNSUPPORTED,
+        READER_ERR_FILE_NOT_OPEN,
+        READER_ERR_INCORRECT_FILE
+    };
+
+    struct FrameInfo
+    {
+        mfxU32 displayOrder;
+        mfxU16 QP;
+        mfxU16 frameType;
+    };
+
+    // QPFile::Reader reads QP and frame type per frame in encoding order
+    // from external text file (for encoding in qpfile mode)
+    class Reader
+    {
+    public:
+        mfxStatus Read(const msdk_string& strFileName, mfxU32 codecid);
+        void ResetState();
+
+        mfxU32 GetCurrentEncodedOrder() const;
+        mfxU32 GetCurrentDisplayOrder() const;
+        mfxU16 GetCurrentQP() const;
+        mfxU16 GetCurrentFrameType() const;
+        mfxU32 GetFramesNum() const;
+        void NextFrame();
+        std::string GetErrorMessage() const;
+
+    private:
+        void ResetState(ReaderStatus set_sts);
+
+        ReaderStatus            m_ReaderSts   = READER_ERR_NOT_INITIALIZED;
+        mfxU32                  m_nFrames     = std::numeric_limits<mfxU32>::max();
+        mfxU32                  m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+        std::vector<FrameInfo>  m_FrameVals {};
+    };
+
+    inline bool get_line(std::ifstream& ifs, std::string& line)
+    {
+        std::getline(ifs, line, '\n');
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+        return !ifs.fail();
+    }
+    inline size_t find_nth(const std::string& str, size_t pos, const std::string& needle, mfxU32 nth)
+    {
+        size_t found_pos = str.find(needle, pos);
+        for(; nth != 0 && std::string::npos != found_pos; --nth)
+            found_pos = str.find(needle, found_pos + 1);
+        return found_pos;
+    }
+    inline mfxU16 StringToFrameType(std::string str)
+    {
+        if ("IDR_REF" == str) return MFX_FRAMETYPE_I | MFX_FRAMETYPE_IDR | MFX_FRAMETYPE_REF;
+        else if ("I_REF" == str) return MFX_FRAMETYPE_I | MFX_FRAMETYPE_REF;
+        else if ("P_REF" == str) return MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF;
+        else if ("P" == str) return MFX_FRAMETYPE_P;
+        else if ("B_REF" == str) return MFX_FRAMETYPE_B | MFX_FRAMETYPE_REF;
+        else if ("B" == str) return MFX_FRAMETYPE_B;
+        else return MFX_FRAMETYPE_UNKNOWN;
+    }
+    inline std::string ReaderStatusToString(ReaderStatus sts)
+    {
+        switch (sts)
+        {
+        case READER_ERR_NOT_INITIALIZED:
+            return std::string("reader not initialized (qpfile has not yet read the file)\n");
+        case READER_ERR_FILE_NOT_OPEN:
+            return std::string("failed to open file contains frame parameters (check provided path in -qpfile <path>)\n");
+        case READER_ERR_INCORRECT_FILE:
+            return std::string("incorrect file with frame parameters\n");
+        case READER_ERR_CODEC_UNSUPPORTED:
+            return std::string("codecs, except h264 and h265, are not supported\n");
+        default:
+            return std::string();
+        }
+    }
+    inline mfxU32 ReadDisplayOrder(const std::string& line)
+    {
+        return std::stoi(line.substr(0, find_nth(line, 0, ",", 0)));
+    }
+    inline mfxU16 ReadQP(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ",", 0) + 1;
+        return static_cast<mfxU16>(std::stoi(line.substr(pos, find_nth(line, 0, ",", 1) - pos)));
+    }
+    inline mfxU16 ReadFrameType(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ",", 1) + 1;
+        return StringToFrameType(line.substr(pos, line.length() - pos));
+    }
+}
+
+mfxStatus GetFrameLength(mfxU16 width, mfxU16 height, mfxU32 ColorFormat, mfxU32 &length);
+
 bool IsDecodeCodecSupported(mfxU32 codecFormat);
 bool IsEncodeCodecSupported(mfxU32 codecFormat);
 bool IsPluginCodecSupported(mfxU32 codecFormat);
@@ -131,9 +234,8 @@ private:
 
 //declare used extension buffers
 template<class T>
-struct mfx_ext_buffer_id{
-    enum {id = 0};
-};
+struct mfx_ext_buffer_id{};
+
 template<>struct mfx_ext_buffer_id<mfxExtCodingOption>{
     enum {id = MFX_EXTBUFF_CODING_OPTION};
 };
@@ -153,10 +255,10 @@ template<>struct mfx_ext_buffer_id<mfxExtThreadsParam>{
     enum {id = MFX_EXTBUFF_THREADS_PARAM};
 };
 template<>struct mfx_ext_buffer_id<mfxExtFeiParam> {
-    enum { id = MFX_EXTBUFF_FEI_PARAM };
+    enum {id = MFX_EXTBUFF_FEI_PARAM};
 };
 template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncCtrl> {
-    enum { id = MFX_EXTBUFF_FEI_PREENC_CTRL };
+    enum {id = MFX_EXTBUFF_FEI_PREENC_CTRL};
 };
 template<>struct mfx_ext_buffer_id<mfxExtFeiPreEncMV>{
     enum {id = MFX_EXTBUFF_FEI_PREENC_MV};
@@ -203,9 +305,128 @@ template<>struct mfx_ext_buffer_id<mfxExtMVCSeqDesc> {
 template<>struct mfx_ext_buffer_id<mfxExtVPPDoNotUse> {
     enum {id = MFX_EXTBUFF_VPP_DONOTUSE};
 };
+template<>struct mfx_ext_buffer_id<mfxExtVPPDoUse> {
+    enum {id = MFX_EXTBUFF_VPP_DOUSE};
+};
 template<>struct mfx_ext_buffer_id<mfxExtVPPDeinterlacing> {
     enum {id = MFX_EXTBUFF_VPP_DEINTERLACING};
 };
+template<>struct mfx_ext_buffer_id<mfxExtCodingOptionSPSPPS> {
+    enum {id = MFX_EXTBUFF_CODING_OPTION_SPSPPS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtOpaqueSurfaceAlloc> {
+    enum {id = MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVppMctf> {
+    enum {id = MFX_EXTBUFF_VPP_MCTF};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPComposite> {
+    enum {id = MFX_EXTBUFF_VPP_COMPOSITE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPFieldProcessing> {
+    enum {id = MFX_EXTBUFF_VPP_FIELD_PROCESSING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPDetail> {
+    enum {id = MFX_EXTBUFF_VPP_DETAIL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPFrameRateConversion> {
+    enum {id = MFX_EXTBUFF_VPP_FRAME_RATE_CONVERSION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtLAControl> {
+    enum {id = MFX_EXTBUFF_LOOKAHEAD_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtMultiFrameControl> {
+    enum {id = MFX_EXTBUFF_MULTI_FRAME_CONTROL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtMultiFrameParam> {
+    enum {id = MFX_EXTBUFF_MULTI_FRAME_PARAM};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCTiles> {
+    enum {id = MFX_EXTBUFF_HEVC_TILES};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVP9Param> {
+    enum {id = MFX_EXTBUFF_VP9_PARAM};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVideoSignalInfo> {
+    enum {id = MFX_EXTBUFF_VIDEO_SIGNAL_INFO};
+};
+template<>struct mfx_ext_buffer_id<mfxExtHEVCRegion> {
+    enum {id = MFX_EXTBUFF_HEVC_REGION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtAVCRoundingOffset> {
+    enum {id = MFX_EXTBUFF_AVC_ROUNDING_OFFSET};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPDenoise> {
+    enum {id = MFX_EXTBUFF_VPP_DENOISE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPProcAmp> {
+    enum {id = MFX_EXTBUFF_VPP_PROCAMP};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPImageStab> {
+    enum {id = MFX_EXTBUFF_VPP_IMAGE_STABILIZATION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPVideoSignalInfo> {
+    enum {id = MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPMirroring> {
+    enum {id = MFX_EXTBUFF_VPP_MIRRORING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPColorFill> {
+    enum {id = MFX_EXTBUFF_VPP_COLORFILL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPRotation> {
+    enum {id = MFX_EXTBUFF_VPP_ROTATION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtVPPScaling> {
+    enum {id = MFX_EXTBUFF_VPP_SCALING};
+};
+template<>struct mfx_ext_buffer_id<mfxExtColorConversion> {
+    enum {id = MFX_EXTBUFF_VPP_COLOR_CONVERSION};
+};
+template<>struct mfx_ext_buffer_id<mfxExtPredWeightTable> {
+    enum {id = MFX_EXTBUFF_PRED_WEIGHT_TABLE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiDecStreamOut> {
+    enum {id = MFX_EXTBUFF_FEI_DEC_STREAM_OUT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiSliceHeader> {
+    enum {id = MFX_EXTBUFF_FEI_SLICE};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncFrameCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMVPredictors> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MV_PRED};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiRepackCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_REPACK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMBCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MB};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncQP> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_QP};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMBStat> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MB_STAT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiEncMV> {
+    enum {id = MFX_EXTBUFF_FEI_ENC_MV};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPakMBCtrl> {
+    enum {id = MFX_EXTBUFF_FEI_PAK_CTRL};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiRepackStat> {
+    enum {id = MFX_EXTBUFF_FEI_REPACK_STAT};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiSPS> {
+    enum {id = MFX_EXTBUFF_FEI_SPS};
+};
+template<>struct mfx_ext_buffer_id<mfxExtFeiPPS > {
+    enum {id = MFX_EXTBUFF_FEI_PPS};
+};
+
+constexpr uint16_t max_num_ext_buffers = 63 * 2; // '*2' is for max estimation if all extBuffer were 'paired'
 
 //helper function to initialize mfx ext buffer structure
 template <class T>
@@ -216,6 +437,47 @@ void init_ext_buffer(T & ext_buffer)
     reinterpret_cast<mfxExtBuffer*>(&ext_buffer)->BufferSz = sizeof(ext_buffer);
 }
 
+template <typename T> struct IsPairedMfxExtBuffer                 : std::false_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtAVCRefListCtrl>     : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtAVCRoundingOffset>  : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtPredWeightTable>    : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiSliceHeader>     : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncFrameCtrl>    : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMVPredictors> : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiRepackCtrl>      : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMBCtrl>       : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncQP>           : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMBStat>       : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiEncMV>           : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiPakMBCtrl>       : std::true_type {};
+template <> struct IsPairedMfxExtBuffer<mfxExtFeiRepackStat>      : std::true_type {};
+
+template <typename R>
+struct ExtParamAccessor
+{
+private:
+    using mfxExtBufferDoublePtr = mfxExtBuffer**;
+public:
+    mfxU16& NumExtParam;
+    mfxExtBufferDoublePtr& ExtParam;
+    ExtParamAccessor(const R& r):
+        NumExtParam(const_cast<mfxU16&>(r.NumExtParam)),
+        ExtParam(const_cast<mfxExtBufferDoublePtr&>(r.ExtParam)) {}
+};
+
+template <>
+struct ExtParamAccessor<mfxFrameSurface1>
+{
+private:
+    using mfxExtBufferDoublePtr = mfxExtBuffer**;
+public:
+    mfxU16& NumExtParam;
+    mfxExtBufferDoublePtr& ExtParam;
+    ExtParamAccessor(const mfxFrameSurface1& r):
+        NumExtParam(const_cast<mfxU16&>(r.Data.NumExtParam)),
+        ExtParam(const_cast<mfxExtBufferDoublePtr&>(r.Data.ExtParam)) {}
+};
+
 /** ExtBufHolder is an utility class which
  *  provide interface for mfxExtBuffer objects management in any mfx structure (e.g. mfxVideoParam)
  */
@@ -225,6 +487,7 @@ class ExtBufHolder : public T
 public:
     ExtBufHolder() : T()
     {
+        m_ext_buf.reserve(max_num_ext_buffers);
     }
 
     ~ExtBufHolder() // only buffers allocated by wrapper can be released
@@ -237,6 +500,7 @@ public:
 
     ExtBufHolder(const ExtBufHolder& ref)
     {
+        m_ext_buf.reserve(max_num_ext_buffers);
         *this = ref; // call to operator=
     }
 
@@ -261,16 +525,21 @@ public:
         //remove all existing extension buffers
         ClearBuffers();
 
-        //reproduce list of extension buffers and copy its content
-        m_ext_buf.reserve(ref.NumExtParam);
-        for (size_t i = 0; i < ref.NumExtParam; ++i)
-        {
-            const mfxExtBuffer* src_buf = ref.ExtParam[i];
-            if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
-            if (!IsCopyAllowed(src_buf->BufferId)) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Copying buffer with pointers not allowed");
+        const auto ref_ = ExtParamAccessor<T>(ref);
 
-            mfxExtBuffer* dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz);
-            if (!dst_buf) throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, "Can't allocate destination buffer");
+        //reproduce list of extension buffers and copy its content
+        for (size_t i = 0; i < ref_.NumExtParam; ++i)
+        {
+            const auto src_buf = ref_.ExtParam[i];
+            if (!src_buf) throw mfxError(MFX_ERR_NULL_PTR, "Null pointer attached to source ExtParam");
+            if (!IsCopyAllowed(src_buf->BufferId))
+            {
+                auto msg = "Deep copy of '" + Fourcc2Str(src_buf->BufferId) + "' extBuffer is not allowed";
+                throw mfxError(MFX_ERR_UNDEFINED_BEHAVIOR, msg);
+            }
+
+            // 'false' below is because here we just copy extBuffer's one by one
+            auto dst_buf = AddExtBuffer(src_buf->BufferId, src_buf->BufferSz, false);
             // copy buffer content w/o restoring its type
             memcpy((void*)dst_buf, (void*)src_buf, src_buf->BufferSz);
         }
@@ -281,79 +550,108 @@ public:
     ExtBufHolder(ExtBufHolder &&)             = default;
     ExtBufHolder & operator= (ExtBufHolder&&) = default;
 
+    // Always returns a valid pointer or throws an exception
     template<typename TB>
     TB* AddExtBuffer()
     {
-        mfxExtBuffer* b = AddExtBuffer(mfx_ext_buffer_id<TB>::id, sizeof(TB));
+        mfxExtBuffer* b = AddExtBuffer(mfx_ext_buffer_id<TB>::id, sizeof(TB), IsPairedMfxExtBuffer<TB>::value);
         return (TB*)b;
     }
 
-    void RemoveExtBuffer(mfxU32 id)
+    template<typename TB>
+    void RemoveExtBuffer()
     {
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(mfx_ext_buffer_id<TB>::id));
         if (it != m_ext_buf.end())
         {
             delete [] (mfxU8*)(*it);
-            m_ext_buf.erase(it);
+            it = m_ext_buf.erase(it);
+
+            if (IsPairedMfxExtBuffer<TB>::value)
+            {
+                if (it == m_ext_buf.end() || (*it)->BufferId != mfx_ext_buffer_id<TB>::id)
+                    throw mfxError(MFX_ERR_NULL_PTR, "RemoveExtBuffer: ExtBuffer's parity has been broken");
+
+                delete [] (mfxU8*)(*it);
+                m_ext_buf.erase(it);
+            }
+
             RefreshBuffers();
         }
     }
 
     template <typename TB>
-    TB* GetExtBuffer()
+    TB* GetExtBuffer(uint32_t fieldId = 0) const
     {
-        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(mfx_ext_buffer_id<TB>::id));
-        return it != m_ext_buf.end() ? (TB*)*it : nullptr;
+        return (TB*)FindExtBuffer(mfx_ext_buffer_id<TB>::id, fieldId);
     }
 
     template <typename TB>
     operator TB*()
     {
-        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
+        return (TB*)FindExtBuffer(mfx_ext_buffer_id<TB>::id, 0);
     }
 
     template <typename TB>
     operator TB*() const
     {
-        return (TB*)GetExtBuffer(mfx_ext_buffer_id<TB>::id);
+        return (TB*)FindExtBuffer(mfx_ext_buffer_id<TB>::id, 0);
     }
 
 private:
 
-    mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size)
+    mfxExtBuffer* AddExtBuffer(mfxU32 id, mfxU32 size, bool isPairedExtBuffer)
     {
         if (!size || !id)
-            return nullptr;
+            throw mfxError(MFX_ERR_NULL_PTR, "AddExtBuffer: wrong size or id!");
 
-        // Limitation: only one ExtBuffer instance can be stored
         auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
         if (it == m_ext_buf.end())
         {
-            mfxExtBuffer* buf = (mfxExtBuffer*)new mfxU8[size];
+            auto buf = (mfxExtBuffer*)new mfxU8[size];
             memset(buf, 0, size);
             m_ext_buf.push_back(buf);
 
-            mfxExtBuffer& ext_buf = *buf;
-            ext_buf.BufferId = id;
-            ext_buf.BufferSz = size;
-            RefreshBuffers();
+            buf->BufferId = id;
+            buf->BufferSz = size;
 
+            if (isPairedExtBuffer)
+            {
+                // Allocate the other mfxExtBuffer _right_after_ the first one ...
+                buf = (mfxExtBuffer*)new mfxU8[size];
+                memset(buf, 0, size);
+                m_ext_buf.push_back(buf);
+
+                buf->BufferId = id;
+                buf->BufferSz = size;
+
+                RefreshBuffers();
+                return m_ext_buf[m_ext_buf.size() - 2]; // ... and return a pointer to the first one
+            }
+
+            RefreshBuffers();
             return m_ext_buf.back();
         }
 
         return *it;
     }
 
-    mfxExtBuffer* GetExtBuffer(mfxU32 id) const
+    mfxExtBuffer* FindExtBuffer(mfxU32 id, uint32_t fieldId) const
     {
-        const auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        auto it = std::find_if(m_ext_buf.begin(), m_ext_buf.end(), CmpExtBufById(id));
+        if (fieldId && it != m_ext_buf.end())
+        {
+            ++it;
+            return it != m_ext_buf.end() ? *it : nullptr;
+        }
         return it != m_ext_buf.end() ? *it : nullptr;
     }
 
     void RefreshBuffers()
     {
-        this->NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
-        this->ExtParam    = this->NumExtParam ? m_ext_buf.data() : nullptr;
+        auto this_ = ExtParamAccessor<T>(*this);
+        this_.NumExtParam = static_cast<mfxU16>(m_ext_buf.size());
+        this_.ExtParam    = this_.NumExtParam ? m_ext_buf.data() : nullptr;
     }
 
     void ClearBuffers()
@@ -378,6 +676,10 @@ private:
             MFX_EXTBUFF_FEI_PARAM,
             MFX_EXTBUFF_BRC,
             MFX_EXTBUFF_HEVC_PARAM,
+            MFX_EXTBUFF_VP9_PARAM,
+            MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
+            MFX_EXTBUFF_FEI_PPS,
+            MFX_EXTBUFF_FEI_SPS,
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),
@@ -402,12 +704,23 @@ private:
         };
     };
 
+    static std::string Fourcc2Str(mfxU32 fourcc)
+    {
+        std::string s;
+        for (size_t i = 0; i < 4; i++)
+        {
+            s.push_back(*(i + (char*)&fourcc));
+        }
+        return s;
+    }
+
     std::vector<mfxExtBuffer*> m_ext_buf;
 };
 
-typedef ExtBufHolder<mfxVideoParam> MfxVideoParamsWrapper;
-typedef ExtBufHolder<mfxEncodeCtrl> mfxEncodeCtrlWrap;
-typedef ExtBufHolder<mfxInitParam>  mfxInitParamlWrap;
+using MfxVideoParamsWrapper = ExtBufHolder<mfxVideoParam>;
+using mfxEncodeCtrlWrap     = ExtBufHolder<mfxEncodeCtrl>;
+using mfxInitParamlWrap     = ExtBufHolder<mfxInitParam>;
+using mfxFrameSurfaceWrap   = ExtBufHolder<mfxFrameSurface1>;
 
 class mfxBitstreamWrapper : public ExtBufHolder<mfxBitstream>
 {
@@ -466,6 +779,7 @@ public :
 
     virtual void Close();
     virtual mfxStatus Init(std::list<msdk_string> inputs, mfxU32 ColorFormat, bool shouldShiftP010=false);
+    virtual mfxStatus SkipNframesFromBeginning(mfxU16 w, mfxU16 h, mfxU32 viewId, mfxU32 nframes);
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurface);
     virtual void Reset();
     mfxU32 m_ColorFormat; // color format of input YUV data, YUV420 or NV12
@@ -834,7 +1148,26 @@ private:
 
 mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD);
 mfxF64 CalculateFrameRate(mfxU32 nFrameRateExtN, mfxU32 nFrameRateExtD);
-mfxU16 GetFreeSurfaceIndex(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
+
+template <class T>
+mfxU16 GetFreeSurfaceIndex(T* pSurfacesPool, mfxU16 nPoolSize)
+{
+    constexpr mfxU16 MSDK_INVALID_SURF_IDX = 0xffff;
+
+    if (pSurfacesPool)
+    {
+        for (mfxU16 i = 0; i < nPoolSize; i++)
+        {
+            if (0 == pSurfacesPool[i].Data.Locked)
+            {
+                return i;
+            }
+        }
+    }
+
+    return MSDK_INVALID_SURF_IDX;
+}
+
 mfxU16 GetFreeSurface(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 void FreeSurfacePool(mfxFrameSurface1* pSurfacesPool, mfxU16 nPoolSize);
 
@@ -846,7 +1179,6 @@ mfxU16 StrToTargetUsage(msdk_string strInput);
 const msdk_char* TargetUsageToStr(mfxU16 tu);
 const msdk_char* ColorFormatToStr(mfxU32 format);
 const msdk_char* MfxStatusToStr(mfxStatus sts);
-
 
 // sets bitstream->PicStruct parsing first APP0 marker in bitstream
 mfxStatus MJPEG_AVI_ParsePicStruct(mfxBitstream *bitstream);
@@ -1034,106 +1366,5 @@ mfxI32 getMonitorType(msdk_char* str);
 void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint, mfxStatus& currentStatus);
 
 mfxU16 FourCCToChroma(mfxU32 fourCC);
-
-#ifdef ENABLE_MCTF
-// this function implements a simple management of MCTF control-buffers that can be attached to pmfxSurface
-// internally it tracks all created buffers, if s buffer with MFX_EXTBUFF_MCTF_CONTROL header already exists
-// and attached to the pmfxSurface, it is cleared (set to zero) and returned to a caller;
-// if nothing with MFX_EXTBUFF_MCTF_CONTROL is attached yet, a new buffer is created and stored in internal
-// list, then cleaned and a pointer is returned to a caller;
-// finally, if DeallocateAll is true, internal pool is traverserd and for each entry delete is called;
-// Alternative is to implement own allocator which for internal list which will clean everything;
-// not implemented yet for simpicity reasons.
-template<class ParamT, mfxU32 ParamName>
-//mfxExtMctfControl* GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = false)
-ParamT * GetMctfParamBuffer(mfxFrameSurface1* pmfxSurface, bool DeallocateAll = false)
-{
-    // map <pointer, busy-status>
-    static std::map<ParamT*, bool> mfxFrameParamPool;
-    static std::mutex ExclusiveAccess;
-
-    typedef typename std::map<ParamT*, bool>::iterator map_iter;
-
-    std::lock_guard<std::mutex> guard(ExclusiveAccess);
-    if (!pmfxSurface && !DeallocateAll)
-        return NULL;
-    if (DeallocateAll)
-    {
-        for (map_iter it = mfxFrameParamPool.begin(); it != mfxFrameParamPool.end(); ++it)
-        {
-            if (it->first)
-                delete (it->first);
-        };
-        mfxFrameParamPool.clear();
-        return NULL;
-    };
-    if (!pmfxSurface->Data.ExtParam)
-    {
-        msdk_printf(MSDK_STRING("GetMctfParamBuffer: pmfxSurface->Data.ExtParam is null!\n"));
-        return NULL;
-    }
-
-    mfxExtBuffer* pBuf = GetExtBuffer(pmfxSurface->Data.ExtParam, pmfxSurface->Data.NumExtParam, ParamName);
-    // try to find; if exist, set not-busy; otherwise, insert as a new
-    if (pBuf)
-    {
-        map_iter it = mfxFrameParamPool.find(reinterpret_cast<ParamT*>(pBuf));
-        if (it != mfxFrameParamPool.end())
-            it->second = false;
-        else
-            mfxFrameParamPool.insert(std::make_pair(reinterpret_cast<ParamT*>(pBuf), false));
-    }
-    else
-    {
-        ParamT* pBuf1(NULL);
-        try
-        {
-            pBuf1 = new ParamT;
-            mfxFrameParamPool.insert(std::make_pair(pBuf1, false));
-        }
-        catch (const std::exception& )
-        {
-            msdk_printf(MSDK_STRING("GetMctfParamBuffer: error (exception) when creating a new ext. buffer & inserting.\n"));
-            if (pBuf1)
-                delete pBuf1;
-            return NULL;
-        }
-    }
-
-    // now try to find non-busy buffer:
-    ParamT* pControl = NULL;
-    for (map_iter it = mfxFrameParamPool.begin(); it != mfxFrameParamPool.end(); ++it)
-    {
-        if (!it->second)
-        {
-            it->second = true;
-            pControl = it->first;
-            break;
-        }
-    }
-
-    if (!pControl)
-    {
-        msdk_printf(MSDK_STRING("GetMctfParamBuffer: cannot find an empty buffer & cannot create!\n"));
-        return NULL;
-    }
-    else
-    {
-        memset(pControl, 0, sizeof(ParamT));
-        pControl->Header.BufferId = ParamName;
-        pControl->Header.BufferSz = sizeof(ParamT);
-        return pControl;
-    };
-};
-inline static void WipeOutExtParams(mfxFrameSurface1* pmfxSurface, bool isInput, mfxU32 size)
-{
-    if (isInput && pmfxSurface->Data.ExtParam)
-    {
-        for (mfxU32 i = 0; i < size; ++i)
-            pmfxSurface->Data.ExtParam[i] = NULL;
-        pmfxSurface->Data.NumExtParam = 0;
-    }
-};
-#endif
 
 #endif //__SAMPLE_UTILS_H__

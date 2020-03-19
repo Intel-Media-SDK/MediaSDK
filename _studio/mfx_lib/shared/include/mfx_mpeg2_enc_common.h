@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -184,7 +184,6 @@ protected:
         mfxU32 frame_rate_code_n = 0;
         mfxU32 frame_rate_code_d = 0;
         mfxU32 vbv_buffer_size = 0;
-        static const mfxU8 bits_mask [9] = {0x00,0x80,0xc0,0xe0,0xf0, 0xf8,0xfc,0xfe,0xff};
 
         static const mfxU32 frame_rate_value_n [9] = {0, 24000, 24,25,30000,30,50,60000,60};
         static const mfxU32 frame_rate_value_d [9] = {0, 1001,  1,  1, 1001, 1, 1, 1001, 1};
@@ -364,7 +363,7 @@ protected:
 
         _GetBits (8,temp); // vbv_buffer_size_ext
         vbv_buffer_size |= (temp << 10);
-        par->mfx.BufferSizeInKB = mfxU16(MFX_MIN(0xffff, 2 * vbv_buffer_size));
+        par->mfx.BufferSizeInKB = mfxU16(std::min<mfxU32>(0xffff, 2 * vbv_buffer_size));
 
         _GetBits (1,temp); //low delay
         if (temp == 1)

@@ -315,7 +315,7 @@ namespace MfxLoader
         typedef int (*XDestroyWindow_type)(Display*, Window);
         typedef int (*XResizeWindow_type)(Display *, Window, unsigned int, unsigned int);
 #if defined(X11_DRI3_SUPPORT)
-        typedef Status (*XGetGeometry_type)(register Display *, Drawable, Window *,
+        typedef Status (*XGetGeometry_type)(Display *, Drawable, Window *,
                             int *, int *, unsigned int *, unsigned int *,
                             unsigned int *, unsigned int *);
 #endif // X11_DRI3_SUPPORT
@@ -465,7 +465,7 @@ private:
     DISALLOW_COPY_AND_ASSIGN(CLibVA);
 };
 
-CLibVA* CreateLibVA(int type = MFX_LIBVA_DRM);
+CLibVA* CreateLibVA(const std::string& devicePath = "", int type = MFX_LIBVA_DRM);
 
 VAStatus AcquireVASurface(void** ctx, VADisplay dpy1, VASurfaceID srf1, VADisplay dpy2, VASurfaceID* srf2);
 void ReleaseVASurface(void* actx, VADisplay dpy1, VASurfaceID srf1, VADisplay dpy2, VASurfaceID srf2);

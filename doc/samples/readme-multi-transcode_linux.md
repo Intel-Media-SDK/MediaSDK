@@ -4,7 +4,7 @@
 
 ## Overview
 
-**Multi-Transcoding Sample** works with **Intel® Media Server Studio 2018 - SDK for Linux\* Server** \(hereinafter referred to as "**SDK**"\)
+**Multi-Transcoding Sample** works with **Intel® Media SDK** \(hereinafter referred to as "**SDK**"\)
 
 It demonstrates how to use **SDK** API to create a console application that performs the transcoding \(decoding and encoding\) of a video stream from one compressed video format to another, with optional video processing \(resizing\) of uncompressed video prior to encoding. The application supports multiple input and output streams meaning it can execute multiple transcoding sessions concurrently.
 
@@ -14,7 +14,7 @@ This sample also demonstrates integration of user-defined functions for video pr
 
 This version of sample also demonstrates surface type neutral transcoding \(opaque memory usage\).
 
-The sample is able to work with**HEVC Decoder & Encoder** \(hereinafter referred to as "**HEVC**"\).
+The sample is able to work with **HEVC Decoder & Encoder** \(hereinafter referred to as "**HEVC**"\).
 
 ## Features
 
@@ -27,19 +27,19 @@ The sample is able to work with**HEVC Decoder & Encoder** \(hereinafter referred
 
 ## Hardware Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Software Requirements
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## How to Build the Application
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 ## Running the Software
 
-See `<install-folder>\Media_Samples_Guide.md`
+See [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md).
 
 
 
@@ -53,8 +53,8 @@ or: `sample_multi_transcode [options] -par ParFile`
 |Option|Description|
 |---|---|
 | -? |           Print this help and exit|
-|  -p <file-name\>| Collect performance statistics in specified file|
- | -timeout <seconds\>|  Set time to run transcoding in seconds|
+|  -p <file-name>| Collect performance statistics in specified file|
+ | -timeout <seconds>|  Set time to run transcoding in seconds|
   |-greedy|Use greedy formula to calculate number of surfaces|
 
 #### ParFile format:
@@ -68,9 +68,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 
 |Option|Description|
 |---|---|
- |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9 <file-name\>| Set input file and decoder type|
+ |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9 <file-name>| Set input file and decoder type|
   |-i::rgb4_frame | Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).|
- | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|raw <file-name\>|  Set output file and encoder type|
+ | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|raw <file-name>|  Set output file and encoder type|
  | -sw\|-hw\|-hw_d3d11| SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11<br>-sw - software|
  | -mfe_frames| <N> maximum number of frames to be combined in multi-frame encode pipeline               0 - default for platform will be used|
   |-mfe_mode 0\|1\|2\|3| multi-frame encode operation mode - should be the same for all sessions<br>0, MFE operates as DEFAULT mode, decided by SDK if MFE enabled<br>1, MFE is disabled<br>2, MFE operates as AUTO mode<br>3, MFE operates as MANUAL mode|
@@ -87,7 +87,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -fps <frames per second\>|  Transcoding frame rate limit|
   |-pe | Set encoding plugin for this particular session.<br>This setting overrides plugin settings defined by SET clause.|
 |  -pd|  Set decoding plugin for this particular session.<br> This setting overrides plugin settings defined by SET clause.<br>Supported values: hevcd_sw, hevcd_hw, hevce_sw, hevce_gacc, hevce_hw, vp8d_hw, vp8e_hw, vp9d_hw, vp9e_hw, camera_hw, capture_hw, h264_la_hw, ptir_hw, hevce_fei_hw<br>Direct GUID number can be used as well|
-
+ |[-device /path/to/device] | Set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
 #### Pipeline description (encoding options):
 
 |Option|Description|
@@ -102,8 +102,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -q <quality\>| Quality parameter for JPEG encoder; in range [1,100], 100 is the best quality|
 |-l <numSlices\>|  Number of slices for encoder; default value 0|
 |-mss <maxSliceSize\>|Maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -l option.|
+|-BitrateLimit:<on,off>| Modifies bitrate to be in the range imposed by the SDK encoder. Setting this flag off may lead to violation of HRD conformance. The default value is OFF, i.e. bitrate is not limited. It works with AVC only. |
 |-la|Use the look ahead bitrate control algorithm (LA BRC) for H.264 encoder. Supported only with -hw option on 4th Generation Intel Core processors.|
-| -lad <depth\>|Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100].<br>May be 1 in the case when -mss option is specified|
+| -lad <depth\>|Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100].<br>If `depth` is `0` then the encoder forces the value to Max(10, 2\*`GopRefDist`) for LA_ICQ, and to Max(40, 2\*`GopRefDist`) otherwise.<br>If `depth` is in range [1,100] then the encoder forces the value to Max(2\*`GopRefDist`,2\*`NumRefFrame`,`depth`).<br>May be 1 in the case when -mss option is specified|
 |  -la_ext| Use external LA plugin (compatible with h264 & hevc encoders)|
 |-vbr| Variable bitrate control|
 | -hrd <KBytes\> |Maximum possible size of any compressed frames|
@@ -129,8 +130,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
  | -qpp |Constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
   |-qpb| Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e. no limitations on QP.|
 | -DisableQPOffset| Disable QP adjustment for GOP pyramid-level frames|
- |-qsv-ff| Enable QSV-FF mode|
-|  -roi_file <roi-file-name\>| Set Regions of Interest for each frame from <roi-file-name\>|
+ |-qsv-ff| Enable QSV-FF mode (deprecated)|
+ |-lowpower:<on,off>| Turn this option ON to enable QSV-FF mode|
+|  -roi_file <roi-file-name>| Set Regions of Interest for each frame from <roi-file-name>|
 |-roi_qpmap|Use QP map to emulate ROI for CQP mode|
 |  -extmbqp| Use external MBQP map|
 
@@ -169,7 +171,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -vpp_comp_src_h| Width of this stream in composed stream (should be used in decoder session)|
 | -vpp_comp_src_w| Width of this stream in composed stream (should be used in decoder session)|
 | -vpp_comp_tile_id| Tile_id for current channel of composition (should be used in decoder session)|
-  |-vpp_comp_dump <file-name\>|  Dump of VPP Composition's output into file. Valid if with -vpp_comp* options|
+  |-vpp_comp_dump <file-name>|  Dump of VPP Composition's output into file. Valid if with -vpp_comp* options|
   |-vpp_comp_dump <null_render\>| Disabling rendering after VPP Composition. This is for performance measurements|
   |-dec_postproc |Resize after decoder using direct pipe (should be used in decoder session)|
 | -single_texture_d3d11|  single texture mode for d3d11 allocator|
@@ -226,13 +228,41 @@ Single intra-session MVC transcoding:
 -i::mvc input.mvc -async 10 -o::mvc output.mvc –n 100 –w 320 –h 240 –f 30 –b 2000 –u speed
 ```
 
-Please, also pay attention on “Running the Software” section of `<install-folder>/Media_Samples_Guide.pdf` document where you will find important notes on backend specific usage \(drm and x11\).
+Please, also pay attention on “Running the Software” section of [`<install-folder>/Media_Samples_Guide_Linux.md`](./Media_Samples_Guide_Linux.md) document where you will find important notes on backend specific usage \(drm and x11\).
 
 ## ROI file format description
 
+ROI file has the following format:
+```
+roi_count_frame_1;
+    roi1_left1; roi1_top1; roi1_right1; roi1_bottom1; roi1_dqp1;
+    roi2_left1; roi2_top1; roi2_right1; roi2_bottom1; roi2_dqp1;
+roi_count_frame_2;
+    roi1_left2; roi1_top2; roi1_right2; roi1_bottom2; roi1_dqp2;
+    roi2_left2; roi2_top2; roi2_right2; roi2_bottom2; roi2_dqp2;
+roi_count_frame_n;
+    roi1_leftn; roi1_topn; roi1_rightn; roi1_bottomn; roi1_dqpn;
+    roi2_leftn; roi2_topn; roi2_rightn; roi2_bottomn; roi2_dqpn;
+    ...
+```
+
+Values are separated by semicolons. Each entry starts with a count that represents the ROI information for a single frame. The count indicates the number of (5 entry) ROI descriptions provided for the frame (up to 256 ROIs).
+
+Example: a ROI file for a two frame stream where the first frame has two ROIs with -8 and 5 delta QP values, and the second frame includes three ROIs with -8, 8, and -4 delta QP values:
+
+```
+2;
+    1104;592;1216;928;-8;
+    1200;544;1504;848; 5;
+3;
+    1088;576;1200;912;-8;
+    1200;528;1488;832; 8;
+    944; 400;1264;512;-4;
+```
+
 **Tips**
 
-1.  To achieve maximum throughput use `–async` \>= 5 and the –join option when running several transcoding pipelines.
+1.  To achieve maximum throughput use `–async` >= 5 and the –join option when running several transcoding pipelines.
 2.  If you need only one transcoding session you can avoid creating a par file and pass the arguments of this session to the application using command line. E.g.:
 
 ```
@@ -253,25 +283,25 @@ HEVC codec is implemented as a plugin unlike codecs such as MPEG2 and AVC. There
 At the example below multi-transcoding sample runs HW library with HW decode and encode plugins:
 
 ```
-sample_multi_transcode.exe -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320
+sample_multi_transcode -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320
 ```
 
 The following command line loads SW lib and SW plugins:
 
 ```
-sample_multi_transcode.exe -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320 -sw
+sample_multi_transcode -i::h265 input.265 -o::h265 out.h265 -w 480 -h 320 -sw
 ```
 
 This is an example how to use HW library with SW plugins:
 
 ```
-sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe 2fca99749fdb49aeb121a5b63ef568f7
+sample_multi_transcode -i::h265 ../content/test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe 2fca99749fdb49aeb121a5b63ef568f7
 ```
 
 HW library+SW decoder+GACC encoder:
 
 ```
-sample_multi_transcode.exe -i::h265 ..\content\test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe e5400a06c74d41f5b12d430bbaa23d0b  
+sample_multi_transcode -i::h265 ../content/test_stream.265 -pd 15dd936825ad475ea34e35f3f54217a6 -o::h265 out.h265 -w 480 -h 320 -pe e5400a06c74d41f5b12d430bbaa23d0b
 ```
 
 Multiple intra-session transcoding with the same SW HEVC plugin is used in both cases:
@@ -292,6 +322,12 @@ set -o::h265 /path/to/so/encoder_plugin.so
 ```
 
 ## Known Limitations
+
+-   To use lookahead for HEVC encode, we need to have h264 LA plugin and the HEVC HW encode plugin, run in separate sessions. Following par file is an example of lookahead bitrate for HEVC encode:
+    ```
+    -i::h265 input.h265 -o::sink  -hw -async 1 -la -la_ext -bpyr -dist 8 -join
+    -i::source -o::h265 output.h265 -u 4 -hw -b 500 -async 1 -bpyr -dist 8 -join
+    ```
 
 -   Configurations <multiple joined inter-session transcoding where one of the encoders is MPEG2\> are not supported when sample application uses platform-specific **SDK** implementation on systems with Intel® HD Graphics 3000/2000 and 4000/2500. Application can exit with error or hang. An example of a corresponding par file is given below:
 

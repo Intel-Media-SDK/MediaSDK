@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,8 @@ GUID GetGUID(MfxVideoParam const & par)
 #if (MFX_VERSION >= 1027)
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.m_ext.CO3.TargetBitDepthLuma == 10)
         bdId = 1;
+    if (par.m_ext.CO3.TargetBitDepthLuma == 12)
+        bdId = 2;
 
     cfId = mfx::clamp<mfxU16>(par.m_ext.CO3.TargetChromaFormatPlus1 - 1, MFX_CHROMAFORMAT_YUV420, MFX_CHROMAFORMAT_YUV444) - MFX_CHROMAFORMAT_YUV420;
 
@@ -49,15 +51,14 @@ GUID GetGUID(MfxVideoParam const & par)
     if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_MAIN10 || par.mfx.FrameInfo.BitDepthLuma == 10 || par.mfx.FrameInfo.FourCC == MFX_FOURCC_P010)
         bdId = 1;
 
-     cfId = 0;
+    cfId = 0;
 #endif
     if (par.m_platform && par.m_platform < MFX_HW_KBL)
         bdId = 0;
 
     mfxU16 cFamily = IsOn(par.mfx.LowPower);
 
-
-    guid = GuidTable[cFamily][bdId] [cfId];
+    guid = GuidTable[cFamily][bdId][cfId];
     DDITracer::TraceGUID(guid, stdout);
     return guid;
 }
@@ -83,7 +84,7 @@ DriverEncoder* CreatePlatformH265Encoder(VideoCORE* core, ENCODER_TYPE type)
 }
 
 // this function is aimed to workaround all CAPS reporting problems in mainline driver
-mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
+mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core, MfxVideoParam const &par)
 {
     mfxStatus sts = MFX_ERR_NONE;
     MFX_CHECK_NULL_PTR1(core);
@@ -93,7 +94,7 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
         caps.ddi_caps.YUV444ReconSupport = 1;
     if (!caps.ddi_caps.Color420Only && !(caps.ddi_caps.YUV422ReconSupport))   // VPG: caps are not correct now
         caps.ddi_caps.YUV422ReconSupport = 1;
-#if (MFX_VERSION >= 1025)
+
     eMFXHWType platform = core->GetHWType();
 
     if (platform < MFX_HW_CNL)
@@ -106,6 +107,8 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
         caps.ddi_caps.NegativeQPSupport = 0;
     else
         caps.ddi_caps.NegativeQPSupport = 1; // driver should set it for Gen11+ VME only
+		
+    caps.PSliceSupport = (IsOn(par.mfx.LowPower) || platform > MFX_HW_ICL) ? 0 : 1;
 
 #if defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
     if (platform >= MFX_HW_ICL)
@@ -124,12 +127,54 @@ mfxStatus HardcodeCaps(MFX_ENCODE_CAPS_HEVC& caps, VideoCORE* core)
         //caps.SliceLevelWeightedPred;
     }
 #endif //defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
-#else
     if (!caps.ddi_caps.LCUSizeSupported)
         caps.ddi_caps.LCUSizeSupported = 2;
     caps.ddi_caps.BlockSize = 2; // 32x32
+    // align with Windows for Gen12+
+    if (platform >= MFX_HW_TGL_LP)
+    {   // taken from  Windows TGLLP (temporarily)
+        caps.ddi_caps.CodingLimitSet = 1; // = 0 now but should be always set to 1 according to DDI (what about Linux ???)
+        caps.ddi_caps.Color420Only = 0;  // = 1 now
+        caps.ddi_caps.YUV422ReconSupport = 1; // = 0 now
+        caps.ddi_caps.SliceIPBOnly = 1;  // = 0 now (SliceIP is also 0)cz
+        caps.ddi_caps.SliceIPOnly = IsOn(par.mfx.LowPower) && (par.mfx.TargetUsage == 7);
+        caps.ddi_caps.NoWeightedPred = 0; // = 1 now
+        caps.ddi_caps.NoMinorMVs = 1;  // = 0 now
+        caps.ddi_caps.RawReconRefToggle = 1;  // = 0 now
+        caps.ddi_caps.NoInterlacedField = 1;  // = 0 now
+//        caps.RollingIntraRefresh = 0;  // = 1 now
+//        caps.VCMBitRateControl = 0;  // = 1 now
+        caps.ddi_caps.ParallelBRC = 1;  // = 0 now
+        caps.ddi_caps.LumaWeightedPred = 1; // = 0 now
+        caps.ddi_caps.ChromaWeightedPred = 0; // = 0 now
+        caps.ddi_caps.MaxEncodedBitDepth = 2;  // = 1 now (8/10b only)
+        caps.ddi_caps.MaxNumOfROI = 16;  // = 0 now
+        caps.ddi_caps.ROIDeltaQPSupport = 1;  // = 0 now
+        caps.ddi_caps.BlockSize = 1;  // = 0 now (set to 16x16 like in Win)
+        caps.ddi_caps.SliceLevelReportSupport = 1;  // = 0 now
+        caps.ddi_caps.FrameSizeToleranceSupport = 1;  // = 0 now
+        caps.ddi_caps.NumScalablePipesMinus1 = 1;  // = 0 now
+        caps.ddi_caps.MaxNum_WeightedPredL0 = 4; // = 0 now
+        caps.ddi_caps.MaxNum_WeightedPredL1 = 2; // = 0 now
+        caps.ddi_caps.TileSupport = 1;
+        caps.ddi_caps.IntraRefreshBlockUnitSize = 2;
+
+        caps.ddi_caps.MaxNumDeltaQP = 0;
+        caps.ddi_caps.DirtyRectSupport = 1;
+        caps.ddi_caps.RGBEncodingSupport = 0;
+        caps.ddi_caps.MaxNumOfDirtyRect = 4;
+
+        caps.ddi_caps.UserMaxFrameSizeSupport = 1;
+        caps.ddi_caps.MbQpDataSupport = 1;
+        caps.ddi_caps.TUSupport = 73;
+        caps.ddi_caps.SliceStructure = 4;
+        caps.ddi_caps.SliceByteSizeCtrl = 1; ///It means that GPU may further split the slice region that slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize).
+    }
+    else
+    {
+        caps.ddi_caps.SliceIPOnly = IsOn(par.mfx.LowPower);
+    }
     (void)core;
-#endif
 
     return sts;
 }
@@ -384,10 +429,12 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFr
         FrameLocker lock(&core, task.m_midCUQp);
         MFX_CHECK(lock.Y, MFX_ERR_LOCK_MEMORY);
 
-        for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++)
+        for (mfxU32 i = 0; i < CUQPFrameInfo.Height; i++) {
             for (mfxU32 j = 0; j < CUQPFrameInfo.Width; j++)
-                    lock.Y[i * lock.Pitch + j] = mbqp->QP[i*drBlkH/inBlkSize * pitch_MBQP + j*drBlkW/inBlkSize];
-
+                lock.Y[i * lock.Pitch + j] = mbqp->QP[i*drBlkH / inBlkSize * pitch_MBQP + j * drBlkW / inBlkSize];
+            for (mfxU32 j = CUQPFrameInfo.Width; j < lock.Pitch; j++) // Fill all LCU blocks: HW hevc averages QP 
+                lock.Y[i * lock.Pitch + j] = lock.Y[i * lock.Pitch + CUQPFrameInfo.Width - 1];
+        }
     }
 #ifdef MFX_ENABLE_HEVCE_ROI
     else if (roi)
@@ -406,7 +453,7 @@ mfxStatus FillCUQPDataDDI(Task& task, MfxVideoParam &par, VideoCORE& core, mfxFr
                     mfxU32 y = i*drBlkH;
                     if (x >= roi->ROI[n].Left  &&  x < roi->ROI[n].Right  && y >= roi->ROI[n].Top && y < roi->ROI[n].Bottom)
                     {
-                        diff = (task.m_roiMode == MFX_ROI_MODE_PRIORITY ? (-1) : 1) * roi->ROI[n].Priority;
+                        diff = roi->ROI[n].DeltaQP;
                         break;
                     }
 

@@ -132,15 +132,9 @@ mfxStatus CRegionEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
     if (m_mfxEncParams.mfx.NumSlice > 1 && MFX_CODEC_HEVC == pInParams->CodecId)
     {
-        m_HEVCRegion.RegionType = MFX_HEVC_REGION_SLICE;
-        m_HEVCRegion.RegionId   = 0; // will be rewrited before call of encoder Init
-        m_EncExtParams.push_back((mfxExtBuffer *)&m_HEVCRegion);
-    }
-
-    if (!m_EncExtParams.empty())
-    {
-        m_mfxEncParams.ExtParam = &m_EncExtParams[0]; // vector is stored linearly in memory
-        m_mfxEncParams.NumExtParam = (mfxU16)m_EncExtParams.size();
+        auto hevcRegion = m_mfxEncParams.AddExtBuffer<mfxExtHEVCRegion>();
+        hevcRegion->RegionType = MFX_HEVC_REGION_SLICE;
+        hevcRegion->RegionId   = 0; // will be rewrited before call of encoder Init
     }
 
     // JPEG encoder settings overlap with other encoders settings in mfxInfoMFX structure
@@ -300,10 +294,6 @@ mfxStatus CRegionEncodingPipeline::CreateAllocator()
 CRegionEncodingPipeline::CRegionEncodingPipeline() : CEncodingPipeline()
 {
     m_timeAll = 0;
-
-    MSDK_ZERO_MEMORY(m_HEVCRegion);
-    m_HEVCRegion.Header.BufferId = MFX_EXTBUFF_HEVC_REGION;
-    m_HEVCRegion.Header.BufferSz = sizeof(m_HEVCRegion);
 }
 
 CRegionEncodingPipeline::~CRegionEncodingPipeline()
@@ -411,7 +401,7 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
 
     // set memory type
     m_memType = pParams->memType;
-    m_nMemBuffer = pParams->nMemBuf;
+    m_nPerfOpt = pParams->nPerfOpt;
     m_nTimeout = pParams->nTimeout;
 
     // If output isn't specified work in performance mode and do not insert idr
@@ -427,7 +417,7 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
     // MVC specific options
     if (MVC_ENABLED & m_MVCflags)
     {
-        sts = AllocAndInitMVCSeqDesc();
+        sts = AllocateExtMVCBuffers();
         MSDK_CHECK_STATUS(sts, "AllocAndInitMVCSeqDesc failed");
     }
 
@@ -450,7 +440,7 @@ void CRegionEncodingPipeline::Close()
         msdk_printf(MSDK_STRING("\nEncode fps: %.2lf\n"), m_timeAll ? frameNum*((double)time_get_frequency())/m_timeAll : 0);
     }
 
-    FreeMVCSeqDesc();
+    DeallocateExtMVCBuffers();
 
     DeleteFrames();
 
@@ -490,7 +480,10 @@ mfxStatus CRegionEncodingPipeline::ResetMFXComponents(sInputParams* pParams)
 
     for (int regId = 0; regId < m_resources.GetSize(); regId++) {
         if (m_resources.GetSize() > 1)
-            m_HEVCRegion.RegionId = regId;
+        {
+            auto hevcRegion = m_mfxEncParams.AddExtBuffer<mfxExtHEVCRegion>();
+            hevcRegion->RegionId = regId;
+        }
 
         sts = m_resources[regId].pEncoder->Init(&m_mfxEncParams);
         if (MFX_WRN_PARTIAL_ACCELERATION == sts)
@@ -538,9 +531,9 @@ mfxStatus CRegionEncodingPipeline::Run()
     while (MFX_ERR_NONE <= sts || MFX_ERR_MORE_DATA == sts)
     {
         // find free surface for encoder input
-        if (m_nMemBuffer)
+        if (m_nPerfOpt)
         {
-            nEncSurfIdx %= m_nMemBuffer;
+            nEncSurfIdx %= m_nPerfOpt;
         }
         else
         {
@@ -588,11 +581,14 @@ mfxStatus CRegionEncodingPipeline::Run()
             {
                 timeCurStart = time_get_tick();
                 // at this point surface for encoder contains a frame from a file
-                InsertIDR(m_bInsertIDR);
-                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&m_encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
+                InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
                 m_bInsertIDR = false;
 
-                if ((sts != MFX_ERR_NOT_ENOUGH_BUFFER) && m_nMemBuffer)
+                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&pCurrentTask->encCtrl, &m_pEncSurfaces[nEncSurfIdx], &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
+
+                if ((sts != MFX_ERR_NOT_ENOUGH_BUFFER) && m_nPerfOpt)
                 {
                     nEncSurfIdx++;
                 }
@@ -649,9 +645,12 @@ mfxStatus CRegionEncodingPipeline::Run()
             for (;;)
             {
                 timeCurStart = time_get_tick();
-                InsertIDR(m_bInsertIDR);
-                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&m_encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
+                InsertIDR(pCurrentTask->encCtrl, m_bInsertIDR);
                 m_bInsertIDR = false;
+
+                sts = m_resources[regId].pEncoder->EncodeFrameAsync(&pCurrentTask->encCtrl, NULL, &pCurrentTask->mfxBS, &pCurrentTask->EncSyncP);
+
 
                 if (MFX_ERR_NONE < sts && !pCurrentTask->EncSyncP) // repeat the call if warning and no output
                 {

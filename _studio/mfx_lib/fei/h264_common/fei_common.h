@@ -74,24 +74,11 @@ namespace MfxH264FEIcommon
     template <typename T>
     bool FirstFieldProcessingDone(T* inParams, const MfxHwH264Encode::DdiTask & task);
 
-    static mfxStatus Change_DPB(
+
+    mfxStatus Change_DPB(
         MfxHwH264Encode::ArrayDpbFrame & dpb,
         mfxMemId                 const * mids,
-        std::vector<mfxU32>      const & fo)
-    {
-        std::vector<mfxU32>::const_iterator it;
-        for (mfxU32 i = 0; i < dpb.Size(); ++i)
-        {
-            it = std::find(fo.begin(), fo.end(), dpb[i].m_frameOrder);
-            MFX_CHECK_WITH_ASSERT(it != fo.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
-
-            // Index of reconstruct surface
-            dpb[i].m_frameIdx = mfxU32(std::distance(fo.begin(), it));
-            dpb[i].m_midRec   = 0; // mids[dpb[i].m_frameIdx];
-        }
-
-        return MFX_ERR_NONE;
-    }
+        std::vector<mfxU32>      const & fo);
 
     mfxStatus CheckInitExtBuffers(const MfxHwH264Encode::MfxVideoParam & owned_video, const mfxVideoParam & passed_video);
 

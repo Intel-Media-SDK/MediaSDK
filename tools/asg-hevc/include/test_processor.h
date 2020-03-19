@@ -22,13 +22,13 @@
 #define __ASG_HEVC_TEST_PROCESSOR_H__
 
 #include "mfxvideo.h"
+#include "sample_defs.h"
 
 #if MFX_VERSION >= MFX_VERSION_NEXT
 
 #include <fstream>
 
 #include "sample_utils.h"
-#include "sample_defs.h"
 #include "base_allocator.h"
 
 #include "inputparameters.h"

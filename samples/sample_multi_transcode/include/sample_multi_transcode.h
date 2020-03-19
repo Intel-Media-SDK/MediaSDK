@@ -20,6 +20,11 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #ifndef __SAMPLE_MULTI_TRANSCODE_H__
 #define __SAMPLE_MULTI_TRANSCODE_H__
 
+#include "mfxdefs.h"
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+#include "mfxadapter.h"
+#endif
+
 #include "transcode_utils.h"
 #include "pipeline_transcode.h"
 #include "sample_utils.h"
@@ -54,6 +59,11 @@ namespace TranscodingSample
         virtual mfxStatus ProcessResult();
 
     protected:
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+        mfxStatus QueryAdapters();
+        void      ForceImplForSession(mfxU32 idxSession);
+        mfxStatus CheckAndFixAdapterDependency(mfxU32 idxSession, CTranscodingPipeline * pParentPipeline);
+#endif
         virtual mfxStatus VerifyCrossSessionsOptions();
         virtual mfxStatus CreateSafetyBuffers();
         virtual void      DoTranscoding();
@@ -64,16 +74,16 @@ namespace TranscodingSample
         // command line parser
         CmdProcessor m_parser;
         // threads contexts to process playlist
-        std::vector<ThreadTranscodeContext*> m_pThreadContextArray;
+        std::vector<std::unique_ptr<ThreadTranscodeContext>> m_pThreadContextArray;
         // allocator for each session
-        std::vector<GeneralAllocator*>       m_pAllocArray;
+        std::vector<std::unique_ptr<GeneralAllocator>>       m_pAllocArray;
         // input parameters for each session
         std::vector<sInputParams>            m_InputParamsArray;
         // safety buffers
         // needed for heterogeneous pipeline
-        std::vector<SafetySurfaceBuffer*>    m_pBufferArray;
+        std::vector<std::unique_ptr<SafetySurfaceBuffer>>    m_pBufferArray;
 
-        std::vector<FileBitstreamProcessor*> m_pExtBSProcArray;
+        std::vector<std::unique_ptr<FileBitstreamProcessor>> m_pExtBSProcArray;
         std::unique_ptr<mfxAllocatorParams>    m_pAllocParam;
         std::unique_ptr<CHWDevice>             m_hwdev;
         msdk_tick                            m_StartTime;
@@ -84,6 +94,11 @@ namespace TranscodingSample
 
     private:
         DISALLOW_COPY_AND_ASSIGN(Launcher);
+
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+        std::vector<mfxAdapterInfo> m_DisplaysData;
+        mfxAdaptersInfo             m_Adapters;
+#endif
 
     };
 }

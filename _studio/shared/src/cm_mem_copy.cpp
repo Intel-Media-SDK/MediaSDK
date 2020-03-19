@@ -113,6 +113,9 @@ bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
     case MFX_FOURCC_YV12:
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+#endif
         return false;
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
@@ -129,6 +132,10 @@ bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
 #endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_Y416:
+#endif
 #ifdef MFX_ENABLE_RGBP
     case MFX_FOURCC_RGBP:
 #endif
@@ -144,6 +151,9 @@ bool CmCopyWrapper::isNV12LikeFormat(mfxU32 format)
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_P010:
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+#endif
         return true;
     }
     return false;
@@ -168,7 +178,13 @@ int CmCopyWrapper::getSizePerPixel(mfxU32 format)
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y210:
 #endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+#endif
         return 4;
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y416:
+#endif
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
         return 8;
@@ -191,6 +207,11 @@ bool CmCopyWrapper::isNeedShift(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
     case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_Y416:
 #endif
         return shift;
     }
@@ -295,8 +316,8 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBGPUtoCPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -479,8 +500,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyGPUtoCPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -661,8 +682,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftGPUtoCPU(CmSurface2D* pSurface,
     }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -843,8 +864,8 @@ mfxStatus CmCopyWrapper::EnqueueCopySwapRBCPUtoGPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -1030,8 +1051,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyCPUtoGPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -1215,8 +1236,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftCPUtoGPU(CmSurface2D* pSurface,
     }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -1570,8 +1591,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12GPUtoCPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -1709,6 +1730,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
     UINT            height_stride_in_rows   = heightStride;
     UINT            AddedShiftLeftOffset    = 0;
     UINT            byte_per_pixel           = (format==MFX_FOURCC_P010
+#if (MFX_VERSION >= 1031)
+        || format == MFX_FOURCC_P016
+#endif
         )?2:1;
     size_t          pLinearAddress          = (size_t)pSysMem;
     size_t          pLinearAddressAligned   = 0;
@@ -1753,8 +1777,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12GPUtoCPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -1936,8 +1960,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyMirrorNV12CPUtoGPU(CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -2065,6 +2089,9 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
     UINT            stride_in_dwords        = 0;
     UINT            height_stride_in_rows   = heightStride;
     UINT            byte_per_pixel          = (format==MFX_FOURCC_P010
+#if (MFX_VERSION >= 1031)
+        || format == MFX_FOURCC_P016
+#endif
         )?2:1;
     UINT            AddedShiftLeftOffset    = 0;
     size_t          pLinearAddress          = (size_t)pSysMem;
@@ -2108,8 +2135,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyNV12CPUtoGPU(CmSurface2D* pSurface,
     }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -2290,8 +2317,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010GPUtoCPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -2469,8 +2496,8 @@ mfxStatus CmCopyWrapper::EnqueueCopyShiftP010CPUtoGPU(   CmSurface2D* pSurface,
    }
 
     // the actual copy region
-    copy_width_byte = MFX_MIN(stride_in_bytes, width_byte);
-    copy_height_row = MFX_MIN(height_stride_in_rows, (UINT)height);
+    copy_width_byte = std::min      (stride_in_bytes, width_byte);
+    copy_height_row = std::min<UINT>(height_stride_in_rows, height);
 
     // Make sure stride and start address of system memory is 16-byte aligned.
     // if no padding in system memory , stride_in_bytes = width_byte.
@@ -2624,6 +2651,7 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
     case MFX_HW_SCL:
     case MFX_HW_APL:
     case MFX_HW_KBL:
+    case MFX_HW_GLK:
     case MFX_HW_CFL:
         cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen9,sizeof(genx_copy_kernel_gen9),m_pCmProgram,"nojitter");
         break;
@@ -2634,8 +2662,17 @@ mfxStatus CmCopyWrapper::InitializeSwapKernels(eMFXHWType hwtype)
         cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen11,sizeof(genx_copy_kernel_gen11),m_pCmProgram,"nojitter");
         break;
     case MFX_HW_ICL_LP:
+#if (MFX_VERSION >= 1031)
+    case MFX_HW_JSL:
+    case MFX_HW_EHL:
+#endif
         cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen11lp,sizeof(genx_copy_kernel_gen11lp),m_pCmProgram,"nojitter");
         break;
+#if (MFX_VERSION >= 1031)
+    case MFX_HW_TGL_LP:
+        cmSts = m_pCmDevice->LoadProgram((void*)genx_copy_kernel_gen12lp,sizeof(genx_copy_kernel_gen12lp),m_pCmProgram,"nojitter");
+        break;
+#endif
 #endif
     default:
         cmSts = CM_FAILURE;
@@ -3128,7 +3165,7 @@ mfxStatus CmCopyWrapper::CopyMirrorVideoToVideoMemory(void *pDst, void *pSrc, mf
 
 bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
-    mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     mfxU8* srcPtr = GetFramePointer(pSrc->Info.FourCC, pSrc->Data);
     mfxU8* dstPtr = GetFramePointer(pDst->Info.FourCC, pDst->Data);
@@ -3185,7 +3222,7 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 
 mfxStatus CmCopyWrapper::CopyVideoToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
-    mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     // check that region of interest is valid
     if (0 == roi.width || 0 == roi.height || m_HWType == MFX_HW_UNKNOWN)
@@ -3206,7 +3243,7 @@ mfxStatus CmCopyWrapper::CopyVideoToVideo(mfxFrameSurface1 *pDst, mfxFrameSurfac
 
 mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
-    mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     // check that region of interest is valid
     if (0 == roi.width || 0 == roi.height || m_HWType == MFX_HW_UNKNOWN)
@@ -3262,7 +3299,7 @@ mfxStatus CmCopyWrapper::CopyVideoToSys(mfxFrameSurface1 *pDst, mfxFrameSurface1
 
 mfxStatus CmCopyWrapper::CopySysToVideo(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
-    mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     mfxU8* srcPtr = GetFramePointer(pSrc->Info.FourCC, pSrc->Data);
 

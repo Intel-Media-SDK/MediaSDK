@@ -1,15 +1,15 @@
 // Copyright (c) 2017-2019 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -56,21 +56,21 @@ namespace
             switch(type)
             {
             case MFX_PLUGINTYPE_VIDEO_DECODE :
-                _ptr = &_session->m_plgDec; 
+                _ptr = &_session->m_plgDec;
                 _isNeedCodec = false;
                 _isNeedDeCoder = true;
                 _isNeedVPP = false;
                 _isNeedEnc = false;
                 break;
             case MFX_PLUGINTYPE_VIDEO_ENCODE:
-                _ptr =&_session->m_plgEnc; 
+                _ptr =&_session->m_plgEnc;
                 _isNeedCodec = true;
                 _isNeedDeCoder = false;
                 _isNeedVPP = false;
                 _isNeedEnc = false;
                 break;
             case MFX_PLUGINTYPE_VIDEO_VPP :
-                _ptr = &_session->m_plgVPP; 
+                _ptr = &_session->m_plgVPP;
                 _isNeedCodec = false;
                 _isNeedDeCoder = false;
                 _isNeedVPP = true;
@@ -89,7 +89,7 @@ namespace
                     MFXIPtr<MFXISession_1_10> newSession(versionedSession->QueryInterface(MFXISession_1_10_GUID));
                     if (newSession)
                     {
-                        _ptr = &newSession->GetPreEncPlugin(); 
+                        _ptr = &newSession->GetPreEncPlugin();
                         _isNeedCodec = false;
                         _isNeedDeCoder = false;
                         _isNeedVPP = false;
@@ -102,13 +102,13 @@ namespace
                 }
                 break;
             case MFX_PLUGINTYPE_VIDEO_GENERAL :
-                _ptr = &_session->m_plgGen; 
+                _ptr = &_session->m_plgGen;
                 _isNeedCodec = false;
                 _isNeedDeCoder = false;
                 _isNeedVPP = false;
                 _isNeedEnc = false;
                 break;
-            default : 
+            default :
                 //unknown plugin type
                 throw MFX_ERR_UNDEFINED_BEHAVIOR;
             }
@@ -126,7 +126,7 @@ namespace
         {
             return _isNeedEnc ;
         }
- 
+
         bool isNeedEncoder()const
         {
             return _isNeedCodec ;
@@ -139,7 +139,7 @@ namespace
         {
             return _isNeedVPP;
         }
-    };      
+    };
 
 
 
@@ -277,7 +277,7 @@ mfxStatus MFXVideoUSER_GetPlugin(mfxSession session, mfxU32 type, mfxPlugin *par
     // check error(s)
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK_NULL_PTR1(par);
-    
+
     try
     {
         SessionPtr sessionPtr(session, type);
@@ -322,11 +322,11 @@ mfxStatus MFXVideoUSER_Unregister(mfxSession session, mfxU32 type)
             return MFX_ERR_NONE;
 
         // wait until all tasks are processed
-        session->m_pScheduler->WaitForTaskCompletion(registeredPlg.get());
+        session->m_pScheduler->WaitForAllTasksCompletion(registeredPlg.get());
 
         // deinitialize the plugin
         mfxRes = registeredPlg->PluginClose();
-        
+
         // delete the plugin's instance
         registeredPlg.reset();
         //delete corresponding codec instance

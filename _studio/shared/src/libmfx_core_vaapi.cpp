@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -148,8 +148,8 @@ typedef struct {
 
     /* BDW */
     /*GT3: */
-    { 0x162D, MFX_HW_BDW, MFX_GT3},
-    { 0x162A, MFX_HW_BDW, MFX_GT3},
+    { 0x162D, MFX_HW_BDW, MFX_GT3 },
+    { 0x162A, MFX_HW_BDW, MFX_GT3 },
     /*GT2: */
     { 0x161D, MFX_HW_BDW, MFX_GT2 },
     { 0x161A, MFX_HW_BDW, MFX_GT2 },
@@ -159,10 +159,17 @@ typedef struct {
     /* BDW-ULT */
     /* (16x2 - ULT, 16x6 - ULT, 16xB - Iris, 16xE - ULX) */
     /*GT3: */
-    { 0x162E, MFX_HW_BDW, MFX_GT3},
-    { 0x162B, MFX_HW_BDW, MFX_GT3},
-    { 0x1626, MFX_HW_BDW, MFX_GT3},
-    { 0x1622, MFX_HW_BDW, MFX_GT3},
+    { 0x162E, MFX_HW_BDW, MFX_GT3 },
+    { 0x162B, MFX_HW_BDW, MFX_GT3 },
+    { 0x1626, MFX_HW_BDW, MFX_GT3 },
+    { 0x1622, MFX_HW_BDW, MFX_GT3 },
+    { 0x1636, MFX_HW_BDW, MFX_GT3 }, /* ULT */
+    { 0x163B, MFX_HW_BDW, MFX_GT3 }, /* Iris */
+    { 0x163E, MFX_HW_BDW, MFX_GT3 }, /* ULX */
+    { 0x1632, MFX_HW_BDW, MFX_GT3 }, /* ULT */
+    { 0x163A, MFX_HW_BDW, MFX_GT3 }, /* Server */
+    { 0x163D, MFX_HW_BDW, MFX_GT3 }, /* Workstation */
+
     /* GT2: */
     { 0x161E, MFX_HW_BDW, MFX_GT2 },
     { 0x161B, MFX_HW_BDW, MFX_GT2 },
@@ -218,6 +225,7 @@ typedef struct {
     { 0x0A86, MFX_HW_APL, MFX_GT1 },
     { 0x0A87, MFX_HW_APL, MFX_GT1 },
     { 0x1A84, MFX_HW_APL, MFX_GT1 },
+    { 0x1A85, MFX_HW_APL, MFX_GT1 },
     { 0x5A84, MFX_HW_APL, MFX_GT1 },
     { 0x5A85, MFX_HW_APL, MFX_GT1 },
 
@@ -235,6 +243,7 @@ typedef struct {
     { 0x5917, MFX_HW_KBL, MFX_GT2 }, // ULT GT2 R
     { 0x591A, MFX_HW_KBL, MFX_GT2 }, // SERV GT2
     { 0x591B, MFX_HW_KBL, MFX_GT2 }, // HALO GT2
+    { 0x591C, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
     { 0x591D, MFX_HW_KBL, MFX_GT2 }, // WRK GT2
     { 0x591E, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
     { 0x5921, MFX_HW_KBL, MFX_GT2 }, // ULT GT2F
@@ -247,6 +256,11 @@ typedef struct {
     { 0x593A, MFX_HW_KBL, MFX_GT4 }, // SERV GT4
     { 0x593B, MFX_HW_KBL, MFX_GT4 }, // HALO GT4
     { 0x593D, MFX_HW_KBL, MFX_GT4 }, // WRK GT4
+    { 0x87C0, MFX_HW_KBL, MFX_GT2 }, // ULX GT2
+
+    /* GLK */
+    { 0x3184, MFX_HW_GLK, MFX_GT1 },
+    { 0x3185, MFX_HW_GLK, MFX_GT1 },
 
     /* CFL */
     { 0x3E90, MFX_HW_CFL, MFX_GT1 },
@@ -265,6 +279,7 @@ typedef struct {
     { 0x3EA7, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA8, MFX_HW_CFL, MFX_GT3 },
     { 0x3EA9, MFX_HW_CFL, MFX_GT2 },
+    { 0x87CA, MFX_HW_CFL, MFX_GT2 },
 
     /* WHL */
     { 0x3EA0, MFX_HW_CFL, MFX_GT2 },
@@ -295,16 +310,25 @@ typedef struct {
     { 0x9bc8, MFX_HW_CFL, MFX_GT2 },
     { 0x9bc4, MFX_HW_CFL, MFX_GT2 },
     { 0x9bc2, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bc6, MFX_HW_CFL, MFX_GT2 },
+    { 0x9be6, MFX_HW_CFL, MFX_GT2 },
+    { 0x9bf6, MFX_HW_CFL, MFX_GT2 },
 
 
     /* CNL */
     { 0x5A51, MFX_HW_CNL, MFX_GT2 },
     { 0x5A52, MFX_HW_CNL, MFX_GT2 },
     { 0x5A5A, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A40, MFX_HW_CNL, MFX_GT2 },
     { 0x5A42, MFX_HW_CNL, MFX_GT2 },
     { 0x5A4A, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A4C, MFX_HW_CNL, MFX_GT1 },
+    { 0x5A50, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A54, MFX_HW_CNL, MFX_GT1 },
     { 0x5A59, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A5C, MFX_HW_CNL, MFX_GT1 },
     { 0x5A41, MFX_HW_CNL, MFX_GT2 },
+    { 0x5A44, MFX_HW_CNL, MFX_GT1 },
     { 0x5A49, MFX_HW_CNL, MFX_GT2 },
 
     /* ICL LP */
@@ -313,6 +337,7 @@ typedef struct {
     { 0x8A51, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A52, MFX_HW_ICL_LP, MFX_GT2 },
     { 0x8A53, MFX_HW_ICL_LP, MFX_GT2 },
+    { 0x8A54, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A56, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A57, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A58, MFX_HW_ICL_LP, MFX_GT1 },
@@ -321,8 +346,31 @@ typedef struct {
     { 0x8A5B, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A5C, MFX_HW_ICL_LP, MFX_GT1 },
     { 0x8A5D, MFX_HW_ICL_LP, MFX_GT1 },
-    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 }  // GT05, but 1 ok in this context
- };
+    { 0x8A70, MFX_HW_ICL_LP, MFX_GT1 },
+    { 0x8A71, MFX_HW_ICL_LP, MFX_GT1 },  // GT05, but 1 ok in this context
+
+    /* JSL */
+    { 0x4E51, MFX_HW_JSL, MFX_GT2 },
+    { 0x4E61, MFX_HW_JSL, MFX_GT2 },
+    { 0x4E71, MFX_HW_JSL, MFX_GT2 },
+
+    /* EHL */
+    { 0x4500, MFX_HW_EHL, MFX_GT2 },
+    { 0x4541, MFX_HW_EHL, MFX_GT2 },
+    { 0x4551, MFX_HW_EHL, MFX_GT2 },
+    { 0x4569, MFX_HW_EHL, MFX_GT2 },
+    { 0x4571, MFX_HW_EHL, MFX_GT2 },
+
+    /* TGL */
+    { 0x9A40, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A49, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A59, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A60, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A68, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A70, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9A78, MFX_HW_TGL_LP, MFX_GT2 },
+
+};
 
 /* END: IOCTLs definitions */
 
@@ -387,7 +435,7 @@ VAAPIVideoCORE::VAAPIVideoCORE(
           , m_KeepVAState(false)
           , m_adapterNum(adapterNum)
           , m_bUseExtAllocForHWFrames(false)
-          , m_HWType(MFX_HW_IVB)
+          , m_HWType(MFX_HW_UNKNOWN)
           , m_GTConfig(MFX_GT_UNKNOWN)
 #if !defined(ANDROID)
           , m_bCmCopy(false)
@@ -486,9 +534,11 @@ VAAPIVideoCORE::SetHandle(
             * and can call ioctl() to kernel mode driver,
             * to get device ID and find out platform type
             */
-            mfx_device_item devItem= getDeviceItem(m_Display);
-            m_HWType = devItem.platform;
+            const auto devItem = getDeviceItem(m_Display);
+            MFX_CHECK_WITH_ASSERT(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_UNDEFINED_BEHAVIOR);
+            m_HWType   = devItem.platform;
             m_GTConfig = devItem.config;
+            m_deviceId = mfxU16(devItem.device_id);
         }
         return MFX_ERR_NONE;
     }
@@ -562,64 +612,35 @@ VAAPIVideoCORE::AllocFrames(
         } else
         {
             // external allocator
-            if (m_bSetExtFrameAlloc && request->Info.FourCC != MFX_FOURCC_P8)
+            if (m_bSetExtFrameAlloc &&
+                request->Info.FourCC != MFX_FOURCC_P8 &&
+                (request->Type & (MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_FROM_ENC | MFX_MEMTYPE_FROM_PAK)))
             {
-                // Default allocator should be used if D3D manager is not set and internal D3D buffers are required
-                if (!m_Display && request->Type & MFX_MEMTYPE_INTERNAL_FRAME)
-                {
-                    m_bUseExtAllocForHWFrames = false;
-                    sts = DefaultAllocFrames(request, response);
-                    MFX_CHECK_STS(sts);
-
-                    return TraceFrames(request, response, sts);
-                }
-
+                // make 'fake' Alloc call to retrieve memId's of surfaces already allocated by app.
                 sts = (*m_FrameAllocator.frameAllocator.Alloc)(m_FrameAllocator.frameAllocator.pthis, &temp_request, response);
 
-                // if external allocator cannot allocate d3d frames - use default memory allocator
-                if (MFX_ERR_UNSUPPORTED == sts || MFX_ERR_MEMORY_ALLOC == sts)
-                {
-                    // Default Allocator is used for internal memory allocation only
-                    if (request->Type & MFX_MEMTYPE_EXTERNAL_FRAME)
-                        return sts;
-                    m_bUseExtAllocForHWFrames = false;
-                    sts = DefaultAllocFrames(request, response);
-                    MFX_CHECK_STS(sts);
+                m_bUseExtAllocForHWFrames = false;
+                MFX_CHECK_STS(sts);
 
-                    return TraceFrames(request, response, sts);
-                }
                 // let's create video accelerator
-                else if (MFX_ERR_NONE == sts)
+                // Checking for unsupported mode - external allocator exist but Device handle doesn't set
+                MFX_CHECK(m_Display, MFX_ERR_UNSUPPORTED)
+
+                if (response->NumFrameActual < request->NumFrameMin)
                 {
-                    // Checking for unsupported mode - external allocator exist but Device handle doesn't set
-                    if (!m_Display)
-                        return MFX_ERR_UNSUPPORTED;
-
-                    if (response->NumFrameActual < request->NumFrameMin)
-                    {
-                        (*m_FrameAllocator.frameAllocator.Free)(m_FrameAllocator.frameAllocator.pthis, response);
-                        return MFX_ERR_MEMORY_ALLOC;
-                    }
-
-                    m_bUseExtAllocForHWFrames = true;
-                    sts = ProcessRenderTargets(request, response, &m_FrameAllocator);
-                    MFX_CHECK_STS(sts);
-
-                    return TraceFrames(request, response, sts);
+                    (*m_FrameAllocator.frameAllocator.Free)(m_FrameAllocator.frameAllocator.pthis, response);
+                    MFX_RETURN(MFX_ERR_MEMORY_ALLOC);
                 }
-                // error situation
-                else
-                {
-                    m_bUseExtAllocForHWFrames = false;
-                    return sts;
-                }
+
+                m_bUseExtAllocForHWFrames = true;
+                sts = ProcessRenderTargets(request, response, &m_FrameAllocator);
+                MFX_CHECK_STS(sts);
+
+                return TraceFrames(request, response, sts);
             }
             else
             {
                 // Default Allocator is used for internal memory allocation and all coded buffers allocation
-                if (request->Type & MFX_MEMTYPE_EXTERNAL_FRAME)
-                    return MFX_ERR_MEMORY_ALLOC;
-
                 m_bUseExtAllocForHWFrames = false;
                 sts = DefaultAllocFrames(request, response);
                 MFX_CHECK_STS(sts);
@@ -1099,7 +1120,7 @@ VAAPIVideoCORE::DoFastCopyExtended(
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    mfxSize roi = {MFX_MIN(pSrc->Info.Width, pDst->Info.Width), MFX_MIN(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
 
     // check that region of interest is valid
     if (0 == roi.width || 0 == roi.height)

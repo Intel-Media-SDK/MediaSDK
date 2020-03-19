@@ -48,6 +48,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "plugin_loader.h"
 #include "general_allocator.h"
 
+#if defined(_WIN64) || defined(_WIN32)
+#include "mfxadapter.h"
+#endif
+
 #ifndef MFX_VERSION
 #error MFX_VERSION not defined
 #endif
@@ -122,6 +126,14 @@ struct sInputParams
 #if defined(LIBVA_SUPPORT)
     mfxI32  libvaBackend;
 #endif // defined(MFX_LIBVA_SUPPORT)
+
+#if defined(LINUX32) || defined(LINUX64)
+    std::string strDevicePath;
+#endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    bool bPrefferdGfx;
+    bool bPrefferiGfx;
+#endif
 
     msdk_char     strSrcFile[MSDK_MAX_FILENAME_LEN];
     msdk_char     strDstFile[MSDK_MAX_FILENAME_LEN];
@@ -198,6 +210,10 @@ public:
 #endif
 
 protected: // functions
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);
+#endif
+    mfxStatus GetImpl(const sInputParams & params, mfxIMPL & impl);
     virtual mfxStatus CreateRenderingWindow(sInputParams *pParams);
     virtual mfxStatus InitMfxParams(sInputParams *pParams);
 
@@ -227,6 +243,8 @@ protected: // functions
     virtual void PrintPerFrameStat(bool force = false);
 
     virtual void DeliverLoop();
+
+    virtual mfxStatus ReallocCurrentSurface(const mfxFrameInfo & info);
 
 protected: // variables
     CSmplYUVWriter                         m_FileWriter;
@@ -288,6 +306,9 @@ protected: // variables
     mfxExtVPPVideoSignalInfo m_VppVideoSignalInfo;
     std::vector<mfxExtBuffer*> m_VppSurfaceExtParams;
 
+#if defined(LINUX32) || defined(LINUX64)
+    std::string              m_strDevicePath; //path to device for processing
+#endif
     CHWDevice               *m_hwdev;
 #if D3D_SURFACES_SUPPORT
     CDecodeD3DRender         m_d3dRender;

@@ -22,6 +22,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <stdlib.h>
 #include "base_allocator.h"
+#include <vector>
 
 struct sBuffer
 {
@@ -59,9 +60,14 @@ protected:
     virtual mfxStatus CheckRequestType(mfxFrameAllocRequest *request);
     virtual mfxStatus ReleaseResponse(mfxFrameAllocResponse *response);
     virtual mfxStatus AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
+    virtual mfxStatus ReallocImpl(mfxMemId midIn, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut);
 
     MFXBufferAllocator *m_pBufferAllocator;
     bool m_bOwnBufferAllocator;
+
+    std::vector<mfxFrameAllocResponse *> m_vResp;
+
+    mfxMemId *GetMidHolder(mfxMemId mid);
 };
 
 class SysMemBufferAllocator : public MFXBufferAllocator

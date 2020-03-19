@@ -1,15 +1,15 @@
 // Copyright (c) 2018-2019 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -174,15 +174,32 @@ enum {
     MFX_PLATFORM_CANNONLAKE     = 20,
 #endif
 #if (MFX_VERSION >= 1027)
-    MFX_PLATFORM_ICELAKE = 30,
+    MFX_PLATFORM_ICELAKE        = 30,
 #endif
+    MFX_PLATFORM_JASPERLAKE     = 32,
+    MFX_PLATFORM_ELKHARTLAKE    = 33,
+    MFX_PLATFORM_TIGERLAKE      = 40,
 };
+
+#if (MFX_VERSION >= 1031)
+typedef enum
+{
+    MFX_MEDIA_UNKNOWN           = 0xffff,
+    MFX_MEDIA_INTEGRATED        = 0,
+    MFX_MEDIA_DISCRETE          = 1
+} mfxMediaAdapterType;
+#endif
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxU16 CodeName;
     mfxU16 DeviceId;
+#if (MFX_VERSION >= 1031)
+    mfxU16 MediaAdapterType;
+    mfxU16 reserved[13];
+#else
     mfxU16 reserved[14];
+#endif
 } mfxPlatform;
 MFX_PACK_END()
 

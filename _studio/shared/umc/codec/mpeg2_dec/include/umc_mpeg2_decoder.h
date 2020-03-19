@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -114,11 +114,11 @@ namespace UMC_MPEG2_DECODER
     public:
 
         /* UMC::VideoDecoder interface */
-        UMC::Status ResetSkipCount()
+        UMC::Status ResetSkipCount() override
         { return UMC::UMC_ERR_NOT_IMPLEMENTED; }
-        UMC::Status SkipVideoFrame(int32_t)
+        UMC::Status SkipVideoFrame(int32_t) override
         { return UMC::UMC_ERR_NOT_IMPLEMENTED; }
-        uint32_t GetNumOfSkippedFrames()
+        uint32_t GetNumOfSkippedFrames() override
         { return 0; }
 
     public:
@@ -187,7 +187,9 @@ namespace UMC_MPEG2_DECODER
 
         // Action on new picture
         virtual bool OnNewPicture(); // returns true on full frame
+        virtual void EliminateSliceErrors(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
         virtual UMC::Status CompletePicture(MPEG2DecoderFrame& frame, uint8_t fieldIndex);
+        bool IsFieldOfCurrentFrame() const;
 
         // DPB update
         virtual void UpdateDPB(MPEG2DecoderFrame&, uint8_t);

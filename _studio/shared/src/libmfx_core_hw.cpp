@@ -1,4 +1,4 @@
-// Copyright (c) 2007-2019 Intel Corporation
+// Copyright (c) 2007-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -71,6 +71,14 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
             profile |= VA_PROFILE_10 | VA_PROFILE_444;
             break;
 #endif
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+            profile |= VA_PROFILE_12;
+            break;
+        case MFX_FOURCC_Y416:
+            profile |= VA_PROFILE_12 | VA_PROFILE_444;
+            break;
+#endif
         }
         break;
 
@@ -96,16 +104,31 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
                 profile |= VA_PROFILE_10 | VA_PROFILE_444;
                 break;
 #endif
+#if (MFX_VERSION >= 1031)
+            case MFX_FOURCC_P016:
+                profile |= VA_PROFILE_12;
+                break;
+            case MFX_FOURCC_Y216:
+                profile |= VA_PROFILE_12 | VA_PROFILE_422;
+                break;
+            case MFX_FOURCC_Y416:
+                profile |= VA_PROFILE_12 | VA_PROFILE_444;
+                break;
+#endif
         }
 
-#if (MFX_VERSION >= 1027)
         {
             mfxU32 const profile_idc = ExtractProfile(param->mfx.CodecProfile);
+#if (MFX_VERSION >= 1032)
+            if (profile_idc == MFX_PROFILE_HEVC_SCC)
+                profile |= VA_PROFILE_SCC;
+#endif
 
+#if (MFX_VERSION >= 1027)
             if (profile_idc == MFX_PROFILE_HEVC_REXT)
                 profile |= VA_PROFILE_REXT;
-        }
 #endif
+        }
 
         break;
 

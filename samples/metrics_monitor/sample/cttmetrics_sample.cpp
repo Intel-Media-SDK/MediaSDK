@@ -1,6 +1,6 @@
 /* ****************************************************************************** *\
 
-Copyright (C) 2014-2018 Intel Corporation.  All rights reserved.
+Copyright (C) 2014-2020 Intel Corporation.  All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -33,7 +33,16 @@ File Name: cttmetrics_sample.cpp
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+#include <unistd.h>
 #include "cttmetrics.h"
+
+#define MIN_PERIOD_MS  10
+#define MAX_PERIOD_MS  1000
+#define DEFAULT_PERIOD_MS  500
+
+#define MIN_NUMSAMPLES  1
+#define MAX_NUMSAMPLES  1000
+#define DEFAULT_NUMSAMPLES 100
 
 volatile sig_atomic_t run = 1;
 
@@ -45,28 +54,68 @@ void signal_handler(int signo)
     }
 }
 
+static void
+usage(const char *appname)
+{
+    printf("metrics_monitor - Monitors GPU usage per engine\n"
+        "\n"
+        "Usage: %s [OPTION]\n"
+        "\n"
+        "\tThe following parameters are optional:\n\n"
+        "\t[-h]          Show this help text.\n"
+        "\t[-s <num>]    Number of metric samples to collect during sampling period(valid range %u..%u, default %u).\n"
+        "\t[-p <ms>]     Sampling period in milliseconds(valid range %u..%u, default %u).\n"
+        "\t[-d <path>]   Path to gfx device (like /dev/dri/card* or /dev/dri/renderD*).\n"
+        "\t              If device is not set, the tool uses i915 render node device with smallest number."
+        "\n",
+        appname, MIN_NUMSAMPLES, MAX_NUMSAMPLES, DEFAULT_NUMSAMPLES, MIN_PERIOD_MS, MAX_PERIOD_MS, DEFAULT_PERIOD_MS);
+}
+
 int main(int argc, char *argv[])
 {
     cttStatus status = CTT_ERR_NONE;
     cttMetric metrics_ids[] = {CTT_USAGE_RENDER, CTT_USAGE_VIDEO, CTT_USAGE_VIDEO_ENHANCEMENT, CTT_AVG_GT_FREQ, CTT_USAGE_VIDEO2};
     unsigned int metric_cnt = sizeof(metrics_ids)/sizeof(metrics_ids[0]);
 
-    unsigned int num_samples = 100;
-    unsigned int period_ms = 500;
+    unsigned int num_samples = DEFAULT_NUMSAMPLES;
+    unsigned int period_ms = DEFAULT_PERIOD_MS;
+    char* device_path = NULL;
+    int ch;
 
-    if (1 < argc && NULL != argv[1])
-    {
-        num_samples = atoi(argv[1]);
-    }
-
-    if (2 < argc && NULL != argv[2])
-    {
-        period_ms = atoi(argv[2]);
+    /* Parse options */
+    while ((ch = getopt(argc, argv, "d:s:p:h")) != -1) {
+        switch (ch) {
+        case 'd':
+            device_path = optarg;
+            break;
+        case 's':
+            num_samples = atoi(optarg);
+            if (num_samples < MIN_NUMSAMPLES || num_samples > MAX_NUMSAMPLES) {
+                fprintf(stderr, "%u is an invalid number of metric samples\n\n", num_samples);
+                usage(argv[0]);
+                exit(1);
+            }
+            break;
+        case 'p':
+            period_ms = atoi(optarg);
+            if (period_ms < MIN_PERIOD_MS || period_ms > MAX_PERIOD_MS) {
+                fprintf(stderr, "%u is an invalid number sampling period\n\n", period_ms);
+                usage(argv[0]);
+                exit(1);
+            }
+            break;
+        case 'h':
+            usage(argv[0]);
+            exit(0);
+        default:
+            usage(argv[0]);
+            exit(1);
+        }
     }
 
     signal(SIGINT, signal_handler);
 
-    status = CTTMetrics_Init();
+    status = CTTMetrics_Init(device_path);
     if (CTT_ERR_NONE != status)
     {
         fprintf(stderr, "ERROR: Failed to initialize metrics monitor, error code %d\n", (int)status);

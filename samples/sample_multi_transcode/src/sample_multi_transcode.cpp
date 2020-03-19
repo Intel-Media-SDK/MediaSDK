@@ -36,6 +36,57 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 using namespace std;
 using namespace TranscodingSample;
 
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+mfxU32 GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params)
+{
+    if (adapters.NumActual == 0 || !adapters.Adapters)
+        return 0;
+
+    if (params.bPrefferdGfx)
+    {
+        // Find dGfx adapter in list and return it's index
+
+        auto idx = std::find_if(adapters.Adapters, adapters.Adapters + adapters.NumActual,
+            [](const mfxAdapterInfo info)
+        {
+            return info.Platform.MediaAdapterType == mfxMediaAdapterType::MFX_MEDIA_DISCRETE;
+        });
+
+        // No dGfx in list
+        if (idx == adapters.Adapters + adapters.NumActual)
+        {
+            msdk_printf(MSDK_STRING("Warning: No dGfx detected on machine. Will pick another adapter\n"));
+            return 0;
+        }
+
+        return static_cast<mfxU32>(std::distance(adapters.Adapters, idx));
+    }
+
+    if (params.bPrefferiGfx)
+    {
+        // Find iGfx adapter in list and return it's index
+
+        auto idx = std::find_if(adapters.Adapters, adapters.Adapters + adapters.NumActual,
+            [](const mfxAdapterInfo info)
+        {
+            return info.Platform.MediaAdapterType == mfxMediaAdapterType::MFX_MEDIA_INTEGRATED;
+        });
+
+        // No iGfx in list
+        if (idx == adapters.Adapters + adapters.NumActual)
+        {
+            msdk_printf(MSDK_STRING("Warning: No iGfx detected on machine. Will pick another adapter\n"));
+            return 0;
+        }
+
+        return static_cast<mfxU32>(std::distance(adapters.Adapters, idx));
+    }
+
+    // Other ways return 0, i.e. best suitable detected by dispatcher
+    return 0;
+}
+#endif
+
 Launcher::Launcher():
     m_StartTime(0),
     m_eDevType(static_cast<mfxHandleType>(0))
@@ -85,6 +136,12 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     // check correctness of input parameters
     sts = VerifyCrossSessionsOptions();
     MSDK_CHECK_STATUS(sts, "VerifyCrossSessionsOptions failed");
+
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+    // check available adapters
+    sts = QueryAdapters();
+    MSDK_CHECK_STATUS(sts, "QueryAdapters failed");
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
     if (m_eDevType == MFX_HANDLE_D3D9_DEVICE_MANAGER)
@@ -156,7 +213,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             libvaBackend = params.libvaBackend;
 
             /* Rendering case */
-            m_hwdev.reset(CreateVAAPIDevice(params.libvaBackend));
+            m_hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath, params.libvaBackend));
             if(!m_hwdev.get()) {
                 msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
                 return MFX_ERR_DEVICE_FAILED;
@@ -181,12 +238,17 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
                 MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
                 hdl = pVAAPIParams->m_dpy =(VADisplay)va_dpy;
 
-                mfxHDL whdl = NULL;
-                mfxHandleType hdlw_t = (mfxHandleType)HANDLE_WAYLAND_DRIVER;
-                Wayland *wld;
-                sts = m_hwdev->GetHandle(hdlw_t, &whdl);
-                MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-                wld = (Wayland*)whdl;
+                CVAAPIDeviceWayland* w_dev = dynamic_cast<CVAAPIDeviceWayland*>(m_hwdev.get());
+                if (!w_dev)
+                {
+                    MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+                }
+                Wayland *wld = w_dev->GetWaylandHandle();
+                if (!wld)
+                {
+                    MSDK_CHECK_STATUS(MFX_ERR_DEVICE_FAILED, "Failed to reach Wayland VAAPI device");
+                }
+
                 wld->SetRenderWinPos(params.nRenderWinX, params.nRenderWinY);
                 wld->SetPerfMode(params.bPerfMode);
 
@@ -197,7 +259,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         }
         else /* NO RENDERING*/
         {
-            m_hwdev.reset(CreateVAAPIDevice());
+            m_hwdev.reset(CreateVAAPIDevice(InputParams.strDevicePath));
             if(!m_hwdev.get()) {
                 msdk_printf(MSDK_STRING("error: failed to initialize VAAPI device\n"));
                 return MFX_ERR_DEVICE_FAILED;
@@ -248,16 +310,20 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         sts = pAllocator->Init(m_pAllocParam.get());
         MSDK_CHECK_STATUS(sts, "pAllocator->Init failed");
 
-        m_pAllocArray.push_back(pAllocator.get());
-        pAllocator.release();
+        m_pAllocArray.push_back(std::move(pAllocator));
 
         std::unique_ptr<ThreadTranscodeContext> pThreadPipeline(new ThreadTranscodeContext);
         // extend BS processing init
-        m_pExtBSProcArray.push_back(new FileBitstreamProcessor);
+        m_pExtBSProcArray.push_back(std::unique_ptr<FileBitstreamProcessor> (new FileBitstreamProcessor));
 
         pThreadPipeline->pPipeline.reset(CreatePipeline());
 
-        pThreadPipeline->pBSProcessor = m_pExtBSProcArray.back();
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+        pThreadPipeline->pPipeline->SetPrefferiGfx(m_InputParamsArray[i].bPrefferiGfx);
+        pThreadPipeline->pPipeline->SetPrefferdGfx(m_InputParamsArray[i].bPrefferdGfx);
+#endif
+
+        pThreadPipeline->pBSProcessor = m_pExtBSProcArray.back().get();
 
         std::unique_ptr<CSmplBitstreamReader> reader;
         std::unique_ptr<CSmplYUVReader> yuvreader;
@@ -306,12 +372,12 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             {
                 // Taking buffers from tail because they are stored in m_pBufferArray in reverse order
                 // So, by doing this we'll fill buffers properly according to order from par file
-                pBuffer = m_pBufferArray[m_pBufferArray.size()-1-BufCounter];
+                pBuffer = m_pBufferArray[m_pBufferArray.size()-1-BufCounter].get();
                 BufCounter++;
             }
             else /* 1_to_N mode*/
             {
-                pBuffer = m_pBufferArray[m_pBufferArray.size() - 1];
+                pBuffer = m_pBufferArray[m_pBufferArray.size() - 1].get();
             }
             pSinkPipeline = pThreadPipeline->pPipeline.get();
         }
@@ -321,11 +387,11 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             if ((VppComp == m_InputParamsArray[i].eModeExt) ||
                 (VppCompOnly == m_InputParamsArray[i].eModeExt))
             {
-                pBuffer = m_pBufferArray[m_pBufferArray.size() - 1];
+                pBuffer = m_pBufferArray[m_pBufferArray.size() - 1].get();
             }
             else /* 1_to_N mode*/
             {
-                pBuffer = m_pBufferArray[BufCounter];
+                pBuffer = m_pBufferArray[BufCounter].get();
                 BufCounter++;
             }
         }
@@ -343,21 +409,33 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         sts = MFX_ERR_MORE_DATA;
         if (Source == m_InputParamsArray[i].eMode)
         {
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+            sts = CheckAndFixAdapterDependency(i, pSinkPipeline);
+            MSDK_CHECK_STATUS(sts, "CheckAndFixAdapterDependency failed");
+            // force implementation type based on iGfx/dGfx parameters
+            ForceImplForSession(i);
+#endif
             sts = pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
-                                                   m_pAllocArray[i],
+                                                   m_pAllocArray[i].get(),
                                                    hdl,
                                                    pSinkPipeline,
                                                    pBuffer,
-                                                   m_pExtBSProcArray.back());
+                                                   m_pExtBSProcArray.back().get());
         }
         else
         {
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+            sts = CheckAndFixAdapterDependency(i, pParentPipeline);
+            MSDK_CHECK_STATUS(sts, "CheckAndFixAdapterDependency failed");
+            // force implementation type based on iGfx/dGfx parameters
+            ForceImplForSession(i);
+#endif
             sts =  pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
-                                                    m_pAllocArray[i],
+                                                    m_pAllocArray[i].get(),
                                                     hdl,
                                                     pParentPipeline,
                                                     pBuffer,
-                                                    m_pExtBSProcArray.back());
+                                                    m_pExtBSProcArray.back().get());
         }
 
         MSDK_CHECK_STATUS(sts, "pThreadPipeline->pPipeline->Init failed");
@@ -369,7 +447,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         pThreadPipeline->startStatus = MFX_WRN_DEVICE_BUSY;
         // set other session's parameters
         pThreadPipeline->implType = m_InputParamsArray[i].libType;
-        m_pThreadContextArray.push_back(pThreadPipeline.release());
+        m_pThreadContextArray.push_back(std::move(pThreadPipeline));
 
         mfxVersion ver = {{0, 0}};
         sts = m_pThreadContextArray[i]->pPipeline->QueryMFXVersion(&ver);
@@ -428,10 +506,10 @@ void Launcher::DoTranscoding()
     };
 
     bool isOverlayUsed = false;
-    for (auto context : m_pThreadContextArray)
+    for (const auto& context : m_pThreadContextArray)
     {
         MSDK_CHECK_POINTER_NO_RET(context);
-        RunTranscodeRoutine(context);
+        RunTranscodeRoutine(context.get());
 
         MSDK_CHECK_POINTER_NO_RET(context->pPipeline);
         isOverlayUsed = isOverlayUsed || context->pPipeline->IsOverlayUsed();
@@ -475,7 +553,7 @@ void Launcher::DoTranscoding()
                            << std::endl << std::endl;
                         msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
 
-                        for (auto context : m_pThreadContextArray)
+                        for (const auto& context : m_pThreadContextArray)
                         {
                             context->pPipeline->StopSession();
                         }
@@ -504,7 +582,7 @@ void Launcher::DoTranscoding()
         if (!aliveNonOverlaySessions && isOverlayUsed)
         {
             // Sending stop message
-            for (auto context : m_pThreadContextArray)
+            for (const auto& context : m_pThreadContextArray)
             {
                 if (context->pPipeline->IsOverlayUsed())
                 {
@@ -513,7 +591,7 @@ void Launcher::DoTranscoding()
             }
 
             // Waiting for them to be stopped
-            for (auto context : m_pThreadContextArray)
+            for (const auto& context : m_pThreadContextArray)
             {
                 if (!context->handle.valid())
                     continue;
@@ -599,7 +677,7 @@ mfxStatus Launcher::ProcessResult()
            << MSDK_STRING("] ") << SessionStsStr <<MSDK_STRING(" (")
            << StatusToString(transcodingSts) << MSDK_STRING(") ")
            << workTime << MSDK_STRING(" sec, ")
-           << framesNum << MSDK_STRING(" frames, ") 
+           << framesNum << MSDK_STRING(" frames, ")
            << std::fixed << std::setprecision(3) << framesNum / workTime << MSDK_STRING(" fps")
            << std::endl
            << m_parser.GetLine(i) << std::endl << std::endl;
@@ -623,6 +701,119 @@ mfxStatus Launcher::ProcessResult()
     }
     return FinalSts;
 } // mfxStatus Launcher::ProcessResult()
+
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+mfxStatus Launcher::QueryAdapters()
+{
+    mfxU32 num_adapters_available;
+
+    mfxStatus sts = MFXQueryAdaptersNumber(&num_adapters_available);
+    MFX_CHECK_STS(sts);
+
+    m_DisplaysData.resize(num_adapters_available);
+    m_Adapters = { m_DisplaysData.data(), mfxU32(m_DisplaysData.size()), 0u };
+
+    sts = MFXQueryAdapters(nullptr, &m_Adapters);
+    MFX_CHECK_STS(sts);
+
+    return MFX_ERR_NONE;
+}
+
+void Launcher::ForceImplForSession(mfxU32 idxSession)
+{
+    //change only 8 bit of the implementation. Don't touch type of frames
+    mfxIMPL impl = m_InputParamsArray[idxSession].libType & mfxI32(~0xFF);
+
+    mfxU32 idx = GetPreferredAdapterNum(m_Adapters, m_InputParamsArray[idxSession]);
+    switch (m_Adapters.Adapters[idx].Number)
+    {
+    case 0:
+        impl |= MFX_IMPL_HARDWARE;
+        break;
+    case 1:
+        impl |= MFX_IMPL_HARDWARE2;
+        break;
+    case 2:
+        impl |= MFX_IMPL_HARDWARE3;
+        break;
+    case 3:
+        impl |= MFX_IMPL_HARDWARE4;
+        break;
+
+    default:
+        // try searching on all display adapters
+        impl |= MFX_IMPL_HARDWARE_ANY;
+        break;
+    }
+
+    m_InputParamsArray[idxSession].libType = impl;
+}
+
+mfxStatus Launcher::CheckAndFixAdapterDependency(mfxU32 idxSession, CTranscodingPipeline * pParentPipeline)
+{
+    if (!pParentPipeline)
+        return MFX_ERR_NONE;
+
+    // Inherited sessions must have the same adapter as parent
+    if ((pParentPipeline->IsPrefferiGfx() || pParentPipeline->IsPrefferdGfx()) && !m_InputParamsArray[idxSession].bPrefferiGfx && !m_InputParamsArray[idxSession].bPrefferdGfx)
+    {
+        m_InputParamsArray[idxSession].bPrefferiGfx = pParentPipeline->IsPrefferiGfx();
+        m_InputParamsArray[idxSession].bPrefferdGfx = pParentPipeline->IsPrefferdGfx();
+        msdk_stringstream ss;
+        ss << MSDK_STRING("\n\n session with index: ") << idxSession
+            << MSDK_STRING(" adapter type was forced to ")
+            << (pParentPipeline->IsPrefferiGfx() ? MSDK_STRING("integrated") : MSDK_STRING("discrete"))
+            << std::endl << std::endl;
+        msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+
+        return MFX_ERR_NONE;
+    }
+
+    // App can't change initialization of the previous session (parent session)
+    if (!pParentPipeline->IsPrefferiGfx() && !pParentPipeline->IsPrefferdGfx() && (m_InputParamsArray[idxSession].bPrefferiGfx || m_InputParamsArray[idxSession].bPrefferdGfx))
+    {
+        msdk_stringstream ss;
+        ss << MSDK_STRING("\n\n session with index: ") << idxSession
+            << MSDK_STRING(" failed because parent session [")
+            << pParentPipeline->GetSessionText()
+            << MSDK_STRING("] doesn't have explicit adapter setting")
+            << std::endl << std::endl;
+        msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    // Inherited sessions must have the same adapter as parent
+    if (pParentPipeline->IsPrefferiGfx() && !m_InputParamsArray[idxSession].bPrefferiGfx)
+    {
+        msdk_stringstream ss;
+        ss << MSDK_STRING("\n\n session with index: ") << idxSession
+            << MSDK_STRING(" failed because it has different adapter type with parent session [")
+            << pParentPipeline->GetSessionText()
+            << MSDK_STRING("]")
+            << std::endl << std::endl;
+        msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    // Inherited sessions must have the same adapter as parent
+    if (pParentPipeline->IsPrefferdGfx() && !m_InputParamsArray[idxSession].bPrefferdGfx)
+    {
+        msdk_stringstream ss;
+        ss << MSDK_STRING("\n\n session with index: ") << idxSession
+            << MSDK_STRING(" failed because it has different adapter type with parent session [")
+            << pParentPipeline->GetSessionText()
+            << MSDK_STRING("]")
+            << std::endl << std::endl;
+        msdk_printf(MSDK_STRING("%s"), ss.str().c_str());
+
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    return MFX_ERR_NONE;
+}
+#endif
 
 mfxStatus Launcher::VerifyCrossSessionsOptions()
 {
@@ -891,7 +1082,6 @@ mfxStatus Launcher::VerifyCrossSessionsOptions()
 mfxStatus Launcher::CreateSafetyBuffers()
 {
     SafetySurfaceBuffer* pBuffer     = NULL;
-    SafetySurfaceBuffer* pPrevBuffer = NULL;
 
     for (mfxU32 i = 0; i < m_InputParamsArray.size(); i++)
     {
@@ -899,9 +1089,8 @@ mfxStatus Launcher::CreateSafetyBuffers()
         if ((Source == m_InputParamsArray[i].eMode) &&
             (Native == m_InputParamsArray[0].eModeExt))
         {
-            pBuffer = new SafetySurfaceBuffer(pPrevBuffer);
-            pPrevBuffer = pBuffer;
-            m_pBufferArray.push_back(pBuffer);
+            pBuffer = new SafetySurfaceBuffer(pBuffer);
+            m_pBufferArray.push_back(std::unique_ptr<SafetySurfaceBuffer> (pBuffer));
         }
 
         /* And N_to_1 case: composition should be enabled!
@@ -910,9 +1099,8 @@ mfxStatus Launcher::CreateSafetyBuffers()
              ( (VppComp     == m_InputParamsArray[0].eModeExt) ||
                (VppCompOnly == m_InputParamsArray[0].eModeExt) ) )
         {
-            pBuffer = new SafetySurfaceBuffer(pPrevBuffer);
-            pPrevBuffer = pBuffer;
-            m_pBufferArray.push_back(pBuffer);
+            pBuffer = new SafetySurfaceBuffer(pBuffer);
+            m_pBufferArray.push_back(std::unique_ptr<SafetySurfaceBuffer> (pBuffer));
         }
     }
     return MFX_ERR_NONE;
@@ -921,33 +1109,11 @@ mfxStatus Launcher::CreateSafetyBuffers()
 
 void Launcher::Close()
 {
-    while(m_pThreadContextArray.size())
-    {
-        delete m_pThreadContextArray[m_pThreadContextArray.size()-1];
-        m_pThreadContextArray[m_pThreadContextArray.size() - 1] = nullptr;
-        m_pThreadContextArray.pop_back();
-    }
+    m_pThreadContextArray.clear();
+    m_pAllocArray.clear();
+    m_pBufferArray.clear();
+    m_pExtBSProcArray.clear();
 
-    while(m_pAllocArray.size())
-    {
-        delete m_pAllocArray[m_pAllocArray.size()-1];
-        m_pAllocArray[m_pAllocArray.size() - 1] = nullptr;
-        m_pAllocArray.pop_back();
-    }
-
-    while(m_pBufferArray.size())
-    {
-        delete m_pBufferArray[m_pBufferArray.size()-1];
-        m_pBufferArray[m_pBufferArray.size() - 1] = nullptr;
-        m_pBufferArray.pop_back();
-    }
-
-    while(m_pExtBSProcArray.size())
-    {
-        delete m_pExtBSProcArray[m_pExtBSProcArray.size() - 1];
-        m_pExtBSProcArray[m_pExtBSProcArray.size() - 1] = nullptr;
-        m_pExtBSProcArray.pop_back();
-    }
 } // void Launcher::Close()
 
 #if defined(_WIN32) || defined(_WIN64)

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -57,11 +57,7 @@ JERRCODE CBitStreamOutput::Attach(CBaseStreamOutput* out)
 
 JERRCODE CBitStreamOutput::Detach(void)
 {
-  if(m_pData)
-  {
-    // deallocate internal memory
-    delete[] m_pData;
-  }
+  delete[] m_pData;
 
   m_out     = 0;
   m_pData   = 0;
@@ -78,10 +74,7 @@ JERRCODE CBitStreamOutput::Init(int bufSize)
 {
   m_DataLen = (int)bufSize;
 
-  if(m_pData)
-  {
-    delete[] m_pData;
-  }
+  delete[] m_pData;
 
   m_pData = new uint8_t[m_DataLen];
 

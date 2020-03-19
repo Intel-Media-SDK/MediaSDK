@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-// 
+// Copyright (c) 2018-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -110,7 +110,7 @@ struct _mfxSession
     std::unique_ptr<VideoENC> m_pENC;
     std::unique_ptr<VideoPAK> m_pPAK;
     std::unique_ptr<void *>   m_reserved;
-    
+
     std::unique_ptr<VideoCodecUSER> m_plgDec;
     std::unique_ptr<VideoCodecUSER> m_plgEnc;
     std::unique_ptr<VideoCodecUSER> m_plgVPP;
@@ -159,7 +159,7 @@ struct _mfxSession
         // child session has only 1 reference to it.
         return (NULL == m_pSchedulerAllocated);
     }
-    
+
     template<class T>
     T* Create(mfxVideoParam& par);
 
@@ -184,11 +184,11 @@ private:
 
 
 // {90567606-C57A-447F-8941-1F14597DA475}
-static const 
+static const
     MFX_GUID  MFXISession_1_10_GUID = {0x90567606, 0xc57a, 0x447f, {0x89, 0x41, 0x1f, 0x14, 0x59, 0x7d, 0xa4, 0x75}};
 
 // {701A88BB-E482-4374-A08D-621641EC98B2}
-//DEFINE_GUID(<<name>>, 
+//DEFINE_GUID(<<name>>,
 //            {0x701a88bb, 0xe482, 0x4374, {0xa0, 0x8d, 0x62, 0x16, 0x41, 0xec, 0x98, 0xb2}};
 
 class MFXISession_1_10: public MFXIUnknown
@@ -240,7 +240,7 @@ public:
     virtual
         mfxU32 GetNumRef(void) const;
 
-    virtual 
+    virtual
         mfxStatus InitEx(mfxInitParam& par);
 
 public:
@@ -295,7 +295,7 @@ mfxStatus MFXVideo##component##_##func_name formal_param_list \
     MFX_CHECK(session->m_p##component.get(), MFX_ERR_NOT_INITIALIZED); \
     try { \
         /* wait until all tasks are processed */ \
-        session->m_pScheduler->WaitForTaskCompletion(session->m_p##component.get()); \
+        session->m_pScheduler->WaitForAllTasksCompletion(session->m_p##component.get()); \
         /* call the codec's method */ \
         return session->m_p##component->func_name actual_param_list; \
     } catch(...) { \
@@ -311,7 +311,7 @@ mfxStatus MFXVideo##component##_##func_name formal_param_list \
     MFX_CHECK(session->m_pAudio##component.get(), MFX_ERR_NOT_INITIALIZED); \
     try { \
         /* wait until all tasks are processed */ \
-        session->m_pScheduler->WaitForTaskCompletion(session->m_pAudio##component.get()); \
+        session->m_pScheduler->WaitForAllTasksCompletion(session->m_pAudio##component.get()); \
         /* call the codec's method */ \
         return session->m_pAudio##component->func_name actual_param_list; \
     } catch(...) { \

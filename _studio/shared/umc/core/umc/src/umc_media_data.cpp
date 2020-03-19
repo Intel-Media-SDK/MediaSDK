@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -270,7 +270,7 @@ Status MediaData::MoveDataTo(MediaData* dst)
     src = this;
     pDataEnd = dst->m_pDataPointer + dst->m_nDataSize;
     pBufferEnd = dst->m_pBufferPointer + dst->m_nBufferSize;
-    size = MFX_MIN(src->m_nDataSize, (size_t) (pBufferEnd - pDataEnd));
+    size = std::min<size_t>(src->m_nDataSize, pBufferEnd - pDataEnd);
 
     if (size)
     {

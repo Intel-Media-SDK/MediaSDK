@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -273,6 +273,12 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
 #endif
         )
         bit_depth = 10;
+#if (MFX_VERSION >= 1031)
+    else if (params->mfx.FrameInfo.FourCC == MFX_FOURCC_P016 ||
+             params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216 ||
+             params->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416)
+        bit_depth = 12;
+#endif
     else
         bit_depth = 8;
 
@@ -310,6 +316,17 @@ UMC::Status mfx_UMC_FrameAllocator::InitMfx(UMC::FrameAllocatorParams *,
         break;
     case MFX_FOURCC_Y410:
         color_format = UMC::Y410;
+        break;
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_P016:
+        color_format = UMC::P016;
+        break;
+    case MFX_FOURCC_Y216:
+        color_format = UMC::Y216;
+        break;
+    case MFX_FOURCC_Y416:
+        color_format = UMC::Y416;
         break;
 #endif
     default:
@@ -706,6 +723,11 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
 #if (MFX_VERSION >= 1027)
         || surf->Info.FourCC == MFX_FOURCC_Y210
 #endif
+#if (MFX_VERSION >= 1031)
+        || surf->Info.FourCC == MFX_FOURCC_P016
+        || surf->Info.FourCC == MFX_FOURCC_Y216
+        || surf->Info.FourCC == MFX_FOURCC_Y416
+#endif
         )
     {
         if (m_isSWDecode)
@@ -846,6 +868,9 @@ mfxI32 mfx_UMC_FrameAllocator::AddSurface(mfxFrameSurface1 *surface)
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
     case MFX_FOURCC_Y410:
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_FOURCC_Y216:
 #endif
 
         break;

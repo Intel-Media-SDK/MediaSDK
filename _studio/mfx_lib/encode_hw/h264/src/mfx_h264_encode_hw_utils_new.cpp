@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -719,7 +719,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
         mfxExtCodingOptionDDI const & extDdi  = GetExtBufferRef(video);
         mfxExtCodingOption2 const   & extOpt2 = GetExtBufferRef(video);
         const mfxU32 numMaxActiveRefL1 = GetMaxNumRefActiveBL1(video.mfx.TargetUsage, isField);
-        mfxU32 numActiveRefL1 = MFX_MIN(extDdi.NumActiveRefBL1, numMaxActiveRefL1);
+        mfxU32 numActiveRefL1 = std::min<mfxU32>(extDdi.NumActiveRefBL1, numMaxActiveRefL1);
         mfxU32 numActiveRefL0 = (task.m_type[fieldId] & MFX_FRAMETYPE_P)
             ? extDdi.NumActiveRefP
             : extDdi.NumActiveRefBL0;
@@ -748,12 +748,12 @@ void MfxHwH264Encode::ModifyRefPicLists(
             {
                 if (advCtrl) // advanced ref list control has priority
                 {
-                    mfxU32 numActiveRefL0Final = advCtrl->NumRefIdxL0Active ? MFX_MIN(advCtrl->NumRefIdxL0Active,numActiveRefL0) : numActiveRefL0;
+                    mfxU32 numActiveRefL0Final = advCtrl->NumRefIdxL0Active ? std::min<mfxU32>(advCtrl->NumRefIdxL0Active, numActiveRefL0) : numActiveRefL0;
                     ReorderRefPicList(list0, dpb, (mfxRefPic*)(&advCtrl->RefPicList0[0]), numActiveRefL0Final);
                 }
                 else
                 {
-                    mfxU32 numActiveRefL0Final = ctrl->NumRefIdxL0Active ? MFX_MIN(ctrl->NumRefIdxL0Active,numActiveRefL0) : numActiveRefL0;
+                    mfxU32 numActiveRefL0Final = ctrl->NumRefIdxL0Active ? std::min<mfxU32>(ctrl->NumRefIdxL0Active, numActiveRefL0) : numActiveRefL0;
                     ReorderRefPicList(list0, dpb, *ctrl, numActiveRefL0Final);
                 }
             }
@@ -762,12 +762,12 @@ void MfxHwH264Encode::ModifyRefPicLists(
             {
                 if (advCtrl) // advanced ref list control has priority
                 {
-                    numActiveRefL1 = advCtrl->NumRefIdxL1Active ? MFX_MIN(advCtrl->NumRefIdxL1Active,numMaxActiveRefL1) : numActiveRefL1;
+                    numActiveRefL1 = advCtrl->NumRefIdxL1Active ? std::min<mfxU32>(advCtrl->NumRefIdxL1Active,numMaxActiveRefL1) : numActiveRefL1;
                     ReorderRefPicList(list1, dpb, (mfxRefPic*)(&advCtrl->RefPicList1[0]), numActiveRefL1);
                 }
                 else
                 {
-                    numActiveRefL1 = ctrl->NumRefIdxL1Active ? MFX_MIN(ctrl->NumRefIdxL1Active,numMaxActiveRefL1) : numActiveRefL1;
+                    numActiveRefL1 = ctrl->NumRefIdxL1Active ? std::min<mfxU32>(ctrl->NumRefIdxL1Active,numMaxActiveRefL1) : numActiveRefL1;
                     ReorderRefPicList(list1, dpb, *ctrl, numActiveRefL1);
                 }
             }
@@ -876,8 +876,8 @@ void MfxHwH264Encode::ModifyRefPicLists(
 
                 if (video.calcParam.tempScalabilityMode)
                 { // cut lists to 1 element for tempScalabilityMode
-                    list0.Resize(MFX_MIN(list0.Size(), 1));
-                    list1.Resize(MFX_MIN(list1.Size(), 1));
+                    list0.Resize(std::min(list0.Size(), 1u));
+                    list1.Resize(std::min(list1.Size(), 1u));
                 }
             }
             else if (extOpt2.BRefType == MFX_B_REF_PYRAMID && (task.m_type[0] & MFX_FRAMETYPE_P))
@@ -892,25 +892,25 @@ void MfxHwH264Encode::ModifyRefPicLists(
                                 std::swap(*l, *r);
                 }
             }
-            
+
             if (video.calcParam.numTemporalLayer == 0 && (task.m_type[0] & MFX_FRAMETYPE_P) && task.m_internalListCtrlRefModLTR)
             {
                 mfxU8 * begin = list0.Begin();
                 mfxU8 * end = list0.End();
                 mfxU8 * ltr = 0;
                 for (; begin != end; ++begin)
-                    if (dpb[*begin & 127].m_longterm) 
+                    if (dpb[*begin & 127].m_longterm)
                             break;
-                
+
                 ltr = begin;
                 begin = list0.Begin();
                 if (ltr != end && ltr != begin)
                     std::rotate(++begin, ltr, ltr + 1);
             }
 
-            // as driver have fixed arbitrary reference field polarity limitation on PV4 on BDW and SCL, so no need
+            // as driver have fixed arbitrary reference field polarity support starting BDW, so no need
             // to WA to adjust the reflist order
-            bool isHwSupportArbiRef = ((task.m_hwType == MFX_HW_SCL) || (task.m_hwType == MFX_HW_BDW));
+            bool isHwSupportArbiRef = (task.m_hwType >= MFX_HW_BDW);
 
             if (isField && (isIPFieldPair == false) && (isHwSupportArbiRef == false))
             {
@@ -2158,7 +2158,7 @@ void MfxHwH264Encode::ConfigureTask(
     }
     else
     {
-        task.m_ctrl.SkipFrame = MFX_MIN(0xFF, task.m_ctrl.SkipFrame);
+        task.m_ctrl.SkipFrame = std::min<mfxU16>(0xFF, task.m_ctrl.SkipFrame);
     }
 
     task.m_reference[ffid]  = !!(task.m_type[ffid] & MFX_FRAMETYPE_REF);
@@ -2352,7 +2352,7 @@ void MfxHwH264Encode::ConfigureTask(
 #if defined(MFX_ENABLE_MFE)
     //if previous frame finished later than current submitted(e.g. reordering or async) - use sync-sync time for counting timeout for better performance
     //otherwise if current frame submitted later than previous finished - use submit->sync time for better performance handling
-    task.m_beginTime = MFX_MAX(task.m_beginTime, prevTask.m_endTime);
+    task.m_beginTime = std::max(task.m_beginTime, prevTask.m_endTime);
 #endif
     const mfxExtCodingOption2* extOpt2Cur = (extOpt2Runtime ? extOpt2Runtime : &extOpt2);
 
@@ -2415,6 +2415,7 @@ void MfxHwH264Encode::ConfigureTask(
     task.m_collectUnitsInfo = IsOn(extOpt3.EncodedUnitsInfo);
 #endif
 
+    task.m_TCBRCTargetFrameSize = video.calcParam.TCBRCTargetFrameSize;
 }
 
 
@@ -2868,7 +2869,7 @@ namespace FadeDetectionHistLSE
         AveSampleDiff = AveSampleDiff > 0 ? ((AveSampleDiff + numSegments / 2) / numSegments) : -((abs(AveSampleDiff) + numSegments / 2) / numSegments);
         CheckRange = y[numSegments - 1] - y[0];
 
-        Weight = mfxI16(((sxy - ((sx * sy + numSegments / 2) / numSegments)) << logWDc) / MFX_MAX(1, (sxx - ((sx * sx + numSegments / 2) / numSegments))));
+        Weight = mfxI16(((sxy - ((sx * sy + numSegments / 2) / numSegments)) << logWDc) / std::max(1, (sxx - ((sx * sx + numSegments / 2) / numSegments))));
         Offset = mfxI16(sy - ((Weight * sx + rounding) >> logWDc));
         Offset = (Offset + (Offset > 0 ? numSegments / 2 : -numSegments / 2)) / numSegments;
 
@@ -2882,7 +2883,7 @@ namespace FadeDetectionHistLSE
         }
         else
         {
-            mfxI16 Weight1 = mfxI16(((sxy - ((sx * sy + numSegments / 2) / numSegments)) << logWDc) / MFX_MAX(1, (syy - ((sy * sy + numSegments / 2) / numSegments))));
+            mfxI16 Weight1 = mfxI16(((sxy - ((sx * sy + numSegments / 2) / numSegments)) << logWDc) / std::max(1, (syy - ((sy * sy + numSegments / 2) / numSegments))));
             mfxI16 Offset1 = mfxI16(sx - ((Weight1 * sy + rounding) >> logWDc));
             Offset1 = (Offset1 + (Offset1 > 0 ? numSegments / 2 : -numSegments / 2)) / numSegments;
 
@@ -2938,7 +2939,7 @@ namespace FadeDetectionHistLSE
         {
             mfxI16 transformedClosedPixel = (((x[i] * Weight + rounding) >> logWDc) + Offset);
 
-            transformedClosedPixel = MFX_MAX(0, MFX_MIN(range - 1, transformedClosedPixel));
+            transformedClosedPixel = mfx::clamp<mfxI16>(transformedClosedPixel, 0, range - 1);
 
             if (i < numClosedPixels)
             {
@@ -2967,7 +2968,7 @@ namespace FadeDetectionHistLSE
             || ((CheckRange > 35) && Weight != (1 << logWDc) && abs(AveSampleDiff) <= 1 && VarSampleDiff == 0)
             || ((CheckRange > 25) && abs(RefPeakPos - CurPeakPos) <= 1 && abs(TransformedPeakPos - CurPeakPos) > abs(RefPeakPos - CurPeakPos) + 2)
             || (numClosedPixels >= (numSegments / 2) && (CheckRange > 35) && (transformedClosedPixelsDiff - sumClosedPixelsDiff > 2 || transformMaxDiff >= 2))
-            || (Weight == (1 << logWDc) && ((abs(AveSampleDiff) <= 2 && AveDiff > 1) || (AveDiff * AveDiff) > MFX_MAX(1, VarSampleDiff / 2)))
+            || (Weight == (1 << logWDc) && ((abs(AveSampleDiff) <= 2 && AveDiff > 1) || (AveDiff * AveDiff) > std::max(1u, VarSampleDiff / 2)))
             || (Weight != (1 << logWDc) && (maxdiff > 3 * abs(AveSampleDiff) || sumdiff >= 8 * abs(AveSampleDiff))))
         {
             pwt.LumaWeightFlag[list][idx] = 0;

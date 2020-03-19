@@ -35,7 +35,7 @@
 namespace MfxHwH265Encode
 {
 
-class MFXVideoENCODEH265_HW : public VideoENCODE
+class MFXVideoENCODEH265_HW : virtual public VideoENCODE
 {
 public:
     MFXVideoENCODEH265_HW(VideoCORE *core, mfxStatus *status)

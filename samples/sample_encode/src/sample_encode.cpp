@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -61,6 +61,16 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   <codecid>=h265|vp9                - in-box Media SDK plugins (may require separate downloading and installation)\n"));
     msdk_printf(MSDK_STRING("   If codecid is jpeg, -q option is mandatory.)\n"));
     msdk_printf(MSDK_STRING("Options: \n"));
+#if defined(LINUX32) || defined(LINUX64)
+    msdk_printf(MSDK_STRING("   [-device /path/to/device] - set graphics device for processing\n"));
+    msdk_printf(MSDK_STRING("                                 For example: '-device /dev/dri/card0'\n"));
+    msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
+    msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
+#endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    msdk_printf(MSDK_STRING("   [-dGfx] - preffer processing on dGfx (by default system decides)\n"));
+    msdk_printf(MSDK_STRING("   [-iGfx] - preffer processing on iGfx (by default system decides)\n"));
+#endif
     msdk_printf(MSDK_STRING("   [-nv12|yuy2|uyvy|ayuv|rgb4|p010|y210|y410|a2rgb10] - input color format (by default YUV420 is expected).\n"));
     msdk_printf(MSDK_STRING("   [-msb10] - 10-bit color format is expected to have data in Most Significant Bits of words.\n                 (LSB data placement is expected by default).\n                 This option also disables data shifting during file reading.\n"));
     msdk_printf(MSDK_STRING("   [-ec::p010] - force usage of P010 surfaces for encoder (conversion will be made if necessary). Use for 10 bit HEVC encoding\n"));
@@ -83,7 +93,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
     msdk_printf(MSDK_STRING("           if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
-    msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [10,100].\n"));
+    msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100] (0 - default: auto-select by mediasdk library).\n"));
     msdk_printf(MSDK_STRING("            may be 1 in the case when -mss option is specified \n"));
     msdk_printf(MSDK_STRING("            if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
     msdk_printf(MSDK_STRING("   [-dstw width] - destination picture width, invokes VPP resizing\n"));
@@ -112,7 +122,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
 #if (MFX_VERSION >= 1027)
     msdk_printf(MSDK_STRING("   [-round_offset_in file]  - use this file to set per frame inter/intra rounding offset(for AVC only)\n"));
 #endif
-    msdk_printf(MSDK_STRING("   [-qsv-ff]                - Enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
+    msdk_printf(MSDK_STRING("   [-lowpower:<on,off>]     - Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
     msdk_printf(MSDK_STRING("   [-ir_type]               - Intra refresh type. 0 - no refresh, 1 - vertical refresh, 2 - horisontal refresh, 3 - slice refresh\n"));
     msdk_printf(MSDK_STRING("   [-ir_cycle_size]         - Number of pictures within refresh cycle starting from 2\n"));
     msdk_printf(MSDK_STRING("   [-ir_qp_delta]           - QP difference for inserted intra MBs. This is signed value in [-51, 51] range\n"));
@@ -131,6 +141,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("                              If num_slice equals zero, the encoder may choose any slice partitioning allowed by the codec standard.\n"));
     msdk_printf(MSDK_STRING("   [-mss]                   - maximum slice size in bytes. Supported only with -hw and h264 codec. This option is not compatible with -num_slice option.\n"));
     msdk_printf(MSDK_STRING("   [-mfs]                   - maximum frame size in bytes. Supported only with h264 and hevc codec for VBR mode.\n"));
+    msdk_printf(MSDK_STRING("   [-BitrateLimit:<on,off>] - Turn this flag ON to set bitrate limitations imposed by the SDK encoder. Off by default.\n"));
     msdk_printf(MSDK_STRING("   [-re]                    - enable region encode mode. Works only with h265 encoder\n"));
     msdk_printf(MSDK_STRING("   [-trows rows]            - Number of rows for tiled encoding\n"));
     msdk_printf(MSDK_STRING("   [-tcols cols]            - Number of columns for tiled encoding\n"));
@@ -156,9 +167,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-WeightedPred:default|implicit ]   - enables weighted prediction mode\n"));
     msdk_printf(MSDK_STRING("   [-WeightedBiPred:default|implicit ] - enables weighted bi-prediction mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]               - encoding in cycle not less than specific time in seconds\n"));
-    msdk_printf(MSDK_STRING("   [-membuf]                - size of memory buffer in frames\n"));
+    msdk_printf(MSDK_STRING("   [-perf_opt n]            - sets number of prefetched frames. In performance mode app preallocates buffer and load first n frames\n"));
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
+    msdk_printf(MSDK_STRING("   [-qpfile <filepath>]     - if specified, the encoder will take frame parameters (frame number, QP, frame type) from text file\n"));
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
     msdk_printf(MSDK_STRING("                              the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled\n"));
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
@@ -169,11 +181,11 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-extbrc:<on,off,implicit>] - External BRC for AVC and HEVC encoders\n"));
 #endif
 #if (MFX_VERSION >= 1026)
-    msdk_printf(MSDK_STRING("   [-ExtBrcAdaptiveLTR:<on,off>] - Set AdaptiveLTR for implicit extbrc"));
+    msdk_printf(MSDK_STRING("   [-ExtBrcAdaptiveLTR:<on,off>] - Set AdaptiveLTR for implicit extbrc\n"));
 #endif
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
     msdk_printf(MSDK_STRING("   [-preset <default,dss,conference,gaming>] - Use particular preset for encoding parameters\n"));
-    msdk_printf(MSDK_STRING("   [-pp] - Print preset parameters\n"));    msdk_printf(MSDK_STRING("\nExample: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
+    msdk_printf(MSDK_STRING("   [-pp] - Print preset parameters\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d] - work with d3d surfaces\n"));
     msdk_printf(MSDK_STRING("   [-d3d11] - work with d3d11 surfaces\n"));
@@ -303,6 +315,8 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->FileInputFourCC = MFX_FOURCC_I420;
     pParams->EncodeFourCC = MFX_FOURCC_NV12;
     pParams->nPRefType = MFX_P_REF_DEFAULT;
+    pParams->QPFileMode = false;
+    pParams->BitrateLimit = MFX_CODINGOPTION_OFF;
 #if (MFX_VERSION >= 1027)
     pParams->RoundingOffsetFile = NULL;
 #endif
@@ -357,6 +371,28 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+#if (defined(LINUX32) || defined(LINUX64))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-device")))
+        {
+            if (!pParams->strDevicePath.empty())
+            {
+                msdk_printf(MSDK_STRING("error: you can specify only one device\n"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+            pParams->strDevicePath = strInput[++i];
+        }
+#endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dGfx")))
+        {
+            pParams->bPrefferdGfx = true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-iGfx")))
+        {
+            pParams->bPrefferiGfx = true;
+        }
+#endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-trows")))
         {
             VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
@@ -581,14 +617,30 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             }
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-mfs")))
-       {
+        {
             VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMaxFrameSize))
             {
                 PrintHelp(strInput[0], MSDK_STRING("MaxFrameSize is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
-       }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BitrateLimit:on")))
+        {
+            pParams->BitrateLimit = MFX_CODINGOPTION_ON;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-BitrateLimit:off")))
+        {
+            pParams->BitrateLimit = MFX_CODINGOPTION_OFF;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qpfile")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+            MSDK_CHECK_ERROR(msdk_strlen(strInput[i+1]), 0, MFX_ERR_NOT_INITIALIZED);
+            pParams->QPFileMode = true;
+            pParams->strQPFilePath = strInput[++i];
+        }
+
 #if D3D_SURFACES_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")))
         {
@@ -766,13 +818,13 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-membuf")))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-perf_opt")))
         {
             VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
 
-            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMemBuf))
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nPerfOpt))
             {
-                PrintHelp(strInput[0], MSDK_STRING("membuf is invalid"));
+                PrintHelp(strInput[0], MSDK_STRING("perf_opt is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }
@@ -1017,10 +1069,17 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->nAdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
         }
-
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-qsv-ff")))
         {
             pParams->enableQSVFF=true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-lowpower:on")))
+        {
+            pParams->enableQSVFF=true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-lowpower:off")))
+        {
+            pParams->enableQSVFF=false;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-robust:soft")))
         {
@@ -1273,7 +1332,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     if (MFX_CODEC_MPEG2 != pParams->CodecId &&
         MFX_CODEC_AVC != pParams->CodecId &&
         MFX_CODEC_JPEG != pParams->CodecId &&
-        MFX_CODEC_HEVC != pParams->CodecId && 
+        MFX_CODEC_HEVC != pParams->CodecId &&
         MFX_CODEC_VP9 != pParams->CodecId)
     {
         PrintHelp(strInput[0], MSDK_STRING("Unknown codec"));
@@ -1391,19 +1450,20 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     //    return MFX_ERR_UNSUPPORTED;
     //}
 
-    if ((pParams->nMaxSliceSize) && (pParams->CodecId != MFX_CODEC_AVC))
+    if ((pParams->nMaxSliceSize) && (pParams->CodecId != MFX_CODEC_AVC) && (pParams->CodecId != MFX_CODEC_HEVC))
     {
-        PrintHelp(strInput[0], MSDK_STRING("MaxSliceSize option is supported only with H.264 encoder!"));
+        PrintHelp(strInput[0], MSDK_STRING("MaxSliceSize option is supported only with H.264 and H.265(HEVC) encoder!"));
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (pParams->nLADepth && (pParams->nLADepth < 10))
+    if ( (pParams->nRateControlMethod == MFX_RATECONTROL_LA ||
+        pParams->nRateControlMethod == MFX_RATECONTROL_LA_EXT ||
+        pParams->nRateControlMethod == MFX_RATECONTROL_LA_ICQ ||
+        pParams->nRateControlMethod == MFX_RATECONTROL_LA_HRD) &&
+        pParams->nLADepth > 100 )
     {
-        if ((pParams->nLADepth != 1) || (!pParams->nMaxSliceSize))
-        {
-            PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be >= 10, or 1 in case of -mss option!"));
-            return MFX_ERR_UNSUPPORTED;
-        }
+        PrintHelp(strInput[0], MSDK_STRING("Unsupported value of -lad parameter, must be in range [1,100] or 0 for automatic selection"));
+        return MFX_ERR_UNSUPPORTED;
     }
 
     if (pParams->nNumRefActiveP || pParams->nNumRefActiveBL0 || pParams->nNumRefActiveBL1)
@@ -1453,6 +1513,14 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     {
         msdk_printf(MSDK_STRING("File output is disabled as -o option isn't specified\n"));
     }
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    if (pParams->bPrefferdGfx && pParams->bPrefferiGfx)
+    {
+        msdk_printf(MSDK_STRING("Warning: both dGfx and iGfx flags set. iGfx will be preffered"));
+        pParams->bPrefferdGfx = false;
+    }
+#endif
 
     return MFX_ERR_NONE;
 }

@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2017-2018, Intel Corporation
+Copyright (c) 2017-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -200,10 +200,9 @@ T tune(const T& val, const T1& lower, const T1& default_val)
     return val;
 }
 
-#define STATIC_ASSERT(ASSERTION, MESSAGE) char MESSAGE[(ASSERTION) ? 1 : -1]; MESSAGE
 template<class T, class U> inline void Copy(T & dst, U const & src)
 {
-    STATIC_ASSERT(sizeof(T) == sizeof(U), copy_objects_of_different_size);
+    static_assert(sizeof(T) == sizeof(U), "copy objects of different size");
     MSDK_MEMCPY(&dst, &src, sizeof(dst));
 }
 
@@ -322,7 +321,7 @@ inline bool operator ==(HevcTask const & l, HevcTask const & r)
 // Version for compile-time alignment arguments
 template<mfxU32 alignment> inline mfxU32 align(mfxU32 val)
 {
-    STATIC_ASSERT((alignment != 0) && !(alignment & (alignment - 1)), is_power_of_2);
+    static_assert((alignment != 0) && !(alignment & (alignment - 1)), "is not power of 2");
     return (val + alignment - 1) & ~(alignment - 1);
 }
 

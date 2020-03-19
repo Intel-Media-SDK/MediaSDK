@@ -516,10 +516,14 @@ eMFXPlatform MFX_Utility::GetPlatform(VideoCORE * core, mfxVideoParam * par)
     case MFX_HW_CNL:
     case MFX_HW_ICL:
     case MFX_HW_ICL_LP:
+#if (MFX_VERSION >= 1031)	
+    case MFX_HW_JSL:
+    case MFX_HW_EHL:
+#endif
         name = sDXVA2_ModeH264_VLD_NoFGT;
         break;
     default:
-            name = sDXVA2_ModeH264_VLD_NoFGT;
+        name = sDXVA2_ModeH264_VLD_NoFGT;
         break;
     }
 
@@ -960,7 +964,7 @@ UMC::Status MFX_Utility::FillVideoParamMVCEx(UMC::TaskSupplier * supplier, ::mfx
     par->mfx.CodecLevel = (mfxU16)supplier->GetLevelIDC();
     mfxU16 maxDecPicBuffering = seqMVC->vui.bitstream_restriction_flag ? seqMVC->vui.max_dec_frame_buffering : 0;;
     if (par->mfx.MaxDecFrameBuffering && maxDecPicBuffering)
-        par->mfx.MaxDecFrameBuffering = MFX_MAX(maxDecPicBuffering, par->mfx.MaxDecFrameBuffering);
+        par->mfx.MaxDecFrameBuffering = std::max(maxDecPicBuffering, par->mfx.MaxDecFrameBuffering);
 
     if (!points)
         return UMC::UMC_OK;

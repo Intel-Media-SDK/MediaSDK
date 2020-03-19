@@ -153,6 +153,11 @@ mfxStatus D3D11FrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
                 && DXGI_FORMAT_Y210 != desc.Format
                 && DXGI_FORMAT_Y410 != desc.Format
 #endif
+#if (MFX_VERSION >= 1031)
+                && DXGI_FORMAT_P016 != desc.Format
+                && DXGI_FORMAT_Y216 != desc.Format
+                && DXGI_FORMAT_Y416 != desc.Format
+#endif
 )
             {
                 return MFX_ERR_LOCK_MEMORY;
@@ -186,6 +191,9 @@ mfxStatus D3D11FrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
     switch (desc.Format)
     {
         case DXGI_FORMAT_P010:
+#if (MFX_VERSION >= 1031)
+        case DXGI_FORMAT_P016:
+#endif
         case DXGI_FORMAT_NV12:
             ptr->Pitch = (mfxU16)lockedRect.RowPitch;
             ptr->Y = (mfxU8 *)lockedRect.pData;
@@ -257,6 +265,17 @@ mfxStatus D3D11FrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
             ptr->V16 = 0;
 
             break;
+#if (MFX_VERSION >= 1031)
+        case DXGI_FORMAT_Y416:
+            ptr->PitchHigh = (mfxU16)(lockedRect.RowPitch / (1 << 16));
+            ptr->PitchLow = (mfxU16)(lockedRect.RowPitch % (1 << 16));
+            ptr->U16 = (mfxU16*)lockedRect.pData;
+            ptr->Y16 = ptr->U16 + 1;
+            ptr->V16 = ptr->Y16 + 1;
+            ptr->A = (mfxU8 *)(ptr->V16 + 1);
+            break;
+        case DXGI_FORMAT_Y216:
+#endif
 #if (MFX_VERSION >= 1027)
         case DXGI_FORMAT_Y210:
             ptr->PitchHigh = (mfxU16)(lockedRect.RowPitch / (1 << 16));
@@ -374,6 +393,16 @@ mfxStatus D3D11FrameAllocator::ReleaseResponse(mfxFrameAllocResponse *response)
 
     return MFX_ERR_NONE;
 }
+
+mfxStatus D3D11FrameAllocator::ReallocImpl(mfxMemId /*mid*/, const mfxFrameInfo *info, mfxU16 /*memType*/, mfxMemId *midOut)
+{
+    if (!info || !midOut)
+      return MFX_ERR_NULL_PTR;
+
+    //TODO: Need add implementation in the future.
+    return MFX_ERR_UNSUPPORTED;
+}
+
 mfxStatus D3D11FrameAllocator::AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
     HRESULT hRes;
@@ -553,6 +582,15 @@ DXGI_FORMAT D3D11FrameAllocator::ConverColortFormat(mfxU32 fourcc)
         case MFX_FOURCC_Y410:
             return DXGI_FORMAT_Y410;
 #endif
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+            return DXGI_FORMAT_P016;
+        case MFX_FOURCC_Y216:
+            return DXGI_FORMAT_Y216;
+        case MFX_FOURCC_Y416:
+            return DXGI_FORMAT_Y416;
+#endif
+
         default:
             return DXGI_FORMAT_UNKNOWN;
     }

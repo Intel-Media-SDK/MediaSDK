@@ -26,7 +26,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <vector>
 #include <stdio.h>
 
-#pragma warning(disable:4100)
 
 class CTimeStatisticsReal
 {
@@ -184,7 +183,7 @@ public:
         return frequency;
     }
 
-    static mfxF64 ConvertToSeconds(msdk_tick elapsed)
+    static mfxF64 ConvertToSeconds(msdk_tick /*elapsed*/)
     {
         return 0;
     }
@@ -215,7 +214,7 @@ public:
 
     inline void TurnOffDumping() {}
 
-    inline void PrintStatistics(const msdk_char* prefix)
+    inline void PrintStatistics(const msdk_char* /*prefix*/)
     {
     }
 

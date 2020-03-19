@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 
 #include <vm_time.h>
 #include <vm_sys_info.h>
-
+#include <algorithm>
 
 
 mfxSchedulerCore::mfxSchedulerCore(void)
@@ -101,8 +101,6 @@ void mfxSchedulerCore::SetThreadsAffinityToSockets(void)
 
 void mfxSchedulerCore::Close(void)
 {
-    int priority;
-
     StopWakeUpThread();
 
     // stop threads
@@ -130,23 +128,15 @@ void mfxSchedulerCore::Close(void)
     }
 
     // run over the task lists and abort the existing tasks
-    for (priority = MFX_PRIORITY_HIGH;
-         priority >= MFX_PRIORITY_LOW;
-         priority -= 1)
-    {
-        int type;
-
-        for (type = MFX_TYPE_HARDWARE; type <= MFX_TYPE_SOFTWARE; type += 1)
+    ForEachTask(
+        [](MFX_SCHEDULER_TASK* task)
         {
-            MFX_SCHEDULER_TASK *pTask = m_pTasks[priority][type];
-            while (pTask) {
-                if (MFX_TASK_WORKING == pTask->curStatus) {
-                    pTask->CompleteTask(MFX_ERR_ABORTED);
-                }
-                pTask = pTask->pNext;
+            if (MFX_TASK_WORKING == task->curStatus)
+            {
+                task->CompleteTask(MFX_ERR_ABORTED);
             }
         }
-    }
+    );
 
     // delete task objects
     for (auto & it : m_ppTaskLookUpTable)
@@ -340,7 +330,7 @@ mfxStatus mfxSchedulerCore::GetOccupancyTableIndex(mfxU32 &idx,
     }
 
     // update the number of allocated objects
-    m_numOccupancies = UMC::get_max(m_numOccupancies, i + 1);
+    m_numOccupancies = std::max(mfxU32(m_numOccupancies), i + 1);
 
     // save the index to return
     idx = i;

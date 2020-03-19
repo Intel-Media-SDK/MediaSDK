@@ -58,8 +58,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "brc_routines.h"
 #endif
 
-#include "vpp_ext_buffers_storage.h"
-
 #define TIME_STATS 1 // Enable statistics processing
 #include "time_statistics.h"
 
@@ -82,7 +80,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 #ifdef ENABLE_MCTF
-const mfxU16  MAX_NUM_OF_ATTACHED_BUFFERS_FOR_IN_SUFACE = 2;
 const mfxU16  MCTF_MID_FILTER_STRENGTH = 10;
 const mfxF64  MCTF_LOSSLESS_BPP = 0.0;
 #endif
@@ -182,6 +179,14 @@ namespace TranscodingSample
         mfxPriority  priority;
         // common parameters
         mfxIMPL libType;  // Type of used mediaSDK library
+#if defined(LINUX32) || defined(LINUX64)
+        std::string strDevicePath;
+#endif
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+        //Adapter type
+        bool bPrefferiGfx;
+        bool bPrefferdGfx;
+#endif
         bool   bIsPerf;   // special performance mode. Use pre-allocated bitstreams, output
         mfxU16 nThreadsNum; // number of internal session threads number
         bool bRobustFlag;   // Robust transcoding mode. Allows auto-recovery after hardware errors
@@ -327,6 +332,8 @@ namespace TranscodingSample
         mfxU16 IntRefCycleDist;
 
         mfxU32 nMaxFrameSize;
+
+        mfxU16 BitrateLimit;
 
 #if (MFX_VERSION >= 1025)
         mfxU16 numMFEFrames;
@@ -646,6 +653,13 @@ namespace TranscodingSample
 
             return ss.str();
         }
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+        //Adapter type
+        void SetPrefferiGfx(bool prefferiGfx) { bPrefferiGfx = prefferiGfx; };
+        void SetPrefferdGfx(bool prefferdGfx) { bPrefferdGfx = prefferdGfx; };
+        bool IsPrefferiGfx() { return bPrefferiGfx; };
+        bool IsPrefferdGfx() { return bPrefferdGfx; };
+#endif
     protected:
         virtual mfxStatus CheckRequiredAPIVersion(mfxVersion& version, sInputParams *pParams);
 
@@ -664,9 +678,18 @@ namespace TranscodingSample
         virtual mfxStatus PreEncPreInit(sInputParams *pParams);
 
         mfxVideoParam GetDecodeParam();
-        mfxExtOpaqueSurfaceAlloc GetDecOpaqueAlloc() const { return m_pmfxVPP.get() ? m_VppOpaqueAlloc: m_DecOpaqueAlloc; };
 
-        mfxExtMVCSeqDesc GetDecMVCSeqDesc() const {return m_MVCSeqDesc;}
+        mfxExtOpaqueSurfaceAlloc GetDecOpaqueAlloc()
+        {
+            mfxExtOpaqueSurfaceAlloc* opaq = m_pmfxVPP ? m_mfxVppParams : m_mfxDecParams;
+            return opaq ? *opaq : mfxExtOpaqueSurfaceAlloc();
+        };
+
+        mfxExtMVCSeqDesc GetDecMVCSeqDesc()
+        {
+            mfxExtMVCSeqDesc* mvc = m_mfxDecParams;
+            return mvc ? *mvc : mfxExtMVCSeqDesc();
+        }
 
         static void ModifyParamsUsingPresets(sInputParams& params, mfxF64 fps, mfxU32 width, mfxU32 height);
 
@@ -778,83 +801,35 @@ namespace TranscodingSample
         typedef std::list<ExtendedBS*>       BSList;
         BSList  m_BSPool;
 
-        mfxInitParam                   m_initPar;
-        mfxExtThreadsParam             m_threadsPar;
+        mfxInitParamlWrap              m_initPar;
 
         volatile bool                  m_bForceStop;
 
         sPluginParams                  m_decoderPluginParams;
         sPluginParams                  m_encoderPluginParams;
 
-        mfxVideoParam                  m_mfxDecParams;
-        mfxVideoParam                  m_mfxEncParams;
-        mfxVideoParam                  m_mfxVppParams;
-        mfxVideoParam                  m_mfxPluginParams;
+        MfxVideoParamsWrapper          m_mfxDecParams;
+        MfxVideoParamsWrapper          m_mfxEncParams;
+        MfxVideoParamsWrapper          m_mfxVppParams;
+        MfxVideoParamsWrapper          m_mfxPluginParams;
         bool                           m_bIsVpp; // true if there's VPP in the pipeline
         bool                           m_bIsFieldWeaving;
         bool                           m_bIsFieldSplitting;
         bool                           m_bIsPlugin; //true if there's Plugin in the pipeline
         RotateParam                    m_RotateParam;
-        mfxVideoParam                  m_mfxPreEncParams;
+        MfxVideoParamsWrapper          m_mfxPreEncParams;
         mfxU32                         m_nTimeout;
         bool                           m_bUseOverlay;
 
         bool                           m_bROIasQPMAP;
         bool                           m_bExtMBQP;
         // various external buffers
-        // for disabling VPP algorithms
-        mfxExtVPPDoNotUse m_VppDoNotUse;
-        // for MVC decoder and encoder configuration
-        mfxExtMVCSeqDesc m_MVCSeqDesc;
         bool m_bOwnMVCSeqDescMemory; // true if the pipeline owns memory allocated for MVCSeqDesc structure fields
 
-        mfxExtVPPComposite       m_VppCompParams;
-#if MFX_VERSION >= 1022
-        mfxExtDecVideoProcessing m_decPostProcessing;
-#endif //MFX_VERSION >= 1022
-
-        mfxExtAvcTemporalLayers  m_AvcTemporalLayers;
-        mfxExtCodingOptionSPSPPS m_CodingOptionSPSPPS;
-        mfxExtCodingOption       m_CodingOption;
-
-        mfxExtLAControl          m_ExtLAControl;
-        // for setting MaxSliceSize
-        mfxExtCodingOption2      m_CodingOption2;
-
-        mfxExtCodingOption3      m_CodingOption3;
-
-        // HEVC
-        mfxExtHEVCParam          m_ExtHEVCParam;
-        mfxExtHEVCTiles          m_ExtHEVCTiles;
-#if (MFX_VERSION >= 1026)
-        // VP9
-        mfxExtVP9Param           m_ExtVP9Param;
-#endif
-
-#if (MFX_VERSION >= 1024)
-        mfxExtBRC                m_ExtBRC;
-#endif
-
-#if (MFX_VERSION >= 1025)
-        // MFE mode and number of frames
-        mfxExtMultiFrameParam    m_ExtMFEParam;
-        // here we pass general timeout per session.
-        mfxExtMultiFrameControl  m_ExtMFEControl;
-#endif
-
-        // for opaque memory
-        mfxExtOpaqueSurfaceAlloc m_EncOpaqueAlloc;
-        mfxExtOpaqueSurfaceAlloc m_VppOpaqueAlloc;
-        mfxExtOpaqueSurfaceAlloc m_DecOpaqueAlloc;
-        mfxExtOpaqueSurfaceAlloc m_PluginOpaqueAlloc;
-        mfxExtOpaqueSurfaceAlloc m_PreEncOpaqueAlloc;
-
-        // external parameters for each component are stored in a vector
-        CVPPExtBuffersStorage        m_VppExtParamsStorage;
-        std::vector<mfxExtBuffer*> m_EncExtParams;
-        std::vector<mfxExtBuffer*> m_DecExtParams;
-        std::vector<mfxExtBuffer*> m_PluginExtParams;
-        std::vector<mfxExtBuffer*> m_PreEncExtParams;
+        // to enable to-do list
+        // number of video enhancement filters (denoise, procamp, detail, video_analysis, multi_view, ste, istab, tcc, ace, svc)
+        constexpr static uint32_t ENH_FILTERS_COUNT = 20;
+        mfxU32                       m_tabDoUseAlg[ENH_FILTERS_COUNT];
 
         mfxU32         m_nID;
         mfxU16         m_AsyncDepth;
@@ -934,6 +909,11 @@ namespace TranscodingSample
 
 #ifdef  ENABLE_MCTF
         sMctfRunTimeParams   m_MctfRTParams;
+#endif
+#if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
+        //Adapter type
+        bool bPrefferiGfx;
+        bool bPrefferdGfx;
 #endif
     private:
         DISALLOW_COPY_AND_ASSIGN(CTranscodingPipeline);

@@ -42,12 +42,9 @@ FEI_EncodeInterface::FEI_EncodeInterface(MFXVideoSession* session, mfxU32 allocI
     , m_pRepackStat_out(NULL)
 #endif
 {
-    MSDK_ZERO_MEMORY(m_videoParams);
     MSDK_ZERO_MEMORY(m_encodeControl);
     m_encodeControl.FrameType = MFX_FRAMETYPE_UNKNOWN;
     m_encodeControl.QP = m_pAppConfig->QP;
-
-    m_InitExtParams.reserve(5);
 
     /* Default values for I-frames */
     memset(&m_tmpMBencMV, 0x8000, sizeof(mfxExtFeiEncMV::mfxExtFeiEncMVMB));
@@ -57,59 +54,9 @@ FEI_EncodeInterface::~FEI_EncodeInterface()
 {
     MSDK_SAFE_DELETE(m_pmfxENCODE);
 
-    mfxExtFeiSliceHeader* pSlices = NULL;
-
-    for (mfxU32 i = 0; i < m_InitExtParams.size(); ++i)
-    {
-        switch (m_InitExtParams[i]->BufferId)
-        {
-        case MFX_EXTBUFF_FEI_PARAM:
-        {
-            mfxExtFeiParam* ptr = reinterpret_cast<mfxExtFeiParam*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-        }
-        break;
-
-        case MFX_EXTBUFF_CODING_OPTION2:
-        {
-            mfxExtCodingOption2* ptr = reinterpret_cast<mfxExtCodingOption2*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-        }
-        break;
-
-        case MFX_EXTBUFF_CODING_OPTION3:
-        {
-            mfxExtCodingOption3* ptr = reinterpret_cast<mfxExtCodingOption3*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-        }
-        break;
-
-        case MFX_EXTBUFF_FEI_SLICE:
-        {
-            mfxExtFeiSliceHeader* ptr = reinterpret_cast<mfxExtFeiSliceHeader*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE_ARRAY(ptr->Slice);
-            if (!pSlices) { pSlices = ptr; }
-        }
-        break;
-#if (MFX_VERSION >= 1025)
-        case MFX_EXTBUFF_MULTI_FRAME_PARAM:
-        {
-            mfxExtMultiFrameParam* ptr = reinterpret_cast<mfxExtMultiFrameParam*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-        }
-        break;
-
-        case MFX_EXTBUFF_MULTI_FRAME_CONTROL:
-        {
-            mfxExtMultiFrameControl* ptr = reinterpret_cast<mfxExtMultiFrameControl*>(m_InitExtParams[i]);
-            MSDK_SAFE_DELETE(ptr);
-        }
-        break;
-#endif
-        }
-    }
-    MSDK_SAFE_DELETE_ARRAY(pSlices);
-    m_InitExtParams.clear();
+    auto feiSliceHeader = m_videoParams.GetExtBuffer<mfxExtFeiSliceHeader>();
+    if(feiSliceHeader)
+        MSDK_SAFE_DELETE_ARRAY(feiSliceHeader->Slice);
 
     SAFE_FCLOSE(m_pMvPred_in);
     SAFE_FCLOSE(m_pENC_MBCtrl_in);
@@ -123,7 +70,7 @@ FEI_EncodeInterface::~FEI_EncodeInterface()
     SAFE_FCLOSE(m_pRepackStat_out);
 #endif
 
-    m_pAppConfig->PipelineCfg.pEncodeVideoParam = NULL;
+    m_pAppConfig->PipelineCfg.pEncodeVideoParam = nullptr;
 }
 
 void FEI_EncodeInterface::GetRefInfo(
@@ -139,37 +86,22 @@ void FEI_EncodeInterface::GetRefInfo(
     mfxU16 & bRefType,
     bool   & bSigleFieldProcessing)
 {
-    for (mfxU32 i = 0; i < m_InitExtParams.size(); ++i)
+    auto co2 = m_videoParams.GetExtBuffer<mfxExtCodingOption2>();
+    if (co2)
+        bRefType = co2->BRefType;
+
+    auto co3 = m_videoParams.GetExtBuffer<mfxExtCodingOption3>();
+    if (co3)
     {
-        switch (m_InitExtParams[i]->BufferId)
-        {
-            case MFX_EXTBUFF_CODING_OPTION2:
-            {
-                mfxExtCodingOption2* ptr = reinterpret_cast<mfxExtCodingOption2*>(m_InitExtParams[i]);
-                bRefType = ptr->BRefType;
-            }
-            break;
-
-            case MFX_EXTBUFF_CODING_OPTION3:
-            {
-                mfxExtCodingOption3* ptr = reinterpret_cast<mfxExtCodingOption3*>(m_InitExtParams[i]);
-                numRefActiveP   = ptr->NumRefActiveP[0];
-                numRefActiveBL0 = ptr->NumRefActiveBL0[0];
-                numRefActiveBL1 = ptr->NumRefActiveBL1[0];
-            }
-            break;
-
-            case MFX_EXTBUFF_FEI_PARAM:
-            {
-                mfxExtFeiParam* ptr = reinterpret_cast<mfxExtFeiParam*>(m_InitExtParams[i]);
-                m_bSingleFieldMode = bSigleFieldProcessing = ptr->SingleFieldProcessing == MFX_CODINGOPTION_ON;
-            }
-            break;
-
-            default:
-                break;
-        }
+        numRefActiveP   = co3->NumRefActiveP[0];
+        numRefActiveBL0 = co3->NumRefActiveBL0[0];
+        numRefActiveBL1 = co3->NumRefActiveBL1[0];
     }
+
+    auto feiParam = m_videoParams.GetExtBuffer<mfxExtFeiParam>();
+    if (feiParam)
+        m_bSingleFieldMode = bSigleFieldProcessing = feiParam->SingleFieldProcessing == MFX_CODINGOPTION_ON;
+
 
     picStruct   = m_videoParams.mfx.FrameInfo.PicStruct;
     refDist     = m_videoParams.mfx.GopRefDist;
@@ -253,68 +185,51 @@ mfxStatus FEI_EncodeInterface::FillParameters()
     m_videoParams.mfx.NumSlice    = (std::max)(m_pAppConfig->numSlices, mfxU16(1));
 
     // configure trellis, B-pyramid, RAW-reference settings
-    mfxExtCodingOption2* pCodingOption2 = new mfxExtCodingOption2;
-    MSDK_ZERO_MEMORY(*pCodingOption2);
-    pCodingOption2->Header.BufferId = MFX_EXTBUFF_CODING_OPTION2;
-    pCodingOption2->Header.BufferSz = sizeof(mfxExtCodingOption2);
-    pCodingOption2->UseRawRef = mfxU16(m_pAppConfig->bRawRef ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
-    pCodingOption2->BRefType  = m_pAppConfig->bRefType;
-    pCodingOption2->Trellis   = m_pAppConfig->Trellis;
-    m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pCodingOption2));
+    auto co2 = m_videoParams.AddExtBuffer<mfxExtCodingOption2>();
+
+    co2->UseRawRef = mfxU16(m_pAppConfig->bRawRef ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
+    co2->BRefType  = m_pAppConfig->bRefType;
+    co2->Trellis   = m_pAppConfig->Trellis;
 
     // configure P/B reference number, explicit weighted prediction
-    mfxExtCodingOption3* pCodingOption3 = new mfxExtCodingOption3;
-    MSDK_ZERO_MEMORY(*pCodingOption3);
-    pCodingOption3->Header.BufferId = MFX_EXTBUFF_CODING_OPTION3;
-    pCodingOption3->Header.BufferSz = sizeof(mfxExtCodingOption3);
-    pCodingOption3->NumRefActiveP[0]   = m_pAppConfig->NumRefActiveP;
-    pCodingOption3->NumRefActiveBL0[0] = m_pAppConfig->NumRefActiveBL0;
-    pCodingOption3->NumRefActiveBL1[0] = m_pAppConfig->NumRefActiveBL1;
+    auto co3 = m_videoParams.AddExtBuffer<mfxExtCodingOption3>();
+
+    co3->NumRefActiveP[0]   = m_pAppConfig->NumRefActiveP;
+    co3->NumRefActiveBL0[0] = m_pAppConfig->NumRefActiveBL0;
+    co3->NumRefActiveBL1[0] = m_pAppConfig->NumRefActiveBL1;
     // weight table file is provided, so explicit weight prediction is enabled.
-    pCodingOption3->WeightedPred       = m_pAppConfig->weightsFile ? MFX_WEIGHTED_PRED_EXPLICIT : MFX_WEIGHTED_PRED_UNKNOWN;
-    pCodingOption3->WeightedBiPred     = m_pAppConfig->weightsFile ? MFX_WEIGHTED_PRED_EXPLICIT : MFX_WEIGHTED_PRED_UNKNOWN;
-    pCodingOption3->WeightedBiPred     = m_pAppConfig->bImplicitWPB ? MFX_WEIGHTED_PRED_IMPLICIT : pCodingOption3->WeightedBiPred;
-
-    /* values stored in m_CodingOption3 required to fill encoding task for PREENC/ENC/PAK*/
-    m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pCodingOption3));
-
+    co3->WeightedPred       = m_pAppConfig->weightsFile ? MFX_WEIGHTED_PRED_EXPLICIT : MFX_WEIGHTED_PRED_UNKNOWN;
+    co3->WeightedBiPred     = m_pAppConfig->weightsFile ? MFX_WEIGHTED_PRED_EXPLICIT : MFX_WEIGHTED_PRED_UNKNOWN;
+    co3->WeightedBiPred     = m_pAppConfig->bImplicitWPB ? MFX_WEIGHTED_PRED_IMPLICIT : co3->WeightedBiPred;
 
     /* Create extension buffer to Init FEI ENCODE */
-    mfxExtFeiParam* pExtBufInit = new mfxExtFeiParam;
-    MSDK_ZERO_MEMORY(*pExtBufInit);
+    auto feiParam = m_videoParams.AddExtBuffer<mfxExtFeiParam>();
 
-    pExtBufInit->Header.BufferId = MFX_EXTBUFF_FEI_PARAM;
-    pExtBufInit->Header.BufferSz = sizeof(mfxExtFeiParam);
-    pExtBufInit->Func = MFX_FEI_FUNCTION_ENCODE;
+    feiParam->Func = MFX_FEI_FUNCTION_ENCODE;
 
-    pExtBufInit->SingleFieldProcessing = mfxU16(m_bSingleFieldMode ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
-    m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pExtBufInit));
+    feiParam->SingleFieldProcessing = mfxU16(m_bSingleFieldMode ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_OFF);
 
     /* Create extension buffer to init deblocking parameters */
     if (m_pAppConfig->DisableDeblockingIdc || m_pAppConfig->SliceAlphaC0OffsetDiv2 || m_pAppConfig->SliceBetaOffsetDiv2)
     {
         mfxU16 numFields = (m_videoParams.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) ? 1 : 2;
 
-        mfxExtFeiSliceHeader* pSliceHeader = new mfxExtFeiSliceHeader[numFields];
-        MSDK_ZERO_ARRAY(pSliceHeader, numFields);
-
+        m_videoParams.AddExtBuffer<mfxExtFeiSliceHeader>();
         for (mfxU16 fieldId = 0; fieldId < numFields; ++fieldId)
         {
-            pSliceHeader[fieldId].Header.BufferId = MFX_EXTBUFF_FEI_SLICE;
-            pSliceHeader[fieldId].Header.BufferSz = sizeof(mfxExtFeiSliceHeader);
+            auto sliceHeader = m_videoParams.GetExtBuffer<mfxExtFeiSliceHeader>(fieldId);
+            MSDK_CHECK_POINTER(sliceHeader, MFX_ERR_NULL_PTR);
 
-            pSliceHeader[fieldId].NumSlice = m_videoParams.mfx.NumSlice;
+            sliceHeader->NumSlice = m_videoParams.mfx.NumSlice;
+            sliceHeader->Slice = new mfxExtFeiSliceHeader::mfxSlice[sliceHeader->NumSlice];
+            MSDK_ZERO_ARRAY(sliceHeader->Slice, sliceHeader->NumSlice);
 
-            pSliceHeader[fieldId].Slice = new mfxExtFeiSliceHeader::mfxSlice[pSliceHeader[fieldId].NumSlice];
-            MSDK_ZERO_ARRAY(pSliceHeader[fieldId].Slice, pSliceHeader[fieldId].NumSlice);
-
-            for (mfxU16 sliceNum = 0; sliceNum < pSliceHeader[fieldId].NumSlice; ++sliceNum)
+            for (mfxU16 sliceNum = 0; sliceNum < sliceHeader->NumSlice; ++sliceNum)
             {
-                pSliceHeader[fieldId].Slice[sliceNum].DisableDeblockingFilterIdc = m_pAppConfig->DisableDeblockingIdc;
-                pSliceHeader[fieldId].Slice[sliceNum].SliceAlphaC0OffsetDiv2     = m_pAppConfig->SliceAlphaC0OffsetDiv2;
-                pSliceHeader[fieldId].Slice[sliceNum].SliceBetaOffsetDiv2        = m_pAppConfig->SliceBetaOffsetDiv2;
+                sliceHeader->Slice[sliceNum].DisableDeblockingFilterIdc = m_pAppConfig->DisableDeblockingIdc;
+                sliceHeader->Slice[sliceNum].SliceAlphaC0OffsetDiv2     = m_pAppConfig->SliceAlphaC0OffsetDiv2;
+                sliceHeader->Slice[sliceNum].SliceBetaOffsetDiv2        = m_pAppConfig->SliceBetaOffsetDiv2;
             }
-            m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(&pSliceHeader[fieldId]));
         }
     }
 #if (MFX_VERSION >= 1025)
@@ -323,22 +238,14 @@ mfxStatus FEI_EncodeInterface::FillParameters()
         // configure multiframe mode and number of frames
         // either of mfeMode and numMfeFrames must be set
         // if one of them not set - zero is passed to Media SDK and used internal default value
-        mfxExtMultiFrameParam* pMfeParam = new mfxExtMultiFrameParam;
-        MSDK_ZERO_MEMORY(*pMfeParam);
-        pMfeParam->Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_PARAM;
-        pMfeParam->Header.BufferSz = sizeof(mfxExtMultiFrameParam);
-        pMfeParam->MFMode = m_pAppConfig->mfeMode;
-        pMfeParam->MaxNumFrames  = m_pAppConfig->numMfeFrames;
-        m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pMfeParam));
+        auto mfeParam = m_videoParams.AddExtBuffer<mfxExtMultiFrameParam>();
+        mfeParam->MFMode = m_pAppConfig->mfeMode;
+        mfeParam->MaxNumFrames  = m_pAppConfig->numMfeFrames;
         if(m_pAppConfig->mfeTimeout != 0)
         {
             //set default timeout per session if passed from commandline
-            mfxExtMultiFrameControl* pMfeControl = new mfxExtMultiFrameControl;
-            MSDK_ZERO_MEMORY(*pMfeControl);
-            pMfeControl->Header.BufferId = MFX_EXTBUFF_MULTI_FRAME_CONTROL;
-            pMfeControl->Header.BufferSz = sizeof(mfxExtMultiFrameControl);
-            pMfeControl->Timeout = m_pAppConfig->mfeTimeout;
-            m_InitExtParams.push_back(reinterpret_cast<mfxExtBuffer *>(pMfeControl));
+            auto mfeControl = m_videoParams.AddExtBuffer<mfxExtMultiFrameControl>();
+            mfeControl->Timeout = m_pAppConfig->mfeTimeout;
         }
     }
     else if (m_pAppConfig->mfeTimeout != 0 && m_pAppConfig->mfeMode == 0 && m_pAppConfig->numMfeFrames == 0)
@@ -346,11 +253,6 @@ mfxStatus FEI_EncodeInterface::FillParameters()
         printf("WARNING: MFE not enabled, to enable MFE specify mfe_mode and/or mfe_frames\n");
     }
 #endif
-    if (!m_InitExtParams.empty())
-    {
-        m_videoParams.ExtParam    = m_InitExtParams.data();
-        m_videoParams.NumExtParam = (mfxU16)m_InitExtParams.size();
-    }
 
     /* Init file pointers if some input buffers are specified */
 
@@ -666,8 +568,7 @@ mfxStatus FEI_EncodeInterface::InitFrameParams(iTask* eTask)
 
 mfxStatus FEI_EncodeInterface::AllocateSufficientBuffer()
 {
-    mfxVideoParam par;
-    MSDK_ZERO_MEMORY(par);
+    MfxVideoParamsWrapper par;
 
     // find out the required buffer size
     mfxStatus sts = m_pmfxENCODE->GetVideoParam(&par);

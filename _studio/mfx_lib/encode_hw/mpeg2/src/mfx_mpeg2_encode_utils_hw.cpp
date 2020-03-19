@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -46,9 +46,11 @@ namespace MPEG2EncoderHW
     {
         ENCODE_CAPS hwCaps {};
 
-        mfxStatus sts = MfxHwMpeg2Encode::QueryHwCaps(core, hwCaps);
-        if (sts != MFX_ERR_NONE)
-            return MFX_WRN_PARTIAL_ACCELERATION;
+        mfxU16 codecProfile = MFX_PROFILE_MPEG2_MAIN;
+        if (par->mfx.CodecProfile != MFX_PROFILE_UNKNOWN)
+            codecProfile = par->mfx.CodecProfile;
+        mfxStatus sts = MfxHwMpeg2Encode::QueryHwCaps(core, hwCaps, codecProfile);
+        MFX_CHECK_STS(sts);
 
         if (par->mfx.FrameInfo.Width  > hwCaps.MaxPicWidth ||
             par->mfx.FrameInfo.Height > hwCaps.MaxPicHeight)
@@ -90,8 +92,6 @@ namespace MPEG2EncoderHW
     }
     mfxStatus ApplyTargetUsage (mfxVideoParamEx_MPEG2* par)
     {
-        static mfxU16 ranges [8] = {64,64,64,64,64,64,64,64};
-
         if (par->mfxVideoParams.mfx.CodecProfile == MFX_PROFILE_MPEG2_SIMPLE)
         {
             par->mfxVideoParams.mfx.GopRefDist = 1;
@@ -1675,8 +1675,9 @@ namespace MPEG2EncoderHW
             {
                 return MFX_ERR_UNDEFINED_BEHAVIOR;
             }
-            bWarning = bWarning || (!m_InputSurfaces.CheckInputFrame(&surface->Info));
 
+            MFX_CHECK(surface->Info.Width >= m_VideoParamsEx.mfxVideoParams.mfx.FrameInfo.Width, MFX_ERR_INVALID_VIDEO_PARAM);
+            MFX_CHECK(surface->Info.Height >= m_VideoParamsEx.mfxVideoParams.mfx.FrameInfo.Height, MFX_ERR_INVALID_VIDEO_PARAM);
             MFX_CHECK(surface->Info.FourCC == MFX_FOURCC_NV12, MFX_ERR_UNDEFINED_BEHAVIOR);
 
             if (surface->Data.Y)
@@ -1884,7 +1885,7 @@ namespace MPEG2EncoderHW
             sts = ConvertVideoParam_Brc(par, &brcParams);
             MFX_CHECK_STS(sts);
             if (brcParams.HRDBufferSizeBytes == 0)
-                brcParams.HRDBufferSizeBytes = MFX_MIN(65535000, brcParams.targetBitrate / 4); // limit buffer size with 2 seconds
+                brcParams.HRDBufferSizeBytes = std::min(65535000, brcParams.targetBitrate / 4); // limit buffer size with 2 seconds
             if (brcParams.maxBitrate == 0)
                 brcParams.maxBitrate = brcParams.targetBitrate;
 
@@ -1923,13 +1924,11 @@ namespace MPEG2EncoderHW
             m_bufferSizeInKB = (mfxU32)(brcParams.HRDBufferSizeBytes / 1000);
             m_InputBitsPerFrame = (mfxI32)(brcParams.targetBitrate / brcParams.info.framerate);
 
-            mfxU32 maxVal32 = MFX_MAX(
-                MFX_MAX(
-                (mfxU32)brcParams.HRDInitialDelayBytes / 1000,
-                (mfxU32)brcParams.HRDBufferSizeBytes / 1000),
-                MFX_MAX(
-                (mfxU32)brcParams.targetBitrate / 1000,
-                (mfxU32)brcParams.maxBitrate / 1000));
+            mfxU32 maxVal32 = std::max<mfxU32>({
+                mfxU32(brcParams.HRDInitialDelayBytes / 1000),
+                mfxU32(brcParams.HRDBufferSizeBytes   / 1000),
+                mfxU32(brcParams.targetBitrate        / 1000),
+                mfxU32(brcParams.maxBitrate           / 1000)});
 
             par->mfx.BRCParamMultiplier = (mfxU16)((maxVal32 + 0x10000) / 0x10000);
             par->mfx.BufferSizeInKB     = (mfxU16)(m_bufferSizeInKB                      / par->mfx.BRCParamMultiplier);

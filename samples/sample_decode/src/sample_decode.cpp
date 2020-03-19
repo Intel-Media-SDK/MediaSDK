@@ -63,6 +63,16 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
 #if (MFX_VERSION >= 1025)
     msdk_printf(MSDK_STRING("   [-d]                      - enable decode error report\n"));
 #endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    msdk_printf(MSDK_STRING("   [-dGfx]                   - preffer processing on dGfx (by default system decides)\n"));
+    msdk_printf(MSDK_STRING("   [-iGfx]                   - preffer processing on iGfx (by default system decides)\n"));
+#endif
+#if defined(LINUX32) || defined(LINUX64)
+    msdk_printf(MSDK_STRING("   [-device /path/to/device] - set graphics device for processing\n"));
+    msdk_printf(MSDK_STRING("                                 For example: '-device /dev/dri/card0'\n"));
+    msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
+    msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("JPEG Chroma Type:\n"));
     msdk_printf(MSDK_STRING("   [-jpeg_rgb] - RGB Chroma Type\n"));
@@ -89,7 +99,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("       t(0/1)                - enable/disable window's title\n"));
     msdk_printf(MSDK_STRING("       tmo                   - timeout for -wall option\n"));
     msdk_printf(MSDK_STRING("\n"));
-
 #endif
 #if defined(LIBVA_SUPPORT)
     msdk_printf(MSDK_STRING("   [-vaapi]                  - work with vaapi surfaces\n"));
@@ -416,6 +425,32 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->bSoftRobustFlag = true;
         }
+#if (defined(LINUX32) || defined(LINUX64))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-device")))
+        {
+            if (!pParams->strDevicePath.empty())
+            {
+                msdk_printf(MSDK_STRING("error: you can specify only one device\n"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if(i + 1 >= nArgNum)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -device key"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            pParams->strDevicePath = strInput[++i];
+        }
+#endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dGfx")))
+        {
+            pParams->bPrefferdGfx = true;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-iGfx")))
+        {
+            pParams->bPrefferiGfx = true;
+        }
+#endif
 #if !defined(_WIN32) && !defined(_WIN64)
 #if (MFX_VERSION >= 1025)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d")))
@@ -671,6 +706,14 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     {
         pParams->nAsyncDepth = 4; //set by default;
     }
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    if (pParams->bPrefferdGfx && pParams->bPrefferiGfx)
+    {
+        msdk_printf(MSDK_STRING("Warning: both dGfx and iGfx flags set. iGfx will be preffered"));
+        pParams->bPrefferdGfx = false;
+    }
+#endif
 
     return MFX_ERR_NONE;
 }

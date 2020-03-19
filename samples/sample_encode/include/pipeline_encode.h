@@ -52,6 +52,10 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "brc_routines.h"
 #endif
 
+#if defined(_WIN64) || defined(_WIN32)
+#include "mfxadapter.h"
+#endif
+
 #ifndef MFX_VERSION
 #error MFX_VERSION not defined
 #endif
@@ -106,8 +110,17 @@ struct sInputParams
     mfxU16 nEncTileRows; // number of rows for encoding tiling
     mfxU16 nEncTileCols; // number of columns for encoding tiling
 
+    msdk_string strQPFilePath;
+
     MemType memType;
     bool bUseHWLib; // true if application wants to use HW MSDK library
+#if defined(LINUX32) || defined(LINUX64)
+    std::string strDevicePath;
+#endif
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    bool bPrefferdGfx;
+    bool bPrefferiGfx;
+#endif
 
     std::list<msdk_string> InputFiles;
 
@@ -151,8 +164,10 @@ struct sInputParams
 
     bool bSoftRobustFlag;
 
+    bool QPFileMode;
+
     mfxU32 nTimeout;
-    mfxU16 nMemBuf;
+    mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
 
     mfxU16 nNumSlice;
     bool UseRegionEncode;
@@ -168,6 +183,8 @@ struct sInputParams
     mfxU16 AdaptiveI;
     mfxU16 AdaptiveB;
     mfxU32 nMaxFrameSize;
+
+    mfxU16 BitrateLimit;
 
     mfxU16 WinBRCSize;
     mfxU16 WinBRCMaxAvgKbps;
@@ -215,94 +232,13 @@ struct sInputParams
 
 };
 
-struct bufSet
-{
-    mfxU16 m_nFields;
-    std::vector<mfxExtBuffer *> buffers;
-
-    bufSet(mfxU16 n_fields = 1)
-    : m_nFields(n_fields)
-    {}
-
-    ~bufSet() { Destroy();}
-
-    void Destroy()
-    {
-        for (mfxU16 i = 0; i < buffers.size(); /*i++*/)
-        {
-            switch (buffers[i]->BufferId)
-            {
-#if (MFX_VERSION >= 1027)
-                case MFX_EXTBUFF_AVC_ROUNDING_OFFSET:
-                {
-                    mfxExtAVCRoundingOffset* roundingOffset = reinterpret_cast<mfxExtAVCRoundingOffset*>(buffers[i]);
-                    MSDK_SAFE_DELETE_ARRAY(roundingOffset);
-                    i += m_nFields;
-                }
-                break;
-#endif
-                default:
-                    ++i;
-                    break;
-            }
-        }
-
-        buffers.clear();
-    }
-};
-
-struct bufList
-{
-    std::vector<std::unique_ptr<bufSet>> buf_list;
-    mfxU16 m_nBufListStart;
-
-    bufList()
-    : m_nBufListStart(0)
-    {}
-
-    ~bufList() { Clear(); }
-
-    void AddSet(std::unique_ptr<bufSet> && set) { buf_list.push_back(std::move(set)); }
-
-    bool Empty() { return buf_list.empty(); }
-
-    void Clear()
-    {
-        for (std::vector<std::unique_ptr<bufSet>>::iterator it = buf_list.begin(); it != buf_list.end(); ++it)
-        {
-            if (*it)
-            {
-                (*it)->Destroy();
-            }
-        }
-
-        buf_list.clear();
-    }
-
-    bufSet* GetFreeSet()
-    {
-        bufSet *pBufSet = NULL;
-        if (m_nBufListStart < buf_list.size())
-        {
-            pBufSet = (buf_list[m_nBufListStart]).get();
-
-            m_nBufListStart += 1;
-            m_nBufListStart = m_nBufListStart % (buf_list.size());
-
-            return pBufSet;
-        }
-
-        return NULL;
-    }
-};
-
 struct sTask
 {
     mfxBitstreamWrapper mfxBS;
+    mfxEncodeCtrlWrap encCtrl;
     mfxSyncPoint EncSyncP;
     std::list<mfxSyncPoint> DependentVppTasks;
     CSmplBitstreamWriter *pWriter;
-    bufSet* extBufs;
 
     sTask();
     mfxStatus WriteBitstream();
@@ -360,9 +296,9 @@ public:
     mfxStatus CaptureStartV4L2Pipeline();
     void CaptureStopV4L2Pipeline();
 
-    void InsertIDR(bool bIsNextFrameIDR);
+    static void InsertIDR(mfxEncodeCtrl & ctrl, bool forceIDR);
 
-    virtual mfxStatus AllocExtBuffers(sInputParams *pInParams);
+    virtual mfxStatus OpenRoundingOffsetFile(sInputParams *pInParams);
     mfxStatus InitEncFrameParams(sTask* pTask);
 
 #if defined (ENABLE_V4L2_SUPPORT)
@@ -373,14 +309,15 @@ public:
 protected:
     std::pair<CSmplBitstreamWriter *,CSmplBitstreamWriter *> m_FileWriters;
     CSmplYUVReader m_FileReader;
-    CEncTaskPool m_TaskPool;
+    CEncTaskPool   m_TaskPool;
+    QPFile::Reader m_QPFileReader;
 
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
     MFXVideoVPP* m_pmfxVPP;
 
-    mfxVideoParam m_mfxEncParams;
-    mfxVideoParam m_mfxVppParams;
+    MfxVideoParamsWrapper m_mfxEncParams;
+    MfxVideoParamsWrapper m_mfxVppParams;
 
     mfxU16 m_MVCflags; // MVC codec is in use
 
@@ -392,7 +329,7 @@ protected:
     MFXFrameAllocator* m_pMFXAllocator;
     mfxAllocatorParams* m_pmfxAllocatorParams;
     MemType m_memType;
-    mfxU16 m_nMemBuffer;
+    mfxU16 m_nPerfOpt; // size of pre-load buffer which used for loop encode
     bool m_bExternalAlloc; // use memory allocator as external for Media SDK
 
     mfxFrameSurface1* m_pEncSurfaces; // frames array for encoder input (vpp output)
@@ -400,42 +337,22 @@ protected:
     mfxFrameAllocResponse m_EncResponse;  // memory allocation response for encoder
     mfxFrameAllocResponse m_VppResponse;  // memory allocation response for vpp
 
+    std::vector<mfxEncodeCtrlWrap> m_EncCtrls; // controls array for encoder input
+
     mfxU32 m_nNumView;
     mfxU32 m_nFramesToProcess; // number of frames to process
 
-    // for disabling VPP algorithms
-    mfxExtVPPDoNotUse m_VppDoNotUse;
-    // for MVC encoder and VPP configuration
-    mfxExtMVCSeqDesc m_MVCSeqDesc;
-    mfxExtCodingOption m_CodingOption;
-    // for look ahead BRC configuration
-    mfxExtCodingOption2 m_CodingOption2;
-    // HEVC
-    mfxExtHEVCParam m_ExtHEVCParam;
-    mfxExtHEVCTiles m_ExtHEVCTiles;
-    mfxExtCodingOption3 m_CodingOption3;
-    // VP9
-    mfxExtVP9Param m_ExtVP9Param;
-
-    // Set up video signal information
-    mfxExtVideoSignalInfo m_VideoSignalInfo;
-    mfxExtAvcTemporalLayers m_AvcTemporalLayers;
-    mfxExtCodingOptionSPSPPS m_CodingOptionSPSPPS;
-
-#if (MFX_VERSION >= 1024)
-    mfxExtBRC           m_ExtBRC;
+#if defined(LINUX32) || defined(LINUX64)
+    std::string m_strDevicePath; //path to device for processing
 #endif
-
-    // external parameters for each component are stored in a vector
-    std::vector<mfxExtBuffer*> m_VppExtParams;
-    std::vector<mfxExtBuffer*> m_EncExtParams;
 
     std::vector<mfxPayload*> m_UserDataUnregSEI;
 
     CHWDevice *m_hwdev;
 
+    bool m_bQPFileMode;
+
     bool isV4L2InputEnabled;
-    bufList m_encExtBufs;
 #if (MFX_VERSION >= 1027)
     FILE* m_round_in;
 #endif
@@ -452,10 +369,13 @@ protected:
     bool   m_bIsFieldSplitting;
     bool   m_bSingleTexture;
 
-    mfxEncodeCtrl m_encCtrl;
-
     CTimeStatisticsReal m_statOverall;
     CTimeStatisticsReal m_statFile;
+
+#if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
+    mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);
+#endif
+    mfxStatus GetImpl(const sInputParams & params, mfxIMPL & impl);
     virtual mfxStatus InitMfxEncParams(sInputParams *pParams);
     virtual mfxStatus InitMfxVppParams(sInputParams *pParams);
 
@@ -463,11 +383,11 @@ protected:
     virtual void FreeFileWriters();
     virtual mfxStatus InitFileWriter(CSmplBitstreamWriter **ppWriter, const msdk_char *filename);
 
-    virtual mfxStatus AllocAndInitVppDoNotUse();
-    virtual void FreeVppDoNotUse();
+    virtual mfxStatus InitVppFilters();
+    virtual void FreeVppFilters();
 
-    virtual mfxStatus AllocAndInitMVCSeqDesc();
-    virtual void FreeMVCSeqDesc();
+    virtual mfxStatus AllocateExtMVCBuffers();
+    virtual void DeallocateExtMVCBuffers();
 
     virtual mfxStatus CreateAllocator();
     virtual void DeleteAllocator();
@@ -481,6 +401,7 @@ protected:
     virtual mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper& bs);
     virtual mfxStatus FillBuffers();
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurf);
+    virtual void LoadNextControl(mfxEncodeCtrlWrap*& pCtrl, mfxU32 encSurfIdx);
 
     virtual mfxStatus GetFreeTask(sTask **ppTask);
     virtual MFXVideoSession& GetFirstSession(){return m_mfxSession;}

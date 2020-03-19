@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -550,7 +550,9 @@ void SDParser::parseCU(CU& cu)
     auto& sps = *m_cSlice->sps;
     auto& pps = *m_cSlice->pps;
     auto& slice = *m_cSlice;
+#ifdef __BS_TRACE__
     const Bs16u dim[] = { 1, 2, 2 };
+#endif
     const Bs32u traceAddr = TRACE_PRED|TRACE_CU|TRACE_QP;
 
     TLStart(traceAddr);
@@ -1004,7 +1006,9 @@ void SDParser::parseCU(CU& cu)
 void SDParser::parsePU(CU& cu, PU& pu, Bs16u CtDepth, Bs16u partIdx)
 {
     TLAuto tl(*this, TRACE_PU);
+#ifdef __BS_TRACE__
     const Bs16u dim[] = { 1, 2, 2 };
+#endif
     auto& slice = *m_cSlice;
     Bs32s MvdLX[2][2] = {};
     auto mvd_coding = [&] (Bs16u refList)
@@ -2016,7 +2020,9 @@ void SDParser::parsePC(CU& cu)
     TLStart(TRACE_COEF);
     if (Trace())
     {
+#ifdef __BS_TRACE__
         const char* fmt = (CurrentPaletteSize > 10) ? "%2i " : "%i ";
+#endif
         BS2_TRACE_ARR_F(CurrentPaletteEntries[0], CurrentPaletteSize, 0, "%5i ");
         BS2_TRACE_ARR_F(CurrentPaletteEntries[1], CurrentPaletteSize, 0, "%5i ");
         BS2_TRACE_ARR_F(CurrentPaletteEntries[2], CurrentPaletteSize, 0, "%5i ");

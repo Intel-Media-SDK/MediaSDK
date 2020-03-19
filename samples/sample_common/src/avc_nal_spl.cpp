@@ -39,8 +39,6 @@ mfxU64 GetMfxTimeStamp(mfxF64 ts)
     return ts < 0.0 ? MFX_TIME_STAMP_INVALID : (mfxU64)(ts * MFX_TIME_STAMP_FREQUENCY + .5);
 }
 
-static mfxU8 start_code_prefix[] = {0, 0, 0, 1};
-
 enum
 {
     AVC_NAL_UNITTYPE_BITS_MASK  = 0x1f
@@ -178,7 +176,7 @@ mfxI32 StartCodeIterator::GetNALUnit(mfxBitstream * src, mfxBitstream * dst)
             if (m_prev.size() + sz >  m_suggestedSize)
             {
                 m_prev.clear();
-                sz = MSDK_MIN(sz, m_suggestedSize);
+                sz = std::min<size_t>(sz, m_suggestedSize);
             }
 
             m_prev.insert(m_prev.end(), src->Data + src->DataOffset, src->Data + src->DataOffset + sz);
@@ -294,7 +292,7 @@ mfxI32 StartCodeIterator::FindStartCode(mfxU8 * (&pb), mfxU32 & size, mfxI32 & s
         case 0x01:
             if (zeroCount >= 2)
             {
-                startCodeSize = MSDK_MIN(zeroCount + 1, 4);
+                startCodeSize = std::min(zeroCount + 1, 4u);
                 size -= i + 1;
                 pb++; // remove 0x01 symbol
                 zeroCount = 0;
@@ -318,7 +316,7 @@ mfxI32 StartCodeIterator::FindStartCode(mfxU8 * (&pb), mfxU32 & size, mfxI32 & s
         }
     }
 
-    zeroCount = MSDK_MIN(zeroCount, 3);
+    zeroCount = std::min(zeroCount, 3u);
     pb -= zeroCount;
     size += zeroCount;
     zeroCount = 0;
@@ -502,7 +500,7 @@ void SwapMemoryAndRemovePreventingBytes(mfxU8 *pDestination, mfxU32 &nDstSize, m
 
     // first two bytes
     i = 0;
-    while (i < (mfxU32) MSDK_MIN(2, nSrcSize))
+    while (i < std::min(2u, nSrcSize))
     {
         pDst = (mfxU8) pSrc;
         ++pDst;

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,11 @@
 #include "genx_scd_gen10_isa.h"
 #include "genx_scd_gen11_isa.h"
 #include "genx_scd_gen11lp_isa.h"
-#include "../include/tree.h"
-#include "../include/iofunctions.h"
-#include "../include/motion_estimation_engine.h"
+#include "genx_scd_gen12lp_isa.h"
+
+#include "tree.h"
+#include "iofunctions.h"
+#include "motion_estimation_engine.h"
 #include <limits.h>
 #include <algorithm>
 
@@ -301,6 +303,9 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
         break;
     case PLATFORM_INTEL_ICLLP:
         res = m_device->LoadProgram((void *)genx_scd_gen11lp, sizeof(genx_scd_gen11lp), m_program, "nojitter");
+        break;
+    case PLATFORM_INTEL_TGLLP:
+        res = m_device->LoadProgram((void *)genx_scd_gen12lp, sizeof(genx_scd_gen12lp), m_program, "nojitter");
         break;
     default:
         res = CM_NOT_IMPLEMENTED;
@@ -929,7 +934,7 @@ mfxStatus ASC::RsCsCalc() {
 }
 
 bool Hint_LTR_op_on(mfxU32 SC, mfxU32 TSC) {
-    bool ltr = TSC *TSC < (MFX_MAX(SC, 64) / 12);
+    bool ltr = TSC *TSC < (std::max(SC, 64u) / 12);
     return ltr;
 }
 

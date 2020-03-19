@@ -79,7 +79,7 @@ namespace MfxHwH264Encode
         MFX_MEMTYPE_FROM_ENCODE | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME;
 
 
-    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par);
+    mfxU16 CalcNumFrameMin(const MfxHwH264Encode::MfxVideoParam &par, MFX_ENCODE_CAPS const & hwCaps);
 
     enum
     {
@@ -608,6 +608,14 @@ namespace MfxHwH264Encode
     struct IntraRefreshState
     {
         IntraRefreshState() : refrType(0), IntraLocation(0), IntraSize(0), IntRefQPDelta(0), firstFrameInCycle(false) {}
+        bool operator==(const IntraRefreshState& rhs) const
+        {
+            return refrType == rhs.refrType &&
+                IntraLocation == rhs.IntraLocation &&
+                IntraSize == rhs.IntraSize &&
+                IntRefQPDelta == rhs.IntRefQPDelta &&
+                firstFrameInCycle == rhs.firstFrameInCycle;
+        }
 
         mfxU16  refrType;
         mfxU16  IntraLocation;
@@ -865,7 +873,6 @@ namespace MfxHwH264Encode
             : Reconstruct()
             , m_pushed(0)
             , m_type(0, 0)
-            , m_frcmplx(0)
             , m_dpb()
             , m_internalListCtrlPresent(false)
             , m_internalListCtrlHasPriority(true)
@@ -968,6 +975,7 @@ namespace MfxHwH264Encode
             , m_userTimeout(false)
 #endif
             , m_hwType(MFX_HW_UNKNOWN)
+            , m_TCBRCTargetFrameSize(0)
             , m_SceneChange(0)
             , m_LowDelayPyramidLayer(0)
             , m_frameLtrOff(1)
@@ -1051,7 +1059,6 @@ namespace MfxHwH264Encode
             m_brcFrameParams.DisplayOrder = m_frameOrder;
             m_brcFrameParams.EncodedOrder = m_encOrder;
             m_brcFrameParams.PyramidLayer = (mfxU16)m_loc.level;
-            m_brcFrameParams.FrameCmplx = m_frcmplx;
             m_brcFrameParams.LongTerm = (m_longTermFrameIdx != NO_INDEX_U8) ? 1 : 0;
             m_brcFrameParams.SceneChange = (mfxU16)m_SceneChange;
             if (!m_brcFrameParams.PyramidLayer && (m_type[m_fid[0]] & MFX_FRAMETYPE_P) && m_LowDelayPyramidLayer)
@@ -1062,7 +1069,6 @@ namespace MfxHwH264Encode
         mfxEncodeCtrl   m_ctrl;
         DdiTask *       m_pushed;         // task which was pushed to queue when this task was chosen for encoding
         Pair<mfxU8>     m_type;           // encoding type (one for each field)
-        mfxU16          m_frcmplx;        // Frame complexity
 
         // all info about references
         // everything is in pair because task is a per-frame object
@@ -1222,6 +1228,7 @@ namespace MfxHwH264Encode
         bool m_collectUnitsInfo;
         mutable std::vector<mfxEncodedUnitInfo> m_headersCache[2]; //Headers for every field
 #endif
+        mfxU32 m_TCBRCTargetFrameSize;
         mfxU32 m_SceneChange;
         mfxU32 m_LowDelayPyramidLayer;
         mfxU32 m_frameLtrOff;
@@ -1305,7 +1312,7 @@ namespace MfxHwH264Encode
         virtual mfxStatus SetFrameVMEData(const mfxExtLAFrameStatistics*, mfxU32 , mfxU32 ) {return MFX_ERR_NONE;}
     };
 
-    BrcIface * CreateBrc(MfxVideoParam const & video);
+    BrcIface * CreateBrc(MfxVideoParam const & video, MFX_ENCODE_CAPS const & hwCaps);
 
     class Brc : public BrcIface
     {
@@ -1396,7 +1403,47 @@ namespace MfxHwH264Encode
         mfxU32 m_lookAhead;
     };
 
+    class Hrd
+    {
+    public:
+        Hrd();
 
+        void Setup(MfxVideoParam const & par);
+
+        void Reset(MfxVideoParam const & par);
+
+        void RemoveAccessUnit(
+            mfxU32 size,
+            mfxU32 interlace,
+            mfxU32 bufferingPeriod);
+
+        mfxU32 GetInitCpbRemovalDelay() const;
+
+        mfxU32 GetInitCpbRemovalDelayOffset() const;
+        mfxU32 GetMaxFrameSize(mfxU32 bufferingPeriod) const;
+
+    private:
+        mfxU32 m_bitrate;
+        mfxU32 m_rcMethod;
+        mfxU32 m_hrdIn90k;  // size of hrd buffer in 90kHz units
+
+        double m_tick;      // clock tick
+        double m_trn_cur;   // nominal removal time
+        double m_taf_prv;   // final arrival time of prev unit
+
+        bool m_bIsHrdRequired;
+    };
+
+    struct sLAThresholds
+    {
+        mfxU32 minFramesForClassicLA; // number of frames is needed for classic LA, if lookAhead < minFramesForClassicLA -> short LA
+        mfxU32 minFramesForStat;      // number of frames at the start of stream which must be analyzed with fixed rate 
+        mfxU32 minCostCalcPeriod;     // minimum number of frames to calulate  cost. costCalcPeriod >= lookAhead,  costCalcPeriod < rateCalcPeriod
+        mfxF64 maxRateRatioLocal;     // maximum allowed ratio = realRate/initialRate, real rate is calculated per costCalcPeriod
+        mfxF64 minRateRatioLocal;     // minimum allowed ratio = realRate/initialRate, real rate is calculated per costCalcPeriod
+        mfxF64 maxAvgRateRatio;       // maximum allowed ratio = avgRate/initialRate, avg rate is calculated per rateCalcPeriod
+        mfxF64 minAvgRateRatio;       // minimum allowed ratio = avgRate/initialRate, avg rate is calculated per rateCalcPeriod 
+    };
 
     class LookAheadBrc2 : public BrcIface
     {
@@ -1435,14 +1482,14 @@ namespace MfxHwH264Encode
         };
 
     protected:
+        sLAThresholds m_thresholds;
         mfxU32  m_lookAhead;
         mfxU32  m_lookAheadDep;
         mfxU16  m_LaScaleFactor;
         mfxU32  m_strength;
         mfxU32  m_totNumMb;
         mfxF64  m_initTargetRate;
-        mfxF64  m_targetRateMin;
-        mfxF64  m_targetRateMax;
+        mfxF64  m_currRate;
         mfxU32  m_framesBehind;
         mfxF64  m_bitsBehind;
         mfxI32  m_curBaseQp;
@@ -1455,12 +1502,20 @@ namespace MfxHwH264Encode
         mfxU16  m_skipped;
         mfxU8  m_QPMin[3]; // for I, P and B
         mfxU8  m_QPMax[3]; // for I, P and B
-        mfxU32 m_maxFrameSize;
+        mfxU32 m_MaxframeSize[3];
+        mfxU32 m_maxFrameSizeForRec;
+        mfxU32 m_rateCalcPeriod;
+        mfxU32 m_costCalcPeriod;
 
-        AVGBitrate* m_AvgBitrate;
+        AVGBitrate* m_AvgBitrate; //sliding window
+        std::unique_ptr<Hrd>  m_hrd;
 
         std::vector<LaFrameData>    m_laData;
+        std::vector<LaFrameData>    m_laDataStat;
         Regression<20>              m_rateCoeffHistory[52];
+
+        void ClearStat(mfxU32 frameOrder);
+        void SaveStat(mfxU32 frameOrder);
     };
 
     class VMEBrc : public BrcIface
@@ -1664,36 +1719,6 @@ namespace MfxHwH264Encode
         mfxExtBRC   m_BRCLocal;
 
 };
-    class Hrd
-    {
-    public:
-        Hrd();
-
-        void Setup(MfxVideoParam const & par);
-
-        void Reset(MfxVideoParam const & par);
-
-        void RemoveAccessUnit(
-            mfxU32 size,
-            mfxU32 interlace,
-            mfxU32 bufferingPeriod);
-
-        mfxU32 GetInitCpbRemovalDelay() const;
-
-        mfxU32 GetInitCpbRemovalDelayOffset() const;
-        mfxU32 GetMaxFrameSize(mfxU32 bufferingPeriod) const;
-
-    private:
-        mfxU32 m_bitrate;
-        mfxU32 m_rcMethod;
-        mfxU32 m_hrdIn90k;  // size of hrd buffer in 90kHz units
-
-        double m_tick;      // clock tick
-        double m_trn_cur;   // nominal removal time
-        double m_taf_prv;   // final arrival time of prev unit
-
-        bool m_bIsHrdRequired;
-    };
 
     class DdiTask2ndField
     {
@@ -1947,7 +1972,7 @@ namespace MfxHwH264Encode
             DdiTask & newTask);
         mfxStatus CalculateFrameCmplx(
             DdiTask const &task,
-            mfxU16 &raca128);
+            mfxU32 &raca128);
         mfxStatus Prd_LTR_Operation(
             DdiTask & task);
         void      AssignFrameTypes(

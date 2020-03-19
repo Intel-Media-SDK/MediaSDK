@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -227,9 +227,6 @@ mfxTraceU32 MFXTrace_Init()
 
 #if defined(MFX_TRACE_ENABLE_TEXTLOG)
     g_OutputMode |= MFX_TRACE_OUTPUT_TEXTLOG;
-#endif
-#if defined(MFX_TRACE_ENABLE_STAT)
-    g_OutputMode |= MFX_TRACE_OUTPUT_STAT;
 #endif
 #if defined(MFX_TRACE_ENABLE_STAT)
     g_OutputMode |= MFX_TRACE_OUTPUT_STAT;

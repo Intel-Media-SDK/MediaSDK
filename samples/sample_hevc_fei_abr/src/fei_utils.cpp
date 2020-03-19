@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2018, Intel Corporation
+Copyright (c) 2018-2019, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -294,7 +294,7 @@ void DrawLine(mfxI32 x0, mfxI32 y0, mfxI32 dx, mfxI32 dy, mfxU8 *pPic, mfxI32 nP
     else
         nYStep = -1;
 
-    for (x0; x0 <= x1; x0++)
+    for (; x0 <= x1; x0++)
     {
         if (bSteep)
             DrawPixel(y0, x0, pPic, nPicWidth, nPicHeight, u8Pixel);

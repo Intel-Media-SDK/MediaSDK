@@ -41,15 +41,6 @@ enum MemType {
     VAAPI_MEMORY  = 0x03
 };
 
-
-// number of video enhancement filters (denoise, procamp, detail, video_analysis, multi_view, ste, istab, tcc, ace, svc)
-#define ENH_FILTERS_COUNT                (20)
-
-#define VPP_PROCAMP_BRIGHTNESS_DEFAULT    0.0
-#define VPP_PROCAMP_CONTRAST_DEFAULT      1.0
-#define VPP_PROCAMP_HUE_DEFAULT           0.0
-#define VPP_PROCAMP_SATURATION_DEFAULT    1.0
-
 #define VPP_DENOISE_FACTOR_DEFAULT      NOT_INIT_VALUE
 #define VPP_FILTER_FACTOR_DEFAULT       NOT_INIT_VALUE
 
@@ -98,8 +89,6 @@ struct sVideoSignalInfoParam: public mfxExtVPPVideoSignalInfo
     sVideoSignalInfoParam():
         mode(VPP_FILTER_DISABLED)
     {
-        Header.BufferId = MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO;
-        Header.BufferSz = sizeof(mfxExtVPPVideoSignalInfo);
         In.NominalRange   = MFX_NOMINALRANGE_UNKNOWN;
         In.TransferMatrix = MFX_TRANSFERMATRIX_UNKNOWN;
         Out = In;
@@ -112,8 +101,6 @@ struct sMirroringParam: public mfxExtVPPMirroring
     sMirroringParam():
         mode(VPP_FILTER_DISABLED)
     {
-        Header.BufferId = MFX_EXTBUFF_VPP_MIRRORING;
-        Header.BufferSz = sizeof(mfxExtVPPMirroring);
         Type = MFX_MIRRORING_DISABLED;
     };
 } ;
@@ -127,13 +114,10 @@ typedef struct
 
 struct sColorFillParam: public mfxExtVPPColorFill
 {
-    FilterConfig mode= VPP_FILTER_DISABLED;
+    FilterConfig mode;
     sColorFillParam():
-        mfxExtVPPColorFill()
-    {
-        Header.BufferId = MFX_EXTBUFF_VPP_COLORFILL;
-        Header.BufferSz = sizeof(mfxExtVPPColorFill);
-    }
+        mfxExtVPPColorFill(),
+        mode(VPP_FILTER_DISABLED) { }
 } ;
 
 #ifdef ENABLE_MCTF

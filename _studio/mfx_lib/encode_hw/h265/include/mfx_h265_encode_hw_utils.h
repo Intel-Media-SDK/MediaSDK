@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,13 +38,6 @@
 #include <list>
 #include <assert.h>
 
-#ifndef MFX_MAX
-#define MFX_MAX( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
-#ifndef MFX_MIN
-#define MFX_MIN( a, b ) ( ((a) < (b)) ? (a) : (b) )
-#endif
-
 #define MFX_SORT_COMMON(_AR, _SZ, _COND)\
     for (mfxU32 _i = 0; _i < (_SZ); _i ++)\
         for (mfxU32 _j = _i; _j < (_SZ); _j ++)\
@@ -73,8 +66,6 @@ template<class T> inline void Zero(T & obj)                   { memset(&obj, 0, 
 template<class T> inline void Zero(std::vector<T> & vec)      { memset(&vec[0], 0, sizeof(T) * vec.size()); }
 template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0, sizeof(T) * cnt); }
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
-template<class T> inline T Min  (T x, T y)          { return MFX_MIN(x, y); }
-template<class T> inline T Max  (T x, T y)          { return MFX_MAX(x, y); }
 
 template<class T> bool AlignDown(T& value, mfxU32 alignment)
 {
@@ -163,7 +154,7 @@ constexpr mfxU8    IDX_INVALID           = 0xff;
 constexpr mfxU8    HW_SURF_ALIGN_W       = 16;
 constexpr mfxU8    HW_SURF_ALIGN_H       = 16;
 
-constexpr mfxU8    MAX_SLICES            = 200; // WA for driver issue regarding CNL and older platforms
+constexpr mfxU16   MAX_SLICES            = 600; // conforms to level 6 limits
 constexpr mfxU8    DEFAULT_LTR_INTERVAL  = 16;
 constexpr mfxU8    DEFAULT_PPYR_INTERVAL = 3;
 
@@ -203,16 +194,6 @@ enum
     INSERT_LLISEI = 0x80,
     INSERT_SEI = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI)
 };
-
-inline bool IsOn(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_ON;
-}
-
-inline bool IsOff(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_OFF;
-}
 
 inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
 {
@@ -336,7 +317,7 @@ struct Task : DpbFrame
     Slice             m_sh                            = {};
 
     mfxU32            m_idxBs                         = IDX_INVALID;
-    mfxU8             m_idxCUQp                       = IDX_INVALID;
+    mfxU32            m_idxCUQp                       = IDX_INVALID;
     bool              m_bCUQPMap                      = false;
 
     mfxU8             m_refPicList[2][MAX_DPB_SIZE]   = {};
@@ -561,6 +542,10 @@ namespace ExtBuffer
 #if (MFX_VERSION >= 1025)
         MFX_COPY_FIELD(EnableNalUnitType);
 #endif
+#if MFX_VERSION >= MFX_VERSION_NEXT
+        MFX_COPY_FIELD(DeblockingAlphaTcOffset);
+        MFX_COPY_FIELD(DeblockingBetaOffset);
+#endif
         MFX_COPY_FIELD(LowDelayBRC);
     }
 
@@ -738,7 +723,7 @@ public:
             }
         }
 
-        m_numTL = Max<mfxU8>(m_numTL, 1);
+        m_numTL = std::max<mfxU8>(m_numTL, 1);
     }
 
     mfxU8 NumTL() const { return m_numTL; }

@@ -55,7 +55,7 @@ mfxU32 CalculateNumThread(mfxVideoParam *par, eMFXPlatform platform)
     if (!par->AsyncDepth)
         return numThread;
 
-    return MFX_MIN(par->AsyncDepth, numThread);
+    return std::min<mfxU32>(par->AsyncDepth, numThread);
 }
 
 inline
@@ -117,6 +117,11 @@ UMC::Status FillParam(VideoCORE *core, MFXTaskSupplier_H265 * decoder, mfxVideoP
         if (par->mfx.FrameInfo.FourCC == MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
             || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+#endif
+#if (MFX_VERSION >= 1031)
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
+            || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
 #endif
             )
             par->mfx.FrameInfo.Shift = 1;
@@ -292,6 +297,11 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     #if (MFX_VERSION >= 1027)
                 || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
     #endif
+    #if (MFX_VERSION >= 1031)
+                || par->mfx.FrameInfo.FourCC == MFX_FOURCC_P016
+                || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y216
+                || par->mfx.FrameInfo.FourCC == MFX_FOURCC_Y416
+    #endif
                 )
 
                 request.Info.Shift = 1;
@@ -323,7 +333,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
     UMC::VideoDecoderParams umcVideoParams;
     ConvertMFXParamsToUMC(&m_vFirstPar, &umcVideoParams);
     umcVideoParams.numThreads = m_vPar.mfx.NumThread;
-    umcVideoParams.info.bitrate = MFX_MAX(asyncDepth - umcVideoParams.numThreads, 0); // buffered frames
+    umcVideoParams.info.bitrate = asyncDepth - umcVideoParams.numThreads; // buffered frames
 
     if (MFX_PLATFORM_SOFTWARE != m_platform)
     {

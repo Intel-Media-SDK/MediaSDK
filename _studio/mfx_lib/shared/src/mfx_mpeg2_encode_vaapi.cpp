@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -106,23 +106,6 @@ namespace
         return *pSurface;
     }
 
-    unsigned short CalculateAspectRatio(int width, int height)
-    {
-        unsigned short ret = 1;
-        double rate;
-        rate = ((double) width) / ((double)height);
-        if(rate > 2.3)
-            ret = 0xf;
-        else if(rate > 2.2)
-            ret = 4;
-        else if(rate > 1.70)
-            ret = 3;
-        else if(rate > 1.2)
-            ret = 2;
-        else if(rate > 0.9)
-            ret = 1;
-        return ret & 0xf;
-    }
 
     /*int mpeg2enc_time_code(VAEncSequenceParameterBufferMPEG2 *seq_param, int num_frames)
     {
@@ -176,7 +159,6 @@ namespace
         } else
           assert(!"Unknown FrameRateCode appeared.");
 
-        //sps.aspect_ratio_information = CalculateAspectRatio(sps.picture_width, sps.picture_height);
         sps.aspect_ratio_information = winSps.AspectRatio;
         // sps.vbv_buffer_size = winSps.vbv_buffer_size; // B = 16 * 1024 * vbv_buffer_size
 
@@ -261,8 +243,7 @@ namespace
     {
         assert(pExecuteBuffers);
         const ENCODE_SET_PICTURE_PARAMETERS_MPEG2 & winPps = pExecuteBuffers->m_pps;
-        const ENCODE_SET_SEQUENCE_PARAMETERS_MPEG2 & winSps = pExecuteBuffers->m_sps;
-
+        
         pps.picture_type = ConvertCodingTypeMFX2VAAPI(winPps.picture_coding_type);
         pps.temporal_reference = winPps.temporal_reference;
         pps.vbv_delay = winPps.vbv_delay;
@@ -364,6 +345,7 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
     , m_initFrameWidth(0)
     , m_initFrameHeight(0)
     , m_layout()
+    , m_caps()
 {
     std::fill_n(m_sliceParamBufferId, sizeof(m_sliceParamBufferId)/sizeof(m_sliceParamBufferId[0]), VA_INVALID_ID);
 
@@ -376,7 +358,12 @@ VAAPIEncoder::~VAAPIEncoder()
     Close();
 }
 
-mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
+inline bool CheckAttribValue(mfxU32 value)
+{
+    return (value != VA_ATTRIB_NOT_SUPPORTED) && (value != 0);
+}
+
+mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(mfxU16 codecProfile)
 {
     MFX_CHECK_NULL_PTR1(m_core);
 
@@ -389,28 +376,74 @@ mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
         MFX_CHECK_STS(mfxSts);
     }
 
-    // m_width  = width;
-    // m_height = height;
+    memset(&m_caps, 0, sizeof(m_caps));
 
-    memset(&caps, 0, sizeof(caps));
+    m_caps.EncodeFunc        = 1;
+    m_caps.BRCReset          = 1; // No bitrate resolution control
+    m_caps.VCMBitrateControl = 0; // Video conference mode
+    m_caps.HeaderInsertion   = 0; // We will provide headers (SPS, PPS) in binary format to the driver
+    m_caps.MbQpDataSupport   = 1;
+    m_caps.SkipFrame         = 1;
 
-    caps.EncodeFunc        = 1;
-    caps.BRCReset          = 1; // No bitrate resolution control
-    caps.VCMBitrateControl = 0; // Video conference mode
-    caps.HeaderInsertion   = 0; // We will provide headers (SPS, PPS) in binary format to the driver
-    caps.MbQpDataSupport   = 1;
-    caps.SkipFrame         = 1;
+    m_caps.SliceIPBOnly      = 1;
+    m_caps.MaxNum_Reference  = 1;
+    m_caps.MaxPicWidth       = 1920;
+    m_caps.MaxPicHeight      = 1088;
+    m_caps.NoInterlacedField = 0; // Enable interlaced encoding
+    m_caps.SliceStructure    = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
 
-    caps.SliceIPBOnly      = 1;
-    caps.MaxNum_Reference  = 1;
-    caps.MaxPicWidth       = 1920;
-    caps.MaxPicHeight      = 1088;
-    caps.NoInterlacedField = 0; // Enable interlaced encoding
-    caps.SliceStructure    = 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw; 3 - SliceDividerBluRay; the other - SliceDividerOneSlice
+    std::map<VAConfigAttribType, size_t> idx_map;
+    VAConfigAttribType attr_types[] = {
+        VAConfigAttribMaxPictureHeight,
+        VAConfigAttribMaxPictureWidth,
+        VAConfigAttribEncSkipFrame,
+        VAConfigAttribEncMaxRefFrames,
+        VAConfigAttribEncSliceStructure
+    };
 
+    std::vector<VAConfigAttrib> attrs;
+    attrs.reserve(sizeof(attr_types) / sizeof(attr_types[0]));
+
+    for (size_t i=0; i < sizeof(attr_types)/sizeof(attr_types[0]); ++i)
+    {
+        attrs.emplace_back(VAConfigAttrib{attr_types[i], 0});
+        idx_map[ attr_types[i] ] = i;
+    }
+
+    VAEntrypoint entrypoint = VAEntrypointEncSlice;
+
+    VAStatus vaSts = vaGetConfigAttributes(m_vaDisplay,
+                          ConvertProfileTypeMFX2VAAPI(codecProfile),
+                          entrypoint,
+                          attrs.data(), attrs.size());
+
+    MFX_CHECK(!(VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT == vaSts ||
+                VA_STATUS_ERROR_UNSUPPORTED_PROFILE    == vaSts),
+                MFX_ERR_UNSUPPORTED);
+
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribMaxPictureWidth]].value))
+        m_caps.MaxPicWidth  = attrs[idx_map[VAConfigAttribMaxPictureWidth]].value;
+
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribMaxPictureHeight]].value))
+        m_caps.MaxPicHeight = attrs[idx_map[VAConfigAttribMaxPictureHeight]].value;
+
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncSkipFrame]].value))
+        m_caps.SkipFrame  = attrs[idx_map[VAConfigAttribEncSkipFrame]].value;
+
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value))
+        m_caps.MaxNum_Reference  = attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value;
+
+    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncSliceStructure]].value))
+        m_caps.SliceStructure  = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
 
     return MFX_ERR_NONE;
-} // mfxStatus VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
+}
+
+
+void VAAPIEncoder::QueryEncodeCaps(ENCODE_CAPS & caps)
+{
+    caps = m_caps;
+}
 
 mfxStatus VAAPIEncoder::Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId)
 {
@@ -616,13 +649,13 @@ mfxStatus VAAPIEncoder::QueryCompBufferInfo(D3DDDIFORMAT type, mfxFrameAllocRequ
 {
     if (type == D3DDDIFMT_INTELENCODE_MBDATA)
     {
-        pRequest->Info.Width = MFX_MAX(pRequest->Info.Width, pExecuteBuffers->m_sps.FrameWidth);
-        pRequest->Info.Height = MFX_MAX(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
+        pRequest->Info.Width  = std::max(pRequest->Info.Width,  pExecuteBuffers->m_sps.FrameWidth);
+        pRequest->Info.Height = std::max(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
     }
     else if (type == D3DDDIFMT_INTELENCODE_BITSTREAMDATA)
     {
-        pRequest->Info.Width = MFX_MAX(pRequest->Info.Width, pExecuteBuffers->m_sps.FrameWidth);
-        pRequest->Info.Height = MFX_MAX(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
+        pRequest->Info.Width  = std::max(pRequest->Info.Width,  pExecuteBuffers->m_sps.FrameWidth);
+        pRequest->Info.Height = std::max(pRequest->Info.Height, pExecuteBuffers->m_sps.FrameHeight);
     }
     else
     {
@@ -700,7 +733,6 @@ mfxStatus VAAPIEncoder::RegisterRefFrames (const mfxFrameAllocResponse* pRespons
     m_recFrames.resize(pResponse->NumFrameActual);
 
     mfxStatus sts;
-    ExtVASurface extSurf;
     VASurfaceID *pSurface = NULL;
 
 
@@ -726,7 +758,6 @@ mfxStatus VAAPIEncoder::RegisterRefFrames (const mfxFrameAllocResponse* pRespons
 mfxI32 VAAPIEncoder::GetRecFrameIndex (mfxMemId memID)
 {
     mfxStatus sts;
-    ExtVASurface extSurf;
     VASurfaceID *pSurface = NULL;
     sts = m_core->GetFrameHDL(memID, (mfxHDL *)&pSurface);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == sts, -1);
@@ -745,7 +776,6 @@ mfxI32 VAAPIEncoder::GetRawFrameIndex (mfxMemId memID, bool bAddFrames)
 {
     assert(0);
     mfxStatus sts;
-    ExtVASurface extSurf;
     VASurfaceID *pSurface = NULL;
     sts = m_core->GetFrameHDL(memID, (mfxHDL *)&pSurface);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == sts, -1);
@@ -965,7 +995,7 @@ mfxStatus VAAPIEncoder::FillUserDataBuffer(mfxU8 *pUserData, mfxU32 userDataLen)
     VAEncPackedHeaderParameterBuffer packedParamsBuffer = {};
     packedParamsBuffer.type = VAEncPackedHeaderRawData;
     packedParamsBuffer.has_emulation_bytes = false;
-    mfxU32 correctedLength = MFX_MIN(userDataLen, UINT_MAX/8); // keep start code
+    mfxU32 correctedLength = std::min(userDataLen, UINT_MAX/8); // keep start code
     packedParamsBuffer.bit_length = correctedLength * 8;
 
     mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_packedUserDataParamsId);
@@ -1042,7 +1072,7 @@ mfxStatus VAAPIEncoder::FillMBQPBuffer(
 {
     VAStatus vaSts;
 
-    int i, width_in_mbs, height_in_mbs;
+    int width_in_mbs, height_in_mbs;
 
     //    assert(m_vaPpsBuf.picture_coding_extension.bits.q_scale_type == 0);
 

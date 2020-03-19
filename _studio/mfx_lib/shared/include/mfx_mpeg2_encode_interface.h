@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,10 +49,9 @@ namespace MfxHwMpeg2Encode
             : m_bEncryptionMode (false)
         {
         }
-        void Init(const mfxVideoParamEx_MPEG2* par, mfxU32 funcId)
+        void Init(const mfxVideoParamEx_MPEG2* /*par*/, mfxU32 /*funcId*/)
         {
             m_bEncryptionMode = false;
-            par;funcId;
 
         }
     };
@@ -150,7 +149,7 @@ namespace MfxHwMpeg2Encode
     public:
         virtual ~DriverEncoder(){}
 
-        virtual mfxStatus QueryEncodeCaps(ENCODE_CAPS & caps) = 0;
+        virtual void QueryEncodeCaps(ENCODE_CAPS & caps) = 0;
         virtual mfxStatus Init(ExecuteBuffers* pExecuteBuffers, mfxU32 numRefFrames, mfxU32 funcId) = 0;
         virtual mfxStatus CreateContext(ExecuteBuffers* /*pExecuteBuffers*/, mfxU32 /*numRefFrames*/, mfxU32 /*funcId*/) { return MFX_ERR_NONE; }
 
@@ -167,6 +166,8 @@ namespace MfxHwMpeg2Encode
         virtual mfxStatus FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBitstream* pBitstream, Encryption *pEncrypt) = 0;
 
         virtual mfxStatus SetFrames (ExecuteBuffers* pExecuteBuffers) = 0;
+
+        virtual mfxStatus CreateAuxilliaryDevice(mfxU16 codecProfile) = 0;
     };
 
     DriverEncoder* CreatePlatformMpeg2Encoder( VideoCORE* core );

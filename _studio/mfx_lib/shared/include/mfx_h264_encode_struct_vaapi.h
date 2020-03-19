@@ -305,8 +305,11 @@ typedef struct tagENCODE_CAPS
             UINT    LLCStreamingBufferSupport     : 1;
             UINT    DDRStreamingBufferSupport     : 1;
             UINT    LowDelayBRCSupport            : 1; // eFrameSizeTolerance_ExtremelyLow (Low delay) supported
-            UINT    AVBRBRCSupport                : 1;
-            UINT                            : 11;
+            UINT    MaxNumDeltaQPMinus1           : 4;
+            UINT    TCBRCSupport                  : 1;
+            UINT    HRDConformanceSupport         : 1;
+            UINT    PollingModeSupport            : 1;
+            UINT                                  : 5;
         };
         UINT      CodingLimits2;
     };
@@ -322,6 +325,7 @@ struct MFX_ENCODE_CAPS
     bool CQPSupport;
     bool CBRSupport;
     bool VBRSupport;
+    bool AVBRSupport;
 };
 
 // this enumeration is used to define the block size for intra prediction. they

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -722,6 +722,7 @@ typedef enum _GPU_PLATFORM {
     PLATFORM_INTEL_KBL = 11,  //Kabylake
     PLATFORM_INTEL_GLV = 12,  //Glenview
     PLATFORM_INTEL_ICLLP = 13, //IcelakeLP
+    PLATFORM_INTEL_TGLLP = 15,  //TigerLakeLP
     PLATFORM_INTEL_GLK = 16,   //GeminiLake
     PLATFORM_INTEL_CFL = 17  //CofeeLake
 } GPU_PLATFORM;
@@ -1509,6 +1510,14 @@ public:
 
     CM_RT_API virtual INT EnqueueWithHints(CmTask* pTask, CmEvent* & pEvent, UINT hints = 0) = 0;
     CM_RT_API virtual INT EnqueueVebox(CmVebox* pVebox, CmEvent* & pEvent) = 0;
+
+    CM_RT_API virtual INT EnqueueFast(CmTask *task,
+                              CmEvent *&event,
+                              const CmThreadSpace *threadSpace = nullptr) = 0;
+    CM_RT_API virtual INT DestroyEventFast(CmEvent *&event) = 0;
+    CM_RT_API virtual INT EnqueueWithGroupFast(CmTask *task,
+                                  CmEvent *&event,
+                                  const CmThreadGroupSpace *threadGroupSpace = nullptr) = 0;
 };
 
 class CmDevice;

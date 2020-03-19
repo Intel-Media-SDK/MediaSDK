@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -98,28 +98,6 @@ private:
 
 void parse(const char* file_name, std::list<PluginInfo>& all_records);
 
-static std::string printUID(const mfxPluginUID& uid)
-{
-  std::stringstream ss;
-  ss << std::hex;
-  for (auto c: uid.Data) ss << static_cast<unsigned>(c);
-  return ss.str();
-}
-
-static std::string printCodecId(mfxU32 id)
-{
-  uint8_t* data = reinterpret_cast<uint8_t*>(&id);
-  std::stringstream ss;
-  for (size_t i=0; i < sizeof(id); ++i) ss << data[i];
-  return ss.str();
-}
-
-static void print(std::list<PluginInfo>& plugins)
-{
-  for (auto& plg: plugins) {
-    plg.Print();
-  }
-}
 
 } // namespace MFX
 

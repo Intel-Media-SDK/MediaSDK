@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -639,6 +639,13 @@ void ShowPipeline( std::vector<mfxU32> pipelineList )
                 fprintf(stderr,"MFX_EXTBUFF_VPP_SCALING\n");
                 break;
             }
+#if (MFX_VERSION >= 1025)
+            case (mfxU32)MFX_EXTBUFF_VPP_COLOR_CONVERSION:
+            {
+                fprintf(stderr,"MFX_EXTBUFF_VPP_COLOR_CONVERSION\n");
+                break;
+            }
+#endif
              case (mfxU32)MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
             {
                 fprintf(stderr,"MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO\n");
@@ -1180,7 +1187,7 @@ mfxStatus GetPipelineList(
     /* *************************************************************************** */
     /* 4. optional filters, disabled by default, enabled by EXT_BUFFER             */
     /* *************************************************************************** */
-    mfxU32 configCount = MFX_MAX(sizeof(g_TABLE_CONFIG) / sizeof(*g_TABLE_CONFIG), videoParam->NumExtParam);
+    mfxU32 configCount = std::max<mfxU32>(sizeof(g_TABLE_CONFIG) / sizeof(*g_TABLE_CONFIG), videoParam->NumExtParam);
     std::vector<mfxU32> configList(configCount);
 
     GetConfigurableFilterList( videoParam, &configList[0], &configCount );
@@ -1336,6 +1343,14 @@ mfxStatus CheckFrameInfo(mfxFrameInfo* info, mfxU32 request, eMFXHWType platform
         case MFX_FOURCC_Y210:
         case MFX_FOURCC_Y410:
             MFX_CHECK(platform >= MFX_HW_ICL, MFX_ERR_INVALID_VIDEO_PARAM);
+            break;
+#endif
+#if (MFX_VERSION >= 1031)
+        case MFX_FOURCC_P016:
+        case MFX_FOURCC_Y216:
+        case MFX_FOURCC_Y416:
+            if (platform < MFX_HW_TGL_LP)
+                return MFX_ERR_INVALID_VIDEO_PARAM;
             break;
 #endif
         case MFX_FOURCC_IMC3:
@@ -2066,7 +2081,7 @@ void SignalPlatformCapabilities(
         GetDoUseFilterList( (mfxVideoParam*)&param, &pDO_USE_List, &douseCount );
         if(douseCount > 0)
         {
-            size_t fCount = MFX_MIN(supportedList.size(), douseCount);
+            size_t fCount = std::min<size_t>(supportedList.size(), douseCount);
             size_t fIdx = 0;
             for(fIdx = 0; fIdx < fCount; fIdx++)
             {

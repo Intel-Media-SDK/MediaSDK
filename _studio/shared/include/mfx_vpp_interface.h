@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -93,6 +93,11 @@ namespace MfxHwVideoProcessing
 #if (MFX_VERSION >= 1027)
         , MFX_FOURCC_Y210
         , MFX_FOURCC_Y410
+#endif
+#if (MFX_VERSION >= 1031)
+        , MFX_FOURCC_P016
+        , MFX_FOURCC_Y216
+        , MFX_FOURCC_Y416
 #endif
     };
 
@@ -293,6 +298,7 @@ namespace MfxHwVideoProcessing
                ,bEOS(false)
                ,mirroring(0)
                ,mirroringPosition(0)
+               ,mirroringExt(false)
                ,scene(VPP_NO_SCENE_CHANGE)
                ,bDeinterlace30i60p(false)
 #ifdef MFX_ENABLE_MCTF
@@ -346,6 +352,7 @@ namespace MfxHwVideoProcessing
                     rotation != 0 ||
                     scalingMode != MFX_SCALING_MODE_DEFAULT ||
                     mirroring != 0 ||
+                    mirroringExt != false ||
                     scene != VPP_NO_SCENE_CHANGE ||
                     bDeinterlace30i60p != false
 #if (MFX_VERSION >= 1025)
@@ -429,6 +436,7 @@ namespace MfxHwVideoProcessing
 
         int        mirroring;
         int        mirroringPosition;
+        bool       mirroringExt;
 
         vppScene    scene;     // Keep information about scene change
         bool        bDeinterlace30i60p;

@@ -41,10 +41,8 @@ public:
         Close();
     }
 
-    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(VideoCORE* /*core*/, MfxHwH265Encode::ENCODER_TYPE type = MfxHwH265Encode::ENCODER_DEFAULT) override
+    virtual MfxHwH265Encode::DriverEncoder* CreateHWh265Encoder(VideoCORE* /*core*/, MfxHwH265Encode::ENCODER_TYPE /* type */ = MfxHwH265Encode::ENCODER_DEFAULT) override
     {
-        type;
-
         return new VAAPIh265FeiEncoder;
     }
 
@@ -64,7 +62,7 @@ public:
     virtual mfxStatus ExtraCheckVideoParam(MfxHwH265Encode::MfxVideoParam & par, MFX_ENCODE_CAPS_HEVC const & caps, bool bInit = false) override
     {
         // HEVC FEI Encoder uses own controls to switch on LCU QP buffer
-        if (MfxHwH265Encode::IsOn(m_vpar.m_ext.CO3.EnableMBQP))
+        if (IsOn(m_vpar.m_ext.CO3.EnableMBQP))
         {
             m_vpar.m_ext.CO3.EnableMBQP = MFX_CODINGOPTION_OFF;
 
