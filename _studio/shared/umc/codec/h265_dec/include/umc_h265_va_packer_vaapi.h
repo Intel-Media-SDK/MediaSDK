@@ -150,7 +150,7 @@ namespace UMC_HEVC_DECODER
 
 }; // namespace UMC_HEVC_DECODER
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1032)
     #include "platform/umc_h265_va_packer_vaapi_g12.hpp"
 #else
     #include "platform/umc_h265_va_packer_vaapi_g11.hpp"
