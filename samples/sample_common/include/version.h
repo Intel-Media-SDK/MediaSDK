@@ -30,7 +30,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 #ifndef MSDK_RELEASE
-#define MSDK_TARGETAPIMINOR 27
+#define MSDK_TARGETAPIMINOR 32
 #endif
 
 #ifndef MSDK_BUILD
@@ -40,6 +40,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 static msdk_string GetMSDKSampleVersion()
 {
     msdk_stringstream ss;
-    ss << MSDK_MAJOR << "." << MSDK_MINOR << "." << MSDK_TARGETAPIMINOR << "." << MSDK_BUILD;
+    ss << "20.1.0";
     return ss.str();
 }
