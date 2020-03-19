@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<!-- lpla.vcxproj specific settings -->
+  <PropertyGroup Label="lpla settings">
+    <MfxUsingSettings>lpla;$(MfxUsedSettings)</MfxUsingSettings>
+    <MfxIncludes>
+    $(MfxIppIncludeDir);
+    $(MSDK_API_ROOT)\include;
+	$(MSDK_STUDIO_ROOT)\shared\umc\core\umc\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\core\vm\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\core\vm_plus\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\codec\brc\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\codec\jpeg_common\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\io\umc_va\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\codec\mpeg2_enc\include;
+    $(MSDK_STUDIO_ROOT)\shared\umc\codec\color_space_converter\include;
+    $(MSDK_STUDIO_ROOT)\shared\include;
+    $(MSDK_STUDIO_ROOT)\mfx_lib\shared\include;
+	$(MSDK_STUDIO_ROOT)\mfx_lib\encode_hw\h265\include;
+	$(MSDK_STUDIO_ROOT)\mfx_lib\vpp\include;
+    </MfxIncludes>
+    <MfxDefinitions>MFX_VA;MFX_D3D11_ENABLED;</MfxDefinitions>
+    <MfxLibraries></MfxLibraries>
+    <MfxLibraryDir></MfxLibraryDir>
+  </PropertyGroup>
+<!-- End of lpla.vcxproj specific settings -->
+</Project>
