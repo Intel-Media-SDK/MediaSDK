@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -929,6 +929,7 @@ mfxStatus VideoVPPBase::Query(VideoCORE * core, mfxVideoParam *in, mfxVideoParam
         if ( out->vpp.In.FourCC  == MFX_FOURCC_P010 &&
              out->vpp.Out.FourCC != MFX_FOURCC_A2RGB10 &&
              out->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
+             out->vpp.Out.FourCC != MFX_FOURCC_YV12 &&
              out->vpp.Out.FourCC != MFX_FOURCC_P010 &&
              out->vpp.Out.FourCC != MFX_FOURCC_P210 &&
              out->vpp.Out.FourCC != MFX_FOURCC_YUY2 &&
