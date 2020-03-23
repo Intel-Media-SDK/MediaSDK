@@ -93,6 +93,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
     msdk_printf(MSDK_STRING("           if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
+    msdk_printf(MSDK_STRING("   [-la_ext] - use external LA plugin (compatible with H.264, H.265 encoders)\n"));
     msdk_printf(MSDK_STRING("   [-lad depth] - depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100] (0 - default: auto-select by mediasdk library).\n"));
     msdk_printf(MSDK_STRING("            may be 1 in the case when -mss option is specified \n"));
     msdk_printf(MSDK_STRING("            if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
@@ -287,6 +288,11 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
     else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-VuiNalHrdParameters:off")))
     {
         pParams->nVuiNalHrdParameters = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-la_ext")))
+    {
+        pParams->bEnableExtLA            = true;
+        pParams->nRateControlMethod      = MFX_RATECONTROL_LA_EXT;
     }
     else
     {
@@ -550,7 +556,8 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 pParams->nRateControlMethod = MFX_RATECONTROL_LA_ICQ;
             }
             else if (pParams->nRateControlMethod != MFX_RATECONTROL_LA &&
-                    pParams->nRateControlMethod != MFX_RATECONTROL_LA_ICQ)
+                    pParams->nRateControlMethod != MFX_RATECONTROL_LA_ICQ &&
+                    pParams->nRateControlMethod != MFX_RATECONTROL_LA_EXT)
             {
                 PrintHelp(strInput[0], MSDK_STRING("More than one BRC modes assigned, and another BRC mode isn't compatible with LA."));
                 return MFX_ERR_UNSUPPORTED;
@@ -1444,11 +1451,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         return MFX_ERR_UNSUPPORTED;
     }
 
-    //if ((pParams->nRateControlMethod == MFX_RATECONTROL_LA) && (pParams->CodecId != MFX_CODEC_AVC))
-    //{
-    //    PrintHelp(strInput[0], MSDK_STRING("Look ahead BRC is supported only with H.264 encoder!"));
-    //    return MFX_ERR_UNSUPPORTED;
-    //}
+    if (pParams->nRateControlMethod == MFX_RATECONTROL_LA  &&
+        pParams->CodecId == MFX_CODEC_HEVC)
+    {
+        pParams->bEnableExtLA            = true;
+        pParams->nRateControlMethod      = MFX_RATECONTROL_LA_EXT;
+    }
 
     if ((pParams->nMaxSliceSize) && (pParams->CodecId != MFX_CODEC_AVC) && (pParams->CodecId != MFX_CODEC_HEVC))
     {
@@ -1528,14 +1536,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
 void ModifyParamsUsingPresets(sInputParams& params)
 {
     COutputPresetParameters presetParams = CPresetManager::Inst.GetPreset(params.PresetMode, params.CodecId,params.dFrameRate, params.nWidth, params.nHeight, params.bUseHWLib);
-
-    if (presetParams.RateControlMethod == MFX_RATECONTROL_LA_EXT)
-    {
-        // Currently sample_encode does not support external LA, so we will use ExtBRC instead
-        presetParams.RateControlMethod = MFX_RATECONTROL_VBR;
-        presetParams.LookAheadDepth = 0;
-        presetParams.ExtBRCUsage = EXTBRC_ON;
-    }
 
     if (params.shouldPrintPresets)
     {
