@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -225,11 +225,10 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
             inPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY,
             MFX_ERR_INVALID_VIDEO_PARAM);
 
-       memset (&out->mfx,0,sizeof(out->mfx));
        out->mfx.CodecId = in->mfx.CodecId ;
        out->mfx.GopPicSize = in->mfx.GopPicSize;
        out->mfx.GopRefDist = in->mfx.GopRefDist;
-       out->mfx.FrameInfo.Width = in->mfx.GopRefDist;;
+       out->mfx.FrameInfo.Width = in->mfx.FrameInfo.Width;
        out->mfx.FrameInfo.Height = in->mfx.FrameInfo.Height;
        out->mfx.TargetUsage = in->mfx.TargetUsage;
 
