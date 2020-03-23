@@ -90,21 +90,18 @@ VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type)
 
 } // VAProfile ConvertProfileTypeMFX2VAAPI(mfxU8 type)
 
-mfxU8 ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
+static mfxU8 ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
 {
-    switch (structure)
-    {
-        case VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS:
-            return 1;
-        case VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS:
-            return 2;
-        case VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS:
-            return 3;
-        case VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS:
-            return 4;
-        default:
-            return 0;
-    }
+    if (structure & VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS)
+        return 1;
+    else if (structure & VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS)
+        return 2;
+    else if (structure & VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS)
+        return 3;
+    else if (structure & VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS)
+        return 4;
+    else
+        return 0;
 }
 
 mfxStatus SetHRD(
