@@ -128,7 +128,6 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->Contrast = 0;
     pMfxExecuteParams->Hue = 0;
     pMfxExecuteParams->Saturation = 0;
-    pMfxExecuteParams->bSceneDetectionEnable = false;
     pMfxExecuteParams->bVarianceEnable = false;
     pMfxExecuteParams->bImgStabilizationEnable = false;
     pMfxExecuteParams->istabMode = 0;
@@ -6178,7 +6177,6 @@ mfxStatus ConfigureExecuteParams(
                 }
                 else if (MFX_EXTBUFF_VPP_SCENE_ANALYSIS == bufferId)
                 {
-                    executeParams.bSceneDetectionEnable = false;
                 }
                 else if (MFX_EXTBUFF_VPP_DETAIL == bufferId)
                 {
@@ -6270,13 +6268,6 @@ mfxStatus ConfigureExecuteParams(
         {
             config.m_extConfig.mode = FRC_DISABLED | FRC_DISTRIBUTED_TIMESTAMP;
         }
-    }
-
-
-    if (true == executeParams.bSceneDetectionEnable && (FRC_ENABLED | config.m_extConfig.mode))
-    {
-        // disable scene detection
-        executeParams.bSceneDetectionEnable = false;
     }
 
     if ( (0 == memcmp(&videoParam.vpp.In, &videoParam.vpp.Out, sizeof(mfxFrameInfo))) &&
