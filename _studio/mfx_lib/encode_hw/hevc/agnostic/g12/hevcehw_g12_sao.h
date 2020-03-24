@@ -62,12 +62,7 @@ protected:
                 mfxExtHEVCParam* pHEVC = ExtBuffer::Get(par);
                 MFX_CHECK(pHEVC, MFX_ERR_NONE);
 
-                mfxExtCodingOption3* pCO3 = ExtBuffer::Get(par);
-
-                bool bNoSAO =
-                    (pCO3 && pCO3->WeightedPred == MFX_WEIGHTED_PRED_EXPLICIT)
-                    || (pCO3 && pCO3->WeightedBiPred == MFX_WEIGHTED_PRED_EXPLICIT)
-                    || defPar.base.GetLCUSize(defPar) == 16;
+                bool bNoSAO = defPar.base.GetLCUSize(defPar) == 16;
 
                 bool bChanged = CheckOrZero<mfxU16>(
                     pHEVC->SampleAdaptiveOffset
