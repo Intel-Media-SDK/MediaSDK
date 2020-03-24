@@ -24,7 +24,7 @@ cmake_policy(SET CMP0048 NEW) # version handled by project()
 
 
 # Througout this project MFX_VERSION refers to uAPI version and MEDIA_VERSION refers to product version
-set(MEDIA_VERSION 20.1)
+set(MEDIA_VERSION 20.2)
 set(MEDIA_VERSION_STR "${MEDIA_VERSION}.pre${MEDIA_VERSION_EXTRA}" CACHE STRING "" FORCE)
 
 project(mfx1
