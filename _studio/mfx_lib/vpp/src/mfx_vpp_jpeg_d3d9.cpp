@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,6 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
     pMfxExecuteParams->Contrast = 0;
     pMfxExecuteParams->Hue = 0;
     pMfxExecuteParams->Saturation = 0;
-    pMfxExecuteParams->bSceneDetectionEnable = false;
     pMfxExecuteParams->bVarianceEnable = false;
     pMfxExecuteParams->bImgStabilizationEnable = false;
     pMfxExecuteParams->istabMode = 0;

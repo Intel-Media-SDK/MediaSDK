@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,7 @@ mfxStatus SetRoundingOffset(
 namespace MfxHwH264Encode
 {
     // map feedbackNumber <-> VASurface
-    typedef struct
+    struct ExtVASurface
     {
         VASurfaceID surface = VA_INVALID_SURFACE;
         mfxU32 number       = 0;
@@ -95,7 +95,7 @@ namespace MfxHwH264Encode
         VASurfaceID mbstat  = VA_INVALID_ID;
         VASurfaceID mbcode  = VA_INVALID_ID;
 #endif
-    } ExtVASurface;
+    };
 
     void UpdatePPS(
         DdiTask const & task,

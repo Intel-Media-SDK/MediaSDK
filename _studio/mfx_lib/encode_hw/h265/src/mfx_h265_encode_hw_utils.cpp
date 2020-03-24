@@ -2807,9 +2807,10 @@ mfxU8 GetFrameType(
         return (MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF);
 
     //if ((gopOptFlag & MFX_GOP_STRICT) == 0)
-        if (((fo + 1) % gopPicSize == 0 && (gopOptFlag & MFX_GOP_CLOSED)) ||
-            (idrPicDist && (fo + 1) % idrPicDist == 0))
-            return (MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF); // switch last B frame to P frame
+    if (((fo + 1) % gopPicSize == 0 && (gopOptFlag & MFX_GOP_CLOSED)) ||
+        (idrPicDist && (fo + 1) % idrPicDist == 0)) {
+        return (MFX_FRAMETYPE_P | MFX_FRAMETYPE_REF); // switch last B frame to P frame
+    }
 
 
     return (MFX_FRAMETYPE_B);
