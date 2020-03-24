@@ -275,7 +275,6 @@ namespace MfxHwVideoProcessing
                ,Contrast(0)
                ,Hue(0)
                ,Saturation(0)
-               ,bSceneDetectionEnable(false)
                ,bVarianceEnable(false)
                ,bImgStabilizationEnable(false)
                ,istabMode(0)
@@ -342,7 +341,6 @@ namespace MfxHwVideoProcessing
                     detailFactor != 0 ||
                     iTargetInterlacingMode != 0 ||
                     bEnableProcAmp != false ||
-                    bSceneDetectionEnable != false ||
                     bVarianceEnable != false ||
                     bImgStabilizationEnable != false ||
                     bFRCEnable != false ||
@@ -397,8 +395,6 @@ namespace MfxHwVideoProcessing
         mfxF64         Contrast;
         mfxF64         Hue;
         mfxF64         Saturation;
-
-        bool           bSceneDetectionEnable;
 
         bool           bVarianceEnable;
         bool           bImgStabilizationEnable;
