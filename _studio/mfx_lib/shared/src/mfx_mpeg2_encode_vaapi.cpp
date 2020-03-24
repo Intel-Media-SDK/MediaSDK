@@ -398,7 +398,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(mfxU16 codecProfile)
         VAConfigAttribMaxPictureWidth,
         VAConfigAttribEncSkipFrame,
         VAConfigAttribEncMaxRefFrames,
-        VAConfigAttribEncSliceStructure
     };
 
     std::vector<VAConfigAttrib> attrs;
@@ -432,9 +431,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(mfxU16 codecProfile)
 
     if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value))
         m_caps.MaxNum_Reference  = attrs[idx_map[VAConfigAttribEncMaxRefFrames]].value;
-
-    if (CheckAttribValue(attrs[idx_map[VAConfigAttribEncSliceStructure]].value))
-        m_caps.SliceStructure  = attrs[idx_map[VAConfigAttribEncSliceStructure]].value;
 
     return MFX_ERR_NONE;
 }

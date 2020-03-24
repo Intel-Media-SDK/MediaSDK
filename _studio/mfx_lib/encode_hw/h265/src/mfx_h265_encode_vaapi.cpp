@@ -886,7 +886,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribMaxPictureWidth,
         VAConfigAttribEncParallelRateControl,
         VAConfigAttribEncMaxRefFrames,
-        VAConfigAttribEncSliceStructure,
         VAConfigAttribEncROI,
         VAConfigAttribEncTileSupport
     };
