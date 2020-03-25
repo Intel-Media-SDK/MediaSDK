@@ -350,15 +350,15 @@ void AddVaMiscQualityParams(
     quality_param.PanicModeDisable = IsOff(CO3.BRCPanicMode);
 }
 
-void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples)
+void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
 {
-    //16x32 only: driver limitation
-    m_width        = (picWidthInLumaSamples  + 31) / 32;
-    m_height       = (picHeightInLumaSamples + 31) / 32;
+    mfxU32 blkSz   = 8 << blockSize;
+    m_width        = (picWidthInLumaSamples  + blkSz - 1) / blkSz;
+    m_height       = (picHeightInLumaSamples + blkSz - 1) / blkSz;
     m_pitch        = mfx::align2_value(m_width, 64);
     m_h_aligned    = mfx::align2_value(m_height, 4);
-    m_block_width  = 32;
-    m_block_height = 32;
+    m_block_width  = blkSz;
+    m_block_height = blkSz;
     m_buffer.resize(m_pitch * m_h_aligned);
     std::fill(m_buffer.begin(), m_buffer.end(), mfxI8(0));
 }
@@ -447,7 +447,8 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         if (IsOn(CO3.EnableMBQP))
         {
             const mfxExtHEVCParam& HEVCPar = ExtBuffer::Get(par);
-            m_qpMap.Init(HEVCPar.PicWidthInLumaSamples, HEVCPar.PicHeightInLumaSamples);
+            const auto& caps = Glob::EncodeCaps::Get(strg);
+            m_qpMap.Init(HEVCPar.PicWidthInLumaSamples, HEVCPar.PicHeightInLumaSamples, caps.BlockSize);
         }
 
         auto MidToVA = [&core](mfxMemId mid)
