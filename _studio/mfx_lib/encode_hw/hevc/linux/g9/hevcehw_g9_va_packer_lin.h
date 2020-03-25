@@ -59,7 +59,7 @@ public:
         m_block_width(0),
         m_block_height(0) {}
 
-    void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples);
+    void Init(mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize);
 };
 
 class VAPacker
