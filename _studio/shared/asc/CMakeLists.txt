@@ -28,14 +28,22 @@ set( defs "" )
 set( sources "" )
 set( sources.plus "" )
 
+add_library(asc_avx2 OBJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_avx2_impl.cpp)
+target_compile_options(asc_avx2 PRIVATE -mavx2)
+configure_build_variant(asc_avx2 none)
+
+add_library(asc_sse4 OBJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_sse4_impl.cpp)
+target_compile_options(asc_sse4 PRIVATE -msse4.1)
+configure_build_variant(asc_sse4 none)
+
 list( APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/asc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_avx2_impl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_c_impl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_sse4_impl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/iofunctions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/motion_estimation_engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
+    $<TARGET_OBJECTS:asc_avx2>
+    $<TARGET_OBJECTS:asc_sse4>
 )
 
 make_library(asc none static )

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,6 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
+
 #ifndef _CPUDETECT_H_
 #define _CPUDETECT_H_
 
@@ -33,11 +34,7 @@ static inline mfxI32 CpuFeature_SSE41() {
 }
 
 static inline mfxI32 CpuFeature_AVX2() {
-#if defined(__AVX2__)
     return((__builtin_cpu_supports("avx2")));
-#else
-    return 0;
-#endif //defined(__AVX2__)
 }
 
 //

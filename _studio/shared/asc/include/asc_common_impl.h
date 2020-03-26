@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,12 +17,12 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#pragma once
+
 #ifndef _ASC_COMMON_IMPL_H_
 #define _ASC_COMMON_IMPL_H_
+
 #include "asc_defs.h"
 #include "asc_structures.h"
-
 
 static const int HIST_THRESH_LO = 1;
 static const int HIST_THRESH_HI = 12;
@@ -78,7 +78,7 @@ static inline void StorePartialXmm(float *pDst, __m128 xmm, mfxI32 len)
     }
 }
 
-#if defined(__AVX2__)
+#if 0 //defined(__AVX2__)
 // Load 0..7 floats to YMM register from memory
 // NOTE: elements of YMM are permuted [ 4 2 - 1 ]
 static inline __m256 LoadPartialYmm(float *pSrc, mfxI32 len)
@@ -143,7 +143,7 @@ static inline __m128i LoadPartialXmm(unsigned char *pSrc, mfxI32 len)
     return xmm;
 }
 
-#if defined(__AVX2__)
+#if 0 //defined(__AVX2__)
 // Load 0..31 bytes to YMM register from memory
 // NOTE: elements of YMM are permuted [ 16 8 4 2 - 1 ]
 template <char init>
