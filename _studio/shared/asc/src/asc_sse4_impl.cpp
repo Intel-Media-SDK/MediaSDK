@@ -1,5 +1,5 @@
 /*//////////////////////////////////////////////////////////////////////////////
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,6 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 */
+
+#if defined(__SSE4_1__) || defined(_WIN32)
+
 #include "asc_sse4_impl.h"
 
 void ME_SAD_8x8_Block_Search_SSE4(mfxU8 *pSrc, mfxU8 *pRef, int pitch, int xrange, int yrange,
@@ -477,3 +480,4 @@ mfxI16 AvgLumaCalc_SSE4(pmfxU32 pAvgLineVal, int len) {
     return avgVal;
 }
 
+#endif // __SSE4_1__ || _WIN32
