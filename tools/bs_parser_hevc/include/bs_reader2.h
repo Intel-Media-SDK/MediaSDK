@@ -190,7 +190,7 @@ public:
     { for (Bs32u _i = 0; _i < (Bs32u)(sz); _i++) (var)[_i] = (val); }
 #define BS2_TRACE_ARR_VF(val, var, sz, split, format) \
     { for (Bs32u _i = 0; _i < (Bs32u)(sz); _i++) (void)(val); }
-#define BS2_TRACE_MDARR(type, arr, dim, split, split2, format) {std::ignore = (arr);}
+#define BS2_TRACE_MDARR(type, arr, dim, split, split2, format) { (void)(arr);}
 #define BS2_SET_ARR_M(val, var, sz, split, format, map) BS2_SET_ARR_F(val, var, sz, split, format)
 #define BS2_SETM(val, var, map) BS2_SET(val, var)
 #define BS2_TRACE_BIN(pval, off, sz, var) { (void)(pval); }
