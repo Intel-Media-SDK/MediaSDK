@@ -392,9 +392,9 @@ static bool FillCUQPDataVA(
     if (bInvalid)
         return false;
 
-    for (mfxU32 i = 0; i < cuqpMap.m_height; i++)
+    for (mfxU32 i = 0; i < cuqpMap.m_h_aligned; i++)
     {
-        for (mfxU32 j = 0; j < cuqpMap.m_width; j++)
+        for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
         {
             mfxU32 y = i * drBlkH / inBlkSize;
             mfxU32 x = j * drBlkW / inBlkSize;
