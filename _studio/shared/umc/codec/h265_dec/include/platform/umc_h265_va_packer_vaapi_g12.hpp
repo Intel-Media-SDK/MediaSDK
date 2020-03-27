@@ -165,7 +165,7 @@ namespace UMC_HEVC_DECODER
                     sp->entry_offset_to_subset_array   = p.first;
                 }
 
-                if (last_slice)
+                if (last_slice && pps->tiles_enabled_flag)
                     PackSubsets(slice->GetCurrentFrame());
                 return sp_base;
             }
