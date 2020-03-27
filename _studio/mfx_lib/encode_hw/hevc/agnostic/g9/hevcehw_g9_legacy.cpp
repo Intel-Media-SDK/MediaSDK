@@ -4390,8 +4390,8 @@ mfxStatus Legacy::CheckTiles(
         // TODO: replace indirect NumScalablePipesMinus1 by platform
         SetIf(minTileHeight, defPar.caps.NumScalablePipesMinus1 > 0 && IsOn(par.mfx.LowPower), 128);
 
-        mfxU16 maxCol = std::max<mfxU16>(1, std::min<mfxU16>(MaxTileColumns, mfxU16(defPar.base.GetCodedPicWidth(defPar) / minTileWidth)));
-        mfxU16 maxRow = std::max<mfxU16>(1, std::min<mfxU16>(MaxTileRows, mfxU16(defPar.base.GetCodedPicHeight(defPar) / minTileHeight)));
+        mfxU16 maxCol = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicWidth(defPar) / minTileWidth));
+        mfxU16 maxRow = std::max<mfxU16>(1, mfxU16(defPar.base.GetCodedPicHeight(defPar) / minTileHeight));
 
         changed += CheckMaxOrClip(pTile->NumTileColumns, maxCol);
         changed += CheckMaxOrClip(pTile->NumTileRows, maxRow);
@@ -4407,8 +4407,8 @@ mfxStatus Legacy::CheckTiles(
         changed += bForce1Row && CheckMaxOrClip(pTile->NumTileRows, 1);
     }
 
-    MFX_CHECK(!CheckMaxOrZero(pTile->NumTileColumns, MaxTileColumns), MFX_ERR_UNSUPPORTED);
-    MFX_CHECK(!CheckMaxOrZero(pTile->NumTileRows, MaxTileRows), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(!CheckMaxOrClip(pTile->NumTileColumns, MaxTileColumns), MFX_ERR_UNSUPPORTED);
+    MFX_CHECK(!CheckMaxOrClip(pTile->NumTileRows, MaxTileRows), MFX_ERR_UNSUPPORTED);
 
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
