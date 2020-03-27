@@ -2733,7 +2733,19 @@ void Legacy::InitDPB(
         task.POC > task.PrevRAP
         && prevTask.POC <= prevTask.PrevRAP;
 
-    if (b1stTrail)
+    if ((task.IRState.refrType && !task.IRState.firstFrameInCycle) // IntRefCycle
+        || (!task.IRState.refrType && prevTask.IRState.refrType)) // First frame after IntRefCycle
+    {
+        Remove(task.DPB.Active, 0, MAX_DPB_SIZE);
+
+        for (mfxU8 i = 0; !isDpbEnd(prevTask.DPB.After, i); i++)
+        {
+            const DpbFrame& ref = prevTask.DPB.After[i]; // initial POC = -1
+            if (ref.POC > task.DPB.Active[0].POC) // disable multiref within IntraRefCycle and next frame
+                task.DPB.Active[0] = ref;
+        }
+    }
+    else if (b1stTrail)
     {
         Remove(task.DPB.Active, 0, MAX_DPB_SIZE);
 
