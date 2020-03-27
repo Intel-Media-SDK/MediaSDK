@@ -317,6 +317,41 @@ mfxStatus SetFrameRate(
     return MFX_ERR_NONE;
 }
 
+static mfxStatus SetMaxSliceSize(
+    const UINT   userMaxSliceSize,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & maxSliceSizeBuf_id)
+{
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, maxSliceSizeBuf_id);
+    MFX_CHECK_STS(sts);
+
+    VAStatus vaSts = vaCreateBuffer(vaDisplay,
+                   vaContextEncode,
+                   VAEncMiscParameterBufferType,
+                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterMaxSliceSize),
+                   1,
+                   nullptr,
+                   &maxSliceSizeBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    VAEncMiscParameterBuffer *misc_param;
+    vaSts = vaMapBuffer(vaDisplay,
+                 maxSliceSizeBuf_id,
+                (void **)&misc_param);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    misc_param->type = VAEncMiscParameterTypeMaxSliceSize;
+    auto maxSliceSize_param = reinterpret_cast<VAEncMiscParameterMaxSliceSize *>(misc_param->data);
+
+    maxSliceSize_param->max_slice_size = userMaxSliceSize;
+
+    vaSts = vaUnmapBuffer(vaDisplay, maxSliceSizeBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    return MFX_ERR_NONE;
+}
+
 static mfxStatus SetMaxFrameSize(
     const UINT   userMaxFrameSize,
     VADisplay    vaDisplay,
@@ -1291,6 +1326,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_rirId(VA_INVALID_ID)
     , m_qualityParamsId(VA_INVALID_ID)
     , m_miscParameterSkipBufferId(VA_INVALID_ID)
+    , m_maxSliceSizeId(VA_INVALID_ID)
 #if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
     , m_roundingOffsetId(VA_INVALID_ID)
 #endif
@@ -1536,6 +1572,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         const auto sliceCapabilities = AV(VAConfigAttribEncSliceStructure);
         const auto sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
         m_caps.ddi_caps.SliceStructure = ConvertSliceStructureVAAPIToMFX(sliceStructure);
+        m_caps.ddi_caps.SliceLevelRateCtrl = sliceCapabilities & VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE ? 1 : 0;
     }
     else
     {
@@ -1809,6 +1846,11 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelId),            MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(par, m_vaDisplay, m_vaContextEncode, m_qualityParamsId),                MFX_ERR_DEVICE_FAILED);
 
+    if (extOpt2->MaxSliceSize != 0)
+    {
+        mfxStatus sts = SetMaxSliceSize(extOpt2->MaxSliceSize, m_vaDisplay, m_vaContextEncode, m_maxSliceSizeId);
+        MFX_CHECK_WITH_ASSERT(sts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+    }
 
     FillConstPartOfPps(par, m_pps);
 
@@ -1869,6 +1911,12 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelId),                                      MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(par, m_vaDisplay, m_vaContextEncode, m_qualityParamsId),                                    MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetBrcResetRequired(m_vaDisplay, m_rateParamBufferId, isBrcResetRequired),                                   MFX_ERR_DEVICE_FAILED);
+
+    if (extOpt2->MaxSliceSize != 0)
+    {
+        mfxStatus sts = SetMaxSliceSize(extOpt2->MaxSliceSize, m_vaDisplay, m_vaContextEncode, m_maxSliceSizeId);
+        MFX_CHECK_WITH_ASSERT(sts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+    }
 
     FillConstPartOfPps(par, m_pps);
 
@@ -2789,6 +2837,10 @@ mfxStatus VAAPIEncoder::Execute(
     configBuffers.push_back(m_frameRateId);
     configBuffers.push_back(m_qualityLevelId);
 
+    mfxExtCodingOption2 const *extOpt2 = GetExtBuffer(m_videoParam);
+    if (extOpt2 && extOpt2->MaxSliceSize != 0)
+        configBuffers.push_back(m_maxSliceSizeId);
+
 /*
  * Limit frame size by application/user level
  */
@@ -3373,6 +3425,8 @@ mfxStatus VAAPIEncoder::Destroy()
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_qualityParamsId);
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParameterSkipBufferId);
+    MFX_CHECK_STS(mfxSts);
+    mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_maxSliceSizeId);
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_roiBufferId);
     MFX_CHECK_STS(mfxSts);

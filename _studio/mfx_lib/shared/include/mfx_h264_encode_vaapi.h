@@ -229,6 +229,7 @@ namespace MfxHwH264Encode
         VABufferID m_rirId;                     // VAEncMiscParameterRIR
         VABufferID m_qualityParamsId;           // VAEncMiscParameterEncQuality
         VABufferID m_miscParameterSkipBufferId; // VAEncMiscParameterSkipFrame
+        VABufferID m_maxSliceSizeId;            // VAEncMiscParameterMaxSliceSize
 #if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
         VABufferID m_roundingOffsetId;          // VAEncMiscParameterCustomRoundingControl
 #endif
