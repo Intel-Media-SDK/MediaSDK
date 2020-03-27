@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -229,6 +229,7 @@ namespace MfxHwH264Encode
         VABufferID m_rirId;                     // VAEncMiscParameterRIR
         VABufferID m_qualityParamsId;           // VAEncMiscParameterEncQuality
         VABufferID m_miscParameterSkipBufferId; // VAEncMiscParameterSkipFrame
+        VABufferID m_maxSliceSizeId;            // VAEncMiscParameterMaxSliceSize
 #if defined (MFX_ENABLE_H264_ROUNDING_OFFSET)
         VABufferID m_roundingOffsetId;          // VAEncMiscParameterCustomRoundingControl
 #endif
