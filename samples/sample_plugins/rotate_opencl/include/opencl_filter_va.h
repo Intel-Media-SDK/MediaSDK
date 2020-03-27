@@ -21,19 +21,11 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #if !defined(_WIN32) && !defined(_WIN64)
 
-#include "logger.h"
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-
 #include <va/va.h>
 
-#define DCL_USE_DEPRECATED_OPENCL_1_1_APIS
-#include <CL/cl.h>
-#include <CL/opencl.h>
 #include <CL/cl_va_api_media_sharing_intel.h>
-
 #include "opencl_filter.h"
+
 
 class OpenCLFilterVA : public OpenCLFilterBase
 {

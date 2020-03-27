@@ -21,12 +21,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #if defined(_WIN32) || defined(_WIN64)
 
-#include <fstream>
-
 #include "opencl_filter_dx11.h"
 #include "sample_defs.h"
-
-#include "stdexcept"
 
 // INTEL DX9 sharing functions declared deprecated in OpenCL 1.2
 #pragma warning( disable : 4996 )
@@ -36,37 +32,25 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define DX_MEDIA_SHARING
 #define CL_DX9_MEDIA_SHARING_INTEL_EXT
 
-#include <CL/opencl.h>
+#include <CL/cl_ext.h>
 #include <CL/cl_d3d11.h>
 
 using std::endl;
 
-#define INIT_CL_EXT_FUNC(x)    x = (x ## _fn)clGetExtensionFunctionAddress(#x);
 #define SAFE_OCL_FREE(P, FREE_FUNC)  { if (P) { FREE_FUNC(P); P = NULL; } }
 
 #define MAX_PLATFORMS       32
 #define MAX_STRING_SIZE     1024
 
-#define EXT_DECLARE(_name) _name##_fn _name
-#define EXT_INIT(_p, _name) _name = (_name##_fn) clGetExtensionFunctionAddressForPlatform((_p), #_name); res &= (_name != NULL);
-
-
-EXT_DECLARE(clGetDeviceIDsFromD3D11KHR);
-EXT_DECLARE(clCreateFromD3D11Texture2DKHR);
-EXT_DECLARE(clEnqueueAcquireD3D11ObjectsKHR);
-EXT_DECLARE(clEnqueueReleaseD3D11ObjectsKHR);
-inline int InitD11SharingFunctions(cl_platform_id platform) // get DX11 sharing functions
-{
-    bool res = true;
-    EXT_INIT(platform,clGetDeviceIDsFromD3D11KHR);
-    EXT_INIT(platform,clCreateFromD3D11Texture2DKHR);
-    EXT_INIT(platform,clEnqueueAcquireD3D11ObjectsKHR);
-    EXT_INIT(platform,clEnqueueReleaseD3D11ObjectsKHR);
-    return res;
-}
+DECL_CL_EXT_FUNC(clGetDeviceIDsFromD3D11KHR);
+DECL_CL_EXT_FUNC(clCreateFromD3D11Texture2DKHR);
+DECL_CL_EXT_FUNC(clEnqueueAcquireD3D11ObjectsKHR);
+DECL_CL_EXT_FUNC(clEnqueueReleaseD3D11ObjectsKHR);
 
 OpenCLFilterDX11::OpenCLFilterDX11() : m_pDevice(0)
 {
+    m_requiredOclExtensions.push_back("cl_khr_d3d11_sharing");
+
     for (int i = 0; i<c_shared_surfaces_num; i++)
         m_pSharedSurfaces[i] = 0;
 }
@@ -92,9 +76,16 @@ cl_int OpenCLFilterDX11::OCLInit(mfxHDL device) {
 
 
 cl_int OpenCLFilterDX11::InitSurfaceSharingExtension() {
-    if (InitD11SharingFunctions(m_clplatform))
-        return CL_SUCCESS;
-    return CL_INVALID_VALUE;
+    if(!INIT_CL_EXT_FUNC(m_clplatform,clGetDeviceIDsFromD3D11KHR)
+        || !INIT_CL_EXT_FUNC(m_clplatform,clCreateFromD3D11Texture2DKHR)
+        || !INIT_CL_EXT_FUNC(m_clplatform,clEnqueueAcquireD3D11ObjectsKHR)
+        || !INIT_CL_EXT_FUNC(m_clplatform,clEnqueueReleaseD3D11ObjectsKHR))
+    {
+        log.error() << "OpenCLFilter: Couldn't get all of the media sharing routines" << endl;
+        return CL_INVALID_PLATFORM;
+    }
+
+    return CL_SUCCESS;
 }
 
 cl_int OpenCLFilterDX11::InitDevice() {

@@ -41,11 +41,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 //#define _interlockedbittestandset64    fake_set64
 //#define _interlockedbittestandreset64  fake_reset64
 
-#if !defined(_WIN32) && !defined(_WIN64)
-#include <va/va.h>
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS 1
-#endif
-
 #undef CL_VERSION_1_2
 #include "CL/cl.hpp"
 #undef _interlockedbittestandset

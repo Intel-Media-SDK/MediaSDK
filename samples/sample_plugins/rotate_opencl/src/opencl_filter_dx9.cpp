@@ -31,19 +31,20 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #define DX_MEDIA_SHARING
 #define CL_DX9_MEDIA_SHARING_INTEL_EXT
 
-#include <CL/opencl.h>
+#include <CL/cl_ext.h>
 #include <CL/cl_dx9_media_sharing.h>
 
 using std::endl;
 
-
-clGetDeviceIDsFromDX9INTEL_fn            clGetDeviceIDsFromDX9INTEL             = NULL;
-clCreateFromDX9MediaSurfaceINTEL_fn      clCreateFromDX9MediaSurfaceINTEL       = NULL;
-clEnqueueAcquireDX9ObjectsINTEL_fn       clEnqueueAcquireDX9ObjectsINTEL        = NULL;
-clEnqueueReleaseDX9ObjectsINTEL_fn       clEnqueueReleaseDX9ObjectsINTEL        = NULL;
+DECL_CL_EXT_FUNC(clGetDeviceIDsFromDX9INTEL);
+DECL_CL_EXT_FUNC(clCreateFromDX9MediaSurfaceINTEL);
+DECL_CL_EXT_FUNC(clEnqueueAcquireDX9ObjectsINTEL);
+DECL_CL_EXT_FUNC(clEnqueueReleaseDX9ObjectsINTEL);
 
 OpenCLFilterDX9::OpenCLFilterDX9()
 {
+    m_requiredOclExtensions.push_back("cl_intel_dx9_media_sharing");
+
     for(size_t i=0;i<c_shared_surfaces_num;i++)
     {
         m_hSharedSurfaces[i] = NULL;
@@ -76,37 +77,17 @@ cl_int OpenCLFilterDX9::OCLInit(mfxHDL device)
 
 cl_int OpenCLFilterDX9::InitSurfaceSharingExtension()
 {
-    cl_int error = CL_SUCCESS;
-
-    // Check if surface sharing is available
-    size_t  len = 0;
-    const size_t max_string_size = 1024;
-    char extensions[max_string_size];
-    error = clGetPlatformInfo(m_clplatform, CL_PLATFORM_EXTENSIONS, max_string_size, extensions, &len);
-    log.info() << "OpenCLFilter: Platform extensions: " << extensions << endl;
-    if(NULL == strstr(extensions, "cl_intel_dx9_media_sharing"))
-    {
-        log.error() << "OpenCLFilter: DX9 media sharing not available!" << endl;
-        return CL_INVALID_PLATFORM;
-    }
-
     // Hook up the d3d sharing extension functions that we need
-    INIT_CL_EXT_FUNC(clGetDeviceIDsFromDX9INTEL);
-    INIT_CL_EXT_FUNC(clCreateFromDX9MediaSurfaceINTEL);
-    INIT_CL_EXT_FUNC(clEnqueueAcquireDX9ObjectsINTEL);
-    INIT_CL_EXT_FUNC(clEnqueueReleaseDX9ObjectsINTEL);
-
-    // Check for success
-    if (!clGetDeviceIDsFromDX9INTEL ||
-        !clCreateFromDX9MediaSurfaceINTEL ||
-        !clEnqueueAcquireDX9ObjectsINTEL ||
-        !clEnqueueReleaseDX9ObjectsINTEL)
+    if(!INIT_CL_EXT_FUNC(m_clplatform, clGetDeviceIDsFromDX9INTEL)
+        || !INIT_CL_EXT_FUNC(m_clplatform, clCreateFromDX9MediaSurfaceINTEL)
+        || !INIT_CL_EXT_FUNC(m_clplatform, clEnqueueAcquireDX9ObjectsINTEL)
+        || !INIT_CL_EXT_FUNC(m_clplatform, clEnqueueReleaseDX9ObjectsINTEL))
     {
         log.error() << "OpenCLFilter: Couldn't get all of the media sharing routines" << endl;
         return CL_INVALID_PLATFORM;
     }
 
-    return error;
+    return CL_SUCCESS;
 }
 
 cl_int OpenCLFilterDX9::InitDevice()

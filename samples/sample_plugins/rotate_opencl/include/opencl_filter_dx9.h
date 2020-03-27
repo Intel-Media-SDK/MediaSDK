@@ -23,7 +23,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include "opencl_filter.h"
 #include "d3d_utils.h"
-#include "d3d_allocator.h"
+
 
 class OpenCLFilterDX9 : public OpenCLFilterBase
 {
