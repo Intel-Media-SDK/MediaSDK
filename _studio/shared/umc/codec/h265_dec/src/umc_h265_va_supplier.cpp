@@ -174,7 +174,7 @@ UMC::Status VATaskSupplier::AllocateFrameData(H265DecoderFrame * pFrame, mfxSize
 H265Slice * VATaskSupplier::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
 {
     size_t dataSize = nalUnit->GetDataSize();
-    nalUnit->SetDataSize(std::min<size_t>(2560, dataSize));
+    nalUnit->SetDataSize(std::min<size_t>(SliceHeaderSize, dataSize));
 
     H265Slice * slice = TaskSupplier_H265::DecodeSliceHeader(nalUnit);
 
