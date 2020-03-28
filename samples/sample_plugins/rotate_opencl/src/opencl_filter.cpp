@@ -143,11 +143,11 @@ cl_int OpenCLFilterBase::InitPlatform()
         return error;
     }
 
-    for (std::vector<cl_platform_id>::iterator platformIt = platforms.begin(); platformIt != platforms.end(); ++platformIt)
+    for (const auto& platform : platforms)
     {
         cl_uint num_devices = 0;
 
-        error = clGetDeviceIDs(*platformIt, CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
+        error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
         if(error)
         {
             log.warning() << "OpenCLFilter: Couldn't get number of GPU devices for current platform."
@@ -157,7 +157,7 @@ cl_int OpenCLFilterBase::InitPlatform()
 
         std::vector<cl_device_id> devices(num_devices);
 
-        error = clGetDeviceIDs(*platformIt, CL_DEVICE_TYPE_GPU, devices.size(), &devices[0], 0);
+        error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, devices.size(), &devices[0], 0);
         if(error)
         {
             log.error() << "OpenCLFilter: Couldn't get GPU device IDs."
@@ -165,11 +165,11 @@ cl_int OpenCLFilterBase::InitPlatform()
             continue;
         }
 
-        for(std::vector<cl_device_id>::iterator deviceIt = devices.begin(); deviceIt != devices.end(); ++deviceIt)
+        for (const auto& device : devices)
         {
             cl_uint deviceVendorId = 0;
 
-            error = clGetDeviceInfo(*deviceIt, CL_DEVICE_VENDOR_ID, sizeof(deviceVendorId), &deviceVendorId, NULL);
+            error = clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID, sizeof(deviceVendorId), &deviceVendorId, NULL);
 
             if (error)
             {
@@ -184,9 +184,9 @@ cl_int OpenCLFilterBase::InitPlatform()
                 continue;
             }
 
-            size_t extNamesBufferSize = 0;
+            size_t num_extensions = 0;
 
-            error = clGetDeviceInfo(*deviceIt, CL_DEVICE_EXTENSIONS, 0, NULL, &extNamesBufferSize);
+            error = clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, 0, NULL, &num_extensions);
             if(error)
             {
                 log.error() << "OpenCLFilter: Couldn't get the size of string with supported extensions for device."
@@ -194,9 +194,9 @@ cl_int OpenCLFilterBase::InitPlatform()
                 continue;
             }
 
-            std::vector<char> extNamesBuffer(extNamesBufferSize);
+            std::vector<char> extensions(num_extensions);
 
-            error = clGetDeviceInfo(*deviceIt, CL_DEVICE_EXTENSIONS, extNamesBuffer.size(), &extNamesBuffer[0], 0);
+            error = clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, extensions.size(), extensions.data(), 0);
             if(error)
             {
                 log.error() << "OpenCLFilter: Couldn't get supported extensions for device."
@@ -204,25 +204,24 @@ cl_int OpenCLFilterBase::InitPlatform()
                 continue;
             }
 
-            log.debug() << "OpenCLFilter: Supported extensions for device: " << &extNamesBuffer[0] << endl;
+            log.debug() << "OpenCLFilter: Supported extensions for device: " << extensions.data() << endl;
 
             bool isDeviceAppropriate = true;
 
-            for(std::vector<std::string>::iterator extNameIt = m_requiredOclExtensions.begin(); extNameIt != m_requiredOclExtensions.end(); ++extNameIt)
+            for(const auto& extName : m_requiredOclExtensions)
             {
-                isDeviceAppropriate = isDeviceAppropriate && (std::strstr(&extNamesBuffer[0], extNameIt->c_str()) != NULL);
+                isDeviceAppropriate = isDeviceAppropriate && (std::strstr(extensions.data(), extName.c_str()) != NULL);
             }
 
             if(isDeviceAppropriate)
             {
-                m_clplatform = *platformIt;
+                m_clplatform = platform;
                 log.debug() << "OpenCLFilter: Appropriate OCL platform is found." << endl;
-                goto _select_platform_loop_end;
+                return error;
             }
         }
     }
 
-_select_platform_loop_end:
     if (0 == m_clplatform)
     {
         log.error() << "OpenCLFilter: Couldn't find an appropriate OCL platform!" << endl;

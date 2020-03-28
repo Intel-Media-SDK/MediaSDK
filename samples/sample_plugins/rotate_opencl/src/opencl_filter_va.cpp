@@ -22,7 +22,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "opencl_filter_va.h"
 #include "sample_defs.h"
 
-#include <CL/va_ext.h>
+#include <CL/cl_va_api_media_sharing_intel.h>
 
 using std::endl;
 
