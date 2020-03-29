@@ -10,6 +10,7 @@ include_directories (
 
 set( LDFLAGS "${LDFLAGS} -Wl,--version-script=${PLUGINS_COMMON_PATH}/mfx_plugin.map" )
 
+set( CFLAGS "-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" )
 list( APPEND LIBS_VARIANT sample_common )
 list( APPEND sources.plus "${PLUGINS_COMMON_PATH}/mfx_plugin_module.cpp")
 
