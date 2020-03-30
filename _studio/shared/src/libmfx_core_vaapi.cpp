@@ -369,6 +369,10 @@ typedef struct {
     { 0x9A68, MFX_HW_TGL_LP, MFX_GT2 },
     { 0x9A70, MFX_HW_TGL_LP, MFX_GT2 },
     { 0x9A78, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9AC0, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9AC9, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9AD9, MFX_HW_TGL_LP, MFX_GT2 },
+    { 0x9AF8, MFX_HW_TGL_LP, MFX_GT2 },
 
 };
 
