@@ -488,6 +488,13 @@ UMC::Status HeadersAnalyzer::DecodeHeader(UMC::MediaData * data, mfxBitstream *b
     H265SeqParamSet* first_sps = 0;
     notifier0<H265SeqParamSet> sps_guard(&H265Slice::DecrementReference);
 
+#if (MFX_VERSION >= 1025)
+    mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+
+    if (extbuf)
+        data->SetAuxInfo(extbuf, extbuf->BufferSz, extbuf->BufferId);
+#endif
+
     UMC::Status umcRes = UMC::UMC_ERR_NOT_ENOUGH_DATA;
     for ( ; data->GetDataSize() > 3; )
     {
