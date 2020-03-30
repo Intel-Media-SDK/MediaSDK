@@ -853,18 +853,6 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
     else
         m_mfxVideoParams.IOPattern = (mfxU16)(pParams->bUseHWLib ? MFX_IOPATTERN_OUT_VIDEO_MEMORY : MFX_IOPATTERN_OUT_SYSTEM_MEMORY);
 
-    // Only shifted P010 is supported now for video memory
-    if (m_mfxVideoParams.IOPattern != MFX_IOPATTERN_OUT_SYSTEM_MEMORY &&
-        (m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-#endif
-        )
-    )
-    {
-        m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
-    }
-
 #if MFX_VERSION >= 1022
     /* Lets make final decision how to use VPP...*/
     if (!m_bVppIsUsed)
@@ -1139,16 +1127,6 @@ mfxStatus CDecodingPipeline::AllocFrames()
     sts = m_pmfxDEC->Query(&m_mfxVideoParams, &m_mfxVideoParams);
     MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
-
-    // Workaround for VP9 codec
-    if ((m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
-#if (MFX_VERSION >= 1027)
-        || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
-#endif
-        ) && m_mfxVideoParams.mfx.CodecId==MFX_CODEC_VP9)
-    {
-        m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
-    }
 
     // calculate number of surfaces required for decoder
     sts = m_pmfxDEC->QueryIOSurf(&m_mfxVideoParams, &Request);
