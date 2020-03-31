@@ -739,6 +739,27 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             AddPackedHeaderIf(true, pd, par, VAEncPackedHeaderHEVC_Slice);
         });
 
+        if (task.IRState.refrType)
+        {
+            cc.AddPerPicMiscData[VAEncMiscParameterTypeRIR].Push([](
+                VAPacker::CallChains::TAddMiscData::TExt
+                , const StorageR&
+                , const StorageR& s_task
+                , std::list<std::vector<mfxU8>>& data)
+            {
+                auto& vaRIR = AddVaMisc<VAEncMiscParameterRIR>(VAEncMiscParameterTypeRIR, data);
+
+                auto& task = Task::Common::Get(s_task);
+
+                vaRIR.rir_flags.value = task.IRState.refrType;
+                vaRIR.intra_insertion_location = task.IRState.IntraLocation;
+                vaRIR.intra_insert_size = task.IRState.IntraSize;
+                vaRIR.qp_delta_for_inserted_intra = mfxU8(task.IRState.IntRefQPDelta);
+
+                return true;
+            });
+        }
+
         for (auto& AddMisc : cc.AddPerPicMiscData)
         {
             if (AddMisc.second(global, s_task, m_vaPerPicMiscData))
