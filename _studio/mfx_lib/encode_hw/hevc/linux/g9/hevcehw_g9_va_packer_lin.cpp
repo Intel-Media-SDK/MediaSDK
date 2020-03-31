@@ -396,11 +396,8 @@ static bool FillCUQPDataVA(
     {
         for (mfxU32 j = 0; j < cuqpMap.m_pitch; j++)
         {
-            mfxU32 y = i * drBlkH / inBlkSize;
-            mfxU32 x = j * drBlkW / inBlkSize;
-
-            y = (y < inputH) ? y : inputH;
-            x = (x < inputW) ? x : inputW;
+            mfxU32 y = std::min(i * drBlkH/inBlkSize, inputH - 1);
+            mfxU32 x = std::min(j * drBlkW/inBlkSize, inputW - 1);
 
             cuqpMap.m_buffer[i * cuqpMap.m_pitch + j] = mbqp->QP[y * inputW + x];
         }
