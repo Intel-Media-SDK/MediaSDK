@@ -114,7 +114,8 @@ namespace UMC_HEVC_DECODER
             for (uint32_t i = 0; i < count; ++i)
             {
                 auto s = fi->GetSlice(i);
-                assert(s);
+                if (NULL == s)
+                    throw h265_exception(UMC::UMC_ERR_FAILED);
 
                 if (s == slice)
                     break;
@@ -138,7 +139,8 @@ namespace UMC_HEVC_DECODER
             for (uint32_t i = 0; i < count; ++i)
             {
                 auto slice = fi->GetSlice(i);
-                assert(slice);
+                if (NULL == slice)
+                    throw h265_exception(UMC::UMC_ERR_FAILED);
 
                 H265PicParamSet const* pps = slice->GetPicParam();
 
