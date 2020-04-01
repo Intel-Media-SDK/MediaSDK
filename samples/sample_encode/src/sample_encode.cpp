@@ -1566,7 +1566,7 @@ void ModifyParamsUsingPresets(sInputParams& params)
     {
         MODIFY_AND_PRINT_PARAM(params.nBitRate, TargetKbps, params.shouldPrintPresets);
         MODIFY_AND_PRINT_PARAM(params.MaxKbps, MaxKbps, params.shouldPrintPresets);
-        presetParams.BufferSizeInKB = params.nBitRate; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
+        presetParams.BufferSizeInKB = params.nBitRate / 8; // Update bitrate to reflect manually set bitrate. BufferSize should be enough for 1 second of video
         MODIFY_AND_PRINT_PARAM(params.BufferSizeInKB, BufferSizeInKB, params.shouldPrintPresets);
     }
 
