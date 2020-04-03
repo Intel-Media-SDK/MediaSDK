@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -574,7 +574,7 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
         sts = m_pmfxDEC->DecodeFrameAsync(m_pmfxBS, pmfxSurface, &pExtSurface->pSurface, &pExtSurface->Syncp);
 
         if ( (MFX_WRN_DEVICE_BUSY == sts) &&
-             (DevBusyTimer.GetTime() > MSDK_DEVICE_FREE_WAIT_INTERVAL/1000) )
+             (DevBusyTimer.GetTime() > MSDK_WAIT_INTERVAL/1000) )
         {
             msdk_printf(MSDK_STRING("ERROR: Decoder device busy (during long period)\n"));
             return MFX_ERR_DEVICE_FAILED;
@@ -631,7 +631,7 @@ mfxStatus CTranscodingPipeline::DecodeLastFrame(ExtendedSurface *pExtSurface)
         sts = m_pmfxDEC->DecodeFrameAsync(NULL, pmfxSurface, &pExtSurface->pSurface, &pExtSurface->Syncp);
 
         if ( (MFX_WRN_DEVICE_BUSY == sts) &&
-             (DevBusyTimer.GetTime() > MSDK_DEVICE_FREE_WAIT_INTERVAL/1000) )
+             (DevBusyTimer.GetTime() > MSDK_WAIT_INTERVAL/1000) )
         {
             msdk_printf(MSDK_STRING("ERROR: Decoder device busy (during long period)\n"));
             return MFX_ERR_DEVICE_FAILED;
