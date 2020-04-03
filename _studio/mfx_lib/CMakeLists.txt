@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2019 Intel Corporation
+# Copyright (c) 2018-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -127,8 +127,15 @@ foreach( prefix ${MSDK_LIB_ROOT}/shared/src )
   )
 endforeach()
 foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
+
+  add_library(fast_copy_sse4 OBJECT ${prefix}/fast_copy_sse4_impl.cpp)
+  target_compile_options(fast_copy_sse4 PRIVATE -msse4.1)
+  configure_build_variant(fast_copy_sse4 none)
+
   list( APPEND sources
     ${prefix}/cm_mem_copy.cpp
+    ${prefix}/fast_copy_c_impl.cpp
+    ${prefix}/fast_copy.cpp
     ${prefix}/mfx_vpp_vaapi.cpp
     ${prefix}/libmfx_allocator.cpp
     ${prefix}/libmfx_allocator_vaapi.cpp
@@ -140,6 +147,7 @@ foreach( prefix ${MSDK_STUDIO_ROOT}/shared/src )
     ${prefix}/mfx_umc_mjpeg_vpp.cpp
     ${prefix}/mfx_static_assert_structs.cpp
     ${prefix}/mfx_mfe_adapter.cpp
+    $<TARGET_OBJECTS:fast_copy_sse4>
   )
 endforeach()
 
