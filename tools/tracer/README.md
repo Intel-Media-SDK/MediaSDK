@@ -9,13 +9,19 @@ issues.
 
 ## Installation
 
-Generate config file for the tracer:
+Use the following sequence to generate config file for the tracer:
 
+Generate default config file:
 ```
-$INSTALLDIR/bin/mfx-tracer-config --default
-$INSTALLDIR/bin/mfx-tracer-config core.type file
-$INSTALLDIR/bin/mfx-tracer-config core.log ~/mfxtracer.log
-$INSTALLDIR/bin/mfx-tracer-config core.lib $INSTALLDIR/lib/libmfxhw64.so.1.32
+# $INSTALLDIR/bin/mfx-tracer-config --default
+```
+Set trace type:
+```
+# $INSTALLDIR/bin/mfx-tracer-config core.type file
+```
+Set log file:
+```
+# $INSTALLDIR/bin/mfx-tracer-config core.log ~/mfxtracer.log
 ```
 
 Following this procedure you will generate a configuration file called `~/.mfxtracer` and set the tracer to dump
