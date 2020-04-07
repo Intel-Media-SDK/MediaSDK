@@ -56,6 +56,11 @@ set(sources
   "${TRACER_DIR}/wrappers/mfx_video_fei.cpp"
   )
 
+if( NOT DEFINED MFX_MODULES_DIR )
+  set( MFX_MODULES_DIR ${CMAKE_INSTALL_FULL_LIBDIR} )
+endif( )
+add_definitions( -DMFX_MODULES_DIR="${MFX_MODULES_DIR}" )
+
 make_library(mfx-tracer none shared)
 
 set_target_properties( mfx-tracer PROPERTIES LINK_FLAGS

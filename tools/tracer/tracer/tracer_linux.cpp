@@ -32,7 +32,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <dlfcn.h>
 #include "tracer.h"
 
-static const char* g_mfxlib = NULL;
+#if defined(__i386__)
+    #define LIBMFXHW "libmfxhw32.so.1"
+#elif defined(__x86_64__)
+    #define LIBMFXHW "libmfxhw64.so.1"
+#else
+    #error Unsupported architecture
+#endif
+
+static const char* g_mfxlib;
+static const char* g_mfxlib_in_dir;
 
 void __attribute__ ((constructor)) dll_init(void)
 {
@@ -41,16 +50,10 @@ void __attribute__ ((constructor)) dll_init(void)
 
         Log::WriteLog("mfx_tracer: dll_init() +");
 #ifdef ANDROID // temporary hardcode for Android
-        g_mfxlib = "/system/lib/libmfxhw32.so";
+        g_mfxlibs.emplace_back("/system/lib/libmfxhw32.so");
 #else
-        static std::string mfxlib = Config::GetParam("core", "lib");
-        if (mfxlib.empty()) {
-            Log::WriteLog("mfx_tracer: No path to real MediaSDK library is specified in the config file");
-            return;
-        }
-        else {
-            g_mfxlib = mfxlib.c_str();
-        }
+        g_mfxlib = LIBMFXHW;
+        g_mfxlib_in_dir = MFX_MODULES_DIR "/" LIBMFXHW;
 #endif
         Log::WriteLog("mfx_tracer: lib=" + string(g_mfxlib));
         Log::WriteLog("mfx_tracer: dll_init() - \n\n");
@@ -80,13 +83,13 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_MEMORY_ALLOC));
             return MFX_ERR_MEMORY_ALLOC;
         }
-        if (g_mfxlib) {
 #ifdef ANDROID
-            loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL);
+        loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL);
 #else
-            loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
+        loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
+        if(!loader->dlhandle)
+            loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
 #endif
-        }
         if (!loader->dlhandle){
             Log::WriteLog(context.dump("ver", ver));
             Log::WriteLog(context.dump("session", *session));
@@ -100,7 +103,7 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
             proc = (mfxFunctionPointer)dlsym(loader->dlhandle, g_mfxFuncTable[i].name);
             /* NOTE: on Android very first call to dlsym may fail */
             if (!proc) proc = (mfxFunctionPointer)dlsym(loader->dlhandle, g_mfxFuncTable[i].name);
-            //if (!proc) break;
+            if (!proc) break;
             loader->table[i] = proc;
         }
         if (i < eFunctionsNum) {
@@ -191,13 +194,13 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_MEMORY_ALLOC));
             return MFX_ERR_MEMORY_ALLOC;
         }
-        if (g_mfxlib) {
 #ifdef ANDROID
-            loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL);
+        loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL);
 #else
-            loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
+        loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
+        if(!loader->dlhandle)
+            loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
 #endif
-        }
         if (!loader->dlhandle){
             Log::WriteLog(context.dump("par", par));
             Log::WriteLog(context.dump("session", *session));

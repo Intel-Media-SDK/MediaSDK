@@ -56,7 +56,6 @@ int main(int argc, char *argv[])
             "    type      log type (you can use: " LOG_TYPES ")\n"
             "    log       log file to dump trace (if applicable)\n"
             "    level     log level (you can use: " LOG_LEVELS ")\n"
-            "    lib       path to original mfx lib\n"
             "\n"
             "Examples:\n"
             "  mfx-tracer config --default                                # generate default config file\n"
