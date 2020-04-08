@@ -60,8 +60,8 @@ void Linux::Gen9::DirtyRect::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA 
                 We expect here boundaries are already aligned with the BlockSize
                 and Right > Left and Bottom > Top */
                 m_vaDirtyRects.push_back({
-                   int16_t(dirtyRect.Rect[i].Top)
-                   , int16_t(dirtyRect.Rect[i].Left)
+                   int16_t(dirtyRect.Rect[i].Left)
+                   , int16_t(dirtyRect.Rect[i].Top)
                    , uint16_t((dirtyRect.Rect[i].Right - dirtyRect.Rect[i].Left) - (1 << log2blkSize))
                    , uint16_t((dirtyRect.Rect[i].Bottom - dirtyRect.Rect[i].Top) - (1 << log2blkSize))
                 });
