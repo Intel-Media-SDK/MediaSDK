@@ -144,9 +144,6 @@ namespace UMC_HEVC_DECODER
 
                 H265PicParamSet const* pps = slice->GetPicParam();
 
-                if (!pps->tiles_enabled_flag || !pps->entropy_coding_sync_enabled_flag)
-                  return;
-
                 uint32_t tileXIdx = slice->getTileXIdx();
                 uint32_t tileYIdx = slice->getTileYIdx();
 
