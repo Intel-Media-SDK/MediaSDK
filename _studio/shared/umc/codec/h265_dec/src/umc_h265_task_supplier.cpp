@@ -1943,13 +1943,12 @@ H265Slice *TaskSupplier_H265::DecodeSliceHeader(UMC::MediaDataEx *nalUnit)
         //reallocate memory for slice header
         if (NumOfMaxEntryPoints > 512)
         {
-            vm_string_printf(VM_STRING("Re-allocate buffer for slice header!\n"));
-
             //offset_len_minus1[0-31], assume maximum 31[4 bytes]
             int newsize = 1024 + NumOfMaxEntryPoints * 4 + DEFAULT_NU_TAIL_SIZE;
             pSlice->m_source.Allocate(newsize);
 
             //swap buffer again, since buffer is small at first time
+            removed_offsets.clear();
             memCopy.SetData(nalUnit);
             swapper->SwapMemory(&pSlice->m_source, &memCopy, &removed_offsets);
         }
