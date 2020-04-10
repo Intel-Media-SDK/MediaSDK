@@ -391,8 +391,9 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         m_bVppFullColorRange = pParams->bUseFullColorRange;
     }
 
-    m_bVppIsUsed = IsVppRequired(pParams);
-    if (m_bVppIsUsed)
+    bool bResolutionSpecified = pParams->Width || pParams->Height; // potentially VPP can be inserted
+
+    if (bResolutionSpecified)
         m_bDecOutSysmem = pParams->bUseHWLib ? false : true;
     else
         m_bDecOutSysmem = pParams->memType == SYSTEM_MEMORY;
@@ -531,6 +532,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     sts = InitMfxParams(pParams);
     MSDK_CHECK_STATUS(sts, "InitMfxParams failed");
 
+    m_bVppIsUsed = IsVppRequired(pParams);
     if (m_bVppIsUsed)
     {
         m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
