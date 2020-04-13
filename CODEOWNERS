@@ -48,7 +48,7 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 # hevce:
 /_studio/hevce_hw/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com sergey.a.osipov@intel.com
 /_studio/mfx_lib/encode_hw/h265/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com sergey.a.osipov@intel.com
-/_studio/mfx_lib/encode_hw/hevc/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com sergey.a.osipov@intel.com evgeniy.starov@intel.com
+/_studio/mfx_lib/encode_hw/hevc/ @Intel-Media-SDK/mediasdk-admin oleg.nabiullin@intel.com sergey.a.osipov@intel.com
 
 # mjpegd:
 /_studio/mfx_lib/decode/mjpeg/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
