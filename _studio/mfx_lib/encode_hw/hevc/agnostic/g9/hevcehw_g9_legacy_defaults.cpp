@@ -2278,7 +2278,7 @@ public:
 
         changed += bOn && CheckOrZero<mfxU16, 0>(pCO3->WinBRCMaxAvgKbps);
         changed += bOn && CheckOrZero<mfxU16, 0>(pCO3->WinBRCSize);
-        changed += bOn && CheckOrZero<mfxU16, 1, 0>(par.mfx.GopRefDist);
+        changed += bOn && SetIf(par.mfx.GopRefDist, par.mfx.GopRefDist > 1, 1);
 
         MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
         return MFX_ERR_NONE;
