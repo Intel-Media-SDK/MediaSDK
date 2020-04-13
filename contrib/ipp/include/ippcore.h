@@ -80,6 +80,8 @@ IPPAPI( void*, mfxMalloc,  (int length) )
 IPPAPI( void, mfxFree, (void* ptr) )
 
 
+IPPAPI( IppStatus, mfxInit, (void) )
+
 /* ////////////////////////////////////////////////////////////////////////////
 //  Name:       mfxGetMaxCacheSizeB
 //
