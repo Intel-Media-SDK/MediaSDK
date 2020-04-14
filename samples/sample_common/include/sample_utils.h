@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -680,6 +680,8 @@ private:
             MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION,
             MFX_EXTBUFF_FEI_PPS,
             MFX_EXTBUFF_FEI_SPS,
+            MFX_EXTBUFF_LOOKAHEAD_CTRL,
+            MFX_EXTBUFF_LOOKAHEAD_STAT
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),
@@ -1166,7 +1168,6 @@ mfxU16 GetFreeSurfaceIndex(T* pSurfacesPool, mfxU16 nPoolSize)
             }
         }
     }
-
     return MSDK_INVALID_SURF_IDX;
 }
 

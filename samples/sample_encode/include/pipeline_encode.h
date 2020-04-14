@@ -160,6 +160,8 @@ struct sInputParams
 
     mfxU16 TransferMatrix;
 
+    bool bEnableExtLA;
+
     bool enableQSVFF;
 
     bool bSoftRobustFlag;
@@ -232,10 +234,19 @@ struct sInputParams
 
 };
 
+
+struct PreEncAuxBuffer {
+    mfxU16            Locked;
+    mfxENCInput       encInput;
+    mfxENCOutput      encOutput;
+    mfxEncodeCtrlWrap encCtrl;
+};
+
 struct sTask
 {
     mfxBitstreamWrapper mfxBS;
     mfxEncodeCtrlWrap encCtrl;
+    PreEncAuxBuffer*  pAux;
     mfxSyncPoint EncSyncP;
     std::list<mfxSyncPoint> DependentVppTasks;
     CSmplBitstreamWriter *pWriter;
@@ -245,6 +256,13 @@ struct sTask
     mfxStatus Reset();
     mfxStatus Init(mfxU32 nBufferSize, CSmplBitstreamWriter *pWriter = NULL);
     mfxStatus Close();
+};
+
+struct ExtendedSurface
+{
+    mfxFrameSurface1 *pSurface;
+    mfxEncodeCtrl    *pCtrl;
+    mfxSyncPoint      Syncp;
 };
 
 class CEncTaskPool
@@ -315,9 +333,13 @@ protected:
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
     MFXVideoVPP* m_pmfxVPP;
+    MFXVideoENC* m_pmfxPreENC;
 
     MfxVideoParamsWrapper m_mfxEncParams;
     MfxVideoParamsWrapper m_mfxVppParams;
+    MfxVideoParamsWrapper m_mfxPreEncParams;
+
+    std::vector<PreEncAuxBuffer> m_PreEncAuxPool;
 
     mfxU16 m_MVCflags; // MVC codec is in use
 
@@ -325,6 +347,7 @@ protected:
 
     std::unique_ptr<MFXVideoUSER> m_pUserModule;
     std::unique_ptr<MFXPlugin> m_pPlugin;
+    std::unique_ptr<MFXPlugin> m_pPreEncPlugin;
 
     MFXFrameAllocator* m_pMFXAllocator;
     mfxAllocatorParams* m_pmfxAllocatorParams;
@@ -332,12 +355,13 @@ protected:
     mfxU16 m_nPerfOpt; // size of pre-load buffer which used for loop encode
     bool m_bExternalAlloc; // use memory allocator as external for Media SDK
 
-    mfxFrameSurface1* m_pEncSurfaces; // frames array for encoder input (vpp output)
-    mfxFrameSurface1* m_pVppSurfaces; // frames array for vpp input
-    mfxFrameAllocResponse m_EncResponse;  // memory allocation response for encoder
-    mfxFrameAllocResponse m_VppResponse;  // memory allocation response for vpp
+    mfxFrameSurface1* m_pEncSurfaces;       // frames array for encoder input (vpp output)
+    mfxFrameSurface1* m_pVppSurfaces;       // frames array for vpp input
+    mfxFrameAllocResponse m_EncResponse;    // memory allocation response for encoder
+    mfxFrameAllocResponse m_VppResponse;    // memory allocation response for vpp
+    mfxFrameAllocResponse m_PreEncResponse; // memory allocation response for preenc
 
-    std::vector<mfxEncodeCtrlWrap> m_EncCtrls; // controls array for encoder input
+    std::vector<mfxEncodeCtrl> m_EncCtrls; // controls array for encoder input
 
     mfxU32 m_nNumView;
     mfxU32 m_nFramesToProcess; // number of frames to process
@@ -365,6 +389,8 @@ protected:
     bool   m_bCutOutput;
     bool   m_bInsertIDR;
     bool   m_bTimeOutExceed;
+    mfxU16 m_nEncSurfIdx; // index of free surface for encoder input (vpp output)
+    mfxU16 m_nVppSurfIdx; // index of free surface for vpp input
 
     bool   m_bIsFieldSplitting;
     bool   m_bSingleTexture;
@@ -376,6 +402,7 @@ protected:
     mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);
 #endif
     mfxStatus GetImpl(const sInputParams & params, mfxIMPL & impl);
+    virtual mfxStatus InitMfxPreEncParams(sInputParams *pParams);
     virtual mfxStatus InitMfxEncParams(sInputParams *pParams);
     virtual mfxStatus InitMfxVppParams(sInputParams *pParams);
 
@@ -401,7 +428,12 @@ protected:
     virtual mfxStatus AllocateSufficientBuffer(mfxBitstreamWrapper& bs);
     virtual mfxStatus FillBuffers();
     virtual mfxStatus LoadNextFrame(mfxFrameSurface1* pSurf);
-    virtual void LoadNextControl(mfxEncodeCtrlWrap*& pCtrl, mfxU32 encSurfIdx);
+    virtual void LoadNextControl(mfxEncodeCtrl*& pCtrl, mfxU32 encSurfIdx);
+
+    virtual PreEncAuxBuffer* GetFreePreEncAuxBuffer();
+    virtual mfxStatus PreEncOneFrame(const ExtendedSurface& In, ExtendedSurface& Out, sTask*& pTask);
+    virtual mfxStatus VPPOneFrame(const ExtendedSurface& In, ExtendedSurface& Out, const bool& skipFrame);
+    virtual mfxStatus EncodeOneFrame(const ExtendedSurface& In, sTask*& pTask);
 
     virtual mfxStatus GetFreeTask(sTask **ppTask);
     virtual MFXVideoSession& GetFirstSession(){return m_mfxSession;}

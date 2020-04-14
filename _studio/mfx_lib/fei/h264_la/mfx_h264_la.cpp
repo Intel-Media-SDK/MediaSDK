@@ -225,11 +225,10 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
             inPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY,
             MFX_ERR_INVALID_VIDEO_PARAM);
 
-       memset (&out->mfx,0,sizeof(out->mfx));
        out->mfx.CodecId = in->mfx.CodecId ;
        out->mfx.GopPicSize = in->mfx.GopPicSize;
        out->mfx.GopRefDist = in->mfx.GopRefDist;
-       out->mfx.FrameInfo.Width = in->mfx.GopRefDist;;
+       out->mfx.FrameInfo.Width = in->mfx.FrameInfo.Width;
        out->mfx.FrameInfo.Height = in->mfx.FrameInfo.Height;
        out->mfx.TargetUsage = in->mfx.TargetUsage;
 
@@ -483,6 +482,33 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
     mfxFrameAllocRequest request = { };
     request.Info = m_video.mfx.FrameInfo;
 
+    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    {
+        request.Type        = MfxHwH264Encode::MFX_MEMTYPE_D3D_INT;
+        request.NumFrameMin = mfxU16(m_video.mfx.NumRefFrame + m_video.AsyncDepth + (bPyramid ? 2 : 0));
+
+        sts = m_raw.Alloc(m_core, request, true);
+        MFX_CHECK_STS(sts);
+    }
+    else if (m_video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
+    {
+        auto extOpaq = (mfxExtOpaqueSurfaceAlloc *)GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
+        MFX_CHECK_NULL_PTR1(extOpaq);
+
+        request.Type        = extOpaq->In.Type;
+        request.NumFrameMin = extOpaq->In.NumSurface;
+
+        sts = m_opaqResponse.Alloc(m_core, request, extOpaq->In.Surfaces, extOpaq->In.NumSurface);
+        MFX_CHECK_STS(sts);
+
+        if (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)
+        {
+            request.Type        = MfxHwH264Encode::MFX_MEMTYPE_D3D_INT;
+            request.NumFrameMin = extOpaq->In.NumSurface;
+            sts = m_raw.Alloc(m_core, request, true);
+        }
+    }
+
     request.Info.Width  = m_video.calcParam.widthLa / 16 * sizeof(MfxHwH264Encode::LAOutObject);
     request.Info.Height = m_video.calcParam.widthLa/ 16;
     request.Info.FourCC = MFX_FOURCC_P8;
@@ -512,33 +538,6 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
 
         sts = m_rawLa.AllocCmSurfaces(m_cmDevice, request);
         MFX_CHECK_STS(sts);
-    }
-    
-    if (m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
-    {
-        request.Type        = MfxHwH264Encode::MFX_MEMTYPE_D3D_INT;
-        request.NumFrameMin = mfxU16(m_video.mfx.NumRefFrame + m_video.AsyncDepth + (bPyramid ? 2 : 0));
-
-        sts = m_raw.Alloc(m_core, request, true);
-        MFX_CHECK_STS(sts);
-    }
-    else if (m_video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
-    {
-        auto extOpaq = (mfxExtOpaqueSurfaceAlloc *)GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION);
-        MFX_CHECK_NULL_PTR1(extOpaq);
-
-        request.Type        = extOpaq->In.Type;
-        request.NumFrameMin = extOpaq->In.NumSurface;
-
-        sts = m_opaqResponse.Alloc(m_core, request, extOpaq->In.Surfaces, extOpaq->In.NumSurface);
-        MFX_CHECK_STS(sts);
-
-        if (extOpaq->In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)
-        {
-            request.Type        = MfxHwH264Encode::MFX_MEMTYPE_D3D_INT;
-            request.NumFrameMin = extOpaq->In.NumSurface;
-            sts = m_raw.Alloc(m_core, request, true);
-        }
     }
     m_bInit = true;
     return MFX_ERR_NONE;
