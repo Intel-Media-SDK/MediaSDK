@@ -773,7 +773,8 @@ mfxStatus CIVFFrameReader::Init(const msdk_char *strFileName)
     // check header
     MSDK_CHECK_NOT_EQUAL(MFX_MAKEFOURCC('D','K','I','F'), m_hdr.dkif, MFX_ERR_UNSUPPORTED);
     if ((m_hdr.codec_FourCC != MFX_MAKEFOURCC('V','P','8','0')) &&
-        (m_hdr.codec_FourCC != MFX_MAKEFOURCC('V','P','9','0')))
+        (m_hdr.codec_FourCC != MFX_MAKEFOURCC('V','P','9','0')) &&
+        (m_hdr.codec_FourCC != MFX_MAKEFOURCC('A','V','0','1')))
     {
         return MFX_ERR_UNSUPPORTED;
     }
@@ -2204,6 +2205,7 @@ bool IsDecodeCodecSupported(mfxU32 codecFormat)
         case MFX_CODEC_JPEG:
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
+        case MFX_CODEC_AV1:
         break;
     default:
         return false;
@@ -2287,6 +2289,10 @@ mfxStatus StrFormatToCodecFormatFourCC(msdk_char* strInput, mfxU32 &codecFormat)
         else if (0 == msdk_strcmp(strInput, MSDK_STRING("vp9")))
         {
             codecFormat = MFX_CODEC_VP9;
+        }
+        else if (0 == msdk_strcmp(strInput, MSDK_STRING("av1")))
+        {
+            codecFormat = MFX_CODEC_AV1;
         }
         else if ((0 == msdk_strcmp(strInput, MSDK_STRING("raw"))))
         {

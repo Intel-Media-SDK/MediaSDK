@@ -327,7 +327,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
 
         std::unique_ptr<CSmplBitstreamReader> reader;
         std::unique_ptr<CSmplYUVReader> yuvreader;
-        if (m_InputParamsArray[i].DecodeId == MFX_CODEC_VP9)
+        if (m_InputParamsArray[i].DecodeId == MFX_CODEC_VP9 || m_InputParamsArray[i].DecodeId == MFX_CODEC_AV1)
         {
             reader.reset(new CIVFFrameReader());
         }

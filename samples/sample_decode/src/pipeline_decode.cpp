@@ -301,6 +301,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
             break;
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
+        case MFX_CODEC_AV1:
             m_FileReader.reset(new CIVFFrameReader());
             m_bIsCompleteFrame = true;
             m_bPrintLatency = pParams->bCalLat;
@@ -315,6 +316,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         {
         case MFX_CODEC_VP8:
         case MFX_CODEC_VP9:
+        case MFX_CODEC_AV1:
             m_FileReader.reset(new CIVFFrameReader());
             break;
         default:
