@@ -41,7 +41,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   or: %s <codecid> [<options>] -i InputBitstream -o OutputYUVFile\n"), strAppName);
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Supported codecs (<codecid>):\n"));
-    msdk_printf(MSDK_STRING("   <codecid>=h264|mpeg2|vc1|mvc|jpeg|vp9 - built-in Media SDK codecs\n"));
+    msdk_printf(MSDK_STRING("   <codecid>=h264|mpeg2|vc1|mvc|jpeg|vp9|av1 - built-in Media SDK codecs\n"));
     msdk_printf(MSDK_STRING("   <codecid>=h265|vp9|capture            - in-box Media SDK plugins (may require separate downloading and installation)\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Work models:\n"));
@@ -696,7 +696,8 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         MFX_CODEC_VC1     != pParams->videoType &&
         MFX_CODEC_JPEG    != pParams->videoType &&
         MFX_CODEC_VP8     != pParams->videoType &&
-        MFX_CODEC_VP9     != pParams->videoType)
+        MFX_CODEC_VP9     != pParams->videoType &&
+        MFX_CODEC_AV1     != pParams->videoType)
     {
         PrintHelp(strInput[0], MSDK_STRING("Unknown codec"));
         return MFX_ERR_UNSUPPORTED;
