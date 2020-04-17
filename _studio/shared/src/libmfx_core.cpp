@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -790,6 +790,9 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
     case MFX_HW_JSL    : platform->CodeName = MFX_PLATFORM_JASPERLAKE;    break;
     case MFX_HW_EHL    : platform->CodeName = MFX_PLATFORM_ELKHARTLAKE;   break;
     case MFX_HW_TGL_LP : platform->CodeName = MFX_PLATFORM_TIGERLAKE;     break;
+    case MFX_HW_DG1    :
+                         platform->MediaAdapterType = MFX_MEDIA_DISCRETE;
+                         platform->CodeName = MFX_PLATFORM_TIGERLAKE;     break;
 
 #endif
     default:

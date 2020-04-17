@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -911,6 +911,8 @@ mfxStatus _mfxSession_1_10::InitEx(mfxInitParam& par)
     // Linux: By default CM Copy disabled on HW cores so only need to handle explicit ON value
     // Windows: By default CM Copy enabled on HW cores, so only need to handle explicit OFF value
     const bool disableGpuCopy = (m_pCORE->GetVAType() == MFX_HW_VAAPI)
+    // Linux: but relax this for DG1
+                             && (m_pCORE->GetHWType() != MFX_HW_DG1)
         ? (MFX_GPUCOPY_ON != par.GPUCopy)
         : (MFX_GPUCOPY_OFF == par.GPUCopy);
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2007-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -73,6 +73,8 @@ enum eMFXHWType
     MFX_HW_EHL       = 0x1500002,
     
     MFX_HW_TGL_LP    = 0x1600000,
+    MFX_HW_DG1       = 0x1600003,
+
 
 };
 
