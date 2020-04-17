@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#if !defined(_WIN32) && !defined(_WIN64) && !defined(ANDROID)
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "log_syslog.h"
 
@@ -35,4 +35,4 @@ void LogSyslog::WriteLog(const std::string &log)
 
 }
 
-#endif // #if !defined(_WIN32) && !defined(_WIN64) && !defined(ANDROID)
+#endif // #if !defined(_WIN32) && !defined(_WIN64)

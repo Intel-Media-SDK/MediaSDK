@@ -176,7 +176,6 @@
     <ClCompile Include="loggers\log_console.cpp" />
     <ClCompile Include="loggers\log_etw_events.cpp" />
     <ClCompile Include="loggers\log_file.cpp" />
-    <ClCompile Include="loggers\log_logcat.cpp" />
     <ClCompile Include="loggers\log_syslog.cpp" />
     <ClCompile Include="tracer\exports.cpp" />
     <ClCompile Include="tracer\tracer.cpp" />
@@ -198,7 +197,6 @@
     <ClInclude Include="loggers\log_console.h" />
     <ClInclude Include="loggers\log_etw_events.h" />
     <ClInclude Include="loggers\log_file.h" />
-    <ClInclude Include="loggers\log_logcat.h" />
     <ClInclude Include="loggers\log_syslog.h" />
     <ClInclude Include="loggers\thread_info.h" />
     <ClInclude Include="loggers\timer.h" />

@@ -42,8 +42,6 @@ Log::Log()
       ,std::pair<eLogType,ILog*>(LOG_FILE, new LogFile())
 #if defined(_WIN32) || defined(_WIN64)
       ,std::pair<eLogType,ILog*>(LOG_ETW, new LogEtwEvents())
-#elif defined(ANDROID)
-      ,std::pair<eLogType,ILog*>(LOG_LOGCAT, new LogLogcat())
 #else
       ,std::pair<eLogType,ILog*>(LOG_SYSLOG, new LogSyslog())
 #endif
@@ -52,10 +50,6 @@ Log::Log()
     _log = _logmap[LOG_FILE];
 
 
-#if defined(ANDROID)
-    _logmap.insert(std::pair<eLogType,ILog*>(LOG_LOGCAT, new LogLogcat()));
-    _log = _logmap[LOG_CONSOLE];
-#else
     _logmap.insert(std::pair<eLogType,ILog*>(LOG_CONSOLE, new LogConsole()));
     _logmap.insert(std::pair<eLogType,ILog*>(LOG_FILE, new LogFile()));
 #if defined(_WIN32) || defined(_WIN64)
@@ -64,7 +58,6 @@ Log::Log()
     _logmap.insert(std::pair<eLogType,ILog*>(LOG_SYSLOG, new LogSyslog()));
 #endif // _WIN32...
     _log = _logmap[LOG_CONSOLE];
-#endif // ANDROID
 
 }
 

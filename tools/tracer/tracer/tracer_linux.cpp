@@ -49,12 +49,8 @@ void __attribute__ ((constructor)) dll_init(void)
         tracer_init();
 
         Log::WriteLog("mfx_tracer: dll_init() +");
-#ifdef ANDROID // temporary hardcode for Android
-        g_mfxlibs.emplace_back("/system/lib/libmfxhw32.so");
-#else
         g_mfxlib = LIBMFXHW;
         g_mfxlib_in_dir = MFX_MODULES_DIR "/" LIBMFXHW;
-#endif
         Log::WriteLog("mfx_tracer: lib=" + string(g_mfxlib));
         Log::WriteLog("mfx_tracer: dll_init() - \n\n");
     }
@@ -83,13 +79,9 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_MEMORY_ALLOC));
             return MFX_ERR_MEMORY_ALLOC;
         }
-#ifdef ANDROID
-        loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL);
-#else
         loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
         if(!loader->dlhandle)
             loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
-#endif
         if (!loader->dlhandle){
             Log::WriteLog(context.dump("ver", ver));
             Log::WriteLog(context.dump("session", *session));
@@ -101,7 +93,6 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
         mfxFunctionPointer proc;
         for (i = 0; i < eFunctionsNum; ++i) {
             proc = (mfxFunctionPointer)dlsym(loader->dlhandle, g_mfxFuncTable[i].name);
-            /* NOTE: on Android very first call to dlsym may fail */
             if (!proc) proc = (mfxFunctionPointer)dlsym(loader->dlhandle, g_mfxFuncTable[i].name);
             if (!proc) break;
             loader->table[i] = proc;
@@ -194,13 +185,9 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_MEMORY_ALLOC));
             return MFX_ERR_MEMORY_ALLOC;
         }
-#ifdef ANDROID
-        loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL);
-#else
         loader->dlhandle = dlopen(g_mfxlib, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
         if(!loader->dlhandle)
             loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
-#endif
         if (!loader->dlhandle){
             Log::WriteLog(context.dump("par", par));
             Log::WriteLog(context.dump("session", *session));
@@ -212,7 +199,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         mfxFunctionPointer proc;
         for (i = 0; i < eFunctionsNum; ++i) {
             proc = (mfxFunctionPointer)dlsym(loader->dlhandle, g_mfxFuncTable[i].name);
-            /* NOTE: on Android very first call to dlsym may fail */
             if (!proc) proc = (mfxFunctionPointer)dlsym(loader->dlhandle, g_mfxFuncTable[i].name);
             if (!proc) break;
             loader->table[i] = proc;

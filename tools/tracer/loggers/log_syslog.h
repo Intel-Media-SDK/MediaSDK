@@ -20,7 +20,7 @@
 #ifndef LOG_SYSLOG_H_
 #define LOG_SYSLOG_H_
 
-#if !defined(_WIN32) && !defined(_WIN64) && !defined(ANDROID)
+#if !defined(_WIN32) && !defined(_WIN64)
 
 #include "ilog.h"
 
@@ -32,5 +32,5 @@ public:
     virtual void WriteLog(const std::string &log);
 };
 
-#endif // #if !defined(_WIN32) && !defined(_WIN64) && !defined(ANDROID)
+#endif // #if !defined(_WIN32) && !defined(_WIN64)
 #endif // LOGSYSLOG_H_
