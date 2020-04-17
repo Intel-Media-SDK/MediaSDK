@@ -1338,6 +1338,9 @@ CEncodingPipeline::CEncodingPipeline()
     m_bIsFieldSplitting = false;
 
     m_bQPFileMode = false;
+
+    m_nEncSurfIdx = 0;
+    m_nVppSurfIdx = 0;
 }
 
 CEncodingPipeline::~CEncodingPipeline()
