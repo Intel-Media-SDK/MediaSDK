@@ -24,7 +24,6 @@
 #include "log_console.h"
 #include "log_etw_events.h"
 #include "log_file.h"
-#include "log_logcat.h"
 #include "log_syslog.h"
 
 enum eLogType{
@@ -32,8 +31,6 @@ enum eLogType{
     LOG_CONSOLE,
 #if defined(_WIN32) || defined(_WIN64)
     LOG_ETW,
-#elif defined(ANDROID)
-    LOG_LOGCAT,
 #else
     LOG_SYSLOG,
 #endif

@@ -22,10 +22,6 @@
 
 void tracer_init()
 {
-#ifdef ANDROID // temporary hardcode for Android
-    Log::SetLogLevel(LOG_LEVEL_DEFAULT);
-    Log::SetLogType(LOG_LOGCAT);
-#else
     std::string type = Config::GetParam("core", "type");
     if (type == std::string("console")) {
         Log::SetLogType(LOG_CONSOLE);
@@ -50,5 +46,4 @@ void tracer_init()
         // TODO
         Log::SetLogLevel(LOG_LEVEL_FULL);
     }
-#endif
 }
