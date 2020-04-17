@@ -722,9 +722,10 @@ typedef enum _GPU_PLATFORM {
     PLATFORM_INTEL_KBL = 11,  //Kabylake
     PLATFORM_INTEL_GLV = 12,  //Glenview
     PLATFORM_INTEL_ICLLP = 13, //IcelakeLP
-    PLATFORM_INTEL_TGLLP = 15,  //TigerLakeLP
-    PLATFORM_INTEL_GLK = 16,   //GeminiLake
-    PLATFORM_INTEL_CFL = 17  //CofeeLake
+    PLATFORM_INTEL_TGLLP = 15,//TigerLakeLP
+    PLATFORM_INTEL_GLK = 16,  //GeminiLake
+    PLATFORM_INTEL_CFL = 17,  //CofeeLake
+    PLATFORM_INTEL_DG1 = 20,  //DG1
 } GPU_PLATFORM;
 
 //Time in seconds before kernel should timeout
