@@ -656,6 +656,16 @@ UMC::Status H265Slice::UpdateReferenceList(H265DBPList *pDecoderFrameList, H265D
     return ps;
 } // Status H265Slice::UpdateRefPicList(H265DBPList *pDecoderFrameList)
 
+bool H265Slice::GetRapPicFlag() const
+{
+    return GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_IDR_W_RADL
+        || GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_IDR_N_LP
+        || GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_BLA_N_LP
+        || GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_RADL
+        || GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_LP
+        || GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_CRA;
+}
+
 // RPS data structure constructor
 ReferencePictureSet::ReferencePictureSet()
 {

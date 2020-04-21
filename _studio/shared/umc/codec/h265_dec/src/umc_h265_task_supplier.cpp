@@ -623,6 +623,7 @@ TaskSupplier_H265::TaskSupplier_H265()
     , m_use_external_framerate(false)
     , m_decodedOrder(false)
     , m_checkCRAInsideResetProcess(false)
+    , m_bFirstSliceInSequence(true)
     , m_pLastSlice(0)
     , m_pLastDisplayed(0)
     , m_pMemoryAllocator(0)
@@ -2099,21 +2100,15 @@ void TaskSupplier_H265::ActivateHeaders(H265SeqParamSet *sps, H265PicParamSet *p
 // Calculate NoRaslOutputFlag flag for specified slice
 void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
 {
-    if (pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_IDR_W_RADL
-        || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_IDR_N_LP
-        || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_CRA
-        || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_LP
-        || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_RADL
-        || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_N_LP)
-    {
-        if (pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_LP
-            || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_W_RADL
-            || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_BLA_N_LP)
-            NoRaslOutputFlag = 1;
+    uint8_t no_output_of_prior_pics_flag = pSlice->GetSliceHeader()->no_output_of_prior_pics_flag;
 
-        if (pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_IDR_W_RADL || pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_IDR_N_LP)
+    if (pSlice->GetRapPicFlag())
+    {
+        if ((pSlice->GetSliceHeader()->nal_unit_type >= NAL_UT_CODED_SLICE_BLA_W_LP &&
+             pSlice->GetSliceHeader()->nal_unit_type <= NAL_UT_CODED_SLICE_IDR_N_LP) ||
+            (pSlice->GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_CRA && m_bFirstSliceInSequence))
         {
-            NoRaslOutputFlag = 0;
+            NoRaslOutputFlag = true;
         }
 
         if (pSlice->m_SliceHeader.nal_unit_type == NAL_UT_CODED_SLICE_CRA && m_IRAPType != NAL_UT_INVALID)
@@ -2126,32 +2121,32 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
             m_RA_POC = pSlice->m_SliceHeader.slice_pic_order_cnt_lsb;
         }
 
+        //the inference for NoOutputPriorPicsFlag
+        if (!m_bFirstSliceInSequence && NoRaslOutputFlag)
+        {
+            if (pSlice->GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_CRA)
+            {
+                no_output_of_prior_pics_flag = true;
+            }
+        }
+        else
+        {
+            no_output_of_prior_pics_flag = false;
+        }
+
         m_IRAPType = pSlice->m_SliceHeader.nal_unit_type;
     }
 
-    if ((pSlice->GetSliceHeader()->nal_unit_type == NAL_UT_CODED_SLICE_CRA && NoRaslOutputFlag) ||
-        pSlice->GetSliceHeader()->no_output_of_prior_pics_flag)
+    m_bFirstSliceInSequence = false;
+
+    //Check NoOutputPriorPics
+    if (pSlice->GetRapPicFlag() && no_output_of_prior_pics_flag)
     {
-        int32_t minRefPicResetCount = 0xff; // because it is possible that there is no frames with RefPicListResetCount() equals 0 (after EOS!!)
-        for (H265DecoderFrame *pCurr = GetView()->pDPB->head(); pCurr; pCurr = pCurr->future())
-        {
-            if (pCurr->isDisplayable() && !pCurr->wasOutputted())
-            {
-                minRefPicResetCount = std::min(minRefPicResetCount, pCurr->RefPicListResetCount());
-            }
-        }
 
         for (H265DecoderFrame *pCurr = GetView()->pDPB->head(); pCurr; pCurr = pCurr->future())
         {
-            if (pCurr->RefPicListResetCount() > minRefPicResetCount || pCurr->wasOutputted())
-                continue;
-
-            if (pCurr->isDisplayable())
-            {
-                DEBUG_PRINT((VM_STRING("Skip frame no_output_of_prior_pics_flag - %s\n"), GetFrameInfoString(pCurr)));
-                pCurr->m_pic_output = false;
-                pCurr->SetisDisplayable(false);
-            }
+            pCurr->m_pic_output = false;
+            pCurr->SetisDisplayable(false);
         }
     }
 }
