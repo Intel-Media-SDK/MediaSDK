@@ -1104,7 +1104,7 @@ mfxStatus MFXVideoENCODEMJPEG::Init(mfxVideoParam *par_in)
     mfxStatus st = MFX_ERR_NONE, QueryStatus = MFX_ERR_NONE;
     mfxVideoParam* par = par_in;
 
-    MFX_CHECK(m_isInitialized, MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_CHECK(!m_isInitialized, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK_NULL_PTR1(par);
 
     auto ippSt = mfxInit();
