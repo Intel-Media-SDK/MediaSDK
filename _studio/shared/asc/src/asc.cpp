@@ -220,14 +220,17 @@ ASC_API ASC::ASC()
 
     m_AVX2_available = 0;
     m_SSE4_available = 0;
-    GainOffset = nullptr;
-    RsCsCalc_4x4 = nullptr;
-    RsCsCalc_bound = nullptr;
-    RsCsCalc_diff = nullptr;
-    ImageDiffHistogram = nullptr;
+    m_SSE3_available = 0;
+    GainOffset              = nullptr;
+    RsCsCalc_4x4            = nullptr;
+    RsCsCalc_bound          = nullptr;
+    RsCsCalc_diff           = nullptr;
+    ImageDiffHistogram      = nullptr;
     ME_SAD_8x8_Block_Search = nullptr;
-    Calc_RaCa_pic = nullptr;
-    resizeFunc = nullptr;
+    Calc_RaCa_pic           = nullptr;
+    resizeFunc              = nullptr;
+    ME_SAD_8x8_Block        = nullptr;
+    ME_VAR_8x8_Block        = nullptr;
 }
 
 void ASC::Setup_Environment() {
@@ -680,6 +683,13 @@ ASC_API mfxStatus ASC::Init(mfxI32 Width, mfxI32 Height, mfxI32 Pitch, mfxU32 Pi
 
     m_AVX2_available = CpuFeature_AVX2();
     m_SSE4_available = CpuFeature_SSE41();
+    m_SSE3_available = CpuFeature_SSE3();
+
+    if (!m_SSE3_available)
+        return MFX_ERR_UNSUPPORTED;
+
+    ME_SAD_8x8_Block    = ME_SAD_8x8_Block_SSE3;
+    ME_VAR_8x8_Block    = ME_VAR_8x8_Block_SSE3;
 
     ASC_CPU_DISP_INIT_C(GainOffset);
     ASC_CPU_DISP_INIT_SSE4_C(RsCsCalc_4x4);
@@ -1009,7 +1019,7 @@ void ASC::MotionAnalysis(ASCVidSample *videoIn, ASCVidSample *videoRef, mfxU32 *
         mfxU16 prevFPos = i << 4;
         for (mfxU16 j = 0; j < m_dataIn->layer[lyrIdx].Width_in_blocks; j++) {
             mfxU16 fPos = prevFPos + j;
-            acc += ME_simple(m_support, fPos, m_dataIn->layer, &videoIn->layer, referenceImageIn, true, m_dataIn, ME_SAD_8x8_Block_Search);
+            acc += ME_simple(m_support, fPos, m_dataIn->layer, &videoIn->layer, referenceImageIn, true, m_dataIn, ME_SAD_8x8_Block_Search, ME_SAD_8x8_Block, ME_VAR_8x8_Block);
             valb += videoIn->layer.SAD[fPos];
             *MVdiffVal += (videoIn->layer.pInteger[fPos].x - videoRef->layer.pInteger[fPos].x) * (videoIn->layer.pInteger[fPos].x - videoRef->layer.pInteger[fPos].x);
             *MVdiffVal += (videoIn->layer.pInteger[fPos].y - videoRef->layer.pInteger[fPos].y) * (videoIn->layer.pInteger[fPos].y - videoRef->layer.pInteger[fPos].y);
@@ -1802,6 +1812,9 @@ ASC_API mfxI32 ASC::Get_CpuFeature_AVX2() {
 }
 ASC_API mfxI32 ASC::Get_CpuFeature_SSE41() {
     return CpuFeature_SSE41();
+}
+ASC_API mfxI32 ASC::Get_CpuFeature_SSE3() {
+    return CpuFeature_SSE3();
 }
 
 void bufferRotation(void *Buffer1, void *Buffer2) {

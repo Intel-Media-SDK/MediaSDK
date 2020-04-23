@@ -29,6 +29,10 @@
 // 2) each stub configures a function pointer on first call
 //
 
+static inline mfxI32 CpuFeature_SSE3() {
+    return((__builtin_cpu_supports("sse3")));
+}
+
 static inline mfxI32 CpuFeature_SSE41() {
     return((__builtin_cpu_supports("sse4.1")));
 }

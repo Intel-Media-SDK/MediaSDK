@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 
 #include "cpu_detect.h"
 #include "asc_c_impl.h"
+#include "asc_sse3_impl.h"
 #include "asc_sse4_impl.h"
 #include "asc_avx2_impl.h"
 
