@@ -2669,7 +2669,7 @@ public:
         MFX_CHECK(pCO3, MFX_ERR_NONE);
 
         mfxU16 maxDPB = par.mfx.NumRefFrame + 1;
-        SetIf(maxDPB, !maxDPB, defPar.base.GetMaxDPB, defPar);
+        SetIf(maxDPB, !par.mfx.NumRefFrame, defPar.base.GetMaxDPB, defPar);
 
         mfxU16 maxForward = std::min<mfxU16>(defPar.caps.MaxNum_Reference0, maxDPB - 1);
         mfxU16 maxBackward = std::min<mfxU16>(defPar.caps.MaxNum_Reference1, maxDPB - 1);
