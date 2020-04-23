@@ -1,15 +1,15 @@
-// Copyright (c) 2018 Intel Corporation
-//
+// Copyright (c) 2018-2020 Intel Corporation
+// 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-//
+// 
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-//
+// 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -19,7 +19,7 @@
 // SOFTWARE.
 #include "asc_defs.h"
 #include "../include/motion_estimation_engine.h"
-#include "../include/me_asc.h"
+#include "../include/asc_cpu_dispatcher.h"
 #include "../include/asc_structures.h"
 #include <iostream>
 #include <vector>
@@ -45,54 +45,14 @@ void MotionRangeDeliveryF(mfxI16 xLoc, mfxI16 yLoc, mfxI16 *limitXleft, mfxI16 *
     *limitYdown     = (mfxI16)NMIN(7, dataIn.Extended_Height - (((yLoc + 1) * dataIn.block_width) + dataIn.vertical_pad));
 }
 
-bool MVcalcSAD(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
-    mfxU16
-        SAD = 0;
-    mfxI32
-        preDist = (MV.x * MV.x) + (MV.y * MV.y);
-    pmfxU8
-        fRef = refY + MV.x + (MV.y * dataIn.Extended_Width);
-    if(dataIn.block_width == 4 && dataIn.block_height == 4)
-        SAD                    =    ME_SAD_4x4_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    else if(dataIn.block_width == 8 && dataIn.block_height == 8)
-        SAD                    =    ME_SAD_8x8_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    else if(dataIn.block_width == 16 && dataIn.block_height == 8)
-        SAD                    =    ME_SAD_16x8_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    else if(dataIn.block_width == 8 && dataIn.block_height == 16)
-        SAD                    =    ME_SAD_8x16_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    else if(dataIn.block_width == 16 && dataIn.block_height == 16)
-        SAD                    =    ME_SAD_16x16_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    if((SAD < *bestSAD) ||((SAD == *(bestSAD)) && *distance > preDist)) {
-        *distance = preDist;
-        *(bestSAD) = SAD;
-        return true;
-    }
-    return false;
-}
-
-bool MVcalcSAD4x4(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
-    mfxI32
-        preDist = (MV.x * MV.x) + (MV.y * MV.y);
-    pmfxU8
-        fRef = refY + MV.x + (MV.y * dataIn.Extended_Width);
-    mfxU16
-        SAD = ME_SAD_4x4_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    if((SAD < *bestSAD) ||((SAD == *(bestSAD)) && *distance > preDist)) {
-        *distance = preDist;
-        *(bestSAD) = SAD;
-        return true;
-    }
-    return false;
-}
-
-bool MVcalcSAD8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails *dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
+bool MVcalcSAD8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails *dataIn, mfxU16 *bestSAD, mfxI32 *distance, t_ME_SAD_8x8_Block ME_SAD_8x8_opt) {
     mfxI32
         preDist = (MV.x * MV.x) + (MV.y * MV.y),
         _fPos = MV.x + (MV.y * dataIn->Extended_Width);
     pmfxU8
         fRef = &refY[_fPos];
     mfxU16
-        SAD = ME_SAD_8x8_Block(curY, fRef, dataIn->Extended_Width, dataIn->Extended_Width);
+        SAD = ME_SAD_8x8_opt(curY, fRef, dataIn->Extended_Width, dataIn->Extended_Width);
     if((SAD < *bestSAD) || ((SAD == *(bestSAD)) && *distance > preDist)) {
         *distance = preDist;
         *(bestSAD) = SAD;
@@ -101,58 +61,13 @@ bool MVcalcSAD8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails *dataIn,
     return false;
 }
 
-void MVcalcVar8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, mfxI16 curAvg, mfxI16 refAvg, mfxI32 &var, mfxI32 &jtvar, mfxI32 &jtMCvar, ASCImDetails *dataIn) {
+void MVcalcVar8x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, mfxI16 curAvg, mfxI16 refAvg, mfxI32 &var, mfxI32 &jtvar, mfxI32 &jtMCvar, ASCImDetails *dataIn, t_ME_VAR_8x8_Block ME_VAR_8x8_opt) {
     mfxI32
         _fPos = MV.x + (MV.y * dataIn->Extended_Width);
     pmfxU8
         fRef = &refY[_fPos];
 
-    ME_VAR_8x8_Block(curY, refY, fRef, curAvg, refAvg, dataIn->Extended_Width, dataIn->Extended_Width, var, jtvar, jtMCvar);
-}
-
-bool MVcalcSAD16x8(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
-    mfxI32
-        preDist = (MV.x * MV.x) + (MV.y * MV.y);
-    pmfxU8
-        fRef = refY + MV.x + (MV.y * dataIn.Extended_Width);
-    mfxU16
-        SAD = ME_SAD_16x8_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    if((SAD < *bestSAD) || ((SAD == *(bestSAD)) && *distance > preDist)) {
-        *distance = preDist;
-        *(bestSAD) = SAD;
-        return true;
-    }
-    return false;
-}
-
-bool MVcalcSAD8x16(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
-    mfxI32
-        preDist = (MV.x * MV.x) + (MV.y * MV.y);
-    pmfxU8
-        fRef = refY + MV.x + (MV.y * dataIn.Extended_Width);
-    mfxU16
-        SAD = ME_SAD_8x16_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    if((SAD < *bestSAD) || ((SAD == *(bestSAD)) && *distance > preDist)) {
-        *distance = preDist;
-        *(bestSAD) = SAD;
-        return true;
-    }
-    return false;
-}
-
-bool MVcalcSAD16x16(ASCMVector MV, pmfxU8 curY, pmfxU8 refY, ASCImDetails dataIn, mfxU16 *bestSAD, mfxI32 *distance) {
-    mfxI32
-        preDist = (MV.x * MV.x) + (MV.y * MV.y);
-    pmfxU8
-        fRef = refY + MV.x + (MV.y * dataIn.Extended_Width);
-    mfxU16
-        SAD = ME_SAD_16x16_Block(curY, fRef, dataIn.Extended_Width, dataIn.Extended_Width);
-    if((SAD < *bestSAD) || ((SAD == *(bestSAD)) && *distance > preDist)) {
-        *distance = preDist;
-        *(bestSAD) = SAD;
-        return true;
-    }
-    return false;
+    ME_VAR_8x8_opt(curY, refY, fRef, curAvg, refAvg, dataIn->Extended_Width, dataIn->Extended_Width, var, jtvar, jtMCvar);
 }
 
 void SearchLimitsCalcSqr(mfxI16 xLoc, mfxI16 yLoc, mfxI16 *limitXleft, mfxI16 *limitXright, mfxI16 *limitYup, mfxI16 *limitYdown, ASCImDetails *dataIn, mfxI32 range, ASCMVector mv, ASCVidData *limits) {
@@ -224,7 +139,19 @@ void MVpropagationCheck(mfxI32 xLoc, mfxI32 yLoc, ASCImDetails dataIn, ASCMVecto
 
 #define SAD_SEARCH_VSTEP 2  // 1=FS 2=FHS
 
-mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn, ASCimageData *scale, ASCimageData *scaleRef, bool /*first*/, ASCVidData *limits, t_ME_SAD_8x8_Block_Search ME_SAD_8x8_Block_Search) {
+mfxU16 __cdecl ME_simple(
+    ASCVidRead *videoIn,
+    mfxI32                    fPos,
+    ASCImDetails             *dataIn,
+    ASCimageData             *scale,
+    ASCimageData             *scaleRef,
+    bool /*first*/,
+    ASCVidData               *limits,
+    t_ME_SAD_8x8_Block_Search ME_SAD_8x8_Block_Search,
+    t_ME_SAD_8x8_Block        ME_SAD_8x8_opt,
+    t_ME_VAR_8x8_Block        ME_VAR_8x8_opt
+    )
+{
     ASCMVector
         tMV,
         ttMV,
@@ -262,7 +189,7 @@ mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn,
 
     outSAD[fPos] = USHRT_MAX;
 
-    MVcalcSAD8x8(zero, objFrame, refFrame, dataIn, &bestSAD, &distance);
+    MVcalcSAD8x8(zero, objFrame, refFrame, dataIn, &bestSAD, &distance, ME_SAD_8x8_opt);
     current[fPos] = zero;
     outSAD[fPos]  = bestSAD;
     zeroSAD       = bestSAD;
@@ -300,7 +227,7 @@ mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn,
 
         distance = mainDistance;
         if (Nmv.x != zero.x || Nmv.y != zero.y) {
-            foundBetter = MVcalcSAD8x8(Nmv, objFrame, refFrame, dataIn, &bestSAD, &distance);
+            foundBetter = MVcalcSAD8x8(Nmv, objFrame, refFrame, dataIn, &bestSAD, &distance, ME_SAD_8x8_opt);
             if (foundBetter) {
                 current[fPos] = Nmv;
                 outSAD[fPos] = bestSAD;
@@ -342,7 +269,7 @@ mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn,
             if (tMV.x != 0 || tMV.y != 0) {// don't search on center position
                 predMV.x = tMV.x + ttMV.x;
                 predMV.y = tMV.y + ttMV.y;
-                foundBetter = MVcalcSAD8x8(predMV, objFrame, refFrame, dataIn, &bestSAD, &distance);
+                foundBetter = MVcalcSAD8x8(predMV, objFrame, refFrame, dataIn, &bestSAD, &distance, ME_SAD_8x8_opt);
                 if (foundBetter) {
                     current[fPos] = predMV;
                     outSAD[fPos]  = bestSAD;
@@ -353,7 +280,7 @@ mfxU16 __cdecl ME_simple(ASCVidRead *videoIn, mfxI32 fPos, ASCImDetails *dataIn,
         }
     }
     videoIn->average += (current[fPos].x * current[fPos].x) + (current[fPos].y * current[fPos].y);
-    MVcalcVar8x8(current[fPos], objFrame, refFrame, scale->avgval, scaleRef->avgval, scale->var, scale->jtvar, scale->mcjtvar, dataIn);
+    MVcalcVar8x8(current[fPos], objFrame, refFrame, scale->avgval, scaleRef->avgval, scale->var, scale->jtvar, scale->mcjtvar, dataIn, ME_VAR_8x8_opt);
     return(zeroSAD);
 }
 };

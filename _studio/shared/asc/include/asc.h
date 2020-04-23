@@ -37,6 +37,10 @@ typedef void(*t_ME_SAD_8x8_Block_Search)(mfxU8 *pSrc, mfxU8 *pRef, int pitch, in
 typedef void(*t_ME_SAD_8x8_Block_FSearch)(mfxU8 *pSrc, mfxU8 *pRef, int pitch, int xrange, int yrange, mfxU32 *bestSAD, int *bestX, int *bestY);
 typedef mfxStatus(*t_Calc_RaCa_pic)(mfxU8 *pPicY, mfxI32 width, mfxI32 height, mfxI32 pitch, mfxF64 &RsCs);
 
+typedef mfxU16(*t_ME_SAD_8x8_Block)(mfxU8 *pSrc, mfxU8 *pRef, mfxU32 srcPitch, mfxU32 refPitch);
+typedef void  (*t_ME_VAR_8x8_Block)(mfxU8 *pSrc, mfxU8 *pRef, mfxU8 *pMCref, mfxI16 srcAvgVal, mfxI16 refAvgVal, mfxU32 srcPitch, mfxU32 refPitch, mfxI32 &var, mfxI32 &jtvar, mfxI32 &jtMCvar);
+
+
 class ASCimageData {
 public:
     ASC_API ASCimageData();
@@ -183,6 +187,9 @@ private:
     t_ImageDiffHistogram       ImageDiffHistogram;
     t_ME_SAD_8x8_Block_Search  ME_SAD_8x8_Block_Search;
     t_Calc_RaCa_pic            Calc_RaCa_pic;
+    
+    t_ME_SAD_8x8_Block         ME_SAD_8x8_Block;
+    t_ME_VAR_8x8_Block         ME_VAR_8x8_Block;
 
     void SubSample_Point(
         pmfxU8 pSrc, mfxU32 srcWidth, mfxU32 srcHeight, mfxU32 srcPitch,
