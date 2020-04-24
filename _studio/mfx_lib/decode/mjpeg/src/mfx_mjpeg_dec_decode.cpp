@@ -28,7 +28,7 @@
 #include "mfx_common_decode_int.h"
 
 #ifdef MFX_ENABLE_SW_FALLBACK
-#include <ippcore.h> // for mfxInit()
+#include <ippcore.h> // for MfxIppInit()
 #include "mfx_mjpeg_task.h"
 #include "umc_mjpeg_mfx_decode.h"
 #include "mfx_thread_task.h"
@@ -2020,7 +2020,7 @@ VideoDECODEMJPEGBase_SW::VideoDECODEMJPEGBase_SW()
 
 mfxStatus VideoDECODEMJPEGBase_SW::Init(mfxVideoParam *decPar, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxFrameAllocRequest *, bool isUseExternalFrames, VideoCORE *core)
 {
-    auto ippSt = mfxInit();
+    auto ippSt = MfxIppInit();
     MFX_CHECK(ippSt == ippStsNoErr, MFX_ERR_UNSUPPORTED);
 
     UMC::Status umcSts = m_FrameAllocator->InitMfx(0, core, decPar, request, response, isUseExternalFrames, true);
