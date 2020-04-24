@@ -24,7 +24,7 @@
 
 #include <thread> // for thread::hardware_concurrency()
 
-#include <ippcore.h> // for mfxInit()
+#include <ippcore.h> // for MfxIppInit()
 
 #include "mfx_common.h"
 
@@ -1107,7 +1107,7 @@ mfxStatus MFXVideoENCODEMJPEG::Init(mfxVideoParam *par_in)
     MFX_CHECK(!m_isInitialized, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK_NULL_PTR1(par);
 
-    auto ippSt = mfxInit();
+    auto ippSt = MfxIppInit();
     MFX_CHECK(ippSt == ippStsNoErr, MFX_ERR_UNSUPPORTED);
 
     st = CheckExtBuffers(par->ExtParam, par->NumExtParam);
