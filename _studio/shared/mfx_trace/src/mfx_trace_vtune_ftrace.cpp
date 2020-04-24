@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -92,12 +92,10 @@ mfxTraceU32 MFXTraceFtrace_Init()
 
     const char* file_name = get_tracing_file("tracing/trace_marker");
     trace_handle = open(file_name , O_WRONLY);
-    if (trace_handle == -1){
-        // printf("@@@@ Can't open trace file!\n");
+    if (trace_handle == -1)
+    {
         return 1;
     }
-
-    //printf("@@@@ Trace file opened!\n");
     return 0;
 }
 
@@ -142,6 +140,12 @@ mfxTraceU32 MFXTraceFtrace_DebugMessage(mfxTraceStaticHandle* static_handle,
 
 /*------------------------------------------------------------------------------*/
 
+static const int NUMBER_OF_SEPARATORS = 5;
+
+/* This function filters out messages that do not match the following pattern:
+ * A|<action>|<codec>|<type>|<details1>|<details2>
+ * It counts amount of '|' separators.
+ */
 mfxTraceU32 MFXTraceFtrace_vDebugMessage(mfxTraceStaticHandle* //static_handle
     , const char * //file_name
     , mfxTraceU32 //line_num
@@ -160,53 +164,36 @@ mfxTraceU32 MFXTraceFtrace_vDebugMessage(mfxTraceStaticHandle* //static_handle
     if (MFX_TRACE_LEVEL_INTERNAL_VTUNE != level)
         return 0;
 
+    if (!message)
+        return 0;
+
     size_t len = MFX_TRACE_MAX_LINE_LENGTH;
     char str[MFX_TRACE_MAX_LINE_LENGTH] = {0}, *p_str = str;
 
-
-//     if (file_name /*&& !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FILE_NAME)*/)
-//     {
-//         p_str = mfx_trace_sprintf(p_str, len, "%-60s: ", file_name);
-//     }
-//     if (line_num /*&& !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LINE_NUM)*/)
-//     {
-//         p_str = mfx_trace_sprintf(p_str, len, "%4d: ", line_num);
-//     }
-//     if (category /*&& !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_CATEGORY)*/)
-//     {
-//         p_str = mfx_trace_sprintf(p_str, len, "%S: ", category);
-//     }
-//     if (!(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_LEVEL))
-//     {
-//         p_str = mfx_trace_sprintf(p_str, len, "LEV_%d: ", level);
-//     }
-
     p_str = mfx_trace_sprintf(p_str, len, "msdk_v1: ");
-
-//     if (function_name /*&& !(g_PrintfSuppress & MFX_TRACE_TEXTLOG_SUPPRESS_FUNCTION_NAME)*/)
-//     {
-//         p_str = mfx_trace_sprintf(p_str, len, "%-40s: ", function_name);
-//     }
-    if (message)
-    {
-        p_str = mfx_trace_sprintf(p_str, len, "%s", message);
-    }
+    p_str = mfx_trace_sprintf(p_str, len, "%s", message);
     if (format)
     {
         p_str = mfx_trace_vsprintf(p_str, len, format, args);
     }
+    p_str = mfx_trace_sprintf(p_str, len, "\n");
+
+    int separators = 0;
+    for (int i = 0; i < MFX_TRACE_MAX_LINE_LENGTH && str[i]; ++i)
     {
-        p_str = mfx_trace_sprintf(p_str, len, "\n");
+        separators += (str[i] == '|') ? 1 : 0;
+    }
+
+    if (separators != NUMBER_OF_SEPARATORS)
+    {
+        return 0;
     }
 
     int ret_value = 0;
-
     if (write(trace_handle, str, strlen(str)) == -1)
     {
         ret_value = 1;
     }
-
-    // printf("@@@ %s\n", str);
 
     if (fsync(trace_handle) == -1)
     {
@@ -251,7 +238,6 @@ mfxTraceU32 MFXTraceFtrace_EndTask(mfxTraceStaticHandle * //static_handle
     (void)handle;
 
     if (trace_handle == -1) return 1;
-
 
     return 0;
 }
