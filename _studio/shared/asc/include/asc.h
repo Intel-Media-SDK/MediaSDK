@@ -180,6 +180,7 @@ private:
 
     int m_AVX2_available;
     int m_SSE4_available;
+    int m_SSE3_available;
     t_GainOffset               GainOffset;
     t_RsCsCalc                 RsCsCalc_4x4;
     t_RsCsCalc_bound           RsCsCalc_bound;
@@ -316,6 +317,7 @@ public:
 
     ASC_API static mfxI32 Get_CpuFeature_AVX2();
     ASC_API static mfxI32 Get_CpuFeature_SSE41();
+    ASC_API static mfxI32 Get_CpuFeature_SSE3();
 };
 };
 

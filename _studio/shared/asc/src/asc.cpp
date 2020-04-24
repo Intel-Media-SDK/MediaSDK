@@ -220,6 +220,7 @@ ASC_API ASC::ASC()
 
     m_AVX2_available = 0;
     m_SSE4_available = 0;
+    m_SSE3_available = 0;
     GainOffset              = nullptr;
     RsCsCalc_4x4            = nullptr;
     RsCsCalc_bound          = nullptr;
@@ -1810,6 +1811,9 @@ ASC_API mfxI32 ASC::Get_CpuFeature_AVX2() {
 }
 ASC_API mfxI32 ASC::Get_CpuFeature_SSE41() {
     return CpuFeature_SSE41();
+}
+ASC_API mfxI32 ASC::Get_CpuFeature_SSE3() {
+    return CpuFeature_SSE3();
 }
 
 void bufferRotation(void *Buffer1, void *Buffer2) {
