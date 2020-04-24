@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -35,11 +35,6 @@ mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
 {
     MFX_CHECK_NULL_PTR1(core);
 
-    // Should be replaced with once quering capabs as other encoders do
-    // remove this when driver starts returning actual encode caps
-    hwCaps.MaxPicWidth      = 4096;
-    hwCaps.MaxPicHeight     = 4096;
-
     if (core->GetVAType() == MFX_HW_VAAPI && core->GetHWType() < MFX_HW_CHT)
         return MFX_ERR_UNSUPPORTED;
 
@@ -48,6 +43,8 @@ mfxStatus MfxHwMJpegEncode::QueryHwCaps(VideoCORE * core, JpegEncCaps & hwCaps)
     if (ddi.get() == 0)
         return MFX_ERR_NULL_PTR;
 
+    // the device is created just to query caps,
+    // so width/height are insignificant
     mfxStatus sts = ddi->CreateAuxilliaryDevice(core, 640, 480, true);
     MFX_CHECK_STS(sts);
 
