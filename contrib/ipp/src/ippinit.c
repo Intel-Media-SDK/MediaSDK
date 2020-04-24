@@ -21,7 +21,7 @@
 #include "ippcore.h"
 #include "owndefs.h"
 
-IPPFUN( IppStatus, mfxInit, (void) )
+IPPFUN( IppStatus, MfxIppInit, (void) )
 {
     return __builtin_cpu_supports("sse4.2") > 0? ippStsNoErr : ippStsNotSupportedCpu;
 }
