@@ -20,23 +20,7 @@
 
 message( STATUS "Global Configuration of Targets" )
 
-set( T_ARCH "sse4.2" )
-message( STATUS "Target Architecture to compile: ${T_ARCH}" )
-
 append("-std=c++11" CMAKE_CXX_FLAGS)
-
-# SW HEVC decoder & encoder require SSE4.2
-  if (CMAKE_C_COMPILER MATCHES icc)
-    append("-xSSE4.2 -static-intel" CMAKE_C_FLAGS)
-  else()
-    append("-m${T_ARCH}" CMAKE_C_FLAGS)
-  endif()
-
-  if (CMAKE_CXX_COMPILER MATCHES icpc)
-    append("-xSSE4.2 -static-intel" CMAKE_CXX_FLAGS)
-  else()
-    append("-m${T_ARCH}" CMAKE_CXX_FLAGS)
-  endif()
 
 if (ENABLE_TEXTLOG)
   append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_C_FLAGS)
