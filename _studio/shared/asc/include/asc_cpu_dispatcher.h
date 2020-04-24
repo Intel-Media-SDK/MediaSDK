@@ -23,6 +23,7 @@
 
 #include "cpu_detect.h"
 #include "asc_c_impl.h"
+#include "asc_sse3_impl.h"
 #include "asc_sse4_impl.h"
 #include "asc_avx2_impl.h"
 

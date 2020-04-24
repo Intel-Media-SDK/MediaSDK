@@ -36,6 +36,10 @@ add_library(asc_sse4 OBJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_sse4_impl.cpp)
 target_compile_options(asc_sse4 PRIVATE -msse4.1)
 configure_build_variant(asc_sse4 none)
 
+add_library(asc_sse3 OBJECT ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_sse3_impl.cpp)
+target_compile_options(asc_sse3 PRIVATE -msse3)
+configure_build_variant(asc_sse3 none)
+
 list( APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/asc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_c_impl.cpp
@@ -44,6 +48,7 @@ list( APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
     $<TARGET_OBJECTS:asc_avx2>
     $<TARGET_OBJECTS:asc_sse4>
+    $<TARGET_OBJECTS:asc_sse3>
 )
 
 make_library(asc none static )
