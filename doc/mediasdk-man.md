@@ -5692,7 +5692,8 @@ typedef struct {
             mfxU16  SliceGroupsPresent;
             mfxU16  MaxDecFrameBuffering;
             mfxU16  EnableReallocRequest;
-            mfxU16  reserved2[7];
+            mfxU16  IgnoreLevelConstrain;
+            mfxU16  reserved2[6];
         };
         struct {   /* JPEG Decoding Options */
             mfxU16  JPEGChromaFormat;
@@ -5748,6 +5749,7 @@ This structure specifies configurations for decoding, encoding and transcoding p
 `SliceGroupsPresent`    | Nonzero value indicates that slice groups are present in the bitstream. Only AVC decoder uses this field.
 `MaxDecFrameBuffering`  | Nonzero value specifies the maximum required size of the decoded picture buffer in frames for AVC and HEVC decoders.
 `EnableReallocRequest`  | For decoders supporting dynamic resolution change (VP9), set this option to ON to allow `MFXVideoDECODE_DecodeFrameAsync` return [MFX_ERR_REALLOC_SURFACE](#mfxStatus).<br><br>See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. Use [Query](#MFXVideoDECODE_Query) function to check if this feature is supported.
+`IgnoreLevelConstrain`  | If not zero, it forces SDK to attempt to decode bitstream even if a decoder may not support all features associated with given `CodecLevel`. Decoder may produce visual artifacts. Only AVC decoder supports this field.
 
 **Change History**
 
@@ -5767,6 +5769,8 @@ SDK API 1.15 adds `LowPower` field.
 SDK API 1.16 adds `MaxDecFrameBuffering` field.
 
 SDK API 1.19 adds `EnableReallocRequest` field.
+
+SDK API **TBD** adds `IgnoreLevelConstrain` field.
 
 ###### Example 17: Pseudo-Code for GOP Structure Parameters
 
@@ -8019,6 +8023,7 @@ The `CodecLevel` enumerator itemizes codec levels for all codecs.
 `MFX_LEVEL_AVC_3`,<br>`MFX_LEVEL_AVC_31`,<br>`MFX_LEVEL_AVC_32` | H.264 level 3-3.2
 `MFX_LEVEL_AVC_4`,<br>`MFX_LEVEL_AVC_41`,<br>`MFX_LEVEL_AVC_42` | H.264 level 4-4.2
 `MFX_LEVEL_AVC_5`,<br>`MFX_LEVEL_AVC_51`,<br>`MFX_LEVEL_AVC_52` | H.264 level 5-5.2
+`MFX_LEVEL_AVC_6`,<br>`MFX_LEVEL_AVC_61`,<br>`MFX_LEVEL_AVC_62` | H.264 level 6-6.2
 `MFX_LEVEL_MPEG2_LOW`,<br>`MFX_LEVEL_MPEG2_MAIN`,<br>`MFX_LEVEL_MPEG2_HIGH`,<br>`MFX_LEVEL_MPEG2_HIGH1440` | MPEG-2 levels
 `MFX_LEVEL_VC1_LOW`,<br>`MFX_LEVEL_VC1_MEDIAN`,<br>`MFX_LEVEL_VC1_HIGH` | VC-1 Level Low (simple & main profiles)
 `MFX_LEVEL_VC1_0`,<br>`MFX_LEVEL_VC1_1`,<br>`MFX_LEVEL_VC1_2`,<br>`MFX_LEVEL_VC1_3`,<br>`MFX_LEVEL_VC1_4` | VC-1 advanced profile levels
@@ -8032,6 +8037,8 @@ This enumerator is available since SDK API 1.0.
 SDK API 1.8 added HEVC level and tier definitions.
 
 SDK API **TBD** added AV1 level definitions.
+
+SDK API **TBD** added H.264 level 6-6.2 definitions.
 
 ## <a id='CodecProfile'>CodecProfile</a>
 
