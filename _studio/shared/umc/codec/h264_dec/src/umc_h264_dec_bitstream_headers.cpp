@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -335,8 +335,12 @@ H264HeadersBitstream::H264HeadersBitstream(uint8_t * const pb, const uint32_t ma
 {
 }
 
-inline bool CheckLevel(uint8_t level_idc)
+inline bool CheckLevel(uint8_t level_idc, bool ignore_level_constrain = false)
 {
+#if (MFX_VERSION < MFX_VERSION_NEXT)
+    std::ignore = ignore_level_constrain;
+#endif
+
     switch(level_idc)
     {
     case H264VideoDecoderParams::H264_LEVEL_1:
@@ -363,6 +367,13 @@ inline bool CheckLevel(uint8_t level_idc)
     case H264VideoDecoderParams::H264_LEVEL_9:
         return true;
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    case H264VideoDecoderParams::H264_LEVEL_6:
+    case H264VideoDecoderParams::H264_LEVEL_61:
+    case H264VideoDecoderParams::H264_LEVEL_62:
+        return ignore_level_constrain;
+#endif
+
     default:
         return false;
     }
@@ -372,7 +383,7 @@ inline bool CheckLevel(uint8_t level_idc)
 //  H264Bitstream::GetSequenceParamSet()
 //    Read sequence parameter set data from bitstream.
 // ---------------------------------------------------------------------------
-Status H264HeadersBitstream::GetSequenceParamSet(H264SeqParamSet *sps)
+Status H264HeadersBitstream::GetSequenceParamSet(H264SeqParamSet *sps, bool ignore_level_constrain)
 {
     // Not all members of the seq param set structure are contained in all
     // seq param sets. So start by init all to zero.
@@ -420,7 +431,7 @@ Status H264HeadersBitstream::GetSequenceParamSet(H264SeqParamSet *sps)
     if (sps->level_idc == H264VideoDecoderParams::H264_LEVEL_UNKNOWN)
         sps->level_idc = H264VideoDecoderParams::H264_LEVEL_52;
 
-    MFX_CHECK(CheckLevel(sps->level_idc), UMC_ERR_INVALID_STREAM);
+    MFX_CHECK(CheckLevel(sps->level_idc, ignore_level_constrain), UMC_ERR_INVALID_STREAM);
 
     if (sps->level_idc == H264VideoDecoderParams::H264_LEVEL_9 &&
         sps->profile_idc != H264VideoDecoderParams::H264_PROFILE_BASELINE &&

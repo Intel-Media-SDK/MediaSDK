@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1971,6 +1971,7 @@ TaskSupplier::TaskSupplier()
     , m_UIDFrameCounter(0)
     , m_sei_messages(0)
     , m_isInitialized(false)
+    , m_ignoreLevelConstrain(false)
 {
 }
 
@@ -2047,6 +2048,8 @@ Status TaskSupplier::Init(VideoDecoderParams *init)
 
     m_isInitialized = true;
 
+    m_ignoreLevelConstrain = ((H264VideoDecoderParams *)init)->m_ignore_level_constrain;
+
     return UMC_OK;
 }
 
@@ -2084,6 +2087,8 @@ Status TaskSupplier::PreInit(VideoDecoderParams *init)
     }
 
     m_DPBSizeEx = m_iThreadNum;
+
+    m_ignoreLevelConstrain = ((H264VideoDecoderParams *)init)->m_ignore_level_constrain;
 
     return UMC_OK;
 }
@@ -2448,7 +2453,7 @@ Status TaskSupplier::DecodeHeaders(NalUnit *nalUnit)
             {
                 H264SeqParamSet sps;
                 sps.seq_parameter_set_id = MAX_NUM_SEQ_PARAM_SETS;
-                umcRes = bitStream.GetSequenceParamSet(&sps);
+                umcRes = bitStream.GetSequenceParamSet(&sps, m_ignoreLevelConstrain);
                 if (umcRes != UMC_OK)
                 {
                     H264SeqParamSet * old_sps = m_Headers.m_SeqParams.GetHeader(sps.seq_parameter_set_id);
