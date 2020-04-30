@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -59,48 +59,48 @@ namespace MfxHwMJpegEncode
             VideoCORE * core,
             mfxU32      width,
             mfxU32      height,
-            bool        isTemporal = false);
+            bool        isTemporal = false) override;
 
         virtual
         mfxStatus CreateAccelerationService(
-            mfxVideoParam const & par);
+            mfxVideoParam const & par) override;
 
         virtual
         mfxStatus RegisterBitstreamBuffer(
-            mfxFrameAllocResponse & response);
+            mfxFrameAllocResponse & response) override;
 
         virtual
-        mfxStatus Execute(DdiTask &task, mfxHDL surface);
+        mfxStatus Execute(DdiTask &task, mfxHDL surface) override;
 
         virtual
         mfxStatus QueryBitstreamBufferInfo(
-            mfxFrameAllocRequest & request);
+            mfxFrameAllocRequest & request) override;
 
         virtual
         mfxStatus QueryEncodeCaps(
-            JpegEncCaps & caps);
+            JpegEncCaps & caps) override;
 
         virtual
         mfxStatus QueryStatus(
-            DdiTask & task);
+            DdiTask & task) override;
 
         virtual
         mfxStatus UpdateBitstream(
             mfxMemId    MemId,
-            DdiTask   & task);
+            DdiTask   & task) override;
 
         virtual
-        mfxStatus Destroy();
+        mfxStatus Destroy() override;
+
+        VAAPIEncoder(VAAPIEncoder const &) = delete;
+        VAAPIEncoder & operator =(VAAPIEncoder const &) = delete;
 
     private:
-        VAAPIEncoder(VAAPIEncoder const &);              // no implementation
-        VAAPIEncoder & operator =(VAAPIEncoder const &); // no implementation
         mfxStatus DestroyBuffers();
 
         VideoCORE       * m_core;
         mfxU32            m_width;
         mfxU32            m_height;
-        JpegEncCaps       m_caps;
         VADisplay         m_vaDisplay;
         VAContextID       m_vaContextEncode;
         VAConfigID        m_vaConfig;

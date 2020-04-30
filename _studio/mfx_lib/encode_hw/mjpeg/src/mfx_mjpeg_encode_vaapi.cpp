@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +41,6 @@ VAAPIEncoder::VAAPIEncoder()
  : m_core(NULL)
  , m_width(-1)
  , m_height(-1)
- , m_caps()
  , m_vaDisplay(0)
  , m_vaContextEncode(VA_INVALID_ID)
  , m_vaConfig(VA_INVALID_ID)

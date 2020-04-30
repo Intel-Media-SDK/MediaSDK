@@ -2071,12 +2071,6 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
 } // mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
 
 
-mfxStatus VAAPIEncoder::Register(mfxMemId /*memId*/, D3DDDIFORMAT /*type*/)
-{
-    return MFX_ERR_UNSUPPORTED;
-} // mfxStatus VAAPIEncoder::Register(mfxMemId memId, D3DDDIFORMAT type)
-
-
 bool operator==(const ENCODE_ENC_CTRL_CAPS& l, const ENCODE_ENC_CTRL_CAPS& r)
 {
     return memcmp(&l, &r, sizeof(ENCODE_ENC_CTRL_CAPS)) == 0;

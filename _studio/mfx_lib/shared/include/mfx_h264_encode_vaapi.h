@@ -127,27 +127,21 @@ namespace MfxHwH264Encode
             GUID       guid,
             mfxU32     width,
             mfxU32     height,
-            bool       isTemporal = false);
+            bool       isTemporal = false) override;
 
         virtual
         mfxStatus CreateAccelerationService(
-            MfxVideoParam const & par);
+            MfxVideoParam const & par) override;
 
         virtual
         mfxStatus Reset(
-            MfxVideoParam const & par);
-
-        // empty  for Lin
-        virtual
-        mfxStatus Register(
-            mfxMemId memId,
-            D3DDDIFORMAT type);
+            MfxVideoParam const & par) override;
 
         // 2 -> 1
         virtual
         mfxStatus Register(
             mfxFrameAllocResponse& response,
-            D3DDDIFORMAT type);
+            D3DDDIFORMAT type) override;
 
         // (mfxExecuteBuffers& data)
         virtual
@@ -155,27 +149,27 @@ namespace MfxHwH264Encode
             mfxHDLPair      pair,
             DdiTask const & task,
             mfxU32          fieldId,
-            PreAllocatedVector const & sei);
+            PreAllocatedVector const & sei) override;
 
         // recomendation from HW
         virtual
         mfxStatus QueryCompBufferInfo(
             D3DDDIFORMAT type,
-            mfxFrameAllocRequest& request);
+            mfxFrameAllocRequest& request) override;
 
         virtual
         mfxStatus QueryEncodeCaps(
-            MFX_ENCODE_CAPS& caps);
+            MFX_ENCODE_CAPS& caps) override;
 
         virtual
         mfxStatus QueryMbPerSec(
             mfxVideoParam const & par,
-            mfxU32              (&mbPerSec)[16]);
+            mfxU32              (&mbPerSec)[16]) override;
 
         virtual
         mfxStatus QueryStatus(
             DdiTask & task,
-            mfxU32    fieldId);
+            mfxU32    fieldId) override;
 
         virtual
         mfxStatus QueryStatusFEI(
@@ -185,9 +179,9 @@ namespace MfxHwH264Encode
             mfxU32 codedStatus);
 
         virtual
-        mfxStatus Destroy();
+        mfxStatus Destroy() override;
 
-        void ForceCodingFunction (mfxU16 /*codingFunction*/)
+        void ForceCodingFunction (mfxU16 /*codingFunction*/) override
         {
             // no need in it on Linux
         }
@@ -196,12 +190,12 @@ namespace MfxHwH264Encode
         mfxStatus QueryHWGUID(
             VideoCORE * core,
             GUID        guid,
-            bool        isTemporal);
+            bool        isTemporal) override;
+
+        VAAPIEncoder(const VAAPIEncoder&) = delete;
+        VAAPIEncoder& operator=(const VAAPIEncoder&) = delete;
 
     protected:
-        VAAPIEncoder(const VAAPIEncoder&); // no implementation
-        VAAPIEncoder& operator=(const VAAPIEncoder&); // no implementation
-
         void FillSps( MfxVideoParam const & par, VAEncSequenceParameterBufferH264 & sps);
 
         VideoCORE*    m_core;
