@@ -575,7 +575,6 @@ VAAPIEncoder::VAAPIEncoder()
 , m_vaConfig(VA_INVALID_ID)
 , m_sps()
 , m_pps()
-, m_tempLayers()
 , m_vaBrcPar()
 , m_vaFrameRate()
 , m_seqParam()
@@ -1011,13 +1010,6 @@ mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT t
 
 } // mfxStatus VAAPIEncoder::Register(mfxFrameAllocResponse& response, D3DDDIFORMAT type)
 
-
-mfxStatus VAAPIEncoder::Register(mfxMemId /*memId*/, D3DDDIFORMAT /*type*/)
-{
-    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Register");
-    return MFX_ERR_UNSUPPORTED;
-
-} // mfxStatus VAAPIEncoder::Register(mfxMemId memId, D3DDDIFORMAT type)
 
 mfxStatus VAAPIEncoder::Execute(
     Task const & task,
