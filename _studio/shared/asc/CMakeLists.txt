@@ -39,6 +39,7 @@ configure_build_variant(asc_sse4 none)
 list( APPEND sources
     ${CMAKE_CURRENT_SOURCE_DIR}/src/asc.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_c_impl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/asc_common_impl.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/iofunctions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/motion_estimation_engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
