@@ -22,6 +22,28 @@
 #define _ASC_AVX2_IMPL_H_
 
 #include "asc_common_impl.h"
+// Load 0..7 floats to YMM register from memory
+// NOTE: elements of YMM are permuted [ 4 2 - 1 ]
+__m256 LoadPartialYmm(
+    float  * pSrc,
+    mfxI32   len
+);
+
+// Store 0..7 floats from YMM register to memory
+// NOTE: elements of YMM are permuted [ 4 2 - 1 ]
+void StorePartialYmm(
+    float  * pDst,
+    __m256   ymm,
+    mfxI32   len
+);
+
+// Load 0..31 bytes to YMM register from memory
+// NOTE: elements of YMM are permuted [ 16 8 4 2 - 1 ]
+template <char init>
+__m256i LoadPartialYmm(
+    unsigned char * pSrc,
+    mfxI32          len
+);
 
 void ME_SAD_8x8_Block_Search_AVX2(mfxU8 *pSrc, mfxU8 *pRef, int pitch, int xrange, int yrange,
     mfxU16 *bestSAD, int *bestX, int *bestY);

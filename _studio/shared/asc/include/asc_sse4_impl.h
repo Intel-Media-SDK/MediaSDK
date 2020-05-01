@@ -22,8 +22,28 @@
 #define _ASC_SSE4_IMPL_H_
 #include "asc_common_impl.h"
 
-#define _mm_loadh_epi64(a, ptr) _mm_castps_si128(_mm_loadh_pi(_mm_castsi128_ps(a), (__m64 *)(ptr)))
-#define _mm_movehl_epi64(a, b) _mm_castps_si128(_mm_movehl_ps(_mm_castsi128_ps(a), _mm_castsi128_ps(b)))
+// Load 0..3 floats to XMM register from memory
+// NOTE: elements of XMM are permuted [ 2 - 1 ]
+__m128 LoadPartialXmm(
+    float  * pSrc,
+    mfxI32   len
+);
+
+// Store 0..3 floats from XMM register to memory
+// NOTE: elements of XMM are permuted [ 2 - 1 ]
+void StorePartialXmm(
+    float  * pDst,
+    __m128   xmm,
+    mfxI32   len
+);
+
+// Load 0..15 bytes to XMM register from memory
+// NOTE: elements of XMM are permuted [ 8 4 2 - 1 ]
+template <char init>
+__m128i LoadPartialXmm(
+    unsigned char * pSrc,
+    mfxI32          len
+);
 
 /*ME_SAD_8x8_Block_SSE4 and ME_VAR_8x8_Block_SSE4 also use SSE3 instructions but because
 they include SSE4 instructions too then they have been integrated here*/
