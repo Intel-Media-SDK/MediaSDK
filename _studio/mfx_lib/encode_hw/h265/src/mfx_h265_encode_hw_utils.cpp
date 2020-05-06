@@ -285,7 +285,7 @@ template<class T> T Reorder(
 
     if (!brefs.empty())
     {
-        return brefs[BPyrReorder(brefs,par.isField())];
+        return std::move(brefs[BPyrReorder(brefs,par.isField())]);
     }
 
     if (b0 != end)
