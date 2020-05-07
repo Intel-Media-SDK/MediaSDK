@@ -618,7 +618,7 @@ public:
         {
             mfxU16 bd = par.base.GetTargetBitDepthLuma(par);
             mfxU16 W  = par.base.GetCodedPicWidth(par);
-            mfxU16 H  = par.base.GetCodedPicWidth(par);
+            mfxU16 H  = par.base.GetCodedPicHeight(par);
             mfxU16 cf = par.base.GetTargetChromaFormat(par) - 1;
             return Legacy::GetRawBytes(W, H, cf, bd) / 1000;
         };
