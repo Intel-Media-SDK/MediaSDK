@@ -250,6 +250,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -icq <quality>\n"));
     msdk_printf(MSDK_STRING("                Intelligent constant quality bitrate control, quality is a value in range [1..51], where 1 corresponds to the best quality\n"));
     msdk_printf(MSDK_STRING("  -cbr          Constant bitrate control\n"));
+    msdk_printf(MSDK_STRING("  -vcm          Video Conferencing Mode (VCM) bitrate control\n"));
     msdk_printf(MSDK_STRING("  -hrd <KBytes> Maximum possible size of any compressed frames \n"));
     msdk_printf(MSDK_STRING("  -wb <Kbits per second>\n"));
     msdk_printf(MSDK_STRING("                Maximum bitrate for sliding window\n"));
@@ -2269,6 +2270,10 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-cbr")))
         {
             InputParams.nRateControlMethod = MFX_RATECONTROL_CBR;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-vcm")))
+        {
+            InputParams.nRateControlMethod = MFX_RATECONTROL_VCM;
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-bpyr")))
         {
