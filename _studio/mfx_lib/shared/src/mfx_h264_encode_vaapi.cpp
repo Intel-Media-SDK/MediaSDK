@@ -68,6 +68,7 @@ uint32_t ConvertRateControlMFX2VAAPI(mfxU8 rateControl)
 #endif
     case MFX_RATECONTROL_CQP:  return VA_RC_CQP;
     case MFX_RATECONTROL_ICQ:  return VA_RC_ICQ;
+    case MFX_RATECONTROL_VCM:  return VA_RC_VCM;
     default: assert(!"Unsupported RateControl"); return 0;
     }
 }

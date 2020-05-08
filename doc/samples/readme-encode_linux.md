@@ -86,6 +86,7 @@ The following command-line switches are optional:
   | [-gpucopy::<on,off>] |Enable or disable GPU copy mode|
  |  [-vbr]     | variable bitrate control|
   | [-cbr]     | constant bitrate control|
+  | [-vcm]     | Video Conferencing Mode (VCM) bitrate control method|
   | [-qvbr quality] | variable bitrate control algorithm with constant quality. Quality in range [1,51]. 1 is the best quality.|
    |[-icq quality] | Intelligent Constant Quality (ICQ) bitrate control method. In range [1,51]. 1 is the best quality.<br> If [-la] or [-lad] options are enabled simultaneously, then LA_ICQ bitrate control method will be used.|
   | [-avbr]| average variable bitrate control algorithm|

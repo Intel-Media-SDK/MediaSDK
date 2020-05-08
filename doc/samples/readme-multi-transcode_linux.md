@@ -106,7 +106,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |-la|Use the look ahead bitrate control algorithm (LA BRC) for H.264 encoder. Supported only with -hw option on 4th Generation Intel Core processors.|
 | -lad <depth\>|Depth parameter for the LA BRC, the number of frames to be analyzed before encoding. In range [0,100].<br>If `depth` is `0` then the encoder forces the value to Max(10, 2\*`GopRefDist`) for LA_ICQ, and to Max(40, 2\*`GopRefDist`) otherwise.<br>If `depth` is in range [1,100] then the encoder forces the value to Max(2\*`GopRefDist`,2\*`NumRefFrame`,`depth`).<br>May be 1 in the case when -mss option is specified|
 |  -la_ext| Use external LA plugin (compatible with h264 & hevc encoders)|
+|-cbr| Constant bitrate control|
 |-vbr| Variable bitrate control|
+|-vcm| Video Conferencing Mode (VCM) bitrate control|
 | -hrd <KBytes\> |Maximum possible size of any compressed frames|
 | -wb <Kbits per second\>|Maximum bitrate for sliding window|
 | -ws| Sliding window size in frames|
