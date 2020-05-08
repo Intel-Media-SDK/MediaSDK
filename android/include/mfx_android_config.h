@@ -16,5 +16,6 @@ Copyright(c) 2011-2018 Intel Corporation. All Rights Reserved.
 #define MFX_O_MR1 0x07
 #define MFX_P     0x08
 #define MFX_Q     0x09
+#define MFX_R     0x0a
 
 #endif // #ifndef __MFX_CONFIG_H__
