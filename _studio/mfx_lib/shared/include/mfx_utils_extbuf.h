@@ -65,6 +65,9 @@ namespace MfxExtBuffer
     class ParamBase
     {
     public:
+        using TEBMap = std::map<mfxU32, std::unique_ptr<mfxU8[]>>;
+        using TEBIt  = TEBMap::iterator;
+
         ParamBase() = default;
 
         ParamBase(mfxExtBuffer** ExtParam, mfxU32 NumExtParam)
@@ -80,9 +83,6 @@ namespace MfxExtBuffer
         }
 
     protected:
-        using TEBMap = std::map<mfxU32, std::unique_ptr<mfxU8[]>>;
-        using TEBIt  = TEBMap::iterator;
-
         TEBMap m_eb;
 
         std::pair<TEBIt, bool> _AllocEB(mfxU32 id, mfxU32 sz = 0, bool bReset = true)
