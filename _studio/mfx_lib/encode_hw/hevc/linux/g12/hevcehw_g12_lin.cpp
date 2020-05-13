@@ -27,9 +27,9 @@
 #endif
 #include "hevcehw_g12_caps_lin.h"
 #include "hevcehw_g12_sao.h"
-#include "hevcehw_g9_legacy.h"
-#include "hevcehw_g9_iddi_packer.h"
-#include "hevcehw_g9_iddi.h"
+#include "hevcehw_base_legacy.h"
+#include "hevcehw_base_iddi_packer.h"
+#include "hevcehw_base_iddi.h"
 
 namespace HEVCEHW
 {
@@ -74,25 +74,25 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
 
         FeatureBlocks::Reorder(
             qnc
-            , { HEVCEHW::Gen9::FEATURE_LEGACY, HEVCEHW::Gen9::Legacy::BLK_SetLowPowerDefault }
+            , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetLowPowerDefault }
             , { FEATURE_CAPS, Caps::BLK_SetDefaultsCallChain });
 
         auto& qwc = FeatureBlocks::BQ<FeatureBlocks::BQ_Query1WithCaps>::Get(*this);
 #if (MFX_VERSION >= 1031)
         FeatureBlocks::Reorder(
             qwc
-            , { HEVCEHW::Gen9::FEATURE_DDI_PACKER, HEVCEHW::Gen9::IDDIPacker::BLK_HardcodeCaps }
+            , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps }
             , { FEATURE_REXT, RExt::BLK_HardcodeCaps });
 #endif
         FeatureBlocks::Reorder(
             qwc
-            , { HEVCEHW::Gen9::FEATURE_DDI_PACKER, HEVCEHW::Gen9::IDDIPacker::BLK_HardcodeCaps }
+            , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps }
             , { FEATURE_CAPS, Caps::BLK_HardcodeCaps });
 
         FeatureBlocks::Reorder(
             qwc
             , { FEATURE_REXT, RExt::BLK_HardcodeCaps }
-            , { HEVCEHW::Gen9::FEATURE_DDI_PACKER, HEVCEHW::Gen9::IDDIPacker::BLK_HardcodeCaps });
+            , { HEVCEHW::Base::FEATURE_DDI_PACKER, HEVCEHW::Base::IDDIPacker::BLK_HardcodeCaps });
     }
 
     status = MFX_ERR_NONE;

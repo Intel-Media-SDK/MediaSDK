@@ -24,35 +24,50 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
-class Caps
-    : public FeatureBase
+
+class IDDIPacker
+    : public virtual FeatureBase
 {
 public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
+    DECL_BLOCK(Init) \
+    DECL_BLOCK(Reset) \
+    DECL_BLOCK(SubmitTask) \
+    DECL_BLOCK(QueryTask) \
+    DECL_BLOCK(SetCallChains) \
     DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
+#define DECL_FEATURE_NAME "Base_IDDIPacker"
 #include "hevcehw_decl_blocks.h"
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+    IDDIPacker(mfxU32 /*FeatureId*/) {}
 
 protected:
+    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override = 0;
+    virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override = 0;
+    virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override = 0;
+    virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override = 0;
+    virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override = 0;
 
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+    void HardcodeCapsCommon(EncodeCapsHevc& caps, eMFXHWType hw, const mfxVideoParam& par)
+    {
+        if (hw < MFX_HW_CNL)
+        {   // not set until CNL now
+            caps.LCUSizeSupported = 0b10; // 32x32 lcu is only supported
+            caps.BlockSize        = 0b10; // 32x32
+        }
 
-    virtual void SetSpecificCaps(Base::EncodeCapsHevc& /*caps*/) {};
+        caps.SliceIPOnly        = IsOn(par.mfx.LowPower);
+        caps.msdk.PSliceSupport = !(IsOn(par.mfx.LowPower) || hw > MFX_HW_ICL);
+    }
 };
 
-} //Gen12
+} //Base
 } //namespace HEVCEHW
 
 #endif

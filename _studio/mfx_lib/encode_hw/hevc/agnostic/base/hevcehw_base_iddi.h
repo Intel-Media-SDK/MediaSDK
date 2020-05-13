@@ -21,38 +21,45 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base.h"
 
 namespace HEVCEHW
 {
-namespace Linux
+namespace Base
 {
-namespace Gen12
+
+class IDDI
+    : public FeatureBase
 {
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
-    {
-    public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+public:
+#define DECL_BLOCK_LIST\
+    DECL_BLOCK(SetCallChains) \
+    DECL_BLOCK(QueryCaps)     \
+    DECL_BLOCK(CreateDevice)  \
+    DECL_BLOCK(CreateService) \
+    DECL_BLOCK(Register)      \
+    DECL_BLOCK(Reset)      \
+    DECL_BLOCK(SubmitTask)    \
+    DECL_BLOCK(QueryTask)
+#define DECL_FEATURE_NAME "Base_IDDI"
+#include "hevcehw_decl_blocks.h"
 
-    protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
+    IDDI(mfxU32 FeatureId)
+        : FeatureBase(FeatureId)
+    {}
 
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
-    };
+protected:
+    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override = 0;
+    virtual void InitExternal(const FeatureBlocks& blocks, TPushIE Push) override = 0;
+    virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override = 0;
+    virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override = 0;
+    virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override = 0;
+    virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override = 0;
+};
 
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+} //Base
+} //namespace HEVCEHW
 
 #endif

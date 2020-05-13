@@ -21,38 +21,43 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA_LINUX)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base_encoded_frame_info.h"
+#include "hevcehw_base_va_packer_lin.h"
+#include "va/va.h"
 
 namespace HEVCEHW
 {
 namespace Linux
 {
-namespace Gen12
+namespace Base
 {
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
+    class EncodedFrameInfo
+        : public HEVCEHW::Base::EncodedFrameInfo
     {
     public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+
+        EncodedFrameInfo(mfxU32 FeatureId)
+            : HEVCEHW::Base::EncodedFrameInfo(FeatureId)
+        {}
 
     protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
+        virtual mfxStatus GetDdiInfo(
+            const void* pDdiFeedback
+            , mfxExtAVCEncodedFrameInfo& info) override
+        {
+            MFX_CHECK(pDdiFeedback, MFX_ERR_UNDEFINED_BEHAVIOR);
+            auto& fb = *(const VACodedBufferSegment*)pDdiFeedback;
 
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
+            info.QP = mfxU16(fb.status & VA_CODED_BUF_STATUS_PICTURE_AVE_QP_MASK);
+
+            return MFX_ERR_NONE;
+        }
     };
 
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+} //Base
+} //Linux
+} //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

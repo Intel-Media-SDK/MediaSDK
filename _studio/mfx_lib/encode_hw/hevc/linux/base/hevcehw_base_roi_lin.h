@@ -21,38 +21,34 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_ENABLE_HEVCE_ROI) && defined(MFX_VA_LINUX)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base_roi.h"
+#include "va/va.h"
 
 namespace HEVCEHW
 {
 namespace Linux
 {
-namespace Gen12
+namespace Base
 {
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
-    {
-    public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+class ROI
+    : public HEVCEHW::Base::ROI
+{
+public:
 
-    protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
+    ROI(mfxU32 FeatureId)
+        : HEVCEHW::Base::ROI(FeatureId)
+    {}
 
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
-    };
+protected:
+    virtual void InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push) override;
 
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+    std::vector<VAEncROI> m_vaROI;
+};
 
-#endif
+} //Base
+} //Linux
+} //namespace HEVCEHW
+
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

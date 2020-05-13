@@ -21,38 +21,30 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_VA_LINUX)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base_interlace.h"
 
 namespace HEVCEHW
 {
 namespace Linux
 {
-namespace Gen12
+namespace Base
 {
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
+    class Interlace
+        : public HEVCEHW::Base::Interlace
     {
     public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+        Interlace(mfxU32 FeatureId)
+            : HEVCEHW::Base::Interlace(FeatureId)
+        {}
 
     protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
-
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
+        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
     };
 
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+} //Base
+} //Linux
+} //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

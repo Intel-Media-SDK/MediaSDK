@@ -36,8 +36,8 @@ void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         MFX_CHECK(!bSet, MFX_ERR_NONE);
 
         defaults.GetMaxNumRef.Push([](
-            Gen9::Defaults::TChain<std::tuple<mfxU16, mfxU16>>::TExt
-            , const Gen9::Defaults::Param& dpar)
+            Base::Defaults::TChain<std::tuple<mfxU16, mfxU16>>::TExt
+            , const Base::Defaults::Param& dpar)
         {
             const mfxU16 nRef[3][2][7] =
             {
@@ -62,7 +62,7 @@ void Caps::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             CheckRangeOrSetDefault<mfxU16>(tu, 1, 7, 4);
             --tu;
 
-            /* Same way like on Gen9 or Gen11 platforms */
+            /* Same way like on Base or Gen11 platforms */
             mfxU16 numRefFrame = dpar.mvp.mfx.NumRefFrame + !dpar.mvp.mfx.NumRefFrame * 16;
 
             return std::make_tuple(
