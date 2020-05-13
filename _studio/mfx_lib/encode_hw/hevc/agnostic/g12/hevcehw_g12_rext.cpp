@@ -51,6 +51,7 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         MFX_CHECK(bG12SpecificRec, MFX_ERR_NONE);
 
         local.Erase(Base::Tmp::RecInfo::Key);
+        bool bVDEnc = IsOn(par.mfx.LowPower);
 
         const std::map<mfxU16, std::function<void(mfxFrameInfo&, mfxU16&)>> mUpdateRecInfo =
         {
@@ -84,10 +85,23 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
             }
             , {
                 mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                , [](mfxFrameInfo& rec, mfxU16&)
+                , [bVDEnc](mfxFrameInfo& rec, mfxU16& type)
                 {
-                    rec.FourCC = MFX_FOURCC_NV12;
-                    rec.Width = mfx::align2_value(rec.Width, 32) * 2;
+                    if (bVDEnc)
+                    {
+                        rec.FourCC = MFX_FOURCC_P016;
+                        rec.Width = mfx::align2_value(rec.Width, 32);
+
+                        type = (
+                            MFX_MEMTYPE_FROM_ENCODE
+                            | MFX_MEMTYPE_DXVA2_DECODER_TARGET
+                            | MFX_MEMTYPE_INTERNAL_FRAME);
+                    }
+                    else
+                    {
+                        rec.FourCC = MFX_FOURCC_NV12;
+                        rec.Width = mfx::align2_value(rec.Width, 32) * 2;
+                    }
                 }
             }
         };
