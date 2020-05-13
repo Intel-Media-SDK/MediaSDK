@@ -109,16 +109,16 @@ namespace HEVCEHW
 };
 
 #if defined(MFX_VA_LINUX)
-    #include "hevcehw_g9_lin.h"
-    namespace HEVCEHWDisp { namespace Gen9 { using namespace HEVCEHW::Linux::Gen9; }; };
+    #include "hevcehw_base_lin.h"
+    namespace HEVCEHWDisp { namespace Base { using namespace HEVCEHW::Linux::Base; }; };
 #else
-    namespace HEVCEHWDisp { namespace Gen9 { using namespace HEVCEHW::LegacyFallback; }; };
+    namespace HEVCEHWDisp { namespace Base { using namespace HEVCEHW::LegacyFallback; }; };
 #endif
 
 #if defined(MFX_VA_LINUX)
-    // There is no gen9/gen11 separation in code - use Gen9 code-pass for ICL as well
-    #include "hevcehw_g9_lin.h"
-    namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::Linux::Gen9; }; };
+    // There is no gen9/gen11 separation in code - use Base code-pass for ICL as well
+    #include "hevcehw_base_lin.h"
+    namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::Linux::Base; }; };
 #else
     namespace HEVCEHWDisp { namespace Gen11 { using namespace HEVCEHW::LegacyFallback; }; };
 #endif
@@ -143,7 +143,7 @@ static ImplBase* CreateSpecific(
         return new HEVCEHWDisp::TGL::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_ICL)
         return new HEVCEHWDisp::Gen11::MFXVideoENCODEH265_HW(core, status, mode);
-    return new HEVCEHWDisp::Gen9::MFXVideoENCODEH265_HW(core, status, mode);
+    return new HEVCEHWDisp::Base::MFXVideoENCODEH265_HW(core, status, mode);
 }
 
 VideoENCODE* Create(

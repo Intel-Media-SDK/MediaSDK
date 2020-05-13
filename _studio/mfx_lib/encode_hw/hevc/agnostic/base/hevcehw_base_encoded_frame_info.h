@@ -21,38 +21,38 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Linux
-{
-namespace Gen12
-{
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
+    namespace Base
     {
-    public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+        class EncodedFrameInfo
+            : public FeatureBase
+        {
+        public:
+#define DECL_BLOCK_LIST\
+        DECL_BLOCK(CheckMAD)\
+        DECL_BLOCK(QueryTask)
+#define DECL_FEATURE_NAME "Base_EncodedFrameInfo"
+#include "hevcehw_decl_blocks.h"
 
-    protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
+            EncodedFrameInfo(mfxU32 FeatureId)
+                : FeatureBase(FeatureId)
+            {}
 
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
-    };
+        protected:
+            virtual void SetSupported(ParamSupport& par) override;
+            virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+            virtual void QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push) override;
 
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+            virtual mfxStatus GetDdiInfo(const void* pDdiFeedback, mfxExtAVCEncodedFrameInfo& info) = 0;
+        };
 
-#endif
+    } //Base
+} //namespace HEVCEHW
+
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

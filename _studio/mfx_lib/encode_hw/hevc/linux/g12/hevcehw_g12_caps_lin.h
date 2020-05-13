@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -41,7 +41,7 @@ public:
     {}
 
 protected:
-    virtual void SetSpecificCaps(HEVCEHW::Gen9::EncodeCapsHevc& caps) override
+    virtual void SetSpecificCaps(HEVCEHW::Base::EncodeCapsHevc& caps) override
     {
         caps.CodingLimitSet             = 1;
         caps.Color420Only               = 0;

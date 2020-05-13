@@ -21,38 +21,32 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
-#include "hevcehw_base_lin.h"
 
 namespace HEVCEHW
 {
-namespace Linux
+namespace Base
 {
-namespace Gen12
-{
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
-    {
-    public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+    mfxU16 GetMaxDpbSizeByLevel(mfxVideoParam const & par, mfxU32 PicSizeInSamplesY);
+    mfxU32 GetMaxKbpsByLevel(mfxVideoParam const & par);
+    mfxF64 GetMaxFrByLevel(mfxVideoParam const & par, mfxU32 PicSizeInSamplesY);
+    mfxU32 GetMaxCpbInKBByLevel(mfxVideoParam const & par);
 
-    protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
+    mfxU16 GetMinLevel(
+        mfxU32 frN
+        , mfxU32 frD
+        , mfxU16 PicWidthInLumaSamples
+        , mfxU16 PicHeightInLumaSamples
+        , mfxU16 MinRef
+        , mfxU16 NumTileColumns
+        , mfxU16 NumTileRows
+        , mfxU32 NumSlice
+        , mfxU32 BufferSizeInKB
+        , mfxU32 MaxKbps
+        , mfxU16 StartLevel);
 
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
-    };
-
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+} //Base
+} //namespace HEVCEHW
 
 #endif

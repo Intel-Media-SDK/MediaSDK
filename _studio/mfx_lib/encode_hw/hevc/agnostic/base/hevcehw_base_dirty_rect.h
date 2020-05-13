@@ -24,35 +24,50 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
-class Caps
-    : public FeatureBase
-{
-public:
+    class DirtyRect
+        : public FeatureBase
+    {
+    public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(HardcodeCaps)
-#define DECL_FEATURE_NAME "G12_Caps"
+        DECL_BLOCK(AllocTask)\
+        DECL_BLOCK(CheckAndFix)\
+        DECL_BLOCK(SetCallChains)\
+        DECL_BLOCK(ConfigureTask)\
+        DECL_BLOCK(PatchDDITask)
+#define DECL_FEATURE_NAME "Base_DirtyRect"
 #include "hevcehw_decl_blocks.h"
 
-    Caps(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    {}
+        DirtyRect(mfxU32 FeatureId)
+            : FeatureBase(FeatureId)
+        {}
 
-protected:
+        typedef std::remove_reference<decltype (mfxExtDirtyRect::Rect[0])>::type RectData;
+        static constexpr mfxU8 MAX_NUM_DIRTY_RECT = 64;
 
-    virtual void Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+    protected:
+        virtual void SetSupported(ParamSupport& par) override;
+        virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+        virtual void AllocTask(const FeatureBlocks& /*blocks*/, TPushAT Push) override;
+        virtual void PostReorderTask(const FeatureBlocks& /*blocks*/, TPushPostRT Push) override;
+        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST /*Push*/) override {};
 
-    virtual void SetSpecificCaps(Base::EncodeCapsHevc& /*caps*/) {};
-};
+        bool SkipRectangle(const RectData& rect)
+        {
+            if (rect.Left >= rect.Right || rect.Top >= rect.Bottom)
+                return true;
+            return false;
+        }
 
-} //Gen12
+        std::map<StorageW*, std::vector<RectData>> m_taskToRects;
+    };
+
+} //Base
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)

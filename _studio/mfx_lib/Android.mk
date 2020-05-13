@@ -45,33 +45,33 @@ MFX_LOCAL_SRC_FILES_HW += $(addprefix mfx_lib/genx/h264_encode/isa/, \
 MFX_LOCAL_SRC_FILES_HW += \
     mfx_lib/encode_hw/hevc/hevcehw_disp.cpp \
     mfx_lib/encode_hw/hevc/agnostic/hevcehw_base.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_alloc.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_constraints.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_dirty_rect.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_dpb_report.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_encoded_frame_info.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_ext_brc.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_hdr_sei.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_hrd.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_interlace.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_legacy.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_legacy_defaults.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_max_frame_size.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_packer.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_parser.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_roi.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_task.cpp \
-    mfx_lib/encode_hw/hevc/agnostic/g9/hevcehw_g9_weighted_prediction.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_impl.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_alloc.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_constraints.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_dirty_rect.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_dpb_report.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_encoded_frame_info.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_ext_brc.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_hdr_sei.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_hrd.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_interlace.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_legacy.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_legacy_defaults.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_max_frame_size.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_packer.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_parser.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_roi.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_task.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_weighted_prediction.cpp \
     mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_caps.cpp \
     mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_rext.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_interlace_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_fei_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_roi_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_va_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_va_packer_lin.cpp \
-    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_weighted_prediction_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_interlace_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_fei_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_roi_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_va_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_va_packer_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g12/hevcehw_g12_rext_lin.cpp \
     mfx_lib/encode_hw/shared/ehw_resources_pool.cpp \
@@ -97,10 +97,10 @@ MFX_LOCAL_INCLUDES_HW := \
     $(MFX_HOME)/_studio/shared/asc/include \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/agnostic \
-    $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/agnostic/g9 \
+    $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/agnostic/base \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/agnostic/g12 \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux \
-    $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux/g9 \
+    $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux/base \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/hevc/linux/g12 \
     $(MFX_HOME)/_studio/mfx_lib/encode_hw/shared
 

@@ -23,36 +23,52 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base.h"
+#include "hevcehw_base_data.h"
+#include "hevcehw_base_iddi_packer.h"
+#include "va/va.h"
 
 namespace HEVCEHW
 {
 namespace Linux
 {
-namespace Gen12
+namespace Base
 {
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
-    {
-    public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+using namespace HEVCEHW::Base;
 
-    protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
+class FEI
+    : public virtual FeatureBase
+{
+public:
+#define DECL_BLOCK_LIST \
+    DECL_BLOCK(CheckAndFix) \
+    DECL_BLOCK(SetGuidMap) \
+    DECL_BLOCK(SetVaCallChain) \
+    DECL_BLOCK(FrameCheck) \
+    DECL_BLOCK(UpdatePPS) \
+    DECL_BLOCK(SetTaskVaParam) \
+    DECL_BLOCK(SetFeedbackCallChain) \
+    DECL_BLOCK(CancelTasks)
+#define DECL_FEATURE_NAME "G11FEI_FEI"
+#include "hevcehw_decl_blocks.h"
 
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
-    };
+    FEI(mfxU32 FeatureId) : FeatureBase(FeatureId) {}
 
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+protected:
+    virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+    virtual void Reset(const FeatureBlocks& blocks, TPushR Push) override;
+    virtual void FrameSubmit(const FeatureBlocks& blocks, TPushFS Push) override;
+    virtual void PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push) override;
+    virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
+
+    mfxU32 m_lastIDR     = 0;
+    mfxI32 m_prevIPoc    = 0;
+    mfxU32 m_frameOrder  = 0;
+};
+
+} //Base
+} //Linux
+} //namespace HEVCEHW
 
 #endif

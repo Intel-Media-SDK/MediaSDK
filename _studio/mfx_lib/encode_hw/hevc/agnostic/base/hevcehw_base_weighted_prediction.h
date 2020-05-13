@@ -21,38 +21,40 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined(MFX_ENABLE_HEVCE_WEIGHTED_PREDICTION)
 
-#include "hevcehw_base_lin.h"
+#include "hevcehw_base.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Linux
+namespace Base
 {
-namespace Gen12
-{
-    class MFXVideoENCODEH265_HW
-        : public Linux::Base::MFXVideoENCODEH265_HW
+    class WeightPred
+        : public FeatureBase
     {
     public:
-        using TBaseGen = Linux::Base::MFXVideoENCODEH265_HW;
-    
-        MFXVideoENCODEH265_HW(
-            VideoCORE& core
-            , mfxStatus& status
-            , eFeatureMode mode = eFeatureMode::INIT);
+#define DECL_BLOCK_LIST\
+    DECL_BLOCK(CheckAndFix)\
+    DECL_BLOCK(SetDefaults)\
+    DECL_BLOCK(SetPPS)\
+    DECL_BLOCK(SetSSH)\
+    DECL_BLOCK(PatchDDITask)
+#define DECL_FEATURE_NAME "Base_WeightPred"
+#include "hevcehw_decl_blocks.h"
+
+        WeightPred(mfxU32 FeatureId)
+            : FeatureBase(FeatureId)
+        {}
 
     protected:
-        using TFeatureList = HEVCEHW::Base::MFXVideoENCODEH265_HW::TFeatureList;
-
-        void InternalInitFeatures(
-            mfxStatus& status
-            , eFeatureMode mode
-            , TFeatureList& newFeatures);
+        virtual void SetSupported(ParamSupport& par) override;
+        virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
+        virtual void SetDefaults(const FeatureBlocks& /*blocks*/, TPushSD Push) override;
+        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
+        virtual void PostReorderTask(const FeatureBlocks& blocks, TPushPostRT Push) override;
     };
-
-} //Gen12
-} //namespace Linux
-}// namespace HEVCEHW
+} //Base
+} //namespace HEVCEHW
 
 #endif

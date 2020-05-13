@@ -23,36 +23,47 @@
 #include "mfx_common.h"
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
+#include "hevcehw_base.h"
 #include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
-    using Base::Defaults;
-    using Base::FrameBaseInfo;
-    using Base::Task;
-
-    enum eFeatureId
+    class Interlace
+        : public FeatureBase
     {
-        FEATURE_REXT = Base::eFeatureId::NUM_FEATURES
-        , FEATURE_CAPS
-        , FEATURE_SAO
-        , FEATURE_QP_MODULATION
-        , NUM_FEATURES
+    public:
+#define DECL_BLOCK_LIST\
+    DECL_BLOCK(CheckPicStruct)\
+    DECL_BLOCK(SetDefaultsCallChain)\
+    DECL_BLOCK(SetReorder)\
+    DECL_BLOCK(PatchRawInfo)\
+    DECL_BLOCK(PrepareTask)\
+    DECL_BLOCK(InsertPTSEI)\
+    DECL_BLOCK(PatchDDITask)\
+    DECL_BLOCK(QueryIOSurf)
+#define DECL_FEATURE_NAME "Base_Interlace"
+#include "hevcehw_decl_blocks.h"
+
+        Interlace(mfxU32 FeatureId)
+            : FeatureBase(FeatureId)
+        {}
+
+    protected:
+        virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+        virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+        virtual void QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push) override;
+        virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
+        virtual void SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push) override;
+
+        static bool IsField(mfxU16 PicStruct) { return  !!(PicStruct & MFX_PICSTRUCT_FIELD_SINGLE); }
+        static bool IsBFF(mfxU16 PicStruct) { return !!(PicStruct & MFX_PICSTRUCT_FIELD_BFF); }
+
+        std::array<mfxU8, 32> m_buf;
     };
 
-    struct Glob
-        : Base::Glob
-    {
-        static const StorageR::TKey _KD = __LINE__ + 1 - Base::Glob::NUM_KEYS;
-        static const StorageR::TKey ReservedKey12_0 = __LINE__ - _KD;
-        static const StorageR::TKey ReservedKey12_1 = __LINE__ - _KD;
-        static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
-    };
-
-
-} //namespace Gen12
+} //Base
 } //namespace HEVCEHW
 
-#endif
+#endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
