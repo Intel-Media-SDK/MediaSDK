@@ -1523,7 +1523,13 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
     MSDK_CHECK_STATUS(sts, "MFXQueryAdaptersNumber failed");
 
     mfxComponentInfo interface_request = { mfxComponentType::MFX_COMPONENT_ENCODE };
-    mfxU16 Shift    = params.IsSourceMSB || (params.memType != SYSTEM_MEMORY && AreGuidsEqual(params.pluginParams.pluginGuid, MFX_PLUGINID_HEVCE_HW)) || params.CodecId == MFX_CODEC_VP9;
+
+    bool isFourccNeedShift = params.FileInputFourCC == MFX_FOURCC_P010 || params.FileInputFourCC == MFX_FOURCC_P210
+#if (MFX_VERSION >= 1027)
+        || params.FileInputFourCC == MFX_FOURCC_Y210
+#endif
+        ;
+    mfxU16 Shift = params.IsSourceMSB || (isFourccNeedShift && ((params.memType != SYSTEM_MEMORY && AreGuidsEqual(params.pluginParams.pluginGuid, MFX_PLUGINID_HEVCE_HW)) || params.CodecId == MFX_CODEC_VP9));
     mfxU16 Height   = (MFX_PICSTRUCT_PROGRESSIVE == params.nPicStruct) ? MSDK_ALIGN16(params.nDstHeight) : MSDK_ALIGN32(params.nDstHeight);
     mfxU16 LowPower = mfxU16(params.enableQSVFF ? MFX_CODINGOPTION_ON : MFX_CODINGOPTION_UNKNOWN);
     mfxU16 BitDepth = FourCcBitDepth(params.EncodeFourCC);
