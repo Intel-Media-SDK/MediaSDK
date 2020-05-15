@@ -293,6 +293,7 @@ namespace MfxHwH264Encode
         mfxU32 m_skipMode;
         bool m_isENCPAK;
 
+        bool                           m_isBrcResetRequired;
         VAEncMiscParameterRateControl  m_vaBrcPar;
         VAEncMiscParameterFrameRate    m_vaFrameRate;
 

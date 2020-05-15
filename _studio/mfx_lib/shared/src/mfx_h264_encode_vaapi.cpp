@@ -163,6 +163,7 @@ void FillBrcStructures(
     vaBrcPar.bits_per_second = GetMaxBitrateValue(par.calcParam.maxKbps) << (6 + SCALE_FROM_DRIVER);
     if(par.calcParam.maxKbps)
         vaBrcPar.target_percentage = (unsigned int)(100.0 * (mfxF64)par.calcParam.targetKbps / (mfxF64)par.calcParam.maxKbps);
+    vaBrcPar.ICQ_quality_factor = par.mfx.ICQQuality;
     PackMfxFrameRate(par.mfx.FrameInfo.FrameRateExtN, par.mfx.FrameInfo.FrameRateExtD, vaFrameRate.framerate);
 }
 
@@ -1363,6 +1364,7 @@ VAAPIEncoder::VAAPIEncoder()
     , m_sizeSkipFrames()
     , m_skipMode()
     , m_isENCPAK(false)
+    , m_isBrcResetRequired(false)
     , m_vaBrcPar()
     , m_vaFrameRate()
     , m_mbqp_buffer()
@@ -1901,7 +1903,10 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
     VAEncMiscParameterRateControl oldBrcPar = m_vaBrcPar;
     VAEncMiscParameterFrameRate oldFrameRate = m_vaFrameRate;
     FillBrcStructures(par, m_vaBrcPar, m_vaFrameRate);
-    bool isBrcResetRequired =
+
+    // BRC reset is processed by driver inside vaRenderPicture(),
+    // so set it here and use in 1st subsequent Execute()
+    m_isBrcResetRequired =
            !Equal(m_vaBrcPar, oldBrcPar)
         || !Equal(m_vaFrameRate, oldFrameRate)
         || m_userMaxFrameSize != extOpt2->MaxFrameSize;
@@ -1911,7 +1916,6 @@ mfxStatus VAAPIEncoder::Reset(MfxVideoParam const & par)
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetFrameRate(par, m_vaDisplay, m_vaContextEncode, m_frameRateId),                                            MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityLevel(par, m_vaDisplay, m_vaContextEncode, m_qualityLevelId),                                      MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityParams(par, m_vaDisplay, m_vaContextEncode, m_qualityParamsId),                                    MFX_ERR_DEVICE_FAILED);
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetBrcResetRequired(m_vaDisplay, m_rateParamBufferId, isBrcResetRequired),                                   MFX_ERR_DEVICE_FAILED);
 
     if (extOpt2->MaxSliceSize != 0)
     {
@@ -2836,6 +2840,13 @@ mfxStatus VAAPIEncoder::Execute(
     if (extOpt2 && extOpt2->MaxSliceSize != 0)
         configBuffers.push_back(m_maxSliceSizeId);
 
+    if (m_isBrcResetRequired)
+    {
+        MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetBrcResetRequired(m_vaDisplay, m_rateParamBufferId, m_isBrcResetRequired),
+                              MFX_ERR_DEVICE_FAILED);
+        m_isBrcResetRequired = false;
+    }
+
 /*
  * Limit frame size by application/user level
  */
@@ -3166,9 +3177,6 @@ mfxStatus VAAPIEncoder::Execute(
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, vaFeiMBQPId);
     MFX_CHECK_STS(mfxSts);
 #endif
-
-    MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetBrcResetRequired(m_vaDisplay, m_rateParamBufferId, false), MFX_ERR_DEVICE_FAILED);
-
 
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::Execute(ExecuteBuffers& data, mfxU32 fieldId)
