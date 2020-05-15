@@ -336,6 +336,7 @@ mfxStatus DDI_VA::QueryCaps()
         , VAConfigAttribEncROI
         , VAConfigAttribEncTileSupport
         , VAConfigAttribEncDirtyRect
+        , VAConfigAttribMaxFrameSize
     };
     std::vector<VAConfigAttrib> attrs;
     auto AV = [&](VAConfigAttribType t) { return attrs[idx_map[t]].value; };
@@ -412,6 +413,7 @@ mfxStatus DDI_VA::QueryCaps()
 
 
     m_caps.TileSupport = (AV(VAConfigAttribEncTileSupport) == 1);
+    m_caps.UserMaxFrameSizeSupport = !!(AV(VAConfigAttribMaxFrameSize));
 
     return MFX_ERR_NONE;
 }
