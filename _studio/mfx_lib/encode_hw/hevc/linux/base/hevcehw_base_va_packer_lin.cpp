@@ -50,7 +50,6 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         caps.BRCReset                   = 1; // no bitrate resolution control
         caps.BlockSize                  = 2;
-        caps.UserMaxFrameSizeSupport    = 1;
         caps.MbQpDataSupport            = 1;
         caps.TUSupport                  = 73;
         caps.SliceStructure             = 4;
