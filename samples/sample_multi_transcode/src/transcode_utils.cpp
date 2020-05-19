@@ -131,6 +131,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("Pipeline description (general options):\n"));
     msdk_printf(MSDK_STRING("  -i::h265|h264|mpeg2|vc1|mvc|jpeg|vp9|av1 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set input file and decoder type\n"));
+    msdk_printf(MSDK_STRING("  -i::i420|nv12 <file-name>\n"));
+    msdk_printf(MSDK_STRING("                 Set raw input file and color format\n"));
     msdk_printf(MSDK_STRING("  -i::rgb4_frame Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).\n"));
     msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|raw <file-name>\n"));
     msdk_printf(MSDK_STRING("                Set output file and encoder type\n"));
@@ -2633,10 +2635,22 @@ mfxStatus CmdProcessor::VerifyAndCorrectInputParams(TranscodingSample::sInputPar
        MFX_CODEC_VP9 != InputParams.DecodeId &&
        MFX_CODEC_AV1 != InputParams.DecodeId &&
        MFX_CODEC_RGB4 != InputParams.DecodeId &&
+       MFX_CODEC_NV12 != InputParams.DecodeId &&
+       MFX_CODEC_I420 != InputParams.DecodeId &&
        InputParams.eMode != Source)
     {
         PrintError(MSDK_STRING("Unknown decoder\n"));
         return MFX_ERR_UNSUPPORTED;
+    }
+
+    if (MFX_CODEC_I420 == InputParams.DecodeId ||
+        MFX_CODEC_NV12 == InputParams.DecodeId)
+    {
+        InputParams.rawInput = true;
+    }
+    else
+    {
+        InputParams.rawInput = false;
     }
 
     if (MFX_CODEC_RGB4 == InputParams.DecodeId &&
