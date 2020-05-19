@@ -144,6 +144,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
 #endif
 
 #if defined(_WIN32) || defined(_WIN64)
+    ForceImplForSession(0);
     if (m_eDevType == MFX_HANDLE_D3D9_DEVICE_MANAGER)
     {
         m_pAllocParam.reset(new D3DAllocatorParams);
@@ -153,12 +154,14 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
         {
             /* Rendering case */
-            sts = m_hwdev->Init(NULL, 1, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9) );
+            sts = m_hwdev->Init(NULL, 1,
+                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
             m_InputParamsArray[m_InputParamsArray.size() -1].m_hwdev = m_hwdev.get();
         }
         else /* NO RENDERING*/
         {
-            sts = m_hwdev->Init(NULL, 0, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9) );
+            sts = m_hwdev->Init(NULL, 0,
+                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D9 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
         }
         MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
         sts = m_hwdev->GetHandle(MFX_HANDLE_D3D9_DEVICE_MANAGER, (mfxHDL*)&hdl);
@@ -178,12 +181,14 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         if (m_InputParamsArray[m_InputParamsArray.size() -1].eModeExt == VppCompOnly)
         {
             /* Rendering case */
-            sts = m_hwdev->Init(NULL, 1, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11) );
+            sts = m_hwdev->Init(NULL, 1,
+                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
             m_InputParamsArray[m_InputParamsArray.size() -1].m_hwdev = m_hwdev.get();
         }
         else /* NO RENDERING*/
         {
-            sts = m_hwdev->Init(NULL, 0, MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11) );
+            sts = m_hwdev->Init(NULL, 0,
+                MSDKAdapter::GetNumber(0,MFX_IMPL_VIA_D3D11 | MFX_IMPL_BASETYPE(m_InputParamsArray[0].libType)) );
         }
         MSDK_CHECK_STATUS(sts, "m_hwdev->Init failed");
         sts = m_hwdev->GetHandle(MFX_HANDLE_D3D11_DEVICE, (mfxHDL*)&hdl);
@@ -331,9 +336,11 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         {
             reader.reset(new CIVFFrameReader());
         }
-        else if (m_InputParamsArray[i].DecodeId == MFX_CODEC_RGB4)
+        else if (m_InputParamsArray[i].DecodeId == MFX_CODEC_RGB4 ||
+                 m_InputParamsArray[i].DecodeId == MFX_CODEC_I420 ||
+                 m_InputParamsArray[i].DecodeId == MFX_CODEC_NV12)
         {
-            // YUV reader for RGB4 overlay
+            // YUV reader for RGB4 overlay and raw input
             yuvreader.reset(new CSmplYUVReader());
         }
         else
@@ -352,7 +359,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
         {
             std::list<msdk_string> input;
             input.push_back(m_InputParamsArray[i].strSrcFile);
-            sts = yuvreader->Init(input, MFX_FOURCC_RGB4);
+            sts = yuvreader->Init(input, m_InputParamsArray[i].DecodeId);
             MSDK_CHECK_STATUS(sts, "m_YUVReader->Init failed");
             sts = m_pExtBSProcArray.back()->SetReader(yuvreader);
             MSDK_CHECK_STATUS(sts, "m_pExtBSProcArray.back()->SetReader failed");

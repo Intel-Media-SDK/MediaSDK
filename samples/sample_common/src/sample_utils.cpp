@@ -2310,6 +2310,14 @@ mfxStatus StrFormatToCodecFormatFourCC(msdk_char* strInput, mfxU32 &codecFormat)
         {
             codecFormat = MFX_CODEC_RGB4;
         }
+        else if ((0 == msdk_strcmp(strInput, MSDK_STRING("nv12"))))
+        {
+            codecFormat = MFX_CODEC_NV12;
+        }
+        else if ((0 == msdk_strcmp(strInput, MSDK_STRING("i420"))))
+        {
+            codecFormat = MFX_CODEC_I420;
+        }
         else
             sts = MFX_ERR_UNSUPPORTED;
     }

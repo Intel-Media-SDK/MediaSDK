@@ -69,6 +69,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |Option|Description|
 |---|---|
  |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9 <file-name>| Set input file and decoder type|
+ |-i::i420\|nv12 <file-name>| Set raw input file and color format|
   |-i::rgb4_frame | Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).|
  | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|raw <file-name>|  Set output file and encoder type|
  | -sw\|-hw\|-hw_d3d11| SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11<br>-sw - software|
