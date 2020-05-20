@@ -537,6 +537,41 @@ mfxStatus SetQualityLevelParams(
     return MFX_ERR_NONE;
 }
 
+static mfxStatus SetMaxFrameSize(
+    const UINT   userMaxFrameSize,
+    VADisplay    vaDisplay,
+    VAContextID  vaContextEncode,
+    VABufferID & frameSizeBuf_id)
+{
+    VAEncMiscParameterBuffer             *misc_param;
+    VAEncMiscParameterBufferMaxFrameSize *p_maxFrameSize;
+
+    mfxStatus sts = CheckAndDestroyVAbuffer(vaDisplay, frameSizeBuf_id);
+    MFX_CHECK_STS(sts);
+
+    VAStatus vaSts = vaCreateBuffer(vaDisplay,
+                   vaContextEncode,
+                   VAEncMiscParameterBufferType,
+                   sizeof(VAEncMiscParameterBuffer) + sizeof(VAEncMiscParameterBufferMaxFrameSize),
+                   1,
+                   NULL,
+                   &frameSizeBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    vaSts = vaMapBuffer(vaDisplay, frameSizeBuf_id, (void **)&misc_param);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    misc_param->type = VAEncMiscParameterTypeMaxFrameSize;
+    p_maxFrameSize = (VAEncMiscParameterBufferMaxFrameSize *)misc_param->data;
+
+    p_maxFrameSize->max_frame_size = userMaxFrameSize*8;    // in bits for libva
+
+    vaSts = vaUnmapBuffer(vaDisplay, frameSizeBuf_id);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    return MFX_ERR_NONE;
+}
+
 void FillConstPartOfPps(
     MfxVideoParam const & par,
     VAEncPictureParameterBufferHEVC & pps)
@@ -1145,6 +1180,12 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetFrameRate(par, m_vaDisplay, m_vaContextEncode, VABufferNew(VABID_FrameRate, 1)), MFX_ERR_DEVICE_FAILED);
     MFX_CHECK_WITH_ASSERT(MFX_ERR_NONE == SetQualityLevelParams(par, m_vaDisplay, m_vaContextEncode, VABufferNew(VABID_QualityLevel, 1)), MFX_ERR_DEVICE_FAILED);
+
+    if (par.m_ext.CO2.MaxFrameSize)
+    {
+        mfxStatus sts = SetMaxFrameSize(par.m_ext.CO2.MaxFrameSize, m_vaDisplay, m_vaContextEncode, VABufferNew(VABID_MaxFrameSize, 1));
+        MFX_CHECK_WITH_ASSERT(sts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+    }
     if(par.m_ext.CO2.MaxSliceSize != 0)
     {
         mfxStatus sts = SetMaxSliceSize(par, m_vaDisplay, m_vaContextEncode, VABufferNew(VABID_MaxSliceSize, 1));
