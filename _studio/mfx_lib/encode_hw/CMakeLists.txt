@@ -102,6 +102,7 @@ list( APPEND sources
     hevc/linux/base/hevcehw_base_va_lin.cpp
     hevc/linux/base/hevcehw_base_va_packer_lin.cpp
     hevc/linux/base/hevcehw_base_weighted_prediction_lin.cpp
+    hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
     hevc/linux/g12/hevcehw_g12_rext_lin.cpp
 )

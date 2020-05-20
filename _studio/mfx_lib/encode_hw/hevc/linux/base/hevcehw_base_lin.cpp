@@ -45,7 +45,7 @@
 #if defined(MFX_ENABLE_HEVCE_ROI)
 #include "hevcehw_base_roi_lin.h"
 #endif
-#include "hevcehw_base_max_frame_size.h"
+#include "hevcehw_base_max_frame_size_lin.h"
 #include "hevcehw_base_fei_lin.h"
 #include <algorithm>
 
