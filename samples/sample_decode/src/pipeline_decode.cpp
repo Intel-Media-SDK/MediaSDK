@@ -1132,6 +1132,18 @@ mfxStatus CDecodingPipeline::AllocFrames()
     MSDK_IGNORE_MFX_STS(sts, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     MSDK_CHECK_STATUS(sts, "m_pmfxDEC->Query failed");
 
+    // Workaround for VP9 and AV1 codecs
+    if ((m_mfxVideoParams.mfx.CodecId == MFX_CODEC_VP9 || m_mfxVideoParams.mfx.CodecId == MFX_CODEC_AV1) &&
+        (   m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_P010
+#if (MFX_VERSION >= 1027)
+         || m_mfxVideoParams.mfx.FrameInfo.FourCC == MFX_FOURCC_Y210
+#endif
+        )
+    )
+    {
+        m_mfxVideoParams.mfx.FrameInfo.Shift = 1;
+    }
+
     // calculate number of surfaces required for decoder
     sts = m_pmfxDEC->QueryIOSurf(&m_mfxVideoParams, &Request);
     if (MFX_WRN_PARTIAL_ACCELERATION == sts)
