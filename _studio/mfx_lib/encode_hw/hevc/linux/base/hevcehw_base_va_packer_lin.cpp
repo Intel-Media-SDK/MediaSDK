@@ -602,10 +602,10 @@ void UpdateSlices(
 
         if (slice.slice_type != 2)
         {
-            slice.num_ref_idx_l0_active_minus1 = task.NumRefActive[0] - 1;
+            slice.num_ref_idx_l0_active_minus1 = task.NumRefActive[0]==0 ? 0 : task.NumRefActive[0] - 1;
 
             if (slice.slice_type == 0)
-                slice.num_ref_idx_l1_active_minus1 = task.NumRefActive[1] - 1;
+                slice.num_ref_idx_l1_active_minus1 = task.NumRefActive[1]==0 ? 0 : task.NumRefActive[1] - 1;
             else
                 slice.num_ref_idx_l1_active_minus1 = 0;
 
