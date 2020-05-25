@@ -892,9 +892,7 @@ mfxStatus MfxVideoParam::GetExtBuffers(mfxVideoParam& par, bool query)
     ExtBuffer::Set(par, m_ext.CO3);
     ExtBuffer::Set(par, m_ext.ResetOpt);
 
-    if (ExtBuffer::Set(par, m_ext.DDI))
-    {
-    }
+    ExtBuffer::Set(par, m_ext.DDI);
     ExtBuffer::Set(par, m_ext.AVCTL);
     ExtBuffer::Set(par, m_ext.ROI);
     ExtBuffer::Set(par, m_ext.VSI);

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -90,7 +90,7 @@ typedef struct {
     mfxU16 RegressionWindow;        //
     mfxU16 LookAheadDependency;     // LookAheadDependency < LookAhead
     mfxU16 Hme;                     // tri-state
-    mfxU16 LCUSize;                 // 32 or 64 - overrides default value of Largest Coding Unit
+    mfxU16 reserved4;               //
     mfxU16 WriteIVFHeaders;         // tri-state
     mfxU16 RefreshFrameContext;
     mfxU16 ChangeFrameContextIdxForTS;
