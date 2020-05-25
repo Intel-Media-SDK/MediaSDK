@@ -532,7 +532,6 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     sts = InitMfxParams(pParams);
     MSDK_CHECK_STATUS(sts, "InitMfxParams failed");
 
-    m_bVppIsUsed = IsVppRequired(pParams);
     if (m_bVppIsUsed)
     {
         m_pmfxVPP = new MFXVideoVPP(m_mfxSession);
@@ -739,7 +738,12 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
             sts = m_pmfxDEC->DecodeHeader(&m_mfxBS, &m_mfxVideoParams);
         }
 
-        if (!sts &&
+        if(MFX_ERR_NONE == sts)
+        {
+                m_bVppIsUsed = IsVppRequired(pParams);
+        }
+
+        if (MFX_ERR_NONE == sts &&
             !(m_impl & MFX_IMPL_SOFTWARE) &&                        // hw lib
             (m_mfxVideoParams.mfx.FrameInfo.BitDepthLuma == 10) &&  // hevc 10 bit
             (m_mfxVideoParams.mfx.CodecId == MFX_CODEC_HEVC) &&
@@ -749,7 +753,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
             sts = MFX_ERR_UNSUPPORTED;
             msdk_printf(MSDK_STRING("Error: Combination of (SW HEVC plugin in 10bit mode + HW lib VPP) isn't supported. Use -sw option.\n"));
         }
-        if (m_pPlugin.get() && pParams->videoType == CODEC_VP8 && !sts) {
+        if (m_pPlugin.get() && pParams->videoType == CODEC_VP8 && MFX_ERR_NONE == sts) {
             // force set format to nv12 as the vp8 plugin uses yv12
             m_mfxVideoParams.mfx.FrameInfo.FourCC = MFX_FOURCC_NV12;
         }
