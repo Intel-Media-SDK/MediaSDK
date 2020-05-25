@@ -1300,7 +1300,6 @@ void InheritDefaultValues(
 
     mfxExtCodingOptionDDI const* extOptDDIInit = &parInit.m_ext.DDI;
     mfxExtCodingOptionDDI      * extOptDDIReset = &parReset.m_ext.DDI;
-    InheritOption(extOptDDIInit->LCUSize, extOptDDIReset->LCUSize);
 #if (MFX_VERSION >= 1025)
     if (parInit.mfx.TargetUsage != parReset.mfx.TargetUsage)
     {   // NumActiveRefs depends on TU
@@ -1577,17 +1576,6 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
 
     changed += CheckTriStateOption(par.mfx.LowPower);
 
-#if (MFX_VERSION >= 1025)
-    if (par.m_ext.DDI.LCUSize != 0)
-    {
-        if (CheckLCUSize(caps.ddi_caps.LCUSizeSupported, par.m_ext.DDI.LCUSize))
-        {
-            par.LCUSize = par.m_ext.DDI.LCUSize;
-        }
-        else
-            invalid++;
-    }
-
 #if (MFX_VERSION >= 1026)
     if (par.m_ext.HEVCParam.LCUSize != 0)
     {
@@ -1598,15 +1586,7 @@ mfxStatus CheckVideoParam(MfxVideoParam& par, MFX_ENCODE_CAPS_HEVC const & caps,
         else
             invalid++;
     }
-
-    // HEVCParam.LCUSize have a priority.
-    if ((par.m_ext.DDI.LCUSize != 0) &&  (par.m_ext.DDI.LCUSize != par.m_ext.HEVCParam.LCUSize))
-    {
-        par.m_ext.DDI.LCUSize = 0;
-        changed++;
-    }
 #endif // MFX_VERSION >= 1026
-#endif // MFX_VERSION >= 1025
     if (!par.LCUSize)
         par.LCUSize = GetDefaultLCUSize(par, caps.ddi_caps); //  that a local copy of actual value;
 
@@ -2703,7 +2683,6 @@ void SetDefaults(
 #if MFX_VERSION >= 1026
     par.m_ext.HEVCParam.LCUSize = (mfxU16)par.LCUSize; // typecast is safe since value must be valid 8,16,32,64
 #endif
-    par.m_ext.DDI.LCUSize = (mfxU16)par.LCUSize;
 
     if (par.mfx.CodecLevel)
     {
