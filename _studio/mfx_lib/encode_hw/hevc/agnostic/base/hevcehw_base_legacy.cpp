@@ -840,7 +840,7 @@ void Legacy::QueryIOSurf(const FeatureBlocks& blocks, TPushQIS Push)
 
         return MFX_ERR_NONE;
     });
-    
+
     Push(BLK_CheckVideoParam
         , [&blocks](const mfxVideoParam& par, mfxFrameAllocRequest&, StorageRW& strg) -> mfxStatus
     {
@@ -3301,10 +3301,18 @@ void Legacy::SetSTRPS(
         STRPS  rps   = curRps;
         mfxU32 n     = curRps.WeightInGop; //current RPS used for N frames
         //bits for RPS in SPS and SSHs
-        mfxU32 bits0 = 
+        mfxU32 bits0 =
             EstimateRpsBits(pSetsBegin, nSet, rps, nSet - 1) //bits for RPS in SPS
-            + (CeilLog2(nSet) - CeilLog2(nSet - 1)) //diff of bits for STRPS num in SPS
+            + (CeilLog2(nSet + 1) - CeilLog2(nSet)) * 2 //diff of bits for STRPS num in SPS (ue() coded)
             + (nSet > 1) * (par.mfx.NumSlice * CeilLog2(nSet) * n); //bits for RPS idx in SSHs
+
+        // count frames that use SPS RPS
+        auto AccFrWithRPS = [](mfxU32 x, const STRPS& r)
+        {
+            return std::move(x) + r.inter_ref_pic_set_prediction_flag * r.WeightInGop;
+        };
+        if (CeilLog2(nSet) - CeilLog2(nSet - 1)) //diff RPS idx bits with bigger RPS for ALL frames
+            bits0 = par.mfx.NumSlice * std::accumulate(pSetsBegin, pSetsBegin + nSet - 1, bits0, AccFrWithRPS);
 
         //emulate removal of current RPS from SPS
         --nSet;
@@ -3328,6 +3336,7 @@ void Legacy::SetSTRPS(
         , [&](STRPS& sf) { OptimizeSTRPS(sets, nSet, sf, mfxU8(i++)); });
     
     auto ritLastRps = std::find_if(MakeRIter(pSetsEnd), MakeRIter(pSetsBegin), IsRpsOptimal);
+    // Also makes sense to try cut nSet to 2^n. Shorter idx code can overweight
 
     sps.num_short_term_ref_pic_sets = mfxU8(std::distance(ritLastRps, MakeRIter(pSetsBegin)));
     
