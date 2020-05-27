@@ -534,7 +534,6 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
         AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
 
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
-        vaInitPar.clear();
 
         std::transform(
             m_vaPerSeqMiscData.begin()
