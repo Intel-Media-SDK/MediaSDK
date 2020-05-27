@@ -1205,7 +1205,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     // init slice divider
     bool fieldCoding = (m_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
     m_sliceDivider = MakeSliceDivider(
-        (m_caps.ddi_caps.SliceLevelRateCtrl) ? 4 : m_caps.ddi_caps.SliceStructure,
+        (m_caps.ddi_caps.SliceLevelRateCtrl) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
         extOpt2.NumMbPerSlice,
         extOpt3.NumSliceP,
         m_video.mfx.FrameInfo.Width / 16,
@@ -1410,7 +1410,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
     {
         bool fieldCoding = (newPar.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
         m_sliceDivider = MakeSliceDivider(
-            (m_caps.ddi_caps.SliceLevelRateCtrl) ? 4 : m_caps.ddi_caps.SliceStructure,
+            (m_caps.ddi_caps.SliceLevelRateCtrl) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(m_caps.ddi_caps.SliceStructure),
             extOpt2New.NumMbPerSlice,
             extOpt3New.NumSliceP,
             newPar.mfx.FrameInfo.Width / 16,

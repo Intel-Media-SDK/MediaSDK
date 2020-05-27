@@ -1797,7 +1797,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             // reset divider on I frames
             bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
             divider = MakeSliceDivider(
-                (caps.ddi_caps.SliceLevelRateCtrl) ? 4 : caps.ddi_caps.SliceStructure,
+                (caps.ddi_caps.SliceLevelRateCtrl) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(caps.ddi_caps.SliceStructure),
                 extOpt2Init.NumMbPerSlice,
                 extOpt3Init.NumSliceP,
                 video.mfx.FrameInfo.Width / 16,
@@ -1824,7 +1824,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
             {
                 bool fieldCoding = (video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE) == 0;
                 divider = MakeSliceDivider(
-                    (caps.ddi_caps.SliceLevelRateCtrl) ? 4 : caps.ddi_caps.SliceStructure,
+                    (caps.ddi_caps.SliceLevelRateCtrl) ? SliceDividerType::ARBITRARY_MB_SLICE : SliceDividerType(caps.ddi_caps.SliceStructure),
                     extOpt2Init.NumMbPerSlice,
                     extOpt3Init.NumSliceP,
                     video.mfx.FrameInfo.Width / 16,
