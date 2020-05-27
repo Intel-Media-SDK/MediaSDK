@@ -68,6 +68,7 @@ MFX_LOCAL_SRC_FILES_HW += \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_interlace_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_fei_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_lin.cpp \
+    mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_dirty_rect_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_roi_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_va_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/g9/hevcehw_g9_va_packer_lin.cpp \
@@ -211,6 +212,9 @@ MFX_LIB_SHARED_FILES_1 := $(addprefix mfx_lib/shared/src/, \
 
 MFX_LIB_SHARED_FILES_2 := $(addprefix shared/src/, \
     cm_mem_copy.cpp \
+    fast_copy.cpp \
+    fast_copy_c_impl.cpp \
+    fast_copy_sse4_impl.cpp \
     mfx_vpp_vaapi.cpp \
     libmfx_allocator.cpp \
     libmfx_allocator_vaapi.cpp \
