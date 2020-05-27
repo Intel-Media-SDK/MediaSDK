@@ -38,6 +38,7 @@ namespace UMC_HEVC_DECODER
             assert(dpb);
             assert(pp);
 
+            (void)dpb;
             auto si = frame->GetAU();
             if (!si)
                 throw h265_exception(UMC::UMC_ERR_FAILED);

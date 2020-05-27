@@ -13,6 +13,13 @@
 
 MFX_CFLAGS := -DANDROID
 
+#Media Version
+MEDIA_VERSION := 20.1.1
+MEDIA_VERSION_EXTRA := ""
+MEDIA_VERSION_ALL := $(MEDIA_VERSION)$(MEDIA_VERSION_EXTRA)
+
+MFX_CFLAGS += -DMEDIA_VERSION_STR=\"\\\"${MEDIA_VERSION_ALL}\\\"\"
+
 # Android version preference:
 ifneq ($(filter 10 10.% Q ,$(PLATFORM_VERSION)),)
   MFX_ANDROID_VERSION:= MFX_Q
@@ -42,12 +49,16 @@ endif
 # because there is used old version of LibVA 2.0
 ifneq ($(filter MFX_O MFX_O_MR1, $(MFX_ANDROID_VERSION)),)
   MFX_CFLAGS += -DMFX_VERSION=1026
-else
+else ifneq ($(filter MFX_P, $(MFX_ANDROID_VERSION)),)
   # CPLib PAVP implementation
   # It requires minimum API version 1.30
   MFX_CFLAGS += \
     -DMFX_ENABLE_CPLIB \
     -DMFX_VERSION=1030
+else
+  MFX_CFLAGS += \
+    -DMFX_ENABLE_CPLIB \
+    -DMFX_VERSION=1032
 endif
 
 MFX_CFLAGS += \
