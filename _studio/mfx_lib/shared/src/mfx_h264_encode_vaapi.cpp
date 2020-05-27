@@ -91,21 +91,18 @@ VAProfile ConvertProfileTypeMFX2VAAPI(mfxU32 type)
 
 } // VAProfile ConvertProfileTypeMFX2VAAPI(mfxU8 type)
 
-mfxU8 ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
+SliceDividerType ConvertSliceStructureVAAPIToMFX(mfxU8 structure)
 {
-    switch (structure)
-    {
-        case VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS:
-            return 1;
-        case VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS:
-            return 2;
-        case VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS:
-            return 3;
-        case VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS:
-            return 4;
-        default:
-            return 0;
-    }
+    if (structure & VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS)
+        return SliceDividerType::ARBITRARY_MB_SLICE;
+    if (structure & VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS)
+        return SliceDividerType::ARBITRARY_ROW_SLICE;
+    if (structure & VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS ||
+        structure & VA_ENC_SLICE_STRUCTURE_EQUAL_MULTI_ROWS)
+        return SliceDividerType::ROWSLICE;
+    if (structure & VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS)
+        return SliceDividerType::ROW2ROW;
+    return SliceDividerType::ONESLICE;
 }
 
 mfxStatus SetHRD(
@@ -1123,7 +1120,7 @@ void FillPWT(
             pPWT = &task.m_pwt[fieldId];
 
         SliceDivider divider = MakeSliceDivider(
-            hwCaps.ddi_caps.SliceStructure,
+            SliceDividerType(hwCaps.ddi_caps.SliceStructure),
             task.m_numMbPerSlice,
             numSlice,
             sps.picture_width_in_mbs,
@@ -1574,7 +1571,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         // (2) indication of support for max slice size feature
         const auto sliceCapabilities = AV(VAConfigAttribEncSliceStructure);
         const auto sliceStructure = sliceCapabilities & ~VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE;
-        m_caps.ddi_caps.SliceStructure = ConvertSliceStructureVAAPIToMFX(sliceStructure);
+        m_caps.ddi_caps.SliceStructure = static_cast<unsigned>(ConvertSliceStructureVAAPIToMFX(sliceStructure));
         m_caps.ddi_caps.SliceLevelRateCtrl = sliceCapabilities & VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE ? 1 : 0;
     }
     else

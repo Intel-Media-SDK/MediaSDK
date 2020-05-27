@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -942,6 +942,15 @@ namespace MfxHwH264Encode
 
     ENCODE_FRAME_SIZE_TOLERANCE ConvertLowDelayBRCMfx2Ddi(mfxU16 type, bool bTCBRC);
 
+    enum class SliceDividerType
+    {
+        ONESLICE            = 0, // Once slice for the whole frame
+        ROW2ROW             = 1, // Slices are power of 2 number of rows, all slices the same
+        ROWSLICE            = 2, // Slices are any number of rows, all slices the same
+        ARBITRARY_ROW_SLICE = 3, // Slices are any number of rows, slices can be different
+        ARBITRARY_MB_SLICE  = 4, // Slices are any number of MBs, slices can be different
+    };
+
     struct MfxMemId
     {
     public:
@@ -1169,9 +1178,9 @@ namespace MfxHwH264Encode
     };
 
 
-    struct SliceDividerBluRay : SliceDivider
+    struct SliceDividerArbitraryRowSlice : SliceDivider
     {
-        SliceDividerBluRay(
+        SliceDividerArbitraryRowSlice(
             mfxU32 numSlice,
             mfxU32 widthInMbs,
             mfxU32 heightInMbs);
@@ -1180,9 +1189,9 @@ namespace MfxHwH264Encode
     };
 
 
-    struct SliceDividerSnb : SliceDivider
+    struct SliceDividerRow2Row : SliceDivider
     {
-        SliceDividerSnb(
+        SliceDividerRow2Row(
             mfxU32 numSlice,
             mfxU32 widthInMbs,
             mfxU32 heightInMbs);
@@ -1193,9 +1202,9 @@ namespace MfxHwH264Encode
     };
 
 
-    struct SliceDividerHsw : SliceDivider
+    struct SliceDividerRowSlice : SliceDivider
     {
-        SliceDividerHsw(
+        SliceDividerRowSlice(
             mfxU32 numSlice,
             mfxU32 widthInMbs,
             mfxU32 heightInMbs);
@@ -1231,7 +1240,7 @@ namespace MfxHwH264Encode
         static bool Next(SliceDividerState & state);
     };
     SliceDivider MakeSliceDivider(
-        mfxU32  sliceHwCaps,
+        SliceDividerType sliceHwCaps,
         mfxU32  sliceSizeInMbs,
         mfxU32  numSlice,
         mfxU32  widthInMbs,
