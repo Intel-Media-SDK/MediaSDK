@@ -494,7 +494,9 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             break;
         case MFX_BRC_PANIC_BIG_FRAME:
             task.bSkip = true;
+            MFX_FALLTHROUGH;
         case MFX_BRC_BIG_FRAME:
+            MFX_FALLTHROUGH;
         case MFX_BRC_SMALL_FRAME:
             task.bRecode = true;
             break;

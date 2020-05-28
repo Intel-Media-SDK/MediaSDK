@@ -80,6 +80,14 @@ static const mfxU8  NO_INDEX_U8 = 0xff;
 static const mfxU16 NO_INDEX_U16 = 0xffff;
 #define MFX_CHECK_UMC_STS(err)  { if (err != static_cast<int>(UMC::UMC_OK)) {return ConvertStatusUmc2Mfx(err);} }
 
+#if __cplusplus > 201703L
+#define MFX_FALLTHROUGH [[fallthrough]]
+#elif __clang__
+#define MFX_FALLTHROUGH [[clang::fallthrough]]
+#else
+#define MFX_FALLTHROUGH
+#endif
+
 inline
 mfxStatus ConvertStatusUmc2Mfx(UMC::Status umcStatus)
 {
