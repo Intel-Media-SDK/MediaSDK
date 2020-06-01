@@ -359,8 +359,6 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     MSDK_CHECK_STATUS(sts, "m_FileReader->Init failed");
 
     mfxInitParamlWrap initPar;
-    auto threadsPar = initPar.AddExtBuffer<mfxExtThreadsParam>();
-    MSDK_CHECK_POINTER(threadsPar, MFX_ERR_MEMORY_ALLOC);
 
     // we set version to 1.0 and later we will query actual version of the library which will got leaded
     initPar.Version.Major = 1;
@@ -370,14 +368,17 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     if (pParams->nThreadsNum)
     {
+        auto threadsPar = initPar.AddExtBuffer<mfxExtThreadsParam>();
         threadsPar->NumThread = pParams->nThreadsNum;
     }
     if (pParams->SchedulingType)
     {
+        auto threadsPar = initPar.AddExtBuffer<mfxExtThreadsParam>();
         threadsPar->SchedulingType = pParams->SchedulingType;
     }
     if (pParams->Priority)
     {
+        auto threadsPar = initPar.AddExtBuffer<mfxExtThreadsParam>();
         threadsPar->Priority = pParams->Priority;
     }
 
