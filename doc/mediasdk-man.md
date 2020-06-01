@@ -8494,7 +8494,7 @@ Use the following decorative flags to specify the OS infrastructure that hardwar
 `MFX_IMPL_VIA_D3D9` | Hardware acceleration goes through the Microsoft* Direct3D9* infrastructure.
 `MFX_IMPL_VIA_D3D11` | Hardware acceleration goes through the Microsoft* Direct3D11* infrastructure.
 `MFX_IMPL_VIA_VAAPI` | Hardware acceleration goes through the Linux* VA API infrastructure.
-`MFX_IMPL_VIA_ANY` | Hardware acceleration can go through any supported OS infrastructure. This is default value, it is used by the SDK if none of `MFX_IMPL_VIA_xxx` flag is specified by application.
+`MFX_IMPL_VIA_ANY` | Hardware acceleration can go through any supported OS infrastructure. This is default value, it is used by the SDK if none of `MFX_IMPL_VIA_xxx` flag is specified by application. If the application is going to [work with video memory](#Working_with_video_memory), it should get the exact type of video acceleration infrastructure which SDK library was initialized with by calling [MFXQueryIMPL](#MFXQueryIMPL) and create a corresponding types of video memory allocator and device manager handle.
 
 | | |
 --- | ---
