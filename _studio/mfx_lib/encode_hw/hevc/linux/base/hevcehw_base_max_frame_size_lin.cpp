@@ -39,28 +39,26 @@ void HEVCEHW::Linux::Base::MaxFrameSize::InitInternal(const FeatureBlocks& /*blo
         auto vaType = Glob::VideoCore::Get(strg).GetVAType();
         MFX_CHECK(vaType == MFX_HW_VAAPI, MFX_ERR_NONE);
 
-        m_vaPerSeqMiscData.clear();
-
-        auto& maxfs = AddVaMisc<VAEncMiscParameterBufferMaxFrameSize>(
-            VAEncMiscParameterTypeMaxFrameSize
-            , m_vaPerSeqMiscData);
-
-        maxfs.max_frame_size = CO2.MaxFrameSize * 8;
-
-        auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
-
-        std::for_each(m_vaPerSeqMiscData.begin(), m_vaPerSeqMiscData.end()
-            , [&](decltype(*m_vaPerSeqMiscData.begin()) data)
+        if (m_bPatchNextDDITask)
         {
-            DDIExecParam par = {};
-            par.Function = VAEncMiscParameterBufferType;
-            par.In.pData = data.data();
-            par.In.Size = (mfxU32)data.size();
-            par.In.Num = 1;
+            auto& cc = VAPacker::CC::GetOrConstruct(strg);
+            cc.AddPerSeqMiscData[VAEncMiscParameterTypeMaxFrameSize].Push([](
+                VAPacker::CallChains::TAddMiscData::TExt
+                , const StorageR& strg
+                , const StorageR& local
+                , std::list<std::vector<mfxU8>>& data)
+            {
+                const mfxExtCodingOption2& CO2 = ExtBuffer::Get(Glob::VideoParam::Get(strg));
 
-            vaInitPar.push_back(par);
-        });
+                auto& maxfs = AddVaMisc<VAEncMiscParameterBufferMaxFrameSize>(
+                    VAEncMiscParameterTypeMaxFrameSize
+                    , data);
 
+                maxfs.max_frame_size = CO2.MaxFrameSize * 8;
+
+                return true;
+            });
+        }
         return MFX_ERR_NONE;
     });
 }
