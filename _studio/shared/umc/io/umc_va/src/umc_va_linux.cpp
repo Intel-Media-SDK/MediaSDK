@@ -649,7 +649,7 @@ Status LinuxVideoAccelerator::BeginFrame(int32_t FrameBufIndex)
     Status   umcRes = UMC_OK;
     VAStatus va_res = VA_STATUS_SUCCESS;
 
-    if ((UMC_OK == umcRes) && ((FrameBufIndex < 0) || (FrameBufIndex >= m_NumOfFrameBuffers)))
+    if ((UMC_OK == umcRes) && ((FrameBufIndex < 0) || (m_NumOfFrameBuffers && FrameBufIndex >= m_NumOfFrameBuffers)))
         umcRes = UMC_ERR_INVALID_PARAMS;
 
     VASurfaceID *surface;
@@ -1050,7 +1050,7 @@ Status LinuxVideoAccelerator::QueryTaskStatus(int32_t FrameBufIndex, void * stat
 
 Status LinuxVideoAccelerator::SyncTask(int32_t FrameBufIndex, void *surfCorruption)
 {
-    if ((FrameBufIndex < 0) || (FrameBufIndex >= m_NumOfFrameBuffers))
+    if ((FrameBufIndex < 0) || (m_NumOfFrameBuffers && FrameBufIndex >= m_NumOfFrameBuffers))
         return UMC_ERR_INVALID_PARAMS;
 
     VASurfaceID *surface;
