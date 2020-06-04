@@ -663,6 +663,7 @@ int main(int argc, msdk_char *argv[])
                 }
             }
 
+            bool bReadFrame = false;
             if( !bDoNotUpdateIn )
             {
                 if (nextResetFrmNum == numGetFrames)
@@ -676,6 +677,7 @@ int main(int argc, msdk_char *argv[])
                 sts = yuvReaders[nInStreamInd].GetNextInputFrame(&allocator,&realFrameInfoIn[nInStreamInd],&pInSurf[nInStreamInd],nInStreamInd);
                 MSDK_BREAK_ON_ERROR(sts);
 
+                bReadFrame = true;
                 // Set input timestamps according to input framerate
                 mfxU64 expectedPTS = (((mfxU64)(numGetFrames) * mfxParamsVideo.vpp.In.FrameRateExtD * 90000) / mfxParamsVideo.vpp.In.FrameRateExtN);
                 pInSurf[nInStreamInd]->Data.TimeStamp = expectedPTS;
@@ -685,11 +687,6 @@ int main(int argc, msdk_char *argv[])
                     pInSurf[nInStreamInd]->Info.FrameId.ViewId = viewID;
                 }
 
-                if (numGetFrames++ == Params.numFrames && bFrameNumLimit)
-                {
-                    sts = MFX_ERR_MORE_DATA;
-                    break;
-                }
             }
 
             // VPP processing
@@ -793,6 +790,16 @@ int main(int argc, msdk_char *argv[])
                     NULL,
                     &syncPoint);
             }
+
+            if (bReadFrame)
+            {
+                if (numGetFrames++ == Params.numFrames && bFrameNumLimit)
+                {
+                    sts = MFX_ERR_MORE_DATA;
+                    break;
+                }
+            }
+
 
             nInStreamInd++;
             if (nInStreamInd == Resources.numSrcFiles)
