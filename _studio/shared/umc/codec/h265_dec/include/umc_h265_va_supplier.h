@@ -75,8 +75,7 @@ private:
         return *this;
     }
 
-    // Assume we have max 300 bytes prevention, 1760(440 x 4) bytes for entrypoint offsets, 800 bytes for other slice header
-    const int SliceHeaderSize = 2860;
+    const int SliceHeaderSize = DEFAULT_MAX_ENETRY_POINT_NUM * 4 + DEFAULT_MAX_PREVENTION_BYTES + DEAFULT_MAX_SLICE_HEADER_SIZE;
 };
 
 // this template class added to apply big surface pool workaround depends on platform
