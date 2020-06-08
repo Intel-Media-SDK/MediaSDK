@@ -3202,9 +3202,13 @@ void Legacy::SetSTRPS(
     mfxI32    lastIPoc   = 0;
     bool      bDone      = false;
     mfxI32    i          = 0;
+
+    mfxI32    RAPPOC     = -1;   // if >= 0 first frame with bigger POC clears refs previous to RAP
+    bool      bFields    = (par.mfx.FrameInfo.PicStruct & (MFX_PICSTRUCT_FIELD_TOP | MFX_PICSTRUCT_FIELD_BOTTOM));
+    bool      bIisRAP    = !bFields; // control to match real encoding here
+
     Reorderer localReorder;
     DpbArray  dpb;
-
     localReorder        = reorder;
     localReorder.DPB    = &dpb; //use own DPB
 
@@ -3234,13 +3238,15 @@ void Legacy::SetSTRPS(
 
         if (!bNext)
         {
-            RemoveIf(dpb, dpb + Size(dpb) * bTL
+            bool bAfterRAP = (RAPPOC >= 0) && (cur->POC > RAPPOC); // if true - need to remove refs <RAPPOC
+
+            RemoveIf(dpb, dpb + Size(dpb) * (bTL | bAfterRAP)
                 , [&](DpbFrame& ref)
             {
                 return
                     isValid(ref)
-                    && ref.TemporalID > 0
-                    && ref.TemporalID >= cur->TemporalID;
+                    && ((bAfterRAP && ref.POC != RAPPOC && !ref.isLTR) // only RAP and LTR remains
+                        || (ref.TemporalID > 0 && ref.TemporalID >= cur->TemporalID));
             });
 
             bool bIDR = IsIdr(cur->FrameType);
@@ -3248,6 +3254,9 @@ void Legacy::SetSTRPS(
             bool bB   = IsB(cur->FrameType);
             bool bP   = IsP(cur->FrameType);
             bool bRef = IsRef(cur->FrameType);
+
+            SetIf(RAPPOC, bAfterRAP, -1);           // clear after use
+            SetIf(RAPPOC, bI && bIisRAP, cur->POC); // enable at I if conrol allows
 
             if (!bIDR)
             {
@@ -3269,6 +3278,7 @@ void Legacy::SetSTRPS(
                        (bB && nRef[0] && SetRPL())
                     || (bP && nRef[0] && SetRPL())
                     || (bI); //I picture is not using any refs, but saves them in RPS to be used by future pics.
+                // but currently every I is RAP and frames after it won't use refs before it
 
                 ThrowAssert(!bRPL, "failed to construct RPL");
 
