@@ -2590,83 +2590,14 @@ bool Legacy::GetRecInfo(
     , eMFXHWType hw
     , mfxFrameInfo& rec)
 {
-    static const std::map<mfxU16, std::function<void(mfxFrameInfo&, eMFXHWType)>> ModRec[2] =
-    {
-        { //8b
-            {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_AYUV;
-                    /* Pitch = 4*W for AYUV format
-                       Pitch need to align on 512
-                       So, width aligment is 512/4 = 128 */
-                    rec.Width  = mfx::align2_value<mfxU16>(rec.Width, 512 / 4);
-                    rec.Height = mfx::align2_value<mfxU16>(rec.Height *3/4, 8);
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_YUY2;
-                    rec.Width /= 2;
-                    rec.Height *= 2;
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_NV12;
-                }
-            }
-        }
-        , { //10b
-            {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_Y410;
-                    /* Pitch = 4*W for Y410 format
-                       Pitch need to align on 256
-                       So, width aligment is 256/4 = 64 */
-                    rec.Width  = mfx::align2_value<mfxU16>(rec.Width, 256 / 4);
-                    rec.Height = mfx::align2_value<mfxU16>(rec.Height * 3 / 2, 8);
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_Y210;
-                    rec.Width /= 2;
-                    rec.Height *= 2;
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_P010;
-                }
-            }
-        }
-    };
     rec = par.mfx.FrameInfo;
 
-    auto& rModRec  = ModRec[CO3.TargetBitDepthLuma == 10];
-    auto  itModRec = rModRec.find(CO3.TargetChromaFormatPlus1);
-    bool bUndef =
-        (CO3.TargetBitDepthLuma != 8 && CO3.TargetBitDepthLuma != 10)
-        || (itModRec == rModRec.end());
+    bool bUndef = CO3.TargetBitDepthLuma != 8 && CO3.TargetBitDepthLuma != 10;
 
     if (bUndef)
     {
         return false;
     }
-
-    itModRec->second(rec, hw);
 
     rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
     rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
