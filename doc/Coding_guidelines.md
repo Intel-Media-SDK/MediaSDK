@@ -541,7 +541,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 17. Modern C++ brings a lot of powerful syntax to ease most commonly used operations. This is a limited list of most useful ones.
 
-    - Use auto when type deduction is trivial. This will save space in code, remove unnecessary noise in declarations.
+    - Use ```auto``` when type deduction is trivial. This will save space in code, remove unnecessary noise in declarations.
 
       Example:
 
@@ -550,11 +550,11 @@ Feel free to improve this document. Bring more examples and rules. But please tr
       
       auto it = vec.rbegin(); // auto reduces visual noise, type of variable it is easily deducible
       ```
-    - Remember that auto doesn't deduce references and ```const``` (and ```volatile```).
+    - Remember that ```auto``` doesn't deduce references and ```const``` (and ```volatile```).
 
-    - Auto is very powerful in templates.
+    - ```auto``` is very powerful in templates.
 
-    - Auto is the only way to create lambda function object.
+    - ```auto``` is the only way to create lambda function object.
 
     - Be aware of rvalue references and move semantics - this allows to reduce copies. For template functions prefer using forwarding references.
 
