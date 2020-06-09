@@ -692,6 +692,8 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
 
     if (in)
     {
+        out->mfx.MaxDecFrameBuffering = in->mfx.MaxDecFrameBuffering;
+
         if (in->mfx.CodecId == MFX_CODEC_HEVC)
             out->mfx.CodecId = in->mfx.CodecId;
 
