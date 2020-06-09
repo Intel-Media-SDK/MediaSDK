@@ -191,9 +191,11 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 10. Use unsigned types whenever it possible. Unsigned overflow is well defined behavior while signed is not.
 
+11. Avoid usage of local ```static``` variables because it might bring unexpectable overhead. Since C++11 initialization of local ```static``` variables must be thread safe, so compiler generates additional code to provide it.
+
 # Memory management
 
-11. Avoid manual memory management
+12. Avoid manual memory management
 
     - Functions ```memcpy```, ```memset```, ```sizeof``` are dangerous, use them only if you really need them.
 
@@ -256,7 +258,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Smart pointers
 
-12. Smart pointers is a correct way to handle memory management. They implement RAII paradigm.
+13. Smart pointers is a correct way to handle memory management. They implement RAII paradigm.
 
     - ```std::unique_ptr``` is a tiny layer over pointer which brings no real usage overhead, but brings major resistance over memory leaks.
 
@@ -330,7 +332,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Exceptions
 
-13. Exceptions exist! Your code most probably throws them even if you don't do it explicitly.
+14. Exceptions exist! Your code most probably throws them even if you don't do it explicitly.
 
     - Operator new throws ```std::bad_alloc```.
 
@@ -374,7 +376,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Writing a class
 
-14. Most of the hacks, performance optimizations, advanced C++ language techniques, templates and programming patterns should be localized inside the class or special utility header. Do not use them outside the class / utility functions if that won't improve readability and reliability of code. The main idea is to leave the high level execution path as clean as possible, so developers can understand the intension by quick overview without need to dig in some complicated C++ code logic.
+15. Most of the hacks, performance optimizations, advanced C++ language techniques, templates and programming patterns should be localized inside the class or special utility header. Do not use them outside the class / utility functions if that won't improve readability and reliability of code. The main idea is to leave the high level execution path as clean as possible, so developers can understand the intension by quick overview without need to dig in some complicated C++ code logic.
 
     - Create a class only if you really need it and this class will be highly utilized in code.
 
@@ -502,7 +504,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Functions
 
-15. Use following tips for functions.
+16. Use following tips for functions.
 
     - Declare small frequently used functions as inline.
 
@@ -537,7 +539,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Modern syntax sugar
 
-16. Modern C++ brings a lot of powerful syntax to ease most commonly used operations. This is a limited list of most useful ones.
+17. Modern C++ brings a lot of powerful syntax to ease most commonly used operations. This is a limited list of most useful ones.
 
     - Use auto when type deduction is trivial. This will save space in code, remove unnecessary noise in declarations.
 
@@ -589,7 +591,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Threading
 
-17. Use threads implementation and synchronization mechanisms from modern standards.
+18. Use threads implementation and synchronization mechanisms from modern standards.
 
     - Since C++11 ```std``` has a type for threads, use ```std::thread```.
 
@@ -625,7 +627,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Standard library
 
-18. Utilize standard library types and algorithms everywhere when possible.
+19. Utilize standard library types and algorithms everywhere when possible.
 
     - STL developers spent much time to optimize types and algorithms, in most situations their implementation will be the best available.
 
@@ -678,7 +680,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 # Common mistakes
 
-19. This is list of some most often mistakes seen in code.
+20. This is list of some most often mistakes seen in code.
 
     - Misusage or overusage of references. References are better to use instead of pointers, it allows to skip the pointer check. Some developers consider ```const``` reference as a way to avoid undesired copying of input parameters to functions. The common rule here is that it is very cheap (faster than to dereference a pointer) to copy anything with size less than a cache line (about 64 bytes!).
 
