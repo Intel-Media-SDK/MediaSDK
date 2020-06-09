@@ -613,7 +613,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
     - Always protect shared resource access if simultaneous read/write is possible with appropriate synchronization mechanism.
 
-    - Avoid time of check and time of usage mismatch. In multithread application value of shared variable may be changed at any moment by other thread.
+    - Avoid time of check and time of usage mismatch. In multithread application value of shared variable may be changed at any moment by other thread. For ```std::atomic``` variables this issue can be avoided by putting modifications of variable inside Compare And Swap (CAS) loop with ```std::compare_exchange_weak``` (prefer this to ```std::compare_exchange_strong```).
 
     - Limit usage of synchronizations in multi thread applications. The more synchronization primitives application uses, the less benefit it gets from threading.
 
