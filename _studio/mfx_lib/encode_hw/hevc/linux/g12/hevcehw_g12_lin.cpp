@@ -118,6 +118,11 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
             iint
             , { HEVCEHW::Base::FEATURE_LEGACY, HEVCEHW::Base::Legacy::BLK_SetPPS }
             , { FEATURE_SCC, SCC::BLK_SetPPSExt });
+        Reorder(
+            iint
+            , { HEVCEHW::Base::FEATURE_LEGACY, Base::Legacy::BLK_SetRecInfo }
+            , { FEATURE_REXT, RExt::BLK_SetRecInfo }
+            , PLACE_AFTER);
     }
 
     status = MFX_ERR_NONE;
