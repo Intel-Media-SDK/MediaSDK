@@ -477,6 +477,7 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
         mfxStatus sts = m_brc.Update(m_brc.pthis, &fp, &fc, &fs);
         MFX_CHECK_STS(sts);
+        task.bSkip = false;
 
         switch (fs.BRCStatus)
         {
