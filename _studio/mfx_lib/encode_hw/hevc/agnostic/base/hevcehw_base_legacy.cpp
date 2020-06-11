@@ -1759,10 +1759,9 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         surfSrc.Data.MemId = ref.Rec.Mid;
         surfDst.Data.MemId = task.Raw.Mid;
 
-        FrameLocker lock_dst(core, surfSrc.Data);
-        FrameLocker lock_src(core, surfDst.Data);
-
-        mfxStatus sts = core.CopyFrame(&surfDst, &surfSrc);
+        mfxStatus sts = core.DoFastCopyWrapper(
+            &surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
+            &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
         MFX_CHECK_STS(sts);
 
         allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
