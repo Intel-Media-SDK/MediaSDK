@@ -413,8 +413,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             sts = CheckAndFixAdapterDependency(i, pSinkPipeline);
             MSDK_CHECK_STATUS(sts, "CheckAndFixAdapterDependency failed");
             // force implementation type based on iGfx/dGfx parameters
-            if(m_InputParamsArray[i].libType != MFX_IMPL_SOFTWARE)
-                ForceImplForSession(i);
+            ForceImplForSession(i);
 #endif
             sts = pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
                                                    m_pAllocArray[i].get(),
@@ -429,8 +428,7 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             sts = CheckAndFixAdapterDependency(i, pParentPipeline);
             MSDK_CHECK_STATUS(sts, "CheckAndFixAdapterDependency failed");
             // force implementation type based on iGfx/dGfx parameters
-            if (m_InputParamsArray[i].libType != MFX_IMPL_SOFTWARE)
-                ForceImplForSession(i);
+            ForceImplForSession(i);
 #endif
             sts =  pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
                                                     m_pAllocArray[i].get(),
@@ -723,6 +721,9 @@ mfxStatus Launcher::QueryAdapters()
 
 void Launcher::ForceImplForSession(mfxU32 idxSession)
 {
+    if (m_InputParamsArray[idxSession].libType == MFX_IMPL_SOFTWARE)
+        return;
+
     //change only 8 bit of the implementation. Don't touch type of frames
     mfxIMPL impl = m_InputParamsArray[idxSession].libType & mfxI32(~0xFF);
 
