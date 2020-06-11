@@ -413,7 +413,8 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             sts = CheckAndFixAdapterDependency(i, pSinkPipeline);
             MSDK_CHECK_STATUS(sts, "CheckAndFixAdapterDependency failed");
             // force implementation type based on iGfx/dGfx parameters
-            ForceImplForSession(i);
+            if(m_InputParamsArray[i].libType != MFX_IMPL_SOFTWARE)
+                ForceImplForSession(i);
 #endif
             sts = pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
                                                    m_pAllocArray[i].get(),
@@ -428,7 +429,8 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
             sts = CheckAndFixAdapterDependency(i, pParentPipeline);
             MSDK_CHECK_STATUS(sts, "CheckAndFixAdapterDependency failed");
             // force implementation type based on iGfx/dGfx parameters
-            ForceImplForSession(i);
+            if (m_InputParamsArray[i].libType != MFX_IMPL_SOFTWARE)
+                ForceImplForSession(i);
 #endif
             sts =  pThreadPipeline->pPipeline->Init(&m_InputParamsArray[i],
                                                     m_pAllocArray[i].get(),
