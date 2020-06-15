@@ -393,6 +393,7 @@ static inline mfxI32 iGPU_priority(const void* ll, const void* rr)
 
 static void RearrangeInPriorityOrder(const mfxComponentInfo & info, MFX::MFXVector<mfxAdapterInfo> & vec)
 {
+	(void)info;
     {
         // Move iGPU to top priority
         qsort(vec.data(), vec.size(), sizeof(mfxAdapterInfo), &iGPU_priority);
@@ -494,14 +495,28 @@ mfxStatus MFXQueryAdaptersDecode(mfxBitstream* bitstream, mfxU32 codec_id, mfxAd
 
         mfxAdapterInfo info;
         memset(&info, 0, sizeof(info));
-        sts = MFXVideoCORE_QueryPlatform(dummy_session.operator mfxSession(), &info.Platform);
 
+        //WA for initialization when application built w/ new API, but lib w/ old one.
+        mfxVersion apiVersion;
+        sts = dummy_session.QueryVersion(&apiVersion);
         if (sts != MFX_ERR_NONE)
-        {
             continue;
+
+        if (apiVersion.Major >= 1 && apiVersion.Minor >= 19)
+        {
+            sts = MFXVideoCORE_QueryPlatform(dummy_session.operator mfxSession(), &info.Platform);
+
+            if (sts != MFX_ERR_NONE)
+            {
+                continue;
+            }
+        }
+        else
+        {
+            // for API versions greater than 1.19 Device id is set inside QueryPlatform call
+            info.Platform.DeviceId = static_cast<mfxU16>(DeviceID);
         }
 
-        //info.Platform.DeviceId = DeviceID;
         info.Number = adapter_n - 1;
 
         obtained_info.push_back(info);
@@ -576,14 +591,28 @@ mfxStatus MFXQueryAdapters(mfxComponentInfo* input_info, mfxAdaptersInfo* adapte
 
         mfxAdapterInfo info;
         memset(&info, 0, sizeof(info));
-        sts = MFXVideoCORE_QueryPlatform(dummy_session.operator mfxSession(), &info.Platform);
 
+        //WA for initialization when application built w/ new API, but lib w/ old one.
+        mfxVersion apiVersion;
+        sts = dummy_session.QueryVersion(&apiVersion);
         if (sts != MFX_ERR_NONE)
-        {
             continue;
+
+        if (apiVersion.Major >= 1 && apiVersion.Minor >= 19)
+        {
+            sts = MFXVideoCORE_QueryPlatform(dummy_session.operator mfxSession(), &info.Platform);
+
+            if (sts != MFX_ERR_NONE)
+            {
+                continue;
+            }
+        }
+        else
+        {
+            // for API versions greater than 1.19 Device id is set inside QueryPlatform call
+            info.Platform.DeviceId = static_cast<mfxU16>(DeviceID);
         }
 
-        //info.Platform.DeviceId = DeviceID;
         info.Number = adapter_n - 1;
 
         obtained_info.push_back(info);

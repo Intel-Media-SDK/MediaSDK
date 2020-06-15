@@ -95,6 +95,7 @@ public:
             , const StorageR& //task
             , std::list<std::vector<mfxU8>>&>;
         std::map<VAEncMiscParameterType, TAddMiscData> AddPerPicMiscData;
+        std::map<VAEncMiscParameterType, TAddMiscData> AddPerSeqMiscData;
     };
 
     using CC = StorageVar<Base::Glob::ReservedKey0, CallChains>;

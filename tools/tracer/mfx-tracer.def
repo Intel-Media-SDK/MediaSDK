@@ -1,0 +1,76 @@
+EXPORTS
+    MFXInit;
+    MFXClose;
+    MFXQueryIMPL;
+    MFXQueryVersion;
+
+    MFXJoinSession;
+    MFXDisjoinSession;
+    MFXCloneSession;
+    MFXSetPriority;
+    MFXGetPriority;
+
+    MFXVideoCORE_SetBufferAllocator;
+    MFXVideoCORE_SetFrameAllocator;
+    MFXVideoCORE_SetHandle;
+    MFXVideoCORE_GetHandle;
+    MFXVideoCORE_SyncOperation;
+
+    MFXVideoENCODE_Query;
+    MFXVideoENCODE_QueryIOSurf;
+    MFXVideoENCODE_Init;
+    MFXVideoENCODE_Reset;
+    MFXVideoENCODE_Close;
+    MFXVideoENCODE_GetVideoParam;
+    MFXVideoENCODE_GetEncodeStat;
+    MFXVideoENCODE_EncodeFrameAsync;
+
+    MFXVideoDECODE_Query;
+    MFXVideoDECODE_DecodeHeader;
+    MFXVideoDECODE_QueryIOSurf;
+    MFXVideoDECODE_Init;
+    MFXVideoDECODE_Reset;
+    MFXVideoDECODE_Close;
+    MFXVideoDECODE_GetVideoParam;
+    MFXVideoDECODE_GetDecodeStat;
+    MFXVideoDECODE_SetSkipMode;
+    MFXVideoDECODE_GetPayload;
+    MFXVideoDECODE_DecodeFrameAsync;
+
+    MFXVideoVPP_Query;
+    MFXVideoVPP_QueryIOSurf;
+    MFXVideoVPP_Init;
+    MFXVideoVPP_Reset;
+    MFXVideoVPP_Close;
+
+    MFXVideoVPP_GetVideoParam;
+    MFXVideoVPP_GetVPPStat;
+    MFXVideoVPP_RunFrameVPPAsync;
+
+    MFXVideoUSER_Register;
+    MFXVideoUSER_Unregister;
+    MFXVideoUSER_ProcessFrameAsync;
+
+    MFXVideoENC_Query;
+    MFXVideoENC_QueryIOSurf;
+    MFXVideoENC_Init;
+    MFXVideoENC_Reset;
+    MFXVideoENC_Close;
+    MFXVideoENC_ProcessFrameAsync;
+    MFXVideoVPP_RunFrameVPPAsyncEx;
+
+    MFXVideoPAK_Query;
+    MFXVideoPAK_QueryIOSurf;
+    MFXVideoPAK_Init;
+    MFXVideoPAK_Reset;
+    MFXVideoPAK_Close;
+    MFXVideoPAK_ProcessFrameAsync;
+
+    MFXInitEx;
+    MFXDoWork;
+
+    MFXVideoENC_GetVideoParam;
+    MFXVideoPAK_GetVideoParam;
+    MFXVideoCORE_QueryPlatform;
+    MFXVideoUSER_GetPlugin;
+

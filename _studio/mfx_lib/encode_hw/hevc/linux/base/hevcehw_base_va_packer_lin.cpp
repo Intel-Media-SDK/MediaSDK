@@ -415,28 +415,80 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         const auto& par     = Glob::VideoParam::Get(strg);
         const auto& bs_sps  = Glob::SPS::Get(strg);
         const auto& bs_pps  = Glob::PPS::Get(strg);
-        
+
         InitSPS(par, bs_sps, m_sps);
         InitPPS(par, bs_pps, m_pps);
         InitSSH(par, Glob::SliceInfo::Get(strg), m_slices);
 
-        AddVaMiscHRD(par, m_vaPerSeqMiscData);
-        AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData);
-        AddVaMiscPBRC(par, m_vaPerSeqMiscData);
-        AddVaMiscFR(par, m_vaPerSeqMiscData);
-        AddVaMiscTU(par, m_vaPerSeqMiscData);
-        AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
+        auto& cc = CC::GetOrConstruct(strg);
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscHRD(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_pps](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeParallelBRC].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscPBRC(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeFrameRate].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscFR(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeQualityLevel].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscTU(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeEncQuality].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
+            return true;
+        });
 
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
         auto& bsInfo    = Glob::AllocBS::Get(strg);
 
         SetMaxBs(bsInfo.GetInfo().Width * bsInfo.GetInfo().Height);
 
-        std::transform(
-            m_vaPerSeqMiscData.begin()
-            , m_vaPerSeqMiscData.end()
-            , std::back_inserter(vaInitPar)
-            , PackVaMiscPar);
+        for (auto& AddMisc : cc.AddPerSeqMiscData)
+        {
+            if (AddMisc.second(strg, local, m_vaPerSeqMiscData))
+            {
+                auto& misc = m_vaPerSeqMiscData.back();
+                vaInitPar.push_back(PackVaMiscPar(misc));
+            }
+        }
 
         const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
@@ -470,7 +522,6 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         Glob::DDI_SubmitParam::GetOrConstruct(strg);
 
-        auto& cc = CC::GetOrConstruct(strg);
         cc.ReadFeedback.Push([this](
                 CallChains::TReadFeedback::TExt
                 , const StorageR& /*global*/
@@ -526,20 +577,73 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
 
         m_vaPerSeqMiscData.clear();
 
-        AddVaMiscHRD(par, m_vaPerSeqMiscData);
-        AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
-        AddVaMiscPBRC(par, m_vaPerSeqMiscData);
-        AddVaMiscFR(par, m_vaPerSeqMiscData);
-        AddVaMiscTU(par, m_vaPerSeqMiscData);
-        AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
+        auto& cc = CC::GetOrConstruct(strg);
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscHRD(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_pps](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeParallelBRC].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscPBRC(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeFrameRate].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscFR(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeQualityLevel].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscTU(par, m_vaPerSeqMiscData);
+            return true;
+        });
+        cc.AddPerSeqMiscData[VAEncMiscParameterTypeEncQuality].Push([this, &par](
+            VAPacker::CallChains::TAddMiscData::TExt
+            , const StorageR& strg
+            , const StorageR& local
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
+            return true;
+        });
 
         auto& vaInitPar = Tmp::DDI_InitParam::GetOrConstruct(local);
+        vaInitPar.clear();
 
-        std::transform(
-            m_vaPerSeqMiscData.begin()
-            , m_vaPerSeqMiscData.end()
-            , std::back_inserter(vaInitPar)
-            , PackVaMiscPar);
+        for (auto& AddMisc : cc.AddPerSeqMiscData)
+        {
+            if (AddMisc.second(strg, local, m_vaPerSeqMiscData))
+            {
+                auto& misc = m_vaPerSeqMiscData.back();
+                vaInitPar.push_back(PackVaMiscPar(misc));
+            }
+        }
 
         return MFX_ERR_NONE;
     });
@@ -602,10 +706,10 @@ void UpdateSlices(
 
         if (slice.slice_type != 2)
         {
-            slice.num_ref_idx_l0_active_minus1 = task.NumRefActive[0] - 1;
+            slice.num_ref_idx_l0_active_minus1 = task.NumRefActive[0]==0 ? 0 : task.NumRefActive[0] - 1;
 
             if (slice.slice_type == 0)
-                slice.num_ref_idx_l1_active_minus1 = task.NumRefActive[1] - 1;
+                slice.num_ref_idx_l1_active_minus1 = task.NumRefActive[1]==0 ? 0 : task.NumRefActive[1] - 1;
             else
                 slice.num_ref_idx_l1_active_minus1 = 0;
 

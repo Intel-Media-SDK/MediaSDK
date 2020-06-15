@@ -94,6 +94,7 @@ list( APPEND sources
     hevc/agnostic/base/hevcehw_base_weighted_prediction.cpp
     hevc/agnostic/g12/hevcehw_g12_caps.cpp
     hevc/agnostic/g12/hevcehw_g12_rext.cpp
+    hevc/agnostic/g12/hevcehw_g12_scc.cpp
     hevc/linux/base/hevcehw_base_dirty_rect_lin.cpp
     hevc/linux/base/hevcehw_base_fei_lin.cpp
     hevc/linux/base/hevcehw_base_interlace_lin.cpp
