@@ -1252,7 +1252,9 @@ public:
             return bGT;
         };
         auto POCGreater = [](const DpbFrame* a, const DpbFrame* b) { return a->POC > b->POC; };
-        bool bAvoidL0Reorder = par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP && IsOff(CO3.EnableQPOffset);
+        bool bNoQPOffset = (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP && IsOff(CO3.EnableQPOffset));
+        bool bIsSCC = par.mvp.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC; // use default ref list order for SCC
+        bool bUseDefaultOrder = bIsSCC || bNoQPOffset;
 
         if (L0.empty())
         {
@@ -1272,7 +1274,7 @@ public:
         L0.resize(l0);
         L1.resize(l1);
 
-        if (bAvoidL0Reorder)
+        if (bUseDefaultOrder)
         {
             L0.sort(POCGreater);
         }
