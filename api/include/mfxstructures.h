@@ -1992,12 +1992,27 @@ enum {
     MFX_SCALING_MODE_QUALITY    = 2
 };
 
+#if (MFX_VERSION >= 1033)
+/* Interpolation Method */
+enum {
+    MFX_INTERPOLATION_DEFAULT                = 0,
+    MFX_INTERPOLATION_NEAREST_NEIGHBOR       = 1,
+    MFX_INTERPOLATION_BILINEAR               = 2,
+    MFX_INTERPOLATION_ADVANCED               = 3
+};
+#endif
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
 
     mfxU16 ScalingMode;
+#if (MFX_VERSION >= 1033)
+    mfxU16 InterpolationMethod;
+    mfxU16 reserved[10];
+#else
     mfxU16 reserved[11];
+#endif
 } mfxExtVPPScaling;
 MFX_PACK_END()
 

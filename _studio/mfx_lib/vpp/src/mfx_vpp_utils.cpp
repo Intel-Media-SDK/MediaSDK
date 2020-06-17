@@ -932,6 +932,7 @@ mfxStatus GetPipelineList(
     mfxU16  srcW = 0, dstW = 0;
     mfxU16  srcH = 0, dstH = 0;
     //mfxU32  lenList = 0;
+    mfxStatus sts = MFX_ERR_NONE;
 
     MFX_CHECK_NULL_PTR1( videoParam );
 
@@ -1050,9 +1051,9 @@ mfxStatus GetPipelineList(
     PicStructMode picStructMode = GetPicStructMode(par->In.PicStruct, par->Out.PicStruct);
 
     mfxI32 deinterlacingMode = 0;
-    // look for user defined deinterlacing mode
     for (mfxU32 i = 0; i < videoParam->NumExtParam; i++)
     {
+        // look for user defined deinterlacing mode
         if (videoParam->ExtParam[i] && videoParam->ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_DEINTERLACING)
         {
             mfxExtVPPDeinterlacing* extDI = (mfxExtVPPDeinterlacing*) videoParam->ExtParam[i];
@@ -1075,7 +1076,15 @@ mfxStatus GetPipelineList(
             }
             break;
         }
+        // check scaling parameters
+        else if (videoParam->ExtParam[i] && videoParam->ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_SCALING)
+        {
+            sts = CheckScalingParam(videoParam->ExtParam[i]);
+            break;
+        }
     }
+    MFX_CHECK_STS(sts);
+
     /* DI configuration cases:
      * Default "-spic 0 -dpic 1" (TFF to progressive ) -> MFX_EXTBUFF_VPP_DI
      * Default "-spic 0 -dpic 1 -sf 30 -df 60" -> MFX_EXTBUFF_VPP_DI_30i60p
@@ -1956,6 +1965,37 @@ mfxU16 MapDNFactor( mfxU16 denoiseFactor )
 
 } // mfxU16 MapDNFactor( mfxU16 denoiseFactor )
 
+mfxStatus CheckScalingParam(mfxExtBuffer* pScalingExtBuffer)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+
+    mfxExtVPPScaling* pScalingParams = (mfxExtVPPScaling*)pScalingExtBuffer;
+    if (pScalingParams)
+    {
+#if (MFX_VERSION >= 1033)
+        // Scaling parameter combination includes the below 2 cases
+        // (MFX_SCALING_MODE_DEFAULT / MFX_SCALING_MODE_QUALITY) + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_ADVANCED)
+        // MFX_SCALING_MODE_LOWPOWER + (MFX_INTERPOLATION_DEFAULT / MFX_INTERPOLATION_NEAREST_NEIGHBOR / MFX_INTERPOLATION_BILINEAR / MFX_INTERPOLATION_ADVANCED)
+        switch (pScalingParams->ScalingMode)
+        {
+        case MFX_SCALING_MODE_DEFAULT:
+            sts = ((pScalingParams->InterpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pScalingParams->InterpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM;
+            break;
+        case MFX_SCALING_MODE_QUALITY:
+            sts = ((pScalingParams->InterpolationMethod == MFX_INTERPOLATION_DEFAULT) || (pScalingParams->InterpolationMethod == MFX_INTERPOLATION_ADVANCED)) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM;
+            break;
+        case MFX_SCALING_MODE_LOWPOWER:
+            sts = (pScalingParams->InterpolationMethod <= MFX_INTERPOLATION_ADVANCED) ? MFX_ERR_NONE : MFX_ERR_INVALID_VIDEO_PARAM;
+            break;
+        default:
+            sts = MFX_ERR_INVALID_VIDEO_PARAM;
+            break;
+        }
+#endif
+    }
+
+    return sts;
+}
 
 mfxStatus CheckExtParam(VideoCORE * core, mfxExtBuffer** ppExtParam, mfxU16 count)
 {
