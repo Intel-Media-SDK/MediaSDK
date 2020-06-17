@@ -41,7 +41,7 @@ auto func_case_list = ::testing::Values(
 TEST_P(TracerLibsTestParametrizedFunc, ShouldSucceedForSeeminglyGoodMockLibrary)
 {
     MockCallObj& mock = *g_call_obj_ptr;
-    mfxStatus sts;
+    mfxStatus sts = MFX_ERR_UNKNOWN;
 
     mfxI32 func = GetParam();
 
@@ -69,7 +69,7 @@ TEST_P(TracerLibsTestParametrizedFunc, ShouldSucceedForSeeminglyGoodMockLibrary)
 TEST_P(TracerLibsTestParametrizedFunc, MFXInitShouldFailIfNoLibraryIsFound)
 {
     MockCallObj& mock = *g_call_obj_ptr;
-    mfxStatus sts;
+    mfxStatus sts = MFX_ERR_UNKNOWN;
 
     mfxI32 func = GetParam();
 
@@ -140,7 +140,7 @@ INSTANTIATE_TEST_CASE_P(EnumeratingLibs, TracerLibsTestParametrizedImpl,
 TEST_P(TracerLibsTestParametrizedFunc, ShouldFailIfAvailLibHasNoSymbols)
 {
     MockCallObj& mock = *g_call_obj_ptr;
-    mfxStatus sts;
+    mfxStatus sts = MFX_ERR_UNKNOWN;
  
     mfxI32 func = GetParam();
 
