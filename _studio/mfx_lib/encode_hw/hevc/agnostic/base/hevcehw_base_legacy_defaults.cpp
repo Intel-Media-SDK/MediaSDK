@@ -1251,10 +1251,6 @@ public:
             bGT |= bEQ && Closer(a, b);
             return bGT;
         };
-        auto POCGreater = [](const DpbFrame* a, const DpbFrame* b) { return a->POC > b->POC; };
-        bool bNoQPOffset = (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP && IsOff(CO3.EnableQPOffset));
-        bool bIsSCC = par.mvp.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC; // use default ref list order for SCC
-        bool bUseDefaultOrder = bIsSCC || bNoQPOffset;
 
         if (L0.empty())
         {
@@ -1274,11 +1270,17 @@ public:
         L0.resize(l0);
         L1.resize(l1);
 
+        bool bNoQPOffset = (par.mvp.mfx.RateControlMethod == MFX_RATECONTROL_CQP && IsOff(CO3.EnableQPOffset));
+        bool bIsSCC = par.mvp.mfx.CodecProfile == MFX_PROFILE_HEVC_SCC; // use default ref list order for SCC
+        bool bUseDefaultOrder = bIsSCC || bNoQPOffset;
         if (bUseDefaultOrder)
         {
-            L0.sort(POCGreater);
+            auto POCDescending = [](const DpbFrame* a, const DpbFrame* b) { return a->POC > b->POC; };
+            L0.sort(POCDescending);
         }
-        L1.sort(POCGreater);
+
+        auto POCAscending = [](const DpbFrame* a, const DpbFrame* b) { return a->POC < b->POC; };
+        L1.sort(POCAscending);
 
         std::transform(L0.begin(), L0.end(), RPL[0]
             , [&](const DpbFrame* x) { return mfxU8(x - dpbBegin); });

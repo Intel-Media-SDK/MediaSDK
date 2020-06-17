@@ -3186,10 +3186,10 @@ void ConstructRPL(
 
             }
 
-            // reorder STRs to POC descending order
-            for (mfxU8 lx = 0; lx < 2; lx++)
-                MFX_SORT_COMMON(RPL[lx], numRefActive[lx],
-                    DPB[RPL[lx][_i]].m_poc < DPB[RPL[lx][_j]].m_poc);
+            // reorder STRs to POC descending order for L0
+            MFX_SORT_COMMON(RPL[0], numRefActive[0], DPB[RPL[0][_i]].m_poc < DPB[RPL[0][_j]].m_poc);
+            // reorder STRs to POC asscending order for L1
+            MFX_SORT_COMMON(RPL[1], numRefActive[1], DPB[RPL[1][_i]].m_poc > DPB[RPL[1][_j]].m_poc);
 
             if (nLTR)
             {
