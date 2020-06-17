@@ -59,7 +59,7 @@ public:
     }
 
     static string GetTimeStamp(){
-        string timestamp = "";
+        string timestamp = "<time unknown>";
 #if defined(_WIN32) || defined(_WIN64)
         SYSTEMTIME st;
         GetLocalTime(&st);
@@ -69,8 +69,11 @@ public:
 #else
         time_t t = time(0);
         struct tm * now = localtime(&t);
-        timestamp = ToString((now->tm_year + 1900)) + '-' + ToString(now->tm_mon + 1) + '-' + ToString(now->tm_mday) + " " +
-                       ToString(now->tm_hour) + ":" + ToString(now->tm_min) + ":" + ToString(now->tm_sec);
+        if (now)
+        {
+            timestamp = ToString((now->tm_year + 1900)) + '-' + ToString(now->tm_mon + 1) + '-' + ToString(now->tm_mday) + " " +
+                           ToString(now->tm_hour) + ":" + ToString(now->tm_min) + ":" + ToString(now->tm_sec);
+        }
 #endif
 
         return timestamp;
