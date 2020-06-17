@@ -1352,8 +1352,8 @@ public:
             ++pRplEnd[lx];
         });
 
-        l0 = std::min<mfxU8>((mfxU8)maxL0, mfxU8(tmpRPL[0] - pRplEnd[0]));
-        l1 = std::min<mfxU8>((mfxU8)maxL1, mfxU8(tmpRPL[1] - pRplEnd[1]));
+        l0 = std::min<mfxU8>((mfxU8)maxL0, mfxU8(pRplEnd[0] - tmpRPL[0]));
+        l1 = std::min<mfxU8>((mfxU8)maxL1, mfxU8(pRplEnd[1] - tmpRPL[1]));
 
         std::fill(std::next(RPL[0], l0), std::end(RPL[0]), IDX_INVALID);
         std::fill(std::next(RPL[1], l1), std::end(RPL[1]), IDX_INVALID);
