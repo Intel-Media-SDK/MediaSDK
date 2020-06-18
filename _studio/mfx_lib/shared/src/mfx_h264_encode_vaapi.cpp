@@ -25,6 +25,7 @@
 #include <va/va.h>
 #include <va/va_enc_h264.h>
 #include "mfxfei.h"
+#include "mfx_session.h"
 #include "libmfx_core_vaapi.h"
 #include "mfx_common_int.h"
 #include "mfx_h264_encode_vaapi.h"
@@ -1701,18 +1702,19 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
 #endif
 
     // Configuration
-    VAConfigAttrib attrib[3];
+    std::vector<VAConfigAttrib> attrib(4);
     mfxI32 numAttrib = 0;
     mfxU32 flag = VA_PROGRESSIVE;
 
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
-    numAttrib += 2;
+    attrib[2].type = VAConfigAttribContextPriority;
+    numAttrib += 3;
 
 #if defined(MFX_ENABLE_H264_VIDEO_FEI_ENCPAK) || defined(MFX_ENABLE_H264_VIDEO_FEI_PREENC)
     if ( m_isENCPAK )
     {
-        attrib[2].type = VAConfigAttribFEIFunctionType;
+        attrib[numAttrib].type = VAConfigAttribFEIFunctionType;
         numAttrib++;
     }
 #endif
@@ -1720,7 +1722,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     vaSts = vaGetConfigAttributes(m_vaDisplay,
                           ConvertProfileTypeMFX2VAAPI(par.mfx.CodecProfile),
                           entryPoint,
-                          &attrib[0], numAttrib);
+                          attrib.data(), numAttrib);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
@@ -1744,22 +1746,34 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     if(m_isENCPAK)
     {
         //check function
-        if (!(attrib[2].value & VA_FEI_FUNCTION_ENC_PAK))
+        if (!(attrib[3].value & VA_FEI_FUNCTION_ENC_PAK))
         {
             return MFX_ERR_DEVICE_FAILED;
         }
-        attrib[2].value = VA_FEI_FUNCTION_ENC_PAK;
+        attrib[3].value = VA_FEI_FUNCTION_ENC_PAK;
     }
 #endif
 
     attrib[0].value = VA_RT_FORMAT_YUV420;
     attrib[1].value = vaRCType;
+    uint32_t maxContextPriority = attrib[2].value;
+    mfxPriority priority = m_core->GetSession()->m_priority;
+    if (priority == MFX_PRIORITY_LOW)
+    {
+        attrib[2].value = 0;
+    } else if (priority == MFX_PRIORITY_HIGH)
+    {
+        attrib[2].value = maxContextPriority;
+    } else
+    { 
+        attrib[2].value = maxContextPriority/2;
+    }
 
     vaSts = vaCreateConfig(
         m_vaDisplay,
         ConvertProfileTypeMFX2VAAPI(par.mfx.CodecProfile),
         entryPoint,
-        attrib,
+        attrib.data(),
         numAttrib,
         &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);

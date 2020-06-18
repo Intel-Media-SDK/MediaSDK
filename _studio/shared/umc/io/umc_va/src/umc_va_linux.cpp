@@ -352,7 +352,7 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "LinuxVideoAccelerator::Init");
     Status         umcRes = UMC_OK;
     VAStatus       va_res = VA_STATUS_SUCCESS;
-    VAConfigAttrib va_attributes[4];
+    std::vector<VAConfigAttrib> va_attributes(5);
 
     LinuxVideoAcceleratorParams* pParams = DynamicCast<LinuxVideoAcceleratorParams>(pInfo);
     int32_t width = 0, height = 0;
@@ -524,27 +524,38 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             va_attributes[nattr].value = VA_DEC_SLICE_MODE_NORMAL;
             nattr++;
 
+            va_attributes[nattr++].type = VAConfigAttribContextPriority;
             va_attributes[nattr++].type = VAConfigAttribDecProcessing;
-
+#ifdef MFX_ENABLE_CPLIB
             va_attributes[nattr++].type = VAConfigAttribEncryption;
+#endif
 
-            va_res = vaGetConfigAttributes(m_dpy, va_profile, va_entrypoint, va_attributes, nattr);
+            va_res = vaGetConfigAttributes(m_dpy, va_profile, va_entrypoint, va_attributes.data(), nattr);
             umcRes = va_to_umc_res(va_res);
         }
 
         if (UMC_OK == umcRes)
         {
             va_attributes[1].value = VA_DEC_SLICE_MODE_NORMAL;
-
+            uint32_t maxContextPriority = va_attributes[2].value;
+            if (pParams->m_ContextPriority == MFX_PRIORITY_LOW)
+            {
+                va_attributes[2].value = 0;
+            } else if (pParams->m_ContextPriority == MFX_PRIORITY_HIGH)
+            {
+                va_attributes[2].value = maxContextPriority;
+            } else
+            {
+                va_attributes[2].value = maxContextPriority/2;
+            }
         }
 
-        int32_t attribsNumber = 2;
-
+        int32_t attribsNumber = 3;
         if (UMC_OK == umcRes && pParams->m_needVideoProcessingVA)
         {
             // for VAProfileJPEGBaseline current driver doesn't report
             // VAConfigAttribDecProcessing status correctly
-            if (va_attributes[2].value == VA_DEC_PROCESSING_NONE && va_profile != VAProfileJPEGBaseline)
+            if (va_attributes[3].value == VA_DEC_PROCESSING_NONE && va_profile != VAProfileJPEGBaseline)
                 umcRes = UMC_ERR_FAILED;
             else
                 attribsNumber++;
@@ -553,15 +564,14 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
 #ifdef MFX_ENABLE_CPLIB
         if (UMC_OK == umcRes && m_protectedVA && IS_PROTECTION_CENC(m_protectedVA->GetProtected()))
         {
-            va_attributes[attribsNumber].type = VAConfigAttribEncryption;
             if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_CLASSIC)
             {
-                if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CBC)
+                if (va_attributes[4].value & VA_ENCRYPTION_TYPE_CENC_CBC)
                     va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CBC;
             }
             else if (m_protectedVA->GetProtected() == MFX_PROTECTION_CENC_WV_GOOGLE_DASH)
             {
-                if (va_attributes[3].value & VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH)
+                if (va_attributes[4].value & VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH)
                     va_attributes[attribsNumber].value = VA_ENCRYPTION_TYPE_CENC_CTR_LENGTH;
             }
             else
@@ -570,13 +580,12 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
             attribsNumber++;
         }
 #endif
-
         if (UMC_OK == umcRes)
         {
             m_pConfigId = pParams->m_pConfigId;
             if (*m_pConfigId == VA_INVALID_ID)
             {
-                va_res = vaCreateConfig(m_dpy, va_profile, va_entrypoint, va_attributes, attribsNumber, m_pConfigId);
+                va_res = vaCreateConfig(m_dpy, va_profile, va_entrypoint, va_attributes.data(), attribsNumber, m_pConfigId);
                 umcRes = va_to_umc_res(va_res);
                 needRecreateContext = true;
             }

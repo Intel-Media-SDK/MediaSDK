@@ -25,7 +25,7 @@
 
 #include <va/va.h>
 #include <va/va_enc_hevc.h>
-
+#include "mfx_session.h"
 #include "libmfx_core_vaapi.h"
 #include "mfx_common_int.h"
 #include "mfx_h265_encode_vaapi.h"

@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "mfx_session.h"
 #include "mfx_common.h"
 #include "hevcehw_base_va_lin.h"
 
@@ -170,16 +171,18 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
     Push(BLK_CreateService
         , [this](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
-        const auto&             par     = Glob::VideoParam::Get(strg);
+        auto& core = Glob::VideoCore::Get(strg);
+        const auto& par = Glob::VideoParam::Get(strg);
         const mfxExtHEVCParam&  hevcPar = ExtBuffer::Get(par);
         mfxStatus sts;
 
         m_callVa = Glob::DDI_Execute::Get(strg);
 
-        std::vector<VAConfigAttrib> attrib(2);
+        std::vector<VAConfigAttrib> attrib(3);
 
         attrib[0].type = VAConfigAttribRTFormat;
         attrib[1].type = VAConfigAttribRateControl;
+        attrib[2].type = VAConfigAttribContextPriority;
 
         sts = MfxEncodeHW::DeviceVAAPI::QueryCaps(attrib.data(), attrib.size() * sizeof(VAConfigAttrib));
         MFX_CHECK_STS(sts);
@@ -191,6 +194,18 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         MFX_CHECK((attrib[1].value & vaRCType), MFX_ERR_DEVICE_FAILED);
 
         attrib[1].value = vaRCType;
+        uint32_t maxContextPriority = attrib[2].value;
+        mfxPriority priority = core.GetSession()->m_priority;
+        if (priority == MFX_PRIORITY_LOW)
+        {
+            attrib[2].value = 0;
+        } else if (priority == MFX_PRIORITY_HIGH)
+        {
+            attrib[2].value = maxContextPriority;
+        } else
+        {
+            attrib[2].value = maxContextPriority/2;
+        }
 
         sts = MfxEncodeHW::DeviceVAAPI::Init(
             hevcPar.PicWidthInLumaSamples

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,7 @@ public:
         m_pContext           = NULL;
         m_pKeepVAState       = NULL;
         m_CreateFlags        = VA_PROGRESSIVE;
+        m_ContextPriority    = MFX_PRIORITY_NORMAL;
     }
 
     VADisplay     m_Display;
@@ -84,6 +85,7 @@ public:
     VAContextID*  m_pContext;
     bool*         m_pKeepVAState;
     int           m_CreateFlags;
+    mfxPriority   m_ContextPriority;
 };
 
 /* LinuxVideoAccelerator -----------------------------------------------------*/

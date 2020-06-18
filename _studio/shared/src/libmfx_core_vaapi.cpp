@@ -898,6 +898,7 @@ VAAPIVideoCORE::CreateVideoAccelerator(
     params.m_surf = (void **)RenderTargets;
 
     params.m_protectedVA = param->Protected;
+    params.m_ContextPriority = GetSession()->m_priority;
 
     /* There are following conditions for post processing via HW fixed function engine:
      * (1): AVC

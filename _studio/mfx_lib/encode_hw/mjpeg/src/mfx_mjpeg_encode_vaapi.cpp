@@ -22,6 +22,7 @@
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
 
+#include "mfx_session.h"
 #include "mfx_mjpeg_encode_hw_utils.h"
 #include "libmfx_core_factory.h"
 #include "libmfx_core_interface.h"
@@ -187,25 +188,40 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(mfxVideoParam const & par)
     }
 
     // Configuration
-    VAConfigAttrib attrib;
+    std::vector<VAConfigAttrib> attrib(2);
 
-    attrib.type = VAConfigAttribRTFormat;
+    attrib[0].type = VAConfigAttribRTFormat;
+    attrib[1].type = VAConfigAttribContextPriority;
 
     vaSts = vaGetConfigAttributes(m_vaDisplay,
                           VAProfileJPEGBaseline,
                           VAEntrypointEncPicture,
-                          &attrib, 1);
+                          attrib.data(),
+                          attrib.size());
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    if (!(attrib.value & VA_RT_FORMAT_YUV420) || !(attrib.value & VA_RT_FORMAT_YUV422) ) //to be do
+    if (!(attrib[0].value & VA_RT_FORMAT_YUV420) || !(attrib[0].value & VA_RT_FORMAT_YUV422) ) //to be do
         return MFX_ERR_DEVICE_FAILED;
+
+    uint32_t maxContextPriority = attrib[1].value;
+    mfxPriority priority = m_core->GetSession()->m_priority;
+    if (priority == MFX_PRIORITY_LOW)
+    {
+        attrib[1].value = 0;
+    } else if (priority == MFX_PRIORITY_HIGH)
+    {
+        attrib[1].value = maxContextPriority;
+    } else
+    {
+        attrib[1].value = maxContextPriority/2;
+    }
 
     vaSts = vaCreateConfig(
         m_vaDisplay,
         VAProfileJPEGBaseline,
         VAEntrypointEncPicture,
-        NULL,
-        0,
+        attrib.data(),
+        attrib.size(),
         &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 

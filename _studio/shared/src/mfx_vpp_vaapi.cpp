@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_VPP)
 #if defined (MFX_VA_LINUX)
 
+#include "mfx_session.h"
 #include <math.h>
 #include "mfx_vpp_defs.h"
 #include "mfx_vpp_vaapi.h"
@@ -123,6 +124,8 @@ mfxStatus VAAPIVideoProcessing::CreateDevice(VideoCORE * core, mfxVideoParam* pP
 {
     MFX_CHECK_NULL_PTR1( core );
 
+    m_core = core;
+
     VAAPIVideoCORE* hwCore = dynamic_cast<VAAPIVideoCORE*>(core);
 
     MFX_CHECK_NULL_PTR1( hwCore );
@@ -135,8 +138,6 @@ mfxStatus VAAPIVideoProcessing::CreateDevice(VideoCORE * core, mfxVideoParam* pP
     MFX_CHECK_STS(sts);
 
     m_cachedReadyTaskIndex.clear();
-
-    m_core = core;
 
     return MFX_ERR_NONE;
 
@@ -224,6 +225,7 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
 
         VAEntrypoint* va_entrypoints = NULL;
         VAStatus vaSts;
+
         int va_max_num_entrypoints   = vaMaxNumEntrypoints(m_vaDisplay);
         if(va_max_num_entrypoints)
             va_entrypoints = new VAEntrypoint[va_max_num_entrypoints];
@@ -253,11 +255,33 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
             return MFX_ERR_DEVICE_FAILED;
         }
 
+        std::vector<VAConfigAttrib> attrib(1);
+        attrib[0].type = VAConfigAttribContextPriority;
+        vaSts = vaGetConfigAttributes(m_vaDisplay,
+                                      VAProfileNone,
+                                      VAEntrypointVideoProc,
+                                      attrib.data(),
+                                      attrib.size());
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+        mfxPriority priority = m_core->GetSession()->m_priority;
+        uint32_t maxContextPriority = attrib[0].value;
+        if (priority == MFX_PRIORITY_LOW)
+        {
+            attrib[0].value = 0;
+        } else if (priority == MFX_PRIORITY_HIGH)
+        {
+            attrib[0].value = maxContextPriority;
+        } else
+        {
+            attrib[0].value = maxContextPriority/2;
+        }
+
         vaSts = vaCreateConfig( m_vaDisplay,
                                 VAProfileNone,
                                 VAEntrypointVideoProc,
-                                NULL,
-                                0,
+                                attrib.data(),
+                                attrib.size(),
                                 &m_vaConfig);
         MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 

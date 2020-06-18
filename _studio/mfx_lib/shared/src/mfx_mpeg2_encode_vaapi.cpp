@@ -24,7 +24,7 @@
 
 #include <va/va.h>
 #include <assert.h>
-
+#include "mfx_session.h"
 #include "libmfx_core_vaapi.h"
 #include "mfx_common_int.h"
 #include "mfx_mpeg2_encode_vaapi.h"
@@ -540,16 +540,17 @@ mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
     // IsGuidSupported()
 
     // Configuration
-    VAConfigAttrib attrib[3];
+    std::vector<VAConfigAttrib> attrib(3);
 
     attrib[0].type = VAConfigAttribRTFormat;
     attrib[1].type = VAConfigAttribRateControl;
+    attrib[2].type = VAConfigAttribContextPriority;
     //attrib[2].type = VAConfigAttribEncSkipFrame;
 
     vaGetConfigAttributes(m_vaDisplay,
         ConvertProfileTypeMFX2VAAPI(pExecuteBuffers->m_sps.Profile),
         VAEntrypointEncSlice,
-        &attrib[0], 2);
+        attrib.data(), attrib.size());
 
     if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
         return MFX_ERR_DEVICE_FAILED;
@@ -563,13 +564,25 @@ mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
 
     attrib[0].value = VA_RT_FORMAT_YUV420;
     attrib[1].value = vaRCType;
+    uint32_t maxContextPriority = attrib[2].value;
+    mfxPriority priority = m_core->GetSession()->m_priority;
+    if (priority == MFX_PRIORITY_LOW)
+    {
+        attrib[2].value = 0;
+    } else if (priority == MFX_PRIORITY_HIGH)
+    {
+        attrib[2].value = maxContextPriority;
+    } else
+    {
+        attrib[2].value = maxContextPriority/2;
+    }
 
     vaSts = vaCreateConfig(
         m_vaDisplay,
         mpegProfile,
         VAEntrypointEncSlice,
-        attrib,
-        2,
+        attrib.data(),
+        attrib.size(),
         &m_vaConfig);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
