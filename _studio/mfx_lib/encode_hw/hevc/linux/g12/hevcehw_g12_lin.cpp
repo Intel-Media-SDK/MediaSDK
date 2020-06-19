@@ -28,6 +28,7 @@
 #include "hevcehw_g12_caps_lin.h"
 #include "hevcehw_g12_scc_lin.h"
 #include "hevcehw_g12_sao.h"
+#include "hevcehw_g12_qp_modulation_lin.h"
 #include "hevcehw_g12_scc.h"
 #include "hevcehw_base_legacy.h"
 #include "hevcehw_base_parser.h"
@@ -56,6 +57,7 @@ MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
     newFeatures.emplace_back(new SCC(FEATURE_SCC));
     newFeatures.emplace_back(new Caps(FEATURE_CAPS));
     newFeatures.emplace_back(new SAO(FEATURE_SAO));
+    newFeatures.emplace_back(new QpModulation(FEATURE_QP_MODULATION));
 
     InternalInitFeatures(status, mode, newFeatures);
 }

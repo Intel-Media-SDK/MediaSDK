@@ -431,6 +431,9 @@ namespace Base
         mfxU8 persistent_rice_adaptation_enabled_flag : 1;
         mfxU8 cabac_bypass_alignment_enabled_flag     : 1;
 
+        mfxU8 low_delay_mode    : 1;
+        mfxU8 hierarchical_flag : 1;
+
         mfxU8 ExtensionFlags;
         mfxU8 num_short_term_ref_pic_sets;
         STRPS strps[65];

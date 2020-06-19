@@ -1746,6 +1746,28 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     m_sps.temporal_mvp_enabled_flag             = 1; // SKL ?
     m_sps.strong_intra_smoothing_enabled_flag   = 0; // SKL
 
+    // QpModulation support
+    if (m_platform >= MFX_HW_ICL)
+    {
+        if (mfx.GopRefDist == 1)
+            m_sps.low_delay_mode = 1;
+
+        if (m_platform < MFX_HW_TGL_LP)
+        {
+            if ((m_ext.CO2.BRefType == MFX_B_REF_PYRAMID) &&
+                ((mfx.GopRefDist == 4) || (mfx.GopRefDist == 8)))
+                m_sps.hierarchical_flag = 1;
+        }
+        else
+        {
+            if ((m_ext.CO2.BRefType == MFX_B_REF_PYRAMID) || (isTL() && NumTL() < 4))
+                m_sps.hierarchical_flag = 1;
+
+            if (IsOn(mfx.LowPower) && m_sps.low_delay_mode && m_sps.hierarchical_flag)
+                m_sps.gop_ref_dist = 1 << (NumTL() - 1); // distance between anchor frames for driver
+        }
+    }
+
     m_sps.vui_parameters_present_flag = 1;
 
     m_sps.vui.aspect_ratio_info_present_flag = 1;
