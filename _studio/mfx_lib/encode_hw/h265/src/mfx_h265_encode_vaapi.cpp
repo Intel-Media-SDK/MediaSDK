@@ -843,6 +843,10 @@ void VAAPIEncoder::FillSps(
     sps.seq_fields.bits.pcm_loop_filter_disabled_flag       = 1;//par.m_sps.pcm_loop_filter_disabled_flag;
     sps.seq_fields.bits.sps_temporal_mvp_enabled_flag       = par.m_sps.temporal_mvp_enabled_flag;
 
+    sps.seq_fields.bits.low_delay_seq    = par.m_sps.low_delay_mode;
+    sps.seq_fields.bits.hierachical_flag = par.m_sps.hierarchical_flag;
+    sps.ip_period                        = par.m_sps.gop_ref_dist;
+
     sps.log2_min_luma_coding_block_size_minus3 = (mfxU8)par.m_sps.log2_min_luma_coding_block_size_minus3;
 
     sps.log2_diff_max_min_luma_coding_block_size   = (mfxU8)par.m_sps.log2_diff_max_min_luma_coding_block_size;

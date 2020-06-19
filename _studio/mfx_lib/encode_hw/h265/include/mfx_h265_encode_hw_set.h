@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -410,6 +410,10 @@ struct SPS : LayersInfo
     mfxU8  vui_parameters_present_flag         : 1;
     mfxU8  extension_flag                      : 1;
     mfxU8  extension_data_flag                 : 1;
+
+    mfxU8 low_delay_mode    : 1;
+    mfxU8 hierarchical_flag : 1;
+    mfxU8 gop_ref_dist      : 8;
 
     mfxU8 range_extension_flag                    : 1;
     mfxU8 transform_skip_rotation_enabled_flag    : 1;

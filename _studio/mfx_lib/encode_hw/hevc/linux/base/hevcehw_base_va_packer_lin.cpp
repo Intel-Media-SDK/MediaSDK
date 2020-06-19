@@ -36,7 +36,7 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
         , [this](const mfxVideoParam&, mfxVideoParam& par, StorageRW& strg) -> mfxStatus
     {
         auto&       caps     = Glob::EncodeCaps::Get(strg);
-        eMFXHWType  platform = Glob::VideoCore::Get(strg).GetHWType();
+        eMFXHWType platform = Glob::VideoCore::Get(strg).GetHWType();
         auto        vaGUID   = DDI_VA::MapGUID(strg, Glob::GUID::Get(strg));
 
         HardcodeCapsCommon(caps, platform, par);
@@ -99,6 +99,9 @@ void InitSPS(
     sps.seq_fields.bits.pcm_enabled_flag                    = bs_sps.pcm_enabled_flag;
     sps.seq_fields.bits.pcm_loop_filter_disabled_flag       = 1;//bs_sps.pcm_loop_filter_disabled_flag;
     sps.seq_fields.bits.sps_temporal_mvp_enabled_flag       = bs_sps.temporal_mvp_enabled_flag;
+
+    sps.seq_fields.bits.low_delay_seq    = bs_sps.low_delay_mode;
+    sps.seq_fields.bits.hierachical_flag = bs_sps.hierarchical_flag;
 
     sps.log2_min_luma_coding_block_size_minus3 = (mfxU8)bs_sps.log2_min_luma_coding_block_size_minus3;
 
@@ -405,6 +408,81 @@ static bool FillCUQPDataVA(
     return true;
 }
 
+void UpdatePPS(
+    const TaskCommonPar & task
+    , const Slice & sh
+    , const std::vector<VASurfaceID> & rec
+    , VAEncPictureParameterBufferHEVC & pps)
+{
+    pps.pic_fields.bits.idr_pic_flag       = !!(task.FrameType & MFX_FRAMETYPE_IDR);
+    pps.pic_fields.bits.coding_type        = task.CodingType;
+    pps.pic_fields.bits.reference_pic_flag = !!(task.FrameType & MFX_FRAMETYPE_REF);
+
+    pps.collocated_ref_pic_index = 0xff;
+    if (sh.temporal_mvp_enabled_flag)
+        pps.collocated_ref_pic_index = task.RefPicList[!sh.collocated_from_l0_flag][sh.collocated_ref_idx];
+
+    pps.decoded_curr_pic.picture_id     = rec.at(task.Rec.Idx);
+    pps.decoded_curr_pic.pic_order_cnt  = task.POC;
+    pps.decoded_curr_pic.flags          = 0;
+
+    auto pDpbBegin = task.DPB.Active;
+    auto pDpbEnd   = task.DPB.Active + Size(task.DPB.Active);
+    auto pDpbValidEnd = std::find_if(pDpbBegin, pDpbEnd
+        , [](decltype(*pDpbBegin) ref) { return ref.Rec.Idx == IDX_INVALID; });
+
+    std::transform(pDpbBegin, pDpbValidEnd, pps.reference_frames
+        , [&](decltype(*pDpbBegin) ref)
+    {
+        VAPictureHEVC vaRef  = {};
+        vaRef.picture_id     = rec.at(ref.Rec.Idx);
+        vaRef.pic_order_cnt  = ref.POC;
+        vaRef.flags          = VA_PICTURE_HEVC_LONG_TERM_REFERENCE * !!ref.isLTR;
+        return vaRef;
+    });
+
+    VAPictureHEVC vaRefInvalid = {};
+    vaRefInvalid.picture_id = VA_INVALID_SURFACE;
+    vaRefInvalid.flags      = VA_PICTURE_HEVC_INVALID;
+
+    std::fill(
+        pps.reference_frames + (pDpbValidEnd - pDpbBegin)
+        , pps.reference_frames + Size(pps.reference_frames)
+        , vaRefInvalid);
+}
+
+void VAPacker::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
+{
+    Push(BLK_SetCallChains
+        , [this](StorageRW& strg, StorageRW&) -> mfxStatus
+    {
+        MFX_CHECK(!strg.Contains(CC::Key), MFX_ERR_NONE);
+
+        const auto& par = Glob::VideoParam::Get(strg);
+        auto& cc = CC::GetOrConstruct(strg);
+
+        cc.InitSPS.Push([ &par](
+            CallChains::TInitSPS::TExt
+            , const StorageR& glob
+            , VAEncSequenceParameterBufferHEVC& sps)
+        {
+            const auto& bs_sps = Glob::SPS::Get(glob);
+            InitSPS(par, bs_sps, sps);
+        });
+        cc.UpdatePPS.Push([this](
+            CallChains::TUpdatePPS::TExt
+            , const StorageR& global
+            , const StorageR& s_task
+            , const VAEncSequenceParameterBufferHEVC& /*sps*/
+            , VAEncPictureParameterBufferHEVC& pps)
+        {
+            UpdatePPS(Task::Common::Get(s_task), Task::SSH::Get(s_task), GetResources(RES_REF), pps);
+        });
+
+        return MFX_ERR_NONE;
+    });
+}
+
 void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 {
     Push(BLK_Init
@@ -413,14 +491,14 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         auto& core = Glob::VideoCore::Get(strg);
 
         const auto& par     = Glob::VideoParam::Get(strg);
-        const auto& bs_sps  = Glob::SPS::Get(strg);
         const auto& bs_pps  = Glob::PPS::Get(strg);
 
-        InitSPS(par, bs_sps, m_sps);
+        auto& cc = CC::GetOrConstruct(strg);
+        cc.InitSPS(strg, m_sps);
+
         InitPPS(par, bs_pps, m_pps);
         InitSSH(par, Glob::SliceInfo::Get(strg), m_slices);
 
-        auto& cc = CC::GetOrConstruct(strg);
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
@@ -568,16 +646,16 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
         , [this](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
         const auto& par = Glob::VideoParam::Get(strg);
-        const auto& bs_sps = Glob::SPS::Get(strg);
         const auto& bs_pps = Glob::PPS::Get(strg);
 
-        InitSPS(par, bs_sps, m_sps);
+        auto& cc = CC::GetOrConstruct(strg);
+        cc.InitSPS(strg, m_sps);
+
         InitPPS(par, bs_pps, m_pps);
         InitSSH(par, Glob::SliceInfo::Get(strg), m_slices);
 
         m_vaPerSeqMiscData.clear();
 
-        auto& cc = CC::GetOrConstruct(strg);
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
@@ -647,49 +725,6 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
 
         return MFX_ERR_NONE;
     });
-}
-
-void UpdatePPS(
-    const TaskCommonPar & task
-    , const Slice & sh
-    , const std::vector<VASurfaceID> & rec
-    , VAEncPictureParameterBufferHEVC & pps)
-{
-    pps.pic_fields.bits.idr_pic_flag       = !!(task.FrameType & MFX_FRAMETYPE_IDR);
-    pps.pic_fields.bits.coding_type        = task.CodingType;
-    pps.pic_fields.bits.reference_pic_flag = !!(task.FrameType & MFX_FRAMETYPE_REF);
-
-    pps.collocated_ref_pic_index = 0xff;
-    if (sh.temporal_mvp_enabled_flag)
-        pps.collocated_ref_pic_index = task.RefPicList[!sh.collocated_from_l0_flag][sh.collocated_ref_idx];
-
-    pps.decoded_curr_pic.picture_id     = rec.at(task.Rec.Idx);
-    pps.decoded_curr_pic.pic_order_cnt  = task.POC;
-    pps.decoded_curr_pic.flags          = 0;
-
-    auto pDpbBegin = task.DPB.Active;
-    auto pDpbEnd   = task.DPB.Active + Size(task.DPB.Active);
-    auto pDpbValidEnd = std::find_if(pDpbBegin, pDpbEnd
-        , [](decltype(*pDpbBegin) ref) { return ref.Rec.Idx == IDX_INVALID; });
-
-    std::transform(pDpbBegin, pDpbValidEnd, pps.reference_frames
-        , [&](decltype(*pDpbBegin) ref)
-    {
-        VAPictureHEVC vaRef  = {};
-        vaRef.picture_id     = rec.at(ref.Rec.Idx);
-        vaRef.pic_order_cnt  = ref.POC;
-        vaRef.flags          = VA_PICTURE_HEVC_LONG_TERM_REFERENCE * !!ref.isLTR;
-        return vaRef;
-    });
-
-    VAPictureHEVC vaRefInvalid = {};
-    vaRefInvalid.picture_id = VA_INVALID_SURFACE;
-    vaRefInvalid.flags      = VA_PICTURE_HEVC_INVALID;
-
-    std::fill(
-        pps.reference_frames + (pDpbValidEnd - pDpbBegin)
-        , pps.reference_frames + Size(pps.reference_frames)
-        , vaRefInvalid);
 }
 
 void UpdateSlices(
@@ -788,12 +823,12 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
             InitPPS(Glob::VideoParam::Get(global), Glob::PPS::Get(global), m_pps);
         }
 
-        UpdatePPS(task, sh, GetResources(RES_REF), m_pps);
+        auto& cc = CC::Get(global);
+        cc.UpdatePPS(global, s_task, m_sps, m_pps);
         UpdateSlices(task, sh, m_pps, m_slices);
 
         m_pps.coded_buf = GetResources(RES_BS).at(task.BS.Idx);
 
-        auto& cc  = CC::Get(global);
         auto& par = Glob::DDI_SubmitParam::Get(global);
         par.clear();
         

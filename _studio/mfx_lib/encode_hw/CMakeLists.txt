@@ -106,6 +106,7 @@ list( APPEND sources
     hevc/linux/base/hevcehw_base_max_frame_size_lin.cpp
     hevc/linux/g12/hevcehw_g12_lin.cpp
     hevc/linux/g12/hevcehw_g12_rext_lin.cpp
+    hevc/linux/g12/hevcehw_g12_qp_modulation_lin.cpp
 )
 
 make_library( encode hw static )

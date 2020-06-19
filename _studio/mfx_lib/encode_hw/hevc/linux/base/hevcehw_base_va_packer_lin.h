@@ -84,6 +84,18 @@ public:
             , const VACodedBufferSegment&>;
         TReadFeedback ReadFeedback;
 
+        using TInitSPS = CallChain<void
+            , const StorageR& //glob
+            , VAEncSequenceParameterBufferHEVC&>;
+        TInitSPS InitSPS;
+
+        using TUpdatePPS = CallChain<void
+            , const StorageR& //glob
+            , const StorageR& //task
+            , const VAEncSequenceParameterBufferHEVC&
+            , VAEncPictureParameterBufferHEVC&>;
+        TUpdatePPS UpdatePPS;
+
         using TFillCUQPData = CallChain<bool
             , const StorageR& //glob
             , const StorageR& //task
@@ -103,6 +115,7 @@ public:
 protected:
     virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
     virtual void InitAlloc(const FeatureBlocks& blocks, TPushIA Push) override;
+    virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
     virtual void SubmitTask(const FeatureBlocks& blocks, TPushST Push) override;
     virtual void QueryTask(const FeatureBlocks& blocks, TPushQT Push) override;
     virtual void ResetState(const FeatureBlocks& blocks, TPushRS Push) override;

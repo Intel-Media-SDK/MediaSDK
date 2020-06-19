@@ -1850,6 +1850,7 @@ public:
         auto& slo = vps.sub_layer[vps.max_sub_layers_minus1];
         const mfxExtHEVCParam&      HEVCParam = ExtBuffer::Get(defPar.mvp);
         const mfxExtCodingOption&   CO        = ExtBuffer::Get(defPar.mvp);
+        const mfxExtCodingOption2&  CO2       = ExtBuffer::Get(defPar.mvp);
         const mfxExtCodingOption3&  CO3       = ExtBuffer::Get(defPar.mvp);
         auto  hw  = defPar.hw;
         auto& mfx = defPar.mvp.mfx;
@@ -1885,6 +1886,11 @@ public:
         sps.long_term_ref_pics_present_flag     = 1;
         sps.temporal_mvp_enabled_flag           = 1;
         sps.strong_intra_smoothing_enabled_flag = 0;
+
+        // QpModulation support
+        bool  isBPyramid = (CO2.BRefType == MFX_B_REF_PYRAMID);
+        sps.low_delay_mode = bHwCNLPlus && (mfx.GopRefDist == 1);
+        sps.hierarchical_flag = bHwCNLPlus && isBPyramid && ((mfx.GopRefDist == 4) || (mfx.GopRefDist == 8));
 
         auto&  fi            = mfx.FrameInfo;
         mfxU16 SubWidthC[4]  = {1,2,2,1};
