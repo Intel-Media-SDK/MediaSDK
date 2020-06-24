@@ -6327,6 +6327,9 @@ mfxStatus ConfigureExecuteParams(
     if (true == executeParams.bComposite && 0 == executeParams.dstRects.size()) // composition was enabled via DO USE
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
+    // A2RGB10 input supported only to copy pass thru
+    MFX_CHECK(!(!config.m_bCopyPassThroughEnable && videoParam.vpp.In.FourCC == MFX_FOURCC_A2RGB10), MFX_ERR_INVALID_VIDEO_PARAM);
+
     return (bIsFilterSkipped) ? MFX_WRN_FILTER_SKIPPED : MFX_ERR_NONE;
 
 } // mfxStatus ConfigureExecuteParams(...)

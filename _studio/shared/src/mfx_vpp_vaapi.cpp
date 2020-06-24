@@ -469,6 +469,8 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
         case MFX_FOURCC_Y416:
 #endif
         case MFX_FOURCC_P010:
+        // A2RGB10 supported as input in case of passthru copy
+        case MFX_FOURCC_A2RGB10:
             caps.mFormatSupport[fourcc] |= MFX_FORMAT_SUPPORT_INPUT;
             break;
         default:

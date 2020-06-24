@@ -1326,7 +1326,7 @@ mfxStatus CRawVideoReader::LoadNextFrame(mfxFrameData* pData, mfxFrameInfo* pInf
             IOSTREAM_MSDK_CHECK_NOT_EQUAL(nBytesRead, 3*w, MFX_ERR_MORE_DATA);
         }
     }
-    else if (pInfo->FourCC == MFX_FOURCC_RGB4)
+    else if (pInfo->FourCC == MFX_FOURCC_RGB4 || pInfo->FourCC == MFX_FOURCC_A2RGB10)
     {
         MSDK_CHECK_POINTER(pData->R, MFX_ERR_NOT_INITIALIZED);
         MSDK_CHECK_POINTER(pData->G, MFX_ERR_NOT_INITIALIZED);
