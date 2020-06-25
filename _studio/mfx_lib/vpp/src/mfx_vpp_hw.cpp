@@ -1312,6 +1312,8 @@ mfxStatus TaskManager::AssignTask(
 
 #ifdef MFX_ENABLE_MCTF
 
+    MFX_CHECK_NULL_PTR1(output);
+
     // DoCpuFRC_AndUpdatePTS updates TimeStamp & FrameOrder in output;
     // copy these values to outputForApp
     if (outputForApp != output && outputForApp)
