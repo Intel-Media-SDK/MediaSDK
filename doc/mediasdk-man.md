@@ -1,7 +1,7 @@
 ![](./pic/intel_logo.png)
 <br><br><br>
 # **Media SDK Developer Reference**
-## Media SDK API Version 1.32
+## Media SDK API Version 1.33
 
 <div style="page-break-before:always" />
 
@@ -6934,11 +6934,20 @@ enum {
     MFX_SCALING_MODE_QUALITY    = 2
 };
 
+/* Interpolation Method */
+enum {
+    MFX_INTERPOLATION_DEFAULT                = 0,
+    MFX_INTERPOLATION_NEAREST_NEIGHBOR       = 1,
+    MFX_INTERPOLATION_BILINEAR               = 2,
+    MFX_INTERPOLATION_ADVANCED               = 3
+};
+
 typedef struct {
     mfxExtBuffer Header;
 
     mfxU16 ScalingMode;
-    mfxU16 reserved[11];
+    mfxU16 InterpolationMethod;
+    mfxU16 reserved[10];
 } mfxExtVPPScaling;
 ```
 
@@ -6946,14 +6955,23 @@ typedef struct {
 
 The `mfxExtVPPScaling` structure configures the **VPP** Scaling filter algorithm.
 
+The interpolation method supports `MFX_INTERPOLATION_NEAREST_NEIGHBOR`, `MFX_INTERPOLATION_BILINEAR`,  `MFX_INTERPOLATION_DEFAULT` and `MFX_INTERPOLATION_ADVANCED`.
+`MFX_INTERPOLATION_NEAREST_NEIGHBOR` and `MFX_INTERPOLATION_BILINEAR` are well known algorithm, `MFX_INTERPOLATION_ADVANCED` is a proprietary implementation.
+
+Not all combinations of `ScalingMode` and `InterpolationMethod` are supported in the SDK. The application has to use query function to determine if a combination is supported.
+
 **Members**
 
 | | |
 --- | ---
 `Header.BufferId` | Must be [MFX_EXTBUFF_VPP_SCALING](#ExtendedBufferID)
 `ScalingMode` | Scaling mode
+`InterpolationMethod` | Interpolation Method
+
 
 **Change History**
+
+The SDK API 1.33 adds InterpolationMethod fields.
 
 This structure is available since SDK API 1.19.
 
@@ -8494,7 +8512,7 @@ Use the following decorative flags to specify the OS infrastructure that hardwar
 `MFX_IMPL_VIA_D3D9` | Hardware acceleration goes through the Microsoft* Direct3D9* infrastructure.
 `MFX_IMPL_VIA_D3D11` | Hardware acceleration goes through the Microsoft* Direct3D11* infrastructure.
 `MFX_IMPL_VIA_VAAPI` | Hardware acceleration goes through the Linux* VA API infrastructure.
-`MFX_IMPL_VIA_ANY` | Hardware acceleration can go through any supported OS infrastructure. This is default value, it is used by the SDK if none of `MFX_IMPL_VIA_xxx` flag is specified by application.
+`MFX_IMPL_VIA_ANY` | Hardware acceleration can go through any supported OS infrastructure. This is default value, it is used by the SDK if none of `MFX_IMPL_VIA_xxx` flag is specified by application. If the application is going to [work with video memory](#Working_with_video_memory), it should get the exact type of video acceleration infrastructure which SDK library was initialized with by calling [MFXQueryIMPL](#MFXQueryIMPL) and create a corresponding types of video memory allocator and device manager handle.
 
 | | |
 --- | ---

@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D77FD96A-F811-49F9-B65A-4D983B0079E0}</ProjectGuid>
+    <RootNamespace>mfxtracer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>..\..\..\build\win_$(Platform)\bin\</OutDir>
+    <IntDir>_build\$(Configuration)\win_$(Platform)\objs\$(ProjectName)\</IntDir>
+    <TargetName>$(ProjectName)_32_d</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>..\..\..\build\win_$(Platform)\bin\</OutDir>
+    <IntDir>_build\$(Configuration)\win_$(Platform)\objs\$(ProjectName)\</IntDir>
+    <TargetName>$(ProjectName)_64_d</TargetName>
+    <IgnoreImportLibrary>true</IgnoreImportLibrary>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IntDir>_build\$(Configuration)\win_$(Platform)\objs\$(ProjectName)\</IntDir>
+    <OutDir>..\..\..\build\win_$(Platform)\bin\</OutDir>
+    <TargetExt>.dll</TargetExt>
+    <TargetName>$(ProjectName)_32</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>_build\$(Configuration)\win_$(Platform)\objs\$(ProjectName)\</IntDir>
+    <OutDir>..\..\..\build\win_$(Platform)\bin\</OutDir>
+    <TargetExt>.dll</TargetExt>
+    <TargetName>$(ProjectName)_64</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>
+      </SDLCheck>
+      <AdditionalIncludeDirectories>..\..\api\include;..\..\api\mfx_dispatch\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>mfx-tracer.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(MEDIASDK_ROOT)\ipp\ipp80gold\windows\ia32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies); ..\..\..\build\win_Win32\lib\mfx_dispatch_trace_lib_d_mbcs.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>
+      </SDLCheck>
+      <AdditionalIncludeDirectories>..\..\api\include;..\..\api\mfx_dispatch\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>mfx-tracer.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(MEDIASDK_ROOT)\ipp\ipp80gold\windows\ia32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies); ..\..\..\build\win_x64\lib\mfx_dispatch_trace_lib_d_mbcs.lib</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\api\include;..\..\api\mfx_dispatch\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>%(AdditionalDependencies); ..\..\..\build\win_Win32\lib\mfx_dispatch_trace_lib_mbcs.lib</AdditionalDependencies>
+      <ModuleDefinitionFile>mfx-tracer.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\api\include;..\..\api\mfx_dispatch\windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(MEDIASDK_ROOT)\ipp\ipp80gold\windows\ia32\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>%(AdditionalDependencies);..\..\..\build\win_$(Platform)\lib\mfx_dispatch_trace_lib_mbcs.lib</AdditionalDependencies>
+      <ModuleDefinitionFile>mfx-tracer.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="config\config.cpp" />
+    <ClCompile Include="dumps\dump.cpp" />
+    <ClCompile Include="dumps\dump_mfxbrc.cpp" />
+    <ClCompile Include="dumps\dump_mfxcommon.cpp" />
+    <ClCompile Include="dumps\dump_mfxdefs.cpp" />
+    <ClCompile Include="dumps\dump_mfxenc.cpp" />
+    <ClCompile Include="dumps\dump_mfxfei.cpp" />
+    <ClCompile Include="dumps\dump_mfxla.cpp" />
+    <ClCompile Include="dumps\dump_mfxplugin.cpp" />
+    <ClCompile Include="dumps\dump_mfxsession.cpp" />
+    <ClCompile Include="dumps\dump_mfxstructures.cpp" />
+    <ClCompile Include="dumps\dump_mfxvideo.cpp" />
+    <ClCompile Include="dumps\dump_mfxvp8.cpp" />
+    <ClCompile Include="loggers\log.cpp" />
+    <ClCompile Include="loggers\log_console.cpp" />
+    <ClCompile Include="loggers\log_etw_events.cpp" />
+    <ClCompile Include="loggers\log_file.cpp" />
+    <ClCompile Include="loggers\log_syslog.cpp" />
+    <ClCompile Include="tracer\exports.cpp" />
+    <ClCompile Include="tracer\tracer.cpp" />
+    <ClCompile Include="tracer\tracer_windows.cpp" />
+    <ClCompile Include="wrappers\mfx_core.cpp" />
+    <ClCompile Include="wrappers\mfx_video_core.cpp" />
+    <ClCompile Include="wrappers\mfx_video_decode.cpp" />
+    <ClCompile Include="wrappers\mfx_video_enc.cpp" />
+    <ClCompile Include="wrappers\mfx_video_encode.cpp" />
+    <ClCompile Include="wrappers\mfx_video_fei.cpp" />
+    <ClCompile Include="wrappers\mfx_video_user.cpp" />
+    <ClCompile Include="wrappers\mfx_video_vpp.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="config\config.h" />
+    <ClInclude Include="dumps\dump.h" />
+    <ClInclude Include="loggers\ilog.h" />
+    <ClInclude Include="loggers\log.h" />
+    <ClInclude Include="loggers\log_console.h" />
+    <ClInclude Include="loggers\log_etw_events.h" />
+    <ClInclude Include="loggers\log_file.h" />
+    <ClInclude Include="loggers\log_syslog.h" />
+    <ClInclude Include="loggers\thread_info.h" />
+    <ClInclude Include="loggers\timer.h" />
+    <ClInclude Include="tools\shared_mem_server.h" />
+    <ClInclude Include="tracer\bits\mfxcallbacks.h" />
+    <ClInclude Include="tracer\bits\mfxfunctions.h" />
+    <ClInclude Include="tracer\functions_table.h" />
+    <ClInclude Include="tracer\tracer.h" />
+    <ClInclude Include="wrappers\mfx_structures.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

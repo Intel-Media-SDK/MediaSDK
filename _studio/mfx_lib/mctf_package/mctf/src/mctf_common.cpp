@@ -751,7 +751,7 @@ mfxStatus CMC::MCTF_SET_ENV(
         res = device->LoadProgram((void *)genx_me_gen11, sizeof(genx_me_gen11), programMe, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICLLP)
         res = device->LoadProgram((void *)genx_me_gen11lp, sizeof(genx_me_gen11lp), programMe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_TGLLP)
+    else if (hwType == PLATFORM_INTEL_TGLLP || hwType == PLATFORM_INTEL_DG1)
         res = device->LoadProgram((void *)genx_me_gen12lp, sizeof(genx_me_gen12lp), programMe, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_me_gen9, sizeof(genx_me_gen9), programMe, "nojitter");
@@ -784,7 +784,7 @@ mfxStatus CMC::MCTF_SET_ENV(
         res = device->LoadProgram((void *)genx_mc_gen11, sizeof(genx_mc_gen11), programMc, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICLLP)
         res = device->LoadProgram((void *)genx_mc_gen11lp, sizeof(genx_mc_gen11lp), programMc, "nojitter");
-    else if (hwType == PLATFORM_INTEL_TGLLP)
+    else if (hwType == PLATFORM_INTEL_TGLLP || hwType == PLATFORM_INTEL_DG1)
         res = device->LoadProgram((void *)genx_mc_gen12lp, sizeof(genx_mc_gen12lp), programMc, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_mc_gen9, sizeof(genx_mc_gen9), programMc, "nojitter");
@@ -800,7 +800,7 @@ mfxStatus CMC::MCTF_SET_ENV(
         res = device->LoadProgram((void *)genx_sd_gen11, sizeof(genx_sd_gen11), programDe, "nojitter");
     else if (hwType == PLATFORM_INTEL_ICLLP)
         res = device->LoadProgram((void *)genx_sd_gen11lp, sizeof(genx_sd_gen11lp), programDe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_TGLLP)
+    else if (hwType == PLATFORM_INTEL_TGLLP || hwType == PLATFORM_INTEL_DG1)
         res = device->LoadProgram((void *)genx_sd_gen12lp, sizeof(genx_sd_gen12lp), programDe, "nojitter");
     else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
         res = device->LoadProgram((void *)genx_sd_gen9, sizeof(genx_sd_gen9), programDe, "nojitter");

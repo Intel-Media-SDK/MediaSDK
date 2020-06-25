@@ -1491,7 +1491,8 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribEncSliceStructure,
         VAConfigAttribEncROI,
         VAConfigAttribEncSkipFrame,
-        VAConfigAttribCustomRoundingControl
+        VAConfigAttribCustomRoundingControl,
+        VAConfigAttribQPBlockSize
     };
 
     std::vector<VAConfigAttrib> attrs;
@@ -1548,7 +1549,10 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.ddi_caps.UserMaxFrameSizeSupport = 1;
     m_caps.ddi_caps.MBBRCSupport            = 1;
-    m_caps.ddi_caps.MbQpDataSupport         = 1;
+    // Zero VAConfigAttribQPBlockSize means MBQP is not supported.
+    // VA_ATTRIB_NOT_SUPPORTED is returned by legacy drivers, treat this as supported.
+    m_caps.ddi_caps.MbQpDataSupport         =
+        AV(VAConfigAttribQPBlockSize) != 0 || AV(VAConfigAttribQPBlockSize) == VA_ATTRIB_NOT_SUPPORTED;
     m_caps.ddi_caps.NoWeightedPred          = 0;
     m_caps.ddi_caps.LumaWeightedPred        = 1;
     m_caps.ddi_caps.ChromaWeightedPred      = 1;

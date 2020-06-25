@@ -43,77 +43,22 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
 
         bool bG12SpecificRec =
-            CO3.TargetBitDepthLuma == 12
-            || (CO3.TargetBitDepthLuma == 10
-                && (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420)
-                    || CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422)));
+            (CO3.TargetBitDepthLuma == 12 || CO3.TargetBitDepthLuma == 10)
+             && (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420)
+                 || CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV422));
+
+        bG12SpecificRec = 
+            bG12SpecificRec 
+            || (CO3.TargetBitDepthLuma == 12 && CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444));
 
         MFX_CHECK(bG12SpecificRec, MFX_ERR_NONE);
 
         local.Erase(Base::Tmp::RecInfo::Key);
-        bool bVDEnc = IsOn(par.mfx.LowPower);
-
-        const std::map<mfxU16, std::function<void(mfxFrameInfo&, mfxU16&)>> mUpdateRecInfo =
-        {
-            {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                , [](mfxFrameInfo& rec, mfxU16& type)
-                {
-                    rec.FourCC = MFX_FOURCC_Y416;
-                    rec.Width  = mfx::align2_value<mfxU16>(rec.Width, 256 / 4);
-                    rec.Height = mfx::align2_value<mfxU16>(rec.Height * 3 / 2, 8);
-
-                    type = (
-                        MFX_MEMTYPE_FROM_ENCODE
-                        | MFX_MEMTYPE_DXVA2_DECODER_TARGET
-                        | MFX_MEMTYPE_INTERNAL_FRAME);
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
-                , [](mfxFrameInfo& rec, mfxU16& type)
-                {
-                    rec.FourCC = MFX_FOURCC_Y216;
-                    rec.Width /= 2;
-                    rec.Height *= 2;
-
-                    type = (
-                        MFX_MEMTYPE_FROM_ENCODE
-                        | MFX_MEMTYPE_DXVA2_DECODER_TARGET
-                        | MFX_MEMTYPE_INTERNAL_FRAME);
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                , [bVDEnc](mfxFrameInfo& rec, mfxU16& type)
-                {
-                    if (bVDEnc)
-                    {
-                        rec.FourCC = MFX_FOURCC_P016;
-                        rec.Width = mfx::align2_value(rec.Width, 32);
-
-                        type = (
-                            MFX_MEMTYPE_FROM_ENCODE
-                            | MFX_MEMTYPE_DXVA2_DECODER_TARGET
-                            | MFX_MEMTYPE_INTERNAL_FRAME);
-                    }
-                    else
-                    {
-                        rec.FourCC = MFX_FOURCC_NV12;
-                        rec.Width = mfx::align2_value(rec.Width, 32) * 2;
-                    }
-                }
-            }
-        };
-
-        MFX_CHECK(mUpdateRecInfo.count(CO3.TargetChromaFormatPlus1), MFX_ERR_NONE);
 
         auto pRI = make_storable<mfxFrameAllocRequest>(mfxFrameAllocRequest{});
         auto& rec = pRI->Info;
 
         rec = par.mfx.FrameInfo;
-
-        mUpdateRecInfo.at(CO3.TargetChromaFormatPlus1)(rec, pRI->Type);
         
         rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
         rec.BitDepthLuma   = CO3.TargetBitDepthLuma;

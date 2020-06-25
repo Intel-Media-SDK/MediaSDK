@@ -246,7 +246,7 @@ namespace
 
     bool hasSupportVME(eMFXHWType platform)
     {
-        return platform <= MFX_HW_TGL_LP;
+        return platform <= MFX_HW_DG1;
     }
 
     inline mfxU16 GetMaxSupportedLevel()

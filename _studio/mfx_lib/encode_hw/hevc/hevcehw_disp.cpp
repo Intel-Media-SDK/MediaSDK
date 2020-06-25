@@ -126,6 +126,7 @@ namespace HEVCEHW
 #if defined(MFX_VA_LINUX)
     #include "hevcehw_g12_lin.h"
     namespace HEVCEHWDisp { namespace TGL { using namespace HEVCEHW::Linux::Gen12; }; };
+    namespace HEVCEHWDisp { namespace DG1 { using namespace HEVCEHW::Linux::Gen12; }; };
 #else
     namespace HEVCEHWDisp { namespace TGL { using namespace HEVCEHW::LegacyFallback; }; };
 #endif
@@ -139,6 +140,8 @@ static ImplBase* CreateSpecific(
     , mfxStatus& status
     , eFeatureMode mode)
 {
+    if (HW == MFX_HW_DG1)
+        return new HEVCEHWDisp::DG1::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_TGL_LP)
         return new HEVCEHWDisp::TGL::MFXVideoENCODEH265_HW(core, status, mode);
     if (HW >= MFX_HW_ICL)

@@ -1173,6 +1173,10 @@ typedef struct {
   int32_t      delta_weight; // for HW decoder
 } wpScalingParam;
 
+#define DEFAULT_MAX_ENETRY_POINT_NUM 512
+#define DEFAULT_MAX_PREVENTION_BYTES 300
+#define DEAFULT_MAX_SLICE_HEADER_SIZE 512
+
 // Slice header structure, corresponding to the HEVC bitstream definition.
 struct H265SliceHeader
 {

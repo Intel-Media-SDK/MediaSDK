@@ -477,6 +477,7 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
 
         mfxStatus sts = m_brc.Update(m_brc.pthis, &fp, &fc, &fs);
         MFX_CHECK_STS(sts);
+        task.bSkip = false;
 
         switch (fs.BRCStatus)
         {
@@ -494,7 +495,9 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
             break;
         case MFX_BRC_PANIC_BIG_FRAME:
             task.bSkip = true;
+            MFX_FALLTHROUGH;
         case MFX_BRC_BIG_FRAME:
+            MFX_FALLTHROUGH;
         case MFX_BRC_SMALL_FRAME:
             task.bRecode = true;
             break;

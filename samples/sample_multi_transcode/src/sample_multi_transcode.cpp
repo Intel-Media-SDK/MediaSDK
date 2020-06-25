@@ -721,6 +721,9 @@ mfxStatus Launcher::QueryAdapters()
 
 void Launcher::ForceImplForSession(mfxU32 idxSession)
 {
+    if (m_InputParamsArray[idxSession].libType == MFX_IMPL_SOFTWARE)
+        return;
+
     //change only 8 bit of the implementation. Don't touch type of frames
     mfxIMPL impl = m_InputParamsArray[idxSession].libType & mfxI32(~0xFF);
 

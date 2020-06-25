@@ -42,7 +42,6 @@ namespace Base
     protected:
         virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
 
-        std::list<std::vector<mfxU8>> m_vaPerSeqMiscData;
     };
 
 } //Base

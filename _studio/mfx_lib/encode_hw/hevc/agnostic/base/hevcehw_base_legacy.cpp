@@ -1759,10 +1759,9 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         surfSrc.Data.MemId = ref.Rec.Mid;
         surfDst.Data.MemId = task.Raw.Mid;
 
-        FrameLocker lock_dst(core, surfSrc.Data);
-        FrameLocker lock_src(core, surfDst.Data);
-
-        mfxStatus sts = core.CopyFrame(&surfDst, &surfSrc);
+        mfxStatus sts = core.DoFastCopyWrapper(
+            &surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
+            &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
         MFX_CHECK_STS(sts);
 
         allocRec.SetFlag(ref.Rec.Idx, REC_SKIPPED * !!idx);
@@ -2590,83 +2589,14 @@ bool Legacy::GetRecInfo(
     , eMFXHWType hw
     , mfxFrameInfo& rec)
 {
-    static const std::map<mfxU16, std::function<void(mfxFrameInfo&, eMFXHWType)>> ModRec[2] =
-    {
-        { //8b
-            {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_AYUV;
-                    /* Pitch = 4*W for AYUV format
-                       Pitch need to align on 512
-                       So, width aligment is 512/4 = 128 */
-                    rec.Width  = mfx::align2_value<mfxU16>(rec.Width, 512 / 4);
-                    rec.Height = mfx::align2_value<mfxU16>(rec.Height *3/4, 8);
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_YUY2;
-                    rec.Width /= 2;
-                    rec.Height *= 2;
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_NV12;
-                }
-            }
-        }
-        , { //10b
-            {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_Y410;
-                    /* Pitch = 4*W for Y410 format
-                       Pitch need to align on 256
-                       So, width aligment is 256/4 = 64 */
-                    rec.Width  = mfx::align2_value<mfxU16>(rec.Width, 256 / 4);
-                    rec.Height = mfx::align2_value<mfxU16>(rec.Height * 3 / 2, 8);
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_Y210;
-                    rec.Width /= 2;
-                    rec.Height *= 2;
-                }
-            }
-            , {
-                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
-                , [](mfxFrameInfo& rec, eMFXHWType)
-                {
-                    rec.FourCC = MFX_FOURCC_P010;
-                }
-            }
-        }
-    };
     rec = par.mfx.FrameInfo;
 
-    auto& rModRec  = ModRec[CO3.TargetBitDepthLuma == 10];
-    auto  itModRec = rModRec.find(CO3.TargetChromaFormatPlus1);
-    bool bUndef =
-        (CO3.TargetBitDepthLuma != 8 && CO3.TargetBitDepthLuma != 10)
-        || (itModRec == rModRec.end());
+    bool bUndef = CO3.TargetBitDepthLuma != 8 && CO3.TargetBitDepthLuma != 10;
 
     if (bUndef)
     {
         return false;
     }
-
-    itModRec->second(rec, hw);
 
     rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
     rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
@@ -3202,9 +3132,13 @@ void Legacy::SetSTRPS(
     mfxI32    lastIPoc   = 0;
     bool      bDone      = false;
     mfxI32    i          = 0;
+
+    mfxI32    RAPPOC     = -1;   // if >= 0 first frame with bigger POC clears refs previous to RAP
+    bool      bFields    = (par.mfx.FrameInfo.PicStruct & (MFX_PICSTRUCT_FIELD_TOP | MFX_PICSTRUCT_FIELD_BOTTOM));
+    bool      bIisRAP    = !bFields; // control to match real encoding here
+
     Reorderer localReorder;
     DpbArray  dpb;
-
     localReorder        = reorder;
     localReorder.DPB    = &dpb; //use own DPB
 
@@ -3234,13 +3168,15 @@ void Legacy::SetSTRPS(
 
         if (!bNext)
         {
-            RemoveIf(dpb, dpb + Size(dpb) * bTL
+            bool bAfterRAP = (RAPPOC >= 0) && (cur->POC > RAPPOC); // if true - need to remove refs <RAPPOC
+
+            RemoveIf(dpb, dpb + Size(dpb) * (bTL | bAfterRAP)
                 , [&](DpbFrame& ref)
             {
                 return
                     isValid(ref)
-                    && ref.TemporalID > 0
-                    && ref.TemporalID >= cur->TemporalID;
+                    && ((bAfterRAP && ref.POC != RAPPOC && !ref.isLTR) // only RAP and LTR remains
+                        || (ref.TemporalID > 0 && ref.TemporalID >= cur->TemporalID));
             });
 
             bool bIDR = IsIdr(cur->FrameType);
@@ -3248,6 +3184,9 @@ void Legacy::SetSTRPS(
             bool bB   = IsB(cur->FrameType);
             bool bP   = IsP(cur->FrameType);
             bool bRef = IsRef(cur->FrameType);
+
+            SetIf(RAPPOC, bAfterRAP, -1);           // clear after use
+            SetIf(RAPPOC, bI && bIisRAP, cur->POC); // enable at I if conrol allows
 
             if (!bIDR)
             {
@@ -3269,6 +3208,7 @@ void Legacy::SetSTRPS(
                        (bB && nRef[0] && SetRPL())
                     || (bP && nRef[0] && SetRPL())
                     || (bI); //I picture is not using any refs, but saves them in RPS to be used by future pics.
+                // but currently every I is RAP and frames after it won't use refs before it
 
                 ThrowAssert(!bRPL, "failed to construct RPL");
 
