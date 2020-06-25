@@ -404,6 +404,7 @@ mfxStatus CommonCORE::InternalFreeFrames(mfxFrameAllocResponse *response)
         bool IsDefaultMem = ctbl_it->second.isDefaultMem;
         mfxMemId extMem = response->mids[0];
         mfxFrameAllocator* pFirstAlloc = GetAllocatorAndMid(extMem);
+        MFX_CHECK_NULL_PTR1(pFirstAlloc);
         // checking and correspond parameters
         for (mfxU32 i = 0; i < response->NumFrameActual; i++)
         {

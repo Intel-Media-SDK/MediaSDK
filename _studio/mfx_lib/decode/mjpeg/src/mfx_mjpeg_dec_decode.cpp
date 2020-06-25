@@ -664,7 +664,7 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
     // It can be useful to run threads right after first frame receive
     MFX_SAFE_CALL(DecodeFrameCheck(bs, surface_work, surface_out));
 
-    UMC::FrameData *dst;
+    UMC::FrameData *dst = nullptr;
     MFX_SAFE_CALL(decoder->AllocateFrameData(dst));
 
     {
