@@ -834,6 +834,26 @@ mfxStatus Query_H265(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *out, eMF
             sts = MFX_ERR_UNSUPPORTED;
         }
 
+        if (!in->mfx.FrameInfo.Width || (
+            in->mfx.FrameInfo.CropX <= in->mfx.FrameInfo.Width &&
+            in->mfx.FrameInfo.CropY <= in->mfx.FrameInfo.Height &&
+            in->mfx.FrameInfo.CropX + in->mfx.FrameInfo.CropW <= in->mfx.FrameInfo.Width &&
+            in->mfx.FrameInfo.CropY + in->mfx.FrameInfo.CropH <= in->mfx.FrameInfo.Height))
+        {
+            out->mfx.FrameInfo.CropX = in->mfx.FrameInfo.CropX;
+            out->mfx.FrameInfo.CropY = in->mfx.FrameInfo.CropY;
+            out->mfx.FrameInfo.CropW = in->mfx.FrameInfo.CropW;
+            out->mfx.FrameInfo.CropH = in->mfx.FrameInfo.CropH;
+        }
+        else {
+            out->mfx.FrameInfo.CropX = 0;
+            out->mfx.FrameInfo.CropY = 0;
+            out->mfx.FrameInfo.CropW = 0;
+            out->mfx.FrameInfo.CropH = 0;
+            sts = MFX_ERR_UNSUPPORTED;
+        }
+
+
         out->mfx.FrameInfo.FrameRateExtN = in->mfx.FrameInfo.FrameRateExtN;
         out->mfx.FrameInfo.FrameRateExtD = in->mfx.FrameInfo.FrameRateExtD;
 
