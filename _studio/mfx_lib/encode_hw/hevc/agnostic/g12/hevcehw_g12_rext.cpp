@@ -59,7 +59,11 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         auto& rec = pRI->Info;
 
         rec = par.mfx.FrameInfo;
-        
+
+        if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
+        {
+            rec.FourCC = MFX_FOURCC_P010;
+        }
         rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
         rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
         rec.BitDepthChroma = CO3.TargetBitDepthChroma;
