@@ -2598,6 +2598,22 @@ bool Legacy::GetRecInfo(
         return false;
     }
 
+    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 8)
+    {
+        rec.FourCC = MFX_FOURCC_NV12;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 8)
+    {
+        rec.FourCC = MFX_FOURCC_AYUV;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
+    {
+        rec.FourCC = MFX_FOURCC_P010;
+    }
+    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 10)
+    {
+        rec.FourCC = MFX_FOURCC_Y410;
+    }
     rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
     rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
     rec.BitDepthChroma = CO3.TargetBitDepthChroma;
