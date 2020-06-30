@@ -104,7 +104,7 @@ void EncodedFrameInfo::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         std::transform(task.RefPicList[0], task.RefPicList[0] + task.NumRefActive[0], pInfo->UsedRefListL0, GetUsedRef);
         std::transform(task.RefPicList[1], task.RefPicList[1] + task.NumRefActive[1], pInfo->UsedRefListL1, GetUsedRef);
 
-        pInfo->FrameOrder   = task.DisplayOrder;
+        pInfo->FrameOrder   = (task.pSurfIn->Data.FrameOrder == mfxU32(-1)) ? task.DisplayOrder : task.pSurfIn->Data.FrameOrder;
         pInfo->LongTermIdx  = mfxU16(MFX_LONGTERM_IDX_NO_IDX * !task.isLTR);
         pInfo->PicStruct    = PicStructTable[bFields][task.bBottomField];
         pInfo->QP           = 0;
