@@ -786,7 +786,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    msdk_printf(MSDK_STRING("\nDecoding finished\n"));
+    msdk_printf(MSDK_STRING("\n Decoding finished\n"));
 
     return 0;
 }
