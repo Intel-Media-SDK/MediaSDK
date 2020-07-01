@@ -69,6 +69,18 @@ You may also wish to visit Intel Media Server Studio [support page](https://soft
 
 # Products which use Media SDK
 
+Use Media SDK via popular frameworks:
+* [FFmpeg](http://ffmpeg.org/) via [ffmpeg-qsv](https://trac.ffmpeg.org/wiki/Hardware/QuickSync) plugins
+* [GStreamer](https://gstreamer.freedesktop.org/) via plugins set included
+  into [gst-plugins-bad](https://gitlab.freedesktop.org/gstreamer/gst-plugins-bad)
+
+Learn best practises and borrow fragments for final solutions:
+* https://github.com/intel/media-delivery
+  * This collection of samples demonstrates best practices to achieve optimal video quality and
+    performance on Intel GPUs for content delivery networks. Check out the demo, recommended command
+    lines and quality and performance measuring tools.
+
+Get customized Media SDK products:
 * [Intel Media Server Studio](https://software.intel.com/en-us/intel-media-server-studio)
 * [Intel Media SDK for Embedded Linux](https://software.intel.com/en-us/media-sdk/choose-download/embedded-iot)
 
