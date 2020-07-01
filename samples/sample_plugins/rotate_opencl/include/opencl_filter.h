@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -21,7 +21,18 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <iostream>
 #include <stdexcept>
-#include <CL/cl.h>
+#if defined(_WIN32) || defined(_WIN64)
+  // There is no cl2.hpp in Intel OpenCL SDK for Windows at least up to 2020.1.396
+  #include <CL/cl.h>
+#else
+  #define CL_HPP_ENABLE_SIZE_T_COMPATIBILITY
+  #define CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY
+  #define CL_HPP_ENABLE_EXCEPTIONS
+  #define CL_HPP_CL_1_2_DEFAULT_BUILD
+  #define CL_HPP_MINIMUM_OPENCL_VERSION 120
+  #define CL_HPP_TARGET_OPENCL_VERSION 120
+  #include <CL/cl2.hpp>
+#endif
 
 #include "mfxvideo++.h"
 #include "logger.h"
