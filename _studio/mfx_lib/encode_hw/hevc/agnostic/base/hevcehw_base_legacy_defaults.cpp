@@ -1438,20 +1438,24 @@ public:
         , const mfxVideoParam& par
         , eMFXHWType hw)
     {
-        bool bValid =
-            par.mfx.LowPower
-            && !CheckTriState(par.mfx.LowPower);
+        if (!Check<mfxU16, MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF>(par.mfx.LowPower))
+            return par.mfx.LowPower;
 
+        auto fcc = par.mfx.FrameInfo.FourCC;
         bool bOn =
-            (hw == MFX_HW_CNL
-                && par.mfx.TargetUsage >= 6
-                && par.mfx.GopRefDist < 2
-                && !bValid);
+            ((hw == MFX_HW_CNL
+              && par.mfx.TargetUsage >= 6
+              && par.mfx.GopRefDist < 2) ||
+             (hw >= MFX_HW_ICL &&
+              (fcc == MFX_FOURCC_AYUV
+#if (MFX_VERSION >= 1027)
+               || fcc == MFX_FOURCC_Y410
+#endif
+                  )));
 
         return mfxU16(
             bOn * MFX_CODINGOPTION_ON
-            + bValid * par.mfx.LowPower
-            + !(bOn || bValid) * MFX_CODINGOPTION_OFF);
+            + !bOn * MFX_CODINGOPTION_OFF);
     }
 
     static std::tuple<mfxU16, mfxU16> NumTiles(
