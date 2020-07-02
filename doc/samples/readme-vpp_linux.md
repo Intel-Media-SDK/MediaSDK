@@ -139,6 +139,7 @@ Usage: `./sample_vpp [Options] -i InputFile -o OutputFile`
 |   [-deinterlace (type)] | enable deinterlace algorithm (alternative way: -spic 0 -dpic 1) type is tff (default) or bff|
  |  [-rotate (angle)]  | enable rotation. Supported angles: 0, 90, 180, 270.|
 |   [-scaling_mode (mode)]|specify type of scaling to be used for resize.|
+|   [-interpolation_method (method)]|specify interpolation method to be used for resize.|
 |   [-denoise (level)| enable denoise algorithm. Level is optional range of  noise level is [0, 100]|
 |   [-chroma_siting (vmode hmode)] | specify chroma siting mode for VPP color conversion, allowed values: vtop\|vcen\|vbot hleft\|hcen|
 |  -mctf [Strength]|Strength is an optional value; it is in range [0...20] <br>value 0 makes MCTF operates in auto mode;<br>values [1...20] makes MCTF operates with fixed-strength mode;<br>In fixed-strength mode, MCTF strength can be adjusted at framelevel;<br>If no Strength is given, MCTF operates in auto mode.|
