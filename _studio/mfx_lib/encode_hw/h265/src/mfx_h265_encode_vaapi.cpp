@@ -410,7 +410,7 @@ mfxStatus SetRateControl(
         rate_param->ICQ_quality_factor = par.mfx.ICQQuality;
 #ifdef MFX_ENABLE_QVBR
     else if (par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR)
-        rate_param->quality_factor = extOpt3.QVBRQuality;
+        rate_param->ICQ_quality_factor = extOpt3.QVBRQuality;
 #endif
 
     rate_param->initial_qp = par.m_pps.init_qp_minus26 + 26;
