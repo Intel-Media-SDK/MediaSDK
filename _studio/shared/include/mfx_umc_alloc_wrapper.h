@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -201,6 +201,7 @@ protected:
     mfxI32        m_curIndex;
 
     bool m_IsUseExternalFrames;
+    bool m_bDelayedFrameAllocation;
     bool m_sfcVideoPostProcessing;
 
     mfxFrameInfo m_surface_info;  // for copying
