@@ -3164,6 +3164,48 @@ mfxStatus CmCopyWrapper::CopyMirrorVideoToVideoMemory(void *pDst, void *pSrc, mf
 
 #define CM_RGB_SUPPORTED_COPY_SIZE(ROI) (ROI.width <= CM_RGB_MAX_GPUCOPY_SURFACE_HEIGHT && ROI.height <= CM_RGB_MAX_GPUCOPY_SURFACE_HEIGHT )
 
+bool CmCopyWrapper::CheckSurfaceContinuouslyAllocated(const mfxFrameSurface1 &surf)
+{
+    switch (surf.Info.FourCC)
+    {
+    // Packed formats like YUY2, UYVY, AYUV, Y416, Y210, Y410, A2RGB10, RGB565, RGB3 
+    // does not need to be handled here - they got only one plane with all the luma and chroma data interleaved
+
+    // Handling semi-planar formats
+    case MFX_FOURCC_P010:
+    case MFX_FOURCC_P016:
+    case MFX_FOURCC_P210:
+    case MFX_FOURCC_NV12:
+    case MFX_FOURCC_NV16:
+        {
+            mfxU32 stride_in_bytes = surf.Data.PitchLow + ((mfxU32)surf.Data.PitchHigh << 16);
+            size_t luma_size_in_bytes = stride_in_bytes * mfx::align2_value(surf.Info.Height);
+            return surf.Data.Y + luma_size_in_bytes == surf.Data.UV;
+            break;
+        }
+
+    // Handling planar formats
+    case MFX_FOURCC_YV12:
+        {
+            mfxU32 stride_in_bytes = surf.Data.PitchLow + ((mfxU32)surf.Data.PitchHigh << 16);
+            size_t luma_size_in_bytes = stride_in_bytes * mfx::align2_value(surf.Info.Height);
+            size_t chroma_size_in_bytes = luma_size_in_bytes / 4; //stride of the V plane is half the stride of the Y plane; and the V plane contains half as many lines as the Y plane
+            return surf.Data.Y + luma_size_in_bytes == surf.Data.V && surf.Data.V + chroma_size_in_bytes == surf.Data.U;
+            break;
+        }
+
+    // Handling RGB-like formats
+    case MFX_FOURCC_RGBP:
+        {
+            mfxU32 stride_in_bytes = surf.Data.PitchLow + ((mfxU32)surf.Data.PitchHigh << 16);
+            size_t channel_size_in_bytes = stride_in_bytes * mfx::align2_value(surf.Info.Height);
+            return surf.Data.B + channel_size_in_bytes == surf.Data.G && surf.Data.G + channel_size_in_bytes == surf.Data.R;
+            break;
+        }
+    }
+    return true;
+}
+
 bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
 {
     mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
@@ -3187,7 +3229,7 @@ bool CmCopyWrapper::CanUseCmCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
         verticalPitch = (verticalPitch % pDst->Data.Pitch)? 0 : verticalPitch / pDst->Data.Pitch;
         if (isNV12LikeFormat(pDst->Info.FourCC) && isNV12LikeFormat(pSrc->Info.FourCC) && CM_ALIGNED(pDst->Data.Y) && CM_ALIGNED(pDst->Data.UV) && CM_SUPPORTED_COPY_SIZE(roi) && verticalPitch >= pDst->Info.Height && verticalPitch <= 16384)
         {
-            return true;
+            return CheckSurfaceContinuouslyAllocated(*pDst);
         }
         else if(isSinglePlainFormat(pDst->Info.FourCC) && isSinglePlainFormat(pSrc->Info.FourCC) && pSrc->Info.Shift == pDst->Info.Shift && CM_ALIGNED(dstPtr) && CM_SUPPORTED_COPY_SIZE(roi))
         {
