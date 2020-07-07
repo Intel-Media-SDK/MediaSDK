@@ -185,6 +185,14 @@ msdk_printf(MSDK_STRING("                            0 - default\n"));
 msdk_printf(MSDK_STRING("                            1 - low power mode\n"));
 msdk_printf(MSDK_STRING("                            2 - quality mode\n\n"));
 
+#if MFX_VERSION >= 1033
+msdk_printf(MSDK_STRING("   [-interpolation_method (method)] - specify interpolation method to be used for resize\n"));
+msdk_printf(MSDK_STRING("                                      0 - default\n"));
+msdk_printf(MSDK_STRING("                                      1 - nearest neighbor\n"));
+msdk_printf(MSDK_STRING("                                      2 - bilinear\n"));
+msdk_printf(MSDK_STRING("                                      3 - advanced\n\n"));
+#endif
+
 msdk_printf(MSDK_STRING("   [-denoise (level)]  - enable denoise algorithm. Level is optional \n"));
 msdk_printf(MSDK_STRING("                         range of  noise level is [0, 100]\n"));
 #if MFX_VERSION >= 1025
@@ -1364,6 +1372,15 @@ mfxStatus vppParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams
                 pParams->bScaling = true;
                 msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->scalingMode);
             }
+#if MFX_VERSION >= 1033
+            else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-interpolation_method")))
+            {
+                VAL_CHECK(1 + i == nArgNum);
+                i++;
+                pParams->bScaling = true;
+                msdk_sscanf(strInput[i], MSDK_STRING("%hu"), &pParams->interpolationMethod);
+            }
+#endif
 #if MFX_VERSION >= 1025
             else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-chroma_siting")))
             {

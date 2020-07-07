@@ -191,6 +191,7 @@ struct sInputParams
 
     bool     bScaling;
     mfxU16   scalingMode;
+    mfxU16   interpolationMethod;
 
     bool     bChromaSiting;
     mfxU16   uChromaSiting;
@@ -260,6 +261,7 @@ struct sInputParams
         vaType=0;
         bScaling=false;
         scalingMode=0;
+        interpolationMethod=0;
         GPUCopyValue=0;
         bPartialAccel=0;
         numFrames=0;

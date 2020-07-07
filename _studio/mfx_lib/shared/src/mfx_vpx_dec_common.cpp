@@ -28,24 +28,30 @@
 namespace MFX_VPX_Utility
 
 {
-    inline mfxU32 GetMaxWidth(mfxU32 codecId)
+    inline mfxU32 GetMaxWidth(mfxU32 codecId, eMFXHWType hwType)
     {
         switch (codecId)
         {
         case MFX_CODEC_VP8:
-        case MFX_CODEC_VP9:
             return 4096;
+        case MFX_CODEC_VP9:
+            if (hwType < MFX_HW_KBL)
+                return 4096;
+            return 8192;
         default: return 0;
         }
     }
 
-    inline mfxU32 GetMaxHeight(mfxU32 codecId)
+    inline mfxU32 GetMaxHeight(mfxU32 codecId, eMFXHWType hwType)
     {
         switch (codecId)
         {
         case MFX_CODEC_VP8:
+            return 4096;
         case MFX_CODEC_VP9:
-            return 2304;
+            if (hwType < MFX_HW_KBL)
+                return 4096;
+            return 8192;
         default: return 0;
         }
     }
@@ -199,12 +205,12 @@ namespace MFX_VPX_Utility
             if (!p_in->mfx.FrameInfo.ChromaFormat && !(!p_in->mfx.FrameInfo.FourCC && !p_in->mfx.FrameInfo.ChromaFormat))
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Width % 16 == 0)
+            if (p_in->mfx.FrameInfo.Width % 16 == 0 && p_in->mfx.FrameInfo.Width <= GetMaxWidth(codecId, core->GetHWType()))
                 p_out->mfx.FrameInfo.Width = p_in->mfx.FrameInfo.Width;
             else
                 sts = MFX_ERR_UNSUPPORTED;
 
-            if (p_in->mfx.FrameInfo.Height % 16 == 0)
+            if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= GetMaxHeight(codecId, core->GetHWType()))
                 p_out->mfx.FrameInfo.Height = p_in->mfx.FrameInfo.Height;
             else
                 sts = MFX_ERR_UNSUPPORTED;

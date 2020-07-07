@@ -2250,11 +2250,6 @@ mfxStatus CEncodingPipeline::VPPOneFrame(const ExtendedSurface& In, ExtendedSurf
         sts = m_pmfxVPP->RunFrameVPPAsync(skipFrame ?  nullptr : In.pSurface,
                                                   Out.pSurface, NULL, &Out.Syncp);
 
-        if (m_nPerfOpt)
-        {
-           // increment buffer index
-           m_nVppSurfIdx++;
-        }
         if (MFX_ERR_NONE < sts && !Out.Syncp) // repeat the call if warning and no output
         {
             if (MFX_WRN_DEVICE_BUSY == sts)
@@ -2263,10 +2258,14 @@ mfxStatus CEncodingPipeline::VPPOneFrame(const ExtendedSurface& In, ExtendedSurf
         else if (MFX_ERR_NONE < sts && Out.Syncp)
         {
             sts = MFX_ERR_NONE; // ignore warnings if output is available
+            if (m_nPerfOpt) m_nVppSurfIdx++;
             break;
         }
         else
+        {
+            if (m_nPerfOpt) m_nVppSurfIdx++;
             break; // not a warning
+        }
     }
     return sts;
 }
@@ -2285,11 +2284,6 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp/preenc
         sts = m_pmfxENC->EncodeFrameAsync(In.pCtrl, In.pSurface, &pTask->mfxBS, &pTask->EncSyncP);
 
-        if (m_nPerfOpt)
-        {
-            // increment buffer index
-            m_nEncSurfIdx++;
-        }
         if (MFX_ERR_NONE < sts && !pTask->EncSyncP) // repeat the call if warning and no output
         {
             if (MFX_WRN_DEVICE_BUSY == sts)
@@ -2298,6 +2292,7 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
         else if (MFX_ERR_NONE < sts && pTask->EncSyncP)
         {
             sts = MFX_ERR_NONE; // ignore warnings if output is available
+            if (m_nPerfOpt) m_nEncSurfIdx++;
             break;
         }
         else if (MFX_ERR_NOT_ENOUGH_BUFFER == sts)
@@ -2309,6 +2304,7 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
         {
             // get next surface and new task for 2nd bitstream in ViewOutput mode
             MSDK_IGNORE_MFX_STS(sts, MFX_ERR_MORE_BITSTREAM);
+            if (m_nPerfOpt) m_nEncSurfIdx++;
             break;
         }
     }

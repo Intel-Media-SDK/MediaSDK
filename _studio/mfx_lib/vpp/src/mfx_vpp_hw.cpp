@@ -1312,6 +1312,8 @@ mfxStatus TaskManager::AssignTask(
 
 #ifdef MFX_ENABLE_MCTF
 
+    MFX_CHECK_NULL_PTR1(output);
+
     // DoCpuFRC_AndUpdatePTS updates TimeStamp & FrameOrder in output;
     // copy these values to outputForApp
     if (outputForApp != output && outputForApp)
@@ -4837,6 +4839,20 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
 
+            if (core->GetHWType() < MFX_HW_ICL && (
+#if (MFX_VERSION >= 1027)
+                (MFX_FOURCC_Y210 == par->vpp.In.FourCC || MFX_FOURCC_Y210 == par->vpp.Out.FourCC) ||
+                (MFX_FOURCC_Y410 == par->vpp.In.FourCC || MFX_FOURCC_Y410 == par->vpp.Out.FourCC) ||
+#endif
+#if (MFX_VERSION >= 1031)
+                (MFX_FOURCC_P016 == par->vpp.In.FourCC || MFX_FOURCC_P016 == par->vpp.Out.FourCC) ||
+#endif
+                (MFX_FOURCC_AYUV == par->vpp.In.FourCC || MFX_FOURCC_AYUV == par->vpp.Out.FourCC) ||
+                (MFX_FOURCC_P010 == par->vpp.In.FourCC || MFX_FOURCC_P010 == par->vpp.Out.FourCC) ))
+            {
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            }
+
 #if defined(MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP)
             if (extDI->Mode == MFX_DEINTERLACING_ADVANCED_SCD &&
                 par->vpp.Out.FourCC != MFX_FOURCC_NV12 &&
@@ -4901,6 +4917,24 @@ mfxStatus ValidateParams(mfxVideoParam *par, mfxVppCaps *caps, VideoCORE *core, 
                 {
                     sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
                 }
+            }
+
+            if (core->GetHWType() < MFX_HW_CNL && (
+#if (MFX_VERSION >= 1027)
+                (MFX_FOURCC_Y210 == par->vpp.In.FourCC || MFX_FOURCC_Y210 == par->vpp.Out.FourCC) ||
+                (MFX_FOURCC_Y410 == par->vpp.In.FourCC || MFX_FOURCC_Y410 == par->vpp.Out.FourCC) ||
+#endif
+#if (MFX_VERSION >= 1031)
+                (MFX_FOURCC_P016 == par->vpp.In.FourCC || MFX_FOURCC_P016 == par->vpp.Out.FourCC) ||
+#endif
+                (MFX_FOURCC_AYUV == par->vpp.In.FourCC || MFX_FOURCC_AYUV == par->vpp.Out.FourCC) ||
+                (                                         MFX_FOURCC_P010 == par->vpp.Out.FourCC) ))
+            {
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
+            }
+            else if (core->GetHWType() <= MFX_HW_BDW && MFX_FOURCC_P010 == par->vpp.In.FourCC)
+            {
+                sts = GetWorstSts(sts, MFX_ERR_UNSUPPORTED);
             }
 
             break;
