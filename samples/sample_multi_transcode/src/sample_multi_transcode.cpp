@@ -1112,7 +1112,12 @@ mfxStatus Launcher::CreateSafetyBuffers()
 
 void Launcher::Close()
 {
-    m_pThreadContextArray.clear();
+    while(m_pThreadContextArray.size())
+    {
+        m_pThreadContextArray[m_pThreadContextArray.size() - 1].reset();
+        m_pThreadContextArray.pop_back();
+    }
+
     m_pAllocArray.clear();
     m_pBufferArray.clear();
     m_pExtBSProcArray.clear();
