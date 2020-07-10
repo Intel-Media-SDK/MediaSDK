@@ -65,6 +65,7 @@ MFX_LOCAL_SRC_FILES_HW += \
     mfx_lib/encode_hw/hevc/agnostic/base/hevcehw_base_weighted_prediction.cpp \
     mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_caps.cpp \
     mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_rext.cpp \
+    mfx_lib/encode_hw/hevc/agnostic/g12/hevcehw_g12_scc.cpp \
     mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_interlace_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_fei_lin.cpp \
     mfx_lib/encode_hw/hevc/linux/base/hevcehw_base_lin.cpp \
@@ -245,7 +246,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL_HW) \
-    -Wall -Werror
+    -Wall -Werror -Wno-unused-parameter
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
 
@@ -270,7 +271,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL_HW) \
-    -Wall -Werror
+    -Wall -Werror -Wno-unused-parameter
 LOCAL_CFLAGS_32 := $(MFX_CFLAGS_INTERNAL_32)
 
 LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
@@ -304,7 +305,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_CFLAGS := \
     $(MFX_CFLAGS_INTERNAL_HW) \
-    -Wall -Werror
+    -Wall -Werror -Wno-unused-parameter
 LOCAL_CFLAGS_64 := $(MFX_CFLAGS_INTERNAL_64)
 
 LOCAL_LDFLAGS := $(MFX_LOCAL_LDFLAGS_HW)
