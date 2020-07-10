@@ -370,7 +370,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
     - If you decided to create your own exception class - inherit it from ```std::exception``` (or its derivatives).
 
-    - Use ```std::system_error``` to convey custom error results through exceptions (see [MFX error](https://wiki.ith.intel.com/display/MediaSDK/Snippets#Snippets-MFXerrorcategory.) category snippet as an example).
+    - Use ```std::system_error``` to convey custom error results through exceptions.
 
     - \[Windows\] Don\'t use ```catch(...)``` to catch asynchronous (SEH exceptions), use ```__set_se_translator``` or ```__try```/```__except``` instead. [Here](https://stackoverflow.com/questions/4573536/ehsc-vc-eha-synchronous-vs-asynchronous-exception-handling) is good explanation of synchronous vs asynchronous exceptions. Please note, that both ```catch(...)``` and ```__set_se_translator``` require ```/EHa``` compiler switch, which is turned off by default (MSDK explicitly turns it on).
 
