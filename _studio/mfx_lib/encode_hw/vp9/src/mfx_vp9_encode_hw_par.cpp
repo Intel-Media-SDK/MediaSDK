@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -1337,15 +1337,26 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
             changed = true;
         }
 
-        // TargetUsage 4 and 7 don't support 3 reference frames
+        // For targetUsage 1: MaxNum_Reference is 3
+        // For targetUsage 4: MaxNum_Reference is 2
+        // For targetUsage 7: MaxNum_Reference is 1
+        int RefActiveP = 3;
         if (par.mfx.TargetUsage)
         {
-            if (par.mfx.TargetUsage != MFX_TARGETUSAGE_BEST_QUALITY &&
-                par.mfx.NumRefFrame > 2)
+            if (par.mfx.TargetUsage == MFX_TARGETUSAGE_BALANCED)
             {
-                par.mfx.NumRefFrame = 2;
-                changed = true;
+                RefActiveP = 2;
             }
+            else if (par.mfx.TargetUsage == MFX_TARGETUSAGE_BEST_SPEED)
+            {
+                RefActiveP = 1;
+            }
+        }
+
+        if (par.mfx.NumRefFrame > RefActiveP)
+        {
+            par.mfx.NumRefFrame = RefActiveP;
+            changed = true;
         }
     }
     else
