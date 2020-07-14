@@ -41,9 +41,6 @@ void Linux::Base::DirtyRect::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA 
             , std::list<std::vector<mfxU8>>& data)
         {
             auto dirtyRect = GetRTExtBuffer<mfxExtDirtyRect>(global, s_task);
-
-            mfxU32 log2blkSize = Glob::EncodeCaps::Get(global).BlockSize + 3;
-
             auto& vaDirtyRect = AddVaMisc<VAEncMiscParameterBufferDirtyRect>(VAEncMiscParameterTypeDirtyRect, data);
 
             vaDirtyRect.num_roi_rectangle = 0;
@@ -54,22 +51,20 @@ void Linux::Base::DirtyRect::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA 
                 if (SkipRectangle(dirtyRect.Rect[i]))
                     continue;
 
-                /* Driver expects a rect with the 'close' right bottom edge but
-                MSDK uses the 'open' edge rect, thus the right bottom edge which
-                is decreased by 1 below converts 'open' -> 'close' notation
-                We expect here boundaries are already aligned with the BlockSize
-                and Right > Left and Bottom > Top */
+                /* Driver expects width x height rect and
+                MSDK uses the 'open' edge rect, so width = right - left.
+                Borders will be further aligned in driver.
+                We expect here Right > Left and Bottom > Top */
                 m_vaDirtyRects.push_back({
                    int16_t(dirtyRect.Rect[i].Left)
                    , int16_t(dirtyRect.Rect[i].Top)
-                   , uint16_t((dirtyRect.Rect[i].Right - dirtyRect.Rect[i].Left) - (1 << log2blkSize))
-                   , uint16_t((dirtyRect.Rect[i].Bottom - dirtyRect.Rect[i].Top) - (1 << log2blkSize))
+                   , uint16_t((dirtyRect.Rect[i].Right - dirtyRect.Rect[i].Left))
+                   , uint16_t((dirtyRect.Rect[i].Bottom - dirtyRect.Rect[i].Top))
                 });
 
-                ++vaDirtyRect.num_roi_rectangle;
-
             }
-            vaDirtyRect.roi_rectangle = vaDirtyRect.num_roi_rectangle ? m_vaDirtyRects.data() : nullptr;
+            vaDirtyRect.roi_rectangle = m_vaDirtyRects.empty() ? nullptr : m_vaDirtyRects.data();
+            vaDirtyRect.num_roi_rectangle = m_vaDirtyRects.size();
 
             return vaDirtyRect.num_roi_rectangle ? 1 : 0;
         });
