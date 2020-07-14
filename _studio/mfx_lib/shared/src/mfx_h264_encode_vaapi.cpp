@@ -231,7 +231,7 @@ mfxStatus SetRateControl(
 
     rate_param->rc_flags.bits.frame_tolerance_mode = ConvertLowDelayBRCMfx2Ddi(extOpt3.LowDelayBRC, par.calcParam.TCBRCTargetFrameSize);
     // Activate frame tolerance sliding window mode
-    if (extOpt3.WinBRCSize && caps.ddi_caps.FrameSizeToleranceSupport)
+    if (extOpt3.WinBRCSize)
     {
         rate_param->rc_flags.bits.frame_tolerance_mode = eFrameSizeTolerance_Low;
     }
