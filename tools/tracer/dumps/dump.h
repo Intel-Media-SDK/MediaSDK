@@ -67,18 +67,19 @@ bool _IsBadReadPtr(void *ptr, size_t size);
 #define DUMP_FIELD_RESERVED(_field) \
     str += structName + "." #_field "[]=" + DUMP_RESERVED_ARRAY(_struct._field) + "\n";
 
-    #define ToString( x )  dynamic_cast< std::ostringstream & >( \
+    #define ToString( x )  static_cast< std::ostringstream const & >( \
         ( std::ostringstream() << std::dec << x ) ).str()
 
-    #define TimeToString( x ) dynamic_cast< std::ostringstream & >( \
+    #define TimeToString( x ) static_cast< std::ostringstream const & >( \
             ( std::ostringstream() << std::left << std::setw(4) << std::dec << x <<" msec") ).str()
 
     /*
-    #define ToHexFormatString( x ) dynamic_cast< std::ostringstream & >( \
+    #define ToHexFormatString( x ) static_cast< std::ostringstream const & >( \
             ( std::ostringstream() << std::hex << x ) ).str()
     */
 
-    #define ToHexFormatString( x ) (dynamic_cast< std::ostringstream & >( ( std::ostringstream() << std::hex << pVoidToHexString((void*)x) ) ).str() )
+    #define ToHexFormatString( x ) (static_cast< std::ostringstream const & >( \
+            ( std::ostringstream() << std::hex << pVoidToHexString((void*)x) ) ).str() )
 /*
 #define DEFINE_GET_TYPE(type) \
     template<> \
@@ -118,7 +119,8 @@ public:
 
     template<typename T>
     inline std::string toString( T x, eDumpFormat format = DUMP_DEC){
-        return dynamic_cast< std::ostringstream & >(( std::ostringstream() << ((format == DUMP_DEC) ? std::dec : std::hex) << x )).str();
+        return static_cast< std::ostringstream const & >(
+            ( std::ostringstream() << ((format == DUMP_DEC) ? std::dec : std::hex) << x )).str();
     }
 
     const char* get_bufferid_str(mfxU32 bufferid);
