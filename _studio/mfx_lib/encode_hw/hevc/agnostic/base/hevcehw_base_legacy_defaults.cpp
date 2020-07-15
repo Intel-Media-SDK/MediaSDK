@@ -311,8 +311,8 @@ public:
         , mfxU16(*pBL1)[8])
     {
         bool bExternal = false;
-        mfxU16 maxFwd, maxBwd;
-        std::tie(maxFwd, maxBwd) = par.base.GetMaxNumRef(par);
+        mfxU16 maxP = 0, maxBL0 = 0, maxBL1 = 0;
+        std::tie(maxP, maxBL0, maxBL1) = par.base.GetMaxNumRef(par);
 
         auto SetDefaultNRef =
             [](const mfxU16(*extRef)[8], mfxU16 defaultRef, mfxU16(*NumRefActive)[8])
@@ -346,9 +346,9 @@ public:
             extRefBL1 = &pCO3->NumRefActiveBL1;
         }
 
-        bExternal |= SetDefaultNRef(extRefP, maxFwd, pP);
-        bExternal |= SetDefaultNRef(extRefBL0, maxFwd, pBL0);
-        bExternal |= SetDefaultNRef(extRefBL1, maxBwd, pBL1);
+        bExternal |= SetDefaultNRef(extRefP, maxP, pP);
+        bExternal |= SetDefaultNRef(extRefBL0, maxBL0, pBL0);
+        bExternal |= SetDefaultNRef(extRefBL1, maxBL1, pBL1);
 
         return bExternal;
     }
@@ -630,8 +630,8 @@ public:
         return std::max<mfxU32>(minCPB, std::min<mfxU32>(maxCPB, defaultCPB));
     }
 
-    static std::tuple<mfxU16, mfxU16> MaxNumRef(
-        Defaults::TChain<std::tuple<mfxU16, mfxU16>>::TExt
+    static std::tuple<mfxU16, mfxU16, mfxU16> MaxNumRef(
+        Defaults::TChain<std::tuple<mfxU16, mfxU16, mfxU16>>::TExt
         , const Defaults::Param& par)
     {
         mfxU16 tu = par.mvp.mfx.TargetUsage;
@@ -664,6 +664,7 @@ public:
 
         return std::make_tuple(
             std::min<mfxU16>({ nRefL0, par.caps.MaxNum_Reference0, numRefFrame })
+            , std::min<mfxU16>({ nRefL0, par.caps.MaxNum_Reference0, numRefFrame })
             , std::min<mfxU16>({ nRefL1, par.caps.MaxNum_Reference1, numRefFrame }));
     }
 
@@ -2679,21 +2680,23 @@ public:
         mfxU16 maxDPB = par.mfx.NumRefFrame + 1;
         SetIf(maxDPB, !par.mfx.NumRefFrame, defPar.base.GetMaxDPB, defPar);
 
-        mfxU16 maxForward = std::min<mfxU16>(defPar.caps.MaxNum_Reference0, maxDPB - 1);
-        mfxU16 maxBackward = std::min<mfxU16>(defPar.caps.MaxNum_Reference1, maxDPB - 1);
+        mfxU16 maxP   = std::min<mfxU16>(defPar.caps.MaxNum_Reference0, maxDPB - 1);
+        mfxU16 maxBL0 = std::min<mfxU16>(defPar.caps.MaxNum_Reference0, maxDPB - 1);
+        mfxU16 maxBL1 = std::min<mfxU16>(defPar.caps.MaxNum_Reference1, maxDPB - 1);
 
         if (defPar.hw >= MFX_HW_CNL)
         {
             auto maxRefByTu = defPar.base.GetMaxNumRef(defPar);
-            maxForward = std::min<mfxU16>(maxForward, std::get<0>(maxRefByTu));
-            maxBackward = std::min<mfxU16>(maxBackward, std::get<1>(maxRefByTu));
+            maxP   = std::min<mfxU16>(maxP,   std::get<P>(maxRefByTu));
+            maxBL0 = std::min<mfxU16>(maxBL0, std::get<BL0>(maxRefByTu));
+            maxBL1 = std::min<mfxU16>(maxBL1, std::get<BL1>(maxRefByTu));
         }
 
         for (mfxU16 i = 0; i < 8; i++)
         {
-            changed += CheckMaxOrClip(pCO3->NumRefActiveP[i], maxForward);
-            changed += CheckMaxOrClip(pCO3->NumRefActiveBL0[i], maxForward);
-            changed += CheckMaxOrClip(pCO3->NumRefActiveBL1[i], maxBackward);
+            changed += CheckMaxOrClip(pCO3->NumRefActiveP  [i], maxP);
+            changed += CheckMaxOrClip(pCO3->NumRefActiveBL0[i], maxBL0);
+            changed += CheckMaxOrClip(pCO3->NumRefActiveBL1[i], maxBL1);
         }
 
         MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);

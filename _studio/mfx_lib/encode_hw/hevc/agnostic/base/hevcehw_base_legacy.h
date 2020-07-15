@@ -32,6 +32,12 @@ namespace HEVCEHW
 {
 namespace Base
 {
+    enum FType { // Frame type for GetMaxNumRef tuple
+        P = 0,
+        BL0 = 1,
+        BL1 = 2
+    };
+
     class Legacy
         : public FeatureBase
     {
@@ -124,7 +130,7 @@ namespace Base
         mfxU16
             m_CUQPBlkW          = 0
             , m_CUQPBlkH        = 0;
-        std::function<std::tuple<mfxU16, mfxU16>(const mfxVideoParam&)> m_GetMaxRef;
+        std::function<std::tuple<mfxU16, mfxU16, mfxU16>(const mfxVideoParam&)> m_GetMaxRef;
         std::unique_ptr<Defaults::Param> m_pQWCDefaults;
         NotNull<Defaults*> m_pQNCDefaults;
         eMFXHWType m_hw = MFX_HW_UNKNOWN;
