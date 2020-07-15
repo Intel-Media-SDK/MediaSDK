@@ -328,7 +328,12 @@ typedef struct {
             mfxU16  SliceGroupsPresent;
             mfxU16  MaxDecFrameBuffering;
             mfxU16  EnableReallocRequest;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            mfxU16  FilmGrain;
+            mfxU16  reserved2[6];
+#else
             mfxU16  reserved2[7];
+#endif
         };
         struct {   /* JPEG Decoding Options */
             mfxU16  JPEGChromaFormat;
@@ -497,6 +502,12 @@ enum {
     MFX_PROFILE_VP9_2                       = 3,
     MFX_PROFILE_VP9_3                       = 4,
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    /* AV1 Profiles */
+    MFX_PROFILE_AV1_MAIN                    = 1,
+    MFX_PROFILE_AV1_HIGH                    = 2,
+    MFX_PROFILE_AV1_PRO                     = 3,
+#endif
 };
 
 /* GopOptFlag */
@@ -932,6 +943,14 @@ enum {
 #endif
 #if (MFX_VERSION >= 1031)
     MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM         = MFX_MAKEFOURCC('P','B','O','P'),
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM            = MFX_MAKEFOURCC('A','1','F','G'),
+    MFX_EXTBUFF_AV1_LST_PARAM                   = MFX_MAKEFOURCC('A', '1', 'L', 'S'),
+    MFX_EXTBUFF_AV1_SEGMENTATION                = MFX_MAKEFOURCC('1', 'S', 'E', 'G'),
+    MFX_EXTBUFF_AV1_PARAM                       = MFX_MAKEFOURCC('1', 'P', 'A', 'R'),
+    MFX_EXTBUFF_AV1_AUXDATA                     = MFX_MAKEFOURCC('1', 'A', 'U', 'X'),
+    MFX_EXTBUFF_AV1_TEMPORAL_LAYERS             = MFX_MAKEFOURCC('1', 'T', 'M', 'L')
 #endif
 };
 
@@ -2329,6 +2348,63 @@ typedef struct
 
     mfxU16           reserved[4];
 } mfxAdaptersInfo;
+MFX_PACK_END()
+
+#endif
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+/* FilmGrainFlags */
+enum {
+    MFX_FILM_GRAIN_APPLY                    = (1 << 0),
+    MFX_FILM_GRAIN_UPDATE                   = (1 << 1),
+    MFX_FILM_GRAIN_CHROMA_SCALING_FROM_LUMA = (1 << 2),
+    MFX_FILM_GRAIN_OVERLAP                  = (1 << 3),
+    MFX_FILM_GRAIN_CLIP_TO_RESTRICTED_RANGE = (1 << 4)
+};
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct {
+    mfxU8 Value;
+    mfxU8 Scaling;
+} mfxAV1FilmGrainPoint;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU16 Flags;           /* FilmGrainFlags */
+    mfxU16 GrainSeed;       /* 0..65535 */
+
+    mfxU8  RefIdx;          /* 0..6  */
+    mfxU8  NumYPoints;      /* 0..14 */
+    mfxU8  NumCbPoints;     /* 0..10 */
+    mfxU8  NumCrPoints;     /* 0..10 */
+
+    mfxAV1FilmGrainPoint PointY[14];
+    mfxAV1FilmGrainPoint PointCb[10];
+    mfxAV1FilmGrainPoint PointCr[10];
+
+    mfxU8 GrainScalingMinus8; /* 0..3 */
+    mfxU8 ArCoeffLag;         /* 0..3 */
+
+    mfxU8 ArCoeffsYPlus128[24];  /* 0..255 */
+    mfxU8 ArCoeffsCbPlus128[25]; /* 0..255 */
+    mfxU8 ArCoeffsCrPlus128[25]; /* 0..255 */
+
+    mfxU8 ArCoeffShiftMinus6;  /* 0..3 */
+    mfxU8 GrainScaleShift;     /* 0..3 */
+
+    mfxU8  CbMult;     /* 0..255 */
+    mfxU8  CbLumaMult; /* 0..255 */
+    mfxU16 CbOffset;   /* 0..511 */
+
+    mfxU8  CrMult;     /* 0..255 */
+    mfxU8  CrLumaMult; /* 0..255 */
+    mfxU16 CrOffset;   /* 0..511 */
+
+    mfxU16 reserved[43];
+} mfxExtAV1FilmGrainParam;
 MFX_PACK_END()
 
 #endif

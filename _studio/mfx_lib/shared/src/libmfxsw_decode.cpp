@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -65,6 +65,9 @@
 #endif
 #endif
 
+#if defined (MFX_ENABLE_AV1_VIDEO_DECODE)
+#include "mfx_av1_dec_decode.h"
+#endif
 
 #ifdef MFX_ENABLE_USER_DECODE
 #include "mfx_user_plugin.h"
@@ -121,6 +124,12 @@ VideoDECODE* _mfxSession::Create<VideoDECODE>(mfxVideoParam& par)
      case MFX_CODEC_VP9:
         pDECODE = new VideoDECODEVP9_HW(core, &mfxRes);
         break;
+#endif
+
+#if defined (MFX_ENABLE_AV1_VIDEO_DECODE)
+     case MFX_CODEC_AV1:
+         pDECODE = new VideoDECODEAV1(core, &mfxRes);
+         break;
 #endif
 
     default:
@@ -222,6 +231,11 @@ mfxStatus MFXVideoDECODE_Query(mfxSession session, mfxVideoParam *in, mfxVideoPa
             break;
 #endif
 
+#ifdef MFX_ENABLE_AV1_VIDEO_DECODE
+        case MFX_CODEC_AV1:
+            mfxRes = VideoDECODEAV1::Query(session->m_pCORE.get(), in, out);
+            break;
+#endif
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
@@ -311,6 +325,11 @@ mfxStatus MFXVideoDECODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
             break;
 #endif
 
+#ifdef MFX_ENABLE_AV1_VIDEO_DECODE
+        case MFX_CODEC_AV1:
+            mfxRes = VideoDECODEAV1::QueryIOSurf(session->m_pCORE.get(), par, request);
+            break;
+#endif
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;
@@ -395,6 +414,11 @@ mfxStatus MFXVideoDECODE_DecodeHeader(mfxSession session, mfxBitstream *bs, mfxV
             break;
 #endif
 
+#ifdef MFX_ENABLE_AV1_VIDEO_DECODE
+        case MFX_CODEC_AV1:
+            mfxRes = VideoDECODEAV1::DecodeHeader(session->m_pCORE.get(), bs, par);
+            break;
+#endif
 
         default:
             mfxRes = MFX_ERR_UNSUPPORTED;

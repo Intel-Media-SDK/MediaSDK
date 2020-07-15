@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -106,6 +106,11 @@ DEFINE_GUID_VA(sDXVA2_Intel_IVB_ModeJPEG_VLD_NoFGT,         VAProfileJPEGBaselin
 /* MPEG2 */
 DEFINE_GUID_VA(sDXVA2_ModeMPEG2_VLD,                        VAProfileMPEG2Main,     VAEntrypointVLD);
 DEFINE_GUID_VA(DXVA2_Intel_Encode_MPEG2,                    VAProfileMPEG2Main,     VAEntrypointEncSlice);
+
+/* AV1 */
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+DEFINE_GUID_VA(DXVA_Intel_ModeAV1_VLD,                       VAProfileAV1Profile0,   VAEntrypointVLD);
+#endif
 
 #else //define guids for other
 

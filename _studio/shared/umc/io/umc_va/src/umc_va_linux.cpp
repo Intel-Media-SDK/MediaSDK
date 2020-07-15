@@ -126,7 +126,10 @@ uint32_t g_Profiles[] =
     UMC::VC1_VLD,
     UMC::VP8_VLD,
     UMC::VP9_VLD,
-    UMC::JPEG_VLD
+    UMC::JPEG_VLD,
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+    UMC::AV1_VLD,
+#endif
 };
 
 // va profile priorities for different codecs
@@ -171,6 +174,17 @@ VAProfile g_VP910BitsProfiles[] =
     VAProfileVP9Profile3, // chroma subsampling: 4:2:0, 4:2:2, 4:4:4
     VAProfileVP9Profile2  // chroma subsampling: 4:2:0
 };
+
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+VAProfile g_AV1Profiles[] =
+{
+    VAProfileAV1Profile0
+};
+VAProfile g_AV110BitsPProfiles[] =
+{
+    VAProfileAV1Profile1
+};
+#endif
 
 VAProfile g_JPEGProfiles[] =
 {
@@ -254,7 +268,14 @@ VAProfile get_next_va_profile(uint32_t umc_codec, uint32_t profile)
     case UMC::VA_VP9 | UMC::VA_PROFILE_12 | UMC::VA_PROFILE_444:
         if (profile < UMC_ARRAY_SIZE(g_VP910BitsProfiles)) va_profile = g_VP910BitsProfiles[profile];
         break;
-
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+    case UMC::VA_AV1:
+        if (profile < UMC_ARRAY_SIZE(g_AV1Profiles)) va_profile = g_AV1Profiles[profile];
+        break;
+    case UMC::VA_AV1 | UMC::VA_PROFILE_10:
+        if (profile < UMC_ARRAY_SIZE(g_AV110BitsPProfiles)) va_profile = g_AV110BitsPProfiles[profile];
+        break;
+#endif
 #endif
     case UMC::VA_JPEG:
         if (profile < UMC_ARRAY_SIZE(g_JPEGProfiles)) va_profile = g_JPEGProfiles[profile];
@@ -391,6 +412,9 @@ Status LinuxVideoAccelerator::Init(VideoAcceleratorParams* pInfo)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VP9)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_VC1)
                                   && ((m_Profile & VA_CODEC) != UMC::VA_MPEG2)
+#if defined (MFX_ENABLE_AV1_VIDEO_DECODE)
+                                  && ((m_Profile & VA_CODEC) != UMC::VA_AV1)
+#endif
 #ifndef ANDROID
                                   && ((m_Profile & VA_CODEC) != UMC::VA_JPEG)
 #endif
@@ -800,6 +824,12 @@ VACompBuffer* LinuxVideoAccelerator::GetCompBufferHW(int32_t type, int32_t size,
                 }
 #endif
                 break;
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+            case UMC::VA_AV1:
+                va_size         = sizeof(VASliceParameterBufferAV1);
+                va_num_elements = size/sizeof(VASliceParameterBufferAV1);
+                break;
+#endif
             default:
                 va_size         = 0;
                 va_num_elements = 0;
