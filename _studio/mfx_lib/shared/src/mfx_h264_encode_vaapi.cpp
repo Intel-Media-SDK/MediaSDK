@@ -1478,6 +1478,9 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.BRCReset        = 1; // no bitrate resolution control
     m_caps.ddi_caps.HeaderInsertion = 0; // we will provide headers (SPS, PPS) in binary format to the driver
 
+    // libva doesn't accept AdaptiveMaxFrameSize and MaxFrameSizeP, so unsupported
+    m_caps.AdaptiveMaxFrameSizeSupport = false;
+
     std::map<VAConfigAttribType, int> idx_map;
     VAConfigAttribType attr_types[] = {
         VAConfigAttribRTFormat,

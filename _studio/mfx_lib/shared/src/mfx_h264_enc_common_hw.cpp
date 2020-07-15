@@ -788,6 +788,12 @@ namespace
 #if MFX_VERSION >= 1023
         if (!CheckTriStateOption(extOpt3.AdaptiveMaxFrameSize)) changed = true;
 
+        if(!hwCaps.AdaptiveMaxFrameSizeSupport && IsOn(extOpt3.AdaptiveMaxFrameSize))
+        {
+            extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
+            unsupported = true;
+        }
+
         if (hwCaps.ddi_caps.UserMaxFrameSizeSupport == 0 && !IsEnabledSwBrc && IsOn(extOpt3.AdaptiveMaxFrameSize))
         {
             extOpt3.AdaptiveMaxFrameSize = MFX_CODINGOPTION_UNKNOWN;
