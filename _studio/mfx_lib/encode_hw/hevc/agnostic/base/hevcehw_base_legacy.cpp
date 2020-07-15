@@ -498,12 +498,13 @@ void Legacy::SetInherited(ParamInheritance& par)
         if (parInit.mfx.TargetUsage != parReset.mfx.TargetUsage)
         {
             auto maxRef = m_GetMaxRef(parReset);
-            auto ClipRef0 = [&](mfxU16 ref) { return std::min<mfxU16>(ref, std::get<0>(maxRef)); };
-            auto ClipRef1 = [&](mfxU16 ref) { return std::min<mfxU16>(ref, std::get<1>(maxRef)); };
+            auto ClipRefP   = [maxRef](mfxU16 ref) { return std::min<mfxU16>(ref, std::get<P>(maxRef)); };
+            auto ClipRefBL0 = [maxRef](mfxU16 ref) { return std::min<mfxU16>(ref, std::get<BL0>(maxRef)); };
+            auto ClipRefBL1 = [maxRef](mfxU16 ref) { return std::min<mfxU16>(ref, std::get<BL1>(maxRef)); };
 
-            std::transform(ebInit.NumRefActiveP, ebInit.NumRefActiveP + 8, ebReset.NumRefActiveP, ClipRef0);
-            std::transform(ebInit.NumRefActiveBL0, ebInit.NumRefActiveBL0 + 8, ebReset.NumRefActiveBL0, ClipRef0);
-            std::transform(ebInit.NumRefActiveBL1, ebInit.NumRefActiveBL1 + 8, ebReset.NumRefActiveBL1, ClipRef1);
+            std::transform(ebInit.NumRefActiveP, ebInit.NumRefActiveP + 8, ebReset.NumRefActiveP, ClipRefP);
+            std::transform(ebInit.NumRefActiveBL0, ebInit.NumRefActiveBL0 + 8, ebReset.NumRefActiveBL0, ClipRefBL0);
+            std::transform(ebInit.NumRefActiveBL1, ebInit.NumRefActiveBL1 + 8, ebReset.NumRefActiveBL1, ClipRefBL1);
         }
         else
         {
