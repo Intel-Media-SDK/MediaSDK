@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,6 @@
  #include "cm_mem_copy.h"         // Needed for mirroring kernels
  #include "genx_fcopy_gen8_isa.h" // Field copy kernels
  #include "genx_fcopy_gen9_isa.h"
- #include "genx_fcopy_gen10_isa.h"
  #include "genx_fcopy_gen11_isa.h"
  #include "genx_fcopy_gen11lp_isa.h"
  #include "genx_fcopy_gen12lp_isa.h"

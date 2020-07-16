@@ -26,7 +26,6 @@
 #ifdef MFX_ENABLE_KERNELS
 #include "genx_copy_kernel_gen8_isa.h"
 #include "genx_copy_kernel_gen9_isa.h"
-#include "genx_copy_kernel_gen10_isa.h"
 #include "genx_copy_kernel_gen11_isa.h"
 #include "genx_copy_kernel_gen11lp_isa.h"
 #include "genx_copy_kernel_gen12lp_isa.h"
