@@ -78,7 +78,7 @@ if(MFX_ENABLE_KERNELS)
 
   if( MFX_ENABLE_ASC )
     if(BUILD_KERNELS)
-      foreach(platform gen8 gen9 gen10 gen11 gen11lp gen12lp)
+      foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
         add_cmc_target(${MSDK_GENX_ROOT}/asc/src/genx_scd.cpp ${platform} ${MSDK_GENX_ROOT}/asc/isa)
       endforeach()
     endif()
@@ -87,7 +87,6 @@ if(MFX_ENABLE_KERNELS)
     list( APPEND sources
         ${prefix}/genx_scd_gen8_isa.cpp
         ${prefix}/genx_scd_gen9_isa.cpp
-        ${prefix}/genx_scd_gen10_isa.cpp
         ${prefix}/genx_scd_gen11_isa.cpp
         ${prefix}/genx_scd_gen11lp_isa.cpp
         ${prefix}/genx_scd_gen12lp_isa.cpp
@@ -95,7 +94,7 @@ if(MFX_ENABLE_KERNELS)
   endif()
 
   if(BUILD_KERNELS)
-    foreach(platform gen8 gen9 gen10 gen11 gen11lp gen12lp)
+    foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/copy_kernels/src/genx_copy_kernel.cpp ${platform} ${MSDK_GENX_ROOT}/copy_kernels/isa)
     endforeach()
   endif()
@@ -104,14 +103,13 @@ if(MFX_ENABLE_KERNELS)
   list( APPEND sources
     ${prefix}/genx_copy_kernel_gen8_isa.cpp
     ${prefix}/genx_copy_kernel_gen9_isa.cpp
-    ${prefix}/genx_copy_kernel_gen10_isa.cpp    
     ${prefix}/genx_copy_kernel_gen11_isa.cpp
     ${prefix}/genx_copy_kernel_gen11lp_isa.cpp
     ${prefix}/genx_copy_kernel_gen12lp_isa.cpp
   )
 
   if(BUILD_KERNELS)
-    foreach(platform gen8 gen9 gen10 gen11 gen11lp gen12lp)
+    foreach(platform gen8 gen9 gen11 gen11lp gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/field_copy/src/genx_fcopy.cpp ${platform} ${MSDK_GENX_ROOT}/field_copy/isa)
     endforeach()
   endif()
@@ -120,7 +118,6 @@ if(MFX_ENABLE_KERNELS)
   list( APPEND sources
     ${prefix}/genx_fcopy_gen8_isa.cpp
     ${prefix}/genx_fcopy_gen9_isa.cpp
-    ${prefix}/genx_fcopy_gen10_isa.cpp
     ${prefix}/genx_fcopy_gen11_isa.cpp
     ${prefix}/genx_fcopy_gen11lp_isa.cpp
     ${prefix}/genx_fcopy_gen12lp_isa.cpp
@@ -128,7 +125,7 @@ if(MFX_ENABLE_KERNELS)
 
   if(BUILD_KERNELS)
     add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp gen8 ${MSDK_GENX_ROOT}/h264_encode/isa)
-    foreach(platform gen9 gen10 gen11 gen11lp gen12lp)
+    foreach(platform gen9 gen11 gen11lp gen12lp)
       add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_histogram.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
       add_cmc_target(${MSDK_GENX_ROOT}/h264_encode/src/genx_simple_me.cpp ${platform} ${MSDK_GENX_ROOT}/h264_encode/isa)
     endforeach()
@@ -138,13 +135,11 @@ if(MFX_ENABLE_KERNELS)
   list( APPEND sources
     ${prefix}/genx_simple_me_gen8_isa.cpp
     ${prefix}/genx_simple_me_gen9_isa.cpp
-    ${prefix}/genx_simple_me_gen10_isa.cpp
     ${prefix}/genx_simple_me_gen11_isa.cpp
     ${prefix}/genx_simple_me_gen11lp_isa.cpp
     ${prefix}/genx_simple_me_gen12lp_isa.cpp
     
     ${prefix}/genx_histogram_gen9_isa.cpp
-    ${prefix}/genx_histogram_gen10_isa.cpp
     ${prefix}/genx_histogram_gen11_isa.cpp
     ${prefix}/genx_histogram_gen11lp_isa.cpp
     ${prefix}/genx_histogram_gen12lp_isa.cpp

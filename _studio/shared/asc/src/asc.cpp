@@ -24,7 +24,6 @@
 #include "libmfx_core_interface.h"
 #include "genx_scd_gen8_isa.h"
 #include "genx_scd_gen9_isa.h"
-#include "genx_scd_gen10_isa.h"
 #include "genx_scd_gen11_isa.h"
 #include "genx_scd_gen11lp_isa.h"
 #include "genx_scd_gen12lp_isa.h"
