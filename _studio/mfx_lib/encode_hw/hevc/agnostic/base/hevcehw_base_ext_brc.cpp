@@ -484,9 +484,9 @@ void ExtBRC::QueryTask(const FeatureBlocks& /*blocks*/, TPushQT Push)
         case MFX_BRC_OK:
             break;
         case MFX_BRC_PANIC_SMALL_FRAME:
-            task.MinFrameSize = fs.MinFrameSize;
+            task.MinFrameSize = (mfxU32)(fs.MinFrameSize >>3);
             fp.NumRecode++;
-            fp.CodedFrameSize = fs.MinFrameSize;
+            fp.CodedFrameSize = (mfxU32)(fs.MinFrameSize >>3);
 
             sts = m_brc.Update(m_brc.pthis, &fp, &fc, &fs);
             MFX_CHECK_STS(sts);
