@@ -897,7 +897,7 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
                 }
 
                 m_bVppIsUsed = false;
-                auto decPostProcessing = m_mfxVppVideoParams.AddExtBuffer<mfxExtDecVideoProcessing>();
+                auto decPostProcessing = m_mfxVideoParams.AddExtBuffer<mfxExtDecVideoProcessing>();
                 MSDK_CHECK_POINTER(decPostProcessing, MFX_ERR_MEMORY_ALLOC);
 
                 decPostProcessing->In.CropX = 0;
