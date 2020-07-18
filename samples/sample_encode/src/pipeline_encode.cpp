@@ -491,6 +491,17 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.GopOptFlag              = pInParams->GopOptFlag;
     m_mfxEncParams.mfx.BufferSizeInKB          = pInParams->BufferSizeInKB;
 
+    if (!pInParams->IsIdrIntervalInputEnabled) {
+        // to align behavior between AVC and HEVC:
+        // for H264, if IdrInterval = 0, then every I-frame is an IDR-frame.
+        // for HEVC, if IdrInterval = 1, then every I-frame is an IDR-frame.
+        // https://github.com/Intel-Media-SDK/MediaSDK/blob/master/doc/mediasdk-man.md#mfxinfomfx
+        if (pInParams->CodecId == MFX_CODEC_AVC)
+            m_mfxEncParams.mfx.IdrInterval = 0;
+        if (pInParams->CodecId == MFX_CODEC_HEVC)
+            m_mfxEncParams.mfx.IdrInterval = 1;
+    }
+
     if (m_mfxEncParams.mfx.RateControlMethod == MFX_RATECONTROL_CQP)
     {
         m_mfxEncParams.mfx.QPI = pInParams->nQPI;

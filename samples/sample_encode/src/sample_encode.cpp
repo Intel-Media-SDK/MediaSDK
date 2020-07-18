@@ -336,6 +336,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->MipiMode = NONE;
     pParams->v4l2Format = NO_FORMAT;
 #endif
+    pParams->IsIdrIntervalInputEnabled = false;
 
     // parse command line parameters
     for (mfxU8 i = 1; i < nArgNum; i++)
@@ -504,6 +505,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 PrintHelp(strInput[0], MSDK_STRING("IdrInterval is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
+            pParams->IsIdrIntervalInputEnabled = true;
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-msb10")))
         {

@@ -96,6 +96,7 @@ struct sInputParams
     mfxU16 nBRefType;
     mfxU16 nPRefType;
     mfxU16 nIdrInterval;
+    bool IsIdrIntervalInputEnabled;
     mfxU16 nNumRefActiveP;
     mfxU16 nNumRefActiveBL0;
     mfxU16 nNumRefActiveBL1;
