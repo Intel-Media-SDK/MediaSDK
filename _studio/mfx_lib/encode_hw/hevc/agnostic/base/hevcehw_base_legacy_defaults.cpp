@@ -1429,6 +1429,8 @@ public:
 
             nL0 = (mfxU8)CO3.NumRefActiveP[layer];
             nL1 = (mfxU8)std::min<mfxU16>(CO3.NumRefActiveP[layer], CO3.NumRefActiveBL1[layer]);
+            // on VDENC for LDB frames L1 must be completely identical to L0
+            nL1 = IsOn(par.mvp.mfx.LowPower) ? nL0: nL1;
         }
 
         return std::make_tuple(nL0, nL1);
