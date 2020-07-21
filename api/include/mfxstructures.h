@@ -361,7 +361,7 @@ MFX_PACK_BEGIN_STRUCT_W_PTR()
 typedef struct {
     mfxU32  AllocId;
     mfxU32  reserved[2];
-    mfxU16  reserved3;
+    mfxU16  DelayedFrameAllocation;
     mfxU16  AsyncDepth;
 
     union {
