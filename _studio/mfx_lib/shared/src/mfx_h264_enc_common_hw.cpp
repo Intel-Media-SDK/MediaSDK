@@ -2059,7 +2059,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParam(
 
     if (par.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
     {
-        MFX_CHECK(setExtAlloc, MFX_ERR_INVALID_VIDEO_PARAM);
+        MFX_CHECK(setExtAlloc || IsOn(par.DelayedFrameAllocation), MFX_ERR_INVALID_VIDEO_PARAM);
     }
 
     MFX_CHECK(

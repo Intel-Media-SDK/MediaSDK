@@ -2563,7 +2563,9 @@ mfxStatus MfxHwH264Encode::GetNativeHandleToRawSurface(
         surface->Data.DataFlag   = task.m_yuv->Data.DataFlag;
     }
 
-    if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
+    if (IsOn(video.DelayedFrameAllocation))
+        *nativeHandle = surface->Data.MemId;
+    else if (video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY ||
         (video.IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY && (extOpaq.In.Type & MFX_MEMTYPE_SYSTEM_MEMORY)))
         sts = core.GetFrameHDL(task.m_midRaw, nativeHandle);
     else if (video.IOPattern == MFX_IOPATTERN_IN_VIDEO_MEMORY)
