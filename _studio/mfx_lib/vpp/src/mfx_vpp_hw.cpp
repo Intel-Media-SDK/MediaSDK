@@ -1846,6 +1846,7 @@ VideoVPPHW::VideoVPPHW(IOMode mode, VideoCORE *core)
 ,m_critical_error(MFX_ERR_NONE)
 ,m_ddi(NULL)
 ,m_bMultiView(false)
+,m_bDelayedFrameAllocation(false)
 
 #ifdef MFX_ENABLE_MCTF
 ,m_MctfIsFlushing(false)
@@ -2116,6 +2117,7 @@ mfxStatus  VideoVPPHW::Init(
     //-----------------------------------------------------
     MFX_CHECK_NULL_PTR1(par);
 
+    m_bDelayedFrameAllocation = IsOn(par->DelayedFrameAllocation);
     sts = CheckIOMode(par, m_ioMode);
     MFX_CHECK_STS(sts);
 
@@ -3235,7 +3237,11 @@ mfxStatus VideoVPPHW::PreWorkOutSurface(ExtSurface & output)
         }
         else
         {
+            if (m_bDelayedFrameAllocation) {
+                *(mfxHDL*)&hdl = output.pSurf->Data.MemId;
+            } else {
             MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(output.pSurf->Data.MemId, (mfxHDL *)&hdl, false));
+            }
             m_executeParams.targetSurface.memId = output.pSurf->Data.MemId;
 
             m_executeParams.targetSurface.bExternal = true;
@@ -3375,7 +3381,11 @@ mfxStatus VideoVPPHW::PreWorkInputSurface(std::vector<ExtSurface> & surfQueue)
                 MFX_SAFE_CALL(m_pCore->GetFrameHDL(surfQueue[i].pSurf->Data.MemId, (mfxHDL *)&hdl));
                 bExternal = false;
             }else{
-                MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surfQueue[i].pSurf->Data.MemId, (mfxHDL *)&hdl));
+                if (m_bDelayedFrameAllocation) {
+                    *(mfxHDL*)&hdl = surfQueue[i].pSurf->Data.MemId;
+                } else {
+                    MFX_SAFE_CALL(m_pCore->GetExternalFrameHDL(surfQueue[i].pSurf->Data.MemId, (mfxHDL *)&hdl));
+                }
                 bExternal = true;
             }
             in = hdl;
