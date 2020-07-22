@@ -82,6 +82,18 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
         }
         break;
 
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+    case MFX_CODEC_AV1:
+        profile |= VA_AV1;
+        switch (param->mfx.FrameInfo.FourCC)
+        {
+        case MFX_FOURCC_P010:
+            profile |= VA_PROFILE_10;
+            break;
+        }
+        break;
+#endif
+
 
     case MFX_CODEC_HEVC:
         profile |= VA_H265;

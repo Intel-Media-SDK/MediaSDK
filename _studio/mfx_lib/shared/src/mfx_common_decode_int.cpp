@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -149,6 +149,7 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoStreamInfo *umcVi
         case MFX_CODEC_MPEG2: umcVideoParams->stream_type = UMC::MPEG2_VIDEO; break;
         case MFX_CODEC_VC1:   umcVideoParams->stream_type = UMC::VC1_VIDEO;   break;
         case MFX_CODEC_VP9:   umcVideoParams->stream_type = UMC::VP9_VIDEO;   break;
+        case MFX_CODEC_AV1:   umcVideoParams->stream_type = UMC::AV1_VIDEO;   break;
         default:              umcVideoParams->stream_type = UMC::UNDEF_VIDEO; break;
     }
     umcVideoParams->stream_subtype = UMC::UNDEF_VIDEO_SUBTYPE;
@@ -271,6 +272,9 @@ mfxU32 ConvertUMCStreamTypeToCodec(UMC::VideoStreamType type)
         case UMC::H264_VIDEO:  return MFX_CODEC_AVC;
         case UMC::HEVC_VIDEO:  return MFX_CODEC_HEVC;
         case UMC::VP9_VIDEO:   return MFX_CODEC_VP9;
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+        case UMC::AV1_VIDEO:   return MFX_CODEC_AV1;
+#endif
         default:
             VM_ASSERT(!"Unknown stream type");
             return 0;

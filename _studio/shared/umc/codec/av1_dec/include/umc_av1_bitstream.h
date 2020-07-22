@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,29 +18,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+#pragma once
 
-#cmakedefine MFX_ENABLE_USER_DECODE
-#cmakedefine MFX_ENABLE_USER_ENCODE
-#cmakedefine MFX_ENABLE_USER_ENC
-#cmakedefine MFX_ENABLE_USER_VPP
+#include "umc_av1_dec_defs.h"
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+#ifdef MFX_ENABLE_AV1_VIDEO_DECODE
+
+#ifndef __UMC_AV1_BITSTREAM_H_
+#define __UMC_AV1_BITSTREAM_H_
+
+#include "umc_vp9_bitstream.h"
+
+namespace UMC_AV1_DECODER
+{
+    class AV1DecoderFrame;
+
+    class AV1Bitstream
+        : public UMC_VP9_DECODER::VP9Bitstream
+    {
+    public:
+
+        void ReadOBUInfo(OBUInfo&);
+        void ReadTileGroupHeader(FrameHeader const&, TileGroupInfo&);
+        void ReadTile(FrameHeader const&, size_t&, size_t&);
+        void ReadByteAlignment();
+        uint64_t GetLE(uint32_t);
+        void ReadSequenceHeader(SequenceHeader&);
+        void ReadUncompressedHeader(FrameHeader&, SequenceHeader const&, DPBType const&, OBUHeader const&, uint32_t&);
+
+        using UMC_VP9_DECODER::VP9Bitstream::VP9Bitstream;
+
+        uint8_t GetBit()
+        {
+            return static_cast<uint8_t>(UMC_VP9_DECODER::VP9Bitstream::GetBit());
+        }
+    };
+}
+
+#endif // __UMC_AV1_BITSTREAM_H_
+
+#endif // MFX_ENABLE_AV1_VIDEO_DECODE

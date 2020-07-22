@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,29 +18,49 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+#include "umc_defs.h"
+#ifdef MFX_ENABLE_AV1_VIDEO_DECODE
 
-#cmakedefine MFX_ENABLE_USER_DECODE
-#cmakedefine MFX_ENABLE_USER_ENCODE
-#cmakedefine MFX_ENABLE_USER_ENC
-#cmakedefine MFX_ENABLE_USER_VPP
+#ifndef __UMC_AV1_VA_PACKER_H
+#define __UMC_AV1_VA_PACKER_H
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+#include "umc_va_base.h"
+#include "umc_av1_frame.h"
+
+#include <va/va_dec_av1.h>
+
+namespace UMC
+{ class MediaData; }
+
+namespace UMC_AV1_DECODER
+{
+    class VP9Bitstream;
+    class VP9DecoderFrame;
+
+class Packer
+{
+
+public:
+
+    Packer(UMC::VideoAccelerator * va);
+    virtual ~Packer();
+
+    virtual UMC::Status GetStatusReport(void* pStatusReport, size_t size) = 0;
+    virtual UMC::Status SyncTask(int32_t index, void * error) = 0;
+
+    virtual void BeginFrame() = 0;
+    virtual void EndFrame() = 0;
+
+    virtual void PackAU(std::vector<TileSet>&, AV1DecoderFrame const&, bool) = 0;
+
+    static Packer* CreatePacker(UMC::VideoAccelerator * va);
+
+protected:
+
+    UMC::VideoAccelerator *m_va;
+};
+
+} // namespace UMC_AV1_DECODER
+
+#endif /* __UMC_AV1_VA_PACKER_H */
+#endif // MFX_ENABLE_AV1_VIDEO_DECODE

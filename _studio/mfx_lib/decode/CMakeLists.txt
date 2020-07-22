@@ -31,6 +31,7 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/mpeg2/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vc1/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp8/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/vp9/include )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/av1/include )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/../vpp/include )
 
 include_directories( ${UMC_CODECS}/h265_dec/include )
@@ -38,6 +39,7 @@ include_directories( ${UMC_CODECS}/h264_dec/include )
 include_directories( ${UMC_CODECS}/mpeg2_dec/include )
 include_directories( ${UMC_CODECS}/vp9_dec/include )
 include_directories( ${UMC_CODECS}/vc1_dec/include )
+include_directories( ${UMC_CODECS}/av1_dec/include )
 include_directories( ${UMC_CODECS}/jpeg_dec/include )
 include_directories( ${UMC_CODECS}/vc1_common/include )
 include_directories( ${UMC_CODECS}/color_space_converter/include )
@@ -174,7 +176,17 @@ endif()
 
 set( sources.plus "" )
 
-set( defs "" )
+set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
+
+list(APPEND sources
+    ${CMAKE_CURRENT_SOURCE_DIR}/av1/src/mfx_av1_dec_decode.cpp
+    ${UMC_CODECS}/av1_dec/src/umc_av1_bitstream.cpp
+    ${UMC_CODECS}/av1_dec/src/umc_av1_decoder.cpp
+    ${UMC_CODECS}/av1_dec/src/umc_av1_decoder_va.cpp
+    ${UMC_CODECS}/av1_dec/src/umc_av1_frame.cpp
+    ${UMC_CODECS}/av1_dec/src/umc_av1_utils.cpp
+    ${UMC_CODECS}/av1_dec/src/umc_av1_va_packer_vaapi.cpp
+    )
 
 make_library( decode hw static )
 set( defs "" )

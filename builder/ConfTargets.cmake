@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -67,6 +67,7 @@ option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
 option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
 option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
 
+option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ${API_USE_LATEST})
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
 option( MFX_ENABLE_H264_VIDEO_DECODE "Enabled AVC decoder?" ON)
