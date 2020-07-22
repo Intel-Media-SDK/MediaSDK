@@ -224,6 +224,7 @@ VideoDECODEH264::VideoDECODEH264(VideoCORE *core, mfxStatus * sts)
     , m_core(core)
     , m_isInit(false)
     , m_isOpaq(false)
+    , m_isDelayedFrameAllocation(false)
     , m_frameOrder((mfxU16)MFX_FRAMEORDER_UNKNOWN)
     , m_response()
     , m_response_alien()
@@ -262,7 +263,8 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
         type = m_core->GetHWType();
     }
 
-    if (CheckVideoParamDecoders(par, m_core->IsExternalFrameAllocator(), type) < MFX_ERR_NONE)
+    m_isDelayedFrameAllocation = IsOn(par->DelayedFrameAllocation);
+    if (CheckVideoParamDecoders(par, m_isDelayedFrameAllocation || m_core->IsExternalFrameAllocator(), type) < MFX_ERR_NONE)
         return MFX_ERR_INVALID_VIDEO_PARAM;
 
     if (!MFX_Utility::CheckVideoParam(par, type))
@@ -369,8 +371,9 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     if (m_isOpaq && !m_core->IsCompatibleForOpaq())
         return MFX_ERR_UNDEFINED_BEHAVIOR;
 
-
-    if (mapOpaq)
+    if (m_isDelayedFrameAllocation) {
+        //nothing
+    } else if (mapOpaq)
     {
         mfxSts = m_core->AllocFrames(&request,
                                       &m_response,
