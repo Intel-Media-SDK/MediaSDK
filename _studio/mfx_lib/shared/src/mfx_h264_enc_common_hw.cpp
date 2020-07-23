@@ -3313,12 +3313,6 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         extOpt2->MBBRC = MFX_CODINGOPTION_OFF;
     }
 
-    if (extOpt3->WinBRCSize && !hwCaps.ddi_caps.FrameSizeToleranceSupport)
-    {
-        unsupported = true;
-        extOpt3->WinBRCSize = 0;
-    }
-
     if (extOpt2->BRefType > 2)
     {
         changed = true;
@@ -4567,17 +4561,17 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         changed = true;
     }
 
-    bool mfxRateControlHwCbr =
-        (platform == MFX_HW_APL || platform == MFX_HW_CFL) &&
-        (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR);
+    bool mfxRateControlHwSupport =
+        hwCaps.ddi_caps.FrameSizeToleranceSupport &&
+        (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR ||
+         par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
+         par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR);
 
     bool slidingWindowSupported  =
             par.mfx.RateControlMethod == MFX_RATECONTROL_LA  ||
             par.mfx.RateControlMethod == MFX_RATECONTROL_LA_HRD ||
             par.mfx.RateControlMethod == MFX_RATECONTROL_LA_EXT ||
-            par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-            par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
-            (mfxRateControlHwCbr && !IsOn(extOpt2->ExtBRC));
+            (mfxRateControlHwSupport && !IsOn(extOpt2->ExtBRC));
 
      if (extOpt3->WinBRCMaxAvgKbps || extOpt3->WinBRCSize)
      {
@@ -4586,16 +4580,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
              extOpt3->WinBRCMaxAvgKbps = 0;
              extOpt3->WinBRCSize = 0;
              par.calcParam.WinBRCMaxAvgKbps = 0;
-             changed = true;
+             unsupported = true;
          }
          else if (extOpt3->WinBRCSize==0)
          {
              warning = true;
          }
-         else if ((par.mfx.RateControlMethod == MFX_RATECONTROL_VBR ||
-             par.mfx.RateControlMethod == MFX_RATECONTROL_QVBR ||
-             mfxRateControlHwCbr) &&
-             !IsOn(extOpt2->ExtBRC))
+         else if (mfxRateControlHwSupport && !IsOn(extOpt2->ExtBRC))
          {
              if (par.mfx.FrameInfo.FrameRateExtN != 0 && par.mfx.FrameInfo.FrameRateExtD != 0)
              {
@@ -4621,7 +4612,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
              }
              else if (par.calcParam.WinBRCMaxAvgKbps)
              {
-                 if (mfxRateControlHwCbr &&
+                 if (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR &&
                      par.calcParam.targetKbps &&
                      par.calcParam.WinBRCMaxAvgKbps != par.calcParam.targetKbps)
                  {
