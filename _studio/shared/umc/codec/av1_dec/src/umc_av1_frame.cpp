@@ -114,6 +114,8 @@ namespace UMC_AV1_DECODER
         film_grain_disabled = false;
 
         UID = -1;
+
+        frame_time = -1;
     }
 
     void AV1DecoderFrame::Reset(FrameHeader const* fh)
@@ -250,11 +252,10 @@ namespace UMC_AV1_DECODER
         return header->UpscaledWidth;
     }
 
-    uint32_t AV1DecoderFrame::GetHeight() const
+    uint32_t AV1DecoderFrame::GetFrameHeight() const
     {
         return header->FrameHeight;
     }
-
 }
 
 #endif //MFX_ENABLE_AV1_VIDEO_DECODE

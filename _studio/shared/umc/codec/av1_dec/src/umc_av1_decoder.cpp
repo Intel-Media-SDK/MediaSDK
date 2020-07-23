@@ -42,6 +42,8 @@ namespace UMC_AV1_DECODER
         , Curr_temp(new AV1DecoderFrame{})
         , Repeat_show(0)
         , PreFrame_id(0)
+        , frame_order(0)
+        , in_framerate(0)
     {
     }
 
@@ -161,6 +163,7 @@ namespace UMC_AV1_DECODER
         allocator = dp->allocator;
 
         params = *dp;
+        frame_order = 0;
         return SetParams(vp);
     }
 
@@ -382,6 +385,16 @@ namespace UMC_AV1_DECODER
         return GetNumMissingTiles(frame) || !AllocComplete(frame);
     }
 
+    inline void AV1Decoder::CalcFrameTime(AV1DecoderFrame* frame)
+    {
+        if (!frame)
+            return;
+
+        frame->SetFrameTime(frame_order * in_framerate);
+        frame->SetFrameOrder(frame_order);
+        frame_order++;
+    }
+
     UMC::Status AV1Decoder::GetFrame(UMC::MediaData* in, UMC::MediaData*)
     {
         if (!in)
@@ -526,6 +539,8 @@ namespace UMC_AV1_DECODER
                 pFrameInProgress : StartFrame(fh, updated_refs, pPrevFrame);
 
             CompleteDecodedFrames(fh, pCurrFrame, pPrevFrame);
+
+            CalcFrameTime(pCurrFrame);
 
             if (!pCurrFrame)
                 return UMC::UMC_ERR_NOT_ENOUGH_BUFFER;

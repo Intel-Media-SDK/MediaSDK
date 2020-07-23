@@ -197,7 +197,16 @@ namespace UMC_AV1_DECODER
         { return ref_valid; };
 
         uint32_t GetUpscaledWidth() const;
-        uint32_t GetHeight() const;
+        uint32_t GetFrameHeight() const;
+
+        void SetFrameTime(mfxF64 time)
+        { frame_time = time; };
+        mfxF64 FrameTime() const
+        { return frame_time; };
+        void SetFrameOrder(mfxU16 order)
+        { frame_order = order; };
+        mfxF64 FrameOrder() const
+        { return frame_order; };
 
     public:
 
@@ -239,6 +248,9 @@ namespace UMC_AV1_DECODER
         bool                              ref_valid;
 
         bool                              film_grain_disabled;
+
+        mfxF64                            frame_time;
+        mfxU16                            frame_order;
     };
 
 } // end namespace UMC_AV1_DECODER

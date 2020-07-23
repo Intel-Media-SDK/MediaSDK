@@ -123,7 +123,7 @@ namespace UMC_AV1_DECODER
         SequenceHeader const& sh = frame.GetSeqHeader();
 
         picParam.frame_width_minus1 = (uint16_t)frame.GetUpscaledWidth() - 1;
-        picParam.frame_height_minus1 = (uint16_t)frame.GetHeight() - 1;
+        picParam.frame_height_minus1 = (uint16_t)frame.GetFrameHeight() - 1;
 
         FrameHeader const& info =
             frame.GetFrameHeader();
