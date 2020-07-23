@@ -116,7 +116,8 @@ private:
     mfxFrameAllocRequest                         m_request;
     mfxFrameAllocResponse                        m_response;
 
-   bool                                          m_is_init;
+    bool                                         m_is_init;
+    mfxF64                                       m_in_framerate;
 };
 
 #endif // MFX_ENABLE_AV1_VIDEO_DECODE

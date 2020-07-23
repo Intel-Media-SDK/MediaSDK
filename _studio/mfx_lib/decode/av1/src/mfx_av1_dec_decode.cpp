@@ -153,6 +153,7 @@ VideoDECODEAV1::VideoDECODEAV1(VideoCORE* core, mfxStatus* sts)
     , m_request()
     , m_response()
     , m_is_init(false)
+    , m_in_framerate(0)
 {
     if (sts)
     {
@@ -213,6 +214,8 @@ mfxStatus VideoDECODEAV1::Init(mfxVideoParam* par)
     }
 
     m_first_par = m_init_par;
+    m_in_framerate = (mfxF64) m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN;
+    m_decoder->SetInFrameRate(m_in_framerate);
 
     //mfxFrameAllocResponse response{};
     bool internal = ((m_platform == MFX_PLATFORM_SOFTWARE) ?
@@ -397,6 +400,15 @@ mfxStatus VideoDECODEAV1::Reset(mfxVideoParam* par)
     MFX_CHECK(m_allocator->Reset() == UMC::UMC_OK, MFX_ERR_MEMORY_ALLOC);
 
     m_first_par = *par;
+
+    if (0 == m_first_par.mfx.FrameInfo.FrameRateExtN || 0 == m_first_par.mfx.FrameInfo.FrameRateExtD)
+    {
+        m_first_par.mfx.FrameInfo.FrameRateExtD = 1;
+        m_first_par.mfx.FrameInfo.FrameRateExtN = 30;
+    }
+
+    m_in_framerate = (mfxF64) m_first_par.mfx.FrameInfo.FrameRateExtD / m_first_par.mfx.FrameInfo.FrameRateExtN;
+    m_decoder->SetInFrameRate(m_in_framerate);
 
     return MFX_ERR_NONE;
 }
@@ -959,7 +971,11 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                     MFX_CHECK_STS(sts);
             }
 
-            UMC_AV1_DECODER::AV1DecoderFrame* frame = GetFrameToDisplay();
+            UMC_AV1_DECODER::AV1DecoderFrame* frame = m_decoder->GetCurrFrame();
+            if (frame && bs->TimeStamp != static_cast<mfxU64>(MFX_TIMESTAMP_UNKNOWN))
+                frame->SetFrameTime(GetUmcTimeStamp(bs->TimeStamp));
+
+            frame = GetFrameToDisplay();
             if (frame)
             {
                 sts = FillOutputSurface(surface_out, surface_work, frame);
@@ -1212,8 +1228,19 @@ mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFram
     UMC::VideoDataInfo const* vi = fd->GetInfo();
     MFX_CHECK(vi, MFX_ERR_DEVICE_FAILED);
 
+    surface_out->Data.TimeStamp = GetMfxTimeStamp(pFrame->FrameTime());
+    surface_out->Data.FrameOrder = pFrame->FrameOrder();
+    surface_out->Data.Corrupted = 0;
+    surface_out->Info.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
     surface_out->Info.CropW = static_cast<mfxU16>(pFrame->GetUpscaledWidth());
-    surface_out->Info.CropH = static_cast<mfxU16>(pFrame->GetHeight());
+    surface_out->Info.CropH = static_cast<mfxU16>(pFrame->GetFrameHeight());
+    surface_out->Info.AspectRatioW = 1;
+    surface_out->Info.AspectRatioH = 1;
+
+    bool isShouldUpdate = !(m_first_par.mfx.FrameInfo.FrameRateExtD || m_first_par.mfx.FrameInfo.FrameRateExtN);
+
+    surface_out->Info.FrameRateExtD = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtD : m_first_par.mfx.FrameInfo.FrameRateExtD;
+    surface_out->Info.FrameRateExtN = isShouldUpdate ? m_init_par.mfx.FrameInfo.FrameRateExtN : m_first_par.mfx.FrameInfo.FrameRateExtN;
 
     mfxExtAV1FilmGrainParam* extFilmGrain = (mfxExtAV1FilmGrainParam*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM);
     if (extFilmGrain)

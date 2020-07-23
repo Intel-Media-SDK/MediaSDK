@@ -124,6 +124,10 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* GetFrameToDisplay();
         AV1DecoderFrame* FindFrameByUID(int64_t uid);
         AV1DecoderFrame* FindFrameInProgress();
+        AV1DecoderFrame* GetCurrFrame()
+        { return Curr; }
+        void SetInFrameRate(mfxF64 rate)
+        { in_framerate = rate; }
 
         virtual bool QueryFrames() = 0;
 
@@ -147,6 +151,8 @@ namespace UMC_AV1_DECODER
         AV1DecoderFrame* FindFrame(F pred);
         AV1DecoderFrame* StartFrame(FrameHeader const&, DPBType &, AV1DecoderFrame*);
 
+        void CalcFrameTime(AV1DecoderFrame*);
+
     protected:
 
         std::mutex                      guard;
@@ -164,6 +170,8 @@ namespace UMC_AV1_DECODER
         uint32_t                        Repeat_show; // show if current frame is repeated frame
         uint32_t                        PreFrame_id;//id of previous frame
         DPBType                         refs_temp; // previous updated frameDPB
+        mfxU16                          frame_order;
+        mfxF64                          in_framerate;
     };
 }
 
