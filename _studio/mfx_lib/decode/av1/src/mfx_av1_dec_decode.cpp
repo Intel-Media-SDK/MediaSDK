@@ -426,6 +426,44 @@ mfxTaskThreadingPolicy VideoDECODEAV1::GetThreadingPolicy()
     return MFX_TASK_THREADING_SHARED;
 }
 
+inline
+mfxStatus CheckLevel(mfxVideoParam* in, mfxVideoParam* out)
+{
+    MFX_CHECK_NULL_PTR1(out);
+
+    mfxStatus sts = MFX_ERR_NONE;
+
+    if (in)
+    {
+        switch(in->mfx.CodecLevel)
+        {
+        case MFX_LEVEL_AV1_2:
+        case MFX_LEVEL_AV1_21:
+        case MFX_LEVEL_AV1_22:
+        case MFX_LEVEL_AV1_23:
+        case MFX_LEVEL_AV1_3:
+        case MFX_LEVEL_AV1_31:
+        case MFX_LEVEL_AV1_32:
+        case MFX_LEVEL_AV1_33:
+        case MFX_LEVEL_AV1_4:
+        case MFX_LEVEL_AV1_41:
+        case MFX_LEVEL_AV1_42:
+        case MFX_LEVEL_AV1_43:
+        case MFX_LEVEL_AV1_5:
+        case MFX_LEVEL_AV1_51:
+            out->mfx.CodecLevel = in->mfx.CodecLevel;
+            break;
+        default:
+            sts = MFX_ERR_UNSUPPORTED;
+            break;
+        }
+    }
+    else
+        out->mfx.CodecLevel = MFX_LEVEL_AV1_2;
+
+    return sts;
+}
+
 mfxStatus VideoDECODEAV1::Query(VideoCORE* core, mfxVideoParam* in, mfxVideoParam* out)
 {
     MFX_CHECK(core, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -449,6 +487,9 @@ mfxStatus VideoDECODEAV1::Query(VideoCORE* core, mfxVideoParam* in, mfxVideoPara
         sts = MFX_ERR_UNSUPPORTED;
 #endif
     }
+
+    sts = CheckLevel(in, out);
+    MFX_CHECK_STS(sts);
 
     if (in)
         out->mfx.FilmGrain = in->mfx.FilmGrain;

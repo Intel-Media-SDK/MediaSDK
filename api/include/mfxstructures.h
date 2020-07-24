@@ -507,6 +507,21 @@ enum {
     MFX_PROFILE_AV1_MAIN                    = 1,
     MFX_PROFILE_AV1_HIGH                    = 2,
     MFX_PROFILE_AV1_PRO                     = 3,
+
+    MFX_LEVEL_AV1_2                         = 20,
+    MFX_LEVEL_AV1_21                        = 21,
+    MFX_LEVEL_AV1_22                        = 22,
+    MFX_LEVEL_AV1_23                        = 23,
+    MFX_LEVEL_AV1_3                         = 3,
+    MFX_LEVEL_AV1_31                        = 31,
+    MFX_LEVEL_AV1_32                        = 32,
+    MFX_LEVEL_AV1_33                        = 33,
+    MFX_LEVEL_AV1_4                         = 4,
+    MFX_LEVEL_AV1_41                        = 41,
+    MFX_LEVEL_AV1_42                        = 42,
+    MFX_LEVEL_AV1_43                        = 43,
+    MFX_LEVEL_AV1_5                         = 5,
+    MFX_LEVEL_AV1_51                        = 51,
 #endif
 };
 

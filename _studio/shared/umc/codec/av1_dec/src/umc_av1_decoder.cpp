@@ -70,6 +70,43 @@ namespace UMC_AV1_DECODER
         }
     }
 
+    inline uint32_t MapLevel(uint32_t levelIdx)
+    {
+        switch (levelIdx)
+        {
+        case 0:
+            return MFX_LEVEL_AV1_2;
+        case 1:
+            return MFX_LEVEL_AV1_21;
+        case 2:
+            return MFX_LEVEL_AV1_22;
+        case 3:
+            return MFX_LEVEL_AV1_23;
+        case 4:
+            return MFX_LEVEL_AV1_3;
+        case 5:
+            return MFX_LEVEL_AV1_31;
+        case 6:
+            return MFX_LEVEL_AV1_32;
+        case 7:
+            return MFX_LEVEL_AV1_33;
+        case 8:
+            return MFX_LEVEL_AV1_4;
+        case 9:
+            return MFX_LEVEL_AV1_41;
+        case 10:
+            return MFX_LEVEL_AV1_42;
+        case 11:
+            return MFX_LEVEL_AV1_43;
+        case 12:
+            return MFX_LEVEL_AV1_5;
+        case 13:
+            return MFX_LEVEL_AV1_51;
+        default:
+            return MFX_LEVEL_UNKNOWN;
+        }
+    }
+
     UMC::Status AV1Decoder::DecodeHeader(UMC::MediaData* in, UMC_AV1_DECODER::AV1DecoderParams& par)
     {
         if (!in)
@@ -569,6 +606,7 @@ namespace UMC_AV1_DECODER
     {
         par.info.stream_type = UMC::AV1_VIDEO;
         par.info.profile = sh.seq_profile;
+        par.info.level = MapLevel(sh.seq_level_idx[0]);
 
         par.info.clip_info = { int32_t(sh.max_frame_width), int32_t(sh.max_frame_height) };
         par.info.disp_clip_info = par.info.clip_info;
