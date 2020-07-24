@@ -941,6 +941,15 @@ mfxStatus CEncodingPipeline::AllocFrames()
     mfxU16 initialTargetKbps = m_mfxEncParams.mfx.TargetKbps;
     auto co2 = m_mfxEncParams.GetExtBuffer<mfxExtCodingOption2>();
 
+    // Add ROI buffer
+    auto roi = m_mfxEncParams.AddExtBuffer<mfxExtEncoderROI>();
+    roi->ROIMode = MFX_ROI_MODE_QP_DELTA;
+    roi->NumROI = 256;
+    for (int i = 0; i < roi->NumROI; ++i) {
+        roi->ROI[i].Right = 16;
+        roi->ROI[i].Bottom = 16;
+    }
+
     // Querying encoder
     sts = GetFirstEncoder()->Query(&m_mfxEncParams, &m_mfxEncParams);
     MSDK_CHECK_STATUS(sts, "Query (for encoder) failed");
