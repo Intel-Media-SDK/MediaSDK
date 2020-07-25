@@ -1412,7 +1412,7 @@ public:
     {
         mfxU8 nL0 = 0, nL1 = 0;
 
-        if (IsB(fi.FrameType))
+        if (IsB(fi.FrameType) && !fi.isLDB)
         {
             const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par.mvp);
             const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par.mvp);
@@ -1422,7 +1422,7 @@ public:
             nL1 = (mfxU8)CO3.NumRefActiveBL1[layer];
         }
 
-        if (IsP(fi.FrameType))
+        if (IsP(fi.FrameType) || fi.isLDB)
         {
             const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par.mvp);
             auto layer = mfx::clamp<mfxI32>(fi.PyramidLevel, 0, 7);
