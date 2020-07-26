@@ -461,7 +461,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
       {
       ...
       
-      size_t size() **const** { return size; }
+      size_t size() const { return size; }
       
       private:
           size_t size;
@@ -524,10 +524,10 @@ Feel free to improve this document. Bring more examples and rules. But please tr
         
       ```
       // This is always true statement, default second argument of DetectFrameNumGap masked typo
-      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice**),** true)
+      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice), true)
       
       // Correct code is following
-      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice**,** true**)**)
+      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice, true))
       ```
     - Use ```const``` qualifiers for parameters passed by reference/pointer and for class member functions everywhere it is possible.
 
@@ -561,7 +561,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
       Example:
 
       ```
-      template <typename T> void foo(**T&&**)
+      template <typename T> void foo(T&&)
       ```
 
     - Don't forget about Perfect forwarding (```std::forward```).
