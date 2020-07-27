@@ -17,6 +17,7 @@ The original version of this sample may be obtained from https://software.intel.
 or https://software.intel.com/en-us/media-client-solutions-support.
 \**********************************************************************************/
 
+#include <cstring>
 #include <fstream>
 #include <stdexcept>
 
@@ -127,43 +128,103 @@ cl_int OpenCLFilterBase::InitPlatform()
     error = clGetPlatformIDs(0, NULL, &num_platforms);
     if(error)
     {
-        log.error() << "OpenCLFilter: Couldn't get platform IDs. \
-                        Make sure your platform \
-                        supports OpenCL and can find a proper library." << endl;
+        log.error() << "OpenCLFilter: Couldn't get number of OCL platform IDs."
+                    << " Make sure your platform supports OpenCL and can find a proper library." << endl;
         return error;
     }
 
     // Get all of the handles to the installed OpenCL platforms
     std::vector<cl_platform_id> platforms(num_platforms);
     error = clGetPlatformIDs(num_platforms, &platforms[0], &num_platforms);
-    if(error) {
-        log.error() << "OpenCLFilter: Failed to get OCL platform IDs. Error Code; " << error;
+    if(error)
+    {
+        log.error() << "OpenCLFilter: Failed to get OCL platform IDs."
+                    << " Error code: " << error << endl;
         return error;
     }
 
-    // Find the platform handle for the installed Gen driver
-    const size_t max_string_size = 1024;
-    char platform[max_string_size];
-    cl_device_id device_ids[2] = {0};
-    for (unsigned int platform_index = 0; platform_index < num_platforms; platform_index++)
+    for (const auto& platform : platforms)
     {
-        error = clGetPlatformInfo(platforms[platform_index], CL_PLATFORM_NAME, max_string_size, platform, NULL);
-        if(error) return error;
+        cl_uint num_devices = 0;
 
-        // Choose only GPU devices
-        if (clGetDeviceIDs(platforms[platform_index], CL_DEVICE_TYPE_GPU,
-            sizeof(device_ids)/sizeof(device_ids[0]), device_ids, 0) != CL_SUCCESS)
-            continue;
-
-        if(strstr(platform, "Intel")) // Use only Intel platfroms
+        error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
+        if(error)
         {
-            log.info() << "OpenCL platform \"" << platform << "\" is used" << endl;
-            m_clplatform = platforms[platform_index];
+            log.warning() << "OpenCLFilter: Couldn't get number of GPU devices for current platform."
+                          << " Error code: " << error << endl;
+            continue;
+        }
+
+        std::vector<cl_device_id> devices(num_devices);
+
+        error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, devices.size(), &devices[0], 0);
+        if(error)
+        {
+            log.error() << "OpenCLFilter: Couldn't get GPU device IDs."
+                        << " Error code: " << error << endl;
+            continue;
+        }
+
+        for (const auto& device : devices)
+        {
+            cl_uint deviceVendorId = 0;
+
+            error = clGetDeviceInfo(device, CL_DEVICE_VENDOR_ID, sizeof(deviceVendorId), &deviceVendorId, NULL);
+
+            if (error)
+            {
+                log.error() << "OpenCLFilter: Couldn't get the device vendor id."
+                    << " Error code: " << error << endl;
+                continue;
+            }
+
+            // Skip non-Intel devices
+            if (deviceVendorId != 0x8086)
+            {
+                continue;
+            }
+
+            size_t num_extensions = 0;
+
+            error = clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, 0, NULL, &num_extensions);
+            if(error)
+            {
+                log.error() << "OpenCLFilter: Couldn't get the size of string with supported extensions for device."
+                            << " Error code: " << error << endl;
+                continue;
+            }
+
+            std::vector<char> extensions(num_extensions);
+
+            error = clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS, extensions.size(), extensions.data(), 0);
+            if(error)
+            {
+                log.error() << "OpenCLFilter: Couldn't get supported extensions for device."
+                            << " Error code: " << error << endl;
+                continue;
+            }
+
+            log.debug() << "OpenCLFilter: Supported extensions for device: " << extensions.data() << endl;
+
+            bool isDeviceAppropriate = true;
+
+            for(const auto& extName : m_requiredOclExtensions)
+            {
+                isDeviceAppropriate = isDeviceAppropriate && (std::strstr(extensions.data(), extName.c_str()) != NULL);
+            }
+
+            if(isDeviceAppropriate)
+            {
+                m_clplatform = platform;
+                log.debug() << "OpenCLFilter: Appropriate OCL platform is found." << endl;
+                return error;
+            }
         }
     }
+
     if (0 == m_clplatform)
     {
-        log.error() << "OpenCLFilter: Didn't find an Intel platform!" << endl;
+        log.error() << "OpenCLFilter: Couldn't find an appropriate OCL platform!" << endl;
         return CL_INVALID_PLATFORM;
     }
 
