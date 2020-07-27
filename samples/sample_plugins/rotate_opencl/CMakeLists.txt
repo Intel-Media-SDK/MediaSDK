@@ -10,11 +10,9 @@ include_directories (
 
 set( LDFLAGS "${LDFLAGS} -Wl,--version-script=${PLUGINS_COMMON_PATH}/mfx_plugin.map" )
 
-# for clCreateFromGLTexture2D and clCreateFromGLTexture3D in CL/cl_gl.h
-set( CFLAGS "-DCL_USE_DEPRECATED_OPENCL_1_1_APIS" )
 
 list( APPEND LIBS_VARIANT sample_common )
-list(APPEND sources.plus "${PLUGINS_COMMON_PATH}/mfx_plugin_module.cpp")
+list( APPEND sources.plus "${PLUGINS_COMMON_PATH}/mfx_plugin_module.cpp")
 
 set(DEPENDENCIES opencl libva libmfx dl)
 make_library( sample_plugin_opencl none shared )

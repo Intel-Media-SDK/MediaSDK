@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -22,15 +22,19 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "opencl_filter_va.h"
 #include "sample_defs.h"
 
+#include <CL/cl_va_api_media_sharing_intel.h>
+
 using std::endl;
 
-clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn    lin_clGetDeviceIDsFromVA_APIMediaAdapterINTEL = NULL;
-clCreateFromVA_APIMediaSurfaceINTEL_fn          lin_clCreateFromVA_APIMediaSurfaceINTEL       = NULL;
-clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn     lin_clEnqueueAcquireVA_APIMediaSurfacesINTEL  = NULL;
-clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn     lin_clEnqueueReleaseVA_APIMediaSurfacesINTEL  = NULL;
+DECL_CL_EXT_FUNC(clGetDeviceIDsFromVA_APIMediaAdapterINTEL);
+DECL_CL_EXT_FUNC(clCreateFromVA_APIMediaSurfaceINTEL);
+DECL_CL_EXT_FUNC(clEnqueueAcquireVA_APIMediaSurfacesINTEL);
+DECL_CL_EXT_FUNC(clEnqueueReleaseVA_APIMediaSurfacesINTEL);
 
 OpenCLFilterVA::OpenCLFilterVA()
 {
+    m_requiredOclExtensions.push_back("cl_intel_va_api_media_sharing");
+
     m_vaDisplay = 0;
     for(size_t i = 0; i < c_shared_surfaces_num; i++)
     {
@@ -52,25 +56,16 @@ cl_int OpenCLFilterVA::OCLInit(mfxHDL device)
 
 cl_int OpenCLFilterVA::InitSurfaceSharingExtension()
 {
-    cl_int error = CL_SUCCESS;
-
-    // Hook up the d3d sharing extension functions that we need
-    INIT_CL_EXT_FUNC(clGetDeviceIDsFromVA_APIMediaAdapterINTEL);
-    INIT_CL_EXT_FUNC(clCreateFromVA_APIMediaSurfaceINTEL);
-    INIT_CL_EXT_FUNC(clEnqueueAcquireVA_APIMediaSurfacesINTEL);
-    INIT_CL_EXT_FUNC(clEnqueueReleaseVA_APIMediaSurfacesINTEL);
-
-    // Check for success
-    if (!lin_clGetDeviceIDsFromVA_APIMediaAdapterINTEL ||
-        !lin_clCreateFromVA_APIMediaSurfaceINTEL ||
-        !lin_clEnqueueAcquireVA_APIMediaSurfacesINTEL ||
-        !lin_clEnqueueReleaseVA_APIMediaSurfacesINTEL)
+    if ( !INIT_CL_EXT_FUNC(m_clplatform, clGetDeviceIDsFromVA_APIMediaAdapterINTEL)
+      || !INIT_CL_EXT_FUNC(m_clplatform, clCreateFromVA_APIMediaSurfaceINTEL)
+      || !INIT_CL_EXT_FUNC(m_clplatform, clEnqueueAcquireVA_APIMediaSurfacesINTEL)
+      || !INIT_CL_EXT_FUNC(m_clplatform, clEnqueueReleaseVA_APIMediaSurfacesINTEL))
     {
         log.error() << "OpenCLFilter: Couldn't get all of the media sharing routines" << endl;
         return CL_INVALID_PLATFORM;
     }
 
-    return error;
+    return CL_SUCCESS;
 }
 
 cl_int OpenCLFilterVA::InitDevice()
