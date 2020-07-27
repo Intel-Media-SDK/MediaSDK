@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -33,25 +33,6 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #else
 #include "opencl_filter_va.h"
 #endif
-
-#define __CL_ENABLE_EXCEPTIONS
-
-//#define _interlockedbittestandset      fake_set
-//#define _interlockedbittestandreset    fake_reset
-//#define _interlockedbittestandset64    fake_set64
-//#define _interlockedbittestandreset64  fake_reset64
-
-#if !defined(_WIN32) && !defined(_WIN64)
-#include <va/va.h>
-#define CL_USE_DEPRECATED_OPENCL_1_1_APIS 1
-#endif
-
-#undef CL_VERSION_1_2
-#include "CL/cl.hpp"
-#undef _interlockedbittestandset
-#undef _interlockedbittestandreset
-#undef _interlockedbittestandset64
-#undef _interlockedbittestandreset64
 
 typedef struct {
     mfxU32 StartLine;
