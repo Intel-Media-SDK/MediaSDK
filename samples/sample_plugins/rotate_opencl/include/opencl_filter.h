@@ -21,26 +21,26 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 
 #include <iostream>
 #include <stdexcept>
-#if defined(_WIN32) || defined(_WIN64)
-  // There is no cl2.hpp in Intel OpenCL SDK for Windows at least up to 2020.1.396
-  #include <CL/cl.h>
-#else
-  #define CL_HPP_ENABLE_SIZE_T_COMPATIBILITY
-  #define CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY
-  #define CL_HPP_ENABLE_EXCEPTIONS
-  #define CL_HPP_CL_1_2_DEFAULT_BUILD
-  #define CL_HPP_MINIMUM_OPENCL_VERSION 120
-  #define CL_HPP_TARGET_OPENCL_VERSION 120
-  #include <CL/cl2.hpp>
-#endif
+
+#define CL_HPP_ENABLE_SIZE_T_COMPATIBILITY
+#define CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY
+#define CL_HPP_ENABLE_EXCEPTIONS
+#define CL_HPP_CL_1_2_DEFAULT_BUILD
+#define CL_HPP_MINIMUM_OPENCL_VERSION 120
+#define CL_HPP_TARGET_OPENCL_VERSION 120
+#include <CL/cl2.hpp>
 
 #include "mfxvideo++.h"
 #include "logger.h"
 
 #if !defined(_WIN32) && !defined(_WIN64)
-#define INIT_CL_EXT_FUNC(x) lin_##x = (x ## _fn)clGetExtensionFunctionAddress(#x);
+#define DECL_CL_EXT_FUNC(func_name) func_name##_fn lin_##func_name
+#define INIT_CL_EXT_FUNC(platform_id, func_name) \
+    (lin_##func_name = (func_name##_fn)clGetExtensionFunctionAddressForPlatform(platform_id, #func_name))
 #else
-#define INIT_CL_EXT_FUNC(x) x = (x ## _fn)clGetExtensionFunctionAddress(#x);
+#define DECL_CL_EXT_FUNC(func_name) func_name##_fn pfn_##func_name
+#define INIT_CL_EXT_FUNC(platform_id, func_name) \
+    (pfn_##func_name = (func_name##_fn)clGetExtensionFunctionAddressForPlatform(platform_id, #func_name))
 #endif
 
 #define SAFE_OCL_FREE(P, FREE_FUNC) { if (P) { FREE_FUNC(P); P = NULL; } }
@@ -120,6 +120,7 @@ protected: // variables
     int                                 m_currentHeight;
 
     std::vector<OCL_YUV_kernel>         m_kernels;
+    std::vector<std::string>            m_requiredOclExtensions;
 
     static const size_t c_shared_surfaces_num = 2; // In and Out
     static const size_t c_ocl_surface_buffers_num = 2*c_shared_surfaces_num; // YIn, UVIn, YOut, UVOut
