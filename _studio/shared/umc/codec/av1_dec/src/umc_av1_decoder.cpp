@@ -37,9 +37,9 @@ namespace UMC_AV1_DECODER
         : allocator(nullptr)
         , sequence_header(nullptr)
         , counter(0)
-        , Poutput(new AV1DecoderFrame{})
-        , Curr(new AV1DecoderFrame{})
-        , Curr_temp(new AV1DecoderFrame{})
+        , Poutput(nullptr)
+        , Curr(nullptr)
+        , Curr_temp(nullptr)
         , Repeat_show(0)
         , PreFrame_id(0)
         , frame_order(0)
@@ -669,7 +669,7 @@ namespace UMC_AV1_DECODER
         if (pPrevFrame && Curr)
         {
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
-            if (Poutput->UID == -1)
+            if (Poutput == nullptr || Poutput->UID == -1)
             {
                Poutput = pPrevFrame;
             }
