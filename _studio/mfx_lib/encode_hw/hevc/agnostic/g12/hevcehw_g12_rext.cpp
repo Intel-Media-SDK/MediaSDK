@@ -37,7 +37,7 @@ const GUID RExt::DXVA2_Intel_Encode_HEVC_Main444_12 =
 void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 {
     Push(BLK_SetRecInfo
-        , [](StorageRW& strg, StorageRW& local) -> mfxStatus
+        , [this](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
         auto& par = Base::Glob::VideoParam::Get(strg);
         mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
@@ -60,10 +60,12 @@ void RExt::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
 
         rec = par.mfx.FrameInfo;
 
-        if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
-        {
-            rec.FourCC = MFX_FOURCC_P010;
-        }
+        auto itUpdateRecInfo = mUpdateRecInfo.find(CO3.TargetChromaFormatPlus1);
+        bool bUndef = (itUpdateRecInfo == mUpdateRecInfo.end());
+
+        if (!bUndef)
+            mUpdateRecInfo.at(CO3.TargetChromaFormatPlus1)(rec);
+
         rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
         rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
         rec.BitDepthChroma = CO3.TargetBitDepthChroma;

@@ -21,56 +21,44 @@
 #pragma once
 
 #include "mfx_common.h"
-#if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && (MFX_VERSION >= 1031)
+#if defined(MFX_ENABLE_H265_VIDEO_ENCODE)
 
 #include "hevcehw_base.h"
-#include "hevcehw_g12_data.h"
+#include "hevcehw_base_data.h"
 
 namespace HEVCEHW
 {
-namespace Gen12
+namespace Base
 {
-class RExt
-    : public FeatureBase
-{
-public:
+    class ReconInfo
+        : public FeatureBase
+    {
+    public:
 #define DECL_BLOCK_LIST\
-    DECL_BLOCK(SetRecInfo)\
-    DECL_BLOCK(SetGUID)\
-    DECL_BLOCK(HardcodeCaps)\
-    DECL_BLOCK(SetDefaultsCallChain)\
-    DECL_BLOCK(CheckShift)
-#define DECL_FEATURE_NAME "G12_RExt"
+    DECL_BLOCK(SetRecInfo) \
+    DECL_BLOCK(AllocRec)
+#define DECL_FEATURE_NAME "Base_ReconInfo"
 #include "hevcehw_decl_blocks.h"
 
-    RExt(mfxU32 FeatureId)
-        : FeatureBase(FeatureId)
-    { }
+        ReconInfo(mfxU32 FeatureId)
+            : FeatureBase(FeatureId)
+        {}
 
-protected:
-    virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) override;
-    virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
-    virtual void Query1WithCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;
+    protected:
+        virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push);
+        virtual void InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push);
 
-    mfxStatus SetGuid(mfxVideoParam& par, StorageRW& strg);
+        mfxU16 GetMaxRec(mfxVideoParam const & par);
+        bool GetRecInfo(
+            const mfxVideoParam& par
+            , const mfxExtCodingOption3& CO3
+            , mfxFrameInfo& rec);
 
-    static bool IsRextFourCC(mfxU32 FourCC)
-    {
-        return !Check<mfxU32
-            , MFX_FOURCC_P016
-            , MFX_FOURCC_Y216
-            , MFX_FOURCC_Y416>(FourCC);
-    }
+        typedef std::function<void(mfxFrameInfo&)> RecUpd;
+        std::map<mfxU16, RecUpd> ModRec[2];
+    };
 
-    static const GUID DXVA2_Intel_Encode_HEVC_Main12;
-    static const GUID DXVA2_Intel_Encode_HEVC_Main422_12;
-    static const GUID DXVA2_Intel_Encode_HEVC_Main444_12;
-
-    typedef std::function<void(mfxFrameInfo&)> RecUpd;
-    std::map<mfxU16, RecUpd> mUpdateRecInfo;
-};
-
-} //Gen12
+} //Base
 } //namespace HEVCEHW
 
 #endif

@@ -25,6 +25,7 @@
 #include "hevcehw_base_data.h"
 #include "hevcehw_base_legacy.h"
 #include "hevcehw_base_parser.h"
+#include "hevcehw_base_recon_info_lin.h"
 #include "hevcehw_base_packer.h"
 #include "hevcehw_base_hrd.h"
 #include "hevcehw_base_alloc.h"
@@ -76,6 +77,7 @@ Linux::Base::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
 
     m_features.emplace_back(new VAPacker(FEATURE_DDI_PACKER));
     m_features.emplace_back(new Legacy(FEATURE_LEGACY));
+    m_features.emplace_back(new ReconInfo(FEATURE_RECON_INFO));
     m_features.emplace_back(new HRD(FEATURE_HRD));
     m_features.emplace_back(new TaskManager(FEATURE_TASK_MANAGER));
     m_features.emplace_back(new Packer(FEATURE_PACKER));
@@ -100,6 +102,14 @@ Linux::Base::MFXVideoENCODEH265_HW::MFXVideoENCODEH265_HW(
     if (mode & INIT)
     {
         auto& qIA = BQ<BQ_InitAlloc>::Get(*this);
+        Reorder(qIA
+            , { FEATURE_LEGACY, Legacy::BLK_AllocRaw }
+            , { FEATURE_RECON_INFO, ReconInfo::BLK_AllocRec }
+        , PLACE_AFTER);
+        Reorder(qIA
+            , { FEATURE_RECON_INFO, ReconInfo::BLK_AllocRec }
+            , { FEATURE_DDI, IDDI::BLK_CreateService }
+        , PLACE_AFTER);
         qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_DIRTY_RECT, DirtyRect::BLK_SetCallChains }));
 #if defined(MFX_ENABLE_HEVCE_ROI)
         qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_ROI, ROI::BLK_SetCallChains }));

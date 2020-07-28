@@ -1322,6 +1322,7 @@ namespace Base
         , FEATURE_QMATRIX
         , FEATURE_UNITS_INFO
         , FEATURE_FEI
+        , FEATURE_RECON_INFO
         , NUM_FEATURES
     };
 
