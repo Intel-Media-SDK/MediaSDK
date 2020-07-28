@@ -72,15 +72,11 @@ void MFXVideoENCODEH265_HW::InternalInitFeatures(
             , { FEATURE_INTERLACE, Interlace::BLK_SetReorder }
         , PLACE_AFTER);
         Reorder(qII
-            , { FEATURE_LEGACY, Legacy::BLK_SetRecInfo }
+            , { FEATURE_LEGACY, Legacy::BLK_SetRawInfo }
             , { FEATURE_INTERLACE, Interlace::BLK_PatchRawInfo }
         , PLACE_AFTER);
 
         auto& qIA = BQ<BQ_InitAlloc>::Get(*this);
-        Reorder(qIA
-            , { FEATURE_LEGACY, Legacy::BLK_AllocRec }
-            , { FEATURE_DDI, IDDI::BLK_CreateService }
-            , PLACE_AFTER);
         qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_DDI_PACKER, IDDIPacker::BLK_Init }));
         qIA.splice(qIA.end(), qIA, Get(qIA, { FEATURE_DDI, IDDI::BLK_Register }));
 

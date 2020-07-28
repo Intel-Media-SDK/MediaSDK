@@ -88,6 +88,7 @@ list( APPEND sources
     hevc/agnostic/base/hevcehw_base_legacy_defaults.cpp
     hevc/agnostic/base/hevcehw_base_max_frame_size.cpp
     hevc/agnostic/base/hevcehw_base_packer.cpp
+    hevc/agnostic/base/hevcehw_base_recon_info.cpp
     hevc/agnostic/base/hevcehw_base_parser.cpp
     hevc/agnostic/base/hevcehw_base_roi.cpp
     hevc/agnostic/base/hevcehw_base_task.cpp

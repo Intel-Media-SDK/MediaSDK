@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,21 @@ public:
 
     RExt(mfxU32 FeatureId)
         : HEVCEHW::Gen12::RExt(FeatureId)
-    {}
+    {
+        mUpdateRecInfo =
+        {
+            {
+                mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
+                , [](mfxFrameInfo& rec)
+                {
+                    if (rec.BitDepthLuma == 10)
+                        rec.FourCC = MFX_FOURCC_P010;
+                    else
+                        rec.FourCC = MFX_FOURCC_P016;
+                }
+            }
+        };
+    }
 
 protected:
     virtual void Query1NoCaps(const FeatureBlocks& blocks, TPushQ1 Push) override;

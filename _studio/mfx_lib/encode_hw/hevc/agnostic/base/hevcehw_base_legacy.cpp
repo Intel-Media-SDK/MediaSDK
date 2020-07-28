@@ -1111,17 +1111,11 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         return MFX_ERR_NONE;
     });
 
-    Push(BLK_SetRecInfo
+    Push(BLK_SetRawInfo
         , [this](StorageRW& strg, StorageRW& local) -> mfxStatus
     {
         auto& par = Glob::VideoParam::Get(strg);
-        mfxFrameAllocRequest rec = {}, raw = {};
-
-        if (GetRecInfo(par, ExtBuffer::Get(par), Glob::VideoCore::Get(strg).GetHWType(), rec.Info))
-        {
-            auto& recInfo = Tmp::RecInfo::GetOrConstruct(local, rec);
-            SetDefault(recInfo.NumFrameMin, GetMaxRec(par));
-        }
+        mfxFrameAllocRequest raw = {};
 
         raw.Info = par.mfx.FrameInfo;
         auto& rawInfo = Tmp::RawInfo::GetOrConstruct(local, raw);
@@ -1191,31 +1185,6 @@ void Legacy::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             sts = AllocRaw(GetMaxBS(par));
             MFX_CHECK_STS(sts);
         }
-
-        return sts;
-    });
-
-    Push(BLK_AllocRec
-        , [this](StorageRW& strg, StorageRW& local) -> mfxStatus
-    {
-        mfxStatus sts = MFX_ERR_NONE;
-        auto& par = Glob::VideoParam::Get(strg);
-        std::unique_ptr<IAllocation> pAlloc(Tmp::MakeAlloc::Get(local)(Glob::VideoCore::Get(strg)));
-
-        MFX_CHECK(local.Contains(Tmp::RecInfo::Key), MFX_ERR_UNDEFINED_BEHAVIOR);
-        auto& req = Tmp::RecInfo::Get(local);
-
-        SetDefault(req.NumFrameMin, GetMaxRec(par));
-        SetDefault(req.Type
-            , mfxU16(MFX_MEMTYPE_FROM_ENCODE
-            | MFX_MEMTYPE_DXVA2_DECODER_TARGET
-            | MFX_MEMTYPE_INTERNAL_FRAME
-            | MFX_MEMTYPE_VIDEO_MEMORY_ENCODER_TARGET));
-
-        sts = pAlloc->Alloc(req, false);
-        MFX_CHECK_STS(sts);
-
-        strg.Insert(Glob::AllocRec::Key, std::move(pAlloc));
 
         return sts;
     });
@@ -2582,44 +2551,6 @@ mfxU32 Legacy::GetMinBsSize(
     mfxU32 avgSize = TargetKbps(par.mfx) * 1000 * par.mfx.FrameInfo.FrameRateExtD / (par.mfx.FrameInfo.FrameRateExtN * 8);
 
     return std::max<mfxU32>(size, avgSize * 2);
-}
-
-bool Legacy::GetRecInfo(
-    const mfxVideoParam& par
-    , const mfxExtCodingOption3& CO3
-    , eMFXHWType hw
-    , mfxFrameInfo& rec)
-{
-    rec = par.mfx.FrameInfo;
-
-    bool bUndef = CO3.TargetBitDepthLuma != 8 && CO3.TargetBitDepthLuma != 10;
-
-    if (bUndef)
-    {
-        return false;
-    }
-
-    if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 8)
-    {
-        rec.FourCC = MFX_FOURCC_NV12;
-    }
-    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 8)
-    {
-        rec.FourCC = MFX_FOURCC_AYUV;
-    }
-    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV420) && CO3.TargetBitDepthLuma == 10)
-    {
-        rec.FourCC = MFX_FOURCC_P010;
-    }
-    else if (CO3.TargetChromaFormatPlus1 == (1 + MFX_CHROMAFORMAT_YUV444) && CO3.TargetBitDepthLuma == 10)
-    {
-        rec.FourCC = MFX_FOURCC_Y410;
-    }
-    rec.ChromaFormat   = CO3.TargetChromaFormatPlus1 - 1;
-    rec.BitDepthLuma   = CO3.TargetBitDepthLuma;
-    rec.BitDepthChroma = CO3.TargetBitDepthChroma;
-
-    return true;
 }
 
 void Legacy::SetVPS(
