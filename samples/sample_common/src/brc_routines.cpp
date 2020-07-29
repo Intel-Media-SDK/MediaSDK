@@ -712,7 +712,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             m_hrd.UpdateMinMaxQPForRec(brcSts, qpY);
         else
             bNeedUpdateQP = true;
-        status->MinFrameSize = m_hrd.GetMinFrameSize() + 7;
+        status->MinFrameSize = m_hrd.GetMinFrameSize();
         //printf("%d: poc %d, size %d QP %d (%d %d), HRD sts %d, maxFrameSize %d, type %d \n",frame_par->EncodedOrder, frame_par->DisplayOrder, bitsEncoded, m_ctx.Quant, m_ctx.QuantMin, m_ctx.QuantMax, brcSts,  m_hrd.GetMaxFrameSize(), frame_par->FrameType);
     }
     if (m_avg.get())
