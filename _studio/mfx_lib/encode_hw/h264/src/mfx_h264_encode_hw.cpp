@@ -2971,7 +2971,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                         }
                         else if (((res & UMC::BRC_NOT_ENOUGH_BUFFER) || (task->m_repack >2))&& (res & UMC::BRC_ERR_SMALL_FRAME ))
                         {
-                            task->m_minFrameSize = m_brc.GetMinFrameSize()/8;
+                            task->m_minFrameSize = (mfxU32) ((m_brc.GetMinFrameSize() + 7) >> 3 );
 
                             task->m_brcFrameParams.CodedFrameSize = task->m_minFrameSize;
                             m_brc.Report(task->m_brcFrameParams, 0, hrd.GetMaxFrameSize((task->m_type[task->m_fid[0]] & MFX_FRAMETYPE_IDR)), task->m_brcFrameCtrl);
