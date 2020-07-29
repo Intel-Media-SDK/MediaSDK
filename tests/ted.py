@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.absolute()
 
 
     try:
@@ -154,9 +154,6 @@ if __name__ == '__main__':
         passed += passed_
 
     print("\n{} of {} cases passed".format(passed, total))
-
-    if not args.gold:
-        write_test_results_report(cfg, results)
 
     # return code is number of failed cases
     sys.exit(total - passed)

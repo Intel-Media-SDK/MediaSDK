@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,13 +21,10 @@
 # SOFTWARE.
 
 import os
-import json
-import shutil
 import hashlib
 import platform
 import subprocess
 import collections
-import configparser
 
 
 from pathlib import Path
@@ -63,10 +60,6 @@ _RAW = {
 }
 
 _SUPPORTED_CODECS = _ENCODED | _RAW
-
-
-def copy_file(src, dest):
-    shutil.copy2(str(src), str(dest))
 
 
 def collect_md5(fn):
@@ -131,7 +124,7 @@ class Configuration(object):
         if 'streams' not in cfg:
             raise ConfigurationError("No streams defined")
         try:
-            folder = cfg.get('streams_folder', r'$MFX_HOME/tests/content')
+            folder = base_dir / 'content'
             streams_root = Path(os.path.expandvars(folder))
 
             for i, stream in enumerate(cfg['streams']):
@@ -150,85 +143,6 @@ class Configuration(object):
 
         target = base_dir / ('gold' if gold else 'results')
 
-        # prepare directory structure for test runs
-        bins = target / 'bin'
-        bins.mkdir(parents=True, exist_ok=True)
-        libs = bins / 'lib'
-        libs.mkdir(exist_ok=True)
-
-        try:
-            folder = cfg.get('samples_folder')
-            self.mediasdk_samples = Path(os.path.expandvars(folder))
-        except KeyError:
-            raise ConfigurationError("'samples_folder' is not configured")
-
-        try:
-            folder = cfg.get('libmfx_folder')
-            self.libmfx_folder = Path(os.path.expandvars(folder))
-        except KeyError:
-            raise ConfigurationError("'libmfx folder' is not configured")
-
-        file_info = []
-
-        libmfx = self.libmfx_folder / 'libmfxhw64.so'
-        if not libmfx.exists():
-            raise ConfigurationError("can't find 'libmfxhw64.so' in {}".format(self.libmfx_folder))
-
-        copy_file(libmfx, libs)
-        file_info.append(collect_file_info(libmfx))
-
-        plugins_cfg = configparser.ConfigParser(interpolation=None)
-        plugins_cfg.optionxform = str
-
-        plugins_cfg.read(str(self.libmfx_folder.parents[1] / 'plugins.cfg'))
-        for section in plugins_cfg.sections():
-            plugin_cfg = configparser.ConfigParser()
-            plugin_cfg.optionxform = str
-
-            plugin_cfg.add_section(section)
-
-            plugin_folder = None
-            plugin_file = None
-
-            for k, v in plugins_cfg.items(section):
-                if k == 'GUID':
-                    plugin_folder = bins / v
-                    plugin_folder.mkdir(exist_ok=True)
-
-                if k == 'Path':
-                    k = 'FileName64'
-                    plugin_file = v = str(Path(v).name)
-
-                plugin_cfg[section][k] = v
-
-            plugin = self.libmfx_folder / plugin_file
-            if not plugin.exists():
-                raise ConfigurationError("can't find '{}' in {}".format(
-                    plugin.name, self.libmfx_folder
-                ))
-
-            copy_file(plugin, plugin_folder)
-
-            file_info.append(collect_file_info(plugin))
-
-            with (plugin_folder / 'plugin.cfg').open('w') as f:
-                plugin_cfg.write(f)
-
-        # copy samples to bin folder
-        for app in _REQUIRED_SAMPLE_APPLICATIONS:
-            if not (self.mediasdk_samples / app).exists():
-                msg = "{} not found in {}".format(
-                    app,
-                    self.mediasdk_samples
-                )
-                raise TestEnvironmentError(msg)
-            src = self.mediasdk_samples / app
-            copy_file(src, bins)
-
-            file_info.append(collect_file_info(src, version=False))
-
-        with (target / "fileinfo.json").open('w') as f:
-            json.dump(file_info, f, indent=4)
 
     def stream_by_name(self, name):
         try:

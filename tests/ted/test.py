@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 import json
 import datetime
 import collections
@@ -71,14 +70,7 @@ class Test(object):
 
         self.generate_cases()
 
-        subdir = 'gold' if gold else 'results'
-        
-        extended_path = {
-            'PATH': str(base.resolve() / subdir / 'bin') + os.pathsep + os.environ['PATH'],
-            'LD_LIBRARY_PATH': str(base.resolve() / subdir / 'bin' / 'lib'),
-        }
-
-        self.runner = run.Runner(extended_path, cfg)
+        self.runner = run.Runner(dict(), cfg)
 
     @property
     def gold_collected(self):
