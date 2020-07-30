@@ -1,0 +1,4 @@
+-i::i420 {test_stream_176x96.yuv} -hw -n 100 -w 176 -h 96 -o::sink
+-o::h264 {out} -i::source -n 100 -w 176 -h 96
+-o::mpeg2 {out} -i::source -n 100 -w 176 -h 96
+-o::h265 {out} -i::source -n 100 -w 176 -h 96

@@ -1,0 +1,4 @@
+{
+    "type": "transcode",
+    "parfile": "i420_to_many.par"
+}
