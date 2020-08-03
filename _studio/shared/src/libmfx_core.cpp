@@ -1135,19 +1135,20 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
-    sts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface);
-    MFX_CHECK_STS(sts);
+    mfxStatus fcSts = DoFastCopyExtended(&dstTempSurface, &srcTempSurface);
 
     if (true == isSrcLocked)
     {
         if (srcMemType & MFX_MEMTYPE_EXTERNAL_FRAME)
         {
             sts = UnlockExternalFrame(srcMemId, &srcTempSurface.Data);
+            MFX_CHECK_STS(fcSts);
             MFX_CHECK_STS(sts);
         }
         else if (srcMemType & MFX_MEMTYPE_INTERNAL_FRAME)
         {
             sts = UnlockFrame(srcMemId, &srcTempSurface.Data);
+            MFX_CHECK_STS(fcSts);
             MFX_CHECK_STS(sts);
         }
     }
@@ -1157,16 +1158,18 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
         if (dstMemType & MFX_MEMTYPE_EXTERNAL_FRAME)
         {
             sts = UnlockExternalFrame(dstMemId, &dstTempSurface.Data);
+            MFX_CHECK_STS(fcSts);
             MFX_CHECK_STS(sts);
         }
         else if (dstMemType & MFX_MEMTYPE_INTERNAL_FRAME)
         {
             sts = UnlockFrame(dstMemId, &dstTempSurface.Data);
+            MFX_CHECK_STS(fcSts);
             MFX_CHECK_STS(sts);
         }
     }
 
-    return MFX_ERR_NONE;
+    return fcSts;
 }
 
 mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
