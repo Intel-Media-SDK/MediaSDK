@@ -80,9 +80,12 @@ Learn best practises and borrow fragments for final solutions:
     performance on Intel GPUs for content delivery networks. Check out the demo, recommended command
     lines and quality and performance measuring tools.
 
-Get customized Media SDK products:
-* [Intel Media Server Studio](https://software.intel.com/en-us/intel-media-server-studio)
-* [Intel Media SDK for Embedded Linux](https://software.intel.com/en-us/media-sdk/choose-download/embedded-iot)
+Use Media SDK via other Intel products:
+* [OpenVINO Toolkit](https://github.com/openvinotoolkit/openvino)
+  * This toolkit allows developers to deploy pre-trained deep learning models through a high-level C++ Inference Engine API integrated with application logic.
+* [Open Visual Cloud](https://github.com/OpenVisualCloud)
+  * The Open Visual Cloud is a set of open source software stacks (with full end-to-end sample pipelines) for media, analytics, graphics and immersive media, optimized for cloud native deployment on commercial-off-the-shelf x86 CPU architecture.
+
 
 # System requirements
 
