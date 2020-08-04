@@ -205,7 +205,7 @@ namespace UMC_AV1_DECODER
         { return frame_time; };
         void SetFrameOrder(mfxU16 order)
         { frame_order = order; };
-        mfxF64 FrameOrder() const
+        mfxU16 FrameOrder() const
         { return frame_order; };
 
     public:
