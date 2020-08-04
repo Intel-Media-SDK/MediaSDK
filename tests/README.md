@@ -29,7 +29,6 @@ Test Driver should be run as follows:
 export PATH=$BINDIR:$PATH
 export LD_LIBRARY_PATH=$LIBDIR
 
-python3 ted.py --gold  # to collect reference results
 python3 ted.py
 ```
 
@@ -37,4 +36,4 @@ python3 ted.py
 
 High level results in a form PASS/FAIL will be available in a console output.
 
-Full logs will be available at `gold` or `results` folder relative to ted.py location (it depends on `--gold` flag).
+Full logs will be available at `results` folder relative to ted.py location.
