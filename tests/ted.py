@@ -87,12 +87,6 @@ if __name__ == '__main__':
     print('Copyright (c) Intel Corporation\n')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--gold',
-        action='store_true',
-        default=False,
-        help='collect gold results with vanila library'
-    )
 
     parser.add_argument(
         'test',
@@ -107,7 +101,7 @@ if __name__ == '__main__':
 
     try:
         print("Setting up test environment...")
-        cfg = discover.config(base_dir, args.gold)
+        cfg = discover.config(base_dir)
     except Exception as ex:
         msg = "Can't load configuration - {}".format(ex)
         sys.exit(msg)
@@ -118,12 +112,9 @@ if __name__ == '__main__':
 
     tests_to_run = []
     print("Disovering tests...")
-    for test in discover.tests(base_dir, cfg, args.gold):
+    for test in discover.tests(base_dir, cfg):
         if test_re and not test_re.search(test.name):
             print('  {} - skipped'.format(test.name))
-            continue
-        if not args.gold and not test.gold_collected:
-            print('  {} - no gold results collected'.format(test.name))
             continue
 
         tests_to_run.append(test)
@@ -133,21 +124,15 @@ if __name__ == '__main__':
         sys.exit("Nothing to run")
 
     n = len(tests_to_run)
-    if args.gold:
-        print("\nCollecting gold results for {} test{}...".format(n, 's' if n > 1 else ''))
-    else:
-        print("\nRunning {} test{}...".format(n, 's' if n > 1 else ''))
+    print("\nRunning {} test{}...".format(n, 's' if n > 1 else ''))
 
     results = []
     total = passed = 0
     for test in tests_to_run:
         print('  {}'.format(test.name))
-        if args.gold:
-            total_, passed_ = test.mine()
-        else:
-            total_, passed_, details = test.run()
+        total_, passed_, details = test.run()
 
-            results.append(details)
+        results.append(details)
 
 
         total += total_

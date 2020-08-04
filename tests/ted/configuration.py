@@ -118,7 +118,7 @@ class Stream(object):
 
 
 class Configuration(object):
-    def __init__(self, cfg, base_dir, gold):
+    def __init__(self, cfg, base_dir):
         self.streams = {}
 
         if 'streams' not in cfg:
@@ -140,8 +140,6 @@ class Configuration(object):
         self.environment['HOSTNAME'] = platform.node()
         self.environment['CPU'] = platform.processor()
         self.environment['OS'] = platform.platform()
-
-        target = base_dir / ('gold' if gold else 'results')
 
 
     def stream_by_name(self, name):

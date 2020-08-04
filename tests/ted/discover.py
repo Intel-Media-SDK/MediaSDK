@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,21 +26,21 @@ import pathlib
 from . import test, configuration
 
 
-def tests(base_dir, cfg, gold):
+def tests(base_dir, cfg):
     base_dir = pathlib.Path(base_dir)
 
     for fn in (base_dir / 'tests').rglob("*.json"):
         try:
-            yield test.Test(fn, base_dir, cfg, gold)
+            yield test.Test(fn, base_dir, cfg)
         except Exception as ex:
             print(" WARN: Can't parse test '{}' - {}".format(fn.name, ex))
 
 
-def config(base_dir, gold):
+def config(base_dir):
     fn = base_dir / 'ted.json'
 
     cfg = json.loads(fn.read_text())
 
-    return configuration.Configuration(cfg, base_dir, gold)
+    return configuration.Configuration(cfg, base_dir)
 
 
