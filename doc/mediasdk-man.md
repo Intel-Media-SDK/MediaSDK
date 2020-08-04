@@ -8023,12 +8023,15 @@ The `CodecLevel` enumerator itemizes codec levels for all codecs.
 `MFX_LEVEL_VC1_LOW`,<br>`MFX_LEVEL_VC1_MEDIAN`,<br>`MFX_LEVEL_VC1_HIGH` | VC-1 Level Low (simple & main profiles)
 `MFX_LEVEL_VC1_0`,<br>`MFX_LEVEL_VC1_1`,<br>`MFX_LEVEL_VC1_2`,<br>`MFX_LEVEL_VC1_3`,<br>`MFX_LEVEL_VC1_4` | VC-1 advanced profile levels
 `MFX_LEVEL_HEVC_1`,<br>`MFX_LEVEL_HEVC_2`,<br>`MFX_LEVEL_HEVC_21`,<br>`MFX_LEVEL_HEVC_3`,<br>`MFX_LEVEL_HEVC_31`,<br>`MFX_LEVEL_HEVC_4`,<br>`MFX_LEVEL_HEVC_41`,<br>`MFX_LEVEL_HEVC_5`,<br>`MFX_LEVEL_HEVC_51`,<br>`MFX_LEVEL_HEVC_52`,<br>`MFX_LEVEL_HEVC_6`,<br>`MFX_LEVEL_HEVC_61`,<br>`MFX_LEVEL_HEVC_62`,<br><br>`MFX_TIER_HEVC_MAIN`,<br>`MFX_TIER_HEVC_HIGH` | HEVC levels and tiers
+`MFX_LEVEL_AV1_2`,<br>`MFX_LEVEL_AV1_21`,<br>`MFX_LEVEL_AV1_22`,<br>`MFX_LEVEL_AV1_23`,<br>`MFX_LEVEL_AV1_3`,<br>`MFX_LEVEL_AV1_31`,<br>`MFX_LEVEL_AV1_32`,<br>`MFX_LEVEL_AV1_33`,<br>`MFX_LEVEL_AV1_4`,<br>`MFX_LEVEL_AV1_41`,<br>`MFX_LEVEL_AV1_42`,<br>`MFX_LEVEL_AV1_43`,<br>`MFX_LEVEL_AV1_5`,<br>`MFX_LEVEL_AV1_51` | AV1 levels
 
 **Change History**
 
 This enumerator is available since SDK API 1.0.
 
 SDK API 1.8 added HEVC level and tier definitions.
+
+SDK API **TBD** added AV1 level definitions.
 
 ## <a id='CodecProfile'>CodecProfile</a>
 
@@ -8047,6 +8050,7 @@ The `CodecProfile` enumerator itemizes codec profiles for all codecs.
 `MFX_PROFILE_VC1_SIMPLE`,<br>`MFX_PROFILE_VC1_MAIN`,<br>`MFX_PROFILE_VC1_ADVANCED`,<br> | VC-1 profiles
 `MFX_PROFILE_HEVC_MAIN`,<br>`MFX_PROFILE_HEVC_MAIN10`,<br>`MFX_PROFILE_HEVC_MAINSP`,<br>`MFX_PROFILE_HEVC_REXT`,<br>`MFX_PROFILE_HEVC_SCC`,<br> | HEVC profiles
 `MFX_PROFILE_VP9_0`,<br>`MFX_PROFILE_VP9_1`,<br>`MFX_PROFILE_VP9_2`,<br>`MFX_PROFILE_VP9_3` | VP9 profiles
+`MFX_PROFILE_AV1_MAIN`,<br>`MFX_PROFILE_AV1_HIGH`,<br>`MFX_PROFILE_AV1_PRO` | AV1 profiles
 
 **Change History**
 
@@ -8064,6 +8068,8 @@ SDK API 1.16 adds `MFX_PROFILE_HEVC_REXT`.
 SDK API 1.19 added VP9 profile definitions.
 
 SDK API 1.32 adds `MFX_PROFILE_HEVC_SCC`.
+
+SDK API **TBD** added AV1 profile definitions.
 
 ## <a id='CodingOptionValue'>CodingOptionValue</a>
 
@@ -8234,6 +8240,8 @@ The `ExtendedBufferID` enumerator itemizes and defines identifiers (`BufferId`) 
 `MFX_EXTBUFF_VPP_COLOR_CONVERSION` | See the [mfxExtColorConversion](#mfxExtColorConversion) structure for details.
 `MFX_EXTBUFF_TASK_DEPENDENCY` | See the [Alternative Dependencies](#Alternative_Dependencies) chapter for details.
 `MFX_EXTBUFF_VPP_MCTF` | This video processing algorithm identifier is used to enable MCTF via [mfxExtVPPDoUse](#mfxExtVPPDoUse) and together with `mfxExtVppMctf` | See the [mfxExtVppMctf](#mfxExtVppMctf) chapter for details.
+`MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM` | This extended buffer is used by AV1 SDK decoder to report film grain parameters for decoded frame. See the [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam) structure for more details.
+
 
 **Change History**
 
@@ -8272,7 +8280,7 @@ SDK API 1.27 adds `MFX_EXTBUFF_AVC_ROUNDING_OFFSET`.
 
 SDK API 1.30 adds `MFX_EXTBUFF_CENC_PARAM`.
 
-SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration.
+SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration, `MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM`.
 
 See additional change history in the structure definitions.
 
@@ -9255,7 +9263,6 @@ The `SegmentFeature` enumerator indicates features enabled for the segment. Thes
 
 This enumerator is available since SDK API 1.26.
 
-
 ## <a id='InsertHDRPayload'>InsertHDRPayload</a>
 
 **Description**
@@ -9388,6 +9395,26 @@ The `Protected` enumerator describes the protection schemes.
 **Change History**
 
 This enumerator is available since SDK API 1.30.
+
+## <a id='AV1FilmGrainFlags'>AV1FilmGrainFlags</a>
+
+**Description**
+
+The `AV1FilmGrainFlags` enumerator indicates flags in AV1 film grain parameters. The flags are equivalent to respective syntax elements from film_grain_params() section of uncompressed header. These values are used with the [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam)**::Flags** parameter.
+
+**Name/Description**
+
+| | |
+--- | ---
+`MFX_FILM_GRAIN_APPLY`                     | Film grain is added to this frame
+`MFX_FILM_GRAIN_UPDATE`                    | New set of film grain parameters is sent for this frame
+`MFX_FILM_GRAIN_CHROMA_SCALING_FROM_LUMA`  | Chroma scaling is inferred from luma scaling
+`MFX_FILM_GRAIN_OVERLAP`                   | Overlap between film grain blocks is applied
+`MFX_FILM_GRAIN_CLIP_TO_RESTRICTED_RANGE`  | Clipping to the restricted (studio) range is applied after adding the film grain
+
+**Change History**
+
+This enumerator is available since SDK API **TBD**.
 
 ## <a id='mfxComponentType'>mfxComponentType</a>
 
