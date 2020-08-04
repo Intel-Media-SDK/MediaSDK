@@ -3200,9 +3200,9 @@ mfxStatus CTranscodingPipeline::AllocFrames(mfxFrameAllocRequest *pRequest, bool
             surface->Data.MemId = pResponse->mids[i];
         }
 
-        auto surface_ptr = surface.release();
+        (isDecAlloc) ? m_pSurfaceDecPool.push_back(surface.get()) : m_pSurfaceEncPool.push_back(surface.get());
 
-        (isDecAlloc) ? m_pSurfaceDecPool.push_back(surface_ptr) : m_pSurfaceEncPool.push_back(surface_ptr);
+        std::ignore = surface.release();
     }
 
     (isDecAlloc) ? m_DecSurfaceType = pRequest->Type : m_EncSurfaceType = pRequest->Type;
