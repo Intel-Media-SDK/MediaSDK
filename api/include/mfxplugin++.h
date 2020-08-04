@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ public:
     explicit MFXBaseUSER(mfxSession session = NULL)
         : m_session(session){}
 
-    virtual ~MFXBaseUSER() {};
+    virtual ~MFXBaseUSER() {}
 
     virtual mfxStatus Register(mfxU32 type, const mfxPlugin *par) = 0;
     virtual mfxStatus Unregister(mfxU32 type) = 0;
@@ -563,15 +563,11 @@ namespace detail
     private:
         void SetupCallbacks() {
             m_codecPlg.DecodeHeader = _DecodeHeader;
-//            m_codecPlg.GetPayload = _GetPayload;
             m_codecPlg.DecodeFrameSubmit = _DecodeFrameSubmit;
         }
         static mfxStatus _DecodeHeader(mfxHDL pthis, mfxBitstream *bs, mfxAudioParam *par) {
             return reinterpret_cast<MFXAudioDecoderPlugin*>(pthis)->DecodeHeader(bs, par);
         }
-//        static mfxStatus _GetPayload(mfxHDL pthis, mfxU64 *ts, mfxPayload *payload) {
-  //          return reinterpret_cast<MFXAudioDecoderPlugin*>(pthis)->GetPayload(ts, payload);
-    //    }
         static mfxStatus _DecodeFrameSubmit(mfxHDL pthis, mfxBitstream *in, mfxAudioFrame *out, mfxThreadTask *task) {
             return reinterpret_cast<MFXAudioDecoderPlugin*>(pthis)->DecodeFrameSubmit(in, out, task);
         }
