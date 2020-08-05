@@ -105,6 +105,11 @@ namespace MFX_VPX_Utility
                 break;
             }
 
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+            if (codecId == MFX_CODEC_AV1)
+                p_out->mfx.CodecLevel = p_in->mfx.CodecLevel;
+#endif
+
             if (p_in->mfx.NumThread < 128)
                 p_out->mfx.NumThread = p_in->mfx.NumThread;
 
@@ -312,6 +317,11 @@ namespace MFX_VPX_Utility
             p_out->mfx.CodecId = codecId;
             p_out->mfx.CodecProfile = 1;
             p_out->mfx.CodecLevel = 1;
+
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
+            if (codecId == MFX_CODEC_AV1)
+                p_out->mfx.CodecLevel = MFX_LEVEL_AV1_2;
+#endif
 
             p_out->mfx.NumThread = 1;
 
