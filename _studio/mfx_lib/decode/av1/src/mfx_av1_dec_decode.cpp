@@ -463,6 +463,12 @@ mfxStatus CheckLevel(mfxVideoParam* in, mfxVideoParam* out)
         case MFX_LEVEL_AV1_43:
         case MFX_LEVEL_AV1_5:
         case MFX_LEVEL_AV1_51:
+        case MFX_LEVEL_AV1_52:
+        case MFX_LEVEL_AV1_53:
+        case MFX_LEVEL_AV1_6:
+        case MFX_LEVEL_AV1_61:
+        case MFX_LEVEL_AV1_62:
+        case MFX_LEVEL_AV1_63:
             out->mfx.CodecLevel = in->mfx.CodecLevel;
             break;
         default:
