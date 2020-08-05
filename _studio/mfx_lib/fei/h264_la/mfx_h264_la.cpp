@@ -1730,11 +1730,11 @@ void CmContextLA::SetCurbeData(
     /*
     curbeData.SliceMacroblockHeightMinusOne = m_video.mfx.FrameInfo.Height / 16 - 1;
     curbeData.PictureHeightMinusOne = m_video.mfx.FrameInfo.Height / 16 - 1;
-    curbeData.PictureWidth          = m_video.mfx.FrameInfo.Width / 16;
+    curbeData.PictureWidthMinusOne  = m_video.mfx.FrameInfo.Width / 16 - 1;
     */
     curbeData.SliceMacroblockHeightMinusOne = widthLa / 16 - 1;
     curbeData.PictureHeightMinusOne = heightLa / 16 - 1;
-    curbeData.PictureWidth          = widthLa / 16;
+    curbeData.PictureWidthMinusOne  = widthLa / 16 - 1;
     //DW5
     curbeData.RefWidth              = (frameType & MFX_FRAMETYPE_B) ? 32 : 48;
     curbeData.RefHeight             = (frameType & MFX_FRAMETYPE_B) ? 32 : 40;

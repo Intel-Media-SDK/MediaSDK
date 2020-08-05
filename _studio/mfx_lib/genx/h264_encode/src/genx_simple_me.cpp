@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2019 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -158,13 +158,13 @@ enum
     (obj[17] + 1)
 
 #define GET_CURBE_PictureWidth(obj) \
-    (obj[18])
+    (obj[18] + 1)
 
 #define SET_CURBE_PictureHeight(obj, h) \
     (obj[17] = h - 1)
 
 #define SET_CURBE_PictureWidth(obj, w) \
-    (obj[18] = w)
+    (obj[18] = w - 1)
 
 #define GET_CURBE_QpPrimeY(obj) \
     (obj[52])
