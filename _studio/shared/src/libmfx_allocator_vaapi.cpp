@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -515,6 +515,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 #ifndef ANDROID
     case VA_FOURCC_A2R10G10B10:
+    case VA_FOURCC_X2R10G10B10:
         if (mfx_fourcc == MFX_FOURCC_A2RGB10)
         {
             ptr->B = p_buffer + va_image.offsets[0];
