@@ -101,7 +101,7 @@ class Stream(object):
         self.path = base_dir / cfg['path']
 
         if not self.path.exists():
-            raise TestEnvironmentError("{} does not exist".format(self.path.name))
+            raise TestEnvironmentError("{} does not exist in {}".format(self.path.name, self.path))
 
         self.codec = cfg['codec']
         if self.codec not in _SUPPORTED_CODECS:

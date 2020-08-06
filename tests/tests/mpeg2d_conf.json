@@ -1,0 +1,6 @@
+{
+    "type": "decode",
+    "stream": "test_stream.mpeg2",
+    "async": [1, 4],
+    "vaapi": [true, false]
+}

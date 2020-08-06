@@ -17,7 +17,7 @@ python >= 3.6
 Assuming the following build configuration of MediaSDK:
 ```sh
 export PREFIX=/path/to/installation/directory
-export BINDIR=$PREFIX/bin
+export BINDIR=$PREFIX/share/mfx/samples
 export LIBDIR=$PREFIX/lib
 
 cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_LIBDIR=$LIBDIR ..
@@ -26,6 +26,8 @@ make && make install
 
 Test Driver should be run as follows:
 ```sh
+export LIBVA_DRIVER_NAME=iHD
+export LIBVA_DRIVERS_PATH=/path/to/media/driver
 export PATH=$BINDIR:$PATH
 export LD_LIBRARY_PATH=$LIBDIR
 

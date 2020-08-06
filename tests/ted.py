@@ -22,64 +22,10 @@
 
 import re
 import sys
-import json
 import argparse
-import collections
 from pathlib import Path
 
 from ted import discover
-
-def write_test_results_report(cfg, test_results):
-    results = collections.OrderedDict()
-    results['system'] = collections.OrderedDict()
-    results['system']['CPU'] = cfg.environment['CPU']
-    results['system']['OS'] = cfg.environment['OS']
-
-    with (base_dir / 'gold' / 'fileinfo.json').open() as f:
-        gold_files = json.load(f)
-
-    with (base_dir / 'results' / 'fileinfo.json').open() as f:
-        current_files = json.load(f)
-
-    results['bin'] = []
-    for a, b in zip(gold_files, current_files):
-        fileinfo = collections.OrderedDict()
-
-        fileinfo['name'] = a['name']
-
-        if 'version' in a:
-            if a['version'] != b['version']:
-                fileinfo['version'] = {
-                    'ref': a['version'],
-                    'cur': b['version']
-                }
-            else:
-                fileinfo['version'] = a['version']
-
-        if a['md5'] != b['md5']:
-            fileinfo['md5'] = {
-                'ref': a['md5'],
-                'cur': b['md5']
-            }
-        else:
-            fileinfo['md5'] = a['md5']
-
-        if a['filesize'] != b['filesize']:
-            fileinfo['filesize'] = {
-                'ref': a['filesize'],
-                'cur': b['filesize']
-            }
-        else:
-            fileinfo['filesize'] = a['filesize']
-
-        results['bin'].append(fileinfo)
-
-    results['results'] = [res for res in test_results]
-
-    test_results_json = base_dir / 'test_results.json'
-    with test_results_json.open('w') as f:
-        json.dump(results, f, indent=2)
-
 
 
 if __name__ == '__main__':
