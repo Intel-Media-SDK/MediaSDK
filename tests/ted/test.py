@@ -123,10 +123,13 @@ class Test(object):
                 'id': '{:04d}'.format(i),
             }
             if error:
-                print(' - {}'.format(error))
-                log.log(error)
+                print(' - FAIL')
                 res['status'] = 'FAIL'
+                # Print log in case of the failure
+                with log.fn.open('r') as f:
+                    print(f.read())
                 res['error'] = error
+                log.log(error)
                 res['artifacts'] = results
             else:
                 print(' - ok')
