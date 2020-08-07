@@ -37,33 +37,13 @@
 #include <va/va.h>
 #endif
 
-#ifndef MFX_DEBUG_TRACE
-#define MFX_STS_TRACE(sts) sts
-#else
-template <typename T>
-static inline T mfx_print_err(T sts, const char *file, int line, const char *func)
-{
-    if (sts)
-    {
-        printf("%s: %d: %s: Error = %d\n", file, line, func, sts);
-    }
-    return sts;
-}
-#define MFX_STS_TRACE(sts) mfx_print_err(sts, __FILE__, __LINE__, __FUNCTION__)
-#endif
+#include "mfx_utils_defs.h"
 
-#define MFX_SUCCEEDED(sts)      (MFX_STS_TRACE(sts) == MFX_ERR_NONE)
-#define MFX_FAILED(sts)         (MFX_STS_TRACE(sts) != MFX_ERR_NONE)
-#define MFX_RETURN(sts)         { return MFX_STS_TRACE(sts); }
-#define MFX_CHECK(EXPR, ERR)    { if (!(EXPR)) MFX_RETURN(ERR); }
 
 #define MFX_CHECK_NO_RET(EXPR, STS, ERR){ if (!(EXPR)) { std::ignore = MFX_STS_TRACE(ERR); STS = ERR; } }
 
-#define MFX_CHECK_STS(sts)              MFX_CHECK(MFX_SUCCEEDED(sts), sts)
 #define MFX_SAFE_CALL(FUNC)             { mfxStatus _sts = FUNC; MFX_CHECK_STS(_sts); }
-#define MFX_CHECK_NULL_PTR1(pointer)    MFX_CHECK(pointer, MFX_ERR_NULL_PTR)
-#define MFX_CHECK_NULL_PTR2(p1, p2)     { MFX_CHECK(p1, MFX_ERR_NULL_PTR); MFX_CHECK(p2, MFX_ERR_NULL_PTR); }
-#define MFX_CHECK_NULL_PTR3(p1, p2, p3) { MFX_CHECK(p1, MFX_ERR_NULL_PTR); MFX_CHECK(p2, MFX_ERR_NULL_PTR); MFX_CHECK(p3, MFX_ERR_NULL_PTR); }
+
 #define MFX_CHECK_STS_ALLOC(pointer)    MFX_CHECK(pointer, MFX_ERR_MEMORY_ALLOC)
 #define MFX_CHECK_COND(cond)            MFX_CHECK(cond, MFX_ERR_UNSUPPORTED)
 #define MFX_CHECK_INIT(InitFlag)        MFX_CHECK(InitFlag, MFX_ERR_MORE_DATA)
@@ -145,19 +125,7 @@ namespace mfx
 {
 // TODO: switch to std::clamp when C++17 support will be enabled
 
-// Clip value v to range [lo, hi]
-template<class T>
-constexpr const T& clamp( const T& v, const T& lo, const T& hi )
-{
-    return std::min(hi, std::max(v, lo));
-}
 
-// Comp is comparison function object with meaning of 'less' operator (i.e. std::less<> or operator<)
-template<class T, class Compare>
-constexpr const T& clamp( const T& v, const T& lo, const T& hi, Compare comp )
-{
-    return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
-}
 
 // Aligns value to next power of two
 template<class T> inline
@@ -554,19 +522,6 @@ static inline bool operator==(mfxPluginUID const& l, mfxPluginUID const& r)
 
 MFX_DECL_OPERATOR_NOT_EQ(mfxPluginUID)
 
-inline bool IsOn(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_ON;
-}
 
-inline bool IsOff(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_OFF;
-}
-
-inline bool IsAdapt(mfxU32 opt)
-{
-    return opt == MFX_CODINGOPTION_ADAPTIVE;
-}
 
 #endif // __MFXUTILS_H__

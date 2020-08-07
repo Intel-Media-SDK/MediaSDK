@@ -2036,6 +2036,19 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
 }
 
 
+#ifdef MFX_ENABLE_ENCTOOLS
+//there is no support of EncTools in LA plugin
+mfxEncTools* MFXVideoENCODE_CreateEncTools()
+{
+    return nullptr;
+}
+void MFXVideoENCODE_DestroyEncTools(mfxEncTools * /*et*/)
+{
+
+}
+#endif
+
+
 #endif  // MFX_ENABLE_H264_VIDEO_ENCODE_HW && MFX_ENABLE_LA_H264_VIDEO_HW
 
 /* EOF */

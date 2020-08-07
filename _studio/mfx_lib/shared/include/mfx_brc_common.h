@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,14 @@
 #define __MFX_BRC_COMMON_H__
 
 #include "mfx_common.h"
+#ifdef MFX_ENABLE_ENCTOOLS
+#include "mfxenctools-int.h"
+#else
 #include "mfxbrc.h"
+#endif
 #include <vector>
 #include <memory>
+#include <algorithm>
 
 #if defined (MFX_ENABLE_H264_VIDEO_ENCODE) || defined (MFX_ENABLE_MPEG2_VIDEO_ENCODE)
 #define UMC_ENABLE_VIDEO_BRC
@@ -135,9 +140,9 @@ protected:
         numFrames = numFrames < m_slidingWindow.size() ? numFrames : (mfxU32)m_slidingWindow.size();
         for (mfxU32 i = 0; i < numFrames; i++)
         {
-			mfxU32 frame_size = m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
-			if (bCheckSkip && (frame_size < m_avgBitPerFrame / 3))
-				frame_size = m_avgBitPerFrame / 3;
+            mfxU32 frame_size = m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size()];
+            if (bCheckSkip && (frame_size < m_avgBitPerFrame / 3))
+                frame_size = m_avgBitPerFrame / 3;
             size += frame_size;
             //printf("GetLastFrames: %d) %d sum %d\n",i,m_slidingWindow[(m_currPosInWindow + m_slidingWindow.size() - i) % m_slidingWindow.size() ], size);
         }
@@ -169,12 +174,14 @@ NalHrdConformance | VuiNalHrdParameters   |  Result
     on (or default)      on (or default)    => MFX_BRC_HRD_STRONG
 --------------------------------------------------------------
 */
+#if !defined(MFX_ENABLE_ENCTOOLS)
 enum : mfxU16
 {
     MFX_BRC_NO_HRD = 0,
     MFX_BRC_HRD_WEAK,  // IF HRD CALCULATION IS REQUIRED, BUT NOT WRITTEN TO THE STREAM
     MFX_BRC_HRD_STRONG
 };
+#endif
 
 namespace MfxHwH265EncodeBRC
 {
@@ -240,6 +247,8 @@ public:
     mfxI32   mMinQstepCmplxKPUpdt;
     mfxF64   mMinQstepCmplxKPUpdtErr;
 
+    mfxU32  codecId;
+
 public:
     cBRCParams() :
         rateControlMethod(0),
@@ -284,59 +293,107 @@ public:
         mMinQstepCmplxKP(0),
         mMinQstepRateEP(0),
         mMinQstepCmplxKPUpdt(0),
-        mMinQstepCmplxKPUpdtErr(0)
+        mMinQstepCmplxKPUpdtErr(0),
+        codecId(0)
     {}
 
     mfxStatus Init(mfxVideoParam* par, bool bFieldMode = false);
     mfxStatus GetBRCResetType(mfxVideoParam* par, bool bNewSequence, bool &bReset, bool &bSlidingWindowReset );
 };
-class cHRD
+struct sHrdInput
+{
+    bool   m_cbrFlag = false;
+    mfxU32 m_bitrate = 0;
+    mfxU32 m_maxCpbRemovalDelay = 0;
+    mfxF64 m_clockTick = 0.0;
+    mfxF64 m_cpbSize90k = 0.0;
+    mfxF64 m_initCpbRemovalDelay = 0;
+
+    void Init(cBRCParams par);
+};
+
+class HRDCodecSpec
+{
+private:
+    mfxI32   m_overflowQuant  = 999;
+    mfxI32   m_underflowQuant = 0;
+
+public:
+    mfxI32    GetMaxQuant() const { return m_overflowQuant - 1; }
+    mfxI32    GetMinQuant() const { return m_underflowQuant + 1; }
+    void      SetOverflowQuant(mfxI32 qp) { m_overflowQuant = qp; }
+    void      SetUnderflowQuant(mfxI32 qp) { m_underflowQuant = qp; }
+    void      ResetQuant() { m_overflowQuant = 999;  m_underflowQuant = 0;}
+
+public:
+    virtual ~HRDCodecSpec() {}
+    virtual void Init(cBRCParams &par)=0;
+    virtual void Reset(cBRCParams &par) = 0;
+    virtual void Update(mfxU32 sizeInbits, mfxU32 eo, bool bSEI) = 0;
+    virtual mfxU32 GetInitCpbRemovalDelay(mfxU32 eo) const = 0;
+    virtual mfxU32 GetInitCpbRemovalDelayOffset(mfxU32 eo) const = 0;
+    virtual mfxU32 GetMaxFrameSizeInBits(mfxU32 eo, bool bSEI) const = 0;
+    virtual mfxU32 GetMinFrameSizeInBits(mfxU32 eo, bool bSEI) const = 0;
+    virtual mfxF64 GetBufferDeviation(mfxU32 eo) const = 0;
+    virtual mfxF64 GetBufferDeviationFactor(mfxU32 eo) const = 0;
+};
+
+class HEVC_HRD: public HRDCodecSpec
 {
 public:
-    cHRD():
-        m_bufFullness(0),
-        m_prevBufFullness(0),
-        m_frameNum(0),
-        m_minFrameSize(0),
-        m_maxFrameSize(0),
-        m_underflowQuant(0),
-        m_overflowQuant(0),
-        m_buffSizeInBits(0),
-        m_delayInBits(0),
-        m_inputBitsPerFrame(0),
-        m_bCBR (false)
+    HEVC_HRD() :
+          m_prevAuCpbRemovalDelayMinus1(0)
+        , m_prevAuCpbRemovalDelayMsb(0)
+        , m_prevAuFinalArrivalTime(0)
+        , m_prevBpAuNominalRemovalTime(0)
+        , m_prevBpEncOrder(0)
     {}
+    virtual ~HEVC_HRD() {}
+    void Init(cBRCParams &par) override;
+    void Reset(cBRCParams &par) override;
+    void Update(mfxU32 sizeInbits, mfxU32 eo,  bool bSEI) override;
+    mfxU32 GetInitCpbRemovalDelay(mfxU32 eo)  const override;
+    mfxU32 GetInitCpbRemovalDelayOffset(mfxU32 eo)  const override
+    {
+        return mfxU32(m_hrdInput.m_cpbSize90k - GetInitCpbRemovalDelay(eo));
+    }
+    mfxU32 GetMaxFrameSizeInBits(mfxU32 eo, bool bSEI)  const override;
+    mfxU32 GetMinFrameSizeInBits(mfxU32 eo, bool bSEI)  const override;
+    mfxF64 GetBufferDeviation(mfxU32 eo)  const override;
+    mfxF64 GetBufferDeviationFactor(mfxU32 eo)  const override;
 
-    void      Init(mfxU32 buffSizeInBytes, mfxU32 delayInBytes, mfxF64 inputBitsPerFrame, bool cbr);
-    mfxU16    UpdateAndCheckHRD(mfxI32 frameBits, mfxI32 recode, mfxI32 minQuant, mfxI32 maxQuant);
-    mfxStatus UpdateMinMaxQPForRec(mfxU32 brcSts, mfxI32 qp);
-    mfxI32    GetTargetSize(mfxU32 brcSts);
-    mfxI32    GetMaxFrameSize() { return m_maxFrameSize;}
-    mfxI32    GetMinFrameSize() { return m_minFrameSize;}
-    mfxI32    GetMaxQuant() { return m_overflowQuant -  1;}
-    mfxI32    GetMinQuant() { return m_underflowQuant + 1;}
-    mfxF64    GetBufferDiviation(mfxU32 targetBitrate);
-    mfxF64    GetBufferDiviation();
-    mfxF64    GetBufferDiviationFactor();
+protected:
+    sHrdInput m_hrdInput;
+    mfxI32 m_prevAuCpbRemovalDelayMinus1;
+    mfxU32 m_prevAuCpbRemovalDelayMsb;
+    mfxF64 m_prevAuFinalArrivalTime;
+    mfxF64 m_prevBpAuNominalRemovalTime;
+    mfxU32 m_prevBpEncOrder;
+};
 
+class H264_HRD: public HRDCodecSpec
+{
+public:
+    H264_HRD();
+    virtual ~H264_HRD() {}
+    void Init(cBRCParams &par) override;
+    void Reset(cBRCParams &par) override;
+    void Update(mfxU32 sizeInbits, mfxU32 eo, bool bSEI) override;
+    mfxU32 GetInitCpbRemovalDelay(mfxU32 eo)  const override;
+    mfxU32 GetInitCpbRemovalDelayOffset(mfxU32 eo)  const override;
+    mfxU32 GetMaxFrameSizeInBits(mfxU32 eo, bool bSEI)  const override;
+    mfxU32 GetMinFrameSizeInBits(mfxU32 eo, bool bSEI)  const override;
+    mfxF64 GetBufferDeviation(mfxU32 eo)  const override;
+    mfxF64 GetBufferDeviationFactor(mfxU32 eo)  const override;
 
 
 private:
-    mfxF64 m_bufFullness;
-    mfxF64 m_prevBufFullness;
-    mfxI32 m_frameNum;
-    mfxI32 m_minFrameSize;
-    mfxI32 m_maxFrameSize;
-    mfxI32 m_underflowQuant;
-    mfxI32 m_overflowQuant;
-
-private:
-    mfxI32 m_buffSizeInBits;
-    mfxI32 m_delayInBits;
-    mfxF64 m_inputBitsPerFrame;
-    bool   m_bCBR;
+    sHrdInput m_hrdInput;
+    double m_trn_cur;   // nominal removal time
+    double m_taf_prv;   // final arrival time of prev unit
 
 };
+
 struct BRC_Ctx
 {
     mfxI32 QuantIDR;  //currect qp for intra frames
@@ -369,7 +426,7 @@ struct BRC_Ctx
     mfxF64 fAbLong;         // frame abberation (long period)
     mfxF64 fAbShort;        // frame abberation (short period)
     mfxF64 dQuantAb;        // dequant abberation
-    mfxF64 totalDiviation;   // divation from  target bitrate (total)
+    mfxF64 totalDeviation;   // deviation from  target bitrate (total)
 
     mfxF64 eRate;               // eRate of last encoded frame, this parameter is used for scene change calculation
     mfxF64 eRateSH;             // eRate of last encoded scene change frame, this parameter is used for scene change calculation
@@ -379,7 +436,8 @@ class ExtBRC
 {
 private:
     cBRCParams m_par;
-    cHRD       m_hrd;
+    std::unique_ptr < HRDCodecSpec> m_hrdSpec;
+
     bool       m_bInit;
     bool       m_bDynamicInit;
     BRC_Ctx    m_ctx;
@@ -390,7 +448,7 @@ private:
 public:
     ExtBRC():
         m_par(),
-        m_hrd(),
+        m_hrdSpec(),
         m_bInit(false),
         m_bDynamicInit(false),
         m_SkipCount(0),
@@ -411,10 +469,10 @@ public:
     mfxStatus Update (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status);
 
 protected:
-    mfxI32 GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef);
-    mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef);
-    mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef);
-    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong);
+    mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ);             // Get QP for current frame
+    mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ);  // Get P-QP from QP of given frame
+    mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ);  // Get QP for given frame from P-QP
+    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 clsAPQ);
 };
 }
 namespace HEVCExtBRC

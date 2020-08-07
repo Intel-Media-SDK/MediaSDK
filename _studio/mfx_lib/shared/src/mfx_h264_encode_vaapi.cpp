@@ -2936,6 +2936,26 @@ mfxStatus VAAPIEncoder::Execute(
 
             configBuffers.push_back(m_mbqpBufferId);
         }
+#ifdef ENABLE_APQ_LQ
+        else if (task.m_ALQOffset) {
+            Zero(m_mbqp_buffer);
+            for (mfxU32 mbRow = 0; mbRow < mbH; mbRow++)
+                for (mfxU32 mbCol = 0; mbCol < mbW; mbCol++)
+                    m_mbqp_buffer[mbRow * bufW + mbCol].qp = (mfxU8)(std::max(1, std::min(51, task.m_ALQOffset + task.m_cqpValue[0])));
+            mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
+            MFX_CHECK_STS(mfxSts);
+            // LibVA expect full buffer size w/o interlace adjustments
+            vaSts = vaCreateBuffer(m_vaDisplay,
+                m_vaContextEncode,
+                VAEncQPBufferType,
+                bufW * sizeof(VAEncQPBufferH264),
+                mfx::align2_value(m_sps.picture_height_in_mbs, 8),
+                &m_mbqp_buffer[0],
+                &m_mbqpBufferId);
+            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+            configBuffers.push_back(m_mbqpBufferId);
+        }
+#endif
     }
 
     if (ctrlNoSkipMap)
