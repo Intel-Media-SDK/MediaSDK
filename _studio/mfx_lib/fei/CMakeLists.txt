@@ -27,6 +27,7 @@ include_directories( ${MSDK_LIB_ROOT}/encode_hw/h264/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/brc/include )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
+include_directories( ${MSDK_STUDIO_ROOT}/enctools/include )
 
 # =============================================================================
 set( sources "" )
