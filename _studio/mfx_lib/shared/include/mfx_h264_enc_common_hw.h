@@ -1,15 +1,15 @@
 // Copyright (c) 2018-2020 Intel Corporation
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,6 +21,10 @@
 #ifndef __MFX_H264_ENC_COMMON_HW_H__
 #define __MFX_H264_ENC_COMMON_HW_H__
 
+#if defined(AS_H264LA_PLUGIN) && defined(MFX_ENABLE_ENCTOOLS)
+#undef MFX_ENABLE_ENCTOOLS
+#endif
+
 #include "mfx_common.h"
 #include "mfxla.h"
 
@@ -31,8 +35,11 @@
 #include <memory>
 #include "mfx_ext_buffers.h"
 #include "mfxfei.h"
+#ifdef MFX_ENABLE_ENCTOOLS
+#include "mfxenctools-int.h"
+#else
 #include "mfxbrc.h"
-
+#endif
 #include "mfx_h264_encode_struct_vaapi.h"
 
 #if defined(MFX_VA_LINUX)
@@ -42,6 +49,8 @@
 #include "mfxmvc.h"
 
 #include "umc_defs.h"
+
+#define ENABLE_APQ_LQ
 
 
 #define D3DFMT_NV12 (D3DFORMAT)(MFX_MAKEFOURCC('N', 'V', '1', '2'))
@@ -215,6 +224,23 @@ namespace MfxHwH264Encode
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMultiFrameControl,     MFX_EXTBUFF_MULTI_FRAME_CONTROL     );
     BIND_EXTBUF_TYPE_TO_ID (mfxExtMultiFrameParam,       MFX_EXTBUFF_MULTI_FRAME_PARAM       );
 #endif
+#if defined (MFX_ENABLE_ENCTOOLS)
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncTools, MFX_EXTBUFF_ENCTOOLS);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCFrameParams, MFX_EXTBUFF_ENCTOOLS_BRC_FRAME_PARAM);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCQuantControl, MFX_EXTBUFF_ENCTOOLS_BRC_QUANT_CONTROL);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCHRDPos, MFX_EXTBUFF_ENCTOOLS_BRC_HRD_POS);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCEncodeResult, MFX_EXTBUFF_ENCTOOLS_BRC_ENCODE_RESULT);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCStatus, MFX_EXTBUFF_ENCTOOLS_BRC_STATUS);
+    BIND_EXTBUF_TYPE_TO_ID(mfxExtEncToolsConfig, MFX_EXTBUFF_ENCTOOLS_CONFIG);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsCtrlExtDevice, MFX_EXTBUFF_ENCTOOLS_DEVICE);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsCtrlExtAllocator, MFX_EXTBUFF_ENCTOOLS_ALLOCATOR);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsFrameToAnalyze, MFX_EXTBUFF_ENCTOOLS_FRAME_TO_ANALYZE);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsHintPreEncodeSceneChange, MFX_EXTBUFF_ENCTOOLS_HINT_SCENE_CHANGE);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsHintPreEncodeGOP, MFX_EXTBUFF_ENCTOOLS_HINT_GOP);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsHintPreEncodeARefFrames, MFX_EXTBUFF_ENCTOOLS_HINT_AREF);
+    BIND_EXTBUF_TYPE_TO_ID(mfxEncToolsBRCBufferHint, MFX_EXTBUFF_ENCTOOLS_BRC_BUFFER_HINT);
+
+#endif
 
 #undef BIND_EXTBUF_TYPE_TO_ID
 
@@ -253,7 +279,26 @@ namespace MfxHwH264Encode
         for (mfxU32 i = 0; i < 16; i++)
             extBuf.LongTermRefList[i].FrameOrder = mfxU32(MFX_FRAMEORDER_UNKNOWN);
     }
+#if defined(MFX_ENABLE_ENCTOOLS)
+    template <> inline void InitExtBufHeader<mfxExtEncToolsConfig>(mfxExtEncToolsConfig & extBuf)
+    {
+        Zero(extBuf);
+        extBuf.Header.BufferId = ExtBufTypeToId<mfxExtEncToolsConfig>::id;
+        extBuf.Header.BufferSz = sizeof(mfxExtEncToolsConfig);
 
+        extBuf.AdaptiveI =
+            extBuf.AdaptiveB =
+            extBuf.AdaptiveRefP =
+            extBuf.AdaptiveRefB =
+            extBuf.SceneChange =
+            extBuf.AdaptiveLTR =
+            extBuf.AdaptivePyramidQuantP =
+            extBuf.AdaptivePyramidQuantB =
+            extBuf.AdaptiveQuantMatrices =
+            extBuf.BRCBufferHints =
+            extBuf.BRC = MFX_CODINGOPTION_OFF;
+    }
+#endif
     template <class T> struct GetPointedType {};
     template <class T> struct GetPointedType<T *> { typedef T Type; };
     template <class T> struct GetPointedType<T const *> { typedef T Type; };
@@ -519,13 +564,18 @@ namespace MfxHwH264Encode
 
         void ApplyDefaultsToMvcSeqDesc();
 
+
     protected:
         void Construct(mfxVideoParam const & par);
 
         void ConstructMvcSeqDesc(mfxExtMVCSeqDesc const & desc);
 
     private:
+#if defined(MFX_ENABLE_ENCTOOLS)
+        mfxExtBuffer *              m_extParam[40];
+#else
         mfxExtBuffer *              m_extParam[32];
+#endif
         // external, documented
         mfxExtCodingOption          m_extOpt;
         mfxExtCodingOption2         m_extOpt2;
@@ -556,7 +606,12 @@ namespace MfxHwH264Encode
 #if defined(__MFXBRC_H__)
         mfxExtBRC                   m_extBRC;
 #endif
-
+#if defined(MFX_ENABLE_ENCTOOLS)
+        mfxEncTools                     m_encTools;
+        mfxExtEncToolsConfig            m_encToolsConfig;
+        mfxEncToolsCtrlExtDevice        m_extDevice;
+        mfxEncToolsCtrlExtAllocator     m_extAllocator;
+#endif
 #if defined (MFX_ENABLE_MFE)
         mfxExtMultiFrameParam    m_MfeParam;
         mfxExtMultiFrameControl  m_MfeControl;
@@ -610,6 +665,8 @@ namespace MfxHwH264Encode
         } calcParam;
     };
 
+    bool   isSWBRC (MfxVideoParam const & par);
+    bool   isAdaptiveQP(MfxVideoParam const & par);
     mfxU16 GetMaxNumSlices(MfxVideoParam const & par);
 
     mfxU16 GetNumSurfInput(MfxVideoParam const & video);
@@ -642,6 +699,11 @@ namespace MfxHwH264Encode
         eMFXHWType            platform);
     bool IsMctfSupported(
         MfxVideoParam const & video);
+
+    mfxU32 GetPPyrSize(
+        MfxVideoParam const & video,
+        mfxU32 miniGopSize,
+        bool   bEncToolsLA);
 
     bool IsExtBrcSceneChangeSupported(
         MfxVideoParam const & video);
@@ -808,7 +870,6 @@ namespace MfxHwH264Encode
         mfxU32          numExtBuf,
         mfxU32          id,
         mfxU32          offset = 0);
-
     struct mfxExtBufferProxy;
     struct mfxExtBufferRefProxy;
     template <typename T> mfxExtBufferProxy GetExtBuffer(const T & par, mfxU32 fieldId = 0);

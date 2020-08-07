@@ -29,6 +29,7 @@ add_subdirectory(mfx_lib/genx)
 add_subdirectory(mfx_lib/vpp)
 add_subdirectory(mfx_lib/mctf_package)
 add_subdirectory(mfx_lib)
+add_subdirectory(enctools)
 
 if(MFX_ENABLE_USER_ENCODE)
   add_subdirectory(hevce_hw)
