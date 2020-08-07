@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,32 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#cmakedefine MFX_ENABLE_KERNELS
-#cmakedefine MFX_ENABLE_SW_FALLBACK
-#cmakedefine MFX_ENABLE_MCTF
-#cmakedefine MFX_ENABLE_ASC
-#cmakedefine MFX_ENABLE_CPLIB
+#include <cstring>
+#include <assert.h>
+#include "mfx_enctools_utils.h"
 
-#cmakedefine MFX_ENABLE_USER_DECODE
-#cmakedefine MFX_ENABLE_USER_ENCODE
-#cmakedefine MFX_ENABLE_USER_ENC
-#cmakedefine MFX_ENABLE_USER_VPP
+namespace EncToolsUtils
+{
 
-#cmakedefine MFX_ENABLE_H264_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_HEVC_VIDEO_FEI_ENCODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VP8_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_VP9_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H264_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_H265_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MPEG2_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_MJPEG_VIDEO_ENCODE
-#cmakedefine MFX_ENABLE_VC1_VIDEO_DECODE
-#cmakedefine MFX_ENABLE_AV1_VIDEO_DECODE
+    template <typename T> mfxStatus DownScaleNN(T const & pSrc, mfxU32 srcWidth, mfxU32 srcHeight, mfxU32 srcPitch,
+        T & pDst, mfxU32 dstWidth, mfxU32 dstHeight, mfxU32 dstPitch)
+    {
+        mfxI32 step_w = srcWidth / dstWidth;
+        mfxI32 step_h = srcHeight / dstHeight;
+        for (mfxI32 y = 0; y < (mfxI32)dstHeight; y++) {
+            for (mfxI32 x = 0; x < (mfxI32)dstWidth; x++) {
+                T const * ps = &pSrc + ((y * step_h) * srcPitch) + (x * step_w);
+                T* pd = &pDst + (y * dstPitch) + x;
+                pd[0] = ps[0];
+            }
+        }
+        return MFX_ERR_NONE;
+    }
 
-#cmakedefine MFX_ENABLE_ENCTOOLS
-#cmakedefine MFX_ENABLE_AENC
+    template mfxStatus DownScaleNN(mfxU8 const & pSrc, mfxU32 srcWidth, mfxU32 srcHeight, mfxU32 srcPitch,
+        mfxU8 & pDst, mfxU32 dstWidth, mfxU32 dstHeight, mfxU32 dstPitch);
+
+}

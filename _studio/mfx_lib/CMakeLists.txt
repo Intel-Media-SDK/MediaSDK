@@ -25,6 +25,7 @@ mfx_include_dirs()
 set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 ### CM
+include_directories( ${MSDK_STUDIO_ROOT}/enctools/include )
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
 set( SRC_DIR "${MSDK_LIB_ROOT}/cmrt_cross_platform/src" )
 set( defs "" )
@@ -202,6 +203,7 @@ list( APPEND LIBS
   h264_la
   ${GENX_LIB}
   mfx_common
+  enctools_hw  
   mfx_common_hw
   ${ASC_LIB}
   ${MCTF_LIB}
@@ -215,7 +217,6 @@ list( APPEND LIBS
   pthread
   dl
 )
-
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 

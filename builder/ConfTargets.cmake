@@ -68,6 +68,11 @@ else()
   set ( MFX_1_34_OPTIONS_ALLOWED OFF )
 endif()
 
+#if ON, enables encoding tools (EncTools) for encoding quality improvement; experimental feature
+option( MFX_ENABLE_ENCTOOLS "Enabled EncTools?" OFF)
+#if ON, enables adaptive encoding tools, part of EncTools, provided as libaenc.a binary; experimental feature
+option( MFX_ENABLE_AENC "Enabled AENC extension?" OFF)
+
 option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
 option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
 option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)

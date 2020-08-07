@@ -60,10 +60,10 @@ static mfxU16 GetRefDist(mfxVideoParam *par, eMFXHWType targetHw)
     {
         mfxExtLAControl *pControl = (mfxExtLAControl *)GetExtBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_LOOKAHEAD_CTRL);
         refDist = (
-		    IsOn(par->mfx.LowPower)
+            IsOn(par->mfx.LowPower)
          && targetHw <= MFX_HW_TGL_LP )
-		  ? 1 
-		  : ((pControl && IsOn(pControl->BPyramid)) ? 8 : 3);
+          ? 1
+          : ((pControl && IsOn(pControl->BPyramid)) ? 8 : 3);
     }
     return (std::min)(refDist, GopSize);
 }
@@ -88,7 +88,7 @@ static mfxStatus InitEncoderParameters(mfxVideoParam *par_in, mfxVideoParam *par
     par_enc->mfx.GopRefDist = GetRefDist(par_in, targetHw);
     par_enc->mfx.RateControlMethod = MFX_RATECONTROL_LA;
     par_enc->mfx.NumRefFrame = 2;
-    par_enc->mfx.FrameInfo = par_in->mfx.FrameInfo;  
+    par_enc->mfx.FrameInfo = par_in->mfx.FrameInfo;
     par_enc->mfx.TargetKbps = 1000; // formal
 
     if (par_enc->IOPattern == MFX_IOPATTERN_IN_OPAQUE_MEMORY)
@@ -107,17 +107,17 @@ static bool bReference(mfxU16 frameType)
 }
 static bool CheckExtenedBuffer(mfxVideoParam *par)
 {
-    mfxU32  BufferId[2] = {MFX_EXTBUFF_LOOKAHEAD_CTRL, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION}; 
+    mfxU32  BufferId[2] = {MFX_EXTBUFF_LOOKAHEAD_CTRL, MFX_EXTBUFF_OPAQUE_SURFACE_ALLOCATION};
     mfxU32  num = sizeof(BufferId)/sizeof(BufferId[0]);
     if (!par->ExtParam) return true;
-   
+
     for (mfxU32 i = 0; i < par->NumExtParam; i++)
     {
         mfxU32 j = 0;
         for (; j < num; j++)
         {
             if (par->ExtParam[i] != 0 && par->ExtParam[i]->BufferId == BufferId[j]) break;
-        } 
+        }
         if (j == num) return false;
     }
     return true;
@@ -193,7 +193,7 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
         out->mfx.GopRefDist = 1;
         out->mfx.FrameInfo.Width = 1;
         out->mfx.FrameInfo.Height = 1;
-        
+
 
         pControl->DependencyDepth = 1;
         pControl->DownScaleFactor = 1;
@@ -274,7 +274,7 @@ mfxStatus VideoENC_LA::Query(VideoCORE* pCore, mfxVideoParam *in, mfxVideoParam 
            bChanged = true;
        }
        std::copy(pControl_in->OutStream, pControl_in->OutStream + pControl_in->NumOutStream, pControl_out->OutStream);
-       
+
        if (bChanged) return MFX_ERR_INCOMPATIBLE_VIDEO_PARAM;
 
     }
@@ -316,7 +316,7 @@ mfxStatus VideoENC_LA::QueryIOSurf(VideoCORE* core, mfxVideoParam *par, mfxFrame
     request->Info                = par->mfx.FrameInfo;
 
     return MFX_ERR_NONE;
-} 
+}
 
 
 VideoENC_LA::VideoENC_LA(VideoCORE *core,  mfxStatus * sts)
@@ -331,19 +331,19 @@ VideoENC_LA::VideoENC_LA(VideoCORE *core,  mfxStatus * sts)
 
 
     *sts = MFX_ERR_NONE;
-} 
+}
 
 
 VideoENC_LA::~VideoENC_LA()
 {
     Close();
 
-} 
+}
 static mfxU16 CheckScaleFactor(mfxU16 scale, mfxU16 tu, bool b4k)
 {
-    if (((scale == 1) && (!b4k)) || (scale == 2) || (scale == 4)) 
+    if (((scale == 1) && (!b4k)) || (scale == 2) || (scale == 4))
         return scale;
-    if (scale == 1 && b4k) 
+    if (scale == 1 && b4k)
         return 2;
 
     switch (tu)
@@ -378,7 +378,7 @@ static void InitHWCaps(MFX_ENCODE_CAPS &hwCaps)
     hwCaps.ddi_caps.NoFrameCropping=1;
     hwCaps.ddi_caps.FrameLevelRateCtrl=1;
     hwCaps.ddi_caps.RawReconRefToggle=1;
-    hwCaps.ddi_caps.BRCReset=1; 
+    hwCaps.ddi_caps.BRCReset=1;
     hwCaps.ddi_caps.RollingIntraRefresh=1;
     hwCaps.ddi_caps.UserMaxFrameSizeSupport = 1;
     hwCaps.ddi_caps.VCMBitrateControl=1;
@@ -394,7 +394,7 @@ static void InitHWCaps(MFX_ENCODE_CAPS &hwCaps)
     hwCaps.ddi_caps.MaxNum_SPS_id=32;
     hwCaps.ddi_caps.MaxNum_PPS_id=255 ;
     hwCaps.ddi_caps.MaxNum_Reference1=2 ;
-    hwCaps.ddi_caps.MBBRCSupport=1; 
+    hwCaps.ddi_caps.MBBRCSupport=1;
     hwCaps.ddi_caps.MaxNumOfROI=4 ;
 
     hwCaps.ddi_caps.SkipFrame=1;
@@ -414,9 +414,9 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
     mfxExtBuffer*           pExtParam[2] = {(mfxExtBuffer*)&ddi_opt, (mfxExtBuffer*)&opaq_opt};
     mfxStatus sts = MFX_ERR_NONE;
     bool bPyramid = false;
-    
+
     par_enc.ExtParam = pExtParam;
-    par_enc.NumExtParam = sizeof(pExtParam)/sizeof(*pExtParam);  
+    par_enc.NumExtParam = sizeof(pExtParam)/sizeof(*pExtParam);
 
 
     MFX_CHECK_NULL_PTR1( par );
@@ -432,14 +432,14 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
     memset(&m_LASyncContext, 0,sizeof(m_LASyncContext));
     memset(&m_LAAsyncContext,0,sizeof(m_LAAsyncContext));
 
-    
+
     MFX_CHECK(MAX_RESOLUTIONS >= pControl->NumOutStream, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK((sizeof(pControl->OutStream)/sizeof(pControl->OutStream[0])) >= pControl->NumOutStream, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(m_LaControl.LookAheadDepth >0 , MFX_ERR_INVALID_VIDEO_PARAM);
-    MFX_CHECK(m_LaControl.DownScaleFactor == 0 ||m_LaControl.DownScaleFactor == 1 || m_LaControl.DownScaleFactor == 2 || m_LaControl.DownScaleFactor == 4, MFX_ERR_INVALID_VIDEO_PARAM);    
+    MFX_CHECK(m_LaControl.DownScaleFactor == 0 ||m_LaControl.DownScaleFactor == 1 || m_LaControl.DownScaleFactor == 2 || m_LaControl.DownScaleFactor == 4, MFX_ERR_INVALID_VIDEO_PARAM);
     MFX_CHECK(m_LaControl.LookAheadDepth > m_LaControl.DependencyDepth, MFX_ERR_INVALID_VIDEO_PARAM);
 
-    
+
 
     MFX_CHECK(CheckExtenedBuffer(par), MFX_ERR_UNDEFINED_BEHAVIOR);
 
@@ -456,7 +456,7 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
 
         MFX_CHECK_STS (InitEncoderParameters(par, &par_enc, m_core->GetHWType()));
         m_video = par_enc;
-    
+
          MFX_ENCODE_CAPS hwCaps = {};
         //MfxHwH264Encode::QueryHwCaps(m_core, hwCaps, MSDK_Private_Guid_Encode_AVC_Query);
         InitHWCaps(hwCaps);
@@ -468,10 +468,10 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
     if (m_cmDevice == NULL)
         return MFX_ERR_UNSUPPORTED;
     m_cmCtx.reset(new CmContextLA(m_video, m_cmDevice, m_core));
-    
- 
+
+
     mfxU32 numMb = m_video.calcParam.widthLa * m_video.calcParam.heightLa / 256;
-   
+
     m_VMERefList.Init(m_video.mfx.NumRefFrame, m_video.AsyncDepth > 1 ? 1 : 0, bPyramid);
 
     m_vmeDataStorage.resize (m_LaControl.DependencyDepth + m_video.AsyncDepth + m_video.mfx.NumRefFrame  + (bPyramid ? 2 : 0) + 1);
@@ -542,19 +542,19 @@ mfxStatus VideoENC_LA::Init(mfxVideoParam *par)
     m_bInit = true;
     return MFX_ERR_NONE;
 
-} 
+}
 mfxStatus VideoENC_LA::Reset(mfxVideoParam *par)
 {
     Close();
     return Init(par);
-} 
+}
 
 
 mfxStatus VideoENC_LA::GetVideoParam(mfxVideoParam *par)
 {
     MFX_CHECK(CheckExtenedBuffer(par), MFX_ERR_UNDEFINED_BEHAVIOR);
     return MFX_ERR_NONE;
-} 
+}
 
 static mfxU16  GetFrameType(mfxU32 frameOrder, mfxU32 gopSize, mfxU32 gopRefDist, mfxU32 idrDistance)
 {
@@ -574,20 +574,20 @@ static mfxU16  GetFrameType(mfxU32 frameOrder, mfxU32 gopSize, mfxU32 gopRefDist
 }
 
 mfxStatus VideoENC_LA::InsertTaskWithReordenig(sLAInputTask &newTask, bool bEndOfSequence)
-{ 
+{
     if (!bEndOfSequence)
     {
         if (m_miniGop.size() == 0)
         {
-            m_syncTasks.push_back(newTask);    
-        } 
+            m_syncTasks.push_back(newTask);
+        }
         m_miniGop.push_back(newTask);
     }
     else if (m_miniGop.size() >1)
     {
          size_t last_index = m_miniGop.size()  - 1;
          if (!bReference(m_miniGop[last_index].InputFrame.frameType))
-            m_miniGop[last_index].InputFrame.frameType = MFX_FRAMETYPE_P|MFX_FRAMETYPE_REF;    
+            m_miniGop[last_index].InputFrame.frameType = MFX_FRAMETYPE_P|MFX_FRAMETYPE_REF;
     }
 
     if (m_miniGop.size()> 1 && bReference(m_miniGop[m_miniGop.size()  - 1].InputFrame.frameType))
@@ -613,17 +613,17 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenig(sLAInputTask &newTask, bool bEndO
             MFX_CHECK_STS (m_core->IncreaseReference(&m_miniGop[i].RefFrame[0].pFrame->Data));
 
             m_miniGop[i].RefFrame[1] = m_miniGop[last_index].InputFrame;
-            MFX_CHECK_STS (m_core->IncreaseReference(&m_miniGop[i].RefFrame[1].pFrame->Data)); 
-            
+            MFX_CHECK_STS (m_core->IncreaseReference(&m_miniGop[i].RefFrame[1].pFrame->Data));
+
             m_syncTasks.push_back(m_miniGop[i]);
         }
         m_numLastB = m_miniGop[last_index].InputFrame.dispFrameOrder - m_miniGop[0].InputFrame.dispFrameOrder - 1;
         m_miniGop[0] = m_miniGop[last_index];
         m_miniGop.resize(1);
     }
-    
+
     if (bEndOfSequence)
-    { 
+    {
         m_numLastB = 0;
         m_miniGop.resize(0);
         sLAInputTask finished_task {};
@@ -635,14 +635,14 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenig(sLAInputTask &newTask, bool bEndO
 }
 
 mfxStatus VideoENC_LA::InsertTaskWithReordenigBPyr(sLAInputTask &newTask, bool bEndOfSequence)
-{ 
+{
     size_t last_index = 0;
     if (!bEndOfSequence)
     {
         if (m_miniGop.size() == 0)
         {
-            m_syncTasks.push_back(newTask);    
-        } 
+            m_syncTasks.push_back(newTask);
+        }
         m_miniGop.push_back(newTask);
         last_index = m_miniGop.size()  - 1;
     }
@@ -650,14 +650,14 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenigBPyr(sLAInputTask &newTask, bool b
     {
         last_index = m_miniGop.size()  - 1;
         if (!bReference(m_miniGop[last_index].InputFrame.frameType))
-            m_miniGop[last_index].InputFrame.frameType = MFX_FRAMETYPE_P|MFX_FRAMETYPE_REF;    
+            m_miniGop[last_index].InputFrame.frameType = MFX_FRAMETYPE_P|MFX_FRAMETYPE_REF;
     }
 
     if (m_miniGop.size() >1 && bReference(m_miniGop[last_index].InputFrame.frameType ))
     {
         MFX_CHECK(m_miniGop.size() <= 9, MFX_ERR_UNDEFINED_BEHAVIOR);
         last_index = m_miniGop.size()  - 1;
-        mfxU32 numB = (mfxU32) (last_index - 1);        
+        mfxU32 numB = (mfxU32) (last_index - 1);
 
         static mfxU32 frame_num[8][9] = {{0,1},
                                          {0,2,1},
@@ -694,7 +694,7 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenigBPyr(sLAInputTask &newTask, bool b
                                             {1,1,0,1,1,0,1},
                                             {1,1,0,1,0,1,0,1},
                                             {1,0,1,0,1,0,1,0,1}};
-        
+
         static mfxU16 layers[8][9] =        {{0,0},
                                             {0,1,0},
                                             {0,1,2,0},
@@ -730,11 +730,11 @@ mfxStatus VideoENC_LA::InsertTaskWithReordenigBPyr(sLAInputTask &newTask, bool b
             m_syncTasks.push_back(m_miniGop[frame_num[numB][i]]);
         }
         m_numLastB = m_miniGop[last_index ].InputFrame.dispFrameOrder - m_miniGop[0].InputFrame.dispFrameOrder-1;
-        m_miniGop[0] = m_miniGop[last_index ];        
+        m_miniGop[0] = m_miniGop[last_index ];
         m_miniGop.resize(1);
     }
     if (bEndOfSequence)
-    { 
+    {
         m_numLastB = 0;
         m_miniGop.resize(0);
         sLAInputTask finished_task {};
@@ -816,7 +816,7 @@ mfxStatus VideoENC_LA::ResetTaskCounters()
 {
     // TO DO
     return MFX_TASK_DONE;
-} 
+}
 
 
 static mfxStatus CompleteFrameLARoutine(void *pState, void * pParam , mfxStatus /* taskRes */)
@@ -827,7 +827,7 @@ static mfxStatus CompleteFrameLARoutine(void *pState, void * pParam , mfxStatus 
         delete (sAsyncParams *)pParam;
     }
     return pLa->ResetTaskCounters();
-} 
+}
 
 void* VideoENC_LA::GetDstForSync(MFX_ENTRY_POINT& pEntryPoint)
 {
@@ -842,7 +842,7 @@ void* VideoENC_LA::GetSrcForSync(MFX_ENTRY_POINT& pEntryPoint)
 
 
 mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
-                    mfxENCInput *input, 
+                    mfxENCInput *input,
                     mfxENCOutput *output,
                     MFX_ENTRY_POINT pEntryPoints[],
                     mfxU32 &numEntryPoints)
@@ -864,11 +864,11 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
         sLAInputTask  newTask = {};
 
         m_core->IncreaseReference(&in->Data);
-        newTask.InputFrame.dispFrameOrder = m_LASyncContext.numInput ++; 
+        newTask.InputFrame.dispFrameOrder = m_LASyncContext.numInput ++;
         //printf("Input frame %d\n", newTask.InputFrame.dispFrameOrder);
         MFX_CHECK_STS(GetNativeSurface(*m_core, m_video,in, &newTask.InputFrame.pFrame));
         newTask.InputFrame.frameType = GetFrameType(newTask.InputFrame.dispFrameOrder, m_video.mfx.GopPicSize, m_video.mfx.GopRefDist,m_video.mfx.GopPicSize*(m_video.mfx.IdrInterval + 1));
-        
+
         m_LASyncContext.pocInput = (newTask.InputFrame.frameType & MFX_FRAMETYPE_I) ? 0 : m_LASyncContext.pocInput + 2;
         newTask.InputFrame.poc = m_LASyncContext.pocInput;
 
@@ -878,17 +878,17 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
         }
         else
         {
-            MFX_CHECK_STS(InsertTaskWithReordenig(newTask, false));   // simple reordenig 
+            MFX_CHECK_STS(InsertTaskWithReordenig(newTask, false));   // simple reordenig
         }
 
-        if (m_LASyncContext.numBuffered < (mfxU32)m_video.mfx.GopRefDist + m_LaControl.LookAheadDepth) 
+        if (m_LASyncContext.numBuffered < (mfxU32)m_video.mfx.GopRefDist + m_LaControl.LookAheadDepth)
         {
             m_LASyncContext.numBuffered ++;
             sts = (mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK;
             if (m_LASyncContext.numBufferedVME < m_video.mfx.GopRefDist)
             {
                 m_LASyncContext.numBufferedVME ++;
-                sts = MFX_ERR_MORE_DATA;            
+                sts = MFX_ERR_MORE_DATA;
             }
         }
     }
@@ -903,10 +903,10 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
             }
             else
             {
-                MFX_CHECK_STS(InsertTaskWithReordenig(newTask, true));   // simple reordenig 
+                MFX_CHECK_STS(InsertTaskWithReordenig(newTask, true));   // simple reordenig
             }
 
-            m_LASyncContext.bLastFrameChecked = true; 
+            m_LASyncContext.bLastFrameChecked = true;
             //m_LASyncContext.numBufferedVME++;
         }
         sts = (m_LASyncContext.numBuffered--) > 0 ?  MFX_ERR_NONE : MFX_ERR_MORE_DATA;
@@ -931,9 +931,9 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
         }
         else
         {
-            pAsyncParams->reordered_surface = 0;        
+            pAsyncParams->reordered_surface = 0;
         }
-        
+
         //printf("Check reordered %d\n",pAsyncParams->reordered_surface->Data.FrameOrder );
 
         if (MFX_ERR_NONE == sts)
@@ -947,7 +947,7 @@ mfxStatus VideoENC_LA::RunFrameVmeENCCheck(
             pAsyncParams->stat = output;
             //printf("Check reordered1\t %x, %d\n",aux, pAsyncParams->output_surface->Data.FrameOrder );
         }
-     
+
 
         /*pEntryPoints[0].pRoutine = &SubmitFrameLARoutine;
         pEntryPoints[0].pCompleteProc =0;
@@ -1000,8 +1000,8 @@ static void PreEnc(MfxHwH264Encode::VmeData *VMEData, sSumVMEInfo& frameData, mf
     int h_in    = (height_in  + 15)>>4;
     int w_out   = (width_out  + 15)>>4;
     int h_out   = (height_out + 15)>>4;
-    float w_step = (float)w_in / ((float) w_out); 
-    float h_step = (float)h_in / ((float) h_out); 
+    float w_step = (float)w_in / ((float) w_out);
+    float h_step = (float)h_in / ((float) h_out);
 
     memset(&frameData,0,sizeof(mfxLAFrameInfo));
 
@@ -1013,10 +1013,10 @@ static void PreEnc(MfxHwH264Encode::VmeData *VMEData, sSumVMEInfo& frameData, mf
         i_last = i_last < h_in ?  i_last : h_in;
 
         for (int j = 0; j < w_out; j++)
-        {            
-            int j_last  = (int)((j + 1)*w_step);            
+        {
+            int j_last  = (int)((j + 1)*w_step);
             j_last = j_last < w_in ?  j_last : w_in;
-            
+
             int inputMBNumber = i_start*w_in + j_start;
 
             if (i_start < i_last -1 || j_start < j_last -1) //area search is used
@@ -1036,7 +1036,7 @@ static void PreEnc(MfxHwH264Encode::VmeData *VMEData, sSumVMEInfo& frameData, mf
                         }
                     }
                 }
-            }            
+            }
 
             const MfxHwH264Encode::MbData &inMB = VMEData->mb[inputMBNumber];
 
@@ -1060,14 +1060,14 @@ static void PreEnc(MfxHwH264Encode::VmeData *VMEData, sSumVMEInfo& frameData, mf
     }
     for (int qp =  51; qp > 0; qp--)
     {
-        frameData.EstimatedRate[qp - 1 ] += frameData.EstimatedRate[qp];    
+        frameData.EstimatedRate[qp - 1 ] += frameData.EstimatedRate[qp];
     }
 }
 static void PreEnc(MfxHwH264Encode::VmeData *VMEData, sSumVMEInfo& frameData, mfxF32 scale)
 {
 
      for (mfxU32 i = 0; i < VMEData->mb.size();  i++)
-     {    
+     {
         MfxHwH264Encode::MbData* currMB = &VMEData->mb[i];
         frameData.InterCost         += currMB->interCost;
         frameData.IntraCost         += currMB->intraCost;
@@ -1087,22 +1087,22 @@ static void PreEnc(MfxHwH264Encode::VmeData *VMEData, sSumVMEInfo& frameData, mf
     frameData.InterCost         = mfxU32(((mfxF32)frameData.InterCost) * scale);
     frameData.IntraCost         = mfxU32(((mfxF32)frameData.IntraCost)* scale);
     frameData.DependencyCost    = mfxU32(((mfxF32)frameData.DependencyCost)*scale);
-    frameData.EstimatedRate[51] = mfxU64(((mfxF64)frameData.EstimatedRate[51])* scale); 
+    frameData.EstimatedRate[51] = mfxU64(((mfxF64)frameData.EstimatedRate[51])* scale);
 
     for (int qp =  51; qp > 0; qp--)
     {
         frameData.EstimatedRate[qp - 1 ] = mfxU64(((mfxF64)frameData.EstimatedRate[qp - 1 ])* scale);
-        frameData.EstimatedRate[qp - 1 ] += frameData.EstimatedRate[qp];    
+        frameData.EstimatedRate[qp - 1 ] += frameData.EstimatedRate[qp];
     }
- 
+
 }
 
 static void AnalyzeVmeData(MfxHwH264Encode::VmeData * cur, MfxHwH264Encode::VmeData * l0, MfxHwH264Encode::VmeData * l1, mfxU32 width, mfxU32 height)
 {
-   
+
 
     mfxI32 w = width  >> 4;
-    mfxI32 h = height >> 4; 
+    mfxI32 h = height >> 4;
 
     for (mfxI32 y = 0; y < h; y++)
     {
@@ -1151,7 +1151,7 @@ static void AnalyzeVmeData(MfxHwH264Encode::VmeData * cur, MfxHwH264Encode::VmeD
 }
 mfxStatus CopyRawSurfaceToVideoMemory(  VideoCORE &  core,
                                         MfxHwH264Encode::MfxVideoParam const & video,
-                                        mfxFrameSurface1 *  src_sys, 
+                                        mfxFrameSurface1 *  src_sys,
                                         mfxMemId            dst_d3d,
                                         mfxHDL&             handle)
 {
@@ -1176,14 +1176,14 @@ mfxStatus CopyRawSurfaceToVideoMemory(  VideoCORE &  core,
     }
     else
     {
-        d3dSurf.MemId =  src_sys->Data.MemId;    
+        d3dSurf.MemId =  src_sys->Data.MemId;
     }
-    
-    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY && video.IOPattern != MFX_IOPATTERN_IN_SYSTEM_MEMORY) 
+
+    if (video.IOPattern != MFX_IOPATTERN_IN_OPAQUE_MEMORY && video.IOPattern != MFX_IOPATTERN_IN_SYSTEM_MEMORY)
        MFX_CHECK_STS(core.GetExternalFrameHDL(d3dSurf.MemId, &handle))
     else
        MFX_CHECK_STS(core.GetFrameHDL(d3dSurf.MemId, &handle));
-    
+
     return MFX_ERR_NONE;
 }
 
@@ -1192,8 +1192,8 @@ mfxStatus VideoENC_LA::RunFrameVmeENC(mfxENCInput * , mfxENCOutput *)
     mfxStatus sts = MFX_ERR_NONE;
     return sts;
 }
-mfxStatus VideoENC_LA::InitVMEData( sVMEFrameInfo *   pVME, 
-                                    mfxU32            EncOrder, 
+mfxStatus VideoENC_LA::InitVMEData( sVMEFrameInfo *   pVME,
+                                    mfxU32            EncOrder,
                                     mfxU32            DispOrder,
                                     mfxFrameSurface1* RawFrame,
                                     CmBufferUP *      CmMb)
@@ -1220,8 +1220,8 @@ mfxStatus VideoENC_LA::InitVMEData( sVMEFrameInfo *   pVME,
             if (!pVME->VmeData  || pVME->VmeData->encOrder > m_vmeDataStorage[i].encOrder)
             {
                 pVME->VmeData =  &(m_vmeDataStorage[i]);
-            }        
-        }  
+            }
+        }
     }
     MFX_CHECK(pVME->VmeData && (pVME->CmRawLA || m_LaControl.DownScaleFactor <2) && pVME->CmMb, MFX_ERR_NULL_PTR);
 
@@ -1359,21 +1359,21 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
 
     //if (out)
     //   printf("VideoENC_LA::QueryFrameLA %d\n",out->Data.FrameOrder);
-   
-    
+
+
     bool     bNoInput = (pInSurface == 0);
     bool     bSubmittedFrames = false;
-    bool     bRistrict = false; 
+    bool     bRistrict = false;
 
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::Query");
- 
-    bSubmittedFrames    = m_VMETasks.size() > 0;    
+
+    bSubmittedFrames    = m_VMETasks.size() > 0;
 
     if (bSubmittedFrames)
     {
-        sLADdiTask              currDDILATask = {0}; 
+        sLADdiTask              currDDILATask = {0};
         sLADdiTask*             task  = &currDDILATask;
-        
+
         {
             UMC::AutomaticUMCMutex guard(m_listMutex);
             currDDILATask = m_VMETasks.front();
@@ -1389,8 +1389,8 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
         }
 
         //printf("m_cmCtx->QueryVme %d,  %d,%d,%d,  %d, ref %d %d\n", task->m_vmeData->encOrder,task->m_vmeData->poc,task->m_vmeData->pocL0, task->m_vmeData->pocL1,task->m_vmeData->interCost, task->m_vmeDataRef[REF_FORW]==0 ? 0: task->m_vmeDataRef[REF_FORW]->encOrder, task->m_vmeDataRef[REF_BACKW]==0 ? 0: task->m_vmeDataRef[REF_BACKW]->encOrder);
-        
-        // release unused VME resources 
+
+        // release unused VME resources
         {
             ReleaseResource(m_curbe, task->m_cmCurbe);
             if (m_cmDevice)
@@ -1413,20 +1413,20 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
             frameForOutput.m_vmeDataRef[0] = task->m_Ref[0].VmeData;
             frameForOutput.m_vmeDataRef[1] = task->m_Ref[1].VmeData;
 
-            
+
             m_OutputTasks.push_back(frameForOutput);
 
             if (task->m_TaskInfo.RefFrame[0].pFrame)
                 m_core->DecreaseReference(&task->m_TaskInfo.RefFrame[0].pFrame->Data);
             if (task->m_TaskInfo.RefFrame[1].pFrame)
                 m_core->DecreaseReference(&task->m_TaskInfo.RefFrame[1].pFrame->Data);
-            
+
             if (output && (m_OutputTasks.size() < m_LaControl.DependencyDepth))
                 bRistrict = 1;
 
             if (m_OutputTasks.size() >= m_LaControl.DependencyDepth)
             {
-                std::list<sLASummaryTask>::iterator currTask = m_OutputTasks.end();               
+                std::list<sLASummaryTask>::iterator currTask = m_OutputTasks.end();
                 // zero propCost fields for last DependencyDepth tasks
                 {
                     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "ZeroVmeData");
@@ -1435,7 +1435,7 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
                     {
                         //MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "LA::xx");
                         currTask--;
-                        MfxHwH264Encode::VmeData *vme = (*currTask).m_vmeData; 
+                        MfxHwH264Encode::VmeData *vme = (*currTask).m_vmeData;
                         vme->propCost = 0;
                         for (mfxU32  k = 0 ;k< vme->mb.size(); k++)
                         {
@@ -1445,13 +1445,13 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
                 }
                 // VME for the last DependencyDepth-1 tasks
                 {
-                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "AnalyzeVmeData");                    
+                    MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, "AnalyzeVmeData");
                     currTask = m_OutputTasks.end();
                     for (int i=0; i < m_LaControl.DependencyDepth-1; i++)
                     {
                         --currTask;
                         AnalyzeVmeData((*currTask).m_vmeData, (*currTask).m_vmeDataRef[REF_FORW], (*currTask).m_vmeDataRef[REF_BACKW], m_video.calcParam.widthLa, m_video.calcParam.heightLa);
-                    } 
+                    }
                 }
                 // PreEnc for task previous last VME task (calculates frame level info)
                 std::list<sLASummaryTask>::iterator PreEncTask = currTask;
@@ -1467,25 +1467,25 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
                     mfxF32 scale2 =  (mfxF32)m_LaControl.OutStream[i].Height / (mfxF32)m_video.calcParam.heightLa;
                     if (scale1 > 1.0f && scale2 > 1.0f)
                     {
-                        PreEnc((*PreEncTask).m_vmeData, (*PreEncTask).VMESum[i], scale1*scale2);                    
+                        PreEnc((*PreEncTask).m_vmeData, (*PreEncTask).VMESum[i], scale1*scale2);
                     }
                     else
                     {
                         PreEnc((*PreEncTask).m_vmeData, (*PreEncTask).VMESum[i], m_video.calcParam.widthLa,m_video.calcParam.heightLa, m_LaControl.OutStream[i].Width,m_LaControl.OutStream[i].Height );
                     }
                 }
-                if (!((*PreEncTask).frameInfo.frameType & MFX_FRAMETYPE_REF)) 
+                if (!((*PreEncTask).frameInfo.frameType & MFX_FRAMETYPE_REF))
                 {
                     //printf("del: %d,  %d,%d,%d,  %d\n", (*PreEncTask).m_vmeData->encOrder,(*PreEncTask).m_vmeData->poc,(*PreEncTask).m_vmeData->pocL0, (*PreEncTask).m_vmeData->pocL1,(*PreEncTask).m_vmeData->interCost);
                     (*PreEncTask).m_vmeData->used = false;
                 }
             }
         }
-    } 
+    }
     // proceed buffered frames
     if ((!bSubmittedFrames && !m_LAAsyncContext.bPreEncLastFrames && bNoInput && m_OutputTasks.size() >0) || bRistrict)
     {
-        std::list<sLASummaryTask>::iterator currTask = m_OutputTasks.end(); 
+        std::list<sLASummaryTask>::iterator currTask = m_OutputTasks.end();
         for (int i = 0; i < m_LaControl.DependencyDepth; i++)
         {
             currTask --;
@@ -1495,7 +1495,7 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
                 mfxF32 scale2 =  (mfxF32)m_LaControl.OutStream[j].Height / (mfxF32)m_video.calcParam.heightLa;
                 if (scale1 > 1.0f && scale2 > 1.0f)
                 {
-                    PreEnc((*currTask).m_vmeData, (*currTask).VMESum[j], scale1*scale2);                    
+                    PreEnc((*currTask).m_vmeData, (*currTask).VMESum[j], scale1*scale2);
                 }
                 else
                 {
@@ -1509,14 +1509,14 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
     }
     else if (!bSubmittedFrames &&!bNoInput)
     {
-        return MFX_TASK_BUSY;   
-    }   
+        return MFX_TASK_BUSY;
+    }
 
     // prepare output
     if (out)
     {
         MFX_CHECK(aux, MFX_ERR_NULL_PTR);
-                
+
         sLASummaryTask frameForOutput = m_OutputTasks.front();
 
         //char task_name [40];
@@ -1524,14 +1524,14 @@ mfxStatus VideoENC_LA::QueryFrameLA(mfxFrameSurface1 *pInSurface, mfxENCOutput *
         //MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_INTERNAL, task_name);
 
         mfxU16 frameNum = (m_OutputTasks.size() > m_LaControl.LookAheadDepth) ? m_LaControl.LookAheadDepth : (mfxU16)m_OutputTasks.size();
-        frameNum = (frameNum>=m_LaControl.DependencyDepth && !m_LAAsyncContext.bPreEncLastFrames) ? frameNum - m_LaControl.DependencyDepth : frameNum;  
+        frameNum = (frameNum>=m_LaControl.DependencyDepth && !m_LAAsyncContext.bPreEncLastFrames) ? frameNum - m_LaControl.DependencyDepth : frameNum;
 
-         // summury MB data and copy into output structure           
+         // summury MB data and copy into output structure
 
         //printf("out: %d,  %d, %d\n", , out->Data.FrameOrder,  frameForOutput.frameInfo.pFrame->Data.FrameOrder);
         MFX_CHECK(aux->NumFrame*aux->NumStream <= aux->NumAlloc, MFX_ERR_MEMORY_ALLOC);
         MFX_CHECK(out == frameForOutput.frameInfo.pFrame, MFX_ERR_UNDEFINED_BEHAVIOR )
-        
+
 
         aux->NumFrame   = frameNum;
         aux->NumStream  = m_LaControl.NumOutStream;
@@ -1591,7 +1591,7 @@ mfxStatus VideoENC_LA::Close(void)
 
     return MFX_ERR_NONE;
 
-} 
+}
 
 const mfxU16 Dist10[26] =
 {
@@ -1616,7 +1616,7 @@ const mfxU16 Dist25[26] =
 namespace MfxHwH264EncodeHW
 {
 
- 
+
     void SetCosts(MfxHwH264Encode::mfxVMEUNIIn & costs,
         mfxU32        frameType,
         mfxU32        qp,
@@ -1698,7 +1698,7 @@ void CmContextLA::SetCurbeData(
     //DW1
     curbeData.MaxNumMVs             = (GetMaxMvsPer2Mb(m_video.mfx.CodecLevel) >> 1) & 0x3F;    // 8
     mfxI32 biWeight = 32;
-    if (frameType & MFX_FRAMETYPE_B) 
+    if (frameType & MFX_FRAMETYPE_B)
     {
         biWeight = CalcDistScaleFactor(task.m_TaskInfo.InputFrame.poc, task.m_TaskInfo.RefFrame[0].poc, task.m_TaskInfo.RefFrame[1].poc) >>2;
         biWeight = (biWeight < -64 || biWeight > 128)? 32: biWeight;
@@ -2005,9 +2005,9 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
         cur->mb[i].mbType        = cmMb[i].MbType5Bits;
         cur->mb[i].subMbShape    = cmMb[i].SubMbShape;
         cur->mb[i].subMbPredMode = cmMb[i].SubMbPredMode;
-        
+
         mfxI32 biWeight = 32;
-        if (task.m_TaskInfo.InputFrame.frameType & MFX_FRAMETYPE_B) 
+        if (task.m_TaskInfo.InputFrame.frameType & MFX_FRAMETYPE_B)
         {
             biWeight = CalcDistScaleFactor(task.m_TaskInfo.InputFrame.poc, task.m_TaskInfo.RefFrame[0].poc, task.m_TaskInfo.RefFrame[1].poc) >>2;
             biWeight = (biWeight < -64 || biWeight > 128)? 32: biWeight;
@@ -2034,7 +2034,6 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
 
     return MFX_ERR_NONE;
 }
-
 
 #endif  // MFX_ENABLE_H264_VIDEO_ENCODE_HW && MFX_ENABLE_LA_H264_VIDEO_HW
 
