@@ -34,6 +34,7 @@ endif()
 
 mfx_include_dirs()
 
+include_directories( ${MSDK_STUDIO_ROOT}/enctools/include )
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_LIB_ROOT}/plugin/include )
 include_directories( ${MSDK_LIB_ROOT}/scheduler/linux/include )
@@ -178,6 +179,8 @@ if( DEFINED H264LA_ENCODER_GUID )
     vm_plus
     genx
     asc
+    enctools_hw
+    mfx
     mctf_hw
     mfx_trace
     ${ITT_LIBRARIES}

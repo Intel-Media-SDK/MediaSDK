@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2018 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -511,6 +511,19 @@ if( Linux )
   if( ENABLE_WAYLAND )
     pkg_check_modules(PKG_DRM_INTEL      REQUIRED libdrm_intel)
     pkg_check_modules(PKG_WAYLAND_CLIENT REQUIRED wayland-client)
+  endif()
+endif()
+
+if (MFX_ENABLE_AENC)
+  find_library( AENC_LIBRARY libaenc.a PATHS ${CMAKE_HOME_DIRECTORY}/contrib/aenc/ )
+  if(NOT ${AENC_LIBRARY} MATCHES NOTFOUND)
+    message(STATUS "aenc library was found here ${AENC_LIBRARY}")
+
+    add_library(aenc STATIC IMPORTED GLOBAL)
+    set_target_properties(aenc PROPERTIES IMPORTED_LOCATION "${CMAKE_HOME_DIRECTORY}/contrib/aenc/libaenc.a")
+    target_include_directories(aenc INTERFACE ${CMAKE_HOME_DIRECTORY}/_studio/enctools/include)
+  else()
+    message(FATAL_ERROR "aenc library was not found!")
   endif()
 endif()
 
