@@ -97,6 +97,11 @@ _studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin ekaterina.shiryae
 /_studio/mfx_lib/encode_hw/h265/src/*fei* @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
 /_studio/mfx_lib/encode_hw/h265/include/*fei* @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
 
+# enctools:
+/_studio/enctools/ @Intel-Media-SDK/mediasdk-admin timofei.a.kulakov@intel.com olga.golikova@intel.com
+/_studio/enctools/aenc @Intel-Media-SDK/mediasdk-admin sergey.plotnikov@intel.com
+/_studio/shared/include/mfxenctools-int.h @Intel-Media-SDK/mediasdk-admin timofei.a.kulakov@intel.com olga.golikova@intel.com
+
 # samples:
 /samples/ @Intel-Media-SDK/mediasdk-admin maria.pushkina@intel.com anton.grishin@intel.com
 

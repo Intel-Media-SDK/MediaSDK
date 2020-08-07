@@ -28,6 +28,7 @@ foreach( dir ${Encoders} )
   include_directories( ${MSDK_LIB_ROOT}/encode_hw/${dir}/include )
 endforeach()
 
+include_directories( ${MSDK_STUDIO_ROOT}/enctools/include )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/shared )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/hevc/agnostic )

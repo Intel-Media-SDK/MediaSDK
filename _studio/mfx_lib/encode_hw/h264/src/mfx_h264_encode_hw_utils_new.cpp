@@ -450,20 +450,48 @@ namespace
                     break;
         return begin;
     }
+    mfxU8 * FindByFrameOrder(
+        mfxU8 *               begin,
+        mfxU8 *               end,
+        ArrayDpbFrame const & dpb,
+        mfxU32                frameOrder,
+        mfxU32                picStruct)
+    {
+        mfxU8 bff = (picStruct == MFX_PICSTRUCT_FIELD_BFF) ? 1 : 0;
+        for (; begin != end; ++begin)
+            if (dpb[*begin & 127].m_frameOrder == frameOrder)
+                if (picStruct == MFX_PICSTRUCT_PROGRESSIVE || bff == (*begin >> 7))
+                    break;
+        return begin;
+    }
 
 
     void ReorderRefPicList(
         ArrayU8x33 &                 refPicList,
         ArrayDpbFrame const &        dpb,
         mfxExtAVCRefListCtrl const & ctrl,
-        mfxU32                       numActiveRef)
+        mfxU32                       numActiveRef,
+        bool                         byExtFrameTag,
+        bool                         bEncToolsMode)
     {
         mfxU8 * begin = refPicList.Begin();
         mfxU8 * end   = refPicList.End();
 
+        mfxU8 * (*pFindRef)(
+            mfxU8 *               begin,
+            mfxU8 *               end,
+            ArrayDpbFrame const & dpb,
+            mfxU32                extFrameTag,
+            mfxU32                picStruct) =
+            ((byExtFrameTag) ?  FindByExtFrameTag :FindByFrameOrder);
+
+
+        if (bEncToolsMode && begin != end)
+            begin++; //the nearest frame shouldn't be reordered
+
         for (mfxU32 i = 0; i < 32 && ctrl.PreferredRefList[i].FrameOrder != 0xffffffff; i++)
         {
-            mfxU8 * ref = FindByExtFrameTag(
+            mfxU8 * ref = pFindRef(
                 begin,
                 end,
                 dpb,
@@ -476,7 +504,7 @@ namespace
 
         for (mfxU32 i = 0; i < 16 && ctrl.RejectedRefList[i].FrameOrder != 0xffffffff; i++)
         {
-            mfxU8 * ref = FindByExtFrameTag(
+            mfxU8 * ref = pFindRef(
                 begin,
                 end,
                 dpb,
@@ -688,6 +716,15 @@ void MfxHwH264Encode::ModifyRefPicLists(
         ArrayRefListMod &     mod0  = task.m_refPicList0Mod[fieldId];
         ArrayRefListMod &     mod1  = task.m_refPicList1Mod[fieldId];
 
+        bool BEncToolsMode = false;
+#if defined(MFX_ENABLE_ENCTOOLS)
+        mfxExtEncToolsConfig * config = GetExtBuffer(video);
+        BEncToolsMode = ((IsOn(config->AdaptiveRefB) ||
+            IsOn(config->AdaptiveRefP) ||
+            IsOn(config->AdaptiveLTR))  &&
+            task.m_internalListCtrlPresent &&
+            (task.GetPicStructForEncode() & MFX_PICSTRUCT_PROGRESSIVE));
+#endif
         ArrayU8x33 initList0 = task.m_list0[fieldId];
         ArrayU8x33 initList1 = task.m_list1[fieldId];
         mfxI32     curPicNum = task.m_picNum[fieldId];
@@ -725,7 +762,13 @@ void MfxHwH264Encode::ModifyRefPicLists(
             : extDdi.NumActiveRefBL0;
 
         mfxExtAVCRefListCtrl * ctrl = GetExtBuffer(task.m_ctrl);
-        
+        mfxExtAVCRefListCtrl   ctrl_copied = {};
+
+        if (ctrl == 0 && task.m_internalListCtrlPresent && !IsAdaptiveLtrOn(video))
+            ctrl = &task.m_internalListCtrl;
+        if (ctrl)
+            ctrl_copied = *ctrl;
+
         if (advCtrl && isField)
         {
             // check ref list control structure for interlaced case
@@ -736,6 +779,36 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 advCtrl = 0;
             }
         }
+        if (BEncToolsMode && ((task.m_type[0] & MFX_FRAMETYPE_B) ||
+                              (task.m_type[0] & MFX_FRAMETYPE_P)))
+        {
+
+            ArrayU8x33 backupList0 = list0;
+            ArrayU8x33 backupList1 = list1;
+
+            list0.Erase(
+                std::remove_if(list0.Begin(), list0.End(), RefPocIsGreaterThan(dpb, task.GetPoc(fieldId))),
+                list0.End());
+            std::sort(list0.Begin(), list0.End(), RefPocIsGreater(dpb));
+
+            if (task.m_type[0] & MFX_FRAMETYPE_B)
+            {
+                list1.Erase(
+                    std::remove_if(list1.Begin(), list1.End(), RefPocIsLessThan(dpb, task.GetPoc(fieldId))),
+                    list1.End());
+                std::sort(list1.Begin(), list1.End(), RefPocIsLess(dpb));
+            }
+
+            // keep at least one ref pic in lists
+            if (list0.Size() == 0)
+                list0.PushBack(backupList0[0]);
+            if (task.m_type[0] & MFX_FRAMETYPE_B)
+            {
+                if (list1.Size() == 0)
+                    list1.PushBack(backupList1[0]);
+            }
+
+        }
 
         bool bCanApplyRefCtrl = video.calcParam.numTemporalLayer == 0 || video.mfx.GopRefDist == 1;
 
@@ -743,7 +816,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
         if ((ctrl || advCtrl) && bCanApplyRefCtrl)
         {
             ArrayU8x33 backupList0 = list0;
-
+            bool bIntList = (ctrl == &task.m_internalListCtrl);
             if (task.m_type[fieldId] & MFX_FRAMETYPE_PB)
             {
                 if (advCtrl) // advanced ref list control has priority
@@ -754,7 +827,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 else
                 {
                     mfxU32 numActiveRefL0Final = ctrl->NumRefIdxL0Active ? std::min<mfxU32>(ctrl->NumRefIdxL0Active, numActiveRefL0) : numActiveRefL0;
-                    ReorderRefPicList(list0, dpb, *ctrl, numActiveRefL0Final);
+                    ReorderRefPicList(list0, dpb, ctrl_copied, numActiveRefL0Final, bIntList, BEncToolsMode);
                 }
             }
 
@@ -768,7 +841,7 @@ void MfxHwH264Encode::ModifyRefPicLists(
                 else
                 {
                     numActiveRefL1 = ctrl->NumRefIdxL1Active ? std::min<mfxU32>(ctrl->NumRefIdxL1Active,numMaxActiveRefL1) : numActiveRefL1;
-                    ReorderRefPicList(list1, dpb, *ctrl, numActiveRefL1);
+                    ReorderRefPicList(list1, dpb, ctrl_copied, numActiveRefL1, bIntList, BEncToolsMode);
                 }
             }
 
@@ -1073,6 +1146,7 @@ namespace
                 return lhs.m_frameNumWrap < rhs.m_frameNumWrap;
             else
                 return lhs.m_refBase > rhs.m_refBase;
+
         else if (!lhs.m_longterm && rhs.m_longterm)
             return true;
         else if (lhs.m_longterm && !rhs.m_longterm)
@@ -1080,7 +1154,26 @@ namespace
         else // both long term
             return lhs.m_longTermPicNum[0] < rhs.m_longTermPicNum[0];
     }
+    bool MfxHwH264Encode::OrderByFrameNumWrapKeyRef(DpbFrame const & lhs, DpbFrame const & rhs)
+    {
+        if (!lhs.m_longterm && !rhs.m_longterm)
+            if (lhs.m_refBase == rhs.m_refBase)
+            {
+                if (lhs.m_keyRef != rhs.m_keyRef)
+                    return (lhs.m_keyRef < rhs.m_keyRef);
+                else
+                    return lhs.m_frameNumWrap < rhs.m_frameNumWrap;
+            }
+            else
+                return lhs.m_refBase > rhs.m_refBase;
 
+        else if (!lhs.m_longterm && rhs.m_longterm)
+            return true;
+        else if (lhs.m_longterm && !rhs.m_longterm)
+            return false;
+        else // both long term
+            return lhs.m_longTermPicNum[0] < rhs.m_longTermPicNum[0];
+    }
 namespace
 {
     bool OrderByDisplayOrder(DpbFrame const & lhs, DpbFrame const & rhs)
@@ -1093,9 +1186,23 @@ namespace
             return false;
         else // both long term
             return lhs.m_frameOrder < rhs.m_frameOrder;
-
     }
-
+    bool OrderByDisplayOrderKeyRef(DpbFrame const & lhs, DpbFrame const & rhs)
+    {
+        if (!lhs.m_longterm && !rhs.m_longterm)
+        {
+            if (lhs.m_keyRef != rhs.m_keyRef)
+                return (lhs.m_keyRef < rhs.m_keyRef);
+            else
+                return lhs.m_frameOrder < rhs.m_frameOrder;
+        }
+        else if (!lhs.m_longterm && rhs.m_longterm) // anti logic, sort by short term first!?
+            return true;
+        else if (lhs.m_longterm && !rhs.m_longterm) // anti logic, sort by short term first!?
+            return false;
+        else // both long term
+            return lhs.m_frameOrder < rhs.m_frameOrder;
+    }
     struct OrderByNearestPrev
     {
         mfxU32 m_fo;
@@ -1133,6 +1240,7 @@ namespace
         ref.m_refPicFlag[!fid]  = !!(task.m_type[!fid] & MFX_FRAMETYPE_REF);
         if (task.m_fieldPicFlag)
             ref.m_refPicFlag[!fid] = 0;
+        ref.m_keyRef = task.m_keyReference;
 
         ref.m_cmHist    = task.m_cmHist;
         ref.m_cmHistSys = task.m_cmHistSys;
@@ -1215,7 +1323,7 @@ namespace
 
         if ((type & MFX_FRAMETYPE_REF) == 0)
             return; // non-reference frames don't change dpb
-        
+
         mfxExtAVCRefListCtrl const * ext_ctrl = GetExtBuffer(task.m_ctrl);
         mfxExtAVCRefListCtrl const * ctrl = (task.m_internalListCtrlPresent && (task.m_internalListCtrlHasPriority || !ext_ctrl))
             ? &task.m_internalListCtrl
@@ -1281,7 +1389,7 @@ namespace
                 for (mfxU32 i = 0; i < 16 && ctrl->RejectedRefList[i].FrameOrder != static_cast<mfxU32>(MFX_FRAMEORDER_UNKNOWN); i++)
                 {
                     DpbFrame * ref = currDpb.End();
-                    if (!useInternalFrameOrder) 
+                    if (!useInternalFrameOrder)
                     {
                         ref = std::find_if(
                             currDpb.Begin(),
@@ -1315,6 +1423,8 @@ namespace
                             }
 
                         }
+                        //printf("delete rejected from dpb for task %d: %d\n",
+                        //   task.m_frameOrder, ref->m_frameOrder);
 
                         currDpb.Erase(ref);
                     }
@@ -1468,18 +1578,18 @@ namespace
                 {
                     if (currDpb.Size() == video.mfx.NumRefFrame)
                     {
-                        DpbFrame * toRemove = std::min_element(currDpb.Begin(), currDpb.End(), OrderByFrameNumWrap);
-                        DpbFrame * toRemoveDefault = toRemove;
+                        DpbFrame * toRemove = std::min_element(currDpb.Begin(), currDpb.End(), OrderByFrameNumWrapKeyRef);
+                        DpbFrame * toRemoveDefault = std::min_element(currDpb.Begin(), currDpb.End(), OrderByFrameNumWrap);
 
                         if (toRemove != currDpb.End() && extOpt2.BRefType == MFX_B_REF_PYRAMID)
                         {
-                            toRemove = std::min_element(currDpb.Begin(), currDpb.End(), OrderByDisplayOrder);
+                            toRemove = std::min_element(currDpb.Begin(), currDpb.End(), OrderByDisplayOrderKeyRef);
                         }
 
                         assert(toRemove != currDpb.End());
                         if (toRemove == currDpb.End())
                             return;
-
+                        //printf("delete from dpb for task %d: %d\n", task.m_frameOrder, toRemove->m_frameOrder);
                         if (toRemove->m_longterm == 1)
                         {
                             // no short-term reference in dpb
@@ -1518,6 +1628,10 @@ namespace
         MfxVideoParam const & video,
         DdiTask &             task)
     {
+        if (task.m_internalListCtrlPresent &&
+            video.calcParam.numTemporalLayer == 0)
+            return MFX_ERR_NONE;
+
         task.m_internalListCtrlPresent = false;
         task.m_internalListCtrlHasPriority = true;
         task.m_internalListCtrlRefModLTR = false;
@@ -1576,7 +1690,7 @@ namespace
                 task.m_LtrOrder = task.m_frameOrder;
             }
             else if ((task.m_type[0] & MFX_FRAMETYPE_REF) && task.m_frameLtrOff == 0 && task.m_frameLtrReassign != 1 && numActiveRefL0 > 1
-                && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2)) 
+                && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2))
             {
                 DpbFrame const * ltr = 0;
                 DpbFrame const * i = task.m_dpb[0].Begin();
@@ -1637,9 +1751,9 @@ namespace
                         task.m_internalListCtrlHasPriority = false;
                         task.m_LtrOrder = task.m_RefOrder;
                         task.m_LtrQp    = task.m_RefQp;
-                        
-                        if (numActiveRefL0 > 1 && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2) 
-                            && ref->m_frameOrder != p->m_frameOrder) 
+
+                        if (numActiveRefL0 > 1 && (numActiveRefL0 < video.mfx.NumRefFrame || video.mfx.NumRefFrame > 2)
+                            && ref->m_frameOrder != p->m_frameOrder)
                         {
                             task.m_internalListCtrlRefModLTR = true;
                         }
@@ -1696,7 +1810,7 @@ DdiTaskIter MfxHwH264Encode::ReorderFrame(
     DdiTaskIter prev = top;
     if(prev != end && prev != begin){            //special case for custom IDR frame
         --prev;                                  //we just change previous B-frame to P-frame
-        if((top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR 
+        if((top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR
             || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_I) && closeGopForSceneChange && top->m_SceneChange)  // Also Do it for scene change I frame
             || ((top->m_ctrl.FrameType & MFX_FRAMETYPE_P) && closeGopForSceneChange && top->m_SceneChange)) // Also Do it for scene change B-> P frame
             && prev->GetFrameType() & MFX_FRAMETYPE_B && !gopStrict)
@@ -1723,7 +1837,7 @@ DdiTaskIter MfxHwH264Encode::ReorderFrame(
             assert(top != end || begin == end);
         }
     }
-    else if (!top->m_frameLtrOff && top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR)
+    else if (prev != end &&!top->m_frameLtrOff && top->m_ctrl.FrameType & MFX_FRAMETYPE_IDR)
     {
         // Mini LA
         DdiTaskIter next = top;
@@ -1812,7 +1926,7 @@ IntraRefreshState MfxHwH264Encode::GetIntraRefreshState(
 
         state.IntraSize = ((USHORT)divider.GetNumMbInSlice() / (video.mfx.FrameInfo.Width >> 4));
         state.IntraLocation = ((USHORT)divider.GetFirstMbInSlice() / (video.mfx.FrameInfo.Width >> 4));
-        
+
         if ((state.IntraLocation == 0) && (!state.firstFrameInCycle))
         {
             state.IntraSize = 0; // no refresh between cycles
@@ -2039,15 +2153,21 @@ mfxU32 GetEncodingOrder(mfxU32 displayOrder, mfxU32 begin, mfxU32 end, mfxU32 &l
 
 BiFrameLocation MfxHwH264Encode::GetBiFrameLocation(
     MfxVideoParam const & video,
-    mfxU32                frameOrder)
+    mfxU32                frameOrder,
+    mfxU32                currGopRefDist,
+    mfxU32                miniGOPCount)
 {
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
 
     mfxU32 gopPicSize = video.mfx.GopPicSize;
-    mfxU32 gopRefDist = video.mfx.GopRefDist;
     mfxU32 biPyramid  = extOpt2.BRefType;
 
     BiFrameLocation loc;
+
+    currGopRefDist = (currGopRefDist > 0) ?
+        std::min<mfxU32>(currGopRefDist, video.mfx.GopRefDist) :
+        video.mfx.GopRefDist;
+
 
     if (gopPicSize == 0xffff) //infinite GOP
         gopPicSize = 0xffffffff;
@@ -2055,10 +2175,10 @@ BiFrameLocation MfxHwH264Encode::GetBiFrameLocation(
     if (biPyramid != MFX_B_REF_OFF)
     {
         bool ref = false;
-        mfxU32 orderInMiniGop = frameOrder % gopPicSize % gopRefDist - 1;
+        mfxU32 orderInMiniGop = std::max<mfxI32>(frameOrder % gopPicSize % currGopRefDist, 1) - 1;
         loc.level = 1;
-        loc.encodingOrder = GetEncodingOrder(orderInMiniGop, 0, gopRefDist - 1, loc.level ,0, ref);
-        loc.miniGopCount  = frameOrder % gopPicSize / gopRefDist;
+        loc.encodingOrder = GetEncodingOrder(orderInMiniGop, 0, currGopRefDist - 1, loc.level ,0, ref);
+        loc.miniGopCount  = miniGOPCount;
         loc.refFrameFlag  = mfxU16(ref ? MFX_FRAMETYPE_REF : 0);
     }
 
@@ -2115,6 +2235,7 @@ void MfxHwH264Encode::ConfigureTask(
 
 
     task.m_isUseRawRef = IsOn(extOpt2.UseRawRef);
+    task.m_isSkipped = false;
     if (task.m_isUseRawRef && extOpt2Runtime)
       task.m_isUseRawRef = !IsOff(extOpt2Runtime->UseRawRef);
 
@@ -2473,10 +2594,29 @@ mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
 
     return MFX_ERR_NONE;
 }
+bool MfxHwH264Encode::IsFrameToSkip(DdiTask&  task, MfxFrameAllocResponse & poolRec, std::vector<mfxU32> fo, bool bSWBRC)
+{
+    if (task.m_isSkipped)
+        return true;
+
+    mfxI32 fid = task.m_fid[0];
+    if (task.m_list1[fid].Size() && bSWBRC && (task.GetFrameType() & MFX_FRAMETYPE_B))
+    {
+        mfxU8 ind = task.m_list1[fid][0] & 127;
+        if (ind < 15 )
+        {
+            ArrayDpbFrame & dpb = task.m_dpb[0];
+            mfxU32 idxRec = mfxU32(std::find(fo.begin(), fo.end(), dpb[ind].m_frameOrder) - fo.begin());
+            return ((poolRec.GetFlag(idxRec) & H264_FRAME_FLAG_SKIPPED) != 0);
+        }
+    }
+    return false;
+}
 mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
                                                 MfxVideoParam const &  video,
                                                 DdiTask&       task,
-                                                MfxFrameAllocResponse & pool)
+                                                MfxFrameAllocResponse & pool,
+                                                MfxFrameAllocResponse & poolRec)
 {
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -2516,8 +2656,10 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
     else
     {
         mfxI32 fid = task.m_fid[0];
-        MFX_CHECK(task.m_list0[fid].Size(), MFX_ERR_UNDEFINED_BEHAVIOR);
-        DpbFrame& refFrame = task.m_dpb[0][task.m_list0[fid][0] & 127];
+        mfxU8 ind = ((task.GetFrameType() & MFX_FRAMETYPE_B)  && task.m_list1[fid].Size() != 0) ? task.m_list1[fid][0] : task.m_list0[fid][0];
+        MFX_CHECK(ind < 15, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+        DpbFrame& refFrame = task.m_dpb[0][ind];
         mfxFrameData curr = {};
         mfxFrameData ref = {};
         curr.MemId = task.m_midRaw;
@@ -2525,10 +2667,17 @@ mfxStatus MfxHwH264Encode::CodeAsSkipFrame(     VideoCORE &            core,
 
         mfxFrameSurface1 surfSrc = { {0,}, video.mfx.FrameInfo, ref  };
         mfxFrameSurface1 surfDst = { {0,}, video.mfx.FrameInfo, curr };
-        sts = core.DoFastCopyWrapper(&surfDst,MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME|MFX_MEMTYPE_DXVA2_DECODER_TARGET|MFX_MEMTYPE_FROM_ENCODE);
+        if ((poolRec.GetFlag(refFrame.m_frameIdx) & H264_FRAME_FLAG_READY) != 0)
+        {
+            sts = core.DoFastCopyWrapper(&surfDst, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE, &surfSrc, MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE);
 
+            if (ind != 0)
+                poolRec.SetFlag(refFrame.m_frameIdx, H264_FRAME_FLAG_SKIPPED);
+        }
+        else
+            return MFX_WRN_DEVICE_BUSY;
     }
-
+    poolRec.SetFlag(task.m_idxRecon, H264_FRAME_FLAG_SKIPPED);
     return sts;
 }
 
@@ -3151,21 +3300,22 @@ AsyncRoutineEmulator::AsyncRoutineEmulator()
     Zero(m_queueFlush);
 }
 
-AsyncRoutineEmulator::AsyncRoutineEmulator(MfxVideoParam const & video)
+AsyncRoutineEmulator::AsyncRoutineEmulator(MfxVideoParam const & video, mfxU32  adaptGopDelay)
 {
-    Init(video);
+    Init(video, adaptGopDelay);
 }
 
-void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
+void AsyncRoutineEmulator::Init(MfxVideoParam const & video, mfxU32  adaptGopDelay)
 {
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
+
 
     switch (video.mfx.RateControlMethod)
     {
     case MFX_RATECONTROL_CQP:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
-        m_stageGreediness[STG_WAIT_SCD] = 1;
+        m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
@@ -3185,7 +3335,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
     case MFX_RATECONTROL_LA_HRD:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
-        m_stageGreediness[STG_WAIT_SCD] = 1;
+        m_stageGreediness[STG_WAIT_SCD] = 1 + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
@@ -3198,7 +3348,7 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
     default:
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
-        m_stageGreediness[STG_WAIT_SCD] = IsExtBrcSceneChangeSupported(video) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1;
+        m_stageGreediness[STG_WAIT_SCD] = (IsExtBrcSceneChangeSupported(video) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1) + adaptGopDelay;
         m_stageGreediness[STG_START_MCTF]   = 1;
         m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
