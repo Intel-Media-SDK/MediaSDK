@@ -1152,15 +1152,15 @@ UMC_AV1_DECODER::AV1DecoderFrame* VideoDECODEAV1::GetFrameToDisplay()
 
 inline void CopyFilmGrainParam(mfxExtAV1FilmGrainParam &extBuf, UMC_AV1_DECODER::FilmGrainParams const& par)
 {
-    extBuf.Flags = 0;
+    extBuf.FilmGrainFlags = 0;
 
     if (par.apply_grain)
-        extBuf.Flags |= MFX_FILM_GRAIN_APPLY;
+        extBuf.FilmGrainFlags |= MFX_FILM_GRAIN_APPLY;
 
     extBuf.GrainSeed = (mfxU16)par.grain_seed;
 
     if (par.update_grain)
-        extBuf.Flags |= MFX_FILM_GRAIN_UPDATE;
+        extBuf.FilmGrainFlags |= MFX_FILM_GRAIN_UPDATE;
 
     extBuf.RefIdx = (mfxU8)par.film_grain_params_ref_idx;
 
@@ -1172,7 +1172,7 @@ inline void CopyFilmGrainParam(mfxExtAV1FilmGrainParam &extBuf, UMC_AV1_DECODER:
     }
 
     if (par.chroma_scaling_from_luma)
-        extBuf.Flags |= MFX_FILM_GRAIN_CHROMA_SCALING_FROM_LUMA;
+        extBuf.FilmGrainFlags |= MFX_FILM_GRAIN_CHROMA_SCALING_FROM_LUMA;
 
     extBuf.NumCbPoints = (mfxU8)par.num_cb_points;
     extBuf.NumCrPoints = (mfxU8)par.num_cr_points;
@@ -1206,10 +1206,10 @@ inline void CopyFilmGrainParam(mfxExtAV1FilmGrainParam &extBuf, UMC_AV1_DECODER:
     extBuf.CrOffset = (mfxU16)par.cr_offset;
 
     if (par.overlap_flag)
-        extBuf.Flags |= MFX_FILM_GRAIN_OVERLAP;
+        extBuf.FilmGrainFlags |= MFX_FILM_GRAIN_OVERLAP;
 
     if (par.clip_to_restricted_range)
-        extBuf.Flags |= MFX_FILM_GRAIN_CLIP_TO_RESTRICTED_RANGE;
+        extBuf.FilmGrainFlags |= MFX_FILM_GRAIN_CLIP_TO_RESTRICTED_RANGE;
 }
 
 mfxStatus VideoDECODEAV1::FillOutputSurface(mfxFrameSurface1** surf_out, mfxFrameSurface1* surface_work, UMC_AV1_DECODER::AV1DecoderFrame* pFrame)

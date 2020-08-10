@@ -2394,7 +2394,7 @@ MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
 
-    mfxU16 Flags;           /* FilmGrainFlags */
+    mfxU16 FilmGrainFlags;  /* FilmGrainFlags */
     mfxU16 GrainSeed;       /* 0..65535 */
 
     mfxU8  RefIdx;          /* 0..6  */

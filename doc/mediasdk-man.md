@@ -9400,7 +9400,7 @@ This enumerator is available since SDK API 1.30.
 
 **Description**
 
-The `AV1FilmGrainFlags` enumerator indicates flags in AV1 film grain parameters. The flags are equivalent to respective syntax elements from film_grain_params() section of uncompressed header. These values are used with the [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam)**::Flags** parameter.
+The `AV1FilmGrainFlags` enumerator indicates flags in AV1 film grain parameters. The flags are equivalent to respective syntax elements from film_grain_params() section of uncompressed header. These values are used with the [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam)**::FilmGrainFlags** parameter.
 
 **Name/Description**
 
