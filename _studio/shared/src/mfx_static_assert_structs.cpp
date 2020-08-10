@@ -350,6 +350,10 @@
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtDecVideoProcessing     ,132  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtChromaLocInfo          ,32   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMBQP                   ,64   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxQPandMode                 ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtInsertHeaders          ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncoderIPCMArea        ,40   )
+        MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtEncoderIPCMArea::area  ,32   ) 
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMBForceIntra           ,64   )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtHEVCTiles              ,160  )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtMBDisableSkipMap       ,64   )
@@ -1373,6 +1377,25 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,NumQPAlloc                    ,52   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,QP                            ,56   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,DeltaQP                       ,56   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,QPmode                        ,56   )
+
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQPandMode                       ,QP                            ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQPandMode                       ,DeltaQP                       ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQPandMode                       ,Mode                          ,2    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtInsertHeaders                ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtInsertHeaders                ,SPS                           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtInsertHeaders                ,PPS                           ,10   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea              ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea              ,NumArea                       ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea              ,Areas                         ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Left                          ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Top                           ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Right                         ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Bottom                        ,12   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBForceIntra                 ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBForceIntra                 ,MapSize                       ,52   )
@@ -2151,6 +2174,24 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,NumQPAlloc                    ,52   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,QP                            ,56   )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,DeltaQP                       ,56   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBQP                         ,QPmode                        ,56   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQPandMode                       ,QP                            ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQPandMode                       ,DeltaQP                       ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxQPandMode                       ,Mode                          ,2    )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtInsertHeaders                ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtInsertHeaders                ,SPS                           ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtInsertHeaders                ,PPS                           ,10   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea              ,Header                        ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea              ,NumArea                       ,28   )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea              ,Areas                         ,32   )
+
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Left                          ,0    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Top                           ,4    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Right                         ,8    )
+        MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtEncoderIPCMArea::area        ,Bottom                        ,12   )
 
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBForceIntra                 ,Header                        ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtMBForceIntra                 ,MapSize                       ,52   )

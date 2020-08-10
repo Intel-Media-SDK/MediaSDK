@@ -1307,6 +1307,38 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtMBQP &E
     return str;
 }
 
+std::string DumpContext::dump(const std::string structName, const  mfxExtEncoderIPCMArea &ExtEncoderIPCMArea)
+{
+    std::string str;
+    str += dump(structName + ".Header", ExtEncoderIPCMArea.Header) + "\n";
+    str += structName + ".reserve1[]=" + DUMP_RESERVED_ARRAY(ExtEncoderIPCMArea.reserve1) + "\n";
+    str += structName + ".NumArea=" + ToString(ExtEncoderIPCMArea.NumArea) + "\n";
+    // dump Area
+    if (ExtEncoderIPCMArea.Areas == nullptr)
+    {
+        str += structName + ".Areas = nullptr \n";
+        return str;
+    }
+ 
+    for (mfxU16 i = 0; i < ExtEncoderIPCMArea.NumArea; i++) {
+        str += structName + ".Areas[" + ToString(i) + "].Left=" + ToString(ExtEncoderIPCMArea.Areas[i].Left) + "\n";
+        str += structName + ".Areas[" + ToString(i) + "].Top=" + ToString(ExtEncoderIPCMArea.Areas[i].Top) + "\n";
+        str += structName + ".Areas[" + ToString(i) + "].Right=" + ToString(ExtEncoderIPCMArea.Areas[i].Right) + "\n";
+        str += structName + ".Areas[" + ToString(i) + "].Bottom=" + ToString(ExtEncoderIPCMArea.Areas[i].Bottom) + "\n";
+        str += structName + ".Areas[" + ToString(i) + "].reserved2=" +  DUMP_RESERVED_ARRAY(ExtEncoderIPCMArea.Areas[i].reserved2) + "\n";
+    }
+    return str;
+}
+
+std::string DumpContext::dump(const std::string structName, const  mfxExtInsertHeaders& ExtInsertHeaders)
+{
+    std::string str;
+    str += dump(structName + ".Header", ExtInsertHeaders.Header) + "\n";
+    str += structName + ".SPS="  + ToString(ExtInsertHeaders.SPS) + "\n";
+    str += structName + ".PPS=" + ToString(ExtInsertHeaders.PPS) + "\n";
+    return str;
+}
+
 #if (MFX_VERSION >= 1025)
 std::string DumpContext::dump(const std::string structName, const  mfxExtMasteringDisplayColourVolume &_struct) {
     std::string str;

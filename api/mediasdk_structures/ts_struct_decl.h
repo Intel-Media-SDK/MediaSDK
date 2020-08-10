@@ -1042,10 +1042,35 @@ STRUCT(mfxExtLAControl,
 
 )
 
+STRUCT(mfxQPandMode,
+    FIELD_T(mfxU8,  QP)
+    FIELD_T(mfxU16, Mode)
+)
+
 STRUCT(mfxExtMBQP,
     FIELD_S(mfxExtBuffer, Header)
     FIELD_T(mfxU32      , NumQPAlloc)
     FIELD_T(mfxU8*      , QP)
+)
+
+STRUCT(mfxExtInsertHeaders,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16, SPS)
+    FIELD_T(mfxU16, PPS)
+)
+
+
+STRUCT(mfxExtEncoderIPCMArea_area,
+    FIELD_T(mfxU32, Left    )
+    FIELD_T(mfxU32, Top     )
+    FIELD_T(mfxU32, Right   )
+    FIELD_T(mfxU32, Bottom  )
+)
+
+STRUCT(mfxExtEncoderIPCMArea,
+    FIELD_S(mfxExtBuffer, Header)
+    FIELD_T(mfxU16      , NumArea)
+    FIELD_T(mfxExtEncoderIPCMArea_area*, Areas)
 )
 
 STRUCT(mfxExtChromaLocInfo,
