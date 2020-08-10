@@ -822,7 +822,8 @@ namespace MPEG2EncoderHW
                 out->mfx.CodecLevel = MFX_LEVEL_UNKNOWN;
                 bWarning = true;
             }
-            if (CorrectProfileLevelMpeg2(out->mfx.CodecProfile, out->mfx.CodecLevel,
+            if (out->mfx.FrameInfo.FrameRateExtD != 0 &&
+                CorrectProfileLevelMpeg2(out->mfx.CodecProfile, out->mfx.CodecLevel,
                 out->mfx.FrameInfo.Width, out->mfx.FrameInfo.Height,
                 CalculateUMCFramerate(out->mfx.FrameInfo.FrameRateExtN, out->mfx.FrameInfo.FrameRateExtD),
                 out->mfx.RateControlMethod == MFX_RATECONTROL_CQP ? 0 : (mfxU32)(out->mfx.TargetKbps * out->mfx.BRCParamMultiplier * BRC_BITS_IN_KBIT),
