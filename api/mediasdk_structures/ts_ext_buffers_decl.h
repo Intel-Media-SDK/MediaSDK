@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -73,6 +73,9 @@ EXTBUF(mfxExtVP9Segmentation             , MFX_EXTBUFF_VP9_SEGMENTATION         
 EXTBUF(mfxExtVP9TemporalLayers           , MFX_EXTBUFF_VP9_TEMPORAL_LAYERS             )
 EXTBUF(mfxExtVP9Param                    , MFX_EXTBUFF_VP9_PARAM                       )
 #endif
+EXTBUF(mfxExtEncoderIPCMArea             , MFX_EXTBUFF_ENCODER_IPCM_AREA               )
+EXTBUF(mfxExtInsertHeaders               , MFX_EXTBUFF_INSERT_HEADERS                  )
+
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
 EXTBUF(mfxExtAVCScalingMatrix            , MFX_EXTBUFF_AVC_SCALING_MATRIX              )
 EXTBUF(mfxExtDPB                         , MFX_EXTBUFF_DPB                             )
