@@ -146,6 +146,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_NumFramesForReset(0),
     isHEVCSW(false),
     m_bInsertIDR(false),
+    m_rawInput(false),
     m_FrameNumberPreference(0xFFFFFFFF),
     m_MaxFramesForTranscode(0xFFFFFFFF),
     m_pBSProcessor(NULL),
