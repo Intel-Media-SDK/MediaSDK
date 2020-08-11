@@ -83,6 +83,7 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
         if(!loader->dlhandle)
             loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
         if (!loader->dlhandle){
+            free(loader);
             Log::WriteLog(context.dump("ver", ver));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NOT_FOUND));
@@ -189,6 +190,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         if(!loader->dlhandle)
             loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
         if (!loader->dlhandle){
+            free(loader);
             Log::WriteLog(context.dump("par", par));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NOT_FOUND));
