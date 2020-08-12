@@ -533,7 +533,9 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
 
         memset(&task, 0, sizeof(MFX_TASK));
         mfxRes = session->m_pDECODE->DecodeFrameCheck(bs, surface_work, surface_out, &task.entryPoint);
-        MFX_CHECK(mfxRes >= 0 || MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes), mfxRes);
+        MFX_CHECK(mfxRes >= 0 || MFX_ERR_MORE_DATA_SUBMIT_TASK == static_cast<int>(mfxRes)
+                  || MFX_ERR_MORE_DATA == static_cast<int>(mfxRes)
+                  || MFX_ERR_MORE_SURFACE == static_cast<int>(mfxRes), mfxRes);
 
         // source data is OK, go forward
         if (task.entryPoint.pRoutine)
