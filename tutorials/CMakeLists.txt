@@ -1,4 +1,4 @@
-# Copyright (c) 2019 Intel Corporation
+# Copyright (c) 2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ if( PKG_LIBDRM_FOUND )
   add_subdirectory(simple_3_encode_vmem)
   add_subdirectory(simple_3_encode_hevc10)
   add_subdirectory(simple_3_encode_vmem_async)
+  add_subdirectory(simple_4_vpp_resize)
   add_subdirectory(simple_4_vpp_resize_denoise)
   add_subdirectory(simple_4_vpp_resize_denoise_vmem)
   add_subdirectory(simple_5_transcode)
