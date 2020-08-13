@@ -39,3 +39,14 @@ python3 ted.py
 High level results in a form PASS/FAIL will be available in a console output.
 
 Full logs will be available at `results` folder relative to ted.py location.
+
+# Unit tests
+
+Unit tests should be enabled and run as follows:
+```console
+mkdir build
+cd build
+cmake -DBUILD_TESTS=ON ..
+make
+make test
+```
