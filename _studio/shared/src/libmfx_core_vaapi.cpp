@@ -381,6 +381,13 @@ typedef struct {
     { 0x4906, MFX_HW_DG1, MFX_GT2 },
     { 0x4908, MFX_HW_DG1, MFX_GT2 },
 
+    /* RKL */
+    { 0x4C80, MFX_HW_RKL, MFX_GT1 },
+    { 0x4C8A, MFX_HW_RKL, MFX_GT1 },
+    { 0x4C81, MFX_HW_RKL, MFX_GT1 },
+    { 0x4C8B, MFX_HW_RKL, MFX_GT1 },
+    { 0x4C90, MFX_HW_RKL, MFX_GT1 },
+    { 0x4C9A, MFX_HW_RKL, MFX_GT1 },
 };
 
 /* END: IOCTLs definitions */
