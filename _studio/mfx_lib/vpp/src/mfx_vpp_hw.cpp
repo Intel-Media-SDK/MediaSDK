@@ -2300,6 +2300,7 @@ mfxStatus  VideoVPPHW::Init(
                 break;
             case MFX_HW_TGL_LP:
             case MFX_HW_DG1:
+            case MFX_HW_RKL:
                 res = m_pCmDevice->LoadProgram((void*)genx_fcopy_gen12lp,sizeof(genx_fcopy_gen12lp),m_pCmProgram,"nojitter");
                 break;
 #endif
