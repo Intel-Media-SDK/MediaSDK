@@ -1491,6 +1491,65 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVP9Para
 #endif
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
+std::string DumpContext::dump(const std::string structName, const mfxExtAV1FilmGrainParam &_struct)
+{
+    std::string str;
+    str += dump(structName + ".Header", _struct.Header) + "\n";
+    DUMP_FIELD(FilmGrainFlags);
+    DUMP_FIELD(GrainSeed);
+    DUMP_FIELD(RefIdx);
+    DUMP_FIELD(NumYPoints);
+    DUMP_FIELD(NumCbPoints);
+    DUMP_FIELD(NumCrPoints);
+
+    for (mfxU16 i = 0; i < 14 && i < _struct.NumYPoints; i++)
+    {
+        str += dump(structName + ".PointY[" + ToString(i) + "].Value", _struct.PointY[i].Value) + "\n";
+        str += dump(structName + ".PointY[" + ToString(i) + "].Scaling", _struct.PointY[i].Scaling) + "\n";
+    }
+
+    for (mfxU16 i = 0; i < 10 && i < _struct.NumCbPoints; i++)
+    {
+        str += dump(structName + ".PointCb[" + ToString(i) + "].Value", _struct.PointCb[i].Value) + "\n";
+        str += dump(structName + ".PointCb[" + ToString(i) + "].Scaling", _struct.PointCb[i].Scaling) + "\n";
+    }
+
+    for (mfxU16 i = 0; i < 10 && i < _struct.NumCrPoints; i++)
+    {
+        str += dump(structName + ".PointCr[" + ToString(i) + "].Value", _struct.PointCr[i].Value) + "\n";
+        str += dump(structName + ".PointCr[" + ToString(i) + "].Scaling", _struct.PointCr[i].Scaling) + "\n";
+    }
+
+    DUMP_FIELD(GrainScalingMinus8);
+    DUMP_FIELD(ArCoeffLag);
+
+    for (mfxU16 i = 0; i < 24; i++)
+    {
+        str += dump(structName + ".ArCoeffsYPlus128[" + ToString(i) + "]", _struct.ArCoeffsYPlus128[i]) + "\n";
+    }
+
+    for (mfxU16 i = 0; i < 25; i++)
+    {
+        str += dump(structName + ".ArCoeffsCbPlus128[" + ToString(i) + "]", _struct.ArCoeffsCbPlus128[i]) + "\n";
+        str += dump(structName + ".ArCoeffsCrPlus128[" + ToString(i) + "]", _struct.ArCoeffsCrPlus128[i]) + "\n";
+    }
+
+    DUMP_FIELD(ArCoeffShiftMinus6);
+    DUMP_FIELD(GrainScaleShift);
+    DUMP_FIELD(CbMult);
+    DUMP_FIELD(CbLumaMult);
+    DUMP_FIELD(CbOffset);
+    DUMP_FIELD(CrMult);
+    DUMP_FIELD(CrLumaMult);
+    DUMP_FIELD(CrOffset);
+
+    str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(_struct.reserved) + "\n";
+
+    return str;
+}
+#endif
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
 std::string DumpContext::dump(const std::string structName, const mfxExtAVCScalingMatrix &_struct)
 {
     std::string str;
