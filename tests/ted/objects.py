@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Intel Corporation
+# Copyright (c) 2017-2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,10 +31,12 @@ class ConfigurationError(Exception):
 _BUILTIN_CODECS = {
     'h264',
     'mpeg2',
+    'jpeg',
 }
 
 _PLUGIN_CODECS = {
     'h265',
+    'vp8',
 }
 
 
