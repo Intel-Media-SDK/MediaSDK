@@ -1,0 +1,6 @@
+{
+    "type": "decode",
+    "stream": "test_stream.jpg",
+    "async": [1, 4],
+    "vaapi": [true, false]
+}

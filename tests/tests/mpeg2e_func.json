@@ -1,0 +1,9 @@
+{
+  "type": "encode",
+  "stream": "test_stream_176x96.yuv",
+  "async": [1, 4],
+  "codec": "mpeg2",
+  "target_usage": ["quality", "balanced", "speed"],
+  "qp": 32,
+  "vaapi": [true, false]
+}
