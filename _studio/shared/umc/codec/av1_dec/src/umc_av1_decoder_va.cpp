@@ -71,7 +71,11 @@ namespace UMC_AV1_DECODER
         if (firstSubmission)
         {
             // it's first submission for current frame - need to call BeginFrame
-            sts = va->BeginFrame(frame.GetMemID()); // TODO: [Rev0.85] Clarify with Ce which surface index to send: recon of display
+#ifdef UMC_VA_LINUX
+            sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
+#else
+            sts = va->BeginFrame(frame.GetMemID());
+#endif
             if (sts != UMC::UMC_OK)
                 return sts;
 
