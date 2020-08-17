@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -240,6 +240,8 @@ public:
     mfxI32   mMinQstepCmplxKPUpdt;
     mfxF64   mMinQstepCmplxKPUpdtErr;
 
+    mfxU32  codecId;
+
 public:
     cBRCParams() :
         rateControlMethod(0),
@@ -411,10 +413,10 @@ public:
     mfxStatus Update (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl, mfxBRCFrameStatus* status);
 
 protected:
-    mfxI32 GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef);
-    mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef);
-    mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef);
-    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong);
+    mfxI32 GetCurQP(mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ);             // Get QP for current frame
+    mfxI32 GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ);  // Get P-QP from QP of given frame
+    mfxI32 GetPicQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ);  // Get QP for given frame from P-QP
+    mfxF64 ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 clsAPQ);
 };
 }
 namespace HEVCExtBRC
@@ -473,6 +475,3 @@ namespace HEVCExtBRC
 
 #endif
 #endif
-
-
-

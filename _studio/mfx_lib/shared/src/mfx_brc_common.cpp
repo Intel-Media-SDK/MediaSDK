@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -141,6 +141,8 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool fieldMode)
               par->mfx.RateControlMethod == MFX_RATECONTROL_VBR,
               MFX_ERR_UNDEFINED_BEHAVIOR);
     bFieldMode = fieldMode;
+    codecId    = par->mfx.CodecId;
+
     mfxU32 k = par->mfx.BRCParamMultiplier == 0 ?  1: par->mfx.BRCParamMultiplier;
     mfxU32 bpsScale  = (par->mfx.CodecId == MFX_CODEC_AVC) ? 10 : 6;
 
@@ -192,10 +194,14 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool fieldMode)
     bPyr = (pExtCO2 && pExtCO2->BRefType == MFX_B_REF_PYRAMID);
     maxFrameSizeInBits  = pExtCO2 ? pExtCO2->MaxFrameSize*8 : 0;
 
-    fAbPeriodLong = 100;
-    fAbPeriodShort = 6;
-    dqAbPeriod = 100;
-    bAbPeriod = 100;
+    fAbPeriodLong = 120;
+    if (gopRefDist <= 3) {
+        fAbPeriodShort = 6;
+    } else {
+        fAbPeriodShort = 16;
+    }
+    dqAbPeriod = 120;
+    bAbPeriod = 120;
 
     if (maxFrameSizeInBits)
     {
@@ -497,7 +503,49 @@ void cHRD::Init(mfxU32 buffSizeInBytes, mfxU32 delayInBytes, mfxF64 inputBitsPer
 
 }
 
-void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx  &ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef)
+// Get QP Offset for given frame and Adaptive Pyramid QP class 
+// level = Pyramid level or Layer for 8GOP Pyramid, value [1-3]
+// isRef = zero for non-reference frame
+// clsAPQ = Adaptive Pyramid QP class, value [0-1]
+// -----------------------------------
+//                Offset Table
+// clsAPQ | level1   level2   level3
+// -----------------------------------
+//        | ref nref ref nref ref nref
+// 0      | 0   1    1   2    2   3
+// 1      | 2   2    3   3    5   5
+// -----------------------------------
+// QP Offset is realtive QuantB.
+// QuantB = QuantP+1
+// clsAPQ=0, can be for used non 8GOP and/or non Pyramid cases.
+
+mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 clsAPQ)
+{
+    mfxI32 qp = 0;
+    level = std::max(mfxI32(1), std::min(mfxI32(3), level));
+    if (clsAPQ == 1) {
+        switch (level) {
+        case 3:
+            qp += 2;
+        case 2:
+            qp += 0;
+        case 1:
+        default:
+            qp += 3;
+            break;
+        }
+    }
+    else {
+        qp += (level > 0 ? level - 1 : 0);
+        if (level && !isRef) qp += 1;
+    }
+    return qp;
+}
+
+// Set all Base QPs (IDR/I/P/B) from given QP for frame of type, level, iRef, and Adaptive Pyramid QP class (clsAPQ).
+
+
+void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx  &ctx, mfxU32 /* rec_num */, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 clsAPQ)
 {
     if (type == MFX_FRAMETYPE_IDR)
     {
@@ -523,9 +571,7 @@ void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx  &ctx, mfxU32 /* rec_num */, mf
     }
     else if (type == MFX_FRAMETYPE_B)
     {
-        level = level > 0 ? level - 1 : 0;
-        qp -= level;
-        if (level && !isRef) qp -= 1;
+        qp -= GetOffsetAPQ(level, isRef, clsAPQ);
         ctx.QuantIDR = qp - 2 - iDQp;
         ctx.QuantI = qp - 2;
         ctx.QuantP = qp - 1;
@@ -538,16 +584,16 @@ void SetQPParams(mfxI32 qp, mfxU32 type, BRC_Ctx  &ctx, mfxU32 /* rec_num */, mf
     //printf("ctx.QuantIDR %d, QuantI %d, ctx.QuantP %d, ctx.QuantB  %d, level %d\n", ctx.QuantIDR, ctx.QuantI, ctx.QuantP, ctx.QuantB, level);
 }
 
-void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef)
+void UpdateQPParams(mfxI32 qp, mfxU32 type , BRC_Ctx  &ctx, mfxU32 rec_num, mfxI32 minQuant, mfxI32 maxQuant, mfxU32 level, mfxU32 iDQp, mfxU16 isRef, mfxU16 clsAPQ)
 {
     ctx.Quant = qp;
     if (ctx.LastIQpSetOrder > ctx.encOrder) return;
 
-    SetQPParams(qp, type, ctx, rec_num, minQuant, maxQuant, level, iDQp, isRef);
+    SetQPParams(qp, type, ctx, rec_num, minQuant, maxQuant, level, iDQp, isRef, clsAPQ);
 }
 bool isFieldMode(mfxVideoParam *par)
 {
-	return ((par->mfx.CodecId == MFX_CODEC_HEVC) && !(par->mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE));
+    return ((par->mfx.CodecId == MFX_CODEC_HEVC) && !(par->mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE));
 }
 
 mfxStatus ExtBRC::Init (mfxVideoParam* par)
@@ -570,7 +616,7 @@ mfxStatus ExtBRC::Init (mfxVideoParam* par)
     mfxI32 rawSize = GetRawFrameSize(m_par.width * m_par.height ,m_par.chromaFormat, m_par.bitDepthLuma);
     mfxI32 qp = GetNewQP(rawSize, m_par.inputBitsPerFrame, m_par.quantMinI, m_par.quantMaxI, 1 , m_par.quantOffset, 0.5, false, false);
 
-    UpdateQPParams(qp,MFX_FRAMETYPE_IDR , m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF);
+    UpdateQPParams(qp,MFX_FRAMETYPE_IDR , m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0);
 
     m_ctx.dQuantAb = qp > 0 ? 1./qp : 1.0; //kw
 
@@ -801,7 +847,8 @@ void UpdateMinQForMaxFrameSize(cBRCParams* par, mfxI32 bits, mfxI32 qp, BRC_Ctx 
     }
 }
 
-mfxI32 ExtBRC::GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef)
+// Get QP for current frame
+mfxI32 ExtBRC::GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ)
 {
     mfxI32 qp = 0;
     if (type == MFX_FRAMETYPE_IDR)
@@ -821,18 +868,18 @@ mfxI32 ExtBRC::GetCurQP (mfxU32 type, mfxI32 layer, mfxU16 isRef)
     }
     else
     {
-            qp =  m_ctx.QuantB + (layer > 0 ? layer - 1 : 0);
-            if (layer && !isRef) qp += 1;
-            qp = mfx::clamp(qp, m_par.quantMinB, m_par.quantMaxB);
+        qp = m_ctx.QuantB;
+        qp += GetOffsetAPQ(layer, isRef, clsAPQ);
+        qp = mfx::clamp(qp, m_par.quantMinB, m_par.quantMaxB);
     }
     //printf("GetCurQP IDR %d I %d P %d B %d, min %d max %d type %d \n", m_ctx.QuantIDR, m_ctx.QuantI, m_ctx.QuantP, m_ctx.QuantB, m_par.quantMinI, m_par.quantMaxI, type);
 
     return qp;
 }
 
-mfxF64 ExtBRC::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong)
+mfxF64 ExtBRC::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxF64 fAbLong, mfxU32 eo, bool bIdr, mfxU16 clsAPQ)
 {
-    mfxI32 seqQP_new = GetSeqQP(qp, type, layer, isRef);
+    mfxI32 seqQP_new = GetSeqQP(qp, type, layer, isRef, clsAPQ);
     mfxF64 dQuantAb_new = 1.0 / seqQP_new;
     mfxF64 bAbPreriod = m_par.bAbPeriod;
 
@@ -856,7 +903,8 @@ mfxF64 ExtBRC::ResetQuantAb(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, 
     return dQuantAb;
 }
 
-mfxI32 ExtBRC::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
+// Get P-QP from QP of given frame
+mfxI32 ExtBRC::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ)
 {
     mfxI32 pqp = 0;
     if (type == MFX_FRAMETYPE_IDR) {
@@ -866,14 +914,15 @@ mfxI32 ExtBRC::GetSeqQP(mfxI32 qp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
     } else if (type == MFX_FRAMETYPE_P) {
         pqp = qp - layer;
     } else {
-        pqp = qp -1 -(layer > 0 ? layer - 1 : 0);
-        if (layer && !isRef) pqp -= 1;
+        qp -= GetOffsetAPQ(layer, isRef, clsAPQ);
+        pqp = qp - 1;
     }
 
     return mfx::clamp(pqp, m_par.quantMinP, m_par.quantMaxP);
 }
 
-mfxI32 ExtBRC::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
+// Get QP from P-QP and given frametype, layer, ref and Adaptive Pyramid QP class.
+mfxI32 ExtBRC::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef, mfxU16 clsAPQ)
 {
     mfxI32 qp = 0;
 
@@ -894,8 +943,8 @@ mfxI32 ExtBRC::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
     }
     else
     {
-        qp = pqp + 1 + (layer > 0 ? layer - 1 : 0);
-        if (layer && !isRef) qp += 1;
+        qp = pqp + 1;
+        qp += GetOffsetAPQ(layer, isRef, clsAPQ);
         qp = mfx::clamp(qp, m_par.quantMinB, m_par.quantMaxB);
     }
 
@@ -904,6 +953,10 @@ mfxI32 ExtBRC::GetPicQP(mfxI32 pqp, mfxU32 type, mfxI32 layer, mfxU16 isRef)
 
 mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctrl, mfxBRCFrameStatus* status)
 {
+    mfxU16 ParClassAPQ = 0; // default
+    // Use optimal Pyramid QPs for HEVC 8 GOP Pyramid coding
+    if (m_par.gopRefDist == 8 && m_par.bPyr && m_par.codecId == MFX_CODEC_HEVC) ParClassAPQ = 1;
+
 #if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = frame_par->SceneChange;
     mfxU32 ParFrameCmplx = frame_par->FrameCmplx;
@@ -923,10 +976,11 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
        m_ReEncodeCount++;
     if (frame_par->NumRecode > 100)
         m_SkipCount++;
-    //printf("ExtBRC::Update:  m_ctx.encOrder %d , frame_par->EncodedOrder %d, frame_par->NumRecode %d, frame_par->CodedFrameSize %d, qp %d\n", m_ctx.encOrder , frame_par->EncodedOrder, frame_par->NumRecode, frame_par->CodedFrameSize, frame_ctrl->QpY);
+    //printf("ExtBRC::Update:  m_ctx.encOrder %d , frame_par->EncodedOrder %d, frame_par->NumRecode %d, frame_par->CodedFrameSize %d, qp %d ClassAPQ %d\n", m_ctx.encOrder , frame_par->EncodedOrder, frame_par->NumRecode, frame_par->CodedFrameSize, frame_ctrl->QpY, ParClassAPQ);
 
     mfxI32 bitsEncoded  = frame_par->CodedFrameSize*8;
     mfxU32 picType      = GetFrameType(frame_par->FrameType, frame_par->PyramidLayer, m_par.gopRefDist);
+    bool   bIdr         = (picType == MFX_FRAMETYPE_IDR);
     mfxI32 qpY          = frame_ctrl->QpY + m_par.quantOffset;
     mfxI32 layer        = frame_par->PyramidLayer;
     mfxF64 qstep        = QP2Qstep(qpY, m_par.quantOffset);
@@ -1027,7 +1081,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
         if (picType != MFX_FRAMETYPE_B)
         {
             bSHStart = true;
-            m_ctx.dQuantAb = ResetQuantAb(qpY, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong);
+            m_ctx.dQuantAb = ResetQuantAb(qpY, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong, frame_par->EncodedOrder, bIdr, ParClassAPQ);
             m_ctx.SceneChange |= 16;
             m_ctx.eRateSH = eRate;
             m_ctx.SChPoc = frame_par->DisplayOrder;
@@ -1092,12 +1146,12 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             {
                 bNeedUpdateQP = false;
                 //printf("    recode 1-0: %d:  k %5f bitsEncoded %d maxFrameSize %d, targetSize %d, fAbLong %f, inputBitsPerFrame %f, qp %d new %d, layer %d\n",frame_par->EncodedOrder, bitsEncoded/maxFrameSize, (int)bitsEncoded, (int)maxFrameSize,(int)targetFrameSize, fAbLong, m_par.inputBitsPerFrame, quant, quant_new, layer);
-                if (quant_new > GetCurQP(picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF))
+                if (quant_new > GetCurQP(picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ))
                 {
-                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF);
+                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
                     fAbLong = m_ctx.fAbLong = m_par.inputBitsPerFrame;
                     fAbShort = m_ctx.fAbShort = m_par.inputBitsPerFrame;
-                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong);
+                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong, frame_par->EncodedOrder, bIdr, ParClassAPQ);
                 }
 
                 if (m_par.bRec)
@@ -1120,12 +1174,12 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
             if (quant_new < quant)
             {
                 bNeedUpdateQP = false;
-                if (quant_new < GetCurQP(picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF))
+                if (quant_new < GetCurQP(picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ))
                 {
-                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF);
+                    UpdateQPParams(bMaxFrameSizeMode ? quant_new - 1 : quant_new, picType, m_ctx, 0, quantMin, quantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
                     fAbLong = m_ctx.fAbLong = m_par.inputBitsPerFrame;
                     fAbShort = m_ctx.fAbShort = m_par.inputBitsPerFrame;
-                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong);
+                    m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong,frame_par->EncodedOrder, bIdr, ParClassAPQ);
                 }
 
                 if (m_par.bRec)
@@ -1156,12 +1210,12 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
                 if (quant_new > quant)
                 {
                    bNeedUpdateQP = false;
-                   if (quant_new > GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF))
+                   if (quant_new > GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ))
                    {
-                        UpdateQPParams(quant_new ,picType, m_ctx, 0, quantMin , quantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF);
+                        UpdateQPParams(quant_new ,picType, m_ctx, 0, quantMin , quantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
                         fAbLong  = m_ctx.fAbLong  = m_par.inputBitsPerFrame;
                         fAbShort = m_ctx.fAbShort = m_par.inputBitsPerFrame;
-                        m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong);
+                        m_ctx.dQuantAb = ResetQuantAb(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, fAbLong, frame_par->EncodedOrder, bIdr, ParClassAPQ);
                     }
                     if (m_par.bRec)
                     {
@@ -1193,9 +1247,9 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
                brcSts = MFX_BRC_PANIC_SMALL_FRAME;
             }
             // Idea is to check a sign mismatch, 'true' if both are negative or positive
-            if ((quant_new - qpY) * (quant_new - GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF)) > 0)
+            if ((quant_new - qpY) * (quant_new - GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ)) > 0)
             {
-                UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF);
+                UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
             }
             bNeedUpdateQP = false;
         }
@@ -1206,7 +1260,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
     {
         // no recoding are needed. Save context params
 
-        mfxF64 k = 1./ GetSeqQP(qpY, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF);
+        mfxF64 k = 1./ GetSeqQP(qpY, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
         mfxF64 dqAbPeriod = m_par.dqAbPeriod;
         if (m_ctx.bToRecode)
             dqAbPeriod = (k < m_ctx.dQuantAb)? 16:25;
@@ -1234,7 +1288,7 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
                 {
                     m_ctx.eRateSH = eRate;
                     if (ParSceneChange)
-                        m_ctx.eRate = m_par.inputBitsPerFrame * sqrt(QP2Qstep(GetCurQP(MFX_FRAMETYPE_P, 0, MFX_FRAMETYPE_REF), m_par.quantOffset));
+                        m_ctx.eRate = m_par.inputBitsPerFrame * sqrt(QP2Qstep(GetCurQP(MFX_FRAMETYPE_P, 0, MFX_FRAMETYPE_REF, 0), m_par.quantOffset));
                 }
                 else
                 {
@@ -1265,25 +1319,25 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
 
             //Update QP
 
-            mfxF64 totDiv = m_ctx.totalDiviation;
+            mfxF64 totDev = m_ctx.totalDiviation;
 
             const mfxF64 factor = m_par.HRDConformance != MFX_BRC_NO_HRD ? m_hrd.GetBufferDiviationFactor() : 0.0;
             mfxF64 dequant_new = m_ctx.dQuantAb*pow(m_par.inputBitsPerFrame / m_ctx.fAbLong, 1.0 + factor);
 
             mfxF64 bAbPreriod = m_par.bAbPeriod;
 
-            if (m_par.HRDConformance != MFX_BRC_NO_HRD && totDiv > 0)
+            if (m_par.HRDConformance != MFX_BRC_NO_HRD && totDev > 0)
             {
                 if (m_par.rateControlMethod == MFX_RATECONTROL_VBR)
                 {
-                    totDiv = std::max(totDiv, m_hrd.GetBufferDiviation(m_par.targetbps));
+                    totDev = std::max(totDev, m_hrd.GetBufferDiviation(m_par.targetbps));
                 }
 
                 bAbPreriod = (mfxF64)(m_par.bPyr ? 4 : 3)*(mfxF64)m_hrd.GetMaxFrameSize() / fAbShort*GetAbPeriodCoeff(m_ctx.encOrder - m_ctx.LastIDREncOrder, m_par.gopPicSize, m_ctx.LastIDRSceneChange);
                 bAbPreriod = mfx::clamp(bAbPreriod, m_par.bAbPeriod / 10, m_par.bAbPeriod);
             }
-            quant_new = GetNewQPTotal(totDiv / bAbPreriod / (mfxF64)m_par.inputBitsPerFrame, dequant_new, m_ctx.QuantMin, m_ctx.QuantMax, GetSeqQP(qpY, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF), m_par.bPyr && m_par.bRec, bSHStart && m_ctx.bToRecode == 0);
-            quant_new = GetPicQP(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF);
+            quant_new = GetNewQPTotal(totDev / bAbPreriod / (mfxF64)m_par.inputBitsPerFrame, dequant_new, m_ctx.QuantMin, m_ctx.QuantMax, GetSeqQP(qpY, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ), m_par.bPyr && m_par.bRec, bSHStart && m_ctx.bToRecode == 0);
+            quant_new = GetPicQP(quant_new, picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
             //printf("    ===%d quant old %d quant_new %d, bitsEncoded %d m_ctx.QuantMin %d m_ctx.QuantMax %d\n", frame_par->EncodedOrder, m_ctx.Quant, quant_new, bitsEncoded, m_ctx.QuantMin, m_ctx.QuantMax);
 
             if (bMaxFrameSizeMode)
@@ -1308,10 +1362,11 @@ mfxStatus ExtBRC::Update(mfxBRCFrameParam* frame_par, mfxBRCFrameCtrl* frame_ctr
                 quant_new = mfx::clamp(quant_corrected, m_ctx.QuantMin, m_ctx.QuantMax);
             }
 
-            if ((quant_new - qpY)* (quant_new - GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF)) > 0) // this check is actual for async scheme
+            if ((quant_new - qpY)* (quant_new - GetCurQP (picType, layer, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ)) > 0) // this check is actual for async scheme
             {
-                //printf("   +++ Update QP %d: totalDiviation %f, bAbPreriod %f (%f), QP %d (%d %d), qp_new %d (qpY %d), type %d, dequant_new %f (%f) , m_ctx.fAbLong %f, m_par.inputBitsPerFrame %f (%f)\n",frame_par->EncodedOrder,totDiv , bAbPreriod, GetAbPeriodCoeff(m_ctx.encOrder - m_ctx.LastIEncOrder, m_par.gopPicSize), m_ctx.Quant, m_ctx.QuantMin, m_ctx.QuantMax,quant_new, qpY, picType, 1.0/dequant_new, 1.0/m_ctx.dQuantAb, m_ctx.fAbLong, m_par.inputBitsPerFrame);
-                UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF);
+                //printf("   +++ Update QP %d: totalDeviation %f, bAbPreriod %f (%f), QP %d (%d %d), qp_new %d (qpY %d), type %d, dequant_new %f (%f) , m_ctx.fAbLong %f, m_par.inputBitsPerFrame %f\n",
+                //    frame_par->EncodedOrder,totDev , bAbPreriod, GetAbPeriodCoeff(m_ctx.encOrder - m_ctx.LastIEncOrder, m_par.gopPicSize, m_ctx.LastIDRSceneChange), m_ctx.Quant, m_ctx.QuantMin, m_ctx.QuantMax,quant_new, qpY, picType, 1.0/dequant_new, 1.0/m_ctx.dQuantAb, m_ctx.fAbLong, m_par.inputBitsPerFrame);
+                UpdateQPParams(quant_new ,picType, m_ctx, 0, m_ctx.QuantMin , m_ctx.QuantMax, layer, m_par.iDQp, frame_par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
             }
         }
         m_ctx.bToRecode = 0;
@@ -1379,6 +1434,11 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
 {
     MFX_CHECK_NULL_PTR2(par, ctrl);
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+
+    mfxU16 ParClassAPQ = 0;
+    // Use optimal Pyramid QPs for HEVC 8 GOP Pyramid coding
+    if (m_par.gopRefDist == 8 && m_par.bPyr && m_par.codecId == MFX_CODEC_HEVC) ParClassAPQ = 1;
+
 #if (MFX_VERSION >= 1026)
     mfxU16 ParSceneChange = par->SceneChange;
     mfxU16 ParLongTerm = par->LongTerm;
@@ -1419,7 +1479,7 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
                 if (targetFrameSize < 6.5 * m_par.inputBitsPerFrame && qp0>3) qp0 -= 3; // use re-encoding for best results (maxFrameSizeGood)
                 else if (raca == MIN_RACA && qp0>3)                           qp0 -= 3; // uncertainty; use re-encoding for best results
                 ltrprintf("Qp0 %d\n", qp0);
-                UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, par->FrameType & MFX_FRAMETYPE_REF);
+                UpdateQPParams(qp0, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, par->FrameType & MFX_FRAMETYPE_REF, 0);
                 qpMin = qp0;
             }
         }
@@ -1527,6 +1587,9 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
             }
 
             mfxF64 targetFrameSize = FRM_RATIO(ltype, par->EncodedOrder, 0, m_par.bPyr) * m_par.inputBitsPerFrame;
+            if (m_par.bPyr && m_par.gopRefDist == 8)
+                targetFrameSize *= ((ParClassAPQ == 1) ? 2.0 : 1.66);
+
             if (m_par.rateControlMethod == MFX_RATECONTROL_CBR && m_par.HRDConformance != MFX_BRC_NO_HRD) {
                 mfxF64 dev = -1.0*targetFrameSize - m_hrd.GetBufferDiviation();
                 if (dev > 0) targetFrameSize += std::min(targetFrameSize, (dev/4.0));
@@ -1535,15 +1598,15 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
             qpMin = GetMinQForMaxFrameSize(&m_par, targetFrameSize, ltype);
         }
 
-        qp = GetCurQP(type, par->PyramidLayer, par->FrameType & MFX_FRAMETYPE_REF);
+        qp = GetCurQP(type, par->PyramidLayer, par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
 
         // Max Frame Size recode prevention
         if (qp < qpMin)
         {
             if (type != MFX_FRAMETYPE_B)
             {
-                SetQPParams(qpMin, type, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, par->FrameType & MFX_FRAMETYPE_REF);
-                qp = GetCurQP(type, par->PyramidLayer, par->FrameType & MFX_FRAMETYPE_REF);
+                SetQPParams(qpMin, type, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
+                qp = GetCurQP(type, par->PyramidLayer, par->FrameType & MFX_FRAMETYPE_REF, ParClassAPQ);
             }
             else
             {
@@ -1598,7 +1661,7 @@ mfxStatus ExtBRC::Reset(mfxVideoParam *par )
             m_ctx.Quant = (mfxI32)(1. / m_ctx.dQuantAb * pow(m_ctx.fAbLong / m_par.inputBitsPerFrame, 0.32) + 0.5);
             m_ctx.Quant = mfx::clamp(m_ctx.Quant, m_par.quantMinI, m_par.quantMaxI);
 
-            UpdateQPParams(m_ctx.Quant, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF);
+            UpdateQPParams(m_ctx.Quant, MFX_FRAMETYPE_IDR, m_ctx, 0, m_par.quantMinI, m_par.quantMaxI, 0, m_par.iDQp, MFX_FRAMETYPE_REF, 0);
 
             m_ctx.dQuantAb = 1. / m_ctx.Quant;
             m_ctx.fAbLong = m_par.inputBitsPerFrame;
