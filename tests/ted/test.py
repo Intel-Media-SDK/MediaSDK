@@ -27,7 +27,7 @@ import itertools
 
 from pathlib import Path
 
-from . import objects, run
+from . import objects, run, platform
 
 
 class ValidationError(Exception):
@@ -54,11 +54,12 @@ class CaseLogger(object):
 
 
 class Test(object):
-    def __init__(self, fn, base, cfg):
+    def __init__(self, fn, base, cfg, args):
         self.cases = []
         self.cfg = cfg
         self.test_type = None
         self.base_dir = Path(base)
+        self.device = args.device
 
         fn = Path(fn)
 
@@ -144,6 +145,12 @@ class Test(object):
         return (total, passed, details)
 
     def generate_cases(self):
+        self.platforms = self.config.get('platforms', None)
+        device_name = Path(self.device).name
+        if self.platforms is not None:
+            if not platform.check_platform(platform.get_current_device_id(device_name), self.platforms):
+                raise platform.UnsupportedPlatform("test is disabled for current platform")
+
         self.test_type = self.config.get('type', None)
         if self.test_type not in ['decode', 'encode', 'transcode', 'vpp']:
             raise ValidationError("unknown test type")
@@ -164,6 +171,8 @@ class Test(object):
 
         for vals in itertools.product(*values):
             case = collections.OrderedDict(zip(keys, vals))
+            case['device'] = self.device
+
             if 'stream' not in case:
                 if self.test_type != 'transcode':
                     raise ValidationError("stream is not defined")

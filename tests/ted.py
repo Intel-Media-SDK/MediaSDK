@@ -39,6 +39,10 @@ if __name__ == '__main__':
         nargs='*',
         help='tests to run, if not specified all tests will be executed'
     )
+    parser.add_argument(
+        '--device', action='store', default='/dev/dri/renderD128',
+        help='provide device on which to run tests (default: /dev/dri/renderD128)'
+    )
 
     args = parser.parse_args()
 
@@ -58,7 +62,7 @@ if __name__ == '__main__':
 
     tests_to_run = []
     print("Disovering tests...")
-    for test in discover.tests(base_dir, cfg):
+    for test in discover.tests(base_dir, cfg, args):
         if test_re and not test_re.search(test.name):
             print('  {} - skipped'.format(test.name))
             continue

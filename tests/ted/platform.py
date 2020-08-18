@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017-2020 Intel Corporation
+# Copyright (c) 2020 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,27 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import json
-import pathlib
+import os
 
-from . import test, configuration
+from . import objects
 
-
-def tests(base_dir, cfg, args):
-    base_dir = pathlib.Path(base_dir)
-
-    for fn in (base_dir / 'tests').rglob("*.json"):
-        try:
-            yield test.Test(fn, base_dir, cfg, args)
-        except Exception as ex:
-            print(" WARN: Can't parse test '{}' - {}".format(fn.name, ex))
+DEVICE_IDS = {
+}
 
 
-def config(base_dir):
-    fn = base_dir / 'ted.json'
-
-    cfg = json.loads(fn.read_text())
-
-    return configuration.Configuration(cfg, base_dir)
+class UnsupportedPlatform(objects.ConfigurationError):
+    pass
 
 
+def check_platform(current_device_id, supported_platforms):
+    current_platform = '<unknown>'
+    for platform, ids in DEVICE_IDS.items():
+        if current_device_id in ids:
+            current_platform = platform
+    return current_platform in supported_platforms
+
+
+def get_current_device_id(device_name):
+    device_id_path = "/sys/class/drm/{}/device/device".format(device_name)
+    if os.path.isfile(device_id_path):
+        with open(device_id_path) as f:
+            return int(f.read(), base=16)

@@ -109,6 +109,8 @@ class Runner(object):
         cmd = []
         # process remaining arguments
         for k, v in case.items():
+            if k in ['platforms']:
+                continue
             if isinstance(v, bool):
                 if v:
                     cmd.append("-{}".format(k))
