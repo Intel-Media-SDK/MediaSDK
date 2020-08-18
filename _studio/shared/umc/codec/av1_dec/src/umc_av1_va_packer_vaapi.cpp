@@ -341,10 +341,10 @@ namespace UMC_AV1_DECODER
 
             fg.cb_mult = (uint8_t)info.film_grain_params.cb_mult;
             fg.cb_luma_mult = (uint8_t)info.film_grain_params.cb_luma_mult;
-            fg.cb_offset = (uint8_t)info.film_grain_params.cb_offset;
+            fg.cb_offset = (uint16_t)info.film_grain_params.cb_offset;
             fg.cr_mult = (uint8_t)info.film_grain_params.cr_mult;
             fg.cr_luma_mult = (uint8_t)info.film_grain_params.cr_luma_mult;
-            fg.cr_offset = (uint8_t)info.film_grain_params.cr_offset;
+            fg.cr_offset = (uint16_t)info.film_grain_params.cr_offset;
         }
 
         // fill tile params
