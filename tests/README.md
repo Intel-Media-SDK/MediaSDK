@@ -31,7 +31,9 @@ export LIBVA_DRIVERS_PATH=/path/to/media/driver
 export PATH=$BINDIR:$PATH
 export LD_LIBRARY_PATH=$LIBDIR
 
-python3 ted.py
+python3 ted.py  # will be executed on default device (/dev/dri/renderD128)
+# or
+python3 ted.py --device /dev/dri/renderD128  # to specify device directly
 ```
 
 ### How To View Results
