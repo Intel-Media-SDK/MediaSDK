@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-#ifndef __genx_scd_gen12lp_isa__
-#define __genx_scd_gen12lp_isa__
-extern const unsigned char genx_scd_gen12lp[18989];
+#ifndef __genx_scd_gen12lp__
+#define __genx_scd_gen12lp__
+extern const unsigned char genx_scd_gen12lp[23928];
 #endif
