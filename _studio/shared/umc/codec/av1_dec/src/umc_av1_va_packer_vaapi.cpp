@@ -155,6 +155,7 @@ namespace UMC_AV1_DECODER
         seqInfo.chroma_sample_position = sh.color_config.chroma_sample_position;
         seqInfo.film_grain_params_present = sh.film_grain_param_present;
 
+        picParam.matrix_coefficients = sh.color_config.matrix_coefficients;
         picParam.bit_depth_idx = (sh.color_config.BitDepth == 10) ? 1 :
             (sh.color_config.BitDepth == 12) ? 2 : 0;
         picParam.order_hint_bits_minus_1 = (uint8_t)sh.order_hint_bits_minus1;
