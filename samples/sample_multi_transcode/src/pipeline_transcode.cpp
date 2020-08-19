@@ -2315,11 +2315,6 @@ void CTranscodingPipeline::FillFrameInfoForEncoding(mfxFrameInfo& info, sInputPa
     {
         ConvertFrameRate(pInParams->dVPPOutFramerate, &info.FrameRateExtN, &info.FrameRateExtD);
     }
-    else
-    {
-        info.FrameRateExtN = 30;
-        info.FrameRateExtD = 1;
-    }
 }
 
 mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
