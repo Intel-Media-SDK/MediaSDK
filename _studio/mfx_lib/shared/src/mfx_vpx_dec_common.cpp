@@ -37,7 +37,7 @@ namespace MFX_VPX_Utility
         case MFX_CODEC_VP9:
             if (hwType < MFX_HW_KBL)
                 return 4096;
-            return 8192;
+            return 16384;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
             return 16384;
@@ -55,7 +55,7 @@ namespace MFX_VPX_Utility
         case MFX_CODEC_VP9:
             if (hwType < MFX_HW_KBL)
                 return 4096;
-            return 8192;
+            return 16384;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
             return 16384;
