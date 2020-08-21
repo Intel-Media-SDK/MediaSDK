@@ -61,7 +61,7 @@ else ifneq ($(filter MFX_P, $(MFX_ANDROID_VERSION)),)
 else
   MFX_CFLAGS += \
     -DMFX_ENABLE_CPLIB \
-    -DMFX_VERSION=1032
+    -DMFX_VERSION=1033
 endif
 
 MFX_CFLAGS += \
