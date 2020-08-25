@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -176,9 +176,11 @@ enum {
 #if (MFX_VERSION >= 1027)
     MFX_PLATFORM_ICELAKE        = 30,
 #endif
+#if (MFX_VERSION >= 1031)
     MFX_PLATFORM_JASPERLAKE     = 32,
     MFX_PLATFORM_ELKHARTLAKE    = 33,
     MFX_PLATFORM_TIGERLAKE      = 40,
+#endif
 };
 
 #if (MFX_VERSION >= 1031)
