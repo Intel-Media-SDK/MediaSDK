@@ -39,6 +39,8 @@ include_directories( ${MSDK_LIB_ROOT}/plugin/include )
 include_directories( ${MSDK_LIB_ROOT}/scheduler/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/isa )
 include_directories( ${MSDK_LIB_ROOT}/genx/h264_encode/isa )
+include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
+include_directories( ${MSDK_LIB_ROOT}/mctf_package/mctf/include )
 
 list( APPEND umc_dirs
   brc
@@ -176,6 +178,7 @@ if( DEFINED H264LA_ENCODER_GUID )
     vm_plus
     genx
     asc
+    mctf_hw
     mfx_trace
     ${ITT_LIBRARIES}
     pthread
