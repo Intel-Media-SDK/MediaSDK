@@ -2905,7 +2905,7 @@ mfxStatus VAAPIEncoder::Execute(
     /*FEI has its own interface for MBQp*/
     if ((task.m_isMBQP) && (!m_isENCPAK))
     {
-        const mfxExtMBQP *mbqp = GetExtBuffer(task.m_ctrl);
+        const mfxExtMBQP *mbqp = task.m_mbqp;
         mfxU32 mbW = m_sps.picture_width_in_mbs;
         mfxU32 mbH = m_sps.picture_height_in_mbs / (2 - !task.m_fieldPicFlag);
         //width(64byte alignment) height(8byte alignment)
