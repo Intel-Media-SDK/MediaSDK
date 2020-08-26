@@ -5692,8 +5692,9 @@ typedef struct {
             mfxU16  SliceGroupsPresent;
             mfxU16  MaxDecFrameBuffering;
             mfxU16  EnableReallocRequest;
+            mfxU16  FilmGrain;
             mfxU16  IgnoreLevelConstrain;
-            mfxU16  reserved2[6];
+            mfxU16  reserved2[5];
         };
         struct {   /* JPEG Decoding Options */
             mfxU16  JPEGChromaFormat;
@@ -5749,6 +5750,7 @@ This structure specifies configurations for decoding, encoding and transcoding p
 `SliceGroupsPresent`    | Nonzero value indicates that slice groups are present in the bitstream. Only AVC decoder uses this field.
 `MaxDecFrameBuffering`  | Nonzero value specifies the maximum required size of the decoded picture buffer in frames for AVC and HEVC decoders.
 `EnableReallocRequest`  | For decoders supporting dynamic resolution change (VP9), set this option to ON to allow `MFXVideoDECODE_DecodeFrameAsync` return [MFX_ERR_REALLOC_SURFACE](#mfxStatus).<br><br>See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. Use [Query](#MFXVideoDECODE_Query) function to check if this feature is supported.
+`FilmGrain`             | For AV1 decoder. Indicates presence/absence of film grain parameters in bitstream. Also controls SDK decoding behavior for streams with film grain parameters.<br><br>`MFXVideoDECODE_DecodeHeader` returns nonzero `FilmGrain` for streams with film grain parameters and zero for streams w/o them.<br><br>Decoding with film grain requires additional output surfaces. If `FilmGrain` is nonzero then `MFXVideoDECODE_QueryIOSurf` will request more surfaces in case of video memory at decoder output.<br><br>`FilmGrain` is passed to `MFXVideoDECODE_Init` function to control SDK decoding operation for AV1 streams with film grain parameters.<br>If `FilmGrain` is nonzero decoding of each frame require two output surfaces (one for reconstructed frame and one for output frame with film grain applied). The SDK returns [MFX_ERR_MORE_SURFACE](#mfxStatus) from `MFXVideoDECODE_DecodeFrameAsync` if it has insufficient output surfaces to decode frame.<br>Application of film grain can be forcibly disabled by passing zero `FilmGrain` to `MFXVideoDECODE_Init`. In this case SDK will output reconstructed frames w/o film grain applied. Application can retrieve film grain parameters for a frame by attaching extended buffer [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam) to [mfxFrameSurface1](#mfxFrameSurface).<br><br>If stream has no film grain parameters `FilmGrain` passed to `MFXVideoDECODE_Init` is ignored by the SDK during decode operation.
 `IgnoreLevelConstrain`  | If not zero, it forces SDK to attempt to decode bitstream even if a decoder may not support all features associated with given `CodecLevel`. Decoder may produce visual artifacts. Only AVC decoder supports this field.
 
 **Change History**
@@ -5769,6 +5771,8 @@ SDK API 1.15 adds `LowPower` field.
 SDK API 1.16 adds `MaxDecFrameBuffering` field.
 
 SDK API 1.19 adds `EnableReallocRequest` field.
+
+SDK API **TBD** adds `FilmGrain` field.
 
 SDK API **TBD** adds `IgnoreLevelConstrain` field.
 
@@ -7901,6 +7905,94 @@ This structure is used to pass decryption status report index for Common Encrypt
 **Change History**
 
 This structure is available since SDK API 1.30.
+
+## <a id='mfxExtAV1FilmGrainParam'>mfxExtAV1FilmGrainParam</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxU8 Value;
+    mfxU8 Scaling;
+} mfxAV1FilmGrainPoint;
+
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU16 Flags;
+    mfxU16 GrainSeed;
+
+    mfxU8  RefIdx;
+    mfxU8  NumYPoints;
+    mfxU8  NumCbPoints;
+    mfxU8  NumCrPoints;
+
+    mfxAV1FilmGrainPoint PointY[14];
+    mfxAV1FilmGrainPoint PointCb[10];
+    mfxAV1FilmGrainPoint PointCr[10];
+
+    mfxU8 GrainScalingMinus8;
+    mfxU8 ArCoeffLag;
+
+    mfxU8 ArCoeffsYPlus128[24];
+    mfxU8 ArCoeffsCbPlus128[25];
+    mfxU8 ArCoeffsCrPlus128[25];
+
+    mfxU8 ArCoeffShiftMinus6;
+    mfxU8 GrainScaleShift;
+
+    mfxU8  CbMult;
+    mfxU8  CbLumaMult;
+    mfxU16 CbOffset;
+
+    mfxU8  CrMult;
+    mfxU8  CrLumaMult;
+    mfxU16 CrOffset;
+
+    mfxU16 reserved[43];
+} mfxExtAV1FilmGrainParam;
+```
+
+**Description**
+
+This structure is used by AV1 SDK decoder to report film grain parameters for decoded frame. The application can attach this extended buffer to the [mfxFrameSurface1](#mfxFrameSurface) structure at runtime.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM](#ExtendedBufferID)
+`Value` | The x coordinate for the i-th point of the piece-wise linear scaling function for luma/Cb/Cr component. The value is signaled on the scale of 0..255.
+`Scaling` | The scaling (output) value for the i-th point of the piecewise linear scaling function for luma/Cb/Cr component.
+`Flags` | Bit map with bit-ORed flags from enum [AV1FilmGrainFlags](#AV1FilmGrainFlags).
+`GrainSeed` | Starting value for pseudo-random numbers used during film grain synthesis.
+`RefIdx` | Indicate which reference frame contains the film grain parameters to be used for this frame.
+`NumYPoints` | The number of points for the piece-wise linear scaling function of the luma component.
+`NumCbPoints` | The number of points for the piece-wise linear scaling function of the Cb component.
+`NumCrPoints` | The number of points for the piece-wise linear scaling function of the Cr component.
+`PointY` | The array of points for luma component.
+`PointCb` | The array of points for Cb component.
+`PointCr` | The array of points for Cr component.
+`GrainScalingMinus8` | The shift – 8 applied to the values of the chroma component. The grain_scaling_minus_8 can take values of 0..3 and determines the range and quantization step of the standard deviation of film grain.
+`ArCoeffLag` | The number of auto-regressive coefficients for luma and chroma.
+`ArCoeffsYPlus128` | Auto-regressive coefficients used for the Y plane
+`ArCoeffsCbPlus128` | Auto-regressive coefficients used for the U plane
+`ArCoeffsCrPlus128` | Auto-regressive coefficients used for the V plane
+`ArCoeffShiftMinus6` | The range of the auto-regressive coefficients. Values of 0, 1, 2, and 3 correspond to the ranges for auto-regressive coefficients of [-2, 2), [-1, 1), [-0.5, 0.5) and [-0.25, 0.25) respectively.
+`GrainScaleShift` | How much the Gaussian random numbers should be scaled down during the grain synthesis process.
+`CbMult` | The multiplier for the cb component used in derivation of the input index to the Cb component scaling function.
+`CbLumaMult` | The multiplier for the average luma component used in derivation of the input index to the Cb component scaling function.
+`CbOffset` | The offset used in derivation of the input index to the Cb component scaling function.
+`CrMult` | The multiplier for the cr component used in derivation of the input index to the Cr component scaling function.
+`CrLumaMult` | The multiplier for the average luma component used in derivation of the input index to the Cr component scaling function.
+`CrOffset` | The offset used in derivation of the input index to the Cr component scaling function.
+
+These parameters represent film grain syntax of AV1 codec. They are equivalent of film_grain_params() from uncompressed header syntax of AV1 frame.<br><br>
+If syntax parameter isn't present in uncompressed header of particular frame, respective member of `mfxExtAV1FilmGrainParam` is zeroed by the SDK AV1 decoder.
+
+**Change History**
+
+This structure is available since SDK API **TBD**.
 
 ## <a id='mfxExtPartialBitstreamParam'>mfxExtPartialBitstreamParam</a>
 
