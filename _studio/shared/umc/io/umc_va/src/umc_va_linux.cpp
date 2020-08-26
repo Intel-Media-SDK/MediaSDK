@@ -946,14 +946,7 @@ Status LinuxVideoAccelerator::EndFrame(void*)
 int32_t LinuxVideoAccelerator::GetSurfaceID(int32_t idx)
 {
     VASurfaceID *surface;
-    Status sts = UMC_OK;
-
-    try {
-        sts = m_allocator->GetFrameHandle(idx, &surface);
-    } catch (std::exception&) {
-        return VA_INVALID_SURFACE;
-    }
-
+    Status sts = m_allocator->GetFrameHandle(idx, &surface);
     if (sts != UMC_OK)
         return VA_INVALID_SURFACE;
 

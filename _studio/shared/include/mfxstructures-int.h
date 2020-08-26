@@ -73,7 +73,6 @@ enum eMFXHWType
     MFX_HW_EHL       = 0x1500002,
     
     MFX_HW_TGL_LP    = 0x1600000,
-    MFX_HW_RKL       = MFX_HW_TGL_LP + 2,
     MFX_HW_DG1       = 0x1600003,
 
 

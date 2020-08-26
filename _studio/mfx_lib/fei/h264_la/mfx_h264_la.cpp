@@ -1730,11 +1730,11 @@ void CmContextLA::SetCurbeData(
     /*
     curbeData.SliceMacroblockHeightMinusOne = m_video.mfx.FrameInfo.Height / 16 - 1;
     curbeData.PictureHeightMinusOne = m_video.mfx.FrameInfo.Height / 16 - 1;
-    curbeData.PictureWidthMinusOne  = m_video.mfx.FrameInfo.Width / 16 - 1;
+    curbeData.PictureWidth          = m_video.mfx.FrameInfo.Width / 16;
     */
     curbeData.SliceMacroblockHeightMinusOne = widthLa / 16 - 1;
     curbeData.PictureHeightMinusOne = heightLa / 16 - 1;
-    curbeData.PictureWidthMinusOne  = widthLa / 16 - 1;
+    curbeData.PictureWidth          = widthLa / 16;
     //DW5
     curbeData.RefWidth              = (frameType & MFX_FRAMETYPE_B) ? 32 : 48;
     curbeData.RefHeight             = (frameType & MFX_FRAMETYPE_B) ? 32 : 40;
@@ -2034,6 +2034,19 @@ mfxStatus CmContextLA::QueryVme(sLADdiTask const & task,
 
     return MFX_ERR_NONE;
 }
+
+
+#ifdef MFX_ENABLE_ENCTOOLS
+//there is no support of EncTools in LA plugin
+mfxEncTools* MFXVideoENCODE_CreateEncTools()
+{
+    return nullptr;
+}
+void MFXVideoENCODE_DestroyEncTools(mfxEncTools * /*et*/)
+{
+
+}
+#endif
 
 
 #endif  // MFX_ENABLE_H264_VIDEO_ENCODE_HW && MFX_ENABLE_LA_H264_VIDEO_HW

@@ -361,8 +361,8 @@ UMC::Status FillVideoParam(const H265SeqParamSet * seq, mfxVideoParam *par, bool
 
     //if (seq->frame_cropping_flag)
     {
-        par->mfx.FrameInfo.CropX = (mfxU16)(seq->conf_win_left_offset);
-        par->mfx.FrameInfo.CropY = (mfxU16)(seq->conf_win_top_offset);
+        par->mfx.FrameInfo.CropX = (mfxU16)(seq->conf_win_left_offset + seq->def_disp_win_left_offset);
+        par->mfx.FrameInfo.CropY = (mfxU16)(seq->conf_win_top_offset + seq->def_disp_win_top_offset);
         par->mfx.FrameInfo.CropH = (mfxU16)(par->mfx.FrameInfo.Height - (seq->conf_win_top_offset + seq->conf_win_bottom_offset));
         par->mfx.FrameInfo.CropW = (mfxU16)(par->mfx.FrameInfo.Width - (seq->conf_win_left_offset + seq->conf_win_right_offset));
 

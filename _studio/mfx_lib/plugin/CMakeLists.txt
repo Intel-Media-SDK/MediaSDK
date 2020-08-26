@@ -176,6 +176,8 @@ if( DEFINED H264LA_ENCODER_GUID )
     vm_plus
     genx
     asc
+    enctools_hw
+    mfx
     mfx_trace
     ${ITT_LIBRARIES}
     pthread

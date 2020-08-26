@@ -1995,8 +1995,8 @@ public:
         pps.num_extra_slice_header_bits           = 0;
         pps.sign_data_hiding_enabled_flag         = 0;
         pps.cabac_init_present_flag               = 0;
-        pps.num_ref_idx_l0_default_active_minus1  = (par.mfx.GopRefDist <= 2) ? (maxRefP - 1) : (maxRefBL0 - 1);
-        pps.num_ref_idx_l1_default_active_minus1  = (par.mfx.GopRefDist <= 2) ? (maxRefP - 1) : (maxRefBL1 - 1);
+        pps.num_ref_idx_l0_default_active_minus1  = std::max<mfxU16>(maxRefP, maxRefBL0) - 1;
+        pps.num_ref_idx_l1_default_active_minus1  = maxRefBL1 - 1;
         pps.init_qp_minus26                       = 0;
         pps.constrained_intra_pred_flag           = 0;
         pps.transform_skip_enabled_flag = (hw >= MFX_HW_CNL) && IsOn(CO3.TransformSkip);

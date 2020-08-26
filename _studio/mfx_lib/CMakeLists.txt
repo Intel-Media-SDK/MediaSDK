@@ -202,6 +202,7 @@ list( APPEND LIBS
   h264_la
   ${GENX_LIB}
   mfx_common
+  enctools_hw  
   mfx_common_hw
   ${ASC_LIB}
   ${MCTF_LIB}
@@ -215,7 +216,6 @@ list( APPEND LIBS
   pthread
   dl
 )
-
 make_library( ${mfxlibname} hw shared )
 make_library( mfxhw_static hw static )
 
