@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -181,28 +181,38 @@ void SetReconInfo(VP9MfxVideoParam const &par, mfxFrameInfo &fi, eMFXHWType cons
     if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_10)
     {
         fi.FourCC = MFX_FOURCC_Y410;
+
+#ifndef LINUX
         /* Pitch = 4*W for Y410 format
            Pitch need to align on 256
            So, width aligment is 256/4 = 64 */
         fi.Width = (mfxU16)mfx::align2_value(fi.Width, 256 / 4);
-        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 2, 8);
+        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 2, 64);
+#endif
     }
     else if (format == MFX_CHROMAFORMAT_YUV444 && depth == BITDEPTH_8)
     {
         fi.FourCC = MFX_FOURCC_AYUV;
+
+#ifndef LINUX
         /* Pitch = 4*W for AYUV format
            Pitch need to align on 512
            So, width aligment is 512/4 = 128 */
         fi.Width = (mfxU16)mfx::align2_value(fi.Width, 512 / 4);
-        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 4, 8);
+        fi.Height = (mfxU16)mfx::align2_value(fi.Height * 3 / 4, 64);
+#endif
     }
     else if (format == MFX_CHROMAFORMAT_YUV420 && depth == BITDEPTH_10)
     {
 #if (MFX_VERSION >= 1031)
         if (platform >= MFX_HW_TGL_LP)
         {
+#ifdef LINUX
+            fi.FourCC = MFX_FOURCC_P010;
+#else
             fi.FourCC = MFX_FOURCC_NV12;
             fi.Width  = mfx::align2_value(fi.Width, 32) * 2;
+#endif // LINUX
         }
         else
 #endif
