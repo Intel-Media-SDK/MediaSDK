@@ -51,7 +51,7 @@ using  std::max;
 using namespace ns_asc;
 
 const mfxU16 CMC::AUTO_FILTER_STRENGTH    = 0;
-const mfxU16 CMC::DEFAULT_FILTER_STRENGTH = 8;
+const mfxU16 CMC::DEFAULT_FILTER_STRENGTH = 5;
 const mfxU32 CMC::DEFAULT_BPP             = 0; //Automode
 const mfxU16 CMC::DEFAULT_DEBLOCKING      = MFX_CODINGOPTION_OFF;
 const mfxU16 CMC::DEFAULT_OVERLAP         = MFX_CODINGOPTION_OFF;
@@ -67,7 +67,7 @@ void CMC::QueryDefaultParams(
     pBuffer->Overlap           = DEFAULT_OVERLAP;
     pBuffer->subPelPrecision   = DEFAULT_ME;
     pBuffer->TemporalMode      = DEFAULT_REFS;
-    pBuffer->FilterStrength    = AUTO_FILTER_STRENGTH; // [0...20]
+    pBuffer->FilterStrength    = DEFAULT_FILTER_STRENGTH; // [0...20]
     pBuffer->BitsPerPixelx100k = DEFAULT_BPP;
 };
 
@@ -173,17 +173,29 @@ void CMC::FillParamControl(
 #endif
 }
 
+mfxStatus CMC::SetFilterStrenght(
+    unsigned short tFs,//Temporal filter strength
+    unsigned short sFs //Spatial filter strength
+)
+{
+    if (tFs > 21 || sFs > 21)
+        return MFX_ERR_INVALID_VIDEO_PARAM;
+
+    p_ctrl->th  = tFs * 50;
+    if (sFs)
+        p_ctrl->sTh = (mfxU16)min(sFs + CHROMABASE, MAXCHROMA);
+    else
+        p_ctrl->sTh = MCTFNOFILTER;
+    res         = ctrlBuf->WriteSurface((const uint8_t *)p_ctrl.get(), NULL, sizeof(MeControlSmall));
+    MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+    return MFX_ERR_NONE;
+}
+
 inline mfxStatus CMC::SetFilterStrenght(
     unsigned short fs
 )
 {
-    if (fs > 20)
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-
-    p_ctrl->th  = fs * 50;
-    p_ctrl->sTh = min(fs + CHROMABASE, MAXCHROMA);
-    res         = ctrlBuf->WriteSurface((const uint8_t *)p_ctrl.get(), NULL, sizeof(MeControlSmall));
-    MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+    MCTF_CHECK_CM_ERR(SetFilterStrenght(fs, fs), MFX_ERR_DEVICE_FAILED);
     return MFX_ERR_NONE;
 }
 
@@ -194,7 +206,7 @@ inline mfxStatus CMC::SetupMeControl(
 )
 {
     p_ctrl.reset(new MeControlSmall);
-    const mfxU8 Diamond[SEARCHPATHSIZE] = {
+    const mfxU8 Diamond[MCTFSEARCHPATHSIZE] = {
         0x0F,0xF1,0x0F,0x12,//5
         0x0D,0xE2,0x22,0x1E,//9
         0x10,0xFF,0xE2,0x20,//13
@@ -238,11 +250,10 @@ inline mfxStatus CMC::SetupMeControl(
     p_ctrl->CropW = CropW;
     p_ctrl->CropH = CropH;
 
-    if (th  > 20)
+    if (th > 20)
         return MFX_ERR_INVALID_VIDEO_PARAM;
-
     p_ctrl->th  = th * 50;
-    p_ctrl->sTh = min(th + CHROMABASE, MAXCHROMA);
+    p_ctrl->sTh = (mfxU16)min(th + CHROMABASE, MAXCHROMA);
     p_ctrl->mre_width  = 0;
     p_ctrl->mre_height = 0;
     if (MFX_MVPRECISION_INTEGER >> 1 == subPelPre)
@@ -303,6 +314,62 @@ mfxStatus CMC::MCTF_GET_FRAME(
     if (!lastFrame)
         lastFrame = 1;
     return sts;
+}
+
+mfxStatus CMC::MCTF_GET_FRAME(
+    mfxU8 * outFrame
+)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    if (!outFrame)
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    if (!mco)
+    {
+        if (NO_REFERENCES == number_of_References || ONE_REFERENCE == number_of_References)
+        {
+            //this is undefined behavior
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        }
+        else
+        {
+            INT cmSts = mco->GetIndex(idxMco);
+            MFX_CHECK((CM_SUCCESS == cmSts), MFX_ERR_DEVICE_FAILED);
+        }
+    }
+
+    if (lastFrame == 1)
+        res = MCTF_RUN_MCTF_DEN();
+
+    MFX_CHECK(mco, MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    if (QfIn[0].filterStrength > 0)
+    {
+        res = queue->EnqueueCopyGPUToCPU(mco, outFrame, copyEv);
+        MFX_CHECK((CM_SUCCESS == res), MFX_ERR_DEVICE_FAILED);
+
+        CM_STATUS
+            status = CM_STATUS_FLUSHED;
+
+        copyEv->GetStatus(status);
+        while (status != CM_STATUS_FINISHED)
+            copyEv->GetStatus(status);
+
+        MctfState = AMCTF_NOT_READY;
+    }
+
+    return sts;
+}
+
+mfxStatus CMC::MCTF_RELEASE_FRAME(
+)
+{
+    if (MCTF_ReadyToOutput())
+    {
+        MFX_CHECK(mco, MFX_ERR_UNDEFINED_BEHAVIOR);
+        mco = nullptr;
+        MctfState = AMCTF_NOT_READY;
+    }
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CMC::MCTF_TrackTimeStamp(
@@ -449,16 +516,26 @@ mfxStatus CMC::IM_MRE_SURF_SET(
     return MFX_ERR_NONE;
 }
 
+mfxStatus CMC::IM_SURF_SET_Int() {
+    for (mfxU32 i = 0; i < QfIn.size(); i++) {
+        res += IM_SURF_SET(&QfIn[i].frameData, &QfIn[i].fIdx);
+        QfIn[i].scene_idx = 0;
+    }
+    return MFX_ERR_NONE;
+}
+
 mfxStatus CMC::IM_SURF_SET()
 {
     for (mfxU32 i = 0; i < QfIn.size(); i++)
     {
         MFX_SAFE_CALL(IM_MRE_SURF_SET(&QfIn[i].magData, &QfIn[i].idxMag));
-        mfxHDLPair handle;
+        mfxHDLPair
+            handle;
         // if a surface is opaque, need to extract normal surface
-        mfxFrameSurface1 *pSurf = m_pCore->GetNativeSurface(QfIn[i].mfxFrame, false);
+        mfxFrameSurface1 
+            * pSurf = m_pCore->GetNativeSurface(QfIn[i].mfxFrame, false);
         QfIn[i].mfxFrame = pSurf ? pSurf : QfIn[i].mfxFrame;
-        // GetFrameHDL is used as QfIn[].mfxFrme is allocated via call to Core Alloc functoin
+        // GetFrameHDL is used as QfIn[].mfxFrme is allocated via call to Core Alloc function
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(QfIn[i].mfxFrame->Data.MemId, reinterpret_cast<mfxHDL*>(&handle)));
         MFX_SAFE_CALL(IM_SURF_SET(reinterpret_cast<AbstractSurfaceHandle>(handle.first), &QfIn[i].frameData, &QfIn[i].fIdx));
         QfIn[i].scene_idx = 0;
@@ -501,6 +578,44 @@ mfxStatus CMC::MCTF_SetMemory(
         MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         if (number_of_References > 2)
         {
+        //Setup for 4 references
+        res = GEN_SURF_SET(&mv_3, &mvSys3, &idxMv_3);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        res = GEN_SURF_SET(&mv_4, &mvSys4, &idxMv_4);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        }
+
+        res = GEN_SURF_SET(&distSurf, &distSys, &idxDist);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        res = GEN_NoiseSURF_SET(&noiseAnalysisSurf, &noiseAnalysisSys, &idxNoiseAnalysis);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        return MFX_ERR_NONE;
+    }
+}
+
+mfxStatus CMC::MCTF_SetMemory(
+    bool isCmUsed
+)
+{
+        res = IM_SURF_SET_Int();
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        // mco & idxmco will be extracted from an output surface
+        mco = nullptr;
+        if (!isCmUsed)
+        {
+            res = IM_SURF_SET(&mco, &idxMco);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        }
+        res = IM_SURF_SET(&mco2, &idxMco2);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+
+        //Setup for 2 references
+        res = GEN_SURF_SET(&mv_1, &mvSys1, &idxMv_1);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        res = GEN_SURF_SET(&mv_2, &mvSys2, &idxMv_2);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        if (number_of_References > 2)
+        {
             //Setup for 4 references
             res = GEN_SURF_SET(&mv_3, &mvSys3, &idxMv_3);
             MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
@@ -513,30 +628,36 @@ mfxStatus CMC::MCTF_SetMemory(
         res = GEN_NoiseSURF_SET(&noiseAnalysisSurf, &noiseAnalysisSys, &idxNoiseAnalysis);
         MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         return MFX_ERR_NONE;
-    }
 }
 
 mfxStatus CMC::MCTF_INIT(
     VideoCORE           * core,
     CmDevice            * pCmDevice,
     const mfxFrameInfo  & FrameInfo,
-    const IntMctfParams * pMctfParam
+    const IntMctfParams * pMctfParam,
+    bool                  isCmUsed,
+    const bool            externalSCD,
+    const bool            useFilterAdaptControl,
+    const bool            isNCActive
 )
 {
-    version     = 400;
-    argIdx      = 0;
-    tsWidthFull = 0;
-    tsWidth     = 0;
-    tsHeight    = 0;
-    bth         = 500;
-    blsize      = 16;
-    device      = NULL;
-    sceneNum    = 0;
-    countFrames = 0;
-    firstFrame  = 1;
-    lastFrame   = 0;
-    exeTime     = 0;
-
+    version         = 400;
+    argIdx          = 0;
+    tsWidthFull     = 0;
+    tsWidth         = 0;
+    tsHeight        = 0;
+    bth             = 500;
+    blsize          = 16;
+    device          = NULL;
+    sceneNum        = 0;
+    countFrames     = 0;
+    firstFrame      = 1;
+    lastFrame       = 0;
+    exeTime         = 0;
+    exeTimeT        = 0;
+    m_externalSCD   = externalSCD;
+    m_adaptControl  = useFilterAdaptControl;
+    m_doFilterFrame = true;
 
     //--filter configuration parameters
     m_AutoMode = MCTF_MODE::MCTF_NOT_INITIALIZED_MODE;
@@ -603,7 +724,8 @@ mfxStatus CMC::MCTF_INIT(
         return MFX_ERR_NOT_INITIALIZED;
 
     mfxStatus sts = MFX_ERR_NONE;
-    pSCD.reset(new(ASC));
+    if(!m_externalSCD)
+        pSCD.reset(new(ASC));
 
     IntMctfParams MctfParam{};
     QueryDefaultParams(&MctfParam);
@@ -611,16 +733,40 @@ mfxStatus CMC::MCTF_INIT(
     // if no MctfParams are passed, to use default
     if (!pMctfParam)
         pMctfParam = &MctfParam;
+    sts = MCTF_SET_ENV(core, FrameInfo, pMctfParam, isCmUsed, isNCActive);
 
-    sts = MCTF_SET_ENV(core, FrameInfo, pMctfParam);
     MFX_CHECK_STS(sts);
     return sts;
+}
+
+mfxStatus CMC::MCTF_INIT(
+    VideoCORE           * core,
+    CmDevice            * pCmDevice,
+    const mfxFrameInfo  & FrameInfo,
+    const IntMctfParams * pMctfParam
+)
+{
+    return (MCTF_INIT(core, pCmDevice, FrameInfo, pMctfParam, false, false));
+}
+
+mfxStatus CMC::MCTF_INIT(
+    VideoCORE           * core,
+    CmDevice            * pCmDevice,
+    const mfxFrameInfo  & FrameInfo,
+    const IntMctfParams * pMctfParam,
+    const bool            externalSCD,
+    const bool            isNCActive
+)
+{
+    return (MCTF_INIT(core, pCmDevice, FrameInfo, pMctfParam, false, externalSCD, false, isNCActive));
 }
 
 mfxStatus CMC::MCTF_SET_ENV(
     VideoCORE           * core,
     const mfxFrameInfo  & FrameInfo,
-    const IntMctfParams * pMctfParam
+    const IntMctfParams * pMctfParam,
+    bool                  isCmUsed,
+    bool                  isNCActive
 )
 {
     IntMctfParams localMctfParam = *pMctfParam;
@@ -628,12 +774,11 @@ mfxStatus CMC::MCTF_SET_ENV(
     if (!device)
         return MFX_ERR_NOT_INITIALIZED;
 
-    mctf_HWType = core->GetHWType();
     hwSize = 4;
     res = device->GetCaps(CAP_GPU_PLATFORM, hwSize, &hwType);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
-    if(mctf_HWType >= MFX_HW_ICL)
+    if (core->GetHWType() >= MFX_HW_ICL)
         res = device->CreateQueueEx(queue, CM_VME_QUEUE_CREATE_OPTION);
     else
         res = device->CreateQueue(queue);
@@ -686,15 +831,15 @@ mfxStatus CMC::MCTF_SET_ENV(
         ConfigMode = MCTF_MODE::MCTF_AUTO_MODE == m_AutoMode ? MCTF_CONFIGURATION::MCTF_AUT_CA_NBA : MCTF_CONFIGURATION::MCTF_MAN_NCA_NBA;
     }
 
-    pMCTF_SpDen_func = NULL;
-    pMCTF_NOA_func = NULL;
-    pMCTF_LOAD_func = NULL;
-    pMCTF_ME_func = NULL;
-    pMCTF_MERGE_func = NULL;
-    pMCTF_func = NULL;
+    pMCTF_SpDen_func = nullptr;
+    pMCTF_NOA_func   = nullptr;
+    pMCTF_LOAD_func  = nullptr;
+    pMCTF_ME_func    = nullptr;
+    pMCTF_MERGE_func = nullptr;
+    pMCTF_func       = nullptr;
 
-    pMCTF_func = &CMC::MCTF_RUN_MCTF_DEN;
-    if (m_AutoMode == MCTF_MODE::MCTF_AUTO_MODE)
+    pMCTF_func       = &CMC::MCTF_RUN_MCTF_DEN;
+    if (m_AutoMode == MCTF_MODE::MCTF_AUTO_MODE || isNCActive)
         pMCTF_NOA_func = &CMC::noise_estimator;
 
     if (number_of_References == FOUR_REFERENCES)
@@ -706,7 +851,10 @@ mfxStatus CMC::MCTF_SET_ENV(
     else if (number_of_References == TWO_REFERENCES)
     {
         pMCTF_LOAD_func = &CMC::MCTF_LOAD_2REF;
-        pMCTF_ME_func = &CMC::MCTF_RUN_ME_2REF;
+        if (isNCActive)
+            pMCTF_ME_func = &CMC::MCTF_RUN_ME_2REF_HE;
+        else
+            pMCTF_ME_func = &CMC::MCTF_RUN_ME_2REF;
         pMCTF_MERGE_func = NULL;
     }
     else if (number_of_References == ONE_REFERENCE)
@@ -743,70 +891,131 @@ mfxStatus CMC::MCTF_SET_ENV(
     res = ctrlBuf->GetIndex(idxCtrl);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
+    //Init internal buffer which is not shared
+    if (isNCActive)
+    {
+        res = MCTF_SetMemory(isCmUsed);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+    }
+
     //Motion Estimation
+    switch (hwType)
+    {
 #ifdef MFX_ENABLE_KERNELS
-    if (hwType == PLATFORM_INTEL_BDW)
+    case PLATFORM_INTEL_BDW:
         res = device->LoadProgram((void *)genx_me_gen8, sizeof(genx_me_gen8), programMe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_ICL)
+        break;
+    case PLATFORM_INTEL_ICL:
         res = device->LoadProgram((void *)genx_me_gen11, sizeof(genx_me_gen11), programMe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_ICLLP)
+        break;
+    case PLATFORM_INTEL_ICLLP:
         res = device->LoadProgram((void *)genx_me_gen11lp, sizeof(genx_me_gen11lp), programMe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_TGLLP || hwType == PLATFORM_INTEL_DG1)
+        break;
+    case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_DG1:
         res = device->LoadProgram((void *)genx_me_gen12lp, sizeof(genx_me_gen12lp), programMe, "nojitter");
-    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
+        break;
+    case PLATFORM_INTEL_SKL:
+    case PLATFORM_INTEL_BXT:
+    case PLATFORM_INTEL_CNL:
+    case PLATFORM_INTEL_KBL:
+    case PLATFORM_INTEL_CFL:
+    case PLATFORM_INTEL_GLK:
         res = device->LoadProgram((void *)genx_me_gen9, sizeof(genx_me_gen9), programMe, "nojitter");
-    else
+        break;
 #endif
+    default:
         return MFX_ERR_UNSUPPORTED;
+    }
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+
     //ME Kernel
     if (MFX_CODINGOPTION_ON == overlap_Motion) 
     {
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1MV_MRE), kernelMe);
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE), kernelMeB);
+        res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE), kernelMeB2);
+
     }
     else
     if (MFX_CODINGOPTION_OFF == overlap_Motion || MFX_CODINGOPTION_UNKNOWN == overlap_Motion)
     {
         res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1MV_MRE_8x8), kernelMe);
-        res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE_8x8), kernelMeB);
+        if (isNCActive)
+        {
+            res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1ME_2BiRef_MRE_8x8), kernelMeB);
+            res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16_1ME_2BiRef_MRE_8x8), kernelMeB2);
+        }
+        else
+        {
+            res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE_8x8), kernelMeB);
+            res = device->CreateKernel(programMe, CM_KERNEL_FUNCTION(MeP16bi_1MV2_MRE_8x8), kernelMeB2);
+        }
+
     }
     else
         return MFX_ERR_INVALID_VIDEO_PARAM;
-
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     //Motion Compensation
+    switch (hwType)
+    {
 #ifdef MFX_ENABLE_KERNELS
-    if (hwType == PLATFORM_INTEL_BDW)
+    case PLATFORM_INTEL_BDW:
         res = device->LoadProgram((void *)genx_mc_gen8, sizeof(genx_mc_gen8), programMc, "nojitter");
-    else if (hwType == PLATFORM_INTEL_ICL)
+        break;
+    case PLATFORM_INTEL_ICL:
         res = device->LoadProgram((void *)genx_mc_gen11, sizeof(genx_mc_gen11), programMc, "nojitter");
-    else if (hwType == PLATFORM_INTEL_ICLLP)
+        break;
+    case PLATFORM_INTEL_ICLLP:
         res = device->LoadProgram((void *)genx_mc_gen11lp, sizeof(genx_mc_gen11lp), programMc, "nojitter");
-    else if (hwType == PLATFORM_INTEL_TGLLP || hwType == PLATFORM_INTEL_DG1)
+        break;
+    case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_DG1:
         res = device->LoadProgram((void *)genx_mc_gen12lp, sizeof(genx_mc_gen12lp), programMc, "nojitter");
-    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
+        break;
+    case PLATFORM_INTEL_SKL:
+    case PLATFORM_INTEL_BXT:
+    case PLATFORM_INTEL_CNL:
+    case PLATFORM_INTEL_KBL:
+    case PLATFORM_INTEL_CFL:
+    case PLATFORM_INTEL_GLK:
         res = device->LoadProgram((void *)genx_mc_gen9, sizeof(genx_mc_gen9), programMc, "nojitter");
-    else
+        break;
 #endif
+    default:
         return MFX_ERR_UNSUPPORTED;
+    }
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
+    switch (hwType)
+    {
 #ifdef MFX_ENABLE_KERNELS
-    if (hwType == PLATFORM_INTEL_BDW)
+    case PLATFORM_INTEL_BDW:
         res = device->LoadProgram((void *)genx_sd_gen8, sizeof(genx_sd_gen8), programDe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_ICL)
+        break;
+    case PLATFORM_INTEL_ICL:
         res = device->LoadProgram((void *)genx_sd_gen11, sizeof(genx_sd_gen11), programDe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_ICLLP)
+        break;
+    case PLATFORM_INTEL_ICLLP:
         res = device->LoadProgram((void *)genx_sd_gen11lp, sizeof(genx_sd_gen11lp), programDe, "nojitter");
-    else if (hwType == PLATFORM_INTEL_TGLLP || hwType == PLATFORM_INTEL_DG1)
+        break;
+    case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_DG1:
         res = device->LoadProgram((void *)genx_sd_gen12lp, sizeof(genx_sd_gen12lp), programDe, "nojitter");
-    else if (hwType >= PLATFORM_INTEL_SKL && hwType <= PLATFORM_INTEL_CFL)
+        break;
+    case PLATFORM_INTEL_SKL:
+    case PLATFORM_INTEL_BXT:
+    case PLATFORM_INTEL_CNL:
+    case PLATFORM_INTEL_KBL:
+    case PLATFORM_INTEL_CFL:
+    case PLATFORM_INTEL_GLK:
         res = device->LoadProgram((void *)genx_sd_gen9, sizeof(genx_sd_gen9), programDe, "nojitter");
-    else
+        break;
 #endif
+    default:
         return MFX_ERR_UNSUPPORTED;
+    }
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
 
     //Denoising No reference Kernel
@@ -826,13 +1035,14 @@ mfxStatus CMC::MCTF_SET_ENV(
 
     res = device->CreateKernel(programMc, CM_KERNEL_FUNCTION(MC_VAR_SC_CALC), kernelNoise);
     MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
-
-    sts= pSCD->Init(p_ctrl->CropW, p_ctrl->CropH, p_ctrl->width, MFX_PICSTRUCT_PROGRESSIVE, device);
-    MFX_CHECK_STS(sts);
-    sts = pSCD->SetGoPSize(Immediate_GoP);
-    MFX_CHECK_STS(sts);
-    pSCD->SetControlLevel(0);
-
+    if (!m_externalSCD)
+    {
+        sts = pSCD->Init(p_ctrl->CropW, p_ctrl->CropH, p_ctrl->width, MFX_PICSTRUCT_PROGRESSIVE, device);
+        MFX_CHECK_STS(sts);
+        sts = pSCD->SetGoPSize(Immediate_GoP);
+        MFX_CHECK_STS(sts);
+        pSCD->SetControlLevel(0);
+    }
     if (m_AutoMode == MCTF_MODE::MCTF_AUTO_MODE) 
     {
         sts = SetFilterStrenght(DEFAULT_FILTER_STRENGTH);
@@ -861,7 +1071,7 @@ mfxStatus CMC::MCTF_CheckRTParams(
         if (pMctfControl->BitsPerPixelx100k > (DEFAULT_BPP))
             sts = MFX_ERR_INVALID_VIDEO_PARAM;
 #endif
-        if (pMctfControl->FilterStrength > 20 || 0 == pMctfControl->FilterStrength)
+        if (pMctfControl->FilterStrength > 21)
             sts = MFX_ERR_INVALID_VIDEO_PARAM;
     }
     return sts;
@@ -1126,6 +1336,68 @@ mfxI32 CMC::MCTF_SET_KERNELMeBi(
     res = kernelMeB->SetKernelArg(argIdx++, sizeof(forwardRefDist), &forwardRefDist);
     MCTF_CHECK_CM_ERR(res, res);
     res = kernelMeB->SetKernelArg(argIdx++, sizeof(backwardRefDist), &backwardRefDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    return res;
+}
+
+mfxU32 CMC::MCTF_SET_KERNELMeBiMRE(
+    SurfaceIndex* GenxRefs, SurfaceIndex* GenxRefs2,
+    SurfaceIndex* idxMV, SurfaceIndex* idxMV2,
+    mfxU16 start_x, mfxU16 start_y, mfxU8 blSize,
+    mfxI8 forwardRefDist, mfxI8 backwardRefDist) {
+    argIdx = 0;
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(*idxCtrl), idxCtrl);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(*GenxRefs), GenxRefs);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(*GenxRefs2), GenxRefs2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(*idxDist), idxDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(*idxMV), idxMV);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(*idxMV2), idxMV2);
+    MCTF_CHECK_CM_ERR(res, res);
+    // set start mb
+    mfxU16Pair start_xy = { start_x, start_y };
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(start_xy), &start_xy);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(blSize), &blSize);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(forwardRefDist), &forwardRefDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->SetKernelArg(argIdx++, sizeof(backwardRefDist), &backwardRefDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    return res;
+}
+
+mfxU32 CMC::MCTF_SET_KERNELMeBiMRE2(
+    SurfaceIndex* GenxRefs, SurfaceIndex* GenxRefs2,
+    SurfaceIndex* idxMV, SurfaceIndex* idxMV2,
+    mfxU16 start_x, mfxU16 start_y, mfxU8 blSize,
+    mfxI8 forwardRefDist, mfxI8 backwardRefDist) {
+    argIdx = 0;
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(*idxCtrl), idxCtrl);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(*GenxRefs), GenxRefs);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(*GenxRefs2), GenxRefs2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(*idxDist), idxDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(*idxMV), idxMV);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(*idxMV2), idxMV2);
+    MCTF_CHECK_CM_ERR(res, res);
+    // set start mb
+    mfxU16Pair start_xy = { start_x, start_y };
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(start_xy), &start_xy);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(blSize), &blSize);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(forwardRefDist), &forwardRefDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->SetKernelArg(argIdx++, sizeof(backwardRefDist), &backwardRefDist);
     MCTF_CHECK_CM_ERR(res, res);
     return res;
 }
@@ -1478,6 +1750,8 @@ mfxI32 CMC::MCTF_RUN_TASK(
     }
     res = task->AddKernel(kernel);
     MCTF_CHECK_CM_ERR(res, res);
+    res = MCTF_Enqueue(task, e);
+    MCTF_CHECK_CM_ERR(res, res);
     return res;
 }
 
@@ -1702,6 +1976,169 @@ mfxI32 CMC::MCTF_RUN_ME(
     return res;
 }
 
+mfxI32 CMC::MCTF_RUN_ME_MC_HE(
+    SurfaceIndex* GenxRefs,
+    SurfaceIndex* GenxRefs2,
+    SurfaceIndex* idxMV,
+    SurfaceIndex* idxMV2,
+    mfxI8         forwardRefDist,
+    mfxI8         backwardRefDist,
+    mfxU8         mcSufIndex
+)
+{
+    p_ctrl->sTh = MCTF_CHROMAOFF;
+    p_ctrl->th = QfIn[1].filterStrength * 50;
+    res = ctrlBuf->WriteSurface((const mfxU8 *)p_ctrl.get(), NULL, sizeof(MeControlSmall));
+    MCTF_CHECK_CM_ERR(res, res);
+    time = 0;
+
+    mfxU8
+        blSize = SetOverlapOp_half();
+    mfxU16
+        multiplier = 2;
+    UINT64
+        executionTime = 0;
+    tsHeightMC = (DIVUP(p_ctrl->height, blsize) * multiplier);
+    tsWidthFullMC = (DIVUP(p_ctrl->width, blsize) * multiplier);
+    tsWidthMC = tsWidthFullMC;
+
+    res = MCTF_SET_KERNELMeBiMRE(GenxRefs, GenxRefs2, idxMV, idxMV2, 0, 0, blSize, forwardRefDist, backwardRefDist);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = MCTF_SET_KERNELMeBiMRE2(GenxRefs, GenxRefs2, idxMV, idxMV2, 0, tsHeight, blSize, forwardRefDist, backwardRefDist);
+    MCTF_CHECK_CM_ERR(res, res);
+
+    if (tsWidthFull > CM_MAX_THREADSPACE_WIDTH_FOR_MO)
+    {
+        tsWidth = (tsWidthFull >> 1) & ~1;  // must be even for 32x32 blocks 
+    }
+
+    if (tsWidthFullMC > CM_MAX_THREADSPACE_WIDTH_FOR_MO)
+    {
+        tsWidthMC = (tsWidthFullMC >> 1) & ~1;  // must be even for 32x32 blocks 
+    }
+
+    threadSpace   = 0;
+    threadSpace2  = 0;
+    threadSpaceMC = 0;
+
+    res = kernelMeB->SetThreadCount(tsWidth * tsHeight);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = device->CreateThreadSpace(tsWidth, tsHeight, threadSpace);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = threadSpace->SelectThreadDependencyPattern(CM_HORIZONTAL_DEPENDENCY);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB->AssociateThreadSpace(threadSpace);
+    MCTF_CHECK_CM_ERR(res, res);
+
+    res = kernelMeB2->SetThreadCount(tsWidth * tsHeight);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = device->CreateThreadSpace(tsWidth, tsHeight, threadSpace2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = threadSpace2->SelectThreadDependencyPattern(CM_HORIZONTAL_DEPENDENCY);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMeB2->AssociateThreadSpace(threadSpace2);
+    MCTF_CHECK_CM_ERR(res, res);
+
+    res = kernelMc2r->SetThreadCount(tsWidthMC * tsHeightMC);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = device->CreateThreadSpace(tsWidthMC, tsHeightMC, threadSpaceMC);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = threadSpaceMC->SelectThreadDependencyPattern(CM_HORIZONTAL_DEPENDENCY);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = kernelMc2r->AssociateThreadSpace(threadSpaceMC);
+    MCTF_CHECK_CM_ERR(res, res);
+
+    if (task != 0) {
+        res = task->Reset();
+        MCTF_CHECK_CM_ERR(res, res);
+    }
+    else {
+        res = device->CreateTask(task);
+        MCTF_CHECK_CM_ERR(res, res);
+    }
+
+    res = task->AddKernel(kernelMeB);
+    MCTF_CHECK_CM_ERR(res, res);
+    if (pMCTF_NOA_func && p_ctrl->th == MCTFADAPTIVEVAL)
+    {
+        res = MCTF_Enqueue(task, e);
+        MCTF_CHECK_CM_ERR(res, res);
+        res = e->WaitForTaskFinished();
+        MCTF_CHECK_CM_ERR(res, res);
+
+        res = device->DestroyThreadSpace(threadSpace);
+        MCTF_CHECK_CM_ERR(res, res);
+
+        e->GetExecutionTime(executionTime);
+        exeTime += executionTime / 1000;
+        exeTimeT += executionTime / 1000;
+
+        (this->*(pMCTF_NOA_func))(m_adaptControl);
+        if (QfIn[1].filterStrength == 0)
+            return CM_SUCCESS;
+
+        if (mcSufIndex == 0)
+            res = MCTF_SET_KERNELMc2r(0, 0);
+        else if (mcSufIndex == 1)
+            res = MCTF_SET_KERNELMc4r(0, 0, DEN_CLOSE_RUN);
+        else
+            res = MCTF_SET_KERNELMc4r(0, 0, DEN_FAR_RUN);
+        MCTF_CHECK_CM_ERR(res, res);
+
+        if (task != 0) {
+            res = task->Reset();
+            MCTF_CHECK_CM_ERR(res, res);
+        }
+        else {
+            res = device->CreateTask(task);
+            MCTF_CHECK_CM_ERR(res, res);
+        }
+    }
+    else {
+        res = task->AddSync();
+        if (mcSufIndex == 0)
+            res = MCTF_SET_KERNELMc2r(0, 0);
+        else if (mcSufIndex == 1)
+            res = MCTF_SET_KERNELMc4r(0, 0, DEN_CLOSE_RUN);
+        else
+            res = MCTF_SET_KERNELMc4r(0, 0, DEN_FAR_RUN);
+        MCTF_CHECK_CM_ERR(res, res);
+    }
+
+    res = task->AddKernel(kernelMeB2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = task->AddKernel(kernelMc2r);
+    MCTF_CHECK_CM_ERR(res, res);
+
+    res = MCTF_Enqueue(task, e);
+    MCTF_CHECK_CM_ERR(res, res);
+    MctfState = AMCTF_READY;
+    res = e->WaitForTaskFinished();
+    MCTF_CHECK_CM_ERR(res, res);
+    e->GetExecutionTime(executionTime);
+    exeTime += executionTime / 1000;
+
+    if (!pMCTF_NOA_func) {
+        res = device->DestroyThreadSpace(threadSpace);
+        MCTF_CHECK_CM_ERR(res, res);
+    }
+    
+    res = device->DestroyThreadSpace(threadSpace2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = device->DestroyThreadSpace(threadSpaceMC);
+    MCTF_CHECK_CM_ERR(res, res);
+
+
+    res = device->DestroyVmeSurfaceG7_5(GenxRefs);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = device->DestroyVmeSurfaceG7_5(GenxRefs2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = device->DestroyTask(task);
+    MCTF_CHECK_CM_ERR(res, res);
+    task = 0;
+    return res;
+}
+
 mfxI32 CMC::MCTF_RUN_ME_MC_H(
     SurfaceIndex * GenxRefs,
     SurfaceIndex * GenxRefs2,
@@ -1722,7 +2159,11 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
     threadSpace = 0;
 
     res = MCTF_RUN_TASK(kernelMeB, task != 0);
-
+    res = e->WaitForTaskFinished();
+    MCTF_CHECK_CM_ERR(res, res);
+    e->GetExecutionTime(executionTime);
+    exeTime += executionTime / 1000;
+    
     mfxU16 multiplier = 2;
     tsHeightMC = (DIVUP(p_ctrl->CropH, blsize) * multiplier);
     tsWidthFullMC = (DIVUP(p_ctrl->CropW, blsize) * multiplier);
@@ -1745,7 +2186,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_H(
         MCTF_CHECK_CM_ERR(res, res);
         task = 0;
         e = 0;
-        (this->*(pMCTF_NOA_func))();
+        (this->*(pMCTF_NOA_func))(m_adaptControl);
     }
     else
         res = task->AddSync();
@@ -1860,23 +2301,24 @@ mfxU16 CalcNoiseStrength(
     if (std::fabs(NSC) <= 10 * std::numeric_limits<double>::epsilon()) return 0;
     mfxF64
         s,
-#if defined (MCTF_MODEL_FOR_x264_OR_x265)
-        c3 = 251.3383273,//189.199402,
-        c2 = -257.236,//-259.6469397,
-        c1 = 101.9745,//125.4713269,
-        c0 = -8.38753,//-13.64224334,
-#elif defined (MCTF_MODEL_FOR_MSDK)
-        // optimal for AVC/HEVC, MSDK implementation
-        c3 = 247.99601,
-        c2 = -195.205078,
-        c1 = 46.510905,
-        c0 = -0.736656,
-#else
-        static_assert(false, "no macro for a MCTF model is defined!");
-#endif
+        s2,
+
+        c3 = -907.05,
+        c2 =  752.69,
+        c1 = -175.7,
+        c0 =  14.6,
+        d3 = -0.0000004,
+        d2 =  0.0002,
+        d1 = -0.0245,
+        d0 =  4.1647,
+
+        ISTC = NSAD * NSC,
         STC = NSAD / sqrt(NSC);
-    s = c3 * pow(STC, 3.0) + c2 * pow(STC, 2.0) + c1 * STC + c0;
-    s = max(0.0, min(20.0, s));
+
+    s  = c3 * pow(STC, 3.0) + c2 * pow(STC, 2.0) + c1 * STC + c0;
+    s2 = d3 * pow(ISTC, 3.0) + d2 * pow(ISTC, 2.0) + d1 * ISTC + d0;
+    s = NMIN(s, s2) + 4;
+    s  = NMAX(0.0, NMIN(20.0, s));
     return (mfxU16)(s + 0.5);
 }
 
@@ -1887,7 +2329,7 @@ mfxU8 CalcSTC(mfxF64 SCpp2, mfxF64 sadpp)
         stcVal = 0;
     sadpp *= sadpp;
     // Ref was Recon (quantization err in ref biases sad)
-    if (sadpp < 0.03*SCpp2)  stcVal = 0; // Very-Low
+    if      (sadpp < 0.03*SCpp2)  stcVal = 0; // Very-Low
     else if (sadpp < 0.09*SCpp2)  stcVal = 1; // Low
     else if (sadpp < 0.20*SCpp2)  stcVal = 2; // Low-Medium
     else if (sadpp < 0.36*SCpp2)  stcVal = 3; // Medium
@@ -1960,11 +2402,41 @@ mfxU32 CMC::computeQpClassFromBitRate(
     return QCL;
 }
 
+bool CMC::FilterEnable(
+   gpuFrameData frame)
+{
+    mfxF64
+        noise_sad    = frame.noise_sad;
+    mfxU32
+        noise_count  = frame.noise_count;
+    bool
+        enableFilter = false;
+    //Enabling/Disabling filter model coeficcients
+    mfxF64
+        s,
+#if defined(MFX_ENABLE_SOFT_CURVE)
+        c2 = 165.51,
+        c1 = -1614.4,
+        c0 = 4085.7;
+    s = c2 * pow(noise_sad, 2) + c1 * noise_sad + c0;
+#else
+        c1 = 574.5,
+        c0 = 2409.925;
+    s = c1 * noise_sad + c0;
+#endif
 
-void CMC::noise_estimator() 
+    
+    enableFilter = (mfxF64)noise_count > s;
+    return enableFilter;
+}
+
+mfxI32 CMC::noise_estimator(
+    bool adaptControl
+)
 {
     mfxU8
-        currentFrame = (number_of_References <= 2) ? 1 : 2;
+        currentFrame = (number_of_References <= 2) ? 1 : 2,
+        previousFrame = currentFrame - 1;
     mfxU32
         width = DIVUP(p_ctrl->CropW, 16),
         height = DIVUP(p_ctrl->CropH, 16),
@@ -1988,6 +2460,8 @@ void CMC::noise_estimator()
 
     GET_DISTDATA_H();
     res = MCTF_RUN_Noise_Analysis(currentFrame);
+    MCTF_CHECK_CM_ERR(res, res);
+
     GET_NOISEDATA();
     mfxU32 distRefStride = 2 * width;
     switch (overlap_Motion)
@@ -2060,25 +2534,45 @@ void CMC::noise_estimator()
         QfIn[currentFrame].noise_sad /= count;
     }
     mfxU16
-        filterStrenght = CalcNoiseStrength(QfIn[currentFrame].noise_sc, QfIn[currentFrame].noise_sad);
-    if (bitrate_Adaptation)
+        filterstrength = MCTFSTRENGTH;
+    if (QfIn[currentFrame].scene_idx != QfIn[previousFrame].scene_idx)
     {
-        GetSpatioTemporalComplexityFrame(currentFrame);
-        mfxU32
-            QLC = computeQpClassFromBitRate(currentFrame);
-        if (QLC == 0)
-            fsModVal = QfIn[currentFrame].stc > 0.35 ? -2 : -1;
-        else if (QLC == 1)
-            fsModVal = 0;
-        else if (QLC == 2)
-            fsModVal = 1;
-        else
-            fsModVal = 2;
-
-        mfxI32 limit = filterStrenght > 14 ? 13 : 20;
-        filterStrenght = mfxU16(max(0, min(limit, (mfxI16)filterStrenght + fsModVal)));
+        filterstrength = QfIn[previousFrame].filterStrength;
     }
-    res = SetFilterStrenght(filterStrenght);
+    else
+    {
+        filterstrength = CalcNoiseStrength(QfIn[currentFrame].noise_sc, QfIn[currentFrame].noise_sad);
+        if (bitrate_Adaptation)
+        {
+            GetSpatioTemporalComplexityFrame(currentFrame);
+            mfxU32
+                QLC = computeQpClassFromBitRate(currentFrame);
+            if (QLC == 0)
+                fsModVal = QfIn[currentFrame].stc > 0.35 ? -2 : -1;
+            else if (QLC == 1)
+                fsModVal = 0;
+            else if (QLC == 2)
+                fsModVal = 1;
+            else
+                fsModVal = 2;
+
+            mfxI32 limit = filterstrength > 14 ? 13 : 20;
+            filterstrength = mfxU16(max(0, min(limit, (mfxI16)filterstrength + fsModVal)));
+        }
+    }
+    if (adaptControl)
+    {
+        filterstrength = FilterEnable(QfIn[currentFrame]) ? filterstrength : MCTFNOFILTER;
+        m_doFilterFrame = !!filterstrength;
+    }
+    QfIn[currentFrame].filterStrength = filterstrength;
+    gopBasedFilterStrength = filterstrength;
+    if (adaptControl)
+        res = SetFilterStrenght(filterstrength, MCTFNOFILTER);
+    else
+        res = SetFilterStrenght(filterstrength);
+    MCTF_CHECK_CM_ERR(res, res);
+    return res;
 }
 
 mfxI32 CMC::MCTF_RUN_Noise_Analysis(mfxU8 srcNum)
@@ -2422,8 +2916,15 @@ mfxI32 CMC::MCTF_RUN_ME_1REF()
     e = 0;
 
     if (pMCTF_NOA_func)
-        (this->*(pMCTF_NOA_func))();
+        (this->*(pMCTF_NOA_func))(m_adaptControl);
 
+    return res;
+}
+
+mfxI32 CMC::MCTF_RUN_ME_2REF_HE()
+{
+    res = MCTF_RUN_ME_MC_HE(genxRefs1, genxRefs2, idxMv_1, idxMv_2, forward_distance, backward_distance, 0);
+    MCTF_CHECK_CM_ERR(res, res);
     return res;
 }
 
@@ -2480,24 +2981,27 @@ mfxI32 CMC::MCTF_RUN_MCTF_DEN_1REF()
 
 mfxI32 CMC::MCTF_RUN_MCTF_DEN()
 {
-    if (pMCTF_LOAD_func)
+    if (QfIn[1].filterStrength > 0)
     {
-        res = (this->*(pMCTF_LOAD_func))();
-        MCTF_CHECK_CM_ERR(res, res);
+        if (pMCTF_LOAD_func)
+        {
+            res = (this->*(pMCTF_LOAD_func))();
+            MCTF_CHECK_CM_ERR(res, res);
+        }
+        AssignSceneNumber();
+        if (pMCTF_ME_func)
+        {
+            res = (this->*(pMCTF_ME_func))();
+            MCTF_CHECK_CM_ERR(res, res);
+        }
+        if (pMCTF_MERGE_func)
+        {
+            res = (this->*(pMCTF_MERGE_func))();
+            MCTF_CHECK_CM_ERR(res, res);
+        }
+        if (pMCTF_SpDen_func)
+            res = (this->*(pMCTF_SpDen_func))();
     }
-    AssignSceneNumber();
-    if (pMCTF_ME_func)
-    {
-        res = (this->*(pMCTF_ME_func))();
-        MCTF_CHECK_CM_ERR(res, res);
-    }
-    if (pMCTF_MERGE_func)
-    {
-        res = (this->*(pMCTF_MERGE_func))();
-        MCTF_CHECK_CM_ERR(res, res);
-    }
-    if (pMCTF_SpDen_func)
-        res = (this->*(pMCTF_SpDen_func))();
     RotateBuffer();
     return res;
 }
@@ -2543,24 +3047,31 @@ mfxI32 CMC::MCTF_RUN_AMCTF(mfxU16 srcNum)
 {
     res = MCTF_RUN_Denoise(srcNum);
     MCTF_CHECK_CM_ERR(res, res);
+    MctfState = AMCTF_READY;
     return res;
 }
 
 mfxI32 CMC::MCTF_RUN_Denoise(mfxU16 srcNum)
 {
-    res = MCTF_SET_KERNELDe(srcNum, DIVUP(p_ctrl->CropX, 8), DIVUP(p_ctrl->CropY, 8));
+    if (QfIn[srcNum].filterStrength == 21)
+        p_ctrl->sTh = MCTFSTRENGTH * 50 / 25;
+    else
+        p_ctrl->sTh = QfIn[srcNum].filterStrength * 50 / 25;
+    res = ctrlBuf->WriteSurface((const mfxU8 *)p_ctrl.get(), NULL, sizeof(MeControlSmall));
     MCTF_CHECK_CM_ERR(res, res);
-    tsHeight = DIVUP(p_ctrl->CropH, 8);
-    tsWidthFull = DIVUP(p_ctrl->CropW, 8);
-    tsWidth = tsWidthFull;
+    res = MCTF_SET_KERNELDe(srcNum, 0, 0);
+    MCTF_CHECK_CM_ERR(res, res);
+    p_ctrl->sTh = 0;
+    tsHeight    = DIVUP(p_ctrl->height, 8);
+    tsWidthFull = DIVUP(p_ctrl->width,  8);
+    tsWidth     = tsWidthFull;
 
-    if (tsWidthFull > CM_MAX_THREADSPACE_WIDTH_FOR_MW)
+    if (tsWidthFull > CM_MAX_THREADSPACE_WIDTH_FOR_MW) {
         tsWidth = (tsWidthFull >> 1) & ~1;  // must be even for 32x32 blocks 
+    }
 
     threadSpace = 0;
     res = MCTF_RUN_TASK(kernelMcDen, task != 0);
-    MCTF_CHECK_CM_ERR(res, res);
-    res = MCTF_Enqueue(task, e);
     MCTF_CHECK_CM_ERR(res, res);
 
     if (tsWidthFull > CM_MAX_THREADSPACE_WIDTH_FOR_MW)
@@ -2568,29 +3079,22 @@ mfxI32 CMC::MCTF_RUN_Denoise(mfxU16 srcNum)
         mfxU16
             start_mbX = tsWidth;
         tsWidth = tsWidthFull - tsWidth;
-        res = MCTF_SET_KERNELDe(srcNum, start_mbX, DIVUP(p_ctrl->CropY, 8));
+        res = MCTF_SET_KERNELDe(srcNum, start_mbX, 0);
         MCTF_CHECK_CM_ERR(res, res);
-        if (threadSpace != NULL)
-        {
+        if (threadSpace != NULL) {
             res = device->DestroyThreadSpace(threadSpace);
             MCTF_CHECK_CM_ERR(res, res);
         }
         // the rest of frame TS
         res = MCTF_RUN_TASK(kernelMcDen, task != 0);
         MCTF_CHECK_CM_ERR(res, res);
-        res = MCTF_Enqueue(task, e);
-        MCTF_CHECK_CM_ERR(res, res);
     }
     res = e->WaitForTaskFinished();
     MCTF_CHECK_CM_ERR(res, res);
+
     UINT64 executionTime;
     e->GetExecutionTime(executionTime);
     exeTime += executionTime / 1000;
-    res = device->DestroyThreadSpace(threadSpace);
-    MCTF_CHECK_CM_ERR(res, res);
-    res = queue->DestroyEvent(e);
-    MCTF_CHECK_CM_ERR(res, res);
-    e = 0;
     return res;
 }
 
@@ -2614,7 +3118,6 @@ mfxI32 CMC::MCTF_RUN_Denoise()
         mfxU16
             start_mbX = tsWidth;
         tsWidth = tsWidthFull - tsWidth;
-        //        res = MCTF_SET_KERNELDe(start_mbX, 0);
         res = MCTF_SET_KERNELDe(start_mbX, DIVUP(p_ctrl->CropY, 8));
         MCTF_CHECK_CM_ERR(res, res);
         res = MCTF_RUN_TASK(kernelMcDen, task != 0);
@@ -2625,10 +3128,131 @@ mfxI32 CMC::MCTF_RUN_Denoise()
     UINT64 executionTime;
     e->GetExecutionTime(executionTime);
     exeTime += executionTime / 1000;
-    device->DestroyThreadSpace(threadSpace);
-    queue->DestroyEvent(e);
-    e = 0;
     return res;
+}
+
+mfxU32 CMC::IM_SURF_PUT(
+    CmSurface2D *p_surface,
+    mfxU8 *p_data)
+{
+    CM_STATUS
+        status = CM_STATUS_FLUSHED;
+    res = queue->EnqueueCopyCPUToGPU(p_surface, p_data, copyEv);
+    MCTF_CHECK_CM_ERR(res, res);
+    copyEv->GetStatus(status);
+    while (status != CM_STATUS_FINISHED)
+        copyEv->GetStatus(status);
+    return res;
+}
+
+mfxU32 CMC::IM_SURF_PUT(
+    CmSurface2D *p_DstSurface,
+    CmSurface2D *p_SrcSurface)
+{
+    CM_STATUS
+        status = CM_STATUS_FLUSHED;
+    res = queue->EnqueueCopyGPUToGPU(p_DstSurface, p_SrcSurface, NULL, copyEv);
+    MCTF_CHECK_CM_ERR(res, res);
+    copyEv->GetStatus(status);
+    while (status != CM_STATUS_FINISHED)
+        copyEv->GetStatus(status);
+    return res;
+}
+
+void CMC::IntBufferUpdate(bool isSceneChange)
+{
+    size_t
+        buffer_size = QfIn.size() - 1;
+    if (bufferCount > buffer_size) {
+        printf("Error: Invalid frame buffer position\n");
+        exit(-1);
+    }
+    if (bufferCount == 0)
+        QfIn[bufferCount].frame_number = 0;
+    else
+        QfIn[bufferCount].frame_number = QfIn[bufferCount - 1].frame_number + 1;
+
+    if (isSceneChange || bufferCount == 0)
+        countFrames = 0;
+    else
+        countFrames++;
+    QfIn[bufferCount].frame_relative_position = countFrames;
+    QfIn[bufferCount].frame_added = false;
+    if(isSceneChange)
+        m_doFilterFrame = true;
+}
+
+void CMC::BufferFilterAssignment(mfxU16 * filterStrength, bool doIntraFiltering)
+{
+    if (!filterStrength)
+    {
+        if (countFrames == 0)
+        {
+            QfIn[bufferCount].filterStrength = doIntraFiltering ? MCTFSTRENGTH : MCTFNOFILTER;
+#ifdef MFX_MCTF_DEBUG_PRINT
+            ASC_PRINTF("\nI frame denoising is: %i, strength set at: %i\n", doIntraFiltering, QfIn[bufferCount].filterStrength));
+#endif
+            gopBasedFilterStrength = MCTFADAPTIVE;
+        }
+        else if (!(countFrames % MCTFCADENCE))
+            QfIn[bufferCount].filterStrength = gopBasedFilterStrength;
+        else
+            QfIn[bufferCount].filterStrength = MCTFNOFILTER;
+    }
+    else
+        QfIn[bufferCount].filterStrength = *filterStrength;
+}
+
+bool CMC::MCTF_Check_Use()
+{
+    bool
+        frameToBeUsed = false;
+
+    frameToBeUsed = ((countFrames == 0 ||                     //Add frame when is I frame or first frame
+                     ((!(countFrames % MCTFCADENCE) ||         //Add frame in cadence 
+                       !((countFrames + 1) % MCTFCADENCE) ||   //Add previous frame to candence frame
+                       !((countFrames - 1) % MCTFCADENCE)) &&     //Add next frame to cadence frame
+                     countFrames > 1)) &&
+                     m_doFilterFrame);
+
+    return frameToBeUsed;
+}
+
+mfxStatus CMC::MCTF_PUT_FRAME(
+    void   *frameData,
+    bool    isSceneChange,
+    bool    isCmSurface,
+    mfxU16 *filterStrength,
+    bool    doIntraFiltering)
+{
+    sceneNum += isSceneChange;
+
+    if (MCTF_Check_Use())
+    {
+        if (!frameData)
+            return MFX_ERR_UNDEFINED_BEHAVIOR;
+        if (isCmSurface)
+        {
+            res = IM_SURF_PUT(QfIn[bufferCount].frameData, (CmSurface2D*)frameData);
+            if ((countFrames == 0 || !(countFrames % MCTFCADENCE)) && !mco)
+            {
+                mco = (CmSurface2D*)frameData;
+                mco->GetIndex(idxMco);
+            }
+        }
+        else
+            res = IM_SURF_PUT(QfIn[bufferCount].frameData, (mfxU8*)frameData);
+        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        QfIn[bufferCount].frame_added = true;
+    }
+
+    QfIn[bufferCount].scene_idx = sceneNum;
+
+    if (m_doFilterFrame)
+        BufferFilterAssignment(filterStrength, doIntraFiltering);
+    else
+        QfIn[bufferCount].filterStrength = MCTFNOFILTER;
+    return MFX_ERR_NONE;
 }
 
 mfxStatus CMC::MCTF_PUT_FRAME(
@@ -2647,13 +3271,69 @@ mfxStatus CMC::MCTF_PUT_FRAME(
     MFX_CHECK((CM_SUCCESS == cmSts), MFX_ERR_DEVICE_FAILED);
     
     MFX_SAFE_CALL(pSCD->PutFrameProgressive(idxFrom));
-    sceneNum += pSCD->Get_frame_shot_Decision();
 
+    MCTF_PUT_FRAME(
+        pMctfControl,
+        OutSurf,
+        pSCD->Get_frame_shot_Decision()
+    );
+    return MFX_ERR_NONE;
+}
+
+mfxStatus CMC::MCTF_PUT_FRAME(
+    IntMctfParams * pMctfControl,
+    CmSurface2D   * OutSurf,
+    mfxU32          schgDesicion
+)
+{
+    lastFrame = 0;
+    sceneNum += schgDesicion;
     MFX_SAFE_CALL(MCTF_UpdateRTParams(pMctfControl));
     MFX_SAFE_CALL(MCTF_PUT_FRAME(sceneNum, OutSurf));
     forward_distance = -1;
     backward_distance = 1;
     countFrames++;
+    return MFX_ERR_NONE;
+}
+
+mfxStatus CMC::MCTF_DO_FILTERING_IN_AVC()
+{
+    // do filtering based on temporal mode & how many frames are
+    // already in the queue:
+    switch (number_of_References)
+    {
+    case 2://else if (number_of_References == 2)
+    {
+        if (bufferCount < 2) /*One frame delay*/
+        {
+            MctfState = AMCTF_NOT_READY;
+            return MFX_ERR_NONE;
+        }
+
+        switch (firstFrame)
+        {
+            case 0:
+            {
+                MCTF_UpdateANDApplyRTParams(1);
+                res = (this->*(pMCTF_func))();
+                CurrentIdx2Out = DefaultIdx2Out;
+                break;
+            }
+            default:
+            {
+                MCTF_UpdateANDApplyRTParams(0);
+                res = MCTF_RUN_AMCTF(0);
+                firstFrame = 0;
+                CurrentIdx2Out = 0;
+                break;
+            }
+        }
+    };
+    break;
+    default://    else
+        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    }
+    MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
     return MFX_ERR_NONE;
 }
 
@@ -2792,6 +3472,8 @@ void CMC::MCTF_CLOSE()
         device->DestroyKernel(kernelMe);
     if (kernelMeB)
         device->DestroyKernel(kernelMeB);
+    if (kernelMeB2)
+        device->DestroyKernel(kernelMeB2);
     if (kernelMcDen)
         device->DestroyKernel(kernelMcDen);
     if (kernelMc1r)

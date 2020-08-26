@@ -1390,6 +1390,26 @@ bool MfxHwH264Encode::IsCmNeededForSCD(
     return useCm;
 }
 
+bool MfxHwH264Encode::IsMctfSupported(
+    MfxVideoParam const & video)
+{
+    bool
+        isSupported = false;
+#if defined(MXF_ENABLE_MCTF_IN_AVC)
+    mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
+    isSupported = (IsOn(extOpt2.ExtBRC) &&
+        IsExtBrcSceneChangeSupported(video) &&
+        (video.mfx.RateControlMethod == MFX_RATECONTROL_CBR || video.mfx.RateControlMethod == MFX_RATECONTROL_VBR) &&
+        (video.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE) &&
+        ((video.mfx.FrameInfo.FourCC == MFX_FOURCC_NV12) || (video.mfx.FrameInfo.FourCC == MFX_FOURCC_YV12)) &&
+        (video.mfx.FrameInfo.ChromaFormat == MFX_CHROMAFORMAT_YUV420) &&
+        (video.mfx.FrameInfo.BitDepthLuma == 0 || video.mfx.FrameInfo.BitDepthLuma == 8) &&
+        (video.mfx.GopRefDist == 8) &&
+        !video.mfx.EncodedOrder);
+#endif
+    return isSupported;
+}
+
 bool MfxHwH264Encode::IsAdaptiveLtrOn(
     MfxVideoParam const & video)
 {

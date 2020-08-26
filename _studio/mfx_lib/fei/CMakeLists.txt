@@ -22,6 +22,7 @@ set(MFX_ORIG_LDFLAGS "${MFX_LDFLAGS}" )
 
 mfx_include_dirs()
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
+include_directories( ${MSDK_LIB_ROOT}/mctf_package/mctf/include )
 include_directories( ${MSDK_LIB_ROOT}/encode_hw/h264/include )
 include_directories( ${MSDK_UMC_ROOT}/codec/brc/include )
 include_directories( ${MSDK_LIB_ROOT}/fei/h264_common )
