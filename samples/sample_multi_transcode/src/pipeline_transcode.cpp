@@ -2270,10 +2270,9 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
 #if MFX_VERSION >= 1022
     /* SFC usage if enabled */
     if ((pInParams->bDecoderPostProcessing) &&
-        (MFX_CODEC_AVC == m_mfxDecParams.mfx.CodecId) && /* Only for AVC */
         (MFX_PICSTRUCT_PROGRESSIVE == m_mfxDecParams.mfx.FrameInfo.PicStruct)) /* ...And only for progressive!*/
     {
-        auto decPostProc = m_mfxEncParams.AddExtBuffer<mfxExtDecVideoProcessing>();
+        auto decPostProc = m_mfxDecParams.AddExtBuffer<mfxExtDecVideoProcessing>();
         decPostProc->In.CropX = 0;
         decPostProc->In.CropY = 0;
         decPostProc->In.CropW = m_mfxDecParams.mfx.FrameInfo.CropW;
@@ -2281,12 +2280,12 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
 
         decPostProc->Out.FourCC = m_mfxDecParams.mfx.FrameInfo.FourCC;
         decPostProc->Out.ChromaFormat = m_mfxDecParams.mfx.FrameInfo.ChromaFormat;
-        decPostProc->Out.Width = MSDK_ALIGN16(pInParams->nVppCompDstW);
-        decPostProc->Out.Height = MSDK_ALIGN16(pInParams->nVppCompDstH);
+        decPostProc->Out.Width = MSDK_ALIGN16(pInParams->nDstWidth);
+        decPostProc->Out.Height = MSDK_ALIGN16(pInParams->nDstHeight);
         decPostProc->Out.CropX = 0;
         decPostProc->Out.CropY = 0;
-        decPostProc->Out.CropW = pInParams->nVppCompDstW;
-        decPostProc->Out.CropH = pInParams->nVppCompDstH;
+        decPostProc->Out.CropW = pInParams->nDstWidth;
+        decPostProc->Out.CropH = pInParams->nDstHeight;
     }
 #endif //MFX_VERSION >= 1022
     return MFX_ERR_NONE;
