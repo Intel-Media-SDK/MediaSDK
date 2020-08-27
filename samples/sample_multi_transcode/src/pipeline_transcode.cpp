@@ -77,6 +77,20 @@ namespace TranscodingSample
 }
 #endif
 
+mfxFrameInfo GetFrameInfo(const MfxVideoParamsWrapper& param)
+{
+    mfxFrameInfo frameInfo = param.mfx.FrameInfo;
+    auto decPostProc = param.GetExtBuffer<mfxExtDecVideoProcessing>();
+    if(decPostProc)
+    {
+        frameInfo.Width = decPostProc->Out.Width;
+        frameInfo.Height = decPostProc->Out.Height;
+        frameInfo.CropW = decPostProc->Out.CropW;
+        frameInfo.CropH = decPostProc->Out.CropH;
+    }
+
+    return frameInfo;
+}
 
 // set structure to define values
 sInputParams::sInputParams() : __sInputParams()
@@ -339,8 +353,8 @@ mfxStatus CTranscodingPipeline::VPPPreInit(sInputParams *pParams)
             m_mfxVppParams.vpp.In.PicStruct = MFX_PICSTRUCT_UNKNOWN;
         }
 
-        if ( (m_mfxDecParams.mfx.FrameInfo.CropW != pParams->nDstWidth && pParams->nDstWidth) ||
-             (m_mfxDecParams.mfx.FrameInfo.CropH != pParams->nDstHeight && pParams->nDstHeight) ||
+        if ( (GetFrameInfo(m_mfxDecParams).CropW != pParams->nDstWidth && pParams->nDstWidth) ||
+             (GetFrameInfo(m_mfxDecParams).CropH != pParams->nDstHeight && pParams->nDstHeight) ||
              (pParams->bEnableDeinterlacing) || (pParams->DenoiseLevel!=-1) || (pParams->DetailLevel!=-1) || (pParams->FRCAlgorithm) ||
              (bVppCompInitRequire) || (pParams->fieldProcessingMode) ||
 #ifdef ENABLE_MCTF
@@ -2271,10 +2285,9 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
 #if MFX_VERSION >= 1022
     /* SFC usage if enabled */
     if ((pInParams->bDecoderPostProcessing) &&
-        (MFX_CODEC_AVC == m_mfxDecParams.mfx.CodecId) && /* Only for AVC */
         (MFX_PICSTRUCT_PROGRESSIVE == m_mfxDecParams.mfx.FrameInfo.PicStruct)) /* ...And only for progressive!*/
     {
-        auto decPostProc = m_mfxEncParams.AddExtBuffer<mfxExtDecVideoProcessing>();
+        auto decPostProc = m_mfxDecParams.AddExtBuffer<mfxExtDecVideoProcessing>();
         decPostProc->In.CropX = 0;
         decPostProc->In.CropY = 0;
         decPostProc->In.CropW = m_mfxDecParams.mfx.FrameInfo.CropW;
@@ -2307,7 +2320,7 @@ void CTranscodingPipeline::FillFrameInfoForEncoding(mfxFrameInfo& info, sInputPa
     }
     else
     {
-        MSDK_MEMCPY_VAR(info, &m_mfxDecParams.mfx.FrameInfo, sizeof(mfxFrameInfo));
+        info = GetFrameInfo(m_mfxDecParams);
     }
 
     if (pInParams->dEncoderFrameRateOverride)
@@ -2759,7 +2772,7 @@ mfxStatus CTranscodingPipeline::InitPreEncMfxParams(sInputParams *pInParams)
     }
     else
     {
-        MSDK_MEMCPY_VAR(param.mfx.FrameInfo, &m_mfxDecParams.mfx.FrameInfo, sizeof(mfxFrameInfo));
+        param.mfx.FrameInfo = GetFrameInfo(m_mfxDecParams);
     }
 
     mfxU16 InPatternFromParent = (mfxU16) ((MFX_IOPATTERN_OUT_VIDEO_MEMORY == m_mfxDecParams.IOPattern) ?
@@ -2852,7 +2865,7 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
     }
 
     // input frame info
-    MSDK_MEMCPY_VAR(m_mfxVppParams.vpp.In, &m_mfxDecParams.mfx.FrameInfo, sizeof(mfxFrameInfo));
+    m_mfxVppParams.vpp.In = GetFrameInfo(m_mfxDecParams);
 
     if (m_mfxVppParams.vpp.In.Width * m_mfxVppParams.vpp.In.Height == 0)
     {
@@ -3146,7 +3159,7 @@ mfxStatus CTranscodingPipeline::InitPluginMfxParams(sInputParams *pInParams)
     }
     else
     {
-        MSDK_MEMCPY_VAR(m_mfxPluginParams.vpp.In, &m_mfxDecParams.mfx.FrameInfo, sizeof(mfxFrameInfo));
+        m_mfxPluginParams.vpp.In = GetFrameInfo(m_mfxDecParams);
     }
 
     // fill output frame info
@@ -3396,7 +3409,7 @@ mfxStatus CTranscodingPipeline::CalculateNumberOfReqFrames(mfxFrameAllocRequest 
         // It takes 1 surface for overlay
         DecRequest.NumFrameMin = DecRequest.NumFrameSuggested = 1;
         DecRequest.Type = MFX_MEMTYPE_FROM_DECODE | MFX_MEMTYPE_VIDEO_MEMORY_PROCESSOR_TARGET | MFX_MEMTYPE_EXTERNAL_FRAME;
-        MSDK_MEMCPY(&DecRequest.Info, &m_mfxDecParams.mfx.FrameInfo, sizeof(mfxFrameInfo));
+        DecRequest.Info = GetFrameInfo(m_mfxDecParams);
         SumAllocRequest(*pSumRequest, DecRequest);
     }
 
