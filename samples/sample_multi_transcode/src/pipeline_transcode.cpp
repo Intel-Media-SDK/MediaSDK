@@ -1974,7 +1974,7 @@ mfxStatus CTranscodingPipeline::DumpSurface2File(mfxFrameSurface1* pSurf)
 } // mfxStatus CTranscodingPipeline::DumpSurface2File(ExtendedSurface* pSurf)
 
 
-mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWrapper* pBS, mfxU32 fourCC)
+mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWrapper* /*pBS*/, mfxU32 /*fourCC*/)
 {
     mfxStatus       sts = MFX_ERR_MORE_DATA;
     // get result coded stream
@@ -1990,6 +1990,7 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWr
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "SyncOperation failed");
         pSurf->Syncp=0;
 
+	/*
         //--- Copying data from surface to bitstream
         sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
         MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
@@ -2014,6 +2015,7 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWr
 
         sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
         MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+	*/
     }
 
     return sts;
