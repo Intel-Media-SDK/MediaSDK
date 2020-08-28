@@ -85,6 +85,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -n| Number of frames to transcode<br>(session ends after this number of frames is reached).<br>In decoding sessions (-o::sink) this parameter limits number<br>of frames acquired from decoder.<br>In encoding sessions (-o::source) and transcoding sessions<br>this parameter limits number of frames sent to encoder.
 | -ext_allocator |   Force usage of external allocators|
 |  -sys| Force usage of external system allocator|
+|  -dec::sys| Set dec output to system memory|
+|  -vpp::sys| Set vpp output to system memory|
+|  -vpp::vid| Set vpp output to video memory|
 |  -fps <frames per second\>|  Transcoding frame rate limit|
   |-pe | Set encoding plugin for this particular session.<br>This setting overrides plugin settings defined by SET clause.|
 |  -pd|  Set decoding plugin for this particular session.<br> This setting overrides plugin settings defined by SET clause.<br>Supported values: hevcd_sw, hevcd_hw, hevce_sw, hevce_gacc, hevce_hw, vp8d_hw, vp8e_hw, vp9d_hw, vp9e_hw, camera_hw, capture_hw, h264_la_hw, ptir_hw, hevce_fei_hw<br>Direct GUID number can be used as well|
