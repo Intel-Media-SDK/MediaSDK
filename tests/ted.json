@@ -41,6 +41,14 @@
       "framerate": 60
     },
     {
+      "path": "test_stream_av1.ivf",
+      "codec": "av1",
+      "width": 176,
+      "height": 96,
+      "frames": 101,
+      "framerate": 60
+    },
+    {
       "path": "test_stream.jpg",
       "codec": "jpg",
       "width": 176,
