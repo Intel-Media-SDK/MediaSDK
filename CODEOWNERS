@@ -4,9 +4,9 @@
 CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 
 # h264d:
-/_studio/mfx_lib/dec/h264/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/decode/h264/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/h264_dec/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/dec/h264/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/h264/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com dmitry.gurulev@intel.com
+/_studio/shared/umc/codec/h264_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com dmitry.gurulev@intel.com
 
 
 # h264e:
@@ -19,8 +19,8 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin  @Intel-Media-SDK/encoders-owners alexei.leonenko@intel.com Pavel.Gribov@intel.com
 
 # mpeg2d:
-/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/dec/mpeg2/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com dmitry.gurulev@intel.com 
+/_studio/mfx_lib/decode/mpeg2/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com dmitry.gurulev@intel.com
 
 # mpeg2e:
 /_studio/mfx_lib/enc/mpeg2/ @Intel-Media-SDK/mediasdk-admin @Intel-Media-SDK/encoders-owners
@@ -32,28 +32,28 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/me/ @Intel-Media-SDK/mediasdk-admin @Intel-Media-SDK/encoders-owners
 
 # vc1:
-/_studio/mfx_lib/decode/vc1/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_dec/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/enc/vc1/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/encode/vc1/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_enc/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/enc/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/encode/vc1/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_enc/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vc1_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
 
 # hevcd:
-/_studio/mfx_lib/decode/h265/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/h265_dec/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/h265/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com dmitry.gurulev@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/h265_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com dmitry.gurulev@intel.com yan.wang@intel.com
 
 # hevce:
-/_studio/hevce_hw/ @Intel-Media-SDK/mediasdk-admin sergey.a.osipov@intel.com
-/_studio/mfx_lib/encode_hw/h265/ @Intel-Media-SDK/mediasdk-admin sergey.a.osipov@intel.com
-/_studio/mfx_lib/encode_hw/hevc/ @Intel-Media-SDK/mediasdk-admin sergey.a.osipov@intel.com evgeniy.starov@intel.com
+/_studio/hevce_hw/ @Intel-Media-SDK/mediasdk-admin vitaliy.ilichev@intel.com thomas.li@intel.com
+/_studio/mfx_lib/encode_hw/h265/ @Intel-Media-SDK/mediasdk-admin vitaliy.ilichev@intel.com thomas.li@intel.com
+/_studio/mfx_lib/encode_hw/hevc/ @Intel-Media-SDK/mediasdk-admin vitaliy.ilichev@intel.com thomas.li@intel.com evgeniy.starov@intel.com
 
 # mjpegd:
-/_studio/mfx_lib/decode/mjpeg/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/jpeg_common/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/jpeg_dec/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/mjpeg/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/jpeg_common/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/jpeg_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
 # mjpege:
 /_studio/mfx_lib/encode/mjpeg/ @Intel-Media-SDK/mediasdk-admin @Intel-Media-SDK/encoders-owners
@@ -62,23 +62,23 @@ CODEOWNERS   @Intel-Media-SDK/mediasdk-admin
 /_studio/shared/umc/codec/jpeg_enc/ @Intel-Media-SDK/mediasdk-admin @Intel-Media-SDK/encoders-owners
 
 # vp8d:
-/_studio/mfx_lib/decode/vp8/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vp8_dec/ @Intel-Media-SDK/mediasdk-admin ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/vp8/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vp8_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
 # vp9d:
-/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
-/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin dmitryx.malishev@intel.com mikhailx.aksenov@intel.com ilya.sergeev@intel.com alexander.smirnov@intel.com will.guo@intel.com dmitry.gurulev@intel.com
+/_studio/mfx_lib/decode/vp9/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/shared/include/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/mfx_lib/shared/src/mfx_vpx_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
+/_studio/shared/umc/codec/vp9_dec/ @Intel-Media-SDK/mediasdk-admin will.guo@intel.com yan.wang@intel.com
 
 # vp9e:
 /_studio/vp9e_hw/ @Intel-Media-SDK/mediasdk-admin ekaterina.shiryaeva.alexandrovna@intel.com anastasiia.sokolova@intel.com
 _studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin ekaterina.shiryaeva.alexandrovna@intel.com anastasiia.sokolova@intel.com
 
 # vpp:
-/_studio/mfx_lib/vpp/ @Intel-Media-SDK/mediasdk-admin natalia.domnina@intel.com fedor.zharinov@intel.com furong.zhang@intel.com
-/_studio/shared/umc/codec/color_space_converter/ @Intel-Media-SDK/mediasdk-admin natalia.domnina@intel.com fedor.zharinov@intel.com furong.zhang@intel.com
-/_studio/shared/umc/codec/scene_analyzer/ @Intel-Media-SDK/mediasdk-admin natalia.domnina@intel.com fedor.zharinov@intel.com furong.zhang@intel.com
+/_studio/mfx_lib/vpp/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
+/_studio/shared/umc/codec/color_space_converter/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
+/_studio/shared/umc/codec/scene_analyzer/ @Intel-Media-SDK/mediasdk-admin furong.zhang@intel.com
 
 # tests:
 /tests/ @Intel-Media-SDK/mediasdk-admin dmitry.v.rogozhkin@intel.com dmitry.gurulev@intel.com
@@ -88,10 +88,10 @@ _studio/mfx_lib/encode_hw/vp9/ @Intel-Media-SDK/mediasdk-admin ekaterina.shiryae
 /samples/sample_fei/ @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
 
 # hevc_fei:
-/_studio/hevc_fei/ @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com olga.tsiruleva@intel.com
-/samples/sample_hevc_fei/ @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com olga.tsiruleva@intel.com
-/_studio/mfx_lib/encode_hw/h265/src/*fei* @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com olga.tsiruleva@intel.com
-/_studio/mfx_lib/encode_hw/h265/include/*fei* @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com olga.tsiruleva@intel.com
+/_studio/hevc_fei/ @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
+/samples/sample_hevc_fei/ @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
+/_studio/mfx_lib/encode_hw/h265/src/*fei* @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
+/_studio/mfx_lib/encode_hw/h265/include/*fei* @Intel-Media-SDK/mediasdk-admin miroslav.goncharenko@intel.com dmitry.ermilov@intel.com leonid.a.kulakov@intel.com
 
 # samples:
 /samples/ @Intel-Media-SDK/mediasdk-admin maria.pushkina@intel.com anton.grishin@intel.com
