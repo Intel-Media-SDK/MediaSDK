@@ -25,6 +25,19 @@ import os
 from . import objects
 
 DEVICE_IDS = {
+    "tgl": {
+        0x9A40,
+        0x9A49,
+        0x9A59,
+        0x9A60,
+        0x9A68,
+        0x9A70,
+        0x9A78,
+        0x9AC0,
+        0x9AC9,
+        0x9AD9,
+        0x9AF8,
+    }
 }
 
 

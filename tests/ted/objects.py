@@ -32,6 +32,7 @@ _BUILTIN_CODECS = {
     'h264',
     'mpeg2',
     'jpeg',
+    'av1',
 }
 
 _PLUGIN_CODECS = {
