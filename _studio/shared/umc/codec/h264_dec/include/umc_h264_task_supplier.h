@@ -732,8 +732,8 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
             break;
 #endif
         default:
-            // We don't support level greater than 5.2 but
-            // relax resolution constrains up to 4K, hence
+            // Relax resolution constraints up to 4K when
+            // level_idc reaches 5.1+.  That is,
             // use value 696320 which is from level 6+ for
             // the calculation of the DPB size when level_idc
             // reaches 5.1+ but dpbSize is still less
@@ -792,15 +792,21 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         // can be used to calculate the DPB size.
         case H264VideoDecoderParams::H264_LEVEL_51:
         case H264VideoDecoderParams::H264_LEVEL_52:
-            level_idc = H264VideoDecoderParams::H264_LEVEL_52;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            level_idc = H264VideoDecoderParams::H264_LEVEL_6;
+#else
+            level_idc = INTERNAL_MAX_LEVEL;
+#endif
             break;
+
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
         case H264VideoDecoderParams::H264_LEVEL_6:
         case H264VideoDecoderParams::H264_LEVEL_61:
         case H264VideoDecoderParams::H264_LEVEL_62:
-            level_idc = H264VideoDecoderParams::H264_LEVEL_MAX;
+            level_idc = INTERNAL_MAX_LEVEL;
             break;
 #endif
+
         default:
             throw h264_exception(UMC_ERR_FAILED);
         }
