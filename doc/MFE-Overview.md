@@ -1,5 +1,5 @@
 ![](./pic/intel_logo.png)
-<br><br><br>
+
 # **SDK Developer Reference for Multi-Frame Encode**
 ## Media SDK API Version 1.30
 
