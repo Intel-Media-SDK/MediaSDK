@@ -1,5 +1,5 @@
 ![](./pic/intel_logo.png)
-<br><br><br>
+
 # **SDK Developer Reference for JPEG/Motion JPEG**
 ## Media SDK API Version 1.30
 

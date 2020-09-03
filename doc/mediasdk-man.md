@@ -1,5 +1,5 @@
 ![](./pic/intel_logo.png)
-<br><br><br>
+
 # **Media SDK Developer Reference**
 ## Media SDK API Version 1.33
 

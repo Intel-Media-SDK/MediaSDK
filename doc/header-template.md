@@ -1,5 +1,5 @@
 ![](./pic/intel_logo.png)
-<br><br><br>
+
 #**Title**
 Media SDK API Version 1.33
 

@@ -1,5 +1,5 @@
 ![](../pic/intel_logo.png)
-<br><br><br>
+
 # **ASG-HEVC User Manual**
 
 <div style="page-break-before:always" />
