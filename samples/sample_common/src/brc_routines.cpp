@@ -136,6 +136,7 @@ mfxStatus cBRCParams::Init(mfxVideoParam* par, bool bFielMode)
         WinBRCMaxAvgKbps = pExtCO3->WinBRCMaxAvgKbps*par->mfx.BRCParamMultiplier;
         WinBRCSize = pExtCO3->WinBRCSize;
     }
+    mMBBRC = pExtCO3 && (pExtCO3->EnableMBQP == MFX_CODINGOPTION_ON);
     return MFX_ERR_NONE;
 }
 
@@ -435,6 +436,29 @@ mfxStatus ExtBRC::Init (mfxVideoParam* par)
     {
         m_avg.reset(new AVGBitrate(m_par.WinBRCSize, (mfxU32)(m_par.WinBRCMaxAvgKbps*1000.0/m_par.frameRate), (mfxU32)m_par.inputBitsPerFrame) );
         MFX_CHECK_NULL_PTR1(m_avg.get());
+    }
+    if (m_par.mMBBRC)
+    {
+        mfxU32 size = par->AsyncDepth > 1 ? 2 : 1;
+        mfxU16 blSize = 16;
+        mfxU32 wInBlk = (par->mfx.FrameInfo.Width  + blSize - 1) / blSize;
+        mfxU32 hInBlk = (par->mfx.FrameInfo.Height + blSize - 1) / blSize;
+
+        m_MBQPBuff.resize(size*wInBlk*hInBlk);
+        m_MBQP.resize(size);
+        m_ExtBuff.resize(size);
+
+        for (mfxU32 i = 0; i < size; i++)
+        {
+            m_MBQP[i].Header.BufferId = MFX_EXTBUFF_MBQP;
+            m_MBQP[i].Header.BufferSz = sizeof(mfxExtMBQP);
+            m_MBQP[i].BlockSize = blSize;
+            m_MBQP[i].NumQPAlloc = wInBlk * hInBlk;
+            m_MBQP[i].Mode = MFX_MBQP_MODE_QP_VALUE;
+            m_MBQP[i].QP = &(m_MBQPBuff[i*wInBlk * hInBlk]);
+            m_ExtBuff[i] = (mfxExtBuffer*)&(m_MBQP[i]);
+        }
+
     }
 
     m_bInit = true;
@@ -950,6 +974,25 @@ mfxStatus ExtBRC::GetFrameCtrl (mfxBRCFrameParam* par, mfxBRCFrameCtrl* ctrl)
     }
     ctrl->QpY = qp - m_par.quantOffset;
     //printf("ctrl->QpY %d, qp %d quantOffset %d\n", ctrl->QpY , qp , m_par.quantOffset);
+    if (m_par.mMBBRC )
+    {
+        if (ctrl->NumExtParam == 0)
+        {
+            //attach MBBRC buffer
+            ctrl->NumExtParam = 1;
+            ctrl->ExtParam = &(m_ExtBuff[par->EncodedOrder % m_ExtBuff.size()]);
+        }
+        mfxExtMBQP * pExtMBQP = (mfxExtMBQP*)Hevc_GetExtBuffer(ctrl->ExtParam, ctrl->NumExtParam, MFX_EXTBUFF_MBQP);
+        if (pExtMBQP)
+        {
+            for (size_t i = 0; i < pExtMBQP->NumQPAlloc; i++)
+            {
+                pExtMBQP->QP[i] = (mfxU8)(qp +((qp<51)? (i%2):0)); //It is example of using MBQP in ExtBRC
+
+            }
+
+        }
+    }
     return MFX_ERR_NONE;
 }
 

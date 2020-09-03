@@ -4652,7 +4652,7 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     if (!CheckTriStateOption(extOpt3->EnableMBQP)) changed = true;
 
-    if (IsOn(extOpt3->EnableMBQP) && !(hwCaps.ddi_caps.MbQpDataSupport && par.mfx.RateControlMethod == MFX_RATECONTROL_CQP))
+    if (IsOn(extOpt3->EnableMBQP) && !(hwCaps.ddi_caps.MbQpDataSupport && (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP || isSWBRC(par))))
     {
         extOpt3->EnableMBQP = MFX_CODINGOPTION_OFF;
         changed = true;
@@ -5376,6 +5376,12 @@ bool IsHRDBasedBRCMethod(mfxU16  RateControlMethod)
     return  RateControlMethod != MFX_RATECONTROL_CQP && RateControlMethod != MFX_RATECONTROL_AVBR &&
             RateControlMethod != MFX_RATECONTROL_ICQ &&
             RateControlMethod != MFX_RATECONTROL_LA && RateControlMethod != MFX_RATECONTROL_LA_ICQ;
+}
+
+bool MfxHwH264Encode::isSWBRC(MfxVideoParam const & par)
+{
+    mfxExtCodingOption2       &extOpt2 = GetExtBufferRef(par);
+    return (bRateControlLA(par.mfx.RateControlMethod) || (IsOn(extOpt2.ExtBRC) && (par.mfx.RateControlMethod == MFX_RATECONTROL_CBR || par.mfx.RateControlMethod == MFX_RATECONTROL_VBR)));
 }
 
 
