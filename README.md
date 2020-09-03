@@ -13,9 +13,6 @@ Media SDK is a part of Intel software stack for graphics:
 Intel Media SDK depends on [LibVA](https://github.com/01org/libva/).
 This version of Intel Media SDK is compatible with the open source [Intel Media Driver for VAAPI](https://github.com/intel/media-driver).
 
-# FAQ
-You can find answers for the most frequently asked questions [here](https://software.intel.com/sites/default/files/managed/c0/8e/intel-media-sdk-open-source-faq.pdf).
-
 # Table of contents
 
   * [License](#license)
@@ -63,8 +60,6 @@ Linux Samples Readme Documents:
 * [Metrics Monitor](./doc/samples/readme-metrics_monitor_linux.md)
 
 Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for the detailed setting and building instructions, runtime tips and other information.
-
-You may also wish to visit Intel Media Server Studio [support page](https://software.intel.com/en-us/intel-media-server-studio-support/documentation) for additional documentation.
 
 # Tutorials
 
