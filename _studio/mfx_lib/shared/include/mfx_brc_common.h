@@ -286,7 +286,8 @@ public:
         mMinQstepCmplxKP(0),
         mMinQstepRateEP(0),
         mMinQstepCmplxKPUpdt(0),
-        mMinQstepCmplxKPUpdtErr(0)
+        mMinQstepCmplxKPUpdtErr(0),
+        codecId(0)
     {}
 
     mfxStatus Init(mfxVideoParam* par, bool bFieldMode = false);
