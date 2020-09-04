@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@
     #define MFX_TRACE_ENABLE_REFLECT
 #endif
 
-#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE)
+#if defined(MFX_TRACE_ENABLE_TEXTLOG) || defined(MFX_TRACE_ENABLE_STAT) || defined(MFX_TRACE_ENABLE_ITT) || defined(MFX_TRACE_ENABLE_FTRACE) || defined(MFX_TRACE_ENABLE_CHROME)
 #define MFX_TRACE_ENABLE
 #endif
 
@@ -404,6 +404,47 @@ mfxTraceU32 MFXTrace_EndTask(mfxTraceStaticHandle *static_handle,
 
 #ifdef __cplusplus
 
+#if defined(MFX_TRACE_ENABLE_CHROME) && (defined(LINUX32))
+// Chrome traces
+#include <vector>
+#include <string>
+
+class ChromeTrace {
+    // Output of Chrome traces can be found in chrome_trace_<pid>.json file
+public:
+    struct Event {
+        std::string name, type, threadId, cat;
+        mfxU64 timestamp, id, start;
+        char ph;
+        std::vector <std::pair <std::string, std::string> > info;
+        Event() = default;
+        ~Event() = default;
+        void write(FILE *file);
+    };
+
+    class ScopedEventCreator {
+        // This class creates two events
+        //   begin: where this object is created
+        //   end: end of scope of this object
+        // Consider using MFX_AUTO_LTRACE macro for creating it
+    private:
+        mfxTraceLevel level;
+        const char *name;
+        mfxU64 id, start;
+        std::vector <std::pair <std::string, std::string> > info;
+    public:
+        void add_info(const std::string &key, const std::string &value);
+        void add_info(const std::string &key, void *value);
+        ScopedEventCreator(mfxTraceLevel level, const char *name);
+        ~ScopedEventCreator();
+    };
+    ChromeTrace();
+    ~ChromeTrace();
+private:
+    std::vector <Event> events;
+};
+
+#endif // #if defined(MFX_TRACE_ENABLE_CHROME) && (defined(LINUX32))
 
 #ifdef MFX_TRACE_ENABLE
 // C++ class for BeginTask/EndTask
@@ -432,6 +473,17 @@ private:
 // auto tracing of the functions
 
 #ifdef MFX_TRACE_ENABLE
+#if defined(MFX_TRACE_ENABLE_CHROME) && (defined(LINUX32))
+    // Chrome traces
+    #define _MFX_AUTO_LTRACE_(_level, _task_name, _bCreateID)                      \
+        DISABLE_WARN_HIDE_PREV_LOCAL_DECLARATION                                   \
+        ChromeTrace::ScopedEventCreator _chrome_trace_scoped_event(_level, _task_name);  \
+        ROLLBACK_WARN_HIDE_PREV_LOCAL_DECLARATION
+    #define MFX_TRACE_CHROME_ADD_INFO(key, value) \
+        _chrome_trace_scoped_event.add_info(key, value)
+    #define MFX_AUTO_TRACE_STOP()
+    #define MFX_AUTO_TRACE_GETID() 0
+#else
     #define _MFX_AUTO_LTRACE_(_level, _task_name, _bCreateID)       \
         DISABLE_WARN_HIDE_PREV_LOCAL_DECLARATION                    \
         static mfxTraceStaticHandle _trace_static_handle;           \
@@ -440,10 +492,13 @@ private:
 
     #define MFX_AUTO_TRACE_STOP()   _mfx_trace_task.Stop()
     #define MFX_AUTO_TRACE_GETID()  _mfx_trace_task.GetID()
+    #define MFX_TRACE_CHROME_ADD_INFO(key, value)
+#endif
 #else
     #define _MFX_AUTO_LTRACE_(_level, _task_name, _bCreateID)
     #define MFX_AUTO_TRACE_STOP()
     #define MFX_AUTO_TRACE_GETID()  0
+    #define MFX_TRACE_CHROME_ADD_INFO(key, value)
 #endif
 
 #define MFX_AUTO_LTRACE(_level, _task_name)     \
