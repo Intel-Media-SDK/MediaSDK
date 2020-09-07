@@ -71,11 +71,7 @@ namespace UMC_AV1_DECODER
         if (firstSubmission)
         {
             // it's first submission for current frame - need to call BeginFrame
-#ifdef UMC_VA_LINUX
             sts = va->BeginFrame(frame.GetMemID(SURFACE_RECON));
-#else
-            sts = va->BeginFrame(frame.GetMemID());
-#endif
             if (sts != UMC::UMC_OK)
                 return sts;
 
