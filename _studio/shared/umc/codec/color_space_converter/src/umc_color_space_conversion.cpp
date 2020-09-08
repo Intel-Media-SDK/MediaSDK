@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -94,11 +94,11 @@ static IppStatus cc_RGB4_to_NV12(const uint8_t *pSrc,
 
 static Status CopyImage(VideoData *pSrc, VideoData *pDst, int flag, int bSwapUV)
 {
-  VideoData::PlaneInfo src;
-  VideoData::PlaneInfo dst;
-  mfxSize size;
-  int cPlanes;
-  int iDstPlane;
+  VideoData::PlaneInfo src = {};
+  VideoData::PlaneInfo dst = {};
+  mfxSize size = {};
+  int cPlanes = 0;
+  int iDstPlane = 0;
   int sts = ippStsNoErr;
 
   cPlanes = pSrc->GetNumPlanes();
