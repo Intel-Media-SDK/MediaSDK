@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -67,7 +67,7 @@ Status Deinterlacing::GetFrame(MediaData *input, MediaData *output)
   }
 
   for (k = 0; k < in->GetNumPlanes(); k++) {
-    VideoData::PlaneInfo srcPlane;
+    VideoData::PlaneInfo srcPlane = {};
     const uint8_t *pSrc0; //, *pSrc1;
     uint8_t *pDst0, *pDst1;
     int srcPitch, dstPitch;
