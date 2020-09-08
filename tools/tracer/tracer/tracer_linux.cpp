@@ -83,10 +83,10 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
         if(!loader->dlhandle)
             loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
         if (!loader->dlhandle){
-            free(loader);
             Log::WriteLog(context.dump("ver", ver));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NOT_FOUND));
+            free(loader);
             return MFX_ERR_NOT_FOUND;
         }
         /* Loading functions table */
@@ -99,11 +99,11 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
             loader->table[i] = proc;
         }
         if (i < eFunctionsNum) {
-            dlclose(loader->dlhandle);
-            free(loader);
             Log::WriteLog(context.dump("ver", ver));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NOT_FOUND));
+            dlclose(loader->dlhandle);
+            free(loader);
             return MFX_ERR_NOT_FOUND;
         }
 
@@ -116,11 +116,11 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
         std::string elapsed = TimeToString(t.GetTime());
         Log::WriteLog(">> MFXInit called");
         if (MFX_ERR_NONE != mfx_res) {
-            dlclose(loader->dlhandle);
-            free(loader);
             Log::WriteLog(context.dump("ver", ver));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", mfx_res));
+            dlclose(loader->dlhandle);
+            free(loader);
             return mfx_res;
         }
         *session = (mfxSession)loader;
@@ -154,10 +154,10 @@ mfxStatus MFXClose(mfxSession session)
         mfxStatus mfx_res = (*(MFXClosePointer)loader->table[eMFXClose_tracer])(loader->session);
         std::string elapsed = TimeToString(t.GetTime());
         Log::WriteLog(">> MFXClose called");
-        dlclose(loader->dlhandle);
-        free(loader);
         Log::WriteLog(context.dump("session", session));
         Log::WriteLog("function: MFXClose(" + elapsed + ", " + context.dump_mfxStatus("status", mfx_res) + ") - \n\n");
+        dlclose(loader->dlhandle);
+        free(loader);
         return mfx_res;
     }
     catch (std::exception& e){
@@ -190,10 +190,10 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         if(!loader->dlhandle)
             loader->dlhandle = dlopen(g_mfxlib_in_dir, RTLD_NOW|RTLD_LOCAL|RTLD_DEEPBIND);
         if (!loader->dlhandle){
-            free(loader);
             Log::WriteLog(context.dump("par", par));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NOT_FOUND));
+            free(loader);
             return MFX_ERR_NOT_FOUND;
         }
         /* Loading functions table */
@@ -206,11 +206,11 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
             loader->table[i] = proc;
         }
         if (i < eFunctionsNum) {
-            dlclose(loader->dlhandle);
-            free(loader);
             Log::WriteLog(context.dump("par", par));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NOT_FOUND));
+            dlclose(loader->dlhandle);
+            free(loader);
             return MFX_ERR_NOT_FOUND;
         }
 
@@ -222,11 +222,11 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         std::string elapsed = TimeToString(t.GetTime());
         Log::WriteLog(">> MFXInitEx called");
         if (MFX_ERR_NONE != mfx_res) {
-            dlclose(loader->dlhandle);
-            free(loader);
             Log::WriteLog(context.dump("par", par));
             Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", mfx_res));
+            dlclose(loader->dlhandle);
+            free(loader);
             return mfx_res;
         }
         *session = (mfxSession)loader;
