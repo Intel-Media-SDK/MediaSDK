@@ -67,7 +67,6 @@ mfxStatus MFXInit(mfxIMPL impl, mfxVersion *ver, mfxSession *session)
         Log::WriteLog(std::string("function: MFXInit(mfxIMPL impl=" + ToString(impl) + ", mfxVersion *ver=" + ToString(ver) + ", mfxSession *session=" + ToString(session) + ") +"));
         if (!session) {
             Log::WriteLog(context.dump("ver", ver));
-            Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NULL_PTR));
             return MFX_ERR_NULL_PTR;
         }
@@ -174,7 +173,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         Log::WriteLog(std::string("function: MFXInitEx(mfxInitParam par={.Implementation=" + GetmfxIMPL(par.Implementation) + ", .Version="+ ToString(&par.Version) +"}, mfxSession *session=" + ToString(session) + ") +"));
         if (!session) {
             Log::WriteLog(context.dump("par", par));
-            Log::WriteLog(context.dump("session", *session));
             Log::WriteLog(context.dump_mfxStatus("status", MFX_ERR_NULL_PTR));
             return MFX_ERR_NULL_PTR;
         }
