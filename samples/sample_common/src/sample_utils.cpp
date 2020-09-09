@@ -1093,6 +1093,14 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     break;
 #endif
     case MFX_FOURCC_P010:
+        for (i = 0; i < pInfo.CropH; i++)
+        {
+            mfxU16* shortPtr = (mfxU16*)(pData.Y + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch);
+            MSDK_CHECK_NOT_EQUAL(
+                fwrite(shortPtr, 1, (mfxU32)pInfo.CropW * 2, dstFile),
+                (mfxU32)pInfo.CropW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+        break;
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
 #endif
@@ -1166,6 +1174,14 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         break;
     }
     case MFX_FOURCC_P010:
+        for (i = 0; i < ChromaH; i++)
+        {
+            mfxU16* shortPtr = (mfxU16*)(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX*2) + i * pData.Pitch);
+            MSDK_CHECK_NOT_EQUAL(
+                fwrite(shortPtr, 1, ChromaW * 2, dstFile),
+                ChromaW * 2, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+         break;
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
 #endif
