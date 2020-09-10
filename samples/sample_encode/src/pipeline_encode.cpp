@@ -1528,6 +1528,9 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
 #if (MFX_VERSION >= 1027)
         || params.FileInputFourCC == MFX_FOURCC_Y210
 #endif
+#if (MFX_VERSION >= 1031)
+        || params.FileInputFourCC == MFX_FOURCC_Y216 || params.FileInputFourCC == MFX_FOURCC_P016
+#endif
         ;
     mfxU16 Shift = params.IsSourceMSB || (isFourccNeedShift && ((params.memType != SYSTEM_MEMORY && AreGuidsEqual(params.pluginParams.pluginGuid, MFX_PLUGINID_HEVCE_HW)) || params.CodecId == MFX_CODEC_VP9));
     mfxU16 Height   = (MFX_PICSTRUCT_PROGRESSIVE == params.nPicStruct) ? MSDK_ALIGN16(params.nDstHeight) : MSDK_ALIGN32(params.nDstHeight);
@@ -1754,6 +1757,9 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
         || pParams->FileInputFourCC == MFX_FOURCC_P210
 #if (MFX_VERSION >= 1027)
         || pParams->FileInputFourCC == MFX_FOURCC_Y210
+#endif
+#if (MFX_VERSION >= 1031)
+        || pParams->FileInputFourCC == MFX_FOURCC_Y216 || pParams->FileInputFourCC == MFX_FOURCC_P016
 #endif
     )
     {

@@ -71,7 +71,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-dGfx] - preffer processing on dGfx (by default system decides)\n"));
     msdk_printf(MSDK_STRING("   [-iGfx] - preffer processing on iGfx (by default system decides)\n"));
 #endif
-    msdk_printf(MSDK_STRING("   [-nv12|yuy2|uyvy|ayuv|rgb4|p010|y210|y410|a2rgb10] - input color format (by default YUV420 is expected).\n"));
+    msdk_printf(MSDK_STRING("   [-nv12|yuy2|uyvy|ayuv|rgb4|p010|y210|y410|a2rgb10|p016|y216] - input color format (by default YUV420 is expected).\n"));
     msdk_printf(MSDK_STRING("   [-msb10] - 10-bit color format is expected to have data in Most Significant Bits of words.\n                 (LSB data placement is expected by default).\n                 This option also disables data shifting during file reading.\n"));
     msdk_printf(MSDK_STRING("   [-ec::p010] - force usage of P010 surfaces for encoder (conversion will be made if necessary). Use for 10 bit HEVC encoding\n"));
     msdk_printf(MSDK_STRING("   [-tff|bff] - input stream is interlaced, top|bottom fielf first, if not specified progressive is expected\n"));
@@ -299,6 +299,18 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
     {
         pParams->nRateControlMethod = MFX_RATECONTROL_VCM;
     }
+#if (MFX_VERSION >= 1031)
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-p016")))
+    {
+        pParams->FileInputFourCC = MFX_FOURCC_P016;
+        pParams->EncodeFourCC = MFX_FOURCC_P016;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-y216")))
+    {
+        pParams->FileInputFourCC = MFX_FOURCC_Y216;
+        pParams->EncodeFourCC = MFX_FOURCC_Y216;
+    }
+#endif
     else
     {
         return MFX_ERR_NOT_FOUND;
