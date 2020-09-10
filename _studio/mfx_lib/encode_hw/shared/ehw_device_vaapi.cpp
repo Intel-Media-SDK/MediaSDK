@@ -339,16 +339,20 @@ mfxStatus DeviceVAAPI::Init(
 mfxStatus DeviceVAAPI::QueryStatus(DDIFeedback& ddiFB, mfxU32 id)
 {
     MFX_CHECK(!ddiFB.Get(id), MFX_ERR_NONE);
-
-    auto itSS = std::find_if(ddiFB.ExecParam.begin(), ddiFB.ExecParam.end(), DDIExecParam::IsFunction<VAFID_SyncSurface>);
-    MFX_CHECK(itSS != ddiFB.ExecParam.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
     auto itMB = std::find_if(ddiFB.ExecParam.begin(), ddiFB.ExecParam.end(), DDIExecParam::IsFunction<VAFID_MapBuffer>);
     MFX_CHECK(itMB != ddiFB.ExecParam.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    auto& ssPar = GetArgs(itSS->In, vaSyncSurface);
     auto& mbPar = GetArgs(itMB->In, vaMapBuffer);
+#if VA_CHECK_VERSION(1,9,0)
+    auto sts = SyncBuffer(std::get<1>(mbPar), VA_TIMEOUT_INFINITE);
+#else
+    auto itSS = std::find_if(ddiFB.ExecParam.begin(), ddiFB.ExecParam.end(), DDIExecParam::IsFunction<VAFID_SyncSurface>);
+    MFX_CHECK(itSS != ddiFB.ExecParam.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
+
+    auto& ssPar = GetArgs(itSS->In, vaSyncSurface);
 
     auto sts = SyncSurface(std::get<1>(ssPar));
+#endif
     MFX_CHECK_STS(sts);
 
     VACodedBufferSegment* pCBS = nullptr;
