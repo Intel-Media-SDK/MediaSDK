@@ -107,6 +107,9 @@ public:
         , VAFID_RenderPicture
         , VAFID_EndPicture
         , VAFID_SyncSurface
+#if VA_CHECK_VERSION(1,9,0)
+        , VAFID_SyncBuffer
+#endif
     };
 
     using TDdiExec      = std::function<VAStatus(const DDIExecParam&)>;
@@ -155,6 +158,13 @@ public:
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncSurface");
         return Execute(VAFID_SyncSurface, m_vaDisplay, target);
     }
+#if VA_CHECK_VERSION(1,9,0)
+    mfxStatus SyncBuffer(VABufferID id, uint64_t timeout_ns)
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncBuffer");
+        return Execute(VAFID_SyncBuffer, m_vaDisplay, id, timeout_ns);
+    }
+#endif
     mfxStatus MapBuffer(VABufferID id, void** pBuf)
     {
         return Execute(VAFID_MapBuffer, m_vaDisplay, id, pBuf);
@@ -191,6 +201,9 @@ protected:
         , {VAFID_RenderPicture,           CallDefault(&vaRenderPicture)}
         , {VAFID_EndPicture,              CallDefault(&vaEndPicture)}
         , {VAFID_SyncSurface,             CallDefault(&vaSyncSurface)}
+#if VA_CHECK_VERSION(1,9,0)
+        , {VAFID_SyncBuffer,              CallDefault(&vaSyncBuffer)}
+#endif
     };
     std::set<VABufferID> m_vaBuffers;
 };
