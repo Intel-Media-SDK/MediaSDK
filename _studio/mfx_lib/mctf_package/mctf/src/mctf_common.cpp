@@ -331,10 +331,7 @@ mfxStatus CMC::MCTF_GET_FRAME(
             return MFX_ERR_UNDEFINED_BEHAVIOR;
         }
         else
-        {
-            INT cmSts = mco->GetIndex(idxMco);
-            MFX_CHECK((CM_SUCCESS == cmSts), MFX_ERR_DEVICE_FAILED);
-        }
+            return MFX_ERR_DEVICE_FAILED;
     }
 
     if (lastFrame == 1)
@@ -2048,14 +2045,11 @@ mfxI32 CMC::MCTF_RUN_ME_MC_HE(
     res = kernelMc2r->AssociateThreadSpace(threadSpaceMC);
     MCTF_CHECK_CM_ERR(res, res);
 
-    if (task != 0) {
+    if (task)
         res = task->Reset();
-        MCTF_CHECK_CM_ERR(res, res);
-    }
-    else {
+    else
         res = device->CreateTask(task);
-        MCTF_CHECK_CM_ERR(res, res);
-    }
+    MCTF_CHECK_CM_ERR(res, res);
 
     res = task->AddKernel(kernelMeB);
     MCTF_CHECK_CM_ERR(res, res);
@@ -2085,14 +2079,9 @@ mfxI32 CMC::MCTF_RUN_ME_MC_HE(
             res = MCTF_SET_KERNELMc4r(0, 0, DEN_FAR_RUN);
         MCTF_CHECK_CM_ERR(res, res);
 
-        if (task != 0) {
-            res = task->Reset();
-            MCTF_CHECK_CM_ERR(res, res);
-        }
-        else {
-            res = device->CreateTask(task);
-            MCTF_CHECK_CM_ERR(res, res);
-        }
+        res = task->Reset();
+        MCTF_CHECK_CM_ERR(res, res);
+
     }
     else {
         res = task->AddSync();
