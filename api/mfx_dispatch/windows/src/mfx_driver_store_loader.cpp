@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#if !defined(MEDIASDK_ARM_LOADER)
 #include <tchar.h>
 
 #include "mfx_driver_store_loader.h"
@@ -27,6 +26,39 @@
 
 namespace MFX
 {
+
+
+inline bool IsIntelDeviceInstanceID(const wchar_t * DeviceID)
+{
+    return wcsstr(DeviceID, L"VEN_8086") || wcsstr(DeviceID, L"ven_8086");
+}
+
+inline bool ExctractDeviceID(const wchar_t* descrString, mfxU32& deviceID)
+{
+    const wchar_t *begin = wcsstr(descrString, L"DEV_");
+
+    if (!begin)
+    {
+        begin = wcsstr(descrString, L"dev_");
+        if (!begin)
+        {
+            DISPATCHER_LOG_WRN(("exctracting device id: failed to find device id substring\n"));
+            return false;
+        }
+    }
+
+    begin += wcslen(L"DEV_");
+    deviceID = wcstoul(begin, NULL, 16);
+    if (!deviceID)
+    {
+        DISPATCHER_LOG_WRN(("exctracting device id: failed to convert device id str to int\n"));
+        return false;
+    }
+
+    return true;
+}
+
+
 
 DriverStoreLoader::DriverStoreLoader(void)
     : m_moduleCfgMgr(NULL)
@@ -41,7 +73,7 @@ DriverStoreLoader::~DriverStoreLoader(void)
 {
 }
 
-bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize)
+bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfxU32 deviceID)
 {
     if (path == NULL || dwPathSize == 0)
     {
@@ -98,10 +130,16 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize)
     wchar_t *end = begin + DeviceIDList.size();
     size_t len = 0;
 
-    while ((begin < end) && (len = wcslen(begin)) > 0)
+    for (; (begin < end) && (len = wcslen(begin)) > 0; begin += len + 1)
     {
         if (IsIntelDeviceInstanceID(begin))
         {
+            mfxU32 curDeviceID = 0;
+            if (!ExctractDeviceID(begin, curDeviceID) || curDeviceID != deviceID)
+            {
+                continue;
+            }
+
             result = m_pCM_Locate_DevNode(&DeviceInst, begin, CM_LOCATE_DEVNODE_NORMAL);
             if (result != CR_SUCCESS)
             {
@@ -119,7 +157,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize)
 
             DWORD pathSize = dwPathSize;
 
-            nError = RegQueryValueEx(hKey_sw, _T("DriverStorePathForMediaSDK"), 0, NULL, (LPBYTE)path, &pathSize);
+            nError = RegQueryValueExW(hKey_sw, L"DriverStorePathForMediaSDK", 0, NULL, (LPBYTE)path, &pathSize);
 
             RegCloseKey(hKey_sw);
 
@@ -133,18 +171,12 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize)
                 return true;
             }
         }
-        begin += len + 1;
     }
 
     DISPATCHER_LOG_INFO(("DriverStore path isn't found\n"));
     return false;
 
 } // bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize)
-
-bool DriverStoreLoader::IsIntelDeviceInstanceID(const wchar_t * DeviceID)
-{
-    return wcsstr(DeviceID, L"VEN_8086") || wcsstr(DeviceID, L"ven_8086");
-}
 
 bool DriverStoreLoader::LoadCfgMgr()
 {
@@ -184,4 +216,3 @@ bool DriverStoreLoader::LoadCmFuncs()
 } // bool DriverStoreLoader::LoadCmFuncs()
 
 } // namespace MFX
-#endif // !defined(MEDIASDK_ARM_LOADER)

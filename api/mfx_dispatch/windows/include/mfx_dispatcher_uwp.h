@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2020 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,30 +18,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
-#include "mfxdefs.h"
-#include <cstring>
-#include <cstdio>
+#if !defined(__MFX_DISPATCHER_UWP_H)
+#define __MFX_DISPATCHER_UWP_H
 
-#if defined(MFX_DISPATCHER_LOG)
-#include <string>
-#include <string.h>
-#endif
+// Loads intel_gfx_api dll from DriverStore fro specified device and calls InitialiseMediaSession from it
+mfxStatus GfxApiInit(mfxInitParam par, mfxU32 deviceID, mfxSession *session, mfxModuleHandle& hModule);
 
-#define MAX_PLUGIN_PATH 4096
-#define MAX_PLUGIN_NAME 4096
+// Calls DisposeMediaSession from the intel_gfx_api dll and unloads it
+mfxStatus GfxApiClose(mfxSession& session, mfxModuleHandle& hModule);
 
-#if _MSC_VER < 1400
-#define wcscpy_s(to,to_size, from) wcscpy(to, from)
-#define wcscat_s(to,to_size, from) wcscat(to, from)
-#endif
+// Initializes intel_gfx_api for specified adapter number
+mfxStatus GfxApiInitByAdapterNum(mfxInitParam par, mfxU32 adapterNum, mfxSession *session, mfxModuleHandle& hModule);
 
-// declare library module's handle
-typedef void * mfxModuleHandle;
+// Initializes intel_gfx_api for any Intel adapter, chooses integrated adapter with higher priority
+mfxStatus GfxApiInitPriorityIntegrated(mfxInitParam par, mfxSession *session, mfxModuleHandle& hModule);
 
-typedef void (MFX_CDECL * mfxFunctionPointer)(void);
-
-// Tracer uses lib loading from Program Files logic (via Dispatch reg key) to make dispatcher load tracer dll.
-// With DriverStore loading put at 1st place, dispatcher loads real lib before it finds tracer dll.
-// This workaround explicitly checks tracer presence in Dispatch reg key and loads tracer dll before the search for lib in all other places.
-#define MFX_TRACER_WA_FOR_DS 1
+#endif // __MFX_DISPATCHER_UWP_H
