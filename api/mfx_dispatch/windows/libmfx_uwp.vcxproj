@@ -79,7 +79,7 @@
       <TreatWarningAsError>false</TreatWarningAsError>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <ExceptionHandling>Async</ExceptionHandling>
-      <PreprocessorDefinitions>_LIB;WINAPI_FAMILY=WINAPI_FAMILY_APP;MEDIASDK_UWP_DISPATCHER;MFX_D3D11_ENABLED;_UNICODE;UNICODE;MFX_VA;_ALLOW_MSC_VER_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_RUNTIME_LIBRARY_MISMATCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_LIB;WINAPI_FAMILY=WINAPI_FAMILY_APP;MEDIASDK_UWP_DISPATCHER;MFX_D3D11_ENABLED;_UNICODE;UNICODE;MFX_VA;_ALLOW_MSC_VER_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_RUNTIME_LIBRARY_MISMATCH;%(PreprocessorDefinitions);WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>include;..\..\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
@@ -122,9 +122,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="!$(Platform.Contains('ARM'))">
-    <ClCompile>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP</PreprocessorDefinitions>
-    </ClCompile>
     <Lib>
       <AdditionalLibraryDirectories>$(MfxBuildDir)..\build\win_$(Platform)\lib\</AdditionalLibraryDirectories>
       <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
@@ -157,19 +154,23 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mfx_dispatcher.cpp" />
+    <ClCompile Include="src\mfx_dispatcher_uwp.cpp" />
     <ClCompile Include="src\mfx_dispatcher_log.cpp" />
     <ClCompile Include="src\mfx_driver_store_loader.cpp" />
     <ClCompile Include="src\mfx_function_table.cpp" />
     <ClCompile Include="src\mfx_load_dll.cpp" />
+    <ClCompile Include="src\mfx_dxva2_device.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\mfxaudio_exposed_functions_list.h" />
     <ClInclude Include="include\mfx_dispatcher.h" />
+    <ClInclude Include="include\mfx_dispatcher_uwp.h" />
     <ClInclude Include="include\mfx_dispatcher_defs.h" />
     <ClInclude Include="include\mfx_dispatcher_log.h" />
     <ClInclude Include="include\mfx_driver_store_loader.h" />
     <ClInclude Include="include\mfx_exposed_functions_list.h" />
     <ClInclude Include="include\mfx_load_dll.h" />
+    <ClInclude Include="include\mfx_dxva2_device.h" />
     <ClInclude Include="include\mfx_vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

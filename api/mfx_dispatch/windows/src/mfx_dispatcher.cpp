@@ -329,6 +329,13 @@ mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
 
 } // mfxStatus MFX_DISP_HANDLE::UnLoadSelectedDLL(void)
 
+
+MFX_DISP_HANDLE_EX::MFX_DISP_HANDLE_EX(const mfxVersion requiredVersion)
+    : MFX_DISP_HANDLE(requiredVersion)
+    , mediaAdapterType(MFX_MEDIA_UNKNOWN)
+{}
+
+
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
 static mfxStatus InitDummySession(mfxU32 adapter_n, MFXVideoSession & dummy_session)
 {

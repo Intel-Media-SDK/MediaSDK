@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,6 @@
 #if !defined(__MFX_DRIVER_STORE_LOADER_H)
 #define __MFX_DRIVER_STORE_LOADER_H
 
-#if !defined(MEDIASDK_ARM_LOADER)
 #include <windows.h>
 #include <cfgmgr32.h>
 #include <devguid.h>
@@ -42,10 +41,9 @@ public:
     DriverStoreLoader(void);
     ~DriverStoreLoader(void);
 
-    bool GetDriverStorePath(wchar_t *path, DWORD dwPathSize);
+    bool GetDriverStorePath(wchar_t *path, DWORD dwPathSize, mfxU32 deviceID);
 
 protected:
-    bool IsIntelDeviceInstanceID(const wchar_t* DeviceID);
     bool LoadCfgMgr();
     bool LoadCmFuncs();
 
@@ -63,6 +61,5 @@ private:
 };
 
 } // namespace MFX
-#endif // !defined(MEDIASDK_ARM_LOADER)
 
 #endif // __MFX_DRIVER_STORE_LOADER_H
