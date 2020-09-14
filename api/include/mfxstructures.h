@@ -331,7 +331,7 @@ typedef struct {
             mfxU16  SliceGroupsPresent;
             mfxU16  MaxDecFrameBuffering;
             mfxU16  EnableReallocRequest;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
             mfxU16  FilmGrain;
             mfxU16  IgnoreLevelConstrain;
             mfxU16  reserved2[5];
@@ -512,7 +512,7 @@ enum {
     MFX_PROFILE_VP9_2                       = 3,
     MFX_PROFILE_VP9_3                       = 4,
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
     /* AV1 Profiles */
     MFX_PROFILE_AV1_MAIN                    = 1,
     MFX_PROFILE_AV1_HIGH                    = 2,
@@ -977,7 +977,7 @@ enum {
 #endif
     MFX_EXTBUFF_ENCODER_IPCM_AREA               = MFX_MAKEFOURCC('P', 'C', 'M', 'R'),
     MFX_EXTBUFF_INSERT_HEADERS                  = MFX_MAKEFOURCC('S', 'P', 'R', 'E'),
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
     MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM            = MFX_MAKEFOURCC('A','1','F','G'),
     MFX_EXTBUFF_AV1_LST_PARAM                   = MFX_MAKEFOURCC('A', '1', 'L', 'S'),
     MFX_EXTBUFF_AV1_SEGMENTATION                = MFX_MAKEFOURCC('1', 'S', 'E', 'G'),
@@ -2426,7 +2426,7 @@ MFX_PACK_END()
 
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
 /* FilmGrainFlags */
 enum {
     MFX_FILM_GRAIN_APPLY                    = (1 << 0),
