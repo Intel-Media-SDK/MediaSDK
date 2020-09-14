@@ -1525,7 +1525,7 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVP9Para
 
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
 std::string DumpContext::dump(const std::string structName, const mfxExtAV1FilmGrainParam &_struct)
 {
     std::string str;

@@ -5781,9 +5781,8 @@ SDK API 1.16 adds `MaxDecFrameBuffering` field.
 
 SDK API 1.19 adds `EnableReallocRequest` field.
 
-SDK API **TBD** adds `FilmGrain` field.
+SDK API 1.34 adds `FilmGrain` and `IgnoreLevelConstrain` fields.
 
-SDK API **TBD** adds `IgnoreLevelConstrain` field.
 
 ###### Example 17: Pseudo-Code for GOP Structure Parameters
 
@@ -8106,7 +8105,7 @@ If syntax parameter isn't present in uncompressed header of particular frame, re
 
 **Change History**
 
-This structure is available since SDK API **TBD**.
+This structure is available since SDK API 1.34.
 
 ## <a id='mfxExtPartialBitstreamParam'>mfxExtPartialBitstreamParam</a>
 
@@ -8309,7 +8308,7 @@ This enumerator is available since SDK API 1.0.
 
 SDK API 1.8 added HEVC level and tier definitions.
 
-SDK API **TBD** added AV1 level definitions.
+SDK API 1.34 added AV1 level definitions.
 
 SDK API **TBD** added H.264 level 6-6.2 definitions.
 
@@ -8351,7 +8350,7 @@ SDK API 1.32 adds `MFX_PROFILE_HEVC_SCC`.
 
 SDK API 1.34 adds `MFX_PROFILE_AVC_HIGH10`.
 
-SDK API **TBD** added AV1 profile definitions.
+SDK API 1.34 added AV1 profile definitions.
 
 ## <a id='CodingOptionValue'>CodingOptionValue</a>
 
@@ -8569,9 +8568,9 @@ SDK API 1.27 adds `MFX_EXTBUFF_AVC_ROUNDING_OFFSET`.
 
 SDK API 1.30 adds `MFX_EXTBUFF_CENC_PARAM`.
 
-SDK API 1.34 adds `MFX_EXTBUFF_ENCODER_IPCM_AREA`, `MFX_EXTBUFF_INSERT_HEADERS`.
+SDK API 1.34 adds `MFX_EXTBUFF_ENCODER_IPCM_AREA`, `MFX_EXTBUFF_INSERT_HEADERS` and `MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM`.
 
-SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration, `MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM`.
+SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration.
 
 See additional change history in the structure definitions.
 
@@ -9708,7 +9707,7 @@ The `AV1FilmGrainFlags` enumerator indicates flags in AV1 film grain parameters.
 
 **Change History**
 
-This enumerator is available since SDK API **TBD**.
+This enumerator is available since SDK API 1.34.
 
 ## <a id='mfxComponentType'>mfxComponentType</a>
 

@@ -1409,7 +1409,7 @@ STRUCT(mfxExtVppMctf,
 #endif
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
 STRUCT(mfxAV1FilmGrainPoint,
     FIELD_T(mfxU8, Value)
     FIELD_T(mfxU8, Scaling)

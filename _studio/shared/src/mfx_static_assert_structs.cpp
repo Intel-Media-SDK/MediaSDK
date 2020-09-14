@@ -408,7 +408,7 @@
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64   )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAV1FilmGrainPoint         ,2    )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtAV1FilmGrainParam      ,256  )
 #endif
@@ -530,7 +530,7 @@
 #if (MFX_VERSION >= 1026)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtVppMctf                ,64  )
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxAV1FilmGrainPoint         ,2    )
         MSDK_STATIC_ASSERT_STRUCT_SIZE(mfxExtAV1FilmGrainParam      ,256  )
 #endif
@@ -945,7 +945,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,SliceGroupsPresent            ,116  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,MaxDecFrameBuffering          ,118  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,EnableReallocRequest          ,120  )
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,FilmGrain                     ,122  )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxInfoMFX                         ,IgnoreLevelConstrain          ,124  )
 #endif
@@ -1602,7 +1602,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,MVPrecision                   ,20   )
 #endif
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAV1FilmGrainPoint               ,Value                         ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAV1FilmGrainPoint               ,Scaling                       ,1    )
 
@@ -2398,7 +2398,7 @@
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxExtVppMctf                      ,MVPrecision                   ,20   )
 #endif
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAV1FilmGrainPoint               ,Value                         ,0    )
         MSDK_STATIC_ASSERT_STRUCT_OFFSET(mfxAV1FilmGrainPoint               ,Scaling                       ,1    )
 
