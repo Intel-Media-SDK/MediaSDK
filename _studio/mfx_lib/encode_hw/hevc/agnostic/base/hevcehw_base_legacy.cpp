@@ -3803,6 +3803,7 @@ mfxStatus Legacy::CheckTemporalLayers(mfxVideoParam & par)
         auto  scalePrev = pTL->Layer[prev].Scale;
 
         MFX_CHECK(!CheckMinOrZero(scaleCurr, scalePrev + 1), MFX_ERR_UNSUPPORTED);
+        MFX_CHECK(scalePrev, MFX_ERR_UNSUPPORTED);
         MFX_CHECK(!CheckOrZero(scaleCurr, mfxU16(scaleCurr - (scaleCurr % scalePrev))), MFX_ERR_UNSUPPORTED);
 
         prev = i;
