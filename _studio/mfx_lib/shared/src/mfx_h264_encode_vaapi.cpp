@@ -3314,6 +3314,13 @@ mfxStatus VAAPIEncoder::QueryStatus(
     m_feedbackCache.erase(m_feedbackCache.begin() + indxSurf);
     guard.Unlock();
 
+#if VA_CHECK_VERSION(1,9,0)
+    {
+        MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaSyncBuffer");
+        vaSts = vaSyncBuffer(m_vaDisplay, codedBuffer, VA_TIMEOUT_INFINITE);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
+#endif
     VACodedBufferSegment *codedBufferSegment = 0;
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaMapBuffer");
