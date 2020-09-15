@@ -459,6 +459,8 @@ This release is subject to the following known limitations:
     - [40392] The max/min CU size is hard-coded as 32x32 and 8x8 on SKL. Customized max/min CU size is not supported. This limitation apply to HEVC FEI ENCODE too.
     - [42933] Unregister() call erroneously returns MFX_ERR_NOT_INITIALIZED when using optional plugin interface.
     **Workaround:** Use native style component loading or ignore error status.
+    - Software BRC doesn't follow level-specific frame size limitation.
+    **Workaround:** An application can explicitly define higher level to avoid possible violation.
 * **H.264 decode:**
     - The H.264 decoder may leave Corrupted flag as 0 in case of minor corruption in macroblock bitstream data.
     - Decoder returns *MFX_ERR_UNSUPPORTED* for streams which cannot be processed by hardware, software fallback was removed.
