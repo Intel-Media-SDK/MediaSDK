@@ -1985,7 +1985,7 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask, bool isSceneChange, b
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
     //mfxStatus sts = MFX_ERR_NONE;
 
-    pTask->bFrameReady   = false;
+    pTask->m_bFrameReady   = false;
     mfxFrameSurface1
         * pSurfI         = nullptr;
     pSurfI               = m_core->GetNativeSurface(pTask->m_yuv);
@@ -2021,7 +2021,7 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask, bool isSceneChange, b
     // filtering itself
     MFX_SAFE_CALL(amtMctf->MCTF_DO_FILTERING_IN_AVC());
 
-    pTask->bFrameReady = amtMctf->MCTF_ReadyToOutput();
+    pTask->m_bFrameReady = amtMctf->MCTF_ReadyToOutput();
 
     return MFX_ERR_NONE;
 }
