@@ -617,6 +617,8 @@ protected:
 
     H264DecoderFrame *GetAnyFrameToDisplay(bool force);
 
+    void DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame);
+
     void PreventDPBFullness();
 
     Status AllocateNewFrame(const H264Slice *pSlice, H264DecoderFrame **frame);
