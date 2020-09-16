@@ -1,7 +1,7 @@
 ![](./pic/intel_logo.png)
 
 #**Title**
-Media SDK API Version 1.33
+Media SDK API Version 1.34
 
 <div style="page-break-before:always" />
 

@@ -442,6 +442,12 @@ public:
                         case MFX_EXTBUFF_MBQP:
                             str += dump(name, *((mfxExtMBQP*)_struct.ExtParam[i])) + "\n";
                             break;
+                        case MFX_EXTBUFF_ENCODER_IPCM_AREA:
+                            str += dump(name, *((mfxExtEncoderIPCMArea*)_struct.ExtParam[i])) + "\n";
+                            break;
+                        case MFX_EXTBUFF_INSERT_HEADERS:
+                            str += dump(name, *((mfxExtInsertHeaders*)_struct.ExtParam[i])) + "\n";
+                            break;
 #if (MFX_VERSION >= 1025)
                         case  MFX_EXTBUFF_DECODE_ERROR_REPORT:
                             str += dump(name, *((mfxExtDecodeErrorReport*)_struct.ExtParam[i])) + "\n";
@@ -585,6 +591,8 @@ public:
     DEFINE_DUMP_FUNCTION(mfxExtVPPColorFill);
     DEFINE_DUMP_FUNCTION(mfxExtDecVideoProcessing);
     DEFINE_DUMP_FUNCTION(mfxExtMBQP);
+    DEFINE_DUMP_FUNCTION(mfxExtEncoderIPCMArea);
+    DEFINE_DUMP_FUNCTION(mfxExtInsertHeaders);
 #if (MFX_VERSION >= 1025)
     DEFINE_DUMP_FUNCTION(mfxExtDecodeErrorReport);
     DEFINE_DUMP_FUNCTION(mfxExtMasteringDisplayColourVolume);
@@ -607,7 +615,7 @@ public:
     DEFINE_DUMP_FUNCTION(mfxExtVP9Param);
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
     DEFINE_DUMP_FUNCTION(mfxExtAV1FilmGrainParam);
 #endif
 
