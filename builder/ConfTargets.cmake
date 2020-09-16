@@ -57,9 +57,9 @@ if (BUILD_KERNELS)
 endif()
 
 if ( ${API_VERSION} VERSION_GREATER 1.25 )
-  set ( MFX_1_25_OPTIONS_ALLOWED ON )
+  set ( MFX_1_26_OPTIONS_ALLOWED ON )
 else()
-  set ( MFX_1_25_OPTIONS_ALLOWED OFF )
+  set ( MFX_1_26_OPTIONS_ALLOWED OFF )
 endif()
 
 if ( ${API_VERSION} VERSION_GREATER 1.33 )
@@ -99,7 +99,7 @@ option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
 option( MFX_ENABLE_ASC "Enable ASC support?"  ON )
 
 cmake_dependent_option(
-  MFX_ENABLE_MCTF "Build with MCTF support?"  ${MFX_1_25_OPTIONS_ALLOWED}
+  MFX_ENABLE_MCTF "Build with MCTF support?"  ${MFX_1_26_OPTIONS_ALLOWED}
   "MFX_ENABLE_ASC;MFX_ENABLE_KERNELS" OFF)
 
 # Now we will include config file which may overwrite default values of the
