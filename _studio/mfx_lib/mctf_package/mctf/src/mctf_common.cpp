@@ -2069,7 +2069,10 @@ mfxI32 CMC::MCTF_RUN_ME_MC_HE(
 
         (this->*(pMCTF_NOA_func))(m_adaptControl);
         if (QfIn[1].filterStrength == 0)
+        {
+            MctfState = 1;
             return CM_SUCCESS;
+        }
 
         if (mcSufIndex == 0)
             res = MCTF_SET_KERNELMc2r(0, 0);
@@ -2111,7 +2114,7 @@ mfxI32 CMC::MCTF_RUN_ME_MC_HE(
         res = device->DestroyThreadSpace(threadSpace);
         MCTF_CHECK_CM_ERR(res, res);
     }
-    
+
     res = device->DestroyThreadSpace(threadSpace2);
     MCTF_CHECK_CM_ERR(res, res);
     res = device->DestroyThreadSpace(threadSpaceMC);
