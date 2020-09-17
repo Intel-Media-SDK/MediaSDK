@@ -345,6 +345,7 @@ class CMC
 public:
     static const mfxU16 AUTO_FILTER_STRENGTH;
     static const mfxU16 DEFAULT_FILTER_STRENGTH;
+    static const mfxU16 INPIPE_FILTER_STRENGTH;
     static const mfxU32 DEFAULT_BPP;
     static const mfxU16 DEFAULT_DEBLOCKING;
     static const mfxU16 DEFAULT_OVERLAP;
@@ -367,7 +368,7 @@ private:
     typedef mfxI32(CMC::*t_MCTF_ME)();
     typedef mfxI32(CMC::*t_MCTF_NOA)(bool adaptControl);
     typedef mfxI32(CMC::*t_MCTF_MERGE)();
-    typedef mfxI32(CMC::*t_RUN_MCTF)();
+    typedef mfxI32(CMC::*t_RUN_MCTF)(bool notInPipeline);
     typedef mfxI32(CMC::*t_MCTF_LOAD)();
     typedef mfxI32(CMC::*t_MCTF_SPDEN)();
 
@@ -774,9 +775,15 @@ private:
     mfxI32 MCTF_LOAD_2REF();
     mfxI32 MCTF_LOAD_4REF();
     void   AssignSceneNumber();
-    mfxI32 MCTF_RUN_MCTF_DEN_1REF();
-    mfxI32 MCTF_RUN_MCTF_DEN();
-    mfxI32 MCTF_RUN_MCTF_DEN_4REF();
+    mfxI32 MCTF_RUN_MCTF_DEN_1REF(
+        bool
+    );
+    mfxI32 MCTF_RUN_MCTF_DEN(
+        bool notInPipeline
+    );
+    mfxI32 MCTF_RUN_MCTF_DEN_4REF(
+        bool
+    );
     mfxI32 MCTF_RUN_AMCTF_DEN();
 
     mfxStatus MCTF_SET_ENV(
