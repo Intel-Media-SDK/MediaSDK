@@ -633,8 +633,8 @@ namespace MfxHwVideoProcessing
                 m_frcRational[VPP_IN]  = frcRational[VPP_IN];
                 m_frcRational[VPP_OUT] = frcRational[VPP_OUT];
 
-                m_minDeltaTime = std::min(uint64_t(m_frcRational[VPP_IN].FrameRateExtD  * MFX_TIME_STAMP_FREQUENCY) / (2 * m_frcRational[VPP_IN].FrameRateExtN),
-                                          uint64_t(m_frcRational[VPP_OUT].FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (2 * m_frcRational[VPP_OUT].FrameRateExtN));
+                m_minDeltaTime = std::min(uint64_t(m_frcRational[VPP_IN].FrameRateExtD  * MFX_TIME_STAMP_FREQUENCY) / (mfxU64(2) * m_frcRational[VPP_IN].FrameRateExtN),
+                                          uint64_t(m_frcRational[VPP_OUT].FrameRateExtD * MFX_TIME_STAMP_FREQUENCY) / (mfxU64(2) * m_frcRational[VPP_OUT].FrameRateExtN));
             }
 
             mfxStatus DoCpuFRC_AndUpdatePTS(
