@@ -345,6 +345,7 @@ class CMC
 public:
     static const mfxU16 AUTO_FILTER_STRENGTH;
     static const mfxU16 DEFAULT_FILTER_STRENGTH;
+    static const mfxU16 INPIPE_FILTER_STRENGTH;
     static const mfxU32 DEFAULT_BPP;
     static const mfxU16 DEFAULT_DEBLOCKING;
     static const mfxU16 DEFAULT_OVERLAP;
