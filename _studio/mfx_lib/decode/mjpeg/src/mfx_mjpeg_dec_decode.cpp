@@ -38,7 +38,7 @@
 
 #include "umc_jpeg_frame_constructor.h"
 #include "umc_mjpeg_mfx_decode_hw.h"
-
+#include "mfx_session.h"
 
 // Declare skipping constants
 enum
@@ -777,6 +777,11 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
     mfxU32 numPic = 0;
     mfxU32 picToCollect = (MFX_PICSTRUCT_PROGRESSIVE == m_vPar.mfx.FrameInfo.PicStruct) ? 1 : 2;
+
+    //gpu session priority 
+    UMC::VideoDecoderParams* videoDecoderParams = &(decoder->umcVideoParams);
+    if (videoDecoderParams != nullptr && videoDecoderParams->pVideoAccelerator != nullptr)
+        videoDecoderParams->pVideoAccelerator->m_ContextPriority = m_core->GetSession()->m_priority;
 
     do
     {

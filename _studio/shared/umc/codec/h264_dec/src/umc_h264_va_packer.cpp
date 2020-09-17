@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,6 @@
 #include "mfx_ext_buffers.h"
 
 #include "mfxfei.h"
-
 #include "mfx_trace.h"
 
 namespace UMC
@@ -369,6 +368,32 @@ void PackerVA::PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSli
     picParamBuf->SetDataSize(sizeof(VAPictureParameterBufferH264));
 }
 
+void PackerVA::PackPriorityParams()
+{
+    mfxPriority priority = m_va->m_ContextPriority;
+    UMCVACompBuffer *GpuPriorityBuf;
+    VAContextParameterUpdateBuffer* GpuPriorityBuf_H264Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
+    if (!GpuPriorityBuf_H264Decode)
+        throw h264_exception(UMC_ERR_FAILED);
+
+    memset(GpuPriorityBuf_H264Decode, 0, sizeof(VAContextParameterUpdateBuffer));
+
+    GpuPriorityBuf_H264Decode->flags.bits.context_priority_update = 1;
+    if(priority == MFX_PRIORITY_LOW)
+    {
+        GpuPriorityBuf_H264Decode->context_priority.bits.priority = 0;
+    }
+    else if (priority == MFX_PRIORITY_HIGH)
+    {
+        GpuPriorityBuf_H264Decode->context_priority.bits.priority = m_va->m_MaxContextPriority;
+    }
+    else
+    {
+        GpuPriorityBuf_H264Decode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
+    }
+
+    GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
+}
 
 //returns both NAL unit size (in bytes) and bit offset from start to actual slice data
 inline
@@ -792,6 +817,8 @@ void PackerVA::PackAU(const H264DecoderFrame *pFrame, int32_t isTop)
 
         CreateSliceParamBuffer(sliceInfo);
         CreateSliceDataBuffer(sliceInfo);
+        if(m_va->m_MaxContextPriority)
+            PackPriorityParams();
 
         uint32_t n = 0, count = 0;
         for (; n < count_all; ++n)

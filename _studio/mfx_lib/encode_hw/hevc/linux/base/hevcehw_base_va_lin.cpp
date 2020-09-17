@@ -176,6 +176,9 @@ void DDI_VA::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
         m_callVa = Glob::DDI_Execute::Get(strg);
 
+        //Set max priority
+        Glob::PriorityPar::GetOrConstruct(strg) = m_priorityPar;
+
         std::vector<VAConfigAttrib> attrib(2);
 
         attrib[0].type = VAConfigAttribRTFormat;
@@ -337,6 +340,7 @@ mfxStatus DDI_VA::QueryCaps()
         , VAConfigAttribEncTileSupport
         , VAConfigAttribEncDirtyRect
         , VAConfigAttribMaxFrameSize
+        , VAConfigAttribContextPriority
     };
     std::vector<VAConfigAttrib> attrs;
     auto AV = [&](VAConfigAttribType t) { return attrs[idx_map[t]].value; };
@@ -414,6 +418,15 @@ mfxStatus DDI_VA::QueryCaps()
 
     m_caps.TileSupport = (AV(VAConfigAttribEncTileSupport) == 1);
     m_caps.UserMaxFrameSizeSupport = !!(AV(VAConfigAttribMaxFrameSize));
+
+    if (AV(VAConfigAttribContextPriority) != VA_ATTRIB_NOT_SUPPORTED)
+    {
+        m_priorityPar.m_MaxContextPriority = AV(VAConfigAttribContextPriority);
+    }
+    else
+    {
+        m_priorityPar.m_MaxContextPriority = 0;
+    }
 
     return MFX_ERR_NONE;
 }

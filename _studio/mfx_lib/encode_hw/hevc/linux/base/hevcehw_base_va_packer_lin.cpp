@@ -24,6 +24,7 @@
 #if defined(MFX_ENABLE_H265_VIDEO_ENCODE) && defined (MFX_VA_LINUX)
 #include "mfx_common_int.h"
 #include "hevcehw_base_va_lin.h"
+#include "mfx_session.h"
 
 using namespace HEVCEHW;
 using namespace HEVCEHW::Base;
@@ -213,6 +214,29 @@ void InitSSH(
 
     if (!slices.empty())
         slices.rbegin()->slice_fields.bits.last_slice_of_pic_flag = 1;
+}
+
+void InitPriority(
+    const mfxU32& maxContextPriority,
+    const mfxPriority& contextPriority,
+    VAContextParameterUpdateBuffer& hevcPriorityBuffer)
+{
+    memset(&hevcPriorityBuffer, 0, sizeof(VAContextParameterUpdateBuffer));
+
+    hevcPriorityBuffer.flags.bits.context_priority_update = 1;
+
+    if(contextPriority == MFX_PRIORITY_LOW)
+    {
+        hevcPriorityBuffer.context_priority.bits.priority = 0;
+    }
+    else if (contextPriority == MFX_PRIORITY_HIGH)
+    {
+        hevcPriorityBuffer.context_priority.bits.priority = maxContextPriority;
+    }
+    else
+    {
+        hevcPriorityBuffer.context_priority.bits.priority = maxContextPriority/2;
+    }
 }
 
 void AddVaMiscHRD(
@@ -805,6 +829,8 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
         auto& task      = Task::Common::Get(s_task);
+        auto& core      = Glob::VideoCore::Get(global);
+        const auto& priority_par = Glob::PriorityPar::Get(global);
         bool  bSkipCurr =
             !(task.SkipCMD & SKIPCMD_NeedDriverCall)
             && (task.SkipCMD & SKIPCMD_NeedCurrentFrameSkipping);
@@ -901,6 +927,13 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
                 auto& misc = m_vaPerPicMiscData.back();
                 par.push_back(PackVaBuffer(VAEncMiscParameterBufferType, misc.data(), (mfxU32)misc.size()));
             }
+        }
+
+        if(priority_par.m_MaxContextPriority)
+        {
+            mfxPriority contextPriority = core.GetSession()->m_priority;
+            InitPriority(priority_par.m_MaxContextPriority, contextPriority, m_hevcPriorityBuf);
+            par.push_back(PackVaBuffer(VAContextParameterUpdateBufferType , m_hevcPriorityBuf));
         }
 
         SetFeedback(task.StatusReportId, *(VASurfaceID*)task.HDLRaw.first, GetResources(RES_BS).at(task.BS.Idx));

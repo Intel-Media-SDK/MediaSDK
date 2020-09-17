@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -175,6 +175,8 @@ namespace UMC_MPEG2_DECODER
         virtual void SetVideoParams(const mfxVideoParam&);
 
         Payload_Storage * GetPayloadStorage() const { return m_messages.get();}
+
+        MPEG2DecoderParams* GetMpeg2DecoderParams() {return &m_params;}
 
     protected:
 

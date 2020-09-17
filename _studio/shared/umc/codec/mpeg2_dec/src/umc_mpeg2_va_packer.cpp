@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 #include "umc_mpeg2_slice.h"
 #include "umc_mpeg2_frame.h"
 #include "umc_mpeg2_va_packer.h"
+#include "mfx_session.h"
 
 namespace UMC_MPEG2_DECODER
 {
@@ -76,10 +77,41 @@ namespace UMC_MPEG2_DECODER
             sliceNum++;
         }
 
+        if(m_va->m_MaxContextPriority)
+            PackPriorityParams();
+
         auto s = m_va->Execute();
         if(s != UMC::UMC_OK)
             throw mpeg2_exception(s);
     }
+
+    void PackerVA::PackPriorityParams()
+    {
+        mfxPriority priority = m_va->m_ContextPriority;
+        UMC::UMCVACompBuffer *GpuPriorityBuf;
+        VAContextParameterUpdateBuffer* GpuPriorityBuf_Mpeg2Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
+        if (!GpuPriorityBuf_Mpeg2Decode)
+            throw mpeg2_exception(UMC::UMC_ERR_FAILED);
+
+        memset(GpuPriorityBuf_Mpeg2Decode, 0, sizeof(VAContextParameterUpdateBuffer));
+        GpuPriorityBuf_Mpeg2Decode->flags.bits.context_priority_update = 1;
+
+        if(priority == MFX_PRIORITY_LOW)
+        {
+            GpuPriorityBuf_Mpeg2Decode->context_priority.bits.priority = 0;
+        }
+        else if (priority == MFX_PRIORITY_HIGH)
+        {
+            GpuPriorityBuf_Mpeg2Decode->context_priority.bits.priority = m_va->m_MaxContextPriority;
+        }
+        else
+        {
+            GpuPriorityBuf_Mpeg2Decode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
+        }
+
+        GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
+    }
+
 
     // Pack picture parameters
     void PackerVA::PackPicParams(const MPEG2DecoderFrame & frame, uint8_t fieldIndex)

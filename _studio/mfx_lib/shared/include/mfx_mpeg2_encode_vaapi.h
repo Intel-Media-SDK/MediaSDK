@@ -114,6 +114,7 @@ namespace MfxHwMpeg2Encode
         mfxStatus Register (const mfxFrameAllocResponse* pResponse, D3DDDIFORMAT type);
         mfxI32    GetRecFrameIndex (mfxMemId memID);
         mfxI32    GetRawFrameIndex (mfxMemId memIDe, bool bAddFrames);
+        mfxStatus FillPriorityBuffer(mfxPriority&);
 
 
         VideoCORE*                          m_core;
@@ -148,7 +149,10 @@ namespace MfxHwMpeg2Encode
         VABufferID                          m_mbqpBufferId;
         VABufferID                          m_miscQualityParamId;
         std::vector<VAEncQpBufferMPEG2>     m_mbqpDataBuffer;
+        VABufferID                          m_priorityBufferId;
+        VAContextParameterUpdateBuffer      m_priorityBuffer;
 
+        mfxU32                              m_MaxContextPriority;
 
         mfxU16                              m_initFrameWidth;
         mfxU16                              m_initFrameHeight;
