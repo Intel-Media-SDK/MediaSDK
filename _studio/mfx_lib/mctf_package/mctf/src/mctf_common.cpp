@@ -51,7 +51,8 @@ using  std::max;
 using namespace ns_asc;
 
 const mfxU16 CMC::AUTO_FILTER_STRENGTH    = 0;
-const mfxU16 CMC::DEFAULT_FILTER_STRENGTH = 5;
+const mfxU16 CMC::DEFAULT_FILTER_STRENGTH = 8;
+const mfxU16 CMC::INPIPE_FILTER_STRENGTH  = 5;
 const mfxU32 CMC::DEFAULT_BPP             = 0; //Automode
 const mfxU16 CMC::DEFAULT_DEBLOCKING      = MFX_CODINGOPTION_OFF;
 const mfxU16 CMC::DEFAULT_OVERLAP         = MFX_CODINGOPTION_OFF;
@@ -296,7 +297,7 @@ mfxStatus CMC::MCTF_GET_FRAME(
     {
         if (lastFrame == 1) 
         {
-            res = MCTF_RUN_MCTF_DEN();
+            res = MCTF_RUN_MCTF_DEN(true);
             lastFrame++;
         }
         else if (lastFrame == 2)
@@ -306,7 +307,7 @@ mfxStatus CMC::MCTF_GET_FRAME(
     {
         if (lastFrame == 1)
             //res = MCTF_RUN_AMCTF(lastFrame);
-            res = MCTF_RUN_MCTF_DEN();
+            res = MCTF_RUN_MCTF_DEN(true);
     }
 
     MFX_CHECK(mco, MFX_ERR_UNDEFINED_BEHAVIOR);
@@ -335,7 +336,7 @@ mfxStatus CMC::MCTF_GET_FRAME(
     }
 
     if (lastFrame == 1)
-        res = MCTF_RUN_MCTF_DEN();
+        res = MCTF_RUN_MCTF_DEN(true);
 
     MFX_CHECK(mco, MFX_ERR_UNDEFINED_BEHAVIOR);
 
@@ -1047,8 +1048,16 @@ mfxStatus CMC::MCTF_SET_ENV(
     }
     else
     {
-        sts = SetFilterStrenght(localMctfParam.FilterStrength);
-        m_RTParams.FilterStrength = localMctfParam.FilterStrength;
+        if (isNCActive)
+        {
+            sts = SetFilterStrenght(INPIPE_FILTER_STRENGTH);
+            m_RTParams.FilterStrength = INPIPE_FILTER_STRENGTH;
+        }
+        else
+        {
+            sts = SetFilterStrenght(localMctfParam.FilterStrength);
+            m_RTParams.FilterStrength = localMctfParam.FilterStrength;
+        }
     }
     // now initialize run-time parameters
     m_RTParams = localMctfParam;
@@ -2069,7 +2078,10 @@ mfxI32 CMC::MCTF_RUN_ME_MC_HE(
 
         (this->*(pMCTF_NOA_func))(m_adaptControl);
         if (QfIn[1].filterStrength == 0)
+        {
+            MctfState = 1;
             return CM_SUCCESS;
+        }
 
         if (mcSufIndex == 0)
             res = MCTF_SET_KERNELMc2r(0, 0);
@@ -2944,7 +2956,9 @@ mfxI32 CMC::MCTF_BLEND4R()
     return res;
 }
 
-mfxI32 CMC::MCTF_RUN_MCTF_DEN_1REF()
+mfxI32 CMC::MCTF_RUN_MCTF_DEN_1REF(
+    bool
+)
 {
     if (pMCTF_LOAD_func)
     {
@@ -2968,9 +2982,11 @@ mfxI32 CMC::MCTF_RUN_MCTF_DEN_1REF()
     return res;
 }
 
-mfxI32 CMC::MCTF_RUN_MCTF_DEN()
+mfxI32 CMC::MCTF_RUN_MCTF_DEN(
+    bool notInPipeline
+)
 {
-    if (QfIn[1].filterStrength > 0)
+    if ((QfIn[1].filterStrength > 0) || notInPipeline)
     {
         if (pMCTF_LOAD_func)
         {
@@ -2995,7 +3011,9 @@ mfxI32 CMC::MCTF_RUN_MCTF_DEN()
     return res;
 }
 
-mfxI32 CMC::MCTF_RUN_MCTF_DEN_4REF()
+mfxI32 CMC::MCTF_RUN_MCTF_DEN_4REF(
+    bool
+)
 {
     res = (this->*(pMCTF_LOAD_func))();
     MCTF_CHECK_CM_ERR(res, res);
@@ -3304,7 +3322,7 @@ mfxStatus CMC::MCTF_DO_FILTERING_IN_AVC()
             case 0:
             {
                 MCTF_UpdateANDApplyRTParams(1);
-                res = (this->*(pMCTF_func))();
+                res = (this->*(pMCTF_func))(false);
                 CurrentIdx2Out = DefaultIdx2Out;
                 break;
             }
@@ -3351,7 +3369,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
             pMCTF_ME_func = &CMC::MCTF_RUN_ME_2REF;
             pMCTF_LOAD_func = &CMC::MCTF_LOAD_2REF;
             RotateBufferA();
-            res = MCTF_RUN_MCTF_DEN();
+            res = MCTF_RUN_MCTF_DEN(true);
             CurrentIdx2Out = 0;
             MctfState = AMCTF_READY;
             firstFrame = 2;
@@ -3361,7 +3379,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
         {
             //todo: check is it correct that the current frame is 1?
             MCTF_UpdateANDApplyRTParams(1);
-            res = MCTF_RUN_MCTF_DEN();
+            res = MCTF_RUN_MCTF_DEN(true);
             RotateBufferA();
             CurrentIdx2Out = 1;
             MctfState = AMCTF_READY;
@@ -3376,7 +3394,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
         default:
         {
             MCTF_UpdateANDApplyRTParams(2);
-            res = (this->*(pMCTF_func))();
+            res = (this->*(pMCTF_func))(true);
             CurrentIdx2Out = DefaultIdx2Out;
             MctfState = AMCTF_READY;
             break;
@@ -3398,7 +3416,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
             case 0:
             {
                 MCTF_UpdateANDApplyRTParams(1);
-                res = (this->*(pMCTF_func))();
+                res = (this->*(pMCTF_func))(true);
                 CurrentIdx2Out = DefaultIdx2Out;
                 MctfState = AMCTF_READY;
                 break;
@@ -3433,7 +3451,7 @@ mfxStatus CMC::MCTF_DO_FILTERING()
                 RotateBuffer();
             }
             else
-                res = (this->*(pMCTF_func))();
+                res = (this->*(pMCTF_func))(true);
             MctfState = AMCTF_READY;
         }
         CurrentIdx2Out = DefaultIdx2Out;
