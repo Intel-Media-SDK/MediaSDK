@@ -1,0 +1,7 @@
+{
+    "type": "decode",
+    "stream": "test_stream_av1.ivf",
+    "async": [1, 4],
+    "vaapi": [true, false],
+    "platforms": ["tgl"]
+}

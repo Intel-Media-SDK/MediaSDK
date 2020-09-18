@@ -1,7 +1,7 @@
 ![](./pic/intel_logo.png)
-<br><br><br>
+
 # **Media SDK Developer Reference**
-## Media SDK API Version 1.33
+## Media SDK API Version 1.34
 
 <div style="page-break-before:always" />
 
@@ -234,6 +234,8 @@ Notice revision #20110804
   * [mfxExtColorConversion](#mfxExtColorConversion)
   * [mfxExtDecodeErrorReport](#mfxExtDecodeErrorReport)
   * [mfxExtCencParam](#mfxExtCencParam)
+  * [mfxExtInsertHeaders](#mfxExtInsertHeaders)
+  * [mfxExtEncoderIPCMArea](#mfxExtEncoderIPCMArea)
 - [Enumerator Reference](#enumerator-reference)
   * [BitstreamDataFlag](#BitstreamDataFlag)
   * [ChromaFormatIdc](#ChromaFormatIdc)
@@ -451,16 +453,19 @@ Perform detection of picture structure                                          
 
 ###### Table 2: Color Conversion Support in VPP*
 
- **Output Color**><br>**Input Color**˅| **NV12** | **RGB32** | **P010** | **P210** | **NV16** | **A2RGB10**
- --- | --- | --- | --- | --- | --- | ---
-RGB4 (RGB32) | X<br>limited | X<br>Limited |  |  |  |
-NV12 | X | X | X |   | X |
-YV12 | X | X |   |   |   |
-UYVY | X |   |   |   |   |
-YUY2 | X | X |   |   |   |
-P010 | X |   | X | X |   | X
-P210 | X |   | X | X | X | X
-NV16 | X |   |   | X | X |
+ **Output Color**><br>**Input Color**˅| **NV12** | **YUY2** | **AYUV** | **RGB32** | **P010** | **P210** | **NV16** | **A2RGB10** | **Y210** | **Y410**
+ --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---
+RGB4 (RGB32) | X<br>limited | X<br>limited | X<br>limited | X<br>Limited | X<br>Limited | X<br>Limited | X<br>Limited | X<br>Limited | X<br>Limited | X<br>Limited
+NV12 | X | X | X | X | X |   | X | X | X | X
+YV12 | X | X | X | X | X |   |   |   | X | X
+UYVY | X | X | X | X | X |   |   | X | X | X
+YUY2 | X | X | X | X | X |   |   | X | X | X
+AYUV | X | X | X | X | X |   |   | X | X | X
+P010 | X | X | X | X | X | X |   | X | X | X
+P210 | X |   |   |   | X | X | X | X |   |
+NV16 | X |   |   |   |   | X | X |   |   |
+Y210 | X | X | X | X | X |   |   | X | X | X
+Y410 | X | X | X | X | X |   |   | X | X | X
 
 X indicates a supported function
 
@@ -490,22 +495,23 @@ There is one special mode of deinterlacing available in combination with frame r
 
 ###### Table 4: Color formats supported by VPP filters
 
- **Color**><br>**Filter**˅ | **RGB4 (RGB32)** | **NV12** | **YV12** | **YUY2** | **P010** | **P210** | **NV16**
- ------------------------- | ---------------- | -------- | -------- | -------- | -------- | -------- | -------
-Denoise                    |                  | X        |          |          |          |          |
-MCTF                       |                  | X        |          |          |          |          |
-Deinterlace                |                  | X        |          |          |          |          |
-Image stabilization        |                  | X        |          |          |          |          |
-Frame rate conversion      |                  | X        |          |          |          |          |
-Resize                     |                  | X        |          |          | X        | X        | X
-Detail                     |                  | X        |          |          |          |          |
-Color conversion (see table 2 for details) | X | X | X | X | X | X | X
-Composition                | X                | X        |          |          |          |          |
-Field copy                 |                  | X        |          |          |          |          |
-Fields weaving             |                  | X        |          |          |          |          |
-Fields splitting           |                  | X        |          |          |          |          |
+ **Color**><br>**Filter**˅ | **RGB4 (RGB32)** | **NV12** | **YV12** | **YUY2** | **P010** | **P210** | **NV16**| **AYUV**| **Y210**| **Y410**|
+ ------------------------- | ---------------- | -------- | -------- | -------- | -------- | -------- | ------- | ------- | ------- | ------- |
+Denoise                    |                  | X        |          | X        | X        |          |         |         |         |
+MCTF                       |                  | X        |          |          |          |          |         |         |         |
+Deinterlace                |                  | X        |          | X        | X        |          |         |         |         |
+Image stabilization        |                  | X        |          |          |          |          |         |         |         |
+Frame rate conversion      |                  | X        |          | X        | X        |          |         | X       | X       | X
+Resize                     |                  | X        |          | X        | X        | X        | X       | X       | X       | X
+Detail                     |                  | X        |          | X        |          |          |         | X       |         | X
+Color conversion (see table 2 for details) | X | X | X | X | X | X | X | X | X | X
+Composition                | X                | X        |          | X        | X        |          |         | X       | X       | X
+Field copy                 |                  | X        |          |          |          |          |         |         |         |
+Fields weaving             |                  | X        |          |          |          |          |         |         |         |
+Fields splitting           |                  | X        |          |          |          |          |         |         |         |
 
 X indicates a supported function
+Note: Supported color formats might differ depending on HW platform type. Older HW platforms might not support all described color formats
 
 The SDK video processing pipeline supports limited HW acceleration for P010 format - zeroed [mfxFrameInfo](#mfxFrameInfo)`::Shift` leads to partial acceleration.
 
@@ -1638,7 +1644,7 @@ This function is available since SDK API 1.31.
 
 **Description**
 
-This function returns list of adapters suitable to handle workload `input_info`. The list is sorted in priority order where iGPU has advantage. This rule might be changed in future. If `input_info` pointer is NULL, list of all available Intel adapters will be returned.
+This function returns list of adapters suitable to handle workload `input_info`. The list is sorted in priority order: iGPU has advantage over dGPU with only exception when workload is HEVC encode and iGPU is less than Gen12. This rule might be changed in future. If `input_info` pointer is NULL, list of all available Intel adapters will be returned.
 
 **Return Status**
 
@@ -5017,7 +5023,8 @@ The SDK API 1.9 adds `SecondFieldOffset` fields.
 /* ROI QP adjustment mode */
 enum {
     MFX_ROI_MODE_PRIORITY =  0,
-    MFX_ROI_MODE_QP_DELTA =  1
+    MFX_ROI_MODE_QP_DELTA =  1,
+    MFX_ROI_MODE_QP_VALUE =  2
 };
 
 typedef struct {
@@ -5049,14 +5056,14 @@ The `mfxExtEncoderROI` structure is used by the application to specify different
 **Members**
 
 | | |
---- | ---
-`Header.BufferId` | Must be [MFX_EXTBUFF_ENCODER_ROI](#ExtendedBufferID)
-`NumROI` | Number of ROI descriptions in array. The Query function mode 2 returns maximum supported value (set it to 256 and Query will update it to maximum supported value).
-`ROIMode` | QP adjustment mode for ROIs. Defines if Priority or `DeltaQP` is used during encoding.
-`ROI` | Array of ROIs. Different ROI may overlap each other. If macroblock belongs to several ROI, **Priority** from ROI with lowest index is used.
-`Left, Top, Right, Bottom` | ROI location rectangle. ROI rectangle definition is using end-point exclusive notation. In other words, the pixel with (Right, Bottom) coordinates lies immediately outside of the ROI. Left, Top, Right, Bottom should be aligned by codec-specific block boundaries (should be dividable by 16 for AVC, or by 32 for HEVC). Every ROI with unaligned coordinates will be expanded by SDK to minimal-area block-aligned ROI, enclosing the original one. For example (5, 5, 15, 31) ROI will be expanded to (0, 0, 16, 32) for AVC encoder, or to (0, 0, 32, 32) for HEVC.
-`DeltaQP` | Delta QP of ROI. Used if `ROIMode` = `MFX_ROI_MODE_QP_DELTA`. This is absolute value in the -51…51 range, which will be added to the MB QP. Lesser value produces better quality.
-`Priority` | Priority of ROI.<br><br>Used if `ROIMode` = `MFX_ROI_MODE_PRIORITY`.This is absolute value in the -3…3 range, which will be added to the MB QP. Priority is deprecated mode and is used only for backward compatibility. Bigger value produces better quality.
+--- | --- | --- | --- 
+`Header.BufferId` | Must be [MFX_EXTBUFF_ENCODER_ROI](#ExtendedBufferID)||
+`NumROI` | Number of ROI descriptions in array. The Query function mode 2 returns maximum supported value (set it to 256 and Query will update it to maximum supported value).||
+`ROIMode` | QP adjustment mode for ROIs. Defines if Priority, `DeltaQP` or absolute value is used during encoding. ||
+`ROI` | Array of ROIs. Different ROI may overlap each other. If macroblock belongs to several ROI, **Priority** from ROI with lowest index is used.||
+`Left, Top, Right, Bottom` | ROI location rectangle. ROI rectangle definition is using end-point exclusive notation. In other words, the pixel with (Right, Bottom) coordinates lies immediately outside of the ROI. Left, Top, Right, Bottom should be aligned by codec-specific block boundaries (should be dividable by 16 for AVC, or by 32 for HEVC). Every ROI with unaligned coordinates will be expanded by SDK to minimal-area block-aligned ROI, enclosing the original one. For example (5, 5, 15, 31) ROI will be expanded to (0, 0, 16, 32) for AVC encoder, or to (0, 0, 32, 32) for HEVC.||
+`DeltaQP` | Delta QP of ROI. Used if `ROIMode` = `MFX_ROI_MODE_QP_DELTA`. This is absolute value in the -51…51 range, which will be added to the MB QP. Lesser value produces better quality.||
+`Priority` | Priority of ROI.<br><br>Used if `ROIMode` = `MFX_ROI_MODE_PRIORITY`.This is absolute value in the -3…3 range, which will be added to the MB QP. Priority is deprecated mode and is used only for backward compatibility. Bigger value produces better quality.||
 
 **Change History**
 
@@ -5064,6 +5071,8 @@ This structure is available since SDK API 1.8.
 
 The SDK API 1.22 adds `ROIMode` and `DeltaQP` fields.
 The SDK API 1.25 adds clarification that ROI rectangle Right, Bottom  are considered exclusive and aligment rules changed.
+
+The SDK API 1.34 adds new mode `MFX_ROI_MODE_QP_VALUE` - absolute value of QP.
 
 ## <a id='mfxExtMasteringDisplayColourVolume'>mfxExtMasteringDisplayColourVolume</a>
 
@@ -5692,7 +5701,9 @@ typedef struct {
             mfxU16  SliceGroupsPresent;
             mfxU16  MaxDecFrameBuffering;
             mfxU16  EnableReallocRequest;
-            mfxU16  reserved2[7];
+            mfxU16  FilmGrain;
+            mfxU16  IgnoreLevelConstrain;
+            mfxU16  reserved2[5];
         };
         struct {   /* JPEG Decoding Options */
             mfxU16  JPEGChromaFormat;
@@ -5748,6 +5759,8 @@ This structure specifies configurations for decoding, encoding and transcoding p
 `SliceGroupsPresent`    | Nonzero value indicates that slice groups are present in the bitstream. Only AVC decoder uses this field.
 `MaxDecFrameBuffering`  | Nonzero value specifies the maximum required size of the decoded picture buffer in frames for AVC and HEVC decoders.
 `EnableReallocRequest`  | For decoders supporting dynamic resolution change (VP9), set this option to ON to allow `MFXVideoDECODE_DecodeFrameAsync` return [MFX_ERR_REALLOC_SURFACE](#mfxStatus).<br><br>See the [CodingOptionValue](#CodingOptionValue) enumerator for values of this option. Use [Query](#MFXVideoDECODE_Query) function to check if this feature is supported.
+`FilmGrain`             | For AV1 decoder. Indicates presence/absence of film grain parameters in bitstream. Also controls SDK decoding behavior for streams with film grain parameters.<br><br>`MFXVideoDECODE_DecodeHeader` returns nonzero `FilmGrain` for streams with film grain parameters and zero for streams w/o them.<br><br>Decoding with film grain requires additional output surfaces. If `FilmGrain` is nonzero then `MFXVideoDECODE_QueryIOSurf` will request more surfaces in case of video memory at decoder output.<br><br>`FilmGrain` is passed to `MFXVideoDECODE_Init` function to control SDK decoding operation for AV1 streams with film grain parameters.<br>If `FilmGrain` is nonzero decoding of each frame require two output surfaces (one for reconstructed frame and one for output frame with film grain applied). The SDK returns [MFX_ERR_MORE_SURFACE](#mfxStatus) from `MFXVideoDECODE_DecodeFrameAsync` if it has insufficient output surfaces to decode frame.<br>Application of film grain can be forcibly disabled by passing zero `FilmGrain` to `MFXVideoDECODE_Init`. In this case SDK will output reconstructed frames w/o film grain applied. Application can retrieve film grain parameters for a frame by attaching extended buffer [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam) to [mfxFrameSurface1](#mfxFrameSurface).<br><br>If stream has no film grain parameters `FilmGrain` passed to `MFXVideoDECODE_Init` is ignored by the SDK during decode operation.
+`IgnoreLevelConstrain`  | If not zero, it forces SDK to attempt to decode bitstream even if a decoder may not support all features associated with given `CodecLevel`. Decoder may produce visual artifacts. Only AVC decoder supports this field.
 
 **Change History**
 
@@ -5767,6 +5780,9 @@ SDK API 1.15 adds `LowPower` field.
 SDK API 1.16 adds `MaxDecFrameBuffering` field.
 
 SDK API 1.19 adds `EnableReallocRequest` field.
+
+SDK API 1.34 adds `FilmGrain` and `IgnoreLevelConstrain` fields.
+
 
 ###### Example 17: Pseudo-Code for GOP Structure Parameters
 
@@ -6370,6 +6386,37 @@ The **mfxExtVPPFieldProcessing** structure configures the **VPP** field processi
 
 This structure is available since SDK API 1.11.
 
+## mfxQPandMode
+
+**Definition**
+
+```C
+
+typedef struct{
+    union {
+        mfxU8 QP;
+        mfxI8 DeltaQP;
+    };
+    mfxU16 Mode;
+} mfxQPandMode;
+```
+**Description**
+
+The **mfxQPandMode** structure specifies specifies per-MB or per-CU mode and QP or deltaQP value depending on the mode type.
+
+**Members**
+
+| | |
+--- | ---
+`QP` | QP for MB or CU. Valid when Mode = MFX_MBQP_MODE_QP_VALUE.<br>For AVC valid range is 1..51.<br>For HEVC valid range is 1..51. Application’s provided QP values should be valid; otherwise invalid QP values may cause undefined behavior.<br>MBQP map should be aligned for 16x16 block size. (align rule is (width +15 /16) && (height +15 /16))<br>For MPEG2 QP corresponds to quantizer_scale of the ISO*\/IEC* 13818-2 specification and have valid range 1..112.
+`DeltaQP` | Per-macroblock QP delta. Valid when Mode = `MFX_MBQP_MODE_QP_DELTA`.
+`Mode` | Defines QP update mode. Can be equal to `MFX_MBQP_MODE_QP_VALUE` or `MFX_MBQP_MODE_QP_DELTA`.
+
+**Change History**
+
+This structure is available since SDK API 1.34.
+
+
 ## <a id='mfxExtMBQP'>mfxExtMBQP</a>
 
 **Definition**
@@ -6382,6 +6429,7 @@ typedef struct {
     mfxU32 NumQPAlloc;
     union {
         mfxU8  *QP;
+        mfxQPandMode *QPmode;
         mfxU64 reserved2;
     };
 } mfxExtMBQP;
@@ -6398,10 +6446,83 @@ The **mfxExtMBQP** structure specifies per-macroblock QP for current frame if [m
 `Header.BufferId` | Must be [MFX_EXTBUFF_MBQP](#ExtendedBufferID).
 `NumQPAlloc` | The allocated QP array size.
 `QP` | Pointer to a list of per-macroblock QP in raster scan order. In case of interlaced encoding the first half of QP array affects top field and the second – bottom field.<br><br>For AVC valid range is 1..51.<br><br>For HEVC valid range is 1..51. Application’s provided QP values should be valid; otherwise invalid QP values may cause undefined behavior. MBQP map should be aligned for 16x16 block size. (align rule is (width +15 /16) && (height +15 /16))<br><br>For MPEG2 QP corresponds to quantizer_scale of the ISO*/IEC* 13818-2 specification and have valid range 1..112.
+`QPmode` | Block-granularity modes when `MFX_MBQP_MODE_QP_ADAPTIVE` is set.
 
 **Change History**
 
 This structure is available since SDK API 1.13.
+
+SDK API 1.34 adds `QPmode` field.
+
+## mfxExtInsertHeaders
+
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          SPS;
+    mfxU16          PPS;
+    mfxU16          reserved[8];
+} mfxExtInsertHeaders;
+```
+
+**Description**
+
+Runtime ctrl buffer for SPS/PPS insertion with current encoding frame.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Extension buffer header. Header.BufferId must be equal to [MFX_EXTBUFF_INSERT_HEADERS](#ExtendedBufferID).
+`SPS` | Tri-state option to insert SPS.
+`PPS` | Tri-state option to insert PPS.
+
+**Change History**
+
+This structure is available since SDK API 1.34.
+
+## mfxExtEncoderIPCMArea
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          reserve1[10];
+
+    mfxU16          NumArea;
+    struct area {
+        mfxU32      Left;
+        mfxU32      Top;
+        mfxU32      Right;
+        mfxU32      Bottom;
+
+        mfxU16      reserved2[8];
+    } * Areas;
+} mfxExtEncoderIPCMArea;
+```
+**Description**
+
+The **mfxExtEncoderIPCMArea** specifies rectangle areas for IPCM coding mode.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_ENCODER_IPCM_AREA](#ExtendedBufferID).
+`NumArea` | Number of areas.
+`Areas` | Array of areas.
+`Areas[i].Left` | Left Area's coordinate.
+`Areas[i].Top` | Top Area's coordinate.
+`Areas[i].Right` | Right Area's coordinate.
+`Areas[i].Bottom` | Bottom Area's coordinate.
+
+**Change History**
+
+This structure is available since SDK API 1.34.
 
 ## <a id='mfxExtMBForceIntra'>mfxExtMBForceIntra</a>
 
@@ -7898,6 +8019,94 @@ This structure is used to pass decryption status report index for Common Encrypt
 
 This structure is available since SDK API 1.30.
 
+## <a id='mfxExtAV1FilmGrainParam'>mfxExtAV1FilmGrainParam</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxU8 Value;
+    mfxU8 Scaling;
+} mfxAV1FilmGrainPoint;
+
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxU16 Flags;
+    mfxU16 GrainSeed;
+
+    mfxU8  RefIdx;
+    mfxU8  NumYPoints;
+    mfxU8  NumCbPoints;
+    mfxU8  NumCrPoints;
+
+    mfxAV1FilmGrainPoint PointY[14];
+    mfxAV1FilmGrainPoint PointCb[10];
+    mfxAV1FilmGrainPoint PointCr[10];
+
+    mfxU8 GrainScalingMinus8;
+    mfxU8 ArCoeffLag;
+
+    mfxU8 ArCoeffsYPlus128[24];
+    mfxU8 ArCoeffsCbPlus128[25];
+    mfxU8 ArCoeffsCrPlus128[25];
+
+    mfxU8 ArCoeffShiftMinus6;
+    mfxU8 GrainScaleShift;
+
+    mfxU8  CbMult;
+    mfxU8  CbLumaMult;
+    mfxU16 CbOffset;
+
+    mfxU8  CrMult;
+    mfxU8  CrLumaMult;
+    mfxU16 CrOffset;
+
+    mfxU16 reserved[43];
+} mfxExtAV1FilmGrainParam;
+```
+
+**Description**
+
+This structure is used by AV1 SDK decoder to report film grain parameters for decoded frame. The application can attach this extended buffer to the [mfxFrameSurface1](#mfxFrameSurface) structure at runtime.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM](#ExtendedBufferID)
+`Value` | The x coordinate for the i-th point of the piece-wise linear scaling function for luma/Cb/Cr component. The value is signaled on the scale of 0..255.
+`Scaling` | The scaling (output) value for the i-th point of the piecewise linear scaling function for luma/Cb/Cr component.
+`Flags` | Bit map with bit-ORed flags from enum [AV1FilmGrainFlags](#AV1FilmGrainFlags).
+`GrainSeed` | Starting value for pseudo-random numbers used during film grain synthesis.
+`RefIdx` | Indicate which reference frame contains the film grain parameters to be used for this frame.
+`NumYPoints` | The number of points for the piece-wise linear scaling function of the luma component.
+`NumCbPoints` | The number of points for the piece-wise linear scaling function of the Cb component.
+`NumCrPoints` | The number of points for the piece-wise linear scaling function of the Cr component.
+`PointY` | The array of points for luma component.
+`PointCb` | The array of points for Cb component.
+`PointCr` | The array of points for Cr component.
+`GrainScalingMinus8` | The shift – 8 applied to the values of the chroma component. The grain_scaling_minus_8 can take values of 0..3 and determines the range and quantization step of the standard deviation of film grain.
+`ArCoeffLag` | The number of auto-regressive coefficients for luma and chroma.
+`ArCoeffsYPlus128` | Auto-regressive coefficients used for the Y plane
+`ArCoeffsCbPlus128` | Auto-regressive coefficients used for the U plane
+`ArCoeffsCrPlus128` | Auto-regressive coefficients used for the V plane
+`ArCoeffShiftMinus6` | The range of the auto-regressive coefficients. Values of 0, 1, 2, and 3 correspond to the ranges for auto-regressive coefficients of [-2, 2), [-1, 1), [-0.5, 0.5) and [-0.25, 0.25) respectively.
+`GrainScaleShift` | How much the Gaussian random numbers should be scaled down during the grain synthesis process.
+`CbMult` | The multiplier for the cb component used in derivation of the input index to the Cb component scaling function.
+`CbLumaMult` | The multiplier for the average luma component used in derivation of the input index to the Cb component scaling function.
+`CbOffset` | The offset used in derivation of the input index to the Cb component scaling function.
+`CrMult` | The multiplier for the cr component used in derivation of the input index to the Cr component scaling function.
+`CrLumaMult` | The multiplier for the average luma component used in derivation of the input index to the Cr component scaling function.
+`CrOffset` | The offset used in derivation of the input index to the Cr component scaling function.
+
+These parameters represent film grain syntax of AV1 codec. They are equivalent of film_grain_params() from uncompressed header syntax of AV1 frame.<br><br>
+If syntax parameter isn't present in uncompressed header of particular frame, respective member of `mfxExtAV1FilmGrainParam` is zeroed by the SDK AV1 decoder.
+
+**Change History**
+
+This structure is available since SDK API 1.34.
+
 ## <a id='mfxExtPartialBitstreamParam'>mfxExtPartialBitstreamParam</a>
 
 **Definition**
@@ -7928,6 +8137,73 @@ If this option is turned ON (Granularity != MFX_PARTIAL_BITSTREAM_NONE), then en
 **Change History**
 
 This structure is available since SDK API 1.31.
+
+## <a id='mfxExtEncoderIPCMArea'>mfxExtEncoderIPCMArea</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          reserve1[10];
+
+    mfxU16          NumArea;
+    struct area {
+        mfxU32      Left;
+        mfxU32      Top;
+        mfxU32      Right;
+        mfxU32      Bottom;
+
+        mfxU16      reserved2[8];
+    } * Areas;
+} mfxExtEncoderIPCMArea;
+```
+
+**Description**
+
+The `mfxExtEncoderIPCMArea` structure is used by the application to specify different regions  during encoding. It may be used at initialization or at runtime.
+
+**Members**
+
+|                            |                                                              |      |      |
+| -------------------------- | ------------------------------------------------------------ | ---- | ---- |
+| `Header.BufferId`          | Must be [MFX_EXTBUFF_ENCODER_IPCM_AREA](#ExtendedBufferID)   |      |      |
+| `NumArea`                  | Number of IPCM regions descriptions in array. The Query function mode 2 returns maximum supported value (set it to 256 and Query will update it to maximum supported value). |      |      |
+| `Areas`                     | Array of IPCM regions. Different regions may overlap each other. |      |      |
+| `Left, Top, Right, Bottom` | IPCM region location rectangle. Rectangle definition is using end-point exclusive notation. In other words, the pixel with (Right, Bottom) coordinates lies immediately outside of the IPCM region. HW will align coordinates to codec-specific block boundaries. |      |      |
+
+**Change History**
+
+This structure is available since SDK API 1.34.
+
+## <a id='mfxExtInsertHeaders'>mfxExtInsertHeaders</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          SPS;
+    mfxU16          PPS;
+    mfxU16          reserved[8];
+} mfxExtInsertHeaders;
+```
+
+**Description**
+
+The `mfxExtInsertHeaders` structure is used by the application to force insertion of active SPS or/and PPS with next frame. It may be used at initialization or at runtime.
+
+**Members**
+
+|                   |                                                              |      |      |
+| ----------------- | ------------------------------------------------------------ | ---- | ---- |
+| `Header.BufferId` | Must be [MFX_EXTBUFF_INSERT_HEADERS](#ExtendedBufferID)      |      |      |
+| `SPS`             | `MFX_CODINGOPTION_OFF`  - do nothing, `MFX_CODINGOPTION_ON` - attach active SPS with currently encoding frame. |      |      |
+| `PPS`             | `MFX_CODINGOPTION_OFF`  - do nothing, `MFX_CODINGOPTION_ON` - attach active PPS with currently encoding frame. |      |      |
+
+**Change History**
+
+This structure is available since SDK API 1.34.
 
 # Enumerator Reference
 
@@ -8019,6 +8295,7 @@ The `CodecLevel` enumerator itemizes codec levels for all codecs.
 `MFX_LEVEL_AVC_3`,<br>`MFX_LEVEL_AVC_31`,<br>`MFX_LEVEL_AVC_32` | H.264 level 3-3.2
 `MFX_LEVEL_AVC_4`,<br>`MFX_LEVEL_AVC_41`,<br>`MFX_LEVEL_AVC_42` | H.264 level 4-4.2
 `MFX_LEVEL_AVC_5`,<br>`MFX_LEVEL_AVC_51`,<br>`MFX_LEVEL_AVC_52` | H.264 level 5-5.2
+`MFX_LEVEL_AVC_6`,<br>`MFX_LEVEL_AVC_61`,<br>`MFX_LEVEL_AVC_62` | H.264 level 6-6.2
 `MFX_LEVEL_MPEG2_LOW`,<br>`MFX_LEVEL_MPEG2_MAIN`,<br>`MFX_LEVEL_MPEG2_HIGH`,<br>`MFX_LEVEL_MPEG2_HIGH1440` | MPEG-2 levels
 `MFX_LEVEL_VC1_LOW`,<br>`MFX_LEVEL_VC1_MEDIAN`,<br>`MFX_LEVEL_VC1_HIGH` | VC-1 Level Low (simple & main profiles)
 `MFX_LEVEL_VC1_0`,<br>`MFX_LEVEL_VC1_1`,<br>`MFX_LEVEL_VC1_2`,<br>`MFX_LEVEL_VC1_3`,<br>`MFX_LEVEL_VC1_4` | VC-1 advanced profile levels
@@ -8031,7 +8308,9 @@ This enumerator is available since SDK API 1.0.
 
 SDK API 1.8 added HEVC level and tier definitions.
 
-SDK API **TBD** added AV1 level definitions.
+SDK API 1.34 added AV1 level definitions.
+
+SDK API **TBD** added H.264 level 6-6.2 definitions.
 
 ## <a id='CodecProfile'>CodecProfile</a>
 
@@ -8044,7 +8323,7 @@ The `CodecProfile` enumerator itemizes codec profiles for all codecs.
 | | |
 --- | ---
 `MFX_PROFILE_UNKNOWN` | Unspecified profile
-`MFX_PROFILE_AVC_BASELINE`,<br>`MFX_PROFILE_AVC_MAIN`,<br>`MFX_PROFILE_AVC_EXTENDED`,<br>`MFX_PROFILE_AVC_HIGH`,<br>`MFX_PROFILE_AVC_CONSTRAINED_BASELINE`,<br>`MFX_PROFILE_AVC_CONSTRAINED_HIGH`,<br>`MFX_PROFILE_AVC_PROGRESSIVE_HIGH` | H.264 profiles
+`MFX_PROFILE_AVC_BASELINE`,<br>`MFX_PROFILE_AVC_MAIN`,<br>`MFX_PROFILE_AVC_EXTENDED`,<br>`MFX_PROFILE_AVC_HIGH`,<br>`MFX_PROFILE_AVC_HIGH10`,<br>`MFX_PROFILE_AVC_CONSTRAINED_BASELINE`,<br>`MFX_PROFILE_AVC_CONSTRAINED_HIGH`,<br>`MFX_PROFILE_AVC_PROGRESSIVE_HIGH` | H.264 profiles
 `MFX_PROFILE_AVC_CONSTRAINT_SET0`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET1`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET2`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET3`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET4`,<br>`MFX_PROFILE_AVC_CONSTRAINT_SET5` | Combined with H.264 profile these flags impose additional constrains. See H.264 specification for the list of constrains.
 `MFX_PROFILE_MPEG2_SIMPLE`,<br>`MFX_PROFILE_MPEG2_MAIN`,<br>`MFX_PROFILE_MPEG2_HIGH` | MPEG-2 profiles
 `MFX_PROFILE_VC1_SIMPLE`,<br>`MFX_PROFILE_VC1_MAIN`,<br>`MFX_PROFILE_VC1_ADVANCED`,<br> | VC-1 profiles
@@ -8061,15 +8340,17 @@ SDK API 1.3 adds `MFX_PROFILE_AVC_EXTENDED`.
 SDK API 1.4 adds `MFX_PROFILE_AVC_CONSTRAINED_BASELINE, MFX_PROFILE_AVC_CONSTRAINED_HIGH,
 MFX_PROFILE_AVC_PROGRESSIVE_HIGH` and six constrained flags `MFX_PROFILE_AVC_CONSTRAINT_SET`.
 
-SDK API 1.8 added HEVC profile definitions.
+SDK API 1.8 adds HEVC profile definitions.
 
 SDK API 1.16 adds `MFX_PROFILE_HEVC_REXT`.
 
-SDK API 1.19 added VP9 profile definitions.
+SDK API 1.19 adds VP9 profile definitions.
 
 SDK API 1.32 adds `MFX_PROFILE_HEVC_SCC`.
 
-SDK API **TBD** added AV1 profile definitions.
+SDK API 1.34 adds `MFX_PROFILE_AVC_HIGH10`.
+
+SDK API 1.34 added AV1 profile definitions.
 
 ## <a id='CodingOptionValue'>CodingOptionValue</a>
 
@@ -8126,6 +8407,10 @@ The `ColorFourCC` enumerator itemizes color formats.
 `MFX_FOURCC_Y216` | 16 bit per sample 4:2:2 packed color format with similar to YUY2 layout.<br><br>This format should be mapped to DXGI_FORMAT_Y216.
 `MFX_FOURCC_Y410` | 10 bit per sample 4:4:4 packed color format<br><br>This format should be mapped to DXGI_FORMAT_Y410.
 `MFX_FOURCC_Y416` | 16 bit per sample 4:4:4 packed color format<br><br>This format should be mapped to DXGI_FORMAT_Y416.
+`MFX_FOURCC_NV21` | Same as NV12 but with weaved V and U values.
+`MFX_FOURCC_IYUV` | Same as  YV12 except that the U and V plane order is reversed.
+`MFX_FOURCC_I010` | 10-bit YUV 4:2:0, each component has its own plane.
+
 **Change History**
 
 This enumerator is available since SDK API 1.0.
@@ -8145,6 +8430,8 @@ The SDK API 1.27 adds `MFX_FOURCC_Y210` and `MFX_FOURCC_Y410`.
 The SDK API 1.28 adds `MFX_FOURCC_RGB565` and `MFX_FOURCC_RGBP`.
 
 The SDK API 1.31 adds `MFX_FOURCC_P016`, `MFX_FOURCC_Y216` and `MFX_FOURCC_Y416`.
+
+The SDK API 1.34 adds `MFX_FOURCC_NV21`, `MFX_FOURCC_IYUV` and `MFX_FOURCC_I010`.
 
 ## <a id='Corruption'>Corruption</a>
 
@@ -8241,7 +8528,8 @@ The `ExtendedBufferID` enumerator itemizes and defines identifiers (`BufferId`) 
 `MFX_EXTBUFF_TASK_DEPENDENCY` | See the [Alternative Dependencies](#Alternative_Dependencies) chapter for details.
 `MFX_EXTBUFF_VPP_MCTF` | This video processing algorithm identifier is used to enable MCTF via [mfxExtVPPDoUse](#mfxExtVPPDoUse) and together with `mfxExtVppMctf` | See the [mfxExtVppMctf](#mfxExtVppMctf) chapter for details.
 `MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM` | This extended buffer is used by AV1 SDK decoder to report film grain parameters for decoded frame. See the [mfxExtAV1FilmGrainParam](#mfxExtAV1FilmGrainParam) structure for more details.
-
+`MFX_EXTBUFF_ENCODER_IPCM_AREA` | See the [mfxExtEncoderIPCMArea](#mfxExtEncoderIPCMArea) structure for details.
+`MFX_EXTBUFF_INSERT_HEADERS` | See the [mfxExtInsertHeaders](#mfxExtInsertHeaders) structure for details.
 
 **Change History**
 
@@ -8280,7 +8568,9 @@ SDK API 1.27 adds `MFX_EXTBUFF_AVC_ROUNDING_OFFSET`.
 
 SDK API 1.30 adds `MFX_EXTBUFF_CENC_PARAM`.
 
-SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration, `MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM`.
+SDK API 1.34 adds `MFX_EXTBUFF_ENCODER_IPCM_AREA`, `MFX_EXTBUFF_INSERT_HEADERS` and `MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM`.
+
+SDK API **TBD** adds `MFX_EXTBUFF_TASK_DEPENDENCY` and `MFX_EXTBUFF_VPP_PROCAMP` use for per-frame processing configuration.
 
 See additional change history in the structure definitions.
 
@@ -9134,6 +9424,7 @@ The `PlatformCodeName` enumerator itemizes Intel® microarchitecture code names.
 `MFX_PLATFORM_JASPERLAKE`   | Jasper Lake
 `MFX_PLATFORM_ELKHARTLAKE`  | Elkhart Lake
 `MFX_PLATFORM_TIGERLAKE`    | Tiger Lake
+`MFX_PLATFORM_KEEMBAY`      | Keem Bay
 
 **Change History**
 
@@ -9145,6 +9436,8 @@ SDK API 1.25 adds `MFX_PLATFORM_GEMINILAKE`, `MFX_PLATFORM_COFFEELAKE` and `MFX_
 SDK API 1.27 adds `MFX_PLATFORM_ICELAKE`.
 
 SDK API 1.31 adds `MFX_PLATFORM_ELKHARTLAKE`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PLATFORM_TIGERLAKE`.
+
+SDK API 1.34 adds `MFX_PLATFORM_KEEMBAY`.
 
 SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`.
 
@@ -9414,7 +9707,7 @@ The `AV1FilmGrainFlags` enumerator indicates flags in AV1 film grain parameters.
 
 **Change History**
 
-This enumerator is available since SDK API **TBD**.
+This enumerator is available since SDK API 1.34.
 
 ## <a id='mfxComponentType'>mfxComponentType</a>
 

@@ -243,6 +243,17 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
         p_out->mfx.FrameInfo.AspectRatioW = p_in->mfx.FrameInfo.AspectRatioW;
         p_out->mfx.FrameInfo.AspectRatioH = p_in->mfx.FrameInfo.AspectRatioH;
 
+        switch (p_in->mfx.FrameInfo.PicStruct)
+        {
+        case MFX_PICSTRUCT_UNKNOWN:
+        case MFX_PICSTRUCT_PROGRESSIVE:
+            p_out->mfx.FrameInfo.PicStruct = p_in->mfx.FrameInfo.PicStruct;
+            break;
+        default:
+            sts = MFX_ERR_UNSUPPORTED;
+            break;
+        }
+
         mfxStatus stsExt = CheckDecodersExtendedBuffers(p_in);
         if (stsExt < MFX_ERR_NONE)
             sts = MFX_ERR_UNSUPPORTED;

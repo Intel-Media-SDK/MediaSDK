@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,5 +19,5 @@
 // SOFTWARE.
 #ifndef __genx_me_gen11__
 #define __genx_me_gen11__
-extern const unsigned char genx_me_gen11[28104];
+extern const unsigned char genx_me_gen11[32656];
 #endif

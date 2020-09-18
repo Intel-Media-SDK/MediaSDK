@@ -57,9 +57,15 @@ if (BUILD_KERNELS)
 endif()
 
 if ( ${API_VERSION} VERSION_GREATER 1.25 )
-  set ( MFX_1_25_OPTIONS_ALLOWED ON )
+  set ( MFX_1_26_OPTIONS_ALLOWED ON )
 else()
-  set ( MFX_1_25_OPTIONS_ALLOWED OFF )
+  set ( MFX_1_26_OPTIONS_ALLOWED OFF )
+endif()
+
+if ( ${API_VERSION} VERSION_GREATER 1.33 )
+  set ( MFX_1_34_OPTIONS_ALLOWED ON )
+else()
+  set ( MFX_1_34_OPTIONS_ALLOWED OFF )
 endif()
 
 option( MFX_ENABLE_USER_DECODE "Enabled user decode plugins?" ON)
@@ -67,7 +73,7 @@ option( MFX_ENABLE_USER_ENCODE "Enabled user encode plugins?" ON)
 option( MFX_ENABLE_USER_ENC "Enabled user ENC plugins?" ON)
 option( MFX_ENABLE_USER_VPP "Enabled user VPP plugins?" ON)
 
-option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ${API_USE_LATEST})
+option( MFX_ENABLE_AV1_VIDEO_DECODE "Enabled AV1 decoder?" ${MFX_1_34_OPTIONS_ALLOWED})
 option( MFX_ENABLE_VP8_VIDEO_DECODE "Enabled VP8 decoder?" ON)
 option( MFX_ENABLE_VP9_VIDEO_DECODE "Enabled VP9 decoder?" ON)
 option( MFX_ENABLE_H264_VIDEO_DECODE "Enabled AVC decoder?" ON)
@@ -93,7 +99,7 @@ option( MFX_ENABLE_VP9_VIDEO_ENCODE "Enable VP9 encoder?" ON)
 option( MFX_ENABLE_ASC "Enable ASC support?"  ON )
 
 cmake_dependent_option(
-  MFX_ENABLE_MCTF "Build with MCTF support?"  ${MFX_1_25_OPTIONS_ALLOWED}
+  MFX_ENABLE_MCTF "Build with MCTF support?"  ${MFX_1_26_OPTIONS_ALLOWED}
   "MFX_ENABLE_ASC;MFX_ENABLE_KERNELS" OFF)
 
 # Now we will include config file which may overwrite default values of the

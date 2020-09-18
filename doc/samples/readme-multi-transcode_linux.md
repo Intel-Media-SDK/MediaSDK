@@ -22,8 +22,8 @@ The sample is able to work with **HEVC Decoder & Encoder** \(hereinafter referre
 
 |Format type| |
 |---|---|
-| input \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, VC-1, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP8 |
-| output \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\) |
+| input \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, VC-1, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP8, VP9, AV1 |
+| output \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP9 |
 
 ## Hardware Requirements
 
@@ -68,10 +68,10 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 
 |Option|Description|
 |---|---|
- |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9 <file-name>| Set input file and decoder type|
+ |-i::h265\|h264\|mpeg2\|vc1\|mvc\|jpeg\|vp9\|av1 <file-name>| Set input file and decoder type|
  |-i::i420\|nv12 <file-name>| Set raw input file and color format|
   |-i::rgb4_frame | Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).|
- | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|raw <file-name>|  Set output file and encoder type|
+ | -o::h265\|h264\|mpeg2\|mvc\|jpeg\|vp9\|raw <file-name>|  Set output file and encoder type|
  | -sw\|-hw\|-hw_d3d11| SDK implementation to use:<br>-hw - platform-specific on default display adapter (default)<br>-hw_d3d11 - platform-specific via d3d11<br>-sw - software|
  | -mfe_frames| <N> maximum number of frames to be combined in multi-frame encode pipeline               0 - default for platform will be used|
   |-mfe_mode 0\|1\|2\|3| multi-frame encode operation mode - should be the same for all sessions<br>0, MFE operates as DEFAULT mode, decided by SDK if MFE enabled<br>1, MFE is disabled<br>2, MFE operates as AUTO mode<br>3, MFE operates as MANUAL mode|
@@ -85,6 +85,9 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -n| Number of frames to transcode<br>(session ends after this number of frames is reached).<br>In decoding sessions (-o::sink) this parameter limits number<br>of frames acquired from decoder.<br>In encoding sessions (-o::source) and transcoding sessions<br>this parameter limits number of frames sent to encoder.
 | -ext_allocator |   Force usage of external allocators|
 |  -sys| Force usage of external system allocator|
+|  -dec::sys| Set dec output to system memory|
+|  -vpp::sys| Set vpp output to system memory|
+|  -vpp::vid| Set vpp output to video memory|
 |  -fps <frames per second\>|  Transcoding frame rate limit|
   |-pe | Set encoding plugin for this particular session.<br>This setting overrides plugin settings defined by SET clause.|
 |  -pd|  Set decoding plugin for this particular session.<br> This setting overrides plugin settings defined by SET clause.<br>Supported values: hevcd_sw, hevcd_hw, hevce_sw, hevce_gacc, hevce_hw, vp8d_hw, vp8e_hw, vp9d_hw, vp9e_hw, camera_hw, capture_hw, h264_la_hw, ptir_hw, hevce_fei_hw<br>Direct GUID number can be used as well|

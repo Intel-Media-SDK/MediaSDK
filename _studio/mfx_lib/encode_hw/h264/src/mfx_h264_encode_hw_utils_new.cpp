@@ -3166,6 +3166,8 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = 1;
+        m_stageGreediness[STG_START_MCTF]   = 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1;
         m_stageGreediness[STG_START_HIST  ] = 1;
@@ -3184,6 +3186,8 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = 1;
+        m_stageGreediness[STG_START_MCTF]   = 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1 + !!(video.AsyncDepth > 1);
         m_stageGreediness[STG_START_HIST  ] = 1;
@@ -3195,6 +3199,8 @@ void AsyncRoutineEmulator::Init(MfxVideoParam const & video)
         m_stageGreediness[STG_ACCEPT_FRAME] = 1;
         m_stageGreediness[STG_START_SCD] = 1;
         m_stageGreediness[STG_WAIT_SCD] = IsExtBrcSceneChangeSupported(video) && IsCmNeededForSCD(video) ? 1 + !!(video.AsyncDepth > 1) : 1;
+        m_stageGreediness[STG_START_MCTF]   = 1;
+        m_stageGreediness[STG_WAIT_MCTF]    = IsMctfSupported(video) ? 2 : 1;
         m_stageGreediness[STG_START_LA    ] = video.mfx.EncodedOrder ? 1 : video.mfx.GopRefDist;
         m_stageGreediness[STG_WAIT_LA     ] = 1;
         m_stageGreediness[STG_START_HIST  ] = 1;

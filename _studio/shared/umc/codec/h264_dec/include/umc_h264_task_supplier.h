@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -661,6 +661,8 @@ protected:
 
     Mutex m_mGuard;
 
+    bool m_ignoreLevelConstrain;
+
 private:
     TaskSupplier & operator = (TaskSupplier &)
     {
@@ -722,9 +724,16 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         case H264VideoDecoderParams::H264_LEVEL_52:
             MaxDPBMbs = 184320;
             break;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case H264VideoDecoderParams::H264_LEVEL_6:
+        case H264VideoDecoderParams::H264_LEVEL_61:
+        case H264VideoDecoderParams::H264_LEVEL_62:
+            MaxDPBMbs = 696320;
+            break;
+#endif
         default:
-            // We don't support level greater than 5.2 but
-            // relax resolution constrains up to 4K, hence
+            // Relax resolution constraints up to 4K when
+            // level_idc reaches 5.1+.  That is,
             // use value 696320 which is from level 6+ for
             // the calculation of the DPB size when level_idc
             // reaches 5.1+ but dpbSize is still less
@@ -783,8 +792,21 @@ inline int32_t CalculateDPBSize(uint8_t & level_idc, int32_t width, int32_t heig
         // can be used to calculate the DPB size.
         case H264VideoDecoderParams::H264_LEVEL_51:
         case H264VideoDecoderParams::H264_LEVEL_52:
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+            level_idc = H264VideoDecoderParams::H264_LEVEL_6;
+#else
+            level_idc = INTERNAL_MAX_LEVEL;
+#endif
+            break;
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        case H264VideoDecoderParams::H264_LEVEL_6:
+        case H264VideoDecoderParams::H264_LEVEL_61:
+        case H264VideoDecoderParams::H264_LEVEL_62:
             level_idc = INTERNAL_MAX_LEVEL;
             break;
+#endif
+
         default:
             throw h264_exception(UMC_ERR_FAILED);
         }

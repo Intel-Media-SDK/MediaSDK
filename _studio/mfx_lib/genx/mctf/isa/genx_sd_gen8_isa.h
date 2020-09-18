@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -19,5 +19,5 @@
 // SOFTWARE.
 #ifndef __genx_sd_gen8__
 #define __genx_sd_gen8__
-extern const unsigned char genx_sd_gen8[100786];
+extern const unsigned char genx_sd_gen8[109251];
 #endif

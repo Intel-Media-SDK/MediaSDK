@@ -37,7 +37,7 @@ namespace MFX_VPX_Utility
         case MFX_CODEC_VP9:
             if (hwType < MFX_HW_KBL)
                 return 4096;
-            return 8192;
+            return 16384;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
             return 16384;
@@ -55,7 +55,7 @@ namespace MFX_VPX_Utility
         case MFX_CODEC_VP9:
             if (hwType < MFX_HW_KBL)
                 return 4096;
-            return 8192;
+            return 16384;
 #if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         case MFX_CODEC_AV1:
             return 16384;
@@ -465,7 +465,7 @@ namespace MFX_VPX_Utility
 
         p_request->NumFrameMin += p_params->AsyncDepth ? p_params->AsyncDepth : MFX_AUTO_ASYNC_DEPTH_VALUE;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if defined(MFX_ENABLE_AV1_VIDEO_DECODE)
         if ((p_params->mfx.CodecId == MFX_CODEC_AV1) && p_params->mfx.FilmGrain)
             p_request->NumFrameMin = 2 * p_request->NumFrameMin; // we need two output surfaces for each frame when film_grain is applied
 #endif

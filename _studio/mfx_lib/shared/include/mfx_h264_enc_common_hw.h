@@ -640,8 +640,10 @@ namespace MfxHwH264Encode
     bool IsLookAheadSupported(
         MfxVideoParam const & video,
         eMFXHWType            platform);
+    bool IsMctfSupported(
+        MfxVideoParam const & video);
 
-    bool  IsExtBrcSceneChangeSupported(
+    bool IsExtBrcSceneChangeSupported(
         MfxVideoParam const & video);
 
     bool IsCmNeededForSCD(

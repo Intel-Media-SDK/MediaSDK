@@ -31,7 +31,9 @@ export LIBVA_DRIVERS_PATH=/path/to/media/driver
 export PATH=$BINDIR:$PATH
 export LD_LIBRARY_PATH=$LIBDIR
 
-python3 ted.py
+python3 ted.py  # will be executed on default device (/dev/dri/renderD128)
+# or
+python3 ted.py --device /dev/dri/renderD128  # to specify device directly
 ```
 
 ### How To View Results
@@ -39,3 +41,14 @@ python3 ted.py
 High level results in a form PASS/FAIL will be available in a console output.
 
 Full logs will be available at `results` folder relative to ted.py location.
+
+# Unit tests
+
+Unit tests should be enabled and run as follows:
+```console
+mkdir build
+cd build
+cmake -DBUILD_TESTS=ON ..
+make
+make test
+```

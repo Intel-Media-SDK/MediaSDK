@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2019 Intel Corporation
+// Copyright (c) 2013-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,3 +40,8 @@
 typedef void * mfxModuleHandle;
 
 typedef void (MFX_CDECL * mfxFunctionPointer)(void);
+
+// Tracer uses lib loading from Program Files logic (via Dispatch reg key) to make dispatcher load tracer dll.
+// With DriverStore loading put at 1st place, dispatcher loads real lib before it finds tracer dll.
+// This workaround explicitly checks tracer presence in Dispatch reg key and loads tracer dll before the search for lib in all other places.
+#define MFX_TRACER_WA_FOR_DS 1

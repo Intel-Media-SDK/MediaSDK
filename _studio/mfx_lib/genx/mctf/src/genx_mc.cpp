@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2018 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -87,8 +87,6 @@ void McP16_4MV_1SURF_WITH_CHR(
         }
         fil = srcCh.select<8, 1, 8, 1>(2, 2);
         och = SpatialDenoiser_8x8_NV12_Chroma(SURF_SRC, srcCh, mbX, mbY, sTh);
-        write_plane(SURF_OUT, GENX_SURFACE_Y_PLANE, x, y, fil);
-        write_plane(SURF_OUT, GENX_SURFACE_UV_PLANE, x, y >> 1, och);
     }
     else
     {
@@ -167,6 +165,7 @@ void McP16_4MV_2SURF_WITH_CHR(
         dif1 = scnFref == scnSrc,
         dif2 = scnSrc == scnBref,
         dift = !dif1 + !dif2;
+    read_plane(SURF_SRC, GENX_SURFACE_UV_PLANE, x, y >> 1, och);
     if (th > 0)
     {
         read_plane(SURF_SRC, GENX_SURFACE_Y_PLANE, x - 2, y - 2, srcCh);
@@ -190,23 +189,18 @@ void McP16_4MV_2SURF_WITH_CHR(
         {
             int simFactor1 = mergeStrengthCalculator(out,  srcCh, RsCsT, dif1, th, size1);
             int simFactor2 = mergeStrengthCalculator(out2, srcCh, RsCsT, dif2, th, size2);
-            srcCh.select<8, 1, 8, 1>(2, 2) = mergeBlocks2Ref(srcCh, out, simFactor1, out2, simFactor2);
+            fil = mergeBlocks2Ref(srcCh, out, simFactor1, out2, simFactor2);
         }
         else
         {
             out = MedianIdx_8x8_3ref(out, srcCh.select<8, 1, 8, 1>(2, 2), out2);
             int simFactor1 = mergeStrengthCalculator(out, srcCh, RsCsT, true, th, size);
-            srcCh.select<8, 1, 8, 1>(2, 2) = mergeBlocksRef(srcCh, out, simFactor1);
+            fil = mergeBlocksRef(srcCh, out, simFactor1);
         }
-        fil = srcCh.select<8,1,8,1>(2,2);
-        och = SpatialDenoiser_8x8_NV12_Chroma(SURF_SRC,srcCh.select<12,1,12,1>(0,0),mbX,mbY, sTh);
-        write_plane(SURF_OUT, GENX_SURFACE_Y_PLANE, x, y, fil);
-        write_plane(SURF_OUT, GENX_SURFACE_UV_PLANE, x, y >> 1, och);
     }
     else
     {
         read_plane(SURF_SRC, GENX_SURFACE_Y_PLANE, x, y, fil);
-        read_plane(SURF_SRC, GENX_SURFACE_UV_PLANE, x, y >> 1, och);
     }
     write_plane(SURF_OUT, GENX_SURFACE_Y_PLANE, x, y, fil);
     write_plane(SURF_OUT, GENX_SURFACE_UV_PLANE, x, y >> 1, och);

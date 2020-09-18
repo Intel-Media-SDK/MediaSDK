@@ -315,6 +315,7 @@ namespace TranscodingSample
 
         bool bUseOpaqueMemory;
         bool bForceSysMem;
+        mfxU16 DecOutPattern;
         mfxU16 VppOutPattern;
         mfxU16 nGpuCopyMode;
 

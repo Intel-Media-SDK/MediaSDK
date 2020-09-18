@@ -52,6 +52,7 @@ _ENCODED = {
     "mpeg2",
     "vp8",
     "vp9",
+    "av1",
     "jpg",
 }
 

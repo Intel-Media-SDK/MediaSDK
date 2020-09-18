@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -453,6 +453,10 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
     }
 
     umcVideoParams.lpMemoryAllocator = &m_MemoryAllocator;
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    umcVideoParams.m_ignore_level_constrain = par->mfx.IgnoreLevelConstrain;
+#endif
 
     umcSts = m_pH264VideoDecoder->Init(&umcVideoParams);
     if (umcSts != UMC::UMC_OK)

@@ -155,6 +155,7 @@ namespace UMC_AV1_DECODER
         seqInfo.chroma_sample_position = sh.color_config.chroma_sample_position;
         seqInfo.film_grain_params_present = sh.film_grain_param_present;
 
+        picParam.matrix_coefficients = sh.color_config.matrix_coefficients;
         picParam.bit_depth_idx = (sh.color_config.BitDepth == 10) ? 1 :
             (sh.color_config.BitDepth == 12) ? 2 : 0;
         picParam.order_hint_bits_minus_1 = (uint8_t)sh.order_hint_bits_minus1;
@@ -206,7 +207,7 @@ namespace UMC_AV1_DECODER
         }
 
         for (uint8_t ref = 0; ref < NUM_REF_FRAMES; ++ref)
-            picParam.ref_frame_map[ref] = frame.frame_dpb[ref]->GetMemID(SURFACE_RECON);
+            picParam.ref_frame_map[ref] = (VASurfaceID)m_va->GetSurfaceID(frame.frame_dpb[ref]->GetMemID(SURFACE_RECON));
 
         for (uint8_t ref_idx = 0; ref_idx < INTER_REFS; ref_idx++)
         {
@@ -341,10 +342,10 @@ namespace UMC_AV1_DECODER
 
             fg.cb_mult = (uint8_t)info.film_grain_params.cb_mult;
             fg.cb_luma_mult = (uint8_t)info.film_grain_params.cb_luma_mult;
-            fg.cb_offset = (uint8_t)info.film_grain_params.cb_offset;
+            fg.cb_offset = (uint16_t)info.film_grain_params.cb_offset;
             fg.cr_mult = (uint8_t)info.film_grain_params.cr_mult;
             fg.cr_luma_mult = (uint8_t)info.film_grain_params.cr_luma_mult;
-            fg.cr_offset = (uint8_t)info.film_grain_params.cr_offset;
+            fg.cr_offset = (uint16_t)info.film_grain_params.cr_offset;
         }
 
         // fill tile params

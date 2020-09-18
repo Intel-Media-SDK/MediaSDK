@@ -124,6 +124,9 @@ enum {
     MFX_FOURCC_Y216         = MFX_MAKEFOURCC('Y','2','1','6'),
     MFX_FOURCC_Y416         = MFX_MAKEFOURCC('Y','4','1','6'),
 #endif
+    MFX_FOURCC_NV21         = MFX_MAKEFOURCC('N', 'V', '2', '1'), /* Same as NV12 but with weaved V and U values. */
+    MFX_FOURCC_IYUV         = MFX_MAKEFOURCC('I', 'Y', 'U', 'V'), /* Same as  YV12 except that the U and V plane order is reversed. */
+    MFX_FOURCC_I010         = MFX_MAKEFOURCC('I', '0', '1', '0'), /* 10-bit YUV 4:2:0, each component has its own plane. */
 };
 
 /* PicStruct */
@@ -328,9 +331,10 @@ typedef struct {
             mfxU16  SliceGroupsPresent;
             mfxU16  MaxDecFrameBuffering;
             mfxU16  EnableReallocRequest;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
             mfxU16  FilmGrain;
-            mfxU16  reserved2[6];
+            mfxU16  IgnoreLevelConstrain;
+            mfxU16  reserved2[5];
 #else
             mfxU16  reserved2[7];
 #endif
@@ -419,6 +423,7 @@ enum {
     MFX_PROFILE_AVC_MAIN                    =77,
     MFX_PROFILE_AVC_EXTENDED                =88,
     MFX_PROFILE_AVC_HIGH                    =100,
+    MFX_PROFILE_AVC_HIGH10                  =110,
     MFX_PROFILE_AVC_HIGH_422                =122,
     MFX_PROFILE_AVC_CONSTRAINED_BASELINE    =MFX_PROFILE_AVC_BASELINE + MFX_PROFILE_AVC_CONSTRAINT_SET1,
     MFX_PROFILE_AVC_CONSTRAINED_HIGH        =MFX_PROFILE_AVC_HIGH     + MFX_PROFILE_AVC_CONSTRAINT_SET4
@@ -442,6 +447,11 @@ enum {
     MFX_LEVEL_AVC_5                         =50,
     MFX_LEVEL_AVC_51                        =51,
     MFX_LEVEL_AVC_52                        =52,
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_LEVEL_AVC_6                         =60,
+    MFX_LEVEL_AVC_61                        =61,
+    MFX_LEVEL_AVC_62                        =62,
+#endif
 
     /* MPEG-2 Profiles & Levels */
     MFX_PROFILE_MPEG2_SIMPLE                =0x50,
@@ -502,7 +512,7 @@ enum {
     MFX_PROFILE_VP9_2                       = 3,
     MFX_PROFILE_VP9_3                       = 4,
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
     /* AV1 Profiles */
     MFX_PROFILE_AV1_MAIN                    = 1,
     MFX_PROFILE_AV1_HIGH                    = 2,
@@ -965,7 +975,9 @@ enum {
 #if (MFX_VERSION >= 1031)
     MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM         = MFX_MAKEFOURCC('P','B','O','P'),
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    MFX_EXTBUFF_ENCODER_IPCM_AREA               = MFX_MAKEFOURCC('P', 'C', 'M', 'R'),
+    MFX_EXTBUFF_INSERT_HEADERS                  = MFX_MAKEFOURCC('S', 'P', 'R', 'E'),
+#if (MFX_VERSION >= 1034)
     MFX_EXTBUFF_AV1_FILM_GRAIN_PARAM            = MFX_MAKEFOURCC('A','1','F','G'),
     MFX_EXTBUFF_AV1_LST_PARAM                   = MFX_MAKEFOURCC('A', '1', 'L', 'S'),
     MFX_EXTBUFF_AV1_SEGMENTATION                = MFX_MAKEFOURCC('1', 'S', 'E', 'G'),
@@ -1528,7 +1540,8 @@ MFX_PACK_END()
 /* ROI encoding mode */
 enum {
     MFX_ROI_MODE_PRIORITY =  0,
-    MFX_ROI_MODE_QP_DELTA =  1
+    MFX_ROI_MODE_QP_DELTA =  1,
+    MFX_ROI_MODE_QP_VALUE =  2 
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
@@ -1675,8 +1688,19 @@ MFX_PACK_END()
 /* MBQPMode */
 enum {
     MFX_MBQP_MODE_QP_VALUE = 0, // supported in CQP mode only
-    MFX_MBQP_MODE_QP_DELTA = 1
+    MFX_MBQP_MODE_QP_DELTA = 1,
+    MFX_MBQP_MODE_QP_ADAPTIVE = 2
 };
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct{
+    union {
+        mfxU8 QP;
+        mfxI8 DeltaQP;
+    };
+    mfxU16 Mode;
+} mfxQPandMode;
+MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
 typedef struct {
@@ -1689,9 +1713,38 @@ typedef struct {
     union {
         mfxU8  *QP;         // Block QP value. Valid when Mode = MFX_MBQP_MODE_QP_VALUE
         mfxI8  *DeltaQP;    // For block i: QP[i] = BrcQP[i] + DeltaQP[i]. Valid when Mode = MFX_MBQP_MODE_QP_DELTA
+#if (MFX_VERSION >= 1034)
+        mfxQPandMode *QPmode; // Block-granularity modes when MFX_MBQP_MODE_QP_ADAPTIVE is set
+#endif
         mfxU64 reserved2;
     };
 } mfxExtMBQP;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct {
+    mfxExtBuffer    Header; /* Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_INSERT_HEADERS. */
+    mfxU16          SPS;      /* tri-state option to insert SPS */
+    mfxU16          PPS;      /* tri-state option to insert PPS */
+    mfxU16          reserved[8];
+} mfxExtInsertHeaders;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_STRUCT_W_PTR() 
+typedef struct {
+    mfxExtBuffer    Header; /* Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_ENCODER_IPCM_AREA. */
+    mfxU16          reserve1[10];
+
+    mfxU16          NumArea;  /* Number of Area's */
+    struct area {
+        mfxU32      Left; /* Left Area's coordinate. */
+        mfxU32      Top;  /* Top  Area's coordinate. */
+        mfxU32      Right; /* Right Area's coordinate. */
+        mfxU32      Bottom; /* Bottom Area's coordinate. */
+
+        mfxU16      reserved2[8];
+    } * Areas; /* Array of areas. */
+} mfxExtEncoderIPCMArea;
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
@@ -2373,7 +2426,7 @@ MFX_PACK_END()
 
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
 /* FilmGrainFlags */
 enum {
     MFX_FILM_GRAIN_APPLY                    = (1 << 0),

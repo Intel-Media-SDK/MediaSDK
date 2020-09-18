@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -61,6 +61,7 @@ int32_t vm_semaphore_is_valid(vm_semaphore *sem)
 /* Init a semaphore with value */
 vm_status vm_semaphore_init(vm_semaphore *sem, int32_t init_count)
 {
+    pthread_condattr_t cond_attr;
     int res = 0;
 
     /* check error(s) */
@@ -69,19 +70,23 @@ vm_status vm_semaphore_init(vm_semaphore *sem, int32_t init_count)
 
     sem->count = init_count;
     sem->max_count = 1;
-    res = pthread_cond_init(&sem->cond, 0);
+    res = pthread_condattr_init(&cond_attr);
     if (!res)
     {
-        res = pthread_mutex_init(&sem->mutex, 0);
-        if (res)
+        res = pthread_cond_init(&sem->cond, &cond_attr);
+        if (!res)
         {
-            int cres = pthread_cond_destroy(&sem->cond);
-            assert(!cres); // we experienced undefined behavior
-            (void)cres;
-            vm_semaphore_set_invalid_internal(sem);
+            res = pthread_mutex_init(&sem->mutex, 0);
+            if (res)
+            {
+                int cres = pthread_cond_destroy(&sem->cond);
+                assert(!cres); // we experienced undefined behavior
+                (void)cres;
+                vm_semaphore_set_invalid_internal(sem);
+            }
         }
+        pthread_condattr_destroy(&cond_attr);
     }
-
     return (res)? VM_OPERATION_FAILED: VM_OK;
 
 } /* vm_status vm_semaphore_init(vm_semaphore *sem, int32_t init_count) */
@@ -89,6 +94,7 @@ vm_status vm_semaphore_init(vm_semaphore *sem, int32_t init_count)
 vm_status vm_semaphore_init_max(vm_semaphore *sem, int32_t init_count, int32_t max_count)
 {
     int res = 0;
+    pthread_condattr_t cond_attr;
 
     /* check error(s) */
     if (NULL == sem)
@@ -96,17 +102,23 @@ vm_status vm_semaphore_init_max(vm_semaphore *sem, int32_t init_count, int32_t m
 
     sem->count = init_count;
     sem->max_count = max_count;
-    res = pthread_cond_init(&sem->cond, 0);
+    res = pthread_condattr_init(&cond_attr);
     if (!res)
     {
-        res = pthread_mutex_init(&sem->mutex, 0);
-        if (res)
+        pthread_condattr_setclock(&cond_attr, CLOCK_MONOTONIC);
+        res = pthread_cond_init(&sem->cond, &cond_attr);
+        if (!res)
         {
-            int cres = pthread_cond_destroy(&sem->cond);
-            assert(!cres); // we experienced undefined behavior
-            (void)cres;
-            vm_semaphore_set_invalid_internal(sem);
+            res = pthread_mutex_init(&sem->mutex, 0);
+            if (res)
+            {
+                int cres = pthread_cond_destroy(&sem->cond);
+                assert(!cres); // we experienced undefined behavior
+                (void)cres;
+                vm_semaphore_set_invalid_internal(sem);
+            }
         }
+        pthread_condattr_destroy(&cond_attr);
     }
 
     return (res)? VM_OPERATION_FAILED: VM_OK;
@@ -132,13 +144,13 @@ vm_status vm_semaphore_timedwait(vm_semaphore *sem, uint32_t msec)
         {
             if (0 == sem->count)
             {
-                struct timeval tval;
                 struct timespec tspec;
+                unsigned long long nano_sec;
 
-                gettimeofday(&tval, NULL);
-                msec = 1000 * msec + tval.tv_usec;
-                tspec.tv_sec = tval.tv_sec + msec / 1000000;
-                tspec.tv_nsec = (msec % 1000000) * 1000;
+                clock_gettime(CLOCK_MONOTONIC, &tspec);
+                nano_sec = 1000000 * msec + tspec.tv_nsec;
+                tspec.tv_sec += (uint32_t)(nano_sec / 1000000000);
+                tspec.tv_nsec = (uint32_t)(nano_sec % 1000000000);
                 i_res = 0;
                 while (!i_res && !sem->count)
                 {

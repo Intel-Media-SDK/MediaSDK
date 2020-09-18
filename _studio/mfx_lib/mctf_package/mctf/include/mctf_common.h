@@ -77,8 +77,14 @@ enum { MCTF_BITRATE_MULTIPLIER = 100000 };
 #include "asc.h"
 
 #include <cassert>
-#define CHROMABASE  80
-#define MAXCHROMA   100
+#define CHROMABASE      80
+#define MAXCHROMA       100
+#define MCTFSTRENGTH    20
+#define MCTFNOFILTER    0
+#define MCTFADAPTIVE    21
+#define MCTFCADENCE     8
+#define MCTFADAPTIVEVAL 1050
+#define MCTF_CHROMAOFF  0
 
 #ifndef __MFXDEFS_H__
 typedef char mfxI8;
@@ -193,7 +199,7 @@ enum class MCTF_CONFIGURATION
 {
     MCTF_MAN_NCA_NBA,         // Manual, not Content-adaptive, not bitrate-adaptive
     MCTF_AUT_CA_NBA,          // Auto (noise-estimator is used), content-adaptive, not bitrate-adaptive
-    MCTF_AUT_NCA_NBA,          // Auto (noise-estimator is used), not Content - adaptive, not bitrate - adaptive
+    MCTF_AUT_NCA_NBA,         // Auto (noise-estimator is used), not Content - adaptive, not bitrate - adaptive
     MCTF_AUT_CA_BA,           // Auto (noise-estimator is used), Content - adaptive, bitrate - adaptive
     MCTF_NOT_CONFIGURED       // not configured yet
 };
@@ -253,8 +259,6 @@ struct gpuFrameData
         * fIdx;
     mfxFrameSurface1
         * mfxFrame;
-    IntMctfParams
-        mfxMctfControl;
     CmSurface2D
         * magData;
     SurfaceIndex
@@ -266,7 +270,10 @@ struct gpuFrameData
     mfxU32
         scene_idx,
         frame_number,
+        frame_relative_position,
         noise_count;
+    mfxU16
+        filterStrength;
     mfxF64
         noise_var,
         noise_sad,
@@ -275,29 +282,41 @@ struct gpuFrameData
         frame_sc,
         frame_Rs,
         frame_Cs;
-    gpuFrameData()
+    bool
+        frame_added;
+    IntMctfParams
+        mfxMctfControl;
+    gpuFrameData() :
+        frameData(0)
+        , fIdx(0)
+        , mfxFrame(0)
+        , magData(0)
+        , idxMag(0)
+        , sc(0)
+        , tc(0)
+        , stc(0)
+        , scene_idx(0)
+        , frame_number(0)
+        , frame_relative_position(0)
+        , noise_count(0)
+        , filterStrength(MCTFSTRENGTH)
+        , noise_var(0.0)
+        , noise_sad(0.0)
+        , noise_sc(0.0)
+        , frame_sad(0.0)
+        , frame_sc(0.0)
+        , frame_Rs(0.0)
+        , frame_Cs(0.0)
+        , frame_added(0)
+        , mfxMctfControl(IntMctfParams{})
     {
-        frameData       = nullptr;
-        fIdx            = nullptr;
-        mfxFrame        = nullptr;
-        magData         = nullptr;
-        idxMag          = nullptr;
-        sc              = tc = stc = 0;
-        scene_idx       = frame_number = noise_count = 0;
-        noise_var       = noise_sad = noise_sc = frame_sad = frame_sc = frame_Rs = frame_Cs = 0.0;
-        mfxMctfControl  = IntMctfParams{};
     }
-
 };
 
 //////////////////////////////////////////////////////////
 // Defines and Constants
 //////////////////////////////////////////////////////////
-#define L1  0x0F    //[-1, 0]
-#define R1  0x01    //[1, 0]
-#define U1  0xF0    //[0, -1]
-#define D1  0x10    //[0, 1]
-#define SEARCHPATHSIZE 56
+#define MCTFSEARCHPATHSIZE 56
 
 typedef struct _MulSurfIdx
 {
@@ -326,6 +345,7 @@ class CMC
 public:
     static const mfxU16 AUTO_FILTER_STRENGTH;
     static const mfxU16 DEFAULT_FILTER_STRENGTH;
+    static const mfxU16 INPIPE_FILTER_STRENGTH;
     static const mfxU32 DEFAULT_BPP;
     static const mfxU16 DEFAULT_DEBLOCKING;
     static const mfxU16 DEFAULT_OVERLAP;
@@ -346,9 +366,9 @@ public:
 
 private:
     typedef mfxI32(CMC::*t_MCTF_ME)();
-    typedef void(CMC::*t_MCTF_NOA)();
+    typedef mfxI32(CMC::*t_MCTF_NOA)(bool adaptControl);
     typedef mfxI32(CMC::*t_MCTF_MERGE)();
-    typedef mfxI32(CMC::*t_RUN_MCTF)();
+    typedef mfxI32(CMC::*t_RUN_MCTF)(bool notInPipeline);
     typedef mfxI32(CMC::*t_MCTF_LOAD)();
     typedef mfxI32(CMC::*t_MCTF_SPDEN)();
 
@@ -380,7 +400,8 @@ private:
     mfxU32
         hwType;
     mfxU64
-        exeTime;
+        exeTime,
+        exeTimeT;
     //Common elements
     mfxU32
         version,
@@ -405,6 +426,7 @@ private:
         // from DefaultIdx2Out in the beginning and end;
         CurrentIdx2Out,
         deblocking_Control,
+        gopBasedFilterStrength,
         overlap_Motion;
     bool
         bitrate_Adaptation;
@@ -420,7 +442,7 @@ private:
     IntMctfParams
         m_RTParams,
         m_InitRTParams;
-    mfxI8 
+    mfxI8
         backward_distance,
         forward_distance;
     mfxU16
@@ -488,7 +510,6 @@ private:
     std::vector<spatialNoiseAnalysis>
         var_sc;
 
-
     SurfaceIndex
         * genxRefs1,
         * genxRefs2,
@@ -512,7 +533,10 @@ private:
     SurfaceIndex
         * idxMco,
         * idxMco2;
-
+    bool
+        m_externalSCD,
+        m_adaptControl, //Based on sequence stats indicates if denoising should be performed or not
+        m_doFilterFrame;
     std::unique_ptr<ASC>
         pSCD;
     // a queue MCTF of frames MCTF operates on
@@ -529,6 +553,7 @@ protected:
         * programMe;
     CmKernel
         * kernelMe,
+        * kernelMeB2,
         * kernelMeB;
 
 private:
@@ -548,7 +573,7 @@ private:
     void   RotateBufferA();
     void   RotateBufferB();
 
-//    mfxStatus GetFrameHandle(mfxMemId MemId, mfxHDLPair& handle, bool bInternalAlloc);
+    mfxStatus IM_SURF_SET_Int();
     mfxStatus IM_SURF_SET();
     mfxStatus IM_SURF_SET(
         CmSurface2D  ** p_surface,
@@ -590,6 +615,28 @@ private:
         mfxU8          blSize,
         mfxI8          forwardRefDist,
         mfxI8          backwardRefDist
+    );
+    mfxU32 MCTF_SET_KERNELMeBiMRE(
+        SurfaceIndex* GenxRefs,
+        SurfaceIndex* GenxRefs2,
+        SurfaceIndex* idxMV,
+        SurfaceIndex* idxMV2,
+        mfxU16 start_x,
+        mfxU16 start_y,
+        mfxU8 blSize,
+        mfxI8 forwardRefDist,
+        mfxI8 backwardRefDist
+    );
+    mfxU32 MCTF_SET_KERNELMeBiMRE2(
+        SurfaceIndex* GenxRefs,
+        SurfaceIndex* GenxRefs2,
+        SurfaceIndex* idxMV,
+        SurfaceIndex* idxMV2,
+        mfxU16 start_x,
+        mfxU16 start_y,
+        mfxU8 blSize,
+        mfxI8 forwardRefDist,
+        mfxI8 backwardRefDist
     );
     mfxI32 MCTF_SET_KERNELMc(
         mfxU16 start_x,
@@ -666,6 +713,15 @@ private:
         char forwardRefDist,
         char backwardRefDist
     );
+    mfxI32 MCTF_RUN_ME_MC_HE(
+        SurfaceIndex * GenxRefs,
+        SurfaceIndex * GenxRefs2,
+        SurfaceIndex * idxMV,
+        SurfaceIndex * idxMV2,
+        mfxI8          forwardRefDist,
+        mfxI8          backwardRefDist,
+        mfxU8          mcSufIndex
+    );
     mfxI32 MCTF_RUN_ME_MC_H(
         SurfaceIndex * GenxRefs,
         SurfaceIndex * GenxRefs2,
@@ -678,6 +734,8 @@ private:
     mfxI32 MCTF_RUN_ME_1REF();
     mfxI32 MCTF_RUN_ME_2REF();
     mfxI32 MCTF_RUN_ME_4REF();
+
+    mfxI32 MCTF_RUN_ME_2REF_HE();
 
     void   GET_DISTDATA();
     void   GET_DISTDATA_H();
@@ -692,12 +750,16 @@ private:
     mfxU32 computeQpClassFromBitRate(
         mfxU8 currentFrame
     );
-    void noise_estimator();
+    bool FilterEnable(
+        gpuFrameData frame
+    );
+    mfxI32 noise_estimator(
+        bool adaptControl
+    );
     mfxI32 MCTF_RUN_BLEND();
     mfxI32 MCTF_RUN_BLEND(
-        mfxU8 srcNum, 
+        mfxU8 srcNum,
         mfxU8 refNum
-    
     );
     mfxI32 MCTF_RUN_BLEND2R();
     mfxI32 MCTF_RUN_BLEND2R_DEN();
@@ -713,14 +775,23 @@ private:
     mfxI32 MCTF_LOAD_2REF();
     mfxI32 MCTF_LOAD_4REF();
     void   AssignSceneNumber();
-    mfxI32 MCTF_RUN_MCTF_DEN_1REF();
-    mfxI32 MCTF_RUN_MCTF_DEN();
-    mfxI32 MCTF_RUN_MCTF_DEN_4REF();
+    mfxI32 MCTF_RUN_MCTF_DEN_1REF(
+        bool
+    );
+    mfxI32 MCTF_RUN_MCTF_DEN(
+        bool notInPipeline
+    );
+    mfxI32 MCTF_RUN_MCTF_DEN_4REF(
+        bool
+    );
     mfxI32 MCTF_RUN_AMCTF_DEN();
+
     mfxStatus MCTF_SET_ENV(
         VideoCORE           * core,
         const mfxFrameInfo  & FrameInfo,
-        const IntMctfParams * pMctfParam
+        const IntMctfParams * pMctfParam,
+        bool                  isCmUsed,
+        bool                  isNCActive
     );
     mfxI32 MCTF_SET_KERNEL_Noise(
         mfxU16 srcNum,
@@ -760,6 +831,10 @@ private:
 public:
     mfxU16  MCTF_QUERY_NUMBER_OF_REFERENCES();
     // sets filter-strength
+    mfxStatus SetFilterStrenght(
+        unsigned short tFs,//Temporal filter strength
+        unsigned short sFs //Spatial filter strength
+    );
     inline mfxStatus SetFilterStrenght(
         unsigned short fs
     );
@@ -772,10 +847,31 @@ public:
         const mfxFrameInfo  & FrameInfo,
         const IntMctfParams * pMctfParam
     );
+    mfxStatus MCTF_INIT(//When external App is using SCD, no need to initilize internal scd.
+        VideoCORE           * core,
+        CmDevice            * pCmDevice,
+        const mfxFrameInfo  & FrameInfo,
+        const IntMctfParams * pMctfParam,
+        const bool            externalSCD,
+        const bool            isNCActive
+    );
+    mfxStatus MCTF_INIT(
+        VideoCORE           * core,
+        CmDevice            * pCmDevice,
+        const mfxFrameInfo  & FrameInfo,
+        const IntMctfParams * pMctfParam,
+        bool                  isCmUsed,
+        const bool            externalSCD,
+        const bool            useFilterAdaptControl,
+        const bool            isNCActive
+    );
     // returns how many frames are needed to work;
     mfxU32 MCTF_GetQueueDepth();
     mfxStatus MCTF_SetMemory(
         const std::vector<mfxFrameSurface1*> &);
+    mfxStatus MCTF_SetMemory(
+        bool isCmUsed
+    );
     void MCTF_CLOSE();
     MCTF_CONFIGURATION MCTF_QueryMode() { return ConfigMode; };
     mfxStatus MCTF_UpdateBitrateInfo(
@@ -786,25 +882,60 @@ public:
         mfxFrameSurface1 ** ppSurface
     );
     // submits a surface to MCTF & set appropriate filter-strength;
+    mfxU32 IM_SURF_PUT(
+        CmSurface2D *p_surface,
+        mfxU8       *p_data
+    );
+    mfxU32 IM_SURF_PUT(
+        CmSurface2D *p_DstSurface,
+        CmSurface2D *p_SrcSurface
+    );
+    void IntBufferUpdate(
+        bool isSceneChange
+    );
+    void BufferFilterAssignment(
+        mfxU16 * filterStrength,
+        bool     doIntraFiltering
+    );
+    bool MCTF_Check_Use(
+    );
+    mfxStatus MCTF_PUT_FRAME(
+        void  *frameData,
+        bool    isCmSurface,
+        bool    sceneNumber,
+        mfxU16 *filterStrength,
+        bool    doIntraFiltering
+    );
     mfxStatus MCTF_PUT_FRAME(
         IntMctfParams   * pMctfControl,
         CmSurface2D     * InSurf,
         CmSurface2D     * OutSurf
     );
     mfxStatus MCTF_PUT_FRAME(
+        IntMctfParams * pMctfControl,
+        CmSurface2D   * OutSurf,
+        mfxU32          schgDesicion
+    );
+    mfxStatus MCTF_PUT_FRAME(
         mfxU32        sceneNumber,
         CmSurface2D * OutSurf
     );
     mfxStatus MCTF_UpdateBufferCount();
+    mfxStatus MCTF_DO_FILTERING_IN_AVC();
     mfxStatus MCTF_DO_FILTERING();
     // returns (query) result of filtering to outFrame
     mfxStatus MCTF_GET_FRAME(
         CmSurface2D* outFrame
+    );
+    mfxStatus MCTF_GET_FRAME(
+        mfxU8 * outFrame
+    );
+    mfxStatus MCTF_RELEASE_FRAME(
     );
     // after MCTF_GET_FRAME is invoked, we need to update TimeStamp & FrameOrder
     // To cal this function with a surface that needs to be updated
     mfxStatus MCTF_TrackTimeStamp(
         mfxFrameSurface1 * outFrame
     );
-    bool MCTF_ReadyToOutut() { return (AMCTF_READY == MctfState); };
+    bool MCTF_ReadyToOutput() { return (AMCTF_READY == MctfState); };
 };

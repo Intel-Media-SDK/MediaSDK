@@ -1,5 +1,5 @@
 ![](./pic/intel_logo.png)
-<br><br><br>
+
 # **Interlace content support in HEVC encoder**
 ## Media SDK API Version 1.30
 

@@ -4641,7 +4641,7 @@ mfxStatus VideoVPPHW::SubmitToMctf(void *pState, void *pParam, bool* bMctfReadyT
             // filtering itself
             MFX_SAFE_CALL(pHwVpp->m_pMCTFilter->MCTF_DO_FILTERING());
 
-            *bMctfReadyToReturn = pHwVpp->m_pMCTFilter->MCTF_ReadyToOutut();
+            *bMctfReadyToReturn = pHwVpp->m_pMCTFilter->MCTF_ReadyToOutput();
         }
     }
     else

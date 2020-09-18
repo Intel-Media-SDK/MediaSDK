@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@
 void make_copyright(FILE* f)
 {
     fprintf(f,
-"// Copyright (c) 2018 Intel Corporation\n"
+"// Copyright (c) 2020 Intel Corporation\n"
 "//\n"
 "// Permission is hereby granted, free of charge, to any person obtaining a copy\n"
 "// of this software and associated documentation files (the \"Software\"), to deal\n"

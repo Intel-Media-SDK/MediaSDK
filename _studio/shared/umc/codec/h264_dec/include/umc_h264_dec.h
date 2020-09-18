@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,18 @@ public:
         H264_LEVEL_5    = 50,
         H264_LEVEL_51   = 51,
         H264_LEVEL_52   = 52,
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        H264_LEVEL_6    = 60,
+        H264_LEVEL_61   = 61,
+        H264_LEVEL_62   = 62,
+#endif
+
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        H264_LEVEL_MAX  = 62,
+#else
         H264_LEVEL_MAX  = 52,
+#endif
 
         H264_LEVEL_9    = 9  // for SVC profiles
     };
@@ -102,6 +113,8 @@ public:
         m_cropArea.bottom = 0;
         m_cropArea.left = 0;
         m_cropArea.right = 0;
+
+        m_ignore_level_constrain = false;
     }
 
     int32_t m_entropy_coding_type;
@@ -109,6 +122,8 @@ public:
     int32_t m_auxiliary_format_idc;
     mfxSize m_fullSize;
     UMC::sRECT m_cropArea;
+
+    bool m_ignore_level_constrain;
 
     int32_t m_bufferedFrames;
 };

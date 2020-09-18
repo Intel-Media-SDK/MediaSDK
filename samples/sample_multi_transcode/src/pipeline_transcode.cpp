@@ -2238,7 +2238,8 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
     // set memory pattern
     if (m_bUseOpaqueMemory)
         m_mfxDecParams.IOPattern = MFX_IOPATTERN_OUT_OPAQUE_MEMORY;
-    else if (pInParams->bForceSysMem || (MFX_IMPL_SOFTWARE == pInParams->libType))
+    else if (pInParams->bForceSysMem || (MFX_IMPL_SOFTWARE == pInParams->libType)
+         || (pInParams->DecOutPattern == MFX_IOPATTERN_OUT_SYSTEM_MEMORY))
         m_mfxDecParams.IOPattern = MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
     else
         m_mfxDecParams.IOPattern = MFX_IOPATTERN_OUT_VIDEO_MEMORY;
@@ -2314,11 +2315,6 @@ void CTranscodingPipeline::FillFrameInfoForEncoding(mfxFrameInfo& info, sInputPa
     else if (pInParams->dVPPOutFramerate)
     {
         ConvertFrameRate(pInParams->dVPPOutFramerate, &info.FrameRateExtN, &info.FrameRateExtD);
-    }
-    else
-    {
-        info.FrameRateExtN = 30;
-        info.FrameRateExtD = 1;
     }
 }
 

@@ -1,0 +1,6 @@
+{
+    "type": "decode",
+    "stream": "test_stream_vp8.ivf",
+    "async": [1, 4],
+    "vaapi": [true, false]
+}
