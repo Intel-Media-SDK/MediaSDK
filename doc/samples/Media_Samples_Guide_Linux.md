@@ -17,7 +17,7 @@ These samples demonstrate how to use the Intel Media SDK API.
     * Weighted Prediction options are added
   * Chroma siting option is added to sample_vpp.
   * New measurements using -stat option
-  * Target MSDK API version is 1.28
+  * Target MSDK API version is 1.34
 
 
 ## Package contents
