@@ -89,6 +89,8 @@ namespace UMC_AV1_DECODER
             packer->EndFrame();
 
         sts = va->Execute();
+        if (sts != UMC::UMC_OK)
+            sts = UMC::UMC_ERR_DEVICE_FAILED;
 
         if (lastSubmission) // it's last submission for current frame - need to call EndFrame
             sts = va->EndFrame();
