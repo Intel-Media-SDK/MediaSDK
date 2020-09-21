@@ -472,7 +472,7 @@ namespace MFX_VPX_Utility
         // Increase minimum number by one
         // E.g., decoder unlocks references in sync part (NOT async), so in order to free some surface
         // application need an additional surface to call DecodeFrameAsync()
-        p_request->NumFrameMin += 1;
+        p_request->NumFrameMin += 2;
 
         p_request->NumFrameSuggested = p_request->NumFrameMin;
 
