@@ -886,7 +886,6 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
 
     try
     {
-        bool force = false;
         MFXMediaDataAdapter src(bs);
 
         for (;;)
@@ -906,10 +905,19 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                  m_video_par.AsyncDepth = static_cast<mfxU16>(vp.async_depth);
             }
 
+            if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
+            {
+                umcRes = UMC::UMC_OK;
+            }
+
             switch (umcRes)
             {
-                case UMC::UMC_ERR_INVALID_STREAM:
-                    umcRes = UMC::UMC_OK;
+                case UMC::UMC_OK:
+                    if (m_allocator->FindFreeSurface() == -1)
+                    {
+                        sts = MFX_ERR_MORE_SURFACE;
+                        umcFrameRes = UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
+                    }
                     break;
 
                 case UMC::UMC_NTF_NEW_RESOLUTION:
@@ -924,57 +932,35 @@ mfxStatus VideoDECODEAV1::SubmitFrame(mfxBitstream* bs, mfxFrameSurface1* surfac
                     sts = MFX_ERR_GPU_HANG;
                     break;
 #endif
-            }
 
-            if (umcRes == UMC::UMC_WRN_REPOSITION_INPROGRESS)
-            {
-                if (!m_first_run)
-                {
-                    sts = MFX_WRN_VIDEO_PARAM_CHANGED;
-                }
-                else
-                {
-                    umcRes = UMC::UMC_OK;
-                    m_first_run = false;
-                }
-            }
+                case UMC::UMC_ERR_NOT_ENOUGH_BUFFER:
+                case UMC::UMC_WRN_INFO_NOT_READY:
+                case UMC::UMC_ERR_NEED_FORCE_OUTPUT:
+                    sts = umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER ? (mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK: MFX_WRN_DEVICE_BUSY;
+                    break;
 
-            if (umcRes == UMC::UMC_OK && m_allocator->FindFreeSurface() == -1)
-            {
-                sts = MFX_ERR_MORE_SURFACE;
-                umcFrameRes = UMC::UMC_ERR_NOT_ENOUGH_BUFFER;
-            }
+                case UMC::UMC_ERR_NOT_ENOUGH_DATA:
+                case UMC::UMC_ERR_SYNC:
+                    sts = MFX_ERR_MORE_DATA;
+                    break;
 
-            if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER || umcRes == UMC::UMC_WRN_INFO_NOT_READY || umcRes == UMC::UMC_ERR_NEED_FORCE_OUTPUT)
-            {
-                force = (umcRes == UMC::UMC_ERR_NEED_FORCE_OUTPUT);
-                sts = umcRes == UMC::UMC_ERR_NOT_ENOUGH_BUFFER ? (mfxStatus)MFX_ERR_MORE_DATA_SUBMIT_TASK: MFX_WRN_DEVICE_BUSY;
-            }
-
-            if (umcRes == UMC::UMC_ERR_NOT_ENOUGH_DATA || umcRes == UMC::UMC_ERR_SYNC)
-            {
-                if (!bs || bs->DataFlag == MFX_BITSTREAM_EOS)
-                    force = true;
-                sts = MFX_ERR_MORE_DATA;
+                default:
+                    if (sts < 0)
+                        sts = MFX_ERR_UNDEFINED_BEHAVIOR;
+                    break;
             }
 
 
-            if (umcRes != UMC::UMC_NTF_NEW_RESOLUTION)
-            {
-                src.Save(bs);
-            }
+            src.Save(bs);
 
             if (sts == MFX_ERR_INCOMPATIBLE_VIDEO_PARAM)
             {
                 MFX_CHECK_STS(sts);
             }
 
-            if (sts == MFX_ERR_DEVICE_FAILED || sts == MFX_ERR_GPU_HANG)
+            if (sts == MFX_ERR_DEVICE_FAILED || sts == MFX_ERR_GPU_HANG || sts == MFX_ERR_UNDEFINED_BEHAVIOR)
             {
-                if (!bs || bs->DataFlag == MFX_BITSTREAM_EOS)
-                    force = true;
-                else
-                    MFX_CHECK_STS(sts);
+                MFX_CHECK_STS(sts);
             }
 
             UMC_AV1_DECODER::AV1DecoderFrame* frame = m_decoder->GetCurrFrame();
