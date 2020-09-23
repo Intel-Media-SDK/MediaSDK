@@ -900,10 +900,10 @@ namespace Base
         PackedData VPS;
         PackedData SPS;
         PackedData PPS;
-        PackedData AUD[3];
         PackedData PrefixSEI;
         PackedData SuffixSEI;
         std::vector<PackedData> SSH;
+        PackedData AUD[3];
     };
 
     using MfxEncodeHW::DDIExecParam;
