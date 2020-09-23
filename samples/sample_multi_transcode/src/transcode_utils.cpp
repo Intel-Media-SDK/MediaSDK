@@ -274,6 +274,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -CodecLevel            - Specifies codec level\n"));
     msdk_printf(MSDK_STRING("  -GopOptFlag:closed     - Closed gop\n"));
     msdk_printf(MSDK_STRING("  -GopOptFlag:strict     - Strict gop\n"));
+    msdk_printf(MSDK_STRING("  -AdaptiveI:<on,off>    - Turn Adaptive I frames on/off\n"));
+    msdk_printf(MSDK_STRING("  -AdaptiveB:<on,off>    - Turn Adaptive B frames on/off\n"));
     msdk_printf(MSDK_STRING("  -InitialDelayInKB      - The decoder starts decoding after the buffer reaches the initial size InitialDelayInKB, \n\
                             which is equivalent to reaching an initial delay of InitialDelayInKB*8000/TargetKbps ms\n"));
     msdk_printf(MSDK_STRING("  -MaxKbps               - For variable bitrate control, specifies the maximum bitrate at which \n\
@@ -1217,6 +1219,22 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
     else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-BitrateLimit:off")))
     {
         InputParams.BitrateLimit = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AdaptiveI:on")))
+    {
+        InputParams.AdaptiveI = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AdaptiveI:off")))
+    {
+        InputParams.AdaptiveI = MFX_CODINGOPTION_OFF;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AdaptiveB:on")))
+    {
+        InputParams.AdaptiveB = MFX_CODINGOPTION_ON;
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-AdaptiveB:off")))
+    {
+        InputParams.AdaptiveB = MFX_CODINGOPTION_OFF;
     }
 #if (defined(_WIN32) || defined(_WIN64)) && (MFX_VERSION >= 1031)
     else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-iGfx")))

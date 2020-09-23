@@ -251,6 +251,8 @@ namespace TranscodingSample
         mfxU16 MaxKbps;
         mfxU16 InitialDelayInKB;
         mfxU16 GopOptFlag;
+        mfxU16 AdaptiveI;
+        mfxU16 AdaptiveB;
 
         mfxU16 WeightedPred;
         mfxU16 WeightedBiPred;
