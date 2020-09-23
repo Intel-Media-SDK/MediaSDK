@@ -36,7 +36,7 @@ mfx_include_dirs()
 
 include_directories( ${MSDK_STUDIO_ROOT}/shared/asc/include )
 include_directories( ${MSDK_LIB_ROOT}/plugin/include )
-include_directories( ${MSDK_LIB_ROOT}/scheduler/include )
+include_directories( ${MSDK_LIB_ROOT}/scheduler/linux/include )
 include_directories( ${MSDK_LIB_ROOT}/genx/copy_kernels/isa )
 include_directories( ${MSDK_LIB_ROOT}/genx/h264_encode/isa )
 include_directories( ${MSDK_LIB_ROOT}/cmrt_cross_platform/include )
@@ -101,7 +101,7 @@ list( APPEND plugin_common_sources
   $<TARGET_OBJECTS:fast_copy_sse4_plugin>
 )
 
-set( prefix ${MSDK_LIB_ROOT}/scheduler/src )
+set( prefix ${MSDK_LIB_ROOT}/scheduler/linux/src )
 list( APPEND plugin_common_sources
   ${prefix}/mfx_scheduler_core.cpp
   ${prefix}/mfx_scheduler_core_iunknown.cpp
