@@ -71,7 +71,7 @@ append_property( mfx_common_hw COMPILE_FLAGS " -DMFX_RT" )
 
 ### libmfxhw
 list( APPEND mdirs
-  scheduler vpp decode/vc1
+  scheduler/linux vpp decode/vc1
   decode/mjpeg decode/h264 decode/mpeg2 decode/av1 cmrt_cross_platform
   encode_hw/vp9 encode_hw/h265 encode_hw/h264 encode_hw/mpeg2 encode_hw/mjpeg
   encode/mjpeg
@@ -101,7 +101,7 @@ endforeach()
 
 set( sources "" )
 set( sources.plus "" )
-file( GLOB_RECURSE srcs "${MSDK_LIB_ROOT}/scheduler/src/*.cpp" )
+file( GLOB_RECURSE srcs "${MSDK_LIB_ROOT}/scheduler/linux/src/*.cpp" )
 list( APPEND sources ${srcs})
 # =============================================================================
 
