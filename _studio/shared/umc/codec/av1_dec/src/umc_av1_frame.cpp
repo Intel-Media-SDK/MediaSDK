@@ -116,6 +116,7 @@ namespace UMC_AV1_DECODER
         UID = -1;
 
         frame_time = -1;
+        frame_order = 0;
     }
 
     void AV1DecoderFrame::Reset(FrameHeader const* fh)
