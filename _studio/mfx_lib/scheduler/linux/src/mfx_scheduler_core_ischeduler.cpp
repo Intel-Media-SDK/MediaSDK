@@ -221,17 +221,7 @@ mfxStatus mfxSchedulerCore::Synchronize(mfxTaskHandle handle, mfxU32 timeToWait)
 
             if (MFX_TASK_DONE!= call.res)
             {
-                vm_status vmRes;
-
-                guard.unlock();
-                vmRes = vm_event_timed_wait(&m_hwTaskDone, 15 /*ms*/);
-                guard.lock();
-
-                if (VM_OK == vmRes|| VM_TIMEOUT == vmRes)
-                {
-                    vmRes = vm_event_reset(&m_hwTaskDone);
-                    IncrementHWEventCounter();
-                }
+                IncrementHWEventCounter();
             }
         }
         //

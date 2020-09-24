@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@
 #include <mutex>
 #include "mfxdefs.h"
 #include "mfx_common_int.h"
-#include "vm_event.h"
 
 #define NUM_TASKS 256
 
@@ -36,19 +35,15 @@
       mfxEncodeInternalParams   m_inputInternalParams;
       mfxFrameSurface1          *m_pInput_surface;
       mfxBitstream              *m_pBs;
-      vm_event                  m_new_frame_event;
 
       sExtTask1()
           : m_inputInternalParams()
       {
           m_pInput_surface = 0;
           m_pBs = 0;
-          vm_event_set_invalid(&m_new_frame_event);
-          vm_event_init(&m_new_frame_event,0,0);
       }
       virtual ~sExtTask1()
       {
-        vm_event_destroy(&m_new_frame_event);
       }
     };
 
@@ -57,18 +52,14 @@
     struct sExtTask2 : public sExtTask1
     {
         mfxU32            m_nInternalTask;
-        //vm_event          m_submitted_frame_event;
 
         sExtTask2(): 
             sExtTask1(), 
             m_nInternalTask(0)  
         {
-            //vm_event_set_invalid(&m_submitted_frame_event);
-            //vm_event_init(&m_submitted_frame_event,0,0);
         }
         virtual ~sExtTask2()
         {
-            //vm_event_destroy(&m_submitted_frame_event);
         }
     };
 
@@ -107,7 +98,6 @@
                 }
                 pTask->m_pInput_surface = input_surface;
                 pTask->m_pBs = bs;
-                vm_event_signal (&pTask->m_new_frame_event);
                 *pOutTask = pTask;
                 m_numTasks ++;
                 return MFX_ERR_NONE;
@@ -192,7 +182,6 @@
                 pTask->m_pBs = bs;
                 pTask->m_nInternalTask = 0;
 
-                vm_event_signal (&pTask->m_new_frame_event);
                 *pOutTask = pTask;
                 m_numTasks ++;
                 return MFX_ERR_NONE;

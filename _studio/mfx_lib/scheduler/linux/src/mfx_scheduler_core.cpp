@@ -48,7 +48,6 @@ mfxSchedulerCore::mfxSchedulerCore(void)
 
     m_pThreadCtx = NULL;
     m_vmtick_msec_frequency = vm_time_get_frequency()/1000;
-    vm_event_set_invalid(&m_hwTaskDone);
 
     // reset task variables
     memset(m_pTasks, 0, sizeof(m_pTasks));
