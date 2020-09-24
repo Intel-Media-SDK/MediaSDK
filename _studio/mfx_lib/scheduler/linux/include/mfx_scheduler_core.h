@@ -33,8 +33,6 @@
 #include <vm_time.h>
 
 #include <umc_semaphore.h>
-#include <umc_event.h>
-
 #include <vector>
 
 #include "mfx_common.h"
@@ -388,8 +386,6 @@ protected:
 
     // Event to wait free task objects
     UMC::Semaphore m_freeTasks;
-    // Some task was done in HW
-    vm_event m_hwTaskDone;
     // Handle to the wakeup thread
     std::thread m_hwWakeUpThread;
 
