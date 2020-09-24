@@ -55,7 +55,6 @@ mfxStatus mfxSchedulerCore::Initialize(const MFX_SCHEDULER_PARAM *pParam)
 
 mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 {
-    UMC::Status umcRes;
     mfxU32 i;
 
     // release the object before initialization
@@ -96,13 +95,8 @@ mfxStatus mfxSchedulerCore::Initialize2(const MFX_SCHEDULER_PARAM2 *pParam)
 
         try
         {
-            // allocate 'free task' event
-            umcRes = m_freeTasks.Init(MFX_MAX_NUMBER_TASK, MFX_MAX_NUMBER_TASK);
-            if (UMC::UMC_OK != umcRes)
-            {
-                return MFX_ERR_UNKNOWN;
-            }
-
+            // set number of free tasks
+            m_freeTasksCount = MFX_MAX_NUMBER_TASK;
             // allocate thread contexts
             m_pThreadCtx = new MFX_SCHEDULER_THREAD_CONTEXT[m_param.numberOfThreads];
 
@@ -524,12 +518,13 @@ mfxStatus mfxSchedulerCore::AddTask(const MFX_TASK &task, mfxSyncPoint *pSyncPoi
         return MFX_ERR_NULL_PTR;
     }
 
-    // make sure that there is enough free task objects
-    m_freeTasks.Wait();
 
     // enter protected section
     {
-        std::lock_guard<std::mutex> guard(m_guard);
+        std::unique_lock<std::mutex> guard(m_guard);
+        // make sure that there is enough free task objects
+        m_freeTasks.wait(guard, [this](){return m_freeTasksCount > 0;});
+        --m_freeTasksCount;
         mfxStatus mfxRes;
         MFX_SCHEDULER_TASK *pTask, **ppTemp;
         mfxTaskHandle handle;
