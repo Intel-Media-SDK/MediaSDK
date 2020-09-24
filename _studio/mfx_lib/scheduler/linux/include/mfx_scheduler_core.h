@@ -32,7 +32,6 @@
 // synchronization stuff
 #include <vm_time.h>
 
-#include <umc_semaphore.h>
 #include <vector>
 
 #include "mfx_common.h"
@@ -384,8 +383,9 @@ protected:
 
 
 
-    // Event to wait free task objects
-    UMC::Semaphore m_freeTasks;
+    // Condition variable to wait free task objects
+    mfxU16 m_freeTasksCount;
+    std::condition_variable m_freeTasks;
     // Handle to the wakeup thread
     std::thread m_hwWakeUpThread;
 

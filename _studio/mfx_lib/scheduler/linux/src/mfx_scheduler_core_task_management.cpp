@@ -593,7 +593,8 @@ void mfxSchedulerCore::MarkTaskCompleted(const MFX_CALL_INFO *pCallInfo,
     // wake up external threads waiting for a free task object
     if (taskReleased)
     {
-        m_freeTasks.Signal(1);
+        ++m_freeTasksCount;
+        m_freeTasks.notify_one();
     }
 
     // send tracing event
