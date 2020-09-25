@@ -795,6 +795,7 @@ mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
     case MFX_HW_DG1    :
                          platform->MediaAdapterType = MFX_MEDIA_DISCRETE;
                          platform->CodeName = MFX_PLATFORM_TIGERLAKE;     break;
+    case MFX_HW_ADL_S  : platform->CodeName = MFX_PLATFORM_ALDERLAKE_S;   break;
 
 #endif
     default:
