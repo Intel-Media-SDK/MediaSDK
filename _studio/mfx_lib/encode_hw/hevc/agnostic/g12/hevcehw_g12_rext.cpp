@@ -265,9 +265,9 @@ void RExt::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
     });
 
     Push(BLK_HardcodeCaps
-        , [](const mfxVideoParam&, mfxVideoParam&, StorageRW& strg) -> mfxStatus
+        , [](const mfxVideoParam& par, mfxVideoParam&, StorageRW& strg) -> mfxStatus
     {
-        Base::Glob::EncodeCaps::Get(strg).MaxEncodedBitDepth = 2;
+        Base::Glob::EncodeCaps::Get(strg).MaxEncodedBitDepth = IsOn(par.mfx.LowPower) ? 1 : 2;
         return MFX_ERR_NONE;
     });
 }

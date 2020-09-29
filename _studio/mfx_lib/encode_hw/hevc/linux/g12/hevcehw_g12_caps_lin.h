@@ -49,8 +49,6 @@ protected:
         caps.NoMinorMVs                 = 1;
         caps.RawReconRefToggle          = 1;
         caps.NoInterlacedField          = 1;
-        caps.ParallelBRC                = 1;
-        caps.MaxEncodedBitDepth         = 2;
         caps.MaxNumOfROI                = 16;
         caps.ROIDeltaQPSupport          = 1;
         caps.BlockSize                  = 1;
@@ -64,7 +62,6 @@ protected:
         caps.MaxNum_WeightedPredL1      = 2;
         caps.HRDConformanceSupport      = 1;
         caps.TileSupport                = 1;
-        caps.YUV422ReconSupport         = 1;
         caps.YUV444ReconSupport         = 1;
         caps.IntraRefreshBlockUnitSize  = 2;
     }
