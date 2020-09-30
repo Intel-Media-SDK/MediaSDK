@@ -22,21 +22,10 @@ For the most up to date version please refer the Intel® Media SDK [documentatio
 - FEI API is not backward compatible.
 - FEI is subject to the same EULA terms as Intel® Media SDK. Some FEI components are distributed as “pre-release materials” which restricts their usage according to EULA.
 
-The package includes the following components:
-This release of Intel® Media SDK is part of open source release of media stack. Component revisions included into package:
-- Media SDK and Samples: https://github.com/Intel-Media-SDK/MediaSDK/releases/tag/intel-mediasdk-20.2.1
-- Driver: https://github.com/intel/media-driver/releases/tag/intel-media-20.2.0
-- Gmmlib: https://github.com/intel/gmmlib/releases/tag/intel-gmmlib-20.2.2
-- libva: https://github.com/intel/libva/releases/tag/2.8.0
-- libva-utils: https://github.com/intel/libva-utils/releases/tag/2.8.0
-
-Release validated with:
-- OpenCL runtime: https://github.com/intel/compute-runtime/releases/tag/20.25.17111
-
 This document covers product features, system requirements and known limitations. For installation procedures description please see the *&lt;sdk-extract-folder&gt;/doc/mediasdk_getting_started_guide.pdf*.
 
 In this document we will refer to processor families by their former codenames for the sake of readability:
-
+- Intel Xe discrete graphics will be referred to as "DG1" and "SG1"
 - 11th Generation Intel® Core™ Processors will be referred to as “Tigerlake”
 - 10th Generation Intel® Core™ Processors will be referred to as “Icelake”
 - 8th and 9th Generation Intel® Core™ Processors will be referred to as “Coffeelake”
@@ -45,34 +34,40 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Xeon® E3-1200 v4 Family and 5th Generation Intel® Core™ Processors will be referred to as “Broadwell”
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
-## What’s New in Media SDK 20.2.1
-* **Samples**
-    - Fixed [#2190](https://github.com/Intel-Media-SDK/MediaSDK/issues/2190). rotate_opencl plugin switched to recent version of OpenCL C++ headers, validated with [OpenCL-CLHPP v2.0.12](https://github.com/KhronosGroup/OpenCL-CLHPP/releases/tag/v2.0.12) and OpenCL-Headers [v2020.06.16](https://github.com/KhronosGroup/OpenCL-Headers/releases/tag/v2020.06.16). 
 
-## What’s New in Media SDK 20.2.0
+## What’s New in Media SDK 20.3.0
 **New features**:
-* **API 1.33**
-    - Added Scaling Interpolation Method control (not supported on Linux currently).
+* **API 1.34**
+    - Added Keem Bay platform support
+    - Added AV1 decode support
 
 * **AVC encode**
-    - Enabled MaxSliceSize feature in low-power (VDENC) mode.
+    - Added implicit Motion-Compensated Temporal Filter (MCTF) to improve coding quality on certain scenarios
+    - Improved CodecLevel initialization from rate control parameters
+    - Added support of 4k streams with look-ahead bitrate control mode
+    - Enabled QPOffset by default
 
 * **HEVC encode**
-    - Enabled Screen Content Coding (SCC) profile on supported platforms (Tigerlake+).
-    - Improved IntraRefresh behavior in presense of multiple references.
-    - Optimize Reference Picture Set selection.
+    - Improved efficiency of FPQ
+    - Enabled QP modulation (Icelake+)
 
-* **HEVC decode**
-    - Improved resilence and corner case handling.
+* **VP9 decode**
+    - Added 16k support
 
-* **Tools**
-    - Upstreamed [Media SDK Tracer](https://github.com/Intel-Media-SDK/MediaSDK/tree/intel-mediasdk-20.2/tools/tracer) tool, with renewed hassle-free support for LD_PRELOAD setup.
+* **VPP**
+    - Added A2RGB10 input in case of passthru copy
 
 * **Samples**
-    - Fixed sample_encode setting BufferSizeInKB to 8 seconds instead of 1 in case of variable bitrate modes.
-    - Enabled lookahead plugin in sample_encode for AVC and HEVC encoders.
-    - Preliminary support for AV1 decoder in sample_decode and sample_multi_transcode.
-    - Added Video Conference Mode bitrate control support to sample_encode and sample_multi_transcode. 
+    - Added -dec::sys flag for setting of the output memory to system type in sample_multi_transcode
+    - Added p016/y216 support in sample_encode
+    - Added i420/nv12 support in sample_multi_transcode
+    - Fixed chroma size for Y210/Y216 formats in sample_deocde
+    - Added handle for iterpolation methods for resize in sample_vpp
+
+* **Misc**
+    - Added support for discrete Intel Xe graphics codenamed DG1 and SG1
+    - Added support for Rocketlake platform
+    - Actualized Elkhartlake device id support list
 
 * **Software requirements**
     - Libdrm 2.4.84 or later
@@ -80,13 +75,8 @@ In this document we will refer to processor families by their former codenames f
 
 * **Known issues**
     - Kernel 5.0 have known issue with endurance on Skylake see https://bugs.freedesktop.org/show_bug.cgi?id=110285 for details.
-    - Media Stack 20.2 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
-
-**Misc**
-- Actualized TGL device ID whitelist.
-- Build system does not enforce specific instruction set (#2047).
-- Corrected minimum libva API version in dependency check.
-- Improved message filtering for VTune.
+    - Media Stack 20.3 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
+    - AV1 Decoder doesn't properly support asynchronous decoding (AsyncDepth > 1) and sometimes may return *MFX_ERR_UNDEFINED_BEHAVIOR* and *MFX_ERR_DEVICE_FAILED* from DecodeFrameAsync calls. See #2244 for details.
 
 ## <a id='System_Requirements'>System Requirements</a>
 
@@ -103,6 +93,7 @@ Intel® Media SDK supports the following platforms with the integrated graphics:
 - 9th Generation Intel® Core™
 - 10th Generation Intel® Core™
 - 11th Generation Intel® Core™
+- Intel Xe discrete graphics
 - Note: chipset must have processor graphics enabled; make sure to check the datasheet.
     - Having a C226/C236 chipset is necessary but not sufficient. Make sure to consult with specific platform or board vendor regarding processor graphics being supported. Check Media Server Studio website for the list of “Known OEM/ODM Functional Platforms”:
     https://software.intel.com/en-us/intel-media-server-studio/details
@@ -111,7 +102,7 @@ Intel® Media SDK supports the following platforms with the integrated graphics:
 - **Linux kernel 4.14 or newer** of 64 - bit architecture. Kernel 4.19 or newer recommended, as it contains stability and performance improvements over 4.14. Release was validated against 4.19.5 for gen8 and gen9 graphics, 5.4 for gen10 (Icelake) graphics, and 5.5 for gen11 (Tigerlake) graphics.
 
 ## <a id='Features'>Features</a>
-Intel® Media SDK included in this package implements SDK API 1.33 and contains the following components:
+Intel® Media SDK included in this package implements SDK API 1.34 and contains the following components:
 
  Component | Supported features | Limitations
  --- | --- | ---
@@ -355,7 +346,9 @@ This release is subject to the following known limitations:
         - Added Screen Content Coding (SCC) support to HEVC
     - Only the following features among those introduced in API 1.33 are supported:
         - Added Scaling Interpolation Method control (not supported on Linux currently).
-
+    - Only the following features among those introduced in API 1.34 are supported:
+        - Added Keem Bay platform support
+        - Added AV1 decode support
 
     **NOTE**: Other options may be not supported. Please use *Query* functions to check feature availability on any given machine at runtime. Availability of features depends on hardware capabilities as well as driver version.
 
