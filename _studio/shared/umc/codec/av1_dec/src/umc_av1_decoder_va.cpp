@@ -57,7 +57,7 @@ namespace UMC_AV1_DECODER
         packer.reset(Packer::CreatePacker(va));
 
         uint32_t const dpb_size =
-            params.async_depth + TOTAL_REFS;
+            params.async_depth + TOTAL_REFS + 2;
         SetDPBSize(dpb_size);
         SetRefSize(TOTAL_REFS);
         return UMC::UMC_OK;
