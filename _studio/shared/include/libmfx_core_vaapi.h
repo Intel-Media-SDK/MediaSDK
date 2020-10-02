@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -98,94 +98,93 @@ namespace UMC
     class LinuxVideoAccelerator;
 };
 
-
-class VAAPIVideoCORE : public CommonCORE
+template <class Base>
+class VAAPIVideoCORE_T : public Base
 {
 public:
     friend class FactoryCORE;
     class VAAPIAdapter : public VAAPIInterface
     {
     public:
-        VAAPIAdapter(VAAPIVideoCORE *pVAAPICore):m_pVAAPICore(pVAAPICore)
+        VAAPIAdapter(VAAPIVideoCORE_T *pVAAPICore):m_pVAAPICore(pVAAPICore)
         {
         };
 
- protected:
-        VAAPIVideoCORE *m_pVAAPICore;
-
+    protected:
+        VAAPIVideoCORE_T *m_pVAAPICore;
     };
 
     class CMEnabledCoreAdapter : public CMEnabledCoreInterface
     {
     public:
-        CMEnabledCoreAdapter(VAAPIVideoCORE *pVAAPICore): m_pVAAPICore(pVAAPICore)
+        CMEnabledCoreAdapter(VAAPIVideoCORE_T *pVAAPICore): m_pVAAPICore(pVAAPICore)
         {
         };
         virtual mfxStatus SetCmCopyStatus(bool enable) override
         {
-            m_pVAAPICore->SetCmCopy(enable);
-            return MFX_ERR_NONE;
+            return m_pVAAPICore->SetCmCopyStatus(enable);
         };
     protected:
-        VAAPIVideoCORE *m_pVAAPICore;
+        VAAPIVideoCORE_T *m_pVAAPICore;
     };
 
-    virtual ~VAAPIVideoCORE();
+    virtual ~VAAPIVideoCORE_T();
 
-    virtual mfxStatus     GetHandle(mfxHandleType type, mfxHDL *handle);
-    virtual mfxStatus     SetHandle(mfxHandleType type, mfxHDL handle);
+    virtual mfxStatus    GetHandle(mfxHandleType type, mfxHDL *handle)                                                           override;
+    virtual mfxStatus    SetHandle(mfxHandleType type, mfxHDL handle)                                                            override;
 
-    virtual mfxStatus     AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true);
-
-    virtual mfxStatus     ReallocFrame(mfxFrameSurface1 *surf);
-
-    virtual void          GetVA(mfxHDL* phdl, mfxU16 type)
+    virtual mfxStatus    AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, bool isNeedCopy = true)     override;
+            mfxStatus    ReallocFrame(mfxFrameSurface1 *surf);
+    virtual void         GetVA(mfxHDL* phdl, mfxU16 type)                                                                        override
     {
-        (type & MFX_MEMTYPE_FROM_DECODE)?(*phdl = m_pVA.get()):(*phdl = 0);
-    };
-    // Get the current working adapter's number
-    virtual mfxU32 GetAdapterNumber(void) {return m_adapterNum;}
-    virtual eMFXPlatform  GetPlatformType() {return  MFX_PLATFORM_HARDWARE;}
+        if (!phdl) return;
 
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType);
+        (type & MFX_MEMTYPE_FROM_DECODE)?(*phdl = m_pVA.get()):(*phdl = 0);
+    }
+    // Get the current working adapter's number
+    virtual mfxU32       GetAdapterNumber() override { return m_adapterNum; }
+    virtual eMFXPlatform GetPlatformType()  override { return MFX_PLATFORM_HARDWARE; }
+
+    virtual mfxStatus    DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)                                      override;
+    virtual mfxStatus    DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) override;
 
     mfxHDL * GetFastCompositingService();
     void SetOnFastCompositingService(void);
     bool IsFastCompositingEnabled(void) const;
 
 
-    virtual eMFXHWType     GetHWType() { return m_HWType; }
+    virtual eMFXHWType   GetHWType() override { return m_HWType; }
 
+    virtual mfxStatus    CreateVA(mfxVideoParam * param, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, UMC::FrameAllocator *allocator) override;
+    // to check HW capabilities
+    virtual mfxStatus    IsGuidSupported(const GUID guid, mfxVideoParam *par, bool isEncoder = false) override;
 
-    mfxStatus              CreateVA(mfxVideoParam * param, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, UMC::FrameAllocator *allocator);
-    // to check HW capatbilities
-    virtual mfxStatus IsGuidSupported(const GUID guid, mfxVideoParam *par, bool isEncoder = false);
-
-    virtual eMFXVAType   GetVAType() const {return MFX_HW_VAAPI; };
-    virtual void* QueryCoreInterface(const MFX_GUID &guid);
+    virtual eMFXVAType   GetVAType() const                                                            override { return MFX_HW_VAAPI; }
+    virtual void*        QueryCoreInterface(const MFX_GUID &guid)                                     override;
 
 #if defined (MFX_ENABLE_VPP)
-    virtual void  GetVideoProcessing(mfxHDL* phdl)
+    virtual void         GetVideoProcessing(mfxHDL* phdl)                                             override
     {
-        *phdl = &m_vpp_hw_resmng;
-    };
-#endif
-    mfxStatus  CreateVideoProcessing(mfxVideoParam * param);
+        if (!phdl) return;
 
-    mfxStatus              GetVAService(VADisplay *pVADisplay);
+        *phdl = &m_vpp_hw_resmng;
+    }
+#endif
+    virtual mfxStatus    CreateVideoProcessing(mfxVideoParam * param)                                 override;
+
+    mfxStatus            GetVAService(VADisplay *pVADisplay);
 
     // this function should not be virtual
-    void SetCmCopy(bool enable);
+    mfxStatus            SetCmCopyStatus(bool enable);
 
     bool CmCopy() const { return m_bCmCopy; }
 
 protected:
-    VAAPIVideoCORE(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = NULL);
-    virtual void           Close();
-    virtual mfxStatus      DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
+    VAAPIVideoCORE_T(const mfxU32 adapterNum, const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
+    virtual void           Close()                                                                            override;
+    virtual mfxStatus      DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response) override;
 
-    mfxStatus              CreateVideoAccelerator(mfxVideoParam * param, int profile, int NumOfRenderTarget, _mfxPlatformVideoSurface *RenderTargets, UMC::FrameAllocator *allocator);
+    mfxStatus              CreateVideoAccelerator(mfxVideoParam * param, int profile, int NumOfRenderTarget, VASurfaceID *RenderTargets, UMC::FrameAllocator *allocator);
     mfxStatus              ProcessRenderTargets(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxBaseWideFrameAllocator* pAlloc);
     mfxStatus              TraceFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response, mfxStatus sts);
     mfxStatus              OnDeblockingInWinRegistry(mfxU32 codecId);
@@ -223,14 +222,7 @@ private:
     bool                                 m_bHEVCFEIEnabled;
 };
 
-class PointerProxy
-{
-    public:
-        PointerProxy(void* p) { mp = p; }
-        template<class T> operator T*() { return reinterpret_cast<T*>(mp); }
-    private:
-        void* mp;
-};
+using VAAPIVideoCORE = VAAPIVideoCORE_T<CommonCORE>;
 
 
 #endif // __LIBMFX_CORE__VAAPI_H__

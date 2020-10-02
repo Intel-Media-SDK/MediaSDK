@@ -43,35 +43,28 @@ FUNCTION_IMPL(CORE, SetFrameAllocator, (mfxSession session, mfxFrameAllocator *a
 FUNCTION_IMPL(CORE, SetHandle, (mfxSession session, mfxHandleType type, mfxHDL hdl), (type, hdl))
 FUNCTION_IMPL(CORE, GetHandle, (mfxSession session, mfxHandleType type, mfxHDL *hdl), (type, hdl))
 
-#define MFX_CHECK_HDL(hdl) {if (!hdl) MFX_RETURN(MFX_ERR_INVALID_HANDLE);}
-
 mfxStatus MFXVideoCORE_QueryPlatform(mfxSession session, mfxPlatform* platform)
 {
-    mfxStatus mfxRes;
-
-    MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
+    MFX_CHECK(session,                MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pCORE.get(), MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK_NULL_PTR1(platform);
+
     try
     {
         /* call the codec's method */
         IVideoCore_API_1_19 * pInt = QueryCoreInterface<IVideoCore_API_1_19>(session->m_pCORE.get(), MFXICORE_API_1_19_GUID);
         if (pInt)
         {
-            mfxRes = pInt->QueryPlatform(platform);
+            return pInt->QueryPlatform(platform);
         }
-        else
-        {
-            mfxRes = MFX_ERR_UNSUPPORTED;
-            memset(platform, 0, sizeof(mfxPlatform));
-        }
+
+        platform = {};
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
-    /* handle error(s) */
     catch (...)
     {
-        /* set the default error value */
-        mfxRes = MFX_ERR_NULL_PTR;
+        MFX_RETURN(MFX_ERR_NULL_PTR);
     }
-    return mfxRes;
 }
 
 
@@ -80,31 +73,26 @@ mfxStatus CommonCORE::API_1_19_Adapter::QueryPlatform(mfxPlatform* platform)
     return m_core->QueryPlatform(platform);
 }
 
-mfxStatus CommonCORE::AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxHDL *mid)
+mfxStatus CommonCORE::AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxMemId *mid)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Alloc)(m_bufferAllocator.bufferAllocator.pthis,nbytes, type, mid);
 }
-mfxStatus CommonCORE::LockBuffer(mfxHDL mid, mfxU8 **ptr)
+mfxStatus CommonCORE::LockBuffer(mfxMemId mid, mfxU8 **ptr)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Lock)(m_bufferAllocator.bufferAllocator.pthis, mid, ptr);
 }
-mfxStatus CommonCORE::UnlockBuffer(mfxHDL mid)
+mfxStatus CommonCORE::UnlockBuffer(mfxMemId mid)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Unlock)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
-mfxStatus CommonCORE::FreeBuffer(mfxHDL mid)
+mfxStatus CommonCORE::FreeBuffer(mfxMemId mid)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
     return (*m_bufferAllocator.bufferAllocator.Free)(m_bufferAllocator.bufferAllocator.pthis,mid);
 }
-// DEPRECATED
-mfxStatus  CommonCORE::CheckHandle()
-{
-   return MFX_ERR_NONE;
-} // mfxStatus  CommonCORE::CheckHandle()
 
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response,
@@ -158,7 +146,6 @@ mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
 mfxStatus CommonCORE::AllocFrames(mfxFrameAllocRequest *request,
                                   mfxFrameAllocResponse *response, bool )
 {
-    MFX::AutoTimer timer("CommonCORE::AllocFrames");
     UMC::AutomaticUMCMutex guard(m_guard);
     mfxStatus sts = MFX_ERR_NONE;
     try
@@ -240,10 +227,10 @@ mfxStatus CommonCORE::DefaultAllocFrames(mfxFrameAllocRequest *request, mfxFrame
     m_pcAlloc.release();
     return sts;
 }
-mfxStatus CommonCORE::LockFrame(mfxHDL mid, mfxFrameData *ptr)
+mfxStatus CommonCORE::LockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
-    MFX::AutoTimer timer("CommonCORE::LockFrame");
+
     try
     {
         MFX_CHECK_HDL(mid);
@@ -258,7 +245,7 @@ mfxStatus CommonCORE::LockFrame(mfxHDL mid, mfxFrameData *ptr)
         return MFX_ERR_INVALID_HANDLE;
     }
 }
-mfxStatus CommonCORE::GetFrameHDL(mfxHDL mid, mfxHDL* handle, bool ExtendedSearch)
+mfxStatus CommonCORE::GetFrameHDL(mfxMemId mid, mfxHDL* handle, bool ExtendedSearch)
 {
     mfxStatus sts;
     try
@@ -288,7 +275,7 @@ mfxStatus CommonCORE::GetFrameHDL(mfxHDL mid, mfxHDL* handle, bool ExtendedSearc
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 }
-mfxStatus CommonCORE::UnlockFrame(mfxHDL mid, mfxFrameData *ptr)
+mfxStatus CommonCORE::UnlockFrame(mfxMemId mid, mfxFrameData *ptr)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
 
@@ -298,6 +285,7 @@ mfxStatus CommonCORE::UnlockFrame(mfxHDL mid, mfxFrameData *ptr)
         mfxFrameAllocator* pAlloc = GetAllocatorAndMid(mid);
         if (!pAlloc)
             return MFX_ERR_INVALID_HANDLE;
+
         return (*pAlloc->Unlock)(pAlloc->pthis, mid, ptr);
     }
     catch(...)
@@ -457,7 +445,7 @@ mfxStatus CommonCORE::InternalFreeFrames(mfxFrameAllocResponse *response)
 mfxStatus  CommonCORE::LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch)
 {
     mfxStatus sts;
-    MFX::AutoTimer timer("CommonCORE::LockExternalFrame");
+
     try
     {
         {
@@ -626,7 +614,6 @@ mfxStatus CommonCORE::FreeMidArray(mfxFrameAllocator* pAlloc, mfxFrameAllocRespo
 
 mfxStatus CommonCORE::RegisterMids(mfxFrameAllocResponse *response, mfxU16 memType, bool IsDefaultAlloc, mfxBaseWideFrameAllocator* pAlloc)
 {
-    //MFX::AutoTimer::SetFrames(response->mids, response->NumFrameActual);
     m_pMemId.reset(new mfxMemId[response->NumFrameActual]);
     mfxMemId mId;
     for (mfxU32 i = 0; i < response->NumFrameActual; i++)
@@ -677,11 +664,6 @@ CommonCORE::CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession sessio
     CheckTimingLog();
 }
 
-CommonCORE::~CommonCORE()
-{
-    Close();
-}
-
 void CommonCORE::Close()
 {
     m_CTbl.clear();
@@ -698,10 +680,6 @@ void CommonCORE::Close()
         delete[] it->first;
         m_RespMidQ.erase(it);
     }
-    if (m_bUseExtManager && m_hdl)
-    {
-        m_bUseExtManager = false;
-    }
 }
 
 mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
@@ -709,102 +687,89 @@ mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
     MFX_CHECK_NULL_PTR1(handle);
     UMC::AutomaticUMCMutex guard(m_guard);
 
-#if defined(LINUX32) || defined(LINUX64) || defined(MFX_VA_LINUX)
-    if (MFX_HANDLE_VA_DISPLAY == type )
+    switch (type)
     {
-        if (m_hdl)
-        {
-            *handle = m_hdl;
-            return MFX_ERR_NONE;
-        }
-        // not exist handle yet
-        else
-            return MFX_ERR_NOT_FOUND;
-    }
-#endif
-    // if wrong type
-    return MFX_ERR_UNDEFINED_BEHAVIOR;
 
+#if defined(LINUX32) || defined(LINUX64) || defined(MFX_VA_LINUX)
+    case MFX_HANDLE_VA_DISPLAY:
+        MFX_CHECK(m_hdl, MFX_ERR_NOT_FOUND);
+        *handle = m_hdl;
+        break;
+#endif
+    default:
+        MFX_RETURN(MFX_ERR_NOT_FOUND);
+    }
+
+    return MFX_ERR_NONE;
 } // mfxStatus CommonCORE::GetHandle(mfxHandleType type, mfxHDL *handle)
 
 mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL hdl)
 {
-    MFX_CHECK_NULL_PTR1(hdl);
-    UMC::AutomaticUMCMutex guard(m_guard);
+    MFX_CHECK_HDL(hdl);
 
-    // Need to call at once
-    switch ((mfxU32)type)
-    {
-#if defined(LINUX32) || defined(LINUX64) || defined(MFX_VA_LINUX)
-    case MFX_HANDLE_VA_DISPLAY:
-        // if device manager already set
-        if (m_hdl)
-            return MFX_ERR_UNDEFINED_BEHAVIOR;
-        // set external handle
-        m_hdl = hdl;
-        m_bUseExtManager = true;
-        break;
+    ignore = type;
+
+    MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+}// mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL handle)
+
+static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
+{
+    mfxPlatform platform = {};
+
+    #if (MFX_VERSION >= 1031)
+    platform.MediaAdapterType = MFX_MEDIA_INTEGRATED;
 #endif
 
+    switch (type)
+    {
+    case MFX_HW_SNB    : platform.CodeName = MFX_PLATFORM_SANDYBRIDGE;   break;
+    case MFX_HW_IVB    : platform.CodeName = MFX_PLATFORM_IVYBRIDGE;     break;
+    case MFX_HW_HSW    :
+    case MFX_HW_HSW_ULT: platform.CodeName = MFX_PLATFORM_HASWELL;       break;
+    case MFX_HW_VLV    : platform.CodeName = MFX_PLATFORM_BAYTRAIL;      break;
+    case MFX_HW_BDW    : platform.CodeName = MFX_PLATFORM_BROADWELL;     break;
+    case MFX_HW_CHT    : platform.CodeName = MFX_PLATFORM_CHERRYTRAIL;   break;
+    case MFX_HW_SCL    : platform.CodeName = MFX_PLATFORM_SKYLAKE;       break;
+    case MFX_HW_APL    : platform.CodeName = MFX_PLATFORM_APOLLOLAKE;    break;
+    case MFX_HW_KBL    : platform.CodeName = MFX_PLATFORM_KABYLAKE;      break;
+#if (MFX_VERSION >= 1025)
+    case MFX_HW_GLK    : platform.CodeName = MFX_PLATFORM_GEMINILAKE;    break;
+    case MFX_HW_CFL    : platform.CodeName = MFX_PLATFORM_COFFEELAKE;    break;
+    case MFX_HW_CNL    : platform.CodeName = MFX_PLATFORM_CANNONLAKE;    break;
+#endif
+#if (MFX_VERSION >= 1027)
+    case MFX_HW_ICL    :
+    case MFX_HW_ICL_LP : platform.CodeName = MFX_PLATFORM_ICELAKE;       break;
+#endif
+#if (MFX_VERSION >= 1031)
+    case MFX_HW_EHL    : platform.CodeName = MFX_PLATFORM_ELKHARTLAKE;   break;
+    case MFX_HW_JSL    : platform.CodeName = MFX_PLATFORM_JASPERLAKE;    break;
+    case MFX_HW_RKL    :
+    case MFX_HW_TGL_LP : platform.CodeName = MFX_PLATFORM_TIGERLAKE;     break;
+    case MFX_HW_DG1    :
+                         platform.MediaAdapterType = MFX_MEDIA_DISCRETE;
+                         platform.CodeName = MFX_PLATFORM_TIGERLAKE;     break;
+
+#endif
     default:
-        // wrong input type
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+#if (MFX_VERSION >= 1031)
+                         platform.MediaAdapterType = MFX_MEDIA_UNKNOWN;
+#endif
+                         platform.CodeName = MFX_PLATFORM_UNKNOWN;       break;
     }
-    return MFX_ERR_NONE;
-}// mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL handle)
+
+    platform.DeviceId = device_id;
+
+    return platform;
+}
 
 mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
 {
     MFX_CHECK_NULL_PTR1(platform);
 
-    if (!m_hdl && MFX_HW_VAAPI == GetVAType())
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
+    MFX_CHECK(m_hdl || MFX_HW_VAAPI != GetVAType(), MFX_ERR_UNDEFINED_BEHAVIOR);
 
-#if (MFX_VERSION >= 1031)
-    platform->MediaAdapterType = MFX_MEDIA_INTEGRATED;
-#endif
-
-    eMFXHWType type = GetHWType();
-
-    switch (type)
-    {
-    case MFX_HW_SNB    : platform->CodeName = MFX_PLATFORM_SANDYBRIDGE;   break;
-    case MFX_HW_IVB    : platform->CodeName = MFX_PLATFORM_IVYBRIDGE;     break;
-    case MFX_HW_HSW    :
-    case MFX_HW_HSW_ULT: platform->CodeName = MFX_PLATFORM_HASWELL;       break;
-    case MFX_HW_VLV    : platform->CodeName = MFX_PLATFORM_BAYTRAIL;      break;
-    case MFX_HW_BDW    : platform->CodeName = MFX_PLATFORM_BROADWELL;     break;
-    case MFX_HW_CHT    : platform->CodeName = MFX_PLATFORM_CHERRYTRAIL;   break;
-    case MFX_HW_SCL    : platform->CodeName = MFX_PLATFORM_SKYLAKE;       break;
-    case MFX_HW_APL    : platform->CodeName = MFX_PLATFORM_APOLLOLAKE;    break;
-    case MFX_HW_KBL    : platform->CodeName = MFX_PLATFORM_KABYLAKE;      break;
-#if (MFX_VERSION >= 1025)
-    case MFX_HW_GLK    : platform->CodeName = MFX_PLATFORM_GEMINILAKE;    break;
-    case MFX_HW_CFL    : platform->CodeName = MFX_PLATFORM_COFFEELAKE;    break;
-    case MFX_HW_CNL    : platform->CodeName = MFX_PLATFORM_CANNONLAKE;    break;
-#endif
-#if (MFX_VERSION >= 1027)
-    case MFX_HW_ICL    :
-    case MFX_HW_ICL_LP : platform->CodeName = MFX_PLATFORM_ICELAKE;       break;
-#endif
-#if (MFX_VERSION >= 1031)
-    case MFX_HW_JSL    : platform->CodeName = MFX_PLATFORM_JASPERLAKE;    break;
-    case MFX_HW_EHL    : platform->CodeName = MFX_PLATFORM_ELKHARTLAKE;   break;
-    case MFX_HW_RKL    :
-    case MFX_HW_TGL_LP : platform->CodeName = MFX_PLATFORM_TIGERLAKE;     break;
-    case MFX_HW_DG1    :
-                         platform->MediaAdapterType = MFX_MEDIA_DISCRETE;
-                         platform->CodeName = MFX_PLATFORM_TIGERLAKE;     break;
-
-#endif
-    default:
-#if (MFX_VERSION >= 1031)
-                         platform->MediaAdapterType = MFX_MEDIA_UNKNOWN;
-#endif
-                         platform->CodeName = MFX_PLATFORM_UNKNOWN;       break;
-    }
-
-    platform->DeviceId = m_deviceId;
+    *platform = MakePlatform(GetHWType(), m_deviceId);
 
     return MFX_ERR_NONE;
 } // mfxStatus CommonCORE::QueryPlatform(mfxPlatform* platform)
@@ -894,41 +859,24 @@ mfxStatus CommonCORE::SetFrameAllocator(mfxFrameAllocator *allocator)
 // no care about surface, opaq and all round. Just increasing reference
 mfxStatus CommonCORE::IncreasePureReference(mfxU16& Locked)
 {
-    //MFX_CHECK_NULL_PTR1(ptr);
     UMC::AutomaticUMCMutex guard(m_guard);
-    if (Locked > 65534)
-    {
-        return MFX_ERR_LOCK_MEMORY;
-    }
-    else
-    {
-        vm_interlocked_inc16((volatile uint16_t*)&Locked);
-        return MFX_ERR_NONE;
-    }
+
+    MFX_CHECK(Locked <= 65534, MFX_ERR_LOCK_MEMORY);
+
+    vm_interlocked_inc16((volatile uint16_t*)&Locked);
+    return MFX_ERR_NONE;
 }// CommonCORE::IncreasePureReference(mfxFrameData *ptr)
 
 // no care about surface, opaq and all round. Just increasing reference
 mfxStatus CommonCORE::DecreasePureReference(mfxU16& Locked)
 {
-    //MFX_CHECK_NULL_PTR1(ptr);
     UMC::AutomaticUMCMutex guard(m_guard);
-    if (Locked < 1)
-    {
-        return MFX_ERR_LOCK_MEMORY;
-    }
-    else
-    {
-        vm_interlocked_dec16((volatile uint16_t*)&Locked);
-        return MFX_ERR_NONE;
-    }
+
+    MFX_CHECK(Locked != 0, MFX_ERR_LOCK_MEMORY);
+
+    vm_interlocked_dec16((volatile uint16_t*)&Locked);
+    return MFX_ERR_NONE;
 }// CommonCORE::IncreasePureReference(mfxFrameData *ptr)
-
-void CommonCORE::GetVA(mfxHDL* phdl, mfxU16 type)
-{
-    (void)type;
-
-    *phdl = 0;
-}// void CommonCORE::GetVA(mfxHDL* phdl, mfxU16 type)
 
 mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
 {
@@ -941,7 +889,7 @@ mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
     {
         {
             UMC::AutomaticUMCMutex guard(m_guard);
-            // Opaque surface syncronization
+            // Opaque surface synchronization
             if (m_bIsOpaqMode)
             {
                 OpqTbl_FrameData::iterator opq_it = m_OpqTbl_FrameData.find(ptr);
@@ -954,10 +902,10 @@ mfxStatus CommonCORE::IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
             }
         }
 
-        // we dont find in self queue let find in neigb cores
+        // we don't find in self queue let find in neigb cores
         if (ExtendedSearch)
         {
-            // makes sence to remove ans tay only error return
+            // makes sense to remove ans tay only error return
             if (MFX_ERR_NONE != m_session->m_pOperatorCore->DoCoreOperation(&VideoCORE::IncreaseReference, ptr))
                 return IncreasePureReference(ptr->Locked);
             else
@@ -981,7 +929,7 @@ mfxStatus CommonCORE::DecreaseReference(mfxFrameData *ptr, bool ExtendedSearch)
     {
         {
             UMC::AutomaticUMCMutex guard(m_guard);
-            // Opaque surface syncronization
+            // Opaque surface synchronization
             if (m_bIsOpaqMode)
             {
                 OpqTbl_FrameData::iterator opq_it = m_OpqTbl_FrameData.find(ptr);
@@ -1012,7 +960,7 @@ void CommonCORE::INeedMoreThreadsInside(const void *pComponent)
     if ((m_session) &&
         (m_session->m_pScheduler))
     {
-        m_session->m_pScheduler->ResetWaitingStatus(pComponent);
+        ignore = MFX_STS_TRACE(m_session->m_pScheduler->ResetWaitingStatus(pComponent));
     }
 
 } // void CommonCORE::INeedMoreThreadsInside(const void *pComponent)
@@ -1176,360 +1124,303 @@ mfxStatus CommonCORE::DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemTyp
 mfxStatus CommonCORE::DoFastCopy(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
 {
     UMC::AutomaticUMCMutex guard(m_guard);
-    mfxStatus sts;
-    if (!dst || !src)
-        return MFX_ERR_NULL_PTR;
-    mfxSize roi = { std::min(src->Info.Width, dst->Info.Width), std::min(src->Info.Height, dst->Info.Height) };
-    if (!roi.width || !roi.height)
-    {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
 
-    mfxU8 *pDst;
-    mfxU8 *pSrc;
+    MFX_CHECK_NULL_PTR2(src, dst);
 
-    uint32_t srcPitch;
-    uint32_t dstPitch;
+    mfxSize roi = { min(src->Info.Width, dst->Info.Width), min(src->Info.Height, dst->Info.Height) };
+    MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
     if(!m_pFastCopy)
     {
         m_pFastCopy.reset(new FastCopy());
     }
 
-    pDst = dst->Data.Y;
-    pSrc = src->Data.Y;
+    mfxU8 *pDst = dst->Data.Y, *pSrc = src->Data.Y;
+    MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
-    if (NULL == pDst || NULL == pSrc)
-    {
-        return MFX_ERR_NULL_PTR;
-    }
-
-    srcPitch = src->Data.PitchLow + ((mfxU32)src->Data.PitchHigh << 16);
-    dstPitch = dst->Data.PitchLow + ((mfxU32)dst->Data.PitchHigh << 16);
+    mfxU32 srcPitch = src->Data.PitchLow + ((mfxU32)src->Data.PitchHigh << 16);
+    mfxU32 dstPitch = dst->Data.PitchLow + ((mfxU32)dst->Data.PitchHigh << 16);
 
     switch (dst->Info.FourCC)
     {
     case MFX_FOURCC_NV12:
 
-        sts = m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+        MFX_SAFE_CALL(m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS));
 
         roi.height >>= 1;
 
         pSrc = src->Data.UV;
         pDst = dst->Data.UV;
 
-        if (NULL == pDst || NULL == pSrc)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
+        MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
-        sts = m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
-
-        break;
+        return m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
 
     case MFX_FOURCC_YV12:
 
-        sts = m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+        MFX_SAFE_CALL(m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS));
 
         roi.height >>= 1;
 
         pSrc = src->Data.U;
         pDst = dst->Data.U;
 
-        if (NULL == pDst || NULL == pSrc)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
+        MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
         roi.width >>= 1;
 
         srcPitch >>= 1;
         dstPitch >>= 1;
 
-        sts = m_pFastCopy->Copy((mfxU8 *)pDst, dstPitch, (mfxU8 *)pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
+        MFX_SAFE_CALL(m_pFastCopy->Copy((mfxU8 *)pDst, dstPitch, (mfxU8 *)pSrc, srcPitch, roi, COPY_SYS_TO_SYS));
 
         pSrc = src->Data.V;
         pDst = dst->Data.V;
 
-        if (NULL == pDst || NULL == pSrc)
-        {
-            return MFX_ERR_NULL_PTR;
-        }
+        MFX_CHECK_NULL_PTR2(pSrc, pDst);
 
-        sts = m_pFastCopy->Copy((mfxU8 *)pDst, dstPitch, (mfxU8 *)pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
-
-        break;
+        return m_pFastCopy->Copy((mfxU8 *)pDst, dstPitch, (mfxU8 *)pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
 
     case MFX_FOURCC_YUY2:
 
         roi.width *= 2;
 
-        sts = m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
-
-        break;
+        return m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
 
     case MFX_FOURCC_P8:
 
-        sts = m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
-
-        break;
+        return m_pFastCopy->Copy(pDst, dstPitch, pSrc, srcPitch, roi, COPY_SYS_TO_SYS);
 
     default:
-
-        return MFX_ERR_UNSUPPORTED;
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
     }
 
     return MFX_ERR_NONE;
 }
 
-mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int copyFlag)
+mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src, int copyFlag)
 {
-    mfxStatus sts;
-
-    mfxSize roi = {std::min(pSrc->Info.Width, pDst->Info.Width), std::min(pSrc->Info.Height, pDst->Info.Height)};
+    mfxSize roi = { min(src.Info.Width, dst.Info.Width), min(src.Info.Height, dst.Info.Height) };
 
     // check that region of interest is valid
-    if (0 == roi.width || 0 == roi.height)
-    {
-        return MFX_ERR_UNDEFINED_BEHAVIOR;
-    }
+    MFX_CHECK(roi.width && roi.height, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-    uint32_t srcPitch = pSrc->Data.PitchLow + ((mfxU32)pSrc->Data.PitchHigh << 16);
-    uint32_t dstPitch = pDst->Data.PitchLow + ((mfxU32)pDst->Data.PitchHigh << 16);
+    uint32_t srcPitch = src.Data.PitchLow + ((mfxU32)src.Data.PitchHigh << 16);
+    uint32_t dstPitch = dst.Data.PitchLow + ((mfxU32)dst.Data.PitchHigh << 16);
 
-    switch (pDst->Info.FourCC)
+    switch (dst.Info.FourCC)
     {
     case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_P016:
 #endif
 
-        if (pSrc->Info.Shift != pDst->Info.Shift)
+        if (src.Info.Shift != dst.Info.Shift)
         {
             mfxU8 lshift = 0;
             mfxU8 rshift = 0;
-            if(pSrc->Info.Shift != 0)
-                rshift = (uint8_t)(16 - pDst->Info.BitDepthLuma);
+            if (src.Info.Shift != 0)
+                rshift = (uint8_t)(16 - dst.Info.BitDepthLuma);
             else
-                lshift = (uint8_t)(16 - pDst->Info.BitDepthLuma);
+                lshift = (uint8_t)(16 - dst.Info.BitDepthLuma);
 
             // CopyAndShift operates with 2-byte words, no need to multiply width by 2
-            sts = FastCopy::CopyAndShift((mfxU16*)(pDst->Data.Y), dstPitch, (mfxU16 *)pSrc->Data.Y, srcPitch, roi, lshift, rshift, copyFlag);
-            MFX_CHECK_STS(sts);
+            MFX_SAFE_CALL(FastCopy::CopyAndShift((mfxU16*)(dst.Data.Y), dstPitch, (mfxU16 *)src.Data.Y, srcPitch, roi, lshift, rshift, copyFlag));
 
             roi.height >>= 1;
 
-            sts = FastCopy::CopyAndShift((mfxU16*)(pDst->Data.UV), dstPitch, (mfxU16 *)pSrc->Data.UV, srcPitch, roi, lshift, rshift, copyFlag);
-            MFX_CHECK_STS(sts);
+            return FastCopy::CopyAndShift((mfxU16*)(dst.Data.UV), dstPitch, (mfxU16 *)src.Data.UV, srcPitch, roi, lshift, rshift, copyFlag);
         }
         else
         {
             roi.width <<= 1;
 
-            sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
+            MFX_SAFE_CALL(FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag));
 
             roi.height >>= 1;
 
-            sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
+            return FastCopy::Copy(dst.Data.UV, dstPitch, src.Data.UV, srcPitch, roi, copyFlag);
         }
 
-        break;
 
     case MFX_FOURCC_P210:
         roi.width <<= 1;
 
-        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag));
 
-        sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
+        return FastCopy::Copy(dst.Data.UV, dstPitch, src.Data.UV, srcPitch, roi, copyFlag);
 
     case MFX_FOURCC_NV12:
-        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag));
 
         roi.height >>= 1;
-        sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
+        return FastCopy::Copy(dst.Data.UV, dstPitch, src.Data.UV, srcPitch, roi, copyFlag);
 
     case MFX_FOURCC_NV16:
-        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        sts = FastCopy::Copy(pDst->Data.UV, dstPitch, pSrc->Data.UV, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag));
+
+        return FastCopy::Copy(dst.Data.UV, dstPitch, src.Data.UV, srcPitch, roi, copyFlag);
 
     case MFX_FOURCC_YV12:
 
-        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        roi.width >>= 1;
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag));
+
+        roi.width  >>= 1;
         roi.height >>= 1;
 
         srcPitch >>= 1;
         dstPitch >>= 1;
 
-        sts = FastCopy::Copy(pDst->Data.U, dstPitch, pSrc->Data.U, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        sts = FastCopy::Copy(pDst->Data.V, dstPitch, pSrc->Data.V, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
+        MFX_SAFE_CALL(FastCopy::Copy(dst.Data.U, dstPitch, src.Data.U, srcPitch, roi, copyFlag));
+
+        return FastCopy::Copy(dst.Data.V, dstPitch, src.Data.V, srcPitch, roi, copyFlag);
 
     case MFX_FOURCC_UYVY:
         roi.width *= 2;
-        sts = FastCopy::Copy(pDst->Data.U, dstPitch, pSrc->Data.U, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
+
+        return FastCopy::Copy(dst.Data.U, dstPitch, src.Data.U, srcPitch, roi, copyFlag);
 
     case MFX_FOURCC_YUY2:
         roi.width *= 2;
 
-        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-
-        break;
-
-
-#if defined (MFX_ENABLE_FOURCC_RGB565)
-    case MFX_FOURCC_RGB565:
-        {
-            mfxU8* ptrSrc = pSrc->Data.B;
-            mfxU8* ptrDst = pDst->Data.B;
-
-            roi.width *= 2;
-
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-            break;
-        }
-#endif
-
-    case MFX_FOURCC_RGB3:
-        {
-            mfxU8* ptrSrc = std::min({pSrc->Data.R, pSrc->Data.G, pSrc->Data.B});
-            mfxU8* ptrDst = std::min({pDst->Data.R, pDst->Data.G, pDst->Data.B});
-
-            roi.width *= 3;
-
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-            break;
-        }
-#ifdef MFX_ENABLE_RGBP
-    case MFX_FOURCC_RGBP:
-        {
-            mfxU8* ptrSrc = pSrc->Data.B;
-            mfxU8* ptrDst = pDst->Data.B;
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-
-            ptrSrc = pSrc->Data.G;
-            ptrDst = pDst->Data.G;
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-
-            ptrSrc = pSrc->Data.R;
-            ptrDst = pDst->Data.R;
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-
-            break;
-        }
-#endif
+        return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
 
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y216:
 #endif
-        MFX_CHECK_NULL_PTR1(pSrc->Data.Y);
+
+        MFX_CHECK_NULL_PTR1(src.Data.Y);
 
         //we use 8u copy, so we need to increase ROI to handle 16 bit samples
-        if (pSrc->Info.Shift != pDst->Info.Shift)
+#if defined(_WIN32) || defined(_WIN64)
+        if (src.Info.Shift != dst.Info.Shift)
         {
             roi.width *= 2; // CopyAndShift operates with 2-byte words
             mfxU8 lshift = 0;
             mfxU8 rshift = 0;
-            if(pSrc->Info.Shift != 0)
-                rshift = (mfxU8)(16 - pDst->Info.BitDepthLuma);
+            if (src.Info.Shift != 0)
+                rshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
             else
-                lshift = (mfxU8)(16 - pDst->Info.BitDepthLuma);
+                lshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
 
-            sts = FastCopy::CopyAndShift((mfxU16*)(pDst->Data.Y), dstPitch, (mfxU16 *)pSrc->Data.Y, srcPitch, roi, lshift, rshift, copyFlag);
+            return FastCopy::CopyAndShift((mfxU16*)(dst.Data.Y), dstPitch, (mfxU16 *)src.Data.Y, srcPitch, roi, lshift, rshift, copyFlag);
         }
         else
+#endif
         {
             roi.width *= 4;
-            sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
+            return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
         }
 
-        MFX_CHECK_STS(sts);
-        break;
+
     case MFX_FOURCC_Y410:
     {
-        MFX_CHECK_NULL_PTR1(pDst->Data.Y410);
+        MFX_CHECK_NULL_PTR1(dst.Data.Y410);
 
-        mfxU8* ptrDst = (mfxU8*) pDst->Data.Y410;
-        mfxU8* ptrSrc = (mfxU8*) pSrc->Data.Y410;
+        mfxU8* ptrDst = (mfxU8*)dst.Data.Y410;
+        mfxU8* ptrSrc = (mfxU8*)src.Data.Y410;
 
         roi.width *= 4;
 
-        sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
     }
 #endif
 
 #if (MFX_VERSION >= 1031)
     case MFX_FOURCC_Y416:
-        MFX_CHECK_NULL_PTR1(pSrc->Data.U16);
+        MFX_CHECK_NULL_PTR1(src.Data.U16);
 
         //we use 8u copy, so we need to increase ROI to handle 16 bit samples
-        roi.width *= 8;
-        sts = FastCopy::Copy((mfxU8*)pDst->Data.U16, dstPitch, (mfxU8*)pSrc->Data.U16, srcPitch, roi, copyFlag);
+#if defined(_WIN32) || defined(_WIN64)
+        if (src.Info.Shift != dst.Info.Shift)
+        {
+            roi.width *= 4; // CopyAndShift operates with 2-byte words
+            mfxU8 lshift = 0;
+            mfxU8 rshift = 0;
+            if (src.Info.Shift != 0)
+                rshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
+            else
+                lshift = (mfxU8)(16 - dst.Info.BitDepthLuma);
 
-        MFX_CHECK_STS(sts);
-        break;
+            return FastCopy::CopyAndShift(dst.Data.U16, dstPitch, src.Data.U16, srcPitch, roi, lshift, rshift, copyFlag);
+        }
+        else
 #endif
+        {
+            roi.width *= 8;
+            return FastCopy::Copy((mfxU8*)dst.Data.U16, dstPitch, (mfxU8*)src.Data.U16, srcPitch, roi, copyFlag);
+        }
+#endif
+
+#if defined (MFX_ENABLE_FOURCC_RGB565)
+    case MFX_FOURCC_RGB565:
+    {
+        mfxU8* ptrSrc = src.Data.B;
+        mfxU8* ptrDst = dst.Data.B;
+
+        roi.width *= 2;
+
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+    }
+#endif // MFX_ENABLE_FOURCC_RGB565
+
+    case MFX_FOURCC_RGB3:
+    {
+        mfxU8* ptrSrc = min({ src.Data.R, src.Data.G, src.Data.B });
+        mfxU8* ptrDst = min({ dst.Data.R, dst.Data.G, dst.Data.B });
+
+        roi.width *= 3;
+
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+    }
+#ifdef MFX_ENABLE_RGBP
+    case MFX_FOURCC_RGBP:
+    {
+        mfxU8* ptrSrc = src.Data.B;
+        mfxU8* ptrDst = dst.Data.B;
+        MFX_SAFE_CALL(FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag));
+
+        ptrSrc = src.Data.G;
+        ptrDst = dst.Data.G;
+        MFX_SAFE_CALL(FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag));
+
+        ptrSrc = src.Data.R;
+        ptrDst = dst.Data.R;
+
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+    }
+#endif
+
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_A2RGB10:
-        {
-            mfxU8* ptrSrc = std::min({pSrc->Data.R, pSrc->Data.G, pSrc->Data.B});
-            mfxU8* ptrDst = std::min({pDst->Data.R, pDst->Data.G, pDst->Data.B});
+    {
+        mfxU8* ptrSrc = min({ src.Data.R, src.Data.G, src.Data.B });
+        mfxU8* ptrDst = min({ dst.Data.R, dst.Data.G, dst.Data.B });
 
-            roi.width *= 4;
+        roi.width *= 4;
 
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-            break;
-        }
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
+    }
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
-        {
-            mfxU8* ptrSrc = std::min({pSrc->Data.R, pSrc->Data.G, pSrc->Data.B});
-            mfxU8* ptrDst = std::min({pDst->Data.R, pDst->Data.G, pDst->Data.B});
+    {
+        mfxU8* ptrSrc = min({ src.Data.R, src.Data.G, src.Data.B });
+        mfxU8* ptrDst = min({ dst.Data.R, dst.Data.G, dst.Data.B });
 
-            roi.width *= 8;
+        roi.width *= 8;
 
-            sts = FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
-            MFX_CHECK_STS(sts);
-            break;
-        }
-    case MFX_FOURCC_P8:
-        sts = FastCopy::Copy(pDst->Data.Y, dstPitch, pSrc->Data.Y, srcPitch, roi, copyFlag);
-        MFX_CHECK_STS(sts);
-        break;
-    default:
-        return MFX_ERR_UNSUPPORTED;
+        return FastCopy::Copy(ptrDst, dstPitch, ptrSrc, srcPitch, roi, copyFlag);
     }
+    case MFX_FOURCC_P8:
+        return FastCopy::Copy(dst.Data.Y, dstPitch, src.Data.Y, srcPitch, roi, copyFlag);
 
-    return MFX_ERR_NONE;
+    default:
+        MFX_RETURN(MFX_ERR_UNSUPPORTED);
+    }
 }
 
 mfxStatus CommonCORE::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)
@@ -1581,7 +1472,7 @@ mfxStatus CommonCORE::DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface
 
     // system memories were passed
     // use common way to copy frames
-    sts = CoreDoSWFastCopy(pDst, pSrc, copyFlag);
+    sts = CoreDoSWFastCopy(*pDst, *pSrc, copyFlag);
 
     if (isDstLocked)
     {
@@ -1669,12 +1560,6 @@ mfxStatus CommonCORE::CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src)
     {
         return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
-}
-
-// Deprecated
-bool CommonCORE::IsFastCopyEnabled()
-{
-    return (true);
 }
 
 
@@ -1832,7 +1717,7 @@ void* CommonCORE::QueryCoreInterface(const MFX_GUID &guid)
         return &m_API_1_19;
     }
 
-    return NULL;
+    return nullptr;
 }
 
 void CommonCORE::SetWrapper(void* pWrp)
@@ -1846,7 +1731,7 @@ mfxU16 CommonCORE::GetAutoAsyncDepth()
 }
 
 
-// keep frame response structure dwscribing plug-in memory surfaces
+// keep frame response structure describing plug-in memory surfaces
 void CommonCORE::AddPluginAllocResponse(mfxFrameAllocResponse& response)
 {
     m_PlugInMids.push_back(response);
