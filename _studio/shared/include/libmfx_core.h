@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2019 Intel Corporation
-// 
+// Copyright (c) 2017-2020 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -45,114 +45,112 @@ public:
 
     friend class FactoryCORE;
 
-    virtual ~CommonCORE(void);
+    virtual ~CommonCORE() override { Close(); }
 
-    virtual mfxStatus GetHandle(mfxHandleType type, mfxHDL *handle);
-    virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle);
+    virtual mfxStatus GetHandle(mfxHandleType type, mfxHDL *handle)          override;
+    virtual mfxStatus SetHandle(mfxHandleType type, mfxHDL handle)           override;
 
-    virtual mfxStatus SetBufferAllocator(mfxBufferAllocator *allocator);
-    virtual mfxStatus SetFrameAllocator(mfxFrameAllocator *allocator);
+    virtual mfxStatus SetBufferAllocator(mfxBufferAllocator *)               override;
+    virtual mfxStatus SetFrameAllocator(mfxFrameAllocator *allocator)        override;
 
     // Utility functions for memory access
-    virtual mfxStatus  AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxMemId *mid);
-    virtual mfxStatus  LockBuffer(mfxMemId mid, mfxU8 **ptr);
-    virtual mfxStatus  UnlockBuffer(mfxMemId mid);
-    virtual mfxStatus  FreeBuffer(mfxMemId mid);
+    virtual mfxStatus AllocBuffer(mfxU32 nbytes, mfxU16 type, mfxMemId *mid) override;
+    virtual mfxStatus LockBuffer(mfxMemId mid, mfxU8 **ptr)                  override;
+    virtual mfxStatus UnlockBuffer(mfxMemId mid)                             override;
+    virtual mfxStatus FreeBuffer(mfxMemId mid)                               override;
 
     // DEPRECATED
-    virtual mfxStatus  CheckHandle();
+    virtual mfxStatus CheckHandle() override { return MFX_ERR_NONE; }
 
-    virtual mfxStatus  GetFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true);
+    virtual mfxStatus GetFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true)               override;
 
-    virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request, 
-                                   mfxFrameAllocResponse *response, bool isNeedCopy = true);
-   
-    virtual mfxStatus  AllocFrames(mfxFrameAllocRequest *request, 
+    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
+                                   mfxFrameAllocResponse *response, bool isNeedCopy = true)               override;
+
+    virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request,
                                    mfxFrameAllocResponse *response,
-                                   mfxFrameSurface1 **pOpaqueSurface, 
-                                   mfxU32 NumOpaqueSurface);
+                                   mfxFrameSurface1 **pOpaqueSurface,
+                                   mfxU32 NumOpaqueSurface)                                               override;
 
-    virtual mfxStatus  LockFrame(mfxMemId mid, mfxFrameData *ptr);
-    virtual mfxStatus  UnlockFrame(mfxMemId mid, mfxFrameData *ptr=0);
-    virtual mfxStatus  FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch = true);
+    virtual mfxStatus LockFrame(mfxMemId mid, mfxFrameData *ptr)                                          override;
+    virtual mfxStatus UnlockFrame(mfxMemId mid, mfxFrameData *ptr = nullptr)                              override;
+    virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response, bool ExtendedSearch = true)             override;
 
-    virtual mfxStatus  LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch = true);
-    virtual mfxStatus  GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true);
-    virtual mfxStatus  UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr=0, bool ExtendedSearch = true);
+    virtual mfxStatus LockExternalFrame(mfxMemId mid, mfxFrameData *ptr, bool ExtendedSearch = true)      override;
+    virtual mfxStatus GetExternalFrameHDL(mfxMemId mid, mfxHDL *handle, bool ExtendedSearch = true)       override;
+    virtual mfxStatus UnlockExternalFrame(mfxMemId mid, mfxFrameData *ptr=0, bool ExtendedSearch = true)  override;
 
-    virtual mfxMemId MapIdx(mfxMemId mid);
+    virtual mfxMemId MapIdx(mfxMemId mid)                                                                 override;
 
     // Get original Surface corresponding to OpaqueSurface
-    virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true);
+    virtual mfxFrameSurface1* GetNativeSurface(mfxFrameSurface1 *pOpqSurface, bool ExtendedSearch = true) override;
     // Get OpaqueSurface corresponding to Original
-    virtual mfxFrameSurface1* GetOpaqSurface(mfxMemId mid, bool ExtendedSearch = true);
-
-
+    virtual mfxFrameSurface1* GetOpaqSurface(mfxMemId mid, bool ExtendedSearch = true)                    override;
 
     // Increment Surface lock caring about opaq
-    virtual mfxStatus  IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true);
+    virtual mfxStatus IncreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true)                    override;
     // Decrement Surface lock caring about opaq
-    virtual mfxStatus  DecreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true);
+    virtual mfxStatus DecreaseReference(mfxFrameData *ptr, bool ExtendedSearch = true)                    override;
 
     // no care about surface, opaq and all round. Just increasing reference
-    virtual mfxStatus IncreasePureReference(mfxU16 &Locked);
+    virtual mfxStatus IncreasePureReference(mfxU16 &Locked)                                               override;
     // no care about surface, opaq and all round. Just decreasing reference
-    virtual mfxStatus DecreasePureReference(mfxU16 &Locked);
+    virtual mfxStatus DecreasePureReference(mfxU16 &Locked)                                               override;
 
     // Get Video Accelerator.
-    virtual void  GetVA(mfxHDL* phdl, mfxU16 type);
-    virtual mfxStatus CreateVA(mfxVideoParam * , mfxFrameAllocRequest *, mfxFrameAllocResponse *, UMC::FrameAllocator *) { return MFX_ERR_UNSUPPORTED; }
+    virtual void  GetVA(mfxHDL* phdl, mfxU16)                   override { *phdl = nullptr; }
+    virtual mfxStatus CreateVA(mfxVideoParam *, mfxFrameAllocRequest *, mfxFrameAllocResponse *, UMC::FrameAllocator *) override { MFX_RETURN(MFX_ERR_UNSUPPORTED); }
     // Get the current working adapter's number
-    virtual mfxU32 GetAdapterNumber(void) {return 0;}
+    virtual mfxU32 GetAdapterNumber()                           override { return 0; }
     //
-    virtual eMFXPlatform GetPlatformType() {return  MFX_PLATFORM_SOFTWARE;}
+    virtual eMFXPlatform GetPlatformType()                      override { return MFX_PLATFORM_SOFTWARE; }
 
     // Get Video Processing
-    virtual void  GetVideoProcessing(mfxHDL* phdl) {*phdl = 0;}
-    virtual mfxStatus CreateVideoProcessing(mfxVideoParam *) { return MFX_ERR_UNSUPPORTED; }
+    virtual void  GetVideoProcessing(mfxHDL* phdl)              override { *phdl = 0; }
+    virtual mfxStatus CreateVideoProcessing(mfxVideoParam *)    override { MFX_RETURN(MFX_ERR_UNSUPPORTED); }
 
     // Get the current number of working threads
-    virtual mfxU32 GetNumWorkingThreads(void) {return m_numThreadsAvailable;}
-    virtual void INeedMoreThreadsInside(const void *pComponent);
+    virtual mfxU32 GetNumWorkingThreads()                       override { return m_numThreadsAvailable; }
+    virtual void INeedMoreThreadsInside(const void *pComponent) override;
 
-    virtual mfxStatus DoFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
-    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc);
+    virtual mfxStatus DoFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc)         override;
+    virtual mfxStatus DoFastCopyExtended(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc) override;
 
-    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType);
+    virtual mfxStatus DoFastCopyWrapper(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) override;
 
     // DEPRECATED
-    virtual bool IsFastCopyEnabled(void);
+    virtual bool IsFastCopyEnabled()              override { return true; }
 
-    virtual bool IsExternalFrameAllocator() const;
-    virtual eMFXHWType   GetHWType() { return MFX_HW_UNKNOWN; }
+    virtual bool IsExternalFrameAllocator() const override;
+    virtual eMFXHWType GetHWType()                override { return MFX_HW_UNKNOWN; }
 
-    virtual
-    mfxStatus CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src);
+    virtual mfxStatus CopyFrame(mfxFrameSurface1 *dst, mfxFrameSurface1 *src) override;
 
-    virtual
-    mfxStatus CopyBuffer(mfxU8 * /*dst*/, mfxU32 /*dst_size*/, mfxFrameSurface1 * /*src*/) {return MFX_ERR_UNKNOWN;}
+    virtual mfxStatus CopyBuffer(mfxU8 *, mfxU32, mfxFrameSurface1 *)         override { MFX_RETURN(MFX_ERR_UNKNOWN); }
 
-    virtual
-    mfxStatus CopyFrameEx(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) {return DoFastCopyWrapper(pDst, dstMemType, pSrc, srcMemType);}
+    virtual mfxStatus CopyFrameEx(mfxFrameSurface1 *pDst, mfxU16 dstMemType, mfxFrameSurface1 *pSrc, mfxU16 srcMemType) override
+    {
+        return DoFastCopyWrapper(pDst, dstMemType, pSrc, srcMemType);
+    }
 
-    virtual mfxStatus IsGuidSupported(const GUID /*guid*/, mfxVideoParam * /*par*/, bool /*isEncoder = false*/) { return MFX_ERR_NONE; };
+    virtual mfxStatus IsGuidSupported(const GUID, mfxVideoParam *, bool)      override { return MFX_ERR_NONE; }
 
-    bool CheckOpaqueRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, bool ExtendedSearch = true);
-    
-    virtual eMFXVAType   GetVAType() const {return MFX_HW_NO; };
+    virtual bool CheckOpaqueRequest(mfxFrameAllocRequest *request, mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, bool ExtendedSearch = true) override;
 
-    virtual bool SetCoreId(mfxU32 Id);
-    virtual void* QueryCoreInterface(const MFX_GUID &guid);
+    virtual eMFXVAType GetVAType() const                   override { return MFX_HW_NO; }
 
-    virtual mfxSession GetSession() {return m_session;}
+    virtual bool SetCoreId(mfxU32 Id)                      override;
+    virtual void* QueryCoreInterface(const MFX_GUID &guid) override;
 
-    virtual void SetWrapper(void* pWrp);
+    virtual mfxSession GetSession()                        override { return m_session; }
 
-    virtual mfxU16 GetAutoAsyncDepth();
+    virtual void SetWrapper(void* pWrp)                    override;
 
-    virtual bool IsCompatibleForOpaq() {return true;};  
+    virtual mfxU16 GetAutoAsyncDepth()                     override;
 
-    // keep frame response structure dwscribing plug-in memory surfaces
+    virtual bool IsCompatibleForOpaq()                     override { return true; }
+
+    // keep frame response structure describing plug-in memory surfaces
     void AddPluginAllocResponse(mfxFrameAllocResponse& response);
 
     // get response which corresponds required conditions: same mids and number
@@ -162,8 +160,8 @@ public:
     mfxStatus QueryPlatform(mfxPlatform* platform);
 
 protected:
-    
-    CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession session = NULL);
+
+    CommonCORE(const mfxU32 numThreadsAvailable, const mfxSession session = nullptr);
 
     class API_1_19_Adapter : public IVideoCore_API_1_19
     {
@@ -200,7 +198,7 @@ protected:
     };
 
     //function checks if surfaces already allocated and mapped and request is consistent. Fill response if surfaces are correct
-    bool IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, mfxFrameAllocResponse *response, bool ExtendedSearch = true);
+    virtual bool IsOpaqSurfacesAlreadyMapped(mfxFrameSurface1 **pOpaqueSurface, mfxU32 NumOpaqueSurface, mfxFrameAllocResponse *response, bool ExtendedSearch = true) override;
 
     typedef struct
     {
@@ -220,64 +218,63 @@ protected:
     typedef std::map<mfxFrameAllocResponse*, mfxU32> RefCtrTbl;
 
 
-    CorrespTbl m_CTbl;
-    AllocQueue m_AllocatorQueue;
-    MemIDMap   m_RespMidQ;
-    OpqTbl     m_OpqTbl;
-    OpqTbl_MemId m_OpqTbl_MemId;
+    CorrespTbl       m_CTbl;
+    AllocQueue       m_AllocatorQueue;
+    MemIDMap         m_RespMidQ;
+    OpqTbl           m_OpqTbl;
+    OpqTbl_MemId     m_OpqTbl_MemId;
     OpqTbl_FrameData m_OpqTbl_FrameData;
-    RefCtrTbl  m_RefCtrTbl;
+    RefCtrTbl        m_RefCtrTbl;
 
     // Number of available threads
     const
-    mfxU32 m_numThreadsAvailable;
+    mfxU32                                     m_numThreadsAvailable;
     // Handler to the owning session
     const
-    mfxSession m_session;
+    mfxSession                                 m_session;
 
     // Common I/F
-    mfxWideBufferAllocator m_bufferAllocator;
-    mfxBaseWideFrameAllocator m_FrameAllocator;
+    mfxWideBufferAllocator                     m_bufferAllocator;
+    mfxBaseWideFrameAllocator                  m_FrameAllocator;
 
-    mfxU32 m_NumAllocators;
-    mfxHDL                     m_hdl;
+    mfxU32                                     m_NumAllocators;
+    mfxHDL                                     m_hdl;
 
-    mfxHDL                     m_DXVA2DecodeHandle;
+    mfxHDL                                     m_DXVA2DecodeHandle;
 
-    mfxHDL                     m_D3DDecodeHandle;
-    mfxHDL                     m_D3DEncodeHandle;
-    mfxHDL                     m_D3DVPPHandle;
+    mfxHDL                                     m_D3DDecodeHandle;
+    mfxHDL                                     m_D3DEncodeHandle;
+    mfxHDL                                     m_D3DVPPHandle;
 
-    bool m_bSetExtBufAlloc;
-    bool m_bSetExtFrameAlloc;
+    bool                                       m_bSetExtBufAlloc;
+    bool                                       m_bSetExtFrameAlloc;
 
     std::unique_ptr<mfxMemId[]>                m_pMemId;
     std::unique_ptr<mfxBaseWideFrameAllocator> m_pcAlloc;
 
     std::unique_ptr<FastCopy>                  m_pFastCopy;
-    bool m_bUseExtManager;
-    UMC::Mutex m_guard;
+    bool                                       m_bUseExtManager;
+    UMC::Mutex                                 m_guard;
 
-    bool        m_bIsOpaqMode;
+    bool                                       m_bIsOpaqMode;
 
-    mfxU32      m_CoreId;
+    mfxU32                                     m_CoreId;
 
-    mfx_UMC_FrameAllocator *m_pWrp;
+    mfx_UMC_FrameAllocator*                    m_pWrp;
 
-    EncodeHWCaps  m_encode_caps;
-    EncodeHWCaps  m_encode_mbprocrate;
+    EncodeHWCaps                               m_encode_caps;
+    EncodeHWCaps                               m_encode_mbprocrate;
 
-    std::vector<mfxFrameAllocResponse> m_PlugInMids;
+    std::vector<mfxFrameAllocResponse>         m_PlugInMids;
 
-    API_1_19_Adapter m_API_1_19;
+    API_1_19_Adapter                           m_API_1_19;
 
 
-    mfxU16      m_deviceId;
-private:
-    // Forbid the assignment operator
-    CommonCORE & operator = (const CommonCORE &);
+    mfxU16                                     m_deviceId;
+
+    CommonCORE & operator = (const CommonCORE &) = delete;
 };
 
-mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 *pDst, mfxFrameSurface1 *pSrc, int copyFlag);
+mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src, int copyFlag);
 
 #endif
