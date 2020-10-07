@@ -317,8 +317,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -FRC::PT      Enables FRC filter with Preserve Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::DT      Enables FRC filter with Distributed Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::INTERP  Enables FRC filter with Frame Interpolation algorithm\n"));
-    msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210   Forces encoder input to use provided chroma mode\n"));
-    msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2   Forces decoder output to use provided chroma mode\n"));
+    msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210|p016|y216|y416   Forces encoder input to use provided chroma mode\n"));
+    msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2|p016|y216   Forces decoder output to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided\n"));
     msdk_printf(MSDK_STRING("  -angle 180    Enables 180 degrees picture rotation user module before encoding\n"));
     msdk_printf(MSDK_STRING("  -opencl       Uses implementation of rotation plugin (enabled with -angle option) through Intel(R) OpenCL\n"));
@@ -1402,6 +1402,33 @@ mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, Transco
         params->EncoderFourCC = MFX_FOURCC_P210;
         return MFX_ERR_NONE;
     }
+#if (MFX_VERSION >= 1031)
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::p016")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_P016;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::y216")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_Y216;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::y416")))
+    {
+        params->DecoderFourCC = MFX_FOURCC_Y216;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::p016")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_P016;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::y216")))
+    {
+        params->EncoderFourCC = MFX_FOURCC_Y216;
+        return MFX_ERR_NONE;
+    }
+#endif
     else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-dc::rgb4")))
     {
         params->DecoderFourCC = MFX_FOURCC_RGB4;
