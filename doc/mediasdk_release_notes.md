@@ -404,6 +404,7 @@ This release is subject to the following known limitations:
             - PRefType
             - IntRefCycleDist
             - EnableQPOffset
+            - EnableMBQP
             - QPOffset
             - NumRefActiveP
             - NumRefActiveBL0
@@ -431,8 +432,8 @@ This release is subject to the following known limitations:
         - the feature is applicable only for CQP BRC.
         - QP values can be set in range 0-51.
         - only *MFX_MBQP_MODE_QP_VALUE* is supported.
-        - the feature supports only LCU 32x32. However, application shall allocate memory for QP map for blocks 16x16. Please see an example for 720x480 case:
-        ![LCU QP layout](./pic/lcu_qp_layout.png)
+        - Application shall allocate memory for QP map for blocks 16x16. Please see an example for 720x480 case:  
+        ![LCU QP layout](./pic/lcu_qp_layout.png)  
         where 0...1349 are indices of a 16x16 blocks in a linear memory array of the QP map.
         QP values in blocks 0, 2, 4, 6, ..., 89, 91, 93, ... are used by encoder. The rest blocks are ignored.
     - SkipFrame feature has the following limitations:
