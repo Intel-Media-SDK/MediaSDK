@@ -1562,7 +1562,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     m_caps.ddi_caps.MaxNum_WeightedPredL0   = 4;
     m_caps.ddi_caps.MaxNum_WeightedPredL1   = 2;
 
-    m_caps.ddi_caps.Color420Only = !(AV(VAConfigAttribRTFormat) & (VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444));
+    m_caps.ddi_caps.Color420Only = !(AV(VAConfigAttribRTFormat) | VA_RT_FORMAT_YUV422 | VA_RT_FORMAT_YUV444);
 
     m_caps.ddi_caps.MaxPicWidth = AV(VAConfigAttribMaxPictureWidth);
     if (m_caps.ddi_caps.MaxPicWidth == VA_ATTRIB_NOT_SUPPORTED || m_caps.ddi_caps.MaxPicWidth == 0)
