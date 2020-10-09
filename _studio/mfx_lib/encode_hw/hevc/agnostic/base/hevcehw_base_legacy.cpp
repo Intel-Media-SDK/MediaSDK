@@ -994,7 +994,9 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
     {
         MFX_CHECK(!strg.Contains(Glob::VPS::Key), MFX_ERR_NONE);
         auto dflts = GetRTDefaults(strg);
-        SetVPS(dflts, Glob::VPS::GetOrConstruct(strg));
+
+        auto sts = dflts.base.GetVPS(dflts, Glob::VPS::GetOrConstruct(strg));
+        MFX_CHECK_STS(sts);
 
         return MFX_ERR_NONE;
     });
@@ -2551,53 +2553,6 @@ mfxU32 Legacy::GetMinBsSize(
     mfxU32 avgSize = TargetKbps(par.mfx) * 1000 * par.mfx.FrameInfo.FrameRateExtD / (par.mfx.FrameInfo.FrameRateExtN * 8);
 
     return std::max<mfxU32>(size, avgSize * 2);
-}
-
-void Legacy::SetVPS(
-    const Defaults::Param& dflts
-    , VPS& vps)
-{
-    auto&                  par       = dflts.mvp;
-    const mfxExtHEVCParam& HEVCParam = ExtBuffer::Get(par);
-    mfxU16                 NumTL     = dflts.base.GetNumTemporalLayers(dflts);
-    PTL&                   general   = vps.general;
-    SubLayerOrdering&      slo       = vps.sub_layer[NumTL - 1];
-
-    vps = VPS{};
-    vps.video_parameter_set_id                  = 0;
-    vps.reserved_three_2bits                    = 3;
-    vps.max_layers_minus1                       = 0;
-    vps.max_sub_layers_minus1                   = mfxU16(NumTL - 1);
-    vps.temporal_id_nesting_flag                = 1;
-    vps.reserved_0xffff_16bits                  = 0xFFFF;
-    vps.sub_layer_ordering_info_present_flag    = 0;
-
-    vps.timing_info_present_flag        = 1;
-    vps.num_units_in_tick               = par.mfx.FrameInfo.FrameRateExtD;
-    vps.time_scale                      = par.mfx.FrameInfo.FrameRateExtN;
-    vps.poc_proportional_to_timing_flag = 0;
-    vps.num_hrd_parameters              = 0;
-
-    general.profile_space                   = 0;
-    general.tier_flag                       = !!(par.mfx.CodecLevel & MFX_TIER_HEVC_HIGH);
-    general.profile_idc                     = mfxU8(par.mfx.CodecProfile);
-    general.profile_compatibility_flags     = 1 << (31 - general.profile_idc);
-    general.progressive_source_flag         = !!(par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-    general.interlaced_source_flag          = !(par.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-    general.non_packed_constraint_flag      = 0;
-    general.frame_only_constraint_flag      = 0;
-    general.level_idc                       = mfxU8((par.mfx.CodecLevel & 0xFF) * 3);
-
-    if (par.mfx.CodecProfile == MFX_PROFILE_HEVC_REXT)
-    {
-        general.rext_constraint_flags_0_31  = (mfxU32)(HEVCParam.GeneralConstraintFlags & 0xffffffff);
-        general.rext_constraint_flags_32_42 = (mfxU32)(HEVCParam.GeneralConstraintFlags >> 32);
-    }
-
-    auto numReorderFrames = dflts.base.GetNumReorderFrames(dflts);
-    slo.max_dec_pic_buffering_minus1 = par.mfx.NumRefFrame;
-    slo.max_num_reorder_pics         = std::min<mfxU8>(numReorderFrames, slo.max_dec_pic_buffering_minus1);
-    slo.max_latency_increase_plus1   = 0;
 }
 
 typedef std::remove_reference<decltype(((mfxExtAVCRefListCtrl*)nullptr)->PreferredRefList[0])>::type TLCtrlRLE;
