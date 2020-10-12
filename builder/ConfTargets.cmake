@@ -22,6 +22,16 @@ message( STATUS "Global Configuration of Targets" )
 
 append("-std=c++11" CMAKE_CXX_FLAGS)
 
+if (ENABLE_CHROME_TRACE)
+  append("-DMFX_TRACE_ENABLE_CHROME" CMAKE_C_FLAGS)
+  append("-DMFX_TRACE_ENABLE_CHROME" CMAKE_CXX_FLAGS)
+endif()
+
+if (ENABLE_MFX_TRACE2)
+  append("-DUSE_MFX_TRACE2" CMAKE_C_FLAGS)
+  append("-DUSE_MFX_TRACE2" CMAKE_CXX_FLAGS)
+endif()
+
 if (ENABLE_TEXTLOG)
   append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_C_FLAGS)
   append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_CXX_FLAGS)
@@ -30,6 +40,11 @@ endif()
 if (ENABLE_STAT)
   append("-DMFX_TRACE_ENABLE_STAT" CMAKE_C_FLAGS)
   append("-DMFX_TRACE_ENABLE_STAT" CMAKE_CXX_FLAGS)
+endif()
+
+if (ENABLE_VTUNE_FTRACE)
+  append("-DMFX_TRACE_ENABLE_FTRACE" CMAKE_C_FLAGS)
+  append("-DMFX_TRACE_ENABLE_FTRACE" CMAKE_CXX_FLAGS)
 endif()
 
 option( MFX_ENABLE_KERNELS "Build with advanced media kernels support?" ON )

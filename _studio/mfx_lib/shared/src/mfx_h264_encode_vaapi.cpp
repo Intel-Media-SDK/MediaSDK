@@ -2097,6 +2097,7 @@ mfxStatus VAAPIEncoder::Execute(
     mfxU32          fieldId,
     PreAllocatedVector const & sei)
 {
+    mfx::Trace::Scope tr(MFX_TRACE2_CTX, "VAAPIEncoder::Execute", "enc");
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
     mfxHDL surface = pair.first;
@@ -3015,6 +3016,7 @@ mfxStatus VAAPIEncoder::Execute(
         //------------------------------------------------------------------
         // Rendering
         //------------------------------------------------------------------
+        tr.event(MFX_TRACE2_CTX, "vtune_ftrace_message", "A|ENCODE|AVC|PACKET_START|" + std::to_string(m_vaContextEncode) + "|" + std::to_string(task.m_frameNum));
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|AVC|PACKET_START|", "%d|%d", m_vaContextEncode, task.m_frameNum);
         {
             MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaBeginPicture");
@@ -3050,6 +3052,7 @@ mfxStatus VAAPIEncoder::Execute(
             vaSts = vaEndPicture(m_vaDisplay, m_vaContextEncode);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
+        tr.event(MFX_TRACE2_CTX, "vtune_ftrace_message", "A|ENCODE|AVC|PACKET_END|" + std::to_string(m_vaContextEncode) + "|" + std::to_string(task.m_frameNum));
         MFX_LTRACE_2(MFX_TRACE_LEVEL_HOTSPOTS, "A|ENCODE|AVC|PACKET_END|", "%d|%d", m_vaContextEncode, task.m_frameNum);
     }
     else

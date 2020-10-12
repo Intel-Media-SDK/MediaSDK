@@ -20,7 +20,7 @@
 
 #include "mfx_trace.h"
 
-#if defined(MFX_TRACE_ENABLE_FTRACE) && (defined(LINUX32) || defined(ANDROID))
+#if !defined(USE_MFX_TRACE2) && defined(MFX_TRACE_ENABLE_FTRACE) && (defined(LINUX32) || defined(ANDROID))
 
 
 extern "C" {
