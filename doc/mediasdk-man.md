@@ -1,4 +1,4 @@
-﻿![](./pic/intel_logo.png)
+![](./pic/intel_logo.png)
 
 # **Media SDK Developer Reference**
 ## Media SDK API Version 1.34
@@ -9424,8 +9424,6 @@ The `PlatformCodeName` enumerator itemizes Intel® microarchitecture code names.
 `MFX_PLATFORM_JASPERLAKE`   | Jasper Lake
 `MFX_PLATFORM_ELKHARTLAKE`  | Elkhart Lake
 `MFX_PLATFORM_TIGERLAKE`    | Tiger Lake
-`MFX_PLATFORM_ROCKETLAKE`   | Rocket Lake
-`MFX_PLATFORM_ALDERLAKE_S`  | Alder Lake S
 `MFX_PLATFORM_KEEMBAY`      | Keem Bay
 
 **Change History**
@@ -9441,7 +9439,7 @@ SDK API 1.31 adds `MFX_PLATFORM_ELKHARTLAKE`, `MFX_PLATFORM_JASPERLAKE`, `MFX_PL
 
 SDK API 1.34 adds `MFX_PLATFORM_KEEMBAY`.
 
-SDK API **TBD** adds `MFX_PLATFORM_ROCKETLAKE`, `MFX_PLATFORM_ALDERLAKE_S`, `MFX_PLATFORM_LAKEFIELD`.
+SDK API **TBD** adds `MFX_PLATFORM_LAKEFIELD`.
 
 ## <a id='mfxMediaAdapterType'>mfxMediaAdapterType</a>
 
