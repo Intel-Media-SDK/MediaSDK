@@ -441,7 +441,7 @@ static inline bool QueryAdapterInfo(mfxU32 adapter_n, mfxU32& VendorID, mfxU32& 
 {
     MFX::DXVA2Device dxvaDevice;
 
-    if (!dxvaDevice.InitD3D9(adapter_n) && !dxvaDevice.InitDXGI1(adapter_n))
+    if (!dxvaDevice.InitDXGI1(adapter_n))
         return false;
 
     VendorID = dxvaDevice.GetVendorID();
