@@ -1585,7 +1585,7 @@ In each function description, only commonly used status codes are documented. Th
 
 ## Global Functions
 
-Global functions initialize and de-initialize the SDK library and perform query functions on a global scale within an application.
+Global functions initialize and de-initialize the SDK library and perform query functions on a global scale within an application. Please, note that result of MFXQueryAdapters*** functions corresponds only to DX11 adapters enumeration (see [Multiple Monitors](#Multiple_monitors) section and each function description for details).
 
  **Member Functions** | Description
  -------------------- | -----------
