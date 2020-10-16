@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -996,6 +996,7 @@ mfxStatus GetChromaSize(const mfxFrameInfo & pInfo, mfxU32 & ChromaW, mfxU32 & C
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_NV16:
     case MFX_FOURCC_A2RGB10:
     case MFX_FOURCC_Y410:
     case MFX_FOURCC_Y416:
@@ -1056,6 +1057,7 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
     {
     case MFX_FOURCC_YV12:
     case MFX_FOURCC_NV12:
+    case MFX_FOURCC_NV16:
         for (i = 0; i < pInfo.CropH; i++)
         {
             MSDK_CHECK_NOT_EQUAL(
@@ -1210,6 +1212,16 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         {
             MSDK_CHECK_NOT_EQUAL(
                 fwrite(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch, 1, ChromaW, dstFile),
+                ChromaW, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+        break;
+    }
+    case MFX_FOURCC_NV16:
+    {
+        for (i = 0; i < ChromaH; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL(
+                fwrite(pData.UV + (pInfo.CropY * pData.Pitch / 2 + pInfo.CropX) + i * pData.Pitch, 1, ChromaW, dstFile),
                 ChromaW, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         break;
