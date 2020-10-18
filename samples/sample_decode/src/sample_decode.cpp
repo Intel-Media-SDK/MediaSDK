@@ -73,6 +73,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
     msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)   
+    msdk_printf(MSDK_STRING("   [-ignore_level_constrain] - ignore level constrain\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("JPEG Chroma Type:\n"));
     msdk_printf(MSDK_STRING("   [-jpeg_rgb] - RGB Chroma Type\n"));
@@ -633,6 +636,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             ;
         }
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ignore_level_constrain")))
+        {
+            pParams->bIgnoreLevelConstrain = true;
+        }
+#endif
         else // 1-character options
         {
             switch (strInput[i][1])
