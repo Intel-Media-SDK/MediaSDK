@@ -135,6 +135,10 @@ struct sInputParams
     bool bPrefferiGfx;
 #endif
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    bool bIgnoreLevelConstrain;
+#endif
+
     msdk_char     strSrcFile[MSDK_MAX_FILENAME_LEN];
     msdk_char     strDstFile[MSDK_MAX_FILENAME_LEN];
     sPluginParams pluginParams;
