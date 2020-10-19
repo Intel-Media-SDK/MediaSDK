@@ -1689,7 +1689,7 @@ mfxStatus VAAPIVideoProcessing::Execute_Composition_TiledVideoWall(mfxExecutePar
 
         m_pipelineParam[i].filters      = 0;
         m_pipelineParam[i].num_filters  = 0;
-        m_pipelineParam[i].output_background_color = 0;
+        m_pipelineParam[i].output_background_color = 0xff000000;
 
         vaSts = vaCreateBuffer(m_vaDisplay,
                             m_vaContextVPP,
