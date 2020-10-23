@@ -2574,7 +2574,8 @@ void Legacy::InitDPB(
         for (mfxU8 i = 0; !isDpbEnd(prevTask.DPB.After, i); i++)
         {
             const DpbFrame& ref = prevTask.DPB.After[i]; // initial POC = -1
-            if (ref.POC > task.DPB.Active[0].POC) // disable multiref within IntraRefCycle and next frame
+            if (ref.POC > task.DPB.Active[0].POC && ref.TemporalID == 0) // disable multiref within IntraRefCycle and next frame
+                                                                         // and update DPB.Active only if temporal layer id = 0 for IntraRef cases
                 task.DPB.Active[0] = ref;
         }
     }
