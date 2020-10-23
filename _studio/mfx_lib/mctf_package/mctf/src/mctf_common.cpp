@@ -366,6 +366,13 @@ mfxStatus CMC::MCTF_RELEASE_FRAME(
         MFX_CHECK(mco, MFX_ERR_UNDEFINED_BEHAVIOR);
         mco = nullptr;
         MctfState = AMCTF_NOT_READY;
+        if (mco2)
+        {
+            mco = mco2;
+            idxMco = idxMco2;
+            mco2 = nullptr;
+            idxMco2 = nullptr;
+        }
     }
     return MFX_ERR_NONE;
 }
@@ -604,8 +611,8 @@ mfxStatus CMC::MCTF_SetMemory(
             res = IM_SURF_SET(&mco, &idxMco);
             MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
         }
-        res = IM_SURF_SET(&mco2, &idxMco2);
-        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+        mco2 = nullptr;
+        idxMco2 = nullptr;
 
         //Setup for 2 references
         res = GEN_SURF_SET(&mv_1, &mvSys1, &idxMv_1);
@@ -3241,10 +3248,18 @@ mfxStatus CMC::MCTF_PUT_FRAME(
         if (isCmSurface)
         {
             res = IM_SURF_PUT(QfIn[bufferCount].frameData, (CmSurface2D*)frameData);
-            if ((countFrames == 0 || !(countFrames % MCTFCADENCE)) && !mco)
+            if ((countFrames == 0 || !(countFrames % MCTFCADENCE)))
             {
-                mco = (CmSurface2D*)frameData;
-                mco->GetIndex(idxMco);
+                if (mco && isSceneChange)
+                {
+                    mco2 = (CmSurface2D*)frameData;
+                    mco2->GetIndex(idxMco2);
+                }
+                else
+                {
+                    mco = (CmSurface2D*)frameData;
+                    mco->GetIndex(idxMco);
+                }
             }
         }
         else
@@ -3322,7 +3337,13 @@ mfxStatus CMC::MCTF_DO_FILTERING_IN_AVC()
             case 0:
             {
                 MCTF_UpdateANDApplyRTParams(1);
-                res = (this->*(pMCTF_func))(false);
+                if (QfIn[1].scene_idx != QfIn[0].scene_idx)
+                {
+                    res = MCTF_RUN_AMCTF(1);
+                    RotateBuffer();
+                }
+                else
+                    res = (this->*(pMCTF_func))(false);
                 CurrentIdx2Out = DefaultIdx2Out;
                 break;
             }
