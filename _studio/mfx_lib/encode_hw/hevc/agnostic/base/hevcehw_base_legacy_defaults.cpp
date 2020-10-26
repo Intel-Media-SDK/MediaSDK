@@ -1500,7 +1500,7 @@ public:
         or equal to the previous slices.*/
         const mfxU32 RowSlice           = 2;
         //Arbitrary number of rows per slice for all slices.
-        //const mfxU32 ArbitraryRowSlice  = 3;
+        const mfxU32 ArbitraryRowSlice  = 3;
         //Arbitrary number of macroblocks per slice for all slices.
         const mfxU32 ArbitraryMbSlice   = 4;
 
@@ -1526,6 +1526,14 @@ public:
         {
             bStrictNumLCUPerSlice = !!pCO2->NumMbPerSlice;
             nLcuPerSlice          = pCO2->NumMbPerSlice;
+        }
+
+        mfxExtHEVCParam* pHEVC = ExtBuffer::Get(dpar.mvp);
+        MFX_CHECK(pHEVC, MFX_ERR_NONE);
+
+        if (SliceStructure == ArbitraryRowSlice)
+        {
+            nLcuPerSlice -= (nLcuPerSlice % pHEVC->LCUSize);
         }
 
         SetDefault(nLcuPerSlice, nLCU / nSlice);
@@ -1712,7 +1720,7 @@ public:
 
         SliceStructure =
             SliceStructure * !bHardcodeSliceStructure2
-            + 2 * bHardcodeSliceStructure2;
+            + 3 * bHardcodeSliceStructure2;
 
         slices.resize(0);
 
