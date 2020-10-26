@@ -8763,7 +8763,7 @@ The `mfxHandleType` enumerator itemizes system handle types that SDK implementat
 `MFX_HANDLE_ENCODE_CONTEXT` | Pointer to VAContextID interface. It represents encoder context.
 `MFX_HANDLE_VA_CONFIG_ID` | Pointer to VAConfigID interface. It represents external VA config for Common Encryption usage model.
 `MFX_HANDLE_VA_CONTEXT_ID` | Pointer to VAContextID interface. It represents external VA context for Common Encryption usage model.
-`MFX_HANDLE_CM_DEVICE`      | Pointer to `CmDevice` interface ( [Intel® C for media](https://github.com/01org/cmrt) ).
+`MFX_HANDLE_CM_DEVICE`      | Pointer to `CmDevice` interface ( [Intel® C for media](https://github.com/intel/cmrt) ).
 
 **Change History**
 

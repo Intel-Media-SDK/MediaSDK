@@ -10,7 +10,7 @@ Media SDK is a part of Intel software stack for graphics:
   * Visit [documentation](https://dgpu-docs.intel.com) for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux&ast;-based operating system distributions.
 
 # Dependencies
-Intel Media SDK depends on [LibVA](https://github.com/01org/libva/).
+Intel Media SDK depends on [LibVA](https://github.com/intel/libva/).
 This version of Intel Media SDK is compatible with the open source [Intel Media Driver for VAAPI](https://github.com/intel/media-driver).
 
 # Table of contents
@@ -157,7 +157,7 @@ Visit our [Github Wiki](https://github.com/Intel-Media-SDK/MediaSDK/wiki) for ad
 
 To enable the Instrumentation and Tracing Technology (ITT) API you need to:
 * Either install [Intel® VTune™ Amplifier](https://software.intel.com/en-us/intel-vtune-amplifier-xe)
-* Or manually build an open source version (see [IntelSEAPI](https://github.com/01org/IntelSEAPI/tree/master/ittnotify) for details)
+* Or manually build an open source version (see [IntelSEAPI](https://github.com/intel/IntelSEAPI/tree/master/ittnotify) for details)
 
 and configure Media SDK with the -DENABLE_ITT=ON. In case of VTune it will be searched in the default location (/opt/intel/vtune_amplifier). You can adjust ITT search path with either CMAKE_ITT_HOME or CMAKE_VTUNE_HOME.
 
