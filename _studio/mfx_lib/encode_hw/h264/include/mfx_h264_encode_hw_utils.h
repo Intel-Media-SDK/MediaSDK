@@ -1988,6 +1988,7 @@ namespace MfxHwH264Encode
         }
 
     protected:
+#if defined(MXF_ENABLE_MCTF_IN_AVC)
         std::shared_ptr<CMC>
             amtMctf;
 
@@ -2000,7 +2001,7 @@ namespace MfxHwH264Encode
             void *pParam,
             bool bEoF
         );
-
+#endif
         ASC       amtScd;
         mfxStatus SCD_Put_Frame(
             DdiTask & newTask);
