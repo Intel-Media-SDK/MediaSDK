@@ -1035,6 +1035,11 @@ mfxStatus CDecodingPipeline::InitVppParams()
 #if (MFX_VERSION >= 1027)
         || m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_Y210
 #endif
+#if (MFX_VERSION >= 1331)
+        || m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_P016
+        || m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_Y216
+        || m_mfxVppVideoParams.vpp.Out.FourCC == MFX_FOURCC_Y416
+#endif
         )
     )
     {

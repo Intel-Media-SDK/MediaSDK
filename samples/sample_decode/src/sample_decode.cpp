@@ -86,6 +86,11 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-ayuv] - pipeline output format: AYUV, output file format: AYUV\n"));
     msdk_printf(MSDK_STRING("   [-p010] - pipeline output format: P010, output file format: P010\n"));
     msdk_printf(MSDK_STRING("   [-a2rgb10] - pipeline output format: A2RGB10, output file format: A2RGB10\n"));
+#if (MFX_VERSION >= 1031)
+    msdk_printf(MSDK_STRING("   [-p016] - pipeline output format: P010, output file format: P016\n"));
+    msdk_printf(MSDK_STRING("   [-y216] - pipeline output format: Y216, output file format: Y216\n"));
+    msdk_printf(MSDK_STRING("   [-y416] - pipeline output format: Y416, output file format: Y416\n"));
+#endif
     msdk_printf(MSDK_STRING("\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d]                    - work with d3d9 surfaces\n"));
@@ -624,6 +629,20 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->fourcc = MFX_FOURCC_A2RGB10;
         }
+#if (MFX_VERSION >= 1031)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-p016")))
+        {
+            pParams->fourcc = MFX_FOURCC_P016;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-y216")))
+        {
+            pParams->fourcc = MFX_FOURCC_Y216;
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-y416")))
+        {
+            pParams->fourcc = MFX_FOURCC_Y416;
+        }
+#endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-path")))
         {
             i++;
