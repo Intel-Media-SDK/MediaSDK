@@ -636,7 +636,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             ;
         }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ignore_level_constrain")))
         {
             pParams->bIgnoreLevelConstrain = true;
