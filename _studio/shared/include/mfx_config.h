@@ -68,7 +68,7 @@
         #define MFX_ENABLE_H264_VIDEO_FEI_PAK
     #endif
     #if defined(MFX_ENABLE_MCTF)
-        #define MXF_ENABLE_MCTF_IN_AVC
+        //#define MXF_ENABLE_MCTF_IN_AVC
     #endif
 #endif
 
