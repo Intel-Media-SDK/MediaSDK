@@ -135,7 +135,7 @@ struct sInputParams
     bool bPrefferiGfx;
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1034)
     bool bIgnoreLevelConstrain;
 #endif
 
