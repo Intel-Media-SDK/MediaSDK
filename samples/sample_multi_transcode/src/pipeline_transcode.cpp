@@ -2545,20 +2545,10 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     if (pInParams->bROIasQPMAP || pInParams->bExtMBQP)
     {
         auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
-        switch(m_mfxEncParams.mfx.CodecId)
-        {
-        case MFX_CODEC_AVC:
-        case MFX_CODEC_HEVC:
-            // For AVC codec QP map should define QP value for every 16x16 sub-block of a frame
-            m_QPmapWidth = (m_mfxEncParams.mfx.FrameInfo.Width + 15) >> 4;
-            m_QPmapHeight = (m_mfxEncParams.mfx.FrameInfo.Height + 15) >> 4;
-            co3->EnableMBQP = MFX_CODINGOPTION_ON;
-            break;
-        default:
-            m_QPmapWidth = 0;
-            m_QPmapHeight = 0;
-            break;
-        }
+        // QP map defines QP value for every 16x16 sub-block of a frame
+        m_QPmapWidth = (m_mfxEncParams.mfx.FrameInfo.Width + 15) >> 4;
+        m_QPmapHeight = (m_mfxEncParams.mfx.FrameInfo.Height + 15) >> 4;
+        co3->EnableMBQP = MFX_CODINGOPTION_ON;
     }
 #endif
 
