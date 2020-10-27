@@ -34,6 +34,9 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Xeon® E3-1200 v4 Family and 5th Generation Intel® Core™ Processors will be referred to as “Broadwell”
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
+## What’s New in Media SDK 20.3.1
+* **AVC encode**
+    - Implicit Motion-Compensated Temporal Filter (MCTF) disabled to mitigate (#2412)
 
 ## What’s New in Media SDK 20.3.0
 **New features**:
