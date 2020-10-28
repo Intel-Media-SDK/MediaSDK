@@ -1208,6 +1208,13 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
         amtMctf = std::make_shared<CMC>();
         MFX_CHECK_NULL_PTR1(amtMctf);
 
+        request.Info        = m_video.mfx.FrameInfo;
+        request.Type        = MFX_MEMTYPE_D3D_INT;
+        request.NumFrameMin = (mfxU16)m_emulatorForSyncPart.GetStageGreediness(AsyncRoutineEmulator::STG_WAIT_MCTF) + 1;
+
+        sts = m_mctf.Alloc(m_core, request);
+        MFX_CHECK_STS(sts);
+
         sts = amtMctf->MCTF_INIT(m_core, m_cmDevice, m_video.mfx.FrameInfo, NULL, IsCmNeededForSCD(m_video), true, true, true);
         MFX_CHECK_STS(sts);
 #endif
@@ -1993,8 +2000,16 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
 
     if (m_useMbControlSurfs && task->m_isMBControl)
         ReleaseResource(m_mbControl, task->m_midMBControl);
-
-
+#if defined(MXF_ENABLE_MCTF_IN_AVC)
+    if (IsMctfSupported(m_video) && task->m_midMCTF)
+    {
+        ReleaseResource(m_mctf, task->m_midMCTF);
+        task->m_midMCTF = MID_INVALID;
+        MfxHwH264Encode::Zero(task->m_handleMCTF);
+        if (m_cmDevice)
+            m_cmDevice->DestroySurface(task->m_cmMCTF);
+    }
+#endif
     mfxU32 numBits = 8 * (task->m_bsDataLength[0] + task->m_bsDataLength[1]);
     *task = DdiTask();
 
@@ -2068,28 +2083,34 @@ void ImplementationAvc::BrcPreEnc(
     m_brc.PreEnc(task.m_brcFrameParams, m_tmpVmeData);
 }
 #if defined(MXF_ENABLE_MCTF_IN_AVC)
-mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask, bool isSceneChange, bool doIntraFiltering)
+mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
-    //mfxStatus sts = MFX_ERR_NONE;
 
-    pTask->m_bFrameReady   = false;
-    mfxFrameSurface1
-        * pSurfI         = nullptr;
-    pSurfI               = m_core->GetNativeSurface(pTask->m_yuv);
-    pSurfI               = pSurfI ? pSurfI : pTask->m_yuv;
+    pTask->m_bFrameReady = false;
+    bool isIntraFrame    = (pTask->GetFrameType() & MFX_FRAMETYPE_I) || (pTask->GetFrameType() & MFX_FRAMETYPE_IDR);
+    bool isPFrame        = (pTask->GetFrameType() & MFX_FRAMETYPE_P);
+    bool isAnchorFrame   = isIntraFrame || isPFrame;
 
-    amtMctf->IntBufferUpdate(isSceneChange);
-
+    amtMctf->IntBufferUpdate(pTask->m_SceneChange, isIntraFrame, pTask->m_doMCTFIntraFiltering);
+    if (isAnchorFrame || pTask->m_SceneChange)
+    {
+        pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
+        pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
+        if (!pTask->m_midMCTF)
+            return MFX_TASK_BUSY;
+        MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
+    }
     if (IsCmNeededForSCD(m_video))
     {
-        mfxStatus sts = GetNativeHandleToRawSurface(*m_core, m_video, *pTask, pTask->m_handleRaw);
-        if (sts != MFX_ERR_NONE)
-            return Error(sts);
-
-        if(amtMctf->MCTF_Check_Use())
-            pTask->m_cmRawForMCTF = CreateSurface(m_cmDevice, pTask->m_handleRaw, m_currentVaType);
-        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(pTask->m_cmRawForMCTF, isSceneChange, true, nullptr, doIntraFiltering));
+        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(
+            pTask->m_yuv,
+            pTask->m_handleMCTF,
+            &pTask->m_cmMCTF,
+            true,
+            nullptr,
+            isAnchorFrame,
+            pTask->m_doMCTFIntraFiltering));
     }
     else
     {
@@ -2100,7 +2121,14 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask, bool isSceneChange, b
         if (pData.Y == 0)
             return Error(MFX_ERR_LOCK_MEMORY);
 
-        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(pData.Y, isSceneChange, false, nullptr, doIntraFiltering));
+        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(
+            pData.Y,
+            pTask->m_handleMCTF,
+            &pTask->m_cmMCTF,
+            false,
+            nullptr,
+            isAnchorFrame,
+            pTask->m_doMCTFIntraFiltering));
     }
 
     // --- access to the internal MCTF queue to increase buffer_count: no need to protect by mutex, as 1 writer & 1 reader
@@ -2109,44 +2137,26 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask, bool isSceneChange, b
     // filtering itself
     MFX_SAFE_CALL(amtMctf->MCTF_DO_FILTERING_IN_AVC());
 
-    pTask->m_bFrameReady = amtMctf->MCTF_ReadyToOutput();
-
     return MFX_ERR_NONE;
 }
 
-mfxStatus ImplementationAvc::QueryFromMctf(void *pParam, bool bEoF)
+mfxStatus ImplementationAvc::QueryFromMctf(void *pParam)
 {
-    (void)bEoF;
-
     DdiTask *pTask = (DdiTask*)pParam;
+    MFX_CHECK_NULL_PTR1(pTask);
 
-    if (!pTask)
-        return MFX_ERR_NULL_PTR;
-
-    mfxFrameSurface1 *pSurfI = nullptr;
-    pSurfI = m_core->GetNativeSurface(pTask->m_yuv);
-    pSurfI = pSurfI ? pSurfI : pTask->m_yuv;
-
-    if (IsCmNeededForSCD(m_video))
+    pTask->m_bFrameReady = amtMctf->MCTF_ReadyToOutput();
+    //Check if noise analysis determined if filter is not neeeded and free resources and handle
+    if (!amtMctf->MCTF_CHECK_FILTER_USE() && (pTask->m_handleMCTF.first))
     {
-        MFX_SAFE_CALL(amtMctf->MCTF_RELEASE_FRAME());
-        if (m_cmDevice && pTask->m_cmRawForMCTF)
-        {
-            m_cmDevice->DestroySurface(pTask->m_cmRawForMCTF);
-            pTask->m_cmRawForMCTF = nullptr;
-        }
+        ReleaseResource(m_mctf, pTask->m_midMCTF);
+        pTask->m_midMCTF = MID_INVALID;
+        MfxHwH264Encode::Zero(pTask->m_handleMCTF);
+        if (m_cmDevice)
+            m_cmDevice->DestroySurface(pTask->m_cmMCTF);
     }
-    else
-    {
-        mfxFrameData
-            pData = pTask->m_yuv->Data;
-        FrameLocker
-            lock2(m_core, pData, true);
-        if (pData.Y == 0)
-            return Error(MFX_ERR_LOCK_MEMORY);
+    MFX_SAFE_CALL(amtMctf->MCTF_RELEASE_FRAME(IsCmNeededForSCD(m_video)));
 
-        MFX_SAFE_CALL(amtMctf->MCTF_GET_FRAME(pData.Y));
-    }
     return MFX_ERR_NONE;
 }
 #endif
@@ -2322,6 +2332,9 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(m_video);
     mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(m_video);
     task.m_SceneChange = amtScd.Get_frame_shot_Decision();
+#if defined(MXF_ENABLE_MCTF_IN_AVC)
+    task.m_doMCTFIntraFiltering = amtScd.Get_intra_frame_denoise_recommendation();
+#endif
 
     if (extOpt3.PRefType == MFX_P_REF_PYRAMID)
     {
@@ -3052,7 +3065,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         {
 #if defined(MXF_ENABLE_MCTF_IN_AVC)
             DdiTask & task = m_MctfStarted.back();
-            MFX_CHECK_STS(SubmitToMctf(&task, amtScd.Get_frame_shot_Decision(), amtScd.Get_intra_frame_denoise_recommendation()));
+            MFX_CHECK_STS(SubmitToMctf(&task));
 #endif
         }
         OnMctfQueried();
@@ -3065,7 +3078,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         {
 #if defined(MXF_ENABLE_MCTF_IN_AVC)
             DdiTask & task = m_MctfFinished.front();
-            MFX_CHECK_STS(QueryFromMctf(&task, false));
+            MFX_CHECK_STS(QueryFromMctf(&task));
 #endif
         }
         OnMctfFinished();
@@ -3501,6 +3514,11 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 mfxStatus sts = MFX_ERR_NONE;
 
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);
+#if defined(MXF_ENABLE_MCTF_IN_AVC)
+                if(task->m_handleMCTF.first)//Intercept encoder so MCTF denoised frame can be fed at the right moment.
+                    sts = m_ddi->Execute(task->m_handleMCTF, *task, fieldId, m_sei);
+                else
+#endif
                 sts = m_ddi->Execute(task->m_handleRaw, *task, fieldId, m_sei);
                 MFX_CHECK(sts == MFX_ERR_NONE, Error(sts));
 
