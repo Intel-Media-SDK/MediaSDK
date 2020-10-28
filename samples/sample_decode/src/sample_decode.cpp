@@ -128,6 +128,11 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                        or perform VPP operation through separate pipeline component for unsupported streams\n"));
 
 #endif //MFX_VERSION >= 1022
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    msdk_printf(MSDK_STRING("   [-IgnoreLevelConstrain]   - if not zero, it forces SDK to attempt to decode bitstream even if a decoder may not\n"));
+    msdk_printf(MSDK_STRING("                               support all features associated with given `CodecLevel`. Decoder may produce visual\n"));
+    msdk_printf(MSDK_STRING("                               artifacts. Only AVC decoder supports this field.\n"));
+#endif
 #if !defined(_WIN32) && !defined(_WIN64)
     msdk_printf(MSDK_STRING("   [-threads_num]            - number of mediasdk task threads\n"));
     msdk_printf(MSDK_STRING("   [-threads_schedtype]      - scheduling type of mediasdk task threads\n"));
@@ -160,6 +165,9 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     // set default implementation
     pParams->bUseHWLib = true;
     pParams->bUseFullColorRange = false;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    pParams->bIgnoreLevelConstrain = false;
+#endif
 #if defined(LIBVA_SUPPORT)
     pParams->libvaBackend = MFX_LIBVA_DRM;
 #endif
@@ -456,6 +464,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d")))
         {
             pParams->bErrorReport = true;
+        }
+#endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-IgnoreLevelConstrain")))
+        {
+            pParams->bIgnoreLevelConstrain = true;
         }
 #endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-threads_num")))

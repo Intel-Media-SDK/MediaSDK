@@ -121,6 +121,9 @@ struct sInputParams
 #if (MFX_VERSION >= 1025)
     bool    bErrorReport;
 #endif
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    bool    bIgnoreLevelConstrain;
+#endif
 
     mfxI32  monitorType;
 #if defined(LIBVA_SUPPORT)

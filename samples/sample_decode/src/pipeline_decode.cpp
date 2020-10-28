@@ -486,6 +486,9 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
 
     // set video type in parameters
     m_mfxVideoParams.mfx.CodecId = pParams->videoType;
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    m_mfxVideoParams.mfx.IgnoreLevelConstrain = pParams->bIgnoreLevelConstrain;
+#endif
 
     if (CheckVersion(&version, MSDK_FEATURE_PLUGIN_API)) {
         /* Here we actually define the following codec initialization scheme:
