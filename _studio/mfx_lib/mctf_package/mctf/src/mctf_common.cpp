@@ -365,6 +365,11 @@ mfxStatus CMC::MCTF_RELEASE_FRAME(
     {
         MFX_CHECK(mco, MFX_ERR_UNDEFINED_BEHAVIOR);
         mco = nullptr;
+
+        device->DestroySurface(QfIn[0].frameData);
+        QfIn[0].frameData = nullptr;
+        QfIn[0].fIdx = nullptr;
+
         MctfState = AMCTF_NOT_READY;
         if (mco2)
         {
@@ -602,9 +607,7 @@ mfxStatus CMC::MCTF_SetMemory(
     bool isCmUsed
 )
 {
-        res = IM_SURF_SET_Int();
-        MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
-        // mco & idxmco will be extracted from an output surface
+        // mco & idxmco will be extracted from input/output surface
         mco = nullptr;
         if (!isCmUsed)
         {
@@ -3163,14 +3166,8 @@ mfxU32 CMC::IM_SURF_PUT(
     CmSurface2D *p_DstSurface,
     CmSurface2D *p_SrcSurface)
 {
-    CM_STATUS
-        status = CM_STATUS_FLUSHED;
-    res = queue->EnqueueCopyGPUToGPU(p_DstSurface, p_SrcSurface, NULL, copyEv);
-    MCTF_CHECK_CM_ERR(res, res);
-    copyEv->GetStatus(status);
-    while (status != CM_STATUS_FINISHED)
-        copyEv->GetStatus(status);
-    return res;
+    *p_DstSurface = *p_SrcSurface;
+    return CM_SUCCESS;
 }
 
 void CMC::IntBufferUpdate(bool isSceneChange)
@@ -3247,18 +3244,27 @@ mfxStatus CMC::MCTF_PUT_FRAME(
             return MFX_ERR_UNDEFINED_BEHAVIOR;
         if (isCmSurface)
         {
-            res = IM_SURF_PUT(QfIn[bufferCount].frameData, (CmSurface2D*)frameData);
+            if (QfIn[bufferCount].frameData)
+            {
+                res = device->DestroySurface(QfIn[bufferCount].frameData);
+                MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+                QfIn[bufferCount].fIdx = nullptr;
+            }
+            res = IM_SURF_PUT(&QfIn[bufferCount].frameData, (CmSurface2D**)&frameData);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
+            res = QfIn[bufferCount].frameData->GetIndex(QfIn[bufferCount].fIdx);
+            MCTF_CHECK_CM_ERR(res, MFX_ERR_DEVICE_FAILED);
             if ((countFrames == 0 || !(countFrames % MCTFCADENCE)))
             {
                 if (mco && isSceneChange)
                 {
-                    mco2 = (CmSurface2D*)frameData;
-                    mco2->GetIndex(idxMco2);
+                    mco2 = QfIn[bufferCount].frameData;;
+                    res = mco2->GetIndex(idxMco2);
                 }
                 else
                 {
-                    mco = (CmSurface2D*)frameData;
-                    mco->GetIndex(idxMco);
+                    mco = QfIn[bufferCount].frameData;;
+                    res = mco->GetIndex(idxMco);
                 }
             }
         }

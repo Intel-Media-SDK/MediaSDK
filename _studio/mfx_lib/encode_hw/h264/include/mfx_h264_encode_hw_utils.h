@@ -957,7 +957,6 @@ namespace MfxHwH264Encode
             , m_vmeData(0)
             , m_fwdRef(0)
             , m_bwdRef(0)
-            , m_cmRawForMCTF(0)
             , m_fieldPicFlag(0)
             , m_singleFieldMode(false)
             , m_fieldCounter(0)
@@ -1187,8 +1186,6 @@ namespace MfxHwH264Encode
         VmeData *       m_vmeData;
         DdiTask const * m_fwdRef;
         DdiTask const * m_bwdRef;
-
-        CmSurface2D *   m_cmRawForMCTF; // CM surface made of m_handleRaw for MCTF
 
         mfxU8   m_fieldPicFlag;    // true for frames with interlaced content
         bool    m_singleFieldMode; // true for FEI single-field processing mode

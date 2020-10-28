@@ -2001,9 +2001,11 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask, bool isSceneChange, b
         if (sts != MFX_ERR_NONE)
             return Error(sts);
 
+        CmSurface2D *
+            cmRawForMCTF = nullptr;
         if(amtMctf->MCTF_Check_Use())
-            pTask->m_cmRawForMCTF = CreateSurface(m_cmDevice, pTask->m_handleRaw, m_currentVaType);
-        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(pTask->m_cmRawForMCTF, isSceneChange, true, nullptr, doIntraFiltering));
+            cmRawForMCTF = CreateSurface(m_cmDevice, pTask->m_handleRaw, m_currentVaType);
+        MFX_SAFE_CALL(amtMctf->MCTF_PUT_FRAME(cmRawForMCTF, isSceneChange, true, nullptr, doIntraFiltering));
     }
     else
     {
@@ -2037,18 +2039,9 @@ mfxStatus ImplementationAvc::QueryFromMctf(void *pParam, bool bEoF)
     if (!pTask)
         return MFX_ERR_NULL_PTR;
 
-    mfxFrameSurface1 *pSurfI = nullptr;
-    pSurfI = m_core->GetNativeSurface(pTask->m_yuv);
-    pSurfI = pSurfI ? pSurfI : pTask->m_yuv;
-
     if (IsCmNeededForSCD(m_video))
     {
         MFX_SAFE_CALL(amtMctf->MCTF_RELEASE_FRAME());
-        if (m_cmDevice && pTask->m_cmRawForMCTF)
-        {
-            m_cmDevice->DestroySurface(pTask->m_cmRawForMCTF);
-            pTask->m_cmRawForMCTF = nullptr;
-        }
     }
     else
     {

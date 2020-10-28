@@ -887,8 +887,8 @@ public:
         mfxU8       *p_data
     );
     mfxU32 IM_SURF_PUT(
-        CmSurface2D *p_DstSurface,
-        CmSurface2D *p_SrcSurface
+        CmSurface2D  ** p_DstSurface,
+        CmSurface2D  ** p_SrcSurface
     );
     void IntBufferUpdate(
         bool isSceneChange
