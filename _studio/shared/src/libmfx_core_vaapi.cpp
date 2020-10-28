@@ -439,8 +439,6 @@ mfx_device_item getDeviceItem(VADisplay pVaDisplay)
     return retDeviceItem;
 } // eMFXHWType getDeviceItem (VADisplay pVaDisplay)
 
-template class VAAPIVideoCORE_T<CommonCORE  >;
-
 template <class Base>
 VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
     const mfxU32 adapterNum,
@@ -1510,6 +1508,8 @@ void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
 
     return Base::QueryCoreInterface(guid);
 } // void* VAAPIVideoCORE_T<Base>::QueryCoreInterface(const MFX_GUID &guid)
+
+template class VAAPIVideoCORE_T<CommonCORE  >;
 
 bool IsHwMvcEncSupported()
 {

@@ -529,6 +529,10 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         MSDK_CHECK_STATUS(sts, "Plugin load failed");
     }
 
+#if (MFX_VERSION >= MFX_VERSION_NEXT)
+    m_mfxVideoParams.mfx.IgnoreLevelConstrain = pParams->bIgnoreLevelConstrain;
+#endif
+
     // Populate parameters. Involves DecodeHeader call
     sts = InitMfxParams(pParams);
     MSDK_CHECK_STATUS(sts, "InitMfxParams failed");

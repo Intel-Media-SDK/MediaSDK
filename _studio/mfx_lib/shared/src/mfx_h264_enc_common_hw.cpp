@@ -1393,6 +1393,7 @@ bool MfxHwH264Encode::IsCmNeededForSCD(
 bool MfxHwH264Encode::IsMctfSupported(
     MfxVideoParam const & video)
 {
+    (void)video;
     bool
         isSupported = false;
 #if defined(MXF_ENABLE_MCTF_IN_AVC)
