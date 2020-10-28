@@ -25,6 +25,7 @@
 #include <va/va.h>
 #include <assert.h>
 
+#include "mfx_session.h"
 #include "libmfx_core_vaapi.h"
 #include "mfx_common_int.h"
 #include "mfx_mpeg2_encode_vaapi.h"
@@ -341,6 +342,9 @@ VAAPIEncoder::VAAPIEncoder(VideoCORE* core)
     , m_packedUserDataId(VA_INVALID_ID)
     , m_mbqpBufferId(VA_INVALID_ID)
     , m_miscQualityParamId(VA_INVALID_ID)
+    , m_priorityBufferId(VA_INVALID_ID)
+    , m_priorityBuffer()
+    , m_MaxContextPriority(0)
     , m_initFrameWidth(0)
     , m_initFrameHeight(0)
     , m_layout()
@@ -540,6 +544,16 @@ mfxStatus VAAPIEncoder::Init(ENCODE_FUNC func, ExecuteBuffers* pExecuteBuffers)
     // IsGuidSupported()
 
     // Configuration
+    std::vector<VAConfigAttrib> attrib_priority(1);
+    attrib_priority[0].type = VAConfigAttribContextPriority;
+    vaGetConfigAttributes(m_vaDisplay,
+        ConvertProfileTypeMFX2VAAPI(pExecuteBuffers->m_sps.Profile),
+        VAEntrypointEncSlice,
+        attrib_priority.data(), attrib_priority.size());
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    if (attrib_priority[0].value != VA_ATTRIB_NOT_SUPPORTED)
+        m_MaxContextPriority = attrib_priority[0].value;
+
     VAConfigAttrib attrib[3];
 
     attrib[0].type = VAConfigAttribRTFormat;
@@ -1151,6 +1165,39 @@ mfxStatus VAAPIEncoder::FillSkipFrameBuffer(mfxU8 skipFlag)
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::FillSkipFrameBuffer(mfxU8 skipFlag)
 
+mfxStatus VAAPIEncoder::FillPriorityBuffer(mfxPriority& priority)
+{
+    VAStatus vaSts;
+    memset(&m_priorityBuffer, 0, sizeof(VAContextParameterUpdateBuffer));
+    m_priorityBuffer.flags.bits.context_priority_update = 1;
+
+    if(priority == MFX_PRIORITY_LOW)
+    {
+        m_priorityBuffer.context_priority.bits.priority = 0;
+    }
+    else if (priority == MFX_PRIORITY_HIGH)
+    {
+        m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority;
+    }
+    else
+    {
+        m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority/2;
+    }
+
+    mfxStatus sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
+    MFX_CHECK_STS(sts);
+
+    vaSts = vaCreateBuffer(m_vaDisplay,
+        m_vaContextEncode,
+        VAContextParameterUpdateBufferType,
+        sizeof(m_priorityBuffer),
+        1,
+        &m_priorityBuffer,
+        &m_priorityBufferId);
+    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+
+    return MFX_ERR_NONE;
+}
 
 mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, mfxU8 *pUserData, mfxU32 userDataLen)
 {
@@ -1159,7 +1206,7 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
     VAStatus vaSts;
 
     std::vector<VABufferID> configBuffers;
-    configBuffers.reserve(15);
+    configBuffers.reserve(16);
 
     if (pExecuteBuffers->m_bAddSPS)
     {
@@ -1296,7 +1343,15 @@ mfxStatus VAAPIEncoder::Execute(ExecuteBuffers* pExecuteBuffers, mfxU32 funcId, 
         pExecuteBuffers->m_mbqp_data[0] = 0;
     }
 
-
+    //configure the GPU priority parameters
+    if(m_MaxContextPriority)
+    {
+        mfxPriority contextPriority = m_core->GetSession()->m_priority;
+        mfxSts = FillPriorityBuffer(contextPriority);
+        MFX_CHECK(mfxSts == MFX_ERR_NONE, MFX_ERR_DEVICE_FAILED);
+        if (m_priorityBufferId != VA_INVALID_ID)
+            configBuffers.push_back(m_priorityBufferId);
+    }
 
     //------------------------------------------------------------------
     // Rendering
@@ -1500,6 +1555,12 @@ mfxStatus VAAPIEncoder::Close()
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbqpBufferId);
     std::ignore = MFX_STS_TRACE(sts);
+
+    if(m_MaxContextPriority)
+    {
+        sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
+        std::ignore = MFX_STS_TRACE(sts);
+    }
 
     if (m_allocResponseMB.NumFrameActual != 0)
     {

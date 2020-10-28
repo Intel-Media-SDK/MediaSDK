@@ -481,9 +481,9 @@ if( Linux )
   find_package(PkgConfig REQUIRED)
 
   # required:
-  pkg_check_modules(PKG_LIBVA     REQUIRED libva>=1.5.0)
+  pkg_check_modules(PKG_LIBVA     REQUIRED libva>=1.10.0)
   pkg_check_modules(PKG_LIBDRM    REQUIRED libdrm)
-  pkg_check_modules(PKG_LIBVA_DRM REQUIRED libva-drm>=1.5.0)
+  pkg_check_modules(PKG_LIBVA_DRM REQUIRED libva-drm>=1.10.0)
 
   # optional:
   pkg_check_modules( PKG_MFX       libmfx>=1.28 )
@@ -494,7 +494,7 @@ if( Linux )
     endif()
 
     pkg_check_modules( PKG_X11       ${X11_REQUIRED} x11 )
-    pkg_check_modules( PKG_LIBVA_X11 ${X11_REQUIRED} libva-x11>=1.5.0 )
+    pkg_check_modules( PKG_LIBVA_X11 ${X11_REQUIRED} libva-x11>=1.10.0 )
 
     if ( PKG_X11_FOUND AND PKG_LIBVA_X11_FOUND )
       set( ENABLE_X11 ON )

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -81,6 +81,7 @@ public:
 
     void PackPicParams(VADecPictureParameterBufferVP9*, VP9DecoderFrame const*);
     void PackSliceParams(VASliceParameterBufferVP9*, VP9DecoderFrame const*);
+    void PackPriorityParams();
 };
 
 

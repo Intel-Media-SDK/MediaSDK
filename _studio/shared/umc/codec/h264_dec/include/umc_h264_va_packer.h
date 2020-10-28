@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -101,6 +101,7 @@ public:
 protected:
 
     void PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSlice);
+    void PackPriorityParams();
 
     void FillFrame(VAPictureH264 * pic, const H264DecoderFrame *pFrame,
         int32_t field, int32_t reference, int32_t defaultIndex);

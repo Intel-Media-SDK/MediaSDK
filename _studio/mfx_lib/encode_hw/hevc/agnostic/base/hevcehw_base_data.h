@@ -1338,6 +1338,11 @@ namespace Base
         , NUM_STAGES
     };
 
+    struct PriorityParam
+    {
+        mfxU32        m_MaxContextPriority;
+    };
+
     struct Glob
     {
         static const StorageR::TKey _KD = __LINE__ + 1;
@@ -1370,6 +1375,7 @@ namespace Base
         using PackPpsExt          = StorageVar<__LINE__ - _KD, std::function<bool(const Base::PPS&, mfxU8, IBsWriter&)>>;
         using GuidToVa            = StorageVar<__LINE__ - _KD, std::map<::GUID, VAGUID, LessGUID>>;
         using Defaults            = StorageVar<__LINE__ - _KD, Base::Defaults>;
+        using PriorityPar         = StorageVar<__LINE__ - _KD, Base::PriorityParam>;
         static const StorageR::TKey ReservedKey0 = __LINE__ - _KD;
         static const StorageR::TKey NUM_KEYS = __LINE__ - _KD;
     };

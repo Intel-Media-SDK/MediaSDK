@@ -75,6 +75,7 @@ public:
         , VABID_ROI
         , VABID_RIR
         , VABID_MaxSliceSize
+        , VABID_PriorityBufferId
 
         , VABID_END_OF_LIST // Remain this item last in the list
     };
@@ -283,6 +284,7 @@ mfxStatus SetSkipFrame(
         VAAPIEncoder& operator=(const VAAPIEncoder&);
 
         void FillSps(MfxVideoParam const & par, VAEncSequenceParameterBufferHEVC & sps);
+        mfxStatus FillPriorityBuffer(mfxPriority&);
 
         VideoCORE*    m_core;
         MfxVideoParam m_videoParam;
@@ -294,6 +296,7 @@ mfxStatus SetSkipFrame(
         VAEncSequenceParameterBufferHEVC m_sps;
         VAEncPictureParameterBufferHEVC  m_pps;
         std::vector<VAEncSliceParameterBufferHEVC> m_slice;
+        VAContextParameterUpdateBuffer m_priorityBuffer;
 
         std::vector<ExtVASurface> m_feedbackCache;
         std::vector<ExtVASurface> m_bsQueue;
@@ -307,10 +310,11 @@ mfxStatus SetSkipFrame(
         CUQPMap    m_cuqpMap;
         std::vector<VAEncROI> m_arrayVAEncROI;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 26 + 5;
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 27 + 5;
 
         UMC::Mutex m_guard;
         HeaderPacker m_headerPacker;
+        mfxU32       m_MaxContextPriority;
     };
 }
 #endif

@@ -209,6 +209,7 @@ namespace MfxHwH264Encode
         // encode params (extended structures)
         VAEncSequenceParameterBufferH264 m_sps;
         VAEncPictureParameterBufferH264  m_pps;
+        VAContextParameterUpdateBuffer   m_priorityBuffer;
         std::vector<VAEncSliceParameterBufferH264> m_slice;
 
         // encode buffer to send vaRender()
@@ -243,6 +244,7 @@ namespace MfxHwH264Encode
         VABufferID m_packedSeiBufferId;
         VABufferID m_packedSkippedSliceHeaderBufferId;
         VABufferID m_packedSkippedSliceBufferId;
+        VABufferID m_priorityBufferId;
         std::vector<VABufferID> m_packedSliceHeaderBufferId;
         std::vector<VABufferID> m_packedSliceBufferId;
         std::vector<VABufferID> m_packedSvcPrefixHeaderBufferId;
@@ -277,7 +279,7 @@ namespace MfxHwH264Encode
 
         std::vector<VAEncROI> m_arrayVAEncROI;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 29 + 5; //added FEI buffers
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 30 + 5; //added FEI buffers
 
         UMC::Mutex m_guard;
         HeaderPacker m_headerPacker;
@@ -303,6 +305,7 @@ namespace MfxHwH264Encode
 #ifdef MFX_ENABLE_MFE
         MFEVAAPIEncoder*               m_mfe;
 #endif
+        mfxU32                         m_MaxContextPriority;
     };
 
     //extend encoder to FEI interface

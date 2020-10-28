@@ -65,7 +65,8 @@ namespace UMC_HEVC_DECODER
         virtual VASliceParameterBufferBase* PackSliceParams(H265Slice const*, bool last_slice) = 0;
         virtual void CreateSliceParamBuffer(size_t count) = 0;
         virtual void PackSliceParams(VASliceParameterBufferBase* sp_base, H265Slice const* slice, bool last_slice) = 0;
-	    void PackProcessingInfo(H265DecoderFrameInfo * sliceInfo);
+        void PackProcessingInfo(H265DecoderFrameInfo * sliceInfo);
+        void PackPriorityParams();
 		
     private:
         void PackQmatrix(H265Slice const*) override;

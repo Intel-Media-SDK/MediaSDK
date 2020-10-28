@@ -27,7 +27,6 @@
 #include "umc_h265_va_packer_vaapi.h"
 #include "umc_h265_task_supplier.h"
 #include "umc_va_video_processing.h"
-
 #include <va/va_dec_hevc.h>
 
 namespace UMC_HEVC_DECODER
@@ -116,6 +115,33 @@ namespace UMC_HEVC_DECODER
         pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
         pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
     }
+
+    void PackerVAAPI::PackPriorityParams()
+    {
+        mfxPriority priority = m_va->m_ContextPriority;
+        UMC::UMCVACompBuffer *GpuPriorityBuf;
+        VAContextParameterUpdateBuffer* GpuPriorityBuf_H265Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
+        if (!GpuPriorityBuf_H265Decode)
+            throw h265_exception(UMC::UMC_ERR_FAILED);
+
+        memset(GpuPriorityBuf_H265Decode, 0, sizeof(VAContextParameterUpdateBuffer));
+        GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
+
+        GpuPriorityBuf_H265Decode->flags.bits.context_priority_update = 1;
+        if(priority == MFX_PRIORITY_LOW)
+        {
+            GpuPriorityBuf_H265Decode->context_priority.bits.priority = 0;
+        }
+        else if (priority == MFX_PRIORITY_HIGH)
+        {
+            GpuPriorityBuf_H265Decode->context_priority.bits.priority = m_va->m_MaxContextPriority;
+        }
+        else
+        {
+            GpuPriorityBuf_H265Decode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
+        }
+    }
+
     void PackerVAAPI::PackAU(H265DecoderFrame const* frame, TaskSupplier_H265 * supplier)
     {
         auto fi = frame->GetAU();
@@ -151,6 +177,11 @@ namespace UMC_HEVC_DECODER
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(fi);
 #endif
+
+        //Set Gpu priority
+        if(m_va->m_MaxContextPriority)
+            PackPriorityParams();
+
         auto s = m_va->Execute();
         if (s != UMC::UMC_OK)
             throw h265_exception(s);
