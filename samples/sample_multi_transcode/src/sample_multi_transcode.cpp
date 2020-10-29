@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2020, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -141,6 +141,12 @@ mfxStatus Launcher::Init(int argc, msdk_char *argv[])
     // check available adapters
     sts = QueryAdapters();
     MSDK_CHECK_STATUS(sts, "QueryAdapters failed");
+
+    if (m_eDevType && m_DisplaysData.empty())
+    {
+        msdk_printf(MSDK_STRING("No adapters found. HW-accelerated transcoding is impossible.\n"));
+        return MFX_ERR_UNSUPPORTED;
+    }
 #endif
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -716,6 +722,12 @@ mfxStatus Launcher::QueryAdapters()
 
     mfxStatus sts = MFXQueryAdaptersNumber(&num_adapters_available);
     MFX_CHECK_STS(sts);
+
+    // no adapters on the machine, able to use software implementation
+    if (!num_adapters_available)
+    {
+        return MFX_ERR_NONE;
+    }
 
     m_DisplaysData.resize(num_adapters_available);
     m_Adapters = { m_DisplaysData.data(), mfxU32(m_DisplaysData.size()), 0u };
