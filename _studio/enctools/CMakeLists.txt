@@ -19,5 +19,5 @@ set( defs "${API_FLAGS} ${WARNING_FLAGS}" )
 make_library(enctools hw static )
 
 if (MFX_ENABLE_AENC)
-  target_link_libraries(enctools_hw aenc)
+  target_link_libraries(enctools_hw PUBLIC aenc)
 endif()
