@@ -246,12 +246,8 @@ void AddVaMiscHRD(
 {
     auto& hrd = AddVaMisc<VAEncMiscParameterHRD>(VAEncMiscParameterTypeHRD, buf);
 
-    uint32_t bNeedBufParam =
-        par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
-        && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ;
-
-    hrd.initial_buffer_fullness = bNeedBufParam * InitialDelayInKB(par.mfx) * 8000;
-    hrd.buffer_size             = bNeedBufParam * BufferSizeInKB(par.mfx) * 8000;
+    hrd.initial_buffer_fullness = InitialDelayInKB(par.mfx) * 8000;
+    hrd.buffer_size             = BufferSizeInKB(par.mfx) * 8000;
 }
 
 void AddVaMiscRC(
@@ -524,15 +520,18 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
         InitPPS(par, bs_pps, m_pps);
         InitSSH(par, Glob::SliceInfo::Get(strg), m_slices);
 
-        cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
-            VAPacker::CallChains::TAddMiscData::TExt
-            , const StorageR& strg
-            , const StorageR& local
-            , std::list<std::vector<mfxU8>>& data)
-        {
-            AddVaMiscHRD(par, m_vaPerSeqMiscData);
-            return true;
-        });
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
+            par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ) {
+            cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
+                VAPacker::CallChains::TAddMiscData::TExt
+                , const StorageR& strg
+                , const StorageR& local
+                , std::list<std::vector<mfxU8>>& data)
+            {
+                AddVaMiscHRD(par, m_vaPerSeqMiscData);
+                return true;
+            });
+        }
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_pps](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
@@ -681,15 +680,18 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
 
         m_vaPerSeqMiscData.clear();
 
-        cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
-            VAPacker::CallChains::TAddMiscData::TExt
-            , const StorageR& strg
-            , const StorageR& local
-            , std::list<std::vector<mfxU8>>& data)
-        {
-            AddVaMiscHRD(par, m_vaPerSeqMiscData);
-            return true;
-        });
+        if (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP &&
+            par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ) {
+            cc.AddPerSeqMiscData[VAEncMiscParameterTypeHRD].Push([this, &par](
+                VAPacker::CallChains::TAddMiscData::TExt
+                , const StorageR& strg
+                , const StorageR& local
+                , std::list<std::vector<mfxU8>>& data)
+            {
+                AddVaMiscHRD(par, m_vaPerSeqMiscData);
+                return true;
+            });
+        }
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeRateControl].Push([this, &par, &bs_pps](
             VAPacker::CallChains::TAddMiscData::TExt
             , const StorageR& strg
