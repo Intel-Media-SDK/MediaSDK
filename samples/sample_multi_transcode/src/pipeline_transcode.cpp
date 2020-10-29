@@ -153,6 +153,7 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_nReqFrameTime(0),
     m_nOutputFramesNum(0),
     shouldUseGreedyFormula(false),
+    m_bLatencyMeasurement(false),
     m_nRotationAngle(0)
 {
     MSDK_ZERO_MEMORY(m_RotateParam);
@@ -742,7 +743,16 @@ mfxStatus CTranscodingPipeline::EncodeOneFrame(ExtendedSurface *pExtSurface, mfx
     for (;;)
     {
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp
+        mfxU64 latencyTimestamp = msdk_time_get_tick();
         sts = m_pmfxENC->EncodeFrameAsync(pExtSurface->pEncCtrl, pExtSurface->pSurface, pBS, &pExtSurface->Syncp);
+        if (m_bLatencyMeasurement)
+        {
+            if (sts != MFX_WRN_DEVICE_BUSY && pExtSurface->pSurface)
+            {
+                std::lock_guard <std::mutex> guard(latency.mutex);
+                latency.data[pExtSurface->pSurface->Data.TimeStamp] = latencyTimestamp;
+            }
+        }
 
         if (MFX_ERR_NONE < sts && !pExtSurface->Syncp) // repeat the call if warning and no output
         {
@@ -1932,6 +1942,22 @@ mfxStatus CTranscodingPipeline::PutBS()
         sts = m_pmfxSession->SyncOperation(pBitstreamEx->Syncp, MSDK_WAIT_INTERVAL);
         HandlePossibleGpuHang(sts);
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "Encode: SyncOperation failed");
+    }
+
+    if (m_bLatencyMeasurement)
+    {
+        mfxU64 finish = msdk_time_get_tick();
+        for (auto p = latency.data.begin(); p != latency.data.end(); ++p)
+        {
+            if (p->first == pBitstreamEx->Bitstream.TimeStamp)
+            {
+                std::lock_guard <std::mutex> guard(latency.mutex);
+                latency.value += (finish - p->second) / 1000.;
+                latency.amount += 1;
+                latency.data.erase(p);
+                break;
+            }
+        }
     }
 
     m_nOutputFramesNum++;
@@ -3598,6 +3624,7 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
 
     m_pParentPipeline = pParentPipeline;
     shouldUseGreedyFormula = pParams->shouldUseGreedyFormula;
+    m_bLatencyMeasurement = pParams->bLatencyMeasurement;
 
     m_nTimeout = pParams->nTimeout;
 
@@ -4197,6 +4224,13 @@ size_t CTranscodingPipeline::GetRobustFlag()
 
 void CTranscodingPipeline::Close()
 {
+    if (m_bLatencyMeasurement)
+    {
+        msdk_printf(
+            MSDK_STRING("Total latency on session %u: %lf on %llu frames\n"),
+            GetPipelineID(), latency.value, latency.amount);
+    }
+
     if (m_pmfxDEC.get())
         m_pmfxDEC->Close();
 
