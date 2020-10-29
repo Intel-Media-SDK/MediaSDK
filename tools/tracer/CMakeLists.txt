@@ -70,7 +70,7 @@ get_mfx_version(mfx_version_major mfx_version_minor)
 set_target_properties(mfx-tracer PROPERTIES   VERSION ${mfx_version_major}.${mfx_version_minor})
 set_target_properties(mfx-tracer PROPERTIES SOVERSION ${mfx_version_major})
 
-target_link_libraries( mfx-tracer ${CMAKE_DL_LIBS})
+target_link_libraries( mfx-tracer PRIVATE ${CMAKE_DL_LIBS})
 
 install(TARGETS mfx-tracer LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

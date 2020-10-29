@@ -95,7 +95,7 @@ include_directories (
 )
 
 add_library(mfx SHARED ${sources})
-target_link_libraries(mfx dl)
+target_link_libraries(mfx PRIVATE  ${CMAKE_DL_LIBS})
 
 get_api_version(MFX_VERSION_MAJOR MFX_VERSION_MINOR)
 
