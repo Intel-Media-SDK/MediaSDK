@@ -709,7 +709,7 @@ mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL hdl)
 
     ignore = type;
 
-    MFX_RETURN(MFX_ERR_UNDEFINED_BEHAVIOR);
+    MFX_RETURN(MFX_ERR_INVALID_HANDLE);
 }// mfxStatus CommonCORE::SetHandle(mfxHandleType type, mfxHDL handle)
 
 static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
