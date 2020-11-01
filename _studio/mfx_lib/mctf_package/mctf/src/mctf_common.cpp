@@ -44,6 +44,7 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <limits>
 #include "cmrt_cross_platform.h"
 
 using std::min;
