@@ -366,7 +366,7 @@ mfxStatus DDI_VA::QueryCaps()
 #ifdef MFX_ENABLE_QVBR
     m_caps.QVBRBRCSupport    = !!(AV(VAConfigAttribRateControl) & VA_RC_QVBR);
 #endif
-
+    m_caps.TCBRCSupport        = !!(AV(VAConfigAttribRateControl) & VA_RC_TCBRC);
     m_caps.RollingIntraRefresh = !!(AV(VAConfigAttribEncIntraRefresh) & (~VA_ATTRIB_NOT_SUPPORTED));
 
     m_caps.MaxEncodedBitDepth = std::max<mfxU32>(
