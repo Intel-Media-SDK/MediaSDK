@@ -307,6 +307,7 @@ mfxStatus ASC::InitGPUsurf(CmDevice* pCmDevice) {
         res = m_device->LoadProgram((void *)genx_scd_gen11lp, sizeof(genx_scd_gen11lp), m_program, "nojitter");
         break;
     case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
         res = m_device->LoadProgram((void *)genx_scd_gen12lp, sizeof(genx_scd_gen12lp), m_program, "nojitter");
         break;

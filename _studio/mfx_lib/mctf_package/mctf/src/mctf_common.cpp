@@ -918,6 +918,7 @@ mfxStatus CMC::MCTF_SET_ENV(
         res = device->LoadProgram((void *)genx_me_gen11lp, sizeof(genx_me_gen11lp), programMe, "nojitter");
         break;
     case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
         res = device->LoadProgram((void *)genx_me_gen12lp, sizeof(genx_me_gen12lp), programMe, "nojitter");
         break;
@@ -977,6 +978,7 @@ mfxStatus CMC::MCTF_SET_ENV(
         res = device->LoadProgram((void *)genx_mc_gen11lp, sizeof(genx_mc_gen11lp), programMc, "nojitter");
         break;
     case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
         res = device->LoadProgram((void *)genx_mc_gen12lp, sizeof(genx_mc_gen12lp), programMc, "nojitter");
         break;
@@ -1007,6 +1009,7 @@ mfxStatus CMC::MCTF_SET_ENV(
         res = device->LoadProgram((void *)genx_sd_gen11lp, sizeof(genx_sd_gen11lp), programDe, "nojitter");
         break;
     case PLATFORM_INTEL_TGLLP:
+    case PLATFORM_INTEL_RKL:
     case PLATFORM_INTEL_DG1:
         res = device->LoadProgram((void *)genx_sd_gen12lp, sizeof(genx_sd_gen12lp), programDe, "nojitter");
         break;
