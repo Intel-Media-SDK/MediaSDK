@@ -37,7 +37,6 @@ namespace UMC_AV1_DECODER
         : allocator(nullptr)
         , sequence_header(nullptr)
         , counter(0)
-        , Poutput(new AV1DecoderFrame{})
         , Curr(new AV1DecoderFrame{})
         , Curr_temp(new AV1DecoderFrame{})
         , Repeat_show(0)
@@ -45,6 +44,7 @@ namespace UMC_AV1_DECODER
         , frame_order(0)
         , in_framerate(0)
     {
+        outputed_frames.clear();
     }
 
     AV1Decoder::~AV1Decoder()
@@ -52,6 +52,7 @@ namespace UMC_AV1_DECODER
         std::for_each(std::begin(dpb), std::end(dpb),
             std::default_delete<AV1DecoderFrame>()
         );
+        outputed_frames.clear();
     }
 
     inline bool CheckOBUType(AV1_OBU_TYPE type)
@@ -669,16 +670,26 @@ namespace UMC_AV1_DECODER
         if (pPrevFrame && Curr)
         {
             FrameHeader const& FH_OutTemp = Curr->GetFrameHeader();
-            if (Poutput->UID == -1)
+            if (outputed_frames.size() == 0)
             {
-               Poutput = pPrevFrame;
+                outputed_frames.push_back(pPrevFrame);
             }
             else
             {
                 if (Repeat_show || FH_OutTemp.show_frame)
                 {
-                    Poutput ->DecrementReference();
-                    Poutput = Curr;
+                    for(std::vector<AV1DecoderFrame*>::iterator iter=outputed_frames.begin(); iter!=outputed_frames.end(); )
+                    {
+                        AV1DecoderFrame* temp = *iter;
+                        if(temp->Outputted() && temp->Displayed() && !temp->Decoded())
+                        {
+                            temp->DecrementReference();
+                            iter = outputed_frames.erase(iter);
+                        }
+                        else
+                            iter++;
+                    }
+                    outputed_frames.push_back(Curr);
                 }
                 else
                 {
