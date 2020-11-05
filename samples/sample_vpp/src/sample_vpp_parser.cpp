@@ -679,6 +679,7 @@ mfxStatus vppParseResetPar(msdk_char* strInput[], mfxU8 nArgNum, mfxU8& curArg, 
     pParams->videoSignalInfoParam.push_back(*pDefaultFiltersParam->pVideoSignalInfo    );
     pParams->mirroringParam.push_back(      *pDefaultFiltersParam->pMirroringParam     );
     pParams->rotate.push_back(               0                                         );
+    pParams->colorfillParam.push_back(      *pDefaultFiltersParam->pColorfillParam     );
 
     mfxU32 readData;
     mfxU32 ioStatus;
