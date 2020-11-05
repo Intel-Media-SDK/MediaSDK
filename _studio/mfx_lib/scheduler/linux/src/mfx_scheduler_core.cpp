@@ -70,7 +70,8 @@ mfxSchedulerCore::mfxSchedulerCore(void)
 
     m_timer_hw_event = MFX_THREAD_TIME_TO_WAIT;
 
-
+    // set number of free tasks
+    m_freeTasksCount = MFX_MAX_NUMBER_TASK;
 
 } // mfxSchedulerCore::mfxSchedulerCore(void)
 
