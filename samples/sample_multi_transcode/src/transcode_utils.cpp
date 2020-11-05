@@ -464,6 +464,7 @@ CmdProcessor::CmdProcessor()
     shouldUseGreedyFormula=false;
     bRobustFlag = false;
     bSoftRobustFlag = false;
+    bLatencyMeasurement = false;
 
 } //CmdProcessor::CmdProcessor()
 
@@ -618,6 +619,10 @@ mfxStatus CmdProcessor::ParseCmdLine(int argc, msdk_char *argv[])
                 msdk_printf(MSDK_STRING("error: no argument given for 'stat-dump' option\n"));
             }
             DumpLogFileName = argv[0];
+        }
+        else if (0 == msdk_strcmp(argv[0], MSDK_STRING("-latency-stat")))
+        {
+            bLatencyMeasurement = true;
         }
         else
         {
@@ -1491,6 +1496,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         InputParams.bSoftRobustFlag = true;
 
     InputParams.shouldUseGreedyFormula = shouldUseGreedyFormula;
+    InputParams.bLatencyMeasurement = bLatencyMeasurement;
 
     InputParams.statisticsWindowSize = statisticsWindowSize;
     InputParams.statisticsLogFile = statisticsLogFile;

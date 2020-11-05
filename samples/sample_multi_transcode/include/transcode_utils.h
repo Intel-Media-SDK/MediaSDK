@@ -92,6 +92,7 @@ namespace TranscodingSample
         bool                                         bRobustFlag;
         bool                                         bSoftRobustFlag;
         bool                                         shouldUseGreedyFormula;
+        bool                                         bLatencyMeasurement;
         std::vector<msdk_string>                     m_lines;
     private:
         DISALLOW_COPY_AND_ASSIGN(CmdProcessor);

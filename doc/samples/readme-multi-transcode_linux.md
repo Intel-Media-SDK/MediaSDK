@@ -189,6 +189,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
  |-stat <N\>|Output statistic every N transcoding cycles|
 |  -stat-log <name\>|  Output statistic to the specified file (opened in append mode)|
 |  -stat-per-frame <name\>|   Output per-frame latency values to a file (opened in append mode). The file name will be for an input session: <name\>_input_ID_<N\>.log or, for output session: <name>_output_ID_<N\>.log; <N\> - a number of a session.|
+|-latency-stat|Enable latency measurement.|
 
 The command-line interface allows 2 usage models \(which can be mixed within one parameter file\):
 
