@@ -148,7 +148,6 @@ namespace UMC_AV1_DECODER
 
             data[surf].reset(new UMC::FrameData{});
             *data[surf] = *fd;
-            data[surf]->m_locked = true;
         }
         else
         {
@@ -160,7 +159,6 @@ namespace UMC_AV1_DECODER
 
             data[SURFACE_DISPLAY].reset(new UMC::FrameData{});
             *data[SURFACE_DISPLAY] = *fd;
-            data[SURFACE_DISPLAY]->m_locked = true;
             data[SURFACE_RECON] = data[SURFACE_DISPLAY];
         }
     }
