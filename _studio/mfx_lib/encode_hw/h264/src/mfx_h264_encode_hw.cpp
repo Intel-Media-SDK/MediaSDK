@@ -2097,9 +2097,12 @@ mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
     {
         pTask->m_idxMCTF = FindFreeResourceIndex(m_mctf);
         pTask->m_midMCTF = AcquireResource(m_mctf, pTask->m_idxMCTF);
-        if (!pTask->m_midMCTF)
-            return MFX_TASK_BUSY;
-        MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
+        if (pTask->m_midMCTF)
+        {
+            MFX_SAFE_CALL(m_core->GetFrameHDL(pTask->m_midMCTF, &pTask->m_handleMCTF.first));
+        }
+        else
+            isAnchorFrame = false; //No resource available to generate filtered output, let it pass.
     }
     if (IsCmNeededForSCD(m_video))
     {

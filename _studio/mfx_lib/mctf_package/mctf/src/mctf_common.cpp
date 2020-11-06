@@ -1816,6 +1816,8 @@ mfxI32 CMC::MCTF_RUN_DOUBLE_TASK(
     }
     res = task->AddKernel(meKernel);
     MCTF_CHECK_CM_ERR(res, res);
+    res = task->AddSync();
+    MCTF_CHECK_CM_ERR(res, res);
     res = task->AddKernel(mcKernel);
     MCTF_CHECK_CM_ERR(res, res);
     res = MCTF_Enqueue(task, e);
@@ -2118,6 +2120,8 @@ mfxI32 CMC::MCTF_RUN_ME_MC_HE(
     }
 
     res = task->AddKernel(kernelMeB2);
+    MCTF_CHECK_CM_ERR(res, res);
+    res = task->AddSync();
     MCTF_CHECK_CM_ERR(res, res);
     res = task->AddKernel(kernelMc2r);
     MCTF_CHECK_CM_ERR(res, res);
