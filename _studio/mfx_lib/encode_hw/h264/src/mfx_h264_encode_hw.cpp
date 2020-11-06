@@ -1197,7 +1197,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     if (IsMctfSupported(m_video))
     {
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
         if (!m_cmDevice)
         {
             m_cmDevice.Reset(TryCreateCmDevicePtr(m_core));
@@ -2000,7 +2000,7 @@ void ImplementationAvc::OnEncodingQueried(DdiTaskIter task)
 
     if (m_useMbControlSurfs && task->m_isMBControl)
         ReleaseResource(m_mbControl, task->m_midMBControl);
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
     if (IsMctfSupported(m_video) && task->m_midMCTF)
     {
         ReleaseResource(m_mctf, task->m_midMCTF);
@@ -2082,7 +2082,7 @@ void ImplementationAvc::BrcPreEnc(
 
     m_brc.PreEnc(task.m_brcFrameParams, m_tmpVmeData);
 }
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
 mfxStatus ImplementationAvc::SubmitToMctf(DdiTask * pTask)
 {
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_API, "VideoVPPHW::SubmitToMctf");
@@ -2332,7 +2332,7 @@ mfxStatus ImplementationAvc::SCD_Get_FrameType(DdiTask & task)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(m_video);
     mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(m_video);
     task.m_SceneChange = amtScd.Get_frame_shot_Decision();
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
     task.m_doMCTFIntraFiltering = amtScd.Get_intra_frame_denoise_recommendation();
 #endif
 
@@ -3063,7 +3063,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_START_MCTF");
         if (IsMctfSupported(m_video))
         {
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
             DdiTask & task = m_MctfStarted.back();
             MFX_CHECK_STS(SubmitToMctf(&task));
 #endif
@@ -3076,7 +3076,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "Avc::STG_BIT_WAIT_MCTF");
         if (IsMctfSupported(m_video))
         {
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
             DdiTask & task = m_MctfFinished.front();
             MFX_CHECK_STS(QueryFromMctf(&task));
 #endif
@@ -3514,7 +3514,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                 mfxStatus sts = MFX_ERR_NONE;
 
                 //printf("Execute: %d, type %d, qp %d\n", task->m_frameOrder, task->m_type[0], task->m_cqpValue[0]);
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
                 if(task->m_handleMCTF.first)//Intercept encoder so MCTF denoised frame can be fed at the right moment.
                     sts = m_ddi->Execute(task->m_handleMCTF, *task, fieldId, m_sei);
                 else
