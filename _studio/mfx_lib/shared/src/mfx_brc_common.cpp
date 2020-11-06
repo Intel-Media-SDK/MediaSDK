@@ -308,8 +308,10 @@ inline mfxI32 GetOffsetAPQ(mfxI32 level, mfxU16 isRef, mfxU16 clsAPQ)
         switch (level) {
         case 3:
             qp += 2;
+            MFX_FALLTHROUGH;
         case 2:
             qp += 0;
+            MFX_FALLTHROUGH;
         case 1:
         default:
             qp += 3;

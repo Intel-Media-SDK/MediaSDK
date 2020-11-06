@@ -45,7 +45,11 @@ namespace Gen12
         {}
     protected:
 
+#ifndef ANDROID
         virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override;
+#else
+        virtual void InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push) override {};
+#endif
     };
 
 } //Gen12
