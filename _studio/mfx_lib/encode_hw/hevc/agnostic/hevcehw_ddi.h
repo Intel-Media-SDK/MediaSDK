@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -118,9 +118,11 @@ typedef struct tagENCODE_CAPS_HEVC
             uint16_t PFrameSupport            : 1;
             uint16_t LookaheadAnalysisSupport : 1;
             uint16_t LookaheadBRCSupport      : 1;
-            uint16_t reservedbits             : 13;
+            uint16_t TileReplaySupport        : 1;
+            uint16_t TCBRCSupport             : 1;
+            uint16_t reservedbits             : 11;
         };
-        uint16_t	CodingLimits3;
+        uint16_t CodingLimits3;
     };
 
     uint32_t reserved32bits1;

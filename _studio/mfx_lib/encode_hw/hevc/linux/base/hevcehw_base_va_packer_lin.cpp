@@ -253,6 +253,7 @@ void AddVaMiscHRD(
 void AddVaMiscRC(
     const Glob::VideoParam::TRef& par
     , const Glob::PPS::TRef& bs_pps
+    , const Task::Common::TRef & task
     , std::list<std::vector<mfxU8>>& buf
     , bool bResetBRC = false)
 {
@@ -287,6 +288,11 @@ void AddVaMiscRC(
     //  MBBRC control
     // Control VA_RC_MB 0: default, 1: enable, 2: disable, other: reserved
     rc.rc_flags.bits.mb_rate_control = IsOn(CO2.MBBRC) + IsOff(CO2.MBBRC) * 2;
+
+    // TCBRC control
+#if VA_CHECK_VERSION(1, 10, 0)
+    rc.target_frame_size = task.TCBRCTargetFrameSize;
+#endif
 
 #ifdef MFX_ENABLE_QVBR
     const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
@@ -538,7 +544,8 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             , const StorageR& local
             , std::list<std::vector<mfxU8>>& data)
         {
-            AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData);
+            auto& task = Task::Common::Get(strg);
+            AddVaMiscRC(par, bs_pps, task, m_vaPerSeqMiscData);
             return true;
         });
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeParallelBRC].Push([this, &par](
@@ -698,7 +705,8 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
             , const StorageR& local
             , std::list<std::vector<mfxU8>>& data)
         {
-            AddVaMiscRC(par, bs_pps, m_vaPerSeqMiscData, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
+            auto& task = Task::Common::Get(strg);
+            AddVaMiscRC(par, bs_pps, task, m_vaPerSeqMiscData, !!(Glob::ResetHint::Get(strg).Flags & RF_BRC_RESET));
             return true;
         });
         cc.AddPerSeqMiscData[VAEncMiscParameterTypeParallelBRC].Push([this, &par](

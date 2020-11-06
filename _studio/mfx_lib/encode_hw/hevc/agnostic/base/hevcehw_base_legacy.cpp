@@ -296,6 +296,16 @@ void Legacy::SetSupported(ParamSupport& blocks)
     });
 }
 
+bool Legacy::IsTCBRC(const mfxVideoParam& par, mfxU16 tcbrcSupport)
+{
+    const mfxExtCodingOption3& CO3 = ExtBuffer::Get(par);
+    const mfxExtCodingOption& CO = ExtBuffer::Get(par);
+    return (IsOn(CO3.LowDelayBRC) && tcbrcSupport && IsOff(CO.NalHrdConformance) &&
+           (par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VBR  ||
+            par.mfx.RateControlMethod  ==  MFX_RATECONTROL_QVBR ||
+            par.mfx.RateControlMethod  ==  MFX_RATECONTROL_VCM ));
+}
+
 void Legacy::SetInherited(ParamInheritance& par)
 {
     par.m_mvpInheritDefault.emplace_back(
@@ -478,6 +488,7 @@ void Legacy::SetInherited(ParamInheritance& par)
             , mfxExtBuffer* pDst)
     {
         INIT_EB(mfxExtCodingOption3);
+        INHERIT_OPT(LowDelayBRC);
         INHERIT_OPT(IntRefCycleDist);
         INHERIT_OPT(PRefType);
         INHERIT_OPT(GPB);
@@ -2298,6 +2309,15 @@ void Legacy::ConfigureTask(
         m_baseLayerOrder *= !isI;
         task.IRState = GetIntraRefreshState(
             par, task.ctrl, m_baseLayerOrder++, dflts.caps.IntraRefreshBlockUnitSize);
+    }
+
+    if (IsTCBRC(par, dflts.caps.TCBRCSupport) && task.TCBRCTargetFrameSize == 0)
+    {
+        ThrowAssert(par.mfx.FrameInfo.FrameRateExtD == 0, "FrameRateExtD = 0");
+
+        mfxU32 AvgFrameSizeInBytes = mfxU32(1000.0 / 8.0*(par.mfx.TargetKbps) * std::max<mfxU32>(par.mfx.BRCParamMultiplier,1) /
+            (mfxF64(par.mfx.FrameInfo.FrameRateExtN) / par.mfx.FrameInfo.FrameRateExtD));
+        task.TCBRCTargetFrameSize = AvgFrameSizeInBytes;
     }
 
     mfxU32 needRecoveryPointSei = (CO.RecoveryPointSEI == MFX_CODINGOPTION_ON
