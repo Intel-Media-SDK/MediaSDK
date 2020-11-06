@@ -34,40 +34,16 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Xeon® E3-1200 v4 Family and 5th Generation Intel® Core™ Processors will be referred to as “Broadwell”
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
-
-## What’s New in Media SDK 20.3.0
-**New features**:
-* **API 1.34**
-    - Added Keem Bay platform support
-    - Added AV1 decode support
-
+## What’s New in Media SDK 20.4.1
 * **AVC encode**
-    - Added implicit Motion-Compensated Temporal Filter (MCTF) to improve coding quality on certain scenarios
-    - Improved CodecLevel initialization from rate control parameters
-    - Added support of 4k streams with look-ahead bitrate control mode
-    - Enabled QPOffset by default
+    - Implicit Motion-Compensated Temporal Filter (MCTF) disabled to mitigate (#2412)
 
-* **HEVC encode**
-    - Improved efficiency of FPQ
-    - Enabled QP modulation (Icelake+)
-
-* **VP9 decode**
-    - Added 16k support
-
-* **VPP**
-    - Added A2RGB10 input in case of passthru copy
+## What’s New in Media SDK 20.4.0
+**New features**:
 
 * **Samples**
-    - Added -dec::sys flag for setting of the output memory to system type in sample_multi_transcode
-    - Added p016/y216 support in sample_encode
-    - Added i420/nv12 support in sample_multi_transcode
-    - Fixed chroma size for Y210/Y216 formats in sample_deocde
-    - Added handle for iterpolation methods for resize in sample_vpp
-
-* **Misc**
-    - Added support for discrete Intel Xe graphics codenamed DG1 and SG1
-    - Added support for Rocketlake platform
-    - Actualized Elkhartlake device id support list
+    - Added AdaptiveI and AdaptiveB frames support to sample_multi_transcode
+    - Added NV16 output support
 
 * **Software requirements**
     - Libdrm 2.4.84 or later
