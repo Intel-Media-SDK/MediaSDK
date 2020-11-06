@@ -239,8 +239,17 @@ namespace UMC_AV1_DECODER
         if (fh.show_existing_frame)
         {
             pFrame = frameDPB[fh.frame_to_show_map_idx];
+            //Increase referernce here, and will be decreased when
+            //CompleteDecodedFrames not show_frame case.
             pFrame->IncrementReference();
             VM_ASSERT(pFrame);
+
+            //Add one more Reference, and add it into outputted frame list
+            //When QueryFrame finished and update status in outputted frame
+            //list, then it will be released in CompleteDecodedFrames.
+            pFrame->IncrementReference();
+            outputed_frames.push_back(pFrame);
+
             FrameHeader const& refFH = pFrame->GetFrameHeader();
 
             if (!refFH.showable_frame)
@@ -693,6 +702,8 @@ namespace UMC_AV1_DECODER
                 }
                 else
                 {
+                    // For no display case, decrease reference here which is increased
+                    // in pFrame->IncrementReference() in show_existing_frame case.
                     Curr->DecrementReference();
                 }
             }
