@@ -5056,7 +5056,7 @@ The `mfxExtEncoderROI` structure is used by the application to specify different
 **Members**
 
 | | |
---- | --- | --- | --- 
+--- | ---
 `Header.BufferId` | Must be [MFX_EXTBUFF_ENCODER_ROI](#ExtendedBufferID)||
 `NumROI` | Number of ROI descriptions in array. The Query function mode 2 returns maximum supported value (set it to 256 and Query will update it to maximum supported value).||
 `ROIMode` | QP adjustment mode for ROIs. Defines if Priority, `DeltaQP` or absolute value is used during encoding. ||
