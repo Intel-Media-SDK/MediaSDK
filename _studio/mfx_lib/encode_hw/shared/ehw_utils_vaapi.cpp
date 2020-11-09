@@ -164,7 +164,7 @@ bool VAAPIParPacker::AddPackedHeaderIf(
 
     xPar.Function = VAEncPackedHeaderDataBufferType;
     xPar.In.pData = pd.pData;
-    xPar.In.Size  = pd.BitLen / 8;
+    xPar.In.Size  = (pd.BitLen + 7) / 8;
     xPar.In.Num   = 1;
     par.push_back(xPar);
 
