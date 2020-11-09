@@ -511,6 +511,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-idr_interval")))
         {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nIdrInterval))
             {
                 PrintHelp(strInput[0], MSDK_STRING("IdrInterval is invalid"));
@@ -1210,6 +1211,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-p")))
         {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
             pParams->pluginParams = ParsePluginGuid(strInput[++i]);
             if (AreGuidsEqual(pParams->pluginParams.pluginGuid, MSDK_PLUGINGUID_NULL))
             {
@@ -1233,6 +1235,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-path")))
         {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
             i++;
             pParams->pluginParams = ParsePluginPath(strInput[i]);
         }
