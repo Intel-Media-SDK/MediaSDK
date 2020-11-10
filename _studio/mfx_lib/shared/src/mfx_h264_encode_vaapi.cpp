@@ -22,7 +22,6 @@
 
 #if defined(MFX_ENABLE_H264_VIDEO_ENCODE_HW) && defined(MFX_VA_LINUX)
 
-#include "mfx_session.h"
 #include <va/va.h>
 #include <va/va_enc_h264.h>
 #include "mfxfei.h"
@@ -1317,7 +1316,6 @@ VAAPIEncoder::VAAPIEncoder()
     , m_vaConfig(VA_INVALID_ID)
     , m_sps()
     , m_pps()
-    , m_priorityBuffer()
     , m_slice()
     , m_spsBufferId(VA_INVALID_ID)
     , m_hrdBufferId(VA_INVALID_ID)
@@ -1348,7 +1346,6 @@ VAAPIEncoder::VAAPIEncoder()
     , m_packedSeiBufferId(VA_INVALID_ID)
     , m_packedSkippedSliceHeaderBufferId(VA_INVALID_ID)
     , m_packedSkippedSliceBufferId(VA_INVALID_ID)
-    , m_priorityBufferId(VA_INVALID_ID)
     , m_feedbackCache()
     , m_bsQueue()
     , m_reconQueue()
@@ -1375,7 +1372,6 @@ VAAPIEncoder::VAAPIEncoder()
 #ifdef MFX_ENABLE_MFE
     , m_mfe(0)
 #endif
-    , m_MaxContextPriority(0)
 {
     m_videoParam.mfx.CodecProfile = MFX_PROFILE_AVC_HIGH; // QueryHwCaps will use this value
 
@@ -1502,8 +1498,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         VAConfigAttribEncROI,
         VAConfigAttribEncSkipFrame,
         VAConfigAttribCustomRoundingControl,
-        VAConfigAttribQPBlockSize,
-        VAConfigAttribContextPriority
+        VAConfigAttribQPBlockSize
     };
 
     std::vector<VAConfigAttrib> attrs;
@@ -1627,9 +1622,6 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
     {
         m_caps.ddi_caps.MaxNumOfROI = 0;
     }
-
-    if(AV(VAConfigAttribContextPriority) != VA_ATTRIB_NOT_SUPPORTED)
-        m_MaxContextPriority = AV(VAConfigAttribContextPriority);
 
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(VideoCORE* core, GUID guid, mfxU32 width, mfxU32 height)
@@ -2187,29 +2179,7 @@ mfxStatus VAAPIEncoder::Execute(
             }
         }
     }
-
-    // configure gpu priority parameters
-    if(m_MaxContextPriority)
-    {
-        mfxPriority contextPriority = m_core->GetSession()->m_priority;
-        memset(&m_priorityBuffer, 0, sizeof(VAContextParameterUpdateBuffer));
-        m_priorityBuffer.flags.bits.context_priority_update = 1;
-
-        if(contextPriority == MFX_PRIORITY_LOW)
-        {
-            m_priorityBuffer.context_priority.bits.priority = 0;
-        }
-        else if (contextPriority == MFX_PRIORITY_HIGH)
-        {
-            m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority;
-        }
-        else
-        {
-            m_priorityBuffer.context_priority.bits.priority = m_MaxContextPriority/2;
-        }
-    }
     configBuffers.reserve(MAX_CONFIG_BUFFERS_COUNT + m_slice.size() * 2 + m_packedSvcPrefixBufferId.size() * 2);
-   
 
     /* for debug only */
     //fprintf(stderr, "----> Encoding frame = %u, type = %u\n", debug_frame_bum++, ConvertMfxFrameType2SliceType( task.m_type[fieldId]) -5 );
@@ -2571,25 +2541,6 @@ mfxStatus VAAPIEncoder::Execute(
                                     &m_sliceBufferId[i]);
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
         }
-
-        // set Gpu priority
-        if(m_MaxContextPriority)
-        {
-            mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
-            MFX_CHECK_STS(mfxSts);
-
-            vaSts = vaCreateBuffer(m_vaDisplay,
-                                   m_vaContextEncode,
-                                   VAContextParameterUpdateBufferType,
-                                   sizeof(m_priorityBuffer),
-                                   1,
-                                   &m_priorityBuffer,
-                                   &m_priorityBufferId);
-            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-
-            configBuffers.push_back(m_priorityBufferId);
-         }
-
     }
 
     if (m_caps.ddi_caps.HeaderInsertion == 1 && skipFlag == NO_SKIP)
@@ -3525,11 +3476,6 @@ mfxStatus VAAPIEncoder::Destroy()
     MFX_CHECK_STS(mfxSts);
     mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_mbNoSkipBufferId);
     MFX_CHECK_STS(mfxSts);
-    if(m_MaxContextPriority)
-    {
-        mfxSts = CheckAndDestroyVAbuffer(m_vaDisplay, m_priorityBufferId);
-        MFX_CHECK_STS(mfxSts);
-    }
 
     for(mfxU32 i = 0; i < m_slice.size(); i++)
     {
