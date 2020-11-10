@@ -101,7 +101,6 @@ public:
 protected:
 
     void PackPicParams(H264DecoderFrameInfo * pSliceInfo, H264Slice * pSlice);
-    void PackPriorityParams();
 
     void FillFrame(VAPictureH264 * pic, const H264DecoderFrame *pFrame,
         int32_t field, int32_t reference, int32_t defaultIndex);

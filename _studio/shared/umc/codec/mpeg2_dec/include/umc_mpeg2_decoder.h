@@ -176,8 +176,6 @@ namespace UMC_MPEG2_DECODER
 
         Payload_Storage * GetPayloadStorage() const { return m_messages.get();}
 
-        MPEG2DecoderParams* GetMpeg2DecoderParams() {return &m_params;}
-
     protected:
 
         virtual void SetDPBSize(uint32_t);

@@ -74,7 +74,6 @@ protected:
     std::vector<VABufferID> m_perSeqPar;
     std::vector<VABufferID> m_perPicPar;
     std::vector<VABufferID> m_bs;
-    PriorityParam           m_priorityPar;
 };
 
 } //Base

@@ -461,7 +461,6 @@ VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(
           , m_bCmCopyAllowed(false)
 #endif
           , m_bHEVCFEIEnabled(false)
-          , m_maxContextPriority(0)
 {
 } // VAAPIVideoCORE_T<Base>::VAAPIVideoCORE_T(...)
 
@@ -925,7 +924,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::CreateVideoAccelerator(
     m_pVA->m_Platform   = UMC::VA_LINUX;
     m_pVA->m_Profile    = (VideoAccelerationProfile)profile;
     m_pVA->m_HWPlatform = m_HWType;
-    m_pVA->m_MaxContextPriority = m_maxContextPriority;
 
     Status st = m_pVA->Init(&params);
     MFX_CHECK(st == UMC_OK, MFX_ERR_UNSUPPORTED);
@@ -1351,8 +1349,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK(it_entrypoint != va_entrypoints.end(), MFX_ERR_UNSUPPORTED);
 
     VAConfigAttrib attr[] = {{VAConfigAttribMaxPictureWidth,  0},
-                             {VAConfigAttribMaxPictureHeight, 0},
-                             {VAConfigAttribContextPriority,  0}};
+                             {VAConfigAttribMaxPictureHeight, 0}};
 
     //ask driver about support
     va_sts = vaGetConfigAttributes(m_Display, mapper.profile,
@@ -1367,8 +1364,6 @@ mfxStatus VAAPIVideoCORE_T<Base>::IsGuidSupported(const GUID guid,
     MFX_CHECK_COND(attr[0].value && attr[1].value);
     MFX_CHECK(attr[0].value >= par->mfx.FrameInfo.Width, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(attr[1].value >= par->mfx.FrameInfo.Height, MFX_ERR_UNSUPPORTED);
-    if (attr[2].value != VA_ATTRIB_NOT_SUPPORTED)
-        m_maxContextPriority = attr[2].value;
 
     return MFX_ERR_NONE;
 #else

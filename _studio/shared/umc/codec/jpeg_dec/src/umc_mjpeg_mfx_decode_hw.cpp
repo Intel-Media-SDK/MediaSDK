@@ -339,36 +339,6 @@ Status MJPEGVideoDecoderMFX_HW::DefaultInitializationHuffmantables()
     return UMC_OK;
 }
 
-Status MJPEGVideoDecoderMFX_HW::PackPriorityParams()
-{
-    Status sts = UMC_OK;
-    mfxPriority priority = m_va->m_ContextPriority;
-    UMCVACompBuffer *GpuPriorityBuf;
-    VAContextParameterUpdateBuffer* GpuPriorityBuf_JpegDecode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
-    if (!GpuPriorityBuf_JpegDecode)
-        return UMC_ERR_DEVICE_FAILED;
-
-    memset(GpuPriorityBuf_JpegDecode, 0, sizeof(VAContextParameterUpdateBuffer));
-    GpuPriorityBuf_JpegDecode->flags.bits.context_priority_update = 1;
-    if(priority == MFX_PRIORITY_LOW)
-    {
-        GpuPriorityBuf_JpegDecode->context_priority.bits.priority = 0;
-    }
-    else if (priority == MFX_PRIORITY_HIGH)
-    {
-        GpuPriorityBuf_JpegDecode->context_priority.bits.priority = m_va->m_MaxContextPriority;
-    }
-    else
-    {
-        GpuPriorityBuf_JpegDecode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
-    }
-
-    GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
-
-    return sts;
-
-}
-
 Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
 {
 #ifdef UMC_VA
@@ -539,13 +509,6 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
         {
             return UMC_ERR_NOT_IMPLEMENTED;
         }
-    }
-
-    if(m_va->m_MaxContextPriority)
-    {
-        sts = PackPriorityParams();
-        if (sts != UMC_OK)
-            return sts;
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////
