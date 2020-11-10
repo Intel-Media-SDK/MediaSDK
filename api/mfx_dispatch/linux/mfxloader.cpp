@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -429,10 +429,26 @@ mfxStatus MFXClose(mfxSession session)
   }
 }
 
+static inline bool IsEmbeddedPlugin(const mfxPluginUID *uid)
+{
+  return (
+    *uid == MFX_PLUGINID_HEVCD_SW ||
+    *uid == MFX_PLUGINID_HEVCD_HW ||
+    *uid == MFX_PLUGINID_HEVCE_SW ||
+    *uid == MFX_PLUGINID_HEVCE_HW ||
+    *uid == MFX_PLUGINID_VP8D_HW ||
+    *uid == MFX_PLUGINID_VP8E_HW ||
+    *uid == MFX_PLUGINID_VP9D_HW ||
+    *uid == MFX_PLUGINID_VP9E_HW);
+}
+
 mfxStatus MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version)
 {
   if (!session) return MFX_ERR_INVALID_HANDLE;
   if (!uid) return MFX_ERR_NULL_PTR;
+  if (IsEmbeddedPlugin(uid)) {
+    return MFX_ERR_NONE;
+  }
 
   try {
     MFX::LoaderCtx* loader = (MFX::LoaderCtx*)session;
@@ -474,6 +490,9 @@ mfxStatus MFXVideoUSER_LoadByPath(mfxSession session, const mfxPluginUID *uid, m
 {
   if (!session) return MFX_ERR_INVALID_HANDLE;
   if (!uid) return MFX_ERR_NULL_PTR;
+  if (IsEmbeddedPlugin(uid)) {
+    return MFX_ERR_NONE;
+  }
 
   try {
     MFX::LoaderCtx* loader = (MFX::LoaderCtx*)session;
@@ -487,6 +506,9 @@ mfxStatus MFXVideoUSER_UnLoad(mfxSession session, const mfxPluginUID *uid)
 {
   if (!session) return MFX_ERR_INVALID_HANDLE;
   if (!uid) return MFX_ERR_NULL_PTR;
+  if (IsEmbeddedPlugin(uid)) {
+    return MFX_ERR_NONE;
+  }
 
   try {
     MFX::LoaderCtx* loader = (MFX::LoaderCtx*)session;
