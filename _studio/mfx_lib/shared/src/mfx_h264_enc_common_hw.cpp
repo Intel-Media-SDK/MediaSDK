@@ -1029,25 +1029,31 @@ namespace
         }
     }
 
-    mfxU16 GetDefaultMaxNumRefActiveBL0(mfxU32 targetUsage, eMFXHWType platform)
+    mfxU16 GetDefaultMaxNumRefActiveBL0(mfxU32 targetUsage,
+                                        eMFXHWType platform,
+                                        bool isLowPower)
     {
-        if (platform <= MFX_HW_IVB || platform == MFX_HW_VLV)
+        if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) && !isLowPower)
+        {
+            constexpr mfxU16 DEFAULT_BY_TU[][8] = {
+                { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
+                { 0, 4, 4, 2, 2, 2, 1, 1 }
+            };
+            return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
+        }
+        else
         {
             return 1;
         }
-        constexpr mfxU16 DEFAULT_BY_TU[][8] = {
-            { 0, 4, 4, 3, 2, 2, 1, 1 }, // platform <= MFX_HW_HSW_ULT
-            { 0, 4, 4, 2, 2, 2, 1, 1 }
-        };
-        return DEFAULT_BY_TU[platform > MFX_HW_HSW_ULT ? 1 : 0][targetUsage];
     }
 
-    mfxU16 GetDefaultNumRefActiveBL1(const mfxU32 targetUsage,
-                                     const eMFXHWType platform,
-                                     const mfxU16 picStruct)
+    mfxU16 GetDefaultNumRefActiveBL1(mfxU32 targetUsage,
+                                     eMFXHWType platform,
+                                     mfxU16 picStruct,
+                                     bool isLowPower)
     {
         if ((platform >= MFX_HW_HSW && platform != MFX_HW_VLV) &&
-            picStruct != MFX_PICSTRUCT_PROGRESSIVE)
+            picStruct != MFX_PICSTRUCT_PROGRESSIVE && !isLowPower)
         {
             constexpr mfxU16 DEFAULT_BY_TU[] = { 0, 2, 2, 2, 2, 2, 1, 1 };
             return DEFAULT_BY_TU[targetUsage];
@@ -5757,7 +5763,7 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                extDdi->NumActiveRefBL0 = GetDefaultMaxNumRefActiveBL0(par.mfx.TargetUsage, platform);
+                extDdi->NumActiveRefBL0 = GetDefaultMaxNumRefActiveBL0(par.mfx.TargetUsage, platform, IsOn(par.mfx.LowPower));
             }
         } /* if (extDdi->NumActiveRefBL0 == 0) */
 
@@ -5776,7 +5782,7 @@ void MfxHwH264Encode::SetDefaults(
             }
             else
             {
-                extDdi->NumActiveRefBL1 = GetDefaultNumRefActiveBL1(par.mfx.TargetUsage, platform, par.mfx.FrameInfo.PicStruct);
+                extDdi->NumActiveRefBL1 = GetDefaultNumRefActiveBL1(par.mfx.TargetUsage, platform, par.mfx.FrameInfo.PicStruct, IsOn(par.mfx.LowPower));
             }
         } /* if (extDdi->NumActiveRefBL1 == 0) */
     }
