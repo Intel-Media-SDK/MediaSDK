@@ -234,6 +234,7 @@ namespace Base
         static mfxU32 GetRawBytes(mfxU16 w, mfxU16 h, mfxU16 ChromaFormat, mfxU16 BitDepth);
         static bool IsSWBRC(mfxVideoParam const & par, const mfxExtCodingOption2* pCO2);
         static bool IsInVideoMem(const mfxVideoParam & par, const mfxExtOpaqueSurfaceAlloc* pOSA);
+        static bool IsTCBRC(const mfxVideoParam & par, mfxU16 tcbrcSupport);
 
         mfxU16 GetMaxRaw(const mfxVideoParam & par)
         {

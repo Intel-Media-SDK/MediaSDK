@@ -792,7 +792,7 @@ namespace Base
         mfxU32              initial_cpb_removal_offset  = 0;
         mfxU32              cpb_removal_delay           = 0;
         //dpb_output_delay = (DisplayOrder + sps.sub_layer[0].max_num_reorder_pics - EncodedOrder);
-
+        mfxU32              TCBRCTargetFrameSize        = 0;
         mfxU8 RefPicList[2][MAX_DPB_SIZE] =
         {
             {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
