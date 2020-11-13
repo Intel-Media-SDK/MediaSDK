@@ -133,6 +133,7 @@ protected:
     CUQPMap                                     m_qpMap;
     mfxU32                                      m_numSkipFrames = 0;
     mfxU32                                      m_sizeSkipFrames = 0;
+    mfxU32                                      m_resetHintFlags = 0;
     std::list<std::vector<mfxU8>>               m_vaPerSeqMiscData;
     std::list<std::vector<mfxU8>>               m_vaPerPicMiscData;
 };
