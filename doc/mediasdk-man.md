@@ -2050,6 +2050,7 @@ If the specified system handle is a COM interface, the reference counter of the 
 --- | ---
 `MFX_ERR_NONE` | The function completed successfully.
 `MFX_ERR_UNDEFINED_BEHAVIOR` | The same handle is redefined. For example, the function has been called twice with the same handle type or internal handle has been created by the SDK before this function call.
+`MFX_ERR_DEVICE_FAILED` | The SDK cannot initialize using the handle.
 
 **Change History**
 

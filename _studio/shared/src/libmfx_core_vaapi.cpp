@@ -547,7 +547,7 @@ mfxStatus VAAPIVideoCORE_T<Base>::SetHandle(
             * to get device ID and find out platform type
             */
             const auto devItem = getDeviceItem(m_Display);
-            MFX_CHECK_WITH_ASSERT(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(MFX_HW_UNKNOWN != devItem.platform, MFX_ERR_DEVICE_FAILED);
 
             m_HWType         = devItem.platform;
             m_GTConfig       = devItem.config;
