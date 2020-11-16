@@ -90,8 +90,8 @@ void CloseFile(FILE* fHdl);
 
 using fileUniPtr = std::unique_ptr<FILE, decltype(&CloseFile)>;
 
-// LoadRawFrame: Reads raw frame from YUV file (YV12) into NV12 surface
-// - YV12 is a more common format for for YUV files than NV12 (therefore the conversion during read and write)
+// LoadRawFrame: Reads raw frame from YUV file (YU12) into NV12 surface
+// - YU12 is a more common format for for YUV files than NV12 (therefore the conversion during read and write)
 // - For the simulation case (fSource = NULL), the surface is filled with default image data
 // LoadRawRGBFrame: Reads raw RGB32 frames from file into RGB32 surface
 // - For the simulation case (fSource = NULL), the surface is filled with default image data
