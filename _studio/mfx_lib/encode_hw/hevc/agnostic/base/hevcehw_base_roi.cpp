@@ -50,6 +50,13 @@ static mfxStatus CheckAndFixRect(
     changed += AlignUp(rect.Right, blockSize);
     changed += AlignUp(rect.Bottom, blockSize);
 
+    if(rect.Left == 0 && rect.Top == 0 && rect.Right == 0 && rect.Bottom == 0)
+    {
+        rect.Right  = blockSize;//expand zero rectangle to min supported size
+        rect.Bottom = blockSize;
+        changed++;
+    }
+
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     return MFX_ERR_NONE;
 }

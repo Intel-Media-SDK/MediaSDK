@@ -1420,7 +1420,7 @@ bool MfxHwH264Encode::IsMctfSupported(
     (void)video;
     bool
         isSupported = false;
-#if defined(MXF_ENABLE_MCTF_IN_AVC)
+#if defined(MFX_ENABLE_MCTF_IN_AVC)
     mfxExtCodingOption2 const & extOpt2 = GetExtBufferRef(video);
     isSupported = (IsOn(extOpt2.ExtBRC) &&
         IsExtBrcSceneChangeSupported(video) &&
