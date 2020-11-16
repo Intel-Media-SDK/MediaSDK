@@ -4484,6 +4484,15 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
 
     for (mfxU16 i = 0; i < extRoi->NumROI; i++)
     {
+        auto& rect = extRoi->ROI[i];
+        if (rect.Left == 0 && rect.Right == 0 && rect.Top == 0 && rect.Bottom == 0)
+        {
+            // Allow zero rect sizes at input. Output min supported sizes.
+            rect.Right  = 16;
+            rect.Bottom = 16;
+            changed = true;
+        }
+
         sts = CheckAndFixRoiQueryLike(par, (mfxRoiDesc*)(&(extRoi->ROI[i])), extRoi->ROIMode);
         if (sts < MFX_ERR_NONE)
             unsupported = true;
