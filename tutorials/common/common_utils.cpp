@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -173,12 +173,12 @@ mfxStatus LoadRawFrame(mfxFrameSurface1* pSurface, FILE* fSource)
     if (w > 2048)
         return MFX_ERR_UNSUPPORTED;
 
-    // load U
-    sts = ReadPlaneData(w, h, buf, ptr, pitch, 0, fSource);
+    // load V
+    sts = ReadPlaneData(w, h, buf, ptr, pitch, 1, fSource);
     if (MFX_ERR_NONE != sts)
         return sts;
-    // load V
-    ReadPlaneData(w, h, buf, ptr, pitch, 1, fSource);
+    // load U
+    ReadPlaneData(w, h, buf, ptr, pitch, 0, fSource);
     if (MFX_ERR_NONE != sts)
         return sts;
 
