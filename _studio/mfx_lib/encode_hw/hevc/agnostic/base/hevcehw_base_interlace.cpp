@@ -466,6 +466,7 @@ void Interlace::InitInternal(const FeatureBlocks&, TPushII Push)
 
         auto& rdr = Glob::Reorder::Get(strg);
         rdr.BufferSize += par.mfx.GopRefDist - 1;
+        rdr.MaxReorder += par.mfx.GopRefDist;
         rdr.Push([&](Reorderer::TExt, const DpbArray& DPB, TTaskIt begin, TTaskIt end, bool bFlush)
         {
             return IntReorder(par, DPB, begin, end, bFlush).it;
