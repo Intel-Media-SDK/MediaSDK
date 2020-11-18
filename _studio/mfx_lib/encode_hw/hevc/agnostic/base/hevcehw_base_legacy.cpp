@@ -971,6 +971,7 @@ void Legacy::InitInternal(const FeatureBlocks& /*blocks*/, TPushII Push)
         auto pReorderer = make_storable<Reorderer>();
 
         pReorderer->BufferSize = par.mfx.GopRefDist - 1;
+        pReorderer->MaxReorder = par.mfx.GopRefDist - 1;
         pReorderer->DPB        = &m_prevTask.DPB.After;
 
         pReorderer->Push(
@@ -1606,11 +1607,12 @@ void Legacy::PreReorderTask(const FeatureBlocks& /*blocks*/, TPushPreRT Push)
 
         if (par.mfx.EncodedOrder)
         {
-            auto MaxReorder     = Glob::Reorder::Get(global).BufferSize;
+            auto BufferSize     = Glob::Reorder::Get(global).BufferSize;
+            auto MaxReorder     = Glob::Reorder::Get(global).MaxReorder;
             bool bFrameFromPast = m_frameOrder && (m_frameOrder < m_prevTask.DisplayOrder);
 
             MFX_CHECK(!bFrameFromPast || ((m_prevTask.DisplayOrder - m_frameOrder) <= MaxReorder), MFX_ERR_UNDEFINED_BEHAVIOR);
-            MFX_CHECK(m_frameOrder <= (m_prevTask.EncodedOrder + 1 + MaxReorder), MFX_ERR_UNDEFINED_BEHAVIOR);
+            MFX_CHECK(m_frameOrder <= (m_prevTask.EncodedOrder + 1 + BufferSize), MFX_ERR_UNDEFINED_BEHAVIOR);
             MFX_CHECK(isValid(m_prevTask.DPB.After[0]) || IsIdr(task.FrameType), MFX_ERR_UNDEFINED_BEHAVIOR);
         }
         task.DisplayOrder = m_frameOrder;
