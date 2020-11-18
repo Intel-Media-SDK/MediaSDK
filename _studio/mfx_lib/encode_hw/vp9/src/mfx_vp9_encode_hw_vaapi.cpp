@@ -1281,11 +1281,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
 
     VASurfaceStatus surfSts = VASurfaceSkipped;
 
-#if VA_CHECK_VERSION(1,9,0)
-    vaSts = vaSyncBuffer(m_vaDisplay, codedBuffer, VA_TIMEOUT_INFINITE);
-#else
     vaSts = vaSyncSurface(m_vaDisplay, waitSurface);
-#endif
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     {
