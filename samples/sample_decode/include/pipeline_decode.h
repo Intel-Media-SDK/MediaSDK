@@ -143,6 +143,7 @@ struct sInputParams
     msdk_char     strDstFile[MSDK_MAX_FILENAME_LEN];
     sPluginParams pluginParams;
 
+    bool bDisableFilmGrain;
 };
 
 struct CPipelineStatistics

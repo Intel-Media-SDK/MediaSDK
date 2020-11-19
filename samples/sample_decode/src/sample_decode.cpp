@@ -76,6 +76,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
 #if (MFX_VERSION >= MFX_VERSION_NEXT)   
     msdk_printf(MSDK_STRING("   [-ignore_level_constrain] - ignore level constrain\n"));
 #endif
+    msdk_printf(MSDK_STRING("   [-disable_film_grain] - disable film grain application(valid only for av1)\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("JPEG Chroma Type:\n"));
     msdk_printf(MSDK_STRING("   [-jpeg_rgb] - RGB Chroma Type\n"));
@@ -661,6 +662,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->bIgnoreLevelConstrain = true;
         }
 #endif
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-disable_film_grain")))
+        {
+            pParams->bDisableFilmGrain = true;
+        }
         else // 1-character options
         {
             switch (strInput[i][1])
