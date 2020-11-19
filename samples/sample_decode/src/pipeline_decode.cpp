@@ -959,6 +959,11 @@ mfxStatus CDecodingPipeline::InitMfxParams(sInputParams *pParams)
 
     m_mfxVideoParams.AsyncDepth = pParams->nAsyncDepth;
 
+#if (MFX_VERSION >= 1034)
+    if (m_mfxVideoParams.mfx.CodecId == MFX_CODEC_AV1)
+        m_mfxVideoParams.mfx.FilmGrain = pParams->bDisableFilmGrain ? 0 : m_mfxVideoParams.mfx.FilmGrain;
+#endif
+
     return MFX_ERR_NONE;
 }
 
