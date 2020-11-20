@@ -138,8 +138,8 @@ mfxStatus SetHRD(
     misc_param->type = VAEncMiscParameterTypeHRD;
     hrd_param = (VAEncMiscParameterHRD *)misc_param->data;
 
-    hrd_param->initial_buffer_fullness = par.calcParam.initialDelayInKB * 8000;
-    hrd_param->buffer_size = par.calcParam.bufferSizeInKB * 8000;
+    hrd_param->initial_buffer_fullness = par.calcParam.initialDelayInKB * 1000;
+    hrd_param->buffer_size = par.calcParam.bufferSizeInKB * 1000;
 
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaUnmapBuffer");

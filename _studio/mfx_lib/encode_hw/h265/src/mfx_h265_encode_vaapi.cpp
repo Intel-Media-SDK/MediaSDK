@@ -336,8 +336,8 @@ mfxStatus SetHRD(
     if (   par.mfx.RateControlMethod != MFX_RATECONTROL_CQP
         && par.mfx.RateControlMethod != MFX_RATECONTROL_ICQ)
     {
-        hrd_param->initial_buffer_fullness = par.InitialDelayInKB * 8000;
-        hrd_param->buffer_size = par.BufferSizeInKB * 8000;
+        hrd_param->initial_buffer_fullness = par.InitialDelayInKB * 1000;
+        hrd_param->buffer_size = par.BufferSizeInKB * 1000;
     }
     else
     {

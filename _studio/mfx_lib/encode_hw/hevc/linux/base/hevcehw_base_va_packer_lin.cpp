@@ -222,8 +222,8 @@ void AddVaMiscHRD(
 {
     auto& hrd = AddVaMisc<VAEncMiscParameterHRD>(VAEncMiscParameterTypeHRD, buf);
 
-    hrd.initial_buffer_fullness = InitialDelayInKB(par.mfx) * 8000;
-    hrd.buffer_size             = BufferSizeInKB(par.mfx) * 8000;
+    hrd.initial_buffer_fullness = InitialDelayInKB(par.mfx) * 1000;
+    hrd.buffer_size             = BufferSizeInKB(par.mfx) * 1000;
 }
 
 void AddVaMiscRC(
