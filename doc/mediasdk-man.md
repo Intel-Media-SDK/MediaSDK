@@ -707,8 +707,6 @@ The application uses the following procedure to change encoding configurations:
 
 - The application retrieves any cached frames in the SDK encoder by calling the [MFXVideoENCODE_EncodeFrameAsync](#MFXVideoENCODE_EncodeFrameAsync) function with a `NULL` input frame pointer until the function returns [MFX_ERR_MORE_DATA](#mfxStatus).
 
-**Note:** The application must set the initial encoding configuration flag `EndOfStream` of the [mfxExtCodingOption](#mfxExtCodingOption) structure to `OFF` to avoid inserting an End of Stream (EOS) marker into the bitstream. An EOS marker causes the bitstream to terminate before encoding is complete.
-
 - The application calls the [MFXVideoENCODE_Reset](#MFXVideoENCODE_Reset) function with the new configuration:
 
   - If the function successfully set the configuration, the application can continue encoding as usual.
