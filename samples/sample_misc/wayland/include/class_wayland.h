@@ -28,7 +28,13 @@ extern "C"
 }
 #include <poll.h>
 #include <wayland-client.h>
+#include <list>
 #include "wayland-drm-client-protocol.h"
+#include "mfxstructures.h"
+#include "mfx_buffering.h"
+#include "sample_defs.h"
+
+typedef struct buffer wld_buffer;
 
 /* ShmPool Struct */
 struct ShmPool {
@@ -38,7 +44,7 @@ struct ShmPool {
     unsigned size;
 };
 
-class Wayland {
+class Wayland: public CBuffering {
     public:
         Wayland();
         virtual ~Wayland();
@@ -47,8 +53,7 @@ class Wayland {
         virtual void FreeSurface();
         virtual void SetRenderWinPos(int x, int y);
         virtual void RenderBuffer(struct wl_buffer *buffer
-            , int32_t width
-            , int32_t height);
+            , mfxFrameSurface1 *surface);
         virtual void RenderBufferWinPosSize(struct wl_buffer *buffer
             , int x
             , int y
@@ -115,6 +120,9 @@ class Wayland {
         void DestroyCallback();
         virtual void Sync();
         virtual void SetPerfMode(bool perf_mode);
+        void AddBufferToList(wld_buffer *buffer);
+        void RemoveBufferFromList(struct wl_buffer *buffer);
+        void DestroyBufferList();
     private:
         //no copies allowed
         Wayland(const Wayland &);
@@ -140,6 +148,8 @@ class Wayland {
         char *m_device_name;
         int m_x, m_y;
         bool m_perf_mode;
+    protected:
+        std::list<wld_buffer*> m_buffers_list;
 };
 
 extern "C" Wayland* WaylandCreate();
