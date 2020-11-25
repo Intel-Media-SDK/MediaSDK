@@ -96,6 +96,12 @@ public:
             , VAEncPictureParameterBufferHEVC&>;
         TUpdatePPS UpdatePPS;
 
+        using TInitPriority = CallChain<void
+            , const mfxU32&
+            , const mfxPriority&
+            , VAContextParameterUpdateBuffer&>;
+        TInitPriority InitPriority;
+
         using TFillCUQPData = CallChain<bool
             , const StorageR& //glob
             , const StorageR& //task
@@ -122,6 +128,7 @@ protected:
 
     VAEncSequenceParameterBufferHEVC            m_sps;
     VAEncPictureParameterBufferHEVC             m_pps;
+    VAContextParameterUpdateBuffer              m_hevcPriorityBuf;
     std::vector<VAEncSliceParameterBufferHEVC>  m_slices;
     CUQPMap                                     m_qpMap;
     mfxU32                                      m_numSkipFrames = 0;

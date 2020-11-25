@@ -566,7 +566,7 @@ The application can use multiple SDK sessions independently or run a â€œjoinedâ€
 To join two sessions together, the application can use the function [MFXJoinSession](#MFXJoinSession). Alternatively, the application can use the function [MFXCloneSession](#MFXCloneSession) to duplicate an existing session. Joined SDK sessions work
 together as a single session, sharing all session resources, threading control and prioritization operations (except hardware acceleration devices and external allocators). When joined, one of the sessions (the first join) serves as a parent session, scheduling execution resources, with all others child sessions relying on the parent session for resource management.
 
-With joined sessions, the application can set the priority of session operations through the [MFXSetPriority](#MFXSetPriority) function. A lower priority session receives less CPU cycles. Session priority does not affect hardware accelerated processing.
+The application can set the priority of session operations through the [MFXSetPriority](#MFXSetPriority) function. With joined session, a lower priority session receives less CPU cycles and explicitly sets the priority of hardware-accelerated tasks lower during hardware accelerator scheduling; with non-joined session, a lower priority session just explicitly sets the priority of hardware-accelerated tasks during hardware accelerator scheduling.
 
 After the completion of all session operations, the application can use the function [MFXDisjoinSession](#MFXDisjoinSession) to remove the joined state of a session. Do not close the parent session until all child sessions are disjoined or closed.
 
@@ -8843,9 +8843,9 @@ The `mfxPriority` enumerator describes the session priority.
 
 | | |
 --- | ---
-`MFX_PRIORITY_LOW` | Low priority: the session operation halts when high priority tasks are executing and more than 75% of the CPU is being used for normal priority tasks.
-`MFX_PRIORITY_NORMAL` | Normal priority: the session operation is halted if there are high priority tasks.
-`MFX_PRIORITY_HIGH` | High priority: the session operation blocks other lower priority session operations.
+`MFX_PRIORITY_LOW` | Low priority: the session operation and HW accelerator processing halt when high priority tasks are executing and more than 75% of the CPU is being used for normal priority tasks.
+`MFX_PRIORITY_NORMAL` | Normal priority: the session operation and HW accelerator processing task are halted if there are high priority tasks.
+`MFX_PRIORITY_HIGH` | High priority: the session operation blocks other lower priority session operations and HW accelerator processing task. To set the high priority for HW accelerator processing task, the user needs the CAP_SYS_NICE capability..
 
 **Change History**
 

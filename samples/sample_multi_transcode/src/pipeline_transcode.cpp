@@ -3753,6 +3753,10 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     sts = CheckRequiredAPIVersion(m_Version, pParams);
     MSDK_CHECK_STATUS(sts, "CheckRequiredAPIVersion failed");
 
+    // common session settings
+    if (m_Version.Major >= 1 && m_Version.Minor >= 1)
+        sts = m_pmfxSession->SetPriority(pParams->priority);
+
     // opaque memory feature is available starting with API 1.3 and
     // can be used within 1 intra session or joined inter sessions only
     if (m_Version.Major >= 1 && m_Version.Minor >= 3 &&
@@ -3843,12 +3847,6 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     }
 
     isHEVCSW = AreGuidsEqual(pParams->decoderPluginParams.pluginGuid, MFX_PLUGINID_HEVCD_SW);
-
-    // if sink - suspended allocation
-
-    // common session settings
-    if (m_Version.Major >= 1 && m_Version.Minor >= 1)
-        sts = m_pmfxSession->SetPriority(pParams->priority);
 
     // if sink - suspended allocation
     if (Native !=  pParams->eMode)

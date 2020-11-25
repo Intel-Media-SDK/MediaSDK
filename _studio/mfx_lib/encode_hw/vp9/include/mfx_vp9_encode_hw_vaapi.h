@@ -131,6 +131,7 @@ namespace MfxHwVP9Encode
         VAEncMiscParameterTypeVP9PerSegmantParam    m_segPar;
         VAEncMiscParameterRateControl               m_vaBrcPar;
         VAEncMiscParameterFrameRate                 m_vaFrameRate;
+        VAContextParameterUpdateBuffer              m_priorityBuffer;
 
         VP9SeqLevelParam                            m_seqParam;
 
@@ -143,6 +144,7 @@ namespace MfxHwVP9Encode
         VABufferID m_qualityLevelBufferId;
         VABufferID m_packedHeaderParameterBufferId;
         VABufferID m_packedHeaderDataBufferId;
+        VABufferID m_priorityBufferId;
 
         // max number of temp layers is 8, but now supported only 4
         VABufferID m_tempLayersBufferId;
@@ -157,7 +159,7 @@ namespace MfxHwVP9Encode
 
         std::vector<mfxU8> m_frameHeaderBuf;
 
-        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 26; // sps, pps, bitstream, uncomp header, segment map, per-segment parameters, temp layers, frame rate(up to 8), rate ctrl(up to 8), hrd, quality level
+        static const mfxU32 MAX_CONFIG_BUFFERS_COUNT = 27; // sps, pps, bitstream, uncomp header, segment map, per-segment parameters, temp layers, frame rate(up to 8), rate ctrl(up to 8), hrd, quality level
 
         mfxU32 m_width;
         mfxU32 m_height;
@@ -165,6 +167,7 @@ namespace MfxHwVP9Encode
 
         ENCODE_CAPS_VP9 m_caps;
         eMFXHWType m_platform;
+        mfxU32 m_MaxContextPriority;
 
         UMC::Mutex                      m_guard;
     };

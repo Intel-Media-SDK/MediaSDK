@@ -1055,6 +1055,8 @@ mfxStatus VideoDECODEVP9_HW::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1
 
     //update frame info
     m_frameInfo = frameInfo;
+    //gpu session priority
+    m_va->m_ContextPriority = m_core->GetSession()->m_priority;
 
     sts = m_FrameAllocator->SetCurrentMFXSurface(surface_work, m_is_opaque_memory);
     MFX_CHECK_STS(sts);
