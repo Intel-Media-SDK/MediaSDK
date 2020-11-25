@@ -97,6 +97,7 @@ namespace MfxHwMJpegEncode
 
     private:
         mfxStatus DestroyBuffers();
+        mfxStatus FillPriorityBuffer(mfxPriority&);
 
         VideoCORE       * m_core;
         mfxU32            m_width;
@@ -114,7 +115,11 @@ namespace MfxHwMJpegEncode
         VABufferID  m_htBufferId;
         VABufferID  m_scanBufferId;
         VABufferID  m_ppsBufferId;
+        VABufferID  m_priorityBufferId;
         std::vector<VABufferID>  m_appBufferIds;;
+
+        VAContextParameterUpdateBuffer   m_priorityBuffer;
+        mfxU32                           m_MaxContextPriority;
     };
 
 }; // namespace

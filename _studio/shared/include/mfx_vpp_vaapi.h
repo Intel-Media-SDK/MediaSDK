@@ -135,6 +135,7 @@ namespace MfxHwVideoProcessing
         VABufferID m_deintFilterID;
         VABufferID m_procampFilterID;
         VABufferID m_frcFilterID;
+        VABufferID m_gpuPriorityID;
         mfxU32     m_deintFrameCount;
         VASurfaceID m_refForFRC[5];
 
@@ -145,6 +146,8 @@ namespace MfxHwVideoProcessing
         std::vector<VABufferID> m_pipelineParamID;
 
         std::set<mfxU32> m_cachedReadyTaskIndex;
+
+        mfxU32 m_MaxContextPriority;
 
         typedef struct
         {

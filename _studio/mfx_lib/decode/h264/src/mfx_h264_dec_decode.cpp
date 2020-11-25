@@ -36,7 +36,7 @@
 #include "umc_h264_va_supplier.h"
 #include "umc_va_linux_protected.h"
 #include "umc_va_video_processing.h"
-
+#include "mfx_session.h"
 
 inline
 mfxU32 CalculateAsyncDepth(eMFXPlatform platform, mfxVideoParam *par)
@@ -1224,6 +1224,8 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         m_va->GetVideoProcessingVA()->SetOutputSurface(surfHDL);
     }
 #endif
+    //gpu session priority
+    m_va->m_ContextPriority = m_core->GetSession()->m_priority;
 
     try
     {
