@@ -43,7 +43,7 @@ namespace UMC_AV1_DECODER
 
     const uint8_t FRAME_MARKER = 0x2;
 
-    const uint8_t MINIMAL_DATA_SIZE = 4;
+    const uint8_t MINIMAL_DATA_SIZE = 3;
 
     const uint8_t INTER_REFS                    = 7;
     const uint8_t TOTAL_REFS                    = 8;
