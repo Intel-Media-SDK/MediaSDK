@@ -325,6 +325,7 @@ namespace TranscodingSample
 
         mfxI32  monitorType;
         bool shouldUseGreedyFormula;
+        bool bLatencyMeasurement;
         bool enableQSVFF;
         bool bSingleTexture;
 
@@ -387,6 +388,15 @@ namespace TranscodingSample
        mfxU16            Locked;
        mfxENCInput       encInput;
        mfxENCOutput      encOutput;
+    };
+
+    struct Latency {
+        std::mutex mutex;
+        std::map <mfxU64, mfxU64> data;
+        mfxF64 value = 0.;
+        mfxU64 amount = 0;
+
+        mfxF64 maxLatency = 0;
     };
 
     struct ExtendedSurface
@@ -891,6 +901,7 @@ namespace TranscodingSample
         CIOStat outputStatistics;
 
         bool shouldUseGreedyFormula;
+        bool m_bLatencyMeasurement;
 
 #if MFX_VERSION >= 1022
         // ROI data
@@ -915,6 +926,9 @@ namespace TranscodingSample
         mfxU16            m_nRotationAngle;
 
         msdk_string       m_strMfxParamsDumpFile;
+
+        Latency           m_decLatency;
+        Latency           m_encLatency;
 
         void FillMBQPBuffer(mfxExtMBQP &qpMap, mfxU16 pictStruct);
 #endif //MFX_VERSION >= 1022
