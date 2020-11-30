@@ -432,9 +432,7 @@ mfxStatus MFXClose(mfxSession session)
 static inline bool IsEmbeddedPlugin(const mfxPluginUID *uid)
 {
   return (
-    *uid == MFX_PLUGINID_HEVCD_SW ||
     *uid == MFX_PLUGINID_HEVCD_HW ||
-    *uid == MFX_PLUGINID_HEVCE_SW ||
     *uid == MFX_PLUGINID_HEVCE_HW ||
     *uid == MFX_PLUGINID_VP8D_HW ||
     *uid == MFX_PLUGINID_VP8E_HW ||
