@@ -1529,7 +1529,7 @@ void MfxVideoParam::SyncMfxToHeadersParam(mfxU32 numSlicesForSTRPSOpt)
     general.progressive_source_flag     = !!(mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
     general.interlaced_source_flag      = !(mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
     general.non_packed_constraint_flag  = 0;
-    general.frame_only_constraint_flag  = !(mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE);;
+    general.frame_only_constraint_flag  = 0;
     general.level_idc                   = (mfxU8)(mfx.CodecLevel & 0xFF) * 3;
 
     if (mfx.CodecProfile == MFX_PROFILE_HEVC_REXT

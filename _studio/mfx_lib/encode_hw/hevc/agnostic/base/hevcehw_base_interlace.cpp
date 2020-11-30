@@ -234,20 +234,6 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
             return prev(par, task, bRAPIntra && !IsField(par.mvp.mfx.FrameInfo.PicStruct));
         });
 
-        defaults.GetVPS.Push([](
-            Defaults::TGetVPS::TExt prev
-            , const Defaults::Param& par
-            , VPS& vps)
-        {
-            auto sts = prev(par, vps);
-
-            vps.general.progressive_source_flag    = !!(par.mvp.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-            vps.general.interlaced_source_flag     = !(par.mvp.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_PROGRESSIVE);
-            vps.general.frame_only_constraint_flag = !IsField(par.mvp.mfx.FrameInfo.PicStruct);
-
-            return sts;
-        });
-
         defaults.GetSPS.Push([](
             Defaults::TGetSPS::TExt prev
             , const Defaults::Param& par
@@ -269,7 +255,6 @@ void Interlace::Query1NoCaps(const FeatureBlocks& , TPushQ1 Push)
 
             return sts;
         });
-
         defaults.GetWeakRef.Push([](
             Defaults::TGetWeakRef::TExt prev
             , const Defaults::Param& par

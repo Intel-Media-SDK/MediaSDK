@@ -216,6 +216,10 @@ namespace Base
             , const Defaults::Param& defPar
             , bool bExternalFrameAllocator);
 
+        void SetVPS(
+            const Defaults::Param& dflts
+            , VPS& vps);
+
         void SetSTRPS(
             const Defaults::Param& dflts
             , SPS& sps

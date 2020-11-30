@@ -1241,8 +1241,6 @@ namespace Base
             , std::vector<SliceInfo>&>;
         TGetSlices GetSlices;
 
-        using TGetVPS = CallChain<mfxStatus, const Defaults::Param&, VPS&>;
-        TGetVPS GetVPS;
         using TGetSPS = CallChain<mfxStatus, const Defaults::Param&, const VPS&, SPS&>;
         TGetSPS GetSPS;
         using TGetPPS = CallChain<mfxStatus, const Defaults::Param&, const SPS&, PPS&>;
