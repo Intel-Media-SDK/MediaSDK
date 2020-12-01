@@ -1296,6 +1296,12 @@ struct APIChangeFeatures {
     bool SupportCodecPluginAPI;
 };
 
+inline
+mfxU32 MakeVersion(mfxU16 major, mfxU16 minor)
+{
+    return major * 1000 + minor;
+}
+
 mfxVersion getMinimalRequiredVersion(const APIChangeFeatures &features);
 
 enum msdkAPIFeature {

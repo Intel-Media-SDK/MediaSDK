@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 Intel Corporation
+// Copyright (c) 2018-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 
 #include "mediasdk_version.h"
 
-#if (MFX_VERSION_MAJOR == 1) && (MFX_VERSION_MINOR >= 10)
+#if (MFX_VERSION >= 1010)
   #define MFX_USE_VERSIONED_SESSION
 #endif
 
