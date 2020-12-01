@@ -632,21 +632,18 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
              * are fed into de-interlacer.
              **/
 
-            // ADI 30i->30p: To get first field of current frame , set deint.flags second output field.
+            /* ADI 30i->30p: To get first field of current frame only
+             * For TFF cases, deint.flags required to set VA_DEINTERLACING_ONE_FIELD
+             * ensure driver go 30i->30p mode and surface set correct
+             * For BFF cases, deint.flags required to set all bits
+             * ensure driver go 30i->30p mode and surface set correct
+             **/
             if(deint.algorithm == VAProcDeinterlacingMotionAdaptive && (pParams->refCount > 1))
             {
                 if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
-                    deint.flags = VA_DEINTERLACING_BOTTOM_FIELD;
-                else /* For BFF, second field is Top */
-                    deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST;
-
-                if (MFX_HW_APL == hwType)
-                {
-                    if (MFX_PICSTRUCT_FIELD_TFF & pCurSurf_frameInfo->frameInfo.PicStruct)
-                        deint.flags = VA_DEINTERLACING_ONE_FIELD;
-                    else /* For BFF case required to set all bits  */
-                        deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST | VA_DEINTERLACING_BOTTOM_FIELD | VA_DEINTERLACING_ONE_FIELD;
-                }
+                    deint.flags = VA_DEINTERLACING_ONE_FIELD;
+                else /* For BFF case required to set all bits  */
+                    deint.flags = VA_DEINTERLACING_BOTTOM_FIELD_FIRST | VA_DEINTERLACING_BOTTOM_FIELD | VA_DEINTERLACING_ONE_FIELD;
             }
 
             /* For 30i->60p case we have to indicate
