@@ -2011,45 +2011,47 @@ mfxVersion getMinimalRequiredVersion(const APIChangeFeatures &features)
 
 bool CheckVersion(mfxVersion* version, msdkAPIFeature feature)
 {
-    if (!version->Major || (version->Major > 1)) {
+    if (!version) {
         return false;
     }
+
+    mfxU32 ver = MakeVersion(version->Major, version->Minor);
 
     switch (feature) {
     case MSDK_FEATURE_NONE:
         return true;
     case MSDK_FEATURE_MVC:
-        if ((version->Major == 1) && (version->Minor >= 3)) {
+        if (ver >= 1003) {
             return true;
         }
         break;
     case MSDK_FEATURE_JPEG_DECODE:
-        if ((version->Major == 1) && (version->Minor >= 3)) {
+        if (ver >= 1003) {
             return true;
         }
         break;
    case MSDK_FEATURE_LOW_LATENCY:
-        if ((version->Major == 1) && (version->Minor >= 3)) {
+        if (ver >= 1003) {
             return true;
         }
         break;
     case MSDK_FEATURE_MVC_VIEWOUTPUT:
-        if ((version->Major == 1) && (version->Minor >= 4)) {
+        if (ver >= 1004) {
             return true;
         }
         break;
     case MSDK_FEATURE_JPEG_ENCODE:
-        if ((version->Major == 1) && (version->Minor >= 6)) {
+        if (ver >= 1006) {
             return true;
         }
         break;
     case MSDK_FEATURE_LOOK_AHEAD:
-        if ((version->Major == 1) && (version->Minor >= 7)) {
+        if (ver >= 1007) {
             return true;
         }
         break;
     case MSDK_FEATURE_PLUGIN_API:
-        if ((version->Major == 1) && (version->Minor >= 8)) {
+        if (ver >= 1008) {
             return true;
         }
         break;

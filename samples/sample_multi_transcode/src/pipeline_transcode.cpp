@@ -3754,12 +3754,13 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     MSDK_CHECK_STATUS(sts, "CheckRequiredAPIVersion failed");
 
     // common session settings
-    if (m_Version.Major >= 1 && m_Version.Minor >= 1)
+    mfxU32 version = MakeVersion(m_Version.Major, m_Version.Minor);
+    if (version >= 1001)
         sts = m_pmfxSession->SetPriority(pParams->priority);
 
     // opaque memory feature is available starting with API 1.3 and
     // can be used within 1 intra session or joined inter sessions only
-    if (m_Version.Major >= 1 && m_Version.Minor >= 3 &&
+    if (version >= 1003 &&
         (pParams->eMode == Native || pParams->bIsJoin) && !pParams->rawInput)
     {
         m_bUseOpaqueMemory = true;
