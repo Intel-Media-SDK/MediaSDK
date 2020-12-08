@@ -3855,6 +3855,7 @@ mfxStatus Legacy::CheckSlices(
     , const Defaults::Param& defPar)
 {
     mfxU32 changed = 0;
+    bool bRowAlign = true;
     mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
     bool bCheckNMB = pCO2 && pCO2->NumMbPerSlice;
 
@@ -3865,6 +3866,7 @@ mfxStatus Legacy::CheckSlices(
         mfxU16 H                = defPar.base.GetCodedPicHeight(defPar);
         mfxU16 LCUSize          = defPar.base.GetLCUSize(defPar);
         mfxU32 nLCU             = CeilDiv(W, LCUSize) * CeilDiv(H, LCUSize);
+        mfxU32 nLCUInWidth      = CeilDiv(W, LCUSize);
         mfxU32 nTile            = std::get<0>(tiles) * std::get<1>(tiles);
         mfxU32 maxSlicesPerTile = MAX_SLICES / nTile;
         mfxU32 maxSlicesTotal   = maxSlicesPerTile * nTile;
@@ -3873,6 +3875,7 @@ mfxStatus Legacy::CheckSlices(
 
         changed += CheckMinOrClip(pCO2->NumMbPerSlice, minNumMbPerSlice);
         changed += CheckMaxOrClip(pCO2->NumMbPerSlice, maxNumMbPerSlice);
+        bRowAlign = !(IsOn(par.mfx.LowPower) && (pCO2->NumMbPerSlice % nLCUInWidth));
     }
 
     std::vector<SliceInfo> slices;
@@ -3892,6 +3895,7 @@ mfxStatus Legacy::CheckSlices(
             changed += CheckMinOrClip(pCO2->NumMbPerSlice, itMaxSlice->NumLCU);
     }
 
+    MFX_CHECK(bRowAlign, MFX_ERR_UNSUPPORTED);
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
     return MFX_ERR_NONE;
 }
