@@ -4131,13 +4131,6 @@ mfxStatus CTranscodingPipeline::SetAllocatorAndHandleIfRequired()
     mfxIMPL impl = 0;
     m_pmfxSession->QueryIMPL(&impl);
 
-    // Media SDK session doesn't require external allocator if the application uses opaque memory
-    if (!m_bUseOpaqueMemory)
-    {
-        sts = m_pmfxSession->SetFrameAllocator(m_pMFXAllocator);
-        MSDK_CHECK_STATUS(sts, "m_pmfxSession->SetFrameAllocator failed");
-    }
-
     mfxHandleType handleType = (mfxHandleType)0;
     bool bIsMustSetExternalHandle = 0;
 
@@ -4164,6 +4157,14 @@ mfxStatus CTranscodingPipeline::SetAllocatorAndHandleIfRequired()
         sts = m_pmfxSession->SetHandle(handleType, m_hdl);
         MSDK_CHECK_STATUS(sts, "m_pmfxSession->SetHandle failed");
     }
+
+    // Media SDK session doesn't require external allocator if the application uses opaque memory
+    if (!m_bUseOpaqueMemory)
+    {
+        sts = m_pmfxSession->SetFrameAllocator(m_pMFXAllocator);
+        MSDK_CHECK_STATUS(sts, "m_pmfxSession->SetFrameAllocator failed");
+    }
+
     return sts;
 }
 
