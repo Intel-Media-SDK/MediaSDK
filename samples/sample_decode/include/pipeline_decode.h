@@ -144,6 +144,7 @@ struct sInputParams
     sPluginParams pluginParams;
 
     bool bDisableFilmGrain;
+    bool DumpLSB;
 };
 
 struct CPipelineStatistics

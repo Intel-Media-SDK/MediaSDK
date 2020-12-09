@@ -543,9 +543,39 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         if (!m_pmfxVPP) return MFX_ERR_MEMORY_ALLOC;
     }
 
+    // Determine if we should shift P010 surfaces
+    bool writerShift = false;
+    mfxU32 outFourcc = m_pmfxVPP ? m_fourcc : m_mfxVideoParams.mfx.FrameInfo.FourCC;
+
+    if (   outFourcc == MFX_FOURCC_P010
+#if (MFX_VERSION >= 1027)
+        || outFourcc == MFX_FOURCC_Y210
+#endif
+#if (MFX_VERSION >= 1031)
+        || outFourcc == MFX_FOURCC_P016
+        || outFourcc == MFX_FOURCC_Y216
+        || outFourcc == MFX_FOURCC_Y416
+#endif
+    )
+    {
+        bool shouldDumpShifted10BitDec = false;
+        bool shouldDumpShifted10BitVPP = false;
+
+        if (pParams->DumpLSB)
+        {
+            shouldDumpShifted10BitDec = true;
+            shouldDumpShifted10BitVPP = m_pmfxVPP && pParams->memType != SYSTEM_MEMORY;
+        }
+        else
+        {
+            shouldDumpShifted10BitVPP = m_pmfxVPP && pParams->memType == SYSTEM_MEMORY;
+        }
+        writerShift = m_pmfxVPP ? shouldDumpShifted10BitVPP : shouldDumpShifted10BitDec;
+    }
+
     if (m_eWorkMode == MODE_FILE_DUMP) {
         // prepare YUV file writer
-        sts = m_FileWriter.Init(pParams->strDstFile, pParams->numViews);
+        sts = m_FileWriter.Init(pParams->strDstFile, pParams->numViews, writerShift);
         MSDK_CHECK_STATUS(sts, "m_FileWriter.Init failed");
     } else if ((m_eWorkMode != MODE_PERFORMANCE) && (m_eWorkMode != MODE_RENDERING)) {
         msdk_printf(MSDK_STRING("error: unsupported work mode\n"));
