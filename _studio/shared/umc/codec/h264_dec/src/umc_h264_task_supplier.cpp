@@ -3591,6 +3591,20 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
     return pSlice;
 }
 
+void TaskSupplier::DPBSanitize(H264DecoderFrame * pDPBHead, const H264DecoderFrame * pFrame)
+{
+    for (H264DecoderFrame *pFrm = pDPBHead; pFrm; pFrm = pFrm->future())
+    {
+        if ((pFrm != pFrame) &&
+            (pFrm->FrameNum() == pFrame->FrameNum()) &&
+             pFrm->isShortTermRef())
+        {
+            pFrm->SetErrorFlagged(ERROR_FRAME_SHORT_TERM_STUCK);
+            AddItemAndRun(pFrm, pFrm, UNSET_REFERENCE | FULL_FRAME | SHORT_TERM);
+        }
+    }
+}
+
 Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 {
     if (!m_accessUnit.GetLayersCount() && pSlice)
@@ -3688,9 +3702,25 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 
             H264Slice * lastSlice = setOfSlices->GetSlice(setOfSlices->GetSliceCount() - 1);
 
+            FrameType Frame_type = SliceTypeToFrameType(lastSlice->GetSliceHeader()->slice_type);
             m_currentView = lastSlice->GetSliceHeader()->nal_ext.mvc.view_id;
             ViewItem &view = GetView(m_currentView);
             view.pCurFrame = setOfSlices->m_frame;
+
+            //1)If frame_num has gap in a stream, for a kind of cases that the frame_num has a jump, the frame_num
+            //gap will cause a reference frame to stay in DPB buffer constantly. Need to unmark the reference frame
+            //in DPB buffer when the future frame with the same frame_num is coming.
+            //2)If a stream has a wrong way to calculate the B frame's frame_num, this will cause DPB buffer confusion.
+            //For example: The B frame's frame_num equals to the previous reference frame's frame_num.
+            //For these cases, add an another condition (Frame_type != B_PICTURE) that unmark the reference frame when
+            //decoding the P frame or I frame rather than B frame.
+            if (lastSlice->GetSeqParam()->gaps_in_frame_num_value_allowed_flag != 1 && Frame_type != B_PICTURE)
+            {
+                // Check if DPB has ST frames with frame_num duplicating frame_num of new slice_type
+                // If so, unmark such frames as ST.
+                H264DecoderFrame * pHead = view.GetDPBList(0)->head();
+                DPBSanitize(pHead, view.pCurFrame);
+            }
 
             const H264SliceHeader *sliceHeader = lastSlice->GetSliceHeader();
             uint32_t field_index = setOfSlices->m_frame->GetNumberByParity(sliceHeader->bottom_field_flag);
