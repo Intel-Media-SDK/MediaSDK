@@ -15,6 +15,10 @@ Generate default config file:
 ```
 # $INSTALLDIR/bin/mfx-tracer-config --default
 ```
+Set API level coverage:
+```
+# $INSTALLDIR/bin/mfx-tracer-config core.level full
+```
 Set trace type:
 ```
 # $INSTALLDIR/bin/mfx-tracer-config core.type file
@@ -33,7 +37,7 @@ Run `mfx-tracer-config -h` to get full list of supported options.
 For use the tracer, run the application with **LD_PRELOAD**:
 
 ```
-LD_PRELOAD=libmfx-tracer.so.1.32 <app>
+LD_PRELOAD=libmfx-tracer.so.1.34 <./some_application>
 ```
 
 Make sure that the tracer library is added to the search path:
