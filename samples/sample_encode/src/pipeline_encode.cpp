@@ -342,15 +342,13 @@ mfxStatus sTask::Reset()
     return MFX_ERR_NONE;
 }
 
-mfxStatus CEncodingPipeline::AllocateExtMVCBuffers()
+void CEncodingPipeline::InitExtMVCBuffers(mfxExtMVCSeqDesc *mvcBuffer) const
 {
     // a simple example of mfxExtMVCSeqDesc structure filling
     // actually equal to the "Default dependency mode" - when the structure fields are left 0,
     // but we show how to properly allocate and fill the fields
 
     mfxU32 i;
-
-    auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
     // mfxMVCViewDependency array
     mvcBuffer->NumView = m_nNumView;
@@ -392,8 +390,6 @@ mfxStatus CEncodingPipeline::AllocateExtMVCBuffers()
         mvcBuffer->OP[i].NumTargetViews = (mfxU16) m_nNumView;
         mvcBuffer->OP[i].TargetViewId = mvcBuffer->ViewId; // points to mfxExtMVCSeqDesc::ViewId
     }
-
-    return MFX_ERR_NONE;
 }
 
 mfxStatus CEncodingPipeline::InitVppFilters()
@@ -412,7 +408,10 @@ mfxStatus CEncodingPipeline::InitVppFilters()
     vppExtParams->AlgList[3] = MFX_EXTBUFF_VPP_PROCAMP; // turn off processing amplified (on by default)
 
     if(MVC_ENABLED & m_MVCflags)
-        m_mfxVppParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+    {
+        auto mvcBuffer = m_mfxVppParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        InitExtMVCBuffers(mvcBuffer);
+    }
 
     return MFX_ERR_NONE;
 
@@ -1826,8 +1825,8 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // MVC specific options
     if (MVC_ENABLED & m_MVCflags)
     {
-        sts = AllocateExtMVCBuffers();
-        MSDK_CHECK_STATUS(sts, "AllocateExtMVCBuffers failed");
+        auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        InitExtMVCBuffers(mvcBuffer);
     }
 
     sts = ResetMFXComponents(pParams);

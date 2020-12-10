@@ -417,8 +417,8 @@ mfxStatus CRegionEncodingPipeline::Init(sInputParams *pParams)
     // MVC specific options
     if (MVC_ENABLED & m_MVCflags)
     {
-        sts = AllocateExtMVCBuffers();
-        MSDK_CHECK_STATUS(sts, "AllocAndInitMVCSeqDesc failed");
+        auto mvcBuffer = m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
+        InitExtMVCBuffers(mvcBuffer);
     }
 
     // create encoder
