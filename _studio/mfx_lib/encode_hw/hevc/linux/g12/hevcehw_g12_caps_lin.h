@@ -41,6 +41,7 @@ public:
     {}
 
 protected:
+    virtual void Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push) override;
     virtual void SetSpecificCaps(HEVCEHW::Base::EncodeCapsHevc& caps) override
     {
         caps.CodingLimitSet             = 1;

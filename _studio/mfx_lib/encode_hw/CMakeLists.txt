@@ -110,6 +110,7 @@ list( APPEND sources
     hevc/linux/g12/hevcehw_g12_lin.cpp
     hevc/linux/g12/hevcehw_g12_rext_lin.cpp
     hevc/linux/g12/hevcehw_g12_qp_modulation_lin.cpp
+    hevc/linux/g12/hevcehw_g12_caps_lin.cpp
 )
 
 make_library( encode hw static )
