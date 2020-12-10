@@ -69,6 +69,7 @@ protected:
     using MfxEncodeHW::DeviceVAAPI::QueryCaps;
     mfxStatus QueryCaps();
     uint32_t  ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC);
+    uint32_t  ConvertSliceStructureVAAPIToMFX(uint32_t structure);
 
     EncodeCapsHevc          m_caps;
     std::vector<VABufferID> m_perSeqPar;

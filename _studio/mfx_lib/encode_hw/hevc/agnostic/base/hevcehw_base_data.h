@@ -968,6 +968,25 @@ namespace Base
         }
     };
 
+    /*SliceStructure indicates the restrictions set on the slice structure.*/
+    enum SliceStructure
+    {
+        // Once slice for the whole frame
+        ONESLICE              = 0
+        /*Slices are composed of a power of 2 number of rows and each slice
+          must have the same size (width and height) except for the last one,
+          which must be smaller or equal to the previous slices. */
+        , POW2ROW             = 1
+        /*Slices are composed of any number of rows, but all must have the same
+        size (width and height) except for the last one, which must be smaller
+        or equal to the previous slices.*/
+        , ROWSLICE            = 2
+        //Arbitrary number of rows per slice for all slices.
+        , ARBITRARY_ROW_SLICE = 3
+        //Arbitrary number of macroblocks per slice for all slices.
+        , ARBITRARY_MB_SLICE  = 4
+    };
+
     typedef std::list<StorageRW>::iterator TTaskIt;
 
     template<class T, mfxU32 K>
