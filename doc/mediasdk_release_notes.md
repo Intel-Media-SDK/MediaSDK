@@ -451,11 +451,13 @@ This release is subject to the following known limitations:
     - [40581] Interlace encode supports only CQP and software BRC rate controls.
     - [45382] Note for reordering in the field mode (if encoder is initialized in display order with B frames): field pairs are coded as neighboring fields, except one case if IDR is inserted as second field. In this case B fields can be encoded between first P field and second IDR fields.
     - [46581] Quality drops are possible with sliding window after static scenes.
-    - [40392] The max/min CU size is hard-coded as 32x32 and 8x8 on SKL. Customized max/min CU size is not supported. This limitation apply to HEVC FEI ENCODE too.
+    - [40392] The max/min CU size is hard-coded as 32x32 and 8x8 on SKL. Customized max/min CU size is not supported. This limitation apply to HEVC FEI ENCODE too. The max CU size is 64x64 with LowPower ON.
     - [42933] Unregister() call erroneously returns MFX_ERR_NOT_INITIALIZED when using optional plugin interface.
     **Workaround:** Use native style component loading or ignore error status.
     - Software BRC doesn't follow level-specific frame size limitation.
     **Workaround:** An application can explicitly define higher level to avoid possible violation.
+    - QP range is extended to the higher QP values depending on bit-depth: [1; 51+6*(bits-8)]. For HEVC encoder with LowPower ON, QP range is [10; 51+6*(bits-8)]
+    - For HEVC encoder with LowPower ON, MFX_CHROMAFORMAT_YUV422 is not supported as target encoding chroma format and max supported target encoding bit-depth for luma/chroma samples is 10.
 * **H.264 decode:**
     - The H.264 decoder may leave Corrupted flag as 0 in case of minor corruption in macroblock bitstream data.
     - Decoder returns *MFX_ERR_UNSUPPORTED* for streams which cannot be processed by hardware, software fallback was removed.
