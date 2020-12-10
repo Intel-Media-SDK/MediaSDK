@@ -1488,22 +1488,6 @@ public:
         , mfxU32 nRow
         , mfxU32 nSlice)
     {
-        /*SliceStructure indicates the restrictions set on the slice structure.*/
-        //One slice only to code the whole frame.
-        const mfxU32 OneSlice           = 0;
-        /*Slices are composed of a power of 2 number of rows and each slice
-          must have the same size (width and height) except for the last one,
-          which must be smaller or equal to the previous slices. */
-        const mfxU32 Pow2Rows           = 1;
-        /*Slices are composed of any number of rows, but all must have the same
-        size (width and height) except for the last one, which must be smaller
-        or equal to the previous slices.*/
-        const mfxU32 RowSlice           = 2;
-        //Arbitrary number of rows per slice for all slices.
-        //const mfxU32 ArbitraryRowSlice  = 3;
-        //Arbitrary number of macroblocks per slice for all slices.
-        const mfxU32 ArbitraryMbSlice   = 4;
-
         mfxU32 nLCU                   = nCol * nRow;
         mfxU32 nLcuPerSlice           = 0;
         mfxU32 nSlicePrev             = (mfxU32)slices.size();
@@ -1516,7 +1500,7 @@ public:
             segAddr = slices.back().SegmentAddress + slices.back().NumLCU;
         }
 
-        if (SliceStructure == OneSlice)
+        if (SliceStructure == ONESLICE)
         {
             slices.emplace_back(SliceInfo{ segAddr, nLCU });
             return 1;
@@ -1532,24 +1516,24 @@ public:
 
         //in case of NumMbPerSlice != 0 need to check alignment
         //if it's value is not aligned, warning will be generated in CheckVideoParam() after MakeSlices() call
-        bool   bAlignLcuPerSliceByRows = SliceStructure == RowSlice && bStrictNumLCUPerSlice;
+        bool   bAlignLcuPerSliceByRows = SliceStructure == ROWSLICE && bStrictNumLCUPerSlice;
         mfxU32 nLcuPerSliceAlignment   = std::max<mfxU32>(1, bAlignLcuPerSliceByRows * nCol);
 
         nLcuPerSlice = CeilDiv<mfxU32>(nLcuPerSlice, nLcuPerSliceAlignment) * nLcuPerSliceAlignment;
 
         //if not aligned already but need to
-        bAlignLcuPerSliceByRows = !bAlignLcuPerSliceByRows && SliceStructure < ArbitraryMbSlice;
+        bAlignLcuPerSliceByRows = !bAlignLcuPerSliceByRows && SliceStructure < ARBITRARY_MB_SLICE;
 
         if (bAlignLcuPerSliceByRows)
         {
             nSlice = std::min<mfxU32>(nSlice, nRow);
             mfxU32 nRowsPerSlice = CeilDiv(nRow, nSlice);
-            bool   bAddSlice     = (SliceStructure != Pow2Rows) && (nRowsPerSlice * (nSlice - 1)) >= nRow;
+            bool   bAddSlice     = (SliceStructure != POW2ROW) && (nRowsPerSlice * (nSlice - 1)) >= nRow;
 
             nSlice        += bAddSlice;
             nRowsPerSlice -= bAddSlice;
 
-            if (SliceStructure == Pow2Rows)
+            if (SliceStructure == POW2ROW)
             {
                 mfxU32 nRowLog2     = CeilLog2(nRowsPerSlice);
                 mfxU32 nRowsCand[2] = { mfxU32(1 << (nRowLog2 - 1)), mfxU32(1 << nRowLog2) };
@@ -1563,7 +1547,7 @@ public:
             nLcuPerSlice           = nRowsPerSlice;
             nLCUMult               = nCol;
             nLCU                  /= nCol;
-            bStrictNumLCUPerSlice |= ((SliceStructure == Pow2Rows) || (SliceStructure == RowSlice));
+            bStrictNumLCUPerSlice |= ((SliceStructure == POW2ROW) || (SliceStructure == ROWSLICE));
         }
 
         slices.resize(nSlicePrev + nSlice);
@@ -1705,14 +1689,14 @@ public:
 
         nSlice = mfx::clamp(nSlice, minSlice, maxSlice);
 
-        bool bHardcodeSliceStructure2 =
+        bool bHardcodeSliceStructureRowSlice =
             defPar.hw >= MFX_HW_ICL
             && IsOn(defPar.mvp.mfx.LowPower)
             && nTile == 1;
 
         SliceStructure =
-            SliceStructure * !bHardcodeSliceStructure2
-            + 2 * bHardcodeSliceStructure2;
+            SliceStructure * !bHardcodeSliceStructureRowSlice
+            + ROWSLICE * bHardcodeSliceStructureRowSlice;
 
         slices.resize(0);
 

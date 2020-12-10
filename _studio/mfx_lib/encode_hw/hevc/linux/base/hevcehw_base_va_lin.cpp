@@ -430,6 +430,18 @@ mfxStatus DDI_VA::QueryCaps()
         m_priorityPar.m_MaxContextPriority = 0;
     }
 
+    if (AV(VAConfigAttribEncSliceStructure)!=VA_ATTRIB_NOT_SUPPORTED)
+    {
+        // Attribute for VAConfigAttribEncSliceStructure includes both:
+        // (1) information about supported slice structure and
+        // (2) indication of support for max slice size feature
+        uint32_t sliceCapabilities = AV(VAConfigAttribEncSliceStructure);
+        m_caps.SliceStructure = ConvertSliceStructureVAAPIToMFX(sliceCapabilities);
+        // It means that GPU may further split the slice region that
+        // slice control data specifies into finer slice segments based on slice size upper limit (MaxSliceSize)
+        m_caps.SliceByteSizeCtrl = (sliceCapabilities & VA_ENC_SLICE_STRUCTURE_MAX_SLICE_SIZE)!=0;
+    }
+
     return MFX_ERR_NONE;
 }
 
@@ -459,6 +471,20 @@ uint32_t DDI_VA::ConvertRateControlMFX2VAAPI(mfxU16 rateControl, bool bSWBRC)
 
     assert(!"Unsupported RateControl");
     return 0;
+}
+
+uint32_t DDI_VA::ConvertSliceStructureVAAPIToMFX(uint32_t structure)
+{
+    if (structure & VA_ENC_SLICE_STRUCTURE_ARBITRARY_MACROBLOCKS)
+        return ARBITRARY_MB_SLICE;
+    if (structure & VA_ENC_SLICE_STRUCTURE_ARBITRARY_ROWS)
+        return ARBITRARY_ROW_SLICE;
+    if (structure & VA_ENC_SLICE_STRUCTURE_EQUAL_ROWS ||
+        structure & VA_ENC_SLICE_STRUCTURE_EQUAL_MULTI_ROWS)
+        return ROWSLICE;
+    if (structure & VA_ENC_SLICE_STRUCTURE_POWER_OF_TWO_ROWS)
+        return POW2ROW;
+    return ONESLICE;
 }
 
 #endif //defined(MFX_ENABLE_H265_VIDEO_ENCODE)
