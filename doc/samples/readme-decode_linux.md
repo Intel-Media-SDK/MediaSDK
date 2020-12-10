@@ -17,7 +17,7 @@ The sample is able to work with **HEVC Decoder & Encoder** \(hereinafter referre
 
 |Format type| |
 |---|---|
-| input \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, VC-1, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP8 |
+| input \(compressed\) | H.264 \(AVC, MVC – Multi-View Coding\), MPEG-2 video, VC-1, JPEG\*/Motion JPEG, HEVC \(High Efficiency Video Coding\), VP8, AV1 |
 | output \(uncompressed\) | YUV420 |
 
 **Note 2: Decoding Sample** renders the decoded video stream to a file in YUV 4:2:0 sampling format, with the color planes Y, U and V in that order.
@@ -42,7 +42,7 @@ The executable file requires the following command-line switches to function pro
 
 | Option | Description |
 |---|---|
-| h265\|h264\|mpeg2\|vc1\|vp8\|mvc\|jpeg |Input video type. This is an elementary video stream. The use of option h265 is possible only if corresponding plugins are installed. |
+| h265\|h264\|mpeg2\|vc1\|vp8\|mvc\|jpeg\|av1 |Input video type. This is an elementary video stream. The use of option h265 is possible only if corresponding plugins are installed. |
 | -i <InputFile\> | Input \(compressed\) video file, name and path. |
 | -o <Output\> | Specifies output \(YUV\) video file\(s\), name and path. With MVC, specify the file name without extension to use as a pattern. The sample creates several output files with names such as “filename\_N.yuv” according to the number of views in the MVC stream. |
 
