@@ -384,10 +384,10 @@ void AddVaMiscMaxSliceSize(
     const Glob::VideoParam::TRef& par
     , std::list<std::vector<mfxU8>>& buf)
 {
-    const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
+    const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
     auto& maxSliceSize_param = AddVaMisc<VAEncMiscParameterMaxSliceSize>(VAEncMiscParameterTypeMaxSliceSize, buf);
 
-    maxSliceSize_param.max_slice_size = CO2.MaxSliceSize;
+    maxSliceSize_param.max_slice_size = pCO2 ? pCO2->MaxSliceSize : 0;
 }
 
 void CUQPMap::Init (mfxU32 picWidthInLumaSamples, mfxU32 picHeightInLumaSamples, mfxU32 blockSize)
@@ -693,7 +693,7 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
     {
         const auto& par = Glob::VideoParam::Get(strg);
         const auto& bs_pps = Glob::PPS::Get(strg);
-        const mfxExtCodingOption2& CO2 = ExtBuffer::Get(par);
+        const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par);
 
         auto& cc = CC::GetOrConstruct(strg);
         cc.InitSPS(strg, m_sps);
@@ -754,7 +754,7 @@ void VAPacker::ResetState(const FeatureBlocks& /*blocks*/, TPushRS Push)
             AddVaMiscQualityParams(par, m_vaPerSeqMiscData);
             return true;
         });
-        if (CO2.MaxSliceSize)
+        if (pCO2 && pCO2->MaxSliceSize)
         {
 	        cc.AddPerSeqMiscData[VAEncMiscParameterTypeMaxSliceSize].Push([this, &par](
 		    VAPacker::CallChains::TAddMiscData::TExt
