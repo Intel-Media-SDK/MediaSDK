@@ -255,6 +255,7 @@ mfxU32 ConvertUMCColorFormatToFOURCC(UMC::ColorFormat format)
         case UMC::YUV411:  return MFX_FOURCC_YUV411;
         case UMC::YUV444:  return MFX_FOURCC_YUV444;
         case UMC::UYVY:    return MFX_FOURCC_UYVY;
+        case UMC::GRAY:    return MFX_FOURCC_YUV400;
 
         default:
             VM_ASSERT(!"Unknown color format");
