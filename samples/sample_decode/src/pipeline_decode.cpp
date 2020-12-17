@@ -1213,7 +1213,7 @@ mfxStatus CDecodingPipeline::AllocFrames()
         Request.NumFrameSuggested = Request.NumFrameMin = nSurfNum;
 
         // surfaces are shared between vpp input and decode output
-        Request.Type = MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE | MFX_MEMTYPE_FROM_VPPIN;
+        Request.Type |= MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_FROM_DECODE | MFX_MEMTYPE_FROM_VPPIN;
     }
 
     if ((Request.NumFrameSuggested < m_mfxVideoParams.AsyncDepth) &&
