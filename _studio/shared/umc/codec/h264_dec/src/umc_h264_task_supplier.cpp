@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 Intel Corporation
+// Copyright (c) 2017-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -3681,11 +3681,19 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 
             H264Slice * lastSlice = setOfSlices->GetSlice(setOfSlices->GetSliceCount() - 1);
 
+            FrameType Frame_type = SliceTypeToFrameType(lastSlice->GetSliceHeader()->slice_type);
             m_currentView = lastSlice->GetSliceHeader()->nal_ext.mvc.view_id;
             ViewItem &view = GetView(m_currentView);
             view.pCurFrame = setOfSlices->m_frame;
 
-            if (lastSlice->GetSeqParam()->gaps_in_frame_num_value_allowed_flag != 1)
+            //1)If frame_num has gap in a stream, for a kind of cases that the frame_num has a jump, the frame_num
+            //gap will cause a reference frame to stay in DPB buffer constantly. Need to unmark the reference frame
+            //in DPB buffer when the future frame with the same frame_num is coming.
+            //2)If a stream has a wrong way to calculate the B frame's frame_num, this will cause DPB buffer confusion.
+            //For example: The B frame's frame_num equals to the previous reference frame's frame_num.
+            //For these cases, add an another condition (Frame_type != B_PICTURE) that unmark the reference frame when
+            //decoding the P frame or I frame rather than B frame.
+            if (lastSlice->GetSeqParam()->gaps_in_frame_num_value_allowed_flag != 1 && Frame_type != B_PICTURE)
             {
                 // Check if DPB has ST frames with frame_num duplicating frame_num of new slice_type
                 // If so, unmark such frames as ST.
