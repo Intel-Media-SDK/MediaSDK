@@ -116,6 +116,36 @@ namespace UMC_AV1_DECODER
 
         std::copy(tileControlParams.begin(), tileControlParams.end(), tileControlParam);
         compBufTile->SetDataSize(tileControlInfoSize);
+
+        if(m_va->m_MaxContextPriority)
+            PackPriorityParams();
+    }
+
+    void PackerVA::PackPriorityParams()
+    {
+        mfxPriority priority = m_va->m_ContextPriority;
+        UMCVACompBuffer *GpuPriorityBuf;
+        VAContextParameterUpdateBuffer* GpuPriorityBuf_Av1Decode = (VAContextParameterUpdateBuffer *)m_va->GetCompBuffer(VAContextParameterUpdateBufferType, &GpuPriorityBuf, sizeof(VAContextParameterUpdateBuffer));
+        if (!GpuPriorityBuf_Av1Decode)
+            throw av1_exception(MFX_ERR_MEMORY_ALLOC);
+
+        memset(GpuPriorityBuf_Av1Decode, 0, sizeof(VAContextParameterUpdateBuffer));
+        GpuPriorityBuf_Av1Decode->flags.bits.context_priority_update = 1;
+
+        if(priority == MFX_PRIORITY_LOW)
+        {
+            GpuPriorityBuf_Av1Decode->context_priority.bits.priority = 0;
+        }
+        else if (priority == MFX_PRIORITY_HIGH)
+        {
+            GpuPriorityBuf_Av1Decode->context_priority.bits.priority = m_va->m_MaxContextPriority;
+        }
+        else
+        {
+            GpuPriorityBuf_Av1Decode->context_priority.bits.priority = m_va->m_MaxContextPriority/2;
+        }
+
+        GpuPriorityBuf->SetDataSize(sizeof(VAContextParameterUpdateBuffer));
     }
 
     void PackerVA::PackPicParams(VADecPictureParameterBufferAV1& picParam, AV1DecoderFrame const& frame)
