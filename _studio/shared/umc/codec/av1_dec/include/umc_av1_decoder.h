@@ -131,6 +131,8 @@ namespace UMC_AV1_DECODER
 
         virtual bool QueryFrames() = 0;
 
+        AV1DecoderParams* GetAv1DecoderParams() {return &params;}
+
     protected:
 
         static UMC::Status FillVideoParam(SequenceHeader const&, UMC_AV1_DECODER::AV1DecoderParams&);

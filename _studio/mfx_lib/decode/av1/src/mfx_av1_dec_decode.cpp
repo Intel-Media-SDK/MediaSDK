@@ -687,6 +687,11 @@ mfxStatus VideoDECODEAV1::DecodeFrameCheck(mfxBitstream* bs, mfxFrameSurface1* s
     MFX_CHECK(m_core, MFX_ERR_UNDEFINED_BEHAVIOR);
     MFX_CHECK(m_decoder, MFX_ERR_NOT_INITIALIZED);
 
+    //gpu session priority
+    UMC_AV1_DECODER::AV1DecoderParams* av1DecoderParams = m_decoder->GetAv1DecoderParams();
+    if (av1DecoderParams->pVideoAccelerator != nullptr)
+        av1DecoderParams->pVideoAccelerator->m_ContextPriority = m_core->GetSession()->m_priority;
+
     mfxStatus sts = SubmitFrame(bs, surface_work, surface_out);
 
     if (sts == MFX_ERR_MORE_DATA || sts == MFX_ERR_MORE_SURFACE)
