@@ -1,4 +1,4 @@
-name: ubuntu
+name: ubuntu-20.04
 
 on: [ push, pull_request ]
 
@@ -6,7 +6,7 @@ env:
   CFLAGS: -O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack-protector-strong
 
 jobs:
-  ubuntu-20-04-clang11-api-latest:
+  clang11-api-latest:
     runs-on: ubuntu-20.04
     env:
       CC: /usr/bin/clang-11
@@ -68,7 +68,7 @@ jobs:
         make test
         sudo make install
 
-  ubuntu-20-04-clang10:
+  clang10:
     runs-on: ubuntu-20.04
     env:
       CC: /usr/bin/clang-10
@@ -120,7 +120,7 @@ jobs:
         make test
         sudo make install
 
-  ubuntu-20-04-gcc10:
+  gcc10:
     runs-on: ubuntu-20.04
     env:
       CC: /usr/bin/gcc-10
@@ -172,7 +172,7 @@ jobs:
         make test
         sudo make install
 
-  ubuntu-20-04-gcc10-fastboot:
+  gcc10-fastboot:
     runs-on: ubuntu-20.04
     env:
       CC: /usr/bin/gcc-10
