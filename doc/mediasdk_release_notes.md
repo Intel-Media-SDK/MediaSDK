@@ -35,39 +35,36 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
 
-## What’s New in Media SDK 20.3.0
+## What’s New in Media SDK 20.5.1
 **New features**:
-* **API 1.34**
-    - Added Keem Bay platform support
-    - Added AV1 decode support
+* **AV1 decode**
+    - Refactored handling errors in SubmitFrame
 
 * **AVC encode**
-    - Added implicit Motion-Compensated Temporal Filter (MCTF) to improve coding quality on certain scenarios
-    - Improved CodecLevel initialization from rate control parameters
-    - Added support of 4k streams with look-ahead bitrate control mode
-    - Enabled QPOffset by default
+    - Improved handling support status for "Sliding window" feature
+    - Added EncTools support
+    - Added vaSyncBuffer support
+    - Added external BRC support for Rocket Lake
+    - Added TCBRC support
+    - Added MCTF support
 
 * **HEVC encode**
-    - Improved efficiency of FPQ
-    - Enabled QP modulation (Icelake+)
+    - Extended B frames support across all target usage with LowPower on
+    - Added TCBRC support
 
-* **VP9 decode**
-    - Added 16k support
-
-* **VPP**
-    - Added A2RGB10 input in case of passthru copy
+* **MPEG2 encode**
+    - Added vaSyncBuffer support
 
 * **Samples**
-    - Added -dec::sys flag for setting of the output memory to system type in sample_multi_transcode
-    - Added p016/y216 support in sample_encode
-    - Added i420/nv12 support in sample_multi_transcode
-    - Fixed chroma size for Y210/Y216 formats in sample_deocde
-    - Added handle for iterpolation methods for resize in sample_vpp
+    - Added AdaptiveI and AdaptiveB frames support in sample_multi_transcode (#1401)
+    - Added NV16 output support
+    - Added 12 bit support in sample_multi_transcode, sample_decode and sample_vpp (#2055)
+    - Enabled MBQP for all encoders in sample_multi_transcode
+    - Added -disable_film_grain flag to disable film grain application in sample_decode
 
 * **Misc**
-    - Added support for discrete Intel Xe graphics codenamed DG1 and SG1
-    - Added support for Rocketlake platform
-    - Actualized Elkhartlake device id support list
+    - Disabled plugins loading (Plugin implementations were moved to library runtime, except LA and FEI)
+    - Added support for dynamic GPU session priority
 
 * **Software requirements**
     - Libdrm 2.4.84 or later
@@ -75,14 +72,14 @@ In this document we will refer to processor families by their former codenames f
 
 * **Known issues**
     - Kernel 5.0 have known issue with endurance on Skylake see https://bugs.freedesktop.org/show_bug.cgi?id=110285 for details.
-    - Media Stack 20.3 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
+    - Media Stack 20.5.1 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
     - AV1 Decoder doesn't properly support asynchronous decoding (AsyncDepth > 1) and sometimes may return *MFX_ERR_UNDEFINED_BEHAVIOR* and *MFX_ERR_DEVICE_FAILED* from DecodeFrameAsync calls. See #2244 for details.
 
 ## <a id='System_Requirements'>System Requirements</a>
 
 **Hardware**
 
-Intel® Media SDK supports the following platforms with the integrated graphics:
+Intel® Media SDK supports the following platforms with the Intel graphics:
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I"
 - Intel® Xeon® E3-1200 v4 Family with C226 chipset
 - Intel® Xeon® E3-1200 and E3-1500 v5 Family with C236 chipset
@@ -97,6 +94,7 @@ Intel® Media SDK supports the following platforms with the integrated graphics:
 - Note: chipset must have processor graphics enabled; make sure to check the datasheet.
     - Having a C226/C236 chipset is necessary but not sufficient. Make sure to consult with specific platform or board vendor regarding processor graphics being supported. Check Media Server Studio website for the list of “Known OEM/ODM Functional Platforms”:
     https://software.intel.com/en-us/intel-media-server-studio/details
+    - Intel® Iris® Xe MAX Graphics require special setup decribed in the following online guide: https://dgpu-docs.intel.com/devices/iris-xe-max-graphics/index.html
 
 **Software**
 - **Linux kernel 4.14 or newer** of 64 - bit architecture. Kernel 4.19 or newer recommended, as it contains stability and performance improvements over 4.14. Release was validated against 4.19.5 for gen8 and gen9 graphics, 5.4 for gen10 (Icelake) graphics, and 5.5 for gen11 (Tigerlake) graphics.
@@ -106,6 +104,7 @@ Intel® Media SDK included in this package implements SDK API 1.34 and contains 
 
  Component | Supported features | Limitations
  --- | --- | ---
+AV1 decoder               | Supported Profiles:<ul><li>0, 8bit and 10bit</li></ul>                                             | Maximum supported resolution:<br/>16384x8704
 H.265 decoder             | Supported Profiles:<ul><li>Main</li></ul>                                                          | Maximum supported resolution:<br/>8192x8192
 H.265 encoder             | Supported Profiles:<ul><li>Main</li></ul>Supported BRC methods:<ul><li>Constant QP (CQP)</li><li>Constant Bit Rate (CBR)</li><li>Variable Bit Rate (VBR)</li><li>Variable Bit Rate with Constant Quality (QVBR)</li><li>Software BRC</li></ul> | Maximum supported resolution:<br/>4096x2176
 H.264 decoder             | Supported Profiles:<ul><li>Baseline</li><li>Main</li><li>High</li></ul>                            | Maximum supported resolution:<br/>4096x2304
@@ -165,6 +164,8 @@ X indicates a supported function
 NOTE: Please use *Query* functions to check feature availability on any given machine at runtime. Availability of features depends on hardware capabilities as well as driver version.
 
 Please see the Intel® Media SDK Reference Manual for details *“&lt;sdk-install-folder&gt;/doc/mediasdk-man.pdf”*.
+
+Please also check the collateral materials: https://dgpu-docs.intel.com/devices/iris-xe-max-graphics/guides/media.html
 
 ## <a id='GPU_Hang_Reporting_And_Recovery'>GPU Hang Reporting And Recovery</a>
 
