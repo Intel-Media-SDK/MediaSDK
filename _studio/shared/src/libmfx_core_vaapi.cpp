@@ -387,6 +387,17 @@ typedef struct {
     { 0x4C8B, MFX_HW_RKL, MFX_GT1 },
     { 0x4C90, MFX_HW_RKL, MFX_GT1 },
     { 0x4C9A, MFX_HW_RKL, MFX_GT1 },
+
+    /* ADL */
+    { 0x4600, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4680, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4681, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4683, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4690, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4691, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4693, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4698, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
+    { 0x4699, MFX_HW_ADL_S, MFX_GT1 },//ADL-S
 };
 
 /* END: IOCTLs definitions */
