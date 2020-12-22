@@ -57,7 +57,7 @@ void VAPacker::Query1WithCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
 
         caps.MaxEncodedBitDepth |= (!caps.BitDepth8Only);
         caps.YUV444ReconSupport |= (!caps.Color420Only && IsOn(par.mfx.LowPower));
-        caps.YUV422ReconSupport &= (!caps.Color420Only && !IsOn(par.mfx.LowPower));
+        caps.YUV422ReconSupport = (!caps.Color420Only && !IsOn(par.mfx.LowPower));
 
         return MFX_ERR_NONE;
     });
