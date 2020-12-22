@@ -570,6 +570,7 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
                 if (m_bForceStop)
                 {
                     lock.unlock();
+                    m_nTimeout = 0;
                     // add surfaces in queue for all sinks
                     NoMoreFramesSignal();
                     return MFX_WRN_VALUE_NOT_CHANGED;
