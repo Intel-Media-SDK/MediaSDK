@@ -554,7 +554,7 @@ mfxStatus CMC::IM_SURF_SET()
             handle;
         // if a surface is opaque, need to extract normal surface
         mfxFrameSurface1 
-            * pSurf = m_pCore->GetNativeSurface(QfIn[i].mfxFrame, false);
+            * pSurf = m_pCore->GetNativeSurface(QfIn[i].mfxFrame);
         QfIn[i].mfxFrame = pSurf ? pSurf : QfIn[i].mfxFrame;
         // GetFrameHDL is used as QfIn[].mfxFrme is allocated via call to Core Alloc function
         MFX_SAFE_CALL(m_pCore->GetFrameHDL(QfIn[i].mfxFrame->Data.MemId, reinterpret_cast<mfxHDL*>(&handle)));
@@ -3246,7 +3246,7 @@ mfxStatus CMC::MCTF_PUT_FRAME(
             handle;
         // if a surface is opaque, need to extract normal surface
         mfxFrameSurface1
-            * pSurf = m_pCore->GetNativeSurface(mfxFrame, false);
+            * pSurf = m_pCore->GetNativeSurface(mfxFrame);
         QfIn.back().mfxFrame = pSurf ? pSurf : mfxFrame;
         if (pSurf)
         {
