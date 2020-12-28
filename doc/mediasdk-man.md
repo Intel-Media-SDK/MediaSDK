@@ -144,6 +144,8 @@ Notice revision #20110804
   * [mfxExtBuffer](#mfxExtBuffer)
   * [mfxExtAVCRefListCtrl](#mfxExtAVCRefListCtrl)
   * [mfxExtAVCRefLists](#mfxextavcreflists)
+  * [mfxExtHEVCRefListCtrl](#mfxExtHEVCRefListCtrl)
+  * [mfxExtHEVCRefLists](#mfxExtHEVCRefLists)
   * [mfxExtCodingOption](#mfxExtCodingOption)
   * [mfxExtCodingOption2](#mfxExtCodingOption2)
   * [mfxExtCodingOption3](#mfxExtCodingOption3)
@@ -152,6 +154,7 @@ Notice revision #20110804
   * [mfxExtVideoSignalInfo](#mfxExtVideoSignalInfo)
   * [mfxExtPictureTimingSEI](#mfxExtPictureTimingSEI)
   * [mfxExtAvcTemporalLayers](#mfxExtAvcTemporalLayers)
+  * [mfxExtHEVCTemporalLayers](#mfxExtHEVCTemporalLayers)
   * [mfxExtVppAuxData](#mfxExtVppAuxData)
   * [mfxExtVPPDenoise](#mfxExtVPPDenoise)
   * [mfxExtVppMctf](#mfxExtVppMctf)
@@ -3802,7 +3805,7 @@ This structure is available since SDK API 1.3.
 
 The SDK API 1.7 adds `LongTermIdx` and `ApplyLongTermIdx` fields.
 
-## mfxExtAVCRefLists
+## <a id='mfxExtAVCRefLists'>mfxExtAVCRefLists</a>
 
 **Definition**
 
@@ -3841,6 +3844,94 @@ Not all implementations of the SDK encoder support this structure. The applicati
 **Change History**
 
 This structure is available since SDK API 1.9.
+
+## <a id='mfxExtHEVCRefListCtrl'>mfxExtHEVCRefListCtrl</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          NumRefIdxL0Active;
+    mfxU16          NumRefIdxL1Active;
+
+    struct {
+        mfxU32      FrameOrder;
+        mfxU16      PicStruct;
+        mfxU16      ViewId;
+        mfxU16      LongTermIdx;
+        mfxU16      reserved[3];
+    } PreferredRefList[32], RejectedRefList[16], LongTermRefList[16];
+
+    mfxU16      ApplyLongTermIdx;
+    mfxU16      reserved[15];
+} mfxExtHEVCRefListCtrl;
+```
+
+**Description**
+
+The `mfxExtHEVCRefListCtrl` structure configures reference frame options for the HEVC encoder. See [Reference List Selection](#Reference_List_Selection) and [Long-term Reference frame](#Long-term_Reference_frame) chapters for more details.
+
+Not all implementations of the SDK encoder support `LongTermIdx` and `ApplyLongTermIdx` fields in this structure. The application has to use query mode 1 to determine if such functionality is supported. To do so, the application has to attach this extended buffer to [mfxVideoParam](#mfxVideoParam) structure and call [MFXVideoENCODE_Query](#MFXVideoENCODE_Query) function. If function returns `MFX_ERR_NONE` and these fields were set to one, then such functionality is supported. If function fails or sets fields to zero then this functionality is not supported.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_HEVC_REFLIST_CTRL](#ExtendedBufferID)
+`NumRefIdxL0Active` | Specify the number of reference frames in the active reference list L0. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`NumRefIdxL1Active` | Specify the number of reference frames in the active reference list L1. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`PreferredRefList` | Specify list of frames that should be used to predict the current frame.
+`RejectedRefList` | Specify list of frames that should not be used for prediction.
+`LongTermRefList` | Specify list of frames that should be marked as long-term reference frame.
+`FrameOrder`, `PicStruct` | Together these fields are used to identify reference picture. Use `FrameOrder = MFX_FRAMEORDER_UNKNOWN` to mark unused entry.
+`ViewID` | Reserved and must be zero.
+`LongTermIdx` | Index that should be used by the SDK encoder to mark long-term reference frame.
+`ApplyLongTermIdx` | If it is equal to zero, the SDK encoder assigns long-term index according to internal algorithm. If it is equal to one, the SDK encoder uses `LongTermIdx` value as long-term index.
+
+**Change History**
+
+This structure is available since SDK API 1.17.
+
+## <a id='mfxExtHEVCRefLists'>mfxExtHEVCRefLists</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU16          NumRefIdxL0Active;
+    mfxU16          NumRefIdxL1Active;
+    mfxU16          reserved[2];
+
+    struct mfxRefPic{
+        mfxU32      FrameOrder;
+        mfxU16      PicStruct;
+        mfxU16      reserved[5];
+    } RefPicList0[32], RefPicList1[32];
+
+} mfxExtHEVCRefLists;
+```
+
+**Description**
+
+The `mfxExtHEVCRefLists` structure specifies reference lists for the SDK encoder. It may be used together with the `mfxExtHEVCRefListCtrl` structure to create customized reference lists. If both structures are used together, then the SDK encoder takes reference lists from `mfxExtHEVCRefLists` structure and modifies them according to the `mfxExtHEVCRefListCtrl` instructions. In case of interlaced coding, the first `mfxExtHEVCRefLists` structure affects TOP field and the second – BOTTOM field.
+
+Not all implementations of the SDK encoder support this structure. The application has to use query function to determine if it is supported
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_AVC_REFLISTS](#ExtendedBufferID)
+`NumRefIdxL0Active` | Specify the number of reference frames in the active reference list L0. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`NumRefIdxL1Active` | Specify the number of reference frames in the active reference list L1. This number should be less or equal to the **NumRefFrame** parameter from encoding initialization.
+`RefPicList0, RefPicList1` | Specify L0 and L1 reference lists.
+`FrameOrder`, `PicStruct` | Together these fields are used to identify reference picture. Use `FrameOrder = MFX_FRAMEORDER_UNKNOWN` to mark unused entry. Use `PicStruct = MFX_PICSTRUCT_FIELD_TFF` for TOP field, `PicStruct = MFX_PICSTRUCT_FIELD_BFF` for BOTTOM field.
+
+**Change History**
+
+This structure is available since SDK API 1.17.
 
 ## <a id='mfxExtCodingOption'>mfxExtCodingOption</a>
 
@@ -4394,6 +4485,43 @@ This structure can be used with the display-order encoding mode only.
 **Change History**
 
 This structure is available since SDK API 1.3.
+
+## <a id='mfxExtHEVCTemporalLayers'>mfxExtHEVCTemporalLayers</a>
+
+**Definition**
+
+```C
+typedef struct {
+    mfxExtBuffer    Header;
+    mfxU32          reserved1[4];
+    mfxU16          reserved2;
+    mfxU16          BaseLayerPID;
+
+    struct {
+        mfxU16 Scale;
+        mfxU16 reserved[3];
+    } Layer[8];
+} mmfxExtHEVCTemporalLayers;
+```
+
+**Description**
+
+The `mfxExtHEVCTemporalLayers` structure configures the HEVC temporal layers hierarchy. If application attaches it to the [mfxVideoParam](#mfxVideoParam) structure during initialization, the SDK encoder generates the temporal layers and inserts the prefix NAL unit before each slice to indicate the temporal and priority IDs of the layer.
+
+This structure can be used with the display-order encoding mode only.
+
+**Members**
+
+| | |
+--- | ---
+`Header.BufferId` | Must be [MFX_EXTBUFF_HEVC_TEMPORAL_LAYERS](#ExtendedBufferID)
+`BaseLayerPID` | The priority ID of the base layer; the SDK encoder increases the ID for each temporal layer and writes to the prefix NAL unit.
+`Scale` | The ratio between the frame rates of the current temporal layer and the base layer.
+`Layer` | The array of temporal layers; Use `Scale=0` to specify absent layers.
+
+**Change History**
+
+This structure is available since SDK API 1.17.
 
 ## <a id='mfxExtVppAuxData'>mfxExtVppAuxData</a>
 
