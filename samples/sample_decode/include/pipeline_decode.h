@@ -127,6 +127,10 @@ struct sInputParams
     mfxI32  libvaBackend;
 #endif // defined(MFX_LIBVA_SUPPORT)
 
+#if defined(LIBVA_DRM_SUPPORT)
+    mfxI32 nVACopy;
+#endif
+
 #if defined(LINUX32) || defined(LINUX64)
     std::string strDevicePath;
 #endif
@@ -251,6 +255,10 @@ protected: // functions
 
     virtual mfxStatus ReallocCurrentSurface(const mfxFrameInfo & info);
 
+#if defined(LIBVA_DRM_SUPPORT)
+    virtual mfxStatus WriteFrameWithVACopy(mfxFrameSurface1* frame, mfxI32 nVACopyMode);
+#endif
+
 protected: // variables
     CSmplYUVWriter                         m_FileWriter;
     std::unique_ptr<CSmplBitstreamReader>  m_FileReader;
@@ -331,6 +339,10 @@ protected: // variables
     mfxI32                  m_libvaBackend;
     bool                    m_bPerfMode;
 #endif // defined(MFX_LIBVA_SUPPORT)
+
+#if defined(LIBVA_DRM_SUPPORT)
+    mfxI32                  m_nVACopy;
+#endif
 
     bool                    m_bResetFileWriter;
     bool                    m_bResetFileReader;

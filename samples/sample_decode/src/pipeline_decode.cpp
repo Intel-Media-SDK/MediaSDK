@@ -407,6 +407,10 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     m_libvaBackend = pParams->libvaBackend;
 #endif // defined(MFX_LIBVA_SUPPORT)
 
+#if defined(LIBVA_DRM_SUPPORT)
+    m_nVACopy = pParams->nVACopy;
+#endif
+
     sts = GetImpl(*pParams, initPar.Implementation);
     MSDK_CHECK_STATUS(sts, "GetImpl failed");
 
@@ -1546,6 +1550,31 @@ mfxStatus CDecodingPipeline::ResetDecoder(sInputParams *pParams)
     return MFX_ERR_NONE;
 }
 
+#if defined(LIBVA_DRM_SUPPORT)
+mfxStatus CDecodingPipeline::WriteFrameWithVACopy(mfxFrameSurface1* frame, mfxI32 nVACopyMode)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    CVAAPIDeviceDRM* drmdev = dynamic_cast<CVAAPIDeviceDRM*>(m_hwdev);
+
+    MSDK_CHECK_POINTER(frame, MFX_ERR_NOT_INITIALIZED);
+    MSDK_CHECK_POINTER(m_hwdev, MFX_ERR_NOT_INITIALIZED);
+
+    // setup system surface for gpu copy
+    sts = drmdev->SetupUserSurface(frame);
+    MSDK_CHECK_STATUS(sts, "m_hwdev->SetupUserSurface failed");
+
+    // copy raw data from video surface to user buffer with vaCopy
+    sts = drmdev->CopyVAFrame(frame, false, nVACopyMode);
+    MSDK_CHECK_STATUS(sts, "m_hwdev->CopyFrame failed");
+
+    // write decoded frame data from user buffer to file
+    sts = m_FileWriter.WriteNextFrame(frame);
+    MSDK_CHECK_STATUS(sts, "m_FileReader.LoadNextFrame failed");
+
+    return sts;
+}
+#endif
+
 mfxStatus CDecodingPipeline::DeliverOutput(mfxFrameSurface1* frame)
 {
     CAutoTimer timer_fwrite(m_tick_fwrite);
@@ -1566,12 +1595,21 @@ mfxStatus CDecodingPipeline::DeliverOutput(mfxFrameSurface1* frame)
 
     if (m_bExternalAlloc) {
         if (m_eWorkMode == MODE_FILE_DUMP) {
-            res = m_pGeneralAllocator->Lock(m_pGeneralAllocator->pthis, frame->Data.MemId, &(frame->Data));
-            if (MFX_ERR_NONE == res) {
-                res = m_bOutI420 ? m_FileWriter.WriteNextFrameI420(frame)
-                    : m_FileWriter.WriteNextFrame(frame);
-                sts = m_pGeneralAllocator->Unlock(m_pGeneralAllocator->pthis, frame->Data.MemId, &(frame->Data));
+#if defined(LIBVA_DRM_SUPPORT)
+            if (m_nVACopy != -1) { // vacopy mode
+                sts = WriteFrameWithVACopy(frame, m_nVACopy);
+            } else
+#endif
+            {
+                res = m_pGeneralAllocator->Lock(m_pGeneralAllocator->pthis, frame->Data.MemId, &(frame->Data));
+
+                if (MFX_ERR_NONE == res) {
+                    res = m_bOutI420 ? m_FileWriter.WriteNextFrameI420(frame)
+                        : m_FileWriter.WriteNextFrame(frame);
+                    sts = m_pGeneralAllocator->Unlock(m_pGeneralAllocator->pthis, frame->Data.MemId, &(frame->Data));
+                }
             }
+
             if ((MFX_ERR_NONE == res) && (MFX_ERR_NONE != sts)) {
                 res = sts;
             }

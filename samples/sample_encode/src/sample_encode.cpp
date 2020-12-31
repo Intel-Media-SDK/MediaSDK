@@ -199,6 +199,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-vaapi] - work with vaapi surfaces\n"));
     msdk_printf(MSDK_STRING("Example: %s h264|mpeg2|mvc -i InputYUVFile -o OutputEncodedFile -w width -h height -angle 180 -g 300 -r 1 \n"), strAppName);
 #endif
+#if defined(LIBVA_DRM_SUPPORT)
+    msdk_printf(MSDK_STRING("   [-vacopy mode] - use vacopy mode of vaapi for high efficiency gpu copy. Expected values:\n"));
+    msdk_printf(MSDK_STRING("                0(balance), 1(power saving), 2(performance)\n"));
+#endif
 #if defined (ENABLE_V4L2_SUPPORT)
     msdk_printf(MSDK_STRING("   [-d]                            - Device video node (eg: /dev/video0)\n"));
     msdk_printf(MSDK_STRING("   [-p]                            - Mipi Port number (eg: Port 0)\n"));
@@ -347,6 +351,9 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->MipiPort = -1;
     pParams->MipiMode = NONE;
     pParams->v4l2Format = NO_FORMAT;
+#endif
+#ifdef LIBVA_SUPPORT
+    pParams->nVACopy = -1; //default -1: vacopy disabled
 #endif
 
     // parse command line parameters
@@ -680,6 +687,26 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vaapi")))
         {
             pParams->memType = D3D9_MEMORY;
+        }
+#endif
+#if defined(LIBVA_DRM_SUPPORT)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vacopy")))
+        {
+            if (i + 1 >= nArgNum)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -vacopy key"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nVACopy))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("nVACopy is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if (pParams->nVACopy < 0 || pParams->nVACopy > 2)
+            {
+                msdk_printf(MSDK_STRING("error: wrong '-vacopy' parameter. 0(Balanced) will be used.\n"));
+                pParams->nVACopy = 0;
+            }
         }
 #endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-async")))

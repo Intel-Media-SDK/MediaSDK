@@ -114,6 +114,10 @@ namespace MfxLoader
                                                   VAConfigID config_id);
         typedef VAStatus (*vaDestroyContext_type) (VADisplay dpy,
                                                    VAContextID context);
+        typedef VAStatus (*vaCopy_type) (VADisplay dpy,
+                                         VACopyObject * dst,
+                                         VACopyObject * src,
+                                         VACopyOption option);
 
         VA_Proxy();
         ~VA_Proxy();
@@ -139,6 +143,7 @@ namespace MfxLoader
         const vaCreateContext_type          vaCreateContext;
         const vaDestroyConfig_type          vaDestroyConfig;
         const vaDestroyContext_type         vaDestroyContext;
+        const vaCopy_type					vaCopy;
     };
 #endif
 
@@ -430,6 +435,18 @@ namespace MfxLoader
 
 } // namespace MfxLoader
 
+typedef struct _SurfaceInfo
+{
+    uint32_t    width;
+    uint32_t    height;
+    uint32_t    fourCC;
+    uint32_t    format;
+    uint32_t    memtype;
+    uint32_t    alignsize;
+    void        *pBuf;
+    uint8_t     *pBufBase;
+    uintptr_t   ptrb;
+} SurfaceInfo;
 
 class CLibVA
 {
@@ -448,6 +465,22 @@ public:
         VASurfaceID /*srf1*/,
         VADisplay dpy2,
         VASurfaceID srf2);
+
+#if defined(LIBVA_DRM_SUPPORT)
+	VAStatus AcquireUserSurface(
+		VADisplay va_dpy,
+		VASurfaceID *p_surface_id,
+		SurfaceInfo &surf);
+
+	VAStatus ReleaseUserSurface(
+		VADisplay va_dpy,
+		VASurfaceID *p_surface_id);
+
+	VAStatus VACopy(VADisplay va_dpy,
+		VASurfaceID in_surface_id,
+		VASurfaceID out_surface_id,
+		mfxI32 vacopy_mode);
+#endif
 
     inline int getBackendType() { return m_type; }
     VADisplay GetVADisplay() { return m_va_dpy; }

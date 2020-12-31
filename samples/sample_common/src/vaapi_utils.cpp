@@ -98,6 +98,7 @@ VA_Proxy::VA_Proxy()
     , SIMPLE_LOADER_FUNCTION(vaCreateContext)
     , SIMPLE_LOADER_FUNCTION(vaDestroyConfig)
     , SIMPLE_LOADER_FUNCTION(vaDestroyContext)
+    , SIMPLE_LOADER_FUNCTION(vaCopy)
 {
 }
 
@@ -457,7 +458,158 @@ void CLibVA::ReleaseVASurface(
         }
     }
 }
-
 #endif //LIBVA_X11_SUPPORT
+
+#if defined(LIBVA_DRM_SUPPORT)
+VAStatus CLibVA::AcquireUserSurface(
+    VADisplay va_dpy,
+    VASurfaceID *p_surface_id,
+    SurfaceInfo &surf_info)
+{
+    VAStatus va_status = VA_STATUS_SUCCESS;
+    VASurfaceAttrib surface_attrib[3];
+    VASurfaceAttribExternalBuffers ext_buffer;
+    uint32_t base_addr_align = 0x1000;
+    uint32_t size = 0;
+
+    MSDK_CHECK_POINTER(p_surface_id, MFX_ERR_NOT_INITIALIZED);
+
+    surface_attrib[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
+    surface_attrib[0].type = VASurfaceAttribPixelFormat;
+    surface_attrib[0].value.type = VAGenericValueTypeInteger;
+    surface_attrib[0].value.value.i = surf_info.fourCC;
+
+    surface_attrib[1].flags = VA_SURFACE_ATTRIB_SETTABLE;
+    surface_attrib[1].type = VASurfaceAttribMemoryType;
+    surface_attrib[1].value.type = VAGenericValueTypeInteger;
+    surface_attrib[1].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
+
+    surface_attrib[2].flags = VA_SURFACE_ATTRIB_SETTABLE;
+    surface_attrib[2].type = VASurfaceAttribExternalBufferDescriptor;
+    surface_attrib[2].value.type = VAGenericValueTypePointer;
+    surface_attrib[2].value.value.p = (void *)&ext_buffer;
+
+    memset(&ext_buffer, 0, sizeof(ext_buffer));
+
+    uint32_t pitch_align = surf_info.alignsize;
+    switch(surf_info.fourCC)
+    {
+     case VA_FOURCC_NV12:
+         ext_buffer.pitches[0] = ((surf_info.width + pitch_align -1) /
+                                   pitch_align) *
+                                   pitch_align;
+         size = (ext_buffer.pitches[0] * surf_info.height) * 3/2;// frame size align with pitch.
+         size = (size+base_addr_align-1) /
+                 base_addr_align *
+                 base_addr_align;// frame size align as 4K page.
+         ext_buffer.offsets[0] = 0;// Y channel
+         ext_buffer.offsets[1] = ext_buffer.pitches[0] *
+                                 surf_info.height; // UV channel.
+         ext_buffer.pitches[1] = ext_buffer.pitches[0];
+         ext_buffer.num_planes = 2;
+         break;
+     default :
+         return VA_STATUS_ERROR_UNSUPPORTED_RT_FORMAT;
+    }
+
+    if (!surf_info.pBuf && !surf_info.pBufBase) {
+        surf_info.pBuf = malloc(size+base_addr_align);
+        if (NULL == surf_info.pBuf) {
+            printf("surf_info.pBuf malloc failed!\n");
+            return VA_STATUS_ERROR_ALLOCATION_FAILED;
+        }
+        surf_info.pBufBase = (uint8_t*)((((uint64_t)(surf_info.pBuf) +
+                        base_addr_align-1) / base_addr_align) *
+                        base_addr_align);
+
+        ext_buffer.pixel_format = surf_info.fourCC;
+        ext_buffer.width = surf_info.width;
+        ext_buffer.height = surf_info.height;
+        ext_buffer.data_size = size;
+        ext_buffer.num_buffers = 1;
+        ext_buffer.buffers = &(surf_info.ptrb);
+        ext_buffer.buffers[0] = (uintptr_t)(surf_info.pBufBase);
+        ext_buffer.flags = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
+
+        va_status = m_libva.vaCreateSurfaces(va_dpy,
+                                             surf_info.format,
+                                             surf_info.width,
+                                             surf_info.height,
+                                             p_surface_id,
+                                             1,
+                                             surface_attrib,
+                                             3);
+
+        if (VA_STATUS_SUCCESS != va_status) {
+            free(surf_info.pBuf);
+            surf_info.pBuf = NULL;
+            return va_status;
+        }
+    }
+
+    return va_status;
+}
+
+VAStatus CLibVA::ReleaseUserSurface(
+    VADisplay va_dpy,
+    VASurfaceID *p_surface_id)
+{
+    VAStatus va_status = VA_STATUS_SUCCESS;
+    MSDK_CHECK_POINTER(p_surface_id, MFX_ERR_NOT_INITIALIZED);
+
+    if (VA_INVALID_SURFACE != *p_surface_id){
+        va_status = m_libva.vaDestroySurfaces(va_dpy, p_surface_id, 1);
+        if (VA_STATUS_SUCCESS != va_status) {
+            printf("m_libva.vaDestroySurfaces failed!\n");
+            return va_status;
+        }
+    }
+
+    return va_status;
+}
+
+VAStatus CLibVA::VACopy(
+    VADisplay va_dpy,
+    VASurfaceID in_surface_id,
+    VASurfaceID out_surface_id,
+    mfxI32 vacopy_mode)
+{
+    VAStatus va_status = VA_STATUS_SUCCESS;
+
+    VACopyObject src_obj, dst_obj;
+    VACopyOption option;
+
+    // setup the option parameter for vaCopy
+    memset(&src_obj, 0, sizeof(src_obj));
+    memset(&dst_obj, 0, sizeof(dst_obj));
+    memset(&option, 0, sizeof(option));
+
+    src_obj.obj_type = VACopyObjectSurface;
+    src_obj.object.surface_id = in_surface_id;
+
+    dst_obj.obj_type = VACopyObjectSurface;
+    dst_obj.object.surface_id = out_surface_id;
+
+    // set the sync mode to block
+    option.bits.va_copy_sync = VA_EXEC_SYNC;
+    //set the copy mode: 0 -DEFAULT, 1 - POWER_SAVING, 2 -PERFORMANCE
+    option.bits.va_copy_mode = vacopy_mode;
+
+    va_status = m_libva.vaCopy(va_dpy, &dst_obj, &src_obj, option);
+    if (VA_STATUS_SUCCESS != va_status) {
+        printf("m_libva.vaCopy!\n");
+        return va_status;
+    }
+
+    va_status = m_libva.vaSyncSurface(va_dpy, out_surface_id);
+    if (VA_STATUS_SUCCESS != va_status) {
+        printf("m_libva.vaSyncSurface failed!\n");
+        return va_status;
+    }
+
+    return va_status;
+}
+
+#endif // #ifdef LIBVA_DRM_SUPPORT
 
 #endif // #ifdef LIBVA_SUPPORT

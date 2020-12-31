@@ -122,6 +122,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
 #if defined(LIBVA_DRM_SUPPORT)
     msdk_printf(MSDK_STRING("   [-rdrm]                   - render decoded data in a thru DRM frame buffer\n"));
     msdk_printf(MSDK_STRING("   [-window x y w h]         - set render window position and size\n"));
+    msdk_printf(MSDK_STRING("   [-vacopy mode]            - use vacopy of vaapi for high efficiency gpu copy. Expected values:\n"));
+    msdk_printf(MSDK_STRING("                  0(balance), 1(power saving), 2(performance)\n"));
+
 #endif
     msdk_printf(MSDK_STRING("   [-low_latency]            - configures decoder for low latency mode (supported only for H.264 and JPEG codec)\n"));
     msdk_printf(MSDK_STRING("   [-calc_latency]           - calculates latency during decoding and prints log (supported only for H.264 and JPEG codec)\n"));
@@ -171,6 +174,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->bUseFullColorRange = false;
 #if defined(LIBVA_SUPPORT)
     pParams->libvaBackend = MFX_LIBVA_DRM;
+    pParams->nVACopy = -1; //default -1: vacopy disabled
 #endif
 
     for (mfxU8 i = 1; i < nArgNum; i++)
@@ -309,6 +313,26 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 pParams->Height = 240;
 
             pParams->bRenderWin = true;
+        }
+#endif
+#if defined(LIBVA_DRM_SUPPORT)
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vacopy")))
+        {
+            if (i + 1 >= nArgNum)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -vacopy key"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nVACopy))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("nVACopy is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if (pParams->nVACopy < 0 || pParams->nVACopy > 2)
+            {
+                msdk_printf(MSDK_STRING("error: wrong '-vacopy' parameter. 0(Balanced) will be used.\n"));
+                pParams->nVACopy = 0;
+            }
         }
 #endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-low_latency")))
