@@ -220,7 +220,7 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
         else
             sts = MFX_ERR_UNSUPPORTED;
 
-        if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= 2304)
+        if (p_in->mfx.FrameInfo.Height % 16 == 0 && p_in->mfx.FrameInfo.Height <= 4096)
             p_out->mfx.FrameInfo.Height = p_in->mfx.FrameInfo.Height;
         else
             sts = MFX_ERR_UNSUPPORTED;
