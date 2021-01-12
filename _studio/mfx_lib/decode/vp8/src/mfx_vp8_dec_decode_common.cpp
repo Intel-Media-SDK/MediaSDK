@@ -165,6 +165,9 @@ mfxStatus MFX_VP8_Utility::Query(VideoCORE *p_core, mfxVideoParam *p_in, mfxVide
         return Query(p_core, &in1, p_out, type);
     }
 
+    if (p_core->GetPlatformType() == MFX_PLATFORM_HARDWARE && p_core->GetHWType() >= MFX_HW_TGL_LP)
+        return MFX_ERR_UNSUPPORTED;
+
     memset(&p_out->mfx, 0, sizeof(mfxInfoMFX));
 
     if (p_in)
