@@ -750,6 +750,7 @@ static inline mfxPlatform MakePlatform(eMFXHWType type, mfxU16 device_id)
                          platform.MediaAdapterType = MFX_MEDIA_DISCRETE;
                          platform.CodeName = MFX_PLATFORM_TIGERLAKE;     break;
     case MFX_HW_ADL_S  : platform.CodeName = MFX_PLATFORM_ALDERLAKE_S;   break;
+    case MFX_HW_ADL_P  : platform.CodeName = MFX_PLATFORM_ALDERLAKE_P;   break;
 
 #endif
     default:
