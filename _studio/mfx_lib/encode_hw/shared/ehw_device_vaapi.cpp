@@ -343,7 +343,8 @@ mfxStatus DeviceVAAPI::QueryStatus(DDIFeedback& ddiFB, mfxU32 id)
     MFX_CHECK(itMB != ddiFB.ExecParam.end(), MFX_ERR_UNDEFINED_BEHAVIOR);
 
     auto& mbPar = GetArgs(itMB->In, vaMapBuffer);
-#if VA_CHECK_VERSION(1,9,0)
+    // Synchronization using vaSyncBuffer is temporarily disabled
+#if 0
     auto sts = SyncBuffer(std::get<1>(mbPar), VA_TIMEOUT_INFINITE);
 #else
     auto itSS = std::find_if(ddiFB.ExecParam.begin(), ddiFB.ExecParam.end(), DDIExecParam::IsFunction<VAFID_SyncSurface>);
