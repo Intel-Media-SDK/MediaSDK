@@ -1839,7 +1839,7 @@ mfxStatus CTranscodingPipeline::Transcode()
         SetEncCtrlRT(VppExtSurface, m_bInsertIDR);
         m_bInsertIDR = false;
 
-        if (bNeedDecodedFrames)
+        if (DecExtSurface.pSurface)
             m_nProcessedFramesNum++;
 
         if(m_mfxEncParams.mfx.CodecId != MFX_CODEC_DUMP)
