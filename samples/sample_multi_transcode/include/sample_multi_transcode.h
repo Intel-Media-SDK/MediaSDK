@@ -84,8 +84,8 @@ namespace TranscodingSample
         std::vector<std::unique_ptr<SafetySurfaceBuffer>>    m_pBufferArray;
 
         std::vector<std::unique_ptr<FileBitstreamProcessor>> m_pExtBSProcArray;
-        std::unique_ptr<mfxAllocatorParams>    m_pAllocParam;
-        std::unique_ptr<CHWDevice>             m_hwdev;
+        std::vector<std::shared_ptr<mfxAllocatorParams>>     m_pAllocParams;
+        std::vector<std::unique_ptr<CHWDevice>>              m_hwdevs;
         msdk_tick                            m_StartTime;
         // need to work with HW pipeline
         mfxHandleType                        m_eDevType;
