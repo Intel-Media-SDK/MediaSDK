@@ -550,7 +550,8 @@ mfxStatus CTranscodingPipeline::DecodeOneFrame(ExtendedSurface *pExtSurface)
         {
             pExtSurface->pSurface = GetFreeSurface(false, MSDK_SURFACE_WAIT_INTERVAL);
             sts = m_pBSProcessor->GetInputFrame(pExtSurface->pSurface);
-            MFX_CHECK_STS(sts);
+            if(sts != MFX_ERR_NONE)
+                return sts;
         }
         else if (MFX_WRN_DEVICE_BUSY == sts)
         {
@@ -3793,6 +3794,10 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
             return sts;
         else
             MSDK_CHECK_STATUS(sts,"DecodePreInit failed");
+    }
+    else
+    {
+        m_mfxDecParams.mfx.FrameInfo.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
     }
 
     // VPP component initialization
