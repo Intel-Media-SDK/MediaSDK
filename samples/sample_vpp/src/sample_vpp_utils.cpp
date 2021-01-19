@@ -1962,6 +1962,15 @@ mfxStatus CRawVideoWriter::WriteFrame(
             MSDK_CHECK_NOT_EQUAL( fwrite(ptr+ i * pitch, 1, 2*w, m_fDst), 2u*w, MFX_ERR_UNDEFINED_BEHAVIOR);
         }
     }
+    else if( pInfo->FourCC == MFX_FOURCC_UYVY )
+    {
+        ptr = pData->U + pInfo->CropX + pInfo->CropY * pitch;
+
+        for(i = 0; i < h; i++)
+        {
+            MSDK_CHECK_NOT_EQUAL( fwrite(ptr+ i * pitch, 1, 2*w, m_fDst), 2u*w, MFX_ERR_UNDEFINED_BEHAVIOR);
+        }
+    }
     else if ( pInfo->FourCC == MFX_FOURCC_IMC3 )
     {
         ptr   = pData->Y + (pInfo->CropX ) + (pInfo->CropY ) * pitch;
