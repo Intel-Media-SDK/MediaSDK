@@ -1089,7 +1089,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         if (extbuf)
         {
-            ((mfxExtDecodeErrorReport *)extbuf)->ErrorTypes = 0;
+            reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
             src.SetExtBuffer(extbuf);
         }
 #endif
