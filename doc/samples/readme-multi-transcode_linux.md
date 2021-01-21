@@ -156,8 +156,8 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |  -FRC::PT|  Enables FRC filter with Preserve Timestamp algorithm|
 | -FRC::DT| Enables FRC filter with Distributed Timestamp algorithm|
 | -FRC::INTERP|  Enables FRC filter with Frame Interpolation algorithm<br>NOTE: -FRC filters do not work with -i::sink pipelines !!!|
-|-ec::nv12\|rgb4\|yuy2\|nv16\|p010\|p210 |Forces encoder input to use provided chroma mode|
-|-dc::nv12\|rgb4\|yuy2| Forces decoder output to use provided chroma mode<br>NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided|
+|-ec::nv12\|rgb4\|yuy2\|nv16\|p010\|p210\|y210\|y410\|p016\|y216\|y416 |Forces encoder input to use provided chroma mode|
+|-dc::nv12\|rgb4\|yuy2\|p010\|y210\|y410\|p016\|y216 | Forces decoder output to use provided chroma mode<br>NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided|
 |-angle 180| Enables 180 degrees picture rotation user module before encoding|
 | -opencl|Uses implementation of rotation plugin (enabled with -angle option) through Intel(R) OpenCL|
   |-w|    Destination picture width, invokes VPP resize|

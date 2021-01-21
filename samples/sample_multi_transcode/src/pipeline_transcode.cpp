@@ -2955,6 +2955,10 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
             break;
         case MFX_FOURCC_P010:
         case MFX_FOURCC_P210:
+#if (MFX_VERSION >= 1027)
+        case MFX_FOURCC_Y210:
+        case MFX_FOURCC_Y410:
+#endif
             m_mfxVppParams.vpp.Out.BitDepthLuma = m_mfxVppParams.vpp.Out.BitDepthChroma = 10;
             break;
         default:
