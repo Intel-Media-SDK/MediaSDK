@@ -57,7 +57,7 @@ The following command-line switches are optional:
 |---|---|
 |[-nv12\|yuy2\|ayuv\|rgb4\|p010\|y210\|y410\|a2rgb10\|p016\|y216]| input color format (by default YUV420 is expected).|
 |[-msb10]| 10-bit color format is expected to have data in Most Significant Bits of words. (LSB data placement is expected by default). This option also disables data shifting during file reading.|
-| [-ec::p010] | force usage of P010 surfaces for encoder (conversion will be made if necessary). Use for 10 bit HEVC encoding|
+| [-ec::p010\|yuy2\|nv12\|rgb4\|ayuv\|uyvy\|y210\|y410\|p016\|y216] | force output color format for encoder (conversion will be made if necessary). Default value: input color format|
 |[-tff\|bff]| input stream is interlaced, top\|bottom field first, if not specified progressive is expected|
   | [-bref] | arrange B frames in B pyramid reference structure|
  |  [-nobref] |  do not use B-pyramid (by default the decision is made by library)|
