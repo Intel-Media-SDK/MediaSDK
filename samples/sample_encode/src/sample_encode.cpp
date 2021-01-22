@@ -1414,6 +1414,12 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->EncodeFourCC = pParams->FileInputFourCC;
     }
 
+    if (MFX_CODEC_HEVC == pParams->CodecId && pParams->EncodeFourCC == MFX_FOURCC_YUY2 && !pParams->bUseHWLib)
+    {
+        // SW HEVCe doesn't support YUY2 input
+        pParams->EncodeFourCC = MFX_FOURCC_NV12;
+    }
+
     if (MFX_CODEC_HEVC != pParams->CodecId && MFX_CODEC_VP9 != pParams->CodecId && (pParams->EncodeFourCC == MFX_FOURCC_P010) )
     {
         PrintHelp(strInput[0], MSDK_STRING("P010 surfaces are supported only for HEVC and VP9 encoder"));
