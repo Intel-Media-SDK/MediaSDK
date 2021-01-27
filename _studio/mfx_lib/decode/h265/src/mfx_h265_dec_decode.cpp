@@ -687,6 +687,23 @@ mfxStatus VideoDECODEH265::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxVi
     umcRes = FillParam(core, &decoder, par, false);
     MFX_CHECK(umcRes == UMC::UMC_OK, ConvertUMCStatusToMfx(umcRes));
 
+    mfxExtCodingOptionVPS * extVps = (mfxExtCodingOptionVPS *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_VPS);
+    if (extVps)
+    {
+        RawHeader_H265 *vps = decoder.GetVPS();
+
+        if (vps->GetSize())
+        {
+            MFX_CHECK(extVps->VPSBufSize >= vps->GetSize(), MFX_ERR_NOT_ENOUGH_BUFFER);
+            extVps->VPSBufSize = (mfxU16)vps->GetSize();
+            std::copy(vps->GetPointer(), vps->GetPointer() + extVps->VPSBufSize, extVps->VPSBuffer);
+        }
+        else
+        {
+            extVps->VPSBufSize = 0;
+        }
+    }
+
     mfxExtCodingOptionSPSPPS * spsPps = (mfxExtCodingOptionSPSPPS *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_CODING_OPTION_SPSPPS);
     if (spsPps)
     {

@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -65,12 +65,15 @@ public:
 
     void Reset();
 
+    RawHeader_H265 * GetVPS();
+
     RawHeader_H265 * GetSPS();
 
     RawHeader_H265 * GetPPS();
 
 protected:
 
+    RawHeader_H265 m_vps;
     RawHeader_H265 m_sps;
     RawHeader_H265 m_pps;
 };
