@@ -180,7 +180,6 @@ if( DEFINED H264LA_ENCODER_GUID )
     genx
     asc
     enctools_hw
-    mfx
     mctf_hw
     mfx_trace
     ${ITT_LIBRARIES}
