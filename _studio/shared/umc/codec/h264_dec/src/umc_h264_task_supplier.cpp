@@ -297,10 +297,11 @@ void DecReferencePictureMarking::CheckSEIRepetition(ViewItem &view, H264DecoderF
 
     bool wasFrame = false;
 
+    std::list<std::shared_ptr<H264DecoderFrame>> saved_ptrs; 
     for (H264DecoderFrame *pCurr = view.GetDPBList(0)->head(); pCurr; pCurr = pCurr->future())
     {
-        pCurr->IncrementReference();
-        pCurr->IncrementReference();
+        saved_ptrs.push_back(pCurr->GetShared());
+        saved_ptrs.push_back(pCurr->GetShared());
     }
 
     {
@@ -360,11 +361,6 @@ void DecReferencePictureMarking::CheckSEIRepetition(ViewItem &view, H264DecoderF
         }
     }
 
-    for (H264DecoderFrame *pCurr = view.GetDPBList(0)->head(); pCurr; pCurr = pCurr->future())
-    {
-        pCurr->DecrementReference();
-        pCurr->DecrementReference();
-    }
 }
 
 void DecReferencePictureMarking::Undo(const H264DecoderFrame * frame)
@@ -2785,7 +2781,6 @@ Status TaskSupplier::ProcessFrameNumGap(H264Slice *pSlice, int32_t field, int32_
                 return UMC_ERR_NOT_ENOUGH_BUFFER;
             }
 
-            pFrame->IncrementReference();
             m_UIDFrameCounter++;
             pFrame->m_UID = m_UIDFrameCounter;
         }
@@ -2850,7 +2845,6 @@ Status TaskSupplier::ProcessFrameNumGap(H264Slice *pSlice, int32_t field, int32_
             frame_num = 0;
 
         pFrame->SetFrameAsNonExist();
-        pFrame->DecrementReference();
     }   // while
 
     return UMC_OK;

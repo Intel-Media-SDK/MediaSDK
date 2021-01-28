@@ -43,7 +43,7 @@ enum BusyStates
 
 class H264DecoderFrame
     : public H264DecYUVBufferPadded
-    , public RefCounter
+    , public std::enable_shared_from_this<H264DecoderFrame>
 {
     DYNAMIC_CAST_DECL(H264DecoderFrame, H264DecYUVBufferPadded)
 
@@ -78,8 +78,8 @@ class H264DecoderFrame
         return (field) ? &m_pSlicesInfoBottom : &m_pSlicesInfo;
     }
 
-    H264DecoderFrame *m_pPreviousFrame;
-    H264DecoderFrame *m_pFutureFrame;
+    std::weak_ptr<H264DecoderFrame> m_pPreviousFrame;
+    std::shared_ptr<H264DecoderFrame> m_pFutureFrame;
 
     UMC_H264_DECODER::H264SEIPayLoad m_UserData;
 
@@ -139,8 +139,9 @@ class H264DecoderFrame
     uint8_t  m_wasDisplayed;
     uint8_t  m_wasOutputted;
 
-    typedef std::list<RefCounter *>  ReferenceList;
+    typedef std::list<std::shared_ptr<H264DecoderFrame>>  ReferenceList;
     ReferenceList m_references;
+    ReferenceList m_TermRefs;
 
     void FreeReferenceFrames();
 
@@ -152,7 +153,7 @@ class H264DecoderFrame
 
 public:
 
-    void AddReference(RefCounter * reference);
+    void AddReference(H264DecoderFrame * reference);
 
     void OnDecodingCompleted();
 
@@ -198,21 +199,32 @@ public:
     // The following methods provide access to the H264Decoder's doubly
     // linked list of H264DecoderFrames.  Note that m_pPreviousFrame can
     // be non-NULL even for an I frame.
-    H264DecoderFrame *previous() { return m_pPreviousFrame; }
-    H264DecoderFrame *future()   { return m_pFutureFrame; }
+    H264DecoderFrame *previous() { return m_pPreviousFrame.lock().get(); }
+    H264DecoderFrame *future()   { return m_pFutureFrame.get(); }
 
-    const H264DecoderFrame *previous() const { return m_pPreviousFrame; }
-    const H264DecoderFrame *future() const { return m_pFutureFrame; }
+    const H264DecoderFrame *previous() const { return m_pPreviousFrame.lock().get(); }
+    const H264DecoderFrame *future() const { return m_pFutureFrame.get(); }
 
     void setPrevious(H264DecoderFrame *pPrev)
     {
-        m_pPreviousFrame = pPrev;
+        if (pPrev)
+            m_pPreviousFrame = pPrev->GetShared();
+        else
+            m_pPreviousFrame.reset();
     }
 
     void setFuture(H264DecoderFrame *pFut)
     {
-        m_pFutureFrame = pFut;
+        if (pFut)
+            m_pFutureFrame = pFut->GetShared();
+        else
+            m_pFutureFrame.reset();
     }
+
+	std::shared_ptr<H264DecoderFrame> GetShared()
+	{
+		return shared_from_this();
+	}
 
     bool IsDecodingStarted() const { return m_isDecodingStarted != 0;}
     void StartDecoding() { m_isDecodingStarted = 1;}
@@ -228,7 +240,14 @@ public:
     bool        wasOutputted()    { return m_wasOutputted != 0; }
     void        setWasOutputted();
 
-    bool        isDisposable()    { return (!IsFullFrame() || (m_wasOutputted && m_wasDisplayed)) && !GetRefCounter(); }
+    bool        isUnique() {
+        std::weak_ptr<H264DecoderFrame> w_pTmp = GetShared();
+        return w_pTmp.use_count() == 1;
+    }
+
+    bool        isDisposable()    {
+        return (!IsFullFrame() || (m_wasOutputted && m_wasDisplayed)) && !isUnique() && m_isDecoded;
+    }
 
     // A decoded frame can be "disposed" if it is not an active reference
     // and it is not locked by the calling application and it has been
@@ -444,7 +463,7 @@ protected:
 
 inline bool isAlmostDisposable(H264DecoderFrame * pTmp)
 {
-    return (pTmp->m_wasOutputted || !pTmp->IsFullFrame())&& !pTmp->GetRefCounter();
+    return (pTmp->m_wasOutputted || !pTmp->IsFullFrame()) && !pTmp->isUnique() && pTmp->IsDecoded();
 }
 
 } // end namespace UMC

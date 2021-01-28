@@ -46,8 +46,6 @@ H264DecoderFrame::H264DecoderFrame(MemoryAllocator *pMemoryAllocator, H264_Heap_
     , m_ErrorType(0)
     , m_pSlicesInfo(this)
     , m_pSlicesInfoBottom(this)
-    , m_pPreviousFrame(0)
-    , m_pFutureFrame(0)
     , m_dFrameTime(-1.0)
     , m_isOriginalPTS(false)
     , m_IsFrameExist(0)
@@ -90,8 +88,6 @@ H264DecoderFrame::H264DecoderFrame(MemoryAllocator *pMemoryAllocator, H264_Heap_
     // set memory managment tools
     m_pMemoryAllocator = pMemoryAllocator;
 
-    ResetRefCounter();
-
     m_ID[0] = (int32_t) ((uint8_t *) this - (uint8_t *) 0);
     m_ID[1] = m_ID[0] + 1;
 
@@ -113,36 +109,27 @@ H264DecoderFrame::H264DecoderFrame(MemoryAllocator *pMemoryAllocator, H264_Heap_
 H264DecoderFrame::~H264DecoderFrame()
 {
     // Just to be safe.
-    m_pPreviousFrame = 0;
-    m_pFutureFrame = 0;
+    m_pPreviousFrame.reset();
+    m_pFutureFrame.reset();
     Reset();
     deallocate();
 }
 
-void H264DecoderFrame::AddReference(RefCounter * reference)
+void H264DecoderFrame::AddReference(H264DecoderFrame * reference)
 {
     if (!reference || reference == this)
         return;
 
-    if (std::find(m_references.begin(), m_references.end(), reference) != m_references.end())
+    std::shared_ptr<H264DecoderFrame> pTmp = reference->GetShared();
+
+    if (std::find(m_references.begin(), m_references.end(), pTmp) != m_references.end())
         return;
 
-    reference->IncrementReference();
-    m_references.push_back(reference);
+    m_references.push_back(pTmp);
 }
 
 void H264DecoderFrame::FreeReferenceFrames()
 {
-    ReferenceList::iterator iter = m_references.begin();
-    ReferenceList::iterator end_iter = m_references.end();
-
-    for (; iter != end_iter; ++iter)
-    {
-        RefCounter * reference = *iter;
-        reference->DecrementReference();
-
-    }
-
     m_references.clear();
 }
 
@@ -152,8 +139,6 @@ void H264DecoderFrame::Reset()
 
     m_pSlicesInfo.Reset();
     m_pSlicesInfoBottom.Reset();
-
-    ResetRefCounter();
 
     m_isShortTermRef[0] = m_isShortTermRef[1] = false;
     m_isLongTermRef[0] = m_isLongTermRef[1] = false;
@@ -256,7 +241,6 @@ void H264DecoderFrame::OnDecodingCompleted()
 
     m_isDecoded = 1;
     FreeResources();
-    DecrementReference();
 }
 
 void H264DecoderFrame::SetisShortTermRef(bool isRef, int32_t WhichField)
@@ -264,7 +248,7 @@ void H264DecoderFrame::SetisShortTermRef(bool isRef, int32_t WhichField)
     if (isRef)
     {
         if (!isShortTermRef() && !isLongTermRef())
-            IncrementReference();
+            m_TermRefs.push_back(GetShared());
 
         if (m_PictureStructureForRef >= FRM_STRUCTURE)
             m_isShortTermRef[0] = m_isShortTermRef[1] = true;
@@ -284,7 +268,7 @@ void H264DecoderFrame::SetisShortTermRef(bool isRef, int32_t WhichField)
 
         if (wasRef && !isShortTermRef() && !isLongTermRef())
         {
-            DecrementReference();
+            m_TermRefs.pop_back();
         }
     }
 }
@@ -294,7 +278,7 @@ void H264DecoderFrame::SetisLongTermRef(bool isRef, int32_t WhichField)
     if (isRef)
     {
         if (!isShortTermRef() && !isLongTermRef())
-            IncrementReference();
+            m_TermRefs.push_back(GetShared());
 
         if (m_PictureStructureForRef >= FRM_STRUCTURE)
             m_isLongTermRef[0] = m_isLongTermRef[1] = true;
@@ -314,7 +298,7 @@ void H264DecoderFrame::SetisLongTermRef(bool isRef, int32_t WhichField)
 
         if (wasRef && !isShortTermRef() && !isLongTermRef())
         {
-            DecrementReference();
+            m_TermRefs.pop_back();
         }
     }
 }

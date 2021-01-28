@@ -38,13 +38,13 @@ public:
     virtual
     ~H264DecoderFrameList(void);
 
-    H264DecoderFrame   *head() { return m_pHead; }
-    H264DecoderFrame   *tail() { return m_pTail; }
+    H264DecoderFrame   *head() { return m_pHead.get(); }
+    H264DecoderFrame   *tail() { return m_pTail.lock().get(); }
 
-    const H264DecoderFrame   *head() const { return m_pHead; }
-    const H264DecoderFrame   *tail() const { return m_pTail; }
+    const H264DecoderFrame   *head() const { return m_pHead.get(); }
+    const H264DecoderFrame   *tail() const { return m_pTail.lock().get(); }
 
-    bool isEmpty() { return !m_pHead; }
+    bool isEmpty() { return !m_pHead.get(); }
 
     void swapFrames(H264DecoderFrame *pFrame1, H264DecoderFrame *pFrame2);
 
@@ -74,8 +74,8 @@ protected:
     // Release object
     void Release(void);
 
-    H264DecoderFrame *m_pHead;                          // (H264DecoderFrame *) pointer to first frame in list
-    H264DecoderFrame *m_pTail;                          // (H264DecoderFrame *) pointer to last frame in list
+    std::shared_ptr<H264DecoderFrame> m_pHead;                        // pointer to first frame in list
+    std::weak_ptr<H264DecoderFrame> m_pTail;                          // pointer to last frame in list
 };
 
 class H264DBPList : public H264DecoderFrameList

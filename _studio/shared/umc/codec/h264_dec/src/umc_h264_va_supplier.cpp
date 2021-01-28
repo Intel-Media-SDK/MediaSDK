@@ -376,7 +376,6 @@ Status VATaskSupplier::AllocateFrameData(H264DecoderFrame * pFrame)
 
     pFrame->allocate(&frmData, &info);
 
-    pFrame->IncrementReference();
     m_UIDFrameCounter++;
     pFrame->m_UID = m_UIDFrameCounter;
     pFrame->m_index = frmMID;

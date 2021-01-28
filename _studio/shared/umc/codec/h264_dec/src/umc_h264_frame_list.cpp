@@ -29,10 +29,7 @@ namespace UMC
 {
 
 H264DecoderFrameList::H264DecoderFrameList(void)
-{
-    m_pHead = NULL;
-    m_pTail = NULL;
-} // H264DecoderFrameList::H264DecoderFrameList(void)
+{ } // H264DecoderFrameList::H264DecoderFrameList(void)
 
 H264DecoderFrameList::~H264DecoderFrameList(void)
 {
@@ -42,17 +39,8 @@ H264DecoderFrameList::~H264DecoderFrameList(void)
 
 void H264DecoderFrameList::Release(void)
 {
-    // destroy frame list
-    while (m_pHead)
-    {
-        H264DecoderFrame *pNext = m_pHead->future();
-        delete m_pHead;
-        m_pHead = pNext;
-    }
-
-    m_pHead = NULL;
-    m_pTail = NULL;
-
+    m_pHead.reset();
+    m_pTail.reset();
 } // void H264DecoderFrameList::Release(void)
 
 
@@ -62,6 +50,9 @@ void H264DecoderFrameList::Release(void)
 //////////////////////////////////////////////////////////////////////////////
 void H264DecoderFrameList::append(H264DecoderFrame *pFrame)
 {
+    H264DecoderFrame * pTail = tail();
+    std::shared_ptr<H264DecoderFrame> tmp(pFrame);
+
     // Error check
     if (!pFrame)
     {
@@ -74,28 +65,28 @@ void H264DecoderFrameList::append(H264DecoderFrame *pFrame)
     {
         // Must be the first frame appended
         // Set the head to the current
-        m_pHead = pFrame;
-        m_pHead->setPrevious(0);
+        m_pHead = pFrame->GetShared();
+        m_pHead->setPrevious(nullptr);
     }
 
-    if (m_pTail)
+    if (!m_pTail.expired())
     {
         // Set the old tail as the previous for the current
-        pFrame->setPrevious(m_pTail);
+        pFrame->setPrevious(pTail);
 
         // Set the old tail's future to the current
-        m_pTail->setFuture(pFrame);
+        pTail->setFuture(pFrame);
     }
     else
     {
         // Must be the first frame appended
         // Set the tail to the current
-        m_pTail = pFrame;
+        m_pTail = pFrame->GetShared();
     }
 
     // The current is now the new tail
-    m_pTail = pFrame;
-    m_pTail->setFuture(0);
+    m_pTail = pFrame->GetShared();
+    m_pTail.lock().get()->setFuture(nullptr);
     //
 }
 
@@ -103,60 +94,78 @@ void H264DecoderFrameList::swapFrames(H264DecoderFrame *pFrame1, H264DecoderFram
 {
     H264DecoderFrame * temp1 = pFrame1->previous();
     H264DecoderFrame * temp2 = pFrame2->previous();
+	std::list<std::shared_ptr<H264DecoderFrame>> saved_ptrs;
 
-    if (temp1)
-    {
-        temp1->setFuture(pFrame2);
-    }
+	if (temp1)
+	{
+		saved_ptrs.push_back(temp1->future()->GetShared());
+		temp1->setFuture(pFrame2);
+	}
 
-    if (temp2)
-    {
-        temp2->setFuture(pFrame1);
-    }
+	if (temp2)
+	{
+		saved_ptrs.push_back(temp2->future()->GetShared());
+		temp2->setFuture(pFrame1);
+	}
 
-    pFrame1->setPrevious(temp2);
-    pFrame2->setPrevious(temp1);
+	if (pFrame1->previous()) {
+		saved_ptrs.push_back(pFrame1->previous()->GetShared());
+	}
+	if (pFrame2->previous()) {
+		saved_ptrs.push_back(pFrame2->previous()->GetShared());
+	}
 
-    temp1 = pFrame1->future();
-    temp2 = pFrame2->future();
+	pFrame1->setPrevious(temp2);
+	pFrame2->setPrevious(temp1);
 
-    if (temp1)
-    {
-        temp1->setPrevious(pFrame2);
-    }
+	temp1 = pFrame1->future();
+	temp2 = pFrame2->future();
 
-    if (temp2)
-    {
-        temp2->setPrevious(pFrame1);
-    }
+	if (temp1)
+	{
+		saved_ptrs.push_back(temp1->previous()->GetShared());
+		temp1->setPrevious(pFrame2);
+	}
 
-    pFrame1->setFuture(temp2);
-    pFrame2->setFuture(temp1);
+	if (temp2)
+	{
+		saved_ptrs.push_back(temp2->previous()->GetShared());
+		temp2->setPrevious(pFrame1);
+	}
 
+	if (pFrame1->future()) {
+		saved_ptrs.push_back(pFrame1->future()->GetShared());
+	}
+	if (pFrame2->future()) {
+		saved_ptrs.push_back(pFrame2->future()->GetShared());
+	}
 
-    if (m_pHead == pFrame1)
-    {
-        m_pHead = pFrame2;
-    }
-    else
-    {
-        if (m_pHead == pFrame2)
-        {
-            m_pHead = pFrame1;
-        }
-    }
+	pFrame1->setFuture(temp2);
+	pFrame2->setFuture(temp1);
 
-    if (m_pTail == pFrame1)
-    {
-        m_pTail = pFrame2;
-    }
-    else
-    {
-        if (m_pTail == pFrame2)
-        {
-            m_pTail = pFrame1;
-        }
-    }
+	if (m_pHead.get() == pFrame1)
+	{
+		m_pHead = pFrame2->GetShared();
+	}
+	else
+	{
+		if (m_pHead.get() == pFrame2)
+		{
+			m_pHead = pFrame1->GetShared();
+		}
+	}
+
+	if (m_pTail.lock().get() == pFrame1)
+	{
+		m_pTail = pFrame2->GetShared();
+	}
+	else
+	{
+		if (m_pTail.lock().get() == pFrame2)
+		{
+			m_pTail = pFrame1->GetShared();
+		}
+	}
 }
 
 H264DBPList::H264DBPList()
@@ -170,9 +179,9 @@ H264DecoderFrame * H264DBPList::GetDisposable(void)
 {
     H264DecoderFrame *pOldest = NULL;
 
-    for (H264DecoderFrame * pTmp = m_pHead; pTmp; pTmp = pTmp->future())
+    for (H264DecoderFrame * pTmp = head(); pTmp; pTmp = pTmp->future())
     {
-        if (pTmp->isDisposable())
+        if (pTmp->isDisposable() && pTmp->GetShared().use_count() != 1)
         {
             pOldest = pTmp;
         }
@@ -182,9 +191,9 @@ H264DecoderFrame * H264DBPList::GetDisposable(void)
 
 bool H264DBPList::IsDisposableExist()
 {
-    for (H264DecoderFrame * pTmp = m_pHead; pTmp; pTmp = pTmp->future())
+    for (H264DecoderFrame * pTmp = head(); pTmp; pTmp = pTmp->future())
     {
-        if (pTmp->isDisposable())
+        if (pTmp->isDisposable() && pTmp->GetShared().use_count() != 1)
         {
             return true;
         }
@@ -196,7 +205,7 @@ bool H264DBPList::IsDisposableExist()
 bool H264DBPList::IsAlmostDisposableExist()
 {
     int32_t count = 0;
-    for (H264DecoderFrame * pTmp = m_pHead; pTmp; pTmp = pTmp->future())
+    for (H264DecoderFrame * pTmp = head(); pTmp; pTmp = pTmp->future())
     {
         count++;
         if (isAlmostDisposable(pTmp))
@@ -210,7 +219,7 @@ bool H264DBPList::IsAlmostDisposableExist()
 
 H264DecoderFrame * H264DBPList::findDisplayableByDPBDelay(void)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
     H264DecoderFrame *pOldest = NULL;
     int32_t  SmallestPicOrderCnt = 0x7fffffff;    // very large positive
     uint32_t  LargestRefPicListResetCount = 0;
@@ -259,7 +268,7 @@ H264DecoderFrame * H264DBPList::findDisplayableByDPBDelay(void)
 ///////////////////////////////////////////////////////////////////////////////
 H264DecoderFrame * H264DBPList::findOldestDisplayable(int32_t /*dbpSize*/ )
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
     H264DecoderFrame *pOldest = NULL;
     int32_t  SmallestPicOrderCnt = 0x7fffffff;    // very large positive
     uint32_t  LargestRefPicListResetCount = 0;
@@ -337,7 +346,7 @@ uint32_t H264DBPList::countNumDisplayable()
 ///////////////////////////////////////////////////////////////////////////////
 void H264DBPList::countActiveRefs(uint32_t &NumShortTerm, uint32_t &NumLongTerm)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
     NumShortTerm = 0;
     NumLongTerm = 0;
 
@@ -354,7 +363,7 @@ void H264DBPList::countActiveRefs(uint32_t &NumShortTerm, uint32_t &NumLongTerm)
 
 void H264DBPList::IncreaseRefPicListResetCount(H264DecoderFrame *ExcludeFrame)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
 
     while (pCurr)
     {
@@ -370,7 +379,7 @@ void H264DBPList::IncreaseRefPicListResetCount(H264DecoderFrame *ExcludeFrame)
 
 H264DecoderFrame * H264DBPList::findOldestShortTermRef()
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
     H264DecoderFrame *pOldest = 0;
     int32_t  SmallestFrameNumWrap = 0x0fffffff;    // very large positive
 
@@ -389,7 +398,7 @@ H264DecoderFrame * H264DBPList::findOldestShortTermRef()
 
 H264DecoderFrame * H264DBPList::findOldestLongTermRef()
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
     H264DecoderFrame *pOldest = 0;
     int32_t  SmallestFrameNumWrap = 0x0fffffff;    // very large positive
 
@@ -408,7 +417,7 @@ H264DecoderFrame * H264DBPList::findOldestLongTermRef()
 
 H264DecoderFrame * H264DBPList::findLongTermRefIdx(int32_t LongTermFrameIdx)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
 
     while (pCurr)
     {
@@ -441,7 +450,7 @@ H264DecoderFrame * H264DBPList::findLongTermRefIdx(int32_t LongTermFrameIdx)
 
 H264DecoderFrame * H264DBPList::findOldLongTermRef(int32_t MaxLongTermFrameIdx)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
 
     while (pCurr)
     {
@@ -460,7 +469,7 @@ H264DecoderFrame * H264DBPList::findOldLongTermRef(int32_t MaxLongTermFrameIdx)
 
 H264DecoderFrame *H264DBPList::findShortTermPic(int32_t  picNum, int32_t * field)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
 
     while (pCurr)
     {
@@ -499,7 +508,7 @@ H264DecoderFrame *H264DBPList::findShortTermPic(int32_t  picNum, int32_t * field
 
 H264DecoderFrame *H264DBPList::findLongTermPic(int32_t  picNum, int32_t * field)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
 
     while (pCurr)
     {
@@ -538,7 +547,7 @@ H264DecoderFrame *H264DBPList::findLongTermPic(int32_t  picNum, int32_t * field)
 
 H264DecoderFrame *H264DBPList::findInterViewRef(int32_t auIndex, uint32_t bottomFieldFlag)
 {
-    H264DecoderFrame *pCurr = m_pHead;
+    H264DecoderFrame *pCurr = head();
     while (pCurr)
     {
         if (pCurr->m_auIndex == auIndex)
@@ -565,7 +574,7 @@ H264DecoderFrame * H264DBPList::FindClosest(H264DecoderFrame * pFrame)
     int32_t  SmallestPicOrderCnt = 0;    // very large positive
     uint32_t  SmallestRefPicListResetCount = 0x7fffffff;
 
-    for (H264DecoderFrame * pTmp = m_pHead; pTmp; pTmp = pTmp->future())
+    for (H264DecoderFrame * pTmp = head(); pTmp; pTmp = pTmp->future())
     {
         if (pTmp->IsSkipped() || pTmp == pFrame || !pTmp->IsDecodingCompleted())
             continue;
@@ -614,7 +623,7 @@ H264DecoderFrame * H264DBPList::FindClosest(H264DecoderFrame * pFrame)
 
 H264DecoderFrame * H264DBPList::FindByIndex(int32_t index)
 {
-    for (H264DecoderFrame * pTmp = m_pHead; pTmp; pTmp = pTmp->future())
+    for (H264DecoderFrame * pTmp = head(); pTmp; pTmp = pTmp->future())
     {
         if (pTmp->m_index == index)
             return pTmp;
@@ -1228,7 +1237,7 @@ void H264DBPList::DebugPrint()
 {
 #ifdef ENABLE_TRACE
     Trace(VM_STRING("-==========================================\n"));
-    H264DecoderFrame * pTmp = m_pHead;
+    H264DecoderFrame * pTmp = head();
     for (int i = 0; pTmp; pTmp = pTmp->future(), i++)
     {
         Trace(VM_STRING("\n\n#%02d: UID - %d POC - %d %d  - resetcount - %d\n"), i, pTmp->m_UID, pTmp->m_PicOrderCnt[0], pTmp->m_PicOrderCnt[1], pTmp->RefPicListResetCount(0));
