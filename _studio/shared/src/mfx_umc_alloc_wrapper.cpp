@@ -711,12 +711,14 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
         return MFX_ERR_MORE_SURFACE;
 
     // check input surface
+    if (!(m_sfcVideoPostProcessing && (surf->Info.FourCC != m_surface_info.FourCC)))// if csc is done via sfc, will not do below checks
+    {
+        if ((surf->Info.BitDepthLuma ? surf->Info.BitDepthLuma : 8) != (m_surface_info.BitDepthLuma ? m_surface_info.BitDepthLuma : 8))
+            return MFX_ERR_INVALID_VIDEO_PARAM;
 
-    if ((surf->Info.BitDepthLuma ? surf->Info.BitDepthLuma : 8) != (m_surface_info.BitDepthLuma ? m_surface_info.BitDepthLuma : 8))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
-
-    if ((surf->Info.BitDepthChroma ? surf->Info.BitDepthChroma : 8) != (m_surface_info.BitDepthChroma ? m_surface_info.BitDepthChroma : 8))
-        return MFX_ERR_INVALID_VIDEO_PARAM;
+        if ((surf->Info.BitDepthChroma ? surf->Info.BitDepthChroma : 8) != (m_surface_info.BitDepthChroma ? m_surface_info.BitDepthChroma : 8))
+            return MFX_ERR_INVALID_VIDEO_PARAM;
+    }
 
     if (   surf->Info.FourCC == MFX_FOURCC_P010
         || surf->Info.FourCC == MFX_FOURCC_P210

@@ -1335,8 +1335,7 @@ mfxStatus MFX_JPEG_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoPa
             const short unsigned MHW_SFC_MAX_HEIGHT        = 4096;
             const short unsigned MHW_SFC_MAX_WIDTH         = 4096;
 
-            if ( (MFX_HW_VAAPI == (core->GetVAType())) &&
-                 (MFX_PICSTRUCT_PROGRESSIVE == in->mfx.FrameInfo.PicStruct) &&
+            if ( (MFX_PICSTRUCT_PROGRESSIVE == in->mfx.FrameInfo.PicStruct) &&
                  (in->IOPattern & MFX_IOPATTERN_OUT_VIDEO_MEMORY) &&
                  // FtrSFCPipe is not supported on BDW, and there is a known issue on SCL
                  (core->GetHWType() > MFX_HW_SCL) &&
