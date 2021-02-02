@@ -249,7 +249,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
         {
             MFX_CHECK(m_vPar.mfx.FrameInfo.PicStruct == MFX_PICSTRUCT_PROGRESSIVE, MFX_ERR_UNSUPPORTED);
         }
-        MFX_CHECK(par->mfx.FrameInfo.FourCC == videoProcessing->Out.FourCC, MFX_ERR_UNSUPPORTED);//This is to avoid CSC cases, will remove once CSC is fully tested
+
 		bool is_fourcc_supported = false;
         if (m_core->GetHWType() < MFX_HW_TGL_LP)
         {
