@@ -71,9 +71,9 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-dGfx] - preffer processing on dGfx (by default system decides)\n"));
     msdk_printf(MSDK_STRING("   [-iGfx] - preffer processing on iGfx (by default system decides)\n"));
 #endif
-    msdk_printf(MSDK_STRING("   [-nv12|yuy2|uyvy|ayuv|rgb4|p010|y210|y410|a2rgb10|p016|y216] - input color format (by default YUV420 is expected).\n"));
+    msdk_printf(MSDK_STRING("   [-nv12|nv16|yuy2|uyvy|ayuv|rgb4|p010|y210|y410|a2rgb10|p016|p210|y216] - input color format (by default YUV420 is expected).\n"));
     msdk_printf(MSDK_STRING("   [-msb10] - 10-bit color format is expected to have data in Most Significant Bits of words.\n                 (LSB data placement is expected by default).\n                 This option also disables data shifting during file reading.\n"));
-    msdk_printf(MSDK_STRING("   [-ec::p010|yuy2|nv12|rgb4|ayuv|uyvy|y210|y410|p016|y216] - force output color format for encoder (conversion will be made if necessary). Default value: input color format\n"));
+    msdk_printf(MSDK_STRING("   [-ec::p010|yuy2|nv12|nv16|rgb4|ayuv|uyvy|y210|y410|p016|y216] - force output color format for encoder (conversion will be made if necessary). Default value: input color format\n"));
     msdk_printf(MSDK_STRING("   [-tff|bff] - input stream is interlaced, top|bottom fielf first, if not specified progressive is expected\n"));
     msdk_printf(MSDK_STRING("   [-bref] - arrange B frames in B pyramid reference structure\n"));
     msdk_printf(MSDK_STRING("   [-nobref] -  do not use B-pyramid (by default the decision is made by library)\n"));
@@ -299,6 +299,14 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
     {
         pParams->nRateControlMethod = MFX_RATECONTROL_VCM;
     }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-p210")))
+    {
+        pParams->FileInputFourCC = MFX_FOURCC_P210;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-nv16")))
+    {
+        pParams->FileInputFourCC = MFX_FOURCC_NV16;
+    }
 #if (MFX_VERSION >= 1031)
     else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-p016")))
     {
@@ -328,6 +336,10 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
     else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ec::uyvy")))
     {
         pParams->EncodeFourCC = MFX_FOURCC_UYVY;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ec::nv16")))
+    {
+        pParams->EncodeFourCC = MFX_FOURCC_NV16;
     }
 #if (MFX_VERSION >= 1027)
     else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ec::y210")))
