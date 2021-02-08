@@ -2891,7 +2891,8 @@ private:
         mfxStatus BuildPPyr(
             DdiTask & task,
             mfxU32 pyrWidth,
-            bool bLastFrameUsing);
+            bool bLastFrameUsing,
+             bool bResetPyr);
         void setFrameInfo(DdiTask & task,
             mfxU32    fid);
         void      AssignDecodeTimeStamp(
@@ -3021,6 +3022,7 @@ private:
         mfxU32      m_frameOrderIdrInDisplayOrder;    // frame order of last IDR frame (in display order)
         mfxU32      m_frameOrderIntraInDisplayOrder;  // frame order of last I frame (in display order)
         mfxU32      m_frameOrderIPInDisplayOrder;  // frame order of last I or P frame (in display order)
+        mfxU32      m_frameOrderPyrStart;          // frame order of the first frame of pyramid
         mfxU32      m_miniGopCount;
         mfxU32      m_frameOrderStartTScalStructure; // starting point of temporal scalability structure
 

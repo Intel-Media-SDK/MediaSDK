@@ -635,6 +635,7 @@ ImplementationAvc::ImplementationAvc(VideoCORE * core)
 , m_frameOrderIdrInDisplayOrder(0)
 , m_frameOrderIntraInDisplayOrder(0)
 , m_frameOrderIPInDisplayOrder(0)
+, m_frameOrderPyrStart(0)
 , m_miniGopCount(0)
 , m_frameOrderStartTScalStructure(0)
 , m_baseLayerOrderStartIntraRefresh(0)
@@ -1225,6 +1226,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
     m_frameOrderIdrInDisplayOrder = 0;
     m_frameOrderIntraInDisplayOrder = 0;
     m_frameOrderIPInDisplayOrder = 0;
+    m_frameOrderPyrStart = 0;
     m_miniGopCount = 0;
     m_frameOrderStartTScalStructure = 0;
 
@@ -1558,6 +1560,7 @@ mfxStatus ImplementationAvc::Reset(mfxVideoParam *par)
         m_baseLayerOrder              = 0;
         m_frameOrderIdrInDisplayOrder = 0;
         m_frameOrderIntraInDisplayOrder = 0;
+        m_frameOrderPyrStart = 0;
         m_frameOrderIPInDisplayOrder = 0;
         m_miniGopCount = 0;
         m_frameOrderStartTScalStructure = 0;
@@ -2207,12 +2210,53 @@ inline void AddRefInRejectedList(DdiTask & task, mfxU32 distFromIntra, mfxU32 di
         numRejected++;
     }
 }
-mfxStatus ImplementationAvc::BuildPPyr(DdiTask & task, mfxU32 pyrWidth, bool bLastFrameUsing)
+static void StartNewPyr(DdiTask & task, DdiTask & lastTask, mfxU32 numRefActiveP, bool bLastFrameUsing, mfxU32 &numRejected)
 {
-    mfxExtCodingOption3 const & extOpt3 = GetExtBufferRef(m_video);
+    mfxU32 maxKeyRef = numRefActiveP;
+
+    std::vector <mfxU32> keyRefs;
+    bool bNonKeyLastRef = false;
+
+    for (mfxU32 i = 0; i < lastTask.m_dpbPostEncoding.Size(); i++)
+    {
+        mfxU32 diff = task.m_frameOrder - lastTask.m_dpbPostEncoding[i].m_frameOrder;
+        if (lastTask.m_dpbPostEncoding[i].m_keyRef)
+        {
+            //store key frames list
+            keyRefs.push_back(task.m_frameOrder - lastTask.m_dpbPostEncoding[i].m_frameOrder);
+        }
+        else if (!bLastFrameUsing || diff != 1)
+        {
+            //reject non key frames exept previous frame (if bLastFrameUsing mode)
+            task.m_internalListCtrl.RejectedRefList[numRejected].FrameOrder = lastTask.m_dpbPostEncoding[i].m_frameOrder;
+            task.m_internalListCtrl.RejectedRefList[numRejected].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            numRejected++;
+        }
+        else
+            bNonKeyLastRef = true;
+    }
+
+    if (maxKeyRef > 1 && bNonKeyLastRef)
+        maxKeyRef--;
+
+    if (keyRefs.size() > maxKeyRef)
+    {
+        std::sort(keyRefs.begin(), keyRefs.end());
+        for (mfxU32 i = maxKeyRef; i < keyRefs.size(); i++)
+        {
+            task.m_internalListCtrl.RejectedRefList[numRejected].FrameOrder = task.m_frameOrder - keyRefs[i];
+            task.m_internalListCtrl.RejectedRefList[numRejected].PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+            numRejected++;
+        }
+    }
+}
+mfxStatus ImplementationAvc::BuildPPyr(DdiTask & task, mfxU32 pyrWidth, bool bLastFrameUsing, bool bResetPyr)
+{
+    mfxExtCodingOption3 const   & extOpt3 = GetExtBufferRef(m_video);
+    mfxExtCodingOptionDDI const & extOptDDI = GetExtBufferRef(m_video);
     MFX_CHECK(m_video.mfx.GopRefDist == 1 &&
         extOpt3.PRefType == MFX_P_REF_PYRAMID &&
-        pyrWidth > 1 && pyrWidth <= MAX_PYR_SIZE
+        pyrWidth > 0 && pyrWidth <= MAX_PYR_SIZE
         &&!IsOn(extOpt3.ExtBrcAdaptiveLTR),
         MFX_ERR_NONE);
 
@@ -2220,29 +2264,20 @@ mfxStatus ImplementationAvc::BuildPPyr(DdiTask & task, mfxU32 pyrWidth, bool bLa
     mfxExtAVCRefLists * advCtrl = GetExtBuffer(task.m_ctrl, task.m_fid[0]);
     MFX_CHECK(ctrl == NULL && advCtrl == NULL, MFX_ERR_NONE);
 
+    if (bResetPyr)
+        m_frameOrderPyrStart = task.m_frameOrder;
+
     mfxU32 distFromIntra = task.m_frameOrder - m_frameOrderIntraInDisplayOrder;
-    mfxU32 posInPyr = distFromIntra % pyrWidth;
+    mfxU32 distFromPyrStart = task.m_frameOrder - m_frameOrderPyrStart;
+    mfxU32 posInPyr = distFromPyrStart % pyrWidth;
 
     InitExtBufHeader(task.m_internalListCtrl);
     task.m_internalListCtrlPresent = true;
     if (posInPyr == 0)
     {
         task.m_keyReference = 1;
-        mfxU32 numPrefered = 0;
         mfxU32 numRejected = 0;
-
-        if (bLastFrameUsing)
-            AddRefInPreferredList(task, distFromIntra, 1, numPrefered);
-
-        //to add previous key frame to Ref List
-        AddRefInPreferredList(task, distFromIntra, pyrWidth, numPrefered);
-
-        if (!bLastFrameUsing)
-            AddRefInPreferredList(task, distFromIntra, 2*pyrWidth, numPrefered);
-
-        //reject previous miniGop
-        for (mfxU32 i = 1; i < pyrWidth; i++)
-            AddRefInRejectedList(task, distFromIntra, pyrWidth - i, numRejected);
+        StartNewPyr(task, m_lastTask, extOptDDI.NumActiveRefP, bLastFrameUsing, numRejected);
     }
     else
     {
@@ -2291,6 +2326,7 @@ mfxStatus ImplementationAvc::BuildPPyr(DdiTask & task, mfxU32 pyrWidth, bool bLa
                 rejDiff[pyrWidth - 2][posInPyr - 1];
             AddRefInRejectedList(task, distFromIntra, diff, numRejected);
         }
+        task.m_LowDelayPyramidLayer = layer[pyrWidth - 2][posInPyr - 1];
         if (IsOn(extOpt3.EnableQPOffset))
         {
             task.m_QPdelta = extOpt3.QPOffset[layer[pyrWidth - 2][posInPyr - 1]];
@@ -2542,6 +2578,7 @@ void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
         m_frameOrderIdrInDisplayOrder = newTask.m_frameOrder;
         m_frameOrderStartTScalStructure = m_frameOrderIdrInDisplayOrder; // IDR always starts new temporal scalabilty structure
         newTask.m_frameOrderStartTScalStructure = m_frameOrderStartTScalStructure;
+        m_frameOrderPyrStart = newTask.m_frameOrder;
         m_miniGopCount = 0;
     }
 
@@ -2549,6 +2586,7 @@ void ImplementationAvc::AssignFrameTypes(DdiTask & newTask)
     {
         m_frameOrderIntraInDisplayOrder = newTask.m_frameOrder;
         m_baseLayerOrderStartIntraRefresh = newTask.m_baseLayerOrder;
+        m_frameOrderPyrStart = newTask.m_frameOrder;
     }
 
 }
@@ -2962,7 +3000,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
 #if defined(MFX_ENABLE_ENCTOOLS_LPLA)
                 if (!m_encTools.IsLookAhead())
 #endif
-                    BuildPPyr(newTask, GetPPyrSize(m_video, 0, false), true);
+                    BuildPPyr(newTask, GetPPyrSize(m_video, 0, false), true, false);
             }
 
             m_timeStamps.push_back(newTask.m_timeStamp);
