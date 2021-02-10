@@ -2902,7 +2902,7 @@ private:
             DdiTask & task,
             mfxU32 pyrWidth,
             bool bLastFrameUsing,
-             bool bResetPyr);
+            bool bResetPyr);
         void setFrameInfo(DdiTask & task,
             mfxU32    fid);
         void      AssignDecodeTimeStamp(
