@@ -897,19 +897,17 @@ mfxStatus BRC_EncTool::UpdateFrame(mfxU32 dispOrder, mfxEncToolsBRCStatus *pFram
 mfxStatus BRC_EncTool::GetHRDPos(mfxU32 dispOrder, mfxEncToolsBRCHRDPos *pHRDPos)
 {
     MFX_CHECK(m_bInit, MFX_ERR_NOT_INITIALIZED);
+    MFX_CHECK(m_par.HRDConformance != MFX_BRC_NO_HRD, MFX_ERR_NONE);
     MFX_CHECK_NULL_PTR1(pHRDPos);
 
     auto frameStructItr = std::find_if(m_FrameStruct.begin(), m_FrameStruct.end(), CompareByDisplayOrder(dispOrder));
     if (frameStructItr == m_FrameStruct.end())
         return MFX_ERR_UNDEFINED_BEHAVIOR; // BRC hasn't processed the frame
-    BRC_FrameStruct frameStruct = *frameStructItr;
 
-    if (m_par.HRDConformance != MFX_BRC_NO_HRD)
-    {
-        pHRDPos->InitialCpbRemovalDelay = m_hrdSpec->GetInitCpbRemovalDelay(frameStruct.encOrder);
-        pHRDPos->InitialCpbRemovalDelayOffset = m_hrdSpec->GetInitCpbRemovalDelayOffset(frameStruct.encOrder);
-    }
+    pHRDPos->InitialCpbRemovalDelay = m_hrdSpec->GetInitCpbRemovalDelay(frameStructItr->encOrder);
+    pHRDPos->InitialCpbRemovalDelayOffset = m_hrdSpec->GetInitCpbRemovalDelayOffset(frameStructItr->encOrder);
     return MFX_ERR_NONE;
+
 }
 
 mfxStatus BRC_EncTool::ProcessFrame(mfxU32 dispOrder, mfxEncToolsBRCQuantControl *pFrameQp)
