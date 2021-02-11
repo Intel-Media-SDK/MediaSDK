@@ -461,7 +461,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
       {
       ...
       
-      size_t size() **const** { return size; }
+      size_t size() const { return size; }
       
       private:
           size_t size;
@@ -524,10 +524,10 @@ Feel free to improve this document. Bring more examples and rules. But please tr
         
       ```
       // This is always true statement, default second argument of DetectFrameNumGap masked typo
-      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice**),** true)
+      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice), true)
       
       // Correct code is following
-      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice**,** true**)**)
+      if (view.GetPOCDecoder(0)->DetectFrameNumGap(slice, true))
       ```
     - Use ```const``` qualifiers for parameters passed by reference/pointer and for class member functions everywhere it is possible.
 
@@ -541,7 +541,7 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
 17. Modern C++ brings a lot of powerful syntax to ease most commonly used operations. This is a limited list of most useful ones.
 
-    - Use ```auto``` when type deduction is trivial. This will save space in code, remove unnecessary noise in declarations.
+    - Use ```auto``` when type deduction is trivial (like usage along with explicit cast (```auto slice_ptr = reinterpret_cast<Slice*>(slices);```) or in assignment of function's return value (```auto time_point = std::chrono::system_clock::now();```)). This will save space in code, remove unnecessary noise in declarations.
 
       Example:
 
@@ -556,12 +556,16 @@ Feel free to improve this document. Bring more examples and rules. But please tr
 
     - ```auto``` is the only way to create lambda function object.
 
+    - Remember that usage of ```auto``` may reduce available context of code in non-IDE text editors (or during code review on GitHub), several suggestions on limiting this effect of ```auto``` usage are given below:
+        * do not use ```auto``` for buit-in types (such as ```int```, ```char```, etc.) and trivially castable user types (such as ```enums```);
+        * do not use ```auto``` for initialization with returned object from some user-defined function.
+
     - Be aware of rvalue references and move semantics - this allows to reduce copies. For template functions prefer using forwarding references.
 
       Example:
 
       ```
-      template <typename T> void foo(**T&&**)
+      template <typename T> void foo(T&&)
       ```
 
     - Don't forget about Perfect forwarding (```std::forward```).
