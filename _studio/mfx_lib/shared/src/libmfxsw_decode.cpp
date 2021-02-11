@@ -511,6 +511,8 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, bs);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface_work);
 #endif
+    mfx::Trace::Scope tr(MFX_TRACE2_CTX, "DecodeFrameAsync", "dec");
+    tr.event(MFX_TRACE2_CTX, "session", session);
 
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(session->m_pScheduler, MFX_ERR_NOT_INITIALIZED);
@@ -601,6 +603,7 @@ mfxStatus MFXVideoDECODE_DecodeFrameAsync(mfxSession session, mfxBitstream *bs, 
         if (syncp)
         {
             MFX_LTRACE_P(MFX_TRACE_LEVEL_API, *syncp);
+            tr.event(MFX_TRACE2_CTX, "syncp", *syncp);
         }
     }
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);

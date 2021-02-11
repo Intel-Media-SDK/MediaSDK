@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -672,6 +672,8 @@ mfxStatus MFXVideoENCODE_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfx
     MFX_CHECK(session, MFX_ERR_INVALID_HANDLE);
     MFX_CHECK(par, MFX_ERR_NULL_PTR);
     MFX_CHECK(request, MFX_ERR_NULL_PTR);
+    mfx::Trace::Scope tr(MFX_TRACE2_CTX, "QueryIOSurf", "query");
+    tr.event(MFX_TRACE2_CTX, "par", *par);
 
     mfxStatus mfxRes;
     MFX_AUTO_LTRACE_FUNC(MFX_TRACE_LEVEL_API);
@@ -844,6 +846,8 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_EncodeFrameAsync");
+    mfx::Trace::Scope tr(MFX_TRACE2_CTX, "EncodeFrameAsync", "enc");
+    tr.event(MFX_TRACE2_CTX, "session", session);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, ctrl);
     MFX_LTRACE_BUFFER(MFX_TRACE_LEVEL_API, surface);
 
@@ -997,6 +1001,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
     if (mfxRes == MFX_ERR_NONE && syncp)
     {
         MFX_LTRACE_P(MFX_TRACE_LEVEL_API, *syncp);
+        tr.event(MFX_TRACE2_CTX, "syncp", *syncp);
     }
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
     return mfxRes;

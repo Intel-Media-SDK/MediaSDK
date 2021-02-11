@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Intel Corporation
+// Copyright (c) 2017-2020 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,11 @@
 #define __MFX_TRACE_H__
 
 #include "mfxdefs.h"
+#include "mfx_trace2.h"
+
+#ifdef USE_MFX_TRACE2
+#define MFX_TRACE_DISABLE
+#endif
 
 #ifndef MFX_TRACE_DISABLE
 // Uncomment one or several lines below to enable tracing
