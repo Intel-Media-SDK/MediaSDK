@@ -28,15 +28,11 @@
 #include "mfx_h265_encode_hw_set.h"
 #include "mfx_ext_buffers.h"
 #include "mfxplugin++.h"
-#include "umc_mutex.h"
 #include "mfxla.h"
 
 #include "mfxbrc.h"
 
-#include <typeinfo>
-#include <vector>
 #include <list>
-#include <assert.h>
 
 #define MFX_SORT_COMMON(_AR, _SZ, _COND)\
     for (mfxU32 _i = 0; _i < (_SZ); _i ++)\
@@ -67,50 +63,12 @@ template<class T> inline void Zero(std::vector<T> & vec)      { memset(&vec[0], 
 template<class T> inline void Zero(T * first, size_t cnt)     { memset(first, 0, sizeof(T) * cnt); }
 template<class T> inline T Abs  (T x)               { return (x > 0 ? x : -x); }
 
-template<class T> bool AlignDown(T& value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    if (!(value & (alignment - 1))) return false;
-    value = value & ~(alignment - 1);
-    return true;
-}
-template<class T> bool AlignUp(T& value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    if (!(value & (alignment - 1))) return false;
-    value = (value + alignment - 1) & ~(alignment - 1);
-    return true;
-}
-template<class T> bool IsAligned(T value, mfxU32 alignment)
-{
-    assert((alignment & (alignment - 1)) == 0); // should be 2^n
-    return !(value & (alignment - 1));
-}
 template<class T> inline T Lsb(T val, mfxU32 maxLSB)
 {
     if (val >= 0)
         return val % maxLSB;
     return (maxLSB - ((-val) % maxLSB)) % maxLSB;
 }
-template <class T, class U0, class U1>
-bool CheckRange(T & opt, U0 min, U1 max)
-{
-    if (opt < min)
-    {
-        opt = T(min);
-        return true;
-    }
-
-    if (opt > max)
-    {
-        opt = T(max);
-        return true;
-    }
-
-    return false;
-}
-template<class T> inline T* AlignPtrL(void* p) { return (T*)(size_t(p) & ~(sizeof(T) - 1)); }
-template<class T> inline T* AlignPtrR(void* p) { return AlignPtrL<T>(p) + !!(size_t(p) & (sizeof(T) - 1)); }
 template<class T> inline bool IsZero(T* pBegin, T* pEnd)
 {
     assert(((mfxU8*)pEnd - (mfxU8*)pBegin) % sizeof(T) == 0);
@@ -124,16 +82,6 @@ template<class T> inline bool IsZero(T& obj) { return IsZero((mfxU8*)&obj, (mfxU
 
 inline mfxU32 CeilLog2  (mfxU32 x)           { mfxU32 l = 0; while(x > (1U<<l)) l++; return l; }
 inline mfxU32 CeilDiv   (mfxU32 x, mfxU32 y) { return (x + y - 1) / y; }
-inline mfxU64 CeilDiv   (mfxU64 x, mfxU64 y) { return (x + y - 1) / y; }
-inline mfxU32 Ceil      (mfxF64 x)           { return (mfxU32)(.999 + x); }
-inline mfxU64 SwapEndian(mfxU64 val)
-{
-    return
-        ((val << 56) & 0xff00000000000000) | ((val << 40) & 0x00ff000000000000) |
-        ((val << 24) & 0x0000ff0000000000) | ((val <<  8) & 0x000000ff00000000) |
-        ((val >>  8) & 0x00000000ff000000) | ((val >> 24) & 0x0000000000ff0000) |
-        ((val >> 40) & 0x000000000000ff00) | ((val >> 56) & 0x00000000000000ff);
-}
 inline mfxU32 GetAlignmentByPlatform(eMFXHWType platform)
 {
     return platform >= MFX_HW_CNL ? 8 : 16;
@@ -193,65 +141,6 @@ enum
     INSERT_DCVSEI = 0x40,
     INSERT_LLISEI = 0x80,
     INSERT_SEI = (INSERT_BPSEI | INSERT_PTSEI | INSERT_DCVSEI | INSERT_LLISEI)
-};
-
-inline mfxStatus GetWorstSts(mfxStatus sts1, mfxStatus sts2)
-{
-    // WRN statuses > 0, ERR statuses < 0, ERR_NONE = 0
-
-    mfxStatus sts_max = (std::max)(sts1, sts2),
-              sts_min = (std::min)(sts1, sts2);
-
-    return sts_min == MFX_ERR_NONE ? sts_max : sts_min;
-}
-
-class MfxFrameAllocResponse : public mfxFrameAllocResponse
-{
-public:
-    MfxFrameAllocResponse();
-
-    ~MfxFrameAllocResponse();
-
-    mfxStatus Alloc(
-        VideoCORE            * core,
-        mfxFrameAllocRequest & req,
-        bool                   isCopyRequired);
-    mfxStatus Alloc(
-        VideoCORE            * core,
-        mfxFrameAllocRequest & req,
-        mfxFrameSurface1 **    opaqSurf,
-        mfxU32                 numOpaqSurf);
-    mfxU32 Lock(mfxU32 idx);
-
-    void Unlock();
-
-    mfxU32 Unlock(mfxU32 idx);
-
-    mfxU32 Locked(mfxU32 idx) const;
-
-    void Free();
-
-    bool isExternal() { return m_isExternal; };
-
-    mfxU32 FindFreeResourceIndex(mfxFrameSurface1* external_surf = 0);
-
-    void   ClearFlag  (mfxU32 idx);
-    void   SetFlag    (mfxU32 idx, mfxU32 flag);
-    mfxU32 GetFlag    (mfxU32 idx);
-    mfxFrameInfo               m_info;
-
-private:
-    MfxFrameAllocResponse(MfxFrameAllocResponse const &);
-    MfxFrameAllocResponse & operator =(MfxFrameAllocResponse const &);
-
-    VideoCORE        * m_core;
-    mfxU16             m_numFrameActualReturnedByAllocFrames;
-
-    std::vector<mfxFrameAllocResponse> m_responseQueue;
-    std::vector<mfxMemId>              m_mids;
-    std::vector<mfxU32>                m_locked;
-    std::vector<mfxU32>                m_flag;
-    bool m_isExternal;
 };
 
 struct DpbFrame
@@ -841,88 +730,6 @@ private:
     void CopyCalcParams(MfxVideoParam const & par);
 };
 
-class HRD
-{
-public:
-    HRD():
-        m_bIsHrdRequired(false)
-        , m_cbrFlag(false)
-        , m_bitrate(0)
-        , m_maxCpbRemovalDelay(0)
-        , m_clockTick(0)
-        , m_cpbSize90k(0)
-        , m_initCpbRemovalDelay(0)
-        , m_prevAuCpbRemovalDelayMinus1(0)
-        , m_prevAuCpbRemovalDelayMsb(0)
-        , m_prevAuFinalArrivalTime(0)
-        , m_prevBpAuNominalRemovalTime(0)
-        , m_prevBpEncOrder(0)
-    {}
-    void Init(const SPS &sps, mfxU32 InitialDelayInKB);
-    void Reset(SPS const & sps);
-    void Update(mfxU32 sizeInbits, const Task &pic);
-    mfxU32 GetInitCpbRemovalDelay(const Task &pic);
-
-    /*inline mfxU32 GetInitCpbRemovalDelay() const
-    {
-        return (mfxU32)m_initCpbRemovalDelay;
-    }*/
-
-    inline mfxU32 GetInitCpbRemovalDelayOffset() const
-    {
-        return mfxU32(m_cpbSize90k - m_initCpbRemovalDelay);
-    }
-
-    /*inline mfxU32 GetAuCpbRemovalDelayMinus1(const Task &pic) const
-    {
-        return (pic.m_eo == 0) ? 0 : (pic.m_eo - m_prevBpEncOrder) - 1;
-    }*/
-
-    inline bool Enabled() { return m_bIsHrdRequired; }
-
-protected:
-    bool   m_bIsHrdRequired;
-    bool   m_cbrFlag;
-    mfxU32 m_bitrate;
-    mfxU32 m_maxCpbRemovalDelay;
-    mfxF64 m_clockTick;
-    mfxF64 m_cpbSize90k;
-    mfxF64 m_initCpbRemovalDelay;
-
-    mfxI32 m_prevAuCpbRemovalDelayMinus1;
-    mfxU32 m_prevAuCpbRemovalDelayMsb;
-    mfxF64 m_prevAuFinalArrivalTime;
-    mfxF64 m_prevBpAuNominalRemovalTime;
-    mfxU32 m_prevBpEncOrder;
-};
-
-class TaskManager
-{
-public:
-    TaskManager();
-    void  Reset     (bool bFieldMode , mfxU32 numTask = 0, mfxU16 resetHeaders = 0);
-    Task* New       ();
-    Task* Reorder   (MfxVideoParam const & par, DpbArray const & dpb, bool flush);
-    void  Submit    (Task* task);
-    Task* GetTaskForSubmit(bool bRealTask = false);
-    void  SubmitForQuery(Task* task);
-    bool  isSubmittedForQuery(Task* task);
-    Task* GetTaskForQuery();
-    void  Ready     (Task* task);
-    void  SkipTask  (Task* task);
-    Task* GetNewTask();
-    mfxStatus PutTasksForRecode(Task* pTask);
-
-private:
-    bool       m_bFieldMode;
-    TaskList   m_free;
-    TaskList   m_reordering;
-    TaskList   m_encoding;
-    TaskList   m_querying;
-    UMC::Mutex m_listMutex;
-    mfxU16     m_resetHeaders;
-};
-
 class FrameLocker : public mfxFrameData
 {
 public:
@@ -1000,149 +807,6 @@ bool isLTR(
     mfxU32 LTRInterval,
     mfxI32 poc);
 
-void ConfigureTask(
-    Task &                       task,
-    Task const &                 prevTask,
-    MfxVideoParam const &        video,
-    MFX_ENCODE_CAPS_HEVC const & caps,
-    mfxU32 &                     baseLayerOrder);
-
-mfxI64 CalcDTSFromPTS(
-    mfxFrameInfo const & info,
-    mfxU16               dpbOutputDelay,
-    mfxU64               timeStamp);
-
-mfxU32 FindFreeResourceIndex(
-    MfxFrameAllocResponse const & pool,
-    mfxU32                        startingFrom = 0);
-
-mfxMemId AcquireResource(
-    MfxFrameAllocResponse & pool,
-    mfxU32                  index);
-
-void ReleaseResource(
-    MfxFrameAllocResponse & pool,
-    mfxMemId                mid);
-
-mfxStatus GetNativeHandleToRawSurface(
-    VideoCORE &    core,
-    MfxVideoParam const & video,
-    Task const &          task,
-    bool                  toSkip,
-    mfxHDLPair &          handle);
-
-mfxStatus CopyRawSurfaceToVideoMemory(
-    VideoCORE &    core,
-    MfxVideoParam const & video,
-    Task const &          task);
-
-IntraRefreshState GetIntraRefreshState(
-    MfxVideoParam const &       video,
-    mfxU32                      frameOrderInGopDispOrder,
-    mfxEncodeCtrl const *       ctrl,
-    MFX_ENCODE_CAPS_HEVC const& caps);
-
-mfxU8 GetNumReorderFrames(
-    mfxU32 BFrameRate,
-    bool BPyramid,
-    bool bField,
-    bool bFieldReord);
-
-
-
-bool IsFrameToSkip(
-    Task&  task,
-    MfxFrameAllocResponse & poolRec,
-    bool bSWBRC);
-
-mfxStatus CodeAsSkipFrame(
-    VideoCORE & core,
-    MfxVideoParam const & video,
-    Task & task,
-    MfxFrameAllocResponse & poolSkip,
-    MfxFrameAllocResponse & poolRec);
-
-mfxStatus CheckAndFixRoi(
-    MfxVideoParam const & par,
-    ENCODE_CAPS_HEVC const & caps,
-    mfxExtEncoderROI * ROI,
-    bool &bROIViaMBQP);
-
-mfxStatus CheckAndFixDirtyRect(
-    ENCODE_CAPS_HEVC const & caps,
-    MfxVideoParam const & par,
-    mfxExtDirtyRect * DirtyRect);
-mfxStatus GetCUQPMapBlockSize(mfxU16 frameWidth, mfxU16 frameHeight,
-    mfxU16 CUQPWidth, mfxU16 CUHeight,
-    mfxU16 &blkWidth, mfxU16 &blkHeight);
-
-
-
-enum
-{
-    HEVC_SKIPFRAME_NO                        = 0,
-    HEVC_SKIPFRAME_INSERT_DUMMY              = 1,
-    HEVC_SKIPFRAME_INSERT_DUMMY_PROTECTED    = 2,
-    HEVC_SKIPFRAME_INSERT_NOTHING            = 3,
-    HEVC_SKIPFRAME_BRC_ONLY                  = 4,
-    HEVC_SKIPFRAME_EXT_PSEUDO                = 5,
-};
-
-class HevcSkipMode
-{
-public:
-    HevcSkipMode(): m_mode(0)
-    {};
-    HevcSkipMode(mfxU16 mode): m_mode(mode)
-    {};
-private:
-    mfxU16 m_mode;
-public:
-    void SetMode(mfxU16 skipModeMFX, bool bProtected)
-    {
-        switch (skipModeMFX)
-        {
-        case MFX_SKIPFRAME_INSERT_DUMMY :
-            m_mode = (mfxU16)(bProtected ? HEVC_SKIPFRAME_INSERT_DUMMY_PROTECTED : HEVC_SKIPFRAME_INSERT_DUMMY);
-            break;
-        case MFX_SKIPFRAME_INSERT_NOTHING:
-            m_mode = HEVC_SKIPFRAME_INSERT_NOTHING;
-            break;
-        case MFX_SKIPFRAME_BRC_ONLY:
-            m_mode = HEVC_SKIPFRAME_BRC_ONLY;
-            break;
-        default:
-            m_mode = HEVC_SKIPFRAME_NO;
-            break;
-        }
-    }
-    void SetPseudoSkip ()
-    {
-        m_mode = HEVC_SKIPFRAME_EXT_PSEUDO;
-    }
-    mfxU16 GetMode() {return m_mode;}
-
-    bool NeedInputReplacement()
-    {
-        return m_mode == HEVC_SKIPFRAME_EXT_PSEUDO;
-    }
-    bool NeedDriverCall()
-    {
-        return m_mode == HEVC_SKIPFRAME_INSERT_DUMMY_PROTECTED || m_mode == HEVC_SKIPFRAME_EXT_PSEUDO || m_mode == HEVC_SKIPFRAME_NO || m_mode == HEVC_SKIPFRAME_EXT_PSEUDO;
-    }
-    bool NeedSkipSliceGen()
-    {
-        return m_mode == HEVC_SKIPFRAME_INSERT_DUMMY_PROTECTED || m_mode == HEVC_SKIPFRAME_INSERT_DUMMY ;
-    }
-    bool NeedCurrentFrameSkipping()
-    {
-        return m_mode == HEVC_SKIPFRAME_INSERT_DUMMY_PROTECTED || m_mode == HEVC_SKIPFRAME_INSERT_DUMMY || m_mode == HEVC_SKIPFRAME_INSERT_NOTHING;
-    }
-    bool NeedNumSkipAdding()
-    {
-         return m_mode == HEVC_SKIPFRAME_BRC_ONLY;
-    }
-};
 inline mfxI32 GetFrameNum(bool bField, mfxI32 Poc, bool bSecondField)
 {
     return bField ? (Poc + (!bSecondField)) / 2 : Poc;
