@@ -239,7 +239,7 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
                                             VAProfileNone,
                                             va_entrypoints,
                                             &entrypointsCount);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         for( entrypointsIndx = 0; entrypointsIndx < entrypointsCount; entrypointsIndx++ )
         {
@@ -262,7 +262,7 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
                                 NULL,
                                 0,
                                 &m_vaConfig);
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
         // Context
         int width = pParams->vpp.Out.Width;
@@ -278,7 +278,7 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
                                     0, 0,
                                     &m_vaContextVPP);
         }
-        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
 
     return MFX_ERR_NONE;
@@ -303,35 +303,35 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
     mfxU32 num_filters = VAProcFilterCount;
 
     vaSts = vaQueryVideoProcFilters(m_vaDisplay, m_vaContextVPP, filters, &num_filters);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     mfxU32 num_procamp_caps = VAProcColorBalanceCount;
     vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                m_vaContextVPP,
                                VAProcFilterColorBalance,
                                &m_procampCaps, &num_procamp_caps);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     mfxU32 num_denoise_caps = 1;
     vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                m_vaContextVPP,
                                VAProcFilterNoiseReduction,
                                &m_denoiseCaps, &num_denoise_caps);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     mfxU32 num_detail_caps = 1;
     vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                m_vaContextVPP,
                                VAProcFilterSharpening,
                                &m_detailCaps, &num_detail_caps);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     mfxU32 num_deinterlacing_caps = VAProcDeinterlacingCount;
     vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
                                m_vaContextVPP,
                                VAProcFilterDeinterlacing,
                                &m_deinterlacingCaps, &num_deinterlacing_caps);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
 #ifdef MFX_ENABLE_VPP_FRC
     /* to check is FRC enabled or not*/
@@ -344,7 +344,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                m_vaContextVPP,
                                VAProcFilterFrameRateConversion,
                                &tempFRC_Caps, &num_frc_caps);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
     if (0 != tempFRC_Caps.frc_custom_rates) /* FRC is enabled, at least one mode */
     {
@@ -365,7 +365,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                                 m_vaContextVPP,
                                                 VAProcFilterFrameRateConversion,
                                                 &m_frcCaps[ii], &num_frc_caps);
-            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+            MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
             caps.frcCaps.customRateData[ii].inputFramesOrFieldPerCycle = m_frcCaps[ii].input_frames;
             caps.frcCaps.customRateData[ii].outputIndexCountPerCycle = m_frcCaps[ii].output_frames;
             /* out frame rate*/
@@ -415,7 +415,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                  0,
                                  &m_pipelineCaps);
 #ifdef MFX_ENABLE_VPP_ROTATION
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     if (m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_90 ) &&
         m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_180) &&
         m_pipelineCaps.rotation_flags & (1 << VA_ROTATION_270))
@@ -525,7 +525,7 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                                   VAEntrypointVideoProc,
                                   attrib.data(),
                                   attrib.size());
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     if (attrib[0].value != VA_ATTRIB_NOT_SUPPORTED)
         m_MaxContextPriority = attrib[0].value;
 
@@ -2444,7 +2444,7 @@ mfxStatus VAAPIVideoProcessing::QueryTaskStatus(mfxU32 taskIndex)
         if (vaSts == VA_STATUS_ERROR_HW_BUSY)
             return MFX_ERR_GPU_HANG;
         else
-            MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+            MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
     }
 #endif
 
