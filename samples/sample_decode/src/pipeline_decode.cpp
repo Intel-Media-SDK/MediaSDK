@@ -343,7 +343,10 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     m_strDevicePath = pParams->strDevicePath;
 #endif
 
-    m_memType = pParams->memType;
+    if (pParams->memType)
+        m_memType = pParams->memType;
+    else
+        m_memType = pParams->mode == MODE_FILE_DUMP ? SYSTEM_MEMORY : D3D9_MEMORY;
 
     m_nMaxFps = pParams->nMaxFPS;
     m_nFrames = pParams->nFrames ? pParams->nFrames : MFX_INFINITE;
@@ -397,7 +400,7 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     if (bResolutionSpecified)
         m_bDecOutSysmem = pParams->bUseHWLib ? false : true;
     else
-        m_bDecOutSysmem = pParams->memType == SYSTEM_MEMORY;
+        m_bDecOutSysmem = m_memType == SYSTEM_MEMORY;
 
     m_eWorkMode = pParams->mode;
 

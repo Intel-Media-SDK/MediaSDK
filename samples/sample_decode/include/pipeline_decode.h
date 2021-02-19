@@ -57,9 +57,9 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #endif
 
 enum MemType {
-    SYSTEM_MEMORY = 0x00,
-    D3D9_MEMORY   = 0x01,
-    D3D11_MEMORY  = 0x02,
+    SYSTEM_MEMORY = 0x01,
+    D3D9_MEMORY   = 0x02,
+    D3D11_MEMORY  = 0x03,
 };
 
 enum eWorkMode {
