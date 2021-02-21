@@ -324,8 +324,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided\n"));
     msdk_printf(MSDK_STRING("  -angle 180    Enables 180 degrees picture rotation user module before encoding\n"));
     msdk_printf(MSDK_STRING("  -opencl       Uses implementation of rotation plugin (enabled with -angle option) through Intel(R) OpenCL\n"));
-    msdk_printf(MSDK_STRING("  -w            Destination picture width, invokes VPP resize\n"));
-    msdk_printf(MSDK_STRING("  -h            Destination picture height, invokes VPP resize\n"));
+    msdk_printf(MSDK_STRING("  -w            Destination picture width, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified)\n"));
+    msdk_printf(MSDK_STRING("  -h            Destination picture height, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified)\n"));
     msdk_printf(MSDK_STRING("  -field_processing t2t|t2b|b2t|b2b|fr2fr - Field Copy feature\n"));
     msdk_printf(MSDK_STRING("  -WeightedPred::default|implicit       Enambles weighted prediction usage\n"));
     msdk_printf(MSDK_STRING("  -WeightedBiPred::default|implicit     Enambles weighted bi-prediction usage\n"));
@@ -2248,8 +2248,6 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-dec_postproc")))
         {
             InputParams.bDecoderPostProcessing = true;
-            if (InputParams.eModeExt != VppComp)
-                InputParams.eModeExt = VppComp;
         }
 #endif //MFX_VERSION >= 1022
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-n")))
