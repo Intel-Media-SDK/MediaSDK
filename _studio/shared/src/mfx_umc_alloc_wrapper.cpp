@@ -790,6 +790,7 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
                 m_extSurfaces[m_curIndex].FrameSurface = surf;
                 break;
             }
+
             if ( (NULL != m_extSurfaces[i].FrameSurface) &&
                   (0 == m_extSurfaces[i].FrameSurface->Data.Locked) &&
                   (m_extSurfaces[i].FrameSurface->Data.MemId == surf->Data.MemId) &&
@@ -800,7 +801,23 @@ mfxStatus mfx_UMC_FrameAllocator::SetCurrentMFXSurface(mfxFrameSurface1 *surf, b
                 m_extSurfaces[m_curIndex].FrameSurface = surf;
                 break;
             }
-        } // for (mfxU32 i = 0; i < m_extSurfaces.size(); i++)
+        }
+
+        // Still not found. It may happen if decoder gets 'surf' surface which on app size belongs to
+        // a pool bigger than m_extSurfaces/m_frameDataInternal pools which decoder is aware.
+        if (m_curIndex == -1)
+        {
+            for (mfxU32 i = 0; i < m_extSurfaces.size(); i++)
+            {
+                // So attemping to find an expired slot in m_extSurfaces
+                if (!m_extSurfaces[i].isUsed && (0 == m_frameDataInternal.GetSurface(i).Data.Locked))
+                {
+                    m_curIndex = i;
+                    m_extSurfaces[m_curIndex].FrameSurface = surf;
+                    break;
+                }
+            }
+        }
     }
     else
     {

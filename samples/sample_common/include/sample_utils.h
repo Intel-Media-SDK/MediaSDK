@@ -683,7 +683,8 @@ private:
             MFX_EXTBUFF_FEI_PPS,
             MFX_EXTBUFF_FEI_SPS,
             MFX_EXTBUFF_LOOKAHEAD_CTRL,
-            MFX_EXTBUFF_LOOKAHEAD_STAT
+            MFX_EXTBUFF_LOOKAHEAD_STAT,
+            MFX_EXTBUFF_DEC_VIDEO_PROCESSING
         };
 
         auto it = std::find_if(std::begin(allowed), std::end(allowed),
