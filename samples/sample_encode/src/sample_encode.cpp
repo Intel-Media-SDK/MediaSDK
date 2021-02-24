@@ -1407,14 +1407,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         return MFX_ERR_UNSUPPORTED;
     }
 
-    if (MFX_CODEC_JPEG != pParams->CodecId && MFX_CODEC_HEVC != pParams->CodecId &&
-        pParams->FileInputFourCC == MFX_FOURCC_YUY2 &&
-        !pParams->isV4L2InputEnabled)
-    {
-        PrintHelp(strInput[0], MSDK_STRING("-yuy2 option is supported only for JPEG or HEVC encoder"));
-        return MFX_ERR_UNSUPPORTED;
-    }
-
     if (!pParams->EncodeFourCC)
     {
         if (pParams->FileInputFourCC == MFX_FOURCC_UYVY)
@@ -1424,6 +1416,14 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->EncodeFourCC = MFX_FOURCC_NV12;
         else
             pParams->EncodeFourCC = pParams->FileInputFourCC;
+    }
+
+    if (MFX_CODEC_JPEG != pParams->CodecId && MFX_CODEC_HEVC != pParams->CodecId &&
+        pParams->EncodeFourCC == MFX_FOURCC_YUY2 &&
+        !pParams->isV4L2InputEnabled)
+    {
+        PrintHelp(strInput[0], MSDK_STRING("-yuy2 option is supported only for JPEG or HEVC encoder"));
+        return MFX_ERR_UNSUPPORTED;
     }
 
     if (MFX_CODEC_HEVC != pParams->CodecId && MFX_CODEC_VP9 != pParams->CodecId && (pParams->EncodeFourCC == MFX_FOURCC_P010) )
