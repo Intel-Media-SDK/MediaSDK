@@ -170,6 +170,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-WeightedBiPred:default|implicit ] - enables weighted bi-prediction mode\n"));
     msdk_printf(MSDK_STRING("   [-timeout]               - encoding in cycle not less than specific time in seconds\n"));
     msdk_printf(MSDK_STRING("   [-perf_opt n]            - sets number of prefetched frames. In performance mode app preallocates buffer and loads first n frames\n"));
+    msdk_printf(MSDK_STRING("   [-fps]                   - limits overall fps of pipeline\n"));
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
     msdk_printf(MSDK_STRING("   [-qpfile <filepath>]     - if specified, the encoder will take frame parameters (frame number, QP, frame type) from text file\n"));
@@ -361,6 +362,16 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
         pParams->EncodeFourCC = MFX_FOURCC_Y216;
     }
 #endif
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-fps")))
+    {
+        VAL_CHECK(i+1 >= nArgNum, i, strInput[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMaxFPS))
+        {
+            PrintHelp(strInput[0], MSDK_STRING("overall fps is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
     else
     {
         return MFX_ERR_NOT_FOUND;

@@ -1803,6 +1803,7 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     // set memory type
     m_memType = pParams->memType;
     m_nPerfOpt = pParams->nPerfOpt;
+    m_fpsLimiter.Reset(pParams->nMaxFPS);
 
     m_bSoftRobustFlag = pParams->bSoftRobustFlag;
 
@@ -2183,6 +2184,10 @@ mfxStatus CEncodingPipeline::GetFreeTask(sTask **ppTask)
     if (MFX_ERR_NOT_FOUND == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
+        if (MFX_ERR_NONE == sts)
+        {
+            m_fpsLimiter.Work();
+        }
         if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_TaskPool.ClearTasks();
@@ -2613,6 +2618,10 @@ mfxStatus CEncodingPipeline::Run()
     while (MFX_ERR_NONE == sts)
     {
         sts = m_TaskPool.SynchronizeFirstTask();
+        if (MFX_ERR_NONE == sts)
+        {
+            m_fpsLimiter.Work();
+        }
         if (sts == MFX_ERR_GPU_HANG && m_bSoftRobustFlag)
         {
             m_bInsertIDR = true;

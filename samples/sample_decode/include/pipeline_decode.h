@@ -85,7 +85,7 @@ struct sInputParams
     bool    bLowLat; // low latency mode
     bool    bCalLat; // latency calculation
     bool    bUseFullColorRange; //whether to use full color range
-    mfxU16  nMaxFPS; //rendering limited by certain fps
+    mfxU16  nMaxFPS; // limits overall fps
     mfxU32  nWallCell;
     mfxU32  nWallW; //number of windows located in each row
     mfxU32  nWallH; //number of windows located in each column
@@ -305,8 +305,7 @@ protected: // variables
     bool                    m_bSoftRobustFlag;
     std::vector<msdk_tick>  m_vLatency;
 
-    msdk_tick               m_startTick;
-    msdk_tick               m_delayTicks;
+    FPSLimiter              m_fpsLimiter;
 
     mfxExtVPPVideoSignalInfo m_VppVideoSignalInfo;
     std::vector<mfxExtBuffer*> m_VppSurfaceExtParams;

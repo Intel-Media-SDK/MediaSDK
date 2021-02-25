@@ -45,7 +45,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   <codecid>=h265|vp9|capture            - in-box Media SDK plugins (may require separate downloading and installation)\n"));
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Work models:\n"));
-    msdk_printf(MSDK_STRING("  1. Performance model: decoding on MAX speed, no rendering, no YUV dumping (no -r or -o option)\n"));
+    msdk_printf(MSDK_STRING("  1. Performance model: decoding on MAX speed, no screen rendering, no YUV dumping (no -r or -o option)\n"));
     msdk_printf(MSDK_STRING("  2. Rendering model: decoding with rendering on the screen (-r option)\n"));
     msdk_printf(MSDK_STRING("  3. Dump model: decoding with YUV dumping (-o option)\n"));
     msdk_printf(MSDK_STRING("\n"));
@@ -56,7 +56,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-p plugin]               - decoder plugin. Supported values: hevcd_sw, hevcd_hw, vp8d_hw, vp9d_hw, camera_hw, capture_hw\n"));
     msdk_printf(MSDK_STRING("   [-path path]              - path to plugin (valid only in pair with -p option)\n"));
     msdk_printf(MSDK_STRING("                               (optional for Media SDK in-box plugins, required for user-decoder ones)\n"));
-    msdk_printf(MSDK_STRING("   [-f]                      - rendering framerate\n"));
+    msdk_printf(MSDK_STRING("   [-fps]                    - limits overall fps of pipeline\n"));
     msdk_printf(MSDK_STRING("   [-w]                      - output width\n"));
     msdk_printf(MSDK_STRING("   [-h]                      - output height\n"));
     msdk_printf(MSDK_STRING("   [-di bob/adi]             - enable deinterlacing BOB/ADI\n"));
@@ -536,16 +536,16 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             }
         }
 #endif //MFX_VERSION >= 1022
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-f")))
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-fps")))
         {
             if(i + 1 >= nArgNum)
             {
-                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -f key"));
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -fps key"));
                 return MFX_ERR_UNSUPPORTED;
             }
             if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->nMaxFPS))
             {
-                PrintHelp(strInput[0], MSDK_STRING("rendering frame rate is invalid"));
+                PrintHelp(strInput[0], MSDK_STRING("overall fps is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }

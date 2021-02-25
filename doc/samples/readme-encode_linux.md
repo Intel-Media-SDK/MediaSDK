@@ -127,6 +127,7 @@ The following command-line switches are optional:
    |[-timeout] | encoding in cycle not less than specific time in seconds|
   | [-uncut]  | do not cut output file in looped mode (in case of -timeout option)|
   | [-perf_opt n] | sets number of prefetched frames. In performance mode app preallocates buffer and loads first n frames |
+  | [-fps]| limits overall fps of pipeline|
  |  [-dump fileName] |dump MSDK components configuration to the file in text form|
   | [-usei]| insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message) <br>the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled|
   | [-extbrc:<on,off,implicit>] | External BRC for AVC and HEVC encoders|
