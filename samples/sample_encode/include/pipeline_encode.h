@@ -170,6 +170,7 @@ struct sInputParams
 
     mfxU32 nTimeout;
     mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
+    mfxU16 nMaxFPS;  // limits overall fps
 
     mfxU16 nNumSlice;
     bool UseRegionEncode;
@@ -397,6 +398,8 @@ protected:
 
     CTimeStatisticsReal m_statOverall;
     CTimeStatisticsReal m_statFile;
+
+    FPSLimiter m_fpsLimiter;
 
 #if (defined(_WIN64) || defined(_WIN32)) && (MFX_VERSION >= 1031)
     mfxU32    GetPreferredAdapterNum(const mfxAdaptersInfo & adapters, const sInputParams & params);

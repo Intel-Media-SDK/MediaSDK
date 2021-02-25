@@ -1378,4 +1378,31 @@ void WaitForDeviceToBecomeFree(MFXVideoSession& session, mfxSyncPoint& syncPoint
 
 mfxU16 FourCCToChroma(mfxU32 fourCC);
 
+class FPSLimiter
+{
+public:
+    FPSLimiter()  = default;
+    ~FPSLimiter() = default;
+    void Reset(mfxU32 fps)
+    {
+        m_delayTicks = fps ? msdk_time_get_frequency() / fps : 0;
+    }
+    void Work()
+    {
+        msdk_tick current_tick = msdk_time_get_tick();
+        while( m_delayTicks && (m_startTick + m_delayTicks > current_tick) )
+        {
+            msdk_tick left_tick = m_startTick + m_delayTicks - current_tick;
+            uint32_t sleepTime = (uint32_t)(left_tick * 1000 / msdk_time_get_frequency());
+            MSDK_SLEEP(sleepTime);
+            current_tick = msdk_time_get_tick();
+        };
+        m_startTick = msdk_time_get_tick();
+    }
+
+protected:
+    msdk_tick               m_startTick  = 0;
+    msdk_tick               m_delayTicks = 0;
+};
+
 #endif //__SAMPLE_UTILS_H__

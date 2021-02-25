@@ -55,7 +55,7 @@ The following command-line switches are optional:
  | [-sw] | use software implementation, if not specified platform specific SDK implementation is used|
    |[-p plugin] | decoder plugin. Supported values: hevcd_sw, hevcd_hw, vp8d_hw, vp9d_hw, camera_hw, capture_hw|
   | [-path path]| path to plugin (valid only in pair with -p option) (optional for Media SDK in-box plugins, required for user-decoder ones)|
- |  [-f]| rendering framerate|
+  |  [-fps]| limits overall fps of pipeline|
   | [-w]| output width|
   | [-h]| output height|
    |[-di bob/adi] | enable deinterlacing BOB/ADI|
