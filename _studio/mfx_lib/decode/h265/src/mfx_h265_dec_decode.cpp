@@ -1399,11 +1399,7 @@ mfxStatus VideoDECODEH265::DecodeFrame(mfxFrameSurface1 *surface_out, H265Decode
     {
         index = m_FrameAllocator->FindSurface(surface_out, m_isOpaq);
         pFrame = m_pH265VideoDecoder->FindSurface((UMC::FrameMemID)index);
-        if (!pFrame)
-        {
-            VM_ASSERT(false);
-            MFX_RETURN(MFX_ERR_NOT_FOUND);
-        }
+        MFX_CHECK(pFrame, MFX_ERR_NOT_FOUND);
     }
 
     surface_out->Data.Corrupted = 0;
