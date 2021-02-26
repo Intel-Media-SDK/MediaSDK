@@ -32,13 +32,11 @@ namespace UMC_HEVC_DECODER
     namespace G12
     {
         inline
-        void PackPicHeader(UMC::VideoAccelerator*, H265DecoderFrame const* frame, H265DBPList const* dpb, VAPictureParameterBufferHEVCScc* pp)
+        void PackPicHeader(UMC::VideoAccelerator*, H265DecoderFrame const* frame, H265DBPList const*, VAPictureParameterBufferHEVCScc* pp)
         {
             assert(frame);
-            assert(dpb);
             assert(pp);
 
-            (void)dpb;
             auto si = frame->GetAU();
             if (!si)
                 throw h265_exception(UMC::UMC_ERR_FAILED);

@@ -23,10 +23,12 @@
 #ifdef MFX_ENABLE_H265_VIDEO_DECODE
 
 #include "umc_va_base.h"
+
 #include "umc_va_linux.h"
 #include "umc_h265_va_packer_vaapi.h"
 #include "umc_h265_task_supplier.h"
 #include "umc_va_video_processing.h"
+
 #include <va/va_dec_hevc.h>
 
 namespace UMC_HEVC_DECODER
@@ -34,6 +36,7 @@ namespace UMC_HEVC_DECODER
     void PackerVAAPI::BeginFrame(H265DecoderFrame* frame)
     {
         (void)frame;
+
     }
 
     void PackerVAAPI::PackQmatrix(H265Slice const* slice)
@@ -115,7 +118,6 @@ namespace UMC_HEVC_DECODER
         pipelineBuf->surface = m_va->GetSurfaceID(sliceInfo->m_pFrame->m_index); // should filled in packer
         pipelineBuf->additional_outputs = (VASurfaceID*)vpVA->GetCurrentOutputSurface();
     }
-
     void PackerVAAPI::PackPriorityParams()
     {
         mfxPriority priority = m_va->m_ContextPriority;
@@ -172,16 +174,13 @@ namespace UMC_HEVC_DECODER
 
         for (size_t n = 0; n < count; n++)
             PackSliceParams(fi->GetSlice(int32_t(n)), n, n == count - 1);
-		
 #ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
         if (m_va->GetVideoProcessingVA())
             PackProcessingInfo(fi);
 #endif
-
         //Set Gpu priority
         if(m_va->m_MaxContextPriority)
             PackPriorityParams();
-
         auto s = m_va->Execute();
         if (s != UMC::UMC_OK)
             throw h265_exception(s);
@@ -206,5 +205,7 @@ namespace UMC_HEVC_DECODER
 #endif
     }
 }
+
+
 
 #endif //MFX_ENABLE_H265_VIDEO_DECODE

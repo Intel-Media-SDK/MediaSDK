@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2012-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -51,15 +51,12 @@ H265DecYUVBufferPadded::H265DecYUVBufferPadded(UMC::MemoryAllocator *pMemoryAllo
     , m_pMemoryAllocator(pMemoryAllocator)
     , m_midAllocatedBuffer(0)
     , m_pAllocatedBuffer(0)
+    , m_lumaSize()
+    , m_chromaSize()
     , m_pitch_luma(0)
     , m_pitch_chroma(0)
     , m_color_format(UMC::NV12)
 {
-    m_lumaSize.width = 0;
-    m_lumaSize.height = 0;
-
-    m_chromaSize.width = 0;
-    m_chromaSize.height = 0;
 }
 
 H265DecYUVBufferPadded::~H265DecYUVBufferPadded()
@@ -89,7 +86,7 @@ void H265DecYUVBufferPadded::deallocate()
 
     m_pYPlane = m_pUPlane = m_pVPlane = m_pUVPlane = NULL;
 
-    m_lumaSize = {0, 0};
+    m_lumaSize = { 0, 0 };
     m_pitch_luma = 0;
     m_pitch_chroma = 0;
 }
@@ -101,7 +98,6 @@ void H265DecYUVBufferPadded::Init(const UMC::VideoDataInfo *info)
         throw h265_exception(UMC::UMC_ERR_NULL_PTR);
     if (info->GetNumPlanes() == 0)
         throw h265_exception(UMC::UMC_ERR_NULL_PTR);
-
 
     m_color_format = info->GetColorFormat();
     m_chroma_format = GetH265ColorFormat(info->GetColorFormat());
@@ -117,7 +113,7 @@ void H265DecYUVBufferPadded::Init(const UMC::VideoDataInfo *info)
     }
     else
     {
-        m_chromaSize = {0, 0};
+        m_chromaSize = { 0, 0 };
     }
 }
 
@@ -130,7 +126,6 @@ void H265DecYUVBufferPadded::allocate(const UMC::FrameData * frameData, const UM
         deallocate();
         return;
     }
-
     m_frameData = *frameData;
 
     if (frameData->GetPlaneMemoryInfo(0)->m_planePtr)
@@ -168,7 +163,7 @@ void H265DecYUVBufferPadded::allocate(const UMC::FrameData * frameData, const UM
     }
     else
     {
-        m_chromaSize = {0, 0};
+        m_chromaSize = { 0, 0 };
         m_pitch_chroma = 0;
         m_pUPlane = 0;
         m_pVPlane = 0;

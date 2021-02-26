@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -248,7 +248,7 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
    }
     catch(...)
     {
-	if (!m_SliceHeader.dependent_slice_segment_flag)
+        if (!m_SliceHeader.dependent_slice_segment_flag)
         {
             if (m_SliceHeader.slice_type != I_SLICE)
                 m_bError = true;
@@ -260,7 +260,6 @@ bool H265Slice::DecodeSliceHeader(PocDecoding * pocDecoding)
     return (UMC::UMC_OK == umcRes);
 
 } // bool H265Slice::DecodeSliceHeader(bool bFullInitialization)
-
 // Get tile column CTB width
 uint32_t H265Slice::getTileColumnWidth(uint32_t col) const
 {

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -30,11 +30,11 @@
 
 namespace UMC_HEVC_DECODER
 {
-
   #define H265_FORCEINLINE __attribute__((always_inline))
   #define H265_NONLINE __attribute__((noinline))
 
 // This better be placed in some general/common header
+
 # define H265_RESTRICT
 
 enum
@@ -149,7 +149,6 @@ enum
 
 #define SAO_BO_BITS                    5
 #define LUMA_GROUP_NUM                (1 << SAO_BO_BITS)
-
 
 struct H265SeqParamSet;
 class H265DecoderFrame;
@@ -1181,22 +1180,22 @@ typedef struct {
 struct H265SliceHeader
 {
     // from nal unit header
-    NalUnitType nal_unit_type;
+    NalUnitType   nal_unit_type;
     uint32_t      nuh_temporal_id;
 
     // slice spec members
-    int32_t      first_slice_segment_in_pic_flag;
+    int32_t       first_slice_segment_in_pic_flag;
     uint8_t       no_output_of_prior_pics_flag;       // nonzero: remove previously decoded pictures from decoded picture buffer
     uint16_t      slice_pic_parameter_set_id;
     uint8_t       dependent_slice_segment_flag;
 
     uint32_t      slice_segment_address;
-    SliceType   slice_type;
+    SliceType     slice_type;
     uint8_t       pic_output_flag;
 
     uint32_t      colour_plane_id; // if separate_colour_plane_flag = = 1 only
 
-    int32_t      slice_pic_order_cnt_lsb;                    // picture order count (mod MaxPicOrderCntLsb)
+    int32_t       slice_pic_order_cnt_lsb;                    // picture order count (mod MaxPicOrderCntLsb)
     uint8_t       short_term_ref_pic_set_sps_flag;
 
     uint8_t       slice_temporal_mvp_enabled_flag;
@@ -1205,8 +1204,8 @@ struct H265SliceHeader
     uint8_t       slice_sao_chroma_flag;
 
     uint8_t       num_ref_idx_active_override_flag;
-    int32_t      num_ref_idx_l0_active;
-    int32_t      num_ref_idx_l1_active;
+    int32_t       num_ref_idx_l0_active;
+    int32_t       num_ref_idx_l1_active;
 
     uint8_t       mvd_l1_zero_flag;
     uint8_t       cabac_init_flag;
@@ -1219,7 +1218,7 @@ struct H265SliceHeader
     wpScalingParam  pred_weight_table[2][MAX_NUM_REF_PICS][3]; // [REF_PIC_LIST_0 or REF_PIC_LIST_1][refIdx][0:Y, 1:U, 2:V]
 
     int32_t      max_num_merge_cand;
-    uint8_t       use_integer_mv_flag;
+    uint8_t      use_integer_mv_flag;
 
     int32_t      slice_qp_delta;                       // to calculate default slice QP
     int32_t      slice_cb_qp_offset;
@@ -1229,13 +1228,13 @@ struct H265SliceHeader
     int32_t      slice_act_cb_qp_offset;
     int32_t      slice_act_cr_qp_offset;
 
-    uint8_t       cu_chroma_qp_offset_enabled_flag;
+    uint8_t      cu_chroma_qp_offset_enabled_flag;
 
-    uint8_t       deblocking_filter_override_flag;
-    uint8_t       slice_deblocking_filter_disabled_flag;
+    uint8_t      deblocking_filter_override_flag;
+    uint8_t      slice_deblocking_filter_disabled_flag;
     int32_t      slice_beta_offset;
     int32_t      slice_tc_offset;
-    uint8_t       slice_loop_filter_across_slices_enabled_flag;
+    uint8_t      slice_loop_filter_across_slices_enabled_flag;
 
     uint32_t      num_entry_point_offsets;
 

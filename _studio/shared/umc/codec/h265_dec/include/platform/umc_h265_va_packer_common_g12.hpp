@@ -146,7 +146,6 @@ namespace UMC_HEVC_DECODER
 
                 uint32_t tileXIdx = slice->getTileXIdx();
                 uint32_t tileYIdx = slice->getTileYIdx();
-
                 auto step = GetEntryPointOffsetStep(slice, tileYIdx);
 
                 //'m_tileByteLocation' contains absolute offsets, but we have to pass relative ones just as they are in a bitstream
@@ -167,7 +166,6 @@ namespace UMC_HEVC_DECODER
                         tileXIdx = 0;
                         tileYIdx++;
                     }
-
                     step = GetEntryPointOffsetStep(slice, tileYIdx);
                 }
             }

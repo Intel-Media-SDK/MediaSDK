@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -49,8 +49,8 @@ namespace UMC_HEVC_DECODER
     class VATaskSupplier;
     class H265DecoderFrame;
 }
-
 typedef UMC_HEVC_DECODER::VATaskSupplier  MFX_AVC_Decoder_H265;
+
 
 class VideoDECODE;
 // HEVC decoder interface class
@@ -114,7 +114,6 @@ protected:
 
     // Fill up resolution information if new header arrived
     void FillVideoParam(mfxVideoParamWrapper *par, bool full);
-
     // Fill up frame allocator request data
     mfxStatus UpdateAllocRequest(mfxVideoParam *par,
                                 mfxFrameAllocRequest *request,

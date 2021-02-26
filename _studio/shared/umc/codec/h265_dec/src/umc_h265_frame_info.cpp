@@ -1,15 +1,15 @@
-// Copyright (c) 2017-2018 Intel Corporation
-// 
+// Copyright (c) 2012-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -27,12 +27,10 @@
 namespace UMC_HEVC_DECODER
 {
 
-
 bool H265DecoderFrameInfo::IsCompleted() const
 {
     if (GetStatus() == H265DecoderFrameInfo::STATUS_COMPLETED)
         return true;
-
     return false;
 }
 
@@ -41,7 +39,6 @@ void H265DecoderFrameInfo::Reset()
     Free();
 
     m_hasTiles = false;
-
 
     m_isNeedDeblocking = false;
     m_isNeedSAO = false;
@@ -121,6 +118,7 @@ void H265DecoderFrameInfo::EliminateErrors()
     {
         // HEVC 7.4.7.1 General slice segment header semantics
         H265Slice *baseSlice = GetSlice(0); // after the for() loop above ,the first slice is treated as 'base' slice
+
         bool bIndepSliceMissing = false;
         for (uint32_t sliceId = 1; sliceId < GetSliceCount(); sliceId++)
         {

@@ -1,15 +1,15 @@
-// Copyright (c) 2017 Intel Corporation
-// 
+// Copyright (c) 2012-2019 Intel Corporation
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in all
 // copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,20 +28,13 @@
 
 #include "umc_h265_debug.h"
 
-
-//#define ECHO
-//#define ECHO_DEB
-
 #undef DEBUG_PRINT
-#undef DEBUG_PRINT1
 #define DEBUG_PRINT(x)
-#define DEBUG_PRINT1(x)
 
 namespace UMC_HEVC_DECODER
 {
 H265Slice* FindSliceByCUAddr(H265DecoderFrameInfo * info, int32_t firstCUToProcess);
 TileThreadingInfo * FindTileForProcess(H265DecoderFrameInfo * info, int32_t taskID, bool isDecRec = false);
-
 
 TaskBroker_H265::TaskBroker_H265(TaskSupplier_H265 * pTaskSupplier)
     : m_pTaskSupplier(pTaskSupplier)
@@ -125,7 +118,6 @@ bool TaskBroker_H265::AddFrameToDecoding(H265DecoderFrame * frame)
         return false;
 
     UMC::AutomaticUMCMutex guard(m_mGuard);
-
 
     m_decodingQueue.push_back(frame);
     frame->StartDecoding();
@@ -387,7 +379,6 @@ bool TaskBroker_H265::GetNextTask(H265Task *pTask)
 {
     UMC::AutomaticUMCMutex guard(m_mGuard);
 
-
     bool res = GetNextTaskInternal(pTask);
 
     return res;
@@ -434,7 +425,5 @@ bool TaskBroker_H265::IsExistTasks(H265DecoderFrame * frame)
 
     return Check_Status(slicesInfo->GetStatus());
 }
-
-
 } // namespace UMC_HEVC_DECODER
 #endif // MFX_ENABLE_H265_VIDEO_DECODE

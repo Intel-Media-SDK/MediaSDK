@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2003-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -34,11 +34,12 @@
 
 using namespace UMC;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-#define PACKER_VAAPI G12::PackerVAAPI
+#if (MFX_VERSION >= 1032)
+typedef G12::PackerVAAPI PACKER_VAAPI
 #else
-#define PACKER_VAAPI G11::PackerVAAPI
+typedef G11::PackerVAAPI PACKER_VAAPI
 #endif
+
 namespace UMC_HEVC_DECODER
 {
 

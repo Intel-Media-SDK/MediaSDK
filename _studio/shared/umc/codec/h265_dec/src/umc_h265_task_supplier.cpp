@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2012-2020 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +40,6 @@
 #include "umc_structures.h"
 #include "umc_frame_data.h"
 #include "umc_h265_debug.h"
-
 
 #include "mfx_common.h" //  for trace routines
 
@@ -315,7 +314,7 @@ bool Skipping_H265::IsShouldSkipFrame(H265DecoderFrame * )
 }
 
 // Set decoding skip frame mode
-void Skipping_H265::ChangeVideoDecodingSpeed(int32_t & num)
+mfxStatus Skipping_H265::ChangeVideoDecodingSpeed(int32_t & num)
 {
     m_VideoDecodingSpeed += num;
 
@@ -329,6 +328,8 @@ void Skipping_H265::ChangeVideoDecodingSpeed(int32_t & num)
     int32_t deblocking_off = m_PermanentTurnOffDeblocking;
     if (deblocking_off == 3)
         m_PermanentTurnOffDeblocking = 3;
+
+    return MFX_ERR_NONE;
 }
 
 // Get current skip mode state
@@ -624,6 +625,7 @@ TaskSupplier_H265::TaskSupplier_H265()
     , m_decodedOrder(false)
     , m_checkCRAInsideResetProcess(false)
     , m_bFirstSliceInSequence(true)
+    , m_bFirstSliceInBitstream(true)
     , m_pLastSlice(0)
     , m_pLastDisplayed(0)
     , m_pMemoryAllocator(0)
@@ -701,6 +703,7 @@ UMC::Status TaskSupplier_H265::Init(UMC::VideoDecoderParams *init)
 
 void TaskSupplier_H265::CreateTaskBroker()
 {
+
 
 }
 
@@ -1808,7 +1811,6 @@ UMC::Status TaskSupplier_H265::AddOneFrame(UMC::MediaData * pSource)
                         if (umsRes == UMC::UMC_NTF_NEW_RESOLUTION ||
                             (nut == NAL_UT_SPS && umsRes == UMC::UMC_ERR_INVALID_STREAM))
                         {
-
                             int32_t nalIndex = pMediaDataEx->index;
                             int32_t size = pMediaDataEx->offsets[nalIndex + 1] - pMediaDataEx->offsets[nalIndex];
 
@@ -2142,7 +2144,6 @@ void TaskSupplier_H265::CheckCRAOrBLA(const H265Slice *pSlice)
     //Check NoOutputPriorPics
     if (pSlice->GetRapPicFlag() && no_output_of_prior_pics_flag)
     {
-
         for (H265DecoderFrame *pCurr = GetView()->pDPB->head(); pCurr; pCurr = pCurr->future())
         {
             pCurr->m_pic_output = false;
@@ -2225,7 +2226,6 @@ UMC::Status TaskSupplier_H265::AddSlice(H265Slice * pSlice, bool )
             sps->m_changed ||
             pps->m_changed ||
             !IsPictureTheSame(firstSlice, pSlice);
-
         if (changed)
         {
             CompleteFrame(view.pCurFrame);
@@ -2300,7 +2300,6 @@ H265DecoderFrame* TaskSupplier_H265::AddSelfReferenceFrame(H265Slice* slice)
     return
         slice->GetCurrentFrame();
 }
-
 
 // Mark frame as full with slices
 void TaskSupplier_H265::OnFullFrame(H265DecoderFrame * pFrame)
@@ -2432,7 +2431,6 @@ UMC::Status TaskSupplier_H265::AllocateFrameData(H265DecoderFrame * pFrame, mfxS
 
     pFrame->allocate(frmData, &info);
     pFrame->m_index = frmMID;
-
     (void)pPicParamSet;
 
     return UMC::UMC_OK;
@@ -2501,7 +2499,6 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
     {
         pFrame->m_DisplayPictureStruct_H265 = DPS_FRAME_H265;
     }
-
 
     InitFrameCounter(pFrame, pSlice);
     return pFrame;
@@ -2638,7 +2635,7 @@ uint32_t GetLevelIDCIndex(uint32_t level_idc)
 }
 
 // Calculate maximum DPB size based on level and resolution
-int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
+int32_t CalculateDPBSize(uint32_t profile_idc, uint32_t &level_idc, int32_t width, int32_t height, uint32_t num_ref_frames)
 {
     // can increase level_idc to hold num_ref_frames
     uint32_t lumaPsArray[] = { 36864, 122880, 245760, 552960, 983040, 2228224, 2228224, 8912896, 8912896, 8912896, 35651584, 35651584, 35651584 };
@@ -2650,11 +2647,8 @@ int32_t CalculateDPBSize(uint32_t /*profile_idc*/, uint32_t &level_idc, int32_t 
 
         uint32_t MaxLumaPs = lumaPsArray[index];
         uint32_t const maxDpbPicBuf =
-#ifndef MFX_VA
-            profile_idc != H265_PROFILE_SCC ? 6 : 7;
-#else
             6;//HW handles second version of current reference (twoVersionsOfCurrDecPicFlag) itself
-#endif
+        (void)profile_idc;
 
         uint32_t PicSizeInSamplesY = width * height;
 

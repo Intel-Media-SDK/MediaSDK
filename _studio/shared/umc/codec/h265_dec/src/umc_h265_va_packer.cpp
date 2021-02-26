@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2013-2019 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,14 @@
 
 #include "umc_h265_va_packer.h"
 #include "umc_va_base.h"
+#include "umc_h265_tables.h"
+#include "umc_h265_frame_info.h"
 
 #ifdef UMC_VA
 #include "umc_h265_task_supplier.h"
 #endif
 
-#include "umc_h265_tables.h"
+#include "umc_h265_va_packer_vaapi.h"
 #include "umc_va_linux_protected.h"
 #include "mfx_ext_buffers.h"
 
@@ -79,11 +81,12 @@ namespace UMC_HEVC_DECODER
 
 extern Packer * CreatePackerVAAPI(VideoAccelerator*);
 #if defined(MFX_ENABLE_CPLIB)
-    extern Packer * CreatePackerCENC(VideoAccelerator*);
+extern Packer * CreatePackerCENC(VideoAccelerator*);
 #endif
 
 Packer * Packer::CreatePacker(VideoAccelerator * va)
 {
+    (void)va;
     Packer * packer = 0;
 
 #ifdef MFX_ENABLE_CPLIB
@@ -92,6 +95,7 @@ Packer * Packer::CreatePacker(VideoAccelerator * va)
     else
 #endif
     packer = CreatePackerVAAPI(va);
+
 
     return packer;
 }
