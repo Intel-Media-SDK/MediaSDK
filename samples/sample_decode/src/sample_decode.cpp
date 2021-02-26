@@ -272,6 +272,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->bPerfMode = true;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-powersaving")))
+        {
+            pParams->bPowerSavingMode = true;
+        }
         else if (0 == msdk_strncmp(strInput[i], MSDK_STRING("-rdrm"), 5))
         {
             pParams->memType = D3D9_MEMORY;

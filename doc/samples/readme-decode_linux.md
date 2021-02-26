@@ -77,6 +77,7 @@ The following command-line switches are optional:
  |  [-rdrm] | render decoded data in a thru DRM frame buffer|
   | [-window x y w h]| set render window position and size|
   | [-low_latency]| configures decoder for low latency mode (supported only for H.264 and JPEG codec)|
+  | [-powersaving]| configures vpp Scaling & Format Conversion(SFC: scaling and format conversion, such as nv12->argb etc.) for powersaving mode if vpp needed. In this mode, workload(Scaling or format conversion) will be submitted to fixed function(vebox+sfc).|
    |[-calc_latency]| calculates latency during decoding and prints log (supported only for H.264 and JPEG codec)|
  |  [-async]| depth of asynchronous pipeline. default value is 4. must be between 1 and 20|
  |  [-gpucopy::<on,off>]| Enable or disable GPU copy mode|

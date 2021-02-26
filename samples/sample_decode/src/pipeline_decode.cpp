@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2019, Intel Corporation
+Copyright (c) 2005-2021, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -572,6 +572,30 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     {
         if (m_diMode)
             m_mfxVppVideoParams.vpp.Out.PicStruct = MFX_PICSTRUCT_PROGRESSIVE;
+
+	// If power saving mode, set scaling flag as low power mode explcitly so that Scaling & Format Conversion(SFC) workload can be submitted to SFC in VPP call.
+	// MFX_SCALING_MODE_LOWPOWER is a flag for SFC which has the functionality of scaling & format conversion, both scaling and format conversion can use this flag.
+	// Format conversion can be invoked implicitly in pipeline, and no explicit ext buffer, hence, we reuse scaling ext buffer.
+        if (pParams->bPowerSavingMode)
+        {
+            // Initialize extended buffer for frame processing
+            // - FF scaling        VPP scaling filter
+            // - mfxExtVPPDoUse:   Define the processing algorithm to be used
+            // - mfxExtVPPScaling: Scaling configuration
+            // - mfxExtBuffer:     Add extended buffers to VPP parameter configuration
+            auto vppExtParams = m_mfxVppVideoParams.AddExtBuffer<mfxExtVPPDoUse>();
+            MSDK_CHECK_POINTER(vppExtParams, MFX_ERR_MEMORY_ALLOC);
+            vppExtParams->NumAlg = 1;
+            if (NULL == vppExtParams->AlgList)
+                vppExtParams->AlgList = new mfxU32 [vppExtParams->NumAlg];
+            if (!vppExtParams->AlgList)
+                return MFX_ERR_NULL_PTR;
+            vppExtParams->AlgList[0] = MFX_EXTBUFF_VPP_SCALING;
+
+            auto vppScalingParams = m_mfxVppVideoParams.AddExtBuffer<mfxExtVPPScaling>();
+            MSDK_CHECK_POINTER(vppScalingParams, MFX_ERR_MEMORY_ALLOC);
+            vppScalingParams->ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+        }
 
         sts = m_pmfxVPP->Init(&m_mfxVppVideoParams);
         if (MFX_WRN_PARTIAL_ACCELERATION == sts)
