@@ -166,18 +166,22 @@ void ConvertMFXParamsToUMC(mfxVideoParam const* par, UMC::VideoDecoderParams *um
 
     umcVideoParams->numThreads = par->mfx.NumThread;
 
-    switch(par->mfx.TimeStampCalc)
+    // TimeStampCalc is present only in Decoding Options union, not in JPEG Decoding Options union
+    if (par->mfx.CodecId != MFX_CODEC_JPEG)
     {
-    case MFX_TIMESTAMPCALC_TELECINE:
-        umcVideoParams->lFlags |= UMC::FLAG_VDEC_TELECINE_PTS;
-        break;
+        switch(par->mfx.TimeStampCalc)
+        {
+        case MFX_TIMESTAMPCALC_TELECINE:
+            umcVideoParams->lFlags |= UMC::FLAG_VDEC_TELECINE_PTS;
+            break;
 
-    case MFX_TIMESTAMPCALC_UNKNOWN:
-        break;
+        case MFX_TIMESTAMPCALC_UNKNOWN:
+            break;
 
-    default:
-        VM_ASSERT(false);
-        break;
+        default:
+            VM_ASSERT(false);
+            break;
+        }
     }
 }
 
