@@ -193,21 +193,21 @@ typedef struct mfxPlugin{
 MFX_PACK_END()
 
 
-mfxStatus MFX_CDECL MFXVideoUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par);
-mfxStatus MFX_CDECL MFXVideoUSER_Unregister(mfxSession session, mfxU32 type);
-mfxStatus MFX_CDECL MFXVideoUSER_GetPlugin(mfxSession session, mfxU32 type, mfxPlugin *par);
-mfxStatus MFX_CDECL MFXVideoUSER_ProcessFrameAsync(mfxSession session, const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfxU32 out_num, mfxSyncPoint *syncp);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_Unregister(mfxSession session, mfxU32 type);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_GetPlugin(mfxSession session, mfxU32 type, mfxPlugin *par);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_ProcessFrameAsync(mfxSession session, const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfxU32 out_num, mfxSyncPoint *syncp);
 
-mfxStatus MFX_CDECL MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version);
-mfxStatus MFX_CDECL MFXVideoUSER_LoadByPath(mfxSession session, const mfxPluginUID *uid, mfxU32 version, const mfxChar *path, mfxU32 len);
-mfxStatus MFX_CDECL MFXVideoUSER_UnLoad(mfxSession session, const mfxPluginUID *uid);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_LoadByPath(mfxSession session, const mfxPluginUID *uid, mfxU32 version, const mfxChar *path, mfxU32 len);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXVideoUSER_UnLoad(mfxSession session, const mfxPluginUID *uid);
 
-mfxStatus MFX_CDECL MFXAudioUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par);
-mfxStatus MFX_CDECL MFXAudioUSER_Unregister(mfxSession session, mfxU32 type);
-mfxStatus MFX_CDECL MFXAudioUSER_ProcessFrameAsync(mfxSession session, const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfxU32 out_num, mfxSyncPoint *syncp);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXAudioUSER_Register(mfxSession session, mfxU32 type, const mfxPlugin *par);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXAudioUSER_Unregister(mfxSession session, mfxU32 type);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXAudioUSER_ProcessFrameAsync(mfxSession session, const mfxHDL *in, mfxU32 in_num, const mfxHDL *out, mfxU32 out_num, mfxSyncPoint *syncp);
 
-mfxStatus MFX_CDECL MFXAudioUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version);
-mfxStatus MFX_CDECL MFXAudioUSER_UnLoad(mfxSession session, const mfxPluginUID *uid);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXAudioUSER_Load(mfxSession session, const mfxPluginUID *uid, mfxU32 version);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXAudioUSER_UnLoad(mfxSession session, const mfxPluginUID *uid);
 
 #ifdef __cplusplus
 } // extern "C"

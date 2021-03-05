@@ -103,6 +103,52 @@ extern "C"
 
 #define MFX_INFINITE 0xFFFFFFFF
 
+#if !defined(MFX_DEPRECATED_OFF) && (MFX_VERSION >= 1034)
+#define MFX_DEPRECATED_OFF
+#endif
+
+#ifndef MFX_DEPRECATED_OFF
+  #if defined(__cplusplus) && __cplusplus >= 201402L
+    #define MFX_DEPRECATED [[deprecated]]
+    #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg [[deprecated]]
+    #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
+  #elif defined(__clang__)
+    #define MFX_DEPRECATED __attribute__((deprecated))
+    #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg __attribute__((deprecated))
+    #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
+  #elif defined(__INTEL_COMPILER)
+    #if (defined(_WIN32) || defined(_WIN64))
+      #define MFX_DEPRECATED __declspec(deprecated)
+      #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg
+      #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg) __pragma(deprecated(arg))
+    #elif defined(__linux__)
+      #define MFX_DEPRECATED __attribute__((deprecated))
+      #if defined(__cplusplus)
+        #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg __attribute__((deprecated))
+      #else
+        #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg
+      #endif
+      #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
+    #endif
+  #elif defined(_MSC_VER) && _MSC_VER > 1200 // VS 6 doesn't support deprecation
+    #define MFX_DEPRECATED __declspec(deprecated)
+    #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg
+    #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg) __pragma(deprecated(arg))
+  #elif defined(__GNUC__)
+    #define MFX_DEPRECATED __attribute__((deprecated))
+    #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg __attribute__((deprecated))
+    #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
+  #else
+    #define MFX_DEPRECATED
+    #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg
+    #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
+  #endif
+#else
+  #define MFX_DEPRECATED
+  #define MFX_DEPRECATED_ENUM_FIELD_INSIDE(arg) arg
+  #define MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(arg)
+#endif
+
 typedef unsigned char       mfxU8;
 typedef char                mfxI8;
 typedef short               mfxI16;
