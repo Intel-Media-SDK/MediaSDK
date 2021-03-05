@@ -4,7 +4,7 @@
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup>
-    <MfxDefinitions>NOMINMAX;</MfxDefinitions>
+    <MfxDefinitions>NOMINMAX;MFX_DEPRECATED_OFF;</MfxDefinitions>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

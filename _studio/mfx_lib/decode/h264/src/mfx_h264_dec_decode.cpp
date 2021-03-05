@@ -454,7 +454,7 @@ mfxStatus VideoDECODEH264::Init(mfxVideoParam *par)
 
     umcVideoParams.lpMemoryAllocator = &m_MemoryAllocator;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
     umcVideoParams.m_ignore_level_constrain = par->mfx.IgnoreLevelConstrain;
 #endif
 
