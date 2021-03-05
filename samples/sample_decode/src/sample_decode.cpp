@@ -73,7 +73,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("                                              '-device /dev/dri/renderD128'\n"));
     msdk_printf(MSDK_STRING("                                 If not specified, defaults to the first Intel device found on the system\n"));
 #endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)   
+#if (MFX_VERSION >= 1035)   
     msdk_printf(MSDK_STRING("   [-ignore_level_constrain] - ignore level constrain\n"));
 #endif
     msdk_printf(MSDK_STRING("   [-disable_film_grain] - disable film grain application(valid only for av1)\n"));

@@ -450,6 +450,8 @@ This class of functions allows applications to specify user-defined functions to
 
 ### <a id='MFXVideoUSER_ProcessFrameAsync'>MFXVideoUSER_ProcessFrameAsync</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Syntax**
 
 ```C
@@ -481,6 +483,8 @@ This asynchronous function calls back the user-defined functions to generate out
 This function is available since SDK API 1.1.
 
 ### <a id='MFXVideoUSER_Register'>MFXVideoUSER_Register</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Syntax**
 
@@ -514,6 +518,8 @@ SDK API 1.8 extends functionality and allows registering of codec plug-ins. Befo
 
 ### <a id='MFXVideoUSER_Unregister'>MFXVideoUSER_Unregister</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Syntax**
 
 ```C
@@ -545,6 +551,8 @@ The application must call this function after all active tasks are completed.
 This function is available since SDK API 1.1.
 
 ### <a id='MFXVideoUSER_Load'>MFXVideoUSER_Load</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Syntax**
 
@@ -582,6 +590,8 @@ See [Plug-in Distribution](#plugin_distribution) for more details on how the SDK
 This function is available since SDK API 1.8.
 
 ### <a id='MFXVideoUSER_LoadByPath'>MFXVideoUSER_LoadByPath</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Syntax**
 
@@ -623,6 +633,8 @@ This function is available since SDK API 1.13.
 
 ### <a id='MFXVideoUSER_UnLoad'>MFXVideoUSER_UnLoad</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Syntax**
 
 ```C
@@ -651,6 +663,8 @@ The function unloads plug-in. Function does not check if plug-in has any task in
 This function is available since SDK API 1.8.
 
 ### <a id='MFXVideoUSER_GetPlugin'>MFXVideoUSER_GetPlugin</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Syntax**
 

@@ -153,6 +153,8 @@ In the following structures all reserved fields must be zeroed by application if
 
 ## <a id='mfxExtFeiHevcEncFrameCtrl'>mfxExtFeiHevcEncFrameCtrl</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```
@@ -213,6 +215,9 @@ This structure is available since SDK API 1.27
 
 
 ## <a id='mfxExtFeiHevcEncMVPredictors'>mfxExtFeiHevcEncMVPredictors</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```
@@ -306,6 +311,8 @@ This structure is available since SDK API 1.27
 
 ## <a id='mfxExtFeiHevcEncQP'>mfxExtFeiHevcEncQP</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```
@@ -364,6 +371,8 @@ This structure is available since SDK API 1.27
 
 ## <a id='mfxExtFeiHevcEncCtuCtrl'>mfxExtFeiHevcEncCtuCtrl</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```
@@ -410,6 +419,8 @@ This structure is available since SDK API 1.27
 
 ## <a id='mfxExtFeiHevcRepackCtrl'>mfxExtFeiHevcRepackCtrl</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```
@@ -441,6 +452,8 @@ This structure is available since SDK API 1.27.
 
 
 ## <a id='mfxExtFeiHevcRepackStat'>mfxExtFeiHevcRepackStat</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Definition**
 

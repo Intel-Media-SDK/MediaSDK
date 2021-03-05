@@ -29,7 +29,7 @@ extern "C"
 #endif /* __cplusplus */
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    Qp;
@@ -61,7 +61,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc; /* size of allocated memory in number of macroblocks */
@@ -74,7 +74,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -87,7 +87,7 @@ MFX_PACK_END()
 /* PreENC output */
 /* Layout is exactly the same as mfxExtFeiEncMVs, this buffer may be removed in future */
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -100,7 +100,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -131,7 +131,7 @@ MFX_PACK_END()
 
 /* 1  ENC_PAK input */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    SearchPath;
@@ -160,7 +160,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -178,7 +178,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -222,7 +222,7 @@ For example, MV for right top 4x4 sub block is stored in 5-th element of the arr
 ========================
 */
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -235,7 +235,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -257,7 +257,7 @@ enum {
 };
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     /* dword 0-2 */
     mfxU32    Header;  /* MFX_PAK_OBJECT_HEADER */
     mfxU32    MVDataLength;
@@ -330,7 +330,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -341,7 +341,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32      MaxFrameSize; /* in bytes */
     mfxU32      NumPasses;    /* up to 8 */
@@ -353,7 +353,7 @@ MFX_PACK_END()
 #if (MFX_VERSION >= 1025)
 /* FEI repack status */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32          NumPasses;
     mfxU16          reserved[58];
@@ -433,7 +433,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32  reserved1[3];
     mfxU32  NumMBAlloc;
@@ -447,7 +447,7 @@ MFX_PACK_END()
 
 /* SPS, PPS, Slice Header */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    SPSId;
@@ -459,7 +459,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    SPSId;
@@ -486,7 +486,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16    NumSlice; /* actual number of slices in the picture */
@@ -521,7 +521,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
 
     mfxU16  DisableHME;  /* 0 - enable, any other value means disable */
@@ -567,7 +567,7 @@ enum {
 
 /* should be attached to mfxVideoParam during initialization to indicate FEI function */
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxFeiFunction  Func;
     mfxU16  SingleFieldProcessing;

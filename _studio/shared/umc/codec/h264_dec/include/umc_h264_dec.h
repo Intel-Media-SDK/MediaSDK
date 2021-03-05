@@ -85,13 +85,13 @@ public:
         H264_LEVEL_51   = 51,
         H264_LEVEL_52   = 52,
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
         H264_LEVEL_6    = 60,
         H264_LEVEL_61   = 61,
         H264_LEVEL_62   = 62,
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
+#if (MFX_VERSION >= 1035)
         H264_LEVEL_MAX  = 62,
 #else
         H264_LEVEL_MAX  = 52,

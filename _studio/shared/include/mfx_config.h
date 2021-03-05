@@ -23,6 +23,10 @@
 
 #include "mfxdefs.h"
 
+#ifndef MFX_DEPRECATED_OFF
+#define MFX_DEPRECATED_OFF
+#endif
+
 #ifdef MFX_VA
     #if defined(LINUX32) || defined(LINUX64)
         #include <va/va_version.h>
