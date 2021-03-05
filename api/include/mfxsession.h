@@ -40,7 +40,7 @@ mfxStatus MFX_CDECL MFXDisjoinSession(mfxSession session);
 mfxStatus MFX_CDECL MFXCloneSession(mfxSession session, mfxSession *clone);
 mfxStatus MFX_CDECL MFXSetPriority(mfxSession session, mfxPriority priority);
 mfxStatus MFX_CDECL MFXGetPriority(mfxSession session, mfxPriority *priority);
-mfxStatus MFX_CDECL MFXDoWork(mfxSession session);
+MFX_DEPRECATED mfxStatus MFX_CDECL MFXDoWork(mfxSession session);
 
 #ifdef __cplusplus
 }
