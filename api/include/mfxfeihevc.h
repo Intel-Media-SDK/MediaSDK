@@ -29,7 +29,7 @@ extern "C"
 #if (MFX_VERSION >= 1027)
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer Header;
 
     mfxU16  SearchPath;
@@ -70,7 +70,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -82,7 +82,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -104,7 +104,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer Header;
     mfxU32  VaBufferID;
     mfxU32  Pitch;
@@ -116,7 +116,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32      MaxFrameSize; /* in bytes */
     mfxU32      NumPasses;    /* up to 8 */
@@ -126,7 +126,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer    Header;
     mfxU32          NumPasses;
     mfxU16          reserved[58];
@@ -162,7 +162,7 @@ typedef struct  {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -233,7 +233,7 @@ typedef struct  {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;
@@ -252,7 +252,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxExtBuffer  Header;
     mfxU32        VaBufferID;
     mfxU32        Pitch;

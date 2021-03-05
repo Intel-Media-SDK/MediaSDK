@@ -62,6 +62,7 @@ The following command-line switches are optional:
  |  [-d]| enable decode error report|
    |[-jpeg_rgb] |RGB Chroma Type|
    |[-device /path/to/device]| set graphics device for processing. For example: `-device /dev/dri/renderD128`. If not specified, defaults to the first Intel device found on the system. |
+  | [-ignore_level_constrain] | ignore level constrain (AVC) |
 |Output format parameters:||
  |  [-i420] | pipeline output format: NV12, output file format: I420|
   | [-nv12] | pipeline output format: NV12, output file format: NV12|

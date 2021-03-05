@@ -71,6 +71,7 @@ set_target_properties(mfx-tracer PROPERTIES   VERSION ${mfx_version_major}.${mfx
 set_target_properties(mfx-tracer PROPERTIES SOVERSION ${mfx_version_major})
 
 target_link_libraries( mfx-tracer ${CMAKE_DL_LIBS})
+target_compile_options(mfx-tracer PRIVATE -Wno-deprecated-declarations)
 
 install(TARGETS mfx-tracer LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

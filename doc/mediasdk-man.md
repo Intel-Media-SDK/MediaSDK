@@ -1,7 +1,7 @@
 ﻿![](./pic/intel_logo.png)
 
 # **Media SDK Developer Reference**
-## Media SDK API Version 1.34
+## Media SDK API Version 1.35
 
 <div style="page-break-before:always" />
 
@@ -315,7 +315,9 @@ Notice revision #20110804
 
 Intel® Media Software Development Kit – SDK, further referred to as the SDK, is a software development library that exposes the media acceleration capabilities of Intel platforms for decoding, encoding and video processing. The API library covers a wide range of Intel platforms.
 
-This document describes the SDK API.
+This document describes the SDK API. 
+
+SDK version 1.35 supposed to be last in 1.xx series. Successor API is oneVPL https://docs.oneapi.com/versions/latest/onevpl/index.html
 
 ## Document Conventions
 
@@ -1745,6 +1747,8 @@ This function is available since SDK API 1.0.
 
 ### <a id='MFXDoWork'>MFXDoWork</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Syntax**
 
 [mfxStatus](#mfxStatus) `MFXDoWork(mfxSession session);`
@@ -2084,6 +2088,8 @@ This function obtains system handles previously set by the [MFXVideoCORE_SetHand
 This function is available since SDK API 1.0.
 
 ### <a id='MFXVideoCORE_SetBufferAllocator'>MFXVideoCORE_SetBufferAllocator</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Syntax**
 
@@ -7791,6 +7797,8 @@ This structure is available since SDK API 1.24.
 
 ## <a id='mfxExtMultiFrameParam'>mfxExtMultiFrameParam</a>
 
+*Deprecated in 1.35 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -7822,6 +7830,8 @@ Multi Frame submission will gather frames from several [joined](#MFXJoinSession)
 This structure is available since SDK API 1.25.
 
 ## <a id='mfxExtMultiFrameControl'>mfxExtMultiFrameControl</a>
+
+*Deprecated in 1.35 and removed starting from 2.0*
 
 **Definition**
 
@@ -8309,7 +8319,7 @@ SDK API 1.8 added HEVC level and tier definitions.
 
 SDK API 1.34 added AV1 level definitions.
 
-SDK API **TBD** added H.264 level 6-6.2 definitions.
+SDK API 1.35 added H.264 level 6-6.2 definitions.
 
 ## <a id='CodecProfile'>CodecProfile</a>
 
@@ -8737,10 +8747,10 @@ The `IOPattern` enumerator itemizes memory access patterns for SDK functions. Us
 --- | ---
 `MFX_IOPATTERN_IN_VIDEO_MEMORY` | Input to SDK functions is a video memory surface
 `MFX_IOPATTERN_IN_SYSTEM_MEMORY` | Input to SDK functions is a linear buffer directly in system memory or in system memory through an external allocator
-`MFX_IOPATTERN_IN_OPAQUE_MEMORY` | Input to SDK functions maps at runtime to either a system memory buffer or a video memory surface.
+`MFX_IOPATTERN_IN_OPAQUE_MEMORY` | Input to SDK functions maps at runtime to either a system memory buffer or a video memory surface. *Deprecated in 1.35 and removed starting from 2.0*
 `MFX_IOPATTERN_OUT_VIDEO_MEMORY` | Output to SDK functions is a video memory surface
 `MFX_IOPATTERN_OUT_SYSTEM_MEMORY` | Output to SDK functions is a linear buffer directly in system memory or in system memory through an external allocator
-`MFX_IOPATTERN_OUT_OPAQUE_MEMORY` | Output to SDK functions maps at runtime to either a system memory buffer or a video memory surface.
+`MFX_IOPATTERN_OUT_OPAQUE_MEMORY` | Output to SDK functions maps at runtime to either a system memory buffer or a video memory surface. *Deprecated in 1.35 and removed starting from 2.0*
 
 **Change History**
 
