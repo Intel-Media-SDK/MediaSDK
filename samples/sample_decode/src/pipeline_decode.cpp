@@ -29,6 +29,7 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include <ctime>
 #include <algorithm>
 #include <thread>
+#include <assert.h>
 #include "pipeline_decode.h"
 #include "sysmem_allocator.h"
 
@@ -343,7 +344,23 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     if (pParams->memType)
         m_memType = pParams->memType;
     else
-        m_memType = pParams->mode == MODE_FILE_DUMP ? SYSTEM_MEMORY : D3D9_MEMORY;
+    {
+        switch (pParams->mode)
+        {
+        case MODE_PERFORMANCE:
+            m_memType = pParams->bUseHWLib? D3D9_MEMORY : SYSTEM_MEMORY;
+            break;
+        case MODE_RENDERING:
+            m_memType = D3D9_MEMORY;
+            break;
+        case MODE_FILE_DUMP:
+            m_memType = SYSTEM_MEMORY;
+            break;
+        default:
+            assert(0);
+            MSDK_CHECK_STATUS(MFX_ERR_UNSUPPORTED, "Unexpected eWorkMode");
+        }
+    }
 
     m_nMaxFps = pParams->nMaxFPS;
     m_nFrames = pParams->nFrames ? pParams->nFrames : MFX_INFINITE;
@@ -437,11 +454,14 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     {
         sts = CreateHWDevice();
         MSDK_CHECK_STATUS(sts, "CreateHWDevice failed");
-        mfxHDL hdl = NULL;
-        sts = m_hwdev->GetHandle(hdl_t, &hdl);
-        MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
-        sts = m_mfxSession.SetHandle(hdl_t, hdl);
-        MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
+        if (pParams->bUseHWLib)
+        {
+            mfxHDL hdl = NULL;
+            sts = m_hwdev->GetHandle(hdl_t, &hdl);
+            MSDK_CHECK_STATUS(sts, "m_hwdev->GetHandle failed");
+            sts = m_mfxSession.SetHandle(hdl_t, hdl);
+            MSDK_CHECK_STATUS(sts, "m_mfxSession.SetHandle failed");
+        }
     }
 
     if (pParams->bIsMVC && !CheckVersion(&version, MSDK_FEATURE_MVC)) {
