@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -239,10 +239,13 @@ void Legacy::SetSupported(ParamSupport& blocks)
     {
         const auto& buf_src = *(const mfxExtAvcTemporalLayers*)pSrc;
         auto& buf_dst = *(mfxExtAvcTemporalLayers*)pDst;
+        // In HEVC spec, nuh_temporal_id_plus1 minus 1 specifies a temporal identifier for the NAL unit
+        // nuh_temporal_id_plus1 is 3 bits only. Then the valid range for layers number is [0,6]
         for (mfxU32 i = 0; i < 7; i++)
         {
             MFX_COPY_FIELD(Layer[i].Scale);
         }
+        MFX_COPY_FIELD(BaseLayerPID);
     });
     blocks.m_ebCopySupported[MFX_EXTBUFF_ENCODER_RESET_OPTION].emplace_back(
         [](const mfxExtBuffer* pSrc, mfxExtBuffer* pDst) -> void
@@ -538,6 +541,30 @@ void Legacy::SetInherited(ParamInheritance& par)
         INHERIT_OPT(MatrixCoefficients);
         INHERIT_OPT(VideoFullRange);
         INHERIT_OPT(ColourDescriptionPresent);
+    });
+
+    par.m_ebInheritDefault[MFX_EXTBUFF_AVC_TEMPORAL_LAYERS].emplace_back(
+        [](const mfxVideoParam& /*parInit*/
+            , const mfxExtBuffer* pSrc
+            , const mfxVideoParam& /*parReset*/
+            , mfxExtBuffer* pDst)
+    {
+        INIT_EB(mfxExtAvcTemporalLayers);
+        // In HEVC spec, nuh_temporal_id_plus1 minus 1 specifies a temporal identifier for the NAL unit
+        // nuh_temporal_id_plus1 is 3 bits only. Then the valid range for layers number is [0,6]
+        bool bEmptyLayer = true;
+        for (mfxU32 i = 0; i < 7; i++)
+        {
+            if (ebReset.Layer[i].Scale > 0) bEmptyLayer = false;
+        }
+        if (bEmptyLayer)
+        {
+            for (mfxU32 i = 0; i < 7; i++)
+            {
+                INHERIT_OPT(Layer[i].Scale);
+            }
+        }
+        INHERIT_OPT(BaseLayerPID);
     });
 #undef INIT_EB
 #undef INHERIT_OPT
