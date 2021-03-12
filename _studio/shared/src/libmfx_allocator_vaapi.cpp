@@ -568,7 +568,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         break;
 
-    case MFX_FOURCC_AYUV:
+    case VA_FOURCC_AYUV:
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
         {
@@ -593,7 +593,7 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         }
         break;
 
-    case MFX_FOURCC_Y410:
+    case VA_FOURCC_Y410:
         if (mfx_fourcc != va_image.format.fourcc) return MFX_ERR_LOCK_MEMORY;
 
         {
@@ -616,13 +616,6 @@ mfxStatus mfxDefaultAllocatorVAAPI::SetFrameData(const VAImage &va_image, mfxU32
         break;
 
 #endif
-    case MFX_FOURCC_VP8_SEGMAP:
-        if (mfx_fourcc == MFX_FOURCC_P8)
-        {
-            ptr->Y = p_buffer;
-        }
-        else return MFX_ERR_LOCK_MEMORY;
-        break;
 
     default:
         return MFX_ERR_LOCK_MEMORY;
