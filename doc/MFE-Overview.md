@@ -306,8 +306,10 @@ Encoder initialization changes
 
 Extended buffers added:
 
-`mfxExtMultiFrameParams`
+`mfxExtMultiFrameParam`
 ----------------------
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 *Definition:*
 ```
@@ -321,7 +323,7 @@ Extended buffers added:
 
      mfxU16      reserved[58];
 
- } mfxExtMultiFrameParams;
+ } mfxExtMultiFrameParam;
 ```
 *Description:*
 
@@ -359,6 +361,8 @@ Frame Management
 ================
 
 New structure added
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 *Definition:*
 ```

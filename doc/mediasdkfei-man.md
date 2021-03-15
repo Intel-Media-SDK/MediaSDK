@@ -400,6 +400,8 @@ In each function description, only commonly used status codes are documented. Th
 
 ## MFXVideoENC_Init
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Syntax**
 
 ```
@@ -428,6 +430,8 @@ This function initializes **ENC** class of functions. [mfxFeiFunction](#mfxFeiFu
 This function is available since SDK API 1.9.
 
 ## MFXVideoENC_Reset
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Syntax**
 
@@ -458,6 +462,8 @@ This function is available since SDK API 1.9.
 
 ## MFXVideoENC_Close
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Syntax**
 
 ```
@@ -485,6 +491,8 @@ This function closes **ENC** class of functions.
 This function is available since SDK API 1.9.
 
 ## <a id='MFXVideoENC_ProcessFrameAsync'>MFXVideoENC_ProcessFrameAsync</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Syntax**
 
@@ -522,6 +530,8 @@ This function is available since SDK API 1.9.
 
 ## <a id='MFXVideoPAK_QueryIOSurf'>MFXVideoPAK_QueryIOSurf</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Syntax**
 
 `mfxStatus MFXVideoPAK_QueryIOSurf(mfxSession session, mfxVideoParam *par, mfxFrameAllocRequest request[2]);`
@@ -555,6 +565,8 @@ This function is available since SDK API 1.23.
 
 ## MFXVideoPAK_Init
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Syntax**
 
 ```
@@ -584,6 +596,8 @@ The function initializes **PAK** class of functions. [mfxFeiFunction](#mfxFeiFun
 This function is available since SDK API 1.9.
 
 ## MFXVideoPAK_Reset
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Syntax**
 
@@ -617,6 +631,8 @@ This function is available since SDK API 1.9.
 
 ## MFXVideoPAK_Close
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Syntax**
 
 ```
@@ -644,6 +660,8 @@ The function closes **PAK** class of functions.
 This function is available since SDK API 1.9.
 
 ## <a id='MFXVideoPAK_ProcessFrameAsync'>MFXVideoPAK_ProcessFrameAsync</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Syntax**
 
@@ -681,6 +699,8 @@ This function is available since SDK API 1.9.
 In the following structures all reserved fields must be zero.
 
 ## <a id='mfxExtFeiPreEncCtrl'>mfxExtFeiPreEncCtrl</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -761,6 +781,8 @@ This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiPreEncMVPredictors'>mfxExtFeiPreEncMVPredictors</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -798,6 +820,8 @@ This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiEncQP'>mfxExtFeiEncQP</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -832,6 +856,8 @@ This structure is available since SDK API 1.9.
 SDK API 1.23 renames `NumQPAlloc` and `QP` fields to `NumMBAlloc` and `MB` respectively.
 
 ## <a id='mfxExtFeiPreEncMV'>mfxExtFeiPreEncMV</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -868,6 +894,9 @@ This structure is used during runtime and should be attached to the [mfxENCOutpu
 This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiPreEncMBStat'>mfxExtFeiPreEncMBStat</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -927,6 +956,8 @@ This structure is used during runtime and should be attached to the [mfxENCOutpu
 This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiEncFrameCtrl'>mfxExtFeiEncFrameCtrl</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -997,6 +1028,8 @@ This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiEncMVPredictors'>mfxExtFeiEncMVPredictors</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -1039,6 +1072,8 @@ This structure is used during runtime and should be attached to the **mfxEncodeC
 This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiEncMBCtrl'>mfxExtFeiEncMBCtrl</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -1097,6 +1132,8 @@ SDK API 1.23 adds `DirectBiasAdjustment, GlobalMotionBiasAdjustment` and `MVCost
 
 ## <a id='mfxExtFeiEncMV'>mfxExtFeiEncMV</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -1130,6 +1167,8 @@ This extension buffer holds output MVs for ENCODE and ENC usage models and input
 This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiEncMBStat'>mfxExtFeiEncMBStat</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -1172,6 +1211,8 @@ This extension buffer holds output MB statistics for ENCODE and ENC usage models
 This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiPakMBCtrl'>mfxExtFeiPakMBCtrl</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -1308,6 +1349,8 @@ This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiSPS'>mfxExtFeiSPS</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -1342,6 +1385,8 @@ See the ISO*/IEC* 14496-10 specification for more information on SPS parameters 
 This structure is available since SDK API 1.9.
 
 ## <a id='mfxExtFeiPPS'>mfxExtFeiPPS</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -1407,6 +1452,8 @@ This structure is available since SDK API 1.9.
 The SDK API 1.23 adds `FrameType`,`DpbBefore`,`DpbAfter` fields and removes `ReferenceFrames` field.
 
 ## <a id='mfxExtFeiSliceHeader'>mfxExtFeiSliceHeader</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -1481,6 +1528,8 @@ See the ISO*/IEC* 14496-10 specification for more information on slice parameter
 This structure is available since SDK API 1.9.
 
 ## mfxExtFeiParam
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 

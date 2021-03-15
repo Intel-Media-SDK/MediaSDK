@@ -1745,6 +1745,8 @@ This function is available since SDK API 1.0.
 
 ### <a id='MFXDoWork'>MFXDoWork</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Syntax**
 
 [mfxStatus](#mfxStatus) `MFXDoWork(mfxSession session);`
@@ -2084,6 +2086,8 @@ This function obtains system handles previously set by the [MFXVideoCORE_SetHand
 This function is available since SDK API 1.0.
 
 ### <a id='MFXVideoCORE_SetBufferAllocator'>MFXVideoCORE_SetBufferAllocator</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Syntax**
 
@@ -7791,6 +7795,8 @@ This structure is available since SDK API 1.24.
 
 ## <a id='mfxExtMultiFrameParam'>mfxExtMultiFrameParam</a>
 
+*Deprecated in 1.34 and removed starting from 2.0*
+
 **Definition**
 
 ```C
@@ -7822,6 +7828,8 @@ Multi Frame submission will gather frames from several [joined](#MFXJoinSession)
 This structure is available since SDK API 1.25.
 
 ## <a id='mfxExtMultiFrameControl'>mfxExtMultiFrameControl</a>
+
+*Deprecated in 1.34 and removed starting from 2.0*
 
 **Definition**
 
@@ -8737,10 +8745,10 @@ The `IOPattern` enumerator itemizes memory access patterns for SDK functions. Us
 --- | ---
 `MFX_IOPATTERN_IN_VIDEO_MEMORY` | Input to SDK functions is a video memory surface
 `MFX_IOPATTERN_IN_SYSTEM_MEMORY` | Input to SDK functions is a linear buffer directly in system memory or in system memory through an external allocator
-`MFX_IOPATTERN_IN_OPAQUE_MEMORY` | Input to SDK functions maps at runtime to either a system memory buffer or a video memory surface.
+`MFX_IOPATTERN_IN_OPAQUE_MEMORY` | Input to SDK functions maps at runtime to either a system memory buffer or a video memory surface. *Deprecated in 1.34 and removed starting from 2.0*
 `MFX_IOPATTERN_OUT_VIDEO_MEMORY` | Output to SDK functions is a video memory surface
 `MFX_IOPATTERN_OUT_SYSTEM_MEMORY` | Output to SDK functions is a linear buffer directly in system memory or in system memory through an external allocator
-`MFX_IOPATTERN_OUT_OPAQUE_MEMORY` | Output to SDK functions maps at runtime to either a system memory buffer or a video memory surface.
+`MFX_IOPATTERN_OUT_OPAQUE_MEMORY` | Output to SDK functions maps at runtime to either a system memory buffer or a video memory surface. *Deprecated in 1.34 and removed starting from 2.0*
 
 **Change History**
 
