@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020 Intel Corporation
+// Copyright (c) 2017-2021 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -135,12 +135,13 @@ namespace MfxHwMpeg2Encode
         mfxU32                              m_codedbufPBSize;
 
         VAEncMiscParameterBuffer           *m_pMiscParamsFps;
+        VAEncMiscParameterBuffer           *m_pMiscParamsBrc;
         VAEncMiscParameterBuffer           *m_pMiscParamsQuality;
         VAEncMiscParameterBuffer           *m_pMiscParamsSeqInfo;
         VAEncMiscParameterBuffer           *m_pMiscParamsSkipFrame;
 
-
         VABufferID                          m_miscParamFpsId;
+        VABufferID                          m_miscParamBrcId;
         VABufferID                          m_miscParamQualityId;
         VABufferID                          m_miscParamSeqInfoId;
         VABufferID                          m_miscParamSkipFrameId;
