@@ -781,6 +781,9 @@ mfxStatus VideoDECODEH265::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
     mfxStatus sts = QueryIOSurfInternal(platform, type, &params, request);
     MFX_CHECK_STS(sts);
 
+    sts = UpdateCscOutputFormat(&params, request);
+    MFX_CHECK_STS(sts);
+
     if (isInternalManaging)
     {
         request->NumFrameSuggested = request->NumFrameMin = (mfxU16)CalculateAsyncDepth(platform, par);
