@@ -961,14 +961,17 @@ mfxStatus VAAPIEncoder::FillMiscParameterBuffer(ExecuteBuffers* pExecuteBuffers)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamBrcId);
     MFX_CHECK_STS(sts);
 
-    vaSts = vaCreateBuffer(m_vaDisplay,
-        m_vaContextEncode,
-        VAEncMiscParameterBufferType,
-        sizeof(VAEncMiscParameterRateControl) + sizeof(VAEncMiscParameterBuffer),
-        1,
-        m_pMiscParamsBrc,
-        &m_miscParamBrcId);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    if (pExecuteBuffers->m_sps.RateControlMethod == MFX_RATECONTROL_VBR)
+    {
+        vaSts = vaCreateBuffer(m_vaDisplay,
+            m_vaContextEncode,
+            VAEncMiscParameterBufferType,
+            sizeof(VAEncMiscParameterRateControl) + sizeof(VAEncMiscParameterBuffer),
+            1,
+            m_pMiscParamsBrc,
+            &m_miscParamBrcId);
+        MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+    }
 
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_miscParamQualityId);
     MFX_CHECK_STS(sts);
