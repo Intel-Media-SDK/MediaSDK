@@ -20,10 +20,6 @@
 
 #pragma once
 
-#if !defined(MFX_VA_LINUX)
-//TODO: move content here
-#include "hevce_ddi_main.h"
-#else
 namespace HEVCEHW
 {
 typedef struct tagENCODE_CAPS_HEVC
@@ -131,4 +127,3 @@ typedef struct tagENCODE_CAPS_HEVC
 
 } ENCODE_CAPS_HEVC;
 }; //namespace HEVCEHW
-#endif

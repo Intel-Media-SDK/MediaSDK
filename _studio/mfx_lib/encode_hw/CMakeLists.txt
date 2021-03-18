@@ -83,6 +83,7 @@ list( APPEND sources
     hevc/agnostic/base/hevcehw_base_dpb_report.cpp
     hevc/agnostic/base/hevcehw_base_encoded_frame_info.cpp
     hevc/agnostic/base/hevcehw_base_ext_brc.cpp
+    hevc/agnostic/base/hevcehw_base_la_ext_brc.cpp
     hevc/agnostic/base/hevcehw_base_hdr_sei.cpp
     hevc/agnostic/base/hevcehw_base_hrd.cpp
     hevc/agnostic/base/hevcehw_base_interlace.cpp
