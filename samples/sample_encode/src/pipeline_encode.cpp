@@ -545,6 +545,21 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.FrameInfo.PicStruct    = pInParams->nPicStruct;
     m_mfxEncParams.mfx.FrameInfo.Shift        = pInParams->shouldUseShifted10BitEnc;
 
+#if (MFX_VERSION >= 1027)
+    // set BitDepthLuma/BitDepthChroma in case of VME
+    if (!pInParams->enableQSVFF)
+    {
+        if (pInParams->TargetBitDepthLuma)
+        {
+            m_mfxEncParams.mfx.FrameInfo.BitDepthLuma = pInParams->TargetBitDepthLuma;
+        }
+        if (pInParams->TargetBitDepthChroma)
+        {
+            m_mfxEncParams.mfx.FrameInfo.BitDepthChroma = pInParams->TargetBitDepthChroma;
+        }
+    }
+#endif
+
     // width must be a multiple of 16
     // height must be a multiple of 16 in case of frame picture and a multiple of 32 in case of field picture
     m_mfxEncParams.mfx.FrameInfo.Width  = MSDK_ALIGN16(pInParams->nDstWidth);
@@ -702,10 +717,14 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 #endif
 
     // set up mfxCodingOption3
+	// VDEnc only support TargetBitDepthLuma/TargetBitDepthChroma
     if (pInParams->nGPB || pInParams->LowDelayBRC || pInParams->WeightedPred || pInParams->WeightedBiPred
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
         || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
         || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality || pInParams->WinBRCSize
+#if (MFX_VERSION >= 1027)
+        || ((pInParams->TargetBitDepthLuma || pInParams->TargetBitDepthChroma) && pInParams->enableQSVFF)
+#endif
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
         || pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset
 #endif
@@ -734,6 +753,14 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         codingOption3->QVBRQuality    = pInParams->QVBRQuality;
 #if (MFX_VERSION >= 1026)
         codingOption3->ExtBrcAdaptiveLTR = pInParams->ExtBrcAdaptiveLTR;
+#endif
+
+#if (MFX_VERSION >= 1027)
+        if (pInParams->enableQSVFF)
+        {
+            codingOption3->TargetBitDepthLuma = pInParams->TargetBitDepthLuma;
+            codingOption3->TargetBitDepthChroma = pInParams->TargetBitDepthChroma;
+        }
 #endif
         codingOption3->WinBRCSize = pInParams->WinBRCSize;
         codingOption3->WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
@@ -852,6 +879,21 @@ mfxStatus CEncodingPipeline::InitMfxVppParams(sInputParams *pInParams)
     // Fill Shift bit
     m_mfxVppParams.vpp.In.Shift = pInParams->shouldUseShifted10BitVPP;
     m_mfxVppParams.vpp.Out.Shift = pInParams->shouldUseShifted10BitEnc; // This output should correspond to Encoder settings
+
+#if (MFX_VERSION >= 1027)
+    // Fill BitDepthLuma/BitDepthChroma in case of VME
+    if (!pInParams->enableQSVFF)
+    {
+        if (pInParams->TargetBitDepthLuma)
+        {
+            m_mfxVppParams.vpp.Out.BitDepthLuma = pInParams->TargetBitDepthLuma;
+        }
+        if (pInParams->TargetBitDepthChroma)
+        {
+            m_mfxVppParams.vpp.Out.BitDepthChroma = pInParams->TargetBitDepthChroma;
+        }
+    }
+#endif
 
     // input frame info
 #if defined (ENABLE_V4L2_SUPPORT)
@@ -1730,11 +1772,14 @@ mfxStatus CEncodingPipeline::Init(sInputParams *pParams)
     }
 
     // create preprocessor if resizing was requested from command line
-    // or if different FourCC is set
+    // or if different FourCC is set or if TargetBitDepthLuma/TargetBitDepthChroma set in VME
     if (pParams->nWidth != pParams->nDstWidth ||
         pParams->nHeight != pParams->nDstHeight ||
-        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC )
-
+        FileFourCC2EncFourCC(pParams->FileInputFourCC) != pParams->EncodeFourCC
+#if (MFX_VERSION >= 1027)
+        || (!pParams->enableQSVFF && (pParams->TargetBitDepthLuma || pParams->TargetBitDepthChroma))
+#endif
+        )
     {
         bVpp = true;
         if (m_bIsFieldSplitting)

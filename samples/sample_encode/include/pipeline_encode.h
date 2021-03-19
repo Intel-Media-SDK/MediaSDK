@@ -213,6 +213,8 @@ struct sInputParams
 
 #if (MFX_VERSION >= 1027)
     msdk_char *RoundingOffsetFile;
+    mfxU16 TargetBitDepthLuma;
+    mfxU16 TargetBitDepthChroma;
 #endif
     msdk_char DumpFileName[MSDK_MAX_FILENAME_LEN];
     msdk_char uSEI[MSDK_MAX_USER_DATA_UNREG_SEI_LEN];

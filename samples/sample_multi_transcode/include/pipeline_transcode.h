@@ -348,6 +348,11 @@ namespace TranscodingSample
         mfxU32 mfeTimeout;
 #endif
 
+#if (MFX_VERSION >= 1027)
+        mfxU16 TargetBitDepthLuma;
+        mfxU16 TargetBitDepthChroma;
+#endif
+
 #if defined(LIBVA_WAYLAND_SUPPORT)
         mfxU16 nRenderWinX;
         mfxU16 nRenderWinY;
