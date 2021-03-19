@@ -293,6 +293,10 @@ void TranscodingSample::PrintHelp()
 #endif
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
     msdk_printf(MSDK_STRING("  -lowpower:<on,off>       Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
+#if (MFX_VERSION >= 1027)
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
+#endif
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
     msdk_printf(MSDK_STRING("                Set Regions of Interest for each frame from <roi-file-name>\n"));
@@ -1307,6 +1311,28 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
     {
         InputParams.bUseOpaqueMemory = true;
     }
+#if (MFX_VERSION >= 1027)
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-TargetBitDepthLuma")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.TargetBitDepthLuma))
+        {
+            PrintError(MSDK_STRING("TargetBitDepthLuma param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-TargetBitDepthChroma")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.TargetBitDepthChroma))
+        {
+            PrintError(MSDK_STRING("TargetBitDepthChroma param is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+#endif
     else
     {
         // no matching argument was found

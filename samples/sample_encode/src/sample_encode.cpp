@@ -90,6 +90,10 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-num_active_P numRefs]   - number of maximum allowed references for P frames (for HEVC only)\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL0 numRefs] - number of maximum allowed references for B frames in L0 (for HEVC only)\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL1 numRefs] - number of maximum allowed references for B frames in L1 (for HEVC only)\n"));
+#if (MFX_VERSION >= 1027)
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
+#endif
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
     msdk_printf(MSDK_STRING("           if [-icq] option is also enabled simultaneously, then LA_ICQ bitrate control algotithm will be used. \n"));
@@ -371,7 +375,29 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
             PrintHelp(strInput[0], MSDK_STRING("overall fps is invalid"));
             return MFX_ERR_UNSUPPORTED;
         }
+	}
+#if (MFX_VERSION >= 1027)
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-TargetBitDepthLuma")))
+    {
+        VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->TargetBitDepthLuma))
+        {
+            PrintHelp(strInput[0], MSDK_STRING("TargetBitDepthLuma is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
     }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-TargetBitDepthChroma")))
+    {
+        VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+
+        if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->TargetBitDepthChroma))
+        {
+            PrintHelp(strInput[0], MSDK_STRING("TargetBitDepthChroma is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+#endif
     else
     {
         return MFX_ERR_NOT_FOUND;
