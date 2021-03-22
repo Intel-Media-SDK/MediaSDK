@@ -80,7 +80,6 @@ list( APPEND sources
     hevc/agnostic/base/hevcehw_base_alloc.cpp
     hevc/agnostic/base/hevcehw_base_constraints.cpp
     hevc/agnostic/base/hevcehw_base_dirty_rect.cpp
-    hevc/agnostic/base/hevcehw_base_dpb_report.cpp
     hevc/agnostic/base/hevcehw_base_encoded_frame_info.cpp
     hevc/agnostic/base/hevcehw_base_ext_brc.cpp
     hevc/agnostic/base/hevcehw_base_la_ext_brc.cpp

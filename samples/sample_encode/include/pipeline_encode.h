@@ -228,11 +228,6 @@ struct sInputParams
     enum AtomISPMode MipiMode;
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxI16 DeblockingAlphaTcOffset;
-    mfxI16 DeblockingBetaOffset;
-#endif
-
 };
 
 

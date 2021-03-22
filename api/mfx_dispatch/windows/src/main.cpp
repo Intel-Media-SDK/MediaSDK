@@ -67,13 +67,6 @@ namespace
         {MFX_LIB_HARDWARE, MFX_IMPL_HARDWARE4, 3},
         {MFX_LIB_SOFTWARE, MFX_IMPL_SOFTWARE,  0},
         {MFX_LIB_SOFTWARE, MFX_IMPL_SOFTWARE | MFX_IMPL_AUDIO,  0},
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        //MFX_SINGLE_THREAD case
-        {MFX_LIB_HARDWARE, MFX_IMPL_HARDWARE | MFX_IMPL_EXTERNAL_THREADING, 0},
-        {MFX_LIB_HARDWARE, MFX_IMPL_HARDWARE2 | MFX_IMPL_EXTERNAL_THREADING, 1},
-        {MFX_LIB_HARDWARE, MFX_IMPL_HARDWARE3 | MFX_IMPL_EXTERNAL_THREADING, 2},
-        {MFX_LIB_HARDWARE, MFX_IMPL_HARDWARE4 | MFX_IMPL_EXTERNAL_THREADING, 3},
-#endif
     };
 
     const
@@ -95,9 +88,6 @@ namespace
         {4, 4},  // MFX_IMPL_HARDWARE3
         {5, 5},  // MFX_IMPL_HARDWARE4
         {2, 6},  // MFX_IMPL_RUNTIME, same as MFX_IMPL_HARDWARE_ANY
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        {8, 11},  // MFX_SINGLE_THREAD,
-#endif
         {7, 7}   // MFX_IMPL_AUDIO
     };
 
@@ -212,10 +202,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
     // implementation interface masked from the input parameter
     mfxIMPL implInterface = par.Implementation & -MFX_IMPL_VIA_ANY;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    bool isSingleThread = (implInterface & MFX_IMPL_EXTERNAL_THREADING) > 0;
-    implInterface &= ~MFX_IMPL_EXTERNAL_THREADING;
-#endif
     mfxIMPL implInterfaceOrig = implInterface;
     mfxVersion requiredVersion = {{MFX_VERSION_MINOR, MFX_VERSION_MAJOR}};
 
@@ -225,11 +211,7 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
         return MFX_ERR_NULL_PTR;
     }
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    if (((MFX_IMPL_AUTO > implMethod) || (MFX_IMPL_SINGLE_THREAD < implMethod)) && !(par.Implementation & MFX_IMPL_AUDIO))
-#else
     if (((MFX_IMPL_AUTO > implMethod) || (MFX_IMPL_RUNTIME < implMethod)) && !(par.Implementation & MFX_IMPL_AUDIO))
-#endif
     {
         return MFX_ERR_UNSUPPORTED;
     }
@@ -259,11 +241,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     maxImplIdx = implTypesRange[implMethod].maxIndex;
     do
     {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        if (isSingleThread && implTypes[curImplIdx].implType != MFX_LIB_HARDWARE)
-            continue;
-#endif
-
         int currentStorage = MFX::MFX_STORAGE_ID_FIRST;
         implInterface = implInterfaceOrig;
         do
@@ -310,10 +287,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
                     DISPATCHER_LOG_INFO((("loading library %S\n"), dllName));
                     // try to load the selected DLL
                     curImpl = implTypes[curImplIdx].impl;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-                    if (isSingleThread)
-                        curImpl |= MFX_IMPL_EXTERNAL_THREADING;
-#endif
                     mfxRes = pHandle->LoadSelectedDLL(dllName, implType, curImpl, implInterface, par);
                     // unload the failed DLL
                     if (MFX_ERR_NONE != mfxRes)
@@ -357,11 +330,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     // Load RT from app folder (libmfxsw64 with API >= 1.10)
     do
     {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        if (isSingleThread && implTypes[curImplIdx].implType != MFX_LIB_HARDWARE)
-            continue;
-#endif
-
         implInterface = implInterfaceOrig;
         // initialize the library iterator
         mfxRes = libIterator.Init(implTypes[curImplIdx].implType,
@@ -397,10 +365,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
 
                 // try to load the selected DLL
                 curImpl = implTypes[curImplIdx].impl;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-                if (isSingleThread)
-                    curImpl |= MFX_IMPL_EXTERNAL_THREADING;
-#endif
                 mfxRes = pHandle->LoadSelectedDLL(dllName, implType, curImpl, implInterface, par);
                 // unload the failed DLL
                 if (MFX_ERR_NONE != mfxRes)
@@ -429,11 +393,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     curImplIdx = implTypesRange[implMethod].minIndex;
     do
     {
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        if (isSingleThread && implTypes[curImplIdx].implType != MFX_LIB_HARDWARE)
-            continue;
-#endif
-
         implInterface = implInterfaceOrig;
 
         if (par.Implementation & MFX_IMPL_AUDIO)
@@ -468,10 +427,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
                 if (MFX_ERR_NONE == mfxRes)
                 {
                     curImpl = implTypes[curImplIdx].impl;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-                    if (isSingleThread)
-                        curImpl |= MFX_IMPL_EXTERNAL_THREADING;
-#endif
                     // try to load the selected DLL using default DLL search mechanism
                     mfxRes = pHandle->LoadSelectedDLL(dllName,
                         implTypes[curImplIdx].implType,
@@ -908,9 +863,6 @@ mfxStatus MFXInitEx(mfxInitParam par, mfxSession *session)
     switch (par.Implementation & 0xf)
     {
     case MFX_IMPL_SOFTWARE:
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    case MFX_IMPL_SINGLE_THREAD:
-#endif
         return MFX_ERR_UNSUPPORTED;
     case MFX_IMPL_AUTO:
     case MFX_IMPL_HARDWARE:

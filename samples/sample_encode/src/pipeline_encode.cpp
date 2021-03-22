@@ -564,14 +564,6 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
             hevcTiles->NumTileRows = pInParams->nEncTileRows;
             hevcTiles->NumTileColumns = pInParams->nEncTileCols;
         }
-#if MFX_VERSION >= MFX_VERSION_NEXT
-        else if (m_mfxEncParams.mfx.CodecId == MFX_CODEC_VP9)
-        {
-            auto vp9Param = m_mfxEncParams.AddExtBuffer<mfxExtVP9Param>();
-            vp9Param->NumTileRows    = pInParams->nEncTileRows;
-            vp9Param->NumTileColumns = pInParams->nEncTileCols;
-        }
-#endif
     }
     if (*pInParams->uSEI && (pInParams->CodecId == MFX_CODEC_AVC || pInParams->CodecId == MFX_CODEC_HEVC))
     {
@@ -706,9 +698,6 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         || pInParams->nPRefType || pInParams->IntRefCycleDist || pInParams->nAdaptiveMaxFrameSize
         || pInParams->nNumRefActiveP || pInParams->nNumRefActiveBL0 || pInParams->nNumRefActiveBL1
         || pInParams->ExtBrcAdaptiveLTR || pInParams->QVBRQuality || pInParams->WinBRCSize
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        || pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset
-#endif
         || pInParams->WinBRCMaxAvgKbps || pInParams->nTransformSkip)
     {
         auto codingOption3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
@@ -738,13 +727,6 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         codingOption3->WinBRCSize = pInParams->WinBRCSize;
         codingOption3->WinBRCMaxAvgKbps = pInParams->WinBRCMaxAvgKbps;
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        if (pInParams->DeblockingAlphaTcOffset || pInParams->DeblockingBetaOffset)
-        {
-            codingOption3->DeblockingAlphaTcOffset = pInParams->DeblockingAlphaTcOffset;
-            codingOption3->DeblockingBetaOffset = pInParams->DeblockingBetaOffset;
-        }
-#endif
     }
 
     if (pInParams->nAvcTemp)

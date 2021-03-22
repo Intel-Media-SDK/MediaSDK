@@ -28,18 +28,8 @@ or https://software.intel.com/en-us/media-client-solutions-support.
 #include "vm/file_defs.h"
 #include "vm/time_defs.h"
 
-// Run-time HSBC
-// the condition below must be changed to MFX_VERSION >= 1027 after API is promoted to 1.27
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-#define ENABLE_VPP_RUNTIME_HSBC
-#endif
-
 #if (MFX_VERSION >= 1026)
 #define ENABLE_MCTF
-#if defined(MFX_VERSION_NEXT) && (MFX_VERSION >= MFX_VERSION_NEXT)
-//---MCTF, extended interface
-#undef ENABLE_MCTF_EXT
-#endif
 enum {MCTF_BITRATE_MULTIPLIER = 100000};
 #endif
 

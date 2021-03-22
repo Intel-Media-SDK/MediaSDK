@@ -193,10 +193,6 @@ void Legacy::SetSupported(ParamSupport& blocks)
         MFX_COPY_FIELD(WinBRCSize);
         MFX_COPY_FIELD(EnableNalUnitType);
         MFX_COPY_FIELD(LowDelayBRC);
-#if MFX_VERSION >= MFX_VERSION_NEXT
-        MFX_COPY_FIELD(DeblockingAlphaTcOffset);
-        MFX_COPY_FIELD(DeblockingBetaOffset);
-#endif
         MFX_COPY_FIELD(BRCPanicMode);
         MFX_COPY_FIELD(ScenarioInfo);
     });
@@ -3655,10 +3651,6 @@ mfxStatus Legacy::CheckESPackParam(mfxVideoParam & par, eMFXHWType hw)
             , mfxU16(MFX_CODINGOPTION_OFF)
             , mfxU16(MFX_CODINGOPTION_ON * !!par.mfx.EncodedOrder));
 
-#if MFX_VERSION >= MFX_VERSION_NEXT
-        changed += CheckRangeOrSetDefault<mfxI16>(pCO3->DeblockingAlphaTcOffset, -12, 12, 0);
-        changed += CheckRangeOrSetDefault<mfxI16>(pCO3->DeblockingBetaOffset, -12, 12, 0);
-#endif
     }
 
     MFX_CHECK(!changed, MFX_WRN_INCOMPATIBLE_VIDEO_PARAM);
@@ -4762,20 +4754,6 @@ mfxStatus Legacy::GetSliceHeader(
     s.deblocking_filter_override_flag = (s.deblocking_filter_disabled_flag != pps.deblocking_filter_disabled_flag);
     s.beta_offset_div2                = pps.beta_offset_div2;
     s.tc_offset_div2                  = pps.tc_offset_div2;
-#if MFX_VERSION >= MFX_VERSION_NEXT
-    const mfxExtCodingOption3&   CO3 = ExtBuffer::Get(par);
-    const mfxExtCodingOption3  *pCO3 = ExtBuffer::Get(task.ctrl);
-
-    SetDefault(pCO3, &CO3);
-
-    s.beta_offset_div2 = mfxI8(mfx::clamp(mfxI32(pCO3->DeblockingBetaOffset),    -12, 12) * 0.5 * !s.deblocking_filter_disabled_flag);
-    s.tc_offset_div2   = mfxI8(mfx::clamp(mfxI32(pCO3->DeblockingAlphaTcOffset), -12, 12) * 0.5 * !s.deblocking_filter_disabled_flag);
-
-    s.deblocking_filter_override_flag |=
-        !s.deblocking_filter_disabled_flag
-        && (s.beta_offset_div2 != pps.beta_offset_div2
-            || s.tc_offset_div2 != pps.tc_offset_div2);
-#endif
 
     s.loop_filter_across_slices_enabled_flag = pps.loop_filter_across_slices_enabled_flag;
     s.num_entry_point_offsets *= !(pps.tiles_enabled_flag || pps.entropy_coding_sync_enabled_flag);

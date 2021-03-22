@@ -176,10 +176,6 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-qpfile <filepath>]     - if specified, the encoder will take frame parameters (frame number, QP, frame type) from text file\n"));
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
     msdk_printf(MSDK_STRING("                              the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled\n"));
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    msdk_printf(MSDK_STRING("   [-dblk_alpha]            - alpha deblocking parameter. In range[-12,12]. 0 by default.\n"));
-    msdk_printf(MSDK_STRING("   [-dblk_beta]             - beta deblocking parameter. In range[-12,12]. 0 by default.\n"));
-#endif
 #if (MFX_VERSION >= 1024)
     msdk_printf(MSDK_STRING("   [-extbrc:<on,off,implicit>] - External BRC for AVC and HEVC encoders\n"));
 #endif
@@ -1095,26 +1091,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-ExtBrcAdaptiveLTR:off")))
         {
             pParams->ExtBrcAdaptiveLTR = MFX_CODINGOPTION_OFF;;
-        }
-#endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        else if(0 == msdk_strcmp(strInput[i], MSDK_STRING("-dblk_alpha")))
-        {
-            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->DeblockingAlphaTcOffset))
-            {
-                PrintHelp(strInput[0], MSDK_STRING("Alpha deblocking parameter is invalid"));
-                return MFX_ERR_UNSUPPORTED;
-            }
-        }
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-dblk_beta")))
-        {
-            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], pParams->DeblockingBetaOffset))
-            {
-                PrintHelp(strInput[0], MSDK_STRING("Beta deblocking parameter is invalid"));
-                return MFX_ERR_UNSUPPORTED;
-            }
         }
 #endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-pp")))

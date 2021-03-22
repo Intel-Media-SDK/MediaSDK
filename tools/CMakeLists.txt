@@ -1,4 +1,4 @@
-# Copyright (c) 2017-2020 Intel Corporation
+# Copyright (c) 2017-2021 Intel Corporation
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -18,7 +18,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-add_subdirectory(asg-hevc)
-add_subdirectory(bs_parser_hevc)
-add_subdirectory(bs_parser_hevc/tools/hevc_fei_extractor)
+# Not viable w/o VERSION_NEXT
+# add_subdirectory(asg-hevc)
+# add_subdirectory(bs_parser_hevc)
+# add_subdirectory(bs_parser_hevc/tools/hevc_fei_extractor)
+
 add_subdirectory(tracer)
