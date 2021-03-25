@@ -129,6 +129,7 @@ The following command-line switches are optional:
   | [-perf_opt n] | sets number of prefetched frames. In performance mode app preallocates buffer and loads first n frames |
   | [-fps]| limits overall fps of pipeline|
  |  [-dump fileName] |dump MSDK components configuration to the file in text form|
+  | [-tcbrctestfile fileName] |file with target frame sizes in bytes. It can be defined for each frame in format: one value per line|
   | [-usei]| insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message) <br>the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled|
   | [-extbrc:<on,off,implicit>] | External BRC for AVC and HEVC encoders|
  |  [-ExtBrcAdaptiveLTR:<on,off>] | Set AdaptiveLTR for implicit extbrcExample: `./sample_encode h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7`|
