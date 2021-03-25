@@ -111,6 +111,7 @@ struct sInputParams
     mfxU16 nEncTileCols; // number of columns for encoding tiling
 
     msdk_string strQPFilePath;
+    msdk_string strTCBRCFilePath;
 
     MemType memType;
     bool bUseHWLib; // true if application wants to use HW MSDK library
@@ -167,6 +168,7 @@ struct sInputParams
     bool bSoftRobustFlag;
 
     bool QPFileMode;
+    bool TCBRCFileMode;
 
     mfxU32 nTimeout;
     mfxU16 nPerfOpt; // size of pre-load buffer which used for loop encode
@@ -332,6 +334,7 @@ protected:
     CSmplYUVReader m_FileReader;
     CEncTaskPool   m_TaskPool;
     QPFile::Reader m_QPFileReader;
+    TCBRCTestFile::Reader m_TCBRCFileReader;
 
     MFXVideoSession m_mfxSession;
     MFXVideoENCODE* m_pmfxENC;
@@ -378,6 +381,7 @@ protected:
     CHWDevice *m_hwdev;
 
     bool m_bQPFileMode;
+    bool m_bTCBRCFileMode;
 
     bool isV4L2InputEnabled;
 #if (MFX_VERSION >= 1027)
@@ -446,6 +450,7 @@ protected:
     virtual mfxU32 FileFourCC2EncFourCC(mfxU32 fcc);
 
     void InitExtMVCBuffers(mfxExtMVCSeqDesc *mvcBuffer) const;
+    mfxStatus ConfigTCBRCTest(mfxFrameSurface1* pSurf);
 };
 
 #endif // __PIPELINE_ENCODE_H__
