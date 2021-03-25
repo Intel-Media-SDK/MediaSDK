@@ -5303,6 +5303,7 @@ void MfxHwH264Encode::InheritDefaultValues(
 
     InheritOption(extOptInit.NalHrdConformance,         extOptReset.NalHrdConformance);
     InheritOption(extOpt3Init.LowDelayBRC,              extOpt3Reset.LowDelayBRC);
+    InheritOption(extOpt3Init.AdaptiveMaxFrameSize,     extOpt3Reset.AdaptiveMaxFrameSize);
     InheritOption(parInit.mfx.RateControlMethod,        parReset.mfx.RateControlMethod);
     InheritOption(parInit.mfx.FrameInfo.FrameRateExtN,  parReset.mfx.FrameInfo.FrameRateExtN);
     InheritOption(parInit.mfx.FrameInfo.FrameRateExtD,  parReset.mfx.FrameInfo.FrameRateExtD);
