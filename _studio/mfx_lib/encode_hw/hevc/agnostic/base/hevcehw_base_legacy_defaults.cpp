@@ -439,8 +439,7 @@ public:
         auto fcc = par.mvp.mfx.FrameInfo.FourCC;
         bool bMax420 =
             fcc == MFX_FOURCC_NV12
-            || fcc == MFX_FOURCC_P010
-            || (IsOn(par.mvp.mfx.LowPower) && (fcc == MFX_FOURCC_Y210 || fcc == MFX_FOURCC_YUY2));
+            || fcc == MFX_FOURCC_P010;
 
         bool bMax422 =
             fcc == MFX_FOURCC_YUY2
