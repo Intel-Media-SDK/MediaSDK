@@ -1497,6 +1497,62 @@ mfxU16 QPFile::Reader::GetCurrentFrameType() const    { return m_FrameVals.at(m_
 mfxU32 QPFile::Reader::GetFramesNum() const           { return m_nFrames; }
 void   QPFile::Reader::NextFrame()                    { ++m_CurFrameNum; }
 
+
+void TCBRCTestFile::Reader::ResetState(ReaderStatus set_sts)
+{
+    m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+    m_ReaderSts = set_sts;
+    m_FrameVals.clear();
+}
+
+mfxStatus TCBRCTestFile::Reader::Read(const msdk_string& strFileName, mfxU32 codecid)
+{
+    m_ReaderSts = READER_ERR_NONE;
+    m_CurFrameNum = 0;
+
+    if (codecid != MFX_CODEC_AVC && codecid != MFX_CODEC_HEVC)
+    {
+        ResetState(READER_ERR_CODEC_UNSUPPORTED);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+
+    std::ifstream ifs(strFileName, msdk_fstream::in);
+    if (!ifs.is_open())
+    {
+        ResetState(READER_ERR_FILE_NOT_OPEN);
+        return MFX_ERR_NOT_INITIALIZED;
+    }
+
+    FrameInfo   frameInfo{};
+    std::string line;
+
+
+    mfxU32 n = 0;
+    while (TCBRCTestFile::get_line(ifs, line))
+    {
+        frameInfo.displayOrder = TCBRCTestFile::ReadDisplayOrder(line);
+        frameInfo.targetFrameSize = TCBRCTestFile::ReadTargetFrameSize(line);
+        if (frameInfo.displayOrder==0 && n > 0)
+            frameInfo.displayOrder  = n;
+        m_FrameVals.push_back(frameInfo);
+        n++;
+    }
+    return MFX_ERR_NONE;
+}
+std::string TCBRCTestFile::Reader::GetErrorMessage() const { return ReaderStatusToString(m_ReaderSts); }
+mfxU32 TCBRCTestFile::Reader::GetTargetFrameSize(mfxU32 displayOrder) const
+{ 
+    mfxU32 num = (mfxU32)m_FrameVals.size();
+    if (num == 0) return 0;
+    for (mfxU32 i = 0; i < num - 1; i++)
+    {
+        if (m_FrameVals.at(i + 1).displayOrder > displayOrder)
+            return m_FrameVals.at(i).targetFrameSize;
+
+    }
+    return m_FrameVals.at(num - 1).targetFrameSize;
+}
+
 mfxStatus ConvertFrameRate(mfxF64 dFrameRate, mfxU32* pnFrameRateExtN, mfxU32* pnFrameRateExtD)
 {
     MSDK_CHECK_POINTER(pnFrameRateExtN, MFX_ERR_NULL_PTR);

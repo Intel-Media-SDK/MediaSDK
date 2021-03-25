@@ -174,6 +174,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-uncut]                 - do not cut output file in looped mode (in case of -timeout option)\n"));
     msdk_printf(MSDK_STRING("   [-dump fileName]         - dump MSDK components configuration to the file in text form\n"));
     msdk_printf(MSDK_STRING("   [-qpfile <filepath>]     - if specified, the encoder will take frame parameters (frame number, QP, frame type) from text file\n"));
+    msdk_printf(MSDK_STRING("   [-tcbrctestfile <filepath>] - if specified, the encoder will take targetFrameSize parameters for TCBRC test from text file\n"));
     msdk_printf(MSDK_STRING("   [-usei]                  - insert user data unregistered SEI. eg: 7fc92488825d11e7bb31be2e44b06b34:0:MSDK (uuid:type<0-preifx/1-suffix>:message)\n"));
     msdk_printf(MSDK_STRING("                              the suffix SEI for HEVCe can be inserted when CQP used or HRD disabled\n"));
 #if (MFX_VERSION >= MFX_VERSION_NEXT)
@@ -400,6 +401,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
     pParams->EncodeFourCC = 0;
     pParams->nPRefType = MFX_P_REF_DEFAULT;
     pParams->QPFileMode = false;
+    pParams->TCBRCFileMode = false;
     pParams->BitrateLimit = MFX_CODINGOPTION_OFF;
 #if (MFX_VERSION >= 1027)
     pParams->RoundingOffsetFile = NULL;
@@ -717,7 +719,13 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->QPFileMode = true;
             pParams->strQPFilePath = strInput[++i];
         }
-
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-tcbrctestfile")))
+        {
+            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+            MSDK_CHECK_ERROR(msdk_strlen(strInput[i + 1]), 0, MFX_ERR_NOT_INITIALIZED);
+            pParams->TCBRCFileMode = true;
+            pParams->strTCBRCFilePath = strInput[++i];
+        }
 #if D3D_SURFACES_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")))
         {

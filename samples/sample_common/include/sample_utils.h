@@ -212,6 +212,91 @@ namespace QPFile {
     }
 }
 
+namespace TCBRCTestFile {
+
+    enum ReaderStatus
+    {
+        READER_ERR_NONE,
+        READER_ERR_NOT_INITIALIZED,
+        READER_ERR_CODEC_UNSUPPORTED,
+        READER_ERR_FILE_NOT_OPEN,
+        READER_ERR_INCORRECT_FILE
+    };
+
+    struct FrameInfo
+    {
+        mfxU32 displayOrder;
+        mfxU32 targetFrameSize;
+    };
+
+    // TCBRCTestFile reads target frame size in display order
+    // from external text file (for encoding in Low delay BRC mode)
+
+    class Reader
+    {
+    public:
+        mfxStatus Read(const msdk_string& strFileName, mfxU32 codecid);
+        void ResetState();
+
+        mfxU32 GetTargetFrameSize(mfxU32 frameOrder) const;
+        mfxU32 GetFramesNum() const;
+        void NextFrame();
+        std::string GetErrorMessage() const;
+
+    private:
+        void ResetState(ReaderStatus set_sts);
+
+        ReaderStatus            m_ReaderSts = READER_ERR_NOT_INITIALIZED;
+        mfxU32                  m_CurFrameNum = std::numeric_limits<mfxU32>::max();
+        std::vector<FrameInfo>  m_FrameVals{};
+    };
+
+    inline bool get_line(std::ifstream& ifs, std::string& line)
+    {
+        std::getline(ifs, line, '\n');
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+        return !ifs.fail();
+    }
+    inline size_t find_nth(const std::string& str, size_t pos, const std::string& needle, mfxU32 nth)
+    {
+        size_t found_pos = str.find(needle, pos);
+        for (; nth != 0 && std::string::npos != found_pos; --nth)
+            found_pos = str.find(needle, found_pos + 1);
+        return found_pos;
+    }
+
+    inline std::string ReaderStatusToString(ReaderStatus sts)
+    {
+        switch (sts)
+        {
+        case READER_ERR_NOT_INITIALIZED:
+            return std::string("reader not initialized (TCBRCTestfile has not yet read the file)\n");
+        case READER_ERR_FILE_NOT_OPEN:
+            return std::string("failed to open file contains frame parameters (check provided path in -tcbrcfile <path>)\n");
+        case READER_ERR_INCORRECT_FILE:
+            return std::string("incorrect file with frame parameters\n");
+        case READER_ERR_CODEC_UNSUPPORTED:
+            return std::string("codecs, except h264 and h265, are not supported\n");
+        default:
+            return std::string();
+        }
+    }
+    inline mfxU32 ReadDisplayOrder(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ":", 0);
+        if (pos != std::string::npos)
+            return std::stoi(line.substr(0, pos));
+        else
+            return 0;
+    }
+    inline mfxU16 ReadTargetFrameSize(const std::string& line)
+    {
+        size_t pos = find_nth(line, 0, ":", 0);
+        pos = (pos != std::string::npos) ? pos + 1 : 0;
+        return static_cast<mfxU16>(std::stoi(line.substr(pos, line.size() - pos)));
+    }
+}
 mfxStatus GetFrameLength(mfxU16 width, mfxU16 height, mfxU32 ColorFormat, mfxU32 &length);
 
 bool IsDecodeCodecSupported(mfxU32 codecFormat);

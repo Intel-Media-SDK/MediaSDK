@@ -528,6 +528,17 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
         mfxStatus sts = m_QPFileReader.Read(pInParams->strQPFilePath, pInParams->CodecId);
         MSDK_CHECK_STATUS(sts, m_QPFileReader.GetErrorMessage().c_str());
     }
+    m_bTCBRCFileMode = pInParams->TCBRCFileMode;
+    if (m_bTCBRCFileMode)
+    {
+        mfxStatus sts = m_TCBRCFileReader.Read(pInParams->strTCBRCFilePath, pInParams->CodecId);
+        MSDK_CHECK_STATUS(sts, m_TCBRCFileReader.GetErrorMessage().c_str());
+        m_mfxEncParams.AsyncDepth = 1;
+        m_mfxEncParams.mfx.RateControlMethod = MFX_RATECONTROL_VBR;
+        m_mfxEncParams.mfx.GopRefDist = 1;
+        pInParams->nNalHrdConformance = MFX_CODINGOPTION_OFF;
+        pInParams->LowDelayBRC = MFX_CODINGOPTION_ON;
+    }
 
     // specify memory type
     if (D3D9_MEMORY == pInParams->memType || D3D11_MEMORY == pInParams->memType)
@@ -1337,7 +1348,7 @@ CEncodingPipeline::CEncodingPipeline()
     m_bIsFieldSplitting = false;
 
     m_bQPFileMode = false;
-
+    m_bTCBRCFileMode = false;
     m_nEncSurfIdx = 0;
     m_nVppSurfIdx = 0;
 }
@@ -2287,6 +2298,13 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
         if (!m_bQPFileMode)
             InsertIDR(pTask->encCtrl, m_bInsertIDR);
         m_bInsertIDR = false;
+		
+		if (m_bTCBRCFileMode &&  In.pSurface)
+		{
+			sts = ConfigTCBRCTest(In.pSurface);
+        	MSDK_CHECK_STATUS(sts, "TCBRC reset failed");
+		}
+
 
         sts = InitEncFrameParams(pTask);
         MSDK_CHECK_STATUS(sts, "ENCODE: InitEncFrameParams failed");
@@ -2321,7 +2339,24 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
 
     return sts;
 }
-
+mfxStatus CEncodingPipeline::ConfigTCBRCTest(mfxFrameSurface1* pSurf)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+    if (m_bTCBRCFileMode && pSurf)
+    {
+        mfxU32 targetFrameSize = m_TCBRCFileReader.GetTargetFrameSize(pSurf->Data.FrameOrder);
+        if (targetFrameSize)
+        {
+            mfxU32 newBitrate = targetFrameSize * 8 * m_mfxEncParams.mfx.FrameInfo.FrameRateExtN / (m_mfxEncParams.mfx.FrameInfo.FrameRateExtD * 1000);
+            if (m_mfxEncParams.mfx.TargetKbps != newBitrate)
+            {
+                m_mfxEncParams.mfx.TargetKbps = (mfxU16)newBitrate;
+                sts = m_pmfxENC->Reset(&m_mfxEncParams);
+            }
+        }
+    }
+    return sts;
+}
 mfxStatus CEncodingPipeline::Run()
 {
     m_statOverall.StartTimeMeasurement();
