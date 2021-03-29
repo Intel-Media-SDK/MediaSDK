@@ -2619,29 +2619,15 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         m_mfxEncParams.AddExtBuffer<mfxExtMVCSeqDesc>();
 
 #if (MFX_VERSION >= 1027)
-    // set TargetBitDepthLuma/TargetBitDepthChroma for VDEnc as mfxExtCodingOption3, for VME as BitDepthLuma/BitDepthChroma(converting will done with vpp)
-    if (pInParams->enableQSVFF)
+    if (pInParams->TargetBitDepthLuma)
     {
         auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
-        if (pInParams->TargetBitDepthLuma && pInParams->enableQSVFF)
-        {
-            co3->TargetBitDepthLuma = pInParams->TargetBitDepthLuma;
-        }
-        if (pInParams->TargetBitDepthChroma)
-        {
-            co3->TargetBitDepthChroma = pInParams->TargetBitDepthChroma;
-        }
+        co3->TargetBitDepthLuma = pInParams->TargetBitDepthLuma;
     }
-    else
+    if (pInParams->TargetBitDepthChroma)
     {
-        if (pInParams->TargetBitDepthLuma)
-        {
-            m_mfxEncParams.mfx.FrameInfo.BitDepthLuma = pInParams->TargetBitDepthLuma;
-        }
-        if (pInParams->TargetBitDepthChroma)
-        {
-            m_mfxEncParams.mfx.FrameInfo.BitDepthChroma = pInParams->TargetBitDepthChroma;
-        }
+        auto co3 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption3>();
+        co3->TargetBitDepthChroma = pInParams->TargetBitDepthChroma;
     }
 #endif
 
@@ -2973,21 +2959,6 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
         m_mfxVppParams.vpp.Out.Height = MSDK_ALIGN16(m_mfxVppParams.vpp.Out.CropH);
         m_mfxVppParams.vpp.Out.Width  = MSDK_ALIGN16(m_mfxVppParams.vpp.Out.CropW);
     }
-
-#if (MFX_VERSION >= 1027)
-    // set BitDepthLuma/BitDepthChroma as vpp.Out for VME
-    if (!pInParams->enableQSVFF)
-    {
-        if (pInParams->TargetBitDepthLuma)
-        {
-            m_mfxVppParams.vpp.Out.BitDepthLuma = pInParams->TargetBitDepthLuma;
-        }
-        if (pInParams->TargetBitDepthChroma)
-        {
-            m_mfxVppParams.vpp.Out.BitDepthChroma = pInParams->TargetBitDepthChroma;
-        }
-    }
-#endif
 
     // configure and attach external parameters
     mfxStatus sts = AllocAndInitVppDoNotUse(pInParams);

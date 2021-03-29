@@ -294,8 +294,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
     msdk_printf(MSDK_STRING("  -lowpower:<on,off>       Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
 #if (MFX_VERSION >= 1027)
-    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
-    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one.\n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one.\n"));
 #endif
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -roi_file <roi-file-name>\n"));
