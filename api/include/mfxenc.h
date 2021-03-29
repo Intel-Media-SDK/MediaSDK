@@ -28,7 +28,7 @@ extern "C"
 #endif /* __cplusplus */
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct _mfxENCInput{
+MFX_DEPRECATED typedef struct _mfxENCInput{
     mfxU32  reserved[32];
 
     mfxFrameSurface1 *InSurface;
@@ -44,7 +44,7 @@ typedef struct _mfxENCInput{
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct _mfxENCOutput{
+MFX_DEPRECATED typedef struct _mfxENCOutput{
     mfxU32  reserved[32];
 
     mfxFrameSurface1 *OutSurface;
