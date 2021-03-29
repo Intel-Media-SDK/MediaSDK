@@ -181,6 +181,8 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
   |-vpp_comp_dump <null_render\>| Disabling rendering after VPP Composition. This is for performance measurements|
   |-dec_postproc |Resize after decoder using direct pipe (should be used in decoder session)|
 | -single_texture_d3d11|  single texture mode for d3d11 allocator|
+| -TargetBitDepthLuma | Target encoding bit-depth for luma samples. May differ from source one. 0 mean default target bit-depth which is equal to source |
+| -TargetBitDepthChroma | Target encoding bit-depth for chroma samples. May differ from source one. 0 mean default target bit-depth which is equal to source. |
 
 #### stat logging:
 

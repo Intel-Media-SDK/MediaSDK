@@ -133,7 +133,9 @@ The following command-line switches are optional:
   | [-extbrc:<on,off,implicit>] | External BRC for AVC and HEVC encoders|
  |  [-ExtBrcAdaptiveLTR:<on,off>] | Set AdaptiveLTR for implicit extbrcExample: `./sample_encode h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7`|
   | [-vaapi] | work with vaapi surfaces <br>Example: `./sample_encode h264|mpeg2|mvc -i InputYUVFile -o OutputEncodedFile -w width -h height -angle 180 -g 300 -r 1`|
-  | [-viewoutput] | instruct the MVC encoder to output each view in separate bitstream buffer. Depending on the number of -o options behaves as follows:<br>1: two views are encoded in single file<br>2: two views are encoded in separate files<br>3: behaves like 2 -o opitons was used and then one -o<br>Example:<br>`./sample_encode mvc -i InputYUVFile_1 -i InputYUVFile_2 -o OutputEncodedFile_1 -o OutputEncodedFile_2 -viewoutput -w width -h height`
+  | [-viewoutput] | instruct the MVC encoder to output each view in separate bitstream buffer. Depending on the number of -o options behaves as follows:<br>1: two views are encoded in single file<br>2: two views are encoded in separate files<br>3: behaves like 2 -o opitons was used and then one -o<br>Example:<br>`./sample_encode mvc -i InputYUVFile_1 -i InputYUVFile_2 -o OutputEncodedFile_1 -o OutputEncodedFile_2 -viewoutput -w width -h height` |
+  | [-TargetBitDepthLuma] | Target encoding bit-depth for luma samples. May differ from source one. 0 mean default target bit-depth which is equal to source. <br>Example:<br>`./sample_encode h265 -i InputYUVFile_10_bit -o OutputEncodedFile_8_bit -w width -h height -lowpower:on -TargetBitDepthLuma 8 -TargetBitDepthChroma 8` |
+  | [-TargetBitDepthChroma] | Target encoding bit-depth for chroma samples. May differ from source one. 0 mean default target bit-depth which is equal to source. <br>Example:<br>`./sample_encode h265 -i InputYUVFile_10_bit -o OutputEncodedFile_8_bit -w width -h height -lowpower:on -TargetBitDepthLuma 8 -TargetBitDepthChroma 8` |
 
 User module options:
 
