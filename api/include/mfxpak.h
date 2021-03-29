@@ -28,7 +28,7 @@ extern "C"
 #endif /* __cplusplus */
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxU16 reserved[32];
 
     mfxFrameSurface1 *InSurface;
@@ -47,7 +47,7 @@ typedef struct {
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct {
+MFX_DEPRECATED typedef struct {
     mfxU16  reserved[32];
 
     mfxBitstream     *Bs;

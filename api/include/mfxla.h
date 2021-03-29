@@ -30,12 +30,15 @@ extern "C"
 
 enum
 {
-    MFX_EXTBUFF_LOOKAHEAD_CTRL  =   MFX_MAKEFOURCC('L','A','C','T'),
-    MFX_EXTBUFF_LOOKAHEAD_STAT  =   MFX_MAKEFOURCC('L','A','S','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_LOOKAHEAD_CTRL)  =   MFX_MAKEFOURCC('L','A','C','T'),
+    MFX_DEPRECATED_ENUM_FIELD_INSIDE(MFX_EXTBUFF_LOOKAHEAD_STAT)  =   MFX_MAKEFOURCC('L','A','S','T'),
 };
 
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_LOOKAHEAD_CTRL);
+MFX_DEPRECATED_ENUM_FIELD_OUTSIDE(MFX_EXTBUFF_LOOKAHEAD_STAT);
+
 MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct
+MFX_DEPRECATED typedef struct
 {
     mfxExtBuffer    Header;
     mfxU16  LookAheadDepth;
@@ -55,7 +58,7 @@ typedef struct
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_L_TYPE()
-typedef struct
+MFX_DEPRECATED typedef struct
 {
     mfxU16  Width;
     mfxU16  Height;
@@ -75,7 +78,7 @@ typedef struct
 MFX_PACK_END()
 
 MFX_PACK_BEGIN_STRUCT_W_PTR()
-typedef struct  {
+MFX_DEPRECATED typedef struct  {
     mfxExtBuffer    Header;
 
     mfxU16  reserved[20];
