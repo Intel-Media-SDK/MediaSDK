@@ -91,8 +91,8 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("   [-num_active_BL0 numRefs] - number of maximum allowed references for B frames in L0 (for HEVC only)\n"));
     msdk_printf(MSDK_STRING("   [-num_active_BL1 numRefs] - number of maximum allowed references for B frames in L1 (for HEVC only)\n"));
 #if (MFX_VERSION >= 1027)
-    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
-    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one. (for VME is not supported and will be converted with vpp) \n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthLuma] - Encoding target bit depth for luma samples, by default same as source one \n"));
+    msdk_printf(MSDK_STRING("   [-TargetBitDepthChroma] - Encoding target bit depth for chroma samples, by default same as source one \n"));
 #endif
     msdk_printf(MSDK_STRING("   [-la] - use the look ahead bitrate control algorithm (LA BRC) (by default constant bitrate control method is used)\n"));
     msdk_printf(MSDK_STRING("           for H.264, H.265 encoder. Supported only with -hw option on 4th Generation Intel Core processors. \n"));
