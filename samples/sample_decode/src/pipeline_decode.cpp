@@ -268,7 +268,7 @@ mfxStatus CDecodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
     // If d3d11 surfaces are used ask the library to run acceleration through D3D11
     // feature may be unsupported due to OS or MSDK API version
 
-    if (D3D11_MEMORY == params.memType)
+    if (D3D11_MEMORY == params.memType || D3D11_MEMORY == m_memType)
         impl |= MFX_IMPL_VIA_D3D11;
 
     return MFX_ERR_NONE;
@@ -348,7 +348,11 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
         switch (pParams->mode)
         {
         case MODE_PERFORMANCE:
-            m_memType = pParams->bUseHWLib? D3D9_MEMORY : SYSTEM_MEMORY;
+#if defined(_WIN32) || defined(_WIN64)
+            m_memType = pParams->bUseHWLib ? D3D11_MEMORY : SYSTEM_MEMORY;
+#elif defined(LIBVA_SUPPORT)
+            m_memType = pParams->bUseHWLib ? D3D9_MEMORY : SYSTEM_MEMORY;
+#endif
             break;
         case MODE_RENDERING:
             m_memType = D3D9_MEMORY;

@@ -136,10 +136,11 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -i::rgb4_frame Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).\n"));
     msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>\n"));
     msdk_printf(MSDK_STRING("                Set output file and encoder type\n"));
-    msdk_printf(MSDK_STRING("  -sw|-hw|-hw_d3d11\n"));
+    msdk_printf(MSDK_STRING("  -sw|-hw|-hw_d3d11|-hw_d3d9\n"));
     msdk_printf(MSDK_STRING("                SDK implementation to use: \n"));
     msdk_printf(MSDK_STRING("                      -hw - platform-specific on default display adapter (default)\n"));
-    msdk_printf(MSDK_STRING("                      -hw_d3d11 - platform-specific via d3d11\n"));
+    msdk_printf(MSDK_STRING("                      -hw_d3d11 - platform-specific via d3d11 (d3d11 is default for win)\n"));
+    msdk_printf(MSDK_STRING("                      -hw_d3d9 - platform-specific via d3d9\n"));
     msdk_printf(MSDK_STRING("                      -sw - software\n"));
 #if defined(LINUX32) || defined(LINUX64)
     msdk_printf(MSDK_STRING("   -device /path/to/device - set graphics device for processing\n"));
@@ -1551,6 +1552,9 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
     }
     // default implementation
     InputParams.libType = MFX_IMPL_HARDWARE_ANY;
+#if defined(_WIN32) || defined(_WIN64)
+    InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D11;
+#endif
     InputParams.bUseOpaqueMemory = false;
     InputParams.eModeExt = Native;
 
@@ -1674,11 +1678,19 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-hw")))
         {
+#if defined(_WIN32) || defined(_WIN64)
+            InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D11;
+#elif defined(LIBVA_SUPPORT)
             InputParams.libType = MFX_IMPL_HARDWARE_ANY;
+#endif
         }
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-hw_d3d11")))
         {
             InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D11;
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-hw_d3d9")))
+        {
+            InputParams.libType = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D9;
         }
 #if (defined(LINUX32) || defined(LINUX64))
         else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-device")))
