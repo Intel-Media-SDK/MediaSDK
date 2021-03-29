@@ -1080,7 +1080,12 @@ JERRCODE CJPEGDecoderBase::ParseSOS(JOPERATION op)
 comp_id_match:
 
     m_ccomp[ci].m_dc_selector = (huff_sel >> 4) & 0x0f;
+    if (m_ccomp[ci].m_dc_selector >= MAX_HUFF_TABLES)
+      return JPEG_ERR_SOS_DATA;
+
     m_ccomp[ci].m_ac_selector = (huff_sel     ) & 0x0f;
+    if (m_ccomp[ci].m_ac_selector >= MAX_HUFF_TABLES)
+      return JPEG_ERR_SOS_DATA;
   }
 
   // find greatest common divisor for sampling factors of components in scan
