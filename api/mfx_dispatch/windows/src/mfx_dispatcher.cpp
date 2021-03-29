@@ -97,9 +97,6 @@ mfxStatus MFX_DISP_HANDLE::LoadSelectedDLL(const wchar_t *pPath, eMfxImplType re
     }
     // only exact types of implementation is allowed
     if (!(reqImpl & MFX_IMPL_AUDIO) &&
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-        !(reqImpl & MFX_IMPL_EXTERNAL_THREADING) &&
-#endif
         (MFX_IMPL_SOFTWARE != reqImpl) &&
         (MFX_IMPL_HARDWARE != reqImpl) &&
         (MFX_IMPL_HARDWARE2 != reqImpl) &&

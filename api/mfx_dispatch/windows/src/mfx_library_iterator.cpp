@@ -60,11 +60,7 @@ mfxStatus SelectImplementationType(const mfxU32 adapterNum, mfxIMPL *pImplInterf
     {
         return MFX_ERR_NULL_PTR;
     }
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxIMPL impl_via = (*pImplInterface & ~MFX_IMPL_EXTERNAL_THREADING);
-#else
     mfxIMPL impl_via = *pImplInterface;
-#endif
 
     DXVA2Device dxvaDevice;
     if (MFX_IMPL_VIA_D3D9 == impl_via)

@@ -76,10 +76,6 @@ EXTBUF(mfxExtVP9Param                    , MFX_EXTBUFF_VP9_PARAM                
 EXTBUF(mfxExtEncoderIPCMArea             , MFX_EXTBUFF_ENCODER_IPCM_AREA               )
 EXTBUF(mfxExtInsertHeaders               , MFX_EXTBUFF_INSERT_HEADERS                  )
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-EXTBUF(mfxExtAVCScalingMatrix            , MFX_EXTBUFF_AVC_SCALING_MATRIX              )
-EXTBUF(mfxExtDPB                         , MFX_EXTBUFF_DPB                             )
-#endif
 #endif //defined(__MFXSTRUCTURES_H__)
 
 #if defined(__MFXFEI_H__)
@@ -131,12 +127,6 @@ EXTBUF(mfxExtThreadsParam           , MFX_EXTBUFF_THREADS_PARAM)
 //Screen capture
 EXTBUF(mfxExtScreenCaptureParam     , MFX_EXTBUFF_SCREEN_CAPTURE_PARAM      )
 #endif //defined(__MFXSC_H__)
-
-#if defined(__MFXVP9_H__)
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-EXTBUF(mfxExtVP9DecodedFrameInfo    , MFX_EXTBUFF_VP9_DECODED_FRAME_INFO    )
-#endif
-#endif //defined(__MFXVP9_H__)
 
 #if defined(__MFXBRC_H__)
 EXTBUF(mfxExtBRC, MFX_EXTBUFF_BRC)

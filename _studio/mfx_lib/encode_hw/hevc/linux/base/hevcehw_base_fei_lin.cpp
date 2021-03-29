@@ -342,15 +342,9 @@ void FEI::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
             }
 
             // Output buffers
-#if MFX_VERSION >= MFX_VERSION_NEXT
-            vaFrameCtrl.ctb_cmd    = GetVaBufferID<mfxExtFeiHevcPakCtuRecordV0>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_PAK_CTU_REC);
-            vaFrameCtrl.cu_record  = GetVaBufferID<mfxExtFeiHevcPakCuRecordV0>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_PAK_CU_REC);
-            vaFrameCtrl.distortion = GetVaBufferID<mfxExtFeiHevcDistortion>(task.pBsOut, MFX_EXTBUFF_HEVCFEI_ENC_DIST);
-#else
             vaFrameCtrl.ctb_cmd    = VA_INVALID_ID;
             vaFrameCtrl.cu_record  = VA_INVALID_ID;
             vaFrameCtrl.distortion = VA_INVALID_ID;
-#endif
 
             return true;
         });

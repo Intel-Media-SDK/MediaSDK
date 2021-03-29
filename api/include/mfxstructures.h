@@ -737,31 +737,6 @@ enum {
     MFX_P_REF_PYRAMID = 2
 };
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-/* QuantScaleType */
-enum {
-    MFX_MPEG2_QUANT_SCALE_TYPE_DEFAULT    = 0,
-    MFX_MPEG2_QUANT_SCALE_TYPE_LINEAR     = 1, /* q_scale_type = 0 */
-    MFX_MPEG2_QUANT_SCALE_TYPE_NONLINEAR  = 2  /* q_scale_type = 1 */
-};
-
-/* IntraVLCFormat */
-enum {
-    MFX_MPEG2_INTRA_VLC_FORMAT_DEFAULT    = 0,
-    MFX_MPEG2_INTRA_VLC_FORMAT_B14        = 1, /* use table B.14 */
-    MFX_MPEG2_INTRA_VLC_FORMAT_B15        = 2  /* use table B.15 */
-};
-
-/* ScanType */
-enum {
-    MFX_MPEG2_SCAN_TYPE_DEFAULT   = 0,
-    MFX_MPEG2_SCAN_TYPE_ZIGZAG    = 1, /* alternate_scan = 0 */
-    MFX_MPEG2_SCAN_TYPE_ALTERNATE = 2  /* alternate_scan = 1 */
-};
-
-#endif
-
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
@@ -791,24 +766,14 @@ typedef struct {
     mfxU16      BitstreamRestriction;           /* tri-state option */
     mfxU16      LowDelayHrd;                    /* tri-state option */
     mfxU16      MotionVectorsOverPicBoundaries; /* tri-state option */
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      Log2MaxMvLengthHorizontal;      /* 0..16 */
-    mfxU16      Log2MaxMvLengthVertical;        /* 0..16 */
-#else
     mfxU16      reserved1[2];
-#endif
 
     mfxU16      ScenarioInfo;
     mfxU16      ContentInfo;
 
     mfxU16      PRefType;
     mfxU16      FadeDetection;            /* tri-state option */
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxI16      DeblockingAlphaTcOffset;  /* -12..12 (slice_alpha_c0_offset_div2 << 1) */
-    mfxI16      DeblockingBetaOffset;     /* -12..12 (slice_beta_offset_div2 << 1) */
-#else
     mfxU16      reserved2[2];
-#endif
     mfxU16      GPB;                      /* tri-state option */
 
     mfxU32      MaxFrameSizeI;
@@ -822,11 +787,7 @@ typedef struct {
     mfxU16      NumRefActiveBL0[8];
     mfxU16      NumRefActiveBL1[8];
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      ConstrainedIntraPredFlag;  /* tri-state option */
-#else
     mfxU16      reserved6;
-#endif
 #if (MFX_VERSION >= 1026)
     mfxU16      TransformSkip;  /* tri-state option; HEVC transform_skip_enabled_flag */
 #else
@@ -846,13 +807,7 @@ typedef struct {
     mfxU16      AdaptiveMaxFrameSize;      /* tri-state option */
 
     mfxU16      RepartitionCheckEnable;    /* tri-state option */
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      QuantScaleType;            /* For MPEG2 specifies mapping between quantiser_scale_code and quantiser_scale (see QuantScaleType enum) */
-    mfxU16      IntraVLCFormat;            /* For MPEG2 specifies which table shall be used for coding of DCT coefficients of intra macroblocks (see IntraVLCFormat enum) */
-    mfxU16      ScanType;                  /* For MPEG2 specifies transform coefficients scan pattern (see ScanType enum) */
-#else
     mfxU16      reserved5[3];
-#endif
 #if (MFX_VERSION >= 1025)
     mfxU16      EncodedUnitsInfo;          /* tri-state option */
     mfxU16      EnableNalUnitType;         /* tri-state option */
@@ -967,13 +922,6 @@ enum {
 #endif
 #if (MFX_VERSION >= 1027)
     MFX_EXTBUFF_AVC_ROUNDING_OFFSET             = MFX_MAKEFOURCC('R','N','D','O'),
-#endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    MFX_EXTBUFF_DPB                             = MFX_MAKEFOURCC('E','D','P','B'),
-    MFX_EXTBUFF_TEMPORAL_LAYERS                 = MFX_MAKEFOURCC('T','M','P','L'),
-    MFX_EXTBUFF_AVC_SCALING_MATRIX              = MFX_MAKEFOURCC('A','V','S','M'),
-    MFX_EXTBUFF_MPEG2_QUANT_MATRIX              = MFX_MAKEFOURCC('M','2','Q','M'),
-    MFX_EXTBUFF_TASK_DEPENDENCY                 = MFX_MAKEFOURCC('S','Y','N','C'),
 #endif
 #if (MFX_VERSION >= 1031)
     MFX_EXTBUFF_PARTIAL_BITSTREAM_PARAM         = MFX_MAKEFOURCC('P','B','O','P'),
@@ -1169,11 +1117,7 @@ typedef struct {
     mfxU32      reserved[3];
     mfxMemId    *mids;      /* the array allocated by application */
     mfxU16      NumFrameActual;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16      MemType;
-#else
     mfxU16      reserved2;
-#endif
 } mfxFrameAllocResponse;
 MFX_PACK_END()
 
@@ -1223,9 +1167,6 @@ typedef enum {
 #if (MFX_VERSION >= 1030)
     MFX_HANDLE_VA_CONFIG_ID                     = 6,
     MFX_HANDLE_VA_CONTEXT_ID                    = 7,
-#endif
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    MFX_HANDLE_CM_DEVICE                        = 8
 #endif
 } mfxHandleType;
 
@@ -1788,25 +1729,6 @@ typedef struct {
 } mfxExtMBDisableSkipMap;
 MFX_PACK_END()
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer    Header;
-
-    mfxU16          DPBSize;
-    mfxU16          reserved[11];
-
-    struct {
-        mfxU32      FrameOrder;
-        mfxU16      PicType;
-        mfxU16      LongTermIdx;
-        mfxU16      reserved[4];
-    } DPB[32];
-} mfxExtDPB;
-MFX_PACK_END()
-
-#endif
-
 /*GeneralConstraintFlags*/
 enum {
     /* REXT Profile constraint flags*/
@@ -1944,29 +1866,6 @@ typedef struct {
 MFX_PACK_END()
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16       reserved[12];
-
-    struct {
-        mfxU16   Scale;
-        mfxU16   QPI;
-        mfxU16   QPP;
-        mfxU16   QPB;
-        mfxU32   TargetKbps;
-        mfxU32   MaxKbps;
-        mfxU32   BufferSizeInKB;
-        mfxU32   InitialDelayInKB;
-        mfxU16   reserved1[20];
-    } Layer[8];
-} mfxExtTemporalLayers;
-MFX_PACK_END()
-
-#endif
-
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
@@ -2004,50 +1903,6 @@ typedef struct {
     } Rect[256];
 } mfxExtMoveRect;
 MFX_PACK_END()
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-/* ScalingMatrixType */
-enum {
-    MFX_SCALING_MATRIX_SPS = 1,
-    MFX_SCALING_MATRIX_PPS = 2
-};
-
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16 Type;
-    mfxU16 reserved[5];
-
-    /* [4x4_Intra_Y,  4x4_Intra_Cb, 4x4_Intra_Cr,
-        4x4_Inter_Y,  4x4_Inter_Cb, 4x4_Inter_Cr,
-        8x8_Intra_Y,  8x8_Inter_Y,  8x8_Intra_Cb,
-        8x8_Inter_Cb, 8x8_Intra_Cr, 8x8_Inter_Cr] */
-    mfxU8  ScalingListPresent[12];
-
-    /* [Intra_Y,  Intra_Cb, Intra_Cr,
-        Inter_Y,  Inter_Cb, Inter_Cr] */
-    mfxU8  ScalingList4x4[6][16];
-
-    /* [Intra_Y,  Inter_Y,  Intra_Cb,
-        Inter_Cb, Intra_Cr, Inter_Cr] */
-    mfxU8  ScalingList8x8[6][64];
-} mfxExtAVCScalingMatrix;
-MFX_PACK_END()
-
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16 reserved[28];
-
-    mfxU8  LoadMatrix[4]; // [LumaIntra, LumaInter, ChromaIntra, ChromaInter]
-    mfxU8  Matrix[4][64]; // [LumaIntra, LumaInter, ChromaIntra, ChromaInter]
-} mfxExtMPEG2QuantMatrix;
-MFX_PACK_END()
-
-#endif
 
 /* Angle */
 enum {
@@ -2113,26 +1968,6 @@ typedef struct {
 #endif
 } mfxExtVPPScaling;
 MFX_PACK_END()
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-
-/* SceneChangeType */
-enum {
-    MFX_SCENE_NO_CHANGE = 0,
-    MFX_SCENE_START     = 1,
-    MFX_SCENE_END       = 2
-};
-
-MFX_PACK_BEGIN_USUAL_STRUCT()
-typedef struct {
-    mfxExtBuffer Header;
-
-    mfxU16 Type;
-    mfxU16 reserved[11];
-} mfxExtSceneChange;
-MFX_PACK_END()
-
-#endif
 
 typedef mfxExtAVCRefListCtrl mfxExtHEVCRefListCtrl;
 typedef mfxExtAVCRefLists mfxExtHEVCRefLists;
@@ -2275,12 +2110,7 @@ typedef struct {
 
     mfxU16  WriteIVFHeaders;        /* tri-state option */
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxI16  LoopFilterRefDelta[4];
-    mfxI16  LoopFilterModeDelta[2];
-#else // API 1.26
     mfxI16  reserved1[6];
-#endif
     mfxI16  QIndexDeltaLumaDC;
     mfxI16  QIndexDeltaChromaAC;
     mfxI16  QIndexDeltaChromaDC;
@@ -2357,32 +2187,13 @@ MFX_PACK_END()
 #endif
 
 #if (MFX_VERSION >= 1026)
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-/* MCTFTemporalMode */
-enum {
-    MFX_MCTF_TEMPORAL_MODE_UNKNOWN  = 0,
-    MFX_MCTF_TEMPORAL_MODE_SPATIAL  = 1,
-    MFX_MCTF_TEMPORAL_MODE_1REF     = 2,
-    MFX_MCTF_TEMPORAL_MODE_2REF     = 3,
-    MFX_MCTF_TEMPORAL_MODE_4REF     = 4
-};
-#endif
 
 /* MCTF initialization & runtime */
 MFX_PACK_BEGIN_USUAL_STRUCT()
 typedef struct {
     mfxExtBuffer Header;
     mfxU16       FilterStrength;
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    mfxU16       Overlap;               /* tri-state option */
-    mfxU32       BitsPerPixelx100k;
-    mfxU16       Deblocking;            /* tri-state option */
-    mfxU16       TemporalMode;
-    mfxU16       MVPrecision;
-    mfxU16       reserved[21];
-#else
     mfxU16       reserved[27];
-#endif
 } mfxExtVppMctf;
 MFX_PACK_END()
 

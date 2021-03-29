@@ -101,18 +101,11 @@
     #define MFX_ENABLE_VPP_COMPOSITION
     #define MFX_ENABLE_VPP_ROTATION
     #define MFX_ENABLE_VPP_VIDEO_SIGNAL
-    #if MFX_VERSION >= MFX_VERSION_NEXT
-        #define MFX_ENABLE_VPP_RUNTIME_HSBC
-    #endif
     //#define MFX_ENABLE_VPP_FRC
 #endif
 
 #if defined(MFX_ENABLE_ASC)
     #define MFX_ENABLE_SCENE_CHANGE_DETECTION_VPP
-#endif
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT) && defined(MFX_ENABLE_MCTF)
-    #define MFX_ENABLE_MCTF_EXT // extended MCTF interface
 #endif
 
 #if MFX_VERSION >= 1028

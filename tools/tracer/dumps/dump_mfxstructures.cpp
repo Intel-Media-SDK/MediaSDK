@@ -176,23 +176,13 @@ std::string DumpContext::dump(const std::string structName, const mfxExtCodingOp
     DUMP_FIELD(BitstreamRestriction);
     DUMP_FIELD(LowDelayHrd);                    /* tri-state option */
     DUMP_FIELD(MotionVectorsOverPicBoundaries); /* tri-state option */
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    DUMP_FIELD(Log2MaxMvLengthHorizontal);      /* 0..16 */
-    DUMP_FIELD(Log2MaxMvLengthVertical);        /* 0..16 */
-#else
     DUMP_FIELD_RESERVED(reserved1);
-#endif
 
     DUMP_FIELD(ScenarioInfo);
     DUMP_FIELD(ContentInfo);
     DUMP_FIELD(PRefType);
     DUMP_FIELD(FadeDetection);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    DUMP_FIELD(DeblockingAlphaTcOffset);
-    DUMP_FIELD(DeblockingBetaOffset);
-#else
     DUMP_FIELD_RESERVED(reserved2);
-#endif
     DUMP_FIELD(GPB);
     DUMP_FIELD(MaxFrameSizeI);
     DUMP_FIELD(MaxFrameSizeP);
@@ -202,9 +192,6 @@ std::string DumpContext::dump(const std::string structName, const mfxExtCodingOp
     DUMP_FIELD_RESERVED(NumRefActiveBL0);
     DUMP_FIELD_RESERVED(NumRefActiveBL1);
     DUMP_FIELD(BRCPanicMode);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    DUMP_FIELD(ConstrainedIntraPredFlag);
-#endif
 #if (MFX_VERSION >= 1026)
     DUMP_FIELD(TransformSkip);
 #endif
@@ -218,15 +205,8 @@ std::string DumpContext::dump(const std::string structName, const mfxExtCodingOp
     DUMP_FIELD(EnableMBForceIntra);
     DUMP_FIELD(AdaptiveMaxFrameSize);
     DUMP_FIELD(RepartitionCheckEnable);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    DUMP_FIELD(QuantScaleType);
-    DUMP_FIELD(IntraVLCFormat);
-    DUMP_FIELD(ScanType);
-#endif
-#if ((MFX_VERSION < MFX_VERSION_NEXT) && (MFX_VERSION >= 1025))
-    DUMP_FIELD_RESERVED(reserved5);
-#endif
 #if (MFX_VERSION >= 1025)
+    DUMP_FIELD_RESERVED(reserved5);
     DUMP_FIELD(EncodedUnitsInfo);
     DUMP_FIELD(EnableNalUnitType);
 #endif
@@ -293,11 +273,7 @@ std::string DumpContext::dump(const std::string structName, const mfxFrameAllocR
     else
         str += structName + ".mids=" + "NULL" + "\n";
     str += structName + ".NumFrameActual=" + ToString(frameAllocResponse.NumFrameActual) + "\n";
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    str += structName + ".MemType=" + ToString(frameAllocResponse.MemType) + "\n";
-#else
     str += structName + ".reserved2=" + ToString(frameAllocResponse.reserved2) + "\n";
-#endif
     return str;
 }
 
@@ -1428,13 +1404,6 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVppMctf
     std::string str;
     str += dump(structName + ".Header", _struct.Header) + "\n";
     str += structName + ".FilterStrength=" + ToString(_struct.FilterStrength)  + "\n";
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    str += structName + ".Overlap=" + ToString(_struct.Overlap)  + "\n";
-    str += structName + ".BitsPerPixelx100k=" + ToString(_struct.BitsPerPixelx100k)  + "\n";
-    str += structName + ".Deblocking=" + ToString(_struct.Deblocking)  + "\n";
-    str += structName + ".TemporalMode=" + ToString(_struct.TemporalMode)  + "\n";
-    str += structName + ".MVPrecision=" + ToString(_struct.MVPrecision)  + "\n";
-#endif
     DUMP_FIELD_RESERVED(reserved);
     return str;
 }
@@ -1509,10 +1478,6 @@ std::string DumpContext::dump(const std::string structName, const  mfxExtVP9Para
     DUMP_FIELD(FrameWidth);
     DUMP_FIELD(FrameHeight);
     DUMP_FIELD(WriteIVFHeaders);
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-    str += structName + ".LoopFilterRefDelta[4]=" + DUMP_RESERVED_ARRAY(_struct.LoopFilterRefDelta) + "\n";
-    str += structName + ".LoopFilterModeDelta[2]=" + DUMP_RESERVED_ARRAY(_struct.LoopFilterModeDelta) + "\n";
-#endif
     DUMP_FIELD(QIndexDeltaLumaDC);
     DUMP_FIELD(QIndexDeltaChromaAC);
     DUMP_FIELD(QIndexDeltaChromaDC);
@@ -1584,50 +1549,3 @@ std::string DumpContext::dump(const std::string structName, const mfxExtAV1FilmG
 }
 #endif
 
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-std::string DumpContext::dump(const std::string structName, const mfxExtAVCScalingMatrix &_struct)
-{
-    std::string str;
-    str += dump(structName + ".Header", _struct.Header) + "\n";
-    DUMP_FIELD(Type);
-
-    for (mfxU8 i = 0; i < 12; ++i)
-    {
-        str += dump(structName + ".ScalingListPresent[" + ToString(i) + "]", _struct.ScalingListPresent[i]) + "\n";
-    }
-
-    for (mfxU8 i = 0; i < 6; ++i)
-    {
-        for(mfxU8 y = 0; y < 4; ++y)
-            for (mfxU8 x = 0; x < 4; ++x)
-            {
-                str += dump(structName + ".ScalingList4x4[" + ToString(i) + "][" + ToString(y) + "][" + ToString(x) + "]", _struct.ScalingList4x4[i][y * 4+x]) + "\n";
-            }
-    }
-
-    for (mfxU8 i = 0; i < 6; ++i)
-    {
-        for (mfxU8 y = 0; y < 8; ++y)
-            for (mfxU8 x = 0; x < 8; ++x)
-            {
-                str += dump(structName + ".ScalingList8x8[" + ToString(i) + "][" + ToString(y) + "][" + ToString(x) + "]", _struct.ScalingList8x8[i][y * 4 + x]) + "\n";
-            }
-    }
-
-    return str;
-}
-#endif
-
-#if (MFX_VERSION >= MFX_VERSION_NEXT)
-std::string DumpContext::dump(const std::string structName, const mfxExtPartialBitstreamParam &_struct)
-{
-    std::string str;
-    str += dump(structName + ".Header", _struct.Header) + "\n";
-    DUMP_FIELD(BlockSize);
-    DUMP_FIELD(Granularity);
-
-    str += structName + ".reserved[]=" + DUMP_RESERVED_ARRAY(_struct.reserved) + "\n";
-
-    return str;
-}
-#endif
