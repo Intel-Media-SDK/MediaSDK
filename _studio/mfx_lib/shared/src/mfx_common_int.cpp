@@ -298,7 +298,10 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
 
 mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *request)
 {
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+#ifdef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    (void)par;
+    (void)request;
+#else
     mfxExtDecVideoProcessing * videoProcessing = (mfxExtDecVideoProcessing *)GetExtendedBuffer(par->ExtParam, par->NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
     if (videoProcessing && videoProcessing->Out.FourCC != par->mfx.FrameInfo.FourCC)
     {
