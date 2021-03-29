@@ -1616,10 +1616,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
         m_caps.ddi_caps.SliceStructure = (hwtype != MFX_HW_VLV && hwtype >= MFX_HW_HSW) ? 4 : 1; // 1 - SliceDividerSnb; 2 - SliceDividerHsw;
     }                                                                                   // 3 - SliceDividerBluRay; 4 - arbitrary slice size in MBs; the other - SliceDividerOneSlice
 
-    if (AV(VAConfigAttribEncInterlaced) != VA_ATTRIB_NOT_SUPPORTED)
-        m_caps.ddi_caps.NoInterlacedField = AV(VAConfigAttribEncInterlaced);
-    else
-        m_caps.ddi_caps.NoInterlacedField = 0;
+    m_caps.ddi_caps.NoInterlacedField = !(AV(VAConfigAttribEncInterlaced) & VA_ENC_INTERLACED_FIELD); // 0 - Interlace is supported, 1 - Interlace is not supported
 
     if (AV(VAConfigAttribEncMaxRefFrames) != VA_ATTRIB_NOT_SUPPORTED)
     {
