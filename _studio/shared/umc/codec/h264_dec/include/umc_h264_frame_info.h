@@ -98,7 +98,7 @@ public:
 
 protected:
 
-    std::vector<H264Slice*> m_pSliceQueue;
+    std::vector<std::shared_ptr<H264Slice>> m_pSliceQueue;
 
     bool m_IsSliceGroups;
     bool m_IsBottomField;
@@ -148,7 +148,7 @@ public:
 
         m_refPicList.resize(pSlice->GetSliceNum() + 1);
 
-        m_pSliceQueue.push_back(pSlice);
+        m_pSliceQueue.push_back(pSlice->GetShared());
         m_SliceCount++;
 
         const UMC_H264_DECODER::H264SliceHeader &sliceHeader = *(pSlice->GetSliceHeader());
@@ -205,14 +205,12 @@ public:
     {
         if (num < 0 || num >= m_SliceCount)
             return 0;
-        return m_pSliceQueue[num];
+        return m_pSliceQueue[num].get();
     }
 
     void SwapSlices(uint32_t pos1, uint32_t pos2)
     {
-        H264Slice* slice = m_pSliceQueue[pos2];
-        m_pSliceQueue[pos2] = m_pSliceQueue[pos1];
-        m_pSliceQueue[pos1] = slice;
+        m_pSliceQueue[pos1].swap(m_pSliceQueue[pos2]);
     }
 
     H264Slice* GetSliceByNumber(int32_t num) const
@@ -221,7 +219,7 @@ public:
         for (uint32_t i = 0; i < count; i++)
         {
             if (m_pSliceQueue[i]->GetSliceNum() == num)
-                return m_pSliceQueue[i];
+                return m_pSliceQueue[i].get();
         }
 
         return 0;
@@ -279,14 +277,6 @@ public:
 
     void Free()
     {
-        size_t count = m_pSliceQueue.size();
-        for (size_t i = 0; i < count; i ++)
-        {
-            H264Slice * pCurSlice = m_pSliceQueue[i];
-            pCurSlice->Release();
-            pCurSlice->DecrementReference();
-        }
-
         m_SliceCount = 0;
         m_pSliceQueue.clear();
         m_prepared = 0;
@@ -301,11 +291,10 @@ public:
 
         for (int32_t i = num; i < m_SliceCount - 1; i++)
         {
-            m_pSliceQueue[i] = m_pSliceQueue[i + 1];
+            m_pSliceQueue[i].swap(m_pSliceQueue[i + 1]);
         }
 
         m_SliceCount--;
-        m_pSliceQueue[m_SliceCount] = pCurSlice;
     }
 
     bool IsNeedDeblocking () const
@@ -319,7 +308,7 @@ public:
 
         for (int32_t i = 0; i < m_SliceCount; i ++)
         {
-            H264Slice *pSlice = m_pSliceQueue[i];
+            H264Slice *pSlice = m_pSliceQueue[i].get();
 
             pSlice->m_bDeblocked = true;
             pSlice->GetSliceHeader()->disable_deblocking_filter_idc = DEBLOCK_FILTER_OFF;
@@ -333,7 +322,7 @@ public:
 
         for (int32_t i = 0; i < m_SliceCount; i ++)
         {
-            const H264Slice *pSlice = m_pSliceQueue[i];
+            const H264Slice *pSlice = m_pSliceQueue[i].get();
 
             if (!pSlice->m_bDecoded || !pSlice->m_bDeblocked)
                 return false;

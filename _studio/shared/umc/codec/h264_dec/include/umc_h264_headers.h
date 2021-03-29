@@ -58,19 +58,10 @@ public:
 
         m_currentID = id;
 
-        if (m_Header[id])
-        {
-            m_Header[id]->DecrementReference();
-        }
-
         T * header = m_pObjHeap->AllocateObject<T>();
         *header = *hdr;
 
-        //ref. counter may not be 0 here since it can be copied from given [hdr] object
-        header->ResetRefCounter();
-        header->IncrementReference();
-
-        m_Header[id] = header;
+        m_Header[id].reset(header);
 
         return header;
     }
@@ -82,7 +73,7 @@ public:
             return 0;
         }
 
-        return m_Header[id];
+        return m_Header[id].get();
     }
 
     const T * GetHeader(int32_t id) const
@@ -92,7 +83,7 @@ public:
             return 0;
         }
 
-        return m_Header[id];
+        return m_Header[id].get();
     }
 
     void RemoveHeader(void * hdr)
@@ -119,20 +110,13 @@ public:
         }
 
         VM_ASSERT(m_Header[id] == hdr);
-        m_Header[id]->DecrementReference();
-        m_Header[id] = 0;
+        m_Header[id].reset();
     }
 
     void Reset(bool isPartialReset = false)
     {
         if (!isPartialReset)
         {
-            for (uint32_t i = 0; i < m_Header.size(); i++)
-            {
-                if (m_Header[i])
-                    m_Header[i]->DecrementReference();
-            }
-
             m_Header.clear();
             m_currentID = -1;
         }
@@ -166,8 +150,8 @@ public:
     }
 
 private:
-    std::vector<T*>           m_Header;
-    H264_Heap_Objects        *m_pObjHeap;
+    std::vector<std::shared_ptr<T>> m_Header;
+    H264_Heap_Objects *m_pObjHeap;
 
     int32_t                    m_currentID;
 };

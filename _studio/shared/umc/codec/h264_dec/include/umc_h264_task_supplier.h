@@ -634,7 +634,7 @@ protected:
     double      m_local_delta_frame_time;
     bool        m_use_external_framerate;
 
-    H264Slice * m_pLastSlice;
+    std::shared_ptr<H264Slice> m_pLastSlice;
 
     H264DecoderFrame *m_pLastDisplayed;
 

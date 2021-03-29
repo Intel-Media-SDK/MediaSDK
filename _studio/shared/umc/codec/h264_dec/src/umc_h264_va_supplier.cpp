@@ -227,7 +227,7 @@ H264DecoderFrame *VATaskSupplier::GetFreeFrame(const H264Slice * pSlice)
     if (view.GetDPBList(0)->countAllFrames() >= view.maxDecFrameBuffering + m_DPBSizeEx)
         pFrame = view.GetDPBList(0)->GetDisposable();
 
-    VM_ASSERT(!pFrame || pFrame->GetRefCounter() == 0);
+    VM_ASSERT(!pFrame || pFrame->isUnique());
 
     // Did we find one?
     if (NULL == pFrame)
@@ -388,7 +388,7 @@ H264Slice * VATaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
     size_t dataSize = nalUnit->GetDataSize();
     nalUnit->SetDataSize(std::min<size_t>(1024, dataSize));
 
-    H264Slice * slice = TaskSupplier::DecodeSliceHeader(nalUnit);
+    std::shared_ptr<H264Slice> slice(TaskSupplier::DecodeSliceHeader(nalUnit));
 
     nalUnit->SetDataSize(dataSize);
 
@@ -398,7 +398,7 @@ H264Slice * VATaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
     if (nalUnit->IsUsedExternalMem())
     {
         slice->m_pSource.SetData(nalUnit);
-        m_lazyCopier.Add(slice);
+        m_lazyCopier.Add(slice.get());
     }
     else
     {
@@ -420,7 +420,7 @@ H264Slice * VATaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
         (uint32_t)slice->m_pSource.GetDataSize());
     slice->GetBitStream()->SetState((uint32_t*)(slice->m_pSource.GetPointer() + bytes), bitOffset);
 
-    return slice;
+    return slice.get();
 }
 
 // walk over all view's  DPB and find an index free index.

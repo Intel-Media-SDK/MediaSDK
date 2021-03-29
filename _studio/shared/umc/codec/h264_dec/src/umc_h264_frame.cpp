@@ -310,7 +310,7 @@ void H264DecoderFrame::setWasOutputted()
 
 void H264DecoderFrame::Free()
 {
-    DEBUG_PRINT((VM_STRING("Free reference POC - %d, ref. count - %d, uid - %d, state D.%d O.%d\n"), m_PicOrderCnt[0], m_refCounter, m_UID, m_wasDisplayed, m_wasOutputted));
+    DEBUG_PRINT((VM_STRING("Free reference POC - %d, ref. count - %d, uid - %d, state D.%d O.%d\n"), m_PicOrderCnt[0], GetShared().use_count(), m_UID, m_wasDisplayed, m_wasOutputted));
 
     if (wasDisplayed() && wasOutputted())
         Reset();

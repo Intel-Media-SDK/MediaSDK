@@ -1092,7 +1092,7 @@ ViewItem & MVC_Extension::AllocateAndInitializeView(H264Slice * slice)
     }
 
     ViewItem &viewRef = GetView(slice->GetSliceHeader()->nal_ext.mvc.view_id);
-    viewRef.SetDPBSize(const_cast<H264SeqParamSet*>(slice->m_pSeqParamSet), m_level_idc);
+    viewRef.SetDPBSize(const_cast<H264SeqParamSet*>(slice->m_pSeqParamSet.get()), m_level_idc);
     return viewRef;
 }
 
@@ -1956,7 +1956,7 @@ TaskSupplier::TaskSupplier()
     , m_local_delta_frame_time(0)
     , m_use_external_framerate(false)
 
-    , m_pLastSlice(0)
+    , m_pLastSlice(nullptr)
     , m_pLastDisplayed(0)
     , m_pMemoryAllocator(0)
     , m_pFrameAllocator(0)
@@ -2127,9 +2127,7 @@ void TaskSupplier::Close()
 
     if (m_pLastSlice)
     {
-        m_pLastSlice->Release();
-        m_pLastSlice->DecrementReference();
-        m_pLastSlice = 0;
+        m_pLastSlice.reset();
     }
 
     m_accessUnit.Release();
@@ -2205,9 +2203,7 @@ void TaskSupplier::Reset()
 
     if (m_pLastSlice)
     {
-        m_pLastSlice->Release();
-        m_pLastSlice->DecrementReference();
-        m_pLastSlice = 0;
+        m_pLastSlice.reset();
     }
 
     m_Headers.Reset(true);
@@ -2267,9 +2263,7 @@ void TaskSupplier::AfterErrorRestore()
 
     if (m_pLastSlice)
     {
-        m_pLastSlice->Release();
-        m_pLastSlice->DecrementReference();
-        m_pLastSlice = 0;
+        m_pLastSlice.reset();
     }
 
     m_Headers.Reset(true);
@@ -3195,10 +3189,10 @@ Status TaskSupplier::ProcessNalUnit(NalUnit *nalUnit)
     case NAL_UT_AUXILIARY:
     case NAL_UT_CODED_SLICE_EXTENSION:
         {
-            H264Slice * pSlice = DecodeSliceHeader(nalUnit);
+            std::shared_ptr<H264Slice> pSlice(DecodeSliceHeader(nalUnit));
             if (pSlice)
             {
-                umcRes = AddSlice(pSlice, false);
+                umcRes = AddSlice(pSlice.get(), false);
             }
         }
         break;
@@ -3252,7 +3246,7 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
 
     if (m_pLastSlice)
     {
-        Status sts = AddSlice(m_pLastSlice, !pSource);
+        Status sts = AddSlice(m_pLastSlice.get(), !pSource);
         if (sts == UMC_ERR_NOT_ENOUGH_BUFFER || sts == UMC_ERR_ALLOC)
         {
             return sts;
@@ -3306,10 +3300,10 @@ Status TaskSupplier::AddOneFrame(MediaData * pSource)
         case NAL_UT_AUXILIARY:
         case NAL_UT_CODED_SLICE_EXTENSION:
             {
-            H264Slice * pSlice = DecodeSliceHeader(nalUnit);
+            std::shared_ptr<H264Slice> pSlice(DecodeSliceHeader(nalUnit));
             if (pSlice)
             {
-                umsRes = AddSlice(pSlice, !pSource);
+                umsRes = AddSlice(pSlice.get(), !pSource);
                 if (umsRes == UMC_ERR_NOT_ENOUGH_BUFFER || umsRes == UMC_OK || umsRes == UMC_ERR_ALLOC)
                 {
 
@@ -3445,9 +3439,8 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
         return 0;
     }
     pSlice->SetHeap(&m_ObjHeap);
-    pSlice->IncrementReference();
 
-    notifier0<H264Slice> memory_leak_preventing_slice(pSlice, &H264Slice::DecrementReference);
+    notifier0<H264Slice> memory_leak_preventing_slice(pSlice, &H264Slice::FreeResources);
 
     H264MemoryPiece memCopy;
     memCopy.SetData(nalUnit);
@@ -3476,7 +3469,7 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
         }
     }
 
-    pSlice->m_pPicParamSet = m_Headers.m_PicParams.GetHeader(pps_pid);
+    pSlice->m_pPicParamSet.reset(m_Headers.m_PicParams.GetHeader(pps_pid));
     if (!pSlice->m_pPicParamSet)
     {
         return 0;
@@ -3489,8 +3482,8 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
         if (pSlice->GetSliceHeader()->nal_ext.svc_extension_flag == 0)
         {
             pSlice->m_pSeqParamSetSvcEx = 0;
-            pSlice->m_pSeqParamSet = pSlice->m_pSeqParamSetMvcEx = m_Headers.m_SeqParamsMvcExt.GetHeader(seq_parameter_set_id);
-
+            pSlice->m_pSeqParamSet.reset(m_Headers.m_SeqParamsMvcExt.GetHeader(seq_parameter_set_id));
+            pSlice->m_pSeqParamSetMvcEx.reset(m_Headers.m_SeqParamsMvcExt.GetHeader(seq_parameter_set_id));
             if (NULL == pSlice->m_pSeqParamSet)
             {
                 return 0;
@@ -3502,8 +3495,8 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
         else
         {
             pSlice->m_pSeqParamSetMvcEx = 0;
-            pSlice->m_pSeqParamSet = pSlice->m_pSeqParamSetSvcEx = m_Headers.m_SeqParamsSvcExt.GetHeader(seq_parameter_set_id);
-
+            pSlice->m_pSeqParamSetSvcEx.reset(m_Headers.m_SeqParamsSvcExt.GetHeader(seq_parameter_set_id));
+            pSlice->m_pSeqParamSet.reset(m_Headers.m_SeqParamsSvcExt.GetHeader(seq_parameter_set_id));
             if (NULL == pSlice->m_pSeqParamSet)
             {
                 return 0;
@@ -3515,9 +3508,9 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
     }
     else
     {
-        pSlice->m_pSeqParamSetSvcEx = m_Headers.m_SeqParamsSvcExt.GetCurrentHeader();
-        pSlice->m_pSeqParamSetMvcEx = m_Headers.m_SeqParamsMvcExt.GetCurrentHeader();
-        pSlice->m_pSeqParamSet = m_Headers.m_SeqParams.GetHeader(seq_parameter_set_id);
+        pSlice->m_pSeqParamSetSvcEx.reset(m_Headers.m_SeqParamsSvcExt.GetCurrentHeader());
+        pSlice->m_pSeqParamSetMvcEx.reset(m_Headers.m_SeqParamsMvcExt.GetCurrentHeader());
+        pSlice->m_pSeqParamSet.reset(m_Headers.m_SeqParams.GetHeader(seq_parameter_set_id));
 
         if (!pSlice->m_pSeqParamSet)
         {
@@ -3535,13 +3528,13 @@ H264Slice * TaskSupplier::DecodeSliceHeader(NalUnit *nalUnit)
     if (pSlice->m_pPicParamSet->errorFlags)
         ErrorStatus::isPPSError = 1;
 
-    Status sts = InitializePictureParamSet(m_Headers.m_PicParams.GetHeader(pps_pid), pSlice->m_pSeqParamSet, NAL_UT_CODED_SLICE_EXTENSION == pSlice->GetSliceHeader()->nal_unit_type);
+    Status sts = InitializePictureParamSet(m_Headers.m_PicParams.GetHeader(pps_pid), pSlice->m_pSeqParamSet.get(), NAL_UT_CODED_SLICE_EXTENSION == pSlice->GetSliceHeader()->nal_unit_type);
     if (sts != UMC_OK)
     {
         return 0;
     }
 
-    pSlice->m_pSeqParamSetEx = m_Headers.m_SeqExParams.GetHeader(seq_parameter_set_id);
+    pSlice->m_pSeqParamSetEx.reset(m_Headers.m_SeqExParams.GetHeader(seq_parameter_set_id));
     pSlice->m_pCurrentFrame = 0;
 
     memory_leak_preventing.ClearNotification();
@@ -3614,7 +3607,7 @@ Status TaskSupplier::AddSlice(H264Slice * pSlice, bool force)
 
     if ((!pSlice || m_accessUnit.IsFullAU() || !m_accessUnit.AddSlice(pSlice)) && m_accessUnit.GetLayersCount())
     {
-        m_pLastSlice = pSlice;
+        m_pLastSlice = pSlice->GetShared();
         if (!m_accessUnit.m_isInitialized)
         {
             InitializeLayers(&m_accessUnit, 0, 0);
@@ -3858,9 +3851,9 @@ Status TaskSupplier::InitializeLayers(AccessUnit *accessUnit, H264DecoderFrame *
                 if (NAL_UT_CODED_SLICE_EXTENSION != slice->GetSliceHeader()->nal_unit_type)
                 {
                     if (!slice->m_pSeqParamSetMvcEx)
-                        slice->SetSeqMVCParam(sliceExtension->m_pSeqParamSetMvcEx);
+                        slice->SetSeqMVCParam(sliceExtension->m_pSeqParamSetMvcEx.get());
                     if (!slice->m_pSeqParamSetSvcEx)
-                        slice->SetSeqSVCParam(sliceExtension->m_pSeqParamSetSvcEx);
+                        slice->SetSeqSVCParam(sliceExtension->m_pSeqParamSetSvcEx.get());
                 }
             }
         }

@@ -61,7 +61,7 @@ public:
     UMC_H264_DECODER::H264SEIPayLoad* FindPayload(SEI_TYPE type) const;
 
 protected:
-    typedef std::vector<UMC_H264_DECODER::H264SEIPayLoad*> PayloadArray;
+    typedef std::vector<std::shared_ptr<UMC_H264_DECODER::H264SEIPayLoad>> PayloadArray;
     PayloadArray m_payloads;
 
     int32_t FindPayloadPos(SEI_TYPE type) const;
@@ -99,7 +99,7 @@ public:
     SetOfSlices& operator=(const SetOfSlices& set);
 
 protected:
-    std::vector<H264Slice*> m_pSliceQueue;
+    std::vector<std::shared_ptr<H264Slice>> m_pSliceQueue;
 };
 
 /****************************************************************************************************/

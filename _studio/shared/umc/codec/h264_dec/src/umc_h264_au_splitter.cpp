@@ -62,7 +62,7 @@ UMC_H264_DECODER::H264SEIPayLoad* SeiPayloadArray::GetPayload(size_t pos) const
     if (pos >= m_payloads.size())
         return 0;
 
-    return m_payloads[pos];
+    return m_payloads[pos].get();
 }
 
 UMC_H264_DECODER::H264SEIPayLoad* SeiPayloadArray::FindPayload(SEI_TYPE type) const
@@ -76,7 +76,7 @@ int32_t SeiPayloadArray::FindPayloadPos(SEI_TYPE type) const
     size_t count = m_payloads.size();
     for (size_t i = 0; i < count; i++)
     {
-        UMC_H264_DECODER::H264SEIPayLoad* payload = m_payloads[i];
+        UMC_H264_DECODER::H264SEIPayLoad* payload = m_payloads[i].get();
         if (payload->payLoadType == type)
             return (int32_t)i;
     }
@@ -97,14 +97,6 @@ void SeiPayloadArray::MovePayloadsFrom(SeiPayloadArray &payloads)
 
 void SeiPayloadArray::Release()
 {
-    PayloadArray::iterator iter = m_payloads.begin();
-    PayloadArray::iterator iter_end = m_payloads.end();
-    for (; iter != iter_end; ++iter)
-    {
-        UMC_H264_DECODER::H264SEIPayLoad* payload = *iter;
-        payload->DecrementReference();
-    }
-
     m_payloads.clear();
 }
 
@@ -113,16 +105,15 @@ void SeiPayloadArray::AddPayload(UMC_H264_DECODER::H264SEIPayLoad* payload)
     if (!payload)
         return;
 
-    payload->IncrementReference();
     int32_t pos = FindPayloadPos(payload->payLoadType);
     if (pos >= 0) // always use last payload
     {
-        m_payloads[pos]->DecrementReference();
-        m_payloads[pos] = payload;
+        m_payloads[pos].reset(payload);
         return;
     }
 
-    m_payloads.push_back(payload);
+    std::shared_ptr<UMC_H264_DECODER::H264SEIPayLoad> shared_payload(payload);
+    m_payloads.push_back(shared_payload);
 }
 
 /****************************************************************************************************/
@@ -142,10 +133,6 @@ SetOfSlices::SetOfSlices(const SetOfSlices& set)
     , m_payloads(set.m_payloads)
     , m_pSliceQueue(set.m_pSliceQueue)
 {
-    for (auto pSlice : m_pSliceQueue)
-    {
-        pSlice->IncrementReference();
-    }
 }
 
 SetOfSlices::~SetOfSlices()
@@ -161,10 +148,6 @@ SetOfSlices& SetOfSlices::operator=(const SetOfSlices& set)
     }
 
     *this = set;
-    for (auto pSlice : m_pSliceQueue)
-    {
-        pSlice->IncrementReference();
-    }
 
     return *this;
 }
@@ -174,7 +157,7 @@ H264Slice * SetOfSlices::GetSlice(size_t pos) const
     if (pos >= m_pSliceQueue.size())
         return nullptr;
 
-    return m_pSliceQueue[pos];
+    return m_pSliceQueue[pos].get();
 }
 
 size_t SetOfSlices::GetSliceCount() const
@@ -184,18 +167,11 @@ size_t SetOfSlices::GetSliceCount() const
 
 void SetOfSlices::AddSlice(H264Slice * slice)
 {
-    m_pSliceQueue.push_back(slice);
+    m_pSliceQueue.push_back(slice->GetShared());
 }
 
 void SetOfSlices::Release()
 {
-    size_t count = m_pSliceQueue.size();
-    for (size_t sliceId = 0; sliceId < count; sliceId++)
-    {
-        H264Slice * slice = m_pSliceQueue[sliceId];
-        slice->DecrementReference();
-    }
-
     Reset();
 }
 
@@ -222,14 +198,12 @@ void SetOfSlices::CleanUseless()
     size_t count = m_pSliceQueue.size();
     for (size_t sliceId = 0; sliceId < count; sliceId++)
     {
-        H264Slice * curSlice = m_pSliceQueue[sliceId];
+        H264Slice * curSlice = m_pSliceQueue[sliceId].get();
         if (curSlice->m_bDecoded)
         {
             m_pSliceQueue.erase(m_pSliceQueue.begin() + sliceId); // remove
             count = m_pSliceQueue.size();
             --sliceId;
-            curSlice->Release();
-            curSlice->DecrementReference();
         }
     }
 }
@@ -244,13 +218,13 @@ void SetOfSlices::SortSlices()
     size_t count = m_pSliceQueue.size();
     for (size_t sliceId = 0; sliceId < count; sliceId++)
     {
-        H264Slice * curSlice = m_pSliceQueue[sliceId];
+        H264Slice * curSlice = m_pSliceQueue[sliceId].get();
         int32_t minFirst = MAX_MB_NUMBER;
         size_t minSlice = 0;
 
         for (size_t j = sliceId; j < count; j++)
         {
-            H264Slice * slice = m_pSliceQueue[j];
+            H264Slice * slice = m_pSliceQueue[j].get();
             if (slice->GetStreamFirstMB() < curSlice->GetStreamFirstMB() && minFirst > slice->GetStreamFirstMB() &&
                 curSlice->GetSliceHeader()->nal_ext.svc.dependency_id == slice->GetSliceHeader()->nal_ext.svc.dependency_id &&
                 curSlice->GetSliceHeader()->nal_ext.svc.quality_id == slice->GetSliceHeader()->nal_ext.svc.quality_id)
@@ -262,16 +236,14 @@ void SetOfSlices::SortSlices()
 
         if (minFirst != MAX_MB_NUMBER)
         {
-            H264Slice * temp = m_pSliceQueue[sliceId];
-            m_pSliceQueue[sliceId] = m_pSliceQueue[minSlice];
-            m_pSliceQueue[minSlice] = temp;
+            m_pSliceQueue[sliceId].swap(m_pSliceQueue[minSlice]);
         }
     }
 
     for (size_t sliceId = 0; sliceId < count - 1; sliceId++)
     {
-        H264Slice * slice     = m_pSliceQueue[sliceId];
-        H264Slice * nextSlice = m_pSliceQueue[sliceId + 1];
+        H264Slice * slice     = m_pSliceQueue[sliceId].get();
+        H264Slice * nextSlice = m_pSliceQueue[sliceId + 1].get();
 
         if (nextSlice->IsSliceGroups() || slice->IsSliceGroups())
             continue;
@@ -284,11 +256,10 @@ void SetOfSlices::SortSlices()
             count--;
             for (size_t i = sliceId; i < count; i++)
             {
-                m_pSliceQueue[i] = m_pSliceQueue[i + 1];
+                m_pSliceQueue[i].swap(m_pSliceQueue[i + 1]);
             }
 
             m_pSliceQueue.resize(count);
-            slice->DecrementReference();
 
             sliceId = uint32_t(-1);
             continue;

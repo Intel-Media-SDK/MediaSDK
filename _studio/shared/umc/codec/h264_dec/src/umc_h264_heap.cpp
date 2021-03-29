@@ -308,22 +308,6 @@ void HeapObject::Free()
     Item * item = (Item *) ((uint8_t*)this - sizeof(Item));
     item->m_heap->Free(this);
 }
-
-void RefCounter::IncrementReference() const
-{
-    m_refCounter++;
-}
-
-void RefCounter::DecrementReference()
-{
-    m_refCounter--;
-
-    VM_ASSERT(m_refCounter >= 0);
-    if (!m_refCounter)
-    {
-        Free();
-    }
-}
 } // namespace UMC
 
 #endif // MFX_ENABLE_H264_VIDEO_DECODE

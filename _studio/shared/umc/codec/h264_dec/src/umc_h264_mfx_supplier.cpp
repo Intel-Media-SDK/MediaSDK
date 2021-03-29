@@ -600,7 +600,7 @@ protected:
     bool isMVCRequered() const;
 
     UMC::TaskSupplier * m_supplier;
-    UMC::H264Slice * m_lastSlice;
+    std::shared_ptr<UMC::H264Slice> m_lastSlice;
 };
 
 PosibleMVC::PosibleMVC(UMC::TaskSupplier * supplier)
@@ -612,14 +612,13 @@ PosibleMVC::PosibleMVC(UMC::TaskSupplier * supplier)
     , m_isMVCBuffer(false)
     , m_isSVCBuffer(false)
     , m_supplier(supplier)
-    , m_lastSlice(0)
+    , m_lastSlice(nullptr)
 {
 }
 
 PosibleMVC::~PosibleMVC()
 {
-    if (m_lastSlice)
-        m_lastSlice->DecrementReference();
+    m_lastSlice.reset();
 }
 
 
@@ -659,10 +658,10 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
 
     struct sps_heap_obj
     {
-        UMC_H264_DECODER::H264SeqParamSet* obj;
-        sps_heap_obj() : obj(0) {}
-        ~sps_heap_obj() { if (obj) obj->DecrementReference(); }
-        void set(UMC_H264_DECODER::H264SeqParamSet* sps) { if(sps) { obj = sps; obj->IncrementReference();} }
+        std::shared_ptr<UMC_H264_DECODER::H264SeqParamSet> obj;
+        sps_heap_obj() : obj(nullptr) {}
+        ~sps_heap_obj() { obj.reset(); }
+        void set(UMC_H264_DECODER::H264SeqParamSet* sps) { if(sps) { obj.reset(sps); } }
     } first_sps;
 
     UMC::Status umcRes = UMC::UMC_ERR_NOT_ENOUGH_DATA;
@@ -720,8 +719,8 @@ UMC::Status PosibleMVC::DecodeHeader(UMC::MediaData * data, mfxBitstream *bs, mf
         VM_ASSERT(first_sps.obj && "Current SPS should be valid when [m_isSPSFound]");
 
         UMC_H264_DECODER::H264SeqParamSet* last_sps = m_supplier->GetHeaders()->m_SeqParams.GetCurrentHeader();
-        if (first_sps.obj && first_sps.obj != last_sps)
-            m_supplier->GetHeaders()->m_SeqParams.AddHeader(first_sps.obj);
+        if (first_sps.obj && first_sps.obj.get() != last_sps)
+            m_supplier->GetHeaders()->m_SeqParams.AddHeader(first_sps.obj.get());
 
         return UMC::UMC_OK;
     }
@@ -772,7 +771,7 @@ UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
                 int32_t sps_svc_id = m_supplier->GetHeaders()->m_SeqParamsSvcExt.GetCurrentID();
                 int32_t sps_pps_id = m_supplier->GetHeaders()->m_PicParams.GetCurrentID();
 
-                UMC::H264Slice * pSlice = m_supplier->DecodeSliceHeader(nalUnit);
+                std::shared_ptr<UMC::H264Slice> pSlice(m_supplier->DecodeSliceHeader(nalUnit));
                 if (pSlice)
                 {
                     if (!m_lastSlice)
@@ -782,9 +781,9 @@ UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
                         return UMC::UMC_OK;
                     }
 
-                    if ((false == IsPictureTheSame(m_lastSlice, pSlice)))
+                    if ((false == IsPictureTheSame(m_lastSlice.get(), pSlice.get())))
                     {
-                        if (!IsFieldOfOneFrame(pSlice, m_lastSlice))
+                        if (!IsFieldOfOneFrame(pSlice.get(), m_lastSlice.get()))
                         {
                             m_supplier->GetHeaders()->m_SeqParams.SetCurrentID(sps_id);
                             m_supplier->GetHeaders()->m_SeqParamsMvcExt.SetCurrentID(sps_mvc_id);
@@ -792,14 +791,12 @@ UMC::Status PosibleMVC::ProcessNalUnit(UMC::MediaData * data, mfxBitstream * bs)
                             m_supplier->GetHeaders()->m_PicParams.SetCurrentID(sps_pps_id);
 
                             pSlice->Release();
-                            pSlice->DecrementReference();
                             m_isFrameLooked = true;
                             return UMC::UMC_OK;
                         }
                     }
 
                     pSlice->Release();
-                    m_lastSlice->DecrementReference();
                     m_lastSlice = pSlice;
                     return UMC::UMC_OK;
                 }

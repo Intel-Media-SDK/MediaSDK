@@ -267,38 +267,7 @@ struct H264WholeQPLevelScale8x8
     int16_t LevelScaleCoeffs[88]/*since we do not support 422 and 444*/[64];
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Memory class
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-class RefCounter
-{
-public:
-
-    RefCounter() : m_refCounter(0)
-    {
-    }
-
-    void IncrementReference() const;
-
-    void DecrementReference();
-
-    void ResetRefCounter() {m_refCounter = 0;}
-
-    uint32_t GetRefCounter() {return m_refCounter;}
-
-protected:
-    volatile mutable int32_t m_refCounter;
-
-    virtual ~RefCounter()
-    {
-    }
-
-    virtual void Free()
-    {
-    }
-};
-
-class HeapObject : public RefCounter
+class HeapObject
 {
 public:
 

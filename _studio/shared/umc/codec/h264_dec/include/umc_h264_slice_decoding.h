@@ -57,7 +57,7 @@ class H264DecoderFrameInfo;
 struct ViewItem;
 typedef std::list<ViewItem> ViewList;
 
-class H264Slice : public HeapObject
+class H264Slice : public HeapObject , public std::enable_shared_from_this<H264Slice>
 {
     // It is OK. H264SliceStore is owner of H264Slice object.
     // He can do what he wants.
@@ -82,6 +82,7 @@ public:
 
     virtual void FreeResources();
 
+    std::shared_ptr<H264Slice> GetShared();
 
     int32_t RetrievePicParamSetNumber();
 
@@ -111,20 +112,20 @@ public:
     // Obtain current sequence parameter set number
     int32_t GetSeqParamSet(void) const {return m_pSeqParamSet->seq_parameter_set_id;}
     // Obtain current picture parameter set
-    const UMC_H264_DECODER::H264PicParamSet *GetPicParam(void) const {return m_pPicParamSet;}
-    void SetPicParam(const UMC_H264_DECODER::H264PicParamSet * pps) {m_pPicParamSet = pps;}
+    const UMC_H264_DECODER::H264PicParamSet *GetPicParam(void) const {return m_pPicParamSet.get();}
+    void SetPicParam(const UMC_H264_DECODER::H264PicParamSet * pps) {m_pPicParamSet.reset(pps);}
     // Obtain current sequence parameter set
-    const UMC_H264_DECODER::H264SeqParamSet *GetSeqParam(void) const {return m_pSeqParamSet;}
-    void SetSeqParam(const UMC_H264_DECODER::H264SeqParamSet * sps) {m_pSeqParamSet = sps;}
+    const UMC_H264_DECODER::H264SeqParamSet *GetSeqParam(void) const {return m_pSeqParamSet.get();}
+    void SetSeqParam(const UMC_H264_DECODER::H264SeqParamSet * sps) {m_pSeqParamSet.reset(sps);}
 
     // Obtain current sequence extension parameter set
-    const UMC_H264_DECODER::H264SeqParamSetExtension *GetSeqParamEx(void) const {return m_pSeqParamSetEx;}
-    void SetSeqExParam(const UMC_H264_DECODER::H264SeqParamSetExtension * spsex) {m_pSeqParamSetEx = spsex;}
+    const UMC_H264_DECODER::H264SeqParamSetExtension *GetSeqParamEx(void) const {return m_pSeqParamSetEx.get();}
+    void SetSeqExParam(const UMC_H264_DECODER::H264SeqParamSetExtension * spsex) {m_pSeqParamSetEx.reset(spsex);}
 
-    const UMC_H264_DECODER::H264SeqParamSetMVCExtension *GetSeqMVCParam(void) const {return m_pSeqParamSetMvcEx;}
+    const UMC_H264_DECODER::H264SeqParamSetMVCExtension *GetSeqMVCParam(void) const {return m_pSeqParamSetMvcEx.get();}
     void SetSeqMVCParam(const UMC_H264_DECODER::H264SeqParamSetMVCExtension * sps);
 
-    const UMC_H264_DECODER::H264SeqParamSetSVCExtension *GetSeqSVCParam(void) const {return m_pSeqParamSetSvcEx;}
+    const UMC_H264_DECODER::H264SeqParamSetSVCExtension *GetSeqSVCParam(void) const {return m_pSeqParamSetSvcEx.get();}
     void SetSeqSVCParam(const UMC_H264_DECODER::H264SeqParamSetSVCExtension * sps);
 
     // Obtain current destination frame
@@ -200,11 +201,11 @@ public:  // DEBUG !!!! should remove dependence
 
     UMC_H264_DECODER::PredWeightTable m_PredWeight[2][MAX_NUM_REF_FRAMES];        // (PredWeightTable []) prediction weight table
 
-    const UMC_H264_DECODER::H264PicParamSet* m_pPicParamSet;                      // (H264PicParamSet *) pointer to array of picture parameters sets
-    const UMC_H264_DECODER::H264SeqParamSet* m_pSeqParamSet;                      // (H264SeqParamSet *) pointer to array of sequence parameters sets
-    const UMC_H264_DECODER::H264SeqParamSetExtension* m_pSeqParamSetEx;
-    const UMC_H264_DECODER::H264SeqParamSetMVCExtension* m_pSeqParamSetMvcEx;
-    const UMC_H264_DECODER::H264SeqParamSetSVCExtension* m_pSeqParamSetSvcEx;
+    std::unique_ptr<const UMC_H264_DECODER::H264PicParamSet> m_pPicParamSet;                      // (H264PicParamSet *) pointer to array of picture parameters sets
+    std::unique_ptr<const UMC_H264_DECODER::H264SeqParamSet> m_pSeqParamSet;                      // (H264SeqParamSet *) pointer to array of sequence parameters sets
+    std::unique_ptr<const UMC_H264_DECODER::H264SeqParamSetExtension> m_pSeqParamSetEx;
+    std::unique_ptr<const UMC_H264_DECODER::H264SeqParamSetMVCExtension> m_pSeqParamSetMvcEx;
+    std::unique_ptr<const UMC_H264_DECODER::H264SeqParamSetSVCExtension> m_pSeqParamSetSvcEx;
 
     H264DecoderFrame *m_pCurrentFrame;        // (H264DecoderFrame *) pointer to destination frame
 
