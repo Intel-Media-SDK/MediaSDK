@@ -40,6 +40,24 @@
 
 using namespace MfxHwH264Encode;
 
+mfxU32 ConvertMfxFourcc2VaapiRTFormat(mfxU32 fourcc)
+{
+    switch (fourcc)
+    {
+        case MFX_FOURCC_NV12:
+            return VA_RT_FORMAT_YUV420;
+        case MFX_FOURCC_YUY2:
+            return VA_RT_FORMAT_YUV422;
+        case MFX_FOURCC_AYUV:
+            return VA_RT_FORMAT_YUV444;
+        case MFX_FOURCC_RGB4:
+        case MFX_FOURCC_BGR4:
+            return VA_RT_FORMAT_RGB32;
+        default: assert(!"Unsupported fourcc");
+            return 0;
+    }
+}
+
 static mfxU8 ConvertMfxFrameType2VaapiSliceType(mfxU8 type)
 {
     switch (type & MFX_FRAMETYPE_IPB)
@@ -1737,8 +1755,9 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
                           &attrib[0], numAttrib);
     MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
-    if ((attrib[0].value & VA_RT_FORMAT_YUV420) == 0)
-        return MFX_ERR_DEVICE_FAILED;
+    mfxU32 vaRTFormat = ConvertMfxFourcc2VaapiRTFormat(par.mfx.FrameInfo.FourCC);
+    if ((attrib[0].value & vaRTFormat) == 0)
+        return MFX_ERR_UNSUPPORTED;
 
     uint32_t vaRCType = ConvertRateControlMFX2VAAPI(par.mfx.RateControlMethod);
 
@@ -1766,7 +1785,7 @@ mfxStatus VAAPIEncoder::CreateAccelerationService(MfxVideoParam const & par)
     }
 #endif
 
-    attrib[0].value = VA_RT_FORMAT_YUV420;
+    attrib[0].value = vaRTFormat;
     attrib[1].value = vaRCType;
 
     vaSts = vaCreateConfig(
