@@ -35,36 +35,34 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
 
-## What’s New in Media SDK 20.5.1
+## What’s New in Media SDK 21.1.3
 **New features**:
-* **AV1 decode**
-    - Refactored handling errors in SubmitFrame
+* **API 1.35**
+    - Added deprecation attributes in API Headers. Please see Intel® Media SDK Reference Manuals for details:
+        - *“&lt;sdk-install-folder&gt;/doc/mediasdk-man.md”*
+        - *“&lt;sdk-install-folder&gt;/doc/mediasdkusr-man.md”*
+        - *“&lt;sdk-install-folder&gt;/doc/mediasdkfei-man.md”*
+        - *“&lt;sdk-install-folder&gt;/doc/mediasdkhevcfei-man.md”*
+    - Added AVC decode 6-6.2 levels
 
-* **AVC encode**
-    - Improved handling support status for "Sliding window" feature
-    - Added EncTools support
-    - Added vaSyncBuffer support
-    - Added external BRC support for Rocket Lake
-    - Added TCBRC support
-    - Added MCTF support
+* **AV1 Decode**
+    - Enabled dynamic gpu session priority
 
-* **HEVC encode**
-    - Extended B frames support across all target usage with LowPower on
-    - Added TCBRC support
-
-* **MPEG2 encode**
-    - Added vaSyncBuffer support
+* **VP8 Decode**
+    - Increased max height to 4k 
 
 * **Samples**
-    - Added AdaptiveI and AdaptiveB frames support in sample_multi_transcode (#1401)
-    - Added NV16 output support
-    - Added 12 bit support in sample_multi_transcode, sample_decode and sample_vpp (#2055)
-    - Enabled MBQP for all encoders in sample_multi_transcode
-    - Added -disable_film_grain flag to disable film grain application in sample_decode
+    - Changed default memory from opaq to video in sample_multy_transcode
+    - Added -fps flag to limit overall fps of pipeline in sample_decode and sample_encode
+    - Added support of 1->1 and 1-N transcode scenarios with SFC in sample_multi_transcode
+    - Added support for 10bit formats in sample_multi_transcode
+    - Added flags for forcing output color format in sample_encode
+    - Added UYVY output support for sample_vpp
+    - Added NV16 and P210 support in sample_encode
 
 * **Misc**
-    - Disabled plugins loading (Plugin implementations were moved to library runtime, except LA and FEI)
-    - Added support for dynamic GPU session priority
+	- Enabled github actions
+
 
 * **Software requirements**
     - Libdrm 2.4.84 or later
@@ -72,8 +70,8 @@ In this document we will refer to processor families by their former codenames f
 
 * **Known issues**
     - Kernel 5.0 have known issue with endurance on Skylake see https://bugs.freedesktop.org/show_bug.cgi?id=110285 for details.
-    - Media Stack 20.5.1 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
-    - AV1 Decoder doesn't properly support asynchronous decoding (AsyncDepth > 1) and sometimes may return *MFX_ERR_UNDEFINED_BEHAVIOR* and *MFX_ERR_DEVICE_FAILED* from DecodeFrameAsync calls. See #2244 for details.
+    - Media Stack 21.1.3 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
+    - Media Driver may incorrect report frame QP in Media Stack 21.1.3 for HEVC FEI. See https://github.com/intel/media-driver/issues/1171 for details
 
 ## <a id='System_Requirements'>System Requirements</a>
 
@@ -163,7 +161,7 @@ X indicates a supported function
 
 NOTE: Please use *Query* functions to check feature availability on any given machine at runtime. Availability of features depends on hardware capabilities as well as driver version.
 
-Please see the Intel® Media SDK Reference Manual for details *“&lt;sdk-install-folder&gt;/doc/mediasdk-man.pdf”*.
+Please see the Intel® Media SDK Reference Manual for details *“&lt;sdk-install-folder&gt;/doc/mediasdk-man.md”*.
 
 Please also check the collateral materials: https://dgpu-docs.intel.com/devices/iris-xe-max-graphics/guides/media.html
 
@@ -533,7 +531,7 @@ This release is subject to the following known limitations:
     - [26996] Setting too low bitrate for MPEG-2 Encoder may produce mosaic visual artifacts on complex content with fast motion or scene changes. For example bitrate 5.6 Mbps is too low for 1080<i></i>@25p, increasing bitrate to 8.5 Mbps produce much better quality stream. Sometimes Encoder Bitrate Control acts too conservative and produces artifacts caused by so-called panic mode.
     **Workaround:** Disable Encoder Bitrate Control panic mode. This may increase visual quality on low bitrates at the cost of potential VBV compliance violation.
     - Resetting MPEG-2 Encoder with new aspect ratio may return *MFX_ERR_INCOMPATIBLE_VIDEO_PARAM*, workaround - explicitly close and re-initialize encoder.
-    - Contrary to SDK Reference Manual (mediasdkman.pdf) MPEG-2 Encoder may allocate surfaces on Reset call.
+    - Contrary to SDK Reference Manual (mediasdk-man.md) MPEG-2 Encoder may allocate surfaces on Reset call.
     - Encoder doesn't return errors on attempts to initialize it with some unsupported parameters (e.g. WeightedPrediction, FadeDetection and so on). Encoder ignores such parameters and returns *MFX_ERR_NONE* from Query/Init/Reset functions.
     - Once Encoder is initialized with some resolution, Encoder doesn't return error status on attempt to submit frame of bigger resolution to *EncodeFrameAsync*. Frame is accepted, consequence may be corrupted output, segmentation fault or some other undefined behavior.
     - [31656] On some content encoder may generate stream with lesser bitrate than requested.
