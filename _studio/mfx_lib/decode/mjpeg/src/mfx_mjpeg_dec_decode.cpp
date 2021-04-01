@@ -857,7 +857,21 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         m_isHeaderFound = false;
         m_isHeaderParsed = false;
 
-        MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+        try
+        {
+            MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+        }
+        catch(const UMC::eUMC_Status& sts)
+        {
+            if(sts == UMC::UMC_ERR_INVALID_STREAM)
+            {
+                continue;
+            }
+            else
+            {
+                return ConvertUMCStatusToMfx(sts);
+            }
+        }
     // make sure, that we collected BOTH fields
     } while (picToCollect > numPic);
 

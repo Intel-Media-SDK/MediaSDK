@@ -249,6 +249,10 @@ mfxStatus CJpegTask::AddPicture(UMC::MediaDataEx *pSrcData,
             m_pics[m_numPic]->scanOffset[numScans] = pAuxData->offsets[i];
             m_pics[m_numPic]->scanSize[numScans] = chunkSize;
             numScans += 1;
+            if (numScans >= maxNumScans)
+            {
+                throw UMC::UMC_ERR_INVALID_STREAM;
+            }
         }
         else if ((JM_DRI == marker || JM_DQT == marker || JM_DHT == marker) && 0 != numScans)
         {
