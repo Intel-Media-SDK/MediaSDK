@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -154,6 +154,22 @@ void SCC::Query1NoCaps(const FeatureBlocks& /*blocks*/, TPushQ1 Push)
             par.mfx.CodecProfile = MFX_PROFILE_HEVC_REXT;
 
             return prev(dpar, par);
+        });
+        defaults.GetVPS.Push([](
+            Defaults::TGetVPS::TExt prev
+            , const Defaults::Param& defpar
+            , Base::VPS& vps)
+        {
+            auto sts = prev(defpar, vps);
+
+            vps.general.constraint.max_12bit = 1;
+            vps.general.constraint.max_10bit = 1;
+            vps.general.constraint.max_8bit = (defpar.mvp.mfx.FrameInfo.BitDepthLuma != 10);
+            vps.general.constraint.max_422chroma = (defpar.mvp.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444);
+            vps.general.constraint.max_420chroma = (defpar.mvp.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444);
+            vps.general.constraint.lower_bit_rate = 1;
+
+            return sts;
         });
         defaults.GetSPS.Push(
             [](Defaults::TGetSPS::TExt prev
