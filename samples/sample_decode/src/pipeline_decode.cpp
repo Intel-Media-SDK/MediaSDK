@@ -441,6 +441,14 @@ mfxStatus CDecodingPipeline::Init(sInputParams *pParams)
     sts = m_mfxSession.QueryIMPL(&m_impl); // get actual library implementation
     MSDK_CHECK_STATUS(sts, "m_mfxSession.QueryIMPL failed");
 
+#if defined(_WIN32) || defined(_WIN64)
+    if (pParams->videoType == MFX_CODEC_AV1 && MFX_IMPL_VIA_MASK(m_impl) == MFX_IMPL_VIA_D3D9)
+    {
+        sts = MFX_ERR_UNSUPPORTED;
+        MSDK_CHECK_STATUS(sts, "AV1d have no DX9 support \n");
+    }
+#endif
+
     bool isDeviceRequired = false;
     mfxHandleType hdl_t;
 #if D3D_SURFACES_SUPPORT
