@@ -3781,6 +3781,17 @@ mfxStatus CTranscodingPipeline::Init(sInputParams *pParams,
     // check the API version of actually loaded library
     sts = m_pmfxSession->QueryVersion(&m_Version);
     MSDK_CHECK_STATUS(sts, "m_pmfxSession->QueryVersion failed");
+    // check the implementation version of actually loaded library
+    sts = m_pmfxSession->QueryIMPL(&pParams->libType);
+    MSDK_CHECK_STATUS(sts, "m_pmfxSession->QueryIMPL failed");
+
+#if defined(_WIN32) || defined(_WIN64)
+    if (MFX_CODEC_AV1 == pParams->DecodeId && MFX_IMPL_VIA_MASK(pParams->libType) == MFX_IMPL_VIA_D3D9)
+    {
+        sts = MFX_ERR_UNSUPPORTED;
+        MSDK_CHECK_STATUS(sts, "AV1d have no DX9 support \n");
+    }
+#endif
 
     sts = CheckRequiredAPIVersion(m_Version, pParams);
     MSDK_CHECK_STATUS(sts, "CheckRequiredAPIVersion failed");
