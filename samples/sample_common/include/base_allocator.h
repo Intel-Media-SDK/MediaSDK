@@ -51,6 +51,9 @@ public:
     virtual mfxStatus GetFrameHDL(mfxMemId mid, mfxHDL *handle) = 0;
     virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response) = 0;
 
+    virtual mfxStatus Create3DLutMemory(mfxMemId memId, const char*lut3d_file_name) = 0;
+    virtual mfxStatus Release3DLutMemory(mfxMemId memId) = 0;
+
 private:
     static mfxStatus MFX_CDECL  Alloc_(mfxHDL pthis, mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
     static mfxStatus MFX_CDECL  Lock_(mfxHDL pthis, mfxMemId mid, mfxFrameData *ptr);
@@ -79,6 +82,9 @@ public:
     virtual mfxStatus AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
     virtual mfxStatus ReallocFrame(mfxMemId midIn, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut);
     virtual mfxStatus FreeFrames(mfxFrameAllocResponse *response);
+
+    virtual mfxStatus Create3DLutMemory(mfxMemId memId, const char*lut3d_file_name) = 0;
+    virtual mfxStatus Release3DLutMemory(mfxMemId memId) = 0;
 
 protected:
     std::mutex mtx;

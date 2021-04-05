@@ -206,6 +206,19 @@ typedef struct {
 } mfxPlatform;
 MFX_PACK_END()
 
+/* The mfxResourceType enumerator specifies types of different native data frames and buffers. */
+typedef enum {
+    MFX_RESOURCE_SYSTEM_SURFACE                  = 1, /*!< System memory. */
+    MFX_RESOURCE_VA_SURFACE                      = 2, /*!< VA surface. */
+    MFX_RESOURCE_VA_BUFFER                       = 3, /*!< VA buffer. */
+    MFX_RESOURCE_DX9_SURFACE                     = 4, /*!< IDirect3DSurface9. */
+    MFX_RESOURCE_DX11_TEXTURE                    = 5, /*!< ID3D11Texture2D. */
+    MFX_RESOURCE_DX12_RESOURCE                   = 6, /*!< ID3D12Resource. */
+    MFX_RESOURCE_DMA_RESOURCE                    = 7, /*!< DMA resource. */
+    MFX_RESOURCE_HDDLUNITE_REMOTE_MEMORY         = 8, /*!< HDDL Unite Remote memory handle. */
+} mfxResourceType;
+
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

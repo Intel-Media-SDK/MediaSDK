@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2020, Intel Corporation
+Copyright (c) 2005-2021, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -363,6 +363,7 @@ void TranscodingSample::PrintHelp()
 #endif
     msdk_printf(MSDK_STRING("  -vpp_comp_dump <file-name>  Dump of VPP Composition's output into file. Valid if with -vpp_comp* options\n"));
     msdk_printf(MSDK_STRING("  -vpp_comp_dump null_render  Disabling rendering after VPP Composition. This is for performance measurements\n"));
+    msdk_printf(MSDK_STRING("  -3dlut <file-name>          Enable 3DLUT VPP filter\n"));
 #if MFX_VERSION >= 1022
     msdk_printf(MSDK_STRING("  -dec_postproc               Resize after decoder using direct pipe (should be used in decoder session)\n"));
     msdk_printf(MSDK_STRING("  -single_texture_d3d11       single texture mode for d3d11 allocator \n"));
@@ -1532,6 +1533,24 @@ mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, Transco
             PrintError(NULL, MSDK_STRING("-field_processing \"%s\" is invalid"), argv[index]);
             return MFX_ERR_UNSUPPORTED;
         }
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-3dlut")))
+    {
+        VAL_CHECK(index+1 == argc, index, argv[index]);
+        index++;
+        // 3dlut file
+        if (msdk_strlen(argv[index]) < MSDK_ARRAY_LEN(params->str3DLutFile))
+        {
+            msdk_opt_read(argv[index], params->str3DLutFile);
+            params->bEnable3DLut = true;
+        }
+        else
+        {
+            params->bEnable3DLut = false;
+            return MFX_ERR_UNSUPPORTED;
+        }
+
         return MFX_ERR_NONE;
     }
 

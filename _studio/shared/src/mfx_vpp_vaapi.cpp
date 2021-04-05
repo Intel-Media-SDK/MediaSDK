@@ -96,6 +96,8 @@ VAAPIVideoProcessing::VAAPIVideoProcessing():
 , m_numFilterBufs(0)
 , m_MaxContextPriority(0)
 , m_primarySurface4Composition(NULL)
+, m_3dlutCaps(NULL)
+, m_3dlutFilterID(VA_INVALID_ID)
 {
 
     for(int i = 0; i < VAProcFilterCount; i++)
@@ -182,6 +184,9 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_frcFilterID);
     std::ignore = MFX_STS_TRACE(sts);
 
+    sts = CheckAndDestroyVAbuffer(m_vaDisplay, m_3dlutFilterID);
+    std::ignore = MFX_STS_TRACE(sts);
+
     if (m_vaContextVPP != VA_INVALID_ID)
     {
         MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_EXTCALL, "vaDestroyContext");
@@ -205,12 +210,19 @@ mfxStatus VAAPIVideoProcessing::Close(void)
     m_denoiseFilterID   = VA_INVALID_ID;
     m_deintFilterID     = VA_INVALID_ID;
     m_procampFilterID   = VA_INVALID_ID;
+    m_3dlutFilterID     = VA_INVALID_ID;
 
     memset( (void*)&m_pipelineCaps, 0, sizeof(m_pipelineCaps));
     memset( (void*)&m_denoiseCaps, 0, sizeof(m_denoiseCaps));
     memset( (void*)&m_detailCaps, 0, sizeof(m_detailCaps));
     memset( (void*)&m_procampCaps,  0, sizeof(m_procampCaps));
     memset( (void*)&m_deinterlacingCaps, 0, sizeof(m_deinterlacingCaps));
+
+    if (m_3dlutCaps)
+    {
+        free(m_3dlutCaps);
+        m_3dlutCaps = NULL;
+    }
 
     return MFX_ERR_NONE;
 
@@ -249,7 +261,12 @@ mfxStatus VAAPIVideoProcessing::Init(_mfxPlatformAccelerationService* pVADisplay
                 break;
             }
         }
-        delete[] va_entrypoints;
+
+        if (va_entrypoints != NULL)
+        {
+            delete[] va_entrypoints;
+            va_entrypoints = NULL;
+        }
 
         if( !m_bRunning )
         {
@@ -406,6 +423,25 @@ mfxStatus VAAPIVideoProcessing::QueryCapabilities(mfxVppCaps& caps)
                     break;
             }
         }
+    }
+
+    mfxU32 num_3dlut_caps = 0;
+    vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                       m_vaContextVPP,
+                                       VAProcFilter3DLUT,
+                                       m_3dlutCaps,
+                                       &num_3dlut_caps);
+    MFX_CHECK(((VA_STATUS_SUCCESS == vaSts) || (VA_STATUS_ERROR_MAX_NUM_EXCEEDED == vaSts)), MFX_ERR_DEVICE_FAILED);
+    if (num_3dlut_caps != 0)
+    {
+        m_3dlutCaps = (VAProcFilterCap3DLUT*)malloc(sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
+        memset(m_3dlutCaps, 0, sizeof(VAProcFilterCap3DLUT) * num_3dlut_caps);
+        vaSts = vaQueryVideoProcFilterCaps(m_vaDisplay,
+                                m_vaContextVPP,
+                                VAProcFilter3DLUT,
+                                m_3dlutCaps, &num_3dlut_caps);
+        MFX_CHECK(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+        caps.u3DLut = 1;
     }
 
     memset(&m_pipelineCaps,  0, sizeof(VAProcPipelineCaps));
@@ -893,6 +929,73 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
             m_filterBufs[m_numFilterBufs++] = m_denoiseFilterID;
             pParams->denoiseFactor = 0;
             pParams->bDenoiseAutoAdjust = false;
+        }
+    }
+
+    if (VA_INVALID_ID == m_3dlutFilterID)
+    {
+        if (pParams->lut3DInfo.Enabled)
+        {
+            const mfxU16 lut17_seg_size = 17, lut17_mul_size = 32;
+            const mfxU16 lut33_seg_size = 33, lut33_mul_size = 64;
+            const mfxU16 lut65_seg_size = 65, lut65_mul_size = 128;
+
+            VAProcFilterParameterBuffer3DLUT lut3d_param = {};
+
+            lut3d_param.type            = VAProcFilter3DLUT;
+            lut3d_param.lut_surface     = *((VASurfaceID*)pParams->lut3DInfo.MemId);
+            lut3d_param.bit_depth       = 16;
+            lut3d_param.num_channel     = 4;
+            switch(pParams->lut3DInfo.MemLayout)
+            {
+            case MFX_3DLUT_MEMORY_LAYOUT_INTEL_17LUT:
+                lut3d_param.lut_size      = lut17_seg_size;
+                lut3d_param.lut_stride[0] = lut17_seg_size;
+                lut3d_param.lut_stride[1] = lut17_seg_size;
+                lut3d_param.lut_stride[2] = lut17_mul_size;
+                break;
+            case MFX_3DLUT_MEMORY_LAYOUT_INTEL_33LUT:
+            case MFX_3DLUT_MEMORY_LAYOUT_DEFAULT:
+                lut3d_param.lut_size      = lut33_seg_size;
+                lut3d_param.lut_stride[0] = lut33_seg_size;
+                lut3d_param.lut_stride[1] = lut33_seg_size;
+                lut3d_param.lut_stride[2] = lut33_mul_size;
+                break;
+            case MFX_3DLUT_MEMORY_LAYOUT_INTEL_65LUT:
+                lut3d_param.lut_size      = lut65_seg_size;
+                lut3d_param.lut_stride[0] = lut65_seg_size;
+                lut3d_param.lut_stride[1] = lut65_seg_size;
+                lut3d_param.lut_stride[2] = lut65_mul_size;
+                break;
+            default:
+                break;
+            }
+
+            switch(pParams->lut3DInfo.ChannelMapping)
+            {
+            case MFX_3DLUT_CHANNEL_MAPPING_RGB_RGB:
+            case MFX_3DLUT_CHANNEL_MAPPING_DEFAULT:
+                lut3d_param.channel_mapping = VA_3DLUT_CHANNEL_RGB_RGB;
+                break;
+            case MFX_3DLUT_CHANNEL_MAPPING_YUV_RGB:
+                lut3d_param.channel_mapping = VA_3DLUT_CHANNEL_YUV_RGB;
+                break;
+            case MFX_3DLUT_CHANNEL_MAPPING_VUY_RGB:
+                lut3d_param.channel_mapping = VA_3DLUT_CHANNEL_VUY_RGB;
+                break;
+            default:
+                break;
+            }
+
+            /* create 3dlut fitler buffer */
+            vaSts = vaCreateBuffer((void*)m_vaDisplay,
+                                    m_vaContextVPP,
+                                    VAProcFilterParameterBufferType,
+                                    sizeof(lut3d_param),
+                                    1,
+                                    &lut3d_param,
+                                    &m_3dlutFilterID);
+            m_filterBufs[m_numFilterBufs++] = m_3dlutFilterID;
         }
     }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2018-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -949,6 +949,7 @@ enum {
     MFX_EXTBUFF_VPP_ROTATION                    = MFX_MAKEFOURCC('R','O','T',' '),
     MFX_EXTBUFF_ENCODED_SLICES_INFO             = MFX_MAKEFOURCC('E','N','S','I'),
     MFX_EXTBUFF_VPP_SCALING                     = MFX_MAKEFOURCC('V','S','C','L'),
+    MFX_EXTBUFF_VPP_3DLUT                       = MFX_MAKEFOURCC('T','D','L','T'),
     MFX_EXTBUFF_HEVC_REFLIST_CTRL               = MFX_EXTBUFF_AVC_REFLIST_CTRL,
     MFX_EXTBUFF_HEVC_REFLISTS                   = MFX_EXTBUFF_AVC_REFLISTS,
     MFX_EXTBUFF_HEVC_TEMPORAL_LAYERS            = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS,
@@ -2119,6 +2120,94 @@ typedef struct {
     mfxU16 reserved[11];
 #endif
 } mfxExtVPPScaling;
+MFX_PACK_END()
+
+/*! The mfx3DLutChannelMapping enumerator specifies the channel mapping of 3DLUT. */
+typedef enum {
+    MFX_3DLUT_CHANNEL_MAPPING_DEFAULT            = 0,          /*!< Default 3DLUT channel mapping. The library selects the most appropriate 3DLUT channel mapping. */
+    MFX_3DLUT_CHANNEL_MAPPING_RGB_RGB            = 1,   /*!< 3DLUT RGB channels maps to RGB channels. */
+    MFX_3DLUT_CHANNEL_MAPPING_YUV_RGB            = 2,   /*!< 3DLUT YUV channels maps to RGB channels. */
+    MFX_3DLUT_CHANNEL_MAPPING_VUY_RGB            = 3,   /*!< 3DLUT VUY channels maps to RGB channels. */
+} mfx3DLutChannelMapping;
+
+/*! The mfx3DLutMemoryLayout enumerator specifies the memory layout of 3DLUT. */
+typedef enum {
+    MFX_3DLUT_MEMORY_LAYOUT_DEFAULT                        = 0,          /*!< Default 3DLUT memory layout. The library selects the most appropriate 3DLUT memory layout.*/
+
+    MFX_3DLUT_MEMORY_LAYOUT_VENDOR                         = 0x1000,     /*!< The enumeration to separate default above and vendor specific.*/
+    /*!
+       Intel specific memory layout. The enumerator indicates the attributes and memory layout of 3DLUT.
+       3DLUT size is 17(the number of elements per dimension), 4 channels(3 valid channels, 1 channel is reserved), every channel must be 16-bit unsigned integer.
+       3DLUT contains 17x17x32 entries with holes that are not filled. Take RGB as example, the nodes RxGx17 to RxGx31 are not filled, are "don't care" bits, and not accessed for the 17x17x17 nodes.
+    */
+    MFX_3DLUT_MEMORY_LAYOUT_INTEL_17LUT                    = MFX_3DLUT_MEMORY_LAYOUT_VENDOR + 1,
+    /*!
+       Intel specific memory layout. The enumerator indicates the attributes and memory layout of 3DLUT.
+       3DLUT size is 33(the number of elements per dimension), 4 channels(3 valid channels, 1 channel is reserved), every channel must be 16-bit unsigned integer.
+       3DLUT contains 33x33x64 entries with holes that are not filled. Take RGB as example, the nodes RxGx33 to RxGx63 are not filled, are "don't care" bits, and not accessed for the 33x33x33 nodes.
+    */
+    MFX_3DLUT_MEMORY_LAYOUT_INTEL_33LUT                    = MFX_3DLUT_MEMORY_LAYOUT_VENDOR + 2,
+    /*!
+       Intel specific memory layout. The enumerator indicates the attributes and memory layout of 3DLUT.
+       3DLUT size is 65(the number of elements per dimension), 4 channels(3 valid channels, 1 channel is reserved), every channel must be 16-bit unsigned integer.
+       3DLUT contains 65x65x128 entries with holes that are not filled. Take RGB as example, the nodes RxGx65 to RxGx127 are not filled, are "don't care" bits, and not accessed for the 65x65x65 nodes.
+    */
+    MFX_3DLUT_MEMORY_LAYOUT_INTEL_65LUT                    = MFX_3DLUT_MEMORY_LAYOUT_VENDOR + 3,
+} mfx3DLutMemoryLayout;
+
+MFX_PACK_BEGIN_STRUCT_W_PTR()
+/*!
+    A hint structure that configures the data channel.
+*/
+typedef struct {
+    mfxDataType  DataType;                /*!< Data type, mfxDataType enumerator.*/
+    mfxU32       Size;                    /*!< Size of Look up table, the number of elements per dimension.*/
+    union
+    {
+        mfxU8*     Data;                  /*!< The pointer to 3DLUT data, 8 bit unsigned integer.*/
+        mfxU16*    Data16;                /*!< The pointer to 3DLUT data, 16 bit unsigned integer.*/
+    };
+    mfxU32       reserved[4];             /*!< Reserved for future extension.*/
+} mfxChannel;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*!
+    A hint structure that configures 3DLUT system buffer.
+*/
+typedef struct {
+    mfxChannel           Channel[3];        /*!< 3 Channels, can be RGB or YUV, mfxChannel structure.*/
+    mfxU32               reserved[8];       /*!< Reserved for future extension.*/
+} mfx3DLutSystemBuffer;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*!
+    A hint structure that configures 3DLUT video buffer.
+*/
+typedef struct {
+    mfxDataType                DataType;       /*!< Data type, mfxDataType enumerator.*/
+    mfx3DLutMemoryLayout       MemLayout;      /*!< Indicates 3DLUT memory layout. mfx3DLutMemoryLayout enumerator.*/
+    mfxMemId                   MemId;          /*!< Memory ID for holding the lookup table data. One MemID is dedicated for one instance of VPP.*/
+    mfxU32                     reserved[8];    /*!< Reserved for future extension.*/
+} mfx3DLutVideoBuffer;
+MFX_PACK_END()
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+/*!
+    A hint structure that configures 3DLUT filter.
+*/
+typedef struct {
+    mfxExtBuffer             Header;           /*!< Extension buffer header. Header.BufferId must be equal to MFX_EXTBUFF_VPP_3DLUT..*/
+    mfx3DLutChannelMapping   ChannelMapping;   /*!< Indicates 3DLUT channel mapping. mfx3DLutChannelMapping enumerator.*/
+    mfxResourceType          BufferType;       /*!< Indicates 3DLUT buffer type. mfxResourceType enumerator, can be system memory, VA surface, DX11 texture/buffer etc.*/
+    union
+    {
+        mfx3DLutSystemBuffer SystemBuffer;     /*!< The 3DLUT system buffer. mfx3DLutSystemBuffer structure describes the details of the buffer.*/
+        mfx3DLutVideoBuffer  VideoBuffer;      /*!< The 3DLUT video buffer. mfx3DLutVideoBuffer describes the details of 3DLUT video buffer.*/
+    };
+    mfxU32                   reserved[4];      /*!< Reserved for future extension.*/
+} mfxExtVPP3DLut;
 MFX_PACK_END()
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)

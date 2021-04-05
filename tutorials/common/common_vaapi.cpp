@@ -179,6 +179,8 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_ARGB;
     case MFX_FOURCC_P8:
         return VA_FOURCC_P208;
+    case MFX_FOURCC_P010:
+        return VA_FOURCC_P010;
 
     default:
         assert(!"unsupported fourcc");
@@ -216,6 +218,7 @@ mfxStatus _simple_alloc(mfxFrameAllocRequest* request,
     mfxStatus mfx_res = MFX_ERR_NONE;
     VAStatus va_res = VA_STATUS_SUCCESS;
     unsigned int va_fourcc = 0;
+    unsigned int va_format = VA_RT_FORMAT_YUV420;
     VASurfaceID* surfaces = NULL;
     VASurfaceAttrib attrib;
     vaapiMemId* vaapi_mids = NULL, *vaapi_mid = NULL;
@@ -232,7 +235,8 @@ mfxStatus _simple_alloc(mfxFrameAllocRequest* request,
                        (VA_FOURCC_YV12 != va_fourcc) &&
                        (VA_FOURCC_YUY2 != va_fourcc) &&
                        (VA_FOURCC_ARGB != va_fourcc) &&
-                       (VA_FOURCC_P208 != va_fourcc))) {
+                       (VA_FOURCC_P208 != va_fourcc) &&
+                       (VA_FOURCC_P010 != va_fourcc))) {
         return MFX_ERR_MEMORY_ALLOC;
     }
     if (!surfaces_num) {
@@ -256,8 +260,10 @@ mfxStatus _simple_alloc(mfxFrameAllocRequest* request,
             attrib.value.value.i = va_fourcc;
             attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
 
+            va_format = (va_fourcc == VA_FOURCC_ARGB) ? VA_RT_FORMAT_RGB32 : va_format;
+
             va_res = vaCreateSurfaces(m_va_dpy,
-                                      VA_RT_FORMAT_YUV420,
+                                      va_format,
                                       request->Info.Width,
                                       request->Info.Height,
                                       surfaces, surfaces_num,
@@ -403,7 +409,8 @@ mfxStatus simple_lock(mfxHDL pthis, mfxMemId mid, mfxFrameData* ptr)
         if (MFX_ERR_NONE == mfx_res) {
             switch (vaapi_mid->m_image.format.fourcc) {
             case VA_FOURCC_NV12:
-                if (vaapi_mid->m_fourcc == MFX_FOURCC_NV12) {
+            case VA_FOURCC_P010:
+                if ((vaapi_mid->m_fourcc == MFX_FOURCC_NV12) || (vaapi_mid->m_fourcc == MFX_FOURCC_P010)) {
                     ptr->Pitch =
                         (mfxU16) vaapi_mid->
                         m_image.pitches[0];
@@ -571,3 +578,115 @@ mfxStatus simple_free(mfxHDL pthis, mfxFrameAllocResponse* response)
 
     return MFX_ERR_NONE;
 }
+
+mfxStatus Create3DLutMemory(mfxMemId memId, mfxHDL hdl, const char*lut3d_file_name)
+{
+    VAStatus va_status = VA_STATUS_SUCCESS;
+    VAImage surface_image = {};
+    void *surface_p = NULL;
+    mfxU32 frame_size = 0, lut3d_size = 0;
+    mfxU8* newImageBuffer = NULL;
+    VASurfaceID surface_id = VA_INVALID_ID;
+    mfxU32 seg_size = 65, mul_size = 128;
+
+    VADisplay va_dpy = hdl;
+
+    if (!memId) {
+        return MFX_ERR_NULL_PTR;
+    }
+
+    FILE *f3dlut = NULL;
+    f3dlut = fopen(lut3d_file_name,"rb");
+    if (!f3dlut)
+    {
+        printf("Fail to open 3DLUT data file!\n");
+        return MFX_ERR_NULL_PTR;
+    }
+
+    // create VA surface
+    VASurfaceAttrib    surface_attrib = {};
+    surface_attrib.type =  VASurfaceAttribPixelFormat;
+    surface_attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
+    surface_attrib.value.type = VAGenericValueTypeInteger;
+    surface_attrib.value.value.i = VA_FOURCC_RGBA;
+
+    va_status = vaCreateSurfaces(va_dpy,
+                                 VA_RT_FORMAT_RGB32,
+                                 seg_size * mul_size,
+                                 seg_size * 2,
+                                 &surface_id,
+                                 1,
+                                 &surface_attrib,
+                                 1);
+    if (va_status != VA_STATUS_SUCCESS) {
+        printf("Load3DLutVAAPI vaCreateSurfaces 3dlut surface failed\n");
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    va_status = vaSyncSurface (va_dpy,surface_id);
+    if (va_status != VA_STATUS_SUCCESS) {
+        printf("Load3DLutVAAPI vaSyncSurface 3dlut surface failed\n");
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    va_status = vaDeriveImage(va_dpy, surface_id, &surface_image);
+    if (va_status != VA_STATUS_SUCCESS) {
+        printf("Load3DLutVAAPI vaDeriveImage from 3dlut surface failed\n");
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    va_status = vaMapBuffer(va_dpy, surface_image.buf, &surface_p);
+    if (va_status != VA_STATUS_SUCCESS) {
+        printf("Load3DLutVAAPI vaMapBuffer from 3dlut surface failed\n");
+        return MFX_ERR_UNSUPPORTED;
+    }
+
+    if (surface_image.format.fourcc == VA_FOURCC_RGBA  && f3dlut) {
+        /* 3DLUT surface is allocated to 32 bit RGB */
+        frame_size = surface_image.width * surface_image.height * 4;
+        newImageBuffer = (mfxU8*)malloc(frame_size);
+
+        fseek(f3dlut, 0L, SEEK_END);
+        lut3d_size = ftell(f3dlut);
+        rewind(f3dlut);
+
+        uint32_t real_size = (frame_size > lut3d_size) ? lut3d_size : frame_size;
+
+        uint32_t read_size = fread(newImageBuffer, 1, real_size, f3dlut);
+        memcpy(surface_p, newImageBuffer, read_size);
+        printf("upload_data_to_3dlut: 3DLUT surface width %d, height %d, pitch %d, frame size %d, 3dlut file size: %d\n", surface_image.width, surface_image.height, surface_image.pitches[0],frame_size, read_size);
+     }
+
+     if (newImageBuffer)  {
+         free(newImageBuffer);
+         newImageBuffer = NULL;
+     }
+
+     vaUnmapBuffer(va_dpy, surface_image.buf);
+     vaDestroyImage(va_dpy, surface_image.image_id);
+
+     *((VASurfaceID*)memId) = surface_id;
+
+     if (f3dlut)
+     {
+         fclose(f3dlut);
+         f3dlut = NULL;
+     }
+
+     printf("create 3dlut surface ID %d!\n", surface_id);
+     return MFX_ERR_NONE;
+}
+
+mfxStatus Release3DLutMemory(mfxMemId memId, mfxHDL hdl)
+{
+    VADisplay va_dpy = hdl;
+    VAStatus va_status = VA_STATUS_SUCCESS;
+    mfxStatus mfx_res = MFX_ERR_NONE;
+
+    VASurfaceID surface_id = *((VASurfaceID*)memId);
+    va_status= vaDestroySurfaces(va_dpy, &surface_id, 1);
+    mfx_res = va_to_mfx_status(va_status);
+
+    return mfx_res;
+}
+

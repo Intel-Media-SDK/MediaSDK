@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -242,6 +242,35 @@ typedef enum
 
 } mfxStatus;
 
+typedef enum {
+    MFX_DATA_TYPE_UNSET   = 0,            /*!< Undefined type. */
+    MFX_DATA_TYPE_U8,                     /*!< 8-bit unsigned integer. */
+    MFX_DATA_TYPE_I8,                     /*!< 8-bit signed integer. */
+    MFX_DATA_TYPE_U16,                    /*!< 16-bit unsigned integer. */
+    MFX_DATA_TYPE_I16,                    /*!< 16-bit signed integer. */
+    MFX_DATA_TYPE_U32,                    /*!< 32-bit unsigned integer. */
+    MFX_DATA_TYPE_I32,                    /*!< 32-bit signed integer. */
+    MFX_DATA_TYPE_U64,                    /*!< 64-bit unsigned integer. */
+    MFX_DATA_TYPE_I64,                    /*!< 64-bit signed integer. */
+    MFX_DATA_TYPE_F32,                    /*!< 32-bit single precision floating point. */
+    MFX_DATA_TYPE_F64,                    /*!< 64-bit double precision floating point. */
+}mfxDataType;
+
+/*! The mfxVariantType enumerator data types for mfxVarianf type. */
+typedef enum {
+    MFX_VARIANT_TYPE_UNSET = 0, /*!< Undefined type. */
+    MFX_VARIANT_TYPE_U8 = 1,   /*!< 8-bit unsigned integer. */
+    MFX_VARIANT_TYPE_I8,       /*!< 8-bit signed integer. */
+    MFX_VARIANT_TYPE_U16,      /*!< 16-bit unsigned integer. */
+    MFX_VARIANT_TYPE_I16,      /*!< 16-bit signed integer. */
+    MFX_VARIANT_TYPE_U32,      /*!< 32-bit unsigned integer. */
+    MFX_VARIANT_TYPE_I32,      /*!< 32-bit signed integer. */
+    MFX_VARIANT_TYPE_U64,      /*!< 64-bit unsigned integer. */
+    MFX_VARIANT_TYPE_I64,      /*!< 64-bit signed integer. */
+    MFX_VARIANT_TYPE_F32,      /*!< 32-bit single precision floating point. */
+    MFX_VARIANT_TYPE_F64,      /*!< 64-bit double precision floating point. */
+    MFX_VARIANT_TYPE_PTR,      /*!< Generic type pointer. */
+} mfxVariantType;
 
 // Application 
 #if defined(MFX_DISPATCHER_EXPOSED_PREFIX)

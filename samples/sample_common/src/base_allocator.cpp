@@ -88,10 +88,13 @@ mfxStatus MFXFrameAllocator::GetHDL_(mfxHDL pthis, mfxMemId mid, mfxHDL *handle)
 
 BaseFrameAllocator::BaseFrameAllocator()
 {
+    printf("BaseFrameAllocator::BaseFrameAllocator!\n");
 }
 
 BaseFrameAllocator::~BaseFrameAllocator()
 {
+    printf("BaseFrameAllocator::~BaseFrameAllocator!\n");
+
 }
 
 mfxStatus BaseFrameAllocator::CheckRequestType(mfxFrameAllocRequest *request)
@@ -101,6 +104,8 @@ mfxStatus BaseFrameAllocator::CheckRequestType(mfxFrameAllocRequest *request)
 
     // check that Media SDK component is specified in request
     if ((request->Type & MEMTYPE_FROM_MASK) != 0)
+        return MFX_ERR_NONE;
+    else if (request->Type == MFX_MEMTYPE_EXTERNAL_FRAME)
         return MFX_ERR_NONE;
     else
         return MFX_ERR_UNSUPPORTED;
@@ -113,6 +118,8 @@ mfxStatus BaseFrameAllocator::ReallocFrame(mfxMemId midIn, const mfxFrameInfo *i
 
 mfxStatus BaseFrameAllocator::AllocFrames(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response)
 {
+    printf("BaseFrameAllocator::AllocFrames!\n");
+
     if (0 == request || 0 == response || 0 == request->NumFrameSuggested)
         return MFX_ERR_MEMORY_ALLOC;
 
@@ -240,6 +247,19 @@ mfxStatus BaseFrameAllocator::Close()
 
     return MFX_ERR_NONE;
 }
+#if 0
+mfxStatus BaseFrameAllocator::Create3DLutMemory(mfxMemId memId, const char*lut3d_file_name)
+{
+    printf("BaseFrameAllocator::Create3DLutMemory!\n");
+    //Create3DLutMemory(memId, lut3d_file_name);
+    return MFX_ERR_NONE;
+}
+mfxStatus BaseFrameAllocator::Release3DLutMemory(mfxMemId memId)
+{
+    //Release3DLutMemory(memId);
+    return MFX_ERR_NONE;
+}
+#endif
 
 MFXBufferAllocator::MFXBufferAllocator()
 {

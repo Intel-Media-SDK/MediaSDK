@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -117,15 +117,14 @@ void CloseFile(FILE* fHdl)
 }
 
 mfxStatus ReadPlaneData(mfxU16 w, mfxU16 h, mfxU8* buf, mfxU8* ptr,
-                        mfxU16 pitch, mfxU16 offset, FILE* fSource)
+                        mfxU16 pitch, mfxU16 offset, FILE* fSource, mfxU16 nBitDepth)
 {
     mfxU32 nBytesRead;
     for (mfxU16 i = 0; i < h; i++) {
-        nBytesRead = (mfxU32) fread(buf, 1, w, fSource);
-        if (w != nBytesRead)
+        nBytesRead = (mfxU32) fread(buf, 1, w * (nBitDepth / 8), fSource);
+        if (w * (nBitDepth / 8) != nBytesRead)
             return MFX_ERR_MORE_DATA;
-        for (mfxU16 j = 0; j < w; j++)
-            ptr[i * pitch + j * 2 + offset] = buf[j];
+        memcpy(ptr + i * pitch + offset * (nBitDepth / 8), buf, w * (nBitDepth / 8));
     }
     return MFX_ERR_NONE;
 }
@@ -145,6 +144,7 @@ mfxStatus LoadRawFrame(mfxFrameSurface1* pSurface, FILE* fSource)
     mfxU32 nBytesRead;
     mfxU16 w, h, i, pitch;
     mfxU8* ptr;
+    mfxU32 nBitDepth = 8;
     mfxFrameInfo* pInfo = &pSurface->Info;
     mfxFrameData* pData = &pSurface->Data;
 
@@ -156,31 +156,48 @@ mfxStatus LoadRawFrame(mfxFrameSurface1* pSurface, FILE* fSource)
         h = pInfo->Height;
     }
 
+    if (pInfo->FourCC == MFX_FOURCC_P010) {
+        nBitDepth = 16;
+    }
+
     pitch = pData->Pitch;
     ptr = pData->Y + pInfo->CropX + pInfo->CropY * pData->Pitch;
 
     // read luminance plane
     for (i = 0; i < h; i++) {
-        nBytesRead = (mfxU32) fread(ptr + i * pitch, 1, w, fSource);
-        if (w != nBytesRead)
+        nBytesRead = (mfxU32) fread(ptr + i * pitch, 1, w * (nBitDepth / 8), fSource);
+        if (w * (nBitDepth / 8) != nBytesRead)
             return MFX_ERR_MORE_DATA;
     }
 
-    mfxU8 buf[2048];        // maximum supported chroma width for nv12
-    w /= 2;
-    h /= 2;
+    const mfxU32 nBufferLength = 4096;
+    mfxU8 buf[nBufferLength] = {};        // maximum supported chroma width for nv12
     ptr = pData->UV + pInfo->CropX + (pInfo->CropY / 2) * pitch;
-    if (w > 2048)
-        return MFX_ERR_UNSUPPORTED;
 
-    // load V
-    sts = ReadPlaneData(w, h, buf, ptr, pitch, 1, fSource);
-    if (MFX_ERR_NONE != sts)
-        return sts;
-    // load U
-    ReadPlaneData(w, h, buf, ptr, pitch, 0, fSource);
-    if (MFX_ERR_NONE != sts)
-        return sts;
+    // load UV for P010 and NV12
+    if ((pInfo->FourCC == MFX_FOURCC_P010) || (pInfo->FourCC == MFX_FOURCC_NV12)) {
+        h /= 2;
+        if ((w * nBitDepth /8) > 4096)
+            return MFX_ERR_UNSUPPORTED;
+        sts = ReadPlaneData(w, h, buf, ptr, pitch, 0, fSource, nBitDepth);
+        if (MFX_ERR_NONE != sts)
+            return sts;
+    }
+    else {
+        w /= 2;
+        h /= 2;
+        if (w > 4096)
+            return MFX_ERR_UNSUPPORTED;
+
+        // load V
+        sts = ReadPlaneData(w, h, buf, ptr, pitch, 1, fSource, nBitDepth);
+        if (MFX_ERR_NONE != sts)
+            return sts;
+        // load U
+        sts = ReadPlaneData(w, h, buf, ptr, pitch, 0, fSource, nBitDepth);
+        if (MFX_ERR_NONE != sts)
+            return sts;
+    }
 
     return MFX_ERR_NONE;
 }
@@ -371,19 +388,47 @@ mfxStatus WriteRawFrame(mfxFrameSurface1* pSurface, FILE* fSink)
             }
         }
     }
+    else if (pInfo->FourCC == MFX_FOURCC_NV12)
+    {
+        for (i = 0; i < pInfo->CropH; i++)
+        {
+            sts = WriteSection(pData->Y, 1, pInfo->CropW, pInfo, pData, i, 0, fSink);
+            if (sts != MFX_ERR_NONE) return sts;
+        }
+
+        h = pInfo->CropH / 2;
+        for (i = 0; i < h; i++)
+        {
+            sts = WriteSection(pData->UV, 1, pInfo->CropW, pInfo, pData, i, 0, fSink);
+            if (sts != MFX_ERR_NONE) return sts;
+        }
+    }
     else
     {
         for (i = 0; i < pInfo->CropH; i++)
+        {
             sts = WriteSection(pData->Y, 1, pInfo->CropW, pInfo, pData, i, 0, fSink);
+            if (sts != MFX_ERR_NONE) return sts;
+        }
 
         h = pInfo->CropH / 2;
         w = pInfo->CropW;
         for (i = 0; i < h; i++)
+        {
             for (j = 0; j < w; j += 2)
+            {
                 sts = WriteSection(pData->UV, 2, 1, pInfo, pData, i, j, fSink);
+                if (sts != MFX_ERR_NONE) return sts;
+            }
+        }
         for (i = 0; i < h; i++)
+        {
             for (j = 1; j < w; j += 2)
+            {
                 sts = WriteSection(pData->UV, 2, 1, pInfo, pData, i, j, fSink);
+                if (sts != MFX_ERR_NONE) return sts;
+            }
+        }
     }
 
     return sts;

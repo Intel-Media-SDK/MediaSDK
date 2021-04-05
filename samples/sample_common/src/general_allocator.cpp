@@ -170,3 +170,37 @@ bool GeneralAllocator::isD3DMid(mfxHDL mid)
     else
         return it->second;
 }
+
+mfxStatus GeneralAllocator::Create3DLutMemory(mfxMemId memId, const char*lut3d_file_name)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+#ifdef LIBVA_SUPPORT
+    vaapiFrameAllocator* pAllocator = dynamic_cast<vaapiFrameAllocator*>(m_D3DAllocator.get());
+    if (pAllocator)
+    {
+        sts = pAllocator->Create3DLutMemory(memId, lut3d_file_name);
+    }
+    else
+    {
+        sts = MFX_ERR_NULL_PTR;
+    }
+#endif
+    return sts;
+}
+mfxStatus GeneralAllocator::Release3DLutMemory(mfxMemId memId)
+{
+    mfxStatus sts = MFX_ERR_NONE;
+#ifdef LIBVA_SUPPORT
+    vaapiFrameAllocator* pAllocator = dynamic_cast<vaapiFrameAllocator*>(m_D3DAllocator.get());
+    if (pAllocator)
+    {
+        sts = pAllocator->Release3DLutMemory(memId);
+    }
+    else
+    {
+        sts = MFX_ERR_NULL_PTR;
+    }
+#endif
+    return sts;
+}
+
