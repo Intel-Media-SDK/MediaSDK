@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -148,6 +148,7 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
 #endif
     pMfxExecuteParams->bEOS = false;
     pMfxExecuteParams->scene = VPP_NO_SCENE_CHANGE;
+    memset(&pMfxExecuteParams->lut3DInfo, 0, sizeof(pMfxExecuteParams->lut3DInfo));
 } /*void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )*/
 
 
@@ -2035,6 +2036,16 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
 #if (MFX_VERSION >= 1033)
             bufSc->InterpolationMethod = m_executeParams.interpolationMethod;
 #endif            
+        }
+        else if (MFX_EXTBUFF_VPP_3DLUT == bufferId)
+        {
+            mfxExtVPP3DLut *bufSc = reinterpret_cast<mfxExtVPP3DLut *>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufSc);
+            bufSc->MemID            = m_executeParams.lut3DInfo.MemID;
+            bufSc->Size             = m_executeParams.lut3DInfo.Size;
+            bufSc->DataPrecision    = m_executeParams.lut3DInfo.DataPrecision;
+            bufSc->MemoryLayout     = m_executeParams.lut3DInfo.MemoryLayout;
+            bufSc->ChannelMapping   = m_executeParams.lut3DInfo.ChannelMapping;
         }
 #if (MFX_VERSION >= 1025)
         else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
@@ -5666,6 +5677,35 @@ mfxStatus ConfigureExecuteParams(
 
                 break;
             }
+            case MFX_EXTBUFF_VPP_3DLUT:
+            {
+                if (caps.u3DLut)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_3DLUT)
+                        {
+                            mfxExtVPP3DLut *ext3DLUT = (mfxExtVPP3DLut*) videoParam.ExtParam[i];
+                            if (ext3DLUT)
+                            {
+                                executeParams.lut3DInfo.enabled         = true;
+                                executeParams.lut3DInfo.MemID           = ext3DLUT->MemID;
+                                executeParams.lut3DInfo.Size            = ext3DLUT->Size;
+                                executeParams.lut3DInfo.DataPrecision   = ext3DLUT->DataPrecision;
+                                executeParams.lut3DInfo.MemoryLayout    = ext3DLUT->MemoryLayout;
+                                executeParams.lut3DInfo.ChannelMapping  = ext3DLUT->ChannelMapping;
+                                executeParams.lut3DInfo.IOPattern       = videoParam.IOPattern;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+
+                break;
+            }
 #if (MFX_VERSION >= 1025)
             case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
@@ -6251,6 +6291,10 @@ mfxStatus ConfigureExecuteParams(
                 else if (MFX_EXTBUFF_VPP_SCALING == bufferId)
                 {
                     executeParams.scalingMode = MFX_SCALING_MODE_DEFAULT;
+                }
+                else if (MFX_EXTBUFF_VPP_3DLUT == bufferId)
+                {
+                    executeParams.lut3DInfo.enabled = false;
                 }
 #if (MFX_VERSION >= 1025)
                 else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)

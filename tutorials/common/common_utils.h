@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -115,6 +115,9 @@ mfxStatus ReadBitStreamData(mfxBitstream* pBS, FILE* fSource);
 void ClearYUVSurfaceSysMem(mfxFrameSurface1* pSfc, mfxU16 width, mfxU16 height);
 void ClearYUVSurfaceVMem(mfxMemId memId);
 void ClearRGBSurfaceVMem(mfxMemId memId);
+
+mfxStatus Create3DLutMemory(mfxMemId memId, mfxHDL hdl, const char*lut3d_file_name);
+mfxStatus Release3DLutMemory(mfxMemId memId, mfxHDL hdl);
 
 // Get free raw frame surface
 int GetFreeSurfaceIndex(mfxFrameSurface1** pSurfacesPool, mfxU16 nPoolSize);
