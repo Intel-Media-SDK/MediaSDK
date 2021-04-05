@@ -1,4 +1,4 @@
-// Copyright (c) 2008-2020 Intel Corporation
+// Copyright (c) 2008-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -148,6 +148,7 @@ static void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )
 #endif
     pMfxExecuteParams->bEOS = false;
     pMfxExecuteParams->scene = VPP_NO_SCENE_CHANGE;
+    pMfxExecuteParams->lut3DInfo = {};
 } /*void MemSetZero4mfxExecuteParams (mfxExecuteParams *pMfxExecuteParams )*/
 
 
@@ -2036,6 +2037,19 @@ mfxStatus VideoVPPHW::GetVideoParams(mfxVideoParam *par) const
             bufSc->InterpolationMethod = m_executeParams.interpolationMethod;
 #endif            
         }
+        else if (MFX_EXTBUFF_VPP_3DLUT == bufferId)
+        {
+            mfxExtVPP3DLut *bufSc = reinterpret_cast<mfxExtVPP3DLut *>(par->ExtParam[i]);
+            MFX_CHECK_NULL_PTR1(bufSc);
+            bufSc->ChannelMapping               = m_executeParams.lut3DInfo.ChannelMapping;
+            bufSc->BufferType                   = m_executeParams.lut3DInfo.BufferType;
+            if (bufSc->BufferType == MFX_RESOURCE_VA_SURFACE)
+            {
+                bufSc->VideoBuffer.DataType         = m_executeParams.lut3DInfo.DataType;
+                bufSc->VideoBuffer.MemLayout        = m_executeParams.lut3DInfo.MemLayout;
+                bufSc->VideoBuffer.MemId            = m_executeParams.lut3DInfo.MemId;
+            }
+        }
 #if (MFX_VERSION >= 1025)
         else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)
         {
@@ -3733,7 +3747,7 @@ mfxStatus VideoVPPHW::MergeRuntimeParams(const DdiTask *pTask, MfxHwVideoProcess
             /* Params look good */
             execParams->VideoSignalInfo[i].enabled        = true;
             execParams->VideoSignalInfo[i].NominalRange   = vsi->NominalRange;
-            execParams->VideoSignalInfo[i].TransferMatrix = vsi->TransferMatrix;
+            execParams->VideoSignalInfo[i].TransferMatrix = GetTransferCharacteristic(vsi->TransferMatrix);
         }
     }
 
@@ -3866,10 +3880,9 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
     if (m_executeParams.iFieldProcessingMode != 0)
     {
         mfxFrameSurface1 * pInputSurface = m_IOPattern & MFX_IOPATTERN_IN_OPAQUE_MEMORY ?
-                                            m_pCore->GetOpaqSurface(surfQueue[0].pSurf->Data.MemId):
-                                            surfQueue[0].pSurf;
+                                       m_pCore->GetOpaqSurface(surfQueue[0].pSurf->Data.MemId):
+                                       surfQueue[0].pSurf;
         MFX_CHECK(pInputSurface, MFX_ERR_NULL_PTR);
-
         /* Mean filter was configured as DOUSE, but no ExtBuf in VPP Init()
          * And ... no any parameters in runtime. This is an error! */
         if (((m_executeParams.iFieldProcessingMode -1) == FROM_RUNTIME_EXTBUFF_FIELD_PROC) && (pInputSurface->Data.NumExtParam == 0))
@@ -3958,6 +3971,52 @@ mfxStatus VideoVPPHW::SyncTaskSubmission(DdiTask* pTask)
             // !!! kernel uses "0"  as a "valid" data, but HW_VPP doesn't
             // to prevent issue we increment here and decrement before kernel call
             imfxFPMode++;
+        }
+    }
+
+    mfxFrameSurface1 * pInputSurface = pTask->input.pSurf;
+    if (pTask->input.pSurf )
+    {
+        for ( mfxU32 jj = 0; jj < pInputSurface->Data.NumExtParam; jj++ )
+        {
+            if (pInputSurface->Data.ExtParam[jj])
+            {
+                if ( (pInputSurface->Data.ExtParam[jj]->BufferId == MFX_EXTBUFF_VIDEO_SIGNAL_INFO) &&
+                     (pInputSurface->Data.ExtParam[jj]->BufferSz == sizeof(mfxExtVideoSignalInfo)) )
+                {
+                    mfxExtVideoSignalInfo* videoSignallInfo = (mfxExtVideoSignalInfo *)(pInputSurface->Data.ExtParam[jj]);
+                    if (videoSignallInfo)
+                    {
+                        m_executeParams.VideoSignalInfoIn.enabled = TRUE;
+                        m_executeParams.VideoSignalInfoIn.ColourPrimary = videoSignallInfo->ColourPrimaries;
+                        m_executeParams.VideoSignalInfoIn.TransferMatrix = videoSignallInfo->TransferCharacteristics;
+                        m_executeParams.VideoSignalInfoIn.MatrixCoeffs = videoSignallInfo->MatrixCoefficients;
+                        m_executeParams.VideoSignalInfoIn.NominalRange = videoSignallInfo->VideoFullRange ? MFX_NOMINALRANGE_0_255 : MFX_NOMINALRANGE_16_235;
+                    }
+                }
+            }
+        }
+    }
+
+    mfxFrameSurface1 * pOutputSurface = pTask->output.pSurf;
+    MFX_CHECK(pOutputSurface, MFX_ERR_NULL_PTR);
+    for ( mfxU32 jj = 0; jj < pOutputSurface->Data.NumExtParam; jj++ )
+    {
+        if (pOutputSurface->Data.ExtParam[jj])
+        {
+            if ( (pOutputSurface->Data.ExtParam[jj]->BufferId == MFX_EXTBUFF_VIDEO_SIGNAL_INFO) &&
+                 (pOutputSurface->Data.ExtParam[jj]->BufferSz == sizeof(mfxExtVideoSignalInfo)) )
+            {
+                mfxExtVideoSignalInfo* videoSignallInfo = (mfxExtVideoSignalInfo *)(pOutputSurface->Data.ExtParam[jj]);
+                if (videoSignallInfo)
+                {
+                    m_executeParams.VideoSignalInfoOut.enabled = TRUE;
+                    m_executeParams.VideoSignalInfoOut.ColourPrimary = videoSignallInfo->ColourPrimaries;
+                    m_executeParams.VideoSignalInfoOut.TransferMatrix = videoSignallInfo->TransferCharacteristics;
+                    m_executeParams.VideoSignalInfoOut.MatrixCoeffs = videoSignallInfo->MatrixCoefficients;
+                    m_executeParams.VideoSignalInfoOut.NominalRange = videoSignallInfo->VideoFullRange ? MFX_NOMINALRANGE_0_255 : MFX_NOMINALRANGE_16_235;
+                }
+            }
         }
     }
 
@@ -5666,6 +5725,41 @@ mfxStatus ConfigureExecuteParams(
 
                 break;
             }
+            case MFX_EXTBUFF_VPP_3DLUT:
+            {
+                if (caps.u3DLut)
+                {
+                    for (mfxU32 i = 0; i < videoParam.NumExtParam; i++)
+                    {
+                        if (videoParam.ExtParam[i]->BufferId == MFX_EXTBUFF_VPP_3DLUT)
+                        {
+                            mfxExtVPP3DLut *ext3DLUT = (mfxExtVPP3DLut*) videoParam.ExtParam[i];
+                            if (ext3DLUT)
+                            {
+                                executeParams.lut3DInfo.Enabled               = true;
+                                executeParams.lut3DInfo.ChannelMapping        = ext3DLUT->ChannelMapping;
+                                executeParams.lut3DInfo.BufferType            = ext3DLUT->BufferType;
+                                if (ext3DLUT->BufferType == MFX_RESOURCE_VA_SURFACE)
+                                {
+                                    executeParams.lut3DInfo.DataType              = ext3DLUT->VideoBuffer.DataType;
+                                    executeParams.lut3DInfo.MemLayout             = ext3DLUT->VideoBuffer.MemLayout;
+                                    executeParams.lut3DInfo.MemId                 = ext3DLUT->VideoBuffer.MemId;
+                                }
+                                else
+                                {
+                                    return MFX_ERR_UNSUPPORTED;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    bIsFilterSkipped = true;
+                }
+
+                break;
+            }
 #if (MFX_VERSION >= 1025)
             case MFX_EXTBUFF_VPP_COLOR_CONVERSION:
             {
@@ -6251,6 +6345,10 @@ mfxStatus ConfigureExecuteParams(
                 else if (MFX_EXTBUFF_VPP_SCALING == bufferId)
                 {
                     executeParams.scalingMode = MFX_SCALING_MODE_DEFAULT;
+                }
+                else if (MFX_EXTBUFF_VPP_3DLUT == bufferId)
+                {
+                    executeParams.lut3DInfo.Enabled = false;
                 }
 #if (MFX_VERSION >= 1025)
                 else if (MFX_EXTBUFF_VPP_COLOR_CONVERSION == bufferId)

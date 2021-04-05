@@ -1,5 +1,5 @@
 /******************************************************************************\
-Copyright (c) 2005-2020, Intel Corporation
+Copyright (c) 2005-2021, Intel Corporation
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -130,6 +130,8 @@ sInputParams::sInputParams() : __sInputParams()
     bDecoderPostProcessing = false;
     bROIasQPMAP = false;
 #endif
+    bEnable3DLut = false;
+
 }
 
 CTranscodingPipeline::CTranscodingPipeline():
@@ -201,10 +203,17 @@ CTranscodingPipeline::CTranscodingPipeline():
     m_nRotationAngle = 0;
     m_bROIasQPMAP = false;
     m_bExtMBQP = false;
+
+    m_b3DLutEnable = false;
+    m_n3DLutVMemId = 0xffffffff;
+    m_n3DLutVWidth = 65;
+    m_n3DLutVHeight = 65*128*2;
+    m_p3DLutFile = NULL;
 } //CTranscodingPipeline::CTranscodingPipeline()
 
 CTranscodingPipeline::~CTranscodingPipeline()
 {
+    m_b3DLutEnable = false;
     Close();
 } //CTranscodingPipeline::CTranscodingPipeline()
 
@@ -368,6 +377,11 @@ mfxStatus CTranscodingPipeline::VPPPreInit(sInputParams *pParams)
                 return MFX_ERR_UNSUPPORTED;
             }
 
+            m_bIsVpp = true;
+        }
+
+        if (pParams->bEnable3DLut)
+        {
             m_bIsVpp = true;
         }
 
@@ -3130,6 +3144,29 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
             MFX_PICSTRUCT_FIELD_BFF);
     }
 
+    if (pInParams->bEnable3DLut)
+    {
+        auto lut = m_mfxVppParams.AddExtBuffer<mfxExtVPP3DLut>();
+
+        lut->ChannelMapping      = MFX_3DLUT_CHANNEL_MAPPING_RGB_RGB;
+        lut->BufferType          = MFX_RESOURCE_VA_SURFACE;
+
+        lut->VideoBuffer.DataType = MFX_DATA_TYPE_U16;
+        lut->VideoBuffer.MemLayout = MFX_3DLUT_MEMORY_LAYOUT_INTEL_65LUT;
+        lut->VideoBuffer.MemId = &m_n3DLutVMemId;
+
+        m_b3DLutEnable = true;
+        m_p3DLutFile = pInParams->str3DLutFile;
+
+        if (m_mfxVppParams.vpp.In.FourCC == MFX_FOURCC_P010)
+        {
+            m_mfxVppParams.vpp.In.BitDepthLuma = 10;
+            m_mfxVppParams.vpp.In.BitDepthChroma = 10;
+            m_mfxVppParams.vpp.In.Shift = 1;
+            m_mfxVppParams.vpp.In.ChromaFormat = MFX_CHROMAFORMAT_YUV420;
+        }
+    }
+
     if (enhFilterCount)
     {
         auto doUse = m_mfxVppParams.AddExtBuffer<mfxExtVPPDoUse>();
@@ -3200,7 +3237,7 @@ mfxStatus CTranscodingPipeline::AllocFrames(mfxFrameAllocRequest *pRequest, bool
     mfxFrameAllocResponse *pResponse = isDecAlloc ? &m_mfxDecResponse : &m_mfxEncResponse;
 
     // no actual memory is allocated if opaque memory type is used
-    if (!m_bUseOpaqueMemory)
+    if ((!m_bUseOpaqueMemory) || (pRequest->Type == MFX_MEMTYPE_EXTERNAL_FRAME))
     {
         sts = m_pMFXAllocator->Alloc(m_pMFXAllocator->pthis, pRequest, pResponse);
         MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Alloc failed");
@@ -3392,6 +3429,12 @@ mfxStatus CTranscodingPipeline::AllocFrames()
                 MSDK_CHECK_STATUS(sts, "m_pParentPipeline->CorrectPreEncAuxPool failed");
             }
         }
+    }
+
+    if (m_b3DLutEnable)
+    {
+        sts = m_pMFXAllocator->Create3DLutMemory((void*)&m_n3DLutVMemId, m_p3DLutFile);
+        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Create3DLutMemory failed");
     }
 
     return MFX_ERR_NONE;
@@ -4276,6 +4319,11 @@ void CTranscodingPipeline::Close()
         m_hwdev4Rendering=NULL;
     }
 #endif
+
+    if (m_b3DLutEnable)
+    {
+        m_pMFXAllocator->Release3DLutMemory((void*)&m_n3DLutVMemId);
+    }
 
     // free allocated surfaces AFTER closing components
     FreeFrames();

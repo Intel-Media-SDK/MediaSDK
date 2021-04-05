@@ -62,6 +62,9 @@ protected:
     virtual mfxStatus AllocImpl(mfxFrameAllocRequest *request, mfxFrameAllocResponse *response);
     virtual mfxStatus ReallocImpl(mfxMemId midIn, const mfxFrameInfo *info, mfxU16 memType, mfxMemId *midOut);
 
+    virtual mfxStatus Create3DLutMemory(mfxMemId memId, const char*lut3d_file_name) {return MFX_ERR_NONE; }
+    virtual mfxStatus Release3DLutMemory(mfxMemId memId) {return MFX_ERR_NONE; }
+
     MFXBufferAllocator *m_pBufferAllocator;
     bool m_bOwnBufferAllocator;
 

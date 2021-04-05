@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -114,4 +114,15 @@ void ClearRGBSurfaceVMem(mfxMemId memId)
     (void)memId;
 #endif
 }
+
+mfxStatus Create3DLutMemory(mfxMemId memId, mfxHDL hdl, const char*lut3d_file_name)
+{
+     return MFX_ERR_UNSUPPORTED;
+}
+
+mfxStatus Release3DLutMemory(mfxMemId memId, mfxHDL hdl)
+{
+    return MFX_ERR_UNSUPPORTED;
+}
+
 

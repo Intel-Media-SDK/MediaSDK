@@ -88,6 +88,9 @@ public:
     virtual mfxStatus Init(mfxAllocatorParams *pParams);
     virtual mfxStatus Close();
 
+    virtual mfxStatus Create3DLutMemory(mfxMemId memId, const char*lut3d_file_name);
+    virtual mfxStatus Release3DLutMemory(mfxMemId memId);
+
 protected:
     DISALLOW_COPY_AND_ASSIGN(vaapiFrameAllocator);
 

@@ -132,6 +132,26 @@ typedef enum {
 
 } PicStructMode;
 
+typedef enum {
+    MFX_COLOUR_PRIMARY_RESERVED         = 0,
+    MFX_COLOUR_PRIMARY_BT709            = 1,
+    MFX_COLOUR_PRIMARY_UNSPECIFIED      = 2,
+    MFX_COLOUR_PRIMARY_BT601_625        = 5,    // BT601-7 625-line system
+    MFX_COLOUR_PRIMARY_BT601_525        = 6,    // BT601-7 525-line system
+    MFX_COLOUR_PRIMARY_BT2020           = 9,    // BT2100 shares this same value
+} mfxColourPrimary;
+
+typedef enum {
+    MFX_TRANSFER_CHARACTERISTIC_RESERVED                = 0,
+    MFX_TRANSFER_CHARACTERISTIC_BT709                   = 1,
+    MFX_TRANSFER_CHARACTERISTIC_UNSPECIFIED             = 2,
+    MFX_TRANSFER_CHARACTERISTIC_DISPLAY_GAMMA_2P2       = 4,
+    MFX_TRANSFER_CHARACTERISTIC_DISPLAY_GAMMA_2P8       = 5,
+    MFX_TRANSFER_CHARACTERISTIC_BT601                   = 6,    // BT601-7 625-line or 525-line system
+    MFX_TRANSFER_CHARACTERISTIC_LINEAR                  = 8,    // Linear transfer characteristic
+    MFX_TRANSFER_CHARACTERISTIC_ST2084                  = 16,   // ST2084 transfer characteristic
+} mfxTransferCharacteristic;
+
 typedef enum
 {
     // gamut compression

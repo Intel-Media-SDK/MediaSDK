@@ -195,6 +195,23 @@ size_t GetConfigSize( mfxU32 filterId );
 
 void ConvertCaps2ListDoUse(MfxHwVideoProcessing::mfxVppCaps& caps, std::vector<mfxU32>& list);
 
+__inline mfxU16 GetTransferCharacteristic(mfxU16 transferMatrix)
+{
+    mfxTransferCharacteristic ret = MFX_TRANSFER_CHARACTERISTIC_BT709;
+    switch (transferMatrix)
+    {
+    case MFX_TRANSFERMATRIX_BT709:
+        ret = MFX_TRANSFER_CHARACTERISTIC_BT709;
+        break;
+    case MFX_TRANSFERMATRIX_BT601:
+        ret = MFX_TRANSFER_CHARACTERISTIC_BT601;
+        break;
+    default:
+        break;
+    }
+    return (mfxU16)ret;
+}
+
 //mfxStatus QueryExtParams()
 
 #endif // __MFX_VPP_UTILS_H
