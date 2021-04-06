@@ -60,6 +60,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage)
     msdk_printf(MSDK_STRING("   [-w]                      - output width\n"));
     msdk_printf(MSDK_STRING("   [-h]                      - output height\n"));
     msdk_printf(MSDK_STRING("   [-di bob/adi]             - enable deinterlacing BOB/ADI\n"));
+    msdk_printf(MSDK_STRING("   [-scaling_mode value]     - specify scaling mode (lowpower/quality) for VPP\n"));
 #if (MFX_VERSION >= 1025)
     msdk_printf(MSDK_STRING("   [-d]                      - enable decode error report\n"));
 #endif
@@ -393,7 +394,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
-
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-di")))
         {
             if(i + 1 >= nArgNum)
@@ -415,6 +415,33 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             else if (0 == msdk_strcmp(diMode, MSDK_CHAR("adi")))
             {
                 pParams->eDeinterlace = MFX_DEINTERLACING_ADVANCED;
+            }
+            else
+            {
+                PrintHelp(strInput[0], MSDK_STRING("deinterlace value is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-scaling_mode")))
+        {
+            if(i + 1 >= nArgNum)
+            {
+                PrintHelp(strInput[0], MSDK_STRING("Not enough parameters for -scaling_mode key"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            msdk_char diMode[32] = {};
+            if (MFX_ERR_NONE != msdk_opt_read(strInput[++i], diMode))
+            {
+                PrintHelp(strInput[0], MSDK_STRING("mode type is not set"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+            if (0 == msdk_strcmp(diMode, MSDK_CHAR("lowpower")))
+            {
+                pParams->ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+            }
+            else if (0 == msdk_strcmp(diMode, MSDK_CHAR("quality")))
+            {
+                pParams->ScalingMode = MFX_SCALING_MODE_QUALITY;
             }
             else
             {

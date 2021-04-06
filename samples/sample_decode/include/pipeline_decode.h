@@ -112,6 +112,7 @@ struct sInputParams
     mfxU16  chromaType;
     mfxU32  nFrames;
     mfxU16  eDeinterlace;
+    mfxU16  ScalingMode;
     bool    outI420;
 
     bool    bPerfMode;

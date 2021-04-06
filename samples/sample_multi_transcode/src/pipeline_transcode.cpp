@@ -3130,6 +3130,12 @@ mfxStatus CTranscodingPipeline::InitVppMfxParams(sInputParams *pInParams)
             MFX_PICSTRUCT_FIELD_BFF);
     }
 
+    if (pInParams->ScalingMode)
+    {
+        auto par = m_mfxVppParams.AddExtBuffer<mfxExtVPPScaling>();
+        par->ScalingMode = pInParams->ScalingMode;
+    }
+
     if (enhFilterCount)
     {
         auto doUse = m_mfxVppParams.AddExtBuffer<mfxExtVPPDoUse>();
