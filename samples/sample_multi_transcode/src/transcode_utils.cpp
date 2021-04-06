@@ -324,6 +324,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -FRC::PT      Enables FRC filter with Preserve Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::DT      Enables FRC filter with Distributed Timestamp algorithm\n"));
     msdk_printf(MSDK_STRING("  -FRC::INTERP  Enables FRC filter with Frame Interpolation algorithm\n"));
+    msdk_printf(MSDK_STRING("  -scaling_mode <mode> Specifies scaling mode (lowpower/quality)\n"));
     msdk_printf(MSDK_STRING("  -ec::nv12|rgb4|yuy2|nv16|p010|p210|y210|y410|p016|y216|y416   Forces encoder input to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("  -dc::nv12|rgb4|yuy2|p010|y210|y410|p016|y216   Forces decoder output to use provided chroma mode\n"));
     msdk_printf(MSDK_STRING("     NOTE: chroma transform VPP may be automatically enabled if -ec/-dc parameters are provided\n"));
@@ -1412,6 +1413,21 @@ mfxStatus ParseVPPCmdLine(msdk_char *argv[], mfxU32 argc, mfxU32& index, Transco
     {
         params->bEnableDeinterlacing = true;
         params->DeinterlacingMode=MFX_DEINTERLACING_ADVANCED_NOREF;
+        return MFX_ERR_NONE;
+    }
+    else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-scaling_mode")) )
+    {
+        VAL_CHECK(index+1 == argc, index, argv[index]);
+        index++;
+        if (0 == msdk_strcmp(argv[index], MSDK_STRING("lowpower")) )
+            params->ScalingMode = MFX_SCALING_MODE_LOWPOWER;
+        else if (0 == msdk_strcmp(argv[index], MSDK_STRING("quality")) )
+            params->ScalingMode = MFX_SCALING_MODE_QUALITY;
+        else
+        {
+            PrintError(NULL, MSDK_STRING("-scaling_mode \"%s\" is invalid"), argv[index]);
+            return MFX_ERR_UNSUPPORTED;
+        }
         return MFX_ERR_NONE;
     }
     else if (0 == msdk_strcmp(argv[index], MSDK_STRING("-ec::rgb4")))

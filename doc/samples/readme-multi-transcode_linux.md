@@ -163,6 +163,7 @@ ParFile is extension of what can be achieved by setting pipeline in the command 
 |-w| Destination picture width, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified) |
 |-h| Destination picture height, invokes VPP resize or decoder fixed function resize engine (if -dec_postproc specified)|
 |-field_processing t2t\|t2b\|b2t\|b2b\|fr2fr | Field Copy feature|
+|-scaling_mode| Specifies scaling mode (lowpower/quality) for VPP|
   |-WeightedPred::default\|implicit|  Enables weighted prediction usage|
 |  -WeightedBiPred::default\|implicit|     Enambles weighted bi-prediction usage|
 |  -extbrc:<on,off,implicit>| Enables external BRC for AVC and HEVC encoders|

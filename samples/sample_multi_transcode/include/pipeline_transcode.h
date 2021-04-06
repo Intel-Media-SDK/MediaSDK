@@ -221,6 +221,7 @@ namespace TranscodingSample
         int DetailLevel;
         mfxU16 FRCAlgorithm;
         EFieldCopyMode fieldProcessingMode;
+        mfxU16 ScalingMode;
 
         mfxU16 nAsyncDepth; // asyncronous queue
 
