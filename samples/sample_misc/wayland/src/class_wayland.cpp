@@ -433,8 +433,12 @@ void Wayland::DrmHandleDevice(const char *name)
             m_device_name << "\n";
         return;
     }
-    drmGetMagic(m_fd, &magic);
-    wl_drm_authenticate(m_drm, magic);
+
+    int type = drmGetNodeTypeFromFd(m_fd);
+    if (type != DRM_NODE_RENDER) {
+        drmGetMagic(m_fd, &magic);
+        wl_drm_authenticate(m_drm, magic);
+    }
 }
 
 void Wayland::DrmHandleAuthenticated()
