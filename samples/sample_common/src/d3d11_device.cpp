@@ -63,7 +63,7 @@ mfxStatus CD3D11Device::FillSCD1(DXGI_SWAP_CHAIN_DESC1& scd1)
     scd1.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     scd1.BufferCount = 2;                               // Use double buffering to minimize latency.
     scd1.Scaling = DXGI_SCALING_STRETCH;
-    scd1.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+    scd1.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     scd1.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
     return MFX_ERR_NONE;
