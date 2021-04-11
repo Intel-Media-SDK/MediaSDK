@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2018-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -949,6 +949,7 @@ enum {
     MFX_EXTBUFF_VPP_ROTATION                    = MFX_MAKEFOURCC('R','O','T',' '),
     MFX_EXTBUFF_ENCODED_SLICES_INFO             = MFX_MAKEFOURCC('E','N','S','I'),
     MFX_EXTBUFF_VPP_SCALING                     = MFX_MAKEFOURCC('V','S','C','L'),
+    MFX_EXTBUFF_VPP_3DLUT                       = MFX_MAKEFOURCC('T','D','L','T'),
     MFX_EXTBUFF_HEVC_REFLIST_CTRL               = MFX_EXTBUFF_AVC_REFLIST_CTRL,
     MFX_EXTBUFF_HEVC_REFLISTS                   = MFX_EXTBUFF_AVC_REFLISTS,
     MFX_EXTBUFF_HEVC_TEMPORAL_LAYERS            = MFX_EXTBUFF_AVC_TEMPORAL_LAYERS,
@@ -2119,6 +2120,36 @@ typedef struct {
     mfxU16 reserved[11];
 #endif
 } mfxExtVPPScaling;
+MFX_PACK_END()
+
+typedef enum {
+    MFX_3DLUT_CHANNEL_MAPPING_DEFAULT            = 0,
+    MFX_3DLUT_CHANNEL_MAPPING_RGB_RGB            = 1,
+    MFX_3DLUT_CHANNEL_MAPPING_YUV_RGB            = 2,
+    MFX_3DLUT_CHANNEL_MAPPING_VUY_RGB            = 3
+} mfx3DLutChannelMapping;
+
+typedef enum {
+    MFX_3DLUT_MEMORY_LAYOUT_DEFAULT              = 0,
+
+    MFX_3DLUT_MEMORY_LAYOUT_VENDOR               = 0x1000,
+    MFX_3DLUT_MEMORY_LAYOUT_INTEL_17LUT          = MFX_3DLUT_MEMORY_LAYOUT_VENDOR + (1 << 0),
+    MFX_3DLUT_MEMORY_LAYOUT_INTEL_33LUT          = MFX_3DLUT_MEMORY_LAYOUT_VENDOR + (1 << 1),
+    MFX_3DLUT_MEMORY_LAYOUT_INTEL_65LUT          = MFX_3DLUT_MEMORY_LAYOUT_VENDOR + (1 << 2)
+} mfx3DLutMemoryLayout;
+
+MFX_PACK_BEGIN_USUAL_STRUCT()
+typedef struct {
+    mfxExtBuffer Header;
+
+    mfxMemId                    MemID;
+    mfxU16                      Size;
+    mfxVariantType              DataPrecision;
+    mfx3DLutMemoryLayout        MemoryLayout;
+    mfx3DLutChannelMapping      ChannelMapping;
+
+    mfxU16    reserved[12];
+} mfxExtVPP3DLut;
 MFX_PACK_END()
 
 #if (MFX_VERSION >= MFX_VERSION_NEXT)

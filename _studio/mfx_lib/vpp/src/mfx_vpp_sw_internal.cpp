@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 Intel Corporation
+// Copyright (c) 2018-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -147,6 +147,11 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
 #endif
 
             case (mfxU32)MFX_EXTBUFF_VPP_MIRRORING:
+            {
+                break;
+            }
+
+            case (mfxU32)MFX_EXTBUFF_VPP_3DLUT:
             {
                 break;
             }
