@@ -45,9 +45,13 @@ namespace Base
         {}
 
     protected:
+#ifndef ANDROID
         virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push);
         virtual void InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push);
-
+#else
+        virtual void InitInternal(const FeatureBlocks& blocks, TPushII Push) {};
+        virtual void InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push) {};
+#endif
         mfxU16 GetMaxRec(mfxVideoParam const & par);
         bool GetRecInfo(
             const mfxVideoParam& par
