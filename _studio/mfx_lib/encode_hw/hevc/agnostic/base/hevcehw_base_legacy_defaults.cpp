@@ -186,8 +186,10 @@ public:
             return par.mvp.mfx.GopRefDist;
         }
         auto GopPicSize = par.base.GetGopPicSize(par);
+        const mfxExtCodingOption2* pCO2 = ExtBuffer::Get(par.mvp);
         bool bNoB =
-            par.base.GetNumTemporalLayers(par) > 1
+            (pCO2 && pCO2->IntRefType)
+            || par.base.GetNumTemporalLayers(par) > 1
             || par.caps.SliceIPOnly
             || GopPicSize < 3
             || par.mvp.mfx.NumRefFrame == 1;
