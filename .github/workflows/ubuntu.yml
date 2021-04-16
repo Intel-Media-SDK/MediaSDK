@@ -1,4 +1,4 @@
-name: run_meta-test_selfhosted
+name: centos_build
 on:
   push:
     branches: []
@@ -15,6 +15,9 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
+    - name: build_docker_image_centos
+      run: |
+        docker build docker build `RUNNER_WORKSPACE/MediaSDK/.github/dockerfiles/centos` -f centos8.1
     - name: docker_run
       run: docker run -d --name $(GITHUB_SHA)" --mount type=bind,source="$(GITHUB_WORKSPACE)",target=/repo
 
