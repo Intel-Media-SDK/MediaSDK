@@ -8,6 +8,9 @@ jobs:
   metatest_run_on_linux:
     runs-on: [self-hosted, linux, x64]
     steps:
+    - name: runner_information
+      run: |
+        export
     - name: checkout_repository
       uses: actions/checkout@v2
       with:
