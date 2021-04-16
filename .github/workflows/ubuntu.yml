@@ -6,7 +6,7 @@ on:
     branches: []
 jobs:
   metatest_run_on_linux:
-    runs-on: [self-hosted, linux, x64, test]
+    runs-on: [self-hosted, linux, x64]
     steps:
     - name: checkout_repository
       uses: actions/checkout@v2
