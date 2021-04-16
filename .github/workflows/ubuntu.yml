@@ -15,8 +15,8 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-    - name: docker run -d --name $(GITHUB_SHA)" --mount type=bind,source="$(GITHUB_WORKSPACE)",target=/repo
-      run: echo "hellow"
+    - name: docker_run
+      run: docker run -d --name $(GITHUB_SHA)" --mount type=bind,source="$(GITHUB_WORKSPACE)",target=/repo
 
 
 
