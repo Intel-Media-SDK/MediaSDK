@@ -18,7 +18,7 @@ jobs:
     - name: build_docker_image_centos
       run: |
         echo "${GITHUB_WORKSPACE}"
-        docker build "${GITHUB_WORKSPACE}"/.github/dockerfiles/centos -f centos8.1
+        docker image build "${GITHUB_WORKSPACE}"/.github/dockerfiles/centos/centos8.1/
     - name: docker_run
       run: docker run -d --name "${GITHUB_SHA}" --mount type=bind,source="${GITHUB_WORKSPACE}",target=/repo
 
