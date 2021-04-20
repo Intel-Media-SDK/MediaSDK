@@ -7,9 +7,9 @@ on:
 jobs:
   centos8.1_build:
     runs-on: [self-hosted, linux, x64]
-    env: |
-      OPER_SYSTEM_NAME: centos
-      OPER_SYSTEM_VER: 8
+    env:
+      OPERATING_SYSTEM_NAME: centos
+      OPERATING_SYSTEM_VERSION: 8
     steps:
     - name: runner_information
       run: |
