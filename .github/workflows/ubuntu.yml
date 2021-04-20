@@ -23,7 +23,7 @@ jobs:
         echo "${GITHUB_WORKSPACE}"
         docker image build -t "${OPERATING_SYSTEM_NAME}""${OPERATING_SYSTEM_VERSION}":"${GITHUB_SHA}" "${GITHUB_WORKSPACE}"/.github/dockerfiles/"${OPERATING_SYSTEM_NAME}"/"${OPERATING_SYSTEM_VERSION}"/
     - name: docker_run
-      run: docker run -d "${OPERATING_SYSTEM_NAME}""${OPERATING_SYSTEM_VERSION}":"${GITHUB_SHA}" --mount type=bind,source="${GITHUB_WORKSPACE}",target=/repo
+      run: docker run -v "${GITHUB_WORKSPACE}":/repo -d "${OPERATING_SYSTEM_NAME}""${OPERATING_SYSTEM_VERSION}":"${GITHUB_SHA}"
 
 
 
