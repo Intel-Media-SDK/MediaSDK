@@ -59,12 +59,6 @@ RUN git clone https://github.com/google/googletest \
     && make \
     && make install
 
-# Create and start worker
-# Replace "buildbot-worker start --nodaemon worker" to "/bin/bash" to build image for debug
-CMD buildbot-worker create-worker --umask=0o2 worker 192.168.1.13:9000 $worker_name $worker_pass \
-    && chown mediasdk:mediasdk /docker -R \
-    && su mediasdk -c "buildbot-worker start --nodaemon worker"
-
 # Target for building full image
 FROM api_next_defconfig as centos_8_1
 
