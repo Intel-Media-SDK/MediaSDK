@@ -20,8 +20,6 @@
 
 message( STATUS "Global Configuration of Targets" )
 
-append("-std=c++11" CMAKE_CXX_FLAGS)
-
 if (ENABLE_TEXTLOG)
   append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_C_FLAGS)
   append("-DMFX_TRACE_ENABLE_TEXTLOG" CMAKE_CXX_FLAGS)
