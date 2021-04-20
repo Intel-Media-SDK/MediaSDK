@@ -5,11 +5,11 @@ on:
   pull_request:
     branches: []
 jobs:
-  centos8.1_build:
+  centos8_1_build:
     runs-on: [self-hosted, linux, x64]
     env:
       OPERATING_SYSTEM_NAME: centos
-      OPERATING_SYSTEM_VERSION: 8
+      OPERATING_SYSTEM_VERSION: 8.1
     steps:
     - name: runner_information
       run: |
