@@ -553,7 +553,9 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
     // frame info parameters
     m_mfxEncParams.mfx.FrameInfo.FourCC       = pInParams->EncodeFourCC;
     m_mfxEncParams.mfx.FrameInfo.ChromaFormat = FourCCToChroma(pInParams->EncodeFourCC);
-    m_mfxEncParams.mfx.FrameInfo.PicStruct    = pInParams->nPicStruct;
+    m_mfxEncParams.mfx.FrameInfo.PicStruct    = pInParams->CodecId == MFX_CODEC_HEVC ?
+        pInParams->nPicStruct | MFX_PICSTRUCT_FIELD_SINGLE :
+        pInParams->nPicStruct;
     m_mfxEncParams.mfx.FrameInfo.Shift        = pInParams->shouldUseShifted10BitEnc;
 
     // width must be a multiple of 16
@@ -2297,6 +2299,7 @@ mfxStatus CEncodingPipeline::VPPOneFrame(const ExtendedSurface& In, ExtendedSurf
     }
     return sts;
 }
+
 mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& pTask)
 {
     mfxStatus sts = MFX_ERR_NONE;
@@ -2316,6 +2319,13 @@ mfxStatus CEncodingPipeline::EncodeOneFrame(const ExtendedSurface& In, sTask*& p
         sts = InitEncFrameParams(pTask);
         MSDK_CHECK_STATUS(sts, "ENCODE: InitEncFrameParams failed");
 
+        if (In.pSurface && (In.pSurface->Info.PicStruct & MFX_PICSTRUCT_FIELD_SINGLE) && m_mfxEncParams.mfx.CodecId == MFX_CODEC_HEVC)
+        {
+            // If mfxFrameSurface1::mfxFrameInfo::PicStruct is zero for a particular surface
+            // then encode will internally use MFX_PICSTRUCT_FIELD_TOP or MFX_PICSTRUCT_FIELD_BOTTOM
+            // for that surface depending on initialization picture structure and expected field polarity
+            In.pSurface->Info.PicStruct = 0;
+        }
         // at this point surface for encoder contains either a frame from file or a frame processed by vpp/preenc
         sts = m_pmfxENC->EncodeFrameAsync(In.pCtrl, In.pSurface, &pTask->mfxBS, &pTask->EncSyncP);
 
@@ -2486,6 +2496,9 @@ mfxStatus CEncodingPipeline::Run()
             bVppMultipleOutput = false; // reset the flag before a call to VPP
 
             sts = VPPOneFrame(vppSurface, preencSurface, skipLoadingNextFrame);
+
+            skipLoadingNextFrame = false;
+
             // process errors
             if (MFX_ERR_MORE_DATA == sts)
             {
