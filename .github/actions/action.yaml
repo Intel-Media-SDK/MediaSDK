@@ -1,0 +1,16 @@
+# action.yml
+name: 'Build in docker'
+description: 'Allow to use different OS version'
+inputs:
+  build-flavor:  # id of input
+    description: 'Build flavor for oneVPL GPU Runtime'
+    required: true
+    default: 'Release'
+outputs:
+  status: # id of output
+    description: 'Build status'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.build-flavor }}
