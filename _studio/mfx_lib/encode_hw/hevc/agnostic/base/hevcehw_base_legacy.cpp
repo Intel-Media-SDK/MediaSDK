@@ -2303,7 +2303,7 @@ void Legacy::ConfigureTask(
     task.ctrl.MfxNalUnitType &= 0xffff * IsOn(CO3.EnableNalUnitType);
 
     const mfxExtMBQP *pMBQP = ExtBuffer::Get(task.ctrl);
-    task.bCUQPMap |= (pMBQP && pMBQP->NumQPAlloc > 0);
+    task.bCUQPMap |= (IsOn(CO3.EnableMBQP) && pMBQP && pMBQP->NumQPAlloc > 0);
 
     bool bUpdateIRState = task.TemporalID == 0 && CO2.IntRefType;
     if (bUpdateIRState)
