@@ -1,7 +1,7 @@
 name: ubuntu-20.04
 
 on: [ push, pull_request ]
-
+  branch: [ github_actions_test ]
 jobs:
 #  cleanup:
 #    runs-on: [self-hosted, linux, x64]
