@@ -111,24 +111,7 @@ jobs:
 #       with:
 #         repository: intel/libva
 #         path: libva
-#     - name: install prerequisites
-#       run: |
-#         sudo apt-get update
-#         sudo apt-get install -y --no-install-recommends \
-#           cmake \
-#           libdrm-dev \
-#           libegl1-mesa-dev \
-#           libgl1-mesa-dev \
-#           libx11-dev \
-#           libx11-xcb-dev \
-#           libxcb-dri3-dev \
-#           libxcb-present-dev \
-#           libxext-dev \
-#           libxfixes-dev \
-#           libwayland-dev \
-#           ocl-icd-opencl-dev \
-#           opencl-clhpp-headers \
-#           make
+
 #     - name: print tools versions
 #       run: |
 #         cmake --version
