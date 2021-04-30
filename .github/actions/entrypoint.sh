@@ -38,7 +38,7 @@ gcc --version
 g++ --version
 
 cd libva
-./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu
+./autogen.sh --prefix=/usr --libdir=/usr/lib64
 make -j$(nproc)
 make install
 
