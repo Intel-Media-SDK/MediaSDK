@@ -1,7 +1,7 @@
 name: ubuntu-20.04
 
 on: [ push, pull_request ]
-  branch: [ github_actions_test ]
+  branches: [ github_actions_test ]
 jobs:
 #  cleanup:
 #    runs-on: [self-hosted, linux, x64]
@@ -12,7 +12,7 @@ jobs:
 #        # Volume auto mounted by gh actions pointing to the current working-directory
 #        run: find /__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}/. -name . -o -prune -exec rm -rf -- {} + || true
   default-gcc:
-    runs-on: [self-hosted, linux, medium]
+    runs-on: [self-hosted, linux, x64]
 #    needs: cleanup
     steps:
     - name: checkout libmfxgen
