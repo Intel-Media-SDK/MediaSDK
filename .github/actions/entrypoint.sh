@@ -34,8 +34,8 @@ CFLAGS="-O2 -Wformat -Wformat-security -Wall -Werror -D_FORTIFY_SOURCE=2 -fstack
 
 
 cmake --version
-$CC --version
-$CXX --version
+gcc --version
+g++ --version
 
 cd libva
 ./autogen.sh --prefix=/usr --libdir=/usr/lib/x86_64-linux-gnu
