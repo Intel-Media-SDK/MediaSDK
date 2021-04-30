@@ -75,5 +75,6 @@ RUN wget https://wayland.freedesktop.org/releases/wayland-1.8.93.tar.xz \
     && make \
     && make install
 
-COPY entrypoint.sh /entrypoint.sh    
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
