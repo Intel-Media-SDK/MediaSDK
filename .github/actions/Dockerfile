@@ -74,3 +74,5 @@ RUN wget https://wayland.freedesktop.org/releases/wayland-1.8.93.tar.xz \
     && ./configure --disable-documentation --prefix=/usr --libdir=/usr/lib64 \
     && make \
     && make install
+    
+ENTRYPOINT ["/entrypoint.sh"]
