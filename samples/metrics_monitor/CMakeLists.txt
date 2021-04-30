@@ -1,7 +1,6 @@
 # metrics_monitor library
 
-if( PKG_LIBDRM_FOUND AND
-   (${PKG_LIBDRM_VERSION} VERSION_GREATER 2.4.91))
+if( PKG_LIBDRM_FOUND AND ("${PKG_LIBDRM_VERSION}" VERSION_GREATER 2.4.91))
 
     include_directories (${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
@@ -51,10 +50,8 @@ if( PKG_LIBDRM_FOUND AND
             message( STATUS "pciaccess was not found (optional), the following will not be built: test_monitor." )
         endif()
 
-        if( NOT PKG_LIBDRM_FOUND )
-            message( STATUS "libdrm was not found (optional), the following will not be built: test_monitor." )
-        endif()
-
     endif()
 
+else()
+    message( STATUS "libdrm was not found, the following will not be built: metrics_monitor." )
 endif()
