@@ -1,7 +1,9 @@
-name: ubuntu-20.04
-
-on: [ push, pull_request ]
-  branches: [ github_actions_test ]
+name: centos_build
+on:
+  push:
+    branches: [github_actions_test]
+  pull_request:
+    branches: [github_actions_test]
 jobs:
 #  cleanup:
 #    runs-on: [self-hosted, linux, x64]
