@@ -4,7 +4,7 @@ on: [ push, pull_request ]
 
 jobs:
   cleanup:
-    runs-on: [self-hosted, linux, medium]
+    runs-on: [self-hosted, linux, x64]
     container:
       image: dockerv2-gfx-build.gfx-assets.intel.com/common/ubuntu20.04:23
     steps:
