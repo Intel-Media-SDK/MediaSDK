@@ -924,6 +924,12 @@ protected:
     mfxU32       m_nViews;
 };
 
+struct BitrstreamHeaderInfo
+{
+    mfxU32 frameRate;
+    mfxU32 timeScale;
+};
+
 class CSmplBitstreamReader
 {
 public :
@@ -988,10 +994,10 @@ protected:
 class CIVFFrameReader : public CSmplBitstreamReader
 {
 public:
-    CIVFFrameReader();
     virtual void      Reset();
     virtual mfxStatus Init(const msdk_char *strFileName);
     virtual mfxStatus ReadNextFrame(mfxBitstream *pBS);
+    void              GetHeaderInfo(BitrstreamHeaderInfo& info);
 
 protected:
 
@@ -1018,7 +1024,10 @@ protected:
         mfxU32 time_scale;
         mfxU32 num_frames;
         mfxU32 unused;
-    }m_hdr;
+    }m_hdr{};
+
+    BitrstreamHeaderInfo m_hInfo{};
+
     mfxStatus ReadHeader();
 };
 
