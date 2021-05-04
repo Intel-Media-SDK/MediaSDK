@@ -776,11 +776,6 @@ mfxStatus CJPEGFrameReader::ReadNextFrame(mfxBitstream *pBS)
     return sts;
 }
 
-CIVFFrameReader::CIVFFrameReader()
-{
-    MSDK_ZERO_MEMORY(m_hdr);
-}
-
 #define READ_BYTES(pBuf, size)\
 {\
     mfxU32 nBytesRead = (mfxU32)fread(pBuf, 1, size, m_fSource);\
@@ -802,7 +797,17 @@ mfxStatus CIVFFrameReader::ReadHeader()
     READ_BYTES(&m_hdr.num_frames, sizeof(m_hdr.num_frames));
     READ_BYTES(&m_hdr.unused, sizeof(m_hdr.unused));
     MSDK_CHECK_NOT_EQUAL(fseek(m_fSource, m_hdr.header_len, SEEK_SET), 0, MFX_ERR_UNSUPPORTED);
+
+    m_hInfo.frameRate = m_hdr.frame_rate;
+    m_hInfo.timeScale = m_hdr.time_scale;
+
     return MFX_ERR_NONE;
+}
+
+void CIVFFrameReader::GetHeaderInfo(BitrstreamHeaderInfo& info)
+{
+    info.frameRate = m_hInfo.frameRate;
+    info.timeScale = m_hInfo.timeScale;
 }
 
 void CIVFFrameReader::Reset()
@@ -870,7 +875,6 @@ mfxStatus CIVFFrameReader::ReadNextFrame(mfxBitstream *pBS)
 
     return MFX_ERR_NONE;
 }
-
 
 CSmplYUVWriter::CSmplYUVWriter()
 {
