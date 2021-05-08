@@ -1084,18 +1084,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         MFX_CHECK(m_va->GetProtectedVA() && (bs->DataFlag & MFX_BITSTREAM_COMPLETE_FRAME), MFX_ERR_UNDEFINED_BEHAVIOR);
         m_va->GetProtectedVA()->SetBitstream(bs);
     }
-#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
-    if (m_va->GetVideoProcessingVA() && m_core->GetVAType() == MFX_HW_VAAPI)
-    {
-        mfxHDL surfHDL = {};
-        if (!m_isOpaq)
-            sts = m_core->GetExternalFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        else
-            sts = m_core->GetFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        MFX_CHECK_STS(sts);
-        m_va->GetVideoProcessingVA()->SetOutputSurface(surfHDL);
-    }
-#endif // !MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+
     //gpu session priority
     m_va->m_ContextPriority = m_core->GetSession()->m_priority;
 

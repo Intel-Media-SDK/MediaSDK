@@ -1209,16 +1209,6 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
 
         m_va->GetProtectedVA()->SetBitstream(bs);
     }
-
-    if (m_va->GetVideoProcessingVA())
-    {
-        mfxHDL surfHDL;
-        if(!m_isOpaq)
-            m_core->GetExternalFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        else
-            m_core->GetFrameHDL(surface_work->Data.MemId, &surfHDL, false);
-        m_va->GetVideoProcessingVA()->SetOutputSurface(surfHDL);
-    }
 #endif
     //gpu session priority
     m_va->m_ContextPriority = m_core->GetSession()->m_priority;
