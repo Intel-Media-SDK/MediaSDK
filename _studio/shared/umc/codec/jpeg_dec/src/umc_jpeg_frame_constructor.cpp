@@ -239,8 +239,6 @@ int32_t JpegFrameConstructor::GetMarker(MediaData * pSource, MediaData * pDst)
     case JM_EOI:
     case JM_TEM:
         break;
-    case JM_SOS:
-        break;
     default:   // marker's segment.
         {
             if (size >= 2)
