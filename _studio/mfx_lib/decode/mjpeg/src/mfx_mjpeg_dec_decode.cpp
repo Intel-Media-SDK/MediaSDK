@@ -1060,11 +1060,13 @@ bool MFX_JPEG_Utility::IsNeedPartialAcceleration(VideoCORE * core, mfxVideoParam
         switch (par->mfx.FrameInfo.FourCC)
         {
             case MFX_FOURCC_NV12:
-                if (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
+                if ((par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_YCbCr &&
                         (par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV420  ||
                          par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422H ||
                          par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV422V ||
-                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 ))
+                         par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 )) ||
+                    (par->mfx.JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB &&
+                        par->mfx.JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444))                  
                     return false;
                 else
                     return true;
@@ -1776,6 +1778,14 @@ void VideoDECODEMJPEGBase_HW::AdjustFourCC(mfxFrameInfo *requestFrameInfo, const
             VM_ASSERT(false);
             break;
         }
+    }
+    else if(info->JPEGColorFormat == MFX_JPEG_COLORFORMAT_RGB)
+    {
+        if(info->JPEGChromaFormat == MFX_CHROMAFORMAT_YUV444 && info->Rotation == MFX_ROTATION_0)
+        {
+            requestFrameInfo->FourCC = MFX_FOURCC_RGBP;
+            *needVpp = true;
+        }  
     }
 }
 

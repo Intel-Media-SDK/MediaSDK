@@ -148,6 +148,11 @@ static void FillSurfaceAttrs(std::vector<VASurfaceAttrib> &attrib, unsigned int 
             break;
         case MFX_FOURCC_RGBP:
             format = VA_RT_FORMAT_RGBP;
+            attrib.resize(attrib.size()+1);
+            attrib[1].type            = VASurfaceAttribUsageHint;
+            attrib[1].flags           = VA_SURFACE_ATTRIB_SETTABLE;
+            attrib[1].value.type      = VAGenericValueTypeInteger;
+            attrib[1].value.value.i   = VA_SURFACE_ATTRIB_USAGE_HINT_DECODER;           
             break;
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
