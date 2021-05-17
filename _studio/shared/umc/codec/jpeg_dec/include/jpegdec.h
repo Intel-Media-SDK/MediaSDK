@@ -24,6 +24,7 @@
 #include "umc_defs.h"
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
 #include "jpegdec_base.h"
+#include "umc_media_data.h"
 
 class CBaseStreamInput;
 

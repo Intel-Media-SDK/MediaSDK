@@ -211,6 +211,31 @@ public:
             if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_FRAME_GAP)
                 msdk_printf(MSDK_STRING("[Error] Frame Gap Error detected!\n"));
 
+#if (MFX_VERSION >= MFX_VERSION)
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_APP0_MARKER)
+                msdk_printf(MSDK_STRING("[Error] APP0 marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_APP14_MARKER)
+                msdk_printf(MSDK_STRING("[Error] APP14 marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_DQT_MARKER)
+                msdk_printf(MSDK_STRING("[Error] DGT marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_SOF0_MARKER)
+                msdk_printf(MSDK_STRING("[Error] SOF0 marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_DHT_MARKER)
+                msdk_printf(MSDK_STRING("[Error] DHT marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_DRI_MARKER)
+                msdk_printf(MSDK_STRING("[Error] DRI marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_SOS_MARKER)
+                msdk_printf(MSDK_STRING("[Error] SOS marker Error detected!\n"));
+
+            if (pDecodeErrorReport->ErrorTypes & MFX_ERROR_UNKNOWN_MARKER)
+                msdk_printf(MSDK_STRING("[Error] unknown marker Error detected!\n"));
+#endif
         }
     }
 #endif

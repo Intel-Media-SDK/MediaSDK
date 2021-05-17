@@ -29,6 +29,26 @@
 
 #include "vm_debug.h"
 
+#if (MFX_VERSION >= MFX_VERSION)
+inline void SetDecodeErrorTypes(JMARKER m_marker, mfxExtDecodeErrorReport *pDecodeErrorReport)
+{
+    if (!pDecodeErrorReport)
+        return;
+
+    switch (m_marker)
+    {
+        case JM_APP0: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_APP0_MARKER; break;
+        case JM_APP14: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_APP14_MARKER; break;
+        case JM_DQT: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_DQT_MARKER; break;
+        case JM_SOF0: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_SOF0_MARKER; break;
+        case JM_DHT: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_DHT_MARKER; break;
+        case JM_DRI: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_DRI_MARKER; break;
+        case JM_SOS: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_SOS_MARKER; break;
+        default: pDecodeErrorReport->ErrorTypes |= MFX_ERROR_UNKNOWN_MARKER; break;
+    };
+}
+#endif
+
 CJPEGDecoderBase::CJPEGDecoderBase(void)
 {
   Reset();
@@ -1220,7 +1240,12 @@ comp_id_match:
   return JPEG_OK;
 } // CJPEGDecoderBase::ParseSOS()
 
+
+#if (MFX_VERSION >= MFX_VERSION)
+JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op, mfxExtDecodeErrorReport* pDecodeErrorReport)
+#else
 JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
+#endif
 {
   JERRCODE jerr = JPEG_OK;
 
@@ -1251,6 +1276,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseAPP0();
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
       break;
@@ -1259,6 +1287,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseAPP14();
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
       break;
@@ -1267,6 +1298,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseDQT();
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
       break;
@@ -1275,6 +1309,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseSOF0();
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
       break;
@@ -1297,6 +1334,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseDHT();
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
       break;
@@ -1305,6 +1345,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseDRI();
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
       break;
@@ -1313,6 +1356,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = ParseSOS(op);
       if(JPEG_OK != jerr)
       {
+#if (MFX_VERSION >= MFX_VERSION)
+        SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
         return jerr;
       }
 
@@ -1322,7 +1368,12 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
           {
               jerr = m_BitStreamIn.Seek(-(m_sos_len + 2));
               if(JPEG_OK != jerr)
+              {
+#if (MFX_VERSION >= MFX_VERSION)
+                SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
                   return jerr;
+              }
           }
           else
           {
@@ -1344,7 +1395,9 @@ JERRCODE CJPEGDecoderBase::ParseJPEGBitStream(JOPERATION op)
       jerr = SkipMarker();
       if(JPEG_OK != jerr)
         return jerr;
-
+#if (MFX_VERSION >= MFX_VERSION)
+      SetDecodeErrorTypes(m_marker, pDecodeErrorReport);
+#endif
       break;
     }
   }
@@ -1391,6 +1444,16 @@ JERRCODE CJPEGDecoderBase::FindSOI()
   }
 } // CJPEGDecoderBase::ParseJPEGBitStream()
 
+#if (MFX_VERSION >= MFX_VERSION)
+JERRCODE CJPEGDecoderBase::ReadHeader(
+  int*    width,
+  int*    height,
+  int*    nchannels,
+  JCOLOR* color,
+  JSS*    sampling,
+  int*    precision,
+  mfxExtDecodeErrorReport* pDecodeErrorReport)
+#else
 JERRCODE CJPEGDecoderBase::ReadHeader(
   int*    width,
   int*    height,
@@ -1398,13 +1461,18 @@ JERRCODE CJPEGDecoderBase::ReadHeader(
   JCOLOR* color,
   JSS*    sampling,
   int*    precision)
+#endif
 {
   int      du_width;
   int      du_height;
   JERRCODE jerr;
 
   // parse bitstream up to SOS marker
+#if (MFX_VERSION >= MFX_VERSION)
+  jerr = ParseJPEGBitStream(JO_READ_HEADER, pDecodeErrorReport);
+#else
   jerr = ParseJPEGBitStream(JO_READ_HEADER);
+#endif
 
   if(JPEG_OK != jerr)
   {

@@ -79,7 +79,11 @@ public:
     Status FindStartOfImage(MediaData * in);
 
     // All memory sizes should come in size_t type
+#if (MFX_VERSION >= MFX_VERSION)
+    Status _GetFrameInfo(const uint8_t* pBitStream, size_t nSize, MediaData *in);
+#else
     Status _GetFrameInfo(const uint8_t* pBitStream, size_t nSize);
+#endif
 
     Status SetRotation(uint16_t rotation);
 
