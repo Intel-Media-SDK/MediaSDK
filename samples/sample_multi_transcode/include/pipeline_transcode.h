@@ -617,8 +617,6 @@ namespace TranscodingSample
         virtual mfxStatus ResetInput();
         virtual mfxStatus ResetOutput();
 
-        void GetHeaderInfo(BitrstreamHeaderInfo& hInfo);
-
     protected:
         std::unique_ptr<CSmplBitstreamReader> m_pFileReader;
         std::unique_ptr<CSmplYUVReader> m_pYUVFileReader;

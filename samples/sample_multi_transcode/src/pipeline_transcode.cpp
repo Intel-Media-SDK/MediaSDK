@@ -2265,14 +2265,15 @@ mfxStatus CTranscodingPipeline::InitDecMfxParams(sInputParams *pInParams)
     {
         ConvertFrameRate(pInParams->dDecoderFrameRateOverride, &m_mfxDecParams.mfx.FrameInfo.FrameRateExtN, &m_mfxDecParams.mfx.FrameInfo.FrameRateExtD);
     }
-    else if(0 == (m_mfxDecParams.mfx.FrameInfo.FrameRateExtN * m_mfxDecParams.mfx.FrameInfo.FrameRateExtD))
+    // if frame rate not specified and input stream header doesn't contain valid values use default (30.0)
+    else if (0 == (m_mfxDecParams.mfx.FrameInfo.FrameRateExtN * m_mfxDecParams.mfx.FrameInfo.FrameRateExtD))
     {
-        BitrstreamHeaderInfo hInfo{};
-        m_pBSProcessor->GetHeaderInfo(hInfo);
-
-        // use frame rate from stream header or set default
-        m_mfxDecParams.mfx.FrameInfo.FrameRateExtN = (hInfo.frameRate && hInfo.timeScale) ? hInfo.frameRate : 30;
-        m_mfxDecParams.mfx.FrameInfo.FrameRateExtD = (hInfo.frameRate && hInfo.timeScale) ? hInfo.timeScale : 1;
+        m_mfxDecParams.mfx.FrameInfo.FrameRateExtN = 30;
+        m_mfxDecParams.mfx.FrameInfo.FrameRateExtD = 1;
+    }
+    else
+    {
+        // use the value from input stream header
     }
 
     //--- Force setting fourcc type if required
@@ -4824,16 +4825,6 @@ mfxStatus FileBitstreamProcessor::ResetInput()
         m_pYUVFileReader->Reset();
     }
     return MFX_ERR_NONE;
-}
-
-void FileBitstreamProcessor::GetHeaderInfo(BitrstreamHeaderInfo& hInfo)
-{
-    CIVFFrameReader* ivfReader = dynamic_cast<CIVFFrameReader*>(m_pFileReader.get());
-
-    if (ivfReader)
-    {
-        ivfReader->GetHeaderInfo(hInfo);
-    }
 }
 
 mfxStatus FileBitstreamProcessor::ResetOutput()
