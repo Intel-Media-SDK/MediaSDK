@@ -32,11 +32,6 @@
 
 // internal filters
 #include "mfx_denoise_vpp.h"
-#include "mfx_color_space_conversion_vpp.h"
-#include "mfx_resize_vpp.h"
-#include "mfx_shift_vpp.h"
-#include "mfx_deinterlace_vpp.h"
-#include "mfx_video_analysis_vpp.h"
 #include "mfx_frame_rate_conversion_vpp.h"
 #include "mfx_procamp_vpp.h"
 #include "mfx_detail_enhancement_vpp.h"
@@ -68,8 +63,8 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_LSHIFT_IN:
             case (mfxU32)MFX_EXTBUFF_VPP_LSHIFT_OUT:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPShift::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPShift::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -122,8 +117,8 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
 #endif
             case (mfxU32)MFX_EXTBUFF_VPP_RESIZE:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPResize::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPResize::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -159,22 +154,22 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_ITC:
             case (mfxU32)MFX_EXTBUFF_VPP_DI:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPDeinterlace::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPDeinterlace::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 3;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_DI_30i60p:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPDeinterlace::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPDeinterlace::GetOutFramesCountExt() << 1;
+                inputFramesCount[filterIndex]  = 3;
+                outputFramesCount[filterIndex] = 1 << 1;
                 break;
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_DI_WEAVE:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPDeinterlace::GetInFramesCountExt() << 1;
-                outputFramesCount[filterIndex] = MFXVideoVPPDeinterlace::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 3 << 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
@@ -183,16 +178,16 @@ mfxStatus GetExternalFramesCount(VideoCORE* core,
             case (mfxU32)MFX_EXTBUFF_VPP_CSC_OUT_A2RGB10:
             case (mfxU32)MFX_EXTBUFF_VPP_VIDEO_SIGNAL_INFO:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPColorSpaceConversion::GetInFramesCountExt();
-                outputFramesCount[filterIndex] = MFXVideoVPPColorSpaceConversion::GetOutFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 
             case (mfxU32)MFX_EXTBUFF_VPP_SCENE_ANALYSIS:
             {
-                inputFramesCount[filterIndex]  = MFXVideoVPPVideoAnalysis::GetInFramesCountExt();
+                inputFramesCount[filterIndex]  = 1;
 
-                outputFramesCount[filterIndex] = MFXVideoVPPVideoAnalysis::GetOutFramesCountExt();
+                outputFramesCount[filterIndex] = 1;
                 break;
             }
 

@@ -27,7 +27,7 @@
 
 
 #if defined (MFX_ENABLE_MJPEG_VIDEO_DECODE)
-#include "mfx_vpp_jpeg_d3d9.h"
+#include "mfx_vpp_jpeg_d3d.h"
 
 UMC::Status mfx_UMC_FrameAllocator_D3D_Converter::InitMfx(UMC::FrameAllocatorParams *,
                                                           VideoCORE* mfxCore,

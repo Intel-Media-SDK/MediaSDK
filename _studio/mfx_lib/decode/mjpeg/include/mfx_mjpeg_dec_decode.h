@@ -37,7 +37,7 @@
 #include "mfx_task.h"
 
 
-#include "mfx_vpp_jpeg_d3d9.h"
+#include "mfx_vpp_jpeg_d3d.h"
 
 namespace UMC
 {

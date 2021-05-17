@@ -29,7 +29,7 @@
 #include "libmfx_core.h"
 #include "mfx_task.h"
 #include "mfx_vpp_defs.h"
-#include "mfx_vpp_jpeg_d3d9.h"
+#include "mfx_vpp_jpeg_d3d.h"
 
 using namespace MfxHwVideoProcessing;
 
