@@ -1,4 +1,4 @@
-// Copyright (c) 2020 Intel Corporation
+// Copyright (c) 2020-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -102,6 +102,7 @@ namespace MfxEncodeHW
         mfxU16                  m_maxParallelSubmits = 0;
         mfxU16                  m_nTasksInExecution  = 0;
         mfxU16                  m_nRecodeTasks       = 0;
+        bool                    m_bPostponeQuery     = false;
         std::mutex              m_mtx, m_closeMtx;
         std::condition_variable m_cv;
 
