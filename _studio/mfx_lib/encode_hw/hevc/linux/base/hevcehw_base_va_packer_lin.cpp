@@ -679,6 +679,40 @@ void VAPacker::InitAlloc(const FeatureBlocks& /*blocks*/, TPushIA Push)
 
             return false;
         });
+	cc.AddPerPicMiscData[VAEncMiscParameterTypeRateControl].Push([this](
+            CallChains::TAddMiscData::TExt
+            , const StorageR& global
+            , const StorageR& s_task
+            , std::list<std::vector<mfxU8>>& data)
+        {
+            const auto& par    = Glob::VideoParam::Get(global);
+            const auto& bs_pps = Glob::PPS::Get(global);
+            auto& task = Task::Common::Get(s_task);
+
+            AddVaMiscRC(par, bs_pps, task, data, !!(m_resetHintFlags & RF_BRC_RESET));
+            return true;
+        });
+	cc.AddPerPicMiscData[VAEncMiscParameterTypeRIR].Push([](
+                VAPacker::CallChains::TAddMiscData::TExt
+                , const StorageR&
+                , const StorageR& s_task
+                , std::list<std::vector<mfxU8>>& data)
+        {
+
+	     auto& task = Task::Common::Get(s_task);
+
+	     if (task.IRState.refrType)
+	     {
+                 auto& vaRIR = AddVaMisc<VAEncMiscParameterRIR>(VAEncMiscParameterTypeRIR, data);
+                 vaRIR.rir_flags.value = task.IRState.refrType;
+                 vaRIR.intra_insertion_location = task.IRState.IntraLocation;
+                 vaRIR.intra_insert_size = task.IRState.IntraSize;
+                 vaRIR.qp_delta_for_inserted_intra = mfxU8(task.IRState.IntRefQPDelta);
+                 return true;
+	     }
+
+	     return false;
+        });
 
         return MFX_ERR_NONE;
     });
@@ -928,41 +962,6 @@ void VAPacker::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         {
             AddPackedHeaderIf(true, pd, par, VAEncPackedHeaderHEVC_Slice);
         });
-
-        if (task.IRState.refrType)
-        {
-            cc.AddPerPicMiscData[VAEncMiscParameterTypeRIR].Push([](
-                VAPacker::CallChains::TAddMiscData::TExt
-                , const StorageR&
-                , const StorageR& s_task
-                , std::list<std::vector<mfxU8>>& data)
-            {
-                auto& vaRIR = AddVaMisc<VAEncMiscParameterRIR>(VAEncMiscParameterTypeRIR, data);
-
-                auto& task = Task::Common::Get(s_task);
-
-                vaRIR.rir_flags.value = task.IRState.refrType;
-                vaRIR.intra_insertion_location = task.IRState.IntraLocation;
-                vaRIR.intra_insert_size = task.IRState.IntraSize;
-                vaRIR.qp_delta_for_inserted_intra = mfxU8(task.IRState.IntRefQPDelta);
-
-                return true;
-            });
-        }
-
-        cc.AddPerPicMiscData[VAEncMiscParameterTypeRateControl].Push([this](
-            CallChains::TAddMiscData::TExt
-            , const StorageR& global
-            , const StorageR& s_task
-            , std::list<std::vector<mfxU8>>& data)
-        {
-            const auto& par    = Glob::VideoParam::Get(global);
-            const auto& bs_pps = Glob::PPS::Get(global);
-            auto& task = Task::Common::Get(s_task);
-
-            AddVaMiscRC(par, bs_pps, task, m_vaPerPicMiscData, !!(m_resetHintFlags & RF_BRC_RESET));
-            return true;
-        }); 
 
         for (auto& AddMisc : cc.AddPerPicMiscData)
         {
