@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -546,6 +546,39 @@ void Interlace::SubmitTask(const FeatureBlocks& , TPushST Push)
         pl.Data[1] = (mfxU8)pl.BufSize - 2; //payload size
 
         task.PLInternal.push_back(pl);
+
+        return MFX_ERR_NONE;
+    });
+
+    Push(BLK_SkipFrame
+        , [this](StorageW& global, StorageW& s_task) -> mfxStatus
+    {
+        auto& task = Task::Common::Get(s_task);
+        auto& allocRec = Glob::AllocRec::Get(global);
+
+        //skip second field when the first one is skipped
+        bool b2ndFieldSkip =
+            !task.bSkip
+            && task.b2ndField
+            && !!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[0][0]].Rec.Idx) & REC_SKIPPED);
+
+        task.bSkip |= b2ndFieldSkip;
+        m_b2ndFieldRecode = b2ndFieldSkip && !(!!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[0][0]].Rec.Idx) & REC_READY));
+
+        return MFX_ERR_NONE;
+    });
+}
+
+void Interlace::QueryTask(const FeatureBlocks&, TPushQT Push)
+{
+    Push(BLK_QueryTask
+        , [this](StorageW& /*global*/, StorageW& s_task) -> mfxStatus
+    {
+        MFX_CHECK(m_b2ndFieldRecode, MFX_ERR_NONE);
+
+        m_b2ndFieldRecode = false;
+        auto& task = Task::Common::Get(s_task);
+        task.bRecode = true;
 
         return MFX_ERR_NONE;
     });
