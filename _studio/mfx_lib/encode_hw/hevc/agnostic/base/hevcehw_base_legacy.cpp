@@ -1723,7 +1723,7 @@ void Legacy::SubmitTask(const FeatureBlocks& /*blocks*/, TPushST Push)
         }
 
         auto& core = Glob::VideoCore::Get(global);
-        bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1]);
+        bool  bL1  = (IsB(task.FrameType) && !task.isLDB && task.NumRefActive[1] && !task.b2ndField);
         auto  idx  = task.RefPicList[bL1][0];
 
         mfxFrameSurface1 surfSrc = {};

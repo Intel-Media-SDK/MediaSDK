@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 Intel Corporation
+// Copyright (c) 2019-2021 Intel Corporation
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -171,6 +171,7 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
 #endif
         //update slice qp before packing
         Reorder(queue, { FEATURE_PACKER, Packer::BLK_SubmitTask }, { FEATURE_EXT_BRC, ExtBRC::BLK_GetFrameCtrl });
+        Reorder(queue, { FEATURE_LEGACY, Legacy::BLK_SkipFrame }, { FEATURE_INTERLACE, Interlace::BLK_SkipFrame });
     }
 
     {
@@ -182,6 +183,10 @@ mfxStatus MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
             , { FEATURE_DDI_PACKER, IDDIPacker::BLK_QueryTask }
             , { FEATURE_EXT_BRC, ExtBRC::BLK_Update }
             , PLACE_AFTER);
+        Reorder(queue
+            , { FEATURE_EXT_BRC, ExtBRC::BLK_Update }
+            , { FEATURE_INTERLACE, Interlace::BLK_QueryTask }
+        , PLACE_AFTER);
     }
 
     return wrn;
