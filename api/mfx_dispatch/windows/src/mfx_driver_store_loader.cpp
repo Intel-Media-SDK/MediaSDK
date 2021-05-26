@@ -19,6 +19,7 @@
 // SOFTWARE.
 
 #include <tchar.h>
+#include <Objbase.h>
 
 #include "mfx_driver_store_loader.h"
 #include "mfx_dispatcher_log.h"
@@ -94,7 +95,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
         return false;
     }
 
-    if (StringFromGUID2(GUID_DEVCLASS_DISPLAY, DisplayGUID, sizeof(DisplayGUID)) == 0)
+    if (StringFromGUID2(GUID_DEVCLASS_DISPLAY, DisplayGUID, sizeof(DisplayGUID) / sizeof(DisplayGUID[0])) == 0)
     {
         DISPATCHER_LOG_WRN(("Couldn't prepare string from GUID\n"));
         return false;
@@ -157,7 +158,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
 
             DWORD pathSize = dwPathSize;
 
-            nError = RegQueryValueExW(hKey_sw, L"DriverStorePathForMediaSDK", 0, NULL, (LPBYTE)path, &pathSize);
+            nError = RegGetValueW(hKey_sw, NULL, L"DriverStorePathForMediaSDK", RRF_RT_ANY, NULL, (LPBYTE)path, &pathSize);
 
             RegCloseKey(hKey_sw);
 
@@ -165,7 +166,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
             {
                 if (path[wcslen(path) - 1] != '/' && path[wcslen(path) - 1] != '\\')
                 {
-                    wcscat_s(path, MFX_MAX_DLL_PATH, L"\\");
+                    wcscat_s(path, dwPathSize / sizeof(path[0]), L"\\");
                 }
                 DISPATCHER_LOG_INFO(("DriverStore path is found\n"));
                 return true;
