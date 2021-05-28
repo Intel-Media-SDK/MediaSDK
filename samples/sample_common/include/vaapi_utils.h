@@ -154,6 +154,9 @@ namespace MfxLoader
           int fd, uint32_t width, uint32_t height, uint8_t depth,
           uint8_t bpp, uint32_t pitch, uint32_t bo_handle,
           uint32_t *buf_id);
+        typedef int (*drmModeAddFB2WithModifiers_type)(int fd, uint32_t width, uint32_t height, uint32_t pixel_format,
+          uint32_t bo_handles[4], uint32_t pitches[4], uint32_t offsets[4], uint64_t modifier[4],
+          uint32_t *buf_id, uint32_t flags);
         typedef void (*drmModeFreeConnector_type)( drmModeConnectorPtr ptr );
         typedef void (*drmModeFreeCrtc_type)( drmModeCrtcPtr ptr );
         typedef void (*drmModeFreeEncoder_type)( drmModeEncoderPtr ptr );
@@ -188,6 +191,7 @@ namespace MfxLoader
 #define __DECLARE(name) const name ## _type name
         __DECLARE(drmIoctl);
         __DECLARE(drmModeAddFB);
+        __DECLARE(drmModeAddFB2WithModifiers);
         __DECLARE(drmModeFreeConnector);
         __DECLARE(drmModeFreeCrtc);
         __DECLARE(drmModeFreeEncoder);
