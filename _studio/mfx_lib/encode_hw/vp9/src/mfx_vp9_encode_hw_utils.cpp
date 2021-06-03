@@ -832,23 +832,16 @@ mfxStatus CopyRawSurfaceToVideoMemory(
         mfxFrameSurface1 *pDd3dSurf = task.m_pRawLocalFrame->pSurface;
         mfxFrameSurface1 *pSysSurface = 0;
         mfxStatus sts = GetRealSurface(pCore, par, task, pSysSurface);
-
-        mfxFrameSurface1 lockedSurf = {};
-        lockedSurf.Info = par.mfx.FrameInfo;
-
-        if (LumaIsNull(pSysSurface))
-        {
-            pCore->LockFrame(pSysSurface->Data.MemId, &lockedSurf.Data);
-            pSysSurface = &lockedSurf;
-        }
-
-        sts = pCore->CopyFrame(pDd3dSurf, pSysSurface);
         MFX_CHECK_STS(sts);
 
-        if (pSysSurface == &lockedSurf)
-        {
-            pCore->UnlockFrame(pSysSurface->Data.MemId, &lockedSurf.Data);
-        }
+        mfxFrameSurface1 sysSurf = *pSysSurface;
+
+        sts = pCore->DoFastCopyWrapper(
+            pDd3dSurf,
+            MFX_MEMTYPE_INTERNAL_FRAME | MFX_MEMTYPE_DXVA2_DECODER_TARGET | MFX_MEMTYPE_FROM_ENCODE,
+            &sysSurf,
+            MFX_MEMTYPE_EXTERNAL_FRAME | MFX_MEMTYPE_SYSTEM_MEMORY);
+        MFX_CHECK_STS(sts);
     }
 
     return MFX_ERR_NONE;
