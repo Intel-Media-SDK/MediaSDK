@@ -538,6 +538,7 @@ constexpr auto NUM_OF_SUPPORTED_EXT_BUFFERS = 7; // mfxExtVP9Param, mfxExtOpaque
         bool m_segBufPassed;
 
         bool m_tempLayersBufPassed;
+        bool m_webRTCMode;
         mfxU16 m_numLayers;
 
         void CalculateInternalParams();
