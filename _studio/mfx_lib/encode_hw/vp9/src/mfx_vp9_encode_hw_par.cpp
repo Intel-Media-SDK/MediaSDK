@@ -206,6 +206,7 @@ inline void SetOrCopy(mfxExtCodingOption3 *pDst, mfxExtCodingOption3 const *pSrc
     SET_OR_COPY_PAR(TargetChromaFormatPlus1);
     SET_OR_COPY_PAR(TargetBitDepthLuma);
     SET_OR_COPY_PAR(TargetBitDepthChroma);
+    COPY_PTR(ScenarioInfo);
 #endif
 }
 
