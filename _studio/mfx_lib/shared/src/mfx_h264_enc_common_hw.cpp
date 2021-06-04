@@ -6370,8 +6370,10 @@ void MfxHwH264Encode::SetDefaults(
     }
 
 #if MFX_VERSION >= 1023
-    if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN)
-        extOpt3->AdaptiveMaxFrameSize = MFX_CODINGOPTION_OFF;
+    if (extOpt3->AdaptiveMaxFrameSize == MFX_CODINGOPTION_UNKNOWN )
+        extOpt3->AdaptiveMaxFrameSize = 
+            ((platform >= MFX_HW_ICL) && IsOn(par.mfx.LowPower) && hwCaps.AdaptiveMaxFrameSizeSupport)
+            ? mfxU16(MFX_CODINGOPTION_ON) : mfxU16(MFX_CODINGOPTION_OFF);
 #endif
 
 #ifdef MFX_ENABLE_H264_REPARTITION_CHECK
