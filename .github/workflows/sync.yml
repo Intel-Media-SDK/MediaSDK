@@ -1,0 +1,13 @@
+on: push
+jobs:
+  git-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: git-sync
+        uses: wei/git-sync@v3
+        with:
+          source_repo: "git@github.com/Intel-Media-SDK/MediaSDK.git"
+          source_branch: "master"
+          destination_repo: "git@github.com/Intel-Media-SDK/MediaSDK.git"
+          destination_branch: "master"
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
