@@ -4303,6 +4303,13 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         unsupported = true;
     }
 
+    if (!hasSupportVME(platform) &&
+        (extOpt2->IntRefType > MFX_REFRESH_HORIZONTAL))
+    {
+        extOpt2->IntRefType = MFX_REFRESH_HORIZONTAL;
+        changed = true;
+    }
+
     if (extOpt2->IntRefType && par.mfx.GopRefDist > 1)
     {
         extOpt2->IntRefType = 0;
