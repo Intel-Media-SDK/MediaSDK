@@ -5643,6 +5643,23 @@ void MfxHwH264Encode::SetDefaults(
     if (par.mfx.RateControlMethod == 0)
         par.mfx.RateControlMethod = MFX_RATECONTROL_CBR;
 
+    if (par.mfx.RateControlMethod == MFX_RATECONTROL_CQP &&
+        par.calcParam.cqpHrdMode == 0)
+    {
+        mfxU16 maxQP = 51;
+        mfxU16 minQP = IsOn(par.mfx.LowPower) ? 10 : 1;   // 10 is min QP for VDENC
+        if (!par.mfx.QPI)
+            par.mfx.QPI = mfxU16(std::max<mfxI32>(par.mfx.QPP - 1, minQP) * !!par.mfx.QPP);
+        if (!par.mfx.QPI)
+            par.mfx.QPI = mfxU16(std::max<mfxI32>(par.mfx.QPB - 2, minQP) * !!par.mfx.QPB);
+        if (!par.mfx.QPI)
+            par.mfx.QPI = std::max<mfxU16>(minQP, (maxQP + 1) / 2);
+        if (!par.mfx.QPP)
+            par.mfx.QPP = std::min<mfxU16>(par.mfx.QPI + 1, maxQP);
+        if (!par.mfx.QPB)
+            par.mfx.QPB = std::min<mfxU16>(par.mfx.QPP + 1, maxQP);
+    }
+
     if (par.mfx.RateControlMethod == MFX_RATECONTROL_AVBR)
     {
         if (par.mfx.Accuracy == 0)
