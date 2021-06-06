@@ -35,19 +35,19 @@ if( ENABLE_ITT )
 
     find_path( ITT_INCLUDE_DIRS ittnotify.h
       PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
-      PATH_SUFFIXES include )
+      PATH_SUFFIXES include ittnotify)
 
     # Unfortunately SEAPI and VTune uses different names for itt library:
     #  * SEAPI uses libittnotify${arch}.a
     #  * VTune uses libittnotify.a
     # We are trying to check both giving preference to SEAPI name.
-    find_path( ITT_LIBRARY_DIRS libittnotify${arch}.a
+    find_library( ITT_LIBRARY_DIRS ittnotify${arch}
       PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
       PATH_SUFFIXES lib64 )
     if( NOT ITT_LIBRARY_DIRS MATCHES NOTFOUND )
       set( ITT_LIBRARIES "ittnotify${arch}" )
     else()
-      find_path( ITT_LIBRARY_DIRS libittnotify.a
+      find_library( ITT_LIBRARY_DIRS ittnotify
         PATHS ${CMAKE_ITT_HOME} ${CMAKE_VTUNE_HOME}
         PATH_SUFFIXES lib64 )
       if( NOT ITT_LIBRARY_PATH MATCHES NOTFOUND )
