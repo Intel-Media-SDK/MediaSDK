@@ -553,6 +553,7 @@ void Interlace::SubmitTask(const FeatureBlocks& , TPushST Push)
     Push(BLK_SkipFrame
         , [this](StorageW& global, StorageW& s_task) -> mfxStatus
     {
+        auto& par = Glob::VideoParam::Get(global);
         auto& task = Task::Common::Get(s_task);
         auto& allocRec = Glob::AllocRec::Get(global);
 
@@ -560,6 +561,7 @@ void Interlace::SubmitTask(const FeatureBlocks& , TPushST Push)
         bool b2ndFieldSkip =
             !task.bSkip
             && task.b2ndField
+            && Legacy::IsSWBRC(par, ExtBuffer::Get(par))
             && !!(allocRec.GetFlag(task.DPB.Active[task.RefPicList[0][0]].Rec.Idx) & REC_SKIPPED);
 
         task.bSkip |= b2ndFieldSkip;
