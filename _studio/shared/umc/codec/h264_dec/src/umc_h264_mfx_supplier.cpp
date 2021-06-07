@@ -1439,7 +1439,7 @@ mfxStatus MFX_Utility::Query(VideoCORE *core, mfxVideoParam *in, mfxVideoParam *
                      (videoProcessingTargetIn->Out.CropY <= videoProcessingTargetIn->Out.CropH) &&
                      (videoProcessingTargetIn->Out.CropH <= videoProcessingTargetIn->Out.Height) &&
                      ((videoProcessingTargetIn->Out.CropY + videoProcessingTargetIn->Out.CropH )
-                                                         <= videoProcessingTargetIn->Out.Width) ))
+                                                         <= videoProcessingTargetIn->Out.Height) ))
                     sts = MFX_ERR_UNSUPPORTED;
                 if (MFX_ERR_UNSUPPORTED != sts)
                     *videoProcessingTargetOut = *videoProcessingTargetIn;
