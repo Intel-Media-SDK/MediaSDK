@@ -2543,9 +2543,9 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
     // configure and attach external parameters
     if (pInParams->bLABRC || pInParams->nMaxSliceSize || pInParams->nBRefType
         || (pInParams->BitrateLimit && pInParams->EncodeId == MFX_CODEC_AVC)
-        || (pInParams->nExtBRC && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC)) ||
-        pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta || pInParams->nMaxFrameSize ||
-        pInParams->AdaptiveI || pInParams->AdaptiveB)
+        || (pInParams->nExtBRC && (pInParams->EncodeId == MFX_CODEC_HEVC || pInParams->EncodeId == MFX_CODEC_AVC))
+        || pInParams->IntRefType || pInParams->IntRefCycleSize || pInParams->IntRefQPDelta || pInParams->nMaxFrameSize
+        || pInParams->AdaptiveI || pInParams->AdaptiveB || pInParams->nMinQP || pInParams->nMaxQP)
     {
         auto co2 = m_mfxEncParams.AddExtBuffer<mfxExtCodingOption2>();
         co2->LookAheadDepth = pInParams->nLADepth;
@@ -2567,6 +2567,12 @@ MFX_IOPATTERN_IN_VIDEO_MEMORY : MFX_IOPATTERN_IN_SYSTEM_MEMORY);
         else
         {
             co2->ExtBRC = MFX_CODINGOPTION_UNKNOWN;
+        }
+
+        if (pInParams->nRateControlMethod != MFX_RATECONTROL_CQP)
+        {
+            co2->MinQPI = co2->MinQPP = co2->MinQPB =(mfxU8)(pInParams->nMinQP);
+            co2->MaxQPI = co2->MaxQPP = co2->MaxQPB =(mfxU8)(pInParams->nMaxQP);
         }
     }
 

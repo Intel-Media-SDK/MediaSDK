@@ -2398,6 +2398,22 @@ void Legacy::ConfigureTask(
     task.StatusReportId = std::max<mfxU32>(1, m_prevTask.StatusReportId + 1);
     task.bForceSync = !!(task.InsertHeaders & INSERT_BPSEI);
 
+    if (task.FrameType & MFX_FRAMETYPE_I)
+    {
+        task.m_minQP = CO2.MinQPI;
+        task.m_maxQP = CO2.MaxQPI;
+    }
+    else if (task.FrameType & MFX_FRAMETYPE_P)
+    {
+        task.m_minQP = CO2.MinQPP;
+        task.m_maxQP = CO2.MaxQPP;
+    }
+    else if (task.FrameType & MFX_FRAMETYPE_B)
+    {
+        task.m_minQP = CO2.MinQPB;
+        task.m_maxQP = CO2.MaxQPB;
+    }
+
     m_prevTask = task;
 }
 
@@ -4159,7 +4175,7 @@ mfxStatus Legacy::CheckBRC(
 
         changed += !defPar.caps.SliceByteSizeCtrl && CheckOrZero<mfxU32, 0>(pCO2->MaxSliceSize);
 
-        bool bMinMaxQpAllowed = par.mfx.RateControlMethod != MFX_RATECONTROL_CQP && IsSWBRC(par, pCO2);
+        bool bMinMaxQpAllowed = (par.mfx.RateControlMethod != MFX_RATECONTROL_CQP) && (IsSWBRC(par, pCO2)||IsOn(par.mfx.LowPower));
 
         if (bMinMaxQpAllowed)
         {
