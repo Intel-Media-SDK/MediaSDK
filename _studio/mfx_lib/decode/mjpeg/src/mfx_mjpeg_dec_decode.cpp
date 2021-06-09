@@ -437,6 +437,16 @@ mfxStatus VideoDECODEMJPEG::DecodeHeader(VideoCORE *core, mfxBitstream *bs, mfxV
     UMC::Status umcRes = decoder.Init(&umcVideoParams);
     MFX_CHECK_INIT(umcRes == UMC::UMC_OK);
 
+#if (MFX_VERSION >= MFX_VERSION)
+    mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+
+    if (extbuf)
+    {
+        reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
+        in.SetExtBuffer(extbuf);
+    }
+ #endif
+
     umcRes = decoder.DecodeHeader(&in);
 
     in.Save(bs);
@@ -783,6 +793,16 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
         MFXMediaDataAdapter src(bs);
         UMC::MediaDataEx *pSrcData;
 
+#if (MFX_VERSION >= MFX_VERSION)
+        mfxExtBuffer* extbuf = (bs) ? GetExtendedBuffer(bs->ExtParam, bs->NumExtParam, MFX_EXTBUFF_DECODE_ERROR_REPORT) : NULL;
+
+        if (extbuf)
+        {
+            reinterpret_cast<mfxExtDecodeErrorReport *>(extbuf)->ErrorTypes = 0;
+            src.SetExtBuffer(extbuf);
+        }
+#endif
+
         if (!m_isHeaderFound && bs)
         {
             umcRes = pMJPEGVideoDecoder->FindStartOfImage(&src);
@@ -798,7 +818,11 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
         if (!m_isHeaderParsed && bs)
         {
+#if (MFX_VERSION >= MFX_VERSION)
+            umcRes = pMJPEGVideoDecoder->_GetFrameInfo((uint8_t*)src.GetDataPointer(), src.GetDataSize(), &src);
+#else
             umcRes = pMJPEGVideoDecoder->_GetFrameInfo((uint8_t*)src.GetDataPointer(), src.GetDataSize());
+#endif
             if (umcRes != UMC::UMC_OK)
             {
                 if(umcRes != UMC::UMC_ERR_NOT_ENOUGH_DATA)
@@ -854,7 +878,11 @@ mfxStatus VideoDECODEMJPEG::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 
 
         try
         {
+#if (MFX_VERSION >= MFX_VERSION)
+            MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic, &src));
+#else
             MFX_SAFE_CALL(decoder->AddPicture(pSrcData, numPic));
+#endif
         }
         catch(const UMC::eUMC_Status& sts)
         {
@@ -1880,7 +1908,11 @@ void VideoDECODEMJPEGBase_HW::ReleaseReservedTask()
     }
 }
 
+#if (MFX_VERSION >= MFX_VERSION)
+mfxStatus VideoDECODEMJPEGBase_HW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic, UMC::MediaData *in)
+#else
 mfxStatus VideoDECODEMJPEGBase_HW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic)
+#endif
 {
     mfxU32 fieldPos = m_numPic;
 
@@ -1899,7 +1931,11 @@ mfxStatus VideoDECODEMJPEGBase_HW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32
         return ConvertUMCStatusToMfx(umcRes);
     }
 
+#if (MFX_VERSION >= MFX_VERSION)
+    umcRes = m_pMJPEGVideoDecoder->GetFrame(pSrcData, &m_dst, fieldPos, in);
+#else
     umcRes = m_pMJPEGVideoDecoder->GetFrame(pSrcData, &m_dst, fieldPos);
+#endif
 
     mfxStatus sts = MFX_ERR_NONE;
 
@@ -2118,7 +2154,11 @@ void VideoDECODEMJPEGBase_SW::ReleaseReservedTask()
         m_freeTasks.front()->Reset();
 }
 
+#if (MFX_VERSION >= MFX_VERSION)
+mfxStatus VideoDECODEMJPEGBase_SW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic, UMC::MediaData *in)
+#else
 mfxStatus VideoDECODEMJPEGBase_SW::AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic)
+#endif
 {
     // select the field position. 0 means top, 1 means bottom.
     mfxU32 fieldPos = m_freeTasks.front()->NumPicCollected();

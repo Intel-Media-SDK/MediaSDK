@@ -35,6 +35,7 @@
 #include <queue>
 
 #include "mfx_task.h"
+#include "umc_media_data.h"
 
 
 #include "mfx_vpp_jpeg_d3d9.h"
@@ -45,6 +46,7 @@ namespace UMC
     class JpegFrameConstructor;
     class MediaDataEx;
     class FrameData;
+    class MediaData;
 };
 
 class VideoDECODEMJPEGBase
@@ -70,7 +72,11 @@ public:
     virtual mfxStatus RunThread(void *pParam, mfxU32 threadNumber, mfxU32 callNumber) = 0;
     virtual mfxStatus CompleteTask(void *pParam, mfxStatus taskRes) = 0;
     virtual void ReleaseReservedTask() = 0;
+#if (MFX_VERSION >= MFX_VERSION)
+    virtual mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic, UMC::MediaData *in) = 0;
+#else
     virtual mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic) = 0;
+#endif
     virtual mfxStatus AllocateFrameData(UMC::FrameData *&data) = 0;
     virtual mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out) = 0;
 
@@ -103,7 +109,11 @@ public:
     virtual mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber);
     virtual mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq);
     virtual void ReleaseReservedTask();
+#if (MFX_VERSION >= MFX_VERSION)
+    virtual mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic, UMC::MediaData *in);
+#else
     virtual mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic);
+#endif
     virtual mfxStatus AllocateFrameData(UMC::FrameData *&data);
     virtual mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out);
 
@@ -149,7 +159,11 @@ public:
     mfxStatus CheckTaskAvailability(mfxU32 maxTaskNumber) override;
     mfxStatus ReserveUMCDecoder(UMC::MJPEGVideoDecoderBaseMFX* &pMJPEGVideoDecoder, mfxFrameSurface1 *surf, bool isOpaq) override;
     void ReleaseReservedTask() override;
+#if (MFX_VERSION >= MFX_VERSION)
+    mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic, UMC::MediaData *in) override;
+#else
     mfxStatus AddPicture(UMC::MediaDataEx *pSrcData, mfxU32 & numPic) override;
+#endif
     mfxStatus AllocateFrameData(UMC::FrameData *&data) override;
     mfxStatus FillEntryPoint(MFX_ENTRY_POINT *pEntryPoint, mfxFrameSurface1 *surface_work, mfxFrameSurface1 *surface_out) override;
 

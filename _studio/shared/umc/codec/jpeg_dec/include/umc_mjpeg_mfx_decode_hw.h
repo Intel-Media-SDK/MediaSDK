@@ -83,7 +83,11 @@ public:
     Status CloseFrame(UMC::FrameData** in, const mfxU32  fieldPos);
 
     // Get next frame
+#if (MFX_VERSION >= MFX_VERSION)
+    virtual Status GetFrame(UMC::MediaDataEx *pSrcData, UMC::FrameData** out, const mfxU32  fieldPos, UMC::MediaData *in);
+#else
     virtual Status GetFrame(UMC::MediaDataEx *pSrcData, UMC::FrameData** out, const mfxU32  fieldPos);
+#endif
 
     virtual ConvertInfo * GetConvertInfo();
 
@@ -97,10 +101,17 @@ protected:
 
     Status _DecodeField();
 
+#if (MFX_VERSION >= MFX_VERSION)
+    Status _DecodeHeader(int32_t* nUsedBytes, mfxExtDecodeErrorReport* pDecodeErrorReport);
+#else
     Status _DecodeHeader(int32_t* nUsedBytes);
+#endif
 
+#if (MFX_VERSION >= MFX_VERSION)
+    virtual Status _DecodeField(MediaDataEx* in, mfxExtDecodeErrorReport* pDecodeErrorReport);
+#else
     virtual Status _DecodeField(MediaDataEx* in);
-
+#endif
 
     Status PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate);
     Status PackPriorityParams();
