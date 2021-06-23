@@ -149,7 +149,7 @@ mfxModuleHandle mfx_dll_load(const wchar_t *pFileName)
 #if !defined(MEDIASDK_UWP_DISPATCHER)
     // set the silent error mode
     DWORD prevErrorMode = 0;
-#if (_WIN32_WINNT >= 0x0600)
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     SetThreadErrorMode(SEM_FAILCRITICALERRORS, &prevErrorMode);
 #else
     prevErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -163,7 +163,7 @@ mfxModuleHandle mfx_dll_load(const wchar_t *pFileName)
 
 #if !defined(MEDIASDK_UWP_DISPATCHER)
     // set the previous error mode
-#if (_WIN32_WINNT >= 0x0600)
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     SetThreadErrorMode(prevErrorMode, NULL);
 #else
     SetErrorMode(prevErrorMode);
@@ -209,7 +209,7 @@ mfxModuleHandle mfx_get_dll_handle(const wchar_t *pFileName)
 
     // set the silent error mode
     DWORD prevErrorMode = 0;
-#if (_WIN32_WINNT >= 0x0600)
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     SetThreadErrorMode(SEM_FAILCRITICALERRORS, &prevErrorMode); 
 #else
     prevErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -217,7 +217,7 @@ mfxModuleHandle mfx_get_dll_handle(const wchar_t *pFileName)
     // load the library's module
     GetModuleHandleExW(0, pFileName, (HMODULE*) &hModule);
     // set the previous error mode
-#if (_WIN32_WINNT >= 0x0600)
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     SetThreadErrorMode(prevErrorMode, NULL);
 #else
     SetErrorMode(prevErrorMode);
