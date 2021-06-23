@@ -98,7 +98,7 @@ void DXDevice::LoadDLLModule(const wchar_t *pModuleName)
 #if !defined(MEDIASDK_UWP_DISPATCHER)
     DWORD prevErrorMode = 0;
     // set the silent error mode
-#if (_WIN32_WINNT >= 0x0600)
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     SetThreadErrorMode(SEM_FAILCRITICALERRORS, &prevErrorMode); 
 #else
     prevErrorMode = SetErrorMode(SEM_FAILCRITICALERRORS);
@@ -110,7 +110,7 @@ void DXDevice::LoadDLLModule(const wchar_t *pModuleName)
 
 #if !defined(MEDIASDK_UWP_DISPATCHER)
     // set the previous error mode
-#if (_WIN32_WINNT >= 0x0600)
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     SetThreadErrorMode(prevErrorMode, NULL);
 #else
     SetErrorMode(prevErrorMode);
