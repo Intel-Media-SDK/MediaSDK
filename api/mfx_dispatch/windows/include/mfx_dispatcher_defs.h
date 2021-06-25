@@ -28,8 +28,8 @@
 #include <string.h>
 #endif
 
-#define MAX_PLUGIN_PATH 4096
-#define MAX_PLUGIN_NAME 4096
+#define MAX_PLUGIN_PATH MAX_PATH
+#define MAX_PLUGIN_NAME MAX_PATH
 
 #if _MSC_VER < 1400
 #define wcscpy_s(to,to_size, from) wcscpy(to, from)
