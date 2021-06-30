@@ -35,36 +35,23 @@ In this document we will refer to processor families by their former codenames f
 - Intel® Celeron® and Pentuim® processors codenamed "Apollo Lake I" will be referred to as “Apollo Lake”
 
 
-## What’s New in Media SDK 20.5.1
+## What’s New in Media SDK 21.2.3
 **New features**:
-* **AV1 decode**
-    - Refactored handling errors in SubmitFrame
+* **JPEG Decode**
+    - improved processing of invalid headers.
 
-* **AVC encode**
-    - Improved handling support status for "Sliding window" feature
-    - Added EncTools support
-    - Added vaSyncBuffer support
-    - Added external BRC support for Rocket Lake
-    - Added TCBRC support
-    - Added MCTF support
-
-* **HEVC encode**
-    - Extended B frames support across all target usage with LowPower on
-    - Added TCBRC support
-
-* **MPEG2 encode**
-    - Added vaSyncBuffer support
+* **HEVC Encode**
+    - Enabled GPU wighted prediction.
 
 * **Samples**
-    - Added AdaptiveI and AdaptiveB frames support in sample_multi_transcode (#1401)
-    - Added NV16 output support
-    - Added 12 bit support in sample_multi_transcode, sample_decode and sample_vpp (#2055)
-    - Enabled MBQP for all encoders in sample_multi_transcode
-    - Added -disable_film_grain flag to disable film grain application in sample_decode
+    - Added encoding target bit depth for luma and chroma samples parameters (-TargetBitDepthLuma/-TargetBitDepthChroma) for sample_encode and sample_multi_transcode.
+    - Added -tcbrctestfile parameter for TCBRC in sample_encode.
+    - Added parameter to specify scaling mode (lowpower/quality) for VPP in sample_decode and sample_multi_transcode.
 
 * **Misc**
-    - Disabled plugins loading (Plugin implementations were moved to library runtime, except LA and FEI)
-    - Added support for dynamic GPU session priority
+    - Added linux build with clang 12 for GitHub Actions.
+    - Switched to C++ 14 standard.
+
 
 * **Software requirements**
     - Libdrm 2.4.84 or later
@@ -72,8 +59,7 @@ In this document we will refer to processor families by their former codenames f
 
 * **Known issues**
     - Kernel 5.0 have known issue with endurance on Skylake see https://bugs.freedesktop.org/show_bug.cgi?id=110285 for details.
-    - Media Stack 20.5.1 with Linux kernel 5.0 may cause higher CPU usage and instability in endurance testing. Issue root caused to media driver see https://github.com/intel/media-driver/issues/671 for details.
-    - AV1 Decoder doesn't properly support asynchronous decoding (AsyncDepth > 1) and sometimes may return *MFX_ERR_UNDEFINED_BEHAVIOR* and *MFX_ERR_DEVICE_FAILED* from DecodeFrameAsync calls. See #2244 for details.
+    - Media Driver may incorrect report frame QP in Media Stack 21.2.3 for HEVC FEI. See https://github.com/intel/media-driver/issues/1171 for details.
 
 ## <a id='System_Requirements'>System Requirements</a>
 
@@ -205,8 +191,11 @@ This release is subject to the following known limitations:
     - Multi Frame Encode (MFE), HEVC Flexible Encode Infrastructure only supported on Skylake
     - VP9 decoder is supported starting from Kabylake platform
     - VP9 encoder is supported starting from Icelake platform
-    - Support for Tigerlake, Elkhartlake and Jasperlake platforms is preliminary and may not be fully functional
     - SW fallback is unsupported for all components but MJPEG
+    - Keem Bay requires a [VPU runtime](https://github.com/intel/MediaSDK-VPU) library 
+    - The following features are supported by Keem Bay runtime and are not supported by Gen graphics runtime:
+        - mfxExtInsertHeaders
+        - mfxExtEncoderIPCMArea
 
 * **Absence of software fallback**:
     - AVC Encode: MVC encode capabilities
@@ -350,6 +339,9 @@ This release is subject to the following known limitations:
     - Only the following features among those introduced in API 1.34 are supported:
         - Added Keem Bay platform support
         - Added AV1 decode support
+    - Only the following features among those introduced in API 1.35 are supported:
+        - Added AVC decode 6-6.2 levels
+        - Added deprecation attributes in API Headers.
 
     **NOTE**: Other options may be not supported. Please use *Query* functions to check feature availability on any given machine at runtime. Availability of features depends on hardware capabilities as well as driver version.
 
