@@ -115,6 +115,7 @@ protected:
   // opaque processing
   bool                  m_bOpaqMode[2];
   mfxFrameAllocRequest  m_requestOpaq[2];
+  bool                  m_bDelayedFrameAllocation;
 
   //
   // HW VPP Support
