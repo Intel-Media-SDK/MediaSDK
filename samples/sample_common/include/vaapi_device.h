@@ -56,10 +56,15 @@ public:
     virtual void      UpdateTitle(double fps) { }
     virtual void      SetMondelloInput(bool isMondelloInputEnabled) { }
 
+    virtual mfxStatus SetupUserSurface(mfxFrameSurface1 * pSurface);
+    virtual mfxStatus CopyVAFrame(mfxFrameSurface1 * pSurface, bool bUserToVA, mfxI32 nVACopyMode);
+
     inline drmRenderer* getRenderer() { return m_rndr; }
 protected:
     DRMLibVA m_DRMLibVA;
     drmRenderer * m_rndr;
+    VASurfaceID m_sysSurfaceID;
+    SurfaceInfo	m_sysSurfInfo;
 private:
     // no copies allowed
     CVAAPIDeviceDRM(const CVAAPIDeviceDRM &);

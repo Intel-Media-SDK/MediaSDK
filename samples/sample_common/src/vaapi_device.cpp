@@ -419,11 +419,30 @@ CHWDevice* CreateVAAPIDevice(void)
 CVAAPIDeviceDRM::CVAAPIDeviceDRM(const std::string& devicePath, int type)
     : m_DRMLibVA(devicePath, type)
     , m_rndr(NULL)
+    , m_sysSurfaceID(VA_INVALID_SURFACE)
+
 {
+    memset(&m_sysSurfInfo, 0, sizeof(m_sysSurfInfo));
 }
 
 CVAAPIDeviceDRM::~CVAAPIDeviceDRM(void)
 {
+    VAStatus va_status = VA_STATUS_ERROR_INVALID_PARAMETER;
+
+    VADisplay dpy = m_DRMLibVA.GetVADisplay();
+
+    if (NULL != m_sysSurfInfo.pBuf) {
+        free(m_sysSurfInfo.pBuf);
+        m_sysSurfInfo.pBuf = NULL;
+    }
+
+    if (VA_INVALID_SURFACE != m_sysSurfaceID) {
+        va_status = m_DRMLibVA.ReleaseUserSurface(dpy, &m_sysSurfaceID);
+        if (VA_STATUS_SUCCESS != va_status) {
+            printf("ReleaseUserSurface failed\n");
+        }
+    }
+
   MSDK_SAFE_DELETE(m_rndr);
 }
 
@@ -452,6 +471,88 @@ mfxStatus CVAAPIDeviceDRM::Init(mfxHDL hWindow, mfxU16 nViews, mfxU32 nAdapterNu
 mfxStatus CVAAPIDeviceDRM::RenderFrame(mfxFrameSurface1 * pSurface, mfxFrameAllocator * pmfxAlloc)
 {
     return (m_rndr)? m_rndr->render(pSurface): MFX_ERR_NONE;
+}
+
+mfxStatus CVAAPIDeviceDRM::SetupUserSurface(mfxFrameSurface1 * pSurface)
+{
+    VAStatus va_res = VA_STATUS_SUCCESS;
+    mfxStatus mfx_res = MFX_ERR_NONE;
+
+    MSDK_CHECK_POINTER(pSurface, MFX_ERR_NOT_INITIALIZED);
+
+    mfxFrameInfo &pInfo = pSurface->Info;
+
+    VADisplay dpy = m_DRMLibVA.GetVADisplay();
+
+    if (VA_INVALID_SURFACE == m_sysSurfaceID) {
+
+        m_sysSurfInfo.width = pInfo.Width;
+        m_sysSurfInfo.height = pInfo.Height;
+
+        switch(pInfo.FourCC)
+        {
+         case MFX_FOURCC_NV12:
+             m_sysSurfInfo.fourCC = VA_FOURCC_NV12;
+             m_sysSurfInfo.format = VA_FOURCC_NV12;
+             break;
+         default :
+             return MFX_ERR_UNSUPPORTED;
+        }
+
+        m_sysSurfInfo.memtype = VA_SURFACE_ATTRIB_MEM_TYPE_USER_PTR;
+        m_sysSurfInfo.alignsize = 128;
+
+        va_res = m_DRMLibVA.AcquireUserSurface(dpy, &m_sysSurfaceID, m_sysSurfInfo);
+        mfx_res = va_to_mfx_status(va_res);
+        if (MFX_ERR_NONE != mfx_res)
+        {
+            printf("AcquireUserSurface failed\n");
+            return mfx_res;
+        }
+    }
+
+    uint32_t pitch = ((m_sysSurfInfo.width + m_sysSurfInfo.alignsize -1)/
+                       m_sysSurfInfo.alignsize) * m_sysSurfInfo.alignsize;
+
+    mfxFrameData *ptr = &(pSurface->Data);
+    mfxU8 *p_buf = m_sysSurfInfo.pBufBase;
+    ptr->Y = p_buf;
+    ptr->U = p_buf + pitch * pInfo.Height;
+    ptr->V = ptr->U + 1;
+    ptr->PitchHigh = (mfxU16)(pitch / (1 << 16));
+    ptr->PitchLow  = (mfxU16)(pitch % (1 << 16));
+
+    return mfx_res;
+}
+
+mfxStatus CVAAPIDeviceDRM::CopyVAFrame(mfxFrameSurface1 * pSurface, bool bUserToVA, mfxI32 nVACopyMode)
+{
+    VAStatus va_res = VA_STATUS_SUCCESS;
+    mfxStatus mfx_res = MFX_ERR_NONE;
+    vaapiMemId *vaapi_mid = NULL;
+    VASurfaceID va_surface_id = VA_INVALID_SURFACE;
+    VADisplay dpy = m_DRMLibVA.GetVADisplay();
+
+    MSDK_CHECK_POINTER(pSurface, MFX_ERR_NOT_INITIALIZED);
+
+    vaapi_mid = (vaapiMemId*)(pSurface->Data.MemId);
+    MSDK_CHECK_POINTER(vaapi_mid, MFX_ERR_NOT_INITIALIZED);
+
+    va_surface_id = *(vaapi_mid->m_surface);
+
+    if (bUserToVA) // copy data from user surface to va surface
+        va_res = m_DRMLibVA.VACopy(dpy, m_sysSurfaceID, va_surface_id, nVACopyMode);
+    else //copy data from va surface to user surface
+        va_res = m_DRMLibVA.VACopy(dpy, va_surface_id, m_sysSurfaceID, nVACopyMode);
+
+    mfx_res = va_to_mfx_status(va_res);
+    if (MFX_ERR_NONE != mfx_res)
+    {
+        printf("m_DRMLibVA.VACopy failed\n");
+        return mfx_res;
+    }
+
+    return mfx_res;
 }
 
 #endif
