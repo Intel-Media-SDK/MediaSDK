@@ -2347,6 +2347,25 @@ mfxStatus CTranscodingPipeline::InitEncMfxParams(sInputParams *pInParams)
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.AsyncDepth                  = m_AsyncDepth;
 
+    if (pInParams->nTransferCharacteristics)
+    {
+        auto videoSignalInfo = m_mfxEncParams.AddExtBuffer<mfxExtVideoSignalInfo>();
+        videoSignalInfo->ColourDescriptionPresent = 1;
+        videoSignalInfo->TransferCharacteristics = pInParams->nTransferCharacteristics;
+        // Fill in VUI parameters
+        switch (videoSignalInfo->TransferCharacteristics)
+        {
+        case 18: //HLG (BT.2020)
+            videoSignalInfo->ColourPrimaries = 9;
+            videoSignalInfo->MatrixCoefficients = 9;
+            break;
+        case 1: //BT.709
+        default:
+            videoSignalInfo->ColourPrimaries = 1;
+            videoSignalInfo->MatrixCoefficients = 1;
+            break;
+        }
+    }
 #if (MFX_VERSION >= 1025)
     if(pInParams->numMFEFrames || pInParams->MFMode)
     {

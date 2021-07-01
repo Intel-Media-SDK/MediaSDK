@@ -311,6 +311,7 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -PicTimingSEI:<on,off>                    Enables or disables picture timing SEI\n"));
     msdk_printf(MSDK_STRING("  -NalHrdConformance:<on,off>               Enables or disables picture HRD conformance\n"));
     msdk_printf(MSDK_STRING("  -VuiNalHrdParameters:<on,off>             Enables or disables NAL HRD parameters in VUI header\n"));
+    msdk_printf(MSDK_STRING("  -VuiTC                                    Sets transfer_characteristics for VUI. 1 - BT.709, 18 - HLG(BT.2020)\n"));
 
     msdk_printf(MSDK_STRING("\n"));
     msdk_printf(MSDK_STRING("Pipeline description (vpp options):\n"));
@@ -1185,6 +1186,15 @@ mfxStatus ParseAdditionalParams(msdk_char *argv[], mfxU32 argc, mfxU32& i, Trans
         if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nPPSId))
         {
             PrintError(argv[0], MSDK_STRING("PPSId is invalid"));
+            return MFX_ERR_UNSUPPORTED;
+        }
+    }
+    else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-VuiTC")))
+    {
+        VAL_CHECK(i + 1 >= argc, i, argv[i]);
+        if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nTransferCharacteristics))
+        {
+            PrintError(NULL, MSDK_STRING("-VuiTC TransferCharacteristics is invalid"));
             return MFX_ERR_UNSUPPORTED;
         }
     }
