@@ -17,6 +17,81 @@ Media SDK is a part of Intel software stack for graphics:
 
   * Visit `documentation <https://dgpu-docs.intel.com>`_ for instructions on installing, deploying, and updating Intel software to enable general purpose GPU (GPGPU) capabilities for Linux&ast;-based operating system distributions.
 
+Media SDK Support Matrix
+------------------------
+
+Pay attention that Intel® Media SDK lifetime comes to an end in a form it
+exists right now. In particular, 
+
+* API 1.35 is projected to be the last API of 1.x API series
+* Runtime library (libmfxhw64.so.1) is not planned to get support of new Gen platforms
+* Project is going to be supported in maintainence mode, critical fixes only
+
+All future development is planned to happen within
+`oneVPL <https://github.com/oneapi-src/oneVPL>`_ library and its runtime
+implementations which are direct successors of Intel® Media SDK. oneVPL introduces
+API 2.x series which is not backward compatible with API 1.x series (some
+`features got dropped <https://spec.oneapi.com/versions/latest/elements/oneVPL/source/appendix/VPL_intel_media_sdk.html>`_).
+New `VPL Runtime for Gen Graphics <https://github.com/oneapi-src/oneVPL-intel-gpu>`_
+(libmfx-gen.so.1) comes with the support of new Gen platforms.
+
+Pay attention that Intel® Media SDK has forward compatibility with new VPL
+runtime (libmfx-gen.so.1) in the scope of API features supported by **both** 1.x
+and 2.x API series. As such, if application is built against Intel® Media
+SDK, it still can work on new platforms. For that purpose Media SDK Dispatcher
+loads either Media SDK Legacy Runtime (libmfxhw64.so.1) or VPL Runtime (libmfx-gen.so.1)
+depending on the underlying platform. See support matrix below.
+
++----------------------+--------------+-----------------------------------+-----------------------------------+
+|                      |              | GPU supported by                  | Runtime loaded by libmfx.so.1     |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| GPU                  | Type         | libmfxhw64.so.1 | libmfx-gen.so.1 | libmfxhw64.so.1 | libmfx-gen.so.1 |
++======================+==============+=================+=================+=================+=================+
+| BDW (Broadwell)      | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| SKL (Skylake)        | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| BXT (Broxton)        | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| APL (Apollo Lake)    | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| KBLx [1]             | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| ICL (Ice Lake)       | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| JSL (Jasper Lake)    | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| EHL (Elkhart Lake)   | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| TGL (Tiger Lake)     | Legacy       | ✔               | ✔               | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| DG1 (Xe MAX)         | Legacy       | ✔               | ✔               | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| SG1                  | Legacy       | ✔               |                 | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| RKL (Rocket Lake)    | Legacy       | ✔               | ✔               | ✔               |                 |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| ADL-S (Alder Lake S) | Legacy       |                 | ✔               |                 | ✔               |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| ADL-P (Alder Lake P) | VPL          |                 | ✔               |                 | ✔               |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| Future platforms...  | VPL          |                 | ✔               |                 | ✔               |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+| Multi GPU            | Legacy + VPL | See above                         | ✔               | via env var [2] |
++----------------------+--------------+-----------------+-----------------+-----------------+-----------------+
+
+**Notes**:
+
+* [1] KBLx is one of: KBL (Kaby Lake), CFL (Coffe Lake), WHL (Whiskey Lake), CML (Comet Lake), AML (Amber Lake)
+* [2] On the multi GPU system which has both "Legacy" and "VPL" GPUs Media SDK Dispatcher loads Media SDK Legacy
+  Runtime (libmfxhw64.so.1) by default. VPL Runtime (libmfx-gen.so.1) or Media SDK Runtime (libmfxhw64.so.1)
+  can be explicitly selected via the following environment variable::
+
+    export INTEL_MEDIA_RUNTIME=ONEVPL  # for VPL Runtime: libmfx-gen.so.1
+    or
+    export INTEL_MEDIA_RUNTIME=MSDK    # for Media SDK Runtime: libmfxhw64.so.1
+
+
 Dependencies
 ------------
 
