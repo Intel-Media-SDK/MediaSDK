@@ -151,8 +151,8 @@ mfxStatus SysMemFrameAllocator::LockFrame(mfxMemId mid, mfxFrameData *ptr)
         break;
 #if !(defined(_WIN32) || defined(_WIN64))
     case MFX_FOURCC_RGBP:
-        ptr->G = ptr->B + Width2 * Height2;
-        ptr->R = ptr->B + Width2 * Height2 * 2;
+        ptr->G = ptr->R + Width2 * Height2;
+        ptr->B = ptr->G + Width2 * Height2;
         ptr->PitchHigh = (mfxU16)((MSDK_ALIGN32(fs->info.Width)) / (1 << 16));
         ptr->PitchLow = (mfxU16)((MSDK_ALIGN32(fs->info.Width)) % (1 << 16));
         break;
