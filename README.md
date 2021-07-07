@@ -172,6 +172,9 @@ Windows build contains only samples and dispatcher library. MediaSDK library DLL
 
 * In case of GCC compiler it is strongly recommended to use GCC version 6 or later since that's the first GCC version which has non-experimental support of C++11 being used in Media SDK.
 
+# Coexistence with Intel® oneAPI Video Processing Library
+The Intel® oneAPI Video Processing Library (oneVPL) is the successor to Intel® Media SDK (more details about [oneVPL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onevpl.html)). It is possible to have both Media SDK and OneVPL runtimes installed on the one multi-GPU system. To select proper runtime for Media SDK based applications, environment variable *INTEL_MEDIA_RUNTIME* should be set to *"MSDK"* or to *"ONEVPL"* value, otherwise there is no guarantee what exact runtime will be loaded resulting in incompatibility issues. OneVPL based applications should use new API to make runtime selection. 
+
 # See also
 
 Intel Media SDK: https://software.intel.com/en-us/media-sdk
