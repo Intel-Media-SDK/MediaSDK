@@ -882,7 +882,7 @@ CSmplYUVWriter::CSmplYUVWriter()
     m_nViews = 0;
 };
 
-mfxStatus CSmplYUVWriter::Init(const msdk_char *strFileName, const mfxU32 numViews)
+mfxStatus CSmplYUVWriter::Init(const msdk_char *strFileName, const mfxU32 numViews, bool enableShifting)
 {
     MSDK_CHECK_POINTER(strFileName, MFX_ERR_NULL_PTR);
     MSDK_CHECK_ERROR(msdk_strlen(strFileName), 0, MFX_ERR_NOT_INITIALIZED);
@@ -891,6 +891,8 @@ mfxStatus CSmplYUVWriter::Init(const msdk_char *strFileName, const mfxU32 numVie
     m_nViews = numViews;
 
     Close();
+
+    shouldShift10Bits = enableShifting;
 
     //open file to write decoded data
 
@@ -1074,14 +1076,16 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         for (i = 0; i < pInfo.CropH; i++)
         {
             mfxU8* pBuffer = ((mfxU8*)pData.Y) + (pInfo.CropY * pData.Pitch + pInfo.CropX * 4) + i * pData.Pitch;
-            if (pInfo.Shift)
+            if (shouldShift10Bits)
             {
-                // Bits will be shifted to the lower position
                 tmp.resize(pInfo.CropW * 2);
 
                 for (int idx = 0; idx < pInfo.CropW*2; idx++)
                 {
-                    tmp[idx] = ((mfxU16*)pBuffer)[idx] >> shiftSizeLuma;
+                    if (pInfo.Shift)
+                        tmp[idx] = ((mfxU16*)pBuffer)[idx] >> shiftSizeLuma; // Bits will be shifted to the lower position (LSB)
+                    else
+                        tmp[idx] = ((mfxU16*)pBuffer)[idx] << shiftSizeLuma; // Bits will be shifted to the higher position (MSB)
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
@@ -1119,13 +1123,16 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         for (i = 0; i < pInfo.CropH; i++)
         {
             mfxU8* pBuffer = ((mfxU8*)pData.U) + (pInfo.CropY * pData.Pitch + pInfo.CropX * 8) + i * pData.Pitch;
-            if (pInfo.Shift)
+            if (shouldShift10Bits)
             {
                 tmp.resize(pInfo.CropW * 4);
 
                 for (int idx = 0; idx < pInfo.CropW*4; idx++)
                 {
-                    tmp[idx] = ((mfxU16*)pBuffer)[idx] >> shiftSizeLuma;
+                    if (pInfo.Shift)
+                        tmp[idx] = ((mfxU16*)pBuffer)[idx] >> shiftSizeLuma; // Bits will be shifted to the lower position (LSB)
+                    else
+                        tmp[idx] = ((mfxU16*)pBuffer)[idx] << shiftSizeLuma; // Bits will be shifted to the higher position (MSB)
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
@@ -1152,15 +1159,16 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         for (i = 0; i < pInfo.CropH; i++)
         {
             mfxU16* shortPtr = (mfxU16*)(pData.Y + (pInfo.CropY * pData.Pitch + pInfo.CropX) + i * pData.Pitch);
-            if (pInfo.Shift)
+            if (shouldShift10Bits)
             {
-                // Convert MS-P*1* to P*1* and write
-                // Bits will be shifted to the lower position
                 tmp.resize(pData.Pitch);
 
                 for (int idx = 0; idx < pInfo.CropW; idx++)
                 {
-                    tmp[idx] = shortPtr[idx] >> shiftSizeLuma;
+                    if (pInfo.Shift)
+                        tmp[idx] = shortPtr[idx] >> shiftSizeLuma; // Bits will be shifted to the lower position (LSB)
+                    else
+                        tmp[idx] = shortPtr[idx] << shiftSizeLuma; // Bits will be shifted to the higher position (MSB)
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
@@ -1235,15 +1243,16 @@ mfxStatus CSmplYUVWriter::WriteNextFrame(mfxFrameSurface1 *pSurface)
         for (i = 0; i < ChromaH; i++)
         {
             mfxU16* shortPtr = (mfxU16*)(pData.UV + (pInfo.CropY * pData.Pitch + pInfo.CropX*2) + i * pData.Pitch);
-            if (pInfo.Shift)
+            if (shouldShift10Bits)
             {
-                // Convert MS-P*1* to P*1* and write
-                // Bits will be shifted to the lower position
                 tmp.resize(pData.Pitch);
 
                 for (mfxU32 idx = 0; idx < ChromaW; idx++)
                 {
-                    tmp[idx] = shortPtr[idx] >> shiftSizeChroma;
+                    if (pInfo.Shift)
+                        tmp[idx] = shortPtr[idx] >> shiftSizeChroma; // Bits will be shifted to the lower position (LSB)
+                    else
+                        tmp[idx] = shortPtr[idx] << shiftSizeChroma; // Bits will be shifted to the higher position (MSB)
                 }
 
                 MSDK_CHECK_NOT_EQUAL(
