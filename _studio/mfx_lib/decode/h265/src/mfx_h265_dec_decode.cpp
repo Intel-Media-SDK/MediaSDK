@@ -1384,14 +1384,11 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
             info->FrameType |= MFX_FRAMETYPE_REF;
    }
 
-#ifdef MFX_ENABLE_HEVCE_HDR_SEI
     mfxExtMasteringDisplayColourVolume* dispaly_colour = (mfxExtMasteringDisplayColourVolume*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
     if (pFrame->m_mastering_display.payLoadSize != 0)
     {
         if (dispaly_colour && pFrame->m_mastering_display.payLoadSize > 0)
         {
-            dispaly_colour->Header.BufferId = MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME;
-            dispaly_colour->Header.BufferSz = (mfxU32)pFrame->m_mastering_display.payLoadSize;
             dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
 
             for (size_t i = 0; i < 3; i++)
@@ -1409,12 +1406,10 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
     mfxExtContentLightLevelInfo* content_light = (mfxExtContentLightLevelInfo*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
     if (content_light && pFrame->m_content_light_level_info.payLoadSize > 0)
     {
-        content_light->Header.BufferId = MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO;
-        content_light->Header.BufferSz = (mfxU32)pFrame->m_content_light_level_info.payLoadSize;
+        dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
         content_light->MaxContentLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_content_light_level;
         content_light->MaxPicAverageLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_pic_average_light_level;
     }
-#endif
 
 }
 

@@ -1296,7 +1296,6 @@ struct H265SEIPayLoadBase
             uint8_t broken_link_flag;
         }recovery_point;
 
-#ifdef MFX_ENABLE_HEVCE_HDR_SEI
         struct MasteringDisplay
         {
             uint16_t display_primaries[3][2];
@@ -1309,7 +1308,6 @@ struct H265SEIPayLoadBase
             uint16_t max_content_light_level;
             uint16_t max_pic_average_light_level;
         }content_light_level_info;
-#endif
 
     }SEI_messages;
 

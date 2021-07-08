@@ -110,12 +110,10 @@ int32_t H265HeadersBitstream::sei_payload(const HeaderSet<H265SeqParamSet> & sps
         return pic_timing(sps,current_sps,spl);
     case SEI_RECOVERY_POINT_TYPE:
         return recovery_point(sps,current_sps,spl);
-#ifdef MFX_ENABLE_HEVCE_HDR_SEI
     case SEI_MASTERING_DISPLAY_COLOUR_VOLUME:
         return mastering_display_colour_volume(sps, current_sps, spl);
     case SEI_CONTENT_LIGHT_LEVEL_INFO:
         return content_light_level_info(sps, current_sps, spl);
-#endif
     }
 
     return reserved_sei_message(sps,current_sps,spl);
@@ -188,7 +186,6 @@ int32_t H265HeadersBitstream::recovery_point(const HeaderSet<H265SeqParamSet> & 
     return current_sps;
 }
 
-#ifdef MFX_ENABLE_HEVCE_HDR_SEI
 // Parse mastering_display_colour_volume
 int32_t H265HeadersBitstream::mastering_display_colour_volume(const HeaderSet<H265SeqParamSet>&, int32_t current_sps, H265SEIPayLoad* spl)
 {
@@ -222,7 +219,6 @@ int32_t H265HeadersBitstream::content_light_level_info(const HeaderSet<H265SeqPa
 
     return current_sps;
 }
-#endif
 
 // Skip unrecognized SEI message payload
 int32_t H265HeadersBitstream::reserved_sei_message(const HeaderSet<H265SeqParamSet> & , int32_t current_sps, H265SEIPayLoad *spl)

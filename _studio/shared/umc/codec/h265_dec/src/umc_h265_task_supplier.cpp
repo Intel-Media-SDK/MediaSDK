@@ -2541,7 +2541,6 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
         pFrame->m_DisplayPictureStruct_H265 = DPS_FRAME_H265;
     }
 
-#ifdef MFX_ENABLE_HEVCE_HDR_SEI
     H265SEIPayLoad * mastering_display_payload = m_Headers.m_SEIParams.GetHeader(SEI_MASTERING_DISPLAY_COLOUR_VOLUME);
     H265SEIPayLoad * content_light_payload = m_Headers.m_SEIParams.GetHeader(SEI_CONTENT_LIGHT_LEVEL_INFO);
 
@@ -2553,7 +2552,6 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
     {
         pFrame->m_content_light_level_info = *content_light_payload;
     }
-#endif
 
     InitFrameCounter(pFrame, pSlice);
     return pFrame;
