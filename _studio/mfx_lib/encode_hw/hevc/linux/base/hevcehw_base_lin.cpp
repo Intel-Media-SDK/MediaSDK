@@ -142,6 +142,13 @@ mfxStatus Linux::Base::MFXVideoENCODEH265_HW::Init(mfxVideoParam *par)
     mfxStatus sts = HEVCEHW::Base::MFXVideoENCODEH265_HW::Init(par);
     MFX_CHECK(sts >= MFX_ERR_NONE, sts);
 
+    {
+        auto& queue = BQ<BQ_QueryTask>::Get(*this);
+        Reorder(queue
+            , { FEATURE_DDI_PACKER, VAPacker::BLK_QueryTask }
+            , { FEATURE_ENCODED_FRAME_INFO, EncodedFrameInfo::BLK_QueryTask });
+    }
+
     return sts;
 }
 
