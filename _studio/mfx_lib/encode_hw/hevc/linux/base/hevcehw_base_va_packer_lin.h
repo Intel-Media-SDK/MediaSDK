@@ -63,8 +63,7 @@ public:
 };
 
 class VAPacker
-    : public virtual FeatureBase
-    , protected IDDIPacker
+    : public IDDIPacker
     , protected VAAPIParPacker
 {
 public:
