@@ -1384,13 +1384,12 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
             info->FrameType |= MFX_FRAMETYPE_REF;
    }
 
-    mfxExtMasteringDisplayColourVolume* dispaly_colour = (mfxExtMasteringDisplayColourVolume*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
     if (pFrame->m_mastering_display.payLoadSize != 0)
     {
-        if (dispaly_colour && pFrame->m_mastering_display.payLoadSize > 0)
+        mfxExtMasteringDisplayColourVolume* dispaly_colour = (mfxExtMasteringDisplayColourVolume*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_MASTERING_DISPLAY_COLOUR_VOLUME);
+        if (dispaly_colour)
         {
             dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
-
             for (size_t i = 0; i < 3; i++)
             {
                 dispaly_colour->DisplayPrimariesX[i] = (mfxU16)pFrame->m_mastering_display.SEI_messages.mastering_display.display_primaries[i][0];
@@ -1402,13 +1401,15 @@ void VideoDECODEH265::FillOutputSurface(mfxFrameSurface1 **surf_out, mfxFrameSur
             dispaly_colour->MinDisplayMasteringLuminance = (mfxU32)pFrame->m_mastering_display.SEI_messages.mastering_display.min_luminance;
         }
     }
-
-    mfxExtContentLightLevelInfo* content_light = (mfxExtContentLightLevelInfo*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
-    if (content_light && pFrame->m_content_light_level_info.payLoadSize > 0)
+    if (pFrame->m_content_light_level_info.payLoadSize != 0)
     {
-        dispaly_colour->InsertPayloadToggle = MFX_PAYLOAD_IDR;
-        content_light->MaxContentLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_content_light_level;
-        content_light->MaxPicAverageLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_pic_average_light_level;
+        mfxExtContentLightLevelInfo* content_light = (mfxExtContentLightLevelInfo*)GetExtendedBuffer(surface_out->Data.ExtParam, surface_out->Data.NumExtParam, MFX_EXTBUFF_CONTENT_LIGHT_LEVEL_INFO);
+        if (content_light)
+        {
+            content_light->InsertPayloadToggle = MFX_PAYLOAD_IDR;
+            content_light->MaxContentLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_content_light_level;
+            content_light->MaxPicAverageLightLevel = (mfxU16)pFrame->m_content_light_level_info.SEI_messages.content_light_level_info.max_pic_average_light_level;
+        }
     }
 
 }
