@@ -107,7 +107,6 @@ typedef struct {
     { 0x0D06, MFX_HW_HSW, MFX_GT1 },   /* CRW GT1 mobile */
     { 0x0D16, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 mobile */
     { 0x0D26, MFX_HW_HSW, MFX_GT2 },   /* CRW GT2 mobile */
-    /* this dev IDs added per HSD 5264859 request  */
     { 0x040B, MFX_HW_HSW, MFX_GT1 }, /*HASWELL_B_GT1 *//* Reserved */
     { 0x041B, MFX_HW_HSW, MFX_GT2 }, /*HASWELL_B_GT2*/
     { 0x042B, MFX_HW_HSW, MFX_GT3 }, /*HASWELL_B_GT3*/
