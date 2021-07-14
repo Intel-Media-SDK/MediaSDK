@@ -292,6 +292,8 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -qpp          Constant quantizer for P frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
     msdk_printf(MSDK_STRING("  -qpb          Constant quantizer for B frames (if bitrace control method is CQP). In range [1,51]. 0 by default, i.e.no limitations on QP.\n"));
 #endif
+    msdk_printf(MSDK_STRING("  -minqp        Minimum quantizer for the stream. 0 by default, i.e.no limitations.\n"));
+    msdk_printf(MSDK_STRING("  -maxqp        Maximum quantizer for the stream. 0 by default, i.e.no limitations.\n"));
     msdk_printf(MSDK_STRING("  -DisableQPOffset         Disable QP adjustment for GOP pyramid-level frames\n"));
     msdk_printf(MSDK_STRING("  -lowpower:<on,off>       Turn this option ON to enable QuickSync Fixed Function (low-power HW) encoding mode\n"));
 #if (MFX_VERSION >= 1027)
@@ -2534,6 +2536,24 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nQPB))
             {
                 PrintError(MSDK_STRING("Quantizer for B frames is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-minqp")))
+        {
+            VAL_CHECK(i + 1 == argc, i, argv[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMinQP))
+            {
+                PrintError(MSDK_STRING("Minimum quantizer is invalid"));
+                return MFX_ERR_UNSUPPORTED;
+            }
+        }
+        else if (0 == msdk_strcmp(argv[i], MSDK_STRING("-maxqp")))
+        {
+            VAL_CHECK(i + 1 == argc, i, argv[i]);
+            if (MFX_ERR_NONE != msdk_opt_read(argv[++i], InputParams.nMaxQP))
+            {
+                PrintError(MSDK_STRING("Maximum quantizer is invalid"));
                 return MFX_ERR_UNSUPPORTED;
             }
         }

@@ -783,6 +783,9 @@ namespace Base
         mfxI32              PrevRAP             = -1;
         mfxU16              NumRecode           = 0;
         mfxI8               QpY                 = 0;
+        mfxI8               m_minQP             = 0;
+        mfxI8               m_maxQP             = 0;
+
         mfxU8               SliceNUT            = 0;
         mfxU32              InsertHeaders       = 0;
         mfxU32              RepackHeaders       = 0;
