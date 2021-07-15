@@ -101,15 +101,19 @@ int32_t H265HeadersBitstream::sei_message(const HeaderSet<H265SeqParamSet> & sps
 }
 
 // Parse SEI payload data
-int32_t H265HeadersBitstream::sei_payload(const HeaderSet<H265SeqParamSet> & sps,int32_t current_sps,H265SEIPayLoad *spl)
+int32_t H265HeadersBitstream::sei_payload(const HeaderSet<H265SeqParamSet> & sps, int32_t current_sps, H265SEIPayLoad *spl)
 {
-    uint32_t payloadType =spl->payLoadType;
-    switch( payloadType)
+    uint32_t payloadType = spl->payLoadType;
+    switch(payloadType)
     {
     case SEI_PIC_TIMING_TYPE:
         return pic_timing(sps,current_sps,spl);
     case SEI_RECOVERY_POINT_TYPE:
         return recovery_point(sps,current_sps,spl);
+    case SEI_MASTERING_DISPLAY_COLOUR_VOLUME:
+        return mastering_display_colour_volume(sps, current_sps, spl);
+    case SEI_CONTENT_LIGHT_LEVEL_INFO:
+        return content_light_level_info(sps, current_sps, spl);
     }
 
     return reserved_sei_message(sps,current_sps,spl);
@@ -178,6 +182,40 @@ int32_t H265HeadersBitstream::recovery_point(const HeaderSet<H265SeqParamSet> & 
 
     recPoint->exact_match_flag = (uint8_t)Get1Bit();
     recPoint->broken_link_flag = (uint8_t)Get1Bit();
+
+    return current_sps;
+}
+
+// Parse mastering_display_colour_volume
+int32_t H265HeadersBitstream::mastering_display_colour_volume(const HeaderSet<H265SeqParamSet>&, int32_t current_sps, H265SEIPayLoad* spl)
+{
+    H265SEIPayLoad::SEIMessages::MasteringDisplay* masterDisplay = &(spl->SEI_messages.mastering_display);
+    int i = 0;
+    // Mastering primaries
+    for (; i < 3; ++i)
+    {
+        masterDisplay->display_primaries[i][0] = (uint16_t)GetBits(16);
+        masterDisplay->display_primaries[i][1] = (uint16_t)GetBits(16);
+    }
+    // White point(x, y)
+    masterDisplay->white_point[0] = (uint16_t)GetBits(16);
+    masterDisplay->white_point[1] = (uint16_t)GetBits(16);
+
+    // Max and min luminance of mastering display
+    masterDisplay->max_luminance = (uint32_t)GetBits(32);
+    masterDisplay->min_luminance = (uint32_t)GetBits(32);
+
+    return current_sps;
+}
+
+// Parse mastering_display_colour_volume
+int32_t H265HeadersBitstream::content_light_level_info(const HeaderSet<H265SeqParamSet>&, int32_t current_sps, H265SEIPayLoad* spl)
+{
+    H265SEIPayLoad::SEIMessages::ContentLightLevelInfo * contentLight = &(spl->SEI_messages.content_light_level_info);
+
+    // Max and average light levels
+    contentLight->max_content_light_level = (uint16_t)GetBits(16);
+    contentLight->max_pic_average_light_level = (uint16_t)GetBits(16);
 
     return current_sps;
 }

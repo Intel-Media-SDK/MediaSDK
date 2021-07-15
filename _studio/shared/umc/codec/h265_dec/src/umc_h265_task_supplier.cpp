@@ -2531,16 +2531,27 @@ H265DecoderFrame * TaskSupplier_H265::AllocateNewFrame(const H265Slice *pSlice)
         m_sei_messages->SetFrame(pFrame);
     }
 
-    H265SEIPayLoad * payload = m_Headers.m_SEIParams.GetHeader(SEI_PIC_TIMING_TYPE);
-    if (payload && pSlice->GetSeqParam()->frame_field_info_present_flag)
+    H265SEIPayLoad * pic_timing_payload = m_Headers.m_SEIParams.GetHeader(SEI_PIC_TIMING_TYPE);
+    if (pic_timing_payload && pSlice->GetSeqParam()->frame_field_info_present_flag)
     {
-        pFrame->m_DisplayPictureStruct_H265 = payload->SEI_messages.pic_timing.pic_struct;
+        pFrame->m_DisplayPictureStruct_H265 = pic_timing_payload->SEI_messages.pic_timing.pic_struct;
     }
     else
     {
         pFrame->m_DisplayPictureStruct_H265 = DPS_FRAME_H265;
     }
 
+    H265SEIPayLoad * mastering_display_payload = m_Headers.m_SEIParams.GetHeader(SEI_MASTERING_DISPLAY_COLOUR_VOLUME);
+    H265SEIPayLoad * content_light_payload = m_Headers.m_SEIParams.GetHeader(SEI_CONTENT_LIGHT_LEVEL_INFO);
+
+    if (mastering_display_payload)
+    {
+        pFrame->m_mastering_display = *mastering_display_payload;
+    }
+    if (content_light_payload)
+    {
+        pFrame->m_content_light_level_info = *content_light_payload;
+    }
 
     InitFrameCounter(pFrame, pSlice);
     return pFrame;
