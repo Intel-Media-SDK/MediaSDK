@@ -564,7 +564,6 @@ Status MJPEGVideoDecoderMFX_HW::GetFrameHW(MediaDataEx* in)
 Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PARAMETER* obtainedScanParams, uint8_t* buffersForUpdate)
 {
     uint32_t bitstreamTile = 0;
-    bool shiftDataOffset = false;
 
     /////////////////////////////////////////////////////////////////////////////////////////
     if((*buffersForUpdate & 1) != 0)
@@ -724,11 +723,6 @@ Status MJPEGVideoDecoderMFX_HW::PackHeaders(MediaData* src, JPEG_DECODE_SCAN_PAR
             return UMC_ERR_DEVICE_FAILED;
 
         std::copy(ptr + obtainedScanParams->DataOffset, ptr + obtainedScanParams->DataOffset + obtainedScanParams->DataLength, bistreamData);
-
-        if(m_decBase->m_num_scans == 1)
-        {
-            shiftDataOffset = true;
-        }
     }
 
     /////////////////////////////////////////////////////////////////////////////////////////

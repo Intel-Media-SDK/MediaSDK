@@ -432,12 +432,8 @@ mfxTraceU32 MFXTraceStat_EndTask(mfxTraceStaticHandle *static_handle,
 {
     if (!static_handle || !task_handle) return 1;
 
-    mfxTraceChar* category = NULL;
-    mfxTraceLevel level = MFX_TRACE_LEVEL_DEFAULT;
-    mfxTraceTick time = 0;
 
-    category      = static_handle->category;
-    level         = static_handle->level;
+    mfxTraceTick time = 0;
 
     ++(static_handle->sd5.uint32);
     time = mfx_trace_get_tick() - task_handle->sd1.tick;

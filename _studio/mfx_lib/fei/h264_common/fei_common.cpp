@@ -831,24 +831,6 @@ mfxStatus MfxH264FEIcommon::CheckRuntimeExtBuffers(T* input, U* output, const Mf
         mfxExtFeiPPS * pDataPPS = GetExtBufferFEI(input, 0);
         MFX_CHECK(pDataPPS, MFX_ERR_UNDEFINED_BEHAVIOR);
 
-        mfxU16 firstFieldDone = 0;
-
-        switch (pDataPPS->PictureType)
-        {
-        case MFX_PICTYPE_TOPFIELD:
-            firstFieldDone = !!(owned_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_BFF); // i.e. Bottom Field was already coded and current picstruct is BFF
-            break;
-
-        case MFX_PICTYPE_BOTTOMFIELD:
-            firstFieldDone = !!(owned_video.mfx.FrameInfo.PicStruct & MFX_PICSTRUCT_FIELD_TFF); // i.e. Top Field was already coded and current picstruct is TFF
-            break;
-
-        case MFX_PICTYPE_FRAME:
-        default:
-            firstFieldDone = 0;
-            break;
-        }
-
         fieldCount = f_start = FirstFieldProcessingDone(input, task); // 0 or 1
     }
 

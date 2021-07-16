@@ -76,7 +76,7 @@ extern void mfxdct_quant_inv8x8_2x2_ls(
   Ipp16s*   buf;
   Ipp16s    ptr[64*sizeof(Ipp16s) + CPU_CACHE_LINE-1];
 
-  __ALIGN16 __m128i _iS0, _iS1, _iS2, _iSA, _iZR;
+  __ALIGN16 __m128i _iS0, _iS1, _iS2, _iSA;
 
   buf = (Ipp16s*)IPP_ALIGNED_PTR(&ptr[0],CPU_CACHE_LINE);
 
@@ -104,7 +104,7 @@ extern void mfxdct_quant_inv8x8_2x2_ls(
 
   mfxdct_8x8_inv_2x2_16s(buf, buf);
 
-  _iZR = _mm_setzero_si128();
+  _mm_setzero_si128();
   _iSA = _mm_load_si128((__m128i*)(iSA + 0));
 
   _iS0 = _mm_load_si128((__m128i*)(buf + 0));
@@ -160,7 +160,7 @@ extern void mfxdct_quant_inv8x8_4x4_ls(
   Ipp16s*   buf;
   Ipp16s    ptr[64*sizeof(Ipp16s) + CPU_CACHE_LINE-1];
 
-  __ALIGN16 __m128i _iS0, _iS1, _iS2, _iSA, _iZR;
+  __ALIGN16 __m128i _iS0, _iS1, _iS2, _iSA;
 
   buf = (Ipp16s*)IPP_ALIGNED_PTR(&ptr[0],CPU_CACHE_LINE);
   if((IPP_UINT_PTR(pSrc) || IPP_UINT_PTR(pQuantInvTable)) & 0x0F) {  /* If pSrc or pQuantInvTable is not aligned on 16 byte */
@@ -207,7 +207,7 @@ extern void mfxdct_quant_inv8x8_4x4_ls(
 
   mfxdct_8x8_inv_4x4_16s(buf, buf);
 
-  _iZR = _mm_setzero_si128();
+  _mm_setzero_si128();
   _iSA = _mm_load_si128((__m128i*)(iSA + 0));
 
   _iS0 = _mm_load_si128((__m128i*)(buf + 0));

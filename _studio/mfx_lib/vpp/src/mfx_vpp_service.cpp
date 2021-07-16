@@ -100,7 +100,7 @@ mfxStatus DynamicFramesPool::Reset( void )
 mfxStatus DynamicFramesPool::Close( void )
 {
     mfxFrameAllocResponse response;
-    mfxStatus             sts = MFX_ERR_NONE, localSts;
+    mfxStatus             sts = MFX_ERR_NONE;
     mfxU32 frame = 0;
 
     for( frame = 0; frame < m_numFrames; frame++ )
@@ -119,11 +119,11 @@ mfxStatus DynamicFramesPool::Close( void )
         {
             response.mids = m_mids;
             response.NumFrameActual = m_numFrames;
-            localSts = m_core->FreeFrames( &response );
+            m_core->FreeFrames( &response );
         }
     }
 
-    localSts = Reset();
+    Reset();
 
     if( m_pSurface )
     {

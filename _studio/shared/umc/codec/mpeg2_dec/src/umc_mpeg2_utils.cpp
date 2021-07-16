@@ -46,8 +46,6 @@ namespace UMC_MPEG2_DECODER
             return MFX_PLATFORM_SOFTWARE;
 
         eMFXPlatform platform = core->GetPlatformType();
-        eMFXHWType typeHW = MFX_HW_UNKNOWN;
-        typeHW = core->GetHWType();
 
         if (IsNeedPartialAcceleration_MPEG2(par) && platform != MFX_PLATFORM_SOFTWARE)
         {

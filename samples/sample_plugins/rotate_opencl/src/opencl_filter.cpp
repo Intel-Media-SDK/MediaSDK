@@ -256,9 +256,9 @@ cl_int OpenCLFilterBase::BuildKernels()
         if (error == CL_BUILD_PROGRAM_FAILURE)
         {
             size_t buildLogSize = 0;
-            cl_int logStatus = clGetProgramBuildInfo (m_kernels[i].clprogram, m_cldevice, CL_PROGRAM_BUILD_LOG, 0, NULL, &buildLogSize);
+            clGetProgramBuildInfo (m_kernels[i].clprogram, m_cldevice, CL_PROGRAM_BUILD_LOG, 0, NULL, &buildLogSize);
             std::vector<char> buildLog(buildLogSize + 1);
-            logStatus = clGetProgramBuildInfo (m_kernels[i].clprogram, m_cldevice, CL_PROGRAM_BUILD_LOG, buildLogSize, &buildLog[0], NULL);
+            clGetProgramBuildInfo (m_kernels[i].clprogram, m_cldevice, CL_PROGRAM_BUILD_LOG, buildLogSize, &buildLog[0], NULL);
             log.error() << std::string(buildLog.begin(), buildLog.end()) << endl;
             return error;
         }

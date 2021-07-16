@@ -345,16 +345,6 @@ bool IsCompositionMode(mfxVideoParam* pParam)
 mfxStatus ExtendedQuery(VideoCORE * core, mfxU32 filterName, mfxExtBuffer* pHint)
 {
     mfxStatus sts = MFX_ERR_NONE;
-    /* Lets find out VA type (Linux, Win or Android) and platform type */
-    /* It can be different behaviour for Linux and IVB, Linux and HSW*/
-    bool bLinuxAndIVB_HSW_BDW = false;
-    if ( (NULL != core) &&
-        (core->GetVAType() == MFX_HW_VAAPI) &&
-        ( (core->GetHWType() == MFX_HW_IVB) || (core->GetHWType() == MFX_HW_HSW) ||
-          (core->GetHWType() == MFX_HW_BDW)) )
-    {
-        bLinuxAndIVB_HSW_BDW = true;
-    }
 
     if( MFX_EXTBUFF_VPP_DENOISE == filterName )
     {

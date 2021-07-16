@@ -235,8 +235,8 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
         pParams->nAvcTemp = 1;
         VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
         mfxU16 arr[8] = { 0,0,0,0,0,0,0,0 };
-        int j, k;
-        k = msdk_sscanf(strInput[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
+        int j;
+        msdk_sscanf(strInput[i + 1], MSDK_STRING("%hu %hu %hu %hu %hu %hu %hu %hu"), &arr[0], &arr[1], &arr[2], &arr[3], &arr[4], &arr[5], &arr[6], &arr[7]);
         for (j = 0; j < 8; j++)
         {
             pParams->nAvcTemporalLayers[j] = arr[j];

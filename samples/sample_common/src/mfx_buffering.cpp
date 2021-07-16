@@ -163,9 +163,7 @@ void
 CBuffering::SyncFrameSurfaces()
 {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    msdkFrameSurface *prev;
-    msdkFrameSurface *next;
-    prev = next = NULL;
+    msdkFrameSurface *next = NULL;
     msdkFrameSurface *cur = m_UsedSurfacesPool.m_pSurfacesHead;
 
     while (cur) {
@@ -186,9 +184,7 @@ void
 CBuffering::SyncVppFrameSurfaces()
 {
     std::lock_guard<std::mutex> lock(m_Mutex);
-    msdkFrameSurface *prev;
-    msdkFrameSurface *next;
-    prev = next = NULL;
+    msdkFrameSurface *next = NULL;
     msdkFrameSurface *cur = m_UsedVppSurfacesPool.m_pSurfacesHead;
 
     while (cur) {

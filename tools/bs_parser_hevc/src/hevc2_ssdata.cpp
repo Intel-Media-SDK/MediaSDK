@@ -702,6 +702,7 @@ void SDParser::parseCU(CU& cu)
 
             Bs16u size  = (1 << (cu.log2CbSize << 1));
             Bs16u split = nCbS;
+            std::ignore = split;
 
             if (!TLTest(traceAddr))
             {
@@ -1403,7 +1404,7 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
     auto& pps = *m_cSlice->pps;
     bool  transform_skip_flag = false
         , explicit_rdpcm_flag = false
-        , explicit_rdpcm_dir_flag
+        , explicit_rdpcm_dir_flag = false
         , coded_sub_block_flag[16][16] = {}
         , sig_coeff_flag
         ;
@@ -1476,6 +1477,7 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
 
         if (explicit_rdpcm_flag)
             BS2_SET(ExplicitRdpcmDirFlag(cIdx), explicit_rdpcm_dir_flag);
+            std::ignore = explicit_rdpcm_dir_flag;
     }
 
     BS2_SET(LastSigCoeffXPrefix(cIdx, log2TrafoSize), LastSignificantCoeffX);
@@ -1493,7 +1495,6 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
     if (2 == scanIdx)
         std::swap(LastSignificantCoeffX, LastSignificantCoeffY);
 
-    bool  escapeDataPresent = false;
     bool  signHiddenON =
        !(   cu.transquant_bypass_flag
         || (   cu.PredMode == MODE_INTRA
@@ -1644,11 +1645,7 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
 
                 if (coeff_abs_level_greater1_flag[n] && lastGreater1ScanPos == -1)
                     lastGreater1ScanPos = n;
-                else if (coeff_abs_level_greater1_flag[n])
-                    escapeDataPresent = true;
             }
-            else
-                escapeDataPresent = true;
 
             if (lastSigScanPos == -1)
                 lastSigScanPos = n;
@@ -1660,9 +1657,6 @@ void SDParser::parseResidual(CU& cu, TU& tu, Bs16u x0, Bs16u y0, Bs16u log2Trafo
         if (lastGreater1ScanPos != -1)
         {
             BS2_SET(CoeffAbsLevelGreater2Flag(cIdx), coeff_abs_level_greater2_flag[lastGreater1ScanPos]);
-
-            if (coeff_abs_level_greater2_flag[lastGreater1ScanPos])
-                escapeDataPresent = true;
         }
 
         for (Bs32s ii = 0; ii < nSC; ii++)

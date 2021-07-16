@@ -1093,7 +1093,6 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         bool force = false;
 
         UMC::Status umcFrameRes = UMC::UMC_OK;
-        UMC::Status umcAddSourceRes = UMC::UMC_OK;
 
         MFXMediaDataAdapter src(bs);
 
@@ -1118,7 +1117,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                     umcRes = m_pH265VideoDecoder->AddSource(bs ? &src : 0);
             }
 
-            umcAddSourceRes = umcFrameRes = umcRes;
+            umcFrameRes = umcRes;
 
             if (umcRes == UMC::UMC_NTF_NEW_RESOLUTION || umcRes == UMC::UMC_WRN_REPOSITION_INPROGRESS || umcRes == UMC::UMC_ERR_UNSUPPORTED)
             {
@@ -1133,14 +1132,14 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
                 }
                 else
                 {
-                    umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                    umcFrameRes = umcRes = UMC::UMC_OK;
                     m_isFirstRun = false;
                 }
             }
 
             if (umcRes == UMC::UMC_ERR_INVALID_STREAM)
             {
-                umcAddSourceRes = umcFrameRes = umcRes = UMC::UMC_OK;
+                umcFrameRes = umcRes = UMC::UMC_OK;
 
             }
 

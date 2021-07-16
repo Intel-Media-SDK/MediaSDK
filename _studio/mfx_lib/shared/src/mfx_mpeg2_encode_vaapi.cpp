@@ -1696,7 +1696,9 @@ mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBits
     //------------------------------------------
     // (1) mapping feedbackNumber -> surface & bs
     bool isFound = false;
+#if !VA_CHECK_VERSION(1,9,0)
     VASurfaceID waitSurface;
+#endif
     mfxU32 waitIdxBs;
     mfxU32 indxSurf;
     mfxU32 bitstreamSize = 0;
@@ -1709,7 +1711,9 @@ mfxStatus VAAPIEncoder::FillBSBuffer(mfxU32 nFeedback,mfxU32 nBitstream, mfxBits
 
         if (currentFeedback.number == nFeedback)
         {
+#if !VA_CHECK_VERSION(1,9,0)
             waitSurface = currentFeedback.surface;
+#endif
             waitIdxBs   = currentFeedback.idxBs;
             isFound  = true;
 

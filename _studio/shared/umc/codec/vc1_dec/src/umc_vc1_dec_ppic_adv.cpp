@@ -414,9 +414,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                 picLayerHeader->MVMODE = VC1_MVMODE_INTENSCOMP;
 
                 {
-                    uint32_t is_bottom = 0;
-                    uint32_t is_top    = 0;
-                    int32_t index_bottom = pContext->m_frmBuff.m_iPrevIndex;
                     int32_t index_top    = pContext->m_frmBuff.m_iPrevIndex;
                     //pContext->m_bIntensityCompensation = 0;
 
@@ -444,8 +441,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                     {
                         if (picLayerHeader->BottomField)
                             index_top = pContext->m_frmBuff.m_iCurrIndex;
-                        else
-                            index_bottom = pContext->m_frmBuff.m_iCurrIndex;
                     }
 
                     //INTCOMPFIELD
@@ -472,7 +467,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
 
                     if(VC1_IS_INT_TOP_FIELD(picLayerHeader->INTCOMFIELD))
                     {
-                        is_top    = 1;
                         //top
                         //Luma scale
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE);
@@ -483,7 +477,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
 
                     if(VC1_IS_INT_BOTTOM_FIELD(picLayerHeader->INTCOMFIELD) )
                     {
-                        is_bottom = 1;
                         //bottom in case "both field"
                     // VM_ASSERT(0);
                         //Luma scale
@@ -525,10 +518,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                 pContext->m_bIntensityCompensation = 1;
                 picLayerHeader->MVMODE = VC1_MVMODE_INTENSCOMP;
                 {
-                    uint32_t is_bottom = 0;
-                    uint32_t is_top    = 0;
-                    int32_t index_bottom = pContext->m_frmBuff.m_iPrevIndex;
-                    int32_t index_top = pContext->m_frmBuff.m_iPrevIndex;
 
                     bit_count = 1;
                     VC1_GET_BITS(1, picLayerHeader->MVMODE);
@@ -545,13 +534,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
                         else
                             picLayerHeader->MVMODE = VC1_MVMODE_HPEL_1MV;
 
-                    if (picLayerHeader->CurrField)
-                    {
-                        if (picLayerHeader->BottomField)
-                            index_top = pContext->m_frmBuff.m_iCurrIndex;
-                        else
-                            index_bottom = pContext->m_frmBuff.m_iCurrIndex;
-                    }
 
                     //INTCOMPFIELD
                     VC1_GET_BITS(1, picLayerHeader->INTCOMFIELD);
@@ -577,7 +559,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
 
                     if(VC1_IS_INT_TOP_FIELD(picLayerHeader->INTCOMFIELD))
                     {
-                        is_top    = 1;
                         //top
                         //Luma scale
                         VC1_GET_BITS(6, picLayerHeader->LUMSCALE);
@@ -588,7 +569,6 @@ VC1Status DecodeFieldHeaderParams_InterlaceFieldPpicture_Adv (VC1Context* pConte
 
                     if(VC1_IS_INT_BOTTOM_FIELD(picLayerHeader->INTCOMFIELD) )
                     {
-                        is_bottom = 1;
                         //bottom in case "both field"
                     // VM_ASSERT(0);
                         //Luma scale
