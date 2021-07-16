@@ -448,8 +448,8 @@ PreEncAuxBuffer*  CEncodingPipeline::GetFreePreEncAuxBuffer()
 
 mfxStatus CEncodingPipeline::InitMfxPreEncParams(sInputParams *pInParams)
 {
-    MSDK_CHECK_ERROR(pInParams->bEnableExtLA, false, MFX_ERR_INVALID_VIDEO_PARAM);
     MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
+    MSDK_CHECK_ERROR(pInParams->bEnableExtLA, false, MFX_ERR_INVALID_VIDEO_PARAM);
 
     m_mfxPreEncParams.mfx = {};
     // Plugin needs AVC for init
@@ -475,6 +475,8 @@ mfxStatus CEncodingPipeline::InitMfxPreEncParams(sInputParams *pInParams)
 
 mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 {
+    MSDK_CHECK_POINTER(pInParams,  MFX_ERR_NULL_PTR);
+
     m_mfxEncParams.mfx.CodecId                 = pInParams->CodecId;
     m_mfxEncParams.mfx.TargetUsage             = pInParams->nTargetUsage; // trade-off between quality and speed
     m_mfxEncParams.mfx.RateControlMethod       = pInParams->nRateControlMethod;
