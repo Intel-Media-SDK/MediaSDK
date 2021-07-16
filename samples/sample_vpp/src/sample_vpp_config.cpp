@@ -118,6 +118,7 @@ mfxStatus ConfigVideoEnhancementFilters( sInputParams* pParams, sAppResources* p
     {
         auto colorfillConfig = pVppParam->AddExtBuffer<mfxExtVPPColorFill>();
         colorfillConfig      = &pParams->colorfillParam[paramID];
+        std::ignore = colorfillConfig;
     }
 
     if( VPP_FILTER_ENABLED_CONFIGURED == pParams->procampParam[paramID].mode )

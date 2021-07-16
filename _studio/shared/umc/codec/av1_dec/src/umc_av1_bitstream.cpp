@@ -1651,8 +1651,6 @@ namespace UMC_AV1_DECODER
 
         AV1D_LOG("[+]: %d", (uint32_t)BitsDecoded());
 
-        bool missingRefFrame = false; // TODO: [Global] Use this flag to trigger error resilience actions
-
         if (sh.reduced_still_picture_header)
         {
             fh.frame_type = KEY_FRAME;
@@ -1676,7 +1674,6 @@ namespace UMC_AV1_DECODER
                         false == frameDpb[fh.frame_to_show_map_idx]->RefValid()))
                     {
                         VM_ASSERT("Frame_to_show is absent in DPB or invalid!");
-                        missingRefFrame = true;
                     }
 
                     fh.current_frame_id = fh.display_frame_id;
@@ -1892,7 +1889,6 @@ namespace UMC_AV1_DECODER
                             false == refFrm->RefValid())
                         {
                             VM_ASSERT("Active reference frame is absent in DPB or invalid!");
-                            missingRefFrame = true;
                         }
                     }
                 }

@@ -2137,7 +2137,6 @@ mfxStatus VAAPIEncoder::Execute(
     std::vector<VABufferID> configBuffers;
     std::vector<mfxU32> packedBufferIndexes;
     mfxU32      i;
-    mfxU32      packedDataSize = 0;
     VAStatus    vaSts;
     mfxStatus   mfxSts;
     mfxU8 skipFlag  = task.SkipFlag();
@@ -2679,7 +2678,6 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             packedBufferIndexes.push_back(configBuffers.size());
-            packedDataSize += packed_header_param_buffer.bit_length;
             configBuffers.push_back(m_packedAudHeaderBufferId);
             configBuffers.push_back(m_packedAudBufferId);
         }
@@ -2717,7 +2715,6 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             packedBufferIndexes.push_back(configBuffers.size());
-            packedDataSize += packed_header_param_buffer.bit_length;
             configBuffers.push_back(m_packedSpsHeaderBufferId);
             configBuffers.push_back(m_packedSpsBufferId);
         }
@@ -2756,7 +2753,6 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             packedBufferIndexes.push_back(configBuffers.size());
-            packedDataSize += packed_header_param_buffer.bit_length;
             configBuffers.push_back(m_packedPpsHeaderBufferId);
             configBuffers.push_back(m_packedPpsBufferId);
         }
@@ -2792,7 +2788,6 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             packedBufferIndexes.push_back(configBuffers.size());
-            packedDataSize += packed_header_param_buffer.bit_length;
             configBuffers.push_back(m_packedSeiHeaderBufferId);
             configBuffers.push_back(m_packedSeiBufferId);
         }
@@ -2830,7 +2825,6 @@ mfxStatus VAAPIEncoder::Execute(
             MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
 
             packedBufferIndexes.push_back(configBuffers.size());
-            packedDataSize += packed_header_param_buffer.bit_length;
             configBuffers.push_back(m_packedSkippedSliceHeaderBufferId);
             configBuffers.push_back(m_packedSkippedSliceBufferId);
 

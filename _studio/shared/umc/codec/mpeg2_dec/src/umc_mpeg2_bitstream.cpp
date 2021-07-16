@@ -413,6 +413,7 @@ namespace UMC_MPEG2_DECODER
         length = MBAddrIncrTabB1_2[cc].length;
         cc1 = GetBits(length);
         sliceHdr.macroblockAddressIncrement = macroblock_address_increment + MBAddrIncrTabB1_2[cc].value;
+        std::ignore = cc1;
     }
 
 }

@@ -131,11 +131,11 @@ mfxStatus AVC_Spl::DecodeHeader(mfxBitstream * nalUnit)
                 umcRes = bitStream.GetSequenceParamSet(&sps);
                 if (umcRes == MFX_ERR_NONE)
                 {
-                    AVCSeqParamSet * temp = m_headers.m_SeqParams.GetHeader(sps.seq_parameter_set_id);
+                    m_headers.m_SeqParams.GetHeader(sps.seq_parameter_set_id);
                     m_headers.m_SeqParams.AddHeader(&sps);
 
                     // Validate the incoming bitstream's image dimensions.
-                    temp = m_headers.m_SeqParams.GetHeader(sps.seq_parameter_set_id);
+                    m_headers.m_SeqParams.GetHeader(sps.seq_parameter_set_id);
 
                     m_pNALSplitter->SetSuggestedSize(CalculateSuggestedSize(&sps));
 
