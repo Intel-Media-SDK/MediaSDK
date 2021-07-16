@@ -2408,7 +2408,7 @@ mfxStatus CEncodingPipeline::Run()
         }
 
 #if defined (ENABLE_V4L2_SUPPORT)
-        if (v4l2Pipeline.GetV4L2TerminationSignal() && isV4L2InputEnabled)
+        if (isV4L2InputEnabled && v4l2Pipeline.GetV4L2TerminationSignal())
         {
             break;
         }
