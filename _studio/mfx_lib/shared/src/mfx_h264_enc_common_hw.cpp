@@ -8355,6 +8355,7 @@ void MfxHwH264Encode::ReadSpsHeader(
     InputBitstreamCheckedRange reader(is);
 
     mfxU32 unused                                           = reader.GetBit(); // forbiddenZeroBit
+    std::ignore = unused;
 
     sps.nalRefIdc                                           = reader.GetBits(2);
     if (sps.nalRefIdc == 0)
@@ -8539,6 +8540,7 @@ void MfxHwH264Encode::ReadPpsHeader(
     InputBitstreamCheckedRange reader(is);
 
     mfxU32 unused                                               = reader.GetBit(); // forbiddenZeroBit
+    std::ignore = unused;
 
     pps.nalRefIdc                                               = reader.GetBits(2);
     if (pps.nalRefIdc == 0)
@@ -8944,7 +8946,6 @@ void MfxHwH264Encode::WriteScalingList(
     int32_t j;
 
     int16_t delta_scale;
-    int8_t delta_code;
     const int32_t* scan;
 
     lastScale=nextScale=8;
@@ -8957,7 +8958,6 @@ void MfxHwH264Encode::WriteScalingList(
     for( j = 0; j<sizeOfScalingList; j++ ){
          if( nextScale != 0 ){
             delta_scale = (int16_t)(scalingList[scan[j]]-lastScale);
-            delta_code = (int8_t)(delta_scale);
             writer.PutSe(delta_scale);
             nextScale = scalingList[scan[j]];
          }

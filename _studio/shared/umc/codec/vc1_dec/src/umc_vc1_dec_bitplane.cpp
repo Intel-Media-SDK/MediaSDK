@@ -23,6 +23,7 @@
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
 #include <string.h>
+#include <tuple>
 
 #include "umc_vc1_dec_seq.h"
 #include "umc_vc1_huffman.h"
@@ -193,6 +194,7 @@ static void Norm6ModeDecode(VC1Context* pContext, VC1Bitplane* pBitplane, int32_
                             &k,
                             pContext->m_vlcTbl->m_BitplaneTaledbits
                             );
+                std::ignore = ret;
                 VM_ASSERT(ret == 0);
 
                 currRowTails[0] = (uint8_t)(k&1);
@@ -353,6 +355,7 @@ void DecodeBitplane(VC1Context* pContext, VC1Bitplane* pBitplane, int32_t width,
                 &pBitplane->m_imode,
                 pContext->m_vlcTbl->m_Bitplane_IMODE
                 );
+    std::ignore = ret;
     VM_ASSERT(ret == 0);
 
     //The DATABITS field shown in the syntax diagram of Figure 28 is an entropy

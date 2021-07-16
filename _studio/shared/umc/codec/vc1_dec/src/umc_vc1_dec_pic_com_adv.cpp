@@ -22,6 +22,8 @@
 
 #if defined (MFX_ENABLE_VC1_VIDEO_DECODE)
 
+#include <tuple>
+
 #include "umc_vc1_dec_seq.h"
 #include "umc_vc1_huffman.h"
 #include "umc_vc1_common_tables.h"
@@ -429,6 +431,7 @@ VC1Status DecodePictHeaderParams_InterlaceFieldPicture_Adv (VC1Context* pContext
                                     &pContext->m_bitstream.bitOffset,
                                     &picLayerHeader->REFDIST,
                                     pContext->m_vlcTbl->REFDIST_TABLE);
+                std::ignore = ret;
                 VM_ASSERT(ret == 0);
 
                 *pContext->pRefDist = picLayerHeader->REFDIST;

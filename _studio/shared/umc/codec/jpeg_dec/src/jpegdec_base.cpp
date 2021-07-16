@@ -1399,8 +1399,6 @@ JERRCODE CJPEGDecoderBase::ReadHeader(
   JSS*    sampling,
   int*    precision)
 {
-  int      du_width;
-  int      du_height;
   JERRCODE jerr;
 
   // parse bitstream up to SOS marker
@@ -1414,10 +1412,6 @@ JERRCODE CJPEGDecoderBase::ReadHeader(
 
   if(JPEG_UNKNOWN == m_jpeg_mode)
     return JPEG_ERR_BAD_DATA;
-
-  // DU block dimensions (8x8 for DCT based modes and 1x1 for lossless mode)
-  du_width  = (JPEG_LOSSLESS == m_jpeg_mode) ? 1 : 8;
-  du_height = (JPEG_LOSSLESS == m_jpeg_mode) ? 1 : 8;
 
   *width     = m_jpeg_width;
   *height    = m_jpeg_height;

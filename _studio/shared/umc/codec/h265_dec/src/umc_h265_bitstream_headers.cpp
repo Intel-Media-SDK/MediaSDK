@@ -576,6 +576,7 @@ void H265HeadersBitstream::parseProfileTier(H265PTL *ptl)
 
     if (reserved_zero_bits_num)
         reserved_zero_bits = GetBits(reserved_zero_bits_num);
+    std::ignore = reserved_zero_bits;
 }
 
 // Parse SPS header
