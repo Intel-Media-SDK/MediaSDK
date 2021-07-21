@@ -252,6 +252,8 @@ mfxStatus ImplementationAvc::Query(
     mfxU8 queryMode = DetermineQueryMode(in);
     MFX_CHECK(queryMode, MFX_ERR_UNDEFINED_BEHAVIOR); // input parameters are contradictory and don't allow to choose Query mode
 
+    eMFXHWType platfrom = core->GetHWType();
+
     if (queryMode == 1) // see MSDK spec for details related to Query mode 1
     {
         Zero(out->mfx);
@@ -261,6 +263,8 @@ mfxStatus ImplementationAvc::Query(
         out->AsyncDepth            = 1;
         out->mfx.CodecId           = 1;
         out->mfx.LowPower          = 1;
+        if (!hasSupportVME(platfrom))
+            out->mfx.LowPower      = 0;
         out->mfx.CodecLevel        = 1;
         out->mfx.CodecProfile      = 1;
         out->mfx.NumThread         = 0;
@@ -359,7 +363,7 @@ mfxStatus ImplementationAvc::Query(
         MfxVideoParam tmp = *in; // deep copy, create all supported extended buffers
 
         eMFXHWType platfrom = core->GetHWType();
-        mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
+        mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom, true);
         // let use dedault values if input resolution is 0x0
         mfxU32 Width  = in->mfx.FrameInfo.Width == 0 ? 1920: in->mfx.FrameInfo.Width;
         mfxU32 Height =  in->mfx.FrameInfo.Height == 0 ? 1088: in->mfx.FrameInfo.Height;
@@ -400,17 +404,6 @@ mfxStatus ImplementationAvc::Query(
         out->Protected  = tmp.Protected;
         out->AsyncDepth = tmp.AsyncDepth;
         out->mfx = tmp.mfx;
-
-        // SetLowPowerDefault may change LowPower to default value
-        // if LowPower was invalid set it to Zero to mimic Query behaviour
-        if (lpSts == MFX_WRN_INCOMPATIBLE_VIDEO_PARAM)
-        {
-            out->mfx.LowPower = 0;
-        }
-        else // otherwise 'hide' default vbalue;
-        {
-            out->mfx.LowPower = in->mfx.LowPower;
-        }
 
         // should have same number of buffers
         MFX_CHECK((in->NumExtParam == out->NumExtParam) && ((!in->ExtParam) == (!out->ExtParam)),
@@ -520,7 +513,7 @@ mfxStatus ImplementationAvc::Query(
 
         MfxVideoParam tmp = *in;
         eMFXHWType platfrom = core->GetHWType();
-        (void)SetLowPowerDefault(tmp, platfrom);
+        (void)SetLowPowerDefault(tmp, platfrom, true);
 
         // query MB processing rate from driver
         sts = QueryMbProcRate(core, *out, mbPerSec, &tmp);
@@ -545,7 +538,7 @@ mfxStatus ImplementationAvc::Query(
     {
         MfxVideoParam tmp = *in;
         eMFXHWType platform = core->GetHWType();
-        (void)SetLowPowerDefault(tmp, platform);
+        (void)SetLowPowerDefault(tmp, platform, true);
         if(IsOn(tmp.mfx.LowPower))
             return QueryGuid(core, DXVA2_INTEL_LOWPOWERENCODE_AVC);
         return QueryGuid(core, DXVA2_Intel_Encode_AVC);
@@ -569,7 +562,7 @@ mfxStatus ImplementationAvc::QueryIOSurf(
     MFX_ENCODE_CAPS hwCaps = {};
     MfxVideoParam tmp(*par);
     eMFXHWType platfrom = core->GetHWType();
-    mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom);
+    mfxStatus lpSts = SetLowPowerDefault(tmp, platfrom, false);
 
     mfxStatus sts = QueryHwCaps(core, hwCaps, &tmp);
     if (IsOn(par->mfx.LowPower) && sts != MFX_ERR_NONE)
@@ -779,7 +772,7 @@ mfxStatus ImplementationAvc::Init(mfxVideoParam * par)
 
     m_video = *par;
     eMFXHWType platform = m_core->GetHWType();
-    mfxStatus lpSts = SetLowPowerDefault(m_video, platform);
+    mfxStatus lpSts = SetLowPowerDefault(m_video, platform, false);
 
     sts = ReadSpsPpsHeaders(m_video);
     MFX_CHECK_STS(sts);
