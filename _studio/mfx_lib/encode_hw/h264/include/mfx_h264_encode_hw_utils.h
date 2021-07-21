@@ -52,6 +52,16 @@
 #define bRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_EXT)||(RCMethod == MFX_RATECONTROL_LA_HRD))
 #define bIntRateControlLA(RCMethod) ((RCMethod == MFX_RATECONTROL_LA)||(RCMethod == MFX_RATECONTROL_LA_ICQ)||(RCMethod == MFX_RATECONTROL_LA_HRD))
 
+inline constexpr
+bool hasSupportVME(eMFXHWType platform)
+{
+    return
+        (platform <= MFX_HW_ADL_S
+            && platform != MFX_HW_JSL
+            && platform != MFX_HW_EHL
+            );
+}
+
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
 
 #define MFX_ARRAY_SIZE(ARR) (sizeof(ARR)/sizeof(ARR[0]))
