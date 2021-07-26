@@ -1808,7 +1808,11 @@ void ImplementationAvc::OnLookaheadSubmitted(DdiTaskIter task)
     m_stagesToGo &= ~AsyncRoutineEmulator::STG_BIT_START_LA;
 
     if (m_inputFrameType == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
+    {
+        printf("OnLookaheadSubmitted m_core->DecreaseReference+ %p Locked %d\n", task->m_yuv, task->m_yuv->Data.Locked);
         m_core->DecreaseReference(&task->m_yuv->Data);
+        printf("OnLookaheadSubmitted m_core->DecreaseReference- %p Locked %d\n", task->m_yuv, task->m_yuv->Data.Locked);
+    }
     m_lookaheadStarted.splice(m_lookaheadStarted.end(), m_reordering, task);
 }
 
@@ -3210,7 +3214,9 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
         {
             if (m_raw.Unlock(m_lastTask.m_idx) == (mfxU32)-1)
             {
+                printf("OnLookaheadSubmitted m_core->DecreaseReference+ %p Locked %d\n", m_lastTask.m_yuv, m_lastTask.m_yuv->Data.Locked);
                 m_core->DecreaseReference(&m_lastTask.m_yuv->Data);
+                printf("OnLookaheadSubmitted m_core->DecreaseReference+ %p Locked %d\n", m_lastTask.m_yuv, m_lastTask.m_yuv->Data.Locked);
             }
             ReleaseResource(m_rawLa, m_lastTask.m_cmRawLa);
             ReleaseResource(m_mb,    m_lastTask.m_cmMb);
@@ -3504,6 +3510,7 @@ mfxStatus ImplementationAvc::AsyncRoutine(mfxBitstream * bs)
                     task->m_fillerSize[fieldId] = PaddingBytesToWorkAroundHrdIssue(
                         m_video, m_hrd, m_encoding, task->m_fieldPicFlag, f);
 
+                printf("PrepareSeiMessageBuffer\n");
                 PrepareSeiMessageBuffer(m_video, *task, fieldId, m_sei);
 
 #ifdef MFX_ENABLE_SVC_VIDEO_ENCODE_HW

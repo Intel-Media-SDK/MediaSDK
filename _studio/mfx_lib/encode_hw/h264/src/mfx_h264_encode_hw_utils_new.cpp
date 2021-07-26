@@ -2545,6 +2545,7 @@ mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
     MfxVideoParam const & video,
     DdiTask const &       task)
 {
+    printf("CopyRawSurfaceToVideoMemory+\n");
     mfxExtOpaqueSurfaceAlloc const & extOpaq = GetExtBufferRef(video);
 
     mfxFrameSurface1 * surface = task.m_yuv;
@@ -2592,6 +2593,7 @@ mfxStatus MfxHwH264Encode::CopyRawSurfaceToVideoMemory(
         //    return Error(sts);
     }
 
+    printf("CopyRawSurfaceToVideoMemory-\n");
     return MFX_ERR_NONE;
 }
 bool MfxHwH264Encode::IsFrameToSkip(DdiTask&  task, MfxFrameAllocResponse & poolRec, std::vector<mfxU32> fo, bool bSWBRC)

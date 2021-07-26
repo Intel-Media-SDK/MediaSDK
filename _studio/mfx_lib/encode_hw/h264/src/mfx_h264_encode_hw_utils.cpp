@@ -2475,7 +2475,9 @@ void TaskManager::CompleteTask(DdiTask & task)
 
     if (IsOff(optDdi->RefRaw))
     {
+        printf("CompleteTask m_core->DecreaseReference+ %p Locked %d\n", task.m_yuv, task.m_yuv->Data.Locked);
         m_core->DecreaseReference(&task.m_yuv->Data);
+        printf("CompleteTask m_core->DecreaseReference- %p Locked %d\n", task.m_yuv, task.m_yuv->Data.Locked);
 
         if (task.m_idx != NO_INDEX && m_video.IOPattern == MFX_IOPATTERN_IN_SYSTEM_MEMORY)
             m_raws[task.m_idx].SetFree(true);
@@ -5006,6 +5008,7 @@ mfxStatus MfxHwH264Encode::CheckEncodeFrameParam(
         MFX_CHECK(bs->DataOffset <= bs->MaxLength, MFX_ERR_UNDEFINED_BEHAVIOR);
         MFX_CHECK(bs->DataOffset + bs->DataLength + bufferSizeInKB * 1000u <= bs->MaxLength,
             MFX_ERR_NOT_ENOUGH_BUFFER);
+
         MFX_CHECK_NULL_PTR1(bs->Data);
     }
 
