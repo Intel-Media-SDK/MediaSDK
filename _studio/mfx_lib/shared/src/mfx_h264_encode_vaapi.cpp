@@ -2127,6 +2127,7 @@ mfxStatus VAAPIEncoder::Execute(
     mfxU32          fieldId,
     PreAllocatedVector const & sei)
 {
+    printf("Execute +\n");
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::Execute");
 
     mfxHDL surface = pair.first;
@@ -3273,6 +3274,7 @@ mfxStatus VAAPIEncoder::Execute(
     MFX_CHECK_STS(mfxSts);
 #endif
 
+    printf("Execute -\n");
     return MFX_ERR_NONE;
 } // mfxStatus VAAPIEncoder::Execute(ExecuteBuffers& data, mfxU32 fieldId)
 
@@ -3281,6 +3283,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
     DdiTask & task,
     mfxU32    fieldId)
 {
+    printf("QueryStatus +\n");
     MFX_AUTO_LTRACE(MFX_TRACE_LEVEL_HOTSPOTS, "VAAPIEncoder::QueryStatus");
     mfxStatus sts = MFX_ERR_NONE;
     bool isFound = false;
@@ -3377,6 +3380,7 @@ mfxStatus VAAPIEncoder::QueryStatus(
                                            currentFeedback, codedBufferSegment->status);
         MFX_CHECK_STS(sts);
     }
+    printf("QueryStatus -\n");
 
     return sts;
 } //mfxStatus VAAPIEncoder::QueryStatus

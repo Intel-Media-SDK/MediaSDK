@@ -810,6 +810,7 @@ enum
 
 mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctrl, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxSyncPoint *syncp)
 {
+    printf("MFXVideoENCODE_EncodeFrameAsync + surface %p Locked %d\n", surface, surface ? surface->Data.Locked: 0xffff);
     mfxStatus mfxRes;
 
     MFX_AUTO_LTRACE_WITHID(MFX_TRACE_LEVEL_API, "MFX_EncodeFrameAsync");
@@ -968,6 +969,7 @@ mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxEncodeCtrl *ctr
         MFX_LTRACE_P(MFX_TRACE_LEVEL_API, *syncp);
     }
     MFX_LTRACE_I(MFX_TRACE_LEVEL_API, mfxRes);
+    printf("MFXVideoENCODE_EncodeFrameAsync - surface %p Locked %d\n", surface, surface ? surface->Data.Locked: 0xffff);
     return mfxRes;
 
 } // mfxStatus MFXVideoENCODE_EncodeFrameAsync(mfxSession session, mfxFrameSurface1 *surface, mfxBitstream *bs, mfxSyncPoint *syncp)
