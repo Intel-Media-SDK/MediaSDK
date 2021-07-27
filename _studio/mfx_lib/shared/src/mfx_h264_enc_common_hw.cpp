@@ -988,6 +988,7 @@ namespace
         return mfxU32((mfxU64)info.FrameRateExtD * 1000000 / info.FrameRateExtN);
     }
 #endif
+
     mfxU16 GetMaxNumRefActivePL0(mfxU32 targetUsage,
                                         eMFXHWType platform,
                                         bool isLowPower,
