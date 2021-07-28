@@ -72,6 +72,7 @@ mfxStatus CheckFrameInfoCommon(mfxFrameInfo  *info, mfxU32 /* codecId */)
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_P210:
     case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_XYUV:
 
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
@@ -196,6 +197,7 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
     case MFX_CODEC_VP9:
         if (info->FourCC != MFX_FOURCC_NV12
             && info->FourCC != MFX_FOURCC_AYUV
+            && info->FourCC != MFX_FOURCC_XYUV
             && info->FourCC != MFX_FOURCC_P010
 #if (MFX_VERSION >= 1027)
             && info->FourCC != MFX_FOURCC_Y410
@@ -220,7 +222,8 @@ mfxStatus CheckFrameInfoCodecs(mfxFrameInfo  *info, mfxU32 codecId, bool isHW)
             info->FourCC != MFX_FOURCC_P010 &&
             info->FourCC != MFX_FOURCC_NV16 &&
             info->FourCC != MFX_FOURCC_P210 &&
-            info->FourCC != MFX_FOURCC_AYUV
+            info->FourCC != MFX_FOURCC_AYUV &&
+            info->FourCC != MFX_FOURCC_XYUV
 #if (MFX_VERSION >= 1027)
             && info->FourCC != MFX_FOURCC_Y210
             && info->FourCC != MFX_FOURCC_Y410
@@ -314,6 +317,7 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
         case MFX_FOURCC_NV12:
         case MFX_FOURCC_YUY2:
         case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_XYUV:
             request->Info.BitDepthLuma = 8;
             request->Info.Shift = 0;
             break;
@@ -556,6 +560,7 @@ mfxStatus CheckFramePointers(mfxFrameInfo const& info, mfxFrameData const& data)
         case MFX_FOURCC_RGB3:        MFX_CHECK(data.R && data.G && data.B, MFX_ERR_UNDEFINED_BEHAVIOR); break;
 
         case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_XYUV:
         case MFX_FOURCC_AYUV_RGB4:
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
@@ -985,6 +990,7 @@ mfxU32 GetMinPitch(mfxU32 fourcc, mfxU16 width)
         case MFX_FOURCC_RGB3:        return width * 3;
 
         case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_XYUV:
         case MFX_FOURCC_AYUV_RGB4:
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:
@@ -1033,6 +1039,7 @@ mfxU8* GetFramePointer(mfxU32 fourcc, mfxFrameData const& data)
 #endif // MFX_ENABLE_FOURCC_RGB565
         case MFX_FOURCC_R16:         return reinterpret_cast<mfxU8*>(data.Y16); break;
 
+        case MFX_FOURCC_XYUV:
         case MFX_FOURCC_AYUV:        return data.V; break;
 
         case MFX_FOURCC_UYVY:        return data.U; break;

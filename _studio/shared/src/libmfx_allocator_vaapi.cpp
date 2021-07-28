@@ -62,6 +62,8 @@ static inline unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_YV12;
     case MFX_FOURCC_AYUV:
         return VA_FOURCC_AYUV;
+    case MFX_FOURCC_XYUV:
+        return VA_FOURCC_XYUV;
 #if defined (MFX_ENABLE_FOURCC_RGB565)
     case MFX_FOURCC_RGB565:
         return VA_FOURCC_RGB565;

@@ -64,6 +64,7 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
             profile |= VA_PROFILE_10;
             break;
         case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_XYUV:
             profile |= VA_PROFILE_444;
             break;
 #if (MFX_VERSION >= 1027)
@@ -106,6 +107,7 @@ mfxU32 ChooseProfile(mfxVideoParam const* param, eMFXHWType)
                 profile |= VA_PROFILE_422;
                 break;
             case MFX_FOURCC_AYUV:
+            case MFX_FOURCC_XYUV:
                 profile |= VA_PROFILE_444;
                 break;
 #if (MFX_VERSION >= 1027)

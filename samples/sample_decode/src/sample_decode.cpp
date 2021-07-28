@@ -639,6 +639,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
         {
             pParams->fourcc = MFX_FOURCC_AYUV;
         }
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-xyuv")))
+        {
+            pParams->fourcc = MFX_FOURCC_XYUV;
+        }
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-yuy2")))
         {
             pParams->fourcc = MFX_FOURCC_YUY2;

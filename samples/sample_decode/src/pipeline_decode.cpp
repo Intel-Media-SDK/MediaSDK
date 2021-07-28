@@ -657,7 +657,7 @@ bool CDecodingPipeline::IsVppRequired(sInputParams *pParams)
     }
     else
     {
-        bVppIsUsed |= m_fourcc && (m_fourcc != m_mfxVideoParams.mfx.FrameInfo.FourCC);
+        bVppIsUsed |= m_fourcc && (m_fourcc != m_mfxVideoParams.mfx.FrameInfo.FourCC) && m_fourcc != MFX_FOURCC_XYUV;
     }
 
     if (pParams->eDeinterlace)

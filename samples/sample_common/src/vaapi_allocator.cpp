@@ -61,6 +61,8 @@ unsigned int ConvertMfxFourccToVAFormat(mfxU32 fourcc)
         return VA_FOURCC_ARGB;  // rt format will be VA_RT_FORMAT_RGB32_10BPP
     case MFX_FOURCC_AYUV:
         return VA_FOURCC_AYUV;
+    case MFX_FOURCC_XYUV:
+        return VA_FOURCC_XYUV;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y210:
         return VA_FOURCC_Y210;

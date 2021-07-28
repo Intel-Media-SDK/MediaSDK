@@ -258,7 +258,8 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_NV12
                       || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                       || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
-                      || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV);
+                      || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
+                      || videoProcessing->Out.FourCC == MFX_FOURCC_XYUV);
         }
         else
         {
@@ -268,6 +269,7 @@ mfxStatus VideoDECODEH265::Init(mfxVideoParam *par)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_P010
                       || videoProcessing->Out.FourCC == MFX_FOURCC_YUY2
                       || videoProcessing->Out.FourCC == MFX_FOURCC_AYUV
+                      || videoProcessing->Out.FourCC == MFX_FOURCC_XYUV
 #if (MFX_VERSION >= 1027)
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y410
                       || videoProcessing->Out.FourCC == MFX_FOURCC_Y210

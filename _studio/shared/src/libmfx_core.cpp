@@ -1395,6 +1395,7 @@ mfxStatus CoreDoSWFastCopy(mfxFrameSurface1 & dst, const mfxFrameSurface1 & src,
 #endif
 
     case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_XYUV:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_A2RGB10:

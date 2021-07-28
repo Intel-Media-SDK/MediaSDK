@@ -217,6 +217,7 @@ UMC::ColorFormat ConvertFOURCCToUMCColorFormat(mfxU32 fourcc)
         case MFX_FOURCC_Y416:    return UMC::Y416;
 #endif
 
+        case MFX_FOURCC_XYUV:
         case MFX_FOURCC_AYUV:    return UMC::YUV444A;
 
         case MFX_FOURCC_IMC3:    return UMC::IMC3;
@@ -370,6 +371,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_YUY2:
+    case MFX_FOURCC_XYUV:
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_UYVY:
         bitDepth = 8;

@@ -124,6 +124,7 @@ bool CmCopyWrapper::isSinglePlainFormat(mfxU32 format)
     case MFX_FOURCC_ARGB16:
     case MFX_FOURCC_ABGR16:
     case MFX_FOURCC_R16:
+    case MFX_FOURCC_XYUV:
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_AYUV_RGB4:
     case MFX_FOURCC_UYVY:
@@ -172,6 +173,7 @@ int CmCopyWrapper::getSizePerPixel(mfxU32 format)
     case MFX_FOURCC_BGR4:
     case MFX_FOURCC_RGB4:
     case MFX_FOURCC_A2RGB10:
+    case MFX_FOURCC_XYUV:
     case MFX_FOURCC_AYUV:
     case MFX_FOURCC_AYUV_RGB4:
 #if (MFX_VERSION >= 1027)

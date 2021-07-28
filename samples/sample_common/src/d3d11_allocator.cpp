@@ -574,6 +574,7 @@ DXGI_FORMAT D3D11FrameAllocator::ConverColortFormat(mfxU32 fourcc)
 
         case DXGI_FORMAT_AYUV:
         case MFX_FOURCC_AYUV:
+        case MFX_FOURCC_XYUV:
             return DXGI_FORMAT_AYUV;
 
 #if (MFX_VERSION >= 1027)
