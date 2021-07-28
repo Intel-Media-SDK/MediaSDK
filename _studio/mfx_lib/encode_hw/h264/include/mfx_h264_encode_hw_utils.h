@@ -56,10 +56,10 @@ inline constexpr
 bool hasSupportVME(eMFXHWType platform)
 {
     return
-        (platform <= MFX_HW_ADL_S
-            && platform != MFX_HW_JSL
-            && platform != MFX_HW_EHL
-            );
+           (platform <= MFX_HW_ADL_S
+        &&  platform != MFX_HW_JSL
+        &&  platform != MFX_HW_EHL
+        );
 }
 
 #define MFX_H264ENC_HW_TASK_TIMEOUT 2000
