@@ -1481,29 +1481,19 @@ Return value:
 MFX_WRN_INCOMPATIBLE_VIDEO_PARAM - if initial value of par.mfx.LowPower is not equal to MFX_CODINGOPTION_ON, MFX_CODINGOPTION_OFF or MFX_CODINGOPTION_UNKNOWN
 MFX_ERR_NONE - if no errors
 */
-mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform, bool bIsQueryMode)
+mfxStatus MfxHwH264Encode::SetLowPowerDefault(MfxVideoParam& par, const eMFXHWType& platform)
 {
-    mfxStatus sts = MFX_ERR_NONE;
+    mfxStatus sts = CheckTriStateOption(par.mfx.LowPower) ? MFX_ERR_NONE : MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
 
     if (!hasSupportVME(platform))
     {   // DualPipe (aka VME) is not available
-        if (!bIsQueryMode || par.mfx.LowPower != MFX_CODINGOPTION_UNKNOWN)
-            par.mfx.LowPower = MFX_CODINGOPTION_ON;
-
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
         return sts;
     }
 
-    // Garbage values will be overridden to OFF
-    if (!CheckTriStateOption(par.mfx.LowPower))
-    {
-        sts = MFX_WRN_INCOMPATIBLE_VIDEO_PARAM;
-        par.mfx.LowPower = MFX_CODINGOPTION_OFF;
-    }
-
-    // On Init UNKNOWN values will be overridden to OFF
-    if (!bIsQueryMode)
-        SetDefaultOff(par.mfx.LowPower);
-
+    // By default, platforms with 2 encoders (VDEnc & VME) will use VME
+    // Therefore, garbage & UNKNOWN values will be overridden to OFF
+    SetDefaultOff(par.mfx.LowPower);
     return sts;
 }
 
