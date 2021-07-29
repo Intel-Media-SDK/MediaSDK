@@ -989,9 +989,17 @@ mfxStatus CheckParameters(VP9MfxVideoParam &par, ENCODE_CAPS_VP9 const &caps)
     Bool changed = false;
     Bool unsupported = false;
 
-    if (false == CheckTriStateOption(par.mfx.LowPower))
+    if (par.mfx.LowPower != MFX_CODINGOPTION_UNKNOWN &&
+        par.mfx.LowPower != MFX_CODINGOPTION_ON &&
+        par.mfx.LowPower != MFX_CODINGOPTION_OFF)
     {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
         changed = true;
+    }
+
+    if (par.mfx.LowPower == MFX_CODINGOPTION_OFF)
+    {
+        par.mfx.LowPower = MFX_CODINGOPTION_ON;
     }
 
     // clean out non-configurable params but do not return any errors on that (ignore mode)
