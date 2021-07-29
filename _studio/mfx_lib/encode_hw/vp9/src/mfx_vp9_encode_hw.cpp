@@ -66,7 +66,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Query(VideoCORE *core, mfxVideoParam *in, mfxVid
 
         VP9MfxVideoParam toValidate(*in, platform);
         SetDefaultsForProfileAndFrameInfo(toValidate);
-        SetDefaultForLowpower(toValidate.mfx.LowPower, platform);
 
         // get HW caps from driver
         ENCODE_CAPS_VP9 caps = {};
@@ -261,7 +260,6 @@ mfxStatus MFXVideoENCODEVP9_HW::Init(mfxVideoParam *par)
     VP9MfxVideoParam toGetGuid(m_video);
 
     SetDefaultsForProfileAndFrameInfo(toGetGuid);
-    SetDefaultForLowpower(toGetGuid.mfx.LowPower, platform);
 
     sts = m_ddi->CreateAuxilliaryDevice(m_pCore, GetGuid(toGetGuid), toGetGuid);
     MFX_CHECK(sts != MFX_ERR_UNSUPPORTED, MFX_ERR_INVALID_VIDEO_PARAM);
