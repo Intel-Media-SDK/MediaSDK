@@ -28,7 +28,7 @@ jobs:
           echo "clang-13 already presents in the image"; \
         else \
           echo "clang-13 missed in the image, installing from llvm"; \
-          echo "deb [trusted=yes] http://apt.llvm.org/focal/ llvm-toolchain-focal main" | sudo tee -a /etc/apt/sources.list; \
+          echo "deb [trusted=yes] http://apt.llvm.org/focal/ llvm-toolchain-focal-13 main" | sudo tee -a /etc/apt/sources.list; \
           sudo apt-get update; \
           sudo apt-get install -y --no-install-recommends clang-13; \
         fi
