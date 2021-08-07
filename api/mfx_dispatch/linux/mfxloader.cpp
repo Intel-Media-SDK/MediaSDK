@@ -46,6 +46,7 @@ namespace MFX {
     #else
         #define LIBMFXSW "libmfxsw32.so.1"
         #define LIBMFXHW "libmfxhw32.so.1"
+        #define ONEVPLRT "libmfx-gen.so.1"
     #endif
 #elif defined(__x86_64__)
     #ifdef ANDROID
