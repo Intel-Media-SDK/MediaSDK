@@ -422,7 +422,7 @@ void* drmRenderer::acquire(mfxMemId mid)
         int ret = m_drmlib.drmIoctl(m_fd, DRM_IOCTL_GEM_OPEN, &flink_open);
         if (ret) return NULL;
 
-        uint32_t handles[4], pitches[4], offsets[4], pixel_format;
+        uint32_t handles[4], pitches[4], offsets[4], pixel_format, flags = 0;
         uint64_t modifiers[4];
 
         memset(&handles, 0, sizeof(handles));
@@ -452,13 +452,14 @@ void* drmRenderer::acquire(mfxMemId mid)
             pitches[1] = vmid->m_image.pitches[1];
             offsets[1] = vmid->m_image.offsets[1];
             modifiers[0] = modifiers[1] = I915_FORMAT_MOD_Y_TILED;
+            flags = 2; // DRM_MODE_FB_MODIFIERS   (1<<1) /* enables ->modifer[]
        }
        else {
             pixel_format = DRM_FORMAT_XRGB8888;
        }
 
         ret = m_drmlib.drmModeAddFB2WithModifiers(m_fd, vmid->m_image.width, vmid->m_image.height,
-              pixel_format, handles, pitches, offsets, modifiers, &fbhandle, 0);
+              pixel_format, handles, pitches, offsets, modifiers, &fbhandle, flags);
         if (ret) return NULL;
 
         MSDK_ZERO_MEMORY(flink_close);
