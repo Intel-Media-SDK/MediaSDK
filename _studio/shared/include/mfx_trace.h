@@ -162,7 +162,7 @@ typedef enum
 #endif
 
 // defines default trace level
-#define MFX_TRACE_LEVEL_DEFAULT     MFX_TRACE_LEVEL_MAX
+#define MFX_TRACE_LEVEL_DEFAULT     MFX_TRACE_LEVEL_0
 
 // defines default trace level for the current module
 #ifndef MFX_TRACE_LEVEL
