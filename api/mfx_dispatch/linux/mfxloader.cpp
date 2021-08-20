@@ -46,7 +46,7 @@ namespace MFX {
     #else
         #define LIBMFXSW "libmfxsw32.so.1"
         #define LIBMFXHW "libmfxhw32.so.1"
-        #define ONEVPLRT "libmfx-gen.so.1"
+        #define ONEVPLRT "libmfx-gen.so"
     #endif
 #elif defined(__x86_64__)
     #ifdef ANDROID
@@ -55,7 +55,7 @@ namespace MFX {
     #else
         #define LIBMFXSW "libmfxsw64.so.1"
         #define LIBMFXHW "libmfxhw64.so.1"
-        #define ONEVPLRT "libmfx-gen.so.1"
+        #define ONEVPLRT "libmfx-gen.so"
     #endif
 #else
     #error Unsupported architecture

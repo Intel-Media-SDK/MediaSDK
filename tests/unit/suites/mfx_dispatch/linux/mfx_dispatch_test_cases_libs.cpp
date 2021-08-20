@@ -85,7 +85,7 @@ TEST_P(DispatcherLibsTestParametrized, ShouldEnumerateCorrectLibNames)
 #elif defined(__x86_64__)
     const std::string LIBMFXSW("libmfxsw64.so.1");
     const std::string LIBMFXHW("libmfxhw64.so.1");
-    const std::string ONEVPLRT("libmfx-gen.so.1");
+    const std::string ONEVPLRT("libmfx-gen.so");
 #endif
 
     std::string modules_dir(MFX_MODULES_DIR);
