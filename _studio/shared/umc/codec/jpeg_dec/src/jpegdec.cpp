@@ -1897,6 +1897,11 @@ JERRCODE CJPEGDecoder::UpSampling(uint32_t rowMCU, uint32_t colMCU, uint32_t max
           pixelToProcess = std::min(tileSize, srcWidth / m_dd_factor);
           while(j < (int) srcWidth / m_dd_factor)
           {
+              if (pDst > curr_comp->GetCCBufferPtr<uint8_t>(0) + (curr_comp->m_cc_bufsize - 1) * sizeof(uint8_t))
+              {
+                 LOG0("Error: CCBuferPtr out of bound!");
+                 return JPEG_ERR_BUFF;
+              }
               status = mfxiSampleUpRowH2V2_Triangle_JPEG_8u_C1(pSrc + j, pSrc + j, pixelToProcess, pDst + j * 2);    
               if(ippStsNoErr != status)
               {
