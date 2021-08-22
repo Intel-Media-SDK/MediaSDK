@@ -4288,6 +4288,10 @@ JERRCODE CJPEGDecoder::ReadData(uint32_t restartNum, uint32_t restartsToDecode)
         }
 
         // reset DC predictors
+        if (m_jpeg_ncomp < 0 || m_jpeg_ncomp > MAX_COMPS_PER_SCAN)
+        {
+            return JPEG_ERR_SOF_DATA;
+        }
         for (int n = 0; n < m_jpeg_ncomp; n++)
         {
             m_ccomp[n].m_lastDC = 0;
