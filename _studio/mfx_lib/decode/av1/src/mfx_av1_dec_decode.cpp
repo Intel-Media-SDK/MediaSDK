@@ -821,6 +821,7 @@ static mfxStatus CheckFrameInfo(mfxFrameInfo &info)
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_XYUV:
     case MFX_FOURCC_YUY2:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:

@@ -2985,7 +2985,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_RGB4 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_BGR4 &&
         par.mfx.FrameInfo.FourCC != MFX_FOURCC_YUY2 &&
-        par.mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV)
+        par.mfx.FrameInfo.FourCC != MFX_FOURCC_AYUV &&
+        par.mfx.FrameInfo.FourCC != MFX_FOURCC_XYUV)
     {
         unsupported = true;
         par.mfx.FrameInfo.FourCC = 0;
@@ -3012,8 +3013,8 @@ mfxStatus MfxHwH264Encode::CheckVideoParamQueryLike(
         par.mfx.FrameInfo.ChromaFormat = MFX_CHROMAFORMAT_YUV422;
     }
 
-    if (par.mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV &&
-        par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+    if ((par.mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV || par.mfx.FrameInfo.FourCC == MFX_FOURCC_XYUV)
+        && par.mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
     {
         if (extBits->SPSBuffer)
             return Error(MFX_ERR_INCOMPATIBLE_VIDEO_PARAM);
@@ -7154,7 +7155,7 @@ mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
             }
 
             // checking for (8-298) in H.264-201704 spec:
-            // −128 <= w0C + w1C <= ( ( logWDC == 7 ) ? 127 : 128 )
+            // ?128 <= w0C + w1C <= ( ( logWDC == 7 ) ? 127 : 128 )
             for (mfxU32 m = 0; m < 32; m++) // L0 index
             {
                 for (mfxU32 n = 0; n < 32; n++) // L1 index

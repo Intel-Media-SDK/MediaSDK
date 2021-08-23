@@ -129,6 +129,7 @@ namespace MFX_VPX_Utility
             {
             case MFX_FOURCC_NV12:
             case MFX_FOURCC_AYUV:
+            case MFX_FOURCC_XYUV:
             case MFX_FOURCC_P010:
 #if (MFX_VERSION >= 1027)
             case MFX_FOURCC_Y410:
@@ -161,6 +162,7 @@ namespace MFX_VPX_Utility
             {
                 if ((   p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+                    || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_XYUV && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
                     || (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_P010 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
 #if (MFX_VERSION >= 1027)
                   //|| (p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_Y210 && p_in->mfx.FrameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV422)
@@ -185,6 +187,7 @@ namespace MFX_VPX_Utility
             p_out->mfx.FrameInfo.Shift          = p_in->mfx.FrameInfo.Shift;
 
             if ((p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_NV12
+                || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_XYUV
                 || p_in->mfx.FrameInfo.FourCC == MFX_FOURCC_AYUV) &&
                ((p_in->mfx.FrameInfo.BitDepthLuma   != 0 && p_in->mfx.FrameInfo.BitDepthLuma   != 8) ||
                 (p_in->mfx.FrameInfo.BitDepthChroma != 0 && p_in->mfx.FrameInfo.BitDepthChroma != 8) ||
@@ -407,6 +410,7 @@ namespace MFX_VPX_Utility
             {
                 if ((frameInfo.FourCC == MFX_FOURCC_NV12 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
                     || (frameInfo.FourCC == MFX_FOURCC_AYUV && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
+                    || (frameInfo.FourCC == MFX_FOURCC_XYUV && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)
                     || (frameInfo.FourCC == MFX_FOURCC_P010 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV420)
 #if (MFX_VERSION >= 1027)
                     || (frameInfo.FourCC == MFX_FOURCC_Y410 && frameInfo.ChromaFormat != MFX_CHROMAFORMAT_YUV444)

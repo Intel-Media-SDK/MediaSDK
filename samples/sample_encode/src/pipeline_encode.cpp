@@ -1452,6 +1452,7 @@ mfxU16 FourCcBitDepth(mfxU32 fourCC)
     case MFX_FOURCC_NV16:
     case MFX_FOURCC_YUY2:
     case MFX_FOURCC_AYUV:
+    case MFX_FOURCC_XYUV:
         return 8;
         break;
 
