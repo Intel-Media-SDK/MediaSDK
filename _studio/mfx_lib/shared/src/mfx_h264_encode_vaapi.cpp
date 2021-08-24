@@ -49,7 +49,6 @@ mfxU32 ConvertMfxFourcc2VaapiRTFormat(mfxU32 fourcc)
         case MFX_FOURCC_YUY2:
             return VA_RT_FORMAT_YUV422;
         case MFX_FOURCC_AYUV:
-        case MFX_FOURCC_XYUV:
             return VA_RT_FORMAT_YUV444;
         case MFX_FOURCC_RGB4:
         case MFX_FOURCC_BGR4:

@@ -7154,7 +7154,7 @@ mfxStatus MfxHwH264Encode::CheckFEIRunTimeExtBuffersContent(
             }
 
             // checking for (8-298) in H.264-201704 spec:
-            // ?128 <= w0C + w1C <= ( ( logWDC == 7 ) ? 127 : 128 )
+            // -128 <= w0C + w1C <= ( ( logWDC == 7 ) ? 127 : 128 )
             for (mfxU32 m = 0; m < 32; m++) // L0 index
             {
                 for (mfxU32 n = 0; n < 32; n++) // L1 index

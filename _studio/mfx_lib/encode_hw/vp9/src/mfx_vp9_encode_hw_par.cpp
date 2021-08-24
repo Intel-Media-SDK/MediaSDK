@@ -497,7 +497,6 @@ mfxU16 GetBitDepth(mfxU32 fourcc)
     {
     case MFX_FOURCC_NV12:
     case MFX_FOURCC_AYUV:
-    case MFX_FOURCC_XYUV:
         return BITDEPTH_8;
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:
