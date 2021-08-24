@@ -1451,7 +1451,7 @@ public:
               && par.mfx.TargetUsage >= 6
               && par.mfx.GopRefDist < 2) ||
              (hw >= MFX_HW_ICL &&
-              (fcc == MFX_FOURCC_AYUV || fcc == MFX_FOURCC_XYUV
+              (fcc == MFX_FOURCC_AYUV
 #if (MFX_VERSION >= 1027)
                || fcc == MFX_FOURCC_Y410
 #endif
@@ -2597,21 +2597,19 @@ public:
             {
                 {
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV444)
-                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4
-                    , MFX_FOURCC_A2RGB10, MFX_FOURCC_XYUV}
+                    , {MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_RGB4, MFX_FOURCC_A2RGB10}
                 }
                 ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV422)
                     , {MFX_FOURCC_YUY2, MFX_FOURCC_Y210, MFX_FOURCC_P210
-                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_XYUV
+                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410
                     , MFX_FOURCC_RGB4, MFX_FOURCC_A2RGB10}
                 }
                 ,{
                     mfxU16(1 + MFX_CHROMAFORMAT_YUV420)
                     , {MFX_FOURCC_NV12, MFX_FOURCC_P010, MFX_FOURCC_RGB4
                     , MFX_FOURCC_YUY2, MFX_FOURCC_P210, MFX_FOURCC_Y210
-                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10
-                    , MFX_FOURCC_XYUV}
+                    , MFX_FOURCC_AYUV, MFX_FOURCC_Y410, MFX_FOURCC_A2RGB10}
                 }
             },
             //10
@@ -2785,7 +2783,6 @@ public:
 const std::map<mfxU32, std::array<mfxU32, 3>> CheckAndFix::FourCCPar =
 {
     {mfxU32(MFX_FOURCC_AYUV),       {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_ICL) }}
-    , {mfxU32(MFX_FOURCC_XYUV),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_ICL) }}
     , {mfxU32(MFX_FOURCC_RGB4),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 8,  mfxU32(MFX_HW_SCL) }}
     , {mfxU32(MFX_FOURCC_A2RGB10),  {mfxU32(MFX_CHROMAFORMAT_YUV444), 10, mfxU32(MFX_HW_ICL) }}
     , {mfxU32(MFX_FOURCC_Y410),     {mfxU32(MFX_CHROMAFORMAT_YUV444), 10, mfxU32(MFX_HW_ICL) }}

@@ -482,7 +482,6 @@ mfxU16 GetChromaFormat(mfxU32 fourcc)
     case MFX_FOURCC_P010:
         return MFX_CHROMAFORMAT_YUV420;
     case MFX_FOURCC_AYUV:
-    case MFX_FOURCC_XYUV:
 #if (MFX_VERSION >= 1027)
     case MFX_FOURCC_Y410:
 #endif
@@ -538,7 +537,6 @@ bool CheckChromaFormat(mfxU16 format, mfxU32 fourcc)
 bool CheckFourcc(mfxU32 fourcc, ENCODE_CAPS_VP9 const &caps)
 {
     return fourcc == MFX_FOURCC_NV12 || (fourcc == MFX_FOURCC_AYUV && caps.YUV444ReconSupport)  // 8 bit
-        || (fourcc == MFX_FOURCC_XYUV && caps.YUV444ReconSupport)// 8 bit
         || (caps.MaxEncodedBitDepth > 0 && (fourcc == MFX_FOURCC_P010  // 10 bit
 #if (MFX_VERSION >= 1027)
             || (fourcc == MFX_FOURCC_Y410 && caps.YUV444ReconSupport)
