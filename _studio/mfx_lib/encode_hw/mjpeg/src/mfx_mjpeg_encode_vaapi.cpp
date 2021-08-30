@@ -120,45 +120,39 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     m_caps.SampleBitDepth   = 8;
 
-    VAConfigAttrib attrib;
+    std::map<VAConfigAttribType, int> attrib_map;
 
-    attrib.type = VAConfigAttribEncJPEG;
+    VAConfigAttribType attrib_types[] = {
+        VAConfigAttribEncJPEG,
+        VAConfigAttribMaxPictureWidth,
+        VAConfigAttribMaxPictureHeight,
+        VAConfigAttribContextPriority
+    };
+
+    std::vector<VAConfigAttrib> attrib;
+    attrib.reserve(sizeof(attrib_types) / sizeof(attrib_types[0]));
+    for (int i = 0; i < sizeof(attrib_types) / sizeof(attrib_types[0]); i++)
+    {
+        attrib.push_back(VAConfigAttrib{attrib_types[i], 0});
+        attrib_map[attrib_types[i]] = i;
+    }
+
     vaSts = vaGetConfigAttributes(m_vaDisplay,
                           VAProfileJPEGBaseline,
                           VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
+                          attrib.data(), attrib.size());
+
     VAConfigAttribValEncJPEG encAttribVal;
-    encAttribVal.value = attrib.value;
-    m_caps.MaxNumComponent = encAttribVal.bits.max_num_components;
-    m_caps.MaxNumScan = encAttribVal.bits.max_num_scans;
-    m_caps.MaxNumHuffTable = encAttribVal.bits.max_num_huffman_tables;
+    encAttribVal.value = attrib[attrib_map[VAConfigAttribEncJPEG]].value;
+    m_caps.MaxNumComponent  = encAttribVal.bits.max_num_components;
+    m_caps.MaxNumScan       = encAttribVal.bits.max_num_scans;
+    m_caps.MaxNumHuffTable  = encAttribVal.bits.max_num_huffman_tables;
     m_caps.MaxNumQuantTable = encAttribVal.bits.max_num_quantization_tables;
+    m_caps.MaxPicWidth      = attrib[attrib_map[VAConfigAttribMaxPictureWidth]].value;
+    m_caps.MaxPicHeight     = attrib[attrib_map[VAConfigAttribMaxPictureHeight]].value;
 
-    attrib.type = VAConfigAttribMaxPictureWidth;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    m_caps.MaxPicWidth      = attrib.value;
-
-    attrib.type = VAConfigAttribMaxPictureHeight;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    m_caps.MaxPicHeight     = attrib.value;
-
-    attrib.type = VAConfigAttribContextPriority;
-    vaSts = vaGetConfigAttributes(m_vaDisplay,
-                          VAProfileJPEGBaseline,
-                          VAEntrypointEncPicture,
-                          &attrib, 1);
-    MFX_CHECK_WITH_ASSERT(VA_STATUS_SUCCESS == vaSts, MFX_ERR_DEVICE_FAILED);
-    if(attrib.value != VA_ATTRIB_NOT_SUPPORTED)
-        m_MaxContextPriority = attrib.value;
+    if(attrib[attrib_map[VAConfigAttribContextPriority]].value != VA_ATTRIB_NOT_SUPPORTED)
+        m_MaxContextPriority = attrib[attrib_map[VAConfigAttribContextPriority]].value;
 
     return MFX_ERR_NONE;
 }
