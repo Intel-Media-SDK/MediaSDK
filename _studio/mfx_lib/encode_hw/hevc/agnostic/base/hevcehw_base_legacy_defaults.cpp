@@ -1069,7 +1069,7 @@ public:
         mfxU32 gopOptFlag = par.mvp.mfx.GopOptFlag;
         mfxU32 gopPicSize = par.mvp.mfx.GopPicSize;
         mfxU32 gopRefDist = par.mvp.mfx.GopRefDist;
-        mfxU32 idrPicDist = gopPicSize * (par.mvp.mfx.IdrInterval);
+        mfxU32 idrPicDist = gopPicSize * (par.mvp.mfx.IdrInterval + 1);
 
         //infinite GOP
         SetIf(idrPicDist, gopPicSize == 0xffff, 0xffffffff);
