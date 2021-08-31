@@ -82,10 +82,11 @@ TEST_P(DispatcherLibsTestParametrized, ShouldEnumerateCorrectLibNames)
 #if defined(__i386__)
     const std::string LIBMFXSW("libmfxsw32.so.1");
     const std::string LIBMFXHW("libmfxhw32.so.1");
+    const std::string ONEVPLRT("libmfx-gen.so.1.2");
 #elif defined(__x86_64__)
     const std::string LIBMFXSW("libmfxsw64.so.1");
     const std::string LIBMFXHW("libmfxhw64.so.1");
-    const std::string ONEVPLRT("libmfx-gen.so.1");
+    const std::string ONEVPLRT("libmfx-gen.so.1.2");
 #endif
 
     std::string modules_dir(MFX_MODULES_DIR);
