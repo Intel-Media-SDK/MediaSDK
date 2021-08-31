@@ -131,7 +131,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
 
     std::vector<VAConfigAttrib> attrib;
     attrib.reserve(sizeof(attrib_types) / sizeof(attrib_types[0]));
-    for (int i = 0; i < sizeof(attrib_types) / sizeof(attrib_types[0]); i++)
+    for (size_t i = 0; i < sizeof(attrib_types) / sizeof(attrib_types[0]); i++)
     {
         attrib.push_back(VAConfigAttrib{attrib_types[i], 0});
         attrib_map[attrib_types[i]] = i;
@@ -143,7 +143,7 @@ mfxStatus VAAPIEncoder::CreateAuxilliaryDevice(
                           attrib.data(), attrib.size());
 
     VAConfigAttribValEncJPEG encAttribVal;
-    encAttribVal.value = attrib[attrib_map[VAConfigAttribEncJPEG]].value;
+    encAttribVal.value      = attrib[attrib_map[VAConfigAttribEncJPEG]].value;
     m_caps.MaxNumComponent  = encAttribVal.bits.max_num_components;
     m_caps.MaxNumScan       = encAttribVal.bits.max_num_scans;
     m_caps.MaxNumHuffTable  = encAttribVal.bits.max_num_huffman_tables;
