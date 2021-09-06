@@ -1629,8 +1629,11 @@ mfxStatus CEncodingPipeline::GetImpl(const sInputParams & params, mfxIMPL & impl
 
     // If d3d11 surfaces are used ask the library to run acceleration through D3D11
     // feature may be unsupported due to OS or MSDK API version
-    if (D3D11_MEMORY == params.memType)
+    // prefer d3d11 by default
+#if D3D_SURFACES_SUPPORT
+    if (D3D9_MEMORY != params.memType)
         impl |= MFX_IMPL_VIA_D3D11;
+#endif
 
     return MFX_ERR_NONE;
 }
@@ -2802,7 +2805,7 @@ void CEncodingPipeline::PrintInfo()
 #if defined(_WIN32) || defined(_WIN64)
         m_memType == D3D9_MEMORY  ? MSDK_STRING("d3d")
 #else
-        m_memType == D3D9_MEMORY  ? MSDK_STRING("vaapi")
+        m_memType == VAAPI_MEMORY  ? MSDK_STRING("vaapi")
 #endif
         : (m_memType == D3D11_MEMORY ? MSDK_STRING("d3d11")
         : MSDK_STRING("system"));

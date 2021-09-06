@@ -194,6 +194,7 @@ void PrintHelp(msdk_char *strAppName, const msdk_char *strErrorMessage, ...)
     msdk_printf(MSDK_STRING("Example: %s h265 -i InputYUVFile -o OutputEncodedFile -w width -h height -hw -p 2fca99749fdb49aeb121a5b63ef568f7\n"), strAppName);
     msdk_printf(MSDK_STRING("   [-preset <default,dss,conference,gaming>] - Use particular preset for encoding parameters\n"));
     msdk_printf(MSDK_STRING("   [-pp] - Print preset parameters\n"));
+    msdk_printf(MSDK_STRING("   [-sys] - work with linear buffer in system memory\n"));
 #if D3D_SURFACES_SUPPORT
     msdk_printf(MSDK_STRING("   [-d3d] - work with d3d surfaces\n"));
     msdk_printf(MSDK_STRING("   [-d3d11] - work with d3d11 surfaces\n"));
@@ -242,6 +243,16 @@ mfxStatus ParseAdditionalParams(msdk_char *strInput[], mfxU8 nArgNum, mfxU8& i, 
             pParams->nAvcTemporalLayers[j] = arr[j];
         }
         i += 1;
+    }
+    else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-u")))
+    {
+        VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
+        pParams->nTargetUsage = StrToTargetUsage(strInput[++i]);
+        if (!pParams->nTargetUsage)
+        {
+            msdk_printf(MSDK_STRING("error: wrong '-u' parameter. Balanced will be used.\n"));
+            pParams->nTargetUsage = MFX_TARGETUSAGE_BALANCED;
+        }
     }
     else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-tcbrctestfile")))
     {
@@ -752,7 +763,10 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->QPFileMode = true;
             pParams->strQPFilePath = strInput[++i];
         }
- 
+        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-sys")))
+        {
+            pParams->memType = SYSTEM_MEMORY;
+        }
 #if D3D_SURFACES_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-d3d")))
         {
@@ -766,7 +780,7 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
 #ifdef LIBVA_SUPPORT
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-vaapi")))
         {
-            pParams->memType = D3D9_MEMORY;
+            pParams->memType = VAAPI_MEMORY;
         }
 #endif
         else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-async")))
@@ -1383,16 +1397,6 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
             pParams->isV4L2InputEnabled = true;
         }
 #endif
-        else if (0 == msdk_strcmp(strInput[i], MSDK_STRING("-u")))
-        {
-            VAL_CHECK(i + 1 >= nArgNum, i, strInput[i]);
-            pParams->nTargetUsage = StrToTargetUsage(strInput[++i]);
-            if (!pParams->nTargetUsage)
-            {
-                msdk_printf(MSDK_STRING("error: wrong '-u' parameter. Balanced will be used.\n"));
-                pParams->nTargetUsage = MFX_TARGETUSAGE_BALANCED;
-            }
-        }
         else
         {
             mfxStatus sts = ParseAdditionalParams(strInput, nArgNum, i, pParams);
@@ -1403,6 +1407,16 @@ mfxStatus ParseInputString(msdk_char* strInput[], mfxU8 nArgNum, sInputParams* p
                 return MFX_ERR_UNSUPPORTED;
             }
         }
+    }
+
+    if(!pParams->memType) {
+        pParams->memType = pParams->bUseHWLib ?
+#if defined(_WIN32) || defined(_WIN64)
+        D3D11_MEMORY
+#else
+        VAAPI_MEMORY
+#endif
+        : SYSTEM_MEMORY;
     }
 
 #if defined (ENABLE_V4L2_SUPPORT)

@@ -72,9 +72,10 @@ enum {
 };
 
 enum MemType {
-    SYSTEM_MEMORY = 0x00,
-    D3D9_MEMORY   = 0x01,
-    D3D11_MEMORY  = 0x02,
+    SYSTEM_MEMORY = 0x01,
+    D3D9_MEMORY   = 0x02,
+    D3D11_MEMORY  = 0x03,
+    VAAPI_MEMORY  = D3D11_MEMORY
 };
 
 struct sInputParams
