@@ -97,12 +97,7 @@ static
     pParams->frameInfoOut.clear(); pParams->frameInfoOut.push_back( *pDefaultFiltersParam->pOwnFrameInfo );
 
     pParams->IOPattern    = MFX_IOPATTERN_IN_SYSTEM_MEMORY|MFX_IOPATTERN_OUT_SYSTEM_MEMORY;
-    pParams->ImpLib       = MFX_IMPL_HARDWARE |
-#ifdef LIBVA_SUPPORT
-        MFX_IMPL_VIA_VAAPI;
-#else
-        MFX_IMPL_VIA_D3D9;
-#endif
+    pParams->ImpLib       = MFX_IMPL_HARDWARE;
     pParams->asyncNum     = 1;
     pParams->bPerf       = false;
     pParams->isOutput     = false;
