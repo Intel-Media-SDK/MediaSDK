@@ -927,8 +927,10 @@ mfxStatus VideoDECODEH264::QueryIOSurf(VideoCORE *core, mfxVideoParam *par, mfxF
         // need to substitute output format
         // number of surfaces is same
         request->Info.FourCC = videoProcessing->Out.FourCC;
-
         request->Info.ChromaFormat = videoProcessing->Out.ChromaFormat;
+        sts = UpdateCscOutputFormat(par, request);
+        MFX_CHECK_STS(sts);
+
         request->Info.Width = videoProcessing->Out.Width;
         request->Info.Height = videoProcessing->Out.Height;
         request->Info.CropX = videoProcessing->Out.CropX;
@@ -1187,9 +1189,20 @@ mfxStatus VideoDECODEH264::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
             return MFX_ERR_UNDEFINED_BEHAVIOR;
     }
 
+    bool isVideoProcCscEnabled = false;
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+    mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+    if (videoProcessing && videoProcessing->Out.FourCC != m_vPar.mfx.FrameInfo.FourCC)
+    {
+        isVideoProcCscEnabled = true;
+    }
+#endif
     sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_AVC);
-    if (sts != MFX_ERR_NONE)
+    //Decode CSC support more FourCC format, already checked in Init, skip the check return;
+    if(!isVideoProcCscEnabled && sts != MFX_ERR_NONE)
+    {
         return MFX_ERR_UNSUPPORTED;
+    }
 
     sts = CheckFrameData(surface_work);
     if (sts != MFX_ERR_NONE)
