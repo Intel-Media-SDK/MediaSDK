@@ -1151,6 +1151,16 @@ mfxStatus VAAPIVideoProcessing::Execute(mfxExecuteParams *pParams)
         ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_FULL);
         break;
     case MFX_FOURCC_NV12:
+        m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
+        if(refFourcc == MFX_FOURCC_RGBP)
+        {
+            ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_FULL);
+        }
+        else
+        {
+            ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_REDUCED);
+        }
+        break;
     default:
         m_pipelineParam[0].output_color_standard = VAProcColorStandardBT601;
         ENABLE_VPP_VIDEO_SIGNAL(m_pipelineParam[0].output_color_properties.color_range = VA_SOURCE_RANGE_REDUCED);

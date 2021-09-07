@@ -285,6 +285,8 @@ namespace TranscodingSample
         mfxU16 nQPI;
         mfxU16 nQPP;
         mfxU16 nQPB;
+        mfxU16 nMinQP;
+        mfxU16 nMaxQP;
         bool bDisableQPOffset;
         mfxU16 QVBRQuality;
         mfxU16 ICQQuality;
