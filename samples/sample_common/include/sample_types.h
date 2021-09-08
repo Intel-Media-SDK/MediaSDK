@@ -38,7 +38,10 @@ typedef std::basic_fstream<msdk_char, std::char_traits<msdk_char> > msdk_fstream
 #define MSDK_MAKE_BYTE_STRING(src,dest) \
     {\
         std::wstring wstr(src);\
-        std::string str(wstr.begin(), wstr.end());\
+        std::string str(wstr.length(), 0);\
+        std::transform(wstr.begin(), wstr.end(), str.begin(), [](wchar_t c) {\
+            return (char)c;\
+        });\
         strcpy_s(dest, str.c_str());\
     }
 #else
