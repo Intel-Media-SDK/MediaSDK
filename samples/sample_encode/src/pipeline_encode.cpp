@@ -623,7 +623,9 @@ mfxStatus CEncodingPipeline::InitMfxEncParams(sInputParams *pInParams)
 
             // Converting to byte-string if necessary
             msdk_tstring tstr(pInParams->uSEI+index);
-            msg = std::string(tstr.begin(), tstr.end());
+            std::transform(tstr.begin(), tstr.end(), std::back_inserter(msg), [](msdk_char c) {
+                return (char)c;
+            });
         }
         size = (mfxU16)uuid.size();
         size += (mfxU16)msg.length();
