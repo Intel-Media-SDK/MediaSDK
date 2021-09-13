@@ -343,7 +343,7 @@ mfxStatus UpdateCscOutputFormat(mfxVideoParam *par, mfxFrameAllocRequest *reques
             request->Info.Shift = 0;
             break;
         default:
-            return MFX_ERR_INVALID_VIDEO_PARAM;
+            return MFX_ERR_UNSUPPORTED;
         }
 
         request->Info.BitDepthChroma = request->Info.BitDepthLuma;
