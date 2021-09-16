@@ -61,6 +61,8 @@ int32_t H265HeadersBitstream::sei_message(const HeaderSet<H265SeqParamSet> & sps
         /* fixed-pattern bit string using 8 bits written equal to 0xFF */
         GetNBits(m_pbs, m_bitOffset, 8, code);
         payloadSize += 255;
+        if (CheckBSLeft())
+            throw h265_exception(UMC::UMC_ERR_INVALID_STREAM);
         PeakNextBits(m_pbs, m_bitOffset, 8, code);
     }
 
