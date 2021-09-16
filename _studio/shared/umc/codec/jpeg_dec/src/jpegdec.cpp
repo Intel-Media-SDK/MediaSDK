@@ -2365,6 +2365,10 @@ JERRCODE CJPEGDecoder::DecodeHuffmanMCURowBL(int16_t* pMCUBuf, uint32_t colMCU, 
     for(n = m_curr_scan->first_comp; n < m_curr_scan->first_comp + m_curr_scan->ncomps; n++)
     {
       int16_t*                lastDC = &m_ccomp[n].m_lastDC;
+      if (m_ccomp[n].m_dc_selector >= MAX_HUFF_TABLES)
+      {
+          return JPEG_ERR_PARAMS;
+      }
       IppiDecodeHuffmanSpec* dctbl  = m_dctbl[m_ccomp[n].m_dc_selector];
       IppiDecodeHuffmanSpec* actbl  = m_actbl[m_ccomp[n].m_ac_selector];
 
