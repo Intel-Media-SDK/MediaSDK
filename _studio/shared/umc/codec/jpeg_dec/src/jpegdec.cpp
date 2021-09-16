@@ -2533,6 +2533,10 @@ JERRCODE CJPEGDecoder::ReconstructMCURowBL8x8_NxN(int16_t* pMCUBuf,
       lnz       = m_ccomp[c].GetLNZBufferPtr(thread_id);
       curr_lnz  = mcu_col * curr_comp->m_lnz_ds;
 
+      if (curr_comp->m_q_selector >= MAX_QUANT_TABLES)
+      {
+        return JPEG_ERR_PARAMS;
+      }
       uint16_t* qtbl = m_qntbl[curr_comp->m_q_selector];
       if(!qtbl)
       {
