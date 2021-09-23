@@ -164,7 +164,7 @@ void    GeneralAllocator::StoreFrameMids(bool isD3DFrames, mfxFrameAllocResponse
 bool GeneralAllocator::isD3DMid(mfxHDL mid)
 {
     std::map<mfxHDL, bool>::iterator it;
-    it = m_Mids.find(mid);
+    it = m_Mids.find(MFXReadWriteMid(mid).raw());
     if (it == m_Mids.end())
         return false; // sys mem allocator will check validity of mid further
     else
