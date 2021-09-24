@@ -1054,7 +1054,7 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         return sts;
     UMC::Status umcRes = UMC::UMC_OK;
 
-    *surface_out = 0;
+    *surface_out = nullptr;
 
     if (m_isOpaq)
     {
@@ -1069,10 +1069,27 @@ mfxStatus VideoDECODEH265::DecodeFrameCheck(mfxBitstream *bs, mfxFrameSurface1 *
         MFX_CHECK(surface_work, MFX_ERR_UNDEFINED_BEHAVIOR);
     }
 
-    sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC, m_platform != MFX_PLATFORM_SOFTWARE);
-    MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_INVALID_VIDEO_PARAM);
+    if (surface_work)
+    {
+        bool isVideoProcCscEnabled = false;
+#ifndef MFX_DEC_VIDEO_POSTPROCESS_DISABLE
+        mfxExtDecVideoProcessing* videoProcessing = (mfxExtDecVideoProcessing*)GetExtendedBuffer(m_vInitPar.ExtParam, m_vInitPar.NumExtParam, MFX_EXTBUFF_DEC_VIDEO_PROCESSING);
+        if (videoProcessing && videoProcessing->Out.FourCC != m_vPar.mfx.FrameInfo.FourCC)
+        {
+            isVideoProcCscEnabled = true;
+        }
+#endif
+        sts = CheckFrameInfoCodecs(&surface_work->Info, MFX_CODEC_HEVC, m_platform != MFX_PLATFORM_SOFTWARE);
+        //Decode CSC support more FourCC format, already checked in Init, skip the check return;
+        if(!isVideoProcCscEnabled)
+        {
+            MFX_CHECK(sts == MFX_ERR_NONE, MFX_ERR_UNSUPPORTED);
+        }
 
-    sts = CheckFrameData(surface_work);
+        sts = CheckFrameData(surface_work);
+        MFX_CHECK_STS(sts);
+    }
+
 
     sts = m_FrameAllocator->SetCurrentMFXSurface(surface_work, m_isOpaq);
     MFX_CHECK_STS(sts);
