@@ -60,6 +60,9 @@ Wayland::Wayland()
     , m_shell_surface(NULL)
     , m_callback(NULL)
     , m_event_queue(NULL)
+#if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
+    , m_dmabuf(NULL)
+#endif
     , m_pending_frame(0)
     , m_shm_pool(NULL)
     , m_display_fd(-1)
@@ -418,6 +421,13 @@ void Wayland::RegistryGlobal(struct wl_registry *registry
             , 2));
             wl_drm_add_listener(m_drm, &drm_listener, this);
     }
+#if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
+    else if(0 == strcmp(interface, "zwp_linux_dmabuf_v1"))
+        m_dmabuf = static_cast<zwp_linux_dmabuf_v1*>(wl_registry_bind(registry
+            , name
+            , &zwp_linux_dmabuf_v1_interface
+            , 3));
+#endif
 }
 
 void Wayland::DrmHandleDevice(const char *name)
