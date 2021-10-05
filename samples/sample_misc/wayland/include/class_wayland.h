@@ -33,6 +33,9 @@ extern "C"
 #include "mfxstructures.h"
 #include "mfx_buffering.h"
 #include "sample_defs.h"
+#if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
+#include "linux-dmabuf-unstable-v1.h"
+#endif
 
 typedef struct buffer wld_buffer;
 
@@ -90,6 +93,9 @@ class Wayland: public CBuffering {
         struct wl_surface * GetSurface() { return m_surface; }
         struct wl_shell_surface * GetShellSurface() { return m_shell_surface; }
         struct wl_callback * GetCallback() { return m_callback; }
+#if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
+	struct zwp_linux_dmabuf_v1 * GetDMABuf() { return m_dmabuf; }
+#endif
         void SetCompositor(struct wl_compositor *compositor)
         {
             m_compositor = compositor;
@@ -106,6 +112,12 @@ class Wayland: public CBuffering {
         {
             m_drm = drm;
         }
+#if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
+	void SetDMABuf(struct zwp_linux_dmabuf_v1 *dmabuf)
+        {
+            m_dmabuf = dmabuf;
+        }
+#endif
         void DrmHandleDevice(const char* device);
         void DrmHandleAuthenticated();
         void RegistryGlobal(struct wl_registry *registry
@@ -139,6 +151,9 @@ class Wayland: public CBuffering {
         struct wl_shell_surface *m_shell_surface;
         struct wl_callback *m_callback;
         struct wl_event_queue *m_event_queue;
+#if defined(WAYLAND_LINUX_DMABUF_SUPPORT)
+	struct zwp_linux_dmabuf_v1 * m_dmabuf;
+#endif
         volatile int m_pending_frame;
         struct ShmPool *m_shm_pool;
         int m_display_fd;
