@@ -164,7 +164,7 @@ bool DriverStoreLoader::GetDriverStorePath(wchar_t * path, DWORD dwPathSize, mfx
 
             DWORD pathSize = dwPathSize;
 
-            nError = RegGetValueW(hKey_sw, NULL, L"DriverStorePathForMediaSDK", RRF_RT_ANY, NULL, (LPBYTE)path, &pathSize);
+            nError = RegGetValueW(hKey_sw, NULL, L"DriverStorePathForMediaSDK", RRF_RT_REG_SZ, NULL, (LPBYTE)path, &pathSize);
 
             RegCloseKey(hKey_sw);
 
