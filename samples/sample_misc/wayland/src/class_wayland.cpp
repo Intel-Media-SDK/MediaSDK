@@ -61,6 +61,7 @@ Wayland::Wayland()
     , m_shell_surface(NULL)
     , m_callback(NULL)
     , m_event_queue(NULL)
+    , m_dmabuf(NULL)
     , m_pending_frame(0)
     , m_shm_pool(NULL)
     , m_display_fd(-1)
@@ -69,7 +70,6 @@ Wayland::Wayland()
     , m_device_name(NULL)
     , m_x(0), m_y(0)
     , m_perf_mode(false)
-    , m_dmabuf(NULL)
 {
     std::memset(&m_poll, 0, sizeof(m_poll));
 }
