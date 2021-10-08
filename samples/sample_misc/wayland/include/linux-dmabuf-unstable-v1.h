@@ -271,17 +271,6 @@ struct zwp_linux_dmabuf_v1_listener {
 			 uint32_t modifier_lo);
 };
 
-/**
- * @ingroup iface_zwp_linux_dmabuf_v1
- */
-static inline int
-zwp_linux_dmabuf_v1_add_listener(struct zwp_linux_dmabuf_v1 *zwp_linux_dmabuf_v1,
-				 const struct zwp_linux_dmabuf_v1_listener *listener, void *data)
-{
-	return wl_proxy_add_listener((struct wl_proxy *) zwp_linux_dmabuf_v1,
-				     (void (**)(void)) listener, data);
-}
-
 #define ZWP_LINUX_DMABUF_V1_DESTROY 0
 #define ZWP_LINUX_DMABUF_V1_CREATE_PARAMS 1
 
@@ -302,26 +291,6 @@ zwp_linux_dmabuf_v1_add_listener(struct zwp_linux_dmabuf_v1 *zwp_linux_dmabuf_v1
  * @ingroup iface_zwp_linux_dmabuf_v1
  */
 #define ZWP_LINUX_DMABUF_V1_CREATE_PARAMS_SINCE_VERSION 1
-
-/** @ingroup iface_zwp_linux_dmabuf_v1 */
-static inline void
-zwp_linux_dmabuf_v1_set_user_data(struct zwp_linux_dmabuf_v1 *zwp_linux_dmabuf_v1, void *user_data)
-{
-	wl_proxy_set_user_data((struct wl_proxy *) zwp_linux_dmabuf_v1, user_data);
-}
-
-/** @ingroup iface_zwp_linux_dmabuf_v1 */
-static inline void *
-zwp_linux_dmabuf_v1_get_user_data(struct zwp_linux_dmabuf_v1 *zwp_linux_dmabuf_v1)
-{
-	return wl_proxy_get_user_data((struct wl_proxy *) zwp_linux_dmabuf_v1);
-}
-
-static inline uint32_t
-zwp_linux_dmabuf_v1_get_version(struct zwp_linux_dmabuf_v1 *zwp_linux_dmabuf_v1)
-{
-	return wl_proxy_get_version((struct wl_proxy *) zwp_linux_dmabuf_v1);
-}
 
 /**
  * @ingroup iface_zwp_linux_dmabuf_v1
@@ -446,17 +415,6 @@ struct zwp_linux_buffer_params_v1_listener {
 		       struct zwp_linux_buffer_params_v1 *zwp_linux_buffer_params_v1);
 };
 
-/**
- * @ingroup iface_zwp_linux_buffer_params_v1
- */
-static inline int
-zwp_linux_buffer_params_v1_add_listener(struct zwp_linux_buffer_params_v1 *zwp_linux_buffer_params_v1,
-					const struct zwp_linux_buffer_params_v1_listener *listener, void *data)
-{
-	return wl_proxy_add_listener((struct wl_proxy *) zwp_linux_buffer_params_v1,
-				     (void (**)(void)) listener, data);
-}
-
 #define ZWP_LINUX_BUFFER_PARAMS_V1_DESTROY 0
 #define ZWP_LINUX_BUFFER_PARAMS_V1_ADD 1
 #define ZWP_LINUX_BUFFER_PARAMS_V1_CREATE 2
@@ -487,26 +445,6 @@ zwp_linux_buffer_params_v1_add_listener(struct zwp_linux_buffer_params_v1 *zwp_l
  * @ingroup iface_zwp_linux_buffer_params_v1
  */
 #define ZWP_LINUX_BUFFER_PARAMS_V1_CREATE_IMMED_SINCE_VERSION 2
-
-/** @ingroup iface_zwp_linux_buffer_params_v1 */
-static inline void
-zwp_linux_buffer_params_v1_set_user_data(struct zwp_linux_buffer_params_v1 *zwp_linux_buffer_params_v1, void *user_data)
-{
-	wl_proxy_set_user_data((struct wl_proxy *) zwp_linux_buffer_params_v1, user_data);
-}
-
-/** @ingroup iface_zwp_linux_buffer_params_v1 */
-static inline void *
-zwp_linux_buffer_params_v1_get_user_data(struct zwp_linux_buffer_params_v1 *zwp_linux_buffer_params_v1)
-{
-	return wl_proxy_get_user_data((struct wl_proxy *) zwp_linux_buffer_params_v1);
-}
-
-static inline uint32_t
-zwp_linux_buffer_params_v1_get_version(struct zwp_linux_buffer_params_v1 *zwp_linux_buffer_params_v1)
-{
-	return wl_proxy_get_version((struct wl_proxy *) zwp_linux_buffer_params_v1);
-}
 
 /**
  * @ingroup iface_zwp_linux_buffer_params_v1
