@@ -91,7 +91,7 @@ class Wayland: public CBuffering {
         struct wl_surface * GetSurface() { return m_surface; }
         struct wl_shell_surface * GetShellSurface() { return m_shell_surface; }
         struct wl_callback * GetCallback() { return m_callback; }
-	struct zwp_linux_dmabuf_v1 * GetDMABuf() { return m_dmabuf; }
+        struct zwp_linux_dmabuf_v1 * GetDMABuf() { return m_dmabuf; }
         void SetCompositor(struct wl_compositor *compositor)
         {
             m_compositor = compositor;
@@ -108,7 +108,7 @@ class Wayland: public CBuffering {
         {
             m_drm = drm;
         }
-	void SetDMABuf(struct zwp_linux_dmabuf_v1 *dmabuf)
+        void SetDMABuf(struct zwp_linux_dmabuf_v1 *dmabuf)
         {
             m_dmabuf = dmabuf;
         }
@@ -145,7 +145,7 @@ class Wayland: public CBuffering {
         struct wl_shell_surface *m_shell_surface;
         struct wl_callback *m_callback;
         struct wl_event_queue *m_event_queue;
-	struct zwp_linux_dmabuf_v1 * m_dmabuf;
+        struct zwp_linux_dmabuf_v1 * m_dmabuf;
         volatile int m_pending_frame;
         struct ShmPool *m_shm_pool;
         int m_display_fd;
