@@ -134,8 +134,9 @@ void TranscodingSample::PrintHelp()
     msdk_printf(MSDK_STRING("  -i::i420|nv12 <file-name>\n"));
     msdk_printf(MSDK_STRING("                 Set raw input file and color format\n"));
     msdk_printf(MSDK_STRING("  -i::rgb4_frame Set input rgb4 file for compositon. File should contain just one single frame (-vpp_comp_src_h and -vpp_comp_src_w should be specified as well).\n"));
-    msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>\n"));
+    msdk_printf(MSDK_STRING("  -o::h265|h264|mpeg2|mvc|jpeg|vp9|raw <file-name>|null\n"));
     msdk_printf(MSDK_STRING("                Set output file and encoder type\n"));
+    msdk_printf(MSDK_STRING("                \'null\' keyword as file-name disables output file writing \n"));
     msdk_printf(MSDK_STRING("  -sw|-hw|-hw_d3d11|-hw_d3d9\n"));
     msdk_printf(MSDK_STRING("                SDK implementation to use: \n"));
     msdk_printf(MSDK_STRING("                      -hw - platform-specific on default display adapter (default)\n"));
@@ -1676,6 +1677,7 @@ mfxStatus CmdProcessor::ParseParamsForOneSession(mfxU32 argc, msdk_char *argv[])
             {
                 return MFX_ERR_UNSUPPORTED;
             }
+
             VAL_CHECK(i+1 == argc, i, argv[i]);
             i++;
             SIZE_CHECK((msdk_strlen(argv[i])+1) > MSDK_ARRAY_LEN(InputParams.strDstFile));
