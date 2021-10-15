@@ -619,6 +619,7 @@ namespace TranscodingSample
         virtual mfxStatus ProcessOutputBitstream(mfxBitstreamWrapper* pBitstream);
         virtual mfxStatus ResetInput();
         virtual mfxStatus ResetOutput();
+        virtual bool      IsNulOutput();
 
     protected:
         std::unique_ptr<CSmplBitstreamReader> m_pFileReader;

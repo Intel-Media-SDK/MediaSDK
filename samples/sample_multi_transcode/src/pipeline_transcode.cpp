@@ -1999,37 +1999,40 @@ mfxStatus CTranscodingPipeline::Surface2BS(ExtendedSurface* pSurf,mfxBitstreamWr
         return MFX_ERR_MORE_DATA;
     }
 
-    if(pSurf->Syncp)
+    if (pSurf->Syncp)
     {
         sts = m_pmfxSession->SyncOperation(pSurf->Syncp, MSDK_WAIT_INTERVAL);
         HandlePossibleGpuHang(sts);
         MSDK_CHECK_ERR_NONE_STATUS(sts, MFX_ERR_ABORTED, "SyncOperation failed");
-        pSurf->Syncp=0;
+        pSurf->Syncp = 0;
 
-        //--- Copying data from surface to bitstream
-        sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
-        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
-
-        switch(fourCC)
+        if (!m_pBSProcessor->IsNulOutput())
         {
-        case 0: // Default value is MFX_FOURCC_I420
-        case MFX_FOURCC_I420:
-            sts = NV12asI420toBS(pSurf->pSurface, pBS);
-            break;
-        case MFX_FOURCC_NV12:
-            sts=NV12toBS(pSurf->pSurface,pBS);
-            break;
-        case MFX_FOURCC_RGB4:
-            sts=RGB4toBS(pSurf->pSurface,pBS);
-            break;
-        case MFX_FOURCC_YUY2:
-            sts=YUY2toBS(pSurf->pSurface,pBS);
-            break;
-        }
-        MSDK_CHECK_STATUS(sts, "<FourCC>toBS failed");
+            //--- Copying data from surface to bitstream
+            sts = m_pMFXAllocator->Lock(m_pMFXAllocator->pthis, pSurf->pSurface->Data.MemId, &pSurf->pSurface->Data);
+            MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Lock failed");
 
-        sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis,pSurf->pSurface->Data.MemId,&pSurf->pSurface->Data);
-        MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+            switch(fourCC)
+            {
+            case 0: // Default value is MFX_FOURCC_I420
+            case MFX_FOURCC_I420:
+                sts = NV12asI420toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_NV12:
+                sts=NV12toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_RGB4:
+                sts=RGB4toBS(pSurf->pSurface, pBS);
+                break;
+            case MFX_FOURCC_YUY2:
+                sts=YUY2toBS(pSurf->pSurface, pBS);
+                break;
+            }
+            MSDK_CHECK_STATUS(sts, "<FourCC>toBS failed");
+
+            sts = m_pMFXAllocator->Unlock(m_pMFXAllocator->pthis, pSurf->pSurface->Data.MemId, &pSurf->pSurface->Data);
+            MSDK_CHECK_STATUS(sts, "m_pMFXAllocator->Unlock failed");
+        }
     }
 
     return sts;
@@ -4859,6 +4862,11 @@ mfxStatus FileBitstreamProcessor::ResetOutput()
         m_pFileWriter->Reset();
     }
     return MFX_ERR_NONE;
+}
+
+bool FileBitstreamProcessor::IsNulOutput()
+{
+    return !m_pFileWriter.get();
 }
 
 void CTranscodingPipeline::ModifyParamsUsingPresets(sInputParams& params, mfxF64 fps, mfxU32 width, mfxU32 height)
